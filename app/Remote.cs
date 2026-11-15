@@ -484,10 +484,11 @@ namespace CapriDesktop
             return info;
         }
 
-        internal static string JobState(string id, string task, string state, int steps, long started, long ended, string ask, string re)
+        internal static string JobState(string id, string task, string state, int steps, long started, long ended, string ask, string re, string askId = null)
         {
             RemoteJson.Writer info = JobInfo(id, task, state, steps, started, ended).Text("type", "job.state");
             if (state == "asking") info.Text("ask", Clip(ask, 200));
+            if (state == "asking" && askId != null) info.Text("ask_id", askId);
             if (re != null) info.Text("re", re);
             return info.ToString();
         }

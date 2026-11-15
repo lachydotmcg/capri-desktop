@@ -563,13 +563,13 @@ namespace CapriDesktop
             return Resume(null, text);
         }
 
-        internal static string Answer(ComputerJob job, bool yes, Func<bool> current = null)
+        internal static string Answer(ComputerJob job, ComputerAction action, bool yes, Func<bool> current = null)
         {
             if (job == null) return null;
-            return Resume(job, yes ? "yes" : "no", current);
+            return Resume(job, yes ? "yes" : "no", current, action);
         }
 
-        private static string Resume(ComputerJob expected, string text, Func<bool> current = null)
+        private static string Resume(ComputerJob expected, string text, Func<bool> current = null, ComputerAction action = null)
         {
             ComputerJob job;
             long admitted;
@@ -578,6 +578,7 @@ namespace CapriDesktop
             {
                 job = pending;
                 if (job == null || expected != null && expected != job || job.Waiting == null) return null;
+                if (action != null && job.Waiting != action) return null;
                 pending = null; admitted = revocation;
             }
             if (Security.Declines(text)) { job.Waiting = null; Change(job, "stopped"); return Security.Left; }

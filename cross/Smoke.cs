@@ -8436,11 +8436,13 @@ namespace CapriDesktop
                 List<RemoteJson.Map> rows = new List<RemoteJson.Map>();
                 RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "asking") && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-held" && row.Is("done", true)); }, "the held job question");
                 all.AddRange(rows);
-                string held = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking").Text("id");
+                RemoteJson.Map heldQuestion = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking");
+                string held = heldQuestion.Text("id");
+                string heldAsk = heldQuestion.Text("ask_id");
                 if (runs != 0) throw new Exception("A held job ran before permission.");
                 RemoteJobModAnswer("yes");
                 RemoteJobModAnswer("no");
-                bridge.JobCommand(1, "job.answer", held, true);
+                bridge.JobCommand(1, "job.answer", held, true, heldAsk);
                 rows.Clear();
                 RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "done") && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re")); }, "the allowed job");
                 all.AddRange(rows);
@@ -8451,15 +8453,16 @@ namespace CapriDesktop
                 List<object> doneList = doneRecent == null ? null : doneRecent.Items("list");
                 if (doneList == null || doneList.Count == 0 || ((RemoteJson.Map)doneList[0]).Text("id") != held || ((RemoteJson.Map)doneList[0]).Text("state") != "done") throw new Exception("Recent did not put the completed job first.");
 
-                bridge.JobCommand(1, "job.answer", held, true);
+                bridge.JobCommand(1, "job.answer", held, true, heldAsk);
                 rows = bridge.DrainJobs(); all.AddRange(rows);
                 if (runs != 1 || !rows.Exists(row => row.Text("type") == "error" && row.Text("code") == "bad-message" && row.Text("re") == held)) throw new Exception("A repeated job answer was accepted.");
                 bridge.Send(0, "jobs-denied", "use the computer to fill the form");
                 rows.Clear();
                 RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "asking") && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-denied" && row.Is("done", true)); }, "another held job");
                 all.AddRange(rows);
-                held = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking").Text("id");
-                bridge.JobCommand(1, "job.answer", held, false);
+                heldQuestion = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking");
+                held = heldQuestion.Text("id");
+                bridge.JobCommand(1, "job.answer", held, false, heldQuestion.Text("ask_id"));
                 rows.Clear();
                 RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "chat.reply" && !row.ContainsKey("re")); }, "the denied job answer");
                 all.AddRange(rows);
@@ -8517,6 +8520,7 @@ namespace CapriDesktop
                 {
                     int entries = 0, inputs = 0;
                     ComputerAction heldAction = new ComputerAction { Action = "type", Text = secret, Label = secret, Risk = "send" };
+                    ComputerAction secondAction = new ComputerAction { Action = "click", Label = "Confirm purchase", Risk = "buy" };
                     ComputerJobs.TestRun = delegate(ComputerJob job, CancellationToken token)
                     {
                         Interlocked.Increment(ref entries);
@@ -8525,9 +8529,15 @@ namespace CapriDesktop
                             job.Waiting = heldAction; job.WaitingRisk = "send"; job.WaitingToggle = Security.Sends;
                             return "May I send this?";
                         }
-                        if (job.Approved != heldAction.ConsentKey) throw new Exception("The risk answer approved a different input.");
+                        ComputerAction action = inputs == 0 ? heldAction : secondAction;
+                        if (job.Approved != action.ConsentKey) throw new Exception("The risk answer approved a different input.");
                         Interlocked.Increment(ref inputs);
-                        ComputerJobs.Step(job, heldAction, false, false); ComputerJobs.Step(job, heldAction, true, false);
+                        ComputerJobs.Step(job, action, false, false); ComputerJobs.Step(job, action, true, false);
+                        if (inputs == 1)
+                        {
+                            job.Waiting = secondAction; job.WaitingRisk = "buy"; job.WaitingToggle = Security.Pays;
+                            return "May I pay for this?";
+                        }
                         job.SliceEnd = "done";
                         return "The fake send finished.";
                     };
@@ -8543,6 +8553,7 @@ namespace CapriDesktop
                     all.AddRange(rows);
                     RemoteJson.Map question = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking");
                     string riskId = question.Text("id");
+                    string riskAsk = question.Text("ask_id");
                     if (entries != 1 || inputs != 0 || question.Text("ask").IndexOf("send", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("A native risk ran before approval or lost its send question.");
                     if (answer == "yes")
                     {
@@ -8550,8 +8561,8 @@ namespace CapriDesktop
                         RemoteJobModAnswer("no");
                         bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"yes\":true}");
                         bridge.SendJobJson(1, "{\"type\":\"job.stop\",\"id\":\"bad id\"}");
-                        bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"id\":\"" + riskId + "\",\"yes\":\"true\"}");
-                        bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"id\":\"" + riskId + "\"}");
+                        bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"id\":\"" + riskId + "\",\"ask_id\":\"" + riskAsk + "\",\"yes\":\"true\"}");
+                        bridge.JobCommand(1, "job.answer", riskId, true);
                         rows.Clear();
                         RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Count(row => row.Text("type") == "error" && row.Text("code") == "bad-message") == 4; }, "malformed commands during a held risk");
                         all.AddRange(rows);
@@ -8560,7 +8571,25 @@ namespace CapriDesktop
                     }
 
                     if (answer == "stop") bridge.JobCommand(1, "job.stop", riskId);
-                    else bridge.JobCommand(1, "job.answer", riskId, answer == "yes");
+                    else bridge.JobCommand(1, "job.answer", riskId, answer == "yes", riskAsk);
+                    if (answer == "yes")
+                    {
+                        rows.Clear();
+                        RemoteBridgeWait(delegate
+                        {
+                            rows.AddRange(bridge.DrainJobs());
+                            return !SelfJobs.Active && rows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == riskId && row.Text("state") == "asking");
+                        }, "the next native risk question");
+                        all.AddRange(rows);
+                        string secondAsk = rows.Find(row => row.Text("type") == "job.state" && row.Text("id") == riskId && row.Text("state") == "asking").Text("ask_id");
+                        if (!RemoteMessages.IdOk(secondAsk) || riskAsk == secondAsk || inputs != 1) throw new Exception("The next risk reused its earlier approval.");
+                        bridge.JobCommand(0, "job.answer", riskId, true, riskAsk);
+                        rows.Clear();
+                        RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "error" && row.Text("code") == "bad-message" && row.Text("re") == riskId); }, "the stale answer during a new question");
+                        all.AddRange(rows);
+                        if (entries != 2 || inputs != 1) throw new Exception("An older answer entered the next risk.");
+                        bridge.JobCommand(1, "job.answer", riskId, true, secondAsk);
+                    }
                     rows.Clear();
                     RemoteBridgeWait(delegate
                     {
@@ -8569,12 +8598,12 @@ namespace CapriDesktop
                             && (answer == "stop" || rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re")));
                     }, "the native risk " + answer);
                     all.AddRange(rows);
-                    if (entries != (answer == "yes" ? 2 : 1) || inputs != (answer == "yes" ? 1 : 0)) throw new Exception("A native risk answer ran the held input the wrong number of times.");
+                    if (entries != (answer == "yes" ? 3 : 1) || inputs != (answer == "yes" ? 2 : 0)) throw new Exception("A native risk answer ran the held input the wrong number of times.");
                     bridge.JobCommand(0, "job.answer", riskId, true);
                     rows.Clear();
                     RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "error" && row.Text("code") == "bad-message" && row.Text("re") == riskId); }, "the obsolete native risk answer");
                     all.AddRange(rows);
-                    if (inputs != (answer == "yes" ? 1 : 0)) throw new Exception("A second native risk answer replayed input.");
+                    if (inputs != (answer == "yes" ? 2 : 0)) throw new Exception("A second native risk answer replayed input.");
                 }
                 Security.Set(Security.Sends, true);
                 int streams = 0;
@@ -8598,7 +8627,7 @@ namespace CapriDesktop
                     {
                         RemoteJson.Map question = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking");
                         if (question == null || streams != before || Hands.Streaming) throw new Exception("A Linux stream escaped its jobs permission.");
-                        bridge.JobCommand(1, "job.answer", question.Text("id"), true);
+                        bridge.JobCommand(1, "job.answer", question.Text("id"), true, question.Text("ask_id"));
                         rows.Clear();
                         RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re")); }, "the approved Linux stream");
                         all.AddRange(rows);
@@ -8751,13 +8780,15 @@ namespace CapriDesktop
                             && heldRows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == request && row.Is("done", true));
                     }, "the held job before " + end);
                     all.AddRange(heldRows);
-                    string heldId = heldRows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking").Text("id");
+                    RemoteJson.Map heldRow = heldRows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking");
+                    string heldId = heldRow.Text("id");
+                    string heldAskId = heldRow.Text("ask_id");
                     if (end == "revoke") pet.RevokeRemote(bridge.Phones[0].Id);
                     if (end == "left") bridge.Left(0);
                     if (end == "off") pet.SetRemote(false);
                     if (end == "quit") { RemoteWire.Set(pet, "quitting", true); typeof(Pet).GetMethod("StopRemote", RemoteWire.Own).Invoke(pet, null); }
                     all.AddRange(bridge.DrainJobs());
-                    bridge.JobCommand(0, "job.answer", heldId, true);
+                    bridge.JobCommand(0, "job.answer", heldId, true, heldAskId);
                     bridge.JobCommand(0, "job.stop", heldId);
                     heldRows = bridge.DrainJobs(); all.AddRange(heldRows);
                     if (entries != 1 || waiting.Waiting == null || !ComputerJobs.IsCurrent(waiting) || heldRows.Exists(row => row.Text("device") == bridge.Phones[0].Id)) throw new Exception("An ended phone answered, stopped or heard a held job: " + end);
@@ -8768,7 +8799,7 @@ namespace CapriDesktop
                     }
                     bridge.Connect(1);
                     heldRows = bridge.DrainJobs(); all.AddRange(heldRows);
-                    if (!heldRows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == heldId && row.Text("state") == "asking" && row.Text("device") == bridge.Phones[1].Id)
+                    if (!heldRows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == heldId && row.Text("state") == "asking" && row.Text("ask_id") == heldAskId && row.Text("device") == bridge.Phones[1].Id)
                         || entries != 1 || waiting.Waiting == null || !ComputerJobs.IsCurrent(waiting)) throw new Exception("A detached held question lost its replay or ran: " + end);
                     ComputerJobs.Stop();
                     RemoteBridgeWait(delegate { return !ComputerJobs.IsCurrent(waiting); }, "the held job PC stop");
@@ -9354,10 +9385,11 @@ namespace CapriDesktop
             {
                 RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, json);
             }
-            internal void JobCommand(int phone, string type, string id, bool? yes = null)
+            internal void JobCommand(int phone, string type, string id, bool? yes = null, string askId = null)
             {
                 RemoteJson.Writer json = new RemoteJson.Writer().Text("type", type).Text("id", id);
                 if (yes.HasValue) json.Flag("yes", yes.Value);
+                if (askId != null) json.Text("ask_id", askId);
                 SendJobJson(phone, json.ToString());
             }
             internal List<RemoteJson.Map> DrainJobs()

@@ -462,12 +462,12 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
 
 | `type` | Sender | Fields |
 |---|---|---|
-| `job.state` | PC | `id`, `task` (her plain words, at most 200 characters), `state` (`running`, `asking`, `done`, `failed` or `stopped`), `steps` (count so far), `started` (Unix ms), `ended` (Unix ms, only once over), `ask` (her question with `asking`, at most 200 characters), `re` (the phone message that started it, when one did) |
+| `job.state` | PC | `id`, `task` (her plain words, at most 200 characters), `state` (`running`, `asking`, `done`, `failed` or `stopped`), `steps` (count so far), `started` (Unix ms), `ended` (Unix ms, only once over), `ask` (her question with `asking`, at most 200 characters), `ask_id` (the current question's opaque ID, on Mac and Linux), `re` (the phone message that started it, when one did) |
 | `job.step` | PC | `id` (the job), `n` (from 1), `tool`, `label` (at most 120 characters), `done`, `failed` |
 | `job.list` | phone | none; the PC answers with `job.recent` |
 | `job.recent` | PC | `list`: up to 10 most recent jobs, newest first, each `id`, `task`, `state`, `started`, `ended` (once over), `steps`, `last` (its last step's label, or empty) |
 | `job.stop` | phone | `id`; stops that job as Esc does, and the PC answers with `job.state` |
-| `job.answer` | phone | `id`, `yes` (true or false); answers her held question, only while that job is `asking` |
+| `job.answer` | phone | `id`, `yes` (true or false), `ask_id` (echo the ID from the question when provided); answers her held question, only while that job is `asking` |
 
 - **Updates.** Every paired phone with a live session gets each job's state and steps. Start, status changes, held questions and the end send `job.state`. Jobs are kept only in PC memory. Recent includes the current job.
 - **Steps.** A step's running and finished updates share its `n` and replace each other. `steps` counts steps, not updates. A phone that says hello while a job runs or asks gets its state followed by its last 30 steps, with their original numbers.
@@ -475,7 +475,7 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
 - **Privacy.** Labels never carry what she typed, including the keys of a typed secret. A type step says "Typing some text" or "Typed some text" and may name where if the label safely says where. Clicked and opened labels may name the button or app. Job titles, questions and Recent follow the same rule. Use short summaries when the original words include typed content. Never send raw tool arguments, typed text, key sequences or failure results as job labels.
 - **Questions.** `ask` names the action being held, worked out from the tool and the SECURITY toggle it needs, or from the job's risk (sending, paying, deleting, shutting down, closing an app and so on), never from the task's words. A card for a job keeps the job's title; a card with no job behind it is named for the held action. With nothing to name, the title is "Using your computer" and the question "Allow this action?".
 - **Answers.** Allow runs the held action once through the same approval path as the PC. Deny leaves it alone. Only the first answer counts. Her reply then goes to the phone that answered as a `chat.reply` with no `re`, as after a typed yes or no. Stop ends it through the PC's stop path, including a held action. A held question stays current until answered or dropped on the PC.
-- **Bad commands.** `job.stop` or `job.answer` for anything other than the current job, or an answer when it is not `asking`, gets `error` with `code: "bad-message"` and `re` set to the command's job `id` when valid. A missing or malformed id, or a non-boolean `yes`, also gets `bad-message`.
+- **Bad commands.** `job.stop` or `job.answer` for anything other than the current job, or an answer when it is not `asking`, gets `error` with `code: "bad-message"` and `re` set to the command's job `id` when valid. A missing or malformed id, or a non-boolean `yes`, also gets `bad-message`. Mac and Linux reject a missing, malformed or obsolete `ask_id`; the PC and an updated phone can still answer the current question.
 - **Unknown values.** Ignore unknown types and fields, as in section 8.
 
 ### 8.5 Pictures (feature `pictures`)

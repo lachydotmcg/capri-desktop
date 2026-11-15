@@ -231,6 +231,7 @@ namespace CapriDesktop
         internal List<KeyValuePair<string, ToolArguments>> Calls;
         internal object Id;
         internal ComputerJob Job;
+        internal string AskId;
     }
 
     internal static class RemotePrivate
@@ -4808,12 +4809,16 @@ namespace CapriDesktop
 
         private sealed class RemoteJob
         {
-            internal string Id, Task, State, Ask, Re, Last = "";
+            internal string Id, Task, State, Ask, AskId, Re, Last = "";
             internal long Started, Ended;
             internal int Steps, Answering;
             internal ComputerJob Job;
             internal RemoteTurn Phone;
             internal object Hold;
+            internal object AskedHold;
+            internal int AskedCount;
+            internal ComputerJob AskedJob;
+            internal ComputerAction AskedAction;
             internal bool Cancelled;
             internal readonly List<RemoteStep> Trail = new List<RemoteStep>();
         }
@@ -4836,7 +4841,7 @@ namespace CapriDesktop
 
         private static string RemoteJobState(RemoteJob run)
         {
-            return RemoteMessages.JobState(run.Id, run.Task, run.State, run.Steps, run.Started, run.Ended, run.Ask, run.Re);
+            return RemoteMessages.JobState(run.Id, run.Task, run.State, run.Steps, run.Started, run.Ended, run.Ask, run.Re, run.AskId);
         }
 
         private RemoteJob RemoteJobNew(string task, RemoteTurn phone)
@@ -4850,17 +4855,17 @@ namespace CapriDesktop
             return run;
         }
 
-        private static List<string> RemoteJobActions(RemoteJob run)
+        private static List<string> RemoteJobActions(RemoteJob run, List<KeyValuePair<string, ToolArguments>> calls)
         {
             List<string> actions = new List<string>();
-            if (run.Hold != null)
-                foreach (KeyValuePair<string, ToolArguments> call in Security.HeldCalls(run.Hold))
+            if (calls != null)
+                foreach (KeyValuePair<string, ToolArguments> call in calls)
                 {
                     string action = RemoteJobWords.RemoteJobAction(call.Key, call.Value, Security.Needs(call.Key, call.Value), null);
                     if (action != null && !actions.Contains(action)) actions.Add(action);
                 }
             ComputerJob job = run.Job;
-            if (job != null && job.Waiting != null)
+            if ((calls == null || calls.Count == 0) && job != null && job.Waiting != null)
             {
                 string action = RemoteJobWords.RemoteJobAction(job.Waiting.Action, null, job.WaitingToggle, job.WaitingRisk);
                 if (action != null && !actions.Contains(action)) actions.Add(action);
@@ -4871,11 +4876,23 @@ namespace CapriDesktop
         private void RemoteJobSet(RemoteJob run, string state)
         {
             if (run.Ended != 0) return;
+            string previous = run.State;
             run.State = state;
             run.Ask = null;
             if (state == "asking")
             {
-                List<string> actions = RemoteJobActions(run);
+                List<KeyValuePair<string, ToolArguments>> calls = run.Hold == null ? null : Security.HeldCalls(run.Hold);
+                int count = calls == null ? 0 : calls.Count;
+                object hold = count == 0 ? null : run.Hold;
+                ComputerJob job = hold == null ? run.Job : null;
+                ComputerAction action = job?.Waiting;
+                if (previous != "asking" || run.AskedHold != hold || run.AskedCount != count || run.AskedJob != job || run.AskedAction != action)
+                    run.AskId = RemoteMessages.NewId();
+                run.AskedHold = hold;
+                run.AskedCount = count;
+                run.AskedJob = job;
+                run.AskedAction = action;
+                List<string> actions = RemoteJobActions(run, calls);
                 run.Ask = RemoteMessages.Clip(RemoteJobWords.RemoteJobQuestion(actions), 200);
                 if (run.Job == null && actions.Count > 0)
                 {
@@ -4885,10 +4902,17 @@ namespace CapriDesktop
                 if (run.Phone != null && run.Phone.Current)
                 {
                     run.Phone.Question = run.Ask;
-                    if (run.Job != null) run.Phone.Hold = new RemoteHold { Turn = run.Phone, Job = run.Job };
+                    if (run.Job != null) run.Phone.Hold = new RemoteHold { Turn = run.Phone, Job = run.Job, AskId = run.AskId };
                 }
             }
-            if (state != "running" && state != "asking") run.Ended = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (state != "running" && state != "asking")
+            {
+                run.Ended = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                run.AskId = null;
+                run.AskedHold = null;
+                run.AskedJob = null;
+                run.AskedAction = null;
+            }
             RemoteJobSend(null, RemoteJobState(run));
         }
 
@@ -5000,7 +5024,8 @@ namespace CapriDesktop
                 if (type != "job.stop" && type != "job.answer") return;
                 RemoteJob run = remoteJob;
                 bool yes = message.Is("yes", true);
-                if (!RemoteMessages.IdOk(id) || !RemoteJobCurrent(run) || run.Id != id || type == "job.answer" && (run.State != "asking" || !yes && !message.Is("yes", false))) { RemoteJobBad(device, id); return; }
+                string askId = message.Text("ask_id");
+                if (!RemoteMessages.IdOk(id) || !RemoteJobCurrent(run) || run.Id != id || type == "job.answer" && (run.State != "asking" || !RemoteMessages.IdOk(askId) || run.AskId != askId || !yes && !message.Is("yes", false))) { RemoteJobBad(device, id); return; }
                 if (type == "job.stop")
                 {
                     run.Cancelled = true;
@@ -5019,7 +5044,7 @@ namespace CapriDesktop
                         {
                             string result = null;
                             RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Device = device, Generation = generation, Session = session, Checking = current };
-                            RemoteTurn.Run(turn, delegate { result = RemoteJobAnswer(run, yes, current); }, delegate { });
+                            RemoteTurn.Run(turn, delegate { result = RemoteJobAnswer(run, askId, yes, current); }, delegate { });
                             if (result != null) RemoteJobAnswered(run, device, yes, result, current);
                             else lock (remoteGate) if (current()) RemoteJobBad(device, id);
                         }
@@ -5034,40 +5059,47 @@ namespace CapriDesktop
             if (stopped != null) ComputerJobs.Stop();
         }
 
-        private string RemoteJobAnswer(RemoteJob run, bool yes, Func<bool> current)
+        private string RemoteJobAnswer(RemoteJob run, string askId, bool yes, Func<bool> current)
         {
             RemoteJob previous = remoteJobActing;
             try
             {
+                object hold;
+                int count;
+                ComputerJob job;
+                ComputerAction action;
                 lock (remoteGate)
                 {
+                    if (run.AskId != askId || run.State != "running") return null;
                     if (!current() || remoteJob != run || run.Ended != 0)
                     {
                         if (remoteJob == run && run.Ended == 0 && (run.Job != null && run.Job.Waiting != null || run.Hold != null && Security.HoldingId == run.Hold)) RemoteJobSet(run, "asking");
                         return null;
                     }
                     remoteJobActing = run;
+                    hold = run.AskedHold;
+                    count = run.AskedCount;
+                    job = run.AskedJob;
+                    action = run.AskedAction;
                 }
                 string result;
-                Func<bool> allowed = delegate { lock (remoteGate) return current() && remoteJob == run && run.Ended == 0; };
-                if (run.Hold != null && Security.HoldingId == run.Hold)
+                Func<bool> allowed = delegate { lock (remoteGate) return current() && remoteJob == run && run.Ended == 0 && run.AskId == askId; };
+                if (hold != null)
                     result = Security.Resume(yes ? "yes" : "no", delegate(string tool, ToolArguments args)
                     {
-                        lock (remoteGate) if (!current() || run.Ended != 0) return RemoteTurn.Ended;
+                        if (!allowed()) return RemoteTurn.Ended;
                         Func<bool> guard = args.Current;
                         args.Current = delegate { lock (remoteGate) return !run.Cancelled && (guard == null || guard()); };
                         return Brain.Act(tool, args);
-                    }, run.Hold);
+                    }, hold, count);
                 else
-                {
-                    ComputerJob job = run.Job;
-                    result = job == null ? null : ComputerJobs.Answer(job, yes, allowed);
-                }
+                    result = action == null ? null : ComputerJobs.Answer(job, action, yes, allowed);
                 lock (remoteGate)
                 {
-                    if (result == null && run.Ended == 0 && (run.Hold != null && Security.HoldingId == run.Hold || run.Job != null && run.Job.Waiting != null && ComputerJobs.IsCurrent(run.Job))) RemoteJobSet(run, "asking");
+                    if (result == null && run.State == "running" && run.AskId == askId && run.Ended == 0 && (run.Hold != null && Security.HoldingId == run.Hold || run.Job != null && run.Job.Waiting != null && ComputerJobs.IsCurrent(run.Job))) RemoteJobSet(run, "asking");
                     if (run.State == "asking") return run.Ask;
-                    if (result != null && result.EndsWith(Security.Yes, StringComparison.Ordinal)) return RemoteJobWords.RemoteJobQuestion(RemoteJobActions(run));
+                    if (result != null && result.EndsWith(Security.Yes, StringComparison.Ordinal))
+                        return RemoteJobWords.RemoteJobQuestion(RemoteJobActions(run, run.Hold == null ? null : Security.HeldCalls(run.Hold)));
                     return result;
                 }
             }
@@ -5093,11 +5125,13 @@ namespace CapriDesktop
         {
             if (!Security.Agrees(text) && !Security.Declines(text)) return false;
             RemoteJob run;
+            string askId;
             lock (remoteGate)
             {
                 run = remoteJob;
                 if (run == null || run.State != "asking" || !RemoteJobCurrent(run)) return false;
                 if (fromMod) return true;
+                askId = run.AskId;
                 run.Answering++;
                 RemoteJobSet(run, "running");
             }
@@ -5106,7 +5140,7 @@ namespace CapriDesktop
             {
                 try
                 {
-                    string result = RemoteJobAnswer(run, Security.Agrees(text), delegate { return !quitting && !MacQuit.Quitting; });
+                    string result = RemoteJobAnswer(run, askId, Security.Agrees(text), delegate { return !quitting && !MacQuit.Quitting; });
                     lock (remoteGate) if (run.State == "asking") result = run.Ask;
                     if (result != null) Brain.Remember(text, result);
                     return result;
@@ -5646,14 +5680,14 @@ namespace CapriDesktop
                 lock (remoteGate)
                 {
                     run = remoteJob;
-                    if (run == null || (hold.Job != null ? run.Job != hold.Job : run.Hold != hold.Id) || run.State != "asking" || !RemoteJobCurrent(run)) return null;
+                    if (run == null || (hold.Job != null ? run.Job != hold.Job : run.Hold != hold.Id) || run.State != "asking" || run.AskId != hold.AskId || !RemoteJobCurrent(run)) return null;
                     run.Answering++;
                     run.Phone = turn;
                     RemoteJobSet(run, "running");
                 }
                 try
                 {
-                    string result = RemoteJobAnswer(run, Security.Agrees(text), delegate { return turn.Current; });
+                    string result = RemoteJobAnswer(run, hold.AskId, Security.Agrees(text), delegate { return turn.Current; });
                     lock (remoteGate) return run.State == "asking" ? run.Ask : result;
                 }
                 finally { lock (remoteGate) run.Answering--; }
@@ -5687,7 +5721,7 @@ namespace CapriDesktop
                 RemoteJob run = remoteJob;
                 if (run != null && run.Hold == id && run.Ended == 0 && calls.Count > 0 && turn.Current)
                 {
-                    turn.Hold = new RemoteHold { Turn = turn, Calls = calls, Id = id };
+                    turn.Hold = new RemoteHold { Turn = turn, Calls = calls, Id = id, AskId = run.AskId };
                     turn.Question = run.Ask;
                     turn.Held = null;
                     return;
@@ -5730,6 +5764,7 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            if (phone == null && modSendDepth > 0 && RemoteJobReply(text, true)) return;
             if (phone == null) RemoteLocal();
             else
             {
