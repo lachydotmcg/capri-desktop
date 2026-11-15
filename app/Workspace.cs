@@ -834,9 +834,10 @@ namespace CapriDesktop
                         else try { read.Set(); } catch (ObjectDisposedException) { }
                     };
                     process.ErrorDataReceived += delegate { };
+                    List<SafeFileHandle> pinned = null;
                     try
                     {
-                        StartProcess(process, chat);
+                        pinned = StartProcess(process, chat);
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
                         process.StandardInput.Close();
@@ -849,6 +850,7 @@ namespace CapriDesktop
                     finally
                     {
                         KillTree(process);
+                        WorkspacePaths.Release(pinned);
                         try { process.CancelOutputRead(); process.CancelErrorRead(); } catch (InvalidOperationException) { }
                     }
                 }
@@ -974,10 +976,11 @@ namespace CapriDesktop
             return start;
         }
 
-        private static void StartProcess(Process process, WorkspaceChat chat)
+        private static List<SafeFileHandle> StartProcess(Process process, WorkspaceChat chat)
         {
-            if (chat.HomeIdentity.Length == 0) process.Start();
-            else WorkspacePaths.StartInDirectory(process, chat.Folder, chat.HomeIdentity);
+            if (chat.HomeIdentity.Length > 0) return WorkspacePaths.StartInDirectory(process, chat.Folder, chat.HomeIdentity);
+            process.Start();
+            return null;
         }
 
         private static void Tail(StringBuilder text, string line)
@@ -1116,12 +1119,13 @@ namespace CapriDesktop
                         lock (turn.Errors) turn.Errors.Append(row.Data).Append('\n');
                     }
                 };
+                List<SafeFileHandle> pinned = null;
                 try
                 {
                     lock (turn.ProcessGate)
                     {
                         if (turn.Stopped) return -1;
-                        StartProcess(process, turn.Chat);
+                        pinned = StartProcess(process, turn.Chat);
                         turn.Process = process;
                         turn.Job = job;
                         if (!job.Bind(process)) throw new IOException("Workspace couldn't track Claude Code's processes.");
@@ -1143,6 +1147,7 @@ namespace CapriDesktop
                 finally
                 {
                     End(turn);
+                    WorkspacePaths.Release(pinned);
                     try { process.CancelOutputRead(); process.CancelErrorRead(); } catch (InvalidOperationException) { }
                     lock (turn.Chat.Gate) turn.Active = 0;
                     lock (turn.ProcessGate) { turn.Process = null; turn.Job = null; }
@@ -2243,7 +2248,7 @@ namespace CapriDesktop
                 identity.Volume, identity.IndexHigh, identity.IndexLow, identity.CreatedHigh, identity.CreatedLow);
         }
 
-        internal static void StartInDirectory(Process process, string path, string identity)
+        internal static List<SafeFileHandle> StartInDirectory(Process process, string path, string identity)
         {
             string canonical = Final(path);
             Stack<string> parents = new Stack<string>();
@@ -2261,11 +2266,19 @@ namespace CapriDesktop
                     throw new IOException("The chat's folder at " + path + " has changed.");
                 process.StartInfo.WorkingDirectory = canonical;
                 process.Start();
+                return pinned;
             }
-            finally
+            catch
             {
-                for (int i = pinned.Count - 1; i >= 0; i--) pinned[i].Dispose();
+                Release(pinned);
+                throw;
             }
+        }
+
+        internal static void Release(List<SafeFileHandle> pinned)
+        {
+            if (pinned == null) return;
+            for (int i = pinned.Count - 1; i >= 0; i--) pinned[i].Dispose();
         }
 
         internal static string Final(string path)
