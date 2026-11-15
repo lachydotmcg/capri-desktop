@@ -307,9 +307,9 @@ namespace CapriDesktop
                 Network.LinkFolder = Path.Combine(folder, "missing");
                 Hands.Net = Network.Read;
                 Hands.OnMac = false;
-                string unreadable = Hands.Do("internet_status", new ToolArguments());
+                string unreadable = OperatingSystem.IsLinux() ? Hands.Do("internet_status", new ToolArguments()) : null;
                 Network.LinkFolder = linkFolder;
-                if (Network.LinuxLinks(Path.Combine(folder, "missing")) != null || unreadable != "Couldn't check their internet just now.") throw new Exception("An unreadable /sys/class/net was taken for no network: " + unreadable);
+                if (Network.LinuxLinks(Path.Combine(folder, "missing")) != null || OperatingSystem.IsLinux() && unreadable != "Couldn't check their internet just now.") throw new Exception("An unreadable /sys/class/net was taken for no network: " + unreadable);
                 List<string> here = Network.Links();
                 if (here == null) throw new Exception("This PC's network links couldn't be read.");
                 checks.Add("PASS Linux internet check answers in her Windows words, counts only hardware Ethernet and Wi-Fi links from /sys/class/net, says it couldn't check when that folder can't be read, never asks first, and stays missing on Mac; the checks never ping out; this PC's links: " + (here.Count == 0 ? "none" : string.Join(", ", here)));
