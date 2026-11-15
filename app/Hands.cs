@@ -2917,7 +2917,9 @@ namespace CapriDesktop
         private static readonly Regex ClockAsk = new Regex(@"^(?:(?:do|can|could|would) (?:you|u) (?:know |have |tell me |give me )?|tell me |got )?(?:what(?:'?s| is) (?:the |today'?s? )?(?:current |exact )?(?:time|date|day)|what (?:time|date|day|month|year) (?:is it|it is)|the (?:current |exact )?(?:time|date|day)|time)(?: (?:today|now|right now|rn|at the moment))?$", RegexOptions.IgnoreCase);
         private static readonly Regex ClockSaid = new Regex(@"\d|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b(?:noon|midnight)\b", RegexOptions.IgnoreCase);
 
-        internal static bool ClockDodged(string said, string reply) { return ClockAsk.IsMatch(Asked(said)) && !ClockSaid.IsMatch(reply ?? ""); }
+        internal static bool ClockAsked(string said) { return ClockAsk.IsMatch(Asked(said)); }
+
+        internal static bool ClockDodged(string said, string reply) { return ClockAsked(said) && !ClockSaid.IsMatch(reply ?? ""); }
 
         internal static string ClockLine(DateTime now) { return "It's " + now.ToString("h:mm tt 'on' dddd d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture) + "."; }
 
