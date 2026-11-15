@@ -46331,7 +46331,7 @@ namespace CapriDesktop
                     if (!chat.Running || WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "end"; })) throw new Exception("Workspace ended a streaming turn too soon.");
                     if (work.Send(chat, "A second turn", false)) throw new Exception("Workspace ran two turns in one chat.");
                     work.Change(chat, "My project", "Edits only", "Sonnet");
-                    if (first.Mode != "Ask me" || first.Model != "Default") throw new Exception("Workspace changed a mode during a turn.");
+                    if (first.Mode != "Edits only" || first.LaunchMode != "Ask me" || first.Model != "Default") throw new Exception("Workspace did not change live approvals while keeping the running Claude Code launch mode and model.");
                     File.WriteAllText(finish, "go");
                     if (!first.Done.WaitOne(8000)) throw new Exception("Workspace didn't finish its streamed turn.");
                     List<WorkspaceItem> items = WorkspaceItems(chat);
