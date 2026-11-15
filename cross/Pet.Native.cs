@@ -75,6 +75,7 @@ namespace CapriDesktop
         {
             if (string.IsNullOrEmpty(Saved.PlanAccounts) || string.IsNullOrEmpty(Saved.PlanModel) || !File.Exists(Saved.PlanPython))
                 throw new BrainException("Configure the retained ChatGPT account and Python runtime before selecting ChatGPT plan.");
+            RemoteBrainTakenOver();
             TerminalJobs.StopAll();
             ComputerJobs.Stop();
             StopNativeListening();
