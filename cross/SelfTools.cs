@@ -147,12 +147,12 @@ namespace CapriDesktop
 
     internal static partial class ComputerJobs
     {
-        private static string Run(ComputerJob job, long? admitted = null)
+        private static string Run(ComputerJob job, long? admitted = null, Func<bool> current = null)
         {
             return SelfJobs.Run(new ToolArguments { Task = job.Task, Asked = job.Asked, Current = job.Current }, args =>
             {
-                if (args.Task != job.Task) job = new ComputerJob { Task = args.Task, Asked = args.Asked, Current = args.Current };
-                return RunOnce(job, admitted);
+                if (args.Task != job.Task) job = new ComputerJob { Task = args.Task, Asked = args.Asked, Current = args.Current, Phone = job.Phone };
+                return RunOnce(job, admitted, current);
             }, CancelSelf);
         }
 
