@@ -5545,7 +5545,7 @@ namespace CapriDesktop
 
         internal bool Hop(Cloud remote)
         {
-            if (Saved.StayOnModel || remote == null || remote.Kind != "nvidia" || Brain.Remote != remote) return false;
+            if (Saved.StayOnModel || remote == null || remote.Kind != "nvidia" || Brain.Remote != remote || Brain.Attachments.Has) return false;
             string old = remote.Model;
             stalled.Add(old);
             string next = Brain.Next(old, cloudModels, stalled);

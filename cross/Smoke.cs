@@ -691,6 +691,10 @@ namespace CapriDesktop
                 bool cloudPicked = pet.Brain.Remote != null && pet.Brain.Remote.Model == "qwen/qwen3-235b-a22b" && pet.Brain.Model == "qwen/qwen3-235b-a22b" && pet.Saved.CloudModel == "qwen/qwen3-235b-a22b";
                 // A stuck NVIDIA model hands over to the next one for that message, and their pick stays saved.
                 pet.UseCloud("nvapi-smoke-1234", "nvidia/nemotron-3.5-super-vl-120b-a12b", new List<string> { "nvidia/nemotron-3.5-super-vl-120b-a12b", "nvidia/nemotron-3.5-bolt-e4b" });
+                pet.Brain.Attachments.Give(new[] { Path.Combine(folder, "handed.txt") });
+                pet.Brain.Attachments.Next(Files.Dropped, null);
+                bool keptFiles = pet.Brain.Attachments.Has && !pet.Hop(pet.Brain.Remote) && pet.Brain.Model == "nvidia/nemotron-3.5-super-vl-120b-a12b" && pet.Brain.Remote.Model == "nvidia/nemotron-3.5-super-vl-120b-a12b";
+                pet.Brain.Attachments.Clear();
                 bool hopped = Brain.Stalled(new BrainException(Brain.Down, true)) && !Brain.Stalled(new BrainException("Something else.", true)) && pet.Hop(pet.Brain.Remote) && pet.Brain.Model == "nvidia/nemotron-3.5-bolt-e4b" && pet.Brain.Remote.Model == "nvidia/nemotron-3.5-bolt-e4b" && pet.Saved.CloudModel == "nvidia/nemotron-3.5-super-vl-120b-a12b";
                 bool hopsEnd = !pet.Hop(pet.Brain.Remote);
                 pet.SetStay(true);
@@ -708,6 +712,8 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 if (ollamaMenu != "*qwen3:8b | - | Download a model (Ollama or Hugging Face)... | Use my own server (OpenAI API)... | Use my own provider with a key (OpenAI API)... | - | Get a free NVIDIA key | " + Pet.KeyChoice) throw new Exception("The Brain menu didn't offer a cloud key: " + ollamaMenu);
                 if (freeKey != Pet.FreeKeySteps || !keyAsked || notKey != Pet.NotAKey || !keyHidden) throw new Exception("The key choices didn't say where to paste, ask in a hidden box or explain a bad key: " + freeKey + " | " + keyAsked + " | " + notKey + " | " + keyHidden);
+                if (!keptFiles) throw new Exception("A stuck NVIDIA model handed her files to another model.");
+                checks.Add("PASS a stuck NVIDIA model with handed files stays on the model they picked, like Windows");
                 if (cloudMenu != "NVIDIA key ending 1234 (off) | *meta/llama-3.3-70b-instruct | qwen/qwen3-235b-a22b | - | Stay on my model | Forget the key and use Ollama" || !cloudPicked || !cloudGone || !cloudDetails || !hopped || !hopsEnd
                     || nvidiaMenu != "NVIDIA key ending 1234 (off) | *nvidia/nemotron-3.5-super-vl-120b-a12b · recommended | nvidia/nemotron-3.5-bolt-e4b | openai/gpt-oss-20b | - | *Stay on my model | Forget the key and use Ollama")
                     throw new Exception("The cloud key's Brain menu went wrong: " + cloudMenu + " | " + cloudPicked + " | " + cloudGone + " | " + cloudDetails + " | " + hopped + " | " + hopsEnd + " | " + nvidiaMenu);
