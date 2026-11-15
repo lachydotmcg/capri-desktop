@@ -124,11 +124,11 @@ for (const jobs of [true, false]) {
       await pc.jobsMessage(device.id, yes);
       await page.until(`document.querySelector('.job-state').textContent === 'Running' && document.querySelector('.job-answers').hidden`, 'her answer accepted');
 
-      await pc.jobState({ id: job.id, state: 'asking', ask: 'Allow this purchase?' });
+      await pc.jobState({ id: job.id, state: 'asking', ask: 'Allow this purchase?', ask_id: 'current-question' });
       await page.until(`!document.querySelector('.job-answers').hidden`, 'her next question');
       await click('.job-deny');
       const no = await next('job.answer');
-      assert.deepEqual(no, { id: job.id, yes: false, type: 'job.answer' });
+      assert.deepEqual(no, { id: job.id, yes: false, ask_id: 'current-question', type: 'job.answer' });
       await pc.jobsMessage(device.id, no);
       await page.until(`document.querySelector('.job-live').hidden`, 'the denied job ending');
       assert.equal(await page.run(`document.querySelector('#f-jobs').dataset.job`), '');

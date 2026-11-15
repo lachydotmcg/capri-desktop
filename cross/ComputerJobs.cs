@@ -86,13 +86,16 @@ namespace CapriDesktop
         internal string Task, Asked, Account, Approved, Permissions;
         internal ComputerSnapshot Binding;
         internal ComputerAction Waiting;
+        internal string WaitingRisk;
+        internal int WaitingToggle = -1;
         internal readonly HashSet<string> Delivered = new HashSet<string>();
         internal readonly List<string> Steps = new List<string>();
         internal readonly List<string> Skills = new List<string>();
         internal Func<bool> Current;
+        internal RemoteTurn Phone;
         internal ComputerGameSession Game;
         internal long TotalSteps;
-        internal string SliceEnd, RoundResult;
+        internal string SliceEnd, RoundResult, ObservedState;
     }
 
     internal sealed class ComputerRunner
@@ -170,7 +173,7 @@ namespace CapriDesktop
                 // A read gives no input, so it doesn't count as a step, unless it's a skill she already has.
                 if (action.Action == "read_skill")
                 {
-                    string read = Hands.Do("read_skill", new ToolArguments { Name = action.Name });
+                    string read = ComputerJobs.Observe(job, action, () => Hands.Do("read_skill", new ToolArguments { Name = action.Name }));
                     if (!job.Skills.Contains(read)) { job.Skills.Add(read); turn--; }
                     continue;
                 }
@@ -187,7 +190,7 @@ namespace CapriDesktop
                 {
                     if (job.Game != null && Stopwatch.GetElapsedTime(job.Game.LastInputAt) > TimeSpan.FromSeconds(30))
                     { job.SliceEnd = "stalled"; return "I stopped because fresh game observations established no input progress for 30 seconds."; }
-                    if (token.WaitHandle.WaitOne(action.Duration)) token.ThrowIfCancellationRequested();
+                    ComputerJobs.Observe(job, action, () => { if (token.WaitHandle.WaitOne(action.Duration)) token.ThrowIfCancellationRequested(); return ""; });
                     continue;
                 }
                 if (Regex.IsMatch(source.Target.App, @"(?i)(^|[.\-_])(kitty|alacritty|foot|wezterm|konsole|terminal|xterm|urxvt)([.\-_]|$)"))
@@ -217,8 +220,12 @@ namespace CapriDesktop
                     completed = now;
                 }
                 RemotePrivate.Keep(job, action);
-                Input.Execute(action, frame, Desktop, Guard, token, Complete);
-                if (completed == null) throw new InvalidOperationException("The input executor did not confirm delivery; its effect is uncertain.");
+                ComputerJobs.Observe(job, action, () =>
+                {
+                    Input.Execute(action, frame, Desktop, Guard, token, Complete);
+                    if (completed == null) throw new InvalidOperationException("The input executor did not confirm delivery; its effect is uncertain.");
+                    return "";
+                });
                 job.TotalSteps++;
                 if (job.Game != null) job.Game.LastInputAt = Stopwatch.GetTimestamp();
                 string step = action.Action + ": " + action.Label + " (input delivered; effect awaiting next image)";
@@ -254,7 +261,48 @@ namespace CapriDesktop
         private static CancellationTokenSource running;
         private static Brain brain;
         private static ComputerJob pending;
+        private static ComputerJob runningJob;
+        private static ComputerJob followed;
+        internal static event Action<ComputerJob, string> Changed;
+        internal static event Action<ComputerJob, ComputerAction, bool, bool> Stepped;
+        internal static Func<ComputerJob, CancellationToken, string> TestRun;
+        internal static void Step(ComputerJob job, ComputerAction action, bool done, bool failed)
+        {
+            var handlers = Stepped;
+            if (handlers == null) return;
+            foreach (Action<ComputerJob, ComputerAction, bool, bool> handler in handlers.GetInvocationList())
+                try { handler(job, action, done, failed); } catch { }
+        }
+        internal static string Observe(ComputerJob job, ComputerAction action, Func<string> work)
+        {
+            Step(job, action, false, false);
+            try { string result = work(); Step(job, action, true, false); return result; }
+            catch { Step(job, action, true, true); throw; }
+        }
+        private static void Change(ComputerJob job, string state)
+        {
+            if (job == null) return;
+            job.ObservedState = state;
+            var handlers = Changed;
+            if (handlers == null) return;
+            foreach (Action<ComputerJob, string> handler in handlers.GetInvocationList())
+                try { handler(job, state); } catch { }
+        }
+        internal static bool IsCurrent(ComputerJob job) { lock (gate) return job != null && (runningJob == job || pending == job || followed == job); }
         private static bool gameRunning;
+        internal static string Follow(ComputerJob job, Func<string> work)
+        {
+            lock (gate) followed = job;
+            Change(job, "running");
+            try { return work(); }
+            finally
+            {
+                bool current = SelfJobs.Current();
+                lock (gate) if (followed == job) followed = null;
+                Change(job, !current ? "stopped" : job.SliceEnd == "done" ? "done" : "failed");
+            }
+        }
+
         internal static bool Active { get { lock (gate) return running != null; } }
         internal static bool GameRunning { get { lock (gate) return running != null && gameRunning; } }
         private static long revocation;
@@ -293,21 +341,24 @@ namespace CapriDesktop
 
         internal static void Stop()
         {
+            ComputerJob held;
+            lock (gate) held = pending;
             SelfJobs.Stop();
             Eyes.Stop();
             lock (gate)
             {
                 revocation++; pending = null;
-                if (running == null) return;
-                running.Cancel();
-                brain?.Cancel();
+                if (running != null) { running.Cancel(); brain?.Cancel(); }
             }
+            Change(held, "stopped");
         }
 
         internal static void Interrupt()
         {
+            ComputerJob held;
             Eyes.Stop();
-            lock (gate) { revocation++; pending = null; if (running != null) { running.Cancel(); brain?.Cancel(); } }
+            lock (gate) { held = pending; revocation++; pending = null; if (running != null) { running.Cancel(); brain?.Cancel(); } }
+            Change(held, "stopped");
         }
 
         internal static bool CloseTab(OpenWindow window) { return Key(window, "CTRL+W", true); }
@@ -369,38 +420,58 @@ namespace CapriDesktop
         internal static string Run(string task, string asked, Func<bool> current)
         {
             RemoteTurn phone = RemoteTurn.Working;
-            if (phone != null) return phone.Current ? RemoteTurn.PcOnly : RemoteTurn.Ended;
-            return Run(new ComputerJob { Task = task, Asked = asked ?? task, Current = current });
+            if (phone != null && !phone.Current) return RemoteTurn.Ended;
+            if (phone != null) current = phone.WorkGuard(current);
+            return Run(new ComputerJob { Task = task, Asked = asked ?? task, Current = current, Phone = phone });
         }
         private static NativeGameEscape escape;
         private static MacFingers.Escape macEscape;
         internal static bool EscapeListening => Volatile.Read(ref escape)?.Armed == true || Volatile.Read(ref macEscape)?.Armed == true;
-        private static string RunOnce(ComputerJob job, long? admitted = null)
+        private static string RunOnce(ComputerJob job, long? admitted = null, Func<bool> current = null)
         {
+            bool test = Program.Smoke != null && TestRun != null;
             bool mac = OperatingSystem.IsMacOS();
-            if (mac)
+            if (!test && mac)
             {
                 string problem = MacFingers.JobProblem();
                 if (problem != null) return problem;
                 if (Hands.Streaming || Hands.StreamAsked(job.Task) || Hands.StreamAsked(job.Asked)) return "Live stream chat and timing aren't connected to Mac screen jobs yet.";
             }
-            if (!mac && !Supported) return "Native screen jobs were unavailable when Capri opened. Install the helper in a supported Hyprland session, then reopen Capri.";
-            HyprlandDesktop desktop = HyprlandDesktop.Current;
-            if (!mac && desktop == null) return "Native screen jobs need a supported Hyprland session. This desktop doesn't expose that capability.";
-            if (!mac && !ArchInput.Available) return "Native screen jobs need Capri's native/capri-input helper installed beside the app.";
+            if (!test && !mac && !Supported) return "Native screen jobs were unavailable when Capri opened. Install the helper in a supported Hyprland session, then reopen Capri.";
+            HyprlandDesktop desktop = test ? null : HyprlandDesktop.Current;
+            if (!test && !mac && desktop == null) return "Native screen jobs need a supported Hyprland session. This desktop doesn't expose that capability.";
+            if (!test && !mac && !ArchInput.Available) return "Native screen jobs need Capri's native/capri-input helper installed beside the app.";
             if (job.Current != null && !job.Current()) return "That screen request has ended; no job started.";
             job.Game ??= ComputerGameSession.FromRequest(job.Task, job.Asked);
             using CancellationTokenSource cancel = job.Game == null ? new CancellationTokenSource(TimeSpan.FromSeconds(90)) : new CancellationTokenSource();
+            ComputerJob dropped;
+            long admission;
+            lock (gate) admission = admitted ?? revocation;
+            if (current != null && !current()) return "That screen request has ended; no job started.";
+            if (!admitted.HasValue && job.Phone != null && !job.Phone.Current) return RemoteTurn.Ended;
             lock (gate)
             {
                 if (running != null) return "A screen job is already running. Stop it before starting another.";
-                if (admitted.HasValue && admitted.Value != revocation) return "That paused job was stopped. Start a new request.";
-                running = cancel; gameRunning = job.Game != null; pending = null;
+                if (admission != revocation) return "That paused job was stopped. Start a new request.";
+                dropped = pending;
+                running = cancel; runningJob = job; gameRunning = job.Game != null; pending = null;
             }
-            Brain vision = brain.ForkVision();
-            using CancellationTokenRegistration abortModel = cancel.Token.Register(() => vision.Cancel());
+            string state = "failed";
+            Brain vision = null;
+            if (dropped != job) Change(dropped, "stopped");
+            Change(job, "running");
             try
             {
+                if (test)
+                {
+                    string result = TestRun(job, cancel.Token);
+                    cancel.Token.ThrowIfCancellationRequested();
+                    lock (gate) if (job.Waiting != null) pending = job;
+                    state = job.Waiting != null ? "asking" : "done";
+                    return result;
+                }
+                vision = brain.ForkVision();
+                using CancellationTokenRegistration abortModel = cancel.Token.Register(() => vision.Cancel());
                 if (!mac && !ArchInput.Probe(cancel.Token)) return "This compositor doesn't provide both native virtual pointer and keyboard protocols.";
                 ComputerRunner runner = new ComputerRunner { Desktop = mac ? new MacFingers.Desktop(cancel.Token) : new ArchComputer(desktop, cancel.Token), Input = mac ? new MacFingers.Input() : new ArchInput(), Account = Account, CancelInference = () => vision.Cancel(), Think = (jpeg, system, instruction) => vision.See(jpeg, Brain.Persona + (mac ? system.Replace("user's Linux desktop", "user's Mac desktop") + " Key names use Windows notation: CTRL letter shortcuts map to Command on Mac; ALT+F4 closes the window with Command+W." : system), instruction, 900, true, preserveWhitespace: true, computerAction: true) };
                 job.Account ??= Account(); job.Permissions ??= Security.Saved;
@@ -426,13 +497,23 @@ namespace CapriDesktop
                     InControl.Begin();
                     string result = job.Game == null ? runner.Run(job, cancel.Token) : RunGame(runner, job, cancel.Token);
                     lock (gate) if (job.Waiting != null && !cancel.IsCancellationRequested) pending = job;
+                    state = cancel.IsCancellationRequested ? "stopped" : job.Waiting != null ? "asking" : job.SliceEnd == "done" || job.Game != null && job.SliceEnd != "uncertain" && job.SliceEnd != "stalled" && job.SliceEnd != "capacity" ? "done" : "failed";
                     return result;
                 }
                 finally { Volatile.Write(ref escape, null); Volatile.Write(ref macEscape, null); InControl.End(); }
             }
-            catch (OperationCanceledException) { return "I stopped the screen job and released its input. Any last effect still needs checking."; }
+            catch (OperationCanceledException) { state = "stopped"; return "I stopped the screen job and released its input. Any last effect still needs checking."; }
             catch (Exception error) { return "I stopped the screen job: " + error.Message + " No action was retried."; }
-            finally { Chores.Parked(); lock (gate) if (running == cancel) running = null; }
+            finally
+            {
+                if (!test) Chores.Parked();
+                lock (gate)
+                {
+                    if (cancel.IsCancellationRequested) { state = "stopped"; if (pending == job) pending = null; }
+                    if (running == cancel) { running = null; runningJob = null; }
+                }
+                Change(job, state);
+            }
         }
 
         internal static string RunGame(ComputerRunner runner, ComputerJob job, CancellationToken token)
@@ -479,15 +560,34 @@ namespace CapriDesktop
 
         private static string Resume(string text)
         {
+            return Resume(null, text);
+        }
+
+        internal static string Answer(ComputerJob job, ComputerAction action, bool yes, Func<bool> current = null)
+        {
+            if (job == null) return null;
+            return Resume(job, yes ? "yes" : "no", current, action);
+        }
+
+        private static string Resume(ComputerJob expected, string text, Func<bool> current = null, ComputerAction action = null)
+        {
             ComputerJob job;
             long admitted;
-            lock (gate) { job = pending; pending = null; admitted = revocation; }
-            if (job == null) return null;
-            if (Security.Declines(text)) return Security.Left;
-            if (!Security.Agrees(text)) return null;
+            if (current != null && !current()) return null;
+            lock (gate)
+            {
+                job = pending;
+                if (job == null || expected != null && expected != job || job.Waiting == null) return null;
+                if (action != null && job.Waiting != action) return null;
+                pending = null; admitted = revocation;
+            }
+            if (Security.Declines(text)) { job.Waiting = null; Change(job, "stopped"); return Security.Left; }
+            if (!Security.Agrees(text)) { job.Waiting = null; Change(job, "stopped"); return null; }
             job.Approved = job.Waiting.ConsentKey;
             job.Waiting = null;
-            return Run(job, admitted);
+            string result = Run(job, admitted, current);
+            if (job.ObservedState == "asking" && !IsCurrent(job)) Change(job, "stopped");
+            return result;
         }
 
         internal static void Same(ComputerSnapshot before, ComputerSnapshot now, bool active)
@@ -520,7 +620,12 @@ namespace CapriDesktop
             bool hold = buy && !Security.On(Security.Pays)
                 || unasked && !Security.On(Security.Unasked)
                 || (send || delete || install) && !Security.On(Security.Sends);
-            if (hold && job.Approved != action.ConsentKey) return "Should I " + label.TrimEnd('.', '?') + "?" + Security.Yes;
+            if (hold && job.Approved != action.ConsentKey)
+            {
+                job.WaitingRisk = buy ? "buy" : delete ? "delete" : send ? "send" : install ? "install" : action.Risk;
+                job.WaitingToggle = buy && !Security.On(Security.Pays) ? Security.Pays : unasked && !Security.On(Security.Unasked) ? Security.Unasked : Security.Sends;
+                return "Should I " + label.TrimEnd('.', '?') + "?" + Security.Yes;
+            }
             return null;
         }
     }

@@ -287,13 +287,14 @@ namespace CapriDesktop
             if (ending != null) ending.Dispose();
         }
 
-        private bool StopWatchAlong(string text)
+        private bool StopWatchAlong(string text, string typed = null)
         {
-            if (watchAlong == null || !(WatchAlong.Request(text) == "stop" || VoiceStop(text))) return false;
-            bool stoppingWork = WatchAlong.Request(text) != "stop" && (MidJob(job) || PcEars.Active);
+            string input = typed ?? text;
+            if (watchAlong == null || !(WatchAlong.Request(input) == "stop" || VoiceStop(input))) return false;
+            bool stoppingWork = WatchAlong.Request(input) != "stop" && (MidJob(job) || PcEars.Active);
             EndWatchAlong();
             if (stoppingWork) return false;
-            brain.Remember(text, "Done watching with you.");
+            brain.Remember(text, "Done watching with you.", typed);
             Tell("watching", "Done watching with you.");
             return true;
         }

@@ -467,7 +467,7 @@ namespace CapriDesktop
         // Their answer to her asking first: yes runs what she held, each call once; no leaves it alone; anything else drops it
         // and goes on as a new message. Null when nothing was held or it wasn't a yes or no. A phone's answer from JOBS names
         // the hold it saw, and is null once that hold has gone.
-        internal static string Resume(string text, Func<string, ToolArguments, string> run, object expected = null)
+        internal static string Resume(string text, Func<string, ToolArguments, string> run, object expected = null, int? expectedCount = null)
         {
             List<Held> waiting;
             lock (gate)
@@ -475,6 +475,7 @@ namespace CapriDesktop
                 // A code mod's Chat.Send never answers her asking first, so what she holds waits for their own yes or no.
                 // A phone's answer from JOBS never comes through chat: it names the hold it saw, and only that hold counts.
                 if (held.Count == 0 || (expected != null ? held[0] != expected : TakeFromMod(text))) return null;
+                if (expectedCount.HasValue && held.Count != expectedCount.Value) return null;
                 waiting = new List<Held>(held);
                 held.Clear();
             }
