@@ -45363,6 +45363,16 @@ namespace CapriDesktop
                     window.QueueChange(other, new WorkspaceItem { Kind = "text", Text = "Another chat's words.", Growing = true });
                     window.FlushChanges();
                     if (window.HeaderFills != otherHeaders || window.PathLookups != otherLookups || window.LayoutPasses != otherPasses || window.ItemFills != fills) throw new Exception("Workspace refilled this chat for words arriving in another chat's reply.");
+                    window.QueueChange(other, null);
+                    window.FlushChanges();
+                    int looked = window.PathLookups;
+                    for (int i = 0; i < 2; i++)
+                    {
+                        work.Parse(feed, piece);
+                        work.PublishStreams(feed);
+                        window.FlushChanges();
+                    }
+                    if (window.PathLookups != looked + 1) throw new Exception("Workspace laid out a reply's words against folders read before another chat changed, or read them for every piece: " + (window.PathLookups - looked) + " lookups.");
                     window.ScrollConversation(100);
                     int scrolled = window.Scrolled;
                     work.Parse(feed, piece);
