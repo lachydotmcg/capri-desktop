@@ -964,6 +964,68 @@ namespace CapriDesktop
             checks.Add("PASS Workspace finishes a save already being written and writes a waiting one before it closes, with one-second saves, in " + closing.ElapsedMilliseconds + " ms (3 s at most)");
         }
 
+        private static void SmokeWorkspaceMaximized(List<string> checks)
+        {
+            Rectangle primary = new Rectangle(0, 0, 1920, 1080), main = new Rectangle(0, 0, 1920, 1040);
+            foreach (int percent in new[] { 100, 150 })
+            {
+                int wide = 1600 * percent / 100, high = 900 * percent / 100, bar = 40 * percent / 100;
+                Rectangle[] screens = { new Rectangle(-wide, 0, wide, high), new Rectangle(primary.Right, 0, wide, high), new Rectangle(0, -high, wide, high) };
+                Rectangle[] work = { new Rectangle(-wide + bar, 0, wide - bar, high), new Rectangle(primary.Right, 0, wide, high - bar),
+                    new Rectangle(0, -high + bar, wide, high - bar) };
+                var layout = new List<KeyValuePair<Rectangle, Rectangle>> { new KeyValuePair<Rectangle, Rectangle>(primary, main) };
+                for (int i = 0; i < screens.Length; i++) layout.Add(new KeyValuePair<Rectangle, Rectangle>(screens[i], work[i]));
+                for (int i = 0; i < screens.Length; i++)
+                {
+                    Rectangle bounds = screens[i];
+                    Rectangle proposed = new Rectangle(bounds.X - 8, bounds.Y - 8, primary.Width + 16, primary.Height + 16);
+                    if (WorkspaceWindow.MaximizedTarget(proposed, layout, main) != work[i])
+                        throw new Exception("Workspace did not maximize to the target working area at " + percent + "%: " + bounds);
+                }
+            }
+            checks.Add("PASS Workspace chooses the working area on the left, right and above the primary monitor at 100% and 150%");
+        }
+
+        private static void WorkspaceFinalReply(List<string> checks, Workspace work, WorkspaceWindow window, string project)
+        {
+            string longText = string.Join("\n\n", Array.ConvertAll(new string[70], delegate(string unused) { return "The next step is to check whether the clock matches the requested format."; }));
+            for (int scenario = 0; scenario < 3; scenario++)
+            {
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.Trust(chat, true);
+                work.Add(chat, new WorkspaceItem { Kind = "text", Text = longText });
+                window.ShowChat(chat);
+                WorkspaceTurn turn = new WorkspaceTurn { Chat = chat };
+                WorkspaceItem reply = new WorkspaceItem { Kind = "text", Text = "Here is the answer.", Turn = turn.Id, Growing = true };
+                try
+                {
+                    chat.Live = turn;
+                    work.Add(chat, new WorkspaceItem { Kind = "user", Text = "How did it go?", Turn = turn.Id });
+                    work.Add(chat, reply);
+                    if (scenario != 1) work.Add(chat, new WorkspaceItem { Kind = "text", Text = longText, Turn = turn.Id });
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    if (scenario == 2) window.ScrollConversation(80);
+                    int before = window.Scrolled;
+                    reply.Growing = false;
+                    work.Add(chat, new WorkspaceItem { Kind = "end", Text = "2s", Turn = turn.Id });
+                    window.RefreshChat();
+                    if (scenario < 2 && !window.AtEnd) throw new Exception("Workspace stopped following before the turn ended.");
+                    chat.Live = null;
+                    window.RefreshChat();
+                    if (scenario == 0 && (window.TopOf(reply) != 0 || window.AtEnd || window.Scrolled >= before))
+                        throw new Exception("Workspace did not put the long final reply at the top.");
+                    if (scenario == 1 && window.Scrolled != Math.Max(0, window.ConversationTall - window.ConversationHeight)) throw new Exception("Workspace stopped following a short final reply.");
+                    if (scenario == 2 && window.Scrolled != before) throw new Exception("Workspace moved someone reading earlier words when the final reply arrived.");
+                    int after = window.Scrolled;
+                    window.RefreshChat();
+                    if (window.Scrolled != after) throw new Exception("The finished reply changed position on a later refresh.");
+                }
+                finally { chat.Live = null; }
+            }
+            checks.Add("PASS Workspace settles a long final reply at its first block, leaves short replies at the end, and respects an earlier scroll offset");
+        }
+
         private void SmokeWorkspaceWindow(List<string> checks, string folder)
         {
             string run = folder;
@@ -974,6 +1036,7 @@ namespace CapriDesktop
             string fileOne = Path.Combine(second, "one.txt"), fileTwo = Path.Combine(third, "two.txt");
             File.WriteAllText(fileOne, "1"); File.WriteAllText(fileTwo, "2");
             WorkspaceClosingSaves(checks, Path.Combine(folder, "closing"), project);
+            SmokeWorkspaceMaximized(checks);
             using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-window-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(folder, "her-folder") })
             {
                 work.Executable = WorkspaceStandin(folder, Guid.NewGuid().ToString());
@@ -998,6 +1061,7 @@ namespace CapriDesktop
                     plus.Close();
                     if (!both) throw new Exception("The + menu lost Add folders or Add files.");
                     checks.Add("PASS Workspace Choose folder starts a chat in the first picked folder, + adds folders and files as chips, drops add folders, and a chip's cross removes it but never the folder Claude Code runs in");
+                    WorkspaceFinalReply(checks, work, window, project);
                     window.Close();
                 }
 
