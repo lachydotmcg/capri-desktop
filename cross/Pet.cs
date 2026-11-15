@@ -481,8 +481,11 @@ namespace CapriDesktop
         // restart (LinuxAppImageUpdater); a Mac, a tarball or a package gets its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
-        internal static readonly double[] Sizes = { 140, 170, 240, 320, 440, 560 };
-        internal static readonly string[] SizeNames = { "Tiny", "Small", "Medium", "Large", "Huge", "Giant" };
+        // Windows' ten steps. Her saved size is in pixels, and the six older steps are all still here, so a saved size keeps its look.
+        internal static readonly double[] Sizes = { 140, 170, 200, 240, 280, 320, 380, 440, 500, 560 };
+        internal static readonly string[] SizeNames = { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" };
+        // Her right-click menu keeps Windows' five; the Mainframe slider has all ten.
+        internal static readonly string[] MenuSizeNames = { "Small", "Medium", "Large", "Huge", "Giant" };
         internal readonly Brain Brain = new Brain();
         internal readonly Talk Talk;
         internal Desk Desk = Desk.Make();
@@ -2671,10 +2674,10 @@ namespace CapriDesktop
             settings.Items.Add(memoriesItem);
             settings.Items.Add(memories);
             MenuItem sizes = new MenuItem { Header = "Size" };
-            for (int i = 0; i < Sizes.Length; i++)
+            foreach (string name in MenuSizeNames)
             {
-                double size = Sizes[i];
-                MenuItem pick = new MenuItem { Header = SizeNames[i] };
+                double size = Sizes[Array.IndexOf(SizeNames, name)];
+                MenuItem pick = new MenuItem { Header = name };
                 pick.Click += Guarded(delegate { Resize(size); });
                 sizes.Items.Add(pick);
             }
@@ -2686,6 +2689,7 @@ namespace CapriDesktop
             MenuItem copyErrors = new MenuItem { Header = "Copy error details" };
             copyErrors.Click += Guarded(delegate { CopyErrors(); });
             help.Items.Add(helpPage);
+            help.Items.Add(discord);
             help.Items.Add(copyErrors);
             MenuItem quit = new MenuItem { Header = "Quit Capri" };
             quit.Click += Guarded(delegate { Quit(); });
@@ -2694,6 +2698,7 @@ namespace CapriDesktop
             move.Items.Add(hangItem);
             move.Items.Add(napItem);
             move.Items.Add(screenItem);
+            move.Items.Add(musicItem);
             move.Items.Add(danceItem);
             MenuItem wander = new MenuItem { Header = "Wander" };
             wander.Click += Guarded(delegate { SetWander(Saved.Wander == 0 ? 2 : 0); });

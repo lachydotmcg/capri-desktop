@@ -1084,11 +1084,7 @@ namespace CapriDesktop
         };
         internal static readonly string[][] OwnSteps =
         {
-#if CROSS
-            new[] { "Tiny", "Small", "Medium", "Large", "Huge", "Giant" },
-#else
             new[] { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" },
-#endif
             new[] { "Off", "Rarely", "Sometimes", "Often", "Restless" }, new[] { "Rarely", "Sometimes", "Often" },
             new[] { "Never", "1 min", "2 min", "5 min", "10 min", "30 min" },
             new[] { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
