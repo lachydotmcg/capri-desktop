@@ -2288,7 +2288,16 @@ namespace CapriDesktop
         private IntPtr exploreWindow;
         private Point exploreFrom, exploreTo;
         private double exploreMoved;
-        private Point anchor;
+        private Point position;
+        private Point anchor
+        {
+            get { return position; }
+            set
+            {
+                if (stoodOn.HasValue && position != value) stoodOn = null;
+                position = value;
+            }
+        }
         private Point pointerStart;
         private Point anchorStart;
         private bool pressed;
@@ -2383,6 +2392,8 @@ namespace CapriDesktop
         private Ledge seat;
         // Where she was stood up beside something full screen, like to doze or by a display change, until she moves.
         private Point? asideAt;
+        // The taskbar line she stood up on, woken from lying along it, for as long as her feet stay on it.
+        private int? stoodOn;
         private bool falling;
         private Ledge fallTo;
         private double fallSpeed;
@@ -3566,8 +3577,10 @@ namespace CapriDesktop
             if (ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
             if (left == facingLeft) return;
             bool aside = asideAt == anchor;
+            int? stood = stoodOn;
             facingLeft = left;
             anchor = new Point(anchor.X + hip.X - Hip().X, anchor.Y);
+            stoodOn = stood;
             if (aside) asideAt = anchor;
             Location = anchor;
             Static(false, null);
@@ -4093,6 +4106,7 @@ namespace CapriDesktop
                     seat = null;
                     anchor = Standing(floorHip.X, floorY);
                     Location = anchor;
+                    stoodOn = floorY;
                     Play(slept ? wake : glitch);
                 }
                 else SitUp();
@@ -4584,6 +4598,18 @@ namespace CapriDesktop
 
         private bool Refloor()
         {
+            // Stood up off the taskbar and still on its line, she stays standing on it as it is now. The mouse that wakes a monitor
+            // wakes her too, before Windows gives the screen back, so she stood up where the taskbar was while it slept and was
+            // left floating above it (#156).
+            int feet = anchor.Y + PaddingSize + (int)(preferences.Size * StandY);
+            if (seat == null && stoodOn == feet && !walking && !falling && !hanging && !riding && !onPanel && !dragging)
+            {
+                int footX = anchor.X + PaddingSize + (int)(preferences.Size * StandAcross);
+                Rectangle standArea = Screen.FromPoint(new Point(footX, feet - 1)).WorkingArea;
+                anchor = new Point(Within(anchor, standArea, Body).X, Standing(footX, standArea.Bottom).Y);
+                stoodOn = standArea.Bottom;
+                return true;
+            }
             if (seat == null || !seat.Floor || seat.Free || walking) return false;
             Point hip = Hip();
             Rectangle area = Screen.FromPoint(hip).WorkingArea;
@@ -4923,9 +4949,11 @@ namespace CapriDesktop
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == GameKeyId) { ToggleGaming(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == FrameKeyId) { ToggleMainframe(); return; }
             if (message.Msg == 0x0312 && ModHotkey(message.WParam.ToInt32())) return;
-            if (message.Msg == 0x02E0) { bodyCells.Clear(); drawnClip = null; anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
+            if (message.Msg == 0x02E0) DpiChanged();
             base.WndProc(ref message);
         }
+
+        private void DpiChanged() { bodyCells.Clear(); drawnClip = null; if (!Refloor()) anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
 
         private bool Solid(Point point, bool uncovered = false)
         {
@@ -6586,8 +6614,8 @@ namespace CapriDesktop
             walkCarry += preferences.Size * 0.42 * step;
             int move = (int)walkCarry;
             walkCarry -= move;
-            if (Math.Abs(gap) <= move) { anchor.X = walkTo; EndWalk(); return; }
-            anchor.X += Math.Sign(gap) * move;
+            if (Math.Abs(gap) <= move) { anchor = new Point(walkTo, anchor.Y); EndWalk(); return; }
+            anchor = new Point(anchor.X + Math.Sign(gap) * move, anchor.Y);
             leanAngle = leanAngle * 0.85 + Math.Sign(gap) * 2.5 * 0.15;
         }
 
@@ -8777,7 +8805,7 @@ namespace CapriDesktop
             fallSpeed += preferences.Size * 11 * step;
             int drop = (int)Math.Ceiling(fallSpeed * step);
             if (hip.Y + drop >= fallTo.Y) Land(fallTo);
-            else anchor.Y += drop;
+            else anchor = new Point(anchor.X, anchor.Y + drop);
         }
 
         private void Land(Ledge ledge, bool arriving = false)
@@ -17344,6 +17372,7 @@ namespace CapriDesktop
             NapScaleChecks(checks);
             Point napHome = anchor;
             Point? napAsideWas = asideAt;
+            int? napStoodWas = stoodOn;
             Ledge napSeatWas = seat, napFallWas = fallTo;
             Clip napClipWas = clip;
             double napClipStartWas = clipStart, napNextWas = nextNap, napLieWas = nextLie, napUntilWas = restUntil, napVoiceWas = voiceUntil, napMeetWas = meetAt;
@@ -17853,7 +17882,7 @@ namespace CapriDesktop
                 gaming.Find = napGameWas; gaming.Changed = napGameChangedWas; gaming.Dock = napGameDockWas; gaming.Undock = napGameUndockWas;
                 napLedges = napPlacesWas; Think = napThinkWas; stopTest = napStopWas;
                 preferences.Motion = napMotionWas; preferences.NoSitting = napSittingWas; preferences.SleepAfter = napAfterWas; preferences.Silent = napSilentWas;
-                anchor = napHome; asideAt = napAsideWas; seat = napSeatWas; fallTo = napFallWas; clip = napClipWas; clipStart = napClipStartWas;
+                anchor = napHome; asideAt = napAsideWas; stoodOn = napStoodWas; seat = napSeatWas; fallTo = napFallWas; clip = napClipWas; clipStart = napClipStartWas;
                 facingLeft = napLeftWas; falling = napFallingWas; hanging = napHangingWas; walking = napWalkingWas; lying = napLyingWas;
                 napAsked = napAskedWas; napping = napNappingWas; ownRest = napOwnWas; ownNap = napOwnNapWas; ownLie = napOwnLieWas;
                 nextNap = napNextWas; nextLie = napLieWas; restUntil = napUntilWas; voiceUntil = napVoiceWas; meetAt = napMeetWas;
@@ -17864,6 +17893,199 @@ namespace CapriDesktop
                 petTicket++;
                 Location = anchor;
                 SavePreferences();
+            }
+        }
+
+        // Woken off the taskbar she stands on it, and a display or DPI change after that keeps her standing on it as it is now.
+        // Coming back to a monitor that went to sleep, the mouse wakes her before Windows gives the screen back, so she stood up
+        // where the taskbar was while it slept and was left floating above it once it came back (#156). The screen while it slept
+        // is a stand-in: a taskbar line above the real one, where a display change at the time leaves her lying.
+        private void SmokeSleepWake(System.Collections.Generic.List<string> checks, string output)
+        {
+            Point homeWas = anchor;
+            Point? asideWas = asideAt;
+            int? stoodWas = stoodOn;
+            Ledge seatWas = seat, fallWas = fallTo;
+            Clip clipWas = clip;
+            double clipStartWas = clipStart, nextNapWas = nextNap, nextLieWas = nextLie, untilWas = restUntil, voiceWas = voiceUntil, meetWas = meetAt, lieByWas = lieBy, veilWas = veilUntil, leanWas = leanAngle;
+            bool motionWas = preferences.Motion, sittingWas = preferences.NoSitting, leftWas = facingLeft, fallingWas = falling, hangingWas = hanging, walkingWas = walking, lyingWas = lying, veiledWas = veiled;
+            bool askedWas = napAsked, nappingWas = napping, ownWas = ownRest, ownNapWas = ownNap, ownLieWas = ownLie, dropWas = dropAfter, hideWas = hideAsked;
+            bool chatWas = chatting, pushWas = pushing, transcribeWas = transcribing, musicWas = musicOn, danceWas = danceAsked, shushWas = shushed, pressWas = pressed, dragWas = dragging;
+            string speechWas = speech, workWas = working;
+            TalkState talkWas = talkState;
+            Job jobWas = job;
+            Func<System.Collections.Generic.List<Ledge>> ledgesWas = napLedges;
+            Rectangle area = Screen.FromPoint(Hip()).WorkingArea;
+            int size = preferences.Size, gap = size / 2;
+            Ledge floor = new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom };
+            Ledge awayFloor = new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom - gap };
+            double now = clock.Elapsed.TotalSeconds;
+            Func<int> feet = delegate { return anchor.Y + PaddingSize + (int)(size * StandY); };
+            // She lies along a taskbar line with her hip at hipX, in her own nap or lying awake.
+            Action<Ledge, int, bool> lie = delegate(Ledge on, int hipX, bool asleep)
+            {
+                napAsked = napping = ownRest = ownNap = ownLie = lying = falling = walking = hanging = pressed = dragging = hideAsked = false;
+                chatting = pushing = transcribing = musicOn = danceAsked = shushed = dropAfter = false;
+                job = null;
+                working = speech = null;
+                talkState = TalkState.Off;
+                voiceUntil = 0;
+                meetAt = lieBy = nextNap = nextLie = restUntil = -1;
+                fallTo = null;
+                asideAt = null;
+                facingLeft = false;
+                leanAngle = 0;
+                seat = on;
+                anchor = Seated(hipX, on.Y);
+                Play(perch);
+                if (!LieDown()) throw new Exception("She couldn't lie down along the taskbar for the check.");
+                ownRest = ownLie = true;
+                ownNap = asleep;
+                if (asleep) { Play(laydownSleep); nextNap = now + NapGap; }
+                else { Play(laydown); restUntil = now + LieStay; }
+            };
+            // Her standing loop drawn where she is, still, at 100%.
+            Func<Bitmap> drawn = delegate
+            {
+                bool motion = preferences.Motion, veil = veiled;
+                double until = veilUntil;
+                preferences.Motion = false;
+                veiled = false;
+                veilUntil = -1;
+                try { return Stood(idle, 0); }
+                finally { preferences.Motion = motion; veiled = veil; veilUntil = until; }
+            };
+            try
+            {
+                if (area.Width < size * 3 || area.Height < size * 3)
+                {
+                    checks.Add("LIMIT waking off the taskbar needs a working area at least three times her size");
+                    return;
+                }
+                preferences.Motion = true;
+                preferences.NoSitting = false;
+                napLedges = delegate { return new System.Collections.Generic.List<Ledge> { floor }; };
+                // Each part reports on its own, so one that fails doesn't hide the rest.
+                Action<Action> part = delegate(Action run)
+                {
+                    try { run(); }
+                    catch (Exception problem) { TestFailed = true; checks.Add("FAIL section SmokeSleepWake: " + problem.Message); }
+                };
+
+                part(delegate
+                {
+                    lie(floor, area.Left + area.Width / 2, true);
+                    CheckIdle(now, 0);
+                    if (Asleep || lying || seat != null || feet() != area.Bottom) throw new Exception("Woken from her nap on the taskbar, she didn't stand on it: feet at " + feet() + " for " + area.Bottom + ".");
+                    Rescreen();
+                    if (lying || seat != null || feet() != area.Bottom) throw new Exception("A display change with the taskbar where it was left her " + (area.Bottom - feet()) + " px above it.");
+                    checks.Add("PASS woken from her nap on the taskbar she stands on it, and a display change that leaves the taskbar where it was leaves her feet on it");
+                });
+
+                // Asleep at the right end of the taskbar as it was while the monitor slept, the mouse that wakes it stands her up there
+                // and a frame turns her from the edge. Then the screen comes back.
+                part(delegate
+                {
+                    lie(awayFloor, area.Right - size / 5, true);
+                    CheckIdle(now, 0);
+                    if (Asleep || lying || seat != null || feet() != awayFloor.Y) throw new Exception("Woken while the screen slept, she didn't stand up on the line she lay on: feet at " + feet() + " for " + awayFloor.Y + ".");
+                    Face();
+                    bool turned = facingLeft;
+                    Bitmap woke = drawn();
+                    Point wokeAt = anchor;
+                    Rescreen();
+                    Bitmap back = drawn();
+                    Point backAt = anchor;
+                    try
+                    {
+                        int wokeToes, backToes;
+                        double middle;
+                        Footing(woke, out wokeToes, out middle);
+                        Footing(back, out backToes, out middle);
+                        int wokeGap = area.Bottom - (wokeAt.Y + wokeToes + 1), backGap = area.Bottom - (backAt.Y + backToes + 1);
+                        int top = Math.Min(wokeAt.Y, backAt.Y) - 8, bar = 40, margin = 16;
+                        using (Bitmap sheet = new Bitmap(Width * 2 + margin * 3, area.Bottom + bar - top + margin * 2, PixelFormat.Format32bppArgb))
+                        {
+                            using (Graphics paper = Graphics.FromImage(sheet))
+                            {
+                                paper.Clear(Color.FromArgb(46, 84, 128));
+                                Bitmap[] shots = { woke, back };
+                                Point[] spots = { wokeAt, backAt };
+                                for (int k = 0; k < 2; k++)
+                                {
+                                    int left = margin + k * (Width + margin);
+                                    using (Brush taskbar = new SolidBrush(Color.FromArgb(24, 24, 28))) paper.FillRectangle(taskbar, left, margin + area.Bottom - top, Width, bar);
+                                    if (k == 0)
+                                        using (Pen was = new Pen(Color.FromArgb(255, 200, 80), 1))
+                                        {
+                                            was.DashStyle = DashStyle.Dash;
+                                            paper.DrawLine(was, left, margin + awayFloor.Y - top, left + Width, margin + awayFloor.Y - top);
+                                        }
+                                    paper.DrawImage(shots[k], left, margin + spots[k].Y - top);
+                                }
+                            }
+                            sheet.Save(Path.Combine(output, "woken-taskbar.png"), ImageFormat.Png);
+                        }
+                        Rectangle body = BodyOnScreen(anchor, Body);
+                        if (lying || seat != null || feet() != area.Bottom || body.Left < area.Left || body.Right > area.Right || Math.Abs(backGap) > Math.Max(4, size / 40))
+                            throw new Exception("Woken while the screen slept, she was left standing " + (area.Bottom - feet()) + " px above the taskbar once it came back, her drawn toes " + backGap + " px above its edge, body " + body.Left + " to " + body.Right + " on " + area.Left + " to " + area.Right + ".");
+                        checks.Add("PASS woken while the screen slept with its taskbar " + gap + " px higher, she stands up on that line (drawn toes " + wokeGap + " px above the taskbar) and turns from the edge" + (turned ? "" : " (she didn't need to)") + "; once the screen comes back she stands on the taskbar, toes " + Math.Abs(backGap) + " px " + (backGap > 0 ? "above" : "into") + " its edge (woken-taskbar.png)");
+                    }
+                    finally { woke.Dispose(); back.Dispose(); }
+                });
+
+                part(delegate
+                {
+                    lie(awayFloor, area.Left + area.Width / 3, false);
+                    CheckIdle(now, 0);
+                    if (lying || ownRest || seat != null || feet() != awayFloor.Y) throw new Exception("The mouse didn't stand her up from lying awake on the line she lay on: feet at " + feet() + " for " + awayFloor.Y + ".");
+                    DpiChanged();
+                    if (lying || seat != null || feet() != area.Bottom) throw new Exception("Stood up from lying awake while the screen slept, a DPI change left her " + (area.Bottom - feet()) + " px above the taskbar.");
+                    checks.Add("PASS stood up from lying awake while the screen slept, a DPI change puts her feet on the taskbar too");
+                });
+
+                part(delegate
+                {
+                    lie(floor, area.Left + area.Width / 2, false);
+                    DpiChanged();
+                    if (!lying || seat == null || !seat.Floor || Hip().Y != area.Bottom) throw new Exception("A DPI change lifted her " + (area.Bottom - Hip().Y) + " px off the taskbar while she lay on it.");
+                    checks.Add("PASS lying on the taskbar, a DPI change keeps her lying on its line");
+                });
+
+                part(delegate
+                {
+                    lying = ownRest = ownNap = ownLie = false;
+                    seat = null;
+                    anchor = Standing(area.Left + area.Width / 2, area.Top + area.Height / 2);
+                    Play(idle);
+                    Point midAir = anchor;
+                    Rescreen();
+                    DpiChanged();
+                    if (anchor != midAir) throw new Exception("A display or DPI change moved her from where she stood off the taskbar: " + anchor + " from " + midAir + ".");
+                    lie(awayFloor, area.Left + area.Width / 3, false);
+                    CheckIdle(now, 0);
+                    if (lying || seat != null || feet() != awayFloor.Y) throw new Exception("She didn't stand on the old taskbar line for the move check.");
+                    anchor = new Point(anchor.X + gap, anchor.Y);
+                    Point moved = anchor;
+                    Rescreen();
+                    DpiChanged();
+                    if (anchor != moved) throw new Exception("A display or DPI change moved her to the taskbar after she moved off it at the same height.");
+                    checks.Add("PASS standing anywhere but where she stood up off the taskbar, even after moving at the same height, display and DPI changes leave her where she is");
+                });
+            }
+            finally
+            {
+                napLedges = ledgesWas;
+                preferences.Motion = motionWas;
+                preferences.NoSitting = sittingWas;
+                anchor = homeWas; asideAt = asideWas; stoodOn = stoodWas; seat = seatWas; fallTo = fallWas; clip = clipWas; clipStart = clipStartWas;
+                facingLeft = leftWas; falling = fallingWas; hanging = hangingWas; walking = walkingWas; lying = lyingWas; veiled = veiledWas;
+                napAsked = askedWas; napping = nappingWas; ownRest = ownWas; ownNap = ownNapWas; ownLie = ownLieWas; dropAfter = dropWas; hideAsked = hideWas;
+                nextNap = nextNapWas; nextLie = nextLieWas; restUntil = untilWas; voiceUntil = voiceWas; meetAt = meetWas; lieBy = lieByWas; veilUntil = veilWas; leanAngle = leanWas;
+                chatting = chatWas; pushing = pushWas; transcribing = transcribeWas; musicOn = musicWas; danceAsked = danceWas; shushed = shushWas; pressed = pressWas; dragging = dragWas;
+                job = jobWas; working = workWas; speech = speechWas; talkState = talkWas;
+                Location = anchor;
+                RenderFrame();
             }
         }
 
@@ -43675,6 +43897,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGlitchFilm", delegate { SmokeGlitchFilm(checks, Path.Combine(output, "glitch-film")); });
             Section(checks, "SmokeOldStand", delegate { SmokeOldStand(checks, Path.Combine(output, "old-stand")); });
             Section(checks, "SmokeStandFilm", delegate { SmokeStandFilm(checks, Path.Combine(output, "stand-film")); });
+            Section(checks, "SmokeSleepWake", delegate { string wakeOut = Path.Combine(output, "sleep-wake"); Directory.CreateDirectory(wakeOut); SmokeSleepWake(checks, wakeOut); });
             Section(checks, "SmokeClickEffect", delegate { SmokeClickEffect(checks, output); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
