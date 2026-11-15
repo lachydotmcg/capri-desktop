@@ -5746,7 +5746,7 @@ namespace CapriDesktop
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
             string kind = Cloud.KindOf(key);
-            if (kind == null) { frameProblem = NotAKey; if (phone != null) DropPhoneKey(NotAKey); NotifySettings(); Talk.Answer(BrainKeyHeard, NotAKey); return; }
+            if (kind == null) { frameProblem = NotAKey; if (phone != null) DropPhoneKey(NotAKey); NotifySettings(); if (phone == null) Talk.Answer(BrainKeyHeard, NotAKey); return; }
             frameProblem = null;
             int pickedTier = tier == 1 && Cloud.MediumKind(kind) ? 1 : 2;
             int request = ++brainRequests;

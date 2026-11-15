@@ -9081,7 +9081,9 @@ namespace CapriDesktop
                 }
                 calls = checker.Calls;
                 key("unknown-key", "max", "\n" + unknown + "\t" + new string(' ', RemoteBrainKeys.MostKey)); RemoteBrainNote(read(), "unknown-key", "failed", Pet.NotAKey);
+                pet.Talk.Answer("A PC question.", "Her answer on the PC.");
                 key("short-key", "max", "key"); RemoteBrainNote(read(), "short-key", "failed", Pet.NotAKey);
+                if (pet.Talk.Reply != "Her answer on the PC.") throw new Exception("An unknown phone key replaced her answer on the PC.");
                 key("wrong-rung", "medium", paid); RemoteBrainNote(read(), "wrong-rung", "failed", RemoteBrainKeys.PaidNote);
                 foreach (string plan in new[] { Plans.ClaudeKey, Plans.CodexKey })
                 {
