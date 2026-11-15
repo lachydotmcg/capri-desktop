@@ -5752,8 +5752,8 @@ namespace CapriDesktop
             int request = ++brainRequests;
             if (phone != null) phone.Request = request;
             brainPending++;
-            int ticket = ++asking;
-            Talk.Thinking(BrainKeyHeard);
+            int ticket = -1;
+            if (phone == null) { ticket = ++asking; Talk.Thinking(BrainKeyHeard); }
             Func<string, bool, List<string>> check = BrainKeyCheck;
             ThreadPool.QueueUserWorkItem(delegate
             {
