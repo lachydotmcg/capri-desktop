@@ -357,7 +357,7 @@ namespace CapriDesktop
                 case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
 #endif
                 case "use_computer": return Mouse;
-                case "workspace": return action == "start" ? Mouse : -1;
+                case "workspace": return Hands.WorkspaceStarts(args) ? Mouse : -1;
                 case "stream": return action == "stop" ? -1 : Mouse;
                 case "job_control": return action == "change" ? Mouse : -1;
                 case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
@@ -654,7 +654,7 @@ namespace CapriDesktop
                 case "draw": return "draw " + Plain(a.Description ?? a.Text, "on your screen");
                 case "desktop_icons": return a.Action == "back" ? "put your desktop icons back" : a.Action == "hide" ? "hide your desktop icons briefly" : a.Action == "rampage" ? "ram your desktop icons into the screen edge and fling them around" : "scatter your desktop icons";
                 case "mini_game": return "play " + Plain(a.Name, "a mini game").Replace('_', ' ');
-                case "workspace": return a.Action == "status" ? "check Workspace" : a.Action == "start" ? "start a Workspace chat to " + Plain(Hands.Asked(a.Task ?? ""), "do that") + (string.IsNullOrEmpty(a.Folder) ? "" : " in " + Plain(a.Folder, "that folder")) : "open Workspace";
+                case "workspace": return a.Action == "status" ? "check Workspace" : Hands.WorkspaceStarts(a) ? "start a Workspace chat to " + Plain(Hands.Asked(a.Task ?? ""), "do that") + (string.IsNullOrEmpty(a.Folder) ? "" : " in " + Plain(a.Folder, "that folder")) : "open Workspace";
                 case "fake_crash": return a.Action == "stop" ? "stop the " + Hands.CrashKind : "show the " + Hands.CrashKind;
                 case "listen": return a.Action == "stop" ? "stop listening to PC dialogue" : "listen to PC dialogue";
                 case "list_windows": return "check your open windows";
@@ -1429,7 +1429,7 @@ namespace CapriDesktop
             { "quit", "Quit Capri after your reply is said when they ask, suggest or hint that you close yourself. This leaves their PC running.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"quit Capri\",\"enum\":[\"quit\"]}},\"required\":[\"action\"]}", "quit Capri after her reply", "quit Capri after your reply" },
 #if !CROSS
-            { "workspace", "Open your Workspace window, start a new Claude Code chat there, or check recent chats when they ask. open is the default. start needs task in their words; folder is optional and must exist, otherwise it uses your own Workspace folder. New chats use the window's usual mode: Everything under the Blackwall preset, Ask me otherwise. Folder trust and tool approvals stay in the window for them to answer. status gives up to three recent chats, whether they are working, waiting for an OK or finished, and their last answer.",
+            { "workspace", "Open your Workspace window, start a new Claude Code chat there, or check recent chats when they ask. open is the default; a task with no action means start. start needs task in their words; folder is optional and must exist, otherwise it uses your own Workspace folder. New chats use the window's usual mode: Everything under the Blackwall preset, Ask me otherwise. Folder trust and tool approvals stay in the window for them to answer. status gives up to three recent chats, whether they are working, waiting for an OK or finished, and their last answer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"open by default, start a chat, or check status\",\"enum\":[\"open\",\"start\",\"status\"]},\"task\":{\"type\":\"string\",\"description\":\"Required for start: their first message in their words\"},\"folder\":{\"type\":\"string\",\"description\":\"For start: an existing folder; omit for your own Workspace folder\"}}}", "open Workspace, start a chat or check recent chats", "open Workspace, start a chat or check recent chats" },
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY, Hey Capri and memories are changed there by them.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
@@ -2259,7 +2259,8 @@ namespace CapriDesktop
         {
             if (!CallTool(tool) || args == null || !Valid(tool, args)) return false;
             if (tool == "mini_game" && (args.Action == "level" || !string.IsNullOrEmpty(args.Level))) return false;
-            if (tool != "use_computer" && (tool != "workspace" || args.Action != "start")) return true;
+            if (tool == "workspace" && args.Action == "status") return false;
+            if (tool != "use_computer" && (tool != "workspace" || !WorkspaceStarts(args))) return true;
             return !Regex.IsMatch(args.Task ?? "", @"\b(capri|mainframe|security|settings|preferences|call_errand|call_say|read_file|quit|remember|routine)\b|\b(?:read|inspect|cat|type|print|show)\b.{0,60}\b(?:file|me\.md|personality\.md)\b", RegexOptions.IgnoreCase);
         }
 
@@ -2446,7 +2447,7 @@ namespace CapriDesktop
         // off. Narrow on purpose: talk about drawing or files isn't asking for them.
         private static readonly string[,] GapAsks =
         {
-            { "workspace", @"^(?:open|show|start|check|build|make|create)\b.*\bworkspace\b|^(?:what|how|is)\b.*\bworkspace\b" },
+            { "workspace", @"^(?:open|show(?: me)?|check)\s+(?:your |the )?workspace(?: please)?[.!?]*$|\byour workspace\b|\bworkspace (?:window|chats?)\b" },
             { "draw", @"^(?:draw|sketch|doodle|scribble|annotate)\b|^(?:write|circle|underline|highlight|point (?:at|to))\b.*\bon (?:my|the|your) screen$" },
             { "watch_along", @"^(?:(?:let'?s|wanna|can we)\s+)?watch\s+(?:(?:this|it|that|a|the|some)\s+)?(?:(?:video|stream|movie|show|anime|youtube|episode)\s+)?(?:(?:with|along with)\s+me|together)\b|^watch along\b|^react to (?:this|that|it)\b" },
             { "find_file", @"^(?:find|locate|search for|where(?:'s| is| are))\s+(?:my |the |a )?.*\b(?:files?|folders?|documents?|pdfs?)$|^show me (?:the )?(?:path|folder)\b" },
@@ -4283,6 +4284,8 @@ namespace CapriDesktop
             }
             return loose.ToString();
         }
+
+        internal static bool WorkspaceStarts(ToolArguments args) { return args != null && (args.Action == "start" || string.IsNullOrEmpty(args.Action) && Named(args.Task)); }
 
         internal static bool Valid(string tool, ToolArguments args)
         {

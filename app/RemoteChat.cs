@@ -564,7 +564,7 @@ namespace CapriDesktop
             switch (tool)
             {
                 case "use_computer": return "Using the computer";
-                case "workspace": return args != null && args.Action == "status" ? "Checking Workspace" : args != null && args.Action == "start" ? "Starting a Workspace chat" : "Opening Workspace";
+                case "workspace": return args != null && args.Action == "status" ? "Checking Workspace" : Hands.WorkspaceStarts(args) ? "Starting a Workspace chat" : "Opening Workspace";
                 case "look_at_screen": return "Looking at the screen";
                 case "open_app": return "Opening an app";
                 case "open_website": return "Opening a website";

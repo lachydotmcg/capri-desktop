@@ -88,21 +88,22 @@ namespace CapriDesktop
                 if (InvokeRequired) return (string)Invoke(new Func<string>(WorkspaceStatus));
                 return WorkspaceStatus();
             }
-            if (args.Action == "start" && !string.IsNullOrEmpty(args.Folder) && !Directory.Exists(args.Folder)) return "That folder isn't here.";
+            bool start = Hands.WorkspaceStarts(args);
+            if (start && !string.IsNullOrEmpty(args.Folder) && !Directory.Exists(args.Folder)) return "That folder isn't here.";
             try
             {
                 WorkspaceChat started = null;
                 Action open = delegate
                 {
-                    if (args.Action == "start") ShowWorkspace(delegate { started = workspaceWindow.Start(args.Task, args.Folder); });
+                    if (start) ShowWorkspace(delegate { started = workspaceWindow.Start(args.Task, args.Folder); });
                     else ShowWorkspace();
                 };
                 if (InvokeRequired) Invoke(open); else open();
-                if (args.Action != "start") return "Opened Workspace.";
+                if (!start) return "Opened Workspace.";
                 if (started == null) return "Couldn't start the chat; see the Workspace window.";
                 WorkspaceTurn turn;
                 lock (started.Gate) turn = started.Live;
-                if (turn != null) WaitHandle.WaitAny(new WaitHandle[] { turn.Ready, turn.Done });
+                if (turn != null) WaitHandle.WaitAny(new WaitHandle[] { turn.Ready, turn.Done }, 30000);
                 return WorkspaceStarted(started);
             }
             catch (Exception error) { return "Couldn't open Workspace: " + error.Message; }
@@ -137,10 +138,9 @@ namespace CapriDesktop
                 lock (chat.Gate)
                 {
                     string state = chat.PendingText != null || chat.Undoing != null || Workspace.Pending(chat) ? "waiting for an OK" : chat.Running ? "working" : "finished";
-                    WorkspaceItem answer = chat.Items.FindLast(delegate(WorkspaceItem item) { return item.Kind == "text"; });
-                    if (answer == null) answer = chat.Items.FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                    WorkspaceItem answer = chat.Items.FindLast(delegate(WorkspaceItem item) { return item.Kind == "text" || item.Kind == "error"; });
                     if (text.Length > 0) text.Append('\n');
-                    text.Append(WorkspaceBrief(chat.Title, 100)).Append(": ").Append(state).Append(". ").Append(answer == null ? "No answer yet." : WorkspaceBrief(answer.Text, 1000));
+                    text.Append(WorkspaceBrief(chat.Title, 100)).Append(": ").Append(state).Append(". ").Append(answer == null ? "No answer yet." : (answer.Kind == "error" ? "Last error: " : "Claude Code said: ") + Voice.Quote(WorkspaceBrief(answer.Text, 1000)));
                 }
             }
             return text.ToString();
@@ -376,31 +376,26 @@ namespace CapriDesktop
 
         // A new chat starts straight away in her own folder, ready to type in. A new chat there that hasn't been used yet is
         // opened again rather than making another. Its folder can still be changed from the "runs here" chip.
-        internal void NewChat() { NewChat(null, false); }
+        internal void NewChat() { Try(delegate { NewChat(null, false); }); }
 
         private WorkspaceChat NewChat(string folder, bool fresh)
         {
-            WorkspaceChat made = null;
-            Try(delegate
+            WorkspaceChat unused = fresh ? null : workspace.Chats().Find(delegate(WorkspaceChat found)
             {
-                WorkspaceChat unused = fresh ? null : workspace.Chats().Find(delegate(WorkspaceChat found)
-                {
-                    lock (found.Gate) return found.Items.Count == 0 && found.Folders.Count == 0 && found.Files.Count == 0 && found.Live == null && workspace.IsHome(found.Folder);
-                });
-                WorkspaceChat next = unused ?? workspace.HomeChat(blackwall != null && blackwall());
-                if (!string.IsNullOrEmpty(folder)) workspace.Rehome(next, new[] { folder });
-                FillChats();
-                SelectChat(next);
-                composer.Input.Focus();
-                made = next;
+                lock (found.Gate) return found.Items.Count == 0 && found.Folders.Count == 0 && found.Files.Count == 0 && found.Live == null && workspace.IsHome(found.Folder);
             });
+            WorkspaceChat made = unused ?? workspace.HomeChat(blackwall != null && blackwall());
+            if (!string.IsNullOrEmpty(folder)) workspace.Rehome(made, new[] { folder });
+            FillChats();
+            SelectChat(made);
+            composer.Input.Focus();
             return made;
         }
 
+        // Her workspace tool's start: a failure throws to the tool instead of waiting on a notice for their click.
         internal WorkspaceChat Start(string task, string folder)
         {
             WorkspaceChat made = NewChat(folder, true);
-            if (made == null) return null;
             composer.Input.Text = task;
             Send();
             return made;

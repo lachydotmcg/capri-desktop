@@ -463,13 +463,8 @@ namespace CapriDesktop
                 else running.Tell(args.Task);
                 return "Added that to my job.";
             }
-            if (MidJob(running) && job == running && (Array.IndexOf(Fronting, tool) >= 0 && (tool != "workspace" || args.Action != "status") || tool == "routine" && args.Action == "run"))
+            if (MidJob(running) && job == running && (Array.IndexOf(Fronting, tool) >= 0 && (tool != "workspace" || args.Action != "status" && !Hands.WorkspaceStarts(args)) || tool == "routine" && args.Action == "run"))
             {
-                if (tool == "workspace" && args.Action == "start")
-                {
-                    string held = Security.Gate(tool, args);
-                    if (held != null) return held;
-                }
                 if (args.Job != null && args.Job != running) return "That job has ended.";
                 running.Tell(string.IsNullOrWhiteSpace(args.Asked) ? tool : args.Asked);
                 return "Added that to my job.";
