@@ -392,7 +392,6 @@ namespace CapriDesktop
             return made;
         }
 
-        // Her workspace tool's start: a failure throws to the tool instead of waiting on a notice for their click.
         internal WorkspaceChat Start(string task, string folder)
         {
             WorkspaceChat made = NewChat(folder, true);
