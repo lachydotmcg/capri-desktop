@@ -9033,10 +9033,13 @@ namespace CapriDesktop
                 frame.PickBrainTier(2); RemoteBrainShown(frame, read(), bridge.Phones[0].Id, false, false);
                 checks.Add("PASS cross brains: hello offers brains and no call; get and use match the Mainframe; a PC rung change reaches the phone that asked and no other phone");
 
+                pet.Talk.Dismiss();
+                int ticket = (int)RemoteWire.Get(pet, "asking");
                 checker.WaitFor(free); key("free-key", "medium", "  " + free + "  ");
                 RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the fake free key check");
                 RemoteBrainNote(read(), "free-key", "checking", RemoteBrainKeys.Checking);
                 if (!checker.Free) throw new Exception("A medium key did not use the free model check.");
+                if (pet.Talk.Thinks || (int)RemoteWire.Get(pet, "asking") != ticket) throw new Exception("A phone's key took over her bubble or her answer on the PC.");
                 checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting; }, "the free key save");
                 List<RemoteJson.Map> rows = read(); RemoteBrainNote(rows, "free-key", "saved", RemoteBrainKeys.Saved);
                 RemoteBrainShown(frame, rows, bridge.Phones[0].Id, true, false);
@@ -9061,7 +9064,7 @@ namespace CapriDesktop
                 MainframeEnter(frame, "Brain API key", "");
                 RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
                 if (pet.MainframeTier != 2 || pet.MainframeBrainKey != null || File.Exists(Path.Combine(data, "brain-paid-key")) || File.Exists(Path.Combine(data, "brain-key"))) throw new Exception("The PC's Forget did not reach the phone or the key store.");
-                checks.Add("PASS cross brain keys: checking then saved; the free and paid Mainframe stores, Capri code spelling and private file mode; a PC notice names the phone and brain; typing and forgetting on the PC notify a watching phone even when its saved-key flags stay the same");
+                checks.Add("PASS cross brain keys: checking then saved, with no thinking bubble or new answer ticket on the PC; the free and paid Mainframe stores, Capri code spelling and private file mode; a PC notice names the phone and brain; typing and forgetting on the PC notify a watching phone even when its saved-key flags stay the same");
 
                 foreach (string rejected in new[] { refused, broken })
                 {
