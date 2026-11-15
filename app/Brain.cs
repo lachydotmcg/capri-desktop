@@ -711,6 +711,7 @@ namespace CapriDesktop
         // The keys she has saved, so a line in errors.txt never keeps one whole, whatever its shape (Scrubbed).
         internal static Func<string[]> Secrets = delegate { return new string[0]; };
         [ThreadStatic] private static bool scrubbing;
+        private static readonly HashSet<string> cleanedLogs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 #if CROSS
         [ThreadStatic] internal static Func<string, string> CleanSecret;
 #endif
@@ -4937,12 +4938,12 @@ namespace CapriDesktop
 #if CROSS
             if (CleanSecret != null) text = CleanSecret(text);
 #endif
-            string clean = Regex.Replace(text ?? "", @"CAPRI(?:-[A-Z0-9\u0131\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            string clean = Regex.Replace(text ?? "", @"CAPR[I\u0131\u0130](?:-[A-Z0-9\u0131\u0130\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|(?:sk-(?:ant|proj|or-v1|svcacct|adm[i\u0131\u0130]n)-|nvap[i\u0131\u0130]-|gsk_|xa[i\u0131\u0130]-|g[i\u0131\u0130]thub_pat_|glpat-)(?=[A-Za-z0-9_\u0131\u0130\u017F-]{0,200}?[0-9])[A-Za-z0-9_\u0131\u0130\u017F-]{16,}|(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))(?:nvap[i\u0131\u0130]-|sk-|A[I\u0131\u0130]za|gh[pousr]_|g[i\u0131\u0130]thub_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:l[i\u0131\u0130]ve|test)_|sk_(?=[A-Za-z0-9\u0131\u0130\u017F]{32}))[A-Za-z0-9_\u0131\u0130\u017F-]+|\b(?:hf|npm)_[A-Za-z0-9\u0131\u0130\u017F]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.\u0131\u0130\u017F-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             clean = Regex.Replace(clean, @"(""data""\s*:\s*"")[A-Za-z0-9+/_=-]{32,}("")", "$1[redacted]$2", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
             clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|ap[i\u0131\u0130][-_]?key|ap[i\u0131\u0130]key)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
             // Only curl's lowercase -u takes it attached, and a $ value is a variable, so PowerShell's -UseDefaultCredentials:$true stays.
             clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)|(?-i:-u)|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|(?!\$)[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -4960,7 +4961,7 @@ namespace CapriDesktop
             clean = Regex.Replace(clean, @"((?:(?<=[A-Za-z0-9_.-])|(?<![^\r\n])[ \t]*(?:-[ \t]+)?|[""']|[{,][ \t]*)(?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // In a sentence the next word goes only when it looks like a password itself, six or more letters and digits mixed.
             clean = Regex.Replace(clean, @"(\b(?:password|passwd|secret|token(?!s\b)|cookie)\s*:\s*)(?=[^\s""',}]{6})(?=[^\s""',}]*?[0-9])(?=[^\s""',}]*?[A-Za-z])[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return Regex.Replace(clean, @"((?:ap[i\u0131\u0130][_ -]?key|author[i\u0131\u0130]zat[i\u0131\u0130]on|access[_ -]?token|auth[_ -]?token|pr[i\u0131\u0130]vate[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
         internal static string ScreenProblem(Exception error, string provider)
@@ -5032,10 +5033,12 @@ namespace CapriDesktop
             {
                 Uri where;
                 string place = Uri.TryCreate(url, UriKind.Absolute, out where) ? where.Host + where.AbsolutePath : url;
-                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + Scrubbed(place) + " | " + (took < 0 ? "-" : took + " ms") + " | " + Redacted(Scrubbed(what)).Replace("\r", " ").Replace("\n", " ");
+                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + Redacted(Scrubbed(place)) + " | " + (took < 0 ? "-" : took + " ms") + " | " + Redacted(Scrubbed(what)).Replace("\r", " ").Replace("\n", " ");
+                string[] keys = SavedSecrets();
                 lock (typeof(Brain))
                 {
                     List<string> lines = File.Exists(path) ? new List<string>(File.ReadAllLines(path)) : new List<string>();
+                    if (cleanedLogs.Add(path)) for (int i = 0; i < lines.Count; i++) lines[i] = Redacted(Scrubbed(lines[i], keys));
                     // A freeze's line says what she was doing, what she holds and where she was held up, so it gets more room.
                     int limit = place == "closed" ? 2400 : place == "frozen" ? 1000 : 300;
                     lines.Add(line.Length > limit ? line.Substring(0, limit) : line);
@@ -5059,21 +5062,65 @@ namespace CapriDesktop
             if (CleanSecret != null) text = CleanSecret(text);
 #endif
             if (string.IsNullOrEmpty(text) || scrubbing) return text ?? "";
-            string[] keys;
+            return Scrubbed(text, SavedSecrets());
+        }
+
+        internal static string[] Cleaned(string[] lines)
+        {
+            string[] keys = SavedSecrets();
+            string[] clean = new string[lines == null ? 0 : lines.Length];
+            for (int i = 0; i < clean.Length; i++) clean[i] = Redacted(Scrubbed(lines[i], keys));
+            return clean;
+        }
+
+        private static string[] SavedSecrets()
+        {
+            if (scrubbing) return null;
             scrubbing = true;
-            try { keys = Secrets(); }
-            catch (Exception) { return text; }
+            try { return Secrets(); }
+            catch (Exception) { return null; }
             finally { scrubbing = false; }
-            if (keys == null) return text;
+        }
+
+        private static string Scrubbed(string text, string[] keys)
+        {
+            if (string.IsNullOrEmpty(text) || keys == null) return text ?? "";
             foreach (string saved in keys)
             {
                 string key = (saved ?? "").Trim();
                 if (key.Length < 20 || key.Length > 4096) continue;
-                text = text.Replace(key, "[redacted]");
+                text = Without(text, key);
                 string escaped = Uri.EscapeDataString(key);
-                if (escaped != key) text = text.Replace(escaped, "[redacted]");
+                if (escaped != key) text = Without(text, escaped);
             }
             return text;
+        }
+
+        private static string Without(string text, string key)
+        {
+            string folded = Folded(text), needle = Folded(key);
+            int at = folded.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
+            if (at < 0) return text;
+            StringBuilder kept = new StringBuilder(text.Length);
+            int from = 0;
+            while (at >= 0)
+            {
+                kept.Append(text, from, at - from).Append("[redacted]");
+                from = at + needle.Length;
+                at = folded.IndexOf(needle, from, StringComparison.OrdinalIgnoreCase);
+            }
+            return kept.Append(text, from, text.Length - from).ToString();
+        }
+
+        private static string Folded(string text)
+        {
+            char[] letters = text.ToCharArray();
+            for (int i = 0; i < letters.Length; i++)
+            {
+                if (letters[i] == '\u0131' || letters[i] == '\u0130') letters[i] = 'i';
+                else if (letters[i] == '\u017f') letters[i] = 's';
+            }
+            return new string(letters);
         }
 
         private static HttpWebRequest Open(string path, int timeout) { return Create(Ollama + path, timeout); }

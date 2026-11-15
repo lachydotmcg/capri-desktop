@@ -5133,7 +5133,7 @@ namespace CapriDesktop
             int from = Math.Max(0, lines.Length - 25);
             System.Collections.Generic.List<string> details = new System.Collections.Generic.List<string>();
             for (int i = 0; i < lines.Length; i++) if (i >= from || lines[i].Contains(" | closed | ")) details.Add(lines[i]);
-            return head + Environment.NewLine + (details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, details.ToArray()));
+            return head + Environment.NewLine + (details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(details.ToArray())));
         }
 
         private void CopyErrors()
@@ -44377,6 +44377,63 @@ namespace CapriDesktop
                 if (File.Exists(log)) File.Delete(log);
             }
             checks.Add("PASS errors.txt never keeps a saved key whole, whatever its shape, as typed or URL-escaped, and a short placeholder key leaves ordinary words alone");
+
+            System.Globalization.CultureInfo cultureWas = System.Threading.Thread.CurrentThread.CurrentCulture, wordsWas = System.Threading.Thread.CurrentThread.CurrentUICulture;
+            string keyLog = Path.Combine(Path.GetTempPath(), "capri-keylog-" + Guid.NewGuid().ToString("N") + ".txt"), oldLog = Path.Combine(Path.GetTempPath(), "capri-oldlog-" + Guid.NewGuid().ToString("N") + ".txt");
+            Func<string[]> keysWas = Brain.Secrets;
+            try
+            {
+                string body = "Gy7cSz2Ny9Ii4Zs8Ly6Ty3Dzs5Kq1Wm0Xr", hexBody = "0f9e8d7c6b5a4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b";
+                string[][] kinds = {
+                    new[] { "Anthropic", "sk-ant-api03-" + body + body + "AA", "shaped" }, new[] { "OpenAI", "sk-proj-" + body + "Qw", "shaped" },
+                    new[] { "OpenRouter", "sk-or-v1-" + hexBody + hexBody.Substring(0, 16), "shaped" }, new[] { "NVIDIA", "nvapi-" + body + body.Substring(0, 30), "shaped" },
+                    new[] { "Gemini", "AIza" + body + "x", "shaped" }, new[] { "Groq", "gsk_" + body + body.Substring(0, 18), "shaped" },
+                    new[] { "xAI", "xai-" + body + body, "shaped" }, new[] { "ElevenLabs", "sk_" + hexBody, "shaped" }, new[] { "DeepSeek", "sk-" + hexBody.Substring(0, 32), "shaped" },
+                    new[] { "Capri code", "CAPRI-7Q4M-ZK2P-9VXA-3HRT", "shaped" }, new[] { "named Capri code", "CAPRI-TOMMAS-7Q4M-ZK2P-9VXA-3HRT", "shaped" },
+                    new[] { "Fish Audio", hexBody.Substring(0, 32), "saved" }, new[] { "Mistral", "Hq3Zp8Wn2Kt7Lm4R" + "v9Xc1Bs6Dj5Fg0Ty", "saved" } };
+                foreach (string name in new[] { "hu-HU", "tr-TR" })
+                {
+                    System.Globalization.CultureInfo culture = new System.Globalization.CultureInfo(name);
+                    System.Threading.Thread.CurrentThread.CurrentCulture = culture;
+                    System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
+                    foreach (bool saved in new[] { true, false })
+                        foreach (string[] kind in kinds)
+                        {
+                            if (!saved && kind[2] != "shaped") continue;
+                            string key = kind[1];
+                            string[] savedKeys = saved ? new[] { key } : new string[0];
+                            Brain.Secrets = delegate { return savedKeys; };
+                            if (File.Exists(keyLog)) File.Delete(keyLog);
+                            foreach (string shape in new[] { "Invalid API key: " + key, "key=" + key, "{\"api_key\":\"" + key + "\"}", "line\\n" + key, "%20" + key, Uri.EscapeDataString(key), key.ToUpper(culture), key.ToLower(culture) })
+                                Brain.LogAt(keyLog, key, 12, shape);
+                            string written = File.ReadAllText(keyLog), tail = key.Substring(key.Length - 12);
+                            if (written.IndexOf(tail, StringComparison.OrdinalIgnoreCase) >= 0 || written.IndexOf(tail.ToLower(culture), StringComparison.Ordinal) >= 0 || written.IndexOf(tail.ToUpper(culture), StringComparison.Ordinal) >= 0)
+                                throw new Exception("A " + (saved ? "saved" : "typed") + " " + kind[0] + " key reached errors.txt on a " + name + " PC.");
+                            string[] copied = Brain.Cleaned(new[] { "2026-11-01 10:00:00 | " + key + " | 12 ms | Invalid API key: " + key, "2026-11-01 10:00:01 | brain | - | " + key.ToLower(culture) + " and " + key.ToUpper(culture) });
+                            string pasted = string.Join("\n", copied);
+                            if (pasted.IndexOf(tail, StringComparison.OrdinalIgnoreCase) >= 0 || pasted.IndexOf(tail.ToLower(culture), StringComparison.Ordinal) >= 0 || pasted.IndexOf(tail.ToUpper(culture), StringComparison.Ordinal) >= 0)
+                                throw new Exception("Copy error details would paste a " + (saved ? "saved" : "typed") + " " + kind[0] + " key an older Capri left in errors.txt on a " + name + " PC.");
+                        }
+                    foreach (string plain in new[] { "the risk-free task-list sits on my desk-top", "Kaizawa joined the xai-assistant v2 call", "ask-proj notes and the gsk_ prefix", "a capri-sun on the sk_live tab", "Sz\u00e9p napot, \u0131\u015f\u0131k kapal\u0131" })
+                        if (Brain.Redacted(plain) != plain || Brain.Cleaned(new[] { plain })[0] != plain) throw new Exception("Redaction took ordinary words on a " + name + " PC: " + Brain.Redacted(plain));
+                }
+                string oldKey = kinds[0][1], oldCode = kinds[9][1];
+                System.Globalization.CultureInfo turkish = new System.Globalization.CultureInfo("tr-TR");
+                Brain.Secrets = delegate { return new[] { oldKey, oldCode }; };
+                File.WriteAllLines(oldLog, new[] { "2026-11-01 10:00:00 | brain | 12 ms | Invalid API key: " + oldKey, "2026-11-01 10:00:01 | " + oldCode.ToLower(turkish) + " | - | an older line", "2026-11-01 10:00:02 | brain | - | Ordinary words stay." });
+                Brain.LogAt(oldLog, "brain", 1, "A fresh line.");
+                string cleaned = File.ReadAllText(oldLog);
+                if (cleaned.IndexOf(oldKey.Substring(20), StringComparison.Ordinal) >= 0 || cleaned.IndexOf("zk2p-9vxa", StringComparison.OrdinalIgnoreCase) >= 0 || cleaned.IndexOf("| - | Ordinary words stay.", StringComparison.Ordinal) < 0 || cleaned.IndexOf("A fresh line.", StringComparison.Ordinal) < 0)
+                    throw new Exception("Keys an older Capri wrote stayed in errors.txt after she wrote her first new line: " + cleaned.Length);
+            }
+            finally
+            {
+                System.Threading.Thread.CurrentThread.CurrentCulture = cultureWas;
+                System.Threading.Thread.CurrentThread.CurrentUICulture = wordsWas;
+                Brain.Secrets = keysWas;
+                foreach (string file in new[] { keyLog, oldLog }) if (File.Exists(file)) File.Delete(file);
+            }
+            checks.Add("PASS on Hungarian and Turkish PCs, errors.txt and Copy error details keep out every key she has saved and every key shape she knows, in any case, escaped or not, and her first new line cleans keys an older Capri left in errors.txt");
         }
 
         private static string Repeat(string text, int times)
@@ -51767,6 +51824,10 @@ namespace CapriDesktop
                             Brain.Log("https://integrate.api.nvidia.com/v1/chat/completions", 60012, "Timeout");
                             string details = ErrorDetails();
                             if (details.IndexOf("| brain: ", StringComparison.Ordinal) < 0 || details.IndexOf("integrate.api.nvidia.com/v1/chat/completions | 60012 ms | Timeout", StringComparison.Ordinal) < 0) throw new Exception("Error details were wrong: " + details);
+                            string olderKey = "nvapi-" + "Qz8Lm2Vx7Rt4Wn9Kc3Hy6Bd5Fg1Js0Pa" + "Xe4Mu7Nw2Lk9";
+                            File.AppendAllText(Brain.LogPath, "2026-11-01 10:00:00 | brain | 12 ms | Invalid API key: " + olderKey + Environment.NewLine);
+                            string pastedDetails = ErrorDetails();
+                            if (pastedDetails.IndexOf(olderKey.Substring(6), StringComparison.Ordinal) >= 0 || pastedDetails.IndexOf("Invalid API key: [redacted]", StringComparison.Ordinal) < 0) throw new Exception("Copy error details pasted a key an older Capri left in errors.txt.");
                             string late = Brain.Explain(new WebException("late", WebExceptionStatus.Timeout), new Cloud("nvapi-test", "google/gemma-4-31b-it"));
                             if (!late.StartsWith("NVIDIA didn't answer in time.", StringComparison.Ordinal) || late.IndexOf("pick another model", StringComparison.Ordinal) < 0) throw new Exception("A slow NVIDIA reply was not explained: " + late);
                             checks.Add("PASS error details: brain errors are logged with the endpoint and time, Copy error details includes them, and a slow cloud brain says to pick another model");

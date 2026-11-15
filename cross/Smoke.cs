@@ -788,6 +788,12 @@ namespace CapriDesktop
                 if (!details.StartsWith("Capri v", StringComparison.Ordinal) || details.IndexOf(" | brain: ", StringComparison.Ordinal) < 0 || details.IndexOf(" | voice: ", StringComparison.Ordinal) < 0)
                     throw new Exception("Her error details were wrong: " + details);
                 checks.Add("PASS Help > Copy error details: her version, the system, her brain and voice, then her error log");
+                string olderKey = "nvapi-" + "Qz8Lm2Vx7Rt4Wn9Kc3Hy6Bd5Fg1Js0Pa" + "Xe4Mu7Nw2Lk9";
+                File.AppendAllText(Brain.LogPath, "2026-11-01 10:00:00 | brain | 12 ms | Invalid API key: " + olderKey + Environment.NewLine);
+                string pasted = pet.ErrorDetails();
+                if (pasted.IndexOf(olderKey.Substring(6), StringComparison.Ordinal) >= 0 || pasted.IndexOf("Invalid API key: [redacted]", StringComparison.Ordinal) < 0)
+                    throw new Exception("Copy error details pasted a key an older Capri left in errors.txt.");
+                checks.Add("PASS Help > Copy error details hides a key an older Capri left in errors.txt");
                 pet.AskNickname();
                 bool askedName = pet.Talk.Typing && pet.Talk.Reply != null && pet.Talk.Reply.StartsWith("What should I call you?", StringComparison.Ordinal);
                 pet.Talk.Submit("  Lachy!!  ");
