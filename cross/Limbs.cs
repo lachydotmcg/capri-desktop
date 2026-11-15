@@ -474,7 +474,7 @@ namespace CapriDesktop
                 Blind = HyprlandDesktop.Current.LastError;
                 return native;
             }
-            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null)
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null && !KWinBridge.Live)
             {
                 Blind = "This Wayland compositor does not expose a supported native window-control backend.";
                 return found;
@@ -546,7 +546,7 @@ namespace CapriDesktop
         {
             if (!mac && HyprlandDesktop.Current != null)
                 return action == "close_tab" ? ComputerJobs.CloseTab(window) : HyprlandDesktop.Current.Steer(window, action);
-            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null) return false;
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null && !KWinBridge.Live) return false;
             if (mac)
             {
                 string name = Quoted(window.Program), bundle;
