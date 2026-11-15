@@ -9106,11 +9106,13 @@ namespace CapriDesktop
                 typeof(Pet).GetMethod("RemoteBrainTick", RemoteWire.Own).Invoke(pet, null);
                 RemoteBrainNote(read(), "slow-key", "failed", RemoteBrainKeys.TooSlow);
                 calls = checker.Calls; key("after-timeout", "max", second);
-                RemoteBrainNote(read(), "after-timeout", "failed", RemoteBrainKeys.StillChecking);
-                if (checker.Calls != calls) throw new Exception("A timed-out check still running let another key start.");
+                RemoteBridgeWait(delegate { return pet.MainframeBrainKey == second; }, "a key sent again after the timeout");
+                RemoteBrainNote(read(), "after-timeout", "saved", RemoteBrainKeys.Saved);
+                if (checker.Calls != calls + 1 || !pet.MainframeConnecting) throw new Exception("A key sent again after the timeout waited for the timed-out check.");
                 checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting; }, "the timed-out key result"); read();
-                if (pet.MainframeTier != 0 || pet.MainframeBrainKey != null || File.Exists(Path.Combine(data, "brain-paid-key"))) throw new Exception("A timed-out key was saved later.");
-                checks.Add("PASS cross pending keys: one fake check at a time; a PC rung change gets the changed-on-PC words; advancing the test clock gets the 90-second timeout words; both late results leave her brain and store alone");
+                if (pet.MainframeTier != 2 || pet.MainframeBrainKey != second || File.ReadAllText(Path.Combine(data, "brain-paid-key")) != second || File.ReadAllText(Path.Combine(data, "brain-key")) != second) throw new Exception("A timed-out key was saved later.");
+                checker.Most = 0;
+                checks.Add("PASS cross pending keys: one fake check at a time; a PC rung change gets the changed-on-PC words; advancing the test clock gets the 90-second timeout words, and a key sent again is checked and saved while the timed-out check still runs; both late results leave her brain and store alone");
 
                 string[] malformed = {
                     "{\"type\":\"brain.use\",\"brain\":\"other\"}",
