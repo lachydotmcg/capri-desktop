@@ -8739,17 +8739,22 @@ namespace CapriDesktop
                 }, delegate { })));
                 bridge.Send(0, "jobs-fallback", "use the computer to fill the form");
                 List<RemoteJson.Map> fallback = new List<RemoteJson.Map>();
+                string fallbackId = null;
                 RemoteBridgeWait(delegate
                 {
                     fallback.AddRange(bridge.DrainJobs());
-                    return !SelfJobs.Active && fallback.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "done")
-                        && fallback.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-fallback" && row.Is("done", true));
+                    fallbackId = fallback.Find(row => row.Text("type") == "job.state" && row.Text("state") == "done" && row.Text("re") == "jobs-fallback")?.Text("id");
+                    return !SelfJobs.Active && fallbackId != null
+                        && fallback.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-fallback" && row.Is("done", true))
+                        && bridge.Phones.All(phone => fallback.Where(row => row.Text("type") == "job.step" && row.Text("id") == fallbackId && row.Text("device") == phone.Id && row.Is("done", true))
+                            .Select(row => (double)row["n"]).Distinct().Count() >= fallbackKinds.Length);
                 }, "the observed fallback job");
                 all.AddRange(fallback);
                 if (fallbackInputs != fallbackKinds.Length) throw new Exception("The fallback observation changed fake input delivery.");
                 foreach (string device in bridge.Phones.Select(phone => phone.Id))
                 {
-                    List<RemoteJson.Map> steps = fallback.FindAll(row => row.Text("type") == "job.step" && row.Text("device") == device);
+                    List<RemoteJson.Map> steps = fallback.Where(row => row.Text("type") == "job.step" && row.Text("id") == fallbackId && row.Text("device") == device)
+                        .GroupBy(row => (double)row["n"]).Select(updates => updates.Last()).ToList();
                     if (steps.Count != fallbackKinds.Length) throw new Exception("The fallback job lost observed steps.");
                     for (int n = 0; n < steps.Count; n++)
                         if ((double)steps[n]["n"] != n + 1 || steps[n].Text("tool") != fallbackTools[n] || !steps[n].Is("done", true) || steps[n].Is("failed", true)
