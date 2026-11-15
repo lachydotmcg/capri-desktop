@@ -1,0 +1,66 @@
+---
+capri-skill: 1
+id: minecraft-starter
+name: Minecraft starter
+version: 1.0.0
+author: Aaquib
+description: A careful first-world walkthrough: find a tree, collect a log and craft wooden planks.
+games: Minecraft, Minecraft Java Edition, Minecraft Bedrock Edition
+---
+Goal
+
+Start in a test world and learn the basic mouse and keyboard actions by collecting one log and turning it into wooden planks. Take one action at a time, look at the screen after each action, and stop if the game state is unclear. Do not assume the player's keybinds or a particular Minecraft edition.
+
+Before moving
+
+- Make sure Minecraft is in a loaded test world and the player can move. If the game is at the title screen, a pause menu, a loading screen or a world-selection screen, ask the player to enter or create a test world rather than guessing through menus.
+- Read the player's saved Minecraft controls if Capri has them. Otherwise open the in-game Options/Settings and Controls/Keyboard & Mouse page, inspect the displayed bindings, and use the actual bindings shown there. Do not assume WASD, E, Space, or any mouse button has its default binding.
+- Identify the movement-forward, movement-back, movement-left and movement-right bindings, jump, inventory, attack/destroy, and use/place controls. The attack/destroy binding is usually the mouse button used to break blocks, but verify it in the controls page.
+- If the player is in Creative mode, explain that blocks may break instantly and that dropped logs may not appear. For this starter exercise, use Survival mode if the player agrees; otherwise demonstrate aiming and breaking without claiming an item was collected.
+
+Find a tree
+
+1. Look around for a nearby tree with a visible trunk. Prefer a tree on level ground, close enough to reach without crossing water, cliffs, lava or hostile mobs.
+2. Turn toward it in small mouse movements. The centre crosshair is the aiming point; line it up with the middle of a visible trunk log block, not leaves, the sky or the ground.
+3. Use the identified forward movement binding in short presses to approach. Stop within reach of the trunk. If the player starts moving away from the tree, release movement and correct the view before trying again.
+4. Check that the crosshair is still on the trunk after moving. Do not hold movement and attack together unless the game clearly requires it.
+
+Break one log
+
+1. Confirm the crosshair is centred on a trunk log block and the player is close enough to reach it.
+2. Press and hold the actual attack/destroy binding. Keep the crosshair on the same block.
+3. Watch the block, not just the hand animation. Cracks should appear and grow on the targeted block as mining progresses. Keep holding only while those cracks are advancing.
+4. When the log block disappears, release the attack/destroy binding immediately. Do not keep holding after the block is gone.
+5. Look for the dropped log item near the base of the tree. If no item appears, check whether the world is in Creative mode or whether the block was actually broken; do not claim success without seeing the item or its inventory count increase.
+
+Pick up the log
+
+1. If the log item is visible on the ground, move close enough to collect it, using short presses of the identified movement bindings.
+2. Watch for the item to disappear and for the hotbar or inventory count to increase. In normal Survival play, walking over the dropped item usually collects it automatically.
+3. If it remains on the ground, adjust position carefully and try walking over it again. Do not attack the item or place blocks.
+4. Confirm that at least one log is in the hotbar or inventory before crafting. If it is not, look nearby for the dropped item and collect it first.
+
+Craft wooden planks
+
+1. Use the actual inventory binding identified earlier to open the inventory. Wait for the inventory screen to appear.
+2. Find the 2-by-2 crafting grid in the inventory screen. Move the pointer to the log stack and pick it up with the inventory's displayed pick-up control.
+3. Place one log in any single square of the 2-by-2 crafting grid. One log should produce wooden planks in the result slot. If the result does not appear, recheck that the item is a log and that it is in the crafting grid rather than the storage area.
+4. Move the pointer to the result slot and collect the wooden planks using the displayed inventory control. Put them into an empty inventory slot or the hotbar.
+5. Confirm the planks stack is visible and its count is greater than zero, then close the inventory with the same inventory binding.
+
+How to tell the exercise worked
+
+- One trunk log block visibly disappeared after the mining cracks completed.
+- The dropped log was collected, confirmed by its disappearance and/or the inventory count.
+- Wooden planks appeared in the inventory or hotbar after using the 2-by-2 crafting grid.
+
+If something goes wrong
+
+- If the crosshair will not stay on the trunk, stop moving and make small mouse corrections until the centre crosshair rests on one log block.
+- If no cracks appear, the wrong button may be bound to attack/destroy, the player may be out of reach, or the crosshair may not be on a block. Recheck controls and aim.
+- If cracks stop progressing, keep the crosshair on the same block and check whether the attack binding is still held. Release it if the target changes or the block breaks.
+- If the log does not drop, check the game mode and whether the block truly broke. Do not proceed to crafting without a collected log.
+- If the inventory layout differs between editions or versions, read the on-screen labels and use the visible crafting grid and result slot. Do not guess at a slot position.
+- If danger appears, the player takes damage, or the player is lost, stop the exercise and tell the player what happened. Do not wander farther from the starting area.
+
+Keep the first attempt simple: collect one log, craft planks, and report what was visibly confirmed. Do not continue chopping the tree or build a shelter unless the player asks.
