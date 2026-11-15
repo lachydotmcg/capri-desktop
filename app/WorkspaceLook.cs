@@ -1807,6 +1807,100 @@ namespace CapriDesktop
             }
         }
 
+        private static List<byte[]> WorkspaceConversationPixels(WorkspaceWindow window)
+        {
+            List<byte[]> pages = new List<byte[]>();
+            int top = 0;
+            for (;;)
+            {
+                window.ScrollConversation(top);
+                using (Bitmap picture = window.DrawConversation())
+                {
+                    BitmapData data = picture.LockBits(new Rectangle(Point.Empty, picture.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                    try
+                    {
+                        byte[] pixels = new byte[Math.Abs(data.Stride) * data.Height];
+                        Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
+                        pages.Add(pixels);
+                    }
+                    finally { picture.UnlockBits(data); }
+                    if (window.AtEnd) break;
+                    top += Math.Max(1, picture.Height);
+                }
+            }
+            return pages;
+        }
+
+        private static void WorkspaceStreamDrawing(WorkspaceWindow window, WorkspaceChat chat, WorkspaceItem item, List<string> failures, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string whole = WorkWords.AwkwardStream;
+            lock (chat.Gate) { item.Text = whole; item.Growing = false; }
+            window.RefreshChat();
+            window.ScrollToEnd();
+            string plain = window.CopyText(item);
+            List<byte[]> baseline = WorkspaceConversationPixels(window);
+            int height = window.ConversationTall, differs = -1;
+            for (int cut = 0; cut <= whole.Length; cut++)
+            {
+                lock (chat.Gate) { item.Text = whole.Substring(0, cut); item.Growing = true; }
+                window.RefreshChat();
+                window.ScrollToEnd();
+                // Every seventh prefix, what was laid out from the kept blocks of the ones before it against the whole prefix
+                // laid out afresh.
+                if (differs < 0 && (cut % 7 == 0 || cut == whole.Length))
+                {
+                    string kept = window.LayoutSignature(item);
+                    window.LayOutWhole(item);
+                    if (kept.Length == 0 || kept != window.LayoutSignature(item)) differs = cut;
+                }
+                if (cut == whole.Length / 2)
+                {
+                    window.ThinkingSeconds = delegate { return 14; };
+                    lock (chat.Gate) chat.Live = new WorkspaceTurn { Chat = chat };
+                    try
+                    {
+                        window.RefreshChat();
+                        window.ScrollToEnd();
+                        if (window.Find("Stop") == null || window.Find("Send") != null || !window.Thinking) failures.Add("The growing-reply picture was not staged as a running turn.");
+                        shoot(window, "g-stream-growing-100", null);
+                    }
+                    finally
+                    {
+                        lock (chat.Gate) chat.Live = null;
+                        window.ThinkingSeconds = null;
+                        window.RefreshChat();
+                    }
+                }
+            }
+            if (differs >= 0) failures.Add("A growing reply laid out from its kept blocks differs from the same prefix laid out whole, at " + differs + " characters.");
+            lock (chat.Gate) item.Growing = false;
+            window.RefreshChat();
+            List<byte[]> final = WorkspaceConversationPixels(window);
+            bool same = baseline.Count == final.Count;
+            for (int page = 0; same && page < baseline.Count; page++)
+            {
+                same = baseline[page].Length == final[page].Length;
+                for (int at = 0; same && at < baseline[page].Length; at++) same = baseline[page][at] == final[page][at];
+            }
+            if (!same || height != window.ConversationTall || plain != window.CopyText(item)) failures.Add("The every-prefix Markdown reply ended different from its baseline drawing, height or copy text.");
+            try
+            {
+                window.ThinkingSeconds = delegate { return 12; };
+                lock (chat.Gate) chat.Live = new WorkspaceTurn { Chat = chat };
+                window.RefreshChat();
+                window.ScrollToEnd();
+                window.TickThinking();
+                if (!window.Thinking || window.ThinkingText.IndexOf("12", StringComparison.Ordinal) < 0) failures.Add("The Thinking picture did not show its fake elapsed clock.");
+                shoot(window, "g-thinking-clock-100", null);
+            }
+            finally
+            {
+                lock (chat.Gate) chat.Live = null;
+                window.ThinkingSeconds = null;
+                window.RefreshChat();
+            }
+        }
+
         // Her replies drawn from the Markdown reader: every kind of block and run (picture g), a table at full width and at
         // the narrowest window (picture j), the reply half streamed, and a long one. Her words copy as WorkWords gives them,
         // links open only http and https pages (through a stand-in here), show the hand and their address, and nothing is
@@ -1904,6 +1998,12 @@ namespace CapriDesktop
                 window.RefreshChat();
                 if (window.CopyText(streaming) != plain) failures.Add(scale + "%: the streamed reply ended different from the whole one.");
 
+                if (scale == 100)
+                {
+                    WorkspaceStreamDrawing(window, live, streaming, failures, shoot);
+                    timings.Add("Workspace draws every prefix of awkward streamed Markdown, including incomplete fences, tables, nested lists, links, emphasis, a long line and mixed scripts; its final pixels, height and copy text match the whole reply.");
+                }
+
                 // A long reply: forty times the formatted one, laid out and pictured.
                 StringBuilder longer = new StringBuilder();
                 for (int i = 0; i < 40; i++) longer.Append(reply).Append("\n\n");
@@ -1939,7 +2039,7 @@ namespace CapriDesktop
                     flowing.Title = "Forty, streamed";
                     say(flowing, "text", "");
                     WorkspaceItem growing;
-                    lock (flowing.Gate) growing = flowing.Items[1];
+                    lock (flowing.Gate) { growing = flowing.Items[1]; growing.Growing = true; }
                     window.ShowChat(flowing);
                     string all = longer.ToString();
                     long worst = 0, total = 0;
@@ -1958,6 +2058,8 @@ namespace CapriDesktop
                         steps++;
                         if (upTo == all.Length) break;
                     }
+                    lock (flowing.Gate) growing.Growing = false;
+                    window.RefreshChat();
                     timings.Add("Workspace at " + scale + "%: a 40-part formatted reply (" + all.Length + " letters) lays out and draws in " + took + " ms whole; streamed in " + steps + " steps of 600 letters it took " + total + " ms in all, " + (total / steps) + " ms a step on average and " + worst + " ms at worst");
                     if (worst > 1500) failures.Add(scale + "%: a step of the streamed 40-part reply took " + worst + " ms.");
                 }
@@ -2329,7 +2431,9 @@ namespace CapriDesktop
 
                     foreach (Size size in new[] { new Size(10, 10), new Size(WorkspaceWindow.Narrowest, WorkspaceWindow.Shortest), new Size(1600, 1000), new Size(WorkspaceWindow.Wide, WorkspaceWindow.Tall) })
                     {
-                        window.ClientSize = size;
+                        // Size, not ClientSize: setting a client size under the minimum keeps the asked-for 10 x 10 as the
+                        // client size until Windows next reports it, so the keys get placed for a window that isn't there.
+                        window.Size = size;
                         Application.DoEvents();
                         string crowded = window.Crowded();
                         if (crowded != null || window.Width < WorkspaceWindow.Narrowest) throw new Exception("Workspace at " + size + ": " + (crowded ?? "smaller than its smallest"));
