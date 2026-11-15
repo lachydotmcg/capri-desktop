@@ -39669,7 +39669,7 @@ namespace CapriDesktop
                     RemotePictureHeard("phoneA", "picture-mid-plan", "open your mainframe", picture);
                     WaitVoice(delegate { return line != null && tap.Count > 0; }, "Their planned words beside a picture got no aside.");
                     string added = running.Heard();
-                    if (added != "open your mainframe" || requests.Count != 1 || frames != 0 || runs != 0 || tap.Take().Contains("tool ")) throw new Exception("A planned side request sent picture data or lost their typed instruction.");
+                    if (added != Voice.Quote("open your mainframe") || requests.Count != 1 || frames != 0 || runs != 0 || tap.Take().Contains("tool ")) throw new Exception("A planned side request sent picture data or lost their typed instruction.");
                     foreach (string input in planned) if (input != "open your mainframe") throw new Exception("A planned side request matched its picture description.");
                 }
                 finally { headTest = head; asideTest = aside; Hands.Plan = delegate(string words) { lock (planned) planned.Add(words); return plan(words); }; }
