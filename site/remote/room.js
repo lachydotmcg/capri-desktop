@@ -5,7 +5,7 @@
   const camera = byId('room-camera'), attach = byId('room-attach'), file = byId('room-attach-input');
   const close = byId('room-close'), retry = byId('room-retry'), track = byId('room-track');
   const view = byId('room-view'), video = byId('room-video'), place = byId('room-place'), status = byId('room-status');
-  const her = byId('room-her'), sprite = byId('room-sprite'), heart = byId('room-heart');
+  const her = byId('room-her'), sprite = byId('room-sprite'), tint = byId('room-tint'), heart = byId('room-heart');
   const controls = byId('room-controls'), sit = byId('room-sit'), lie = byId('room-lie'), love = byId('room-love');
   const voice = byId('room-voice'), voiceNote = byId('room-voice-note');
   let voiceOn = true, oldVoice = false;
@@ -30,50 +30,253 @@
   const config = window.CAPRI_CONFIG || {};
   const shared = config.sprites || '../assets/sprites/';
   const own = config.ownSprites || 'sprites/';
-  const clips = {
-    perch: [shared + 'perch.webp', 10, 6, 'perch'],
-    perch_talk: [own + 'perch_talk.png', 60, 1, 'music'],
-    laydown: [own + 'laydown.png', 10, 6, 'lie'],
-    laydown_talk: [own + 'laydown_talk.png', 10, 6, 'lie']
-  };
+  const clips = {};
+  for (const [name, count, fps, across, fit, from = shared, type = 'webp'] of [
+    ['perch', 60, 30, 10, 'perch'], ['perch_blink', 8, 30, 8, 'perch'], ['perch_blink_glitch', 8, 30, 8, 'perch'],
+    ['perch_glitch', 10, 15, 10, 'perch'], ['perch_arrive', 14, 15, 14, 'square', shared, 'png'],
+    ['perch_talk', 60, 30, 60, 'music', own, 'png'], ['laydown', 60, 30, 10, 'lie', own, 'png'],
+    ['laydown_blink', 8, 30, 8, 'lie', shared, 'png'], ['laydown_glitch', 10, 15, 10, 'wide', shared, 'png'],
+    ['laydown_talk', 60, 30, 10, 'lie', own, 'png']
+  ]) clips[name] = { url: from + name + '.' + type, count, fps, across, rows: Math.ceil(count / across), fit, body: name.startsWith('laydown') ? 'lie' : 'sit' };
   const strips = new Map();
+  const tints = ['mask-image', '-webkit-mask-image'].some(name => CSS.supports(name, 'url("a.png")')) && CSS.supports('mix-blend-mode', 'multiply');
+  const D = Math.PI / 180, LENS = Math.tan(32.5 * D), LAG = 60;
+  const shot = document.createElement('canvas');
+  shot.width = 16;
+  shot.height = 12;
+  const turns = [];
   let version = 0, stream, session, source, transient, animation, heartTimer, currentClip, currentFrame;
   let pose = 'perch', talking = false, arAvailable = false, surface, seat, drag;
   let suppressTap = false, heartState = 'new', heartWanted = false;
+  let act = { name: 'perch', from: 0, once: false, round: -1, blink: '' }, nextGlitch = 0;
+  let motion = 'unknown', sensing = false, aim = null, seen = null, frameWatch = 0, pen = null, glow = null, lightAt = 0;
+  let drawn = {};
 
   const load = name => {
     if (strips.has(name)) return;
     const image = new Image();
-    image.src = clips[name][0];
+    image.src = clips[name].url;
     const entry = { image, ready: false };
     strips.set(name, entry);
     image.decode().then(() => { entry.ready = true; }, () => { strips.delete(name); });
   };
-  const draw = now => {
-    animation = requestAnimationFrame(draw);
-    const speech = pose + '_talk';
-    const desired = talking && !reduced.matches && strips.get(speech)?.ready ? speech : pose;
-    const name = strips.get(desired)?.ready ? desired : 'perch';
-    if (!strips.get(name)?.ready) return;
-    const [url, columns, rows, fit] = clips[name];
-    const frame = reduced.matches ? 0 : Math.floor(now * 0.03) % (columns * rows);
+  const ready = name => strips.get(name)?.ready === true;
+  const restClip = () => pose === 'laydown' ? 'laydown' : 'perch';
+  const hold = () => { act = { name: restClip(), from: performance.now(), once: false, round: -1, blink: '' }; };
+  const play = name => {
+    if (reduced.matches || !ready(name)) return false;
+    act = { name, from: performance.now(), once: true, round: -1, blink: '' };
+    if (name.endsWith('_glitch')) nextGlitch = act.from + 14000 + Math.random() * 14000;
+    return true;
+  };
+  const arrive = () => {
+    hold();
+    nextGlitch = performance.now() + 14000 + Math.random() * 14000;
+    if (pose === 'perch') play('perch_arrive');
+  };
+  const newRound = now => {
+    const roll = Math.random();
+    act.blink = act.name === 'perch' ? roll < 0.1 ? 'perch_blink_glitch' : roll < 0.55 ? 'perch_blink' : '' : roll < 0.55 ? 'laydown_blink' : '';
+    if (now >= nextGlitch && !talking && !drag) play(act.name === 'perch' ? 'perch_glitch' : 'laydown_glitch');
+  };
+  const wink = () => {
+    if (reduced.matches || act.once) return;
+    const blink = act.name === 'perch' ? 'perch_blink_glitch' : 'laydown_blink';
+    if (!ready(blink)) return;
+    act.from = performance.now() - ((act.name === 'perch' ? 28 : 45) + 0.5) / 30 * 1000;
+    act.round = 0;
+    act.blink = blink;
+  };
+  const show = (name, cell) => {
+    const clip = clips[name];
     if (name !== currentClip) {
       currentClip = name;
       currentFrame = -1;
-      sprite.dataset.fit = fit;
-      sprite.style.backgroundImage = 'url("' + url + '")';
-      sprite.style.backgroundSize = (columns * 100) + '% ' + (rows * 100) + '%';
+      sprite.dataset.fit = clip.fit;
+      her.dataset.pose = clip.body;
+      const image = 'url("' + clip.url + '")', size = clip.across * 100 + '% ' + clip.rows * 100 + '%';
+      sprite.style.backgroundImage = image;
+      sprite.style.backgroundSize = size;
+      for (const prefix of ['-webkit-', '']) {
+        tint.style.setProperty(prefix + 'mask-image', image);
+        tint.style.setProperty(prefix + 'mask-size', size);
+      }
     }
-    if (frame === currentFrame) return;
-    currentFrame = frame;
-    sprite.style.backgroundPosition = (frame % columns) / (columns - 1) * 100 + '% ' +
-      (rows > 1 ? Math.floor(frame / columns) / (rows - 1) * 100 : 0) + '%';
+    if (cell === currentFrame) return;
+    currentFrame = cell;
+    const at = (clip.across > 1 ? cell % clip.across / (clip.across - 1) * 100 : 0) + '% ' +
+      (clip.rows > 1 ? Math.floor(cell / clip.across) / (clip.rows - 1) * 100 : 0) + '%';
+    sprite.style.backgroundPosition = at;
+    tint.style.setProperty('-webkit-mask-position', at);
+    tint.style.setProperty('mask-position', at);
+  };
+  const draw = now => {
+    animation = requestAnimationFrame(draw);
+    if (!frameWatch) follow(performance.now() - LAG);
+    if (now >= lightAt) light(now);
+    let clip = clips[act.name];
+    let index = Math.max(0, Math.floor((now - act.from) * clip.fps / 1000));
+    if (act.once && index >= clip.count) {
+      hold();
+      clip = clips[act.name];
+      index = 0;
+    }
+    if (!act.once && Math.floor(index / clip.count) !== act.round) {
+      act.round = Math.floor(index / clip.count);
+      newRound(now);
+      if (act.once) {
+        clip = clips[act.name];
+        index = 0;
+      }
+    }
+    let name = act.name, cell = index % clip.count;
+    if (reduced.matches) {
+      name = restClip();
+      cell = 0;
+    } else if (talking && !act.once && ready(name + '_talk')) {
+      name += '_talk';
+      cell = index % 60;
+    } else if (act.blink && ready(act.blink) && name === 'perch' && cell >= 28 && cell < 36) {
+      name = act.blink;
+      cell -= 28;
+    } else if (act.blink && ready(act.blink) && name === 'laydown' && cell >= 45 && cell < 53) {
+      name = act.blink;
+      cell -= 45;
+    }
+    if (!ready(name)) {
+      if (!ready('perch')) return;
+      name = 'perch';
+      cell = reduced.matches ? 0 : Math.floor(now * 0.03) % 60;
+    }
+    show(name, cell);
   };
   const setPose = next => {
+    const was = pose;
     pose = next;
-    her.dataset.pose = pose === 'perch' ? 'sit' : 'lie';
     sit.setAttribute('aria-pressed', String(pose === 'perch'));
     lie.setAttribute('aria-pressed', String(pose === 'laydown'));
+    if (next === was) return;
+    if (her.hidden || talking || !play(was === 'laydown' ? 'laydown_glitch' : 'perch_glitch')) hold();
+  };
+
+  const askMotion = () => {
+    if (motion !== 'unknown' || typeof DeviceOrientationEvent === 'undefined' || typeof DeviceOrientationEvent.requestPermission !== 'function') return;
+    motion = 'asking';
+    let asked;
+    try { asked = DeviceOrientationEvent.requestPermission(); } catch (error) { motion = 'unknown'; return; }
+    Promise.resolve(asked).then(answer => {
+      motion = answer === 'granted' ? 'granted' : 'denied';
+      if (motion !== 'granted' || !sensing) return;
+      removeEventListener('deviceorientation', turned);
+      addEventListener('deviceorientation', turned);
+    }, () => { motion = 'unknown'; });
+  };
+  const turned = event => {
+    if (event.alpha == null || event.beta == null || event.gamma == null) return;
+    turns.push([performance.now(), event.alpha * D, event.beta * D, event.gamma * D]);
+    if (turns.length > 24) turns.shift();
+  };
+  const facing = time => {
+    let pick = turns[0];
+    for (const turn of turns) if (turn[0] <= time) pick = turn;
+    const [, a, b, g] = pick, t = (screen.orientation?.angle ?? window.orientation ?? 0) * D;
+    const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), cg = Math.cos(g), sg = Math.sin(g);
+    const m = [ca * cg - sa * sb * sg, -cb * sa, cg * sa * sb + ca * sg, cg * sa + ca * sb * sg, ca * cb, sa * sg - ca * cg * sb, -cb * sg, sb, cb * cg];
+    const c = Math.cos(t), s = Math.sin(t);
+    return [c * m[0] - s * m[1], s * m[0] + c * m[1], m[2], c * m[3] - s * m[4], s * m[3] + c * m[4], m[5], c * m[6] - s * m[7], s * m[6] + c * m[7], m[8]];
+  };
+  const lens = () => {
+    const width = view.clientWidth, height = view.clientHeight, wide = video.videoWidth, high = video.videoHeight;
+    if (!width || !height || !wide || !high) return null;
+    return { width, height, focal: Math.max(wide, high) / 2 / LENS * Math.max(width / wide, height / high) };
+  };
+  const toRoom = ({ m, glass }, x, y) => {
+    const v = [(x - glass.width / 2) / glass.focal, (glass.height / 2 - y) / glass.focal, -1];
+    return [0, 3, 6].map(i => m[i] * v[0] + m[i + 1] * v[1] + m[i + 2] * v[2]);
+  };
+  const follow = time => {
+    if (!sensing || !turns.length || session || her.hidden) return;
+    const glass = lens();
+    if (!glass) return;
+    const m = facing(time);
+    seen = { m, glass };
+    if (!aim || drag) {
+      aim = toRoom(seen, her.offsetLeft, her.offsetTop);
+      return;
+    }
+    const v = [0, 1, 2].map(i => m[i] * aim[0] + m[i + 3] * aim[1] + m[i + 6] * aim[2]);
+    const away = v[2] > -0.08;
+    if (away !== drawn.away) {
+      her.style.visibility = away ? 'hidden' : '';
+      drawn.away = away;
+    }
+    if (away) return;
+    const x = glass.width / 2 + glass.focal * v[0] / -v[2], y = glass.height / 2 - glass.focal * v[1] / -v[2];
+    const left = Math.max(-200, Math.min(300, x / glass.width * 100)).toFixed(2) + '%';
+    const top = Math.max(-200, Math.min(300, y / glass.height * 100)).toFixed(2) + '%';
+    if (left !== drawn.left) her.style.left = drawn.left = left;
+    if (top !== drawn.top) her.style.top = drawn.top = top;
+    const up = [v[0] + m[6] * 0.05, v[1] + m[7] * 0.05, v[2] + m[8] * 0.05];
+    if (up[2] >= 0) return;
+    const dx = up[0] / -up[2] - v[0] / -v[2], dy = v[1] / -v[2] - up[1] / -up[2];
+    if (dx * dx + dy * dy < 1e-8) return;
+    const roll = (Math.atan2(dx, -dy) / D).toFixed(1) + 'deg';
+    if (roll !== drawn.roll) her.style.rotate = drawn.roll = roll;
+  };
+  const watchFrames = () => {
+    if (frameWatch || !video.requestVideoFrameCallback) return;
+    const next = (now, meta) => {
+      frameWatch = 0;
+      if (!sensing) return;
+      frameWatch = video.requestVideoFrameCallback(next);
+      const wall = performance.now(), taken = meta?.captureTime;
+      follow(taken > wall - 300 && taken < wall ? taken : wall - LAG);
+    };
+    frameWatch = video.requestVideoFrameCallback(next);
+  };
+  const startMotion = () => {
+    if (sensing || stream?.getVideoTracks()[0]?.getSettings?.().facingMode !== 'environment') return;
+    sensing = true;
+    addEventListener('deviceorientation', turned);
+    watchFrames();
+  };
+  const stopMotion = () => {
+    if (sensing) removeEventListener('deviceorientation', turned);
+    sensing = false;
+    turns.length = 0;
+    aim = seen = null;
+    drawn = {};
+    if (frameWatch) video.cancelVideoFrameCallback?.(frameWatch);
+    frameWatch = 0;
+    her.style.removeProperty('rotate');
+    her.style.removeProperty('visibility');
+  };
+  const light = now => {
+    lightAt = now + 350;
+    if (!tints || !stream || session || her.hidden || video.readyState < 2) return;
+    const wide = video.videoWidth, high = video.videoHeight, width = view.clientWidth, height = view.clientHeight;
+    if (!wide || !high || !width || !height) return;
+    const scale = Math.max(width / wide, height / high), crop = [width / scale, height / scale];
+    let data;
+    try {
+      pen = pen || shot.getContext('2d', { willReadFrequently: true });
+      pen.drawImage(video, (wide - crop[0]) / 2, (high - crop[1]) / 2, crop[0], crop[1], 0, 0, 16, 12);
+      data = pen.getImageData(0, 0, 16, 12).data;
+    } catch (error) { return; }
+    const hx = her.offsetLeft / width * 16, hy = her.offsetTop / height * 12, sum = [0, 0, 0];
+    let total = 0;
+    for (let i = 0; i < 192; i++) {
+      const dx = i % 16 + 0.5 - hx, dy = Math.floor(i / 16) + 0.5 - hy, weight = 0.2 + Math.exp(-(dx * dx + dy * dy) / 12);
+      for (let c = 0; c < 3; c++) sum[c] += weight * (data[i * 4 + c] / 255) ** 2;
+      total += weight;
+    }
+    const color = sum.map(value => Math.sqrt(value / total));
+    const level = Math.sqrt(0.2126 * color[0] ** 2 + 0.7152 * color[1] ** 2 + 0.0722 * color[2] ** 2);
+    const gain = Math.max(0.55, Math.min(1, 0.42 + 1.25 * level)), mean = (color[0] + color[1] + color[2]) / 3;
+    const cast = color.map(value => mean > 0.04 ? 1 + (Math.max(0.75, Math.min(1.25, value / mean)) - 1) * 0.45 : 1);
+    const peak = Math.max(...cast), target = cast.map(value => value / peak * gain);
+    glow = glow ? glow.map((value, i) => value + (target[i] - value) * 0.5) : target;
+    tint.style.backgroundColor = 'rgb(' + glow.map(value => Math.round(value * 255)).join(', ') + ')';
   };
 
   const showMenu = open => {
@@ -84,10 +287,13 @@
   };
   const stopTracks = active => active?.getTracks().forEach(item => item.stop());
   const releaseCamera = () => {
+    stopMotion();
     stopTracks(stream);
     stream = null;
     video.srcObject = null;
     video.hidden = true;
+    glow = null;
+    tint.style.removeProperty('background-color');
   };
   const stopHeart = () => {
     clearTimeout(heartTimer);
@@ -148,6 +354,7 @@
     if (room.hidden) {
       window.CapriCall?.room();
       setPose('perch');
+      hold();
       for (const name of Object.keys(clips)) load(name);
       loadHeart();
     }
@@ -161,6 +368,7 @@
     her.style.left = '';
     her.style.top = '';
     her.style.removeProperty('--s');
+    drawn = {};
     status.textContent = lead + 'Starting camera…';
     if (focus) close.focus();
     if (!animation) animation = requestAnimationFrame(draw);
@@ -177,6 +385,8 @@
       await video.play();
       if (request !== version) return;
       place.hidden = her.hidden = controls.hidden = false;
+      arrive();
+      startMotion();
       track.hidden = !arAvailable;
       status.textContent = lead + 'Drag Capri to move her.';
       for (const item of stream.getVideoTracks()) item.addEventListener('ended', () => {
@@ -291,12 +501,13 @@
   camera.addEventListener('click', () => showMenu(menu.hidden));
   byId('room-open').addEventListener('click', () => {
     showMenu(false);
+    askMotion();
     if (room.hidden) openCamera();
     else close.focus();
   });
   attach.addEventListener('click', () => { showMenu(false); camera.focus(); file.click(); });
   close.addEventListener('click', () => closeRoom(true));
-  retry.addEventListener('click', () => openCamera());
+  retry.addEventListener('click', () => { askMotion(); openCamera(); });
   track.addEventListener('click', () => { close.focus(); startAR(); });
   sit.addEventListener('click', () => setPose('perch'));
   lie.addEventListener('click', () => setPose('laydown'));
@@ -305,6 +516,7 @@
     stopHeart();
     heartWanted = true;
     love.setAttribute('aria-pressed', 'true');
+    wink();
     if (reduced.matches || heartState === 'failed') { finishHeart(); return; }
     if (heartState === 'ready') {
       heartState = 'new';
@@ -324,14 +536,18 @@
   });
   const moveCamera = (x, y) => {
     const box = view.getBoundingClientRect();
-    her.style.left = Math.max(16, Math.min(84, x / box.width * 100)) + '%';
-    her.style.top = Math.max(42, Math.min(98, y / box.height * 100)) + '%';
+    const left = Math.max(16, Math.min(84, x / box.width * 100)), top = Math.max(42, Math.min(98, y / box.height * 100));
+    her.style.left = left + '%';
+    her.style.top = top + '%';
+    her.style.removeProperty('visibility');
+    drawn = { roll: drawn.roll };
+    if (seen) aim = toRoom(seen, left / 100 * seen.glass.width, top / 100 * seen.glass.height);
   };
   place.addEventListener('pointerdown', event => {
     if (drag || !event.isPrimary || event.button !== 0) return;
     suppressTap = false;
     const box = sprite.getBoundingClientRect();
-    if (her.hidden || event.clientX < box.left || event.clientX > box.right ||
+    if (her.hidden || her.style.visibility === 'hidden' || event.clientX < box.left || event.clientX > box.right ||
         event.clientY < box.top || event.clientY > box.bottom) return;
     drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
       left: her.offsetLeft, top: her.offsetTop, moved: false };
@@ -350,6 +566,7 @@
     if (drag?.id !== event.pointerId) return;
     if (drag.moved) event.preventDefault();
     stopDrag();
+    askMotion();
   });
   for (const type of ['pointercancel', 'lostpointercapture']) place.addEventListener(type, event => {
     if (drag?.id === event.pointerId) stopDrag();
@@ -367,6 +584,7 @@
   });
   place.addEventListener('click', event => {
     if (suppressTap && event.detail) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+    askMotion();
     if (session) {
       if (!surface) return;
       seat = surface;
