@@ -27,6 +27,7 @@ namespace CapriDesktop
         internal const int StepMs = 15;
         // The smoke test watches what she'd do instead of moving the real mouse.
         internal static Action<string, JsonElement> Doing;
+        [ThreadStatic] private static ComputerJob observed;
 
         private const string Secrets = "Never type passwords, card numbers or codes. ";
         private const string Stops = "Never pay, buy, send money or delete anything, and never accept terms for them: stop and say they need to do that part. ";
@@ -92,15 +93,22 @@ namespace CapriDesktop
 
         internal static string Run(Brain brain, string job, string asked)
         {
+            RemoteTurn phone = RemoteTurn.Working;
+            bool admitted = false;
             return SelfJobs.Run(new ToolArguments { Task = job, Asked = asked }, args =>
             {
+                if (!admitted && phone != null && !phone.Current) return RemoteTurn.Ended;
+                admitted = true;
                 // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
                 // a plain job over its stream tool.
                 Hands.Streaming = Hands.StreamAsked(args.Task) || !brain.WorksOut() && Hands.StreamAsked(args.Asked);
                 try
                 {
                     if (Hands.Streaming) return "I can't safely stream on this desktop because I can't check permissions for each action.";
-                    return Work(brain, args.Task, args.Asked);
+                    ComputerJob following = new ComputerJob { Task = args.Task, Asked = args.Asked, Phone = phone };
+                    observed = following;
+                    try { return ComputerJobs.Follow(following, () => Work(brain, args.Task, args.Asked)); }
+                    finally { observed = null; }
                 }
                 finally { Hands.Streaming = false; }
             }, delegate { });
@@ -171,7 +179,7 @@ namespace CapriDesktop
                     steps.Add((step + 1) + ". (you're still live, so keep going)");
                     continue;
                 }
-                if (what == "done") return "Did it. " + Said(order, "Finished the job.");
+                if (what == "done") { if (observed != null) observed.SliceEnd = "done"; return "Did it. " + Said(order, "Finished the job."); }
                 if (what == "stop") return "Couldn't finish that: " + Said(order, "got stuck.");
                 string done = Act(what, order, width, height);
                 steps.Add((step + 1) + ". " + done);
@@ -268,6 +276,23 @@ namespace CapriDesktop
         }
 
         internal static string Act(string what, JsonElement order, int width, int height)
+        {
+            ComputerJob job = observed;
+            if (job == null || Array.IndexOf(new[] { "type", "key", "click", "double_click", "right_click", "move", "drag", "scroll", "wait", "read_skill" }, what) < 0)
+                return ActCore(what, order, width, height);
+            ComputerAction action = new ComputerAction { Action = what == "key" ? "press" : what == "right_click" ? "click" : what };
+            ComputerJobs.Step(job, action, false, false);
+            try
+            {
+                string result = ActCore(what, order, width, height);
+                bool failed = !SelfJobs.Current() || Hands.Failed(result) || result.StartsWith("couldn't type that", StringComparison.Ordinal) || result.StartsWith("didn't know the key ", StringComparison.Ordinal);
+                ComputerJobs.Step(job, action, true, failed);
+                return result;
+            }
+            catch { ComputerJobs.Step(job, action, true, true); throw; }
+        }
+
+        private static string ActCore(string what, JsonElement order, int width, int height)
         {
             if (!SelfJobs.Current()) return "Stopped my job.";
             if (what == "read_skill") return Hands.Do(what, new ToolArguments { Name = Text(order, "name") });

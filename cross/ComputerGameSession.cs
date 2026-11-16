@@ -104,7 +104,7 @@ namespace CapriDesktop
         internal static void CompleteTransition(ComputerSnapshot before, ComputerSnapshot after)
         {
             Rebind(before, after);
-            long allowedEpoch = before.FocusEpoch + (before.Target.Address == after.Target.Address ? 0 : 1);
+            long allowedEpoch = before.FocusEpoch + (Hands.OnMac || before.Target.Address == after.Target.Address ? 0 : 1);
             if (after.FocusEpoch != allowedEpoch)
                 throw new InvalidOperationException("Focus changed outside the delivered game's single window transition.");
         }

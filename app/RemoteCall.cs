@@ -19,6 +19,7 @@ namespace CapriDesktop
         internal const int PartMs = 250;
         // hello-ok's feature for a PC that stops her answer when a phone on a call sends call.hush.
         internal const string HushFeature = "hush";
+        internal const string ListenFeature = "call-listen";
         private const int LinesAtOnce = 2, FlushMs = 120, TimedForMs = 60000;
 
         // The phones on a call changed: the badge reads Callers(). Raised on whatever thread made the change.
@@ -59,6 +60,7 @@ namespace CapriDesktop
             flusher = new Timer(Flush);
             link.Offer("call");
             link.Offer(HushFeature);
+            link.Offer(ListenFeature);
             link.LiveHeard += Heard;
             link.Happened += Happened;
         }
@@ -77,6 +79,7 @@ namespace CapriDesktop
             internal bool Asked, Timing;
             // Its call.start said hush: it stops her with call.hush, so her answers to it can go a sentence at a time.
             internal bool Hushes;
+            internal bool Listen;
         }
 
         private sealed class Line
@@ -108,6 +111,16 @@ namespace CapriDesktop
 
         internal bool Any { get { lock (gate) return calls.Count > 0; } }
 
+        internal bool Hearing
+        {
+            get { lock (gate) { foreach (Caller caller in calls.Values) if (!caller.Listen) return true; return false; } }
+        }
+
+        internal bool Listening(string device)
+        {
+            lock (gate) { Caller caller; return device != null && calls.TryGetValue(device, out caller) && caller.Listen; }
+        }
+
         // Lines heard, her voice's parts and bytes sent, and the phones' audio bytes taken in.
         internal long[] Counts() { lock (gate) return new[] { heardLines, voiceParts, voiceBytes, audioBytes }; }
 
@@ -138,7 +151,7 @@ namespace CapriDesktop
         {
             switch (message.Text("type"))
             {
-                case "call.start": Start(device, message.Is("hush", true)); break;
+                case "call.start": Start(device, message.Is("hush", true), message.Is("listen", true)); break;
                 case "call.stop": End(device, null); break;
                 case "call.audio": Audio(device, message); break;
                 case "call.cancel":
@@ -164,38 +177,64 @@ namespace CapriDesktop
                 return;
             }
             if (!OnCall(device)) return;
+            bool listen = Listening(device);
             Action<string, string> interrupted = Interrupted;
             if (interrupted == null)
             {
                 Hush(device);
+                if (listen) End(device, "ended");
                 return;
             }
             try { interrupted(device, re); }
             catch (Exception) { }
+            if (listen) End(device, "ended");
         }
 
-        private void Start(string device, bool hushes)
+        private void Start(string device, bool hushes, bool listen)
         {
             if (!Allowed(device))
             {
+                End(device, null);
                 Send(device, StateMessage(false, false, false, "not-allowed"));
                 return;
             }
-            bool fresh;
+            bool fresh = false, busy = false, removed = false;
             lock (gate)
             {
                 if (disposed) return;
-                fresh = !calls.ContainsKey(device);
-                if (fresh) calls[device] = new Caller { Device = device };
-                calls[device].Hushes = hushes;
+                if (listen)
+                    foreach (Caller caller in calls.Values)
+                        if (caller.Device != device && !caller.Listen) busy = true;
+                if (busy)
+                {
+                    removed = calls.Remove(device);
+                    Send(device, StateMessage(false, false, false, "busy"));
+                }
+                else
+                {
+                    if (!listen)
+                        foreach (string other in new List<string>(calls.Keys))
+                            if (other != device && calls[other].Listen)
+                            {
+                                calls.Remove(other);
+                                removed = true;
+                                Send(other, StateMessage(false, false, false, "busy"));
+                            }
+                    fresh = !calls.ContainsKey(device);
+                    bool changed = !fresh && calls[device].Listen != listen;
+                    if (fresh || changed) calls[device] = new Caller { Device = device, Listen = listen };
+                    fresh = fresh || changed;
+                    calls[device].Hushes = hushes;
+                }
             }
+            if (busy) { if (removed) RaiseChanged(); return; }
             bool voice = true, hearing = true;
             try { voice = VoiceOn(); }
             catch (Exception) { }
-            try { hearing = EarsOn(); }
+            try { hearing = !listen && EarsOn(); }
             catch (Exception) { }
             Send(device, StateMessage(true, voice, hearing, null));
-            if (fresh) RaiseChanged();
+            if (fresh || removed) RaiseChanged();
         }
 
         // Ends a phone's call. reason goes to the phone when it still has a session, as when the PC hangs up.
@@ -222,6 +261,11 @@ namespace CapriDesktop
         private void Audio(string device, RemoteJson.Map message)
         {
             string id = message.Text("id");
+            if (Listening(device))
+            {
+                Send(device, RemoteMessages.Error("not-allowed", RemoteMessages.IdOk(id) ? id : null));
+                return;
+            }
             double n, rate;
             byte[] pcm = RemoteCrypto.FromB64u(message.Text("pcm") ?? "");
             bool end = message.Is("end", true);
@@ -232,11 +276,12 @@ namespace CapriDesktop
             }
             string problem = null;
             short[] whole = null;
+            Caller accepted = null;
             long ended = 0;
             lock (gate)
             {
                 Caller caller;
-                if (disposed || !calls.TryGetValue(device, out caller)) problem = "not-allowed";
+                if (disposed || !calls.TryGetValue(device, out caller) || caller.Listen) problem = "not-allowed";
                 else
                 {
                     Line line;
@@ -256,6 +301,7 @@ namespace CapriDesktop
                         audioBytes += pcm.Length;
                         if (end)
                         {
+                            accepted = caller;
                             caller.Lines.Remove(id);
                             ended = Stopwatch.GetTimestamp();
                             whole = new short[line.Bytes / 2];
@@ -274,24 +320,30 @@ namespace CapriDesktop
                 Send(device, RemoteMessages.Error(problem, id));
                 return;
             }
-            if (whole != null) ThreadPool.QueueUserWorkItem(delegate { Hear(device, id, whole, ended); });
+            if (whole != null) ThreadPool.QueueUserWorkItem(delegate { Hear(device, id, whole, ended, accepted); });
         }
 
         // Her ears on a finished line, then the words to her as if they'd been said at the PC. On a pool thread, where
         // anything thrown would end her.
-        private void Hear(string device, string id, short[] samples, long ended)
+        private void Hear(string device, string id, short[] samples, long ended, Caller accepted)
         {
-            try { HearLine(device, id, samples, ended); }
+            try { HearLine(device, id, samples, ended, accepted); }
             catch (Exception) { }
         }
 
-        private void HearLine(string device, string id, short[] samples, long ended)
+        private void HearLine(string device, string id, short[] samples, long ended, Caller accepted)
         {
+            lock (gate) { Caller caller; if (disposed || !calls.TryGetValue(device, out caller) || caller != accepted || caller.Listen) return; }
             string words;
             try { words = (ears(samples) ?? "").Trim(); }
             catch (Exception) { words = null; }
             long earsMs = Since(ended);
-            lock (gate) heardLines++;
+            lock (gate)
+            {
+                Caller caller;
+                if (disposed || !calls.TryGetValue(device, out caller) || caller != accepted || caller.Listen) return;
+                heardLines++;
+            }
             if (words == null)
             {
                 Send(device, RemoteMessages.Error("busy", id));
@@ -495,6 +547,16 @@ namespace CapriDesktop
             return half;
         }
 
+        internal void VoiceState(bool on)
+        {
+            lock (gate)
+            {
+                if (disposed) return;
+                foreach (Caller caller in calls.Values)
+                    if (caller.Listen) Send(caller.Device, StateMessage(true, on, false, null));
+            }
+        }
+
         internal static string StateMessage(bool on, bool voice, bool hearing, string reason)
         {
             RemoteJson.Writer message = new RemoteJson.Writer().Text("type", "call.state").Flag("on", on);
@@ -504,6 +566,108 @@ namespace CapriDesktop
         }
 
         internal static string HeardMessage(string id, string words) { return new RemoteJson.Writer().Text("type", "call.heard").Text("id", id).Text("text", RemoteMessages.Clip(words, 2000)).ToString(); }
+
+        internal static void SmokeListening(List<string> checks)
+        {
+            RemoteLink link = new RemoteLink(RemoteState.Fresh(), "ws://127.0.0.1:1", "Test PC", "test", null);
+            int heard = 0, earsChecked = 0, changed = 0;
+            List<RemoteJson.Map> sent = new List<RemoteJson.Map>();
+            using (ManualResetEvent answered = new ManualResetEvent(false))
+            using (RemoteCall call = new RemoteCall(link, delegate { Interlocked.Increment(ref heard); return "hello"; }, delegate { answered.Set(); }))
+            {
+                call.EarsOn = delegate { earsChecked++; return true; };
+                call.Changed += delegate { changed++; };
+                call.Sending = delegate(string device, string json)
+                {
+                    RemoteJson.Map row = RemoteJson.ParseMap(json);
+                    row["device"] = device;
+                    lock (sent) sent.Add(row);
+                };
+                Func<RemoteJson.Map> last = delegate { lock (sent) return sent[sent.Count - 1]; };
+                call.Allowed = delegate { return false; };
+                foreach (string start in new[] { "{\"type\":\"call.start\"}", "{\"type\":\"call.start\",\"listen\":true}" })
+                {
+                    call.Heard("phone", start);
+                    if (last().Text("type") != "call.state" || !last().Is("on", false) || last().Text("reason") != "not-allowed" || call.Any || earsChecked != 0) throw new Exception("Calls off lost its refusal or checked ears.");
+                }
+                call.Allowed = delegate { return true; };
+                call.VoiceOn = delegate { return false; };
+                call.Heard("phone", "{\"type\":\"call.start\",\"listen\":true,\"hush\":true}");
+                if (!call.Listening("phone") || call.Hearing || !call.Hushes("phone") || !last().Is("on", true) || !last().Is("voice", false) || !last().Is("ears", false) || earsChecked != 0) throw new Exception("Listening with voice off lost its state or checked ears.");
+                call.Heard("phone", "{\"type\":\"call.audio\",\"id\":\"room-audio\",\"pcm\":\"bad\"}");
+                if (last().Text("code") != "not-allowed" || last().Text("re") != "room-audio" || heard != 0 || call.Counts()[3] != 0) throw new Exception("A listening phone's audio reached her ears.");
+                call.VoiceOn = delegate { return true; };
+                call.Voice(new short[6000], 24000);
+                if (last().Text("type") != "call.voice" || last().Text("device") != "phone") throw new Exception("A listening phone missed her voice.");
+                call.Heard("other", "{\"type\":\"call.start\",\"listen\":true}");
+                int states = sent.Count;
+                call.VoiceState(false);
+                call.VoiceState(true);
+                lock (sent)
+                {
+                    if (sent.Count != states + 4) throw new Exception("A listener missed a voice state change.");
+                    foreach (string device in new[] { "phone", "other" })
+                    foreach (bool voice in new[] { false, true })
+                    {
+                        bool found = false;
+                        for (int n = states; n < sent.Count; n++)
+                            if (sent[n].Text("device") == device && sent[n].Is("on", true) && sent[n].Is("voice", voice) && sent[n].Is("ears", false) && !sent[n].ContainsKey("reason")) found = true;
+                        if (!found || earsChecked != 0) throw new Exception("A listener got a changed wire shape or loaded ears on a voice switch.");
+                    }
+                }
+                call.Heard("other", "{\"type\":\"call.stop\"}");
+                call.Heard("phone", "{\"type\":\"call.stop\"}");
+                if (call.Any || call.Hearing) throw new Exception("Stopping listening left a call behind.");
+                call.Heard("phone", "{\"type\":\"call.start\"}");
+                if (!call.Hearing || call.Listening("phone") || !last().Is("ears", true) || earsChecked != 1) throw new Exception("An ordinary call after listening did not use her ears.");
+                Caller real = call.calls["phone"];
+                call.Heard("phone", "{\"type\":\"call.audio\",\"id\":\"real-line\",\"n\":0,\"rate\":16000,\"pcm\":\"AAA\"}");
+                int before = changed;
+                call.Heard("other", "{\"type\":\"call.start\",\"listen\":true,\"hush\":true}");
+                if (last().Text("device") != "other" || !last().Is("on", false) || last().Text("reason") != "busy" || changed != before || call.calls["phone"] != real || !real.Lines.ContainsKey("real-line") || real.Listen || real.Hushes || call.OnCall("other") || earsChecked != 1) throw new Exception("A listening ask changed another phone's real call.");
+                call.Heard("phone", "{\"type\":\"call.start\",\"listen\":true}");
+                if (call.Hearing || !call.Listening("phone") || call.calls["phone"].Lines.Count != 0 || earsChecked != 1) throw new Exception("Switching to listening kept a microphone line or checked ears.");
+                call.Heard("phone", "{\"type\":\"call.hush\",\"re\":\"room-turn\"}");
+                if (call.Any || last().Text("reason") != "ended") throw new Exception("Interrupt did not end listening.");
+                foreach (string what in new[] { "left", "kicked", "removed", "session", "all" })
+                {
+                    call.Heard("phone", "{\"type\":\"call.start\",\"listen\":true}");
+                    call.Happened(what == "all" ? "left" : what, what == "all" ? null : "phone");
+                    if (call.Any || call.Hearing) throw new Exception("Listening survived " + what + ".");
+                }
+                call.Interrupted = delegate { };
+                call.Heard("phone", "{\"type\":\"call.start\",\"listen\":true}");
+                call.Heard("phone", "{\"type\":\"call.hush\",\"re\":\"room-turn\"}");
+                if (call.Any || last().Text("reason") != "ended" || earsChecked != 1 || heard != 0) throw new Exception("Interrupt with the PC handler left listening or loaded ears.");
+                call.Heard("phone", "{\"type\":\"call.start\"}");
+                call.Heard("phone", "{\"type\":\"call.audio\",\"id\":\"ordinary-line\",\"n\":0,\"rate\":16000,\"pcm\":\"AAA\",\"end\":true}");
+                if (!answered.WaitOne(3000) || heard != 1 || earsChecked != 2 || call.Listening("phone") || !call.Hearing) throw new Exception("An ordinary call after listening did not hear and dispatch its line.");
+            }
+            using (RemoteCall call = new RemoteCall(link, delegate { throw new Exception("Busy listening used ears."); }, delegate { }))
+            {
+                List<string> rows = new List<string>();
+                int changes = 0;
+                call.Sending = delegate(string device, string json) { rows.Add(device + " " + json); };
+                call.Changed += delegate { changes++; };
+                call.Heard("first", "{\"type\":\"call.start\",\"listen\":true}");
+                call.Heard("second", "{\"type\":\"call.start\",\"listen\":true}");
+                call.Heard("real", "{\"type\":\"call.start\"}");
+                if (call.Callers().Count != 1 || !call.Hearing || call.OnCall("first") || call.OnCall("second") || changes != 3 || !rows.Contains("first " + StateMessage(false, false, false, "busy")) || !rows.Contains("second " + StateMessage(false, false, false, "busy"))) throw new Exception("A real call left another phone listening or missed the badge change.");
+                rows.Clear();
+                call.Voice(new short[6000], 24000);
+                if (rows.Count != 1 || !rows[0].StartsWith("real ", StringComparison.Ordinal)) throw new Exception("An evicted listener still received her voice.");
+                call.calls["first"] = new Caller { Device = "first", Listen = true };
+                call.Heard("first", "{\"type\":\"call.start\",\"listen\":true}");
+                if (call.OnCall("first") || call.Callers().Count != 1 || changes != 4 || rows[rows.Count - 1] != "first " + StateMessage(false, false, false, "busy")) throw new Exception("A busy retry left its old listener on the PC.");
+                call.End("real", null);
+                call.Heard("first", "{\"type\":\"call.start\",\"listen\":true}");
+                call.Allowed = delegate { return false; };
+                call.Heard("first", "{\"type\":\"call.start\",\"listen\":true}");
+                if (call.Any || rows[rows.Count - 1] != "first " + StateMessage(false, false, false, "not-allowed")) throw new Exception("A refused retry left its old listener on the PC.");
+            }
+            link.Stop();
+            checks.Add("PASS Room listening skips ears, refuses audio, gets voice, stops on stop, Interrupt and lost sessions, restores ordinary calls and reports calls off, voice off and busy separately; real calls remove listeners and busy or refused retries leave none behind");
+        }
 
         private void RaiseChanged()
         {

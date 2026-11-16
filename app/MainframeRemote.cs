@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+#if !CROSS
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Windows.Forms;
+#endif
 
 namespace CapriDesktop
 {
@@ -22,6 +24,7 @@ namespace CapriDesktop
     // Capri Remote in the Mainframe: a Remote key on CAPRI's band, cyan while Remote is on and solid cyan while a phone is
     // connected, and the REMOTE sheet it opens: Remote on or off, a QR to pair a phone and the code to check when one asks,
     // the paired phones with Revoke, and the relay's host.
+#if !CROSS
     internal sealed partial class Mainframe
     {
         private Key remoteKey;
@@ -576,4 +579,5 @@ namespace CapriDesktop
             }
         }
     }
+#endif
 }

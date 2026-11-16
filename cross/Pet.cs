@@ -88,6 +88,175 @@ namespace CapriDesktop
         [DataMember] internal string PaidModel;
         [DataMember] internal string SpeechModel;
         [DataMember] internal ThinkingPick[] ThinkingPicks;
+        [DataMember] internal bool RemoteOn;
+        [DataMember] internal string RemoteHost = RemoteLink.DefaultHost;
+    }
+
+    internal sealed class RemoteTurn
+    {
+        [ThreadStatic] internal static RemoteTurn Working;
+        internal Pet Pet;
+        internal RemoteLink Link;
+        internal RemoteSink Sink;
+        internal int Generation, Session, Ticket;
+        internal string Device, Id, Text, Shown, Typed;
+        internal Func<bool> SessionCheck;
+        internal Func<bool> Checking;
+        internal Action Entered;
+        internal volatile bool Closed;
+        internal bool Waiting, Finished, Replied;
+        internal object Held;
+        internal RemoteHold Hold;
+        internal string Question;
+        internal bool Current { get { return Checking == null ? Pet.RemoteCurrent(this) : Checking(); } }
+        internal bool Live { get { return Checking == null ? Pet.RemoteCurrent(this, true) : Checking(); } }
+        private readonly Dictionary<Func<bool>, Func<bool>> guards = new Dictionary<Func<bool>, Func<bool>>();
+        internal const string PcOnly = "That one only works at the PC for now.";
+        internal const string Ended = "That request has ended.";
+        internal Func<bool> Guard(Func<bool> previous)
+        {
+            Func<bool> current = delegate { return Live && (previous == null || previous()); };
+            lock (guards) guards[current] = previous;
+            return current;
+        }
+
+        internal Func<bool> WorkGuard(Func<bool> current)
+        {
+            lock (guards)
+            {
+                Func<bool> previous;
+                while (current != null && guards.TryGetValue(current, out previous)) current = previous;
+                return current;
+            }
+        }
+        internal static bool AtPc(string tool, ToolArguments args)
+        {
+            return tool == "run_terminal" || tool == "job_control" && args != null && args.Action == "change";
+        }
+
+        internal static void Run(RemoteTurn phone, Action work, Action finished)
+        {
+            RemoteTurn previous = Working;
+            try { Working = phone; work(); }
+            finally { Working = previous; finished(); }
+        }
+
+        internal void Enter()
+        {
+            Action done = Interlocked.Exchange(ref Entered, null);
+            if (done != null) done();
+        }
+
+        internal string Refuse(string tool, ToolArguments args)
+        {
+            string id = RemoteMessages.NewId(), summary = Words(tool, args);
+            string name = summary == "Using a tool" ? "tool" : tool;
+            Tool(id, name, summary, "running");
+            Tool(id, name, summary, "failed");
+            return PcOnly;
+        }
+
+        internal static string Out(string text, int limit)
+        {
+            string safe = RemotePrivate.Mask(text ?? "");
+            safe = Brain.Scrubbed(Brain.Redacted(safe));
+            return RemoteMessages.Clip(Input(safe), limit);
+        }
+
+        internal static string Input(string text)
+        {
+            string input = text ?? "";
+            System.Text.StringBuilder kept = new System.Text.StringBuilder(input.Length);
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                bool pair = char.IsHighSurrogate(c) && i + 1 < input.Length && char.IsLowSurrogate(input[i + 1]);
+                System.Globalization.UnicodeCategory kind = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(input, i);
+                if (c == '\t') kept.Append(' ');
+                else if (c == '\n' || kind != System.Globalization.UnicodeCategory.Control && kind != System.Globalization.UnicodeCategory.Format && kind != System.Globalization.UnicodeCategory.Surrogate) kept.Append(input, i, pair ? 2 : 1);
+                if (pair) i++;
+            }
+            return kept.ToString();
+        }
+
+        internal static string Words(string tool, ToolArguments args)
+        {
+            switch (tool)
+            {
+                case "open_app": return "Opening an app";
+                case "open_website": return "Opening a website";
+                case "website_nickname": return "Saving a website name";
+                case "look_at_screen": return "Looking at the screen";
+                case "play_music": return "Playing music";
+                case "media":
+                    switch (args.Action)
+                    {
+                        case "resume": return "Media: resume";
+                        case "pause": return "Media: pause";
+                        case "stop": return "Media: stop";
+                        case "next": return "Media: next track";
+                        case "previous": return "Media: previous track";
+                        case "play_pause": return "Media: toggle";
+                        default: return "Media";
+                    }
+                case "app_window": return "Changing an app window";
+                case "shortcut": return "Pressing a shortcut";
+                case "list_windows": return "Checking open windows";
+                case "check_app": return "Checking installed apps";
+                case "find_file": return "Finding a file";
+                case "read_file": return "Reading a file";
+                case "remember": return "Updating a note";
+                case "watch_for": return "Watching for a change";
+                case "game_notes": return "Updating game notes";
+                case "read_skill": return "Reading a skill";
+                case "remind": return "Setting a reminder";
+                case "stopwatch": return "Stopwatch";
+                case "routine": return "Running a routine";
+                case "clip": return "Saving a clip";
+                case "app_volume": return "Changing app volume";
+                case "pc_status": return "Checking the computer";
+                case "internet_status": return "Checking the connection";
+                default: return "Using a tool";
+            }
+        }
+
+        internal void Tool(string id, string tool, string summary, string state, string move = null)
+        {
+            Pet.RemoteTool(this, id, tool, summary, state, move);
+        }
+    }
+
+    internal sealed class RemoteHold
+    {
+        internal RemoteTurn Turn;
+        internal List<KeyValuePair<string, ToolArguments>> Calls;
+        internal object Id;
+        internal ComputerJob Job;
+        internal string AskId;
+    }
+
+    internal static class RemotePrivate
+    {
+        private static readonly List<string> values = new List<string>();
+
+        internal static void Keep(ComputerJob job, ComputerAction action)
+        {
+            if (action.Action != "type" || !(action.Secret || action.Risk == "secret" || System.Text.RegularExpressions.Regex.IsMatch(job.Asked ?? "", @"(?i)\b(password|passcode|card number|security code|private key|api key)\b"))) return;
+            string value = (action.Text ?? "").Trim();
+            if (value.Length < 4) return;
+            lock (values) if (!values.Contains(value))
+            {
+                values.Add(value);
+                values.Sort(delegate(string a, string b) { return b.Length.CompareTo(a.Length); });
+            }
+        }
+
+        internal static string Mask(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            lock (values) foreach (string value in values) text = text.Replace(value, "[private]");
+            return text;
+        }
     }
 
     // The bits of GitHub's latest release she reads to tell them about an update.
@@ -448,6 +617,8 @@ namespace CapriDesktop
         private MenuItem discordItem;
         private MenuItem securityMenu;
         private bool fingers;
+        private MenuItem inputSetup;
+        private Separator inputSetupBreak;
         private readonly List<MenuItem> securityPicks = new List<MenuItem>();
         private readonly List<MenuItem> securityToggles = new List<MenuItem>();
         private MenuItem memoriesItem;
@@ -651,12 +822,14 @@ namespace CapriDesktop
             if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears).Listen;
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
+            if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
             StartCare();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
             fingers = Program.Smoke == null && (OperatingSystem.IsMacOS() ? MacFingers.Available : ComputerJobs.Supported || Fingers.Problem == null);
             Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && (OperatingSystem.IsMacOS() && Program.Smoke == null ? MacFingers.Available : fingers)) || toggle == Security.Personal || toggle == Security.ModTools || (toggle == Security.Terminal && TerminalJobs.Supported); };
             Hands.OwnHands = fingers;
+            if (OperatingSystem.IsLinux() && Program.Smoke == null) { Hands.HandsReady = InputReady; Hands.HandsProblem = delegate { return Fingers.Problem; }; }
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
             LoginFile = Program.Smoke != null ? Path.Combine(Program.Smoke, OperatingSystem.IsMacOS() ? "capri.plist" : "capri.desktop") : Limbs.LoginFile();
@@ -703,7 +876,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Limbs.Attach(Brain);
-            MacFiles.Attach(Program.Smoke ?? folder);
+            MacFiles.Attach(Program.Smoke ?? folder, Brain);
             StartReminders();
             if (OperatingSystem.IsMacOS()) MacWindows.Displays = () => Dispatcher.UIThread.Invoke(() => MacWindows.ReadDisplays(Screens.All, Desk.Pointer()));
             WireWatching();
@@ -742,6 +915,13 @@ namespace CapriDesktop
                 Chores.SignHidden = delegate(bool hide) { return Dispatcher.UIThread.Invoke(new Func<bool>(delegate { return HideGlow(hide); })); };
             }
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            Func<string, string> resume = Hands.Resume;
+            Hands.Resume = delegate(string text) { return RemoteTurn.Working == null ? resume(text) : null; };
+            ComputerJobs.Changed += RemoteJobChanged;
+            ComputerJobs.Stepped += RemoteJobStep;
+            Security.HeldChanged = RemoteJobSecurity;
+            Hands.NativeWork = Limbs.RemoteWork(Hands.NativeWork);
+            Hands.Work = Limbs.RemoteWork(Hands.Work);
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
             string brainKey = ReadSecret(BrainKeyFile);
             if (brainKey != null && Cloud.KindOf(brainKey) != null && !string.IsNullOrEmpty(Saved.CloudModel))
@@ -818,7 +998,14 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { StopRemote(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
+            {
+                bool on = Saved.RemoteOn;
+                StopRemote();
+                Dispatcher.UIThread.Post(delegate { if (on && !quitting && !MacQuit.Quitting && (e.Cancel || frames.IsEnabled)) SetRemote(true); });
+            };
+            desktop.Exit += delegate { StopRemote(); };
             Deactivated += delegate { if (!(Desk is HyprlandDesk) && !desktopDrag) Program.Guard(Unhold); };
             Opened += delegate
             {
@@ -846,6 +1033,8 @@ namespace CapriDesktop
                     if (Program.ConnectChatGPT) { OpenMainframe(); UsePlan(); }
                 }
             };
+            if (Saved.RemoteOn) SetRemote(true);
+            else if (Program.Smoke == null) LoadRemote();
         }
 
         private void Unfocus(Window shown)
@@ -1159,7 +1348,7 @@ namespace CapriDesktop
             string[] lines = new string[0];
             try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
             int from = Math.Max(0, lines.Length - 25);
-            return head + Environment.NewLine + (lines.Length == 0 ? "No errors logged." : string.Join(Environment.NewLine, lines, from, lines.Length - from));
+            return head + Environment.NewLine + (lines.Length == 0 ? "No errors logged." : string.Join(Environment.NewLine, Brain.Cleaned(lines[from..])));
         }
 
         internal void CheckUpdate(bool asked = false)
@@ -1351,18 +1540,41 @@ namespace CapriDesktop
 
         internal string UpdatePage { get { return updatePage; } }
 
-        internal void CopyFingersSetup()
+        private bool InputReady()
         {
-            if (HyprlandDesktop.Current != null)
+            if (OperatingSystem.IsLinux()) Hands.OwnHands = fingers = ComputerJobs.Supported || Fingers.Problem == null;
+            return fingers;
+        }
+
+        internal Task CopyFingersSetup()
+        {
+            return CopyFingersSetup(delegate(string command)
             {
-                Talk.Answer("(mouse setup)", ComputerJobs.Available ? "Native compositor input is ready." : "Check the bundled native input helper and compositor protocol support. No global input setup was applied.");
-                return;
+                Avalonia.Input.Platform.IClipboard board = Clipboard;
+                if (board == null) throw new InvalidOperationException();
+                return board.SetTextAsync(command);
+            });
+        }
+
+        internal async Task CopyFingersSetup(Func<string, Task> copy, Action<string> answer = null)
+        {
+            if (!OperatingSystem.IsLinux()) return;
+            try
+            {
+                if (answer == null) answer = delegate(string line) { Talk.Answer("(mouse setup)", line); };
+                if (HyprlandDesktop.Current != null)
+                {
+                    answer(ComputerJobs.Available ? "Native compositor input is ready." : "Check the bundled native input helper and compositor protocol support. No global input setup was applied.");
+                    return;
+                }
+                string problem = Fingers.Problem;
+                Hands.OwnHands = fingers = problem == null;
+                if (fingers) { answer("My mouse and keyboard are ready. Ask again."); return; }
+                try { if (copy != null) await copy(Fingers.Setup); }
+                catch (Exception) { }
+                answer(problem + " Run this in a terminal and type your password:\n\n" + Fingers.Setup);
             }
-            Avalonia.Input.Platform.IClipboard board = Clipboard;
-            if (board == null) return;
-            try { board.SetTextAsync(Fingers.Setup); }
-            catch (Exception) { return; }
-            Talk.Answer("(mouse setup)", "Copied a command for you. Paste it in a terminal, type your password, then close and open me again so I can use your mouse and keyboard.");
+            catch (Exception) { }
         }
 
         private HerCursor herPointer;
@@ -2493,23 +2705,24 @@ namespace CapriDesktop
             securityMenu.Items.Add(new Separator());
             for (int i = 0; i < Security.Count; i++)
             {
-                if (!Security.Has(i)) continue;
+                if (!Security.Has(i) && !(OperatingSystem.IsLinux() && i == Security.Mouse)) continue;
                 int toggle = i;
                 StackPanel face = new StackPanel();
                 face.Children.Add(new TextBlock { Text = Security.Names[i] });
                 face.Children.Add(new TextBlock { Text = Security.Lines[i], FontSize = 11, Foreground = new SolidColorBrush(Look.Dim) });
-                MenuItem item = new MenuItem { Header = face, ToggleType = MenuItemToggleType.CheckBox, Tag = i };
+                MenuItem item = new MenuItem { Header = face, ToggleType = MenuItemToggleType.CheckBox, Tag = i, IsVisible = Security.Has(i) };
                 item.Click += Guarded(delegate { Security.Set(toggle, !Security.On(toggle)); });
                 securityToggles.Add(item);
                 securityMenu.Items.Add(item);
             }
-            if (Program.Smoke == null && !fingers && OperatingSystem.IsLinux())
+            if (OperatingSystem.IsLinux())
             {
-                securityMenu.Items.Add(new Separator());
-                MenuItem setup = new MenuItem { Header = "Set up mouse and keyboard..." };
-                ToolTip.SetTip(setup, "Copies the one command that lets her make her own mouse and keyboard through /dev/uinput.");
-                setup.Click += Guarded(delegate { CopyFingersSetup(); });
-                securityMenu.Items.Add(setup);
+                inputSetupBreak = new Separator { IsVisible = !fingers };
+                securityMenu.Items.Add(inputSetupBreak);
+                inputSetup = new MenuItem { Header = "Set up mouse and keyboard...", IsVisible = !fingers };
+                ToolTip.SetTip(inputSetup, "Copies the one command that lets her make her own mouse and keyboard through /dev/uinput.");
+                inputSetup.Click += Guarded(delegate { CopyFingersSetup(); });
+                securityMenu.Items.Add(inputSetup);
             }
             settings.Items.Add(securityMenu);
             settings.Items.Add(notes);
@@ -2565,7 +2778,7 @@ namespace CapriDesktop
             menu.Items.Add(update);
             menu.Items.Add(new Separator());
             menu.Items.Add(quit);
-            menu.Opening += delegate { Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; };
+            menu.Opening += delegate { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; };
             return menu;
         }
 
@@ -2586,7 +2799,8 @@ namespace CapriDesktop
             discordItem.IsChecked = !Saved.NoDiscord;
             securityMenu.Header = "Security: " + Security.PresetName;
             for (int i = 0; i < securityPicks.Count; i++) securityPicks[i].IsChecked = i == Security.Preset;
-            foreach (MenuItem item in securityToggles) item.IsChecked = Security.On((int)item.Tag);
+            foreach (MenuItem item in securityToggles) { item.IsChecked = Security.On((int)item.Tag); if (OperatingSystem.IsLinux()) item.IsVisible = Security.Has((int)item.Tag); }
+            if (inputSetup != null) inputSetup.IsVisible = inputSetupBreak.IsVisible = !fingers;
             memoriesItem.IsChecked = !Saved.NoMemories;
             checkInsItem.IsChecked = !Saved.NoCheckIns;
             for (int i = 0; i < popPicks.Count; i++) popPicks[i].IsChecked = i == PopPace;
@@ -2911,7 +3125,7 @@ namespace CapriDesktop
             if (action == "come_here")
             {
                 PixelPoint? mouse = MouseAt != null ? MouseAt() : Mouse();
-                if (mouse == null) return "Couldn't find your mouse on this desktop.";
+                if (mouse == null) return NoMouse(false);
                 Teleport(mouse.Value);
                 return "Teleporting to your mouse.";
             }
@@ -3820,6 +4034,7 @@ namespace CapriDesktop
                 List<string> shown = new List<string> { securityMenu.Header as string };
                 foreach (object item in securityMenu.Items)
                 {
+                    if (item is Control && !((Control)item).IsVisible) continue;
                     MenuItem entry = item as MenuItem;
                     if (entry == null) { shown.Add("-"); continue; }
                     StackPanel face = entry.Header as StackPanel;
@@ -4538,6 +4753,7 @@ namespace CapriDesktop
         internal void FindBrain()
         {
             if (Brain.Provider != null || MainframeTier != 0) return;
+            if (Program.Smoke != null && BrainKeyCheck != null) return;
             string saved = Saved.Model;
             string server;
             string serverKey;
@@ -4569,111 +4785,1175 @@ namespace CapriDesktop
             });
         }
 
-        internal void Hear(string text, bool fromVoice = false)
+        private readonly object remoteGate = new object();
+        private RemoteLink remoteLink;
+        private RemoteSink remoteSink;
+        private RemoteState remoteState;
+        private string remoteRelay, remoteProblem, remotePendingProblem, remoteNote = "";
+        private bool remoteUnreadable, remoteDirty, remoteCode, remoteLoaded, remoteReadFailed;
+        private int remoteGeneration;
+        private Action<string, string> remoteChanged;
+        private Action<string, string, string> remoteHeard;
+        private Action<string, string, string, RemotePicture, Func<bool>, Action> remotePictured;
+        private RemoteTurn remoteActive;
+        private readonly List<RemoteTurn> remoteQueue = new List<RemoteTurn>();
+        private readonly Dictionary<string, RemoteTurn> remoteNewest = new Dictionary<string, RemoteTurn>(StringComparer.Ordinal);
+        private readonly Dictionary<int, RemoteTurn> remoteTickets = new Dictionary<int, RemoteTurn>();
+        private readonly Dictionary<string, int> remoteSessions = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<string, RemoteHold> remoteHolds = new Dictionary<string, RemoteHold>(StringComparer.Ordinal);
+        internal RemoteStore RemoteFiles;
+        internal Func<RemoteState, string, Action<RemoteState>, RemoteLink> RemoteMake;
+        internal Func<RemoteLink, RemoteSink> RemoteOutput;
+        private Action<string, RemoteJson.Map> remoteJobHeard;
+        private readonly List<RemoteJob> remoteJobs = new List<RemoteJob>();
+        private RemoteJob remoteJob;
+        [ThreadStatic] private static RemoteJob remoteJobActing;
+
+        private sealed class RemoteJob
+        {
+            internal string Id, Task, State, Ask, AskId, Re, Last = "";
+            internal long Started, Ended;
+            internal int Steps, Answering;
+            internal ComputerJob Job;
+            internal RemoteTurn Phone;
+            internal object Hold;
+            internal object AskedHold;
+            internal int AskedCount;
+            internal ComputerJob AskedJob;
+            internal ComputerAction AskedAction;
+            internal bool Cancelled;
+            internal readonly List<RemoteStep> Trail = new List<RemoteStep>();
+        }
+
+        private sealed class RemoteStep
+        {
+            internal int N;
+            internal string Tool, Label;
+            internal bool Done, Failed;
+            internal ComputerAction Action;
+        }
+
+        private void RemoteJobSend(string device, string json, bool coalesce = true)
+        {
+            RemoteLink link = remoteLink;
+            if (!RemoteLinkCurrent(link, remoteGeneration) || !Saved.RemoteOn) return;
+            if (device == null) link.JobBroadcast(json);
+            else link.JobSend(device, json, coalesce);
+        }
+
+        private static string RemoteJobState(RemoteJob run)
+        {
+            return RemoteMessages.JobState(run.Id, run.Task, run.State, run.Steps, run.Started, run.Ended, run.Ask, run.Re, run.AskId);
+        }
+
+        private RemoteJob RemoteJobNew(string task, RemoteTurn phone)
+        {
+            if (remoteJob != null && remoteJob.Ended == 0) RemoteJobSet(remoteJob, "stopped");
+            if (remoteJob != null) { remoteJob.Job = null; remoteJob.Hold = null; remoteJob.Phone = null; foreach (RemoteStep step in remoteJob.Trail) step.Action = null; }
+            RemoteJob run = new RemoteJob { Id = RemoteMessages.NewId(), Task = RemoteJobWords.RemoteJobTask(task), Started = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), Re = phone == null ? null : phone.Id, Phone = phone };
+            remoteJobs.Insert(0, run);
+            if (remoteJobs.Count > 10) remoteJobs.RemoveAt(remoteJobs.Count - 1);
+            remoteJob = run;
+            return run;
+        }
+
+        private static List<string> RemoteJobActions(RemoteJob run, List<KeyValuePair<string, ToolArguments>> calls)
+        {
+            List<string> actions = new List<string>();
+            if (calls != null)
+                foreach (KeyValuePair<string, ToolArguments> call in calls)
+                {
+                    string action = RemoteJobWords.RemoteJobAction(call.Key, call.Value, Security.Needs(call.Key, call.Value), null);
+                    if (action != null && !actions.Contains(action)) actions.Add(action);
+                }
+            ComputerJob job = run.Job;
+            if ((calls == null || calls.Count == 0) && job != null && job.Waiting != null)
+            {
+                string action = RemoteJobWords.RemoteJobAction(job.Waiting.Action, null, job.WaitingToggle, job.WaitingRisk);
+                if (action != null && !actions.Contains(action)) actions.Add(action);
+            }
+            return actions;
+        }
+
+        private void RemoteJobSet(RemoteJob run, string state)
+        {
+            if (run.Ended != 0) return;
+            string previous = run.State;
+            run.State = state;
+            run.Ask = null;
+            if (state == "asking")
+            {
+                List<KeyValuePair<string, ToolArguments>> calls = run.Hold == null ? null : Security.HeldCalls(run.Hold);
+                int count = calls == null ? 0 : calls.Count;
+                object hold = count == 0 ? null : run.Hold;
+                ComputerJob job = hold == null ? run.Job : null;
+                ComputerAction action = job?.Waiting;
+                if (previous != "asking" || run.AskedHold != hold || run.AskedCount != count || run.AskedJob != job || run.AskedAction != action)
+                    run.AskId = RemoteMessages.NewId();
+                run.AskedHold = hold;
+                run.AskedCount = count;
+                run.AskedJob = job;
+                run.AskedAction = action;
+                List<string> actions = RemoteJobActions(run, calls);
+                run.Ask = RemoteMessages.Clip(RemoteJobWords.RemoteJobQuestion(actions), 200);
+                if (run.Job == null && actions.Count > 0)
+                {
+                    string title = string.Join(" and ", actions.ToArray());
+                    run.Task = RemoteMessages.Clip(char.ToUpperInvariant(title[0]) + title.Substring(1), 200);
+                }
+                if (run.Phone != null && run.Phone.Current)
+                {
+                    run.Phone.Question = run.Ask;
+                    if (run.Job != null) run.Phone.Hold = new RemoteHold { Turn = run.Phone, Job = run.Job, AskId = run.AskId };
+                }
+            }
+            if (state != "running" && state != "asking")
+            {
+                run.Ended = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                run.AskId = null;
+                run.AskedHold = null;
+                run.AskedJob = null;
+                run.AskedAction = null;
+            }
+            RemoteJobSend(null, RemoteJobState(run));
+        }
+
+        private void RemoteJobChanged(ComputerJob job, string state)
+        {
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (state == "running")
+                {
+                    if (remoteJobActing != null && remoteJobActing.Ended != 0) return;
+                    if (run == null || run.Job != job)
+                    {
+                        if (remoteJobActing != null && remoteJobActing == run && run.Ended == 0) run.Job = job;
+                        else { run = RemoteJobNew(job.Task, job.Phone); run.Job = job; }
+                        RemoteJob tracked = run;
+                        Func<bool> guard = job.Current;
+                        job.Current = delegate { lock (remoteGate) return !tracked.Cancelled && (guard == null || guard()); };
+                    }
+                }
+                if (run == null || run.Job != job) return;
+                RemoteJobSet(run, state);
+                if (run.Ended != 0) { run.Job = null; run.Hold = null; run.Phone = null; foreach (RemoteStep step in run.Trail) step.Action = null; }
+            }
+        }
+
+        private void RemoteJobStep(ComputerJob job, ComputerAction action, bool done, bool failed)
+        {
+            if (action == null) return;
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (run == null || run.Job != job || run.Ended != 0) return;
+                RemoteStep step = run.Trail.Find(item => item.Action == action);
+                if (step == null)
+                {
+                    step = new RemoteStep { N = ++run.Steps, Tool = RemoteMessages.CleanText(action.Action, 64), Action = action };
+                    run.Trail.Add(step);
+                    if (run.Trail.Count > 30) run.Trail.RemoveAt(0);
+                }
+                step.Label = RemoteJobWords.RemoteComputerLabel(action.Action, done, failed);
+                step.Done = done; step.Failed = failed; run.Last = step.Label;
+                RemoteJobSend(null, RemoteMessages.JobStep(run.Id, step.N, step.Tool, step.Label, step.Done, step.Failed));
+                RemoteJobSend(null, RemoteJobState(run));
+            }
+        }
+
+        private void RemoteJobSecurity(object hold, string state, string words)
+        {
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (state == "asking")
+                {
+                    if (hold != Security.HoldingId) return;
+                    List<KeyValuePair<string, ToolArguments>> calls = Security.HeldCalls(hold);
+                    if (calls.Count == 0 || calls.Exists(call => call.Key == "run_terminal" || call.Key == "terminal_job" || RemoteTurn.AtPc(call.Key, call.Value))) return;
+                    if (!calls.Exists(call => call.Key == "use_computer" || call.Key == "stream")) return;
+                    if (run == null || run.Ended != 0 || run.Hold != hold && (run.Job == null || !ComputerJobs.IsCurrent(run.Job))) run = RemoteJobNew(null, RemoteTurn.Working);
+                    run.Hold = hold;
+                    RemoteJobSet(run, state);
+                }
+                else if (run != null && run.Hold == hold && run.Ended == 0)
+                {
+                    if (state == "running") { remoteJobActing = run; RemoteJobSet(run, state); }
+                    else if (run.Job == null) RemoteJobSet(run, state);
+                    else if (state == "stopped") RemoteJobSet(run, run.Job.Waiting == null ? "running" : "asking");
+                    if (state != "running" && remoteJobActing == run) remoteJobActing = null;
+                }
+                if (state != "running" && state != "asking") remoteJobActing = null;
+            }
+        }
+
+        private bool RemoteJobCurrent(RemoteJob run)
+        {
+            return run != null && run.Ended == 0 && (run.Answering > 0 || run.Job != null && ComputerJobs.IsCurrent(run.Job) || run.Hold != null && Security.HoldingId == run.Hold);
+        }
+
+        private void RemoteJobReplay(string device)
+        {
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (run == null || run.Ended != 0) return;
+                RemoteJobSend(device, RemoteJobState(run));
+                foreach (RemoteStep step in run.Trail) RemoteJobSend(device, RemoteMessages.JobStep(run.Id, step.N, step.Tool, step.Label, step.Done, step.Failed));
+            }
+        }
+
+        private void RemoteJobBad(string device, string id)
+        {
+            RemoteJobSend(device, RemoteMessages.Error("bad-message", RemoteMessages.IdOk(id) ? id : null), coalesce: false);
+        }
+
+        private void RemoteJobCommand(RemoteLink link, int generation, int session, string device, RemoteJson.Map message)
+        {
+            RemoteJob stopped = null;
+            lock (remoteGate)
+            {
+                if (!RemoteLinkCurrent(link, generation) || !Saved.RemoteOn || RemoteSession(device) != session || !link.HasSession(device)) return;
+                string type = message.Text("type"), id = message.Text("id");
+                if (type == "job.list")
+                {
+                    List<RemoteJson.Writer> list = new List<RemoteJson.Writer>();
+                    foreach (RemoteJob item in remoteJobs) list.Add(RemoteMessages.JobInfo(item.Id, item.Task, item.State, item.Steps, item.Started, item.Ended).Text("last", item.Last));
+                    RemoteJobSend(device, RemoteMessages.JobRecent(list));
+                    return;
+                }
+                if (type != "job.stop" && type != "job.answer") return;
+                RemoteJob run = remoteJob;
+                bool yes = message.Is("yes", true);
+                string askId = message.Text("ask_id");
+                if (!RemoteMessages.IdOk(id) || !RemoteJobCurrent(run) || run.Id != id || type == "job.answer" && (run.State != "asking" || !RemoteMessages.IdOk(askId) || run.AskId != askId || !yes && !message.Is("yes", false))) { RemoteJobBad(device, id); return; }
+                if (type == "job.stop")
+                {
+                    run.Cancelled = true;
+                    RemoteJobSet(run, "stopped");
+                    if (run.Hold != null) Security.Drop(run.Hold);
+                    stopped = run;
+                }
+                else
+                {
+                    run.Answering++;
+                    RemoteJobSet(run, "running");
+                    Func<bool> current = delegate { lock (remoteGate) return RemoteLinkCurrent(link, generation) && Saved.RemoteOn && RemoteSession(device) == session && link.HasSession(device); };
+                    ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        try
+                        {
+                            string result = null;
+                            RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Device = device, Generation = generation, Session = session, Checking = current };
+                            RemoteTurn.Run(turn, delegate { result = RemoteJobAnswer(run, askId, yes, current); }, delegate { });
+                            if (result != null) RemoteJobAnswered(run, device, yes, result, current);
+                            else lock (remoteGate) if (current()) RemoteJobBad(device, id);
+                        }
+                        catch (Exception)
+                        {
+                            lock (remoteGate) RemoteJobSet(run, "failed");
+                        }
+                        finally { lock (remoteGate) run.Answering--; }
+                    });
+                }
+            }
+            if (stopped != null) ComputerJobs.Stop();
+        }
+
+        private string RemoteJobAnswer(RemoteJob run, string askId, bool yes, Func<bool> current)
+        {
+            RemoteJob previous = remoteJobActing;
+            try
+            {
+                object hold;
+                int count;
+                ComputerJob job;
+                ComputerAction action;
+                lock (remoteGate)
+                {
+                    if (run.AskId != askId || run.State != "running") return null;
+                    if (!current() || remoteJob != run || run.Ended != 0)
+                    {
+                        if (remoteJob == run && run.Ended == 0 && (run.Job != null && run.Job.Waiting != null || run.Hold != null && Security.HoldingId == run.Hold)) RemoteJobSet(run, "asking");
+                        return null;
+                    }
+                    remoteJobActing = run;
+                    hold = run.AskedHold;
+                    count = run.AskedCount;
+                    job = run.AskedJob;
+                    action = run.AskedAction;
+                }
+                string result;
+                Func<bool> allowed = delegate { lock (remoteGate) return current() && remoteJob == run && run.Ended == 0 && run.AskId == askId; };
+                if (hold != null)
+                    result = Security.Resume(yes ? "yes" : "no", delegate(string tool, ToolArguments args)
+                    {
+                        if (!allowed()) return RemoteTurn.Ended;
+                        Func<bool> guard = args.Current;
+                        args.Current = delegate { lock (remoteGate) return !run.Cancelled && (guard == null || guard()); };
+                        return Brain.Act(tool, args);
+                    }, hold, count);
+                else
+                    result = action == null ? null : ComputerJobs.Answer(job, action, yes, allowed);
+                lock (remoteGate)
+                {
+                    if (result == null && run.State == "running" && run.AskId == askId && run.Ended == 0 && (run.Hold != null && Security.HoldingId == run.Hold || run.Job != null && run.Job.Waiting != null && ComputerJobs.IsCurrent(run.Job))) RemoteJobSet(run, "asking");
+                    if (run.State == "asking") return run.Ask;
+                    if (result != null && result.EndsWith(Security.Yes, StringComparison.Ordinal))
+                        return RemoteJobWords.RemoteJobQuestion(RemoteJobActions(run, run.Hold == null ? null : Security.HeldCalls(run.Hold)));
+                    return result;
+                }
+            }
+            finally { remoteJobActing = previous; }
+        }
+
+        private void RemoteJobAnswered(RemoteJob run, string device, bool yes, string result, Func<bool> current)
+        {
+            string said;
+            lock (remoteGate) said = run.State == "asking" ? run.Ask : result;
+            said = Brain.Clean(said ?? "");
+            if (said.Length == 0) return;
+            Brain.Remember(yes ? "yes" : "no", said);
+            lock (remoteGate)
+            {
+                if (!current() || remoteSink == null) return;
+                remoteSink.Reply(device, RemoteMessages.NewId(), null, RemoteTurn.Out(said, 16000), true);
+            }
+            Dispatcher.UIThread.Post(delegate { if (!quitting && !MacQuit.Quitting) Reply(asking, "(chat)", said); });
+        }
+
+        private bool RemoteJobReply(string text, bool fromMod)
+        {
+            if (!Security.Agrees(text) && !Security.Declines(text)) return false;
+            RemoteJob run;
+            string askId;
+            lock (remoteGate)
+            {
+                run = remoteJob;
+                if (run == null || run.State != "asking" || !RemoteJobCurrent(run)) return false;
+                if (fromMod) return true;
+                askId = run.AskId;
+                run.Answering++;
+                RemoteJobSet(run, "running");
+            }
+            int ticket = ++asking;
+            Ask(ticket, text, 0, 0, null, delegate
+            {
+                try
+                {
+                    string result = RemoteJobAnswer(run, askId, Security.Agrees(text), delegate { return !quitting && !MacQuit.Quitting; });
+                    lock (remoteGate) if (run.State == "asking") result = run.Ask;
+                    if (result != null) Brain.Remember(text, result);
+                    return result;
+                }
+                finally { lock (remoteGate) run.Answering--; }
+            });
+            return true;
+        }
+
+        private string RemoteHost { get { return string.IsNullOrWhiteSpace(Saved.RemoteHost) ? RemoteLink.DefaultHost : Saved.RemoteHost; } }
+
+        private bool LoadRemote(bool refresh = false)
+        {
+            if (remoteUnreadable) return false;
+            if (remoteDirty || remoteLink != null) return true;
+            if (remoteLoaded && !refresh) return !remoteReadFailed;
+            if (RemoteFiles == null) RemoteFiles = new RemoteStore(Program.Smoke ?? folder);
+            RemoteState state;
+            string relay;
+            RemoteStoreResult result = RemoteFiles.Load(out state, out relay);
+            remoteLoaded = true;
+            remoteReadFailed = result == RemoteStoreResult.Unreadable;
+            if (result == RemoteStoreResult.Unreadable)
+            {
+                StopRemote();
+                remoteUnreadable = RemoteFiles.Damaged;
+                if (remoteUnreadable) Saved.RemoteOn = false;
+                remoteState = null;
+                remoteRelay = null;
+                remoteProblem = remoteUnreadable ? "The saved phones couldn't be read. Remove all phones to start again." : "The saved phones couldn't be opened right now. Try again.";
+                return false;
+            }
+            remoteState = state;
+            remoteRelay = relay;
+            remoteProblem = null;
+            return true;
+        }
+
+        private bool SaveRemote(RemoteState state, string relay, string failure)
+        {
+            if (RemoteFiles == null) RemoteFiles = new RemoteStore(Program.Smoke ?? folder);
+            remoteState = state.Copy();
+            remoteRelay = relay;
+            remoteLoaded = true;
+            remoteReadFailed = false;
+            remotePendingProblem = failure;
+            remoteDirty = RemoteFiles.Save(relay, state) != RemoteStoreResult.Saved;
+            if (remoteDirty) { remoteProblem = failure; return false; }
+            remoteUnreadable = false;
+            remotePendingProblem = null;
+            remoteProblem = null;
+            return true;
+        }
+
+        private bool RemotePhones(RemoteState state, RemoteLink link)
+        {
+            List<RemoteDevice> phones = link.Devices();
+            if (state.Devices.Count != phones.Count) return false;
+            foreach (RemoteDevice phone in phones)
+            {
+                RemoteDevice copy = state.Find(phone.Id);
+                if (copy == null || copy.Name != phone.Name || copy.Added != phone.Added || copy.From != phone.From || copy.Parent != phone.Parent) return false;
+            }
+            return true;
+        }
+
+        private void RetryRemoteSave()
+        {
+            lock (remoteGate)
+            {
+                if (!remoteDirty || remoteState == null || remoteLink != null && !RemotePhones(remoteState, remoteLink)) return;
+                SaveRemote(remoteState, remoteRelay, remotePendingProblem ?? "The paired phones weren't saved.");
+            }
+        }
+
+        private bool RemoteAction(bool refresh = false)
+        {
+            if (Program.Smoke != null && RemoteMake == null) return false;
+            RetryRemoteSave();
+            return LoadRemote(refresh || remoteReadFailed);
+        }
+
+        internal RemoteView ReadRemote()
+        {
+            RemoteLink link = remoteLink;
+            string problem = remoteDirty ? remotePendingProblem : remoteProblem;
+            RemoteView view = new RemoteView { On = Saved.RemoteOn && link != null, Host = RemoteHost, Status = link == null ? "off" : link.Status, Note = problem ?? remoteNote };
+            if (link != null)
+            {
+                view.Ready = link.Ready;
+                view.Qr = link.Qr;
+                view.QrSeconds = link.QrSeconds;
+                view.Ask = link.Asking;
+                view.LinkFor = link.LinkFor;
+                view.Expired = remoteCode && view.Ask == null && view.LinkFor == null && view.QrSeconds == 0;
+                view.Phones = link.Devices();
+                foreach (RemoteDevice phone in view.Phones) if (link.IsOnline(phone.Id)) view.Online.Add(phone.Id);
+            }
+            else if (remoteState != null)
+            {
+                foreach (RemoteDevice phone in remoteState.Devices) view.Phones.Add(new RemoteDevice { Id = phone.Id, Name = phone.Name, Added = phone.Added, From = phone.From, Parent = phone.Parent });
+                view.Phones.Sort(delegate(RemoteDevice a, RemoteDevice b) { return b.Added.CompareTo(a.Added); });
+            }
+            return view;
+        }
+
+        internal void SetRemote(bool on)
+        {
+            bool loaded = RemoteAction(on);
+            if (!on)
+            {
+                StopRemote();
+                Saved.RemoteOn = false;
+                Save();
+                return;
+            }
+            if (quitting || MacQuit.Quitting || remoteLink != null) return;
+            if (Program.Smoke != null && RemoteMake == null) { Save(); return; }
+            string relay = RemoteLink.RelayBase(RemoteHost);
+            if (relay == null) { remoteProblem = "That relay host isn't valid."; Save(); return; }
+            if (!loaded) { Save(); return; }
+            if (remoteState == null || remoteRelay != relay)
+            {
+                bool changed = remoteState != null;
+                SaveRemote(RemoteState.Fresh(), relay, changed ? "The new relay and phone store weren't saved." : "The new phone store wasn't saved.");
+                if (changed) remoteNote = "The relay changed. Pair your phones again.";
+            }
+            StartRemote(relay);
+            Save();
+        }
+
+        private void StartRemote(string relay)
+        {
+            int generation;
+            lock (remoteGate) generation = ++remoteGeneration;
+            RemoteLink link = null;
+            Action<RemoteState> saved = delegate(RemoteState state)
+            {
+                lock (remoteGate)
+                {
+                    if (!RemoteLinkCurrent(link, generation) || !RemotePhones(state, link)) return;
+                    bool removed = remoteState != null && remoteState.Devices.Exists(delegate(RemoteDevice phone) { return state.Find(phone.Id) == null; });
+                    string failure = removed ? "The phone removal wasn't saved. It will be paired again next time Capri opens." : remotePendingProblem ?? "The paired phones weren't saved.";
+                    remoteState = state.Copy(); remoteRelay = relay; remoteDirty = true; remotePendingProblem = failure;
+                }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    lock (remoteGate)
+                    {
+                        if (!RemoteLinkCurrent(link, generation) || !RemotePhones(state, link)) return;
+                        RetryRemoteSave();
+                    }
+                    NotifySettings();
+                });
+            };
+            link = RemoteMake == null ? new RemoteLink(remoteState.Copy(), relay, Environment.MachineName, "capri/" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version, saved) : RemoteMake(remoteState.Copy(), relay, saved);
+            RemoteSink sink = RemoteOutput == null ? new RemoteLinkSink(link) : RemoteOutput(link);
+            lock (remoteGate) { remoteLink = link; remoteSink = sink; }
+            remoteChanged = delegate(string what, string about) { RemoteChanged(link, generation, what, about); };
+            remoteHeard = delegate(string device, string id, string text)
+            {
+                int session;
+                lock (remoteGate) { if (!RemoteLinkCurrent(link, generation)) return; session = RemoteSession(device); }
+                Dispatcher.UIThread.Post(delegate { RemoteHear(link, generation, session, device, id, text); });
+            };
+            remotePictured = delegate(string device, string id, string text, RemotePicture picture, Func<bool> current, Action done) { RemotePictureHeard(link, generation, sink, device, id, text, picture, current, done); };
+            remoteJobHeard = delegate(string device, RemoteJson.Map message)
+            {
+                int session;
+                lock (remoteGate) { if (!RemoteLinkCurrent(link, generation)) return; session = RemoteSession(device); }
+                Dispatcher.UIThread.Post(delegate { RemoteJobCommand(link, generation, session, device, message); });
+            };
+            link.Happened += remoteChanged;
+            link.Said += remoteHeard;
+            link.PictureSaid += remotePictured;
+            RemoteBrainsOn(link, generation);
+            link.LiveHeard += remoteJobHeard;
+            link.Offer("pictures");
+            link.Offer("jobs");
+            Saved.RemoteOn = true;
+            if (Program.Smoke == null && RemoteMake == null) link.Start();
+        }
+
+        private RemoteLink DetachRemote()
+        {
+            RemoteLink link;
+            bool cancel;
+            lock (remoteGate)
+            {
+                cancel = remoteActive != null;
+                link = remoteLink;
+                remoteLink = null;
+                remoteSink = null;
+                remoteGeneration++;
+                RemoteBrainsOff(link);
+                foreach (RemoteTurn turn in remoteNewest.Values) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); turn.Enter(); }
+                remoteNewest.Clear(); remoteTickets.Clear(); remoteQueue.Clear(); remoteHolds.Clear(); remoteSessions.Clear();
+                remoteActive = null;
+            }
+            if (link != null) { link.Happened -= remoteChanged; link.Said -= remoteHeard; link.PictureSaid -= remotePictured; link.LiveHeard -= remoteJobHeard; }
+            remoteChanged = null; remoteHeard = null; remotePictured = null; remoteJobHeard = null; remoteCode = false;
+            if (cancel && !SelfJobs.Active) Brain.Cancel();
+            return link;
+        }
+
+        private void StopRemote()
+        {
+            RetryRemoteSave();
+            RemoteLink link = DetachRemote();
+            if (link != null) link.Stop();
+        }
+
+        internal void NewRemoteCode()
+        {
+            RemoteAction();
+            if (remoteLink == null) return;
+            remoteCode = remoteLink.NewCode() != null;
+            if (!remoteCode) remoteNote = "Wait for Remote to connect first.";
+            else remoteNote = "";
+            NotifySettings();
+        }
+
+        internal void CloseRemoteCode() { RemoteAction(); if (remoteLink != null) remoteLink.CloseCode(); remoteCode = false; NotifySettings(); }
+        internal void AllowRemote() { RemoteAction(); if (remoteLink != null && remoteLink.Allow()) remoteCode = false; NotifySettings(); }
+        internal void DenyRemote() { RemoteAction(); if (remoteLink != null && remoteLink.Deny()) remoteCode = false; NotifySettings(); }
+
+        internal void RevokeRemote(string id)
+        {
+            RemoteAction();
+            if (remoteLink != null)
+            {
+                remoteLink.Revoke(id);
+                return;
+            }
+            if (!LoadRemote() || remoteState == null || remoteState.Find(id) == null) return;
+            RemoteState state = remoteState.Copy();
+            List<string> ids = RemoteLink.RevokeIds(state.Devices, id);
+            state.Devices.RemoveAll(delegate(RemoteDevice phone) { return ids.Contains(phone.Id); });
+            SaveRemote(state, remoteRelay, "The phone removal wasn't saved. It will be paired again next time Capri opens.");
+            NotifySettings();
+        }
+
+        internal void RemoveRemotePhones()
+        {
+            if (Program.Smoke != null && RemoteMake == null) return;
+            RemoteAction();
+            bool on = Saved.RemoteOn;
+            RemoteLink link = DetachRemote();
+            RemoteState state = link == null ? RemoteState.Fresh() : link.RemoveAll();
+            string relay = RemoteLink.RelayBase(RemoteHost);
+            if (relay == null) remoteProblem = "That relay host isn't valid.";
+            else
+            {
+                bool kept = SaveRemote(state, relay, "Removing all phones wasn't saved. They will be paired again next time Capri opens.");
+                if (kept) remoteNote = "All phones were removed. Pair your phones again.";
+                if (on && !quitting && !MacQuit.Quitting) StartRemote(relay);
+            }
+            Save();
+        }
+
+        internal bool SetRemoteHost(string host)
+        {
+            lock (remoteGate)
+            {
+                string relay = RemoteLink.RelayBase(host);
+                if (relay == null) return false;
+                bool loaded = RemoteAction();
+                if (relay == RemoteLink.RelayBase(RemoteHost)) { NotifySettings(); return true; }
+                if (Program.Smoke != null && RemoteMake == null) return false;
+                if (!loaded) { Save(); return false; }
+                bool on = Saved.RemoteOn;
+                if (remoteDirty) { NotifySettings(); return false; }
+                StopRemote();
+                bool kept = SaveRemote(RemoteState.Fresh(), relay, "The new relay and phone store weren't saved.");
+                Saved.RemoteHost = relay;
+                remoteNote = "The relay changed. Pair your phones again.";
+                if (on && !quitting && !MacQuit.Quitting) StartRemote(relay);
+                Save();
+                return kept;
+            }
+        }
+
+        private bool RemoteLinkCurrent(RemoteLink link, int generation)
+        {
+            lock (remoteGate) return !quitting && !MacQuit.Quitting && link != null && remoteLink == link && remoteGeneration == generation;
+        }
+
+        private int RemoteSession(string device) { int session; return remoteSessions.TryGetValue(device, out session) ? session : 0; }
+
+        private bool RemoteSessionCurrent(RemoteTurn turn)
+        {
+            return RemoteLinkCurrent(turn.Link, turn.Generation) && RemoteSession(turn.Device) == turn.Session && turn.Link.HasSession(turn.Device) && (turn.SessionCheck == null || turn.SessionCheck());
+        }
+
+        internal bool RemoteCurrent(RemoteTurn turn, bool replied = false)
+        {
+            lock (remoteGate)
+            {
+                RemoteTurn newest;
+                return (!turn.Closed || replied && turn.Replied) && RemoteSessionCurrent(turn) && remoteNewest.TryGetValue(turn.Device, out newest) && newest == turn;
+            }
+        }
+
+        internal string RemoteGate(RemoteTurn turn, string tool, ToolArguments args)
+        {
+            lock (remoteGate)
+            {
+                if (!turn.Current) return RemoteTurn.Ended;
+                if (turn.Held == null && Security.HoldingId != null) Security.Drop();
+                string held = Security.Gate(tool, args);
+                if (held != null) turn.Held = Security.HoldingId;
+                return held;
+            }
+        }
+
+        internal void RemoteTool(RemoteTurn turn, string id, string tool, string summary, string state, string move = null)
+        {
+            lock (remoteGate)
+            {
+                if (!turn.Current) return;
+                try { turn.Sink.Tool(turn.Device, id, RemoteTurn.Out(tool, 64), RemoteTurn.Out(summary, 200), state, turn.Id, move); }
+                catch (Exception) { }
+            }
+        }
+
+        internal string RemoteMod(RemoteTurn phone, ToolArguments args)
+        {
+            string fallback = "No running mod has a tool called " + args.Name + ".";
+            foreach (ModHost host in LiveHosts())
+            {
+                ModTool tool;
+                lock (host.tools) if (!host.tools.TryGetValue(args.Name ?? "", out tool)) continue;
+                fallback = host.Name + "'s " + tool.Name + " tool took too long to answer.";
+                break;
+            }
+            return WithinTime(delegate
+            {
+                if (!phone.Current) return RemoteTurn.Ended;
+                string result = null;
+                RemoteTurn.Run(phone, delegate { result = Hands.Do("mod", args); }, delegate { });
+                return result;
+            }, 15000, fallback);
+        }
+
+        private void RemoteChanged(RemoteLink link, int generation, string what, string about)
+        {
+            lock (remoteGate)
+            {
+                if (!RemoteLinkCurrent(link, generation)) return;
+                bool all = what == "new-room" || what == "room-reset" || what == "left" && about == null || what == "status" && about != "online";
+                if (all || what == "left" || what == "session" || what == "removed" || what == "kicked" || what == "version")
+                {
+                    List<string> ids = all ? new List<string>(remoteNewest.Keys) : new List<string> { about };
+                    foreach (string id in ids)
+                    {
+                        if (id == null) continue;
+                        remoteSessions[id] = RemoteSession(id) + 1;
+                        RemoteTurn turn;
+                        if (remoteNewest.TryGetValue(id, out turn)) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); turn.Enter(); }
+                        remoteHolds.Remove(id);
+                    }
+                    if (all) foreach (string id in new List<string>(remoteSessions.Keys)) if (!ids.Contains(id)) remoteSessions[id]++;
+                }
+                if (what == "session") RemoteJobReplay(about);
+            }
+            Dispatcher.UIThread.Post(delegate
+            {
+                if (!RemoteLinkCurrent(link, generation)) return;
+                if (what == "ask" || what == "allowed" || what == "paired" || what == "pair-failed" || what == "link") remoteCode = false;
+                if (what == "new-room" || what == "room-reset") remoteNote = "The Remote room changed. Pair your phones again.";
+                if (what == "pair-failed") remoteNote = "That phone wasn't paired. Try a new code.";
+                RemotePump();
+                NotifySettings();
+            });
+        }
+
+        private void RemotePictureHeard(RemoteLink link, int generation, RemoteSink sink, string device, string id, string text, RemotePicture picture, Func<bool> current, Action done)
+        {
+            Action finish = done ?? delegate { };
+            Func<bool> live = delegate { return RemoteLinkCurrent(link, generation) && (current == null || current()); };
+            int session;
+            lock (remoteGate) session = RemoteSession(device);
+            if (!live()) { finish(); return; }
+            try
+            {
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    string seen = null;
+                    BrainException problem = null;
+                    bool failed = false;
+                    if (!live()) { finish(); return; }
+                    try { seen = RemotePictures.Answer(Brain, text, picture); }
+                    catch (BrainException error) { problem = error; }
+                    catch (Exception) { failed = true; }
+                    try
+                    {
+                        Dispatcher.UIThread.Post(delegate
+                        {
+                            bool passed = false;
+                            try
+                            {
+                                if (!live()) return;
+                                if (problem != null) sink.Reply(device, RemoteMessages.NewId(), id, RemoteTurn.Out(problem.Message, 16000), true);
+                                else if (failed) sink.Error(device, "busy", id);
+                                else { RemoteHear(link, generation, session, device, id, text, seen, live, finish); passed = true; }
+                            }
+                            finally { if (!passed) finish(); }
+                        });
+                    }
+                    catch (Exception) { finish(); }
+                });
+            }
+            catch (Exception) { finish(); }
+        }
+
+        private void RemoteHear(RemoteLink link, int generation, int session, string device, string id, string text, string seen = null, Func<bool> current = null, Action done = null)
+        {
+            RetryRemoteSave();
+            lock (remoteGate)
+            {
+                if (!RemoteLinkCurrent(link, generation) || RemoteSession(device) != session || !link.HasSession(device) || current != null && !current()) { if (done != null) done(); return; }
+                RemoteTurn old;
+                if (remoteNewest.TryGetValue(device, out old)) RemoteClose(old, "", false);
+                string shown, typed;
+                string said = RemotePictures.Turn(RemoteTurn.Input(RemoteMessages.Clip(text, 8000)), seen, string.IsNullOrWhiteSpace(text), out shown, out typed);
+                RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Generation = generation, Session = session, Device = device, Id = id, Text = said.Trim(), Shown = seen == null ? null : shown.Trim(), Typed = typed, SessionCheck = current, Entered = done };
+                RemoteHold hold;
+                if (remoteHolds.TryGetValue(device, out hold) && RemoteSessionCurrent(hold.Turn) && (Security.Agrees(typed ?? turn.Text) || Security.Declines(typed ?? turn.Text))) turn.Hold = hold;
+                remoteHolds.Remove(device);
+                remoteNewest[device] = turn;
+                remoteQueue.Add(turn);
+            }
+            RemotePump();
+        }
+
+        private void RemotePump()
+        {
+            RemoteTurn turn = null;
+            bool cancel = false;
+            lock (remoteGate)
+            {
+                if (remoteActive != null && !remoteActive.Closed) return;
+                if (remoteActive != null) { remoteTickets.Remove(remoteActive.Ticket); cancel = true; }
+                remoteActive = null;
+                while (remoteQueue.Count > 0 && !remoteQueue[0].Current) { RemoteTurn stale = remoteQueue[0]; remoteQueue.RemoveAt(0); stale.Enter(); }
+                if (remoteQueue.Count > 0) { remoteActive = turn = remoteQueue[0]; remoteQueue.RemoveAt(0); }
+            }
+            if (cancel && !SelfJobs.Active) Brain.Cancel();
+            if (turn == null) return;
+            try { Hear(turn.Text, false, turn); }
+            catch (Exception) { RemoteEnd(turn, true); }
+            finally { turn.Enter(); }
+        }
+
+        private void RemoteClose(RemoteTurn turn, string text, bool busy)
+        {
+            lock (remoteGate)
+            {
+                if (turn.Closed) return;
+                bool current = turn.Current;
+                turn.Closed = true;
+                turn.Enter();
+                if (turn.Held != null) Security.Drop(turn.Held);
+                if (!current) return;
+                try
+                {
+                    if (busy) turn.Sink.Error(turn.Device, "busy", turn.Id);
+                    else turn.Sink.Reply(turn.Device, RemoteMessages.NewId(), turn.Id, RemoteTurn.Out(text, 16000), true);
+                }
+                catch (Exception) { }
+            }
+        }
+
+        private void RemoteFinish(RemoteTurn turn)
+        {
+            turn.Enter();
+            lock (remoteGate)
+            {
+                turn.Waiting = false;
+                if (turn.Finished) return;
+                turn.Finished = true;
+                remoteTickets.Remove(turn.Ticket);
+                if (remoteActive == turn) remoteActive = null;
+            }
+            Dispatcher.UIThread.Post(RemotePump);
+        }
+
+        private void RemoteEnd(RemoteTurn turn, bool busy = false)
+        {
+            if (turn == null) return;
+            try { RemoteClose(turn, "", busy); }
+            finally { RemoteFinish(turn); }
+        }
+
+        private void RemoteLocal()
+        {
+            lock (remoteGate)
+            {
+                foreach (RemoteTurn turn in remoteNewest.Values) RemoteClose(turn, "", true);
+                remoteQueue.Clear(); remoteHolds.Clear(); remoteTickets.Clear();
+                remoteActive = null;
+            }
+        }
+
+        private bool RemoteReply(int ticket, string heard, string said, bool following, RemoteTurn phone)
+        {
+            if (phone == null || following) return true;
+            lock (remoteGate)
+            {
+                RemoteTurn turn;
+                if (ticket != asking || !remoteTickets.TryGetValue(ticket, out turn) || turn != phone || heard != turn.Text || !turn.Current) { RemoteEnd(phone); return false; }
+                if (turn.Hold != null) remoteHolds[turn.Device] = turn.Hold;
+                turn.Replied = true;
+                RemoteClose(turn, said, false);
+                RemoteFinish(turn);
+                return true;
+            }
+        }
+
+        private bool RemoteEarly(RemoteTurn phone, string text)
+        {
+            string input = phone.Typed ?? text;
+            if (phone.Hold != null && Security.Declines(input)) return false;
+            ToolArguments args = SelfTools.JobRequest(input);
+            string tool = args == null ? null : "job_control";
+            if (tool == null && !Hands.Heard(input, out tool, out args)) return false;
+            if (Hands.Unable(tool, args) != null || !RemoteTurn.AtPc(tool, args)) return false;
+            Reply(phone.Ticket, text, phone.Refuse(tool, args), null, false, phone);
+            return true;
+        }
+
+        private string ResumeRemote(RemoteTurn turn, string text)
+        {
+            RemoteHold hold = turn.Hold;
+            turn.Hold = null;
+            if (hold == null || !turn.Current) return null;
+            if (hold.Id != null || hold.Job != null)
+            {
+                RemoteJob run;
+                lock (remoteGate)
+                {
+                    run = remoteJob;
+                    if (run == null || (hold.Job != null ? run.Job != hold.Job : run.Hold != hold.Id) || run.State != "asking" || run.AskId != hold.AskId || !RemoteJobCurrent(run)) return null;
+                    run.Answering++;
+                    run.Phone = turn;
+                    RemoteJobSet(run, "running");
+                }
+                try
+                {
+                    string result = RemoteJobAnswer(run, hold.AskId, Security.Agrees(text), delegate { return turn.Current; });
+                    lock (remoteGate) return run.State == "asking" ? run.Ask : result;
+                }
+                finally { lock (remoteGate) run.Answering--; }
+            }
+            lock (remoteGate) if (!RemoteSessionCurrent(hold.Turn)) return null;
+            if (Security.Declines(text)) return Security.Left;
+            if (!Security.Agrees(text)) return null;
+            foreach (KeyValuePair<string, ToolArguments> call in hold.Calls)
+            {
+                if (!turn.Current) { if (turn.Held != null) Security.Drop(turn.Held); return null; }
+                if (RemoteGate(turn, call.Key, call.Value) == RemoteTurn.Ended) return null;
+            }
+            object expected = Security.HoldingId;
+            if (expected != null)
+            {
+                try { return turn.Current ? Security.Resume(text, Brain.Act, expected) : null; }
+                finally { Security.Drop(expected); if (turn.Held == expected) turn.Held = null; }
+            }
+            List<string> done = new List<string>();
+            foreach (KeyValuePair<string, ToolArguments> call in hold.Calls) if (turn.Current) done.Add(Brain.Act(call.Key, call.Value));
+            return string.Join(" ", done.ToArray());
+        }
+
+        private void KeepRemoteHold(RemoteTurn turn)
+        {
+            lock (remoteGate)
+            {
+                object id = turn.Held;
+                if (id == null) return;
+                List<KeyValuePair<string, ToolArguments>> calls = Security.HeldCalls(id);
+                RemoteJob run = remoteJob;
+                if (run != null && run.Hold == id && run.Ended == 0 && calls.Count > 0 && turn.Current)
+                {
+                    turn.Hold = new RemoteHold { Turn = turn, Calls = calls, Id = id, AskId = run.AskId };
+                    turn.Question = run.Ask;
+                    turn.Held = null;
+                    return;
+                }
+                string question = Security.Question;
+                if (!Security.Drop(id) || calls.Count == 0 || !turn.Current) return;
+                turn.Hold = new RemoteHold { Turn = turn, Calls = calls };
+                turn.Question = question;
+                turn.Held = null;
+            }
+        }
+
+        private static bool MainframeAsked(string text)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        internal void Hear(string text, bool fromVoice = false) { Hear(text, fromVoice, null); }
+
+        private void Hear(string text, bool fromVoice, RemoteTurn phone)
+        {
+            RemoteTurn previous = RemoteTurn.Working;
+            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone); }
+            catch { RemoteEnd(phone, true); throw; }
+            finally
+            {
+                RemoteTurn.Working = previous;
+                if (phone != null && !phone.Waiting) RemoteEnd(phone);
+            }
+        }
+
+        private string RemoteDirect(RemoteTurn phone, string tool, ToolArguments args)
+        {
+            RemoteTurn previous = RemoteTurn.Working;
+            try { RemoteTurn.Working = phone; return Limbs.RemoteDo(phone, tool, args); }
+            finally { RemoteTurn.Working = previous; }
+        }
+
+        private void HearLine(string text, bool fromVoice, RemoteTurn phone)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            string typed = phone == null ? null : phone.Typed;
+            string input = typed ?? text;
+            if (phone == null && modSendDepth > 0 && RemoteJobReply(input, true)) return;
+            if (phone == null) RemoteLocal();
+            else
+            {
+                if (!phone.Current) return;
+                phone.Ticket = ++asking;
+                lock (remoteGate) remoteTickets[phone.Ticket] = phone;
+                if (RemoteEarly(phone, text)) return;
+            }
             StopListening();
-            if (modSendDepth == 0 && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
-            if (!meeting.Asking)
+            if (modSendDepth == 0 && !(phone != null && phone.Hold != null && Security.Declines(input)) && System.Text.RegularExpressions.Regex.IsMatch(input, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
+            bool fromMod = false;
+            if (!meeting.Asking || phone != null)
             {
                 // A code mod can change or take what they said first, like on Windows.
-                string sent = ModsSending(text);
+                string sent = ModsSending(input);
                 if (sent == null) return;
-                bool fromMod = modSendDepth > 0 || sent != text;
-                text = sent;
-                if (fromMod) Security.ModSaid(text); else Security.TheySaid();
+                fromMod = modSendDepth > 0 || sent != input;
+                text = RemotePictures.Sent(text, typed, sent);
+                if (typed != null) phone.Typed = typed = sent;
+                input = sent;
+                if (fromMod) Security.ModSaid(input); else Security.TheySaid();
+                if (phone != null && fromMod) phone.Hold = null;
             }
-            ModList.LogHearing(text, true);
+            ModList.LogHearing(input, true);
             Typed();
-            if (meeting.Asking) { Met(text); return; }
-            lastHeard = text;
-            if (ModList.Heard(text)) return;
-            if (SelfJobRequest(text)) return;
-            int ticket = ++asking;
+            if (meeting.Asking && phone == null) { Met(input); return; }
+            lastHeard = input;
+            if (ModList.Heard(input)) return;
+            if (phone != null)
+            {
+                phone.Text = text;
+                if (RemoteEarly(phone, text)) return;
+                if (phone.Hold != null && Security.Declines(input)) { Ask(phone.Ticket, text, 0, 0, phone); return; }
+            }
+            if (phone == null && SelfJobRequest(input)) return;
+            if (phone == null && RemoteJobReply(input, fromMod)) return;
+            int ticket = phone == null ? ++asking : phone.Ticket;
             bool working = SelfJobs.Active;
             if (!working) ComputerJobs.Stop();
             ownedVoice?.Cancel();
             StopNativeListening(!fromVoice);
             if (!working) Brain.Cancel();
             voice.Stop();
+            if (phone == null && Think == null && Brain.Model == null && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
             string tool;
-            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            if (MainframeAsked(input))
             {
-                Reply(ticket, text, MainframeTool(null));
+                string done = typed == null ? MainframeTool(null) : RemoteDirect(phone, "mainframe", new ToolArguments());
+                if (typed != null) Brain.Remember(text, done, typed);
+                Reply(ticket, text, done, null, false, phone);
                 return;
             }
             ToolArguments args;
+            ToolArguments job = phone == null ? null : SelfTools.JobRequest(input);
+            if (job != null)
+            {
+                job.Asked = input;
+                Ask(ticket, text, 0, 0, phone, delegate { return Brain.Act("job_control", job); });
+                return;
+            }
             bool noted;
-            try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
+            try { noted = Hands.Heard(input, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
+            if (phone != null && (noted || tool == "remind" || tool == "stopwatch" || tool == "routine"))
+            {
+                Talk.Thinking(text);
+                Ask(ticket, text, 0, 0, phone, delegate(string line)
+                {
+                    string done = Brain.Act(tool, args);
+                    Brain.Remember(line, done, typed);
+                    return Security.Said(done);
+                });
+                return;
+            }
             if (TimingTool(ticket, text, tool, args)) return;
             // Something that can't work here, like clones and chaos mode, which are Windows-only: she says so herself and why,
             // brain or no brain, instead of her brain joking about it. Asked for that and something she can do too, like "open
             // Spotify. Chaos mode", the rest goes ahead and she says why after it (a Codex review, 2 Nov).
             string doable;
-            if (noted || (tool != null && Hands.Unable(tool, args) != null && Hands.KitFor().Rest(text, out doable) == null))
+            if (noted || (tool != null && Hands.Unable(tool, args) != null && Hands.KitFor().Rest(input, out doable) == null))
             {
-                string done = Hands.Do(tool, args);
-                Brain.Remember(text, done);
-                Reply(ticket, text, done);
+                string done = RemoteDirect(phone, tool, args);
+                Brain.Remember(text, done, typed);
+                Reply(ticket, text, done, null, false, phone);
                 return;
             }
             // Asked in other words for something only Windows has, like "can you draw on my screen?", she says so too (F69).
-            string lacking = Hands.KitFor().Lacking(text);
+            string lacking = Hands.KitFor().Lacking(input);
             if (lacking != null)
             {
-                Brain.Remember(text, lacking);
-                Reply(ticket, text, lacking);
+                Brain.Remember(text, lacking, typed);
+                Reply(ticket, text, lacking, null, false, phone);
                 return;
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
-            if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
-            if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts); return; }
-            if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline); FindBrain(); return; }
+            if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
+            bool fileRequest = tool == "find_file" || tool == "read_file" || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
+            bool websiteHeld = phone == null ? Security.Holding == "open_website" : phone.Hold != null && phone.Hold.Calls.Count == 1 && phone.Hold.Calls[0].Key == "open_website";
+            if (Think == null && Brain.Model == null && (fileRequest || websiteHeld && (Security.Agrees(input) || Security.Declines(input))))
+            {
+                Talk.Thinking(text);
+                Ask(ticket, text, 0, 0, phone, delegate(string line)
+                {
+                    string done = phone == null ? Security.Resume(input, Brain.Act) : null;
+                    if (done == null) done = fileRequest ? Brain.Act(tool, args) : Offline;
+                    string shown = Hands.Shown(Security.Said(done));
+                    Brain.Remember(line, shown, typed);
+                    return shown;
+                });
+                return;
+            }
+            if (Think == null && Brain.Model == null && Brain.Attachments.Waiting) { Talk.Thinking(text); Ask(ticket, text, 0, 0, phone); return; }
+            if (Think == null && Brain.Model == null && News.Matching(input) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
+            if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline, null, false, phone); FindBrain(); return; }
             Talk.Thinking(text);
             long voiceTicket = fromVoice ? voiceRecovery.Begin() : 0;
-            Ask(ticket, text, 0, voiceTicket);
+            Ask(ticket, text, 0, voiceTicket, phone);
         }
 
         // Her brain answers on the thread pool. A stuck NVIDIA model hands the message to the next one, twice at most, like on Windows.
-        private void Ask(int ticket, string text, int switches, long voiceTicket = 0)
+        private void Ask(int ticket, string text, int switches, long voiceTicket = 0, RemoteTurn phone = null, Func<string, string> work = null)
         {
-            Func<string, string> think = Think;
+            Func<string, string> think = work ?? Think;
             bool follows = FollowUps;
             int input = inputTurn;
             Cloud remote = Brain.Remote;
-            ThreadPool.QueueUserWorkItem(delegate
+            if (phone != null) phone.Waiting = true;
+            try { ThreadPool.QueueUserWorkItem(delegate
             {
-                string said;
-                string after = null;
-                // As on Windows, a provider's own error text goes in the BRAIN note, and she says where to find it.
-                string problem = null;
-                bool stuck = false, failed = false;
+                bool posted = false;
                 try
                 {
-                    if (voiceTicket != 0 && think == null)
+                    string said = null;
+                    string after = null;
+                    // As on Windows, a provider's own error text goes in the BRAIN note, and she says where to find it.
+                    string problem = null;
+                    bool stuck = false, failed = false;
+                    RemoteTurn.Run(phone, delegate
                     {
-                        using (voiceRecovery.EnterPrimary(voiceTicket, Brain)) said = Brain.Ask(text, follows, out after);
-                        said = voiceRecovery.Recover(Brain, voiceTicket, text, said);
-                    }
-                    else said = think == null ? Brain.Ask(text, follows, out after) : think(text);
+                        try
+                        {
+                            string resumed = phone == null ? null : ResumeRemote(phone, phone.Typed ?? text);
+                            if (phone != null && !phone.Current) said = "";
+                            else if (resumed != null) { said = resumed; if (phone.Typed != null) Brain.Remember(text, said, phone.Typed); }
+                            else if (voiceTicket != 0 && think == null)
+                            {
+                                using (voiceRecovery.EnterPrimary(voiceTicket, Brain)) said = Brain.Ask(text, follows, out after, typed: phone == null ? null : phone.Typed);
+                                said = voiceRecovery.Recover(Brain, voiceTicket, text, said);
+                            }
+                            else said = think == null ? Brain.Ask(text, follows, out after, typed: phone == null ? null : phone.Typed) : think(text);
+                        }
+                        catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
+                        catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; stuck = Brain.Stalled(error); failed = true; }
+                    }, delegate
+                    {
+                        if (phone != null) KeepRemoteHold(phone);
+                        if (voiceTicket != 0) voiceRecovery.End(voiceTicket);
+                    });
+                    if (phone != null && phone.Question != null) said = phone.Question;
+                    if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; failed = true; }
+                    Dispatcher.UIThread.Post(delegate
+                    {
+                        if (phone != null) phone.Waiting = false;
+                        try
+                        {
+                            if (phone != null && (!phone.Current || ticket != asking)) return;
+                            if (ticket != asking) return;
+                            if (stuck && switches < 2 && Hop(remote)) { Ask(ticket, text, switches + 1, 0, phone, work); return; }
+                            if (problem != null) { frameProblem = problem; NotifySettings(); }
+                            if (input != inputTurn) after = null;
+                            if (HoldNews(ticket)) return;
+                            if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); selfTools.Replied(ticket); KeepNews(); return; }
+                            Reply(ticket, ticket == newsTicket ? "(updated)" : text, said, ticket == newsTicket ? null : after, false, phone);
+                        }
+                        finally { if (phone != null && !phone.Waiting) RemoteEnd(phone); }
+                    });
+                    posted = true;
                 }
-                catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
-                catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; stuck = Brain.Stalled(error); failed = true; }
-                finally { if (voiceTicket != 0) voiceRecovery.End(voiceTicket); }
-                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; failed = true; }
-                Dispatcher.UIThread.Post(delegate
-                {
-                    if (ticket != asking) return;
-                    if (stuck && switches < 2 && Hop(remote)) { Ask(ticket, text, switches + 1); return; }
-                    if (problem != null) { frameProblem = problem; NotifySettings(); }
-                    if (input != inputTurn) after = null;
-                    if (HoldNews(ticket)) return;
-                    if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); selfTools.Replied(ticket); KeepNews(); return; }
-                    Reply(ticket, ticket == newsTicket ? "(updated)" : text, said, ticket == newsTicket ? null : after);
-                });
-            });
+                catch (Exception error) { if (phone == null) throw; Brain.Log("remote reply", -1, error.Message); }
+                finally { if (!posted) RemoteEnd(phone); }
+            }); }
+            catch { RemoteEnd(phone); throw; }
         }
 
         // NVIDIA models that got stuck since she started, so she never hands back to one.
@@ -4688,7 +5968,7 @@ namespace CapriDesktop
 
         internal bool Hop(Cloud remote)
         {
-            if (Saved.StayOnModel || remote == null || remote.Kind != "nvidia" || Brain.Remote != remote) return false;
+            if (Saved.StayOnModel || remote == null || remote.Kind != "nvidia" || Brain.Remote != remote || Brain.Attachments.Has) return false;
             string old = remote.Model;
             stalled.Add(old);
             string next = Brain.Next(old, cloudModels, stalled);
@@ -4727,50 +6007,58 @@ namespace CapriDesktop
             }
         }
 
-        private void Reply(int ticket, string heard, string said, string after = null, bool following = false)
+        private void Reply(int ticket, string heard, string said, string after = null, bool following = false, RemoteTurn phone = null)
         {
-            int input = inputTurn, answer = answerTurn;
-            followUp.Drop();
-            // Her answers to them are a reply to mods; her own lines, like a check-in or a mod's, are a remark.
-            string source = string.IsNullOrEmpty(heard) || heard.StartsWith("(", StringComparison.Ordinal) || heard == "startup" || heard == "pets you" ? "remark" : "reply";
-            said = ModsReplying(said, source);
-            lastReply = said;
-            ModsReplied(said, source);
-            string spoken = Speaks ? ModsSpeaking(said) : said;
-            if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
-            ISpeaker speaker = Speaker;
-            int speechTicket = speechGeneration;
-            if (!following) Talk.Thinking(heard);
-            answer = answerTurn;
-            bool[] shown = { false };
-            DispatcherTimer.RunOnce(delegate
+            try
             {
-                if (ticket != asking || shown[0]) return;
-                shown[0] = true;
-                PresentReply(ticket, heard, said, 0, after, following, input, answer, () => TypeAlong(said, ticket));
-            }, TimeSpan.FromMilliseconds(speaker is OwnedSpeaker ? 95000 : VoiceWait));
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-                byte[] wav = null;
-                string problem = null;
-                // Every provider hands back a finished WAV, so her pitch, speed, robot and glitch go on here, like on Windows.
-                try { wav = StyledSpeech(speaker, spoken); }
-                catch (VoiceException error) { problem = Mac(error.Message); }
-                catch (Exception error) { problem = Voice.Short("Voice glitched: " + error.Message); }
-                Dispatcher.UIThread.Post(delegate
+                int input = inputTurn, answer = answerTurn;
+                followUp.Drop();
+                // Her answers to them are a reply to mods; her own lines, like a check-in or a mod's, are a remark.
+                string words = phone == null ? heard : phone.Typed ?? heard;
+                string source = string.IsNullOrEmpty(words) || words.StartsWith("(", StringComparison.Ordinal) || words == "startup" || words == "pets you" ? "remark" : "reply";
+                if (phone != null && phone.Typed == "") source = "reply";
+                said = ModsReplying(said, source);
+                lastReply = said;
+                ModsReplied(said, source);
+                if (!RemoteReply(ticket, heard, said, following, phone)) return;
+                if (phone != null && phone.Shown != null) heard = phone.Shown;
+                string spoken = Speaks ? ModsSpeaking(said) : said;
+                if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
+                ISpeaker speaker = Speaker;
+                int speechTicket = speechGeneration;
+                if (!following) Talk.Thinking(heard);
+                answer = answerTurn;
+                bool[] shown = { false };
+                DispatcherTimer.RunOnce(delegate
                 {
-                    voiceProblem = problem;
                     if (ticket != asking || shown[0]) return;
                     shown[0] = true;
-                    if (!SpeechCurrent(speaker, speechTicket)) wav = null;
-                    double seconds = wav == null ? 0 : Voice.Seconds(wav);
-                    PresentReply(ticket, heard, said, seconds, after, following, input, answer, delegate
+                    PresentReply(ticket, heard, said, 0, after, following, input, answer, () => TypeAlong(said, ticket));
+                }, TimeSpan.FromMilliseconds(speaker is OwnedSpeaker ? 95000 : VoiceWait));
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    byte[] wav = null;
+                    string problem = null;
+                    // Every provider hands back a finished WAV, so her pitch, speed, robot and glitch go on here, like on Windows.
+                    try { wav = StyledSpeech(speaker, spoken); }
+                    catch (VoiceException error) { problem = Mac(error.Message); }
+                    catch (Exception error) { problem = Voice.Short("Voice glitched: " + error.Message); }
+                    Dispatcher.UIThread.Post(delegate
                     {
-                        if (seconds >= 0.2 && SpeechCurrent(speaker, speechTicket)) { voice.Play(wav); ModsSpoke(spoken); }
-                        else TypeAlong(said, ticket);
+                        voiceProblem = problem;
+                        if (ticket != asking || shown[0]) return;
+                        shown[0] = true;
+                        if (!SpeechCurrent(speaker, speechTicket)) wav = null;
+                        double seconds = wav == null ? 0 : Voice.Seconds(wav);
+                        PresentReply(ticket, heard, said, seconds, after, following, input, answer, delegate
+                        {
+                            if (seconds >= 0.2 && SpeechCurrent(speaker, speechTicket)) { voice.Play(wav); ModsSpoke(spoken); }
+                            else TypeAlong(said, ticket);
+                        });
                     });
                 });
-            });
+            }
+            finally { if (!following) RemoteEnd(phone); }
         }
 
         private static string Mac(string problem) { return problem == Voice.Rejected ? "ElevenLabs rejected the key. Paste a new one under VOICE in Capri Mainframe." : problem; }
@@ -4885,34 +6173,71 @@ namespace CapriDesktop
 
         internal void SaveBrainKey(string key, int tier)
         {
+            SaveBrainKey(key, tier, null);
+        }
+
+        private void SaveBrainKey(string key, int tier, PhoneKey phone)
+        {
+            if (phone == null) RemoteBrainTakenOver();
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
             string kind = Cloud.KindOf(key);
-            if (kind == null) { frameProblem = NotAKey; NotifySettings(); Talk.Answer(BrainKeyHeard, NotAKey); return; }
+            if (kind == null) { frameProblem = NotAKey; if (phone != null) DropPhoneKey(NotAKey); NotifySettings(); if (phone == null) Talk.Answer(BrainKeyHeard, NotAKey); return; }
             frameProblem = null;
             int pickedTier = tier == 1 && Cloud.MediumKind(kind) ? 1 : 2;
             int request = ++brainRequests;
+            if (phone != null) phone.Request = request;
             brainPending++;
-            int ticket = ++asking;
-            Talk.Thinking(BrainKeyHeard);
+            int ticket = -1;
+            if (phone == null) { pcPending++; ticket = ++asking; Talk.Thinking(BrainKeyHeard); }
+            Func<string, bool, List<string>> check = BrainKeyCheck;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 List<string> found = null;
                 string problem = null;
                 string company = new Cloud(key, null).Company;
-                try { found = Brain.CloudModels(key, pickedTier == 1); }
-                catch (BrainException error) { problem = error.Message; }
-                catch (Exception error) { Brain.Log(company + " models", -1, error.Message); problem = "Couldn't reach " + company + ". Check your internet, then paste the key again."; }
+                Func<string, string> clean = Brain.CleanSecret;
+                if (phone != null) Brain.CleanSecret = delegate(string text) { return BrainKeyText(text, key); };
+                try
+                {
+                    found = check == null ? Brain.CloudModels(key, pickedTier == 1) : check(key, pickedTier == 1);
+                    if (phone != null && found != null) found = found.FindAll(delegate(string model) { return model != null && BrainKeyText(model, key) == model; });
+                }
+                catch (BrainException error) { problem = phone == null ? error.Message : Brain.Redacted(BrainKeyText(error.Message, key)); }
+                catch (Exception error) { Brain.Log(company + " models", -1, phone == null ? error.Message : BrainKeyText(error.Message, key)); problem = "Couldn't reach " + company + ". Check your internet, then paste the key again."; }
+                finally { Brain.CleanSecret = clean; }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    brainPending--;
-                    if (request != brainRequests) { NotifySettings(); return; }
-                    string model = found == null ? null : Brain.DefaultCloudModel(kind, found);
-                    if (problem == null && model == null) problem = "That key can't use any chat models.";
-                    if (problem != null) { frameProblem = problem; NotifySettings(); if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
-                    UseCloud(key, model, found, pickedTier);
-                    WriteSecret(BrainKeyFile, key, "brain key");
-                    if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under BRAIN in Capri Mainframe.");
+                    Action finish = delegate
+                    {
+                        Func<string, string> before = Brain.CleanSecret;
+                        if (phone != null) Brain.CleanSecret = delegate(string text) { return BrainKeyText(text, key); };
+                        try
+                        {
+                            if (request != brainRequests) { NotifySettings(); return; }
+                            string model = found == null ? null : Brain.DefaultCloudModel(kind, found);
+                            if (problem == null && model == null) problem = "That key can't use any chat models.";
+                            if (problem != null) { frameProblem = problem; if (phone != null) DropPhoneKey(Brain.Brief(problem) ?? problem); NotifySettings(); if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
+                            if (phone != null) { phoneKey = null; if (remoteBrainTimer != null) remoteBrainTimer.Stop(); }
+                            UseCloud(key, model, found, pickedTier);
+                            WriteSecret(BrainKeyFile, key, "brain key");
+                            if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under BRAIN in Capri Mainframe.");
+                            if (phone != null)
+                            {
+                                BrainKeyNote(phone.Device, phone.Current, phone.Id, "saved", RemoteBrainKeys.Saved, phone.Key);
+                                RemoteKeyNotice(phone);
+                            }
+                        }
+                        finally { Brain.CleanSecret = before; }
+                    };
+                    lock (remoteGate)
+                    {
+                        brainPending--;
+                        if (phone == null) { pcPending--; finish(); return; }
+                        RemoteBrainTick();
+                        if (phoneKey != phone) { NotifySettings(); return; }
+                        if (remoteLink == null || !remoteLink.BrainDo(phone.Current, finish)) { DropPhoneKey(null); NotifySettings(); }
+                    }
                 });
             });
         }
@@ -5350,11 +6675,18 @@ namespace CapriDesktop
             [DataMember] internal string Vault;
             [DataMember] internal ThinkingPick[] ThinkingPicks;
             [DataMember] internal int MusicApp;
+            [DataMember] internal bool RemoteOn;
+            [DataMember] internal string RemoteHost;
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
         internal static Settings Kept(Settings saved, NewSettings newer)
         {
+            if (saved != null && newer != null && saved.RemoteHost == null)
+            {
+                saved.RemoteOn = newer.RemoteOn;
+                saved.RemoteHost = newer.RemoteHost;
+            }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
             saved.LocalVoiceUrl = newer.LocalVoiceUrl;
@@ -5391,7 +6723,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
         private Settings Load()
@@ -5489,7 +6821,9 @@ namespace CapriDesktop
         internal void Quit()
         {
             if (quitting) return;
-            if (fileEditor != null && !fileEditor.Clear(Quit)) return;
+            bool on = Saved.RemoteOn;
+            StopRemote();
+            if (fileEditor != null && !fileEditor.Clear(Quit)) { if (on) SetRemote(true); return; }
             if (OperatingSystem.IsMacOS())
             {
                 macQuit.Request(0, delegate(Action leave)
@@ -5543,6 +6877,7 @@ namespace CapriDesktop
 
         private void FinishNow(int code)
         {
+            StopRemote();
             if (OperatingSystem.IsMacOS()) { macQuit.Request(code); return; }
             if (husk != null) husk.Dispose();
             StopAwake();

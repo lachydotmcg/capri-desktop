@@ -145,6 +145,9 @@ namespace CapriDesktop
         private int serverWindow;
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
+        // The window an ask is growing her to past 16K, or 0. A load of that size that stops on the graphics card throws without
+        // marking her for the CPU, so Brain can put back the size that worked.
+        internal volatile int Careful;
         private int loading;
         private bool retryGpu;
 
@@ -255,7 +258,7 @@ namespace CapriDesktop
             long have = File.Exists(part) ? new FileInfo(part).Length : 0;
             if (have > size) { File.Delete(part); have = 0; }
             bool resumed = have > 0;
-            int stalls = 0;
+            int stalls = 0, logged = 0;
             while (have < size)
             {
                 long before = have;
@@ -285,8 +288,27 @@ namespace CapriDesktop
                         }
                     }
                 }
-                catch (WebException) { if (stopped()) throw new OperationCanceledException(); }
-                catch (IOException) { if (stopped()) throw new OperationCanceledException(); }
+                catch (WebException error)
+                {
+                    using (HttpWebResponse response = error.Response as HttpWebResponse)
+                    {
+                        if (stopped()) throw new OperationCanceledException();
+                        if (have <= before && logged < 8)
+                        {
+                            Brain.Log(url, -1, "Downloading " + label + ": " + error.Status + (response == null ? "" : " (HTTP " + (int)response.StatusCode + ")"));
+                            logged++;
+                        }
+                    }
+                }
+                catch (IOException error)
+                {
+                    if (stopped()) throw new OperationCanceledException();
+                    if (have <= before && logged < 8)
+                    {
+                        Brain.Log(url, -1, "Downloading " + label + ": " + error.GetType().Name + " (0x" + error.HResult.ToString("X8") + ")");
+                        logged++;
+                    }
+                }
                 if (have < size)
                 {
                     stalls = have > before ? 0 : stalls + 1;
@@ -354,10 +376,13 @@ namespace CapriDesktop
 
         private void Load(Pick pick)
         {
+            int window;
+            bool careful;
             lock (gate)
             {
                 bool eyes = HasEyes(pick);
-                int window = Brain.Window;
+                window = Brain.Window;
+                careful = window == Careful;
                 if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == CpuOnly && serverWindow == window) return;
                 if (server != null) Stop();
                 if (!File.Exists(Server) || !File.Exists(ModelPath(pick))) throw new BrainException("Brain not downloaded. Press Set up her brain.");
@@ -377,14 +402,19 @@ namespace CapriDesktop
             {
                 Process running;
                 bool onGpu;
-                lock (gate) { running = server; onGpu = !serverCpu; }
+                lock (gate)
+                {
+                    running = server; onGpu = !serverCpu;
+                    if (window != serverWindow) { window = serverWindow; careful = window == Careful; }
+                    else careful = careful || window == Careful;
+                }
                 if (running == null || running.HasExited)
                 {
                     // Its own log is off, so the exit code is the only clue Copy error details can carry. A graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
                     bool retry = running != null && onGpu;
-                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? ", restarting it on the CPU" : "");
+                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? careful ? ", keeping its previous memory size" : ", restarting it on the CPU" : "");
                     Brain.Log("brain", -1, reason);
-                    if (!retry) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
+                    if (!retry || careful) throw new BrainException("Brain crashed loading. Close games, press Refresh.") { Careful = careful };
                     lock (gate) { KeepCpu(reason); retryGpu = false; CpuOnly = true; }
                     Ensure(pick);
                     return;

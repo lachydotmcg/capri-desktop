@@ -133,7 +133,7 @@ namespace CapriDesktop
             if (OnMac && Program.Smoke == null)
             {
                 Hands.HandsReady = () => MacFingers.Available;
-                Hands.HandsProblem = MacFingers.Problem;
+                Hands.HandsProblem = MacFingers.JobProblem;
                 Hands.MacClipboard = OperatingSystem.IsMacOSVersionAtLeast(26);
                 Chores.Shoot = MacFingers.Picture;
             }
@@ -142,6 +142,9 @@ namespace CapriDesktop
             // switched off in Security holds the call so she asks first, and their yes runs it.
             brain.Act = delegate(string tool, ToolArguments args)
             {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                if (args == null) args = new ToolArguments();
                 if (!VoiceActionRecovery.AllowCurrentTool()) return "That voice request ended; no action was dispatched.";
                 Func<bool> voiceGuard = VoiceActionRecovery.DispatchGuard;
                 if (voiceGuard != null)
@@ -151,14 +154,76 @@ namespace CapriDesktop
                 }
                 string unable = Hands.Unable(tool, args);
                 if (unable != null) return unable;
-                string held = Security.Gate(tool, args);
+                if (phone != null && RemoteTurn.AtPc(tool, args)) return phone.Refuse(tool, args);
+                string held = phone == null ? Security.Gate(tool, args) : phone.Pet.RemoteGate(phone, tool, args);
                 if (held != null) return held;
-                string done = Hands.Do(tool, args);
+                string done = RemoteDo(phone, tool, args);
+                if (phone != null && done == RemoteTurn.Ended) return done;
                 if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
             Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };
             if (!OnMac || Program.Smoke == null) ComputerJobs.Attach(brain);
+            Hands.NativeWork = RemoteWork(Hands.NativeWork);
+            Hands.Work = RemoteWork(Hands.Work);
+        }
+
+        internal static string RemoteDo(RemoteTurn phone, string tool, ToolArguments args)
+        {
+            if (phone == null) return Hands.Do(tool, args);
+            if (!phone.Current) return RemoteTurn.Ended;
+            if (args == null) args = new ToolArguments();
+            string unable = Hands.Unable(tool, args);
+            if (unable != null) return unable;
+            Func<bool> previous = args.Current;
+            if (tool != "use_computer" && tool != "stream") args.Current = phone.Guard(previous);
+            if (!phone.Current || args.Current != null && !args.Current()) return RemoteTurn.Ended;
+            string id = RemoteMessages.NewId(), summary = RemoteTurn.Words(tool, args);
+            string name = summary == "Using a tool" ? "tool" : tool;
+            string move = RemoteMessages.ToolMove(tool, args.Action, args.Name);
+            if (move == "heart") move = null;
+            phone.Tool(id, name, summary, "running");
+            string done;
+            try
+            {
+                if (!phone.Current) return RemoteTurn.Ended;
+                done = tool == "mod" ? phone.Pet.RemoteMod(phone, args) : Hands.Do(tool, args);
+            }
+            catch
+            {
+                phone.Tool(id, name, summary, "failed");
+                throw;
+            }
+            phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) || move != null && MoveFailed(done) ? "failed" : "done", move);
+            return done;
+        }
+
+        internal static bool MoveFailed(string result)
+        {
+            return result != null && result == Blind || Regex.IsMatch(result ?? "", @"\A(Which window\?|I can't see |I couldn't |I can see that app, but |That (?:app won't|window )|Those windows |Take that window |Window arranging |Turn Capri on in System Settings|Allow Capri to control System Events|System Events didn't answer|Lying down on a window you name is only on Windows so far\.)");
+        }
+
+        internal static Func<ToolArguments, string> RemoteWork(Func<ToolArguments, string> work)
+        {
+            if (work == null) return null;
+            return delegate(ToolArguments args)
+            {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                if (phone != null && args != null) args.Current = phone.WorkGuard(args.Current);
+                return work(args);
+            };
+        }
+
+        internal static Func<string, string, string> RemoteWork(Func<string, string, string> work)
+        {
+            if (work == null) return null;
+            return delegate(string task, string asked)
+            {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                return work(task, asked);
+            };
         }
 
         internal static void Open(string id, bool mac)

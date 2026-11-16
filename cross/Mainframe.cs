@@ -31,7 +31,7 @@ namespace CapriDesktop
         private double lastDpi;
         private bool fitting;
         private Control keyed;
-        private Key pageHeld = Key.None;
+        private readonly HashSet<Key> keysHeld = new HashSet<Key>();
         protected bool Steered;
         private sealed class Stop
         {
@@ -43,6 +43,19 @@ namespace CapriDesktop
         internal double Zoom { get; private set; } = 1;
         internal double PageHeight { get { return Page.Height; } }
         internal bool Gliding { get { return glide.IsEnabled; } }
+
+        static MainframeWindow()
+        {
+            KeyDownEvent.AddClassHandler<NeonChoice>((row, e) => { MainframeWindow window = KeyWindow(row); if (window != null) Program.Guard(() => window.HeldKey(e)); }, RoutingStrategies.Tunnel);
+            KeyUpEvent.AddClassHandler<NeonChoice>((row, e) => { MainframeWindow window = KeyWindow(row); if (window != null) window.keysHeld.Remove(e.Key); }, RoutingStrategies.Tunnel, true);
+        }
+
+        private static MainframeWindow KeyWindow(Control control)
+        {
+            for (StyledElement at = control; at != null; at = at is Popup popup ? popup.PlacementTarget : at.Parent)
+                if (at is MainframeWindow window) return window;
+            return null;
+        }
 
         internal MainframeWindow(string title)
         {
@@ -79,10 +92,10 @@ namespace CapriDesktop
                 finally { if (t >= 1) glide.Stop(); }
             });
             KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; Program.Guard(Back); } };
-            AddHandler(KeyDownEvent, (_, e) => { if (Steered && !e.Handled) Program.Guard(() => Steer(e)); }, RoutingStrategies.Tunnel);
+            AddHandler(KeyDownEvent, (_, e) => { if (!e.Handled) Program.Guard(() => Steer(e)); }, RoutingStrategies.Tunnel);
             AddHandler(PointerPressedEvent, (_, _) => Program.Guard(Unmark), RoutingStrategies.Tunnel);
-            AddHandler(KeyUpEvent, (_, _) => { pageHeld = Key.None; }, RoutingStrategies.Tunnel);
-            Deactivated += (_, _) => { pageHeld = Key.None; };
+            AddHandler(KeyUpEvent, (_, e) => { keysHeld.Remove(e.Key); }, RoutingStrategies.Tunnel, true);
+            Deactivated += (_, _) => ReleaseKeys();
             Page.PointerPressed += (_, e) => Program.Guard(() => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); });
             AddHandler(GotFocusEvent, (_, e) => { if (e.Source is Control control) control.BringIntoView(); });
             SizeChanged += (_, _) => { surface.Clip = MainframeTheme.Cut(new Rect(Bounds.Size), 16 * Zoom, 6 * Zoom, 16 * Zoom, 6 * Zoom); rim.InvalidateVisual(); };
@@ -182,12 +195,22 @@ namespace CapriDesktop
             if (at < 0 || next < 0 || next >= stops.Count || stops[next].Row != stops[at].Row) return;
             Hold(stops[next].Control);
         }
+        internal void ReleaseKeys() { keysHeld.Clear(); }
+        private bool HeldKey(KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape && (!Steered || e.Key != Key.Enter)) return false;
+            TextBox box = e.Source as TextBox;
+            if (e.Key == Key.Enter && box != null && box.AcceptsReturn) return true;
+            if (!keysHeld.Add(e.Key)) e.Handled = true;
+            return true;
+        }
         private void Steer(KeyEventArgs e)
         {
             if (e.Source is NeonChoice) return;
+            if (HeldKey(e) || !Steered) return;
             Key key = e.Key;
             KeyModifiers mods = e.KeyModifiers;
-            TextBox box = FocusManager?.GetFocusedElement() as TextBox;
+            TextBox box = e.Source as TextBox ?? FocusManager?.GetFocusedElement() as TextBox;
             if (box != null && TopLevel.GetTopLevel(box) != this) box = null;
             bool lines = box != null && box.AcceptsReturn;
             if (key == Key.Tab && (mods == KeyModifiers.None || mods == KeyModifiers.Shift) && !(lines && box.AcceptsTab))
@@ -206,16 +229,23 @@ namespace CapriDesktop
                 return;
             }
             if (box != null) return;
-            if (key == pageHeld) { e.Handled = true; return; }
-            if (PageKey(key)) { pageHeld = key; e.Handled = true; }
+            if (keysHeld.Contains(key)) { e.Handled = true; return; }
+            if (PageKey(key)) { keysHeld.Add(key); e.Handled = true; }
         }
         internal void Strike(Key key, KeyModifiers mods = KeyModifiers.None)
         {
-            Interactive target = this;
-            if (FocusManager?.GetFocusedElement() is Control focused && (focused is NeonChoice || TopLevel.GetTopLevel(focused) == this)) target = focused;
-            target.RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = key, KeyModifiers = mods });
-            RaiseEvent(new KeyEventArgs { RoutedEvent = KeyUpEvent, Key = key, KeyModifiers = mods });
+            StrikeDown(key, mods);
+            StrikeUp(key, mods);
         }
+        internal KeyEventArgs StrikeDown(Key key, KeyModifiers mods = KeyModifiers.None, Control control = null)
+        {
+            Interactive target = control ?? this;
+            if (control == null && FocusManager?.GetFocusedElement() is Control focused && (focused is NeonChoice || TopLevel.GetTopLevel(focused) == this)) target = focused;
+            var e = new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = key, KeyModifiers = mods };
+            target.RaiseEvent(e);
+            return e;
+        }
+        internal void StrikeUp(Key key, KeyModifiers mods = KeyModifiers.None, Control control = null) { (control ?? this).RaiseEvent(new KeyEventArgs { RoutedEvent = KeyUpEvent, Key = key, KeyModifiers = mods }); }
         internal Control HeldNow { get { return Held(); } }
         internal bool HeldMarked { get { Control held = Held(); return held != null && Marks(held); } }
         internal string HeldSection
@@ -340,12 +370,13 @@ namespace CapriDesktop
         private readonly Dictionary<string, Action<int>> changes = new Dictionary<string, Action<int>>();
         private readonly List<Window> sheets = new List<Window>();
         internal ModsWindow Mods { get; private set; }
+        internal RemoteSheet Remote { get; private set; }
         private readonly DispatcherTimer status = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         // Support's heart beats twice every 7 seconds while her main page shows, and its rim lights with it (Lachy, 4 Nov).
         private const double BeatMs = 7000;
         private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         private readonly Stopwatch beatClock = Stopwatch.StartNew();
-        private readonly NeonButton support;
+        private readonly NeonButton support, remoteKey;
         private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
@@ -429,7 +460,7 @@ namespace CapriDesktop
             textConnect = Key("Connect", 280, 262, 76, 28, ConnectBrain);
             MainframeTips.Explain(textConnect, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key");
             Caption("Free keys can be rate limited and slow.", 28, 294, 328, 18, MainframeTheme.Yellow, 34.0 / 3);
-            Caption("That's a paid key: it goes under MAX INTELLIGENCE.", 28, 315, 328, 24, MainframeTheme.Yellow);
+            Caption(RemoteBrainKeys.PaidNote, 28, 315, 328, 24, MainframeTheme.Yellow);
             Key("Move to MAX", 28, 350, 128, 24, () => { string key = paidKey; if (key == null) return; paidKey = null; pet.SetBrainTier(2); pet.SaveBrainKey(key, 2); });
             Section("VOICE", 0, 184);
             string[] voiceNames = { "OFF", "RETAINED LOCAL", "CUSTOM LOCAL", "CLOUD VOICE" };
@@ -468,6 +499,8 @@ namespace CapriDesktop
                 MainframeTips.Explain(nameListeningNote, "Local decoder · 20-second follow-ups · selected physical microphone");
             }
             Section("CAPRI", 0, 540);
+            remoteKey = Key("Remote", 94, 539, 88, 18, OpenRemote);
+            AutomationProperties.SetName(remoteKey, "Capri Remote: chat with her from your phone");
             Key("Mods", 190, 539, 70, 18, OpenMods).Accent = MainframeTheme.Cyan;
             // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
             support = Key("Support", 268, 539, 88, 18, () => { if (Program.Smoke == null) Pet.Browse("https://ko-fi.com/lachysdev"); });
@@ -534,7 +567,7 @@ namespace CapriDesktop
             Slider("Pop-ins", Pet.PopNames, 0, 756, () => pet.PopPace, pet.SetPopPace);
             Toggle("Dance to music", 0, 784, () => !pet.Saved.NoDance, pet.SetDanceToMusic);
             Toggle("Glitch in at startup", 0, 812, () => !pet.Saved.NoIntro, pet.SetIntro).Switch = 68;
-            if (pet.MainframeInputSetup)
+            if (OperatingSystem.IsLinux())
             {
                 Section("KEYS", 0, 854);
                 Key("Set up mouse and keyboard", 28, 881, 328, 22, pet.MainframeSetupInput);
@@ -743,13 +776,16 @@ namespace CapriDesktop
                 speechModels.Options(pet.MainframeSpeechModels);
                 if (paidKey != null && pet.MainframeTier != 1) paidKey = null;
                 foreach (Action read in readers) read();
+                RemoteView remote = pet.ReadRemote();
+                remoteKey.Accent = remote.On ? MainframeTheme.Cyan : MainframeTheme.Rose;
+                remoteKey.Picked = remote.On && remote.Online.Count > 0;
+                remoteKey.InvalidateVisual();
                 if (Array.IndexOf(pet.MainframeModels, pet.Brain.Model) < 0 && pet.Brain.Model != null) models.Text = pet.Brain.Model;
                 if (Array.IndexOf(pet.MainframeVoiceIds, pet.Saved.VoiceId) < 0) voicePicker.Text = "Voices";
                 for (int i = 0; i < brains.Length; i++) { brains[i].Checked = i == pet.MainframeTier; brains[i].InvalidateVisual(); }
                 for (int i = 0; i < voices.Length; i++) if (voices[i] != null) { voices[i].Checked = i == pet.MainframeVoiceMode; voices[i].InvalidateVisual(); }
-                brainName.Text = pet.Brain.Remote != null ? pet.Brain.Remote.Name + " · " + pet.Brain.Model : pet.Brain.Model ?? "Her brain isn't set up yet";
-                brainNote.Text = pet.MainframeProblem ?? (pet.Brain.Provider != null ? "ChatGPT plan · retained account" : pet.MainframeTier > 0 && pet.MainframeConnecting ? "Checking the key..." : pet.MainframeProblem ?? pet.MainframeProgress ?? (pet.Brain.Remote != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier > 0 ? "Paste a brain key and press Connect." : pet.Brain.Server != null ? pet.Brain.Server : pet.Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model · Ollama"));
-                brainNote.Text = Brain.Brief(brainNote.Text) ?? brainNote.Text;
+                brainName.Text = pet.MainframeBrainName;
+                brainNote.Text = pet.MainframeBrainNote;
                 tierNote.Text = pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
                 textKey.Cue = pet.MainframeBrainKey != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
                 textConnect.Text = pet.MainframeBrainKey == null || !string.IsNullOrWhiteSpace(textKey.Box.Text) ? "Connect" : "Forget";
@@ -762,7 +798,7 @@ namespace CapriDesktop
                 updateNote.Text = pet.MainframeUpdate;
                 Read(nickname, Brain.Nickname); Read(custom, pet.Brain.Model); Read(localAddress, pet.Brain.Server); Read(voiceId, pet.Saved.VoiceId);
                 more.Text = paged ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
-                string next = paged + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null);
+                string next = paged + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup;
                 if (layout != next) { layout = next; ArrangePage(); }
             }
             finally { syncing = false; }
@@ -789,6 +825,7 @@ namespace CapriDesktop
         {
             name = (name ?? "main").Trim().ToLowerInvariant();
             if (name == "mods") { OpenMods(); return; }
+            if (name == "remote") { OpenRemote(); return; }
             ShowSettings(!string.IsNullOrEmpty(name) && name != "main" && name != "brain" && name != "voice");
             if (paged && name != "settings" && !pet.Saved.AdvancedSettings) { pet.SetAdvancedSettings(true); ShowSettings(true); }
             if (name == "layers") { OpenLayers(); return; }
@@ -809,6 +846,7 @@ namespace CapriDesktop
         private void ArrangePage()
         {
             bool simple = !pet.Saved.AdvancedSettings;
+            bool inputSetup = pet.MainframeInputSetup;
             int tier = pet.MainframeTier, voice = pet.MainframeVoiceMode;
             double extra = Expanded ? 118 : 0, shift = extra + (tier == 0 ? 94 : 128 + (paidKey != null ? 86 : 0));
             double fold = voice == 0 ? 72 : voice == 3 && pet.MainframeVoiceKey != null ? 0 : 36;
@@ -827,7 +865,8 @@ namespace CapriDesktop
                     if (!right && HearsHere) folded = With(folded, EarsBand);
                     if (simple && In(anchor, folded)) show = false;
                     int[][] missing = right ? MissingRight : MissingLeft;
-                    if (!right && pet.MainframeInputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
+                    if (!right && inputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
+                    if (!right && !inputSetup && anchor >= 854 && anchor < 910) show = false;
                     // Her ears rows sit at the top of the left gap, so on Mac and Linux the gap starts below them.
                     if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { EarsBand[1], band[1] } : band);
                     y = Lift(anchor, missing, folded, simple) - (control is NeonHead ? 5 : 0);
@@ -955,6 +994,17 @@ namespace CapriDesktop
                 ShowSheet(sheet);
             }
             else { Mods.WindowState = WindowState.Normal; Mods.Activate(); }
+        }
+        internal void OpenRemote()
+        {
+            if (Remote == null)
+            {
+                RemoteSheet sheet = new RemoteSheet(pet.ReadRemote, pet.SetRemote, pet.NewRemoteCode, pet.CloseRemoteCode, pet.AllowRemote, pet.DenyRemote, pet.RevokeRemote, pet.RemoveRemotePhones, pet.SetRemoteHost, Zoom);
+                Remote = sheet;
+                sheet.Closed += delegate { Remote = null; };
+                ShowSheet(sheet);
+            }
+            else { Remote.WindowState = WindowState.Normal; Remote.Activate(); }
         }
     }
 }

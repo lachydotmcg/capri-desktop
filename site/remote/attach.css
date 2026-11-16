@@ -1,0 +1,7 @@
+.attach-preview { display: flex; align-items: center; gap: 12px; width: fit-content; max-width: 100%; margin: 0 0 10px auto; padding: 7px; border: 1px solid var(--deep-edge); background: var(--well); }
+.attach-preview[hidden] { display: none; }
+.attach-preview img { display: block; width: 76px; height: 76px; object-fit: contain; background: var(--deep); }
+.attach-preview .nbtn { flex: none; }
+.attach-picture { display: block; max-width: 100%; width: auto; height: auto; max-height: 180px; object-fit: contain; margin-bottom: 7px; }
+.attach-picture:last-child { margin-bottom: 0; }
+.attach-note { flex: none; margin: 0 0 8px; }
