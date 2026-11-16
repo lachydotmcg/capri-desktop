@@ -19,7 +19,7 @@ namespace CapriDesktop
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
             + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
             + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
-            + "Talk windows: closing her bubble, pill or typing box from your desktop only hides it, so it comes back next time. From Yoplaxs.\n"
+            + "Talk boxes: closing her bubble, pill or typing box from your desktop only hides it, so it comes back next time. From Yoplaxs.\n"
             + (OperatingSystem.IsLinux()
                 ? "Capri Remote: chat and photos from your phone work with Linux too."
                 : "Updates: Get new version downloads her new version, checks it, swaps her Capri.app and starts her again, and puts the old one back if the new one won't stay open. From \u2600SUNNY\u2600.\n"
