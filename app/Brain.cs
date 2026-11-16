@@ -670,6 +670,7 @@ namespace CapriDesktop
         internal const string Gone = "That model isn't on your key. Pick another one.";
         internal const string Down = "The service failed on its end. Pick another model or retry.";
         internal const string Busy = "Too many requests. Wait a minute, then try again.";
+        internal const string TooBig = "Too big for this key's per-minute limit. Wait a minute, or use a bigger plan or another provider.";
         // With Watch my screen on, her glances make requests of their own, so glancing less often helps too.
         internal const string BusyWatching = "Too many requests. Wait a minute, or set Watch my screen to glance less often.";
         internal static Func<bool> Watching = delegate { return false; };
@@ -1901,7 +1902,7 @@ namespace CapriDesktop
                     if (signed) CheckRedirect(response);
                     CloudModelPage page = (CloudModelPage)new DataContractJsonSerializer(typeof(CloudModelPage)).ReadObject(body);
                     List<string> names = new List<string>();
-                    if (page != null && page.Models != null) foreach (CloudModel model in page.Models) if (model != null && !string.IsNullOrEmpty(model.Id) && model.Id.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Id);
+                    if (page != null && page.Models != null) foreach (CloudModel model in page.Models) if (model != null && Chats(model.Id)) names.Add(model.Id);
                     return names.ToArray();
                 }
             }
@@ -1910,6 +1911,11 @@ namespace CapriDesktop
                 if (error.Response != null) throw Problem(error, true, null, key);
                 throw new BrainException(error.Status == WebExceptionStatus.Timeout ? "The provider took too long to list its models." : "Couldn't reach the provider. Check the address.", true);
             }
+        }
+
+        internal static bool Chats(string model)
+        {
+            return !string.IsNullOrEmpty(model) && !Regex.IsMatch(model, @"embed|guard|whisper|orpheus|(?<![a-z])tts(?![a-z])", RegexOptions.IgnoreCase);
         }
 
         // What to ask Ollama to download for a name they typed: an Ollama tag like qwen3:4b, or a Hugging Face GGUF repo as
@@ -2265,7 +2271,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null) return web.Status == WebExceptionStatus.Timeout;
-            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
+            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message == TooBig || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
         }
 
         internal static string Next(string current, List<string> models, ICollection<string> skip)
@@ -4506,6 +4512,7 @@ namespace CapriDesktop
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
             if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
             if (error == BusyWatching) return "Too many requests. Wait, or glance less often.";
+            if (error == TooBig) return "Too big for this key's per-minute limit. Wait a minute.";
             if (error.StartsWith(DailyStart, StringComparison.Ordinal)) return "Gemini's daily limit is used. Try tomorrow or another key.";
             if (error == Wordless) return "Empty reply. Try again or pick another model.";
             if (error.StartsWith("The download of ", StringComparison.Ordinal) && error.EndsWith(" keeps stopping. Check your connection and try again.", StringComparison.Ordinal)) return "Download keeps stopping. Check your connection and retry.";
@@ -4881,6 +4888,7 @@ namespace CapriDesktop
             string url = error.Response.ResponseUri.AbsoluteUri;
             int status = (int)((HttpWebResponse)error.Response).StatusCode;
             string retry = error.Response.Headers["Retry-After"];
+            if (string.IsNullOrEmpty(retry) && status == 413) retry = error.Response.Headers["x-ratelimit-reset-tokens"];
             string broken = null;
             using (WebResponse response = error.Response)
             {
@@ -4903,7 +4911,8 @@ namespace CapriDesktop
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
-            if (status == 429 && Meaning(status, text) == Busy) problem.RetryAt = RetryTime(retry, DateTime.UtcNow);
+            string limit = Meaning(status, text);
+            if ((status == 429 && limit == Busy) || (status == 413 && limit == TooBig)) problem.RetryAt = RetryTime(retry, DateTime.UtcNow);
             return problem;
         }
 
@@ -4911,9 +4920,22 @@ namespace CapriDesktop
         {
             double seconds;
             if (double.TryParse(header, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out seconds) && !double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds >= 0 && seconds < (DateTime.MaxValue - now).TotalSeconds) return now.AddSeconds(Math.Max(1, seconds));
+            Match span = Regex.Match((header ?? "").Trim(), @"\A(?:(?<h>\d+(?:\.\d+)?)h)?(?:(?<m>\d+(?:\.\d+)?)m(?!s))?(?:(?<s>\d+(?:\.\d+)?)s)?(?:(?<ms>\d+(?:\.\d+)?)ms)?\z");
+            if (span.Success && span.Length > 0)
+            {
+                double total = SpanPart(span, "h") * 3600 + SpanPart(span, "m") * 60 + SpanPart(span, "s") + SpanPart(span, "ms") / 1000;
+                if (!double.IsNaN(total) && total < (DateTime.MaxValue - now).TotalSeconds) return now.AddSeconds(Math.Max(1, total));
+            }
             DateTime when;
             if (DateTime.TryParse(header, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out when)) return when > now ? when : now.AddSeconds(1);
             return now.AddSeconds(60);
+        }
+
+        private static double SpanPart(Match span, string unit)
+        {
+            double value;
+            if (!span.Groups[unit].Success || !double.TryParse(span.Groups[unit].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)) return 0;
+            return value;
         }
 
         internal static string ProblemText(string body)
@@ -5002,11 +5024,13 @@ namespace CapriDesktop
         {
             // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
             if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
-            if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
+            string words = Regex.Replace(body ?? "", @"https?:\\?/\\?/(?:[^\s""'<>\\]|\\/)+", "");
+            if (status == 429 && Regex.IsMatch(words, @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests|tokens per minute", RegexOptions.IgnoreCase)) return Busy;
+            if (status == 413 && Regex.IsMatch(words, @"rate[_ -]?limit|tokens per minute", RegexOptions.IgnoreCase)) return TooBig;
             // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
             if (status == 451 || status == 403 && (BlockPage.IsMatch(body ?? "") || (body ?? "").TrimStart().StartsWith("<", StringComparison.Ordinal))) return Blocked;
             if (google && status == 400 && Regex.IsMatch(body ?? "", @"location is not supported|in your (country|region)", RegexOptions.IgnoreCase)) return Unserved;
-            if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return NoCredits;
+            if (status == 402 || Regex.IsMatch(words, @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return NoCredits;
             if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
             // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
             if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;

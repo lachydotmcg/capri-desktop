@@ -6782,7 +6782,7 @@ namespace CapriDesktop
                             string path = head.Split(' ')[1];
                             string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
                             lock (brainAsked) { brainAsked.Add(path + " " + body); brainHeads.Add(head); }
-                            string reply = path == "/v1/models" ? "{\"object\":\"list\",\"data\":[{\"id\":\"qwen-test\"},{\"id\":\"nomic-embed\"},{\"id\":\"llama-test\"}]}"
+                            string reply = path == "/v1/models" ? "{\"object\":\"list\",\"data\":[{\"id\":\"meta-llama/llama-prompt-guard-2-86m\"},{\"id\":\"whisper-large-v3\"},{\"id\":\"qwen-test\"},{\"id\":\"nomic-embed\"},{\"id\":\"playai-tts\"},{\"id\":\"llama-test\"}]}"
                                 : path == "/v1/chat/completions" ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Server says hi, choom.\"},\"finish_reason\":\"stop\"}]}" : "{}";
                             byte[] bytes = Encoding.UTF8.GetBytes(reply);
                             byte[] top = Encoding.ASCII.GetBytes("HTTP/1.1 " + (reply == "{}" ? "404 Error" : "200 OK") + "\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
@@ -6797,7 +6797,8 @@ namespace CapriDesktop
             serve.Start();
             string address = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port;
             string[] models = Brain.ServerModels(address);
-            fail("its models", models.Length == 2 && models[0] == "qwen-test" && models[1] == "llama-test");
+            fail("its chat models, without guard, whisper, tts or embed ones", models.Length == 2 && models[0] == "qwen-test" && models[1] == "llama-test");
+            fail("a provider's per-minute limit, not no credits", Brain.Meaning(413, "{\"error\":{\"message\":\"Request too large on tokens per minute (TPM). Upgrade at https://console.groq.com/settings/billing\",\"code\":\"rate_limit_exceeded\"}}") == Brain.TooBig && Brain.Meaning(402, "") == Brain.NoCredits);
             string[] keyedModels = Brain.ServerModels(address, "secret-key");
             fail("a provider key reaches its models", keyedModels.Length == 2 && brainHeads.Exists(delegate(string head) { return head.StartsWith("GET /v1/models", StringComparison.Ordinal) && head.IndexOf("Authorization: Bearer secret-key", StringComparison.OrdinalIgnoreCase) >= 0; }));
             Brain thinker = new Brain { Server = address, Model = "llama-test" };
@@ -6820,7 +6821,7 @@ namespace CapriDesktop
             catch (Exception) { down = true; }
             fail("a server that's down throws for her to explain", down);
             if (wrong.Count > 0) throw new Exception("Her own brain server went wrong: " + string.Join(", ", wrong) + " / " + said + " / " + chat);
-            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
+            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, guard, whisper or tts models, reads a per-minute 413 as too big rather than no credits, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
         }
 
         private void LinuxInputChecks()

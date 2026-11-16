@@ -2244,6 +2244,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "That model isn't on your key. Pick another one.": pick another model in the Model menu.
 - "That key can't use any chat models.": make a new key, or use a different company.
 - "Too many requests. Wait a minute, then try again.": wait a minute.
+- "Too big for this key's per-minute limit. Wait a minute, or use a bigger plan or another provider.": a free key, like Groq's, only takes so many words a minute, and her ask needed more than was left. Wait a minute, or use a paid plan or another provider. The BRAIN note says "Too big for this key's per-minute limit. Wait a minute."
 - "Too many requests. Wait a minute, or set Watch my screen to glance less often." (Watch my screen on): wait, or set Glance every under Watch my screen to longer.
 - "Your Gemini key has used up today's requests. They reset tomorrow, or add another key under BRAIN in Capri Mainframe.": Gemini's daily limit is used up. Wait until tomorrow, paste another Gemini key, or press Free key for a free NVIDIA key.
 - "The service failed on its end. Pick another model or retry.": the brain's service had a problem. Pick another model, or try again in a minute.
