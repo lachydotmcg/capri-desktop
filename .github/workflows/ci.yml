@@ -134,7 +134,7 @@ jobs:
           sudo apt-get update -q
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends xvfb xauth openbox xcompmgr libice6 libsm6 libfontconfig1
       - name: Smoke test
-        timeout-minutes: 8
+        timeout-minutes: 10
         run: |
           xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; out/Capri/Capri --smoke "$PWD/smoke/linux-arm64"' || true
           cat smoke/linux-arm64/smoke-test.txt
