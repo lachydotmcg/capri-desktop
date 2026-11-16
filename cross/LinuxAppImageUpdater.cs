@@ -27,6 +27,7 @@ namespace CapriDesktop
         internal string AppImage;
         internal string Hash;
         internal long Size;
+        internal bool Mac;
     }
 
     internal sealed class LinuxUpdatePlan
@@ -49,7 +50,7 @@ namespace CapriDesktop
         private static readonly string[] RuntimeNames = { "APPIMAGE", "APPDIR", "OWD", "ARGV0", "APPIMAGE_UUID" };
 
         [DataContract]
-        private sealed class ReleaseDocument
+        internal sealed class ReleaseDocument
         {
             [DataMember(Name = "tag_name")] internal string Tag;
             [DataMember(Name = "draft")] internal bool Draft;
@@ -58,7 +59,7 @@ namespace CapriDesktop
         }
 
         [DataContract]
-        private sealed class ReleaseFile
+        internal sealed class ReleaseFile
         {
             [DataMember(Name = "name")] internal string Name;
             [DataMember(Name = "browser_download_url")] internal string Url;
@@ -93,7 +94,7 @@ namespace CapriDesktop
             return new LinuxUpdatePlan { Version = version, AppUrl = app.Url, SumsUrl = sums.Url, Size = app.Size };
         }
 
-        private static ReleaseFile Find(ReleaseFile[] assets, string name)
+        internal static ReleaseFile Find(ReleaseFile[] assets, string name)
         {
             ReleaseFile found = null;
             if (assets == null) return null;
@@ -125,17 +126,17 @@ namespace CapriDesktop
             return next;
         }
 
-        internal static string Checksum(string text, string name)
+        internal static string Checksum(string text, string name, string what = "the AppImage")
         {
             string found = null;
             foreach (string line in (text ?? "").Split('\n'))
             {
                 Match match = Regex.Match(line.TrimEnd('\r'), @"^([a-fA-F0-9]{64})[ \t]+\*?(.+)$");
                 if (!match.Success || !string.Equals(match.Groups[2].Value, name, StringComparison.Ordinal)) continue;
-                if (found != null) throw new AppImageUpdateException("The checksum list names the AppImage twice, so I won't install it.");
+                if (found != null) throw new AppImageUpdateException("The checksum list names " + what + " twice, so I won't install it.");
                 found = match.Groups[1].Value.ToLowerInvariant();
             }
-            if (found == null) throw new AppImageUpdateException("The checksum list doesn't include the AppImage, so I won't install it.");
+            if (found == null) throw new AppImageUpdateException("The checksum list doesn't include " + what + ", so I won't install it.");
             return found;
         }
 
@@ -187,9 +188,9 @@ namespace CapriDesktop
                     try { File.Delete(file); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
 
-        private static void Fetch(string address, Stream target, long limit, long expected)
+        internal static void Fetch(string address, Stream target, long limit, long expected, Func<string, bool> trusted = null, string outside = "The AppImage isn't on Capri's GitHub releases, so I won't install it.")
         {
-            if (!Official(address)) throw new AppImageUpdateException("The AppImage isn't on Capri's GitHub releases, so I won't install it.");
+            if (!(trusted ?? Official)(address)) throw new AppImageUpdateException(outside);
             Uri uri = new Uri(address);
             using (CancellationTokenSource stop = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
             using (HttpClientHandler handler = new HttpClientHandler { AllowAutoRedirect = false })
@@ -281,7 +282,7 @@ namespace CapriDesktop
 
         internal static void Drop(string path)
         {
-            try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            try { if (File.Exists(path)) File.Delete(path); else if (Directory.Exists(path)) Directory.Delete(path, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
 
         // .NET on Linux gives EACCES and EPERM as UnauthorizedAccessException and other errors as an IOException whose
