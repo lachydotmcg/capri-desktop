@@ -113,6 +113,7 @@ namespace CapriDesktop
             Look.Overlay(this, "Capri says");
             Content = Sheet;
             Sheet.PointerReleased += delegate(object sender, PointerReleasedEventArgs e) { if (e.InitialPressMouseButton == MouseButton.Left && Dismissed != null) Dismissed(); };
+            Look.HideOnClose(this, delegate { if (Dismissed != null) Dismissed(); else Hide(); });
         }
 
         internal PixelRect PanelOnScreen { get { return panelOnScreen; } }
@@ -172,6 +173,7 @@ namespace CapriDesktop
         {
             Look.Overlay(this, "Capri composer");
             ShowActivated = true;
+            Look.HideOnClose(this, Hide);
             Width = Math.Ceiling(Sheet.PanelWidth());
             Height = Tall;
             prompt = new TextBlock { Text = "> you:", FontFamily = Look.Mono, FontStyle = FontStyle.Italic, FontSize = Sheet.Type, Foreground = new SolidColorBrush(Look.Dim), VerticalAlignment = VerticalAlignment.Center };
@@ -751,6 +753,7 @@ namespace CapriDesktop
             Width = Wide;
             Height = Tall;
             Content = face;
+            Look.HideOnClose(this, Hide);
             face.PointerMoved += delegate(object sender, PointerEventArgs e) { Hover(Part(e.GetPosition(face).X)); };
             face.PointerExited += delegate { Hover(0); };
             face.PointerReleased += delegate(object sender, PointerReleasedEventArgs e) { if (e.InitialPressMouseButton == MouseButton.Left) Press(Part(e.GetPosition(face).X)); };

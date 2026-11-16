@@ -3573,8 +3573,9 @@ namespace CapriDesktop
             if (lying) return;
             Point hip = Hip();
             Rectangle area = Screen.FromPoint(new Point(hip.X, hip.Y - 1)).WorkingArea;
-            bool left = seat != null || onPanel ? SitsLeft(hip.X, area, preferences.Size, facingLeft) : area.Right - hip.X < preferences.Size * (facingLeft ? 0.9f : 0.6f);
-            if (ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
+            bool sitting = seat != null || onPanel;
+            bool left = sitting ? SitsLeft(hip.X, area, preferences.Size, facingLeft) : area.Right - hip.X < preferences.Size * (facingLeft ? 0.9f : 0.6f);
+            if (!sitting && ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
             if (left == facingLeft) return;
             bool aside = asideAt == anchor;
             int? stood = stoodOn;
@@ -50534,6 +50535,26 @@ namespace CapriDesktop
                                     && !SitsLeft(2400, rightMonitor, 240, true) && SitsLeft(3800, rightMonitor, 240, false)
                                     && !SitsLeft(-950, leftMonitor, 240, false) && SitsLeft(-970, leftMonitor, 240, true)
                                     && !SitsLeft(-500, new Rectangle(0, 0, 1920, 1080), 240, true);
+                                string inkSkipped = null;
+                                bool inkKept = true, inkWatched = true;
+                                sitsLeftAt(primaryArea, 2, false);
+                                Point inkHip = Hip();
+                                int inkY = Math.Max(primaryArea.Top + 4, inkHip.Y - preferences.Size / 2);
+                                string inkDrawn = ink.Draw(Ink.Parse("line " + Math.Max(primaryArea.Left + 2, inkHip.X - preferences.Size) + " " + inkY + " " + (inkHip.X - preferences.Size / 4) + " " + inkY), false);
+                                try
+                                {
+                                    if (!ink.Moving) inkSkipped = ink.Has ? "her drawing finished before she was checked" : inkDrawn;
+                                    else
+                                    {
+                                        Face();
+                                        inkKept = !facingLeft && Hip() == inkHip;
+                                        seat = null;
+                                        Face();
+                                        inkWatched = facingLeft && Hip() == inkHip;
+                                        if (!ink.Moving) { inkSkipped = "her drawing finished before she was checked"; inkKept = inkWatched = true; }
+                                    }
+                                }
+                                finally { ink.Clear(); }
                                 anchor = middleAnchor;
                                 asideAt = middleAside;
                                 seat = middleSeat;
@@ -50552,9 +50573,10 @@ namespace CapriDesktop
                                 leanAngle = middleLean;
                                 Location = anchor;
                                 SavePreferences();
-                                if (!primaryMiddle || !savedHip || !standsRight || !walkKept || !walkFits || !otherMiddle || !helperMiddle) throw new Exception("Facing the middle went wrong: primary " + primaryMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", walk kept her hip " + walkKept + ", walk fits the ledge " + walkFits + ", other screens " + otherMiddle + " of " + otherScreens + ", monitor math " + helperMiddle);
+                                if (!primaryMiddle || !savedHip || !standsRight || !walkKept || !walkFits || !otherMiddle || !helperMiddle || !inkKept || !inkWatched) throw new Exception("Facing the middle went wrong: primary " + primaryMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", walk kept her hip " + walkKept + ", walk fits the ledge " + walkFits + ", other screens " + otherMiddle + " of " + otherScreens + ", monitor math " + helperMiddle + ", ink kept her way sitting " + inkKept + ", ink turned her standing " + inkWatched);
                                 checks.Add("PASS sitting she faces the middle of her screen: right on its left half and left on its right half, without leaving her spot, keeping her way near the middle, on a second monitor left or right of the main one, and saving her spot sitting, lying or on the task panel so she comes back with her hip where it was; starting and ending a walk facing either way keeps her hip in place, and her walk stays on the window facing either way; standing she still only turns at the right edge");
                                 if (otherScreens == 0) checks.Add("LIMIT facing the middle on a real second monitor: only one monitor is available, so it was checked with made-up monitors");
+                                checks.Add(inkSkipped == null ? "PASS her ink doesn't turn her while she sits: drawing beside her keeps her facing the middle of her screen with her hip in place, and standing she still turns to watch it" : "LIMIT her ink while she sits: " + inkSkipped);
                             }
                             seat = null;
                             sitItem.PerformClick();
