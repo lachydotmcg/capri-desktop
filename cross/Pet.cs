@@ -5587,7 +5587,7 @@ namespace CapriDesktop
                     BrainException problem = null;
                     bool failed = false;
                     if (!live()) { finish(); return; }
-                    try { seen = RemotePictures.Answer(Brain, text, picture); }
+                    try { if (Saved.NoAi) throw new BrainException(Brain.OffLine); seen = RemotePictures.Answer(Brain, text, picture); }
                     catch (BrainException error) { problem = error; }
                     catch (Exception) { failed = true; }
                     try

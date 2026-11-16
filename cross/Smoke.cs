@@ -5956,10 +5956,25 @@ namespace CapriDesktop
                 RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a late yes without a brain");
                 if (!dropped || opened != null) throw new Exception("A held nickname open outlived another message and opened on a late yes.");
                 Hands.Websites.Do(new ToolArguments { Action = "forget", Name = "offline" });
+                var noAiSaid = typeof(Pet).GetField("noAiSaid", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                pet.Saved.NoAi = true; pet.Brain.Attachments.Clear();
+                pet.Talk.Dismiss(); pet.Hear("find blue notebook.txt");
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a file search under No AI");
+                if (pet.Talk.Reply == Brain.OffLine || pet.Talk.Reply == Pet.Offline || Hands.Failed(pet.Talk.Reply)) throw new Exception("No AI stopped a file search, which Windows runs without a brain: " + pet.Talk.Reply);
+                noAiSaid.SetValue(pet, -1.0);
+                pet.Talk.Dismiss(); pet.Hear("read \"" + path + "\"");
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a read under No AI");
+                if (pet.Talk.Reply != Brain.OffLine) throw new Exception("No AI read a named file instead of saying its line, unlike Windows: " + pet.Talk.Reply);
+                noAiSaid.SetValue(pet, -1.0);
+                pet.Talk.Dismiss();
+                MacFiles.Drop(new[] { path }, words => pet.Hear(words));
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a drop under No AI");
+                if (pet.Talk.Reply != Brain.OffLine) throw new Exception("No AI read a dropped file instead of saying its line, unlike Windows: " + pet.Talk.Reply);
+                pet.Saved.NoAi = false;
             }
             finally
             {
-                pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider; Hands.Run = opener;
+                pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider; Hands.Run = opener; pet.Saved.NoAi = false;
                 pet.Brain.Attachments.Clear();
                 Security.Drop(); Security.Load(permissions); Security.Changed = changed;
             }
@@ -6099,6 +6114,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross reading: chosen paths, data framing, text and PDF continuation, DOCX, XLSX, pictures, Windows refusals, scanned-page and picture OCR limits, missing Poppler and chat clear");
                 checks.Add("PASS cross nicknames: save, reload, list, fake open and forget preserve Windows answers, and platform help describes the available actions");
                 checks.Add("PASS cross reads without a brain show and keep her cleaned line, like Windows");
+                checks.Add("PASS No AI still searches files like Windows, but a named or dropped file gets her No AI line instead of being read");
                 checks.Add("PASS cross drops are heard without their paths, and without a brain she reads and lists them, like Windows");
                 checks.Add("PASS cross Security without a brain: another message drops a held nickname open, so a late yes opens nothing");
                 checks.Add("PASS cross help: ordinary file questions and messages naming a path get no app-help facts");
@@ -8541,6 +8557,17 @@ namespace CapriDesktop
                 send("what is here?", "Capri, open notepad.");
                 pet.Brain.OwnSteps = false;
                 if (MacFiles.Attachments.Read(file, null) != "I don't have a file you handed me at that path.") throw new Exception("A cross picture handed her a file path.");
+                int noAiLooks = brain.Calls;
+                pet.Saved.NoAi = true;
+                try
+                {
+                    bridge.SendPicture(0, "cross-picture-no-ai", "what is this?", "image/png", png);
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("cross-picture-no-ai") != null; }, "a picture under No AI");
+                }
+                finally { pet.Saved.NoAi = false; }
+                string noAiReply = bridge.Sink.ReplyFor("cross-picture-no-ai").Text("text");
+                if (brain.Calls != noAiLooks || noAiReply != Brain.OffLine) throw new Exception("A phone picture under No AI went to a brain or got the wrong line: " + noAiReply);
+                checks.Add("PASS a phone picture under No AI gets her No AI line and never reaches a brain, like Windows");
                 checks.Add("PASS cross picture words: only their typed words reach phrase plans, native job requests, Mainframe, files, memory tools, missing-tool checks and mods; every description reaches one full brain turn without tool rows");
                 send("", "A small red square.");
                 send("", "A note for their memory.");
