@@ -16,7 +16,7 @@ namespace CapriDesktop
     internal sealed partial class Mainframe
     {
         private const int ModRows = 4, ModRowTop = 238, ModRowHeight = 62;
-        private static readonly string ModDownloads = Path.Combine(Path.GetTempPath(), "capri-mod-downloads");
+        private static readonly string ModDownloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri", "mod-downloads");
         private NeonButton modsKey, modUpdate, modBack, modNext;
         private NeonCaption modStatus, modEmpty, modNoMatch, modPage;
         private NeonEntry modSearch;

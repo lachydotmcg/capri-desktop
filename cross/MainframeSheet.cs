@@ -37,7 +37,7 @@ namespace CapriDesktop
     internal sealed class ModsWindow : MainframeWindow
     {
         internal const int Wide = 744, Tall = 782, Across = 3, Down = 2, Cards = Across * Down, CardWide = 222, CardStep = 233, CardTop = 140, CardTall = 284;
-        private static readonly string DownloadFolder = Path.Combine(Path.GetTempPath(), "capri-mod-downloads");
+        private static readonly string DownloadFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri", "mod-downloads");
         private readonly Pet pet;
         private readonly Mainframe frame;
         private readonly NeonEntry search;
