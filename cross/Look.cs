@@ -333,5 +333,15 @@ namespace CapriDesktop
             window.Topmost = false;
             window.Topmost = true;
         }
+
+        internal static void HideOnClose(Window window, Action hide)
+        {
+            window.Closing += (_, e) =>
+            {
+                if (e.IsProgrammatic || e.CloseReason != WindowCloseReason.WindowClosing) return;
+                e.Cancel = true;
+                hide();
+            };
+        }
     }
 }

@@ -2578,6 +2578,7 @@ namespace CapriDesktop
             string staging = folder + ".new";
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             ZipFile.ExtractToDirectory(zip, staging);
+            VoicePack.Seal(staging);
             if (!Complete(staging)) throw new IOException("The voice download is missing files.");
             lock (gate)
             {
@@ -2586,6 +2587,15 @@ namespace CapriDesktop
                 else Directory.Move(staging, folder);
             }
             File.Delete(zip);
+        }
+
+        internal long Remove()
+        {
+            lock (gate)
+            {
+                Close();
+                return Directory.Exists(folder) ? VoicePack.Remove(folder) : 0;
+            }
         }
 
         // A new pack goes into her folder file by file. Deleting the folder first failed on onnxruntime.dll once her voice, ears or
