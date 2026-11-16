@@ -94,6 +94,80 @@ namespace CapriDesktop
                 + @"(?i:(?: service)?(?: please)?)[.!]?\z");
         }
 
+        internal static Func<string> CpuTimes = () => File.ReadLines("/proc/stat").First();
+        internal static string PowerFolder = "/sys/class/power_supply";
+
+        // The whole processor's busy share between two /proc/stat "cpu" lines, the way top counts it: waiting on disks is idle.
+        internal static double? CpuBusy(string before, string after)
+        {
+            long[] first = CpuFields(before), second = CpuFields(after);
+            if (first == null || second == null) return null;
+            long total = 0, idle = second[3] - first[3] + second[4] - first[4];
+            for (int i = 0; i < 8; i++) total += second[i] - first[i];
+            if (total <= 0) return null;
+            return Math.Max(0, Math.Min(100, (total - idle) * 100.0 / total));
+        }
+
+        private static long[] CpuFields(string line)
+        {
+            string[] parts = (line ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 9 || parts[0] != "cpu") return null;
+            long[] fields = new long[8];
+            for (int i = 0; i < 8; i++)
+                if (!long.TryParse(parts[i + 1], NumberStyles.None, CultureInfo.InvariantCulture, out fields[i])) return null;
+            return fields;
+        }
+
+        // The laptop's own batteries, in the words her Windows check uses, or null on a desktop. A mouse's or headset's battery
+        // has the Device scope and isn't counted.
+        internal static string Battery(string folder)
+        {
+            long now = 0, full = 0;
+            int batteries = 0, percents = 0;
+            bool supplied = false, plugged = false, discharging = false, measured = true;
+            string units = null;
+            string[] supplies;
+            try { supplies = Directory.GetDirectories(folder); }
+            catch (IOException) { return null; }
+            catch (UnauthorizedAccessException) { return null; }
+            foreach (string supply in supplies)
+            {
+                if (Supply(supply, "scope") == "Device") continue;
+                if (Supply(supply, "type") != "Battery")
+                {
+                    string online = Supply(supply, "online");
+                    if (online == null) continue;
+                    supplied = true;
+                    plugged |= online == "1";
+                    continue;
+                }
+                if (Supply(supply, "present") == "0" || !int.TryParse(Supply(supply, "capacity"), NumberStyles.None, CultureInfo.InvariantCulture, out int capacity)) continue;
+                batteries++;
+                percents += Math.Min(100, capacity);
+                discharging |= Supply(supply, "status") == "Discharging";
+                string unit = Stored(supply, "energy") != null ? "energy" : "charge";
+                long[] stored = Stored(supply, unit);
+                if (stored == null || units != null && units != unit) measured = false;
+                else { now += stored[0]; full += stored[1]; units = unit; }
+            }
+            if (batteries == 0) return null;
+            long percent = measured && batteries > 1 ? (long)Math.Round(Math.Min(100.0, now * 100.0 / full)) : (long)Math.Round((double)percents / batteries);
+            return percent + "%" + ((supplied ? plugged : !discharging) ? ", plugged in" : ", on battery");
+        }
+
+        private static long[] Stored(string supply, string unit)
+        {
+            if (!long.TryParse(Supply(supply, unit + "_now"), NumberStyles.None, CultureInfo.InvariantCulture, out long now) || !long.TryParse(Supply(supply, unit + "_full"), NumberStyles.None, CultureInfo.InvariantCulture, out long full) || full <= 0) return null;
+            return new[] { now, full };
+        }
+
+        private static string Supply(string supply, string name)
+        {
+            try { return File.ReadAllText(Path.Combine(supply, name)).Trim(); }
+            catch (IOException) { return null; }
+            catch (UnauthorizedAccessException) { return null; }
+        }
+
         internal static string System(ToolArguments args)
         {
             if (!OperatingSystem.IsLinux()) return "Linux system tools are unavailable on this platform.";
@@ -101,10 +175,14 @@ namespace CapriDesktop
             if (action == "overview") return System(new ToolArguments { Action="status" }) + "\n" + System(new ToolArguments { Action="processes" });
             if (action == "status")
             {
+                string before = CpuTimes();
+                Thread.Sleep(500);
+                double? busy = CpuBusy(before, CpuTimes());
                 string load = File.ReadAllText("/proc/loadavg").Split(' ')[0];
                 string memory = string.Join("\n", File.ReadLines("/proc/meminfo").Where(line => line.StartsWith("MemTotal:", StringComparison.Ordinal) || line.StartsWith("MemAvailable:", StringComparison.Ordinal)));
                 DriveInfo drive = new DriveInfo("/");
-                return "Observed as current user. One-minute CPU load average (not CPU percent): " + load + ". Logical CPUs: " + Environment.ProcessorCount + ".\n" + memory + "\nRoot filesystem free bytes: " + drive.AvailableFreeSpace;
+                string battery = Battery(PowerFolder);
+                return "Observed as current user. CPU busy over half a second: " + (busy == null ? "unknown" : Math.Round(busy.Value).ToString(CultureInfo.InvariantCulture) + "%") + ". One-minute CPU load average (not CPU percent): " + load + ". Logical CPUs: " + Environment.ProcessorCount + ".\n" + memory + "\nRoot filesystem free bytes: " + drive.AvailableFreeSpace + (battery == null ? "" : "\nBattery: " + battery + ".");
             }
             if (action == "processes")
             {
@@ -131,6 +209,120 @@ namespace CapriDesktop
             if (operation != "status") ComputerProcess.Bytes("/usr/bin/systemctl", new[] { "--user", operation, "--", unit }, cancel.Token, 10000, 16000);
             string observed = Encoding.UTF8.GetString(ComputerProcess.Bytes("/usr/bin/systemctl", new[] { "--user", "show", "--property=Id,LoadState,ActiveState,SubState,Result", "--no-pager", "--", unit }, cancel.Token, 10000, 16000));
             return "Observed user service after " + operation + ":\n" + observed;
+        }
+
+        internal static void Checks(List<string> checks)
+        {
+            Func<string> timesWas = CpuTimes;
+            string powerWas = PowerFolder;
+            Func<string, NetUse> netWas = Hands.Net;
+            string linkFolder = Network.LinkFolder;
+            bool macWas = Hands.OnMac;
+            string folder = Path.Combine(Path.GetTempPath(), "capri-linux-status-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                if (CpuBusy("cpu  100 0 100 800 0 0 0 0 0 0", "cpu  150 0 150 850 50 0 0 0 0 0") != 50 || CpuBusy("cpu  1 2 3 4 5 6 7 8 9 9", "cpu  1 2 3 14 5 6 7 8 9 9") != 0
+                    || CpuBusy("cpu  1 1 1 1 1 1 1 1", "cpu  1 1 1 1 1 1 1 1 0 0") != null || CpuBusy("cpu0 1 1 1 1 1 1 1 1 0 0", "cpu0 2 2 2 2 2 2 2 2 0 0") != null || CpuBusy("cpu  1 1 1 1 1 1 1 1 0 0", "cpu  1 1 1 1 1 1 1 1 0 0") != null)
+                    throw new Exception("Linux CPU use was not read from two /proc/stat samples the way top counts it.");
+                void Supply(string name, params string[] values)
+                {
+                    string supply = Path.Combine(folder, name);
+                    Directory.CreateDirectory(supply);
+                    for (int i = 0; i < values.Length; i += 2) File.WriteAllText(Path.Combine(supply, values[i]), values[i + 1] + "\n");
+                }
+                Directory.CreateDirectory(folder);
+                Supply("AC", "type", "Mains", "online", "1");
+                Supply("hidpp_battery_0", "type", "Battery", "scope", "Device", "capacity", "5", "status", "Discharging");
+                if (Battery(folder) != null) throw new Exception("A desktop or a mouse battery was reported as the PC's battery.");
+                Supply("BAT0", "type", "Battery", "present", "1", "capacity", "65", "status", "Charging", "energy_now", "42955000", "energy_full", "66007000");
+                string plugged = Battery(folder);
+                Supply("AC", "online", "0");
+                string unplugged = Battery(folder);
+                Supply("BAT1", "type", "Battery", "capacity", "100", "status", "Full", "energy_now", "22000000", "energy_full", "22000000");
+                string both = Battery(folder);
+                Directory.Delete(Path.Combine(folder, "AC"), true);
+                string noMains = Battery(folder);
+                Supply("BAT1", "status", "Discharging");
+                string draining = Battery(folder);
+                if (plugged != "65%, plugged in" || unplugged != "65%, on battery" || both != "74%, on battery" || noMains != "74%, plugged in" || draining != "74%, on battery")
+                    throw new Exception("Linux battery read wrong: " + plugged + " / " + unplugged + " / " + both + " / " + noMains + " / " + draining);
+                if (OperatingSystem.IsLinux())
+                {
+                    string[] samples = { "cpu  100 0 100 800 0 0 0 0 0 0", "cpu  150 0 150 850 50 0 0 0 0 0" };
+                    int sample = 0;
+                    CpuTimes = () => samples[sample++ % 2];
+                    PowerFolder = folder;
+                    string status = System(new ToolArguments { Action = "status" });
+                    if (!status.StartsWith("Observed as current user. CPU busy over half a second: 50%. One-minute CPU load average (not CPU percent): ", StringComparison.Ordinal)
+                        || !status.Contains("\nMemTotal:") || !status.Contains("\nRoot filesystem free bytes: ") || !status.EndsWith("\nBattery: 74%, on battery.", StringComparison.Ordinal))
+                        throw new Exception("Linux status lost its CPU use, memory, disk or battery line: " + status);
+                    CpuTimes = timesWas;
+                    PowerFolder = powerWas;
+                    status = System(new ToolArguments { Action = "status" });
+                    string real = Battery(PowerFolder);
+                    if (!Regex.IsMatch(status, @"\AObserved as current user\. CPU busy over half a second: (?:\d{1,3}%|unknown)\. ") || status.Contains("Battery: ") != (real != null))
+                        throw new Exception("This PC's Linux status didn't read: " + status);
+                    checks.Add("PASS Linux status reads CPU use over half a second from /proc/stat like top, keeps load, memory and disk, and adds the laptop's battery in her Windows words, none on a desktop or for a mouse; this PC: " + status.Split('\n')[0] + (real == null ? " No battery." : " Battery " + real + "."));
+                }
+
+                Directory.Delete(folder, true);
+                Directory.CreateDirectory(folder);
+                Supply("wlan0", "operstate", "up", "type", "1");
+                Directory.CreateDirectory(Path.Combine(folder, "wlan0", "device"));
+                Directory.CreateDirectory(Path.Combine(folder, "wlan0", "wireless"));
+                Supply("enp3s0", "operstate", "unknown", "carrier", "1", "type", "1");
+                Directory.CreateDirectory(Path.Combine(folder, "enp3s0", "device"));
+                Supply("enp4s0", "operstate", "down", "type", "1");
+                Directory.CreateDirectory(Path.Combine(folder, "enp4s0", "device"));
+                Supply("docker0", "operstate", "up", "type", "1");
+                Supply("wg0", "operstate", "unknown", "type", "65534");
+                Supply("lo", "operstate", "unknown", "type", "772");
+                List<string> links = Network.LinuxLinks(folder);
+                if (string.Join(",", links) != "Ethernet,Wi-Fi" && string.Join(",", links) != "Wi-Fi,Ethernet") throw new Exception("Linux links counted a virtual or unplugged link: " + string.Join(",", links));
+                NetUse now = null;
+                List<string> pinged = new List<string>();
+                Hands.Net = address => { pinged.Add(address ?? ""); return now; };
+                Func<NetUse, string, string> check = (use, address) => { now = use; return Hands.Do("internet_status", new ToolArguments { Address = address }); };
+                NetUse working = new NetUse { Pinged = "1.1.1.1", Sent = 4, Lost = 0, Average = 14, Fastest = 12, Names = true };
+                working.Links.Add("Wi-Fi");
+                NetUse dropping = new NetUse { Pinged = "1.1.1.1", Sent = 4, Lost = 2, Average = 180, Fastest = 150, Names = true };
+                dropping.Links.Add("Wi-Fi");
+                NetUse down = new NetUse { Pinged = "8.8.8.8", Sent = 4, Lost = 4, Names = false };
+                down.Links.Add("Ethernet");
+                Hands.OnMac = false;
+                string fine = check(working, null), drops = check(dropping, null), dead = check(down, null), offline = check(new NetUse(), null), unread = check(null, null), site = check(working, "google.com");
+                if (fine != "Their internet is working, over Wi-Fi: pings to 1.1.1.1 took 14 ms on average, 12 ms at best, and web addresses look up fine."
+                    || drops != "Their internet is dropping out, over Wi-Fi: 2 of 4 pings to 1.1.1.1 were lost, and the rest took 180 ms on average, 150 ms at best, and web addresses look up fine."
+                    || dead != "Their PC is connected over Ethernet, but nothing answered: all 4 pings to 8.8.8.8 were lost, and web addresses don't look up either, so the internet looks down."
+                    || offline != "Their PC isn't connected to any network: no Ethernet or Wi-Fi is up." || unread != "Couldn't check their internet just now." || site != fine || string.Join(",", pinged) != ",,,,,google.com")
+                    throw new Exception("Linux internet check didn't answer in her Windows words: " + fine + " / " + drops + " / " + dead + " / " + offline + " / " + unread);
+                Hands.Kit linux = Hands.KitFor();
+                if (!linux.Has("internet_status") || !linux.Tools.Contains("\"name\":\"internet_status\"") || !Hands.Valid("internet_status", new ToolArguments()) || !Hands.Checking("internet_status", new ToolArguments()) || Security.Needs("internet_status", new ToolArguments()) != -1)
+                    throw new Exception("Linux didn't offer the internet check as a check that never asks.");
+                Hands.OnMac = true;
+                pinged.Clear();
+                Hands.Kit mac = Hands.KitFor();
+                if (mac.Has("internet_status") || mac.Tools.Contains("\"name\":\"internet_status\"") || Hands.Do("internet_status", new ToolArguments()) != "I can't check your internet on a Mac yet." || pinged.Count != 0)
+                    throw new Exception("Mac offered or ran the Linux internet check.");
+                Network.LinkFolder = Path.Combine(folder, "missing");
+                Hands.Net = Network.Read;
+                Hands.OnMac = false;
+                string unreadable = Hands.Do("internet_status", new ToolArguments());
+                Network.LinkFolder = linkFolder;
+                if (Network.LinuxLinks(Path.Combine(folder, "missing")) != null || unreadable != "Couldn't check their internet just now.") throw new Exception("An unreadable /sys/class/net was taken for no network: " + unreadable);
+                List<string> here = Network.Links();
+                if (here == null) throw new Exception("This PC's network links couldn't be read.");
+                checks.Add("PASS Linux internet check answers in her Windows words, counts only hardware Ethernet and Wi-Fi links from /sys/class/net, says it couldn't check when that folder can't be read, never asks first, and stays missing on Mac; the checks never ping out; this PC's links: " + (here.Count == 0 ? "none" : string.Join(", ", here)));
+            }
+            finally
+            {
+                CpuTimes = timesWas;
+                PowerFolder = powerWas;
+                Hands.Net = netWas;
+                Network.LinkFolder = linkFolder;
+                Hands.OnMac = macWas;
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            }
         }
     }
 }

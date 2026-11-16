@@ -183,11 +183,21 @@ namespace CapriDesktop
 
         internal static List<string> Walk(string home, string description, Func<bool> stopped, out bool bounded)
         {
+            int visited = 0;
+            return Walk(new[] { home }, home, description, stopped, Now() + Milliseconds, ref visited, new Dictionary<string, Mount>(StringComparer.Ordinal), out bounded);
+        }
+
+        internal static List<string> Walk(IEnumerable<string> roots, string within, string description, Func<bool> stopped, long deadline, ref int visited, Dictionary<string, Mount> mounts, out bool bounded)
+        {
             var folders = new Queue<string>();
             var output = new StringBuilder();
-            folders.Enqueue(home);
-            long deadline = Now() + Milliseconds;
-            int visited = 0, matches = 0;
+            var walked = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string root in roots)
+            {
+                Mount mount;
+                if (!mounts.TryGetValue(root, out mount) || walked.Add(mount.Key)) folders.Enqueue(root);
+            }
+            int matches = 0;
             bounded = false;
             while (folders.Count > 0)
             {
@@ -197,18 +207,61 @@ namespace CapriDesktop
                 {
                     foreach (string path in Directory.EnumerateFileSystemEntries(folder))
                     {
-                        if (stopped()) return Paths(output.ToString(), description, home);
-                        if (Now() >= deadline || ++visited > 10000 || matches >= Limit) { bounded = true; return Paths(output.ToString(), description, home); }
+                        if (stopped()) return Paths(output.ToString(), description, within);
+                        if (Now() >= deadline || ++visited > 10000 || matches >= Limit) { bounded = true; return Paths(output.ToString(), description, within); }
                         FileAttributes attributes = File.GetAttributes(path);
                         bool directory = (attributes & FileAttributes.Directory) != 0;
                         if (FileFinder.Score(Path.GetFileName(path), FileFinder.Wanted(description)) > 0) { output.Append(path).Append('\0'); matches++; }
-                        if (directory && (attributes & FileAttributes.ReparsePoint) == 0 && !FileFinder.Skip(path) && !Path.GetFileName(path).StartsWith(".", StringComparison.Ordinal)) folders.Enqueue(path);
+                        if (directory && (attributes & FileAttributes.ReparsePoint) == 0 && !FileFinder.Skip(path) && !Path.GetFileName(path).StartsWith(".", StringComparison.Ordinal) && Enter(path, mounts, walked)) folders.Enqueue(path);
                     }
                 }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
             }
-            return Paths(output.ToString(), description, home);
+            return Paths(output.ToString(), description, within);
+        }
+
+        internal sealed class Mount
+        {
+            internal string Point, Key;
+            internal bool Disk;
+        }
+
+        internal static Func<string> MountTable = () => File.ReadAllText("/proc/self/mountinfo");
+        private static readonly string[] DiskTypes = { "ext2", "ext3", "ext4", "xfs", "btrfs", "bcachefs", "f2fs", "jfs", "reiserfs", "nilfs2", "zfs", "vfat", "msdos", "exfat", "ntfs", "ntfs3", "fuseblk", "hfsplus", "apfs", "iso9660", "udf" };
+
+        // Each mount point once, the top one where two share it. A mount is a disk only when it holds files on a drive, so
+        // /proc, tmpfs, network shares and FUSE remotes are never walked, the way Windows only searches fixed drives.
+        internal static Dictionary<string, Mount> Mounts(string table)
+        {
+            var mounts = new Dictionary<string, Mount>(StringComparer.Ordinal);
+            foreach (string line in (table ?? "").Split('\n'))
+            {
+                string[] fields = line.Split(' ');
+                int separator = Array.IndexOf(fields, "-");
+                if (separator < 6 || fields.Length < separator + 2) continue;
+                string point = Regex.Replace(fields[4], @"\\([0-7]{3})", octal => ((char)Convert.ToInt32(octal.Groups[1].Value, 8)).ToString());
+                mounts[point] = new Mount { Point = point, Key = fields[2] + " " + fields[3], Disk = Array.IndexOf(DiskTypes, fields[separator + 1]) >= 0 };
+            }
+            return mounts;
+        }
+
+        // The drives mounted where Linux puts removable and extra ones, outermost first; one inside another is reached from it.
+        internal static List<string> Volumes(Dictionary<string, Mount> mounts, string user)
+        {
+            var volumes = new List<string>();
+            foreach (Mount mount in mounts.Values)
+                if (mount.Disk && (mount.Point == "/mnt" || mount.Point.StartsWith("/mnt/", StringComparison.Ordinal) || mount.Point.StartsWith("/media/", StringComparison.Ordinal) || mount.Point.StartsWith("/run/media/" + user + "/", StringComparison.Ordinal))) volumes.Add(mount.Point);
+            volumes.Sort(StringComparer.Ordinal);
+            volumes.RemoveAll(volume => volumes.Exists(outer => volume.StartsWith(outer + "/", StringComparison.Ordinal)));
+            return volumes;
+        }
+
+        // A bind mount can show a drive inside itself, so each mounted drive is walked once.
+        private static bool Enter(string folder, Dictionary<string, Mount> mounts, HashSet<string> walked)
+        {
+            Mount mount;
+            return !mounts.TryGetValue(folder, out mount) || mount.Disk && walked.Add(mount.Key);
         }
 
         internal static string Find(ToolArguments args, Func<bool> stopped)
@@ -251,7 +304,23 @@ namespace CapriDesktop
                         found = Paths(reply.Text, args.Description, null);
                     }
                 }
-                else found = Walk(home, args.Description, cancelled, out bounded);
+                else
+                {
+                    long deadline = Now() + Milliseconds;
+                    Dictionary<string, Mount> mounts;
+                    try { mounts = Mounts(MountTable()); }
+                    catch (IOException) { mounts = new Dictionary<string, Mount>(StringComparer.Ordinal); }
+                    catch (UnauthorizedAccessException) { mounts = new Dictionary<string, Mount>(StringComparer.Ordinal); }
+                    int visited = 0;
+                    found = Walk(new[] { home }, home, args.Description, cancelled, deadline, ref visited, mounts, out bounded);
+                    List<string> volumes = found.Count == 0 && !cancelled() && Now() < deadline ? Volumes(mounts, Environment.UserName) : new List<string>();
+                    if (volumes.Count > 0)
+                    {
+                        bool wider;
+                        found = Walk(volumes, null, args.Description, cancelled, deadline, ref visited, mounts, out wider);
+                        bounded |= wider;
+                    }
+                }
                 lock (gate)
                 {
                     if (cancelled()) return "Stopped looking for files.";
@@ -528,6 +597,27 @@ namespace CapriDesktop
                 for (int i = 0; i < Limit + 2; i++) File.WriteAllText(Path.Combine(folder, "quote" + i + ".txt"), "");
                 if (Walk(folder, "quote", () => false, out bounded).Count != Limit || !bounded) throw new Exception("The Linux walk ignored its result cap.");
                 checks.Add("PASS file search: Spotlight command and replies, quoted paths, cap, deadline, stop and Finder reveal; Linux walk deadline and results");
+                Dictionary<string, Mount> mounts = Mounts("35 2 259:5 / / rw - ext4 /dev/nvme0n1p5 rw\n31 35 0:28 / /proc rw - proc proc rw\n90 35 8:1 / /media/me/USB\\040Stick rw - vfat /dev/sdb1 rw\n91 90 8:1 / /media/me/USB\\040Stick/again rw - vfat /dev/sdb1 rw\n"
+                    + "92 35 0:50 / /mnt/nas rw - cifs //nas/share rw\n93 35 8:2 / /mnt rw - ext4 /dev/sdc1 rw\n94 93 8:3 / /mnt/inner rw - ext4 /dev/sdd1 rw\n95 35 8:4 / /run/media/me/Disk rw - exfat /dev/sde1 rw\n96 35 8:5 / /run/media/other/Disk rw - exfat /dev/sdf1 rw\n97 35 0:60 / /media/me/phone rw - fuse.gvfsd-fuse gvfsd rw\nbroken line\n");
+                if (string.Join("|", Volumes(mounts, "me")) != "/media/me/USB Stick|/mnt|/run/media/me/Disk") throw new Exception("Linux volumes walked a pseudo, network or nested mount: " + string.Join("|", Volumes(mounts, "me")));
+                string volume = Path.Combine(folder, "volume"), share = Path.Combine(volume, "share");
+                Directory.CreateDirectory(Path.Combine(volume, "deep", "er"));
+                Directory.CreateDirectory(share);
+                File.WriteAllText(Path.Combine(volume, "deep", "er", "holiday plan.pdf"), "");
+                File.WriteAllText(Path.Combine(share, "holiday plan copy.pdf"), "");
+                Directory.CreateSymbolicLink(Path.Combine(volume, "deep", "back"), volume);
+                mounts = Mounts("1 0 8:9 / " + volume.Replace(" ", "\\040") + " rw - ext4 /dev/sdz1 rw\n2 1 0:70 / " + share.Replace(" ", "\\040") + " rw - nfs4 nas:/x rw\n");
+                int visits = 0;
+                List<string> onVolume = Walk(new[] { volume, volume }, null, "holiday plan", () => false, Now() + Milliseconds, ref visits, mounts, out bounded);
+                if (onVolume.Count != 1 || onVolume[0] != Path.Combine(volume, "deep", "er", "holiday plan.pdf") || bounded) throw new Exception("A Linux volume walk followed a loop or a network mount: " + string.Join("|", onVolume));
+                tick = 0;
+                Now = () => tick += Milliseconds;
+                visits = 0;
+                if (Walk(new[] { volume }, null, "holiday plan", () => false, Milliseconds, ref visits, mounts, out bounded).Count != 0 || !bounded) throw new Exception("A Linux volume walk ignored the search's deadline.");
+                Now = () => 0;
+                visits = 10000;
+                if (Walk(new[] { volume }, null, "holiday plan", () => false, Milliseconds, ref visits, mounts, out bounded).Count != 0 || !bounded) throw new Exception("A Linux volume walk got its own entry budget after the home walk.");
+                checks.Add("PASS file search: Linux also walks drives mounted in /media, /run/media and /mnt, once each, within the same deadline and entry budget as home, never pseudo or network mounts or symlink loops");
                 foreach (string browser in new[] { "Safari", "Google Chrome", "Microsoft Edge", "Brave Browser", "Arc" })
                 {
                     string script = BrowserScript(browser);
