@@ -4193,7 +4193,8 @@ namespace CapriDesktop
                 string into = typing.Groups["app"].Success ? typing.Groups["app"].Value : typing.Groups["app2"].Value;
                 into = Regex.Replace(into ?? "", @"\s+(?:application|app|window|editor)$", "", RegexOptions.IgnoreCase).Trim(' ', '.', ',', ':', '!', '?');
                 string words = (typing.Groups["what"].Value ?? "").Trim(' ', '.', ',', ':', '!', '?', '"');
-                string app = AppMeant(into);
+                bool place = Regex.IsMatch(into, @"^#|\b(?:chat|channel|server|dms?|group|thread|call|vc|general)\b", RegexOptions.IgnoreCase);
+                string app = place ? null : AppMeant(into);
                 if (app != null && words.Length > 0)
                 {
                     tool = "use_computer";
