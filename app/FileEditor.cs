@@ -99,7 +99,9 @@ namespace CapriDesktop
             docs = new[]
             {
                 new Doc("personality.md", delegate { if (!Brain.MakePersonality()) throw new IOException("No personality.md."); return Brain.OpenPersonality(); }),
-                new Doc("me.md", delegate { return Brain.OpenNote(false); })
+                new Doc("me.md", delegate { return Brain.OpenNote(false); }),
+                new Doc(Commands.FileName, delegate { Commands.Write(); return Commands.Open(); }),
+                new Doc(Playlist.FileName, delegate { return Playlist.OpenNote(); })
             };
             frost = new Frost();
             page = new Page(this);
@@ -451,6 +453,7 @@ namespace CapriDesktop
             Finish();
             page.Keep();
             current = which;
+            page.ShowTab(current);
             page.Take(docs[current]);
         }
 
@@ -678,6 +681,8 @@ namespace CapriDesktop
             RectangleF ruleBox = RectangleF.FromLTRB(Sx(PanelArt.RuleLeft), Sy(PanelArt.RuleTop), Sx(Math.Max(rule, PanelArt.RuleLeft)), Sy(PanelArt.RuleBottom));
             RectangleF blockBox = RectangleF.FromLTRB(Sx(PanelArt.RuleLeft), Sy(PanelArt.BlockTop), Sx(Math.Max(block, PanelArt.RuleLeft)), Sy(PanelArt.BlockBottom));
             PointF versionAt = new PointF(Ax(PanelArt.RuleLeft), Ay(67)), nameAt = new PointF(Ax(PanelArt.RuleLeft), Ay(83)), projectAt = new PointF(Ax(PanelArt.BlockEnd + 8), Ay(PanelArt.BlockTop - 0.5f));
+            string openFile = docs != null && current >= 0 && current < docs.Length ? docs[current].Name : "";
+            PointF openAt = new PointF(Ax(PanelArt.BlockEnd + 8), Ay(PanelArt.BlockTop + 13.5f));
             PaintShadow(pen, spineShape, sheetShape, sheetAlpha, ruleBox, blockBox, topVersion, versionAt, name, nameAt, project, projectAt);
             if (sheetShape != null)
             {
@@ -703,6 +708,7 @@ namespace CapriDesktop
                 Say(pen, topVersion, smallFont, red, versionAt);
                 Say(pen, name, nameFont, red, nameAt);
                 Say(pen, project, smallFont, red, projectAt);
+                if (project.Length == ProjectName.Length) Say(pen, openFile, smallFont, red, openAt);
             }
             if (versionWords.Length > 0 && spine > 500)
             {
@@ -1198,7 +1204,8 @@ namespace CapriDesktop
                 box.KeyDown += delegate { panel.Finish(); };
                 box.MouseDown += delegate { panel.Finish(); };
                 box.TextChanged += delegate { if (!loading) Typed(); Freshen(); };
-                tabs = new[] { new Ink { Tag = 0 }, new Ink { Tag = 1 } };
+                tabs = new Ink[panel.docs.Length];
+                for (int made = 0; made < tabs.Length; made++) tabs[made] = new Ink { Tag = made, Rolling = true };
                 foreach (Ink tab in tabs)
                 {
                     Ink press = tab;
@@ -1214,10 +1221,13 @@ namespace CapriDesktop
                 keep.Click += delegate { panel.GuardKeep(); };
                 status = new Note { BackColor = Red, ForeColor = Salmon, AutoEllipsis = true, UseMnemonic = false, TextAlign = ContentAlignment.MiddleLeft };
                 cover = new Veil(panel, this) { Visible = false };
-                Controls.AddRange(new Control[] { cover, close, tabs[0], tabs[1], box, bar, status, keep, reload, save });
+                Controls.AddRange(new Control[] { cover, close, box, bar, status, keep, reload, save });
+                Controls.AddRange(tabs);
                 cover.BringToFront();
                 int order = 0;
-                foreach (Control next in new Control[] { box, save, reload, keep, tabs[0], tabs[1], close }) next.TabIndex = order++;
+                foreach (Control next in new Control[] { box, save, reload, keep }) next.TabIndex = order++;
+                foreach (Ink tab in tabs) tab.TabIndex = order++;
+                close.TabIndex = order++;
                 foreach (Control grip in new Control[] { this, status })
                 {
                     grip.MouseDown += delegate(object sender, MouseEventArgs e) { if (e.Button == MouseButtons.Left) panel.Pressed(); };
@@ -1236,7 +1246,39 @@ namespace CapriDesktop
             internal string Words { get { return box.Text; } set { box.Text = value; } }
             internal int BoxHeight { get { return box.Height; } }
             internal string BoxFont { get { return box.Font.Name; } }
-            internal string[] Labels { get { return new[] { tabs[0].Text, tabs[1].Text }; } }
+            private int tabFirst, tabShown;
+
+            private bool SideTabs { get { return true; } }
+
+            internal bool WheelTabs(Point at, int notches)
+            {
+                if (!SideTabs || tabs.Length == 0) return false;
+                Point mine = PointToClient(at);
+                if (tabs[0].Bounds.Left - Scaled(6) > mine.X || mine.X > tabs[0].Bounds.Right + Scaled(6)) return false;
+                int was = tabFirst;
+                tabFirst = Math.Max(0, Math.Min(tabFirst - notches, Math.Max(0, tabs.Length - Math.Max(1, tabShown))));
+                if (tabFirst == was) return true;
+                Fit();
+                Invalidate();
+                return true;
+            }
+
+            private void SeeTab(int which)
+            {
+                if (!SideTabs || tabShown <= 0) return;
+                if (which < tabFirst) tabFirst = which;
+                else if (which >= tabFirst + tabShown) tabFirst = which - tabShown + 1;
+            }
+
+            internal void ShowTab(int which)
+            {
+                if (!SideTabs || tabShown <= 0) return;
+                int was = tabFirst;
+                SeeTab(which);
+                if (tabFirst != was) Fit();
+            }
+
+            internal string[] Labels { get { string[] shown = new string[tabs.Length]; for (int i = 0; i < tabs.Length; i++) shown[i] = tabs[i].Text; return shown; } }
             internal string Scrolled { get { return bar.Shown; } }
             internal Control TextArea { get { return box; } }
             internal bool Unsure { get { return keep.Visible; } }
@@ -1250,7 +1292,8 @@ namespace CapriDesktop
                 statusFont = Look.Mono(13 * s, FontStyle.Regular, GraphicsUnit.Pixel);
                 box.Font = Look.Mono(BodySize * s, FontStyle.Regular, GraphicsUnit.Pixel);
                 status.Font = statusFont;
-                foreach (Ink ink in new[] { tabs[0], tabs[1], close, save, reload, keep }) ink.Font = buttonFont;
+                foreach (Ink ink in new[] { close, save, reload, keep }) ink.Font = buttonFont;
+                foreach (Ink tab in tabs) tab.Font = buttonFont;
             }
 
             internal void Fit()
@@ -1259,54 +1302,81 @@ namespace CapriDesktop
                 Rectangle place = panel.pageBox;
                 Bounds = new Rectangle(panel.Left + place.X, panel.Top + place.Y, place.Width, place.Height);
                 ClientSize = place.Size;
-                int pad = Scaled(18), row = Scaled(52), foot = Scaled(48), gap = Scaled(8);
-                close.Bounds = new Rectangle(Width - pad - Scaled(28), Scaled(12), Scaled(28), Scaled(28));
+                int pad = Scaled(18), row = Scaled(44), foot = Scaled(48), gap = Scaled(8);
+                close.Bounds = new Rectangle(Width - pad - Scaled(28), Scaled(6), Scaled(28), Scaled(28));
                 int right = close.Left - Scaled(12);
-                tabs[1].Text = panel.docs[1].Label;
-                tabs[0].Text = panel.docs[0].Label;
-                for (int i = tabs.Length - 1; i >= 0; i--)
+                for (int i = 0; i < tabs.Length; i++) tabs[i].Text = panel.docs[i].Label;
+                int textLeft = pad;
+                if (SideTabs)
                 {
-                    int wide = TextRenderer.MeasureText(tabs[i].Text + " *", buttonFont).Width + Scaled(24);
-                    tabs[i].Bounds = new Rectangle(right - wide, Scaled(12), wide, Scaled(28));
-                    right -= wide + gap;
+                    int sideHigh = Scaled(26), sideGap = Scaled(3), sideTop = Scaled(44), sideWide = Scaled(132);
+                    int roomFor = Math.Max(1, (Height - foot - sideTop - Scaled(6)) / (sideHigh + sideGap));
+                    tabFirst = Math.Max(0, Math.Min(tabFirst, Math.Max(0, tabs.Length - roomFor)));
+                    tabShown = roomFor;
+                    for (int i = 0; i < tabs.Length; i++)
+                    {
+                        int slot = i - tabFirst;
+                        bool seen = slot >= 0 && slot < roomFor;
+                        tabs[i].Visible = seen;
+                        if (!seen) continue;
+                        tabs[i].Bounds = new Rectangle(pad, sideTop + slot * (sideHigh + sideGap), sideWide, sideHigh);
+                    }
+                    textLeft = pad + sideWide + gap;
                 }
-                titleBox = new Rectangle(pad, Scaled(4), Math.Max(Scaled(40), right - pad), row - Scaled(6));
+                else
+                {
+                    int tabHigh = Scaled(28), tabTop = Scaled(6), rows = 1, leftStop = pad;
+                    for (int i = tabs.Length - 1; i >= 0; i--)
+                    {
+                        int wide = TextRenderer.MeasureText(tabs[i].Text + " *", buttonFont).Width + Scaled(24);
+                        if (right - wide < leftStop && right < close.Left - Scaled(12))
+                        {
+                            rows++;
+                            right = close.Left - Scaled(12);
+                            tabTop += tabHigh + Scaled(4);
+                        }
+                        tabs[i].Bounds = new Rectangle(right - wide, tabTop, wide, tabHigh);
+                        right -= wide + gap;
+                    }
+                    row += (rows - 1) * (tabHigh + Scaled(4));
+                }
+                titleBox = new Rectangle(pad, Scaled(4), 0, Scaled(44) - Scaled(6));
                 int top = row, bottom = Height - foot, barWide = Scaled(8);
                 lineTop = row - Scaled(6);
                 lineFoot = bottom + Scaled(2);
                 // Whole lines only, so the last one isn't cut through above the buttons.
                 int line = TextRenderer.MeasureText("Ag", box.Font, Size.Empty, TextFormatFlags.NoPadding).Height;
-                box.Bounds = new Rectangle(pad, top, Width - pad * 2 - barWide - gap, (bottom - top) / line * line);
+                box.Bounds = new Rectangle(textLeft, top, Width - textLeft - pad - barWide - gap, (bottom - top) / line * line);
                 Native.SendMessage(box.Handle, 0x00D3, new IntPtr(3), IntPtr.Zero);
                 bar.Line = line;
                 bar.Bounds = new Rectangle(Width - pad - barWide, top, barWide, box.Height);
                 int buttonHigh = Scaled(30), buttonTop = bottom + (foot - buttonHigh) / 2;
-                int at = Width - pad;
+                int at = pad;
                 at = PlaceButton(save, at, buttonTop, buttonHigh, gap);
                 at = PlaceButton(reload, at, buttonTop, buttonHigh, gap);
                 at = PlaceButton(keep, at, buttonTop, buttonHigh, gap);
-                status.Bounds = new Rectangle(pad, buttonTop, Math.Max(Scaled(40), at - pad), buttonHigh);
+                status.Bounds = new Rectangle(at, buttonTop, Math.Max(Scaled(40), Width - pad - at), buttonHigh);
                 cover.Bounds = new Rectangle(0, 0, Width, Height);
                 bar.Sync();
                 Invalidate(true);
                 Freshen();
             }
 
-            private int PlaceButton(Ink ink, int right, int top, int high, int gap)
+            private int PlaceButton(Ink ink, int left, int top, int high, int gap)
             {
-                if (!ink.Visible && ink != keep) return right;
+                if (!ink.Visible && ink != keep) return left;
                 int wide = TextRenderer.MeasureText(ink.Text, buttonFont).Width + Scaled(26);
-                ink.Bounds = new Rectangle(right - wide, top, wide, high);
-                return right - wide - gap;
+                ink.Bounds = new Rectangle(left, top, wide, high);
+                return left + wide + gap;
             }
 
             private void PlaceFoot()
             {
-                int pad = Scaled(18), gap = Scaled(8), at = Width - pad;
+                int pad = Scaled(18), gap = Scaled(8), at = pad;
                 at = PlaceButton(save, at, save.Top, save.Height, gap);
                 at = PlaceButton(reload, at, save.Top, save.Height, gap);
                 if (keep.Visible) at = PlaceButton(keep, at, save.Top, save.Height, gap);
-                status.Bounds = new Rectangle(pad, save.Top, Math.Max(Scaled(40), at - pad), save.Height);
+                status.Bounds = new Rectangle(at, save.Top, Math.Max(Scaled(40), Width - pad - at), save.Height);
             }
 
             private int Scaled(float value) { return (int)Math.Round(value * panel.s); }
@@ -1646,14 +1716,12 @@ namespace CapriDesktop
 
             internal void PaintCover(Graphics pen, bool clear)
             {
-                int wide = shown == null ? titleBox.Width : Math.Min(titleBox.Width, TextRenderer.MeasureText(shown.Name, titleFont, Size.Empty, TitleWidth).Width);
-                panel.PaintVeil(pen, Size, titleBox, wide, clear);
+                panel.PaintVeil(pen, Size, titleBox, 0, clear);
             }
 
             protected override void OnPaint(PaintEventArgs e)
             {
                 base.OnPaint(e);
-                if (shown != null) TextRenderer.DrawText(e.Graphics, shown.Name, titleFont, titleBox, Salmon, TitleLine);
                 // Thin red rules under the title and over the buttons, like the lines between the reference panel's fields.
                 using (Brush rule = new SolidBrush(Color.FromArgb(200, Red)))
                 {
@@ -1686,6 +1754,12 @@ namespace CapriDesktop
                     return;
                 }
                 if (message.Msg == 0x02E0) return;
+                if (message.Msg == 0x020A)
+                {
+                    int turned = (short)((message.WParam.ToInt64() >> 16) & 65535);
+                    Point where = new Point((short)(message.LParam.ToInt64() & 65535), (short)((message.LParam.ToInt64() >> 16) & 65535));
+                    if (WheelTabs(where, turned / 120)) return;
+                }
                 base.WndProc(ref message);
                 if (message.Msg == 0x000F) Freshen();
             }
@@ -1979,6 +2053,7 @@ namespace CapriDesktop
                             if (since < 0) since += refresh;
                             next = now - since + refresh + Math.Min(frequency / 1000, refresh / 4);
                             InStep = true;
+                            Hz = composed;
                         }
                     }
                 }
@@ -2098,7 +2173,12 @@ namespace CapriDesktop
         private sealed class Ink : Button
         {
             internal bool Filled, Mark;
+            internal bool Rolling;
             private bool hot, down;
+            private Timer roll;
+            private int shift;
+
+            private const int Gap = 24;
 
             internal Ink()
             {
@@ -2109,8 +2189,47 @@ namespace CapriDesktop
             }
 
             protected override void OnInvalidated(InvalidateEventArgs e) { base.OnInvalidated(e); Touch(this); }
-            protected override void OnMouseEnter(EventArgs e) { hot = true; Invalidate(); base.OnMouseEnter(e); }
-            protected override void OnMouseLeave(EventArgs e) { hot = false; down = false; Invalidate(); base.OnMouseLeave(e); }
+            protected override void OnMouseEnter(EventArgs e) { hot = true; StartRoll(); Invalidate(); base.OnMouseEnter(e); }
+            protected override void OnMouseLeave(EventArgs e) { hot = false; down = false; StopRoll(); Invalidate(); base.OnMouseLeave(e); }
+
+            private int Overflow()
+            {
+                if (!Rolling || string.IsNullOrEmpty(Text)) return 0;
+                int wants = TextRenderer.MeasureText(Text, Font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix).Width;
+                int room = Width - Pad() * 2;
+                return wants > room ? wants : 0;
+            }
+
+            private int Pad() { return Math.Max(4, Height / 4); }
+
+            private void StartRoll()
+            {
+                if (Overflow() == 0) return;
+                shift = -Gap / 2;
+                if (roll == null) { roll = new Timer { Interval = 33 }; roll.Tick += delegate { Step(); }; }
+                roll.Start();
+            }
+
+            private void StopRoll()
+            {
+                if (roll != null) roll.Stop();
+                shift = 0;
+            }
+
+            private void Step()
+            {
+                int wants = Overflow();
+                if (wants == 0 || !hot) { StopRoll(); Invalidate(); return; }
+                shift++;
+                if (shift > wants + Gap) shift = -Gap / 2;
+                Invalidate();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing && roll != null) { roll.Stop(); roll.Dispose(); roll = null; }
+                base.Dispose(disposing);
+            }
             protected override void OnMouseDown(MouseEventArgs e) { if (e.Button == MouseButtons.Left) { down = true; Invalidate(); } base.OnMouseDown(e); }
             protected override void OnMouseUp(MouseEventArgs e) { down = false; Invalidate(); base.OnMouseUp(e); }
 
@@ -2141,7 +2260,31 @@ namespace CapriDesktop
                         if (lit) using (Brush fill = new SolidBrush(Red)) pen.FillPath(fill, plate);
                         using (Pen edge = new Pen(Enabled ? Red : Color.FromArgb(110, Red), line)) pen.DrawPath(edge, plate);
                     }
-                    TextRenderer.DrawText(pen, Text, Font, ClientRectangle, !Enabled ? Color.FromArgb(130, 50, 46) : lit ? Dark : Red, BackColorFor(lit), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                    Color ink = !Enabled ? Color.FromArgb(130, 50, 46) : lit ? Dark : Red;
+                    if (!Rolling)
+                    {
+                        TextRenderer.DrawText(pen, Text, Font, ClientRectangle, ink, BackColorFor(lit), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                    }
+                    else
+                    {
+                        int pad = Pad(), wants = Overflow();
+                        Rectangle inside = new Rectangle(pad, 0, Math.Max(1, Width - pad * 2), Height);
+                        TextFormatFlags how = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoClipping;
+                        if (wants == 0 || !hot)
+                        {
+                            TextRenderer.DrawText(pen, Text, Font, inside, ink, BackColorFor(lit), how | TextFormatFlags.EndEllipsis);
+                        }
+                        else
+                        {
+                            Region was = pen.Clip;
+                            pen.SetClip(inside);
+                            Rectangle first = new Rectangle(inside.X - shift, inside.Y, wants + Gap, inside.Height);
+                            TextRenderer.DrawText(pen, Text, Font, first, ink, how);
+                            TextRenderer.DrawText(pen, Text, Font, new Rectangle(first.X + wants + Gap, first.Y, first.Width, first.Height), ink, how);
+                            pen.Clip = was;
+                            was.Dispose();
+                        }
+                    }
                 }
                 if (Focused && ShowFocusCues)
                     using (Pen dots = new Pen(lit ? Dark : Red, line) { DashStyle = DashStyle.Dot })
