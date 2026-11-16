@@ -9,3 +9,4 @@ node_modules/
 *.pyc
 cross/native/capri-input
 worker/.codes-secret
+tools/room-model/textures/

@@ -51,6 +51,8 @@
   let act = { name: 'perch', from: 0, once: false, round: -1, blink: '' }, nextGlitch = 0;
   let motion = 'unknown', sensing = false, aim = null, seen = null, frameWatch = 0, pen = null, glow = null, lightAt = 0;
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
+  let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
+  const EYE = 0.9;
 
   const load = name => {
     if (strips.has(name)) return;
@@ -128,6 +130,7 @@
     drift(now);
     if (!frameWatch) follow(performance.now() - LAG);
     if (now >= lightAt) light(now);
+    if (stage) render3d(now);
     let clip = clips[act.name];
     let index = Math.max(0, Math.floor((now - act.from) * clip.fps / 1000));
     if (act.once && index >= clip.count) {
@@ -235,7 +238,7 @@
     const top = Math.max(-200, Math.min(300, y / glass.height * 100)).toFixed(2) + '%';
     if (left !== drawn.left) her.style.left = drawn.left = left;
     if (top !== drawn.top) her.style.top = drawn.top = top;
-    const rise = elevation(aim), grow = depth;
+    const rise = elevation(aim), grow = stage ? 1 : depth;
     if (!reduced.matches) {
       const yaw = Math.atan2(m[1], m[4]), tick = performance.now();
       if (lastYaw !== null && tick - swayAt < 120) {
@@ -326,7 +329,65 @@
     if (open) (room.hidden ? byId('room-open') : attach).focus();
   };
   const stopTracks = active => active?.getTracks().forEach(item => item.stop());
+  const ensure3d = () => {
+    if (no3d) return Promise.reject(new Error('3D unavailable'));
+    kitLoading = kitLoading || import('./room3d.js').then(module => module.load('models/')).then(loaded => { kit = loaded; return loaded; });
+    kitLoading.catch(() => { no3d = true; });
+    return kitLoading;
+  };
+  const end3d = () => {
+    stage?.dispose();
+    stage = null;
+    canvas3d?.remove();
+    canvas3d = null;
+    her.style.removeProperty('opacity');
+  };
+  const endXr = () => {
+    xr3d?.dispose();
+    xr3d = null;
+    her.style.removeProperty('opacity');
+  };
+  const begin3d = async request => {
+    if (no3d || stage) return;
+    try {
+      const loaded = await ensure3d();
+      if (request !== version || stage || session || room.hidden) return;
+      const canvas = document.createElement('canvas');
+      for (const [name, value] of [['position', 'absolute'], ['inset', '0'], ['width', '100%'], ['height', '100%'], ['pointer-events', 'none']]) canvas.style.setProperty(name, value);
+      view.insertBefore(canvas, place);
+      try { stage = loaded.stage({ canvas }); } catch (error) { canvas.remove(); throw error; }
+      canvas3d = canvas;
+      her.style.opacity = '0';
+    } catch (error) {
+      no3d = true;
+      end3d();
+    }
+  };
+  const standAt = glass => {
+    let dir;
+    if (seen && aim) dir = [aim[0], aim[2], -aim[1]];
+    else dir = [(her.offsetLeft - glass.width / 2) / glass.focal, (glass.height / 2 - her.offsetTop) / glass.focal, -1];
+    const flat = Math.hypot(dir[0], dir[2]);
+    if (flat < 1e-4) return null;
+    const far = -dir[1] / flat > 0.05 ? Math.max(0.9, Math.min(6, EYE * flat / -dir[1])) : 6;
+    return [dir[0] / flat * far, -EYE, dir[2] / flat * far];
+  };
+  const render3d = now => {
+    const glass = lens();
+    if (!glass || her.hidden) {
+      stage.update({ now, position: null });
+      stage.draw();
+      return;
+    }
+    const position = standAt(glass);
+    const m = seen?.m;
+    stage.view(glass.width, glass.height, glass.focal, m ? [m[0], m[1], m[2], m[6], m[7], m[8], -m[3], -m[4], -m[5]] : null);
+    stage.update({ now, position, pose, talking, tint: glow, calm: reduced.matches, turn: sway * 0.04 });
+    stage.draw();
+    if (position) her.style.setProperty('--s', Math.max(40, Math.min(320, glass.focal * 0.8 / Math.hypot(position[0], position[1], position[2]))).toFixed(1) + 'px');
+  };
   const releaseCamera = () => {
+    end3d();
     stopMotion();
     stopTracks(stream);
     stream = null;
@@ -375,6 +436,7 @@
     const ending = session;
     session = null;
     cancelHits();
+    endXr();
     if (ending) ending.end().catch(() => {});
     cancelAnimationFrame(animation);
     animation = 0;
@@ -397,6 +459,7 @@
     hold();
     for (const name of Object.keys(clips)) load(name);
     loadHeart();
+    ensure3d().catch(() => {});
   };
   const openCamera = async (lead = '', focus = true) => {
     prepare();
@@ -429,6 +492,7 @@
       place.hidden = her.hidden = controls.hidden = false;
       arrive();
       startMotion();
+      begin3d(request);
       track.hidden = !arAvailable;
       status.textContent = lead + 'Drag Capri to move her.';
       for (const item of stream.getVideoTracks()) item.addEventListener('ended', () => {
@@ -484,11 +548,26 @@
       active.addEventListener('visibilitychange', () => {
         if (active === session && active.visibilityState === 'hidden') closeRoom();
       });
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl', { xrCompatible: true, alpha: true });
-      if (!gl) throw new Error('WebGL unavailable');
-      const layer = new XRWebGLLayer(active, gl);
-      active.updateRenderState({ baseLayer: layer });
+      let gl, layer;
+      if (!no3d) {
+        try {
+          const loaded = await ensure3d();
+          if (request !== version) return;
+          xr3d = loaded.stage({ xr: true });
+          await xr3d.attach(active);
+        } catch (error) {
+          no3d = true;
+          endXr();
+        }
+      }
+      if (request !== version) return;
+      if (!xr3d) {
+        const canvas = document.createElement('canvas');
+        gl = canvas.getContext('webgl', { xrCompatible: true, alpha: true });
+        if (!gl) throw new Error('WebGL unavailable');
+        layer = new XRWebGLLayer(active, gl);
+        active.updateRenderState({ baseLayer: layer });
+      } else her.style.opacity = '0';
       const world = await active.requestReferenceSpace('local');
       const eyes = await active.requestReferenceSpace('viewer');
       const hitSource = await active.requestHitTestSource({ space: eyes });
@@ -506,10 +585,12 @@
       status.textContent = 'Aim at a surface, then tap to place Capri.';
       const frame = (now, xrFrame) => {
         if (active !== session) return;
-        active.requestAnimationFrame(frame);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        if (!xr3d) {
+          active.requestAnimationFrame(frame);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+          gl.clearColor(0, 0, 0, 0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        }
         const hit = xrFrame.getHitTestResults(source)[0]?.getPose(world)?.transform.position;
         surface = hit ? [hit.x, hit.y, hit.z] : null;
         view.toggleAttribute('data-surface', !!surface);
@@ -523,7 +604,13 @@
           }
         }
         const eye = xrFrame.getViewerPose(world)?.views[0];
-        if (!seat || !eye) { her.hidden = true; return; }
+        if (!seat || !eye) {
+          her.hidden = true;
+          xr3d?.update({ now, position: null });
+          return;
+        }
+        const head = eye.transform.position;
+        xr3d?.update({ now, position: seat, viewer: [head.x, head.y, head.z], pose, talking, calm: reduced.matches });
         const position = project(eye.transform.inverse.matrix, seat, 1);
         const point = project(eye.projectionMatrix, position, 1);
         const depth = point[3];
@@ -535,14 +622,16 @@
         const lookFrom = eye.transform.position, drop = lookFrom.y - seat[1], run = Math.hypot(lookFrom.x - seat[0], lookFrom.z - seat[2]);
         squash = Math.max(0.25, Math.min(1, drop / Math.max(0.05, Math.hypot(drop, run)) * 1.15));
         drift(now);
-        const size = view.clientHeight * eye.projectionMatrix[5] * 0.16 / depth;
+        const size = view.clientHeight * eye.projectionMatrix[5] * (xr3d ? 0.25 : 0.16) / depth;
         her.style.setProperty('--s', Math.max(24, Math.min(size, 300)) + 'px');
       };
-      active.requestAnimationFrame(frame);
+      if (xr3d) xr3d.loop(frame);
+      else active.requestAnimationFrame(frame);
     } catch (error) {
       if (request !== version) return;
       session = null;
       cancelHits();
+      endXr();
       if (active) await active.end().catch(() => {});
       if (request === version) openCamera('AR unavailable. ', false);
     }
