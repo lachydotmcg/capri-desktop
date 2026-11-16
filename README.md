@@ -91,7 +91,7 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 <summary><h2><a name="what-she-does"></a>What she does</h2><br><a name="what-she-does-1"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"></a> <a name="what-she-does-2"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"></a> <a name="what-she-does-3"><img src="assets/readme/mainframe.png" alt="The Capri Mainframe with her BRAIN and VOICE rows" width="170"></a></summary>
 
 - **Talks back.** Type to her or voice chat, and turn on "Hey Capri" to call her by name. She answers in her own words, in 80 languages.
-- **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (Windows).
+- **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (chat and photos on Windows, Mac and Linux; calls and Room voice are Windows-only).
 - **Talks out loud.** In her own free voice, a voice model of yours, or Fish Audio, ElevenLabs or OpenAI. See [Her voice](#her-voice).
 - **Joins your calls.** She covers for you on Discord and other call apps, and launches what your friends pick (Windows, beta). See [She joins your calls](#she-joins-your-calls).
 - **Plays your games.** She comments while you play, and she can play too. She's still learning.
