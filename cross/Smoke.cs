@@ -265,7 +265,8 @@ namespace CapriDesktop
                 checks.Add("PASS petting: rubbing the cursor back and forth over her makes her smile and say a short line, not too easily and not again for 20 s");
                 checks.Add("PASS Head pats saves Off and ignores strokes; On brings back her pat reaction");
                 var patRounds = new List<string>();
-                for (int i = 0; i < Pet.PetLines.Length * 3; i++) patRounds.Add(Lines.Pick(Pet.PetLines));
+                string[] patSet = (string[])Pet.PetLines.Clone();
+                for (int i = 0; i < patSet.Length * 3; i++) patRounds.Add(Lines.Pick(patSet));
                 string patWrong = null;
                 for (int round = 0; round < 3 && patWrong == null; round++)
                     if (patRounds.Skip(round * Pet.PetLines.Length).Take(Pet.PetLines.Length).Distinct().Count() != Pet.PetLines.Length) patWrong = "round " + round + " repeated a line";
