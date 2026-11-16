@@ -20,4 +20,4 @@ The Linux native font bootstrap adapts SkiaSharp’s MIT-licensed LibraryLoader 
 
 ## Room 3D
 
-Capri Remote's Room renders her model with [three.js](https://threejs.org) r170 (three.module.min.js, GLTFLoader.js and BufferGeometryUtils.js in `site/remote/vendor/three/`), Copyright (c) 2010-2024 three.js authors, under the [MIT License](https://opensource.org/licenses/MIT). The licence text is in `site/remote/vendor/three/LICENSE`. The model itself is built in Blender from her own sprites by `tools/room-model/build.py`.
+Capri Remote's Room draws her with [three.js](https://threejs.org) r170 (three.module.min.js in `site/remote/vendor/three/`), Copyright (c) 2010-2024 three.js authors, under the [MIT License](https://opensource.org/licenses/MIT). The licence text is in `site/remote/vendor/three/LICENSE`.

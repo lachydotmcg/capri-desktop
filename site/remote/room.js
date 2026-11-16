@@ -331,7 +331,7 @@
   const stopTracks = active => active?.getTracks().forEach(item => item.stop());
   const ensure3d = () => {
     if (no3d) return Promise.reject(new Error('3D unavailable'));
-    kitLoading = kitLoading || import('./room3d.js').then(module => module.load('models/')).then(loaded => { kit = loaded; return loaded; });
+    kitLoading = kitLoading || import('./room3d.js').then(module => module.load(own)).then(loaded => { kit = loaded; return loaded; });
     kitLoading.catch(() => { no3d = true; });
     return kitLoading;
   };

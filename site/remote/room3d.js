@@ -1,37 +1,19 @@
 import * as THREE from './vendor/three/three.module.min.js';
-import { GLTFLoader } from './vendor/three/GLTFLoader.js';
 
-const SCALE = { camera: { sit: 0.8, lie: 0.8 }, xr: { sit: 0.5, lie: 0.52 } };
-const SPAN = { sit: 0.62, lie: 1.05 };
-const FLOAT = 0.12;
-const wrap = angle => Math.atan2(Math.sin(angle), Math.cos(angle));
-
-const rim = material => {
-  material.onBeforeCompile = shader => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <emissivemap_fragment>',
-      '#include <emissivemap_fragment>\n' +
-      'float edgeGlow = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 3.0);\n' +
-      'totalEmissiveRadiance += vec3(0.1, 0.85, 1.0) * edgeGlow * 0.5;'
-    );
-  };
+const stripe = (url, w, h, cols, count, fps, px) => ({ url, w, h, cols, rows: Math.ceil(count / cols), count, fps, px });
+const CLIPS = {
+  perch: stripe('room/perch.webp', 196, 384, 20, 60, 30, 70),
+  perch_talk: stripe('room/perch_talk.webp', 196, 384, 20, 60, 30, 70),
+  perch_blink: stripe('room/perch_blink.png', 196, 384, 8, 8, 30, 70),
+  perch_arrive: stripe('room/perch_arrive.png', 288, 384, 14, 14, 15, 70),
+  laydown: stripe('laydown.png', 372, 250, 10, 60, 30, 186),
+  laydown_talk: stripe('laydown_talk.png', 372, 250, 10, 60, 30, 186),
+  laydown_blink: stripe('room/laydown_blink.png', 372, 250, 8, 8, 30, 186)
 };
-
-const prepare = root => {
-  root.traverse(node => {
-    if (!node.isMesh) return;
-    const material = node.material;
-    material.alphaTest = 0.5;
-    material.transparent = false;
-    material.emissive = new THREE.Color(0xffffff);
-    material.emissiveMap = material.map;
-    material.emissiveIntensity = 0.7;
-    material.roughness = 0.85;
-    material.metalness = 0;
-    rim(material);
-  });
-  return root;
-};
+const BLINK = { perch: 28, laydown: 45 };
+const HEIGHT = { camera: 0.8, xr: 0.5 };
+const BODY = { sit: [0.5, 0.36], lie: [0.98, 0.34] };
+const FLOAT = 0.05;
 
 const softShadow = () => {
   const canvas = document.createElement('canvas');
@@ -49,9 +31,16 @@ const softShadow = () => {
 };
 
 export const load = async base => {
-  const loader = new GLTFLoader();
-  const [sit, lie] = await Promise.all(['capri.glb', 'capri-lie.glb'].map(name => loader.loadAsync(base + name)));
-  const models = { sit: prepare(sit.scene), lie: prepare(lie.scene) };
+  const loader = new THREE.TextureLoader();
+  const sheets = {};
+  await Promise.all(Object.entries(CLIPS).map(async ([name, clip]) => {
+    const texture = await loader.loadAsync(base + clip.url);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.premultiplyAlpha = true;
+    texture.generateMipmaps = false;
+    texture.minFilter = texture.magFilter = THREE.LinearFilter;
+    sheets[name] = texture;
+  }));
   const shadow = softShadow();
 
   const stage = ({ canvas, xr = false }) => {
@@ -65,72 +54,115 @@ export const load = async base => {
     }
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 60);
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8a9a, 1.3);
-    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-    sun.position.set(0.6, 2, 1.2);
+    const textures = {};
+    for (const name in sheets) {
+      textures[name] = sheets[name].clone();
+      textures[name].needsUpdate = true;
+    }
+    const material = new THREE.MeshBasicMaterial({
+      map: textures.perch, transparent: true, premultipliedAlpha: true, depthWrite: false, alphaTest: 0.01, side: THREE.DoubleSide
+    });
     const shade = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 1),
       new THREE.MeshBasicMaterial({ map: shadow, transparent: true, depthWrite: false })
     );
-    shade.rotation.x = -Math.PI / 2;
+    shade.rotation.order = 'YXZ';
     shade.renderOrder = -1;
+    const figure = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
     const root = new THREE.Group();
     const body = new THREE.Group();
-    const figures = { sit: models.sit.clone(true), lie: models.lie.clone(true) };
-    body.add(figures.sit, figures.lie);
+    body.add(figure);
     root.add(body);
-    scene.add(hemi, sun, shade, root);
+    scene.add(shade, root);
     root.visible = shade.visible = false;
 
     const matrix = new THREE.Matrix4();
-    let last = 0, yaw = 0, pose = '', since = 0, fresh = true, width = 0, height = 0;
+    let pose = '', since = 0, fresh = true, width = 0, height = 0, once = null, round = -1, blinking = false, shown = '', cell = -1;
 
     const pop = t => {
       const k = Math.min(1, t / 0.5) - 1;
       return 1 + 2.2 * k * k * k + 1.2 * k * k;
     };
 
+    const frame = (name, index, scale) => {
+      const clip = CLIPS[name], texture = textures[name];
+      if (name !== shown) {
+        shown = name;
+        cell = -1;
+        material.map = texture;
+        figure.scale.set(clip.w * scale, clip.h * scale, 1);
+        figure.position.set((clip.w / 2 - clip.px) * scale, clip.h / 2 * scale, 0);
+      }
+      if (index === cell) return;
+      cell = index;
+      const col = index % clip.cols, row = Math.floor(index / clip.cols);
+      const nudgeX = 0.5 / (clip.w * clip.cols), nudgeY = 0.5 / (clip.h * clip.rows);
+      texture.repeat.set(1 / clip.cols - 2 * nudgeX, 1 / clip.rows - 2 * nudgeY);
+      texture.offset.set(col / clip.cols + nudgeX, 1 - (row + 1) / clip.rows + nudgeY);
+    };
+
     const update = state => {
-      const now = state.now, dt = last ? Math.min(0.1, Math.max(0, (now - last) / 1000)) : 0;
-      last = now;
+      const now = state.now;
       const there = state.position;
       root.visible = shade.visible = !!there;
-      if (state.tint) {
-        const [r, g, b] = state.tint;
-        hemi.color.setRGB(r, g, b, THREE.SRGBColorSpace);
-        sun.color.setRGB(r, g, b, THREE.SRGBColorSpace);
-      } else {
-        hemi.color.set(0xffffff);
-        sun.color.set(0xffffff);
-      }
+      if (state.tint) material.color.setRGB(state.tint[0], state.tint[1], state.tint[2], THREE.SRGBColorSpace);
+      else material.color.set(0xffffff);
       if (!there) { fresh = true; return; }
+      const calm = !!state.calm;
       const want = state.pose === 'laydown' ? 'lie' : 'sit';
       if (want !== pose) {
         pose = want;
         since = now;
-        figures.sit.visible = pose === 'sit';
-        figures.lie.visible = pose === 'lie';
+        once = null;
+        shown = '';
       }
-      if (fresh) since = now;
-      root.position.set(there[0], there[1], there[2]);
-      const viewer = state.viewer || [0, 0, 0];
-      const face = Math.atan2(viewer[0] - there[0], viewer[2] - there[2]);
-      const sway = state.calm ? 0 : Math.sin(now / 1000 * 0.6) * 0.7 + (state.turn || 0);
-      if (fresh) yaw = face + sway;
-      yaw += wrap(face + sway - yaw) * (1 - Math.exp(-dt * 0.6));
+      if (fresh) {
+        since = now;
+        once = !calm && pose === 'sit' ? { name: 'perch_arrive', from: now } : null;
+        shown = '';
+      }
       fresh = false;
-      root.rotation.y = yaw;
-      const seconds = now / 1000, calm = state.calm ? 0 : 1;
-      const lift = FLOAT + calm * (Math.sin(seconds * 1.7) * 0.5 + 0.5) * 0.06;
-      const talk = state.talking && !state.calm ? Math.abs(Math.sin(seconds * 9)) * 0.025 : 0;
-      const size = SCALE[xr ? 'xr' : 'camera'][pose] * pop((now - since) / 1000);
-      body.position.y = lift * size / SCALE[xr ? 'xr' : 'camera'][pose] * (pose === 'lie' ? 1.2 : 1);
-      body.scale.set(size, size * (1 + talk), size);
-      body.rotation.z = calm * Math.sin(seconds * 0.9 + 1) * 0.03;
-      const span = SPAN[pose] * size / SCALE[xr ? 'xr' : 'camera'][pose] * (xr ? 0.8 : 1.0);
-      const high = (lift - FLOAT) / 0.06;
+      const rest = pose === 'lie' ? 'laydown' : 'perch';
+      const viewer = state.viewer || [0, 0, 0];
+      const yaw = Math.atan2(viewer[0] - there[0], viewer[2] - there[2]);
+      root.position.set(there[0], there[1], there[2]);
+      root.rotation.set(0, yaw, 0);
+
+      const seconds = now / 1000;
+      const metres = HEIGHT[xr ? 'xr' : 'camera'] / 384;
+      let name = rest, index = 0;
+      if (!calm) {
+        if (once) {
+          const clip = CLIPS[once.name], step = Math.floor((now - once.from) * clip.fps / 1000);
+          if (step >= clip.count) once = null;
+          else { name = once.name; index = step; }
+        }
+        if (!once) {
+          const step = Math.max(0, Math.floor((now - since) * 30 / 1000));
+          index = step % 60;
+          if (Math.floor(step / 60) !== round) {
+            round = Math.floor(step / 60);
+            blinking = Math.random() < 0.55;
+          }
+          if (state.talking) name = rest + '_talk';
+          else if (blinking && index >= BLINK[rest] && index < BLINK[rest] + 8) {
+            name = rest + '_blink';
+            index -= BLINK[rest];
+          }
+        }
+      }
+      frame(name, index, metres);
+
+      const size = pose === 'lie' ? pop((now - since) / 1000) : 1;
+      const bob = calm ? 0 : (Math.sin(seconds * 1.7) * 0.5 + 0.5) * 0.04;
+      const lift = (FLOAT + bob) * HEIGHT[xr ? 'xr' : 'camera'] / 0.8;
+      body.position.y = lift * size;
+      body.scale.set(size, size, 1);
+
+      const high = bob / 0.04, extent = BODY[pose], scale = HEIGHT[xr ? 'xr' : 'camera'] * size;
       shade.position.set(there[0], there[1] + 0.004, there[2]);
-      shade.scale.set(span * (1 - 0.08 * high), span * 0.75 * (1 - 0.08 * high), 1);
+      shade.rotation.set(-Math.PI / 2, yaw, 0);
+      shade.scale.set(extent[0] * scale * (1 - 0.08 * high), extent[1] * scale * (1 - 0.08 * high), 1);
       shade.material.opacity = 0.62 - 0.12 * high;
       shade.visible = size > 0.01;
     };
@@ -168,6 +200,11 @@ export const load = async base => {
 
     const dispose = () => {
       renderer.setAnimationLoop(null);
+      for (const name in textures) textures[name].dispose();
+      figure.geometry.dispose();
+      shade.geometry.dispose();
+      material.dispose();
+      shade.material.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
     };
