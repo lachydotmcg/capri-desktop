@@ -66,7 +66,7 @@ jobs:
             find $app/Contents/MacOS -type f ! -name Capri ! -name capri-mic | while read -r part; do
               if file -b "$part" | grep -q Mach-O; then codesign --force --timestamp --options runtime --sign "$identity" "$part"; fi
             done
-            codesign --force --timestamp --options runtime --entitlements cross/mac/Capri.entitlements --sign "$identity" $app/Contents/MacOS/capri-mic
+            codesign --force --timestamp --options runtime --entitlements cross/mac/Mic.entitlements --sign "$identity" $app/Contents/MacOS/capri-mic
             codesign --force --timestamp --options runtime --entitlements cross/mac/Capri.entitlements --sign "$identity" $app/Contents/MacOS/Capri
             codesign --force --timestamp --options runtime --entitlements cross/mac/Capri.entitlements --sign "$identity" $app
             codesign --verify --strict --verbose=2 $app
