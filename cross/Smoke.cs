@@ -4185,6 +4185,7 @@ namespace CapriDesktop
                 if (pet.Talk.Reply != "New answer.") throw new Exception("A new answer did not drop the old follow-up.");
                 pet.Talk.Dismiss(); pet.HoldFollowUp("Off."); pet.SetFollowUps(false); pet.CheckFollowUp(100); pet.CheckFollowUp(103);
                 if (pet.Talk.Reply != null) throw new Exception("Follow-up messages Off kept a held thought.");
+                typeof(Pet).GetField("inputHandled", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).SetValue(pet, 100.0);
                 pet.SetFollowUps(true); pet.ObserveInput(200, 200, 20); pet.HoldFollowUp("Other typing."); pet.CheckFollowUp(100); pet.ObserveInput(201, 201, 0); pet.CheckFollowUp(103);
                 if (pet.Talk.Reply != null) throw new Exception("Desktop input did not drop the follow-up.");
                 pet.ObserveInput(400, 400.02, 20); pet.HoldFollowUp("Quiet desktop."); pet.CheckFollowUp(100); pet.ObserveInput(400.5, 400.54, 20.52); pet.CheckFollowUp(102);
