@@ -4272,6 +4272,11 @@ namespace CapriDesktop
             ToolStripMenuItem pick = Choice(yours || kept ? "Pick a new clip of you..." : "Your voice (HD) · pick a clip of you...", false, delegate { PickYourVoice(); });
             freeMenu.Items.Add(pick);
             freeMenu.Items.Add(Choice(QwenVoice.CpuChoice, capri.HdCpu, delegate { capri.ToggleHdCpu(); }));
+            if (ready && !busy)
+            {
+                freeMenu.Items.Add(new ToolStripSeparator());
+                freeMenu.Items.Add(Choice(RemoveFreeChoice, false, delegate { capri.RemoveFreeVoice(); }));
+            }
             freeVoices.Invalidate();
             customVoice.Invalidate();
             freeSetup.Invalidate();
@@ -4320,6 +4325,8 @@ namespace CapriDesktop
                 if (item is ToolStripMenuItem && item.Enabled && item.Text.StartsWith(text, StringComparison.Ordinal)) { item.PerformClick(); return true; }
             return false;
         }
+
+        internal static string RemoveFreeChoice { get { return "Remove free voice \u00b7 frees about " + Engine.Amount(LocalVoice.PackSize); } }
 
         internal string FreeStatus { get { return (freeVoices.Visible ? freeVoices.Text : "-") + " | " + (freeSetup.Visible ? freeSetup.Text : "-"); } }
 
