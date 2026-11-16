@@ -844,6 +844,13 @@ const called = answer => {
   return { text: answer.replace(/\s*\bPING:\s*@?\w*[.!?]?/gi, '').trim(), who };
 };
 
+// Her rules are the same for every question on each route, so Claude's cache keeps them at a tenth of the price. The release
+// line and the help notes picked for this question change, so they go after the mark, or every question would pay to store
+// them and never read them back.
+const cached = (system, steady) => typeof system === 'string' && steady && system.startsWith(steady) && system.length > steady.length
+  ? [{ type: 'text', text: steady, cache_control: { type: 'ephemeral' } }, { type: 'text', text: system.slice(steady.length) }]
+  : system;
+
 // Claude answers when the worker has an ANTHROPIC_API_KEY secret, and Workers AI is the fallback. null means Claude refused.
 const ask = async (env, messages, max_tokens, system) => {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 20000 });
@@ -862,10 +869,10 @@ const see = async (env, image) => {
 };
 
 // Why each model gave nothing goes in trouble, so a broken help line shows up in the logs instead of only as "glitching".
-const think = async (env, asked, messages, plain, trouble) => {
+const think = async (env, asked, messages, plain, trouble, steady) => {
   if (env.ANTHROPIC_API_KEY) {
     try {
-      const reply = await ask(env, asked, 1024, messages[0].content);
+      const reply = await ask(env, asked, 1024, cached(messages[0].content, steady));
       if (reply === null) { trouble.push('claude-refused: ' + claudeModel); return null; }
       if (reply) return clip(reply);
       trouble.push('claude-empty: ' + claudeModel);
@@ -917,7 +924,8 @@ const respond = async (request, env, ctx, reply, body, user) => {
   const facts = sections.filter(section => section.number === 1 && section.title !== section.chapter).slice(0, 2);
   const shown = [...chosen, ...facts.filter(section => !chosen.includes(section))];
   const written = shown.map(section => '[' + section.chapter + (section.title !== section.chapter ? ' > ' + section.title : '') + ']\n' + section.body.slice(0, 2600)).join('\n\n');
-  const system = { role: 'system', content: rules(!!user) + (version ? '\nLatest release: ' + version + '.' : '') + '\n\nHelp notes:\n' + (written || '(nothing matched)') };
+  const steady = rules(!!user);
+  const system = { role: 'system', content: steady + (version ? '\nLatest release: ' + version + '.' : '') + '\n\nHelp notes:\n' + (written || '(nothing matched)') };
   const messages = [system, ...history, { role: 'user', content: image ? [{ type: 'text', text }, { type: 'image_url', image_url: { url: image } }] : text }];
   const plain = image ? [system, ...history, { role: 'user', content: text + (seen ? '\n\n(Their screenshot shows: ' + seen + ')' : "\n\n(They sent a screenshot you can't see. Ask them to type out what it says.)") }] : messages;
   const first = history.findIndex(turn => turn.role === 'user');
@@ -929,7 +937,7 @@ const respond = async (request, env, ctx, reply, body, user) => {
   }
 
   const trouble = env.AI ? [] : ['no AI binding'];
-  const answer = await think(env, asked, messages, plain, trouble);
+  const answer = await think(env, asked, messages, plain, trouble, steady);
   if (!answer) console.error('Help line failed: ' + trouble.join(' | '));
   const claude = trouble.find(entry => entry.startsWith('claude-'));
   const why = answer ? null : claude ? claude.split(':')[0] : /\b4006\b|daily free allocation/i.test(trouble.join(' ')) ? 'allowance' : (trouble.join(' ').match(/\b(\d{4,5})\b/) || [null, env.AI ? 'ai' : 'binding'])[1];
