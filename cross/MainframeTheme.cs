@@ -20,10 +20,10 @@ namespace CapriDesktop
         internal static readonly string[] LookNames = { "Night City", "Black", "White", "Grey" };
         private static readonly string[][] Looks =
         {
-            new[] { "#0A0A10", "#360E1A", "#100C14", "#2C7A86", "#FF5D66", "#ECECF1", "#92828C", "#11101C", "#1E1424", "#2E1626", "#5C1824", "#E84246", "#5EF0F6", "#091E21", "#287884", "#060E12", "#4E1C28", "#F55A56", "#781E2C", "#0C0B14", "#481C28", "#F7DF70" },
-            new[] { "#000000", "#181818", "#080808", "#6E6E6E", "#FFFFFF", "#EEEEEE", "#969696", "#101010", "#222222", "#343434", "#545454", "#F5F5F5", "#CDCDCD", "#161616", "#787878", "#010101", "#464646", "#FAFAFA", "#606060", "#060606", "#4C4C4C", "#E6E6E6" },
-            new[] { "#FFFFFF", "#ECECEC", "#F8F8F8", "#787878", "#000000", "#141414", "#606060", "#F4F4F4", "#E6E6E6", "#D6D6D6", "#AAAAAA", "#1E1E1E", "#404040", "#EEEEEE", "#6E6E6E", "#FEFEFE", "#BEBEBE", "#0A0A0A", "#969696", "#FAFAFA", "#B4B4B4", "#3C3C3C" },
-            new[] { "#5C5C5C", "#6C6C6C", "#545454", "#AAAAAA", "#FFFFFF", "#FAFAFA", "#DEDEDE", "#4E4E4E", "#686868", "#767676", "#8C8C8C", "#F6F6F6", "#ECECEC", "#484848", "#BEBEBE", "#1E1E1E", "#828282", "#FCFCFC", "#A0A0A0", "#282828", "#969696", "#F4F4F4" }
+            new[] { "#0A0A10", "#360E1A", "#100C14", "#2C7A86", "#FF5D66", "#ECECF1", "#92828C", "#11101C", "#1E1424", "#2E1626", "#5C1824", "#E84246", "#5EF0F6", "#091E21", "#287884", "#060E12", "#4E1C28", "#F55A56", "#781E2C", "#0C0B14", "#481C28", "#F7DF70", "#100D16" },
+            new[] { "#000000", "#181818", "#080808", "#6E6E6E", "#FFFFFF", "#EEEEEE", "#969696", "#101010", "#222222", "#343434", "#545454", "#F5F5F5", "#CDCDCD", "#161616", "#787878", "#010101", "#464646", "#FAFAFA", "#606060", "#060606", "#4C4C4C", "#E6E6E6", "#0E0E0E" },
+            new[] { "#FFFFFF", "#ECECEC", "#F8F8F8", "#787878", "#000000", "#141414", "#606060", "#F4F4F4", "#E6E6E6", "#D6D6D6", "#AAAAAA", "#1E1E1E", "#404040", "#EEEEEE", "#6E6E6E", "#FEFEFE", "#BEBEBE", "#0A0A0A", "#969696", "#FAFAFA", "#B4B4B4", "#3C3C3C", "#F3F3F3" },
+            new[] { "#5C5C5C", "#6C6C6C", "#545454", "#AAAAAA", "#FFFFFF", "#FAFAFA", "#DEDEDE", "#4E4E4E", "#686868", "#767676", "#8C8C8C", "#F6F6F6", "#ECECEC", "#484848", "#BEBEBE", "#1E1E1E", "#828282", "#FCFCFC", "#A0A0A0", "#282828", "#969696", "#F4F4F4", "#505050" }
         };
         private static readonly List<SolidColorBrush> Slots = new List<SolidColorBrush>();
         private static int shade;
@@ -49,6 +49,7 @@ namespace CapriDesktop
         internal static readonly IBrush Well = Slot();
         internal static readonly IBrush WellEdge = Slot();
         internal static readonly IBrush Yellow = Slot();
+        internal static readonly IBrush MenuBack = Slot();
 
         private static IBrush Slot() { var brush = new SolidColorBrush(Color.Parse(Looks[0][Slots.Count])); Slots.Add(brush); return brush; }
         internal static int ClampLook(int look) { return look < 0 || look >= Looks.Length ? 0 : look; }
@@ -214,10 +215,11 @@ namespace CapriDesktop
             var box = new Rect(0.5 * s, 0.5 * s, Math.Max(0, w - s - 1), Math.Max(0, h - s - 1));
             var shape = MainframeTheme.Cut(box, (Menu ? 10 : 16) * s, (Menu ? 4 : 6) * s, (Menu ? 10 : 16) * s, (Menu ? 4 : 6) * s);
             var wine = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Absolute), EndPoint = new RelativePoint(0, (Menu ? 90 : 210) * s, RelativeUnit.Absolute), SpreadMethod = GradientSpreadMethod.Pad };
+            Color top = ((ISolidColorBrush)MainframeTheme.Glow).Color, bottom = ((ISolidColorBrush)(Menu ? MainframeTheme.MenuBack : MainframeTheme.Ground)).Color;
             for (int i = 0; i < 9; i++)
             {
                 double at = i / 8.0, fade = (1 - at) * (1 - at);
-                wine.GradientStops.Add(new GradientStop(Color.FromRgb((byte)Math.Round((Menu ? 16 : 10) + (Menu ? 38 : 44) * fade), (byte)Math.Round((Menu ? 13 : 10) + (Menu ? 1 : 4) * fade), (byte)Math.Round((Menu ? 22 : 16) + (Menu ? 4 : 10) * fade)), at));
+                wine.GradientStops.Add(new GradientStop(Color.FromRgb((byte)Math.Round(bottom.R + (top.R - bottom.R) * fade), (byte)Math.Round(bottom.G + (top.G - bottom.G) * fade), (byte)Math.Round(bottom.B + (top.B - bottom.B) * fade)), at));
             }
             context.DrawGeometry(wine, null, shape);
             base.Render(context);
