@@ -172,6 +172,7 @@
   bar.append(back, barMute, barEnd);
 
   // ---------- The call's state ----------
+  let listening = false;
   let state = 'off'; // 'off', 'ringing', 'on', or 'ended' while the call screen says so
   let shown = false; // the call screen is up, rather than shrunk to the call bar
   let them = { voice: true, ears: true };
@@ -204,9 +205,11 @@
   // Her loudness at the speaker for each of the last OVER_HOLD mic frames.
   const herLoud = [];
 
-  const supported = () => {
+  const supported = (listen = false) => {
     const r = remote();
-    return !!(r && r.state === 'connected' && Array.isArray(r.info.features) && r.info.features.includes('call') && C && (window.AudioContext || window.webkitAudioContext) && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const features = r?.info.features;
+    return !!(r && r.state === 'connected' && Array.isArray(features) && features.includes('call') && C && (window.AudioContext || window.webkitAudioContext)
+      && (listen ? features.includes('call-listen') : navigator.mediaDevices?.getUserMedia));
   };
   const live = () => state === 'ringing' || state === 'on';
   const fullScreen = () => live() && window.CapriScreen && window.CapriScreen.mode === 'full';
@@ -866,6 +869,13 @@
     captions.classList.add('long');
   };
   const draw = () => {
+    if (window.CapriRoom) window.CapriRoom.talk(!!(live() && speakerOn && sound && sound.context.state === 'running' && speaking() && sound.context.currentTime >= herStart));
+    if (listening) {
+      if (window.CapriRoom) {
+        window.CapriRoom.voiceStatus(!them.voice ? 'Her voice is off on your PC.' : sound && sound.context.state !== 'running' ? 'Tap Voice to hear her.' : '');
+      }
+      return;
+    }
     const app = document.getElementById('app');
     const full = fullScreen();
     const up = shown && state !== 'off' && !full;
@@ -936,7 +946,7 @@
   };
   const syncScreen = () => {
     const S = window.CapriScreen;
-    if (!live() || !S || !S.supported()) return;
+    if (listening || !live() || !S || !S.supported()) return;
     const wanted = pick.screen || screenRunning() || performance.now() < screenUntil;
     if (wanted && S.mode === 'off') {
       calling = true;
@@ -1006,6 +1016,7 @@
     if (window.CapriScreen && window.CapriScreen.within) window.CapriScreen.within(null);
   };
   const reasons = { 'not-allowed': 'Calls are off on your PC', ended: 'Your PC ended the call', busy: 'Capri is busy' };
+  const listenReasons = { 'not-allowed': 'Your PC is not taking calls. Tap Voice to try again.', busy: "Your PC is on another phone's call. Tap Voice to try again.", ended: 'Your PC ended it. Tap Voice to try again.' };
   const over = (why, byHim) => {
     clearTimeout(ring);
     drop();
@@ -1028,11 +1039,49 @@
     // Hung up here, it closes after a moment. Dropped or failed, the screen stays to say why, with Call again.
     if (!shown) {
       state = 'off';
-      if (why) tell(why);
+      if (why && !listening) tell(why);
     } else if (byHim) closeTimer = setTimeout(() => { if (state === 'ended') hide(); }, 1200);
+    if (listening) {
+      listening = false;
+      state = 'off';
+      audioSession('auto');
+      if (window.CapriRoom) {
+        window.CapriRoom.talk(false);
+        window.CapriRoom.voiceStatus(why || '');
+      }
+    } else if (window.CapriRoom && (!why || byHim)) {
+      queueMicrotask(() => { if (!live()) window.CapriRoom.startVoice(); });
+    }
     draw();
   };
+  // An iPhone on silent mutes Web Audio unless the page says this is playback.
+  const audioSession = type => { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (error) {} };
+  const listen = () => {
+    if (listening) { if (sound) resume(sound.context); return true; }
+    if (live() || !supported(true)) return false;
+    clearTimeout(closeTimer);
+    hide();
+    them = { voice: true, ears: true };
+    since = 0;
+    listening = true;
+    shown = false;
+    speakerOn = true;
+    audioSession('playback');
+    try { openSound(); } catch (error) { listening = false; audioSession('auto'); return false; }
+    state = 'ringing';
+    if (!remote().send('call.start', { hush: true, listen: true })) { over("Your PC did not answer in time. Tap Voice to try again.", false); return true; }
+    ring = setTimeout(() => {
+      if (listening && state === 'ringing') {
+        remote().send('call.stop', {});
+        over("Your PC did not answer in time. Tap Voice to try again.", false);
+      }
+    }, 8000);
+    tick = setInterval(onTick, 50);
+    draw();
+    return true;
+  };
   const start = () => {
+    if (listening) end();
     if (live()) { show(); return true; }
     if (!supported()) return false;
     clearTimeout(closeTimer);
@@ -1136,7 +1185,7 @@
         if (state === 'ringing') { state = 'on'; since = Date.now(); }
         them = { voice: message.voice !== false, ears: message.ears !== false };
         draw();
-      } else if (live()) over(reasons[message.reason] || 'Call ended', false);
+      } else if (live()) over(listening ? listenReasons[message.reason] || "Your PC did not answer in time. Tap Voice to try again." : reasons[message.reason] || 'Call ended', false);
     } else if (type === 'chat.tool') toolSaid(message);
     else if (type === 'call.heard') {
       if (typeof message.id !== 'string' || state !== 'on') return;
@@ -1213,6 +1262,11 @@
 
   window.CapriCall = {
     supported,
+    listen,
+    room: () => { if (!listening) hide(); },
+    get active() { return live() && !listening; },
+    stopListening: () => { if (listening) end(); },
+    get listening() { return listening; },
     start,
     end,
     get overHer() { return pick.overHer; },

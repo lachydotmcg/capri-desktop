@@ -1130,6 +1130,7 @@ namespace CapriDesktop
             Cases(failed);
             Pastes(failed);
             foreach (string reply in Replies) Streams(failed, reply);
+            Streams(failed, AwkwardStream);
             Shapes(failed);
             Random random = new Random(20261112);
             for (int i = 0; i < 1500; i++)
@@ -1317,6 +1318,13 @@ namespace CapriDesktop
             for (int i = 0; i < cuts.Length; i++)
                 if (cuts[i] != wanted[i]) failed.Add("selection " + i + " pasted " + Quoted(cuts[i]) + ", wanted " + Quoted(wanted[i]));
         }
+
+        internal static readonly string AwkwardStream = "**Bold** and *italic*, [a link](https://capriai.app/docs).\n\n"
+            + "1. Parent\n   - Child **words**\n     - Deeper *words*\n\n"
+            + "| Name | Value |\n|:---|---:|\n| alpha | **one** |\n| beta | `two` |\n\n"
+            + "```csharp\nvar text = \"still arriving\";\n```\n\n"
+            + "\u65e5\u672c\u8a9e \u0627\u0644\u0639\u0631\u0628\u064a\u0629 e\u0301 \ud83d\ude00\n\n"
+            + new string('W', 180) + "\n\n```text\nAn open fence, with **literal marks";
 
         private static readonly string[] Replies =
         {

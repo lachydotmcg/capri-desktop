@@ -7,7 +7,167 @@ using System.Windows.Forms;
 
 namespace CapriDesktop
 {
-    internal sealed partial class FrameGrab : IDisposable
+    internal sealed class CaptureWait
+    {
+        private readonly Func<long> clock;
+        private IntPtr window;
+        private Rectangle bounds;
+        private bool exclusive;
+        private long since;
+        private bool seen;
+
+        internal CaptureWait(Func<long> time = null) { clock = time ?? Stopwatch.GetTimestamp; }
+
+        internal bool Ready(IntPtr next, Rectangle area, bool full)
+        {
+            if (next == IntPtr.Zero || area.Width <= 0 || area.Height <= 0) { Reset(); return false; }
+            return Quiet(next, area, full);
+        }
+
+        internal void Reset() { seen = false; }
+
+        internal bool Quiet(IntPtr next, Rectangle area, bool full)
+        {
+            long now = clock();
+            if (!seen || next != window || area != bounds || full != exclusive || now < since)
+            {
+                seen = true;
+                window = next;
+                bounds = area;
+                exclusive = full;
+                since = now;
+                return false;
+            }
+            return now - since >= Stopwatch.Frequency;
+        }
+    }
+
+    internal interface IFrameGrab : IDisposable
+    {
+        string Live { get; }
+        Size Size { get; }
+        Action<int> Lost { set; }
+        void Open(Rectangle bounds);
+        bool Next(int timeoutMs);
+        Bitmap Copy(int maxWidth);
+        byte[] Gray(int width, int height);
+    }
+
+    internal sealed class GameCapture
+    {
+        private readonly string who;
+        private readonly CaptureWait wait, quiet;
+        private readonly Func<IFrameGrab> make;
+        private readonly Func<IntPtr> foreground;
+        private readonly Func<IntPtr, bool> minimized;
+        private IFrameGrab grab, pending;
+        private IntPtr window;
+        private Rectangle bounds;
+        private bool exclusive;
+        private IntPtr quietWindow, quietFront;
+        private bool quietMinimized;
+
+        internal GameCapture(string owner, Func<long> time = null, Func<IFrameGrab> create = null, Func<IntPtr> front = null, Func<IntPtr, bool> tucked = null)
+        {
+            who = owner;
+            wait = new CaptureWait(time);
+            quiet = new CaptureWait(time);
+            make = create ?? delegate { return new FrameGrab(); };
+            foreground = front ?? Native.GetForegroundWindow;
+            minimized = tucked ?? Ledges.Minimised;
+        }
+
+        internal IFrameGrab Grab { get { return grab; } }
+        internal IntPtr Foreground { get { return foreground(); } }
+
+        private bool Front(bool on, IntPtr watched, IntPtr front, bool tucked)
+        {
+            if (!on) Close("switched off");
+            else
+            {
+                if (grab != null && watched != IntPtr.Zero && watched != window) Close("window changed");
+                if (tucked) Close("minimized");
+                else if (watched != IntPtr.Zero && watched == front) return true;
+                else Close("left the front");
+            }
+            return false;
+        }
+
+        internal bool Update(bool on, IntPtr watched, Rectangle area, bool full)
+        {
+            IntPtr front = foreground();
+            bool tucked = watched != IntPtr.Zero && minimized(watched);
+            try
+            {
+                if (!Front(on, watched, front, tucked)) return false;
+                if (area.Width <= 0 || area.Height <= 0) { Close("bounds changed"); return false; }
+                bool visible = false;
+                foreach (Screen screen in Screen.AllScreens)
+                {
+                    Rectangle overlap = Rectangle.Intersect(area, screen.Bounds);
+                    if (overlap.Width > 0 && overlap.Height > 0) { visible = true; break; }
+                }
+                if (!visible) { Close("off screen"); return false; }
+                if (grab != null)
+                {
+                    if (area != bounds) Close("bounds changed");
+                    else if (full != exclusive) Close("exclusive changed");
+                }
+                if (!wait.Ready(watched, area, full)) return false;
+                if (grab == null)
+                {
+                    front = foreground();
+                    tucked = watched != IntPtr.Zero && minimized(watched);
+                    if (!Front(on, watched, front, tucked)) return false;
+                    Release();
+                    grab = make();
+                    grab.Lost = delegate(int result) { Note("screen lost 0x" + result.ToString("X8")); };
+                    grab.Open(area);
+                    window = watched;
+                    bounds = area;
+                    exclusive = full;
+                    Size size = grab.Size;
+                    Note("opened " + (grab.Live == "DXGI Desktop Duplication" ? "DXGI" : "screen copy") + " " + size.Width + "x" + size.Height + " exclusive=" + (full ? "yes" : "no"));
+                }
+                return true;
+            }
+            finally
+            {
+                if (watched != quietWindow || front != quietFront || tucked != quietMinimized) quiet.Reset();
+                quietWindow = watched;
+                quietFront = front;
+                quietMinimized = tucked;
+                if (quiet.Quiet(front, area, full)) Release();
+            }
+        }
+
+        internal void Close(string why)
+        {
+            wait.Reset();
+            bool hold = why != "switched off" && why != "error";
+            if (why == "switched off") Release();
+            if (grab == null) return;
+            IFrameGrab previous = grab;
+            grab = null;
+            try
+            {
+                if (hold) { Release(); pending = previous; quiet.Reset(); }
+                else previous.Dispose();
+            }
+            finally { Note("closed " + why); }
+        }
+
+        internal void Release()
+        {
+            IFrameGrab previous = pending;
+            pending = null;
+            if (previous != null) previous.Dispose();
+        }
+
+        private void Note(string what) { Brain.Log("game capture", -1, who + " " + what); }
+    }
+
+    internal sealed partial class FrameGrab : IFrameGrab
     {
         private const int AccessLost = unchecked((int)0x887A0026);
         private const int WaitTimeout = unchecked((int)0x887A0027);
@@ -16,6 +176,8 @@ namespace CapriDesktop
         private readonly Func<bool> fullScreen;
         private readonly Action openDisplay;
         private readonly Func<bool> copyScreen;
+        private readonly Func<Rectangle> screens;
+        private readonly Func<int, bool> takeFrame;
         private Rectangle wanted, area, desktop;
         private IntPtr output, device, context, duplication, staging;
         private OutputDesc outputDesc;
@@ -28,20 +190,32 @@ namespace CapriDesktop
         private EndFrame release;
         private DescribeOutput describe;
         private Bitmap fallback;
-        private bool opened, ready, disposed;
+        private bool opened, ready, disposed, lost;
         private long retryAt, countedAt, settleUntil;
         private int counted;
         private double fps;
+        internal Action<int> Lost;
 
-        internal FrameGrab(Func<long> time = null, Func<bool> full = null, Action open = null, Func<bool> copy = null)
+        internal FrameGrab(Func<long> time = null, Func<bool> full = null, Action open = null, Func<bool> copy = null, Func<Rectangle> display = null, Func<int, bool> take = null)
         {
             clock = time ?? Stopwatch.GetTimestamp;
             fullScreen = full ?? Native.FillsScreen;
             openDisplay = open ?? OpenDuplication;
             copyScreen = copy ?? CopyDesktop;
+            screens = display ?? delegate { return SystemInformation.VirtualScreen; };
+            takeFrame = take ?? Take;
         }
 
+        string IFrameGrab.Live { get { return Live; } }
+        Size IFrameGrab.Size { get { return Size; } }
+        Action<int> IFrameGrab.Lost { set { Lost = value; } }
+        void IFrameGrab.Open(Rectangle bounds) { Open(bounds); }
+        bool IFrameGrab.Next(int timeoutMs) { return Next(timeoutMs); }
+        Bitmap IFrameGrab.Copy(int maxWidth) { return Copy(maxWidth); }
+        byte[] IFrameGrab.Gray(int width, int height) { return Gray(width, height); }
+
         internal string Live { get { lock (gate) return !opened ? "Closed" : duplication != IntPtr.Zero ? "DXGI Desktop Duplication" : "Graphics.CopyFromScreen"; } }
+        internal Size Size { get { lock (gate) return area.Size; } }
         internal double Fps { get { lock (gate) return fps; } }
 
         internal void Open(Rectangle bounds)
@@ -52,6 +226,7 @@ namespace CapriDesktop
                 if (disposed) throw new ObjectDisposedException("FrameGrab");
                 wanted = bounds;
                 opened = true;
+                lost = false;
                 counted = 0;
                 countedAt = clock();
                 fps = 0;
@@ -65,16 +240,24 @@ namespace CapriDesktop
             CloseDuplication();
             if (fallback != null) { fallback.Dispose(); fallback = null; }
             desktop = Screen.FromRectangle(wanted).Bounds;
-            area = CaptureArea(wanted, SystemInformation.VirtualScreen);
-            try { if (desktop.Contains(area)) openDisplay(); }
-            catch (Exception) { Settle(); }
+            area = CaptureArea(wanted, screens());
+            try { if (area.Width > 0 && area.Height > 0 && desktop.Contains(area)) openDisplay(); }
+            catch (Exception error) { Settle(error.HResult); }
             retryAt = clock() + Stopwatch.Frequency * 2;
         }
 
-        private void Settle()
+        private void Settle(int result)
         {
             CloseDuplication();
             retryAt = settleUntil = clock() + Stopwatch.Frequency * 3 / 2;
+            Lose(result);
+        }
+
+        private void Lose(int result)
+        {
+            if (lost) return;
+            lost = true;
+            if (Lost != null) Lost(result);
         }
 
         internal static Rectangle CaptureArea(Rectangle bounds, Rectangle screens) { return Rectangle.Intersect(bounds, screens); }
@@ -156,6 +339,12 @@ namespace CapriDesktop
                 // copying the screen: a new device on every frame meanwhile can hang the graphics driver under a game
                 // (john_sandevistan, 2 Nov: Valorant crashed as the Mainframe opened).
                 long now = clock();
+                if (area.Width <= 0 || area.Height <= 0)
+                {
+                    if (now < retryAt) return false;
+                    area = CaptureArea(wanted, screens());
+                    if (area.Width <= 0 || area.Height <= 0) { retryAt = now + Stopwatch.Frequency * 2; return false; }
+                }
                 if (now < settleUntil) return false;
                 if (duplication == IntPtr.Zero && now >= retryAt)
                 {
@@ -169,17 +358,18 @@ namespace CapriDesktop
                     {
                         OutputDesc current;
                         Check(describe(output, out current));
-                        if (current.Attached == 0 || current.Bounds != desktop || current.Rotation != outputDesc.Rotation) { Settle(); return false; }
+                        if (current.Attached == 0 || current.Bounds != desktop || current.Rotation != outputDesc.Rotation) { Settle(AccessLost); return false; }
                         if (duplication != IntPtr.Zero)
                         {
-                            if (!Take(timeoutMs)) return false;
+                            if (!takeFrame(timeoutMs)) return false;
+                            lost = false;
                             Count();
                             return true;
                         }
                     }
-                    catch (COMException)
+                    catch (COMException error)
                     {
-                        Settle();
+                        Settle(error.HResult);
                         return false;
                     }
                 }
@@ -191,8 +381,8 @@ namespace CapriDesktop
                     Count();
                     return true;
                 }
-                catch (System.ComponentModel.Win32Exception) { ready = false; return false; }
-                catch (ExternalException) { ready = false; return false; }
+                catch (System.ComponentModel.Win32Exception error) { ready = false; Lose(error.HResult); return false; }
+                catch (ExternalException error) { ready = false; Lose(error.HResult); return false; }
             }
         }
 
@@ -319,7 +509,7 @@ namespace CapriDesktop
                     picture = null;
                     return done;
                 }
-                catch (COMException) { Settle(); return null; }
+                catch (COMException error) { Settle(error.HResult); return null; }
                 finally { if (picture != null) picture.Dispose(); }
             }
         }
@@ -374,7 +564,7 @@ namespace CapriDesktop
                     try { return Downsample(source, area.Width, area.Height, across, down, width, height); }
                     finally { Unread(locked); }
                 }
-                catch (COMException) { Settle(); return null; }
+                catch (COMException error) { Settle(error.HResult); return null; }
             }
         }
 

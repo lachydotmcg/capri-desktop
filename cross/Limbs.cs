@@ -157,28 +157,8 @@ namespace CapriDesktop
                 if (phone != null && RemoteTurn.AtPc(tool, args)) return phone.Refuse(tool, args);
                 string held = phone == null ? Security.Gate(tool, args) : phone.Pet.RemoteGate(phone, tool, args);
                 if (held != null) return held;
-                if (phone != null)
-                {
-                    Func<bool> previous = args.Current;
-                    args.Current = delegate { return phone.Live && (previous == null || previous()); };
-                    if (!args.Current()) return RemoteTurn.Ended;
-                }
-                string id = phone == null ? null : RemoteMessages.NewId();
-                string summary = phone == null ? null : RemoteTurn.Words(tool, args);
-                string name = summary == "Using a tool" ? "tool" : tool;
-                if (phone != null) phone.Tool(id, name, summary, "running");
-                string done;
-                try
-                {
-                    if (phone != null && !phone.Current) return RemoteTurn.Ended;
-                    done = phone != null && tool == "mod" ? phone.Pet.RemoteMod(phone, args) : Hands.Do(tool, args);
-                }
-                catch
-                {
-                    if (phone != null) phone.Tool(id, name, summary, "failed");
-                    throw;
-                }
-                if (phone != null) phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) ? "failed" : "done");
+                string done = RemoteDo(phone, tool, args);
+                if (phone != null && done == RemoteTurn.Ended) return done;
                 if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
@@ -188,17 +168,49 @@ namespace CapriDesktop
             Hands.Work = RemoteWork(Hands.Work);
         }
 
+        internal static string RemoteDo(RemoteTurn phone, string tool, ToolArguments args)
+        {
+            if (phone == null) return Hands.Do(tool, args);
+            if (!phone.Current) return RemoteTurn.Ended;
+            if (args == null) args = new ToolArguments();
+            string unable = Hands.Unable(tool, args);
+            if (unable != null) return unable;
+            Func<bool> previous = args.Current;
+            if (tool != "use_computer" && tool != "stream") args.Current = phone.Guard(previous);
+            if (!phone.Current || args.Current != null && !args.Current()) return RemoteTurn.Ended;
+            string id = RemoteMessages.NewId(), summary = RemoteTurn.Words(tool, args);
+            string name = summary == "Using a tool" ? "tool" : tool;
+            string move = RemoteMessages.ToolMove(tool, args.Action, args.Name);
+            if (move == "heart") move = null;
+            phone.Tool(id, name, summary, "running");
+            string done;
+            try
+            {
+                if (!phone.Current) return RemoteTurn.Ended;
+                done = tool == "mod" ? phone.Pet.RemoteMod(phone, args) : Hands.Do(tool, args);
+            }
+            catch
+            {
+                phone.Tool(id, name, summary, "failed");
+                throw;
+            }
+            phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) || move != null && MoveFailed(done) ? "failed" : "done", move);
+            return done;
+        }
+
+        internal static bool MoveFailed(string result)
+        {
+            return result != null && result == Blind || Regex.IsMatch(result ?? "", @"\A(Which window\?|I can't see |I couldn't |I can see that app, but |That (?:app won't|window )|Those windows |Take that window |Window arranging |Turn Capri on in System Settings|Allow Capri to control System Events|System Events didn't answer|Lying down on a window you name is only on Windows so far\.)");
+        }
+
         internal static Func<ToolArguments, string> RemoteWork(Func<ToolArguments, string> work)
         {
             if (work == null) return null;
             return delegate(ToolArguments args)
             {
                 RemoteTurn phone = RemoteTurn.Working;
-                if (phone != null)
-                {
-                    if (!phone.Current) return RemoteTurn.Ended;
-                    return RemoteTurn.PcOnly;
-                }
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                if (phone != null && args != null) args.Current = phone.WorkGuard(args.Current);
                 return work(args);
             };
         }
@@ -209,7 +221,7 @@ namespace CapriDesktop
             return delegate(string task, string asked)
             {
                 RemoteTurn phone = RemoteTurn.Working;
-                if (phone != null) return phone.Current ? RemoteTurn.PcOnly : RemoteTurn.Ended;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
                 return work(task, asked);
             };
         }
@@ -474,7 +486,7 @@ namespace CapriDesktop
                 Blind = HyprlandDesktop.Current.LastError;
                 return native;
             }
-            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null)
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null && !KWinBridge.Live)
             {
                 Blind = "This Wayland compositor does not expose a supported native window-control backend.";
                 return found;
@@ -546,7 +558,7 @@ namespace CapriDesktop
         {
             if (!mac && HyprlandDesktop.Current != null)
                 return action == "close_tab" ? ComputerJobs.CloseTab(window) : HyprlandDesktop.Current.Steer(window, action);
-            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null) return false;
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null && !KWinBridge.Live) return false;
             if (mac)
             {
                 string name = Quoted(window.Program), bundle;

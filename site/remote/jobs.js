@@ -92,7 +92,7 @@
   };
   const read = row => {
     if (!row || !idOk(row.id) || !Object.hasOwn(states, row.state) || !Number.isSafeInteger(row.started) || row.started <= 0 || row.started > 8640000000000000 || !Number.isSafeInteger(row.steps) || row.steps < 0) return null;
-    return { id: row.id, task: clip(row.task, 200) || 'Using your computer', state: row.state, steps: row.steps, started: row.started, ended: Number.isSafeInteger(row.ended) && row.ended > 0 && row.ended <= 8640000000000000 ? row.ended : 0, ask: clip(row.ask, 200), last: clip(row.last, 120) };
+    return { id: row.id, task: clip(row.task, 200) || 'Using your computer', state: row.state, steps: row.steps, started: row.started, ended: Number.isSafeInteger(row.ended) && row.ended > 0 && row.ended <= 8640000000000000 ? row.ended : 0, ask: clip(row.ask, 200), askId: idOk(row.ask_id) ? row.ask_id : null, last: clip(row.last, 120) };
   };
   const recentRow = row => {
     const item = make('li', 'job-recent-item');
@@ -159,8 +159,14 @@
     render();
   };
   stop.addEventListener('click', () => current && send('job.stop', { id: current.id }));
-  allow.addEventListener('click', () => current && send('job.answer', { id: current.id, yes: true }));
-  deny.addEventListener('click', () => current && send('job.answer', { id: current.id, yes: false }));
+  const answer = yes => {
+    if (!current || current.state !== 'asking') return;
+    const body = { id: current.id, yes };
+    if (current.askId) body.ask_id = current.askId;
+    send('job.answer', body);
+  };
+  allow.addEventListener('click', () => answer(true));
+  deny.addEventListener('click', () => answer(false));
 
   // The page covers the app, the call included, and keeps focus inside it until it closes.
   const close = () => {
@@ -204,7 +210,7 @@
       // A late running or asking for a job that's already over is old news.
       if (was && !live(was.state) && live(row.state)) return;
       row.last = (was && was.last) || (recent.find(old => old.id === row.id) || {}).last || row.last;
-      if (waiting === row.id && (!was || row.state !== was.state)) { clearWait(); tell(''); }
+      if (waiting === row.id && (!was || row.state !== was.state || row.askId !== was.askId)) { clearWait(); tell(''); }
       records.set(row.id, row);
       if (records.size > 10) records.delete(records.keys().next().value);
       recent = [row, ...recent.filter(old => old.id !== row.id)].sort((a, b) => b.started - a.started).slice(0, 10);

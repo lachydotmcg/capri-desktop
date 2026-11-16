@@ -335,7 +335,7 @@ try {
   await step('session: hello, hello-ok with echo and features, badge count', async () => {
     const ok = await session(pc, a.phone, a.device);
     assert.equal(ok.v, 1);
-    assert.deepEqual(ok.features, ['chat', 'brains', 'pair']);
+    assert.deepEqual(ok.features, ['chat', 'pictures', 'brains', 'pair']);
     assert.equal(ok.name, 'Test PC');
     const state = await pc.state();
     assert.equal(state.online, 1);
@@ -381,6 +381,28 @@ try {
     await a.phone.send({ type: 'settings.set', key: 'x' });
     await a.phone.send({ type: 'something-new' });
     await pingPong(a.phone, 43);
+  });
+
+  await localStep('pictures: one encrypted envelope, empty caption, invalid data and UTF-8 byte budget', async () => {
+    const data = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4____fwAJ-wP9KobjigAAAABJRU5ErkJggg';
+    await a.phone.send({ type: 'chat.send', id: 'pic-ok', text: '', picture: { mime: 'image/png', data } });
+    assert.deepEqual(await a.phone.receive(), { type: 'chat.typing', on: true, re: 'pic-ok' });
+    const got = await pc.wait((e) => e.e === 'picture', 5000, 'picture at PC');
+    assert.deepEqual([got.id, got.text, got.mime, got.bytes], ['pic-ok', '', 'image/png', Buffer.from(data, 'base64url').length]);
+    pc.send({ c: 'reply', device: a.device, re: 'pic-ok', id: 'pic-reply', parts: ['Picture received.'] });
+    assert.equal((await a.phone.receive()).re, 'pic-ok');
+    for (const [id, picture, extra] of [
+      ['pic-invalid', { mime: 'image/png', data: 'AQID' }, ''],
+      ['pic-padding', { mime: 'image/png', data: data + '=' }, ''],
+      ['pic-size', { mime: 'image/png', data }, '?'.repeat(60000)],
+    ]) {
+      await a.phone.send({ type: 'chat.send', id, text: '', picture, extra });
+      assert.deepEqual(await a.phone.receive(), { type: 'error', code: 'bad-message', re: id });
+    }
+    await pc.none((e) => e.e === 'picture' || e.e === 'said', 200, 'invalid picture reached host');
+    const saved = readFileSync(statePath, 'utf8');
+    assert.ok(!saved.includes(data), 'picture bytes persisted in PC state');
+    assert.ok(tap.texts.every((frame) => !frame.includes(data)), 'picture bytes appeared in relay plaintext');
   });
 
   await step('her brains: brain.get and brain.use answer, and a key goes in sealed and never comes back', async () => {
