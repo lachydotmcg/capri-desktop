@@ -255,6 +255,17 @@ namespace CapriDesktop
                 pet.SetSounds(60);
                 pet.Dancing = false;
                 if (Brain.Language != null || pet.Saved.Language != null || pet.Picked != "Stay put | English | Short | Short | Normal | Dance to music") throw new Exception("Menu settings didn't go back: " + pet.Picked);
+                Func<System.Collections.IEnumerable, string, MenuItem> menuRow = delegate(System.Collections.IEnumerable rows, string header) { foreach (object row in rows) if (row is MenuItem item && item.Header as string == header) return item; return null; };
+                Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
+                MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");
+                MenuItem danceToMusic = moveMenu == null ? null : menuRow(moveMenu.Items, "Dance to music");
+                if (danceToMusic == null || moveMenu.Items.IndexOf(danceToMusic) + 1 != moveMenu.Items.IndexOf(menuRow(moveMenu.Items, "Dance")) || helpMenu == null || menuHeaders(helpMenu) != "Help page | Join the Discord | Copy error details" || sizeMenu == null || menuHeaders(sizeMenu) != string.Join(" | ", Pet.MenuSizeNames) || menuHeaders(sizeMenu) != "Small | Medium | Large | Huge | Giant")
+                    throw new Exception("Her right-click menu lost a Windows row: Move " + (moveMenu == null ? "missing" : menuHeaders(moveMenu)) + " / Help " + (helpMenu == null ? "missing" : menuHeaders(helpMenu)) + " / Size " + (sizeMenu == null ? "missing" : menuHeaders(sizeMenu)));
+                danceToMusic.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                bool menuDanceOff = pet.Saved.NoDance;
+                danceToMusic.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                if (!menuDanceOff || pet.Saved.NoDance) throw new Exception("Move > Dance to music didn't switch dancing to music off and back on.");
+                checks.Add("PASS right-click menu: Move > Dance to music sits before Dance and switches it, Help has Join the Discord between Help page and Copy error details, and Size lists Windows' five sizes");
                 bool checkInsNew = pet.CheckIns && pet.CheckInsShown && pet.PopPace == 1 && pet.PopsPicked == "Sometimes";
                 pet.SetPopPace(2);
                 bool popsOften = pet.Saved.PopPace == 2 && pet.PopsPicked == "Often";
@@ -3920,6 +3931,15 @@ namespace CapriDesktop
             if (frame.Value("Replies") != "Medium") throw new Exception("A tool change did not show in the open Mainframe.");
             string tip = MainframeTips.Brief("Mainframe > Settings > VOICE > Volume changes how loud her voice plays.");
             if (tip != "Volume changes how loud her voice plays." || ToolTip.GetTip(frame.Row("Volume")) == null) throw new Exception("The Mainframe lost a Windows hover tip.");
+            Func<string, string> shownTip = delegate(string name) { Border probe = new Border(); MainframeTips.Explain(probe, name); TextBlock words = ToolTip.GetTip(probe) as TextBlock; return words == null ? "" : words.Text; };
+            string[,] untrueTips = {
+                { "Setup guide", "Fish Audio" }, { "Robot", "own amounts" }, { "Glitch", "own amounts" }, { "Layers", "Hear her" }, { "Sleep", "Gaming Mode" },
+                { "Glitch in at startup", "with Windows" }, { "Bring here", "mouse is on" }, { "Her personality", "right-click menu" }
+            };
+            for (int i = 0; i < untrueTips.GetLength(0); i++)
+                if (shownTip(untrueTips[i, 0]).Length == 0 || shownTip(untrueTips[i, 0]).Contains(untrueTips[i, 1])) throw new Exception("A Mainframe tip says what Mac and Linux don't do: " + untrueTips[i, 0] + " / " + shownTip(untrueTips[i, 0]));
+            if (shownTip("Music app").Contains("Apple Music") != !OperatingSystem.IsLinux()) throw new Exception("The Music app tip offers the wrong apps here: " + shownTip("Music app"));
+            checks.Add("PASS Mainframe tips: Setup guide, Robot, Glitch, Layers, Sleep, Glitch in at startup, Bring here, Her personality and Music app say only what this build does");
             for (int look = 3; look >= 0; look--)
             {
                 pet.SetMainframeColours(look);
@@ -5213,7 +5233,7 @@ namespace CapriDesktop
                     {
                         string line = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = steps[step] });
                         if (Hands.LevelOf(name) != step || sliders[i, 1].Length > 0 && ticked(sliders[i, 1]) != step || !object.Equals(value(SettingsCopy(), sliders[i, 2]), value(pet.Saved, sliders[i, 2])) || !line.Contains(steps[step])) throw new Exception("Cross slider did not show or save its value: " + name + " / " + line);
-                        if (name == "size" && (pet.BodySize != Pet.Sizes[step] || pet.Saved.Size != Pet.Sizes[step])) throw new Exception("Cross size did not use its six menu sizes.");
+                        if (name == "size" && (pet.BodySize != Pet.Sizes[step] || pet.Saved.Size != Pet.Sizes[step])) throw new Exception("Cross size did not use its ten menu sizes.");
                     }
                     pet.SetLevel(name, int.MinValue);
                     if (Hands.LevelOf(name) != 0) throw new Exception("Cross slider did not clamp low: " + name);
@@ -5221,6 +5241,16 @@ namespace CapriDesktop
                     if (Hands.LevelOf(name) != steps.Length - 1) throw new Exception("Cross slider did not clamp high: " + name);
                     checks.Add("PASS cross setting " + name + " uses its menu steps, clamps, saves and reads back");
                 }
+                double[] olderSizes = { 140, 170, 240, 320, 440, 560 };
+                string[] olderSizeNames = { "Tiny", "Small", "Medium", "Large", "Huge", "Giant" };
+                if (Pet.Sizes.Length != 10 || Pet.SizeNames.Length != 10 || string.Join("|", Hands.StepsOf("size")) != string.Join("|", Pet.SizeNames)) throw new Exception("Cross sizes are not Windows' ten steps: " + string.Join(", ", Pet.SizeNames));
+                for (int i = 0; i < olderSizes.Length; i++)
+                {
+                    pet.Resize(olderSizes[i]);
+                    int step = Hands.LevelOf("size");
+                    if (Array.IndexOf(Pet.Sizes, olderSizes[i]) < 0 || pet.BodySize != olderSizes[i] || Pet.Sizes[step] != olderSizes[i] || Pet.SizeNames[step] != olderSizeNames[i]) throw new Exception("A size saved before the ten steps changed its look or name: " + olderSizeNames[i]);
+                }
+                checks.Add("PASS cross sizes: Windows' ten steps from Tiny to Giant in her menu, Mainframe and settings tool, and a size saved under the old six keeps its pixels and its name");
                 foreach (string name in new[] { "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay" })
                 {
                     string[] steps = Hands.StepsOf(name);
