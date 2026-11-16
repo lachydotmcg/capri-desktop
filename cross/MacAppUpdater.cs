@@ -247,8 +247,11 @@ backup=""$app.capri-backup.$$""
 broken=""$app.capri-broken.$$""
 exe=""$app/Contents/MacOS/Capri""
 note() { printf '%s %s\n' ""$(date '+%Y-%m-%d %H:%M:%S')"" ""$*"" >>""$log"" 2>/dev/null || :; }
-launch() { /usr/bin/open -n ""$1"" >/dev/null 2>&1 || :; }
-running() { ps -axo comm= 2>/dev/null | exe=""$exe"" awk 'BEGIN { e = ENVIRON[""exe""] } $0 == e { found = 1 } END { exit !found }'; }
+launch() { /usr/bin/open -n ""$1"" >/dev/null 2>>""$log"" || note ""open couldn't start $1.""; }
+running() {
+    real=$(cd -P -- ""$app/Contents/MacOS"" 2>/dev/null && pwd -P)/Capri
+    ps -axo comm= 2>/dev/null | exe=""$exe"" real=""$real"" awk 'BEGIN { e = ENVIRON[""exe""]; r = ENVIRON[""real""] } $0 == e || $0 == r { found = 1 } END { exit !found }'
+}
 waited=0
 while kill -0 ""$parent"" 2>/dev/null; do
     waited=$((waited + 1))
@@ -395,6 +398,20 @@ exit 1
             if (Run("/usr/bin/codesign", 120, "--force", "--deep", "--sign", "-", app) != 0) throw new Exception("The fake Capri.app couldn't be signed.");
         }
 
+        private static string Running()
+        {
+            ProcessStartInfo start = new ProcessStartInfo("/bin/ps") { UseShellExecute = false, RedirectStandardOutput = true };
+            foreach (string arg in new[] { "-axo", "pid=,comm=" }) start.ArgumentList.Add(arg);
+            using (Process ps = Process.Start(start))
+            {
+                string text = ps.StandardOutput.ReadToEnd();
+                ps.WaitForExit(5000);
+                List<string> found = new List<string>();
+                foreach (string line in text.Split('\n')) if (line.Contains("Capri", StringComparison.Ordinal)) found.Add(line.Trim());
+                return string.Join(" ; ", found);
+            }
+        }
+
         private static void StopFakes(string app)
         {
             string exe = Path.Combine(app, "Contents", "MacOS", "Capri");
@@ -409,7 +426,7 @@ exit 1
                     string trimmed = line.Trim();
                     int space = trimmed.IndexOf(' ');
                     int pid;
-                    if (space > 0 && trimmed.Substring(space + 1).Trim() == exe && int.TryParse(trimmed.Substring(0, space), out pid))
+                    if (space > 0 && (trimmed.Substring(space + 1).Trim() == exe || trimmed.Substring(space + 1).Trim() == "/private" + exe) && int.TryParse(trimmed.Substring(0, space), out pid))
                         try { Process.GetProcessById(pid).Kill(); } catch (Exception) { }
                 }
             }
@@ -512,14 +529,14 @@ exit 1
                 good = publish("9.9.9", zipName, false);
                 fetched = Prepare(good, data, new Version(0, 9, 0), installed, zipName, trusted);
                 if (install(fetched) != 0 || version() != "9.9.9" || leftovers() != 0 || !File.ReadAllText(log).Contains("to Capri 9.9.9.", StringComparison.Ordinal) || LinuxAppImageUpdater.RolledBack(File.ReadAllText(log), "9.9.9"))
-                    throw new Exception("The swap didn't put the new Capri.app in place and keep it running: " + File.ReadAllText(log));
+                    throw new Exception("The swap didn't put the new Capri.app in place and keep it running: " + File.ReadAllText(log) + " | " + Running());
                 StopFakes(installed);
                 checks.Add("PASS mac update loopback swap: she waits to close, swaps Capri.app in a folder with spaces and quotes, relaunches it with open, sees it running and keeps it");
 
                 string broken = publish("9.9.10", zipName, true);
                 LinuxUpdateReady dying = Prepare(broken, data, new Version(9, 9, 9), installed, zipName, trusted);
                 if (install(dying) != 1 || version() != "9.9.9" || leftovers() != 0 || !LinuxAppImageUpdater.RolledBack(File.ReadAllText(log), "9.9.10"))
-                    throw new Exception("A Capri.app that closed at once wasn't rolled back: " + File.ReadAllText(log));
+                    throw new Exception("A Capri.app that closed at once wasn't rolled back: " + File.ReadAllText(log) + " | " + Running());
                 StopFakes(installed);
                 checks.Add("PASS mac update loopback rollback: a new Capri.app that closes at once is swapped back for the old one, relaunched, and logged so she can say so");
             }
