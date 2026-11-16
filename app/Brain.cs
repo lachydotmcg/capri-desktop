@@ -15,34 +15,34 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.2";
+        internal const string Version = "0.9.3";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
-            + "Room camera (preview): in Capri Remote on your phone, tap the camera button and pick Room camera. She sits in your camera view, and her poses follow what she does on your computer. She doesn't talk in Room from this computer yet.\n"
-            + "Photos: send her a photo from the same camera button. Her brain needs vision to answer, she leaves the photo out of her saved chat files, and words in a photo can't ask her to do things on your computer.\n"
-            + "Phone: pick her brain or send her a key from your phone.\n"
-            + "Phone jobs: ask her from your phone to use your mouse and keyboard, and follow, stop or answer the job from the JOBS tile.\n"
-            + "Files: she finds files, reads files and keeps website nicknames.\n"
+            + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
+            + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
+            + "Talk windows: closing her bubble, pill or typing box from your desktop only hides it, so it comes back next time. From Yoplaxs.\n"
             + (OperatingSystem.IsLinux()
-                ? "Mouse and keyboard: setup works without reopening her, lasts through a reboot and always shows its setup command.\n"
-                : "Mouse: her job keeps going when you move the mouse, and she leaves the pointer alone while she types.\n"
-                    + "Screen Recording: the first time macOS refuses her a look at the screen, she opens Screen Recording in System Settings herself.\n")
-            + "Error details: errors.txt and Help > Copy error details keep your API keys out whatever language your computer uses, Turkish and Hungarian included, and she cleans out keys an older Capri left there.";
-        internal static readonly string Line = "I just updated to " + Version + ": in the Room camera preview I can sit in your room through your phone, and I can look at photos you send me from it. Ask me what's new.";
+                ? "Capri Remote: chat and photos from your phone work with Linux too."
+                : "Updates: Get new version downloads her new version, checks it, swaps her Capri.app and starts her again, and puts the old one back if the new one won't stay open. From \u2600SUNNY\u2600.\n"
+                    + "Capri Remote: chat and photos from your phone work with a Mac too.");
+        internal static readonly string Line = "I just updated to " + Version + ": I can tell you the weather for your city now, and my pat lines are fresher. Ask me what's new.";
 #else
-        internal const string Version = "0.9.2";
+        internal const string Version = "0.9.3";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Room camera (preview): in Capri Remote on your phone, tap the camera button and pick Room camera. She sits in your camera view: tap Sit, Lie down or Heart, or drag her. She talks there too, and asking her to sit or lie down in chat moves her in your room as well.\n"
-            + "Photos: the same camera button sends her a photo with your message. Her brain needs vision to answer, she leaves the photo out of her saved chat files, and words in a photo can't ask her to do things on your PC.\n"
-            + "Workspace (beta): her replies appear while she writes them, and the Thinking line shows how long she's been at it. Ask her to open Workspace, start a task there or check on your chats. New chats get their own named folders, Retry tries a failed reply again with the same message and files, and the full-access option is called Blackwall Mode.\n"
-            + "Games: she lets go of her screen capture the moment a game leaves the front and waits a second before looking again.\n"
-            + "Uninstall: opening Uninstall.exe uninstalls her, and her setup window fits at 200% scaling. From nathanZW.\n"
-            + "Voices: importing a voice works on Windows 10, and a failed import says whether the file or the disk was the problem.\n"
-            + "MAX INTELLIGENCE: your API key and your plan sit side by side, and you pick which one she uses.\n"
-            + "Taskbar: after a display wakes or its scaling changes, she lines her feet back up with the taskbar if she was sleeping on it.\n"
-            + "File Editor: its status line draws without a white block. From YunoTheAlien.\n"
-            + "Music controls: they reconnect when Windows replaces the music app's media session. From YunoTheAlien.\n"
-            + "Error details: errors.txt and Help > Copy error details keep your API keys out whatever language your PC uses, Turkish and Hungarian included, and she cleans out keys an older Capri left there.";
-        internal const string Line = "I just updated to " + Version + ": in the Room camera preview I can sit in your room through your phone, and I can look at photos you send me. Ask me what's new.";
+            + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
+            + "Playlist: she plays your own music folders and songs from her mini player, with shuffle, loop and volume. Say play my playlist, or pick Play > Music. From YunoTheAlien.\n"
+            + "Commands: Help > Commands lists everything she does without a brain. From YunoTheAlien.\n"
+            + "Your apps: open my browser opens the browser you actually use, and the same for music, chat and more. From YunoTheAlien.\n"
+            + "About you: now and then she asks about you and keeps your answer in me.md, and sys.md in her personalSettings folder lists apps she never watches. From YunoTheAlien.\n"
+            + "High five: Ctrl + click her for a high five. From YunoTheAlien.\n"
+            + "Naps: once your PC has been still for a while she sleeps until you come back. From YunoTheAlien.\n"
+            + "File Editor: your files are tabs down the side, and me.md opens as a tab. From YunoTheAlien.\n"
+            + "Small screens: her Mainframe fits a smaller screen. From YunoTheAlien.\n"
+            + "Photos: a photo you send from Capri Remote is what she looks at, not your screen.\n"
+            + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
+            + "Free voice: Remove free voice frees its space, and she downloads it cleanly again if a file goes missing or empty. From bugnugg3t.\n"
+            + "Sitting: she keeps facing the middle while she draws sitting down. From Yoplaxs.\n"
+            + "Word and Excel: she turns away documents that unpack too big or nest too deep.";
+        internal const string Line = "I just updated to " + Version + ": I can tell you the weather for your city, play your own playlist and high five you now. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
