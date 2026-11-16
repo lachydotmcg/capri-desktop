@@ -15327,7 +15327,7 @@ namespace CapriDesktop
 
         private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
-        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null)
+        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -15449,12 +15449,12 @@ namespace CapriDesktop
                     return;
                 }
             }
-            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed); };
+            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo); };
             if (think == null && brain.Model == null && News.Matching(input) != null) think = delegate { return News.Facts; };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
-                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed); };
+                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo); };
             }
             if (switches == 0 && prompt == "> you: ") EmoteOnMention(input, spoken || callInput);
             reply = null;
@@ -15486,7 +15486,7 @@ namespace CapriDesktop
                 {
                     if (!IsDisposed) BeginInvoke((Action)delegate
                     {
-                        if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput, callHeard, typed: typed); return; }
+                        if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput, callHeard, typed: typed, photo: photo); return; }
                         if (problem != null && ticket == asking) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem));
                         else if (ticket == asking && remote != null && remote.Code && brain.Remote == remote) mainframe.ShowCloud(remote, cloudModels);
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
@@ -39990,6 +39990,24 @@ namespace CapriDesktop
                 send("what is here?", "Capri, open notepad.");
                 brain.OwnSteps = false;
                 checks.Add("PASS picture words: descriptions never reach phrase plans, tools, Workspace, mini games, apologies, watching or listening stops, Gaming Mode, streams, paths or call joins; one chat ask keeps the full turn");
+                int looks = 0;
+                Func<string, string> look = Hands.Look;
+                try
+                {
+                    Hands.Look = delegate { looks++; return "You looked at their screen. You see: A torii gate in misty water."; };
+                    foreach (bool steps in new[] { false, true })
+                    {
+                        string setup = steps ? "picture-setup-plans" : "picture-setup-hands";
+                        brain.OwnSteps = steps;
+                        CloseTalk(); brain.Forget(); tap.Take(); requests.Clear(); server.Stop();
+                        Brain.Nvidia = FakeServer(new[] { LocalReply("A desk with two monitors."), LocalReply("Nine out of ten.") }, requests, out server);
+                        RemotePictureHeard("phoneA", setup, "rate my setup!", picture);
+                        WaitVoice(delegate { return reply != null && tap.Count > 0; }, "A photo of their setup got no reply.");
+                        if (looks != 0 || requests.Count != 2 || !requests[1].Contains("You see: A desk with two monitors.") || !requests[1].Contains("data:" + picture.Mime + ";base64," + Convert.ToBase64String(picture.Bytes)) || reply != "Nine out of ten." || tap.Take() != "reply phoneA " + setup + " done: Nine out of ten.") throw new Exception("A photo of their setup looked at the screen or lost the photo.");
+                    }
+                }
+                finally { Hands.Look = look; brain.OwnSteps = false; }
+                checks.Add("PASS rate my setup beside a phone photo answers from the photo itself and its description, and never looks at the screen");
                 send("", "A small red square.");
                 send("", "A note for their memory.");
                 meeting.Start();
