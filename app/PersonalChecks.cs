@@ -42,7 +42,7 @@ namespace CapriDesktop
                 File.WriteAllText(Brain.MemoryPath, Brain.NotesHead);
                 DateTime start = new DateTime(2026, 11, 16, 9, 0, 0, DateTimeKind.Utc);
                 Probe ask = new Probe(start, new Random(7));
-                ask.Known = delegate(string label) { return Probe.Filled(File.ReadAllText(Brain.MemoryPath), label); };
+                ask.Known = delegate(string asked) { return Probe.Filled(File.ReadAllText(Brain.MemoryPath), asked); };
                 if (ask.Due(start.AddMinutes(30), 5, false)) throw new Exception("She asked about them within half an hour of starting.");
                 DateTime later = start.AddHours(2);
                 if (ask.Due(later, 0.5, false) || ask.Due(later, 30, false) || ask.Due(later, -1, false) || ask.Due(later, 5, true)) throw new Exception("She asked outside a lull in their chat, or while upset with them.");
