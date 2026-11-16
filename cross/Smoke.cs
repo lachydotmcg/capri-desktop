@@ -5120,6 +5120,18 @@ namespace CapriDesktop
                 mods.Load();
                 if (deepListed || !deepNamed || deepTime.ElapsedMilliseconds > 2000) throw new Exception("A code mod nested too deep in her mods folder wasn't skipped with its reason when she loaded her mods.");
                 checks.Add("PASS mods code: a code mod nested 60,000 deep is refused at once with a plain reason, imported or dropped into her mods folder, instead of overflowing her stack");
+                string nest = "var x = " + new string('(', 60000) + "Font" + new string(')', 60000) + ";";
+                string[] hides = { "// x" + (char)13, "// x" + (char)0x2028, "var s = " + (char)34 + "a" + (char)92 + (char)10, "char t = '" + (char)0x2029, "#region /*" + (char)10,
+                    "#if false" + (char)10 + "/*" + (char)10 + "#endif" + (char)10, "#if false" + (char)10 + "@" + (char)34 + (char)10 + "#endif" + (char)10, "var u = $" + (char)34 + "{" };
+                for (int hide = 0; hide < hides.Length; hide++)
+                {
+                    string hidden = write("hidden-deep-" + hide, null, "public class M : ICapriMod { public void Start(ICapriHost h) { " + hides[hide] + nest + " } public bool Heard(string w) { return false; } public void Stop() { } }");
+                    string said = frame.ModStatusText;
+                    if (frame.ImportMod(hidden) || asked != null || mods.All.Exists(mod => mod.File.Id == "hidden-deep-" + hide)
+                        || !((said = frame.ModStatusText).Contains("nests too deeply") || said.Contains("can't read it safely") || said.Contains("$ string")))
+                        throw new Exception("A code mod nested 60,000 deep behind a trick in its text wasn't refused before asking (" + hide + "): " + said);
+                }
+                checks.Add("PASS mods code: a deep code mod hidden behind a lone CR, a Unicode line break, a string a line break ends, an #region or #if line, or a $ string is refused before asking");
                 if (frame.ImportMod(write("sneaky", null, "public class M : ICapriMod { public void Start(ICapriHost h) { h.Chat.Sending += delegate(CapriMessage m) { }; } public bool Heard(string w) { return false; } public void Stop() { } }"))
                     || mods.Running != 0 || frame.ModStatusText.IndexOf("didn't ask for the chat permission", StringComparison.Ordinal) < 0)
                     throw new Exception("A code mod used a hook it didn't ask for: " + frame.ModStatusText);

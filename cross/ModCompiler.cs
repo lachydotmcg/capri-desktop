@@ -84,15 +84,33 @@ namespace CapriDesktop
         {
             if (System.Text.Encoding.UTF8.GetByteCount(text) > LargestCode) throw new ModException("That code mod is too big.");
             int depth = 0, angles = 0, chain = 0, ended = -1;
+            bool conditional = false;
             // Each else if is inside the one before it, braces or not, so they're counted by how deep the chain sits, until
             // a statement there ends without an else after it.
             int[] elseIfs = new int[DeepestNesting + 2];
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i], next = i + 1 < text.Length ? text[i + 1] : '\0';
-                if (c == '/' && next == '/') { while (i < text.Length && text[i] != '\n') i++; continue; }
-                if (c == '/' && next == '*') { int end = text.IndexOf("*/", i + 2, StringComparison.Ordinal); i = end < 0 ? text.Length : end + 1; continue; }
+                if (c == '/' && next == '/') { while (i + 1 < text.Length && !LineEnd(text[i + 1])) i++; continue; }
+                if (c == '/' && next == '*')
+                {
+                    int end = text.IndexOf("*/", i + 2, StringComparison.Ordinal), stop = end < 0 ? text.Length : end + 2;
+                    if (conditional && Directive(text, i, stop)) throw Unreadable();
+                    i = stop - 1;
+                    continue;
+                }
                 if (char.IsWhiteSpace(c)) continue;
+                if (c == '$') throw new ModException("That code mod uses a $ string, which code mods' C# 5 doesn't have.");
+                if (c == '#')
+                {
+                    int start = i;
+                    while (i + 1 < text.Length && !LineEnd(text[i + 1])) i++;
+                    string line = text.Substring(start + 1, i - start).TrimStart();
+                    string name = new string(line.TakeWhile(char.IsLetter).ToArray());
+                    if (name == "if" || name == "elif" || name == "else" || name == "endif" || name == "define" || name == "undef") conditional = true;
+                    if ((name == "if" || name == "elif") && line.Count(part => "(!&|=".IndexOf(part) >= 0) > DeepestNesting) throw TooDeep();
+                    continue;
+                }
                 if ((char.IsLetter(c) || c == '_') && (i == 0 || !char.IsLetterOrDigit(text[i - 1]) && text[i - 1] != '_' && text[i - 1] != '@'))
                 {
                     int start = i;
@@ -107,12 +125,15 @@ namespace CapriDesktop
                 if (ended >= 0) { elseIfs[ended] = 0; ended = -1; }
                 if (c == '@' && next == '"')
                 {
+                    int start = i;
                     for (i += 2; i < text.Length; i++) if (text[i] == '"') { if (i + 1 < text.Length && text[i + 1] == '"') i++; else break; }
+                    if (conditional && Directive(text, start, Math.Min(i, text.Length))) throw Unreadable();
                     continue;
                 }
                 if (c == '"' || c == '\'')
                 {
-                    for (i++; i < text.Length && text[i] != c && text[i] != '\n'; i++) if (text[i] == '\\') i++;
+                    for (i++; i < text.Length && text[i] != c && !LineEnd(text[i]); i++) if (text[i] == '\\' && i + 1 < text.Length && !LineEnd(text[i + 1])) i++;
+                    if (i < text.Length && LineEnd(text[i])) i--;
                     continue;
                 }
                 if (c == '(' || c == '[' || c == '{') { if (++depth > DeepestNesting) throw TooDeep(); }
@@ -144,6 +165,22 @@ namespace CapriDesktop
         }
 
         private static ModException TooDeep() { return new ModException("That code mod nests too deeply to read safely."); }
+
+        private static ModException Unreadable() { return new ModException("That code mod runs a comment or @ string across an #if line, so I can't read it safely."); }
+
+        private static bool LineEnd(char c) { return c == '\n' || c == '\r' || c == (char)0x85 || c == (char)0x2028 || c == (char)0x2029; }
+
+        private static bool Directive(string text, int from, int to)
+        {
+            for (int i = from; i < to; i++)
+            {
+                if (!LineEnd(text[i])) continue;
+                int at = i + 1;
+                while (at < to && !LineEnd(text[at]) && char.IsWhiteSpace(text[at])) at++;
+                if (at < to && text[at] == '#') return true;
+            }
+            return false;
+        }
 
         private static bool MaybeWindowsOnly(IdentifierNameSyntax name)
         {
