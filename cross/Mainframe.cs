@@ -830,7 +830,7 @@ namespace CapriDesktop
             bool simple = !pet.Saved.AdvancedSettings;
             bool inputSetup = pet.MainframeInputSetup;
             int tier = pet.MainframeTier, voice = pet.MainframeVoiceMode;
-            double extra = Expanded ? 118 : 0, shift = extra + (tier == 0 ? 94 : 128 + (paidKey != null ? 86 : 0));
+            double extra = Expanded ? 118 : 0, shift = extra + (tier == 0 ? 94 : 128 + (tier != 1 ? 0 : paidKey != null ? 86 : 20));
             double fold = voice == 0 ? 72 : voice == 3 && pet.MainframeVoiceKey != null ? 0 : 36;
             double bottom = 0;
             foreach (Item item in items)
