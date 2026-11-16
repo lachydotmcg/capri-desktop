@@ -4,12 +4,6 @@ using System.Text;
 
 namespace CapriDesktop
 {
-    // commands.md: what she understands without her brain being involved at all.
-    //
-    // Written fresh every time she starts, so it cannot drift from the code the way a hand-kept list would. That is also
-    // why it says plainly at the top that editing it changes nothing: it is a read-out, not a setting. Only the commands
-    // read by Hands.Direct are listed, because those are the ones that work every time; anything her brain has to choose
-    // a tool for is not a command in this sense and is left out on purpose.
     internal static class Commands
     {
         internal const string FileName = "commands.md";
@@ -30,8 +24,6 @@ namespace CapriDesktop
             catch (Exception) { }
         }
 
-        // Her editor is a plain text box in a monospace font, so the columns are padded with spaces rather than written
-        // as a markdown table: pipes would just show as pipes and the rows would not line up.
         private const int Column = 34;
 
         private static string Line(string said, string does)

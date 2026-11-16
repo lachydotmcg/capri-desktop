@@ -125,7 +125,6 @@ namespace CapriDesktop
                 if (Array.IndexOf(panel.Choices, "personality.md *") < 0) throw new Exception("An unsaved file has no star: " + string.Join(",", panel.Choices));
                 panel.Turn(1);
                 panel.Draft = "- They like café music.\r\n- 日本語 too.\r\n";
-                // By name, not Next: with her commands and her playlist listed too, me.md is no longer followed by personality.md.
                 panel.Turn(0);
                 if (panel.FileShown != "personality.md" || !panel.Draft.Contains("soft and calm") || File.ReadAllText(personality) != before || File.Exists(notes)) throw new Exception("Switching files lost a draft or wrote one.");
                 panel.Turn(1);

@@ -1139,7 +1139,6 @@ namespace CapriDesktop
         // Her voice in your mic (F66): their mic and her voice go into VB-CABLE's input for Discord or Roblox. Off out of the box.
         [DataMember] public bool VoiceInMic;
         [DataMember] public int MicLoudness = 100;
-        // Her mini player's volume, as a percent. Below full to start, since her own songs are loud.
         [DataMember] public int PlayerVolume = 70;
         // Her voice in your mic's Input and Output on Settings: the mic it hears, null for the one her ears use, and the cable it
         // plays into, null for VB-CABLE's before Steam's. Endpoint ids.
@@ -2204,8 +2203,6 @@ namespace CapriDesktop
         private double nextLie = -1;
         private const double LieQuiet = 60, LieGap = 480, LieSpread = 240, LieStay = 120, LieStaySpread = 120;
         private const double NapGap = 1500, NapSpread = 600, NapFinish = 0.35;
-        // Quiet this long means they are away, not just still, so a nap ignores the gap between naps. Never under
-        // their own Sleep setting doubled.
         private const double AwayQuiet = 300;
         private bool ownRest, ownNap, ownLie;
         private double restUntil = -1, nextNap = -1;
@@ -2932,7 +2929,6 @@ namespace CapriDesktop
             reminders = new Reminders(data, DateTime.Now);
             Brain.MemoriesPath = Path.Combine(data, "memories.md");
             Commands.Kept = Path.Combine(data, Commands.FileName);
-            // Rewritten every start, so the list can never drift from what the build actually understands.
             if (!smoke) Commands.Write();
             playlistPath = Path.Combine(data, Playlist.FileName);
             Playlist.Kept = playlistPath;
@@ -3038,7 +3034,6 @@ namespace CapriDesktop
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
             menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
-            // Where her files live, for the ones her editor does not open.
             menu.Items.Add(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }));
             ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
             menu.Items.Add(playItem);
@@ -3124,7 +3119,6 @@ namespace CapriDesktop
             playerMenu.Items.Add(new ToolStripMenuItem("Hide for now", null, delegate { playerClosed = true; HidePlayer(); }));
             playerMenu.Items.Add(new ToolStripMenuItem("Turn off mini player", null, delegate { TogglePlayer(); }));
             player.Command += PlayerCommand;
-            // The volume they last set, on her player and on her own songs, before anything can play.
             player.Loud = Math.Max(0, Math.Min(100, preferences.PlayerVolume)) / 100.0;
             try { FolderTunes.Loudness = player.Loud; } catch (Exception) { }
             player.Moved += SavePlayerSpot;
@@ -3330,7 +3324,6 @@ namespace CapriDesktop
                 }
                 if (!testing) CheckPlaylist(clock.Elapsed.TotalSeconds);
                 if (volumeSaveAt >= 0 && clock.Elapsed.TotalSeconds >= volumeSaveAt) { volumeSaveAt = -1; SavePreferences(); }
-                // Which program they keep in front, so "open my calendar" opens theirs.
                 if (!testing && background && clock.Elapsed.TotalSeconds - frontSeenAt >= 4)
                 {
                     frontSeenAt = clock.Elapsed.TotalSeconds;
@@ -8488,10 +8481,8 @@ namespace CapriDesktop
         }
 
         // Presses go to the app one at a time, in the order they were made, off her window's thread.
-        // Her own folder, kept from startup: me.md can be repointed to a vault, so its folder is not hers.
         private string herFolder;
 
-        // Her files in Explorer.
         internal void OpenHerFolder()
         {
             string where = herFolder;
@@ -8504,20 +8495,16 @@ namespace CapriDesktop
             catch (Exception) { Tell("her folder", "Couldn't open my folder. It's at " + where + "."); }
         }
 
-        // When she last looked at what is in front of them, for Favourites.
         private double frontSeenAt;
 
-        // When a moved player volume is due to be written, or -1.
         private double volumeSaveAt = -1;
 
-        // Her own playlist, from folders on this PC.
         private Playlist playlist;
         private List<string> queued = new List<string>();
         private int queuedAt = -1;
         private double nextSongAt = double.PositiveInfinity;
         private string playlistPath;
 
-        // The playlist tool. On her thread, since the queue and her shuffle are hers.
         private string PlaylistTool(string action, string what)
         {
             if (InvokeRequired) return (string)Invoke(new Func<string, string, string>(PlaylistTool), action, what);
@@ -8542,7 +8529,6 @@ namespace CapriDesktop
             return playlist;
         }
 
-        // Starts where it left off, or at the top. Called by "play my playlist" and by the next-song check.
         internal string PlayPlaylist()
         {
             Playlist list = Tracks();
@@ -8566,7 +8552,6 @@ namespace CapriDesktop
                     nextSongAt = clock.Elapsed.TotalSeconds + 2;
                     return "Playing " + Playlist.Name(song) + ".";
                 }
-                // A file Media Foundation will not open is stepped over rather than stopping the whole playlist.
                 Brain.Log("playlist", -1, "Couldn't open " + song);
                 queuedAt++;
             }
@@ -8575,17 +8560,6 @@ namespace CapriDesktop
             return "That's the end of the playlist.";
         }
 
-        // Shuffled once per start, not per song, so going back works and nothing repeats until the list does.
-        //
-        // Favourites are dealt through the shuffle rather than left to chance: one comes up every few tracks, from the
-        // top. How few scales with the collection, because the same gap cannot suit both sizes. The gap is how far
-        // apart they would fall spread evenly over everything, capped at five: thirty songs with six favourites get
-        // one every five and they reach the end of the list, while sixteen hundred with twenty also get one every five,
-        // which brings all twenty into the first hundred tracks instead of burying them somewhere past track nine
-        // hundred. Two is the floor, so a list that is mostly favourites still has something between them.
-        //
-        // Each favourite is still played once per pass, like every other track. Repeating them to hold the gap across a
-        // long list would play one twenty times an evening and break the one promise shuffle makes.
         private List<string> Ordered(Playlist list, List<string> songs)
         {
             if (!list.Shuffle || songs.Count < 2) return songs;
@@ -8618,9 +8592,6 @@ namespace CapriDesktop
             return mixed;
         }
 
-        // The heart on her player, and "favourite this song". The order is not rebuilt underneath them: a list that
-        // reshuffled itself every time a heart was pressed would lose where they were, and the mark counts from the
-        // next time the playlist starts.
         internal string LoveSong(bool on)
         {
             Playlist list = Tracks();
@@ -8638,7 +8609,6 @@ namespace CapriDesktop
         {
             if (queued.Count == 0) return PlayPlaylist();
             Playlist list = Tracks();
-            // Repeat one means this song again, which is what skip has to mean too or there is no way out of it.
             queuedAt++;
             if (queuedAt < queued.Count) return StartQueued();
             if (list != null && list.Repeat == "all") { queuedAt = 0; return StartQueued(); }
@@ -8665,7 +8635,6 @@ namespace CapriDesktop
             list.Shuffle = on;
             list.Write();
             if (queuedAt < 0) return on ? "Shuffle on." : "Shuffle off.";
-            // Reordered from here, keeping the song that is playing at the front so it is not cut off.
             string now = queuedAt < queued.Count ? queued[queuedAt] : null;
             queued = Ordered(list, list.Songs());
             if (now != null)
@@ -8686,7 +8655,6 @@ namespace CapriDesktop
             return how == "one" ? "Repeating this song." : how == "all" ? "Repeating the playlist." : "Repeat off.";
         }
 
-        // What her mini player shows while the playlist is the thing playing.
         internal Tune PlaylistTune()
         {
             string song = FolderTunes.Playing;
@@ -8704,8 +8672,6 @@ namespace CapriDesktop
                 Fav = list != null && list.Loves(song),
                 Shuffle = list == null ? (bool?)null : list.Shuffle,
                 Repeat = list == null ? "off" : list.Repeat,
-                // The song's own length and position. Her player drew an empty bar and no clock for her own music
-                // because these were left at zero, and a position that moves is also the one honest sign she is playing.
                 Length = FolderTunes.Seconds,
                 Position = FolderTunes.At,
                 ReadAt = Tunes.Now,
@@ -8726,7 +8692,6 @@ namespace CapriDesktop
             return said;
         }
 
-        // "remove this song": off the playlist, never off the drive, then straight on to the next one.
         internal string DropSong()
         {
             Playlist list = Tracks();
@@ -8746,7 +8711,6 @@ namespace CapriDesktop
             Playlist list = Tracks();
             if (list == null) return "There's no playlist file yet.";
             string said = list.AddFolder(folder);
-            // The new songs join the queue in her order, with the one playing still where she is.
             if (queuedAt >= 0)
             {
                 string now = queuedAt < queued.Count ? queued[queuedAt] : null;
@@ -8756,8 +8720,6 @@ namespace CapriDesktop
             return said;
         }
 
-        // Nothing tells her a track ended, so the mode is read now and then and the next one started. Checked rarely,
-        // because there is no reason to ask it twice a second.
         private void CheckPlaylist(double now)
         {
             if (now < nextSongAt || queuedAt < 0) return;
@@ -8777,8 +8739,6 @@ namespace CapriDesktop
             Brain.Log("playlist", -1, said);
         }
 
-        // Her playlist from the Play menu, the same path as saying "play my playlist", so the mini player comes up
-        // with it and every answer reads the same whichever way it was started.
         internal void PlayMyMusic()
         {
             try
@@ -8789,15 +8749,12 @@ namespace CapriDesktop
             catch (Exception bad) { Remark("", "Couldn't start the playlist: " + bad.Message, true); }
         }
 
-        // The volume slider on her player. Her own songs set their own level; anything else goes through the Windows
-        // mixer for that program, so only the app playing is touched.
         private void SetPlayerVolume(double level)
         {
             if (level < 0) level = 0;
             if (level > 1) level = 1;
             player.Loud = level;
             preferences.PlayerVolume = (int)Math.Round(level * 100);
-            // A drag sends a level every few pixels; the file is written once the slider settles.
             volumeSaveAt = clock.Elapsed.TotalSeconds + 1.5;
             try
             {
@@ -8820,10 +8777,6 @@ namespace CapriDesktop
         {
             try
             {
-                // Play and pause toggle against what is actually happening, not against the flag her player flipped when
-                // it was clicked. Skipping a track starts the next one playing underneath, so after a skip while paused
-                // the flag said one thing and the playlist was doing the other, and the button then sent the command
-                // that was already true: it looked like pause had stopped working and could not be undone.
                 if (what == "play" || what == "pause")
                 {
                     if (FolderTunes.Paused) FolderTunes.Resume(); else FolderTunes.Pause();
@@ -8834,7 +8787,6 @@ namespace CapriDesktop
                 else if (what.StartsWith("repeat:", StringComparison.Ordinal)) RepeatPlaylist(what.Substring(7));
                 else if (what == "like" || what == "unlike") LoveSong(what == "like");
                 else return;
-                // Her own player knows straight away, rather than waiting out the next read.
                 tuneAt = -10;
             }
             catch (Exception) { }
@@ -8845,7 +8797,6 @@ namespace CapriDesktop
             if (what == "menu") { ShowPlayerMenu(); return; }
             if (what == "close") { playerClosed = true; HidePlayer(); return; }
             if (player.Tune == null) return;
-            // The volume slider never goes to the app's own media session: nothing in that protocol carries volume.
             if (what.StartsWith("volume:", StringComparison.Ordinal))
             {
                 double level;
@@ -8853,9 +8804,6 @@ namespace CapriDesktop
                 SetPlayerVolume(level);
                 return;
             }
-            // Her own playlist has no media session, so every press on it fell through to the media keys: those do nothing
-            // for her own playback, and pressing one goes through her hands, which puts the "controlling the screen" border
-            // up for a button on her own player. Her playlist is driven directly instead.
             if (PlaylistShowing(player.Tune)) { PlaylistCommand(what); return; }
             lock (playerPresses)
             {
@@ -9163,7 +9111,6 @@ namespace CapriDesktop
             }
             if (ownRest && restUntil >= 0 && now >= restUntil) { WakeRest(false); return; }
             if (!ownRest && (walking || falling || hanging || outro != null || (clip != idle && clip != perch && clip != laydown))) return;
-            // The gap between naps suits someone sitting there, not someone who has left the room.
             bool away = quiet >= (long)(Math.Max(AwayQuiet, preferences.SleepAfter * 2.0) * 1000);
             if (SleepDue(quiet) && (now >= nextNap || away))
             {
@@ -16540,7 +16487,6 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            // What they used this session, or a short session learns nothing.
             try { Favourites.Save(); } catch (Exception) { }
             StopRemote();
             Security.HeldChanged = null;
@@ -18273,7 +18219,6 @@ namespace CapriDesktop
                 if (Asleep || ownRest) throw new Exception("PC input did not wake her own nap.");
                 napTicks(120001, 200);
                 if (Asleep) throw new Exception("She started another nap a few seconds later.");
-                // Away is not the same as quiet: past AwayQuiet she sleeps again whatever the gap says.
                 napTicks((long)(AwayQuiet * 1000) + 1, 200);
                 if (!Asleep || !ownNap || napping) throw new Exception("She stayed awake while they were away.");
                 CheckIdle(napNow, 0);
@@ -21043,7 +20988,6 @@ namespace CapriDesktop
                 Hands.Mini = delegate(ToolArguments args) { opened.Add(args.Name + ":" + args.Action); return "Opened."; };
                 using (ContextMenuStrip games = mainframe.MiniChoices())
                 {
-                    // Her own music leads the menu, then a separator, then the four boards.
                     if (games.Items.Count != 6 || games.Items[0].Text != "Music" || !(games.Items[1] is ToolStripSeparator)) throw new Exception("Mainframe's mini-game menu lost a board.");
                     foreach (ToolStripItem item in games.Items)
                     {
@@ -24242,7 +24186,6 @@ namespace CapriDesktop
                 if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
                     throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
             }
-            // 3800 since her posture joined the brief; the list itself is still one line per tool.
             if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 3800 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
                 || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
                 throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");

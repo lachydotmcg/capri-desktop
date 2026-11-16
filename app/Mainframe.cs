@@ -1142,8 +1142,6 @@ namespace CapriDesktop
         {
             try
             {
-                // me.md is one of her own files, so it opens in her editor on its own tab like the rest of them.
-                // Only her memories still open in a dialog of their own, since they are not a file she keeps there.
                 if (!memories) { capri.OpenFiles(1); return; }
                 using (NoteWindow dialog = new NoteWindow(Brain.OpenNote(memories), "Her memories")) dialog.ShowDialog(this);
             }
@@ -1191,7 +1189,6 @@ namespace CapriDesktop
         internal ContextMenuStrip MiniChoices()
         {
             ContextMenuStrip games = Dropdown();
-            // Her own music sits with the other things she can play, so Play means Play.
             games.Items.Add(Choice("Music", false, delegate { capri.PlayMyMusic(); }));
             games.Items.Add(new ToolStripSeparator());
             string[] names = { "chess", "connect_four", "tic_tac_toe", "rock_paper_scissors" };

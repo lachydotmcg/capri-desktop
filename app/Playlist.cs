@@ -8,24 +8,15 @@ using System.Text.RegularExpressions;
 
 namespace CapriDesktop
 {
-    // Her own playlist, from folders on this PC. Everything is in playlist.json beside her settings, written so it can be
-    // read and edited by hand: indented, one path a line, and always UTF-8 with no byte order mark, because track names
-    // carry accents, kana and box-drawing characters and a mark here would stop her own reader dead.
-    //
-    // The file is laid out the way a hosts file is. The folders come first, then songs added one at a time, then the removed
-    // ones at the bottom under their own heading. Removing a song only ever writes its path into that bottom list: nothing
-    // here deletes, moves or renames a file on the drive, which is the whole reason removal is a list and not an action.
     internal sealed class Playlist
     {
         internal const string FileName = "playlist.json";
 
-        // So it opens in her own editor as a tab, like her other files.
         internal static string Kept;
         private static readonly object writing = new object();
 
         internal static WrittenNote OpenNote() { return new WrittenNote(Kept, "", writing); }
 
-        // What MCI will open through winmm. Anything else in the folder is skipped rather than failed on.
         private static readonly string[] Kinds = { ".mp3", ".wav", ".wma", ".m4a", ".aac", ".mid", ".midi" };
 
         private readonly List<string> folders = new List<string>();
@@ -35,7 +26,6 @@ namespace CapriDesktop
         private readonly object gate = new object();
         private string path;
         internal bool Shuffle;
-        // "off", "one" or "all", worded the way her Tune already words it.
         internal string Repeat = "off";
 
         internal Playlist(string file) { path = file; Read(); }
@@ -47,8 +37,6 @@ namespace CapriDesktop
         internal List<string> Loved { get { lock (gate) return new List<string>(loved); } }
         internal int AddedCount { get { lock (gate) return added.Count; } }
 
-        // Every song the folders and the added list offer, in order, with the removed ones left out. Read fresh each time so
-        // a folder filled while she runs is picked up without restarting her.
         internal List<string> Songs()
         {
             List<string> songs = new List<string>();
@@ -84,7 +72,6 @@ namespace CapriDesktop
             return false;
         }
 
-        // Paths are compared with their case and their slashes folded, so the same song written two ways still matches.
         private static string Settled(string file)
         {
             string plain = (file ?? "").Trim().Trim('"').Replace('/', '\\');
@@ -101,9 +88,6 @@ namespace CapriDesktop
             return false;
         }
 
-        // A favourite is only a mark against the path. Nothing is moved, copied or written near the drive, and a
-        // favourite that is later taken off the playlist simply stops coming up: the mark is left alone so putting
-        // the song back brings its heart back with it.
         internal bool Love(string file, bool on)
         {
             string want = (file ?? "").Trim().Trim('"');
@@ -126,7 +110,6 @@ namespace CapriDesktop
             string want = (folder ?? "").Trim().Trim('"');
             if (want.Length == 0) return "Which folder?";
             try { want = Path.GetFullPath(want); } catch (Exception) { return "That isn't a folder path."; }
-            // Handed one song rather than a folder, take the song: it is the obvious thing meant and saves a second command.
             if (!Directory.Exists(want) && FileThere(want)) return AddSong(want);
             if (!Directory.Exists(want)) return "There's no folder at " + want + ". Nothing was created.";
             lock (gate)
@@ -148,7 +131,6 @@ namespace CapriDesktop
             if (!Playable(want)) return "I can't play that kind of file.";
             lock (gate)
             {
-                // Coming back after being removed takes it off the bottom list rather than adding it twice.
                 removed.RemoveAll(each => Settled(each) == Settled(want));
                 bool held = false;
                 foreach (string each in added) if (Settled(each) == Settled(want)) held = true;
@@ -158,7 +140,6 @@ namespace CapriDesktop
             return "Added " + Name(want) + ".";
         }
 
-        // The song goes on the bottom list and nowhere near the drive.
         internal string Remove(string file)
         {
             string want = (file ?? "").Trim().Trim('"');
@@ -179,8 +160,6 @@ namespace CapriDesktop
             catch (Exception) { return file; }
         }
 
-        // Written by hand rather than through a serializer, because the layout is the point: folders, then added, then the
-        // removed ones at the bottom, each one on its own line so the file can be edited in any text editor.
         internal void Write()
         {
             if (path == null) return;
@@ -203,7 +182,6 @@ namespace CapriDesktop
             {
                 string folder = Path.GetDirectoryName(path);
                 if (!string.IsNullOrEmpty(folder) && !Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                // No byte order mark, ever: her own reader refuses one, and track names need the rest of UTF-8 intact.
                 File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));
             }
             catch (Exception) { }
@@ -239,8 +217,6 @@ namespace CapriDesktop
             return made.ToString();
         }
 
-        // Read by hand too, so a file someone has edited and left slightly untidy still loads. A byte order mark is stepped
-        // over rather than refused, because an editor may well have added one.
         internal void Read()
         {
             if (path == null || !FileThere(path)) return;
@@ -286,14 +262,6 @@ namespace CapriDesktop
         }
     }
 
-    // One song at a time through WPF's MediaPlayer, which goes to Media Foundation and so plays whatever Windows itself
-    // plays: mp3, m4a, wma, wav, and flac on Windows 10 and later.
-    //
-    // MCI through winmm was the obvious choice and had to be abandoned: its MPEGVideo device will not load in a 64-bit
-    // process, so every mp3 came back "Unknown problem while loading the specified device driver" and the playlist read as
-    // finished the moment it started (measured on D:\mp3\YouTube, 13 Nov). MediaPlayer needs a Dispatcher of its own, so it
-    // gets a single STA thread with a message loop, created once and kept for the life of the app. Her own UI thread is not
-    // used for it: WinForms does not pump WPF's queue, so MediaEnded would never arrive and tracks would never advance.
     internal static class FolderTunes
     {
         private static readonly object gate = new object();
@@ -361,8 +329,6 @@ namespace CapriDesktop
                 catch (Exception) { opened = false; }
             });
             if (!opened) return false;
-            // Media Foundation opens asynchronously, so a file it cannot read reports through MediaFailed a moment later.
-            // Kept short: this waits on her thread, and a slow file still plays once it opens.
             for (int waited = 0; waited < 12 && !failed; waited++)
             {
                 if (Length > 0) break;
@@ -373,9 +339,6 @@ namespace CapriDesktop
             return true;
         }
 
-        // Where the song has got to, and how long it is. A track has a length and a position whatever any flag says, so
-        // these are the one reading that cannot drift: her player shows real progress from them, and a position that has
-        // not moved between two reads says she is held even if something else lost track of it.
         internal static double At
         {
             get
@@ -419,8 +382,6 @@ namespace CapriDesktop
 
         private static double loud = 0.7;
 
-        // How loud her own songs are, 0 to 1. Starts below full because it was reported as too loud, and there was
-        // nothing on her player to turn it down with.
         internal static double Loudness
         {
             get { lock (gate) return loud; }
@@ -437,11 +398,8 @@ namespace CapriDesktop
         internal static void Pause() { OnLoop(delegate { try { player.Pause(); lock (gate) paused = true; } catch (Exception) { } }); }
         internal static void Resume() { OnLoop(delegate { try { player.Play(); lock (gate) paused = false; } catch (Exception) { } }); }
 
-        // Held, rather than stopped or finished. Mode keeps saying "playing" for a paused song on purpose: the next
-        // song check reads it, and a paused song must not count as one that ended and move the playlist on.
         internal static bool Paused { get { lock (gate) return playing != null && paused && !ended; } }
 
-        // What the next-song check reads. Worded like MCI's answer so nothing above had to change.
         internal static string Mode
         {
             get

@@ -1025,8 +1025,6 @@ namespace CapriDesktop
         // A window as her brain sees it: its title, trimmed and quoted, and its program.
         private static string Titled(OpenWindow window)
         {
-            // A title is the most personal line on screen. On stream she gets the app alone, so she can still be
-            // asked to switch or close without reading filenames out.
             if (Streaming)
                 return string.IsNullOrEmpty(window.Program) ? "\"a window\"" : "\"" + window.Program + "\"";
             string title = Regex.Replace(window.Title ?? "", @"\s+", " ").Trim().Replace('"', '\'');
@@ -1944,7 +1942,6 @@ namespace CapriDesktop
                 {
                     if (string.IsNullOrWhiteSpace(args.Task)) return "Which job, choom?";
 #if !CROSS
-                    // A typing job carries its app. The planner types into whatever is in front, so bring it up first.
                     if (Named(args.Name))
                     {
                         string into = args.Name.Trim();
@@ -1954,7 +1951,6 @@ namespace CapriDesktop
                             else if (Installed(into)) { OpenApp(into); System.Threading.Thread.Sleep(1200); Opened(into); }
                         }
                         catch (Exception) { }
-                        // The name has done its job; leaving it set would read as an app to open to anything downstream.
                         args.Name = null;
                     }
 #endif
@@ -2218,7 +2214,6 @@ namespace CapriDesktop
             string[][] modTools = ModToolsNow();
             StringBuilder key = new StringBuilder(ComputerName);
             foreach (string[] gap in missing) key.Append('|').Append(gap[0]).Append('=').Append(gap[1]);
-            // Her posture reads every toggle that lets her act, so a kit built under one set must not be handed out under another.
             key.Append("|acts=");
             for (int toggle = Security.Open; toggle <= Security.Sends; toggle++) key.Append(Security.Has(toggle) && Security.On(toggle) ? '1' : '0');
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
@@ -2684,21 +2679,14 @@ namespace CapriDesktop
         }
 
         // "a, b and c", or "a, b or c".
-        // How eager she is with her hands, taken from whether they gave her the mouse and keyboard rather than from a preset name,
-        // so a Custom mix lands on the right side too. With it on she is an assistant that does things and should reach for a tool
-        // in the same turn. With it off every job waits for their yes anyway, so talking is the useful behaviour and announcing an
-        // action as done is not.
         private static string Posture()
         {
-            // Every toggle that lets her do something, not just the mouse, and named the way their SECURITY window names it.
             List<string> free = new List<string>();
             for (int toggle = Security.Open; toggle <= Security.Sends; toggle++)
                 if (Security.Has(toggle) && Security.On(toggle)) free.Add(Security.Names[toggle].Substring(0, 1).ToLowerInvariant() + Security.Names[toggle].Substring(1));
             string doing = "\nAct, don't describe: when what they asked for matches one of those, call it in this same turn and then say what you did in your own voice. Opening an app or a site is a single call that finds the app or browser itself, so never check first, never answer a request to act with what you found or what's already open, and never ask them which tool to use. Asking for something a second time means do it a second time: call the tool again and never answer that you already did it, that it is already done or that it is already open, whatever your memory of this chat says.";
-            // Her hands on the mouse and keyboard is the one that covers anything, so with it on she works like an assistant.
             if (Security.Has(Security.Mouse) && Security.On(Security.Mouse))
                 return "\nThey've handed you their mouse and keyboard, so you can do whatever they ask on this " + ComputerName + " without asking first." + doing;
-            // Without it, whatever is still on is worth doing straight away; the rest waits for their yes, so offering is the useful move.
             if (free.Count > 0)
                 return "\nThese run the moment you call them, with no yes needed: " + Joined(free, "and") + "." + doing
                     + " Anything else waits for their yes, so for those say what you'd do and let them agree instead of reporting it as done.";
@@ -3200,10 +3188,8 @@ namespace CapriDesktop
         // The title of a game open on their PC, or null. Each app sets it where it can see their windows.
         internal static Func<string> GameOpen = delegate { return null; };
 
-        // Set by Capri: play, skip, back, stop, remove, shuffle, repeat_*, add_folder, add_song, commands.
         internal static Func<string, string, string> Playlist;
 
-        // Set by Capri: whether her own folder playlist is the thing playing right now.
         internal static Func<bool> PlaylistBusy;
 
         // "Play minecraft and punch a tree" is more than opening it, so all of it goes to her hands.
@@ -3246,17 +3232,10 @@ namespace CapriDesktop
         // A look at one of their monitors by name: "what's on my second monitor", "look at my left screen", "check the portrait one".
         private static readonly Regex MonitorLook = new Regex(@"^(?:(?:can|could|would|will) (?:you|u) )?(?:(?:take a |have a |quick )?(?:look|peek|peep|glance)(?: at)?|check(?: out)?|see|read|scan) (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display|one)$|^what(?:'s| is) on (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display)$", RegexOptions.IgnoreCase);
         // A reply that says she can't see their screen means she should look instead.
-        // Her playlist, by voice or typed. "remove song" comes before "skip" in Direct on purpose: taking a song off also
-        // moves on, so the stronger meaning has to win when someone says "remove this song and skip it".
-        // "playlist add D:\Music". The word playlist has to lead, because a bare "add folder..." is a request to make a
-        // folder as far as her file tools are concerned, and a path typed slightly wrong fell through to her brain, which
-        // then offered to create it. Led this way it always claims the words, so a wrong path comes back as
-        // "there's no folder at..." instead of becoming a new folder.
         private static readonly Regex PlaylistAdd = new Regex(
             @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*playlist[\s,]+(?:add|added|and)\s+(?:the\s+)?(?:folder|dir|directory|path)?\s*(?<path>.+?)[\s.!?]*$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The other way round reads clearly too, and ending in "playlist" cannot be mistaken for making a folder.
         private static readonly Regex PlaylistFolder = new Regex(
             @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:add|put)\s+(?:the\s+)?(?:folder|directory|path)?\s*(?<path>.+?)"
             + @"\s+(?:to|into|on|in)\s+(?:my\s+|the\s+|her\s+|your\s+)?playlist[\s.!?]*$",
@@ -3303,29 +3282,19 @@ namespace CapriDesktop
             @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:play|start|resume|put\s+on|shuffle)\s+(?:my\s+|the\s+|her\s+|your\s+)?playlist[\s.!?]*$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // "show commands", "command list". It opens commands.md, which is a read-out of this very list.
         private static readonly Regex AskedCommands = new Regex(
             @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:show\s+(?:me\s+)?(?:your\s+|the\s+|all\s+)?commands?"
             + @"|(?:what|which)\s+commands?(?:\s+(?:do|can)\s+you\s+(?:have|know|understand|do))?"
             + @"|commands?\s+list|list\s+(?:your\s+|the\s+)?commands?|open\s+commands?(?:\.md)?|show\s+commands?)[\s.!?]*$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // "type test in notepad", "write hello into notepad++", "take control of notepad and type ok", and the way it often
-        // comes out by voice, "notepad application type test". The words typed are left in the sentence rather than captured
-        // on their own, because use_computer is given the whole request as its task.
         private static readonly Regex Typing = new Regex(
             @"^(?:(?:please|hey|capri|ok|okay|go|now)[\s,]+)*"
-            // "take control of notepad and type ok", and "control discord and type hi" with no take in front of it.
             + @"(?:(?:(?:take|grab|get)\s+)?control(?:\s+of)?\s+(?<app>.+?)\s*(?:,|\s)\s*(?:and\s+|then\s+)?(?:type|write|enter|put|say)\s+(?<what>.+?)"
-            // "type test in notepad"
             + @"|(?:type|write|enter|put)\s+(?<what>.+?)\s+(?:in|into|on|onto|to)\s+(?:the\s+|my\s+|this\s+|that\s+)?(?<app2>.+?)"
-            // "type in discord, this is capri": the app comes first and the words after it, comma or not.
             + @"|(?:type|write|enter|put)\s+(?:in|into|on|onto)\s+(?:the\s+|my\s+|this\s+|that\s+)?(?<app2>[\w.+#-]+(?:\s+(?:application|app|window|editor))?)\s*[,:]?\s+(?<what>.+?)"
-            // "notepad application type test", and "in discord type hi", which is how it often comes out by voice.
             + @"|(?:in|into|on|onto)?\s*(?<app2>[\w.+#-]+(?:\s+(?:application|app|window|editor))?)\s*[,:]?\s+(?:type|write|enter|put)\s+(?<what>.+?)"
-            // "use discord to say hi", "open notepad and write hello".
             + @"|(?:use|using|go\s+(?:in)?to|open)\s+(?<app>.+?)\s+(?:to|and(?:\s+then)?)\s+(?:say|type|write|enter|put|send|post)\s+(?<what>.+?)"
-            // "say hi in discord", "send hello to discord". Only a job when the app is found, so ordinary talk is untouched.
             + @"|(?:say|send|post|message)\s+(?<what>.+?)\s+(?:in|into|on|onto|to)\s+(?:the\s+|my\s+|this\s+|that\s+)?(?<app2>.+?))"
             + @"[\s.!?]*$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -3959,8 +3928,6 @@ namespace CapriDesktop
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
 
-            // Her own playlist, read without the model, and ahead of media and play_music, which claim "skip",
-            // "next" and "play my playlist" below. Skip is only hers while her playlist is the thing playing.
             Match asked = PlaylistAdd.Match(text);
             if (asked.Success && Playlist != null)
             {
@@ -3970,8 +3937,6 @@ namespace CapriDesktop
                 args.Asked = said;
                 return true;
             }
-            // "add <path> to my playlist" ends in the word playlist, so it is hers too, and claimed whatever the path says
-            // for the same reason: a path that is wrong must come back as wrong, never as a folder she went and made.
             Match playlistFolder = PlaylistFolder.Match(text);
             if (playlistFolder.Success && Playlist != null)
             {
@@ -3998,7 +3963,6 @@ namespace CapriDesktop
                 {
                     tool = "playlist";
                     args.Action = doing;
-                    // "shuffle off" carries the off, or shuffle only ever turns on.
                     if (doing == "shuffle" && PlaylistShuffle.Match(text).Groups["off"].Success) args.Path = "off";
                     args.Asked = said;
                     return true;
@@ -4223,11 +4187,6 @@ namespace CapriDesktop
                 return true;
             }
 #if !CROSS
-            // "type test in notepad" runs her hands instead of being narrated. Left to the model it answered "Test
-            // written. Ready for more." without calling anything, or reached for open_website, which is where
-            // "Notepad isn't a website" came from. The named app still has to be installed or on screen, so "write a
-            // poem about notepads" is not a job, and the whole request is passed on because use_computer wants their
-            // exact words.
             Match typing = Typing.Match(text);
             if (typing.Success)
             {
@@ -4237,12 +4196,8 @@ namespace CapriDesktop
                 string app = AppMeant(into);
                 if (app != null && words.Length > 0)
                 {
-                    // Spelled out rather than passed on as it was said, because the job planner reads the task
-                    // literally: given "Capri type test in Notepad" it typed the words "type test". The app is named
-                    // as she found it, so a misheard "Notad" reaches the job as Notepad.
                     tool = "use_computer";
                     args.Task = "Type \"" + words + "\" into " + app;
-                    // Carried so the app is brought up before the job starts: finding it and then acting, in that order.
                     args.Name = app;
                     args.Asked = said;
                     return true;
@@ -4748,9 +4703,6 @@ namespace CapriDesktop
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
 #if !CROSS
-            // "Open my browser" names a kind, not an app, and used to come back as no app called "my browser". She has
-            // been counting which one of each kind they keep in front, so theirs wins; naming an actual app still goes
-            // straight through, which is how someone opens the other browser without changing what their browser is.
             string kind = null;
             try { kind = Favourites.KindOf(wanted); } catch (Exception) { }
             if (kind != null)
@@ -4776,7 +4728,6 @@ namespace CapriDesktop
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
             if (current != null && !current()) return "That call errand has ended.";
 #if !CROSS
-            // Her opening it is not them using it, or her guess would vote for itself.
             try { Favourites.SheOpened(chosen.Id); } catch (Exception) { }
 #endif
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
@@ -4788,8 +4739,6 @@ namespace CapriDesktop
         }
 
 #if !CROSS
-        // Nothing learned yet and they asked for their browser: one that is actually installed is the honest answer,
-        // and it is what they would get from a link anyway.
         private static string OpenBrowserKind(Func<bool> current)
         {
             foreach (string known in new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "zen" })
@@ -4810,9 +4759,6 @@ namespace CapriDesktop
 #endif
 
 #if !CROSS
-        // The app a typed request means, by its window, its name or its catalog entry. The words around the name are
-        // rarely the name: "chat on Discord" is Discord, "the notepad window" is notepad. So the whole phrase is tried
-        // first and then shorter and shorter tails of it, longest first.
         internal static string AppMeant(string named)
         {
             string want = (named ?? "").Trim();
@@ -4838,14 +4784,12 @@ namespace CapriDesktop
             catch (Exception) { }
             if (Showing(want)) return want;
             if (Installed(want)) return want;
-            // Spoken plus signs: "notepad plus plus" is notepad++, which no catalog lists under those words.
             string signs = Regex.Replace(want, @"\s*\bplus\s*plus\b", "++", RegexOptions.IgnoreCase);
             signs = Regex.Replace(signs, @"\s*\bplus\b", "+", RegexOptions.IgnoreCase).Trim();
             if (signs != want && (Showing(signs) || Installed(signs))) return signs;
             return null;
         }
 
-        // The app a window belongs to, as its title ends: "notes.txt - Notepad" is Notepad.
         private static string AppTitle(OpenWindow window)
         {
             if (window == null) return null;

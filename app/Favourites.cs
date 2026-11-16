@@ -7,18 +7,6 @@ using System.Text;
 
 namespace CapriDesktop
 {
-    // Which program they actually use for a thing, learned by watching rather than by asking.
-    //
-    // She knows a lot of programs and had no idea which of them is theirs. "Open my calendar" on a PC with three
-    // calendar apps was a guess, and a guess that is wrong once is worse than asking.
-    //
-    // Only what they put in front counts. Her own opening of something is one use of it on this PC and nothing
-    // more: if it counted, her first guess would reinforce itself and she would never learn she had it wrong.
-    // Being asked for a specific one still opens that one, and that does not change the default either.
-    //
-    // Counts decay like her hours do, so changing browser catches up in a fortnight instead of being outvoted by
-    // last month forever. Nothing here is sent anywhere: it is a list of program names in a file beside her
-    // settings.
     internal static class Favourites
     {
         internal const string FileName = "apps-used.txt";
@@ -26,7 +14,6 @@ namespace CapriDesktop
 
         private static readonly object gate = new object();
         private static readonly Dictionary<string, double> counts = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
-        // What they have told her outright, and what they have told her it is not.
         private static readonly Dictionary<string, string> picks = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, string> refused = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static bool read;
@@ -34,13 +21,9 @@ namespace CapriDesktop
         private static DateTime markedAt = DateTime.MinValue, faded = DateTime.MinValue, saved = DateTime.MinValue;
 
         private const double Fade = 0.95;
-        // Below this it has not been in front enough to call it theirs.
         private const double Enough = 3.0;
-        // One count per program per spell in front, so leaving something open all day is one use, not a landslide.
         private static readonly TimeSpan Spell = TimeSpan.FromMinutes(4);
 
-        // The kinds she is ever asked for, and the programs that count as each. Matched on the name containing
-        // one of these, so "brave.exe" and "Brave Browser" both count.
         private static readonly Dictionary<string, string[]> Kinds = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
             { "browser", new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "waterfox", "zen" } },
@@ -51,15 +34,12 @@ namespace CapriDesktop
             { "chat", new[] { "discord", "slack", "teams", "telegram", "signal", "whatsapp" } }
         };
 
-        // What people call each kind, for asking about it.
         private static readonly Dictionary<string, string> Called = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "browser", "browser" }, { "calendar", "calendar" }, { "music", "music player" },
             { "images", "image viewer" }, { "editor", "editor" }, { "chat", "chat app" }
         };
 
-        // What they might call a kind out loud, for "open my browser". The kind's own name and the friendly one
-        // are both in here, with the words people put around them stripped before the lookup.
         private static readonly Dictionary<string, string> Asked = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "browser", "browser" }, { "web browser", "browser" }, { "internet", "browser" },
@@ -70,8 +50,6 @@ namespace CapriDesktop
             { "chat", "chat" }, { "chat app", "chat" }, { "messenger", "chat" }
         };
 
-        // The kind someone means, or null when they named an actual app. "my browser", "the browser", "browser
-        // please" all land on browser; "brave" does not, because that is a program and they said which one.
         internal static string KindOf(string said)
         {
             if (string.IsNullOrWhiteSpace(said)) return null;
@@ -90,7 +68,6 @@ namespace CapriDesktop
             return Called.TryGetValue(kind ?? "", out said) ? said : kind;
         }
 
-        // Every one of this kind she has seen them use, most used first.
         internal static List<string> Choices(string kind)
         {
             List<string> found = new List<string>();
@@ -109,14 +86,12 @@ namespace CapriDesktop
             return found;
         }
 
-        // Their own word, which beats any amount of counting.
         internal static void Pick(string kind, string program)
         {
             if (string.IsNullOrEmpty(kind) || string.IsNullOrEmpty(program)) return;
             lock (gate) { Load(); picks[kind] = Plain(program); Write(); }
         }
 
-        // "No, not that one", so she does not ask about it again.
         internal static void NotThat(string kind, string program)
         {
             if (string.IsNullOrEmpty(kind) || string.IsNullOrEmpty(program)) return;
@@ -139,8 +114,6 @@ namespace CapriDesktop
             return false;
         }
 
-        // The one to ask about: seen enough, not already picked, and not one they have ruled out. Null when
-        // there is nothing worth asking, which includes there being only one of them.
         internal static string Ask(string kind)
         {
             if (!string.IsNullOrEmpty(Picked(kind))) return null;
@@ -154,7 +127,6 @@ namespace CapriDesktop
                     if (counts.TryGetValue(one, out had) && had >= 2 && !Turned(kind, one)) worth.Add(one);
                 }
             }
-            // One of them needs no question, and nothing seen needs no question either.
             return worth.Count >= 2 ? worth[0] : null;
         }
 
@@ -168,7 +140,6 @@ namespace CapriDesktop
             }
         }
 
-        // Theirs, for this kind of thing, or null when nothing has been in front enough to say.
         internal static string Best(string kind)
         {
             string told = Picked(kind);
@@ -190,7 +161,6 @@ namespace CapriDesktop
             }
         }
 
-        // What is in front now. Called on her slow tick, not every frame.
         internal static void Seen(string program, DateTime now)
         {
             string plain = Plain(program);
@@ -199,7 +169,6 @@ namespace CapriDesktop
             {
                 Load();
                 Decay(now);
-                // The same thing still in front is the same use of it.
                 if (string.Equals(plain, marked, StringComparison.OrdinalIgnoreCase) && now - markedAt < Spell) return;
                 marked = plain;
                 markedAt = now;
@@ -209,7 +178,6 @@ namespace CapriDesktop
             }
         }
 
-        // Her opening something is one use of it and no more, so her own guess cannot vote for itself.
         internal static void SheOpened(string program)
         {
             string plain = Plain(program);

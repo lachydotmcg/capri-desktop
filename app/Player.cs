@@ -48,7 +48,6 @@ namespace CapriDesktop
         // Windows' own session for it, or null for one made up in a test.
         internal object Session;
 
-        // Her own playlist rather than another program's. It gets a heart like Spotify's: she owns its favourites.
         internal bool Mine;
         internal bool Fav;
 
@@ -80,7 +79,6 @@ namespace CapriDesktop
 
         internal static double Now { get { return clock.Elapsed.TotalSeconds; } }
 
-        // Set by Capri: her folder playlist's current song, or null when it is not the thing playing.
         internal static Func<Tune> Own;
 
         // What's playing, or null. Tests swap it out.
@@ -175,8 +173,6 @@ namespace CapriDesktop
                 double now = Now, pressed;
                 lock (pressing) pressed = pressedAt;
                 if (shared != null && now - sharedAt < 0.9 && sharedAt >= pressed + 0.3) return shared;
-                // Her own playlist counts as a session here, so her player, her dancing and "what's playing" see it.
-                // Windows never hears about MediaPlayer.
                 Func<Tune> mine = Own;
                 if (mine != null)
                 {
@@ -675,7 +671,6 @@ namespace CapriDesktop
             if (glitchUntil >= 0) glitchSeed = random.Next(1, int.MaxValue);
             titleRolls = false;
             Redraw();
-            // A name too long for the plate keeps it ticking; anything else lets it rest at twice a second.
             if (glitchUntil < 0) ticks.Interval = titleRolls ? 40 : 500;
         }
 
@@ -705,8 +700,6 @@ namespace CapriDesktop
                 from = hip - (int)(size * (facingLeft ? 0.36f : 0.1f));
                 to = hip + (int)(size * (facingLeft ? 0.1f : 0.36f));
             }
-            // A redraw is the whole plate through UpdateLayeredWindow, and her hip moves every frame while dragged.
-            // The legs only move the song's name aside, so four pixels of slop costs nothing and saves the redraws.
             if (from >= 0 && to >= 0 && legsFrom >= 0 && legsTo >= 0 && Math.Abs(from - legsFrom) < 4 && Math.Abs(to - legsTo) < 4) return;
             if (from == legsFrom && to == legsTo) return;
             legsFrom = from;
@@ -835,7 +828,6 @@ namespace CapriDesktop
             if (part == PlayerPart.Close) { Raise("close"); return; }
             if (shown == null) return;
             double now = Tunes.Now;
-            // Plenty of apps report no skip while skipping fine, so the press goes through and they can ignore it.
             if (part == PlayerPart.Previous) Raise("previous");
             else if (part == PlayerPart.Next) Raise("next");
             else if (part == PlayerPart.Shuffle)
@@ -897,7 +889,6 @@ namespace CapriDesktop
             if (Command != null) Command(what);
         }
 
-        // How loud, 0 to 1. Her own, so the bar is right the moment it is dragged rather than after the next read.
         internal double Loud = 1;
         private double sliding = -1;
 
@@ -966,11 +957,8 @@ namespace CapriDesktop
             return new[] { left, right };
         }
 
-        // A name wider than its room scrolls rather than being cut: hold, travel, hold, slide back. Off the clock,
-        // so every redraw agrees where it is.
         private const double MarqueeHold = 1.6, MarqueeSpeed = 34;
 
-        // Set by the last render when the name did not fit, so Step knows to keep ticking for it.
         private static bool titleRolls;
 
         internal static bool Marquee(Graphics graphics, string text, Font font, float width, double now, out float shift)
@@ -1172,7 +1160,6 @@ namespace CapriDesktop
             }
         }
 
-        // Two crossing arrows. Lit pink while it is on, so the state reads at a glance without a label.
         private static void DrawShuffle(Graphics graphics, PointF c, float s, Color colour)
         {
             using (Pen line = new Pen(colour, 1.7f * s))
@@ -1191,7 +1178,6 @@ namespace CapriDesktop
             }
         }
 
-        // A ring with a break and an arrow head, and a dot in the middle when it is repeating this one song.
         private static void DrawLoop(Graphics graphics, PointF c, float s, Color colour, bool one)
         {
             using (Pen line = new Pen(colour, 1.7f * s))
@@ -1208,7 +1194,6 @@ namespace CapriDesktop
             using (Brush dot = new SolidBrush(colour)) graphics.FillEllipse(dot, c.X - 1.8f * s, c.Y - 1.8f * s, 3.6f * s, 3.6f * s);
         }
 
-        // A speaker and a bar. Same shape as the seek bar above it, so it reads as the same kind of control.
         private static void DrawVolume(Graphics graphics, float s, bool lit, double level)
         {
             RectangleF bar = Box(PlayerPart.Volume, s);
@@ -1223,7 +1208,6 @@ namespace CapriDesktop
                 graphics.DrawLine(line, x - 4 * s, midY - 2.5f * s, x, midY - 6 * s);
                 graphics.DrawLine(line, x - 4 * s, midY + 2.5f * s, x, midY + 6 * s);
                 graphics.DrawLine(line, x, midY - 6 * s, x, midY + 6 * s);
-                // One arc for sound, two for loud, none when it is off.
                 if (level > 0.02) graphics.DrawArc(line, x + 1 * s, midY - 4 * s, 6 * s, 8 * s, -60, 120);
                 if (level > 0.55) graphics.DrawArc(line, x + 1 * s, midY - 7 * s, 11 * s, 14 * s, -60, 120);
                 if (level <= 0.02)

@@ -100,9 +100,7 @@ namespace CapriDesktop
             {
                 new Doc("personality.md", delegate { if (!Brain.MakePersonality()) throw new IOException("No personality.md."); return Brain.OpenPersonality(); }),
                 new Doc("me.md", delegate { return Brain.OpenNote(false); }),
-                // A read-out rather than a setting, so it is rewritten on the way in and whenever Reload is pressed.
                 new Doc(Commands.FileName, delegate { Commands.Write(); return Commands.Open(); }),
-                // Her playlist is hers to edit by hand too, so it opens here rather than in whatever Windows has for json.
                 new Doc(Playlist.FileName, delegate { return Playlist.OpenNote(); })
             };
             frost = new Frost();
@@ -683,7 +681,6 @@ namespace CapriDesktop
             RectangleF ruleBox = RectangleF.FromLTRB(Sx(PanelArt.RuleLeft), Sy(PanelArt.RuleTop), Sx(Math.Max(rule, PanelArt.RuleLeft)), Sy(PanelArt.RuleBottom));
             RectangleF blockBox = RectangleF.FromLTRB(Sx(PanelArt.RuleLeft), Sy(PanelArt.BlockTop), Sx(Math.Max(block, PanelArt.RuleLeft)), Sy(PanelArt.BlockBottom));
             PointF versionAt = new PointF(Ax(PanelArt.RuleLeft), Ay(67)), nameAt = new PointF(Ax(PanelArt.RuleLeft), Ay(83)), projectAt = new PointF(Ax(PanelArt.BlockEnd + 8), Ay(PanelArt.BlockTop - 0.5f));
-            // The open file's name sits under HER FILES, where there was room, rather than over the tabs.
             string openFile = docs != null && current >= 0 && current < docs.Length ? docs[current].Name : "";
             PointF openAt = new PointF(Ax(PanelArt.BlockEnd + 8), Ay(PanelArt.BlockTop + 13.5f));
             PaintShadow(pen, spineShape, sheetShape, sheetAlpha, ruleBox, blockBox, topVersion, versionAt, name, nameAt, project, projectAt);
@@ -1207,7 +1204,6 @@ namespace CapriDesktop
                 box.KeyDown += delegate { panel.Finish(); };
                 box.MouseDown += delegate { panel.Finish(); };
                 box.TextChanged += delegate { if (!loading) Typed(); Freshen(); };
-                // One tab per file. Each scrolls its own name under the mouse: the strip is too narrow for a long one.
                 tabs = new Ink[panel.docs.Length];
                 for (int made = 0; made < tabs.Length; made++) tabs[made] = new Ink { Tag = made, Rolling = true };
                 foreach (Ink tab in tabs)
@@ -1250,13 +1246,10 @@ namespace CapriDesktop
             internal string Words { get { return box.Text; } set { box.Text = value; } }
             internal int BoxHeight { get { return box.Height; } }
             internal string BoxFont { get { return box.Font.Name; } }
-            // Which file the side column starts at, and how many fit.
             private int tabFirst, tabShown;
 
-            // The tabs run down the left side. The top strip below is kept for a narrow page.
             private bool SideTabs { get { return true; } }
 
-            // The wheel over the column moves the list, not the text.
             internal bool WheelTabs(Point at, int notches)
             {
                 if (!SideTabs || tabs.Length == 0) return false;
@@ -1270,7 +1263,6 @@ namespace CapriDesktop
                 return true;
             }
 
-            // Keeps the open file in view when it is picked from somewhere other than the column.
             private void SeeTab(int which)
             {
                 if (!SideTabs || tabShown <= 0) return;
@@ -1278,11 +1270,9 @@ namespace CapriDesktop
                 else if (which >= tabFirst + tabShown) tabFirst = which - tabShown + 1;
             }
 
-            // Scrolls the side column so the file being opened is one you can see.
             internal void ShowTab(int which)
             {
                 if (!SideTabs || tabShown <= 0) return;
-                // Only when the file is off the visible run: laying the column out under the cursor swallows clicks.
                 int was = tabFirst;
                 SeeTab(which);
                 if (tabFirst != was) Fit();
@@ -1317,7 +1307,6 @@ namespace CapriDesktop
                 int right = close.Left - Scaled(12);
                 for (int i = 0; i < tabs.Length; i++) tabs[i].Text = panel.docs[i].Label;
                 int textLeft = pad;
-                // Down the side rather than across the top: a row only held a couple of files. The wheel scrolls it.
                 if (SideTabs)
                 {
                     int sideHigh = Scaled(26), sideGap = Scaled(3), sideTop = Scaled(44), sideWide = Scaled(132);
@@ -1332,7 +1321,6 @@ namespace CapriDesktop
                         if (!seen) continue;
                         tabs[i].Bounds = new Rectangle(pad, sideTop + slot * (sideHigh + sideGap), sideWide, sideHigh);
                     }
-                    // The text starts beside them. The rest of the layout is shared, so this only sets a left edge.
                     textLeft = pad + sideWide + gap;
                 }
                 else
@@ -1352,7 +1340,6 @@ namespace CapriDesktop
                     }
                     row += (rows - 1) * (tabHigh + Scaled(4));
                 }
-                // Empty, so the veil and the title painter have something harmless: the name is on its tab instead.
                 titleBox = new Rectangle(pad, Scaled(4), 0, Scaled(44) - Scaled(6));
                 int top = row, bottom = Height - foot, barWide = Scaled(8);
                 lineTop = row - Scaled(6);
@@ -1364,7 +1351,6 @@ namespace CapriDesktop
                 bar.Line = line;
                 bar.Bounds = new Rectangle(Width - pad - barWide, top, barWide, box.Height);
                 int buttonHigh = Scaled(30), buttonTop = bottom + (foot - buttonHigh) / 2;
-                // Left to right, so the buttons sit under the text they act on. Save first.
                 int at = pad;
                 at = PlaceButton(save, at, buttonTop, buttonHigh, gap);
                 at = PlaceButton(reload, at, buttonTop, buttonHigh, gap);
@@ -1736,7 +1722,6 @@ namespace CapriDesktop
             protected override void OnPaint(PaintEventArgs e)
             {
                 base.OnPaint(e);
-                // The name is on its tab and under HER FILES; drawing it here too only cost room.
                 // Thin red rules under the title and over the buttons, like the lines between the reference panel's fields.
                 using (Brush rule = new SolidBrush(Color.FromArgb(200, Red)))
                 {
@@ -1769,7 +1754,6 @@ namespace CapriDesktop
                     return;
                 }
                 if (message.Msg == 0x02E0) return;
-                // WM_MOUSEWHEEL over the side column scrolls the file list rather than the text.
                 if (message.Msg == 0x020A)
                 {
                     int turned = (short)((message.WParam.ToInt64() >> 16) & 65535);
@@ -2069,8 +2053,6 @@ namespace CapriDesktop
                             if (since < 0) since += refresh;
                             next = now - since + refresh + Math.Min(frequency / 1000, refresh / 4);
                             InStep = true;
-                            // Windows rounds to whole Hz, so a 59.94 screen reads as 59 and the panel looks too fast.
-                            // The compositor's figure is the true one.
                             Hz = composed;
                         }
                     }
@@ -2191,7 +2173,6 @@ namespace CapriDesktop
         private sealed class Ink : Button
         {
             internal bool Filled, Mark;
-            // A tab rather than a button: its file name is left aligned and scrolls while the mouse is on it.
             internal bool Rolling;
             private bool hot, down;
             private Timer roll;
@@ -2211,7 +2192,6 @@ namespace CapriDesktop
             protected override void OnMouseEnter(EventArgs e) { hot = true; StartRoll(); Invalidate(); base.OnMouseEnter(e); }
             protected override void OnMouseLeave(EventArgs e) { hot = false; down = false; StopRoll(); Invalidate(); base.OnMouseLeave(e); }
 
-            // How wide the text wants to be, against the room it has.
             private int Overflow()
             {
                 if (!Rolling || string.IsNullOrEmpty(Text)) return 0;
@@ -2222,7 +2202,6 @@ namespace CapriDesktop
 
             private int Pad() { return Math.Max(4, Height / 4); }
 
-            // Only while the mouse is on it, and only when there is something to see. Nothing ticks otherwise.
             private void StartRoll()
             {
                 if (Overflow() == 0) return;
@@ -2293,12 +2272,10 @@ namespace CapriDesktop
                         TextFormatFlags how = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoClipping;
                         if (wants == 0 || !hot)
                         {
-                            // It fits, or the mouse is elsewhere: left aligned, and cut with an ellipsis if it is long.
                             TextRenderer.DrawText(pen, Text, Font, inside, ink, BackColorFor(lit), how | TextFormatFlags.EndEllipsis);
                         }
                         else
                         {
-                            // Drawn twice, a gap apart, so the end of the name runs straight into its start again.
                             Region was = pen.Clip;
                             pen.SetClip(inside);
                             Rectangle first = new Rectangle(inside.X - shift, inside.Y, wants + Gap, inside.Height);

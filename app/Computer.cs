@@ -843,7 +843,6 @@ namespace CapriDesktop
         private static int pickedProcess;
         private static string pickedProgram;
 
-        // Just the program in front, with no window walk behind it. Pick does more than this is for.
         internal static string FrontProgram()
         {
             try
