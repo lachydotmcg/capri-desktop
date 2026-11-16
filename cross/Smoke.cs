@@ -1196,6 +1196,7 @@ namespace CapriDesktop
                     || burmeseLetters[1] || burmeseLetters[4] || !burmeseLetters[5] || burmeseLetters[6] || !burmeseLetters[7] || burmeseLetters[8] || !Look.Unspaced("မင်္ဂလာပါ"))
                     throw new Exception("A Lao vowel, a Burmese syllable or a joined letter came apart: " + laoLetters[7] + " " + laoLetters[10] + " " + laoLetters[12] + " " + burmeseLetters[1] + " " + burmeseLetters[4] + " / " + joinedCut);
                 checks.Add("PASS bubble lines: Chinese, Japanese and Korean take two columns and wrap without spaces, never starting a line with closing punctuation, a long link breaks across lines without losing letters, Arabic, Urdu, Persian and Hebrew lines read right to left, Thai, Lao and Burmese break between letters, never before a vowel or tone mark, after a vowel written first or inside a Burmese syllable, and a virama or Khmer coeng keeps its letters together");
+                CloseChecks();
                 pet.Talk.Dismiss();
                 PixelRect area = Work();
                 shelfAsked = new PixelRect(area.X + area.Width / 2 - Px(350), area.Y + area.Height / 2 - Px(140), Px(700), Px(360));
@@ -2587,6 +2588,52 @@ namespace CapriDesktop
                 Hands.Forget();
             }
             checks.Add("PASS Minecraft opens an installed launcher, keeps a real Minecraft app first, finds Java game windows and plays an open game without launching music or another app");
+        }
+
+        private void CloseChecks()
+        {
+            System.Reflection.BindingFlags members = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+            System.Reflection.PropertyInfo implOf = typeof(TopLevel).GetProperty("PlatformImpl", members);
+            System.Reflection.PropertyInfo closingOf = typeof(Window).Assembly.GetType("Avalonia.Platform.IWindowImpl")?.GetProperty("Closing");
+            if (implOf == null || closingOf == null) throw new Exception("Avalonia's close request from the desktop couldn't be found to check it.");
+            Func<Window, WindowCloseReason, bool> asked = delegate(Window window, WindowCloseReason reason)
+            {
+                object impl = implOf.GetValue(window);
+                Func<WindowCloseReason, bool> closing = impl == null ? null : closingOf.GetValue(impl) as Func<WindowCloseReason, bool>;
+                if (closing == null) throw new Exception("The " + window.Title + " window had no close request to answer.");
+                return closing(reason);
+            };
+            Talk talk = pet.Talk;
+            talk.Answer("(close test)", "Close me, choom.");
+            bool pill = talk.Pill.IsVisible && asked(talk.Pill, WindowCloseReason.WindowClosing) && !talk.Pill.IsVisible;
+            talk.Update(pet.Now);
+            pill = pill && talk.Pill.IsVisible;
+            bool bubble = talk.Bubble.IsVisible && asked(talk.Bubble, WindowCloseReason.WindowClosing);
+            talk.Update(pet.Now + 0.5);
+            bubble = bubble && !talk.Bubble.IsVisible && talk.Reply == null;
+            talk.Answer("(closed)", "Still here, choom.");
+            bubble = bubble && talk.Bubble.IsVisible && talk.Reply == "Still here, choom.";
+            talk.Open();
+            bool typer = talk.Typing && asked(talk.Typer, WindowCloseReason.WindowClosing) && !talk.Typing;
+            talk.Open();
+            typer = typer && talk.Typing;
+            talk.Typer.Hide();
+            bool spares = true;
+            Window[] spare = { new Bubble(), new Pill(), new Typer(), new Pill() };
+            for (int i = 0; i < spare.Length; i++)
+            {
+                bool closed = false;
+                spare[i].Closed += delegate { closed = true; };
+                spare[i].Show();
+                bool kept = spare[i].IsVisible && asked(spare[i], WindowCloseReason.WindowClosing) && !closed && !spare[i].IsVisible;
+                spare[i].Show();
+                kept = kept && spare[i].IsVisible;
+                if (i == spare.Length - 1) spare[i].Close();
+                else kept = kept && !asked(spare[i], WindowCloseReason.ApplicationShutdown);
+                spares = spares && kept && closed;
+            }
+            if (!pill || !bubble || !typer || !spares) throw new Exception("Closing her bubble, pill or typing box from the desktop lost it or broke it: pill " + pill + ", bubble " + bubble + ", typing box " + typer + ", quitting and her own close still close them " + spares + ".");
+            checks.Add("PASS closing her bubble, pill or typing box from the desktop (Alt+F4 or a window list) hides it instead of closing it for good: the bubble goes like a click on it, all three come back the next time she needs them, and quitting or Capri's own close still close them");
         }
 
         private void MiniChecks()
