@@ -60756,8 +60756,8 @@ namespace CapriDesktop
                                     if (reply != keyLines[provider] || heard != "free key") throw new Exception("Free key did not explain provider " + provider + ": " + reply);
                                     CloseTalk();
                                 }
+                                ((ToolStripMenuItem)helpItem.DropDownItems[2]).PerformClick();
                                 ((ToolStripMenuItem)helpItem.DropDownItems[1]).PerformClick();
-                                ((ToolStripMenuItem)helpItem.DropDownItems[0]).PerformClick();
                                 OpenHelp();
                                 if (string.Join(" ", browsed.ToArray()) != GuidePage + " " + FreeKeyPage + " " + GeminiKeyPage + " " + RouterKeyPage + " " + DiscordPage + " " + HelpPage + " " + HelpPage) throw new Exception("Key buttons, Join the Discord or Help opened the wrong pages: " + string.Join(" ", browsed.ToArray()));
                             }
