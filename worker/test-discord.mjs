@@ -34,7 +34,8 @@ const env = { DB, ANTHROPIC_API_KEY: 'stand-in', DISCORD_RELAY_SECRET: 'stand-in
 const ctx = { waitUntil() {} };
 
 let system = '', says = '', sent = [];
-globalThis.claudeCall = async body => { system = body.system; sent = body.messages; return { stop_reason: 'end_turn', content: [{ type: 'text', text: says }] }; };
+let blocks = [];
+globalThis.claudeCall = async body => { blocks = Array.isArray(body.system) ? body.system : []; system = Array.isArray(body.system) ? body.system.map(block => block.text).join('') : body.system; sent = body.messages; return { stop_reason: 'end_turn', content: [{ type: 'text', text: says }] }; };
 const discord = async body => (await worker.fetch(new Request('https://worker.test/discord', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer stand-in-relay' }, body: JSON.stringify({ user: '123', ...body }) }), env, ctx)).json();
 const help = async body => (await worker.fetch(new Request('https://worker.test/help', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), env, ctx)).json();
 
@@ -51,6 +52,20 @@ assert.doesNotMatch(system, /you're just here for Capri help/);
 assert.doesNotMatch(system, /rearranging the server|Nobody rewires me/);
 assert.match(system, /say I, me and my/);
 console.log('PASS a hello gets her own line and no links');
+
+// Her rules carry Claude's cache mark and the help notes come after it, so every question on a route reads the same cached start.
+for (const route of [discord, help]) {
+  await route({ question: 'how do I change her voice?' });
+  assert.equal(blocks.length, 2);
+  assert.deepEqual(blocks[0].cache_control, { type: 'ephemeral' });
+  assert.equal(blocks[1].cache_control, undefined);
+  assert.doesNotMatch(blocks[0].text, /Help notes:|Latest release:/);
+  assert.match(blocks[1].text, /\n\nHelp notes:\n/);
+  const first = blocks[0].text;
+  await route({ question: 'is capri safe?' });
+  assert.equal(blocks[0].text, first);
+}
+console.log('PASS her help rules are cached apart from the notes');
 
 // A help answer names its chapter: the LINK line goes, and that chapter is the one link.
 says = 'VOICE > Voice from picks who I sound like. Go wild. LINK: Her voice';

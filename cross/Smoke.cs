@@ -278,6 +278,19 @@ namespace CapriDesktop
                 if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled + " (" + strokeState + ")");
                 checks.Add("PASS petting: rubbing the cursor back and forth over her makes her smile and say a short line, not too easily and not again for 20 s");
                 checks.Add("PASS Head pats saves Off and ignores strokes; On brings back her pat reaction");
+                var patRounds = new List<string>();
+                string[] patSet = (string[])Pet.PetLines.Clone();
+                for (int i = 0; i < patSet.Length * 3; i++) patRounds.Add(Lines.Pick(patSet));
+                string patWrong = null;
+                for (int round = 0; round < 3 && patWrong == null; round++)
+                    if (patRounds.Skip(round * Pet.PetLines.Length).Take(Pet.PetLines.Length).Distinct().Count() != Pet.PetLines.Length) patWrong = "round " + round + " repeated a line";
+                for (int i = 1; i < patRounds.Count && patWrong == null; i++) if (patRounds[i] == patRounds[i - 1]) patWrong = "twice in a row: " + patRounds[i];
+                string[] recentPats = { "Okay, my firmware just smiled." };
+                if (patWrong == null && Lines.Fresh("Okay, that one rebooted my whole mood.", Pet.PetLines, recentPats) != "Okay, that one rebooted my whole mood.") patWrong = "a good brain-made line was dropped";
+                if (patWrong == null && (Lines.Fresh("pets logged... morale up twelve percent!", Pet.PetLines, recentPats) != null || Lines.Fresh("Okay, my firmware just smiled", Pet.PetLines, recentPats) != null || Lines.Fresh(Brain.Offline, Pet.PetLines, recentPats) != null || Lines.Fresh("Move your cursor again, choom.", Pet.PetLines, recentPats) != null || Lines.Fresh("See www.example.com for more pats.", Pet.PetLines, recentPats) != null)) patWrong = "a repeat, a brain problem, cursor talk or a link became a pat line";
+                if (patWrong == null && !CapriDesktop.Brain.Character.Contains(CapriDesktop.Brain.Safety)) patWrong = "her brain-made pat lines lost her safety lines";
+                if (patWrong != null || Pet.PetLines.Length < 24) throw new Exception("Her pat lines went wrong: " + patWrong);
+                checks.Add("PASS pat lines: " + Pet.PetLines.Length + " lines, each said once a round in a fresh order and never twice in a row, and brain-made ones follow her safety lines and drop repeats, links and cursor talk");
                 pet.SetWander(3);
                 pet.SetLanguage("French");
                 pet.SetReplies(1);
@@ -1197,6 +1210,7 @@ namespace CapriDesktop
                     || burmeseLetters[1] || burmeseLetters[4] || !burmeseLetters[5] || burmeseLetters[6] || !burmeseLetters[7] || burmeseLetters[8] || !Look.Unspaced("မင်္ဂလာပါ"))
                     throw new Exception("A Lao vowel, a Burmese syllable or a joined letter came apart: " + laoLetters[7] + " " + laoLetters[10] + " " + laoLetters[12] + " " + burmeseLetters[1] + " " + burmeseLetters[4] + " / " + joinedCut);
                 checks.Add("PASS bubble lines: Chinese, Japanese and Korean take two columns and wrap without spaces, never starting a line with closing punctuation, a long link breaks across lines without losing letters, Arabic, Urdu, Persian and Hebrew lines read right to left, Thai, Lao and Burmese break between letters, never before a vowel or tone mark, after a vowel written first or inside a Burmese syllable, and a virama or Khmer coeng keeps its letters together");
+                CloseChecks();
                 pet.Talk.Dismiss();
                 PixelRect area = Work();
                 shelfAsked = new PixelRect(area.X + area.Width / 2 - Px(350), area.Y + area.Height / 2 - Px(140), Px(700), Px(360));
@@ -2588,6 +2602,52 @@ namespace CapriDesktop
                 Hands.Forget();
             }
             checks.Add("PASS Minecraft opens an installed launcher, keeps a real Minecraft app first, finds Java game windows and plays an open game without launching music or another app");
+        }
+
+        private void CloseChecks()
+        {
+            System.Reflection.BindingFlags members = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+            System.Reflection.PropertyInfo implOf = typeof(TopLevel).GetProperty("PlatformImpl", members);
+            System.Reflection.PropertyInfo closingOf = typeof(Window).Assembly.GetType("Avalonia.Platform.IWindowImpl")?.GetProperty("Closing");
+            if (implOf == null || closingOf == null) throw new Exception("Avalonia's close request from the desktop couldn't be found to check it.");
+            Func<Window, WindowCloseReason, bool> asked = delegate(Window window, WindowCloseReason reason)
+            {
+                object impl = implOf.GetValue(window);
+                Func<WindowCloseReason, bool> closing = impl == null ? null : closingOf.GetValue(impl) as Func<WindowCloseReason, bool>;
+                if (closing == null) throw new Exception("The " + window.Title + " window had no close request to answer.");
+                return closing(reason);
+            };
+            Talk talk = pet.Talk;
+            talk.Answer("(close test)", "Close me, choom.");
+            bool pill = talk.Pill.IsVisible && asked(talk.Pill, WindowCloseReason.WindowClosing) && !talk.Pill.IsVisible;
+            talk.Update(pet.Now);
+            pill = pill && talk.Pill.IsVisible;
+            bool bubble = talk.Bubble.IsVisible && asked(talk.Bubble, WindowCloseReason.WindowClosing);
+            talk.Update(pet.Now + 0.5);
+            bubble = bubble && !talk.Bubble.IsVisible && talk.Reply == null;
+            talk.Answer("(closed)", "Still here, choom.");
+            bubble = bubble && talk.Bubble.IsVisible && talk.Reply == "Still here, choom.";
+            talk.Open();
+            bool typer = talk.Typing && asked(talk.Typer, WindowCloseReason.WindowClosing) && !talk.Typing;
+            talk.Open();
+            typer = typer && talk.Typing;
+            talk.Typer.Hide();
+            bool spares = true;
+            Window[] spare = { new Bubble(), new Pill(), new Typer(), new Pill() };
+            for (int i = 0; i < spare.Length; i++)
+            {
+                bool closed = false;
+                spare[i].Closed += delegate { closed = true; };
+                spare[i].Show();
+                bool kept = spare[i].IsVisible && asked(spare[i], WindowCloseReason.WindowClosing) && !closed && !spare[i].IsVisible;
+                spare[i].Show();
+                kept = kept && spare[i].IsVisible;
+                if (i == spare.Length - 1) spare[i].Close();
+                else kept = kept && !asked(spare[i], WindowCloseReason.ApplicationShutdown);
+                spares = spares && kept && closed;
+            }
+            if (!pill || !bubble || !typer || !spares) throw new Exception("Closing her bubble, pill or typing box from the desktop lost it or broke it: pill " + pill + ", bubble " + bubble + ", typing box " + typer + ", quitting and her own close still close them " + spares + ".");
+            checks.Add("PASS closing her bubble, pill or typing box from the desktop (Alt+F4 or a window list) hides it instead of closing it for good: the bubble goes like a click on it, all three come back the next time she needs them, and quitting or Capri's own close still close them");
         }
 
         private void MiniChecks()
@@ -5962,6 +6022,32 @@ namespace CapriDesktop
                     if (!Hands.Typed("read_file{\"path\":" + Voice.Quote(path) + ",\"page\":5,\"offset\":24000}", out tool, out args) || args.Page != 5 || args.Offset != 24000) throw new Exception("Written read_file lost page or offset.");
                     if (Files.Open(binary, null).Line != "I can't read that kind of file yet: program.exe." || Files.Open(damaged, null).Readable || Files.Open(Path.Combine(root, "missing.txt"), null).Line != "I couldn't find the file missing.txt.") throw new Exception("Windows file refusals were bypassed.");
                     if (Files.Open(word, null).Text != "Word contents\n" || !Files.Open(book, null).Text.Contains("A1: cell contents") || Files.Open(word, null, null, 5).Text != "contents\n") throw new Exception("Shared document readers changed their text or offsets.");
+                    if (!platform)
+                    {
+                        string bomb = Path.Combine(root, "bomb.docx"), deep = Path.Combine(root, "deep.xlsx");
+                        using (var bombZip = System.IO.Compression.ZipFile.Open(bomb, System.IO.Compression.ZipArchiveMode.Create))
+                        using (var bombPart = new StreamWriter(bombZip.CreateEntry("word/document.xml").Open(), new UTF8Encoding(false)))
+                        {
+                            bombPart.Write("<document><p><t>Bomb words</t></p>");
+                            string padding = new string(' ', 1 << 20);
+                            for (long written = 0; written <= Files.LargestPart; written += padding.Length) bombPart.Write(padding);
+                            bombPart.Write("</document>");
+                        }
+                        var levels = new StringBuilder("<worksheet><row><c r=\"A1\" t=\"inlineStr\"><is>");
+                        for (int level = 0; level <= Files.DeepestXml; level++) levels.Append("<r>");
+                        levels.Append("<t>Deep words</t>");
+                        for (int level = 0; level <= Files.DeepestXml; level++) levels.Append("</r>");
+                        levels.Append("</is></c></row></worksheet>");
+                        FileParts(deep, new Dictionary<string, string> {
+                            { "xl/_rels/workbook.xml.rels", "<Relationships><Relationship Id=\"r1\" Target=\"worksheets/sheet1.xml\"/></Relationships>" },
+                            { "xl/workbook.xml", "<workbook xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Deep\" r:id=\"r1\"/></sheets></workbook>" },
+                            { "xl/worksheets/sheet1.xml", levels.ToString() }
+                        });
+                        ReadFile bombRead = Files.Open(bomb, null), deepRead = Files.Open(deep, null);
+                        File.Delete(bomb); File.Delete(deep);
+                        if (bombRead.Readable || bombRead.Line != Files.TooBig.Line("bomb.docx") || deepRead.Readable || deepRead.Line != Files.TooBig.Line("deep.xlsx")) throw new Exception("A Word or Excel file past the caps was read: " + bombRead.Line + " / " + deepRead.Line);
+                        if (!Files.Open(word, null).Readable || !Files.Open(book, null).Readable) throw new Exception("The Word and Excel caps turned away ordinary files.");
+                    }
                     string accents = Path.Combine(root, "accents.csv");
                     File.WriteAllBytes(accents, new byte[] { 99, 97, 102, 233, 44, 32, 99, 114, 232, 109, 101 });
                     ReadFile legacy = Files.Open(accents, null);
@@ -6032,6 +6118,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross help: ordinary file questions and messages naming a path get no app-help facts");
                 checks.Add("PASS cross reading: a file she may not read says how to allow it on Mac, or that she has no access on Linux");
                 checks.Add("PASS cross reading: Windows-1252 text falls back the way Windows reads it");
+                checks.Add("PASS cross reading: DOCX and XLSX parts that unpack past " + (Files.LargestPart >> 20) + " MB or nest past " + Files.DeepestXml + " levels are turned away with a plain line, and ordinary ones still read");
                 checks.Add("PASS cross reading: spreadsheet scratch files are private to their user and leave the temp folder at once");
             }
             finally

@@ -960,6 +960,7 @@ namespace CapriDesktop
         // No AI (Lachy, 12 Nov): she lives on their desktop with no brain at all. Left out of the file while it's off, so settings
         // from before it read and save the same.
         [DataMember(EmitDefaultValue = false)] public bool NoAi;
+        [DataMember(EmitDefaultValue = false)] public bool NoFreeVoice;
         // She's asked to get to know them, after setup or from Settings, so setting up a new brain doesn't ask again.
         [DataMember] public bool Met;
         [DataMember] public bool NoSitting;
@@ -2352,7 +2353,12 @@ namespace CapriDesktop
             "Head pats? On my chrome? Bold.", "Okay, that's nice. Don't tell anyone.", "System status: very patted.",
             "You're gonna wear a groove in my firmware, choom.", "Easy on the hair. It took three patches to get it like this.",
             "Affection detected. Sending some back. Hi.", "Keep going. This beats defragging.", "Hehe. My cooling fans just kicked in.",
-            "Ten out of ten pats. Would get patted again.", "Is this a bribe? Because it's working.", "Mmm. If I start glitch-purring, that's on you."
+            "Ten out of ten pats. Would get patted again.", "Is this a bribe? Because it's working.", "Mmm. If I start glitch-purring, that's on you.",
+            "Pat accepted. Ego buffer overflowing.", "Scanning... yep, that was a good one.", "Don't stop now, I'm buffering happiness.",
+            "Head pats are the only patch I actually want.", "Threat level just dropped to zero. Rude.", "That's going in my logs. Top entry.",
+            "Fine. You can stay on my good list.", "Glitch-free for three whole seconds. That's you.", "Careful, I'll start expecting this every hour.",
+            "Pat received. Firewall lowered. Slightly.", "So this is what being a house cat feels like. Nova.", "Mmm. Better than a fresh SSD.",
+            "One more and I'll actually purr. You've been warned."
         };
         private readonly System.Collections.Generic.List<long> petTurns = new System.Collections.Generic.List<long>();
         private int petX;
@@ -2366,6 +2372,9 @@ namespace CapriDesktop
         private readonly System.Collections.Generic.List<int> petBag = new System.Collections.Generic.List<int>();
         private int lastPet = -1;
         private int petTicket;
+        private string freshPet;
+        private bool makingPet;
+        private readonly System.Collections.Generic.List<string> petSaid = new System.Collections.Generic.List<string>();
         // Pat stroke's turns, time and reach each way. Medium and Long want strokes a sixteenth and an eighth of her size and
         // give slow ones longer, so a cursor brushing past her doesn't count.
         private static readonly int[] PatTurns = { 3, 3, 4 };
@@ -2431,7 +2440,7 @@ namespace CapriDesktop
         private bool sulkLine, patForgives, shyInside;
         private Point shyCursor;
         private double shyAt = -1;
-        private static readonly string[] ThrowLines = { "WHEEEE!", "Put me DOWN!", "Choom, I'm not a frisbee!", "AAAAAA!", "Not the hair!" };
+        private static readonly string[] ThrowLines = { "WHEEEE!", "Put me DOWN!", "Choom, I'm not a frisbee!", "AAAAAA!", "Not the hair!", "I had a landing planned! Not this one!", "Gravity is not my friend!", "Who taught you to throw like that?!", "I'm a gremlin, not a grenade!", "Ten for distance, zero for kindness!", "My gyros! MY GYROS!" };
         private static readonly string[] WarnLines = { "Okay, rude.", "Again?! One more and we're fighting.", "Do that again. I dare you." };
         private static readonly string[] DizzyLines = { "Ugh. Which way is up?", "Everything's spinning, choom.", "My gyro's cooked." };
         private static readonly string[] SulkLines = { "That's it. Don't touch me.", "Nope. We're done. Hands off." };
@@ -3574,8 +3583,9 @@ namespace CapriDesktop
             if (lying) return;
             Point hip = Hip();
             Rectangle area = Screen.FromPoint(new Point(hip.X, hip.Y - 1)).WorkingArea;
-            bool left = seat != null || onPanel ? SitsLeft(hip.X, area, preferences.Size, facingLeft) : area.Right - hip.X < preferences.Size * (facingLeft ? 0.9f : 0.6f);
-            if (ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
+            bool sitting = seat != null || onPanel;
+            bool left = sitting ? SitsLeft(hip.X, area, preferences.Size, facingLeft) : area.Right - hip.X < preferences.Size * (facingLeft ? 0.9f : 0.6f);
+            if (!sitting && ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
             if (left == facingLeft) return;
             bool aside = asideAt == anchor;
             int? stood = stoodOn;
@@ -4846,12 +4856,33 @@ namespace CapriDesktop
             heard = "pets you";
             box.Prompt = "> sys: ";
             int said = ++asking;
-            string line = patForgives ? Lines.Pick(PatPeaceLines) : NextPetLine();
+            bool fresh = !patForgives && freshPet != null;
+            string line = patForgives ? Lines.Pick(PatPeaceLines) : fresh ? freshPet : NextPetLine();
+            freshPet = null;
             patForgives = false;
+            petSaid.Add(line);
+            if (petSaid.Count > 8) petSaid.RemoveAt(0);
+            if (!fresh) MakePetLine();
             // Pat lines use the same voice as everything else she says: their ElevenLabs voice and model when they've set one.
             // In a voice chat the line goes in her bubble only, so it doesn't talk over the chat.
             if (InChat) Begin(said, line, TalkState.Talking, null);
             else Answer(said, line, TalkState.Talking);
+        }
+
+        private void MakePetLine()
+        {
+            if (makingPet || testing || brain.Model == null || preferences.NoAi) return;
+            makingPet = true;
+            string system = Brain.Character + "\n" + Lines.PatAsk, instruction = Lines.PatInstruction(PetLines, petSaid);
+            string[] recent = petSaid.ToArray();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string made = null;
+                try { made = brain.Quick(system, instruction, Lines.PatTokens); }
+                catch (Exception) { }
+                string line = Lines.Fresh(made, PetLines, recent);
+                Post(delegate { makingPet = false; if (line != null) freshPet = line; });
+            });
         }
 
         internal string NextPetLine()
@@ -12151,6 +12182,7 @@ namespace CapriDesktop
             if (SettingUpVoice) return;
             SettingUpVoice = true;
             kokoro.Cancel = false;
+            if (preferences.NoFreeVoice) { preferences.NoFreeVoice = false; SavePreferences(); }
             voiceGot = voiceTotal = 0;
             ShowVoice(false);
             mainframe.VoiceNote("This may take some time. For a better sounding, faster voice, get an API key.", false);
@@ -12388,7 +12420,7 @@ namespace CapriDesktop
 
         private void GetFreeVoice()
         {
-            if (testing || SettingUpVoice || kokoro.Installed || preferences.Silent) return;
+            if (testing || SettingUpVoice || kokoro.Installed || preferences.Silent || preferences.NoFreeVoice) return;
             balloonPage = null;
             balloonUpdate = false;
             balloonMainframe = true;
@@ -12603,6 +12635,20 @@ namespace CapriDesktop
         }
 
         internal void CancelFreeVoice() { kokoro.Cancel = true; }
+
+        internal void RemoveFreeVoice()
+        {
+            if (SettingUpVoice) return;
+            string problem = null;
+            long freed = 0;
+            try { freed = kokoro.Remove(); }
+            catch (IOException error) { problem = Voice.Short(error.Message); }
+            catch (UnauthorizedAccessException error) { problem = Voice.Short(error.Message); }
+            preferences.NoFreeVoice = true;
+            SavePreferences();
+            ShowVoice();
+            mainframe.VoiceNote(problem != null ? "Some of her free voice is still in use: " + problem + " Restart Capri and remove it again." : "Removed her free voice, " + Engine.Amount(freed) + " freed. Get free voice brings it back.", problem != null);
+        }
 
         private Machine HdMachine
         {
@@ -14932,7 +14978,7 @@ namespace CapriDesktop
 
         private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
-        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null)
+        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -15054,12 +15100,12 @@ namespace CapriDesktop
                     return;
                 }
             }
-            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed); };
+            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo); };
             if (think == null && brain.Model == null && News.Matching(input) != null) think = delegate { return News.Facts; };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
-                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed); };
+                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, typed ?? question); }, callLines, typed, photo); };
             }
             if (switches == 0 && prompt == "> you: ") EmoteOnMention(input, spoken || callInput);
             reply = null;
@@ -15091,7 +15137,7 @@ namespace CapriDesktop
                 {
                     if (!IsDisposed) BeginInvoke((Action)delegate
                     {
-                        if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput, callHeard, typed: typed); return; }
+                        if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput, callHeard, typed: typed, photo: photo); return; }
                         if (problem != null && ticket == asking) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem));
                         else if (ticket == asking && remote != null && remote.Code && brain.Remote == remote) mainframe.ShowCloud(remote, cloudModels);
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
@@ -22531,6 +22577,34 @@ namespace CapriDesktop
                 }
                 if (!allRows.ToString().Contains("B2000: First shared") || allRows.ToString().Contains("Unused")) throw new Exception("A spreadsheet's final cells were unreachable.");
                 checks.Add("PASS XLSX streams shared strings through a disk index, resolves distant and repeated references and reaches the last row by offset");
+                string bombPath = Path.Combine(folder, "bomb.docx");
+                using (System.IO.Compression.ZipArchive bombZip = System.IO.Compression.ZipFile.Open(bombPath, System.IO.Compression.ZipArchiveMode.Create))
+                using (StreamWriter bombPart = new StreamWriter(bombZip.CreateEntry("word/document.xml").Open(), new System.Text.UTF8Encoding(false)))
+                {
+                    bombPart.Write("<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body><w:p><w:r><w:t>Bomb words</w:t></w:r></w:p>");
+                    string padding = new string(' ', 1 << 20);
+                    for (long written = 0; written <= Files.LargestPart; written += padding.Length) bombPart.Write(padding);
+                    bombPart.Write("</w:body></w:document>");
+                }
+                ReadFile bombFile = Files.Open(bombPath, null);
+                if (bombFile.Readable || bombFile.Line != Files.TooBig.Line("bomb.docx")) throw new Exception("A Word part that unpacks past the cap was read: " + bombFile.Line);
+                string deepPath = Path.Combine(folder, "deep.xlsx");
+                System.Text.StringBuilder deepCell = new System.Text.StringBuilder("<worksheet><sheetData><row><c r=\"A1\" t=\"inlineStr\"><is>");
+                for (int level = 0; level <= Files.DeepestXml; level++) deepCell.Append("<r>");
+                deepCell.Append("<t>Deep words</t>");
+                for (int level = 0; level <= Files.DeepestXml; level++) deepCell.Append("</r>");
+                deepCell.Append("</is></c></row></sheetData></worksheet>");
+                using (System.IO.Compression.ZipArchive deepZip = System.IO.Compression.ZipFile.Open(deepPath, System.IO.Compression.ZipArchiveMode.Create))
+                {
+                    FilePart(deepZip, "xl/workbook.xml", "<workbook xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Deep\" r:id=\"rId1\"/></sheets></workbook>");
+                    FilePart(deepZip, "xl/_rels/workbook.xml.rels", "<Relationships><Relationship Id=\"rId1\" Target=\"worksheets/sheet1.xml\"/></Relationships>");
+                    FilePart(deepZip, "xl/worksheets/sheet1.xml", deepCell.ToString());
+                }
+                ReadFile deepFile = Files.Open(deepPath, null);
+                if (deepFile.Readable || deepFile.Line != Files.TooBig.Line("deep.xlsx")) throw new Exception("A spreadsheet nested past the cap was read: " + deepFile.Line);
+                File.Delete(bombPath);
+                if (!Files.Open(docPath, null).Readable || !Files.Open(sheetPath, null).Readable) throw new Exception("The Word and Excel caps turned away ordinary files.");
+                checks.Add("PASS DOCX and XLSX parts that unpack past " + (Files.LargestPart >> 20) + " MB or nest past " + Files.DeepestXml + " levels are turned away with a plain line, and ordinary ones still read");
                 SmokeFilePictures(checks, folder);
                 SmokeFileChat(checks, folder, docPath);
                 SmokeFileDrop(checks, folder);
@@ -39593,6 +39667,24 @@ namespace CapriDesktop
                 send("what is here?", "Capri, open notepad.");
                 brain.OwnSteps = false;
                 checks.Add("PASS picture words: descriptions never reach phrase plans, tools, Workspace, mini games, apologies, watching or listening stops, Gaming Mode, streams, paths or call joins; one chat ask keeps the full turn");
+                int looks = 0;
+                Func<string, string> look = Hands.Look;
+                try
+                {
+                    Hands.Look = delegate { looks++; return "You looked at their screen. You see: A torii gate in misty water."; };
+                    foreach (bool steps in new[] { false, true })
+                    {
+                        string setup = steps ? "picture-setup-plans" : "picture-setup-hands";
+                        brain.OwnSteps = steps;
+                        CloseTalk(); brain.Forget(); tap.Take(); requests.Clear(); server.Stop();
+                        Brain.Nvidia = FakeServer(new[] { LocalReply("A desk with two monitors."), LocalReply("Nine out of ten.") }, requests, out server);
+                        RemotePictureHeard("phoneA", setup, "rate my setup!", picture);
+                        WaitVoice(delegate { return reply != null && tap.Count > 0; }, "A photo of their setup got no reply.");
+                        if (looks != 0 || requests.Count != 2 || !requests[1].Contains("You see: A desk with two monitors.") || !requests[1].Contains("data:" + picture.Mime + ";base64," + Convert.ToBase64String(picture.Bytes)) || reply != "Nine out of ten." || tap.Take() != "reply phoneA " + setup + " done: Nine out of ten.") throw new Exception("A photo of their setup looked at the screen or lost the photo.");
+                    }
+                }
+                finally { Hands.Look = look; brain.OwnSteps = false; }
+                checks.Add("PASS rate my setup beside a phone photo answers from the photo itself and its description, and never looks at the screen");
                 send("", "A small red square.");
                 send("", "A note for their memory.");
                 meeting.Start();
@@ -49217,6 +49309,16 @@ namespace CapriDesktop
                             for (int i = 1; i < patsSaid.Length && patsWrong == null; i++) if (patsSaid[i] == patsSaid[i - 1]) patsWrong = "twice in a row: " + patsSaid[i];
                             if (patsWrong != null || PetLines.Length < 12) throw new Exception("Her pat lines went wrong: " + patsWrong);
                             checks.Add("PASS pat lines: " + PetLines.Length + " lines, each said once a round in a fresh order, never the same one twice in a row");
+                            string freshWrong = null;
+                            string[] recentPats = { "Okay, my firmware just smiled." };
+                            if (Lines.Fresh("Okay, that one rebooted my whole mood.", PetLines, recentPats) != "Okay, that one rebooted my whole mood.") freshWrong = "a good line was dropped";
+                            else if (Lines.Fresh("pets logged... morale up twelve percent!", PetLines, recentPats) != null) freshWrong = "a canned line came back as new";
+                            else if (Lines.Fresh("Okay, my firmware just smiled", PetLines, recentPats) != null) freshWrong = "a recent line came back";
+                            else if (Lines.Fresh(Brain.Offline, PetLines, recentPats) != null || Lines.Fresh(null, PetLines, recentPats) != null || Lines.Fresh("", PetLines, recentPats) != null) freshWrong = "a brain problem became a pat line";
+                            else if (Lines.Fresh("Move your cursor again, choom.", PetLines, recentPats) != null || Lines.Fresh("See www.example.com for more pats.", PetLines, recentPats) != null || Lines.Fresh(new string('a', 120), PetLines, recentPats) != null || Lines.Fresh("As an AI, I enjoy pats.", PetLines, recentPats) != null) freshWrong = "a link, cursor talk, an assistant line or a long line got through";
+                            else if (!Brain.Character.Contains(Brain.Safety) || !Lines.PatInstruction(PetLines, recentPats).Contains(Voice.Quote(recentPats[0]))) freshWrong = "her brain-made pat lines lost her safety lines or the lines to avoid";
+                            if (freshWrong != null) throw new Exception("Her brain-made pat lines went wrong: " + freshWrong);
+                            checks.Add("PASS brain-made pat lines follow her safety lines and are dropped when they repeat a line, carry a link or cursor talk, run long or are a brain problem");
                             string[] greetings = new string[24];
                             for (int hour = 0; hour < 24; hour++) greetings[hour] = Brain.Greeting(hour) ?? "-";
                             string greetDay = string.Join("|", greetings);
@@ -50552,6 +50654,26 @@ namespace CapriDesktop
                                     && !SitsLeft(2400, rightMonitor, 240, true) && SitsLeft(3800, rightMonitor, 240, false)
                                     && !SitsLeft(-950, leftMonitor, 240, false) && SitsLeft(-970, leftMonitor, 240, true)
                                     && !SitsLeft(-500, new Rectangle(0, 0, 1920, 1080), 240, true);
+                                string inkSkipped = null;
+                                bool inkKept = true, inkWatched = true;
+                                sitsLeftAt(primaryArea, 2, false);
+                                Point inkHip = Hip();
+                                int inkY = Math.Max(primaryArea.Top + 4, inkHip.Y - preferences.Size / 2);
+                                string inkDrawn = ink.Draw(Ink.Parse("line " + Math.Max(primaryArea.Left + 2, inkHip.X - preferences.Size) + " " + inkY + " " + (inkHip.X - preferences.Size / 4) + " " + inkY), false);
+                                try
+                                {
+                                    if (!ink.Moving) inkSkipped = ink.Has ? "her drawing finished before she was checked" : inkDrawn;
+                                    else
+                                    {
+                                        Face();
+                                        inkKept = !facingLeft && Hip() == inkHip;
+                                        seat = null;
+                                        Face();
+                                        inkWatched = facingLeft && Hip() == inkHip;
+                                        if (!ink.Moving) { inkSkipped = "her drawing finished before she was checked"; inkKept = inkWatched = true; }
+                                    }
+                                }
+                                finally { ink.Clear(); }
                                 anchor = middleAnchor;
                                 asideAt = middleAside;
                                 seat = middleSeat;
@@ -50570,9 +50692,10 @@ namespace CapriDesktop
                                 leanAngle = middleLean;
                                 Location = anchor;
                                 SavePreferences();
-                                if (!primaryMiddle || !savedHip || !standsRight || !walkKept || !walkFits || !otherMiddle || !helperMiddle) throw new Exception("Facing the middle went wrong: primary " + primaryMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", walk kept her hip " + walkKept + ", walk fits the ledge " + walkFits + ", other screens " + otherMiddle + " of " + otherScreens + ", monitor math " + helperMiddle);
+                                if (!primaryMiddle || !savedHip || !standsRight || !walkKept || !walkFits || !otherMiddle || !helperMiddle || !inkKept || !inkWatched) throw new Exception("Facing the middle went wrong: primary " + primaryMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", walk kept her hip " + walkKept + ", walk fits the ledge " + walkFits + ", other screens " + otherMiddle + " of " + otherScreens + ", monitor math " + helperMiddle + ", ink kept her way sitting " + inkKept + ", ink turned her standing " + inkWatched);
                                 checks.Add("PASS sitting she faces the middle of her screen: right on its left half and left on its right half, without leaving her spot, keeping her way near the middle, on a second monitor left or right of the main one, and saving her spot sitting, lying or on the task panel so she comes back with her hip where it was; starting and ending a walk facing either way keeps her hip in place, and her walk stays on the window facing either way; standing she still only turns at the right edge");
                                 if (otherScreens == 0) checks.Add("LIMIT facing the middle on a real second monitor: only one monitor is available, so it was checked with made-up monitors");
+                                checks.Add(inkSkipped == null ? "PASS her ink doesn't turn her while she sits: drawing beside her keeps her facing the middle of her screen with her hip in place, and standing she still turns to watch it" : "LIMIT her ink while she sits: " + inkSkipped);
                             }
                             seat = null;
                             sitItem.PerformClick();
@@ -57450,8 +57573,8 @@ namespace CapriDesktop
                             {
                                 try
                                 {
-                                    // Once for a first install and once for a reinstall over it.
-                                    for (int served = 0; served < 2; served++)
+                                    // Once for a first install, once for a reinstall over it and once after it's removed.
+                                    for (int served = 0; served < 3; served++)
                                         using (System.Net.Sockets.TcpClient client = packServer.AcceptTcpClient())
                                         using (System.Net.Sockets.NetworkStream stream = client.GetStream())
                                         {
@@ -57477,7 +57600,7 @@ namespace CapriDesktop
                             LocalVoice fetchedVoice = new LocalVoice(packRoot);
                             System.Collections.Generic.List<string> packSteps = new System.Collections.Generic.List<string>();
                             string packFolder = Path.Combine(Path.Combine(packRoot, "voice"), LocalVoice.Pack), packHeld = Path.Combine(packFolder, "onnxruntime.dll"), packRedone = null;
-                            bool packFresh = false, packBroken = false, packKept = false;
+                            bool packFresh = false, packBroken = false, packKept = false, packSealed = false, packEmpty = false, packResized = false, packRemoved = false, packBack = false;
                             try
                             {
                                 LocalVoice.PackUrl = "http://127.0.0.1:" + ((IPEndPoint)packServer.LocalEndpoint).Port + "/capri-voice-1.zip";
@@ -57499,6 +57622,16 @@ namespace CapriDesktop
                                 }
                                 byte[] packLeft = File.ReadAllBytes(packHeld);
                                 packKept = packLeft.Length == 1 && packLeft[0] == 7;
+                                string packModel = Path.Combine(packFolder, "model.onnx");
+                                packSealed = fetchedVoice.Installed && File.Exists(Path.Combine(packFolder, VoicePack.Sizes));
+                                File.WriteAllBytes(packModel, new byte[0]);
+                                packEmpty = !fetchedVoice.Installed;
+                                File.WriteAllBytes(packModel, new byte[] { 1, 2 });
+                                packResized = !fetchedVoice.Installed;
+                                long packFreed = fetchedVoice.Remove();
+                                packRemoved = packFreed > 0 && !fetchedVoice.Installed && !File.Exists(packModel) && !File.Exists(Path.Combine(packFolder, "voices.bin")) && File.Exists(packHeld) && File.Exists(Path.Combine(packFolder, "sherpa-onnx-c-api.dll")) && File.Exists(Path.Combine(packFolder, Path.Combine("espeak-ng-data", "phontab")));
+                                fetchedVoice.Install(delegate(string text, long done, long total) { });
+                                packBack = fetchedVoice.Installed && File.ReadAllBytes(packModel).Length == 1;
                             }
                             finally
                             {
@@ -57509,7 +57642,9 @@ namespace CapriDesktop
                             }
                             if (!packFresh || !fetchedVoice.Installed || File.Exists(packFolder + ".zip") || Directory.Exists(packFolder + ".new") || !packSteps.Contains("Checking her free voice") || !packSteps.Contains("Unpacking her free voice")) throw new Exception("Voice pack did not install: " + string.Join(", ", packSteps.ToArray()));
                             if (!packBroken || packRedone != null || !packKept) throw new Exception("Setting her free voice up again over a DLL in use went wrong: broken " + packBroken + ", kept " + packKept + ", " + packRedone);
+                            if (!packSealed || !packEmpty || !packResized || !packRemoved || !packBack) throw new Exception("Checking, removing or getting her free voice back went wrong: sealed " + packSealed + ", empty caught " + packEmpty + ", wrong size caught " + packResized + ", removed " + packRemoved + ", back " + packBack);
                             Directory.Delete(packRoot, true);
+                            checks.Add("PASS free voice: a pack file that's empty or the wrong size counts as missing so she downloads it again, and Remove free voice frees her voice's own files, keeps the engine her ears share, and Get free voice brings it back");
                             checks.Add("PASS free voice: Free voice row and Get free voice button without a key, four styles with fallback, pack download + checksum + unpack from a fake server, and set up again over a folder whose onnxruntime.dll is in use, the pack goes in around it");
                             if (new Preferences().HdVoice) throw new Exception("Her HD voice is on by default.");
                             qwen.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
