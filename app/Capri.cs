@@ -3172,6 +3172,7 @@ namespace CapriDesktop
             Hands.StopStream = delegate { if (streamLoop) Computer.Interrupt("You asked me to stop streaming."); };
             Hands.Plan = reminders.Route;
             Hands.Remind = reminders.Remind;
+            StartWeather();
             Hands.Routine = RoutineTool;
             // Her brain hears a saved clip without its path, so she never reads a long folder out loud; the CLIP SAVED popup shows
             // where it went (Ribbed_Mystery, 4 Nov).
@@ -12542,7 +12543,7 @@ namespace CapriDesktop
             // every reminder waits behind it until the game closes (#168).
             if (hidden && !docked && talkState != TalkState.Off) { MouthCell(clock.Elapsed.TotalSeconds, clip); UpdateTalk(clock.Elapsed.TotalSeconds); }
             while (voiceChanges.Count > 0 && !Voicing) voiceChanges.Dequeue()();
-            if (timers && CheckReminders(reminders.Now())) return;
+            if (timers && (CheckReminders(reminders.Now()) || CheckWeather())) return;
             if (hidden && !docked) return;
             if (voicePreview != null && !PreviewBusy)
             {
@@ -21002,6 +21003,21 @@ namespace CapriDesktop
                 checks.Add("PASS dated reminders parse named and ISO dates, local times, days and weeks, year rollover and leap days; reject bad and past dates; route through her hands; survive restart and deliver once, including late reminders, listing and cancellation");
             }
             finally { Hands.Plan = planWas; Hands.Remind = remindWas; if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+            string weatherResult = Weather.Check();
+            if (weatherResult != null) throw new Exception(weatherResult);
+            checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
+            Func<bool> weatherWas = Hands.WeatherOn;
+            try
+            {
+                string weatherTool;
+                ToolArguments weatherArgs;
+                Hands.WeatherOn = delegate { return false; };
+                if (!Hands.Heard("what's the weather in Sydney", out weatherTool, out weatherArgs) || weatherTool != "open_website") throw new Exception("Weather off did not keep the Google search: " + weatherTool);
+                Hands.WeatherOn = delegate { return true; };
+                if (!Hands.Heard("what's the weather in Sydney", out weatherTool, out weatherArgs) || weatherTool != "weather") throw new Exception("Weather on did not reach the weather tool: " + weatherTool);
+                checks.Add("PASS weather routing: a weather question searches Google while Weather is off and reaches her weather tool once it is on");
+            }
+            finally { Hands.WeatherOn = weatherWas; }
         }
 
         private void SmokeGameControls(List<string> checks)
@@ -23423,8 +23439,9 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", "ChimeSettings.cs")), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
-                                    selfSource += "\n" + selfPart.Value;
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs" })
+                                    foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
+                                        selfSource += "\n" + selfPart.Value;
                         }
                         catch (IOException) { selfReadable = false; break; }
                         catch (UnauthorizedAccessException) { selfReadable = false; break; }
@@ -23552,7 +23569,7 @@ namespace CapriDesktop
                 { "app_window", "{\"name\":\"Spotify\",\"action\":\"minimize\"}" }, { "use_computer", "{\"task\":\"Open the notes\"}" },
                 { "stream", "{\"action\":\"stop\"}" }, { "shortcut", "{\"name\":\"screenshot\"}" }, { "remember", "{\"text\":\"They like blue\"}" },
                 { "find_file", "{\"description\":\"notes.txt\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
-                { "remind", "{\"action\":\"list\"}" }, { "stopwatch", "{\"action\":\"check\"}" }, { "routine", "{\"action\":\"list\"}" }, { "power", "{\"action\":\"cancel\"}" },
+                { "weather", "{\"action\":\"now\"}" }, { "remind", "{\"action\":\"list\"}" }, { "stopwatch", "{\"action\":\"check\"}" }, { "routine", "{\"action\":\"list\"}" }, { "power", "{\"action\":\"cancel\"}" },
                 { "nap", "{\"action\":\"wake\"}" }, { "move_yourself", "{\"action\":\"show\"}" }, { "animate", "{\"name\":\"blink\"}" },
                 { "draw", "{\"action\":\"clear\"}" }, { "clone", "{\"action\":\"stop\"}" }, { "hologram", "{\"action\":\"off\"}" },
                 { "desktop_icons", "{\"action\":\"back\"}" }, { "watch_along", "{\"action\":\"stop\"}" }, { "gaming_mode", "{\"action\":\"on\"}" },
@@ -24334,9 +24351,10 @@ namespace CapriDesktop
                 || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
                 throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
             // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
-            Func<bool> clipsWere = Hands.ClipsOn;
+            Func<bool> clipsWere = Hands.ClipsOn, weatherWasOn = Hands.WeatherOn;
             try
             {
+                Hands.WeatherOn = delegate { return true; };
                 Hands.ClipsOn = delegate { return true; };
                 Hands.Kit clipsOn = Hands.KitFor();
                 Hands.ClipsOn = delegate { return false; };
@@ -24348,7 +24366,7 @@ namespace CapriDesktop
                     || !(SelfKnow.Matching("what can you do?", clipsOff) ?? "").Contains(offLine) || (SelfKnow.Matching("what can you do?", clipsOn) ?? "").Contains("Off right now"))
                     throw new Exception("Clip my games being off didn't reach her brains or her help: " + clipsOff.Switched);
             }
-            finally { Hands.ClipsOn = clipsWere; }
+            finally { Hands.ClipsOn = clipsWere; Hands.WeatherOn = weatherWasOn; }
             // "Can you X?" for something that isn't here gets the truth straight away, on a Mac without her mouse and keyboard
             // too, while mouse jobs, looks and what works go on to her hands (F69, pass 5).
             System.Collections.Generic.List<string[]> macGaps = new System.Collections.Generic.List<string[]>();

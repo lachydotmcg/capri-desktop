@@ -1362,6 +1362,8 @@ namespace CapriDesktop
               "read files you hand her, like PDFs, Word and Excel files and pictures", "read files they hand you" },
             { "remind", "Save a reminder on their PC, list their reminders, or cancel a reminder. Times use their local clock. Give the reminder in their words; the PC works out when it is due.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to remind them about, or which reminder to cancel\"},\"when\":{\"type\":\"string\",\"description\":\"Local time, like in 20 minutes, in 3 days, at 5pm, tomorrow at 9, on 2026-12-05 at 9am or on 5 December at noon. Use YYYY-MM-DD for dates in any language\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"cancel\"]}}}", "set reminders", "set reminders" },
+            { "weather", "Check the weather from Open-Meteo for their city (set in Settings under WEATHER) or a place they name: now, a day this week, the week, or the chance of rain. Use it for weather, forecast, how hot or cold it is, rain or umbrella questions instead of a search. It never guesses where they are.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"now for right now and today, day for one day, week for the week or weekend, rain for the chance of rain, summary for today and tomorrow\",\"enum\":[\"now\",\"day\",\"week\",\"rain\",\"summary\"]},\"when\":{\"type\":\"string\",\"description\":\"today, tomorrow, a weekday, this week or this weekend\"},\"name\":{\"type\":\"string\",\"description\":\"A place they named, like Paris, France; leave out for their own city\"}}}", "check the weather and forecast for your city", "check the weather and forecast for their city" },
             { "stopwatch", "Start, check or stop their stopwatch, which counts up from when it starts. There's one stopwatch, with no laps. Starting it while it runs says how long it's been. A timer that counts down is a reminder: use remind.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
             { "read_skill", SkillDescription, SkillSchema, "read the skills you turned on in Mods", "read one of your skills in full" },
@@ -1466,7 +1468,7 @@ namespace CapriDesktop
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates" || tool == "workspace") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
+        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates" || tool == "workspace") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status" || tool == "weather"; }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1670,6 +1672,8 @@ namespace CapriDesktop
         internal static Func<string, string> Resume = delegate { return null; };
         internal static Func<string, KeyValuePair<string, ToolArguments>> Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
         internal static Func<ToolArguments, string> Remind = delegate { return "Couldn't open your reminders."; };
+        internal static Func<ToolArguments, string> Forecast = delegate { return CapriDesktop.Weather.OffLine; };
+        internal static Func<bool> WeatherOn = delegate { return false; };
         internal static Func<ToolArguments, string> WatchFor = delegate { return "Couldn't watch the screen just now."; };
 #if !CROSS
         internal static Func<string, string> WatchAlong = delegate { return "Couldn't start watching together just now."; };
@@ -1999,6 +2003,7 @@ namespace CapriDesktop
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
                 if (tool == "read_skill") return Valid(tool, args) ? ReadSkill(args.Name) : "Couldn't read a skill: name one by its title or id.";
                 if (tool == "remind") return Remind(args);
+                if (tool == "weather") return Valid(tool, args) ? Forecast(args) : "Couldn't find that weather question.";
                 if (tool == "stopwatch") return Valid(tool, args) ? Stopwatches.Do(args) : "Couldn't find that stopwatch action.";
                 if (tool == "routine") return Routine(args);
                 if (tool == "power") return Turn(args.Action, args.Minutes);
@@ -2386,6 +2391,7 @@ namespace CapriDesktop
         private static List<string[]> Switches()
         {
             List<string[]> off = new List<string[]>();
+            if (!WeatherOn()) off.Add(new[] { "weather", "turn on Weather in Settings > WEATHER and type their city" });
 #if !CROSS
             if (!ClipsOn()) off.Add(new[] { "clip", "turn on Clip my games in Settings > CLIPS to save; opening saved clips still works" });
 #endif
@@ -3927,6 +3933,8 @@ namespace CapriDesktop
 #endif
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
+            ToolArguments forecast = WeatherOn() ? CapriDesktop.Weather.Request(text) : null;
+            if (forecast != null) { tool = "weather"; args = forecast; return true; }
 
             Match asked = PlaylistAdd.Match(text);
             if (asked.Success && Playlist != null)
@@ -4563,6 +4571,7 @@ namespace CapriDesktop
             if (tool == "game_notes") return args != null && (args.Action == "read" || (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text));
             if (tool == "remind") return args.Action == "list" || (args.Action == "cancel" ? Named(args.Text) : (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text) && Named(args.When));
             if (tool == "stopwatch") return string.IsNullOrEmpty(args.Action) || args.Action == "start" || args.Action == "check" || args.Action == "stop";
+            if (tool == "weather") return args == null || string.IsNullOrEmpty(args.Action) || Regex.IsMatch(args.Action, @"\A(now|day|week|rain|summary)\z");
             if (tool == "routine") return args.Action == "list" || (Named(args.Phrase) && (args.Action == "forget" || args.Action == "run" || ((string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Steps))));
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
