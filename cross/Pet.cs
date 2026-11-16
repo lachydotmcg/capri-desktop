@@ -560,7 +560,12 @@ namespace CapriDesktop
             "Head pats? On my chrome? Bold.", "Okay, that's nice. Don't tell anyone.", "System status: very patted.",
             "You're gonna wear a groove in my firmware, choom.", "Easy on the hair. It took three patches to get it like this.",
             "Affection detected. Sending some back. Hi.", "Keep going. This beats defragging.", "Hehe. My cooling fans just kicked in.",
-            "Ten out of ten pats. Would get patted again.", "Is this a bribe? Because it's working.", "Mmm. If I start glitch-purring, that's on you."
+            "Ten out of ten pats. Would get patted again.", "Is this a bribe? Because it's working.", "Mmm. If I start glitch-purring, that's on you.",
+            "Pat accepted. Ego buffer overflowing.", "Scanning... yep, that was a good one.", "Don't stop now, I'm buffering happiness.",
+            "Head pats are the only patch I actually want.", "Threat level just dropped to zero. Rude.", "That's going in my logs. Top entry.",
+            "Fine. You can stay on my good list.", "Glitch-free for three whole seconds. That's you.", "Careful, I'll start expecting this every hour.",
+            "Pat received. Firewall lowered. Slightly.", "So this is what being a house cat feels like. Nova.", "Mmm. Better than a fresh SSD.",
+            "One more and I'll actually purr. You've been warned."
         };
         private readonly List<double> petTurns = new List<double>();
         private int petX;
@@ -570,7 +575,9 @@ namespace CapriDesktop
         private int petY;
         private int petRise;
         private double petAt = -60;
-        private int petLine;
+        private string freshPet;
+        private bool makingPet;
+        private readonly List<string> petSaid = new List<string>();
         private int petTicket;
         // A busy moment holds her pat line up to PetWaits times, half a second each, before she lets it go.
         private const int PetWaits = 12;
@@ -2332,9 +2339,30 @@ namespace CapriDesktop
                 return;
             }
             if (clip == grin) Play(idle);
-            string line = PetLines[petLine++ % PetLines.Length];
+            bool fresh = freshPet != null;
+            string line = fresh ? freshPet : Lines.Pick(PetLines);
+            freshPet = null;
+            petSaid.Add(line);
+            if (petSaid.Count > 8) petSaid.RemoveAt(0);
+            if (!fresh) MakePetLine();
             Talk.Answer("pets you", line);
             TypeAlong(line, ticket);
+        }
+
+        private void MakePetLine()
+        {
+            if (makingPet || Program.Smoke != null || Brain.Model == null) return;
+            makingPet = true;
+            string system = CapriDesktop.Brain.Character + "\n" + Lines.PatAsk, instruction = Lines.PatInstruction(PetLines, petSaid);
+            string[] recent = petSaid.ToArray();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string made = null;
+                try { made = Brain.Quick(system, instruction, Lines.PatTokens); }
+                catch (Exception) { }
+                string line = Lines.Fresh(made, PetLines, recent);
+                Dispatcher.UIThread.Post(delegate { makingPet = false; if (line != null) freshPet = line; });
+            });
         }
 
         internal void ForgetPets()

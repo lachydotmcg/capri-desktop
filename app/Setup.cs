@@ -334,6 +334,7 @@ namespace CapriSetup
             string staging = folder + ".new";
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             ZipFile.ExtractToDirectory(zip, staging);
+            VoicePack.Seal(staging);
             if (!VoicePack.Complete(staging)) throw new IOException("The download is missing files.");
             if (Directory.Exists(folder)) Directory.Delete(folder, true);
             Directory.Move(staging, folder);
