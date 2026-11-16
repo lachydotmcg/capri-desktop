@@ -642,7 +642,7 @@ namespace CapriDesktop
     }
 
     // Bonk is her thud when she's thrown into an edge of her screen or the taskbar.
-    internal enum Cue { Arrive, Leave, Hop, Click, Bonk }
+    internal enum Cue { Arrive, Leave, Hop, Click, Bonk, Clap }
 
     internal static class Sfx
     {
@@ -716,8 +716,34 @@ namespace CapriDesktop
                 case Cue.Leave: return Sweep(0.36, 880, 250, 0.012, level);
                 case Cue.Hop: return Sweep(0.16, 520, 1240, 0.008, level);
                 case Cue.Bonk: return Sweep(0.13, 420, 120, 0.002, level * 4 / 5);
+                case Cue.Clap: return Clap(level);
                 default: return Sweep(0.05, 1600, 1350, 0.003, level * 3 / 4);
             }
+        }
+
+        private static short[] Clap(int level)
+        {
+            int count = (int)(0.16 * Rate);
+            short[] samples = new short[count];
+            Random noise = new Random(5);
+            double peak = 0.3 * Math.Max(0, Math.Min(100, level)) / 100.0;
+            double low = 0, band = 0;
+            double[] bursts = { 0, 0.009, 0.019 };
+            for (int i = 0; i < count; i++)
+            {
+                double t = (double)i / Rate;
+                double envelope = 0;
+                foreach (double start in bursts)
+                {
+                    double since = t - start;
+                    if (since >= 0) envelope = Math.Max(envelope, Math.Min(1, since / 0.0008) * Math.Exp(-since / (start == bursts[bursts.Length - 1] ? 0.03 : 0.004)));
+                }
+                double white = noise.NextDouble() * 2 - 1;
+                low += (white - low) * 0.35;
+                band += ((white - low) - band) * 0.6;
+                samples[i] = (short)(Math.Max(-1, Math.Min(1, band * envelope * 1.6)) * peak * 32767);
+            }
+            return samples;
         }
 
         private static short[] Sweep(double seconds, double from, double to, double attack, int level)

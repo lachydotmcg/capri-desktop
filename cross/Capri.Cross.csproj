@@ -31,6 +31,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
+    <Compile Include="../app/PersonalSettings.cs" Link="Shared/PersonalSettings.cs" />
+    <Compile Include="../app/Probes.cs" Link="Shared/Probes.cs" />
     <Compile Include="../app/Leaks.cs" Link="Shared/Leaks.cs" />
     <Compile Include="../app/Care.cs" Link="Shared/Care.cs" />
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />

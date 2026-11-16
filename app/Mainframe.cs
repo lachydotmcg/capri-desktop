@@ -2340,9 +2340,32 @@ namespace CapriDesktop
         {
             // GitHub's virtual screen says its panel is narrower than the desktop her test needs, which isn't a shrunken monitor.
             float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this), restoringFullScreen || capri.FullScreenDisplay);
-            autoZoom = Math.Max(1f, Math.Min(2f, (float)Math.Round(shrunk / DeviceScale() * 20) / 20));
+            autoZoom = Fitted(Math.Max(1f, Math.Min(2f, (float)Math.Round(shrunk / DeviceScale() * 20) / 20)));
             int picked = capri.MainframeSize;
-            return picked > 0 ? picked / 100f : autoZoom;
+            return Fitted(picked > 0 ? picked / 100f : autoZoom);
+        }
+
+        internal const float SmallestFit = 0.6f;
+
+        private float Fitted(float want)
+        {
+            if (Companion.OnGitHub) return want;
+            try
+            {
+                Rectangle area = Screen.FromControl(this).WorkingArea;
+                return FitZoom(want, area.Width, area.Height, DeviceScale() * TextScale(), paged ? Wide + Column : Wide,
+                    paged ? 0 : Tall + (expanded ? SetupHeight : 0) + KeyRow + (voiceFilled >= 0 ? InstallRow : 0));
+            }
+            catch (Exception) { return want; }
+        }
+
+        internal static float FitZoom(float want, int roomWide, int roomTall, float per, int needsWide, int needsTall)
+        {
+            if (per <= 0 || want <= 0) return want;
+            float most = want;
+            if (roomWide > 0 && needsWide > 0) most = Math.Min(most, roomWide / (float)needsWide / per);
+            if (roomTall > 0 && needsTall > 0) most = Math.Min(most, roomTall / (float)needsTall / per);
+            return Math.Max(Math.Min(want, SmallestFit), most);
         }
 
         private void ShowFrameSize()
