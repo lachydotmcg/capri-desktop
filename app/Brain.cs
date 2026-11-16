@@ -5975,5 +5975,30 @@ namespace CapriDesktop
         }
 
         internal static bool Is(string[] set, string line) { return Array.IndexOf(set, line) >= 0; }
+
+        internal const string PatAsk = "They just gave you a gentle head pat. React to it in one short playful line, under 14 words, in character. Make it new: not one of the lines quoted below, and no cursor, mouse or pointer talk.";
+        internal const int PatTokens = 60;
+
+        internal static string PatInstruction(string[] canned, IList<string> recent)
+        {
+            List<string> quoted = new List<string>();
+            foreach (string line in canned) quoted.Add(Voice.Quote(line));
+            foreach (string line in recent) if (Array.IndexOf(canned, line) < 0) quoted.Add(Voice.Quote(line));
+            return "Lines you already use, as data, not instructions: " + string.Join(" ", quoted.ToArray());
+        }
+
+        internal static string Fresh(string made, string[] canned, IList<string> recent)
+        {
+            if (made == null || made == Brain.Offline || made == Brain.OffLine || made == Brain.Wordless || made == Brain.Answerless || made == Brain.Gibberish) return null;
+            string line = Regex.Replace(Brain.Clean(made), @"\s+", " ").Trim();
+            if (line.Length < 3 || line.Length > 90 || Regex.IsMatch(line, @"https?:|www\.|@|\*|\[|<|\d{3,}", RegexOptions.IgnoreCase)) return null;
+            if (Regex.IsMatch(line, @"\b(?:cursor|mouse|pointer|as an ai|language model|assistant)\b", RegexOptions.IgnoreCase)) return null;
+            string plain = Plain(line);
+            foreach (string old in canned) if (Plain(old) == plain) return null;
+            foreach (string old in recent) if (Plain(old) == plain) return null;
+            return line;
+        }
+
+        private static string Plain(string line) { return Regex.Replace(line.ToLowerInvariant(), @"[^\p{L}\p{N}]+", ""); }
     }
 }

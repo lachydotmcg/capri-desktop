@@ -264,6 +264,18 @@ namespace CapriDesktop
                 if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled + " (" + strokeState + ")");
                 checks.Add("PASS petting: rubbing the cursor back and forth over her makes her smile and say a short line, not too easily and not again for 20 s");
                 checks.Add("PASS Head pats saves Off and ignores strokes; On brings back her pat reaction");
+                var patRounds = new List<string>();
+                for (int i = 0; i < Pet.PetLines.Length * 3; i++) patRounds.Add(Lines.Pick(Pet.PetLines));
+                string patWrong = null;
+                for (int round = 0; round < 3 && patWrong == null; round++)
+                    if (patRounds.Skip(round * Pet.PetLines.Length).Take(Pet.PetLines.Length).Distinct().Count() != Pet.PetLines.Length) patWrong = "round " + round + " repeated a line";
+                for (int i = 1; i < patRounds.Count && patWrong == null; i++) if (patRounds[i] == patRounds[i - 1]) patWrong = "twice in a row: " + patRounds[i];
+                string[] recentPats = { "Okay, my firmware just smiled." };
+                if (patWrong == null && Lines.Fresh("Okay, that one rebooted my whole mood.", Pet.PetLines, recentPats) != "Okay, that one rebooted my whole mood.") patWrong = "a good brain-made line was dropped";
+                if (patWrong == null && (Lines.Fresh("pets logged... morale up twelve percent!", Pet.PetLines, recentPats) != null || Lines.Fresh("Okay, my firmware just smiled", Pet.PetLines, recentPats) != null || Lines.Fresh(Brain.Offline, Pet.PetLines, recentPats) != null || Lines.Fresh("Move your cursor again, choom.", Pet.PetLines, recentPats) != null || Lines.Fresh("See www.example.com for more pats.", Pet.PetLines, recentPats) != null)) patWrong = "a repeat, a brain problem, cursor talk or a link became a pat line";
+                if (patWrong == null && !CapriDesktop.Brain.Character.Contains(CapriDesktop.Brain.Safety)) patWrong = "her brain-made pat lines lost her safety lines";
+                if (patWrong != null || Pet.PetLines.Length < 24) throw new Exception("Her pat lines went wrong: " + patWrong);
+                checks.Add("PASS pat lines: " + Pet.PetLines.Length + " lines, each said once a round in a fresh order and never twice in a row, and brain-made ones follow her safety lines and drop repeats, links and cursor talk");
                 pet.SetWander(3);
                 pet.SetLanguage("French");
                 pet.SetReplies(1);
@@ -5947,6 +5959,32 @@ namespace CapriDesktop
                     if (!Hands.Typed("read_file{\"path\":" + Voice.Quote(path) + ",\"page\":5,\"offset\":24000}", out tool, out args) || args.Page != 5 || args.Offset != 24000) throw new Exception("Written read_file lost page or offset.");
                     if (Files.Open(binary, null).Line != "I can't read that kind of file yet: program.exe." || Files.Open(damaged, null).Readable || Files.Open(Path.Combine(root, "missing.txt"), null).Line != "I couldn't find the file missing.txt.") throw new Exception("Windows file refusals were bypassed.");
                     if (Files.Open(word, null).Text != "Word contents\n" || !Files.Open(book, null).Text.Contains("A1: cell contents") || Files.Open(word, null, null, 5).Text != "contents\n") throw new Exception("Shared document readers changed their text or offsets.");
+                    if (!platform)
+                    {
+                        string bomb = Path.Combine(root, "bomb.docx"), deep = Path.Combine(root, "deep.xlsx");
+                        using (var bombZip = System.IO.Compression.ZipFile.Open(bomb, System.IO.Compression.ZipArchiveMode.Create))
+                        using (var bombPart = new StreamWriter(bombZip.CreateEntry("word/document.xml").Open(), new UTF8Encoding(false)))
+                        {
+                            bombPart.Write("<document><p><t>Bomb words</t></p>");
+                            string padding = new string(' ', 1 << 20);
+                            for (long written = 0; written <= Files.LargestPart; written += padding.Length) bombPart.Write(padding);
+                            bombPart.Write("</document>");
+                        }
+                        var levels = new StringBuilder("<worksheet><row><c r=\"A1\" t=\"inlineStr\"><is>");
+                        for (int level = 0; level <= Files.DeepestXml; level++) levels.Append("<r>");
+                        levels.Append("<t>Deep words</t>");
+                        for (int level = 0; level <= Files.DeepestXml; level++) levels.Append("</r>");
+                        levels.Append("</is></c></row></worksheet>");
+                        FileParts(deep, new Dictionary<string, string> {
+                            { "xl/_rels/workbook.xml.rels", "<Relationships><Relationship Id=\"r1\" Target=\"worksheets/sheet1.xml\"/></Relationships>" },
+                            { "xl/workbook.xml", "<workbook xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Deep\" r:id=\"r1\"/></sheets></workbook>" },
+                            { "xl/worksheets/sheet1.xml", levels.ToString() }
+                        });
+                        ReadFile bombRead = Files.Open(bomb, null), deepRead = Files.Open(deep, null);
+                        File.Delete(bomb); File.Delete(deep);
+                        if (bombRead.Readable || bombRead.Line != Files.TooBig.Line("bomb.docx") || deepRead.Readable || deepRead.Line != Files.TooBig.Line("deep.xlsx")) throw new Exception("A Word or Excel file past the caps was read: " + bombRead.Line + " / " + deepRead.Line);
+                        if (!Files.Open(word, null).Readable || !Files.Open(book, null).Readable) throw new Exception("The Word and Excel caps turned away ordinary files.");
+                    }
                     string accents = Path.Combine(root, "accents.csv");
                     File.WriteAllBytes(accents, new byte[] { 99, 97, 102, 233, 44, 32, 99, 114, 232, 109, 101 });
                     ReadFile legacy = Files.Open(accents, null);
@@ -6017,6 +6055,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross help: ordinary file questions and messages naming a path get no app-help facts");
                 checks.Add("PASS cross reading: a file she may not read says how to allow it on Mac, or that she has no access on Linux");
                 checks.Add("PASS cross reading: Windows-1252 text falls back the way Windows reads it");
+                checks.Add("PASS cross reading: DOCX and XLSX parts that unpack past " + (Files.LargestPart >> 20) + " MB or nest past " + Files.DeepestXml + " levels are turned away with a plain line, and ordinary ones still read");
                 checks.Add("PASS cross reading: spreadsheet scratch files are private to their user and leave the temp folder at once");
             }
             finally
