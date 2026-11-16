@@ -796,7 +796,7 @@ namespace CapriDesktop
             wander = Setting("Wander", WanderNames, 0, 494, "How much she wanders");
             wanderName = new Readout(wander);
             wander.Changed += delegate { if (syncing) return; wanderName.Text = WanderNames[wander.Value]; capri.SetWanderLevel(wander.Value); };
-            sleepAfter = Setting("Sleep", SleepNames, 0, 522, "How long until she falls asleep");
+            sleepAfter = Setting("Sleep", SleepNames, 0, 522, "How long a still PC takes to send her to sleep; five minutes still reads as you being away");
             sleepName = new Readout(sleepAfter);
             sleepAfter.Changed += delegate { if (syncing) return; sleepName.Text = SleepNames[sleepAfter.Value]; capri.SetSleepAfter(Sleeps[sleepAfter.Value]); };
             // How often Check in on me brings her over to say hi.
@@ -1143,7 +1143,8 @@ namespace CapriDesktop
         {
             try
             {
-                using (NoteWindow dialog = new NoteWindow(Brain.OpenNote(memories), memories ? "Her memories" : "Her notes about you")) dialog.ShowDialog(this);
+                if (!memories) { capri.OpenFiles(1); return; }
+                using (NoteWindow dialog = new NoteWindow(Brain.OpenNote(memories), "Her memories")) dialog.ShowDialog(this);
             }
             catch (System.IO.IOException) { Notice.Tell(this, "Couldn't read this note. Try opening it again.", "Her notes", true); }
             catch (UnauthorizedAccessException) { Notice.Tell(this, "Couldn't read this note. Check access to its folder.", "Her notes", true); }
@@ -1189,6 +1190,8 @@ namespace CapriDesktop
         internal ContextMenuStrip MiniChoices()
         {
             ContextMenuStrip games = Dropdown();
+            games.Items.Add(Choice("Music", false, delegate { capri.PlayMyMusic(); }));
+            games.Items.Add(new ToolStripSeparator());
             string[] names = { "chess", "connect_four", "tic_tac_toe", "rock_paper_scissors" };
             string[] titles = { "Chess", "Connect four", "Tic-tac-toe", "Rock, paper, scissors" };
             for (int i = 0; i < names.Length; i++)

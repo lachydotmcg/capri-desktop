@@ -164,6 +164,7 @@ namespace CapriDesktop
                 if (pet.Brain.Attachments.Has || MacFiles.Attachments != pet.Brain.Attachments) throw new Exception("The PDF check left a file in her chat.");
                 UpdateCheckChecks();
                 LinuxAppImageUpdater.Checks(checks);
+                MacAppUpdater.Checks(checks);
                 OfflineChecks();
                 FakeCrash.Checks(checks);
                 FakeCrash.WindowChecks(checks);
