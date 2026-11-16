@@ -508,7 +508,7 @@ namespace CapriDesktop
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
         // She checks GitHub's latest release now and then. Started from the Linux AppImage she downloads it and offers a
-        // restart (LinuxAppImageUpdater); a Mac, a tarball or a package gets its page.
+        // restart (LinuxAppImageUpdater), and so does her Capri.app on a Mac (MacAppUpdater); a tarball or a package gets its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
         // Windows' ten steps. Her saved size is in pixels, and the six older steps are all still here, so a saved size keeps its look.
@@ -1362,7 +1362,7 @@ namespace CapriDesktop
             NotifySettings();
             Func<string> read = ReadUpdate;
             string data = folder;
-            Func<string, LinuxUpdateReady> prepare = PrepareUpdate ?? (Program.Smoke != null ? null : (Func<string, LinuxUpdateReady>)(json => LinuxAppImageUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version)));
+            Func<string, LinuxUpdateReady> prepare = PrepareUpdate ?? (Program.Smoke != null ? null : (Func<string, LinuxUpdateReady>)(json => OperatingSystem.IsMacOS() ? MacAppUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version) : LinuxAppImageUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version)));
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string latest = null;
@@ -1522,7 +1522,7 @@ namespace CapriDesktop
         }
 
         // Smoke swaps these so a test never starts the helper or closes her.
-        internal Func<LinuxUpdateReady, int, string, Process> InstallUpdate = LinuxAppImageUpdater.Install;
+        internal Func<LinuxUpdateReady, int, string, Process> InstallUpdate = OperatingSystem.IsMacOS() ? MacAppUpdater.Install : LinuxAppImageUpdater.Install;
         internal Action RestartQuit;
 
         // The release's version when it's newer than hers, like "0.7.6". Null for older, odd or missing tags.
