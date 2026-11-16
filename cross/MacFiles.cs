@@ -224,14 +224,16 @@ namespace CapriDesktop
         internal sealed class Mount
         {
             internal string Point, Key;
-            internal bool Disk;
+            internal bool Disk, Skipped;
         }
 
         internal static Func<string> MountTable = () => File.ReadAllText("/proc/self/mountinfo");
         private static readonly string[] DiskTypes = { "ext2", "ext3", "ext4", "xfs", "btrfs", "bcachefs", "f2fs", "jfs", "reiserfs", "nilfs2", "zfs", "vfat", "msdos", "exfat", "ntfs", "ntfs3", "fuseblk", "hfsplus", "apfs", "iso9660", "udf" };
+        private static readonly string[] SkippedTypes = { "cifs", "smb3", "smbfs", "nfs", "nfs4", "afs", "ceph", "glusterfs", "davfs", "fuse.sshfs", "fuse.rclone", "fuse.s3fs", "fuse.gcsfuse", "fuse.curlftpfs", "fuse.gvfsd-fuse", "fuse.google-drive-ocamlfuse", "fuse.onedriver", "autofs",
+            "proc", "sysfs", "devtmpfs", "devpts", "cgroup", "cgroup2", "debugfs", "tracefs", "securityfs", "pstore", "bpf", "configfs", "efivarfs", "mqueue", "hugetlbfs", "binfmt_misc", "fusectl" };
 
-        // Each mount point once, the top one where two share it. A mount is a disk only when it holds files on a drive, so
-        // /proc, tmpfs, network shares and FUSE remotes are never walked, the way Windows only searches fixed drives.
+        // Each mount point once, the top one where two share it. Only disks are searched as extra drives, the way Windows only
+        // searches fixed drives, and network shares, FUSE remotes, automounts and kernel pseudo filesystems are never walked into, though local mounts like ~/Private are.
         internal static Dictionary<string, Mount> Mounts(string table)
         {
             var mounts = new Dictionary<string, Mount>(StringComparer.Ordinal);
@@ -241,7 +243,7 @@ namespace CapriDesktop
                 int separator = Array.IndexOf(fields, "-");
                 if (separator < 6 || fields.Length < separator + 2) continue;
                 string point = Regex.Replace(fields[4], @"\\([0-7]{3})", octal => ((char)Convert.ToInt32(octal.Groups[1].Value, 8)).ToString());
-                mounts[point] = new Mount { Point = point, Key = fields[2] + " " + fields[3], Disk = Array.IndexOf(DiskTypes, fields[separator + 1]) >= 0 };
+                mounts[point] = new Mount { Point = point, Key = fields[2] + " " + fields[3], Disk = Array.IndexOf(DiskTypes, fields[separator + 1]) >= 0, Skipped = Array.IndexOf(SkippedTypes, fields[separator + 1]) >= 0 };
             }
             return mounts;
         }
@@ -261,7 +263,7 @@ namespace CapriDesktop
         private static bool Enter(string folder, Dictionary<string, Mount> mounts, HashSet<string> walked)
         {
             Mount mount;
-            return !mounts.TryGetValue(folder, out mount) || mount.Disk && walked.Add(mount.Key);
+            return !mounts.TryGetValue(folder, out mount) || !mount.Skipped && walked.Add(mount.Key);
         }
 
         internal static string Find(ToolArguments args, Func<bool> stopped)
@@ -610,6 +612,17 @@ namespace CapriDesktop
                 int visits = 0;
                 List<string> onVolume = Walk(new[] { volume, volume }, null, "holiday plan", () => false, Now() + Milliseconds, ref visits, mounts, out bounded);
                 if (onVolume.Count != 1 || onVolume[0] != Path.Combine(volume, "deep", "er", "holiday plan.pdf") || bounded) throw new Exception("A Linux volume walk followed a loop or a network mount: " + string.Join("|", onVolume));
+                string inHome = Path.Combine(folder, "in home"), vault = Path.Combine(inHome, "vault"), remote = Path.Combine(inHome, "remote"), kernel = Path.Combine(inHome, "proc");
+                Directory.CreateDirectory(vault);
+                Directory.CreateDirectory(remote);
+                File.WriteAllText(Path.Combine(vault, "holiday plan secret.pdf"), "");
+                Directory.CreateDirectory(kernel);
+                File.WriteAllText(Path.Combine(remote, "holiday plan remote.pdf"), "");
+                File.WriteAllText(Path.Combine(kernel, "holiday plan kernel"), "");
+                Dictionary<string, Mount> local = Mounts("1 0 0:71 / " + vault.Replace(" ", "\\040") + " rw - ecryptfs /home/me/.Private rw\n2 0 0:72 / " + remote.Replace(" ", "\\040") + " rw - fuse.sshfs me@box:/ rw\n3 0 0:73 / " + kernel.Replace(" ", "\\040") + " rw - proc proc rw\n");
+                visits = 0;
+                List<string> inVault = Walk(new[] { inHome }, null, "holiday plan", () => false, Now() + Milliseconds, ref visits, local, out bounded);
+                if (inVault.Count != 1 || inVault[0] != Path.Combine(vault, "holiday plan secret.pdf")) throw new Exception("A Linux walk skipped a local encrypted folder or walked a remote or kernel one: " + string.Join("|", inVault));
                 tick = 0;
                 Now = () => tick += Milliseconds;
                 visits = 0;
@@ -617,7 +630,7 @@ namespace CapriDesktop
                 Now = () => 0;
                 visits = 10000;
                 if (Walk(new[] { volume }, null, "holiday plan", () => false, Milliseconds, ref visits, mounts, out bounded).Count != 0 || !bounded) throw new Exception("A Linux volume walk got its own entry budget after the home walk.");
-                checks.Add("PASS file search: Linux also walks drives mounted in /media, /run/media and /mnt, once each, within the same deadline and entry budget as home, never pseudo or network mounts or symlink loops");
+                checks.Add("PASS file search: Linux also walks drives mounted in /media, /run/media and /mnt, once each, within the same deadline and entry budget as home, never pseudo, automounted or network mounts or symlink loops, while local mounts like an encrypted ~/Private are still searched");
                 foreach (string browser in new[] { "Safari", "Google Chrome", "Microsoft Edge", "Brave Browser", "Arc" })
                 {
                     string script = BrowserScript(browser);
