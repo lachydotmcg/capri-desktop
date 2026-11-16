@@ -843,6 +843,20 @@ namespace CapriDesktop
         private static int pickedProcess;
         private static string pickedProgram;
 
+        // Just the program in front, with no window walk behind it. Pick does more than this is for.
+        internal static string FrontProgram()
+        {
+            try
+            {
+                int own = Own();
+                IntPtr front = Native.GetForegroundWindow();
+                int process;
+                if (front == IntPtr.Zero || GetWindowThreadProcessId(front, out process) == 0 || process == own || process == 0) return null;
+                return Hands.ProgramName(process);
+            }
+            catch (Exception) { return null; }
+        }
+
         private static OpenWindow Pick()
         {
             int own = Own();

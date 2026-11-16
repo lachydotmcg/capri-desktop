@@ -1139,6 +1139,8 @@ namespace CapriDesktop
         // Her voice in your mic (F66): their mic and her voice go into VB-CABLE's input for Discord or Roblox. Off out of the box.
         [DataMember] public bool VoiceInMic;
         [DataMember] public int MicLoudness = 100;
+        // Her mini player's volume, as a percent. Below full to start, since her own songs are loud.
+        [DataMember] public int PlayerVolume = 70;
         // Her voice in your mic's Input and Output on Settings: the mic it hears, null for the one her ears use, and the cable it
         // plays into, null for VB-CABLE's before Steam's. Endpoint ids.
         [DataMember] public string MixMic;
@@ -1231,6 +1233,7 @@ namespace CapriDesktop
         {
             VoiceSpeed = 100;
             MicLoudness = 100;
+            PlayerVolume = 70;
             HdRobot = VoiceFx.HdRobotDefault;
             LayerPitch1 = VoiceFx.Layering.HigherPitch;
             LayerDelay1 = VoiceFx.Layering.Behind;
@@ -2201,6 +2204,9 @@ namespace CapriDesktop
         private double nextLie = -1;
         private const double LieQuiet = 60, LieGap = 480, LieSpread = 240, LieStay = 120, LieStaySpread = 120;
         private const double NapGap = 1500, NapSpread = 600, NapFinish = 0.35;
+        // Quiet this long means they are away, not just still, so a nap ignores the gap between naps. Never under
+        // their own Sleep setting doubled.
+        private const double AwayQuiet = 300;
         private bool ownRest, ownNap, ownLie;
         private double restUntil = -1, nextNap = -1;
         private Func<System.Collections.Generic.List<Ledge>> napLedges;
@@ -2918,12 +2924,22 @@ namespace CapriDesktop
             updateExit = delegate { quitting = true; ClearMarks(); Close(); };
             startMarker = running == null ? null : Path.Combine(data, Program.StartMarker);
             Brain.LogPath = Path.Combine(data, "errors.txt");
+            herFolder = data;
             Brain.MemoryPath = Path.Combine(data, "me.md");
             // personality.md is made only when they press Edit, so an old one from 0.7.4 or 0.7.5 is read as it is.
             Brain.PersonalityPath = Path.Combine(data, Brain.PersonalityName);
             if (smoke) foreach (string old in new[] { Brain.PersonalityPath, Brain.PersonalityBackup }) if (File.Exists(old)) File.Delete(old);
             reminders = new Reminders(data, DateTime.Now);
             Brain.MemoriesPath = Path.Combine(data, "memories.md");
+            Commands.Kept = Path.Combine(data, Commands.FileName);
+            // Rewritten every start, so the list can never drift from what the build actually understands.
+            if (!smoke) Commands.Write();
+            playlistPath = Path.Combine(data, Playlist.FileName);
+            Playlist.Kept = playlistPath;
+            Favourites.Kept = Path.Combine(data, Favourites.FileName);
+            Hands.PlaylistBusy = delegate { return FolderTunes.Playing != null; };
+            Tunes.Own = delegate { return PlaylistTune(); };
+            Hands.Playlist = PlaylistTool;
             Hands.Websites = new Websites(data);
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
@@ -3022,6 +3038,8 @@ namespace CapriDesktop
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
             menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
+            // Where her files live, for the ones her editor does not open.
+            menu.Items.Add(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }));
             ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
             menu.Items.Add(playItem);
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
@@ -3070,6 +3088,7 @@ namespace CapriDesktop
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
             clickDelay.Tick += delegate { OnClickDelay(); };
             helpItem = new ToolStripMenuItem("Help");
+            helpItem.DropDownItems.Add(new ToolStripMenuItem("Commands", null, delegate { Commands.Write(); OpenFiles(2); }));
             helpItem.DropDownItems.Add(new ToolStripMenuItem("Help page", null, delegate { OpenHelp(); }));
             helpItem.DropDownItems.Add(new ToolStripMenuItem("Join the Discord", null, delegate { OpenPage(DiscordPage); }));
             helpItem.DropDownItems.Add(new ToolStripMenuItem("Copy error details", null, delegate { CopyErrors(); }));
@@ -3105,6 +3124,9 @@ namespace CapriDesktop
             playerMenu.Items.Add(new ToolStripMenuItem("Hide for now", null, delegate { playerClosed = true; HidePlayer(); }));
             playerMenu.Items.Add(new ToolStripMenuItem("Turn off mini player", null, delegate { TogglePlayer(); }));
             player.Command += PlayerCommand;
+            // The volume they last set, on her player and on her own songs, before anything can play.
+            player.Loud = Math.Max(0, Math.Min(100, preferences.PlayerVolume)) / 100.0;
+            try { FolderTunes.Loudness = player.Loud; } catch (Exception) { }
             player.Moved += SavePlayerSpot;
             tray = new NotifyIcon();
             using (Stream icon = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.ico"))
@@ -3305,6 +3327,14 @@ namespace CapriDesktop
                 {
                     presence.Crowd = cloneWindow == null ? 0 : cloneWindow.Swarm.Bodies.Count + 1;
                     presence.Show(preferences.NoDiscord ? null : Doing);
+                }
+                if (!testing) CheckPlaylist(clock.Elapsed.TotalSeconds);
+                if (volumeSaveAt >= 0 && clock.Elapsed.TotalSeconds >= volumeSaveAt) { volumeSaveAt = -1; SavePreferences(); }
+                // Which program they keep in front, so "open my calendar" opens theirs.
+                if (!testing && background && clock.Elapsed.TotalSeconds - frontSeenAt >= 4)
+                {
+                    frontSeenAt = clock.Elapsed.TotalSeconds;
+                    try { Favourites.Seen(Computer.FrontProgram(), DateTime.Now); } catch (Exception) { }
                 }
                 if (!testing && background) CheckHd(clock.Elapsed.TotalSeconds);
                 if (!testing && background) CheckBrainGone(signalNow);
@@ -8458,11 +8488,375 @@ namespace CapriDesktop
         }
 
         // Presses go to the app one at a time, in the order they were made, off her window's thread.
+        // Her own folder, kept from startup: me.md can be repointed to a vault, so its folder is not hers.
+        private string herFolder;
+
+        // Her files in Explorer.
+        internal void OpenHerFolder()
+        {
+            string where = herFolder;
+            try
+            {
+                if (string.IsNullOrEmpty(where)) { Tell("her folder", "I don't have a folder yet."); return; }
+                Directory.CreateDirectory(where);
+                using (Process.Start(new ProcessStartInfo(where) { UseShellExecute = true })) { }
+            }
+            catch (Exception) { Tell("her folder", "Couldn't open my folder. It's at " + where + "."); }
+        }
+
+        // When she last looked at what is in front of them, for Favourites.
+        private double frontSeenAt;
+
+        // When a moved player volume is due to be written, or -1.
+        private double volumeSaveAt = -1;
+
+        // Her own playlist, from folders on this PC.
+        private Playlist playlist;
+        private List<string> queued = new List<string>();
+        private int queuedAt = -1;
+        private double nextSongAt = double.PositiveInfinity;
+        private string playlistPath;
+
+        // The playlist tool. On her thread, since the queue and her shuffle are hers.
+        private string PlaylistTool(string action, string what)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string, string>(PlaylistTool), action, what);
+            if (action == "play") return PlayPlaylist();
+            if (action == "skip") return SkipSong();
+            if (action == "back") return BackSong();
+            if (action == "shuffle") return ShufflePlaylist(what != "off");
+            if (action == "repeat_one") return RepeatPlaylist("one");
+            if (action == "repeat_all") return RepeatPlaylist("all");
+            if (action == "repeat_off") return RepeatPlaylist("off");
+            if (action == "stop") return StopPlaylist();
+            if (action == "remove") return DropSong();
+            if (action == "add_folder") return AddPlaylistFolder(what);
+            if (action == "commands") { Commands.Write(); Post(delegate { OpenFiles(2); }); return "Here's everything I understand."; }
+            if (action == "add_song") { Playlist list = Tracks(); return list == null ? "There's no playlist yet." : list.AddSong(what); }
+            return "I don't know that playlist action.";
+        }
+
+        private Playlist Tracks()
+        {
+            if (playlist == null && playlistPath != null) playlist = new Playlist(playlistPath);
+            return playlist;
+        }
+
+        // Starts where it left off, or at the top. Called by "play my playlist" and by the next-song check.
+        internal string PlayPlaylist()
+        {
+            Playlist list = Tracks();
+            if (list == null) return "I've got nowhere to keep a playlist yet.";
+            list.Read();
+            queued = Ordered(list, list.Songs());
+            if (queued.Count == 0) return list.Folders.Count == 0
+                ? "There's no playlist yet. Type: add folder <path> to my playlist."
+                : "Nothing playable in those folders yet.";
+            queuedAt = 0;
+            return StartQueued();
+        }
+
+        private string StartQueued()
+        {
+            while (queuedAt >= 0 && queuedAt < queued.Count)
+            {
+                string song = queued[queuedAt];
+                if (FolderTunes.Start(song))
+                {
+                    nextSongAt = clock.Elapsed.TotalSeconds + 2;
+                    return "Playing " + Playlist.Name(song) + ".";
+                }
+                // A file Media Foundation will not open is stepped over rather than stopping the whole playlist.
+                Brain.Log("playlist", -1, "Couldn't open " + song);
+                queuedAt++;
+            }
+            nextSongAt = double.PositiveInfinity;
+            FolderTunes.Stop();
+            return "That's the end of the playlist.";
+        }
+
+        // Shuffled once per start, not per song, so going back works and nothing repeats until the list does.
+        //
+        // Favourites are dealt through the shuffle rather than left to chance: one comes up every few tracks, from the
+        // top. How few scales with the collection, because the same gap cannot suit both sizes. The gap is how far
+        // apart they would fall spread evenly over everything, capped at five: thirty songs with six favourites get
+        // one every five and they reach the end of the list, while sixteen hundred with twenty also get one every five,
+        // which brings all twenty into the first hundred tracks instead of burying them somewhere past track nine
+        // hundred. Two is the floor, so a list that is mostly favourites still has something between them.
+        //
+        // Each favourite is still played once per pass, like every other track. Repeating them to hold the gap across a
+        // long list would play one twenty times an evening and break the one promise shuffle makes.
+        private List<string> Ordered(Playlist list, List<string> songs)
+        {
+            if (!list.Shuffle || songs.Count < 2) return songs;
+            List<string> mixed = Mixed(songs);
+            List<string> dear = new List<string>(), rest = new List<string>();
+            foreach (string song in mixed) (list.Loves(song) ? dear : rest).Add(song);
+            if (dear.Count == 0 || rest.Count == 0) return mixed;
+            int gap = (int)Math.Max(2, Math.Min(5, Math.Round((double)mixed.Count / dear.Count)));
+            List<string> made = new List<string>(mixed.Count);
+            int d = 0, r = 0;
+            while (d < dear.Count || r < rest.Count)
+            {
+                if (d < dear.Count) made.Add(dear[d++]);
+                else { while (r < rest.Count) made.Add(rest[r++]); break; }
+                for (int i = 0; i < gap - 1 && r < rest.Count; i++) made.Add(rest[r++]);
+            }
+            return made;
+        }
+
+        private List<string> Mixed(List<string> songs)
+        {
+            List<string> mixed = new List<string>(songs);
+            for (int i = mixed.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                string held = mixed[i];
+                mixed[i] = mixed[j];
+                mixed[j] = held;
+            }
+            return mixed;
+        }
+
+        // The heart on her player, and "favourite this song". The order is not rebuilt underneath them: a list that
+        // reshuffled itself every time a heart was pressed would lose where they were, and the mark counts from the
+        // next time the playlist starts.
+        internal string LoveSong(bool on)
+        {
+            Playlist list = Tracks();
+            if (list == null) return "There's no playlist yet.";
+            string song = FolderTunes.Playing;
+            if (song == null && queuedAt >= 0 && queuedAt < queued.Count) song = queued[queuedAt];
+            if (song == null) return "Nothing's playing, so there's nothing to favourite.";
+            list.Love(song, on);
+            tuneAt = -10;
+            return on ? "Favourited " + Playlist.Name(song) + ". It'll come up more often on shuffle."
+                      : "Took " + Playlist.Name(song) + " out of your favourites.";
+        }
+
+        internal string SkipSong()
+        {
+            if (queued.Count == 0) return PlayPlaylist();
+            Playlist list = Tracks();
+            // Repeat one means this song again, which is what skip has to mean too or there is no way out of it.
+            queuedAt++;
+            if (queuedAt < queued.Count) return StartQueued();
+            if (list != null && list.Repeat == "all") { queuedAt = 0; return StartQueued(); }
+            return StopPlaylist("That was the last one.");
+        }
+
+        internal string BackSong()
+        {
+            if (queued.Count == 0) return "Nothing's playing.";
+            Playlist list = Tracks();
+            if (queuedAt <= 0)
+            {
+                if (list != null && list.Repeat == "all") queuedAt = queued.Count - 1;
+                else { queuedAt = 0; return StartQueued(); }
+            }
+            else queuedAt--;
+            return StartQueued();
+        }
+
+        internal string ShufflePlaylist(bool on)
+        {
+            Playlist list = Tracks();
+            if (list == null) return "There's no playlist yet.";
+            list.Shuffle = on;
+            list.Write();
+            if (queuedAt < 0) return on ? "Shuffle on." : "Shuffle off.";
+            // Reordered from here, keeping the song that is playing at the front so it is not cut off.
+            string now = queuedAt < queued.Count ? queued[queuedAt] : null;
+            queued = Ordered(list, list.Songs());
+            if (now != null)
+            {
+                queued.RemoveAll(each => string.Equals(each, now, StringComparison.OrdinalIgnoreCase));
+                queued.Insert(0, now);
+                queuedAt = 0;
+            }
+            return on ? "Shuffle on." : "Shuffle off.";
+        }
+
+        internal string RepeatPlaylist(string how)
+        {
+            Playlist list = Tracks();
+            if (list == null) return "There's no playlist yet.";
+            list.Repeat = how;
+            list.Write();
+            return how == "one" ? "Repeating this song." : how == "all" ? "Repeating the playlist." : "Repeat off.";
+        }
+
+        // What her mini player shows while the playlist is the thing playing.
+        internal Tune PlaylistTune()
+        {
+            string song = FolderTunes.Playing;
+            if (song == null || queuedAt < 0) return null;
+            Playlist list = Tracks();
+            return new Tune
+            {
+                Title = Playlist.Name(song),
+                Artist = "",
+                Album = "",
+                App = "Capri",
+                Playing = FolderTunes.Busy && !FolderTunes.Paused,
+                Music = true,
+                Mine = true,
+                Fav = list != null && list.Loves(song),
+                Shuffle = list == null ? (bool?)null : list.Shuffle,
+                Repeat = list == null ? "off" : list.Repeat,
+                // The song's own length and position. Her player drew an empty bar and no clock for her own music
+                // because these were left at zero, and a position that moves is also the one honest sign she is playing.
+                Length = FolderTunes.Seconds,
+                Position = FolderTunes.At,
+                ReadAt = Tunes.Now,
+                CanSeek = false,
+                CanSkip = true,
+                CanBack = true,
+                CanPlay = true,
+                CanPause = true,
+                CanToggle = true
+            };
+        }
+
+        internal string StopPlaylist(string said = "Stopped the playlist.")
+        {
+            FolderTunes.Stop();
+            nextSongAt = double.PositiveInfinity;
+            queuedAt = -1;
+            return said;
+        }
+
+        // "remove this song": off the playlist, never off the drive, then straight on to the next one.
+        internal string DropSong()
+        {
+            Playlist list = Tracks();
+            if (list == null) return "There's no playlist yet.";
+            string song = FolderTunes.Playing;
+            if (song == null && queuedAt >= 0 && queuedAt < queued.Count) song = queued[queuedAt];
+            if (song == null) return "Nothing's playing, so there's nothing to take off.";
+            string said = list.Remove(song);
+            queued.RemoveAll(each => string.Equals(each, song, StringComparison.OrdinalIgnoreCase));
+            if (queuedAt >= queued.Count) queuedAt = queued.Count - 1;
+            string next = queued.Count == 0 ? StopPlaylist("That empties the playlist.") : StartQueued();
+            return said + " " + next;
+        }
+
+        internal string AddPlaylistFolder(string folder)
+        {
+            Playlist list = Tracks();
+            if (list == null) return "There's no playlist file yet.";
+            string said = list.AddFolder(folder);
+            // The new songs join the queue in her order, with the one playing still where she is.
+            if (queuedAt >= 0)
+            {
+                string now = queuedAt < queued.Count ? queued[queuedAt] : null;
+                queued = Ordered(list, list.Songs());
+                queuedAt = now == null ? 0 : Math.Max(0, queued.FindIndex(each => string.Equals(each, now, StringComparison.OrdinalIgnoreCase)));
+            }
+            return said;
+        }
+
+        // Nothing tells her a track ended, so the mode is read now and then and the next one started. Checked rarely,
+        // because there is no reason to ask it twice a second.
+        private void CheckPlaylist(double now)
+        {
+            if (now < nextSongAt || queuedAt < 0) return;
+            nextSongAt = now + 2;
+            string mode = FolderTunes.Mode;
+            if (mode == "playing" || mode == "paused") return;
+            Playlist holding = Tracks();
+            string said;
+            if (holding != null && holding.Repeat == "one") said = StartQueued();
+            else
+            {
+                queuedAt++;
+                if (queuedAt < queued.Count) said = StartQueued();
+                else if (holding != null && holding.Repeat == "all") { queuedAt = 0; said = StartQueued(); }
+                else said = StopPlaylist("That's the playlist done.");
+            }
+            Brain.Log("playlist", -1, said);
+        }
+
+        // Her playlist from the Play menu, the same path as saying "play my playlist", so the mini player comes up
+        // with it and every answer reads the same whichever way it was started.
+        internal void PlayMyMusic()
+        {
+            try
+            {
+                string said = Hands.Do("playlist", new ToolArguments { Action = "play" });
+                if (!string.IsNullOrEmpty(said)) Remark("", said, true);
+            }
+            catch (Exception bad) { Remark("", "Couldn't start the playlist: " + bad.Message, true); }
+        }
+
+        // The volume slider on her player. Her own songs set their own level; anything else goes through the Windows
+        // mixer for that program, so only the app playing is touched.
+        private void SetPlayerVolume(double level)
+        {
+            if (level < 0) level = 0;
+            if (level > 1) level = 1;
+            player.Loud = level;
+            preferences.PlayerVolume = (int)Math.Round(level * 100);
+            // A drag sends a level every few pixels; the file is written once the slider settles.
+            volumeSaveAt = clock.Elapsed.TotalSeconds + 1.5;
+            try
+            {
+                if (PlaylistShowing(player.Tune)) { FolderTunes.Loudness = level; return; }
+                Tune tune = player.Tune;
+                string program = tune == null ? null : Tunes.Program(tune.App);
+                if (string.IsNullOrEmpty(program)) return;
+                foreach (System.Diagnostics.Process running in System.Diagnostics.Process.GetProcessesByName(System.IO.Path.GetFileNameWithoutExtension(program)))
+                    using (running) Mixer.Set(running.Id, (float)level, null);
+            }
+            catch (Exception) { }
+        }
+
+        private bool PlaylistShowing(Tune tune)
+        {
+            return tune != null && tune.Session == null && string.Equals(tune.App, "Capri", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void PlaylistCommand(string what)
+        {
+            try
+            {
+                // Play and pause toggle against what is actually happening, not against the flag her player flipped when
+                // it was clicked. Skipping a track starts the next one playing underneath, so after a skip while paused
+                // the flag said one thing and the playlist was doing the other, and the button then sent the command
+                // that was already true: it looked like pause had stopped working and could not be undone.
+                if (what == "play" || what == "pause")
+                {
+                    if (FolderTunes.Paused) FolderTunes.Resume(); else FolderTunes.Pause();
+                }
+                else if (what == "next") SkipSong();
+                else if (what == "previous") BackSong();
+                else if (what == "shuffle:on" || what == "shuffle:off") ShufflePlaylist(what == "shuffle:on");
+                else if (what.StartsWith("repeat:", StringComparison.Ordinal)) RepeatPlaylist(what.Substring(7));
+                else if (what == "like" || what == "unlike") LoveSong(what == "like");
+                else return;
+                // Her own player knows straight away, rather than waiting out the next read.
+                tuneAt = -10;
+            }
+            catch (Exception) { }
+        }
+
         private void PlayerCommand(string what)
         {
             if (what == "menu") { ShowPlayerMenu(); return; }
             if (what == "close") { playerClosed = true; HidePlayer(); return; }
             if (player.Tune == null) return;
+            // The volume slider never goes to the app's own media session: nothing in that protocol carries volume.
+            if (what.StartsWith("volume:", StringComparison.Ordinal))
+            {
+                double level;
+                if (!double.TryParse(what.Substring(7), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out level)) return;
+                SetPlayerVolume(level);
+                return;
+            }
+            // Her own playlist has no media session, so every press on it fell through to the media keys: those do nothing
+            // for her own playback, and pressing one goes through her hands, which puts the "controlling the screen" border
+            // up for a button on her own player. Her playlist is driven directly instead.
+            if (PlaylistShowing(player.Tune)) { PlaylistCommand(what); return; }
             lock (playerPresses)
             {
                 playerPresses.Enqueue(new System.Collections.Generic.KeyValuePair<Tune, string>(player.Tune, what));
@@ -8769,7 +9163,9 @@ namespace CapriDesktop
             }
             if (ownRest && restUntil >= 0 && now >= restUntil) { WakeRest(false); return; }
             if (!ownRest && (walking || falling || hanging || outro != null || (clip != idle && clip != perch && clip != laydown))) return;
-            if (SleepDue(quiet) && now >= nextNap)
+            // The gap between naps suits someone sitting there, not someone who has left the room.
+            bool away = quiet >= (long)(Math.Max(AwayQuiet, preferences.SleepAfter * 2.0) * 1000);
+            if (SleepDue(quiet) && (now >= nextNap || away))
             {
                 if (!ownRest) ownLie = !lying;
                 ownRest = ownNap = true;
@@ -16144,6 +16540,8 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            // What they used this session, or a short session learns nothing.
+            try { Favourites.Save(); } catch (Exception) { }
             StopRemote();
             Security.HeldChanged = null;
             if (husk != null) husk.Dispose();
@@ -17875,6 +18273,11 @@ namespace CapriDesktop
                 if (Asleep || ownRest) throw new Exception("PC input did not wake her own nap.");
                 napTicks(120001, 200);
                 if (Asleep) throw new Exception("She started another nap a few seconds later.");
+                // Away is not the same as quiet: past AwayQuiet she sleeps again whatever the gap says.
+                napTicks((long)(AwayQuiet * 1000) + 1, 200);
+                if (!Asleep || !ownNap || napping) throw new Exception("She stayed awake while they were away.");
+                CheckIdle(napNow, 0);
+                if (Asleep || ownRest) throw new Exception("Coming back did not wake her away nap.");
                 napReset();
                 preferences.SleepAfter = 0;
                 nextLie = napNow - 1;
@@ -17882,7 +18285,7 @@ namespace CapriDesktop
                 if (!lying || Asleep || !ownRest) throw new Exception("Never stopped an awake lie-down or let her drift off.");
                 CheckIdle(napNow + LieStay + LieStaySpread + 1, 3600000);
                 if (lying || ownRest || Asleep) throw new Exception("Her own lie-down did not end.");
-                checks.Add("PASS quiet rest obeys SleepAfter, spaces naps 25 to 35 minutes apart, ends awake lie-downs, and Never still allows lying; jobs, calls, voice chat, Gaming Mode and interaction keep her awake");
+                checks.Add("PASS quiet rest obeys SleepAfter, spaces naps 25 to 35 minutes apart, sleeps again regardless of that gap once they've been away five minutes and wakes when they come back, ends awake lie-downs, and Never still allows lying; jobs, calls, voice chat, Gaming Mode and interaction keep her awake");
             }
             finally
             {
@@ -20640,8 +21043,14 @@ namespace CapriDesktop
                 Hands.Mini = delegate(ToolArguments args) { opened.Add(args.Name + ":" + args.Action); return "Opened."; };
                 using (ContextMenuStrip games = mainframe.MiniChoices())
                 {
-                    if (games.Items.Count != 4) throw new Exception("Mainframe's mini-game menu lost a board.");
-                    foreach (ToolStripMenuItem game in games.Items) game.PerformClick();
+                    // Her own music leads the menu, then a separator, then the four boards.
+                    if (games.Items.Count != 6 || games.Items[0].Text != "Music" || !(games.Items[1] is ToolStripSeparator)) throw new Exception("Mainframe's mini-game menu lost a board.");
+                    foreach (ToolStripItem item in games.Items)
+                    {
+                        ToolStripMenuItem game = item as ToolStripMenuItem;
+                        if (game == null || game.Text == "Music") continue;
+                        game.PerformClick();
+                    }
                 }
                 if (string.Join(",", opened.ToArray()) != "chess:open,connect_four:open,tic_tac_toe:open,rock_paper_scissors:open") throw new Exception("A mini-game menu choice did not use its existing board tool.");
                 // 0.8.3 crashed here: the Play... menu disposed itself in Closed, then WinForms reparented it
@@ -20655,10 +21064,15 @@ namespace CapriDesktop
                 checks.Add("PASS Mainframe's mini-game menu opens all four existing boards through their tool, survives a click elsewhere closing it, and the new controls have hover help and fit the existing rows");
                 ToolStripMenuItem rightClickPlay = null;
                 foreach (ToolStripItem top in menu.Items) if (top.Text == "Play") rightClickPlay = top as ToolStripMenuItem;
-                if (rightClickPlay == null || rightClickPlay.DropDownItems.Count != 4 || rightClickPlay.DropDown == play) throw new Exception("Her right-click Play menu is missing a board or shares the Mainframe's open menu.");
+                if (rightClickPlay == null || rightClickPlay.DropDownItems.Count != 6 || rightClickPlay.DropDown == play) throw new Exception("Her right-click Play menu is missing a board or shares the Mainframe's open menu.");
                 if (Array.IndexOf(mainframe.Dropdowns, (ContextMenuStrip)rightClickPlay.DropDown) < 0) throw new Exception("Her right-click Play menu won't follow a new look.");
                 opened.Clear();
-                foreach (ToolStripMenuItem game in rightClickPlay.DropDownItems) game.PerformClick();
+                foreach (ToolStripItem item in rightClickPlay.DropDownItems)
+                {
+                    ToolStripMenuItem game = item as ToolStripMenuItem;
+                    if (game == null || game.Text == "Music") continue;
+                    game.PerformClick();
+                }
                 if (string.Join(",", opened.ToArray()) != "chess:open,connect_four:open,tic_tac_toe:open,rock_paper_scissors:open") throw new Exception("A right-click Play choice did not use its existing board tool.");
                 checks.Add("PASS her right-click Play menu is the Mainframe's game choice, opens all four boards through their tool, and follows a new look");
             }
@@ -23057,7 +23471,7 @@ namespace CapriDesktop
                 { "clip", "{}" }, { "mini_game", "{\"name\":\"chess\"}" }, { "workspace", "{}" }, { "watch_for", "{\"action\":\"list\"}" }, { "listen", "{\"action\":\"stop\"}" },
                 { "fake_crash", "{\"action\":\"stop\"}" }, { "voice_chat", "{\"action\":\"status\"}" }, { "speech", "{\"action\":\"stop\"}" },
                 { "job_control", "{\"action\":\"status\"}" }, { "quit", "{\"action\":\"quit\"}" }, { "mainframe", "{}" }, { "updates", "{\"action\":\"status\"}" },
-                { "mini_player", "{\"action\":\"hide\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
+                { "mini_player", "{\"action\":\"hide\"}" }, { "playlist", "{\"action\":\"play\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
                 { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
                 { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" },
                 { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }, { "read_skill", "{\"name\":\"BTD6 strategy\"}" }
@@ -23828,7 +24242,8 @@ namespace CapriDesktop
                 if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
                     throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
             }
-            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 3200 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
+            // 3800 since her posture joined the brief; the list itself is still one line per tool.
+            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 3800 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
                 || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
                 throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
             // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
@@ -51039,7 +51454,7 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Play,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Her folder,Play,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;

@@ -270,3 +270,7 @@ A `CapriTrack` has `Title`, `Artist`, `Album`, `App` (a name to show, like `Spot
 - [hello-code.capri-code](hello-code.capri-code) answers "mod check".
 - [hooks-tour.capri-code](hooks-tour.capri-code) grows or shrinks her when asked, counts head pats, draws a heart over her head, and adds a menu item and options.
 - [startup-intros.capri-code](startup-intros.capri-code) plays a startup intro.
+- [twitch-camera.capri-code](twitch-camera.capri-code) reads your Twitch chat, says who on your watch list is live,
+  and makes her a webcam device through OBS's virtual camera. Its settings are a `twitch.md` in its own folder, it
+  reads Twitch rather than posting to it, and a chat reply is a one-shot `Brain.Ask` with no tools, so nothing a
+  stranger types can reach the PC.
