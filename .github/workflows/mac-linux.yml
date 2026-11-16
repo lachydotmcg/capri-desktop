@@ -80,16 +80,18 @@ jobs:
       - name: Smoke test, Apple Silicon
         timeout-minutes: 8
         run: |
-          dist/arm64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-arm64" || true
-          cat smoke/mac-arm64/smoke-test.txt
-          if grep -q '^FAIL' smoke/mac-arm64/smoke-test.txt; then exit 1; fi
+          rm -f smoke/mac-arm64/smoke-test.txt
+          rc=0
+          dist/arm64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-arm64" || rc=$?
+          bash ci/smoke-gate.sh smoke/mac-arm64/smoke-test.txt 0 "$rc"
       - name: Smoke test, Intel through Rosetta
         timeout-minutes: 8
         run: |
           if arch -x86_64 /usr/bin/true 2>/dev/null; then
-            arch -x86_64 dist/x64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-x64" || true
-            cat smoke/mac-x64/smoke-test.txt
-            if grep -q '^FAIL' smoke/mac-x64/smoke-test.txt; then exit 1; fi
+            rm -f smoke/mac-x64/smoke-test.txt
+            rc=0
+            arch -x86_64 dist/x64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-x64" || rc=$?
+            bash ci/smoke-gate.sh smoke/mac-x64/smoke-test.txt 0 "$rc"
           else
             echo "No Rosetta on this runner"
           fi
@@ -139,9 +141,10 @@ jobs:
       - name: Smoke test
         timeout-minutes: 5
         run: |
-          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; out/Capri/Capri --smoke "$PWD/smoke/linux"' || true
-          cat smoke/linux/smoke-test.txt
-          if grep -q '^FAIL' smoke/linux/smoke-test.txt; then exit 1; fi
+          rm -f smoke/linux/smoke-test.txt
+          rc=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; out/Capri/Capri --smoke "$PWD/smoke/linux"' || rc=$?
+          bash ci/smoke-gate.sh smoke/linux/smoke-test.txt 0 "$rc"
       - name: Pack
         run: tar -czf Capri-linux-x64.tar.gz -C out Capri
       # The AppImage wraps the same Capri the tarball has, and goes in the linux artifact beside it, so a release puts both
@@ -167,10 +170,10 @@ jobs:
       - name: Smoke test the AppImage
         timeout-minutes: 10
         run: |
-          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; ./Capri-linux-x64.AppImage --appimage-extract-and-run --smoke "$PWD/smoke/appimage"' || true
-          cat smoke/appimage/smoke-test.txt
-          if grep -q '^FAIL' smoke/appimage/smoke-test.txt; then exit 1; fi
-          test "$(grep -c '^PASS' smoke/appimage/smoke-test.txt)" -ge 20
+          rm -f smoke/appimage/smoke-test.txt
+          rc=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; ./Capri-linux-x64.AppImage --appimage-extract-and-run --smoke "$PWD/smoke/appimage"' || rc=$?
+          bash ci/smoke-gate.sh smoke/appimage/smoke-test.txt 20 "$rc"
       - uses: actions/upload-artifact@v4
         with:
           name: linux

@@ -89,10 +89,10 @@ jobs:
       - name: Smoke test
         timeout-minutes: 5
         run: |
-          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; out/linux/Capri --smoke "$PWD/smoke/linux"' || true
-          cat smoke/linux/smoke-test.txt
-          if grep -q '^FAIL' smoke/linux/smoke-test.txt; then exit 1; fi
-          test "$(grep -c '^PASS' smoke/linux/smoke-test.txt)" -ge 20
+          rm -f smoke/linux/smoke-test.txt
+          rc=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; out/linux/Capri --smoke "$PWD/smoke/linux"' || rc=$?
+          bash ci/smoke-gate.sh smoke/linux/smoke-test.txt 20 "$rc"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -112,10 +112,10 @@ jobs:
       - name: Smoke test
         timeout-minutes: 8
         run: |
-          out/mac/Capri --smoke "$PWD/smoke/mac" || true
-          cat smoke/mac/smoke-test.txt
-          if grep -q '^FAIL' smoke/mac/smoke-test.txt; then exit 1; fi
-          test "$(grep -c '^PASS' smoke/mac/smoke-test.txt)" -ge 20
+          rm -f smoke/mac/smoke-test.txt
+          rc=0
+          out/mac/Capri --smoke "$PWD/smoke/mac" || rc=$?
+          bash ci/smoke-gate.sh smoke/mac/smoke-test.txt 20 "$rc"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
