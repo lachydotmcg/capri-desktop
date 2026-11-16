@@ -109,6 +109,7 @@ namespace CapriDesktop
             {
                 if (Step(now))
                 {
+                    if (step == 0) started = -1;
                     step++;
                     // Fresh on the next tick: now is from before this step ran, and a long step isn't the next one's fault.
                     stepStart = -1;
