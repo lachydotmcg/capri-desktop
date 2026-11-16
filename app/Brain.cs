@@ -2436,7 +2436,7 @@ namespace CapriDesktop
 #if !CROSS
             , Func<string> callReply = null, string callLines = null
 #endif
-            , string typed = null)
+            , string typed = null, RemotePicture photo = null)
         {
             // A message goes before a memories rewrite. On a brain on their PC the rewrite holds up her reply, so it's called off and
             // runs again once the chat goes quiet (Mirit0, #226). A Mac or Linux plan brain is one bridge her other asks share, and
@@ -2454,7 +2454,7 @@ namespace CapriDesktop
 #if !CROSS
                     , callReply, callLines
 #endif
-                    , typed);
+                    , typed, photo);
             }
             finally
             {
@@ -2468,7 +2468,7 @@ namespace CapriDesktop
 #if !CROSS
             , Func<string> callReply, string callLines
 #endif
-            , string typed)
+            , string typed, RemotePicture photo)
         {
             followLine = "";
             string input = typed ?? text;
@@ -2569,8 +2569,9 @@ namespace CapriDesktop
             string request = agreed ? before : input;
             bool follows = !agreed && recent.Count == 2 && !previousPicture && Hands.Follows(input, before, recent[1].Content);
             if (pictureQuestion || picture && input.Length == 0) act = null;
+            if (picture && act != null && !agreed && !follows && (Hands.Heard(request, out direct, out directArgs, true) ? direct == "look_at_screen" : !Hands.Wants(request))) act = null;
             bool reached = false;
-            string playing = act != null ? Hands.GameOpen() : null;
+            string playing = act != null && !picture ? Hands.GameOpen() : null;
             // A brain that holds her tools works the job out itself (F57), so set phrases only take what needs no thought. Her own
             // brain on their PC does too when its model calls tools (Lachy, 8 Nov), but it answers chat first and takes every tool up
             // once it says a message is a job: the whole tool list on every message would slow each reply by seconds on a graphics
@@ -2604,7 +2605,7 @@ namespace CapriDesktop
                 working[0] = new ChatMessage("system", steady + Hands.NoteFor(kit) + Hands.WorkingOut + selfGuide + callContext) { Steady = steady.Length };
                 try
                 {
-                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit);
+                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit, picture);
                     planned = true;
                 }
                 catch (BrainException error)
@@ -2622,7 +2623,7 @@ namespace CapriDesktop
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && (typed == null || input.Length > 0) && recent.Count == 2 && !previousPicture && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(input.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = input }));
-            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && (!planning || Hands.Instant(direct, directArgs)) && (rest == null || kit.Unable(direct, directArgs) == null))
+            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && !(picture && direct == "look_at_screen") && (!planning || Hands.Instant(direct, directArgs)) && (rest == null || kit.Unable(direct, directArgs) == null))
             {
                 // "Remember that" saves what they said just before, unless that was a question or one of her own glances.
                 if (direct == "remember" && directArgs.Action != "forget" && Hands.Back(request))
@@ -2634,9 +2635,9 @@ namespace CapriDesktop
             }
             // Her brain on their PC goes straight to its tools for a yes to her asking, a follow-up, a game that's open or a plain ask.
             else if (pictureMessages != null && (asksAboutPicture || !Hands.Requested(request) && !Hands.Wants(request))) act = null;
-            else if (planning && (!chatFirst || agreed || follows || playing != null || Hands.Wants(request))) workOut();
+            else if (planning && (!chatFirst || agreed || follows || playing != null || picture || Hands.Wants(request))) workOut();
             // With a game open, her hands see every message first: "kliknij deathmatch" or "keep going" mean something in it.
-            else if (act != null && !planning && (agreed || Hands.Wants(request) || follows || playing != null || fileChat))
+            else if (act != null && !planning && (agreed || Hands.Wants(request) || follows || playing != null || fileChat || picture))
             {
                 reached = true;
                 if (!Hands.Several(request, calls))
@@ -2648,10 +2649,12 @@ namespace CapriDesktop
                     if (calls.Count == 0 && unable == null && (agreed || Hands.Hesitant(handed, request) || (playing != null && Hands.Wants(request)))) Force(calls, request, kit, ref unable);
                 }
             }
+            if (picture && !planned) calls.RemoveAll(call => call.Key == "look_at_screen");
+            if (picture && !planned && calls.Count == 0 && unable == null) act = null;
             if (planned && calls.Count == 0) raw = planText;
             if (calls.Count == 0 && !planned && unable == null)
             {
-                raw = Chat(model, act == null && pictureMessages != null ? pictureMessages : messages, answerBudget, ticket, act != null && heartNote.Length > 0);
+                raw = act == null && pictureMessages != null ? PictureChat(model, pictureMessages, picture ? photo : null, answerBudget, ticket) : Chat(model, messages, answerBudget, ticket, act != null && heartNote.Length > 0);
                 if (act != null && heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                 // A call it wrote out as text in a chat reply, like <tool_call>{"name":"open_app",...}</tool_call>, is left out of what
                 // she shows and says but never runs. This ask went out with no tools, so a call in it can be copied from text someone
@@ -2857,7 +2860,7 @@ namespace CapriDesktop
             }
             if (pictureMessages != null && act != null && calls.Count == 0 && unable == null)
             {
-                raw = Chat(model, pictureMessages, answerBudget, ticket);
+                raw = PictureChat(model, pictureMessages, picture ? photo : null, answerBudget, ticket);
                 act = null;
             }
             bool lately = false;
@@ -2948,7 +2951,7 @@ namespace CapriDesktop
         // The brain holds her tools beside her own prompt: it calls one, sees what it did, calls the next, and answers as herself once
         // the job's done, for up to twelve rounds. Saying it did something with no tool behind it gets one reminder, then her line that
         // nothing's happened yet. Null means her usual reply from the results: SECURITY held a call, a job was stopped or the rounds ran out.
-        private string WorkOut(string model, List<ChatMessage> asking, string request, List<KeyValuePair<string, ToolArguments>> calls, List<string> results, List<string> facts, int budget, int ticket, Hands.Kit kit)
+        private string WorkOut(string model, List<ChatMessage> asking, string request, List<KeyValuePair<string, ToolArguments>> calls, List<string> results, List<string> facts, int budget, int ticket, Hands.Kit kit, bool photo = false)
         {
             Func<string, ToolArguments, string> act = Act;
             bool reminded = false;
@@ -2966,6 +2969,7 @@ namespace CapriDesktop
                 List<KeyValuePair<string, ToolArguments>> several = picked.Count == 0 ? Leaks.Calls(raw) : null;
                 if (several != null && several.Count > 0) picked.AddRange(several);
                 else if (picked.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) picked.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
+                if (photo && picked.RemoveAll(call => call.Key == "look_at_screen") > 0 && picked.Count == 0) return calls.Count == 0 ? "" : null;
                 if (picked.Count == 0)
                 {
                     // "Reminder set" with no remind behind it is a claim even after other tools ran this turn (F69, pass 4).
@@ -3216,12 +3220,8 @@ namespace CapriDesktop
             Cloud remote = Remote;
             if (remote != null && !Sighted(remote)) throw new BrainException(Sightless(remote));
             if (!selected) model = Looker(model);
-            string data = Convert.ToBase64String(jpeg);
-            string parts = null;
-            if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"" + mime + "\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";
-            else if (remote != null && !remote.Plan || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:" + mime + ";base64," + data + "\"}}]";
-            ChatMessage asked = new ChatMessage("user", parts != null ? Parts : instruction);
-            if (parts == null) { asked.Images = new[] { data }; asked.ImageMime = mime; }
+            string data = Convert.ToBase64String(jpeg), parts;
+            ChatMessage asked = Pictured(instruction, data, mime, remote, out parts);
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
             string raw;
 #if CROSS
@@ -3244,6 +3244,31 @@ namespace CapriDesktop
             if (preserveWhitespace) return Visible(raw).Trim();
 #endif
             return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
+        }
+
+        private ChatMessage Pictured(string words, string data, string mime, Cloud remote, out string parts)
+        {
+            parts = null;
+            if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"" + mime + "\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(words) + "}]";
+            else if (remote != null && !remote.Plan || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(words) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:" + mime + ";base64," + data + "\"}}]";
+            ChatMessage asked = new ChatMessage("user", parts != null ? Parts : words);
+            if (parts == null) { asked.Images = new[] { data }; asked.ImageMime = mime; }
+            return asked;
+        }
+
+        internal bool TakesPictures
+        {
+            get
+            {
+                if (Model == null) return false;
+                Cloud remote = Remote;
+                if (remote != null) return remote.Kind != "codex" && Sighted(remote);
+                if (Server != null) return true;
+                Engine local = Local;
+                Pick pick = LocalPick;
+                if (local != null) return pick != null && pick.EyesFile != null && local.HasEyes(pick);
+                return LocalSees(Model);
+            }
         }
 
 #if CROSS
@@ -3600,10 +3625,10 @@ namespace CapriDesktop
         // for it. If that's empty too she says the model only thought. Thinking in plain words is a guess, so a second reply that
         // still reads like it is shown as it came. A call written into a chat reply never runs and is never shown, and isn't asked
         // about again: a reply that was only that call is a reply with nothing to say.
-        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, bool hearts = false)
+        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, bool hearts = false, string parts = null)
         {
             string raw = null;
-            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket); }
+            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), parts, budget, ticket); }
             catch (BrainException error) { if (error.Detail != Leaks.OnlyThought) throw; }
             // A small brain on their PC that answered with only her heart has said something: the heart is sent and she says its
             // line, so it isn't asked again (and the heart lost) for words it never meant to add.
@@ -3613,7 +3638,23 @@ namespace CapriDesktop
             Log("leak", -1, Leaks.Who + ": nothing left to say, asking again for just the answer");
             List<ChatMessage> again = new List<ChatMessage>(messages);
             again[0] = new ChatMessage("system", messages[0].Content + Leaks.JustAnswer) { Steady = messages[0].Steady };
-            return Think(model, again, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket, false, null, null, false, true);
+            return Think(model, again, false, new List<KeyValuePair<string, ToolArguments>>(), parts, budget, ticket, false, null, null, false, true);
+        }
+
+        private string PictureChat(string model, List<ChatMessage> messages, RemotePicture photo, int budget, int ticket)
+        {
+            if (photo == null || !TakesPictures) return Chat(model, messages, budget, ticket);
+            string data = Convert.ToBase64String(photo.Bytes), parts;
+            List<ChatMessage> shown = new List<ChatMessage>(messages);
+            shown[0] = new ChatMessage("system", messages[0].Content + " Their photo itself is attached to their message too.") { Steady = messages[0].Steady };
+            shown[shown.Count - 1] = Pictured(messages[messages.Count - 1].Content, data, photo.Mime, Remote, out parts);
+            try
+            {
+                string said = Chat(model, shown, budget, ticket, false, parts);
+                return said == null ? null : said.Replace(data, "[redacted]");
+            }
+            catch (BrainException error) { if (error.Status != 400 && error.Status != 422 && !NoVision(error)) throw; }
+            return Chat(model, messages, budget, ticket);
         }
 
         // plain: a call outside her chat, which keeps today's settings whatever's picked.
