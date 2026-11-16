@@ -131,19 +131,19 @@ Mac and Linux can hear one line at a time through **TALK** once you set up her o
 
 On Linux, streaming computer-use jobs are unavailable when Capri has to use her fallback desktop controls. Other computer-use jobs are unchanged.
 
-1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage) or [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
+1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage), [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz), [Linux arm64 (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.AppImage) or [Linux arm64 (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.tar.gz). The arm64 files are for boards like the Raspberry Pi 5 running a 64-bit system
 2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
 3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
    ```bash
    xattr -dr com.apple.quarantine /Applications/Capri.app
    ```
    Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
-4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
+4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`, or `Capri-linux-arm64.AppImage` on arm64), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
 
 ### Linux TALK setup
 
 1. Install `parec` from your distribution's PulseAudio tools (`pulseaudio-utils` on Ubuntu). Pick your default mic in your system sound settings. PipeWire works when its PulseAudio service is running.
-2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine into `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/`, keeping its libraries with the extracted build. She also finds `sherpa-onnx-offline` on your `PATH` or in `~/.local/bin`, `/usr/local/bin` or `/usr/bin`.
+2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine (`linux-aarch64-shared-cpu` on arm64) into `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/`, keeping its libraries with the extracted build. She also finds `sherpa-onnx-offline` on your `PATH` or in `~/.local/bin`, `/usr/local/bin` or `/usr/bin`.
 3. Extract her [English Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2). Put `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx` and `tokens.txt` directly in `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/parakeet-tdt-0.6b-v2-int8/`. With her language set to another European language under **Mainframe > Settings**, extract her [European Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8.tar.bz2) instead and put the same four files in `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/parakeet-tdt-0.6b-ultra-int8/`. It hears 25 European languages, French, German and Spanish among them.
 4. Hover over her and click **TALK**. Say one line and pause. Click **TALK** again to cancel. She reads the mic audio on your PC and sends only the words through the same chat as **TYPE**. She answers out loud when you've set up a voice under **Mainframe > VOICE**.
 

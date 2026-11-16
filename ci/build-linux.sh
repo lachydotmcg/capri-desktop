@@ -2,7 +2,20 @@
 set -euo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-output=${1:?Usage: ci/build-linux.sh /absolute/output-directory}
+output=${1:?Usage: ci/build-linux.sh /absolute/output-directory [linux-x64|linux-arm64]}
+target=${2:-linux-x64}
+case $target in
+    linux-x64) machine=x86_64 ;;
+    linux-arm64) machine=aarch64 ;;
+    *)
+        printf '%s\n' 'The target must be linux-x64 or linux-arm64.' >&2
+        exit 2
+        ;;
+esac
+if [[ $(uname -m) != "$machine" ]]; then
+    printf '%s\n' "Build $target on a $machine machine, so capri-input is built for the same CPU." >&2
+    exit 2
+fi
 if [[ $output != /* ]]; then
     printf '%s\n' 'The output directory must be absolute.' >&2
     exit 2
@@ -13,9 +26,9 @@ if [[ -e $output ]]; then
 fi
 
 make -C "$root/cross/native"
-dotnet publish "$root/cross/Capri.Cross.csproj" -c Release -r linux-x64 \
+dotnet publish "$root/cross/Capri.Cross.csproj" -c Release -r "$target" \
     --self-contained true -o "$output" -p:RestoreLockedMode=true \
-    -p:NuGetLockFilePath=packages.linux-x64.lock.json \
+    -p:NuGetLockFilePath="packages.$target.lock.json" \
     -p:DebugType=none
 python3 "$root/ci/copy-linux-notices.py" "$root/cross/obj/project.assets.json" "$output"
 install -Dm755 "$root/cross/native/capri-input" "$output/native/capri-input"
