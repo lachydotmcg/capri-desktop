@@ -22937,8 +22937,9 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", "ChimeSettings.cs")), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
-                                    selfSource += "\n" + selfPart.Value;
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs" })
+                                    foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
+                                        selfSource += "\n" + selfPart.Value;
                         }
                         catch (IOException) { selfReadable = false; break; }
                         catch (UnauthorizedAccessException) { selfReadable = false; break; }
@@ -23848,9 +23849,10 @@ namespace CapriDesktop
                 || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
                 throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
             // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
-            Func<bool> clipsWere = Hands.ClipsOn;
+            Func<bool> clipsWere = Hands.ClipsOn, weatherWasOn = Hands.WeatherOn;
             try
             {
+                Hands.WeatherOn = delegate { return true; };
                 Hands.ClipsOn = delegate { return true; };
                 Hands.Kit clipsOn = Hands.KitFor();
                 Hands.ClipsOn = delegate { return false; };
@@ -23862,7 +23864,7 @@ namespace CapriDesktop
                     || !(SelfKnow.Matching("what can you do?", clipsOff) ?? "").Contains(offLine) || (SelfKnow.Matching("what can you do?", clipsOn) ?? "").Contains("Off right now"))
                     throw new Exception("Clip my games being off didn't reach her brains or her help: " + clipsOff.Switched);
             }
-            finally { Hands.ClipsOn = clipsWere; }
+            finally { Hands.ClipsOn = clipsWere; Hands.WeatherOn = weatherWasOn; }
             // "Can you X?" for something that isn't here gets the truth straight away, on a Mac without her mouse and keyboard
             // too, while mouse jobs, looks and what works go on to her hands (F69, pass 5).
             System.Collections.Generic.List<string[]> macGaps = new System.Collections.Generic.List<string[]>();
