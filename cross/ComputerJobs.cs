@@ -391,7 +391,7 @@ namespace CapriDesktop
             if (desktop == null || !ArchInput.Available || close) return false;
             lock (gate) if (running != null) return false;
             using CancellationTokenSource cancel = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            lock (gate) { if (running != null) return false; running = cancel; }
+            lock (gate) { if (running != null) return false; running = cancel; gameRunning = false; streamRunning = false; }
             try
             {
                 if (!desktop.Steer(window, "switch_to")) return false;
