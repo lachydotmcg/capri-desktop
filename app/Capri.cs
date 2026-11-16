@@ -2774,6 +2774,9 @@ namespace CapriDesktop
         // Getting to know them: after setup it starts once she's said hi with her new brain, and Get to know me in Settings starts
         // it again.
         private readonly Meeting meeting = new Meeting();
+        private readonly Probe probe = new Probe(DateTime.Now);
+        private DateTime chattedAt = DateTime.MinValue;
+        private double highFivedAt = -1;
         private double meetAt = -1;
         private bool voiceCheckDue;
         private const int BlinkFrom = 9;
@@ -2919,6 +2922,8 @@ namespace CapriDesktop
             startMarker = running == null ? null : Path.Combine(data, Program.StartMarker);
             Brain.LogPath = Path.Combine(data, "errors.txt");
             Brain.MemoryPath = Path.Combine(data, "me.md");
+            PersonalSettings.Folder = Path.Combine(data, PersonalSettings.FolderName);
+            PersonalSettings.Make();
             // personality.md is made only when they press Edit, so an old one from 0.7.4 or 0.7.5 is read as it is.
             Brain.PersonalityPath = Path.Combine(data, Brain.PersonalityName);
             if (smoke) foreach (string old in new[] { Brain.PersonalityPath, Brain.PersonalityBackup }) if (File.Exists(old)) File.Delete(old);
@@ -3022,6 +3027,7 @@ namespace CapriDesktop
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
             menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
+            menu.Items.Add(new ToolStripMenuItem("System settings (sys.md)", null, delegate { OpenSys(); }));
             ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
             menu.Items.Add(playItem);
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
@@ -3300,6 +3306,7 @@ namespace CapriDesktop
                 if (!testing) CheckNudge(signalNow, signalIdle);
                 if (!testing && background) CheckCare(signalNow, signalIdle);
                 if (!testing && background) CheckHoliday(DateTime.Now, signalIdle);
+                if (!testing && background) CheckProbe(DateTime.Now, signalIdle);
                 if (!testing && background) CheckNews(signalIdle);
                 if (!testing && background)
                 {
@@ -4629,6 +4636,7 @@ namespace CapriDesktop
             if (preferences.Hologram || e.Button != MouseButtons.Left || outro != null) return;
             if (Asleep || ownRest) { WakeRest(!SleepBusy); RenderFrame(); }
             double now = clock.Elapsed.TotalSeconds;
+            if ((ModifierKeys & Keys.Control) == Keys.Control && !Sulking && !Flying && !onPanel && working == null && job == null) { HighFive(now); return; }
             // Sulking, she won't be picked up: a press glitches her a short hop away, and mid-air it misses her (Zr4, F44). On her
             // task panel or mid-job, dragging works as always.
             if (Sulking && !onPanel && working == null && job == null)
@@ -4782,6 +4790,31 @@ namespace CapriDesktop
             Remark("holiday", holiday[random.Next(holiday.Length)]);
         }
 
+        private void CheckProbe(DateTime now, long quiet)
+        {
+            if (quiet > 60000 || brain.Model == null || meeting.Asking || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || job != null || LineBusy || FullScreen()) return;
+            double chatMinutes = chattedAt == DateTime.MinValue ? -1 : (now.ToUniversalTime() - chattedAt).TotalMinutes;
+            if (!probe.Due(now, chatMinutes, Sulking)) return;
+            probe.Known = ProbeKnown;
+            Remark("asks about you", probe.Ask(now));
+        }
+
+        private static bool ProbeKnown(string label)
+        {
+            string path = Brain.MemoryPath;
+            try { return path != null && File.Exists(path) && Probe.Filled(File.ReadAllText(path), label); }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
+
+        internal void OpenSys()
+        {
+            string path = PersonalSettings.Make();
+            if (path == null) return;
+            try { Edit(path); }
+            catch (Exception) { try { using (Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })) { } } catch (Exception) { } }
+        }
+
         private bool newsPending;
         private int newsTicket = -1;
         private long newsQuiet;
@@ -4849,6 +4882,35 @@ namespace CapriDesktop
             patForgives = false;
             // Pat lines use the same voice as everything else she says: their ElevenLabs voice and model when they've set one.
             // In a voice chat the line goes in her bubble only, so it doesn't talk over the chat.
+            if (InChat) Begin(said, line, TalkState.Talking, null);
+            else Answer(said, line, TalkState.Talking);
+        }
+
+        internal static readonly string[] HighFiveLines =
+        {
+            "Up top, choom!", "Nice. Clean contact.", "Ow, my servos. Worth it.", "That one had some power behind it.",
+            "High five logged. Morale up.", "Yes! Team us.", "Don't leave me hanging next time either.", "Smooth. We should do a handshake."
+        };
+
+        private void HighFive(double now)
+        {
+            if (highFivedAt >= 0 && now - highFivedAt < 0.6) return;
+            highFivedAt = now;
+            EndWalk();
+            Sfx.Play(Cue.Clap);
+            if (!WakeRest(!SleepBusy))
+            {
+                if (lying) Play(laydown);
+                else if (seat != null) Play(perch);
+                else Play(grin);
+            }
+            frames.Start();
+            RenderFrame();
+            if (Hushed || hidden || typer.Visible || (InChat ? voice.Busy : speech != null || talkState != TalkState.Off)) return;
+            heard = "high fives you";
+            box.Prompt = "> sys: ";
+            int said = ++asking;
+            string line = Lines.Pick(HighFiveLines);
             if (InChat) Begin(said, line, TalkState.Talking, null);
             else Answer(said, line, TalkState.Talking);
         }
@@ -7678,8 +7740,8 @@ namespace CapriDesktop
                 PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
                 new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
-                    Brain.ResetKept, Brain.ResetDone, Brain.OffLine, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry });
-            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday");
+                    Brain.ResetKept, Brain.ResetDone, Brain.OffLine, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry, Probe.Passed }, HighFiveLines, Probe.Questions);
+            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you");
         }
 
         internal string Nickname { get { return Brain.Nickname ?? ""; } }
@@ -9813,6 +9875,7 @@ namespace CapriDesktop
             if (Unseeing() != null) return;
             if (!exploring) RefreshWatchScreens();
             Sight front = Computer.Glimpse();
+            if (front != null && PersonalSettings.Skipped(front.Program, front.Title)) { lastPrint = null; return; }
             if (!exploring) front = WatchedFront(front);
             string game = string.IsNullOrEmpty(preferences.WatchScreen) || front != null ? GameAhead() : null;
             if (game != null && (GamePace == Commentary.Off || !CommentFree() || Voicing)) return;
@@ -15008,6 +15071,13 @@ namespace CapriDesktop
             box.Prompt = prompt;
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
+            if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
+            if (callReply == null && probe.Pending && !meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
+            {
+                bool probeKept;
+                string probeBack = probe.Take(input, DateTime.Now, out probeKept);
+                if (probeBack != null) { Answer(ticket, probeBack, TalkState.Talking); return; }
+            }
             if (callReply == null && meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
             {
                 string called;
@@ -44095,6 +44165,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLogTimeouts", delegate { SmokeLogTimeouts(checks); });
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
             Section(checks, "SmokeFirstRun", delegate { SmokeFirstRun(checks, Path.Combine(output, "firstrun")); });
+            Section(checks, "SmokePersonal", delegate { SmokePersonal(checks, Path.Combine(output, "personal")); });
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
