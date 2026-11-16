@@ -389,7 +389,7 @@ namespace CapriDesktop
         private readonly NeonCaption thinkingLabel, extraLabel;
         private readonly NeonButton thinkingExtra;
         private readonly NeonSwitch huskVerbosity;
-        private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress;
+        private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress, weatherCity;
         private bool paged, syncing, closed, finishing;
         private string layout;
         private string paidKey;
@@ -398,13 +398,13 @@ namespace CapriDesktop
         private static readonly string[] FrameNames = { "Auto", "100%", "125%", "150%", "175%", "200%" };
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
         private static readonly int[] Recalls = { 8, 16, 32 };
-        private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 940 }, new[] { 1040, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         // Her ears and Open ears folder, under Typing mode on Mac and Linux. Simple Settings folds them with the rest of VOICE.
         private static readonly int[] EarsBand = { 428, 488 };
         private static bool HearsHere => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
         private static int[][] With(int[][] bands, int[] band) { var all = new int[bands.Length + 1][]; bands.CopyTo(all, 0); all[bands.Length] = band; return all; }
-        private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
+        private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
         private static readonly int[][] MissingRight = { new[] { 400, 428 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
@@ -573,6 +573,11 @@ namespace CapriDesktop
                 Section("KEYS", 0, 854);
                 Key("Set up mouse and keyboard", 28, 881, 328, 22, pet.MainframeSetupInput);
             }
+            Section("WEATHER", 0, 944);
+            Toggle("Weather", 0, 968, () => pet.WeatherOn, pet.SetWeather);
+            weatherCity = Entry("Weather city", "Your city, like Sydney, Australia", 28, 999, 244, 22, () => pet.SetWeatherCity(weatherCity.Box.Text));
+            Key("Save", 280, 999, 76, 22, () => pet.SetWeatherCity(weatherCity.Box.Text));
+            Caption("From Open-Meteo, no key. Only the city you type is sent.", 28, 1024, 328, 14, MainframeTheme.Faint, 34.0 / 3);
             Section("GAMES", 0, 1126);
             Toggle("Mute her", 0, 1314, () => pet.Shushed, on => { if (pet.Shushed != on) pet.ToggleShush(false); });
             Section("CAPRI", 380, 58);
@@ -798,7 +803,7 @@ namespace CapriDesktop
                 customVoice.Text = string.IsNullOrEmpty(pet.MainframeLocalModel) ? "Voice server" : pet.MainframeLocalModel;
                 showHide.Text = pet.Away ? "Show Capri" : "Hide Capri";
                 updateNote.Text = pet.MainframeUpdate;
-                Read(nickname, Brain.Nickname); Read(custom, pet.Brain.Model); Read(localAddress, pet.Brain.Server); Read(voiceId, pet.Saved.VoiceId);
+                Read(nickname, Brain.Nickname); Read(weatherCity, pet.WeatherCity); Read(custom, pet.Brain.Model); Read(localAddress, pet.Brain.Server); Read(voiceId, pet.Saved.VoiceId);
                 more.Text = paged || modded ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
                 string next = paged + "|" + modded + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup;
                 if (layout != next) { layout = next; ArrangePage(); }
@@ -872,7 +877,7 @@ namespace CapriDesktop
                     if (!right && HearsHere) folded = With(folded, EarsBand);
                     if (simple && In(anchor, folded)) show = false;
                     int[][] missing = right ? MissingRight : MissingLeft;
-                    if (!right && inputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
+                    if (!right && inputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
                     if (!right && !inputSetup && anchor >= 854 && anchor < 910) show = false;
                     // Her ears rows sit at the top of the left gap, so on Mac and Linux the gap starts below them.
                     if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { EarsBand[1], band[1] } : band);

@@ -576,6 +576,7 @@ namespace CapriDesktop
                 case "screenshot": return "Taking a screenshot";
                 case "clipboard": return "Using the clipboard";
                 case "remind": return "Setting a reminder";
+                case "weather": return "Checking the weather";
                 case "stopwatch": return "Stopwatch";
                 case "routine": return "Running a routine";
                 case "gaming_mode": return "Gaming Mode";

@@ -230,7 +230,7 @@ namespace CapriDesktop
 
         private bool TimingTool(int ticket, string text, string tool, ToolArguments args)
         {
-            if (tool != "remind" && tool != "stopwatch" && tool != "routine") return false;
+            if (tool != "remind" && tool != "stopwatch" && tool != "routine" && tool != "weather") return false;
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 string line;

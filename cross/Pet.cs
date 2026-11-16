@@ -210,6 +210,7 @@ namespace CapriDesktop
                 case "game_notes": return "Updating game notes";
                 case "read_skill": return "Reading a skill";
                 case "remind": return "Setting a reminder";
+                case "weather": return "Checking the weather";
                 case "stopwatch": return "Stopwatch";
                 case "routine": return "Running a routine";
                 case "clip": return "Saving a clip";
@@ -881,6 +882,7 @@ namespace CapriDesktop
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder, Brain);
             StartReminders();
+            StartWeather();
             if (OperatingSystem.IsMacOS()) MacWindows.Displays = () => Dispatcher.UIThread.Invoke(() => MacWindows.ReadDisplays(Screens.All, Desk.Pointer()));
             WireWatching();
             StartAwake();
@@ -1273,7 +1275,7 @@ namespace CapriDesktop
             watching.Deliver();
             CheckStyle();
             CheckSelfTools();
-            if (Program.Smoke == null) CheckReminders();
+            if (Program.Smoke == null && !CheckReminders()) CheckWeather();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
@@ -5840,7 +5842,7 @@ namespace CapriDesktop
             bool noted;
             try { noted = Hands.Heard(input, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
-            if (phone != null && (noted || tool == "remind" || tool == "stopwatch" || tool == "routine"))
+            if (phone != null && (noted || tool == "remind" || tool == "stopwatch" || tool == "routine" || tool == "weather"))
             {
                 Talk.Thinking(text);
                 Ask(ticket, text, 0, 0, phone, delegate(string line)
