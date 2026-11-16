@@ -790,16 +790,16 @@ namespace CapriDesktop
             chess.Game.Moment = null;
         }
 
-        private bool HearMini(string text)
+        private bool HearMini(string text, string typed = null, string shown = null)
         {
             string tool;
             ToolArguments args;
-            if (!Hands.Heard(text, out tool, out args) || tool != "mini_game") return false;
+            if (!Hands.Heard(typed ?? text, out tool, out args) || tool != "mini_game") return false;
             int ticket = ++asking;
             string done = DoTool(tool, args, ticket);
             if (args.Action != "move")
             {
-                brain.Remember(text, done); heard = text; box.Prompt = "> you: ";
+                brain.Remember(text, done, typed); heard = typed == null ? text : shown ?? RemotePictures.Shown(typed); box.Prompt = "> you: ";
                 if (args.Name == "chess") ChessSay(done, ticket); else Answer(ticket, done, TalkState.Talking);
             }
             return true;

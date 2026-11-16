@@ -108,16 +108,16 @@ namespace CapriDesktop
 
         private void Pump()
         {
-            FrameGrab grab = null;
+            GameCapture frames = new GameCapture("clips");
             SoundTap tap = null;
             GameSeen front = null;
-            Rectangle bounds = Rectangle.Empty;
             long inspectAt = 0, nextAt = 0, soundAt = 0, imageAt = 0;
             int wide = 0;
-            bool started = false;
+            bool started = false, full = false;
             ClipSettings recording = Settings;
             double interval = 10000000.0 / recording.Fps;
             ClipWait wait = null;
+            Action pause = delegate { PauseCapture(ref wait, ref tap, ref soundAt, ref nextAt, ref imageAt); };
             try
             {
                 ClipMedia.Check(ClipMedia.CoInitializeEx(IntPtr.Zero, 0));
@@ -128,9 +128,8 @@ namespace CapriDesktop
                     long tick = Now;
                     try
                     {
-                        if (tick >= inspectAt)
+                        if (CaptureLook(tick, Enabled, ref inspectAt, ref full))
                         {
-                            inspectAt = tick + 2500000;
                             front = Enabled ? GameFinder.Front() : null;
                             ClipSettings chosen = Settings;
                             if (!recording.Same(chosen))
@@ -143,31 +142,21 @@ namespace CapriDesktop
                             lock (gate) Trim(tick);
                             if (Follow(front))
                             {
-                                if (grab != null) { grab.Dispose(); grab = null; }
                                 if (tap != null) { tap.Dispose(); tap = null; }
                                 soundAt = 0;
                             }
                         }
-                        if (!Enabled || front == null || Native.GetForegroundWindow() != front.Window)
+                        bool opening = frames.Grab == null;
+                        Rectangle current;
+                        IFrameGrab grab = CaptureTurn(frames, Enabled, front, full, out current, null, pause);
+                        if (grab == null)
                         {
-                            if (wait != null) { wait.Dispose(); wait = null; }
-                            if (grab != null) { grab.Dispose(); grab = null; }
-                            if (tap != null) { tap.Dispose(); tap = null; }
-                            soundAt = 0;
-                            nextAt = 0;
-                            imageAt = 0;
                             changed.WaitOne(50);
                             continue;
                         }
-                        Rectangle current = GameFinder.Frame(front.Window);
-                        if (current.Width < 2 || current.Height < 2) { changed.WaitOne(50); continue; }
                         if (wait == null) wait = new ClipWait();
-                        if (grab == null || current != bounds)
+                        if (opening)
                         {
-                            if (grab != null) grab.Dispose();
-                            grab = new FrameGrab();
-                            grab.Open(current);
-                            bounds = current;
                             interval = 10000000.0 / recording.Fps;
                             wide = 0;
                         }
@@ -217,7 +206,7 @@ namespace CapriDesktop
                     }
                     catch (Exception)
                     {
-                        if (grab != null) { grab.Dispose(); grab = null; }
+                        frames.Close("error");
                         if (tap != null) { tap.Dispose(); tap = null; }
                         changed.WaitOne(250);
                     }
@@ -226,11 +215,36 @@ namespace CapriDesktop
             catch (Exception) { }
             finally
             {
-                if (grab != null) grab.Dispose();
+                frames.Close("switched off");
                 if (tap != null) tap.Dispose();
                 if (wait != null) wait.Dispose();
                 if (started) ClipMedia.CoUninitialize();
             }
+        }
+
+        internal static bool CaptureLook(long tick, bool on, ref long inspectAt, ref bool full, Func<bool> query = null)
+        {
+            if (tick < inspectAt) return false;
+            inspectAt = tick + 2500000;
+            full = on && (query ?? Native.Exclusive)();
+            return true;
+        }
+
+        internal static IFrameGrab CaptureTurn(GameCapture frames, bool on, GameSeen front, bool full, out Rectangle area, Func<IntPtr, Rectangle> look = null, Action pause = null)
+        {
+            IntPtr window = front == null ? IntPtr.Zero : front.Window;
+            area = on && window != IntPtr.Zero ? (look ?? GameFinder.Frame)(window) : Rectangle.Empty;
+            if (area.Width < 2 || area.Height < 2) area = Rectangle.Empty;
+            if (frames.Update(on, window, area, full)) return frames.Grab;
+            if (pause != null) pause();
+            return null;
+        }
+
+        internal static void PauseCapture(ref ClipWait wait, ref SoundTap tap, ref long soundAt, ref long nextAt, ref long imageAt)
+        {
+            if (wait != null) { wait.Dispose(); wait = null; }
+            if (tap != null) { tap.Dispose(); tap = null; }
+            soundAt = nextAt = imageAt = 0;
         }
 
         internal static long NextFrame(long scheduled, long began, long ended, double interval)

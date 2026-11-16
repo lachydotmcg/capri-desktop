@@ -22,6 +22,20 @@ namespace CapriDesktop
         internal const string TakenOver = "Her brain changed on your PC before the key was checked.";
         internal const string TooSlow = "Couldn't check the key in time. Try again.";
         internal const string PlanHere = "Plans are picked on your PC.";
+        internal const string Checking = "Checking key...";
+        internal const string Saved = "Key saved. She uses it now.";
+
+        internal static string Notice(string phone, int tier) { return phone + " set her " + Shown[tier] + " key"; }
+
+        internal static string Hide(string text, string key)
+        {
+            string words = text ?? "";
+            if (string.IsNullOrEmpty(key) || key.Length < 8) return words;
+            words = words.Replace(key, "[redacted]");
+            try { words = words.Replace(Uri.EscapeDataString(key), "[redacted]"); }
+            catch (UriFormatException) { }
+            return words.Replace(key.Substring(key.Length - 4), "[redacted]");
+        }
 
         internal static bool Owns(string type) { return type == "brain.get" || type == "brain.use" || type == "brain.key"; }
 
@@ -87,30 +101,51 @@ namespace CapriDesktop
         // once the frame's other events are out. Must return quickly. The message can hold a key: never log it or send it on.
         internal event Action<string, RemoteJson.Map> BrainAsked;
 
-        private readonly List<KeyValuePair<string, RemoteJson.Map>> brainAsks = new List<KeyValuePair<string, RemoteJson.Map>>();
+        internal event Action<string, RemoteJson.Map, Func<bool>> BrainRequested;
+
+        private sealed class BrainRequest
+        {
+            internal Phone Phone;
+            internal RemoteChannel Session;
+            internal RemoteJson.Map Message;
+        }
+
+        private readonly List<BrainRequest> brainAsks = new List<BrainRequest>();
 
         // Under gate, from OnMessage: a brain ask waits for RaiseBrainAsks. False for every other message.
         private bool BrainAsk(Phone phone, RemoteJson.Map message)
         {
             if (!RemoteBrainKeys.Owns(message.Text("type"))) return false;
-            if (brainAsks.Count < 32) brainAsks.Add(new KeyValuePair<string, RemoteJson.Map>(phone.Device.Id, message));
+            if (brainAsks.Count < 32) brainAsks.Add(new BrainRequest { Phone = phone, Session = phone.Session, Message = message });
             return true;
         }
 
         private void RaiseBrainAsks()
         {
-            List<KeyValuePair<string, RemoteJson.Map>> asked;
+            List<BrainRequest> asked;
             lock (gate)
             {
                 if (brainAsks.Count == 0) return;
-                asked = new List<KeyValuePair<string, RemoteJson.Map>>(brainAsks);
+                asked = new List<BrainRequest>(brainAsks);
                 brainAsks.Clear();
             }
             Action<string, RemoteJson.Map> heard = BrainAsked;
-            if (heard == null || Stopped) return;
-            foreach (KeyValuePair<string, RemoteJson.Map> item in asked)
+            Action<string, RemoteJson.Map, Func<bool>> requested = BrainRequested;
+            if (Stopped) return;
+            foreach (BrainRequest item in asked)
             {
-                try { heard(item.Key, item.Value); }
+                try
+                {
+                    if (heard != null) heard(item.Phone.Device.Id, item.Message);
+                    if (requested == null) continue;
+                    Phone phone = item.Phone;
+                    RemoteChannel session = item.Session;
+                    Func<bool> current = delegate
+                    {
+                        lock (gate) return !stopped && Live(phone.Device.Id) == phone && !phone.Kicked && phone.Online && phone.Session == session;
+                    };
+                    if (current()) requested(item.Phone.Device.Id, item.Message, current);
+                }
                 catch (Exception) { }
             }
         }
@@ -118,5 +153,30 @@ namespace CapriDesktop
         // A brain message for one phone. Only now matters, so it's dropped when that phone has no session: it asks again
         // with its next one.
         internal void SendBrain(string device, string json) { Send(device, json, null, true, null); }
+
+        internal void SendBrain(string device, string json, Func<bool> current)
+        {
+            lock (gate)
+            {
+                if (!current()) return;
+                Phone phone = Live(device);
+                if (phone == null || phone.Session == null) return;
+                FlushParts(phone);
+                Outgoing item = Outgoing.Message(phone, json);
+                item.Stale = true;
+                item.Bound = phone.Session;
+                Push(item);
+            }
+        }
+
+        internal bool BrainDo(Func<bool> current, Action action)
+        {
+            lock (gate)
+            {
+                if (!current()) return false;
+                action();
+                return true;
+            }
+        }
     }
 }

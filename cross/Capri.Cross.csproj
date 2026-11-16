@@ -8,7 +8,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <DefineConstants>$(DefineConstants);CROSS</DefineConstants>
     <NoWarn>$(NoWarn);CS0649;CS0169;CS0414;CA1416;SYSLIB0014</NoWarn>
-    <Version>0.9.1</Version>
+    <Version>0.9.2</Version>
     <Product>Capri</Product>
     <ApplicationIcon>../assets/chip.ico</ApplicationIcon>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
@@ -35,6 +35,8 @@
     <Compile Include="../app/Care.cs" Link="Shared/Care.cs" />
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />
     <Compile Include="../app/FileFinder.cs" Link="Shared/FileFinder.cs" />
+    <Compile Include="../app/Files.cs" Link="Shared/Files.cs" />
+    <Compile Include="../app/SelfKnow.cs" Link="Shared/SelfKnow.cs" />
     <Compile Include="../app/Websites.cs" Link="Shared/Websites.cs" />
     <Compile Include="../app/GameNotes.cs" Link="Shared/GameNotes.cs" />
     <Compile Include="../app/Reminders.cs" Link="Shared/Reminders.cs" />
@@ -68,4 +70,15 @@
     <AvaloniaResource Include="../assets/fonts/Barlow*.ttf" Link="Assets/%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/fonts/Barlow-OFL.txt" LogicalName="Capri.Font.Barlow-OFL.txt" />
   </ItemGroup>
+  <PropertyGroup>
+    <CapriMic>$(BaseIntermediateOutputPath)capri-mic</CapriMic>
+  </PropertyGroup>
+  <Target Name="CapriMicBuild" Inputs="mac/Mic.swift" Outputs="$(CapriMic)">
+    <Exec Command="swiftc -O -target arm64-apple-macos15.0 mac/Mic.swift -o &quot;$(CapriMic)-arm64&quot; &amp;&amp; swiftc -O -target x86_64-apple-macos15.0 mac/Mic.swift -o &quot;$(CapriMic)-x64&quot; &amp;&amp; lipo -create &quot;$(CapriMic)-arm64&quot; &quot;$(CapriMic)-x64&quot; -output &quot;$(CapriMic)&quot;" />
+  </Target>
+  <Target Name="CapriMic" DependsOnTargets="CapriMicBuild" BeforeTargets="AssignTargetPaths" Condition="$([MSBuild]::IsOSPlatform('OSX')) And ('$(RuntimeIdentifier)' == '' Or $(RuntimeIdentifier.StartsWith('osx')))">
+    <ItemGroup>
+      <None Include="$(CapriMic)" Link="capri-mic" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 </Project>

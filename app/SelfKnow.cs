@@ -7,6 +7,37 @@ namespace CapriDesktop
 {
     internal static class SelfKnow
     {
+#if CROSS
+        private static readonly Regex Question = new Regex(@"^(?:(?:hey|hi|please|so|capri) )*(what|whats|how|why|where|which|can|could|does|do|is|are|explain|tell me|show me|give me|teach me|help|tutorial|guide|walkthrough|i want|i need)\b");
+
+        private static string Plain(string text)
+        {
+            return Regex.Replace((text ?? "").ToLowerInvariant().Replace("'", "").Replace("\u2019", ""), @"[^a-z0-9]+", " ").Trim();
+        }
+
+        private static bool Asks(string text, string phrases)
+        {
+            foreach (string words in phrases.Split('|'))
+                if ((" " + text + " ").IndexOf(" " + words + " ", StringComparison.Ordinal) >= 0) return true;
+            return false;
+        }
+
+        internal static string Matching(string asked, Hands.Kit kit = null)
+        {
+            string news = News.Matching(asked);
+            if (news != null) return news;
+            string text = Plain(asked);
+            if (!Question.IsMatch(text) || Files.PathIn(asked) != null) return null;
+            List<string> found = new List<string>();
+            if (Asks(text, "find files|find a folder|find game folders|finding files|file search"))
+                found.Add("Finding files: She searches names on a worker, using Spotlight on Mac or walking their home folder on Linux. Results show full paths, closest first. Say show it to me or open that folder to select it in Finder on Mac or open its folder on Linux. Stop cancels the search. She does not read file contents to search.");
+            if (Asks(text, "website nicknames|website aliases|remember a website|name a website"))
+                found.Add("Website nicknames: Say remember apples is example.com/page, open apples, what websites do you know, or forget the apples website. Nicknames are in websites.json in her data folder. " + (Hands.OnMac ? "She reads Safari, Chrome, Edge, Brave and Arc addresses without moving input, with macOS Automation permission. For other browsers, give the address." : "Give the address when saving a nickname. She cannot read the front browser's address on Linux."));
+            if (Asks(text, "handing her a file|hand you a file|give you a file|drop a file|drag a file|attach a file|read a file|read files|files can you read|files do you read|file types|file formats|read a pdf|read a spreadsheet"))
+                found.Add("Handing her a file: Drag a file onto Capri, or ask read followed by its full path; quote spaces. She reads text, code, Word .docx and Excel .xlsx. PDFs use PDFKit on Mac or Poppler on Linux, up to four pages at a time; scanned pages need OCR, which is unavailable here. Pictures use the selected brain when it can see; there is no local OCR fallback. Use page for PDFs and offset to continue text. Only named or handed paths can be read. Contents stay as data for a few follow-up turns and cannot authorize tools.");
+            return found.Count == 0 ? null : string.Join("\n", found.ToArray());
+        }
+#else
         internal sealed class Topic
         {
             internal readonly string Name;
@@ -42,7 +73,7 @@ namespace CapriDesktop
             new Topic("Settings pages", "settings button|back button in mainframe|settings pages",
                 "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them.", "Mainframe.cs", "Settings"),
             new Topic("Workspace", "workspace|workspace beta|workspace modes|undo last turn|claude code chats",
-                "Workspace is Capri's beta window for chats with Claude Code in folders you pick, using your Claude Code on your plan or key. Ask me asks before tools beyond reads; Edits only accepts file edits; Plan only asks Claude Code to plan; Everything lets its tools run, and undo restores its file edits but cannot undo commands.", "WorkspaceWindow.cs", "WORKSPACE (beta)"),
+                "Workspace is Capri's beta window for chats with Claude Code in folders you pick, using your Claude Code on your plan or key. Your workspace tool opens it, starts a chat with task and an optional existing folder, or checks up to three recent chats with status and their last answer. Without a folder, start uses your own Workspace folder. New chats use Blackwall Mode under the Blackwall preset and Ask me otherwise. Starting uses the jobs Security toggle; folder trust and approvals are answered by them in the window. Ask me asks before tools beyond reads; Edits only accepts file edits; Plan only asks Claude Code to plan; Blackwall Mode lets its tools run, and undo restores its file edits but cannot undo commands.", "WorkspaceWindow.cs", "workspace"),
             new Topic("Mods", "mods page|mods button|mod menu|your mods|capri mods",
                 "Mods in Mainframe's CAPRI band opens her mods page. A .capri-mod file only changes settings. A .capri-code file runs code with full access to the PC, so she asks before running it and again if it's edited, and lists the permissions it asks for, like chat, memory, screen or settings. A .capri-skin changes how she looks, and several stack: each one turned on goes on top of the others. A .capri-skill file is know-how, like what to build and when in a game, and she follows it whenever she plays that game. She knows the title of every skill that's on and reads one whenever it fits what you ask, so a skill with no games line works for anything. Back returns to BRAIN, VOICE and CAPRI.", "Mainframe.cs", "Mods"),
             new Topic("Search installed mods", "search installed mods|search your installed mods|find an installed mod|filter installed mods",
@@ -124,7 +155,7 @@ namespace CapriDesktop
             new Topic("Free key", "free key|nvidia key|nvidia api|connect a key|connect my key|connect an api key|brain key|api keys",
                 "In Mainframe > BRAIN, Free key offers NVIDIA, Google AI Studio (Gemini) and OpenRouter. Pick a provider to open its key page, make a key and copy it. Choose MEDIUM INTELLIGENCE, paste the key into the BRAIN box and press Connect, then choose a model there. With OpenRouter, MEDIUM lists only its free models. Free keys can be rate limited; NVIDIA is often slow at busy times. Keys go in the Mainframe's key boxes, not in chat; they are saved encrypted on this PC. With a saved key and an empty box, Forget removes that key from Capri.", "Mainframe.cs", "Free key"),
             new Topic("My plan", "my plan|use my plan|claude plan|chatgpt plan|claude subscription|chatgpt subscription|claude pro|claude max|chatgpt plus|chatgpt pro|use claude code|use codex|claude code as your brain|codex as your brain",
-                "Mainframe > BRAIN > MAX INTELLIGENCE > My plan runs her brain on your own Claude or ChatGPT plan, with no API key. Claude plan runs Claude Code on this PC, and ChatGPT plan runs Codex. Install the app and sign in to it with your own account first: for Claude Code, install it from claude.com/claude-code, run claude and sign in; for Codex, run npm install -g @openai/codex, then codex login and sign in with ChatGPT. Then pick your plan here. Choose a model in BRAIN's model menu: for Claude, Haiku is fastest and Opus uses your plan fastest; for Codex, she uses the model Codex is set to. She runs the app hidden with none of its own tools and saves nothing in it, and she never touches its sign-in. Her own tools, like opening apps and using your PC, still work. Replies take a few seconds longer than with a key and count toward your plan's limits. To stop, paste a key or pick another tier.", "Mainframe.cs", "My plan"),
+                "Mainframe > BRAIN > MAX INTELLIGENCE offers API key, Claude plan and ChatGPT plan; switching keeps your saved key and plan. The plan choices run her brain on your own Claude or ChatGPT plan, with no API key. Claude plan runs Claude Code on this PC, and ChatGPT plan runs Codex. Install the app and sign in to it with your own account first: for Claude Code, install it from claude.com/claude-code, run claude and sign in; for Codex, run npm install -g @openai/codex, then codex login and sign in with ChatGPT. Then pick your plan here. Choose a model in BRAIN's model menu where the key box was: for Claude, Haiku is fastest and Opus uses your plan fastest; for Codex, she uses the model Codex is set to. She runs the app hidden with none of its own tools and saves nothing in it, and she never touches its sign-in. Her own tools, like opening apps and using your PC, still work. Replies take a few seconds longer than with a key and count toward your plan's limits. To stop, pick API key to use your saved key, or paste one and press Connect, or pick another tier.", "Mainframe.cs", "API key, Claude plan or ChatGPT plan"),
             new Topic("Brain API key", "brain key box|forget brain key|brain api key box",
                 "Mainframe > BRAIN > Connect saves a pasted API key encrypted on this PC. MEDIUM INTELLIGENCE accepts NVIDIA, Google AI Studio (Gemini) and OpenRouter keys; free keys can be rate limited and slow. MAX INTELLIGENCE accepts every supported cloud key, including Gemini and OpenRouter when you use their paid models. With a saved key and an empty box, Forget removes it.", "Mainframe.cs", "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key"),
             new Topic("Provider", "provider button|brain provider|my own provider|openai compatible provider|openai-compatible provider|custom provider|lm studio address",
@@ -548,5 +579,6 @@ namespace CapriDesktop
             if (found.ToString().Contains("Mainframe > Settings >")) found.Append(" A setting that isn't showing is under Advanced Settings, next to Back.");
             return found.Length == 0 ? null : found.ToString();
         }
+#endif
     }
 }

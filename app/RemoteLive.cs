@@ -108,6 +108,12 @@ namespace CapriDesktop
 
         private void RemoteLiveChanged() { Post(RemoteBadgeShow); }
 
+        private void RemoteVoiceState()
+        {
+            RemoteCall call = remoteCall;
+            if (call != null) call.VoiceState(!preferences.Silent);
+        }
+
         // How soon her first words reached a phone after its line ended, in her log for each answer on a call.
         private static void RemoteTimed(long ms, string words) { Brain.Log("call", ms, words); }
 
@@ -362,7 +368,8 @@ namespace CapriDesktop
                 Speaker.Hushed = RemoteVoiceHushed;
                 voiceInTest = true;
                 string[] features = link.FeaturesNow;
-                if (Array.IndexOf(features, "call") < 0 || Array.IndexOf(features, RemoteCall.HushFeature) < 0) throw new Exception("Her hello-ok offers " + string.Join(", ", features) + ", not call and " + RemoteCall.HushFeature + ".");
+                foreach (string feature in new[] { "call", RemoteCall.HushFeature, RemoteCall.ListenFeature })
+                    if (Array.IndexOf(features, feature) < 0) throw new Exception("Her hello-ok is missing " + feature + ".");
                 call.Heard(Phone, "{\"type\":\"call.start\",\"hush\":true}");
                 call.Heard("phoneOld", "{\"type\":\"call.start\"}");
                 if (!call.OnCall(Phone) || !call.Hushes(Phone) || !call.OnCall("phoneOld") || call.Hushes("phoneOld")) throw new Exception("A phone's call.start didn't put it on a call, or said wrongly whether it stops her with call.hush.");
@@ -683,7 +690,8 @@ namespace CapriDesktop
             RemoteCall call = remoteCall;
             List<RemoteWatcher> watching = screen == null ? new List<RemoteWatcher>() : screen.Watchers();
             List<RemoteWatcher> calling = call == null ? new List<RemoteWatcher>() : call.Callers();
-            if (!IsDisposed) RemoteEarsFor(calling.Count > 0);
+            bool hearing = call != null && call.Hearing;
+            if (!IsDisposed) RemoteEarsFor(hearing);
             if (watching.Count > 0)
             {
                 if (remoteLookTimer == null)
@@ -710,10 +718,17 @@ namespace CapriDesktop
             RemoteMonitor monitor = null;
             foreach (RemoteWatcher one in watching) if (monitor == null && one.Monitor != null) monitor = one.Monitor;
             Rectangle area = monitor != null ? Screen.FromRectangle(monitor.Bounds).WorkingArea : Screen.PrimaryScreen.WorkingArea;
-            string lead = watching.Count > 0 && calling.Count > 0 ? "PHONE WATCHING AND ON A CALL " : watching.Count > 0 ? "PHONE IS WATCHING " : "PHONE IS ON A CALL ";
+            string lead = BadgeLead(watching.Count > 0, calling.Count > 0, hearing, phones.Count);
             string who = phones.Count > 1 ? phones.Count + " PHONES" : (name ?? "PHONE").ToUpperInvariant();
             if (remoteBadge == null || remoteBadge.IsDisposed) remoteBadge = new RemoteBadge();
             remoteBadge.Put(lead, who, area);
+        }
+
+        private static string BadgeLead(bool watching, bool calling, bool hearing, int phones = 1)
+        {
+            string phone = phones > 1 ? "PHONES " : "PHONE ";
+            if (watching && calling) return phone + (hearing ? "WATCHING AND ON A CALL " : "WATCHING AND LISTENING ");
+            return phone + (phones > 1 ? "ARE " : "IS ") + (watching ? "WATCHING " : hearing ? "ON A CALL " : "LISTENING ");
         }
 
         // ---------- Smoke ----------
@@ -723,10 +738,28 @@ namespace CapriDesktop
         private void SmokeRemoteLive(List<string> checks, string output)
         {
             foreach (float zoom in new[] { 1f, 1.5f, 2f })
-                using (Bitmap badge = RemoteBadge.Draw("PHONE IS WATCHING ", "LACHY'S PIXEL 9 PRO XL", zoom))
+                using (Bitmap badges = new Bitmap((int)(7000 * zoom), (int)(50 * zoom)))
+                using (Graphics draw = Graphics.FromImage(badges))
                 {
-                    if (badge.Width < 200 * zoom || badge.Height < 20 * zoom || badge.Width > 700 * zoom) throw new Exception("The watching badge came out " + badge.Width + " x " + badge.Height + " at " + (int)(zoom * 100) + "%.");
-                    badge.Save(Path.Combine(output, "remote-watch-" + (int)(zoom * 100) + ".png"), ImageFormat.Png);
+                    int at = 0;
+                    string[] kinds = { "watch", "call", "both", "listen", "watch-listen" };
+                    string[] leads = { "IS WATCHING ", "IS ON A CALL ", "WATCHING AND ON A CALL ", "IS LISTENING ", "WATCHING AND LISTENING " };
+                    foreach (int phones in new[] { 1, 3 })
+                    for (int n = 0; n < kinds.Length; n++)
+                    {
+                        string kind = kinds[n] + (phones > 1 ? "-phones" : "");
+                        string lead = BadgeLead(n == 0 || n == 2 || n == 4, n != 0, n == 1 || n == 2, phones);
+                        string expected = phones == 1 ? "PHONE " + leads[n] : "PHONES " + leads[n].Replace("IS ", "ARE ");
+                        if (lead != expected) throw new Exception("The " + kind + " badge hid an activity.");
+                        using (Bitmap badge = RemoteBadge.Draw(lead, phones == 1 ? "LACHY'S PIXEL 9 PRO XL" : "3 PHONES", zoom))
+                        {
+                            if (badge.Width < 200 * zoom || badge.Height < 20 * zoom || badge.Width > 700 * zoom || badge.Height > badges.Height) throw new Exception("The " + kind + " badge came out " + badge.Width + " x " + badge.Height + " at " + (int)(zoom * 100) + "%.");
+                            badge.Save(Path.Combine(output, "remote-" + kind + "-" + (int)(zoom * 100) + ".png"), ImageFormat.Png);
+                            draw.DrawImageUnscaled(badge, at, 0);
+                            at += (int)(700 * zoom);
+                        }
+                    }
+                    badges.Save(Path.Combine(output, "remote-badges-" + (int)(zoom * 100) + ".png"), ImageFormat.Png);
                 }
             List<RemoteMonitor> monitors = RemoteDesktop.List();
             if (monitors.Count == 0) throw new Exception("Capri Remote found no monitors to show.");
@@ -764,7 +797,7 @@ namespace CapriDesktop
                 }
             }
             checks.Add(frame);
-            checks.Add("PASS Capri Remote's screen and call: the watching badge fits at 100%, 150% and 200% (remote-watch-*.png), " + monitors.Count + (monitors.Count == 1 ? " monitor is" : " monitors are") + " numbered as Windows counts them, and Auto looks at one of them");
+            checks.Add("PASS Capri Remote's watching, call and listening badges fit at 100%, 150% and 200%, " + monitors.Count + (monitors.Count == 1 ? " monitor is" : " monitors are") + " numbered as Windows counts them, and Auto looks at one of them");
         }
     }
 

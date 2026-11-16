@@ -24,6 +24,8 @@
   <true/>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Capri hears one line from your mic when you press TALK. The audio stays on your Mac.</string>
   <key>NSAppleEventsUsageDescription</key>
   <string>Capri controls Spotify or Music and opens your requested commands in Terminal after checking her Security settings.</string>
 </dict>

@@ -299,8 +299,8 @@ namespace CapriDesktop
 
                     window.ShowChat(chat);
                     window.ScrollToEnd();
-                    window.PickMode("Everything");
-                    if (window.Asking != null || chat.Mode != "Everything") throw new Exception("Everything asked first or didn't switch.");
+                    window.PickMode("Blackwall Mode");
+                    if (window.Asking != null || chat.Mode != "Blackwall Mode") throw new Exception("Blackwall Mode asked first or didn't switch.");
                     shoot(window, "07-everything", null);
                     window.PickMode("Ask me");
 
@@ -362,6 +362,7 @@ namespace CapriDesktop
             SmokeWorkspaceTitles(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceEdits(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceTools(checks, folder, projects, pipe, alias, shoot);
+            SmokeWorkspaceFailures(checks, folder, projects, pipe, alias, shoot);
             bool shown = mainframe.Visible;
             FormWindowState state = mainframe.WindowState;
             try
@@ -829,7 +830,7 @@ namespace CapriDesktop
         {
             string standin = Path.Combine(folder, "claude.cmd");
             File.WriteAllText(Path.Combine(folder, "result.txt"), HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "session_id", session, "duration_ms", 40, "result", "Done.")) + "\n", new UTF8Encoding(false));
-            File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\nexit /b 0\r\n)\r\necho %* > \"%~dp0args.txt\"\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\ntype \"%~dp0result.txt\"\r\n", Encoding.ASCII);
+            File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\nexit /b 0\r\n)\r\ncd > \"%~dp0cwd.txt\"\r\necho %* > \"%~dp0args.txt\"\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\ntype \"%~dp0result.txt\"\r\n", Encoding.ASCII);
             return standin;
         }
 
@@ -839,6 +840,119 @@ namespace CapriDesktop
             lock (chat.Gate) { if (!work.Send(chat, text, false)) throw new Exception("Workspace didn't take a message."); turn = chat.Live; }
             if (turn != null && !turn.Done.WaitOne(8000)) throw new Exception("Workspace's stand-in turn didn't end.");
             return turn;
+        }
+
+        private static void WorkspaceChatHomes(List<string> checks, string folder)
+        {
+            string home = Path.Combine(folder, "home"), spare = Path.Combine(folder, "spare");
+            string data = Path.Combine(folder, "data"), session = Guid.NewGuid().ToString();
+            RoomUnder(folder, Path.Combine(folder, "fallback", "workspace"));
+            string real = Workspace.HomeFolder();
+            bool realHome = Directory.Exists(real);
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string exe = WorkspaceStandin(folder, session), firstId, legacyId = Guid.NewGuid().ToString("N");
+                using (Workspace work = new Workspace(data, null) { Home = home, HomeFallback = spare, Executable = exe })
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                {
+                    Action<WorkspaceChat, string> checkHome = delegate(WorkspaceChat chat, string name)
+                    {
+                        string expected = Path.Combine(home, name);
+                        if (!Workspace.Same(chat.Folder, expected) || !Directory.Exists(expected) || !work.Trusted(chat) || chat.TrustItem != null ||
+                            !Workspace.Same(File.ReadAllText(Path.Combine(folder, "cwd.txt")).TrimEnd(), expected))
+                            throw new Exception("Workspace didn't run in its own folder: " + expected);
+                        window.ShowChat(chat);
+                        if (window.Header != expected) throw new Exception("The header did not show the chat's own folder.");
+                        ProcessStartInfo opened = null;
+                        window.RevealPath = delegate(ProcessStartInfo start) { opened = start; };
+                        window.OpenChatFolder(chat);
+                        if (opened == null || opened.FileName != "explorer.exe" || opened.Arguments != PlanBrain.Quoted(expected))
+                            throw new Exception("Open folder didn't use the chat's own folder.");
+                    };
+                    WorkspaceChat first = work.HomeChat(false);
+                    firstId = first.Id;
+                    if (!work.IsHome(first) || !Workspace.Same(first.Folder, home) || Directory.Exists(home)) throw new Exception("An unused Workspace chat made a folder.");
+                    WorkspaceSent(work, first, "Build a clock.");
+                    checkHome(first, "Build a clock");
+                    WorkspaceChat second = work.HomeChat(false);
+                    WorkspaceSent(work, second, "Build a map.");
+                    checkHome(second, "Build a map");
+
+                    string existing = Path.Combine(home, "Existing");
+                    Directory.CreateDirectory(existing);
+                    string keep = Path.Combine(existing, "keep.txt");
+                    File.WriteAllText(keep, "keep");
+                    string attachment = Path.Combine(folder, "Brief.txt");
+                    File.WriteAllText(attachment, "brief");
+                    string[] titles = { "  ...a<b>c:d\"e/f\\g|h?i*j...  ", "CON.txt", " ... ", new string('x', 200), "", "Existing", "Build a map.", new string('x', 200) };
+                    string[] names = { "abcdefghij", "Chat CON.txt", "Chat", new string('x', 40), "Brief.txt", "Existing 2", "Build a map 2", new string('x', 38) + " 2" };
+                    for (int i = 0; i < titles.Length; i++)
+                    {
+                        WorkspaceChat chat = work.HomeChat(false);
+                        if (titles[i].Length == 0) work.AddFiles(chat, new[] { attachment });
+                        WorkspaceSent(work, chat, titles[i]);
+                        checkHome(chat, names[i]);
+                    }
+                    if (File.ReadAllText(keep) != "keep") throw new Exception("A new Workspace chat used an existing folder.");
+
+                    WorkspaceChat picked = work.HomeChat(false);
+                    work.Rehome(picked, new[] { first.Folder });
+                    if (work.Trusted(picked) || !work.Send(picked, "Use this folder", false) || picked.TrustItem == null || picked.Running)
+                        throw new Exception("Picking another chat's folder skipped its trust question.");
+                    WorkspaceChat extra = work.HomeChat(false);
+                    work.AddFolders(extra, new[] { existing });
+                    if (!work.Send(extra, "Use files from here", false) || extra.TrustItem == null || extra.Running || work.Untrusted(extra).Count != 1)
+                        throw new Exception("An existing Workspace child folder skipped its trust question.");
+
+                    WorkspaceChat tool = window.Start("Build a snake game", null);
+                    WorkspaceWait(delegate { return !tool.Running; }, "Workspace start didn't finish.");
+                    checkHome(tool, "Build a snake game");
+                    work.Delete(tool);
+                    if (!Directory.Exists(tool.Folder)) throw new Exception("Deleting a chat removed its folder.");
+                    work.Flush(first);
+                    Workspace.Atomic(Path.Combine(work.Root, "chats", legacyId + ".json"), HuskJson.Write(HuskJson.Map(
+                        "id", legacyId, "title", "A saved chat", "folder", home, "session", session,
+                        "items", new List<object> { new WorkspaceItem { Kind = "user", Text = "An earlier question" }.Json() })));
+                }
+                using (Workspace loaded = new Workspace(data, null) { Home = home, HomeFallback = spare, Executable = exe })
+                {
+                    WorkspaceChat first = loaded.Chats().Find(delegate(WorkspaceChat chat) { return chat.Id == firstId; });
+                    if (first == null || !loaded.Trusted(first) || !Workspace.Same(first.Folder, Path.Combine(home, "Build a clock"))) throw new Exception("Workspace lost ownership of a saved chat's folder.");
+                    WorkspaceChat legacy = loaded.Chats().Find(delegate(WorkspaceChat chat) { return chat.Id == legacyId; });
+                    if (legacy == null || WorkspaceSent(loaded, legacy, "Continue the saved chat") == null || !Workspace.Same(legacy.Folder, home) ||
+                        !Workspace.Same(File.ReadAllText(Path.Combine(folder, "cwd.txt")).TrimEnd(), home) ||
+                        !File.ReadAllText(Path.Combine(folder, "args.txt")).Replace("\"", "").Contains("--resume " + session))
+                        throw new Exception("Workspace moved or couldn't resume a shared-folder chat.");
+                }
+                using (Workspace loaded = new Workspace(data, null) { Home = home, HomeFallback = spare, Executable = exe })
+                {
+                    WorkspaceChat chat = loaded.Chats().Find(delegate(WorkspaceChat found) { return found.Id == firstId; });
+                    string replaced = chat.Folder;
+                    Directory.Move(replaced, replaced + " moved");
+                    Directory.CreateDirectory(replaced);
+                    if (loaded.Trusted(chat)) throw new Exception("Workspace trusted a replacement for a chat's own folder.");
+                    loaded.Trust(chat, true);
+                    File.Delete(Path.Combine(folder, "cwd.txt"));
+                    WorkspaceSent(loaded, chat, "Run in the replacement");
+                    if (File.Exists(Path.Combine(folder, "cwd.txt")) ||
+                        !WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "error" && item.Text.Contains("has changed"); }))
+                        throw new Exception("Workspace launched Claude Code in a replacement directory.");
+                }
+                string blocked = Path.Combine(folder, "blocked");
+                File.WriteAllText(blocked, "file in the way");
+                using (Workspace work = new Workspace(Path.Combine(folder, "fallback"), null) { Home = blocked, HomeFallback = spare, Executable = exe })
+                {
+                    WorkspaceChat chat = work.HomeChat(false);
+                    if (WorkspaceSent(work, chat, "Build a clock") == null || !work.Trusted(chat) ||
+                        !Workspace.Same(chat.Folder, Path.Combine(spare, "Build a clock")) ||
+                        !Workspace.Same(File.ReadAllText(Path.Combine(folder, "cwd.txt")).TrimEnd(), chat.Folder))
+                        throw new Exception("Workspace didn't make a chat folder under the fallback.");
+                }
+                if (!realHome && Directory.Exists(real)) throw new Exception("A smoke run made the real folder for her chats.");
+                checks.Add("PASS Workspace makes separate named chat folders, skips collisions, asks about picked children, opens each chat's folder, keeps saved sessions and uses the fallback when needed");
+            }
+            finally { Directory.Delete(folder, true); }
         }
 
         // Folders after the first ride to Claude Code with --add-dir, each new one asks for trust, an untrusted one keeps the
@@ -927,6 +1041,7 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Workspace keeps each chat's folders, files and which files went out, across a restart");
             }
+            WorkspaceChatHomes(checks, Path.Combine(folder, "homes"));
             SmokeWorkspaceArguments(checks, folder);
             SmokeWorkspaceInside(checks, folder);
         }
@@ -964,6 +1079,68 @@ namespace CapriDesktop
             checks.Add("PASS Workspace finishes a save already being written and writes a waiting one before it closes, with one-second saves, in " + closing.ElapsedMilliseconds + " ms (3 s at most)");
         }
 
+        private static void SmokeWorkspaceMaximized(List<string> checks)
+        {
+            Rectangle primary = new Rectangle(0, 0, 1920, 1080), main = new Rectangle(0, 0, 1920, 1040);
+            foreach (int percent in new[] { 100, 150 })
+            {
+                int wide = 1600 * percent / 100, high = 900 * percent / 100, bar = 40 * percent / 100;
+                Rectangle[] screens = { new Rectangle(-wide, 0, wide, high), new Rectangle(primary.Right, 0, wide, high), new Rectangle(0, -high, wide, high) };
+                Rectangle[] work = { new Rectangle(-wide + bar, 0, wide - bar, high), new Rectangle(primary.Right, 0, wide, high - bar),
+                    new Rectangle(0, -high + bar, wide, high - bar) };
+                var layout = new List<KeyValuePair<Rectangle, Rectangle>> { new KeyValuePair<Rectangle, Rectangle>(primary, main) };
+                for (int i = 0; i < screens.Length; i++) layout.Add(new KeyValuePair<Rectangle, Rectangle>(screens[i], work[i]));
+                for (int i = 0; i < screens.Length; i++)
+                {
+                    Rectangle bounds = screens[i];
+                    Rectangle proposed = new Rectangle(bounds.X - 8, bounds.Y - 8, primary.Width + 16, primary.Height + 16);
+                    if (WorkspaceWindow.MaximizedTarget(proposed, layout, main) != work[i])
+                        throw new Exception("Workspace did not maximize to the target working area at " + percent + "%: " + bounds);
+                }
+            }
+            checks.Add("PASS Workspace chooses the working area on the left, right and above the primary monitor at 100% and 150%");
+        }
+
+        private static void WorkspaceFinalReply(List<string> checks, Workspace work, WorkspaceWindow window, string project)
+        {
+            string longText = string.Join("\n\n", Array.ConvertAll(new string[70], delegate(string unused) { return "The next step is to check whether the clock matches the requested format."; }));
+            for (int scenario = 0; scenario < 3; scenario++)
+            {
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.Trust(chat, true);
+                work.Add(chat, new WorkspaceItem { Kind = "text", Text = longText });
+                window.ShowChat(chat);
+                WorkspaceTurn turn = new WorkspaceTurn { Chat = chat };
+                WorkspaceItem reply = new WorkspaceItem { Kind = "text", Text = "Here is the answer.", Turn = turn.Id, Growing = true };
+                try
+                {
+                    chat.Live = turn;
+                    work.Add(chat, new WorkspaceItem { Kind = "user", Text = "How did it go?", Turn = turn.Id });
+                    work.Add(chat, reply);
+                    if (scenario != 1) work.Add(chat, new WorkspaceItem { Kind = "text", Text = longText, Turn = turn.Id });
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    if (scenario == 2) window.ScrollConversation(80);
+                    int before = window.Scrolled;
+                    reply.Growing = false;
+                    work.Add(chat, new WorkspaceItem { Kind = "end", Text = "2s", Turn = turn.Id });
+                    window.RefreshChat();
+                    if (scenario < 2 && !window.AtEnd) throw new Exception("Workspace stopped following before the turn ended.");
+                    chat.Live = null;
+                    window.RefreshChat();
+                    if (scenario == 0 && (window.TopOf(reply) != 0 || window.AtEnd || window.Scrolled >= before))
+                        throw new Exception("Workspace did not put the long final reply at the top.");
+                    if (scenario == 1 && window.Scrolled != Math.Max(0, window.ConversationTall - window.ConversationHeight)) throw new Exception("Workspace stopped following a short final reply.");
+                    if (scenario == 2 && window.Scrolled != before) throw new Exception("Workspace moved someone reading earlier words when the final reply arrived.");
+                    int after = window.Scrolled;
+                    window.RefreshChat();
+                    if (window.Scrolled != after) throw new Exception("The finished reply changed position on a later refresh.");
+                }
+                finally { chat.Live = null; }
+            }
+            checks.Add("PASS Workspace settles a long final reply at its first block, leaves short replies at the end, and respects an earlier scroll offset");
+        }
+
         private void SmokeWorkspaceWindow(List<string> checks, string folder)
         {
             string run = folder;
@@ -974,6 +1151,7 @@ namespace CapriDesktop
             string fileOne = Path.Combine(second, "one.txt"), fileTwo = Path.Combine(third, "two.txt");
             File.WriteAllText(fileOne, "1"); File.WriteAllText(fileTwo, "2");
             WorkspaceClosingSaves(checks, Path.Combine(folder, "closing"), project);
+            SmokeWorkspaceMaximized(checks);
             using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-window-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(folder, "her-folder") })
             {
                 work.Executable = WorkspaceStandin(folder, Guid.NewGuid().ToString());
@@ -998,26 +1176,27 @@ namespace CapriDesktop
                     plus.Close();
                     if (!both) throw new Exception("The + menu lost Add folders or Add files.");
                     checks.Add("PASS Workspace Choose folder starts a chat in the first picked folder, + adds folders and files as chips, drops add folders, and a chip's cross removes it but never the folder Claude Code runs in");
+                    WorkspaceFinalReply(checks, work, window, project);
                     window.Close();
                 }
 
-                WorkspaceChat layout = work.NewChat(project, false);
-                work.Trust(layout, true);
                 WorkspaceChat other = work.NewChat(second, false);
-                string code = "int total = 3;";
-                WorkspaceItem said = new WorkspaceItem { Kind = "text", Text = "I found the file.\n```cs\n" + code + "\n```\nHere is what changed." };
-                work.Add(layout, new WorkspaceItem { Kind = "user", Text = "Check this project." });
-                work.Add(layout, said);
-                work.Add(layout, new WorkspaceItem { Kind = "tool", Id = "layout-tool", Name = "Edit", Text = "Edit app/Capri.cs" });
-                work.Add(layout, new WorkspaceItem { Kind = "result", Id = "layout-tool", Text = "Saved the edit." });
-                WorkspaceItem approval = new WorkspaceItem { Kind = "approval", Name = "Bash", Text = "Bash: npm test", Input = HuskJson.Write(HuskJson.Map("command", "npm test", "description", "Run the tests")) };
-                approval.Ask = new WorkspaceApproval { Item = approval };
-                work.Add(layout, approval);
-                work.Add(layout, new WorkspaceItem { Kind = "error", Text = Workspace.Missing, Retry = true });
-                work.Add(layout, new WorkspaceItem { Kind = "end", Text = "1.3s | $0.02" });
                 MethodInfo keyDown = typeof(Control).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic);
                 foreach (int scale in new[] { 100, 125, 150, 200 })
                 {
+                    WorkspaceChat layout = work.NewChat(project, false);
+                    work.Trust(layout, true);
+                    string code = "int total = 3;";
+                    WorkspaceItem said = new WorkspaceItem { Kind = "text", Text = "I found the file.\n```cs\n" + code + "\n```\nHere is what changed." };
+                    work.Add(layout, new WorkspaceItem { Kind = "user", Text = "Check this project." });
+                    work.Add(layout, said);
+                    work.Add(layout, new WorkspaceItem { Kind = "tool", Id = "layout-tool", Name = "Edit", Text = "Edit app/Capri.cs" });
+                    work.Add(layout, new WorkspaceItem { Kind = "result", Id = "layout-tool", Text = "Saved the edit." });
+                    WorkspaceItem approval = new WorkspaceItem { Kind = "approval", Name = "Bash", Text = "Bash: npm test", Input = HuskJson.Write(HuskJson.Map("command", "npm test", "description", "Run the tests")) };
+                    approval.Ask = new WorkspaceApproval { Item = approval };
+                    work.Add(layout, approval);
+                    work.Add(layout, new WorkspaceItem { Kind = "error", Text = Workspace.Missing, Retry = true });
+                    work.Add(layout, new WorkspaceItem { Kind = "end", Text = "1.3s | $0.02" });
                     float z = scale / 100f;
                     using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
                     {
@@ -1042,12 +1221,12 @@ namespace CapriDesktop
                         Native.SendMessage(mode.Handle, 0x020A, new IntPtr(120 << 16), IntPtr.Zero);
                         Native.SendMessage(mode.Handle, 0x0102, new IntPtr('E'), IntPtr.Zero);
                         if (layout.Mode != before) throw new Exception("Workspace changed mode on scroll or typing.");
-                        window.PickMode("Everything");
-                        if (layout.Mode != "Everything" || mode.Text != "Everything" || confirmations != 0) throw new Exception("Workspace asked before Everything, or didn't switch.");
+                        window.PickMode("Blackwall Mode");
+                        if (layout.Mode != "Blackwall Mode" || mode.Text != "Blackwall Mode" || confirmations != 0) throw new Exception("Workspace asked before Blackwall Mode, or didn't switch.");
                         window.Confirm = null;
                         window.PickMode("Ask me");
-                        window.PickMode("Everything");
-                        if (window.Asking != null || layout.Mode != "Everything") throw new Exception("Workspace's own card asked before Everything.");
+                        window.PickMode("Blackwall Mode");
+                        if (window.Asking != null || layout.Mode != "Blackwall Mode") throw new Exception("Workspace's own card asked before Blackwall Mode.");
                         window.PickMode("Plan only");
                         window.PickModel("Haiku");
                         if (layout.Mode != "Plan only" || layout.Model != "Haiku" || mode.Text != "Plan only" || model.Text != "Haiku") throw new Exception("Workspace's pickers didn't save or show their choice.");
@@ -1075,8 +1254,6 @@ namespace CapriDesktop
                         WorkspaceTurn sentTurn;
                         lock (layout.Gate) { keyDown.Invoke(window.Input, new object[] { enter }); sentTurn = layout.Live; }
                         if (!enter.SuppressKeyPress || sentTurn == null || window.Input.Text.Length != 0 || !sentTurn.Done.WaitOne(8000)) throw new Exception("Workspace Enter didn't send and clear the message.");
-                        approval.Ask = new WorkspaceApproval { Item = approval };
-                        approval.Decision = "";
                         window.Close();
                     }
                     mainframe.LayoutScale(96, scale);
@@ -1084,10 +1261,8 @@ namespace CapriDesktop
                     if (keyFit != null) throw new Exception(keyFit);
                 }
                 mainframe.LayoutScale(0, 0);
-                approval.Ask.Answered.Dispose();
-                approval.Ask = null;
                 checks.Add("PASS Workspace window and Mainframe button fit at 100%, 125%, 150% and 200% and at the smallest size; code is in her mono, messages copy, tool results open, drafts and pickers save, scrolling follows only at the end, Enter sends and Shift+Enter adds a line");
-                checks.Add("PASS Workspace ignores mode scrolling and typing, and switches to Everything at once with no question, like the Mainframe's Blackwall");
+                checks.Add("PASS Workspace ignores mode scrolling and typing, and switches to Blackwall Mode at once with no question, like the Mainframe's Blackwall");
 
                 WorkspaceChat longChat = work.NewChat(third, false);
                 lock (longChat.Gate) for (int i = 0; i < 1000; i++) longChat.Items.Add(new WorkspaceItem { Kind = "text", Text = "Item " + i });
@@ -1119,7 +1294,7 @@ namespace CapriDesktop
                 using (WorkspaceWindow kept = new WorkspaceWindow(work, delegate { return false; }, 1f, true))
                 {
                     kept.Show(this);
-                    kept.ShowChat(layout);
+                    kept.ShowChat(longChat);
                     kept.ClientSize = new Size(940, 640);
                     kept.Location = Screen.FromControl(this).WorkingArea.Location;
                     place = kept.Bounds;
@@ -1283,6 +1458,113 @@ namespace CapriDesktop
             File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\necho version>>\"%~dp0version.txt\"\r\nexit /b 0\r\n)\r\n> \"%~dp0raw.txt\" echo %*\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\n"
                 + (wait ? ":wait\r\nif exist \"%~dp0finish\" goto done\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait\r\n:done\r\n" : "") + "type \"%~dp0result.txt\"\r\n", Encoding.ASCII);
             return standin;
+        }
+
+        private void SmokeWorkspaceFailures(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string fixture = Path.Combine(folder, "fault"), project = Path.Combine(projects, "clock");
+            Directory.CreateDirectory(fixture);
+            Directory.CreateDirectory(project);
+            string session = Guid.NewGuid().ToString(), exe = WorkspaceStandin(fixture, session), chatId;
+            string success = File.ReadAllText(exe), result = Path.Combine(fixture, "result.txt"), normal = File.ReadAllText(result);
+            string stdin = Path.Combine(fixture, "stdin.txt"), attached = Path.Combine(project, "brief.txt");
+            string quota = "You've hit your usage limit. Resets 5pm (Australia/Sydney).",
+                signedOut = "OAuth session expired. Please sign in to Claude Code.", unknown = "The service ended this turn.";
+            File.WriteAllText(attached, "Build a clock.");
+            Action<string> errorResult = delegate(string error)
+            {
+                File.WriteAllText(exe, success, Encoding.ASCII);
+                File.WriteAllText(result, HuskJson.Write(HuskJson.Map("type", "result", "is_error", true, "result", error)) + "\n", new UTF8Encoding(false));
+            };
+            using (Workspace work = new Workspace(fixture, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(fixture, "home"), Executable = exe })
+            using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+            {
+                WorkspaceChat chat = work.NewChat(project, false);
+                chatId = chat.Id;
+                work.Trust(chat, true);
+                window.PathAlias = alias;
+                window.Show(this);
+                window.ShowChat(chat);
+                WorkspaceItem prior = null;
+                for (int i = 0; i < 3; i++)
+                {
+                    string error = i == 0 ? unknown : i == 1 ? quota : signedOut;
+                    if (i == 1)
+                        File.WriteAllText(exe, success.Replace("type \"%~dp0result.txt\"", "type \"%~dp0fault.txt\" 1>&2\r\nexit /b 7"), Encoding.ASCII);
+                    else errorResult(error);
+                    if (i == 1) File.WriteAllText(Path.Combine(fixture, "fault.txt"), error, Encoding.ASCII);
+                    work.AddFiles(chat, new[] { attached });
+                    WorkspaceSent(work, chat, i == 1 ? "" : "Try the clock");
+                    WorkspaceItem failed = WorkspaceItems(chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                    string expected = i == 0 ? unknown : i == 1 ? Workspace.UsageLimit + " It resets at 5pm (Australia/Sydney)." : Workspace.SignIn;
+                    if (failed == null || !failed.Retry || failed.Text != expected || i > 0 && failed.Input != error)
+                        throw new Exception("Workspace's failed turn lost its error, reset time, details or Retry.");
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    if (window.Find("Retry") == null || i > 0 && !window.CopyText(failed).EndsWith(error, StringComparison.Ordinal))
+                        throw new Exception("The error card didn't expose Retry and its details.");
+                    if (i > 0)
+                    {
+                        Point details;
+                        if (!window.CardWords(out details, failed).Contains("Show the details") || details.IsEmpty)
+                            throw new Exception("Workspace's raw error link is missing.");
+                        window.PressTranscript(details);
+                        if (!window.CardWords(out details, failed).Contains("Hide the details"))
+                            throw new Exception("Workspace's raw error link didn't open.");
+                        window.PressTranscript(details);
+                        shoot(window, i == 1 ? "27-retry-usage-limit-100" : "28-retry-sign-in-100", null);
+                    }
+                    if (prior != null)
+                    {
+                        work.Retry(chat, prior);
+                        if (chat.Live != null || prior.Retry) throw new Exception("An older Retry sent another turn.");
+                    }
+                    if (i == 2) break;
+                    string input = File.ReadAllText(stdin);
+                    int users = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count;
+                    File.WriteAllText(exe, success, Encoding.ASCII);
+                    File.WriteAllText(result, normal, new UTF8Encoding(false));
+                    window.Find("Retry").PerformClick();
+                    WorkspaceWait(delegate { return !chat.Running; }, "Retry didn't finish.");
+                    if (File.ReadAllText(stdin) != input || !input.Contains("brief.txt") || failed.Retry ||
+                        WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count != users ||
+                        !WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "text" && item.Text == "Done."; }))
+                        throw new Exception("Retry changed the prompt or attachments, duplicated the message or lost its answer.");
+                    prior = failed;
+                    if (i == 1)
+                    {
+                        errorResult(unknown);
+                        WorkspaceSent(work, chat, "Try once more");
+                        prior = WorkspaceItems(chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                        if (prior == null || !prior.Retry) throw new Exception("The earlier error did not offer Retry before a new message.");
+                    }
+                }
+                work.Flush(chat);
+                window.Close();
+            }
+            using (Workspace work = new Workspace(fixture, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(fixture, "home"), Executable = exe })
+            using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+            {
+                WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat item) { return item.Id == chatId; });
+                if (chat == null) throw new Exception("The failed Workspace chat did not reload.");
+                List<WorkspaceItem> retry = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Retry; });
+                if (retry.Count != 1 || retry[0].Text != Workspace.SignIn || retry[0].Input != signedOut)
+                    throw new Exception("Workspace lost the latest Retry or its details after reopening.");
+                window.Show(this);
+                window.ShowChat(chat);
+                if (window.Find("Retry") == null) throw new Exception("Retry did not reopen with the chat.");
+                File.WriteAllText(exe, success.Replace("type \"%~dp0result.txt\"", ":wait\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait"), Encoding.ASCII);
+                File.Delete(stdin);
+                WorkspaceTurn stopped;
+                lock (chat.Gate) { work.Retry(chat, retry[0]); stopped = chat.Live; }
+                if (stopped == null) throw new Exception("The reopened Retry did not start.");
+                WorkspaceWait(delegate { return File.Exists(stdin); }, "The stopped stand-in didn't start.");
+                work.Stop(chat);
+                if (!stopped.Done.WaitOne(8000) || WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Retry; }))
+                    throw new Exception("A stopped turn still offered Retry.");
+                window.Close();
+            }
+            checks.Add("PASS Workspace retries failed results and exit errors with the same attached files and one copy of the prompt, shows sign-in and limit details, keeps Retry after reopening and removes it when stopped or superseded");
         }
 
         // The pictures' stand-in answers in a believable few seconds, at a believable cost, instead of the 40 ms it takes.
@@ -1807,6 +2089,100 @@ namespace CapriDesktop
             }
         }
 
+        private static List<byte[]> WorkspaceConversationPixels(WorkspaceWindow window)
+        {
+            List<byte[]> pages = new List<byte[]>();
+            int top = 0;
+            for (;;)
+            {
+                window.ScrollConversation(top);
+                using (Bitmap picture = window.DrawConversation())
+                {
+                    BitmapData data = picture.LockBits(new Rectangle(Point.Empty, picture.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                    try
+                    {
+                        byte[] pixels = new byte[Math.Abs(data.Stride) * data.Height];
+                        Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
+                        pages.Add(pixels);
+                    }
+                    finally { picture.UnlockBits(data); }
+                    if (window.AtEnd) break;
+                    top += Math.Max(1, picture.Height);
+                }
+            }
+            return pages;
+        }
+
+        private static void WorkspaceStreamDrawing(WorkspaceWindow window, WorkspaceChat chat, WorkspaceItem item, List<string> failures, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string whole = WorkWords.AwkwardStream;
+            lock (chat.Gate) { item.Text = whole; item.Growing = false; }
+            window.RefreshChat();
+            window.ScrollToEnd();
+            string plain = window.CopyText(item);
+            List<byte[]> baseline = WorkspaceConversationPixels(window);
+            int height = window.ConversationTall, differs = -1;
+            for (int cut = 0; cut <= whole.Length; cut++)
+            {
+                lock (chat.Gate) { item.Text = whole.Substring(0, cut); item.Growing = true; }
+                window.RefreshChat();
+                window.ScrollToEnd();
+                // Every seventh prefix, what was laid out from the kept blocks of the ones before it against the whole prefix
+                // laid out afresh.
+                if (differs < 0 && (cut % 7 == 0 || cut == whole.Length))
+                {
+                    string kept = window.LayoutSignature(item);
+                    window.LayOutWhole(item);
+                    if (kept.Length == 0 || kept != window.LayoutSignature(item)) differs = cut;
+                }
+                if (cut == whole.Length / 2)
+                {
+                    window.ThinkingSeconds = delegate { return 14; };
+                    lock (chat.Gate) chat.Live = new WorkspaceTurn { Chat = chat };
+                    try
+                    {
+                        window.RefreshChat();
+                        window.ScrollToEnd();
+                        if (window.Find("Stop") == null || window.Find("Send") != null || !window.Thinking) failures.Add("The growing-reply picture was not staged as a running turn.");
+                        shoot(window, "g-stream-growing-100", null);
+                    }
+                    finally
+                    {
+                        lock (chat.Gate) chat.Live = null;
+                        window.ThinkingSeconds = null;
+                        window.RefreshChat();
+                    }
+                }
+            }
+            if (differs >= 0) failures.Add("A growing reply laid out from its kept blocks differs from the same prefix laid out whole, at " + differs + " characters.");
+            lock (chat.Gate) item.Growing = false;
+            window.RefreshChat();
+            List<byte[]> final = WorkspaceConversationPixels(window);
+            bool same = baseline.Count == final.Count;
+            for (int page = 0; same && page < baseline.Count; page++)
+            {
+                same = baseline[page].Length == final[page].Length;
+                for (int at = 0; same && at < baseline[page].Length; at++) same = baseline[page][at] == final[page][at];
+            }
+            if (!same || height != window.ConversationTall || plain != window.CopyText(item)) failures.Add("The every-prefix Markdown reply ended different from its baseline drawing, height or copy text.");
+            try
+            {
+                window.ThinkingSeconds = delegate { return 12; };
+                lock (chat.Gate) chat.Live = new WorkspaceTurn { Chat = chat };
+                window.RefreshChat();
+                window.ScrollToEnd();
+                window.TickThinking();
+                if (!window.Thinking || window.ThinkingText.IndexOf("12", StringComparison.Ordinal) < 0) failures.Add("The Thinking picture did not show its fake elapsed clock.");
+                shoot(window, "g-thinking-clock-100", null);
+            }
+            finally
+            {
+                lock (chat.Gate) chat.Live = null;
+                window.ThinkingSeconds = null;
+                window.RefreshChat();
+            }
+        }
+
         // Her replies drawn from the Markdown reader: every kind of block and run (picture g), a table at full width and at
         // the narrowest window (picture j), the reply half streamed, and a long one. Her words copy as WorkWords gives them,
         // links open only http and https pages (through a stand-in here), show the hand and their address, and nothing is
@@ -1904,6 +2280,12 @@ namespace CapriDesktop
                 window.RefreshChat();
                 if (window.CopyText(streaming) != plain) failures.Add(scale + "%: the streamed reply ended different from the whole one.");
 
+                if (scale == 100)
+                {
+                    WorkspaceStreamDrawing(window, live, streaming, failures, shoot);
+                    timings.Add("Workspace draws every prefix of awkward streamed Markdown, including incomplete fences, tables, nested lists, links, emphasis, a long line and mixed scripts; its final pixels, height and copy text match the whole reply.");
+                }
+
                 // A long reply: forty times the formatted one, laid out and pictured.
                 StringBuilder longer = new StringBuilder();
                 for (int i = 0; i < 40; i++) longer.Append(reply).Append("\n\n");
@@ -1939,7 +2321,7 @@ namespace CapriDesktop
                     flowing.Title = "Forty, streamed";
                     say(flowing, "text", "");
                     WorkspaceItem growing;
-                    lock (flowing.Gate) growing = flowing.Items[1];
+                    lock (flowing.Gate) { growing = flowing.Items[1]; growing.Growing = true; }
                     window.ShowChat(flowing);
                     string all = longer.ToString();
                     long worst = 0, total = 0;
@@ -1958,6 +2340,8 @@ namespace CapriDesktop
                         steps++;
                         if (upTo == all.Length) break;
                     }
+                    lock (flowing.Gate) growing.Growing = false;
+                    window.RefreshChat();
                     timings.Add("Workspace at " + scale + "%: a 40-part formatted reply (" + all.Length + " letters) lays out and draws in " + took + " ms whole; streamed in " + steps + " steps of 600 letters it took " + total + " ms in all, " + (total / steps) + " ms a step on average and " + worst + " ms at worst");
                     if (worst > 1500) failures.Add(scale + "%: a step of the streamed 40-part reply took " + worst + " ms.");
                 }
@@ -2329,7 +2713,9 @@ namespace CapriDesktop
 
                     foreach (Size size in new[] { new Size(10, 10), new Size(WorkspaceWindow.Narrowest, WorkspaceWindow.Shortest), new Size(1600, 1000), new Size(WorkspaceWindow.Wide, WorkspaceWindow.Tall) })
                     {
-                        window.ClientSize = size;
+                        // Size, not ClientSize: setting a client size under the minimum keeps the asked-for 10 x 10 as the
+                        // client size until Windows next reports it, so the keys get placed for a window that isn't there.
+                        window.Size = size;
                         Application.DoEvents();
                         string crowded = window.Crowded();
                         if (crowded != null || window.Width < WorkspaceWindow.Narrowest) throw new Exception("Workspace at " + size + ": " + (crowded ?? "smaller than its smallest"));

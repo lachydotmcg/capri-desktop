@@ -111,7 +111,7 @@
         at: Number(chat.at) || Date.now(),
         last: Number(chat.last) || Number(chat.at) || Date.now(),
         msgs: chat.msgs.filter(msg => msg && roles.has(msg.role) && typeof msg.text === 'string').slice(-200).map(msg => {
-          const kept = { role: msg.role, text: msg.text.slice(0, 8000), at: Number(msg.at) || 0 };
+          const kept = { role: msg.role, text: msg.text.slice(0, 8000) || (msg.role === 'you' ? '[picture]' : ''), at: Number(msg.at) || 0 };
           if (msg.role === 'tool') {
             kept.name = clip(msg.name, 40) || 'tool';
             // A tool still running when the page closed never said how it went.
@@ -209,7 +209,9 @@
     let node;
     if (msg.role === 'you') {
       node = make('p', 'msg you');
-      node.append(make('span', 'sr-only', 'You: '), make('span', 'words', msg.text));
+      node.append(make('span', 'sr-only', 'You: '));
+      if (window.CapriAttach) CapriAttach.render(node, msg);
+      if (!node.querySelector('img') || msg.text !== '[picture]') node.append(make('span', 'words', msg.text === '[picture]' ? 'Picture' : msg.text));
     } else if (msg.role === 'capri') {
       node = make('p', 'msg capri done');
       const caret = make('span', 'caret');
@@ -317,25 +319,42 @@
   Object.assign(errorWords, { key: 'KEY REJECTED', credits: 'NO CREDITS', limit: 'TOO MANY REQUESTS', model: 'MODEL NOT ON KEY', down: 'SERVICE DOWN', net: 'NO INTERNET', empty: 'NO REPLY' });
 
   // One message from him to her, over chat.send, whether he typed it, tapped a starter or tapped SCREEN.
-  const deliver = text => {
+  const deliver = (text, picture, id) => {
+    if (window.CapriAttach && CapriAttach.busy) return false;
     if (linkState !== 'connected') { say(linkState === 'offline' ? 'PC offline' : 'Not connected yet'); return false; }
     const chat = current() || startChat();
     const now = Date.now();
-    const said = { role: 'you', text: text.slice(0, 8000), at: now };
+    const said = { role: 'you', text: text.slice(0, 8000) || (picture ? '[picture]' : ''), at: now };
+    if (picture && window.CapriAttach) CapriAttach.keep(said, picture);
     chat.msgs.push(said);
     chat.last = now;
     dropStarters();
     add(renderMsg(said));
-    const re = newId();
+    const re = id || newId();
+    if (pending.has(re)) settleReply(re, '');
     openReply(re, chat);
     toEnd();
-    if (!CapriRemote.send('chat.send', { id: re, text: said.text })) settleReply(re, 'NOT SENT');
+    const body = { id: re, text: text.slice(0, 8000) };
+    if (picture) { body.picture = picture; CapriAttach.sent(re, input.value, picture); }
+    if (!CapriRemote.send('chat.send', body)) {
+      settleReply(re, 'NOT SENT');
+      if (picture) CapriAttach.failed(re);
+      return false;
+    }
     CapriBar.grin();
     saveChats();
     return true;
   };
-  const send = () => {
-    const text = input.value.trim();
+  const send = async () => {
+    const text = input.value.trim().slice(0, 8000);
+    const attach = window.CapriAttach;
+    if (attach && attach.busy) return;
+    if (attach && attach.hasPicture()) {
+      const id = attach.again() || newId();
+      const picture = await attach.prepare(text, id);
+      if (picture) deliver(text, picture, id);
+      return;
+    }
     if (!text || !deliver(text)) return;
     input.value = '';
     autosize();
@@ -424,7 +443,8 @@
     input.style.height = clamp(input.scrollHeight, 44, 132) + 'px';
   };
   const updateSend = () => {
-    const ready = !!input.value.trim() && linkState === 'connected';
+    const attach = window.CapriAttach;
+    const ready = (!!input.value.trim() || attach && attach.hasPicture()) && !(attach && attach.busy) && linkState === 'connected';
     sendButton.disabled = !ready;
     sendButton.classList.toggle('solid', ready);
   };
@@ -502,7 +522,7 @@
     else if (screen === 'replace') CapriBar.seat($('#replace-card'), 'right');
     else if (screen === 'where') CapriBar.seat($('#where-card'), 'right');
     else if (screen === 'wait') CapriBar.seat($('#wait-card'), 'right');
-    else CapriBar.seat(bar, 'left');
+    else CapriBar.seat(composer, 'left');
   };
   const showBanner = (title, sub, tone, retry) => {
     bannerTitle.textContent = title;
@@ -665,11 +685,12 @@
   // SCREEN shows the PC's screen live when her PC has the screen view (screen.js). Otherwise it's a chat message asking
   // her to look, so her own look_at_screen tool runs on the PC and her answer lands here like any other (the demo PC
   // answers it with its scripted look). CALL rings her when her PC takes calls (call.js). CLOSE goes back to the menu.
-  $('#f-screen').addEventListener('click', () => { if (!(window.CapriScreen && CapriScreen.open())) deliver('Look at my screen. What\'s on it?'); });
+  $('#f-screen').addEventListener('click', () => { if (window.CapriAttach && CapriAttach.busy) return; if (!(window.CapriScreen && CapriScreen.open())) deliver('Look at my screen. What\'s on it?'); });
   $('#f-call').addEventListener('click', () => {
     if (window.CapriCall && CapriCall.start()) return;
     if (linkState !== 'connected') say(linkState === 'offline' ? 'PC offline' : 'Not connected yet');
-    else say(CapriRemote.info.demo ? 'Calls aren\'t in the demo' : 'Calls need a newer Capri on the PC');
+    else if (CapriRemote.info.demo) say('Calls aren\'t in the demo');
+    else say(Array.isArray(CapriRemote.info.features) && CapriRemote.info.features.includes('call') ? "This browser can't make calls" : "Calls aren't on Mac or Linux PCs yet");
   });
   $('#close-chat').addEventListener('click', openMenu);
   for (const button of actions.querySelectorAll('.feat[aria-disabled="true"]')) {

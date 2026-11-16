@@ -1058,7 +1058,7 @@ namespace CapriDesktop
                 Need("chat");
                 capri.OnWindow(delegate { contexts.Clear(); capri.modContextAt = -10; });
             }
-            string ICapriChat.LastHeard { get { Need("chat"); return capri.FromWindow(() => capri.heard ?? ""); } }
+            string ICapriChat.LastHeard { get { Need("chat"); return capri.FromWindow(() => capri.ModLastHeard ?? ""); } }
             string ICapriChat.LastReply { get { Need("chat"); return capri.FromWindow(() => capri.reply ?? ""); } }
             bool ICapriChat.Busy { get { return capri.FromWindow(() => capri.talkState != TalkState.Off || capri.job != null); } }
 
