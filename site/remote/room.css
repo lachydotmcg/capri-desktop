@@ -46,6 +46,8 @@
   height: 10%;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgb(0 0 0 / .58), rgb(0 0 0 / .32) 50%, rgb(0 0 0 / 0));
+  opacity: var(--sho, 1);
+  transform: translateX(var(--lean, 0%)) scale(var(--shw, 1), calc(var(--shw, 1) * var(--sq, 1)));
   pointer-events: none;
 }
 .room-her[data-pose="lie"]::before { left: 11%; top: 74%; width: 82%; height: 10%; }

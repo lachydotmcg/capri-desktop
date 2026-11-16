@@ -50,7 +50,7 @@
   let suppressTap = false, heartState = 'new', heartWanted = false;
   let act = { name: 'perch', from: 0, once: false, round: -1, blink: '' }, nextGlitch = 0;
   let motion = 'unknown', sensing = false, aim = null, seen = null, frameWatch = 0, pen = null, glow = null, lightAt = 0;
-  let drawn = {};
+  let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
 
   const load = name => {
     if (strips.has(name)) return;
@@ -110,8 +110,22 @@
     tint.style.setProperty('-webkit-mask-position', at);
     tint.style.setProperty('mask-position', at);
   };
+  const drift = now => {
+    if (her.hidden) return;
+    const calm = reduced.matches ? 0 : 1, lie = her.dataset.pose === 'lie';
+    const lift = calm * (Math.sin(now / 1000 * 1.7) * 0.5 + 0.5) * (lie ? 1.6 : 3.2);
+    const rock = calm * Math.sin(now / 1000 * 0.9 + 1) * 0.6 + sway;
+    sprite.style.setProperty('translate', '0 ' + (-lift).toFixed(2) + '%');
+    sprite.style.setProperty('rotate', rock.toFixed(2) + 'deg');
+    her.style.setProperty('--shw', (1 - lift * 0.035).toFixed(3));
+    her.style.setProperty('--sho', (1 - lift * 0.06).toFixed(3));
+    her.style.setProperty('--sq', squash.toFixed(3));
+    her.style.setProperty('--lean', (sway * -0.9).toFixed(2) + '%');
+    sway *= 0.9;
+  };
   const draw = now => {
     animation = requestAnimationFrame(draw);
+    drift(now);
     if (!frameWatch) follow(performance.now() - LAG);
     if (now >= lightAt) light(now);
     let clip = clips[act.name];
@@ -194,6 +208,11 @@
     const v = [(x - glass.width / 2) / glass.focal, (glass.height / 2 - y) / glass.focal, -1];
     return [0, 3, 6].map(i => m[i] * v[0] + m[i + 1] * v[1] + m[i + 2] * v[2]);
   };
+  const elevation = point => Math.atan2(point[2], Math.hypot(point[0], point[1]));
+  const reach = point => {
+    const rise = elevation(point);
+    return rise < -0.05 ? Math.max(0.5, Math.min(8, 1.4 / Math.tan(-rise))) : 8;
+  };
   const follow = time => {
     if (!sensing || !turns.length || session || her.hidden) return;
     const glass = lens();
@@ -216,6 +235,22 @@
     const top = Math.max(-200, Math.min(300, y / glass.height * 100)).toFixed(2) + '%';
     if (left !== drawn.left) her.style.left = drawn.left = left;
     if (top !== drawn.top) her.style.top = drawn.top = top;
+    const rise = elevation(aim), grow = depth;
+    if (!reduced.matches) {
+      const yaw = Math.atan2(m[1], m[4]), tick = performance.now();
+      if (lastYaw !== null && tick - swayAt < 120) {
+        let turn = yaw - lastYaw;
+        if (turn > Math.PI) turn -= 2 * Math.PI;
+        if (turn < -Math.PI) turn += 2 * Math.PI;
+        sway = Math.max(-6, Math.min(6, sway + turn / D * 0.6));
+      }
+      lastYaw = yaw;
+      swayAt = tick;
+    }
+    const flatten = Math.max(0.3, Math.min(1, Math.sin(Math.max(0.1, -rise)) * 1.15));
+    squash = flatten;
+    const scale = grow.toFixed(3);
+    if (scale !== drawn.scale) her.style.scale = drawn.scale = scale;
     const up = [v[0] + m[6] * 0.05, v[1] + m[7] * 0.05, v[2] + m[8] * 0.05];
     if (up[2] >= 0) return;
     const dx = up[0] / -up[2] - v[0] / -v[2], dy = v[1] / -v[2] - up[1] / -up[2];
@@ -249,7 +284,12 @@
     if (frameWatch) video.cancelVideoFrameCallback?.(frameWatch);
     frameWatch = 0;
     her.style.removeProperty('rotate');
+    her.style.removeProperty('scale');
     her.style.removeProperty('visibility');
+    lastYaw = null;
+    sway = 0;
+    squash = 1;
+    depth = 1;
   };
   const light = now => {
     lightAt = now + 350;
@@ -350,14 +390,16 @@
     her.style.removeProperty('--s');
     if (focus && !camera.closest('[hidden]') && !document.hidden) camera.focus();
   };
+  const prepare = () => {
+    if (!room.hidden) return;
+    window.CapriCall?.room();
+    setPose('perch');
+    hold();
+    for (const name of Object.keys(clips)) load(name);
+    loadHeart();
+  };
   const openCamera = async (lead = '', focus = true) => {
-    if (room.hidden) {
-      window.CapriCall?.room();
-      setPose('perch');
-      hold();
-      for (const name of Object.keys(clips)) load(name);
-      loadHeart();
-    }
+    prepare();
     const request = ++version;
     room.hidden = false;
     app.dataset.room = 'camera';
@@ -415,11 +457,16 @@
     ];
   };
   const startAR = async () => {
+    prepare();
     const request = ++version;
     stopDrag();
     releaseCamera();
+    room.hidden = false;
+    startVoice();
+    retry.hidden = true;
     controls.hidden = place.hidden = her.hidden = track.hidden = true;
     stopHeart();
+    if (!animation) animation = requestAnimationFrame(draw);
     status.textContent = 'Starting AR…';
     let active;
     try {
@@ -485,6 +532,9 @@
         if (her.hidden) return;
         her.style.left = ((x + 1) * 50) + '%';
         her.style.top = ((1 - y) * 50) + '%';
+        const lookFrom = eye.transform.position, drop = lookFrom.y - seat[1], run = Math.hypot(lookFrom.x - seat[0], lookFrom.z - seat[2]);
+        squash = Math.max(0.25, Math.min(1, drop / Math.max(0.05, Math.hypot(drop, run)) * 1.15));
+        drift(now);
         const size = view.clientHeight * eye.projectionMatrix[5] * 0.16 / depth;
         her.style.setProperty('--s', Math.max(24, Math.min(size, 300)) + 'px');
       };
@@ -502,12 +552,14 @@
   byId('room-open').addEventListener('click', () => {
     showMenu(false);
     askMotion();
-    if (room.hidden) openCamera();
-    else close.focus();
+    if (room.hidden) {
+      if (arAvailable) startAR();
+      else openCamera();
+    } else close.focus();
   });
   attach.addEventListener('click', () => { showMenu(false); camera.focus(); file.click(); });
   close.addEventListener('click', () => closeRoom(true));
-  retry.addEventListener('click', () => { askMotion(); openCamera(); });
+  retry.addEventListener('click', () => { askMotion(); if (arAvailable && !stream) startAR(); else openCamera(); });
   track.addEventListener('click', () => { close.focus(); startAR(); });
   sit.addEventListener('click', () => setPose('perch'));
   lie.addEventListener('click', () => setPose('laydown'));
@@ -541,7 +593,10 @@
     her.style.top = top + '%';
     her.style.removeProperty('visibility');
     drawn = { roll: drawn.roll };
-    if (seen) aim = toRoom(seen, left / 100 * seen.glass.width, top / 100 * seen.glass.height);
+    if (seen) {
+      aim = toRoom(seen, left / 100 * seen.glass.width, top / 100 * seen.glass.height);
+      depth = Math.max(0.4, Math.min(1.8, reach(toRoom(seen, seen.glass.width / 2, seen.glass.height * 0.74)) / reach(aim)));
+    }
   };
   place.addEventListener('pointerdown', event => {
     if (drag || !event.isPrimary || event.button !== 0) return;
