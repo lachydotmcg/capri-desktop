@@ -207,6 +207,20 @@ namespace CapriDesktop
                 checks.Add("PASS her own ears: she finds the speech models you put in her ears folder and hears each language with the one that knows it, SenseVoice for Japanese and Parakeet for English, unless you picked one that's still there, and with no model for her language she keeps TALK on the widest one she has");
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
+                string weatherWrong = Weather.Check();
+                if (weatherWrong != null) throw new Exception(weatherWrong);
+                Func<bool> weatherWas = Hands.WeatherOn;
+                try
+                {
+                    Hands.WeatherOn = () => false;
+                    if (!Hands.Heard("what's the weather in Sydney", out string offTool, out ToolArguments offArgs) || offTool != "open_website" || Hands.KitFor().Off.ContainsKey("weather") == false) throw new Exception("Weather took a question while it was off: " + offTool);
+                    Hands.WeatherOn = () => true;
+                    if (!Hands.Heard("Capri, what's the weather in Sydney?", out string onTool, out ToolArguments onArgs) || onTool != "weather" || onArgs.Name != "Sydney" || onArgs.Action != "now") throw new Exception("Weather missed a question while it was on: " + onTool);
+                    if (!Hands.Heard("will it rain tomorrow", out onTool, out onArgs) || onTool != "weather" || onArgs.Action != "rain" || onArgs.When != "tomorrow" || Hands.Heard("i love rainy weather", out onTool, out onArgs) && onTool == "weather") throw new Exception("Weather heard rain wrong.");
+                    if (Hands.KitFor().Off.ContainsKey("weather") || !Hands.Valid("weather", new ToolArguments { Action = "week" }) || Hands.Valid("weather", new ToolArguments { Action = "hurricane" })) throw new Exception("Weather's tool was offered or checked wrong.");
+                }
+                finally { Hands.WeatherOn = weatherWas; }
+                checks.Add("PASS weather: off until they turn it on, then Open-Meteo answers now, days, the weekend and rain for their city or a place they name, warns once a day about extreme weather, reminds about umbrellas, and never looks anyone up by IP");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
                 else checks.Add("LIMIT her window isn't see-through here (" + pet.ActualTransparencyLevel + "); on Linux that needs a compositor");
                 checks.Add("INFO window list: " + pet.Desk.Name);
@@ -3970,7 +3984,8 @@ namespace CapriDesktop
                 { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Verbosity", "", "NoHuskVerbosity" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
-                { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" }
+                { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" },
+                { "Weather", "", "Weather" }
             };
             for (int i = 0; i < toggles.GetLength(0); i++)
                 foreach (bool on in new[] { true, false })

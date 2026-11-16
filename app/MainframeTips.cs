@@ -174,6 +174,7 @@ namespace CapriDesktop
             for (int i = 0; i < careTimes.Length; i++) Explain(careTimes[i], Care.Names[i], "Care.cs", null, Care.Names[i] + " time");
             Explain(clipChoose, "Save folder", "Mainframe.cs", FindHintLabel("Save folder"), "Save folder");
             Explain(clipsFolder, "Save folder", "Mainframe.cs", null, "Open clips folder");
+            Explain(weatherCity, "Weather", "Mainframe.cs", null, "Weather city");
             // Lachy's line is the whole tip here. What the setting does is in SelfKnow, for when they ask her.
             hints[legacyStand].Exact = Mods.LegacyTip;
             hints[legacyStand].Title = "";
