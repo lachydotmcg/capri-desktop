@@ -177,6 +177,12 @@ test('the room window from the pc app opens her room straight away, sizes her an
     await page.until(`parseFloat(document.getElementById('room-her').style.getPropertyValue('--s')) > ${before * 2}`, 'her bigger');
     assert.equal(await page.run("localStorage.getItem('capri-room-size')"), '3');
     assert.equal(await page.run("document.querySelectorAll('#room-view canvas').length"), 2);
+    assert.equal(await page.run("document.getElementById('room-behind').hidden"), false);
+    await page.run("document.getElementById('room-behind').click()");
+    assert.equal(await page.run("document.getElementById('room-behind').getAttribute('aria-pressed')"), 'true');
+    await page.until("/behind you|Finding you|find you/.test(document.getElementById('room-status').textContent)", 'behind line');
+    await page.run("document.getElementById('room-behind').click()");
+    assert.equal(await page.run("document.getElementById('room-behind').getAttribute('aria-pressed')"), 'false');
     await page.run("(() => { const s = document.getElementById('room-size'); s.value = '1'; s.dispatchEvent(new Event('input')); })()");
     await page.run("document.getElementById('room-close').click()");
     assert.equal(await page.run("document.querySelectorAll('#room-view canvas').length"), 0);

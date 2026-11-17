@@ -8,7 +8,7 @@
   const her = byId('room-her'), sprite = byId('room-sprite'), tint = byId('room-tint'), heart = byId('room-heart');
   const controls = byId('room-controls'), sit = byId('room-sit'), lie = byId('room-lie'), love = byId('room-love');
   const voice = byId('room-voice'), voiceNote = byId('room-voice-note'), record = byId('room-record');
-  const sizeBox = byId('room-size-box'), sizer = byId('room-size');
+  const sizeBox = byId('room-size-box'), sizer = byId('room-size'), behindButton = byId('room-behind');
   let voiceOn = true, oldVoice = false;
   try { voiceOn = localStorage.getItem('capri-room-voice') !== 'off'; } catch (error) {}
   voice.setAttribute('aria-pressed', String(voiceOn));
@@ -54,7 +54,7 @@
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
   let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
   let makeLife, life = null, lifeAt = 0, spots = [], hand = null;
-  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false;
+  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '';
   try { grow = Math.max(0.5, Math.min(4, Number(localStorage.getItem('capri-room-size')) || 1)); } catch (error) {}
   sizer.value = String(grow);
   const YOU = 0.85;
@@ -383,7 +383,7 @@
   const canRecord = () => desk && !!stage && typeof MediaRecorder === 'function' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
   const showRecord = () => {
     record.hidden = !canRecord() || controls.hidden;
-    sizeBox.hidden = !desk || !stage || controls.hidden;
+    sizeBox.hidden = behindButton.hidden = !desk || !stage || controls.hidden;
     record.setAttribute('aria-pressed', String(!!recorder));
     record.textContent = recorder ? 'Stop' : 'Record';
   };
@@ -461,6 +461,7 @@
     cutout?.close();
     cutout = null;
     cutLoading = null;
+    cutState = '';
     her.style.removeProperty('opacity');
   };
   const endXr = () => {
@@ -576,14 +577,24 @@
   };
   const loadCutout = () => {
     if (cutLoading) return;
-    cutLoading = import('./room-cutout.js').then(module => module.startCutout(new URL('vendor/mediapipe/', location.href).href))
-      .then(made => { if (desk && stream) cutout = made; else made.close(); }, () => {});
+    cutState = 'loading';
+    const mine = cutLoading = import('./room-cutout.js').then(module => module.startCutout(new URL('vendor/mediapipe/', location.href).href))
+      .then(made => {
+        if (cutLoading !== mine || !desk || !stream) { made.close(); return; }
+        cutout = made;
+        cutState = 'ready';
+        if (hideMe) sayLine('Found you. She\'s behind you now.');
+      }, error => {
+        if (cutLoading !== mine) return;
+        cutState = 'failed';
+        console.warn('room cutout', error);
+        if (hideMe) sayLine('Couldn\'t find you in the picture on this PC.');
+      });
   };
   const cutLayer = (now, position) => {
     if (!cutCanvas) return;
     const far = position ? Math.hypot(position[0], position[2]) : 0;
-    const wanted = !!cutout && !!position && far > YOU && !reduced.matches;
-    if (!wanted) {
+    if (!cutout || !position || !(hideMe || far > YOU)) {
       if (behind) { cutPen.clearRect(0, 0, cutCanvas.width, cutCanvas.height); behind = false; }
       return;
     }
@@ -708,7 +719,7 @@
     room.hidden = true;
     track.hidden = true;
     retry.hidden = true;
-    controls.hidden = place.hidden = her.hidden = record.hidden = sizeBox.hidden = true;
+    controls.hidden = place.hidden = her.hidden = record.hidden = sizeBox.hidden = behindButton.hidden = true;
     delete app.dataset.room;
     delete view.dataset.surface;
     her.style.left = '';
@@ -1024,6 +1035,14 @@
   sit.addEventListener('click', () => setPose('perch'));
   record.addEventListener('click', () => { if (recorder) stopRecording(); else startRecording(); });
   sizer.addEventListener('input', () => resize(Number(sizer.value)));
+  behindButton.addEventListener('click', () => {
+    hideMe = !hideMe;
+    behindButton.setAttribute('aria-pressed', String(hideMe));
+    if (!hideMe) sayLine('She\'s back in front of you.');
+    else if (cutState === 'ready') sayLine('She\'s behind you now.');
+    else if (cutState === 'failed') sayLine('Couldn\'t find you in the picture on this PC.');
+    else { sayLine('Finding you in the picture...'); if (!cutLoading) loadCutout(); }
+  });
   place.addEventListener('wheel', event => {
     if (!desk || !life?.position) return;
     event.preventDefault();
