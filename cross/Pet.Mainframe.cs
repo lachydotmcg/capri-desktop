@@ -383,6 +383,8 @@ namespace CapriDesktop
             WriteSecret(TierKeyFile(tier), Brain.Remote.Key, "brain key");
             if (tier == 1) Saved.FreeModel = Brain.Remote.Model;
             else Saved.PaidModel = Brain.Remote.Model;
+            Saved.BrainProvider = Brain.Remote.Kind;
+            RememberProviderModel(Saved, ProviderKind(Saved, Brain.Remote.Kind), Brain.Remote.Model, tier);
         }
         private void RestoreBrainTier()
         {
@@ -413,8 +415,10 @@ namespace CapriDesktop
             cloudModels = null;
             cloudListing = false;
             string key = tier == 0 ? null : ReadSecret(TierKeyFile(tier));
-            string model = tier == 1 ? Saved.FreeModel : Saved.PaidModel;
-            Brain.Remote = key == null || Cloud.KindOf(key) == null ? null : new Cloud(key, model);
+            string kind = Cloud.KindOf(key);
+            string model = kind == null ? (tier == 1 ? Saved.FreeModel : Saved.PaidModel) : TierModel(Saved, kind, tier);
+            Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);
+            Saved.BrainProvider = Brain.Remote == null ? null : Brain.Remote.Kind;
             Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
             Saved.CloudModel = Brain.Remote?.Model;
             WriteSecret(BrainKeyFile, key, "brain key");
