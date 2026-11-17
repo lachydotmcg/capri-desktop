@@ -514,6 +514,43 @@ namespace CapriDesktop
             }
         }
 
+        internal static unsafe int ShrinkError(int width, int height, int wide)
+        {
+            int tall = Math.Max(1, (int)((long)height * wide / width)), worst = 0;
+            byte[] frame = new byte[(long)width * height * 4];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    long at = ((long)y * width + x) * 4;
+                    frame[at] = (byte)(x * 255 / width);
+                    frame[at + 1] = (byte)(y * 255 / height);
+                    frame[at + 2] = (byte)((x + y) * 255 / (width + height));
+                }
+            using (Bitmap picture = new Bitmap(wide, tall, PixelFormat.Format32bppRgb))
+            {
+                BitmapData target = picture.LockBits(new Rectangle(0, 0, wide, tall), ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
+                try
+                {
+                    fixed (byte* source = frame) Shrink(source, 4, width * 4, width, height, target, wide, tall);
+                    for (int row = 0; row < tall; row++)
+                        for (int column = 0; column < wide; column++)
+                        {
+                            int top = (int)((long)row * height / tall), bottom = Math.Max(top + 1, (int)((long)(row + 1) * height / tall));
+                            int left = (int)((long)column * width / wide), right = Math.Max(left + 1, (int)((long)(column + 1) * width / wide));
+                            long[] sums = new long[3];
+                            for (int y = top; y < bottom; y++)
+                                for (int x = left; x < right; x++)
+                                    for (int channel = 0; channel < 3; channel++) sums[channel] += frame[((long)y * width + x) * 4 + channel];
+                            uint shown = *((uint*)((byte*)target.Scan0 + (long)row * target.Stride) + column);
+                            for (int channel = 0; channel < 3; channel++)
+                                worst = Math.Max(worst, Math.Abs((int)((shown >> (8 * channel)) & 255) - (int)(sums[channel] / ((bottom - top) * (right - left)))));
+                        }
+                }
+                finally { picture.UnlockBits(target); }
+            }
+            return worst;
+        }
+
         internal static unsafe double ShrinkMs(int width, int height, int wide, int rounds)
         {
             int tall = Math.Max(1, (int)((long)height * wide / width));
@@ -563,13 +600,29 @@ namespace CapriDesktop
                 for (int column = 0; column < wide; column++)
                 {
                     int left = lefts[column], right = Math.Max(left + 1, lefts[column + 1]);
-                    uint blue = 0, green = 0, red = 0;
-                    for (int y = top; y < bottom; y += stepY)
+                    uint count = (uint)(rows * ((right - left + stepX - 1) / stepX)), blue = 0, green = 0, red = 0;
+                    if (count <= 256)
                     {
-                        byte* from = source + (long)y * down + (long)left * across;
-                        for (int x = left; x < right; x += stepX, from += acrossStep) { blue += from[0]; green += from[1]; red += from[2]; }
+                        uint redBlue = 0;
+                        for (int y = top; y < bottom; y += stepY)
+                        {
+                            byte* from = source + (long)y * down + (long)left * across;
+                            for (int x = left; x < right; x += stepX, from += acrossStep)
+                            {
+                                uint pixel = *(uint*)from;
+                                redBlue += pixel & 0x00FF00FFu;
+                                green += (pixel >> 8) & 0xFFu;
+                            }
+                        }
+                        red = redBlue >> 16;
+                        blue = redBlue & 0xFFFFu;
                     }
-                    uint count = (uint)(rows * ((right - left + stepX - 1) / stepX));
+                    else
+                        for (int y = top; y < bottom; y += stepY)
+                        {
+                            byte* from = source + (long)y * down + (long)left * across;
+                            for (int x = left; x < right; x += stepX, from += acrossStep) { blue += from[0]; green += from[1]; red += from[2]; }
+                        }
                     to[column] = 0xFF000000u | ((red / count) << 16) | ((green / count) << 8) | (blue / count);
                 }
             }

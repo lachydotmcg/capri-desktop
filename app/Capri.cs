@@ -26868,6 +26868,11 @@ namespace CapriDesktop
                             Width, Height, drawnBounds.Width, drawnBounds.Height));
                     }
                 }
+                int shrinkWorst = 0;
+                foreach (Size game in new[] { new Size(1920, 1080), new Size(2560, 1440), new Size(3840, 2160) })
+                    foreach (int wide in new[] { 480, 1280 }) shrinkWorst = Math.Max(shrinkWorst, FrameGrab.ShrinkError(game.Width, game.Height, wide));
+                if (shrinkWorst > 3) throw new Exception("The game watcher's frame shrink strayed " + shrinkWorst + " levels from a true average.");
+                checks.Add("PASS the game watcher's frame shrink stays within " + shrinkWorst + " levels of a true average at 480 and 1280 wide from 1080p, 1440p and 4K");
                 foreach (Size game in new[] { new Size(1920, 1080), new Size(2560, 1440), new Size(3840, 2160) })
                     checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_shrink game={0}x{1} to480_ms={2:0.000} to1280_ms={3:0.000}",
                         game.Width, game.Height, FrameGrab.ShrinkMs(game.Width, game.Height, 480, 10), FrameGrab.ShrinkMs(game.Width, game.Height, 1280, 5)));
