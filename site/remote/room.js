@@ -54,7 +54,8 @@
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
   let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
   let makeLife, life = null, lifeAt = 0, spots = [], hand = null;
-  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '', mouthUntil = 0, stayStill = false, hostTalking = false, hosted = false, camOn = false, camCanvas = null, camPen = null, camAt = 0, camBusy = false;
+  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '', mouthUntil = 0, stayStill = false, hostTalking = false, hosted = false, camOn = false, camCanvas = null, camPen = null, camAt = 0, camBusy = false, lineHeld = 0, drawnAt = 0;
+  const CAM_WIDE = 1280, CAM_HIGH = 720;
   try { grow = Math.max(0.5, Math.min(4, Number(localStorage.getItem('capri-room-size')) || 1)); } catch (error) {}
   sizer.value = String(grow);
   const YOU = 0.85;
@@ -137,8 +138,7 @@
     her.style.setProperty('--lean', (sway * -0.9).toFixed(2) + '%');
     sway *= 0.9;
   };
-  const draw = now => {
-    animation = requestAnimationFrame(draw);
+  const step = now => {
     drift(now);
     if (!frameWatch) follow(performance.now() - LAG);
     if (now >= lightAt) light(now);
@@ -181,6 +181,11 @@
       cell = reduced.matches ? 0 : Math.floor(now * 0.03) % 60;
     }
     show(name, cell);
+  };
+  const draw = now => {
+    animation = requestAnimationFrame(draw);
+    drawnAt = performance.now();
+    step(now);
   };
   const setPose = (next, fromLife = false) => {
     const was = pose;
@@ -389,15 +394,25 @@
     if (!camOn || camBusy || !stage || now - camAt < 33) return;
     const box = view.getBoundingClientRect();
     if (box.width < 8 || box.height < 8) return;
-    const scale = Math.min(1, 1280 / box.width, 720 / box.height);
-    const width = Math.max(4, Math.round(box.width * scale / 4) * 4), height = Math.max(4, Math.round(box.height * scale / 4) * 4);
-    if (!camCanvas || camCanvas.width !== width || camCanvas.height !== height) {
-      camCanvas = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
+    const fit = Math.min(CAM_WIDE / box.width, CAM_HIGH / box.height);
+    const width = Math.round(box.width * fit), height = Math.round(box.height * fit);
+    if (!camCanvas) {
+      camCanvas = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(CAM_WIDE, CAM_HIGH) : Object.assign(document.createElement('canvas'), { width: CAM_WIDE, height: CAM_HIGH });
       camPen = camCanvas.getContext('2d');
     }
     camAt = now;
+    camPen.fillStyle = '#000';
+    camPen.fillRect(0, 0, CAM_WIDE, CAM_HIGH);
+    camPen.save();
+    camPen.translate(Math.round((CAM_WIDE - width) / 2), Math.round((CAM_HIGH - height) / 2));
     film(camPen, width, height, true);
+    camPen.restore();
     camBusy = true;
+    if (camTicker?.postMessage && camCanvas.transferToImageBitmap) {
+      const bitmap = camCanvas.transferToImageBitmap();
+      camTicker.postMessage({ bitmap, to: new URL('../frame', location.href).href }, [bitmap]);
+      return;
+    }
     const made = camCanvas.convertToBlob ? camCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 })
       : new Promise(done => camCanvas.toBlob(done, 'image/jpeg', 0.85));
     made.then(blob => {
@@ -412,30 +427,53 @@
     } catch (error) { return ''; }
   };
   const setCam = on => {
+    const was = camOn;
     camOn = on;
+    tickCam(on);
+    if (was && !on) fetch(new URL('../camera/off', location.href).href, { method: 'POST', keepalive: true }).catch(() => {});
     camButton.setAttribute('aria-pressed', String(on));
   };
   camButton.addEventListener('click', async () => {
     if (camOn) { setCam(false); sayLine('Capri Camera is off.'); return; }
     camButton.disabled = true;
-    let state = await camAsk(false);
+    let state = await camAsk(false), fresh = false;
     if (state === 'needs-install') {
       sayLine('Say yes in the Windows prompt to add Capri Camera.');
       state = await camAsk(true);
+      fresh = state === 'ready';
     }
     camButton.disabled = false;
     if (state === 'ready') {
       setCam(true);
-      sayLine('Capri Camera is on. Pick Capri Camera in Discord, Zoom or OBS.');
+      if (fresh) {
+        sayLine('Capri Camera is added. Restart Discord to see it: right-click Discord in the tray, pick Quit Discord, open it again and choose Capri Camera. Zoom and OBS need a restart too.');
+        lineHeld = performance.now() + 30000;
+      } else sayLine('Capri Camera is on. Pick Capri Camera in Discord, Zoom or OBS.');
     } else if (state === 'missing') sayLine('Capri Camera isn’t in this build of Capri.');
     else sayLine('Capri Camera wasn’t set up.');
   });
-  setInterval(() => {
-    if (!document.hidden || !camOn || !stage) return;
+  let camTicker = null;
+  const camTick = () => {
+    if (!camOn || !stage || !animation) return;
     const now = performance.now();
-    render3d(now);
-    sendCam(now);
-  }, 40);
+    if (!document.hidden && now - drawnAt < 120) return;
+    step(now);
+  };
+  const tickCam = on => {
+    if (on && !camTicker) {
+      const timer = () => ({ terminate: clearInterval.bind(null, setInterval(camTick, 40)) });
+      try {
+        const worker = new Worker('room-cam.js');
+        worker.onmessage = ({ data }) => {
+          if (data.sent) camBusy = false;
+          else camTick();
+        };
+        worker.onerror = () => { if (camTicker === worker) { worker.terminate(); camTicker = timer(); camBusy = false; } };
+        worker.postMessage({ every: 40 });
+        camTicker = worker;
+      } catch (error) { camTicker = timer(); }
+    } else if (!on && camTicker) { camTicker.terminate(); camTicker = null; }
+  };
   const canRecord = () => desk && !!stage && typeof MediaRecorder === 'function' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
   const showRecord = () => {
     record.hidden = !canRecord() || controls.hidden;
@@ -579,7 +617,8 @@
     mouthUntil = Math.min(now + 8000, Math.max(mouthUntil, now) + Math.min(5000, 300 + String(text).length * 55));
   };
   const sayLine = text => { if (!room.hidden) { status.textContent = text; mumble(text); } };
-  const newLife = tall => makeLife ? makeLife({ tall, say: sayLine, calm: () => reduced.matches || stayStill }) : null;
+  const lifeLine = text => { if (performance.now() >= lineHeld) sayLine(text); };
+  const newLife = tall => makeLife ? makeLife({ tall, say: lifeLine, calm: () => reduced.matches || stayStill }) : null;
   const turnOf = () => {
     const m = seen?.m;
     return m ? [m[0], m[1], m[2], m[6], m[7], m[8], -m[3], -m[4], -m[5]] : desk ? tilt : [1, 0, 0, 0, 1, 0, 0, 0, 1];
@@ -634,8 +673,8 @@
     if (life && life.pose !== pose && life.mode !== 'held' && life.mode !== 'fly') setPose(life.pose, true);
   };
   const lifeStep = now => {
-    const dt = lifeAt ? (now - lifeAt) / 1000 : 0;
-    lifeAt = now;
+    const dt = lifeAt ? Math.max(0, now - lifeAt) / 1000 : 0;
+    lifeAt = Math.max(lifeAt, now);
     return dt;
   };
   const loadCutout = () => {

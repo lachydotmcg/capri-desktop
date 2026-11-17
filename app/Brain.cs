@@ -31,7 +31,7 @@ namespace CapriDesktop
         internal const string Version = "0.9.3";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
             + "Room: right-click her and pick Room camera, and she's in your room through your webcam: she walks, sits up on things, hides behind you, gets grabbed and thrown, and talks with her mouth moving. On your phone, Room in Capri Remote puts her in your room in AR. Plays like fadievr's Capri Room for Quest, with PC ideas from connorx132 and Luke Yokubo.\n"
-            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, and pick Capri Camera in Discord, Zoom or OBS so people see her in the room with you.\n"
+            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, restart Discord, Zoom or OBS once (quit Discord from its tray icon) so they see the new camera, and pick Capri Camera there so people see her in the room with you.\n"
             + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
             + "Playlist: she plays your own music folders and songs from her mini player, with shuffle, loop and volume. Say play my playlist, or pick Play > Music. From YunoTheAlien.\n"
             + "Commands: Help > Commands lists everything she does without a brain. From YunoTheAlien.\n"
