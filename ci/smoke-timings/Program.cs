@@ -18,6 +18,7 @@ internal static class Program
             Run(Path.Combine(args[0], "all"), new[] { "--no-steps" }, false);
             Run(Path.Combine(args[0], "only"), new[] { "--only", "SmokeReactQuick" }, true);
             Steps(Path.Combine(args[0], "steps"));
+            Shards(Path.Combine(args[0], "shards"));
             Unavailable(Path.Combine(args[0], "unavailable"));
             if (!behaviorOnly)
             {
@@ -93,6 +94,43 @@ internal static class Program
         SmokeRun.Complete(checks);
         Report(folder, checks);
         if (!behaviorOnly) Check(Timings(folder, 1)[0][0] == "InsideStep", "Skipped sections must not get timing rows.");
+    }
+
+    private static void Shards(string folder)
+    {
+        string[] names = { "CheckOcr", "SmokeSounds", "SmokeCamera", "SmokeLookout", "SmokeFetch", "SmokeEmotes", "SmokePerf", "SmokeFirstRun", "SmokeReactions", "SmokeThrows", "SmokeCloudPicker", "SmokeMods", "SmokeLeaks" };
+        int[] owners = new int[names.Length];
+        for (int part = 0; part < 4; part++)
+        {
+            string shard = Path.Combine(folder, part.ToString(CultureInfo.InvariantCulture));
+            Directory.CreateDirectory(shard);
+            SmokeOptions settings = Settings(shard, new[] { "--no-steps", "--shard", part + "/4" });
+            Check(!settings.RunSteps, "A shard must not run steps.");
+            SmokeRun.Start(shard, settings);
+            List<string> checks = new List<string>();
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (!SmokeRun.EnterSection(names[i])) continue;
+                owners[i]++;
+                Check(SmokeRun.EnterSection("Inside" + names[i]), "A section inside a shard's section must run with it.");
+                SmokeRun.LeaveSection("Inside" + names[i], checks);
+                checks.Add("PASS " + names[i]);
+                SmokeRun.LeaveSection(names[i], checks);
+            }
+            SmokeRun.ValidateSelection(checks);
+            SmokeRun.Complete(checks);
+            Report(shard, checks);
+        }
+        for (int i = 0; i < names.Length; i++) Check(owners[i] == 1, names[i] + " ran in " + owners[i] + " shards instead of one.");
+        Check(SmokeRun.ShardOf("SmokeSounds", 4) == SmokeRun.ShardOf("smokesounds", 4), "A shard must not depend on letter case.");
+        foreach (string[] bad in new[] { new[] { "--shard", "4/4", "--no-steps" }, new[] { "--shard", "0/0", "--no-steps" }, new[] { "--shard", "1", "--no-steps" }, new[] { "--shard", "-1/4", "--no-steps" }, new[] { "--shard", "0/4" }, new[] { "--shard", "0/4", "--no-steps", "--only", "SmokeSounds" } })
+        {
+            bool refused = false;
+            try { Settings(folder, bad); }
+            catch (ArgumentException) { refused = true; }
+            Check(refused, "--shard must refuse " + string.Join(" ", bad) + ".");
+        }
+        Console.WriteLine("PASS every section runs in exactly one of four shards");
     }
 
     private static void Unavailable(string folder)
