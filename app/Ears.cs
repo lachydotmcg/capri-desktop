@@ -301,21 +301,31 @@ namespace CapriDesktop
         // Their switch for her: Let desktop apps for a normal install, and her own line on that page for a Store copy.
         internal static string MicSwitch { get { return MicConsent + @"\" + (Packaged.Family ?? "NonPackaged"); } }
 
+        private const string MicPolicy = @"SOFTWARE\Policies\Microsoft\Windows\AppPrivacy";
+
         internal static bool PrivacyBlocked()
         {
             try
             {
+                using (RegistryKey policy = Registry.LocalMachine.OpenSubKey(MicPolicy))
                 using (RegistryKey machine = Registry.LocalMachine.OpenSubKey(MicConsent))
+                using (RegistryKey user = Registry.CurrentUser.OpenSubKey(MicConsent))
                 using (RegistryKey desktop = Registry.CurrentUser.OpenSubKey(MicSwitch))
-                    return Denied(machine == null ? null : machine.GetValue("Value") as string, desktop == null ? null : desktop.GetValue("Value") as string);
+                    return Denied(policy == null ? null : policy.GetValue("LetAppsAccessMicrophone") as int?, Value(machine), Value(user), Value(desktop));
             }
             catch (Exception) { return false; }
         }
 
-        internal static bool Denied(string machine, string desktop)
+        private static string Value(RegistryKey key) { return key == null ? null : key.GetValue("Value") as string; }
+
+        internal static bool Denied(int? policy, string machine, string user, string desktop)
         {
-            return string.Equals(machine, "Deny", StringComparison.OrdinalIgnoreCase) || string.Equals(desktop, "Deny", StringComparison.OrdinalIgnoreCase);
+            if (policy == 2) return true;
+            if (Deny(user) || Deny(desktop)) return true;
+            return Deny(machine) && user == null && desktop == null;
         }
+
+        private static bool Deny(string value) { return string.Equals(value, "Deny", StringComparison.OrdinalIgnoreCase); }
 
         internal static string Problem(int result)
         {

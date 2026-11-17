@@ -114,6 +114,7 @@ namespace CapriDesktop
                                     sense.Reset();
                                     if (ears != null) ears.Dispose();
                                     ears = new GameEars(owner);
+                                    ears.Sensitivity = delegate { return GameSoundSensitivity; };
                                     int soundOwner = owner;
                                     // A burst of sound is taken up with the next frame, on this thread, so it can look for a banner too.
                                     ears.Loud += delegate(double level) { if (listening == soundOwner && watchedWindow != IntPtr.Zero && Native.GetForegroundWindow() == watchedWindow) Interlocked.Exchange(ref heard, 1); };

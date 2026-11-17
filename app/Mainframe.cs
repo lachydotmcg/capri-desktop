@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 2176;
+        private const int PageTall = 2304;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -296,7 +296,7 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1372, 1424 }, new[] { 1424, 1452 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1400, 1452 }, new[] { 1452, 1480 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
         private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 1810 } };
@@ -305,7 +305,7 @@ namespace CapriDesktop
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1326;
+        private const int SimpleTall = 1454;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -342,6 +342,9 @@ namespace CapriDesktop
         private readonly Readout bubbleName;
         private readonly Slider comments;
         private readonly Readout commentsName;
+        private readonly Slider gameSoundLevel;
+        private readonly Readout gameSoundLevelName;
+        internal static readonly string[] SensitivityNames = { "Off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly Toggle intro;
         private readonly Toggle typing;
         private readonly Toggle listenCapri;
@@ -1058,6 +1061,10 @@ namespace CapriDesktop
             // deaths and kills still count.
             gameSounds = Switch("Game sounds", 0, 994, delegate { if (!syncing) capri.ToggleGameSounds(); });
             gameSounds.AccessibleName = "Game sounds. Big bursts of your game's sound count as moments for her reactions and comments. Off, she ignores them and still reacts to hits, deaths and kills";
+            gameSoundLevel = Setting("Sound sensitivity", SensitivityNames, 0, 1022, "Game sound sensitivity. Lower it if your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores game sounds");
+            gameSoundLevelName = new Readout(gameSoundLevel);
+            gameSoundLevel.Changed += delegate { if (syncing) return; gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value]; capri.SetGameSoundSensitivity(gameSoundLevel.Value * 10); };
+            int afterGameSounds = Controls.Count;
             gamingMode = Switch("Gaming Mode", 0, 1022, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She reacts to your game until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
             Caption("She reacts to your game until you close it.", 28, 1048, small, Faint);
@@ -1091,7 +1098,9 @@ namespace CapriDesktop
             clipHint.AutoSize = false;
             clipHint.Bounds = new Rectangle(28, 1466, 328, 36);
             BuildWeather(1514);
+            BuildDoomscroll(1642);
             int gamesTo = Controls.Count;
+            for (int belowSensitivity = afterGameSounds; belowSensitivity < gamesTo; belowSensitivity++) Controls[belowSensitivity].Top += Row;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
@@ -3091,6 +3100,8 @@ namespace CapriDesktop
             ShowPersonality();
             liveReactions.Checked = capri.ReactionsOn;
             gameSounds.Checked = capri.GameSoundsOn;
+            gameSoundLevel.Value = (capri.GameSoundSensitivity + 5) / 10;
+            gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value];
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
             ClipSettings recording = capri.ClipOptions;
@@ -3169,6 +3180,7 @@ namespace CapriDesktop
             musicAppName.Text = Hands.MusicSteps()[musicApp.Value];
             SyncSounds();
             SyncWeather();
+            SyncDoomscroll();
             syncing = false;
         }
 
@@ -3333,6 +3345,10 @@ namespace CapriDesktop
         internal void FlipReactions() { liveReactions.Checked = !liveReactions.Checked; }
 
         internal bool GameSoundsShown { get { return gameSounds.Checked; } }
+        internal string GameSensitivityShown { get { return gameSoundLevelName.Text; } }
+        internal Rectangle GameSensitivityAt { get { return gameSoundLevel.Bounds; } }
+        internal Rectangle GamingModeAt { get { return gamingMode.Bounds; } }
+        internal void SetGameSensitivityShown(int step) { gameSoundLevel.Value = step; }
 
         internal void FlipGameSounds() { gameSounds.Checked = !gameSounds.Checked; }
 

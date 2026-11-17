@@ -208,6 +208,9 @@ namespace CapriDesktop
                 checks.Add("PASS her own ears: she finds the speech models you put in her ears folder and hears each language with the one that knows it, SenseVoice for Japanese and Parakeet for English, unless you picked one that's still there, and with no model for her language she keeps TALK on the widest one she has");
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
+                string doomWrong = Doomscroll.Check();
+                if (doomWrong != null) throw new Exception(doomWrong);
+                checks.Add("PASS doomscroll guard's shared rules: window titles alone, the sys.md sites and never watch lists, nudge, perch, sulk, five more minutes and the cheer");
                 string weatherWrong = Weather.Check();
                 if (weatherWrong != null) throw new Exception(weatherWrong);
                 Func<bool> weatherWas = Hands.WeatherOn;

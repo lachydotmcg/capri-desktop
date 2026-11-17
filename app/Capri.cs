@@ -1080,6 +1080,7 @@ namespace CapriDesktop
         [DataMember] public bool NoReactions;
         // GAMES > Game sounds is on by default too: off, a big burst of a game's sound stops counting as a moment (#234).
         [DataMember] public bool NoGameSounds;
+        [DataMember] public int GameSoundsDown;
         // Gaming Mode's key, Ctrl + Alt + G, and where her HUD sits in each game (GameSpots).
         [DataMember] public int GameMods = 3;
         [DataMember] public int GameVk = 0x47;
@@ -7796,7 +7797,7 @@ namespace CapriDesktop
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
                 new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
                     Brain.ResetKept, Brain.ResetDone, Brain.OffLine, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry, Probe.Passed }, HighFiveLines, Probe.Questions);
-            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you");
+            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you", "doomscroll");
         }
 
         internal string Nickname { get { return Brain.Nickname ?? ""; } }
@@ -9522,7 +9523,9 @@ namespace CapriDesktop
 
         private bool Sulking { get { return sulkSince >= 0; } }
 
-        private void Sulk(double now)
+        private void Sulk(double now) { Sulk(now, "They just threw Capri around three times in two minutes, so she's sulking: she won't let them pick her up until they say sorry, give her a head pat or leave her alone for five minutes. She still answers and helps them as usual."); }
+
+        private void Sulk(double now, string why)
         {
             sulkSince = now;
             sulkBothered = now;
@@ -9533,19 +9536,22 @@ namespace CapriDesktop
             shyAt = -1;
             frames.Start();
             Agent told = agent;
-            if (told != null) told.Tell("They just threw Capri around three times in two minutes, so she's sulking: she won't let them pick her up until they say sorry, give her a head pat or leave her alone for five minutes. She still answers and helps them as usual.");
+            if (told != null) told.Tell(why);
         }
 
         // She makes up with them and forgets the throws: they said sorry, gave her a head pat, or left her be long enough.
-        private void Forgive()
+        private void Forgive() { Forgive(doomSulk ? "Capri forgave them for doomscrolling and isn't sulking any more." : "Capri forgave them for throwing her around and isn't sulking any more."); }
+
+        private void Forgive(string why)
         {
             if (!Sulking) return;
+            doomSulk = false;
             sulkSince = -1;
             sulkLine = false;
             throwsAt.Clear();
             shyAt = -1;
             Agent told = agent;
-            if (told != null) told.Tell("Capri forgave them for throwing her around and isn't sulking any more.");
+            if (told != null) told.Tell(why);
         }
 
         // Left alone five minutes, she gets over it by herself.
@@ -9833,6 +9839,7 @@ namespace CapriDesktop
             Sight ahead = Computer.Glimpse();
             frontBusy = full || (ahead != null && ahead.Window == Native.GetForegroundWindow() && Computer.GameWindow(ahead));
             CheckJealous(ahead, full, now);
+            CheckDoomscroll(ahead, full, now);
             // Over a game with nothing to do she gives way to it. Listening, talking, clipping or working, she keeps her place so her ears and hands don't stutter.
             Native.Lower(frontBusy && working == null && !chatting && !preferences.HeyCapri && !preferences.ClipGames && talkState == TalkState.Off);
         }
@@ -15460,6 +15467,8 @@ namespace CapriDesktop
             heard = shown;
             box.Prompt = prompt;
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
+            string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
+            if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
             if (callReply == null && probe.Pending && !meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
@@ -21003,6 +21012,10 @@ namespace CapriDesktop
                 checks.Add("PASS dated reminders parse named and ISO dates, local times, days and weeks, year rollover and leap days; reject bad and past dates; route through her hands; survive restart and deliver once, including late reminders, listing and cancellation");
             }
             finally { Hands.Plan = planWas; Hands.Remind = remindWas; if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+            string doomResult = Doomscroll.Check();
+            if (doomResult != null) throw new Exception(doomResult);
+            if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
+            checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
             checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
@@ -23439,7 +23452,7 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs" })
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs" })
                                     foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
                                         selfSource += "\n" + selfPart.Value;
                         }
@@ -28375,6 +28388,25 @@ namespace CapriDesktop
                 if (gameLoud != 2) throw new Exception("A held game sound kept firing loud events.");
             }
             checks.Add("PASS game levels follow children and grandchildren, detect spikes over a rolling median, keep one sound to one event and contain failing subscribers");
+            foreach (int[] heard in new[] { new[] { 100, 1, 1 }, new[] { 50, 0, 1 }, new[] { 10, 0, 1 }, new[] { 0, 0, 0 } })
+            {
+                int percent = heard[0];
+                using (GameEars scaled = new GameEars(int.MaxValue))
+                {
+                    int mild = 0, blast = 0;
+                    double peak = 0;
+                    scaled.Sensitivity = delegate { return percent; };
+                    scaled.Loud += delegate(double heardLevel) { if (heardLevel > 0.9) blast++; else mild++; };
+                    for (int quietSample = 0; quietSample < 65; quietSample++) scaled.Hear(0.02, quietSample / 30.0);
+                    scaled.Hear(0.2, 3);
+                    peak = scaled.Level;
+                    for (int calm = 0; calm < 10; calm++) scaled.Hear(0.02, 3.2 + calm / 30.0);
+                    scaled.Hear(0.95, 4);
+                    if (mild != heard[1] || blast != heard[2] || Math.Abs(peak - 0.2) > 0.001) throw new Exception("Game sound sensitivity " + percent + "% heard " + mild + " mild and " + blast + " big bursts, level " + peak + ".");
+                }
+            }
+            if (GameEars.Sensitive(null) != 100 || GameEars.Sensitive(delegate { return 140; }) != 100 || GameEars.Sensitive(delegate { return -5; }) != 0 || GameEars.Sensitive(delegate { throw new Exception("Broken sensitivity."); }) != 100) throw new Exception("Game sound sensitivity was not kept between 0 and 100 or a broken one wasn't heard at 100.");
+            checks.Add("PASS game sound sensitivity: 100% hears as before, 50% and 10% let a mild burst go and keep a blast, Off hears none, the raw level is untouched");
             using (GameEars gameSilence = new GameEars(int.MaxValue))
             {
                 int silentLoud = 0;
@@ -33863,8 +33895,22 @@ namespace CapriDesktop
         private void SmokeReactSounds(System.Collections.Generic.List<string> checks, ReactRig rig)
         {
             bool soundsWas = preferences.NoGameSounds;
+            int downWas = preferences.GameSoundsDown;
             try
             {
+                preferences.GameSoundsDown = 0;
+                mainframe.Sync();
+                bool sensitiveDefault = GameSoundSensitivity == 100 && new Preferences().GameSoundsDown == 0 && Preferences.Fresh().GameSoundsDown == 0 && mainframe.GameSensitivityShown == "100%";
+                SetGameSoundSensitivity(30);
+                bool sensitiveSaved = GameSoundSensitivity == 30 && LoadPreferences().GameSoundsDown == 70 && mainframe.GameSensitivityShown == "30%";
+                SetGameSoundSensitivity(0);
+                bool sensitiveOff = GameSoundSensitivity == 0 && LoadPreferences().GameSoundsDown == 100 && mainframe.GameSensitivityShown == "Off";
+                Rectangle sensitiveAt = mainframe.GameSensitivityAt, gamingAt = mainframe.GamingModeAt;
+                bool sensitiveRow = sensitiveAt.Bottom <= gamingAt.Top && gamingAt.Top - sensitiveAt.Top <= 40 && sensitiveAt.Width > 0;
+                SetGameSoundSensitivity(100);
+                ReactMust(sensitiveDefault && sensitiveSaved && sensitiveOff && sensitiveRow && GameSoundSensitivity == 100,
+                    "Game sound sensitivity went wrong: default " + sensitiveDefault + ", saved " + sensitiveSaved + ", off " + sensitiveOff + ", row " + sensitiveRow + " (" + sensitiveAt + " above " + gamingAt + ")");
+                checks.Add("PASS Game sound sensitivity is 100% by default in new and old settings, saves 30% and Off, and sits on its own row above Gaming Mode");
                 preferences.NoGameSounds = false;
                 mainframe.Sync();
                 bool shownOn = GameSoundsOn && mainframe.GameSoundsShown && !new Preferences().NoGameSounds && !Preferences.Fresh().NoGameSounds;
@@ -33898,6 +33944,7 @@ namespace CapriDesktop
             finally
             {
                 preferences.NoGameSounds = soundsWas;
+                preferences.GameSoundsDown = downWas;
                 SavePreferences();
                 mainframe.Sync();
             }
@@ -41466,10 +41513,10 @@ namespace CapriDesktop
                     try { input.Start(); } catch (VoiceException error) { if (error.Message != Dictation.MicBlocked) throw; }
                     if (openedBlocked || input.Listening) throw new Exception("Mic privacy denial attempted capture.");
                 }
-                if (!Ears.Denied("Deny", "Allow") || !Ears.Denied("Allow", "Deny") || Ears.Denied(null, null) || Ears.Denied("Allow", "Allow")) throw new Exception("Mic privacy values were interpreted incorrectly.");
+                if (Ears.Denied(null, "Deny", null, "Allow") || Ears.Denied(null, "Deny", "Allow", "Allow") || !Ears.Denied(null, "Allow", null, "Deny") || !Ears.Denied(null, "Allow", "Deny", "Allow") || !Ears.Denied(null, "Deny", null, null) || !Ears.Denied(2, "Allow", "Allow", "Allow") || Ears.Denied(1, "Allow", "Allow", "Allow") || Ears.Denied(null, null, null, null) || Ears.Denied(null, "Allow", "Allow", "Allow")) throw new Exception("Mic privacy values were interpreted incorrectly: a machine-wide Deny under their own Allow still blocks the mic, or a real block is missed.");
                 string logged = File.ReadAllText(log);
                 if (logged.IndexOf("Saved mic gone is unavailable", StringComparison.Ordinal) < 0 || logged.IndexOf("WASAPI opened default-one", StringComparison.Ordinal) < 0 || logged.IndexOf("48000 Hz, 6 channels, 32-bit float -> 16000 Hz", StringComparison.Ordinal) < 0 || logged.IndexOf("0x80070005", StringComparison.Ordinal) < 0 || logged.IndexOf("0x8889000A", StringComparison.Ordinal) < 0) throw new Exception("Mic logs lost the device, conversion format or Windows failure code.");
-                checks.Add("PASS mic privacy denial and exclusive-use errors explain the fix; logs name the input, native and converted formats, saved-device fallback and HRESULTs; all sources are fake");
+                checks.Add("PASS mic privacy denial and exclusive-use errors explain the fix; their own Allow beats a stale machine-wide Deny while policy or their own Deny still blocks; logs name the input, native and converted formats, saved-device fallback and HRESULTs; all sources are fake");
             }
             finally { Brain.LogPath = logWas; }
         }
@@ -44579,6 +44626,35 @@ namespace CapriDesktop
                 EndJealous();
                 preferences.JealousAIs = onWas; preferences.CloseAIs = closeWas; preferences.JealousApps = choicesWas; preferences.AdvancedSettings = advancedWas;
                 mainframe.Sync(); mainframe.ShowSettings(pageWas); SavePreferences();
+            }
+
+            bool doomWas = preferences.DoomscrollGuard;
+            int doomLimitWas = preferences.DoomscrollLimit;
+            try
+            {
+                preferences.DoomscrollGuard = false;
+                preferences.DoomscrollLimit = 0;
+                EndDoomscroll();
+                mainframe.Sync();
+                if (mainframe.DoomscrollShown != "off | 15 min" || DoomSnooze("5 more minutes") != null) throw new Exception("Doomscroll guard started on or gave five more minutes with nothing to snooze: " + mainframe.DoomscrollShown);
+                ToggleDoomscroll();
+                SetDoomscrollLimit(30);
+                Preferences doomLoaded = LoadPreferences();
+                if (mainframe.DoomscrollShown != "on | 30 s test" || !doomLoaded.DoomscrollGuard || doomLoaded.DoomscrollLimit != 30) throw new Exception("Doomscroll guard's switch or limit did not show or save: " + mainframe.DoomscrollShown);
+                SetDoomscrollLimit(77);
+                if (DoomscrollLimit != Doomscroll.DefaultLimit) throw new Exception("Doomscroll guard took a limit it doesn't offer.");
+                ToggleDoomscroll();
+                if (LoadPreferences().DoomscrollGuard || DoomscrollStage != 0) throw new Exception("Doomscroll guard did not turn off.");
+                foreach (string label in new[] { "Doomscroll guard", "Scroll limit" })
+                    if (SelfKnow.Setting("Mainframe.cs", label) == null) throw new Exception("Doomscroll guard lost its help: " + label);
+                if ((SelfKnow.Matching("what does doomscroll guard do?") ?? "").IndexOf("thiiago-dev", StringComparison.Ordinal) < 0) throw new Exception("Her doomscroll help did not match a plain question.");
+                checks.Add("PASS Mainframe doomscroll guard: off by default, its switch and scroll limit save, a 30 s test limit is there for filming, and her help explains it");
+            }
+            finally
+            {
+                preferences.DoomscrollGuard = doomWas; preferences.DoomscrollLimit = doomLimitWas;
+                EndDoomscroll();
+                mainframe.Sync(); SavePreferences();
             }
         }
 
