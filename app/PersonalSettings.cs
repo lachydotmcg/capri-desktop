@@ -41,6 +41,14 @@ namespace CapriDesktop
                 "> 1: now and then, after you've been chatting, she asks about you and keeps your answer in me.md.\n" +
                 "> 0: she never asks.\n\n" +
                 AskKey + ": 1\n"
+            },
+            {
+                Doomscroll.ListKey,
+                "## Doomscroll guard\n\n" +
+                "> Sites and apps Doomscroll guard keeps time on, once it's on in Mainframe > Settings > DOOMSCROLL.\n" +
+                "> Comma separated, matched on the window title: tiktok, youtube shorts, instagram, reddit and x\n" +
+                "> are known, and any other word counts when it's in the title or the program's name.\n\n" +
+                Doomscroll.ListKey + ": " + Doomscroll.Stock + "\n"
             }
         };
 
