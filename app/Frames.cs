@@ -214,6 +214,8 @@ namespace CapriDesktop
         Bitmap IFrameGrab.Copy(int maxWidth) { return Copy(maxWidth); }
         byte[] IFrameGrab.Gray(int width, int height) { return Gray(width, height); }
 
+        internal bool Chained { get { return false; } }
+
         internal string Live { get { lock (gate) return !opened ? "Closed" : duplication != IntPtr.Zero ? "DXGI Desktop Duplication" : "Graphics.CopyFromScreen"; } }
         internal Size Size { get { lock (gate) return area.Size; } }
         internal double Fps { get { lock (gate) return fps; } }

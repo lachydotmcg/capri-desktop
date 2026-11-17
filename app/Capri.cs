@@ -28196,6 +28196,11 @@ namespace CapriDesktop
                             if (speedGrab.Gray(480, speedHeight) == null) throw new Exception("Gray frames disappeared during the timing check.");
                         double speedMs = speedWatch.Elapsed.TotalMilliseconds / 30;
                         checks.Add((speedMs < 3 ? "PASS " : "LIMIT ") + "480-wide box gray from " + frameScreen.Width + "x" + frameScreen.Height + " takes " + speedMs.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " ms per copy here; " + speedGrab.Live);
+                        Stopwatch copyWatch = Stopwatch.StartNew();
+                        for (int copyRun = 0; copyRun < 30; copyRun++)
+                            using (Bitmap copied = speedGrab.Copy(480))
+                                if (copied == null || copied.Width != Math.Min(480, frameScreen.Width)) throw new Exception("Colour frames disappeared or changed size during the timing check.");
+                        checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_copy screen={0}x{1} to480_ms={2:0.000} gpu_chain={3}", frameScreen.Width, frameScreen.Height, copyWatch.Elapsed.TotalMilliseconds / 30, speedGrab.Chained));
                     }
                     else checks.Add("LIMIT gray frame timing lost access to this desktop");
                 }
