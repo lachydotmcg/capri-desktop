@@ -44667,6 +44667,7 @@ namespace CapriDesktop
             Func<Sight> scrollGlimpseWas = Computer.Glimpse;
             Func<IntPtr> scrollFrontWas = Hands.Foreground;
             Action<IntPtr> scrollPressWas = ScrollPress;
+            bool scrollFacingWas = facingLeft;
             try
             {
                 EndWatchAlong();
@@ -44684,7 +44685,7 @@ namespace CapriDesktop
                 if (WatchWith("stop") != "Done scrolling. that was a lot of videos." || ScrollingForThem) throw new Exception("Scroll for me didn't stop.");
                 checks.Add("PASS scroll for me: she only starts with TikTok, Shorts or Reels in front, reacts to each video with its own prompt and stops when asked");
             }
-            finally { EndWatchAlong(); Computer.Glimpse = scrollGlimpseWas; Hands.Foreground = scrollFrontWas; ScrollPress = scrollPressWas; }
+            finally { EndWatchAlong(); Computer.Glimpse = scrollGlimpseWas; Hands.Foreground = scrollFrontWas; ScrollPress = scrollPressWas; facingLeft = scrollFacingWas; }
         }
 
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
