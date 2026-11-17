@@ -37,6 +37,8 @@ namespace CapriDesktop
         private static int Main(string[] args)
         {
             if (ServicePointManager.DefaultConnectionLimit < 16) ServicePointManager.DefaultConnectionLimit = 16;
+            ServicePointManager.UseNagleAlgorithm = false;
+            ServicePointManager.Expect100Continue = false;
             Started = Stopwatch.GetTimestamp();
             if (args.Length > 0 && args[0] == "--smoke-child") return SmokeRun.Child(args);
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
@@ -37489,6 +37491,17 @@ namespace CapriDesktop
                 string cacheUser = cacheRequest.Messages[cacheRequest.Messages.Length - 1].Content;
                 if (!cacheChat.StartsWith("[{\"cache_control\":{\"type\":\"ephemeral\"}", StringComparison.Ordinal) || cacheChat.Contains("If the time or date is needed, it's ") || !cacheUser.StartsWith("(For you, not from them:", StringComparison.Ordinal) || !cacheUser.Contains("If the time or date is needed, it's ")) throw new Exception("The time didn't move from Claude's system prompt to the user note: " + cacheChat + " / " + cacheUser);
                 checks.Add("PASS Claude's cache: her prompts mark the part that stays the same, chat's time is in the last user message, and a prompt with nothing steady has no mark");
+                ClaudeRequest roundBody = new ClaudeRequest { Model = "claude-haiku-5-5", Messages = new[] { new ChatMessage("user", "open \"notepad\""), new ChatMessage("assistant", "(You called open_app)"), new ChatMessage("user", "open_app: \"Opened.\"\nWhat next?") } };
+                Brain.CacheTurn(roundBody);
+                string roundJson = Brain.Spliced(System.Text.Encoding.UTF8.GetString(Brain.Json(roundBody)), roundBody, "[{\"name\":\"open_app\"}]", null);
+                string roundMessages = Brain.Field(roundJson, "messages");
+                ClaudeRequest pictured = new ClaudeRequest { Messages = new[] { new ChatMessage("user", "@capri-image@") } };
+                Brain.CacheTurn(pictured);
+                if (roundMessages == null || !roundMessages.StartsWith("[{\"content\":\"open \\\"notepad\\\"\",\"role\":\"user\"}", StringComparison.Ordinal)
+                    || !roundMessages.EndsWith("{\"content\":[{\"type\":\"text\",\"text\":\"open_app: \\\"Opened.\\\"\\u000aWhat next?\",\"cache_control\":{\"type\":\"ephemeral\"}}],\"role\":\"user\"}]", StringComparison.Ordinal)
+                    || System.Text.RegularExpressions.Regex.Matches(roundJson, "cache_control").Count != 1 || roundJson.Contains("@capri-turn@") || Brain.Field(roundJson, "tools") != "[{\"name\":\"open_app\"}]" || pictured.Turn != null)
+                    throw new Exception("Her tool rounds didn't mark their history for Claude's cache: " + roundJson);
+                checks.Add("PASS Claude's cache in her tool rounds: the newest turn carries the one extra mark, so each round reads the ones before it from the cache, and a turn with a picture in it is left alone");
                 string timeLine = Brain.Now();
                 DateTime timeDate = DateTime.Now;
                 if (!timeLine.StartsWith("\nIf the time or date is needed, it's ", StringComparison.Ordinal) || !timeLine.Contains(timeDate.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture)) || !timeLine.Contains(timeDate.ToString("yyyy", System.Globalization.CultureInfo.InvariantCulture)) || System.Text.RegularExpressions.Regex.IsMatch(timeLine, @"\b(answer|tell|say)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new Exception("Her time line lost its condition or date, or gives an order to answer.");
@@ -49621,7 +49634,8 @@ namespace CapriDesktop
                         if (step == 0)
                         {
                             if (ServicePointManager.DefaultConnectionLimit < 16) throw new Exception("Startup left fewer than 16 connections per host.");
-                            checks.Add("PASS startup allows at least 16 connections per host");
+                            if (ServicePointManager.UseNagleAlgorithm || ServicePointManager.Expect100Continue) throw new Exception("Startup left her requests waiting on Nagle or on 100-continue: Nagle " + ServicePointManager.UseNagleAlgorithm + ", 100-continue " + ServicePointManager.Expect100Continue);
+                            checks.Add("PASS startup allows at least 16 connections per host, and her requests go out without waiting on Nagle or a 100-continue");
                             if (OnGitHub) checks.Add("LIMIT Mainframe's Auto size: GitHub's virtual screen has no real panel to compare its desktop with, so Auto stays at 100% there");
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
