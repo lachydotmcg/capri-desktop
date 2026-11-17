@@ -5219,6 +5219,39 @@ namespace CapriDesktop
 
         private static HttpWebRequest Open(string path, int timeout) { return Create(Ollama + path, timeout); }
 
+        private string warmedHost;
+        private int warmedAt;
+
+        internal void Preconnect()
+        {
+            Cloud sending = Remote;
+            if (Off || sending == null || sending.Kind == null || sending.Kind == "local" || sending.Plan) return;
+            string host;
+            try { host = new Uri(sending.Claude ? ClaudeAddress(sending.Key, "/models") : Address(sending.Kind, "/models")).GetLeftPart(UriPartial.Authority); }
+            catch (BrainException) { return; }
+            int now = Environment.TickCount;
+            lock (gate)
+            {
+                if (host == warmedHost && unchecked(now - warmedAt) < 60000) return;
+                warmedHost = host;
+                warmedAt = now;
+            }
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate { Warm(host); });
+        }
+
+        internal static void Warm(string host)
+        {
+            if (Off) return;
+            try
+            {
+                HttpWebRequest request = Create(host + "/", 10000);
+                request.Method = "HEAD";
+                using (WebResponse response = request.GetResponse()) { }
+            }
+            catch (WebException error) { if (error.Response != null) error.Response.Close(); }
+            catch (Exception) { }
+        }
+
         private static HttpWebRequest Create(string url, int timeout)
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;

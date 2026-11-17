@@ -13948,6 +13948,7 @@ namespace CapriDesktop
             StopExplore();
             if (typer.Visible) { typer.Hide(); return; }
             WakeRest(!SleepBusy);
+            if (!testing) brain.Preconnect();
             float s = TalkScale();
             if (docked) typer.Open(GameHud.Bounds.Location, GameHud.Bounds.Location, Screen.FromRectangle(GameHud.Bounds).WorkingArea, s, GameHud.Bounds);
             else typer.Open(Head(), new Point(Feet().X, Feet().Y + (int)(44 * s)), Screen.FromPoint(Head()).WorkingArea, s, box.Visible ? box.PanelOnScreen : Rectangle.Empty);
@@ -13959,6 +13960,7 @@ namespace CapriDesktop
             if (chatting) { earsClosed = preferences.ListenCapri; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
             earsClosed = false;
             WakeRest(true);
+            if (!testing) brain.Preconnect();
             // Listen for Capri needs her own ears; otherwise voice chat follows the VOICE pick.
             if (CallModeOn || ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, voice.Key != null)) { StartLocal(); return; }
             if ((preferences.Quiet || preferences.Silent) && voice.Key != null)
@@ -36779,6 +36781,19 @@ namespace CapriDesktop
         }
 
         private static string SentBody(string request) { return request.Substring(request.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4); }
+        private static string HeadFrom(NetworkStream stream)
+        {
+            System.Text.StringBuilder head = new System.Text.StringBuilder();
+            while (head.Length < 65536)
+            {
+                int one = stream.ReadByte();
+                if (one < 0) break;
+                head.Append((char)one);
+                if (head.Length >= 4 && head[head.Length - 1] == '\n' && head[head.Length - 2] == '\r' && head[head.Length - 3] == '\n' && head[head.Length - 4] == '\r') break;
+            }
+            return head.ToString();
+        }
+
 
         private static void SmokeCloudBrains(System.Collections.Generic.List<string> checks)
         {
@@ -37559,6 +37574,47 @@ namespace CapriDesktop
                     || System.Text.RegularExpressions.Regex.Matches(roundJson, "cache_control").Count != 1 || roundJson.Contains("@capri-turn@") || Brain.Field(roundJson, "tools") != "[{\"name\":\"open_app\"}]" || pictured.Turn != null)
                     throw new Exception("Her tool rounds didn't mark their history for Claude's cache: " + roundJson);
                 checks.Add("PASS Claude's cache in her tool rounds: the newest turn carries the one extra mark, so each round reads the ones before it from the cache, and a turn with a picture in it is left alone");
+                TcpListener warmServer = new TcpListener(IPAddress.Loopback, 0);
+                warmServer.Start();
+                int warmAccepts = 0;
+                string warmFirst = null, warmSecond = null;
+                Thread warmThread = new Thread(delegate()
+                {
+                    try
+                    {
+                        while (true)
+                        {
+                            TcpClient warmClient = warmServer.AcceptTcpClient();
+                            if (Interlocked.Increment(ref warmAccepts) > 1) { warmClient.Close(); continue; }
+                            NetworkStream warmStream = warmClient.GetStream();
+                            warmFirst = HeadFrom(warmStream);
+                            byte[] warmMissing = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
+                            warmStream.Write(warmMissing, 0, warmMissing.Length);
+                            warmSecond = HeadFrom(warmStream);
+                            byte[] warmOk = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok");
+                            warmStream.Write(warmOk, 0, warmOk.Length);
+                        }
+                    }
+                    catch (Exception) { }
+                }) { IsBackground = true };
+                warmThread.Start();
+                string warmHost = "http://127.0.0.1:" + ((IPEndPoint)warmServer.LocalEndpoint).Port;
+                string warmBody = null;
+                try
+                {
+                    Brain.Warm(warmHost);
+                    HttpWebRequest warmFollow = (HttpWebRequest)WebRequest.Create(warmHost + "/v1/models");
+                    warmFollow.Proxy = null;
+                    warmFollow.Timeout = warmFollow.ReadWriteTimeout = 3000;
+                    using (WebResponse warmReply = warmFollow.GetResponse())
+                    using (StreamReader warmReader = new StreamReader(warmReply.GetResponseStream())) warmBody = warmReader.ReadToEnd();
+                }
+                catch (WebException) { }
+                finally { warmServer.Stop(); }
+                if (warmFirst == null || !warmFirst.StartsWith("HEAD / HTTP/1.1", StringComparison.Ordinal) || warmFirst.IndexOf("Authorization", StringComparison.OrdinalIgnoreCase) >= 0 || warmFirst.IndexOf("x-api-key", StringComparison.OrdinalIgnoreCase) >= 0
+                    || warmSecond == null || !warmSecond.StartsWith("GET /v1/models HTTP/1.1", StringComparison.Ordinal) || warmBody != "ok" || warmAccepts != 1)
+                    throw new Exception("Her brain warm-up didn't leave one open connection for the next ask: " + warmAccepts + " / " + warmFirst + " / " + warmSecond + " / " + warmBody);
+                checks.Add("PASS her brain warm-up: a bare HEAD with no key opens the connection and the next ask goes down the same one");
                 string timeLine = Brain.Now();
                 DateTime timeDate = DateTime.Now;
                 if (!timeLine.StartsWith("\nIf the time or date is needed, it's ", StringComparison.Ordinal) || !timeLine.Contains(timeDate.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture)) || !timeLine.Contains(timeDate.ToString("yyyy", System.Globalization.CultureInfo.InvariantCulture)) || System.Text.RegularExpressions.Regex.IsMatch(timeLine, @"\b(answer|tell|say)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new Exception("Her time line lost its condition or date, or gives an order to answer.");
