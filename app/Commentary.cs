@@ -550,7 +550,7 @@ namespace CapriDesktop
         private bool CommentFree()
         {
             double now = clock.Elapsed.TotalSeconds;
-            if (OwnLinesOff || (hidden && !docked) || quitting || pushing || transcribing || typer.Visible || PlayingGame) return false;
+            if (Hushed || (hidden && !docked) || quitting || pushing || transcribing || typer.Visible || PlayingGame) return false;
             if (speaker.Busy || now < voiceUntil) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);

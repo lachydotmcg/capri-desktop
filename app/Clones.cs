@@ -1042,7 +1042,7 @@ namespace CapriDesktop
         {
             if (hidden) { ClonesOff(); return; }
             if (testing || cloneTalking || now < cloneTalkAt || cloneWindow == null || cloneWindow.Swarm.Bodies.Count == 0) return;
-            if (working != null || speech != null || talkState != TalkState.Off || (chatting && !local) || OwnLinesOff || brain.Model == null) return;
+            if (working != null || speech != null || talkState != TalkState.Off || (chatting && !local) || Hushed || brain.Model == null) return;
             cloneTalking = true;
             int turn = ++cloneTurn;
             int copies = cloneWindow.Swarm.Bodies.Count + 1;

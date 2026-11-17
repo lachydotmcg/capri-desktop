@@ -1071,8 +1071,7 @@ namespace CapriDesktop
             { "fast_hands", "Fast hands in games", "Games" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
             { "voice_layers", "Voice layers", "Voice" }, { "show_advanced", "Advanced settings", "Capri" }, { "listen_for_capri", "Listen for Capri", "Voice" }, { "voice_in_mic", "My voice in your mic", "Voice" },
             { "jealous_of_other_ais", "Jealous of other AIs", "Capri" }, { "close_other_ais", "Close other AIs for me", "Capri" },
-            { "chimes", "Chimes", "Sounds" }, { "chime_sent", "Message sent chime", "Sounds" }, { "chime_heard", "Heard you chime", "Sounds" }, { "chime_listening", "Listening chime", "Sounds" },
-            { "only_when_asked", "Only talk when asked", "Capri" }
+            { "chimes", "Chimes", "Sounds" }, { "chime_sent", "Message sent chime", "Sounds" }, { "chime_heard", "Heard you chime", "Sounds" }, { "chime_listening", "Listening chime", "Sounds" }
         };
 
         // Her own sliders her settings tool reads and moves, the same way, with their steps from the bottom up in OwnSteps, named
@@ -1181,8 +1180,7 @@ namespace CapriDesktop
         // A few words for the settings whose names don't say what they do, for her brain.
         private static readonly Dictionary<string, string> SettingMeanings = new Dictionary<string, string>
         {
-            { "voice", "you talking out loud; off, you type" }, { "quiet", "no pop-ins, comments or check-ins" },
-            { "only_when_asked", "you say nothing on your own, not even in your bubble, and only answer when they talk to you; reminders and watches they asked for still come, and it stays on after a restart" }, { "mic", "your ears in voice chat, while it's on" },
+            { "voice", "you talking out loud; off, you type" }, { "quiet", "no pop-ins, comments or check-ins" }, { "mic", "your ears in voice chat, while it's on" },
             { "check_ins", "every check-in, including water, stretch, look away, sleep, meals, game breaks and boredom; off keeps their switches and times saved" },
             { "hologram", "clicks pass through you" }, { "head_pats", "they pat your head with their cursor" }, { "chaos_when_upset", "an insult sets your clones off" },
             { "legacy_stand", "your old stand, for mods your new one broke" },

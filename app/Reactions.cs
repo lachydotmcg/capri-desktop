@@ -168,7 +168,7 @@ namespace CapriDesktop
 
         private bool JealousMayClose(JealousWindow target)
         {
-            return JealousAIs && CloseAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !OwnLinesOff && !hidden && !quitting && !IsDisposed && !FullScreen();
+            return JealousAIs && CloseAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
         }
 
         private void DropJealous()
@@ -205,7 +205,7 @@ namespace CapriDesktop
             if (jealousOffer != null)
             {
                 JealousWindow target = jealousOffer;
-                if (!JealousMayClose(target) || OwnLinesOff || now >= target.Until || jealousTicket != asking || !jealousAsked && !Jealous.Same(target, ahead)) EndJealous();
+                if (!JealousMayClose(target) || Hushed || now >= target.Until || jealousTicket != asking || !jealousAsked && !Jealous.Same(target, ahead)) EndJealous();
                 else if (!jealousAsked && jealousReady && !Voicing && !pushing && !transcribing && (!target.React || replyDone >= 0 && talkState == TalkState.Online))
                 {
                     CloseTalk(false);
@@ -219,7 +219,7 @@ namespace CapriDesktop
                 }
             }
             bool free = Jealous.Free(JealousAIs, CallModeOn || preferences.CallMode || chatting, LineBusy || speech != null || talkState != TalkState.Off, full)
-                && !OwnLinesOff && !hidden && !quitting && !dragging && !pressed && !typer.Visible && !menu.Visible && !docked && !onPanel && !riding && !falling && !hanging && job == null && working == null && jealousOffer == null;
+                && !Hushed && !hidden && !quitting && !dragging && !pressed && !typer.Visible && !menu.Visible && !docked && !onPanel && !riding && !falling && !hanging && job == null && working == null && jealousOffer == null;
             JealousWindow found = jealous.Notice(ahead, free, now);
             if (found == null) return;
             if (found.React) JealousReaction(found, now, random.Next(Jealous.Lines.Length));
@@ -1302,7 +1302,7 @@ namespace CapriDesktop
         // not playing the game herself, since her own game lines cover that.
         private bool ReactionsWatch()
         {
-            if (preferences.NoReactions || preferences.OnlyWhenAsked || quitting || PlayingGame) return false;
+            if (preferences.NoReactions || quitting || PlayingGame) return false;
             if (Asleep || napAsked || napping || ownNap) return false;
             return !manualHidden || docked;
         }
