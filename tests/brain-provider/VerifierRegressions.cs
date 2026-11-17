@@ -91,6 +91,41 @@ internal static class VerifierRegressions
                 recoveredPet.Brain.Model == "google-new" && recoveredSettings.FreeModel == "google-new" &&
                 Pet.ProviderModel(recoveredSettings, "nvidia", 1) == "nv-old" && Pet.ProviderModel(recoveredSettings, "google", 1) == "google-new");
 
+            CapriDesktop.Program.Smoke = null;
+            Call(recoveredPet, "WriteSettings");
+            string persistedNotice;
+            bool persistedBlocked;
+            Settings persisted = Pet.ReadSettings(Path.Combine(mixed, "cross.json"), out persistedNotice, out persistedBlocked);
+            Check("recovered provider memory survives a settings write", persistedNotice == null && !persistedBlocked &&
+                persisted.FreeModel == "google-new" && Pet.ProviderModel(persisted, "nvidia", 1) == "nv-old" &&
+                Pet.ProviderModel(persisted, "google", 1) == "google-new");
+            CapriDesktop.Program.Smoke = mixed;
+
+            string emptyTier = Path.Combine(root, "empty-tier");
+            Directory.CreateDirectory(emptyTier);
+            File.WriteAllText(Path.Combine(emptyTier, "cross.json"), "{\"VoiceProvider\":\"off\",\"BrainTier\":2,\"FreeModel\":\"\",\"PaidModel\":\"paid-live\"}");
+            File.WriteAllText(Path.Combine(emptyTier, "cross-new.json"), "{\"ProviderModels\":[{\"Provider\":\"google\",\"Model\":\"google-memory\",\"Tier\":1}]}");
+            File.WriteAllText(Path.Combine(emptyTier, "brain-free-key"), "AIza-free");
+            File.WriteAllText(Path.Combine(emptyTier, "brain-paid-key"), "sk-or-paid");
+            string emptyNotice;
+            bool emptyBlocked;
+            Settings emptySaved = Pet.ReadSettings(Path.Combine(emptyTier, "cross.json"), out emptyNotice, out emptyBlocked);
+            Check("recovery inherits memory for an empty tier slot", emptyNotice == null && !emptyBlocked && emptySaved.FreeModel == "" &&
+                Pet.ProviderModel(emptySaved, "google", 1) == "google-memory" && Pet.TierModel(emptySaved, "google", 1) == "google-memory");
+
+            string otherTier = Path.Combine(root, "other-tier");
+            Directory.CreateDirectory(otherTier);
+            File.WriteAllText(Path.Combine(otherTier, "cross.json"), "{\"VoiceProvider\":\"off\",\"BrainTier\":2,\"FreeModel\":\"google-live\",\"PaidModel\":\"nv-live\"}");
+            File.WriteAllText(Path.Combine(otherTier, "cross-new.json"), "{\"ProviderModels\":[{\"Provider\":\"google\",\"Model\":\"google-stale\",\"Tier\":1},{\"Provider\":\"nvidia\",\"Model\":\"nv-stale\",\"Tier\":2},{\"Provider\":\"nvidia\",\"Model\":\"nv-free-memory\",\"Tier\":1},{\"Provider\":\"google\",\"Model\":\"google-paid-memory\",\"Tier\":2}]}");
+            File.WriteAllText(Path.Combine(otherTier, "brain-free-key"), "AIza-free");
+            File.WriteAllText(Path.Combine(otherTier, "brain-paid-key"), "nvapi-paid");
+            string otherNotice;
+            bool otherBlocked;
+            Settings otherSaved = Pet.ReadSettings(Path.Combine(otherTier, "cross.json"), out otherNotice, out otherBlocked);
+            Check("recovery retains the other tier's provider memory", otherNotice == null && !otherBlocked &&
+                Pet.ProviderModel(otherSaved, "google", 1) == null && Pet.ProviderModel(otherSaved, "nvidia", 2) == null &&
+                Pet.ProviderModel(otherSaved, "nvidia", 1) == "nv-free-memory" && Pet.ProviderModel(otherSaved, "google", 2) == "google-paid-memory");
+
             string untiered = Path.Combine(root, "untiered-provider-memory");
             Directory.CreateDirectory(untiered);
             CapriDesktop.Program.Smoke = untiered;
