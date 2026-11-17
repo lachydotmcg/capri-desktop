@@ -101,6 +101,7 @@ namespace CapriDesktop
     {
         [DataMember] internal string Provider;
         [DataMember] internal string Model;
+        [DataMember] internal int Tier;
     }
 
     internal sealed class RemoteTurn
@@ -964,7 +965,7 @@ namespace CapriDesktop
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
-            if (AdoptProvider(Saved, Brain.Remote == null ? null : Brain.Remote.Kind)) WriteSettings();
+            if (AdoptProvider(Saved, Brain.Remote == null ? null : Brain.Remote.Kind)) KeepAdoptedProvider();
             voice.Key = ReadVoiceKey();
             // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
             Brain.Secrets = delegate { Cloud remote = Brain.Remote; return new[] { remote == null ? null : remote.Key, Brain.ServerKey, voice.Key }; };
@@ -6262,7 +6263,7 @@ namespace CapriDesktop
                         try
                         {
                             if (request != brainRequests) { NotifySettings(); return; }
-                            string model = found == null ? null : KeyModel(Saved, kind, found);
+                            string model = found == null ? null : KeyModel(Saved, kind, found, pickedTier);
                             if (problem == null && model == null) problem = "That key can't use any chat models.";
                             if (problem != null) { frameProblem = problem; if (phone != null) DropPhoneKey(Brain.Brief(problem) ?? problem); NotifySettings(); if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
                             if (phone != null) { phoneKey = null; if (remoteBrainTimer != null) remoteBrainTimer.Stop(); }
@@ -6784,42 +6785,61 @@ namespace CapriDesktop
 
         internal static string ProviderKind(Settings saved, string inferred)
         {
-            return saved != null && !string.IsNullOrEmpty(saved.BrainProvider) ? saved.BrainProvider : inferred;
+            return !string.IsNullOrEmpty(inferred) ? inferred : saved == null ? null : saved.BrainProvider;
         }
 
         internal static bool AdoptProvider(Settings saved, string inferred)
         {
-            if (saved == null || saved.BrainProvider != null || string.IsNullOrEmpty(inferred)) return false;
+            if (saved == null || string.IsNullOrEmpty(inferred) || saved.BrainProvider == inferred) return false;
+            if (KnownProvider(saved.BrainProvider)) return false;
             saved.BrainProvider = inferred;
             return true;
         }
 
-        internal static string ProviderModel(Settings saved, string provider)
+        internal static bool KnownProvider(string provider)
+        {
+            return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "claudecode" || provider == "codex";
+        }
+
+        internal static string ProviderModel(Settings saved, string provider, int? tier = null)
         {
             if (saved == null || saved.ProviderModels == null || string.IsNullOrEmpty(provider)) return null;
-            foreach (ProviderModelPick pick in saved.ProviderModels) if (pick != null && pick.Provider == provider && !string.IsNullOrEmpty(pick.Model)) return pick.Model;
+            foreach (ProviderModelPick pick in saved.ProviderModels) if (pick != null && pick.Provider == provider && (tier == null || pick.Tier == tier.Value) && !string.IsNullOrEmpty(pick.Model)) return pick.Model;
             return null;
         }
 
-        internal static void RememberProviderModel(Settings saved, string provider, string model)
+        internal static void RememberProviderModel(Settings saved, string provider, string model, int tier)
         {
             if (saved == null || string.IsNullOrEmpty(provider) || string.IsNullOrEmpty(model)) return;
             List<ProviderModelPick> picks = new List<ProviderModelPick>();
-            if (saved.ProviderModels != null) foreach (ProviderModelPick pick in saved.ProviderModels) if (pick != null && pick.Provider != provider) picks.Add(pick);
-            picks.Add(new ProviderModelPick { Provider = provider, Model = model });
+            if (saved.ProviderModels != null) foreach (ProviderModelPick pick in saved.ProviderModels) if (pick != null && !(pick.Provider == provider && (pick.Tier == tier || pick.Tier == 0))) picks.Add(pick);
+            picks.Add(new ProviderModelPick { Provider = provider, Model = model, Tier = tier });
             saved.ProviderModels = picks.ToArray();
         }
 
         internal static string TierModel(Settings saved, string provider, int tier)
         {
-            string model = ProviderModel(saved, provider);
+            string model = ProviderModel(saved, provider, tier);
             return model != null ? model : tier == 1 ? saved.FreeModel : saved.PaidModel;
         }
 
-        internal static string KeyModel(Settings saved, string provider, List<string> models)
+        internal static string KeyModel(Settings saved, string provider, List<string> models, int tier)
         {
-            string model = ProviderModel(saved, provider);
+            string model = ProviderModel(saved, provider, tier);
             return model != null && models != null && models.Contains(model) ? model : Brain.DefaultCloudModel(provider, models);
+        }
+
+        private void KeepAdoptedProvider()
+        {
+            if (Program.Smoke != null || settingsWriteBlocked) return;
+            string path = Path.Combine(folder, "cross.json");
+            if (!File.Exists(path)) { WriteSettings(); return; }
+            string notice;
+            bool blocked;
+            Settings current = ReadSettings(path, out notice, out blocked);
+            if (blocked || notice != null || current == null || current.BrainProvider != null) return;
+            current.BrainProvider = Saved.BrainProvider;
+            WriteSettings(current);
         }
 
         private Settings Load()
@@ -6909,12 +6929,17 @@ namespace CapriDesktop
 
         private void WriteSettings()
         {
+            WriteSettings(Saved);
+        }
+
+        private void WriteSettings(Settings worth)
+        {
             if (Program.Smoke != null || settingsWriteBlocked) return;
             try
             {
                 Directory.CreateDirectory(folder);
-                using (FileStream stream = File.Create(Path.Combine(folder, "cross.json"))) new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, Saved);
-                using (FileStream stream = File.Create(Path.Combine(folder, "cross-new.json"))) new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(Saved));
+                using (FileStream stream = File.Create(Path.Combine(folder, "cross.json"))) new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, worth);
+                using (FileStream stream = File.Create(Path.Combine(folder, "cross-new.json"))) new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(worth));
             }
             catch (Exception) { }
         }

@@ -383,7 +383,8 @@ namespace CapriDesktop
             WriteSecret(TierKeyFile(tier), Brain.Remote.Key, "brain key");
             if (tier == 1) Saved.FreeModel = Brain.Remote.Model;
             else Saved.PaidModel = Brain.Remote.Model;
-            RememberProviderModel(Saved, ProviderKind(Saved, Brain.Remote.Kind), Brain.Remote.Model);
+            Saved.BrainProvider = Brain.Remote.Kind;
+            RememberProviderModel(Saved, ProviderKind(Saved, Brain.Remote.Kind), Brain.Remote.Model, tier);
         }
         private void RestoreBrainTier()
         {
