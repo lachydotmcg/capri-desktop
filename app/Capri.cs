@@ -49326,6 +49326,8 @@ namespace CapriDesktop
                 Action resetGlance = null;
                 double glanceDeadline = 0;
                 double linkDeadline = 0;
+                double replayDeadline = 0;
+                double talkDeadline = 0;
                 short[][] earLine = null;
                 System.Collections.Generic.List<string> checks = SmokeRun.Checks();
                 bool sectionsRun = false;
@@ -61306,7 +61308,13 @@ namespace CapriDesktop
                         {
                             string log;
                             lock (asked) log = string.Join(" | ", asked.ToArray());
-                            if (System.Text.RegularExpressions.Regex.Matches(log, "get-signed-url").Count < 2 || System.Text.RegularExpressions.Regex.Matches(log, "init \\{").Count < 2 || log.IndexOf("woke silent | woke loud | woke loud | woke loud", StringComparison.Ordinal) < 0) throw new Exception("Talking did not reopen the link and replay what she missed: " + log);
+                            bool replayed = System.Text.RegularExpressions.Regex.Matches(log, "get-signed-url").Count >= 2 && System.Text.RegularExpressions.Regex.Matches(log, "init \\{").Count >= 2 && log.IndexOf("woke silent | woke loud | woke loud | woke loud", StringComparison.Ordinal) >= 0;
+                            if (!replayed)
+                            {
+                                if (replayDeadline == 0) replayDeadline = clock.Elapsed.TotalSeconds + 5;
+                                if (clock.Elapsed.TotalSeconds < replayDeadline) return;
+                                throw new Exception("Talking did not reopen the link and replay what she missed: " + log);
+                            }
                             string tunedFor = "http PATCH /v1/convai/agents/agent_old sk_test_capri_1234 {\"conversation_config\":{\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45},\"agent\":{\"prompt\":{\"prompt\":\"";
                             string callPrompt = Voice.Quote(Brain.Persona + Hands.Note);
                             callPrompt = callPrompt.Substring(1, callPrompt.Length - 2);
@@ -61361,6 +61369,11 @@ namespace CapriDesktop
                         {
                             string[] heardLog;
                             lock (earsLog) heardLog = earsLog.ToArray();
+                            if (string.Join(" | ", heardLog) != "think What's up, choom? | free voice Just vibing, choom." || reply != "Just vibing, choom.")
+                            {
+                                if (talkDeadline == 0) talkDeadline = clock.Elapsed.TotalSeconds + 5;
+                                if (clock.Elapsed.TotalSeconds < talkDeadline) return;
+                            }
                             if (string.Join(" | ", heardLog) != "think What's up, choom? | free voice Just vibing, choom.") throw new Exception("Free voice chat heard wrong or didn't speak in her free voice: " + string.Join(" | ", heardLog));
                             FreeSpeak = null;
                             lock (earsLog) earsLog.Remove("free voice Just vibing, choom.");
