@@ -12,6 +12,11 @@
   try {
     const asked = new URLSearchParams(location.search);
     demoAsked = asked.has('demo');
+    if (asked.get('room') === 'pc' && !location.hash) {
+      let paired = null;
+      try { paired = JSON.parse(localStorage.getItem('capri-remote-pairing')); } catch (error) {}
+      if (!paired || paired.demo === true) demoAsked = true;
+    }
     gateAsked = asked.has('gate');
     iosAsked = asked.get('ios') || '';
   } catch (error) {}

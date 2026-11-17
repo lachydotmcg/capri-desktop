@@ -21,3 +21,7 @@ The Linux native font bootstrap adapts SkiaSharp’s MIT-licensed LibraryLoader 
 ## Room 3D
 
 Capri Remote's Room draws her with [three.js](https://threejs.org) r170 (three.module.min.js in `site/remote/vendor/three/`), Copyright (c) 2010-2024 three.js authors, under the [MIT License](https://opensource.org/licenses/MIT). The licence text is in `site/remote/vendor/three/LICENSE`.
+
+## Room cutout
+
+Capri Remote's Room on a PC webcam finds you in the picture with [MediaPipe Tasks Vision](https://github.com/google-ai-edge/mediapipe) 0.10.21 (`vision_bundle.js` and its SIMD wasm in `site/remote/vendor/mediapipe/`) and the MediaPipe selfie segmenter model (`selfie_segmenter.tflite`), Copyright Google LLC, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). The licence text is in `site/remote/vendor/mediapipe/LICENSE`.

@@ -21,7 +21,13 @@ export const createLife = ({ tall = 0.5, say = () => {}, calm = () => false, ran
     mode: 'sit', position: null, velocity: [0, 0, 0], target: null, home: null, act: null, face: 0,
     pose: 'perch', since: 0, quiet: 0, held: null, throws: [], pokes: [], sulkUntil: 0, nextIdea: 0, lastLine: 0
   };
-  const scale = Math.max(0.3, tall / 0.5), gravity = G * Math.min(1, Math.max(0.45, scale));
+  let scale, gravity;
+  const size = next => {
+    tall = next;
+    scale = Math.max(0.3, tall / 0.5);
+    gravity = G * Math.min(1, Math.max(0.45, scale));
+  };
+  size(tall);
   const speed = () => Math.max(0.12, tall * 0.7);
   const line = (kind, now, force = false) => {
     if (!force && now - life.lastLine < 2500) return;
@@ -130,6 +136,7 @@ export const createLife = ({ tall = 0.5, say = () => {}, calm = () => false, ran
     line(life.pokes.length >= 5 ? 'annoyed' : 'poke', now, true);
   };
   life.touch = now => { life.quiet = now; };
+  life.setTall = next => size(next);
 
   life.tick = (now, dt, world) => {
     if (!life.position) return;

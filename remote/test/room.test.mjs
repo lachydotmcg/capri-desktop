@@ -161,6 +161,31 @@ test('room on a pc lets you pick her up, throw her off the walls of the picture 
   }
 });
 
+test('the room window from the pc app opens her room straight away, sizes her and finds you in the picture', { skip: !chromePath() }, async () => {
+  const site = await startSite(8984);
+  let page;
+  try {
+    page = await launch({ port: 9496, width: 1180, height: 880, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'] });
+    await page.go('http://127.0.0.1:8984/?room=pc');
+    await page.until("!document.getElementById('room-controls').hidden", 'room opened by itself', 15000);
+    assert.equal(await page.run("document.getElementById('app').dataset.window"), 'room');
+    if (!await page.run("!!document.querySelector('#room-view canvas')")) return;
+    await page.until("!document.getElementById('room-size-box').hidden", 'size slider');
+    await page.until("document.getElementById('room-her').style.getPropertyValue('--s')", 'her size');
+    const before = await page.run("parseFloat(document.getElementById('room-her').style.getPropertyValue('--s'))");
+    await page.run("(() => { const s = document.getElementById('room-size'); s.value = '3'; s.dispatchEvent(new Event('input')); })()");
+    await page.until(`parseFloat(document.getElementById('room-her').style.getPropertyValue('--s')) > ${before * 2}`, 'her bigger');
+    assert.equal(await page.run("localStorage.getItem('capri-room-size')"), '3');
+    assert.equal(await page.run("document.querySelectorAll('#room-view canvas').length"), 2);
+    await page.run("(() => { const s = document.getElementById('room-size'); s.value = '1'; s.dispatchEvent(new Event('input')); })()");
+    await page.run("document.getElementById('room-close').click()");
+    assert.equal(await page.run("document.querySelectorAll('#room-view canvas').length"), 0);
+  } finally {
+    if (page) await page.close();
+    await site.close();
+  }
+});
+
 import { roomRig, roomPosition, roomPointer, dragRoom } from './lib/room.mjs';
 import { tone } from './lib/live.mjs';
 import { verifyArt } from './lib/room-art.mjs';

@@ -108,4 +108,8 @@
 .room-view[data-front] video { transform: scaleX(-1); }
 .room .room-controls #room-record[aria-pressed="true"] { --face: var(--hot); --rim: var(--hot); --ink: var(--on-ink); }
 .app[data-room="camera"][data-desk] .room { flex: 1 1 auto; min-height: min(520px, 66vh); }
-
+.room-size { display: flex; align-items: center; gap: 6px; padding: 0 6px; font-size: 12px; color: var(--cyan); }
+.room-size[hidden] { display: none; }
+.room-size input { width: 110px; accent-color: var(--cyan); }
+.app[data-window="room"] .room { max-width: none; }
+.app[data-window="room"][data-room="camera"] .room { flex: 1 1 auto; min-height: min(560px, 70vh); }
