@@ -2419,6 +2419,15 @@ namespace CapriDesktop
             return code == "cmn" ? "zh" : code == "nb" || code == "nn" ? "no" : code == "tl" ? "fil" : code;
         }
 
+        internal static bool Latin(string language)
+        {
+            string code = Code(language);
+            if (code.Length == 0) return false;
+            for (int i = 0; i < Scripts.GetLength(0); i++)
+                if ((" " + Scripts[i, 0] + " ").Contains(" " + code + " ")) return false;
+            return true;
+        }
+
         internal static bool Reads(string text, string language)
         {
             string alphabet = Latin;
@@ -2614,6 +2623,82 @@ namespace CapriDesktop
         }
     }
 
+    internal static class VoiceTongues
+    {
+        internal static string Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/espeak-ng-data.tar.bz2";
+        internal static string Sha = "4135ccf82e1f40613491c0874d4945ae9e9c7840933d8e25a6f9e003d9ebf533";
+        internal static long Size = 7252012;
+        internal const string Label = "her voice's languages";
+        private static readonly string[,] Spoken =
+        {
+            { "fr", "fr", "e399ab924c4d10beef1fc310b30ea56e4ddfd8b4b64b8ed978e9c65394d49b2d" },
+            { "es", "es", "3fa93e251eab80838a2d6207ee58c9c847270a65fe3fae98850e0185b5a2186c" },
+            { "it", "it", "111f968359c9ebe36b107a2565ba9f258bab337d3cbe37e44871980a8f21ce6b" },
+            { "pt", "pt-br", "7e8398f15fa4a21db39a213381f28ec0d302b22663c644e865abb61a09c1b004" },
+            { "hi", "hi", "5a68c9532624e57ac845b26ce1e2e5034c4f6353bede46ecbe57e583ec8effd6" }
+        };
+
+        private static int Row(string code)
+        {
+            for (int i = 0; i < Spoken.GetLength(0); i++) if (Spoken[i, 0] == code) return i;
+            return -1;
+        }
+
+        internal static bool Knows(string code) { return Row(code) >= 0; }
+
+        internal static string Lang(string code) { int row = Row(code); return row < 0 ? null : Spoken[row, 1]; }
+
+        private static string Dict(string folder, string code) { return Path.Combine(Path.Combine(folder, "espeak-ng-data"), code + "_dict"); }
+
+        internal static bool Ready(string folder, string code)
+        {
+            if (!Knows(code)) return false;
+            FileInfo file = new FileInfo(Dict(folder, code));
+            return file.Exists && file.Length > 0;
+        }
+
+        internal static bool Missing(string folder)
+        {
+            for (int i = 0; i < Spoken.GetLength(0); i++) if (!Ready(folder, Spoken[i, 0])) return true;
+            return false;
+        }
+
+        internal static void Fetch(string folder, Action<string, long, long> progress, Func<bool> stopped)
+        {
+            if (!Missing(folder)) return;
+            string archive = folder + ".tongues.tar.bz2", staging = folder + ".tongues";
+            Engine.Fetch(Url, archive, Size, Sha, Label, progress, stopped);
+            try
+            {
+                TarReader.Clean(staging);
+                using (FileStream packed = new FileStream(archive, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
+                using (Stream plain = Bunzip.Open(packed))
+                {
+                    TarReader.Unpack(plain, staging, true);
+                    plain.CopyTo(Stream.Null);
+                }
+                for (int i = 0; i < Spoken.GetLength(0); i++)
+                {
+                    string code = Spoken[i, 0], from = Dict(staging, code), into = Dict(folder, code);
+                    if (Ready(folder, code)) continue;
+                    if (!File.Exists(from) || !string.Equals(Engine.Hash(from), Spoken[i, 2], StringComparison.OrdinalIgnoreCase)) throw new IOException(Engine.Unmatched(Label));
+                    Directory.CreateDirectory(Path.GetDirectoryName(into));
+                    string part = into + ".part";
+                    File.Copy(from, part, true);
+                    if (File.Exists(into)) File.Delete(into);
+                    File.Move(part, into);
+                }
+            }
+            finally
+            {
+                TarReader.Clean(staging);
+                try { File.Delete(archive); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+    }
+
     internal sealed class FreeStyle
     {
         internal readonly string Name;
@@ -2649,7 +2734,7 @@ namespace CapriDesktop
         private readonly string folder;
         private readonly object gate = new object();
         private IntPtr tts;
-        private bool british;
+        private string lang;
         internal volatile FreeStyle Style = Styles[0];
         internal volatile bool Cancel;
 
@@ -2725,19 +2810,27 @@ namespace CapriDesktop
         internal void Warm()
         {
             FreeStyle style = Style;
-            lock (gate) Open(style.British);
+            string code = Brain.LanguageCode(Brain.Language);
+            lock (gate) Open(style.British, Speaks(code) ? code : null);
         }
 
-        internal byte[] Speak(string text)
+        internal bool Speaks(string code) { return VoiceTongues.Ready(folder, code); }
+
+        internal void AddTongues(Action<string, long, long> progress, Func<bool> stopped) { VoiceTongues.Fetch(folder, progress, stopped); }
+
+        internal byte[] Speak(string text) { return Speak(text, null); }
+
+        internal byte[] Speak(string text, string code)
         {
-            if (!VoiceLanguage.Reads(text, "en")) throw new VoiceException(VoiceLanguage.Missing(VoiceLanguage.Tongue(text, Brain.Language), Brain.Language));
+            if (code != null && !Speaks(code)) throw new VoiceException("Her free voice doesn't have that language yet.");
+            if (!VoiceLanguage.Reads(text, code ?? "en")) throw new VoiceException(VoiceLanguage.Missing(VoiceLanguage.Tongue(text, Brain.Language), Brain.Language));
             FreeStyle style = Style;
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.Robot, glitch = VoiceFx.Glitch, rate;
             VoiceFx.Layering layers = VoiceFx.Layers;
             short[] pcm;
             lock (gate)
             {
-                Open(style.British);
+                Open(style.British, code);
                 IntPtr words = Utf8(text);
                 IntPtr audio = IntPtr.Zero;
                 try
@@ -2760,9 +2853,10 @@ namespace CapriDesktop
             return Voice.Wave(VoiceFx.Kokoro(pcm, rate, pitch, robot, glitch, VoiceFx.Seed(text), layers), rate);
         }
 
-        private void Open(bool gb)
+        private void Open(bool gb, string code)
         {
-            if (tts != IntPtr.Zero && british == gb) return;
+            string wanted = code == null ? (gb ? "en" : "en-us") : VoiceTongues.Lang(code);
+            if (tts != IntPtr.Zero && lang == wanted) return;
             if (IntPtr.Size != 8) throw new VoiceException("Her free voice needs 64-bit Windows.");
             if (!Installed) throw new VoiceException("Set up her free voice in Capri Mainframe.");
             Load(folder);
@@ -2778,8 +2872,8 @@ namespace CapriDesktop
                 config.Model.Kokoro.Voices = keep(Path.Combine(folder, "voices.bin"));
                 config.Model.Kokoro.Tokens = keep(Path.Combine(folder, "tokens.txt"));
                 config.Model.Kokoro.Data = keep(Path.Combine(folder, "espeak-ng-data"));
-                config.Model.Kokoro.Lexicon = keep(Path.Combine(folder, gb ? "lexicon-gb-en.txt" : "lexicon-us-en.txt"));
-                config.Model.Kokoro.Lang = keep(gb ? "en" : "en-us");
+                config.Model.Kokoro.Lexicon = code == null ? keep(Path.Combine(folder, gb ? "lexicon-gb-en.txt" : "lexicon-us-en.txt")) : IntPtr.Zero;
+                config.Model.Kokoro.Lang = keep(wanted);
                 config.MaxSentences = 1;
                 // sherpa-onnx ends the process on a file it can't read, with no exception to catch. The marker only exists while it opens,
                 // so finding one means that's how she went down last time: it goes in errors.txt and she skips her free voice this once.
@@ -2797,7 +2891,7 @@ namespace CapriDesktop
             catch (IOException error) { throw new VoiceException(Told(error)); }
             finally { foreach (IntPtr pointer in held) Marshal.FreeHGlobal(pointer); }
             if (tts == IntPtr.Zero) throw new VoiceException("Her free voice wouldn't start.");
-            british = gb;
+            lang = wanted;
         }
 
         // sherpa-onnx takes a folder with a letter like ś for no folder at all and then ends the whole process, with nothing in
