@@ -2,49 +2,140 @@ name: CI
 
 on:
   push:
-    branches-ignore: [gh-pages]
+    branches: [main, 'rc-*']
   pull_request:
   workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
-  windows:
+  # One build, so both smoke halves and the release test the same Capri.exe.
+  windows-build:
     runs-on: windows-2025
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - name: Full size screen
-        shell: powershell
-        run: ./ci/wide-screen.ps1
-      - name: Build and smoke test
+      - name: Build
         shell: pwsh
-        run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 2100
-      - name: Package marker
-        if: always()
-        shell: pwsh
-        run: |
-          $env:CAPRI_DISPOSABLE_USER = '1'
-          ./ci/test-package-marker.ps1 -Setup out/windows/Capri-Setup.exe
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: smoke-windows
-          path: out/windows/smoke
+        run: ./ci/build-windows.ps1 -OutputDirectory out/windows
       # The files the smoke test ran, so a release can ship exactly those.
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: windows
           path: |
             out/windows/Capri.exe
             out/windows/Capri-Setup.exe
-          if-no-files-found: warn
+          if-no-files-found: error
+
+  # --steps runs every step and each --shard runs a quarter of the sections, so the five parts together are the whole
+  # smoke test; ci/smoke-timings checks that every section lands in exactly one shard, and windows-total adds them up.
+  windows:
+    needs: windows-build
+    runs-on: windows-2025
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - part: steps
+            args: --steps
+          - part: sections-0
+            args: --no-steps --shard 0/4
+          - part: sections-1
+            args: --no-steps --shard 1/4
+          - part: sections-2
+            args: --no-steps --shard 2/4
+          - part: sections-3
+            args: --no-steps --shard 3/4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: out/windows
+      - name: Full size screen
+        shell: powershell
+        run: ./ci/wide-screen.ps1
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $out = [IO.Path]::GetFullPath('out/windows')
+          $runtime = Join-Path $out 'smoke\runtime'
+          $check = Start-Process -FilePath (Join-Path $out 'Capri.exe') -ArgumentList (@('--smoke-test', ('"' + $runtime + '"')) + '${{ matrix.args }}'.Split(' ')) -PassThru -WindowStyle Hidden
+          if (-not $check.WaitForExit(2100 * 1000)) { $check.Kill(); throw 'Runtime smoke test timed out.' }
+          if (Test-Path -LiteralPath (Join-Path $runtime 'smoke-test.txt')) { Get-Content -LiteralPath (Join-Path $runtime 'smoke-test.txt') }
+          else { throw 'Runtime smoke test wrote no results.' }
+          if ($check.ExitCode -ne 0) {
+              if (Test-Path -LiteralPath (Join-Path $runtime 'failure.txt')) { Get-Content -LiteralPath (Join-Path $runtime 'failure.txt') }
+              throw 'Runtime smoke test failed.'
+          }
+      - name: Installer check
+        if: matrix.part == 'sections-0'
+        shell: pwsh
+        run: |
+          $out = [IO.Path]::GetFullPath('out/windows')
+          $app = Join-Path $out 'Capri.exe'
+          $package = Join-Path $out 'smoke\package'
+          $verify = Start-Process -FilePath (Join-Path $out 'Capri-Setup.exe') -ArgumentList @('--verify', ('"' + $package + '"')) -PassThru -WindowStyle Hidden
+          if (-not $verify.WaitForExit(2100 * 1000)) { $verify.Kill(); throw 'Installer check timed out.' }
+          if ($verify.ExitCode -ne 0) {
+              if (Test-Path -LiteralPath (Join-Path $package 'failure.txt')) { Get-Content -LiteralPath (Join-Path $package 'failure.txt') }
+              throw 'Installer check failed.'
+          }
+          if ((Get-FileHash -LiteralPath (Join-Path $package 'Capri.exe')).Hash -ne (Get-FileHash -LiteralPath $app).Hash) { throw 'Installer payload differs from the app executable.' }
+          Get-Content -LiteralPath (Join-Path $package 'packaging-test.txt')
+          Write-Output 'PASS installer payload matches the app'
+      - name: Package marker
+        if: always() && matrix.part == 'sections-0'
+        shell: pwsh
+        run: |
+          $env:CAPRI_DISPOSABLE_USER = '1'
+          ./ci/test-package-marker.ps1 -Setup out/windows/Capri-Setup.exe
+      - name: Slowest smoke sections
+        if: always()
+        shell: pwsh
+        run: |
+          $timings = 'out/windows/smoke/runtime/smoke-timings.txt'
+          if (-not (Test-Path -LiteralPath $timings)) { Write-Output 'No smoke-timings.txt'; exit 0 }
+          $rows = Import-Csv -LiteralPath $timings -Delimiter "`t" | Sort-Object { [double]$_.own_ms } -Descending
+          $total = ($rows | Measure-Object -Property own_ms -Sum).Sum / 1000
+          $lines = @("| section | parent | own s | inclusive s |", "|---|---|---:|---:|")
+          $lines += $rows | Select-Object -First 40 | ForEach-Object { '| {0} | {1} | {2:N1} | {3:N1} |' -f $_.section, $_.parent, ([double]$_.own_ms / 1000), ([double]$_.inclusive_ms / 1000) }
+          $lines = @("Timed sections: $($rows.Count), own time $([math]::Round($total)) s", '') + $lines
+          $lines | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-windows-${{ matrix.part }}
+          path: out/windows/smoke
+
+  windows-total:
+    needs: windows
+    if: always() && needs.windows.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: smoke-windows-*
+          path: smoke
+      - name: All five parts ran and passed
+        run: |
+          for part in steps sections-0 sections-1 sections-2 sections-3; do
+            test -s "smoke/smoke-windows-$part/runtime/smoke-test.txt" || { echo "smoke-windows-$part has no report"; exit 1; }
+          done
+          cat smoke/smoke-windows-*/runtime/smoke-test.txt > all.txt
+          grep '^TOTAL' smoke/smoke-windows-*/runtime/smoke-test.txt
+          passed=$(grep -c '^PASS' all.txt)
+          echo "PASS lines across all parts: $passed" | tee -a "$GITHUB_STEP_SUMMARY"
+          if grep -q '^FAIL' all.txt; then grep '^FAIL' all.txt; exit 1; fi
+          test "$passed" -ge 1850
+          test "${{ needs.windows.result }}" = success
 
   # Her silent install and uninstall change the runner's own Capri, so they get a fresh runner of their own.
   windows-setup:
@@ -79,6 +170,8 @@ jobs:
           sudo apt-get update -q && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev libxcb1-dev pkg-config
       - name: Focused Linux checks
         run: bash ci/check-linux.sh
+      - name: Smoke sections and shards
+        run: dotnet run --project ci/smoke-timings/SmokeTimingsTest.csproj -c Release -- "$RUNNER_TEMP/smoke-timings"
       - name: Build
         run: dotnet build cross/Capri.Cross.csproj -c Release -o out/linux
       - name: Install a test desktop

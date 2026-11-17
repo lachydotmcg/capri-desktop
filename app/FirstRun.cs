@@ -320,7 +320,7 @@ namespace CapriDesktop
                 link.Font = font;
                 link.Ink = colour;
                 link.AccessibleName = text;
-                Size size = TextRenderer.MeasureText(text, font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+                Size size = TextRenderer.MeasureText(Lingo.Of(text), font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
                 link.Bounds = new Rectangle(Z(x), Z(y), size.Width + Z(4), Math.Max(size.Height, Z(24)));
                 link.Click += Live(click);
                 Controls.Add(link);
@@ -1050,21 +1050,22 @@ namespace CapriDesktop
                 else using (Pen pen = new Pen(lit ? Cyan : Faint, 1.2f * s)) graphics.DrawPolygon(pen, diamond);
                 TextFormatFlags one = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
                 int left = (int)(30 * s), top = (int)(2 * s);
-                Size name = TextRenderer.MeasureText(graphics, Title, TitleFont, Size.Empty, one);
-                TextRenderer.DrawText(graphics, Title, TitleFont, new Point(left, top), Picked ? Cyan : White, one);
+                string title = Lingo.Of(Title);
+                Size name = TextRenderer.MeasureText(graphics, title, TitleFont, Size.Empty, one);
+                TextRenderer.DrawText(graphics, title, TitleFont, new Point(left, top), Picked ? Cyan : White, one);
                 // The flag and the note sit on the name's baseline.
                 int baseline = top + (int)(TitleFont.FontFamily.GetCellAscent(TitleFont.Style) * TitleFont.Size / TitleFont.FontFamily.GetEmHeight(TitleFont.Style));
                 if (Flag != null)
                 {
                     int flagTop = baseline - (int)(FlagFont.FontFamily.GetCellAscent(FlagFont.Style) * FlagFont.Size / FlagFont.FontFamily.GetEmHeight(FlagFont.Style));
-                    TextRenderer.DrawText(graphics, Flag, FlagFont, new Point(left + name.Width + (int)(14 * s), flagTop), Neon.Amber, one);
+                    TextRenderer.DrawText(graphics, Lingo.Of(Flag), FlagFont, new Point(left + name.Width + (int)(14 * s), flagTop), Neon.Amber, one);
                 }
                 if (Aside != null)
                 {
                     int asideTop = baseline - (int)(AsideFont.FontFamily.GetCellAscent(AsideFont.Style) * AsideFont.Size / AsideFont.FontFamily.GetEmHeight(AsideFont.Style));
-                    TextRenderer.DrawText(graphics, Aside, AsideFont, new Rectangle(0, asideTop, Width - (int)(2 * s), Height), Picked ? Cyan : Faint, TextFormatFlags.Right | TextFormatFlags.Top | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+                    TextRenderer.DrawText(graphics, Lingo.Of(Aside), AsideFont, new Rectangle(0, asideTop, Width - (int)(2 * s), Height), Picked ? Cyan : Faint, TextFormatFlags.Right | TextFormatFlags.Top | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
                 }
-                TextRenderer.DrawText(graphics, Body ?? "", Font, new Rectangle(left, (int)(32 * s), Width - left, Height - (int)(32 * s)), Faint, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
+                TextRenderer.DrawText(graphics, Lingo.Of(Body ?? ""), Font, new Rectangle(left, (int)(32 * s), Width - left, Height - (int)(32 * s)), Faint, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             }
         }
 
@@ -1219,10 +1220,10 @@ namespace CapriDesktop
                 Backdrop(graphics, this, s);
                 Color ink = hot ? (Ink == Faint ? White : ControlPaint.Light(Ink, 0.3f)) : Ink;
                 TextFormatFlags one = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
-                TextRenderer.DrawText(graphics, Text, Font, new Rectangle((int)(2 * s), 0, Width, Height), ink, one);
+                TextRenderer.DrawText(graphics, Lingo.Of(Text), Font, new Rectangle((int)(2 * s), 0, Width, Height), ink, one);
                 if (Focused && ShowFocusCues)
                 {
-                    int wide = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, one).Width;
+                    int wide = TextRenderer.MeasureText(graphics, Lingo.Of(Text), Font, Size.Empty, one).Width;
                     using (Pen line = new Pen(Cyan, Math.Max(1, s))) graphics.DrawLine(line, 2 * s, Height - 2 * s, 2 * s + wide, Height - 2 * s);
                 }
             }

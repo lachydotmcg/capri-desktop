@@ -10,7 +10,7 @@ export const SITE = join(ROOT, 'site', 'remote');
 // The site's shared art and fonts, which the page asks for as ../assets/: /assets/ here, as on capriai.app.
 const ASSETS = join(ROOT, 'site', 'assets');
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.ico': 'image/x-icon', '.wasm': 'application/wasm' };
 
 export const startSite = port => new Promise((resolve, reject) => {
   const asked = [];

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -257,8 +258,41 @@ namespace CapriDesktop
             graphics.Restore(state);
         }
 
+        internal static void Reword()
+        {
+            List<Form> open = new List<Form>();
+            foreach (Form form in Application.OpenForms) open.Add(form);
+            foreach (Form form in open)
+            {
+                if (form.IsDisposed) continue;
+                Resize(form);
+                form.Invalidate(true);
+            }
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Control, object> Translated = new System.Runtime.CompilerServices.ConditionalWeakTable<Control, object>();
+
+        private static void Resize(Control parent)
+        {
+            bool sized = false;
+            foreach (Control child in parent.Controls)
+            {
+                Resize(child);
+                Label label = child as Label;
+                if (label == null || !label.AutoSize) continue;
+                object mark;
+                bool now = Lingo.Has(label.Text), before = Translated.TryGetValue(label, out mark);
+                if (!now && !before) continue;
+                Translated.Remove(label);
+                if (now) Translated.Add(label, null);
+                label.Size = label.GetPreferredSize(Size.Empty);
+                sized = true;
+            }
+            if (sized) parent.PerformLayout();
+        }
+
         // A label that lets the mouse through to its window, so the window drags from anywhere that isn't a control.
-        internal sealed class Caption : Label
+        internal sealed class Caption : Lettering
         {
             internal Caption()
             {
@@ -375,7 +409,42 @@ namespace CapriDesktop
                 using (GraphicsPath inner = Neon.Cut(RectangleF.Inflate(box, -3 * s, -3 * s), 0, 0, 4 * s, 0))
                 using (Pen pen = new Pen(Neon.OnInk, line))
                     graphics.DrawPath(pen, inner);
-            TextRenderer.DrawText(graphics, Text, Font, ClientRectangle, ink, TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(graphics, Lingo.Of(Text), Font, ClientRectangle, ink, TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+        }
+    }
+
+    internal class Lettering : Label
+    {
+        private TextFormatFlags Flags(bool wrap)
+        {
+            TextFormatFlags flags = TextFormatFlags.TextBoxControl | (wrap ? TextFormatFlags.WordBreak : TextFormatFlags.SingleLine);
+            ContentAlignment align = TextAlign;
+            if (align == ContentAlignment.MiddleLeft || align == ContentAlignment.MiddleCenter || align == ContentAlignment.MiddleRight) flags |= TextFormatFlags.VerticalCenter;
+            else if (align == ContentAlignment.BottomLeft || align == ContentAlignment.BottomCenter || align == ContentAlignment.BottomRight) flags |= TextFormatFlags.Bottom;
+            if (align == ContentAlignment.TopCenter || align == ContentAlignment.MiddleCenter || align == ContentAlignment.BottomCenter) flags |= TextFormatFlags.HorizontalCenter;
+            else if (align == ContentAlignment.TopRight || align == ContentAlignment.MiddleRight || align == ContentAlignment.BottomRight) flags |= TextFormatFlags.Right;
+            if (AutoEllipsis) flags |= TextFormatFlags.EndEllipsis;
+            if (!UseMnemonic) flags |= TextFormatFlags.NoPrefix;
+            if (RightToLeft == RightToLeft.Yes) flags |= TextFormatFlags.RightToLeft;
+            return flags;
+        }
+
+        public override Size GetPreferredSize(Size proposed)
+        {
+            string shown = Lingo.Of(Text);
+            if (shown == Text) return base.GetPreferredSize(proposed);
+            int width = MaximumSize.Width > 0 ? MaximumSize.Width : AutoSize ? 0 : proposed.Width;
+            Size room = width > Padding.Horizontal ? new Size(width - Padding.Horizontal, int.MaxValue) : Size.Empty;
+            Size words = TextRenderer.MeasureText(shown, Font, room, Flags(room.Width > 0));
+            return new Size(words.Width + Padding.Horizontal, words.Height + Padding.Vertical);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            string shown = Lingo.Of(Text);
+            if (shown == Text || Image != null) { base.OnPaint(e); return; }
+            Rectangle area = new Rectangle(Padding.Left, Padding.Top, Math.Max(0, ClientSize.Width - Padding.Horizontal), Math.Max(0, ClientSize.Height - Padding.Vertical));
+            TextRenderer.DrawText(e.Graphics, shown, Font, area, Enabled ? ForeColor : Neon.Faint, Flags(true));
         }
     }
 }

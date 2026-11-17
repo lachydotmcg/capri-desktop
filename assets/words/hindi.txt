@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	फिर से पेंट हुआ कंट्रोल तस्वीर में दोबारा नहीं बना।
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA या OpenRouter से मुफ़्त कुंजी। कुछ डाउनलोड नहीं करना। इंटरनेट चाहिए।
+A held trackpad scroll got a flick's long ease:	होल्ड किए गए ट्रैकपैड स्क्रॉल को फ़्लिक का लंबा असर मिला:
+A layout change during a slide put the page at	स्लाइड के दौरान लेआउट बदलने से पेज यहाँ आ गया
+A layout change left the picture up.	लेआउट बदलने से तस्वीर वैसी ही रह गई।
+A model in Ollama, on your local server or on your key.	Ollama में एक मॉडल, तुम्हारे लोकल सर्वर पर या तुम्हारी कुंजी से।
+A paid key goes under MAX INTELLIGENCE by itself.	पेड कुंजी अपने-आप MAX INTELLIGENCE में चली जाती है।
+A plan you already pay for, a key of your own, or Ollama.	एक प्लान जिसके पैसे तुम पहले से देते हो, अपनी कुंजी, या Ollama।
+A voice panel menu doesn't hold its own copy of the panel's font.	वॉइस पैनल मेनू के पास पैनल के फ़ॉन्ट की अपनी कॉपी नहीं है।
+A wheel turn right after a slide ended froze the picture.	स्लाइड खत्म होते ही व्हील घुमाने से तस्वीर जम गई।
+ALLOW THIS PHONE?	क्या यह फ़ोन जोड़ना है?
+ALMOST THERE >	लगभग हो गया >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	दूसरी CAPRI ने कब्ज़ा कर लिया · बंद करके फिर चालू करो
+API key	API कुंजी
+API key, Claude plan or ChatGPT plan	API कुंजी, Claude प्लान या ChatGPT प्लान
+Add	जोड़ो
+Address	पता
+Address and key saved. Use saved to reconnect.	पता और कुंजी सेव हो गई। फिर से जोड़ने के लिए सेव्ड इस्तेमाल करो।
+Advanced Settings	एडवांस्ड सेटिंग्स
+All	सभी
+All screens	सभी स्क्रीन
+Allow	अनुमति दो
+Almost there. I'll say hi the second my brain's in.	लगभग हो गया। मेरा दिमाग जुड़ते ही मैं हाय कहूँगी।
+Always	हमेशा
+Always on top	हमेशा सबसे ऊपर
+Any Google account works. I opened the page in your browser.	कोई भी Google अकाउंट चलेगा। मैंने पेज तुम्हारे ब्राउज़र में खोल दिया है।
+Applies to every voice	हर आवाज़ पर लागू
+Apps she may close	ऐप्स जिन्हें वह बंद कर सकती है
+Ask Capri for more	Capri से और माँगो
+Asking your server...	तुम्हारे सर्वर से पूछ रही हूँ...
+Asks before closing only the apps you choose.	सिर्फ़ तुम्हारे चुने हुए ऐप्स बंद करने से पहले पूछेगी।
+Auto	ऑटो
+Automatic: VB-CABLE, else Steam's	अपने-आप: VB-CABLE, नहीं तो Steam का
+BAD RELAY HOST	गलत RELAY HOST
+BIG Z open notepad	BIG Z नोटपैड खोलो
+BRAIN	दिमाग
+BRAIN >	दिमाग >
+BRAIN ONLINE >	दिमाग ऑनलाइन >
+BRAIN PROVIDER >	दिमाग प्रदाता >
+BRAIN VOICE CAPRI	दिमाग आवाज़ CAPRI
+Back	वापस
+Back on your saved API key.	सेव की हुई API कुंजी पर वापस।
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	इस PC के लिए सबसे अच्छा:
+Black	काला
+Blank key means no key.	खाली कुंजी का मतलब है कोई कुंजी नहीं।
+Brain API key	दिमाग की API कुंजी
+Brain model	दिमाग का मॉडल
+Brain provider	दिमाग का प्रदाता
+Bring here	यहाँ लाओ
+Bring to this screen	इस स्क्रीन पर लाओ
+Browse	ब्राउज़ करो
+Browse mods	मॉड ब्राउज़ करो
+Browse to a voice model	वॉइस मॉडल ब्राउज़ करो
+Browse...	ब्राउज़ करो...
+Bubble	बबल
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, तुम हो?
+CAN'T REACH THE RELAY · RETRYING	RELAY तक पहुँच नहीं · फिर से कोशिश हो रही है
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI वॉइस दिमाग
+CHANGED, approve it again.	बदल गया, फिर से मंज़ूरी दो।
+CLIPS >	क्लिप्स >
+CLOUD VOICE	क्लाउड वॉइस
+CODE	कोड
+COLORS >	रंग >
+CONNECTED	कनेक्टेड
+CONNECTING	कनेक्ट हो रहा है
+CUSTOM LOCAL	कस्टम लोकल
+Call mode (beta)	कॉल मोड (बीटा)
+Call mode does not fit.	कॉल मोड फ़िट नहीं होता।
+Call mode is outside its space.	कॉल मोड अपनी जगह से बाहर है।
+Cancel	रद्द करो
+Cancel keys	कुंजियाँ रद्द करो
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri कोड:
+Capri mods (*	Capri मॉड (*
+Capri, hello	Capri, नमस्ते
+CapriDesktop.	CapriDesktop.
+Chaos when upset	नाराज़ होने पर गड़बड़ी
+Chat with Capri from your phone	अपने फ़ोन से Capri से चैट करो
+ChatGPT plan	ChatGPT प्लान
+Check for updates	अपडेट जाँचो
+Check in on me	मेरा हाल पूछो
+Check in on me is hidden	मेरा हाल पूछो छिपा है
+Check in on me still decides whether she visits.	मेरा हाल पूछो अब भी तय करता है कि वह मिलने आएगी या नहीं।
+Check in on me's tip missed	मेरा हाल पूछो का टिप छूट गया
+Chess	शतरंज
+Choose apps	ऐप्स चुनो
+Choose folder...	फ़ोल्डर चुनो...
+Choose where future Capri clips are saved	चुनो कि भविष्य के Capri क्लिप्स कहाँ सेव हों
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude या ChatGPT प्लान, पेड कुंजी (OpenAI, Claude, DeepSeek), या Ollama।
+Claude plan	Claude प्लान
+Clear	साफ़ करो
+Cleared.	साफ़ हो गया।
+Click Confirm to keep Down, or press Esc.	नीचे रखने के लिए Confirm दबाओ, या Esc दबाओ।
+Click to open it.	खोलने के लिए क्लिक करो।
+Clip my games	मेरे गेम्स रिकॉर्ड करो
+Clips	क्लिप्स
+Close	बंद करो
+Close other AIs for me	मेरे लिए बाकी AI बंद करो
+Cloud voice	क्लाउड वॉइस
+Cloud voice service	क्लाउड वॉइस सेवा
+Cloud voice setup	क्लाउड वॉइस सेटअप
+Code mods can reach your whole PC. Only trusted ones.	कोड मॉड्स पूरे PC तक पहुँच सकते हैं। सिर्फ़ भरोसेमंद वाले।
+Code/Husk Mode	कोड/Husk मोड
+Codex	Codex
+Commands	कमांड
+Comment on my games	मेरे गेम्स पर टिप्पणी करो
+Comments	टिप्पणियाँ
+Confirm	Confirm
+Confirm keys	कुंजियाँ Confirm करो
+Connect	कनेक्ट करो
+Connect / Forget brain key	कनेक्ट करो / दिमाग की कुंजी भूलो
+Connect / Forget voice key	कनेक्ट करो / वॉइस कुंजी भूलो
+Connect four	चार इन अ रो
+Controls	कंट्रोल्स
+Copri, what time is it	Copri, अभी कितने बजे हैं
+Copy error details	एरर का विवरण कॉपी करो
+Copy the key	कुंजी कॉपी करो
+Copy the key from the page, then press Paste.	पेज से कुंजी कॉपी करो, फिर Paste दबाओ।
+Couldn't open that page:	वह पेज नहीं खुल सका:
+Couldn't open that:	वह नहीं खुल सका:
+Couldn't open the mods folder:	मॉड्स फ़ोल्डर नहीं खुल सका:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M पहले से उसकी Mainframe कुंजी है।
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N माइक म्यूट करता है
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V पहले से उसकी बात करने वाली कुंजी है।
+Ctrl + Alt + V to talk	बात करने के लिए Ctrl + Alt + V
+Custom local voice	कस्टम लोकल वॉइस
+Custom model name	कस्टम मॉडल नाम
+Dance	नाचो
+Dance to music	संगीत पर नाचो
+Default	डिफ़ॉल्ट
+Default (follows Windows)	डिफ़ॉल्ट (Windows के अनुसार)
+Default duration for clip that and automatic clips	"यह रिकॉर्ड करो" क्लिप और ऑटोमैटिक क्लिप्स की डिफ़ॉल्ट अवधि
+Default length	डिफ़ॉल्ट लंबाई
+Default model	डिफ़ॉल्ट मॉडल
+Delay	देरी
+Deny	मना करो
+Discard	हटाओ
+Discard + reload	हटाओ + फिर लोड करो
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	इंतज़ार नहीं करना? मुफ़्त कुंजी से मैं लगभग एक मिनट में बोलने लगती हूँ।
+Done	हो गया
+EXTRA REQUEST JSON >	अतिरिक्त अनुरोध JSON >
+EXTRAS >	अतिरिक्त >
+Edit	संपादित करो
+Edit check-in lines	चेक-इन लाइनें संपादित करो
+Edit check-in lines has the wrong view or dimming	चेक-इन लाइनें संपादित करो में गलत व्यू या डिमिंग है
+Edit check-in lines is out of place	चेक-इन लाइनें संपादित करो जगह से बाहर है
+Edit controls	कंट्रोल संपादित करो
+ElevenLabs API key	ElevenLabs API कुंजी
+ElevenLabs voice ID	ElevenLabs वॉइस ID
+English	अंग्रेज़ी
+Enter the game's name first.	पहले गेम का नाम डालो।
+Every	हर
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	अपलोड होने से पहले हर मॉड को मैलवेयर के लिए जाँचा जाता है। कोड मॉड्स चलने से पहले अब भी पूछते हैं।
+Explore after	बाद में खोजो
+Explore while I'm away	मेरे बाहर रहने पर खोजो
+Extra request JSON	अतिरिक्त अनुरोध JSON
+Extras	अतिरिक्त
+FREE KEY	मुफ़्त कुंजी
+FREE KEY >	मुफ़्त कुंजी >
+Fast hands in games	गेम्स में तेज़ हाथ
+File editor	फ़ाइल एडिटर
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs और बाकी Mainframe में VOICE के नीचे हैं।
+Follow-up messages	फ़ॉलो-अप संदेश
+Forget	भूलो
+Fork capri-mods	capri-mods फ़ोर्क करो
+Frame rate	फ़्रेम रेट
+Free	मुफ़्त
+Free and private, works offline. Downloads	मुफ़्त और प्राइवेट, ऑफ़लाइन चलता है। डाउनलोड होता है
+Free and private, works offline. Downloads the best model for this PC.	मुफ़्त और प्राइवेट, ऑफ़लाइन चलता है। इस PC के लिए सबसे अच्छा मॉडल डाउनलोड करता है।
+Free key	मुफ़्त कुंजी
+Free key providers	मुफ़्त कुंजी प्रदाता
+Free keys can be rate limited and slow.	मुफ़्त कुंजियों पर रेट लिमिट हो सकती है और वे धीमी हो सकती हैं।
+Free voice in games	गेम्स में मुफ़्त वॉइस
+Free voice style	मुफ़्त वॉइस स्टाइल
+Free voice:	मुफ़्त वॉइस:
+Free voice: Her own	मुफ़्त वॉइस: उसकी अपनी
+Free · local model	मुफ़्त · लोकल मॉडल
+GAMES >	GAMES >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	गेम कमेंट्स Watch my screen से अलग चलते हैं। Off इन्हें रोकता है, Gaming Mode में भी; सिर्फ़ Events और Chatty उसे तुम्हारा गेम देखने देते हैं
+Game controls	गेम कंट्रोल
+Game name	गेम का नाम
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	गेम साउंड संवेदनशीलता। अगर हेडसेट धीमा है पर Windows {0}% पर है और वह हर आवाज़ पर रिएक्ट करती है तो इसे कम करो; Off गेम की आवाज़ों को नज़रअंदाज़ करता है
+Game sounds	गेम साउंड
+Games	गेम्स
+Gaming Mode	Gaming Mode
+Gaming Mode key	Gaming Mode कुंजी
+Gaming Mode:	Gaming Mode:
+Gaming Mode: Ctrl + Alt + G	Gaming Mode: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE लो
+Get VB-CABLE (free)...	VB-CABLE लो (मुफ़्त)...
+Get free voice	मुफ़्त वॉइस लो
+Getting your Fish Audio voices...	तुम्हारी Fish Audio आवाज़ें ला रही हूँ...
+Giant	विशाल
+Glitch	Glitch
+Glitch in at startup	स्टार्टअप पर Glitch
+Go to sleep	सो जाओ
+Go to the next screen	अगली स्क्रीन पर जाओ
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · मुफ़्त टियर · रेट लिमिटेड
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude या ChatGPT प्लान है, या अपनी कुंजी है? चुनो, मैं जुड़ जाऊँगी।
+Got it, just me. Right-click me any time for Capri Mainframe.	ठीक है, बस मैं। Capri Mainframe के लिए मुझ पर कभी भी राइट-क्लिक करो।
+Grey	ग्रे
+H.{0} video bitrate target; higher values make larger files	H.{0} वीडियो बिटरेट लक्ष्य; ज़्यादा मान बड़ी फ़ाइलें बनाते हैं
+HABITS >	आदतें >
+HER HANDS >	उसके हाथ >
+HER JOBS >	उसके काम >
+HER MEMORY >	उसकी मेमोरी >
+HER MODS >	उसके मॉड्स >
+HH:mm	HH:mm
+HOW I SOUND >	मैं कैसी सुनाई देती हूँ >
+Hang here	यहाँ रुको
+Have Ollama? Open it, then press Refresh.	Ollama है? उसे खोलो, फिर Refresh दबाओ।
+Head pats	सिर पर हाथ फेरना
+Hearing	सुनना
+Hearing engine	सुनने का इंजन
+Hearing fix	सुनने का ठीक करना
+Hearing status	सुनने की स्थिति
+Help	मदद
+Help page	मदद पेज
+Her colors	उसके रंग
+Her folder	उसका फ़ोल्डर
+Her memories	उसकी यादें
+Her own colors are back.	उसके अपने रंग वापस आ गए।
+Her own notes (no vault)	उसके अपने नोट्स (कोई वॉल्ट नहीं)
+Her perch frames per second	उसकी बैठने की जगह के फ़्रेम प्रति सेकंड
+Her personality	उसका व्यक्तित्व
+Her size	उसका आकार
+Her speaker	उसका स्पीकर
+Her speaker is hidden or outside VOICE	उसका स्पीकर छिपा है या VOICE के बाहर है
+Her speaker overlaps the mic or hearing row	उसका स्पीकर माइक या सुनने वाली पंक्ति से ओवरलैप करता है
+Her speaker:	उसका स्पीकर:
+Her speaker: Default	उसका स्पीकर: डिफ़ॉल्ट
+Her voice in your mic	तुम्हारे माइक में उसकी आवाज़
+Her voice in your mic: loudness	तुम्हारे माइक में उसकी आवाज़: लाउडनेस
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	उसकी आवाज़ ख़ुद। इसकी पिच Settings > VOICE > Pitch है, और ये दोनों साथ चलते हैं।
+Her voice joins your mic only in call mode.	उसकी आवाज़ सिर्फ़ कॉल मोड में तुम्हारे माइक में जुड़ती है।
+Her voice volume	उसकी आवाज़ का वॉल्यूम
+Her voice's pitch	उसकी आवाज़ की पिच
+Her voice's pitch, the same as Settings > VOICE > Pitch	उसकी आवाज़ की पिच, वही जो Settings > VOICE > Pitch है
+Her voice's speed	उसकी आवाज़ की स्पीड
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	उसकी आवाज़, और उसके नीचे मिलाई हुई उसकी दो कॉपियाँ, हर एक की अपनी पिच और देरी के साथ।
+Her voices · free	उसकी आवाज़ें · मुफ़्त
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hey, choom. मैं Capri हूँ। जवाब देने से पहले मुझे दिमाग चाहिए। एक चुनो।
+Hide / Show Capri	Capri छिपाओ / दिखाओ
+Hide / Show key	छिपाओ / दिखाओ कुंजी
+Hide Capri	Capri छिपाओ
+Hide for now	अभी के लिए छिपाओ
+Hide in full screen	फ़ुल स्क्रीन में छिपाओ
+Hide this	इसे छिपाओ
+Hide/show:	छिपाओ/दिखाओ:
+Hide/show: Ctrl + Alt + H	छिपाओ/दिखाओ: Ctrl + Alt + H
+Hologram	होलोग्राम
+Hop off	उतरो
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	कितनी देर तक स्थिर PC को उसे सुलाने में लगती है; पाँच मिनट अब भी तुम्हारे दूर होने के रूप में पढ़े जाते हैं
+How long a stroke over her a head pat needs	उसके ऊपर से कितनी देर तक घुमाने पर सिर पर हाथ फेरना माना जाए
+How long her replies stay up	उसके जवाब कितनी देर दिखते रहें
+How long you are away before she scrolls a browser or reader	ब्राउज़र या रीडर को स्क्रॉल करने से पहले तुम कितनी देर दूर रहो
+How much her voice glitches	उसकी आवाज़ में कितनी गड़बड़ी आए
+How much of the chat she keeps	चैट का कितना हिस्सा वह रखे
+How much she wanders	वह कितना घूमती है
+How often she pops in to say hi	वह हाय कहने कितनी बार आती है
+How robotic her voice sounds	उसकी आवाज़ कितनी रोबोटिक लगे
+How to	कैसे
+Huge	बहुत बड़ा
+I can hear you.	मैं तुम्हें सुन सकती हूँ।
+I glance at your screen and comment. Costs a little on a paid brain.	मैं तुम्हारी स्क्रीन पर एक नज़र डालती हूँ और कमेंट करती हूँ। पेड दिमाग पर थोड़ा खर्च होता है।
+I keep listening. Say my name, then just talk.	मैं सुनती रहती हूँ। मेरा नाम लो, फिर बस बोलो।
+I talk about your game as you play. Costs a little on a paid brain.	तुम खेलते समय मैं तुम्हारे गेम की बात करती हूँ। पेड दिमाग पर थोड़ा खर्च होता है।
+I type my replies and stay quiet.	मैं अपने जवाब टाइप करती हूँ और चुप रहती हूँ।
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	मैं जवाब नहीं दूँगी, और कुछ भी कहीं नहीं भेजा जाएगा। फिर भी मैं साथ रहूँगी, तुम्हारे म्यूज़िक पर नाचूँगी, और तुम्हारे माँगे हुए छोटे काम करूँगी, जैसे वॉल्यूम।
+I'll talk in	मैं बोलूँगी
+IN DISCORD >	DISCORD में >
+INSTALLED >	इंस्टॉल्ड >
+Import a Capri mod	Capri मॉड इम्पोर्ट करो
+Import mod	मॉड इम्पोर्ट करो
+In games	गेम्स में
+Input	इनपुट
+Input, Output or How to overlaps a row	इनपुट, आउटपुट या कैसे पंक्ति से ओवरलैप करता है
+Input:	इनपुट:
+Input: default	इनपुट: डिफ़ॉल्ट
+Install	इंस्टॉल करो
+Install mod	मॉड इंस्टॉल करो
+Installed.	इंस्टॉल हो गया।
+It may ask for a phone number. I opened the page in your browser.	यह फ़ोन नंबर माँग सकता है। मैंने पेज तुम्हारे ब्राउज़र में खोल दिया है।
+It still does its own job in other apps too.	यह दूसरे ऐप्स में भी अपना काम करता है।
+It won't type in other apps while she runs.	वह चलते समय दूसरे ऐप्स में टाइप नहीं करेगी।
+JUST ME >	सिर्फ़ मैं >
+Jealous of other AIs	दूसरे AI से जलन
+Join the Discord	Discord जॉइन करो
+KB.	KB.
+KEYS	कुंजियाँ
+KEYS >	कुंजियाँ >
+Keep PC awake for jobs	काम के लिए PC को जागता रखो
+Keeps the last two minutes of your game in memory. Say clip that to save it.	तुम्हारे गेम के आखिरी दो मिनट मेमोरी में रखता है। सेव करने के लिए clip that बोलो।
+Key	कुंजी
+Key cleared: a model file needs none.	कुंजी साफ़ हो गई: मॉडल फ़ाइल को कोई कुंजी नहीं चाहिए।
+Key cleared: paste the key for	कुंजी साफ़ हो गई: इसके लिए कुंजी पेस्ट करो
+Key forgotten.	कुंजी भूल गए।
+Key. It goes only to this server, as a Bearer key	कुंजी। यह सिर्फ़ इस सर्वर पर जाती है, Bearer कुंजी के रूप में
+Kokoro only, like es	सिर्फ़ Kokoro, जैसे es
+LAST THING >	आखिरी बात >
+LISTENING >	सुन रही हूँ >
+Language	भाषा
+Large	बड़ा
+Last thing. These cost a little or use your mic, so they're your pick.	आखिरी बात। ये थोड़ा खर्च करते हैं या तुम्हारा माइक इस्तेमाल करते हैं, तो चुनाव तुम्हारा है।
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	आखिरी बात। ये थोड़ा खर्च करते हैं या तुम्हारा माइक इस्तेमाल करते हैं, तो चुनाव तुम्हारा है। फिर मैं जानना चाहती हूँ कि तुम्हें क्या बुलाऊँ।
+Layers	लेयर्स
+Learn more	और जानो
+Leaving Settings threw its picture away straight away.	सेटिंग्स से बाहर निकलते ही उसकी तस्वीर तुरंत हट गई।
+Legacy stand	पुराना स्टैंड
+Lie down	लेट जाओ
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	साथ देखते समय मेमोरी में रखी गई PC डायलॉग की लाइनें। "Remember what she sees" चालू होने पर सबसे पुरानी आधी एक नोट बन जाती है
+Listen for Capri	Capri को सुनो
+Live reactions	लाइव रिएक्शन
+Local server address	लोकल सर्वर पता
+Long	लंबा
+Longest wait (minutes)	सबसे लंबा इंतज़ार (मिनट)
+Looking at this PC...	इस PC को देख रही हूँ...
+Looking for Ollama. Open it if it isn't running.	Ollama खोज रही हूँ। नहीं चल रहा हो तो खोलो।
+Looking for a brain...	दिमाग खोज रही हूँ...
+Looking in the mods directory for updates...	मॉड्स डायरेक्टरी में अपडेट खोज रही हूँ...
+Looking in the mods directory...	मॉड्स डायरेक्टरी में खोज रही हूँ...
+Looking...	खोज रही हूँ...
+MAIN >	मेन >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	मध्यम INTELLIGENCE
+MEMORY VAULT >	मेमोरी वॉल्ट >
+MODS	मॉड्स
+MODS >	मॉड्स >
+MODS DIRECTORY >	मॉड्स डायरेक्टरी >
+MODS INSTALLED COLORS	इंस्टॉल्ड मॉड्स के रंग
+MOVES >	मूव्स >
+MY BRAIN	मेरा दिमाग
+MY FREE VOICE	मेरी मुफ़्त आवाज़
+MY PLAN OR KEY	मेरा प्लान या कुंजी
+MY PLAN OR KEY >	मेरा प्लान या कुंजी >
+Made your Fish Audio voice. Press Test to hear it.	तुम्हारी Fish Audio आवाज़ बन गई। सुनने के लिए Test दबाओ।
+Mainframe colours	Mainframe के रंग
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe के रंग। Night City लाल और सियान है; Black, White और Grey Mainframe, उसके मेनू, Type बॉक्स और उसके नोट्स बदलते हैं
+Mainframe frames	Mainframe फ़्रेम
+Mainframe key	Mainframe कुंजी
+Mainframe size	Mainframe आकार
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe आकार। Auto इसे बड़ा करता है जब Virtual Super Resolution या DSR बड़े डेस्कटॉप को छोटी स्क्रीन पर सिकोड़ते हैं
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	तुम्हारी Fish Audio आवाज़ बना रही हूँ...
+Max reply	अधिकतम जवाब
+Maximum clip resolution, keeping the game's shape without upscaling	अधिकतम क्लिप रिज़ॉल्यूशन, गेम का आकार बनाए रखते हुए बिना अपस्केलिंग के
+Medium	मध्यम
+Memory	मेमोरी
+Memory size	मेमोरी आकार
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama और उसके बिल्ट-इन दिमाग के लिए टोकन में मेमोरी आकार। जब अनुरोध को ज़्यादा चाहिए तो Auto बढ़ जाता है
+Mg	Mg
+Mic level:	माइक लेवल:
+Mic test finished. Sound is reaching Capri.	माइक टेस्ट पूरा हुआ। आवाज़ Capri तक पहुँच रही है।
+Mic:	माइक:
+Mic: default	माइक: डिफ़ॉल्ट
+Microphone	माइक्रोफ़ोन
+Mini player	Mini player
+Mini player over full screen	फ़ुल स्क्रीन के ऊपर Mini player
+Mini-games	मिनी-गेम्स
+Minimising the Mainframe left it sliding.	Mainframe को मिनिमाइज़ करने से वह स्लाइड करता रहा।
+Minimize	मिनिमाइज़ करो
+Mod filter	मॉड फ़िल्टर
+Mod options	मॉड विकल्प
+Mod pages	मॉड पेज
+Mod rules	मॉड नियम
+Mod sort	मॉड क्रम
+Mod switch	मॉड स्विच
+Model	मॉडल
+Model folder	मॉडल फ़ोल्डर
+Model name, optional	मॉडल नाम, वैकल्पिक
+Mods	मॉड्स
+Mods directory	मॉड्स डायरेक्टरी
+Mods folder	मॉड्स फ़ोल्डर
+Most NVIDIA models can't see your screen.	ज़्यादातर NVIDIA मॉडल तुम्हारी स्क्रीन नहीं देख सकते।
+Mouse wheel notches got a flick's long ease:	माउस व्हील नॉच को फ़्लिक का लंबा असर मिला:
+Move	मूव
+Move key to MAX INTELLIGENCE	कुंजी MAX INTELLIGENCE में ले जाओ
+Move to MAX	MAX में ले जाओ
+Music	संगीत
+Music app	म्यूज़िक ऐप
+Music app: where she plays music when you don't name an app	म्यूज़िक ऐप: जब तुम ऐप का नाम नहीं लेते तो वह कहाँ संगीत चलाती है
+Mute	म्यूट
+Mute her	उसे म्यूट करो
+Mute mic key	माइक म्यूट कुंजी
+Mute mic:	माइक म्यूट:
+Mute mic: Ctrl + Alt + N	माइक म्यूट: Ctrl + Alt + N
+My brain	मेरा दिमाग
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	मेरा दिमाग उतर रहा है। जुड़ते ही मैं हाय कहूँगी, और तब तुम मुझसे बात कर सकोगे।
+My brain's on its way. While it comes down, let's sort out how I sound.	मेरा दिमाग रास्ते में है। उतरने तक चलो, सोचते हैं कि मैं कैसी सुनाई देती हूँ।
+My provider	मेरा प्रदाता
+NO AI	कोई AI नहीं
+NO PHONES CONNECTED	कोई फ़ोन कनेक्ट नहीं
+NO PREVIEW	कोई प्रीव्यू नहीं
+NORMAL	सामान्य
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · मुफ़्त · व्यस्त समय में अक्सर धीमा
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA का मुफ़्त API व्यस्त समय में अक्सर धीमा होता है।
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) या OpenRouter API कुंजी
+Names:	नाम:
+Needs a key	कुंजी चाहिए
+Never	कभी नहीं
+New code	नया कोड
+New voice from a clip...	क्लिप से नई आवाज़...
+Next	अगला
+Night City	Night City
+No AI	कोई AI नहीं
+No AI · no brain at all	कोई AI नहीं · बिल्कुल कोई दिमाग नहीं
+No brain runs, and nothing is sent anywhere.	कोई दिमाग नहीं चलता, और कुछ भी कहीं नहीं भेजा जाता।
+No brain yet	अभी कोई दिमाग नहीं
+No code open	कोई कोड खुला नहीं
+No mic found	कोई माइक नहीं मिला
+No mods in the directory yet.	डायरेक्टरी में अभी कोई मॉड्स नहीं।
+No mods match that.	उससे कोई मॉड मेल नहीं खाता।
+No mods match.	कोई मॉड मेल नहीं खाता।
+No phones yet	अभी कोई फ़ोन नहीं
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	अभी कोई वर्चुअल माइक नहीं। Output चुनो, फिर Get VB-CABLE (मुफ़्त) चुनो।
+None yet: pick to get VB-CABLE (free)	अभी कुछ नहीं: VB-CABLE (मुफ़्त) लेने के लिए चुनो
+Normal	सामान्य
+Not a relay host	रिले होस्ट नहीं है
+Not imported. Nothing ran.	इम्पोर्ट नहीं हुआ। कुछ नहीं चला।
+Not updated. The old one is still in.	अपडेट नहीं हुआ। पुराना अब भी है।
+Nothing needed updating.	कुछ अपडेट करने की ज़रूरत नहीं थी।
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	कुछ डाउनलोड नहीं होता, कुछ कहीं नहीं भेजा जाता। मैं जवाब नहीं दूँगी। Mainframe में कभी भी दिमाग जोड़ो।
+Nothing to show from the mods directory.	मॉड्स डायरेक्टरी से दिखाने को कुछ नहीं।
+Nothing? Windows Settings > Privacy & security > Microphone.	कुछ नहीं सुन रहा? Windows Settings > Privacy & security > Microphone।
+Nous Portal keys aren't supported yet.	Nous Portal कुंजियाँ अभी समर्थित नहीं हैं।
+OBS	OBS
+OFF	OFF
+OLLAMA	OLLAMA
+ON	ON
+ON THIS PC	इस PC पर
+OR A KEY	या कुंजी
+Obsidian memory vault	Obsidian मेमोरी वॉल्ट
+Off	Off
+Off. Turn on Her voice in your mic above.	Off। ऊपर अपने माइक में उसकी आवाज़ चालू करो।
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Off: वह हमेशा की तरह सुनाई देती है। On: उसकी सारी आवाज़ें, ElevenLabs भी।
+Often	अक्सर
+On	On
+On / Off	On / Off
+On: your mic and her voice are going in.	On: तुम्हारा माइक और उसकी आवाज़ जा रही है।
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	एक JSON ऑब्जेक्ट, जो इस दिमाग से भेजे हर अनुरोध में जुड़ता है। यह किसी भी साझा नाम के लिए Capri की वैल्यू बदल देता है, और मॉडल से जाँचा नहीं जाता।
+Online speech recognition	ऑनलाइन स्पीच पहचान
+Open Capri Mainframe	Capri Mainframe खोलो
+Open Ollama, I'll find it	Ollama खोलो, मैं ढूँढ लूँगी
+Open clips folder	क्लिप्स फ़ोल्डर खोलो
+Open her memories	उसकी यादें खोलो
+Open her notes	उसके नोट्स खोलो
+Open mods folder	मॉड्स फ़ोल्डर खोलो
+Open the page again	पेज फिर से खोलो
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA या OpenRouter।
+OpenAI-compatible server or provider.	OpenAI-compatible सर्वर या प्रदाता।
+OpenRouter · free models only	OpenRouter · सिर्फ़ मुफ़्त मॉडल
+Optional	वैकल्पिक
+Optional. Blank means no key.	वैकल्पिक। खाली का मतलब कोई कुंजी नहीं।
+Options	विकल्प
+Out of the box a little higher, just behind her.	डिफ़ॉल्ट से थोड़ा ऊँचा, उसके ठीक पीछे।
+Out of the box lower, just behind her.	डिफ़ॉल्ट से थोड़ा नीचा, उसके ठीक पीछे।
+Output	आउटपुट
+Output:	आउटपुट:
+Output: none	आउटपुट: कोई नहीं
+PHONE CONNECTED	फ़ोन कनेक्ट है
+PHONES >	फ़ोन >
+PHONES CONNECTED	फ़ोन कनेक्ट हैं
+PREBUILT LOCAL	प्रीबिल्ट लोकल
+PUBLISH MOD >	मॉड पब्लिश करो >
+Pair a phone	फ़ोन पेयर करो
+Paste	पेस्ट
+Paste API key	API कुंजी पेस्ट करो
+Paste a brain API key	दिमाग की API कुंजी पेस्ट करो
+Paste reads your clipboard once, when you press it.	Paste दबाने पर सिर्फ़ एक बार क्लिपबोर्ड पढ़ता है।
+Paste your key here	अपनी कुंजी यहाँ पेस्ट करो
+Pat stroke	सिर पर हाथ फेरना
+Perch	बैठने की जगह
+Perch over {0} fps uses more CPU	{0} fps से ऊपर बैठना ज़्यादा CPU लेता है
+Pick Output to get it.	पाने के लिए Output चुनो।
+Pick a brain so I can talk back. You can change it any time.	दिमाग चुनो ताकि मैं जवाब दे सकूँ। तुम इसे कभी भी बदल सकते हो।
+Pick a clip of a voice you have the rights and consent to use	उस वॉइस क्लिप को चुनो जिसके इस्तेमाल का अधिकार और सहमति है
+Pick a free model. I opened the page in your browser.	एक मुफ़्त मॉडल चुनो। मैंने पेज तुम्हारे ब्राउज़र में खोल दिया है।
+Pick a new clip of you...	खुद की नई क्लिप चुनो...
+Pick a voice model...	वॉइस मॉडल चुनो...
+Pick one. Only one brain runs at a time.	एक चुनो। एक समय में सिर्फ़ एक दिमाग चलता है।
+Pick the note her memories go in	वह नोट चुनो जहाँ उसकी यादें जाएँ
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	उस आवाज़ के {0} से {1} सेकंड चुनो जिसके इस्तेमाल का अधिकार और सहमति है
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	तुम्हारे बोलने के {0} से {1} सेकंड चुनो, या उस आवाज़ के जिसके इस्तेमाल का अधिकार और सहमति है
+Pitch	पिच
+Play	चलाओ
+Play...	चलाओ...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS मॉडल इस क्लिप की आवाज़ कॉपी करते हैं। सुनने के लिए Test दबाओ।
+Pop-in times	पॉप-इन समय
+Pop-ins	पॉप-इन
+Power saver	पावर सेवर
+Power saver: how lightly she runs in games, or always	पावर सेवर: गेम्स में वह कितनी हल्की चलती है, या हमेशा
+Preset	प्रीसेट
+Press Create API key	Create API key दबाओ
+Press Create Key	Create Key दबाओ
+Press Generate API Key	Generate API Key दबाओ
+Press Test and say something, so I know I can hear you.	Test दबाओ और कुछ बोलो, ताकि मुझे पता चले कि मैं तुम्हें सुन सकती हूँ।
+Press a key, alone or with Ctrl, Alt, Shift or Win.	एक कुंजी दबाओ, अकेली या Ctrl, Alt, Shift या Win के साथ।
+Press new keys, then Confirm	नई कुंजियाँ दबाओ, फिर Confirm
+Provider	प्रदाता
+Provider API key, optional	प्रदाता API कुंजी, वैकल्पिक
+Provider base URL	प्रदाता बेस URL
+Provider forgotten.	प्रदाता भूल गए।
+Provider overlaps the brain name or note	प्रदाता दिमाग के नाम या नोट से ओवरलैप करता है
+Publish	पब्लिश करो
+Publish mod	मॉड पब्लिश करो
+Push to talk is off.	Push to talk बंद है।
+Push to talk key	Push to talk कुंजी
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: सेट नहीं है
+QR CODE >	QR कोड >
+QR hidden while streaming	स्ट्रीमिंग के दौरान QR छिपा है
+Quick	तेज़
+Quiet key	Quiet कुंजी
+Quiet:	Quiet:
+Quiet: Ctrl + Alt + P	Quiet: Ctrl + Alt + P
+Quit Capri	Capri बंद करो
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	कोड चलाता है।
+Rarely	कभी-कभी
+Rate mod	मॉड रेट करो
+Reading its README...	उसका README पढ़ रही हूँ...
+Refresh	Refresh
+Reinstall	फिर से इंस्टॉल करो
+Reload	फिर लोड करो
+Reloaded.	फिर लोड हो गया।
+Remember our chats	हमारी चैट याद रखो
+Remember what she sees	याद रखो वह क्या देखती है
+Remote	Remote
+Remote off	Remote बंद
+Remote on	Remote चालू
+Remove	हटाओ
+Remove all phones	सारे फ़ोन हटाओ
+Replies	जवाब
+Reply length	जवाब की लंबाई
+Report a problem	समस्या रिपोर्ट करो
+Reset colors	रंग रीसेट करो
+Reset to her default	उसके डिफ़ॉल्ट पर रीसेट करो
+Resolution	रिज़ॉल्यूशन
+Restart to update	अपडेट के लिए रीस्टार्ट करो
+Restless	बेचैन
+Revoke	रद्द करो
+Revoke also removes the phones its links added	रद्द करने से उसके लिंक्स के जोड़े फ़ोन भी हट जाते हैं
+Ride cursor	कर्सर पर सवारी करो
+Ride cursor / Hop off	कर्सर पर सवारी / उतरो
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe के लिए मुझ पर कभी भी राइट-क्लिक करो। BRAIN के नीचे एक दिमाग चालू होता है।
+Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Help और Discord के लिए मुझ पर कभी भी राइट-क्लिक करो।
+Roblox	Roblox
+Roblox or any other app: pick	Roblox या कोई और ऐप: चुनो
+Robot	रोबोट
+Rock, paper, scissors	पत्थर, कागज़, कैंची
+Run this code mod?	यह कोड मॉड चलाएँ?
+Running on this PC	इस PC पर चल रहा है
+Running on this PC · :	इस PC पर चल रहा है · :
+Runs Claude Code or Codex on this PC, signed in.	इस PC पर Claude Code या Codex चलाता है, साइन इन करके।
+Runs on your PC. No key, no credits.	तुम्हारे PC पर चलता है। कोई कुंजी नहीं, कोई क्रेडिट नहीं।
+SCAN WITH YOUR PHONE · EXPIRES	अपने फ़ोन से स्कैन करो · समाप्त होता है
+SECURITY >	सुरक्षा >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	इसके अनुसार सॉर्ट करो
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as her ears (VOICE > Mic)	उसके कानों जैसा (VOICE > Mic)
+Same code on the phone?	फ़ोन पर वही कोड?
+Save	सेव करो
+Save big moments	बड़े पल सेव करो
+Save folder	सेव फ़ोल्डर
+Save your changes, or press Discard + reload.	अपने बदलाव सेव करो, या Discard + reload दबाओ।
+Save your changes, or press Discard.	अपने बदलाव सेव करो, या Discard दबाओ।
+Saved.	सेव हो गया।
+Saved. Ctrl + Alt + O opens her Mainframe.	सेव हो गया। Ctrl + Alt + O उसका Mainframe खोलता है।
+Saving your rating...	तुम्हारी रेटिंग सेव हो रही है...
+Say her name anywhere to chat	चैट करने के लिए कहीं भी उसका नाम लो
+Screens	स्क्रीन
+Screens is hidden or outside WATCH	Screens छिपा है या WATCH के बाहर है
+Screens overlaps a WATCH row	Screens WATCH की एक पंक्ति से ओवरलैप करता है
+Screens to watch	देखने वाली स्क्रीन
+Sealed end to end	एंड-टू-एंड एन्क्रिप्टेड
+Search by name or author	नाम या लेखक से खोजो
+Search installed mods	इंस्टॉल्ड मॉड्स खोजो
+Search mods	मॉड्स खोजो
+Search name, author or description	नाम, लेखक या विवरण खोजो
+Security	सुरक्षा
+Security:	सुरक्षा:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	सेट अप करो
+Set up her brain	उसका दिमाग सेट अप करो
+Set up your voice model	अपना वॉइस मॉडल सेट अप करो
+Setting up her brain	उसका दिमाग सेट हो रहा है
+Settings	सेटिंग्स
+Settings / Back	सेटिंग्स / वापस
+Settings folds the wrong rows above BRAIN	Settings BRAIN के ऊपर गलत पंक्तियाँ फ़ोल्ड करता है
+Settings had nothing to watch.	Settings में देखने को कुछ नहीं था।
+Settings lost keyboard focus during the Tab walk	Tab वॉक के दौरान Settings का कीबोर्ड फ़ोकस चला गया
+Setup guide	सेटअप गाइड
+Setup stopped	सेटअप रुक गया
+She can read it when it fits.	जब फ़िट हो तब वह पढ़ सकती है।
+She glances at your screen and comments. Costs a little on a paid brain.	वह तुम्हारी स्क्रीन पर नज़र डालती है और कमेंट करती है। पेड दिमाग पर थोड़ा खर्च होता है।
+She keeps listening. Say her name, then just talk until you go quiet.	वह सुनती रहती है। उसका नाम लो, फिर चुप होने तक बोलते रहो।
+She reacts to your game until you close it.	वह तुम्हारा गेम बंद करने तक उस पर रिएक्ट करती है।
+She reads these controls before each game job.	वह हर गेम काम से पहले ये कंट्रोल पढ़ती है।
+She talks about your game as you play. Costs a little on a paid brain.	वह खेलते समय तुम्हारे गेम की बात करती है। पेड दिमाग पर थोड़ा खर्च होता है।
+She uses it when she plays	वह खेलते समय इसका इस्तेमाल करती है
+Short	छोटा
+Shortest wait (minutes)	सबसे छोटा इंतज़ार (मिनट)
+Show Capri	Capri दिखाओ
+Show QR	QR दिखाओ
+Show my mod file	मेरी मॉड फ़ाइल दिखाओ
+Show on Discord	Discord पर दिखाओ
+Shum, what time is it	शम, अभी कितने बजे हैं
+Sign in	साइन इन
+Sign in, make a key and copy it. Then press Paste and I'll connect.	साइन इन करो, कुंजी बनाओ और कॉपी करो। फिर Paste दबाओ और मैं जुड़ जाऊँगी।
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	साइन इन करो, Create API key दबाओ और कॉपी करो। फिर Paste दबाओ और मैं जुड़ जाऊँगी।
+Silent · text only	चुप · सिर्फ़ टेक्स्ट
+Simple / Advanced Settings	सरल / एडवांस्ड सेटिंग्स
+Simple Settings	सरल सेटिंग्स
+Simple Settings left a gap under Check in on me	सरल सेटिंग्स ने मेरा हाल पूछो के नीचे खाली जगह छोड़ दी
+Sit here	यहाँ बैठो
+Sit on windows	खिड़कियों पर बैठो
+Size	आकार
+Skip	छोड़ो
+Skip all	सब छोड़ो
+Skip for now	अभी छोड़ो
+Sleep	सोना
+Small	छोटा
+Sometimes	कभी-कभी
+Sound effects volume	साउंड इफ़ेक्ट्स वॉल्यूम
+Sound sensitivity	साउंड संवेदनशीलता
+Sounds	साउंड्स
+Speaker or clip	स्पीकर या क्लिप
+Speech model	स्पीच मॉडल
+Speed	स्पीड
+Start with Windows	Windows के साथ शुरू करो
+Start with this!	इसी से शुरू करो!
+Starting...	शुरू हो रहा है...
+Stay on my model	मेरे मॉडल पर रहो
+Still checking your mics...	अभी भी तुम्हारे माइक जाँचे जा रहे हैं...
+Still checking your speakers...	अभी भी तुम्हारे स्पीकर जाँचे जा रहे हैं...
+Still checking your virtual mics...	अभी भी तुम्हारे वर्चुअल माइक जाँचे जा रहे हैं...
+Stop	रोको
+Stopped using it. Couldn't remove the saved provider.	इसका इस्तेमाल बंद किया। सेव्ड प्रदाता हटाया नहीं जा सका।
+Support	सहायता
+Sure?	पक्का?
+Sure? moved to a different phone	पक्का? दूसरे फ़ोन पर चला गया
+TALK TO ME	मुझसे बात करो
+TEXT ONLY	सिर्फ़ टेक्स्ट
+Tab landed past the first option of	Tab पहले विकल्प से आगे उतरा
+Tab never reached the quiet key	Tab कभी quiet कुंजी तक नहीं पहुँचा
+Tab reached nothing	Tab कहीं नहीं पहुँचा
+Tab selected a control without moving keyboard focus	Tab ने कीबोर्ड फ़ोकस हटाए बिना एक कंट्रोल चुन लिया
+Talk	बात करो
+Talk key	Talk कुंजी
+Talk:	Talk:
+Talk: Ctrl + Alt + V	Talk: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	कैप्चर फ़्रेम रेट का लक्ष्य; लोड या मेमोरी बजट के तहत गिर सकता है
+Teases when another AI comes to the front.	जब कोई और AI सामने आता है तो छेड़ती है।
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	वह पता काम नहीं करता। https://... या http://localhost:{0} आज़माओ।
+That code expired	वह कोड एक्सपायर हो गया
+That mod is no longer installed. The list is updated.	वह मॉड अब इंस्टॉल नहीं है। सूची अपडेट हो गई।
+That's a paid key: it goes under MAX INTELLIGENCE.	वह एक पेड कुंजी है: वह MAX INTELLIGENCE में जाती है।
+The Mainframe stayed composited while sliding.	स्लाइड होते समय Mainframe कम्पोज़िटेड रहा।
+The Mainframe stayed uncomposited after the slide.	स्लाइड के बाद Mainframe अनकम्पोज़्ड रहा।
+The controls moved while the picture was sliding.	तस्वीर स्लाइड होते समय कंट्रोल हिले।
+The cover stayed visible after the slide ended.	स्लाइड खत्म होने के बाद कवर दिखता रहा।
+The frame thread kept running after the page settled.	पेज सेटल होने के बाद भी फ़्रेम थ्रेड चलता रहा।
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	वह कितना लंबा जवाब दे सकती है, टोकन में। Auto ऊपर के Replies तक रहता है; {0}K या {1}K उसे आगे चलने देता है। ज़रूरत पड़ने पर Jobs को ज़्यादा जगह मिलती है
+The longest wait must be at least the shortest wait.	सबसे लंबा इंतज़ार कम से कम सबसे छोटे इंतज़ार जितना होना चाहिए।
+The picture doesn't match the scrolled page:	स्क्रॉल किए पेज से तस्वीर मेल नहीं खाती:
+The picture of Settings doesn't match the page:	Settings की तस्वीर पेज से मेल नहीं खाती:
+The picture stayed up after the slide ended.	स्लाइड खत्म होने के बाद तस्वीर दिखती रही।
+The picture wasn't showing while it slid.	स्लाइड होते समय तस्वीर नहीं दिख रही थी।
+The provider sheet is crowded:	प्रदाता शीट भरी हुई है:
+The voice panel has no screen DPI.	वॉइस पैनल में स्क्रीन DPI नहीं है।
+The voice panel's menus share one font.	वॉइस पैनल के मेनू एक फ़ॉन्ट शेयर करते हैं।
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	क्लिपबोर्ड पर अभी कोई कुंजी नहीं है। पेज से कॉपी करो, फिर Paste दबाओ।
+These start off. Each costs a little or uses your mic.	ये बंद शुरू होते हैं। हर एक थोड़ा खर्च करता है या तुम्हारा माइक इस्तेमाल करता है।
+These start off. Turn on what you want. They're all in Settings too.	ये बंद शुरू होते हैं। जो चाहो चालू करो। ये सब Settings में भी हैं।
+They can also call you Big Z, Capricorn or Nova	वे मुझे Big Z, Capricorn या Nova भी बुला सकते हैं
+They can also call you Nova, Big Z or Capricorn	वे मुझे Nova, Big Z या Capricorn भी बुला सकते हैं
+Thinking	सोच रही हूँ
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	यह मेरी मुफ़्त आवाज़ है। Test दबाओ, कुछ बोलो, और मैं दिखा दूँगी कि मैं तुम्हें सुन सकती हूँ।
+This mod has no description yet.	इस मॉड का अभी कोई विवरण नहीं है।
+Tic-tac-toe	टिक-टैक-टो
+Time between glances	नज़र डालने के बीच का समय
+Tiny	छोटी सी
+Try again	फिर से कोशिश करो
+Turn Remote on first	पहले Remote चालू करो
+Turn off mini player	Mini player बंद करो
+Turn push to talk off	Push to talk बंद करो
+Turning the wheel the other way kept the page heading the old way, to	व्हील को उल्टी तरफ़ घुमाने से पेज पुरानी दिशा में ही रहा, जब तक
+Type	टाइप करो
+Type key	Type कुंजी
+Type to me	मुझे टाइप करो
+Type:	Type:
+Type: Ctrl + Alt + T	Type: Ctrl + Alt + T
+Typing sound	टाइपिंग साउंड
+Unpacked. Press Test to hear it.	अनपैक हो गया। सुनने के लिए Test दबाओ।
+Unsaved changes.	बिना सेव बदलाव।
+Up to {0} fps	{0} fps तक
+Up to {0}p	{0}p तक
+Update	अपडेट
+Update available.	अपडेट उपलब्ध है।
+Update mods	मॉड्स अपडेट करो
+Updating...	अपडेट हो रहा है...
+Use	इस्तेमाल करो
+Use her cursor	उसका कर्सर इस्तेमाल करो
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	किसी दूसरे प्रदाता के लिए https:// इस्तेमाल करो। सादे http पर कुंजी सुरक्षित नहीं है।
+Use preset	प्रीसेट इस्तेमाल करो
+Use saved	सेव्ड इस्तेमाल करो
+Use this server	यह सर्वर इस्तेमाल करो
+Using your provider with a key	कुंजी के साथ तुम्हारा प्रदाता इस्तेमाल कर रही हूँ
+Using your server with no key	बिना कुंजी के तुम्हारा सर्वर इस्तेमाल कर रही हूँ
+VIEW MOD >	MOD देखो >
+VOICE >	VOICE >
+VOICE IN YOUR MIC >	तुम्हारे माइक में VOICE >
+VOICE LAYERS >	VOICE LAYERS >
+Verbosity	वर्बोसिटी
+Video bitrate	वीडियो बिटरेट
+View	देखें
+View mod	मॉड देखो
+Voice	वॉइस
+Voice ID	वॉइस ID
+Voice from	वॉइस स्रोत
+Voice layers	वॉइस लेयर्स
+Voice model	वॉइस मॉडल
+Voice model:	वॉइस मॉडल:
+Voice name or ID, optional	वॉइस नाम या ID, वैकल्पिक
+Voice server address, or a voice model's folder	वॉइस सर्वर पता, या वॉइस मॉडल का फ़ोल्डर
+Voice status	वॉइस स्टेटस
+Voice, key and model...	वॉइस, कुंजी और मॉडल...
+Volume	वॉल्यूम
+WAKE ME UP >	मुझे जगाओ >
+WATCH >	WATCH >
+Waiting for the relay	रिले का इंतज़ार
+Wake her up	उसे जगाओ
+Waking her up	उसे जगाया जा रहा है
+Wander	घूमो
+Wander around	आसपास घूमो
+Watch my screen	मेरी स्क्रीन देखो
+Watch-along memory	साथ देखने की मेमोरी
+Weather	मौसम
+Weather city	मौसम शहर
+Welcome back, choom. Let's finish setting me up.	वापस स्वागत है, choom। चलो मेरी सेटअप पूरी करते हैं।
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	वह तुम्हारे PC पर बिना पूछे क्या करती है। टॉगल बंद होने पर वह पहले पूछती है, और जब तुम हाँ कहो तब करती है।
+What should she call you?	उसे तुम्हें क्या बुलाना चाहिए?
+When she types	जब वह टाइप करती है
+White	सफ़ेद
+Windows default	Windows डिफ़ॉल्ट
+Windows did not give Settings keyboard focus	Windows ने Settings को कीबोर्ड फ़ोकस नहीं दिया
+Windows did not return keyboard focus to Back	Windows ने कीबोर्ड फ़ोकस Back पर वापस नहीं लौटाया
+With no picture the wheel still tried to slide.	तस्वीर न होने पर भी व्हील स्लाइड करने की कोशिश करता रहा।
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE पर सबसे अच्छा काम करता है।
+YOU	तुम
+YOU >	तुम >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS
+YOUR KEY	तुम्हारी कुंजी
+YOUR MIC	तुम्हारा माइक
+YOUR PLAN	तुम्हारा प्लान
+Yokapri what's up	Yokapri क्या चल रहा है
+You can hide this. It keeps going, and the Mainframe shows it too.	तुम इसे छिपा सकते हो। यह चलता रहता है, और Mainframe भी इसे दिखाता है।
+Your mic and her voice go into one virtual mic, and	तुम्हारा माइक और उसकी आवाज़ एक वर्चुअल माइक में जाते हैं, और
+Your mic is muted. Unmute it to test.	तुम्हारा माइक म्यूट है। टेस्ट करने के लिए अनम्यूट करो।
+Your mods are up to date.	तुम्हारे मॉड्स अपडेट हैं।
+Your name or a nickname	तुम्हारा नाम या उपनाम
+Your own model	तुम्हारा अपना मॉडल
+Your personality	तुम्हारा व्यक्तित्व
+Your voice	तुम्हारी आवाज़
+Your voice (HD)	तुम्हारी आवाज़ (HD)
+Your voice (HD) · pick a clip of you...	तुम्हारी आवाज़ (HD) · अपनी क्लिप चुनो...
+Your voice model	तुम्हारा वॉइस मॉडल
+as its mic.	उसके माइक के रूप में।
+changed. Saved as My Colors, so you can share it.	बदल गया। My Colors के रूप में सेव हुआ, ताकि तुम शेयर कर सको।
+choice	विकल्प
+clips the input line	इनपुट लाइन को क्लिप करता है
+cue	संकेत
+doesn't yet.	अभी नहीं।
+download	डाउनलोड
+file.	फ़ाइल।
+flag	फ़्लैग
+fps	fps
+hear	सुनो
+hears	सुनती है
+hears that.	यह सुनती है।
+hides or shows her.	उसे छिपाता या दिखाता है।
+hint	इशारा
+in the Mainframe.	Mainframe में।
+in the mods directory with a pull request.	मॉड्स डायरेक्टरी में pull request के साथ।
+in the picture wasn't noticed.	तस्वीर में नहीं देखा गया।
+is already her push-to-talk key.	पहले से उसकी push-to-talk कुंजी है।
+is off.	बंद है।
+is on and running.	चालू है और चल रहा है।
+is on, at the bottom, under	चालू है, नीचे, इसके नीचे
+is on.	चालू है।
+is on. She now answers to	चालू है। अब वह इसका जवाब देती है
+is removed.	हटा दिया गया है।
+is taken	लिया हुआ है
+is taken by another app. Try another.	किसी और ऐप ने लिया हुआ है। कोई और आज़माओ।
+is updated	अपडेट हो गया है
+isn't hearing it yet: do {0} and {1}, then join a call.	अभी तक नहीं सुन रही: {0} और {1} करो, फिर कॉल में जुड़ो।
+it now.	अभी।
+keeps her quiet, and lets her talk again.	उसे चुप रखता है, और उसे फिर से बोलने देता है।
+key	कुंजी
+key.	कुंजी।
+min	मिनट
+more.	और।
+ms.	ms.
+mutes mic	माइक म्यूट करता है
+mutes your mic.	तुम्हारा माइक म्यूट करता है।
+name	नाम
+off	बंद
+on this PC	इस PC पर
+opens her Mainframe.	उसका Mainframe खोलता है।
+opens her typing box.	उसका टाइपिंग बॉक्स खोलता है।
+phone	फ़ोन
+phone pixels	फ़ोन पिक्सेल
+phones	फ़ोन
+pixels	पिक्सेल
+pixels)	पिक्सेल)
+star.	स्टार।
+stars.	स्टार।
+starts voice chat.	वॉइस चैट शुरू करता है।
+stays off. Nothing ran.	बंद रहता है। कुछ नहीं चला।
+still does its own job in other apps too. Confirm to keep it.	दूसरे ऐप्स में भी अपना काम करता रहता है। रखने के लिए Confirm करो।
+tall	लंबा
+time	समय
+to talk	बात करने के लिए
+to talk to her, with a game in front too.	उससे बात करने के लिए, सामने गेम के साथ भी।
+too.	भी।
+turns Gaming Mode on and off.	Gaming Mode चालू और बंद करता है।
+with Ollama	Ollama के साथ
+won't type in other apps while she runs. Confirm to keep it.	चलते समय वह दूसरे ऐप्स में टाइप नहीं करेगी। रखने के लिए Confirm करो।
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering	{0}   अगर उसकी आवाज़ कटती है, तो noise filtering बंद करो
+{0}   Input Device:	{0}   Input Device:
+{0}   Join the call and check they hear both of you	{0}   कॉल में जुड़ो और जाँचो कि दोनों तुम्हें सुनते हैं
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mic Test > Let's Check: तुम खुद को सुनोगे, और वह बोलते समय उसे भी
+{0}   Microphone:	{0}   Microphone:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: None। दोनों पहली लाइन के बाद उसकी आवाज़ काट सकते हैं।
+{0}   Open the call or meeting's audio settings	{0}   कॉल या मीटिंग की audio settings खोलो
+{0}   Output Device: your headphones, like before	{0}   Output Device: तुम्हारे हेडफ़ोन, जैसे पहले
+{0}   Speaker: your headphones, like before	{0}   Speaker: तुम्हारे हेडफ़ोन, जैसे पहले
+{0}   Try a mic test in your call app	{0}   अपने कॉल ऐप में mic test आज़माओ
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (तुम्हारे नाम के बगल वाला गियर) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} लाइनें
+{0} min	{0} मिनट
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· इस PC पर
+· server	· सर्वर

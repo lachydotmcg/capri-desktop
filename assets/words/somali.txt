@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Kontorool dib loo rinjiyeeyey ma dib loo rinjiyeynin sawirka.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Furaha bilaashka ah ee Google AI Studio, NVIDIA ama OpenRouter. Waxba ma soo dejisanayso. Waxay u baahan tahay internet.
+A held trackpad scroll got a flick's long ease:	Jiidista farta ee trackpad-ka ku hoos taagan waxay heshay dhaqdhaqaaq dheer:
+A layout change during a slide put the page at	Isbeddel qaabeyn inta lagu jiro siman ayaa bogga keenay meesha
+A layout change left the picture up.	Isbeddel qaabeyn ayaa sawirka korka ku hayay.
+A model in Ollama, on your local server or on your key.	Model Ollama ku jira, server-kaaga maxalliga ah ama furahaaga.
+A paid key goes under MAX INTELLIGENCE by itself.	Furaha lacagta lagu bixiyo wuxuu isaga u gala MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Qorshe aad horey u bixinayso, furahaaga, ama Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menu-ga panelka codka ma lahan koobiyadiisa font-ka panelka.
+A wheel turn right after a slide ended froze the picture.	Wareejinta cajalada ka dib siman ayaa sawirka qabsaday.
+ALLOW THIS PHONE?	MA OGOLAANTAA TELEFOONKAN?
+ALMOST THERE >	WAA DHOWYDHOW >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI KALE AYAA QABTAY · DEMI OO HAL MAR
+API key	Furaha API
+API key, Claude plan or ChatGPT plan	Furaha API, qorshaha Claude ama qorshaha ChatGPT
+Add	Ku dar
+Address	Cinwaanka
+Address and key saved. Use saved to reconnect.	Cinwaanka iyo furaha waa la kaydiyey. Isticmaal kaydka si dib loogu xidho.
+Advanced Settings	Dejinta horumarsan
+All	Dhammaan
+All screens	Dhammaan shaashadaha
+Allow	Oggolow
+Almost there. I'll say hi the second my brain's in.	Waa dhow. Waxaan ku salaamayaa marka maskaxdaydu soo gasho.
+Always	Mar walba
+Always on top	Mar walba kor ku jir
+Any Google account works. I opened the page in your browser.	Koontada Google ayaa shaqeysa. Waxaan bogga ku furay browser-kaaga.
+Applies to every voice	Waxay ku dhacdaa dhawaaqyada oo dhan
+Apps she may close	Apps ay xidhi karto
+Ask Capri for more	Capri ka codso wax dheeraad ah
+Asking your server...	Server-kaaga ayaa la weydiinayaa...
+Asks before closing only the apps you choose.	Wuxuu weydiiyaa ka hor inta uusan xidhin oo keliya apps-ka aad doorato.
+Auto	Si toos ah
+Automatic: VB-CABLE, else Steam's	Toos ah: VB-CABLE, haddii kale kan Steam
+BAD RELAY HOST	HOST RELAY KHALADKA AH
+BIG Z open notepad	BIG Z ku fur notepad
+BRAIN	MASKAX
+BRAIN >	MASKAX >
+BRAIN ONLINE >	MASKAX ONLINE >
+BRAIN PROVIDER >	BIXIYAHA MASKAXDA >
+BRAIN VOICE CAPRI	CODKA MASKAXDA CAPRI
+Back	Dib u noqo
+Back on your saved API key.	Dib ugu noqo furahaaga API ee kaydsan.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Ugu wanaagsan PC-kan:
+Black	Madow
+Blank key means no key.	Furaha madhan macnaheedu waa ma jiro furaha.
+Brain API key	Furaha API ee maskaxda
+Brain model	Model-ka maskaxda
+Brain provider	Bixiyaha maskaxda
+Bring here	Keen halkan
+Bring to this screen	Keen shaashadan
+Browse	Eeg
+Browse mods	Eeg modyada
+Browse to a voice model	Ka raadi model-ka codka
+Browse...	Eeg...
+Bubble	Buufis
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, ma halkaa jirtaa
+CAN'T REACH THE RELAY · RETRYING	MA GAAR KARO RELAY-GA · DIB U ISKU DAYAYAA
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	MASKAXDA CODKA CAPRI
+CHANGED, approve it again.	WAA BEDDELAY, mar kale ansixi.
+CLIPS >	CLIPS >
+CLOUD VOICE	CODKA CLOUD
+CODE	KOOD
+COLORS >	MIDABBADA >
+CONNECTED	XIDHAN
+CONNECTING	XIDHAYAA
+CUSTOM LOCAL	MAXALLI GAAR AH
+Call mode (beta)	Habka wicitaanka (beta)
+Call mode does not fit.	Habka wicitaanka ma mahan.
+Call mode is outside its space.	Habka wicitaanka wuxuu ka baxay meeshiisa.
+Cancel	Jooji
+Cancel keys	Jooji furayaasha
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Koodka Capri:
+Capri mods (*	Modyada Capri (*
+Capri, hello	Capri, hello
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Fowdo marka ay cadhooto
+Chat with Capri from your phone	Ka hadal Capri telefoonkaaga
+ChatGPT plan	Qorshaha ChatGPT
+Check for updates	Hubi cusboonaysiinta
+Check in on me	Iga soo bax
+Check in on me is hidden	Iga soo bax waa la qariyey
+Check in on me still decides whether she visits.	Iga soo bax wali waxay go'aamisaa inay soo booqato.
+Check in on me's tip missed	Talo Iga soo bax ayaa la seegay
+Chess	Shaxda
+Choose apps	Dooro apps
+Choose folder...	Dooro fooldarka...
+Choose where future Capri clips are saved	Dooro meesha la kaydin doono clips-ka Capri mustaqbalka
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Qorshaha Claude ama ChatGPT, furaha lacagta leh (OpenAI, Claude, DeepSeek), ama Ollama.
+Claude plan	Qorshaha Claude
+Clear	Nadiifi
+Cleared.	Waa la nadiifiyey.
+Click Confirm to keep Down, or press Esc.	Riix Xaqiiji si aad u haysato Hoose, ama riix Esc.
+Click to open it.	Riix si aad u furto.
+Clip my games	Ciyaaradayda duub
+Clips	Clips
+Close	Xir
+Close other AIs for me	Xir AI-yada kale ii
+Cloud voice	Codka cloud
+Cloud voice service	Adeegga codka cloud
+Cloud voice setup	Dejinta codka cloud
+Code mods can reach your whole PC. Only trusted ones.	Koodka modyada wuxuu gaari karaa PC-kaaga oo dhan. Kuwa la aamini karo oo keliya.
+Code/Husk Mode	Habka Code/Husk
+Codex	Codex
+Commands	Amarrada
+Comment on my games	Ciyaaradayda igu faallo
+Comments	Faallooyin
+Confirm	Xaqiiji
+Confirm keys	Xaqiiji furayaasha
+Connect	Ku xidh
+Connect / Forget brain key	Ku xidh / Ilow furaha maskaxda
+Connect / Forget voice key	Ku xidh / Ilow furaha codka
+Connect four	Afar isku xiga
+Controls	Xakamaynta
+Copri, what time is it	Copri, goorma tahay hada
+Copy error details	Koobiyee faahfaahinta khaladka
+Copy the key	Koobiyee furaha
+Copy the key from the page, then press Paste.	Koobiyee furaha bogga, kadibna riix Ku dheji.
+Couldn't open that page:	Ma furi karin bogaas:
+Couldn't open that:	Ma furi karin taas:
+Couldn't open the mods folder:	Ma furi karin fooldarka modyada:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M horey ayuu u yahay furahooda Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N wuxuu aamusiyaa makarafoonka
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V horey ayuu u yahay furahooda hadalka.
+Ctrl + Alt + V to talk	Ctrl + Alt + V si aad u hadasho
+Custom local voice	Codka maxalliga ah ee gaarka ah
+Custom model name	Magaca model-ka gaarka ah
+Dance	Ciyaar
+Dance to music	Ciyaar muusikada ku dhex jira
+Default	Caadi
+Default (follows Windows)	Caadi (raacda Windows)
+Default duration for clip that and automatic clips	Muddada caadiga ah ee clip "duub taas" iyo clips-ka si toos ah
+Default length	Dherer caadi ah
+Default model	Model caadi ah
+Delay	Dib u dhac
+Deny	Diid
+Discard	Tuur
+Discard + reload	Tuur + dib u soo rar
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ma rabtaa inaad sugto? Furaha bilaashka ah wuxuu i sameeyaa inaan hadlo daqiiqad gudahood.
+Done	Dhammaatay
+EXTRA REQUEST JSON >	CODKA DHEERAAD AH JSON >
+EXTRAS >	DHEERAAD >
+Edit	Wax ka beddel
+Edit check-in lines	Wax ka beddel khadadka check-in
+Edit check-in lines has the wrong view or dimming	Wax ka beddel khadadka check-in waxaa qaldan muuqaalka ama mugdiga
+Edit check-in lines is out of place	Wax ka beddel khadadka check-in waa meel khaldan
+Edit controls	Wax ka beddel xakamaynta
+ElevenLabs API key	Furaha API ee ElevenLabs
+ElevenLabs voice ID	ID-ga codka ElevenLabs
+English	Ingiriisi
+Enter the game's name first.	Marka hore geli magaca ciyaarta.
+Every	Kasta
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Mod kasta waa la hubiyaa malware ka hor intaan la soo dejin. Modyada koodka weli way weydiiyaan ka hor intaan la shaqayn.
+Explore after	Baadho ka dib
+Explore while I'm away	Baadho intaan maqnaado
+Extra request JSON	Codka dheeraad ah ee JSON
+Extras	Dheeraad
+FREE KEY	FURAHA BILAASHKA AH
+FREE KEY >	FURAHA BILAASHKA AH >
+Fast hands in games	Gacmo degdeg ah ciyaaraha
+File editor	Tafatiraha faylasha
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs iyo wax kale waxay ku jiraan CODKA Mainframe.
+Follow-up messages	Farriimaha raacida
+Forget	Ilow
+Fork capri-mods	Fork capri-mods
+Frame rate	Tirada sawirka ee ilbiriqsi
+Free	Bilaash
+Free and private, works offline. Downloads	Bilaash iyo gaar ah, wuu shaqeeyaa oflaynka. Soo dejiya
+Free and private, works offline. Downloads the best model for this PC.	Bilaash iyo gaar ah, wuu shaqeeyaa oflaynka. Soo dejiya model-ka ugu wanaagsan PC-kan.
+Free key	Furaha bilaashka ah
+Free key providers	Bixiyeyaasha furaha bilaashka ah
+Free keys can be rate limited and slow.	Furayaasha bilaashka ahi waxay xaddidan yihiin oo way gaabsadaan.
+Free voice in games	Codka bilaashka ah ciyaaraha
+Free voice style	Qaabka codka bilaashka ah
+Free voice:	Codka bilaashka ah:
+Free voice: Her own	Codka bilaashka ah: Kan u gaar ah
+Free · local model	Bilaash · model maxalli ah
+GAMES >	CIYAARAHA >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Faallooyinka ciyaaraha waxay u shaqeeyaan si gooni ah marka loo eego Eeg shaashaddayda. Joojin wuxuu joojiyaa, xataa Mode-ka Ciyaaraha; Dhacdooyinka kaliya iyo Hadal badan ayaa u ogolaata inay ciyaarahaaga eegto
+Game controls	Xakamaynta ciyaaraha
+Game name	Magaca ciyaarta
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Xasaasiyadda codka ciyaarta. Hoos u dhig haddii dhegaha-dhegta ay hoos yihiin laakiin Windows ay {0}% tahay oo ay falcelisay cod kasta; Joojin wuxuu iska indha-tiraa codadka ciyaarta
+Game sounds	Codadka ciyaarta
+Games	Ciyaaro
+Gaming Mode	Mode-ka Ciyaaraha
+Gaming Mode key	Furaha Mode-ka Ciyaaraha
+Gaming Mode:	Mode-ka Ciyaaraha:
+Gaming Mode: Ctrl + Alt + G	Mode-ka Ciyaaraha: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Hel VB-CABLE
+Get VB-CABLE (free)...	Hel VB-CABLE (bilaash)...
+Get free voice	Hel codka bilaashka ah
+Getting your Fish Audio voices...	Codadka Fish Audio-kaaga waa la helayaa...
+Giant	Weyn
+Glitch	Glitch
+Glitch in at startup	Glitch bilowga
+Go to sleep	Seexo
+Go to the next screen	Tag shaashadda xigta
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · heer bilaash · xaddidan
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ma haysaa qorshaha Claude ama ChatGPT, ama furahaaga? Dooro oo waan ku xirmi doonaa.
+Got it, just me. Right-click me any time for Capri Mainframe.	Waa hagaagsan, aniga oo keliya. Midig-guji aniga wakhti kasta si aad u hesho Capri Mainframe.
+Grey	Cawl
+H.{0} video bitrate target; higher values make larger files	Bitrate-ka fiidiyaha ee H.{0} ujeedka; qiyamka sare waxay sameeyaan faylal weyn
+HABITS >	DABEECADAHA >
+HER HANDS >	GACMAHA >
+HER JOBS >	SHAQOOYINKA >
+HER MEMORY >	XASUUSTA >
+HER MODS >	MODYADA >
+HH:mm	HH:mm
+HOW I SOUND >	SIDA AAN U CODKA >
+Hang here	Halkan iska joog
+Have Ollama? Open it, then press Refresh.	Ollama ma haysaa? Fur, kadibna riix Cusboonaysii.
+Head pats	Madax-maasaggu
+Hearing	Maqalka
+Hearing engine	Matoorka maqalka
+Hearing fix	Hagaajinta maqalka
+Hearing status	Xaaladda maqalka
+Help	Caawimaad
+Help page	Bogga caawimaadda
+Her colors	Midabbadeeda
+Her folder	Fooldarkeeda
+Her memories	Xasuustiisa
+Her own colors are back.	Midabbadeeda gaarka ah way soo noqdeen.
+Her own notes (no vault)	Qoraalladeeda gaarka ah (ma jiro vault)
+Her perch frames per second	Fraymiyada sekan ee meesha ay fadhiisato
+Her personality	Shakhsiyadda
+Her size	Cabbirkeeda
+Her speaker	Hadaladeeda
+Her speaker is hidden or outside VOICE	Hadaladeeda waa qarsoon yihiin ama ka baxsan CODKA
+Her speaker overlaps the mic or hearing row	Hadaladeeda waxay isku dhacaan safka makarafoonka ama maqalka
+Her speaker:	Hadaladeeda:
+Her speaker: Default	Hadaladeeda: Caadi
+Her voice in your mic	Codkeeda makarafoonkaaga
+Her voice in your mic: loudness	Codkeeda makarafoonkaaga: sare-dhaw
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Codkeedu naftiisa. Pitch-kiisa waa Dejinta > CODKA > Pitch, waxayna wada dhaqaaqaan.
+Her voice joins your mic only in call mode.	Codkeedu makarafoonkaaga kuma biirto ilaa habka wicitaanka oo keliya.
+Her voice volume	Sare-dhawaanta codkeeda
+Her voice's pitch	Pitch-ka codkeeda
+Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch-ka codkeeda, isku mid la mid ah Dejinta > CODKA > Pitch
+Her voice's speed	Xawaaraha codkeeda
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Codkeeda, iyo laba nuqul oo isku qasan hoostiisa, mid kasta oo leh pitch iyo dib u dhacdiisa.
+Her voices · free	Codadkeeda · bilaash
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hey, choom. Waxaan ahay Capri. Maskax ayaan u baahanahay ka hor intaanan jawaab celin. Mid dooro.
+Hide / Show Capri	Qari / Muuji Capri
+Hide / Show key	Furaha qari / muuji
+Hide Capri	Qari Capri
+Hide for now	Hadda qari
+Hide in full screen	Ka qari shaashadda buuxda
+Hide this	Tan qari
+Hide/show:	Qari/muuji:
+Hide/show: Ctrl + Alt + H	Qari/muuji: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Ka degso
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	PC aan dhaqdhaqaaqin inta uu u qaadanayo inuu seexiyo; shan daqiiqo weli waa la akhriyaa inaad ka maqan tahay
+How long a stroke over her a head pat needs	Inta uu u qaadanayo dul-marka ku jirta inuu noqdo madax-maasaggu
+How long her replies stay up	Inta uu jawaabteeda ku sii jiri doono
+How long you are away before she scrolls a browser or reader	Inta aad ka maqnaatid ka hor inta ay browser ama akhristaha ku wareejin
+How much her voice glitches	Inta codkeedu qaladka ku dhacayo
+How much of the chat she keeps	Inta wada-hadalka ee ay hayso
+How much she wanders	Inta ay wareegto
+How often she pops in to say hi	Inta jeer ay soo gelayso inay salaamto
+How robotic her voice sounds	Inta codkeedu u eg yahay robot
+How to	Sida
+Huge	Aad u weyn
+I can hear you.	Waan ku maqlayaa.
+I glance at your screen and comment. Costs a little on a paid brain.	Shaashaddaada ayaan eegaa oo faallo bixiyaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
+I keep listening. Say my name, then just talk.	Dhegaysanayaa. Magacayga odhan, kadibna wax hadal.
+I talk about your game as you play. Costs a little on a paid brain.	Ciyaarahaaga ayaan ka hadlaa markaad ciyaarayso. Qiimo yar ayuu ku kaca maskax lacag bixin.
+I type my replies and stay quiet.	Jawaabahayga qoraa oo aan aamusnaado.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ma jawaabi doono, wax kasta ma loo dirayo meel kasta. Weli waan ku dhex jiri doonaa, muusikadaada ku ciyaari doonaa, oo waxyaabaha degdegga ah ee aad codsato ayaan samayn doonaa, sida cod-sareynta.
+I'll talk in	Waxaan ku hadli doonaa
+IN DISCORD >	DISCORD-KA >
+INSTALLED >	LA RAKIBAY >
+Import a Capri mod	Soo deji modka Capri
+Import mod	Soo deji mod
+In games	Ciyaaraha dhexdooda
+Input	Gelinta
+Input, Output or How to overlaps a row	Gelinta, Soo-saarka ama Sida waxay isku dhacaysaa safka
+Input:	Gelinta:
+Input: default	Gelinta: caadi
+Install	Rakib
+Install mod	Rakib mod
+Installed.	La rakibay.
+It may ask for a phone number. I opened the page in your browser.	Waxa laga yaabaa inay lambarka taleefanka weyddiiso. Bogga browser-kaaga ayaan ku furay.
+It still does its own job in other apps too.	Shaqadeeda gudaha apps kale ayuu weli sameeyaa.
+It won't type in other apps while she runs.	Apps kale kuma qori doono inta uu shaqeynayo.
+JUST ME >	AAN ANIGA KELIYA >
+Jealous of other AIs	Ka xasuuda AI-yada kale
+Join the Discord	Ku biir Discord
+KB.	KB.
+KEYS	FURAHA
+KEYS >	FURAHA >
+Keep PC awake for jobs	PC-ga toos u ilaali shaqooyinka
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Wuxuu xasuusta ku hayaa laba daqiiqadii u dambeysay ee ciyaartaada. Dheh duub taas si aad u kaydiso.
+Key	Furaha
+Key cleared: a model file needs none.	Furaha waa la tirtiray: faylka model-ka uma baahna.
+Key cleared: paste the key for	Furaha waa la tirtiray: ku dheji furaha si loo
+Key forgotten.	Furaha waa la ilaaway.
+Key. It goes only to this server, as a Bearer key	Furaha. Waxay u gaadhaa server-kan oo keliya, sida furaha Bearer
+Kokoro only, like es	Kokoro oo keliya, sida es
+LAST THING >	WAXA UGU DAMBEEYAY >
+LISTENING >	DHEGAYSANAYA >
+Language	Luqadda
+Large	Weyn
+Last thing. These cost a little or use your mic, so they're your pick.	Waxa ugu dambeeya. Kuwani waxay kharash yar ku qaadaan ama makarafoonkaaga isticmaalaan, sidaas darteed waa doorashadaada.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Waxa ugu dambeeya. Kuwani waxay kharash yar ku qaadaan ama makarafoonkaaga isticmaalaan, sidaas darteed waa doorashadaada. Kadibna waxaan rabaa inaan ogaado sida aad loo yeedho.
+Layers	Heerarka
+Learn more	Wax dheeraad ah ka baro
+Leaving Settings threw its picture away straight away.	Ka bixitaanka Dejinta sawirkeedii waa tirtiray isla markiiba.
+Legacy stand	Istaando hore
+Lie down	Jiifso
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Khadadka wada-hadalka PC-ga ee xusuusta lagu hayo markii aad wada eegaysaan. Nuska ugu da'da weyn wuxuu noqdaa fiiro marka Xusuuso waxa ay aragto uu shaqeynayo
+Listen for Capri	Dhegayso Capri
+Live reactions	Falcelinta tooska ah
+Local server address	Cinwaanka server-ka maxalliga ah
+Long	Dheer
+Longest wait (minutes)	Sugitaanka ugu dheer (daqiiqado)
+Looking at this PC...	PC-ga ayaan eegayaa...
+Looking for Ollama. Open it if it isn't running.	Ollama ayaan raadinayaa. Fur haddii aanu shaqaynayn.
+Looking for a brain...	Maskax ayaan raadinayaa...
+Looking in the mods directory for updates...	Cusboonaysiinta modyada fooldarka ayaan ka raadinayaa...
+Looking in the mods directory...	Fooldarka modyada ayaan ka raadinayaa...
+Looking...	Waan raadinayaa...
+MAIN >	GUDDOON >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	DHEXDHEXAAD INTELLIGENCE
+MEMORY VAULT >	KAYDKA XASUUSTA >
+MODS	MODYADA
+MODS >	MODYADA >
+MODS DIRECTORY >	FOOLDARKA MODYADA >
+MODS INSTALLED COLORS	MIDABBADA MODYADA LA RAKIBAY
+MOVES >	DHAQDHAQAAQYADA >
+MY BRAIN	MASKAXDAYDA
+MY FREE VOICE	CODKAYGA BILAASHKA AH
+MY PLAN OR KEY	QORSHAHAYGA AMA FURAHAYGA
+MY PLAN OR KEY >	QORSHAHAYGA AMA FURAHAYGA >
+Made your Fish Audio voice. Press Test to hear it.	Codkaaga Fish Audio waa la sameeyey. Riix Tijaabi si aad u dhegaysato.
+Mainframe colours	Midabbada Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Midabbada Mainframe. Night City waa casaan iyo cyan; Madow, Cad iyo Cawl waxay beddelaan Mainframe, menu-yadeeda, sanduuqa Qoraal, iyo qoraalladeeda
+Mainframe frames	Xuduudaha Mainframe
+Mainframe key	Furaha Mainframe
+Mainframe size	Cabbirka Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Cabbirka Mainframe. Si toos ah wuxuu weynaysiiyaa marka Virtual Super Resolution ama DSR ay desktop weyn ku yareeyaan shaashad yar
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Hoos
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Codkaaga Fish Audio waa la sameynayaa...
+Max reply	Jawaabta ugu badan
+Maximum clip resolution, keeping the game's shape without upscaling	Go'aanka klip-ka ugu weyn, iyada oo la ilaalinayo qaabka ciyaarta iyadoon la kordhin
+Medium	Dhexdhexaad
+Memory	Xasuus
+Memory size	Cabbirka xasuusta
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Cabbirka xasuusta tokens-ka Ollama iyo maskaxdeeda dhismaha ah. Si toos ah ayuu u kordhaa marka codsigu u baahdo badan
+Mg	Mg
+Mic level:	Heerka makarafoonka:
+Mic test finished. Sound is reaching Capri.	Tijaabada makarafoonka waa dhammaatay. Codka wuxuu gaarayaa Capri.
+Mic:	Makarafoonka:
+Mic: default	Makarafoonka: caadi
+Microphone	Makarafoon
+Mini player	Mini player
+Mini player over full screen	Mini player ka sarreeya shaashadda buuxda
+Mini-games	Mini-ciyaaro
+Minimising the Mainframe left it sliding.	Yareynta Mainframe-ka way ka dhigtay inuu wado.
+Minimize	Yaree
+Mod filter	Shaandhaynta modyada
+Mod options	Ikhtiyaarrada modka
+Mod pages	Bogagga modyada
+Mod rules	Xeerarka modyada
+Mod sort	Kala-soocidda modyada
+Mod switch	Beddelka modka
+Model	Model
+Model folder	Fooldarka model-ka
+Model name, optional	Magaca model-ka, ikhtiyaari
+Mods	Modyada
+Mods directory	Fooldarka modyada
+Mods folder	Fooldarka modyada
+Most NVIDIA models can't see your screen.	Inta badan model-ka NVIDIA ma arki karaan shaashaddaada.
+Mouse wheel notches got a flick's long ease:	Jajabyada gurigii mouse-ka waxay heleen wado dheer:
+Move	Dhaqaaq
+Move key to MAX INTELLIGENCE	Ku wareeji furaha MAX INTELLIGENCE
+Move to MAX	Ku wareeji MAX
+Music	Muusik
+Music app	App-ka muusikada
+Music app: where she plays music when you don't name an app	App-ka muusikada: meesha ay muusikada ku ciyaarto marka aadan magac u sheegin app
+Mute	Aamusi
+Mute her	Aamusi isaga
+Mute mic key	Furaha aamusinta makarafoonka
+Mute mic:	Aamusi makarafoonka:
+Mute mic: Ctrl + Alt + N	Aamusi makarafoonka: Ctrl + Alt + N
+My brain	Maskaxdayda
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Maskaxdayda way hoos u degaysaa. Waan ku salaamayaa marka ay gasho, kadibna markaas ayaad la hadli kartaa.
+My brain's on its way. While it comes down, let's sort out how I sound.	Maskaxdayda way socotaa. Intay hoos u degaysaa, aan dejino sida aan u codsado.
+My provider	Bixiyahayga
+NO AI	AI MA JIRTO
+NO PHONES CONNECTED	TELEFOON LA XIDHAY MA JIRO
+NO PREVIEW	HORTA MA JIRTO
+NORMAL	CAADI
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · bilaash · waqtiyada mashquulka badan inta badan gaabsan
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA API-ga bilaashka ah inta badan wuu gaabsadaa, gaar ahaan waqtiyada mashquulka.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) ama furaha API ee OpenRouter
+Names:	Magacyada:
+Needs a key	Wuxuu u baahan yahay furaha
+Never	Waligiis
+New code	Kood cusub
+New voice from a clip...	Cod cusub oo ka yimid clip...
+Next	Xiga
+Night City	Night City
+No AI	Aan AI lahayn
+No AI · no brain at all	Aan AI lahayn · aan maskax lahayn gebi ahaanba
+No brain runs, and nothing is sent anywhere.	Maskax lama shaqaynayo, wax kasta looma dirayo meel kasta.
+No brain yet	Weli maskax ma jirto
+No code open	Kood furan ma jiro
+No mic found	Makarafoon lama helin
+No mods in the directory yet.	Weli fooldarka ma ku jiraan modyo.
+No mods match that.	Waxba ma jiro modka la waafaqa.
+No mods match.	Modyo ma waafaqaan.
+No phones yet	Weli telefoon ma jiraan
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Weli makarafoon virtual ma jiro. Dooro Output, kadibna Hel VB-CABLE (bilaash).
+None yet: pick to get VB-CABLE (free)	Weli waxba ma jiro: dooro si aad u hesho VB-CABLE (bilaash)
+Normal	Caadi
+Not a relay host	Ma aha relay host
+Not imported. Nothing ran.	Lama soo dejin. Waxba ma shaqayn.
+Not updated. The old one is still in.	Lama cusboonaysin. Kii hore weli waa uu ku jiraa.
+Nothing needed updating.	Wax cusboonaysiin ah looma baahnayn.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Waxba lama soo dejinayo, waxba meel kasta looma dirayo. Dib uma jawaabi doono. Maskax ku dar waqti kasta Mainframe-ka.
+Nothing to show from the mods directory.	Waxba ma jiro oo laga soo bandhigi karo fooldarka modyada.
+Nothing? Windows Settings > Privacy & security > Microphone.	Waxba? Dejinta Windows > Privacy & security > Makarafoon.
+Nous Portal keys aren't supported yet.	Furayaasha Nous Portal weli lama taageero.
+OBS	OBS
+OFF	DEMAN
+OLLAMA	OLLAMA
+ON	SHID
+ON THIS PC	PC-KAN
+OR A KEY	AMA FURAHA
+Obsidian memory vault	Vault-ka xusuusta Obsidian
+Off	Demay
+Off. Turn on Her voice in your mic above.	Demay. Shid Codkeeda makarafoonkaaga sare.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Demay: wuxuu u codsanayaa sidii weligiisba. Shid: dhammaan codadkeeda, iyo ElevenLabs.
+Often	Badanaa
+On	Shid
+On / Off	Shid / Demay
+On: your mic and her voice are going in.	Shid: makarafoonkaaga iyo codkeeda way galayaan.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Hal shay oo JSON ah, oo lagu daraa codsi kasta oo maskaxdan dirto. Waxay beddeshaa qiimaha Capri magac kasta oo wadaaga, mana hubinta model-ka.
+Online speech recognition	Aqoonsiga codka onlaynka
+Open Capri Mainframe	Fur Capri Mainframe
+Open Ollama, I'll find it	Fur Ollama, anigu waan helayaa
+Open clips folder	Fur fooldarka clips
+Open her memories	Fur xasuustiisa
+Open her notes	Fur qoraalladeeda
+Open mods folder	Fur fooldarka modyada
+Open the page again	Dib u fur bogga
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ama OpenRouter.
+OpenAI-compatible server or provider.	Server ama bixiye la jaan qaadaya OpenAI.
+OpenRouter · free models only	OpenRouter · model bilaash ah oo keliya
+Optional	Ikhtiyaari
+Optional. Blank means no key.	Ikhtiyaari. Madhan macnaheedu waa ma jiro furaha.
+Options	Ikhtiyaarrada
+Out of the box a little higher, just behind her.	Si caadi ah wax yar ayuu sare u yaal, isaga gadaasheeda.
+Out of the box lower, just behind her.	Si caadi ah wax yar ayuu hoos u yaal, isaga gadaasheeda.
+Output	Soo-saarka
+Output:	Soo-saarka:
+Output: none	Soo-saarka: midna
+PHONE CONNECTED	TELEFOON LA XIDHAY
+PHONES >	TELEFOONADA >
+PHONES CONNECTED	TELEFOONADA LA XIDHAY
+PREBUILT LOCAL	MAXALLI HORE LOO DHISAY
+PUBLISH MOD >	DAABACI MOD >
+Pair a phone	Ku lammaani telefoon
+Paste	Ku dheji
+Paste API key	Ku dheji furaha API
+Paste a brain API key	Ku dheji furaha API ee maskaxda
+Paste reads your clipboard once, when you press it.	Ku dheji wuxuu akhrisaa clipboard-ka mar keliya, marka aad riixdo.
+Paste your key here	Halkan ku dheji furahaaga
+Pat stroke	Madax-maasaggu
+Perch	Meesha fadhiga
+Perch over {0} fps uses more CPU	Meesha fadhiga ka sarreeya {0} fps wuxuu isticmaalaa CPU badan
+Pick Output to get it.	Dooro Output si aad u hesho.
+Pick a brain so I can talk back. You can change it any time.	Dooro maskax si aan jawaab u bixin karo. Waqti kasta ayaad beddeli kartaa.
+Pick a clip of a voice you have the rights and consent to use	Dooro clip cod ah oo aad xuquuqda iyo oggolaanshaha u leedahay
+Pick a free model. I opened the page in your browser.	Dooro model bilaash ah. Bogga browser-kaaga ayaan ku furay.
+Pick a new clip of you...	Dooro clip cusub oo adigu ah...
+Pick a voice model...	Dooro model-ka codka...
+Pick one. Only one brain runs at a time.	Dooro mid. Hal maskax oo keliya ayaa shaqeysa mar kasta.
+Pick the note her memories go in	Dooro qoraalka uu xasuustiisu galayso
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Dooro {0} ilaa {1} ilbiriqsi oo cod ah oo aad xuquuqda iyo oggolaanshaha u leedahay
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Dooro {0} ilaa {1} ilbiriqsi oo aad hadlaysid, ama cod aad xuquuqda iyo oggolaanshaha u leedahay
+Pitch	Pitch
+Play	Ciyaar
+Play...	Ciyaar...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Model-ka Pocket TTS wuxuu koobiyeeyaa codka clip-kan. Riix Tijaabi si aad u dhegaysato.
+Pop-in times	Waqtiyada soo-muuqashada
+Pop-ins	Soo-muuqashooyin
+Power saver	Badbaadiyaha tamarta
+Power saver: how lightly she runs in games, or always	Badbaadiyaha tamarta: sida fudud ayuu ciyaaraha ugu shaqeeyaa, ama mar walba
+Preset	Preset
+Press Create API key	Riix Samee furaha API
+Press Create Key	Riix Samee Furaha
+Press Generate API Key	Riix Samee API Key
+Press Test and say something, so I know I can hear you.	Riix Tijaabi oo wax odhan, si aan u ogaado inaan kuu dhegaysanayo.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Riix fure, keligii ama Ctrl, Alt, Shift ama Win oo la socda.
+Press new keys, then Confirm	Riix furayaasha cusub, kadibna Xaqiiji
+Provider	Bixiye
+Provider API key, optional	Furaha API ee bixiyaha, ikhtiyaari
+Provider base URL	URL-ka aasaasiga ah ee bixiyaha
+Provider forgotten.	Bixiyaha waa la ilaaway.
+Provider overlaps the brain name or note	Bixiyaha wuxuu isku dhacaa magaca maskaxda ama qoraalka
+Publish	Daabac
+Publish mod	Daabac mod
+Push to talk is off.	Hadal-riixista waa dheegan tahay.
+Push to talk key	Furaha hadal-riixista
+Push to talk:	Hadal-riixista:
+Push to talk: not set	Hadal-riixista: lama dejin
+QR CODE >	KOOD QR >
+QR hidden while streaming	QR way qarsoon tahay intii socdaalka
+Quick	Degdeg
+Quiet key	Furaha aamusnaanta
+Quiet:	Aamusnaan:
+Quiet: Ctrl + Alt + P	Aamusnaan: Ctrl + Alt + P
+Quit Capri	Ka bax Capri
+RELAY >	RELAY >
+REMOTE >	FOGAYN >
+RUNS CODE.	KOOD BAA SHAQAYSA.
+Rarely	Marmar
+Rate mod	Qiimee modka
+Reading its README...	README-kiisa ayaan akhrinayaa...
+Refresh	Cusboonaysii
+Reinstall	Mar kale rakib
+Reload	Mar kale soo rar
+Reloaded.	Mar kale waa la soo rariyey.
+Remember our chats	Ka xasuuso wadahadalladeenna
+Remember what she sees	Ka xasuuso waxa ay aragto
+Remote	Fogaynta
+Remote off	Fogaynta waa dheegan tahay
+Remote on	Fogaynta waa furan tahay
+Remove	Ka saar
+Remove all phones	Ka saar dhammaan telefoonada
+Replies	Jawaabaha
+Reply length	Dherer jawaabta
+Report a problem	Warbixin dhibaato
+Reset colors	Dib u dejinta midabbada
+Reset to her default	Dib u celi default-kiisa
+Resolution	Go'aanka
+Restart to update	Dib u bilow si aad u cusboonaysiiso
+Restless	Degan ma aha
+Revoke	Ka noqo
+Revoke also removes the phones its links added	Ka noqoshadu waxay sidoo kale ka saartaa telefoonada ay xidhiidhadooda ku daraan
+Ride cursor	Kursiga cursor-ka saar
+Ride cursor / Hop off	Kursiga cursor-ka saar / Ka degso
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Midig-guji aniga wakhti kasta si aad u hesho Capri Mainframe. Maskax ayaa ku shidmi doonta hoosta MASKAX.
+Right-click me any time for the Mainframe, Help and the Discord.	Midig-guji aniga wakhti kasta si aad u hesho Mainframe, Caawimaad iyo Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ama app kale: dooro
+Robot	Robot
+Rock, paper, scissors	Dhagax, warqad, qalin
+Run this code mod?	Mod-kan koodka ah ma ordaa?
+Running on this PC	Kan PC-kan ku shaqeynaya
+Running on this PC · :	Kan PC-kan ku shaqeynaya · :
+Runs Claude Code or Codex on this PC, signed in.	Wuxuu ku shaqeysiiyaa Claude Code ama Codex PC-kan, oo galay.
+Runs on your PC. No key, no credits.	PC-gaaga ayuu ku shaqeeyaa. Ma jiro furaha, ma jiro credits.
+SCAN WITH YOUR PHONE · EXPIRES	SKAN-GAR TELEFOONKAAGA · WAA DHACAYAA
+SECURITY >	AMMAANKA >
+SKILL.	XIRFAD.
+SKIN.	MAQAAR.
+SORT BY	KALA-SOOC SIDA
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	CODADKA DABEECADAHA MASKAXDA EEG CAPRI DOOMSCROLL CIMILO CLIPS CIYAARAHA FURAHA DHAQDHAQAAQYADA CODKA ADIGU
+Same as her ears (VOICE > Mic)	Isla sida dhegihiisa (CODKA > Makarafoon)
+Same code on the phone?	Koodka isku mid ma yahay telefoonka?
+Save	Kaydi
+Save big moments	Kaydi waqtiyada waaweyn
+Save folder	Fooldarka kaydinta
+Save your changes, or press Discard + reload.	Isbeddelladaada kaydi, ama riix Tuur + dib u soo rar.
+Save your changes, or press Discard.	Isbeddelladaada kaydi, ama riix Tuur.
+Saved.	La kaydiyey.
+Saved. Ctrl + Alt + O opens her Mainframe.	La kaydiyey. Ctrl + Alt + O wuxuu furaa Mainframe-kiisa.
+Saving your rating...	Qiimaynteada waa la kaydinayaa...
+Say her name anywhere to chat	Magaceeda meel kasta ku odhan si aad u sheekaysato
+Screens	Shaashadaha
+Screens is hidden or outside WATCH	Shaashadaha way qarsoon yihiin ama ka baxsan EEG
+Screens overlaps a WATCH row	Shaashadaha waxay isku dhacaan safka EEG
+Screens to watch	Shaashadaha la eegayo
+Sealed end to end	Dhamaadka ilaa dhamaadka waa la sirteeyey
+Search by name or author	Raadi magac ama qoraa
+Search installed mods	Raadi modyada la rakibay
+Search mods	Raadi modyada
+Search name, author or description	Raadi magac, qoraa ama sharaxaad
+Security	Ammaanka
+Security:	Ammaanka:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Diyaari
+Set up her brain	Maskaxdeeda diyaari
+Set up your voice model	Model-ka codkaaga diyaari
+Setting up her brain	Maskaxdeeda ayaan diyaarinayaa
+Settings	Dejinta
+Settings / Back	Dejinta / Dib u noqo
+Settings folds the wrong rows above BRAIN	Dejintu waxay ku dhex fur-furaysaa safafka qaldan ee ka sarreeya MASKAX
+Settings had nothing to watch.	Dejintu waxba looma hayn in la eego.
+Settings lost keyboard focus during the Tab walk	Dejintu waxay lumisay xagga furaha inta lagu jiro socodka Tab
+Setup guide	Hagaha diyaarinta
+Setup stopped	Diyaarinta waa la joojiyey
+She can read it when it fits.	Way akhrisan kartaa markii ay ku habboonaato.
+She glances at your screen and comments. Costs a little on a paid brain.	Shaashaddaada ayay eegtaa oo faallo bixisaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
+She keeps listening. Say her name, then just talk until you go quiet.	Way dhegaysanaysaa. Magaceeda odhan, kadibna wax hadal ilaa aad aamusto.
+She reacts to your game until you close it.	Ciyaarahaaga ayay ka jawaabtaa ilaa aad xirto.
+She reads these controls before each game job.	Xakamayntan waxay akhrisaa shaqo kasta oo ciyaar ka hor.
+She talks about your game as you play. Costs a little on a paid brain.	Markaad ciyaarayso ciyaarahaaga ayay ka hadlaysaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
+She uses it when she plays	Markay ciyaarayso ayay isticmaashaa
+Short	Gaaban
+Shortest wait (minutes)	Sugitaanka ugu gaaban (daqiiqado)
+Show Capri	Muuji Capri
+Show QR	Muuji QR
+Show my mod file	Muuji faylka modka
+Show on Discord	Ku muuji Discord
+Shum, what time is it	Shum, goorma tahay hada
+Sign in	Gali
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Gali, samee furaha, kadibna koobiyee. Kadibna riix Ku dheji, anigu waan ku xidhi doonaa.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Gali, riix Samee API key, kadibna koobiyee. Kadibna riix Ku dheji, anigu waan ku xidhi doonaa.
+Silent · text only	Aamusnaan · qoraal kaliya
+Simple / Advanced Settings	Dejinta fudud / horumarsan
+Simple Settings	Dejinta fudud
+Simple Settings left a gap under Check in on me	Dejinta fudud waxay ka tagtay meel bannaan hoosta Iga soo bax
+Sit here	Halkan fadhii
+Sit on windows	Daaqadaha saar
+Size	Cabbirka
+Skip	Ka gudub
+Skip all	Dhammaan ka gudub
+Skip for now	Hadda ka gudub
+Sleep	Hurdo
+Small	Yar
+Sometimes	Mararka qaarkood
+Sound effects volume	Mugga effects-ka codka
+Sound sensitivity	Xasaasiyadda codka
+Sounds	Codadka
+Speaker or clip	Hadal-hayaha ama clip
+Speech model	Model-ka hadalka
+Speed	Xawaaraha
+Start with Windows	Ku bilow Windows
+Start with this!	Tan ku bilow!
+Starting...	Waa la bilaabayaa...
+Stay on my model	Model-kayga ku sii jir
+Still checking your mics...	Makarafoonkaaga wali waa la hubinayaa...
+Still checking your speakers...	Hadal-hayaha wali waa la hubinayaa...
+Still checking your virtual mics...	Makarafoonada virtual-ka wali waa la hubinayaa...
+Stop	Jooji
+Stopped using it. Couldn't remove the saved provider.	Waa la joojiyey isticmaalkii. Bixiyaha kaydsan lama tirtiri karin.
+Support	Taageero
+Sure?	Hubaal?
+Sure? moved to a different phone	Hubaal? waxaa loo wareejiyey telefoon kale
+TALK TO ME	I LA HADAL
+TEXT ONLY	QORAAL KALIYA
+Tab landed past the first option of	Tab wuxuu ku dhacay ka dib xulashada ugu horreeya ee
+Tab never reached the quiet key	Tab midna ma gaarin furaha aamusnaanta
+Tab reached nothing	Tab waxba ma gaarin
+Tab selected a control without moving keyboard focus	Tab wuxuu dooray xakamayn isaga oo aan guurin xagga furaha
+Talk	Hadal
+Talk key	Furaha hadalka
+Talk:	Hadal:
+Talk: Ctrl + Alt + V	Hadal: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Heerka sawirka ee ujeedada; wuu hoos u dhacaa culeysku ama miisaaniyadda xusuusta hoos u dhigayso
+Teases when another AI comes to the front.	Wuu cayaarayaa markii AI kale uu hore u yimaado.
+Test	Tijaabo
+That address doesn't work. Try https://... or http://localhost:{0}.	Cinwaankaas ma shaqeynayo. Isku day https://... ama http://localhost:{0}.
+That code expired	Koodkaas waa dhacay
+That mod is no longer installed. The list is updated.	Modkaas hadda lama rakibin. Liiska waa la cusboonaysiiyey.
+That's a paid key: it goes under MAX INTELLIGENCE.	Taasi waa furaha lacagta leh: wuxuu u gali doonaa MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe wuu ku sii jiray isku-dhejinta intii uu socday.
+The Mainframe stayed uncomposited after the slide.	Mainframe wuxuu ka sii ahaa compositing la'aan ka dib siman.
+The controls moved while the picture was sliding.	Xakamaynta way dhaqaaqeen intii sawirku socday.
+The cover stayed visible after the slide ended.	Dahaarka ayaa muuqday ka dib markii siman dhammaatay.
+The frame thread kept running after the page settled.	Xarig-kii frame-ka wuu sii shaqeeyay ka dib markii bogga degay.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Jawaabta ugu dheer ee ay bixin karto, tokens-ka. Si toos ah wuxuu ku jiraa Jawaabaha kore; {0}K ama {1}K ayaa u ogolaanaya inay sii socoto. Shaqooyinka waxay helaan meel dheeraad ah marka loo baahdo
+The longest wait must be at least the shortest wait.	Sugitaanka ugu dheer waa inuu ugu yaraan noqdaa sugitaanka ugu gaaban.
+The picture doesn't match the scrolled page:	Sawirka ma waafaqo bogga la shiiday:
+The picture of Settings doesn't match the page:	Sawirka Dejinta ma waafaqo bogga:
+The picture stayed up after the slide ended.	Sawirku wuu muuqday ka dib markii siman dhammaatay.
+The picture wasn't showing while it slid.	Sawirku ma muuqan intuu siman jiray.
+The provider sheet is crowded:	Xaashida bixiyeyaasha waa buuxa:
+The voice panel has no screen DPI.	Panelka codka ma leh DPI shaashadda.
+The voice panel's menus share one font.	Menu-yada panelka codka waxay wadaagaan hal font.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Clipboard-ka weli furaha ma ku jiro. Ka koobiyee bogga, kadibna riix Ku dheji.
+These start off. Each costs a little or uses your mic.	Kuwani waxay ku bilaabmayaan kuwo damiyay. Mid kasta wuxuu kharash yar ku qaadaa ama makarafoonkaaga wuu isticmaalaa.
+These start off. Turn on what you want. They're all in Settings too.	Kuwani waxay ku bilaabmayaan kuwo damiyay. Shid kuwa aad rabto. Dejinta ayay sidoo kale ku jiraan.
+They can also call you Big Z, Capricorn or Nova	Waxay sidoo kale ii yeedhi karaan Big Z, Capricorn ama Nova
+They can also call you Nova, Big Z or Capricorn	Waxay sidoo kale ii yeedhi karaan Nova, Big Z ama Capricorn
+Thinking	Wuu fekeraa
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Kani waa codkayga bilaashka ah. Riix Tijaabi, wax hadal, waxaan ku muujin doonaa inaan kuu dhegaysanayo.
+This mod has no description yet.	Modkan weli sharaxaad ma leh.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Waqtiga udhaxeeya eegista
+Tiny	Aad u yar
+Try again	Mar kale isku day
+Turn Remote on first	Marka hore shid Remote
+Turn off mini player	Demi mini player
+Turn push to talk off	Demi hadal-riixista
+Turning the wheel the other way kept the page heading the old way, to	Afka wadanka oo kale u wareejinta ayaa bogga ku hayay jihadii hore, ilaa
+Type	Qor
+Type key	Furaha qorista
+Type to me	Ii qor
+Type:	Qorista:
+Type: Ctrl + Alt + T	Qorista: Ctrl + Alt + T
+Typing sound	Codka qorista
+Unpacked. Press Test to hear it.	Waa la furay. Riix Tijaabi si aad u dhegaysato.
+Unsaved changes.	Isbeddello aan la kaydin.
+Up to {0} fps	Ilaa {0} fps
+Up to {0}p	Ilaa {0}p
+Update	Cusboonaysii
+Update available.	Cusboonaysiin ayaa diyaar ah.
+Update mods	Cusboonaysii modyada
+Updating...	Waa la cusboonaysiinayaa...
+Use	Isticmaal
+Use her cursor	Isticmaal cursor-keeda
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Bixiye kale ku isticmaal https://. Furaha http caadiga ah ma ammaan ah.
+Use preset	Isticmaal preset
+Use saved	Isticmaal kaydka
+Use this server	Isticmaal server-kan
+Using your provider with a key	Isticmaalaya bixiyahaaga furahana
+Using your server with no key	Isticmaalaya server-kaaga furaha la'aan
+VIEW MOD >	EEG MOD >
+VOICE >	CODKA >
+VOICE IN YOUR MIC >	CODKA MAKARAFOONKAAGA >
+VOICE LAYERS >	HEERARKA CODKA >
+Verbosity	Badnaanta erayada
+Video bitrate	Bitrate-ka fiidiyaha
+View	Aragti
+View mod	Eeg mod
+Voice	Cod
+Voice ID	ID-ga codka
+Voice from	Codka laga soo bilaabo
+Voice layers	Heerarka codka
+Voice model	Model-ka codka
+Voice model:	Model-ka codka:
+Voice name or ID, optional	Magaca ama ID-ga codka, ikhtiyaari
+Voice server address, or a voice model's folder	Cinwaanka server-ka codka, ama fooldarka model-ka codka
+Voice status	Xaaladda codka
+Voice, key and model...	Codka, furaha iyo model-ka...
+Volume	Mugga
+WAKE ME UP >	I TOOSI >
+WATCH >	EEG >
+Waiting for the relay	Relay-ga ayaa la sugayaa
+Wake her up	Toosi
+Waking her up	Waa la toosinayaa
+Wander	Dhex-dhex maraysa
+Wander around	Dhex-dhex mari
+Watch my screen	Shaashaddayda eeg
+Watch-along memory	Xusuusta wada-eegista
+Weather	Cimilada
+Weather city	Magaalada cimilada
+Welcome back, choom. Let's finish setting me up.	Ku soo laabo, choom. Aan dhamaystirno sida aad i diyaariyo.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Waxa ay PC-gaaga ku samayso iyada oo aan wax weydiin. Marka ay damiban tahay, marka hore way weydiisaa, oo waxay sameysaa markaad tahay haa.
+What should she call you?	Maxaad ii tidhaahdaa?
+When she types	Markay qorto
+White	Cad
+Windows default	Default-ka Windows
+Windows did not give Settings keyboard focus	Windows ma siin Dejinta xagga furaha
+Windows did not return keyboard focus to Back	Windows ma soo celin xagga furaha Dib u noqo
+With no picture the wheel still tried to slide.	Sawir la'aan, dhegaha ayaa weli isku dayay inay siman.
+Works best on MAX INTELLIGENCE.	Ugu wanaagsan MAX INTELLIGENCE.
+YOU	ADIGU
+YOU >	ADIGU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ADIGU CODKA DHAQDHAQAAQYADA FURAHA CIYAARAHA CLIPS CIMILO DOOMSCROLL CAPRI EEG MASKAX ADATS CODADKA
+YOUR KEY	FURAHAAGA
+YOUR MIC	MAKARAFOONKAAGA
+YOUR PLAN	QORSHAHAAGA
+Yokapri what's up	Yokapri waa maxay
+You can hide this. It keeps going, and the Mainframe shows it too.	Taan waad qarin kartaa. Wuu sii socdaa, Mainframe-kuna wuu tusaa.
+Your mic and her voice go into one virtual mic, and	Makarafoonkaaga iyo codkeedu waxay galaan hal makarafoon virtual, iyo
+Your mic is muted. Unmute it to test.	Makarafoonkaagu waa la aamusiyay. Dami aamusnaanta si aad u tijaabiso.
+Your mods are up to date.	Modyadaadu waa cusub yihiin.
+Your name or a nickname	Magacaaga ama lakabkaaga
+Your own model	Model-kaaga gaarka ah
+Your personality	Shakhsiyaddaada
+Your voice	Codkaaga
+Your voice (HD)	Codkaaga (HD)
+Your voice (HD) · pick a clip of you...	Codkaaga (HD) · dooro clip adiga kuu gaar ah...
+Your voice model	Model-ka codkaaga
+as its mic.	sida makarafoonkeeda.
+changed. Saved as My Colors, so you can share it.	waa la beddelay. Waxaa loo kaydiyey sida Midabbadayda, si aad u wadaagto.
+choice	doorasho
+clips the input line	xariiqda gelinta ayuu clip-geeyaa
+cue	calaamad
+doesn't yet.	weli ma.
+download	soo dejin
+file.	fayl.
+flag	calaamad
+fps	fps
+hear	maqli
+hears	maqlaa
+hears that.	taas ayuu maqlaa.
+hides or shows her.	way qariyaa ama way muujisaa.
+hint	talo
+in the Mainframe.	Mainframe-ka.
+in the mods directory with a pull request.	fooldarka modyada codsi isbeddel ah oo la xidhiidha.
+in the picture wasn't noticed.	sawirka lama ogaan.
+is already her push-to-talk key.	horey ayuu u yahay furahooda hadal-riixista.
+is off.	waa demay.
+is on and running.	waa shid oo socda.
+is on, at the bottom, under	waa shid, hoos, hoosta
+is on.	waa shid.
+is on. She now answers to	waa shid. Hadda wuxuu ka jawaabaa
+is removed.	waa la saaray.
+is taken	waa la qabsaday
+is taken by another app. Try another.	waxaa qabsaday app kale. Mid kale isku day.
+is updated	waa la cusboonaysiiyey
+isn't hearing it yet: do {0} and {1}, then join a call.	wali ma maqlayo: samee {0} iyo {1}, kadibna ku biir wicitaan.
+it now.	hadda.
+keeps her quiet, and lets her talk again.	wuu aamusiyaa, oo wuu u ogolaadaa inuu mar kale hadlo.
+key	furaha
+key.	furaha.
+min	daqiiqo
+more.	wax dheeraad ah.
+ms.	ms.
+mutes mic	aamusiyo makarafoonka
+mutes your mic.	aamusiyo makarafoonkaaga.
+name	magac
+off	demi
+on this PC	PC-kan
+opens her Mainframe.	Mainframe-kiisa ayuu furaa.
+opens her typing box.	sanduuqa qorista ayuu furaa.
+phone	telefoon
+phone pixels	pixels-ka telefoonka
+phones	telefoonno
+pixels	pixels
+pixels)	pixels)
+star.	xiddig.
+stars.	xiddigo.
+starts voice chat.	wuxuu bilaabaa wada-hadal codka ah.
+stays off. Nothing ran.	wuu demay. Waxba ma shaqayn.
+still does its own job in other apps too. Confirm to keep it.	weli shaqadiisa ayuu ku sameeyaa apps kale. Xaqiiji si aad u hayso.
+tall	dheer
+time	waqti
+to talk	si loo hadlo
+to talk to her, with a game in front too.	si aad ula hadasho, ciyaar hore ahaana.
+too.	bay.
+turns Gaming Mode on and off.	wuxuu shidaa ama demiyaa Mode-ka Ciyaaraha.
+with Ollama	Ollama-ka
+won't type in other apps while she runs. Confirm to keep it.	uusan qori doonin apps kale intuu shaqeynayo. Xaqiiji si aad u hayso.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Demay
+{0}   If her voice cuts off, turn off noise filtering	{0}   Haddii codkeedu jeexmo, dami sifeynta buuqa
+{0}   Input Device:	{0}   Qalabka gelinta:
+{0}   Join the call and check they hear both of you	{0}   Ku biir wicitaanka oo hubi inay labadiinba maqlaan
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Tijaabada makarafoonka > Aan hubinno: adigu naftaada ayaad maqli doontaa, iyo iyada markay hadlayso
+{0}   Microphone:	{0}   Makarafoonka:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Ka reebidda buuqa: Midna. Labadooduba way jebin karaan codkeeda ka dib safka hore.
+{0}   Open the call or meeting's audio settings	{0}   Fur dejinta codka wicitaanka ama shirka
+{0}   Output Device: your headphones, like before	{0}   Qalabka soo-saarka: dhegaha-dhegta, sida hore
+{0}   Speaker: your headphones, like before	{0}   Hadal-hayaha: dhegaha-dhegta, sida hore
+{0}   Try a mic test in your call app	{0}   Isku day tijaabada makarafoonka app-ka wicitaanka
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Dejinta isticmaalaha (dhaqaca magacaaga ag) > Cod iyo Muuqaal
+{0} Mbps	{0} Mbps
+{0} lines	{0} safka
+{0} min	{0} daq
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· kan PC-kan
+· server	· server

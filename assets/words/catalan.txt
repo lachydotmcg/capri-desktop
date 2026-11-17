@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Un control que es repintava no es va redibuixar a la imatge.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Una clau gratuïta de Google AI Studio, NVIDIA o OpenRouter. No cal baixar res. Necessita internet.
+A held trackpad scroll got a flick's long ease:	Un desplaçament mantingut al trackpad va rebre una inèrcia llarga:
+A layout change during a slide put the page at	Un canvi de disposició durant un lliscament va deixar la pàgina a
+A layout change left the picture up.	Un canvi de disposició va deixar la imatge visible.
+A model in Ollama, on your local server or on your key.	Un model a Ollama, al teu servidor local o amb la teva clau.
+A paid key goes under MAX INTELLIGENCE by itself.	Una clau de pagament va sola a MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Un pla que ja pagues, una clau pròpia o Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Un menú del panell de veu no té la seva pròpia còpia de la lletra del panell.
+A wheel turn right after a slide ended froze the picture.	Un gir de la roda just després d'un lliscament va bloquejar la imatge.
+ALLOW THIS PHONE?	PERMETRE AQUEST MÒBIL?
+ALMOST THERE >	GAIREBÉ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	UNA ALTRA CAPRI S'HA FET CARREC · APAGA I ENCENDRE
+API key	Clau API
+API key, Claude plan or ChatGPT plan	Clau API, pla de Claude o pla de ChatGPT
+Add	Afegeix
+Address	Adreça
+Address and key saved. Use saved to reconnect.	Adreça i clau desades. Fes servir «Desades» per tornar a connectar.
+Advanced Settings	Configuració avançada
+All	Tots
+All screens	Totes les pantalles
+Allow	Permet
+Almost there. I'll say hi the second my brain's in.	Gairebé. Et diré hola just quan el meu cervell estigui carregat.
+Always	Sempre
+Always on top	Sempre a dalt
+Any Google account works. I opened the page in your browser.	Qualsevol compte de Google serveix. He obert la pàgina al navegador.
+Applies to every voice	S'aplica a totes les veus
+Apps she may close	Aplicacions que pot tancar
+Ask Capri for more	Demana més a Capri
+Asking your server...	Preguntant al teu servidor...
+Asks before closing only the apps you choose.	Pregunta abans de tancar només les aplicacions que triïs.
+Auto	Automàtic
+Automatic: VB-CABLE, else Steam's	Automàtic: VB-CABLE, si no, el de Steam
+BAD RELAY HOST	SERVIDOR DE RELLEU NO VÀLID
+BIG Z open notepad	BIG Z obre el bloc de notes
+BRAIN	CERVELL
+BRAIN >	CERVELL >
+BRAIN ONLINE >	CERVELL EN LÍNIA >
+BRAIN PROVIDER >	PROVEÏDOR DEL CERVELL >
+BRAIN VOICE CAPRI	VEU DEL CERVELL CAPRI
+Back	Enrere
+Back on your saved API key.	Tornat a la teva clau API desada.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Millor opció per a aquest PC:
+Black	Negre
+Blank key means no key.	Una clau en blanc vol dir sense clau.
+Brain API key	Clau API del cervell
+Brain model	Model del cervell
+Brain provider	Proveïdor del cervell
+Bring here	Porta-la aquí
+Bring to this screen	Porta a aquesta pantalla
+Browse	Navega
+Browse mods	Explora mods
+Browse to a voice model	Cerca un model de veu
+Browse...	Cerca...
+Bubble	Bombolla
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, hi ets?
+CAN'T REACH THE RELAY · RETRYING	NO ES POT CONNECTAR AL RELLEU · REINTENTANT
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	VEU DE CERVELL CAPRI
+CHANGED, approve it again.	CANVIAT, aprova-ho de nou.
+CLIPS >	CLIPS >
+CLOUD VOICE	VEU AL NÚVOL
+CODE	CODI
+COLORS >	COLORS >
+CONNECTED	CONNECTAT
+CONNECTING	CONNECTANT
+CUSTOM LOCAL	LOCAL PERSONALITZAT
+Call mode (beta)	Mode trucada (beta)
+Call mode does not fit.	El mode trucada no hi cap.
+Call mode is outside its space.	El mode trucada està fora del seu espai.
+Cancel	Cancel·la
+Cancel keys	Cancel·la les tecles
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Codi de Capri:
+Capri mods (*	Mods de Capri (*
+Capri, hello	Capri, hola
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Caos quan s'enfada
+Chat with Capri from your phone	Xateja amb Capri des del mòbil
+ChatGPT plan	Pla de ChatGPT
+Check for updates	Comprova si hi ha actualitzacions
+Check in on me	Mira com estic
+Check in on me is hidden	«Mira com estic» està amagat
+Check in on me still decides whether she visits.	«Mira com estic» encara decideix si ve de visita.
+Check in on me's tip missed	S'ha perdut el consell de «Mira com estic»
+Chess	Escacs
+Choose apps	Tria aplicacions
+Choose folder...	Tria carpeta...
+Choose where future Capri clips are saved	Tria on es desaran els futurs clips de Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Pla de Claude o ChatGPT, una clau de pagament (OpenAI, Claude, DeepSeek) o Ollama.
+Claude plan	Pla de Claude
+Clear	Esborra
+Cleared.	Esborrat.
+Click Confirm to keep Down, or press Esc.	Fes clic a Confirma per mantenir Avall, o prem Esc.
+Click to open it.	Fes clic per obrir-lo.
+Clip my games	Grava els meus jocs
+Clips	Clips
+Close	Tanca
+Close other AIs for me	Tanca per mi les altres IA
+Cloud voice	Veu al núvol
+Cloud voice service	Servei de veu al núvol
+Cloud voice setup	Configuració de la veu al núvol
+Code mods can reach your whole PC. Only trusted ones.	Els mods de codi poden accedir a tot el teu PC. Només els de confiança.
+Code/Husk Mode	Mode Codi/Husk
+Codex	Codex
+Commands	Ordres
+Comment on my games	Comenta els meus jocs
+Comments	Comentaris
+Confirm	Confirma
+Confirm keys	Confirma les tecles
+Connect	Connecta
+Connect / Forget brain key	Connecta / Oblida la clau del cervell
+Connect / Forget voice key	Connecta / Oblida la clau de la veu
+Connect four	Connecta quatre
+Controls	Controls
+Copri, what time is it	Copri, quina hora és
+Copy error details	Copia els detalls de l'error
+Copy the key	Copia la clau
+Copy the key from the page, then press Paste.	Copia la clau de la pàgina i després prem Enganxa.
+Couldn't open that page:	No s'ha pogut obrir aquesta pàgina:
+Couldn't open that:	No s'ha pogut obrir allò:
+Couldn't open the mods folder:	No s'ha pogut obrir la carpeta de mods:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M ja és la tecla del seu Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N silencia el micro
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V ja és la seva tecla de parlar.
+Ctrl + Alt + V to talk	Ctrl + Alt + V per parlar
+Custom local voice	Veu local personalitzada
+Custom model name	Nom del model personalitzat
+Dance	Ballar
+Dance to music	Ballar amb la música
+Default	Per defecte
+Default (follows Windows)	Per defecte (segueix Windows)
+Default duration for clip that and automatic clips	Durada per defecte per als clips «grava això» i automàtics
+Default length	Durada per defecte
+Default model	Model per defecte
+Delay	Retard
+Deny	Denega
+Discard	Descarta
+Discard + reload	Descarta i recarrega
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	No vols esperar? Una clau gratuïta em fa parlar en un minut més o menys.
+Done	Fet
+EXTRA REQUEST JSON >	JSON DE SOL·LICITUD EXTRA >
+EXTRAS >	EXTRES >
+Edit	Edita
+Edit check-in lines	Edita les frases de «Mira com estic»
+Edit check-in lines has the wrong view or dimming	L'edició de les frases de «Mira com estic» té una vista o un atenuat incorrectes
+Edit check-in lines is out of place	L'edició de les frases de «Mira com estic» està fora de lloc
+Edit controls	Edita els controls
+ElevenLabs API key	Clau API d'ElevenLabs
+ElevenLabs voice ID	ID de veu d'ElevenLabs
+English	Anglès
+Enter the game's name first.	Primer introdueix el nom del joc.
+Every	Cada
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Tots els mods es revisen per detectar programari maliciós abans de pujar. Els mods de codi encara demanen permís abans d'executar-se.
+Explore after	Explora després
+Explore while I'm away	Explora mentre no hi sóc
+Extra request JSON	JSON de sol·licitud extra
+Extras	Extres
+FREE KEY	CLAU GRATUÏTA
+FREE KEY >	CLAU GRATUÏTA >
+Fast hands in games	Mans ràpides als jocs
+File editor	Editor de fitxers
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs i més són a VEU del Mainframe.
+Follow-up messages	Missatges de seguiment
+Forget	Oblida
+Fork capri-mods	Fes un fork de capri-mods
+Frame rate	Velocitat de fotogrames
+Free	Gratuït
+Free and private, works offline. Downloads	Gratuït i privat, funciona sense connexió. Es descarrega
+Free and private, works offline. Downloads the best model for this PC.	Gratuït i privat, funciona sense connexió. Descarrega el millor model per a aquest PC.
+Free key	Clau gratuïta
+Free key providers	Proveïdors de claus gratuïtes
+Free keys can be rate limited and slow.	Les claus gratuïtes poden tenir límit de peticions i anar lentes.
+Free voice in games	Veu gratuïta als jocs
+Free voice style	Estil de veu gratuït
+Free voice:	Veu gratuïta:
+Free voice: Her own	Veu gratuïta: La seva pròpia
+Free · local model	Gratuït · model local
+GAMES >	JOCS >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Els comentaris del joc funcionen per separat de «Mira la meva pantalla». Desactivat els atura, també en Mode Joc; Només esdeveniments i Xerraire li deixen mirar el joc
+Game controls	Controls del joc
+Game name	Nom del joc
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Sensibilitat del so del joc. Baixa-la si els auriculars estan baixos però Windows està al {0}% i ella reacciona a cada so; Desactivat ignora els sons del joc
+Game sounds	Sons del joc
+Games	Jocs
+Gaming Mode	Mode Joc
+Gaming Mode key	Tecla del Mode Joc
+Gaming Mode:	Mode Joc:
+Gaming Mode: Ctrl + Alt + G	Mode Joc: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Obtén VB-CABLE
+Get VB-CABLE (free)...	Obtén VB-CABLE (gratuït)...
+Get free voice	Obtén una veu gratuïta
+Getting your Fish Audio voices...	Obtenint les teves veus de Fish Audio...
+Giant	Gegant
+Glitch	Error
+Glitch in at startup	Error en iniciar
+Go to sleep	Ves a dormir
+Go to the next screen	Ves a la pantalla següent
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gratuït · amb límit de peticions
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Tens un pla de Claude o ChatGPT, o una clau pròpia? Tria'l i jo me'l connecto.
+Got it, just me. Right-click me any time for Capri Mainframe.	D'acord, només jo. Fes clic dret sobre mi en qualsevol moment per al Capri Mainframe.
+Grey	Gris
+H.{0} video bitrate target; higher values make larger files	Objectiu de bitrate de vídeo H.{0}; valors més alts fan fitxers més grans
+HABITS >	HÀBITS >
+HER HANDS >	LES SEVES MANS >
+HER JOBS >	LES SEVES FEINES >
+HER MEMORY >	LA SEVA MEMÒRIA >
+HER MODS >	ELS SEUS MODS >
+HH:mm	HH:mm
+HOW I SOUND >	COM SUENO >
+Hang here	Queda't aquí
+Have Ollama? Open it, then press Refresh.	Tens Ollama? Obre'l i prem Actualitza.
+Head pats	Carícies al cap
+Hearing	Audició
+Hearing engine	Motor d'audició
+Hearing fix	Correcció de l'audició
+Hearing status	Estat de l'audició
+Help	Ajuda
+Help page	Pàgina d'ajuda
+Her colors	Els seus colors
+Her folder	La seva carpeta
+Her memories	Els seus records
+Her own colors are back.	Tornen els seus colors propis.
+Her own notes (no vault)	Les seves notes pròpies (sense bòveda)
+Her perch frames per second	Fotogrames per segon del seu lloc
+Her personality	La seva personalitat
+Her size	La seva mida
+Her speaker	El seu altaveu
+Her speaker is hidden or outside VOICE	El seu altaveu està amagat o fora de VEU
+Her speaker overlaps the mic or hearing row	El seu altaveu se sobreposa a la fila del micro o de l'audició
+Her speaker:	El seu altaveu:
+Her speaker: Default	El seu altaveu: Per defecte
+Her voice in your mic	La seva veu al micro
+Her voice in your mic: loudness	La seva veu al micro: volum
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	La seva veu pròpia. El to és Configuració > VEU > To, i tots dos es mouen junts.
+Her voice joins your mic only in call mode.	La seva veu només s'uneix al micro en el mode trucada.
+Her voice volume	Volum de la seva veu
+Her voice's pitch	To de la seva veu
+Her voice's pitch, the same as Settings > VOICE > Pitch	To de la seva veu, igual que Configuració > VEU > To
+Her voice's speed	Velocitat de la seva veu
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	La seva veu, i dues còpies barrejades per sota, cadascuna amb el seu to i retard.
+Her voices · free	Les seves veus · gratuït
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Ei, choom. Sóc Capri. Necessito un cervell abans de poder respondre. Tria'n un.
+Hide / Show Capri	Amaga / Mostra Capri
+Hide / Show key	Tecla amaga / mostra
+Hide Capri	Amaga Capri
+Hide for now	Amaga de moment
+Hide in full screen	Amaga en pantalla completa
+Hide this	Amaga-ho
+Hide/show:	Amaga/mostra:
+Hide/show: Ctrl + Alt + H	Amaga/mostra: Ctrl + Alt + H
+Hologram	Holograma
+Hop off	Baixa
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Quant temps ha de estar parat un PC perquè la faci anar a dormir; cinc minuts encara es llegeix com que no hi ets
+How long a stroke over her a head pat needs	Quant ha de durar una passada sobre ella perquè compti com a carícia al cap
+How long her replies stay up	Quant estan visibles les seves respostes
+How long you are away before she scrolls a browser or reader	Quant de temps has d'estar fora perquè faci scroll en un navegador o lector
+How much her voice glitches	Quant es distorsiona la seva veu
+How much of the chat she keeps	Quant del xat es queda
+How much she wanders	Quant es passeja
+How often she pops in to say hi	Cada quant entra a saludar
+How robotic her voice sounds	Quant de robòtica sona la seva veu
+How to	Com
+Huge	Enorme
+I can hear you.	Et sento.
+I glance at your screen and comment. Costs a little on a paid brain.	Miro la teva pantalla i faig comentaris. Costa una mica amb un cervell de pagament.
+I keep listening. Say my name, then just talk.	Continuo escoltant. Digues el meu nom i parla.
+I talk about your game as you play. Costs a little on a paid brain.	Parlo del teu joc mentre jugues. Costa una mica amb un cervell de pagament.
+I type my replies and stay quiet.	Escric les meves respostes i em quedo callada.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	No et contesto, i no s'envia res enlloc. Igualment em quedaré, ballaré amb la teva música i faré les coses ràpides que em demanis, com el volum.
+I'll talk in	Parlaré en
+IN DISCORD >	A DISCORD >
+INSTALLED >	INSTAL·LAT >
+Import a Capri mod	Importa un mod de Capri
+Import mod	Importa un mod
+In games	En jocs
+Input	Entrada
+Input, Output or How to overlaps a row	Entrada, Sortida o Com se sobreposa a una fila
+Input:	Entrada:
+Input: default	Entrada: per defecte
+Install	Instal·la
+Install mod	Instal·la el mod
+Installed.	Instal·lat.
+It may ask for a phone number. I opened the page in your browser.	Potser demana un número de telèfon. He obert la pàgina al navegador.
+It still does its own job in other apps too.	Encara fa la seva feina en altres aplicacions.
+It won't type in other apps while she runs.	No escriurà en altres aplicacions mentre funcioni.
+JUST ME >	NOMÉS JO >
+Jealous of other AIs	Gelosa d'altres IA
+Join the Discord	Uneix-te al Discord
+KB.	KB.
+KEYS	TECLES
+KEYS >	TECLES >
+Keep PC awake for jobs	Manté el PC despert per a les feines
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Guarda els últims dos minuts del teu joc a la memòria. Digues grava això per desar-los.
+Key	Tecla
+Key cleared: a model file needs none.	Tecla esborrada: un fitxer de model no en necessita cap.
+Key cleared: paste the key for	Tecla esborrada: enganxa la tecla per a
+Key forgotten.	Tecla oblidada.
+Key. It goes only to this server, as a Bearer key	Tecla. Només s'envia a aquest servidor, com a clau Bearer
+Kokoro only, like es	Només Kokoro, com es
+LAST THING >	ÚLTIMA COSA >
+LISTENING >	ESCOLTANT >
+Language	Idioma
+Large	Gran
+Last thing. These cost a little or use your mic, so they're your pick.	Última cosa. Aquestes costen una mica o usen el micro, així que tu decideixes.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Última cosa. Aquestes costen una mica o usen el micro, així que tu decideixes. Després vull saber com dir-te.
+Layers	Capes
+Learn more	Més informació
+Leaving Settings threw its picture away straight away.	En sortir de Configuració la imatge es va descartar de seguida.
+Legacy stand	Suport antic
+Lie down	Estirat
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Línies de diàleg del PC guardades a la memòria mentre miréis junts. La meitat més antiga es converteix en una nota quan «Recorda el que veu» està activat
+Listen for Capri	Escolta per Capri
+Live reactions	Reaccions en directe
+Local server address	Adreça del servidor local
+Long	Llarg
+Longest wait (minutes)	Espera més llarga (minuts)
+Looking at this PC...	Mirant aquest PC...
+Looking for Ollama. Open it if it isn't running.	Buscant Ollama. Obre'l si no s'està executant.
+Looking for a brain...	Buscant un cervell...
+Looking in the mods directory for updates...	Buscant actualitzacions al directori de mods...
+Looking in the mods directory...	Buscant al directori de mods...
+Looking...	Buscant...
+MAIN >	PRINCIPAL >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTEL·LIGÈNCIA MITJANA
+MEMORY VAULT >	BÒVEDA DE MEMÒRIA >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	DIRECTORI DE MODS >
+MODS INSTALLED COLORS	COLORS DELS MODS INSTAL·LATS
+MOVES >	MOVIMENTS >
+MY BRAIN	EL MEU CERVELL
+MY FREE VOICE	LA MEVA VEU GRATUÏTA
+MY PLAN OR KEY	EL MEU PLA O CLAU
+MY PLAN OR KEY >	EL MEU PLA O CLAU >
+Made your Fish Audio voice. Press Test to hear it.	Has creat la teva veu de Fish Audio. Prem Prova per escoltar-la.
+Mainframe colours	Colors del Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Colors del Mainframe. Night City és vermell i cian; Negre, Blanc i Gris canvien el Mainframe, els seus menús, la caixa d'escriptura i les seves notes
+Mainframe frames	Marcs del Mainframe
+Mainframe key	Tecla del Mainframe
+Mainframe size	Mida del Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mida del Mainframe. Automàtic la fa més gran quan Virtual Super Resolution o DSR redueix un escriptori gran a una pantalla més petita
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Avall
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Creant la teva veu de Fish Audio...
+Max reply	Resposta màxima
+Maximum clip resolution, keeping the game's shape without upscaling	Resolució màxima del clip, mantenint la forma del joc sense escalar
+Medium	Mitjà
+Memory	Memòria
+Memory size	Mida de memòria
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Mida de memòria en tokens per a Ollama i el seu cervell integrat. Automàtic creix quan una petició en necessita més
+Mg	Mg
+Mic level:	Nivell del micro:
+Mic test finished. Sound is reaching Capri.	Prova del micro acabada. El so arriba a Capri.
+Mic:	Micro:
+Mic: default	Micro: per defecte
+Microphone	Micròfon
+Mini player	Mini reproductor
+Mini player over full screen	Mini reproductor sobre pantalla completa
+Mini-games	Mini-jocs
+Minimising the Mainframe left it sliding.	Minimitzar el Mainframe el va deixar lliscant.
+Minimize	Minimitza
+Mod filter	Filtre de mods
+Mod options	Opcions del mod
+Mod pages	Pàgines de mods
+Mod rules	Regles dels mods
+Mod sort	Ordenació de mods
+Mod switch	Canvi de mod
+Model	Model
+Model folder	Carpeta del model
+Model name, optional	Nom del model, opcional
+Mods	Mods
+Mods directory	Directori de mods
+Mods folder	Carpeta de mods
+Most NVIDIA models can't see your screen.	La majoria de models de NVIDIA no poden veure la teva pantalla.
+Mouse wheel notches got a flick's long ease:	Les passes de la roda del ratolí van rebre una inèrcia llarga:
+Move	Mou
+Move key to MAX INTELLIGENCE	Mou la tecla a MAX INTELLIGENCE
+Move to MAX	Mou a MAX
+Music	Música
+Music app	Aplicació de música
+Music app: where she plays music when you don't name an app	Aplicació de música: on reprodueix música quan no n'indiques cap
+Mute	Silencia
+Mute her	Silencia-la
+Mute mic key	Tecla silenciar micro
+Mute mic:	Silencia micro:
+Mute mic: Ctrl + Alt + N	Silencia micro: Ctrl + Alt + N
+My brain	El meu cervell
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	El meu cervell està baixant. Et diré hola just quan hi sigui, i llavors ja podràs parlar amb mi.
+My brain's on its way. While it comes down, let's sort out how I sound.	El meu cervell ja és en camí. Mentre baixa, ajustem com sono.
+My provider	El meu proveïdor
+NO AI	SENSE IA
+NO PHONES CONNECTED	CAP TELÈFON CONNECTAT
+NO PREVIEW	SENSE VISTA PREVIA
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · gratuït · sovint lent en hores punta
+NVIDIA's free API is often slow, especially at busy times.	L'API gratuïta de NVIDIA sovint és lenta, sobretot en hores punta.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Clau API de NVIDIA, Google AI Studio (Gemini) o OpenRouter
+Names:	Noms:
+Needs a key	Cal una clau
+Never	Mai
+New code	Codi nou
+New voice from a clip...	Nova veu des d'un clip...
+Next	Següent
+Night City	Night City
+No AI	Sense IA
+No AI · no brain at all	Sense IA · sense cervell
+No brain runs, and nothing is sent anywhere.	No s'executa cap cervell, i no s'envia res enlloc.
+No brain yet	Encara no hi ha cervell
+No code open	Cap codi obert
+No mic found	No s'ha trobat cap micro
+No mods in the directory yet.	Encara no hi ha mods al directori.
+No mods match that.	Cap mod coincideix amb això.
+No mods match.	Cap mod coincideix.
+No phones yet	Encara no hi ha telèfons
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Encara no hi ha micro virtual. Tria Sortida i després Obté VB-CABLE (gratuït).
+None yet: pick to get VB-CABLE (free)	Encara no n'hi ha: tria per obtenir VB-CABLE (gratuït)
+Normal	Normal
+Not a relay host	No és un servidor de relleu
+Not imported. Nothing ran.	No importat. No s'ha executat res.
+Not updated. The old one is still in.	No actualitzat. L'antic encara hi és.
+Nothing needed updating.	No calia actualitzar res.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	No cal baixar res, no s'envia res enlloc. No et contestaré. Pots afegir un cervell en qualsevol moment al Mainframe.
+Nothing to show from the mods directory.	No hi ha res a mostrar des del directori de mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	Res? Configuració de Windows > Privacitat i seguretat > Micròfon.
+Nous Portal keys aren't supported yet.	Les claus de Nous Portal encara no són compatibles.
+OBS	OBS
+OFF	OFF
+OLLAMA	OLLAMA
+ON	ON
+ON THIS PC	AQUEST PC
+OR A KEY	O UNA CLAU
+Obsidian memory vault	Bòveda de memòria d'Obsidian
+Off	Desactivat
+Off. Turn on Her voice in your mic above.	Desactivat. Activa «La seva veu al micro» de dalt.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Desactivat: sona com sempre. Activat: totes les veus que té, també ElevenLabs.
+Often	Sovint
+On	Activat
+On / Off	Activat / Desactivat
+On: your mic and her voice are going in.	Activat: el micro i la seva veu s'estan enviant.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Un objecte JSON, afegit a cada petició que envia aquest cervell. Substitueix el valor de Capri per a qualsevol nom que comparteixi, i no es verifica amb el model.
+Online speech recognition	Reconeixement de veu en línia
+Open Capri Mainframe	Obre Capri Mainframe
+Open Ollama, I'll find it	Obre Ollama, jo el trobaré
+Open clips folder	Obre la carpeta de clips
+Open her memories	Obre els seus records
+Open her notes	Obre les seves notes
+Open mods folder	Obre la carpeta de mods
+Open the page again	Torna a obrir la pàgina
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA o OpenRouter.
+OpenAI-compatible server or provider.	Servidor o proveïdor compatible amb OpenAI.
+OpenRouter · free models only	OpenRouter · només models gratuïts
+Optional	Opcional
+Optional. Blank means no key.	Opcional. En blanc vol dir sense clau.
+Options	Opcions
+Out of the box a little higher, just behind her.	De sèrie una mica més alt, just darrere seu.
+Out of the box lower, just behind her.	De sèrie més baix, just darrere seu.
+Output	Sortida
+Output:	Sortida:
+Output: none	Sortida: cap
+PHONE CONNECTED	TELÈFON CONNECTAT
+PHONES >	TELÈFONS >
+PHONES CONNECTED	TELÈFONS CONNECTATS
+PREBUILT LOCAL	LOCAL PREFABRICAT
+PUBLISH MOD >	PUBLICA EL MOD >
+Pair a phone	Vincula un telèfon
+Paste	Enganxa
+Paste API key	Enganxa la clau API
+Paste a brain API key	Enganxa una clau API del cervell
+Paste reads your clipboard once, when you press it.	Enganxar llegeix el portapapers només un cop, quan el prems.
+Paste your key here	Enganxa aquí la teva clau
+Pat stroke	Carícia al cap
+Perch	Lloc
+Perch over {0} fps uses more CPU	El lloc a més de {0} fps consumeix més CPU
+Pick Output to get it.	Tria Sortida per obtenir-ho.
+Pick a brain so I can talk back. You can change it any time.	Tria un cervell perquè pugui respondre. Pots canviar-lo en qualsevol moment.
+Pick a clip of a voice you have the rights and consent to use	Tria un clip d'una veu de la qual tinguis els drets i el consentiment per usar
+Pick a free model. I opened the page in your browser.	Tria un model gratuït. He obert la pàgina al navegador.
+Pick a new clip of you...	Tria un clip nou de tu...
+Pick a voice model...	Tria un model de veu...
+Pick one. Only one brain runs at a time.	Tria'n un. Només un cervell funciona alhora.
+Pick the note her memories go in	Tria la nota on aniran els seus records
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Tria de {0} a {1} segons d'una veu de la qual tinguis els drets i el consentiment per usar
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Tria de {0} a {1} segons de tu parlant, o d'una veu de la qual tinguis els drets i el consentiment per usar
+Pitch	To
+Play	Reprodueix
+Play...	Reprodueix...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Els models Pocket TTS copien la veu d'aquest clip. Prem Prova per escoltar-la.
+Pop-in times	Moments d'aparició
+Pop-ins	Aparicions
+Power saver	Estalvi d'energia
+Power saver: how lightly she runs in games, or always	Estalvi d'energia: com de suaument corre als jocs, o sempre
+Preset	Preajust
+Press Create API key	Prem Crea clau API
+Press Create Key	Prem Crea clau
+Press Generate API Key	Prem Genera clau API
+Press Test and say something, so I know I can hear you.	Prem Prova i digues alguna cosa, perquè sàpiga que et sento.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Prem una tecla, sola o amb Ctrl, Alt, Maj o Win.
+Press new keys, then Confirm	Prem noves tecles i després Confirma
+Provider	Proveïdor
+Provider API key, optional	Clau API del proveïdor, opcional
+Provider base URL	URL base del proveïdor
+Provider forgotten.	Proveïdor oblidat.
+Provider overlaps the brain name or note	El proveïdor se sobreposa al nom del cervell o a la nota
+Publish	Publica
+Publish mod	Publica el mod
+Push to talk is off.	Parla amb tecla està desactivat.
+Push to talk key	Tecla per parlar
+Push to talk:	Parlar amb tecla:
+Push to talk: not set	Parlar amb tecla: sense definir
+QR CODE >	CODI QR >
+QR hidden while streaming	Codi QR amagat mentre s'emet
+Quick	Ràpid
+Quiet key	Tecla silenci
+Quiet:	Silenci:
+Quiet: Ctrl + Alt + P	Silenci: Ctrl + Alt + P
+Quit Capri	Surt de Capri
+RELAY >	RELLEU >
+REMOTE >	REMOT >
+RUNS CODE.	EXECUTA CODI.
+Rarely	Poques vegades
+Rate mod	Valora el mod
+Reading its README...	Llegint el seu README...
+Refresh	Actualitza
+Reinstall	Torna a instal·lar
+Reload	Recarrega
+Reloaded.	Recarregat.
+Remember our chats	Recorda les nostres converses
+Remember what she sees	Recorda el que veu
+Remote	Remot
+Remote off	Remot desactivat
+Remote on	Remot activat
+Remove	Elimina
+Remove all phones	Elimina tots els telèfons
+Replies	Respostes
+Reply length	Longitud de la resposta
+Report a problem	Informa d'un problema
+Reset colors	Restableix els colors
+Reset to her default	Restableix al seu valor per defecte
+Resolution	Resolució
+Restart to update	Reinicia per actualitzar
+Restless	Inquieta
+Revoke	Revoca
+Revoke also removes the phones its links added	Revocar també elimina els telèfons que hi havien enllaçat
+Ride cursor	Munta el cursor
+Ride cursor / Hop off	Munta el cursor / Baixa
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Fes clic dret sobre mi en qualsevol moment per al Capri Mainframe. Un cervell s'activa a CERVELL.
+Right-click me any time for the Mainframe, Help and the Discord.	Fes clic dret sobre mi en qualsevol moment per al Mainframe, Ajuda i Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox o qualsevol altra aplicació: tria
+Robot	Robot
+Rock, paper, scissors	Pedra, paper, tisores
+Run this code mod?	Executar aquest mod de codi?
+Running on this PC	Executant-se en aquest PC
+Running on this PC · :	Executant-se en aquest PC · :
+Runs Claude Code or Codex on this PC, signed in.	Executa Claude Code o Codex en aquest PC, amb sessió iniciada.
+Runs on your PC. No key, no credits.	Funciona al teu PC. Sense clau, sense crèdits.
+SCAN WITH YOUR PHONE · EXPIRES	ESCANEJA AMB EL TEU MÒBIL · CADUCA
+SECURITY >	SEGURETAT >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	ORDENA PER
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONS HÀBITS CERVELL MIRAR CAPRI DOOMSCROLL TEMPS CLIPS JOCS CLAUS MOVIMENTS VEU TU
+Same as her ears (VOICE > Mic)	Igual que les seves orelles (VEU > Micro)
+Same code on the phone?	El mateix codi al mòbil?
+Save	Desa
+Save big moments	Desa els moments importants
+Save folder	Carpeta de desada
+Save your changes, or press Discard + reload.	Desa els canvis, o prem Descarta i recarrega.
+Save your changes, or press Discard.	Desa els canvis, o prem Descarta.
+Saved.	Desat.
+Saved. Ctrl + Alt + O opens her Mainframe.	Desat. Ctrl + Alt + O obre el seu Mainframe.
+Saving your rating...	Desant la teva valoració...
+Say her name anywhere to chat	Digues el seu nom en qualsevol lloc per xatejar
+Screens	Pantalles
+Screens is hidden or outside WATCH	Pantalles està amagat o fora de MIRAR
+Screens overlaps a WATCH row	Pantalles se sobreposa a una fila de MIRAR
+Screens to watch	Pantalles per mirar
+Sealed end to end	Xifrat de principi a fi
+Search by name or author	Cerca per nom o autor
+Search installed mods	Cerca mods instal·lats
+Search mods	Cerca mods
+Search name, author or description	Cerca per nom, autor o descripció
+Security	Seguretat
+Security:	Seguretat:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Configura
+Set up her brain	Configura el seu cervell
+Set up your voice model	Configura el teu model de veu
+Setting up her brain	Configurant el seu cervell
+Settings	Configuració
+Settings / Back	Configuració / Enrere
+Settings folds the wrong rows above BRAIN	Configuració plega les files equivocades per sobre de CERVELL
+Settings had nothing to watch.	Configuració no tenia res per mirar.
+Settings lost keyboard focus during the Tab walk	Configuració va perdre el focus del teclat durant el recorregut amb Tab
+Setup guide	Guia de configuració
+Setup stopped	La configuració s'ha aturat
+She can read it when it fits.	Ho pot llegir quan càpiga.
+She glances at your screen and comments. Costs a little on a paid brain.	Mira la teva pantalla i fa comentaris. Costa una mica amb un cervell de pagament.
+She keeps listening. Say her name, then just talk until you go quiet.	Continua escoltant. Digues el seu nom i parla fins que callis.
+She reacts to your game until you close it.	Reacciona al teu joc fins que el tanquis.
+She reads these controls before each game job.	Llegeix aquests controls abans de cada feina de joc.
+She talks about your game as you play. Costs a little on a paid brain.	Parla del teu joc mentre jugues. Costa una mica amb un cervell de pagament.
+She uses it when she plays	L'usa quan juga
+Short	Curt
+Shortest wait (minutes)	Espera més curta (minuts)
+Show Capri	Mostra Capri
+Show QR	Mostra QR
+Show my mod file	Mostra el meu fitxer de mod
+Show on Discord	Mostra al Discord
+Shum, what time is it	Shum, quina hora és
+Sign in	Inicia sessió
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Inicia sessió, crea una clau i copia-la. Després prem Enganxa i la connectaré.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Inicia sessió, prem Crea clau API i copia-la. Després prem Enganxa i la connectaré.
+Silent · text only	Silenci · només text
+Simple / Advanced Settings	Configuració simple / avançada
+Simple Settings	Configuració simple
+Simple Settings left a gap under Check in on me	La configuració simple ha deixat un buit sota Mira com estic
+Sit here	Seu aquí
+Sit on windows	Seu a les finestres
+Size	Mida
+Skip	Salta
+Skip all	Salta-ho tot
+Skip for now	Salta de moment
+Sleep	Dormir
+Small	Petit
+Sometimes	A vegades
+Sound effects volume	Volum dels efectes de so
+Sound sensitivity	Sensibilitat del so
+Sounds	Sons
+Speaker or clip	Altaveu o clip
+Speech model	Model de parla
+Speed	Velocitat
+Start with Windows	Inicia amb Windows
+Start with this!	Comença amb això!
+Starting...	Iniciant...
+Stay on my model	Queda't amb el meu model
+Still checking your mics...	Encara comprovant els micros...
+Still checking your speakers...	Encara comprovant els altaveus...
+Still checking your virtual mics...	Encara comprovant els micros virtuals...
+Stop	Atura
+Stopped using it. Couldn't remove the saved provider.	Ha deixat d'usar-se. No s'ha pogut eliminar el proveïdor desat.
+Support	Suport
+Sure?	Segur?
+Sure? moved to a different phone	Segur? s'ha mogut a un altre telèfon
+TALK TO ME	PARLA AMB MI
+TEXT ONLY	NOMÉS TEXT
+Tab landed past the first option of	Tab ha aterrat més enllà de la primera opció de
+Tab never reached the quiet key	Tab no ha arribat mai a la tecla de silenci
+Tab reached nothing	Tab no ha arribat a res
+Tab selected a control without moving keyboard focus	Tab ha seleccionat un control sense moure el focus del teclat
+Talk	Parla
+Talk key	Tecla per parlar
+Talk:	Parla:
+Talk: Ctrl + Alt + V	Parla: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Velocitat de captura objectiu; pot baixar amb càrrega alta o amb el límit de memòria
+Teases when another AI comes to the front.	Es burla quan una altra IA es posa al davant.
+Test	Prova
+That address doesn't work. Try https://... or http://localhost:{0}.	Aquesta adreça no funciona. Prova https://... o http://localhost:{0}.
+That code expired	Aquest codi ha caducat
+That mod is no longer installed. The list is updated.	Aquest mod ja no està instal·lat. La llista s'ha actualitzat.
+That's a paid key: it goes under MAX INTELLIGENCE.	Aquesta és una clau de pagament: va sota MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	El Mainframe es va quedar compost mentre lliscava.
+The Mainframe stayed uncomposited after the slide.	El Mainframe es va quedar sense compondre després del lliscament.
+The controls moved while the picture was sliding.	Els controls es van moure mentre la imatge lliscava.
+The cover stayed visible after the slide ended.	La portada es va quedar visible després que acabés el lliscament.
+The frame thread kept running after the page settled.	El fil de fotogrames va seguir funcionant després que la pàgina s'estabilitzés.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	La resposta més llarga que pot donar, en tokens. Automàtic es manté a Respostes de dalt; {0}K o {1}K li deixen continuar. Les feines reserven més espai quan en cal
+The longest wait must be at least the shortest wait.	L'espera més llarga ha de ser com a mínim la més curta.
+The picture doesn't match the scrolled page:	La imatge no coincideix amb la pàgina desplaçada:
+The picture of Settings doesn't match the page:	La imatge de Configuració no coincideix amb la pàgina:
+The picture stayed up after the slide ended.	La imatge es va quedar visible després que acabés el lliscament.
+The picture wasn't showing while it slid.	La imatge no es veia mentre lliscava.
+The provider sheet is crowded:	La fulla de proveïdors està plena:
+The voice panel has no screen DPI.	El panell de veu no té DPI de pantalla.
+The voice panel's menus share one font.	Els menús del panell de veu comparteixen una sola lletra.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Encara no hi ha cap clau al portapapers. Copia-la de la pàgina i després prem Enganxa.
+These start off. Each costs a little or uses your mic.	Aquestes comencen desactivades. Cadascuna costa una mica o usa el micro.
+These start off. Turn on what you want. They're all in Settings too.	Aquestes comencen desactivades. Activa les que vulguis. També són a Configuració.
+They can also call you Big Z, Capricorn or Nova	També em poden dir Big Z, Capricorn o Nova
+They can also call you Nova, Big Z or Capricorn	També em poden dir Nova, Big Z o Capricorn
+Thinking	Pensant
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Aquesta és la meva veu gratuïta. Prem Prova, digues alguna cosa i et demostraré que et sento.
+This mod has no description yet.	Aquest mod encara no té descripció.
+Tic-tac-toe	Tres en ratlla
+Time between glances	Temps entre mirades
+Tiny	Diminut
+Try again	Torna-ho a provar
+Turn Remote on first	Activa primer Remot
+Turn off mini player	Desactiva el mini reproductor
+Turn push to talk off	Desactiva parlar amb tecla
+Turning the wheel the other way kept the page heading the old way, to	En girar la roda en sentit contrari, la pàgina va seguir cap a l'antiga direcció, fins a
+Type	Escriu
+Type key	Tecla d'escriptura
+Type to me	Escriu-me
+Type:	Escriure:
+Type: Ctrl + Alt + T	Escriure: Ctrl + Alt + T
+Typing sound	So d'escriptura
+Unpacked. Press Test to hear it.	Desempaquetat. Prem Prova per escoltar-lo.
+Unsaved changes.	Canvis sense desar.
+Up to {0} fps	Fins a {0} fps
+Up to {0}p	Fins a {0}p
+Update	Actualitza
+Update available.	Actualització disponible.
+Update mods	Actualitza els mods
+Updating...	Actualitzant...
+Use	Usa
+Use her cursor	Usa el seu cursor
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Usa https:// per a un proveïdor de fora. Una clau per http sense xifrar no és segura.
+Use preset	Usa preajust
+Use saved	Usa la desada
+Use this server	Usa aquest servidor
+Using your provider with a key	Usant el teu proveïdor amb clau
+Using your server with no key	Usant el teu servidor sense clau
+VIEW MOD >	VEURE MOD >
+VOICE >	VEU >
+VOICE IN YOUR MIC >	VEU AL TEU MICRO >
+VOICE LAYERS >	CAPES DE VEU >
+Verbosity	Detall
+Video bitrate	Bitrate de vídeo
+View	Vista
+View mod	Veure mod
+Voice	Veu
+Voice ID	ID de veu
+Voice from	Veu de
+Voice layers	Capes de veu
+Voice model	Model de veu
+Voice model:	Model de veu:
+Voice name or ID, optional	Nom o ID de veu, opcional
+Voice server address, or a voice model's folder	Adreça del servidor de veu, o la carpeta d'un model de veu
+Voice status	Estat de la veu
+Voice, key and model...	Veu, clau i model...
+Volume	Volum
+WAKE ME UP >	DESPERTA'M >
+WATCH >	MIRAR >
+Waiting for the relay	Esperant el relleu
+Wake her up	Desperta-la
+Waking her up	Despertant-la
+Wander	Vagar
+Wander around	Vagar per aquí
+Watch my screen	Mira la meva pantalla
+Watch-along memory	Memòria de mirar junts
+Weather	Temps
+Weather city	Ciutat del temps
+Welcome back, choom. Let's finish setting me up.	Benvinguda de nou, choom. Acabem de configurar-me.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	El que fa al teu PC sense demanar. Amb un interruptor desactivat, primer pregunta, i ho fa quan dius que sí.
+What should she call you?	Com l'hauria de dir?
+When she types	Quan escriu
+White	Blanc
+Windows default	Predeterminat de Windows
+Windows did not give Settings keyboard focus	Windows no ha donat el focus del teclat a Configuració
+Windows did not return keyboard focus to Back	Windows no ha tornat el focus del teclat a Enrere
+With no picture the wheel still tried to slide.	Sense imatge, la roda encara intentava lliscar.
+Works best on MAX INTELLIGENCE.	Funciona millor amb MAX INTELLIGENCE.
+YOU	TU
+YOU >	TU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TU VEU MOVIMENTS TECLES JOCS CLIPS TEMPS DOOMSCROLL CAPRI MIRAR CERVELL HÀBITS SONS
+YOUR KEY	LA TEVA CLAU
+YOUR MIC	EL TEU MICRO
+YOUR PLAN	EL TEU PLA
+Yokapri what's up	Yokapri què tal
+You can hide this. It keeps going, and the Mainframe shows it too.	Pots amagar això. Segueix funcionant, i el Mainframe ho mostra també.
+Your mic and her voice go into one virtual mic, and	El teu micro i la seva veu van a un sol micro virtual, i
+Your mic is muted. Unmute it to test.	El teu micro està silenciat. Desactiva-lo per provar.
+Your mods are up to date.	Els teus mods estan al dia.
+Your name or a nickname	El teu nom o un àlias
+Your own model	El teu propi model
+Your personality	La teva personalitat
+Your voice	La teva veu
+Your voice (HD)	La teva veu (HD)
+Your voice (HD) · pick a clip of you...	La teva veu (HD) · tria un clip teu...
+Your voice model	El teu model de veu
+as its mic.	com al seu micro.
+changed. Saved as My Colors, so you can share it.	canviat. Desat com a Els meus colors, perquè el puguis compartir.
+choice	opció
+clips the input line	retalla la línia d'entrada
+cue	indici
+doesn't yet.	encara no.
+download	baixar
+file.	fitxer.
+flag	marca
+fps	fps
+hear	sentir
+hears	sent
+hears that.	sent això.
+hides or shows her.	amaga o mostra-la.
+hint	pista
+in the Mainframe.	al Mainframe.
+in the mods directory with a pull request.	al directori de mods amb una pull request.
+in the picture wasn't noticed.	a la imatge no es va notar.
+is already her push-to-talk key.	ja és la seva tecla de parlar.
+is off.	està desactivat.
+is on and running.	està activat i en marxa.
+is on, at the bottom, under	està activat, a baix, sota
+is on.	està activat.
+is on. She now answers to	està activat. Ara respon a
+is removed.	s'ha eliminat.
+is taken	ja en ús
+is taken by another app. Try another.	ja l'usa una altra aplicació. Prova'n una altra.
+is updated	s'ha actualitzat
+isn't hearing it yet: do {0} and {1}, then join a call.	encara no el sent: fes {0} i {1}, i després uneix-te a una trucada.
+it now.	ara.
+keeps her quiet, and lets her talk again.	la manté callada i la deixa parlar de nou.
+key	tecla
+key.	tecla.
+min	min
+more.	més.
+ms.	ms.
+mutes mic	silencia el micro
+mutes your mic.	silencia el teu micro.
+name	nom
+off	desactivat
+on this PC	en aquest PC
+opens her Mainframe.	obre el seu Mainframe.
+opens her typing box.	obre la seva caixa d'escriptura.
+phone	telèfon
+phone pixels	píxels del telèfon
+phones	telèfons
+pixels	píxels
+pixels)	píxels)
+star.	estrella.
+stars.	estrelles.
+starts voice chat.	inicia el xat de veu.
+stays off. Nothing ran.	es manté desactivat. No s'ha executat res.
+still does its own job in other apps too. Confirm to keep it.	encara fa la seva feina en altres aplicacions. Confirma per mantenir-ho.
+tall	alt
+time	temps
+to talk	per parlar
+to talk to her, with a game in front too.	per parlar amb ella, també amb un joc al davant.
+too.	també.
+turns Gaming Mode on and off.	activa i desactiva el Mode Joc.
+with Ollama	amb Ollama
+won't type in other apps while she runs. Confirm to keep it.	no escriurà en altres aplicacions mentre funcioni. Confirma per mantenir-ho.
+{0}   Echo Cancellation: Off	{0}   Cancel·lació d'eco: Desactivada
+{0}   If her voice cuts off, turn off noise filtering	{0}   Si la seva veu es talla, desactiva el filtre de soroll
+{0}   Input Device:	{0}   Dispositiu d'entrada:
+{0}   Join the call and check they hear both of you	{0}   Uneix-te a la trucada i comprova que us senten tots dos
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Prova del micro > Comprovem: t'escoltaràs tu, i ella mentre parla
+{0}   Microphone:	{0}   Micròfon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Supressió de soroll: Cap. Les dues poden tallar la seva veu després de la primera línia.
+{0}   Open the call or meeting's audio settings	{0}   Obre la configuració d'àudio de la trucada o reunió
+{0}   Output Device: your headphones, like before	{0}   Dispositiu de sortida: els teus auriculars, com abans
+{0}   Speaker: your headphones, like before	{0}   Altaveu: els teus auriculars, com abans
+{0}   Try a mic test in your call app	{0}   Prova el micro a la teva aplicació de trucades
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Configuració d'usuari (la rodeta al costat del teu nom) > Veu i vídeo
+{0} Mbps	{0} Mbps
+{0} lines	{0} línies
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· en aquest PC
+· server	· servidor

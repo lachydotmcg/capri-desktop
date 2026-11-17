@@ -68,6 +68,7 @@
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/voice/*.wav" LogicalName="Capri.Voice.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/chip.png" LogicalName="Capri.Chip.png" />
+    <EmbeddedResource Include="../assets/words/*.txt" LogicalName="Capri.Words.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/cursor.png" LogicalName="Capri.Cursor.png" />
     <AvaloniaResource Include="../assets/fonts/CapriMainframe-Bold.ttf" Link="Assets/CapriMainframe-Bold.ttf" />
     <AvaloniaResource Include="../assets/fonts/ShareTechMono-Regular.ttf" Link="Assets/ShareTechMono-Regular.ttf" />

@@ -376,6 +376,13 @@ namespace CapriDesktop
                 pet.SetSounds(60);
                 pet.Dancing = false;
                 if (Brain.Language != null || pet.Saved.Language != null || pet.Picked != "Stay put | English | Short | Short | Normal | Dance to music") throw new Exception("Menu settings didn't go back: " + pet.Picked);
+                for (int i = 0; i < Brain.Languages.GetLength(0); i++)
+                    if (Pet.WordTable(Lingo.Slug(Brain.Languages[i, 1])) == null) throw new Exception("No settings words for " + Brain.Languages[i, 1] + ".");
+                Lingo.Use("German");
+                string germanWords = MainframeTheme.Fitted("Advanced Settings", 100000), germanFive = Lingo.Of("5 min");
+                Lingo.Use(null);
+                if (germanWords == "Advanced Settings" || germanFive.IndexOf('5') < 0 || MainframeTheme.Fitted("Advanced Settings", 100000) != "Advanced Settings") throw new Exception("Her Mainframe's words didn't follow German, or English changed: " + germanWords + " / " + germanFive);
+                checks.Add("PASS her settings in their language: her Mainframe's words ship for all " + Brain.Languages.GetLength(0) + " of her languages, German draws them in German with numbers in place, and English is untouched");
                 Func<System.Collections.IEnumerable, string, MenuItem> menuRow = delegate(System.Collections.IEnumerable rows, string header) { foreach (object row in rows) if (row is MenuItem item && item.Header as string == header) return item; return null; };
                 Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
                 MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");
@@ -1129,6 +1136,53 @@ namespace CapriDesktop
                     && Pet.LookAsk.IndexOf("The small red-haired anime girl with a speech bubble is Capri, the desktop companion, not part of their screen", StringComparison.Ordinal) > 0;
                 if (!glancesKept || !toldMirror) throw new Exception("Her own sprite in screenshots went wrong: kept " + glancesKept + ", told " + toldMirror + " | " + queued.Replace("\n", " | "));
                 checks.Add("PASS her own sprite: her glance and check-my-screen prompts say the red-haired anime girl with the speech bubble is her, not part of their screen, and her glances go in the transcript but never into memories.md, while a look they asked for still does");
+                Func<string> treeWas = TreeSight.Read;
+                Func<string, string, bool> treeSkipWas = TreeSight.Skip;
+                try
+                {
+                    TreeSight.Skip = delegate(string program, string title) { return program == "Hidden"; };
+                    string treeRead = TreeSight.Parse("Files\tDocuments - Files\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\"\n");
+                    bool treeShaped = treeRead == "Window: \"Documents - Files\" (Files)\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\""
+                        && TreeSight.Parse("Hidden\tSecret chat\nbutton \"Send\"") == null && TreeSight.Parse("Files\tEmpty\n\n") == null && TreeSight.Parse("no tab here") == null && TreeSight.Parse(null) == null
+                        && TreeSight.Prompt(treeRead) == "\n\n" + TreeSight.Trust + "\n" + treeRead && TreeSight.Prompt(null) == "" && TreeSight.Seen(treeRead) == "\nExact details from their window: " + treeRead && TreeSight.Seen(" ") == "";
+                    TreeSight.Read = delegate { System.Threading.Thread.Sleep(3000); return "late"; };
+                    DateTime treeStarted = DateTime.UtcNow;
+                    bool treeQuick = TreeSight.Finish(TreeSight.Start(), 200) == null && (DateTime.UtcNow - treeStarted).TotalMilliseconds < 2000 && TreeSight.Finish(null, 200) == null;
+                    TreeSight.Read = delegate { throw new InvalidOperationException("no bus"); };
+                    bool treeQuiet = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    TreeSight.Read = treeWas;
+                    bool treeOffInSmoke = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    DateTime spiStarted = DateTime.UtcNow;
+                    string spi = OperatingSystem.IsLinux() ? TreeSight.Spi() : null;
+                    bool spiBounded = (DateTime.UtcNow - spiStarted).TotalMilliseconds < TreeSight.Wait + 2000 && (spi == null || spi.StartsWith("Window: ", StringComparison.Ordinal));
+                    if (!treeShaped || !treeQuick || !treeQuiet || !treeOffInSmoke || !spiBounded) throw new Exception("Her tree eyes went wrong: shaped " + treeShaped + ", quick " + treeQuick + ", quiet " + treeQuiet + ", off in smoke " + treeOffInSmoke + ", at-spi " + spiBounded + " | " + treeRead + " | " + spi);
+                }
+                finally
+                {
+                    TreeSight.Read = treeWas;
+                    TreeSight.Skip = treeSkipWas;
+                }
+                Func<bool> macTrustWas = MacTree.Trusted;
+                try
+                {
+                    bool macAsked = false;
+                    MacTree.Trusted = delegate { macAsked = true; return false; };
+                    bool macUntrusted = MacTree.Read() == null && macAsked == OperatingSystem.IsMacOS();
+                    MacTree.Trusted = macTrustWas;
+                    DateTime macStarted = DateTime.UtcNow;
+                    string macRead = OperatingSystem.IsMacOS() ? MacTree.Read() : null;
+                    bool macBounded = (DateTime.UtcNow - macStarted).TotalMilliseconds < 6000 && (macRead == null || macRead.StartsWith("Window: ", StringComparison.Ordinal));
+                    bool macLines = MacTree.Line("AXButton", "Save", null, false, false) == "button \"Save\""
+                        && MacTree.Line("AXSecureTextField", "Password", "hunter2", true, false) == "box \"Password\" (password box) (focused)"
+                        && MacTree.Line("AXTextField", "Email", "me@example.com", false, true) == "box \"Email\""
+                        && MacTree.Line("AXTextField", "Search", "cats", false, false) == "box \"Search: cats\""
+                        && MacTree.Line("AXStaticText", "", "12 items", false, false) == "text \"12 items\""
+                        && MacTree.Line("AXGroup", "Toolbar", null, false, false) == null && MacTree.Line("AXButton", " ", "", false, false) == null && MacTree.Line(null, "x", "y", false, false) == null;
+                    if (!macUntrusted || !macBounded || !macLines) throw new Exception("Her mac tree eyes went wrong: untrusted " + macUntrusted + ", bounded " + macBounded + ", lines " + macLines + " | " + macRead);
+                }
+                finally { MacTree.Trusted = macTrustWas; }
+                checks.Add("PASS her tree eyes on mac: she reads the window in front through Accessibility only when Capri already has that permission, never asks for it, keeps password boxes empty and typed text hidden while discreet, and an unreadable window falls back to the screenshot");
+                checks.Add("PASS her tree eyes on linux: a look reads the window in front from AT-SPI as names and text beside the screenshot, password boxes stay empty, a never-watch window or an empty read gives nothing, and a slow or missing accessibility bus never holds up her look");
                 bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
                 if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
                 // Their personality.md takes her default's place, with her safety lines still after it, and Reset puts her back.

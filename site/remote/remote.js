@@ -45,6 +45,7 @@
     })();
     let app = false;
     try { app = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || new URLSearchParams(location.search).get('ios') === 'app'; } catch (error) {}
+    if (window.CapriAndroid) return kind + ' app';
     return app ? kind + ' home screen' : kind;
   })();
 

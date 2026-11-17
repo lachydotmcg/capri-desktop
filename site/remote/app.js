@@ -12,13 +12,19 @@
   try {
     const asked = new URLSearchParams(location.search);
     demoAsked = asked.has('demo');
+    if (asked.get('room') === 'app') demoAsked = true;
+    else if (asked.get('room') === 'pc' && !location.hash) {
+      let paired = null;
+      try { paired = JSON.parse(localStorage.getItem('capri-remote-pairing')); } catch (error) {}
+      if (!paired || paired.demo === true) demoAsked = true;
+    }
     gateAsked = asked.has('gate');
     iosAsked = asked.get('ios') || '';
   } catch (error) {}
   // An iPhone keeps a home screen app's storage apart from Safari's, so a pairing made in one never reaches the other, and
   // a QR code always opens in Safari. ?ios=safari and ?ios=app act those two out in any browser, to check their screens.
   const iphone = iosAsked === 'safari' || iosAsked === 'app' || 'standalone' in navigator;
-  const standalone = iosAsked === 'app' || (iosAsked !== 'safari' && (navigator.standalone === true || (() => {
+  const standalone = !!window.CapriAndroid || iosAsked === 'app' || (iosAsked !== 'safari' && (navigator.standalone === true || (() => {
     try { return matchMedia('(display-mode: standalone)').matches; } catch (error) { return false; }
   })()));
   const demoBuild = config.demo !== false && (config.preview === true || demoAsked);
@@ -425,6 +431,7 @@
         const words = node && node.querySelector('.words');
         if (words) { words.textContent = job.msg.text; stick(); }
         CapriBar.talk(true, job.msg.text);
+        if (document.getElementById('app').dataset.host !== 'app') window.CapriRoom?.mumble?.(message.text);
       }
       if (message.done) settleReply(job.key, '');
     } else if (type === 'error') {

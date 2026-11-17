@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Kontrola koja je ponovo iscrtana nije ponovo nacrtana na slici.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Besplatan ključ iz Google AI Studija, NVIDIA-e ili OpenRouter-a. Ništa za preuzimanje. Potreban je internet.
+A held trackpad scroll got a flick's long ease:	Držani pomak na touchpadu dobio je dugo usporavanje zamaha:
+A layout change during a slide put the page at	Promjena rasporeda tokom slajda stavila je stranicu na
+A layout change left the picture up.	Promjena rasporeda ostavila je sliku na ekranu.
+A model in Ollama, on your local server or on your key.	Model u Ollami, na tvom lokalnom serveru ili uz tvoj ključ.
+A paid key goes under MAX INTELLIGENCE by itself.	Plaćeni ključ sam ide pod MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Plan koji već plaćaš, vlastiti ključ ili Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Meni glasovnog panela nema vlastitu kopiju fonta panela.
+A wheel turn right after a slide ended froze the picture.	Okretanje točkića odmah nakon kraja slajda zamrznulo je sliku.
+ALLOW THIS PHONE?	DOZVOLITI OVAJ TELEFON?
+ALMOST THERE >	SKORO GOTOVO >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	DRUGI CAPRI JE PREUZEO · ISKLJUČI I UKLJUČI
+API key	API ključ
+API key, Claude plan or ChatGPT plan	API ključ, Claude plan ili ChatGPT plan
+Add	Dodaj
+Address	Adresa
+Address and key saved. Use saved to reconnect.	Adresa i ključ sačuvani. Koristi sačuvano za ponovno povezivanje.
+Advanced Settings	Napredne postavke
+All	Sve
+All screens	Svi ekrani
+Allow	Dozvoli
+Almost there. I'll say hi the second my brain's in.	Skoro gotovo. Pozdravit ću te čim mi se mozak uključi.
+Always	Uvijek
+Always on top	Uvijek na vrhu
+Any Google account works. I opened the page in your browser.	Radi bilo koji Google nalog. Otvorila sam stranicu u tvom pregledniku.
+Applies to every voice	Važi za sve glasove
+Apps she may close	Aplikacije koje sme zatvoriti
+Ask Capri for more	Traži više od Capri
+Asking your server...	Pitam tvoj server...
+Asks before closing only the apps you choose.	Pita prije zatvaranja samo aplikacija koje izabereš.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automatski: VB-CABLE, inače Steam
+BAD RELAY HOST	LOŠ RELAY HOST
+BIG Z open notepad	BIG Z otvori notepad
+BRAIN	MOZAK
+BRAIN >	MOZAK >
+BRAIN ONLINE >	MOZAK ONLINE >
+BRAIN PROVIDER >	PROVAJDER MOZGA >
+BRAIN VOICE CAPRI	GLAS MOZGA CAPRI
+Back	Nazad
+Back on your saved API key.	Nazad na tvoj sačuvani API ključ.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Najbolje za ovaj PC:
+Black	Crna
+Blank key means no key.	Prazno polje znači bez ključa.
+Brain API key	API ključ za mozak
+Brain model	Model mozga
+Brain provider	Provajder mozga
+Bring here	Dovedi ovdje
+Bring to this screen	Dovedi na ovaj ekran
+Browse	Pregledaj
+Browse mods	Pregledaj modove
+Browse to a voice model	Pregledaj model glasa
+Browse...	Pregledaj...
+Bubble	Balončić
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree jesi li tu
+CAN'T REACH THE RELAY · RETRYING	NE MOGU DO RELAYA · PONOVO POKUŠAVAM
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI GLASOVNI MOZAK
+CHANGED, approve it again.	PROMIJENJENO, ponovo odobri.
+CLIPS >	ISJEČCI >
+CLOUD VOICE	GLAS U OBLAKU
+CODE	KOD
+COLORS >	BOJE >
+CONNECTED	POVEZANO
+CONNECTING	POVEZIVANJE
+CUSTOM LOCAL	PRILAGOĐENO LOKALNO
+Call mode (beta)	Režim poziva (beta)
+Call mode does not fit.	Režim poziva se ne uklapa.
+Call mode is outside its space.	Režim poziva je izvan svog prostora.
+Cancel	Otkaži
+Cancel keys	Otkaži tipke
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri kod:
+Capri mods (*	Capri modovi (*
+Capri, hello	Capri, zdravo
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Haos kad se naljuti
+Chat with Capri from your phone	Razgovaraj s Capri sa svog telefona
+ChatGPT plan	ChatGPT plan
+Check for updates	Provjeri ažuriranja
+Check in on me	Javi mi se
+Check in on me is hidden	Javi mi se je sakriveno
+Check in on me still decides whether she visits.	Javi mi se i dalje odlučuje hoće li svratiti.
+Check in on me's tip missed	Savjet za Javi mi se je propušten
+Chess	Šah
+Choose apps	Odaberi aplikacije
+Choose folder...	Odaberi folder...
+Choose where future Capri clips are saved	Odaberi gdje će se čuvati budući Capri isječci
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude ili ChatGPT plan, plaćeni ključ (OpenAI, Claude, DeepSeek) ili Ollama.
+Claude plan	Claude plan
+Clear	Obriši
+Cleared.	Obrisano.
+Click Confirm to keep Down, or press Esc.	Klikni Potvrdi da zadržiš Dolje ili pritisni Esc.
+Click to open it.	Klikni da otvoriš.
+Clip my games	Snimaj moje igre
+Clips	Isječci
+Close	Zatvori
+Close other AIs for me	Zatvori ostale AI za mene
+Cloud voice	Glas u oblaku
+Cloud voice service	Usluga glasa u oblaku
+Cloud voice setup	Postavljanje glasa u oblaku
+Code mods can reach your whole PC. Only trusted ones.	Kodni modovi mogu pristupiti cijelom PC-u. Samo pouzdani.
+Code/Husk Mode	Režim Code/Husk
+Codex	Codex
+Commands	Naredbe
+Comment on my games	Komentiraj moje igre
+Comments	Komentari
+Confirm	Potvrdi
+Confirm keys	Potvrdi tipke
+Connect	Poveži
+Connect / Forget brain key	Poveži / zaboravi ključ mozga
+Connect / Forget voice key	Poveži / zaboravi glasovni ključ
+Connect four	Četiri u nizu
+Controls	Kontrole
+Copri, what time is it	Copri, koliko je sati
+Copy error details	Kopiraj detalje greške
+Copy the key	Kopiraj ključ
+Copy the key from the page, then press Paste.	Kopiraj ključ sa stranice, pa pritisni Zalijepi.
+Couldn't open that page:	Nije moguće otvoriti tu stranicu:
+Couldn't open that:	Nije moguće otvoriti to:
+Couldn't open the mods folder:	Nije moguće otvoriti folder modova:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M je već njen ključ za Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N isključuje mikrofon
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V je već njen ključ za razgovor.
+Ctrl + Alt + V to talk	Ctrl + Alt + V za razgovor
+Custom local voice	Prilagođeni lokalni glas
+Custom model name	Prilagođeni naziv modela
+Dance	Pleši
+Dance to music	Pleši uz muziku
+Default	Zadano
+Default (follows Windows)	Zadano (prati Windows)
+Default duration for clip that and automatic clips	Zadano trajanje za clip that i automatske isječke
+Default length	Zadana dužina
+Default model	Zadani model
+Delay	Kašnjenje
+Deny	Odbij
+Discard	Odbaci
+Discard + reload	Odbaci + ponovo učitaj
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ne želiš čekati? Besplatan ključ me za minutu-dvije pusti da pričam.
+Done	Gotovo
+EXTRA REQUEST JSON >	DODATNI JSON ZAHTJEVA >
+EXTRAS >	DODATNO >
+Edit	Uredi
+Edit check-in lines	Uredi linije javljanja
+Edit check-in lines has the wrong view or dimming	Uredi linije javljanja: pogrešan prikaz ili zatamnjenje
+Edit check-in lines is out of place	Uredi linije javljanja je na pogrešnom mjestu
+Edit controls	Uredi kontrole
+ElevenLabs API key	ElevenLabs API ključ
+ElevenLabs voice ID	ElevenLabs ID glasa
+English	Engleski
+Enter the game's name first.	Prvo unesi ime igre.
+Every	Svakih
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Svaki mod se provjerava na malver prije objave. Kodni modovi i dalje pitaju prije pokretanja.
+Explore after	Istraži poslije
+Explore while I'm away	Istraži dok me nema
+Extra request JSON	Dodatni JSON zahtjeva
+Extras	Dodatno
+FREE KEY	BESPLATAN KLJUČ
+FREE KEY >	BESPLATAN KLJUČ >
+Fast hands in games	Brze ruke u igrama
+File editor	Uređivač datoteka
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs i ostalo nalaze se pod GLAS u Mainframe-u.
+Follow-up messages	Poruke za nastavak
+Forget	Zaboravi
+Fork capri-mods	Forkaj capri-mods
+Frame rate	Brzina sličica
+Free	Besplatno
+Free and private, works offline. Downloads	Besplatno i privatno, radi offline. Preuzima
+Free and private, works offline. Downloads the best model for this PC.	Besplatno i privatno, radi offline. Preuzima najbolji model za ovaj PC.
+Free key	Besplatan ključ
+Free key providers	Provajderi besplatnih ključeva
+Free keys can be rate limited and slow.	Besplatni ključevi mogu biti ograničeni i spori.
+Free voice in games	Besplatan glas u igrama
+Free voice style	Stil besplatnog glasa
+Free voice:	Besplatan glas:
+Free voice: Her own	Besplatan glas: Njen vlastiti
+Free · local model	Besplatno · lokalni model
+GAMES >	IGRE >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Komentari igre rade odvojeno od Gledaj moj ekran. Isključeno ih zaustavlja, i u režimu igre; Samo događaji i Brbljivo joj dopuštaju da gleda tvoju igru
+Game controls	Kontrole igre
+Game name	Ime igre
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Osjetljivost na zvuk igre. Smanji ako je slušalica tiša, a Windows na {0}%, pa reagira na svaki zvuk; Isključeno ignorira zvukove igre
+Game sounds	Zvukovi igre
+Games	Igre
+Gaming Mode	Režim igre
+Gaming Mode key	Tipka režima igre
+Gaming Mode:	Režim igre:
+Gaming Mode: Ctrl + Alt + G	Režim igre: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Nabavi VB-CABLE
+Get VB-CABLE (free)...	Nabavi VB-CABLE (besplatno)...
+Get free voice	Nabavi besplatan glas
+Getting your Fish Audio voices...	Preuzimam tvoje Fish Audio glasove...
+Giant	Div
+Glitch	Glitch
+Glitch in at startup	Glitch pri pokretanju
+Go to sleep	Idi spavati
+Go to the next screen	Idi na sljedeći ekran
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · besplatni nivo · ograničen broj zahtjeva
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Imaš Claude ili ChatGPT plan ili vlastiti ključ? Izaberi i ja ću se spojiti.
+Got it, just me. Right-click me any time for Capri Mainframe.	Jasno, samo ja. Klikni desnom tipkom na mene bilo kada za Capri Mainframe.
+Grey	Siva
+H.{0} video bitrate target; higher values make larger files	H.{0} ciljana bitrate videa; veće vrijednosti znače veće datoteke
+HABITS >	NAVIKE >
+HER HANDS >	NJENE RUKE >
+HER JOBS >	NJENI POSLOVI >
+HER MEMORY >	NJENO PAMĆENJE >
+HER MODS >	NJENI MODOVI >
+HH:mm	HH:mm
+HOW I SOUND >	KAKO ZVUČIM >
+Hang here	Ostani ovdje
+Have Ollama? Open it, then press Refresh.	Imaš Ollamu? Otvori je, pa pritisni Osvježi.
+Head pats	Maženje po glavi
+Hearing	Sluh
+Hearing engine	Motor sluha
+Hearing fix	Popravka sluha
+Hearing status	Status sluha
+Help	Pomoć
+Help page	Stranica pomoći
+Her colors	Njene boje
+Her folder	Njen folder
+Her memories	Njena sjećanja
+Her own colors are back.	Njene vlastite boje su vraćene.
+Her own notes (no vault)	Njene vlastite bilješke (bez trezora)
+Her perch frames per second	Broj sličica u sekundi njene grane
+Her personality	Njena ličnost
+Her size	Njena veličina
+Her speaker	Njen zvučnik
+Her speaker is hidden or outside VOICE	Njen zvučnik je skriven ili izvan GLASA
+Her speaker overlaps the mic or hearing row	Njen zvučnik preklapa red za mikrofon ili sluh
+Her speaker:	Njen zvučnik:
+Her speaker: Default	Njen zvučnik: Zadano
+Her voice in your mic	Njen glas u tvom mikrofonu
+Her voice in your mic: loudness	Njen glas u tvom mikrofonu: glasnoća
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Njen glas sam. Visina je Postavke > GLAS > Visina, i pomiču se zajedno.
+Her voice joins your mic only in call mode.	Njen glas ulazi u tvoj mikrofon samo u režimu poziva.
+Her voice volume	Glasnoća njenog glasa
+Her voice's pitch	Visina njenog glasa
+Her voice's pitch, the same as Settings > VOICE > Pitch	Visina njenog glasa, isto kao Postavke > GLAS > Visina
+Her voice's speed	Brzina njenog glasa
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Njen glas i dvije kopije ispod nje, svaka sa svojom visinom i kašnjenjem.
+Her voices · free	Njeni glasovi · besplatno
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hej, choom. Ja sam Capri. Trebam mozak prije nego mogu odgovoriti. Izaberi jedan.
+Hide / Show Capri	Sakrij / prikaži Capri
+Hide / Show key	Tipka sakrij / prikaži
+Hide Capri	Sakrij Capri
+Hide for now	Sakrij za sada
+Hide in full screen	Sakrij na cijelom ekranu
+Hide this	Sakrij ovo
+Hide/show:	Sakrij/prikaži:
+Hide/show: Ctrl + Alt + H	Sakrij/prikaži: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Siđi
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Koliko dugo mirni PC čeka prije nego je pošalje na spavanje; pet minuta se i dalje tumači kao odsutnost
+How long a stroke over her a head pat needs	Koliko dugo mora trajati prelazak preko nje za maženje
+How long her replies stay up	Koliko dugo njeni odgovori ostaju na ekranu
+How long you are away before she scrolls a browser or reader	Koliko dugo moraš biti odsutan prije nego pomakne pregledač ili čitač
+How much her voice glitches	Koliko se njen glas kvari
+How much of the chat she keeps	Koliko chata zadržava
+How much she wanders	Koliko luta
+How often she pops in to say hi	Koliko često svrati da kaže zdravo
+How robotic her voice sounds	Koliko robotski zvuči njen glas
+How to	Kako
+Huge	Ogroman
+I can hear you.	Čujem te.
+I glance at your screen and comment. Costs a little on a paid brain.	Pogledam tvoj ekran i komentiram. Košta malo na plaćenom mozgu.
+I keep listening. Say my name, then just talk.	Nastavljam slušati. Reci moje ime, pa samo pričaj.
+I talk about your game as you play. Costs a little on a paid brain.	Pričam o tvojoj igri dok igraš. Košta malo na plaćenom mozgu.
+I type my replies and stay quiet.	Pišem odgovore i ćutim.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Neću odgovarati glasom, i ništa se ne šalje nikuda. I dalje ću biti tu, plesati uz tvoju muziku i raditi brze stvari koje tražiš, poput glasnoće.
+I'll talk in	Govorit ću u
+IN DISCORD >	U DISCORDU >
+INSTALLED >	INSTALIRANO >
+Import a Capri mod	Uvezi Capri mod
+Import mod	Uvezi mod
+In games	U igrama
+Input	Ulaz
+Input, Output or How to overlaps a row	Ulaz, Izlaz ili Kako preklapa red
+Input:	Ulaz:
+Input: default	Ulaz: zadano
+Install	Instaliraj
+Install mod	Instaliraj mod
+Installed.	Instalirano.
+It may ask for a phone number. I opened the page in your browser.	Može tražiti broj telefona. Otvorila sam stranicu u tvom pregledniku.
+It still does its own job in other apps too.	I dalje radi svoj posao i u drugim aplikacijama.
+It won't type in other apps while she runs.	Neće pisati u drugim aplikacijama dok ona radi.
+JUST ME >	SAMO JA >
+Jealous of other AIs	Ljubomorna na druge AI
+Join the Discord	Pridruži se Discordu
+KB.	KB.
+KEYS	TIPKE
+KEYS >	TIPKE >
+Keep PC awake for jobs	Drži PC budnim za poslove
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Čuva posljednje dvije minute tvoje igre u memoriji. Reci clip that da je sačuvaš.
+Key	Ključ
+Key cleared: a model file needs none.	Ključ obrisan: model ne treba ključ.
+Key cleared: paste the key for	Ključ obrisan: zalijepi ključ za
+Key forgotten.	Ključ zaboravljen.
+Key. It goes only to this server, as a Bearer key	Ključ. Ide samo na ovaj server, kao Bearer ključ
+Kokoro only, like es	Samo Kokoro, kao es
+LAST THING >	POSLJEDNJA STVAR >
+LISTENING >	SLUŠA >
+Language	Jezik
+Large	Veliko
+Last thing. These cost a little or use your mic, so they're your pick.	Posljednja stvar. Ovo košta malo ili koristi tvoj mikrofon, pa ti biraš.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Posljednja stvar. Ovo košta malo ili koristi tvoj mikrofon, pa ti biraš. Onda želim znati kako da te zovem.
+Layers	Slojevi
+Learn more	Saznaj više
+Leaving Settings threw its picture away straight away.	Izlazak iz Postavki odmah je bacio njenu sliku.
+Legacy stand	Stari stalak
+Lie down	Lezi
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Linije PC dijaloga čuvaju se u memoriji dok gledate zajedno. Starija polovina postaje bilješka kad je uključeno Zapamti što vidi
+Listen for Capri	Slušaj Capri
+Live reactions	Reakcije uživo
+Local server address	Adresa lokalnog servera
+Long	Dugo
+Longest wait (minutes)	Najduže čekanje (minute)
+Looking at this PC...	Gledam ovaj PC...
+Looking for Ollama. Open it if it isn't running.	Tražim Ollamu. Otvori je ako ne radi.
+Looking for a brain...	Tražim mozak...
+Looking in the mods directory for updates...	Tražim ažuriranja u folderu modova...
+Looking in the mods directory...	Tražim u folderu modova...
+Looking...	Tražim...
+MAIN >	GLAVNI >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	TREZOR MEMORIJE >
+MODS	MODOVI
+MODS >	MODOVI >
+MODS DIRECTORY >	FOLDER MODOVA >
+MODS INSTALLED COLORS	INSTALIRANE BOJE MODOVA
+MOVES >	POTEZI >
+MY BRAIN	MOJ MOZAK
+MY FREE VOICE	MOJ BESPLATNI GLAS
+MY PLAN OR KEY	MOJ PLAN ILI KLJUČ
+MY PLAN OR KEY >	MOJ PLAN ILI KLJUČ >
+Made your Fish Audio voice. Press Test to hear it.	Napravila sam tvoj Fish Audio glas. Pritisni Testiraj da ga čuješ.
+Mainframe colours	Boje Mainframe-a
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Boje Mainframe-a. Night City je crvena i cijan; Crna, Bijela i Siva mijenjaju Mainframe, njene menije, okvir za tipkanje i njene bilješke
+Mainframe frames	Okviri Mainframe-a
+Mainframe key	Tipka Mainframe-a
+Mainframe size	Veličina Mainframe-a
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Veličina Mainframe-a. Auto ga povećava kad Virtual Super Resolution ili DSR smanji veliku radnu površinu na manji ekran
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Dolje
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Pravim tvoj Fish Audio glas...
+Max reply	Maksimalni odgovor
+Maximum clip resolution, keeping the game's shape without upscaling	Maksimalna rezolucija isječka, uz zadržavanje oblika igre bez povećavanja
+Medium	Srednje
+Memory	Memorija
+Memory size	Veličina memorije
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Veličina memorije u tokenima za Ollamu i njen ugrađeni mozak. Auto raste kad zahtjev treba više
+Mg	Mg
+Mic level:	Nivo mikrofona:
+Mic test finished. Sound is reaching Capri.	Test mikrofona završen. Zvuk stiže do Capri.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: zadano
+Microphone	Mikrofon
+Mini player	Mini plejer
+Mini player over full screen	Mini plejer preko cijelog ekrana
+Mini-games	Mini-igre
+Minimising the Mainframe left it sliding.	Minimiziranje Mainframe-a ostavilo ga je da klizi.
+Minimize	Minimiziraj
+Mod filter	Filter modova
+Mod options	Opcije moda
+Mod pages	Stranice modova
+Mod rules	Pravila modova
+Mod sort	Sortiranje modova
+Mod switch	Prebacivanje moda
+Model	Model
+Model folder	Folder modela
+Model name, optional	Naziv modela, opcionalno
+Mods	Modovi
+Mods directory	Direktorij modova
+Mods folder	Folder modova
+Most NVIDIA models can't see your screen.	Većina NVIDIA modela ne može vidjeti tvoj ekran.
+Mouse wheel notches got a flick's long ease:	Koraci točkića miša dobili su dugo usporavanje zamaha:
+Move	Pomjeri
+Move key to MAX INTELLIGENCE	Pomjeri tipku na MAX INTELLIGENCE
+Move to MAX	Pomjeri na MAX
+Music	Muzika
+Music app	Muzička aplikacija
+Music app: where she plays music when you don't name an app	Muzička aplikacija: gdje pušta muziku kad ne navedeš aplikaciju
+Mute	Isključi zvuk
+Mute her	Isključi njen zvuk
+Mute mic key	Tipka za isključivanje mikrofona
+Mute mic:	Isključi mikrofon:
+Mute mic: Ctrl + Alt + N	Isključi mikrofon: Ctrl + Alt + N
+My brain	Moj mozak
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Moj mozak se spušta. Pozdravit ću te čim stigne, a onda možeš razgovarati sa mnom.
+My brain's on its way. While it comes down, let's sort out how I sound.	Moj mozak je na putu. Dok se spušta, hajde da podesimo kako zvučim.
+My provider	Moj provajder
+NO AI	BEZ AI-a
+NO PHONES CONNECTED	NEMA POVEZANIH TELEFONA
+NO PREVIEW	NEMA PREGLEDA
+NORMAL	NORMALNO
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · besplatno · često sporo u špici
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-in besplatni API je često spor, posebno u špici.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) ili OpenRouter API ključ
+Names:	Imena:
+Needs a key	Treba ključ
+Never	Nikad
+New code	Novi kod
+New voice from a clip...	Novi glas iz isječka...
+Next	Sljedeće
+Night City	Night City
+No AI	Bez AI-a
+No AI · no brain at all	Bez AI-a · bez ikakvog mozga
+No brain runs, and nothing is sent anywhere.	Nijedan mozak ne radi i ništa se ne šalje nikuda.
+No brain yet	Još nema mozga
+No code open	Nema otvorenog koda
+No mic found	Mikrofon nije pronađen
+No mods in the directory yet.	Još nema modova u folderu.
+No mods match that.	Nijedan mod ne odgovara tome.
+No mods match.	Nijedan mod ne odgovara.
+No phones yet	Još nema telefona
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Još nema virtuelnog mikrofona. Izaberi Izlaz, pa Nabavi VB-CABLE (besplatno).
+None yet: pick to get VB-CABLE (free)	Još nema: izaberi za preuzimanje VB-CABLE (besplatno)
+Normal	Normalno
+Not a relay host	Nije relay host
+Not imported. Nothing ran.	Nije uvezeno. Ništa se nije pokrenulo.
+Not updated. The old one is still in.	Nije ažurirano. Stara verzija je i dalje instalirana.
+Nothing needed updating.	Ništa nije trebalo ažurirati.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Ništa za preuzimanje, ništa se ne šalje nikuda. Neću odgovarati glasom. Dodaj mozak bilo kada u Mainframe-u.
+Nothing to show from the mods directory.	Nema ništa za prikaz iz foldera modova.
+Nothing? Windows Settings > Privacy & security > Microphone.	Ništa? Windows postavke > Privatnost i sigurnost > Mikrofon.
+Nous Portal keys aren't supported yet.	Ključevi za Nous Portal još nisu podržani.
+OBS	OBS
+OFF	ISKLJUČENO
+OLLAMA	OLLAMA
+ON	UKLJUČENO
+ON THIS PC	NA OVOM PC-U
+OR A KEY	ILI KLJUČ
+Obsidian memory vault	Obsidian trezor memorije
+Off	Isključeno
+Off. Turn on Her voice in your mic above.	Isključeno. Uključi Njen glas u mom mikrofonu iznad.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Isključeno: zvuči kao i uvijek. Uključeno: svi glasovi koje ima, uključujući ElevenLabs.
+Often	Često
+On	Uključeno
+On / Off	Uključeno / Isključeno
+On: your mic and her voice are going in.	Uključeno: tvoj mikrofon i njen glas idu unutra.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Jedan JSON objekat, dodaje se svakom zahtjevu koji ovaj mozak šalje. Zamjenjuje Caprin vrijednost za svako ime koje dijeli, i ne provjerava se u odnosu na model.
+Online speech recognition	Online prepoznavanje govora
+Open Capri Mainframe	Otvori Capri Mainframe
+Open Ollama, I'll find it	Otvori Ollamu, ja ću je naći
+Open clips folder	Otvori folder isječaka
+Open her memories	Otvori njena sjećanja
+Open her notes	Otvori njene bilješke
+Open mods folder	Otvori folder modova
+Open the page again	Ponovo otvori stranicu
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ili OpenRouter.
+OpenAI-compatible server or provider.	Server ili provajder kompatibilan sa OpenAI.
+OpenRouter · free models only	OpenRouter · samo besplatni modeli
+Optional	Opcionalno
+Optional. Blank means no key.	Opcionalno. Prazno znači bez ključa.
+Options	Opcije
+Out of the box a little higher, just behind her.	Standardno malo više, odmah iza nje.
+Out of the box lower, just behind her.	Standardno niže, odmah iza nje.
+Output	Izlaz
+Output:	Izlaz:
+Output: none	Izlaz: nijedan
+PHONE CONNECTED	TELEFON POVEZAN
+PHONES >	TELEFONI >
+PHONES CONNECTED	TELEFONI POVEZANI
+PREBUILT LOCAL	UNAPRIJED INSTALIRANO LOKALNO
+PUBLISH MOD >	OBJAVI MOD >
+Pair a phone	Upari telefon
+Paste	Zalijepi
+Paste API key	Zalijepi API ključ
+Paste a brain API key	Zalijepi API ključ za mozak
+Paste reads your clipboard once, when you press it.	Zalijepi čita tvoj clipboard jednom, kad pritisneš.
+Paste your key here	Zalijepi svoj ključ ovdje
+Pat stroke	Maženje
+Perch	Sjedalo
+Perch over {0} fps uses more CPU	Sjedalo iznad {0} fps troši više CPU-a
+Pick Output to get it.	Izaberi Izlaz da ga dobiješ.
+Pick a brain so I can talk back. You can change it any time.	Izaberi mozak da mogu odgovarati. Možeš promijeniti bilo kada.
+Pick a clip of a voice you have the rights and consent to use	Izaberi isječak glasa za koji imaš prava i saglasnost za korištenje
+Pick a free model. I opened the page in your browser.	Izaberi besplatan model. Otvorila sam stranicu u tvom pregledniku.
+Pick a new clip of you...	Izaberi novi isječak tebe...
+Pick a voice model...	Izaberi model glasa...
+Pick one. Only one brain runs at a time.	Izaberi jedan. Samo jedan mozak radi istovremeno.
+Pick the note her memories go in	Izaberi bilješku u koju idu njena sjećanja
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Izaberi {0} do {1} sekundi glasa za koji imaš prava i saglasnost za korištenje
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Izaberi {0} do {1} sekundi tvog govora ili glasa za koji imaš prava i saglasnost za korištenje
+Pitch	Visina tona
+Play	Reproduciraj
+Play...	Reproduciraj...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeli kopiraju glas ovog isječka. Pritisni Testiraj da ga čuješ.
+Pop-in times	Vremena pojavljivanja
+Pop-ins	Pojavljivanja
+Power saver	Štednja energije
+Power saver: how lightly she runs in games, or always	Štednja energije: koliko lagano radi u igrama, ili uvijek
+Preset	Predložak
+Press Create API key	Pritisni Kreiraj API ključ
+Press Create Key	Pritisni Kreiraj ključ
+Press Generate API Key	Pritisni Generiši API ključ
+Press Test and say something, so I know I can hear you.	Pritisni Testiraj i reci nešto, da znam da te čujem.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Pritisni tipku, samostalno ili s Ctrl, Alt, Shift ili Win.
+Press new keys, then Confirm	Pritisni nove tipke, pa Potvrdi
+Provider	Provajder
+Provider API key, optional	API ključ provajdera, opcionalno
+Provider base URL	Osnovni URL provajdera
+Provider forgotten.	Provajder zaboravljen.
+Provider overlaps the brain name or note	Provajder se preklapa s imenom ili bilješkom mozga
+Publish	Objavi
+Publish mod	Objavi mod
+Push to talk is off.	Pritisni-za-govor je isključen.
+Push to talk key	Tipka za pritisni-za-govor
+Push to talk:	Pritisni-za-govor:
+Push to talk: not set	Pritisni-za-govor: nije postavljeno
+QR CODE >	QR KOD >
+QR hidden while streaming	QR sakriven tokom strimovanja
+Quick	Brzo
+Quiet key	Tiha tipka
+Quiet:	Tiho:
+Quiet: Ctrl + Alt + P	Tiho: Ctrl + Alt + P
+Quit Capri	Zatvori Capri
+RELAY >	RELAY >
+REMOTE >	DALJINSKI >
+RUNS CODE.	POKREĆE KOD.
+Rarely	Rijetko
+Rate mod	Ocijeni mod
+Reading its README...	Čitam njen README...
+Refresh	Osvježi
+Reinstall	Ponovo instaliraj
+Reload	Ponovo učitaj
+Reloaded.	Ponovo učitano.
+Remember our chats	Sjeti se naših razgovora
+Remember what she sees	Zapamti što vidi
+Remote	Daljinski
+Remote off	Daljinski isključen
+Remote on	Daljinski uključen
+Remove	Ukloni
+Remove all phones	Ukloni sve telefone
+Replies	Odgovori
+Reply length	Dužina odgovora
+Report a problem	Prijavi problem
+Reset colors	Resetuj boje
+Reset to her default	Vrati na njen zadani
+Resolution	Rezolucija
+Restart to update	Ponovo pokreni za ažuriranje
+Restless	Nemirna
+Revoke	Opozovi
+Revoke also removes the phones its links added	Opozivanje uklanja i telefone koje su dodali njegovi linkovi
+Ride cursor	Vožnja kursorom
+Ride cursor / Hop off	Vožnja kursorom / Siđi
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Klikni desnom tipkom na mene bilo kada za Capri Mainframe. Mozak se uključuje pod MOZAK.
+Right-click me any time for the Mainframe, Help and the Discord.	Klikni desnom tipkom na mene bilo kada za Mainframe, Pomoć i Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ili bilo koja druga aplikacija: izaberi
+Robot	Robot
+Rock, paper, scissors	Kamen, papir, makaze
+Run this code mod?	Pokrenuti ovaj kodni mod?
+Running on this PC	Radi na ovom PC-u
+Running on this PC · :	Radi na ovom PC-u · :
+Runs Claude Code or Codex on this PC, signed in.	Pokreće Claude Code ili Codex na ovom PC-u, prijavljen.
+Runs on your PC. No key, no credits.	Radi na tvom PC-u. Bez ključa, bez kredita.
+SCAN WITH YOUR PHONE · EXPIRES	SKENIRAJ TELEFONOM · ISTIČE
+SECURITY >	SIGURNOST >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	SORTIRAJ PO
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVUKOVI NAVIKE MOZAK GLEDAJ CAPRI DOOMSCROLL VRIJEME ISJEČCI IGRE KLJUČEVI POTEZI GLAS TI
+Same as her ears (VOICE > Mic)	Isto kao njene uši (GLAS > Mikrofon)
+Same code on the phone?	Isti kod na telefonu?
+Save	Sačuvaj
+Save big moments	Sačuvaj velike trenutke
+Save folder	Folder za čuvanje
+Save your changes, or press Discard + reload.	Sačuvaj promjene ili pritisni Odbaci + ponovo učitaj.
+Save your changes, or press Discard.	Sačuvaj promjene ili pritisni Odbaci.
+Saved.	Sačuvano.
+Saved. Ctrl + Alt + O opens her Mainframe.	Sačuvano. Ctrl + Alt + O otvara njen Mainframe.
+Saving your rating...	Čuvam tvoju ocjenu...
+Say her name anywhere to chat	Reci njeno ime bilo gdje da razgovaraš
+Screens	Ekrani
+Screens is hidden or outside WATCH	Ekrani su skriveni ili izvan GLEDAJ
+Screens overlaps a WATCH row	Ekrani se preklapaju s redom GLEDAJ
+Screens to watch	Ekrani za gledanje
+Sealed end to end	Šifrovano od kraja do kraja
+Search by name or author	Traži po imenu ili autoru
+Search installed mods	Traži instalirane modove
+Search mods	Traži modove
+Search name, author or description	Traži ime, autora ili opis
+Security	Sigurnost
+Security:	Sigurnost:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Postavi
+Set up her brain	Postavi njen mozak
+Set up your voice model	Postavi svoj model glasa
+Setting up her brain	Postavljam njen mozak
+Settings	Postavke
+Settings / Back	Postavke / Nazad
+Settings folds the wrong rows above BRAIN	Postavke sabiraju pogrešne redove iznad MOZGA
+Settings had nothing to watch.	Postavke nisu imale ništa za gledanje.
+Settings lost keyboard focus during the Tab walk	Postavke su izgubile fokus tastature tokom Tab prolaza
+Setup guide	Vodič za postavljanje
+Setup stopped	Postavljanje zaustavljeno
+She can read it when it fits.	Može pročitati kad stane.
+She glances at your screen and comments. Costs a little on a paid brain.	Pogleda tvoj ekran i komentira. Košta malo na plaćenom mozgu.
+She keeps listening. Say her name, then just talk until you go quiet.	Nastavlja slušati. Reci joj ime, pa samo pričaj dok ne utihneš.
+She reacts to your game until you close it.	Reagira na tvoju igru dok je ne zatvoriš.
+She reads these controls before each game job.	Čita ove kontrole prije svakog zadatka u igri.
+She talks about your game as you play. Costs a little on a paid brain.	Priča o tvojoj igri dok igraš. Košta malo na plaćenom mozgu.
+She uses it when she plays	Koristi to kad igra
+Short	Kratko
+Shortest wait (minutes)	Najkraće čekanje (minute)
+Show Capri	Prikaži Capri
+Show QR	Prikaži QR
+Show my mod file	Prikaži moj fajl moda
+Show on Discord	Prikaži na Discordu
+Shum, what time is it	Šum, koliko je sati
+Sign in	Prijavi se
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Prijavi se, napravi ključ i kopiraj ga. Zatim pritisni Zalijepi i ja ću se povezati.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Prijavi se, pritisni Kreiraj API ključ i kopiraj ga. Zatim pritisni Zalijepi i ja ću se povezati.
+Silent · text only	Tiho · samo tekst
+Simple / Advanced Settings	Jednostavne / napredne postavke
+Simple Settings	Jednostavne postavke
+Simple Settings left a gap under Check in on me	Jednostavne postavke ostavile su prazninu ispod Javi mi se
+Sit here	Sjedi ovdje
+Sit on windows	Sjedi na prozorima
+Size	Veličina
+Skip	Preskoči
+Skip all	Preskoči sve
+Skip for now	Preskoči za sada
+Sleep	Spavaj
+Small	Mali
+Sometimes	Ponekad
+Sound effects volume	Glasnoća zvučnih efekata
+Sound sensitivity	Osjetljivost zvuka
+Sounds	Zvukovi
+Speaker or clip	Zvučnik ili isječak
+Speech model	Model govora
+Speed	Brzina
+Start with Windows	Pokreni sa Windowsom
+Start with this!	Počni s ovim!
+Starting...	Pokrećem...
+Stay on my model	Ostani na mom modelu
+Still checking your mics...	Još provjeravam tvoje mikrofone...
+Still checking your speakers...	Još provjeravam tvoje zvučnike...
+Still checking your virtual mics...	Još provjeravam tvoje virtuelne mikrofone...
+Stop	Zaustavi
+Stopped using it. Couldn't remove the saved provider.	Prestao sam koristiti. Nije uspjelo uklanjanje sačuvanog provajdera.
+Support	Podrška
+Sure?	Sigurno?
+Sure? moved to a different phone	Sigurno? premješteno na drugi telefon
+TALK TO ME	PRIČAJ SA MNOM
+TEXT ONLY	SAMO TEKST
+Tab landed past the first option of	Tab je završio iza prve opcije od
+Tab never reached the quiet key	Tab nikad nije stigao do tihe tipke
+Tab reached nothing	Tab nije stigao ni do čega
+Tab selected a control without moving keyboard focus	Tab je izabrao kontrolu bez pomjeranja fokusa tastature
+Talk	Razgovor
+Talk key	Tipka za razgovor
+Talk:	Razgovor:
+Talk: Ctrl + Alt + V	Razgovor: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Ciljna brzina snimanja sličica; može pasti pod opterećenjem ili budžetom memorije
+Teases when another AI comes to the front.	Zadirkuje kad druga AI dođe u prvi plan.
+Test	Testiraj
+That address doesn't work. Try https://... or http://localhost:{0}.	Ta adresa ne radi. Probaj https://... ili http://localhost:{0}.
+That code expired	Taj kod je istekao
+That mod is no longer installed. The list is updated.	Taj mod više nije instaliran. Lista je ažurirana.
+That's a paid key: it goes under MAX INTELLIGENCE.	To je plaćeni ključ: ide pod MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe je ostao kompoziran dok je klizio.
+The Mainframe stayed uncomposited after the slide.	Mainframe je ostao nekompoziran nakon slajda.
+The controls moved while the picture was sliding.	Kontrole su se pomjerile dok je slika klizila.
+The cover stayed visible after the slide ended.	Naslovna slika je ostala vidljiva nakon kraja slajda.
+The frame thread kept running after the page settled.	Nit za sličice nastavila je raditi nakon što se stranica smirila.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Najduži odgovor koji može dati, u tokenima. Auto se drži Odgovora iznad; {0}K ili {1}K joj dozvoljava da nastavi. Poslovi dobijaju više prostora kad ga trebaju
+The longest wait must be at least the shortest wait.	Najduže čekanje mora biti barem jednako kao najkraće čekanje.
+The picture doesn't match the scrolled page:	Slika ne odgovara pomaknutoj stranici:
+The picture of Settings doesn't match the page:	Slika Postavki ne odgovara stranici:
+The picture stayed up after the slide ended.	Slika je ostala na ekranu nakon kraja slajda.
+The picture wasn't showing while it slid.	Slika nije bila prikazana dok je klizila.
+The provider sheet is crowded:	List provajdera je pretrpan:
+The voice panel has no screen DPI.	Glasovni panel nema DPI ekrana.
+The voice panel's menus share one font.	Meniji glasovnog panela dijele jedan font.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Na tvom clipboardu još nema ključa. Kopiraj ga sa stranice, pa pritisni Zalijepi.
+These start off. Each costs a little or uses your mic.	Ovi su isključeni na početku. Svaki košta malo ili koristi tvoj mikrofon.
+These start off. Turn on what you want. They're all in Settings too.	Ovi su isključeni na početku. Uključi što želiš. Svi su i u Postavkama.
+They can also call you Big Z, Capricorn or Nova	Mogu te zvati i Big Z, Capricorn ili Nova
+They can also call you Nova, Big Z or Capricorn	Mogu te zvati i Nova, Big Z ili Capricorn
+Thinking	Razmišljam
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Ovo je moj besplatan glas. Pritisni Testiraj, reci nešto, i pokazat ću ti da te čujem.
+This mod has no description yet.	Ovaj mod još nema opis.
+Tic-tac-toe	Iks-oks
+Time between glances	Vrijeme između pogleda
+Tiny	Sitno
+Try again	Pokušaj ponovo
+Turn Remote on first	Prvo uključi Daljinski
+Turn off mini player	Isključi mini plejer
+Turn push to talk off	Isključi pritisni-za-govor
+Turning the wheel the other way kept the page heading the old way, to	Okretanje točkića na drugu stranu držalo je stranicu u starom smjeru, prema
+Type	Tipkaj
+Type key	Tipka za tipkanje
+Type to me	Piši mi
+Type:	Tipkanje:
+Type: Ctrl + Alt + T	Tipkanje: Ctrl + Alt + T
+Typing sound	Zvuk tipkanja
+Unpacked. Press Test to hear it.	Raspakovano. Pritisni Testiraj da ga čuješ.
+Unsaved changes.	Nesačuvane promjene.
+Up to {0} fps	Do {0} fps
+Up to {0}p	Do {0}p
+Update	Ažuriraj
+Update available.	Ažuriranje je dostupno.
+Update mods	Ažuriraj modove
+Updating...	Ažuriram...
+Use	Koristi
+Use her cursor	Koristi njen kursor
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Koristi https:// za provajdera negdje drugo. Ključ preko običnog http-a nije siguran.
+Use preset	Koristi predložak
+Use saved	Koristi sačuvano
+Use this server	Koristi ovaj server
+Using your provider with a key	Koristiš svog provajdera s ključem
+Using your server with no key	Koristiš svoj server bez ključa
+VIEW MOD >	POGLEDAJ MOD >
+VOICE >	GLAS >
+VOICE IN YOUR MIC >	GLAS U TVOM MIKROFONU >
+VOICE LAYERS >	SLOJEVI GLASA >
+Verbosity	Opširnost
+Video bitrate	Bitrate videa
+View	Prikaz
+View mod	Pogledaj mod
+Voice	Glas
+Voice ID	ID glasa
+Voice from	Glas iz
+Voice layers	Slojevi glasa
+Voice model	Model glasa
+Voice model:	Model glasa:
+Voice name or ID, optional	Naziv ili ID glasa, opcionalno
+Voice server address, or a voice model's folder	Adresa glasovnog servera ili folder modela glasa
+Voice status	Status glasa
+Voice, key and model...	Glas, ključ i model...
+Volume	Glasnoća
+WAKE ME UP >	BUDI ME >
+WATCH >	GLEDAJ >
+Waiting for the relay	Čekam relay
+Wake her up	Probudi je
+Waking her up	Budim je
+Wander	Luta
+Wander around	Luta okolo
+Watch my screen	Gledaj moj ekran
+Watch-along memory	Memorija gledanja zajedno
+Weather	Vrijeme
+Weather city	Grad za vrijeme
+Welcome back, choom. Let's finish setting me up.	Dobro došao nazad, choom. Hajde da završimo postavljanje.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Šta radi na tvom PC-u bez pitanja. Kad je prekidač isključen, pita prvo, a radi kad kažeš da.
+What should she call you?	Kako da te zove?
+When she types	Kad tipka
+White	Bijela
+Windows default	Windows zadano
+Windows did not give Settings keyboard focus	Windows nije dao Postavkama fokus tastature
+Windows did not return keyboard focus to Back	Windows nije vratio fokus tastature na Nazad
+With no picture the wheel still tried to slide.	Bez slike, točkić je ipak pokušao da klizi.
+Works best on MAX INTELLIGENCE.	Najbolje radi na MAX INTELLIGENCE.
+YOU	TI
+YOU >	TI >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	GLAS TI POTEZI TIPKE IGRE ISJEČCI VRIJEME DOOMSCROLL CAPRI GLEDAJ MOZAK NAVIKE ZVUKOVI
+YOUR KEY	TVOJ KLJUČ
+YOUR MIC	TVOJ MIKROFON
+YOUR PLAN	TVOJ PLAN
+Yokapri what's up	Yokapri šta ima
+You can hide this. It keeps going, and the Mainframe shows it too.	Ovo možeš sakriti. Nastavlja raditi, a Mainframe to i dalje prikazuje.
+Your mic and her voice go into one virtual mic, and	Tvoj mikrofon i njen glas idu u jedan virtuelni mikrofon, i
+Your mic is muted. Unmute it to test.	Tvoj mikrofon je isključen. Uključi ga da testiraš.
+Your mods are up to date.	Tvoji modovi su ažurni.
+Your name or a nickname	Tvoje ime ili nadimak
+Your own model	Tvoj model
+Your personality	Tvoja ličnost
+Your voice	Tvoj glas
+Your voice (HD)	Tvoj glas (HD)
+Your voice (HD) · pick a clip of you...	Tvoj glas (HD) · izaberi isječak tebe...
+Your voice model	Tvoj model glasa
+as its mic.	kao njen mikrofon.
+changed. Saved as My Colors, so you can share it.	promijenjeno. Sačuvano kao Moje boje, da ga možeš podijeliti.
+choice	izbor
+clips the input line	isječi ulaznu liniju
+cue	znak
+doesn't yet.	još ne.
+download	preuzmi
+file.	fajl.
+flag	zastavica
+fps	fps
+hear	čuti
+hears	čuje
+hears that.	čuje to.
+hides or shows her.	sakriva ili prikazuje nju.
+hint	savjet
+in the Mainframe.	u Mainframe-u.
+in the mods directory with a pull request.	u folderu modova putem pull requesta.
+in the picture wasn't noticed.	na slici nije primijećeno.
+is already her push-to-talk key.	je već njen ključ za pritisni-za-govor.
+is off.	je isključeno.
+is on and running.	je uključeno i radi.
+is on, at the bottom, under	je uključeno, dolje, ispod
+is on.	je uključeno.
+is on. She now answers to	je uključeno. Sada joj odgovara
+is removed.	je uklonjeno.
+is taken	je zauzeto
+is taken by another app. Try another.	je zauzeto drugom aplikacijom. Probaj drugo.
+is updated	je ažurirano
+isn't hearing it yet: do {0} and {1}, then join a call.	još ne čuje: uradi {0} i {1}, pa se pridruži pozivu.
+it now.	sada.
+keeps her quiet, and lets her talk again.	drži je tihom, i opet joj dopušta da priča.
+key	ključ
+key.	ključ.
+min	min
+more.	više.
+ms.	ms.
+mutes mic	isključuje mikrofon
+mutes your mic.	isključuje tvoj mikrofon.
+name	ime
+off	isključeno
+on this PC	na ovom PC-u
+opens her Mainframe.	otvara njen Mainframe.
+opens her typing box.	otvara njen okvir za tipkanje.
+phone	telefon
+phone pixels	pikseli telefona
+phones	telefoni
+pixels	pikseli
+pixels)	pikseli)
+star.	zvijezda.
+stars.	zvijezde.
+starts voice chat.	pokreće glasovni chat.
+stays off. Nothing ran.	ostaje isključeno. Ništa se nije pokrenulo.
+still does its own job in other apps too. Confirm to keep it.	i dalje radi svoj posao i u drugim aplikacijama. Potvrdi da zadržiš.
+tall	visoko
+time	vrijeme
+to talk	govoriti
+to talk to her, with a game in front too.	govoriti s njom, i kad je igra ispred.
+too.	također.
+turns Gaming Mode on and off.	uključuje i isključuje Režim igre.
+with Ollama	s Ollamom
+won't type in other apps while she runs. Confirm to keep it.	neće tipkati u drugim aplikacijama dok ona radi. Potvrdi da zadržiš.
+{0}   Echo Cancellation: Off	{0}   Poništavanje eha: Isključeno
+{0}   If her voice cuts off, turn off noise filtering	{0}   Ako se njen glas prekida, isključi filtriranje šuma
+{0}   Input Device:	{0}   Ulazni uređaj:
+{0}   Join the call and check they hear both of you	{0}   Pridruži se pozivu i provjeri da oboje čujete jedno drugo
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Test mikrofona > Provjerimo: čut ćeš sebe i nju dok govori
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Potiskivanje šuma: Nema. Oboje mogu prekinuti njen glas nakon prve linije.
+{0}   Open the call or meeting's audio settings	{0}   Otvori audio postavke poziva ili sastanka
+{0}   Output Device: your headphones, like before	{0}   Izlazni uređaj: tvoje slušalice, kao prije
+{0}   Speaker: your headphones, like before	{0}   Zvučnik: tvoje slušalice, kao prije
+{0}   Try a mic test in your call app	{0}   Probaj test mikrofona u aplikaciji za poziv
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Korisničke postavke (zupčanik pored tvog imena) > Glas i video
+{0} Mbps	{0} Mbps
+{0} lines	{0} linija
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· na ovom PC-u
+· server	· server

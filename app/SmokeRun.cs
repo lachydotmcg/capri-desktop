@@ -14,6 +14,7 @@ namespace CapriDesktop
     {
         internal string[] Only = new string[0];
         internal bool Steps, NoSteps;
+        internal int Shard, Shards;
         internal bool RunSteps { get { return Steps || (!NoSteps && Only.Length == 0); } }
 
         internal static SmokeOptions Parse(string[] args)
@@ -23,6 +24,13 @@ namespace CapriDesktop
             {
                 if (args[i] == "--steps") options.Steps = true;
                 else if (args[i] == "--no-steps") options.NoSteps = true;
+                else if (args[i] == "--shard" && i + 1 < args.Length)
+                {
+                    string[] parts = args[++i].Split('/');
+                    if (parts.Length != 2 || !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out options.Shard)
+                        || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out options.Shards) || options.Shards < 1 || options.Shard >= options.Shards)
+                        throw new ArgumentException("--shard needs a part and a count like 0/4.");
+                }
                 else if (args[i] == "--only" && i + 1 < args.Length)
                 {
                     options.Only = args[++i].Split(',');
@@ -33,6 +41,8 @@ namespace CapriDesktop
             }
             if (options.Steps && (options.NoSteps || options.Only.Length != 0))
                 throw new ArgumentException("--steps runs the steps alone; use --only or --no-steps for sections.");
+            if (options.Shards != 0 && (!options.NoSteps || options.Only.Length != 0))
+                throw new ArgumentException("--shard splits the sections, so it goes with --no-steps and without --only.");
             return options;
         }
     }
@@ -161,7 +171,8 @@ namespace CapriDesktop
         internal static bool Wants(string name)
         {
             // --steps runs the steps alone, with the sections inside them.
-            if (options.Steps) return kind == "step";
+            if (options.Steps) return kind == "step" || (selected.Count != 0 && selected.Peek());
+            if (options.Shards != 0 && selected.Count == 0) return ShardOf(name, options.Shards) == options.Shard;
             bool wanted = options.Only.Length == 0 || (selected.Count != 0 && selected.Peek());
             foreach (string item in options.Only)
                 if (string.Equals(name, item.Trim(), StringComparison.OrdinalIgnoreCase)) { matched.Add(item); wanted = true; }
@@ -170,6 +181,13 @@ namespace CapriDesktop
                 foreach (string item in options.Only)
                     if (string.Equals(child, item.Trim(), StringComparison.OrdinalIgnoreCase)) { matched.Add(item); wanted = true; }
             return wanted;
+        }
+
+        internal static int ShardOf(string name, int shards)
+        {
+            uint hash = 2166136261;
+            foreach (char letter in name.ToLowerInvariant()) hash = unchecked((hash ^ letter) * 16777619);
+            return (int)(hash % (uint)shards);
         }
 
         internal static bool EnterSection(string name)
