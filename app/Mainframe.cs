@@ -854,6 +854,7 @@ namespace CapriDesktop
             sizeSlider.Changed += delegate { if (syncing) return; sizeName.Text = SizeNames[sizeSlider.Value]; capri.SetCharacterSize(SizeSteps[sizeSlider.Value]); };
             onlyAsked = Switch("Only talk when asked", c, 110, delegate { if (!syncing) capri.ToggleOnlyWhenAsked(); });
             onlyAsked.AccessibleName = "Only talk when asked. She says nothing on her own, not even in her bubble: no screen or game comments, live reactions, check-ins, cheers, jokes or follow-ups. She still answers you, and reminders and watches you asked for still come";
+            onlyAsked.Switch = 68;
             int afterAsked = Controls.Count;
             checkIns = Switch("Check in on me", c, 110, delegate { if (!syncing) capri.ToggleCheckIns(); });
             careMenu = Dropdown();
