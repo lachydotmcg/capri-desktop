@@ -123,18 +123,8 @@ namespace CapriDesktop
 
             string docked = mainframe.ResourcesDocked(Path.Combine(output, "mainframe-resources.png"));
             if (docked != null) throw new Exception(docked);
-            PeekPicture(checks, Path.Combine(output, "mainframe-resources.png"), "mainframe");
             checks.Add("PASS Resources key: opens its panel docked under the Mainframe, lights up while it is open, follows the Mainframe when it moves, and closes it again");
         }
 
-        private static void PeekPicture(List<string> checks, string path, string name)
-        {
-            using (System.Drawing.Image image = System.Drawing.Image.FromFile(path))
-            using (MemoryStream jpeg = new MemoryStream())
-            {
-                image.Save(jpeg, System.Drawing.Imaging.ImageFormat.Jpeg);
-                checks.Add("LIMIT peek " + name + " " + Convert.ToBase64String(jpeg.ToArray()));
-            }
-        }
     }
 }
