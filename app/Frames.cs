@@ -632,6 +632,15 @@ namespace CapriDesktop
         // Each pixel out is the average of the frame's pixels under it, or of every other one each way where four or more fall under
         // it, so text and a game's HUD lines don't shimmer. At the same
         // size it's a plain copy.
+        private static readonly ulong[] Inverses = MakeInverses();
+
+        private static ulong[] MakeInverses()
+        {
+            ulong[] made = new ulong[257];
+            for (int count = 1; count <= 256; count++) made[count] = ((1UL << 32) + (ulong)count - 1) / (ulong)count;
+            return made;
+        }
+
         private static unsafe void Shrink(byte* source, int across, int down, int width, int height, BitmapData target, int wide, int tall)
         {
             if (wide == width && tall == height)
@@ -679,7 +688,12 @@ namespace CapriDesktop
                             byte* from = source + (long)y * down + (long)left * across;
                             for (int x = left; x < right; x += stepX, from += acrossStep) { blue += from[0]; green += from[1]; red += from[2]; }
                         }
-                    to[column] = 0xFF000000u | ((red / count) << 16) | ((green / count) << 8) | (blue / count);
+                    if (count <= 256)
+                    {
+                        ulong inverse = Inverses[count];
+                        to[column] = 0xFF000000u | (uint)((red * inverse) >> 32) << 16 | (uint)((green * inverse) >> 32) << 8 | (uint)((blue * inverse) >> 32);
+                    }
+                    else to[column] = 0xFF000000u | ((red / count) << 16) | ((green / count) << 8) | (blue / count);
                 }
             }
         }
