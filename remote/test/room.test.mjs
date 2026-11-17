@@ -183,6 +183,12 @@ test('the room window from the pc app opens her room straight away, sizes her an
     await page.until("/behind you|Finding you|find you/.test(document.getElementById('room-status').textContent)", 'behind line');
     await page.run("document.getElementById('room-behind').click()");
     assert.equal(await page.run("document.getElementById('room-behind').getAttribute('aria-pressed')"), 'false');
+    await page.until("[...document.querySelectorAll('#room-controls button')].some(b => /Lie down/.test(b.textContent))", 'lie down button');
+    await page.run("[...document.querySelectorAll('#room-controls button')].find(b => /Lie down/.test(b.textContent)).click()");
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth still', 9000);
+    await page.run("window.CapriRoom.mumble('Hey choom, I am right behind you.')");
+    await page.until("document.getElementById('room-her').dataset.mouth === 'true'", 'mouth moving');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth stops', 9000);
     await page.run("(() => { const s = document.getElementById('room-size'); s.value = '1'; s.dispatchEvent(new Event('input')); })()");
     await page.run("document.getElementById('room-close').click()");
     assert.equal(await page.run("document.querySelectorAll('#room-view canvas').length"), 0);

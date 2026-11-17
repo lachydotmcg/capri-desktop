@@ -54,7 +54,7 @@
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
   let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
   let makeLife, life = null, lifeAt = 0, spots = [], hand = null;
-  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '';
+  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '', mouthUntil = 0;
   try { grow = Math.max(0.5, Math.min(4, Number(localStorage.getItem('capri-room-size')) || 1)); } catch (error) {}
   sizer.value = String(grow);
   const YOU = 0.85;
@@ -515,7 +515,12 @@
     try { localStorage.setItem('capri-room-size', String(grow)); } catch (error) {}
     if (desk) life?.setTall(deskTall());
   };
-  const sayLine = text => { if (!room.hidden) status.textContent = text; };
+  const mumble = text => {
+    if (room.hidden || !text) return;
+    const now = performance.now();
+    mouthUntil = Math.min(now + 8000, Math.max(mouthUntil, now) + Math.min(5000, 300 + String(text).length * 55));
+  };
+  const sayLine = text => { if (!room.hidden) { status.textContent = text; mumble(text); } };
   const newLife = tall => makeLife ? makeLife({ tall, say: sayLine, calm: () => reduced.matches }) : null;
   const turnOf = () => {
     const m = seen?.m;
@@ -641,7 +646,9 @@
       syncLife();
     }
     const position = life?.position || standAt(glass);
-    stage.update({ now, position, ...lifeClip(now), talking, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? deskTall() : 0, ground: floorY() });
+    const mouth = talking || now < mouthUntil;
+    if (her.dataset.mouth !== String(mouth)) her.dataset.mouth = String(mouth);
+    stage.update({ now, position, ...lifeClip(now), talking: mouth, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? deskTall() : 0, ground: floorY() });
     if (desk) cutLayer(now, position);
     stage.draw();
     if (!position) return;
@@ -992,7 +999,7 @@
           return;
         }
         const head = eye.transform.position;
-        xr3d?.update({ now, position: seat, viewer: [head.x, head.y, head.z], ...lifeClip(now), talking, calm: reduced.matches, ground: life ? groundXr(seat) : null });
+        xr3d?.update({ now, position: seat, viewer: [head.x, head.y, head.z], ...lifeClip(now), talking: talking || now < mouthUntil, calm: reduced.matches, ground: life ? groundXr(seat) : null });
         const position = project(eye.transform.inverse.matrix, seat, 1);
         const point = project(eye.projectionMatrix, position, 1);
         const depth = point[3];
@@ -1224,5 +1231,5 @@
     new MutationObserver(openHere).observe(app, { attributeFilter: ['data-screen'] });
     openHere();
   }
-  window.CapriRoom = { close: closeRoom, startVoice: () => { if (!room.hidden) startVoice(); }, voiceStatus, talk: on => { talking = !room.hidden && !!on; } };
+  window.CapriRoom = { close: closeRoom, startVoice: () => { if (!room.hidden) startVoice(); }, voiceStatus, talk: on => { talking = !room.hidden && !!on; }, mumble };
 })();

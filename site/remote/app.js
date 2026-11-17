@@ -430,6 +430,7 @@
         const words = node && node.querySelector('.words');
         if (words) { words.textContent = job.msg.text; stick(); }
         CapriBar.talk(true, job.msg.text);
+        window.CapriRoom?.mumble?.(message.text);
       }
       if (message.done) settleReply(job.key, '');
     } else if (type === 'error') {
