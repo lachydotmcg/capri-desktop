@@ -1137,6 +1137,7 @@ namespace CapriDesktop
         [DataMember] public bool HeyCapri;
         [DataMember] public bool HdVoice;
         [DataMember] public bool HdCpu;
+        [DataMember] public bool WindowsTongue;
         // Free voice in games is off out of the box (Lachy, 29 Oct): her HD voice keeps talking while a game is full screen.
         // On, her free voice takes over while anything is full screen, so the game gets the graphics card back.
         [DataMember] public bool HdGameRest;
@@ -13154,6 +13155,18 @@ namespace CapriDesktop
 
         internal bool HdCpu { get { return preferences.HdCpu; } }
 
+        internal bool WindowsTongue { get { return preferences.WindowsTongue; } }
+
+        internal void ShowFreeVoices() { ShowVoice(false); }
+
+        internal void ToggleWindowsTongue()
+        {
+            if (AfterLine(ToggleWindowsTongue)) return;
+            preferences.WindowsTongue = !preferences.WindowsTongue;
+            SavePreferences();
+            ShowVoice(false);
+        }
+
         internal void ToggleHdCpu()
         {
             if (AfterLine(ToggleHdCpu)) return;
@@ -15810,7 +15823,8 @@ namespace CapriDesktop
         // A line her English free voice can't read, like Russian, never comes out spelled letter by letter (ticket 99): a custom
         // voice they added for that language speaks it, then her own free voice when Kokoro knows it, then a Windows voice for it,
         // and otherwise she stays quiet for that line, its bubble still shows, and once a run VOICE says how to add a voice for it.
-        // A line in French, Spanish or another Latin-script language they picked goes the same way, but ends on her English voice.
+        // A line in French, Spanish or another Latin-script language they picked goes the same way, but skips Windows unless they
+        // asked for its voice, and ends on her English voice.
         private Func<string, byte[]> Readable(Func<string, byte[]> own, Func<string, string, byte[]> tongue)
         {
             if (own == null) return null;
@@ -15818,6 +15832,7 @@ namespace CapriDesktop
             string[] folders = { preferences.ServerApi == VoiceServer.Files ? preferences.ServerUrl : null, preferences.AsideApi == VoiceServer.Files ? preferences.AsideUrl : null };
             string[] languages = { preferences.ServerModel, preferences.AsideModel };
             string[] speakers = { preferences.ServerSpeaker, preferences.AsideSpeaker };
+            bool robotic = preferences.WindowsTongue;
             return delegate(string words)
             {
                 string code = VoiceLanguage.Tongue(words, language);
@@ -15848,6 +15863,7 @@ namespace CapriDesktop
                     }
                     catch (Exception) { }
                 }
+                if (latin && !robotic) return own(words);
                 byte[] windows = WindowsVoice.Speak(code, words);
                 if (windows != null) return windows;
                 if (latin) return own(words);
@@ -46220,22 +46236,31 @@ namespace CapriDesktop
                 Brain.Language = "German";
                 string hallo = "Hallo! Willst du heute Abend spielen?";
                 made = Voiced(PickVoice(false, out free), free, hallo, out problem);
-                if (made == null || problem != null || tongueCalls != 3 || tongueCode != "de" || windowsCalls != windowsAt + 1 || windowsName != "German" || windowsWords != hallo || ownCalls != ownAt) throw new Exception("German did not use a German Windows voice.");
+                if (made != wav || problem != null || tongueCalls != 3 || tongueCode != "de" || ownCalls != ownAt + 1 || ownWords != hallo || windowsCalls != windowsAt) throw new Exception("German left her own voice for Windows without being asked.");
+                ShowVoice(false);
+                if (!mainframe.PickFree("Windows voice for German (robotic)") || !preferences.WindowsTongue) throw new Exception("The free voice menu could not switch German to its Windows voice.");
+                made = Voiced(PickVoice(false, out free), free, hallo, out problem);
+                if (made == null || problem != null || tongueCalls != 4 || windowsCalls != windowsAt + 1 || windowsName != "German" || windowsWords != hallo || ownCalls != ownAt + 1) throw new Exception("German did not use a German Windows voice once picked.");
                 installed.RemoveAt(1);
                 made = Voiced(PickVoice(false, out free), free, hallo, out problem);
-                if (made != wav || problem != null || ownCalls != ownAt + 1 || ownWords != hallo || windowsCalls != windowsAt + 1) throw new Exception("German without a German voice lost her own voice.");
+                if (made != wav || problem != null || ownCalls != ownAt + 2 || ownWords != hallo || windowsCalls != windowsAt + 1) throw new Exception("German without a German voice lost her own voice.");
                 Brain.Language = "Russian";
                 made = Voiced(PickVoice(false, out free), free, "Hello, choom.", out problem);
                 Brain.Language = "English";
                 byte[] plain = Voiced(PickVoice(false, out free), free, "Hello, choom.", out problem);
-                if (made != wav || plain != wav || ownCalls != ownAt + 3 || tongueCalls != 4 || windowsCalls != windowsAt + 1) throw new Exception("English, or a Latin line with Russian picked, left her own voice.");
+                if (made != wav || plain != wav || ownCalls != ownAt + 4 || tongueCalls != 5 || windowsCalls != windowsAt + 1) throw new Exception("English, or a Latin line with Russian picked, left her own voice.");
                 Brain.Language = "French";
+                ShowVoice(false);
+                if (mainframe.PickFree("Windows voice for French")) throw new Exception("French offered a Windows voice over her own French.");
                 FreeTongue = delegate(string code, string words) { tongueCalls++; throw new VoiceException("The fake French voice failed."); };
                 made = Voiced(PickVoice(false, out free), free, bonjour, out problem);
-                if (made == null || problem != null || tongueCalls != 5 || windowsName != "French" || windowsCalls != windowsAt + 2 || ownCalls != ownAt + 3) throw new Exception("A failed French free voice did not hand the line to French Windows speech.");
+                if (made == null || problem != null || tongueCalls != 6 || windowsName != "French" || windowsCalls != windowsAt + 2 || ownCalls != ownAt + 4) throw new Exception("A failed French free voice did not hand the line to French Windows speech.");
+                preferences.WindowsTongue = false;
+                made = Voiced(PickVoice(false, out free), free, bonjour, out problem);
+                if (made != wav || tongueCalls != 7 || windowsCalls != windowsAt + 2 || ownCalls != ownAt + 5) throw new Exception("A failed French free voice used Windows without being asked.");
                 installed.Clear();
                 made = Voiced(PickVoice(false, out free), free, bonjour, out problem);
-                if (made != wav || ownCalls != ownAt + 4 || ownWords != bonjour || tongueCalls != 6) throw new Exception("French with no French voice at all went quiet.");
+                if (made != wav || ownCalls != ownAt + 6 || ownWords != bonjour || tongueCalls != 8) throw new Exception("French with no French voice at all went quiet.");
                 if (!VoiceTongues.Knows("fr") || !VoiceTongues.Knows("pt") || VoiceTongues.Knows("de") || VoiceTongues.Knows("en") || VoiceTongues.Lang("pt") != "pt-br" || VoiceTongues.Lang("es") != "es")
                     throw new Exception("Her free voice's languages changed.");
                 if (!VoiceLanguage.LatinScript("fr") || !VoiceLanguage.LatinScript("de") || VoiceLanguage.LatinScript("ru") || VoiceLanguage.LatinScript("hi") || VoiceLanguage.LatinScript("ja") || VoiceLanguage.LatinScript(""))
@@ -46246,7 +46271,7 @@ namespace CapriDesktop
                 foreach (string code in new[] { "fr", "es", "it", "pt", "hi" }) File.WriteAllBytes(Path.Combine(Path.Combine(tongues, "espeak-ng-data"), code + "_dict"), new byte[] { 1 });
                 if (!VoiceTongues.Ready(tongues, "fr") || !VoiceTongues.Ready(tongues, "hi") || VoiceTongues.Ready(tongues, "de") || VoiceTongues.Missing(tongues)) throw new Exception("Her free voice missed its word lists.");
                 VoiceTongues.Fetch(tongues, delegate { }, delegate { throw new Exception("A complete set of word lists was downloaded again."); });
-                checks.Add("PASS French, Spanish, Italian, Portuguese and Hindi use her own free voice in that language; German uses a German Windows voice, then her own; English and Latin lines with Russian keep her voice; a failed French voice hands over to Windows");
+                checks.Add("PASS French, Spanish, Italian, Portuguese and Hindi use her own free voice in that language; German keeps her own voice until the free voice menu picks its Windows voice; English and Latin lines with Russian keep her voice; a failed French voice uses Windows only when picked");
             }
             finally
             {
