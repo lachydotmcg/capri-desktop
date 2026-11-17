@@ -16,6 +16,7 @@ internal static class CustomSafetyChecks
         Console.WriteLine((ok ? "PASS " : "FAIL ") + name);
         if (!ok) failures++;
     }
+    private static void Skip(string name) { Console.WriteLine("SKIP " + name); }
     private static void Set(Pet p, string name, object value) { typeof(Pet).GetField(name, Fields).SetValue(p, value); }
     private static void Call(Pet p, string name) { typeof(Pet).GetMethod(name, Fields, null, Type.EmptyTypes, null).Invoke(p, null); }
     private static string Hash(string path) { return File.Exists(path) ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) : "missing"; }
@@ -77,12 +78,16 @@ internal static class CustomSafetyChecks
 
             if (!OperatingSystem.IsWindows())
             {
-                string blockedDir = Path.Combine(d, "remove-blocked"); s = Setup(blockedDir, out p); before = Hashes(blockedDir);
-                bool removed; UnixFileMode mode = File.GetUnixFileMode(blockedDir);
-                File.SetUnixFileMode(blockedDir, UnixFileMode.UserRead | UnixFileMode.UserExecute);
-                try { removed = p.RemoveEndpoint("a"); }
-                finally { File.SetUnixFileMode(blockedDir, mode); }
-                Check("failed key deletion reports failure and preserves endpoint", !removed && Pet.EndpointFor(s, "a") != null && Hashes(blockedDir) == before);
+                if (!PermissionProbe.Enforced()) Skip("failed key deletion reports failure and preserves endpoint");
+                else
+                {
+                    string blockedDir = Path.Combine(d, "remove-blocked"); s = Setup(blockedDir, out p); before = Hashes(blockedDir);
+                    bool removed; UnixFileMode mode = File.GetUnixFileMode(blockedDir);
+                    File.SetUnixFileMode(blockedDir, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+                    try { removed = p.RemoveEndpoint("a"); }
+                    finally { File.SetUnixFileMode(blockedDir, mode); }
+                    Check("failed key deletion reports failure and preserves endpoint", !removed && Pet.EndpointFor(s, "a") != null && Hashes(blockedDir) == before);
+                }
             }
 
             string shared = Path.Combine(d, "shared"); s = Setup(shared, out p, true);
@@ -158,18 +163,22 @@ internal static class CustomSafetyChecks
 
             if (!OperatingSystem.IsWindows())
             {
-                string txn = Path.Combine(d, "readonly-sidecar");
-                s = Setup(txn, out p); p.UseEndpoint("a", "ma");
-                string txnBefore = Hashes(txn); string txnSide = Path.Combine(txn, "cross-new.json");
-                UnixFileMode txnMode = File.GetUnixFileMode(txnSide); bool txnRemoved;
-                File.SetUnixFileMode(txnSide, UnixFileMode.UserRead);
-                try { txnRemoved = p.RemoveEndpoint("a"); } finally { File.SetUnixFileMode(txnSide, txnMode); }
-                Settings txnLoaded = Load(txn);
-                Check("failed sidecar write preserves both endpoints and bytes",
-                    !txnRemoved && Hashes(txn) == txnBefore &&
-                    Pet.EndpointFor(txnLoaded, "a") != null && Pet.EndpointFor(txnLoaded, "b") != null &&
-                    Pet.ProviderModel(txnLoaded, "custom:a", 0) == "ma" &&
-                    s.BrainProvider == "custom:a" && p.Brain.ServerKey == "sk-alpha" && p.Brain.Model == "ma");
+                if (!PermissionProbe.Enforced()) Skip("failed sidecar write preserves both endpoints and bytes");
+                else
+                {
+                    string txn = Path.Combine(d, "readonly-sidecar");
+                    s = Setup(txn, out p); p.UseEndpoint("a", "ma");
+                    string txnBefore = Hashes(txn); string txnSide = Path.Combine(txn, "cross-new.json");
+                    UnixFileMode txnMode = File.GetUnixFileMode(txnSide); bool txnRemoved;
+                    File.SetUnixFileMode(txnSide, UnixFileMode.UserRead);
+                    try { txnRemoved = p.RemoveEndpoint("a"); } finally { File.SetUnixFileMode(txnSide, txnMode); }
+                    Settings txnLoaded = Load(txn);
+                    Check("failed sidecar write preserves both endpoints and bytes",
+                        !txnRemoved && Hashes(txn) == txnBefore &&
+                        Pet.EndpointFor(txnLoaded, "a") != null && Pet.EndpointFor(txnLoaded, "b") != null &&
+                        Pet.ProviderModel(txnLoaded, "custom:a", 0) == "ma" &&
+                        s.BrainProvider == "custom:a" && p.Brain.ServerKey == "sk-alpha" && p.Brain.Model == "ma");
+                }
             }
             ResidualChecks(d);
         }
@@ -205,6 +214,7 @@ internal static class CustomSafetyChecks
             {
                 foreach (string file in new[] { "cross.json", "cross-new.json", "late-cross-new.json" })
                 {
+                    if (!PermissionProbe.Enforced()) { Skip("read-only removal preserves settings, keys and both models " + file); continue; }
                     string d = Path.Combine(root, "readonly-" + file);
                     s = Setup(d, out p);
                     p.UseEndpoint("a", "model-a"); p.UseEndpoint("b", "model-b"); p.UseEndpoint("a", null);
@@ -258,20 +268,24 @@ internal static class CustomSafetyChecks
                 CapriDesktop.Program.Smoke = d; try { p.SetBrainTier(1); } finally { CapriDesktop.Program.Smoke = null; }
                 Check("B5 cloud round-trip " + string.Join("", c), s.BrainTier == 1 && p.Brain.Remote != null && p.Brain.Remote.Key == "nvapi-73692018" && p.Brain.Model == "free-model" && p.MainframeBrainName == name && (string)state.Invoke(p, null) == phone);
             }
-            if (!OperatingSystem.IsWindows()) foreach (string target in new[] { "cross.json", "cross-new.json", "late-cross-new.json" })
+            if (!OperatingSystem.IsWindows())
             {
-                string d = Path.Combine(root, "b5-readonly-" + target); Pet p; Settings s = Setup(d, out p, true);
-                s.FreeModel = "free-model"; File.WriteAllText(Path.Combine(d, "brain-free-key"), "nvapi-73692018"); p.UseEndpoint("a", "model-a"); p.UseEndpoint("b", "model-b");
-                CapriDesktop.Program.Smoke = d; try { p.SetBrainTier(1); } finally { CapriDesktop.Program.Smoke = null; } p.Save();
-                string before = Hashes(d) + Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key"));
-                string name = p.MainframeBrainName, phone = (string)state.Invoke(p, null), key = p.Brain.ServerKey; Cloud cloud = p.Brain.Remote;
-                bool late = target.StartsWith("late-"); string path = Path.Combine(d, late ? "cross-new.json" : target); UnixFileMode mode = File.GetUnixFileMode(path);
-                UnixFileMode readOnly = mode & ~(UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite); int fired = 0;
-                if (late) p.SettingsChanged += () => { fired++; File.SetUnixFileMode(path, readOnly); }; else File.SetUnixFileMode(path, readOnly);
-                bool removed; try { removed = p.RemoveEndpoint("b"); } finally { File.SetUnixFileMode(path, mode); }
-                Check("B5 rollback " + target, !removed && (!late || fired == 1) && before == Hashes(d) + Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key")) &&
-                    s.BrainTier == 1 && s.BrainProvider == "custom:b" && ReferenceEquals(cloud, p.Brain.Remote) && cloud.Key == "nvapi-73692018" && p.Brain.Model == "free-model" && p.Brain.ServerKey == key && p.MainframeBrainName == name && (string)state.Invoke(p, null) == phone &&
-                    Pet.EndpointFor(s, "a") != null && Pet.EndpointFor(s, "b") != null && Pet.ProviderModel(s, "custom:a", 0) == "model-a" && Pet.ProviderModel(s, "custom:b", 0) == "model-b");
+                foreach (string target in new[] { "cross.json", "cross-new.json", "late-cross-new.json" })
+                {
+                    if (!PermissionProbe.Enforced()) { Skip("B5 rollback " + target); continue; }
+                    string d = Path.Combine(root, "b5-readonly-" + target); Pet p; Settings s = Setup(d, out p, true);
+                    s.FreeModel = "free-model"; File.WriteAllText(Path.Combine(d, "brain-free-key"), "nvapi-73692018"); p.UseEndpoint("a", "model-a"); p.UseEndpoint("b", "model-b");
+                    CapriDesktop.Program.Smoke = d; try { p.SetBrainTier(1); } finally { CapriDesktop.Program.Smoke = null; } p.Save();
+                    string before = Hashes(d) + Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key"));
+                    string name = p.MainframeBrainName, phone = (string)state.Invoke(p, null), key = p.Brain.ServerKey; Cloud cloud = p.Brain.Remote;
+                    bool late = target.StartsWith("late-"); string path = Path.Combine(d, late ? "cross-new.json" : target); UnixFileMode mode = File.GetUnixFileMode(path);
+                    UnixFileMode readOnly = mode & ~(UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite); int fired = 0;
+                    if (late) p.SettingsChanged += () => { fired++; File.SetUnixFileMode(path, readOnly); }; else File.SetUnixFileMode(path, readOnly);
+                    bool removed; try { removed = p.RemoveEndpoint("b"); } finally { File.SetUnixFileMode(path, mode); }
+                    Check("B5 rollback " + target, !removed && (!late || fired == 1) && before == Hashes(d) + Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key")) &&
+                        s.BrainTier == 1 && s.BrainProvider == "custom:b" && ReferenceEquals(cloud, p.Brain.Remote) && cloud.Key == "nvapi-73692018" && p.Brain.Model == "free-model" && p.Brain.ServerKey == key && p.MainframeBrainName == name && (string)state.Invoke(p, null) == phone &&
+                        Pet.EndpointFor(s, "a") != null && Pet.EndpointFor(s, "b") != null && Pet.ProviderModel(s, "custom:a", 0) == "model-a" && Pet.ProviderModel(s, "custom:b", 0) == "model-b");
+                }
             }
         }
         finally { CapriDesktop.Program.Smoke = previous; }

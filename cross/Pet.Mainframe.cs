@@ -430,7 +430,9 @@ namespace CapriDesktop
             Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);
             if (customProvider != null)
             {
-                Brain.SetServer(Brain.ServerAddress(custom.Address), ReadEndpointKey(custom.Id));
+                string customAddress = Brain.ServerAddress(custom.Address);
+                string customKey = ReadEndpointKey(custom.Id);
+                Brain.SetServer(customAddress, EndpointKeySafe(customAddress, customKey) ? customKey : null);
                 Saved.BrainProvider = customProvider;
                 Brain.Model = ProviderModel(Saved, customProvider, 0);
             }
