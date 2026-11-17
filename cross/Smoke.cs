@@ -375,6 +375,13 @@ namespace CapriDesktop
                 pet.SetSounds(60);
                 pet.Dancing = false;
                 if (Brain.Language != null || pet.Saved.Language != null || pet.Picked != "Stay put | English | Short | Short | Normal | Dance to music") throw new Exception("Menu settings didn't go back: " + pet.Picked);
+                for (int i = 0; i < Brain.Languages.GetLength(0); i++)
+                    if (Pet.WordTable(Lingo.Slug(Brain.Languages[i, 1])) == null) throw new Exception("No settings words for " + Brain.Languages[i, 1] + ".");
+                Lingo.Use("German");
+                string germanWords = MainframeTheme.Fitted("Advanced Settings", 100000), germanFive = Lingo.Of("5 min");
+                Lingo.Use(null);
+                if (germanWords == "Advanced Settings" || germanFive.IndexOf('5') < 0 || MainframeTheme.Fitted("Advanced Settings", 100000) != "Advanced Settings") throw new Exception("Her Mainframe's words didn't follow German, or English changed: " + germanWords + " / " + germanFive);
+                checks.Add("PASS her settings in their language: her Mainframe's words ship for all " + Brain.Languages.GetLength(0) + " of her languages, German draws them in German with numbers in place, and English is untouched");
                 Func<System.Collections.IEnumerable, string, MenuItem> menuRow = delegate(System.Collections.IEnumerable rows, string header) { foreach (object row in rows) if (row is MenuItem item && item.Header as string == header) return item; return null; };
                 Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
                 MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");

@@ -395,7 +395,7 @@ namespace CapriDesktop
                     graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                     graphics.DrawImage(image, (Width - wide) / 2, (Height - tall) / 2, wide, tall);
                 }
-                else TextRenderer.DrawText(graphics, "NO PREVIEW", Font, ClientRectangle, Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                else TextRenderer.DrawText(graphics, Lingo.Of("NO PREVIEW"), Font, ClientRectangle, Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                 using (Pen rim = new Pen(WellEdge)) graphics.DrawRectangle(rim, 0, 0, Width - 1, Height - 1);
             }
         }

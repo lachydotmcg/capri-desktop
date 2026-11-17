@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	En kontroll som ble malt på nytt ble ikke tegnet om i bildet.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	En gratis nøkkel fra Google AI Studio, NVIDIA eller OpenRouter. Ingenting å laste ned. Krever internett.
+A held trackpad scroll got a flick's long ease:	Et holdt rulling på styreflaten fikk en lang utglidning som et sveip:
+A layout change during a slide put the page at	En layoutendring under en glidning satte siden på
+A layout change left the picture up.	En layoutendring lot bildet stå.
+A model in Ollama, on your local server or on your key.	En modell i Ollama, på din lokale server eller med din nøkkel.
+A paid key goes under MAX INTELLIGENCE by itself.	En betalt nøkkel havner under MAX INTELLIGENCE av seg selv.
+A plan you already pay for, a key of your own, or Ollama.	Et abonnement du allerede betaler for, en egen nøkkel, eller Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	En stemmepanelmeny har ikke sin egen kopi av panelets skrift.
+A wheel turn right after a slide ended froze the picture.	Et hjulutslag rett etter en glidning frøs bildet.
+ALLOW THIS PHONE?	TILLATE DENNE TELEFONEN?
+ALMOST THERE >	NESTEN FERDIG >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	EN ANNEN CAPRI TOK OVER · SLÅ AV OG PÅ
+API key	API-nøkkel
+API key, Claude plan or ChatGPT plan	API-nøkkel, Claude-abonnement eller ChatGPT-abonnement
+Add	Legg til
+Address	Adresse
+Address and key saved. Use saved to reconnect.	Adresse og nøkkel lagret. Bruk lagret for å koble til igjen.
+Advanced Settings	Avanserte innstillinger
+All	Alle
+All screens	Alle skjermer
+Allow	Tillat
+Almost there. I'll say hi the second my brain's in.	Nesten der. Jeg sier hei så snart hjernen min er inne.
+Always	Alltid
+Always on top	Alltid øverst
+Any Google account works. I opened the page in your browser.	Alle Google-kontoer fungerer. Jeg åpnet siden i nettleseren din.
+Applies to every voice	Gjelder for alle stemmer
+Apps she may close	Apper hun kan lukke
+Ask Capri for more	Be Capri om mer
+Asking your server...	Spør serveren din...
+Asks before closing only the apps you choose.	Spør før den lukker bare appene du velger.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automatisk: VB-CABLE, ellers Steams
+BAD RELAY HOST	DÅRLIG RELÉVERT
+BIG Z open notepad	BIG Z åpne notisblokk
+BRAIN	HJERNE
+BRAIN >	HJERNE >
+BRAIN ONLINE >	HJERNE PÅ NETT >
+BRAIN PROVIDER >	HJERNELEVERANDØR >
+BRAIN VOICE CAPRI	HJERNE STEMME CAPRI
+Back	Tilbake
+Back on your saved API key.	Tilbake på din lagrede API-nøkkel.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Best egnet for denne PC-en:
+Black	Svart
+Blank key means no key.	Tom nøkkel betyr ingen nøkkel.
+Brain API key	Hjerne-API-nøkkel
+Brain model	Hjernemodell
+Brain provider	Hjerneleverandør
+Bring here	Hent hit
+Bring to this screen	Hent til denne skjermen
+Browse	Bla gjennom
+Browse mods	Bla gjennom mods
+Browse to a voice model	Bla til en stemmemodell
+Browse...	Bla gjennom...
+Bubble	Boble
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, er du der
+CAN'T REACH THE RELAY · RETRYING	KAN IKKE NÅ RELÉEN · PRØVER PÅ NYTT
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI STEMME HJERNE
+CHANGED, approve it again.	ENDRET, godkjenn på nytt.
+CLIPS >	KLIPP >
+CLOUD VOICE	SKYSTEMME
+CODE	KODE
+COLORS >	FARGER >
+CONNECTED	TILKOBLET
+CONNECTING	KOBLER TIL
+CUSTOM LOCAL	EGEN LOKAL
+Call mode (beta)	Anropsmodus (beta)
+Call mode does not fit.	Anropsmodus passer ikke.
+Call mode is outside its space.	Anropsmodus er utenfor sitt område.
+Cancel	Avbryt
+Cancel keys	Avbryt taster
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri-kode:
+Capri mods (*	Capri-mods (*
+Capri, hello	Capri, hei
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kaos når hun er sur
+Chat with Capri from your phone	Chat med Capri fra telefonen din
+ChatGPT plan	ChatGPT-abonnement
+Check for updates	Se etter oppdateringer
+Check in on me	Sjekk inn hos meg
+Check in on me is hidden	Sjekk inn hos meg er skjult
+Check in on me still decides whether she visits.	Sjekk inn hos meg bestemmer fortsatt om hun kommer innom.
+Check in on me's tip missed	Tipset for Sjekk inn hos meg ble oversett
+Chess	Sjakk
+Choose apps	Velg apper
+Choose folder...	Velg mappe...
+Choose where future Capri clips are saved	Velg hvor fremtidige Capri-klipp lagres
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude- eller ChatGPT-abonnement, en betalt nøkkel (OpenAI, Claude, DeepSeek), eller Ollama.
+Claude plan	Claude-abonnement
+Clear	Tøm
+Cleared.	Tømt.
+Click Confirm to keep Down, or press Esc.	Klikk Bekreft for å beholde Down, eller trykk Esc.
+Click to open it.	Klikk for å åpne den.
+Clip my games	Klipp spillene mine
+Clips	Klipp
+Close	Lukk
+Close other AIs for me	Lukk andre KI-er for meg
+Cloud voice	Skystemme
+Cloud voice service	Skystemmetjeneste
+Cloud voice setup	Oppsett av skystemme
+Code mods can reach your whole PC. Only trusted ones.	Kodemods kan nå hele PC-en din. Bare pålitelige.
+Code/Husk Mode	Kode/Husk-modus
+Codex	Codex
+Commands	Kommandoer
+Comment on my games	Kommenter spillene mine
+Comments	Kommentarer
+Confirm	Bekreft
+Confirm keys	Bekreft taster
+Connect	Koble til
+Connect / Forget brain key	Koble til / glem hjernenøkkel
+Connect / Forget voice key	Koble til / glem stemmenøkkel
+Connect four	Fire på rad
+Controls	Kontroller
+Copri, what time is it	Copri, hva er klokka
+Copy error details	Kopier feildetaljer
+Copy the key	Kopier nøkkelen
+Copy the key from the page, then press Paste.	Kopier nøkkelen fra siden, og trykk deretter Lim inn.
+Couldn't open that page:	Kunne ikke åpne siden:
+Couldn't open that:	Kunne ikke åpne det:
+Couldn't open the mods folder:	Kunne ikke åpne mods-mappen:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M er allerede hennes Mainframe-tast.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N demper mikrofonen
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V er allerede hennes snakketast.
+Ctrl + Alt + V to talk	Ctrl + Alt + V for å snakke
+Custom local voice	Egen lokal stemme
+Custom model name	Eget modellnavn
+Dance	Dans
+Dance to music	Dans til musikk
+Default	Standard
+Default (follows Windows)	Standard (følger Windows)
+Default duration for clip that and automatic clips	Standardvarighet for «klipp det» og automatiske klipp
+Default length	Standard lengde
+Default model	Standardmodell
+Delay	Forsinkelse
+Deny	Avslå
+Discard	Forkast
+Discard + reload	Forkast + last inn på nytt
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Vil du ikke vente? En gratis nøkkel får meg til å snakke om omtrent ett minutt.
+Done	Ferdig
+EXTRA REQUEST JSON >	EKSTRA FORESPØRSEL-JSON >
+EXTRAS >	EKSTRA >
+Edit	Rediger
+Edit check-in lines	Rediger innsjekkingslinjer
+Edit check-in lines has the wrong view or dimming	Rediger innsjekkingslinjer har feil visning eller dimming
+Edit check-in lines is out of place	Rediger innsjekkingslinjer er på feil sted
+Edit controls	Rediger kontroller
+ElevenLabs API key	ElevenLabs API-nøkkel
+ElevenLabs voice ID	ElevenLabs stemme-ID
+English	Engelsk
+Enter the game's name first.	Skriv inn spillets navn først.
+Every	Hver
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Hver mod sjekkes for skadevare før den lastes opp. Kodemods spør fortsatt før de kjøres.
+Explore after	Utforsk etter
+Explore while I'm away	Utforsk mens jeg er borte
+Extra request JSON	Ekstra forespørsel-JSON
+Extras	Ekstra
+FREE KEY	GRATIS NØKKEL
+FREE KEY >	GRATIS NØKKEL >
+Fast hands in games	Raske hender i spill
+File editor	Filredigerer
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs og mer finner du under STEMME i Mainframe.
+Follow-up messages	Oppfølgingsmeldinger
+Forget	Glem
+Fork capri-mods	Forker capri-mods
+Frame rate	Bildefrekvens
+Free	Gratis
+Free and private, works offline. Downloads	Gratis og privat, fungerer offline. Laster ned
+Free and private, works offline. Downloads the best model for this PC.	Gratis og privat, fungerer offline. Laster ned den beste modellen for denne PC-en.
+Free key	Gratis nøkkel
+Free key providers	Leverandører av gratis nøkler
+Free keys can be rate limited and slow.	Gratis nøkler kan være begrenset og trege.
+Free voice in games	Gratis stemme i spill
+Free voice style	Gratis stemmestil
+Free voice:	Gratis stemme:
+Free voice: Her own	Gratis stemme: Hennes egen
+Free · local model	Gratis · lokal modell
+GAMES >	SPILL >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Spillkommentarer kjører separat fra Se på skjermen min. Av stopper dem, også i spillmodus; Bare hendelser og Prater lar henne se spillet ditt
+Game controls	Spillkontroller
+Game name	Spillnavn
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Følsomhet for spilllyd. Senk den hvis headsettet er skrudd ned, men Windows står på {0} % og hun reagerer på alle lyder; Av ignorerer spilllyd
+Game sounds	Spilllyder
+Games	Spill
+Gaming Mode	Spillmodus
+Gaming Mode key	Spillmodus-tast
+Gaming Mode:	Spillmodus:
+Gaming Mode: Ctrl + Alt + G	Spillmodus: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Hent VB-CABLE
+Get VB-CABLE (free)...	Hent VB-CABLE (gratis)...
+Get free voice	Hent gratis stemme
+Getting your Fish Audio voices...	Henter Fish Audio-stemmene dine...
+Giant	Gigantisk
+Glitch	Glitch
+Glitch in at startup	Glitch ved oppstart
+Go to sleep	Gå og legg deg
+Go to the next screen	Gå til neste skjerm
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gratis nivå · begrenset
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Har du et Claude- eller ChatGPT-abonnement, eller en egen nøkkel? Velg den, så kobler jeg meg til.
+Got it, just me. Right-click me any time for Capri Mainframe.	Skjønt, bare meg. Høyreklikk på meg når som helst for Capri Mainframe.
+Grey	Grå
+H.{0} video bitrate target; higher values make larger files	Mål for H.{0}-videobitrate; høyere verdier gir større filer
+HABITS >	VANER >
+HER HANDS >	HENNES HENDER >
+HER JOBS >	HENNES JOBBER >
+HER MEMORY >	HENNES MINNE >
+HER MODS >	HENNES MODS >
+HH:mm	HH:mm
+HOW I SOUND >	SLIK HØRES JEG UT >
+Hang here	Heng her
+Have Ollama? Open it, then press Refresh.	Har du Ollama? Åpne det, og trykk Oppdater.
+Head pats	Klapp på hodet
+Hearing	Hørsel
+Hearing engine	Hørselmotor
+Hearing fix	Hørselsfiks
+Hearing status	Hørselsstatus
+Help	Hjelp
+Help page	Hjelpeside
+Her colors	Hennes farger
+Her folder	Hennes mappe
+Her memories	Hennes minner
+Her own colors are back.	Hennes egne farger er tilbake.
+Her own notes (no vault)	Hennes egne notater (ingen hvelv)
+Her perch frames per second	Hennes sittebilder per sekund
+Her personality	Hennes personlighet
+Her size	Hennes størrelse
+Her speaker	Hennes høyttaler
+Her speaker is hidden or outside VOICE	Hennes høyttaler er skjult eller utenfor STEMME
+Her speaker overlaps the mic or hearing row	Hennes høyttaler overlapper mikrofon- eller hørselsraden
+Her speaker:	Hennes høyttaler:
+Her speaker: Default	Hennes høyttaler: Standard
+Her voice in your mic	Hennes stemme i mikrofonen din
+Her voice in your mic: loudness	Hennes stemme i mikrofonen din: lydstyrke
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Selve stemmen hennes. Tonehøyden er Innstillinger > STEMME > Tonehøyde, og de flyttes sammen.
+Her voice joins your mic only in call mode.	Stemmen hennes går bare inn i mikrofonen din i anropsmodus.
+Her voice volume	Stemmevolum
+Her voice's pitch	Stemmens tonehøyde
+Her voice's pitch, the same as Settings > VOICE > Pitch	Stemmens tonehøyde, samme som Innstillinger > STEMME > Tonehøyde
+Her voice's speed	Stemmens hastighet
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Stemmen hennes, og to kopier av den blandet under henne, hver med sin egen tonehøyde og forsinkelse.
+Her voices · free	Stemmene hennes · gratis
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hei, choom. Jeg er Capri. Jeg trenger en hjerne før jeg kan svare. Velg én.
+Hide / Show Capri	Skjul / vis Capri
+Hide / Show key	Skjul / vis-tast
+Hide Capri	Skjul Capri
+Hide for now	Skjul foreløpig
+Hide in full screen	Skjul i fullskjerm
+Hide this	Skjul dette
+Hide/show:	Skjul/vis:
+Hide/show: Ctrl + Alt + H	Skjul/vis: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Hopp av
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Hvor lenge en stille PC bruker på å sende henne til å sove; fem minutter regnes fortsatt som at du er borte
+How long a stroke over her a head pat needs	Hvor lang tid et strøk over hodet hennes må vare for å telle som et klapp
+How long her replies stay up	Hvor lenge svarene hennes forblir på skjermen
+How long you are away before she scrolls a browser or reader	Hvor lenge du må være borte før hun ruller i en nettleser eller leser
+How much her voice glitches	Hvor mye stemmen hennes glitcher
+How much of the chat she keeps	Hvor mye av chatten hun beholder
+How much she wanders	Hvor mye hun vandrer rundt
+How often she pops in to say hi	Hvor ofte hun stikker innom for å si hei
+How robotic her voice sounds	Hvor robotisk stemmen hennes høres ut
+How to	Hvordan
+Huge	Enorm
+I can hear you.	Jeg kan høre deg.
+I glance at your screen and comment. Costs a little on a paid brain.	Jeg kikker på skjermen din og kommenterer. Koster litt med en betalt hjerne.
+I keep listening. Say my name, then just talk.	Jeg lytter videre. Si navnet mitt, og snakk så bare.
+I talk about your game as you play. Costs a little on a paid brain.	Jeg snakker om spillet ditt mens du spiller. Koster litt med en betalt hjerne.
+I type my replies and stay quiet.	Jeg skriver svarene mine og holder meg stille.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Jeg svarer ikke tilbake, og ingenting sendes noen steder. Jeg henger fortsatt med, danser til musikken din og gjør de raske tingene du ber om, som volumet.
+I'll talk in	Jeg snakker i
+IN DISCORD >	I DISCORD >
+INSTALLED >	INSTALLERT >
+Import a Capri mod	Importer en Capri-mod
+Import mod	Importer mod
+In games	I spill
+Input	Inndata
+Input, Output or How to overlaps a row	Inndata, utdata eller Hvordan overlapper en rad
+Input:	Inndata:
+Input: default	Inndata: standard
+Install	Installer
+Install mod	Installer mod
+Installed.	Installert.
+It may ask for a phone number. I opened the page in your browser.	Den kan be om et telefonnummer. Jeg åpnet siden i nettleseren din.
+It still does its own job in other apps too.	Den gjør fortsatt jobben sin i andre apper også.
+It won't type in other apps while she runs.	Den skriver ikke i andre apper mens hun kjører.
+JUST ME >	BARE MEG >
+Jealous of other AIs	Sjalu på andre KI-er
+Join the Discord	Bli med i Discord
+KB.	KB.
+KEYS	NØKLER
+KEYS >	NØKLER >
+Keep PC awake for jobs	Hold PC-en våken for jobber
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Lagrer de siste to minuttene av spillet ditt i minnet. Si «klipp det» for å lagre det.
+Key	Nøkkel
+Key cleared: a model file needs none.	Nøkkel fjernet: en modellfil trenger ingen.
+Key cleared: paste the key for	Nøkkel fjernet: lim inn nøkkelen for
+Key forgotten.	Nøkkel glemt.
+Key. It goes only to this server, as a Bearer key	Nøkkel. Den sendes bare til denne serveren, som en Bearer-nøkkel
+Kokoro only, like es	Bare Kokoro, som es
+LAST THING >	SISTE TING >
+LISTENING >	LYTTER >
+Language	Språk
+Large	Stor
+Last thing. These cost a little or use your mic, so they're your pick.	Siste ting. Disse koster litt eller bruker mikrofonen din, så de er ditt valg.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Siste ting. Disse koster litt eller bruker mikrofonen din, så de er ditt valg. Deretter vil jeg vite hva jeg skal kalle deg.
+Layers	Lag
+Learn more	Lær mer
+Leaving Settings threw its picture away straight away.	Ved å forlate Innstillinger kastet den bildet med en gang.
+Legacy stand	Gammelt stativ
+Lie down	Legg deg ned
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Linjer med PC-dialog holdt i minnet under felles titting. Den eldste halvdelen blir et notat når «Husk hva hun ser» er på
+Listen for Capri	Lytt etter Capri
+Live reactions	Direktereaksjoner
+Local server address	Lokal serveradresse
+Long	Lang
+Longest wait (minutes)	Lengste ventetid (minutter)
+Looking at this PC...	Ser på denne PC-en...
+Looking for Ollama. Open it if it isn't running.	Leter etter Ollama. Åpne det hvis det ikke kjører.
+Looking for a brain...	Leter etter en hjerne...
+Looking in the mods directory for updates...	Ser etter oppdateringer i mods-katalogen...
+Looking in the mods directory...	Ser i mods-katalogen...
+Looking...	Leter...
+MAIN >	HOVED >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	MINNEHVELV >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	MODS-KATALOG >
+MODS INSTALLED COLORS	INSTALLERTE MODS-FARGER
+MOVES >	BEVEGELSER >
+MY BRAIN	MIN HJERNE
+MY FREE VOICE	MIN GRATIS STEMME
+MY PLAN OR KEY	MITT ABONNEMENT ELLER NØKKEL
+MY PLAN OR KEY >	MITT ABONNEMENT ELLER NØKKEL >
+Made your Fish Audio voice. Press Test to hear it.	Laget Fish Audio-stemmen din. Trykk Test for å høre den.
+Mainframe colours	Mainframe-farger
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe-farger. Night City er rød og cyan; Svart, Hvit og Grå endrer Mainframe, menyene hennes, skrivefeltet og notatene hennes
+Mainframe frames	Mainframe-rammer
+Mainframe key	Mainframe-tast
+Mainframe size	Mainframe-størrelse
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe-størrelse. Auto gjør den større når Virtual Super Resolution eller DSR krymper et stort skrivebord ned på en mindre skjerm
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Lager Fish Audio-stemmen din...
+Max reply	Maks svar
+Maximum clip resolution, keeping the game's shape without upscaling	Maksimal klipp-oppløsning, beholder spillets format uten oppskalering
+Medium	Medium
+Memory	Minne
+Memory size	Minnestørrelse
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Minnestørrelse i tokens for Ollama og hennes innebygde hjerne. Auto vokser når en forespørsel trenger mer
+Mg	Mg
+Mic level:	Mikrofonnivå:
+Mic test finished. Sound is reaching Capri.	Mikrofontest ferdig. Lyd når Capri.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: standard
+Microphone	Mikrofon
+Mini player	Minispiller
+Mini player over full screen	Minispiller over fullskjerm
+Mini-games	Minispill
+Minimising the Mainframe left it sliding.	Minimering av Mainframe fikk det til å gli videre.
+Minimize	Minimer
+Mod filter	Modfilter
+Mod options	Modvalg
+Mod pages	Modsider
+Mod rules	Modregler
+Mod sort	Modsortering
+Mod switch	Modbryter
+Model	Modell
+Model folder	Modellmappe
+Model name, optional	Modellnavn, valgfritt
+Mods	Mods
+Mods directory	Mods-katalog
+Mods folder	Mods-mappe
+Most NVIDIA models can't see your screen.	De fleste NVIDIA-modeller kan ikke se skjermen din.
+Mouse wheel notches got a flick's long ease:	Musehjulsteg fikk en lang utglidning som et sveip:
+Move	Flytt
+Move key to MAX INTELLIGENCE	Flytt nøkkel til MAX INTELLIGENCE
+Move to MAX	Flytt til MAX
+Music	Musikk
+Music app	Musikkapp
+Music app: where she plays music when you don't name an app	Musikkapp: der hun spiller musikk når du ikke nevner en app
+Mute	Demp
+Mute her	Demp henne
+Mute mic key	Demp mikrofon-tast
+Mute mic:	Demp mikrofon:
+Mute mic: Ctrl + Alt + N	Demp mikrofon: Ctrl + Alt + N
+My brain	Min hjerne
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Hjernen min kommer ned. Jeg sier hei så snart den er inne, og da kan du snakke med meg.
+My brain's on its way. While it comes down, let's sort out how I sound.	Hjernen min er på vei. Mens den kommer ned, la oss ordne hvordan jeg høres ut.
+My provider	Min leverandør
+NO AI	INGEN KI
+NO PHONES CONNECTED	INGEN TELEFONER KOBLET TIL
+NO PREVIEW	INGEN FORHÅNDSVISNING
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · gratis · ofte treg i travle perioder
+NVIDIA's free API is often slow, especially at busy times.	NVIDIAs gratis API er ofte treg, særlig i travle perioder.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA-, Google AI Studio (Gemini)- eller OpenRouter API-nøkkel
+Names:	Navn:
+Needs a key	Trenger en nøkkel
+Never	Aldri
+New code	Ny kode
+New voice from a clip...	Ny stemme fra et klipp...
+Next	Neste
+Night City	Night City
+No AI	Ingen KI
+No AI · no brain at all	Ingen KI · ingen hjerne i det hele tatt
+No brain runs, and nothing is sent anywhere.	Ingen hjerne kjører, og ingenting sendes noen steder.
+No brain yet	Ingen hjerne ennå
+No code open	Ingen kode åpen
+No mic found	Fant ingen mikrofon
+No mods in the directory yet.	Ingen mods i katalogen ennå.
+No mods match that.	Ingen mods samsvarer med det.
+No mods match.	Ingen mods samsvarer.
+No phones yet	Ingen telefoner ennå
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Ingen virtuell mikrofon ennå. Velg Utdata, og så Hent VB-CABLE (gratis).
+None yet: pick to get VB-CABLE (free)	Ingen ennå: velg for å hente VB-CABLE (gratis)
+Normal	Normal
+Not a relay host	Ikke en relévert
+Not imported. Nothing ran.	Ikke importert. Ingenting kjørte.
+Not updated. The old one is still in.	Ikke oppdatert. Den gamle er fortsatt i.
+Nothing needed updating.	Ingenting trengte oppdatering.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Ingenting å laste ned, ingenting sendes noen steder. Jeg svarer ikke tilbake. Legg til en hjerne når som helst i Mainframe.
+Nothing to show from the mods directory.	Ingenting å vise fra mods-katalogen.
+Nothing? Windows Settings > Privacy & security > Microphone.	Ingenting? Windows-innstillinger > Personvern og sikkerhet > Mikrofon.
+Nous Portal keys aren't supported yet.	Nous Portal-nøkler støttes ikke ennå.
+OBS	OBS
+OFF	AV
+OLLAMA	OLLAMA
+ON	PÅ
+ON THIS PC	PÅ DENNE PC-EN
+OR A KEY	ELLER EN NØKKEL
+Obsidian memory vault	Obsidian-minnehvelv
+Off	Av
+Off. Turn on Her voice in your mic above.	Av. Slå på Hennes stemme i mikrofonen din over.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Av: hun høres ut som alltid. På: alle stemmene hun har, også ElevenLabs.
+Often	Ofte
+On	På
+On / Off	På / Av
+On: your mic and her voice are going in.	På: mikrofonen din og stemmen hennes går inn.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Ett JSON-objekt, lagt til i hver forespørsel denne hjernen sender. Det erstatter Capris verdi for alle navn det deler, og sjekkes ikke mot modellen.
+Online speech recognition	Taleregjenkjenning på nett
+Open Capri Mainframe	Åpne Capri Mainframe
+Open Ollama, I'll find it	Åpne Ollama, jeg finner det
+Open clips folder	Åpne klippmappen
+Open her memories	Åpne hennes minner
+Open her notes	Åpne hennes notater
+Open mods folder	Åpne mods-mappen
+Open the page again	Åpne siden igjen
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA eller OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-kompatibel server eller leverandør.
+OpenRouter · free models only	OpenRouter · bare gratis modeller
+Optional	Valgfritt
+Optional. Blank means no key.	Valgfritt. Tomt betyr ingen nøkkel.
+Options	Alternativer
+Out of the box a little higher, just behind her.	Fra fabrikken litt høyere, rett bak henne.
+Out of the box lower, just behind her.	Fra fabrikken lavere, rett bak henne.
+Output	Utdata
+Output:	Utdata:
+Output: none	Utdata: ingen
+PHONE CONNECTED	TELEFON KOBLET TIL
+PHONES >	TELEFONER >
+PHONES CONNECTED	TELEFONER KOBLET TIL
+PREBUILT LOCAL	FERDIG LOKAL
+PUBLISH MOD >	PUBLISER MOD >
+Pair a phone	Koble til en telefon
+Paste	Lim inn
+Paste API key	Lim inn API-nøkkel
+Paste a brain API key	Lim inn en hjerne-API-nøkkel
+Paste reads your clipboard once, when you press it.	Lim inn leser utklippstavlen din én gang, når du trykker på den.
+Paste your key here	Lim inn nøkkelen din her
+Pat stroke	Klappestrøk
+Perch	Sittested
+Perch over {0} fps uses more CPU	Sittested over {0} fps bruker mer CPU
+Pick Output to get it.	Velg Utdata for å få det.
+Pick a brain so I can talk back. You can change it any time.	Velg en hjerne så jeg kan svare tilbake. Du kan endre den når som helst.
+Pick a clip of a voice you have the rights and consent to use	Velg et klipp av en stemme du har rettighetene til og samtykke til å bruke
+Pick a free model. I opened the page in your browser.	Velg en gratis modell. Jeg åpnet siden i nettleseren din.
+Pick a new clip of you...	Velg et nytt klipp av deg...
+Pick a voice model...	Velg en stemmemodell...
+Pick one. Only one brain runs at a time.	Velg én. Bare én hjerne kjører om gangen.
+Pick the note her memories go in	Velg notatet minnene hennes skal inn i
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Velg {0} til {1} sekunder av en stemme du har rettighetene til og samtykke til å bruke
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Velg {0} til {1} sekunder av deg som snakker, eller av en stemme du har rettighetene til og samtykke til å bruke
+Pitch	Tonehøyde
+Play	Spill av
+Play...	Spill av...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS-modeller kopierer dette klippets stemme. Trykk Test for å høre den.
+Pop-in times	Innstikkstider
+Pop-ins	Innstikk
+Power saver	Strømsparing
+Power saver: how lightly she runs in games, or always	Strømsparing: hvor lett hun kjører i spill, eller alltid
+Preset	Forhåndsinnstilling
+Press Create API key	Trykk Opprett API-nøkkel
+Press Create Key	Trykk Opprett nøkkel
+Press Generate API Key	Trykk Generer API-nøkkel
+Press Test and say something, so I know I can hear you.	Trykk Test og si noe, så vet jeg at jeg kan høre deg.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Trykk en tast, alene eller med Ctrl, Alt, Shift eller Win.
+Press new keys, then Confirm	Trykk nye taster, og bekreft deretter
+Provider	Leverandør
+Provider API key, optional	Leverandørens API-nøkkel, valgfritt
+Provider base URL	Leverandørens grunn-URL
+Provider forgotten.	Leverandør glemt.
+Provider overlaps the brain name or note	Leverandør overlapper hjernenavnet eller notatet
+Publish	Publiser
+Publish mod	Publiser mod
+Push to talk is off.	Trykk for å snakke er av.
+Push to talk key	Trykk for å snakke-tast
+Push to talk:	Trykk for å snakke:
+Push to talk: not set	Trykk for å snakke: ikke satt
+QR CODE >	QR-KODE >
+QR hidden while streaming	QR skjult under strømming
+Quick	Rask
+Quiet key	Stille-tast
+Quiet:	Stille:
+Quiet: Ctrl + Alt + P	Stille: Ctrl + Alt + P
+Quit Capri	Avslutt Capri
+RELAY >	RELÉ >
+REMOTE >	FJERN >
+RUNS CODE.	KJØRER KODE.
+Rarely	Sjelden
+Rate mod	Vurder mod
+Reading its README...	Leser README...
+Refresh	Oppdater
+Reinstall	Installer på nytt
+Reload	Last inn på nytt
+Reloaded.	Lastet inn på nytt.
+Remember our chats	Husk samtalene våre
+Remember what she sees	Husk hva hun ser
+Remote	Fjern
+Remote off	Fjern av
+Remote on	Fjern på
+Remove	Fjern
+Remove all phones	Fjern alle telefoner
+Replies	Svar
+Reply length	Svarlengde
+Report a problem	Rapporter et problem
+Reset colors	Tilbakestill farger
+Reset to her default	Tilbakestill til hennes standard
+Resolution	Oppløsning
+Restart to update	Start på nytt for å oppdatere
+Restless	Rastløs
+Revoke	Trekk tilbake
+Revoke also removes the phones its links added	Tilbakekalling fjerner også telefonene lenkene la til
+Ride cursor	Ri markøren
+Ride cursor / Hop off	Ri markøren / Hopp av
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Høyreklikk på meg når som helst for Capri Mainframe. En hjerne slås på under HJERNE.
+Right-click me any time for the Mainframe, Help and the Discord.	Høyreklikk på meg når som helst for Mainframe, Hjelp og Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox eller en annen app: velg
+Robot	Robot
+Rock, paper, scissors	Stein, saks, papir
+Run this code mod?	Kjøre denne kodemodden?
+Running on this PC	Kjører på denne PC-en
+Running on this PC · :	Kjører på denne PC-en · :
+Runs Claude Code or Codex on this PC, signed in.	Kjører Claude Code eller Codex på denne PC-en, innlogget.
+Runs on your PC. No key, no credits.	Kjører på PC-en din. Ingen nøkkel, ingen kreditter.
+SCAN WITH YOUR PHONE · EXPIRES	SKANN MED TELEFONEN · UTLØPER
+SECURITY >	SIKKERHET >
+SKILL.	FERDIGHET.
+SKIN.	SKIN.
+SORT BY	SORTER ETTER
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	LYDER VANER HJERNE SE CAPRI DOOMSCROLL VÆR KLIPP SPILL NØKLER BEVEGELSER STEMME DU
+Same as her ears (VOICE > Mic)	Samme som hennes ører (STEMME > Mikrofon)
+Same code on the phone?	Samme kode på telefonen?
+Save	Lagre
+Save big moments	Lagre store øyeblikk
+Save folder	Lagringsmappe
+Save your changes, or press Discard + reload.	Lagre endringene dine, eller trykk Forkast + last inn på nytt.
+Save your changes, or press Discard.	Lagre endringene dine, eller trykk Forkast.
+Saved.	Lagret.
+Saved. Ctrl + Alt + O opens her Mainframe.	Lagret. Ctrl + Alt + O åpner hennes Mainframe.
+Saving your rating...	Lagrer vurderingen din...
+Say her name anywhere to chat	Si navnet hennes hvor som helst for å chatte
+Screens	Skjermer
+Screens is hidden or outside WATCH	Skjermer er skjult eller utenfor SE
+Screens overlaps a WATCH row	Skjermer overlapper en SE-rad
+Screens to watch	Skjermer å se på
+Sealed end to end	Ende-til-ende kryptert
+Search by name or author	Søk etter navn eller forfatter
+Search installed mods	Søk i installerte mods
+Search mods	Søk i mods
+Search name, author or description	Søk i navn, forfatter eller beskrivelse
+Security	Sikkerhet
+Security:	Sikkerhet:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Sett opp
+Set up her brain	Sett opp hennes hjerne
+Set up your voice model	Sett opp stemmemodellen din
+Setting up her brain	Setter opp hennes hjerne
+Settings	Innstillinger
+Settings / Back	Innstillinger / Tilbake
+Settings folds the wrong rows above BRAIN	Innstillinger folder feil rader over HJERNE
+Settings had nothing to watch.	Innstillinger hadde ingenting å se på.
+Settings lost keyboard focus during the Tab walk	Innstillinger mistet tastaturfokus under Tab-gangen
+Setup guide	Oppsettguide
+Setup stopped	Oppsett stoppet
+She can read it when it fits.	Hun kan lese den når det passer.
+She glances at your screen and comments. Costs a little on a paid brain.	Hun kikker på skjermen din og kommenterer. Koster litt med en betalt hjerne.
+She keeps listening. Say her name, then just talk until you go quiet.	Hun lytter videre. Si navnet hennes, og snakk så til du blir stille.
+She reacts to your game until you close it.	Hun reagerer på spillet ditt til du lukker det.
+She reads these controls before each game job.	Hun leser disse kontrollene før hver spilljobb.
+She talks about your game as you play. Costs a little on a paid brain.	Hun snakker om spillet ditt mens du spiller. Koster litt med en betalt hjerne.
+She uses it when she plays	Hun bruker den når hun spiller
+Short	Kort
+Shortest wait (minutes)	Korteste ventetid (minutter)
+Show Capri	Vis Capri
+Show QR	Vis QR
+Show my mod file	Vis mod-filen min
+Show on Discord	Vis på Discord
+Shum, what time is it	Shum, hva er klokka
+Sign in	Logg inn
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Logg inn, lag en nøkkel og kopier den. Trykk deretter Lim inn, så kobler jeg til.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Logg inn, trykk Opprett API-nøkkel og kopier den. Trykk deretter Lim inn, så kobler jeg til.
+Silent · text only	Stille · bare tekst
+Simple / Advanced Settings	Enkle / avanserte innstillinger
+Simple Settings	Enkle innstillinger
+Simple Settings left a gap under Check in on me	Enkle innstillinger etterlot et mellomrom under Sjekk inn hos meg
+Sit here	Sett deg her
+Sit on windows	Sitt på vinduer
+Size	Størrelse
+Skip	Hopp over
+Skip all	Hopp over alle
+Skip for now	Hopp over foreløpig
+Sleep	Sov
+Small	Liten
+Sometimes	Noen ganger
+Sound effects volume	Lydeffektvolum
+Sound sensitivity	Lydfølsomhet
+Sounds	Lyder
+Speaker or clip	Høyttaler eller klipp
+Speech model	Talemodell
+Speed	Hastighet
+Start with Windows	Start med Windows
+Start with this!	Start med denne!
+Starting...	Starter...
+Stay on my model	Bli på modellen min
+Still checking your mics...	Sjekker fortsatt mikrofonene dine...
+Still checking your speakers...	Sjekker fortsatt høyttalerne dine...
+Still checking your virtual mics...	Sjekker fortsatt de virtuelle mikrofonene dine...
+Stop	Stopp
+Stopped using it. Couldn't remove the saved provider.	Sluttet å bruke den. Kunne ikke fjerne den lagrede leverandøren.
+Support	Støtte
+Sure?	Sikker?
+Sure? moved to a different phone	Sikker? flyttet til en annen telefon
+TALK TO ME	SNAKK MED MEG
+TEXT ONLY	KUN TEKST
+Tab landed past the first option of	Tab landet forbi første alternativ i
+Tab never reached the quiet key	Tab nådde aldri stille-tasten
+Tab reached nothing	Tab nådde ingenting
+Tab selected a control without moving keyboard focus	Tab valgte en kontroll uten å flytte tastaturfokus
+Talk	Snakk
+Talk key	Snakk-tast
+Talk:	Snakk:
+Talk: Ctrl + Alt + V	Snakk: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Mål for opptaksbildefrekvens; kan synke under belastning eller minnebudsjettet
+Teases when another AI comes to the front.	Erter når en annen KI kommer foran.
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	Den adressen fungerer ikke. Prøv https://... eller http://localhost:{0}.
+That code expired	Den koden er utløpt
+That mod is no longer installed. The list is updated.	Den modden er ikke lenger installert. Listen er oppdatert.
+That's a paid key: it goes under MAX INTELLIGENCE.	Det er en betalt nøkkel: den havner under MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe forble sammensatt under glidning.
+The Mainframe stayed uncomposited after the slide.	Mainframe forble usammensatt etter glidningen.
+The controls moved while the picture was sliding.	Kontrollene beveget seg mens bildet gled.
+The cover stayed visible after the slide ended.	Dekselet ble stående synlig etter at glidningen var over.
+The frame thread kept running after the page settled.	Bildetråden fortsatte å kjøre etter at siden la seg.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Det lengste svaret hun kan gi, i tokens. Auto holder seg til Svar over; {0}K eller {1}K lar henne fortsette. Jobber får mer plass når de trenger det
+The longest wait must be at least the shortest wait.	Lengste ventetid må være minst like lang som korteste.
+The picture doesn't match the scrolled page:	Bildet stemmer ikke med den rullede siden:
+The picture of Settings doesn't match the page:	Bildet av Innstillinger stemmer ikke med siden:
+The picture stayed up after the slide ended.	Bildet ble stående etter at glidningen var over.
+The picture wasn't showing while it slid.	Bildet vises ikke mens det gled.
+The provider sheet is crowded:	Leverandørarket er fullt:
+The voice panel has no screen DPI.	Stemmepanelet har ingen skjerm-DPI.
+The voice panel's menus share one font.	Stemmepanelets menyer deler én skrift.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Det er ingen nøkkel på utklippstavlen ennå. Kopier den fra siden, og trykk deretter Lim inn.
+These start off. Each costs a little or uses your mic.	Disse er av fra start. Hver koster litt eller bruker mikrofonen din.
+These start off. Turn on what you want. They're all in Settings too.	Disse er av fra start. Slå på det du vil. De er alle også i Innstillinger.
+They can also call you Big Z, Capricorn or Nova	De kan også kalle deg Big Z, Capricorn eller Nova
+They can also call you Nova, Big Z or Capricorn	De kan også kalle deg Nova, Big Z eller Capricorn
+Thinking	Tenker
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Dette er min gratis stemme. Trykk Test, si noe, så viser jeg deg at jeg kan høre deg.
+This mod has no description yet.	Denne modden har ingen beskrivelse ennå.
+Tic-tac-toe	Tre på rad
+Time between glances	Tid mellom blikkene
+Tiny	Bitteliten
+Try again	Prøv igjen
+Turn Remote on first	Slå på Fjern først
+Turn off mini player	Slå av minispiller
+Turn push to talk off	Slå av trykk for å snakke
+Turning the wheel the other way kept the page heading the old way, to	Å snu hjulet den andre veien holdt siden på vei den gamle veien, til
+Type	Skriv
+Type key	Skrivetast
+Type to me	Skriv til meg
+Type:	Skriv:
+Type: Ctrl + Alt + T	Skriv: Ctrl + Alt + T
+Typing sound	Skrivelyd
+Unpacked. Press Test to hear it.	Pakket ut. Trykk Test for å høre den.
+Unsaved changes.	Ulagrede endringer.
+Up to {0} fps	Opptil {0} fps
+Up to {0}p	Opptil {0}p
+Update	Oppdater
+Update available.	Oppdatering tilgjengelig.
+Update mods	Oppdater mods
+Updating...	Oppdaterer...
+Use	Bruk
+Use her cursor	Bruk hennes markør
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Bruk https:// for en leverandør et annet sted. En nøkkel over vanlig http er ikke trygt.
+Use preset	Bruk forhåndsinnstilling
+Use saved	Bruk lagret
+Use this server	Bruk denne serveren
+Using your provider with a key	Bruker leverandøren din med en nøkkel
+Using your server with no key	Bruker serveren din uten nøkkel
+VIEW MOD >	VIS MOD >
+VOICE >	STEMME >
+VOICE IN YOUR MIC >	STEMME I MIKROFONEN DIN >
+VOICE LAYERS >	STEMMELAG >
+Verbosity	Ordrikhet
+Video bitrate	Videobitrate
+View	Visning
+View mod	Vis mod
+Voice	Stemme
+Voice ID	Stemme-ID
+Voice from	Stemme fra
+Voice layers	Stemmelag
+Voice model	Stemmemodell
+Voice model:	Stemmemodell:
+Voice name or ID, optional	Stemmenavn eller ID, valgfritt
+Voice server address, or a voice model's folder	Stemmeserveradresse, eller en stemmemodells mappe
+Voice status	Stemmestatus
+Voice, key and model...	Stemme, nøkkel og modell...
+Volume	Volum
+WAKE ME UP >	VEKK MEG >
+WATCH >	SE >
+Waiting for the relay	Venter på releen
+Wake her up	Vekk henne
+Waking her up	Vekker henne
+Wander	Vandre
+Wander around	Vandre rundt
+Watch my screen	Se på skjermen min
+Watch-along memory	Felles titteminne
+Weather	Vær
+Weather city	Værby
+Welcome back, choom. Let's finish setting me up.	Velkommen tilbake, choom. La oss fullføre oppsettet av meg.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Hva hun gjør på PC-en din uten å spørre. Med en bryter av spør hun først, og gjør det når du sier ja.
+What should she call you?	Hva skal hun kalle deg?
+When she types	Når hun skriver
+White	Hvit
+Windows default	Windows-standard
+Windows did not give Settings keyboard focus	Windows ga ikke Innstillinger tastaturfokus
+Windows did not return keyboard focus to Back	Windows ga ikke tastaturfokus tilbake til Tilbake
+With no picture the wheel still tried to slide.	Uten bilde prøvde hjulet likevel å gli.
+Works best on MAX INTELLIGENCE.	Fungerer best med MAX INTELLIGENCE.
+YOU	DEG
+YOU >	DU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	DEG STEMME BEVEGELSER NØKLER SPILL KLIPP VÆR DOOMSCROLL CAPRI SE HJERNE VANER LYDER
+YOUR KEY	DIN NØKKEL
+YOUR MIC	DIN MIKROFON
+YOUR PLAN	DITT ABONNEMENT
+Yokapri what's up	Yokapri, hva skjer
+You can hide this. It keeps going, and the Mainframe shows it too.	Du kan skjule dette. Det fortsetter, og Mainframe viser det også.
+Your mic and her voice go into one virtual mic, and	Mikrofonen din og stemmen hennes går inn i én virtuell mikrofon, og
+Your mic is muted. Unmute it to test.	Mikrofonen din er dempet. Slå på lyden for å teste.
+Your mods are up to date.	Modsene dine er oppdatert.
+Your name or a nickname	Navnet ditt eller et kallenavn
+Your own model	Din egen modell
+Your personality	Din personlighet
+Your voice	Din stemme
+Your voice (HD)	Din stemme (HD)
+Your voice (HD) · pick a clip of you...	Din stemme (HD) · velg et klipp av deg...
+Your voice model	Din stemmemodell
+as its mic.	som mikrofon.
+changed. Saved as My Colors, so you can share it.	endret. Lagret som Mine farger, så du kan dele den.
+choice	valg
+clips the input line	klipper inndatalinjen
+cue	signal
+doesn't yet.	det gjør den ikke ennå.
+download	last ned
+file.	fil.
+flag	flagg
+fps	fps
+hear	høre
+hears	hører
+hears that.	hører det.
+hides or shows her.	skjuler eller viser henne.
+hint	hint
+in the Mainframe.	i Mainframe.
+in the mods directory with a pull request.	i mods-katalogen med en pull request.
+in the picture wasn't noticed.	i bildet ble ikke lagt merke til.
+is already her push-to-talk key.	er allerede hennes trykk-for-å-snakke-tast.
+is off.	er av.
+is on and running.	er på og kjører.
+is on, at the bottom, under	er på, nederst, under
+is on.	er på.
+is on. She now answers to	er på. Hun svarer nå til
+is removed.	er fjernet.
+is taken	er tatt
+is taken by another app. Try another.	er tatt av en annen app. Prøv en annen.
+is updated	er oppdatert
+isn't hearing it yet: do {0} and {1}, then join a call.	hører det ikke ennå: gjør {0} og {1}, og bli med i et anrop.
+it now.	den nå.
+keeps her quiet, and lets her talk again.	holder henne stille, og lar henne snakke igjen.
+key	nøkkel
+key.	nøkkel.
+min	min
+more.	mer.
+ms.	ms.
+mutes mic	demper mikrofonen
+mutes your mic.	demper mikrofonen din.
+name	navn
+off	av
+on this PC	på denne PC-en
+opens her Mainframe.	åpner hennes Mainframe.
+opens her typing box.	åpner hennes skrivefelt.
+phone	telefon
+phone pixels	telefonpiksler
+phones	telefoner
+pixels	piksler
+pixels)	piksler)
+star.	stjerne.
+stars.	stjerner.
+starts voice chat.	starter stemmechat.
+stays off. Nothing ran.	forblir av. Ingenting kjørte.
+still does its own job in other apps too. Confirm to keep it.	gjør fortsatt jobben sin i andre apper også. Bekreft for å beholde den.
+tall	høy
+time	tid
+to talk	for å snakke
+to talk to her, with a game in front too.	for å snakke med henne, med et spill foran også.
+too.	også.
+turns Gaming Mode on and off.	slår spillmodus av og på.
+with Ollama	med Ollama
+won't type in other apps while she runs. Confirm to keep it.	skriver ikke i andre apper mens hun kjører. Bekreft for å beholde den.
+{0}   Echo Cancellation: Off	{0}   Ekkokansellering: Av
+{0}   If her voice cuts off, turn off noise filtering	{0}   Hvis stemmen hennes kuttes, slå av støyfilter
+{0}   Input Device:	{0}   Inndataenhet:
+{0}   Join the call and check they hear both of you	{0}   Bli med i anropet og sjekk at de hører dere begge
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofontest > Let's Check: du hører deg selv, og henne mens hun snakker
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Støyreduksjon: Ingen. Begge kan kutte stemmen hennes etter første linje.
+{0}   Open the call or meeting's audio settings	{0}   Åpne lydinnstillingene for anropet eller møtet
+{0}   Output Device: your headphones, like before	{0}   Utdataenhet: hodetelefonene dine, som før
+{0}   Speaker: your headphones, like before	{0}   Høyttaler: hodetelefonene dine, som før
+{0}   Try a mic test in your call app	{0}   Prøv en mikrofontest i anropsappen din
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Brukerinnstillinger (tannhjulet ved navnet ditt) > Lyd og video
+{0} Mbps	{0} Mbps
+{0} lines	{0} linjer
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· på denne PC-en
+· server	· server

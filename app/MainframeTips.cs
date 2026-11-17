@@ -361,9 +361,9 @@ namespace CapriDesktop
                 facts = Unpathed(facts);
                 int height = font.Height * Math.Max(1, lines);
                 if (Measure(facts, font, width).Height <= height) return facts;
-                const string more = " Ask Capri for more";
+                string more = " " + Lingo.Of("Ask Capri for more");
                 string kept = "";
-                foreach (Match sentence in Regex.Matches(facts, @".+?(?:[.!?](?=\s+[A-Z]|$)|$)"))
+                foreach (Match sentence in Regex.Matches(facts, @".+?(?:[.!?](?=\s+\p{Lu}|$)|[\u3002\uff01\uff1f]|$)"))
                 {
                     string next = facts.Substring(0, sentence.Index + sentence.Length).Trim();
                     if (Measure(next + more, font, width).Height > height) break;
@@ -376,6 +376,16 @@ namespace CapriDesktop
                         string next = facts.Substring(0, word.Index + word.Length).TrimEnd();
                         if (Measure(next + "..." + more, font, width).Height > height) break;
                         kept = next;
+                    }
+                    if (kept.Length == 0 && Lingo.Tongue != null)
+                    {
+                        int low = 0, high = facts.Length - 1;
+                        while (low < high)
+                        {
+                            int cut = (low + high + 1) / 2;
+                            if (Measure(facts.Substring(0, cut) + "..." + more, font, width).Height <= height) low = cut; else high = cut - 1;
+                        }
+                        kept = facts.Substring(0, low).TrimEnd();
                     }
                     if (kept.Length > 0) kept += "...";
                 }
@@ -392,6 +402,8 @@ namespace CapriDesktop
                 int padding = (int)Math.Ceiling(14 * unit), gap = (int)Math.Ceiling(7 * unit);
                 int width = Math.Min((int)Math.Round(360 * unit), room.Width), inside = width - padding * 2;
                 if (inside < bodyFont.Height * 3) return false;
+                name = Lingo.Of(name);
+                if (Lingo.Tongue != null) facts = Lingo.Learn(Unpathed(facts));
                 title = name;
                 bool headed = name.Length > 0;
                 if (!headed) gap = 0;
@@ -399,7 +411,7 @@ namespace CapriDesktop
                 int lines = Math.Min(6, (room.Height - padding * 2 - gap - titleHeight) / bodyFont.Height);
                 if (lines < 1) return false;
                 Body = Brief(facts, bodyFont, inside, lines);
-                if (Body == "Ask Capri for more") return false;
+                if (Body == Lingo.Of("Ask Capri for more")) return false;
                 int bodyHeight = Measure(Body, bodyFont, inside).Height;
                 if (bodyHeight + titleHeight + gap + padding * 2 > room.Height) return false;
                 titleBox = new Rectangle(padding, padding, inside, titleHeight);
@@ -443,6 +455,7 @@ namespace CapriDesktop
                 if (bodyFont != null) bodyFont.Dispose();
                 titleFont = Neon.Type(10f * 96f / 72f * unit, true, GraphicsUnit.Pixel);
                 bodyFont = Ink(unit);
+                name = Lingo.Of(name);
                 title = name;
                 Body = "";
                 int pad = (int)Math.Ceiling(12 * unit), gap = (int)Math.Ceiling(8 * unit);

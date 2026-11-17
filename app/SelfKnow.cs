@@ -235,7 +235,7 @@ namespace CapriDesktop
             new Topic("Extras", "extras window|extras screen|your extras|first launch picker",
                 "On a new install's first launch she opens EXTRAS over the Mainframe with four switches, all off: Watch my screen, Comment on my games, Clip my games and Listen for Capri. Each costs something or uses the mic, so they're your pick, and Done closes it. All four are in Settings as well: WATCH, GAMES, CLIPS and VOICE. Comment on my games is GAMES > Comments set to Chatty.", "Mainframe.cs", "EXTRAS >"),
             new Topic("Language", "your language|her language|change language|speak another language",
-                "Mainframe > Settings > YOU > Language chooses the language she replies in. Changing it starts a fresh recent chat.", "Mainframe.cs", "Language"),
+                "Mainframe > Settings > YOU > Language chooses the language she replies in, and her Mainframe, setup, tips and menus show in it too. Changing it starts a fresh recent chat.", "Mainframe.cs", "Language"),
             new Topic("What should she call you?", "your nickname|my nickname|change my name|what should she call you|what you call me",
                 "In Mainframe > Settings > YOU, enter a nickname under What should she call you? and press Save. Clear it or enter choom to go back to choom; Get to know me asks about your name, pronouns and interests and keeps the answers in me.md.", "Mainframe.cs", "What should she call you?"),
             new Topic("Get to know me", "get to know me|your introduction|my pronouns",

@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Perpiešta valdymo elementė paveikslėlyje nebuvo perpiešta.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Nemokamas raktas iš Google AI Studio, NVIDIA arba OpenRouter. Nieko atsisiųsti nereikia. Reikia interneto.
+A held trackpad scroll got a flick's long ease:	Ilgai laikant jutiklinį paviršių, slinkimas įgavo ilgą mostelėjimo lėtėjimą:
+A layout change during a slide put the page at	Keičiant išdėstymą skaidrės metu puslapis atsidūrė ties
+A layout change left the picture up.	Išdėstymo pakeitimas paliko paveikslėlį rodomą.
+A model in Ollama, on your local server or on your key.	Modelis Ollama, jūsų vietiniame serveryje arba su jūsų raktu.
+A paid key goes under MAX INTELLIGENCE by itself.	Mokamas raktas savaime patenka po MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Planas, kurį jau mokate, jūsų raktas arba Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Balso skydelio meniu neturi savo skydelio šrifto kopijos.
+A wheel turn right after a slide ended froze the picture.	Ratuko sukimas iškart po skaidrės pabaigos sustingdė paveikslėlį.
+ALLOW THIS PHONE?	LEISTI ŠĮ TELEFONĄ?
+ALMOST THERE >	BEVEIK ATVYKOME >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	KITAS CAPRI PERĖMĖ VALDYMĄ · IŠJUNKITE IR ĮJUNKITE
+API key	API raktas
+API key, Claude plan or ChatGPT plan	API raktas, Claude planas arba ChatGPT planas
+Add	Pridėti
+Address	Adresas
+Address and key saved. Use saved to reconnect.	Adresas ir raktas išsaugoti. Norėdami prisijungti iš naujo, naudokite išsaugotą.
+Advanced Settings	Išplėstiniai nustatymai
+All	Visi
+All screens	Visi ekranai
+Allow	Leisti
+Almost there. I'll say hi the second my brain's in.	Beveik. Pasisveikinsiu, tik smegenims įsijungus.
+Always	Visada
+Always on top	Visada viršuje
+Any Google account works. I opened the page in your browser.	Tinka bet kuri Google paskyra. Puslapį atidariau jūsų naršyklėje.
+Applies to every voice	Taikoma visiems balsams
+Apps she may close	Programos, kurias ji gali uždaryti
+Ask Capri for more	Paprašykite Capri daugiau
+Asking your server...	Klausiama jūsų serverio...
+Asks before closing only the apps you choose.	Klausia prieš uždarant tik jūsų pasirinktas programas.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automatiškai: VB-CABLE, kitaip Steam
+BAD RELAY HOST	BLOGAS RELAY SERVERIS
+BIG Z open notepad	BIG Z atidaryti notepad
+BRAIN	SMEGENYS
+BRAIN >	SMEGENYS >
+BRAIN ONLINE >	SMEGENYS PRISIJUNGUSIOS >
+BRAIN PROVIDER >	SMEGENŲ TIEKĖJAS >
+BRAIN VOICE CAPRI	CAPRI SMEGENŲ BALSAS
+Back	Atgal
+Back on your saved API key.	Grįžta prie jūsų išsaugoto API rakto.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Geriausiai tinka šiam PC:
+Black	Juoda
+Blank key means no key.	Tuščias raktas reiškia, kad rakto nėra.
+Brain API key	Smegenų API raktas
+Brain model	Smegenų modelis
+Brain provider	Smegenų tiekėjas
+Bring here	Atnešti čia
+Bring to this screen	Atnešti į šį ekraną
+Browse	Naršyti
+Browse mods	Naršyti modifikacijas
+Browse to a voice model	Naršyti iki balso modelio
+Browse...	Naršyti...
+Bubble	Burbulas
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, ar tu čia?
+CAN'T REACH THE RELAY · RETRYING	NEPAVYKSTA PASIEKTI RELAY · BANDOMA IŠ NAUJO
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI BALSO SMEGENYS
+CHANGED, approve it again.	PAKEISTA, patvirtinkite dar kartą.
+CLIPS >	KLIPAI >
+CLOUD VOICE	DEBESIJOS BALSAS
+CODE	KODAS
+COLORS >	SPALVOS >
+CONNECTED	PRISIJUNGTA
+CONNECTING	JUNGIAMASI
+CUSTOM LOCAL	PERSONALIZUOTAS VIETINIS
+Call mode (beta)	Skambučio režimas (beta)
+Call mode does not fit.	Skambučio režimas netelpa.
+Call mode is outside its space.	Skambučio režimas yra už savo srities ribų.
+Cancel	Atšaukti
+Cancel keys	Atšaukti klavišus
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Nuotolinis
+Capri code:	Capri kodas:
+Capri mods (*	Capri modifikacijos (*
+Capri, hello	Capri, sveika
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Chaosas, kai supykusi
+Chat with Capri from your phone	Kalbėkis su Capri iš savo telefono
+ChatGPT plan	ChatGPT planas
+Check for updates	Tikrinti atnaujinimus
+Check in on me	Patikrink, kaip aš
+Check in on me is hidden	Patikrink, kaip aš paslėpta
+Check in on me still decides whether she visits.	Patikrink, kaip aš vis dar lemia, ar ji apsilankys.
+Check in on me's tip missed	Patikrink, kaip aš patarimas praleistas
+Chess	Šachmatai
+Choose apps	Pasirinkti programas
+Choose folder...	Pasirinkti aplanką...
+Choose where future Capri clips are saved	Pasirinkti, kur saugomi būsimi Capri klipai
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude arba ChatGPT planas, mokamas raktas (OpenAI, Claude, DeepSeek) arba Ollama.
+Claude plan	Claude planas
+Clear	Išvalyti
+Cleared.	Išvalyta.
+Click Confirm to keep Down, or press Esc.	Spustelėkite Patvirtinti, kad išliktų Žemyn, arba paspauskite Esc.
+Click to open it.	Spustelėkite, kad atidarytumėte.
+Clip my games	Įrašyti mano žaidimus
+Clips	Klipai
+Close	Uždaryti
+Close other AIs for me	Uždaryk kitus AI už mane
+Cloud voice	Debesijos balsas
+Cloud voice service	Debesijos balso paslauga
+Cloud voice setup	Debesijos balso sąranka
+Code mods can reach your whole PC. Only trusted ones.	Kodo modifikacijos gali pasiekti visą jūsų kompiuterį. Tik patikimos.
+Code/Husk Mode	Kodas/Husk režimas
+Codex	Codex
+Commands	Komandos
+Comment on my games	Komentuoti mano žaidimus
+Comments	Komentarai
+Confirm	Patvirtinti
+Confirm keys	Patvirtinti klavišus
+Connect	Prisijungti
+Connect / Forget brain key	Prisijungti / Pamiršti smegenų raktą
+Connect / Forget voice key	Prisijungti / Pamiršti balso raktą
+Connect four	Keturi iš eilės
+Controls	Valdymas
+Copri, what time is it	Copri, kiek valandų
+Copy error details	Kopijuoti klaidos detales
+Copy the key	Kopijuoti raktą
+Copy the key from the page, then press Paste.	Nukopijuokite raktą iš puslapio, tada paspauskite Įklijuoti.
+Couldn't open that page:	Nepavyko atidaryti to puslapio:
+Couldn't open that:	Nepavyko atidaryti to:
+Couldn't open the mods folder:	Nepavyko atidaryti modifikacijų aplanko:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M jau yra jos Mainframe klavišas.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N nutildo mikrofoną
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V jau yra jos kalbėjimo klavišas.
+Ctrl + Alt + V to talk	Ctrl + Alt + V kalbėti
+Custom local voice	Personalizuotas vietinis balsas
+Custom model name	Personalizuotas modelio pavadinimas
+Dance	Šokti
+Dance to music	Šokti pagal muziką
+Default	Numatytasis
+Default (follows Windows)	Numatytasis (seka Windows)
+Default duration for clip that and automatic clips	Numatytoji trukmė klipui ir automatiniams klipams
+Default length	Numatytasis ilgis
+Default model	Numatytasis modelis
+Delay	Vėlinimas
+Deny	Atmesti
+Discard	Atmesti
+Discard + reload	Atmesti + perkrauti
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Nenorite laukti? Nemokamas raktas leidžia man kalbėti maždaug per minutę.
+Done	Atlikta
+EXTRA REQUEST JSON >	PAPILDOMA UŽKLAUSOS JSON >
+EXTRAS >	PAPILDOMI >
+Edit	Redaguoti
+Edit check-in lines	Redaguoti patikrinimo eilutes
+Edit check-in lines has the wrong view or dimming	Redaguoti patikrinimo eilutes: neteisingas vaizdas arba užtemdymas
+Edit check-in lines is out of place	Redaguoti patikrinimo eilutes nėra vietoje
+Edit controls	Redaguoti valdymą
+ElevenLabs API key	ElevenLabs API raktas
+ElevenLabs voice ID	ElevenLabs balso ID
+English	Anglų
+Enter the game's name first.	Pirmiausia įveskite žaidimo pavadinimą.
+Every	Kiekvienas
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Kiekviena modifikacija tikrinama dėl kenkėjiškų programų prieš įkeliant. Kodo modifikacijos vis tiek klausia prieš paleidžiant.
+Explore after	Tyrinėti po
+Explore while I'm away	Tyrinėti, kol manęs nėra
+Extra request JSON	Papildoma užklausos JSON
+Extras	Papildomi
+FREE KEY	NEMOKAMAS RAKTAS
+FREE KEY >	NEMOKAMAS RAKTAS >
+Fast hands in games	Greitos rankos žaidimuose
+File editor	Failų redaktorius
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ir kiti yra skyriuje BALSAS Mainframe.
+Follow-up messages	Tolesnės žinutės
+Forget	Pamiršti
+Fork capri-mods	Šakoti capri-mods
+Frame rate	Kadrų dažnis
+Free	Nemokamai
+Free and private, works offline. Downloads	Nemokama ir privati, veikia neprisijungus. Atsisiunčia
+Free and private, works offline. Downloads the best model for this PC.	Nemokama ir privati, veikia neprisijungus. Atsisiunčia geriausią modelį šiam kompiuteriui.
+Free key	Nemokamas raktas
+Free key providers	Nemokamo rakto tiekėjai
+Free keys can be rate limited and slow.	Nemokamų raktų užklausos gali būti ribojamos ir lėtos.
+Free voice in games	Nemokamas balsas žaidimuose
+Free voice style	Nemokamo balso stilius
+Free voice:	Nemokamas balsas:
+Free voice: Her own	Nemokamas balsas: Jos pačios
+Free · local model	Nemokamas · vietinis modelis
+GAMES >	ŽAIDIMAI >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Žaidimų komentarai veikia atskirai nuo Stebėti mano ekraną. Išjungta juos sustabdo, taip pat Žaidimų režime; Tik įvykiai ir Kalbus leidžia jai stebėti jūsų žaidimą
+Game controls	Žaidimo valdymas
+Game name	Žaidimo pavadinimas
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Žaidimo garso jautrumas. Sumažinkite, jei ausinės tyliai, bet Windows yra {0}% ir ji reaguoja į kiekvieną garsą; Išjungta ignoruoja žaidimų garsus
+Game sounds	Žaidimų garsai
+Games	Žaidimai
+Gaming Mode	Žaidimų režimas
+Gaming Mode key	Žaidimų režimo klavišas
+Gaming Mode:	Žaidimų režimas:
+Gaming Mode: Ctrl + Alt + G	Žaidimų režimas: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Gauti VB-CABLE
+Get VB-CABLE (free)...	Gauti VB-CABLE (nemokamai)...
+Get free voice	Gauti nemokamą balsą
+Getting your Fish Audio voices...	Gaunami jūsų Fish Audio balsai...
+Giant	Milžiniškas
+Glitch	Gedimas
+Glitch in at startup	Gedimas paleidžiant
+Go to sleep	Eiti miegoti
+Go to the next screen	Eiti į kitą ekraną
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · nemokamas planas · ribojama
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Turite Claude ar ChatGPT planą arba savo raktą? Pasirinkite jį, ir aš prisijungsiu.
+Got it, just me. Right-click me any time for Capri Mainframe.	Supratau, tik aš. Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Capri Mainframe.
+Grey	Pilka
+H.{0} video bitrate target; higher values make larger files	H.{0} vaizdo bitų srauto tikslas; didesnės reikšmės sukuria didesnius failus
+HABITS >	ĮPROČIAI >
+HER HANDS >	JOS RANKOS >
+HER JOBS >	JOS DARBAI >
+HER MEMORY >	JOS ATMINTIS >
+HER MODS >	JOS MODIFIKACIJOS >
+HH:mm	HH:mm
+HOW I SOUND >	KAIP AŠ SKAMBU >
+Hang here	Pakabinti čia
+Have Ollama? Open it, then press Refresh.	Turite Ollama? Atidarykite ją, tada paspauskite Atnaujinti.
+Head pats	Galvos glostymai
+Hearing	Klausa
+Hearing engine	Klausos variklis
+Hearing fix	Klausos taisymas
+Hearing status	Klausos būsena
+Help	Pagalba
+Help page	Pagalbos puslapis
+Her colors	Jos spalvos
+Her folder	Jos aplankas
+Her memories	Jos prisiminimai
+Her own colors are back.	Jos pačios spalvos grįžo.
+Her own notes (no vault)	Jos pačios užrašai (be saugyklos)
+Her perch frames per second	Jos tupėjimo kadrai per sekundę
+Her personality	Jos asmenybė
+Her size	Jos dydis
+Her speaker	Jos garsiakalbis
+Her speaker is hidden or outside VOICE	Jos garsiakalbis paslėptas arba už BALSO ribų
+Her speaker overlaps the mic or hearing row	Jos garsiakalbis persidengia su mikrofono arba klausos eilute
+Her speaker:	Jos garsiakalbis:
+Her speaker: Default	Jos garsiakalbis: Numatytasis
+Her voice in your mic	Jos balsas jūsų mikrofone
+Her voice in your mic: loudness	Jos balsas jūsų mikrofone: garsumas
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Pats jos balsas. Jo tonas yra Nustatymai > BALSAS > Tonas, ir jie keičiasi kartu.
+Her voice joins your mic only in call mode.	Jos balsas įsijungia į jūsų mikrofoną tik skambučio režime.
+Her voice volume	Jos balso garsumas
+Her voice's pitch	Jos balso tonas
+Her voice's pitch, the same as Settings > VOICE > Pitch	Jos balso tonas, toks pats kaip Nustatymai > BALSAS > Tonas
+Her voice's speed	Jos balso greitis
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Jos balsas ir dvi jo kopijos, sumaišytos po juo, kiekviena su savo tonu ir vėlinimu.
+Her voices · free	Jos balsai · nemokami
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Ei, choom. Aš Capri. Man reikia smegenų, kad galėčiau atsakyti. Pasirinkite vieną.
+Hide / Show Capri	Slėpti / Rodyti Capri
+Hide / Show key	Slėpti / Rodyti klavišą
+Hide Capri	Slėpti Capri
+Hide for now	Kol kas slėpti
+Hide in full screen	Slėpti viso ekrano režime
+Hide this	Slėpti šį
+Hide/show:	Slėpti/rodyti:
+Hide/show: Ctrl + Alt + H	Slėpti/rodyti: Ctrl + Alt + H
+Hologram	Holograma
+Hop off	Nušokti
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Kiek laiko nejudantis kompiuteris laukia, kol ją užmigdys; penkios minutės vis dar reiškia, kad jūsų nėra
+How long a stroke over her a head pat needs	Kiek ilgai reikia braukti per ją, kad būtų galvos glostymas
+How long her replies stay up	Kiek ilgai jos atsakymai lieka matomi
+How long you are away before she scrolls a browser or reader	Kiek ilgai jūsų nėra, prieš jai slenkant naršyklę ar skaitytuvą
+How much her voice glitches	Kiek jos balsas sugenda
+How much of the chat she keeps	Kiek pokalbio ji išsaugo
+How much she wanders	Kiek ji klaidžioja
+How often she pops in to say hi	Kaip dažnai ji užsuka pasisveikinti
+How robotic her voice sounds	Kaip robotiškai skamba jos balsas
+How to	Kaip
+Huge	Didžiulis
+I can hear you.	Aš tave girdžiu.
+I glance at your screen and comment. Costs a little on a paid brain.	Žvilgteliu į jūsų ekraną ir komentuoju. Mokamoms smegenims šiek tiek kainuoja.
+I keep listening. Say my name, then just talk.	Toliau klausausi. Ištarkite mano vardą ir tiesiog kalbėkite.
+I talk about your game as you play. Costs a little on a paid brain.	Kalbu apie jūsų žaidimą, kol žaidžiate. Mokamoms smegenims šiek tiek kainuoja.
+I type my replies and stay quiet.	Rašau savo atsakymus ir tyliu.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Neatsakinėsiu balsu, ir niekas nesiunčiama. Vis tiek būsiu šalia, šokinėsiu pagal jūsų muziką ir darysiu greitus dalykus, kuriuos paprašysite, pavyzdžiui, garsumą.
+I'll talk in	Kalbėsiu per
+IN DISCORD >	DISCORD >
+INSTALLED >	ĮDIEGTA >
+Import a Capri mod	Importuoti Capri modifikaciją
+Import mod	Importuoti modifikaciją
+In games	Žaidimuose
+Input	Įvestis
+Input, Output or How to overlaps a row	Įvestis, Išvestis arba Kaip persidengia su eilute
+Input:	Įvestis:
+Input: default	Įvestis: numatytoji
+Install	Įdiegti
+Install mod	Įdiegti modifikaciją
+Installed.	Įdiegta.
+It may ask for a phone number. I opened the page in your browser.	Gali paprašyti telefono numerio. Puslapį atidariau jūsų naršyklėje.
+It still does its own job in other apps too.	Ji vis dar atlieka savo darbą ir kitose programose.
+It won't type in other apps while she runs.	Ji nerašys kitose programose, kol veikia.
+JUST ME >	TIK AŠ >
+Jealous of other AIs	Pavydi kitiems AI
+Join the Discord	Prisijunkite prie Discord
+KB.	KB.
+KEYS	KLAVIŠAI
+KEYS >	KLAVIŠAI >
+Keep PC awake for jobs	Laikyti kompiuterį budintį darbams
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Išsaugo paskutines dvi jūsų žaidimo minutes atmintyje. Pasakykite įrašyti klipą, kad išsaugotumėte.
+Key	Raktas
+Key cleared: a model file needs none.	Raktas išvalytas: modelio failui jis nereikalingas.
+Key cleared: paste the key for	Raktas išvalytas: įklijuokite raktą, skirtą
+Key forgotten.	Raktas pamirštas.
+Key. It goes only to this server, as a Bearer key	Raktas. Jis siunčiamas tik į šį serverį kaip Bearer raktas
+Kokoro only, like es	Tik Kokoro, kaip es
+LAST THING >	PASKUTINIS DALYKAS >
+LISTENING >	KLAUSO >
+Language	Kalba
+Large	Didelis
+Last thing. These cost a little or use your mic, so they're your pick.	Paskutinis dalykas. Šie šiek tiek kainuoja arba naudoja jūsų mikrofoną, todėl pasirinkimas jūsų.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Paskutinis dalykas. Šie šiek tiek kainuoja arba naudoja jūsų mikrofoną, todėl pasirinkimas jūsų. Tada noriu žinoti, kaip į jus kreiptis.
+Layers	Sluoksniai
+Learn more	Sužinoti daugiau
+Leaving Settings threw its picture away straight away.	Palikus Nustatymus paveikslėlis iškart buvo išmestas.
+Legacy stand	Senas stovas
+Lie down	Atsigulti
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Kompiuterio dialogų eilutės saugomos atmintyje žiūrint kartu. Senesnė pusė tampa užrašu, kai įjungta Prisiminti, ką ji mato
+Listen for Capri	Klausytis Capri
+Live reactions	Tiesioginės reakcijos
+Local server address	Vietinio serverio adresas
+Long	Ilgas
+Longest wait (minutes)	Ilgiausias laukimas (minutėmis)
+Looking at this PC...	Žiūrima į šį kompiuterį...
+Looking for Ollama. Open it if it isn't running.	Ieškoma Ollama. Atidarykite, jei neveikia.
+Looking for a brain...	Ieškoma smegenų...
+Looking in the mods directory for updates...	Ieškoma atnaujinimų modifikacijų aplanke...
+Looking in the mods directory...	Ieškoma modifikacijų aplanke...
+Looking...	Ieškoma...
+MAIN >	PAGRINDINIS >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	VIDUTINIS INTELLIGENCE
+MEMORY VAULT >	ATMINTIES SAUGYKLA >
+MODS	MODIFIKACIJOS
+MODS >	MODIFIKACIJOS >
+MODS DIRECTORY >	MODIFIKACIJŲ APLANKAS >
+MODS INSTALLED COLORS	ĮDIEGTŲ MODIFIKACIJŲ SPALVOS
+MOVES >	JUDESIAI >
+MY BRAIN	MANO SMEGENYS
+MY FREE VOICE	MANO NEMOKAMAS BALSAS
+MY PLAN OR KEY	MANO PLANAS ARBA RAKTAS
+MY PLAN OR KEY >	MANO PLANAS ARBA RAKTAS >
+Made your Fish Audio voice. Press Test to hear it.	Sukūrėte savo Fish Audio balsą. Paspauskite Testas, kad jį išgirstumėte.
+Mainframe colours	Mainframe spalvos
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe spalvos. Night City yra raudona ir žydra; Juoda, Balta ir Pilka keičia Mainframe, jos meniu, Rašymo langelį ir jos užrašus
+Mainframe frames	Mainframe rėmeliai
+Mainframe key	Mainframe klavišas
+Mainframe size	Mainframe dydis
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe dydis. Auto padaro jį didesnį, kai Virtual Super Resolution arba DSR suspaudžia didelį darbalaukį į mažesnį ekraną
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Žemyn
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Kuriamas jūsų Fish Audio balsas...
+Max reply	Maks. atsakymas
+Maximum clip resolution, keeping the game's shape without upscaling	Didžiausia klipo skiriamoji geba, išlaikant žaidimo formą be didinimo
+Medium	Vidutinis
+Memory	Atmintis
+Memory size	Atminties dydis
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Atminties dydis žetonais Ollama ir jos įmontuotoms smegenims. Auto didėja, kai užklausai reikia daugiau
+Mg	Mg
+Mic level:	Mikrofono lygis:
+Mic test finished. Sound is reaching Capri.	Mikrofono testas baigtas. Garsas pasiekia Capri.
+Mic:	Mikrofonas:
+Mic: default	Mikrofonas: numatytasis
+Microphone	Mikrofonas
+Mini player	Mini grotuvas
+Mini player over full screen	Mini grotuvas virš viso ekrano
+Mini-games	Mini žaidimai
+Minimising the Mainframe left it sliding.	Sumažinus Mainframe, jis liko slystantis.
+Minimize	Sumažinti
+Mod filter	Modifikacijų filtras
+Mod options	Modifikacijų parinktys
+Mod pages	Modifikacijų puslapiai
+Mod rules	Modifikacijų taisyklės
+Mod sort	Modifikacijų rūšiavimas
+Mod switch	Modifikacijų jungiklis
+Model	Modelis
+Model folder	Modelio aplankas
+Model name, optional	Modelio pavadinimas, neprivaloma
+Mods	Modifikacijos
+Mods directory	Modifikacijų aplankas
+Mods folder	Modifikacijų aplankas
+Most NVIDIA models can't see your screen.	Dauguma NVIDIA modelių negali matyti jūsų ekrano.
+Mouse wheel notches got a flick's long ease:	Pelės ratuko žingsneliai įgavo ilgą mostelėjimo lėtėjimą:
+Move	Perkelti
+Move key to MAX INTELLIGENCE	Perkelti raktą į MAX INTELLIGENCE
+Move to MAX	Perkelti į MAX
+Music	Muzika
+Music app	Muzikos programa
+Music app: where she plays music when you don't name an app	Muzikos programa: kur ji groja muziką, kai nenurodote programos
+Mute	Nutildyti
+Mute her	Nutildyti ją
+Mute mic key	Mikrofono nutildymo klavišas
+Mute mic:	Nutildyti mikrofoną:
+Mute mic: Ctrl + Alt + N	Nutildyti mikrofoną: Ctrl + Alt + N
+My brain	Mano smegenys
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Mano smegenys leidžiasi. Pasisveikinsiu, tik jos įsijungs, ir tada galėsite su manimi kalbėti.
+My brain's on its way. While it comes down, let's sort out how I sound.	Mano smegenys jau kelyje. Kol jos atkeliauja, sutvarkykime, kaip aš skambu.
+My provider	Mano tiekėjas
+NO AI	BE AI
+NO PHONES CONNECTED	TELEFONŲ NEPRIJUNGTA
+NO PREVIEW	PERŽIŪROS NĖRA
+NORMAL	NORMALUS
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · nemokamas · dažnai lėtas įtemptu metu
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA nemokamas API dažnai lėtas, ypač įtemptu metu.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) arba OpenRouter API raktas
+Names:	Vardai:
+Needs a key	Reikia rakto
+Never	Niekada
+New code	Naujas kodas
+New voice from a clip...	Naujas balsas iš klipo...
+Next	Kitas
+Night City	Night City
+No AI	Be AI
+No AI · no brain at all	Be AI · jokių smegenų
+No brain runs, and nothing is sent anywhere.	Joks smegenų modelis neveikia, ir niekas nesiunčiama.
+No brain yet	Smegenų dar nėra
+No code open	Kodas neatidarytas
+No mic found	Mikrofonas nerastas
+No mods in the directory yet.	Aplanke dar nėra modifikacijų.
+No mods match that.	Nėra modifikacijų, atitinkančių tai.
+No mods match.	Nėra atitinkančių modifikacijų.
+No phones yet	Telefonų dar nėra
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Virtualaus mikrofono dar nėra. Pasirinkite Išvestis, tada Gauti VB-CABLE (nemokamai).
+None yet: pick to get VB-CABLE (free)	Dar nėra: pasirinkite, kad gautumėte VB-CABLE (nemokamai)
+Normal	Normalus
+Not a relay host	Ne relay serveris
+Not imported. Nothing ran.	Neimportuota. Nieko nepaleista.
+Not updated. The old one is still in.	Neatnaujinta. Senoji vis dar įdiegta.
+Nothing needed updating.	Atnaujinti nieko nereikėjo.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Nieko atsisiųsti nereikia, niekas nesiunčiama. Neatsakinėsiu balsu. Smegenis galite pridėti bet kada Mainframe.
+Nothing to show from the mods directory.	Iš modifikacijų aplanko nėra ką rodyti.
+Nothing? Windows Settings > Privacy & security > Microphone.	Nieko? Windows nustatymai > Privatumas ir sauga > Mikrofonas.
+Nous Portal keys aren't supported yet.	Nous Portal raktai dar nepalaikomi.
+OBS	OBS
+OFF	IŠJUNGTA
+OLLAMA	OLLAMA
+ON	ĮJUNGTA
+ON THIS PC	ŠIAME PC
+OR A KEY	ARBA RAKTAS
+Obsidian memory vault	Obsidian atminties saugykla
+Off	Išjungta
+Off. Turn on Her voice in your mic above.	Išjungta. Įjunkite Jos balsas jūsų mikrofone aukščiau.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Išjungta: ji skamba kaip visada. Įjungta: visi jos balsai, įskaitant ElevenLabs.
+Often	Dažnai
+On	Įjungta
+On / Off	Įjungta / Išjungta
+On: your mic and her voice are going in.	Įjungta: jūsų mikrofonas ir jos balsas įsijungia.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Vienas JSON objektas, pridedamas prie kiekvienos šių smegenų siunčiamos užklausos. Jis pakeičia Capri reikšmę bet kuriam bendrinamam pavadinimui ir nėra tikrinamas pagal modelį.
+Online speech recognition	Internetinis kalbos atpažinimas
+Open Capri Mainframe	Atidaryti Capri Mainframe
+Open Ollama, I'll find it	Atidarykite Ollama, aš surasiu
+Open clips folder	Atidaryti klipų aplanką
+Open her memories	Atidaryti jos prisiminimus
+Open her notes	Atidaryti jos užrašus
+Open mods folder	Atidaryti modifikacijų aplanką
+Open the page again	Atidaryti puslapį dar kartą
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA arba OpenRouter.
+OpenAI-compatible server or provider.	Su OpenAI suderinamas serveris arba tiekėjas.
+OpenRouter · free models only	OpenRouter · tik nemokami modeliai
+Optional	Neprivaloma
+Optional. Blank means no key.	Neprivaloma. Tuščias laukas reiškia be rakto.
+Options	Parinktys
+Out of the box a little higher, just behind her.	Numatytai šiek tiek aukščiau, už jos.
+Out of the box lower, just behind her.	Numatytai šiek tiek žemiau, už jos.
+Output	Išvestis
+Output:	Išvestis:
+Output: none	Išvestis: nėra
+PHONE CONNECTED	TELEFONAS PRIJUNGTAS
+PHONES >	TELEFONAI >
+PHONES CONNECTED	TELEFONAI PRIJUNGTI
+PREBUILT LOCAL	IŠ ANKSTO SUKURTAS VIETINIS
+PUBLISH MOD >	PUBLIKUOTI MODIFIKACIJĄ >
+Pair a phone	Susieti telefoną
+Paste	Įklijuoti
+Paste API key	Įklijuoti API raktą
+Paste a brain API key	Įklijuoti smegenų API raktą
+Paste reads your clipboard once, when you press it.	Įklijavimas nuskaito jūsų iškarpinę vieną kartą, kai ją paspaudžiate.
+Paste your key here	Įklijuokite savo raktą čia
+Pat stroke	Glostymo brūkštis
+Perch	Tupėjimas
+Perch over {0} fps uses more CPU	Tupėjimas virš {0} kadrų per sekundę naudoja daugiau CPU
+Pick Output to get it.	Pasirinkite Išvestis, kad jį gautumėte.
+Pick a brain so I can talk back. You can change it any time.	Pasirinkite smegenis, kad galėčiau atsakyti. Galite pakeisti bet kada.
+Pick a clip of a voice you have the rights and consent to use	Pasirinkite balso, kurį turite teisę ir sutikimą naudoti, klipą
+Pick a free model. I opened the page in your browser.	Pasirinkite nemokamą modelį. Puslapį atidariau jūsų naršyklėje.
+Pick a new clip of you...	Pasirinkite naują savo klipą...
+Pick a voice model...	Pasirinkite balso modelį...
+Pick one. Only one brain runs at a time.	Pasirinkite vieną. Vienu metu veikia tik viena smegenys.
+Pick the note her memories go in	Pasirinkite užrašą, į kurį eis jos prisiminimai
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Pasirinkite nuo {0} iki {1} sekundžių balso, kurį turite teisę ir sutikimą naudoti
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Pasirinkite nuo {0} iki {1} sekundžių, kai kalbate, arba balso, kurį turite teisę ir sutikimą naudoti
+Pitch	Tonas
+Play	Groti
+Play...	Groti...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeliai kopijuoja šio klipo balsą. Paspauskite Testas, kad jį išgirstumėte.
+Pop-in times	Atsiradimo laikai
+Pop-ins	Atsiradimai
+Power saver	Energijos taupymas
+Power saver: how lightly she runs in games, or always	Energijos taupymas: kaip švelniai ji veikia žaidimuose, arba visada
+Preset	Iš anksto nustatyta
+Press Create API key	Paspauskite Sukurti API raktą
+Press Create Key	Paspauskite Sukurti raktą
+Press Generate API Key	Paspauskite Generuoti API raktą
+Press Test and say something, so I know I can hear you.	Paspauskite Testas ir ką nors pasakykite, kad žinočiau, jog jus girdžiu.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Paspauskite klavišą, vieną arba kartu su Ctrl, Alt, Shift arba Win.
+Press new keys, then Confirm	Paspauskite naujus klavišus, tada Patvirtinti
+Provider	Tiekėjas
+Provider API key, optional	Tiekėjo API raktas, neprivaloma
+Provider base URL	Tiekėjo bazinis URL
+Provider forgotten.	Tiekėjas pamirštas.
+Provider overlaps the brain name or note	Tiekėjas persidengia su smegenų pavadinimu arba užrašu
+Publish	Publikuoti
+Publish mod	Publikuoti modifikaciją
+Push to talk is off.	Kalbėjimas paspaudžiant išjungtas.
+Push to talk key	Kalbėjimo paspaudžiant klavišas
+Push to talk:	Kalbėjimas paspaudžiant:
+Push to talk: not set	Kalbėjimas paspaudžiant: nenustatyta
+QR CODE >	QR KODAS >
+QR hidden while streaming	QR paslėptas transliacijos metu
+Quick	Greitas
+Quiet key	Tylos klavišas
+Quiet:	Tyla:
+Quiet: Ctrl + Alt + P	Tyla: Ctrl + Alt + P
+Quit Capri	Išjungti Capri
+RELAY >	RELAY >
+REMOTE >	NUOTOLINIS >
+RUNS CODE.	VYKDO KODĄ.
+Rarely	Retai
+Rate mod	Įvertinti modifikaciją
+Reading its README...	Skaitomas README...
+Refresh	Atnaujinti
+Reinstall	Įdiegti iš naujo
+Reload	Perkrauti
+Reloaded.	Perkrauta.
+Remember our chats	Prisiminti mūsų pokalbius
+Remember what she sees	Prisiminti, ką ji mato
+Remote	Nuotolinis
+Remote off	Nuotolinis išjungtas
+Remote on	Nuotolinis įjungtas
+Remove	Pašalinti
+Remove all phones	Pašalinti visus telefonus
+Replies	Atsakymai
+Reply length	Atsakymo ilgis
+Report a problem	Pranešti apie problemą
+Reset colors	Atstatyti spalvas
+Reset to her default	Atstatyti į jos numatytąją
+Resolution	Skiriamoji geba
+Restart to update	Paleisti iš naujo, kad atnaujintumėte
+Restless	Neramus
+Revoke	Panaikinti
+Revoke also removes the phones its links added	Panaikinimas taip pat pašalina telefonus, kuriuos pridėjo jos nuorodos
+Ride cursor	Važiuoti žymeklį
+Ride cursor / Hop off	Važiuoti žymeklį / Nušokti
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Capri Mainframe. Smegenys įsijungia po SMEGENYS.
+Right-click me any time for the Mainframe, Help and the Discord.	Bet kada dešiniu pelės klavišu spustelėkite mane, kad atidarytumėte Mainframe, Pagalbą ir Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox arba bet kuri kita programa: pasirinkite
+Robot	Robotas
+Rock, paper, scissors	Akmuo, popierius, žirklės
+Run this code mod?	Paleisti šią kodo modifikaciją?
+Running on this PC	Veikia šiame PC
+Running on this PC · :	Veikia šiame PC · :
+Runs Claude Code or Codex on this PC, signed in.	Šiame PC veikia Claude Code arba Codex, prisijungus.
+Runs on your PC. No key, no credits.	Veikia jūsų PC. Jokio rakto, jokių kreditų.
+SCAN WITH YOUR PHONE · EXPIRES	NUSKENUOKITE TELEFONU · BAIGIASI
+SECURITY >	SAUGUMAS >
+SKILL.	ĮGŪDIS.
+SKIN.	ODA.
+SORT BY	RŪŠIUOTI PAGAL
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	GARSAI ĮPROČIAI SMEGENYS ŽIŪRĖTI CAPRI DOOMSCROLL ORAS KLIPAI ŽAIDIMAI KLAVIŠAI JUDESIAI BALSAS JŪS
+Same as her ears (VOICE > Mic)	Tas pats kaip jos ausys (BALSAS > Mikrofonas)
+Same code on the phone?	Tas pats kodas telefone?
+Save	Išsaugoti
+Save big moments	Išsaugoti didelius momentus
+Save folder	Išsaugojimo aplankas
+Save your changes, or press Discard + reload.	Išsaugokite pakeitimus arba paspauskite Atmesti + perkrauti.
+Save your changes, or press Discard.	Išsaugokite pakeitimus arba paspauskite Atmesti.
+Saved.	Išsaugota.
+Saved. Ctrl + Alt + O opens her Mainframe.	Išsaugota. Ctrl + Alt + O atidaro jos Mainframe.
+Saving your rating...	Išsaugomas jūsų įvertinimas...
+Say her name anywhere to chat	Pasakykite jos vardą bet kur, kad pakalbėtumėte
+Screens	Ekranai
+Screens is hidden or outside WATCH	Ekranai paslėpti arba už ŽIŪRĖTI ribų
+Screens overlaps a WATCH row	Ekranai persidengia su ŽIŪRĖTI eilute
+Screens to watch	Ekranai stebėjimui
+Sealed end to end	Visiškai užšifruota
+Search by name or author	Ieškoti pagal pavadinimą arba autorių
+Search installed mods	Ieškoti įdiegtų modifikacijų
+Search mods	Ieškoti modifikacijų
+Search name, author or description	Ieškoti pavadinimo, autoriaus ar aprašymo
+Security	Saugumas
+Security:	Saugumas:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Nustatyti
+Set up her brain	Nustatyti jos smegenis
+Set up your voice model	Nustatyti jūsų balso modelį
+Setting up her brain	Nustatomos jos smegenys
+Settings	Nustatymai
+Settings / Back	Nustatymai / Atgal
+Settings folds the wrong rows above BRAIN	Nustatymai sulankstė neteisingas eilutes virš SMEGENYS
+Settings had nothing to watch.	Nustatymams nebuvo ką stebėti.
+Settings lost keyboard focus during the Tab walk	Nustatymai prarado klaviatūros fokusą per Tab eigą
+Setup guide	Sąrankos vadovas
+Setup stopped	Sąranka sustabdyta
+She can read it when it fits.	Ji gali tai perskaityti, kai telpa.
+She glances at your screen and comments. Costs a little on a paid brain.	Ji žvilgteli į jūsų ekraną ir komentuoja. Mokamoms smegenims šiek tiek kainuoja.
+She keeps listening. Say her name, then just talk until you go quiet.	Ji toliau klausosi. Ištarkite jos vardą ir kalbėkite, kol nutilsite.
+She reacts to your game until you close it.	Ji reaguoja į jūsų žaidimą, kol jį uždarysite.
+She reads these controls before each game job.	Ji perskaito šiuos valdymus prieš kiekvieną žaidimo darbą.
+She talks about your game as you play. Costs a little on a paid brain.	Ji kalba apie jūsų žaidimą, kol žaidžiate. Mokamoms smegenims šiek tiek kainuoja.
+She uses it when she plays	Ji tai naudoja, kai žaidžia
+Short	Trumpas
+Shortest wait (minutes)	Trumpiausias laukimas (minutėmis)
+Show Capri	Rodyti Capri
+Show QR	Rodyti QR
+Show my mod file	Rodyti mano modifikacijos failą
+Show on Discord	Rodyti Discord
+Shum, what time is it	Shum, kiek valandų
+Sign in	Prisijungti
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Prisijunkite, sukurkite raktą ir nukopijuokite jį. Tada paspauskite Įklijuoti, ir prisijungsiu.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Prisijunkite, paspauskite Sukurti API raktą ir nukopijuokite jį. Tada paspauskite Įklijuoti, ir prisijungsiu.
+Silent · text only	Tylus · tik tekstas
+Simple / Advanced Settings	Paprasti / Išplėstiniai nustatymai
+Simple Settings	Paprasti nustatymai
+Simple Settings left a gap under Check in on me	Paprasti nustatymai paliko tarpą po Patikrink, kaip aš
+Sit here	Sėdėti čia
+Sit on windows	Sėdėti ant langų
+Size	Dydis
+Skip	Praleisti
+Skip all	Praleisti visus
+Skip for now	Kol kas praleisti
+Sleep	Miegoti
+Small	Mažas
+Sometimes	Kartais
+Sound effects volume	Garso efektų garsumas
+Sound sensitivity	Garso jautrumas
+Sounds	Garsai
+Speaker or clip	Garsiakalbis arba klipas
+Speech model	Kalbos modelis
+Speed	Greitis
+Start with Windows	Paleisti kartu su Windows
+Start with this!	Pradėti nuo šio!
+Starting...	Paleidžiama...
+Stay on my model	Likti prie mano modelio
+Still checking your mics...	Vis dar tikrinami jūsų mikrofonai...
+Still checking your speakers...	Vis dar tikrinami jūsų garsiakalbiai...
+Still checking your virtual mics...	Vis dar tikrinami jūsų virtualūs mikrofonai...
+Stop	Stabdyti
+Stopped using it. Couldn't remove the saved provider.	Nustota jį naudoti. Nepavyko pašalinti išsaugoto tiekėjo.
+Support	Palaikymas
+Sure?	Tikrai?
+Sure? moved to a different phone	Tikrai? perkelta į kitą telefoną
+TALK TO ME	KALBĖK SU MANIMI
+TEXT ONLY	TIK TEKSTAS
+Tab landed past the first option of	Tab nukrito už pirmosios parinkties
+Tab never reached the quiet key	Tab niekada nepasiekė tylos klavišo
+Tab reached nothing	Tab nieko nepasiekė
+Tab selected a control without moving keyboard focus	Tab pasirinko valdymo elementą nejudindamas klaviatūros fokuso
+Talk	Kalbėti
+Talk key	Kalbėjimo klavišas
+Talk:	Kalbėti:
+Talk: Ctrl + Alt + V	Kalbėti: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Tikslinis įrašymo kadrų dažnis; gali kristi esant apkrovai arba atminties biudžetui
+Teases when another AI comes to the front.	Erzina, kai į priekį išeina kitas AI.
+Test	Testas
+That address doesn't work. Try https://... or http://localhost:{0}.	Tas adresas neveikia. Bandykite https://... arba http://localhost:{0}.
+That code expired	Tas kodas nebegalioja
+That mod is no longer installed. The list is updated.	Ta modifikacija nebeįdiegta. Sąrašas atnaujintas.
+That's a paid key: it goes under MAX INTELLIGENCE.	Tai mokamas raktas: jis patenka po MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe liko sukomponuotas slystant.
+The Mainframe stayed uncomposited after the slide.	Mainframe liko nesukomponuotas po slinkimo.
+The controls moved while the picture was sliding.	Valdymo elementai pajudėjo, kol paveikslėlis slydo.
+The cover stayed visible after the slide ended.	Viršelis liko matomas pasibaigus slinkimui.
+The frame thread kept running after the page settled.	Kadrų gija toliau veikė, kai puslapis nusistovėjo.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Ilgiausias atsakymas, kurį ji gali duoti, žetonais. Auto laikosi aukščiau esančių Atsakymų; {0}K arba {1}K leidžia jai veikti toliau. Darbai prireikus turi daugiau vietos
+The longest wait must be at least the shortest wait.	Ilgiausias laukimas turi būti bent jau trumpiausias laukimas.
+The picture doesn't match the scrolled page:	Paveikslėlis neatitinka slinkto puslapio:
+The picture of Settings doesn't match the page:	Nustatymų paveikslėlis neatitinka puslapio:
+The picture stayed up after the slide ended.	Paveikslėlis liko rodomas pasibaigus slinkimui.
+The picture wasn't showing while it slid.	Paveikslėlis nebuvo rodomas, kol slydo.
+The provider sheet is crowded:	Tiekėjų lentelė perpildyta:
+The voice panel has no screen DPI.	Balso skydelis neturi ekrano DPI.
+The voice panel's menus share one font.	Balso skydelio meniu naudoja vieną šriftą.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Iškarpinėje dar nėra rakto. Nukopijuokite jį iš puslapio, tada paspauskite Įklijuoti.
+These start off. Each costs a little or uses your mic.	Šie pradžioje išjungti. Kiekvienas šiek tiek kainuoja arba naudoja jūsų mikrofoną.
+These start off. Turn on what you want. They're all in Settings too.	Šie pradžioje išjungti. Įjunkite tai, ko norite. Visi jie taip pat yra Nustatymuose.
+They can also call you Big Z, Capricorn or Nova	Jie taip pat gali vadinti jus Big Z, Capricorn arba Nova
+They can also call you Nova, Big Z or Capricorn	Jie taip pat gali vadinti jus Nova, Big Z arba Capricorn
+Thinking	Mąstoma
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Tai mano nemokamas balsas. Paspauskite Testas, ką nors pasakykite, ir parodysiu, kad jus girdžiu.
+This mod has no description yet.	Šios modifikacijos aprašymo dar nėra.
+Tic-tac-toe	Kryžiukai nuliukai
+Time between glances	Laikas tarp žvilgsnių
+Tiny	Labai mažas
+Try again	Bandyti dar kartą
+Turn Remote on first	Pirmiausia įjunkite Nuotolinį
+Turn off mini player	Išjungti mini grotuvą
+Turn push to talk off	Išjungti kalbėjimą paspaudžiant
+Turning the wheel the other way kept the page heading the old way, to	Ratuko sukimas kita kryptimi išlaikė puslapį senąja kryptimi, į
+Type	Rašyti
+Type key	Rašymo klavišas
+Type to me	Rašykite man
+Type:	Rašyti:
+Type: Ctrl + Alt + T	Rašyti: Ctrl + Alt + T
+Typing sound	Rašymo garsas
+Unpacked. Press Test to hear it.	Išpakuota. Paspauskite Testas, kad jį išgirstumėte.
+Unsaved changes.	Neišsaugoti pakeitimai.
+Up to {0} fps	Iki {0} kadrų per sekundę
+Up to {0}p	Iki {0}p
+Update	Atnaujinti
+Update available.	Galimas atnaujinimas.
+Update mods	Atnaujinti modifikacijas
+Updating...	Atnaujinama...
+Use	Naudoti
+Use her cursor	Naudoti jos žymeklį
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Tiekėjui kitur naudokite https://. Raktas per paprastą http nėra saugus.
+Use preset	Naudoti išankstinį nustatymą
+Use saved	Naudoti išsaugotą
+Use this server	Naudoti šį serverį
+Using your provider with a key	Naudojamas jūsų tiekėjas su raktu
+Using your server with no key	Naudojamas jūsų serveris be rakto
+VIEW MOD >	PERŽIŪRĖTI MODIFIKACIJĄ >
+VOICE >	BALSAS >
+VOICE IN YOUR MIC >	BALSAS JŪSŲ MIKROFONE >
+VOICE LAYERS >	BALSO SLUOKSNIAI >
+Verbosity	Žodingumas
+Video bitrate	Vaizdo bitų srautas
+View	Peržiūrėti
+View mod	Peržiūrėti modifikaciją
+Voice	Balsas
+Voice ID	Balso ID
+Voice from	Balsas iš
+Voice layers	Balso sluoksniai
+Voice model	Balso modelis
+Voice model:	Balso modelis:
+Voice name or ID, optional	Balso pavadinimas arba ID, neprivaloma
+Voice server address, or a voice model's folder	Balso serverio adresas arba balso modelio aplankas
+Voice status	Balso būsena
+Voice, key and model...	Balsas, raktas ir modelis...
+Volume	Garsumas
+WAKE ME UP >	PAŽADINK MANE >
+WATCH >	ŽIŪRĖTI >
+Waiting for the relay	Laukiama relay
+Wake her up	Pažadinti ją
+Waking her up	Ji žadinama
+Wander	Klaidžioti
+Wander around	Klaidžioti aplinkui
+Watch my screen	Stebėti mano ekraną
+Watch-along memory	Bendro žiūrėjimo atmintis
+Weather	Oras
+Weather city	Oro miestas
+Welcome back, choom. Let's finish setting me up.	Sveiki sugrįžę, choom. Užbaikime mane nustatyti.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Ką ji daro jūsų PC neklausdama. Su išjungtu jungikliu ji pirmiausia klausia ir daro, kai sakote taip.
+What should she call you?	Kaip ji turėtų jus vadinti?
+When she types	Kai ji rašo
+White	Balta
+Windows default	Windows numatytasis
+Windows did not give Settings keyboard focus	Windows nesuteikė Nustatymams klaviatūros fokuso
+Windows did not return keyboard focus to Back	Windows negrąžino klaviatūros fokuso į Atgal
+With no picture the wheel still tried to slide.	Be paveikslėlio ratukas vis tiek bandė slinkti.
+Works best on MAX INTELLIGENCE.	Geriausiai veikia su MAX INTELLIGENCE.
+YOU	JŪS
+YOU >	JŪS >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	JŪS BALSAS JUDESIAI KLAVIŠAI ŽAIDIMAI KLIPAI ORAS DOOMSCROLL CAPRI ŽIŪRĖTI SMEGENYS ĮPROČIAI GARSAI
+YOUR KEY	JŪSŲ RAKTAS
+YOUR MIC	JŪSŲ MIKROFONAS
+YOUR PLAN	JŪSŲ PLANAS
+Yokapri what's up	Yokapri, kas vyksta
+You can hide this. It keeps going, and the Mainframe shows it too.	Galite tai paslėpti. Tai tęsiasi, ir Mainframe taip pat tai rodo.
+Your mic and her voice go into one virtual mic, and	Jūsų mikrofonas ir jos balsas patenka į vieną virtualų mikrofoną, ir
+Your mic is muted. Unmute it to test.	Jūsų mikrofonas nutildytas. Įjunkite garsą, kad išbandytumėte.
+Your mods are up to date.	Jūsų modifikacijos atnaujintos.
+Your name or a nickname	Jūsų vardas arba slapyvardis
+Your own model	Jūsų pačių modelis
+Your personality	Jūsų asmenybė
+Your voice	Jūsų balsas
+Your voice (HD)	Jūsų balsas (HD)
+Your voice (HD) · pick a clip of you...	Jūsų balsas (HD) · pasirinkite savo klipą...
+Your voice model	Jūsų balso modelis
+as its mic.	kaip jos mikrofonas.
+changed. Saved as My Colors, so you can share it.	pakeista. Išsaugota kaip Mano spalvos, kad galėtumėte ja pasidalinti.
+choice	pasirinkimas
+clips the input line	įrašo įvesties eilutę
+cue	signalas
+doesn't yet.	dar ne.
+download	atsisiųsti
+file.	failas.
+flag	vėliavėlė
+fps	kps
+hear	girdėti
+hears	girdi
+hears that.	tai girdi.
+hides or shows her.	slepia arba rodo ją.
+hint	užuomina
+in the Mainframe.	Mainframe.
+in the mods directory with a pull request.	modifikacijų aplanke su pull request.
+in the picture wasn't noticed.	paveikslėlyje nepastebėta.
+is already her push-to-talk key.	jau yra jos kalbėjimo paspaudžiant klavišas.
+is off.	išjungta.
+is on and running.	įjungta ir veikia.
+is on, at the bottom, under	įjungta, apačioje, po
+is on.	įjungta.
+is on. She now answers to	įjungta. Dabar ji atsako į
+is removed.	pašalinta.
+is taken	užimta
+is taken by another app. Try another.	užimta kitos programos. Bandykite kitą.
+is updated	atnaujinta
+isn't hearing it yet: do {0} and {1}, then join a call.	dar negirdi: atlikite {0} ir {1}, tada prisijunkite prie skambučio.
+it now.	dabar.
+keeps her quiet, and lets her talk again.	palaiko ją tylią ir leidžia vėl kalbėti.
+key	raktas
+key.	raktas.
+min	min
+more.	daugiau.
+ms.	ms.
+mutes mic	nutildo mikrofoną
+mutes your mic.	nutildo jūsų mikrofoną.
+name	vardas
+off	išjungta
+on this PC	šiame PC
+opens her Mainframe.	atidaro jos Mainframe.
+opens her typing box.	atidaro jos rašymo langelį.
+phone	telefonas
+phone pixels	telefono pikseliai
+phones	telefonai
+pixels	pikseliai
+pixels)	pikseliai)
+star.	žvaigždė.
+stars.	žvaigždės.
+starts voice chat.	pradeda balso pokalbį.
+stays off. Nothing ran.	lieka išjungta. Nieko nepaleista.
+still does its own job in other apps too. Confirm to keep it.	vis dar atlieka savo darbą ir kitose programose. Patvirtinkite, kad išliktų.
+tall	aukštas
+time	laikas
+to talk	kalbėti
+to talk to her, with a game in front too.	kalbėti su ja, net kai žaidimas priekyje.
+too.	taip pat.
+turns Gaming Mode on and off.	įjungia ir išjungia Žaidimų režimą.
+with Ollama	su Ollama
+won't type in other apps while she runs. Confirm to keep it.	nerašys kitose programose, kol ji veikia. Patvirtinkite, kad išliktų.
+{0}   Echo Cancellation: Off	{0}   Aidų slopinimas: Išjungta
+{0}   If her voice cuts off, turn off noise filtering	{0}   Jei jos balsas nutrūksta, išjunkite triukšmo filtravimą
+{0}   Input Device:	{0}   Įvesties įrenginys:
+{0}   Join the call and check they hear both of you	{0}   Prisijunkite prie skambučio ir patikrinkite, ar jie girdi jus abu
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofono testas > Patikrinkime: girdėsite save ir ją, kai ji kalba
+{0}   Microphone:	{0}   Mikrofonas:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Triukšmo slopinimas: Nėra. Abu gali nutraukti jos balsą po pirmos eilutės.
+{0}   Open the call or meeting's audio settings	{0}   Atidarykite skambučio ar susitikimo garso nustatymus
+{0}   Output Device: your headphones, like before	{0}   Išvesties įrenginys: jūsų ausinės, kaip anksčiau
+{0}   Speaker: your headphones, like before	{0}   Garsiakalbis: jūsų ausinės, kaip anksčiau
+{0}   Try a mic test in your call app	{0}   Išbandykite mikrofoną savo skambučių programoje
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Vartotojo nustatymai (krumpliaratis šalia vardo) > Balsas ir vaizdas
+{0} Mbps	{0} Mbps
+{0} lines	{0} eilutės
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· šiame PC
+· server	· serveris
