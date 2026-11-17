@@ -3779,6 +3779,7 @@ namespace CapriDesktop
 #endif
 #if !CROSS
             if (CallSession.Blank(said)) { tool = null; args = new ToolArguments(); return false; }
+            if (CapriDesktop.WatchAlong.Request(said) == "scroll") { tool = "watch_along"; args = new ToolArguments { Action = "scroll" }; return true; }
 #endif
             if (Planned(said, out tool, out args)) return true;
             List<string> tries = new List<string>();
