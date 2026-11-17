@@ -41159,6 +41159,10 @@ namespace CapriDesktop
                     "Free voice:",
                     "Remove free voice",
                     "Sitting:",
+                    "Doomscroll guard:",
+                    "Mic:",
+                    "Game sounds:",
+                    "GAMES > Sound sensitivity",
                     "Word and Excel:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);

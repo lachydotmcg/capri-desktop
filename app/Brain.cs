@@ -41,6 +41,9 @@ namespace CapriDesktop
             + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
             + "Free voice: Remove free voice frees its space, and she downloads it cleanly again if a file goes missing or empty. From bugnugg3t.\n"
             + "Sitting: she keeps facing the middle while she draws sitting down. From Yoplaxs.\n"
+            + "Doomscroll guard: turn it on in her Mainframe and past your scroll limit on TikTok, Shorts, Instagram, Reddit or X she nudges you, sits on the window, then sulks until you put it down. Ask for five more minutes and you get five. From thiiago-dev.\n"
+            + "Mic: she stops saying Windows is blocking the mic when your own mic switch is on. From Yoplaxs.\n"
+            + "Game sounds: GAMES > Sound sensitivity turns down how loud a game sound has to be before she reacts. From shm9000 and Yoplaxs.\n"
             + "Word and Excel: she turns away documents that unpack too big or nest too deep.";
         internal const string Line = "I just updated to " + Version + ": I can tell you the weather for your city, play your own playlist and high five you now. Ask me what's new.";
 #endif
