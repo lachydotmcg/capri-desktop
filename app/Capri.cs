@@ -41198,6 +41198,7 @@ namespace CapriDesktop
                     "Free voice:",
                     "Remove free voice",
                     "Sitting:",
+                    "Sulks:",
                     "Doomscroll guard:",
                     "Mic:",
                     "Game sounds:",

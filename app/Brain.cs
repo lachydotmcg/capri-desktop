@@ -20,6 +20,7 @@ namespace CapriDesktop
             + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
             + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
             + "Talk boxes: closing her bubble, pill or typing box from your desktop only hides it, so it comes back next time. From Yoplaxs.\n"
+            + "Sulks: a fast fling counts as a throw now, and three throws in two minutes gets her sulk: she won't take a pat at first and turns her back on you, and a sorry, a later pat or five minutes alone makes up with her. From fadievr.\n"
             + (OperatingSystem.IsLinux()
                 ? "Capri Remote: chat and photos from your phone work with Linux too."
                 : "Updates: Get new version downloads her new version, checks it, swaps her Capri.app and starts her again, and puts the old one back if the new one won't stay open. From \u2600SUNNY\u2600.\n"
@@ -41,6 +42,7 @@ namespace CapriDesktop
             + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
             + "Free voice: Remove free voice frees its space, and she downloads it cleanly again if a file goes missing or empty. From bugnugg3t.\n"
             + "Sitting: she keeps facing the middle while she draws sitting down. From Yoplaxs.\n"
+            + "Sulks: throw her three times in two minutes and for her first 20 seconds she turns down head pats, and on her feet she turns her back on your cursor. From fadievr.\n"
             + "Doomscroll guard: turn it on in her Mainframe and past your scroll limit on TikTok, Shorts, Instagram, Reddit or X she nudges you, sits on the window, then sulks until you put it down. Ask for five more minutes and you get five. From thiiago-dev.\n"
             + "Mic: she stops saying Windows is blocking the mic when your own mic switch is on. From Yoplaxs.\n"
             + "Game sounds: GAMES > Sound sensitivity turns down how loud a game sound has to be before she reacts. From shm9000 and Yoplaxs.\n"
