@@ -10643,6 +10643,8 @@ namespace CapriDesktop
             catch { shot.Dispose(); throw; }
         }
 
+        private static ImageCodecInfo JpegCodec;
+
         internal static byte[] Jpeg(Bitmap picture, int longest)
         {
             double scale = Math.Min(1.0, (double)longest / Math.Max(picture.Width, picture.Height));
@@ -10652,10 +10654,13 @@ namespace CapriDesktop
             {
                 using (Graphics graphics = Graphics.FromImage(small))
                 {
-                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    graphics.DrawImage(picture, 0, 0, width, height);
+                    bool same = width == picture.Width && height == picture.Height;
+                    graphics.CompositingMode = same ? CompositingMode.SourceCopy : CompositingMode.SourceOver;
+                    graphics.InterpolationMode = same ? InterpolationMode.NearestNeighbor : InterpolationMode.HighQualityBicubic;
+                    if (same) graphics.DrawImage(picture, new Rectangle(0, 0, width, height), 0, 0, width, height, GraphicsUnit.Pixel);
+                    else graphics.DrawImage(picture, 0, 0, width, height);
                 }
-                ImageCodecInfo codec = Array.Find(ImageCodecInfo.GetImageEncoders(), found => found.FormatID == ImageFormat.Jpeg.Guid);
+                ImageCodecInfo codec = JpegCodec ?? (JpegCodec = Array.Find(ImageCodecInfo.GetImageEncoders(), found => found.FormatID == ImageFormat.Jpeg.Guid));
                 using (EncoderParameters options = new EncoderParameters(1))
                 using (MemoryStream output = new MemoryStream())
                 {
