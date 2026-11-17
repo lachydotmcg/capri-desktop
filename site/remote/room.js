@@ -7,7 +7,7 @@
   const view = byId('room-view'), video = byId('room-video'), place = byId('room-place'), status = byId('room-status');
   const her = byId('room-her'), sprite = byId('room-sprite'), tint = byId('room-tint'), heart = byId('room-heart');
   const controls = byId('room-controls'), sit = byId('room-sit'), lie = byId('room-lie'), love = byId('room-love');
-  const voice = byId('room-voice'), voiceNote = byId('room-voice-note');
+  const voice = byId('room-voice'), voiceNote = byId('room-voice-note'), record = byId('room-record');
   let voiceOn = true, oldVoice = false;
   try { voiceOn = localStorage.getItem('capri-room-voice') !== 'off'; } catch (error) {}
   voice.setAttribute('aria-pressed', String(voiceOn));
@@ -52,7 +52,13 @@
   let motion = 'unknown', sensing = false, aim = null, seen = null, frameWatch = 0, pen = null, glow = null, lightAt = 0;
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
   let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
-  const EYE = 0.9;
+  let front = false, desk = false, you = null, lookAt = 0, lookPen, lastLook, tape, tapePen, recorder, takes, tapeTimer;
+  const EYE = 0.9, DESK = 0.3, TILT = 14 * D, TALL = 0.24, TAPE = 60000;
+  const tilt = [1, 0, 0, 0, Math.cos(TILT), Math.sin(TILT), 0, -Math.sin(TILT), Math.cos(TILT)];
+  const looker = document.createElement('canvas');
+  looker.width = 32;
+  looker.height = 24;
+  const wide = matchMedia('(min-width: 600px) and (not (pointer: coarse))');
 
   const load = name => {
     if (strips.has(name)) return;
@@ -130,7 +136,9 @@
     drift(now);
     if (!frameWatch) follow(performance.now() - LAG);
     if (now >= lightAt) light(now);
+    if (desk && now >= lookAt) notice(now);
     if (stage) render3d(now);
+    if (recorder) film();
     let clip = clips[act.name];
     let index = Math.max(0, Math.floor((now - act.from) * clip.fps / 1000));
     if (act.once && index >= clip.count) {
@@ -306,7 +314,7 @@
       pen.drawImage(video, (wide - crop[0]) / 2, (high - crop[1]) / 2, crop[0], crop[1], 0, 0, 16, 12);
       data = pen.getImageData(0, 0, 16, 12).data;
     } catch (error) { return; }
-    const hx = her.offsetLeft / width * 16, hy = her.offsetTop / height * 12, sum = [0, 0, 0];
+    const hx = (front ? width - her.offsetLeft : her.offsetLeft) / width * 16, hy = her.offsetTop / height * 12, sum = [0, 0, 0];
     let total = 0;
     for (let i = 0; i < 192; i++) {
       const dx = i % 16 + 0.5 - hx, dy = Math.floor(i / 16) + 0.5 - hy, weight = 0.2 + Math.exp(-(dx * dx + dy * dy) / 12);
@@ -320,6 +328,100 @@
     const peak = Math.max(...cast), target = cast.map(value => value / peak * gain);
     glow = glow ? glow.map((value, i) => value + (target[i] - value) * 0.5) : target;
     tint.style.backgroundColor = 'rgb(' + glow.map(value => Math.round(value * 255)).join(', ') + ')';
+  };
+
+  const notice = now => {
+    lookAt = now + 100;
+    if (!stream || video.readyState < 2 || !video.videoWidth) return;
+    let data;
+    try {
+      lookPen = lookPen || looker.getContext('2d', { willReadFrequently: true });
+      lookPen.drawImage(video, 0, 0, 32, 24);
+      data = lookPen.getImageData(0, 0, 32, 24).data;
+    } catch (error) { return; }
+    const gray = new Float32Array(768);
+    for (let i = 0; i < 768; i++) gray[i] = (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / 3;
+    if (lastLook) {
+      let sum = 0, sx = 0, sy = 0;
+      for (let i = 0; i < 768; i++) {
+        const change = Math.abs(gray[i] - lastLook[i]);
+        if (change < 16) continue;
+        sum += change;
+        sx += change * (i % 32 + 0.5) / 32;
+        sy += change * (Math.floor(i / 32) + 0.5) / 24;
+      }
+      if (sum > 1500) {
+        const spot = [front ? 1 - sx / sum : sx / sum, sy / sum];
+        you = you ? you.map((value, i) => value + (spot[i] - value) * 0.25) : spot;
+      }
+    }
+    lastLook = gray;
+  };
+  const film = () => {
+    const width = tape.width, height = tape.height, wide = video.videoWidth, high = video.videoHeight;
+    if (!wide || !high) return;
+    const scale = Math.max(width / wide, height / high), crop = [width / scale, height / scale];
+    tapePen.save();
+    if (front) { tapePen.translate(width, 0); tapePen.scale(-1, 1); }
+    tapePen.drawImage(video, (wide - crop[0]) / 2, (high - crop[1]) / 2, crop[0], crop[1], 0, 0, width, height);
+    tapePen.restore();
+    if (canvas3d) tapePen.drawImage(canvas3d, 0, 0, width, height);
+    if (!heart.hidden && heart.complete && heart.naturalWidth) {
+      const fit = Math.max(width / heart.naturalWidth, height / heart.naturalHeight);
+      tapePen.drawImage(heart, (width - heart.naturalWidth * fit) / 2, (height - heart.naturalHeight * fit) / 2, heart.naturalWidth * fit, heart.naturalHeight * fit);
+    }
+  };
+  const canRecord = () => desk && !!stage && typeof MediaRecorder === 'function' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
+  const showRecord = () => {
+    record.hidden = !canRecord() || controls.hidden;
+    record.setAttribute('aria-pressed', String(!!recorder));
+    record.textContent = recorder ? 'Stop' : 'Record';
+  };
+  const stopRecording = (keep = true) => {
+    clearTimeout(tapeTimer);
+    const was = recorder;
+    recorder = null;
+    if (was) {
+      if (!keep) was.ondataavailable = was.onstop = null;
+      try { was.stop(); } catch (error) {}
+    }
+    showRecord();
+  };
+  const startRecording = () => {
+    if (recorder || !canRecord()) return;
+    const box = view.getBoundingClientRect(), scale = Math.min(1, 1280 / Math.max(1, box.width), 1280 / Math.max(1, box.height));
+    tape = document.createElement('canvas');
+    tape.width = Math.max(2, Math.round(box.width * scale / 2) * 2);
+    tape.height = Math.max(2, Math.round(box.height * scale / 2) * 2);
+    tapePen = tape.getContext('2d');
+    const type = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(kind => MediaRecorder.isTypeSupported?.(kind)) || '';
+    let made;
+    try { made = new MediaRecorder(tape.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 6000000 } : undefined); } catch (error) {
+      status.textContent = 'Couldn’t start recording.';
+      return;
+    }
+    takes = [];
+    made.ondataavailable = event => { if (event.data?.size) takes.push(event.data); };
+    made.onstop = () => {
+      const kind = made.mimeType || type || 'video/webm', clip = new Blob(takes, { type: kind });
+      takes = [];
+      if (!clip.size) return;
+      const link = document.createElement('a'), stamp = new Date();
+      const pad = value => String(value).padStart(2, '0');
+      link.href = URL.createObjectURL(clip);
+      link.download = 'capri-room-' + stamp.getFullYear() + pad(stamp.getMonth() + 1) + pad(stamp.getDate()) + '-' + pad(stamp.getHours()) + pad(stamp.getMinutes()) + pad(stamp.getSeconds()) + (kind.includes('mp4') ? '.mp4' : '.webm');
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+      if (!room.hidden) status.textContent = 'Saved your clip.';
+    };
+    film();
+    made.start(1000);
+    recorder = made;
+    tapeTimer = setTimeout(() => stopRecording(), TAPE);
+    status.textContent = 'Recording. Tap Stop to save it.';
+    showRecord();
   };
 
   const showMenu = open => {
@@ -336,6 +438,7 @@
     return kitLoading;
   };
   const end3d = () => {
+    stopRecording();
     stage?.dispose();
     stage = null;
     canvas3d?.remove();
@@ -358,6 +461,7 @@
       try { stage = loaded.stage({ canvas }); } catch (error) { canvas.remove(); throw error; }
       canvas3d = canvas;
       her.style.opacity = '0';
+      showRecord();
     } catch (error) {
       no3d = true;
       end3d();
@@ -367,10 +471,16 @@
     let dir;
     if (seen && aim) dir = [aim[0], aim[2], -aim[1]];
     else dir = [(her.offsetLeft - glass.width / 2) / glass.focal, (glass.height / 2 - her.offsetTop) / glass.focal, -1];
+    if (desk) dir = [dir[0], tilt[4] * dir[1] + tilt[5] * dir[2], tilt[7] * dir[1] + tilt[8] * dir[2]];
     const flat = Math.hypot(dir[0], dir[2]);
     if (flat < 1e-4) return null;
-    const far = -dir[1] / flat > 0.05 ? Math.max(0.9, Math.min(6, EYE * flat / -dir[1])) : 6;
-    return [dir[0] / flat * far, -EYE, dir[2] / flat * far];
+    const eye = desk ? DESK : EYE, near = desk ? 0.3 : 0.9, most = desk ? 2.4 : 6;
+    const far = -dir[1] / flat > 0.05 ? Math.max(near, Math.min(most, eye * flat / -dir[1])) : most;
+    return [dir[0] / flat * far, -eye, dir[2] / flat * far];
+  };
+  const lookFor = position => {
+    if (!desk || !you || !position) return null;
+    return [(you[0] - 0.5) * 1.4, position[1] + 0.25, Math.max(position[2] + 0.35, 0.1)];
   };
   const render3d = now => {
     const glass = lens();
@@ -381,10 +491,10 @@
     }
     const position = standAt(glass);
     const m = seen?.m;
-    stage.view(glass.width, glass.height, glass.focal, m ? [m[0], m[1], m[2], m[6], m[7], m[8], -m[3], -m[4], -m[5]] : null);
-    stage.update({ now, position, pose, talking, tint: glow, calm: reduced.matches, turn: sway * 0.04 });
+    stage.view(glass.width, glass.height, glass.focal, m ? [m[0], m[1], m[2], m[6], m[7], m[8], -m[3], -m[4], -m[5]] : desk ? tilt : null);
+    stage.update({ now, position, pose, talking, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? TALL : 0 });
     stage.draw();
-    if (position) her.style.setProperty('--s', Math.max(40, Math.min(320, glass.focal * 0.8 / Math.hypot(position[0], position[1], position[2]))).toFixed(1) + 'px');
+    if (position) her.style.setProperty('--s', Math.max(40, Math.min(320, glass.focal * (desk ? TALL : 0.8) / Math.hypot(position[0], position[1], position[2]))).toFixed(1) + 'px');
   };
   const releaseCamera = () => {
     end3d();
@@ -393,6 +503,11 @@
     stream = null;
     video.srcObject = null;
     video.hidden = true;
+    front = desk = false;
+    you = lastLook = null;
+    delete view.dataset.front;
+    delete view.dataset.desk;
+    delete app.dataset.desk;
     glow = null;
     tint.style.removeProperty('background-color');
   };
@@ -444,7 +559,7 @@
     room.hidden = true;
     track.hidden = true;
     retry.hidden = true;
-    controls.hidden = place.hidden = her.hidden = true;
+    controls.hidden = place.hidden = her.hidden = record.hidden = true;
     delete app.dataset.room;
     delete view.dataset.surface;
     her.style.left = '';
@@ -489,12 +604,22 @@
       video.hidden = false;
       await video.play();
       if (request !== version) return;
+      front = stream.getVideoTracks()[0]?.getSettings?.().facingMode !== 'environment';
+      desk = front && wide.matches;
+      view.toggleAttribute('data-front', front);
+      view.toggleAttribute('data-desk', desk);
+      app.toggleAttribute('data-desk', desk);
+      if (desk) {
+        her.style.left = '74%';
+        her.style.top = '90%';
+      }
       place.hidden = her.hidden = controls.hidden = false;
+      showRecord();
       arrive();
       startMotion();
       begin3d(request);
       track.hidden = !arAvailable;
-      status.textContent = lead + 'Drag Capri to move her.';
+      status.textContent = lead + (desk ? 'Drag Capri anywhere on your desk.' : 'Drag Capri to move her.');
       for (const item of stream.getVideoTracks()) item.addEventListener('ended', () => {
         if (request !== version) return;
         releaseCamera();
@@ -535,7 +660,7 @@
     let active;
     try {
       active = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test', 'dom-overlay'], domOverlay: { root: app }
+        requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay'], domOverlay: { root: app }
       });
       if (request !== version) { await active.end(); return; }
       session = active;
@@ -545,6 +670,7 @@
         session = null;
         closeRoom(true);
       }, { once: true });
+      if (!active.domOverlayState) active.addEventListener('select', () => { if (active === session && surface) seat = surface; });
       active.addEventListener('visibilitychange', () => {
         if (active === session && active.visibilityState === 'hidden') closeRoom();
       });
@@ -651,6 +777,7 @@
   retry.addEventListener('click', () => { askMotion(); if (arAvailable && !stream) startAR(); else openCamera(); });
   track.addEventListener('click', () => { close.focus(); startAR(); });
   sit.addEventListener('click', () => setPose('perch'));
+  record.addEventListener('click', () => { if (recorder) stopRecording(); else startRecording(); });
   lie.addEventListener('click', () => setPose('laydown'));
   const showHeart = () => {
     if (heartWanted && heartState === 'loading') return;

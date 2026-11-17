@@ -65,6 +65,56 @@ test('the phone room camera starts on request and releases its tracks', { skip: 
     await site.close();
   }
 });
+test('room on a pc webcam mirrors you, sits her on your desk, records a clip and lets go of everything', { skip: !chromePath() }, async () => {
+  const site = await startSite(8982);
+  let page;
+  try {
+    page = await launch({ port: 9492, width: 1280, height: 800, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'] });
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      window.cameraStreams = [];
+      window.clipsSaved = [];
+      const media = navigator.mediaDevices;
+      const native = media.getUserMedia.bind(media);
+      media.getUserMedia = async constraints => { const stream = await native(constraints); cameraStreams.push(stream); return stream; };
+      const click = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () { if (this.download) clipsSaved.push(this.download); else click.call(this); };
+    ` });
+    await page.go('http://127.0.0.1:8982/?demo');
+    await page.until("document.getElementById('app').dataset.screen === 'chat'", 'demo chat');
+    const click = id => page.run("document.getElementById('" + id + "').click()");
+    await click('room-camera');
+    await click('room-open');
+    await page.until("!document.getElementById('room-controls').hidden", 'camera controls');
+    assert.equal(await page.run("document.getElementById('room-view').hasAttribute('data-desk')"), true);
+    assert.equal(await page.run("document.getElementById('app').hasAttribute('data-desk')"), true);
+    assert.equal(await page.run("getComputedStyle(document.getElementById('room-video')).transform"), 'matrix(-1, 0, 0, 1, 0, 0)');
+    assert.equal(await page.run("document.getElementById('room-status').textContent"), 'Drag Capri anywhere on your desk.');
+    assert.equal(await page.run("document.getElementById('room-her').style.left"), '74%');
+    assert.ok(await page.run("document.getElementById('room').getBoundingClientRect().height") >= 440);
+    if (await page.run("!!document.querySelector('#room-view canvas')")) {
+      await page.until("!document.getElementById('room-record').hidden", 'record button');
+      await click('room-record');
+      assert.equal(await page.run("document.getElementById('room-record').getAttribute('aria-pressed')"), 'true');
+      await page.until("document.getElementById('room-status').textContent.startsWith('Recording')", 'recording');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await click('room-record');
+      await page.until('clipsSaved.length === 1', 'saved clip');
+      assert.match(await page.run('clipsSaved[0]'), /^capri-room-\d{8}-\d{6}\.(mp4|webm)$/);
+      await click('room-record');
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      await click('room-close');
+      assert.equal(await page.run("document.getElementById('room-record').hidden"), true);
+      await page.until('clipsSaved.length === 2', 'clip saved on close');
+    } else await click('room-close');
+    assert.equal(await page.run("cameraStreams[0].getVideoTracks()[0].readyState"), 'ended');
+    assert.equal(await page.run("document.getElementById('app').hasAttribute('data-desk')"), false);
+    assert.equal(await page.run("document.getElementById('room-view').hasAttribute('data-front')"), false);
+  } finally {
+    if (page) await page.close();
+    await site.close();
+  }
+});
+
 import { roomRig, roomPosition, roomPointer, dragRoom } from './lib/room.mjs';
 import { tone } from './lib/live.mjs';
 import { verifyArt } from './lib/room-art.mjs';

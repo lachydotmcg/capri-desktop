@@ -105,3 +105,7 @@
   .app[data-room="camera"] .room-view,
   .app[data-room="camera"].on-call .room-view { min-height: 150px; }
 }
+.room-view[data-front] video { transform: scaleX(-1); }
+.room .room-controls #room-record[aria-pressed="true"] { --face: var(--hot); --rim: var(--hot); --ink: var(--on-ink); }
+.app[data-room="camera"][data-desk] .room { flex: 1 1 auto; min-height: min(520px, 66vh); }
+

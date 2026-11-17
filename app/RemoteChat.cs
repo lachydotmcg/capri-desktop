@@ -261,6 +261,14 @@ namespace CapriDesktop
             mainframe.RemoteChanged();
         }
 
+        internal void RemoteOpenHere()
+        {
+            RemoteLink link = remoteLink;
+            string url = link == null || link.QrSeconds <= 0 ? null : link.Qr;
+            if (url == null || !url.StartsWith("https://", StringComparison.Ordinal)) return;
+            Browse(url + "&via=pc");
+        }
+
         // The sheet closed: the relay forgets an open code, and a phone still waiting gets a no.
         internal void RemoteCloseCode()
         {

@@ -129,7 +129,8 @@ export const load = async base => {
       root.rotation.set(0, yaw, 0);
 
       const seconds = now / 1000;
-      const metres = HEIGHT[xr ? 'xr' : 'camera'] / 384;
+      const tall = state.tall || HEIGHT[xr ? 'xr' : 'camera'];
+      const metres = tall / 384;
       let name = rest, index = 0;
       if (!calm) {
         if (once) {
@@ -155,11 +156,11 @@ export const load = async base => {
 
       const size = pose === 'lie' ? pop((now - since) / 1000) : 1;
       const bob = calm ? 0 : (Math.sin(seconds * 1.7) * 0.5 + 0.5) * 0.04;
-      const lift = (FLOAT + bob) * HEIGHT[xr ? 'xr' : 'camera'] / 0.8;
+      const lift = (FLOAT + bob) * tall / 0.8;
       body.position.y = lift * size;
       body.scale.set(size, size, 1);
 
-      const high = bob / 0.04, extent = BODY[pose], scale = HEIGHT[xr ? 'xr' : 'camera'] * size;
+      const high = bob / 0.04, extent = BODY[pose], scale = tall * size;
       shade.position.set(there[0], there[1] + 0.004, there[2]);
       shade.rotation.set(-Math.PI / 2, yaw, 0);
       shade.scale.set(extent[0] * scale * (1 - 0.08 * high), extent[1] * scale * (1 - 0.08 * high), 1);
