@@ -514,6 +514,28 @@ namespace CapriDesktop
             }
         }
 
+        internal static unsafe double ShrinkMs(int width, int height, int wide, int rounds)
+        {
+            int tall = Math.Max(1, (int)((long)height * wide / width));
+            byte[] frame = new byte[(long)width * height * 4];
+            new Random(7).NextBytes(frame);
+            using (Bitmap picture = new Bitmap(wide, tall, PixelFormat.Format32bppRgb))
+            {
+                BitmapData target = picture.LockBits(new Rectangle(0, 0, wide, tall), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+                try
+                {
+                    fixed (byte* source = frame)
+                    {
+                        Shrink(source, 4, width * 4, width, height, target, wide, tall);
+                        Stopwatch spent = Stopwatch.StartNew();
+                        for (int i = 0; i < rounds; i++) Shrink(source, 4, width * 4, width, height, target, wide, tall);
+                        return spent.Elapsed.TotalMilliseconds / rounds;
+                    }
+                }
+                finally { picture.UnlockBits(target); }
+            }
+        }
+
         // Each pixel out is the average of the frame's pixels under it, so text and a game's HUD lines don't shimmer. At the same
         // size it's a plain copy.
         private static unsafe void Shrink(byte* source, int across, int down, int width, int height, BitmapData target, int wide, int tall)

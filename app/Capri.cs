@@ -26747,7 +26747,7 @@ namespace CapriDesktop
         private void SmokePerf(System.Collections.Generic.List<string> checks)
         {
             bool framesWas = frames.Enabled, signalsWas = signals.Enabled, hiddenWas = hidden, dockedWas = docked;
-            bool timingWas = bodyTiming;
+            bool timingWas = bodyTiming, busyWas = frontBusy, throughWas = fullThrough;
             bool ridingWas = riding, panelWas = onPanel, fallingWas = falling, draggingWas = dragging, lyingWas = lying, walkingWas = walking;
             bool motionWas = preferences.Motion, facingWas = facingLeft, veilWas = veiled;
             int saverWas = preferences.PowerSaver, fpsWas = preferences.PerchFps, intervalWas = frames.Interval, targetWas = walkTo;
@@ -26780,14 +26780,17 @@ namespace CapriDesktop
                 preferences.PerchFps = 30;
                 Rectangle room = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
                 Point origin = new Point(room.Left + (room.Width - Width) / 2, room.Top + (room.Height - Height) / 2);
-                foreach (string scene in new[] { "idle", "perched", "lying", "walking" })
+                foreach (string scene in new[] { "idle", "perched", "lying", "walking", "game" })
                 {
+                    bool game = scene == "game";
+                    preferences.PowerSaver = game ? 1 : 0;
+                    frontBusy = fullThrough = game;
                     anchor = origin;
                     Location = anchor;
                     facingLeft = false;
                     lying = scene == "lying";
                     walking = scene == "walking";
-                    seat = scene == "perched" || lying ? new Ledge { Floor = true, Left = room.Left, Right = room.Right, Y = room.Bottom } : null;
+                    seat = scene == "perched" || game || lying ? new Ledge { Floor = true, Left = room.Left, Right = room.Right, Y = room.Bottom } : null;
                     if (seat != null) anchor = Seated(room.Left + room.Width / 2, seat.Y);
                     seatMovedAt = -10;
                     leanAngle = 0;
@@ -26852,10 +26855,15 @@ namespace CapriDesktop
                             Width, Height, drawnBounds.Width, drawnBounds.Height));
                     }
                 }
+                foreach (Size game in new[] { new Size(1920, 1080), new Size(2560, 1440), new Size(3840, 2160) })
+                    checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_shrink game={0}x{1} to480_ms={2:0.000} to1280_ms={3:0.000}",
+                        game.Width, game.Height, FrameGrab.ShrinkMs(game.Width, game.Height, 480, 10), FrameGrab.ShrinkMs(game.Width, game.Height, 1280, 5)));
             }
             finally
             {
                 bodyTiming = timingWas;
+                frontBusy = busyWas;
+                fullThrough = throughWas;
                 frames.Stop();
                 hidden = hiddenWas; docked = dockedWas; riding = ridingWas; onPanel = panelWas; falling = fallingWas; dragging = draggingWas;
                 lying = lyingWas; walking = walkingWas; facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; sulkSince = sulkWas;
