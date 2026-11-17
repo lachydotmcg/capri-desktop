@@ -52,6 +52,7 @@
   let motion = 'unknown', sensing = false, aim = null, seen = null, frameWatch = 0, pen = null, glow = null, lightAt = 0;
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
   let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
+  let makeLife, life = null, lifeAt = 0, spots = [], hand = null;
   let front = false, desk = false, you = null, lookAt = 0, lookPen, lastLook, tape, tapePen, recorder, takes, tapeTimer;
   const EYE = 0.9, DESK = 0.3, TILT = 14 * D, TALL = 0.24, TAPE = 60000;
   const tilt = [1, 0, 0, 0, Math.cos(TILT), Math.sin(TILT), 0, -Math.sin(TILT), Math.cos(TILT)];
@@ -175,9 +176,10 @@
     }
     show(name, cell);
   };
-  const setPose = next => {
+  const setPose = (next, fromLife = false) => {
     const was = pose;
     pose = next;
+    if (!fromLife && life?.position) life.setPose(next, performance.now());
     sit.setAttribute('aria-pressed', String(pose === 'perch'));
     lie.setAttribute('aria-pressed', String(pose === 'laydown'));
     if (next === was) return;
@@ -230,6 +232,7 @@
     if (!glass) return;
     const m = facing(time);
     seen = { m, glass };
+    if (life?.position) return;
     if (!aim || drag) {
       aim = toRoom(seen, her.offsetLeft, her.offsetTop);
       return;
@@ -433,12 +436,14 @@
   const stopTracks = active => active?.getTracks().forEach(item => item.stop());
   const ensure3d = () => {
     if (no3d) return Promise.reject(new Error('3D unavailable'));
-    kitLoading = kitLoading || import('./room3d.js').then(module => module.load(own)).then(loaded => { kit = loaded; return loaded; });
+    kitLoading = kitLoading || Promise.all([import('./room3d.js'), import('./room-life.js')])
+      .then(([module, alive]) => module.load(own).then(loaded => { kit = loaded; makeLife = alive.createLife; return loaded; }));
     kitLoading.catch(() => { no3d = true; });
     return kitLoading;
   };
   const end3d = () => {
     stopRecording();
+    if (!session) { life = null; lifeAt = 0; }
     stage?.dispose();
     stage = null;
     canvas3d?.remove();
@@ -446,6 +451,10 @@
     her.style.removeProperty('opacity');
   };
   const endXr = () => {
+    life = null;
+    lifeAt = 0;
+    spots = [];
+    hand = null;
     xr3d?.dispose();
     xr3d = null;
     her.style.removeProperty('opacity');
@@ -478,6 +487,66 @@
     const far = -dir[1] / flat > 0.05 ? Math.max(near, Math.min(most, eye * flat / -dir[1])) : most;
     return [dir[0] / flat * far, -eye, dir[2] / flat * far];
   };
+  const sayLine = text => { if (!room.hidden) status.textContent = text; };
+  const newLife = tall => makeLife ? makeLife({ tall, say: sayLine, calm: () => reduced.matches }) : null;
+  const turnOf = () => {
+    const m = seen?.m;
+    return m ? [m[0], m[1], m[2], m[6], m[7], m[8], -m[3], -m[4], -m[5]] : desk ? tilt : [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  };
+  const rayAt = (glass, x, y) => {
+    const r = turnOf(), v = [(x - glass.width / 2) / glass.focal, (glass.height / 2 - y) / glass.focal, -1];
+    return [r[0] * v[0] + r[1] * v[1] + r[2] * v[2], r[3] * v[0] + r[4] * v[1] + r[5] * v[2], r[6] * v[0] + r[7] * v[1] + r[8] * v[2]];
+  };
+  const screenOf = (glass, p) => {
+    const r = turnOf(), c = [r[0] * p[0] + r[3] * p[1] + r[6] * p[2], r[1] * p[0] + r[4] * p[1] + r[7] * p[2], r[2] * p[0] + r[5] * p[1] + r[8] * p[2]];
+    if (c[2] > -0.02) return null;
+    return [glass.width / 2 + glass.focal * c[0] / -c[2], glass.height / 2 - glass.focal * c[1] / -c[2]];
+  };
+  const floorY = () => desk ? -DESK : -EYE;
+  const onFloor = (glass, x, y) => {
+    const d = rayAt(glass, x, y);
+    if (d[1] > -0.02) return null;
+    const t = floorY() / d[1], far = desk ? 2.4 : 6, flat = Math.hypot(d[0], d[2]) * t;
+    const k = flat > far ? far / flat : 1;
+    return [d[0] * t * k, floorY(), d[2] * t * k];
+  };
+  const cameraWorld = glass => ({
+    viewer: [0, 0, 0],
+    busy: talking,
+    groundAt: () => floorY(),
+    raised: () => false,
+    nearby: () => onFloor(glass, glass.width * 0.5, glass.height * 0.8) || life.home,
+    contain: (p, v) => {
+      if (!desk) return;
+      const near = onFloor(glass, glass.width / 2, glass.height * 0.97), far = onFloor(glass, glass.width / 2, glass.height * 0.5);
+      if (near && p[2] > near[2] && v[2] > 0) { p[2] = near[2]; v[2] *= -0.4; }
+      if (far && p[2] < far[2] && v[2] < 0) { p[2] = far[2]; v[2] *= -0.4; }
+      if (p[2] > -0.05) return;
+      const edge = -p[2] * (glass.width / 2 - 24) / glass.focal;
+      if (p[0] < -edge && v[0] < 0 || p[0] > edge && v[0] > 0) {
+        p[0] = Math.max(-edge, Math.min(edge, p[0]));
+        v[0] *= -0.5;
+      }
+    },
+    wander: (from, home) => {
+      for (let tries = 0; tries < 8; tries++) {
+        const reach = desk ? 0.22 : 0.9, angle = Math.random() * Math.PI * 2, far = reach * (0.3 + Math.random() * 0.7);
+        const spot = [home[0] + Math.cos(angle) * far, floorY(), home[2] + Math.sin(angle) * far];
+        const at = screenOf(glass, spot);
+        if (!desk || at && at[0] > glass.width * 0.12 && at[0] < glass.width * 0.88 && at[1] > glass.height * 0.55 && at[1] < glass.height * 0.96) return spot;
+      }
+      return null;
+    }
+  });
+  const lifeClip = now => life ? { pose: life.pose, clip: life.clip(now), heading: life.mode === 'walk' ? life.face : null } : { pose };
+  const syncLife = () => {
+    if (life && life.pose !== pose && life.mode !== 'held' && life.mode !== 'fly') setPose(life.pose, true);
+  };
+  const lifeStep = now => {
+    const dt = lifeAt ? (now - lifeAt) / 1000 : 0;
+    lifeAt = now;
+    return dt;
+  };
   const lookFor = position => {
     if (!desk || !you || !position) return null;
     return [(you[0] - 0.5) * 1.4, position[1] + 0.25, Math.max(position[2] + 0.35, 0.1)];
@@ -489,12 +558,32 @@
       stage.draw();
       return;
     }
-    const position = standAt(glass);
     const m = seen?.m;
     stage.view(glass.width, glass.height, glass.focal, m ? [m[0], m[1], m[2], m[6], m[7], m[8], -m[3], -m[4], -m[5]] : desk ? tilt : null);
-    stage.update({ now, position, pose, talking, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? TALL : 0 });
+    if (!life && makeLife) life = newLife(desk ? TALL : 0.8);
+    if (life && !life.position) {
+      const start = standAt(glass);
+      if (start) { life.place(start, now); life.setPose(pose, now); }
+    }
+    const world = cameraWorld(glass), dt = lifeStep(now);
+    if (life?.position) {
+      if (drag?.grabbed && drag.at) life.drag(drag.at(glass), now);
+      life.tick(now, dt, world);
+      syncLife();
+    }
+    const position = life?.position || standAt(glass);
+    stage.update({ now, position, ...lifeClip(now), talking, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? TALL : 0, ground: floorY() });
     stage.draw();
-    if (position) her.style.setProperty('--s', Math.max(40, Math.min(320, glass.focal * (desk ? TALL : 0.8) / Math.hypot(position[0], position[1], position[2]))).toFixed(1) + 'px');
+    if (!position) return;
+    her.style.setProperty('--s', Math.max(40, Math.min(320, glass.focal * (desk ? TALL : 0.8) / Math.hypot(position[0], position[1], position[2]))).toFixed(1) + 'px');
+    if (life?.position) {
+      const at = screenOf(glass, position);
+      her.style.visibility = at ? '' : 'hidden';
+      if (at) {
+        her.style.left = (at[0] / glass.width * 100).toFixed(2) + '%';
+        her.style.top = (at[1] / glass.height * 100).toFixed(2) + '%';
+      }
+    }
   };
   const releaseCamera = () => {
     end3d();
@@ -534,6 +623,7 @@
   const stopDrag = () => {
     const was = drag;
     drag = null;
+    if (was?.grabbed && life?.mode === 'held') life.release(performance.now());
     if (was && place.hasPointerCapture(was.id)) place.releasePointerCapture(was.id);
   };
   const cancelHits = () => {
@@ -645,6 +735,60 @@
       matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15] * w
     ];
   };
+  const addSpot = p => {
+    if (spots.some(spot => Math.hypot(spot[0] - p[0], spot[1] - p[1], spot[2] - p[2]) < 0.18)) return;
+    spots.push(p.slice());
+    if (spots.length > 160) spots.shift();
+  };
+  const floorXr = () => {
+    if (!spots.length) return life?.home ? life.home[1] : 0;
+    const heights = spots.map(spot => spot[1]).sort((a, b) => a - b);
+    return heights[Math.floor(heights.length * 0.1)];
+  };
+  const groundXr = p => {
+    let best = floorXr();
+    for (const spot of spots) if (Math.hypot(spot[0] - p[0], spot[2] - p[2]) < 0.45 && spot[1] <= p[1] + 0.06 && spot[1] > best) best = spot[1];
+    return best;
+  };
+  const raisedXr = p => groundXr(p) > floorXr() + 0.25;
+  const xrWorld = viewer => ({
+    viewer,
+    busy: talking,
+    groundAt: groundXr,
+    raised: raisedXr,
+    nearby: () => life.home,
+    wander: (from, home) => {
+      const near = spots.filter(spot => Math.hypot(spot[0] - home[0], spot[2] - home[2]) < 1.6 && Math.hypot(spot[0] - from[0], spot[2] - from[2]) > 0.15);
+      const level = near.filter(spot => Math.abs(spot[1] - from[1]) < 0.08 && Math.hypot(spot[0] - from[0], spot[2] - from[2]) < 0.9);
+      const up = near.filter(spot => Math.abs(spot[1] - from[1]) >= 0.08 && raisedXr(spot) !== raisedXr(from));
+      const list = up.length && (Math.random() < 0.3 || !level.length) ? up : level;
+      return list.length ? list[Math.floor(Math.random() * list.length)] : null;
+    }
+  });
+  const settle = point => {
+    if (!life) return;
+    const now = performance.now();
+    addSpot(point);
+    if (!life.position) life.place(point, now, raisedXr(point));
+    else life.goTo(point, now);
+  };
+  const rayOf = (xrFrame, space, world) => {
+    const pose = xrFrame.getPose(space, world);
+    if (!pose) return null;
+    const m = pose.transform.matrix;
+    return { from: [m[12], m[13], m[14]], dir: [-m[8], -m[9], -m[10]] };
+  };
+  const touchRay = (eye, x, y) => {
+    const width = view.clientWidth, height = view.clientHeight, P = eye.projectionMatrix, M = eye.transform.matrix;
+    if (!width || !height) return null;
+    const c = [(2 * x / width - 1 + P[8]) / P[0], (1 - 2 * y / height + P[9]) / P[5], -1];
+    const dir = [0, 1, 2].map(i => M[i] * c[0] + M[i + 4] * c[1] + M[i + 8] * c[2]);
+    return { from: [M[12], M[13], M[14]], dir };
+  };
+  const along = (ray, far) => {
+    const n = Math.hypot(ray.dir[0], ray.dir[1], ray.dir[2]) || 1;
+    return ray.dir.map((value, i) => ray.from[i] + value / n * far);
+  };
   const startAR = async () => {
     prepare();
     const request = ++version;
@@ -670,7 +814,30 @@
         session = null;
         closeRoom(true);
       }, { once: true });
-      if (!active.domOverlayState) active.addEventListener('select', () => { if (active === session && surface) seat = surface; });
+      let xrWorldSpace = null;
+      if (!active.domOverlayState) {
+        active.addEventListener('selectstart', event => {
+          if (active !== session || !life?.position || !xrWorldSpace || hand) return;
+          const ray = rayOf(event.frame, event.inputSource.targetRaySpace, xrWorldSpace);
+          if (!ray) return;
+          const p = life.position, middle = [p[0], p[1] + 0.22, p[2]];
+          const t = (middle[0] - ray.from[0]) * ray.dir[0] + (middle[1] - ray.from[1]) * ray.dir[1] + (middle[2] - ray.from[2]) * ray.dir[2];
+          if (t <= 0) return;
+          const close = along(ray, t);
+          if (Math.hypot(close[0] - middle[0], close[1] - middle[1], close[2] - middle[2]) > 0.3) return;
+          hand = { input: event.inputSource, far: t, used: true };
+          life.grab(close, performance.now());
+        });
+        active.addEventListener('selectend', event => {
+          if (hand?.input !== event.inputSource) return;
+          life?.release(performance.now());
+          setTimeout(() => { hand = null; }, 0);
+        });
+        active.addEventListener('select', event => {
+          if (active !== session || hand?.input === event.inputSource) return;
+          if (surface) settle(surface);
+        });
+      }
       active.addEventListener('visibilitychange', () => {
         if (active === session && active.visibilityState === 'hidden') closeRoom();
       });
@@ -695,6 +862,8 @@
         active.updateRenderState({ baseLayer: layer });
       } else her.style.opacity = '0';
       const world = await active.requestReferenceSpace('local');
+      xrWorldSpace = world;
+      if (xr3d && makeLife) life = newLife(0.5);
       const eyes = await active.requestReferenceSpace('viewer');
       const hitSource = await active.requestHitTestSource({ space: eyes });
       if (request !== version) { hitSource.cancel(); return; }
@@ -720,7 +889,25 @@
         const hit = xrFrame.getHitTestResults(source)[0]?.getPose(world)?.transform.position;
         surface = hit ? [hit.x, hit.y, hit.z] : null;
         view.toggleAttribute('data-surface', !!surface);
-        if (drag?.moved && transient) {
+        const eye = xrFrame.getViewerPose(world)?.views[0];
+        if (life) {
+          if (surface && !drag && !hand) addSpot(surface);
+          const held = hand || (drag?.life && drag.moved ? drag : null);
+          if (held && life.position) {
+            const ray = held === drag ? eye && touchRay(eye, drag.cx, drag.cy) : rayOf(xrFrame, held.input.targetRaySpace, world);
+            if (ray) {
+              if (!held.grabbed && held === drag) {
+                held.far = Math.hypot(...[0, 1, 2].map(i => life.position[i] - ray.from[i]));
+                life.grab(along(ray, held.far), now);
+                held.grabbed = true;
+              } else life.drag(along(ray, held.far), now);
+            }
+          }
+          const head = eye?.transform.position;
+          life.tick(now, lifeStep(now), xrWorld(head ? [head.x, head.y, head.z] : [0, 0, 0]));
+          syncLife();
+          seat = life.position;
+        } else if (drag?.moved && transient) {
           const inputs = xrFrame.getHitTestResultsForTransientInput(transient);
           const input = inputs.find(item => !drag.input || item.inputSource === drag.input);
           if (input) {
@@ -729,14 +916,13 @@
             if (point) seat = [point.x, point.y, point.z];
           }
         }
-        const eye = xrFrame.getViewerPose(world)?.views[0];
         if (!seat || !eye) {
           her.hidden = true;
           xr3d?.update({ now, position: null });
           return;
         }
         const head = eye.transform.position;
-        xr3d?.update({ now, position: seat, viewer: [head.x, head.y, head.z], pose, talking, calm: reduced.matches });
+        xr3d?.update({ now, position: seat, viewer: [head.x, head.y, head.z], ...lifeClip(now), talking, calm: reduced.matches, ground: life ? groundXr(seat) : null });
         const position = project(eye.transform.inverse.matrix, seat, 1);
         const point = project(eye.projectionMatrix, position, 1);
         const depth = point[3];
@@ -814,28 +1000,55 @@
       depth = Math.max(0.4, Math.min(1.8, reach(toRoom(seen, seen.glass.width / 2, seen.glass.height * 0.74)) / reach(aim)));
     }
   };
+  const onHer = (x, y) => {
+    if (her.hidden || her.style.visibility === 'hidden') return false;
+    if (life?.position) {
+      const box = view.getBoundingClientRect(), ax = box.left + her.offsetLeft, ay = box.top + her.offsetTop;
+      const size = parseFloat(her.style.getPropertyValue('--s')) || 120;
+      return Math.abs(x - ax) < size * 0.45 && y < ay + size * 0.18 && y > ay - size * 1.15;
+    }
+    const box = sprite.getBoundingClientRect();
+    return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+  };
   place.addEventListener('pointerdown', event => {
     if (drag || !event.isPrimary || event.button !== 0) return;
     suppressTap = false;
-    const box = sprite.getBoundingClientRect();
-    if (her.hidden || her.style.visibility === 'hidden' || event.clientX < box.left || event.clientX > box.right ||
-        event.clientY < box.top || event.clientY > box.bottom) return;
-    drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
-      left: her.offsetLeft, top: her.offsetTop, moved: false };
+    if (!onHer(event.clientX, event.clientY)) return;
+    const box = view.getBoundingClientRect();
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, cx: event.clientX - box.left, cy: event.clientY - box.top,
+      left: her.offsetLeft, top: her.offsetTop, moved: false, life: !!life?.position };
     place.setPointerCapture(event.pointerId);
   });
   place.addEventListener('pointermove', event => {
     if (!drag || drag.id !== event.pointerId) return;
     const x = event.clientX - drag.x, y = event.clientY - drag.y;
+    const box = view.getBoundingClientRect();
+    drag.cx = event.clientX - box.left;
+    drag.cy = event.clientY - box.top;
     if (!drag.moved && Math.hypot(x, y) <= 5) return;
     drag.moved = suppressTap = true;
     event.preventDefault();
-    if (!session) moveCamera(drag.left + x, drag.top + y);
-    status.textContent = '';
+    if (drag.life && !session && !drag.grabbed && life?.position) {
+      const glass = lens();
+      if (glass) {
+        const reachOut = Math.hypot(...life.position);
+        drag.at = sight => {
+          const d = rayAt(sight, drag.cx, drag.cy), n = Math.hypot(d[0], d[1], d[2]) || 1;
+          return d.map(value => value / n * reachOut);
+        };
+        life.grab(drag.at(glass), performance.now());
+        drag.grabbed = true;
+      }
+    } else if (!drag.life && !session) moveCamera(drag.left + x, drag.top + y);
   });
   place.addEventListener('pointerup', event => {
     if (drag?.id !== event.pointerId) return;
     if (drag.moved) event.preventDefault();
+    if (drag.grabbed) life?.release(performance.now());
+    else if (drag.life && !drag.moved) {
+      life?.poke(performance.now());
+      suppressTap = true;
+    }
     stopDrag();
     askMotion();
   });
@@ -848,7 +1061,12 @@
     if (!direction) return;
     event.preventDefault();
     const step = event.shiftKey ? 20 : 5;
-    if (session) {
+    if (life?.position) {
+      const glass = lens(), r = session ? null : glass && turnOf();
+      const right = r ? [r[0], 0, r[6]] : [1, 0, 0], ahead = r ? [-r[2], 0, -r[8]] : [0, 0, -1];
+      const metres = step / (desk ? 400 : 120), p = life.position;
+      life.goTo([p[0] + (right[0] * direction[0] - ahead[0] * direction[1]) * metres, p[1], p[2] + (right[2] * direction[0] - ahead[2] * direction[1]) * metres], performance.now());
+    } else if (session) {
       if (seat) seat = [seat[0] + direction[0] * step / 250, seat[1] - direction[1] * step / 250, seat[2]];
     } else moveCamera(her.offsetLeft + direction[0] * step, her.offsetTop + direction[1] * step);
     status.textContent = '';
@@ -858,7 +1076,16 @@
     askMotion();
     if (session) {
       if (!surface) return;
-      seat = surface;
+      if (life) settle(surface);
+      else seat = surface;
+    } else if (life?.position) {
+      const glass = lens(), box = view.getBoundingClientRect();
+      const x = event.detail ? event.clientX - box.left : box.width * 0.5, y = event.detail ? event.clientY - box.top : box.height * 0.74;
+      if (onHer(event.clientX, event.clientY) && event.detail) life.poke(performance.now());
+      else {
+        const spot = glass && onFloor(glass, x, y);
+        if (spot) life.goTo(spot, performance.now());
+      }
     } else {
       const box = view.getBoundingClientRect();
       const x = event.detail ? (event.clientX - box.left) / box.width : 0.5;

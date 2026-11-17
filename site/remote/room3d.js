@@ -1,6 +1,8 @@
 import * as THREE from './vendor/three/three.module.min.js';
 
-const stripe = (url, w, h, cols, count, fps, px) => ({ url, w, h, cols, rows: Math.ceil(count / cols), count, fps, px });
+const stripe = (url, w, h, cols, count, fps, px, art = 384, foot = 0) => ({ url, w, h, cols, rows: Math.ceil(count / cols), count, fps, px, art, foot });
+const STAND = 384 / 1.11;
+const stand = (name, count, fps, cols = count) => stripe('room/stand_' + name + '.webp', 240, 384, Math.min(cols, 16), count, fps, 144, STAND, 20);
 const CLIPS = {
   perch: stripe('room/perch.webp', 196, 384, 20, 60, 30, 70),
   perch_talk: stripe('room/perch_talk.webp', 196, 384, 20, 60, 30, 70),
@@ -8,7 +10,14 @@ const CLIPS = {
   perch_arrive: stripe('room/perch_arrive.png', 288, 384, 14, 14, 15, 70),
   laydown: stripe('laydown.png', 372, 250, 10, 60, 30, 186),
   laydown_talk: stripe('laydown_talk.png', 372, 250, 10, 60, 30, 186),
-  laydown_blink: stripe('room/laydown_blink.png', 372, 250, 8, 8, 30, 186)
+  laydown_blink: stripe('room/laydown_blink.png', 372, 250, 8, 8, 30, 186),
+  idle: stand('idle', 16, 8),
+  dangle: stand('dangle', 24, 10),
+  grin: stand('grin', 16, 8),
+  glitch: stand('glitch', 10, 15),
+  walk: stand('walk', 12, 12),
+  arrive: stand('arrive', 14, 15),
+  leave: stand('leave', 12, 15)
 };
 const BLINK = { perch: 28, laydown: 45 };
 const HEIGHT = { camera: 0.8, xr: 0.5 };
@@ -90,8 +99,9 @@ export const load = async base => {
         shown = name;
         cell = -1;
         material.map = texture;
-        figure.scale.set(clip.w * scale, clip.h * scale, 1);
-        figure.position.set((clip.w / 2 - clip.px) * scale, clip.h / 2 * scale, 0);
+        const unit = scale * 384 / clip.art;
+        figure.scale.set(clip.w * unit, clip.h * unit, 1);
+        figure.position.set((clip.w / 2 - clip.px) * unit, (clip.h / 2 - clip.foot) * unit, 0);
       }
       if (index === cell) return;
       cell = index;
@@ -127,6 +137,7 @@ export const load = async base => {
       const yaw = Math.atan2(viewer[0] - there[0], viewer[2] - there[2]);
       root.position.set(there[0], there[1], there[2]);
       root.rotation.set(0, yaw, 0);
+      const flip = state.heading != null && Math.sin(state.heading) * Math.cos(yaw) - Math.cos(state.heading) * Math.sin(yaw) > 0.2;
 
       const seconds = now / 1000;
       const tall = state.tall || HEIGHT[xr ? 'xr' : 'camera'];
@@ -152,19 +163,30 @@ export const load = async base => {
           }
         }
       }
+      const act = state.clip && CLIPS[state.clip.name] ? state.clip : null;
+      if (act && !calm) {
+        const clip = CLIPS[act.name], step = Math.max(0, Math.floor((now - act.from) * clip.fps / 1000));
+        name = act.name;
+        index = act.once ? Math.min(step, clip.count - 1) : step % clip.count;
+      } else if (act) {
+        name = act.name === 'walk' || act.name === 'dangle' ? act.name : 'idle';
+        index = 0;
+      }
       frame(name, index, metres);
 
-      const size = pose === 'lie' ? pop((now - since) / 1000) : 1;
+      const standing = !!act;
+      const size = pose === 'lie' && !standing ? pop((now - since) / 1000) : 1;
       const bob = calm ? 0 : (Math.sin(seconds * 1.7) * 0.5 + 0.5) * 0.04;
       const lift = (FLOAT + bob) * tall / 0.8;
       body.position.y = lift * size;
-      body.scale.set(size, size, 1);
+      body.scale.set(size * (flip ? -1 : 1), size, 1);
 
-      const high = bob / 0.04, extent = BODY[pose], scale = tall * size;
-      shade.position.set(there[0], there[1] + 0.004, there[2]);
+      const ground = state.ground != null ? Math.min(state.ground, there[1]) : there[1], above = Math.max(0, there[1] - ground);
+      const high = bob / 0.04 + Math.min(4, above / Math.max(0.05, tall) * 2), extent = standing ? [0.36, 0.3] : BODY[pose], scale = tall * size;
+      shade.position.set(there[0], ground + 0.004, there[2]);
       shade.rotation.set(-Math.PI / 2, yaw, 0);
       shade.scale.set(extent[0] * scale * (1 - 0.08 * high), extent[1] * scale * (1 - 0.08 * high), 1);
-      shade.material.opacity = 0.62 - 0.12 * high;
+      shade.material.opacity = Math.max(0.1, 0.62 - 0.12 * high);
       shade.visible = size > 0.01;
     };
 
