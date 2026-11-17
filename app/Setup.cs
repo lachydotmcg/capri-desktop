@@ -453,6 +453,15 @@ namespace CapriSetup
                 }
                 Registry.CurrentUser.DeleteSubKeyTree(RegistryPath, false);
                 File.Delete(Path.Combine(destination, ".capri-install"));
+                if (!silent && Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Capri Camera")))
+                {
+                    try
+                    {
+                        using (Process camera = Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--camera-remove") { UseShellExecute = true, Verb = "runas" }))
+                            if (camera != null) camera.WaitForExit(60000);
+                    }
+                    catch (System.ComponentModel.Win32Exception) { }
+                }
                 if (!silent) Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);
                 return 0;
             }
