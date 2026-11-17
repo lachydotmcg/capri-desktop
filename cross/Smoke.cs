@@ -1128,6 +1128,33 @@ namespace CapriDesktop
                     && Pet.LookAsk.IndexOf("The small red-haired anime girl with a speech bubble is Capri, the desktop companion, not part of their screen", StringComparison.Ordinal) > 0;
                 if (!glancesKept || !toldMirror) throw new Exception("Her own sprite in screenshots went wrong: kept " + glancesKept + ", told " + toldMirror + " | " + queued.Replace("\n", " | "));
                 checks.Add("PASS her own sprite: her glance and check-my-screen prompts say the red-haired anime girl with the speech bubble is her, not part of their screen, and her glances go in the transcript but never into memories.md, while a look they asked for still does");
+                Func<string> treeWas = TreeSight.Read;
+                Func<string, string, bool> treeSkipWas = TreeSight.Skip;
+                try
+                {
+                    TreeSight.Skip = delegate(string program, string title) { return program == "Hidden"; };
+                    string treeRead = TreeSight.Parse("Files\tDocuments - Files\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\"\n");
+                    bool treeShaped = treeRead == "Window: \"Documents - Files\" (Files)\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\""
+                        && TreeSight.Parse("Hidden\tSecret chat\nbutton \"Send\"") == null && TreeSight.Parse("Files\tEmpty\n\n") == null && TreeSight.Parse("no tab here") == null && TreeSight.Parse(null) == null
+                        && TreeSight.Prompt(treeRead) == "\n\n" + TreeSight.Trust + "\n" + treeRead && TreeSight.Prompt(null) == "" && TreeSight.Seen(treeRead) == "\nExact details from their window: " + treeRead && TreeSight.Seen(" ") == "";
+                    TreeSight.Read = delegate { System.Threading.Thread.Sleep(3000); return "late"; };
+                    DateTime treeStarted = DateTime.UtcNow;
+                    bool treeQuick = TreeSight.Finish(TreeSight.Start(), 200) == null && (DateTime.UtcNow - treeStarted).TotalMilliseconds < 2000 && TreeSight.Finish(null, 200) == null;
+                    TreeSight.Read = delegate { throw new InvalidOperationException("no bus"); };
+                    bool treeQuiet = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    TreeSight.Read = treeWas;
+                    bool treeOffInSmoke = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    DateTime spiStarted = DateTime.UtcNow;
+                    string spi = OperatingSystem.IsLinux() ? TreeSight.Spi() : null;
+                    bool spiBounded = (DateTime.UtcNow - spiStarted).TotalMilliseconds < TreeSight.Wait + 2000 && (spi == null || spi.StartsWith("Window: ", StringComparison.Ordinal));
+                    if (!treeShaped || !treeQuick || !treeQuiet || !treeOffInSmoke || !spiBounded) throw new Exception("Her tree eyes went wrong: shaped " + treeShaped + ", quick " + treeQuick + ", quiet " + treeQuiet + ", off in smoke " + treeOffInSmoke + ", at-spi " + spiBounded + " | " + treeRead + " | " + spi);
+                }
+                finally
+                {
+                    TreeSight.Read = treeWas;
+                    TreeSight.Skip = treeSkipWas;
+                }
+                checks.Add("PASS her tree eyes on linux: a look reads the window in front from AT-SPI as names and text beside the screenshot, password boxes stay empty, a never-watch window or an empty read gives nothing, and a slow or missing accessibility bus never holds up her look");
                 bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
                 if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
                 // Their personality.md takes her default's place, with her safety lines still after it, and Reset puts her back.
