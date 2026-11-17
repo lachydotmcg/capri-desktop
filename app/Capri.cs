@@ -10220,6 +10220,11 @@ namespace CapriDesktop
                 string missing = Arrange.LookArea(which, front != IntPtr.Zero && Control.FromHandle(front) == null ? front : IntPtr.Zero, out area, out named);
                 if (missing != null) return missing;
             }
+            string reached = null;
+            bool treeing = string.IsNullOrWhiteSpace(which);
+            Thread reading = new Thread(delegate() { reached = TreeEyes.Front(); });
+            reading.IsBackground = true;
+            if (treeing) reading.Start();
             byte[] shot;
             using (Bitmap screen = !area.IsEmpty ? (InvokeRequired ? (Bitmap)Invoke(new Func<Rectangle, Bitmap>(CaptureScreen), area) : CaptureScreen(area)) : InvokeRequired ? (Bitmap)Invoke(new Func<Bitmap>(CaptureScreen)) : CaptureScreen())
             {
@@ -10227,10 +10232,12 @@ namespace CapriDesktop
                 ModsLooked(screen);
                 shot = Jpeg(screen, 1280);
             }
+            string read = treeing && reading.Join(TreeEyes.Wait + 200) ? reached : null;
+            bool asked = !string.IsNullOrWhiteSpace(focus);
             string seen;
             try
             {
-                seen = brain.See(shot, "You describe screenshots accurately and briefly." + Ink.Seen, "Describe what's on this screen in two or three plain sentences: what kind of game or app it is (name it only if the name is on screen), what's happening, and any text or numbers that matter. Don't guess who a person is from their face; name someone only if their name is written on screen." + (string.IsNullOrWhiteSpace(focus) ? "" : " Pay attention to: " + focus.Trim()), 160);
+                seen = brain.See(shot, "You describe screenshots accurately and briefly." + Ink.Seen, "Describe what's on this screen in two or three plain sentences: what kind of game or app it is (name it only if the name is on screen), what's happening, and any text or numbers that matter. Don't guess who a person is from their face; name someone only if their name is written on screen." + (asked ? " Pay attention to: " + focus.Trim() + (read != null ? " Answer that from the screen in up to five sentences." : "") : "") + TreeEyes.Prompt(read), asked && read != null ? 400 : 160);
             }
             catch (BrainException)
             {
@@ -10240,7 +10247,7 @@ namespace CapriDesktop
             }
             if (seen.Length == 0) return "I looked, but couldn't make out your screen clearly enough to describe it.";
             brain.Saw(seen, null, true);
-            return "You looked at " + (named ?? "their screen") + ". You see: " + seen;
+            return TreeEyes.Seen("You looked at " + (named ?? "their screen") + ". You see: " + seen, read);
         }
 
         // Voice chat pauses her glances only while their mic is on. Muted, she keeps commenting on their screen, and Listen for
@@ -44749,6 +44756,7 @@ namespace CapriDesktop
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
             Section(checks, "SmokeFirstRun", delegate { SmokeFirstRun(checks, Path.Combine(output, "firstrun")); });
             Section(checks, "SmokePersonal", delegate { SmokePersonal(checks, Path.Combine(output, "personal")); });
+            Section(checks, "SmokeTreeEyes", delegate { SmokeTreeEyes(checks, Path.Combine(output, "tree-eyes")); });
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
@@ -49218,6 +49226,7 @@ namespace CapriDesktop
             Hands.ForgetSearch();
             // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
             Native.FakedGaming = false;
+            TreeEyes.Reader = delegate { return null; };
             // The checks hold her thread for seconds at a time, and Windows swaps a window that long unanswered for a ghost of it.
             // On 5 Nov dwm ghosted the minimised Mainframe again and again through the sections while it flipped between minimised
             // and restored from outside, so the test keeps Windows' ghosts out of it.
