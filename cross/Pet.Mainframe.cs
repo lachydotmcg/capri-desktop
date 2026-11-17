@@ -417,9 +417,20 @@ namespace CapriDesktop
             string key = tier == 0 ? null : ReadSecret(TierKeyFile(tier));
             string kind = Cloud.KindOf(key);
             string model = kind == null ? (tier == 1 ? Saved.FreeModel : Saved.PaidModel) : TierModel(Saved, kind, tier);
+            ProviderEndpoint custom = tier == 0 ? EndpointAt(Saved, Brain.Server) : null;
+            string customProvider = custom == null ? null : EndpointProviderId(custom.Id);
             Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);
-            Saved.BrainProvider = Brain.Remote == null ? null : Brain.Remote.Kind;
-            Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            if (customProvider != null)
+            {
+                Brain.SetServer(Brain.ServerAddress(custom.Address), ReadEndpointKey(custom.Id));
+                Saved.BrainProvider = customProvider;
+                Brain.Model = ProviderModel(Saved, customProvider, 0);
+            }
+            else
+            {
+                Saved.BrainProvider = Brain.Remote == null ? null : Brain.Remote.Kind;
+                Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            }
             Saved.CloudModel = Brain.Remote?.Model;
             WriteSecret(BrainKeyFile, key, "brain key");
             Save();

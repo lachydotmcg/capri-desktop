@@ -3996,7 +3996,9 @@ namespace CapriDesktop
             Brain.Cancel();
             LeavePlan();
             Brain.Model = model;
-            Saved.ServerModel = model;
+            string customId = EndpointIdOf(Saved.BrainProvider);
+            if (customId != null && EndpointFor(Saved, customId) != null) RememberProviderModel(Saved, Saved.BrainProvider, model, 0);
+            else Saved.ServerModel = model;
             Save();
         }
 
@@ -6216,11 +6218,11 @@ namespace CapriDesktop
         }
 
         // Keys are kept in a file only they can read, or deleted with null.
-        private static void WriteSecret(string path, string key, string what)
+        private static bool WriteSecret(string path, string key, string what)
         {
             try
             {
-                if (key == null) { File.Delete(path); return; }
+                if (key == null) { File.Delete(path); return !File.Exists(path); }
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 FileStreamOptions options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
                 if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
@@ -6229,8 +6231,9 @@ namespace CapriDesktop
                     if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(stream.SafeFileHandle, UnixFileMode.UserRead | UnixFileMode.UserWrite);
                     using (StreamWriter writer = new StreamWriter(stream)) writer.Write(key);
                 }
+                return true;
             }
-            catch (Exception error) { Brain.Log(path, -1, "Couldn't save the " + what + ": " + error.Message); }
+            catch (Exception error) { Brain.Log(path, -1, "Couldn't save the " + what + ": " + error.Message); return false; }
         }
 
         // NVIDIA's page takes the focus, which would close her key box, so she says where to paste the key instead.
@@ -6938,14 +6941,39 @@ namespace CapriDesktop
             string path = EndpointKeyFile(id);
             if (path == null) return false;
             key = (key ?? "").Trim();
-            WriteSecret(path, key.Length == 0 ? null : key, "custom provider key");
-            return key.Length == 0 ? !File.Exists(path) : File.Exists(path);
+            return WriteSecret(path, key.Length == 0 ? null : key, "custom provider key");
         }
 
         internal string ReadEndpointKey(string id)
         {
             string path = EndpointKeyFile(id);
             return path == null ? null : ReadSecret(path);
+        }
+
+        internal static ProviderEndpoint EndpointAt(Settings saved, string address)
+        {
+            if (saved == null || saved.ProviderEndpoints == null || string.IsNullOrEmpty(address)) return null;
+            foreach (ProviderEndpoint endpoint in saved.ProviderEndpoints)
+                if (endpoint != null && string.Equals(Brain.ServerAddress(endpoint.Address), address, StringComparison.Ordinal)) return endpoint;
+            return null;
+        }
+
+        private bool SettingsWritable()
+        {
+            if (Program.Smoke != null) return true;
+            if (settingsWriteBlocked) return false;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                foreach (string name in new[] { "cross.json", "cross-new.json" })
+                {
+                    string path = Path.Combine(folder, name);
+                    if (!File.Exists(path)) continue;
+                    using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None)) { }
+                }
+                return true;
+            }
+            catch (Exception) { return false; }
         }
 
         internal bool UseEndpoint(string id, string model)
@@ -6968,6 +6996,7 @@ namespace CapriDesktop
             Brain.Remote = null;
             Brain.SetServer(address, key);
             Brain.Model = picked.Length == 0 ? null : picked;
+            Saved.BrainServer = address;
             Saved.BrainProvider = provider;
             Saved.BrainTier = 0;
             if (picked.Length > 0) RememberProviderModel(Saved, provider, picked, 0);
@@ -6978,15 +7007,24 @@ namespace CapriDesktop
         internal bool RemoveEndpoint(string id)
         {
             if (Saved == null || Saved.ProviderEndpoints == null || !ValidEndpointId(id)) return false;
+            if (!SettingsWritable()) return false;
             string provider = EndpointProviderId(id);
+            string path = EndpointKeyFile(id);
             ProviderEndpoint removed = null;
-            List<ProviderEndpoint> endpoints = new List<ProviderEndpoint>();
-            foreach (ProviderEndpoint endpoint in Saved.ProviderEndpoints)
-            {
-                if (endpoint != null && endpoint.Id == id) { removed = endpoint; continue; }
-                if (endpoint != null) endpoints.Add(endpoint);
-            }
+            foreach (ProviderEndpoint endpoint in Saved.ProviderEndpoints) if (endpoint != null && endpoint.Id == id) { removed = endpoint; break; }
             if (removed == null) return false;
+            string oldKey = path == null ? null : ReadSecret(path);
+            if (path != null && File.Exists(path))
+            {
+                WriteSecret(path, null, "custom provider key");
+                if (File.Exists(path)) return false;
+            }
+            ProviderEndpoint[] oldEndpoints = Saved.ProviderEndpoints;
+            ProviderModelPick[] oldModels = Saved.ProviderModels;
+            string oldProvider = Saved.BrainProvider;
+            string oldBrainServer = Saved.BrainServer;
+            List<ProviderEndpoint> endpoints = new List<ProviderEndpoint>();
+            foreach (ProviderEndpoint endpoint in oldEndpoints) if (endpoint != null && endpoint.Id != id) endpoints.Add(endpoint);
             Saved.ProviderEndpoints = endpoints.Count == 0 ? null : endpoints.ToArray();
             if (Saved.ProviderModels != null)
             {
@@ -6994,18 +7032,27 @@ namespace CapriDesktop
                 foreach (ProviderModelPick pick in Saved.ProviderModels) if (pick != null && pick.Provider != provider) picks.Add(pick);
                 Saved.ProviderModels = picks.Count == 0 ? null : picks.ToArray();
             }
-            WriteSecret(EndpointKeyFile(id), null, "custom provider key");
-            string server, key;
-            Brain.GetServer(out server, out key);
+            bool active = string.Equals(oldProvider, provider, StringComparison.Ordinal);
             string address = Brain.ServerAddress(removed.Address);
-            if (address != null && string.Equals(server, address, StringComparison.Ordinal))
+            if (active)
             {
                 Brain.SetServer(null, null);
                 Brain.Model = null;
+                Saved.BrainProvider = null;
+                if (address != null && string.Equals(Brain.ServerAddress(oldBrainServer), address, StringComparison.Ordinal)) Saved.BrainServer = null;
             }
-            if (string.Equals(Saved.BrainProvider, provider, StringComparison.Ordinal)) Saved.BrainProvider = null;
-            Save();
-            return true;
+            if (SaveResult()) return true;
+            Saved.ProviderEndpoints = oldEndpoints;
+            Saved.ProviderModels = oldModels;
+            Saved.BrainProvider = oldProvider;
+            Saved.BrainServer = oldBrainServer;
+            if (active)
+            {
+                Brain.SetServer(address, oldKey);
+                Brain.Model = ProviderModel(Saved, provider, 0);
+            }
+            if (path != null && oldKey != null) WriteSecret(path, oldKey, "custom provider key");
+            return false;
         }
 
         private void RestoreCustomEndpoint()
@@ -7018,10 +7065,8 @@ namespace CapriDesktop
             if (address == null) return;
             string key = ReadEndpointKey(id);
             if (key != null && !Brain.ServerKeySafe(address)) return;
-            string model = ProviderModel(Saved, Saved.BrainProvider, 0);
-            if (string.IsNullOrEmpty(model)) return;
             Brain.SetServer(address, key);
-            Brain.Model = model;
+            Brain.Model = ProviderModel(Saved, Saved.BrainProvider, 0);
         }
 
         internal static string ProviderModel(Settings saved, string provider, int? tier = null)
@@ -7139,23 +7184,30 @@ namespace CapriDesktop
 
         internal void Save()
         {
+            SaveResult();
+        }
+
+        private bool SaveResult()
+        {
             Saved.X = anchor.X + Px(body.Size * SitAcross) - Px(body.Size * SitX);
             Saved.Y = anchor.Y;
             Saved.Placed = true;
             NotifySettings();
-            WriteSettings();
+            return WriteSettings();
         }
 
-        private void WriteSettings()
+        private bool WriteSettings()
         {
-            if (Program.Smoke != null || settingsWriteBlocked) return;
+            if (Program.Smoke != null) return true;
+            if (settingsWriteBlocked) return false;
             try
             {
                 Directory.CreateDirectory(folder);
                 using (FileStream stream = File.Create(Path.Combine(folder, "cross.json"))) new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, Saved);
                 using (FileStream stream = File.Create(Path.Combine(folder, "cross-new.json"))) new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(Saved));
+                return true;
             }
-            catch (Exception) { }
+            catch (Exception) { return false; }
         }
 
         internal void Quit()
