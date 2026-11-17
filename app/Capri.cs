@@ -41170,7 +41170,8 @@ namespace CapriDesktop
                     "Mic:",
                     "Game sounds:",
                     "GAMES > Sound sensitivity",
-                    "Word and Excel:"
+                    "Word and Excel:",
+                    "Searches:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;

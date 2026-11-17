@@ -15,7 +15,7 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.3";
+        internal const string Version = "0.9.3.1";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
             + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
             + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
@@ -28,7 +28,7 @@ namespace CapriDesktop
                     + "Capri Remote: chat and photos from your phone work with a Mac too.");
         internal static readonly string Line = "I just updated to " + Version + ": I can tell you the weather for your city now, and my pat lines are fresher. Ask me what's new.";
 #else
-        internal const string Version = "0.9.3";
+        internal const string Version = "0.9.3.1";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
             + "Room: right-click her and pick Room camera, and she's in your room through your webcam: she walks, sits up on things, hides behind you, gets grabbed and thrown, and talks with her mouth moving. On your phone, Room in Capri Remote puts her in your room in AR. Plays like fadievr's Capri Room for Quest, with PC ideas from connorx132 and Luke Yokubo.\n"
             + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, and pick Capri Camera in Discord, Zoom or OBS so people see her in the room with you.\n"
@@ -52,7 +52,8 @@ namespace CapriDesktop
             + "Doomscroll guard: turn it on in her Mainframe and past your scroll limit on TikTok, Shorts, Instagram, Reddit or X she nudges you, sits on the window, then sulks until you put it down. Ask for five more minutes and you get five. From thiiago-dev.\n"
             + "Mic: she stops saying Windows is blocking the mic when your own mic switch is on. From Yoplaxs.\n"
             + "Game sounds: GAMES > Sound sensitivity turns down how loud a game sound has to be before she reacts. From shm9000 and Yoplaxs.\n"
-            + "Word and Excel: she turns away documents that unpack too big or nest too deep.";
+            + "Word and Excel: she turns away documents that unpack too big or nest too deep.\n"
+            + "Searches: a search with no site goes to Google, and she no longer opens your browser's settings files to find its search engine.";
         internal const string Line = "I just updated to " + Version + ": I can come into your room now. Right-click me and pick Room camera, or ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
