@@ -25,3 +25,7 @@ Capri Remote's Room draws her with [three.js](https://threejs.org) r170 (three.m
 ## Room cutout
 
 Capri Remote's Room on a PC webcam finds you in the picture with [MediaPipe Tasks Vision](https://github.com/google-ai-edge/mediapipe) 0.10.21 (`vision_bundle.js` and its SIMD wasm in `site/remote/vendor/mediapipe/`) and the MediaPipe selfie segmenter model (`selfie_segmenter.tflite`), Copyright Google LLC, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). The licence text is in `site/remote/vendor/mediapipe/LICENSE`.
+
+## Capri Camera
+
+Capri Camera, the virtual camera that shows her Room in other apps, is built from [softcam](https://github.com/tshino/softcam) (commit d1acde4, renamed to Capri Camera with its own class ID), Copyright (c) 2020 tshino, under the MIT License, and the DirectShow Base Classes from [Windows classic samples](https://github.com/microsoft/Windows-classic-samples), Copyright (c) Microsoft Corporation, under the MIT License. The source and licence text are in `native/softcam/`.

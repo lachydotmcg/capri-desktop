@@ -287,7 +287,14 @@ namespace CapriDesktop
         {
             if (roomHost == null)
             {
-                try { roomHost = new RoomHost(RemotePage); }
+                try
+                {
+                    roomHost = new RoomHost(RemotePage);
+                    CapriCamera camera = new CapriCamera();
+                    roomHost.CameraState = delegate { return CapriCamera.State; };
+                    roomHost.CameraInstall = CapriCamera.AskInstall;
+                    roomHost.Frame = camera.Send;
+                }
                 catch (ArgumentException) { }
                 catch (System.Net.Sockets.SocketException) { }
             }
@@ -310,7 +317,8 @@ namespace CapriDesktop
                 if (!System.IO.File.Exists(edge)) continue;
                 try
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(edge, "--app=\"" + url + "\" --window-size=1180,880") { UseShellExecute = false });
+                    string own = url.StartsWith("http://127.0.0.1:", StringComparison.Ordinal) ? " --user-data-dir=\"" + System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri Room") + "\" --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows --no-first-run" : "";
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(edge, "--app=\"" + url + "\" --window-size=1180,880" + own) { UseShellExecute = false });
                     return;
                 }
                 catch (System.ComponentModel.Win32Exception) { }

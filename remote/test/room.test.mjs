@@ -677,11 +677,19 @@ test('her room inside the pc app shows only her room, talks when the pc capri ta
   const ASSETS = join(SITE, '..', 'assets');
   const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json', '.wasm': 'application/wasm' };
   const streams = new Set();
+  let frames = 0;
   const say = (name, data) => { for (const out of streams) out.write(`event: ${name}\ndata: ${data}\n\n`); };
   const server = createServer((request, response) => {
     const path = new URL(request.url, 'http://127.0.0.1').pathname;
     if (!path.startsWith('/tok/')) { response.writeHead(404); response.end(); return; }
     const rest = path.slice(5);
+    if (rest === 'camera') { response.writeHead(200, { 'content-type': 'application/json' }); response.end('{"state":"ready"}'); return; }
+    if (rest === 'frame' && request.method === 'POST') {
+      const parts = [];
+      request.on('data', part => parts.push(part));
+      request.on('end', () => { const body = Buffer.concat(parts); if (body[0] === 0xff && body[1] === 0xd8) frames++; response.writeHead(200); response.end(); });
+      return;
+    }
     if (rest === 'events') {
       response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });
       response.write('event: talk\ndata: 0\n\n');
@@ -738,6 +746,15 @@ test('her room inside the pc app shows only her room, talks when the pc capri ta
     assert.equal(after.s, at.s);
     assert.equal(await page.run("localStorage.getItem('capri-room-still')"), 'on');
     await page.run("document.getElementById('room-still').click()");
+    assert.equal(await page.run("document.getElementById('room-cam').hidden"), false);
+    await page.run("document.getElementById('room-cam').click()");
+    await page.until("document.getElementById('room-cam').getAttribute('aria-pressed') === 'true'", 'camera on');
+    await new Promise(done => setTimeout(done, 1500));
+    assert.ok(frames >= 1, 'frames went to the pc: ' + frames);
+    await page.run("document.getElementById('room-cam').click()");
+    const stopped = frames;
+    await new Promise(done => setTimeout(done, 600));
+    assert.ok(frames - stopped <= 1);
   } finally {
     if (page) await page.close();
     for (const out of streams) out.end();

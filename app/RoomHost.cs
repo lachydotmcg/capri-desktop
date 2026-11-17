@@ -26,6 +26,9 @@ namespace CapriDesktop
         private bool talking, closed;
         private readonly bool local;
         internal Func<string, byte[]> Fetch;
+        internal Func<string> CameraState;
+        internal Func<string> CameraInstall;
+        internal Action<byte[]> Frame;
 
         internal RoomHost(string remotePage)
         {
@@ -102,7 +105,12 @@ namespace CapriDesktop
                 if (head == null) return;
                 string[] lines = head.Split(new[] { "\r\n" }, StringSplitOptions.None);
                 string[] request = lines[0].Split(' ');
-                if (request.Length != 3 || request[0] != "GET") { Answer(stream, 405, "text/plain", Encoding.UTF8.GetBytes("GET only")); return; }
+                if (request.Length != 3 || request[0] != "GET" && request[0] != "POST") { Answer(stream, 405, "text/plain", Encoding.UTF8.GetBytes("GET or POST only")); return; }
+                bool post = request[0] == "POST";
+                int length = 0;
+                foreach (string line in lines)
+                    if (line.StartsWith("content-length:", StringComparison.OrdinalIgnoreCase) && !int.TryParse(line.Substring(15).Trim(), out length)) length = -1;
+                if (length < 0 || length > 8 * 1024 * 1024) { Answer(stream, 413, "text/plain", Encoding.UTF8.GetBytes("Too big")); return; }
                 string host = null;
                 foreach (string line in lines)
                     if (line.StartsWith("host:", StringComparison.OrdinalIgnoreCase)) host = line.Substring(5).Trim();
@@ -114,6 +122,32 @@ namespace CapriDesktop
                 string prefix = "/" + token + "/";
                 if (!path.StartsWith(prefix, StringComparison.Ordinal)) { Answer(stream, 404, "text/plain", Encoding.UTF8.GetBytes("Not found")); return; }
                 string rest = path.Substring(prefix.Length);
+                if (post)
+                {
+                    byte[] posted = ReadBody(stream, length);
+                    if (posted == null) return;
+                    if (rest == "frame")
+                    {
+                        Action<byte[]> frame = Frame;
+                        if (frame != null && posted.Length > 0) frame(posted);
+                        Answer(stream, 200, "text/plain", new byte[0]);
+                        return;
+                    }
+                    if (rest == "camera/install")
+                    {
+                        Func<string> install = CameraInstall;
+                        Answer(stream, 200, "application/json", Encoding.UTF8.GetBytes("{\"state\":\"" + (install == null ? "missing" : install()) + "\"}"));
+                        return;
+                    }
+                    Answer(stream, 404, "text/plain", Encoding.UTF8.GetBytes("Not found"));
+                    return;
+                }
+                if (rest == "camera")
+                {
+                    Func<string> state = CameraState;
+                    Answer(stream, 200, "application/json", Encoding.UTF8.GetBytes("{\"state\":\"" + (state == null ? "missing" : state()) + "\"}"));
+                    return;
+                }
                 if (rest == "events") { keep = Events(stream); return; }
                 if (!SafePath.IsMatch(rest) || rest.Contains("..") || rest.Contains("//")) { Answer(stream, 404, "text/plain", Encoding.UTF8.GetBytes("Not found")); return; }
                 if (rest == "remote") { Redirect(stream, prefix + "remote/"); return; }
@@ -209,9 +243,22 @@ namespace CapriDesktop
             return null;
         }
 
+        private static byte[] ReadBody(Stream stream, int length)
+        {
+            byte[] body = new byte[length];
+            int at = 0;
+            while (at < length)
+            {
+                int got = stream.Read(body, at, length - at);
+                if (got <= 0) return null;
+                at += got;
+            }
+            return body;
+        }
+
         private static void Answer(Stream stream, int status, string type, byte[] body)
         {
-            string reason = status == 200 ? "OK" : status == 403 ? "Forbidden" : status == 405 ? "Method Not Allowed" : "Not Found";
+            string reason = status == 200 ? "OK" : status == 403 ? "Forbidden" : status == 405 ? "Method Not Allowed" : status == 413 ? "Payload Too Large" : "Not Found";
             byte[] head = Encoding.ASCII.GetBytes("HTTP/1.1 " + status + " " + reason + "\r\nContent-Type: " + type + "\r\nContent-Length: " + body.Length +
                 "\r\nCache-Control: no-cache\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: frame-ancestors 'none'\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n");
             stream.Write(head, 0, head.Length);

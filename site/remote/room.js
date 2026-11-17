@@ -8,7 +8,7 @@
   const her = byId('room-her'), sprite = byId('room-sprite'), tint = byId('room-tint'), heart = byId('room-heart');
   const controls = byId('room-controls'), sit = byId('room-sit'), lie = byId('room-lie'), love = byId('room-love');
   const voice = byId('room-voice'), voiceNote = byId('room-voice-note'), record = byId('room-record');
-  const sizeBox = byId('room-size-box'), sizer = byId('room-size'), behindButton = byId('room-behind'), stillButton = byId('room-still');
+  const sizeBox = byId('room-size-box'), sizer = byId('room-size'), behindButton = byId('room-behind'), stillButton = byId('room-still'), camButton = byId('room-cam');
   let voiceOn = true, oldVoice = false;
   try { voiceOn = localStorage.getItem('capri-room-voice') !== 'off'; } catch (error) {}
   voice.setAttribute('aria-pressed', String(voiceOn));
@@ -54,7 +54,7 @@
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
   let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
   let makeLife, life = null, lifeAt = 0, spots = [], hand = null;
-  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '', mouthUntil = 0, stayStill = false, hostTalking = false;
+  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '', mouthUntil = 0, stayStill = false, hostTalking = false, hosted = false, camOn = false, camCanvas = null, camPen = null, camAt = 0, camBusy = false;
   try { grow = Math.max(0.5, Math.min(4, Number(localStorage.getItem('capri-room-size')) || 1)); } catch (error) {}
   sizer.value = String(grow);
   const YOU = 0.85;
@@ -145,6 +145,7 @@
     if (desk && now >= lookAt) notice(now);
     if (stage) render3d(now);
     if (recorder) film();
+    sendCam(now);
     let clip = clips[act.name];
     let index = Math.max(0, Math.floor((now - act.from) * clip.fps / 1000));
     if (act.once && index >= clip.count) {
@@ -365,26 +366,82 @@
     }
     lastLook = gray;
   };
-  const film = () => {
-    const width = tape.width, height = tape.height, wide = video.videoWidth, high = video.videoHeight;
+  const film = (pen = tapePen, width = tape.width, height = tape.height, unmirror = false) => {
+    const wide = video.videoWidth, high = video.videoHeight;
     if (!wide || !high) return;
     const scale = Math.max(width / wide, height / high), crop = [width / scale, height / scale];
-    tapePen.save();
-    if (front) { tapePen.translate(width, 0); tapePen.scale(-1, 1); }
-    tapePen.drawImage(video, (wide - crop[0]) / 2, (high - crop[1]) / 2, crop[0], crop[1], 0, 0, width, height);
-    tapePen.restore();
-    if (canvas3d) tapePen.drawImage(canvas3d, 0, 0, width, height);
-    if (cutCanvas && behind) tapePen.drawImage(cutCanvas, 0, 0, width, height);
+    pen.save();
+    if (unmirror && front) { pen.translate(width, 0); pen.scale(-1, 1); }
+    pen.save();
+    if (front) { pen.translate(width, 0); pen.scale(-1, 1); }
+    pen.drawImage(video, (wide - crop[0]) / 2, (high - crop[1]) / 2, crop[0], crop[1], 0, 0, width, height);
+    pen.restore();
+    if (canvas3d) pen.drawImage(canvas3d, 0, 0, width, height);
+    if (cutCanvas && behind) pen.drawImage(cutCanvas, 0, 0, width, height);
     if (!heart.hidden && heart.complete && heart.naturalWidth) {
       const fit = Math.max(width / heart.naturalWidth, height / heart.naturalHeight);
-      tapePen.drawImage(heart, (width - heart.naturalWidth * fit) / 2, (height - heart.naturalHeight * fit) / 2, heart.naturalWidth * fit, heart.naturalHeight * fit);
+      pen.drawImage(heart, (width - heart.naturalWidth * fit) / 2, (height - heart.naturalHeight * fit) / 2, heart.naturalWidth * fit, heart.naturalHeight * fit);
     }
+    pen.restore();
   };
+  const sendCam = now => {
+    if (camBusy && now - camAt > 1500) camBusy = false;
+    if (!camOn || camBusy || !stage || now - camAt < 33) return;
+    const box = view.getBoundingClientRect();
+    if (box.width < 8 || box.height < 8) return;
+    const scale = Math.min(1, 1280 / box.width, 720 / box.height);
+    const width = Math.max(4, Math.round(box.width * scale / 4) * 4), height = Math.max(4, Math.round(box.height * scale / 4) * 4);
+    if (!camCanvas || camCanvas.width !== width || camCanvas.height !== height) {
+      camCanvas = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(width, height) : Object.assign(document.createElement('canvas'), { width, height });
+      camPen = camCanvas.getContext('2d');
+    }
+    camAt = now;
+    film(camPen, width, height, true);
+    camBusy = true;
+    const made = camCanvas.convertToBlob ? camCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 })
+      : new Promise(done => camCanvas.toBlob(done, 'image/jpeg', 0.85));
+    made.then(blob => {
+      if (!blob || !camOn) return;
+      return fetch(new URL('../frame', location.href).href, { method: 'POST', body: blob, headers: { 'content-type': 'image/jpeg' } });
+    }).catch(() => {}).finally(() => { camBusy = false; });
+  };
+  const camAsk = async install => {
+    try {
+      const answer = await fetch(new URL(install ? '../camera/install' : '../camera', location.href).href, { method: install ? 'POST' : 'GET' });
+      return (await answer.json()).state || '';
+    } catch (error) { return ''; }
+  };
+  const setCam = on => {
+    camOn = on;
+    camButton.setAttribute('aria-pressed', String(on));
+  };
+  camButton.addEventListener('click', async () => {
+    if (camOn) { setCam(false); sayLine('Capri Camera is off.'); return; }
+    camButton.disabled = true;
+    let state = await camAsk(false);
+    if (state === 'needs-install') {
+      sayLine('Say yes in the Windows prompt to add Capri Camera.');
+      state = await camAsk(true);
+    }
+    camButton.disabled = false;
+    if (state === 'ready') {
+      setCam(true);
+      sayLine('Capri Camera is on. Pick Capri Camera in Discord, Zoom or OBS.');
+    } else if (state === 'missing') sayLine('Capri Camera isn’t in this build of Capri.');
+    else sayLine('Capri Camera wasn’t set up.');
+  });
+  setInterval(() => {
+    if (!document.hidden || !camOn || !stage) return;
+    const now = performance.now();
+    render3d(now);
+    sendCam(now);
+  }, 40);
   const canRecord = () => desk && !!stage && typeof MediaRecorder === 'function' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
   const showRecord = () => {
     record.hidden = !canRecord() || controls.hidden;
     sizeBox.hidden = behindButton.hidden = !desk || !stage || controls.hidden;
     stillButton.hidden = !stage || controls.hidden;
+    camButton.hidden = !hosted || !desk || !stage || controls.hidden;
     record.setAttribute('aria-pressed', String(!!recorder));
     record.textContent = recorder ? 'Stop' : 'Record';
   };
@@ -710,6 +767,7 @@
     source = transient = surface = seat = null;
   };
   const closeRoom = (focus = false) => {
+    if (camOn) setCam(false);
     version++;
     stopDrag();
     window.CapriCall?.stopListening();
@@ -727,7 +785,7 @@
     room.hidden = true;
     track.hidden = true;
     retry.hidden = true;
-    controls.hidden = place.hidden = her.hidden = record.hidden = sizeBox.hidden = behindButton.hidden = stillButton.hidden = true;
+    controls.hidden = place.hidden = her.hidden = record.hidden = sizeBox.hidden = behindButton.hidden = stillButton.hidden = camButton.hidden = true;
     delete app.dataset.room;
     delete view.dataset.surface;
     her.style.left = '';
@@ -1215,7 +1273,7 @@
     camera.focus();
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) closeRoom();
+    if (document.hidden && !camOn) closeRoom();
   });
   addEventListener('pagehide', () => closeRoom());
   new MutationObserver(() => {
@@ -1237,7 +1295,7 @@
     if (next === 'connected') queueMicrotask(() => { if (!room.hidden) startVoice(); });
     else { window.CapriCall?.stopListening(); talking = false; voiceNote.textContent = ''; }
   });
-  let roomWindow = false, hosted = false;
+  let roomWindow = false;
   try {
     const asked = new URLSearchParams(location.search).get('room');
     hosted = asked === 'app';

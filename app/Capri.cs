@@ -42,6 +42,8 @@ namespace CapriDesktop
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
             if (args.Length > 0 && args[0] == "--workspace-hook") return WorkspaceHook.Run(args);
             if (args.Length == 4 && args[0] == "--release-input") return InputRelease.Watch(args[1], args[2], args[3]);
+            if (args.Length == 1 && args[0] == "--camera-install") return CapriCamera.Install();
+            if (args.Length == 1 && args[0] == "--camera-remove") return CapriCamera.Remove();
             if (!Packaged.Is && CapriSetup.Program.Wanted(Application.ExecutablePath, args)) return CapriSetup.Program.Run(args);
             try { Native.SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { Native.SetProcessDPIAware(); }
             Application.EnableVisualStyles();
