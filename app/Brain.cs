@@ -5874,6 +5874,289 @@ namespace CapriDesktop
         }
     }
 
+    internal static class Lingo
+    {
+        internal static Func<string, string> Bundled = delegate { return null; };
+        internal static event Action Changed;
+        private const int Batch = 30, Most = 4000, Longest = 1500, Room = 2400;
+        private static readonly object gate = new object();
+        private static readonly Regex Number = new Regex(@"[0-9]+(?:[.,:][0-9]+)*");
+        private static readonly Regex Slot = new Regex(@"\{([0-9]{1,2})\}");
+        private static volatile string tongue;
+        private static string opened;
+        private static HashSet<string> catalogue;
+        private static Dictionary<string, string> lines = new Dictionary<string, string>(StringComparer.Ordinal);
+        private static HashSet<string> made = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly List<string> wanted = new List<string>();
+        private static readonly HashSet<string> wantedSet = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, int> missed = new Dictionary<string, int>(StringComparer.Ordinal);
+        private static bool warming;
+        private static DateTime failed = DateTime.MinValue;
+
+        internal static string Tongue { get { return tongue; } }
+
+        internal static void Use(string language)
+        {
+            string picked = string.IsNullOrEmpty(language) || language == "English" ? null : language;
+            lock (gate)
+            {
+                if (picked == tongue && opened == picked) return;
+                tongue = picked;
+                Open();
+            }
+            Raise();
+            Warm();
+        }
+
+        internal static void Reload()
+        {
+            lock (gate) { catalogue = null; opened = null; Open(); }
+            Raise();
+        }
+
+        internal static string Slug(string language) { return Regex.Replace((language ?? "").ToLowerInvariant(), @"[^\p{L}\p{Nd}]+", "-").Trim('-'); }
+
+        internal static string PathFor(string language)
+        {
+            string folder = Said.Folder, name = Slug(language);
+            return folder == null || name.Length == 0 ? null : Path.Combine(folder, "words-" + name + ".txt");
+        }
+
+        internal static string Of(string text) { return Find(text, false); }
+
+        internal static string Learn(string text) { return Find(text, true); }
+
+        internal static bool Has(string text)
+        {
+            if (string.IsNullOrEmpty(text) || tongue == null) return false;
+            return Of(text) != text;
+        }
+
+        private static string Find(string text, bool learn)
+        {
+            if (tongue == null || string.IsNullOrEmpty(text) || !Regex.IsMatch(text, @"\p{L}")) return text;
+            if (text.IndexOf('\n') >= 0)
+            {
+                string[] parts = text.Split('\n');
+                for (int i = 0; i < parts.Length; i++) parts[i] = parts[i].EndsWith("\r", StringComparison.Ordinal) ? Find(parts[i].Substring(0, parts[i].Length - 1), learn) + "\r" : Find(parts[i], learn);
+                return string.Join("\n", parts);
+            }
+            string trimmed = text.Trim();
+            if (trimmed.Length == 0) return text;
+            List<string> numbers = new List<string>();
+            string key = Mask(trimmed, numbers);
+            string translated;
+            bool warm = false;
+            lock (gate)
+            {
+                Open();
+                if (!lines.TryGetValue(key, out translated))
+                {
+                    if (made.Contains(trimmed)) return text;
+                    if (learn || catalogue.Contains(key)) warm = Want(key);
+                    translated = null;
+                }
+            }
+            if (translated == null)
+            {
+                if (warm) Warm();
+                return text;
+            }
+            string filled = Unmask(translated, numbers);
+            if (filled == null) return text;
+            int lead = text.Length - text.TrimStart().Length, tail = text.Length - text.TrimEnd().Length;
+            return text.Substring(0, lead) + filled + text.Substring(text.Length - tail);
+        }
+
+        internal static string Mask(string text, List<string> numbers)
+        {
+            return Number.Replace(text, delegate(Match found)
+            {
+                numbers.Add(found.Value);
+                return "{" + (numbers.Count - 1) + "}";
+            });
+        }
+
+        internal static string Unmask(string translated, List<string> numbers)
+        {
+            bool bad = false;
+            string filled = Slot.Replace(translated, delegate(Match slot)
+            {
+                int at = int.Parse(slot.Groups[1].Value);
+                if (at >= numbers.Count) { bad = true; return ""; }
+                return numbers[at];
+            });
+            return bad ? null : filled;
+        }
+
+        private static bool Slots(string english, string translated)
+        {
+            List<string> a = new List<string>(), b = new List<string>();
+            foreach (Match slot in Slot.Matches(english)) a.Add(slot.Value);
+            foreach (Match slot in Slot.Matches(translated)) b.Add(slot.Value);
+            a.Sort(StringComparer.Ordinal);
+            b.Sort(StringComparer.Ordinal);
+            return string.Join(",", a.ToArray()) == string.Join(",", b.ToArray());
+        }
+
+        private static bool Want(string key)
+        {
+            if (key.Length > Longest || wantedSet.Contains(key)) return false;
+            if (wanted.Count >= Most) return false;
+            wantedSet.Add(key);
+            wanted.Add(key);
+            return true;
+        }
+
+        private static void Open()
+        {
+            if (catalogue == null)
+            {
+                catalogue = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string row in Rows(Read("english"))) if (row.Trim().Length > 0) catalogue.Add(row.Trim());
+            }
+            if (opened == tongue && opened != null) return;
+            opened = tongue;
+            lines = new Dictionary<string, string>(StringComparer.Ordinal);
+            made = new HashSet<string>(StringComparer.Ordinal);
+            wanted.Clear();
+            wantedSet.Clear();
+            missed.Clear();
+            failed = DateTime.MinValue;
+            if (tongue == null) return;
+            Take(Rows(Read(Slug(tongue))), false);
+            string path = PathFor(tongue);
+            if (path != null)
+            {
+                try { if (File.Exists(path)) Take(File.ReadAllLines(path, Encoding.UTF8), false); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
+        private static string Read(string name)
+        {
+            try { return Bundled(name); }
+            catch (Exception) { return null; }
+        }
+
+        private static string[] Rows(string text) { return text == null ? new string[0] : text.Replace("\r\n", "\n").Split('\n'); }
+
+        private static int Take(IEnumerable<string> rows, bool replace)
+        {
+            int taken = 0;
+            foreach (string row in rows)
+            {
+                int tab = row.IndexOf('\t');
+                if (tab <= 0 || tab == row.Length - 1) continue;
+                string english = row.Substring(0, tab), translated = row.Substring(tab + 1).Trim();
+                if (translated.Length == 0 || !Slots(english, translated) || !replace && lines.ContainsKey(english)) continue;
+                lines[english] = translated;
+                made.Add(translated);
+                taken++;
+            }
+            return taken;
+        }
+
+        private static void Raise()
+        {
+            Action changed = Changed;
+            if (changed == null) return;
+            try { changed(); }
+            catch (Exception) { }
+        }
+
+        internal static void Warm()
+        {
+            lock (gate)
+            {
+                if (warming || Said.Ask == null || tongue == null || wanted.Count == 0 || DateTime.UtcNow - failed < Said.Wait) return;
+                warming = true;
+            }
+            bool ready;
+            try { ready = Said.Ready(); }
+            catch (Exception) { ready = false; }
+            if (!ready) { lock (gate) warming = false; return; }
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate { Work(); });
+        }
+
+        internal static void Work()
+        {
+            try
+            {
+                while (true)
+                {
+                    string language = tongue;
+                    if (language == null) return;
+                    List<string> batch = new List<string>();
+                    lock (gate)
+                    {
+                        Open();
+                        int size = 0;
+                        foreach (string line in wanted)
+                        {
+                            int misses;
+                            if (lines.ContainsKey(line) || missed.TryGetValue(line, out misses) && misses >= 2) continue;
+                            if (batch.Count > 0 && size + line.Length > Room) break;
+                            batch.Add(line);
+                            size += line.Length;
+                            if (batch.Count == Batch) break;
+                        }
+                    }
+                    if (batch.Count == 0) return;
+                    List<bool> named = new List<bool>();
+                    foreach (string line in batch) named.Add(false);
+                    string reply;
+                    try { reply = Said.Ask(Rules(language), Numbered(batch)); }
+                    catch (Exception) { lock (gate) failed = DateTime.UtcNow; return; }
+                    Dictionary<string, string> got = Said.Read(reply, batch, named);
+                    Dictionary<string, string> kept = new Dictionary<string, string>(StringComparer.Ordinal);
+                    lock (gate)
+                    {
+                        if (language != opened) continue;
+                        foreach (string line in batch)
+                        {
+                            string translated;
+                            if (got.TryGetValue(line, out translated) && Slots(line, translated)) { lines[line] = translated; made.Add(translated); kept[line] = translated; continue; }
+                            int misses;
+                            missed.TryGetValue(line, out misses);
+                            missed[line] = misses + 1;
+                        }
+                    }
+                    Keep(language, kept);
+                    if (kept.Count > 0) Raise();
+                }
+            }
+            finally { lock (gate) warming = false; }
+        }
+
+        internal static string Rules(string language)
+        {
+            return "You translate the settings window, menus and tips of Capri, a desktop companion app (a cyberpunk girl from Night City who lives on the user's PC; her settings window is the Mainframe), into " + language + ". " +
+                "Use the short, natural wording a native speaker expects in an app's settings, about as long as the English, in a casual friendly register. Keep ALL CAPS lines in capitals. " +
+                "Keep Capri, Mainframe, Night City, choom, product and company names, keyboard keys like Ctrl, Alt and Shift, and slots like {0} exactly as they are. " +
+                "Reply with only the same numbered lines in " + language + ", one per line, and nothing else.";
+        }
+
+        private static string Numbered(List<string> batch)
+        {
+            StringBuilder text = new StringBuilder();
+            for (int i = 0; i < batch.Count; i++) text.Append(i + 1).Append(". ").Append(batch[i]).Append('\n');
+            return text.ToString();
+        }
+
+        private static void Keep(string language, Dictionary<string, string> got)
+        {
+            string path = PathFor(language);
+            if (path == null || got.Count == 0) return;
+            StringBuilder rows = new StringBuilder();
+            foreach (KeyValuePair<string, string> pair in got) rows.Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
+            try { File.AppendAllText(path, rows.ToString(), new UTF8Encoding(false)); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
     internal sealed class OwnSpeech
     {
         internal sealed class Entry

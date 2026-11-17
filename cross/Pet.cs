@@ -869,6 +869,8 @@ namespace CapriDesktop
             Brain.Keeping = !Saved.NoMemories;
             if (Program.Smoke == null) Brain.Keeper = Brain;
             Brain.Language = Brain.LanguageCode(Saved.Language) == "en" ? null : Saved.Language;
+            Lingo.Bundled = WordTable;
+            Lingo.Use(Program.Smoke == null ? Brain.Language : null);
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
             Brain.Wordiness = Math.Max(0, Math.Min(2, Saved.Replies));
             Brain.Recall = Saved.LinuxMigrationVersion > 0 ? Math.Clamp(Saved.Recall, 0, 60) : Saved.Recall == 16 || Saved.Recall == 32 ? Saved.Recall : 8;
@@ -3696,7 +3698,17 @@ namespace CapriDesktop
             Saved.Language = Brain.Language;
             Brain.Forget();
             Save();
+            if (Program.Smoke == null) { Lingo.Use(Brain.Language); MainframeTheme.Reword(); }
             Sync();
+        }
+
+        internal static string WordTable(string name)
+        {
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Words." + name + ".txt"))
+            {
+                if (stream == null) return null;
+                using (StreamReader reader = new StreamReader(stream, System.Text.Encoding.UTF8)) return reader.ReadToEnd();
+            }
         }
 
         internal void SetReplies(int level)

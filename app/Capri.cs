@@ -7800,6 +7800,23 @@ namespace CapriDesktop
             SavePreferences();
             PointEars();
             Said.Warm();
+            if (!testing) Lingo.Use(Brain.Language);
+        }
+
+        private void Reword()
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            try { BeginInvoke(new MethodInvoker(Neon.Reword)); }
+            catch (InvalidOperationException) { }
+        }
+
+        internal static string WordTable(string name)
+        {
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Words." + name + ".txt"))
+            {
+                if (stream == null) return null;
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8)) return reader.ReadToEnd();
+            }
         }
 
         // Her fixed lines and the labels after "> sys: ", which her brain translates into their language once and she keeps in her
@@ -7809,6 +7826,11 @@ namespace CapriDesktop
             Said.Folder = data;
             Said.Ask = delegate(string system, string user) { return brain.Aside(system, user, 3000); };
             Said.Ready = delegate { return !testing && brain.Model != null; };
+            Lingo.Bundled = WordTable;
+            Lingo.Changed -= Reword;
+            Lingo.Changed += Reword;
+            Lingo.Reload();
+            Lingo.Use(testing ? null : Brain.Language);
             Said.Know(Brain.Greetings, Brain.HalloweenLines, PetLines, PatPeaceLines, PatNoLines, ThrowLines, WarnLines, DizzyLines, SulkLines, DodgeLines, SorryLines, AloneLines,
                 PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
@@ -39203,6 +39225,95 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeLingo(System.Collections.Generic.List<string> checks)
+        {
+            string folderWas = Said.Folder;
+            Func<string, string, string> askWas = Said.Ask;
+            Func<bool> readyWas = Said.Ready;
+            string folder = Path.Combine(Path.GetTempPath(), "capri-lingo-" + Guid.NewGuid().ToString("N"));
+            Lingo.Changed -= Reword;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                Said.Folder = folder;
+                Said.Ready = delegate { return false; };
+                string english = WordTable("english");
+                if (english == null) throw new Exception("Her settings' English words weren't inside her.");
+                System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
+                foreach (string row in english.Replace("\r\n", "\n").Split('\n')) if (row.Trim().Length > 0) keys.Add(row.Trim());
+                if (keys.Count < 500 || !keys.Contains("Advanced Settings") || !keys.Contains("OFF") || !keys.Contains("{0} min")) throw new Exception("Her settings' English words are short: " + keys.Count);
+                for (int i = 1; i < Brain.Languages.GetLength(0); i++)
+                {
+                    string name = Brain.Languages[i, 1], table = WordTable(Lingo.Slug(name));
+                    if (table == null) throw new Exception("No settings words for " + name + ".");
+                    System.Collections.Generic.HashSet<string> rows = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+                    foreach (string row in table.Replace("\r\n", "\n").Split('\n'))
+                    {
+                        int tab = row.IndexOf('\t');
+                        if (tab > 0 && row.Substring(tab + 1).Trim().Length > 0) rows.Add(row.Substring(0, tab));
+                    }
+                    foreach (string key in keys) if (!rows.Contains(key)) throw new Exception(name + "'s settings words leave out " + key);
+                }
+                Lingo.Reload();
+                Lingo.Use("Spanish");
+                string advanced = Lingo.Of("Advanced Settings"), minutes = Lingo.Of("5 min"), spaced = Lingo.Of("  Advanced Settings ");
+                if (advanced == "Advanced Settings" || advanced.Length == 0) throw new Exception("Spanish left Advanced Settings in English.");
+                if (minutes.IndexOf('5') < 0 || minutes.IndexOf('{') >= 0) throw new Exception("A number didn't fill its slot: " + minutes);
+                if (spaced != "  " + advanced + " ") throw new Exception("A translation lost its spaces: [" + spaced + "]");
+                if (Lingo.Of("My Vault 2") != "My Vault 2" || Lingo.Of(advanced) != advanced) throw new Exception("A name or a translation was changed.");
+                Neon.Caption caption = new Neon.Caption { Text = "Advanced Settings", AutoSize = true, Font = mainframe.Font };
+                Size spanish = caption.GetPreferredSize(Size.Empty);
+                Lingo.Use(null);
+                Size plain = caption.GetPreferredSize(Size.Empty);
+                caption.Dispose();
+                if (caption.Text != "Advanced Settings" || spanish == plain || Lingo.Of("Advanced Settings") != "Advanced Settings") throw new Exception("A label didn't size to its Spanish words, or English changed: " + spanish + " / " + plain);
+                int asks = 0;
+                string rules = null;
+                Said.Ask = delegate(string system, string user)
+                {
+                    asks++;
+                    rules = system;
+                    StringBuilder back = new StringBuilder();
+                    foreach (string row in user.Split('\n'))
+                    {
+                        Match numbered = Regex.Match(row, @"^([0-9]+)\. (.+)$");
+                        if (numbered.Success) back.Append(numbered.Groups[1].Value).Append(". [es] ").Append(numbered.Groups[2].Value).Append('\n');
+                    }
+                    return back.ToString();
+                };
+                Lingo.Use("Spanish");
+                string tip = "She glances at your screen every 3 minutes and comments.";
+                if (Lingo.Learn(tip) != tip) throw new Exception("A tip she hasn't translated wasn't left in English.");
+                Lingo.Work();
+                if (asks == 0 || rules == null || !rules.Contains("into Spanish") || !rules.Contains("{0}")) throw new Exception("Her brain wasn't asked for the tip, or lost its rules.");
+                if (Lingo.Of("She glances at your screen every 7 minutes and comments.") != "[es] She glances at your screen every 7 minutes and comments.") throw new Exception("The tip wasn't translated with its number: " + Lingo.Of(tip));
+                string[] kept = File.ReadAllLines(Lingo.PathFor("Spanish"), Encoding.UTF8);
+                if (Array.IndexOf(kept, "She glances at your screen every {0} minutes and comments.\t[es] She glances at your screen every {0} minutes and comments.") < 0) throw new Exception("The tip wasn't kept in " + Lingo.PathFor("Spanish"));
+                int before = asks;
+                Lingo.Reload();
+                if (Lingo.Of(tip) != "[es] " + tip || asks != before) throw new Exception("Her kept tip wasn't read back.");
+                Said.Ask = delegate(string system, string user) { asks++; return "1. Cada {7} minutos"; };
+                Lingo.Use("French");
+                string other = "Checks every 4 seconds.";
+                Lingo.Learn(other);
+                Lingo.Work();
+                if (Lingo.Of(other) != other) throw new Exception("A translation with the wrong slots was used: " + Lingo.Of(other));
+                checks.Add("PASS her settings in their language: all " + (Brain.Languages.GetLength(0) - 1) + " of her other languages ship every one of her " + keys.Count + " settings words, Spanish draws and sizes a label in Spanish while its Text stays English, numbers fill their slots, names stay as they are, a tip goes to her brain once, is kept and read back, a bad reply stays English, and English is untouched");
+            }
+            finally
+            {
+                Said.Folder = folderWas;
+                Said.Ask = askWas;
+                Said.Ready = readyWas;
+                Lingo.Use(null);
+                Lingo.Reload();
+                Lingo.Changed += Reword;
+                try { Directory.Delete(folder, true); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
         private void SmokeLanguages(System.Collections.Generic.List<string> checks)
         {
             int sizeWas = MainframeSize;
@@ -44817,6 +44928,7 @@ namespace CapriDesktop
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
+            Section(checks, "SmokeLingo", delegate { SmokeLingo(checks); });
             Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks, Path.Combine(output, "plan-choice")); });
             Section(checks, "SmokeLeaks", delegate { SmokeLeaks(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });

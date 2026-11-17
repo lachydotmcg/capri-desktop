@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	1|គ្រប់គ្រងដែលត្រូវបានលាបពណ៌ឡើងវិញមិនត្រូវបានគូសឡើងវិញក្នុងរូបភាពទេ។
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	2|គន្លឹះឥតគិតថ្លៃពី Google AI Studio, NVIDIA ឬ OpenRouter។ មិនមានអ្វីត្រូវទាញយកទេ។ ត្រូវការអ៊ីនធឺណិត។
+A held trackpad scroll got a flick's long ease:	3|ការអូសកង់ touchpad ដែលបានកាន់ទទួលបានការរំកិលយូរបែបចង្អុល៖
+A layout change during a slide put the page at	4|ការផ្លាស់ប្តូរប្លង់ក្នុងអំឡុងពេលស្លាយបានដាក់ទំព័រនៅ
+A layout change left the picture up.	5|ការផ្លាស់ប្តូរប្លង់បានទុករូបភាពឲ្យនៅដដែល។
+A model in Ollama, on your local server or on your key.	6|ម៉ូដែលក្នុង Ollama នៅលើម៉ាស៊ីនមេក្នុងតំបន់របស់អ្នក ឬដោយប្រើគន្លឹះរបស់អ្នក។
+A paid key goes under MAX INTELLIGENCE by itself.	7|គន្លឹះបង់ប្រាក់ទៅក្រោម MAX INTELLIGENCE ដោយស្វ័យប្រវត្តិ។
+A plan you already pay for, a key of your own, or Ollama.	8|គម្រោងដែលអ្នកបង់រួចហើយ គន្លឹះរបស់អ្នកផ្ទាល់ ឬ Ollama។
+A voice panel menu doesn't hold its own copy of the panel's font.	9|ម៉ឺនុយផ្ទាំងសំឡេងមិនមានច្បាប់ចម្លងផ្ទាល់ខ្លួននៃពុម្ពអក្សររបស់ផ្ទាំងនោះទេ។
+A wheel turn right after a slide ended froze the picture.	10|ការបង្វិលកង់កណ្ដុរភ្លាមៗបន្ទាប់ពីស្លាយបានបញ្ចប់ បានបង្កករូបភាព។
+ALLOW THIS PHONE?	11|អនុញ្ញាតទូរស័ព្ទនេះឬ?
+ALMOST THERE >	12|ជិតដល់ហើយ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	13|CAPRI ផ្សេងទៀតបានយកការគ្រប់គ្រង · បិទ និងបើកឡើងវិញ
+API key	14|គន្លឹះ API
+API key, Claude plan or ChatGPT plan	15|គន្លឹះ API, គម្រោង Claude ឬ ChatGPT
+Add	16|បន្ថែម
+Address	17|អាសយដ្ឋាន
+Address and key saved. Use saved to reconnect.	18|បានរក្សាទុកអាសយដ្ឋាន និងគន្លឹះ។ ប្រើ បានរក្សាទុក ដើម្បីភ្ជាប់ឡើងវិញ។
+Advanced Settings	19|ការកំណត់ខ្ពស់
+All	20|ទាំងអស់
+All screens	21|អេក្រង់ទាំងអស់
+Allow	22|អនុញ្ញាត
+Almost there. I'll say hi the second my brain's in.	23|ជិតដល់ហើយ។ ខ្ញុំនឹងនិយាយសួស្តីភ្លាមៗពេលខួរក្បាលខ្ញុំត្រៀមរួច។
+Always	24|តែងតែ
+Always on top	25|តែងតែនៅលើគេ
+Any Google account works. I opened the page in your browser.	26|គណនី Google ណាក៏ដំណើរការ។ ខ្ញុំបានបើកទំព័រនៅក្នុងកម្មវិធីរុករករបស់អ្នក។
+Applies to every voice	27|អនុវត្តចំពោះសំឡេងទាំងអស់
+Apps she may close	28|កម្មវិធីដែលនាងអាចបិទ
+Ask Capri for more	29|សួរ Capri បន្ថែម
+Asking your server...	30|កំពុងសួរម៉ាស៊ីនមេរបស់អ្នក...
+Asks before closing only the apps you choose.	31|សួរមុនបិទតែកម្មវិធីដែលអ្នកជ្រើសរើសប៉ុណ្ណោះ។
+Auto	32|ស្វ័យប្រវត្តិ
+Automatic: VB-CABLE, else Steam's	33|ស្វ័យប្រវត្តិ៖ VB-CABLE បើមិនដូច្នេះ Steam
+BAD RELAY HOST	34|ម៉ាស៊ីនបញ្ជូនបន្តមិនត្រឹមត្រូវ
+BIG Z open notepad	35|BIG Z បើក notepad
+BRAIN	36|ខួរក្បាល
+BRAIN >	37|ខួរក្បាល >
+BRAIN ONLINE >	38|ខួរក្បាលលើបណ្ដាញ >
+BRAIN PROVIDER >	39|អ្នកផ្តល់ខួរក្បាល >
+BRAIN VOICE CAPRI	40|សំឡេងខួរក្បាល CAPRI
+Back	41|ត្រឡប់ក្រោយ
+Back on your saved API key.	42|ត្រឡប់ទៅគន្លឹះ API ដែលបានរក្សាទុក។
+Bahnschrift	43|Bahnschrift
+Bahnschrift SemiBold Condensed	44|Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	45|Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	46|Bahnschrift SemiCondensed
+Best fit for this PC:	47|ល្អបំផុតសម្រាប់កុំព្យូទ័រនេះ៖
+Black	48|ខ្មៅ
+Blank key means no key.	49|គន្លឹះទទេមានន័យថាគ្មានគន្លឹះ។
+Brain API key	50|គន្លឹះ API ខួរក្បាល
+Brain model	51|ម៉ូដែលខួរក្បាល
+Brain provider	52|អ្នកផ្តល់ខួរក្បាល
+Bring here	53|នាំមកទីនេះ
+Bring to this screen	54|នាំមកអេក្រង់នេះ
+Browse	55|រកមើល
+Browse mods	56|រកមើលម៉ូដ
+Browse to a voice model	57|រកមើលម៉ូដែលសំឡេង
+Browse...	58|រកមើល...
+Bubble	59|ពពុះ
+CABLE Output (VB-Audio Virtual Cable)	60|CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	61|CAH Bree តើអ្នកនៅទីនោះទេ
+CAN'T REACH THE RELAY · RETRYING	62|មិនអាចទៅដល់ម៉ាស៊ីនបញ្ជូនបន្ត · កំពុងព្យាយាមម្ដងទៀត
+CAPRI	63|CAPRI
+CAPRI >	64|CAPRI >
+CAPRI VOICE BRAIN	65|ខួរក្បាលសំឡេង CAPRI
+CHANGED, approve it again.	66|បានផ្លាស់ប្តូរ សូមអនុម័តម្ដងទៀត។
+CLIPS >	67|ក្លីប >
+CLOUD VOICE	68|សំឡេងពពក
+CODE	69|កូដ
+COLORS >	70|ពណ៌ >
+CONNECTED	71|បានភ្ជាប់
+CONNECTING	72|កំពុងភ្ជាប់
+CUSTOM LOCAL	73|ផ្ទាល់ខ្លួនក្នុងតំបន់
+Call mode (beta)	74|របៀបហៅទូរស័ព្ទ (beta)
+Call mode does not fit.	75|របៀបហៅទូរស័ព្ទមិនសមទេ។
+Call mode is outside its space.	76|របៀបហៅទូរស័ព្ទនៅក្រៅកន្លែងរបស់វា។
+Cancel	77|បោះបង់
+Cancel keys	78|បោះបង់គ្រាប់ចុច
+Capri	79|Capri
+Capri Mainframe	80|Capri Mainframe
+Capri Remote	81|Capri ពីចម្ងាយ
+Capri code:	82|កូដ Capri៖
+Capri mods (*	83|ម៉ូដ Capri (*
+Capri, hello	84|Capri សួស្តី
+CapriDesktop.	85|CapriDesktop.
+Chaos when upset	86|ចលាចលនៅពេលខឹង
+Chat with Capri from your phone	87|ជជែកជាមួយ Capri ពីទូរស័ព្ទរបស់អ្នក
+ChatGPT plan	88|គម្រោង ChatGPT
+Check for updates	89|ពិនិត្យការអាប់ដេត
+Check in on me	90|ពិនិត្យមើលខ្ញុំ
+Check in on me is hidden	91|ពិនិត្យមើលខ្ញុំត្រូវបានលាក់
+Check in on me still decides whether she visits.	92|ពិនិត្យមើលខ្ញុំនៅតែសម្រេចថានាងនឹងមកលេងឬអត់។
+Check in on me's tip missed	93|ព័ត៌មានណែនាំពីការពិនិត្យមើលខ្ញុំត្រូវបានខកខាន
+Chess	94|អុកចត្រង្គ
+Choose apps	95|ជ្រើសរើសកម្មវិធី
+Choose folder...	96|ជ្រើសរើសថតឯកសារ...
+Choose where future Capri clips are saved	97|ជ្រើសរើសកន្លែងដែលក្លីប Capri នាពេលអនាគតនឹងត្រូវបានរក្សាទុក
+Claude Code	98|Claude Code
+Claude Code + Codex	99|Claude Code + Codex
+Claude Haiku {0}	100|Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	101|គម្រោង Claude ឬ ChatGPT, គន្លឹះបង់ប្រាក់ (OpenAI, Claude, DeepSeek), ឬ Ollama។
+Claude plan	102|គម្រោង Claude
+Clear	103|សម្អាត
+Cleared.	104|បានសម្អាត។
+Click Confirm to keep Down, or press Esc.	105|ចុច បញ្ជាក់ ដើម្បីរក្សា Down ឬចុច Esc។
+Click to open it.	106|ចុចដើម្បីបើកវា។
+Clip my games	107|កាត់ហ្គេមរបស់ខ្ញុំ
+Clips	108|ក្លីប
+Close	109|បិទ
+Close other AIs for me	110|បិទ AI ផ្សេងទៀតឲ្យខ្ញុំ
+Cloud voice	111|សំឡេងពពក
+Cloud voice service	112|សេវាសំឡេងពពក
+Cloud voice setup	113|ការដំឡើងសំឡេងពពក
+Code mods can reach your whole PC. Only trusted ones.	114|ម៉ូដកូដអាចចូលដល់ PC ទាំងមូលរបស់អ្នក។ ត្រឹមតែម៉ូដដែលទុកចិត្តបាន។
+Code/Husk Mode	115|របៀប Code/Husk
+Codex	116|Codex
+Commands	117|ពាក្យបញ្ជា
+Comment on my games	118|បញ្ចេញមតិលើហ្គេមរបស់ខ្ញុំ
+Comments	119|មតិយោបល់
+Confirm	120|បញ្ជាក់
+Confirm keys	121|បញ្ជាក់គ្រាប់ចុច
+Connect	122|ភ្ជាប់
+Connect / Forget brain key	123|ភ្ជាប់ / លុបគន្លឹះខួរក្បាល
+Connect / Forget voice key	124|ភ្ជាប់ / លុបគន្លឹះសំឡេង
+Connect four	125|បួនជួរ
+Controls	126|ការគ្រប់គ្រង
+Copri, what time is it	127|Copri ម៉ោងប៉ុន្មានហើយ
+Copy error details	128|ចម្លងព័ត៌មានលម្អិតកំហុស
+Copy the key	129|ចម្លងគន្លឹះ
+Copy the key from the page, then press Paste.	130|ចម្លងគន្លឹះពីទំព័រ បន្ទាប់មកចុចបិទភ្ជាប់។
+Couldn't open that page:	131|មិនអាចបើកទំព័រនោះបានទេ៖
+Couldn't open that:	132|មិនអាចបើកអ្វីនោះបានទេ៖
+Couldn't open the mods folder:	133|មិនអាចបើកថតម៉ូដបានទេ៖
+Ctrl + Alt + G	134|Ctrl + Alt + G
+Ctrl + Alt + H	135|Ctrl + Alt + H
+Ctrl + Alt + M	136|Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	137|Ctrl + Alt + M គឺជាគ្រាប់ចុច Mainframe របស់នាងរួចហើយ។
+Ctrl + Alt + N	138|Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	139|Ctrl + Alt + N បិទសំឡេងមីក្រូហ្វូន
+Ctrl + Alt + O	140|Ctrl + Alt + O
+Ctrl + Alt + P	141|Ctrl + Alt + P
+Ctrl + Alt + T	142|Ctrl + Alt + T
+Ctrl + Alt + V	143|Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	144|Ctrl + Alt + V គឺជាគ្រាប់ចុចនិយាយរបស់នាងរួចហើយ។
+Ctrl + Alt + V to talk	145|Ctrl + Alt + V ដើម្បីនិយាយ
+Custom local voice	146|សំឡេងក្នុងតំបន់ផ្ទាល់ខ្លួន
+Custom model name	147|ឈ្មោះម៉ូដែលផ្ទាល់ខ្លួន
+Dance	148|រាំ
+Dance to music	149|រាំតាមតន្ត្រី
+Default	150|លំនាំដើម
+Default (follows Windows)	151|លំនាំដើម (ធ្វើតាម Windows)
+Default duration for clip that and automatic clips	152|រយៈពេលលំនាំដើមសម្រាប់ក្លីប រក្សាទុកនោះ និងក្លីបស្វ័យប្រវត្តិ
+Default length	153|ប្រវែងលំនាំដើម
+Default model	154|ម៉ូដែលលំនាំដើម
+Delay	155|ការពន្យារពេល
+Deny	156|បដិសេធ
+Discard	157|បោះចោល
+Discard + reload	158|បោះចោល + ផ្ទុកឡើងវិញ
+Discord	159|Discord
+Don't want to wait? A free key gets me talking in about a minute.	160|មិនចង់រង់ចាំទេ? គន្លឹះឥតគិតថ្លៃនឹងធ្វើឲ្យខ្ញុំនិយាយក្នុងរយៈពេលប្រហែលមួយនាទី។
+Done	161|រួចរាល់
+EXTRA REQUEST JSON >	162|សំណើ JSON បន្ថែម >
+EXTRAS >	163|បន្ថែម >
+Edit	164|កែសម្រួល
+Edit check-in lines	165|កែសម្រួលបន្ទាត់ពិនិត្យមើល
+Edit check-in lines has the wrong view or dimming	166|កែសម្រួលបន្ទាត់ពិនិត្យមើលមានទិដ្ឋភាពខុស ឬងងឹតខុស
+Edit check-in lines is out of place	167|កែសម្រួលបន្ទាត់ពិនិត្យមើលនៅមិនត្រឹមត្រូវ
+Edit controls	168|កែសម្រួលការគ្រប់គ្រង
+ElevenLabs API key	169|គន្លឹះ API ElevenLabs
+ElevenLabs voice ID	170|ID សំឡេង ElevenLabs
+English	171|អង់គ្លេស
+Enter the game's name first.	172|សូមបញ្ចូលឈ្មោះហ្គេមជាមុនសិន។
+Every	173|គ្រប់
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	174|ម៉ូដគ្រប់ម៉ូដត្រូវបានពិនិត្យរកមេរោគមុនពេលបង្ហោះ។ ម៉ូដកូដនៅតែសួរមុនដំណើរការ។
+Explore after	175|ស្វែងរកបន្ទាប់
+Explore while I'm away	176|ស្វែងរកពេលខ្ញុំមិននៅ
+Extra request JSON	177|សំណើ JSON បន្ថែម
+Extras	178|បន្ថែម
+FREE KEY	179|គន្លឹះឥតគិតថ្លៃ
+FREE KEY >	180|គន្លឹះឥតគិតថ្លៃ >
+Fast hands in games	181|ដៃលឿននៅក្នុងហ្គេម
+File editor	182|កម្មវិធីកែសម្រួលឯកសារ
+Fish Audio	183|Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	184|Fish Audio, ElevenLabs និងផ្សេងៗទៀតនៅក្រោម សំឡេង ក្នុង Mainframe។
+Follow-up messages	185|សារបន្តបន្ទាប់
+Forget	186|បំភ្លេច
+Fork capri-mods	187|Fork capri-mods
+Frame rate	188|អត្រាហ្វ្រេម
+Free	189|ឥតគិតថ្លៃ
+Free and private, works offline. Downloads	190|ឥតគិតថ្លៃ និងឯកជន ដំណើរការដោយគ្មានអ៊ីនធឺណិត។ ទាញយក
+Free and private, works offline. Downloads the best model for this PC.	191|ឥតគិតថ្លៃ និងឯកជន ដំណើរការដោយគ្មានអ៊ីនធឺណិត។ ទាញយកម៉ូដែលល្អបំផុតសម្រាប់កុំព្យូទ័រនេះ។
+Free key	192|គន្លឹះឥតគិតថ្លៃ
+Free key providers	193|អ្នកផ្តល់គន្លឹះឥតគិតថ្លៃ
+Free keys can be rate limited and slow.	194|គន្លឹះឥតគិតថ្លៃអាចមានកម្រិតល្បឿន និងយឺត។
+Free voice in games	195|សំឡេងឥតគិតថ្លៃក្នុងហ្គេម
+Free voice style	196|រចនាបថសំឡេងឥតគិតថ្លៃ
+Free voice:	197|សំឡេងឥតគិតថ្លៃ៖
+Free voice: Her own	198|សំឡេងឥតគិតថ្លៃ៖ របស់នាងផ្ទាល់
+Free · local model	199|ឥតគិតថ្លៃ · ម៉ូដែលក្នុងតំបន់
+GAMES >	200|ហ្គេម >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	201|មតិហ្គេមដំណើរការដាច់ដោយឡែកពី មើលអេក្រង់របស់ខ្ញុំ។ បិទនឹងបញ្ឈប់វា សូម្បីតែក្នុងមុខងារហ្គេម; មានតែព្រឹត្តិការណ៍ និង Chatty ទេដែលអនុញ្ញាតឲ្យនាងមើលហ្គេមរបស់អ្នក
+Game controls	202|ការគ្រប់គ្រងហ្គេម
+Game name	203|ឈ្មោះហ្គេម
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	204|ភាពរសើបសំឡេងហ្គេម។ បន្ថយប្រសិនបើកាស្ទ្រីមរបស់អ្នកត្រូវបានបន្ថយ ប៉ុន្តែ Windows នៅ {0}% ហើយនាងឆ្លើយតបនឹងសំឡេងគ្រប់យ៉ាង; បិទនឹងមិនអើពើសំឡេងហ្គេម
+Game sounds	205|សំឡេងហ្គេម
+Games	206|ហ្គេម
+Gaming Mode	207|មុខងារហ្គេម
+Gaming Mode key	208|គ្រាប់ចុចមុខងារហ្គេម
+Gaming Mode:	209|មុខងារហ្គេម៖
+Gaming Mode: Ctrl + Alt + G	210|មុខងារហ្គេម៖ Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	211|Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	212|ទាញយក VB-CABLE
+Get VB-CABLE (free)...	213|ទាញយក VB-CABLE (ឥតគិតថ្លៃ)...
+Get free voice	214|ទាញយកសំឡេងឥតគិតថ្លៃ
+Getting your Fish Audio voices...	215|កំពុងទាញយកសំឡេង Fish Audio របស់អ្នក...
+Giant	216|ធំណាស់
+Glitch	217|Glitch
+Glitch in at startup	218|Glitch ពេលចាប់ផ្តើម
+Go to sleep	219|ទៅគេង
+Go to the next screen	220|ទៅអេក្រង់បន្ទាប់
+Google AI Studio	221|Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	222|Google AI Studio (Gemini) · កម្រិតឥតគិតថ្លៃ · មានកម្រិតល្បឿន
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	223|អ្នកមានគម្រោង Claude ឬ ChatGPT ឬគន្លឹះផ្ទាល់ខ្លួនទេ? ជ្រើសរើសវា ហើយខ្ញុំនឹងភ្ជាប់។
+Got it, just me. Right-click me any time for Capri Mainframe.	224|បាន មានតែខ្ញុំ។ ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលដើម្បីចូល Capri Mainframe។
+Grey	225|ប្រផេះ
+H.{0} video bitrate target; higher values make larger files	226|គោលដៅអត្រាប៊ីតវីដេអូ H.{0}; តម្លៃខ្ពស់ធ្វើឲ្យឯកសារធំជាង
+HABITS >	227|និស្ស័យ >
+HER HANDS >	228|ដៃរបស់នាង >
+HER JOBS >	229|ការងាររបស់នាង >
+HER MEMORY >	230|ការចងចាំរបស់នាង >
+HER MODS >	231|ម៉ូដរបស់នាង >
+HH:mm	232|HH:mm
+HOW I SOUND >	233|ខ្ញុំស្តាប់ទៅដូចម្ដេច >
+Hang here	234|នៅទីនេះ
+Have Ollama? Open it, then press Refresh.	235|មាន Ollama ទេ? បើកវា បន្ទាប់មកចុចផ្ទុកឡើងវិញ។
+Head pats	236|ការដាក់ដៃលើក្បាល
+Hearing	237|ការស្ដាប់
+Hearing engine	238|ម៉ាស៊ីនស្ដាប់
+Hearing fix	239|ការជួសជុលការស្ដាប់
+Hearing status	240|ស្ថានភាពការស្ដាប់
+Help	241|ជំនួយ
+Help page	242|ទំព័រជំនួយ
+Her colors	243|ពណ៌របស់នាង
+Her folder	244|ថតរបស់នាង
+Her memories	245|ការចងចាំរបស់នាង
+Her own colors are back.	246|ពណ៌ផ្ទាល់ខ្លួនរបស់នាងត្រឡប់មកវិញហើយ។
+Her own notes (no vault)	247|កំណត់ហេតុផ្ទាល់ខ្លួនរបស់នាង (គ្មានឃ្លាំង)
+Her perch frames per second	248|ហ្រេមក្នុងមួយវិនាទីសម្រាប់កន្លែងអង្គុយរបស់នាង
+Her personality	249|បុគ្គលិកលក្ខណៈរបស់នាង
+Her size	250|ទំហំរបស់នាង
+Her speaker	251|ឧបករណ៍បំពងសំឡេងរបស់នាង
+Her speaker is hidden or outside VOICE	252|ឧបករណ៍បំពងសំឡេងរបស់នាងត្រូវបានលាក់ ឬនៅក្រៅ សំឡេង
+Her speaker overlaps the mic or hearing row	253|ឧបករណ៍បំពងសំឡេងរបស់នាងត្រួតលើជួរមីក្រូហ្វូន ឬការស្ដាប់
+Her speaker:	254|ឧបករណ៍បំពងសំឡេងរបស់នាង៖
+Her speaker: Default	255|ឧបករណ៍បំពងសំឡេងរបស់នាង៖ លំនាំដើម
+Her voice in your mic	256|សំឡេងរបស់នាងក្នុងមីក្រូហ្វូនរបស់អ្នក
+Her voice in your mic: loudness	257|សំឡេងរបស់នាងក្នុងមីក្រូហ្វូនរបស់អ្នក៖ កម្រិតសំឡេង
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	258|សំឡេងរបស់នាងផ្ទាល់។ កម្រិតសូររបស់វាគឺ ការកំណត់ > សំឡេង > កម្រិតសូរ ហើយពួកវាផ្លាស់ទីជាមួយគ្នា។
+Her voice joins your mic only in call mode.	259|សំឡេងរបស់នាងចូលមីក្រូហ្វូនរបស់អ្នកតែក្នុងរបៀបហៅទូរស័ព្ទប៉ុណ្ណោះ។
+Her voice volume	260|កម្រិតសំឡេងរបស់នាង
+Her voice's pitch	261|កម្រិតសូរសំឡេងរបស់នាង
+Her voice's pitch, the same as Settings > VOICE > Pitch	262|កម្រិតសូរសំឡេងរបស់នាង ដូចគ្នានឹង ការកំណត់ > សំឡេង > កម្រិតសូរ
+Her voice's speed	263|ល្បឿនសំឡេងរបស់នាង
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	264|សំឡេងរបស់នាង និងច្បាប់ចម្លងពីរនៃវាលាយនៅខាងក្រោម ម្យ៉ាងៗមានកម្រិតសូរ និងការពន្យារពេលរៀងៗខ្លួន។
+Her voices · free	265|សំឡេងរបស់នាង · ឥតគិតថ្លៃ
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	266|សួស្តី choom។ ខ្ញុំគឺ Capri។ ខ្ញុំត្រូវការខួរក្បាលមុនពេលខ្ញុំអាចឆ្លើយតបបាន។ ជ្រើសរើសមួយ។
+Hide / Show Capri	267|លាក់ / បង្ហាញ Capri
+Hide / Show key	268|គ្រាប់ចុចលាក់ / បង្ហាញ
+Hide Capri	269|លាក់ Capri
+Hide for now	270|លាក់សម្រាប់ពេលនេះ
+Hide in full screen	271|លាក់ក្នុងអេក្រង់ពេញ
+Hide this	272|លាក់នេះ
+Hide/show:	273|លាក់/បង្ហាញ៖
+Hide/show: Ctrl + Alt + H	274|លាក់/បង្ហាញ៖ Ctrl + Alt + H
+Hologram	275|ហូឡូក្រាម
+Hop off	276|ចុះ
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	277|ទំនេរយូរប៉ុណ្ណាដែលកុំព្យូទ័រត្រូវចំណាយដើម្បីបញ្ជូនគាត់ទៅដេក; ប្រាំនាទីនៅតែបង្ហាញថាអ្នកមិននៅ
+How long a stroke over her a head pat needs	278|ការអូសលើក្បាលត្រូវការរយៈពេលយូរប៉ុណ្ណាដើម្បីដាក់ដៃលើក្បាល
+How long her replies stay up	279|ចម្លើយរបស់នាងនៅលើអេក្រង់យូរប៉ុណ្ណា
+How long you are away before she scrolls a browser or reader	280|អ្នកត្រូវនៅឆ្ងាយយូរប៉ុណ្ណាមុនពេលនាងរំកិលកម្មវិធីរុករក ឬអ្នកអាន
+How much her voice glitches	281|សំឡេងរបស់នាងប្រែប្រួលខ្លាំងប៉ុណ្ណា
+How much of the chat she keeps	282|ការសន្ទនាប៉ុន្មានដែលនាងរក្សាទុក
+How much she wanders	283|នាងដើរវង្វេងច្រើនប៉ុណ្ណា
+How often she pops in to say hi	284|នាងចូលមកសួស្តីញឹកញាប់ប៉ុណ្ណា
+How robotic her voice sounds	285|សំឡេងរបស់នាងមានសំឡេងដូចរ៉ូបូតប៉ុណ្ណា
+How to	286|របៀប
+Huge	287|ធំ
+I can hear you.	288|ខ្ញុំអាចឮអ្នក។
+I glance at your screen and comment. Costs a little on a paid brain.	289|ខ្ញុំក្រឡេកមើលអេក្រង់របស់អ្នក ហើយផ្ដល់មតិ។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
+I keep listening. Say my name, then just talk.	290|ខ្ញុំនៅតែស្ដាប់។ ហៅឈ្មោះខ្ញុំ បន្ទាប់មកនិយាយតែប៉ុណ្ណោះ។
+I talk about your game as you play. Costs a little on a paid brain.	291|ខ្ញុំនិយាយអំពីហ្គេមរបស់អ្នកពេលអ្នកលេង។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
+I type my replies and stay quiet.	292|ខ្ញុំវាយចម្លើយរបស់ខ្ញុំ ហើយនៅស្ងៀម។
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	293|ខ្ញុំនឹងមិននិយាយឆ្លើយទេ ហើយគ្មានអ្វីត្រូវបានផ្ញើទៅកន្លែងណាទេ។ ខ្ញុំនៅតែឡើងចុះ រាំតាមតន្ត្រីរបស់អ្នក ហើយធ្វើការងារលឿនដែលអ្នកស្នើសុំ ដូចជាកម្រិតសំឡេង។
+I'll talk in	294|ខ្ញុំនឹងនិយាយក្នុង
+IN DISCORD >	295|នៅក្នុង DISCORD >
+INSTALLED >	296|បានដំឡើង >
+Import a Capri mod	297|នាំចូលម៉ូដ Capri
+Import mod	298|នាំចូលម៉ូដ
+In games	299|នៅក្នុងហ្គេម
+Input	300|បញ្ចូល
+Input, Output or How to overlaps a row	301|បញ្ចូល, បញ្ចេញ ឬ របៀបត្រួតលើជួរ
+Input:	302|បញ្ចូល៖
+Input: default	303|បញ្ចូល៖ លំនាំដើម
+Install	304|ដំឡើង
+Install mod	305|ដំឡើងម៉ូដ
+Installed.	306|បានដំឡើង។
+It may ask for a phone number. I opened the page in your browser.	307|វាអាចនឹងសួរលេខទូរស័ព្ទ។ ខ្ញុំបានបើកទំព័រនៅក្នុងកម្មវិធីរុករករបស់អ្នក។
+It still does its own job in other apps too.	308|វានៅតែធ្វើការងាររបស់វានៅក្នុងកម្មវិធីផ្សេងៗដែរ។
+It won't type in other apps while she runs.	309|វានឹងមិនវាយនៅក្នុងកម្មវិធីផ្សេងទៀតខណៈនាងកំពុងដំណើរការទេ។
+JUST ME >	310|មានតែខ្ញុំ >
+Jealous of other AIs	311|ច្រណែន AI ផ្សេងទៀត
+Join the Discord	312|ចូលរួម Discord
+KB.	313|KB.
+KEYS	314|គ្រាប់ចុច
+KEYS >	315|គ្រាប់ចុច >
+Keep PC awake for jobs	316|រក្សាកុំព្យូទ័រឲ្យភ្ញាក់សម្រាប់ការងារ
+Keeps the last two minutes of your game in memory. Say clip that to save it.	317|រក្សាពីរនាទីចុងក្រោយនៃហ្គេមរបស់អ្នកក្នុងការចងចាំ។ និយាយ កាត់នោះ ដើម្បីរក្សាទុកវា។
+Key	318|គន្លឹះ
+Key cleared: a model file needs none.	319|គន្លឹះត្រូវបានសម្អាត៖ ឯកសារម៉ូដែលមិនត្រូវការវាទេ។
+Key cleared: paste the key for	320|គន្លឹះត្រូវបានសម្អាត៖ បិទភ្ជាប់គន្លឹះសម្រាប់
+Key forgotten.	321|គន្លឹះត្រូវបានបំភ្លេច។
+Key. It goes only to this server, as a Bearer key	322|គន្លឹះ។ វាត្រូវទៅកាន់ម៉ាស៊ីនមេនេះតែប៉ុណ្ណោះ ជាគន្លឹះ Bearer
+Kokoro only, like es	323|Kokoro តែប៉ុណ្ណោះ ដូច es
+LAST THING >	324|អ្វីចុងក្រោយ >
+LISTENING >	325|កំពុងស្ដាប់ >
+Language	326|ភាសា
+Large	327|ធំ
+Last thing. These cost a little or use your mic, so they're your pick.	328|អ្វីចុងក្រោយ។ ទាំងនេះចំណាយបន្តិច ឬប្រើមីក្រូហ្វូនរបស់អ្នក ដូច្នេះវាអាស្រ័យលើជម្រើសរបស់អ្នក។
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	329|អ្វីចុងក្រោយ។ ទាំងនេះចំណាយបន្តិច ឬប្រើមីក្រូហ្វូនរបស់អ្នក ដូច្នេះវាអាស្រ័យលើជម្រើសរបស់អ្នក។ បន្ទាប់មកខ្ញុំចង់ដឹងថាត្រូវហៅអ្នកថាអ្វី។
+Layers	330|ស្រទាប់
+Learn more	331|ស្វែងយល់បន្ថែម
+Leaving Settings threw its picture away straight away.	332|ការចាកចេញពីការកំណត់បានបោះចោលរូបភាពរបស់នាងភ្លាមៗ។
+Legacy stand	333|ជើងតាំងចាស់
+Lie down	334|ដេកចុះ
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	335|បន្ទាត់នៃការសន្ទនាកុំព្យូទ័រដែលរក្សាទុកក្នុងការចងចាំពេលមើលជាមួយគ្នា។ ពាក់កណ្ដាលដែលចាស់បំផុតក្លាយជាកំណត់ចំណាំ នៅពេលចាប់ផ្តើម ចងចាំអ្វីដែលនាងឃើញ
+Listen for Capri	336|ស្ដាប់ Capri
+Live reactions	337|ប្រតិកម្មផ្ទាល់
+Local server address	338|អាសយដ្ឋានម៉ាស៊ីនមេក្នុងតំបន់
+Long	339|វែង
+Longest wait (minutes)	340|រង់ចាំយូរបំផុត (នាទី)
+Looking at this PC...	341|កំពុងមើលកុំព្យូទ័រនេះ...
+Looking for Ollama. Open it if it isn't running.	342|កំពុងស្វែងរក Ollama។ បើកវាប្រសិនបើវាមិនដំណើរការ។
+Looking for a brain...	343|កំពុងស្វែងរកខួរក្បាល...
+Looking in the mods directory for updates...	344|កំពុងស្វែងរកការអាប់ដេតនៅក្នុងថតម៉ូដ...
+Looking in the mods directory...	345|កំពុងស្វែងរកនៅក្នុងថតម៉ូដ...
+Looking...	346|កំពុងស្វែងរក...
+MAIN >	347|ចម្បង >
+MAINFRAME	348|MAINFRAME
+MAX INTELLIGENCE	349|MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	350|MEDIUM INTELLIGENCE
+MEMORY VAULT >	351|ឃ្លាំងការចងចាំ >
+MODS	352|ម៉ូដ
+MODS >	353|ម៉ូដ >
+MODS DIRECTORY >	354|ថតម៉ូដ >
+MODS INSTALLED COLORS	355|ពណ៌ម៉ូដដែលបានដំឡើង
+MOVES >	356|ចលនា >
+MY BRAIN	357|ខួរក្បាលរបស់ខ្ញុំ
+MY FREE VOICE	358|សំឡេងឥតគិតថ្លៃរបស់ខ្ញុំ
+MY PLAN OR KEY	359|គម្រោងឬគន្លឹះរបស់ខ្ញុំ
+MY PLAN OR KEY >	360|គម្រោងឬគន្លឹះរបស់ខ្ញុំ >
+Made your Fish Audio voice. Press Test to hear it.	361|បានបង្កើតសំឡេង Fish Audio របស់អ្នក។ ចុច សាកល្បង ដើម្បីស្ដាប់។
+Mainframe colours	362|ពណ៌ Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	363|ពណ៌ Mainframe។ Night City គឺក្រហម និងស៊ីយ៉ង់; ខ្មៅ សរ និងប្រផេះ ប្ដូរ Mainframe ម៉ឺនុយរបស់នាង ប្រអប់វាយអក្សរ និងកំណត់ចំណាំរបស់នាង
+Mainframe frames	364|ស៊ុម Mainframe
+Mainframe key	365|គ្រាប់ចុច Mainframe
+Mainframe size	366|ទំហំ Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	367|ទំហំ Mainframe។ ស្វ័យប្រវត្តិធ្វើឲ្យវាធំជាងនៅពេល Virtual Super Resolution ឬ DSR បង្រួមកុំព្យូទ័រធំមកអេក្រង់តូច
+Mainframe:	368|Mainframe៖
+Mainframe: Ctrl + Alt + M	369|Mainframe៖ Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	370|Mainframe៖ Ctrl + Alt + O
+Mainframe: Down	371|Mainframe៖ ចុះ
+Mainframe: Enter	372|Mainframe៖ Enter
+Making your Fish Audio voice...	373|កំពុងបង្កើតសំឡេង Fish Audio របស់អ្នក...
+Max reply	374|ចម្លើយអតិបរមា
+Maximum clip resolution, keeping the game's shape without upscaling	375|គុណភាពក្លីបខ្ពស់បំផុត រក្សារូបរាងហ្គេមដោយមិនពង្រីក
+Medium	376|មធ្យម
+Memory	377|ការចងចាំ
+Memory size	378|ទំហំការចងចាំ
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	379|ទំហំការចងចាំជាថូខឹនសម្រាប់ Ollama និងខួរក្បាលក្នុងខ្លួនរបស់នាង។ ស្វ័យប្រវត្តិកើនឡើងនៅពេលសំណើត្រូវការច្រើនជាង
+Mg	380|Mg
+Mic level:	381|កម្រិតមីក្រូហ្វូន៖
+Mic test finished. Sound is reaching Capri.	382|ការសាកល្បងមីក្រូហ្វូនបានបញ្ចប់។ សំឡេងកំពុងទៅដល់ Capri។
+Mic:	383|មីក្រូហ្វូន៖
+Mic: default	384|មីក្រូហ្វូន៖ លំនាំដើម
+Microphone	385|មីក្រូហ្វូន
+Mini player	386|កម្មវិធីចាក់ខ្នាតតូច
+Mini player over full screen	387|កម្មវិធីចាក់ខ្នាតតូចលើអេក្រង់ពេញ
+Mini-games	388|ហ្គេមខ្នាតតូច
+Minimising the Mainframe left it sliding.	389|ការតូចអប្បបរមា Mainframe ធ្វើឲ្យវាចាប់ផ្តើមរអិល។
+Minimize	390|បង្រួម
+Mod filter	391|តម្រងម៉ូដ
+Mod options	392|ជម្រើសម៉ូដ
+Mod pages	393|ទំព័រម៉ូដ
+Mod rules	394|វិធានម៉ូដ
+Mod sort	395|តម្រៀបម៉ូដ
+Mod switch	396|ប្ដូរម៉ូដ
+Model	397|ម៉ូដែល
+Model folder	398|ថតម៉ូដែល
+Model name, optional	399|ឈ្មោះម៉ូដែល ស្រេចចិត្ត
+Mods	400|ម៉ូដ
+Mods directory	401|ថតម៉ូដ
+Mods folder	402|ថតម៉ូដ
+Most NVIDIA models can't see your screen.	403|ម៉ូដែល NVIDIA ភាគច្រើនមិនអាចមើលឃើញអេក្រង់របស់អ្នកទេ។
+Mouse wheel notches got a flick's long ease:	404|កង់កណ្ដុរបានទទួលការរំកិលយូរបែបចង្អុល៖
+Move	405|ផ្លាស់ទី
+Move key to MAX INTELLIGENCE	406|ផ្លាស់ទីគ្រាប់ចុចទៅ MAX INTELLIGENCE
+Move to MAX	407|ផ្លាស់ទីទៅ MAX
+Music	408|តន្ត្រី
+Music app	409|កម្មវិធីតន្ត្រី
+Music app: where she plays music when you don't name an app	410|កម្មវិធីតន្ត្រី៖ កន្លែងដែលនាងចាក់តន្ត្រីនៅពេលអ្នកមិនដាក់ឈ្មោះកម្មវិធី
+Mute	411|បិទសំឡេង
+Mute her	412|បិទសំឡេងនាង
+Mute mic key	413|គ្រាប់ចុចបិទសំឡេងមីក្រូហ្វូន
+Mute mic:	414|បិទសំឡេងមីក្រូហ្វូន៖
+Mute mic: Ctrl + Alt + N	415|បិទសំឡេងមីក្រូហ្វូន៖ Ctrl + Alt + N
+My brain	416|ខួរក្បាលរបស់ខ្ញុំ
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	417|ខួរក្បាលរបស់ខ្ញុំកំពុងចុះមក។ ខ្ញុំនឹងនិយាយសួស្តីភ្លាមៗពេលវាចូលមក ហើយអ្នកអាចនិយាយជាមួយខ្ញុំពេលនោះ។
+My brain's on its way. While it comes down, let's sort out how I sound.	418|ខួរក្បាលរបស់ខ្ញុំកំពុងមក។ ខណៈវាចុះមក យើងមកកំណត់រកវិធីដែលខ្ញុំនិយាយ។
+My provider	419|អ្នកផ្តល់របស់ខ្ញុំ
+NO AI	420|គ្មាន AI
+NO PHONES CONNECTED	421|គ្មានទូរស័ព្ទភ្ជាប់
+NO PREVIEW	422|គ្មានការមើលជាមុន
+NORMAL	423|ធម្មតា
+NVIDIA	424|NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	425|NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	426|NVIDIA · ឥតគិតថ្លៃ · ជារឿយៗយឺតនៅពេលមមាញឹក
+NVIDIA's free API is often slow, especially at busy times.	427|API ឥតគិតថ្លៃរបស់ NVIDIA ជារឿយៗយឺត ជាពិសេសនៅពេលមមាញឹក។
+NVIDIA, Gemini, OpenRouter	428|NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	429|គន្លឹះ API របស់ NVIDIA, Google AI Studio (Gemini) ឬ OpenRouter
+Names:	430|ឈ្មោះ៖
+Needs a key	431|ត្រូវការគន្លឹះ
+Never	432|មិនដែល
+New code	433|កូដថ្មី
+New voice from a clip...	434|សំឡេងថ្មីពីក្លីប...
+Next	435|បន្ទាប់
+Night City	436|Night City
+No AI	437|គ្មាន AI
+No AI · no brain at all	438|គ្មាន AI · គ្មានខួរក្បាលទាល់តែសោះ
+No brain runs, and nothing is sent anywhere.	439|គ្មានខួរក្បាលដំណើរការទេ ហើយគ្មានអ្វីត្រូវបានផ្ញើទៅកន្លែងណាទេ។
+No brain yet	440|មិនទាន់មានខួរក្បាលនៅឡើយ
+No code open	441|គ្មានកូដបើក
+No mic found	442|រកមិនឃើញមីក្រូហ្វូនទេ
+No mods in the directory yet.	443|មិនទាន់មានម៉ូដនៅក្នុងថតទេ។
+No mods match that.	444|គ្មានម៉ូដណាត្រូវនឹងនោះទេ។
+No mods match.	445|គ្មានម៉ូដត្រូវគ្នាទេ។
+No phones yet	446|មិនទាន់មានទូរស័ព្ទទេ
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	447|មិនទាន់មានមីក្រូហ្វូននិម្មិតទេ។ ជ្រើសរើស Output បន្ទាប់មក Get VB-CABLE (ឥតគិតថ្លៃ)។
+None yet: pick to get VB-CABLE (free)	448|មិនទាន់មាន៖ ជ្រើសដើម្បីទទួល VB-CABLE (ឥតគិតថ្លៃ)
+Normal	449|ធម្មតា
+Not a relay host	450|មិនមែនជាម៉ាស៊ីនបញ្ជូនបន្តទេ
+Not imported. Nothing ran.	451|មិនបាននាំចូលទេ។ គ្មានអ្វីដំណើរការទេ។
+Not updated. The old one is still in.	452|មិនបានអាប់ដេតទេ។ ម៉ូដចាស់នៅតែមានដដែល។
+Nothing needed updating.	453|មិនត្រូវការអាប់ដេតអ្វីទេ។
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	454|គ្មានអ្វីត្រូវទាញយក គ្មានអ្វីត្រូវបានផ្ញើទៅកន្លែងណាទេ។ ខ្ញុំនឹងមិននិយាយឆ្លើយទេ។ បន្ថែមខួរក្បាលគ្រប់ពេលនៅក្នុង Mainframe។
+Nothing to show from the mods directory.	455|គ្មានអ្វីត្រូវបង្ហាញពីថតម៉ូដទេ។
+Nothing? Windows Settings > Privacy & security > Microphone.	456|គ្មានទេ? ការកំណត់ Windows > ឯកជនភាព និងសុវត្ថិភាព > មីក្រូហ្វូន។
+Nous Portal keys aren't supported yet.	457|គន្លឹះ Nous Portal មិនទាន់គាំទ្រនៅឡើយទេ។
+OBS	458|OBS
+OFF	459|បិទ
+OLLAMA	460|OLLAMA
+ON	461|បើក
+ON THIS PC	462|នៅលើកុំព្យូទ័រនេះ
+OR A KEY	463|ឬគន្លឹះ
+Obsidian memory vault	464|ឃ្លាំងការចងចាំ Obsidian
+Off	465|បិទ
+Off. Turn on Her voice in your mic above.	466|បិទ។ បើក សំឡេងរបស់នាងក្នុងមីក្រូហ្វូនរបស់អ្នកខាងលើ។
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	467|បិទ៖ នាងស្តាប់ទៅដូចធម្មតា។ បើក៖ សំឡេងទាំងអស់ដែលនាងមាន រួមទាំង ElevenLabs ផង។
+Often	468|ជារឿយៗ
+On	469|បើក
+On / Off	470|បើក / បិទ
+On: your mic and her voice are going in.	471|បើក៖ មីក្រូហ្វូនរបស់អ្នក និងសំឡេងរបស់នាងកំពុងចូល។
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	472|វត្ថុ JSON មួយ ត្រូវបានបន្ថែមទៅគ្រប់សំណើទាំងអស់ដែលខួរក្បាលនេះផ្ញើ។ វាជំនួសតម្លៃរបស់ Capri សម្រាប់ឈ្មោះណាមួយដែលវាចែករំលែក ហើយមិនត្រូវបានពិនិត្យធៀបនឹងម៉ូដែលទេ។
+Online speech recognition	473|ការស្គាល់សំឡេងតាមអ៊ីនធឺណិត
+Open Capri Mainframe	474|បើក Capri Mainframe
+Open Ollama, I'll find it	475|បើក Ollama ខ្ញុំនឹងរកវា
+Open clips folder	476|បើកថតក្លីប
+Open her memories	477|បើកការចងចាំរបស់នាង
+Open her notes	478|បើកកំណត់ហេតុរបស់នាង
+Open mods folder	479|បើកថតម៉ូដ
+Open the page again	480|បើកទំព័រម្ដងទៀត
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	481|OpenAI, Claude, DeepSeek, Google, NVIDIA ឬ OpenRouter។
+OpenAI-compatible server or provider.	482|ម៉ាស៊ីនមេ ឬអ្នកផ្តល់ដែលត្រូវគ្នានឹង OpenAI។
+OpenRouter · free models only	483|OpenRouter · ម៉ូដែលឥតគិតថ្លៃតែប៉ុណ្ណោះ
+Optional	484|ស្រេចចិត្ត
+Optional. Blank means no key.	485|ស្រេចចិត្ត។ ទទេមានន័យថាគ្មានគន្លឹះ។
+Options	486|ជម្រើស
+Out of the box a little higher, just behind her.	487|លំនាំដើមខ្ពស់បន្តិច នៅពីក្រោយនាង។
+Out of the box lower, just behind her.	488|លំនាំដើមទាបជាង នៅពីក្រោយនាង។
+Output	489|បញ្ចេញ
+Output:	490|បញ្ចេញ៖
+Output: none	491|បញ្ចេញ៖ គ្មាន
+PHONE CONNECTED	492|ទូរស័ព្ទបានភ្ជាប់
+PHONES >	493|ទូរស័ព្ទ >
+PHONES CONNECTED	494|ទូរស័ព្ទបានភ្ជាប់
+PREBUILT LOCAL	495|ក្នុងតំបន់ដែលបានបង្កើតជាមុន
+PUBLISH MOD >	496|ផ្សព្វផ្សាយម៉ូដ >
+Pair a phone	497|ផ្គូផ្គងទូរស័ព្ទ
+Paste	498|បិទភ្ជាប់
+Paste API key	499|បិទភ្ជាប់គន្លឹះ API
+Paste a brain API key	500|បិទភ្ជាប់គន្លឹះ API ខួរក្បាល
+Paste reads your clipboard once, when you press it.	501|បិទភ្ជាប់អានក្លីបបត្ររបស់អ្នកមួយដង នៅពេលអ្នកចុច។
+Paste your key here	502|បិទភ្ជាប់គន្លឹះរបស់អ្នកនៅទីនេះ
+Pat stroke	503|ការអូសលើក្បាល
+Perch	504|កន្លែងអង្គុយ
+Perch over {0} fps uses more CPU	505|កន្លែងអង្គុយលើសពី {0} fps ប្រើ CPU ច្រើនជាង
+Pick Output to get it.	506|ជ្រើសរើស Output ដើម្បីទទួលបាន។
+Pick a brain so I can talk back. You can change it any time.	507|ជ្រើសរើសខួរក្បាលដើម្បីឲ្យខ្ញុំអាចឆ្លើយតបបាន។ អ្នកអាចផ្លាស់ប្តូរវាគ្រប់ពេល។
+Pick a clip of a voice you have the rights and consent to use	508|ជ្រើសរើសក្លីបសំឡេងដែលអ្នកមានសិទ្ធិ និងការយល់ព្រមប្រើ
+Pick a free model. I opened the page in your browser.	509|ជ្រើសរើសម៉ូដែលឥតគិតថ្លៃ។ ខ្ញុំបានបើកទំព័រនៅក្នុងកម្មវិធីរុករករបស់អ្នក។
+Pick a new clip of you...	510|ជ្រើសរើសក្លីបថ្មីរបស់អ្នក...
+Pick a voice model...	511|ជ្រើសរើសម៉ូដែលសំឡេង...
+Pick one. Only one brain runs at a time.	512|ជ្រើសរើសមួយ។ មានខួរក្បាលតែមួយដំណើរការក្នុងពេលតែមួយ។
+Pick the note her memories go in	513|ជ្រើសរើសកំណត់ចំណាំដែលការចងចាំរបស់នាងនឹងទៅ
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	514|ជ្រើសរើស {0} ដល់ {1} វិនាទីនៃសំឡេងដែលអ្នកមានសិទ្ធិ និងការយល់ព្រមប្រើ
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	515|ជ្រើសរើស {0} ដល់ {1} វិនាទីនៃការនិយាយរបស់អ្នក ឬនៃសំឡេងដែលអ្នកមានសិទ្ធិ និងការយល់ព្រមប្រើ
+Pitch	516|កម្រិតសូរ
+Play	517|លេង
+Play...	518|លេង...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	519|ម៉ូដែល Pocket TTS ចម្លងសំឡេងនៃក្លីបនេះ។ ចុច សាកល្បង ដើម្បីស្ដាប់។
+Pop-in times	520|ម៉ោងលេចឡើង
+Pop-ins	521|ការលេចឡើង
+Power saver	522|កម្មវិធីសន្សំថាមពល
+Power saver: how lightly she runs in games, or always	523|កម្មវិធីសន្សំថាមពល៖ នាងដំណើរការស្រាលប៉ុនណានៅក្នុងហ្គេម ឬតែងតែ
+Preset	524|ការកំណត់ជាមុន
+Press Create API key	525|ចុច បង្កើតគន្លឹះ API
+Press Create Key	526|ចុច បង្កើតគន្លឹះ
+Press Generate API Key	527|ចុច បង្កើតគន្លឹះ API
+Press Test and say something, so I know I can hear you.	528|ចុច សាកល្បង ហើយនិយាយអ្វីមួយ ដើម្បីឲ្យខ្ញុំដឹងថាខ្ញុំអាចឮអ្នក។
+Press a key, alone or with Ctrl, Alt, Shift or Win.	529|ចុចគ្រាប់ចុច តែម្នាក់ឯង ឬជាមួយ Ctrl, Alt, Shift ឬ Win។
+Press new keys, then Confirm	530|ចុចគ្រាប់ចុចថ្មី បន្ទាប់មកបញ្ជាក់
+Provider	531|អ្នកផ្តល់
+Provider API key, optional	532|គន្លឹះ API របស់អ្នកផ្តល់ ស្រេចចិត្ត
+Provider base URL	533|URL មូលដ្ឋានរបស់អ្នកផ្តល់
+Provider forgotten.	534|អ្នកផ្តល់ត្រូវបានបំភ្លេច។
+Provider overlaps the brain name or note	535|អ្នកផ្តល់ត្រួតលើឈ្មោះខួរក្បាល ឬកំណត់ចំណាំ
+Publish	536|ផ្សព្វផ្សាយ
+Publish mod	537|ផ្សព្វផ្សាយម៉ូដ
+Push to talk is off.	538|ការនិយាយដោយចុចគ្រាប់ចុចត្រូវបានបិទ។
+Push to talk key	539|គ្រាប់ចុចនិយាយដោយចុច
+Push to talk:	540|និយាយដោយចុច៖
+Push to talk: not set	541|និយាយដោយចុច៖ មិនទាន់កំណត់
+QR CODE >	542|កូដ QR >
+QR hidden while streaming	543|QR ត្រូវបានលាក់ពេលផ្សាយផ្ទាល់
+Quick	544|រហ័ស
+Quiet key	545|គ្រាប់ចុចស្ងាត់
+Quiet:	546|ស្ងាត់៖
+Quiet: Ctrl + Alt + P	547|ស្ងាត់៖ Ctrl + Alt + P
+Quit Capri	548|បិទ Capri
+RELAY >	549|ម៉ាស៊ីនបញ្ជូនបន្ត >
+REMOTE >	550|ពីចម្ងាយ >
+RUNS CODE.	551|កំពុងដំណើរការកូដ។
+Rarely	552|កម្រ
+Rate mod	553|ដាក់ពិន្ទុម៉ូដ
+Reading its README...	554|កំពុងអាន README របស់វា...
+Refresh	555|ផ្ទុកឡើងវិញ
+Reinstall	556|ដំឡើងឡើងវិញ
+Reload	557|ផ្ទុកឡើងវិញ
+Reloaded.	558|បានផ្ទុកឡើងវិញ។
+Remember our chats	559|ចងចាំការសន្ទនារបស់យើង
+Remember what she sees	560|ចងចាំអ្វីដែលនាងឃើញ
+Remote	561|ពីចម្ងាយ
+Remote off	562|ពីចម្ងាយ បិទ
+Remote on	563|ពីចម្ងាយ បើក
+Remove	564|លុប
+Remove all phones	565|លុបទូរស័ព្ទទាំងអស់
+Replies	566|ចម្លើយ
+Reply length	567|ប្រវែងចម្លើយ
+Report a problem	568|រាយការណ៍បញ្ហា
+Reset colors	569|កំណត់ពណ៌ឡើងវិញ
+Reset to her default	570|កំណត់ឡើងវិញទៅលំនាំដើមរបស់នាង
+Resolution	571|ការដោះស្រាយ
+Restart to update	572|ចាប់ផ្តើមឡើងវិញដើម្បីអាប់ដេត
+Restless	573|មិនស្ងប់
+Revoke	574|ដកហូត
+Revoke also removes the phones its links added	575|ការដកហូតក៏លុបទូរស័ព្ទដែលតំណភ្ជាប់របស់វាបានបន្ថែមផងដែរ
+Ride cursor	576|ជិះទស្សន៍ទ្រនិច
+Ride cursor / Hop off	577|ជិះទស្សន៍ទ្រនិច / ចុះ
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	578|ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលសម្រាប់ Capri Mainframe។ ខួរក្បាលបើកនៅក្រោម ខួរក្បាល។
+Right-click me any time for the Mainframe, Help and the Discord.	579|ចុចកណ្ដុរស្ដាំលើខ្ញុំគ្រប់ពេលសម្រាប់ Mainframe, ជំនួយ និង Discord។
+Roblox	580|Roblox
+Roblox or any other app: pick	581|Roblox ឬកម្មវិធីផ្សេងទៀត៖ ជ្រើសរើស
+Robot	582|រ៉ូបូត
+Rock, paper, scissors	583|ថ្ម ក្រដាស កន្ត្រៃ
+Run this code mod?	584|ដំណើរការម៉ូដកូដនេះឬ?
+Running on this PC	585|កំពុងដំណើរការនៅលើកុំព្យូទ័រនេះ
+Running on this PC · :	586|កំពុងដំណើរការនៅលើកុំព្យូទ័រនេះ · :
+Runs Claude Code or Codex on this PC, signed in.	587|ដំណើរការ Claude Code ឬ Codex នៅលើកុំព្យូទ័រនេះ ដោយបានចូលគណនី។
+Runs on your PC. No key, no credits.	588|ដំណើរការនៅលើ PC របស់អ្នក។ គ្មានគន្លឹះ គ្មានក្រេឌីត។
+SCAN WITH YOUR PHONE · EXPIRES	589|ស្កេនដោយទូរស័ព្ទរបស់អ្នក · ផុតកំណត់
+SECURITY >	590|សុវត្ថិភាព >
+SKILL.	591|ជំនាញ។
+SKIN.	592|ស្បែក។
+SORT BY	593|តម្រៀបតាម
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	594|សំឡេង និស្ស័យ ខួរក្បាល មើល CAPRI DOOMSCROLL អាកាសធាតុ ក្លីប ហ្គេម គ្រាប់ចុច ចលនា សំឡេង របស់អ្នក
+Same as her ears (VOICE > Mic)	595|ដូចត្រចៀករបស់នាង (សំឡេង > មីក្រូហ្វូន)
+Same code on the phone?	596|កូដដូចគ្នានៅលើទូរស័ព្ទឬ?
+Save	597|រក្សាទុក
+Save big moments	598|រក្សាទុកពេលសំខាន់ៗ
+Save folder	599|ថតរក្សាទុក
+Save your changes, or press Discard + reload.	600|រក្សាទុកការផ្លាស់ប្តូររបស់អ្នក ឬចុច បោះចោល + ផ្ទុកឡើងវិញ។
+Save your changes, or press Discard.	601|រក្សាទុកការផ្លាស់ប្តូររបស់អ្នក ឬចុច បោះចោល។
+Saved.	602|បានរក្សាទុក។
+Saved. Ctrl + Alt + O opens her Mainframe.	603|បានរក្សាទុក។ Ctrl + Alt + O បើក Mainframe របស់នាង។
+Saving your rating...	604|កំពុងរក្សាទុកការវាយតម្លៃរបស់អ្នក...
+Say her name anywhere to chat	605|និយាយឈ្មោះនាងនៅទីណាក៏បាន ដើម្បីជជែក
+Screens	606|អេក្រង់
+Screens is hidden or outside WATCH	607|អេក្រង់ត្រូវបានលាក់ ឬនៅក្រៅ មើល
+Screens overlaps a WATCH row	608|អេក្រង់ត្រួតលើជួរ មើល
+Screens to watch	609|អេក្រង់ដែលត្រូវមើល
+Sealed end to end	610|ផ្សំជាប់ពីដើមដល់ចុង
+Search by name or author	611|ស្វែងរកតាមឈ្មោះ ឬអ្នកនិពន្ធ
+Search installed mods	612|ស្វែងរកម៉ូដដែលបានដំឡើង
+Search mods	613|ស្វែងរកម៉ូដ
+Search name, author or description	614|ស្វែងរកឈ្មោះ អ្នកនិពន្ធ ឬការពិពណ៌នា
+Security	615|សុវត្ថិភាព
+Security:	616|សុវត្ថិភាព៖
+Segoe UI	617|Segoe UI
+Segoe UI Semibold	618|Segoe UI Semibold
+Set up	619|រៀបចំ
+Set up her brain	620|រៀបចំខួរក្បាលរបស់នាង
+Set up your voice model	621|រៀបចំម៉ូដែលសំឡេងរបស់អ្នក
+Setting up her brain	622|កំពុងរៀបចំខួរក្បាលរបស់នាង
+Settings	623|ការកំណត់
+Settings / Back	624|ការកំណត់ / ត្រឡប់ក្រោយ
+Settings folds the wrong rows above BRAIN	625|ការកំណត់បត់ជួរខុសនៅខាងលើ ខួរក្បាល
+Settings had nothing to watch.	626|ការកំណត់មិនមានអ្វីត្រូវមើលទេ។
+Settings lost keyboard focus during the Tab walk	627|ការកំណត់បាត់បង់ការផ្តោតលើក្តារចុចកំឡុងពេលរំកិល Tab
+Setup guide	628|មគ្គុទ្ទេសក៍រៀបចំ
+Setup stopped	629|ការរៀបចំបានបញ្ឈប់
+She can read it when it fits.	630|នាងអាចអានវាបានពេលសមស្រប។
+She glances at your screen and comments. Costs a little on a paid brain.	631|នាងក្រឡេកមើលអេក្រង់របស់អ្នក ហើយផ្ដល់មតិ។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
+She keeps listening. Say her name, then just talk until you go quiet.	632|នាងនៅតែស្ដាប់។ ហៅឈ្មោះនាង បន្ទាប់មកនិយាយរហូតដល់អ្នកស្ងៀម។
+She reacts to your game until you close it.	633|នាងឆ្លើយតបនឹងហ្គេមរបស់អ្នករហូតដល់អ្នកបិទវា។
+She reads these controls before each game job.	634|នាងអានការគ្រប់គ្រងទាំងនេះមុនការងារហ្គេមនីមួយៗ។
+She talks about your game as you play. Costs a little on a paid brain.	635|នាងនិយាយអំពីហ្គេមរបស់អ្នកពេលអ្នកលេង។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
+She uses it when she plays	636|នាងប្រើវានៅពេលនាងលេង
+Short	637|ខ្លី
+Shortest wait (minutes)	638|រង់ចាំខ្លីបំផុត (នាទី)
+Show Capri	639|បង្ហាញ Capri
+Show QR	640|បង្ហាញ QR
+Show my mod file	641|បង្ហាញឯកសារម៉ូដរបស់ខ្ញុំ
+Show on Discord	642|បង្ហាញនៅ Discord
+Shum, what time is it	643|Shum ម៉ោងប៉ុន្មានហើយ
+Sign in	644|ចូលគណនី
+Sign in, make a key and copy it. Then press Paste and I'll connect.	645|ចូលគណនី បង្កើតគន្លឹះ ហើយចម្លងវា។ បន្ទាប់មកចុចបិទភ្ជាប់ ហើយខ្ញុំនឹងភ្ជាប់។
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	646|ចូលគណនី ចុចបង្កើតគន្លឹះ API ហើយចម្លងវា។ បន្ទាប់មកចុចបិទភ្ជាប់ ហើយខ្ញុំនឹងភ្ជាប់។
+Silent · text only	647|ស្ងាត់ · អត្ថបទតែប៉ុណ្ណោះ
+Simple / Advanced Settings	648|ការកំណត់សាមញ្ញ / ខ្ពស់
+Simple Settings	649|ការកំណត់សាមញ្ញ
+Simple Settings left a gap under Check in on me	650|ការកំណត់សាមញ្ញបានទុកចន្លោះនៅក្រោម ពិនិត្យមើលខ្ញុំ
+Sit here	651|អង្គុយនៅទីនេះ
+Sit on windows	652|អង្គុយលើបង្អួច
+Size	653|ទំហំ
+Skip	654|រំលង
+Skip all	655|រំលងទាំងអស់
+Skip for now	656|រំលងសម្រាប់ពេលនេះ
+Sleep	657|ដេក
+Small	658|តូច
+Sometimes	659|ពេលខ្លះ
+Sound effects volume	660|កម្រិតសំឡេងឧបករណ៍
+Sound sensitivity	661|ភាពរសើបសំឡេង
+Sounds	662|សំឡេង
+Speaker or clip	663|ឧបករណ៍បំពងសំឡេង ឬក្លីប
+Speech model	664|ម៉ូដែលនិយាយ
+Speed	665|ល្បឿន
+Start with Windows	666|ចាប់ផ្តើមជាមួយ Windows
+Start with this!	667|ចាប់ផ្តើមជាមួយនេះ!
+Starting...	668|កំពុងចាប់ផ្តើម...
+Stay on my model	669|នៅជាមួយម៉ូដែលរបស់ខ្ញុំ
+Still checking your mics...	670|កំពុងពិនិត្យមីក្រូហ្វូនរបស់អ្នក...
+Still checking your speakers...	671|កំពុងពិនិត្យឧបករណ៍បំពងសំឡេងរបស់អ្នក...
+Still checking your virtual mics...	672|កំពុងពិនិត្យមីក្រូហ្វូននិម្មិតរបស់អ្នក...
+Stop	673|បញ្ឈប់
+Stopped using it. Couldn't remove the saved provider.	674|បានឈប់ប្រើ។ មិនអាចលុបអ្នកផ្តល់ដែលបានរក្សាទុកបានទេ។
+Support	675|ការគាំទ្រ
+Sure?	676|ប្រាកដទេ?
+Sure? moved to a different phone	677|ប្រាកដទេ? បានផ្លាស់ទៅទូរស័ព្ទផ្សេង
+TALK TO ME	678|និយាយជាមួយខ្ញុំ
+TEXT ONLY	679|អត្ថបទតែប៉ុណ្ណោះ
+Tab landed past the first option of	680|Tab បានទៅដល់លើសជម្រើសទីមួយនៃ
+Tab never reached the quiet key	681|Tab មិនដែលទៅដល់គ្រាប់ចុចស្ងាត់ទេ
+Tab reached nothing	682|Tab មិនបានទៅដល់អ្វីទេ
+Tab selected a control without moving keyboard focus	683|Tab បានជ្រើសរើសការគ្រប់គ្រងមួយដោយមិនបានផ្លាស់ទីការផ្តោតលើក្តារចុច
+Talk	684|និយាយ
+Talk key	685|គ្រាប់ចុចនិយាយ
+Talk:	686|និយាយ៖
+Talk: Ctrl + Alt + V	687|និយាយ៖ Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	688|អត្រាហ្វ្រេមចាប់យកគោលដៅ; អាចធ្លាក់ក្រោមបន្ទុក ឬថវិកាការចងចាំ
+Teases when another AI comes to the front.	689|ចំអកនៅពេល AI ផ្សេងទៀតមកខាងមុខ។
+Test	690|សាកល្បង
+That address doesn't work. Try https://... or http://localhost:{0}.	691|អាសយដ្ឋាននោះមិនដំណើរការទេ។ សាកល្បង https://... ឬ http://localhost:{0}។
+That code expired	692|កូដនោះផុតកំណត់ហើយ
+That mod is no longer installed. The list is updated.	693|ម៉ូដនោះមិនត្រូវបានដំឡើងទៀតទេ។ បញ្ជីត្រូវបានអាប់ដេត។
+That's a paid key: it goes under MAX INTELLIGENCE.	694|នេះជាគន្លឹះបង់ប្រាក់៖ វាទៅក្រោម MAX INTELLIGENCE។
+The Mainframe stayed composited while sliding.	695|Mainframe នៅតែត្រូវបានផ្សំកំឡុងពេលរអិល។
+The Mainframe stayed uncomposited after the slide.	696|Mainframe នៅតែមិនត្រូវបានផ្សំបន្ទាប់ពីស្លាយ។
+The controls moved while the picture was sliding.	697|ការគ្រប់គ្រងបានផ្លាស់ទីខណៈរូបភាពកំពុងរអិល។
+The cover stayed visible after the slide ended.	698|គម្របនៅតែមើលឃើញបន្ទាប់ពីស្លាយបានបញ្ចប់។
+The frame thread kept running after the page settled.	699|ខ្សែស្រឡាយហ្រេមនៅតែដំណើរការបន្ទាប់ពីទំព័របានស្ថិរភាព។
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	700|ចម្លើយវែងបំផុតដែលនាងអាចផ្តល់ បានជាថូខឹន។ ស្វ័យប្រវត្តិធ្វើតាមការឆ្លើយតបខាងលើ; {0}K ឬ {1}K អនុញ្ញាតឲ្យនាងបន្ត។ ការងារទុកកន្លែងច្រើនជាងនៅពេលត្រូវការ
+The longest wait must be at least the shortest wait.	701|ការរង់ចាំវែងបំផុតត្រូវតែយ៉ាងហោចណាស់ស្មើនឹងការរង់ចាំខ្លីបំផុត។
+The picture doesn't match the scrolled page:	702|រូបភាពមិនត្រូវនឹងទំព័រដែលបានរំកិល៖
+The picture of Settings doesn't match the page:	703|រូបភាពនៃការកំណត់មិនត្រូវនឹងទំព័រនេះទេ៖
+The picture stayed up after the slide ended.	704|រូបភាពនៅតែបង្ហាញបន្ទាប់ពីស្លាយបានបញ្ចប់។
+The picture wasn't showing while it slid.	705|រូបភាពមិនបង្ហាញខណៈវារអិល។
+The provider sheet is crowded:	706|សន្លឹកអ្នកផ្តល់ណែនមណ្ឌល៖
+The voice panel has no screen DPI.	707|ផ្ទាំងសំឡេងមិនមាន DPI អេក្រង់ទេ។
+The voice panel's menus share one font.	708|ម៉ឺនុយផ្ទាំងសំឡេងចែករំលែកពុម្ពអក្សរតែមួយ។
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	709|មិនទាន់មានគន្លឹះនៅក្នុងក្លីបបត្ររបស់អ្នកទេ។ ចម្លងវាពីទំព័រ បន្ទាប់មកចុចបិទភ្ជាប់។
+These start off. Each costs a little or uses your mic.	710|ទាំងនេះចាប់ផ្តើមបិទ។ នីមួយៗចំណាយបន្តិច ឬប្រើមីក្រូហ្វូនរបស់អ្នក។
+These start off. Turn on what you want. They're all in Settings too.	711|ទាំងនេះចាប់ផ្តើមបិទ។ បើកអ្វីដែលអ្នកចង់បាន។ ពួកវាទាំងអស់ក៏នៅក្នុងការកំណត់ដែរ។
+They can also call you Big Z, Capricorn or Nova	712|ពួកគេក៏អាចហៅខ្ញុំថា Big Z, Capricorn ឬ Nova
+They can also call you Nova, Big Z or Capricorn	713|ពួកគេក៏អាចហៅខ្ញុំថា Nova, Big Z ឬ Capricorn
+Thinking	714|កំពុងគិត
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	715|នេះជាសំឡេងឥតគិតថ្លៃរបស់ខ្ញុំ។ ចុច សាកល្បង និយាយអ្វីមួយ ហើយខ្ញុំនឹងបង្ហាញថាខ្ញុំអាចឮអ្នក។
+This mod has no description yet.	716|ម៉ូដនេះមិនទាន់មានការពិពណ៌នាទេ។
+Tic-tac-toe	717|Tic-tac-toe
+Time between glances	718|ពេលវេលារវាងការក្រឡេកមើល
+Tiny	719|តូចណាស់
+Try again	720|ព្យាយាមម្ដងទៀត
+Turn Remote on first	721|បើក Remote ជាមុនសិន
+Turn off mini player	722|បិទកម្មវិធីចាក់ខ្នាតតូច
+Turn push to talk off	723|បិទនិយាយដោយចុចគ្រាប់ចុច
+Turning the wheel the other way kept the page heading the old way, to	724|ការបង្វិលកង់ទៅម្ខាងទៀតបានរក្សាទំព័រឲ្យទៅទិសចាស់ រហូតដល់
+Type	725|វាយអក្សរ
+Type key	726|គ្រាប់ចុចវាយអក្សរ
+Type to me	727|វាយមកខ្ញុំ
+Type:	728|វាយអក្សរ៖
+Type: Ctrl + Alt + T	729|វាយអក្សរ៖ Ctrl + Alt + T
+Typing sound	730|សំឡេងវាយអក្សរ
+Unpacked. Press Test to hear it.	731|បានបើកកញ្ចប់។ ចុច សាកល្បង ដើម្បីស្ដាប់។
+Unsaved changes.	732|ការផ្លាស់ប្តូរមិនទាន់បានរក្សាទុក។
+Up to {0} fps	733|ដល់ {0} fps
+Up to {0}p	734|ដល់ {0}p
+Update	735|អាប់ដេត
+Update available.	736|មានការអាប់ដេត។
+Update mods	737|អាប់ដេតម៉ូដ
+Updating...	738|កំពុងអាប់ដេត...
+Use	739|ប្រើ
+Use her cursor	740|ប្រើទស្សន៍ទ្រនិចរបស់នាង
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	741|ប្រើ https:// សម្រាប់អ្នកផ្តល់នៅកន្លែងផ្សេង។ គន្លឹះលើ http ធម្មតាមិនមានសុវត្ថិភាពទេ។
+Use preset	742|ប្រើការកំណត់ជាមុន
+Use saved	743|ប្រើដែលបានរក្សាទុក
+Use this server	744|ប្រើម៉ាស៊ីនមេនេះ
+Using your provider with a key	745|ប្រើអ្នកផ្តល់របស់អ្នកជាមួយគន្លឹះ
+Using your server with no key	746|ប្រើម៉ាស៊ីនមេរបស់អ្នកដោយគ្មានគន្លឹះ
+VIEW MOD >	747|មើលម៉ូដ >
+VOICE >	748|សំឡេង >
+VOICE IN YOUR MIC >	749|សំឡេងក្នុងមីក្រូហ្វូនរបស់អ្នក >
+VOICE LAYERS >	750|ស្រទាប់សំឡេង >
+Verbosity	751|ភាពរាប់រាប់
+Video bitrate	752|អត្រាប៊ីតវីដេអូ
+View	753|មើល
+View mod	754|មើលម៉ូដ
+Voice	755|សំឡេង
+Voice ID	756|ID សំឡេង
+Voice from	757|សំឡេងពី
+Voice layers	758|ស្រទាប់សំឡេង
+Voice model	759|ម៉ូដែលសំឡេង
+Voice model:	760|ម៉ូដែលសំឡេង៖
+Voice name or ID, optional	761|ឈ្មោះ ឬ ID សំឡេង ស្រេចចិត្ត
+Voice server address, or a voice model's folder	762|អាសយដ្ឋានម៉ាស៊ីនមេសំឡេង ឬថតម៉ូដែលសំឡេង
+Voice status	763|ស្ថានភាពសំឡេង
+Voice, key and model...	764|សំឡេង គន្លឹះ និងម៉ូដែល...
+Volume	765|កម្រិតសំឡេង
+WAKE ME UP >	766|ដាស់ខ្ញុំ >
+WATCH >	767|មើល >
+Waiting for the relay	768|កំពុងរង់ចាំម៉ាស៊ីនបញ្ជូនបន្ត
+Wake her up	769|ដាស់នាង
+Waking her up	770|កំពុងដាស់នាង
+Wander	771|ដើរលេង
+Wander around	772|ដើរលេងជុំវិញ
+Watch my screen	773|មើលអេក្រង់របស់ខ្ញុំ
+Watch-along memory	774|ការចងចាំមើលជាមួយគ្នា
+Weather	775|អាកាសធាតុ
+Weather city	776|ទីក្រុងអាកាសធាតុ
+Welcome back, choom. Let's finish setting me up.	777|សូមស្វាគមន៍ត្រឡប់មកវិញ choom។ តោះបញ្ចប់ការរៀបចំខ្ញុំ។
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	778|អ្វីដែលនាងធ្វើនៅលើ PC របស់អ្នកដោយមិនសួរ។ ប្រសិនបើប៊ូតុងបិទ នាងសួរមុនសិន ហើយធ្វើនៅពេលអ្នកនិយាយថាបាទ។
+What should she call you?	779|តើនាងគួរហៅអ្នកថាអ្វី?
+When she types	780|នៅពេលនាងវាយ
+White	781|ស
+Windows default	782|លំនាំដើមរបស់ Windows
+Windows did not give Settings keyboard focus	783|Windows មិនបានផ្តល់ការផ្តោតលើក្តារចុចដល់ការកំណត់ទេ
+Windows did not return keyboard focus to Back	784|Windows មិនបានប្ដូរការផ្តោតលើក្តារចុចត្រឡប់ទៅ ត្រឡប់ក្រោយ
+With no picture the wheel still tried to slide.	785|ដោយគ្មានរូបភាព កង់នៅតែព្យាយាមរអិល។
+Works best on MAX INTELLIGENCE.	786|ដំណើរការល្អបំផុតលើ MAX INTELLIGENCE។
+YOU	787|អ្នក
+YOU >	788|អ្នក >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	789|សំឡេងរបស់អ្នក ចលនា គ្រាប់ចុច ហ្គេម ក្លីប អាកាសធាតុ DOOMSCROLL CAPRI មើល ខួរក្បាល និស្ស័យ សំឡេង
+YOUR KEY	790|គន្លឹះរបស់អ្នក
+YOUR MIC	791|មីក្រូហ្វូនរបស់អ្នក
+YOUR PLAN	792|គម្រោងរបស់អ្នក
+Yokapri what's up	793|Yokapri មានអ្វីកើតឡើង
+You can hide this. It keeps going, and the Mainframe shows it too.	794|អ្នកអាចលាក់វាបាន។ វានៅតែដំណើរការ ហើយ Mainframe ក៏បង្ហាញវាដែរ។
+Your mic and her voice go into one virtual mic, and	795|មីក្រូហ្វូនរបស់អ្នក និងសំឡេងរបស់នាងចូលទៅមីក្រូហ្វូននិម្មិតមួយ ហើយ
+Your mic is muted. Unmute it to test.	796|មីក្រូហ្វូនរបស់អ្នកត្រូវបានបិទសំឡេង។ បើកវាដើម្បីសាកល្បង។
+Your mods are up to date.	797|ម៉ូដរបស់អ្នកទាន់សម័យហើយ។
+Your name or a nickname	798|ឈ្មោះ ឬឈ្មោះហៅក្រៅរបស់អ្នក
+Your own model	799|ម៉ូដែលផ្ទាល់ខ្លួនរបស់អ្នក
+Your personality	800|បុគ្គលិកលក្ខណៈរបស់អ្នក
+Your voice	801|សំឡេងរបស់អ្នក
+Your voice (HD)	802|សំឡេងរបស់អ្នក (HD)
+Your voice (HD) · pick a clip of you...	803|សំឡេងរបស់អ្នក (HD) · ជ្រើសរើសក្លីបរបស់អ្នក...
+Your voice model	804|ម៉ូដែលសំឡេងរបស់អ្នក
+as its mic.	805|ដូចមីក្រូហ្វូនរបស់នាង។
+changed. Saved as My Colors, so you can share it.	806|បានផ្លាស់ប្តូរ។ បានរក្សាទុកជា ពណ៌របស់ខ្ញុំ ដើម្បីឲ្យអ្នកអាចចែករំលែកវា។
+choice	807|ជម្រើស
+clips the input line	808|កាត់បន្ទាត់បញ្ចូល
+cue	809|សញ្ញា
+doesn't yet.	810|នៅ។
+download	811|ទាញយក
+file.	812|ឯកសារ។
+flag	813|ទង់
+fps	814|fps
+hear	815|ឮ
+hears	816|ឮ
+hears that.	817|ឮរឿងនោះ។
+hides or shows her.	818|លាក់ ឬបង្ហាញនាង។
+hint	819|ជំនួយ
+in the Mainframe.	820|នៅក្នុង Mainframe។
+in the mods directory with a pull request.	821|នៅក្នុងថតម៉ូដជាមួយសំណើ pull។
+in the picture wasn't noticed.	822|នៅក្នុងរូបភាពមិនត្រូវបានកត់សម្គាល់។
+is already her push-to-talk key.	823|គឺជាគ្រាប់ចុចនិយាយដោយចុចរបស់នាងរួចហើយ។
+is off.	824|គឺបិទ។
+is on and running.	825|គឺបើក ហើយកំពុងដំណើរការ។
+is on, at the bottom, under	826|គឺបើក នៅខាងក្រោម នៅក្រោម
+is on.	827|គឺបើក។
+is on. She now answers to	828|គឺបើក។ ឥឡូវនាងឆ្លើយទៅ
+is removed.	829|ត្រូវបានយកចេញ។
+is taken	830|ត្រូវបានយក
+is taken by another app. Try another.	831|ត្រូវបានកម្មវិធីផ្សេងយក។ សាកល្បងមួយផ្សេង។
+is updated	832|ត្រូវបានអាប់ដេត
+isn't hearing it yet: do {0} and {1}, then join a call.	833|នៅមិនទាន់ឮវា៖ ធ្វើ {0} និង {1} ហើយចូលរួមហៅទូរស័ព្ទ។
+it now.	834|ឥឡូវនេះ។
+keeps her quiet, and lets her talk again.	835|រក្សានាងឲ្យស្ងៀម ហើយអនុញ្ញាតឲ្យនាងនិយាយម្ដងទៀត។
+key	836|គន្លឹះ
+key.	837|គន្លឹះ។
+min	838|នាទី
+more.	839|ច្រើនទៀត។
+ms.	840|ms។
+mutes mic	841|បិទសំឡេងមីក្រូហ្វូន
+mutes your mic.	842|បិទសំឡេងមីក្រូហ្វូនរបស់អ្នក។
+name	843|ឈ្មោះ
+off	844|បិទ
+on this PC	845|នៅលើកុំព្យូទ័រនេះ
+opens her Mainframe.	846|បើក Mainframe របស់នាង។
+opens her typing box.	847|បើកប្រអប់វាយអក្សររបស់នាង។
+phone	848|ទូរស័ព្ទ
+phone pixels	849|ភីកសែលទូរស័ព្ទ
+phones	850|ទូរស័ព្ទ
+pixels	851|ភីកសែល
+pixels)	852|ភីកសែល)
+star.	853|ផ្កាយ។
+stars.	854|ផ្កាយ។
+starts voice chat.	855|ចាប់ផ្តើមជជែកសំឡេង។
+stays off. Nothing ran.	856|នៅតែបិទ។ គ្មានអ្វីដំណើរការទេ។
+still does its own job in other apps too. Confirm to keep it.	857|នៅតែធ្វើការងាររបស់វានៅក្នុងកម្មវិធីផ្សេងៗដែរ។ បញ្ជាក់ដើម្បីរក្សាវា។
+tall	858|ខ្ពស់
+time	859|ពេលវេលា
+to talk	860|ដើម្បីនិយាយ
+to talk to her, with a game in front too.	861|ដើម្បីនិយាយជាមួយនាង ហើយមានហ្គេមនៅមុខផង។
+too.	862|ផងដែរ។
+turns Gaming Mode on and off.	863|បើក និងបិទមុខងារហ្គេម។
+with Ollama	864|ជាមួយ Ollama
+won't type in other apps while she runs. Confirm to keep it.	865|នឹងមិនវាយនៅក្នុងកម្មវិធីផ្សេងទៀតខណៈនាងកំពុងដំណើរការទេ។ បញ្ជាក់ដើម្បីរក្សាវា។
+{0}   Echo Cancellation: Off	866|{0}   Echo Cancellation៖ បិទ
+{0}   If her voice cuts off, turn off noise filtering	867|{0}   ប្រសិនបើសំឡេងរបស់នាងដាច់ សូមបិទការច្រោះសំឡេងរំខាន
+{0}   Input Device:	868|{0}   ឧបករណ៍បញ្ចូល៖
+{0}   Join the call and check they hear both of you	869|{0}   ចូលរួមហៅទូរស័ព្ទ ហើយពិនិត្យថាពួកគេឮអ្នកទាំងពីរ
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	870|{0}   Mic Test > សូមពិនិត្យ៖ អ្នកនឹងឮខ្លួនអ្នក និងនាង ពេលនាងនិយាយ
+{0}   Microphone:	871|{0}   មីក្រូហ្វូន៖
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	872|{0}   Noise Suppression៖ គ្មាន។ ទាំងពីរអាចកាត់សំឡេងរបស់នាងបន្ទាប់ពីបន្ទាត់ដំបូង។
+{0}   Open the call or meeting's audio settings	873|{0}   បើកការកំណត់សំឡេងនៃការហៅទូរស័ព្ទ ឬកិច្ចប្រជុំ
+{0}   Output Device: your headphones, like before	874|{0}   ឧបករណ៍បញ្ចេញសំឡេង៖ កាស់ទូរស័ព្ទរបស់អ្នក ដូចពីមុន
+{0}   Speaker: your headphones, like before	875|{0}   ឧបករណ៍បំពងសំឡេង៖ កាស់ទូរស័ព្ទរបស់អ្នក ដូចពីមុន
+{0}   Try a mic test in your call app	876|{0}   សាកល្បងមីក្រូហ្វូនក្នុងកម្មវិធីហៅទូរស័ព្ទរបស់អ្នក
+{0}   User Settings (the cog by your name) > Voice & Video	877|{0}   ការកំណត់អ្នកប្រើ (ចង្កូតក្បែរឈ្មោះរបស់អ្នក) > សំឡេង និងវីដេអូ
+{0} Mbps	878|{0} Mbps
+{0} lines	879|{0} បន្ទាត់
+{0} min	880|{0} នាទី
+{0} ms	881|{0} ms
+· HD	882|· HD
+· on this PC	883|· នៅលើកុំព្យូទ័រនេះ
+· server	884|· ម៉ាស៊ីនមេ
