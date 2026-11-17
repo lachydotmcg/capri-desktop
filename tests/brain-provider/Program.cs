@@ -306,23 +306,70 @@ internal static class Program
             Talk talk = (Talk)RuntimeHelpers.GetUninitializedObject(typeof(Talk));
             typeof(Talk).GetField("pet", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).SetValue(talk, pet);
             Set(pet, "Talk", talk);
-            List<string> first = new List<string> { "vendor/a" };
-            List<string> second = new List<string> { "vendor/b:free" };
+            List<string> first = new List<string> { "vendor/a", "vendor/a-chosen" };
+            List<string> second = new List<string> { "vendor/b:free", "vendor/b-chosen" };
             pet.BrainKeyCheck = delegate(string key, bool free) { return key.StartsWith("nvapi", StringComparison.Ordinal) ? first : second; };
             AcceptKey(pet, "nvapi-first");
-            Check("a same-tier key switches to its provider's model", pet.Brain.Model == "vendor/a" && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 && saved.FreeModel == "vendor/a" && saved.PaidModel == null && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a",
-                "model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " tier=" + (saved.BrainTier.HasValue ? saved.BrainTier.Value.ToString() : "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
+            bool firstKeyDefault = pet.Brain.Model == "vendor/a";
+            pet.PickCloud("vendor/a-chosen");
+            Check("a same-tier key switches to its provider's model", firstKeyDefault && pet.Brain.Model == "vendor/a-chosen" && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 && saved.FreeModel == "vendor/a-chosen" && saved.PaidModel == null && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a-chosen",
+                "first-key-default=" + firstKeyDefault + " model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " tier=" + (saved.BrainTier.HasValue ? saved.BrainTier.Value.ToString() : "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
             AcceptKey(pet, "sk-or-second");
-            Check("another provider in the same tier keeps the first provider's model", pet.Brain.Model == "vendor/b:free" && saved.BrainProvider == "openrouter" && saved.BrainTier == 1 && saved.FreeModel == "vendor/b:free" && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a" && Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b:free",
-                "model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
+            bool secondKeyDefault = pet.Brain.Model == "vendor/b:free";
+            pet.PickCloud("vendor/b-chosen");
+            Check("another provider in the same tier keeps the first provider's model", secondKeyDefault && pet.Brain.Model == "vendor/b-chosen" && saved.BrainProvider == "openrouter" && saved.BrainTier == 1 && saved.FreeModel == "vendor/b-chosen" && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a-chosen" && Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b-chosen",
+                "second-key-default=" + secondKeyDefault + " model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
             AcceptKey(pet, "nvapi-first");
-            Check("switching back in the same tier restores the first provider's model", pet.Brain.Model == "vendor/a" && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 && saved.FreeModel == "vendor/a" && Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b:free",
+            Check("switching back in the same tier restores the first provider's model", pet.Brain.Model == "vendor/a-chosen" && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 && saved.FreeModel == "vendor/a-chosen" && Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b-chosen",
+                "model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
+            AcceptKey(pet, "sk-or-second");
+            Check("switching back again restores the second provider's chosen model", pet.Brain.Model == "vendor/b-chosen" && saved.BrainProvider == "openrouter" && saved.BrainTier == 1 && saved.FreeModel == "vendor/b-chosen" && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a-chosen",
                 "model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
             string notice;
             bool blocked;
             Settings reloaded = Pet.ReadSettings(Path.Combine(journey, "cross.json"), out notice, out blocked);
-            Check("the same-tier journey survives a reload", notice == null && !blocked && reloaded.BrainProvider == "nvidia" && reloaded.BrainTier == 1 && reloaded.FreeModel == "vendor/a" && Pet.TierModel(reloaded, "nvidia", 1) == "vendor/a" && Pet.TierModel(reloaded, "openrouter", 1) == "vendor/b:free",
+            Check("the same-tier journey survives a reload", notice == null && !blocked && reloaded.BrainProvider == "openrouter" && reloaded.BrainTier == 1 && reloaded.FreeModel == "vendor/b-chosen" && Pet.TierModel(reloaded, "nvidia", 1) == "vendor/a-chosen" && Pet.TierModel(reloaded, "openrouter", 1) == "vendor/b-chosen",
                 "notice=" + (notice ?? "null") + " provider=" + (reloaded.BrainProvider ?? "null") + " free=" + (reloaded.FreeModel ?? "null") + " picks=" + Providers(reloaded.ProviderModels));
+        }
+        finally { CapriDesktop.Program.Smoke = previous; }
+    }
+
+    private static void RecoveredProviderReturn(string folder)
+    {
+        string previous = CapriDesktop.Program.Smoke;
+        try
+        {
+            string home = Path.Combine(folder, "recovered-return");
+            Directory.CreateDirectory(home);
+            File.WriteAllText(Path.Combine(home, "cross.json"), "{\"VoiceProvider\":\"off\",\"BrainTier\":2,\"FreeModel\":\"google/live\",\"PaidModel\":\"or/paid\"}");
+            File.WriteAllText(Path.Combine(home, "cross-new.json"), "{\"BrainProvider\":\"openrouter\",\"ProviderModels\":[{\"Provider\":\"google\",\"Model\":\"google/old\",\"Tier\":1},{\"Provider\":\"nvidia\",\"Model\":\"nv/other\",\"Tier\":1}]}");
+            File.WriteAllText(Path.Combine(home, "brain-free-key"), "AIza-google");
+            File.WriteAllText(Path.Combine(home, "brain-paid-key"), "sk-or-paid");
+            string notice;
+            bool blocked;
+            Settings recovered = Pet.ReadSettings(Path.Combine(home, "cross.json"), out notice, out blocked);
+            Check("recovery remembers the tier slot it kept over the sidecar", notice == null && !blocked && Pet.ProviderModel(recovered, "google", 1) == "google/live" && Pet.ProviderModel(recovered, "nvidia", 1) == "nv/other",
+                "notice=" + (notice ?? "null") + " google=" + (Pet.ProviderModel(recovered, "google", 1) ?? "null") + " nvidia=" + (Pet.ProviderModel(recovered, "nvidia", 1) ?? "null"));
+
+            CapriDesktop.Program.Smoke = home;
+            Pet pet = Fixture(recovered, home);
+            pet.Brain.Remote = new Cloud("sk-or-paid", "or/paid");
+            pet.Brain.Model = "or/paid";
+            Set(pet, "away", true);
+            Set(pet, "followUp", new FollowUp());
+            Talk talk = (Talk)RuntimeHelpers.GetUninitializedObject(typeof(Talk));
+            typeof(Talk).GetField("pet", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).SetValue(talk, pet);
+            Set(pet, "Talk", talk);
+            List<string> router = new List<string> { "or/default", "or/chosen" };
+            List<string> google = new List<string> { "google/default", "google/live" };
+            pet.BrainKeyCheck = delegate(string key, bool free) { return key.StartsWith("AIza", StringComparison.Ordinal) ? google : router; };
+            AcceptKey(pet, "sk-or-new");
+            pet.PickCloud("or/chosen");
+            Check("a different provider for the inactive tier overwrites its slot but not the other's memory", pet.Brain.Model == "or/chosen" && recovered.FreeModel == "or/chosen" && Pet.ProviderModel(recovered, "openrouter", 1) == "or/chosen" && Pet.ProviderModel(recovered, "google", 1) == "google/live",
+                "model=" + (pet.Brain.Model ?? "null") + " free=" + (recovered.FreeModel ?? "null") + " router=" + (Pet.ProviderModel(recovered, "openrouter", 1) ?? "null") + " google=" + (Pet.ProviderModel(recovered, "google", 1) ?? "null"));
+            AcceptKey(pet, "AIza-google");
+            Check("coming back to the original provider restores the model its slot held", pet.Brain.Model == "google/live" && recovered.FreeModel == "google/live" && recovered.BrainProvider == "google" && Pet.ProviderModel(recovered, "google", 1) == "google/live",
+                "model=" + (pet.Brain.Model ?? "null") + " free=" + (recovered.FreeModel ?? "null") + " provider=" + (recovered.BrainProvider ?? "null") + " google=" + (Pet.ProviderModel(recovered, "google", 1) ?? "null"));
         }
         finally { CapriDesktop.Program.Smoke = previous; }
     }
@@ -343,6 +390,7 @@ internal static class Program
             ProviderTransition(folder);
             AdoptedProvider(folder);
             SameTierProviders(folder);
+            RecoveredProviderReturn(folder);
         }
         finally
         {

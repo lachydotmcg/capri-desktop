@@ -155,7 +155,7 @@ internal static class VerifierRegressions
             bool otherBlocked;
             Settings otherSaved = Pet.ReadSettings(Path.Combine(otherTier, "cross.json"), out otherNotice, out otherBlocked);
             Check("recovery retains the other tier's provider memory", otherNotice == null && !otherBlocked &&
-                Pet.ProviderModel(otherSaved, "google", 1) == null && Pet.ProviderModel(otherSaved, "nvidia", 2) == null &&
+                Pet.ProviderModel(otherSaved, "google", 1) == "google-live" && Pet.ProviderModel(otherSaved, "nvidia", 2) == "nv-live" &&
                 Pet.ProviderModel(otherSaved, "nvidia", 1) == "nv-free-memory" && Pet.ProviderModel(otherSaved, "google", 2) == "google-paid-memory");
 
             string untiered = Path.Combine(root, "untiered-provider-memory");

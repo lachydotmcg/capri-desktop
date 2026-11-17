@@ -6738,12 +6738,21 @@ namespace CapriDesktop
             string paid = string.IsNullOrEmpty(saved.PaidModel) ? null : Cloud.KindOf(ReadSecret(Path.Combine(folder, "brain-paid-key")));
             if (free == null && paid == null) return remembered;
             List<ProviderModelPick> kept = new List<ProviderModelPick>();
+            Settings won = new Settings();
+            bool wonAny = false;
             foreach (ProviderModelPick pick in remembered)
             {
                 bool competes = pick != null && ((free != null && pick.Provider == free && pick.Tier == 1) || (paid != null && pick.Provider == paid && pick.Tier == 2));
                 if (!competes) kept.Add(pick);
+                else
+                {
+                    wonAny = true;
+                    RememberProviderModel(won, pick.Provider, pick.Tier == 1 ? saved.FreeModel : saved.PaidModel, pick.Tier);
+                }
             }
-            return kept.Count == remembered.Length ? remembered : kept.ToArray();
+            if (!wonAny) return remembered;
+            if (won.ProviderModels != null) kept.AddRange(won.ProviderModels);
+            return kept.ToArray();
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
