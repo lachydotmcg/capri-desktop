@@ -37,7 +37,7 @@ namespace CapriDesktop
             return Math.Sqrt(dx * dx + dy * dy) / span / DesktopScaling;
         }
 
-        internal void LetGoFast(bool here) { LetGoFast(here, Now); }
+        internal void LetGoFast(bool here) { if (Program.Smoke == null) LetGoFast(here, Now); else dragTrail.Clear(); }
 
         internal void LetGoFast(bool here, double now)
         {
@@ -74,10 +74,9 @@ namespace CapriDesktop
 
         internal void Forgive()
         {
-            if (!Sulking) return;
+            throwsAt.Clear();
             sulkSince = -1;
             sulkLeft = null;
-            throwsAt.Clear();
         }
 
         internal void CheckSulk(double now)

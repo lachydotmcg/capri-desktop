@@ -318,9 +318,13 @@ namespace CapriDesktop
                 int flingsBefore = pet.Flings;
                 pet.LetGoFast(true, flungAt + 6 * 0.016 + 0.004);
                 bool shiftKept = pet.Flings == flingsBefore && pet.FlingSpeed(flungAt + 6 * 0.016 + 0.004) == 0;
+                for (int i = 0; i <= 6; i++) pet.NoteDrag(new PixelPoint(flingFrom.X + (int)Math.Round(36 * pet.DesktopScaling) * i, flingFrom.Y), flungAt + i * 0.016);
+                pet.LetGoFast(false, flungAt + 6 * 0.016 + 0.004);
+                bool flingCounted = pet.Flings == flingsBefore + 1 && pet.ThrowsCounted == 1;
+                pet.Forgive();
                 pet.Talk.Dismiss();
-                if (!softFirst || !warned || !sulked || !apart || flingFast < Pet.FlingFrom || flingLate != 0 || !shiftKept)
-                    throw new Exception("Her grudge went wrong: soft first " + softFirst + ", warned " + warned + ", sulked " + sulked + " (" + pet.LastYelp + "), apart " + apart + ", fling speed " + (int)flingFast + " / late " + flingLate + ", shift drop kept " + shiftKept);
+                if (!softFirst || !warned || !sulked || !apart || flingFast < Pet.FlingFrom || flingLate != 0 || !shiftKept || !flingCounted)
+                    throw new Exception("Her grudge went wrong: soft first " + softFirst + ", warned " + warned + ", sulked " + sulked + " (" + pet.LastYelp + "), apart " + apart + ", fling speed " + (int)flingFast + " / late " + flingLate + ", shift drop kept " + shiftKept + ", fast let-go counted " + flingCounted);
                 checks.Add("PASS her grudge: a fast fling counts as a throw, a soft first one gets no line, the second in " + (int)Sulks.Window + " s a warning and the third her sulk, throws further apart don't add up, and a slow, late or Shift let-go isn't a throw");
                 double sulkAt = pet.Now;
                 pet.Sulk(sulkAt);
