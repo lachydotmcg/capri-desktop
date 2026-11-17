@@ -6861,7 +6861,7 @@ namespace CapriDesktop
 
         internal static bool KnownProvider(string provider)
         {
-            return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "claudecode" || provider == "codex";
+            return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "claudecode" || provider == "codex" || CustomProvider(provider);
         }
 
         internal const string CustomProviderPrefix = "custom:";
@@ -6969,11 +6969,45 @@ namespace CapriDesktop
                 {
                     string path = Path.Combine(folder, name);
                     if (!File.Exists(path)) continue;
-                    using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None)) { }
+                    using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None)) { }
                 }
                 return true;
             }
             catch (Exception) { return false; }
+        }
+
+        private bool SnapshotSettings(out byte[] main, out byte[] newer)
+        {
+            main = null;
+            newer = null;
+            if (Program.Smoke != null) return true;
+            if (settingsWriteBlocked) return false;
+            try
+            {
+                string path = Path.Combine(folder, "cross.json");
+                if (File.Exists(path)) main = File.ReadAllBytes(path);
+                path = Path.Combine(folder, "cross-new.json");
+                if (File.Exists(path)) newer = File.ReadAllBytes(path);
+                return true;
+            }
+            catch (Exception) { return false; }
+        }
+
+        private void RestoreSettings(byte[] main, byte[] newer)
+        {
+            if (Program.Smoke != null) return;
+            RestoreSettingsFile(Path.Combine(folder, "cross.json"), main);
+            RestoreSettingsFile(Path.Combine(folder, "cross-new.json"), newer);
+        }
+
+        private static void RestoreSettingsFile(string path, byte[] bytes)
+        {
+            try
+            {
+                if (bytes == null) File.Delete(path);
+                else File.WriteAllBytes(path, bytes);
+            }
+            catch (Exception) { }
         }
 
         internal bool UseEndpoint(string id, string model)
@@ -7007,6 +7041,8 @@ namespace CapriDesktop
         internal bool RemoveEndpoint(string id)
         {
             if (Saved == null || Saved.ProviderEndpoints == null || !ValidEndpointId(id)) return false;
+            byte[] oldMain, oldNew;
+            if (!SnapshotSettings(out oldMain, out oldNew)) return false;
             if (!SettingsWritable()) return false;
             string provider = EndpointProviderId(id);
             string path = EndpointKeyFile(id);
@@ -7042,6 +7078,7 @@ namespace CapriDesktop
                 if (address != null && string.Equals(Brain.ServerAddress(oldBrainServer), address, StringComparison.Ordinal)) Saved.BrainServer = null;
             }
             if (SaveResult()) return true;
+            RestoreSettings(oldMain, oldNew);
             Saved.ProviderEndpoints = oldEndpoints;
             Saved.ProviderModels = oldModels;
             Saved.BrainProvider = oldProvider;

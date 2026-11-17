@@ -144,6 +144,33 @@ internal static class CustomSafetyChecks
             using (new FileStream(side, FileMode.Open, FileAccess.Read, FileShare.None)) deleted = p.RemoveEndpoint("a");
             Settings reloaded = Load(sidecar);
             Check("failed sidecar save cannot resurrect deleted endpoint", Hash(side) == sideHash && ((deleted && Pet.EndpointFor(reloaded, "a") == null && Pet.ProviderModel(reloaded, "custom:a", 0) == null) || (!deleted && Hashes(sidecar) == sideBefore)));
+
+            string sameRound = Path.Combine(d, "same-address-tier");
+            s = Setup(sameRound, out p, true);
+            s.ServerModel = "legacy"; s.FreeModel = "free";
+            File.WriteAllText(Path.Combine(sameRound, "brain-free-key"), "nvapi-free");
+            p.UseEndpoint("a", "ma"); p.UseEndpoint("b", "mb");
+            CapriDesktop.Program.Smoke = sameRound;
+            try { p.SetBrainTier(1); p.SetBrainTier(0); } finally { CapriDesktop.Program.Smoke = null; }
+            Check("tier round-trip preserves shared-address identity",
+                s.BrainProvider == "custom:b" && p.Brain.Server == "http://localhost:8080" &&
+                p.Brain.ServerKey == "sk-beta" && p.Brain.Model == "mb");
+
+            if (!OperatingSystem.IsWindows())
+            {
+                string txn = Path.Combine(d, "readonly-sidecar");
+                s = Setup(txn, out p); p.UseEndpoint("a", "ma");
+                string txnBefore = Hashes(txn); string txnSide = Path.Combine(txn, "cross-new.json");
+                UnixFileMode txnMode = File.GetUnixFileMode(txnSide); bool txnRemoved;
+                File.SetUnixFileMode(txnSide, UnixFileMode.UserRead);
+                try { txnRemoved = p.RemoveEndpoint("a"); } finally { File.SetUnixFileMode(txnSide, txnMode); }
+                Settings txnLoaded = Load(txn);
+                Check("failed sidecar write preserves both endpoints and bytes",
+                    !txnRemoved && Hashes(txn) == txnBefore &&
+                    Pet.EndpointFor(txnLoaded, "a") != null && Pet.EndpointFor(txnLoaded, "b") != null &&
+                    Pet.ProviderModel(txnLoaded, "custom:a", 0) == "ma" &&
+                    s.BrainProvider == "custom:a" && p.Brain.ServerKey == "sk-alpha" && p.Brain.Model == "ma");
+            }
         }
         finally { CapriDesktop.Program.Smoke = previous; Brain.LogPath = log; }
         return failures;

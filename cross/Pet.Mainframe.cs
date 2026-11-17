@@ -400,6 +400,8 @@ namespace CapriDesktop
         internal void SetBrainTier(int tier)
         {
             tier = Math.Clamp(tier, 0, 2);
+            string savedCustom = Saved.BrainProvider;
+            if (EndpointIdOf(savedCustom) == null || EndpointFor(Saved, EndpointIdOf(savedCustom)) == null) savedCustom = null;
             CancelAccountConnection();
             if (MainframeTier == tier && Brain.Provider == null) return;
             StopNativeListening();
@@ -417,7 +419,13 @@ namespace CapriDesktop
             string key = tier == 0 ? null : ReadSecret(TierKeyFile(tier));
             string kind = Cloud.KindOf(key);
             string model = kind == null ? (tier == 1 ? Saved.FreeModel : Saved.PaidModel) : TierModel(Saved, kind, tier);
-            ProviderEndpoint custom = tier == 0 ? EndpointAt(Saved, Brain.Server) : null;
+            ProviderEndpoint custom = null;
+            if (tier == 0)
+            {
+                if (savedCustom != null) custom = EndpointFor(Saved, EndpointIdOf(savedCustom));
+                if (custom != null && !string.Equals(Brain.ServerAddress(custom.Address), Brain.Server, StringComparison.Ordinal)) custom = null;
+                if (custom == null) custom = EndpointAt(Saved, Brain.Server);
+            }
             string customProvider = custom == null ? null : EndpointProviderId(custom.Id);
             Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);
             if (customProvider != null)
@@ -428,7 +436,7 @@ namespace CapriDesktop
             }
             else
             {
-                Saved.BrainProvider = Brain.Remote == null ? null : Brain.Remote.Kind;
+                Saved.BrainProvider = tier == 0 ? null : savedCustom ?? (Brain.Remote == null ? null : Brain.Remote.Kind);
                 Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
             }
             Saved.CloudModel = Brain.Remote?.Model;
