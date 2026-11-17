@@ -7068,13 +7068,14 @@ namespace CapriDesktop
                 foreach (ProviderModelPick pick in Saved.ProviderModels) if (pick != null && pick.Provider != provider) picks.Add(pick);
                 Saved.ProviderModels = picks.Count == 0 ? null : picks.ToArray();
             }
-            bool active = string.Equals(oldProvider, provider, StringComparison.Ordinal);
+            bool active = Saved.BrainTier == 0 && Brain.Server != null && string.Equals(oldProvider, provider, StringComparison.Ordinal);
             string address = Brain.ServerAddress(removed.Address);
+            if (active) active = address != null && string.Equals(address, Brain.Server, StringComparison.Ordinal);
+            if (string.Equals(oldProvider, provider, StringComparison.Ordinal)) Saved.BrainProvider = null;
             if (active)
             {
                 Brain.SetServer(null, null);
                 Brain.Model = null;
-                Saved.BrainProvider = null;
                 if (address != null && string.Equals(Brain.ServerAddress(oldBrainServer), address, StringComparison.Ordinal)) Saved.BrainServer = null;
             }
             if (SaveResult()) return true;

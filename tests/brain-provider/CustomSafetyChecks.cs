@@ -171,8 +171,63 @@ internal static class CustomSafetyChecks
                     Pet.ProviderModel(txnLoaded, "custom:a", 0) == "ma" &&
                     s.BrainProvider == "custom:a" && p.Brain.ServerKey == "sk-alpha" && p.Brain.Model == "ma");
             }
+            ResidualChecks(d);
         }
         finally { CapriDesktop.Program.Smoke = previous; Brain.LogPath = log; }
         return failures;
+    }
+
+    internal static int ResidualChecks(string root)
+    {
+        int start = failures;
+        string previous = CapriDesktop.Program.Smoke;
+        CapriDesktop.Program.Smoke = null;
+        try
+        {
+            Pet p;
+            string cloud = Path.Combine(root, "remove-cloud");
+            Settings s = Setup(cloud, out p, true);
+            s.FreeModel = "free-model";
+            File.WriteAllText(Path.Combine(cloud, "brain-free-key"), "nvapi-free");
+            p.UseEndpoint("a", "model-a"); p.UseEndpoint("b", "model-b");
+            CapriDesktop.Program.Smoke = cloud;
+            try { p.SetBrainTier(1); } finally { CapriDesktop.Program.Smoke = null; }
+            p.Save();
+            string name = p.MainframeBrainName;
+            MethodInfo state = typeof(Pet).GetMethod("RemoteBrainState", Fields, null, Type.EmptyTypes, null);
+            string phone = (string)state.Invoke(p, null);
+            bool removed = p.RemoveEndpoint("b");
+            Check("removing saved custom endpoint in cloud tier preserves cloud and phone state",
+                removed && p.MainframeTier == 1 && p.Brain.Remote != null && p.Brain.Model == "free-model" &&
+                p.MainframeBrainName == name && (string)state.Invoke(p, null) == phone);
+
+            if (!OperatingSystem.IsWindows())
+            {
+                foreach (string file in new[] { "cross.json", "cross-new.json", "late-cross-new.json" })
+                {
+                    string d = Path.Combine(root, "readonly-" + file);
+                    s = Setup(d, out p);
+                    p.UseEndpoint("a", "model-a"); p.UseEndpoint("b", "model-b"); p.UseEndpoint("a", null);
+                    string before = Hashes(d);
+                    bool late = file.StartsWith("late-");
+                    string path = Path.Combine(d, late ? "cross-new.json" : file);
+                    UnixFileMode mode = File.GetUnixFileMode(path);
+                    UnixFileMode readOnly = mode & ~(UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite);
+                    int fired = 0;
+                    if (late) p.SettingsChanged += () => { fired++; File.SetUnixFileMode(path, readOnly); };
+                    else File.SetUnixFileMode(path, readOnly);
+                    try { removed = p.RemoveEndpoint("a"); }
+                    finally { File.SetUnixFileMode(path, mode); }
+                    Settings loaded = Load(d);
+                    Check("read-only removal preserves settings, keys and both models " + file,
+                        (!late || fired == 1) && !removed && Hashes(d) == before &&
+                        p.Saved.BrainProvider == "custom:a" && p.Brain.ServerKey == "sk-alpha" && p.Brain.Model == "model-a" &&
+                        Pet.EndpointFor(loaded, "a") != null && Pet.EndpointFor(loaded, "b") != null &&
+                        Pet.ProviderModel(loaded, "custom:a", 0) == "model-a" && Pet.ProviderModel(loaded, "custom:b", 0) == "model-b");
+                }
+            }
+        }
+        finally { CapriDesktop.Program.Smoke = previous; }
+        return failures - start;
     }
 }
