@@ -396,6 +396,7 @@ internal static class Program
             RemoteTiers();
             failures += VerifierRegressions.Run(folder);
             failures += CustomSafetyChecks.Run(folder);
+            failures += CustomSafetyChecks.B5Extra(folder);
             failures += CustomProviders.Run(folder);
             NullKeys(folder);
             ProviderTransition(folder);

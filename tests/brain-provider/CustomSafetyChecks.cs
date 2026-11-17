@@ -230,4 +230,51 @@ internal static class CustomSafetyChecks
         finally { CapriDesktop.Program.Smoke = previous; }
         return failures - start;
     }
+
+    internal static int B5Extra(string root)
+    {
+        int start = failures; string previous = CapriDesktop.Program.Smoke; CapriDesktop.Program.Smoke = null;
+        MethodInfo state = typeof(Pet).GetMethod("RemoteBrainState", Fields, null, Type.EmptyTypes, null);
+        try
+        {
+            foreach (string[] c in new[] { new[] { "a", "b", "b", "a" }, new[] { "a", "b", "a", "b" }, new[] { "b", "a", "a", "b" } })
+            {
+                string d = Path.Combine(root, "b5-" + string.Join("", c)); Pet p; Settings s = Setup(d, out p, true);
+                s.FreeModel = "free-model"; s.PaidModel = "paid-model"; File.WriteAllText(Path.Combine(d, "brain-free-key"), "nvapi-73692018");
+                p.UseEndpoint(c[0], "model-" + c[0]); p.UseEndpoint(c[1], "model-" + c[1]);
+                CapriDesktop.Program.Smoke = d; try { p.SetBrainTier(1); } finally { CapriDesktop.Program.Smoke = null; } p.Save();
+                Cloud cloud = p.Brain.Remote; string name = p.MainframeBrainName, phone = (string)state.Invoke(p, null);
+                string keys = Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key"));
+                bool setup = cloud != null && cloud.Key == "nvapi-73692018" && cloud.Model == "free-model" && s.BrainProvider == "custom:" + c[1] && name == "NVIDIA · free-model" && phone.Contains(name);
+                bool removed = p.RemoveEndpoint(c[2]);
+                Check("B5 removal " + string.Join("", c), setup && removed && ReferenceEquals(cloud, p.Brain.Remote) && s.BrainTier == 1 && p.Brain.Model == "free-model" && cloud.Model == "free-model" && cloud.Key == "nvapi-73692018" && s.FreeModel == "free-model" && s.PaidModel == "paid-model" &&
+                    p.MainframeBrainName == name && (string)state.Invoke(p, null) == phone && keys == Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key")) &&
+                    s.BrainProvider == (c[2] == c[1] ? null : "custom:" + c[1]) && Pet.EndpointFor(s, c[2]) == null && Pet.EndpointFor(s, c[3]) != null &&
+                    Pet.ProviderModel(s, "custom:" + c[2], 0) == null && Pet.ProviderModel(s, "custom:" + c[3], 0) == "model-" + c[3] && p.ReadEndpointKey(c[2]) == null && p.ReadEndpointKey(c[3]) == (c[3] == "a" ? "sk-alpha" : "sk-beta"));
+                CapriDesktop.Program.Smoke = d; try { p.SetBrainTier(0); } finally { CapriDesktop.Program.Smoke = null; }
+                Check("B5 remaining " + string.Join("", c), s.BrainTier == 0 && s.BrainProvider == "custom:" + c[3] && p.Brain.Remote == null && p.Brain.Server == "http://localhost:8080" && p.Brain.ServerKey == (c[3] == "a" ? "sk-alpha" : "sk-beta") && p.Brain.Model == "model-" + c[3]);
+                string normal = "{\"type\":\"brain.state\",\"use\":\"normal\",\"name\":\"model-" + c[3] + "\",\"note\":\"http://localhost:8080\",\"brains\":[{\"id\":\"normal\",\"key\":false},{\"id\":\"medium\",\"key\":true},{\"id\":\"max\",\"key\":false}]}";
+                Check("B5 normal phone " + string.Join("", c), (string)state.Invoke(p, null) == normal);
+                CapriDesktop.Program.Smoke = d; try { p.SetBrainTier(1); } finally { CapriDesktop.Program.Smoke = null; }
+                Check("B5 cloud round-trip " + string.Join("", c), s.BrainTier == 1 && p.Brain.Remote != null && p.Brain.Remote.Key == "nvapi-73692018" && p.Brain.Model == "free-model" && p.MainframeBrainName == name && (string)state.Invoke(p, null) == phone);
+            }
+            if (!OperatingSystem.IsWindows()) foreach (string target in new[] { "cross.json", "cross-new.json", "late-cross-new.json" })
+            {
+                string d = Path.Combine(root, "b5-readonly-" + target); Pet p; Settings s = Setup(d, out p, true);
+                s.FreeModel = "free-model"; File.WriteAllText(Path.Combine(d, "brain-free-key"), "nvapi-73692018"); p.UseEndpoint("a", "model-a"); p.UseEndpoint("b", "model-b");
+                CapriDesktop.Program.Smoke = d; try { p.SetBrainTier(1); } finally { CapriDesktop.Program.Smoke = null; } p.Save();
+                string before = Hashes(d) + Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key"));
+                string name = p.MainframeBrainName, phone = (string)state.Invoke(p, null), key = p.Brain.ServerKey; Cloud cloud = p.Brain.Remote;
+                bool late = target.StartsWith("late-"); string path = Path.Combine(d, late ? "cross-new.json" : target); UnixFileMode mode = File.GetUnixFileMode(path);
+                UnixFileMode readOnly = mode & ~(UnixFileMode.UserWrite | UnixFileMode.GroupWrite | UnixFileMode.OtherWrite); int fired = 0;
+                if (late) p.SettingsChanged += () => { fired++; File.SetUnixFileMode(path, readOnly); }; else File.SetUnixFileMode(path, readOnly);
+                bool removed; try { removed = p.RemoveEndpoint("b"); } finally { File.SetUnixFileMode(path, mode); }
+                Check("B5 rollback " + target, !removed && (!late || fired == 1) && before == Hashes(d) + Hash(Path.Combine(d, "brain-key")) + Hash(Path.Combine(d, "brain-free-key")) &&
+                    s.BrainTier == 1 && s.BrainProvider == "custom:b" && ReferenceEquals(cloud, p.Brain.Remote) && cloud.Key == "nvapi-73692018" && p.Brain.Model == "free-model" && p.Brain.ServerKey == key && p.MainframeBrainName == name && (string)state.Invoke(p, null) == phone &&
+                    Pet.EndpointFor(s, "a") != null && Pet.EndpointFor(s, "b") != null && Pet.ProviderModel(s, "custom:a", 0) == "model-a" && Pet.ProviderModel(s, "custom:b", 0) == "model-b");
+            }
+        }
+        finally { CapriDesktop.Program.Smoke = previous; }
+        return failures - start;
+    }
 }
