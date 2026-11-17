@@ -1627,7 +1627,7 @@ namespace CapriDesktop
         internal static int ArtVersion;
         internal static event Action ArtChanged;
         // Art that only some moments need loads off her thread when she might need it and is let go after this long undrawn:
-        // every facing-left set, and the clips made lazy (her perch talking). The rest warms after her first frame.
+        // every facing-left set, and the clips made lazy (her perch talking, her music perch). The rest warms after her first frame.
         internal const int RestAfter = 90000;
         private static readonly System.Collections.Generic.List<Clip> all = new System.Collections.Generic.List<Clip>();
         private readonly string name;
@@ -2182,7 +2182,7 @@ namespace CapriDesktop
         private readonly Clip walk = new Clip("walk", 12, 12, 1.11f);
         private readonly Clip dance;
         // her artist's music perch: she sways to the song on her window, and her beat nod goes on top. Same cells as her perch.
-        private readonly Clip perchDance = new Clip("perch_music", 60, 30, 1, PerchShiftX, PerchShiftY);
+        private readonly Clip perchDance = new Clip("perch_music", 60, 30, 1, PerchShiftX, PerchShiftY, true);
         private readonly Clip arrive = new Clip("arrive", 14, 15, 1.11f);
         private readonly Clip leave = new Clip("leave", 12, 15, 1.11f);
         private readonly Clip perchArrive = new Clip("perch_arrive", 14, 15, 1, PerchShiftX, PerchShiftY);
@@ -8387,8 +8387,10 @@ namespace CapriDesktop
             // in, so only her talking stops it there (Lachy, 29 Oct: "she didnt bop her head when i played the songs").
             bool busy = speech != null || (working != null ? now < voiceUntil : talkState != TalkState.Off || InChat);
             bool free = wanted && !hidden && !dragging && !pressed && !riding && !falling && !hanging && !walking && outro == null && !busy && !Hushed && !ownRest;
-            if (dancing && !free) { Play(seat != null || onPanel ? perch : idle); UpdateAnimation(); }
-            else if (!dancing && free && (clip == idle || clip == perch || clip == laydown)) { SitUp(false); Play(seat != null || onPanel ? perchDance : dance); frames.Start(); }
+            bool seated = seat != null || onPanel;
+            if (free && seated && !dancing) perchDance.Warm(false);
+            if (dancing && !free) { Play(seated ? perch : idle); UpdateAnimation(); }
+            else if (!dancing && free && (clip == idle || clip == perch || clip == laydown) && (!seated || testing || perchDance.Ready(false))) { SitUp(false); Play(seat != null || onPanel ? perchDance : dance); frames.Start(); }
             groove.Want(!testing && musicOn && !preferences.NoDance && preferences.Motion && !hidden);
         }
 
