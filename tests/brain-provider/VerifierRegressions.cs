@@ -72,6 +72,59 @@ internal static class VerifierRegressions
             pet.SetBrainTier(2);
             Check("switching back preserves the free slot", saved.FreeModel == "vendor/free:free" && saved.PaidModel == "vendor/paid");
 
+            string mixed = Path.Combine(root, "recovered-same-provider");
+            Directory.CreateDirectory(mixed);
+            CapriDesktop.Program.Smoke = mixed;
+            File.WriteAllText(Path.Combine(mixed, "cross.json"), "{\"VoiceProvider\":\"off\",\"BrainTier\":2,\"FreeModel\":\"google-new\",\"PaidModel\":\"vendor/paid\"}");
+            File.WriteAllText(Path.Combine(mixed, "cross-new.json"), "{\"BrainProvider\":\"nvidia\",\"ProviderModels\":[{\"Provider\":\"nvidia\",\"Model\":\"nv-old\",\"Tier\":1},{\"Provider\":\"google\",\"Model\":\"google-old\",\"Tier\":1}]}");
+            File.WriteAllText(Path.Combine(mixed, "brain-free-key"), "AIza-free");
+            File.WriteAllText(Path.Combine(mixed, "brain-paid-key"), "sk-or-paid");
+            string recoveredNotice;
+            bool recoveredBlocked;
+            Settings recoveredSettings = Pet.ReadSettings(Path.Combine(mixed, "cross.json"), out recoveredNotice, out recoveredBlocked);
+            Pet recoveredPet = Fixture(recoveredSettings, mixed);
+            recoveredPet.Brain.Remote = new Cloud("sk-or-paid", "vendor/paid");
+            recoveredPet.Brain.Model = "vendor/paid";
+            recoveredPet.SetBrainTier(1);
+            Call(recoveredPet, "KeepBrainTier");
+            Check("recovered tier slot beats same-provider sidecar memory", recoveredNotice == null && !recoveredBlocked &&
+                recoveredPet.Brain.Model == "google-new" && recoveredSettings.FreeModel == "google-new" &&
+                Pet.ProviderModel(recoveredSettings, "nvidia", 1) == "nv-old" && Pet.ProviderModel(recoveredSettings, "google", 1) == "google-new");
+
+            string untiered = Path.Combine(root, "untiered-provider-memory");
+            Directory.CreateDirectory(untiered);
+            CapriDesktop.Program.Smoke = untiered;
+            File.WriteAllText(Path.Combine(untiered, "cross.json"), "{\"VoiceProvider\":\"off\",\"BrainTier\":2,\"FreeModel\":\"vendor/free:free\",\"PaidModel\":\"vendor/paid\",\"ProviderModels\":[{\"Provider\":\"openrouter\",\"Model\":\"vendor/stale\"}]}");
+            File.WriteAllText(Path.Combine(untiered, "brain-free-key"), "sk-or-free");
+            File.WriteAllText(Path.Combine(untiered, "brain-paid-key"), "sk-or-paid");
+            string untieredNotice;
+            bool untieredBlocked;
+            Settings untieredSettings = Pet.ReadSettings(Path.Combine(untiered, "cross.json"), out untieredNotice, out untieredBlocked);
+            Pet untieredPet = Fixture(untieredSettings, untiered);
+            untieredPet.Brain.Remote = new Cloud("sk-or-paid", "vendor/paid");
+            untieredPet.Brain.Model = "vendor/paid";
+            bool slots = Pet.TierModel(untieredSettings, "openrouter", 1) == "vendor/free:free" && Pet.TierModel(untieredSettings, "openrouter", 2) == "vendor/paid";
+            untieredPet.SetBrainTier(1);
+            bool usedFree = untieredPet.Brain.Model == "vendor/free:free";
+            untieredPet.SetBrainTier(2);
+            Check("untiered memory cannot override either tier", untieredNotice == null && !untieredBlocked && slots && usedFree &&
+                untieredPet.Brain.Model == "vendor/paid" && untieredSettings.FreeModel == "vendor/free:free" && untieredSettings.PaidModel == "vendor/paid");
+
+            string missingKey = Path.Combine(root, "missing-key-with-memory");
+            Directory.CreateDirectory(missingKey);
+            CapriDesktop.Program.Smoke = missingKey;
+            Settings missingSettings = new Settings { VoiceProvider = "off", BrainTier = 0, FreeModel = "free-slot", ProviderModels = new[] { new ProviderModelPick { Provider = "nvidia", Model = "nv-memory", Tier = 1 } } };
+            Pet missingPet = Fixture(missingSettings, missingKey);
+            missingPet.SetBrainTier(1);
+            Check("a missing key with provider memory cannot crash", missingPet.Brain.Remote == null && missingPet.Brain.Model == null && missingSettings.FreeModel == "free-slot");
+
+            Settings unknown = new Settings { BrainTier = 1, BrainProvider = "garbage", ProviderModels = new[] { new ProviderModelPick { Provider = "google", Model = "google-old", Tier = 1 } } };
+            Pet unknownPet = Fixture(unknown, missingKey);
+            unknownPet.Brain.Remote = new Cloud("nvapi-active", "nv-current");
+            Call(unknownPet, "KeepBrainTier");
+            Check("garbage cannot receive the active provider's model", unknown.BrainProvider == "nvidia" && Pet.ProviderModel(unknown, "nvidia", 1) == "nv-current" &&
+                Pet.ProviderModel(unknown, "garbage", 1) == null && Pet.ProviderModel(unknown, "google", 1) == "google-old");
+
             CapriDesktop.Program.Smoke = null;
             string failed = Path.Combine(root, "failed-backup");
             Directory.CreateDirectory(failed);

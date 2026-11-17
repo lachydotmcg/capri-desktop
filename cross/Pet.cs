@@ -6731,6 +6731,21 @@ namespace CapriDesktop
             [DataMember] internal string RemoteHost;
         }
 
+        private static ProviderModelPick[] RecoveredProviderModels(Settings saved, ProviderModelPick[] remembered, string folder)
+        {
+            if (remembered == null || string.IsNullOrEmpty(folder)) return remembered;
+            string free = string.IsNullOrEmpty(saved.FreeModel) ? null : Cloud.KindOf(ReadSecret(Path.Combine(folder, "brain-free-key")));
+            string paid = string.IsNullOrEmpty(saved.PaidModel) ? null : Cloud.KindOf(ReadSecret(Path.Combine(folder, "brain-paid-key")));
+            if (free == null && paid == null) return remembered;
+            List<ProviderModelPick> kept = new List<ProviderModelPick>();
+            foreach (ProviderModelPick pick in remembered)
+            {
+                bool competes = pick != null && ((free != null && pick.Provider == free && pick.Tier == 1) || (paid != null && pick.Provider == paid && pick.Tier == 2));
+                if (!competes) kept.Add(pick);
+            }
+            return kept.Count == remembered.Length ? remembered : kept.ToArray();
+        }
+
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
         internal static Settings Kept(Settings saved, NewSettings newer)
         {
@@ -6742,7 +6757,7 @@ namespace CapriDesktop
             if (saved != null && newer != null)
             {
                 if (saved.BrainProvider == null) saved.BrainProvider = newer.BrainProvider;
-                if (saved.ProviderModels == null) saved.ProviderModels = newer.ProviderModels;
+                if (saved.ProviderModels == null) saved.ProviderModels = RecoveredProviderModels(saved, newer.ProviderModels, settingsHome);
             }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
@@ -6849,6 +6864,8 @@ namespace CapriDesktop
 
         internal const string UnreadableName = "cross.unreadable.json";
 
+        [ThreadStatic] private static string settingsHome;
+
         // As on Windows: a new install has no cross.json and starts fresh. Settings that can't be read start fresh too, but
         // first the file is copied as it is to cross.unreadable.json, so the next save can't write over the only copy of their
         // choices and keys, and the notice says where it went.
@@ -6869,7 +6886,9 @@ namespace CapriDesktop
                 NewSettings newer = null;
                 try { using (FileStream stream = File.OpenRead(Path.Combine(Path.GetDirectoryName(path), "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
                 catch (Exception) { }
-                return Kept(saved, newer);
+                settingsHome = Path.GetDirectoryName(path);
+                try { return Kept(saved, newer); }
+                finally { settingsHome = null; }
             }
             catch (Exception error)
             {
