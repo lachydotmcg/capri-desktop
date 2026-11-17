@@ -99,7 +99,7 @@ namespace CapriDesktop
             Section("HER COMPUTER >", 0, y);
             herComputerSwitch = Switch("Her own computer", 0, y + 24, delegate { if (!syncing) capri.ToggleHerComputer(); });
             herComputerSwitch.AccessibleName = "Her own computer. Off by default. She gets a little computer of her own in a separate window, with a real browser on her own profile, notes and a diary. Watch her use it or give her jobs to do on it";
-            herComputerOpen = Make("Open her computer", 28, y + 56, 328, 22, delegate { capri.OpenHerComputer(); });
+            herComputerOpen = Make("Open her computer", 28, y + 56, 328, 22, delegate { capri.OpenHerComputer(); }, "Her own computer");
             herComputerOpen.AccessibleName = "Open her computer's window";
             Label hint = Caption("Say \"find me a recipe on your computer\" and\nshe does it there. Beta, Windows only.", 28, y + 86, Look.Mono(8.5f, FontStyle.Regular, GraphicsUnit.Point), Faint);
             hint.AutoSize = false;
