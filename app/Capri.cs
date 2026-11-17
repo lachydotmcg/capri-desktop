@@ -39611,222 +39611,53 @@ namespace CapriDesktop
             }
         }
 
-        private static void SmokeSearchFiles(List<string> checks, string output)
-        {
-            Func<string, string> rootWas = Hands.ProfileRoot, engineWas = Hands.SearchEngine;
-            Func<string> defaultWas = Hands.DefaultBrowser;
-            Action<string> runWas = Hands.Run;
-            Action<string, string> browseWas = Hands.Browse;
-            string folder = Path.GetFullPath(Path.Combine(output, "search-files-" + Guid.NewGuid().ToString("N")));
-            object gate = typeof(Hands).GetField("searchGate", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-            System.Collections.IDictionary engines = (System.Collections.IDictionary)typeof(Hands).GetField("engines", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-            List<System.Collections.DictionaryEntry> cache = new List<System.Collections.DictionaryEntry>();
-            lock (gate) foreach (System.Collections.DictionaryEntry item in engines) cache.Add(item);
-            try
-            {
-                Hands.ProfileRoot = delegate(string browser) { return Path.Combine(folder, browser); };
-                Hands.SearchEngine = Hands.ReadSearchEngine;
-                string browserName = "Chrome", sent = null;
-                Hands.DefaultBrowser = delegate { return browserName; };
-                Hands.Run = delegate(string address) { sent = address; };
-                Hands.Browse = delegate(string path, string address) { throw new Exception("A plain file-reader check chose a browser."); };
-                Func<string, string> preferences = delegate(string url) { return "{\"default_search_provider_data\":{\"template_url_data\":{\"url\":" + Voice.Quote(url) + "}}}"; };
-                Action<string> search = delegate(string expected)
-                {
-                    Hands.ForgetSearch(); sent = null;
-                    string line = Hands.Do("open_website", new ToolArguments { Search = "cats" });
-                    if (sent != expected || !line.StartsWith("Searched ", StringComparison.Ordinal) || !line.EndsWith(" for cats.", StringComparison.Ordinal)) throw new Exception("A made-up browser profile read wrong: " + browserName + " / " + line);
-                };
-                string root = Path.Combine(folder, "Chrome"), profile = Path.Combine(root, "Profile 2"), standard = Path.Combine(root, "Default");
-                Directory.CreateDirectory(profile); Directory.CreateDirectory(standard);
-                string state = Path.Combine(root, "Local State"), plain = Path.Combine(profile, "Preferences"), secure = Path.Combine(profile, "Secure Preferences");
-                string plainUrl = "https://duckduckgo.com/?q={searchTerms}", secureUrl = "https://search.brave.com/search?q={searchTerms}";
-                File.WriteAllText(state, "{\"other\":{\"last_used\":\"Wrong\"},\"profile\":{\"last_used\":\"Profile 2\"}}");
-                File.WriteAllText(plain, preferences(plainUrl));
-                File.WriteAllText(Path.Combine(standard, "Preferences"), preferences("https://search.example/?q={searchTerms}"));
-                if (Hands.ReadSearchFile(plain) != preferences(plainUrl) || Hands.ReadSearchEngine("Chrome") != plainUrl) throw new Exception("The real reader missed the last-used profile.");
-                search("https://duckduckgo.com/?q=cats");
-                File.WriteAllText(state, "{}");
-                search("https://search.example/?q=cats");
-                File.Delete(state);
-                search("https://search.example/?q=cats");
-                File.WriteAllText(state, "{\"profile\":{\"last_used\":\"Profile 2\"}}");
-                File.WriteAllText(secure, preferences(secureUrl));
-                search("https://search.brave.com/search?q=cats");
-                File.WriteAllText(secure, "{\"other\":{\"url\":\"https://wrong.example/?q={searchTerms}\"}}");
-                search("https://duckduckgo.com/?q=cats");
-                File.WriteAllText(secure, "{broken");
-                search("https://duckduckgo.com/?q=cats");
-                File.WriteAllText(secure, preferences(secureUrl));
-                using (FileStream locked = new FileStream(secure, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) search("https://duckduckgo.com/?q=cats");
-                File.WriteAllText(secure, preferences(secureUrl) + new string(' ', 4 * 1024 * 1024));
-                if (Hands.ReadSearchFile(secure) != null) throw new Exception("An oversized secure settings file was read.");
-                search("https://duckduckgo.com/?q=cats");
-                File.WriteAllText(secure, "{}");
-                File.WriteAllText(plain, preferences(plainUrl) + new string(' ', 4 * 1024 * 1024));
-                if (Hands.ReadSearchFile(plain) != null) throw new Exception("An oversized plain settings file was read.");
-                search("https://www.google.com/search?q=cats");
-                File.WriteAllText(plain, "{\"url\":\"https://wrong.example/\",\"other\":{\"template_url_data\":{\"url\":\"wrong\"}},\"default_search_provider_data\":{\"template_url_data\":{\"url\":\"https:\\/\\/duckduckgo.com\\/?q={searchTerms}\"}}}");
-                search("https://duckduckgo.com/?q=cats");
-                foreach (string builtIn in new[] { "{google:baseURL}search?q={searchTerms}&{google:RLZ}", "https://{google:baseURL}/search?q={searchTerms}" })
-                {
-                    File.WriteAllText(plain, preferences(builtIn));
-                    if (Hands.ReadSearchEngine("Chrome") != builtIn) throw new Exception("The built-in template wasn't read from the file.");
-                    search("https://www.google.com/search?q=cats");
-                }
-                browserName = "Edge";
-                if (Hands.ReadSearchEngine(browserName) != null) throw new Exception("A missing browser folder had an engine.");
-                search("https://www.google.com/search?q=cats");
-                foreach (string opera in new[] { "Opera", "Opera GX" })
-                {
-                    browserName = opera;
-                    string operaRoot = Path.Combine(folder, opera);
-                    Directory.CreateDirectory(operaRoot);
-                    if (opera == "Opera") File.WriteAllText(Path.Combine(operaRoot, "Local State"), "{}");
-                    File.WriteAllText(Path.Combine(operaRoot, "Preferences"), preferences(plainUrl));
-                    search("https://duckduckgo.com/?q=cats");
-                    File.WriteAllText(Path.Combine(operaRoot, "Secure Preferences"), preferences(secureUrl));
-                    search("https://search.brave.com/search?q=cats");
-                    Directory.CreateDirectory(Path.Combine(operaRoot, "Default"));
-                    File.WriteAllText(Path.Combine(operaRoot, "Default", "Preferences"), preferences("https://search.example/?q={searchTerms}"));
-                    search("https://search.example/?q=cats");
-                }
-                checks.Add("PASS browser profile files: last-used and Default profiles, both Opera root layouts, Secure Preferences before Preferences, missing entries, locked and oversized files, nested URL members, missing folders and built-in host placeholders use the real readers");
-                const string choicePath = @"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\";
-                Dictionary<string, string> choices = new Dictionary<string, string>();
-                bool lockedChoice = false;
-                int choiceReads = 0;
-                Func<string, string> readChoice = delegate(string key)
-                {
-                    choiceReads++;
-                    if (!key.StartsWith(choicePath, StringComparison.Ordinal)) throw new Exception("The browser choice reader used the wrong key.");
-                    string part = key.Substring(choicePath.Length), value;
-                    if (lockedChoice && part == @"UserChoiceLatest\ProgId") throw new IOException("Fake locked choice.");
-                    return choices.TryGetValue(part, out value) ? value : null;
-                };
-                choices["UserChoice"] = "ChromeHTML";
-                choices["UserChoiceLatest"] = "OperaStable";
-                choices[@"UserChoiceLatest\ProgId"] = "BraveHTML.1";
-                if (Hands.DefaultBrowserChoice(readChoice) != "Brave" || choiceReads != 1) throw new Exception("The nested latest browser choice lost to a stale key.");
-                choices.Remove(@"UserChoiceLatest\ProgId");
-                if (Hands.DefaultBrowserChoice(readChoice) != "Opera") throw new Exception("The direct latest browser choice was skipped.");
-                choices[@"UserChoiceLatest\ProgId"] = "BraveHTML.1"; lockedChoice = true;
-                if (Hands.DefaultBrowserChoice(readChoice) != "Opera") throw new Exception("An unreadable nested choice hid the direct value.");
-                choices.Remove("UserChoiceLatest");
-                if (Hands.DefaultBrowserChoice(readChoice) != "Chrome") throw new Exception("The old browser choice fallback was lost.");
-                lockedChoice = false; choices[@"UserChoiceLatest\ProgId"] = "Unknown";
-                if (Hands.DefaultBrowserChoice(readChoice) != null) throw new Exception("An unknown latest choice used a stale browser.");
-                choices.Clear();
-                if (Hands.DefaultBrowserChoice(readChoice) != null) throw new Exception("Missing browser choices picked a browser.");
-                checks.Add("PASS default browser choices: nested and direct UserChoiceLatest values precede UserChoice, missing and unreadable keys move on, and an unknown current choice stays unknown; all values are made up");
-            }
-            finally
-            {
-                Hands.ProfileRoot = rootWas; Hands.SearchEngine = engineWas; Hands.DefaultBrowser = defaultWas; Hands.Run = runWas; Hands.Browse = browseWas;
-                lock (gate) { engines.Clear(); foreach (System.Collections.DictionaryEntry item in cache) engines.Add(item.Key, item.Value); }
-                if (Directory.Exists(folder)) Directory.Delete(folder, true);
-            }
-        }
-
         private static void SmokeSearch(System.Collections.Generic.List<string> checks, string output)
         {
-            Func<string, string> engineWas = Hands.SearchEngine, browserWas = Hands.BrowserPath, openedWas = Hands.Opened;
-            Func<string> defaultWas = Hands.DefaultBrowser;
-            Func<DateTime> nowWas = Hands.SearchNow;
+            Func<string, string> browserWas = Hands.BrowserPath, openedWas = Hands.Opened;
             Action<string> runWas = Hands.Run;
             Action<string, string> browseWas = Hands.Browse;
             Websites sitesWas = Hands.Websites;
             string siteFolder = Path.Combine(output, "search-sites-test");
             try
             {
-                string sent = null, selected = null;
-                int engineReads = 0;
-                DateTime now = new DateTime(2026, 11, 13, 12, 0, 0, DateTimeKind.Utc);
-                string engine = "https://search.brave.com/search?q={searchTerms}&source={unknown}&lang=en";
-                Hands.SearchEngine = delegate(string name) { selected = name; engineReads++; return engine; };
-                Hands.DefaultBrowser = delegate { return "Brave"; };
-                Hands.SearchNow = delegate { return now; };
-                Hands.BrowserPath = delegate { return "fake-browser.exe"; };
+                string sent = null, browsed = null;
+                Hands.BrowserPath = delegate(string name) { return "fake-" + name + ".exe"; };
                 Hands.Opened = delegate { return ""; };
-                Hands.Run = delegate(string address) { sent = address; };
-                Hands.Browse = delegate(string path, string address) { sent = address; };
-                Hands.ForgetSearch();
+                Hands.Run = delegate(string address) { sent = address; browsed = null; };
+                Hands.Browse = delegate(string path, string address) { sent = address; browsed = path; };
                 foreach (string phrase in new[] { "look up capri ai", "what's the weather in Sydney", "play chess online" })
                 {
                     string named;
                     ToolArguments search;
                     if (!Hands.Direct(phrase, out named, out search) || named != "open_website" || !string.IsNullOrEmpty(search.Site) || string.IsNullOrEmpty(search.Search) || Hands.Plain(named, search)) throw new Exception("An unnamed look-up changed its route: " + phrase);
                     string line = Hands.Do(named, search);
-                    if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(search.Search.Trim()) + "&lang=en" || line != "Searched search.brave.com for " + search.Search.Trim() + ".") throw new Exception("An unnamed look-up lost the browser's engine: " + phrase);
+                    if (sent != "https://www.google.com/search?q=" + Uri.EscapeDataString(search.Search.Trim()) || browsed != null || line != "Searched google.com for " + search.Search.Trim() + ".") throw new Exception("An unnamed look-up didn't search Google in the default browser: " + phrase);
                 }
                 ToolArguments lookup = Hands.Lookup("when does the new GTA come out?", "I don't have live info on that, choom.");
-                if (lookup == null || !string.IsNullOrEmpty(lookup.Site)) throw new Exception("The automatic look-up still picked Google.");
+                if (lookup == null || !string.IsNullOrEmpty(lookup.Site)) throw new Exception("The automatic look-up named a site.");
                 Hands.Do("open_website", lookup);
-                if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(lookup.Search) + "&lang=en") throw new Exception("The automatic look-up lost the browser's engine.");
+                if (sent != "https://www.google.com/search?q=" + Uri.EscapeDataString(lookup.Search)) throw new Exception("The automatic look-up didn't search Google.");
                 const string searchWords = "C# & cats {x} é";
                 if (!Hands.Valid("open_website", new ToolArguments { Search = searchWords })) throw new Exception("A brain couldn't ask for a plain search.");
                 Hands.Do("open_website", new ToolArguments { Search = searchWords });
-                if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(searchWords) + "&lang=en" || selected != "Brave" || engineReads != 1) throw new Exception("Search words weren't escaped or the engine wasn't remembered.");
-                Hands.Do("open_website", new ToolArguments { Search = "cats", Browser = "Chrome" });
-                if (selected != "Chrome" || engineReads != 2) throw new Exception("A named browser didn't choose its own engine.");
-                engine = "https://duckduckgo.com/?q={searchTerms}";
-                Hands.Do("open_website", new ToolArguments { Search = "cats" });
-                if (!sent.StartsWith("https://search.brave.com/", StringComparison.Ordinal) || engineReads != 2) throw new Exception("The search engine cache expired early.");
-                now = now.AddMinutes(10);
-                Hands.Do("open_website", new ToolArguments { Search = "cats" });
-                if (sent != "https://duckduckgo.com/?q=cats" || engineReads != 3) throw new Exception("The engine cache didn't refresh after ten minutes.");
+                if (sent != "https://www.google.com/search?q=" + Uri.EscapeDataString(searchWords)) throw new Exception("Search words weren't escaped.");
                 string tool;
                 ToolArguments args;
                 if (!Hands.Direct("google capri ai", out tool, out args) || args.Site != "google") throw new Exception("An explicit Google request lost its site.");
                 Hands.Do(tool, args);
-                if (sent != "https://www.google.com/search?q=capri%20ai") throw new Exception("Google words used the browser's engine.");
+                if (sent != "https://www.google.com/search?q=capri%20ai") throw new Exception("Google words changed.");
                 Hands.Do("open_website", new ToolArguments { Site = "google", Search = "cats" });
                 if (sent != "https://www.google.com/search?q=cats") throw new Exception("A brain's named Google engine changed.");
                 if (!Hands.Direct("search youtube for cats", out tool, out args) || args.Site != "youtube") throw new Exception("A named site was lost.");
                 Hands.Do(tool, args);
-                if (sent != "https://www.youtube.com/results?search_query=cats") throw new Exception("A named site used the browser's engine.");
+                if (sent != "https://www.youtube.com/results?search_query=cats") throw new Exception("A named site lost its own search.");
                 Hands.Do("open_website", new ToolArguments { Site = "youtube", Search = "cats" });
                 if (sent != "https://www.youtube.com/results?search_query=cats") throw new Exception("A brain's named YouTube site changed.");
                 Hands.Websites = new Websites(siteFolder);
                 Hands.Websites.Do(new ToolArguments { Action = "save", Name = "school portal", Site = "https://portal.example/classes" });
                 if (!Hands.Direct("open school portal", out tool, out args) || args.Site != "school portal") throw new Exception("A saved nickname became a search.");
                 Hands.Do(tool, args);
-                if (sent != "https://portal.example/classes") throw new Exception("A saved nickname used the browser's engine.");
-                foreach (string bad in new[] { "file:///search?q={searchTerms}", "javascript:search({searchTerms})", "https:///search?q={searchTerms}", "https://{host}/?q={searchTerms}", "https://{searchTerms}.example/", "https://search.example/?q=cats", "https://search.example/{unknown}?q={searchTerms}" })
-                {
-                    engine = bad; Hands.ForgetSearch();
-                    Hands.Do("open_website", new ToolArguments { Search = searchWords });
-                    if (sent != "https://www.google.com/search?q=" + Uri.EscapeDataString(searchWords)) throw new Exception("An unsafe engine template reached the shell: " + bad);
-                }
-                Func<string, string> preferences = delegate(string url) { return "{\"default_search_provider_data\":{\"template_url_data\":{\"url\":" + Voice.Quote(url) + "}}}"; };
-                string changed = "https://duckduckgo.com/?q={searchTerms}&t=capri";
-                string builtIn = "{google:baseURL}search?q={searchTerms}&{google:RLZ}";
-                string nested = "{\"url\":\"https://decoy.example/\",\"other\":{\"template_url_data\":{\"url\":\"wrong\"}},\"default_search_provider_data\":{\"ignore\":{\"url\":\"wrong\",\"text\":\"} \\\" {\"},\"template_url_data\":{\"url\":\"https:\\/\\/search.example\\/find?q={searchTerms}&tag=\\u0061\",\"other\":{\"url\":\"wrong\"}}}}";
-                if (Hands.SearchTemplate(preferences(changed)) != changed || Hands.SearchTemplate(preferences(builtIn)) != builtIn || Hands.EngineTemplate(builtIn) != null || Hands.SearchTemplate(nested) != "https://search.example/find?q={searchTerms}&tag=a"
-                    || Hands.SearchTemplate("{\"other\":{\"url\":\"https://wrong.example/?q={searchTerms}\"}}") != null || Hands.SearchTemplate("{broken") != null || Hands.SearchTemplate(new string(' ', 4 * 1024 * 1024 + 1)) != null) throw new Exception("The engine reader guessed outside its JSON member or missed escaped text.");
-                if (Hands.SearchProfile("{\"other\":{\"last_used\":\"Wrong\"},\"profile\":{\"last_used\":\"Profile\\u00202\"}}") != "Profile 2" || Hands.SearchProfile("{}") != "Default" || Hands.SearchProfile(null) != "Default" || Hands.SearchProfile("{\"profile\":{\"last_used\":\"../other\"}}") != null || Hands.SearchProfile("{broken") != null) throw new Exception("The engine reader chose the wrong profile.");
-                engine = Hands.SearchTemplate(preferences(builtIn)); Hands.ForgetSearch();
-                Hands.Do("open_website", new ToolArguments { Search = "cats" });
-                if (sent != "https://www.google.com/search?q=cats") throw new Exception("Chrome's built-in template didn't fall back to Google.");
-                foreach (string missing in new[] { "none", "Firefox", "Unknown" })
-                {
-                    Hands.DefaultBrowser = delegate { return missing; }; Hands.ForgetSearch();
-                    Hands.SearchEngine = delegate { throw new Exception("An unsupported browser read its settings."); };
-                    Hands.Do("open_website", new ToolArguments { Search = "cats" });
-                    if (sent != "https://www.google.com/search?q=cats") throw new Exception("An unsupported browser lost the Google fallback.");
-                }
-                Hands.DefaultBrowser = delegate { return "Edge"; };
-                foreach (bool throws in new[] { false, true })
-                {
-                    Hands.SearchEngine = delegate { if (throws) throw new IOException("Fake locked file."); return null; };
-                    Hands.ForgetSearch(); Hands.Do("open_website", new ToolArguments { Search = "cats" });
-                    if (sent != "https://www.google.com/search?q=cats") throw new Exception("An unreadable engine lost the Google fallback.");
-                }
-                string[,] progIds = { { "ChromeHTML", "Chrome" }, { "MSEdgeHTM", "Edge" }, { "BraveHTML.1", "Brave" }, { "VivaldiHTM", "Vivaldi" }, { "OperaStable", "Opera" }, { "OperaGXStable", "Opera GX" }, { "FirefoxURL-test", "Firefox" }, { "Unknown", null } };
-                for (int p = 0; p < progIds.GetLength(0); p++) if (Hands.DefaultBrowserName(progIds[p, 0]) != progIds[p, 1]) throw new Exception("A fake default-browser ProgId was misread.");
-                Hands.SearchEngine = delegate(string name) { selected = name; return "https://search.example/?q={searchTerms}"; };
-                Hands.DefaultBrowser = delegate { return "Brave"; };
-                Hands.ForgetSearch();
+                if (sent != "https://portal.example/classes") throw new Exception("A saved nickname became a search.");
                 string[,] searches = { { "google how to clear cache in chrome", "how to clear cache in chrome", "google" }, { "google cats in chrome", "cats in chrome", "google" }, { "look up capri ai in Chrome", "capri ai in Chrome", null }, { "look up block ads in brave", "block ads in brave", null }, { "what's the weather in Sydney in Brave", "what's the weather in Sydney in Brave", null }, { "look up capri ai", "capri ai", null } };
                 for (int a = 0; a < searches.GetLength(0); a++)
                     foreach (bool heard in new[] { false, true })
@@ -39834,26 +39665,24 @@ namespace CapriDesktop
                         bool matched = heard ? Hands.Heard(searches[a, 0], out tool, out args) : Hands.Direct(searches[a, 0], out tool, out args);
                         if (!matched || tool != "open_website" || args.Search != searches[a, 1] || args.Site != searches[a, 2] || args.Browser != null) throw new Exception("Search words chose a browser or lost its name: " + searches[a, 0]);
                         string line = Hands.Do(tool, args);
-                        string host = args.Site == "google" ? "google.com" : "search.example";
-                        if (sent != (args.Site == "google" ? "https://www.google.com/search?q=" : "https://search.example/?q=") + Uri.EscapeDataString(searches[a, 1]) || line != "Searched " + host + " for " + searches[a, 1] + ".") throw new Exception("A plain search changed its words or named a browser: " + searches[a, 0]);
+                        if (sent != "https://www.google.com/search?q=" + Uri.EscapeDataString(searches[a, 1]) || line != "Searched google.com for " + searches[a, 1] + ".") throw new Exception("A plain search changed its words or named a browser: " + searches[a, 0]);
                     }
                 MethodInfo websiteRequest = typeof(Hands).GetMethod("WebsiteRequest", BindingFlags.Static | BindingFlags.NonPublic);
                 foreach (string removed in new[] { "in Edge look up capri ai", "play chess online in Brave" })
                     if (websiteRequest.Invoke(null, new object[] { removed }) != null) throw new Exception("A removed named-browser look-up route remains: " + removed);
                 string brainSearch = Hands.Do("open_website", new ToolArguments { Search = "cats", Browser = "Brave" });
-                if (sent != "https://search.example/?q=cats" || selected != "Brave" || brainSearch != "Searched search.example for cats in Brave." || Hands.Pulled(brainSearch) != brainSearch) throw new Exception("A brain's browser argument was lost.");
+                if (sent != "https://www.google.com/search?q=cats" || browsed != "fake-Brave.exe" || brainSearch != "Searched google.com for cats in Brave." || Hands.Pulled(brainSearch) != brainSearch) throw new Exception("A brain's browser argument was lost.");
                 foreach (string tail in new[] { ".", ", but its window hasn't appeared yet." })
                 {
                     string line = "Searched duckduckgo.com for cats in Brave" + tail;
                     if (Hands.Pulled(line) != line) throw new Exception("A look-up quoted its browser or window status.");
                 }
                 if (Hands.Pulled("Searched google.com for cats.") != "Pulled up \"cats\" on Google for you, choom." || Hands.Pulled("Searched duckduckgo.com for cats.") != "Pulled up \"cats\" on DuckDuckGo for you, choom." || Hands.Pulled("Searched search.brave.com for cats.") != "Pulled up \"cats\" on Brave Search for you, choom." || Hands.Pulled("Searched bing.com for cats.") != "Pulled up \"cats\" on Bing for you, choom." || Hands.Pulled("Searched search.example for cats.") != "Pulled up \"cats\" for you, choom.") throw new Exception("A look-up line named the wrong engine.");
-                if (Hands.Tools.IndexOf("No site named: leave site out, it uses their browser's search engine; a site or engine they named goes in site.", StringComparison.Ordinal) < 0) throw new Exception("The website description lost plain searches.");
-                checks.Add("PASS browser search: automatic look-ups, online games, look up, weather and search-only calls use the stated engine with escaped words; Google, named sites and nicknames keep their routes; templates, nested JSON, profiles, cache and fallback stay bounded");
+                if (Hands.Tools.IndexOf("No site named: leave site out, it searches Google; a site or engine they named goes in site.", StringComparison.Ordinal) < 0) throw new Exception("The website description lost plain searches.");
+                checks.Add("PASS browser search: automatic look-ups, online games, look up, weather and search-only calls search Google with escaped words; Google, named sites, named browsers and nicknames keep their routes");
             }
             finally
             {
-                Hands.SearchEngine = engineWas; Hands.DefaultBrowser = defaultWas; Hands.SearchNow = nowWas; Hands.ForgetSearch();
                 Hands.Run = runWas; Hands.Browse = browseWas; Hands.BrowserPath = browserWas; Hands.Opened = openedWas; Hands.Websites = sitesWas;
                 if (Directory.Exists(siteFolder)) Directory.Delete(siteFolder, true);
             }
@@ -44931,7 +44760,6 @@ namespace CapriDesktop
             Section(checks, "SmokeTypingRepeats", delegate { SmokeTypingRepeats(checks); });
             Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
             Section(checks, "SmokeAppMemory", delegate { SmokeAppMemory(checks, output); });
-            Section(checks, "SmokeSearchFiles", delegate { SmokeSearchFiles(checks, output); });
             Section(checks, "SmokeOpening", delegate { SmokeOpening(checks, output); });
             Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
             Section(checks, "SmokeLineChanges", delegate { SmokeLineChanges(checks); });
@@ -49435,11 +49263,6 @@ namespace CapriDesktop
 
         internal void StartSmokeTest(string output, SmokeOptions options)
         {
-            Hands.SearchEngine = delegate { return null; };
-            Hands.DefaultBrowser = delegate { return null; };
-            string browserProfile = Path.Combine(output, "no-browser-profile-" + Guid.NewGuid().ToString("N"));
-            Hands.ProfileRoot = delegate { return browserProfile; };
-            Hands.ForgetSearch();
             // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
             Native.FakedGaming = false;
             TreeEyes.Reader = delegate { return null; };
