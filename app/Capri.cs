@@ -26757,6 +26757,25 @@ namespace CapriDesktop
             return (kernel + user) / 10000.0;
         }
 
+        private static Bitmap WatchSample(int width, int height)
+        {
+            Bitmap sample = new Bitmap(width, height, PixelFormat.Format32bppRgb);
+            BitmapData locked = sample.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+            try
+            {
+                int[] row = new int[width];
+                Random noise = new Random(7);
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                        row[x] = (((x * 255 / width) + noise.Next(24)) & 0xFF) << 16 | (((y * 255 / height) + noise.Next(24)) & 0xFF) << 8 | (((x + y) * 3 + noise.Next(24)) & 0xFF);
+                    Marshal.Copy(row, 0, IntPtr.Add(locked.Scan0, y * locked.Stride), width);
+                }
+            }
+            finally { sample.UnlockBits(locked); }
+            return sample;
+        }
+
         private void SmokePerf(System.Collections.Generic.List<string> checks)
         {
             bool framesWas = frames.Enabled, signalsWas = signals.Enabled, hiddenWas = hidden, dockedWas = docked;
@@ -26876,6 +26895,27 @@ namespace CapriDesktop
                 foreach (Size game in new[] { new Size(1920, 1080), new Size(2560, 1440), new Size(3840, 2160) })
                     checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_shrink game={0}x{1} to480_ms={2:0.000} to1280_ms={3:0.000}",
                         game.Width, game.Height, FrameGrab.ShrinkMs(game.Width, game.Height, 480, 10), FrameGrab.ShrinkMs(game.Width, game.Height, 1280, 5)));
+                using (Bitmap keepSample = WatchSample(1280, 720))
+                using (Bitmap lookSample = WatchSample(480, 270))
+                {
+                    GameSense timedSense = new GameSense();
+                    byte[] lookPixels = GameSense.Bgra(lookSample, WatchWidth, WatchHeight);
+                    Jpeg(keepSample, 1280);
+                    GameSense.Bgra(keepSample, WatchWidth, WatchHeight);
+                    Stopwatch partWatch = Stopwatch.StartNew();
+                    for (int partRun = 0; partRun < 20; partRun++) Jpeg(keepSample, 1280);
+                    double jpegMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    partWatch.Restart();
+                    for (int partRun = 0; partRun < 20; partRun++) GameSense.Bgra(lookSample, WatchWidth, WatchHeight);
+                    double lookMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    partWatch.Restart();
+                    for (int partRun = 0; partRun < 20; partRun++) GameSense.Bgra(keepSample, WatchWidth, WatchHeight);
+                    double keepMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    partWatch.Restart();
+                    for (int partRun = 0; partRun < 20; partRun++) timedSense.Feed(lookPixels, WatchWidth, WatchHeight, partRun * 0.1);
+                    double feedMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_frame jpeg1280_ms={0:0.000} sense480_ms={1:0.000} sense1280_ms={2:0.000} feed_ms={3:0.000}", jpegMs, lookMs, keepMs, feedMs));
+                }
             }
             finally
             {
