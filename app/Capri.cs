@@ -1108,6 +1108,7 @@ namespace CapriDesktop
         [DataMember] public string AgentPersonality;
         // Check in on me is on by default. Before 0.7.3 it was saved as PopIns, off by default, so the new name turns it on once for everyone.
         [DataMember] public bool CheckIns = true;
+        [DataMember] public bool OnlyWhenAsked;
         [DataMember] public bool CareWater = true;
         [DataMember] public int CareWaterMinutes = 60;
         [DataMember] public bool CareStretch = true;
@@ -3259,7 +3260,7 @@ namespace CapriDesktop
             voice.Model = string.IsNullOrEmpty(preferences.VoiceModel) ? null : preferences.VoiceModel;
             ShowVoice();
             mainframe.ShowMic(MicName(preferences.Mic));
-            deviceNotice = delegate(string line) { DeviceNote(line); Remark("", line, Hushed); };
+            deviceNotice = delegate(string line) { DeviceNote(line); Remark("", line, OwnLinesOff); };
             RefreshSpeakers();
             RefreshWatchScreens();
             StartHearingStatus();
@@ -4815,7 +4816,7 @@ namespace CapriDesktop
             greetTried = true;
             string[] holiday = Brain.Holiday(now);
             string line = holiday != null ? holiday[random.Next(holiday.Length)] : Brain.Greeting(now.Hour);
-            if (line == null || ticket != asking || Hushed || hidden || InChat || speech != null || talkState != TalkState.Off || typer.Visible) return;
+            if (line == null || ticket != asking || OwnLinesOff || hidden || InChat || speech != null || talkState != TalkState.Off || typer.Visible) return;
             heard = "startup";
             box.Prompt = "> sys: ";
             if (holiday != null) holidaySaid = now.Date;
@@ -4842,14 +4843,14 @@ namespace CapriDesktop
         {
             string[] holiday = Brain.Holiday(now);
             if (holiday == null || now.Date == holidaySaid || !greetTried) return;
-            if (quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || FullScreen()) return;
+            if (quiet > 60000 || OwnLinesOff || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || FullScreen()) return;
             holidaySaid = now.Date;
             Remark("holiday", holiday[random.Next(holiday.Length)]);
         }
 
         private void CheckProbe(DateTime now, long quiet)
         {
-            if (quiet > 60000 || brain.Model == null || meeting.Asking || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || job != null || LineBusy || FullScreen()) return;
+            if (quiet > 60000 || brain.Model == null || meeting.Asking || OwnLinesOff || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || job != null || LineBusy || FullScreen()) return;
             double chatMinutes = chattedAt == DateTime.MinValue ? -1 : (now.ToUniversalTime() - chattedAt).TotalMinutes;
             if (!probe.Due(now, chatMinutes, Sulking)) return;
             probe.Known = ProbeKnown;
@@ -4893,7 +4894,7 @@ namespace CapriDesktop
 
         private bool NewsBusy(long quiet)
         {
-            return quiet < 0 || quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || outro != null || onPanel || popOut >= 0 || job != null || working != null || FullScreen();
+            return quiet < 0 || quiet > 60000 || OwnLinesOff || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || outro != null || onPanel || popOut >= 0 || job != null || working != null || FullScreen();
         }
 
         private void CheckNews(long quiet)
@@ -5297,7 +5298,7 @@ namespace CapriDesktop
             // Her own hello in her bubble isn't them stopping her, and she goes once it's done.
             if (popOut >= 0 && (clicks != popClicks || InChat || typer.Visible || (talkState != TalkState.Off && remarkTicket != asking))) EndPopIn(false);
             if (popOut >= 0 && now >= popOut && speech == null && talkState == TalkState.Off) EndPopIn(true);
-            if (!preferences.CheckIns || Hushed) { nextPopIn = -1; return; }
+            if (!preferences.CheckIns || OwnLinesOff) { nextPopIn = -1; return; }
             if (nextPopIn < 0) nextPopIn = now + PopGap();
             if (now < nextPopIn) return;
             nextPopIn = now + PopGap();
@@ -5307,7 +5308,7 @@ namespace CapriDesktop
 
         private bool PopFree(double now, long quiet)
         {
-            return quiet <= 60000 && !Hushed && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null
+            return quiet <= 60000 && !OwnLinesOff && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null
                 && talkState == TalkState.Off && outro == null && !onPanel && popOut < 0 && !docked && working == null && job == null
                 && !pushing && !transcribing && !speaker.Busy && now >= voiceUntil && !FullScreen();
         }
@@ -5478,6 +5479,29 @@ namespace CapriDesktop
         // Her quiet key or any nap: no glances, pop-ins, check-ins, cheers or jokes.
         private bool Hushed { get { return shushed || napAsked || napping || Asleep || ownNap; } }
 
+        private bool OwnLinesOff { get { return Hushed || preferences.OnlyWhenAsked; } }
+
+        internal bool OnlyWhenAsked { get { return preferences.OnlyWhenAsked; } }
+
+        internal void ToggleOnlyWhenAsked()
+        {
+            preferences.OnlyWhenAsked = !preferences.OnlyWhenAsked;
+            nextPopIn = -1;
+            nudgeOut = -1;
+            nudgeGap = NudgeGap;
+            noticed = -1;
+            boredAsk = false;
+            nextGlance = -1;
+            if (preferences.OnlyWhenAsked)
+            {
+                ownLines.Clear();
+                ++reactTurn;
+                if (feed != null) feed.Clear();
+            }
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         // Her quiet key, for when they focus or game: she stops what she's saying and talks only when they talk to her.
         // Watch my screen and Check in on me keep their settings and pick up again on the next press. Her settings tool flips it
         // without her line, since her brain says so.
@@ -5523,7 +5547,7 @@ namespace CapriDesktop
                 }
                 return;
             }
-            if (preferences.CareBored || Hushed || hidden || quiet > 30000 || now - noticed < nudgeGap || (lastGlance >= 0 && now - lastGlance < 300)) return;
+            if (preferences.CareBored || OwnLinesOff || hidden || quiet > 30000 || now - noticed < nudgeGap || (lastGlance >= 0 && now - lastGlance < 300)) return;
             if (quitting || riding || onPanel || falling || hanging || typer.Visible || speech != null || outro != null || popOut >= 0 || (clip != idle && clip != perch)) return;
             if (!PopFree(now, quiet)) return;
             Nudge(now);
@@ -8400,7 +8424,7 @@ namespace CapriDesktop
                 Post(delegate
                 {
                     homeBusy = false;
-                    bool free = preferences.CheckIns && !Hushed && (!hidden || docked) && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
+                    bool free = preferences.CheckIns && !OwnLinesOff && (!hidden || docked) && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
                     string line = Cheer(game, song, clock.Elapsed.TotalSeconds, free);
             if (line != null) SayOwn("", line);
                 });
@@ -8416,7 +8440,7 @@ namespace CapriDesktop
             double busy = lagTotal == 0 || total <= lagTotal ? 0 : 1 - (double)(idle - lagIdle) / (total - lagTotal);
             lagIdle = idle;
             lagTotal = total;
-            bool free = preferences.CheckIns && !Hushed && !hidden && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null && !Native.Gaming();
+            bool free = preferences.CheckIns && !OwnLinesOff && !hidden && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null && !Native.Gaming();
             string line = Lagging(busy, now, free);
             if (line != null) SayOwn("", line);
         }
@@ -9606,7 +9630,7 @@ namespace CapriDesktop
         {
             if (!Sulking || now - sulkBothered < SulkAlone) return;
             Forgive();
-            if (!Hushed) Yelp(null, Lines.Pick(AloneLines), true);
+            if (!OwnLinesOff) Yelp(null, Lines.Pick(AloneLines), true);
         }
 
         // Sulking, she keeps an eye on their cursor: one that comes at her fast gets a hop away, at most every DodgeGap seconds.
@@ -10291,7 +10315,7 @@ namespace CapriDesktop
         private void CheckGlance(double now, long quiet, bool awayLook = false)
         {
             if (exploring && !awayLook) return;
-            if ((!preferences.Watch && !exploring) || glancing || Hushed || watchAlong != null) return;
+            if ((!preferences.Watch && !exploring) || glancing || OwnLinesOff || watchAlong != null) return;
             double wait = brain.ScreenWait;
             if (wait > 0) { nextGlance = Math.Max(nextGlance, now + wait); return; }
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
@@ -10374,7 +10398,7 @@ namespace CapriDesktop
                 if (current == null || current.Window != front.Window || current.Title != front.Title) { lastPrint = null; return; }
             }
             if (string.IsNullOrEmpty(said)) { Glimpsed(saw); return; }
-            if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || Hushed || (hidden && !docked) || dragging
+            if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || OwnLinesOff || (hidden && !docked) || dragging
                 || (game != null && (GamePace == Commentary.Off || GameAhead() != game || !CommentFree() || Voicing))) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(clock.Elapsed.TotalSeconds), Brain.Nickname)) { Glimpsed(saw); return; }
@@ -11512,6 +11536,7 @@ namespace CapriDesktop
                 case "quiet": return shushed;
                 case "mic": return chatting ? !ears.Muted : (bool?)null;
                 case "check_ins": return preferences.CheckIns;
+                case "only_when_asked": return preferences.OnlyWhenAsked;
                 case "wander": return preferences.Wander;
                 case "clip_my_games": return preferences.ClipGames;
                 case "save_big_moments": return preferences.ClipMoments;
@@ -11564,6 +11589,7 @@ namespace CapriDesktop
                 case "quiet": ToggleShush(false); return null;
                 case "mic": ToggleMic(); return null;
                 case "check_ins": ToggleCheckIns(); return null;
+                case "only_when_asked": ToggleOnlyWhenAsked(); return null;
                 case "wander": ToggleWander(); return null;
                 case "clip_my_games": ToggleClips(); return null;
                 case "save_big_moments": ToggleClipMoments(); return null;
@@ -24883,7 +24909,7 @@ namespace CapriDesktop
             foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
             {
                 string facts = SelfKnow.Matching(question) ?? "";
-                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("in Gaming Mode too") && facts.Contains("unless you set Comments to Off") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("in Gaming Mode too") && facts.Contains("unless you set Comments to Off") && facts.Contains("Quiet stops her speaking on her own") && facts.Contains("CAPRI > Only talk when asked stops all of it"), "settings help missed the real switches for: " + question);
             }
             for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
                 careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
@@ -33005,7 +33031,8 @@ namespace CapriDesktop
                 string[,] toggles =
                 {
                     { "keep_awake", "keepAwake", "NoKeepAwake" }, { "player_full_screen", "playerFullScreen", "PlayerFullScreen" }, { "explore_away", "exploreAway", "ExploreAway" },
-                    { "fast_hands", "fastHands", "SlowHands" }, { "cursor", "cursor", "QuickHands" }, { "discord_presence", "discord", "NoDiscord" }, { "listen_for_capri", "listenCapri", "ListenCapri" }
+                    { "fast_hands", "fastHands", "SlowHands" }, { "cursor", "cursor", "QuickHands" }, { "discord_presence", "discord", "NoDiscord" }, { "listen_for_capri", "listenCapri", "ListenCapri" },
+                    { "only_when_asked", "onlyAsked", "OnlyWhenAsked" }
                 };
                 for (int i = 0; i < toggles.GetLength(0); i++)
                 {
@@ -33020,6 +33047,13 @@ namespace CapriDesktop
                     }
                     checks.Add("PASS setting " + name + " uses Mainframe's switch, saves and reads back both ways");
                 }
+                bool askedWas = preferences.OnlyWhenAsked;
+                preferences.OnlyWhenAsked = true;
+                bool askedQuiet = OwnLinesOff && !ReactionsWatch() && !CommentFree() && !FollowUpAllowed() && !PopFree(clock.Elapsed.TotalSeconds, 0);
+                string askedHelp = SelfKnow.Matching("how do I make you only talk when I talk to you?") ?? "";
+                preferences.OnlyWhenAsked = askedWas;
+                if (!askedQuiet || !askedHelp.Contains("Only talk when asked") || !askedHelp.Contains("not even in her bubble")) throw new Exception("Only talk when asked let her own lines through or lost its help: " + askedHelp);
+                checks.Add("PASS Only talk when asked keeps her screen and game comments, live reactions, check-ins and follow-ups quiet, and her help names it");
                 // With nothing in the Run key, as on a new install, her tool and her switch both say it's off (#199).
                 mainframe.Sync();
                 string startupFirst = Hands.Do("capri_settings", new ToolArguments { Action = "list", Name = "startup" });

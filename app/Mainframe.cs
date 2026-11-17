@@ -113,6 +113,7 @@ namespace CapriDesktop
         private readonly Key perch;
         private readonly Slider sizeSlider;
         private readonly Readout sizeName;
+        private readonly Toggle onlyAsked;
         private readonly Toggle checkIns;
         private readonly Toggle onTop;
         private readonly Toggle headPats;
@@ -299,7 +300,7 @@ namespace CapriDesktop
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1400, 1452 }, new[] { 1452, 1480 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 1810 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 390 }, new[] { 418, 446 }, new[] { 904, 1398 }, new[] { 1650, 1838 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -851,6 +852,9 @@ namespace CapriDesktop
             sizeSlider = Setting("Size", SizeNames, c, 82, "Her size");
             sizeName = new Readout(sizeSlider);
             sizeSlider.Changed += delegate { if (syncing) return; sizeName.Text = SizeNames[sizeSlider.Value]; capri.SetCharacterSize(SizeSteps[sizeSlider.Value]); };
+            onlyAsked = Switch("Only talk when asked", c, 110, delegate { if (!syncing) capri.ToggleOnlyWhenAsked(); });
+            onlyAsked.AccessibleName = "Only talk when asked. She says nothing on her own, not even in her bubble: no screen or game comments, live reactions, check-ins, cheers, jokes or follow-ups. She still answers you, and reminders and watches you asked for still come";
+            int afterAsked = Controls.Count;
             checkIns = Switch("Check in on me", c, 110, delegate { if (!syncing) capri.ToggleCheckIns(); });
             careMenu = Dropdown();
             for (int careRow = 0; careRow < careToggles.Length; careRow++)
@@ -1112,6 +1116,8 @@ namespace CapriDesktop
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 11;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
+            for (int belowAsked = afterAsked; belowAsked < Controls.Count; belowAsked++)
+                if (Controls[belowAsked].Left >= c) Controls[belowAsked].Top += Row;
             // The hearing row, her Mainframe key's row and Her voice in your mic's rows push GAMES down under KEYS too.
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
             {
@@ -3062,6 +3068,7 @@ namespace CapriDesktop
             for (int i = 0; i < SizeSteps.Length; i++) if (Math.Abs(SizeSteps[i] - capri.CharacterSize) < Math.Abs(SizeSteps[near] - capri.CharacterSize)) near = i;
             sizeSlider.Value = near;
             sizeName.Text = SizeNames[near];
+            onlyAsked.Checked = capri.OnlyWhenAsked;
             checkIns.Checked = capri.CheckIns;
             onTop.Checked = capri.OnTop;
             startup.Checked = capri.StartsWithWindows;
