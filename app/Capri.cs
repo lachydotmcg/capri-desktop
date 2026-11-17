@@ -25307,7 +25307,7 @@ namespace CapriDesktop
                 ToolArguments stopArgs;
                 if (!Hands.Heard(stop, out stopTool, out stopArgs) || stopTool != "watch_along" || stopArgs.Action != "stop") throw new Exception("Watching together missed its stop: " + stop);
             }
-            foreach (string scroll in new[] { "scroll tiktok for me", "Capri, doomscroll for me", "can you scroll for me please", "scroll shorts for me", "react to my tiktoks", "let's doomscroll" })
+            foreach (string scroll in new[] { "scroll tiktok for me", "Capri, doomscroll for me", "please scroll for me", "scroll shorts for me", "react to my tiktoks", "let's doomscroll" })
             {
                 string scrollTool;
                 ToolArguments scrollArgs;
