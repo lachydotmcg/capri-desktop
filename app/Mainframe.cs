@@ -322,6 +322,11 @@ namespace CapriDesktop
         private readonly Rim bottomRim = new Rim();
         // Smoke tests pretend the screen's working area is this many px tall, before scaling; 0 uses the real one.
         internal int ShortScreen;
+        // Smoke tests pretend her screen's working area is this, in px; empty uses the real one. Her main page only fits
+        // GitHub's small virtual screen when a check sets this, so every other check there sees it whole, as before.
+        internal Rectangle TestScreen;
+        // Her main page and its header, which scroll together on a screen too short for it, as Settings does.
+        private readonly List<Control> mainScrolled = new List<Control>();
         private readonly Key languages;
         private readonly ContextMenuStrip languageMenu;
         private ToolStripMenuItem languageCurrent;
@@ -661,6 +666,13 @@ namespace CapriDesktop
             updateNote = Lower(Caption("", 28, 288 + v, small, Faint));
             MakeResourcesKey(318 + v);
             for (int i = header; i < Controls.Count; i++) mainLeft.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Left));
+            for (int i = 0; i < Controls.Count; i++) mainScrolled.Add(Controls[i]);
+            for (int i = header; i < Controls.Count; i++)
+            {
+                Control control = Controls[i];
+                WatchForPicture(control);
+                control.Enter += delegate { Reveal(control); };
+            }
             int first = Controls.Count;
             // Settings: a setting to a row, its name on the left in red and its value in a box on the right, as on Cyberpunk
             // 2077's settings screen (Lachy, 30 Oct). A section's own buttons, like Layers, sit at the right of its band.
@@ -1975,6 +1987,7 @@ namespace CapriDesktop
             if (!on) CancelKeys();
             if (on && modded) ShowMods(false);
             ScrollPage(0);
+            if (paged != on) SwapPictures();
             paged = on;
             simple = !capri.AdvancedSettings;
             advancedKey.Text = simple ? "Advanced Settings" : "Simple Settings";
@@ -1995,7 +2008,7 @@ namespace CapriDesktop
             if (on && Right > area.Right) Left = Math.Max(area.Left, area.Right - Width);
             // She opens centred on the shorter main page, so the taller Settings page can hang off the bottom.
             if (on && Bottom > area.Bottom) Top = Math.Max(area.Top, area.Bottom - Height);
-            if (on) PictureOpened(); else pictureForget.Start();
+            if (PageSlides) PictureOpened(); else ForgetLater();
         }
 
         // Each page's controls where they belong and the other page's far off to the right, with her title bar's buttons at
@@ -2046,7 +2059,7 @@ namespace CapriDesktop
         // Scrolls just far enough to show all of a control Tab reached. A click leaves the page where it is.
         private void Reveal(Control control)
         {
-            if (!paged || pageView >= PageNow || Control.MouseButtons != MouseButtons.None) return;
+            if (pageView >= ScrollTall || Control.MouseButtons != MouseButtons.None) return;
             EndSlide();
             float s = Unit();
             int edge = Scaled(8);
@@ -2056,7 +2069,7 @@ namespace CapriDesktop
             else if (control.Bottom > ClientSize.Height - edge) ScrollPage(pageScroll + (int)Math.Ceiling((control.Bottom - ClientSize.Height + edge) / s));
         }
 
-        // Moves the page and its header up by `to` px, as far as the page runs past the screen. Off Settings it's always 0.
+        // Moves the page and its header up by `to` px, as far as the page runs past the screen.
         private void ScrollPage(int to)
         {
             glide.Stop();
@@ -2071,7 +2084,7 @@ namespace CapriDesktop
         private void MovePage(int to)
         {
             DismissHint();
-            int next = paged ? Math.Max(0, Math.Min(PageNow - pageView, to)) : 0;
+            int next = Math.Max(0, Math.Min(ScrollTall - pageView, to));
             if (next == pageScroll) return;
             MoveControls(next);
             pictureQuiet = true;
@@ -2082,7 +2095,8 @@ namespace CapriDesktop
 
         private void MoveControls(int next)
         {
-            if (pageScroll == 0) foreach (Control control in scrolled) tops[control] = control.Top;
+            List<Control> moving = PageControls;
+            if (pageScroll == 0) foreach (Control control in moving) tops[control] = control.Top;
             pageScroll = next;
             int shift = Scaled(next);
             pictureQuiet = true;
@@ -2091,7 +2105,7 @@ namespace CapriDesktop
             SuspendLayout();
             try
             {
-                List<Control> batched = scrolled.FindAll(control => control.IsHandleCreated && control.Parent == this);
+                List<Control> batched = moving.FindAll(control => control.IsHandleCreated && control.Parent == this);
                 IntPtr batch = batched.Count > 0 ? BeginDeferWindowPos(batched.Count) : IntPtr.Zero;
                 foreach (Control control in batched)
                 {
@@ -2099,14 +2113,14 @@ namespace CapriDesktop
                     batch = DeferWindowPos(batch, control.Handle, IntPtr.Zero, control.Left, tops[control] - shift, 0, 0, 0x0001 | 0x0004 | 0x0008 | 0x0010);
                 }
                 bool moved = batch != IntPtr.Zero && EndDeferWindowPos(batch);
-                foreach (Control control in scrolled) if (!moved || !batched.Contains(control)) control.Top = tops[control] - shift;
+                foreach (Control control in moving) if (!moved || !batched.Contains(control)) control.Top = tops[control] - shift;
             }
             finally { ResumeLayout(false); pictureQuiet = false; }
         }
 
         private void Glide()
         {
-            if (IsDisposed || !paged) { glide.Stop(); EndSlide(); return; }
+            if (IsDisposed) { glide.Stop(); EndSlide(); return; }
             if (sliding) { slideCover.Invalidate(); return; }
             double t = Math.Min(1, glideClock.Elapsed.TotalMilliseconds / GlideMs);
             double eased = 1 - Math.Pow(1 - t, 3);
@@ -2184,12 +2198,146 @@ namespace CapriDesktop
             checks.Add("PASS Mainframe wheel: Windows still sees the Mainframe while its Settings page scrolls, so a wheel turn can't fall through to the window behind it");
         }
 
+        // #312: her Mainframe at 200% on a 2880 x 1800 screen with the setup card shown, hidden and shown again and a voice
+        // installing, closed and reopened between each, keeps 0.9.2's zoom and one size for each page, stays on the screen and
+        // leaves her last row the room under it that she has at 100%. On a 1366 x 768 screen at 100% it scrolls to it instead.
+        // She starts sat on the bottom of the screen with the setup card hidden, so showing it has to move her up, and a
+        // minimize queued by an earlier check is let through and undone before she's measured.
+        internal void CheckFit(List<string> checks)
+        {
+            FormWindowState wasState = WindowState;
+            bool wasShown = Visible, wasPaged = paged, wasExpanded = expanded, wasFallback = layoutFallback;
+            float wasFilled = voiceFilled;
+            int wasDpi = layoutDpi, wasText = layoutText, wasSize = capri.MainframeSize;
+            Point wasAt = WindowState == FormWindowState.Normal ? Location : RestoreBounds.Location;
+            int heldTo = 0;
+            try
+            {
+                Restore();
+                Application.DoEvents();
+                Restore();
+                ShowSettings(false);
+                TestScreen = new Rectangle(0, 0, 2880, 1800);
+                LayoutScale(96, 100);
+                SizeMainframe(100);
+                Arrange(true);
+                Control last = LastRow();
+                int lastRoom = RoomUnder(last);
+                if (lastRoom < 0 || lastRoom > OldRoom) throw new Exception("Her Mainframe at 100% leaves " + lastRoom + " rows under its last row (" + Named(last) + "), where 0.9.2 left " + OldRoom + " under Quit Capri.");
+                LayoutScale(192, 100);
+                SizeMainframe(0);
+                float plain = ScreenAuto();
+                Arrange(false);
+                Top = TestScreen.Bottom - Height;
+                Arrange(true);
+                float first = zoom;
+                if (Math.Abs(DeviceScale() - 2f) > 0.001f) throw new Exception("Her Mainframe's check ran at " + DeviceScale() + "x, not 200%.");
+                if (Wide + Column <= TestScreen.Width / 2f / plain && Math.Abs(first - plain) > 0.001f) throw new Exception("Her Mainframe at 200% on a 2880 x 1800 screen zoomed to " + first + ", where 0.9.2 had " + plain + ".");
+                Size shownSize = Size.Empty, hiddenSize = Size.Empty;
+                string[] steps = { "setup shown", "reopened", "setup hidden", "reopened", "setup shown again", "reopened", "a voice installing", "reopened", "done installing" };
+                for (int i = 0; i < steps.Length; i++)
+                {
+                    if (steps[i] == "reopened") { WindowState = FormWindowState.Minimized; Restore(); }
+                    else if (steps[i] == "setup hidden") Arrange(false);
+                    else if (steps[i] == "a voice installing") { voiceFilled = 0.5f; Arrange(true); }
+                    else if (steps[i] != "setup shown") { voiceFilled = -1; Arrange(true); }
+                    string problem = FitProblem(lastRoom, ref heldTo);
+                    if (problem == null && Math.Abs(zoom - first) > 0.001f) problem = "zoomed from " + first + " to " + zoom;
+                    if (problem == null && !expanded) { if (hiddenSize.IsEmpty) hiddenSize = Size; else if (Size != hiddenSize) problem = "went from " + hiddenSize + " to " + Size; }
+                    if (problem == null && expanded && voiceFilled < 0) { if (shownSize.IsEmpty) shownSize = Size; else if (Size != shownSize) problem = "went from " + shownSize + " to " + Size; }
+                    if (problem != null) throw new Exception("Her Mainframe at 200% with " + steps[i] + " (step " + (i + 1) + ") " + problem + ".");
+                }
+                checks.Add("PASS her Mainframe at 200% on a 2880 x 1800 screen keeps 0.9.2's zoom (" + (int)Math.Round(first * 100) + "%) and one size with the setup card shown (" + MainTallFor(true) + " rows), hidden (" + MainTallFor(false) + ") and shown again and while a voice installs, closed and reopened between each; its window holds just its rows, scrolling only what runs past the screen, stays on the screen, and leaves its last row (" + Named(LastRow()) + ") the same " + lastRoom + " rows under it as at 100%");
+                if (heldTo > 0) checks.Add("LIMIT her Mainframe at 200%: this desktop is shorter than the window, so Windows held it to " + heldTo + " px tall; her zoom, rows and page were still checked in full");
+
+                TestScreen = new Rectangle(0, 0, 1366, 728);
+                Top = TestScreen.Top;
+                LayoutScale(96, 100);
+                foreach (bool setupShown in new[] { true, false })
+                {
+                    Arrange(setupShown);
+                    string problem = FitProblem(lastRoom, ref heldTo);
+                    if (problem == null && Math.Abs(zoom - ScreenAuto()) > 0.001f) problem = "zoomed to " + zoom + " rather than scrolling at " + ScreenAuto();
+                    if (problem == null && pageView >= MainTall) problem = "didn't scroll its " + MainTall + " rows in " + pageView;
+                    if (problem == null)
+                    {
+                        ScrollWheel(-120);
+                        Settle();
+                        if (pageScroll == 0) problem = "didn't scroll for the wheel";
+                        ScrollPage(0);
+                    }
+                    if (problem != null) throw new Exception("Her Mainframe on a 1366 x 768 screen with the setup card " + (setupShown ? "shown " : "hidden ") + problem + ".");
+                }
+                checks.Add("PASS her Mainframe on a 1366 x 768 screen keeps 100% and scrolls, by the wheel too, to its last row with the setup card shown or hidden, the window on the screen");
+            }
+            finally
+            {
+                TestScreen = Rectangle.Empty;
+                voiceFilled = wasFilled;
+                LayoutScale(wasDpi, wasText, wasFallback);
+                SizeMainframe(wasSize);
+                Arrange(wasExpanded);
+                ShowSettings(wasPaged);
+                Location = wasAt;
+                WindowState = wasState;
+                if (!wasShown) Hide();
+            }
+        }
+
+        private int MainTallFor(bool setupShown) { return MainTall + ((setupShown ? 1 : 0) - (expanded ? 1 : 0)) * SetupHeight; }
+
+        // 0.9.2 left this many rows under her main page's last row, Quit Capri. Rows added under it since (Resources) take from it.
+        private const int OldRoom = 64;
+
+        // The lowest row showing on her main page: Settings' rows wait off to the side and folded rows are hidden.
+        private Control LastRow()
+        {
+            Control last = null;
+            foreach (Control control in Controls)
+                if (control.Visible && !(control is Rim) && control.Left < ClientSize.Width && (last == null || control.Bottom > last.Bottom)) last = control;
+            return last;
+        }
+
+        private static string Named(Control control) { return control == null ? "nothing" : control.Text.Length > 0 ? control.Text : control.AccessibleName; }
+
+        // Rows of her main page under its last row, once scrolled to the end. It leaves the page unscrolled.
+        private int RoomUnder(Control last)
+        {
+            if (last == null) return -1;
+            ScrollPage(ScrollMost);
+            int under = Scaled(pageView) - last.Bottom;
+            ScrollPage(0);
+            return (int)Math.Round(under / Unit());
+        }
+
+        // What's wrong with her main page as it shows now, or null: a window that's minimized, doesn't match the rows it shows or
+        // leaves the screen, or her last row cut off or with more or less room under it than it has at 100%, once scrolled to the end.
+        private string FitProblem(int lastRoom, ref int heldTo)
+        {
+            if (WindowState != FormWindowState.Normal) return "was " + WindowState + " when it should be open";
+            Rectangle area = Area();
+            int view = Math.Min(MainTall, (int)(area.Height / Unit()));
+            if (pageView != Math.Max(4 * ScrollRow, view)) return "showed " + pageView + " of its " + MainTall + " rows on a screen with room for " + view;
+            int tall = Scaled(pageView), most = SystemInformation.MaxWindowTrackSize.Height;
+            if (tall > most && ClientSize.Height == most) heldTo = most;
+            else if (ClientSize.Height != tall) return "was " + ClientSize.Height + " px tall for " + tall + " px of rows";
+            if (ClientSize.Height == tall && (Top < area.Top || Bottom > area.Bottom)) return "ran off the screen at " + Bounds + " in " + area;
+            Control last = LastRow();
+            if (last == null) return "showed no rows";
+            ScrollPage(ScrollMost);
+            int under = tall - last.Bottom, top = last.Top;
+            ScrollPage(0);
+            if (top < 0 || under < 0) return "cut its last row (" + Named(last) + ") off, " + under + " px under it";
+            if (Math.Abs(under - Scaled(lastRoom)) > 2) return "left " + under + " px under its last row (" + Named(last) + "), where at 100% it has " + Scaled(lastRoom);
+            return null;
+        }
+
         // How long one frame of scrolling takes here, painting included, in ms. It leaves the page where it was.
         internal double FrameCost()
         {
             Settle();
             int start = pageScroll;
-            int step = start + ScrollRow <= PageNow - pageView ? ScrollRow : -ScrollRow;
+            int step = start + ScrollRow <= ScrollTall - pageView ? ScrollRow : -ScrollRow;
             System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
             for (int frame = 1; frame <= 20; frame++) MovePage(frame % 2 == 1 ? start + step : start);
             return took.Elapsed.TotalMilliseconds / 20;
@@ -2198,7 +2346,7 @@ namespace CapriDesktop
         // How much of the settings page the screen's working area has room for, before scaling.
         private int Fit()
         {
-            int room = ShortScreen > 0 ? ShortScreen : (int)(Screen.FromControl(this).WorkingArea.Height / Unit());
+            int room = ShortScreen > 0 ? ShortScreen : (int)(Area().Height / Unit());
             return Math.Max(4 * ScrollRow, Math.Min(Math.Min(MostView, PageNow), room));
         }
 
@@ -2212,19 +2360,19 @@ namespace CapriDesktop
         private void ScrollWheel(int delta)
         {
             DismissHint();
-            if (!paged || pageView >= PageNow) return;
+            if (pageView >= ScrollTall) return;
             // A notch is a row, and a touchpad's small turns move the page by as much as they turn, so it follows the finger.
             wheel += delta * ScrollRow;
             int by = wheel / 120;
             wheel -= by * 120;
             if (by == 0) return;
             int from = glide.Enabled ? glideTo : ShownScroll;
-            int to = Math.Max(0, Math.Min(PageNow - pageView, from - by));
+            int to = Math.Max(0, Math.Min(ScrollTall - pageView, from - by));
             bool turned = sliding && glide.Enabled && (to - from) * (glideTo - slideExact) < 0;
             if (turned)
             {
                 from = (int)Math.Round(slideExact);
-                to = Math.Max(0, Math.Min(PageNow - pageView, from - by));
+                to = Math.Max(0, Math.Min(ScrollTall - pageView, from - by));
                 slideMiddle = slideExact;
             }
             if (to == from) return;
@@ -2348,34 +2496,52 @@ namespace CapriDesktop
         // Resolution, a 3840 x 2160 desktop on a 1920 x 1080 screen at 100%, gets 200%.
         private float Wanted()
         {
-            // GitHub's virtual screen says its panel is narrower than the desktop her test needs, which isn't a shrunken monitor.
-            float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this), restoringFullScreen || capri.FullScreenDisplay);
-            autoZoom = Fitted(Math.Max(1f, Math.Min(2f, (float)Math.Round(shrunk / DeviceScale() * 20) / 20)));
+            autoZoom = Fitted(ScreenAuto());
             int picked = capri.MainframeSize;
             return Fitted(picked > 0 ? picked / 100f : autoZoom);
         }
 
+        // Auto before it fits a narrow screen, as 0.9.2 had it. GitHub's virtual screen says its panel is narrower than the
+        // desktop her test needs, which isn't a shrunken monitor.
+        private float ScreenAuto()
+        {
+            float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this), restoringFullScreen || capri.FullScreenDisplay);
+            return Math.Max(1f, Math.Min(2f, (float)Math.Round(shrunk / DeviceScale() * 20) / 20));
+        }
+
         internal const float SmallestFit = 0.6f;
 
+        // Her zoom only shrinks for a screen too narrow for Settings, the wider page, so it's one zoom on both pages and never
+        // changes with what her main page shows. A page too tall for the screen scrolls instead (#312: shrinking for the setup
+        // card shrank a 2880 x 1800 screen at 200% that 0.9.2 fit, and grew back whenever she reopened without it).
         private float Fitted(float want)
         {
-            if (Companion.OnGitHub) return want;
-            try
-            {
-                Rectangle area = Screen.FromControl(this).WorkingArea;
-                return FitZoom(want, area.Width, area.Height, DeviceScale() * TextScale(), paged ? Wide + Column : Wide,
-                    paged ? 0 : Tall + (expanded ? SetupHeight : 0) + KeyRow + (voiceFilled >= 0 ? InstallRow : 0));
-            }
+            if (!FitsScreen) return want;
+            try { return FitZoom(want, Area().Width, DeviceScale() * TextScale(), Wide + Column); }
             catch (Exception) { return want; }
         }
 
-        internal static float FitZoom(float want, int roomWide, int roomTall, float per, int needsWide, int needsTall)
+        internal static float FitZoom(float want, int roomWide, float per, int needsWide)
         {
-            if (per <= 0 || want <= 0) return want;
-            float most = want;
-            if (roomWide > 0 && needsWide > 0) most = Math.Min(most, roomWide / (float)needsWide / per);
-            if (roomTall > 0 && needsTall > 0) most = Math.Min(most, roomTall / (float)needsTall / per);
-            return Math.Max(Math.Min(want, SmallestFit), most);
+            if (per <= 0 || want <= 0 || roomWide <= 0 || needsWide <= 0) return want;
+            return Math.Max(Math.Min(want, SmallestFit), Math.Min(want, roomWide / (float)needsWide / per));
+        }
+
+        private bool FitsScreen { get { return !TestScreen.IsEmpty || !Companion.OnGitHub; } }
+
+        private Rectangle Area() { return TestScreen.IsEmpty ? Screen.FromControl(this).WorkingArea : TestScreen; }
+
+        // Her main page as Arrange lays it out, so its window, its scroll and her zoom all read the same rows.
+        private int MainTall { get { return Tall + (expanded ? SetupHeight : 0) + KeyRow + (voiceFilled >= 0 ? InstallRow : 0) - Fold - (hearingActions.Length == 0 ? HearingFixRow : 0); } }
+
+        private int ScrollTall { get { return paged ? PageNow : MainTall; } }
+
+        // How much of her main page the screen has room for, before scaling. Mods shares its window but not its rows, so it
+        // never scrolls them.
+        private int MainView()
+        {
+            if (!FitsScreen || modded) return MainTall;
+            return Math.Max(4 * ScrollRow, Math.Min(MainTall, (int)(Area().Height / Unit())));
         }
 
         private void ShowFrameSize()
@@ -2467,6 +2633,8 @@ namespace CapriDesktop
                 }
             }
 
+            // A control keeps its font when handed one equal to it, so that font is kept and the new one goes,
+            // or a zoom to the same text size (96 DPI at 200% after 192 DPI at 100%) would leave it drawing with a disposed font.
             internal void Refont(float scale, bool fallback)
             {
                 Font oldFont = scaledFont, oldHint = scaledHint, oldFlag = scaledFlag;
@@ -2474,6 +2642,7 @@ namespace CapriDesktop
                 scaledHint = Pixels(hint, scale, fallback);
                 scaledFlag = Pixels(flag, scale, fallback);
                 control.Font = scaledFont;
+                if (oldFont != null && ReferenceEquals(control.Font, oldFont)) { scaledFont.Dispose(); scaledFont = oldFont; oldFont = null; }
                 Rung rung = control as Rung;
                 Toggle toggle = control as Toggle;
                 if (rung != null) { rung.HintFont = scaledHint; rung.FlagFont = scaledFlag; }
@@ -2781,29 +2950,34 @@ namespace CapriDesktop
             Backdrop(graphics, this, s);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             Edging(graphics, this, s);
-            if (paged)
+            if (pageView < ScrollTall)
             {
-                if (pageView >= PageNow) return;
                 // A thin thumb on her right edge shows how much of the page is on screen, and where.
                 float rail = Height - 36 * s;
-                float thumb = rail * pageView / PageNow;
-                float at = 18 * s + (rail - thumb) * pageScroll / (PageNow - pageView);
+                float thumb = rail * pageView / ScrollTall;
+                float at = 18 * s + (rail - thumb) * pageScroll / (ScrollTall - pageView);
                 using (Brush track = new SolidBrush(Dash)) graphics.FillRectangle(track, Width - 8 * s, 18 * s, 2 * s, rail);
                 using (Brush lit = new SolidBrush(Cyan)) graphics.FillRectangle(lit, Width - 8 * s, at, 2 * s, thumb);
-                return;
             }
+            if (!paged) MainDots(graphics, s, pageScroll, Color.Empty);
+        }
+
+        // Her main page's dotted bars, with the page scrolled scroll rows. Given a ground, it clears under them first.
+        private void MainDots(Graphics graphics, float s, int scroll, Color ground)
+        {
             int shift = (expanded ? SetupHeight : 0) + KeyRow;
-            int below = voiceFilled >= 0 ? InstallRow : 0;
-            if (expanded) Dots(graphics, s, 210, filled);
-            if (below > 0) Dots(graphics, s, InstallAt + 24 + shift - arrangedFold - hearingFold, voiceFilled);
+            if (expanded) Dots(graphics, s, 210 - scroll, filled, ground);
+            if (voiceFilled >= 0) Dots(graphics, s, InstallAt + 24 + shift - arrangedFold - hearingFold - scroll, voiceFilled, ground);
         }
 
         // The dotted bar her brain setup and her voice downloads share.
-        private static void Dots(Graphics graphics, float s, int y, float share)
+        private static void Dots(Graphics graphics, float s, int y, float share, Color ground)
         {
             float pitch = 6 * s;
             int count = (int)(328 / 6f);
             int lit = (int)Math.Round(count * share);
+            if (!ground.IsEmpty)
+                using (Brush clear = new SolidBrush(ground)) graphics.FillRectangle(clear, 28 * s - 1, y * s - 1, count * pitch + 2, 5 * s + 2);
             using (Brush on = new SolidBrush(Cyan))
             using (Brush off = new SolidBrush(Dash))
                 for (int i = 0; i < count; i++) graphics.FillRectangle(i < lit ? on : off, 28 * s + i * pitch, y * s, pitch - 2 * s, 5 * s);
@@ -2921,8 +3095,12 @@ namespace CapriDesktop
 
         private int Scaled(int value) { return loaded ? (int)Math.Round(value * Unit()) : value; }
 
+        // Her main page's rows go back where they were built, unscrolled, then scroll back to where they were. A main page grown
+        // taller moves her up rather than off the bottom of her screen, as Settings does.
         private void Arrange(bool setupShown)
         {
+            int keep = paged ? 0 : ShownScroll;
+            if (!paged && pageScroll != 0) { glide.Stop(); EndSlide(); MoveControls(0); }
             expanded = setupShown;
             int top = setupShown ? SetupHeight : 0, shift = top + KeyRow;
             int off = NoAiRowShown ? 24 : 0;
@@ -2966,16 +3144,23 @@ namespace CapriDesktop
             voiceNote.MaximumSize = new Size(Scaled(328), 0);
             updateNote.MaximumSize = new Size(Scaled(328), 0);
             if (keysNote != null) keysNote.MaximumSize = new Size(Scaled(328), 0);
-            if (paged) pageView = Fit();
-            ClientSize = new Size(Scaled(paged ? Wide + Column : Wide), Scaled(paged ? pageView : Tall + shift + below - fold - hearingFold));
-            ScrollPage(ShownScroll);
-            bool scrolls = paged && pageView < PageNow;
+            pageView = paged ? Fit() : MainView();
+            int wasTall = Height;
+            ClientSize = new Size(Scaled(paged ? Wide + Column : Wide), Scaled(pageView));
+            ScrollPage(paged ? ShownScroll : keep);
+            bool scrolls = pageView < ScrollTall;
             topRim.Visible = bottomRim.Visible = scrolls;
             if (scrolls)
             {
                 topRim.Bounds = new Rectangle(Scaled(14), 0, ClientSize.Width - Scaled(28), Scaled(3));
                 bottomRim.Bounds = new Rectangle(Scaled(14), ClientSize.Height - Scaled(3), ClientSize.Width - Scaled(28), Scaled(3));
             }
+            if (!paged && loaded && FitsScreen && Visible && WindowState == FormWindowState.Normal && Height > wasTall)
+            {
+                Rectangle area = Area();
+                if (Bottom > area.Bottom) Top = Math.Max(area.Top, area.Bottom - Height);
+            }
+            PictureLaidOut();
             Invalidate(true);
         }
 
@@ -3574,13 +3759,13 @@ namespace CapriDesktop
         internal bool PageClamped { get { return ClientSize.Width < Scaled(paged ? Wide + Column : Wide); } }
 
         // Settings on a short screen: how much shows (or whole) and whether the rims hold her frame together.
-        internal string ScrollStatus { get { return (paged && pageView < PageNow ? pageView + " tall" : "whole") + " | " + (topRim.Visible && bottomRim.Visible ? "rims" : "-"); } }
+        internal string ScrollStatus { get { return (pageView < ScrollTall ? pageView + " tall" : "whole") + " | " + (topRim.Visible && bottomRim.Visible ? "rims" : "-"); } }
 
         internal int Scrolled { get { return pageScroll; } }
 
         internal bool Gliding { get { return glide.Enabled; } }
 
-        internal int ScrollMost { get { return Math.Max(0, PageNow - pageView); } }
+        internal int ScrollMost { get { return Math.Max(0, ScrollTall - pageView); } }
 
         internal int BackTop { get { return more.Top; } }
 
@@ -4087,7 +4272,7 @@ namespace CapriDesktop
             setup.Enabled = step == 1;
             hint.Visible = false;
             if (!expanded) Arrange(true);
-            else Invalidate(new Rectangle(0, Scaled(204), Width, Scaled(18)));
+            else Invalidate(new Rectangle(0, Scaled(204 - pageScroll), Width, Scaled(18)));
         }
 
         internal void ShowProblem(string problem) { brainNote.Text = problem; }
@@ -4098,7 +4283,7 @@ namespace CapriDesktop
             installNote.Text = total > 0 ? text + " · " + Engine.Amount(done) + " of " + Engine.Amount(total) : text + "...";
             voiceFilled = total > 0 ? Math.Min(1f, done / (float)total) : 0f;
             if (opening) Arrange(expanded);
-            else Invalidate(new Rectangle(0, Scaled(InstallAt + 20 + (expanded ? SetupHeight : 0) + KeyRow - arrangedFold - hearingFold), Width, Scaled(14)));
+            else Invalidate(new Rectangle(0, Scaled(InstallAt + 20 + (expanded ? SetupHeight : 0) + KeyRow - arrangedFold - hearingFold - pageScroll), Width, Scaled(14)));
         }
 
         internal void HideInstall()
