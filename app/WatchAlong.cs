@@ -91,12 +91,12 @@ namespace CapriDesktop
         {
             string text = Hands.Asked(said);
             if (Regex.IsMatch(text, @"^(?:watch (?:this|that)(?: (?:video|stream|film|movie|show))? with me|let'?s watch (?:this|that)(?: (?:video|stream|film|movie|show))?(?: together)?|react to (?:this|that)(?: (?:video|stream|film|movie|show))?)$", RegexOptions.IgnoreCase)) return "start";
-            if (ScrollAsked.IsMatch(text)) return "scroll";
+            if (ScrollAsked.IsMatch(text) || ScrollAsked.IsMatch(Regex.Replace((said ?? "").Replace('\u2019', '\'').Trim(), @"[\s,.!?]+$", ""))) return "scroll";
             if (Regex.IsMatch(text, @"^(?:(?:stop|quit|end) (?:watching(?: (?:this|that|with me|along))?|watch[- ]along|reacting(?: to (?:this|that))?|(?:doom ?)?scrolling(?: for me)?)|(?:we'?re|we are|i'?m|i am) done (?:watching|scrolling))$", RegexOptions.IgnoreCase) && Active()) return "stop";
             return null;
         }
 
-        private static readonly Regex ScrollAsked = new Regex(@"^(?:(?:can you|could you|will you|would you|pls|please|now|ok(?:ay)?|capri|choom|bro|go|you)\s+)*(?:doom ?scroll(?: (?:tiktok|tik tok|shorts|youtube shorts|reels|instagram|the feed|my feed))?(?: for me)?|scroll (?:tiktok|tik tok|shorts|youtube shorts|reels|instagram reels|instagram|the feed|my feed|my fyp|the fyp|for me)(?: for me)?|(?:let'?s|lets) doom ?scroll(?: together)?|react to (?:my |the )?(?:tiktoks|tik toks|shorts|reels|fyp|for you page)(?: for me)?)(?:\s+(?:pls|please|for me))*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex ScrollAsked = new Regex(@"^(?:(?:can you|could you|will you|would you|pls|please|now|ok(?:ay)?|capri|choom|bro|go|you)[\s,.!]+)*(?:doom ?scroll(?: (?:tiktok|tik tok|shorts|youtube shorts|reels|instagram|the feed|my feed))?(?: for me)?|scroll (?:tiktok|tik tok|shorts|youtube shorts|reels|instagram reels|instagram|the feed|my feed|my fyp|the fyp|for me)(?: for me)?|(?:let'?s|lets) doom ?scroll(?: together)?|react to (?:my |the )?(?:tiktoks|tik toks|shorts|reels|fyp|for you page)(?: for me)?)(?:\s+(?:pls|please|for me))*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         internal const int ScrollFirst = 3, ScrollPicture = 2, ScrollAskAfter = 4, ScrollFewest = 9, ScrollMost = 25, ScrollEvery = 10, ScrollLost = 25;
         internal const string ScrollStart = "ooh, you're giving me the scroll? okay. I'm the algorithm now.";
