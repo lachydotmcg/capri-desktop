@@ -311,11 +311,20 @@ internal static class Program
             pet.BrainKeyCheck = delegate(string key, bool free) { return key.StartsWith("nvapi", StringComparison.Ordinal) ? first : second; };
             AcceptKey(pet, "nvapi-first");
             bool firstKeyDefault = pet.Brain.Model == "vendor/a";
+            Check("first key acceptance records its default before model selection",
+                firstKeyDefault && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 &&
+                saved.FreeModel == "vendor/a" && saved.PaidModel == null && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a",
+                "free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
             pet.PickCloud("vendor/a-chosen");
             Check("a same-tier key switches to its provider's model", firstKeyDefault && pet.Brain.Model == "vendor/a-chosen" && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 && saved.FreeModel == "vendor/a-chosen" && saved.PaidModel == null && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a-chosen",
                 "first-key-default=" + firstKeyDefault + " model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " tier=" + (saved.BrainTier.HasValue ? saved.BrainTier.Value.ToString() : "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
             AcceptKey(pet, "sk-or-second");
             bool secondKeyDefault = pet.Brain.Model == "vendor/b:free";
+            Check("second key acceptance records its default before model selection",
+                secondKeyDefault && saved.BrainProvider == "openrouter" && saved.BrainTier == 1 &&
+                saved.FreeModel == "vendor/b:free" && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a-chosen" &&
+                Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b:free",
+                "free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
             pet.PickCloud("vendor/b-chosen");
             Check("another provider in the same tier keeps the first provider's model", secondKeyDefault && pet.Brain.Model == "vendor/b-chosen" && saved.BrainProvider == "openrouter" && saved.BrainTier == 1 && saved.FreeModel == "vendor/b-chosen" && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a-chosen" && Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b-chosen",
                 "second-key-default=" + secondKeyDefault + " model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
