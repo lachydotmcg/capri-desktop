@@ -965,7 +965,7 @@ namespace CapriDesktop
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
-            if (AdoptProvider(Saved, Brain.Remote == null ? null : Brain.Remote.Kind)) KeepAdoptedProvider();
+            KeepAdoptedProvider();
             voice.Key = ReadVoiceKey();
             // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
             Brain.Secrets = delegate { Cloud remote = Brain.Remote; return new[] { remote == null ? null : remote.Key, Brain.ServerKey, voice.Key }; };
@@ -6846,15 +6846,7 @@ namespace CapriDesktop
 
         private void KeepAdoptedProvider()
         {
-            if (Program.Smoke != null || settingsWriteBlocked) return;
-            string path = Path.Combine(folder, "cross.json");
-            if (!File.Exists(path)) { WriteSettings(); return; }
-            string notice;
-            bool blocked;
-            Settings current = ReadSettings(path, out notice, out blocked);
-            if (blocked || notice != null || current == null || current.BrainProvider != null) return;
-            current.BrainProvider = Saved.BrainProvider;
-            WriteSettings(current);
+            AdoptProvider(Saved, Brain.Remote == null ? null : Brain.Remote.Kind);
         }
 
         private Settings Load()
@@ -6948,17 +6940,12 @@ namespace CapriDesktop
 
         private void WriteSettings()
         {
-            WriteSettings(Saved);
-        }
-
-        private void WriteSettings(Settings worth)
-        {
             if (Program.Smoke != null || settingsWriteBlocked) return;
             try
             {
                 Directory.CreateDirectory(folder);
-                using (FileStream stream = File.Create(Path.Combine(folder, "cross.json"))) new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, worth);
-                using (FileStream stream = File.Create(Path.Combine(folder, "cross-new.json"))) new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(worth));
+                using (FileStream stream = File.Create(Path.Combine(folder, "cross.json"))) new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, Saved);
+                using (FileStream stream = File.Create(Path.Combine(folder, "cross-new.json"))) new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(Saved));
             }
             catch (Exception) { }
         }

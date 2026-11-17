@@ -101,6 +101,38 @@ internal static class VerifierRegressions
                 Pet.ProviderModel(persisted, "google", 1) == "google-new");
             CapriDesktop.Program.Smoke = mixed;
 
+            string olderSave = Path.Combine(root, "older-version-save");
+            Directory.CreateDirectory(olderSave);
+            CapriDesktop.Program.Smoke = olderSave;
+            string olderMain = Path.Combine(olderSave, "cross.json"), olderSidecar = Path.Combine(olderSave, "cross-new.json");
+            string olderText = "{\"VoiceProvider\":\"off\",\"BrainTier\":1,\"FreeModel\":\"google-live\",\"PaidModel\":\"paid-live\",\"CloudModel\":\"google-live\"}";
+            File.WriteAllText(olderMain, olderText);
+            File.WriteAllText(olderSidecar, olderText);
+            File.WriteAllText(Path.Combine(olderSave, "brain-free-key"), "AIza-free");
+            File.WriteAllText(Path.Combine(olderSave, "brain-paid-key"), "sk-or-paid");
+            string olderNotice;
+            bool olderBlocked;
+            Settings olderSettings = Pet.ReadSettings(olderMain, out olderNotice, out olderBlocked);
+            Check("an older version's save recovers with no provider memory", olderNotice == null && !olderBlocked && olderSettings.BrainProvider == null && olderSettings.ProviderModels == null &&
+                olderSettings.VoiceProvider == "off" && olderSettings.BrainTier == 1 && olderSettings.FreeModel == "google-live" && olderSettings.PaidModel == "paid-live");
+            Pet olderPet = Fixture(olderSettings, olderSave);
+            olderPet.Brain.Remote = new Cloud("AIza-free", "google-live");
+            olderPet.Brain.Model = "google-live";
+            Call(olderPet, "RestoreBrainTier");
+            Check("an older version's tier slot beats the key's provider", olderPet.Brain.Model == "google-live" && Pet.TierModel(olderSettings, "google", 1) == "google-live" &&
+                Pet.TierModel(olderSettings, "openai", 1) == "google-live" && Pet.ProviderModel(olderSettings, "google") == null);
+            CapriDesktop.Program.Smoke = null;
+            Call(olderPet, "KeepAdoptedProvider");
+            Check("an older version's save survives startup unchanged", File.ReadAllText(olderMain) == olderText && File.ReadAllText(olderSidecar) == olderText);
+            Call(olderPet, "WriteSettings");
+            string olderPersistedNotice;
+            bool olderPersistedBlocked;
+            Settings olderPersisted = Pet.ReadSettings(olderMain, out olderPersistedNotice, out olderPersistedBlocked);
+            Check("an older version's save keeps every setting through the next write", olderPersistedNotice == null && !olderPersistedBlocked && olderPersisted.BrainProvider == "google" &&
+                olderPersisted.VoiceProvider == "off" && olderPersisted.BrainTier == 1 && olderPersisted.FreeModel == "google-live" && olderPersisted.PaidModel == "paid-live" &&
+                Pet.ProviderModel(olderPersisted, "google") == null);
+            CapriDesktop.Program.Smoke = olderSave;
+
             string emptyTier = Path.Combine(root, "empty-tier");
             Directory.CreateDirectory(emptyTier);
             File.WriteAllText(Path.Combine(emptyTier, "cross.json"), "{\"VoiceProvider\":\"off\",\"BrainTier\":2,\"FreeModel\":\"\",\"PaidModel\":\"paid-live\"}");
@@ -174,7 +206,7 @@ internal static class VerifierRegressions
             Set(pet, "settingsWriteBlocked", blocked);
             Pet.AdoptProvider(loaded, "nvidia");
             Call(pet, "WriteSettings");
-            Check("failed backup prevents migration writes", blocked && Hash(main) == beforeMain && Hash(newer) == beforeNewer);
+            Check("failed backup prevents settings writes", blocked && Hash(main) == beforeMain && Hash(newer) == beforeNewer);
 
             string race = Path.Combine(root, "race");
             Directory.CreateDirectory(race);
@@ -182,9 +214,11 @@ internal static class VerifierRegressions
             File.WriteAllText(main, "{\"VoiceProvider\":\"off\",\"Nickname\":\"old\"}");
             loaded = Pet.ReadSettings(main, out notice, out blocked);
             pet = Fixture(loaded, race);
-            File.WriteAllText(main, "{\"VoiceProvider\":\"off\",\"Nickname\":\"newer-writer\"}");
-            if (Pet.AdoptProvider(loaded, "nvidia")) Call(pet, "KeepAdoptedProvider");
-            Check("migration does not overwrite a concurrent save", Pet.ReadSettings(main, out notice, out blocked).Nickname == "newer-writer");
+            string newerWriter = "{\"VoiceProvider\":\"off\",\"Nickname\":\"newer-writer\"}";
+            File.WriteAllText(main, newerWriter);
+            Pet.AdoptProvider(loaded, "nvidia");
+            Call(pet, "KeepAdoptedProvider");
+            Check("startup adoption leaves a concurrent save alone", File.ReadAllText(main) == newerWriter && Pet.ReadSettings(main, out notice, out blocked).Nickname == "newer-writer");
         }
         finally { CapriDesktop.Program.Smoke = previous; }
         return failures;

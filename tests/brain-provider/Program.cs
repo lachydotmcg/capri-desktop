@@ -4,6 +4,8 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
+using System.Threading;
+using Avalonia.Threading;
 using CapriDesktop;
 
 internal static class Program
@@ -259,21 +261,68 @@ internal static class Program
             Directory.CreateDirectory(adopt);
             CapriDesktop.Program.Smoke = null;
             string path = Path.Combine(adopt, "cross.json");
-            File.WriteAllText(path, "{\"VoiceProvider\":\"off\"}");
+            string settings = "{\"VoiceProvider\":\"off\",\"CloudModel\":\"nv-live\"}";
+            File.WriteAllText(path, settings);
+            File.WriteAllText(Path.Combine(adopt, "brain-key"), "nvapi-live");
             string notice;
             bool blocked;
             Settings loaded = Pet.ReadSettings(path, out notice, out blocked);
             Pet pet = Fixture(loaded, adopt);
-            bool adopted = Pet.AdoptProvider(loaded, "nvidia");
+            pet.Brain.Remote = new Cloud(File.ReadAllText(Path.Combine(adopt, "brain-key")), loaded.CloudModel);
+            pet.Brain.Model = loaded.CloudModel;
+            Call(pet, "RestoreBrainTier");
             Call(pet, "KeepAdoptedProvider");
-            Settings once = Pet.ReadSettings(path, out notice, out blocked);
-            Check("an adopted provider is saved at startup", adopted && once.BrainProvider == "nvidia" && once.VoiceProvider == "off",
-                "adopted=" + adopted + " provider=" + (once.BrainProvider ?? "null") + " voice=" + (once.VoiceProvider ?? "null"));
+            Check("startup adoption takes the key's provider in memory", loaded.BrainProvider == "nvidia" && loaded.BrainTier == 1 && pet.Brain.Model == "nv-live",
+                "provider=" + (loaded.BrainProvider ?? "null") + " tier=" + (loaded.BrainTier.HasValue ? loaded.BrainTier.Value.ToString() : "null") + " model=" + (pet.Brain.Model ?? "null"));
+            Check("startup adoption writes no settings file", File.ReadAllText(path) == settings, "file=" + File.ReadAllText(path));
             loaded.VoiceProvider = "elevenlabs";
             pet.Save();
             Settings twice = Pet.ReadSettings(path, out notice, out blocked);
-            Check("an adopted provider survives the next settings write", twice.BrainProvider == "nvidia" && twice.VoiceProvider == "elevenlabs",
+            Check("the adopted provider is written by the next normal save", twice.BrainProvider == "nvidia" && twice.VoiceProvider == "elevenlabs",
                 "provider=" + (twice.BrainProvider ?? "null") + " voice=" + (twice.VoiceProvider ?? "null"));
+        }
+        finally { CapriDesktop.Program.Smoke = previous; }
+    }
+
+    private static void AcceptKey(Pet pet, string key)
+    {
+        pet.SaveBrainKey(key, 1);
+        if (!SpinWait.SpinUntil(delegate { Dispatcher.UIThread.RunJobs(); return (int)typeof(Pet).GetField("brainPending", Fields).GetValue(pet) == 0; }, 5000)) throw new InvalidOperationException("the key check did not finish");
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void SameTierProviders(string folder)
+    {
+        string previous = CapriDesktop.Program.Smoke;
+        try
+        {
+            string journey = Path.Combine(folder, "same-tier");
+            Directory.CreateDirectory(journey);
+            CapriDesktop.Program.Smoke = null;
+            Settings saved = new Settings { VoiceProvider = "off", BrainTier = 1 };
+            Pet pet = Fixture(saved, journey);
+            Set(pet, "away", true);
+            Set(pet, "followUp", new FollowUp());
+            Talk talk = (Talk)RuntimeHelpers.GetUninitializedObject(typeof(Talk));
+            typeof(Talk).GetField("pet", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).SetValue(talk, pet);
+            Set(pet, "Talk", talk);
+            List<string> first = new List<string> { "vendor/a" };
+            List<string> second = new List<string> { "vendor/b:free" };
+            pet.BrainKeyCheck = delegate(string key, bool free) { return key.StartsWith("nvapi", StringComparison.Ordinal) ? first : second; };
+            AcceptKey(pet, "nvapi-first");
+            Check("a same-tier key switches to its provider's model", pet.Brain.Model == "vendor/a" && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 && saved.FreeModel == "vendor/a" && saved.PaidModel == null && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a",
+                "model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " tier=" + (saved.BrainTier.HasValue ? saved.BrainTier.Value.ToString() : "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
+            AcceptKey(pet, "sk-or-second");
+            Check("another provider in the same tier keeps the first provider's model", pet.Brain.Model == "vendor/b:free" && saved.BrainProvider == "openrouter" && saved.BrainTier == 1 && saved.FreeModel == "vendor/b:free" && Pet.ProviderModel(saved, "nvidia", 1) == "vendor/a" && Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b:free",
+                "model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
+            AcceptKey(pet, "nvapi-first");
+            Check("switching back in the same tier restores the first provider's model", pet.Brain.Model == "vendor/a" && saved.BrainProvider == "nvidia" && saved.BrainTier == 1 && saved.FreeModel == "vendor/a" && Pet.ProviderModel(saved, "openrouter", 1) == "vendor/b:free",
+                "model=" + (pet.Brain.Model ?? "null") + " provider=" + (saved.BrainProvider ?? "null") + " free=" + (saved.FreeModel ?? "null") + " picks=" + Providers(saved.ProviderModels));
+            string notice;
+            bool blocked;
+            Settings reloaded = Pet.ReadSettings(Path.Combine(journey, "cross.json"), out notice, out blocked);
+            Check("the same-tier journey survives a reload", notice == null && !blocked && reloaded.BrainProvider == "nvidia" && reloaded.BrainTier == 1 && reloaded.FreeModel == "vendor/a" && Pet.TierModel(reloaded, "nvidia", 1) == "vendor/a" && Pet.TierModel(reloaded, "openrouter", 1) == "vendor/b:free",
+                "notice=" + (notice ?? "null") + " provider=" + (reloaded.BrainProvider ?? "null") + " free=" + (reloaded.FreeModel ?? "null") + " picks=" + Providers(reloaded.ProviderModels));
         }
         finally { CapriDesktop.Program.Smoke = previous; }
     }
@@ -293,6 +342,7 @@ internal static class Program
             NullKeys(folder);
             ProviderTransition(folder);
             AdoptedProvider(folder);
+            SameTierProviders(folder);
         }
         finally
         {
