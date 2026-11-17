@@ -53,6 +53,7 @@ namespace CapriDesktop
             if (quitting || weather == null) return false;
             weather.Poll();
             if (!weather.Waiting) return false;
+            if (!preferences.CheckIns) { weather.Take(); return false; }
             if (outro != null || dragging || pressed || menu.Visible || typer.Visible) return false;
             if (Voicing || speech != null || talkState == TalkState.Talking || working == null && talkState == TalkState.Thinking && !InChat) return false;
             if (working == null && (asideWaiting == asking || toolEnds.Exists(end => end.Ask == asking && end.Replied))) return false;
