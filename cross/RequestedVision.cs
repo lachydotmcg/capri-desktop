@@ -41,6 +41,7 @@ namespace CapriDesktop
                 providerIdentity = provider?.Identity;
                 Guard();
                 if (model == null) return "I can't see your screen while my brain is offline. Pick a brain " + Brain.BrainMenu + ".";
+                System.Threading.Tasks.Task<string> reading = string.IsNullOrWhiteSpace(args.Screen) ? TreeSight.Start() : null;
                 var observation = capture(string.IsNullOrWhiteSpace(args.Asked) ? args.Focus : args.Asked, args.Screen);
                 Guard();
                 byte[] shot = Eyes.Jpeg(observation.Png, 2048);
@@ -53,6 +54,8 @@ namespace CapriDesktop
                 string task = string.IsNullOrWhiteSpace(args.Asked) ? args.Focus : args.Asked;
                 string instruction = "Owner's requested visual task: " + (string.IsNullOrWhiteSpace(task) ? "Describe what is visible on this screen." : task.Trim());
                 if (!string.IsNullOrWhiteSpace(args.Focus) && args.Focus != task) instruction += "\nFocus detail: " + args.Focus.Trim();
+                string read = TreeSight.Finish(reading, TreeSight.Wait);
+                instruction += TreeSight.Prompt(read);
                 Guard();
                 validate(observation);
                 Guard();
@@ -66,7 +69,7 @@ namespace CapriDesktop
                 // Metadata coherence is not a claim that application pixels are unchanged after inference.
                 brain.Saw(seen, null, true);
                 Trace("delivered");
-                return "You looked at their requested screen. Read-only visual evidence: " + seen;
+                return "You looked at their requested screen. Read-only visual evidence: " + seen + TreeSight.Seen(read);
             }
             catch (BrainException error)
             {

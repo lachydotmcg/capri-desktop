@@ -295,6 +295,69 @@ namespace CapriDesktop
                 if (patWrong == null && !CapriDesktop.Brain.Character.Contains(CapriDesktop.Brain.Safety)) patWrong = "her brain-made pat lines lost her safety lines";
                 if (patWrong != null || Pet.PetLines.Length < 24) throw new Exception("Her pat lines went wrong: " + patWrong);
                 checks.Add("PASS pat lines: " + Pet.PetLines.Length + " lines, each said once a round in a fresh order and never twice in a row, and brain-made ones follow her safety lines and drop repeats, links and cursor talk");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                pet.Forgive();
+                double flungAt = pet.Now;
+                pet.LastYelp = null;
+                pet.Flung(Pet.FlingFrom, flungAt);
+                bool softFirst = !pet.Sulking && pet.ThrowsCounted == 1 && pet.LastYelp == null;
+                pet.Talk.Dismiss();
+                pet.Flung(Pet.FlingFrom, flungAt + 1);
+                bool warned = !pet.Sulking && Array.IndexOf(Sulks.WarnLines, pet.LastYelp) >= 0;
+                pet.Talk.Dismiss();
+                pet.Flung(Pet.FlingFrom, flungAt + 2);
+                bool sulked = pet.Sulking && pet.ThrowsCounted == 0 && Array.IndexOf(Sulks.SulkLines, pet.LastYelp) >= 0;
+                pet.Forgive();
+                pet.Flung(Pet.FlingFrom, flungAt);
+                pet.Flung(Pet.FlingFrom, flungAt + Sulks.Window + 1);
+                pet.Flung(Pet.FlingFrom, flungAt + Sulks.Window * 2 + 2);
+                bool apart = !pet.Sulking && pet.ThrowsCounted == 1;
+                pet.Forgive();
+                PixelPoint flingFrom = new PixelPoint(400, 400);
+                for (int i = 0; i <= 6; i++) pet.NoteDrag(new PixelPoint(flingFrom.X + (int)Math.Round(36 * pet.DesktopScaling) * i, flingFrom.Y), flungAt + i * 0.016);
+                double flingFast = pet.FlingSpeed(flungAt + 6 * 0.016 + 0.004);
+                double flingLate = pet.FlingSpeed(flungAt + 6 * 0.016 + Pet.FlingSpan + 0.01);
+                int flingsBefore = pet.Flings;
+                pet.LetGoFast(true, flungAt + 6 * 0.016 + 0.004);
+                bool shiftKept = pet.Flings == flingsBefore && pet.FlingSpeed(flungAt + 6 * 0.016 + 0.004) == 0;
+                for (int i = 0; i <= 6; i++) pet.NoteDrag(new PixelPoint(flingFrom.X + (int)Math.Round(36 * pet.DesktopScaling) * i, flingFrom.Y), flungAt + i * 0.016);
+                pet.LetGoFast(false, flungAt + 6 * 0.016 + 0.004);
+                bool flingCounted = pet.Flings == flingsBefore + 1 && pet.ThrowsCounted == 1;
+                pet.Forgive();
+                pet.Talk.Dismiss();
+                if (!softFirst || !warned || !sulked || !apart || flingFast < Pet.FlingFrom || flingLate != 0 || !shiftKept || !flingCounted)
+                    throw new Exception("Her grudge went wrong: soft first " + softFirst + ", warned " + warned + ", sulked " + sulked + " (" + pet.LastYelp + "), apart " + apart + ", fling speed " + (int)flingFast + " / late " + flingLate + ", shift drop kept " + shiftKept + ", fast let-go counted " + flingCounted);
+                checks.Add("PASS her grudge: a fast fling counts as a throw, a soft first one gets no line, the second in " + (int)Sulks.Window + " s a warning and the third her sulk, throws further apart don't add up, and a slow, late or Shift let-go isn't a throw");
+                double sulkAt = pet.Now;
+                pet.Sulk(sulkAt);
+                int refusedBefore = pet.PatsRefused, patsWere = pet.Pets;
+                pet.LastYelp = null;
+                pet.Pat();
+                bool patRefused = pet.Sulking && pet.PatsRefused == refusedBefore + 1 && pet.Pets == patsWere && Array.IndexOf(Sulks.PatNoLines, pet.LastYelp) >= 0;
+                pet.Talk.Dismiss();
+                pet.Sulk(pet.Now - Sulks.PatsAfter - 1);
+                pet.Pat();
+                bool patForgave = !pet.Sulking && pet.Pets == patsWere + 1;
+                pet.PetLine(pet.Pets);
+                bool patPeace = Array.IndexOf(Sulks.PatPeaceLines, pet.Talk.Bubble.Sheet.Reply) >= 0;
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                pet.Sulk(pet.Now);
+                pet.CheckSulk(pet.Now + Sulks.Alone - 1);
+                bool aloneHeld = pet.Sulking;
+                pet.CheckSulk(pet.Now + Sulks.Alone + 1);
+                bool aloneOver = !pet.Sulking;
+                pet.Talk.Dismiss();
+                pet.Sulk(pet.Now);
+                pet.Hear("I'm sorry Capri");
+                bool sorryOver = !pet.Sulking && Array.IndexOf(Sulks.SorryLines, pet.Talk.Reply) >= 0;
+                string sorrySaid = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                bool awayRight = Sulks.Away(500, 600, 40, false), awayLeft = !Sulks.Away(500, 400, 40, true), awayHeld = Sulks.Away(500, 520, 40, true) && !Sulks.Away(500, 480, 40, false);
+                if (!patRefused || !patForgave || !patPeace || !sorryOver || !aloneHeld || !aloneOver || !awayRight || !awayLeft || !awayHeld)
+                    throw new Exception("Her sulk went wrong: pat turned down at first " + patRefused + ", pat later forgave " + patForgave + " with a peace line " + patPeace + ", sorry " + sorryOver + " (" + sorrySaid + "), five minutes alone held " + aloneHeld + " then ended it " + aloneOver + ", turned away " + awayRight + " / " + awayLeft + " / " + awayHeld);
+                checks.Add("PASS her sulk: she turns down a head pat in her first " + (int)Sulks.PatsAfter + " s, a pat after that or a plain sorry makes up with her, five minutes alone ends it, and on her feet she turns her back on their cursor");
                 pet.SetWander(3);
                 pet.SetLanguage("French");
                 pet.SetReplies(1);
@@ -1065,6 +1128,33 @@ namespace CapriDesktop
                     && Pet.LookAsk.IndexOf("The small red-haired anime girl with a speech bubble is Capri, the desktop companion, not part of their screen", StringComparison.Ordinal) > 0;
                 if (!glancesKept || !toldMirror) throw new Exception("Her own sprite in screenshots went wrong: kept " + glancesKept + ", told " + toldMirror + " | " + queued.Replace("\n", " | "));
                 checks.Add("PASS her own sprite: her glance and check-my-screen prompts say the red-haired anime girl with the speech bubble is her, not part of their screen, and her glances go in the transcript but never into memories.md, while a look they asked for still does");
+                Func<string> treeWas = TreeSight.Read;
+                Func<string, string, bool> treeSkipWas = TreeSight.Skip;
+                try
+                {
+                    TreeSight.Skip = delegate(string program, string title) { return program == "Hidden"; };
+                    string treeRead = TreeSight.Parse("Files\tDocuments - Files\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\"\n");
+                    bool treeShaped = treeRead == "Window: \"Documents - Files\" (Files)\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\""
+                        && TreeSight.Parse("Hidden\tSecret chat\nbutton \"Send\"") == null && TreeSight.Parse("Files\tEmpty\n\n") == null && TreeSight.Parse("no tab here") == null && TreeSight.Parse(null) == null
+                        && TreeSight.Prompt(treeRead) == "\n\n" + TreeSight.Trust + "\n" + treeRead && TreeSight.Prompt(null) == "" && TreeSight.Seen(treeRead) == "\nExact details from their window: " + treeRead && TreeSight.Seen(" ") == "";
+                    TreeSight.Read = delegate { System.Threading.Thread.Sleep(3000); return "late"; };
+                    DateTime treeStarted = DateTime.UtcNow;
+                    bool treeQuick = TreeSight.Finish(TreeSight.Start(), 200) == null && (DateTime.UtcNow - treeStarted).TotalMilliseconds < 2000 && TreeSight.Finish(null, 200) == null;
+                    TreeSight.Read = delegate { throw new InvalidOperationException("no bus"); };
+                    bool treeQuiet = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    TreeSight.Read = treeWas;
+                    bool treeOffInSmoke = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    DateTime spiStarted = DateTime.UtcNow;
+                    string spi = OperatingSystem.IsLinux() ? TreeSight.Spi() : null;
+                    bool spiBounded = (DateTime.UtcNow - spiStarted).TotalMilliseconds < TreeSight.Wait + 2000 && (spi == null || spi.StartsWith("Window: ", StringComparison.Ordinal));
+                    if (!treeShaped || !treeQuick || !treeQuiet || !treeOffInSmoke || !spiBounded) throw new Exception("Her tree eyes went wrong: shaped " + treeShaped + ", quick " + treeQuick + ", quiet " + treeQuiet + ", off in smoke " + treeOffInSmoke + ", at-spi " + spiBounded + " | " + treeRead + " | " + spi);
+                }
+                finally
+                {
+                    TreeSight.Read = treeWas;
+                    TreeSight.Skip = treeSkipWas;
+                }
+                checks.Add("PASS her tree eyes on linux: a look reads the window in front from AT-SPI as names and text beside the screenshot, password boxes stay empty, a never-watch window or an empty read gives nothing, and a slow or missing accessibility bus never holds up her look");
                 bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
                 if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
                 // Their personality.md takes her default's place, with her safety lines still after it, and Reset puts her back.
