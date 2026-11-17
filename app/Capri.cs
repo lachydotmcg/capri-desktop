@@ -25353,7 +25353,17 @@ namespace CapriDesktop
                 ToolArguments stopArgs;
                 if (!Hands.Heard(stop, out stopTool, out stopArgs) || stopTool != "watch_along" || stopArgs.Action != "stop") throw new Exception("Watching together missed its stop: " + stop);
             }
+            foreach (string scroll in new[] { "scroll tiktok for me", "Capri, doomscroll for me", "please scroll for me", "scroll shorts for me", "react to my tiktoks", "let's doomscroll" })
+            {
+                string scrollTool;
+                ToolArguments scrollArgs;
+                if (!Hands.Heard(scroll, out scrollTool, out scrollArgs) || scrollTool != "watch_along" || scrollArgs.Action != "scroll" || !Hands.Valid("watch_along", scrollArgs)) throw new Exception("Scroll for me missed: " + scroll + " (" + scrollTool + ")");
+            }
+            foreach (string stop in new[] { "stop scrolling", "stop doomscrolling", "i'm done scrolling" })
+                if (WatchAlong.Request(stop) != "stop") throw new Exception("Scroll for me missed its stop: " + stop);
             WatchAlong.Active = watchActiveWas;
+            foreach (string other in new[] { "scroll down", "scroll up a bit", "I scroll tiktok too much", "stop scrolling" })
+                if (WatchAlong.Request(other) != null) throw new Exception("Scroll for me took: " + other);
             if (WatchAlong.Request("stop watching") != null) throw new Exception("Stop watching took a request with nothing being watched.");
             WatchMemory memory = new WatchMemory { Limit = 4 };
             if (memory.Add("First line.") != null || memory.Add("Second line.") != null || memory.Add("Third line.") != null || memory.Add("Fourth line.") != "First line.\nSecond line." || memory.Count != 2 || memory.Text != "Third line.\nFourth line.") throw new Exception("Watch-along did not fold the oldest half at its limit.");
@@ -44699,6 +44709,29 @@ namespace CapriDesktop
                 EndDoomscroll();
                 mainframe.Sync(); SavePreferences();
             }
+
+            Func<Sight> scrollGlimpseWas = Computer.Glimpse;
+            Func<IntPtr> scrollFrontWas = Hands.Foreground;
+            Action<IntPtr> scrollPressWas = ScrollPress;
+            bool scrollFacingWas = facingLeft;
+            try
+            {
+                EndWatchAlong();
+                Sight feed = new Sight { Window = new IntPtr(77), Program = "chrome", Title = "TikTok - Make Your Day - Google Chrome" };
+                Sight notes = new Sight { Window = new IntPtr(78), Program = "notepad", Title = "notes.txt - Notepad" };
+                Sight showing = notes;
+                Computer.Glimpse = delegate { return showing; };
+                Hands.Foreground = delegate { return showing.Window; };
+                ScrollPress = delegate { };
+                if (WatchWith("scroll") != WatchAlong.ScrollNoFeed || watchAlong != null) throw new Exception("Scroll for me started without a feed in front.");
+                showing = feed;
+                string scrollStarted = WatchWith("scroll");
+                if (!scrollStarted.StartsWith(WatchAlong.ScrollStart, StringComparison.Ordinal) || !ScrollingForThem || watchAlong.ScrollAt <= clock.Elapsed.TotalSeconds) throw new Exception("Scroll for me didn't start on a TikTok feed: " + scrollStarted);
+                if (WatchAlong.ScrollAsk(new System.Collections.Generic.List<string>(), feed.Title, "", true).IndexOf("SAY:", StringComparison.Ordinal) < 0) throw new Exception("Scroll for me's reaction prompt lost its labels.");
+                if (WatchWith("stop") != "Done scrolling. that was a lot of videos." || ScrollingForThem) throw new Exception("Scroll for me didn't stop.");
+                checks.Add("PASS scroll for me: she only starts with TikTok, Shorts or Reels in front, reacts to each video with its own prompt and stops when asked");
+            }
+            finally { EndWatchAlong(); Computer.Glimpse = scrollGlimpseWas; Hands.Foreground = scrollFrontWas; ScrollPress = scrollPressWas; facingLeft = scrollFacingWas; }
         }
 
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)

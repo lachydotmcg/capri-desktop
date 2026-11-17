@@ -64,6 +64,7 @@ namespace CapriDesktop
         private void CheckDoomscroll(Sight ahead, bool full, double now)
         {
             if (!DoomscrollOn && !doomscroll.Active && !doomSulk) return;
+            if (ScrollingForThem) { doomscroll.Reset(); return; }
             if (ahead != null && ahead.Window != Hands.Foreground()) ahead = null;
             string line;
             DoomMove move = doomscroll.Tick(ahead == null ? null : ahead.Program, ahead == null ? null : ahead.Title, DoomscrollOn, preferences.DoomscrollLimit, DoomFree(full), now, out line);
