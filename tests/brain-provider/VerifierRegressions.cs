@@ -219,6 +219,18 @@ internal static class VerifierRegressions
             Pet.AdoptProvider(loaded, "nvidia");
             Call(pet, "KeepAdoptedProvider");
             Check("startup adoption leaves a concurrent save alone", File.ReadAllText(main) == newerWriter && Pet.ReadSettings(main, out notice, out blocked).Nickname == "newer-writer");
+
+            string recoveredOld = Path.Combine(root, "recovered-old-sidecar");
+            Directory.CreateDirectory(recoveredOld);
+            File.WriteAllText(Path.Combine(recoveredOld, "cross.json"), "{\"Nickname\":\"legacy-nick\",\"CloudModel\":\"google-live\"}");
+            File.WriteAllText(Path.Combine(recoveredOld, "cross-new.json"), "{\"VoiceProvider\":\"off\",\"BrainTier\":1,\"FreeModel\":\"google-live\",\"PaidModel\":\"paid-live\",\"RemoteHost\":\"wss://old.example\"}");
+            string oldNotice;
+            bool oldBlocked;
+            Settings restoredOld = Pet.ReadSettings(Path.Combine(recoveredOld, "cross.json"), out oldNotice, out oldBlocked);
+            Check("an old sidecar restores settings absent from an old primary", oldNotice == null && !oldBlocked &&
+                restoredOld.Nickname == "legacy-nick" && restoredOld.CloudModel == "google-live" && restoredOld.VoiceProvider == "off" &&
+                restoredOld.BrainTier == 1 && restoredOld.FreeModel == "google-live" && restoredOld.PaidModel == "paid-live" &&
+                restoredOld.RemoteHost == "wss://old.example" && restoredOld.BrainProvider == null && restoredOld.ProviderModels == null);
         }
         finally { CapriDesktop.Program.Smoke = previous; }
         return failures;
