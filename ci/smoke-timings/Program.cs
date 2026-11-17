@@ -89,11 +89,17 @@ internal static class Program
         Check(!SmokeRun.EnterSection("BeforeStep"), "--steps must skip sections outside a step.");
         SmokeRun.Begin("step", "0", 60);
         Check(SmokeRun.EnterSection("InsideStep"), "Sections inside a step must still run.");
+        Check(SmokeRun.EnterSection("DeepInsideStep"), "A section inside a step's section must run too.");
         List<string> checks = new List<string>(new[] { "PASS step unchanged" });
+        SmokeRun.LeaveSection("DeepInsideStep", checks);
         SmokeRun.LeaveSection("InsideStep", checks);
         SmokeRun.Complete(checks);
         Report(folder, checks);
-        if (!behaviorOnly) Check(Timings(folder, 1)[0][0] == "InsideStep", "Skipped sections must not get timing rows.");
+        if (!behaviorOnly)
+        {
+            string[][] rows = Timings(folder, 2);
+            Check(rows[0][0] == "DeepInsideStep" && rows[1][0] == "InsideStep", "Skipped sections must not get timing rows.");
+        }
     }
 
     private static void Shards(string folder)

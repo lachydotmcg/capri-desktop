@@ -134,7 +134,7 @@ jobs:
           passed=$(grep -c '^PASS' all.txt)
           echo "PASS lines across all parts: $passed" | tee -a "$GITHUB_STEP_SUMMARY"
           if grep -q '^FAIL' all.txt; then grep '^FAIL' all.txt; exit 1; fi
-          test "$passed" -ge 1800
+          test "$passed" -ge 1850
           test "${{ needs.windows.result }}" = success
 
   # Her silent install and uninstall change the runner's own Capri, so they get a fresh runner of their own.

@@ -171,7 +171,7 @@ namespace CapriDesktop
         internal static bool Wants(string name)
         {
             // --steps runs the steps alone, with the sections inside them.
-            if (options.Steps) return kind == "step";
+            if (options.Steps) return kind == "step" || (selected.Count != 0 && selected.Peek());
             if (options.Shards != 0 && selected.Count == 0) return ShardOf(name, options.Shards) == options.Shard;
             bool wanted = options.Only.Length == 0 || (selected.Count != 0 && selected.Peek());
             foreach (string item in options.Only)
