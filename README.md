@@ -18,7 +18,7 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 
 [Every download](https://capriai.app/#download) · [Setup guide](https://capriai.app/setup/) · [Website](https://capriai.app/) · [Help](https://capriai.app/help/) · [Support](#support)
 
-<sub>Get Capri only from [capriai.app](https://capriai.app/), [GitHub](https://github.com/lachydotmcg/capri-desktop/releases) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Copies on other sites aren't ours. Zero telemetry.</sub>
+<sub>Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G), and check it against the release's `SHA256SUMS.txt` ([how](SECURITY.md#windows-or-your-antivirus-warned-me)). Copies on other sites or GitHub accounts aren't ours. Zero telemetry.</sub>
 
 <sub>Inspired by jpartnma_'s TikTok video.</sub>
 
@@ -219,7 +219,7 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 
 **Two ways to get her on Windows.** The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI, 0.8.9) is signed and checked by Microsoft, so there's no warning. It has Capri Remote and updates through the Store. The latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. Both are on [capriai.app](https://capriai.app/#download), with the one for your device on top.
 
-Get Capri only from [capriai.app](https://capriai.app/), [GitHub](https://github.com/lachydotmcg/capri-desktop/releases) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Copies on other sites aren't ours.
+Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Every release has a `SHA256SUMS.txt` with the SHA-256 of each file, Windows, Mac and Linux, and [SECURITY.md](SECURITY.md#windows-or-your-antivirus-warned-me) shows how to check yours. Copies on other sites or GitHub accounts aren't ours.
 
 **Zero telemetry.** No analytics, crash reports or usage pings. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
 

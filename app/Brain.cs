@@ -6045,4 +6045,47 @@ namespace CapriDesktop
 
         private static string Plain(string line) { return Regex.Replace(line.ToLowerInvariant(), @"[^\p{L}\p{N}]+", ""); }
     }
+
+    internal static class Sulks
+    {
+        internal const double Window = 120, Alone = 300, PatsAfter = 20;
+        internal const int Throws = 3;
+        internal static readonly string[] ThrowLines = { "WHEEEE!", "Put me DOWN!", "Choom, I'm not a frisbee!", "AAAAAA!", "Not the hair!", "I had a landing planned! Not this one!", "Gravity is not my friend!", "Who taught you to throw like that?!", "I'm a gremlin, not a grenade!", "Ten for distance, zero for kindness!", "My gyros! MY GYROS!" };
+        internal static readonly string[] WarnLines = { "Okay, rude.", "Again?! One more and we're fighting.", "Do that again. I dare you." };
+        internal static readonly string[] SulkLines = { "That's it. Don't touch me.", "Nope. We're done. Hands off." };
+        internal static readonly string[] PatNoLines = { "Nope. You don't get to pat me right now.", "Pats are cancelled. Try again never. Or in a bit.", "Hmph. Not yet.", "Don't even. I'm still mad." };
+        internal static readonly string[] SorryLines = { "...Fine. Apology accepted.", "Okay. We're cool. No more yeeting." };
+        internal static readonly string[] PatPeaceLines = { "...Okay, that's cheating. Fine, you're forgiven.", "Hmph. Head pats work. We're cool." };
+        internal static readonly string[] AloneLines = { "...Okay, I'm over it.", "Fine. I missed you. A little." };
+        private static readonly Regex SorrySaid = new Regex(@"\b(?:sorry|sry|soz|sowwy|apologi[sz]e|my bad|forgive me|lo siento|perd[oó]n(?:ame)?|d[eé]sol[eé]e?|entschuldigung|tut mir leid|scusa(?:mi)?|mi dispiace|desculpa|przepraszam|прости|извини)\b|ごめん|すみません|미안|죄송|对不起|對不起|抱歉", RegexOptions.IgnoreCase);
+        private static readonly Regex SorryWords = new Regex(@"^(?:sorry|sry|soz|sowwy|i|i'm|im|i’m|am|so|soo+|really|truly|very|super|capri|choom|babe|bestie|hey|oh|ok|okay|please|pls|plz|forgive|me|my|bad|apologi[sz]e|for|about|throwing|threw|throw|tossing|tossed|yeeting|yeeted|yeet|you|that|it|earlier|again|the|thing|won't|wont|won’t|do|will|never|i'll|ill|i’ll|lol|haha|a|lot|lo|siento|perd[oó]n|perdona|perd[oó]name|d[eé]sol[eé]e?|entschuldigung|tut|mir|leid|scusa|scusami|mi|dispiace|desculpa|przepraszam|прости|извини)$", RegexOptions.IgnoreCase);
+
+        internal static bool Apology(string text) { return text != null && SorrySaid.IsMatch(text); }
+
+        internal static bool OnlyApology(string text)
+        {
+            if (!Apology(text)) return false;
+            foreach (string word in Regex.Split(text.Trim(), @"[^\p{L}\p{N}'’]+"))
+                if (word.Length > 0 && !SorryWords.IsMatch(word)) return false;
+            return true;
+        }
+
+        internal static int Thrown(List<double> throwsAt, double now)
+        {
+            throwsAt.RemoveAll(delegate(double at) { return now - at > Window || at > now; });
+            throwsAt.Add(now);
+            if (throwsAt.Count < Throws) return throwsAt.Count;
+            throwsAt.Clear();
+            return Throws;
+        }
+
+        internal static bool PatTooSoon(double since, double now) { return since >= 0 && now - since < PatsAfter; }
+
+        internal static bool Away(int hipX, int cursorX, int reach, bool left)
+        {
+            if (cursorX > hipX + reach) return true;
+            if (cursorX < hipX - reach) return false;
+            return left;
+        }
+    }
 }

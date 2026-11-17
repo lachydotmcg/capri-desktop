@@ -2439,19 +2439,20 @@ namespace CapriDesktop
         private readonly System.Collections.Generic.List<double> throwsAt = new System.Collections.Generic.List<double>();
         private const double SulkWindow = 120, SulkAlone = 300, DodgeGap = 1.2, DodgeSpeed = 700, DodgeSaid = 6;
         private const int SulkThrows = 3;
-        private double sulkSince = -1, sulkBothered, dodgeAt = -10, dodgeSaidAt = -10;
-        private int dodges, sulkDodges, yelpTicket = -1;
+        private double sulkSince = -1, sulkBothered, dodgeAt = -10, dodgeSaidAt = -10, patNoAt = -10;
+        private int dodges, sulkDodges, patsRefused, yelpTicket = -1;
         private bool sulkLine, patForgives, shyInside;
         private Point shyCursor;
         private double shyAt = -1;
-        private static readonly string[] ThrowLines = { "WHEEEE!", "Put me DOWN!", "Choom, I'm not a frisbee!", "AAAAAA!", "Not the hair!", "I had a landing planned! Not this one!", "Gravity is not my friend!", "Who taught you to throw like that?!", "I'm a gremlin, not a grenade!", "Ten for distance, zero for kindness!", "My gyros! MY GYROS!" };
-        private static readonly string[] WarnLines = { "Okay, rude.", "Again?! One more and we're fighting.", "Do that again. I dare you." };
+        private static readonly string[] ThrowLines = Sulks.ThrowLines;
+        private static readonly string[] WarnLines = Sulks.WarnLines;
         private static readonly string[] DizzyLines = { "Ugh. Which way is up?", "Everything's spinning, choom.", "My gyro's cooked." };
-        private static readonly string[] SulkLines = { "That's it. Don't touch me.", "Nope. We're done. Hands off." };
+        private static readonly string[] SulkLines = Sulks.SulkLines;
         private static readonly string[] DodgeLines = { "Nope.", "Hands off, choom.", "Say sorry first.", "Not happening." };
-        private static readonly string[] SorryLines = { "...Fine. Apology accepted.", "Okay. We're cool. No more yeeting." };
-        private static readonly string[] PatPeaceLines = { "...Okay, that's cheating. Fine, you're forgiven.", "Hmph. Head pats work. We're cool." };
-        private static readonly string[] AloneLines = { "...Okay, I'm over it.", "Fine. I missed you. A little." };
+        private static readonly string[] SorryLines = Sulks.SorryLines;
+        private static readonly string[] PatPeaceLines = Sulks.PatPeaceLines;
+        private static readonly string[] PatNoLines = Sulks.PatNoLines;
+        private static readonly string[] AloneLines = Sulks.AloneLines;
         private const string FirstDodgeLine = "No. Don't touch me.";
         private double coveredSince = -1;
         private double seatLost = -1;
@@ -3617,6 +3618,7 @@ namespace CapriDesktop
             bool sitting = seat != null || onPanel;
             bool left = sitting ? SitsLeft(hip.X, area, preferences.Size, facingLeft) : area.Right - hip.X < preferences.Size * (facingLeft ? 0.9f : 0.6f);
             if (!sitting && ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
+            if (!sitting && Sulking && !doomSulk) left = Sulks.Away(hip.X, MouseAt().X, preferences.Size / 2, facingLeft);
             if (left == facingLeft) return;
             bool aside = asideAt == anchor;
             int? stood = stoodOn;
@@ -4760,9 +4762,12 @@ namespace CapriDesktop
             petWay = petRise = 0;
         }
 
-        private void Petted()
+        private void Petted() { Petted(clock.Elapsed.TotalSeconds); }
+
+        private void Petted(double now)
         {
             if (preferences.Hologram) return;
+            if (Sulking && !doomSulk && Sulks.PatTooSoon(sulkSince, now)) { PatTooSoon(now); return; }
             EndWalk();
             ModsPatted();
             // A head pat makes up with her when she's sulking over being thrown, and her pat line says so (Zr4, F44).
@@ -4779,6 +4784,18 @@ namespace CapriDesktop
             int ticket = ++petTicket;
             petWaits = 0;
             ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(PetPause); Post(delegate { PetLine(ticket); }); });
+        }
+
+        private void PatTooSoon(double now)
+        {
+            sulkBothered = now;
+            patsRefused++;
+            if (!WakeRest(!SleepBusy)) Play(lying ? laydownGlitch : seat != null ? perchGlitch : glitch);
+            frames.Start();
+            RenderFrame();
+            if (now - patNoAt < DodgeSaid / 2) return;
+            patNoAt = now;
+            Yelp("pets you", Lines.Pick(PatNoLines), true);
         }
 
         private void GreetSoon()
@@ -7792,7 +7809,7 @@ namespace CapriDesktop
             Said.Folder = data;
             Said.Ask = delegate(string system, string user) { return brain.Aside(system, user, 3000); };
             Said.Ready = delegate { return !testing && brain.Model != null; };
-            Said.Know(Brain.Greetings, Brain.HalloweenLines, PetLines, PatPeaceLines, ThrowLines, WarnLines, DizzyLines, SulkLines, DodgeLines, SorryLines, AloneLines,
+            Said.Know(Brain.Greetings, Brain.HalloweenLines, PetLines, PatPeaceLines, PatNoLines, ThrowLines, WarnLines, DizzyLines, SulkLines, DodgeLines, SorryLines, AloneLines,
                 PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
                 new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
@@ -9523,14 +9540,14 @@ namespace CapriDesktop
 
         private bool Sulking { get { return sulkSince >= 0; } }
 
-        private void Sulk(double now) { Sulk(now, "They just threw Capri around three times in two minutes, so she's sulking: she won't let them pick her up until they say sorry, give her a head pat or leave her alone for five minutes. She still answers and helps them as usual."); }
+        private void Sulk(double now) { Sulk(now, "They just threw Capri around three times in two minutes, so she's sulking: she won't let them pick her up until they say sorry, give her a head pat or leave her alone for five minutes, turns her back on their cursor and won't take a head pat for her first twenty seconds. She still answers and helps them as usual."); }
 
         private void Sulk(double now, string why)
         {
             sulkSince = now;
             sulkBothered = now;
             sulkDodges = 0;
-            dodgeAt = dodgeSaidAt = -10;
+            dodgeAt = dodgeSaidAt = patNoAt = -10;
             // A cursor that's already close when she starts sulking hasn't come at her.
             shyInside = true;
             shyAt = -1;
@@ -9638,21 +9655,10 @@ namespace CapriDesktop
             Yelp("reaches for you", sulkDodges == 1 ? FirstDodgeLine : Lines.Pick(DodgeLines), true);
         }
 
-        // An apology to her, typed or said: "sorry", "I'm sorry Capri", "my bad", "forgive me", and sorry in a few other languages.
-        private static readonly Regex SorrySaid = new Regex(@"\b(?:sorry|sry|soz|sowwy|apologi[sz]e|my bad|forgive me|lo siento|perd[oó]n(?:ame)?|d[eé]sol[eé]e?|entschuldigung|tut mir leid|scusa(?:mi)?|mi dispiace|desculpa|przepraszam|прости|извини)\b|ごめん|すみません|미안|죄송|对不起|對不起|抱歉", RegexOptions.IgnoreCase);
-        // The words around a plain apology: her name, "I'm so", "for throwing you" and the like.
-        private static readonly Regex SorryWords = new Regex(@"^(?:sorry|sry|soz|sowwy|i|i'm|im|i’m|am|so|soo+|really|truly|very|super|capri|choom|babe|bestie|hey|oh|ok|okay|please|pls|plz|forgive|me|my|bad|apologi[sz]e|for|about|throwing|threw|throw|tossing|tossed|yeeting|yeeted|yeet|you|that|it|earlier|again|the|thing|won't|wont|won’t|do|will|never|i'll|ill|i’ll|lol|haha|a|lot|lo|siento|perd[oó]n|perdona|perd[oó]name|d[eé]sol[eé]e?|entschuldigung|tut|mir|leid|scusa|scusami|mi|dispiace|desculpa|przepraszam|прости|извини)$", RegexOptions.IgnoreCase);
-
-        internal static bool Apology(string text) { return text != null && SorrySaid.IsMatch(text); }
+        internal static bool Apology(string text) { return Sulks.Apology(text); }
 
         // Nothing but an apology, so her forgiving line is the whole answer. Anything more goes on to her brain as usual.
-        internal static bool OnlyApology(string text)
-        {
-            if (!Apology(text)) return false;
-            foreach (string word in Regex.Split(text.Trim(), @"[^\p{L}\p{N}'’]+"))
-                if (word.Length > 0 && !SorryWords.IsMatch(word)) return false;
-            return true;
-        }
+        internal static bool OnlyApology(string text) { return Sulks.OnlyApology(text); }
 
         private void HoldSeat(double now)
         {
@@ -18790,6 +18796,7 @@ namespace CapriDesktop
             Section(checks, "SmokeThrowDodges", delegate { ThrowCheck(checks, SmokeThrowDodges); });
             Section(checks, "SmokeThrowSorry", delegate { ThrowCheck(checks, SmokeThrowSorry); });
             Section(checks, "SmokeThrowPat", delegate { ThrowCheck(checks, SmokeThrowPat); });
+            Section(checks, "SmokeThrowPose", delegate { ThrowCheck(checks, SmokeThrowPose); });
             Section(checks, "SmokeThrowAlone", delegate { ThrowCheck(checks, SmokeThrowAlone); });
             checks.Add("LIMIT throwing her for real: how a flick off a real mouse feels, her tumble, bounces, tear and dizzy sway on a real screen, her thud on real speakers, and her hopping away from a real cursor need a person at the desk");
         }
@@ -19219,17 +19226,49 @@ namespace CapriDesktop
             checks.Add("PASS \"I'm sorry Capri\", typed or said, ends her sulk, and she answers with a forgiving line of her own");
         }
 
-        // A head pat ends her sulk, and her pat line says so.
         private void SmokeThrowPat(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
         {
-            Sulk(clock.Elapsed.TotalSeconds);
+            double at = clock.Elapsed.TotalSeconds;
+            Sulk(at);
             CloseTalk();
-            Petted();
+            int refusedBefore = patsRefused, ticketBefore = petTicket;
+            Petted(at + 1);
+            bool refused = Sulking && patsRefused == refusedBefore + 1 && petTicket == ticketBefore && Array.IndexOf(PatNoLines, reply) >= 0;
+            string refusal = reply;
+            CloseTalk();
+            Petted(at + Sulks.PatsAfter + 1);
             bool forgave = !Sulking && patForgives;
             PetLine(petTicket);
-            if (!forgave || Array.IndexOf(PatPeaceLines, reply) < 0 || patForgives)
-                throw new Exception("A head pat didn't make up with her: forgave " + forgave + ", said " + reply);
-            checks.Add("PASS a head pat ends her sulk, with a pat line that says so");
+            if (!refused || !forgave || Array.IndexOf(PatPeaceLines, reply) < 0 || patForgives)
+                throw new Exception("Head pats in her sulk went wrong: turned down at first " + refused + " (" + refusal + "), forgave later " + forgave + ", said " + reply);
+            checks.Add("PASS sulking, she turns down a head pat in her first " + Sulks.PatsAfter + " s with a line of her own, and a pat after that ends her sulk with a pat line that says so");
+        }
+
+        private void SmokeThrowPose(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            StandForThrow(new Point(work.Left + work.Width / 2, work.Top + work.Height / 2));
+            int size = preferences.Size;
+            Point cursorAt = Hip();
+            MouseAt = delegate { return cursorAt; };
+            Sulk(clock.Elapsed.TotalSeconds);
+            cursorAt = new Point(Hip().X + size, Hip().Y);
+            Face();
+            bool fromRight = facingLeft;
+            cursorAt = new Point(Hip().X - size, Hip().Y);
+            Face();
+            bool fromLeft = !facingLeft;
+            cursorAt = new Point(Hip().X + size / 4, Hip().Y);
+            Face();
+            bool held = !facingLeft;
+            cursorAt = new Point(Hip().X + size, Hip().Y);
+            Face();
+            Forgive();
+            Face();
+            bool over = !facingLeft;
+            if (!fromRight || !fromLeft || !held || !over)
+                throw new Exception("Her sulky turn went wrong: away from a cursor on her right " + fromRight + ", on her left " + fromLeft + ", held near her middle " + held + ", back to normal after " + over);
+            checks.Add("PASS sulking on her feet she turns her back on their cursor either side, a cursor near her middle doesn't flip her, and she faces as usual once she's forgiven them");
         }
 
         // Five minutes alone ends her sulk, not a moment before, and a hop away starts the five minutes again.
