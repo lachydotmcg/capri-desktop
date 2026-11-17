@@ -382,7 +382,7 @@ namespace CapriDesktop
         private readonly Dictionary<NeonEntry, string> entries = new Dictionary<NeonEntry, string>();
         private readonly NeonRung[] brains = new NeonRung[3];
         private readonly NeonRung[] voices = new NeonRung[4];
-        private readonly NeonPicker models, freeKeys, voicePicker, speechModels;
+        private readonly NeonPicker models, freeKeys, planPicker, planModels, voicePicker, speechModels;
         private readonly NeonPicker huskMode;
         private readonly NeonCaption huskLabel;
         private readonly NeonPicker thinkingLevel;
@@ -431,7 +431,7 @@ namespace CapriDesktop
             modsKey = Key("Mods", 234, 20, 56, 22, () => ShowMods(!modded));
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);
-            if (TerminalJobs.Supported) { Key("ChatGPT plan", 230, 56, 126, 20, pet.UsePlan); Key("Stop", 134, 56, 86, 20, pet.StopNativeWork); }
+            if (TerminalJobs.Supported) Key("Stop", 270, 56, 86, 20, pet.StopNativeWork);
             brainName = Caption("", 28, 79, 328, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
             brainNote = Caption("", 28, 101, 328, 24, MainframeTheme.Faint); brainNote.Ellipsis = true;
             models = Picker("Brain model", 28, 134, 244, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => { if (i == pet.MainframeModels.Length) pet.AskPull(); else pet.MainframePickModel(pet.MainframeModels[i]); }); models.Ellipsis = true;
@@ -443,11 +443,11 @@ namespace CapriDesktop
             Caption("Have Ollama? Open it, then press Refresh.", 28, 264, 328, 18, MainframeTheme.Faint, 12);
             tierNote = Caption("", 28, 168, 328, 16, MainframeTheme.Faint, 34.0 / 3);
             string[] brainNames = { "NORMAL", "MEDIUM INTELLIGENCE", "MAX INTELLIGENCE" };
-            string[] brainHints = { "Free · local model", "Free", "Cloud API keys" };
+            string[] brainHints = { "Free · local model", "Free", TerminalJobs.Supported ? null : "Cloud API keys" };
             for (int i = 0; i < 3; i++)
             {
                 int at = i;
-                brains[i] = Add(new NeonRung { Text = brainNames[i], Hint = brainHints[i], Flag = i == 0 ? "Start with this!" : null }, 28, 184 + i * 24, i == 1 ? 232 : 328, 24, brainNames[i]);
+                brains[i] = Add(new NeonRung { Text = brainNames[i], Hint = brainHints[i], Flag = i == 0 ? "Start with this!" : null }, 28, 184 + i * 24, i == 1 ? 232 : i == 2 && TerminalJobs.Supported ? 190 : 328, 24, brainNames[i]);
                 brains[i].Click += (_, _) => pet.SetBrainTier(at);
             }
             freeKeys = Add(new NeonPicker(), 266, 209, 90, 22, "Free key");
@@ -456,6 +456,15 @@ namespace CapriDesktop
             freeKeys.Options(new[] { "NVIDIA", "Google AI Studio (Gemini)", "OpenRouter" });
             freeKeys.Text = "Free key";
             freeKeys.Changed += i => { if (Program.Smoke == null) Pet.Browse(new[] { "https://build.nvidia.com/settings/api-keys", "https://aistudio.google.com/apikey", "https://openrouter.ai/keys" }[i]); freeKeys.Text = "Free key"; };
+            if (TerminalJobs.Supported)
+            {
+                planPicker = Add(new NeonPicker(), 224, 233, 132, 22, "API key, Claude plan or ChatGPT plan");
+                planPicker.Options(new[] { "API key", "Claude plan", "ChatGPT plan" });
+                planPicker.Changed += i => { if (syncing) return; if (i == 0) pet.UseApiKey(); else if (i == 1) pet.UseClaudePlan(); else pet.UsePlan(); Sync(); };
+                readers.Add(() => planPicker.Selected = pet.MainframePlanChoice);
+                changes["API key, Claude plan or ChatGPT plan"] = i => planPicker.Pick(i);
+                planModels = Picker("Plan model", 28, 262, 328, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => pet.MainframePickModel(pet.MainframeModels[i])); planModels.Ellipsis = true;
+            }
             textKey = Entry("Brain API key", "Paste a brain API key", 28, 262, 244, 28, ConnectBrain, true);
             textConnect = Key("Connect", 280, 262, 76, 28, ConnectBrain);
             MainframeTips.Explain(textConnect, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key");
@@ -779,6 +788,7 @@ namespace CapriDesktop
                 var choices = new List<string>(pet.MainframeModels);
                 if (pet.MainframeTier == 0) choices.Add("Download a model...");
                 models.Options(choices.ToArray());
+                planModels?.Options(pet.MainframePlanModelNames);
                 voicePicker.Options(pet.MainframeVoices);
                 speechModels.Options(pet.MainframeSpeechModels);
                 if (paidKey != null && pet.MainframeTier != 1) paidKey = null;
@@ -805,7 +815,7 @@ namespace CapriDesktop
                 updateNote.Text = pet.MainframeUpdate;
                 Read(nickname, Brain.Nickname); Read(weatherCity, pet.WeatherCity); Read(custom, pet.Brain.Model); Read(localAddress, pet.Brain.Server); Read(voiceId, pet.Saved.VoiceId);
                 more.Text = paged || modded ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
-                string next = paged + "|" + modded + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup;
+                string next = paged + "|" + modded + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup + "|" + pet.MainframePlanChoice;
                 if (layout != next) { layout = next; ArrangePage(); }
                 FillMods();
             }
@@ -890,8 +900,10 @@ namespace CapriDesktop
                     if (item.Y == 138 || item.Y == 160 || item.Y == 182) show &= Expanded;
                     if (control == models) show &= !Expanded;
                     if (control == refresh) y = Expanded ? 226 : 134;
-                    if (control == tierNote || Array.IndexOf(brains, control) >= 0 || control == freeKeys || control == textKey || control == textConnect || item.Y == 294) y += extra;
-                    if (control == textKey || control == textConnect) show &= tier > 0;
+                    if (control == tierNote || Array.IndexOf(brains, control) >= 0 || control == freeKeys || control == planPicker || control == planModels || control == textKey || control == textConnect || item.Y == 294) y += extra;
+                    if (control == textKey || control == textConnect) show &= tier > 0 && pet.MainframePlanChoice == 0;
+                    if (control == planPicker) show &= tier == 2;
+                    if (control == planModels) show &= tier == 2 && pet.MainframePlanChoice != 0;
                     if (item.Y == 294) show &= tier == 1;
                     if (item.Y == 315 || item.Y == 350) show &= tier == 1 && paidKey != null;
                     if (control == freeKeys) show &= tier == 1;

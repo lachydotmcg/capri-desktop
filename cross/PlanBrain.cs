@@ -12,6 +12,7 @@ namespace CapriDesktop
 {
     internal sealed class PlanBrain : IBrainProvider
     {
+        internal const string Proposal = "\nReturn only a JSON object with text (string) and calls (array, at most 4). Each call has name and arguments conforming to exactly one available function. Use calls=[] for no action. Never claim execution; these are proposals checked by the native app. The function catalog is: ";
         private readonly string python, accounts, model, visionModel, effort, visionEffort;
         private readonly int? tokens, visionTokens;
         private readonly bool ownsAccount;
@@ -78,7 +79,7 @@ namespace CapriDesktop
                     input.Add(new { role = message.Role == "assistant" ? "assistant" : "user", content });
                 }
                 if (tools != null)
-                    instructions.Append("\nReturn only a JSON object with text (string) and calls (array, at most 4). Each call has name and arguments conforming to exactly one available function. Use calls=[] for no action. Never claim execution; these are proposals checked by the native app. The function catalog is: ").Append(tools);
+                    instructions.Append(Proposal).Append(tools);
                 using Process child = Bridge.Start(python, "plan_bridge.py", "plan", accounts);
                 lock (gate)
                 {
