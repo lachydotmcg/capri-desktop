@@ -66,6 +66,7 @@ namespace CapriDesktop
         // A line that takes longer than this has missed the moment.
         internal static int Late = 6000;
         private const int Longest = 1280;
+        internal const int Earlier = 640;
         private const int Keeps = 8;
         private const int LookAround = 40000;
         private static readonly object gate = new object();
@@ -170,8 +171,8 @@ namespace CapriDesktop
             try
             {
                 List<byte[]> frames = new List<byte[]>();
-                if (before != null) frames.Add(Shrunk(before));
-                if (after != null) frames.Add(Shrunk(after));
+                if (before != null) frames.Add(Shrunk(before, after != null ? Earlier : Longest));
+                if (after != null) frames.Add(Shrunk(after, Longest));
                 moments = Moments();
                 line = Line(See(Brain.Character + RulesFor(moments), Ask(kind, detail, game, recent, pace, frames.Count, died) + Avoid(game), frames.ToArray()), recent, out flagged);
                 if (!Computer.ScreenNames(line, game)) { line = ""; flagged = false; }
@@ -333,13 +334,13 @@ namespace CapriDesktop
         }
 
         // A whole screen is more than a quick look needs, and a smaller picture gets there faster.
-        private static byte[] Shrunk(byte[] jpeg)
+        internal static byte[] Shrunk(byte[] jpeg, int longest)
         {
             try
             {
                 using (MemoryStream data = new MemoryStream(jpeg))
                 using (Bitmap picture = new Bitmap(data))
-                    return Math.Max(picture.Width, picture.Height) <= Longest ? jpeg : Companion.Jpeg(picture, Longest);
+                    return Math.Max(picture.Width, picture.Height) <= longest ? jpeg : Companion.Jpeg(picture, longest);
             }
             catch (ArgumentException) { return jpeg; }
         }
