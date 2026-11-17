@@ -432,7 +432,8 @@ namespace CapriDesktop
 
         private bool AskToRun(ModFile mod, string hash)
         {
-            return Question.Ask(this, Mods.Consent(mod, hash), "Run this code mod?");
+            if (!Question.Ask(this, Mods.Consent(mod, hash), "Run this code mod?")) return false;
+            return !mod.AskTwice || Question.Ask(this, Mods.Unclear(mod), "Run code you can't read?");
         }
 
         private void RemoveMod(int row)
