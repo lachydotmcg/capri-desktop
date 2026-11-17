@@ -91,6 +91,10 @@ Antivirus apps can flag her too. Taking screenshots, moving the mouse, pressing 
 
 3. Compare the `Hash` with the `Capri-Setup.exe` line in `SHA256SUMS.txt` on the same release. A match means you have the file we published.
 
+On a Mac, run `shasum -a 256 Capri-mac-apple-silicon.zip` (or `Capri-mac-intel.zip`). On Linux, put `SHA256SUMS.txt` next to your download and run `sha256sum -c --ignore-missing SHA256SUMS.txt`. Every file on a release, Windows, Mac, Linux and Quest, has its line there.
+
+Real releases are only at [github.com/lachydotmcg/capri-desktop/releases](https://github.com/lachydotmcg/capri-desktop/releases). A repo under any other GitHub account that copies this README isn't ours, even if it looks the same.
+
 Keep your antivirus on. If it quarantined her and the hash matches, restore that one file.
 
 You can also build her yourself from the public code. [CONTRIBUTING.md](CONTRIBUTING.md) has what you need.
