@@ -1264,6 +1264,17 @@ namespace CapriDesktop
         // everything else still counts.
         internal bool GameSoundsOn { get { return !preferences.NoGameSounds; } }
 
+        internal int GameSoundSensitivity { get { return Math.Max(0, Math.Min(100, 100 - preferences.GameSoundsDown)); } }
+
+        internal void SetGameSoundSensitivity(int percent)
+        {
+            percent = Math.Max(0, Math.Min(100, percent));
+            if (GameSoundSensitivity == percent) return;
+            preferences.GameSoundsDown = 100 - percent;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         internal void ToggleGameSounds()
         {
             preferences.NoGameSounds = !preferences.NoGameSounds;

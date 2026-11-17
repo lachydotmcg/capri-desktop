@@ -342,6 +342,9 @@ namespace CapriDesktop
         private readonly Readout bubbleName;
         private readonly Slider comments;
         private readonly Readout commentsName;
+        private readonly Slider gameSoundLevel;
+        private readonly Readout gameSoundLevelName;
+        internal static readonly string[] SensitivityNames = { "Off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly Toggle intro;
         private readonly Toggle typing;
         private readonly Toggle listenCapri;
@@ -1058,6 +1061,10 @@ namespace CapriDesktop
             // deaths and kills still count.
             gameSounds = Switch("Game sounds", 0, 994, delegate { if (!syncing) capri.ToggleGameSounds(); });
             gameSounds.AccessibleName = "Game sounds. Big bursts of your game's sound count as moments for her reactions and comments. Off, she ignores them and still reacts to hits, deaths and kills";
+            gameSoundLevel = Setting("Sound sensitivity", SensitivityNames, 0, 1022, "Game sound sensitivity. Lower it if your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores game sounds");
+            gameSoundLevelName = new Readout(gameSoundLevel);
+            gameSoundLevel.Changed += delegate { if (syncing) return; gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value]; capri.SetGameSoundSensitivity(gameSoundLevel.Value * 10); };
+            int afterGameSounds = Controls.Count;
             gamingMode = Switch("Gaming Mode", 0, 1022, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She reacts to your game until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
             Caption("She reacts to your game until you close it.", 28, 1048, small, Faint);
@@ -1092,6 +1099,7 @@ namespace CapriDesktop
             clipHint.Bounds = new Rectangle(28, 1466, 328, 36);
             BuildWeather(1514);
             int gamesTo = Controls.Count;
+            for (int belowSensitivity = afterGameSounds; belowSensitivity < gamesTo; belowSensitivity++) Controls[belowSensitivity].Top += Row;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
@@ -3091,6 +3099,8 @@ namespace CapriDesktop
             ShowPersonality();
             liveReactions.Checked = capri.ReactionsOn;
             gameSounds.Checked = capri.GameSoundsOn;
+            gameSoundLevel.Value = (capri.GameSoundSensitivity + 5) / 10;
+            gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value];
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
             ClipSettings recording = capri.ClipOptions;
@@ -3333,6 +3343,10 @@ namespace CapriDesktop
         internal void FlipReactions() { liveReactions.Checked = !liveReactions.Checked; }
 
         internal bool GameSoundsShown { get { return gameSounds.Checked; } }
+        internal string GameSensitivityShown { get { return gameSoundLevelName.Text; } }
+        internal Rectangle GameSensitivityAt { get { return gameSoundLevel.Bounds; } }
+        internal Rectangle GamingModeAt { get { return gamingMode.Bounds; } }
+        internal void SetGameSensitivityShown(int step) { gameSoundLevel.Value = step; }
 
         internal void FlipGameSounds() { gameSounds.Checked = !gameSounds.Checked; }
 
