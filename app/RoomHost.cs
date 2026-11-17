@@ -24,12 +24,14 @@ namespace CapriDesktop
         private readonly List<Stream> streams = new List<Stream>();
         private int cached;
         private bool talking, closed;
+        private readonly bool local;
         internal Func<string, byte[]> Fetch;
 
         internal RoomHost(string remotePage)
         {
             if (remotePage == null || !remotePage.EndsWith("/remote/", StringComparison.Ordinal)) throw new ArgumentException("The Room page has to end in /remote/.");
             site = remotePage.Substring(0, remotePage.Length - "remote/".Length);
+            local = site.StartsWith("http://127.0.0.1:", StringComparison.Ordinal) || site.StartsWith("http://localhost:", StringComparison.Ordinal);
             byte[] random = new byte[16];
             using (RandomNumberGenerator rng = RandomNumberGenerator.Create()) rng.GetBytes(random);
             token = BitConverter.ToString(random).Replace("-", "").ToLowerInvariant();
@@ -165,7 +167,7 @@ namespace CapriDesktop
             if (body == null) return null;
             lock (gate)
             {
-                if (cached + body.Length <= CacheLimit && !cache.ContainsKey(rest))
+                if (!local && cached + body.Length <= CacheLimit && !cache.ContainsKey(rest))
                 {
                     cache[rest] = new KeyValuePair<string, byte[]>(rest, body);
                     cached += body.Length;
