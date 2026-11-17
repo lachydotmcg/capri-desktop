@@ -1154,6 +1154,26 @@ namespace CapriDesktop
                     TreeSight.Read = treeWas;
                     TreeSight.Skip = treeSkipWas;
                 }
+                Func<bool> macTrustWas = MacTree.Trusted;
+                try
+                {
+                    bool macAsked = false;
+                    MacTree.Trusted = delegate { macAsked = true; return false; };
+                    bool macUntrusted = MacTree.Read() == null && macAsked == OperatingSystem.IsMacOS();
+                    MacTree.Trusted = macTrustWas;
+                    DateTime macStarted = DateTime.UtcNow;
+                    string macRead = OperatingSystem.IsMacOS() ? MacTree.Read() : null;
+                    bool macBounded = (DateTime.UtcNow - macStarted).TotalMilliseconds < 6000 && (macRead == null || macRead.StartsWith("Window: ", StringComparison.Ordinal));
+                    bool macLines = MacTree.Line("AXButton", "Save", null, false, false) == "button \"Save\""
+                        && MacTree.Line("AXSecureTextField", "Password", "hunter2", true, false) == "box \"Password\" (password box) (focused)"
+                        && MacTree.Line("AXTextField", "Email", "me@example.com", false, true) == "box \"Email\""
+                        && MacTree.Line("AXTextField", "Search", "cats", false, false) == "box \"Search: cats\""
+                        && MacTree.Line("AXStaticText", "", "12 items", false, false) == "text \"12 items\""
+                        && MacTree.Line("AXGroup", "Toolbar", null, false, false) == null && MacTree.Line("AXButton", " ", "", false, false) == null && MacTree.Line(null, "x", "y", false, false) == null;
+                    if (!macUntrusted || !macBounded || !macLines) throw new Exception("Her mac tree eyes went wrong: untrusted " + macUntrusted + ", bounded " + macBounded + ", lines " + macLines + " | " + macRead);
+                }
+                finally { MacTree.Trusted = macTrustWas; }
+                checks.Add("PASS her tree eyes on mac: she reads the window in front through Accessibility only when Capri already has that permission, never asks for it, keeps password boxes empty and typed text hidden while discreet, and an unreadable window falls back to the screenshot");
                 checks.Add("PASS her tree eyes on linux: a look reads the window in front from AT-SPI as names and text beside the screenshot, password boxes stay empty, a never-watch window or an empty read gives nothing, and a slow or missing accessibility bus never holds up her look");
                 bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
                 if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
