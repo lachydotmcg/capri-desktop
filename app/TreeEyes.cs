@@ -133,7 +133,7 @@ namespace CapriDesktop
             object pattern;
             if (!document.TryGetCurrentPattern(TextPattern.Pattern, out pattern)) return null;
             StringBuilder text = new StringBuilder();
-            foreach (TextPatternRange range in ((TextPattern)pattern).GetVisibleRanges())
+            foreach (System.Windows.Automation.Text.TextPatternRange range in ((TextPattern)pattern).GetVisibleRanges())
             {
                 if (text.Length >= PageLongest) break;
                 text.Append(" " + range.GetText(PageLongest - text.Length));
