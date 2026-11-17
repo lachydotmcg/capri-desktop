@@ -16,6 +16,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Capri.BrainProviderChecks")]
+
 namespace CapriDesktop
 {
     [DataContract]
@@ -84,12 +86,21 @@ namespace CapriDesktop
         [DataMember] internal int MemorySize;
         [DataMember] internal int ReplyLength;
         [DataMember] internal int? BrainTier;
+        [DataMember] internal string BrainProvider;
+        [DataMember] internal ProviderModelPick[] ProviderModels;
         [DataMember] internal string FreeModel;
         [DataMember] internal string PaidModel;
         [DataMember] internal string SpeechModel;
         [DataMember] internal ThinkingPick[] ThinkingPicks;
         [DataMember] internal bool RemoteOn;
         [DataMember] internal string RemoteHost = RemoteLink.DefaultHost;
+    }
+
+    [DataContract]
+    internal sealed class ProviderModelPick
+    {
+        [DataMember] internal string Provider;
+        [DataMember] internal string Model;
     }
 
     internal sealed class RemoteTurn
@@ -953,6 +964,7 @@ namespace CapriDesktop
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
+            if (AdoptProvider(Saved, Brain.Remote == null ? null : Brain.Remote.Kind)) WriteSettings();
             voice.Key = ReadVoiceKey();
             // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
             Brain.Secrets = delegate { Cloud remote = Brain.Remote; return new[] { remote == null ? null : remote.Key, Brain.ServerKey, voice.Key }; };
@@ -6250,7 +6262,7 @@ namespace CapriDesktop
                         try
                         {
                             if (request != brainRequests) { NotifySettings(); return; }
-                            string model = found == null ? null : Brain.DefaultCloudModel(kind, found);
+                            string model = found == null ? null : KeyModel(Saved, kind, found);
                             if (problem == null && model == null) problem = "That key can't use any chat models.";
                             if (problem != null) { frameProblem = problem; if (phone != null) DropPhoneKey(Brain.Brief(problem) ?? problem); NotifySettings(); if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
                             if (phone != null) { phoneKey = null; if (remoteBrainTimer != null) remoteBrainTimer.Stop(); }
@@ -6290,6 +6302,7 @@ namespace CapriDesktop
             LeavePlan();
             Brain.Remote = new Cloud(key, model);
             Brain.Model = model;
+            Saved.BrainProvider = Brain.Remote.Kind;
             Saved.CloudModel = model;
             cloudModels = models;
             cloudListing = false;
@@ -6328,6 +6341,7 @@ namespace CapriDesktop
             Brain.Remote = null;
             LeavePlan();
             Brain.Model = null;
+            Saved.BrainProvider = null;
             cloudModels = null;
             Saved.CloudModel = null;
             Saved.BrainTier = 0;
@@ -6697,6 +6711,8 @@ namespace CapriDesktop
             [DataMember] internal int MemorySize;
             [DataMember] internal int ReplyLength;
             [DataMember] internal int? BrainTier;
+            [DataMember] internal string BrainProvider;
+            [DataMember] internal ProviderModelPick[] ProviderModels;
             [DataMember] internal string FreeModel;
             [DataMember] internal string PaidModel;
             [DataMember] internal string SpeechModel;
@@ -6721,6 +6737,11 @@ namespace CapriDesktop
             {
                 saved.RemoteOn = newer.RemoteOn;
                 saved.RemoteHost = newer.RemoteHost;
+            }
+            if (saved != null && newer != null)
+            {
+                if (saved.BrainProvider == null) saved.BrainProvider = newer.BrainProvider;
+                if (saved.ProviderModels == null) saved.ProviderModels = newer.ProviderModels;
             }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
@@ -6757,8 +6778,48 @@ namespace CapriDesktop
         internal static NewSettings Newest(Settings saved)
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
-                MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
+                MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
+        }
+
+        internal static string ProviderKind(Settings saved, string inferred)
+        {
+            return saved != null && !string.IsNullOrEmpty(saved.BrainProvider) ? saved.BrainProvider : inferred;
+        }
+
+        internal static bool AdoptProvider(Settings saved, string inferred)
+        {
+            if (saved == null || saved.BrainProvider != null || string.IsNullOrEmpty(inferred)) return false;
+            saved.BrainProvider = inferred;
+            return true;
+        }
+
+        internal static string ProviderModel(Settings saved, string provider)
+        {
+            if (saved == null || saved.ProviderModels == null || string.IsNullOrEmpty(provider)) return null;
+            foreach (ProviderModelPick pick in saved.ProviderModels) if (pick != null && pick.Provider == provider && !string.IsNullOrEmpty(pick.Model)) return pick.Model;
+            return null;
+        }
+
+        internal static void RememberProviderModel(Settings saved, string provider, string model)
+        {
+            if (saved == null || string.IsNullOrEmpty(provider) || string.IsNullOrEmpty(model)) return;
+            List<ProviderModelPick> picks = new List<ProviderModelPick>();
+            if (saved.ProviderModels != null) foreach (ProviderModelPick pick in saved.ProviderModels) if (pick != null && pick.Provider != provider) picks.Add(pick);
+            picks.Add(new ProviderModelPick { Provider = provider, Model = model });
+            saved.ProviderModels = picks.ToArray();
+        }
+
+        internal static string TierModel(Settings saved, string provider, int tier)
+        {
+            string model = ProviderModel(saved, provider);
+            return model != null ? model : tier == 1 ? saved.FreeModel : saved.PaidModel;
+        }
+
+        internal static string KeyModel(Settings saved, string provider, List<string> models)
+        {
+            string model = ProviderModel(saved, provider);
+            return model != null && models != null && models.Contains(model) ? model : Brain.DefaultCloudModel(provider, models);
         }
 
         private Settings Load()
@@ -6843,6 +6904,11 @@ namespace CapriDesktop
             Saved.Y = anchor.Y;
             Saved.Placed = true;
             NotifySettings();
+            WriteSettings();
+        }
+
+        private void WriteSettings()
+        {
             if (Program.Smoke != null || settingsWriteBlocked) return;
             try
             {
