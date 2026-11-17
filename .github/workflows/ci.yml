@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches-ignore: [gh-pages]
+    branches: [main, 'rc-*']
   pull_request:
   workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -31,6 +31,18 @@ jobs:
         run: |
           $env:CAPRI_DISPOSABLE_USER = '1'
           ./ci/test-package-marker.ps1 -Setup out/windows/Capri-Setup.exe
+      - name: Slowest smoke sections
+        if: always()
+        shell: pwsh
+        run: |
+          $timings = 'out/windows/smoke/runtime/smoke-timings.txt'
+          if (-not (Test-Path -LiteralPath $timings)) { Write-Output 'No smoke-timings.txt'; exit 0 }
+          $rows = Import-Csv -LiteralPath $timings -Delimiter "`t" | Sort-Object { [double]$_.own_ms } -Descending
+          $total = ($rows | Measure-Object -Property own_ms -Sum).Sum / 1000
+          $lines = @("| section | parent | own s | inclusive s |", "|---|---|---:|---:|")
+          $lines += $rows | Select-Object -First 40 | ForEach-Object { '| {0} | {1} | {2:N1} | {3:N1} |' -f $_.section, $_.parent, ([double]$_.own_ms / 1000), ([double]$_.inclusive_ms / 1000) }
+          $lines = @("Timed sections: $($rows.Count), own time $([math]::Round($total)) s", '') + $lines
+          $lines | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
       - uses: actions/upload-artifact@v4
         if: always()
         with:

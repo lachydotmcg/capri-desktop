@@ -2,7 +2,7 @@ name: Android
 
 on:
   push:
-    branches-ignore: [gh-pages]
+    branches: [main, 'rc-*']
     paths:
       - 'android/**'
       - 'site/remote/**'
@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: android-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
