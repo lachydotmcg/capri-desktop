@@ -861,9 +861,10 @@ class MacSandboxChecks(unittest.TestCase):
         self.assertEqual(smoke.DIAGNOSTIC_SECONDS, 120)
         root = BRIDGE.parents[1]
         self.assertIn('process.WaitForExit(240000)', (root / 'cross/Smoke.cs').read_text(encoding='utf-8'))
-        for name, count in (('mac-linux.yml', 2), ('ci.yml', 1)):
+        for name, count, rosetta in (('mac-linux.yml', 1, 1), ('ci.yml', 1, 0)):
             workflow = (root / '.github/workflows' / name).read_text(encoding='utf-8')
             self.assertEqual(workflow.count('timeout-minutes: 8'), count)
+            self.assertEqual(workflow.count('timeout-minutes: 14'), rosetta)
 
     def test_path_bisection_retains_a_proven_set_when_narrow_rules_exceed_the_report_limit(self):
         record, launch = self.captured_launch()

@@ -109,6 +109,7 @@ namespace CapriDesktop
             {
                 if (Step(now))
                 {
+                    if (step == 0) started = -1;
                     step++;
                     // Fresh on the next tick: now is from before this step ran, and a long step isn't the next one's fault.
                     stepStart = -1;
@@ -2945,7 +2946,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Room camera (preview):", "Photos:", "Phone:", "Phone jobs:", "JOBS", "Files:", "Mouse and keyboard:", "Error details:" } : new[] { "Room camera (preview):", "Photos:", "Phone:", "Phone jobs:", "JOBS", "Files:", "Mouse:", "Screen Recording:", "Error details:" })
+                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Weather:", "Open-Meteo", "Pats:", "Talk boxes:", "Sulks:", "Your screen:", "Capri Remote:" } : new[] { "Weather:", "Open-Meteo", "Pats:", "Talk boxes:", "Sulks:", "Your screen:", "Updates:", "Get new version", "Capri Remote:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
@@ -4304,6 +4305,7 @@ namespace CapriDesktop
                 if (pet.Talk.Reply != "New answer.") throw new Exception("A new answer did not drop the old follow-up.");
                 pet.Talk.Dismiss(); pet.HoldFollowUp("Off."); pet.SetFollowUps(false); pet.CheckFollowUp(100); pet.CheckFollowUp(103);
                 if (pet.Talk.Reply != null) throw new Exception("Follow-up messages Off kept a held thought.");
+                typeof(Pet).GetField("inputHandled", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).SetValue(pet, 100.0);
                 pet.SetFollowUps(true); pet.ObserveInput(200, 200, 20); pet.HoldFollowUp("Other typing."); pet.CheckFollowUp(100); pet.ObserveInput(201, 201, 0); pet.CheckFollowUp(103);
                 if (pet.Talk.Reply != null) throw new Exception("Desktop input did not drop the follow-up.");
                 pet.ObserveInput(400, 400.02, 20); pet.HoldFollowUp("Quiet desktop."); pet.CheckFollowUp(100); pet.ObserveInput(400.5, 400.54, 20.52); pet.CheckFollowUp(102);
