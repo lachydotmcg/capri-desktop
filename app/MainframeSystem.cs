@@ -81,6 +81,44 @@ namespace CapriDesktop
             }
         }
 
+        internal string ResourcesDocked(string picture)
+        {
+            bool wasShown = Visible;
+            FormWindowState wasState = WindowState;
+            Point wasAt = Location;
+            try
+            {
+                Restore();
+                Application.DoEvents();
+                if (picture != null)
+                    using (Bitmap shot = new Bitmap(ClientSize.Width, ClientSize.Height))
+                    {
+                        DrawToBitmap(shot, new Rectangle(Point.Empty, shot.Size));
+                        shot.Save(picture, System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                ToggleResources();
+                if (!ResourcesOpen || !resourcesKey.Picked) return "Resources didn't open its panel or light its key";
+                Rectangle area = Screen.FromControl(this).WorkingArea, under = resourcesSheet.Bounds;
+                bool docked = under.Top == Bottom || under.Bottom == Top || under.Bottom == area.Bottom;
+                bool centred = Math.Abs(under.Left + under.Width / 2 - (Left + Width / 2)) <= 2 || under.Left == area.Left || under.Right == area.Right;
+                if (!docked || !centred) return "the panel " + under + " isn't docked to the Mainframe " + Bounds;
+                Location = new Point(Left - 40, Top);
+                Application.DoEvents();
+                Rectangle moved = resourcesSheet.Bounds;
+                if (moved.Left != under.Left - 40 && moved.Left != area.Left) return "the panel didn't follow the Mainframe: " + moved + " after " + under;
+                ToggleResources();
+                if (ResourcesOpen || resourcesKey.Picked) return "Resources didn't close its panel or unlight its key";
+                return null;
+            }
+            finally
+            {
+                if (ResourcesOpen) resourcesSheet.Close();
+                Location = wasAt;
+                if (!wasShown) Hide();
+                else if (WindowState != wasState) WindowState = wasState;
+            }
+        }
+
         private sealed class UseBar : Control
         {
             private double ours, theirs;
@@ -255,7 +293,7 @@ namespace CapriDesktop
                     rows[i][1].Text = row == null ? "" : UseView.Percent(row.Cpu);
                     rows[i][2].Text = row == null ? "" : UseView.Bytes(row.Ram);
                     rows[i][3].Text = row == null ? "" : UseView.Percent(row.Gpu);
-                    rows[i][4].Text = row == null ? "" : row.Vram > 0 ? UseView.Bytes(row.Vram) : row.Vram == 0 ? "0" : "-";
+                    rows[i][4].Text = row == null ? "" : row.Vram > 0 ? UseView.Bytes(row.Vram) : row.Vram == 0 ? "0 MB" : "-";
                 }
             }
 
@@ -285,6 +323,7 @@ namespace CapriDesktop
 
             internal void Dock()
             {
+                if (Frame.WindowState == FormWindowState.Minimized) return;
                 Rectangle area = Screen.FromControl(Frame).WorkingArea;
                 int x = Frame.Left + (Frame.Width - Width) / 2;
                 int y = Frame.Bottom;

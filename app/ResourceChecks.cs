@@ -119,26 +119,12 @@ namespace CapriDesktop
                 string crowded = mainframe.ResourcesSheetAt(zoom, made, Path.Combine(output, "resources-" + (int)(zoom * 100) + ".png"));
                 if (crowded != null) throw new Exception("The Resources panel at " + (int)(zoom * 100) + "%: " + crowded);
             }
-            PeekPicture(checks, Path.Combine(output, "resources-100.png"), "sheet");
-            using (System.Drawing.Bitmap whole = new System.Drawing.Bitmap(mainframe.ClientSize.Width, mainframe.ClientSize.Height))
-            {
-                mainframe.DrawToBitmap(whole, new System.Drawing.Rectangle(System.Drawing.Point.Empty, whole.Size));
-                whole.Save(Path.Combine(output, "mainframe-now.png"), System.Drawing.Imaging.ImageFormat.Png);
-            }
-            PeekPicture(checks, Path.Combine(output, "mainframe-now.png"), "mainframe");
             checks.Add("PASS resources panel: CPU, RAM and GPU bars with Capri's share, her parts and the busiest other programs fit at 100%, 150% and 200% with nothing cut or overlapping");
 
-            mainframe.ToggleResources();
-            try
-            {
-                if (!mainframe.ResourcesOpen) throw new Exception("Resources didn't open its panel.");
-                System.Drawing.Rectangle under = mainframe.ResourcesBounds, frame = mainframe.Bounds;
-                if (under.Top != frame.Bottom && under.Bottom != frame.Top && under.Bottom != System.Windows.Forms.Screen.FromControl(mainframe).WorkingArea.Bottom) throw new Exception("The panel isn't docked to the Mainframe: " + under + " beside " + frame);
-                mainframe.ToggleResources();
-                if (mainframe.ResourcesOpen) throw new Exception("Resources didn't close its panel.");
-            }
-            finally { if (mainframe.ResourcesOpen) mainframe.ToggleResources(); }
-            checks.Add("PASS Resources key: opens its panel docked to the Mainframe and closes it again");
+            string docked = mainframe.ResourcesDocked(Path.Combine(output, "mainframe-resources.png"));
+            if (docked != null) throw new Exception(docked);
+            PeekPicture(checks, Path.Combine(output, "mainframe-resources.png"), "mainframe");
+            checks.Add("PASS Resources key: opens its panel docked under the Mainframe, lights up while it is open, follows the Mainframe when it moves, and closes it again");
         }
 
         private static void PeekPicture(List<string> checks, string path, string name)
