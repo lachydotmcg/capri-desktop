@@ -59,7 +59,7 @@
   sizer.value = String(grow);
   const YOU = 0.85;
   let front = false, desk = false, you = null, lookAt = 0, lookPen, lastLook, tape, tapePen, recorder, takes, tapeTimer;
-  const EYE = 0.9, DESK = 0.3, TILT = 14 * D, TALL = 0.24, TAPE = 60000;
+  const NEAR = 0.6, EYE = 0.9, DESK = 0.3, TILT = 14 * D, TALL = 0.24, TAPE = 60000;
   const tilt = [1, 0, 0, 0, Math.cos(TILT), Math.sin(TILT), 0, -Math.sin(TILT), Math.cos(TILT)];
   const looker = document.createElement('canvas');
   looker.width = 32;
@@ -649,11 +649,11 @@
     const position = life?.position || standAt(glass);
     const mouth = talking || hostTalking || now < mouthUntil;
     if (her.dataset.mouth !== String(mouth)) her.dataset.mouth = String(mouth);
-    stage.update({ now, position, ...lifeClip(now), talking: mouth, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? deskTall() : 0, ground: floorY() });
+    stage.update({ now, position, ...lifeClip(now), talking: mouth, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? deskTall() * Math.max(0.15, Math.hypot(position[0], position[1], position[2])) / NEAR : 0, ground: floorY() });
     if (desk) cutLayer(now, position);
     stage.draw();
     if (!position) return;
-    her.style.setProperty('--s', Math.max(40, Math.min(320 * (desk ? grow : 1), glass.focal * (desk ? deskTall() : 0.8) / Math.hypot(position[0], position[1], position[2]))).toFixed(1) + 'px');
+    her.style.setProperty('--s', Math.max(40, Math.min(320 * (desk ? grow : 1), desk ? glass.focal * deskTall() / NEAR : glass.focal * 0.8 / Math.hypot(position[0], position[1], position[2]))).toFixed(1) + 'px');
     if (life?.position) {
       const at = screenOf(glass, position);
       her.style.visibility = at ? '' : 'hidden';
@@ -1132,8 +1132,17 @@
     if (drag.life && !session && !drag.grabbed && life?.position) {
       const glass = lens();
       if (glass) {
-        const reachOut = Math.hypot(...life.position);
-        drag.at = sight => {
+        const reachOut = Math.hypot(...life.position), foot = desk && screenOf(glass, life.position);
+        if (foot) {
+          const ox = foot[0] - drag.cx, oy = foot[1] - drag.cy;
+          let last = life.position.slice();
+          drag.at = sight => {
+            const fx = drag.cx + ox, fy = Math.min(sight.height - 2, drag.cy + oy);
+            const spot = onFloor(sight, fx, Math.max(fy, sight.height / 2 + 4));
+            if (spot) last = spot;
+            return last.slice();
+          };
+        } else drag.at = sight => {
           const d = rayAt(sight, drag.cx, drag.cy), n = Math.hypot(d[0], d[1], d[2]) || 1;
           return d.map(value => value / n * reachOut);
         };
@@ -1145,7 +1154,7 @@
   place.addEventListener('pointerup', event => {
     if (drag?.id !== event.pointerId) return;
     if (drag.moved) event.preventDefault();
-    if (drag.grabbed) life?.release(performance.now());
+    if (drag.grabbed) life?.release(performance.now(), undefined, desk);
     else if (drag.life && !drag.moved) {
       life?.poke(performance.now());
       suppressTap = true;
@@ -1242,6 +1251,36 @@
       events.addEventListener('error', () => { hostTalking = false; });
     } catch (error) {}
     close.addEventListener('click', () => window.close());
+    let fitted = false;
+    const fit = () => {
+      const wide = video.videoWidth, high = video.videoHeight;
+      if (!wide || !high || room.hidden) return;
+      const aspect = wide / high;
+      view.style.removeProperty('width');
+      view.style.removeProperty('height');
+      view.style.removeProperty('flex');
+      view.style.removeProperty('align-self');
+      const roomBox = room.getBoundingClientRect(), viewBox = view.getBoundingClientRect();
+      const around = roomBox.height - viewBox.height, availW = viewBox.width, availH = Math.max(120, innerHeight - around - 4);
+      if (availW < 50 || roomBox.height < 50) { setTimeout(fit, 200); return; }
+      if (!fitted) {
+        fitted = true;
+        const grow = Math.round(availW / aspect - availH);
+        if (Math.abs(grow) > 8) {
+          try { window.resizeBy(0, grow); } catch (error) {}
+          setTimeout(fit, 250);
+          return;
+        }
+      }
+      const width = Math.min(availW, availH * aspect);
+      view.style.flex = '0 0 auto';
+      view.style.alignSelf = 'center';
+      view.style.width = width.toFixed(0) + 'px';
+      view.style.height = (width / aspect).toFixed(0) + 'px';
+    };
+    video.addEventListener('loadedmetadata', fit);
+    video.addEventListener('resize', fit);
+    addEventListener('resize', () => requestAnimationFrame(fit));
   }
   if (roomWindow) {
     app.dataset.window = 'room';

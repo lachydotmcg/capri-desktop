@@ -82,7 +82,8 @@ export const createLife = ({ tall = 0.5, say = () => {}, calm = () => false, ran
   };
   life.grab = (point, now) => {
     if (!life.position) return;
-    life.held = { trail: [[now, point.slice()]], offset: [life.position[0] - point[0], life.position[1] - point[1], life.position[2] - point[2]] };
+    const before = life.mode === 'sit' || life.mode === 'lie' || life.mode === 'stand' ? life.mode : life.held?.before || null;
+    life.held = { trail: [[now, point.slice()]], offset: [life.position[0] - point[0], life.position[1] - point[1], life.position[2] - point[2]], before };
     life.target = null;
     setMode('held', now);
     life.quiet = now;
@@ -96,9 +97,10 @@ export const createLife = ({ tall = 0.5, say = () => {}, calm = () => false, ran
     life.held.trail.push([now, life.position.slice()]);
     while (life.held.trail.length > 2 && now - life.held.trail[0][0] > 120) life.held.trail.shift();
   };
-  life.release = (now, settle) => {
+  life.release = (now, settle, lift = false) => {
     if (life.mode !== 'held') return;
     const trail = life.held?.trail || [];
+    life.kept = life.held?.before || null;
     const first = trail[0], last = trail[trail.length - 1];
     let v = [0, 0, 0];
     if (first && last && last[0] - first[0] > 10) {
@@ -110,6 +112,8 @@ export const createLife = ({ tall = 0.5, say = () => {}, calm = () => false, ran
     if (fast > cap) v = v.map(value => value / fast * cap);
     life.held = null;
     const thrown = fast > 0.9 * scale;
+    if (thrown) life.kept = null;
+    if (thrown && lift) v[1] = Math.max(v[1], fast * 0.5);
     life.velocity = thrown ? v : [0, 0, 0];
     setMode('fly', now);
     if (thrown) {
@@ -175,12 +179,15 @@ export const createLife = ({ tall = 0.5, say = () => {}, calm = () => false, ran
           setMode('dizzy', now);
           play('glitch', now);
           line('dizzy', now, true);
+        } else if (!thrown && life.kept) {
+          setMode(life.kept, now);
         } else {
           const raised = world.raised?.(life.position);
           setMode(raised ? 'sit' : 'stand', now);
           if (!raised) play('grin', now);
           line(thrown ? 'land' : raised ? 'perch' : 'drop', now, thrown);
         }
+        life.kept = null;
         life.home = life.position.slice();
         plan(now);
       }

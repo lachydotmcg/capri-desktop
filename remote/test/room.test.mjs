@@ -708,14 +708,34 @@ test('her room inside the pc app shows only her room, talks when the pc capri ta
     assert.equal(await page.run("getComputedStyle(document.getElementById('room-voice')).display"), 'none');
     if (!await page.run("!!document.querySelector('#room-view canvas')")) return;
     await page.until("!document.getElementById('room-still').hidden", 'stay still button');
-    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth still', 9000);
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth still', 9000).catch(async error => { throw new Error(error.message + ' ' + await page.run("JSON.stringify([document.getElementById('room-her').dataset.mouth, document.getElementById('room-view').style.cssText, document.getElementById('room-view').clientWidth, document.getElementById('room-view').clientHeight, document.getElementById('room-video').videoWidth, !!document.querySelector('#room-view canvas')])")); });
     await new Promise(done => setTimeout(done, 500));
     say('talk', '1');
     await page.until("document.getElementById('room-her').dataset.mouth === 'true'", 'mouth moving with the pc');
     say('talk', '0');
     await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth stops with the pc');
+    const fit = await page.run(`(() => { const v = document.getElementById('room-view'), video = document.getElementById('room-video');
+      return [v.clientWidth / v.clientHeight, video.videoWidth / video.videoHeight]; })()`);
+    assert.ok(Math.abs(fit[0] - fit[1]) < 0.03, 'the view shows the whole camera picture: ' + fit);
     await page.run("document.getElementById('room-still').click()");
     assert.equal(await page.run("document.getElementById('room-still').getAttribute('aria-pressed')"), 'true');
+    await page.run("document.getElementById('room-lie').click()");
+    await new Promise(done => setTimeout(done, 1200));
+    const at = await page.run(`(() => { const v = document.getElementById('room-view').getBoundingClientRect(), h = document.getElementById('room-her');
+      return { x: v.left + h.offsetLeft, y: v.top + h.offsetTop, s: parseFloat(h.style.getPropertyValue('--s')) }; })()`);
+    const mouse = (type, x, y) => page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1, pointerType: 'mouse' });
+    let x = at.x, y = at.y - at.s * 0.15;
+    await mouse('mouseMoved', x, y);
+    await mouse('mousePressed', x, y);
+    for (let i = 1; i <= 12; i++) { x += 8; y -= 4; await mouse('mouseMoved', x, y); await new Promise(done => setTimeout(done, 40)); }
+    await new Promise(done => setTimeout(done, 300));
+    await mouse('mouseReleased', x, y);
+    await new Promise(done => setTimeout(done, 700));
+    const after = await page.run(`(() => { const v = document.getElementById('room-view').getBoundingClientRect(), h = document.getElementById('room-her');
+      return { x: v.left + h.offsetLeft, y: v.top + h.offsetTop, s: parseFloat(h.style.getPropertyValue('--s')) }; })()`);
+    assert.equal(await page.run("document.getElementById('room-lie').getAttribute('aria-pressed')"), 'true');
+    assert.ok(Math.abs(after.x - at.x - 96) < 30 && Math.abs(after.y - at.y + 48) < 30, 'she stays where she was put: ' + JSON.stringify([at, after]));
+    assert.equal(after.s, at.s);
     assert.equal(await page.run("localStorage.getItem('capri-room-still')"), 'on');
     await page.run("document.getElementById('room-still').click()");
   } finally {
