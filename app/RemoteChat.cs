@@ -294,6 +294,7 @@ namespace CapriDesktop
                     roomHost.CameraState = delegate { return CapriCamera.State; };
                     roomHost.CameraInstall = CapriCamera.AskInstall;
                     roomHost.Frame = camera.Send;
+                    roomHost.CameraOff = camera.Off;
                 }
                 catch (ArgumentException) { }
                 catch (System.Net.Sockets.SocketException) { }

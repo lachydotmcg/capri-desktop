@@ -247,10 +247,16 @@ namespace CapriDesktop
         // Her approve box, the same words as on Windows, waited on here so the mod list stays as it was until they answer.
         private bool AskToRun(ModFile mod, string hash)
         {
+            if (!RunBox("Run this code mod?", Mods.Consent(mod, hash))) return false;
+            return !mod.AskTwice || RunBox("Run code you can't read?", Mods.Unclear(mod));
+        }
+
+        private bool RunBox(string title, string text)
+        {
             bool yes = false;
             Window box = new Window
             {
-                Title = "Run this code mod?", Width = 520, SizeToContent = SizeToContent.Height, CanResize = false, ShowInTaskbar = false,
+                Title = title, Width = 520, SizeToContent = SizeToContent.Height, CanResize = false, ShowInTaskbar = false,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = MainframeTheme.Ground
             };
             NeonButton run = new NeonButton { Text = "Run it", Width = 120, Height = 28, Accent = MainframeTheme.Rose };
@@ -261,7 +267,7 @@ namespace CapriDesktop
             buttons.Children.Add(no);
             buttons.Children.Add(run);
             StackPanel all = new StackPanel();
-            all.Children.Add(new TextBlock { Text = Mods.Consent(mod, hash), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16), Foreground = MainframeTheme.White, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size });
+            all.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16), Foreground = MainframeTheme.White, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size });
             all.Children.Add(buttons);
             box.Content = all;
             using (CancellationTokenSource done = new CancellationTokenSource())
