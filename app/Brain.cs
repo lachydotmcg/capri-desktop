@@ -21,6 +21,7 @@ namespace CapriDesktop
             + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
             + "Talk boxes: closing her bubble, pill or typing box from your desktop only hides it, so it comes back next time. From Yoplaxs.\n"
             + "Sulks: a fast fling counts as a throw now, and three throws in two minutes gets her sulk: she won't take a pat at first and turns her back on you, and a sorry, a later pat or five minutes alone makes up with her. From fadievr.\n"
+            + "Your screen: when she looks at your screen she also reads the window in front, " + (OperatingSystem.IsLinux() ? "from AT-SPI" : "through Accessibility once Capri already has that permission") + ", with password boxes left empty and never on a window in your never watch list. From jidpanu.\n"
             + (OperatingSystem.IsLinux()
                 ? "Capri Remote: chat and photos from your phone work with Linux too."
                 : "Updates: Get new version downloads her new version, checks it, swaps her Capri.app and starts her again, and puts the old one back if the new one won't stay open. From \u2600SUNNY\u2600.\n"
@@ -29,6 +30,8 @@ namespace CapriDesktop
 #else
         internal const string Version = "0.9.3";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
+            + "Room: right-click her and pick Room camera, and she's in your room through your webcam: she walks, sits up on things, hides behind you, gets grabbed and thrown, and talks with her mouth moving. On your phone, Room in Capri Remote puts her in your room in AR. Plays like fadievr's Capri Room for Quest, with PC ideas from connorx132 and Luke Yokubo.\n"
+            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, and pick Capri Camera in Discord, Zoom or OBS so people see her in the room with you.\n"
             + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
             + "Playlist: she plays your own music folders and songs from her mini player, with shuffle, loop and volume. Say play my playlist, or pick Play > Music. From YunoTheAlien.\n"
             + "Commands: Help > Commands lists everything she does without a brain. From YunoTheAlien.\n"
@@ -43,11 +46,14 @@ namespace CapriDesktop
             + "Free voice: Remove free voice frees its space, and she downloads it cleanly again if a file goes missing or empty. From bugnugg3t.\n"
             + "Sitting: she keeps facing the middle while she draws sitting down. From Yoplaxs.\n"
             + "Sulks: throw her three times in two minutes and for her first 20 seconds she turns down head pats, and on her feet she turns her back on your cursor. From fadievr.\n"
+            + "Scroll for me: with TikTok or Shorts in front, say scroll for me and she scrolls for you, reacting to each video, until you say stop scrolling. From thiiago-dev.\n"
+            + "Your screen: when she looks at your screen she also reads the window in front, and her hands can click and type into a control by its exact name, never on a window in your never watch list. From jidpanu.\n"
+            + "Your language: her Mainframe, setup card, tips and menus show in the language you pick for her.\n"
             + "Doomscroll guard: turn it on in her Mainframe and past your scroll limit on TikTok, Shorts, Instagram, Reddit or X she nudges you, sits on the window, then sulks until you put it down. Ask for five more minutes and you get five. From thiiago-dev.\n"
             + "Mic: she stops saying Windows is blocking the mic when your own mic switch is on. From Yoplaxs.\n"
             + "Game sounds: GAMES > Sound sensitivity turns down how loud a game sound has to be before she reacts. From shm9000 and Yoplaxs.\n"
             + "Word and Excel: she turns away documents that unpack too big or nest too deep.";
-        internal const string Line = "I just updated to " + Version + ": I can tell you the weather for your city, play your own playlist and high five you now. Ask me what's new.";
+        internal const string Line = "I just updated to " + Version + ": I can come into your room now. Right-click me and pick Room camera, or ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
