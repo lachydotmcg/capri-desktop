@@ -7006,21 +7006,31 @@ namespace CapriDesktop
             catch (Exception) { return false; }
         }
 
-        private void RestoreSettings(byte[] main, byte[] newer)
+        private void RestoreSettings(byte[] main, byte[] newer, byte[] writtenMain, byte[] writtenNew)
         {
             if (Program.Smoke != null) return;
-            RestoreSettingsFile(Path.Combine(folder, "cross.json"), main);
-            RestoreSettingsFile(Path.Combine(folder, "cross-new.json"), newer);
+            RestoreSettingsFile(Path.Combine(folder, "cross.json"), main, writtenMain);
+            RestoreSettingsFile(Path.Combine(folder, "cross-new.json"), newer, writtenNew);
         }
 
-        private static void RestoreSettingsFile(string path, byte[] bytes)
+        private static void RestoreSettingsFile(string path, byte[] bytes, byte[] written)
         {
             try
             {
+                if (written == null || !File.Exists(path)) return;
+                if (!SameBytes(File.ReadAllBytes(path), written)) return;
                 if (bytes == null) File.Delete(path);
                 else File.WriteAllBytes(path, bytes);
             }
             catch (Exception) { }
+        }
+
+        private static bool SameBytes(byte[] one, byte[] other)
+        {
+            if (one == null || other == null) return one == other;
+            if (one.Length != other.Length) return false;
+            for (int i = 0; i < one.Length; i++) if (one[i] != other[i]) return false;
+            return true;
         }
 
         internal bool UseEndpoint(string id, string model)
@@ -7046,6 +7056,8 @@ namespace CapriDesktop
             string oldServer, oldKey;
             Brain.GetServer(out oldServer, out oldKey);
             string oldModel = Brain.Model;
+            IBrainProvider oldPlan = Brain.Provider;
+            bool oldNative = Saved.NativePlan;
             ComputerJobs.Stop();
             ownedVoice?.Cancel();
             StopNativeListening();
@@ -7059,14 +7071,17 @@ namespace CapriDesktop
             Saved.BrainProvider = provider;
             Saved.BrainTier = 0;
             if (picked.Length > 0) RememberProviderModel(Saved, provider, picked, 0);
-            if (SaveResult()) return true;
-            RestoreSettings(oldMain, oldNew);
+            byte[] writtenMain, writtenNew;
+            if (SaveResult(out writtenMain, out writtenNew)) return true;
+            RestoreSettings(oldMain, oldNew, writtenMain, writtenNew);
             Saved.BrainProvider = oldProvider;
             Saved.BrainServer = oldBrainServer;
             Saved.BrainTier = oldTier;
             Saved.FreeModel = oldFree;
             Saved.PaidModel = oldPaid;
             Saved.ProviderModels = oldModels;
+            Saved.NativePlan = oldNative;
+            Brain.Provider = oldPlan;
             Brain.Remote = oldRemote;
             Brain.SetServer(oldServer, oldKey);
             Brain.Model = oldModel;
@@ -7111,12 +7126,13 @@ namespace CapriDesktop
                 Brain.Model = null;
                 if (address != null && string.Equals(Brain.ServerAddress(oldBrainServer), address, StringComparison.Ordinal)) Saved.BrainServer = null;
             }
-            bool saved = SaveResult();
+            byte[] writtenMain, writtenNew;
+            bool saved = SaveResult(out writtenMain, out writtenNew);
             bool keyGone = true;
             if (saved && path != null && File.Exists(path)) keyGone = WriteSecret(path, null, "custom provider key") && !File.Exists(path);
             if (saved && keyGone) return true;
             if (!keyGone && oldKey != null) WriteSecret(path, oldKey, "custom provider key");
-            RestoreSettings(oldMain, oldNew);
+            RestoreSettings(oldMain, oldNew, writtenMain, writtenNew);
             Saved.ProviderEndpoints = oldEndpoints;
             Saved.ProviderModels = oldModels;
             Saved.BrainProvider = oldProvider;
@@ -7262,22 +7278,46 @@ namespace CapriDesktop
 
         private bool SaveResult()
         {
+            byte[] main, newer;
+            return SaveResult(out main, out newer);
+        }
+
+        private bool SaveResult(out byte[] main, out byte[] newer)
+        {
             Saved.X = anchor.X + Px(body.Size * SitAcross) - Px(body.Size * SitX);
             Saved.Y = anchor.Y;
             Saved.Placed = true;
             NotifySettings();
-            return WriteSettings();
+            return WriteSettings(out main, out newer);
         }
 
         private bool WriteSettings()
         {
+            byte[] main, newer;
+            return WriteSettings(out main, out newer);
+        }
+
+        private bool WriteSettings(out byte[] main, out byte[] newer)
+        {
+            main = null;
+            newer = null;
             if (Program.Smoke != null) return true;
             if (settingsWriteBlocked) return false;
             try
             {
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, Saved);
+                    main = stream.ToArray();
+                }
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(Saved));
+                    newer = stream.ToArray();
+                }
                 Directory.CreateDirectory(folder);
-                using (FileStream stream = File.Create(Path.Combine(folder, "cross.json"))) new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, Saved);
-                using (FileStream stream = File.Create(Path.Combine(folder, "cross-new.json"))) new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(Saved));
+                File.WriteAllBytes(Path.Combine(folder, "cross.json"), main);
+                File.WriteAllBytes(Path.Combine(folder, "cross-new.json"), newer);
                 return true;
             }
             catch (Exception) { return false; }

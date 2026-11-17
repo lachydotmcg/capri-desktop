@@ -156,6 +156,62 @@ internal static class NativeReviewChecks
             "written=" + written + " key=" + (p.ReadEndpointKey(a) ?? "null"));
     }
 
+    private static void FailedPlanActivation(string root)
+    {
+        string d = Path.Combine(root, "failed-plan-activation");
+        Settings s = new Settings { VoiceProvider = "off" };
+        Pet.AddEndpoint(s, "A", "https://a.example");
+        Pet.AddEndpoint(s, "B", "https://b.example");
+        Pet p = Fixture(s, d);
+        CapriDesktop.Program.Smoke = null;
+        p.SaveEndpointKey("a", "sk-a");
+        p.SaveEndpointKey("b", "sk-b");
+        p.UseEndpoint("a", "model-a");
+
+        s.PlanPython = "not-executed";
+        s.PlanAccounts = d;
+        s.PlanModel = "plan-model";
+        s.NativePlan = true;
+        PlanBrain plan = new PlanBrain(s.PlanPython, s.PlanAccounts, s.PlanModel, null, null, null, null, null);
+        p.Brain.Provider = plan;
+        p.Brain.Model = s.PlanModel;
+        p.Save();
+
+        string before = Hashes(d);
+        FileStream gate = null;
+        p.SettingsChanged += () => { gate = new FileStream(Path.Combine(d, "cross-new.json"), FileMode.Open, FileAccess.Read, FileShare.None); };
+        bool used;
+        try { used = p.UseEndpoint("b", "model-b"); } finally { if (gate != null) gate.Dispose(); }
+
+        Check("failed activation retains the active plan",
+            !used && ReferenceEquals(p.Brain.Provider, plan) && s.NativePlan && p.Brain.Model == "plan-model" && Hashes(d) == before,
+            "used=" + used + " native=" + s.NativePlan + " provider-null=" + (p.Brain.Provider == null));
+    }
+
+    private static void ConcurrentSidecarSurvivesFailure(string root)
+    {
+        string d = Path.Combine(root, "concurrent-sidecar");
+        Settings s = new Settings { VoiceProvider = "off" };
+        Pet.AddEndpoint(s, "A", "https://a.example");
+        Pet.AddEndpoint(s, "B", "https://b.example");
+        Pet p = Fixture(s, d);
+        CapriDesktop.Program.Smoke = null;
+        p.SaveEndpointKey("a", "sk-a");
+        p.SaveEndpointKey("b", "sk-b");
+        p.UseEndpoint("a", "model-a");
+
+        string side = Path.Combine(d, "cross-new.json");
+        string main = Path.Combine(d, "cross.json");
+        string external = "{\"BrainProvider\":\"custom:a\",\"FreeModel\":\"concurrent-save\"}";
+        FileStream gate = null;
+        p.SettingsChanged += () => { File.WriteAllText(side, external); gate = new FileStream(main, FileMode.Open, FileAccess.Read, FileShare.None); };
+        bool used;
+        try { used = p.UseEndpoint("b", "model-b"); } finally { if (gate != null) gate.Dispose(); }
+
+        bool retained = File.ReadAllText(side) == external;
+        Check("failed activation retains concurrent sidecar bytes", !used && retained, "used=" + used + " retained=" + retained);
+    }
+
     internal static int Run(string root)
     {
         failures = 0;
@@ -169,6 +225,8 @@ internal static class NativeReviewChecks
             RemovalOrder(folder);
             FailedKeyRemoval(folder);
             AtomicKeyWrite(folder);
+            FailedPlanActivation(folder);
+            ConcurrentSidecarSurvivesFailure(folder);
         }
         finally { CapriDesktop.Program.Smoke = previous; }
         return failures;
