@@ -38166,7 +38166,7 @@ namespace CapriDesktop
                     else
                     {
                         System.Reflection.MethodInfo think = typeof(Brain).GetMethod("Think", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                        string said = (string)think.Invoke(retrying, new object[] { "test", new System.Collections.Generic.List<ChatMessage> { new ChatMessage("system", new string('s', 9000)), new ChatMessage("user", "Hello") }, false, kept, null, 90, -1, true, null, null, false, false });
+                        string said = (string)think.Invoke(retrying, new object[] { "test", new System.Collections.Generic.List<ChatMessage> { new ChatMessage("system", new string('s', 9000)), new ChatMessage("user", "Hello") }, false, kept, null, 90, -1, true, null, null, false, false, false });
                         if (said != "" || kept.Count != 1 || kept[0].Key != "open_app" || kept[0].Value.Name != "Steam") throw new Exception("A failed Longer retry lost its whole call.");
                     }
                     if (Brain.OllamaGrown != 0 || retrying.Aside("Talk", "Hello", 90) != "Done." || retried.Count != 3 || Brain.Field(Brain.Field(SentBody(retried[0]), "options"), "num_ctx") != "4096" || Brain.Field(Brain.Field(SentBody(retried[1]), "options"), "num_ctx") != "8192" || Brain.Field(Brain.Field(SentBody(retried[2]), "options"), "num_ctx") != "4096") throw new Exception("An Ollama retry kept a failed memory growth.");
