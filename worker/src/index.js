@@ -976,7 +976,9 @@ const stats = async (request, env) => {
   if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
   const auth = request.headers.get('Authorization') || '';
   const stored = await env.DB.prepare('SELECT hash FROM stats_key WHERE id = 1').first().catch(() => null);
-  if (!stored || !auth.startsWith('Bearer ') || !await equal(await sha256('stats:' + auth.slice(7).trim()), stored.hash)) return reply({ error: 'Not authorised.' }, 401);
+  const given = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  const allowed = given && ((env.STATS_KEY && await equal(given, env.STATS_KEY)) || (stored && await equal(await sha256('stats:' + given), stored.hash)));
+  if (!allowed) return reply({ error: 'Not authorised.' }, 401);
   const asked = Number(new URL(request.url).searchParams.get('days') || 60);
   const days = Number.isInteger(asked) && asked >= 1 && asked <= 366 ? asked : 60;
   const today = Math.floor(Date.now() / 86400000);

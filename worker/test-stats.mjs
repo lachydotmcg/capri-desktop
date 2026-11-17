@@ -84,4 +84,8 @@ assert.equal((await call('/stats', 'GET', key)).status, 401, 'an old key stops w
 assert.equal((await call('/stats', 'GET', { Authorization: 'Bearer ' + rotated.key })).status, 200);
 assert.deepEqual(await (await call('/codes/stats-key', 'POST', { Authorization: 'Bearer admin' }, { off: true })).json(), { off: true });
 assert.equal((await call('/stats', 'GET', { Authorization: 'Bearer ' + rotated.key })).status, 401, 'off removes the key');
+env.STATS_KEY = 'cloudflare-secret-key';
+assert.equal((await call('/stats', 'GET', { Authorization: 'Bearer cloudflare-secret-key' })).status, 200, 'a STATS_KEY worker secret also reads');
+assert.equal((await call('/stats', 'GET', { Authorization: 'Bearer cloudflare-secret' })).status, 401);
+assert.equal((await call('/codes', 'GET', { Authorization: 'Bearer cloudflare-secret-key' })).status, 401, 'STATS_KEY cannot list codes');
 console.log('stats ok');
