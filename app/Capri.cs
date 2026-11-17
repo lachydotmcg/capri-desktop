@@ -7797,7 +7797,7 @@ namespace CapriDesktop
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
                 new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
                     Brain.ResetKept, Brain.ResetDone, Brain.OffLine, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry, Probe.Passed }, HighFiveLines, Probe.Questions);
-            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you");
+            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you", "doomscroll");
         }
 
         internal string Nickname { get { return Brain.Nickname ?? ""; } }
@@ -9523,7 +9523,9 @@ namespace CapriDesktop
 
         private bool Sulking { get { return sulkSince >= 0; } }
 
-        private void Sulk(double now)
+        private void Sulk(double now) { Sulk(now, "They just threw Capri around three times in two minutes, so she's sulking: she won't let them pick her up until they say sorry, give her a head pat or leave her alone for five minutes. She still answers and helps them as usual."); }
+
+        private void Sulk(double now, string why)
         {
             sulkSince = now;
             sulkBothered = now;
@@ -9534,19 +9536,22 @@ namespace CapriDesktop
             shyAt = -1;
             frames.Start();
             Agent told = agent;
-            if (told != null) told.Tell("They just threw Capri around three times in two minutes, so she's sulking: she won't let them pick her up until they say sorry, give her a head pat or leave her alone for five minutes. She still answers and helps them as usual.");
+            if (told != null) told.Tell(why);
         }
 
         // She makes up with them and forgets the throws: they said sorry, gave her a head pat, or left her be long enough.
-        private void Forgive()
+        private void Forgive() { Forgive(doomSulk ? "Capri forgave them for doomscrolling and isn't sulking any more." : "Capri forgave them for throwing her around and isn't sulking any more."); }
+
+        private void Forgive(string why)
         {
             if (!Sulking) return;
+            doomSulk = false;
             sulkSince = -1;
             sulkLine = false;
             throwsAt.Clear();
             shyAt = -1;
             Agent told = agent;
-            if (told != null) told.Tell("Capri forgave them for throwing her around and isn't sulking any more.");
+            if (told != null) told.Tell(why);
         }
 
         // Left alone five minutes, she gets over it by herself.
@@ -9834,6 +9839,7 @@ namespace CapriDesktop
             Sight ahead = Computer.Glimpse();
             frontBusy = full || (ahead != null && ahead.Window == Native.GetForegroundWindow() && Computer.GameWindow(ahead));
             CheckJealous(ahead, full, now);
+            CheckDoomscroll(ahead, full, now);
             // Over a game with nothing to do she gives way to it. Listening, talking, clipping or working, she keeps her place so her ears and hands don't stutter.
             Native.Lower(frontBusy && working == null && !chatting && !preferences.HeyCapri && !preferences.ClipGames && talkState == TalkState.Off);
         }
@@ -15461,6 +15467,8 @@ namespace CapriDesktop
             heard = shown;
             box.Prompt = prompt;
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
+            string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
+            if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
             if (callReply == null && probe.Pending && !meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
@@ -21004,6 +21012,10 @@ namespace CapriDesktop
                 checks.Add("PASS dated reminders parse named and ISO dates, local times, days and weeks, year rollover and leap days; reject bad and past dates; route through her hands; survive restart and deliver once, including late reminders, listing and cancellation");
             }
             finally { Hands.Plan = planWas; Hands.Remind = remindWas; if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+            string doomResult = Doomscroll.Check();
+            if (doomResult != null) throw new Exception(doomResult);
+            if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
+            checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
             checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
@@ -23440,7 +23452,7 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs" })
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs" })
                                     foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
                                         selfSource += "\n" + selfPart.Value;
                         }
@@ -44611,6 +44623,35 @@ namespace CapriDesktop
                 EndJealous();
                 preferences.JealousAIs = onWas; preferences.CloseAIs = closeWas; preferences.JealousApps = choicesWas; preferences.AdvancedSettings = advancedWas;
                 mainframe.Sync(); mainframe.ShowSettings(pageWas); SavePreferences();
+            }
+
+            bool doomWas = preferences.DoomscrollGuard;
+            int doomLimitWas = preferences.DoomscrollLimit;
+            try
+            {
+                preferences.DoomscrollGuard = false;
+                preferences.DoomscrollLimit = 0;
+                EndDoomscroll();
+                mainframe.Sync();
+                if (mainframe.DoomscrollShown != "off | 15 min" || DoomSnooze("5 more minutes") != null) throw new Exception("Doomscroll guard started on or gave five more minutes with nothing to snooze: " + mainframe.DoomscrollShown);
+                ToggleDoomscroll();
+                SetDoomscrollLimit(30);
+                Preferences doomLoaded = LoadPreferences();
+                if (mainframe.DoomscrollShown != "on | 30 s test" || !doomLoaded.DoomscrollGuard || doomLoaded.DoomscrollLimit != 30) throw new Exception("Doomscroll guard's switch or limit did not show or save: " + mainframe.DoomscrollShown);
+                SetDoomscrollLimit(77);
+                if (DoomscrollLimit != Doomscroll.DefaultLimit) throw new Exception("Doomscroll guard took a limit it doesn't offer.");
+                ToggleDoomscroll();
+                if (LoadPreferences().DoomscrollGuard || DoomscrollStage != 0) throw new Exception("Doomscroll guard did not turn off.");
+                foreach (string label in new[] { "Doomscroll guard", "Scroll limit" })
+                    if (SelfKnow.Setting("Mainframe.cs", label) == null) throw new Exception("Doomscroll guard lost its help: " + label);
+                if ((SelfKnow.Matching("what does doomscroll guard do?") ?? "").IndexOf("thiiago-dev", StringComparison.Ordinal) < 0) throw new Exception("Her doomscroll help did not match a plain question.");
+                checks.Add("PASS Mainframe doomscroll guard: off by default, its switch and scroll limit save, a 30 s test limit is there for filming, and her help explains it");
+            }
+            finally
+            {
+                preferences.DoomscrollGuard = doomWas; preferences.DoomscrollLimit = doomLimitWas;
+                EndDoomscroll();
+                mainframe.Sync(); SavePreferences();
             }
         }
 
