@@ -183,6 +183,7 @@ internal static class Program
         try
         {
             GateScenarios(scratch);
+            failures += VerifierProbes.Run(root, scratch);
             WorkflowScenarios();
         }
         finally
