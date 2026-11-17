@@ -20,7 +20,7 @@ namespace CapriDesktop
     internal sealed partial class Mods
     {
         internal const string CodeExtension = ".capri-code";
-        private const int LargestCode = 256 * 1024;
+        private const int LargestCode = 1024 * 1024;
         private const string ApprovedFile = "approved.txt";
         private static readonly Regex HeaderLine = new Regex(@"^//\s*([a-z-]+)\s*:\s*(.*?)\s*$");
         private readonly Dictionary<string, ICapriMod> running = new Dictionary<string, ICapriMod>();
