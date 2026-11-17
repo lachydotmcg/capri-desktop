@@ -18,7 +18,7 @@
   // An iPhone keeps a home screen app's storage apart from Safari's, so a pairing made in one never reaches the other, and
   // a QR code always opens in Safari. ?ios=safari and ?ios=app act those two out in any browser, to check their screens.
   const iphone = iosAsked === 'safari' || iosAsked === 'app' || 'standalone' in navigator;
-  const standalone = iosAsked === 'app' || (iosAsked !== 'safari' && (navigator.standalone === true || (() => {
+  const standalone = !!window.CapriAndroid || iosAsked === 'app' || (iosAsked !== 'safari' && (navigator.standalone === true || (() => {
     try { return matchMedia('(display-mode: standalone)').matches; } catch (error) { return false; }
   })()));
   const demoBuild = config.demo !== false && (config.preview === true || demoAsked);
