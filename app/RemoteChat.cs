@@ -281,7 +281,24 @@ namespace CapriDesktop
             }
         }
 
-        internal void OpenRoomWindow() { RoomWindow(RemotePage + "?room=pc"); }
+        private RoomHost roomHost;
+
+        internal void OpenRoomWindow()
+        {
+            if (roomHost == null)
+            {
+                try { roomHost = new RoomHost(RemotePage); }
+                catch (ArgumentException) { }
+                catch (System.Net.Sockets.SocketException) { }
+            }
+            RoomWindow(roomHost != null ? roomHost.Url : RemotePage + "?room=pc");
+        }
+
+        private void RoomTick()
+        {
+            RoomHost host = roomHost;
+            if (host != null) host.Talk(TalkingNow);
+        }
 
         internal static Action<string> RoomWindow = delegate(string url)
         {

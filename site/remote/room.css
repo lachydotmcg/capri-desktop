@@ -107,10 +107,15 @@
 }
 .room-view[data-front] video { transform: scaleX(-1); }
 .room .room-controls #room-record[aria-pressed="true"],
-.room .room-controls #room-behind[aria-pressed="true"] { --face: var(--hot); --rim: var(--hot); --ink: var(--on-ink); }
+.room .room-controls #room-behind[aria-pressed="true"],
+.room .room-controls #room-still[aria-pressed="true"] { --face: var(--hot); --rim: var(--hot); --ink: var(--on-ink); }
 .app[data-room="camera"][data-desk] .room { flex: 1 1 auto; min-height: min(520px, 66vh); }
 .room-size { display: flex; align-items: center; gap: 6px; padding: 0 6px; font-size: 12px; color: var(--cyan); }
 .room-size[hidden] { display: none; }
 .room-size input { width: 110px; accent-color: var(--cyan); }
 .app[data-window="room"] .room { max-width: none; }
 .app[data-window="room"][data-room="camera"] .room { flex: 1 1 auto; min-height: min(560px, 70vh); }
+.app[data-host="app"] > :not(.room) { display: none !important; }
+.app[data-host="app"] { min-height: 100vh; min-height: 100dvh; }
+.app[data-host="app"] .room { flex: 1 1 auto; margin: 0; max-width: none; min-height: calc(100vh - 16px); }
+.app[data-host="app"] #room-voice { display: none; }

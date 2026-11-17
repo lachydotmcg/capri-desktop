@@ -8,7 +8,7 @@
   const her = byId('room-her'), sprite = byId('room-sprite'), tint = byId('room-tint'), heart = byId('room-heart');
   const controls = byId('room-controls'), sit = byId('room-sit'), lie = byId('room-lie'), love = byId('room-love');
   const voice = byId('room-voice'), voiceNote = byId('room-voice-note'), record = byId('room-record');
-  const sizeBox = byId('room-size-box'), sizer = byId('room-size'), behindButton = byId('room-behind');
+  const sizeBox = byId('room-size-box'), sizer = byId('room-size'), behindButton = byId('room-behind'), stillButton = byId('room-still');
   let voiceOn = true, oldVoice = false;
   try { voiceOn = localStorage.getItem('capri-room-voice') !== 'off'; } catch (error) {}
   voice.setAttribute('aria-pressed', String(voiceOn));
@@ -54,7 +54,7 @@
   let drawn = {}, sway = 0, swayAt = 0, lastYaw = null, squash = 1, depth = 1;
   let kit, kitLoading, no3d = false, stage, xr3d, canvas3d;
   let makeLife, life = null, lifeAt = 0, spots = [], hand = null;
-  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '', mouthUntil = 0;
+  let grow = 1, cutout = null, cutLoading = null, cutCanvas = null, cutPen = null, cutAt = 0, behind = false, hideMe = false, cutState = '', mouthUntil = 0, stayStill = false, hostTalking = false;
   try { grow = Math.max(0.5, Math.min(4, Number(localStorage.getItem('capri-room-size')) || 1)); } catch (error) {}
   sizer.value = String(grow);
   const YOU = 0.85;
@@ -384,6 +384,7 @@
   const showRecord = () => {
     record.hidden = !canRecord() || controls.hidden;
     sizeBox.hidden = behindButton.hidden = !desk || !stage || controls.hidden;
+    stillButton.hidden = !stage || controls.hidden;
     record.setAttribute('aria-pressed', String(!!recorder));
     record.textContent = recorder ? 'Stop' : 'Record';
   };
@@ -521,7 +522,7 @@
     mouthUntil = Math.min(now + 8000, Math.max(mouthUntil, now) + Math.min(5000, 300 + String(text).length * 55));
   };
   const sayLine = text => { if (!room.hidden) { status.textContent = text; mumble(text); } };
-  const newLife = tall => makeLife ? makeLife({ tall, say: sayLine, calm: () => reduced.matches }) : null;
+  const newLife = tall => makeLife ? makeLife({ tall, say: sayLine, calm: () => reduced.matches || stayStill }) : null;
   const turnOf = () => {
     const m = seen?.m;
     return m ? [m[0], m[1], m[2], m[6], m[7], m[8], -m[3], -m[4], -m[5]] : desk ? tilt : [1, 0, 0, 0, 1, 0, 0, 0, 1];
@@ -646,7 +647,7 @@
       syncLife();
     }
     const position = life?.position || standAt(glass);
-    const mouth = talking || now < mouthUntil;
+    const mouth = talking || hostTalking || now < mouthUntil;
     if (her.dataset.mouth !== String(mouth)) her.dataset.mouth = String(mouth);
     stage.update({ now, position, ...lifeClip(now), talking: mouth, tint: glow, calm: reduced.matches, turn: sway * 0.04, viewer: lookFor(position), tall: desk ? deskTall() : 0, ground: floorY() });
     if (desk) cutLayer(now, position);
@@ -726,7 +727,7 @@
     room.hidden = true;
     track.hidden = true;
     retry.hidden = true;
-    controls.hidden = place.hidden = her.hidden = record.hidden = sizeBox.hidden = behindButton.hidden = true;
+    controls.hidden = place.hidden = her.hidden = record.hidden = sizeBox.hidden = behindButton.hidden = stillButton.hidden = true;
     delete app.dataset.room;
     delete view.dataset.surface;
     her.style.left = '';
@@ -999,7 +1000,7 @@
           return;
         }
         const head = eye.transform.position;
-        xr3d?.update({ now, position: seat, viewer: [head.x, head.y, head.z], ...lifeClip(now), talking: talking || now < mouthUntil, calm: reduced.matches, ground: life ? groundXr(seat) : null });
+        xr3d?.update({ now, position: seat, viewer: [head.x, head.y, head.z], ...lifeClip(now), talking: talking || hostTalking || now < mouthUntil, calm: reduced.matches, ground: life ? groundXr(seat) : null });
         const position = project(eye.transform.inverse.matrix, seat, 1);
         const point = project(eye.projectionMatrix, position, 1);
         const depth = point[3];
@@ -1042,6 +1043,15 @@
   sit.addEventListener('click', () => setPose('perch'));
   record.addEventListener('click', () => { if (recorder) stopRecording(); else startRecording(); });
   sizer.addEventListener('input', () => resize(Number(sizer.value)));
+  try { stayStill = localStorage.getItem('capri-room-still') === 'on'; } catch (error) {}
+  stillButton.setAttribute('aria-pressed', String(stayStill));
+  stillButton.addEventListener('click', () => {
+    stayStill = !stayStill;
+    stillButton.setAttribute('aria-pressed', String(stayStill));
+    try { localStorage.setItem('capri-room-still', stayStill ? 'on' : 'off'); } catch (error) {}
+    if (stayStill && life?.position && (life.mode === 'walk' || life.mode === 'hop')) life.setPose(pose, performance.now());
+    sayLine(stayStill ? 'Staying right here.' : 'Free to roam.');
+  });
   behindButton.addEventListener('click', () => {
     hideMe = !hideMe;
     behindButton.setAttribute('aria-pressed', String(hideMe));
@@ -1218,8 +1228,21 @@
     if (next === 'connected') queueMicrotask(() => { if (!room.hidden) startVoice(); });
     else { window.CapriCall?.stopListening(); talking = false; voiceNote.textContent = ''; }
   });
-  let roomWindow = false;
-  try { roomWindow = new URLSearchParams(location.search).get('room') === 'pc'; } catch (error) {}
+  let roomWindow = false, hosted = false;
+  try {
+    const asked = new URLSearchParams(location.search).get('room');
+    hosted = asked === 'app';
+    roomWindow = hosted || asked === 'pc';
+  } catch (error) {}
+  if (hosted) {
+    app.dataset.host = 'app';
+    try {
+      const events = new EventSource(new URL('../events', location.href).href);
+      events.addEventListener('talk', event => { hostTalking = event.data === '1'; });
+      events.addEventListener('error', () => { hostTalking = false; });
+    } catch (error) {}
+    close.addEventListener('click', () => window.close());
+  }
   if (roomWindow) {
     app.dataset.window = 'room';
     let opened = false;

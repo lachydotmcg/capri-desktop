@@ -3491,6 +3491,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = clock.Elapsed.TotalSeconds;
+            RoomTick();
             RampageTick(now);
             MoveExplorePointer(now);
             int interval = FrameInterval(now);

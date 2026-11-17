@@ -668,3 +668,59 @@ for (const [size, mode] of [
     } finally { await r.close(); }
   });
 }
+
+test('her room inside the pc app shows only her room, talks when the pc capri talks and stays still on request', { skip: !chromePath() }, async () => {
+  const { createServer } = await import('node:http');
+  const { readFileSync } = await import('node:fs');
+  const { join, normalize, extname } = await import('node:path');
+  const { SITE } = await import('./lib/site.mjs');
+  const ASSETS = join(SITE, '..', 'assets');
+  const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json', '.wasm': 'application/wasm' };
+  const streams = new Set();
+  const say = (name, data) => { for (const out of streams) out.write(`event: ${name}\ndata: ${data}\n\n`); };
+  const server = createServer((request, response) => {
+    const path = new URL(request.url, 'http://127.0.0.1').pathname;
+    if (!path.startsWith('/tok/')) { response.writeHead(404); response.end(); return; }
+    const rest = path.slice(5);
+    if (rest === 'events') {
+      response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });
+      response.write('event: talk\ndata: 0\n\n');
+      streams.add(response);
+      request.on('close', () => streams.delete(response));
+      return;
+    }
+    const shared = rest.startsWith('assets/'), base = shared ? ASSETS : SITE;
+    const file = normalize(join(base, shared ? rest.slice(7) : rest.slice(7) || 'index.html'));
+    try {
+      const body = readFileSync(file.endsWith('/') || file === base ? join(file, 'index.html') : file);
+      response.writeHead(200, { 'content-type': TYPES[extname(file)] || (file === base ? 'text/html' : 'application/octet-stream') });
+      response.end(body);
+    } catch { response.writeHead(404); response.end(); }
+  });
+  await new Promise(done => server.listen(8985, '127.0.0.1', done));
+  let page;
+  try {
+    page = await launch({ port: 9497, width: 1180, height: 880, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'] });
+    await page.go('http://127.0.0.1:8985/tok/remote/?room=app');
+    await page.until("!document.getElementById('room-controls').hidden", 'room opened by itself', 15000);
+    assert.equal(await page.run("document.getElementById('app').dataset.host"), 'app');
+    assert.equal(await page.run("getComputedStyle(document.getElementById('log')).display"), 'none');
+    assert.equal(await page.run("getComputedStyle(document.getElementById('room-voice')).display"), 'none');
+    if (!await page.run("!!document.querySelector('#room-view canvas')")) return;
+    await page.until("!document.getElementById('room-still').hidden", 'stay still button');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth still', 9000);
+    await new Promise(done => setTimeout(done, 500));
+    say('talk', '1');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'true'", 'mouth moving with the pc');
+    say('talk', '0');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth stops with the pc');
+    await page.run("document.getElementById('room-still').click()");
+    assert.equal(await page.run("document.getElementById('room-still').getAttribute('aria-pressed')"), 'true');
+    assert.equal(await page.run("localStorage.getItem('capri-room-still')"), 'on');
+    await page.run("document.getElementById('room-still').click()");
+  } finally {
+    if (page) await page.close();
+    for (const out of streams) out.end();
+    await new Promise(done => server.close(done));
+  }
+});
