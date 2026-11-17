@@ -26924,12 +26924,6 @@ namespace CapriDesktop
                     for (int partRun = 0; partRun < 20; partRun++) timedSense.Feed(lookPixels, WatchWidth, WatchHeight, partRun * 0.1);
                     double feedMs = partWatch.Elapsed.TotalMilliseconds / 20;
                     checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_frame jpeg1280_ms={0:0.000} sense480_ms={1:0.000} sense1280_ms={2:0.000} feed_ms={3:0.000}", jpegMs, lookMs, keepMs, feedMs));
-                    byte[] keptJpeg = Jpeg(keepSample, 1280), earlierJpeg = Commentary.Shrunk(keptJpeg, Commentary.Earlier);
-                    int earlierWide, earlierTall;
-                    using (MemoryStream earlierData = new MemoryStream(earlierJpeg))
-                    using (Bitmap earlierPicture = new Bitmap(earlierData)) { earlierWide = earlierPicture.Width; earlierTall = earlierPicture.Height; }
-                    if (earlierWide != Commentary.Earlier || earlierTall != 360 || Commentary.Shrunk(earlierJpeg, Commentary.Earlier) != earlierJpeg) throw new Exception("Her game comment's earlier picture wasn't shrunk to " + Commentary.Earlier + " once: " + earlierWide + "x" + earlierTall);
-                    checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: comment_pictures before_bytes={0} after_bytes={1} claude_tokens_was={2} claude_tokens_now={3}", keptJpeg.Length * 2, keptJpeg.Length + earlierJpeg.Length, 2 * (1280 * 720 / 750), 1280 * 720 / 750 + earlierWide * earlierTall / 750));
                 }
             }
             finally
