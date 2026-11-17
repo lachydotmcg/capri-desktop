@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
@@ -25,7 +26,13 @@ namespace CapriDesktop
         internal static NetUse Read(string address)
         {
             NetUse use = new NetUse();
+#if CROSS
+            List<string> up = Links();
+            if (up == null) return null;
+            use.Links.AddRange(up);
+#else
             use.Links.AddRange(Links());
+#endif
             if (use.Links.Count == 0) return use;
             string asked = (address ?? "").Trim();
             Uri site;
@@ -79,6 +86,9 @@ namespace CapriDesktop
         // The network links that are up, Ethernet or Wi-Fi, never virtual or VPN ones.
         internal static List<string> Links()
         {
+#if CROSS
+            if (OperatingSystem.IsLinux()) return LinuxLinks(LinkFolder);
+#endif
             List<string> links = new List<string>();
             try
             {
@@ -94,5 +104,39 @@ namespace CapriDesktop
             catch (Exception) { }
             return links;
         }
+#if CROSS
+
+        internal static string LinkFolder = "/sys/class/net";
+
+        // Linux names every link the same way and calls Wi-Fi Ethernet, so the kernel's own folder says which are hardware:
+        // bridges, containers, VPNs and loopback have no device behind them. Null when the folder can't be read, which isn't
+        // the same as no links being up.
+        internal static List<string> LinuxLinks(string folder)
+        {
+            List<string> links = new List<string>();
+            string[] all;
+            try { all = Directory.GetDirectories(folder); }
+            catch (Exception) { return null; }
+            try
+            {
+                foreach (string link in all)
+                {
+                    if (!Directory.Exists(Path.Combine(link, "device"))) continue;
+                    string state = Value(link, "operstate");
+                    if (state != "up" && !(state == "unknown" && Value(link, "carrier") == "1")) continue;
+                    string kind = Directory.Exists(Path.Combine(link, "wireless")) || Directory.Exists(Path.Combine(link, "phy80211")) ? "Wi-Fi" : Value(link, "type") == "1" ? "Ethernet" : null;
+                    if (kind != null && !links.Contains(kind)) links.Add(kind);
+                }
+            }
+            catch (Exception) { }
+            return links;
+        }
+
+        private static string Value(string link, string name)
+        {
+            try { return File.ReadAllText(Path.Combine(link, name)).Trim(); }
+            catch (Exception) { return null; }
+        }
+#endif
     }
 }
