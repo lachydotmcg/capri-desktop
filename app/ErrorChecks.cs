@@ -470,7 +470,7 @@ namespace CapriDesktop
             if (Brain.Meaning(429, day, true) != Brain.DailyGone || Brain.Meaning(429, minute, true) != Brain.Busy || Brain.Meaning(429, day) != Brain.Busy || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != Brain.Busy
                 || !Brain.DailyGone.Contains("tomorrow") || !Brain.DailyGone.Contains("another key") || Brain.Busy.Contains("watch") || !Brain.BusyWatching.Contains("Watch my screen"))
                 throw new Exception("A rate limit or Gemini's used-up day read wrong: " + Brain.Meaning(429, day, true) + " / " + Brain.Meaning(429, minute, true));
-            foreach (string line in new[] { Brain.Busy, Brain.BusyWatching, Brain.DailyGone })
+            foreach (string line in new[] { Brain.Busy, Brain.BusyWatching, Brain.DailyGone, Brain.TooBig })
             {
                 string brief = Brain.Brief(line) ?? line;
                 if (brief.Length > 60 || !Brain.Stalled(new BrainException(line, true))) throw new Exception("A rate limit's BRAIN line didn't fit or stopped counting as a stall: " + brief);
@@ -478,7 +478,7 @@ namespace CapriDesktop
             if (!Brain.Brief(Brain.DailyGone).Contains("tomorrow") || !Brain.Brief(Brain.BusyWatching).Contains("glance")) throw new Exception("A rate limit's BRAIN line lost its fix.");
             bool watchWas = preferences.Watch;
             string googleWas = Brain.Google;
-            System.Net.Sockets.TcpListener fake = null;
+            System.Net.Sockets.TcpListener fake = null, tooBigFake = null, busyFake = null;
             try
             {
                 List<string> asked = new List<string>();
@@ -493,6 +493,34 @@ namespace CapriDesktop
                 if (said[0] != Brain.Busy || said[1] != Brain.BusyWatching || said[2] != Brain.DailyGone || asked.Count != 3)
                     throw new Exception("Gemini's limits were told wrong: " + string.Join(" | ", said) + " / " + asked.Count + " asks");
                 checks.Add("PASS too many requests says to wait a minute, and to glance less often only while Watch my screen is on; Gemini's used-up day says it resets tomorrow or to add another key; each has a BRAIN line that fits with its fix, and all still count as a stall");
+                const string groqTooBig = "{\"error\":{\"message\":\"Request too large for model `openai/gpt-oss-20b` in organization `org_test` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 9120, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}";
+                const string groqBusy = "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_test` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6200, Requested 4100. Please try again in 17.5s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}";
+                const string openAiQuota = "{\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\"type\":\"insufficient_quota\",\"param\":null,\"code\":\"insufficient_quota\"}}";
+                const string openRouterBroke = "{\"error\":{\"message\":\"Insufficient credits. Add more using https://openrouter.ai/settings/credits\",\"code\":402}}";
+                if (Brain.Meaning(413, groqTooBig) != Brain.TooBig || Brain.Meaning(413, groqTooBig.Replace("/", "\\/")) != Brain.TooBig
+                    || Brain.Meaning(413, "{\"error\":{\"message\":\"Upgrade at https://console.groq.com/settings/billing\"}}") != null || Brain.Meaning(413, "{\"error\":{\"message\":\"Request body too large\"}}") != null
+                    || Brain.Meaning(429, groqBusy) != Brain.Busy || Brain.Meaning(402, openRouterBroke) != Brain.NoCredits || Brain.Meaning(402, "") != Brain.NoCredits
+                    || Brain.Meaning(429, openAiQuota, false, true) != Brain.NoCredits || Brain.Meaning(429, openAiQuota) != Brain.NoCredits
+                    || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.NoCredits)
+                    throw new Exception("A rate limit and no credits read wrong: " + Brain.Meaning(413, groqTooBig) + " / " + Brain.Meaning(429, groqBusy) + " / " + Brain.Meaning(429, openAiQuota, false, true) + " / " + Brain.Meaning(402, openRouterBroke));
+                DateTime now = new DateTime(2026, 11, 16, 12, 0, 0, DateTimeKind.Utc);
+                if (Brain.RetryTime("7.66s", now) != now.AddSeconds(7.66) || Brain.RetryTime("2m59.5s", now) != now.AddSeconds(179.5) || Brain.RetryTime("1h", now) != now.AddHours(1) || Brain.RetryTime("450ms", now) != now.AddSeconds(1)
+                    || Brain.RetryTime("30", now) != now.AddSeconds(30) || Brain.RetryTime(null, now) != now.AddSeconds(60) || Brain.RetryTime("", now) != now.AddSeconds(60) || Brain.RetryTime("soon", now) != now.AddSeconds(60))
+                    throw new Exception("A rate limit's reset time was read wrong: " + Brain.RetryTime("7.66s", now).ToString("o"));
+                preferences.Watch = false;
+                List<string> limitAsked = new List<string>();
+                string tooBigAddress = FakeServer(new[] { "!413 " + groqTooBig }, limitAsked, out tooBigFake, headers: "x-ratelimit-reset-tokens: 7.66s\r\n");
+                string busyAddress = FakeServer(new[] { "!429 " + groqBusy }, limitAsked, out busyFake, headers: "Retry-After: 30\r\nx-ratelimit-reset-tokens: 2s\r\n");
+                BrainException tooBig = null, busy = null;
+                try { Brain.ServerModels(tooBigAddress, "provider-limit-test"); }
+                catch (BrainException error) { tooBig = error; }
+                try { Brain.ServerModels(busyAddress, "provider-limit-test"); }
+                catch (BrainException error) { busy = error; }
+                double tooBigWait = tooBig == null ? -1 : (tooBig.RetryAt - DateTime.UtcNow).TotalSeconds, busyWait = busy == null ? -1 : (busy.RetryAt - DateTime.UtcNow).TotalSeconds;
+                if (tooBig == null || tooBig.Message != Brain.TooBig || !tooBig.Told || tooBig.Status != 413 || tooBigWait < 5 || tooBigWait > 8 || !Brain.Stalled(tooBig)
+                    || busy == null || busy.Message != Brain.Busy || !busy.Told || busy.Status != 429 || busyWait < 27 || busyWait > 31)
+                    throw new Exception("A provider's rate limit was told or timed wrong: " + (tooBig == null ? "none" : tooBig.Message + " in " + tooBigWait) + " / " + (busy == null ? "none" : busy.Message + " in " + busyWait));
+                checks.Add("PASS a 413 rate limit with a billing link reads as too big for the key's per-minute limit and waits out x-ratelimit-reset-tokens, a 429 still reads as too many requests and waits out its Retry-After, and a 402, OpenAI's insufficient_quota and Gemini's disabled billing still read as no credits");
             }
             catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT rate limit lines: loopback sockets unavailable"); }
             finally
@@ -500,6 +528,8 @@ namespace CapriDesktop
                 preferences.Watch = watchWas;
                 Brain.Google = googleWas;
                 if (fake != null) fake.Stop();
+                if (tooBigFake != null) tooBigFake.Stop();
+                if (busyFake != null) busyFake.Stop();
             }
         }
 
@@ -782,7 +812,7 @@ namespace CapriDesktop
             }
             if (root == null) { checks.Add("LIMIT help quotes: the source tree isn't beside this executable or working directory"); return; }
             string help = File.ReadAllText(Path.Combine(root, "site", "help", "knowledge.md"));
-            string[] current = { Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size." };
+            string[] current = { Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.TooBig, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size." };
             string[] old = { "or watch slower", "Their servers failed", "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.", "Can't open your mic. Pick another under VOICE.", "Pick FREE VOICE or ELEVENLABS to turn it back on", "came down the wrong size", "failed its checksum", "Add credits on their site,", "Pick another row under VOICE" };
             List<string> missing = new List<string>(Array.FindAll(current, line => help.IndexOf(line, StringComparison.Ordinal) < 0));
             List<string> stale = new List<string>(Array.FindAll(old, line => help.IndexOf(line, StringComparison.Ordinal) >= 0));

@@ -35784,6 +35784,15 @@ namespace CapriDesktop
                 if (Brain.ServerAddress("https://openrouter.ai/api/v1/") != "https://openrouter.ai/api" || Brain.ServerAddress("localhost:1234/v1/chat/completions") != "http://localhost:1234") throw new Exception("A provider base URL lost its path or version.");
                 checks.Add("PASS provider addresses reject other schemes, credentials, queries, fragments, spaces and backslashes; remote keys require HTTPS and one line");
 
+                System.Collections.Generic.List<string> guarded = new System.Collections.Generic.List<string>();
+                string guardAddress = serve(new[] { "{\"data\":[{\"id\":\"meta-llama/llama-prompt-guard-2-86m\"},{\"id\":\"whisper-large-v3\"},{\"id\":\"playai-tts\"},{\"id\":\"canopylabs/orpheus-v1-english\"},{\"id\":\"vendor/alpha\"},{\"id\":\"meta-llama/llama-guard-4-12b\"},{\"id\":\"vendor/beta\"}]}" }, guarded, null, "");
+                UseProvider(guardAddress, keyA);
+                WaitVoice(delegate { return brain.Server == guardAddress && mainframe.ProviderNote == "Provider connected."; }, "A provider listing guard models first did not connect.");
+                string[] guardChoices = mainframe.BrainChoices;
+                if (brain.Model != "vendor/alpha" || preferences.ProviderModel != "vendor/alpha" || guardChoices.Length != 2 || Array.IndexOf(guardChoices, "vendor/alpha") < 0 || Array.IndexOf(guardChoices, "vendor/beta") < 0)
+                    throw new Exception("A provider's first model was one that can't chat: " + brain.Model + " / " + string.Join(", ", guardChoices));
+                checks.Add("PASS a provider listing prompt-guard, guard, whisper, tts and orpheus models first connects to its first chat model, and its model list shows only chat models");
+
                 System.Collections.Generic.List<string> a = new System.Collections.Generic.List<string>(), b = new System.Collections.Generic.List<string>();
                 ManualResetEvent refreshGate = new ManualResetEvent(true);
                 gates.Add(refreshGate);
