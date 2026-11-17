@@ -1103,7 +1103,9 @@ namespace CapriDesktop
             if (MoveStuck) return;
             if (dragging || pressed || walking || falling || riding || lying || outro != null || clip == arrive || clip == leave) return;
             PixelRect area = WorkAt(new PixelPoint(Hip.X, Hip.Y - 1));
-            SetFacing(seat != null ? SitsLeft(Hip.X, area, Px(body.Size), FacingLeft) : area.Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+            bool left = seat != null ? SitsLeft(Hip.X, area, Px(body.Size), FacingLeft) : area.Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6));
+            if (seat == null && Sulking && sulkLeft != null) left = sulkLeft.Value;
+            SetFacing(left);
         }
 
         internal static bool SitsLeft(int hipX, PixelRect area, int size, bool left)
@@ -1132,6 +1134,7 @@ namespace CapriDesktop
         {
             if (MoveStuck) return;
             anchor = to;
+            if (dragging) NoteDrag(to, Now);
             PixelPoint at = new PixelPoint(to.X + Px(FrameX), to.Y + Px(FrameY));
             RecordMove(at);
             if (MoveTo != null) MoveTo(at);
@@ -1310,6 +1313,7 @@ namespace CapriDesktop
             {
                 nextCheck = now + 0.25;
                 CheckSeat(now);
+                CheckSulk(now);
                 CheckWander(now);
                 CheckMusic(now);
                 CheckNap();
@@ -2091,6 +2095,7 @@ namespace CapriDesktop
                 Desk.TrackDrag(false);
                 holder = null;
                 e.Pointer.Capture(null);
+                if (dragging) LetGoFast((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 if (dragging && Desk is HyprlandDesk) SettleNativeRelease((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 else if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 else React();
@@ -2217,7 +2222,7 @@ namespace CapriDesktop
             if (!Opaque(this.PointToClient(cursor))) return;
             double now = Now;
             bool turned = Turned(cursor.X, ref petX, ref petWay, petTurns, now) | Turned(cursor.Y, ref petY, ref petRise, petRises, now);
-            if (!turned || (petTurns.Count < 3 && petRises.Count < 3) || now - petAt < 20) return;
+            if (!turned || (petTurns.Count < 3 && petRises.Count < 3) || (now - petAt < 20 && !Sulking)) return;
             ForgetStroke();
             petAt = now;
             Petted();
@@ -2246,6 +2251,7 @@ namespace CapriDesktop
 
         private void Petted()
         {
+            if (PatSulking(Now)) return;
             EndWalk();
             if (seat != null) { Play(perch); blinkWith = perchBlink; }
             else Play(grin);
@@ -2341,8 +2347,9 @@ namespace CapriDesktop
                 return;
             }
             if (clip == grin) Play(idle);
-            bool fresh = freshPet != null;
-            string line = fresh ? freshPet : Lines.Pick(PetLines);
+            string peace = PatMoodLine();
+            bool fresh = peace == null && freshPet != null;
+            string line = peace ?? (fresh ? freshPet : Lines.Pick(PetLines));
             freshPet = null;
             petSaid.Add(line);
             if (petSaid.Count > 8) petSaid.RemoveAt(0);
@@ -2449,6 +2456,7 @@ namespace CapriDesktop
             fallTo = null;
             falling = false;
             dragging = true;
+            dragTrail.Clear();
             Play(dangle);
             Talk.Dismiss();
         }
@@ -5843,6 +5851,7 @@ namespace CapriDesktop
             }
             if (phone == null && SelfJobRequest(input)) return;
             if (phone == null && RemoteJobReply(input, fromMod)) return;
+            bool sorry = phone == null && SorryHeard(input);
             int ticket = phone == null ? ++asking : phone.Ticket;
             bool working = SelfJobs.Active;
             if (!working) ComputerJobs.Stop();
@@ -5850,6 +5859,7 @@ namespace CapriDesktop
             StopNativeListening(!fromVoice);
             if (!working) Brain.Cancel();
             voice.Stop();
+            if (sorry) { Reply(ticket, text, Lines.Pick(Sulks.SorryLines)); return; }
             if (phone == null && Think == null && Brain.Model == null && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
             string tool;
             if (MainframeAsked(input))
