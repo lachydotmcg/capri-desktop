@@ -15825,7 +15825,7 @@ namespace CapriDesktop
                 if (latin)
                 {
                     code = Brain.LanguageCode(language);
-                    if (code == "en" || !VoiceLanguage.Latin(code)) return own(words);
+                    if (code == "en" || !VoiceLanguage.LatinScript(code)) return own(words);
                 }
                 foreach (string folder in ModelFile.Find(code, folders, languages))
                 {
@@ -46238,7 +46238,7 @@ namespace CapriDesktop
                 if (made != wav || ownCalls != ownAt + 4 || ownWords != bonjour || tongueCalls != 6) throw new Exception("French with no French voice at all went quiet.");
                 if (!VoiceTongues.Knows("fr") || !VoiceTongues.Knows("pt") || VoiceTongues.Knows("de") || VoiceTongues.Knows("en") || VoiceTongues.Lang("pt") != "pt-br" || VoiceTongues.Lang("es") != "es")
                     throw new Exception("Her free voice's languages changed.");
-                if (!VoiceLanguage.Latin("fr") || !VoiceLanguage.Latin("de") || VoiceLanguage.Latin("ru") || VoiceLanguage.Latin("hi") || VoiceLanguage.Latin("ja") || VoiceLanguage.Latin(""))
+                if (!VoiceLanguage.LatinScript("fr") || !VoiceLanguage.LatinScript("de") || VoiceLanguage.LatinScript("ru") || VoiceLanguage.LatinScript("hi") || VoiceLanguage.LatinScript("ja") || VoiceLanguage.LatinScript(""))
                     throw new Exception("Latin-script languages were told apart wrongly.");
                 string tongues = Path.Combine(root, "tongues");
                 Directory.CreateDirectory(Path.Combine(tongues, "espeak-ng-data"));

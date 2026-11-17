@@ -2419,7 +2419,7 @@ namespace CapriDesktop
             return code == "cmn" ? "zh" : code == "nb" || code == "nn" ? "no" : code == "tl" ? "fil" : code;
         }
 
-        internal static bool Latin(string language)
+        internal static bool LatinScript(string language)
         {
             string code = Code(language);
             if (code.Length == 0) return false;
