@@ -65,7 +65,10 @@ namespace CapriDesktop
         private readonly float forcedScale, forcedArt;
         private readonly Page page;
         private readonly Frost frost;
-        private readonly Doc[] docs;
+        private Doc[] docs;
+        internal static Mods Skills;
+        internal static Action SkillSaved;
+        private static readonly object skillWriting = new object();
         private readonly Pacer pacer = new Pacer();
         private readonly Stopwatch clock = new Stopwatch();
         private readonly string version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + "V";
@@ -103,6 +106,7 @@ namespace CapriDesktop
                 new Doc(Commands.FileName, delegate { Commands.Write(); return Commands.Open(); }),
                 new Doc(Playlist.FileName, delegate { return Playlist.OpenNote(); })
             };
+            docs = WithSkills(docs);
             frost = new Frost();
             page = new Page(this);
         }
@@ -478,8 +482,90 @@ namespace CapriDesktop
             string problem = Write(doc);
             page.Mark(doc);
             if (problem != null) { page.Say(problem, true); return false; }
-            page.Say(doc == docs[0] && Brain.PersonalityNote.Length > 0 ? "Saved. " + Brain.PersonalityNote + "." : "Saved.", false);
+            page.Say(doc.SkillPath != null ? SkillSays(doc) : doc == docs[0] && Brain.PersonalityNote.Length > 0 ? "Saved. " + Brain.PersonalityNote + "." : "Saved.", false);
             return true;
+        }
+
+        private static string SkillSays(Doc doc)
+        {
+            ModFile read = Mods.ReadOwn(doc.Note.Text, Path.GetFileNameWithoutExtension(doc.Note.Path));
+            if (read == null) return "Saved. Answer one of the questions so Capri has something to go on.";
+            if (read.Apps.Length > 0) return "Saved. Capri uses this whenever she does something in " + read.Apps[0] + ".";
+            if (read.Games.Length > 0) return "Saved. Capri uses this whenever she plays " + read.Games[0] + ".";
+            return "Saved. Capri reads this when it fits what you ask.";
+        }
+
+        private static Doc[] WithSkills(Doc[] own)
+        {
+            List<Doc> all = new List<Doc>(own);
+            Mods skills = Skills;
+            string folder = skills == null ? null : skills.OwnFolder;
+            try
+            {
+                if (folder != null && Directory.Exists(folder))
+                {
+                    string[] files = Directory.GetFiles(folder, "*" + Mods.OwnExtension);
+                    Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+                    foreach (string file in files)
+                        if (string.Equals(Path.GetExtension(file), Mods.OwnExtension, StringComparison.OrdinalIgnoreCase)) all.Add(SkillDoc(file));
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return all.ToArray();
+        }
+
+        private static Doc SkillDoc(string path)
+        {
+            return new Doc(Path.GetFileName(path), delegate { return new WrittenNote(path, "", skillWriting); }) { SkillPath = path };
+        }
+
+        internal void New(Control under)
+        {
+            if (stage == Stage.Waiting || stage == Stage.Gone || Leaving || guarded) return;
+            Finish();
+            ContextMenuStrip menu = new ContextMenuStrip { ShowImageMargin = false };
+            ToolStripMenuItem skill = new ToolStripMenuItem("skill.md") { ToolTipText = "Teach Capri an app or a game" };
+            skill.Click += delegate { BeginInvoke(new Action(AskSkill)); };
+            menu.Items.Add(skill);
+            menu.Closed += delegate { BeginInvoke(new Action(menu.Dispose)); };
+            menu.Show(under, new Point(0, under.Height));
+        }
+
+        private void AskSkill()
+        {
+            if (stage == Stage.Waiting || stage == Stage.Gone || Leaving || guarded) return;
+            using (SkillAsk ask = new SkillAsk(s))
+            {
+                if (ask.ShowDialog(page) != DialogResult.OK) return;
+                string problem = NewSkill(ask.SkillName, ask.Game, ask.Guided);
+                if (problem != null) page.Say(problem, true);
+            }
+        }
+
+        internal string NewSkill(string name, bool game, bool guided)
+        {
+            if (stage == Stage.Waiting || stage == Stage.Gone) return "Open the file editor first.";
+            Mods skills = Skills;
+            if (skills == null) return "Her skills aren't ready yet. Try again in a moment.";
+            string path;
+            try { path = skills.MakeOwn(name, game, guided); }
+            catch (ModException error) { return error.Message; }
+            int at = Array.FindIndex(docs, doc => doc.SkillPath != null && string.Equals(doc.SkillPath, path, StringComparison.OrdinalIgnoreCase));
+            bool had = at >= 0;
+            if (!had)
+            {
+                page.Keep();
+                List<Doc> all = new List<Doc>(docs);
+                all.Add(SkillDoc(path));
+                docs = all.ToArray();
+                at = docs.Length - 1;
+                page.Retab();
+            }
+            Turn(at);
+            string title = Mods.Titled(name);
+            page.Say(had ? "You already have a skill called " + title + ", so here it is." : guided ? "Answer what you can, then Save. Capri uses it for " + title + " from then on." : "Write what Capri should know about " + title + ", then Save.", false);
+            return null;
         }
 
         private string Write(Doc doc)
@@ -489,6 +575,8 @@ namespace CapriDesktop
             doc.Revert();
             ForgetDraft(doc);
             if (doc == docs[0] && Saved != null) Saved();
+            Action skillSaved = SkillSaved;
+            if (doc.SkillPath != null && skillSaved != null) skillSaved();
             return null;
         }
 
@@ -1135,6 +1223,7 @@ namespace CapriDesktop
         {
             internal readonly string Label;
             internal readonly Func<WrittenNote> Open;
+            internal string SkillPath;
             internal WrittenNote Note;
             internal string Draft = "", Problem, Told;
 
@@ -1163,8 +1252,8 @@ namespace CapriDesktop
             private readonly FileEditor panel;
             private readonly WordBox box;
             private readonly Bar bar;
-            private readonly Ink[] tabs;
-            private readonly Ink close, save, reload, keep;
+            private Ink[] tabs;
+            private readonly Ink close, save, reload, keep, make;
             private readonly Note status;
             private const TextFormatFlags TitleWidth = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
             private const TextFormatFlags TitleLine = TitleWidth | TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;
@@ -1204,13 +1293,7 @@ namespace CapriDesktop
                 box.KeyDown += delegate { panel.Finish(); };
                 box.MouseDown += delegate { panel.Finish(); };
                 box.TextChanged += delegate { if (!loading) Typed(); Freshen(); };
-                tabs = new Ink[panel.docs.Length];
-                for (int made = 0; made < tabs.Length; made++) tabs[made] = new Ink { Tag = made, Rolling = true };
-                foreach (Ink tab in tabs)
-                {
-                    Ink press = tab;
-                    press.Click += delegate { panel.Turn((int)press.Tag); };
-                }
+                tabs = MakeTabs(panel.docs.Length);
                 close = new Ink { Mark = true, AccessibleName = "Close the file editor" };
                 close.Click += delegate { panel.Ask(); };
                 save = new Ink { Filled = true, Text = "Save" };
@@ -1219,13 +1302,15 @@ namespace CapriDesktop
                 reload.Click += delegate { if (panel.Guarding) panel.GuardDiscard(); else panel.Reload(); };
                 keep = new Ink { Text = "Keep editing", Visible = false };
                 keep.Click += delegate { panel.GuardKeep(); };
+                make = new Ink { Text = "New", AccessibleName = "Make a new file, like a skill.md that teaches Capri an app or game" };
+                make.Click += delegate { panel.New(make); };
                 status = new Note { BackColor = Red, ForeColor = Salmon, AutoEllipsis = true, UseMnemonic = false, TextAlign = ContentAlignment.MiddleLeft };
                 cover = new Veil(panel, this) { Visible = false };
-                Controls.AddRange(new Control[] { cover, close, box, bar, status, keep, reload, save });
+                Controls.AddRange(new Control[] { cover, close, box, bar, status, keep, make, reload, save });
                 Controls.AddRange(tabs);
                 cover.BringToFront();
                 int order = 0;
-                foreach (Control next in new Control[] { box, save, reload, keep }) next.TabIndex = order++;
+                foreach (Control next in new Control[] { box, save, reload, make, keep }) next.TabIndex = order++;
                 foreach (Ink tab in tabs) tab.TabIndex = order++;
                 close.TabIndex = order++;
                 foreach (Control grip in new Control[] { this, status })
@@ -1292,7 +1377,7 @@ namespace CapriDesktop
                 statusFont = Look.Mono(13 * s, FontStyle.Regular, GraphicsUnit.Pixel);
                 box.Font = Look.Mono(BodySize * s, FontStyle.Regular, GraphicsUnit.Pixel);
                 status.Font = statusFont;
-                foreach (Ink ink in new[] { close, save, reload, keep }) ink.Font = buttonFont;
+                foreach (Ink ink in new[] { close, save, reload, make, keep }) ink.Font = buttonFont;
                 foreach (Ink tab in tabs) tab.Font = buttonFont;
             }
 
@@ -1354,6 +1439,7 @@ namespace CapriDesktop
                 int at = pad;
                 at = PlaceButton(save, at, buttonTop, buttonHigh, gap);
                 at = PlaceButton(reload, at, buttonTop, buttonHigh, gap);
+                at = PlaceButton(make, at, buttonTop, buttonHigh, gap);
                 at = PlaceButton(keep, at, buttonTop, buttonHigh, gap);
                 status.Bounds = new Rectangle(at, buttonTop, Math.Max(Scaled(40), Width - pad - at), buttonHigh);
                 cover.Bounds = new Rectangle(0, 0, Width, Height);
@@ -1375,11 +1461,40 @@ namespace CapriDesktop
                 int pad = Scaled(18), gap = Scaled(8), at = pad;
                 at = PlaceButton(save, at, save.Top, save.Height, gap);
                 at = PlaceButton(reload, at, save.Top, save.Height, gap);
+                at = PlaceButton(make, at, save.Top, save.Height, gap);
                 if (keep.Visible) at = PlaceButton(keep, at, save.Top, save.Height, gap);
                 status.Bounds = new Rectangle(at, save.Top, Math.Max(Scaled(40), Width - pad - at), save.Height);
             }
 
             private int Scaled(float value) { return (int)Math.Round(value * panel.s); }
+
+            private Ink[] MakeTabs(int count)
+            {
+                Ink[] made = new Ink[count];
+                for (int i = 0; i < count; i++)
+                {
+                    Ink press = new Ink { Tag = i, Rolling = true };
+                    press.Click += delegate { panel.Turn((int)press.Tag); };
+                    made[i] = press;
+                }
+                return made;
+            }
+
+            internal void Retab()
+            {
+                foreach (Ink tab in tabs)
+                {
+                    Controls.Remove(tab);
+                    tab.Dispose();
+                }
+                tabs = MakeTabs(panel.docs.Length);
+                Controls.AddRange(tabs);
+                int order = keep.TabIndex + 1;
+                foreach (Ink tab in tabs) tab.TabIndex = order++;
+                close.TabIndex = order;
+                cover.BringToFront();
+                Fit();
+            }
 
             // Shows this file, reading it first.
             internal void Take(Doc doc)
@@ -1470,6 +1585,7 @@ namespace CapriDesktop
                 save.Text = "Save + close";
                 reload.Text = "Discard";
                 keep.Visible = true;
+                make.Visible = false;
                 PlaceFoot();
                 Say("Unsaved changes in " + names + ".", false);
                 save.Focus();
@@ -1479,6 +1595,7 @@ namespace CapriDesktop
             {
                 save.Text = "Save";
                 keep.Visible = false;
+                make.Visible = true;
                 box.Focus();
             }
 
@@ -2170,6 +2287,74 @@ namespace CapriDesktop
         }
 
         // A button in the panel's colours. Filled is her red with dark words; the others are a red line with red words.
+        private sealed class SkillAsk : Form
+        {
+            private readonly TextBox named;
+            private readonly RadioButton game;
+
+            internal string SkillName { get { return named.Text.Trim(); } }
+            internal bool Game { get { return game.Checked; } }
+            internal bool Guided { get; private set; }
+
+            internal SkillAsk(float scale)
+            {
+                float at = Math.Max(1, scale);
+                Text = "New skill.md";
+                FormBorderStyle = FormBorderStyle.FixedDialog;
+                MaximizeBox = false;
+                MinimizeBox = false;
+                ShowInTaskbar = false;
+                StartPosition = FormStartPosition.CenterParent;
+                AutoScaleMode = AutoScaleMode.None;
+                BackColor = Red;
+                ForeColor = Salmon;
+                Font = Look.Mono(15 * at, FontStyle.Regular, GraphicsUnit.Pixel);
+                int pad = (int)(18 * at), wide = (int)(440 * at), row = (int)(30 * at), gap = (int)(8 * at);
+                Label asking = new Label { Text = "Name it after the app or game it teaches her:", AutoSize = false, Bounds = new Rectangle(pad, pad, wide, row), TextAlign = ContentAlignment.MiddleLeft, UseMnemonic = false };
+                named = new TextBox { Bounds = new Rectangle(pad, pad + row, wide, row), BackColor = Dark, ForeColor = Salmon, BorderStyle = BorderStyle.FixedSingle, MaxLength = 40, AccessibleName = "The skill's name" };
+                RadioButton app = new RadioButton { Text = "An app or website, like Discord", Checked = true, AutoSize = false, Bounds = new Rectangle(pad, pad + row * 2 + gap, wide, row), UseMnemonic = false };
+                game = new RadioButton { Text = "A game, like Minecraft", AutoSize = false, Bounds = new Rectangle(pad, pad + row * 3 + gap, wide, row), UseMnemonic = false };
+                int buttons = pad + row * 4 + gap * 3, third = (wide - gap * 2) / 3;
+                Button guided = Pressable("Template", true, new Rectangle(pad, buttons, third, row + gap));
+                Button blank = Pressable("Blank", false, new Rectangle(pad + third + gap, buttons, third, row + gap));
+                Button cancel = Pressable("Cancel", false, new Rectangle(pad + (third + gap) * 2, buttons, third, row + gap));
+                guided.AccessibleName = "Start from a template that asks you questions";
+                blank.AccessibleName = "Start with a blank skill";
+                cancel.DialogResult = DialogResult.Cancel;
+                guided.Click += delegate { Done(true); };
+                blank.Click += delegate { Done(false); };
+                AcceptButton = guided;
+                CancelButton = cancel;
+                Label hint = new Label { Text = "The template asks things like its shortcuts, where to click and what your names for things mean.", AutoSize = false, Bounds = new Rectangle(pad, buttons + row + gap * 2, wide, row * 2), UseMnemonic = false };
+                ClientSize = new Size(pad * 2 + wide, hint.Bottom + pad);
+                Controls.AddRange(new Control[] { asking, named, app, game, guided, blank, cancel, hint });
+                named.TabIndex = 0;
+                app.TabIndex = 1;
+                game.TabIndex = 2;
+                guided.TabIndex = 3;
+                blank.TabIndex = 4;
+                cancel.TabIndex = 5;
+            }
+
+            private static Button Pressable(string words, bool filled, Rectangle place)
+            {
+                Button button = new Button { Text = words, Bounds = place, FlatStyle = FlatStyle.Flat, BackColor = filled ? Salmon : Red, ForeColor = filled ? Dark : Salmon, UseMnemonic = false, Cursor = Cursors.Hand };
+                button.FlatAppearance.BorderColor = Salmon;
+                return button;
+            }
+
+            private void Done(bool template)
+            {
+                if (SkillName.Length == 0)
+                {
+                    named.Focus();
+                    return;
+                }
+                Guided = template;
+                DialogResult = DialogResult.OK;
+            }
+        }
+
         private sealed class Ink : Button
         {
             internal bool Filled, Mark;

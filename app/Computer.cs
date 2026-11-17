@@ -399,6 +399,7 @@ namespace CapriDesktop
         internal static Func<Rectangle, Bitmap> Grab = Copy;
         internal static Func<Rectangle?, Picture> Shoot = Snap;
         internal static Func<Sight> Glimpse = Peek;
+        internal static Func<string, Func<string[]>, string> AppSkills;
         internal static Func<IntPtr, string> ActiveTab = ReadActiveTab;
         internal static Func<Target> Focus = Focused;
         internal static Func<Point, Target> Under = Underneath;
@@ -2739,7 +2740,20 @@ namespace CapriDesktop
         {
             string skills = Hands.SkillNote(), read;
             lock (readSkills) read = hands == Computer.Seeing || readSkills.Count == 0 ? "" : "\nSkills you read for this job:\n" + string.Join("\n", readSkills.ToArray());
-            return Computer.Allowing(hands) + skills + (skills.Length > 0 && hands == Computer.Sees ? Computer.SkillMove : "") + (Computer.Streaming ? Computer.StreamNote : "") + Briefed() + read;
+            return Computer.Allowing(hands) + skills + (skills.Length > 0 && hands == Computer.Sees ? Computer.SkillMove : "") + (Computer.Streaming ? Computer.StreamNote : "") + Briefed() + AppBrief() + read;
+        }
+
+        private string AppBrief()
+        {
+            Func<string, Func<string[]>, string> apps = Computer.AppSkills;
+            if (apps == null) return "";
+            return apps(Words + "\n" + Task, delegate
+            {
+                Sight front = null;
+                try { front = Computer.Glimpse(); }
+                catch (Exception) { }
+                return front == null ? new[] { "", "" } : new[] { front.Program ?? "", front.Title ?? "" };
+            });
         }
 
         // read_skill in a job: the skill in full, kept for the rest of the job. On her text and grid brains the step itself says only
