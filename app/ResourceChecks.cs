@@ -59,7 +59,9 @@ namespace CapriDesktop
                     if (own == null || own != view.Capri[0] || own.Ram < (8L << 20) || own.Ram > current.WorkingSet64 + (64L << 20)) throw new Exception("Capri's own row is wrong: " + (own == null ? "missing" : own.Ram + " bytes beside a working set of " + current.WorkingSet64));
                 }
                 if (brainRow == null || brainRow.Ram <= 0) throw new Exception("Her brain (the fake llama-server) wasn't counted as Capri's: " + string.Join(", ", view.Capri.ConvertAll(delegate(UseRow row) { return row.Name; }).ToArray()));
-                if (view.Others.Exists(delegate(UseRow row) { return row.Name == "Capri" || row.Name == "ping"; })) throw new Exception("Capri's parts were counted as other programs.");
+                int mineCounted = 0;
+                foreach (UseRow row in view.Capri) mineCounted += row.Count;
+                if (own.Count != 1 || brainRow.Count != 1 || mineCounted != view.CapriTotal.Count || view.Others.Exists(delegate(UseRow row) { return row.Name == "Her brain"; })) throw new Exception("Capri's parts were counted wrong: " + string.Join(", ", view.Capri.ConvertAll(delegate(UseRow row) { return row.Name + " x" + row.Count; }).ToArray()) + " of " + view.CapriTotal.Count);
                 UseRow host = view.Others.Find(delegate(UseRow row) { return row.Name == "svchost"; });
                 if (host == null || host.Count < 3 || host.Ram <= 0) throw new Exception("Other programs weren't read or grouped by name: svchost " + (host == null ? "missing" : "x" + host.Count));
                 if (view.RamTotal != total || view.RamUsed <= 0 || view.RamUsed > view.RamTotal || view.CapriTotal.Ram < own.Ram + brainRow.Ram || view.OthersTotal.Count < 20) throw new Exception("The totals don't add up: " + view.RamUsed + " of " + view.RamTotal + ", Capri " + view.CapriTotal.Ram + ", " + view.OthersTotal.Count + " other processes");
