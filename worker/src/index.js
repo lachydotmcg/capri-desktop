@@ -76,6 +76,17 @@ const codes = async (request, env, path) => {
     const { results } = await env.DB.prepare('SELECT id, name, kind, tag, budget, spent, expires, off, requests, used FROM codes ORDER BY id DESC').all();
     return reply({ codes: results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires, off: row.off, requests: row.requests, used: row.used })) });
   }
+  if (path === '/codes/stats-key' && request.method === 'POST') {
+    const sent = await request.json().catch(() => ({}));
+    if (sent && sent.off === true) {
+      await env.DB.prepare('DELETE FROM stats_key').run();
+      return reply({ off: true });
+    }
+    const key = 'CAPRI-STATS-' + [...crypto.getRandomValues(new Uint8Array(24))].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    const created = Date.now();
+    await env.DB.prepare('INSERT INTO stats_key (id, hash, created) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET hash = excluded.hash, created = excluded.created').bind(await sha256('stats:' + key), created).run();
+    return reply({ key, created });
+  }
   if (request.method !== 'POST' || !['/codes', '/codes/off', '/codes/on', '/codes/limit', '/codes/days'].includes(path)) return reply({ error: 'Not found' }, 404);
   const sent = await request.json().catch(() => null);
   if (!sent || typeof sent !== 'object' || Array.isArray(sent)) return reply({ error: 'Bad request' }, 400);
@@ -958,6 +969,42 @@ const help = async (request, env, ctx, reply) => {
   return respond(request, env, ctx, reply, body);
 };
 
+// Read-only numbers for the stats dashboard, behind a key that only reads. Each code shows its name and usage, never its
+// text or hash, and nothing here writes.
+const stats = async (request, env) => {
+  const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+  if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
+  const auth = request.headers.get('Authorization') || '';
+  const stored = await env.DB.prepare('SELECT hash FROM stats_key WHERE id = 1').first().catch(() => null);
+  if (!stored || !auth.startsWith('Bearer ') || !await equal(await sha256('stats:' + auth.slice(7).trim()), stored.hash)) return reply({ error: 'Not authorised.' }, 401);
+  const asked = Number(new URL(request.url).searchParams.get('days') || 60);
+  const days = Number.isInteger(asked) && asked >= 1 && asked <= 366 ? asked : 60;
+  const today = Math.floor(Date.now() / 86400000);
+  const since = today + 1 - days;
+  const sinceText = new Date(since * 86400000).toISOString().slice(0, 10);
+  const dayText = day => new Date(day * 86400000).toISOString().slice(0, 10);
+  const [downloads, stars, mods, phones, helps, frees, codeRows] = await env.DB.batch([
+    env.DB.prepare('SELECT count FROM downloads'),
+    env.DB.prepare('SELECT count FROM stars'),
+    env.DB.prepare('SELECT d.folder AS folder, d.count AS installs, ROUND(AVG(r.stars), 2) AS rating, COUNT(r.stars) AS votes FROM mod_downloads d LEFT JOIN mod_ratings r ON r.folder = d.folder GROUP BY d.folder ORDER BY d.count DESC'),
+    env.DB.prepare('SELECT day, phones, first_time, also_paired FROM phone_days WHERE day >= ? ORDER BY day').bind(sinceText),
+    env.DB.prepare('SELECT day, count FROM help_days WHERE ABS(day) >= ? ORDER BY ABS(day)').bind(since),
+    env.DB.prepare("SELECT day, SUM(CASE WHEN key <> 'pool' THEN 1 ELSE 0 END) AS phones, SUM(CASE WHEN key <> 'pool' THEN count ELSE 0 END) AS messages FROM free_days GROUP BY day ORDER BY day"),
+    env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC')
+  ]);
+  const first = result => (result.results && result.results[0]) || {};
+  return reply({
+    at: Date.now(),
+    days,
+    counters: { site_downloads: first(downloads).count || 0, site_stars: first(stars).count || 0 },
+    mods: mods.results,
+    phone_days: phones.results,
+    help_days: helps.results.map(row => ({ day: dayText(Math.abs(row.day)), place: row.day < 0 ? 'discord' : 'site', count: row.count })),
+    free_days: frees.results.map(row => ({ day: dayText(row.day), phones: row.phones, messages: row.messages })),
+    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight }))
+  });
+};
+
 const relay = async (request, env, ctx, reply) => {
   if (!env.DISCORD_RELAY_SECRET) return reply({ reply: "Discord help isn't set up yet." }, 503);
   const auth = request.headers.get('Authorization') || '';
@@ -1133,6 +1180,7 @@ export default {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
     if (path === '/codes' || path.startsWith('/codes/')) return codes(request, env, path);
+    if (path === '/stats') return stats(request, env);
     if (path === '/brain' || path.startsWith('/brain/')) return codeBrain(request, env, ctx, path);
     const cors = {
       'Access-Control-Allow-Origin': '*',
