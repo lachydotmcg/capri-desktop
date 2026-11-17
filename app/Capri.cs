@@ -1080,6 +1080,7 @@ namespace CapriDesktop
         [DataMember] public bool NoReactions;
         // GAMES > Game sounds is on by default too: off, a big burst of a game's sound stops counting as a moment (#234).
         [DataMember] public bool NoGameSounds;
+        [DataMember] public int GameSoundsDown;
         // Gaming Mode's key, Ctrl + Alt + G, and where her HUD sits in each game (GameSpots).
         [DataMember] public int GameMods = 3;
         [DataMember] public int GameVk = 0x47;
@@ -28375,6 +28376,25 @@ namespace CapriDesktop
                 if (gameLoud != 2) throw new Exception("A held game sound kept firing loud events.");
             }
             checks.Add("PASS game levels follow children and grandchildren, detect spikes over a rolling median, keep one sound to one event and contain failing subscribers");
+            foreach (int[] heard in new[] { new[] { 100, 1, 1 }, new[] { 50, 0, 1 }, new[] { 10, 0, 1 }, new[] { 0, 0, 0 } })
+            {
+                int percent = heard[0];
+                using (GameEars scaled = new GameEars(int.MaxValue))
+                {
+                    int mild = 0, blast = 0;
+                    double peak = 0;
+                    scaled.Sensitivity = delegate { return percent; };
+                    scaled.Loud += delegate(double heardLevel) { if (heardLevel > 0.9) blast++; else mild++; };
+                    for (int quietSample = 0; quietSample < 65; quietSample++) scaled.Hear(0.02, quietSample / 30.0);
+                    scaled.Hear(0.2, 3);
+                    peak = scaled.Level;
+                    for (int calm = 0; calm < 10; calm++) scaled.Hear(0.02, 3.2 + calm / 30.0);
+                    scaled.Hear(0.95, 4);
+                    if (mild != heard[1] || blast != heard[2] || Math.Abs(peak - 0.2) > 0.001) throw new Exception("Game sound sensitivity " + percent + "% heard " + mild + " mild and " + blast + " big bursts, level " + peak + ".");
+                }
+            }
+            if (GameEars.Sensitive(null) != 100 || GameEars.Sensitive(delegate { return 140; }) != 100 || GameEars.Sensitive(delegate { return -5; }) != 0 || GameEars.Sensitive(delegate { throw new Exception("Broken sensitivity."); }) != 100) throw new Exception("Game sound sensitivity was not kept between 0 and 100 or a broken one wasn't heard at 100.");
+            checks.Add("PASS game sound sensitivity: 100% hears as before, 50% and 10% let a mild burst go and keep a blast, Off hears none, the raw level is untouched");
             using (GameEars gameSilence = new GameEars(int.MaxValue))
             {
                 int silentLoud = 0;
@@ -33863,8 +33883,22 @@ namespace CapriDesktop
         private void SmokeReactSounds(System.Collections.Generic.List<string> checks, ReactRig rig)
         {
             bool soundsWas = preferences.NoGameSounds;
+            int downWas = preferences.GameSoundsDown;
             try
             {
+                preferences.GameSoundsDown = 0;
+                mainframe.Sync();
+                bool sensitiveDefault = GameSoundSensitivity == 100 && new Preferences().GameSoundsDown == 0 && Preferences.Fresh().GameSoundsDown == 0 && mainframe.GameSensitivityShown == "100%";
+                SetGameSoundSensitivity(30);
+                bool sensitiveSaved = GameSoundSensitivity == 30 && LoadPreferences().GameSoundsDown == 70 && mainframe.GameSensitivityShown == "30%";
+                SetGameSoundSensitivity(0);
+                bool sensitiveOff = GameSoundSensitivity == 0 && LoadPreferences().GameSoundsDown == 100 && mainframe.GameSensitivityShown == "Off";
+                Rectangle sensitiveAt = mainframe.GameSensitivityAt, gamingAt = mainframe.GamingModeAt;
+                bool sensitiveRow = sensitiveAt.Bottom <= gamingAt.Top && gamingAt.Top - sensitiveAt.Top <= 40 && sensitiveAt.Width > 0;
+                SetGameSoundSensitivity(100);
+                ReactMust(sensitiveDefault && sensitiveSaved && sensitiveOff && sensitiveRow && GameSoundSensitivity == 100,
+                    "Game sound sensitivity went wrong: default " + sensitiveDefault + ", saved " + sensitiveSaved + ", off " + sensitiveOff + ", row " + sensitiveRow + " (" + sensitiveAt + " above " + gamingAt + ")");
+                checks.Add("PASS Game sound sensitivity is 100% by default in new and old settings, saves 30% and Off, and sits on its own row above Gaming Mode");
                 preferences.NoGameSounds = false;
                 mainframe.Sync();
                 bool shownOn = GameSoundsOn && mainframe.GameSoundsShown && !new Preferences().NoGameSounds && !Preferences.Fresh().NoGameSounds;
@@ -33898,6 +33932,7 @@ namespace CapriDesktop
             finally
             {
                 preferences.NoGameSounds = soundsWas;
+                preferences.GameSoundsDown = downWas;
                 SavePreferences();
                 mainframe.Sync();
             }
@@ -41463,10 +41498,10 @@ namespace CapriDesktop
                     try { input.Start(); } catch (VoiceException error) { if (error.Message != Dictation.MicBlocked) throw; }
                     if (openedBlocked || input.Listening) throw new Exception("Mic privacy denial attempted capture.");
                 }
-                if (!Ears.Denied("Deny", "Allow") || !Ears.Denied("Allow", "Deny") || Ears.Denied(null, null) || Ears.Denied("Allow", "Allow")) throw new Exception("Mic privacy values were interpreted incorrectly.");
+                if (Ears.Denied(null, "Deny", null, "Allow") || Ears.Denied(null, "Deny", "Allow", "Allow") || !Ears.Denied(null, "Allow", null, "Deny") || !Ears.Denied(null, "Allow", "Deny", "Allow") || !Ears.Denied(null, "Deny", null, null) || !Ears.Denied(2, "Allow", "Allow", "Allow") || Ears.Denied(1, "Allow", "Allow", "Allow") || Ears.Denied(null, null, null, null) || Ears.Denied(null, "Allow", "Allow", "Allow")) throw new Exception("Mic privacy values were interpreted incorrectly: a machine-wide Deny under their own Allow still blocks the mic, or a real block is missed.");
                 string logged = File.ReadAllText(log);
                 if (logged.IndexOf("Saved mic gone is unavailable", StringComparison.Ordinal) < 0 || logged.IndexOf("WASAPI opened default-one", StringComparison.Ordinal) < 0 || logged.IndexOf("48000 Hz, 6 channels, 32-bit float -> 16000 Hz", StringComparison.Ordinal) < 0 || logged.IndexOf("0x80070005", StringComparison.Ordinal) < 0 || logged.IndexOf("0x8889000A", StringComparison.Ordinal) < 0) throw new Exception("Mic logs lost the device, conversion format or Windows failure code.");
-                checks.Add("PASS mic privacy denial and exclusive-use errors explain the fix; logs name the input, native and converted formats, saved-device fallback and HRESULTs; all sources are fake");
+                checks.Add("PASS mic privacy denial and exclusive-use errors explain the fix; their own Allow beats a stale machine-wide Deny while policy or their own Deny still blocks; logs name the input, native and converted formats, saved-device fallback and HRESULTs; all sources are fake");
             }
             finally { Brain.LogPath = logWas; }
         }
