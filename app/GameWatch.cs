@@ -11,6 +11,7 @@ namespace CapriDesktop
     internal sealed partial class Companion
     {
         private const int WatchWidth = 240, WatchHeight = 135;
+        internal const int WatchRestMs = 200;
         private Thread gameWatch;
 
         private void WatchGames()
@@ -167,7 +168,7 @@ namespace CapriDesktop
                                 finally { current = null; }
                             }
                         else if (Interlocked.Exchange(ref heard, 0) != 0) noticed("sound");
-                        Thread.Sleep(100);
+                        Thread.Sleep(Saving ? WatchRestMs : 100);
                     }
                     catch (Exception error)
                     {

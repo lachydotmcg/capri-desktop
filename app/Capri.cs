@@ -1820,20 +1820,20 @@ namespace CapriDesktop
         }
 
         // Lets go of lazy and facing-left art after RestAfter, and other art after ten minutes. Called between frames.
-        internal static void RestAll(int now)
+        internal static void RestAll(int now, int after = 600000)
         {
             Clip[] clips;
             lock (all) clips = all.ToArray();
-            foreach (Clip clip in clips) clip.Rest(now);
+            foreach (Clip clip in clips) clip.Rest(now, after);
         }
 
-        private void Rest(int now)
+        private void Rest(int now, int after)
         {
             lock (gate)
             {
                 if (fetching) return;
-                if (strip != null && unchecked(now - stripUsed) > (lazy ? RestAfter : 600000)) { strip.Dispose(); strip = null; }
-                if (flipped != null && unchecked(now - flippedUsed) > RestAfter) { flipped.Dispose(); flipped = null; }
+                if (strip != null && unchecked(now - stripUsed) > (lazy ? Math.Min(RestAfter, after) : after)) { strip.Dispose(); strip = null; }
+                if (flipped != null && unchecked(now - flippedUsed) > Math.Min(RestAfter, after)) { flipped.Dispose(); flipped = null; }
             }
         }
 
@@ -3565,6 +3565,7 @@ namespace CapriDesktop
             if (Dizzy(now)) return 33;
             // Asleep sitting up, her bob and z's are slow, so 15 a second is plenty.
             if (clip == perchSleep) return 66;
+            if (HoldsStill(now)) return HoldMs;
             // Power saver: resting, she ticks on whole ticks of Windows' clock at her rest rate, like a slow perch.
             if (Resting(now)) return Math.Max(1, 64 / Math.Max(1, (int)Math.Min(clip.Fps, Math.Min(preferences.PerchFps, SaverFps)))) * 1000 / 64 - 1;
             if (frontBusy)
@@ -3584,6 +3585,13 @@ namespace CapriDesktop
         // or dances gets her usual rate back by the next tick.
         internal const int SaverFps = 15;
 
+        internal const int HoldMs = 250;
+
+        private bool HoldsStill(double now)
+        {
+            return fullThrough && Resting(now) && drawnClip == clip && !drawnMods && anchor == drawnAt && facingLeft == drawnFacing;
+        }
+
         private bool Resting(double now)
         {
             return Saving && !docked && !exploring && !Dizzy(now) && Quiet(now) && (StandingStill || (SittingStill && (clip == perch || clip == laydown || clip == laydownSleep) && now - seatMovedAt >= 1));
@@ -3598,6 +3606,7 @@ namespace CapriDesktop
         // A tick off 30 fps with nothing new to show: she's only sitting, still where she was drawn, and her perch frame hasn't changed.
         private bool Steady(double now)
         {
+            if (HoldsStill(now)) return true;
             int fps = PerchRateNow(now);
             return fps != 30 && clip == perch && SittingStill && Quiet(now) && !Dizzy(now) && anchor == drawnAt && facingLeft == drawnFacing && (long)((now - clipStart) * fps) == drawnStep;
         }
@@ -8281,7 +8290,7 @@ namespace CapriDesktop
         private void RestArt(double now, int tick)
         {
             if (!CanRest) return;
-            Clip.RestAll(tick);
+            Clip.RestAll(tick, docked ? DockedArtRest : 600000);
             bodyCells.Rest(tick);
             shatter.Rest(tick);
             if (inBetween != null && perchMix == 0 && now - tweenUsed >= 600)
@@ -8289,6 +8298,8 @@ namespace CapriDesktop
                 inBetween.Dispose(); inBetween = null; mixFrom = mixTo = null;
             }
         }
+
+        internal const int DockedArtRest = 60000;
 
         // How often she looks at her mic's mute switch for Hey Capri, and at Windows' default mic for Windows speech, in seconds.
         private double MicLookGap { get { return Saving ? 6 : 2; } }
@@ -27048,7 +27059,7 @@ namespace CapriDesktop
         private void SmokePowerSaver(System.Collections.Generic.List<string> checks, string output)
         {
             int saverWas = preferences.PowerSaver, fpsWas = preferences.PerchFps, gapWas = GlanceGap;
-            bool busyWas = frontBusy, ridingWas = riding, facingWas = facingLeft, simpleWas = simpleTest, pageWas = mainframe.SettingsShown, framesWere = frames.Enabled;
+            bool busyWas = frontBusy, throughWas = fullThrough, ridingWas = riding, facingWas = facingLeft, simpleWas = simpleTest, pageWas = mainframe.SettingsShown, framesWere = frames.Enabled;
             bool heyWas = preferences.HeyCapri, listenWas = preferences.ListenCapri, clipsWas = preferences.ClipGames, advancedWas = preferences.AdvancedSettings;
             Ledge seatWas = seat;
             Clip clipWas = clip;
@@ -27207,8 +27218,27 @@ namespace CapriDesktop
                             drawRates[pass] = drew / took;
                             workRates[pass] = spent * 1000.0 / Stopwatch.Frequency / took;
                         }
+                        preferences.PowerSaver = 1;
+                        fullThrough = true;
+                        Play(perch);
+                        pump(0.4);
+                        ticked = drew = 0;
+                        spent = 0;
+                        double heldFor = pump(1.2);
+                        double heldTicks = ticked / heldFor, heldDraws = drew / heldFor, heldWork = spent * 1000.0 / Stopwatch.Frequency / heldFor;
+                        int heldPace = FrameInterval(clock.Elapsed.TotalSeconds);
+                        bool heldSteady = Steady(clock.Elapsed.TotalSeconds);
+                        speech = "hi";
+                        int heldTalking = FrameInterval(clock.Elapsed.TotalSeconds);
+                        bool talkDraws = !Steady(clock.Elapsed.TotalSeconds);
+                        speech = null;
+                        fullThrough = false;
+                        int heldLeft = FrameInterval(clock.Elapsed.TotalSeconds);
+                        if (heldPace != HoldMs || !heldSteady || heldTalking != 33 || !talkDraws || heldLeft != 61 || drew > 1 || heldTicks > 6)
+                            throw new Exception("Over something full screen she didn't hold still: " + heldPace + " ms, steady " + heldSteady + ", talking " + heldTalking + " ms and drawn " + talkDraws + ", after it " + heldLeft + " ms, " + drew + " paints and " + heldTicks.ToString("0.0") + " ticks a second");
+                        checks.Add("PASS Power saver's hold: resting over something full screen she holds her frame, looking again every " + HoldMs + " ms (" + heldTicks.ToString("0") + " ticks and " + heldDraws.ToString("0") + " paints a second, " + heldWork.ToString("0.0") + " ms of frame work a second), and talking draws her at 33 ms again");
                     }
-                    finally { probe.Dispose(); }
+                    finally { probe.Dispose(); fullThrough = throughWas; }
                     drawn = "resting over a faked game, Off ticked " + tickRates[0].ToString("0") + " and drew " + drawRates[0].ToString("0") + " times a second (" + workRates[0].ToString("0.0") + " ms of frame work a second), In games " + tickRates[1].ToString("0") + " and " + drawRates[1].ToString("0") + " (" + workRates[1].ToString("0.0") + " ms)";
                     if (drawRates[1] >= drawRates[0] || tickRates[1] >= tickRates[0] || drawRates[1] < 5) throw new Exception("Power saver didn't draw her less often: " + drawn);
                 }
@@ -27279,6 +27309,7 @@ namespace CapriDesktop
                 Brain.LogPath = logWas;
                 preferences.PerchFps = fpsWas;
                 frontBusy = busyWas;
+                fullThrough = throughWas;
                 seat = seatWas;
                 riding = ridingWas;
                 speech = speechWas;
@@ -52564,6 +52595,15 @@ namespace CapriDesktop
                             Stopwatch warming = Stopwatch.StartNew();
                             while ((!perchTalk.Ready(false) || !perch.Ready(true)) && warming.ElapsedMilliseconds < 8000) Thread.Sleep(20);
                             if (!perchTalk.Ready(false) || !perch.Ready(true)) throw new Exception("Her perch talking and flipped perch didn't load again off her thread.");
+                            long artWarm = Clip.Loaded();
+                            Clip.RestAll(Environment.TickCount + DockedArtRest + 1000, DockedArtRest);
+                            long artDocked = Clip.Loaded();
+                            bool dockedLetGo = !perch.Ready(false) && !idle.Ready(false);
+                            Clip.WarmAll();
+                            Stopwatch rewarming = Stopwatch.StartNew();
+                            while ((!perch.Ready(false) || !idle.Ready(false)) && rewarming.ElapsedMilliseconds < 8000) Thread.Sleep(20);
+                            if (!dockedLetGo || artDocked * 4 > artWarm || !perch.Ready(false) || !idle.Ready(false)) throw new Exception("Docked in a game, her art wasn't let go after " + DockedArtRest / 1000 + " s and back again: " + artWarm + " to " + artDocked + " bytes, perch and stand back " + perch.Ready(false) + " / " + idle.Ready(false));
+                            checks.Add("PASS docked in a game, all her art undrawn for " + DockedArtRest / 1000 + " s is let go (" + (artWarm - artDocked) / (1 << 20) + " MB here) and her undock warms it again off her thread in " + rewarming.ElapsedMilliseconds + " ms");
                             checks.Add("PASS her perch talks in her artist's talking frames (changed only around her mouth, facing either way), and art undrawn for " + Clip.RestAfter / 1000 + " s is let go (" + (artBefore - artRested) / (1 << 20) + " MB here) and loads again off her thread in " + warming.ElapsedMilliseconds + " ms");
                             using (Font display = Look.Mono(14, FontStyle.Bold))
                             using (Font slanted = Look.Mono(9f, FontStyle.Italic, GraphicsUnit.Point))

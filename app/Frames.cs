@@ -536,7 +536,8 @@ namespace CapriDesktop
             }
         }
 
-        // Each pixel out is the average of the frame's pixels under it, so text and a game's HUD lines don't shimmer. At the same
+        // Each pixel out is the average of the frame's pixels under it, or of every other one each way where four or more fall under
+        // it, so text and a game's HUD lines don't shimmer. At the same
         // size it's a plain copy.
         private static unsafe void Shrink(byte* source, int across, int down, int width, int height, BitmapData target, int wide, int tall)
         {
@@ -552,20 +553,23 @@ namespace CapriDesktop
             }
             int[] lefts = new int[wide + 1];
             for (int column = 0; column <= wide; column++) lefts[column] = (int)((long)column * width / wide);
+            int stepX = width >= wide * 4 ? 2 : 1, stepY = height >= tall * 4 ? 2 : 1;
+            long acrossStep = (long)across * stepX;
             for (int row = 0; row < tall; row++)
             {
                 int top = (int)((long)row * height / tall), bottom = Math.Max(top + 1, (int)((long)(row + 1) * height / tall));
+                int rows = (bottom - top + stepY - 1) / stepY;
                 uint* to = (uint*)((byte*)target.Scan0 + (long)row * target.Stride);
                 for (int column = 0; column < wide; column++)
                 {
                     int left = lefts[column], right = Math.Max(left + 1, lefts[column + 1]);
                     uint blue = 0, green = 0, red = 0;
-                    for (int y = top; y < bottom; y++)
+                    for (int y = top; y < bottom; y += stepY)
                     {
                         byte* from = source + (long)y * down + (long)left * across;
-                        for (int x = left; x < right; x++, from += across) { blue += from[0]; green += from[1]; red += from[2]; }
+                        for (int x = left; x < right; x += stepX, from += acrossStep) { blue += from[0]; green += from[1]; red += from[2]; }
                     }
-                    uint count = (uint)((bottom - top) * (right - left));
+                    uint count = (uint)(rows * ((right - left + stepX - 1) / stepX));
                     to[column] = 0xFF000000u | ((red / count) << 16) | ((green / count) << 8) | (blue / count);
                 }
             }
