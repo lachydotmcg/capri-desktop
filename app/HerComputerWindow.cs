@@ -1024,6 +1024,20 @@ namespace CapriDesktop
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
                 Draw(g);
+                using (Font font = new Font("Segoe UI", 15f, FontStyle.Regular, GraphicsUnit.Pixel))
+                using (Font bold = new Font("Segoe UI", 14f, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (SolidBrush white = new SolidBrush(Color.White))
+                using (SolidBrush soft = new SolidBrush(SoftInk))
+                using (SolidBrush pink = new SolidBrush(Pink))
+                using (StringFormat centre = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                {
+                    g.FillRectangle(white, 660, 754, 340, 32);
+                    g.DrawString(taskBox.Text.Length > 0 ? taskBox.Text : "give her something to do", font, soft, 668, 760);
+                    g.FillRectangle(pink, 1010, 752, 116, 36);
+                    g.FillRectangle(pink, 1134, 752, 116, 36);
+                    g.DrawString(give.Text, bold, white, new RectangleF(1010, 752, 116, 36), centre);
+                    g.DrawString(control.Text, bold, white, new RectangleF(1134, 752, 116, 36), centre);
+                }
             }
             return shot;
         }
