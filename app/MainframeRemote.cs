@@ -219,7 +219,7 @@ namespace CapriDesktop
             private readonly Label[] names = new Label[Rows], states = new Label[Rows];
             private readonly Key[] revokes = new Key[Rows];
             private readonly RemoteQrBox qr;
-            private readonly Key pair, allow, deny, saveHost, back, next, removeAll, showQr;
+            private readonly Key pair, allow, deny, saveHost, back, next, removeAll, showQr, here;
             private readonly Entry host;
             private readonly Timer clock = new Timer { Interval = 1000 };
             private RemoteView view = new RemoteView();
@@ -260,6 +260,9 @@ namespace CapriDesktop
                 idle = Words("", 28, 180, 264, 18, Font, Faint);
                 showQr = Make("Show QR", 106, 218, 108, 26, delegate { revealedQr = view.Qr; Fill(view); });
                 showQr.Accent = Cyan;
+                here = Make("Open Remote on this PC", 28, 440, 264, 26, delegate { if (this.live) Frame.capri.RemoteOpenHere(); });
+                here.Accent = Cyan;
+                here.AccessibleName = "Pair this PC's browser to open Room with your webcam";
                 askTitle = Words("ALLOW THIS PHONE?", 28, 180, 264, 20, Type(10.5f * zoom, true), Rose);
                 askName = Words("", 28, 204, 264, 22, Type(11f * zoom, true), White);
                 codeLabel = Words("CODE", 28, 240, 264, 14, Small(), Faint);
@@ -322,6 +325,7 @@ namespace CapriDesktop
                 showQr.Visible = hidden;
                 expires = showing || linking ? DateTime.Now.AddSeconds(view.QrSeconds) : DateTime.MaxValue;
                 qrNote.Visible = showing && !hidden;
+                here.Visible = showing && !hidden;
                 qrNote.Text = showing ? "SCAN WITH YOUR PHONE · EXPIRES " + expires.ToString("HH:mm", CultureInfo.CurrentCulture) : "";
                 idle.Visible = !asking && (!showing || hidden);
                 idle.Text = hidden ? "QR hidden while streaming" : !view.On ? "Turn Remote on first" : !view.Ready ? "Waiting for the relay" : view.Expired ? "That code expired" : linking ? "Pairing link sent to " + view.LinkFor : "No code open";
@@ -445,6 +449,7 @@ namespace CapriDesktop
                 bool hidden = Computer.Streaming && revealedQr != expected.Qr;
                 if (expected.Ask == null && expected.Qr != null && (qr.Visible == hidden || showQr.Visible != hidden || allow.Visible || hidden && (!idle.Visible || idle.Text != "QR hidden while streaming"))) return "the QR didn't follow the streaming setting";
                 if (expected.Phones.Count > 0 && (!revokes[0].Visible || names[0].Text != expected.Phones[first].Name)) return "the paired phones didn't show";
+                if (here.Visible != qr.Visible) return "Open Remote on this PC didn't follow the QR";
                 if (expected.Ask == null && expected.Qr == null && expected.LinkFor != null && (qr.Visible || !idle.Visible || idle.Text != "Pairing link sent to " + expected.LinkFor)) return "a phone's pairing link didn't show as words, with no QR";
                 for (int i = 0; i < Rows && first + i < expected.Phones.Count; i++)
                     if ((expected.Phones[first + i].From != null || expected.Phones[first + i].Parent != null) && !states[i].Text.EndsWith(" BY LINK", StringComparison.Ordinal)) return "a phone added by link didn't say so";

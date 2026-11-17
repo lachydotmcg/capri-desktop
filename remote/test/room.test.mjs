@@ -65,6 +65,139 @@ test('the phone room camera starts on request and releases its tracks', { skip: 
     await site.close();
   }
 });
+test('room on a pc webcam mirrors you, sits her on your desk, records a clip and lets go of everything', { skip: !chromePath() }, async () => {
+  const site = await startSite(8982);
+  let page;
+  try {
+    page = await launch({ port: 9492, width: 1280, height: 800, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'] });
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      window.cameraStreams = [];
+      window.clipsSaved = [];
+      const media = navigator.mediaDevices;
+      const native = media.getUserMedia.bind(media);
+      media.getUserMedia = async constraints => { const stream = await native(constraints); cameraStreams.push(stream); return stream; };
+      const click = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () { if (this.download) clipsSaved.push(this.download); else click.call(this); };
+    ` });
+    await page.go('http://127.0.0.1:8982/?demo');
+    await page.until("document.getElementById('app').dataset.screen === 'chat'", 'demo chat');
+    const click = id => page.run("document.getElementById('" + id + "').click()");
+    await click('room-camera');
+    await click('room-open');
+    await page.until("!document.getElementById('room-controls').hidden", 'camera controls');
+    assert.equal(await page.run("document.getElementById('room-view').hasAttribute('data-desk')"), true);
+    assert.equal(await page.run("document.getElementById('app').hasAttribute('data-desk')"), true);
+    assert.equal(await page.run("getComputedStyle(document.getElementById('room-video')).transform"), 'matrix(-1, 0, 0, 1, 0, 0)');
+    assert.equal(await page.run("document.getElementById('room-status').textContent"), 'Drag Capri anywhere on your desk.');
+    assert.ok(Math.abs(parseFloat(await page.run("document.getElementById('room-her').style.left")) - 74) < 1.5);
+    assert.ok(await page.run("document.getElementById('room').getBoundingClientRect().height") >= 440);
+    if (await page.run("!!document.querySelector('#room-view canvas')")) {
+      await page.until("!document.getElementById('room-record').hidden", 'record button');
+      await click('room-record');
+      assert.equal(await page.run("document.getElementById('room-record').getAttribute('aria-pressed')"), 'true');
+      await page.until("document.getElementById('room-status').textContent.startsWith('Recording')", 'recording');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await click('room-record');
+      await page.until('clipsSaved.length === 1', 'saved clip');
+      assert.match(await page.run('clipsSaved[0]'), /^capri-room-\d{8}-\d{6}\.(mp4|webm)$/);
+      await click('room-record');
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      await click('room-close');
+      assert.equal(await page.run("document.getElementById('room-record').hidden"), true);
+      await page.until('clipsSaved.length === 2', 'clip saved on close');
+    } else await click('room-close');
+    assert.equal(await page.run("cameraStreams[0].getVideoTracks()[0].readyState"), 'ended');
+    assert.equal(await page.run("document.getElementById('app').hasAttribute('data-desk')"), false);
+    assert.equal(await page.run("document.getElementById('room-view').hasAttribute('data-front')"), false);
+  } finally {
+    if (page) await page.close();
+    await site.close();
+  }
+});
+
+test('room on a pc lets you pick her up, throw her off the walls of the picture and send her walking', { skip: !chromePath() }, async () => {
+  const site = await startSite(8983);
+  let page;
+  try {
+    page = await launch({ port: 9495, width: 1280, height: 800, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'] });
+    await page.go('http://127.0.0.1:8983/?demo');
+    await page.until("document.getElementById('app').dataset.screen === 'chat'", 'demo chat');
+    await page.run("document.getElementById('room-camera').click(); document.getElementById('room-open').click()");
+    await page.until("!document.getElementById('room-controls').hidden", 'camera controls');
+    if (!await page.run("!!document.querySelector('#room-view canvas')")) return;
+    await page.until("document.getElementById('room-her').style.getPropertyValue('--s')", 'her on the desk');
+    await new Promise(resolve => setTimeout(resolve, 600));
+    const her = () => page.run(`(() => { const v = document.getElementById('room-view').getBoundingClientRect(), h = document.getElementById('room-her');
+      return { x: v.left + h.offsetLeft, y: v.top + h.offsetTop, s: parseFloat(h.style.getPropertyValue('--s')), left: v.left, right: v.right, top: v.top, bottom: v.bottom }; })()`);
+    const mouse = (type, x, y) => page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1, pointerType: 'mouse' });
+    const start = await her();
+    let x = start.x, y = start.y - start.s * 0.5;
+    await mouse('mouseMoved', x, y);
+    await mouse('mousePressed', x, y);
+    for (let i = 1; i <= 10; i++) { x -= 40; y -= 30; await mouse('mouseMoved', x, y); }
+    await mouse('mouseReleased', x, y);
+    await page.until("/Wheee|Catch me|Not the face/.test(document.getElementById('room-status').textContent)", 'throw line');
+    let lowest = Infinity;
+    for (let i = 0; i < 30; i++) {
+      const at = await her();
+      assert.ok(at.x > at.left - 30 && at.x < at.right + 30, 'she stays inside the picture');
+      lowest = Math.min(lowest, at.y);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.ok(lowest < start.y - 20);
+    await page.until("/Still in one piece|landing|Rude|Room is spinning|scrambled|Two of you/.test(document.getElementById('room-status').textContent)", 'landing line');
+    const landed = await her();
+    const side = landed.x > (landed.left + landed.right) / 2 ? 0.25 : 0.75;
+    const goal = [landed.left + (landed.right - landed.left) * side, landed.top + (landed.bottom - landed.top) * 0.9];
+    await mouse('mouseMoved', goal[0], goal[1]);
+    await mouse('mousePressed', goal[0], goal[1]);
+    await mouse('mouseReleased', goal[0], goal[1]);
+    await page.until(`(() => { const v = document.getElementById('room-view').getBoundingClientRect(), h = document.getElementById('room-her');
+      return Math.hypot(v.left + h.offsetLeft - ${goal[0]}, v.top + h.offsetTop - ${goal[1]}) < 30; })()`, 'walked to the tap', 15000);
+    await page.run("document.getElementById('room-close').click()");
+  } finally {
+    if (page) await page.close();
+    await site.close();
+  }
+});
+
+test('the room window from the pc app opens her room straight away, sizes her and finds you in the picture', { skip: !chromePath() }, async () => {
+  const site = await startSite(8984);
+  let page;
+  try {
+    page = await launch({ port: 9496, width: 1180, height: 880, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'] });
+    await page.go('http://127.0.0.1:8984/?room=pc');
+    await page.until("!document.getElementById('room-controls').hidden", 'room opened by itself', 15000);
+    assert.equal(await page.run("document.getElementById('app').dataset.window"), 'room');
+    if (!await page.run("!!document.querySelector('#room-view canvas')")) return;
+    await page.until("!document.getElementById('room-size-box').hidden", 'size slider');
+    await page.until("document.getElementById('room-her').style.getPropertyValue('--s')", 'her size');
+    const before = await page.run("parseFloat(document.getElementById('room-her').style.getPropertyValue('--s'))");
+    await page.run("(() => { const s = document.getElementById('room-size'); s.value = '3'; s.dispatchEvent(new Event('input')); })()");
+    await page.until(`parseFloat(document.getElementById('room-her').style.getPropertyValue('--s')) > ${before * 2}`, 'her bigger');
+    assert.equal(await page.run("localStorage.getItem('capri-room-size')"), '3');
+    assert.equal(await page.run("document.querySelectorAll('#room-view canvas').length"), 2);
+    assert.equal(await page.run("document.getElementById('room-behind').hidden"), false);
+    await page.run("document.getElementById('room-behind').click()");
+    assert.equal(await page.run("document.getElementById('room-behind').getAttribute('aria-pressed')"), 'true');
+    await page.until("/behind you|Finding you|find you/.test(document.getElementById('room-status').textContent)", 'behind line');
+    await page.run("document.getElementById('room-behind').click()");
+    assert.equal(await page.run("document.getElementById('room-behind').getAttribute('aria-pressed')"), 'false');
+    await page.until("[...document.querySelectorAll('#room-controls button')].some(b => /Lie down/.test(b.textContent))", 'lie down button');
+    await page.run("[...document.querySelectorAll('#room-controls button')].find(b => /Lie down/.test(b.textContent)).click()");
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth still', 9000);
+    await page.run("window.CapriRoom.mumble('Hey choom, I am right behind you.')");
+    await page.until("document.getElementById('room-her').dataset.mouth === 'true'", 'mouth moving');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth stops', 9000);
+    await page.run("(() => { const s = document.getElementById('room-size'); s.value = '1'; s.dispatchEvent(new Event('input')); })()");
+    await page.run("document.getElementById('room-close').click()");
+    assert.equal(await page.run("document.querySelectorAll('#room-view canvas').length"), 0);
+  } finally {
+    if (page) await page.close();
+    await site.close();
+  }
+});
+
 import { roomRig, roomPosition, roomPointer, dragRoom } from './lib/room.mjs';
 import { tone } from './lib/live.mjs';
 import { verifyArt } from './lib/room-art.mjs';
@@ -535,3 +668,96 @@ for (const [size, mode] of [
     } finally { await r.close(); }
   });
 }
+
+test('her room inside the pc app shows only her room, talks when the pc capri talks and stays still on request', { skip: !chromePath() }, async () => {
+  const { createServer } = await import('node:http');
+  const { readFileSync } = await import('node:fs');
+  const { join, normalize, extname } = await import('node:path');
+  const { SITE } = await import('./lib/site.mjs');
+  const ASSETS = join(SITE, '..', 'assets');
+  const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json', '.wasm': 'application/wasm' };
+  const streams = new Set();
+  let frames = 0;
+  const say = (name, data) => { for (const out of streams) out.write(`event: ${name}\ndata: ${data}\n\n`); };
+  const server = createServer((request, response) => {
+    const path = new URL(request.url, 'http://127.0.0.1').pathname;
+    if (!path.startsWith('/tok/')) { response.writeHead(404); response.end(); return; }
+    const rest = path.slice(5);
+    if (rest === 'camera') { response.writeHead(200, { 'content-type': 'application/json' }); response.end('{"state":"ready"}'); return; }
+    if (rest === 'frame' && request.method === 'POST') {
+      const parts = [];
+      request.on('data', part => parts.push(part));
+      request.on('end', () => { const body = Buffer.concat(parts); if (body[0] === 0xff && body[1] === 0xd8) frames++; response.writeHead(200); response.end(); });
+      return;
+    }
+    if (rest === 'events') {
+      response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });
+      response.write('event: talk\ndata: 0\n\n');
+      streams.add(response);
+      request.on('close', () => streams.delete(response));
+      return;
+    }
+    const shared = rest.startsWith('assets/'), base = shared ? ASSETS : SITE;
+    const file = normalize(join(base, shared ? rest.slice(7) : rest.slice(7) || 'index.html'));
+    try {
+      const body = readFileSync(file.endsWith('/') || file === base ? join(file, 'index.html') : file);
+      response.writeHead(200, { 'content-type': TYPES[extname(file)] || (file === base ? 'text/html' : 'application/octet-stream') });
+      response.end(body);
+    } catch { response.writeHead(404); response.end(); }
+  });
+  await new Promise(done => server.listen(8985, '127.0.0.1', done));
+  let page;
+  try {
+    page = await launch({ port: 9497, width: 1180, height: 880, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--enable-unsafe-swiftshader'] });
+    await page.go('http://127.0.0.1:8985/tok/remote/?room=app');
+    await page.until("!document.getElementById('room-controls').hidden", 'room opened by itself', 15000);
+    assert.equal(await page.run("document.getElementById('app').dataset.host"), 'app');
+    assert.equal(await page.run("getComputedStyle(document.getElementById('log')).display"), 'none');
+    assert.equal(await page.run("getComputedStyle(document.getElementById('room-voice')).display"), 'none');
+    if (!await page.run("!!document.querySelector('#room-view canvas')")) return;
+    await page.until("!document.getElementById('room-still').hidden", 'stay still button');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth still', 9000).catch(async error => { throw new Error(error.message + ' ' + await page.run("JSON.stringify([document.getElementById('room-her').dataset.mouth, document.getElementById('room-view').style.cssText, document.getElementById('room-view').clientWidth, document.getElementById('room-view').clientHeight, document.getElementById('room-video').videoWidth, !!document.querySelector('#room-view canvas')])")); });
+    await new Promise(done => setTimeout(done, 500));
+    say('talk', '1');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'true'", 'mouth moving with the pc');
+    say('talk', '0');
+    await page.until("document.getElementById('room-her').dataset.mouth === 'false'", 'mouth stops with the pc');
+    const fit = await page.run(`(() => { const v = document.getElementById('room-view'), video = document.getElementById('room-video');
+      return [v.clientWidth / v.clientHeight, video.videoWidth / video.videoHeight]; })()`);
+    assert.ok(Math.abs(fit[0] - fit[1]) < 0.03, 'the view shows the whole camera picture: ' + fit);
+    await page.run("document.getElementById('room-still').click()");
+    assert.equal(await page.run("document.getElementById('room-still').getAttribute('aria-pressed')"), 'true');
+    await page.run("document.getElementById('room-lie').click()");
+    await new Promise(done => setTimeout(done, 1200));
+    const at = await page.run(`(() => { const v = document.getElementById('room-view').getBoundingClientRect(), h = document.getElementById('room-her');
+      return { x: v.left + h.offsetLeft, y: v.top + h.offsetTop, s: parseFloat(h.style.getPropertyValue('--s')) }; })()`);
+    const mouse = (type, x, y) => page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1, pointerType: 'mouse' });
+    let x = at.x, y = at.y - at.s * 0.15;
+    await mouse('mouseMoved', x, y);
+    await mouse('mousePressed', x, y);
+    for (let i = 1; i <= 12; i++) { x += 8; y -= 4; await mouse('mouseMoved', x, y); await new Promise(done => setTimeout(done, 40)); }
+    await new Promise(done => setTimeout(done, 300));
+    await mouse('mouseReleased', x, y);
+    await new Promise(done => setTimeout(done, 700));
+    const after = await page.run(`(() => { const v = document.getElementById('room-view').getBoundingClientRect(), h = document.getElementById('room-her');
+      return { x: v.left + h.offsetLeft, y: v.top + h.offsetTop, s: parseFloat(h.style.getPropertyValue('--s')) }; })()`);
+    assert.equal(await page.run("document.getElementById('room-lie').getAttribute('aria-pressed')"), 'true');
+    assert.ok(Math.abs(after.x - at.x - 96) < 30 && Math.abs(after.y - at.y + 48) < 30, 'she stays where she was put: ' + JSON.stringify([at, after]));
+    assert.equal(after.s, at.s);
+    assert.equal(await page.run("localStorage.getItem('capri-room-still')"), 'on');
+    await page.run("document.getElementById('room-still').click()");
+    assert.equal(await page.run("document.getElementById('room-cam').hidden"), false);
+    await page.run("document.getElementById('room-cam').click()");
+    await page.until("document.getElementById('room-cam').getAttribute('aria-pressed') === 'true'", 'camera on');
+    await new Promise(done => setTimeout(done, 1500));
+    assert.ok(frames >= 1, 'frames went to the pc: ' + frames);
+    await page.run("document.getElementById('room-cam').click()");
+    const stopped = frames;
+    await new Promise(done => setTimeout(done, 600));
+    assert.ok(frames - stopped <= 1);
+  } finally {
+    if (page) await page.close();
+    for (const out of streams) out.end();
+    await new Promise(done => server.close(done));
+  }
+});
