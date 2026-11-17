@@ -145,7 +145,7 @@
           <tbody>
             <tr><td>Settings, colours</td><td>JSON</td><td class="num">64 KB</td></tr>
             <tr><td>Skill</td><td>Text</td><td class="num">64 KB</td></tr>
-            <tr><td>Code mod</td><td>C# text</td><td class="num">256 KB</td></tr>
+            <tr><td>Code mod</td><td>C# text</td><td class="num">1 MB (256 KB before 0.9.4)</td></tr>
             <tr><td>Skin</td><td>Zip of PNGs</td><td class="num">96 MB</td></tr>
           </tbody>
         </table>
@@ -559,6 +559,7 @@ She answers to Nova and Big Z.
           <dt>Every mod</dt><dd>checked for malware before it goes up, without compiling or running it</dd>
           <dt>Skins</dt><dd><code>skin.json</code> and strips, and nothing else in the zip</dd>
           <dt>Code mods</dt><dd>read line by line for what they do with your files, the web and other programs</dd>
+          <dt>Downloaded files</dt><dd>a code mod can fetch extra files, like games or translations, only if the SHA-256 of each one is written in the mod and it refuses any file that doesn't match, so a change to them is a new mod version that gets read like any other</dd>
           <dt>Previews</dt><dd>checked before merging</dd>
           <dt>Names</dt><dd>names from other people's shows or games can get flagged</dd>
         </dl>
