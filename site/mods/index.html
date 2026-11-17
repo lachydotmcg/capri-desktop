@@ -503,6 +503,9 @@ public class RedFlash : ICapriMod, ICapriIntro
         <dl class="keys">
           <dt>Import</dt><dd>she asks every time, even for the same file, and <b>No</b> is the default</dd>
           <dt>The ask</dt><dd>shows the mod's name, version, who it says it's by and the file's SHA-256. Anyone can type any author</dd>
+          <dt>Her read</dt><dd>before she asks, she reads the code and lists what it reaches for, like the network, other programs, files outside her folder, the keyboard or what her brain is told, and the first three addresses it contacts. It's a quick read, not a safety check</dd>
+          <dt>Unreadable</dt><dd>minified code, one huge line or a big packed blob is said in the ask. For minified code she saves a laid-out copy you can read and asks a second time, and so she does for a blob in a mod that can start programs or call Windows directly</dd>
+          <dt>Refused</dt><dd>a mod that both unpacks hidden text and loads code while it runs, because the code you read isn't the code that would run</dd>
           <dt>No</dt><dd>saves nothing and runs nothing</dd>
           <dt>Yes</dt><dd>saves the file and keeps its SHA-256 in <code>approved.txt</code></dd>
           <dt>Any edit</dt><dd>one changed byte shows it as CHANGED and turns it off until you approve it again</dd>
