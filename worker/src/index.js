@@ -76,6 +76,17 @@ const codes = async (request, env, path) => {
     const { results } = await env.DB.prepare('SELECT id, name, kind, tag, budget, spent, expires, off, requests, used FROM codes ORDER BY id DESC').all();
     return reply({ codes: results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires, off: row.off, requests: row.requests, used: row.used })) });
   }
+  if (path === '/codes/stats-key' && request.method === 'POST') {
+    const sent = await request.json().catch(() => ({}));
+    if (sent && sent.off === true) {
+      await env.DB.prepare('DELETE FROM stats_key').run();
+      return reply({ off: true });
+    }
+    const key = 'CAPRI-STATS-' + [...crypto.getRandomValues(new Uint8Array(24))].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    const created = Date.now();
+    await env.DB.prepare('INSERT INTO stats_key (id, hash, created) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET hash = excluded.hash, created = excluded.created').bind(await sha256('stats:' + key), created).run();
+    return reply({ key, created });
+  }
   if (request.method !== 'POST' || !['/codes', '/codes/off', '/codes/on', '/codes/limit', '/codes/days'].includes(path)) return reply({ error: 'Not found' }, 404);
   const sent = await request.json().catch(() => null);
   if (!sent || typeof sent !== 'object' || Array.isArray(sent)) return reply({ error: 'Bad request' }, 400);
@@ -844,6 +855,13 @@ const called = answer => {
   return { text: answer.replace(/\s*\bPING:\s*@?\w*[.!?]?/gi, '').trim(), who };
 };
 
+// Her rules are the same for every question on each route, so Claude's cache keeps them at a tenth of the price. The release
+// line and the help notes picked for this question change, so they go after the mark, or every question would pay to store
+// them and never read them back.
+const cached = (system, steady) => typeof system === 'string' && steady && system.startsWith(steady) && system.length > steady.length
+  ? [{ type: 'text', text: steady, cache_control: { type: 'ephemeral' } }, { type: 'text', text: system.slice(steady.length) }]
+  : system;
+
 // Claude answers when the worker has an ANTHROPIC_API_KEY secret, and Workers AI is the fallback. null means Claude refused.
 const ask = async (env, messages, max_tokens, system) => {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 20000 });
@@ -862,10 +880,10 @@ const see = async (env, image) => {
 };
 
 // Why each model gave nothing goes in trouble, so a broken help line shows up in the logs instead of only as "glitching".
-const think = async (env, asked, messages, plain, trouble) => {
+const think = async (env, asked, messages, plain, trouble, steady) => {
   if (env.ANTHROPIC_API_KEY) {
     try {
-      const reply = await ask(env, asked, 1024, messages[0].content);
+      const reply = await ask(env, asked, 1024, cached(messages[0].content, steady));
       if (reply === null) { trouble.push('claude-refused: ' + claudeModel); return null; }
       if (reply) return clip(reply);
       trouble.push('claude-empty: ' + claudeModel);
@@ -917,7 +935,8 @@ const respond = async (request, env, ctx, reply, body, user) => {
   const facts = sections.filter(section => section.number === 1 && section.title !== section.chapter).slice(0, 2);
   const shown = [...chosen, ...facts.filter(section => !chosen.includes(section))];
   const written = shown.map(section => '[' + section.chapter + (section.title !== section.chapter ? ' > ' + section.title : '') + ']\n' + section.body.slice(0, 2600)).join('\n\n');
-  const system = { role: 'system', content: rules(!!user) + (version ? '\nLatest release: ' + version + '.' : '') + '\n\nHelp notes:\n' + (written || '(nothing matched)') };
+  const steady = rules(!!user);
+  const system = { role: 'system', content: steady + (version ? '\nLatest release: ' + version + '.' : '') + '\n\nHelp notes:\n' + (written || '(nothing matched)') };
   const messages = [system, ...history, { role: 'user', content: image ? [{ type: 'text', text }, { type: 'image_url', image_url: { url: image } }] : text }];
   const plain = image ? [system, ...history, { role: 'user', content: text + (seen ? '\n\n(Their screenshot shows: ' + seen + ')' : "\n\n(They sent a screenshot you can't see. Ask them to type out what it says.)") }] : messages;
   const first = history.findIndex(turn => turn.role === 'user');
@@ -929,7 +948,7 @@ const respond = async (request, env, ctx, reply, body, user) => {
   }
 
   const trouble = env.AI ? [] : ['no AI binding'];
-  const answer = await think(env, asked, messages, plain, trouble);
+  const answer = await think(env, asked, messages, plain, trouble, steady);
   if (!answer) console.error('Help line failed: ' + trouble.join(' | '));
   const claude = trouble.find(entry => entry.startsWith('claude-'));
   const why = answer ? null : claude ? claude.split(':')[0] : /\b4006\b|daily free allocation/i.test(trouble.join(' ')) ? 'allowance' : (trouble.join(' ').match(/\b(\d{4,5})\b/) || [null, env.AI ? 'ai' : 'binding'])[1];
@@ -948,6 +967,44 @@ const help = async (request, env, ctx, reply) => {
   let body;
   try { body = await request.json(); } catch (error) { return reply({ error: 'Bad request' }, 400); }
   return respond(request, env, ctx, reply, body);
+};
+
+// Read-only numbers for the stats dashboard, behind a key that only reads. Each code shows its name and usage, never its
+// text or hash, and nothing here writes.
+const stats = async (request, env) => {
+  const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+  if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
+  const auth = request.headers.get('Authorization') || '';
+  const stored = await env.DB.prepare('SELECT hash FROM stats_key WHERE id = 1').first().catch(() => null);
+  const given = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  const allowed = given && ((env.STATS_KEY && await equal(given, env.STATS_KEY)) || (stored && await equal(await sha256('stats:' + given), stored.hash)));
+  if (!allowed) return reply({ error: 'Not authorised.' }, 401);
+  const asked = Number(new URL(request.url).searchParams.get('days') || 60);
+  const days = Number.isInteger(asked) && asked >= 1 && asked <= 366 ? asked : 60;
+  const today = Math.floor(Date.now() / 86400000);
+  const since = today + 1 - days;
+  const sinceText = new Date(since * 86400000).toISOString().slice(0, 10);
+  const dayText = day => new Date(day * 86400000).toISOString().slice(0, 10);
+  const [downloads, stars, mods, phones, helps, frees, codeRows] = await env.DB.batch([
+    env.DB.prepare('SELECT count FROM downloads'),
+    env.DB.prepare('SELECT count FROM stars'),
+    env.DB.prepare('SELECT d.folder AS folder, d.count AS installs, ROUND(AVG(r.stars), 2) AS rating, COUNT(r.stars) AS votes FROM mod_downloads d LEFT JOIN mod_ratings r ON r.folder = d.folder GROUP BY d.folder ORDER BY d.count DESC'),
+    env.DB.prepare('SELECT day, phones, first_time, also_paired FROM phone_days WHERE day >= ? ORDER BY day').bind(sinceText),
+    env.DB.prepare('SELECT day, count FROM help_days WHERE ABS(day) >= ? ORDER BY ABS(day)').bind(since),
+    env.DB.prepare("SELECT day, SUM(CASE WHEN key <> 'pool' THEN 1 ELSE 0 END) AS phones, SUM(CASE WHEN key <> 'pool' THEN count ELSE 0 END) AS messages FROM free_days GROUP BY day ORDER BY day"),
+    env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC')
+  ]);
+  const first = result => (result.results && result.results[0]) || {};
+  return reply({
+    at: Date.now(),
+    days,
+    counters: { site_downloads: first(downloads).count || 0, site_stars: first(stars).count || 0 },
+    mods: mods.results,
+    phone_days: phones.results,
+    help_days: helps.results.map(row => ({ day: dayText(Math.abs(row.day)), place: row.day < 0 ? 'discord' : 'site', count: row.count })),
+    free_days: frees.results.map(row => ({ day: dayText(row.day), phones: row.phones, messages: row.messages })),
+    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight }))
+  });
 };
 
 const relay = async (request, env, ctx, reply) => {
@@ -1125,6 +1182,7 @@ export default {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
     if (path === '/codes' || path.startsWith('/codes/')) return codes(request, env, path);
+    if (path === '/stats') return stats(request, env);
     if (path === '/brain' || path.startsWith('/brain/')) return codeBrain(request, env, ctx, path);
     const cors = {
       'Access-Control-Allow-Origin': '*',

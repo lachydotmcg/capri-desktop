@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Një kontroll që u ri-vizatua nuk u rivizatua në imazh.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Një çelës falas nga Google AI Studio, NVIDIA ose OpenRouter. Asgjë për të shkarkuar. Kërkon internet.
+A held trackpad scroll got a flick's long ease:	Një lëvizje e mbajtur e trackpad-it mori lehtësimin e gjatë të një goditjeje:
+A layout change during a slide put the page at	Një ndryshim i paraqitjes gjatë rrëshqitjes e vendosi faqen te
+A layout change left the picture up.	Një ndryshim i paraqitjes e la imazhin të shfaqur.
+A model in Ollama, on your local server or on your key.	Një model në Ollama, në serverin tënd lokal ose me çelësin tënd.
+A paid key goes under MAX INTELLIGENCE by itself.	Një çelës i paguar shkon vetvetiu nën MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Një plan që paguan tashmë, një çelës i yti ose Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Një menu e panelit të zërit nuk mban kopjen e vet të shkronjave të panelit.
+A wheel turn right after a slide ended froze the picture.	Një rrotullim i rrotës menjëherë pas rrëshqitjes ngriu imazhin.
+ALLOW THIS PHONE?	TË LEJOHET KY TELEFON?
+ALMOST THERE >	PAK NGA FUNDI >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	NJË TJETËR CAPRI MORI KONTROLLIN · FIK DHE NDIZ
+API key	Çelës API
+API key, Claude plan or ChatGPT plan	Çelës API, plan Claude ose plan ChatGPT
+Add	Shto
+Address	Adresa
+Address and key saved. Use saved to reconnect.	Adresa dhe çelësi u ruajtën. Përdor të ruajturën për t'u rilidhur.
+Advanced Settings	Cilësimet e avancuara
+All	Të gjitha
+All screens	Të gjitha ekranet
+Allow	Lejo
+Almost there. I'll say hi the second my brain's in.	Pak e mbetur. Do të them përshëndetje në çastin që truri im të jetë brenda.
+Always	Gjithmonë
+Always on top	Gjithmonë sipër
+Any Google account works. I opened the page in your browser.	Çdo llogari Google funksionon. Hapa faqen në shfletuesin tënd.
+Applies to every voice	Vlen për çdo zë
+Apps she may close	Aplikacionet që mund t'i mbyllë
+Ask Capri for more	Kërko më shumë nga Capri
+Asking your server...	Po pyes serverin tënd...
+Asks before closing only the apps you choose.	Pyet përpara se të mbyllë vetëm aplikacionet që zgjedh ti.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automatik: VB-CABLE, përndryshe atë të Steam
+BAD RELAY HOST	HOST RELEJI I GABUAR
+BIG Z open notepad	BIG Z hap notepad
+BRAIN	TRURI
+BRAIN >	TRURI >
+BRAIN ONLINE >	TRURI NË LINJË >
+BRAIN PROVIDER >	OFRUESI I TRURIT >
+BRAIN VOICE CAPRI	ZËRI I TRURIT CAPRI
+Back	Mbrapa
+Back on your saved API key.	Mbrapa te çelësi yt API i ruajtur.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Më e përshtatshmja për këtë PC:
+Black	E zezë
+Blank key means no key.	Fusha bosh do të thotë pa çelës.
+Brain API key	Çelës API i trurit
+Brain model	Modeli i trurit
+Brain provider	Ofruesi i trurit
+Bring here	Sill këtu
+Bring to this screen	Sill në këtë ekran
+Browse	Shfleto
+Browse mods	Shfleto modifikimet
+Browse to a voice model	Shfleto te një model zëri
+Browse...	Shfleto...
+Bubble	Flluskë
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree a je aty
+CAN'T REACH THE RELAY · RETRYING	NUK ARRIJ DOT RELEJIN · RIPROVOJ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	ZËRI I TRURIT CAPRI
+CHANGED, approve it again.	NDRYSHUAR, aprovoje sërish.
+CLIPS >	KLIPE >
+CLOUD VOICE	ZË NË CLOUD
+CODE	KOD
+COLORS >	NGJYRA >
+CONNECTED	LIDHUR
+CONNECTING	DUKE U LIDHUR
+CUSTOM LOCAL	LOKALE E PERSONALIZUAR
+Call mode (beta)	Modaliteti i thirrjes (beta)
+Call mode does not fit.	Modaliteti i thirrjes nuk përshtatet.
+Call mode is outside its space.	Modaliteti i thirrjes është jashtë hapësirës së vet.
+Cancel	Anulo
+Cancel keys	Anulo çelësat
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Kodi i Capri:
+Capri mods (*	Modifikimet e Capri (*
+Capri, hello	Capri, përshëndetje
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kaos kur zemërohet
+Chat with Capri from your phone	Bisedo me Capri nga telefoni yt
+ChatGPT plan	Plan ChatGPT
+Check for updates	Kontrollo për përditësime
+Check in on me	Shiko si jam
+Check in on me is hidden	Shiko si jam është fshehur
+Check in on me still decides whether she visits.	Shiko si jam vendos ende nëse vjen.
+Check in on me's tip missed	Këshilla e Shiko si jam u humb
+Chess	Shah
+Choose apps	Zgjidh aplikacionet
+Choose folder...	Zgjidh dosjen...
+Choose where future Capri clips are saved	Zgjidh ku do të ruhen klipet e ardhshme të Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Plan Claude ose ChatGPT, një çelës i paguar (OpenAI, Claude, DeepSeek), ose Ollama.
+Claude plan	Plan Claude
+Clear	Pastro
+Cleared.	U pastrua.
+Click Confirm to keep Down, or press Esc.	Kliko Konfirmo për të mbajtur Down, ose shtyp Esc.
+Click to open it.	Kliko për ta hapur.
+Clip my games	Regjistro lojërat e mia
+Clips	Klipet
+Close	Mbyll
+Close other AIs for me	Mbyll AI të tjera për mua
+Cloud voice	Zë në cloud
+Cloud voice service	Shërbim zëri në cloud
+Cloud voice setup	Konfigurimi i zërit në cloud
+Code mods can reach your whole PC. Only trusted ones.	Modifikimet e kodit mund të arrijnë të gjithë PC-në tënde. Vetëm ato të besuara.
+Code/Husk Mode	Modaliteti Kod/Husk
+Codex	Codex
+Commands	Komandat
+Comment on my games	Komento lojërat e mia
+Comments	Komentet
+Confirm	Konfirmo
+Confirm keys	Konfirmo çelësat
+Connect	Lidh
+Connect / Forget brain key	Lidh / Harro çelësin e trurit
+Connect / Forget voice key	Lidh / Harro çelësin e zërit
+Connect four	Katër në rresht
+Controls	Kontrollet
+Copri, what time is it	Copri, sa është ora
+Copy error details	Kopjo detajet e gabimit
+Copy the key	Kopjo çelësin
+Copy the key from the page, then press Paste.	Kopjo çelësin nga faqja, pastaj shtyp Ngjit.
+Couldn't open that page:	Nuk u hap ajo faqe:
+Couldn't open that:	Nuk u hap ajo:
+Couldn't open the mods folder:	Nuk u hap dosja e modifikimeve:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M është tashmë çelësi i saj Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N fik mikrofonin
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V është tashmë çelësi i saj për të folur.
+Ctrl + Alt + V to talk	Ctrl + Alt + V për të folur
+Custom local voice	Zë lokal i personalizuar
+Custom model name	Emri i personalizuar i modelit
+Dance	Vallëzo
+Dance to music	Vallëzo me muzikë
+Default	E parazgjedhur
+Default (follows Windows)	E parazgjedhur (ndjek Windows)
+Default duration for clip that and automatic clips	Kohëzgjatja e parazgjedhur për klipin tani dhe klipet automatike
+Default length	Gjatësia e parazgjedhur
+Default model	Modeli i parazgjedhur
+Delay	Vonesa
+Deny	Refuzo
+Discard	Hidh
+Discard + reload	Hidh + ringarko
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Nuk do të presësh? Një çelës falas më bën të flas për rreth një minutë.
+Done	U bë
+EXTRA REQUEST JSON >	KËRKESË JSON EXTRA >
+EXTRAS >	EXTRA >
+Edit	Redakto
+Edit check-in lines	Redakto frazat e Shiko si jam
+Edit check-in lines has the wrong view or dimming	Redakto frazat e Shiko si jam ka pamjen ose errësimin e gabuar
+Edit check-in lines is out of place	Redakto frazat e Shiko si jam është jashtë vendit
+Edit controls	Redakto kontrollet
+ElevenLabs API key	Çelës API i ElevenLabs
+ElevenLabs voice ID	ID e zërit ElevenLabs
+English	Anglisht
+Enter the game's name first.	Shkruaj fillimisht emrin e lojës.
+Every	Çdo
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Çdo modifikim kontrollohet për malware para se të ngarkohet. Modifikimet e kodit pyesin përpara se të ekzekutohen.
+Explore after	Eksploro pas
+Explore while I'm away	Eksploro kur jam larg
+Extra request JSON	JSON i kërkesës extra
+Extras	Extra
+FREE KEY	ÇELËS FALAS
+FREE KEY >	ÇELËS FALAS >
+Fast hands in games	Duar të shpejta në lojëra
+File editor	Redaktori i skedarëve
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs dhe të tjerë janë nën ZË në Mainframe.
+Follow-up messages	Mesazhet e vazhdimit
+Forget	Harro
+Fork capri-mods	Degëzo capri-mods
+Frame rate	Shpejtësia e kornizave
+Free	Falas
+Free and private, works offline. Downloads	Falas dhe privat, funksionon offline. Shkarkon
+Free and private, works offline. Downloads the best model for this PC.	Falas dhe privat, funksionon offline. Shkarkon modelin më të mirë për këtë PC.
+Free key	Çelës falas
+Free key providers	Ofruesit e çelësave falas
+Free keys can be rate limited and slow.	Çelësat falas mund të kufizohen në shpejtësi dhe janë të ngadaltë.
+Free voice in games	Zë falas në lojëra
+Free voice style	Stili falas i zërit
+Free voice:	Zë falas:
+Free voice: Her own	Zë falas: Të vetin
+Free · local model	Falas · model lokal
+GAMES >	LOJËRA >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Komentet e lojës funksionojnë veçmas nga Shiko ekranin tim. Off i ndalon, edhe në Modalitetin e Lojës; vetëm Ngjarjet dhe Bisedues e lejojnë të shikojë lojën tënde
+Game controls	Kontrollet e lojës
+Game name	Emri i lojës
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Ndjeshmëria e zërit të lojës. Ulë kur kufjet janë ulur por Windows është në {0}% dhe ajo reagon çdo tingull; Off injoron tingujt e lojës
+Game sounds	Tingujt e lojës
+Games	Lojërat
+Gaming Mode	Modaliteti i lojës
+Gaming Mode key	Çelësi i modalitetit të lojës
+Gaming Mode:	Modaliteti i lojës:
+Gaming Mode: Ctrl + Alt + G	Modaliteti i lojës: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Merr VB-CABLE
+Get VB-CABLE (free)...	Merr VB-CABLE (falas)...
+Get free voice	Merr zë falas
+Getting your Fish Audio voices...	Po merr zërat e tua Fish Audio...
+Giant	Gjigant
+Glitch	Gabim
+Glitch in at startup	Gabim në nisje
+Go to sleep	Shko të flesh
+Go to the next screen	Shko te ekrani tjetër
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · nivel falas · me kufizim shpejtësie
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ke një plan Claude ose ChatGPT, ose një çelës tëndin? Zgjidhe dhe unë do të lidhem.
+Got it, just me. Right-click me any time for Capri Mainframe.	E kuptova, vetëm unë. Kliko me të djathtën mbi mua në çdo kohë për Capri Mainframe.
+Grey	Gri
+H.{0} video bitrate target; higher values make larger files	Synimi i bitrate-it të videos H.{0}; vlerat më të larta bëjnë skedarë më të mëdhenj
+HABITS >	ZAKONET >
+HER HANDS >	DORËT E SAJ >
+HER JOBS >	PUNËT E SAJ >
+HER MEMORY >	KUJTESA E SAJ >
+HER MODS >	MODIFIKIMET E SAJ >
+HH:mm	HH:mm
+HOW I SOUND >	SI TINGËLLOJ >
+Hang here	Qëndro këtu
+Have Ollama? Open it, then press Refresh.	Ke Ollama? Hape, pastaj shtyp Rifresko.
+Head pats	Shpalosje kokës
+Hearing	Dëgjimi
+Hearing engine	Motori i dëgjimit
+Hearing fix	Rregullimi i dëgjimit
+Hearing status	Statusi i dëgjimit
+Help	Ndihmë
+Help page	Faqja e ndihmës
+Her colors	Ngjyrat e saj
+Her folder	Dosja e saj
+Her memories	Kujtimet e saj
+Her own colors are back.	Ngjyrat e veta u kthyen.
+Her own notes (no vault)	Shënimet e veta (pa vault)
+Her perch frames per second	Kornizat për sekondë të vendit të saj
+Her personality	Personaliteti i saj
+Her size	Madhësia e saj
+Her speaker	Altoparlanti i saj
+Her speaker is hidden or outside VOICE	Altoparlanti i saj është i fshehur ose jashtë ZËRIT
+Her speaker overlaps the mic or hearing row	Altoparlanti i saj mbivendoset me rreshtin e mikrofonit ose të dëgjimit
+Her speaker:	Altoparlanti i saj:
+Her speaker: Default	Altoparlanti i saj: E parazgjedhur
+Her voice in your mic	Zëri i saj në mikrofonin tënd
+Her voice in your mic: loudness	Zëri i saj në mikrofonin tënd: volumi
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Vetë zëri i saj. Lartësia e tij është Cilësimet > ZËRI > Lartësia, dhe lëvizin së bashku.
+Her voice joins your mic only in call mode.	Zëri i saj i bashkohet mikrofonit tënd vetëm në modalitetin thirrje.
+Her voice volume	Volumi i zërit të saj
+Her voice's pitch	Lartësia e zërit të saj
+Her voice's pitch, the same as Settings > VOICE > Pitch	Lartësia e zërit të saj, njëlloj si Cilësimet > ZËRI > Lartësia
+Her voice's speed	Shpejtësia e zërit të saj
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Zëri i saj, dhe dy kopje të tij të përzier poshtë saj, secila me lartësinë dhe vonesën e vet.
+Her voices · free	Zërat e saj · falas
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Ej, choom. Jam Capri. Më duhet një tru para se të mund të përgjigjem. Zgjidh një.
+Hide / Show Capri	Fshih / Shfaq Capri
+Hide / Show key	Çelësi fshih / shfaq
+Hide Capri	Fshih Capri
+Hide for now	Fshih për tani
+Hide in full screen	Fshih në ekran të plotë
+Hide this	Fshih këtë
+Hide/show:	Fshih/shfaq:
+Hide/show: Ctrl + Alt + H	Fshih/shfaq: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Zbrit
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Sa kohë i duhet një PC i pandryshuar për ta dërguar të flejë; pesë minuta ende lexohen si largësi jote
+How long a stroke over her a head pat needs	Sa kohë duhet një prekje mbi kokën e saj
+How long her replies stay up	Sa kohë qëndrojnë përgjigjet e saj
+How long you are away before she scrolls a browser or reader	Sa kohë je larg para se ajo të lëvizë një shfletues ose lexues
+How much her voice glitches	Sa glitch-on zëri i saj
+How much of the chat she keeps	Sa nga biseda ruan ajo
+How much she wanders	Sa endet
+How often she pops in to say hi	Sa shpesh hyn për të thënë përshëndetje
+How robotic her voice sounds	Sa robotik tingëllon zëri i saj
+How to	Si
+Huge	Shumë i madh
+I can hear you.	Të dëgjoj.
+I glance at your screen and comment. Costs a little on a paid brain.	Hedh një sy në ekranin tënd dhe komentoj. Kushton pak me një tru të paguar.
+I keep listening. Say my name, then just talk.	Vazhdoj të dëgjoj. Thuaj emrin tim, pastaj thjesht fol.
+I talk about your game as you play. Costs a little on a paid brain.	Flas për lojën tënde ndërsa luan. Kushton pak me një tru të paguar.
+I type my replies and stay quiet.	I shkruaj përgjigjet e mia dhe rri i qetë.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nuk do të përgjigjem, dhe asgjë nuk dërgohet askund. Do të rri ende këtu, do të vallëzoj me muzikën tënde dhe do të bëj gjërat e shpejta që kërkon, si volumin.
+I'll talk in	Do të flas në
+IN DISCORD >	IN DISCORD >
+INSTALLED >	INSTALUAR >
+Import a Capri mod	Importo një modifikim të Capri
+Import mod	Importo modifikim
+In games	Në lojëra
+Input	Hyrja
+Input, Output or How to overlaps a row	Hyrja, Dalja ose Si mbivendoset me një rresht
+Input:	Hyrja:
+Input: default	Hyrja: e parazgjedhur
+Install	Instalo
+Install mod	Instalo modifikimin
+Installed.	U instalua.
+It may ask for a phone number. I opened the page in your browser.	Mund të kërkojë një numër telefoni. Hapa faqen në shfletuesin tënd.
+It still does its own job in other apps too.	Ende e bën punën e vet edhe në aplikacione të tjera.
+It won't type in other apps while she runs.	Nuk do të shkruajë në aplikacione të tjera ndërsa ajo është duke punuar.
+JUST ME >	VETËM UNË >
+Jealous of other AIs	Xhelozi ndaj AI të tjera
+Join the Discord	Bashkohu me Discord
+KB.	KB.
+KEYS	TASTET
+KEYS >	TASTET >
+Keep PC awake for jobs	Mbaj PC zgjuar për punët
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Mban dy minutat e fundit të lojës tënde në memorie. Thuaj klipo kjo për ta ruajtur.
+Key	Çelës
+Key cleared: a model file needs none.	Çelësi u pastrua: një skedar modeli nuk ka nevojë për asnjë.
+Key cleared: paste the key for	Çelësi u pastrua: ngjit çelësin për
+Key forgotten.	Çelësi u harrua.
+Key. It goes only to this server, as a Bearer key	Çelës. Shkon vetëm te ky server, si çelës Bearer
+Kokoro only, like es	Vetëm Kokoro, si es
+LAST THING >	GJËJA E FUNDIT >
+LISTENING >	DËGJON >
+Language	Gjuha
+Large	E madhe
+Last thing. These cost a little or use your mic, so they're your pick.	Gjëja e fundit. Këto kushtojnë pak ose përdorin mikrofonin tënd, prandaj zgjedhja është jote.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Gjëja e fundit. Këto kushtojnë pak ose përdorin mikrofonin tënd, prandaj zgjedhja është jote. Pastaj dua të di si të quaj.
+Layers	Shtresat
+Learn more	Mëso më shumë
+Leaving Settings threw its picture away straight away.	Largimi nga Cilësimet e hodhi imazhin e vet menjëherë.
+Legacy stand	Standi i vjetër
+Lie down	Shtrihu
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Rreshta dialogu të PC-së të mbajtur në memorie gjatë shikimit së bashku. Gjysma më e vjetër bëhet shënim kur Kujto çfarë shikon është aktiv
+Listen for Capri	Dëgjo për Capri
+Live reactions	Reagime të drejtpërdrejta
+Local server address	Adresa e serverit lokal
+Long	E gjatë
+Longest wait (minutes)	Pritja më e gjatë (minuta)
+Looking at this PC...	Duke parë këtë PC...
+Looking for Ollama. Open it if it isn't running.	Duke kërkuar Ollama. Hape nëse nuk është duke punuar.
+Looking for a brain...	Duke kërkuar një tru...
+Looking in the mods directory for updates...	Duke kërkuar përditësime në dosjen e modifikimeve...
+Looking in the mods directory...	Duke kërkuar në dosjen e modifikimeve...
+Looking...	Duke kërkuar...
+MAIN >	KRYESORE >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELIGJENCË E MESME
+MEMORY VAULT >	DEPOZITA E KUJTESËS >
+MODS	MODIFIKIMET
+MODS >	MODIFIKIMET >
+MODS DIRECTORY >	DOSJA E MODIFIKIMEVE >
+MODS INSTALLED COLORS	NGJYRAT E MODIFIKIMEVE TË INSTALUARA
+MOVES >	LËVIZJET >
+MY BRAIN	TRURI IM
+MY FREE VOICE	ZËRI IM FALAS
+MY PLAN OR KEY	PLANI OSE ÇELËSI IM
+MY PLAN OR KEY >	PLANI OSE ÇELËSI IM >
+Made your Fish Audio voice. Press Test to hear it.	Krijova zërin tënd Fish Audio. Shtyp Testo për ta dëgjuar.
+Mainframe colours	Ngjyrat e Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Ngjyrat e Mainframe. Night City është e kuqe dhe cian; E zezë, E bardhë dhe Gri e ndryshojnë Mainframe, menutë e saj, kutinë e shkrimit dhe shënimet e saj
+Mainframe frames	Kornizat e Mainframe
+Mainframe key	Çelësi i Mainframe
+Mainframe size	Madhësia e Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Madhësia e Mainframe. Auto e bën më të madhe kur Virtual Super Resolution ose DSR zvogëlon një desktop të madh në një ekran më të vogël
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Po krijoj zërin tënd Fish Audio...
+Max reply	Përgjigja maksimale
+Maximum clip resolution, keeping the game's shape without upscaling	Rezolucioni maksimal i klipit, duke ruajtur formën e lojës pa rritje
+Medium	Mesatare
+Memory	Kujtesa
+Memory size	Madhësia e kujtesës
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Madhësia e kujtesës në tokena për Ollama dhe trurin e saj të integruar. Auto rritet kur një kërkesë ka nevojë për më shumë
+Mg	Mg
+Mic level:	Niveli i mikrofonit:
+Mic test finished. Sound is reaching Capri.	Testi i mikrofonit përfundoi. Zëri po arrin Capri.
+Mic:	Mikrofoni:
+Mic: default	Mikrofoni: e parazgjedhur
+Microphone	Mikrofoni
+Mini player	Mini lojtar
+Mini player over full screen	Mini lojtar mbi ekran të plotë
+Mini-games	Mini-lojëra
+Minimising the Mainframe left it sliding.	Minimizimi i Mainframe e la duke rrëshqitur.
+Minimize	Minimizo
+Mod filter	Filtri i modifikimeve
+Mod options	Opsionet e modifikimeve
+Mod pages	Faqet e modifikimeve
+Mod rules	Rregullat e modifikimeve
+Mod sort	Renditja e modifikimeve
+Mod switch	Ndërrimi i modifikimeve
+Model	Modeli
+Model folder	Dosja e modelit
+Model name, optional	Emri i modelit, opsional
+Mods	Modifikimet
+Mods directory	Dosja e modifikimeve
+Mods folder	Dosja e modifikimeve
+Most NVIDIA models can't see your screen.	Shumica e modeleve NVIDIA nuk mund ta shohin ekranin tënd.
+Mouse wheel notches got a flick's long ease:	Shënat e rrotës së miut morën lehtësimin e gjatë të një goditjeje:
+Move	Lëviz
+Move key to MAX INTELLIGENCE	Lëviz çelësin te MAX INTELLIGENCE
+Move to MAX	Lëviz te MAX
+Music	Muzika
+Music app	Aplikacioni i muzikës
+Music app: where she plays music when you don't name an app	Aplikacioni i muzikës: ku luan muzikë kur nuk emërton një aplikacion
+Mute	Heshtje
+Mute her	Hesht atë
+Mute mic key	Çelësi i heshtjes së mikrofonit
+Mute mic:	Hesht mikrofonin:
+Mute mic: Ctrl + Alt + N	Hesht mikrofonin: Ctrl + Alt + N
+My brain	Truri im
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Truri im po zbret. Do të them përshëndetje në çastin që të jetë brenda, dhe ti mund të flasësh me mua atëherë.
+My brain's on its way. While it comes down, let's sort out how I sound.	Truri im është në rrugë. Ndërsa zbret, le të rregullojmë si tingëllon zëri im.
+My provider	Ofruesi im
+NO AI	PA AI
+NO PHONES CONNECTED	ASNJË TELEFON I LIDHUR
+NO PREVIEW	ASNJË PAMJE PARAPREKE
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · falas · shpesh e ngadaltë në orët e ngarkuara
+NVIDIA's free API is often slow, especially at busy times.	API falas e NVIDIA është shpesh e ngadaltë, sidomos në orët e ngarkuara.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Çelës API NVIDIA, Google AI Studio (Gemini) ose OpenRouter
+Names:	Emrat:
+Needs a key	Kërkon një çelës
+Never	Kurrë
+New code	Kod i ri
+New voice from a clip...	Zë i ri nga një klip...
+Next	Tjetra
+Night City	Night City
+No AI	Pa AI
+No AI · no brain at all	Pa AI · pa tru fare
+No brain runs, and nothing is sent anywhere.	Asnjë tru nuk punon, dhe asgjë nuk dërgohet askund.
+No brain yet	Ende pa tru
+No code open	Asnjë kod i hapur
+No mic found	Nuk u gjet mikrofon
+No mods in the directory yet.	Nuk ka ende modifikime në dosje.
+No mods match that.	Asnjë modifikim nuk përputhet me atë.
+No mods match.	Asnjë modifikim nuk përputhet.
+No phones yet	Ende asnjë telefon
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Ende asnjë mikrofon virtual. Zgjidh Dalja, pastaj Merr VB-CABLE (falas).
+None yet: pick to get VB-CABLE (free)	Ende asgjë: zgjidh për të marrë VB-CABLE (falas)
+Normal	Normal
+Not a relay host	Nuk është host relej
+Not imported. Nothing ran.	Nuk u importua. Asgjë nuk u ekzekutua.
+Not updated. The old one is still in.	Nuk u përditësua. Ai i vjetri është ende aty.
+Nothing needed updating.	Asgjë nuk kishte nevojë për përditësim.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Asgjë për të shkarkuar, asgjë e dërguar askund. Nuk do të përgjigjem. Shto një tru kur të duash në Mainframe.
+Nothing to show from the mods directory.	Asgjë për të shfaqur nga dosja e modifikimeve.
+Nothing? Windows Settings > Privacy & security > Microphone.	Asgjë? Cilësimet e Windows > Privatësia dhe siguria > Mikrofoni.
+Nous Portal keys aren't supported yet.	Çelësat e Nous Portal nuk mbështeten ende.
+OBS	OBS
+OFF	JASHTË
+OLLAMA	OLLAMA
+ON	NDEZUR
+ON THIS PC	NË KËTË PC
+OR A KEY	OSE NJË ÇELËS
+Obsidian memory vault	Depozita e kujtesës Obsidian
+Off	Jashtë
+Off. Turn on Her voice in your mic above.	Jashtë. Ndiz Zërin e saj në mikrofonin tim më lart.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Jashtë: ajo tingëllon siç ka gjithmonë. Ndezur: çdo zë që ka, edhe ElevenLabs.
+Often	Shpesh
+On	Ndezur
+On / Off	Ndezur / Fikur
+On: your mic and her voice are going in.	Ndezur: mikrofoni yt dhe zëri i saj po futen.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Një objekt JSON, i shtuar në çdo kërkesë që dërgon ky tru. Zëvendëson vlerën e Capri për çdo emër që ndan dhe nuk kontrollohet me modelin.
+Online speech recognition	Njohja e të folurit në linjë
+Open Capri Mainframe	Hap Capri Mainframe
+Open Ollama, I'll find it	Hap Ollama, unë do ta gjej
+Open clips folder	Hap dosjen e klipeve
+Open her memories	Hap kujtimet e saj
+Open her notes	Hap shënimet e saj
+Open mods folder	Hap dosjen e modifikimeve
+Open the page again	Hap faqen përsëri
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ose OpenRouter.
+OpenAI-compatible server or provider.	Server ose ofrues i përputhshëm me OpenAI.
+OpenRouter · free models only	OpenRouter · vetëm modele falas
+Optional	Opsionale
+Optional. Blank means no key.	Opsionale. Fusha bosh do të thotë pa çelës.
+Options	Opsionet
+Out of the box a little higher, just behind her.	Që nga fillimi pak më lart, pikërisht pas saj.
+Out of the box lower, just behind her.	Që nga fillimi më poshtë, pikërisht pas saj.
+Output	Dalja
+Output:	Dalja:
+Output: none	Dalja: asnjë
+PHONE CONNECTED	TELEFON I LIDHUR
+PHONES >	TELEFONA >
+PHONES CONNECTED	TELEFONA TË LIDHUR
+PREBUILT LOCAL	LOKAL I PARA-NDËRTUAR
+PUBLISH MOD >	PUBLIKO MODIFIKIM >
+Pair a phone	Çifto një telefon
+Paste	Ngjit
+Paste API key	Ngjit çelësin API
+Paste a brain API key	Ngjit një çelës API truri
+Paste reads your clipboard once, when you press it.	Ngjit lexon kujtesën tënde një herë, kur e shtyp.
+Paste your key here	Ngjit çelësin tënd këtu
+Pat stroke	Goditje me prekje
+Perch	Shtyllë
+Perch over {0} fps uses more CPU	Shtyllë mbi {0} fps përdor më shumë CPU
+Pick Output to get it.	Zgjidh Dalja për ta marrë.
+Pick a brain so I can talk back. You can change it any time.	Zgjidh një tru që të mund të përgjigjem. Mund ta ndryshosh çdo kohë.
+Pick a clip of a voice you have the rights and consent to use	Zgjidh një klip të një zëri për të cilin ke të drejtat dhe pëlqimin për ta përdorur
+Pick a free model. I opened the page in your browser.	Zgjidh një model falas. Hapa faqen në shfletuesin tënd.
+Pick a new clip of you...	Zgjidh një klip të ri të yti...
+Pick a voice model...	Zgjidh një model zëri...
+Pick one. Only one brain runs at a time.	Zgjidh një. Vetëm një tru punon njëkohësisht.
+Pick the note her memories go in	Zgjidh shënimin ku do të shkojnë kujtimet e saj
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Zgjidh {0} deri {1} sekonda të një zëri për të cilin ke të drejtat dhe pëlqimin për ta përdorur
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Zgjidh {0} deri {1} sekonda të teje duke folur, ose të një zëri për të cilin ke të drejtat dhe pëlqimin për ta përdorur
+Pitch	Lartësia
+Play	Luaj
+Play...	Luaj...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Modelet Pocket TTS kopjojnë zërin e këtij klipi. Shtyp Testo për ta dëgjuar.
+Pop-in times	Kohët e shfaqjes
+Pop-ins	Shfaqjet
+Power saver	Kursyesi i energjisë
+Power saver: how lightly she runs in games, or always	Kursyesi i energjisë: sa lehtë punon në lojëra, ose gjithmonë
+Preset	Parakonfigurim
+Press Create API key	Shtyp Krijo çelës API
+Press Create Key	Shtyp Krijo çelës
+Press Generate API Key	Shtyp Gjenero çelës API
+Press Test and say something, so I know I can hear you.	Shtyp Testo dhe thuaj diçka, që të di që të dëgjoj.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Shtyp një tast, vetëm ose me Ctrl, Alt, Shift ose Win.
+Press new keys, then Confirm	Shtyp tastet e reja, pastaj Konfirmo
+Provider	Ofruesi
+Provider API key, optional	Çelës API i ofruesit, opsional
+Provider base URL	URL bazë e ofruesit
+Provider forgotten.	Ofruesi u harrua.
+Provider overlaps the brain name or note	Ofruesi mbivendoset me emrin ose shënimin e trurit
+Publish	Publiko
+Publish mod	Publiko modifikimin
+Push to talk is off.	Shtyp për të folur është fikur.
+Push to talk key	Tasti i shtyp për të folur
+Push to talk:	Shtyp për të folur:
+Push to talk: not set	Shtyp për të folur: jo i vendosur
+QR CODE >	KOD QR >
+QR hidden while streaming	QR i fshehur gjatë transmetimit
+Quick	Shpejt
+Quiet key	Tasti i heshtjes
+Quiet:	Heshtje:
+Quiet: Ctrl + Alt + P	Heshtje: Ctrl + Alt + P
+Quit Capri	Mbyll Capri
+RELAY >	RELEJ >
+REMOTE >	NGA LARGËSIA >
+RUNS CODE.	EKZEKUTON KOD.
+Rarely	Rrallë
+Rate mod	Vlerëso modifikimin
+Reading its README...	Duke lexuar README-n e tij...
+Refresh	Rifresko
+Reinstall	Ri-instalo
+Reload	Ringarko
+Reloaded.	U ringarkua.
+Remember our chats	Mbaj mend bisedat tona
+Remember what she sees	Mbaj mend çfarë shikon
+Remote	Remote
+Remote off	Remote jashtë
+Remote on	Remote ndezur
+Remove	Hiq
+Remove all phones	Hiq të gjithë telefonat
+Replies	Përgjigjet
+Reply length	Gjatësia e përgjigjes
+Report a problem	Raporto një problem
+Reset colors	Rivendos ngjyrat
+Reset to her default	Rivendos në parazgjedhjen e saj
+Resolution	Rezolucioni
+Restart to update	Rinis për të përditësuar
+Restless	Të paqetë
+Revoke	Revoko
+Revoke also removes the phones its links added	Revoko heq edhe telefonat që shtuan lidhjet e saj
+Ride cursor	Hip mbi kursor
+Ride cursor / Hop off	Hip mbi kursor / Zbrit
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Kliko me të djathtën mbi mua në çdo kohë për Capri Mainframe. Një tru ndizet poshtë TRURI.
+Right-click me any time for the Mainframe, Help and the Discord.	Kliko me të djathtën mbi mua në çdo kohë për Mainframe, Ndihmën dhe Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ose çdo aplikacion tjetër: zgjidh
+Robot	Robot
+Rock, paper, scissors	Gur, letër, gërshërë
+Run this code mod?	Ta ekzekutoj këtë modifikim kodi?
+Running on this PC	Duke punuar në këtë PC
+Running on this PC · :	Duke punuar në këtë PC · :
+Runs Claude Code or Codex on this PC, signed in.	Ekzekuton Claude Code ose Codex në këtë PC, i kyçur.
+Runs on your PC. No key, no credits.	Punon në PC-në tënde. Pa çelës, pa kredite.
+SCAN WITH YOUR PHONE · EXPIRES	SKANO ME TELEFONIN TËND · SKADON
+SECURITY >	SIGURIA >
+SKILL.	AFTËSI.
+SKIN.	LËKURË.
+SORT BY	RENDIT SIPAS
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	TINGUJ ZAKONE TRURI SHIKO CAPRI DOOMSCROLL MOTI KLIPE LOJËRA TASTE LËVIZJE ZË TI
+Same as her ears (VOICE > Mic)	Njëlloj si veshët e saj (ZËRI > Mikrofoni)
+Same code on the phone?	E njëjta kod në telefon?
+Save	Ruaj
+Save big moments	Ruaj momentet e mëdha
+Save folder	Dosja e ruajtjes
+Save your changes, or press Discard + reload.	Ruaj ndryshimet, ose shtyp Hidh + ringarko.
+Save your changes, or press Discard.	Ruaj ndryshimet, ose shtyp Hidh.
+Saved.	U ruajt.
+Saved. Ctrl + Alt + O opens her Mainframe.	U ruajt. Ctrl + Alt + O hap Mainframe të saj.
+Saving your rating...	Duke ruajtur vlerësimin tënd...
+Say her name anywhere to chat	Thuaje emrin e saj kudo për të biseduar
+Screens	Ekranet
+Screens is hidden or outside WATCH	Ekranet është i fshehur ose jashtë SHIKO
+Screens overlaps a WATCH row	Ekranet mbivendoset me një rresht SHIKO
+Screens to watch	Ekranet për t'i parë
+Sealed end to end	E mbyllur nga skaji në skaj
+Search by name or author	Kërko sipas emrit ose autorit
+Search installed mods	Kërko modifikimet e instaluara
+Search mods	Kërko modifikime
+Search name, author or description	Kërko emër, autor ose përshkrim
+Security	Siguria
+Security:	Siguria:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Konfiguro
+Set up her brain	Konfiguro trurin e saj
+Set up your voice model	Konfiguro modelin tënd të zërit
+Setting up her brain	Duke konfiguruar trurin e saj
+Settings	Cilësimet
+Settings / Back	Cilësimet / Mbrapa
+Settings folds the wrong rows above BRAIN	Cilësimet përkulën rreshtat e gabuar mbi TRURIN
+Settings had nothing to watch.	Cilësimet nuk kishin asgjë për të parë.
+Settings lost keyboard focus during the Tab walk	Cilësimet humbën fokusin e tastierës gjatë shëtitjes me Tab
+Setup guide	Udhëzuesi i konfigurimit
+Setup stopped	Konfigurimi u ndal
+She can read it when it fits.	Ajo mund ta lexojë kur përshtatet.
+She glances at your screen and comments. Costs a little on a paid brain.	Hedh një sy në ekranin tënd dhe komenton. Kushton pak me një tru të paguar.
+She keeps listening. Say her name, then just talk until you go quiet.	Vazhdon të dëgjojë. Thuaj emrin e saj, pastaj thjesht fol deri sa të heshtësh.
+She reacts to your game until you close it.	Reagon ndaj lojës sate deri sa ta mbyllësh.
+She reads these controls before each game job.	Lexon këto kontrolle para çdo pune në lojë.
+She talks about your game as you play. Costs a little on a paid brain.	Flet për lojën tënde ndërsa luan. Kushton pak me një tru të paguar.
+She uses it when she plays	E përdor kur luan
+Short	E shkurtër
+Shortest wait (minutes)	Pritja më e shkurtër (minuta)
+Show Capri	Shfaq Capri
+Show QR	Shfaq QR
+Show my mod file	Shfaq skedarin tim të modifikimit
+Show on Discord	Shfaq në Discord
+Shum, what time is it	Shum, sa është ora
+Sign in	Hyr
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Hyr, bëj një çelës dhe kopjoje. Pastaj shtyp Ngjit dhe do të lidhem.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Hyr, shtyp Krijo çelës API dhe kopjoje. Pastaj shtyp Ngjit dhe do të lidhem.
+Silent · text only	I heshtur · vetëm tekst
+Simple / Advanced Settings	Cilësimet e thjeshta / të avancuara
+Simple Settings	Cilësimet e thjeshta
+Simple Settings left a gap under Check in on me	Cilësimet e thjeshta lanë një hapësirë nën Shiko si jam
+Sit here	Ulu këtu
+Sit on windows	Ulu mbi dritare
+Size	Madhësia
+Skip	Kalo
+Skip all	Kalo të gjitha
+Skip for now	Kalo për tani
+Sleep	Gjumë
+Small	E vogël
+Sometimes	Ndonjëherë
+Sound effects volume	Volumi i efekteve të zërit
+Sound sensitivity	Ndjeshmëria e zërit
+Sounds	Tingujt
+Speaker or clip	Altoparlanti ose klipi
+Speech model	Model i të folurit
+Speed	Shpejtësia
+Start with Windows	Nis me Windows
+Start with this!	Fillo me këtë!
+Starting...	Duke filluar...
+Stay on my model	Qëndro te modeli im
+Still checking your mics...	Ende duke kontrolluar mikrofonat e tu...
+Still checking your speakers...	Ende duke kontrolluar altoparlantët e tu...
+Still checking your virtual mics...	Ende duke kontrolluar mikrofonat e tu virtualë...
+Stop	Ndal
+Stopped using it. Couldn't remove the saved provider.	U ndal së përdoruri. Nuk u hoq ofruesi i ruajtur.
+Support	Mbështetje
+Sure?	Të sigurt?
+Sure? moved to a different phone	Të sigurt? u zhvendos te një telefon tjetër
+TALK TO ME	FLISMË ME MUA
+TEXT ONLY	VETËM TEKST
+Tab landed past the first option of	Tab u ul përtej opsionit të parë të
+Tab never reached the quiet key	Tab nuk arriti kurrë te tasti i heshtjes
+Tab reached nothing	Tab nuk arriti asgjë
+Tab selected a control without moving keyboard focus	Tab zgjodhi një kontroll pa lëvizur fokusin e tastierës
+Talk	Fol
+Talk key	Tasti i të folurit
+Talk:	Fol:
+Talk: Ctrl + Alt + V	Fol: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Shpejtësia e synuar e kornizave të kapjes; mund të bjerë nën ngarkesë ose buxhetin e kujtesës
+Teases when another AI comes to the front.	Tallet kur një AI tjetër vjen në plan të parë.
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	Ajo adresë nuk funksionon. Provo https://... ose http://localhost:{0}.
+That code expired	Ai kod skadoi
+That mod is no longer installed. The list is updated.	Ai modifikim nuk është më i instaluar. Lista u përditësua.
+That's a paid key: it goes under MAX INTELLIGENCE.	Ai është një çelës i paguar: shkon nën MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe mbeti i kompozuar gjatë rrëshqitjes.
+The Mainframe stayed uncomposited after the slide.	Mainframe mbeti i pakompozuar pas rrëshqitjes.
+The controls moved while the picture was sliding.	Kontrollet lëviznin ndërsa imazhi rrëshqiste.
+The cover stayed visible after the slide ended.	Mbulesa mbeti e dukshme pas përfundimit të rrëshqitjes.
+The frame thread kept running after the page settled.	Fili i kornizave vazhdoi të punonte pasi faqja u stabilizua.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Përgjigja më e gjatë që mund të japë, në tokena. Auto i përmbahet Përgjigjeve më lart; {0}K ose {1}K e lejon të vazhdojë. Punët kanë më shumë hapësirë kur kanë nevojë
+The longest wait must be at least the shortest wait.	Pritja më e gjatë duhet të jetë të paktën sa pritja më e shkurtër.
+The picture doesn't match the scrolled page:	Imazhi nuk përputhet me faqen e lëvizur:
+The picture of Settings doesn't match the page:	Imazhi i Cilësimeve nuk përputhet me faqen:
+The picture stayed up after the slide ended.	Imazhi mbeti i dukshëm pas përfundimit të rrëshqitjes.
+The picture wasn't showing while it slid.	Imazhi nuk shfaqej ndërsa rrëshqiste.
+The provider sheet is crowded:	Paneli i ofruesit është i mbushur:
+The voice panel has no screen DPI.	Paneli i zërit nuk ka DPI ekrani.
+The voice panel's menus share one font.	Menutë e panelit të zërit ndajnë një shkronjë të vetme.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Nuk ka ende çelës në kujtesën tënde. Kopjoje nga faqja, pastaj shtyp Ngjit.
+These start off. Each costs a little or uses your mic.	Këto fillojnë të fikura. Secila kushton pak ose përdor mikrofonin tënd.
+These start off. Turn on what you want. They're all in Settings too.	Këto fillojnë të fikura. Ndiz ato që do. Janë të gjitha edhe në Cilësimet.
+They can also call you Big Z, Capricorn or Nova	Mund të të thërrasin edhe Big Z, Capricorn ose Nova
+They can also call you Nova, Big Z or Capricorn	Mund të të thërrasin edhe Nova, Big Z ose Capricorn
+Thinking	Duke menduar
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Ky është zëri im falas. Shtyp Testo, thuaj diçka dhe do të të tregoj që të dëgjoj.
+This mod has no description yet.	Ky modifikim nuk ka ende përshkrim.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Koha mes shikimeve
+Tiny	Shumë i vogël
+Try again	Provo përsëri
+Turn Remote on first	Ndiz Remote së pari
+Turn off mini player	Fik mini lojtarin
+Turn push to talk off	Fik shtyp për të folur
+Turning the wheel the other way kept the page heading the old way, to	Rrotullimi i rrotës në drejtimin tjetër e mbajti faqen në drejtimin e vjetër, deri sa
+Type	Shkruaj
+Type key	Tasti i shkrimit
+Type to me	Shkruaj tek unë
+Type:	Shkruaj:
+Type: Ctrl + Alt + T	Shkruaj: Ctrl + Alt + T
+Typing sound	Tingulli i shkrimit
+Unpacked. Press Test to hear it.	Shpaketuar. Shtyp Testo për ta dëgjuar.
+Unsaved changes.	Ndryshime të paruajtura.
+Up to {0} fps	Deri në {0} fps
+Up to {0}p	Deri në {0}p
+Update	Përditëso
+Update available.	Përditësim i disponueshëm.
+Update mods	Përditëso modifikimet
+Updating...	Duke përditësuar...
+Use	Përdor
+Use her cursor	Përdor kursorin e saj
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Përdor https:// për një ofrues diku tjetër. Një çelës mbi http të thjeshtë nuk është i sigurt.
+Use preset	Përdor parakonfigurimin
+Use saved	Përdor të ruajturin
+Use this server	Përdor këtë server
+Using your provider with a key	Përdor ofruesin tënd me një çelës
+Using your server with no key	Përdor serverin tënd pa çelës
+VIEW MOD >	SHIKO MODIFIKIMIN >
+VOICE >	ZË >
+VOICE IN YOUR MIC >	ZËRI NË MIKROFONIN TËND >
+VOICE LAYERS >	SHTRESAT E ZËRIT >
+Verbosity	Shkurtësia
+Video bitrate	Bitrate i videos
+View	Shiko
+View mod	Shiko modifikimin
+Voice	Zëri
+Voice ID	ID e zërit
+Voice from	Zëri nga
+Voice layers	Shtresat e zërit
+Voice model	Modeli i zërit
+Voice model:	Modeli i zërit:
+Voice name or ID, optional	Emri ose ID e zërit, opsional
+Voice server address, or a voice model's folder	Adresa e serverit të zërit, ose dosja e një modeli zëri
+Voice status	Statusi i zërit
+Voice, key and model...	Zëri, çelësi dhe modeli...
+Volume	Volumi
+WAKE ME UP >	ZGJOHM >
+WATCH >	SHIKO >
+Waiting for the relay	Duke pritur relejin
+Wake her up	Zgjoje
+Waking her up	Duke e zgjuar
+Wander	Endu
+Wander around	Endu rreth
+Watch my screen	Shiko ekranin tim
+Watch-along memory	Kujtesa e shikimit së bashku
+Weather	Moti
+Weather city	Qyteti i motit
+Welcome back, choom. Let's finish setting me up.	Mirë se erdhe, choom. Të përfundojmë konfigurimin tim.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Çfarë bën në PC-në tënde pa pyetur. Me një çelës të fikur pyet së pari, dhe e bën kur thua po.
+What should she call you?	Si duhet të të thërras?
+When she types	Kur shkruan
+White	E bardhë
+Windows default	Parazgjedhja e Windows
+Windows did not give Settings keyboard focus	Windows nuk i dha Cilësimeve fokusin e tastierës
+Windows did not return keyboard focus to Back	Windows nuk iaktheu fokusin e tastierës Mbrapa
+With no picture the wheel still tried to slide.	Pa figurë rrota përsëri u përpoq të rrëshqiste.
+Works best on MAX INTELLIGENCE.	Punon më mirë me MAX INTELLIGENCE.
+YOU	TI
+YOU >	TI >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TI ZËRI LËVIZJET TASTET LOJËRAT KLIPET MOTI DOOMSCROLL CAPRI SHIKO TRURI ZAKONET TINGUJT
+YOUR KEY	ÇELËSI YT
+YOUR MIC	MIKROFONI YT
+YOUR PLAN	PLANI YT
+Yokapri what's up	Yokapri si je
+You can hide this. It keeps going, and the Mainframe shows it too.	Mund ta fshehësh këtë. Vazhdon të punojë, dhe Mainframe e tregon gjithashtu.
+Your mic and her voice go into one virtual mic, and	Mikrofoni yt dhe zëri i saj shkojnë në një mikrofon të vetëm virtual, dhe
+Your mic is muted. Unmute it to test.	Mikrofoni yt është në heshtje. Hiqe heshtjen për ta testuar.
+Your mods are up to date.	Modifikimet e tua janë të përditësuara.
+Your name or a nickname	Emri yt ose një pseudonim
+Your own model	Modeli yt
+Your personality	Personaliteti yt
+Your voice	Zëri yt
+Your voice (HD)	Zëri yt (HD)
+Your voice (HD) · pick a clip of you...	Zëri yt (HD) · zgjidh një klip të teje...
+Your voice model	Modeli yt i zërit
+as its mic.	si mikrofoni i saj.
+changed. Saved as My Colors, so you can share it.	u ndryshua. U ruajt si Ngjyrat e Mia, që ta ndash.
+choice	zgjedhje
+clips the input line	prerë rreshtin e hyrjes
+cue	shenjë
+doesn't yet.	ende jo.
+download	shkarkim
+file.	skedar.
+flag	flamur
+fps	fps
+hear	dëgjon
+hears	dëgjon
+hears that.	dëgjon atë.
+hides or shows her.	fsheh ose shfaq.
+hint	sugjerim
+in the Mainframe.	në Mainframe.
+in the mods directory with a pull request.	në dosjen e modifikimeve me një pull request.
+in the picture wasn't noticed.	në imazh nuk u vu re.
+is already her push-to-talk key.	është tashmë çelësi i saj për të folur.
+is off.	është e fikur.
+is on and running.	është e ndezur dhe duke punuar.
+is on, at the bottom, under	është e ndezur, në fund, nën
+is on.	është e ndezur.
+is on. She now answers to	është e ndezur. Tani i përgjigjet
+is removed.	është hequr.
+is taken	është i zënë
+is taken by another app. Try another.	është i zënë nga një aplikacion tjetër. Provo një tjetër.
+is updated	është përditësuar
+isn't hearing it yet: do {0} and {1}, then join a call.	ende nuk e dëgjon: bëj {0} dhe {1}, pastaj bashkohu me një telefonatë.
+it now.	tani.
+keeps her quiet, and lets her talk again.	e mban të qetë, dhe e lejon të flasë sërish.
+key	çelës
+key.	çelës.
+min	min
+more.	më shumë.
+ms.	ms.
+mutes mic	fik mikrofonin
+mutes your mic.	fik mikrofonin tënd.
+name	emër
+off	jashtë
+on this PC	në këtë PC
+opens her Mainframe.	hap Mainframe të saj.
+opens her typing box.	hap kutinë e shkrimit të saj.
+phone	telefon
+phone pixels	pikselë telefoni
+phones	telefona
+pixels	pikselë
+pixels)	pikselë)
+star.	yll.
+stars.	yje.
+starts voice chat.	nis bisedën me zë.
+stays off. Nothing ran.	mbetet jashtë. Asgjë nuk u ekzekutua.
+still does its own job in other apps too. Confirm to keep it.	ende bën punën e vet edhe në aplikacione të tjera. Konfirmo për ta mbajtur.
+tall	e lartë
+time	kohë
+to talk	për të folur
+to talk to her, with a game in front too.	për të folur me të, me një lojë edhe përpara.
+too.	gjithashtu.
+turns Gaming Mode on and off.	ndez dhe fik Modalitetin e Lojës.
+with Ollama	me Ollama
+won't type in other apps while she runs. Confirm to keep it.	nuk do të shkruajë në aplikacione të tjera ndërsa punon. Konfirmo për ta mbajtur.
+{0}   Echo Cancellation: Off	{0}   Anulimi i jehonës: Jashtë
+{0}   If her voice cuts off, turn off noise filtering	{0}   Nëse zëri i saj ndërpritet, fik filtrimin e zhurmës
+{0}   Input Device:	{0}   Pajisja hyrëse:
+{0}   Join the call and check they hear both of you	{0}   Bashkohu me telefonatën dhe kontrollo që të dëgjojnë të dy
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Testi i mikrofonit > Le të kontrollojmë: do të dëgjosh veten, dhe atë ndërsa flet
+{0}   Microphone:	{0}   Mikrofoni:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Shtypja e zhurmës: Asnjë. Të dyja mund ta ndërpresin zërin e saj pas rreshtit të parë.
+{0}   Open the call or meeting's audio settings	{0}   Hap cilësimet audio të telefonatës ose takimit
+{0}   Output Device: your headphones, like before	{0}   Pajisja dalëse: kufjet e tua, si më parë
+{0}   Speaker: your headphones, like before	{0}   Altoparlanti: kufjet e tua, si më parë
+{0}   Try a mic test in your call app	{0}   Provo një test mikrofoni në aplikacionin e telefonatave
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Cilësimet e përdoruesit (rrota pranë emrit tënd) > Zëri dhe video
+{0} Mbps	{0} Mbps
+{0} lines	{0} rreshta
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· në këtë PC
+· server	· server

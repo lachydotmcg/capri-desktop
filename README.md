@@ -18,7 +18,7 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 
 [Every download](https://capriai.app/#download) · [Setup guide](https://capriai.app/setup/) · [Website](https://capriai.app/) · [Help](https://capriai.app/help/) · [Support](#support)
 
-<sub>Get Capri only from [capriai.app](https://capriai.app/), [GitHub](https://github.com/lachydotmcg/capri-desktop/releases) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Copies on other sites aren't ours. Zero telemetry.</sub>
+<sub>Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G), and check it against the release's `SHA256SUMS.txt` ([how](SECURITY.md#windows-or-your-antivirus-warned-me)). Copies on other sites or GitHub accounts aren't ours. Zero telemetry.</sub>
 
 <sub>Inspired by jpartnma_'s TikTok video.</sub>
 
@@ -91,7 +91,7 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 <summary><h2><a name="what-she-does"></a>What she does</h2><br><a name="what-she-does-1"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"></a> <a name="what-she-does-2"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"></a> <a name="what-she-does-3"><img src="assets/readme/mainframe.png" alt="The Capri Mainframe with her BRAIN and VOICE rows" width="170"></a></summary>
 
 - **Talks back.** Type to her or voice chat, and turn on "Hey Capri" to call her by name. She answers in her own words, in 80 languages.
-- **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (Windows).
+- **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (chat and photos on Windows, Mac and Linux; calls and Room voice are Windows-only).
 - **Talks out loud.** In her own free voice, a voice model of yours, or Fish Audio, ElevenLabs or OpenAI. See [Her voice](#her-voice).
 - **Joins your calls.** She covers for you on Discord and other call apps, and launches what your friends pick (Windows, beta). See [She joins your calls](#she-joins-your-calls).
 - **Plays your games.** She comments while you play, and she can play too. She's still learning.
@@ -219,7 +219,7 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 
 **Two ways to get her on Windows.** The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI, 0.8.9) is signed and checked by Microsoft, so there's no warning. It has Capri Remote and updates through the Store. The latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. Both are on [capriai.app](https://capriai.app/#download), with the one for your device on top.
 
-Get Capri only from [capriai.app](https://capriai.app/), [GitHub](https://github.com/lachydotmcg/capri-desktop/releases) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Copies on other sites aren't ours.
+Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Every release has a `SHA256SUMS.txt` with the SHA-256 of each file, Windows, Mac and Linux, and [SECURITY.md](SECURITY.md#windows-or-your-antivirus-warned-me) shows how to check yours. Copies on other sites or GitHub accounts aren't ours.
 
 **Zero telemetry.** No analytics, crash reports or usage pings. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
 

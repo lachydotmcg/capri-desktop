@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	重新繪製過的控制項沒有在畫面中重畫。
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	來自 Google AI Studio、NVIDIA 或 OpenRouter 的免費金鑰。不用下載，需要網路。
+A held trackpad scroll got a flick's long ease:	按住觸控板捲動時套用了甩動的長緩動：
+A layout change during a slide put the page at	滑動期間變更版面配置，把頁面放在了
+A layout change left the picture up.	版面配置變更後畫面仍停留在上面。
+A model in Ollama, on your local server or on your key.	Ollama 中的模型，在你的本機伺服器上或使用你的金鑰。
+A paid key goes under MAX INTELLIGENCE by itself.	付費金鑰會自動歸入 MAX INTELLIGENCE。
+A plan you already pay for, a key of your own, or Ollama.	你已經付費的方案、自己的金鑰，或 Ollama。
+A voice panel menu doesn't hold its own copy of the panel's font.	語音面板選單沒有保留面板字型的自有副本。
+A wheel turn right after a slide ended froze the picture.	滑動結束後立刻轉動滾輪，讓畫面凍結了。
+ALLOW THIS PHONE?	允許這支手機？
+ALMOST THERE >	快好了 >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	另一個 CAPRI 接管了 · 關閉後再開啟
+API key	API 金鑰
+API key, Claude plan or ChatGPT plan	API 金鑰、Claude 方案或 ChatGPT 方案
+Add	新增
+Address	位址
+Address and key saved. Use saved to reconnect.	位址和金鑰已儲存。用已儲存的重新連線。
+Advanced Settings	進階設定
+All	全部
+All screens	所有螢幕
+Allow	允許
+Almost there. I'll say hi the second my brain's in.	快好了。我的大腦一接上就跟你打招呼。
+Always	總是
+Always on top	永遠置頂
+Any Google account works. I opened the page in your browser.	任何 Google 帳號都可以。我已在你的瀏覽器中開啟頁面。
+Applies to every voice	套用於所有語音
+Apps she may close	她可以關閉的應用程式
+Ask Capri for more	向 Capri 要更多
+Asking your server...	正在詢問你的伺服器...
+Asks before closing only the apps you choose.	只在關閉你選擇的應用程式前詢問。
+Auto	自動
+Automatic: VB-CABLE, else Steam's	自動：VB-CABLE，否則用 Steam 的
+BAD RELAY HOST	無效的中繼主機
+BIG Z open notepad	BIG Z 開啟記事本
+BRAIN	大腦
+BRAIN >	大腦 >
+BRAIN ONLINE >	大腦上線 >
+BRAIN PROVIDER >	大腦提供者 >
+BRAIN VOICE CAPRI	大腦語音 CAPRI
+Back	返回
+Back on your saved API key.	已回到你儲存的 API 金鑰。
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	最適合這台電腦：
+Black	黑色
+Blank key means no key.	留空表示沒有金鑰。
+Brain API key	大腦 API 金鑰
+Brain model	大腦模型
+Brain provider	大腦提供者
+Bring here	帶到這裡
+Bring to this screen	帶到這個螢幕
+Browse	瀏覽
+Browse mods	瀏覽模組
+Browse to a voice model	瀏覽語音模型
+Browse...	瀏覽...
+Bubble	泡泡
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree，你在嗎
+CAN'T REACH THE RELAY · RETRYING	無法連上中繼 · 重試中
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI 語音大腦
+CHANGED, approve it again.	已變更，請重新批准。
+CLIPS >	剪輯 >
+CLOUD VOICE	雲端語音
+CODE	程式碼
+COLORS >	顏色 >
+CONNECTED	已連線
+CONNECTING	連線中
+CUSTOM LOCAL	自訂本機
+Call mode (beta)	通話模式（測試版）
+Call mode does not fit.	通話模式放不下。
+Call mode is outside its space.	通話模式超出了它的範圍。
+Cancel	取消
+Cancel keys	取消按鍵
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri 代碼：
+Capri mods (*	Capri 模組 (*
+Capri, hello	Capri，哈囉
+CapriDesktop.	CapriDesktop.
+Chaos when upset	生氣時會發飆
+Chat with Capri from your phone	用手機跟 Capri 聊天
+ChatGPT plan	ChatGPT 方案
+Check for updates	檢查更新
+Check in on me	來找我
+Check in on me is hidden	「來找我」已隱藏
+Check in on me still decides whether she visits.	「來找我」仍然決定她會不會來訪。
+Check in on me's tip missed	「來找我」的提示被略過了
+Chess	西洋棋
+Choose apps	選擇應用程式
+Choose folder...	選擇資料夾...
+Choose where future Capri clips are saved	選擇之後 Capri 剪輯的儲存位置
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude 或 ChatGPT 方案、付費金鑰（OpenAI、Claude、DeepSeek）或 Ollama。
+Claude plan	Claude 方案
+Clear	清除
+Cleared.	已清除。
+Click Confirm to keep Down, or press Esc.	按「確認」保留 Down，或按 Esc。
+Click to open it.	點一下開啟。
+Clip my games	錄下我的遊戲
+Clips	剪輯
+Close	關閉
+Close other AIs for me	幫我關掉其他 AI
+Cloud voice	雲端語音
+Cloud voice service	雲端語音服務
+Cloud voice setup	雲端語音設定
+Code mods can reach your whole PC. Only trusted ones.	程式碼模組可以觸及你整台電腦。只安裝信任的模組。
+Code/Husk Mode	程式碼／Husk 模式
+Codex	Codex
+Commands	指令
+Comment on my games	評論我的遊戲
+Comments	評論
+Confirm	確認
+Confirm keys	確認按鍵
+Connect	連線
+Connect / Forget brain key	連線 / 忘記大腦金鑰
+Connect / Forget voice key	連線 / 忘記語音金鑰
+Connect four	四子棋
+Controls	控制
+Copri, what time is it	Copri，現在幾點
+Copy error details	複製錯誤詳情
+Copy the key	複製金鑰
+Copy the key from the page, then press Paste.	從頁面複製金鑰，然後按貼上。
+Couldn't open that page:	無法開啟該頁面：
+Couldn't open that:	無法開啟那個：
+Couldn't open the mods folder:	無法開啟模組資料夾：
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M 已經是她的 Mainframe 按鍵。
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N 關閉麥克風
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V 已經是她的說話按鍵。
+Ctrl + Alt + V to talk	按 Ctrl + Alt + V 說話
+Custom local voice	自訂本機語音
+Custom model name	自訂模型名稱
+Dance	跳舞
+Dance to music	隨音樂跳舞
+Default	預設
+Default (follows Windows)	預設（跟隨 Windows）
+Default duration for clip that and automatic clips	「剪下這段」和自動剪輯的預設長度
+Default length	預設長度
+Default model	預設模型
+Delay	延遲
+Deny	拒絕
+Discard	捨棄
+Discard + reload	捨棄並重新載入
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	不想等？免費金鑰大約一分鐘就能讓我開口說話。
+Done	完成
+EXTRA REQUEST JSON >	額外請求 JSON >
+EXTRAS >	額外功能 >
+Edit	編輯
+Edit check-in lines	編輯來找我的台詞
+Edit check-in lines has the wrong view or dimming	編輯來找我的台詞的檢視或變暗有誤
+Edit check-in lines is out of place	編輯來找我的台詞位置不對
+Edit controls	編輯控制項
+ElevenLabs API key	ElevenLabs API 金鑰
+ElevenLabs voice ID	ElevenLabs 語音 ID
+English	英文
+Enter the game's name first.	請先輸入遊戲名稱。
+Every	每
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	每個模組上傳前都會檢查惡意程式。程式碼模組執行前仍會詢問。
+Explore after	之後探索
+Explore while I'm away	我不在時探索
+Extra request JSON	額外請求 JSON
+Extras	額外功能
+FREE KEY	免費金鑰
+FREE KEY >	免費金鑰 >
+Fast hands in games	遊戲中手速快
+File editor	檔案編輯器
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio、ElevenLabs 等都在 Mainframe 的 語音 之下。
+Follow-up messages	後續訊息
+Forget	忘記
+Fork capri-mods	Fork capri-mods
+Frame rate	影格率
+Free	免費
+Free and private, works offline. Downloads	免費且私密，可離線運作。會下載
+Free and private, works offline. Downloads the best model for this PC.	免費且私密，可離線運作。會下載適合這台電腦的最佳模型。
+Free key	免費金鑰
+Free key providers	免費金鑰提供者
+Free keys can be rate limited and slow.	免費金鑰可能有速率限制且較慢。
+Free voice in games	遊戲中的免費語音
+Free voice style	免費語音風格
+Free voice:	免費語音：
+Free voice: Her own	免費語音：她自己的
+Free · local model	免費 · 本機模型
+GAMES >	遊戲 >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	遊戲評論與「觀看我的螢幕」分開運作。關閉會停止它們，遊戲模式也一樣；僅事件與健談會讓她觀看你的遊戲
+Game controls	遊戲控制
+Game name	遊戲名稱
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	遊戲音效敏感度。若耳機音量調低但 Windows 在 {0}%，而她對每個聲音都有反應，請調低；關閉則忽略遊戲音效
+Game sounds	遊戲音效
+Games	遊戲
+Gaming Mode	遊戲模式
+Gaming Mode key	遊戲模式按鍵
+Gaming Mode:	遊戲模式：
+Gaming Mode: Ctrl + Alt + G	遊戲模式：Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini、OpenRouter、ChatGPT、Claude、DeepSeek
+Get VB-CABLE	取得 VB-CABLE
+Get VB-CABLE (free)...	取得 VB-CABLE（免費）...
+Get free voice	取得免費語音
+Getting your Fish Audio voices...	正在取得你的 Fish Audio 語音...
+Giant	巨大
+Glitch	故障
+Glitch in at startup	啟動時故障
+Go to sleep	去睡覺
+Go to the next screen	前往下一個螢幕
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · 免費方案 · 有速率限制
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	有 Claude 或 ChatGPT 方案，或自己的金鑰嗎？選一個，我就來接上。
+Got it, just me. Right-click me any time for Capri Mainframe.	知道了，就只有我。隨時右鍵點我就能開啟 Capri Mainframe。
+Grey	灰色
+H.{0} video bitrate target; higher values make larger files	H.{0} 影片位元率目標；數值越高檔案越大
+HABITS >	習慣 >
+HER HANDS >	她的手 >
+HER JOBS >	她的工作 >
+HER MEMORY >	她的記憶 >
+HER MODS >	她的模組 >
+HH:mm	HH:mm
+HOW I SOUND >	我的聲音 >
+Hang here	待在這裡
+Have Ollama? Open it, then press Refresh.	有 Ollama 嗎？開啟它，然後按重新整理。
+Head pats	摸頭
+Hearing	聽力
+Hearing engine	聽力引擎
+Hearing fix	聽力修正
+Hearing status	聽力狀態
+Help	說明
+Help page	說明頁面
+Her colors	她的顏色
+Her folder	她的資料夾
+Her memories	她的回憶
+Her own colors are back.	她自己的顏色回來了。
+Her own notes (no vault)	她自己的筆記（無保險庫）
+Her perch frames per second	她停駐動畫每秒影格數
+Her personality	她的個性
+Her size	她的大小
+Her speaker	她的喇叭
+Her speaker is hidden or outside VOICE	她的喇叭已隱藏或位於語音之外
+Her speaker overlaps the mic or hearing row	她的喇叭與麥克風或聽力列重疊
+Her speaker:	她的喇叭：
+Her speaker: Default	她的喇叭：預設
+Her voice in your mic	她的聲音進入你的麥克風
+Her voice in your mic: loudness	她的聲音進入你的麥克風：音量
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	她的聲音本身。其音調為 設定 > 語音 > 音調，兩者會一起移動。
+Her voice joins your mic only in call mode.	她的聲音只在通話模式下才會進入你的麥克風。
+Her voice volume	她的語音音量
+Her voice's pitch	她的語音音調
+Her voice's pitch, the same as Settings > VOICE > Pitch	她的語音音調，與 設定 > 語音 > 音調 相同
+Her voice's speed	她的語音速度
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	她的聲音，以及混在她下面的兩份副本，各有自己的音調與延遲。
+Her voices · free	她的語音 · 免費
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	嘿，choom。我是 Capri。我需要一個大腦才能回話。選一個吧。
+Hide / Show Capri	隱藏／顯示 Capri
+Hide / Show key	隱藏／顯示按鍵
+Hide Capri	隱藏 Capri
+Hide for now	暫時隱藏
+Hide in full screen	全螢幕時隱藏
+Hide this	隱藏這個
+Hide/show:	隱藏／顯示：
+Hide/show: Ctrl + Alt + H	隱藏／顯示：Ctrl + Alt + H
+Hologram	全息投影
+Hop off	跳下來
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	電腦閒置多久後讓她去睡覺；五分鐘仍會被視為你離開了
+How long a stroke over her a head pat needs	滑過她身上需要多久才算摸頭
+How long her replies stay up	她的回覆會顯示多久
+How long you are away before she scrolls a browser or reader	你離開多久後她會捲動瀏覽器或閱讀器
+How much her voice glitches	她的聲音故障程度
+How much of the chat she keeps	她會保留多少聊天內容
+How much she wanders	她四處閒逛的程度
+How often she pops in to say hi	她多久跑來打一次招呼
+How robotic her voice sounds	她的聲音聽起來有多機械
+How to	如何
+Huge	超大
+I can hear you.	我聽得到你。
+I glance at your screen and comment. Costs a little on a paid brain.	我會瞄一眼你的螢幕並加以評論。使用付費大腦會稍微花費。
+I keep listening. Say my name, then just talk.	我會持續聆聽。叫我的名字，然後直接說話。
+I talk about your game as you play. Costs a little on a paid brain.	我會在你遊玩時談論你的遊戲。使用付費大腦會稍微花費。
+I type my replies and stay quiet.	我用打字回覆，保持安靜。
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	我不會回話，也不會傳送任何東西到任何地方。我還是會陪著你、隨你的音樂跳舞，並做你要求的快速事項，例如調整音量。
+I'll talk in	我會用
+IN DISCORD >	在 DISCORD >
+INSTALLED >	已安裝 >
+Import a Capri mod	匯入 Capri 模組
+Import mod	匯入模組
+In games	遊戲中
+Input	輸入
+Input, Output or How to overlaps a row	輸入、輸出或如何與列重疊
+Input:	輸入：
+Input: default	輸入：預設
+Install	安裝
+Install mod	安裝模組
+Installed.	已安裝。
+It may ask for a phone number. I opened the page in your browser.	可能會要求輸入電話號碼。我已在你的瀏覽器中開啟頁面。
+It still does its own job in other apps too.	它在其他應用程式中仍會執行自己的工作。
+It won't type in other apps while she runs.	她執行時不會在其他應用程式中打字。
+JUST ME >	只有我 >
+Jealous of other AIs	嫉妒其他 AI
+Join the Discord	加入 Discord
+KB.	KB。
+KEYS	按鍵
+KEYS >	按鍵 >
+Keep PC awake for jobs	為工作保持電腦清醒
+Keeps the last two minutes of your game in memory. Say clip that to save it.	在記憶中保留遊戲的最後兩分鐘。說「剪下這段」即可儲存。
+Key	金鑰
+Key cleared: a model file needs none.	金鑰已清除：模型檔案不需要金鑰。
+Key cleared: paste the key for	金鑰已清除：請貼上此項的金鑰
+Key forgotten.	金鑰已忘記。
+Key. It goes only to this server, as a Bearer key	金鑰。只會以 Bearer 金鑰的形式傳送到這台伺服器
+Kokoro only, like es	僅限 Kokoro，如 es
+LAST THING >	最後一項 >
+LISTENING >	聆聽中 >
+Language	語言
+Large	大
+Last thing. These cost a little or use your mic, so they're your pick.	最後一項。這些會稍微花費或使用你的麥克風，所以由你決定。
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	最後一項。這些會稍微花費或使用你的麥克風，所以由你決定。接著我想知道該怎麼稱呼你。
+Layers	圖層
+Learn more	了解更多
+Leaving Settings threw its picture away straight away.	離開設定時，畫面立即被丟棄。
+Legacy stand	舊版支架
+Lie down	躺下
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	一起觀看時保留在記憶中的電腦對話行。當「記住她看到的內容」開啟時，最舊的一半會變成筆記
+Listen for Capri	聆聽 Capri
+Live reactions	即時反應
+Local server address	本機伺服器位址
+Long	長
+Longest wait (minutes)	最長等待時間（分鐘）
+Looking at this PC...	正在查看這台電腦...
+Looking for Ollama. Open it if it isn't running.	正在尋找 Ollama。如果沒有執行，請開啟它。
+Looking for a brain...	正在尋找大腦...
+Looking in the mods directory for updates...	正在模組目錄中查找更新...
+Looking in the mods directory...	正在模組目錄中查找...
+Looking...	查找中...
+MAIN >	主要 >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	中等智慧
+MEMORY VAULT >	記憶保險庫 >
+MODS	模組
+MODS >	模組 >
+MODS DIRECTORY >	模組目錄 >
+MODS INSTALLED COLORS	已安裝模組的顏色
+MOVES >	動作 >
+MY BRAIN	我的大腦
+MY FREE VOICE	我的免費語音
+MY PLAN OR KEY	我的方案或金鑰
+MY PLAN OR KEY >	我的方案或金鑰 >
+Made your Fish Audio voice. Press Test to hear it.	已製作你的 Fish Audio 語音。按下測試即可聽見。
+Mainframe colours	Mainframe 顏色
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe 顏色。Night City 是紅色和青色；黑色、白色和灰色會改變 Mainframe、她的選單、輸入框和她的筆記
+Mainframe frames	Mainframe 外框
+Mainframe key	Mainframe 按鍵
+Mainframe size	Mainframe 大小
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe 大小。當 Virtual Super Resolution 或 DSR 將大桌面縮小到較小螢幕時，自動會將其放大
+Mainframe:	Mainframe：
+Mainframe: Ctrl + Alt + M	Mainframe：Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe：Ctrl + Alt + O
+Mainframe: Down	Mainframe：Down
+Mainframe: Enter	Mainframe：Enter
+Making your Fish Audio voice...	正在製作你的 Fish Audio 語音...
+Max reply	最長回覆
+Maximum clip resolution, keeping the game's shape without upscaling	剪輯的最高解析度，保持遊戲比例且不放大
+Medium	中
+Memory	記憶
+Memory size	記憶大小
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama 與她內建大腦的記憶大小（以權杖計）。當請求需要更多時，自動會增加
+Mg	Mg
+Mic level:	麥克風音量：
+Mic test finished. Sound is reaching Capri.	麥克風測試完成。聲音已傳到 Capri。
+Mic:	麥克風：
+Mic: default	麥克風：預設
+Microphone	麥克風
+Mini player	迷你播放器
+Mini player over full screen	全螢幕上的迷你播放器
+Mini-games	迷你遊戲
+Minimising the Mainframe left it sliding.	最小化 Mainframe 讓它持續滑動。
+Minimize	最小化
+Mod filter	模組篩選
+Mod options	模組選項
+Mod pages	模組頁面
+Mod rules	模組規則
+Mod sort	模組排序
+Mod switch	模組切換
+Model	模型
+Model folder	模型資料夾
+Model name, optional	模型名稱（選填）
+Mods	模組
+Mods directory	模組目錄
+Mods folder	模組資料夾
+Most NVIDIA models can't see your screen.	大多數 NVIDIA 模型無法看到你的螢幕。
+Mouse wheel notches got a flick's long ease:	滑鼠滾輪段落套用了甩動的長緩動：
+Move	移動
+Move key to MAX INTELLIGENCE	將金鑰移到 MAX INTELLIGENCE
+Move to MAX	移到 MAX
+Music	音樂
+Music app	音樂應用程式
+Music app: where she plays music when you don't name an app	音樂應用程式：你未指定應用程式時她播放音樂的地方
+Mute	靜音
+Mute her	讓她靜音
+Mute mic key	麥克風靜音按鍵
+Mute mic:	麥克風靜音：
+Mute mic: Ctrl + Alt + N	麥克風靜音：Ctrl + Alt + N
+My brain	我的大腦
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	我的大腦正在下載。一載入完成我就跟你打招呼，到時你就能跟我說話了。
+My brain's on its way. While it comes down, let's sort out how I sound.	我的大腦在路上了。它下載的同時，我們來調整一下我的聲音吧。
+My provider	我的提供者
+NO AI	無 AI
+NO PHONES CONNECTED	沒有連線的手機
+NO PREVIEW	沒有預覽
+NORMAL	一般
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · 免費 · 尖峰時段常常很慢
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA 的免費 API 常常很慢，尤其在尖峰時段。
+NVIDIA, Gemini, OpenRouter	NVIDIA、Gemini、OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA、Google AI Studio（Gemini）或 OpenRouter API 金鑰
+Names:	名稱：
+Needs a key	需要金鑰
+Never	從不
+New code	新程式碼
+New voice from a clip...	從剪輯建立新語音...
+Next	下一步
+Night City	Night City
+No AI	無 AI
+No AI · no brain at all	無 AI · 完全沒有大腦
+No brain runs, and nothing is sent anywhere.	沒有大腦在執行，也不會傳送任何東西到任何地方。
+No brain yet	還沒有大腦
+No code open	沒有開啟的程式碼
+No mic found	找不到麥克風
+No mods in the directory yet.	目錄中還沒有模組。
+No mods match that.	沒有符合的模組。
+No mods match.	沒有符合的模組。
+No phones yet	還沒有手機
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	還沒有虛擬麥克風。選擇輸出，然後取得 VB-CABLE（免費）。
+None yet: pick to get VB-CABLE (free)	還沒有：選擇以取得 VB-CABLE（免費）
+Normal	正常
+Not a relay host	不是中繼主機
+Not imported. Nothing ran.	未匯入。沒有執行任何東西。
+Not updated. The old one is still in.	未更新。舊版仍在。
+Nothing needed updating.	沒有需要更新的項目。
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	不需要下載，也不會傳送任何東西。我不會回話。你隨時可以在 Mainframe 中新增大腦。
+Nothing to show from the mods directory.	模組目錄中沒有可顯示的內容。
+Nothing? Windows Settings > Privacy & security > Microphone.	沒有反應？Windows 設定 > 隱私權與安全性 > 麥克風。
+Nous Portal keys aren't supported yet.	目前尚不支援 Nous Portal 金鑰。
+OBS	OBS
+OFF	關
+OLLAMA	OLLAMA
+ON	開
+ON THIS PC	在這台電腦上
+OR A KEY	或金鑰
+Obsidian memory vault	Obsidian 記憶保險庫
+Off	關閉
+Off. Turn on Her voice in your mic above.	已關閉。請在上方的麥克風中開啟她的語音。
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	關閉：她聽起來和平常一樣。開啟：她擁有的所有語音，包括 ElevenLabs。
+Often	經常
+On	開啟
+On / Off	開啟 / 關閉
+On: your mic and her voice are going in.	開啟：你的麥克風和她的聲音會被送進去。
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	一個 JSON 物件，會加入此大腦發送的每個請求。它會取代 Capri 對所有共用名稱的值，且不會對模型進行檢查。
+Online speech recognition	線上語音辨識
+Open Capri Mainframe	開啟 Capri Mainframe
+Open Ollama, I'll find it	開啟 Ollama，我來找
+Open clips folder	開啟剪輯資料夾
+Open her memories	開啟她的回憶
+Open her notes	開啟她的筆記
+Open mods folder	開啟模組資料夾
+Open the page again	重新開啟頁面
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI、Claude、DeepSeek、Google、NVIDIA 或 OpenRouter。
+OpenAI-compatible server or provider.	與 OpenAI 相容的伺服器或提供者。
+OpenRouter · free models only	OpenRouter · 僅限免費模型
+Optional	選填
+Optional. Blank means no key.	選填。留空表示沒有金鑰。
+Options	選項
+Out of the box a little higher, just behind her.	預設稍微高一點，就在她後面。
+Out of the box lower, just behind her.	預設稍微低一點，就在她後面。
+Output	輸出
+Output:	輸出：
+Output: none	輸出：無
+PHONE CONNECTED	手機已連線
+PHONES >	手機 >
+PHONES CONNECTED	手機已連線
+PREBUILT LOCAL	預建本機
+PUBLISH MOD >	發布模組 >
+Pair a phone	配對手機
+Paste	貼上
+Paste API key	貼上 API 金鑰
+Paste a brain API key	貼上大腦 API 金鑰
+Paste reads your clipboard once, when you press it.	貼上會在你按下時讀取一次剪貼簿。
+Paste your key here	在這裡貼上你的金鑰
+Pat stroke	摸頭的滑動
+Perch	停駐
+Perch over {0} fps uses more CPU	停駐超過 {0} fps 會佔用更多 CPU
+Pick Output to get it.	選擇輸出以取得它。
+Pick a brain so I can talk back. You can change it any time.	選一個大腦，我才能回話。隨時都能更換。
+Pick a clip of a voice you have the rights and consent to use	選擇你擁有使用權與同意的聲音剪輯
+Pick a free model. I opened the page in your browser.	選一個免費模型。我已在你的瀏覽器中開啟頁面。
+Pick a new clip of you...	選擇你的新剪輯...
+Pick a voice model...	選擇語音模型...
+Pick one. Only one brain runs at a time.	選一個。一次只會執行一個大腦。
+Pick the note her memories go in	選擇她的回憶要存入的筆記
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	選擇 {0} 到 {1} 秒，你擁有使用權與同意的聲音
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	選擇 {0} 到 {1} 秒的你說話內容，或你擁有使用權與同意的聲音
+Pitch	音調
+Play	播放
+Play...	播放...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS 模型會複製此剪輯的聲音。按下測試即可聽見。
+Pop-in times	出現次數
+Pop-ins	出現
+Power saver	省電模式
+Power saver: how lightly she runs in games, or always	省電模式：她在遊戲中運作的輕量程度，或一律如此
+Preset	預設集
+Press Create API key	按下建立 API 金鑰
+Press Create Key	按下建立金鑰
+Press Generate API Key	按下產生 API 金鑰
+Press Test and say something, so I know I can hear you.	按下測試並說些什麼，讓我知道我聽得到你。
+Press a key, alone or with Ctrl, Alt, Shift or Win.	按下一個按鍵，可單獨或搭配 Ctrl、Alt、Shift 或 Win。
+Press new keys, then Confirm	按下新按鍵，然後確認
+Provider	提供者
+Provider API key, optional	提供者 API 金鑰（選填）
+Provider base URL	提供者基礎 URL
+Provider forgotten.	已忘記提供者。
+Provider overlaps the brain name or note	提供者與大腦名稱或筆記重疊
+Publish	發布
+Publish mod	發布模組
+Push to talk is off.	按鍵說話已關閉。
+Push to talk key	按鍵說話按鍵
+Push to talk:	按鍵說話：
+Push to talk: not set	按鍵說話：未設定
+QR CODE >	QR 碼 >
+QR hidden while streaming	直播時隱藏 QR
+Quick	快速
+Quiet key	安靜按鍵
+Quiet:	安靜：
+Quiet: Ctrl + Alt + P	安靜：Ctrl + Alt + P
+Quit Capri	結束 Capri
+RELAY >	中繼 >
+REMOTE >	遠端 >
+RUNS CODE.	會執行程式碼。
+Rarely	很少
+Rate mod	評價模組
+Reading its README...	正在讀取 README...
+Refresh	重新整理
+Reinstall	重新安裝
+Reload	重新載入
+Reloaded.	已重新載入。
+Remember our chats	記住我們的聊天
+Remember what she sees	記住她看到的內容
+Remote	遠端
+Remote off	遠端已關閉
+Remote on	遠端已開啟
+Remove	移除
+Remove all phones	移除所有手機
+Replies	回覆
+Reply length	回覆長度
+Report a problem	回報問題
+Reset colors	重設顏色
+Reset to her default	重設為她的預設
+Resolution	解析度
+Restart to update	重新啟動以更新
+Restless	躁動
+Revoke	撤銷
+Revoke also removes the phones its links added	撤銷也會移除其連結新增的手機
+Ride cursor	騎在游標上
+Ride cursor / Hop off	騎在游標上／跳下來
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	隨時右鍵點我可開啟 Capri Mainframe。大腦會在「大腦」下開啟。
+Right-click me any time for the Mainframe, Help and the Discord.	隨時右鍵點我可進入 Mainframe、說明和 Discord。
+Roblox	Roblox
+Roblox or any other app: pick	Roblox 或其他任何應用程式：選擇
+Robot	機器人
+Rock, paper, scissors	剪刀、石頭、布
+Run this code mod?	要執行這個程式碼模組嗎？
+Running on this PC	在這台電腦上執行
+Running on this PC · :	在這台電腦上執行 · :
+Runs Claude Code or Codex on this PC, signed in.	在這台電腦上執行已登入的 Claude Code 或 Codex。
+Runs on your PC. No key, no credits.	在你的電腦上執行。不需金鑰，也不用點數。
+SCAN WITH YOUR PHONE · EXPIRES	用手機掃描 · 即將到期
+SECURITY >	安全性 >
+SKILL.	技能。
+SKIN.	外觀。
+SORT BY	排序依據
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	音效 習慣 大腦 觀看 CAPRI DOOMSCROLL 天氣 剪輯 遊戲 按鍵 動作 語音 你
+Same as her ears (VOICE > Mic)	與她的耳朵相同（語音 > 麥克風）
+Same code on the phone?	手機上的代碼相同嗎？
+Save	儲存
+Save big moments	儲存重要時刻
+Save folder	儲存資料夾
+Save your changes, or press Discard + reload.	儲存你的變更，或按下捨棄並重新載入。
+Save your changes, or press Discard.	儲存你的變更，或按下捨棄。
+Saved.	已儲存。
+Saved. Ctrl + Alt + O opens her Mainframe.	已儲存。Ctrl + Alt + O 會開啟她的 Mainframe。
+Saving your rating...	正在儲存你的評分...
+Say her name anywhere to chat	任何地方說出她的名字即可聊天
+Screens	螢幕
+Screens is hidden or outside WATCH	螢幕已隱藏或位於觀看之外
+Screens overlaps a WATCH row	螢幕與觀看列重疊
+Screens to watch	要觀看的螢幕
+Sealed end to end	端對端加密
+Search by name or author	依名稱或作者搜尋
+Search installed mods	搜尋已安裝的模組
+Search mods	搜尋模組
+Search name, author or description	搜尋名稱、作者或描述
+Security	安全性
+Security:	安全性：
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	設定
+Set up her brain	設定她的大腦
+Set up your voice model	設定你的語音模型
+Setting up her brain	正在設定她的大腦
+Settings	設定
+Settings / Back	設定／返回
+Settings folds the wrong rows above BRAIN	設定把「大腦」上方的錯誤列收合了
+Settings had nothing to watch.	設定沒有可觀看的內容。
+Settings lost keyboard focus during the Tab walk	在 Tab 走訪期間，設定失去了鍵盤焦點
+Setup guide	設定指南
+Setup stopped	設定已停止
+She can read it when it fits.	合適時她就能讀取它。
+She glances at your screen and comments. Costs a little on a paid brain.	她會瞄一眼你的螢幕並加以評論。使用付費大腦會稍微花費。
+She keeps listening. Say her name, then just talk until you go quiet.	她會持續聆聽。說出她的名字，然後說到你安靜下來為止。
+She reacts to your game until you close it.	在你關閉遊戲前，她會對遊戲做出反應。
+She reads these controls before each game job.	她在每項遊戲任務前都會讀取這些控制項。
+She talks about your game as you play. Costs a little on a paid brain.	她會在你遊玩時談論你的遊戲。使用付費大腦會稍微花費。
+She uses it when she plays	她玩遊戲時會使用它
+Short	短
+Shortest wait (minutes)	最短等待時間（分鐘）
+Show Capri	顯示 Capri
+Show QR	顯示 QR
+Show my mod file	顯示我的模組檔案
+Show on Discord	在 Discord 上顯示
+Shum, what time is it	Shum，現在幾點
+Sign in	登入
+Sign in, make a key and copy it. Then press Paste and I'll connect.	登入，建立金鑰並複製。然後按下貼上，我就會連線。
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	登入，按下建立 API 金鑰並複製。然後按下貼上，我就會連線。
+Silent · text only	靜音 · 僅文字
+Simple / Advanced Settings	簡易／進階設定
+Simple Settings	簡易設定
+Simple Settings left a gap under Check in on me	簡易設定在「來找我」下方留下了空隙
+Sit here	坐在這裡
+Sit on windows	坐在視窗上
+Size	大小
+Skip	略過
+Skip all	全部略過
+Skip for now	暫時略過
+Sleep	睡眠
+Small	小
+Sometimes	有時
+Sound effects volume	音效音量
+Sound sensitivity	聲音靈敏度
+Sounds	音效
+Speaker or clip	喇叭或剪輯
+Speech model	語音辨識模型
+Speed	速度
+Start with Windows	隨 Windows 啟動
+Start with this!	從這個開始！
+Starting...	正在啟動...
+Stay on my model	保持使用我的模型
+Still checking your mics...	仍在檢查你的麥克風...
+Still checking your speakers...	仍在檢查你的喇叭...
+Still checking your virtual mics...	仍在檢查你的虛擬麥克風...
+Stop	停止
+Stopped using it. Couldn't remove the saved provider.	已停止使用。無法移除已儲存的提供者。
+Support	支援
+Sure?	確定？
+Sure? moved to a different phone	確定？已移到另一支手機
+TALK TO ME	跟我說話
+TEXT ONLY	僅文字
+Tab landed past the first option of	Tab 跳過了第一個選項
+Tab never reached the quiet key	Tab 從未到達安靜按鍵
+Tab reached nothing	Tab 沒有到達任何地方
+Tab selected a control without moving keyboard focus	Tab 選取了控制項，但沒有移動鍵盤焦點
+Talk	說話
+Talk key	說話按鍵
+Talk:	說話：
+Talk: Ctrl + Alt + V	說話：Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	目標擷取影格率；在負載或記憶體預算下可能會下降
+Teases when another AI comes to the front.	當另一個 AI 跑到前面時會吃醋。
+Test	測試
+That address doesn't work. Try https://... or http://localhost:{0}.	該位址無法使用。請試試 https://... 或 http://localhost:{0}。
+That code expired	該代碼已過期
+That mod is no longer installed. The list is updated.	該模組已不再安裝。清單已更新。
+That's a paid key: it goes under MAX INTELLIGENCE.	這是付費金鑰：會歸入 MAX INTELLIGENCE。
+The Mainframe stayed composited while sliding.	滑動時 Mainframe 保持合成狀態。
+The Mainframe stayed uncomposited after the slide.	滑動後 Mainframe 仍保持未合成狀態。
+The controls moved while the picture was sliding.	畫面滑動時控制項移動了。
+The cover stayed visible after the slide ended.	滑動結束後遮罩仍然可見。
+The frame thread kept running after the page settled.	頁面穩定後，影格執行緒仍持續運作。
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	她能給出的最長回覆（以權杖計）。自動會遵循上方的回覆設定；{0}K 或 {1}K 會讓她繼續說下去。工作在需要時會保留更多空間
+The longest wait must be at least the shortest wait.	最長等待時間必須至少等於最短等待時間。
+The picture doesn't match the scrolled page:	畫面與捲動後的頁面不符：
+The picture of Settings doesn't match the page:	設定的畫面與頁面不符：
+The picture stayed up after the slide ended.	滑動結束後畫面仍停留。
+The picture wasn't showing while it slid.	滑動期間畫面沒有顯示。
+The provider sheet is crowded:	提供者面板太擁擠：
+The voice panel has no screen DPI.	語音面板沒有螢幕 DPI。
+The voice panel's menus share one font.	語音面板的選單共用同一種字型。
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	剪貼簿中還沒有金鑰。請從頁面複製，然後按下貼上。
+These start off. Each costs a little or uses your mic.	這些預設是關閉的。每項都會稍微花費或使用你的麥克風。
+These start off. Turn on what you want. They're all in Settings too.	這些預設是關閉的。開啟你想要的。它們也都在設定中。
+They can also call you Big Z, Capricorn or Nova	他們也可以叫你 Big Z、Capricorn 或 Nova
+They can also call you Nova, Big Z or Capricorn	他們也可以叫你 Nova、Big Z 或 Capricorn
+Thinking	思考中
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	這是我的免費語音。按下測試，說些什麼，我就會讓你看到我聽得到你。
+This mod has no description yet.	此模組還沒有描述。
+Tic-tac-toe	井字遊戲
+Time between glances	每次瞄一眼之間的時間
+Tiny	極小
+Try again	再試一次
+Turn Remote on first	請先開啟遠端
+Turn off mini player	關閉迷你播放器
+Turn push to talk off	關閉按鍵說話
+Turning the wheel the other way kept the page heading the old way, to	反方向轉動滾輪，讓頁面一直朝舊方向移動，直到
+Type	打字
+Type key	打字按鍵
+Type to me	對我打字
+Type:	打字：
+Type: Ctrl + Alt + T	打字：Ctrl + Alt + T
+Typing sound	打字音效
+Unpacked. Press Test to hear it.	已解壓縮。按下測試即可聽見。
+Unsaved changes.	未儲存的變更。
+Up to {0} fps	最高 {0} fps
+Up to {0}p	最高 {0}p
+Update	更新
+Update available.	有可用更新。
+Update mods	更新模組
+Updating...	更新中...
+Use	使用
+Use her cursor	使用她的游標
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	其他地方的提供者請使用 https://。透過純 http 傳送金鑰不安全。
+Use preset	使用預設集
+Use saved	使用已儲存
+Use this server	使用此伺服器
+Using your provider with a key	使用你的提供者與金鑰
+Using your server with no key	使用你的伺服器，不用金鑰
+VIEW MOD >	檢視模組 >
+VOICE >	語音 >
+VOICE IN YOUR MIC >	麥克風中的語音 >
+VOICE LAYERS >	語音圖層 >
+Verbosity	詳盡程度
+Video bitrate	影片位元率
+View	檢視
+View mod	檢視模組
+Voice	語音
+Voice ID	語音 ID
+Voice from	語音來源
+Voice layers	語音圖層
+Voice model	語音模型
+Voice model:	語音模型：
+Voice name or ID, optional	語音名稱或 ID（選填）
+Voice server address, or a voice model's folder	語音伺服器位址，或語音模型的資料夾
+Voice status	語音狀態
+Voice, key and model...	語音、金鑰與模型...
+Volume	音量
+WAKE ME UP >	叫醒我 >
+WATCH >	觀看 >
+Waiting for the relay	等待中繼
+Wake her up	叫醒她
+Waking her up	正在叫醒她
+Wander	閒逛
+Wander around	四處閒逛
+Watch my screen	觀看我的螢幕
+Watch-along memory	一起觀看的回憶
+Weather	天氣
+Weather city	天氣城市
+Welcome back, choom. Let's finish setting me up.	歡迎回來，choom。我們把我的設定完成吧。
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	她會在你的電腦上未經詢問就做的事。開關關閉時她會先問，你說好才會做。
+What should she call you?	她該怎麼稱呼你？
+When she types	她打字時
+White	白色
+Windows default	Windows 預設
+Windows did not give Settings keyboard focus	Windows 沒有將鍵盤焦點交給設定
+Windows did not return keyboard focus to Back	Windows 沒有將鍵盤焦點送回返回
+With no picture the wheel still tried to slide.	沒有畫面時，滾輪仍然試圖滑動。
+Works best on MAX INTELLIGENCE.	在 MAX INTELLIGENCE 上效果最好。
+YOU	你
+YOU >	你 >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	你 語音 動作 按鍵 遊戲 剪輯 天氣 DOOMSCROLL CAPRI 觀看 大腦 習慣 音效
+YOUR KEY	你的金鑰
+YOUR MIC	你的麥克風
+YOUR PLAN	你的方案
+Yokapri what's up	Yokapri，怎麼啦
+You can hide this. It keeps going, and the Mainframe shows it too.	你可以隱藏這個。它會繼續運作，Mainframe 也會顯示它。
+Your mic and her voice go into one virtual mic, and	你的麥克風和她的聲音會進入同一個虛擬麥克風，而且
+Your mic is muted. Unmute it to test.	你的麥克風已靜音。取消靜音以進行測試。
+Your mods are up to date.	你的模組都是最新的。
+Your name or a nickname	你的名字或暱稱
+Your own model	你自己的模型
+Your personality	你的個性
+Your voice	你的聲音
+Your voice (HD)	你的聲音（HD）
+Your voice (HD) · pick a clip of you...	你的聲音（HD）· 選擇你的剪輯...
+Your voice model	你的語音模型
+as its mic.	作為它的麥克風。
+changed. Saved as My Colors, so you can share it.	已變更。已儲存為「我的顏色」，方便你分享。
+choice	選項
+clips the input line	會裁切輸入行
+cue	提示
+doesn't yet.	還沒有。
+download	下載
+file.	檔案。
+flag	旗標
+fps	fps
+hear	聽見
+hears	聽見
+hears that.	聽見那個。
+hides or shows her.	隱藏或顯示她。
+hint	提示
+in the Mainframe.	在 Mainframe 中。
+in the mods directory with a pull request.	在模組目錄中以 pull request 形式。
+in the picture wasn't noticed.	畫面中沒有注意到。
+is already her push-to-talk key.	已經是她的按鍵說話按鍵。
+is off.	已關閉。
+is on and running.	已開啟並執行中。
+is on, at the bottom, under	已開啟，在底部，位於
+is on.	已開啟。
+is on. She now answers to	已開啟。她現在會回應
+is removed.	已移除。
+is taken	已被佔用
+is taken by another app. Try another.	已被其他應用程式佔用。請換一個。
+is updated	已更新
+isn't hearing it yet: do {0} and {1}, then join a call.	目前還聽不到：請做 {0} 和 {1}，然後加入通話。
+it now.	現在。
+keeps her quiet, and lets her talk again.	讓她保持安靜，也讓她可以再次說話。
+key	金鑰
+key.	金鑰。
+min	分
+more.	更多。
+ms.	ms。
+mutes mic	關閉麥克風
+mutes your mic.	關閉你的麥克風。
+name	名稱
+off	關閉
+on this PC	在這台電腦上
+opens her Mainframe.	開啟她的 Mainframe。
+opens her typing box.	開啟她的輸入框。
+phone	手機
+phone pixels	手機像素
+phones	手機
+pixels	像素
+pixels)	像素)
+star.	顆星。
+stars.	顆星。
+starts voice chat.	開始語音聊天。
+stays off. Nothing ran.	保持關閉。沒有執行任何東西。
+still does its own job in other apps too. Confirm to keep it.	在其他應用程式中仍會執行它自己的工作。確認以保留。
+tall	高
+time	時間
+to talk	說話
+to talk to her, with a game in front too.	與她說話，即使前面有遊戲也一樣。
+too.	也是。
+turns Gaming Mode on and off.	開啟或關閉遊戲模式。
+with Ollama	搭配 Ollama
+won't type in other apps while she runs. Confirm to keep it.	她執行時不會在其他應用程式中打字。確認以保留。
+{0}   Echo Cancellation: Off	{0}   回音消除：關閉
+{0}   If her voice cuts off, turn off noise filtering	{0}   如果她的聲音斷斷續續，請關閉雜訊過濾
+{0}   Input Device:	{0}   輸入裝置：
+{0}   Join the call and check they hear both of you	{0}   加入通話，並確認他們聽得到你們兩人
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   麥克風測試 > Let's Check：你會聽到自己，以及她說話時的聲音
+{0}   Microphone:	{0}   麥克風：
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   雜訊抑制：無。兩者都可能在第一行後切斷她的聲音。
+{0}   Open the call or meeting's audio settings	{0}   開啟通話或會議的音訊設定
+{0}   Output Device: your headphones, like before	{0}   輸出裝置：與之前一樣使用你的耳機
+{0}   Speaker: your headphones, like before	{0}   喇叭：與之前一樣使用你的耳機
+{0}   Try a mic test in your call app	{0}   在你的通話應用程式中測試麥克風
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   使用者設定（名稱旁的齒輪）> 語音與影片
+{0} Mbps	{0} Mbps
+{0} lines	{0} 行
+{0} min	{0} 分
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· 在這台電腦上
+· server	· 伺服器

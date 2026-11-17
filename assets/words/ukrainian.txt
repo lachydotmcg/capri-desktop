@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Елемент, який перемалювався, не було перемальовано на зображенні.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Безкоштовний ключ з Google AI Studio, NVIDIA або OpenRouter. Нічого завантажувати. Потрібен інтернет.
+A held trackpad scroll got a flick's long ease:	Тривале прокручування тачпадом отримало довге сповільнення, як від змаху:
+A layout change during a slide put the page at	Зміна макета під час слайда поставила сторінку на
+A layout change left the picture up.	Зміна макета залишила зображення на екрані.
+A model in Ollama, on your local server or on your key.	Модель в Ollama, на твоєму локальному сервері або з твоїм ключем.
+A paid key goes under MAX INTELLIGENCE by itself.	Платний ключ сам потрапляє під MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Тариф, за який ти вже платиш, власний ключ або Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Меню панелі голосу не має власної копії шрифту панелі.
+A wheel turn right after a slide ended froze the picture.	Поворот колеса одразу після завершення слайда завис зображення.
+ALLOW THIS PHONE?	ДОЗВОЛИТИ ЦЕЙ ТЕЛЕФОН?
+ALMOST THERE >	ВЖЕ МАЙЖЕ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ІНША CAPRI ПЕРЕХОПИЛА КЕРУВАННЯ · ВИМКНІТЬ І ВКЛЮЧІТЬ
+API key	API-ключ
+API key, Claude plan or ChatGPT plan	API-ключ, тариф Claude або тариф ChatGPT
+Add	Додати
+Address	Адреса
+Address and key saved. Use saved to reconnect.	Адресу та ключ збережено. Щоб перепідключитися, скористайся збереженими.
+Advanced Settings	Розширені налаштування
+All	Усі
+All screens	Усі екрани
+Allow	Дозволити
+Almost there. I'll say hi the second my brain's in.	Майже готово. Привітаюся, щойно мій мозок підключиться.
+Always	Завжди
+Always on top	Завжди зверху
+Any Google account works. I opened the page in your browser.	Підійде будь-який обліковий запис Google. Я відкрила сторінку у твоєму браузері.
+Applies to every voice	Діє для кожного голосу
+Apps she may close	Програми, які вона може закрити
+Ask Capri for more	Попроси Capri ще
+Asking your server...	Питаю твій сервер...
+Asks before closing only the apps you choose.	Питатиме перед закриттям лише тих програм, які ти вибереш.
+Auto	Авто
+Automatic: VB-CABLE, else Steam's	Автоматично: VB-CABLE, інакше Steam
+BAD RELAY HOST	ПОГАНИЙ ХОСТ RELAY
+BIG Z open notepad	BIG Z відкрити notepad
+BRAIN	МОЗОК
+BRAIN >	МОЗОК >
+BRAIN ONLINE >	МОЗОК ОНЛАЙН >
+BRAIN PROVIDER >	ПОСТАЧАЛЬНИК МОЗКУ >
+BRAIN VOICE CAPRI	ГОЛОС МОЗКУ CAPRI
+Back	Назад
+Back on your saved API key.	Назад до збереженого API-ключа.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Найкраще для цього ПК:
+Black	Чорна
+Blank key means no key.	Порожній ключ означає відсутність ключа.
+Brain API key	API-ключ мозку
+Brain model	Модель мозку
+Brain provider	Постачальник мозку
+Bring here	Принести сюди
+Bring to this screen	Перенести на цей екран
+Browse	Огляд
+Browse mods	Огляд модифікацій
+Browse to a voice model	Вибрати модель голосу
+Browse...	Огляд...
+Bubble	Бульбашка
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, ти тут?
+CAN'T REACH THE RELAY · RETRYING	НЕМАЄ ЗВ'ЯЗКУ З RELAY · ПОВТОРЮЮ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	ГОЛОС І МОЗОК CAPRI
+CHANGED, approve it again.	ЗМІНЕНО, підтверди ще раз.
+CLIPS >	КЛІПИ >
+CLOUD VOICE	ХМАРНИЙ ГОЛОС
+CODE	КОД
+COLORS >	КОЛЬОРИ >
+CONNECTED	ПІДКЛЮЧЕНО
+CONNECTING	ПІДКЛЮЧЕННЯ
+CUSTOM LOCAL	ВЛАСНИЙ ЛОКАЛЬНИЙ
+Call mode (beta)	Режим дзвінка (бета)
+Call mode does not fit.	Режим дзвінка не вміщується.
+Call mode is outside its space.	Режим дзвінка виходить за межі свого простору.
+Cancel	Скасувати
+Cancel keys	Скасувати клавіші
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Віддалений
+Capri code:	Код Capri:
+Capri mods (*	Модифікації Capri (*
+Capri, hello	Capri, привіт
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Хаос, коли засмучена
+Chat with Capri from your phone	Спілкуйся з Capri зі свого телефону
+ChatGPT plan	Тариф ChatGPT
+Check for updates	Перевірити оновлення
+Check in on me	Перевір, як я
+Check in on me is hidden	Перевір, як я, приховано
+Check in on me still decides whether she visits.	Перевір, як я, досі визначає, чи вона зайде.
+Check in on me's tip missed	Підказку «Перевір, як я» пропущено
+Chess	Шахи
+Choose apps	Вибрати програми
+Choose folder...	Вибрати папку...
+Choose where future Capri clips are saved	Вибери, де зберігатимуться майбутні кліпи Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Тариф Claude або ChatGPT, платний ключ (OpenAI, Claude, DeepSeek) або Ollama.
+Claude plan	Тариф Claude
+Clear	Очистити
+Cleared.	Очищено.
+Click Confirm to keep Down, or press Esc.	Натисни «Підтвердити», щоб залишити Вниз, або натисни Esc.
+Click to open it.	Натисни, щоб відкрити.
+Clip my games	Записувати мої ігри
+Clips	Кліпи
+Close	Закрити
+Close other AIs for me	Закривати за мене інші AI
+Cloud voice	Хмарний голос
+Cloud voice service	Сервіс хмарного голосу
+Cloud voice setup	Налаштування хмарного голосу
+Code mods can reach your whole PC. Only trusted ones.	Модифікації коду можуть дістатися до всього твого ПК. Лише перевірені.
+Code/Husk Mode	Режим Code/Husk
+Codex	Codex
+Commands	Команди
+Comment on my games	Коментувати мої ігри
+Comments	Коментарі
+Confirm	Підтвердити
+Confirm keys	Підтвердити клавіші
+Connect	Підключити
+Connect / Forget brain key	Підключити / Забути ключ мозку
+Connect / Forget voice key	Підключити / Забути ключ голосу
+Connect four	Чотири в ряд
+Controls	Керування
+Copri, what time is it	Copri, котра година
+Copy error details	Копіювати деталі помилки
+Copy the key	Скопіювати ключ
+Copy the key from the page, then press Paste.	Скопіюй ключ зі сторінки, потім натисни «Вставити».
+Couldn't open that page:	Не вдалося відкрити цю сторінку:
+Couldn't open that:	Не вдалося відкрити це:
+Couldn't open the mods folder:	Не вдалося відкрити папку модифікацій:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M вже є її клавішею Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N вимикає мікрофон
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V вже є її клавішею розмови.
+Ctrl + Alt + V to talk	Ctrl + Alt + V для розмови
+Custom local voice	Власний локальний голос
+Custom model name	Назва власної моделі
+Dance	Танці
+Dance to music	Танцювати під музику
+Default	За замовчуванням
+Default (follows Windows)	За замовчуванням (як у Windows)
+Default duration for clip that and automatic clips	Тривалість за замовчуванням для кліпа «Збережи це» та автоматичних кліпів
+Default length	Тривалість за замовчуванням
+Default model	Модель за замовчуванням
+Delay	Затримка
+Deny	Відхилити
+Discard	Скасувати зміни
+Discard + reload	Скасувати зміни + перезавантажити
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Не хочеш чекати? Безкоштовний ключ дасть мені змогу говорити приблизно за хвилину.
+Done	Готово
+EXTRA REQUEST JSON >	ДОДАТКОВИЙ JSON ЗАПИТУ >
+EXTRAS >	ДОДАТКОВО >
+Edit	Редагувати
+Edit check-in lines	Редагувати рядки перевірки
+Edit check-in lines has the wrong view or dimming	Редагування рядків перевірки має неправильний вигляд або затемнення
+Edit check-in lines is out of place	Редагування рядків перевірки не на місці
+Edit controls	Редагувати керування
+ElevenLabs API key	API-ключ ElevenLabs
+ElevenLabs voice ID	ID голосу ElevenLabs
+English	Англійська
+Enter the game's name first.	Спершу введи назву гри.
+Every	Кожна
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Кожну модифікацію перевіряють на шкідливе ПЗ перед публікацією. Модифікації коду все одно питають перед запуском.
+Explore after	Досліджувати після
+Explore while I'm away	Досліджувати, поки мене немає
+Extra request JSON	Додатковий JSON запиту
+Extras	Додатково
+FREE KEY	БЕЗКОШТОВНИЙ КЛЮЧ
+FREE KEY >	БЕЗКОШТОВНИЙ КЛЮЧ >
+Fast hands in games	Швидкі руки в іграх
+File editor	Редактор файлів
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs та інші є в розділі ГОЛОС у Mainframe.
+Follow-up messages	Наступні повідомлення
+Forget	Забути
+Fork capri-mods	Форкнути capri-mods
+Frame rate	Частота кадрів
+Free	Безкоштовно
+Free and private, works offline. Downloads	Безкоштовно та приватно, працює офлайн. Завантажує
+Free and private, works offline. Downloads the best model for this PC.	Безкоштовно та приватно, працює офлайн. Завантажує найкращу модель для цього ПК.
+Free key	Безкоштовний ключ
+Free key providers	Постачальники безкоштовних ключів
+Free keys can be rate limited and slow.	Безкоштовні ключі можуть мати обмеження запитів і працювати повільно.
+Free voice in games	Безкоштовний голос в іграх
+Free voice style	Стиль безкоштовного голосу
+Free voice:	Безкоштовний голос:
+Free voice: Her own	Безкоштовний голос: її власний
+Free · local model	Безкоштовно · локальна модель
+GAMES >	ІГРИ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Коментарі до гри працюють окремо від «Дивитися мій екран». «Вимк.» зупиняє їх, також і в Ігровому режимі; «Лише події» та «Балакуча» дозволяють їй дивитися твою гру
+Game controls	Керування грою
+Game name	Назва гри
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Чутливість звуку гри. Знизь, якщо гарнітура тиха, а Windows на {0}%, і вона реагує на кожен звук; «Вимк.» ігнорує звуки гри
+Game sounds	Звуки гри
+Games	Ігри
+Gaming Mode	Ігровий режим
+Gaming Mode key	Клавіша Ігрового режиму
+Gaming Mode:	Ігровий режим:
+Gaming Mode: Ctrl + Alt + G	Ігровий режим: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Отримати VB-CABLE
+Get VB-CABLE (free)...	Отримати VB-CABLE (безкоштовно)...
+Get free voice	Отримати безкоштовний голос
+Getting your Fish Audio voices...	Отримую твої голоси Fish Audio...
+Giant	Гігантська
+Glitch	Збій
+Glitch in at startup	Збій під час запуску
+Go to sleep	Іди спати
+Go to the next screen	Перейти на наступний екран
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · безкоштовний тариф · обмеження запитів
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Є тариф Claude чи ChatGPT або власний ключ? Обери, і я під'єднаюся.
+Got it, just me. Right-click me any time for Capri Mainframe.	Зрозуміло, тільки я. Клацни по мені правою кнопкою в будь-який момент, щоб відкрити Capri Mainframe.
+Grey	Сіра
+H.{0} video bitrate target; higher values make larger files	Цільовий бітрейт відео H.{0}; більші значення дають більші файли
+HABITS >	ЗВИЧКИ >
+HER HANDS >	ЇЇ РУКИ >
+HER JOBS >	ЇЇ РОБОТА >
+HER MEMORY >	ЇЇ ПАМ'ЯТЬ >
+HER MODS >	ЇЇ МОДИФІКАЦІЇ >
+HH:mm	HH:mm
+HOW I SOUND >	ЯК Я ЗВУЧУ >
+Hang here	Зависнути тут
+Have Ollama? Open it, then press Refresh.	Маєш Ollama? Відкрий її, потім натисни «Оновити».
+Head pats	Погладжування по голові
+Hearing	Слух
+Hearing engine	Рушій слуху
+Hearing fix	Виправлення слуху
+Hearing status	Стан слуху
+Help	Довідка
+Help page	Сторінка довідки
+Her colors	Її кольори
+Her folder	Її папка
+Her memories	Її спогади
+Her own colors are back.	Її власні кольори повернулися.
+Her own notes (no vault)	Її власні нотатки (без сховища)
+Her perch frames per second	Кадри на секунду для її сидіння
+Her personality	Її особистість
+Her size	Її розмір
+Her speaker	Її динамік
+Her speaker is hidden or outside VOICE	Її динамік приховано або він поза ГОЛОСОМ
+Her speaker overlaps the mic or hearing row	Її динамік перекриває рядок мікрофона або слуху
+Her speaker:	Її динамік:
+Her speaker: Default	Її динамік: за замовчуванням
+Her voice in your mic	Її голос у твоєму мікрофоні
+Her voice in your mic: loudness	Її голос у твоєму мікрофоні: гучність
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Сам її голос. Його висота задається Налаштування > ГОЛОС > Висота, і вони змінюються разом.
+Her voice joins your mic only in call mode.	Її голос додається до твого мікрофона лише в режимі дзвінка.
+Her voice volume	Гучність її голосу
+Her voice's pitch	Висота її голосу
+Her voice's pitch, the same as Settings > VOICE > Pitch	Висота її голосу, та сама, що Налаштування > ГОЛОС > Висота
+Her voice's speed	Швидкість її голосу
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Її голос і дві його копії, змішані під нею, кожна зі своєю висотою та затримкою.
+Her voices · free	Її голоси · безкоштовні
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Привіт, choom. Я Capri. Мені потрібен мозок, щоб я могла відповідати. Обери один.
+Hide / Show Capri	Приховати / показати Capri
+Hide / Show key	Клавіша приховати / показати
+Hide Capri	Приховати Capri
+Hide for now	Поки що приховати
+Hide in full screen	Приховати в повноекранному режимі
+Hide this	Приховати це
+Hide/show:	Приховати/показати:
+Hide/show: Ctrl + Alt + H	Приховати/показати: Ctrl + Alt + H
+Hologram	Голограма
+Hop off	Зістрибнути
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Скільки ПК має простоювати, перш ніж вона піде спати; п'ять хвилин все одно означають, що тебе немає
+How long a stroke over her a head pat needs	Скільки має тривати проведення по ній, щоб це було погладжування по голові
+How long her replies stay up	Скільки часу її відповіді залишаються на екрані
+How long you are away before she scrolls a browser or reader	Скільки ти маєш бути відсутній, перш ніж вона прокрутить браузер або читач
+How much her voice glitches	Наскільки її голос збивається
+How much of the chat she keeps	Скільки з чату вона зберігає
+How much she wanders	Наскільки вона блукає
+How often she pops in to say hi	Як часто вона забігає привітатися
+How robotic her voice sounds	Наскільки роботизованим звучить її голос
+How to	Як
+Huge	Величезна
+I can hear you.	Я тебе чую.
+I glance at your screen and comment. Costs a little on a paid brain.	Я поглядаю на твій екран і коментую. Трохи коштує на платному мозку.
+I keep listening. Say my name, then just talk.	Я продовжую слухати. Назви моє ім'я, а потім просто говори.
+I talk about your game as you play. Costs a little on a paid brain.	Я розповідаю про твою гру, поки ти граєш. Трохи коштує на платному мозку.
+I type my replies and stay quiet.	Я пишу відповіді й мовчу.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Я не відповідатиму голосом, і нічого нікуди не надсилається. Я все одно буду поруч, танцюватиму під твою музику й виконувати швидкі прохання, як-от гучність.
+I'll talk in	Я буду говорити в
+IN DISCORD >	У DISCORD >
+INSTALLED >	ВСТАНОВЛЕНО >
+Import a Capri mod	Імпортувати модифікацію Capri
+Import mod	Імпортувати модифікацію
+In games	В іграх
+Input	Вхід
+Input, Output or How to overlaps a row	Вхід, Вихід або Як перекриває рядок
+Input:	Вхід:
+Input: default	Вхід: за замовчуванням
+Install	Встановити
+Install mod	Встановити модифікацію
+Installed.	Встановлено.
+It may ask for a phone number. I opened the page in your browser.	Може попросити номер телефону. Я відкрила сторінку у твоєму браузері.
+It still does its own job in other apps too.	Вона й далі виконує свою роботу в інших програмах.
+It won't type in other apps while she runs.	Вона не друкуватиме в інших програмах, поки працює.
+JUST ME >	ТІЛЬКИ Я >
+Jealous of other AIs	Ревную до інших AI
+Join the Discord	Приєднатися до Discord
+KB.	КБ.
+KEYS	КЛАВІШІ
+KEYS >	КЛАВІШІ >
+Keep PC awake for jobs	Не давати ПК заснути для завдань
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Зберігає в пам'яті останні дві хвилини твоєї гри. Скажи «Збережи це», щоб зберегти.
+Key	Ключ
+Key cleared: a model file needs none.	Ключ очищено: файлу моделі він не потрібен.
+Key cleared: paste the key for	Ключ очищено: встав ключ для
+Key forgotten.	Ключ забуто.
+Key. It goes only to this server, as a Bearer key	Ключ. Надсилається лише на цей сервер як Bearer-ключ
+Kokoro only, like es	Лише Kokoro, як es
+LAST THING >	ОСТАННЄ >
+LISTENING >	СЛУХАННЯ >
+Language	Мова
+Large	Великий
+Last thing. These cost a little or use your mic, so they're your pick.	Останнє. Ці трохи коштують або використовують твій мікрофон, тож вирішуєш ти.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Останнє. Ці трохи коштують або використовують твій мікрофон, тож вирішуєш ти. Потім хочу знати, як тебе називати.
+Layers	Шари
+Learn more	Докладніше
+Leaving Settings threw its picture away straight away.	Вихід із Налаштувань одразу скинув її зображення.
+Legacy stand	Старий стенд
+Lie down	Лягти
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Рядки діалогу ПК зберігаються в пам'яті під час спільного перегляду. Старіша половина стає нотаткою, коли увімкнено «Пам'ятати, що вона бачить»
+Listen for Capri	Слухати Capri
+Live reactions	Миттєві реакції
+Local server address	Адреса локального сервера
+Long	Довгий
+Longest wait (minutes)	Найдовше очікування (хвилин)
+Looking at this PC...	Дивлюся на цей ПК...
+Looking for Ollama. Open it if it isn't running.	Шукаю Ollama. Відкрий її, якщо вона не запущена.
+Looking for a brain...	Шукаю мозок...
+Looking in the mods directory for updates...	Шукаю оновлення в каталозі модифікацій...
+Looking in the mods directory...	Шукаю в каталозі модифікацій...
+Looking...	Шукаю...
+MAIN >	ГОЛОВНЕ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	СЕРЕДНІЙ INTELLIGENCE
+MEMORY VAULT >	СХОВИЩЕ ПАМ'ЯТІ >
+MODS	МОДИФІКАЦІЇ
+MODS >	МОДИФІКАЦІЇ >
+MODS DIRECTORY >	КАТАЛОГ МОДИФІКАЦІЙ >
+MODS INSTALLED COLORS	КОЛЬОРИ ВСТАНОВЛЕНИХ МОДИФІКАЦІЙ
+MOVES >	РУХИ >
+MY BRAIN	МІЙ МОЗОК
+MY FREE VOICE	МІЙ БЕЗКОШТОВНИЙ ГОЛОС
+MY PLAN OR KEY	МІЙ ТАРИФ АБО КЛЮЧ
+MY PLAN OR KEY >	МІЙ ТАРИФ АБО КЛЮЧ >
+Made your Fish Audio voice. Press Test to hear it.	Голос Fish Audio створено. Натисни «Тест», щоб його почути.
+Mainframe colours	Кольори Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Кольори Mainframe. Night City — червоний і блакитний; Чорна, Біла і Сіра змінюють Mainframe, її меню, поле введення та нотатки
+Mainframe frames	Рамки Mainframe
+Mainframe key	Клавіша Mainframe
+Mainframe size	Розмір Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Розмір Mainframe. «Авто» збільшує його, коли Virtual Super Resolution або DSR стискає великий робочий стіл на менший екран
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Вниз
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Створюю твій голос Fish Audio...
+Max reply	Максимум відповіді
+Maximum clip resolution, keeping the game's shape without upscaling	Максимальна роздільна здатність кліпа із збереженням пропорцій гри без апскейлу
+Medium	Середня
+Memory	Пам'ять
+Memory size	Обсяг пам'яті
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Обсяг пам'яті в токенах для Ollama та її вбудованого мозку. «Авто» збільшується, коли запиту потрібно більше
+Mg	Мг
+Mic level:	Рівень мікрофона:
+Mic test finished. Sound is reaching Capri.	Перевірку мікрофона завершено. Звук доходить до Capri.
+Mic:	Мікрофон:
+Mic: default	Мікрофон: за замовчуванням
+Microphone	Мікрофон
+Mini player	Міні-плеєр
+Mini player over full screen	Міні-плеєр поверх повного екрана
+Mini-games	Міні-ігри
+Minimising the Mainframe left it sliding.	Згортання Mainframe залишило його в ковзанні.
+Minimize	Згорнути
+Mod filter	Фільтр модифікацій
+Mod options	Параметри модифікацій
+Mod pages	Сторінки модифікацій
+Mod rules	Правила модифікацій
+Mod sort	Сортування модифікацій
+Mod switch	Перемикач модифікацій
+Model	Модель
+Model folder	Папка моделі
+Model name, optional	Назва моделі, необов'язково
+Mods	Модифікації
+Mods directory	Каталог модифікацій
+Mods folder	Папка модифікацій
+Most NVIDIA models can't see your screen.	Більшість моделей NVIDIA не бачать твого екрана.
+Mouse wheel notches got a flick's long ease:	Кроки коліщатка миші отримали довге сповільнення, як від змаху:
+Move	Перемістити
+Move key to MAX INTELLIGENCE	Перемістити клавішу в MAX INTELLIGENCE
+Move to MAX	Перемістити в MAX
+Music	Музика
+Music app	Музичний застосунок
+Music app: where she plays music when you don't name an app	Музичний застосунок: де вона відтворює музику, коли ти не називаєш застосунок
+Mute	Вимкнути звук
+Mute her	Вимкнути її звук
+Mute mic key	Клавіша вимкнення мікрофона
+Mute mic:	Вимкнути мікрофон:
+Mute mic: Ctrl + Alt + N	Вимкнути мікрофон: Ctrl + Alt + N
+My brain	Мій мозок
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Мій мозок вантажиться. Привітаюся, щойно він підключиться, і тоді зможеш зі мною говорити.
+My brain's on its way. While it comes down, let's sort out how I sound.	Мій мозок уже в дорозі. Поки він вантажиться, давай налаштуємо, як я звучу.
+My provider	Мій постачальник
+NO AI	БЕЗ AI
+NO PHONES CONNECTED	ТЕЛЕФОНІВ НЕМАЄ
+NO PREVIEW	БЕЗ ПЕРЕГЛЯДУ
+NORMAL	ЗВИЧАЙНИЙ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · безкоштовно · часто повільно в години пік
+NVIDIA's free API is often slow, especially at busy times.	Безкоштовний API NVIDIA часто повільний, особливо в години пік.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	API-ключ NVIDIA, Google AI Studio (Gemini) або OpenRouter
+Names:	Імена:
+Needs a key	Потрібен ключ
+Never	Ніколи
+New code	Новий код
+New voice from a clip...	Новий голос з кліпа...
+Next	Далі
+Night City	Night City
+No AI	Без AI
+No AI · no brain at all	Без AI · без мозку взагалі
+No brain runs, and nothing is sent anywhere.	Жоден мозок не працює, і нічого нікуди не надсилається.
+No brain yet	Мозку ще немає
+No code open	Жодного коду не відкрито
+No mic found	Мікрофон не знайдено
+No mods in the directory yet.	У каталозі ще немає модифікацій.
+No mods match that.	Жодна модифікація не відповідає цьому.
+No mods match.	Жодна модифікація не відповідає.
+No phones yet	Телефонів ще немає
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Віртуального мікрофона ще немає. Обери Вихід, потім Отримати VB-CABLE (безкоштовно).
+None yet: pick to get VB-CABLE (free)	Ще немає: обери, щоб отримати VB-CABLE (безкоштовно)
+Normal	Звичайний
+Not a relay host	Це не хост relay
+Not imported. Nothing ran.	Не імпортовано. Нічого не запущено.
+Not updated. The old one is still in.	Не оновлено. Стара версія ще встановлена.
+Nothing needed updating.	Нічого не потребувало оновлення.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Нічого завантажувати, нічого нікуди не надсилається. Я не відповідатиму голосом. Додати мозок можна будь-коли в Mainframe.
+Nothing to show from the mods directory.	У каталозі модифікацій нічого показати.
+Nothing? Windows Settings > Privacy & security > Microphone.	Нічого? Параметри Windows > Конфіденційність і безпека > Мікрофон.
+Nous Portal keys aren't supported yet.	Ключі Nous Portal ще не підтримуються.
+OBS	OBS
+OFF	ВИМК
+OLLAMA	OLLAMA
+ON	УВІМК
+ON THIS PC	НА ЦЬОМУ ПК
+OR A KEY	АБО КЛЮЧ
+Obsidian memory vault	Сховище пам'яті Obsidian
+Off	Вимкнено
+Off. Turn on Her voice in your mic above.	Вимкнено. Увімкни «Її голос у твоєму мікрофоні» вище.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Вимкнено: вона звучить як завжди. Увімкнено: усі її голоси, зокрема ElevenLabs.
+Often	Часто
+On	Увімкнено
+On / Off	Увімк. / Вимк.
+On: your mic and her voice are going in.	Увімкнено: твій мікрофон і її голос підключаються.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Один JSON-об'єкт, що додається до кожного запиту цього мозку. Він замінює значення Capri для будь-якої спільної назви і не перевіряється моделлю.
+Online speech recognition	Онлайн-розпізнавання мовлення
+Open Capri Mainframe	Відкрити Capri Mainframe
+Open Ollama, I'll find it	Відкрий Ollama, я знайду
+Open clips folder	Відкрити папку кліпів
+Open her memories	Відкрити її спогади
+Open her notes	Відкрити її нотатки
+Open mods folder	Відкрити папку модифікацій
+Open the page again	Відкрити сторінку знову
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA або OpenRouter.
+OpenAI-compatible server or provider.	Сервер або постачальник, сумісний з OpenAI.
+OpenRouter · free models only	OpenRouter · лише безкоштовні моделі
+Optional	Необов'язково
+Optional. Blank means no key.	Необов'язково. Порожнє означає без ключа.
+Options	Параметри
+Out of the box a little higher, just behind her.	За замовчуванням трохи вище, одразу за нею.
+Out of the box lower, just behind her.	За замовчуванням трохи нижче, одразу за нею.
+Output	Вихід
+Output:	Вихід:
+Output: none	Вихід: немає
+PHONE CONNECTED	ТЕЛЕФОН ПІДКЛЮЧЕНО
+PHONES >	ТЕЛЕФОНИ >
+PHONES CONNECTED	ТЕЛЕФОНІВ ПІДКЛЮЧЕНО
+PREBUILT LOCAL	ГОТОВИЙ ЛОКАЛЬНИЙ
+PUBLISH MOD >	ОПУБЛІКУВАТИ МОДИФІКАЦІЮ >
+Pair a phone	Під'єднати телефон
+Paste	Вставити
+Paste API key	Вставити API-ключ
+Paste a brain API key	Вставити API-ключ мозку
+Paste reads your clipboard once, when you press it.	Вставлення зчитує буфер обміну один раз, коли ти його натискаєш.
+Paste your key here	Встав свій ключ сюди
+Pat stroke	Штрих для погладжування
+Perch	Сідало
+Perch over {0} fps uses more CPU	Сідало понад {0} к/с споживає більше CPU
+Pick Output to get it.	Обери Вихід, щоб його отримати.
+Pick a brain so I can talk back. You can change it any time.	Обери мозок, щоб я могла відповідати. Змінити можна будь-коли.
+Pick a clip of a voice you have the rights and consent to use	Обери кліп голосу, яким маєш право і дозвіл користуватися
+Pick a free model. I opened the page in your browser.	Обери безкоштовну модель. Я відкрила сторінку у твоєму браузері.
+Pick a new clip of you...	Обери новий кліп із тобою...
+Pick a voice model...	Обери модель голосу...
+Pick one. Only one brain runs at a time.	Обери одну. Одночасно працює лише один мозок.
+Pick the note her memories go in	Обери нотатку, куди йдуть її спогади
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Обери від {0} до {1} секунд голосу, яким маєш право і дозвіл користуватися
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Обери від {0} до {1} секунд, де говориш ти, або голосу, яким маєш право і дозвіл користуватися
+Pitch	Висота
+Play	Відтворити
+Play...	Відтворити...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Моделі Pocket TTS копіюють голос цього кліпа. Натисни «Тест», щоб його почути.
+Pop-in times	Час появи
+Pop-ins	Появи
+Power saver	Економія енергії
+Power saver: how lightly she runs in games, or always	Економія енергії: наскільки легко вона працює в іграх, або завжди
+Preset	Пресет
+Press Create API key	Натисни «Створити API-ключ»
+Press Create Key	Натисни «Створити ключ»
+Press Generate API Key	Натисни «Згенерувати API-ключ»
+Press Test and say something, so I know I can hear you.	Натисни «Тест» і скажи щось, щоб я знала, що чую тебе.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Натисни клавішу самостійно або з Ctrl, Alt, Shift чи Win.
+Press new keys, then Confirm	Натисни нові клавіші, потім «Підтвердити»
+Provider	Постачальник
+Provider API key, optional	API-ключ постачальника, необов'язково
+Provider base URL	Базова URL-адреса постачальника
+Provider forgotten.	Постачальника забуто.
+Provider overlaps the brain name or note	Постачальник перекриває назву мозку або нотатку
+Publish	Опублікувати
+Publish mod	Опублікувати модифікацію
+Push to talk is off.	Натисни, щоб говорити, вимкнено.
+Push to talk key	Клавіша «натисни, щоб говорити»
+Push to talk:	Натисни, щоб говорити:
+Push to talk: not set	Натисни, щоб говорити: не задано
+QR CODE >	QR-КОД >
+QR hidden while streaming	QR приховано під час трансляції
+Quick	Швидкий
+Quiet key	Клавіша тиші
+Quiet:	Тиша:
+Quiet: Ctrl + Alt + P	Тиша: Ctrl + Alt + P
+Quit Capri	Вийти з Capri
+RELAY >	RELAY >
+REMOTE >	ВІДДАЛЕНИЙ >
+RUNS CODE.	ВИКОНУЄ КОД.
+Rarely	Рідко
+Rate mod	Оцінити модифікацію
+Reading its README...	Читаю README...
+Refresh	Оновити
+Reinstall	Перевстановити
+Reload	Перезавантажити
+Reloaded.	Перезавантажено.
+Remember our chats	Пам'ятати наші розмови
+Remember what she sees	Пам'ятати, що вона бачить
+Remote	Віддалений
+Remote off	Віддалений вимкнено
+Remote on	Віддалений увімкнено
+Remove	Видалити
+Remove all phones	Видалити всі телефони
+Replies	Відповіді
+Reply length	Довжина відповіді
+Report a problem	Повідомити про проблему
+Reset colors	Скинути кольори
+Reset to her default	Скинути до її значень за замовчуванням
+Resolution	Роздільна здатність
+Restart to update	Перезапустити для оновлення
+Restless	Неспокійна
+Revoke	Відкликати
+Revoke also removes the phones its links added	Відкликання також видаляє телефони, додані його посиланнями
+Ride cursor	Їхати на курсорі
+Ride cursor / Hop off	Їхати на курсорі / Зістрибнути
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Клацни по мені правою кнопкою в будь-який момент, щоб відкрити Capri Mainframe. Мозок вмикається в розділі МОЗОК.
+Right-click me any time for the Mainframe, Help and the Discord.	Клацни по мені правою кнопкою в будь-який момент для Mainframe, Довідки та Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox або будь-який інший застосунок: обери
+Robot	Робот
+Rock, paper, scissors	Камінь, ножиці, папір
+Run this code mod?	Запустити цю модифікацію коду?
+Running on this PC	Працює на цьому ПК
+Running on this PC · :	Працює на цьому ПК · :
+Runs Claude Code or Codex on this PC, signed in.	Працює Claude Code або Codex на цьому ПК, з виконаним входом.
+Runs on your PC. No key, no credits.	Працює на твоєму ПК. Без ключа, без кредитів.
+SCAN WITH YOUR PHONE · EXPIRES	СКАНУЙ ТЕЛЕФОНОМ · ЗАКІНЧУЄТЬСЯ
+SECURITY >	БЕЗПЕКА >
+SKILL.	ЗДІБНІСТЬ.
+SKIN.	ШКІРА.
+SORT BY	СОРТУВАТИ ЗА
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ЗВУКИ ЗВИЧКИ МОЗОК ДИВИСЬ CAPRI DOOMSCROLL ПОГОДА КЛІПИ ІГРИ КЛАВІШІ РУХИ ГОЛОС ТИ
+Same as her ears (VOICE > Mic)	Як її вуха (ГОЛОС > Мікрофон)
+Same code on the phone?	Той самий код на телефоні?
+Save	Зберегти
+Save big moments	Зберігати великі моменти
+Save folder	Папка збереження
+Save your changes, or press Discard + reload.	Збережи зміни або натисни «Скасувати зміни + перезавантажити».
+Save your changes, or press Discard.	Збережи зміни або натисни «Скасувати зміни».
+Saved.	Збережено.
+Saved. Ctrl + Alt + O opens her Mainframe.	Збережено. Ctrl + Alt + O відкриває її Mainframe.
+Saving your rating...	Зберігаю твою оцінку...
+Say her name anywhere to chat	Назви її ім'я будь-де, щоб поговорити
+Screens	Екрани
+Screens is hidden or outside WATCH	Екрани приховано або поза ДИВИСЬ
+Screens overlaps a WATCH row	Екрани перекривають рядок ДИВИСЬ
+Screens to watch	Екрани для перегляду
+Sealed end to end	Наскрізне шифрування
+Search by name or author	Пошук за назвою або автором
+Search installed mods	Пошук серед встановлених модифікацій
+Search mods	Пошук модифікацій
+Search name, author or description	Пошук за назвою, автором або описом
+Security	Безпека
+Security:	Безпека:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Налаштувати
+Set up her brain	Налаштувати її мозок
+Set up your voice model	Налаштувати твою модель голосу
+Setting up her brain	Налаштовую її мозок
+Settings	Налаштування
+Settings / Back	Налаштування / Назад
+Settings folds the wrong rows above BRAIN	Налаштування згортає неправильні рядки над МОЗОК
+Settings had nothing to watch.	У Налаштуваннях нічого було дивитися.
+Settings lost keyboard focus during the Tab walk	Налаштування втратили фокус клавіатури під час проходу Tab
+Setup guide	Посібник з налаштування
+Setup stopped	Налаштування зупинено
+She can read it when it fits.	Вона може прочитати, коли поміщається.
+She glances at your screen and comments. Costs a little on a paid brain.	Вона поглядає на твій екран і коментує. Трохи коштує на платному мозку.
+She keeps listening. Say her name, then just talk until you go quiet.	Вона продовжує слухати. Назви її ім'я, а потім говори, доки не замовкнеш.
+She reacts to your game until you close it.	Вона реагує на твою гру, доки ти її не закриєш.
+She reads these controls before each game job.	Вона читає ці елементи керування перед кожним ігровим завданням.
+She talks about your game as you play. Costs a little on a paid brain.	Вона розповідає про твою гру, поки ти граєш. Трохи коштує на платному мозку.
+She uses it when she plays	Вона використовує це, коли грає
+Short	Короткий
+Shortest wait (minutes)	Найкоротше очікування (хвилин)
+Show Capri	Показати Capri
+Show QR	Показати QR
+Show my mod file	Показати мій файл модифікації
+Show on Discord	Показати в Discord
+Shum, what time is it	Shum, котра година
+Sign in	Увійти
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Увійди, створи ключ і скопіюй його. Потім натисни «Вставити», і я під'єднаюся.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Увійди, натисни «Створити API-ключ» і скопіюй його. Потім натисни «Вставити», і я під'єднаюся.
+Silent · text only	Беззвучно · лише текст
+Simple / Advanced Settings	Прості / розширені налаштування
+Simple Settings	Прості налаштування
+Simple Settings left a gap under Check in on me	Прості налаштування залишили прогалину під «Перевір, як я»
+Sit here	Сісти тут
+Sit on windows	Сісти на вікна
+Size	Розмір
+Skip	Пропустити
+Skip all	Пропустити все
+Skip for now	Поки що пропустити
+Sleep	Сон
+Small	Малий
+Sometimes	Іноді
+Sound effects volume	Гучність звукових ефектів
+Sound sensitivity	Чутливість звуку
+Sounds	Звуки
+Speaker or clip	Динамік або кліп
+Speech model	Мовна модель
+Speed	Швидкість
+Start with Windows	Запускати разом із Windows
+Start with this!	Почни з цього!
+Starting...	Запускається...
+Stay on my model	Залишитися на моїй моделі
+Still checking your mics...	Ще перевіряю твої мікрофони...
+Still checking your speakers...	Ще перевіряю твої динаміки...
+Still checking your virtual mics...	Ще перевіряю твої віртуальні мікрофони...
+Stop	Зупинити
+Stopped using it. Couldn't remove the saved provider.	Припинено використання. Не вдалося видалити збереженого постачальника.
+Support	Підтримка
+Sure?	Точно?
+Sure? moved to a different phone	Точно? переміщено на інший телефон
+TALK TO ME	ПОГОВОРИ ЗІ МНОЮ
+TEXT ONLY	ЛИШЕ ТЕКСТ
+Tab landed past the first option of	Tab перескочив повз першу опцію
+Tab never reached the quiet key	Tab так і не дійшов до клавіші тиші
+Tab reached nothing	Tab не дійшов ні до чого
+Tab selected a control without moving keyboard focus	Tab вибрав елемент керування, не перемістивши фокус клавіатури
+Talk	Говорити
+Talk key	Клавіша розмови
+Talk:	Розмова:
+Talk: Ctrl + Alt + V	Розмова: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Цільова частота кадрів захоплення; може знижуватися під навантаженням або через бюджет пам'яті
+Teases when another AI comes to the front.	Дражнить, коли на передній план виходить інший AI.
+Test	Тест
+That address doesn't work. Try https://... or http://localhost:{0}.	Ця адреса не працює. Спробуй https://... або http://localhost:{0}.
+That code expired	Цей код прострочено
+That mod is no longer installed. The list is updated.	Цю модифікацію більше не встановлено. Список оновлено.
+That's a paid key: it goes under MAX INTELLIGENCE.	Це платний ключ: він потрапляє під MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe залишався композитним під час ковзання.
+The Mainframe stayed uncomposited after the slide.	Mainframe залишився без композиції після ковзання.
+The controls moved while the picture was sliding.	Елементи керування зсунулися, поки зображення ковзало.
+The cover stayed visible after the slide ended.	Обкладинка залишилася видимою після завершення ковзання.
+The frame thread kept running after the page settled.	Потік кадрів продовжував працювати після того, як сторінка стабілізувалася.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Найдовша відповідь, яку вона може дати, у токенах. «Авто» дотримується Відповідей вище; {0}K або {1}K дозволяє їй продовжувати. Завдання отримують більше місця, коли це потрібно
+The longest wait must be at least the shortest wait.	Найдовше очікування має бути не коротшим за найкоротше.
+The picture doesn't match the scrolled page:	Зображення не відповідає прокрученій сторінці:
+The picture of Settings doesn't match the page:	Зображення Налаштувань не відповідає сторінці:
+The picture stayed up after the slide ended.	Зображення залишилося після завершення ковзання.
+The picture wasn't showing while it slid.	Зображення не показувалося, поки ковзало.
+The provider sheet is crowded:	Таблиця постачальників переповнена:
+The voice panel has no screen DPI.	Панель голосу не має DPI екрана.
+The voice panel's menus share one font.	Меню панелі голосу використовують один шрифт.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	У буфері обміну ще немає ключа. Скопіюй його зі сторінки, потім натисни «Вставити».
+These start off. Each costs a little or uses your mic.	Вони спочатку вимкнені. Кожен трохи коштує або використовує твій мікрофон.
+These start off. Turn on what you want. They're all in Settings too.	Вони спочатку вимкнені. Увімкни те, що хочеш. Усі вони також є в Налаштуваннях.
+They can also call you Big Z, Capricorn or Nova	Також можуть називати тебе Big Z, Capricorn або Nova
+They can also call you Nova, Big Z or Capricorn	Також можуть називати тебе Nova, Big Z або Capricorn
+Thinking	Думаю
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Це мій безкоштовний голос. Натисни «Тест», скажи щось, і я покажу, що тебе чую.
+This mod has no description yet.	Для цієї модифікації ще немає опису.
+Tic-tac-toe	Хрестики-нулики
+Time between glances	Час між поглядами
+Tiny	Крихітний
+Try again	Спробувати ще раз
+Turn Remote on first	Спершу увімкни Віддалений
+Turn off mini player	Вимкнути міні-плеєр
+Turn push to talk off	Вимкнути «натисни, щоб говорити»
+Turning the wheel the other way kept the page heading the old way, to	Обертання колеса в інший бік утримувало сторінку на старому напрямку, до
+Type	Друк
+Type key	Клавіша друку
+Type to me	Пиши мені
+Type:	Друк:
+Type: Ctrl + Alt + T	Друк: Ctrl + Alt + T
+Typing sound	Звук друку
+Unpacked. Press Test to hear it.	Розпаковано. Натисни «Тест», щоб його почути.
+Unsaved changes.	Незбережені зміни.
+Up to {0} fps	До {0} к/с
+Up to {0}p	До {0}p
+Update	Оновити
+Update available.	Доступне оновлення.
+Update mods	Оновити модифікації
+Updating...	Оновлюю...
+Use	Використати
+Use her cursor	Використовувати її курсор
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Для постачальника деінде використовуй https://. Ключ через звичайний http небезпечний.
+Use preset	Використати пресет
+Use saved	Використати збережений
+Use this server	Використати цей сервер
+Using your provider with a key	Використовується твій постачальник із ключем
+Using your server with no key	Використовується твій сервер без ключа
+VIEW MOD >	ПЕРЕГЛЯНУТИ МОДИФІКАЦІЮ >
+VOICE >	ГОЛОС >
+VOICE IN YOUR MIC >	ГОЛОС У ТВОЄМУ МІКРОФОНІ >
+VOICE LAYERS >	ШАРИ ГОЛОСУ >
+Verbosity	Розгорнутість
+Video bitrate	Бітрейт відео
+View	Перегляд
+View mod	Переглянути модифікацію
+Voice	Голос
+Voice ID	ID голосу
+Voice from	Голос з
+Voice layers	Шари голосу
+Voice model	Модель голосу
+Voice model:	Модель голосу:
+Voice name or ID, optional	Назва або ID голосу, необов'язково
+Voice server address, or a voice model's folder	Адреса голосового сервера або папка моделі голосу
+Voice status	Стан голосу
+Voice, key and model...	Голос, ключ і модель...
+Volume	Гучність
+WAKE ME UP >	РОЗБУДИ МЕНЕ >
+WATCH >	ДИВИСЬ >
+Waiting for the relay	Очікую relay
+Wake her up	Розбуди її
+Waking her up	Будую її
+Wander	Блукати
+Wander around	Блукати навколо
+Watch my screen	Дивитися мій екран
+Watch-along memory	Пам'ять спільного перегляду
+Weather	Погода
+Weather city	Місто для погоди
+Welcome back, choom. Let's finish setting me up.	З поверненням, choom. Давай завершимо моє налаштування.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Що вона робить на твоєму ПК без запиту. Якщо перемикач вимкнено, вона спершу питає, і робить це, коли ти кажеш так.
+What should she call you?	Як їй тебе називати?
+When she types	Коли вона друкує
+White	Біла
+Windows default	За замовчуванням Windows
+Windows did not give Settings keyboard focus	Windows не передав Налаштуванням фокус клавіатури
+Windows did not return keyboard focus to Back	Windows не повернув фокус клавіатури до «Назад»
+With no picture the wheel still tried to slide.	Без зображення колесо все одно намагалося ковзати.
+Works best on MAX INTELLIGENCE.	Найкраще працює на MAX INTELLIGENCE.
+YOU	ТИ
+YOU >	ТИ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ТИ ГОЛОС РУХИ КЛАВІШІ ІГРИ КЛІПИ ПОГОДА DOOMSCROLL CAPRI ДИВИСЬ МОЗОК ЗВИЧКИ ЗВУКИ
+YOUR KEY	ТВІЙ КЛЮЧ
+YOUR MIC	ТВІЙ МІКРОФОН
+YOUR PLAN	ТВІЙ ТАРИФ
+Yokapri what's up	Yokapri, що там
+You can hide this. It keeps going, and the Mainframe shows it too.	Це можна приховати. Воно працює далі, і Mainframe теж його показує.
+Your mic and her voice go into one virtual mic, and	Твій мікрофон і її голос потрапляють в один віртуальний мікрофон, і
+Your mic is muted. Unmute it to test.	Твій мікрофон вимкнено. Увімкни його, щоб перевірити.
+Your mods are up to date.	Твої модифікації актуальні.
+Your name or a nickname	Твоє ім'я або псевдонім
+Your own model	Твоя власна модель
+Your personality	Твоя особистість
+Your voice	Твій голос
+Your voice (HD)	Твій голос (HD)
+Your voice (HD) · pick a clip of you...	Твій голос (HD) · обери свій кліп...
+Your voice model	Твоя модель голосу
+as its mic.	як її мікрофон.
+changed. Saved as My Colors, so you can share it.	змінено. Збережено як Мої кольори, щоб ти міг поділитися.
+choice	вибір
+clips the input line	записує рядок введення
+cue	сигнал
+doesn't yet.	ще ні.
+download	завантажити
+file.	файл.
+flag	прапорець
+fps	к/с
+hear	чути
+hears	чує
+hears that.	це чує.
+hides or shows her.	приховує або показує її.
+hint	підказка
+in the Mainframe.	у Mainframe.
+in the mods directory with a pull request.	у каталозі модифікацій через pull request.
+in the picture wasn't noticed.	на зображенні не помічено.
+is already her push-to-talk key.	вже є її клавішею «натисни, щоб говорити».
+is off.	вимкнено.
+is on and running.	увімкнено і працює.
+is on, at the bottom, under	увімкнено, внизу, під
+is on.	увімкнено.
+is on. She now answers to	увімкнено. Тепер вона відгукується на
+is removed.	видалено.
+is taken	зайнято
+is taken by another app. Try another.	зайнято іншим застосунком. Спробуй інший.
+is updated	оновлено
+isn't hearing it yet: do {0} and {1}, then join a call.	ще не чує: зроби {0} і {1}, потім приєднайся до дзвінка.
+it now.	зараз.
+keeps her quiet, and lets her talk again.	тримає її тихою й знову дозволяє говорити.
+key	ключ
+key.	ключ.
+min	хв
+more.	більше.
+ms.	мс.
+mutes mic	вимикає мікрофон
+mutes your mic.	вимикає твій мікрофон.
+name	назва
+off	вимкнено
+on this PC	на цьому ПК
+opens her Mainframe.	відкриває її Mainframe.
+opens her typing box.	відкриває її поле для введення.
+phone	телефон
+phone pixels	пікселі телефону
+phones	телефони
+pixels	пікселі
+pixels)	пікселі)
+star.	зірка.
+stars.	зірки.
+starts voice chat.	починає голосовий чат.
+stays off. Nothing ran.	залишається вимкненим. Нічого не запущено.
+still does its own job in other apps too. Confirm to keep it.	й далі виконує свою роботу в інших застосунках. Підтверди, щоб зберегти.
+tall	висота
+time	час
+to talk	говорити
+to talk to her, with a game in front too.	говорити з нею, навіть коли гра на передньому плані.
+too.	теж.
+turns Gaming Mode on and off.	вмикає і вимикає Ігровий режим.
+with Ollama	з Ollama
+won't type in other apps while she runs. Confirm to keep it.	не друкуватиме в інших застосунках, поки працює. Підтверди, щоб зберегти.
+{0}   Echo Cancellation: Off	{0}   Придушення відлуння: вимкнено
+{0}   If her voice cuts off, turn off noise filtering	{0}   Якщо її голос переривається, вимкни фільтрацію шуму
+{0}   Input Device:	{0}   Пристрій введення:
+{0}   Join the call and check they hear both of you	{0}   Приєднайся до дзвінка і перевір, чи вас обох чують
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Перевірка мікрофона > Перевіримо: ти почуєш себе і її, коли вона говорить
+{0}   Microphone:	{0}   Мікрофон:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Придушення шуму: немає. Обидва можуть обривати її голос після першої репліки.
+{0}   Open the call or meeting's audio settings	{0}   Відкрий аудіонастройки дзвінка або зустрічі
+{0}   Output Device: your headphones, like before	{0}   Пристрій виведення: твої навушники, як і раніше
+{0}   Speaker: your headphones, like before	{0}   Динамік: твої навушники, як і раніше
+{0}   Try a mic test in your call app	{0}   Спробуй перевірку мікрофона у своєму застосунку для дзвінків
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Налаштування користувача (шестерня біля твого імені) > Голос і відео
+{0} Mbps	{0} Мбіт/с
+{0} lines	{0} рядків
+{0} min	{0} хв
+{0} ms	{0} мс
+· HD	· HD
+· on this PC	· на цьому ПК
+· server	· сервер

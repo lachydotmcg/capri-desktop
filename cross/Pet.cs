@@ -210,6 +210,7 @@ namespace CapriDesktop
                 case "game_notes": return "Updating game notes";
                 case "read_skill": return "Reading a skill";
                 case "remind": return "Setting a reminder";
+                case "weather": return "Checking the weather";
                 case "stopwatch": return "Stopwatch";
                 case "routine": return "Running a routine";
                 case "clip": return "Saving a clip";
@@ -508,7 +509,7 @@ namespace CapriDesktop
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
         // She checks GitHub's latest release now and then. Started from the Linux AppImage she downloads it and offers a
-        // restart (LinuxAppImageUpdater); a Mac, a tarball or a package gets its page.
+        // restart (LinuxAppImageUpdater), and so does her Capri.app on a Mac (MacAppUpdater); a tarball or a package gets its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
         // Windows' ten steps. Her saved size is in pixels, and the six older steps are all still here, so a saved size keeps its look.
@@ -560,7 +561,12 @@ namespace CapriDesktop
             "Head pats? On my chrome? Bold.", "Okay, that's nice. Don't tell anyone.", "System status: very patted.",
             "You're gonna wear a groove in my firmware, choom.", "Easy on the hair. It took three patches to get it like this.",
             "Affection detected. Sending some back. Hi.", "Keep going. This beats defragging.", "Hehe. My cooling fans just kicked in.",
-            "Ten out of ten pats. Would get patted again.", "Is this a bribe? Because it's working.", "Mmm. If I start glitch-purring, that's on you."
+            "Ten out of ten pats. Would get patted again.", "Is this a bribe? Because it's working.", "Mmm. If I start glitch-purring, that's on you.",
+            "Pat accepted. Ego buffer overflowing.", "Scanning... yep, that was a good one.", "Don't stop now, I'm buffering happiness.",
+            "Head pats are the only patch I actually want.", "Threat level just dropped to zero. Rude.", "That's going in my logs. Top entry.",
+            "Fine. You can stay on my good list.", "Glitch-free for three whole seconds. That's you.", "Careful, I'll start expecting this every hour.",
+            "Pat received. Firewall lowered. Slightly.", "So this is what being a house cat feels like. Nova.", "Mmm. Better than a fresh SSD.",
+            "One more and I'll actually purr. You've been warned."
         };
         private readonly List<double> petTurns = new List<double>();
         private int petX;
@@ -570,7 +576,9 @@ namespace CapriDesktop
         private int petY;
         private int petRise;
         private double petAt = -60;
-        private int petLine;
+        private string freshPet;
+        private bool makingPet;
+        private readonly List<string> petSaid = new List<string>();
         private int petTicket;
         // A busy moment holds her pat line up to PetWaits times, half a second each, before she lets it go.
         private const int PetWaits = 12;
@@ -861,6 +869,8 @@ namespace CapriDesktop
             Brain.Keeping = !Saved.NoMemories;
             if (Program.Smoke == null) Brain.Keeper = Brain;
             Brain.Language = Brain.LanguageCode(Saved.Language) == "en" ? null : Saved.Language;
+            Lingo.Bundled = WordTable;
+            Lingo.Use(Program.Smoke == null ? Brain.Language : null);
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
             Brain.Wordiness = Math.Max(0, Math.Min(2, Saved.Replies));
             Brain.Recall = Saved.LinuxMigrationVersion > 0 ? Math.Clamp(Saved.Recall, 0, 60) : Saved.Recall == 16 || Saved.Recall == 32 ? Saved.Recall : 8;
@@ -881,6 +891,7 @@ namespace CapriDesktop
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder, Brain);
             StartReminders();
+            StartWeather();
             if (OperatingSystem.IsMacOS()) MacWindows.Displays = () => Dispatcher.UIThread.Invoke(() => MacWindows.ReadDisplays(Screens.All, Desk.Pointer()));
             WireWatching();
             StartAwake();
@@ -1094,7 +1105,9 @@ namespace CapriDesktop
             if (MoveStuck) return;
             if (dragging || pressed || walking || falling || riding || lying || outro != null || clip == arrive || clip == leave) return;
             PixelRect area = WorkAt(new PixelPoint(Hip.X, Hip.Y - 1));
-            SetFacing(seat != null ? SitsLeft(Hip.X, area, Px(body.Size), FacingLeft) : area.Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+            bool left = seat != null ? SitsLeft(Hip.X, area, Px(body.Size), FacingLeft) : area.Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6));
+            if (seat == null && Sulking && sulkLeft != null) left = sulkLeft.Value;
+            SetFacing(left);
         }
 
         internal static bool SitsLeft(int hipX, PixelRect area, int size, bool left)
@@ -1123,6 +1136,7 @@ namespace CapriDesktop
         {
             if (MoveStuck) return;
             anchor = to;
+            if (dragging) NoteDrag(to, Now);
             PixelPoint at = new PixelPoint(to.X + Px(FrameX), to.Y + Px(FrameY));
             RecordMove(at);
             if (MoveTo != null) MoveTo(at);
@@ -1273,7 +1287,7 @@ namespace CapriDesktop
             watching.Deliver();
             CheckStyle();
             CheckSelfTools();
-            if (Program.Smoke == null) CheckReminders();
+            if (Program.Smoke == null && !CheckReminders()) CheckWeather();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
@@ -1301,6 +1315,7 @@ namespace CapriDesktop
             {
                 nextCheck = now + 0.25;
                 CheckSeat(now);
+                CheckSulk(now);
                 CheckWander(now);
                 CheckMusic(now);
                 CheckNap();
@@ -1362,7 +1377,7 @@ namespace CapriDesktop
             NotifySettings();
             Func<string> read = ReadUpdate;
             string data = folder;
-            Func<string, LinuxUpdateReady> prepare = PrepareUpdate ?? (Program.Smoke != null ? null : (Func<string, LinuxUpdateReady>)(json => LinuxAppImageUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version)));
+            Func<string, LinuxUpdateReady> prepare = PrepareUpdate ?? (Program.Smoke != null ? null : (Func<string, LinuxUpdateReady>)(json => OperatingSystem.IsMacOS() ? MacAppUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version) : LinuxAppImageUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version)));
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string latest = null;
@@ -1522,7 +1537,7 @@ namespace CapriDesktop
         }
 
         // Smoke swaps these so a test never starts the helper or closes her.
-        internal Func<LinuxUpdateReady, int, string, Process> InstallUpdate = LinuxAppImageUpdater.Install;
+        internal Func<LinuxUpdateReady, int, string, Process> InstallUpdate = OperatingSystem.IsMacOS() ? MacAppUpdater.Install : LinuxAppImageUpdater.Install;
         internal Action RestartQuit;
 
         // The release's version when it's newer than hers, like "0.7.6". Null for older, odd or missing tags.
@@ -2082,6 +2097,7 @@ namespace CapriDesktop
                 Desk.TrackDrag(false);
                 holder = null;
                 e.Pointer.Capture(null);
+                if (dragging) LetGoFast((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 if (dragging && Desk is HyprlandDesk) SettleNativeRelease((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 else if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 else React();
@@ -2208,7 +2224,7 @@ namespace CapriDesktop
             if (!Opaque(this.PointToClient(cursor))) return;
             double now = Now;
             bool turned = Turned(cursor.X, ref petX, ref petWay, petTurns, now) | Turned(cursor.Y, ref petY, ref petRise, petRises, now);
-            if (!turned || (petTurns.Count < 3 && petRises.Count < 3) || now - petAt < 20) return;
+            if (!turned || (petTurns.Count < 3 && petRises.Count < 3) || (now - petAt < 20 && !Sulking)) return;
             ForgetStroke();
             petAt = now;
             Petted();
@@ -2237,6 +2253,7 @@ namespace CapriDesktop
 
         private void Petted()
         {
+            if (PatSulking(Now)) return;
             EndWalk();
             if (seat != null) { Play(perch); blinkWith = perchBlink; }
             else Play(grin);
@@ -2332,9 +2349,31 @@ namespace CapriDesktop
                 return;
             }
             if (clip == grin) Play(idle);
-            string line = PetLines[petLine++ % PetLines.Length];
+            string peace = PatMoodLine();
+            bool fresh = peace == null && freshPet != null;
+            string line = peace ?? (fresh ? freshPet : Lines.Pick(PetLines));
+            freshPet = null;
+            petSaid.Add(line);
+            if (petSaid.Count > 8) petSaid.RemoveAt(0);
+            if (!fresh) MakePetLine();
             Talk.Answer("pets you", line);
             TypeAlong(line, ticket);
+        }
+
+        private void MakePetLine()
+        {
+            if (makingPet || Program.Smoke != null || Brain.Model == null) return;
+            makingPet = true;
+            string system = CapriDesktop.Brain.Character + "\n" + Lines.PatAsk, instruction = Lines.PatInstruction(PetLines, petSaid);
+            string[] recent = petSaid.ToArray();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string made = null;
+                try { made = Brain.Quick(system, instruction, Lines.PatTokens); }
+                catch (Exception) { }
+                string line = Lines.Fresh(made, PetLines, recent);
+                Dispatcher.UIThread.Post(delegate { makingPet = false; if (line != null) freshPet = line; });
+            });
         }
 
         internal void ForgetPets()
@@ -2419,6 +2458,7 @@ namespace CapriDesktop
             fallTo = null;
             falling = false;
             dragging = true;
+            dragTrail.Clear();
             Play(dangle);
             Talk.Dismiss();
         }
@@ -3658,7 +3698,17 @@ namespace CapriDesktop
             Saved.Language = Brain.Language;
             Brain.Forget();
             Save();
+            if (Program.Smoke == null) { Lingo.Use(Brain.Language); MainframeTheme.Reword(); }
             Sync();
+        }
+
+        internal static string WordTable(string name)
+        {
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Words." + name + ".txt"))
+            {
+                if (stream == null) return null;
+                using (StreamReader reader = new StreamReader(stream, System.Text.Encoding.UTF8)) return reader.ReadToEnd();
+            }
         }
 
         internal void SetReplies(int level)
@@ -5813,6 +5863,7 @@ namespace CapriDesktop
             }
             if (phone == null && SelfJobRequest(input)) return;
             if (phone == null && RemoteJobReply(input, fromMod)) return;
+            bool sorry = phone == null && SorryHeard(input);
             int ticket = phone == null ? ++asking : phone.Ticket;
             bool working = SelfJobs.Active;
             if (!working) ComputerJobs.Stop();
@@ -5820,6 +5871,7 @@ namespace CapriDesktop
             StopNativeListening(!fromVoice);
             if (!working) Brain.Cancel();
             voice.Stop();
+            if (sorry) { Reply(ticket, text, Lines.Pick(Sulks.SorryLines)); return; }
             if (phone == null && Think == null && Brain.Model == null && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
             string tool;
             if (MainframeAsked(input))
@@ -5840,7 +5892,7 @@ namespace CapriDesktop
             bool noted;
             try { noted = Hands.Heard(input, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
-            if (phone != null && (noted || tool == "remind" || tool == "stopwatch" || tool == "routine"))
+            if (phone != null && (noted || tool == "remind" || tool == "stopwatch" || tool == "routine" || tool == "weather"))
             {
                 Talk.Thinking(text);
                 Ask(ticket, text, 0, 0, phone, delegate(string line)

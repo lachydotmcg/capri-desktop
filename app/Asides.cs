@@ -337,7 +337,7 @@ namespace CapriDesktop
             AsideKind? plain = Asides.Plain(input, out tool, out args, brain.Model != null);
             if (plain == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(Lines.Pick(Lines.Stopped)); return; }
             if (plain == AsideKind.Status) { AsideStatus(text, running, typed); return; }
-            if (plain == AsideKind.Screen) { AsideScreen(text, args, running, typed); return; }
+            if (plain == AsideKind.Screen && typed == null) { AsideScreen(text, args, running, typed); return; }
             if (plain == AsideKind.Tool) { AsideTool(text, tool, args, running, typed); return; }
             AsideHead(text, running, typed);
         }
@@ -515,6 +515,7 @@ namespace CapriDesktop
                     {
                         if (headTest != null) { raw = AskHead(system + Hands.NoteFor(kit) + kit.Listing, facts, 300); calls.AddRange(Hands.Written(raw)); }
                         else raw = brain.QuickTools(system, facts, 300, calls, kit);
+                        if (typed != null) calls.RemoveAll(call => call.Key == "look_at_screen");
                         if (calls.Count > 0) { AsideTools(text, calls, running, sequence, ticket, typed); return; }
                         kind = Asides.Read(raw, out line);
                     }

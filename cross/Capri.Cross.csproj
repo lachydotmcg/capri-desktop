@@ -31,6 +31,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
+    <Compile Include="../app/PersonalSettings.cs" Link="Shared/PersonalSettings.cs" />
+    <Compile Include="../app/Doomscroll.cs" Link="Shared/Doomscroll.cs" />
+    <Compile Include="../app/Probes.cs" Link="Shared/Probes.cs" />
     <Compile Include="../app/Leaks.cs" Link="Shared/Leaks.cs" />
     <Compile Include="../app/Care.cs" Link="Shared/Care.cs" />
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />
@@ -40,6 +43,7 @@
     <Compile Include="../app/Websites.cs" Link="Shared/Websites.cs" />
     <Compile Include="../app/GameNotes.cs" Link="Shared/GameNotes.cs" />
     <Compile Include="../app/Reminders.cs" Link="Shared/Reminders.cs" />
+    <Compile Include="../app/Weather.cs" Link="Shared/Weather.cs" />
     <Compile Include="../app/Hands.cs" Link="Shared/Hands.cs" />
     <Compile Include="../app/Husk.cs" Link="Shared/Husk.cs" />
     <Compile Include="../app/Presence.cs" Link="Shared/Presence.cs" />
@@ -64,6 +68,7 @@
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/voice/*.wav" LogicalName="Capri.Voice.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/chip.png" LogicalName="Capri.Chip.png" />
+    <EmbeddedResource Include="../assets/words/*.txt" LogicalName="Capri.Words.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/cursor.png" LogicalName="Capri.Cursor.png" />
     <AvaloniaResource Include="../assets/fonts/CapriMainframe-Bold.ttf" Link="Assets/CapriMainframe-Bold.ttf" />
     <AvaloniaResource Include="../assets/fonts/ShareTechMono-Regular.ttf" Link="Assets/ShareTechMono-Regular.ttf" />

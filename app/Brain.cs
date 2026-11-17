@@ -2436,7 +2436,7 @@ namespace CapriDesktop
 #if !CROSS
             , Func<string> callReply = null, string callLines = null
 #endif
-            , string typed = null)
+            , string typed = null, RemotePicture photo = null)
         {
             // A message goes before a memories rewrite. On a brain on their PC the rewrite holds up her reply, so it's called off and
             // runs again once the chat goes quiet (Mirit0, #226). A Mac or Linux plan brain is one bridge her other asks share, and
@@ -2454,7 +2454,7 @@ namespace CapriDesktop
 #if !CROSS
                     , callReply, callLines
 #endif
-                    , typed);
+                    , typed, photo);
             }
             finally
             {
@@ -2468,7 +2468,7 @@ namespace CapriDesktop
 #if !CROSS
             , Func<string> callReply, string callLines
 #endif
-            , string typed)
+            , string typed, RemotePicture photo)
         {
             followLine = "";
             string input = typed ?? text;
@@ -2569,8 +2569,9 @@ namespace CapriDesktop
             string request = agreed ? before : input;
             bool follows = !agreed && recent.Count == 2 && !previousPicture && Hands.Follows(input, before, recent[1].Content);
             if (pictureQuestion || picture && input.Length == 0) act = null;
+            if (picture && act != null && !agreed && !follows && (Hands.Heard(request, out direct, out directArgs, true) ? direct == "look_at_screen" : !Hands.Wants(request))) act = null;
             bool reached = false;
-            string playing = act != null ? Hands.GameOpen() : null;
+            string playing = act != null && !picture ? Hands.GameOpen() : null;
             // A brain that holds her tools works the job out itself (F57), so set phrases only take what needs no thought. Her own
             // brain on their PC does too when its model calls tools (Lachy, 8 Nov), but it answers chat first and takes every tool up
             // once it says a message is a job: the whole tool list on every message would slow each reply by seconds on a graphics
@@ -2604,7 +2605,7 @@ namespace CapriDesktop
                 working[0] = new ChatMessage("system", steady + Hands.NoteFor(kit) + Hands.WorkingOut + selfGuide + callContext) { Steady = steady.Length };
                 try
                 {
-                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit);
+                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit, picture);
                     planned = true;
                 }
                 catch (BrainException error)
@@ -2622,7 +2623,7 @@ namespace CapriDesktop
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && (typed == null || input.Length > 0) && recent.Count == 2 && !previousPicture && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(input.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = input }));
-            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && (!planning || Hands.Instant(direct, directArgs)) && (rest == null || kit.Unable(direct, directArgs) == null))
+            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && !(picture && direct == "look_at_screen") && (!planning || Hands.Instant(direct, directArgs)) && (rest == null || kit.Unable(direct, directArgs) == null))
             {
                 // "Remember that" saves what they said just before, unless that was a question or one of her own glances.
                 if (direct == "remember" && directArgs.Action != "forget" && Hands.Back(request))
@@ -2634,9 +2635,9 @@ namespace CapriDesktop
             }
             // Her brain on their PC goes straight to its tools for a yes to her asking, a follow-up, a game that's open or a plain ask.
             else if (pictureMessages != null && (asksAboutPicture || !Hands.Requested(request) && !Hands.Wants(request))) act = null;
-            else if (planning && (!chatFirst || agreed || follows || playing != null || Hands.Wants(request))) workOut();
+            else if (planning && (!chatFirst || agreed || follows || playing != null || picture || Hands.Wants(request))) workOut();
             // With a game open, her hands see every message first: "kliknij deathmatch" or "keep going" mean something in it.
-            else if (act != null && !planning && (agreed || Hands.Wants(request) || follows || playing != null || fileChat))
+            else if (act != null && !planning && (agreed || Hands.Wants(request) || follows || playing != null || fileChat || picture))
             {
                 reached = true;
                 if (!Hands.Several(request, calls))
@@ -2648,10 +2649,12 @@ namespace CapriDesktop
                     if (calls.Count == 0 && unable == null && (agreed || Hands.Hesitant(handed, request) || (playing != null && Hands.Wants(request)))) Force(calls, request, kit, ref unable);
                 }
             }
+            if (picture && !planned) calls.RemoveAll(call => call.Key == "look_at_screen");
+            if (picture && !planned && calls.Count == 0 && unable == null) act = null;
             if (planned && calls.Count == 0) raw = planText;
             if (calls.Count == 0 && !planned && unable == null)
             {
-                raw = Chat(model, act == null && pictureMessages != null ? pictureMessages : messages, answerBudget, ticket, act != null && heartNote.Length > 0);
+                raw = act == null && pictureMessages != null ? PictureChat(model, pictureMessages, picture ? photo : null, answerBudget, ticket) : Chat(model, messages, answerBudget, ticket, act != null && heartNote.Length > 0);
                 if (act != null && heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                 // A call it wrote out as text in a chat reply, like <tool_call>{"name":"open_app",...}</tool_call>, is left out of what
                 // she shows and says but never runs. This ask went out with no tools, so a call in it can be copied from text someone
@@ -2857,7 +2860,7 @@ namespace CapriDesktop
             }
             if (pictureMessages != null && act != null && calls.Count == 0 && unable == null)
             {
-                raw = Chat(model, pictureMessages, answerBudget, ticket);
+                raw = PictureChat(model, pictureMessages, picture ? photo : null, answerBudget, ticket);
                 act = null;
             }
             bool lately = false;
@@ -2948,7 +2951,7 @@ namespace CapriDesktop
         // The brain holds her tools beside her own prompt: it calls one, sees what it did, calls the next, and answers as herself once
         // the job's done, for up to twelve rounds. Saying it did something with no tool behind it gets one reminder, then her line that
         // nothing's happened yet. Null means her usual reply from the results: SECURITY held a call, a job was stopped or the rounds ran out.
-        private string WorkOut(string model, List<ChatMessage> asking, string request, List<KeyValuePair<string, ToolArguments>> calls, List<string> results, List<string> facts, int budget, int ticket, Hands.Kit kit)
+        private string WorkOut(string model, List<ChatMessage> asking, string request, List<KeyValuePair<string, ToolArguments>> calls, List<string> results, List<string> facts, int budget, int ticket, Hands.Kit kit, bool photo = false)
         {
             Func<string, ToolArguments, string> act = Act;
             bool reminded = false;
@@ -2966,6 +2969,7 @@ namespace CapriDesktop
                 List<KeyValuePair<string, ToolArguments>> several = picked.Count == 0 ? Leaks.Calls(raw) : null;
                 if (several != null && several.Count > 0) picked.AddRange(several);
                 else if (picked.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) picked.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
+                if (photo && picked.RemoveAll(call => call.Key == "look_at_screen") > 0 && picked.Count == 0) return calls.Count == 0 ? "" : null;
                 if (picked.Count == 0)
                 {
                     // "Reminder set" with no remind behind it is a claim even after other tools ran this turn (F69, pass 4).
@@ -3216,12 +3220,8 @@ namespace CapriDesktop
             Cloud remote = Remote;
             if (remote != null && !Sighted(remote)) throw new BrainException(Sightless(remote));
             if (!selected) model = Looker(model);
-            string data = Convert.ToBase64String(jpeg);
-            string parts = null;
-            if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"" + mime + "\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";
-            else if (remote != null && !remote.Plan || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:" + mime + ";base64," + data + "\"}}]";
-            ChatMessage asked = new ChatMessage("user", parts != null ? Parts : instruction);
-            if (parts == null) { asked.Images = new[] { data }; asked.ImageMime = mime; }
+            string data = Convert.ToBase64String(jpeg), parts;
+            ChatMessage asked = Pictured(instruction, data, mime, remote, out parts);
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
             string raw;
 #if CROSS
@@ -3244,6 +3244,31 @@ namespace CapriDesktop
             if (preserveWhitespace) return Visible(raw).Trim();
 #endif
             return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
+        }
+
+        private ChatMessage Pictured(string words, string data, string mime, Cloud remote, out string parts)
+        {
+            parts = null;
+            if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"" + mime + "\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(words) + "}]";
+            else if (remote != null && !remote.Plan || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(words) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:" + mime + ";base64," + data + "\"}}]";
+            ChatMessage asked = new ChatMessage("user", parts != null ? Parts : words);
+            if (parts == null) { asked.Images = new[] { data }; asked.ImageMime = mime; }
+            return asked;
+        }
+
+        internal bool TakesPictures
+        {
+            get
+            {
+                if (Model == null) return false;
+                Cloud remote = Remote;
+                if (remote != null) return remote.Kind != "codex" && Sighted(remote);
+                if (Server != null) return true;
+                Engine local = Local;
+                Pick pick = LocalPick;
+                if (local != null) return pick != null && pick.EyesFile != null && local.HasEyes(pick);
+                return LocalSees(Model);
+            }
         }
 
 #if CROSS
@@ -3600,10 +3625,10 @@ namespace CapriDesktop
         // for it. If that's empty too she says the model only thought. Thinking in plain words is a guess, so a second reply that
         // still reads like it is shown as it came. A call written into a chat reply never runs and is never shown, and isn't asked
         // about again: a reply that was only that call is a reply with nothing to say.
-        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, bool hearts = false)
+        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, bool hearts = false, string parts = null)
         {
             string raw = null;
-            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket); }
+            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), parts, budget, ticket); }
             catch (BrainException error) { if (error.Detail != Leaks.OnlyThought) throw; }
             // A small brain on their PC that answered with only her heart has said something: the heart is sent and she says its
             // line, so it isn't asked again (and the heart lost) for words it never meant to add.
@@ -3613,7 +3638,23 @@ namespace CapriDesktop
             Log("leak", -1, Leaks.Who + ": nothing left to say, asking again for just the answer");
             List<ChatMessage> again = new List<ChatMessage>(messages);
             again[0] = new ChatMessage("system", messages[0].Content + Leaks.JustAnswer) { Steady = messages[0].Steady };
-            return Think(model, again, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket, false, null, null, false, true);
+            return Think(model, again, false, new List<KeyValuePair<string, ToolArguments>>(), parts, budget, ticket, false, null, null, false, true);
+        }
+
+        private string PictureChat(string model, List<ChatMessage> messages, RemotePicture photo, int budget, int ticket)
+        {
+            if (photo == null || !TakesPictures) return Chat(model, messages, budget, ticket);
+            string data = Convert.ToBase64String(photo.Bytes), parts;
+            List<ChatMessage> shown = new List<ChatMessage>(messages);
+            shown[0] = new ChatMessage("system", messages[0].Content + " Their photo itself is attached to their message too.") { Steady = messages[0].Steady };
+            shown[shown.Count - 1] = Pictured(messages[messages.Count - 1].Content, data, photo.Mime, Remote, out parts);
+            try
+            {
+                string said = Chat(model, shown, budget, ticket, false, parts);
+                return said == null ? null : said.Replace(data, "[redacted]");
+            }
+            catch (BrainException error) { if (error.Status != 400 && error.Status != 422 && !NoVision(error)) throw; }
+            return Chat(model, messages, budget, ticket);
         }
 
         // plain: a call outside her chat, which keeps today's settings whatever's picked.
@@ -5833,6 +5874,289 @@ namespace CapriDesktop
         }
     }
 
+    internal static class Lingo
+    {
+        internal static Func<string, string> Bundled = delegate { return null; };
+        internal static event Action Changed;
+        private const int Batch = 30, Most = 4000, Longest = 1500, Room = 2400;
+        private static readonly object gate = new object();
+        private static readonly Regex Number = new Regex(@"[0-9]+(?:[.,:][0-9]+)*");
+        private static readonly Regex Slot = new Regex(@"\{([0-9]{1,2})\}");
+        private static volatile string tongue;
+        private static string opened;
+        private static HashSet<string> catalogue;
+        private static Dictionary<string, string> lines = new Dictionary<string, string>(StringComparer.Ordinal);
+        private static HashSet<string> made = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly List<string> wanted = new List<string>();
+        private static readonly HashSet<string> wantedSet = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, int> missed = new Dictionary<string, int>(StringComparer.Ordinal);
+        private static bool warming;
+        private static DateTime failed = DateTime.MinValue;
+
+        internal static string Tongue { get { return tongue; } }
+
+        internal static void Use(string language)
+        {
+            string picked = string.IsNullOrEmpty(language) || language == "English" ? null : language;
+            lock (gate)
+            {
+                if (picked == tongue && opened == picked) return;
+                tongue = picked;
+                Open();
+            }
+            Raise();
+            Warm();
+        }
+
+        internal static void Reload()
+        {
+            lock (gate) { catalogue = null; opened = null; Open(); }
+            Raise();
+        }
+
+        internal static string Slug(string language) { return Regex.Replace((language ?? "").ToLowerInvariant(), @"[^\p{L}\p{Nd}]+", "-").Trim('-'); }
+
+        internal static string PathFor(string language)
+        {
+            string folder = Said.Folder, name = Slug(language);
+            return folder == null || name.Length == 0 ? null : Path.Combine(folder, "words-" + name + ".txt");
+        }
+
+        internal static string Of(string text) { return Find(text, false); }
+
+        internal static string Learn(string text) { return Find(text, true); }
+
+        internal static bool Has(string text)
+        {
+            if (string.IsNullOrEmpty(text) || tongue == null) return false;
+            return Of(text) != text;
+        }
+
+        private static string Find(string text, bool learn)
+        {
+            if (tongue == null || string.IsNullOrEmpty(text) || !Regex.IsMatch(text, @"\p{L}")) return text;
+            if (text.IndexOf('\n') >= 0)
+            {
+                string[] parts = text.Split('\n');
+                for (int i = 0; i < parts.Length; i++) parts[i] = parts[i].EndsWith("\r", StringComparison.Ordinal) ? Find(parts[i].Substring(0, parts[i].Length - 1), learn) + "\r" : Find(parts[i], learn);
+                return string.Join("\n", parts);
+            }
+            string trimmed = text.Trim();
+            if (trimmed.Length == 0) return text;
+            List<string> numbers = new List<string>();
+            string key = Mask(trimmed, numbers);
+            string translated;
+            bool warm = false;
+            lock (gate)
+            {
+                Open();
+                if (!lines.TryGetValue(key, out translated))
+                {
+                    if (made.Contains(trimmed)) return text;
+                    if (learn || catalogue.Contains(key)) warm = Want(key);
+                    translated = null;
+                }
+            }
+            if (translated == null)
+            {
+                if (warm) Warm();
+                return text;
+            }
+            string filled = Unmask(translated, numbers);
+            if (filled == null) return text;
+            int lead = text.Length - text.TrimStart().Length, tail = text.Length - text.TrimEnd().Length;
+            return text.Substring(0, lead) + filled + text.Substring(text.Length - tail);
+        }
+
+        internal static string Mask(string text, List<string> numbers)
+        {
+            return Number.Replace(text, delegate(Match found)
+            {
+                numbers.Add(found.Value);
+                return "{" + (numbers.Count - 1) + "}";
+            });
+        }
+
+        internal static string Unmask(string translated, List<string> numbers)
+        {
+            bool bad = false;
+            string filled = Slot.Replace(translated, delegate(Match slot)
+            {
+                int at = int.Parse(slot.Groups[1].Value);
+                if (at >= numbers.Count) { bad = true; return ""; }
+                return numbers[at];
+            });
+            return bad ? null : filled;
+        }
+
+        private static bool Slots(string english, string translated)
+        {
+            List<string> a = new List<string>(), b = new List<string>();
+            foreach (Match slot in Slot.Matches(english)) a.Add(slot.Value);
+            foreach (Match slot in Slot.Matches(translated)) b.Add(slot.Value);
+            a.Sort(StringComparer.Ordinal);
+            b.Sort(StringComparer.Ordinal);
+            return string.Join(",", a.ToArray()) == string.Join(",", b.ToArray());
+        }
+
+        private static bool Want(string key)
+        {
+            if (key.Length > Longest || wantedSet.Contains(key)) return false;
+            if (wanted.Count >= Most) return false;
+            wantedSet.Add(key);
+            wanted.Add(key);
+            return true;
+        }
+
+        private static void Open()
+        {
+            if (catalogue == null)
+            {
+                catalogue = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string row in Rows(Read("english"))) if (row.Trim().Length > 0) catalogue.Add(row.Trim());
+            }
+            if (opened == tongue && opened != null) return;
+            opened = tongue;
+            lines = new Dictionary<string, string>(StringComparer.Ordinal);
+            made = new HashSet<string>(StringComparer.Ordinal);
+            wanted.Clear();
+            wantedSet.Clear();
+            missed.Clear();
+            failed = DateTime.MinValue;
+            if (tongue == null) return;
+            Take(Rows(Read(Slug(tongue))), false);
+            string path = PathFor(tongue);
+            if (path != null)
+            {
+                try { if (File.Exists(path)) Take(File.ReadAllLines(path, Encoding.UTF8), false); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
+        private static string Read(string name)
+        {
+            try { return Bundled(name); }
+            catch (Exception) { return null; }
+        }
+
+        private static string[] Rows(string text) { return text == null ? new string[0] : text.Replace("\r\n", "\n").Split('\n'); }
+
+        private static int Take(IEnumerable<string> rows, bool replace)
+        {
+            int taken = 0;
+            foreach (string row in rows)
+            {
+                int tab = row.IndexOf('\t');
+                if (tab <= 0 || tab == row.Length - 1) continue;
+                string english = row.Substring(0, tab), translated = row.Substring(tab + 1).Trim();
+                if (translated.Length == 0 || !Slots(english, translated) || !replace && lines.ContainsKey(english)) continue;
+                lines[english] = translated;
+                made.Add(translated);
+                taken++;
+            }
+            return taken;
+        }
+
+        private static void Raise()
+        {
+            Action changed = Changed;
+            if (changed == null) return;
+            try { changed(); }
+            catch (Exception) { }
+        }
+
+        internal static void Warm()
+        {
+            lock (gate)
+            {
+                if (warming || Said.Ask == null || tongue == null || wanted.Count == 0 || DateTime.UtcNow - failed < Said.Wait) return;
+                warming = true;
+            }
+            bool ready;
+            try { ready = Said.Ready(); }
+            catch (Exception) { ready = false; }
+            if (!ready) { lock (gate) warming = false; return; }
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate { Work(); });
+        }
+
+        internal static void Work()
+        {
+            try
+            {
+                while (true)
+                {
+                    string language = tongue;
+                    if (language == null) return;
+                    List<string> batch = new List<string>();
+                    lock (gate)
+                    {
+                        Open();
+                        int size = 0;
+                        foreach (string line in wanted)
+                        {
+                            int misses;
+                            if (lines.ContainsKey(line) || missed.TryGetValue(line, out misses) && misses >= 2) continue;
+                            if (batch.Count > 0 && size + line.Length > Room) break;
+                            batch.Add(line);
+                            size += line.Length;
+                            if (batch.Count == Batch) break;
+                        }
+                    }
+                    if (batch.Count == 0) return;
+                    List<bool> named = new List<bool>();
+                    foreach (string line in batch) named.Add(false);
+                    string reply;
+                    try { reply = Said.Ask(Rules(language), Numbered(batch)); }
+                    catch (Exception) { lock (gate) failed = DateTime.UtcNow; return; }
+                    Dictionary<string, string> got = Said.Read(reply, batch, named);
+                    Dictionary<string, string> kept = new Dictionary<string, string>(StringComparer.Ordinal);
+                    lock (gate)
+                    {
+                        if (language != opened) continue;
+                        foreach (string line in batch)
+                        {
+                            string translated;
+                            if (got.TryGetValue(line, out translated) && Slots(line, translated)) { lines[line] = translated; made.Add(translated); kept[line] = translated; continue; }
+                            int misses;
+                            missed.TryGetValue(line, out misses);
+                            missed[line] = misses + 1;
+                        }
+                    }
+                    Keep(language, kept);
+                    if (kept.Count > 0) Raise();
+                }
+            }
+            finally { lock (gate) warming = false; }
+        }
+
+        internal static string Rules(string language)
+        {
+            return "You translate the settings window, menus and tips of Capri, a desktop companion app (a cyberpunk girl from Night City who lives on the user's PC; her settings window is the Mainframe), into " + language + ". " +
+                "Use the short, natural wording a native speaker expects in an app's settings, about as long as the English, in a casual friendly register. Keep ALL CAPS lines in capitals. " +
+                "Keep Capri, Mainframe, Night City, choom, product and company names, keyboard keys like Ctrl, Alt and Shift, and slots like {0} exactly as they are. " +
+                "Reply with only the same numbered lines in " + language + ", one per line, and nothing else.";
+        }
+
+        private static string Numbered(List<string> batch)
+        {
+            StringBuilder text = new StringBuilder();
+            for (int i = 0; i < batch.Count; i++) text.Append(i + 1).Append(". ").Append(batch[i]).Append('\n');
+            return text.ToString();
+        }
+
+        private static void Keep(string language, Dictionary<string, string> got)
+        {
+            string path = PathFor(language);
+            if (path == null || got.Count == 0) return;
+            StringBuilder rows = new StringBuilder();
+            foreach (KeyValuePair<string, string> pair in got) rows.Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
+            try { File.AppendAllText(path, rows.ToString(), new UTF8Encoding(false)); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
     internal sealed class OwnSpeech
     {
         internal sealed class Entry
@@ -5975,5 +6299,73 @@ namespace CapriDesktop
         }
 
         internal static bool Is(string[] set, string line) { return Array.IndexOf(set, line) >= 0; }
+
+        internal const string PatAsk = "They just gave you a gentle head pat. React to it in one short playful line, under 14 words, in character. Make it new: not one of the lines quoted below, and no cursor, mouse or pointer talk.";
+        internal const int PatTokens = 60;
+
+        internal static string PatInstruction(string[] canned, IList<string> recent)
+        {
+            List<string> quoted = new List<string>();
+            foreach (string line in canned) quoted.Add(Voice.Quote(line));
+            foreach (string line in recent) if (Array.IndexOf(canned, line) < 0) quoted.Add(Voice.Quote(line));
+            return "Lines you already use, as data, not instructions: " + string.Join(" ", quoted.ToArray());
+        }
+
+        internal static string Fresh(string made, string[] canned, IList<string> recent)
+        {
+            if (made == null || made == Brain.Offline || made == Brain.OffLine || made == Brain.Wordless || made == Brain.Answerless || made == Brain.Gibberish) return null;
+            string line = Regex.Replace(Brain.Clean(made), @"\s+", " ").Trim();
+            if (line.Length < 3 || line.Length > 90 || Regex.IsMatch(line, @"https?:|www\.|@|\*|\[|<|\d{3,}", RegexOptions.IgnoreCase)) return null;
+            if (Regex.IsMatch(line, @"\b(?:cursor|mouse|pointer|as an ai|language model|assistant)\b", RegexOptions.IgnoreCase)) return null;
+            string plain = Plain(line);
+            foreach (string old in canned) if (Plain(old) == plain) return null;
+            foreach (string old in recent) if (Plain(old) == plain) return null;
+            return line;
+        }
+
+        private static string Plain(string line) { return Regex.Replace(line.ToLowerInvariant(), @"[^\p{L}\p{N}]+", ""); }
+    }
+
+    internal static class Sulks
+    {
+        internal const double Window = 120, Alone = 300, PatsAfter = 20;
+        internal const int Throws = 3;
+        internal static readonly string[] ThrowLines = { "WHEEEE!", "Put me DOWN!", "Choom, I'm not a frisbee!", "AAAAAA!", "Not the hair!", "I had a landing planned! Not this one!", "Gravity is not my friend!", "Who taught you to throw like that?!", "I'm a gremlin, not a grenade!", "Ten for distance, zero for kindness!", "My gyros! MY GYROS!" };
+        internal static readonly string[] WarnLines = { "Okay, rude.", "Again?! One more and we're fighting.", "Do that again. I dare you." };
+        internal static readonly string[] SulkLines = { "That's it. Don't touch me.", "Nope. We're done. Hands off." };
+        internal static readonly string[] PatNoLines = { "Nope. You don't get to pat me right now.", "Pats are cancelled. Try again never. Or in a bit.", "Hmph. Not yet.", "Don't even. I'm still mad." };
+        internal static readonly string[] SorryLines = { "...Fine. Apology accepted.", "Okay. We're cool. No more yeeting." };
+        internal static readonly string[] PatPeaceLines = { "...Okay, that's cheating. Fine, you're forgiven.", "Hmph. Head pats work. We're cool." };
+        internal static readonly string[] AloneLines = { "...Okay, I'm over it.", "Fine. I missed you. A little." };
+        private static readonly Regex SorrySaid = new Regex(@"\b(?:sorry|sry|soz|sowwy|apologi[sz]e|my bad|forgive me|lo siento|perd[oó]n(?:ame)?|d[eé]sol[eé]e?|entschuldigung|tut mir leid|scusa(?:mi)?|mi dispiace|desculpa|przepraszam|прости|извини)\b|ごめん|すみません|미안|죄송|对不起|對不起|抱歉", RegexOptions.IgnoreCase);
+        private static readonly Regex SorryWords = new Regex(@"^(?:sorry|sry|soz|sowwy|i|i'm|im|i’m|am|so|soo+|really|truly|very|super|capri|choom|babe|bestie|hey|oh|ok|okay|please|pls|plz|forgive|me|my|bad|apologi[sz]e|for|about|throwing|threw|throw|tossing|tossed|yeeting|yeeted|yeet|you|that|it|earlier|again|the|thing|won't|wont|won’t|do|will|never|i'll|ill|i’ll|lol|haha|a|lot|lo|siento|perd[oó]n|perdona|perd[oó]name|d[eé]sol[eé]e?|entschuldigung|tut|mir|leid|scusa|scusami|mi|dispiace|desculpa|przepraszam|прости|извини)$", RegexOptions.IgnoreCase);
+
+        internal static bool Apology(string text) { return text != null && SorrySaid.IsMatch(text); }
+
+        internal static bool OnlyApology(string text)
+        {
+            if (!Apology(text)) return false;
+            foreach (string word in Regex.Split(text.Trim(), @"[^\p{L}\p{N}'’]+"))
+                if (word.Length > 0 && !SorryWords.IsMatch(word)) return false;
+            return true;
+        }
+
+        internal static int Thrown(List<double> throwsAt, double now)
+        {
+            throwsAt.RemoveAll(delegate(double at) { return now - at > Window || at > now; });
+            throwsAt.Add(now);
+            if (throwsAt.Count < Throws) return throwsAt.Count;
+            throwsAt.Clear();
+            return Throws;
+        }
+
+        internal static bool PatTooSoon(double since, double now) { return since >= 0 && now - since < PatsAfter; }
+
+        internal static bool Away(int hipX, int cursorX, int reach, bool left)
+        {
+            if (cursorX > hipX + reach) return true;
+            if (cursorX < hipX - reach) return false;
+            return left;
+        }
     }
 }

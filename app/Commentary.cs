@@ -271,7 +271,7 @@ namespace CapriDesktop
                 case "win": return "They may have just won; check the pictures.";
                 case "loss": return "They may have just lost; check the pictures.";
                 case "dark": return "The screen just went dark; check the pictures for why.";
-                case "sound": case "noise": return "There was a big burst of sound in the game.";
+                case "sound": case "noise": return "Something loud just happened; check the pictures for what it was. React to what you can see, not to the sound, and never say anything about their volume or your ears.";
                 case "flash": return "The screen just went bright for a moment; check the pictures for why.";
                 case "motion": return "Something on screen just moved fast.";
                 case "red": return "The edges of the screen just went red.";
