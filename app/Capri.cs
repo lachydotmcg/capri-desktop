@@ -3529,7 +3529,7 @@ namespace CapriDesktop
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
             // or clear her running marker: WM_ENDSESSION clears it once the shutdown is certain.
-            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
+            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
         }
 
         private void Tick()
@@ -7841,7 +7841,7 @@ namespace CapriDesktop
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
                 new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
                     Brain.ResetKept, Brain.ResetDone, Brain.OffLine, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry, Probe.Passed }, HighFiveLines, Probe.Questions);
-            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you", "doomscroll");
+            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you", "doomscroll", "her computer");
         }
 
         internal string Nickname { get { return Brain.Nickname ?? ""; } }
@@ -15542,6 +15542,8 @@ namespace CapriDesktop
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
+            string herLine = callReply == null && prompt == "> you: " ? HerComputerAsk(input) : null;
+            if (herLine != null) { Answer(ticket, herLine, TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
             if (callReply == null && probe.Pending && !meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
@@ -21123,6 +21125,23 @@ namespace CapriDesktop
             if (doomResult != null) throw new Exception(doomResult);
             if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
             checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
+            string herResult = HerComputer.Check();
+            if (herResult != null) throw new Exception(herResult);
+            string herFolder = Path.Combine(Path.GetTempPath(), "capri-her-computer-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                herResult = HerComputer.CheckRun(herFolder);
+                if (herResult != null) throw new Exception(herResult);
+            }
+            finally { try { if (Directory.Exists(herFolder)) Directory.Delete(herFolder, true); } catch (IOException) { } }
+            if (new Preferences().HerComputer || Preferences.Fresh().HerComputer) throw new Exception("Her own computer started on.");
+            foreach (string[] herAsk in new[] { new[] { "find me a pancake recipe on your computer", "find me a pancake recipe" }, new[] { "Capri, can you write me a poem about cats using your own computer?", "write me a poem about cats" },
+                new[] { "on your computer, look up the weather in Paris", "look up the weather in Paris" }, new[] { "what are you doing on your computer?", "" } })
+                if (Companion.HerComputerJob(herAsk[0]) != herAsk[1]) throw new Exception("Her computer heard the wrong job in \"" + herAsk[0] + "\": " + Companion.HerComputerJob(herAsk[0]));
+            foreach (string notHers in new[] { "what's on my computer?", "is your computer cute", "my computer is slow", "open my computer" })
+                if (Companion.HerComputerJob(notHers) != null || Companion.HerComputerOpenAsked(notHers)) throw new Exception("Her computer took a line that wasn't a job for it: " + notHers);
+            if (!Companion.HerComputerOpenAsked("open your computer") || !Companion.HerComputerOpenAsked("Capri, show me your little computer please")) throw new Exception("Her computer missed being asked to open.");
+            checks.Add("PASS her own computer: off until turned on, she reads one action at a time from any brain, works out jobs said with on your computer, saves notes and diary lines, keeps her desktop and stickers between runs, and her browser only opens web addresses");
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
             checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
@@ -23559,7 +23578,7 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs" })
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs", "HerComputerSettings.cs" })
                                     foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
                                         selfSource += "\n" + selfPart.Value;
                         }
@@ -44889,6 +44908,31 @@ namespace CapriDesktop
             {
                 preferences.DoomscrollGuard = doomWas; preferences.DoomscrollLimit = doomLimitWas;
                 EndDoomscroll();
+                mainframe.Sync(); SavePreferences();
+            }
+
+            bool herWas = preferences.HerComputer;
+            HerComputerWindow.Quiet = true;
+            try
+            {
+                preferences.HerComputer = false;
+                mainframe.Sync();
+                if (mainframe.HerComputerShown != "off | can't open" || HerComputerAsk("find me a recipe on your computer") != null) throw new Exception("Her own computer started on or took a job while off: " + mainframe.HerComputerShown);
+                ToggleHerComputer();
+                if (mainframe.HerComputerShown != "on | can open" || !LoadPreferences().HerComputer) throw new Exception("Her own computer's switch did not show or save: " + mainframe.HerComputerShown);
+                if (SelfKnow.Setting("Mainframe.cs", "Her own computer") == null) throw new Exception("Her own computer lost its help.");
+                using (HerComputerWindow herWindow = new HerComputerWindow(new HerComputer(Path.Combine(Path.GetDirectoryName(settingsPath), "her-computer"))))
+                using (System.Drawing.Bitmap herShot = herWindow.Snapshot())
+                    if (herShot.Width != HerComputer.Width || herShot.GetPixel(HerComputer.Width / 2, 60).A == 0) throw new Exception("Her computer's desktop didn't draw.");
+                ToggleHerComputer();
+                if (LoadPreferences().HerComputer || HerComputerShown != "off | closed") throw new Exception("Her own computer did not turn off: " + HerComputerShown);
+                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, and her help explains it");
+            }
+            finally
+            {
+                HerComputerWindow.Quiet = false;
+                preferences.HerComputer = herWas;
+                CloseHerComputer();
                 mainframe.Sync(); SavePreferences();
             }
 
