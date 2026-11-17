@@ -800,6 +800,7 @@ namespace CapriDesktop
                 MacFingers.Checks(checks);
                 MacClickChecks();
                 MacRoutes.Checks(checks);
+                LinuxRoutes.Checks(checks);
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
