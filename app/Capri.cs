@@ -3536,6 +3536,7 @@ namespace CapriDesktop
         {
             double now = clock.Elapsed.TotalSeconds;
             RoomTick();
+            FeelTick(now);
             RampageTick(now);
             MoveExplorePointer(now);
             int interval = FrameInterval(now);
@@ -7910,7 +7911,7 @@ namespace CapriDesktop
             SavePreferences();
         }
 
-        internal int Volume { get { return Voice.Loudness; } }
+        internal int Volume { get { return feeling ? feltLoud : Voice.Loudness; } }
 
         internal int MemorySize { get { return Brain.MemorySize; } }
 
@@ -7932,14 +7933,15 @@ namespace CapriDesktop
 
         internal void SetVolume(int percent)
         {
+            Unfeel();
             Voice.Loudness = Math.Max(0, Math.Min(150, percent));
             preferences.Volume = Voice.Loudness;
             SavePreferences();
         }
 
-        internal int VoicePitch { get { return VoiceFx.Pitch; } }
+        internal int VoicePitch { get { return feeling ? feltPitch : VoiceFx.Pitch; } }
 
-        internal int VoiceSpeed { get { return VoiceFx.Speed; } }
+        internal int VoiceSpeed { get { return feeling ? feltSpeed : VoiceFx.Speed; } }
 
         // Her HD voice and their voice server each keep their own robot and glitch; her other voices share one of each. Those sliders
         // show the ones for the voice she speaks with.
@@ -7954,6 +7956,7 @@ namespace CapriDesktop
         internal void SetVoicePitch(int semitones)
         {
             if (chatting && !local && AfterLine(delegate { SetVoicePitch(semitones); })) return;
+            Unfeel();
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, semitones));
             preferences.VoicePitch = VoiceFx.Pitch;
             SavePreferences();
@@ -7962,6 +7965,7 @@ namespace CapriDesktop
         internal void SetVoiceSpeed(int percent)
         {
             if (chatting && !local && AfterLine(delegate { SetVoiceSpeed(percent); })) return;
+            Unfeel();
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, percent));
             preferences.VoiceSpeed = VoiceFx.Speed;
             SavePreferences();
@@ -12544,6 +12548,36 @@ namespace CapriDesktop
         private int voiceOffTurn;
         private bool keepVoiceOff, changingVoice;
 
+        private bool feeling;
+        private double feltFrom;
+        private int feltPitch, feltSpeed, feltLoud;
+
+        private void Feel(string cue)
+        {
+            int pitch, pace, loud;
+            if (!VoiceFeel.Shift(cue, out pitch, out pace, out loud)) { Unfeel(); return; }
+            if (!feeling) { feltPitch = VoiceFx.Pitch; feltSpeed = VoiceFx.Speed; feltLoud = Voice.Loudness; feeling = true; }
+            feltFrom = clock.Elapsed.TotalSeconds;
+            VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, feltPitch + pitch));
+            VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, feltSpeed * pace / 100));
+            Voice.Loudness = Math.Max(0, Math.Min(150, feltLoud * loud / 100));
+        }
+
+        private void Unfeel()
+        {
+            if (!feeling) return;
+            feeling = false;
+            VoiceFx.Pitch = feltPitch;
+            VoiceFx.Speed = feltSpeed;
+            Voice.Loudness = feltLoud;
+        }
+
+        private void FeelTick(double now)
+        {
+            if (!feeling || now < feltFrom + 1 || Voicing) return;
+            Unfeel();
+        }
+
         // Her voice is still being made or played, past its estimate too: an answer's, a reaction's, a clone's or voice chat's.
         private bool Voicing
         {
@@ -15579,7 +15613,7 @@ namespace CapriDesktop
             UpdateAnimation();
             bool quiet = preferences.Quiet;
             Func<string, byte[]> cueFree;
-            brain.Cues = FishCues(PickVoice(quiet, out cueFree), cueFree);
+            brain.Cues = PickVoice(quiet, out cueFree) != null;
             Cloud remote = brain.Remote;
             if (!testing && (voice.Key == null || quiet || voiceBroke) && kokoro.Installed && !preferences.Quiet && !preferences.Silent) ThreadPool.QueueUserWorkItem(delegate { try { kokoro.Warm(); } catch (Exception) { } });
             if (!testing && preferences.HdVoice && (voice.Key == null || quiet || voiceBroke || preferences.Quiet) && !preferences.Silent && qwen.Installed && !qwen.Awake && clock.Elapsed.TotalSeconds >= hdRest && !HdStepsAside()) WakeHd();
@@ -15684,6 +15718,7 @@ namespace CapriDesktop
             Func<string, byte[]> speak = PickVoice(quiet, out free);
             // Her Fish Audio voice says her reply's emotion cues (F54). Her bubble and every other voice never see them.
             bool cued = FishCues(speak, free);
+            Feel(cued || speak == null ? null : Voice.FeelingOf(Brain.Cued(said ?? "")));
             string words = Voice.Spoken((cued ? Brain.Cued(said ?? "") : said ?? "").Replace(Computer.Dots, "the password"), cued);
             if (speak != null && state != TalkState.Dormant) words = ModsSpeaking(words);
             if (speak == null || words.Length == 0 || state == TalkState.Dormant) { Begin(ticket, said, state, null); return; }
@@ -30411,6 +30446,15 @@ namespace CapriDesktop
             if (cueShown != "We won! Ha ha! | It's fine. | I miss you | [Google](https://g.co), [1] and (happy to help) | Wow. | Rude, choom."
                 || cueBack != "[excited] We won! [laughing] Ha ha! | Ha [laughing] | [excited] We won! Ha ha! | We won! | (laughing) Hey choom, this is Fish.")
                 throw new Exception("Her emotion cues came off or went back wrong: " + cueShown + " / " + cueBack);
+            int feelPitch, feelPace, feelLoud, calmPitch, calmPace, calmLoud, bitPitch, bitPace, bitLoud;
+            bool feltExcited = VoiceFeel.Shift(Voice.FeelingOf("[very excited] We won! [sighing] Fine."), out feelPitch, out feelPace, out feelLoud);
+            bool feltWhisper = VoiceFeel.Shift("whispering", out calmPitch, out calmPace, out calmLoud);
+            bool feltBit = VoiceFeel.Shift(Voice.FeelingOf("[a bit sad] Oh."), out bitPitch, out bitPace, out bitLoud);
+            if (!feltExcited || feelPitch != 3 || feelPace != 118 || feelLoud != 106 || !feltWhisper || calmLoud != 70
+                || !feltBit || bitPitch != -1 || bitPace != 95 || bitLoud != 98 || VoiceFeel.Shift(null, out calmPitch, out calmPace, out calmLoud)
+                || VoiceFeel.Shift("Google", out calmPitch, out calmPace, out calmLoud) || Voice.FeelingOf("Just words.") != null)
+                throw new Exception("Her voice felt a cue wrongly: " + feelPitch + "/" + feelPace + "/" + feelLoud + " " + bitPitch + "/" + bitPace + "/" + bitLoud);
+            checks.Add("PASS a cue moves her other voices' pitch, pace and loudness for one line, more for \"very\" and less for \"a bit\", and an unknown or missing cue moves nothing");
             System.Collections.Generic.List<string> cueAsked = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener cueServer = null;
             string cueOllama = Brain.Ollama;
