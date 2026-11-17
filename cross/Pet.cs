@@ -2369,8 +2369,7 @@ namespace CapriDesktop
             petSaid.Add(line);
             if (petSaid.Count > 8) petSaid.RemoveAt(0);
             if (!fresh) MakePetLine();
-            Talk.Answer("pets you", line);
-            TypeAlong(line, ticket);
+            Reply(asking, "pets you", line);
         }
 
         private void MakePetLine()
@@ -4430,8 +4429,7 @@ namespace CapriDesktop
         // A line she says by herself, typed out like her replies. It leaves asking alone, so it never counts as them asking her something.
         private void Blurt(string heard, string line)
         {
-            Talk.Answer(heard, line);
-            TypeAlong(line, asking);
+            Reply(asking, heard, line);
         }
 
         // Free for a line of her own: Check in on me on, showing, and not busy with them.
@@ -6542,7 +6540,7 @@ namespace CapriDesktop
 
         private void TypeAlong(string said, int ticket)
         {
-            Sfx.Typing = TypingSound;
+            Sfx.Typing = Saved.Typing != 2;
             Sfx.Type(said, Talk.Pace, ticket);
         }
 
