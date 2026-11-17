@@ -88,6 +88,7 @@ namespace CapriDesktop
         [DataMember] internal int? BrainTier;
         [DataMember] internal string BrainProvider;
         [DataMember] internal ProviderModelPick[] ProviderModels;
+        [DataMember] internal ProviderEndpoint[] ProviderEndpoints;
         [DataMember] internal string FreeModel;
         [DataMember] internal string PaidModel;
         [DataMember] internal string SpeechModel;
@@ -102,6 +103,14 @@ namespace CapriDesktop
         [DataMember] internal string Provider;
         [DataMember] internal string Model;
         [DataMember] internal int Tier;
+    }
+
+    [DataContract]
+    internal sealed class ProviderEndpoint
+    {
+        [DataMember] internal string Id;
+        [DataMember] internal string Name;
+        [DataMember] internal string Address;
     }
 
     internal sealed class RemoteTurn
@@ -967,6 +976,7 @@ namespace CapriDesktop
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
+            RestoreCustomEndpoint();
             KeepAdoptedProvider();
             voice.Key = ReadVoiceKey();
             // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
@@ -6141,6 +6151,8 @@ namespace CapriDesktop
 
         private string ServerPairFile { get { return Path.Combine(Program.Smoke ?? folder, "brain-server"); } }
 
+        internal string EndpointKeyFile(string id) { return Pet.ValidEndpointId(id) ? Path.Combine(Program.Smoke ?? folder, "brain-custom-" + id + "-key") : null; }
+
         // The address and key live in one file, replaced atomically, so a crash can never pair one provider's
         // address with another provider's key.
         private static bool ReadServerPair(string path, out string address, out string key)
@@ -6736,6 +6748,7 @@ namespace CapriDesktop
             [DataMember] internal int? BrainTier;
             [DataMember] internal string BrainProvider;
             [DataMember] internal ProviderModelPick[] ProviderModels;
+            [DataMember] internal ProviderEndpoint[] ProviderEndpoints;
             [DataMember] internal string FreeModel;
             [DataMember] internal string PaidModel;
             [DataMember] internal string SpeechModel;
@@ -6789,6 +6802,7 @@ namespace CapriDesktop
             {
                 if (saved.BrainProvider == null) saved.BrainProvider = newer.BrainProvider;
                 if (saved.ProviderModels == null) saved.ProviderModels = RecoveredProviderModels(saved, newer.ProviderModels, settingsHome);
+                if (saved.ProviderEndpoints == null) saved.ProviderEndpoints = newer.ProviderEndpoints;
             }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
@@ -6825,7 +6839,7 @@ namespace CapriDesktop
         internal static NewSettings Newest(Settings saved)
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
-                MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
+                MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
@@ -6845,6 +6859,169 @@ namespace CapriDesktop
         internal static bool KnownProvider(string provider)
         {
             return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "claudecode" || provider == "codex";
+        }
+
+        internal const string CustomProviderPrefix = "custom:";
+
+        internal static bool ValidEndpointId(string id)
+        {
+            if (string.IsNullOrEmpty(id) || id.Length > 32) return false;
+            for (int i = 0; i < id.Length; i++)
+            {
+                char c = id[i];
+                bool letter = c >= 'a' && c <= 'z', digit = c >= '0' && c <= '9';
+                if (!letter && !digit && c != '-') return false;
+                if (c == '-' && (i == 0 || i == id.Length - 1 || id[i - 1] == '-')) return false;
+            }
+            return true;
+        }
+
+        internal static string EndpointProviderId(string id)
+        {
+            return ValidEndpointId(id) ? CustomProviderPrefix + id : null;
+        }
+
+        internal static string EndpointIdOf(string provider)
+        {
+            if (string.IsNullOrEmpty(provider) || !provider.StartsWith(CustomProviderPrefix, StringComparison.Ordinal)) return null;
+            string id = provider.Substring(CustomProviderPrefix.Length);
+            return ValidEndpointId(id) ? id : null;
+        }
+
+        internal static bool CustomProvider(string provider) { return EndpointIdOf(provider) != null; }
+
+        internal static string EndpointSlug(string name)
+        {
+            string typed = (name ?? "").Trim().ToLowerInvariant();
+            System.Text.StringBuilder slug = new System.Text.StringBuilder();
+            foreach (char c in typed)
+            {
+                if (c >= 'a' && c <= 'z' || c >= '0' && c <= '9') slug.Append(c);
+                else if (slug.Length > 0 && slug[slug.Length - 1] != '-') slug.Append('-');
+            }
+            string clean = slug.ToString().Trim('-');
+            if (clean.Length > 24) clean = clean.Substring(0, 24).TrimEnd('-');
+            return clean.Length == 0 ? "endpoint" : clean;
+        }
+
+        internal static ProviderEndpoint EndpointFor(Settings saved, string id)
+        {
+            if (saved == null || saved.ProviderEndpoints == null || !ValidEndpointId(id)) return null;
+            foreach (ProviderEndpoint endpoint in saved.ProviderEndpoints) if (endpoint != null && endpoint.Id == id) return endpoint;
+            return null;
+        }
+
+        internal static string AddEndpoint(Settings saved, string name, string address)
+        {
+            if (saved == null) return null;
+            string server = Brain.ServerAddress(address);
+            if (server == null) return null;
+            string baseId = EndpointSlug(name);
+            string id = baseId;
+            for (int n = 2; EndpointFor(saved, id) != null; n++)
+            {
+                string suffix = "-" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                int room = 32 - suffix.Length;
+                string stem = baseId.Length > room ? baseId.Substring(0, room).TrimEnd('-') : baseId;
+                id = (stem.Length == 0 ? "endpoint" : stem) + suffix;
+            }
+            List<ProviderEndpoint> endpoints = new List<ProviderEndpoint>();
+            if (saved.ProviderEndpoints != null) foreach (ProviderEndpoint endpoint in saved.ProviderEndpoints) if (endpoint != null) endpoints.Add(endpoint);
+            string trimmed = (name ?? "").Trim();
+            endpoints.Add(new ProviderEndpoint { Id = id, Name = trimmed.Length == 0 ? "Custom provider" : trimmed, Address = server });
+            saved.ProviderEndpoints = endpoints.ToArray();
+            return id;
+        }
+
+        internal bool SaveEndpointKey(string id, string key)
+        {
+            string path = EndpointKeyFile(id);
+            if (path == null) return false;
+            key = (key ?? "").Trim();
+            WriteSecret(path, key.Length == 0 ? null : key, "custom provider key");
+            return key.Length == 0 ? !File.Exists(path) : File.Exists(path);
+        }
+
+        internal string ReadEndpointKey(string id)
+        {
+            string path = EndpointKeyFile(id);
+            return path == null ? null : ReadSecret(path);
+        }
+
+        internal bool UseEndpoint(string id, string model)
+        {
+            ProviderEndpoint endpoint = EndpointFor(Saved, id);
+            if (endpoint == null) return false;
+            string provider = EndpointProviderId(id);
+            string address = Brain.ServerAddress(endpoint.Address);
+            if (provider == null || address == null) return false;
+            string key = ReadEndpointKey(id);
+            if (key != null && !Brain.ServerKeySafe(address)) return false;
+            string picked = (model ?? "").Trim();
+            if (picked.Length == 0) picked = ProviderModel(Saved, provider, 0) ?? "";
+            ComputerJobs.Stop();
+            ownedVoice?.Cancel();
+            StopNativeListening();
+            Brain.Cancel();
+            LeavePlan();
+            KeepBrainTier();
+            Brain.Remote = null;
+            Brain.SetServer(address, key);
+            Brain.Model = picked.Length == 0 ? null : picked;
+            Saved.BrainProvider = provider;
+            Saved.BrainTier = 0;
+            if (picked.Length > 0) RememberProviderModel(Saved, provider, picked, 0);
+            Save();
+            return true;
+        }
+
+        internal bool RemoveEndpoint(string id)
+        {
+            if (Saved == null || Saved.ProviderEndpoints == null || !ValidEndpointId(id)) return false;
+            string provider = EndpointProviderId(id);
+            ProviderEndpoint removed = null;
+            List<ProviderEndpoint> endpoints = new List<ProviderEndpoint>();
+            foreach (ProviderEndpoint endpoint in Saved.ProviderEndpoints)
+            {
+                if (endpoint != null && endpoint.Id == id) { removed = endpoint; continue; }
+                if (endpoint != null) endpoints.Add(endpoint);
+            }
+            if (removed == null) return false;
+            Saved.ProviderEndpoints = endpoints.Count == 0 ? null : endpoints.ToArray();
+            if (Saved.ProviderModels != null)
+            {
+                List<ProviderModelPick> picks = new List<ProviderModelPick>();
+                foreach (ProviderModelPick pick in Saved.ProviderModels) if (pick != null && pick.Provider != provider) picks.Add(pick);
+                Saved.ProviderModels = picks.Count == 0 ? null : picks.ToArray();
+            }
+            WriteSecret(EndpointKeyFile(id), null, "custom provider key");
+            string server, key;
+            Brain.GetServer(out server, out key);
+            string address = Brain.ServerAddress(removed.Address);
+            if (address != null && string.Equals(server, address, StringComparison.Ordinal))
+            {
+                Brain.SetServer(null, null);
+                Brain.Model = null;
+            }
+            if (string.Equals(Saved.BrainProvider, provider, StringComparison.Ordinal)) Saved.BrainProvider = null;
+            Save();
+            return true;
+        }
+
+        private void RestoreCustomEndpoint()
+        {
+            string id = EndpointIdOf(Saved.BrainProvider);
+            if (id == null || MainframeTier != 0) return;
+            ProviderEndpoint endpoint = EndpointFor(Saved, id);
+            if (endpoint == null) return;
+            string address = Brain.ServerAddress(endpoint.Address);
+            if (address == null) return;
+            string key = ReadEndpointKey(id);
+            if (key != null && !Brain.ServerKeySafe(address)) return;
+            string model = ProviderModel(Saved, Saved.BrainProvider, 0);
+            if (string.IsNullOrEmpty(model)) return;
+            Brain.SetServer(address, key);
+            Brain.Model = model;
         }
 
         internal static string ProviderModel(Settings saved, string provider, int? tier = null)
