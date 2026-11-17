@@ -2625,6 +2625,8 @@ namespace CapriDesktop
         private long voiceGot, voiceTotal, earsGot, earsTotal, hdGot, hdTotal;
         private double hdRest = -1, hdUsed = -1, hdChecked = -1;
         private const double HdRest = 600, HdShortRest = 60;
+        private double brainChecked;
+        private volatile bool restingBrain;
         private bool balloonMainframe;
         private bool? ownEarsTest;
         private readonly System.Collections.Generic.List<bool> cursorSwaps = new System.Collections.Generic.List<bool>();
@@ -3352,6 +3354,7 @@ namespace CapriDesktop
                     try { Favourites.Seen(Computer.FrontProgram(), DateTime.Now); } catch (Exception) { }
                 }
                 if (!testing && background) CheckHd(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckBrainRest(clock.Elapsed.TotalSeconds);
                 if (!testing && background) CheckBrainGone(signalNow);
                 StayOnTop();
                 if (background) CheckSeat(clock.Elapsed.TotalSeconds);
@@ -13267,6 +13270,28 @@ namespace CapriDesktop
             hdChecked = now;
             if (wakingHd || !qwen.Awake || !CanRest) return;
             if (!preferences.HdVoice || preferences.Silent || now - hdUsed > HdRest || HdStepsAside()) qwen.Stop();
+        }
+
+        internal const double BrainRest = 300, SpareBrainRest = 30;
+
+        internal int BrainServerId { get { return engine.ServerId; } }
+
+        internal double BrainRestAfter { get { return brain.Local == engine && !preferences.NoAi ? BrainRest : SpareBrainRest; } }
+
+        private void CheckBrainRest(double now)
+        {
+            if (now - brainChecked < 5 || restingBrain) return;
+            brainChecked = now;
+            if (!engine.Running || SettingUp) return;
+            double after = BrainRestAfter;
+            if (after == BrainRest && !CanRest) return;
+            if (engine.Unused < after) return;
+            restingBrain = true;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { if (engine.Rest(after)) Brain.Log("brain", -1, "llama-server stopped after " + (after >= 60 ? after / 60 + " minutes" : after + " seconds") + " unused" + (after == BrainRest ? "" : " while another brain is picked") + ", giving its memory back"); }
+                finally { restingBrain = false; }
+            });
         }
 
         // Only with Free voice in games on does a full-screen game or video send her back to her free voice.
@@ -44945,6 +44970,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
+            Section(checks, "SmokeResources", delegate { SmokeResources(checks, Path.Combine(output, "resources")); });
             Section(checks, "SmokeRemotePictures", delegate { SmokeRemotePictures(checks); });
             Section(checks, "SmokeRemoteJobs", delegate { SmokeRemoteJobs(checks); });
             Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });

@@ -155,6 +155,7 @@ namespace CapriDesktop
             Explain(layersKey, "Voice layers", "Mainframe.cs", null, "Layers");
             layersKey.StateValue = true;
             Explain(remoteKey, "Remote", "MainframeRemote.cs", null, "Capri Remote");
+            Explain(resourcesKey, "Resources", "MainframeSystem.cs", null, "Resources");
             Explain(personalityKey, "Edit personality.md", "Mainframe.cs", null, "Her personality");
             Explain(huskMode, "Code/Husk Mode", "Mainframe.cs", FindHintLabel("Code/Husk Mode"), "Code/Husk Mode");
             Explain(thinkingLevel, "Thinking", "Mainframe.cs", FindHintLabel("Thinking"), "Thinking");

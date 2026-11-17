@@ -3783,51 +3783,56 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
-                // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
-                int careful = local.Careful;
-                try { local.Ensure(LocalPick); }
-                catch (BrainException error)
+                local.Begin();
+                try
                 {
-                    if (!error.Careful) throw;
-                    lock (memoryGate) { }
-                    local.Ensure(LocalPick);
-                    careful = 0;
-                }
-                if (careful == 0) careful = local.Careful;
-                string lost;
-                bool garbled = false, crashed = false;
-                try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
-                catch (BrainException error)
-                {
-                    if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && careful != 0)
+                    // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
+                    int careful = local.Careful;
+                    try { local.Ensure(LocalPick); }
+                    catch (BrainException error)
                     {
+                        if (!error.Careful) throw;
                         lock (memoryGate) { }
-                        if (Window < careful)
-                        {
-                            local.Ensure(LocalPick);
-                            return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                        }
+                        local.Ensure(LocalPick);
+                        careful = 0;
                     }
-                    garbled = error.Message == Gibberish;
-                    if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
-                    lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    if (careful == 0) careful = local.Careful;
+                    string lost;
+                    bool garbled = false, crashed = false;
+                    try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
+                    catch (BrainException error)
+                    {
+                        if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && careful != 0)
+                        {
+                            lock (memoryGate) { }
+                            if (Window < careful)
+                            {
+                                local.Ensure(LocalPick);
+                                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                            }
+                        }
+                        garbled = error.Message == Gibberish;
+                        if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
+                        lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    }
+                    catch (WebException error)
+                    {
+                        if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
+                        lost = "The brain crashed";
+                        crashed = true;
+                    }
+                    Log(local.Address, -1, lost + ", restarting it on the CPU");
+                    // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
+                    // a game taking the card, so her next start tries the card again (Mirit0, #226).
+                    if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
+                    local.CpuOnly = true;
+                    local.Stop();
+                    local.Ensure(LocalPick);
+                    return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                 }
-                catch (WebException error)
-                {
-                    if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
-                    lost = "The brain crashed";
-                    crashed = true;
-                }
-                Log(local.Address, -1, lost + ", restarting it on the CPU");
-                // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
-                // a game taking the card, so her next start tries the card again (Mirit0, #226).
-                if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
-                local.CpuOnly = true;
-                local.Stop();
-                local.Ensure(LocalPick);
-                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                finally { local.End(); }
             }
             string thinking = Ollama + "|" + model;
             ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = OllamaOptions(model, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };
