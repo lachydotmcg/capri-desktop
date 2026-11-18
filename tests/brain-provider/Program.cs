@@ -395,6 +395,11 @@ internal static class Program
             DualWrite();
             RemoteTiers();
             failures += VerifierRegressions.Run(folder);
+            failures += CustomSafetyChecks.Run(folder);
+            failures += CustomSafetyChecks.B5Extra(folder);
+            failures += IndependentRollbackChecks.Run(folder);
+            failures += NativeReviewChecks.Run(folder);
+            failures += CustomProviders.Run(folder);
             NullKeys(folder);
             ProviderTransition(folder);
             AdoptedProvider(folder);
