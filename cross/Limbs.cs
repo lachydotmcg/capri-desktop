@@ -46,7 +46,7 @@ namespace CapriDesktop
 
         private static string Player()
         {
-            if (soundPlayer == null) soundPlayer = OnMac ? "afplay" : Music.Run("sh", new[] { "-c", "command -v paplay" }) != null ? "paplay" : "aplay";
+            if (soundPlayer == null) soundPlayer = OnMac ? "afplay" : SpeechAudio.OnPath("paplay") ? "paplay" : SpeechAudio.OnPath("pw-play") ? "pw-play" : "aplay";
             return soundPlayer;
         }
 
