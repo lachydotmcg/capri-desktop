@@ -106,7 +106,7 @@ namespace CapriDesktop
         {
             if (input != null && herHandOffAsk != null && input.Trim() == herHandOffAsk) { herHandOffAsk = null; return null; }
             if (!preferences.HerComputer) return null;
-            if (HerComputerOpenAsked(input)) { OpenHerComputer(); return Lines.Pick(new[] { "Here's my computer. Don't touch anything. Kidding.", "Welcome to my little computer.", "Ta-da. My computer." }); }
+            if (HerComputerOpenAsked(input)) { OpenHerComputer(); return "Opened my computer."; }
             if (Regex.IsMatch(input ?? "", @"\bstop\b.{0,30}\b(?:your|ur) (?:own |little )?(?:computer|pc)\b", RegexOptions.IgnoreCase) && herComputer != null && herComputer.Busy) { herComputer.StopTask(); return "Ok, I'll stop what I'm doing on my computer."; }
             string job = HerComputerJob(input);
             if (job == null) return null;
@@ -115,8 +115,8 @@ namespace CapriDesktop
             string after;
             job = HerComputerSplit(job, out after);
             string problem = window.Start(job, after);
-            if (problem == null && after.Length > 0) return Lines.Pick(new[] { "On it. I'll look it up on my computer first, then " + HerComputer.Short(after, 80) + " on yours.", "Research first, on my computer. Then I'll " + HerComputer.Short(after, 80) + " on yours." });
-            return problem ?? Lines.Pick(new[] { "On it. Watch me do it on my computer.", "Sure, I'll do that on my computer. I'll tell you when it's done.", "Leave it with me. Doing it on my computer now." });
+            if (problem == null && after.Length > 0) return "Looking it up on my computer first, then I'll " + HerComputer.Short(after, 80) + " on yours.";
+            return problem ?? "On it, on my computer.";
         }
 
         internal static string HerComputerSplit(string job, out string after)
