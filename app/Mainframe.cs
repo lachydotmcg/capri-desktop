@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 2304;
+        private const int PageTall = 2432;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -305,7 +305,7 @@ namespace CapriDesktop
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1454;
+        private const int SimpleTall = 1582;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -1100,6 +1100,7 @@ namespace CapriDesktop
             clipHint.Bounds = new Rectangle(28, 1466, 328, 36);
             BuildWeather(1514);
             BuildDoomscroll(1642);
+            BuildHerComputer(1770);
             int gamesTo = Controls.Count;
             for (int belowSensitivity = afterGameSounds; belowSensitivity < gamesTo; belowSensitivity++) Controls[belowSensitivity].Top += Row;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
@@ -3182,6 +3183,7 @@ namespace CapriDesktop
             SyncSounds();
             SyncWeather();
             SyncDoomscroll();
+            SyncHerComputer();
             syncing = false;
         }
 

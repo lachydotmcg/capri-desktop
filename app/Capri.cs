@@ -3058,6 +3058,7 @@ namespace CapriDesktop
             menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
             menu.Items.Add(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }));
             menu.Items.Add(new ToolStripMenuItem("Room camera", null, delegate { OpenRoomWindow(); }));
+            menu.Items.Add(new ToolStripMenuItem("Her computer", null, delegate { if (!preferences.HerComputer) ToggleHerComputer(); OpenHerComputer(); }));
             ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
             menu.Items.Add(playItem);
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
@@ -3437,6 +3438,7 @@ namespace CapriDesktop
             if (!testing) StartHeartbeat();
             if (card) StartFirstRun();
             if (!testing) FindBrain();
+            if (!testing) HerComputerBackground();
             // The card's first line stands in for her hello.
             if (!testing && !card) GreetSoon();
             listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
@@ -3535,7 +3537,7 @@ namespace CapriDesktop
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
             // or clear her running marker: WM_ENDSESSION clears it once the shutdown is certain.
-            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
+            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
         }
 
         private void Tick()
@@ -7848,7 +7850,7 @@ namespace CapriDesktop
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
                 new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
                     Brain.ResetKept, Brain.ResetDone, Brain.OffLine, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry, Probe.Passed }, HighFiveLines, Probe.Questions);
-            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you", "doomscroll");
+            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday", "high fives you", "asks about you", "doomscroll", "her computer");
         }
 
         internal string Nickname { get { return Brain.Nickname ?? ""; } }
@@ -15583,6 +15585,8 @@ namespace CapriDesktop
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
+            string herLine = callReply == null && prompt == "> you: " ? HerComputerAsk(input) : null;
+            if (herLine != null) { Answer(ticket, herLine, TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
             if (callReply == null && probe.Pending && !meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
@@ -21203,6 +21207,30 @@ namespace CapriDesktop
             if (doomResult != null) throw new Exception(doomResult);
             if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
             checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
+            string herResult = HerComputer.Check();
+            if (herResult != null) throw new Exception(herResult);
+            string herFolder = Path.Combine(Path.GetTempPath(), "capri-her-computer-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                herResult = HerComputer.CheckRun(herFolder);
+                if (herResult != null) throw new Exception(herResult);
+            }
+            finally { try { if (Directory.Exists(herFolder)) Directory.Delete(herFolder, true); } catch (IOException) { } }
+            if (new Preferences().HerComputer || Preferences.Fresh().HerComputer) throw new Exception("Her own computer started on.");
+            foreach (string[] herAsk in new[] { new[] { "find me a pancake recipe on your computer", "find me a pancake recipe" }, new[] { "Capri, can you write me a poem about cats using your own computer?", "write me a poem about cats" },
+                new[] { "on your computer, look up the weather in Paris", "look up the weather in Paris" }, new[] { "what are you doing on your computer?", "" } })
+                if (Companion.HerComputerJob(herAsk[0]) != herAsk[1]) throw new Exception("Her computer heard the wrong job in \"" + herAsk[0] + "\": " + Companion.HerComputerJob(herAsk[0]));
+            foreach (string notHers in new[] { "what's on my computer?", "is your computer cute", "my computer is slow", "open my computer" })
+                if (Companion.HerComputerJob(notHers) != null || Companion.HerComputerOpenAsked(notHers)) throw new Exception("Her computer took a line that wasn't a job for it: " + notHers);
+            if (!Companion.HerComputerOpenAsked("open your computer") || !Companion.HerComputerOpenAsked("Capri, show me your little computer please")) throw new Exception("Her computer missed being asked to open.");
+            foreach (string[] herSplit in new[] { new[] { "use your computer to search about the fortnite pirate token, then research how to get it, then load up fortnite and play it", "search about the fortnite pirate token, then research how to get it", "load up fortnite and play it" },
+                new[] { "on your computer find out how to get the pirate token in fortnite and then play fortnite and get it", "find out how to get the pirate token in fortnite", "play fortnite and get it" },
+                new[] { "search for cat videos on your computer, then open the first result", "search for cat videos, then open the first result", "" } })
+            {
+                string herAfter, herFirst = Companion.HerComputerSplit(Companion.HerComputerJob(herSplit[0]), out herAfter);
+                if (herFirst != herSplit[1] || herAfter != herSplit[2]) throw new Exception("Her computer split \"" + herSplit[0] + "\" wrong: " + herFirst + " | " + herAfter);
+            }
+            checks.Add("PASS her own computer: off until turned on, she reads one action at a time from any brain, works out jobs said with on your computer, saves notes and diary lines, keeps her desktop and stickers between runs, and her browser only opens web addresses");
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
             checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
@@ -23639,7 +23667,7 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs" })
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs", "HerComputerSettings.cs" })
                                     foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
                                         selfSource += "\n" + selfPart.Value;
                         }
@@ -45002,6 +45030,60 @@ namespace CapriDesktop
                 mainframe.Sync(); SavePreferences();
             }
 
+            bool herWas = preferences.HerComputer;
+            HerComputerWindow.Quiet = true;
+            try
+            {
+                preferences.HerComputer = false;
+                mainframe.Sync();
+                if (mainframe.HerComputerShown != "off | can't open" || HerComputerAsk("find me a recipe on your computer") != null) throw new Exception("Her own computer started on or took a job while off: " + mainframe.HerComputerShown);
+                ToggleHerComputer();
+                if (mainframe.HerComputerShown != "on | can open" || !LoadPreferences().HerComputer) throw new Exception("Her own computer's switch did not show or save: " + mainframe.HerComputerShown);
+                if (SelfKnow.Setting("Mainframe.cs", "Her own computer") == null) throw new Exception("Her own computer lost its help.");
+                using (HerComputerWindow herWindow = new HerComputerWindow(new HerComputer(Path.Combine(Path.GetDirectoryName(settingsPath), "her-computer"))))
+                using (System.Drawing.Bitmap herShot = herWindow.Snapshot())
+                {
+                    if (herShot.Width != HerComputer.Width || herShot.GetPixel(HerComputer.Width / 2, 60).A == 0) throw new Exception("Her computer's desktop didn't draw.");
+                    if (!HerComputerWindow.CardBox.Contains(HerComputerWindow.StickerCell(HerComputer.StickerKinds.Length))) throw new Exception("Her malware bomb sticker fell off her sticker book.");
+                    foreach (double boomTime in new[] { 0.5, 1.7, 3.0, 6.0 })
+                    {
+                        herWindow.ShowBoom(boomTime, new System.Drawing.PointF(640, 300));
+                        if (!herWindow.Booming) throw new Exception("Her malware bomb didn't go off.");
+                        using (System.Drawing.Bitmap boomShot = herWindow.Snapshot())
+                            if (boomShot.GetPixel(HerComputer.Width / 2, 60).A == 0) throw new Exception("Her computer didn't draw while it blew up.");
+                    }
+                    herWindow.ShowBoom(60, new System.Drawing.PointF(640, 300));
+                    if (herWindow.Booming) throw new Exception("Her computer never came back from the malware bomb.");
+                    herWindow.TakeControlFor(5);
+                    if (!herWindow.InControl) throw new Exception("Take control on her computer didn't hand over her mouse.");
+                    herWindow.TakeControlFor(31);
+                    if (herWindow.InControl) throw new Exception("Her computer kept her mouse with you after 30 idle seconds.");
+                    string herVault = HerVault.Check(Path.Combine(Path.GetTempPath(), "capri-her-vault-" + Guid.NewGuid().ToString("N")));
+                    if (herVault != null) throw new Exception(herVault);
+                }
+                List<RemoteMonitor> herScreens = new List<RemoteMonitor>();
+                AddHerScreen(herScreens);
+                if (herScreens.Count != 1 || herScreens[0].Id != HerScreenId || herScreens[0].Name != "Capri's computer") throw new Exception("Capri Remote didn't list her computer as a screen.");
+                using (HerOrDesktop herGrab = new HerOrDesktop(this))
+                {
+                    if (!herGrab.Open(herScreens[0])) throw new Exception("Capri Remote couldn't open her computer's screen.");
+                    using (System.Drawing.Bitmap herFrame = herGrab.Next(640))
+                        if (herFrame == null || herFrame.Width != 640 || herFrame.Height != 640 * HerComputer.Height / HerComputer.Width) throw new Exception("Capri Remote got no frame from her computer.");
+                }
+                ToggleHerComputer();
+                herScreens.Clear();
+                AddHerScreen(herScreens);
+                if (LoadPreferences().HerComputer || HerComputerShown != "off | closed" || herScreens.Count != 0) throw new Exception("Her own computer did not turn off: " + HerComputerShown);
+                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, her malware bomb blows up and reboots, take control stays yours until 30 idle seconds, her memories mirror into an Obsidian vault, Capri Remote can watch it, and her help explains it");
+            }
+            finally
+            {
+                HerComputerWindow.Quiet = false;
+                preferences.HerComputer = herWas;
+                CloseHerComputer();
+                mainframe.Sync(); SavePreferences();
+            }
+
             Func<Sight> scrollGlimpseWas = Computer.Glimpse;
             Func<IntPtr> scrollFrontWas = Hands.Foreground;
             Action<IntPtr> scrollPressWas = ScrollPress;
@@ -52062,7 +52144,7 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Her folder,Room camera,Play,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Her folder,Room camera,Her computer,Play,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;
