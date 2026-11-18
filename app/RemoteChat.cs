@@ -261,6 +261,72 @@ namespace CapriDesktop
             mainframe.RemoteChanged();
         }
 
+        internal void RemoteOpenHere()
+        {
+            RemoteLink link = remoteLink;
+            string url = link == null || link.QrSeconds <= 0 ? null : link.Qr;
+            if (url == null || !url.StartsWith("https://", StringComparison.Ordinal)) return;
+            int fragment = url.IndexOf('#');
+            if (fragment < 0) return;
+            RoomWindow(RemotePage + "?room=pc" + url.Substring(fragment) + "&via=pc");
+        }
+
+        internal static string RemotePage
+        {
+            get
+            {
+                string page = Environment.GetEnvironmentVariable("CAPRI_REMOTE_PAGE");
+                if (page != null && (page.StartsWith("http://127.0.0.1:", StringComparison.Ordinal) || page.StartsWith("http://localhost:", StringComparison.Ordinal) || page.StartsWith("https://", StringComparison.Ordinal)) && page.EndsWith("/", StringComparison.Ordinal) && page.IndexOfAny(new[] { '"', ' ', '#', '?' }) < 0) return page;
+                return "https://capriai.app/remote/";
+            }
+        }
+
+        private RoomHost roomHost;
+
+        internal void OpenRoomWindow()
+        {
+            if (roomHost == null)
+            {
+                try
+                {
+                    roomHost = new RoomHost(RemotePage);
+                    CapriCamera camera = new CapriCamera();
+                    roomHost.CameraState = delegate { return CapriCamera.State; };
+                    roomHost.CameraInstall = CapriCamera.AskInstall;
+                    roomHost.Frame = camera.Send;
+                    roomHost.CameraOff = camera.Off;
+                }
+                catch (ArgumentException) { }
+                catch (System.Net.Sockets.SocketException) { }
+            }
+            RoomWindow(roomHost != null ? roomHost.Url : RemotePage + "?room=pc");
+        }
+
+        private void RoomTick()
+        {
+            RoomHost host = roomHost;
+            if (host != null) host.Talk(TalkingNow);
+        }
+
+        internal static Action<string> RoomWindow = delegate(string url)
+        {
+            string[] places = { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) };
+            foreach (string place in places)
+            {
+                if (string.IsNullOrEmpty(place)) continue;
+                string edge = System.IO.Path.Combine(place, @"Microsoft\Edge\Application\msedge.exe");
+                if (!System.IO.File.Exists(edge)) continue;
+                try
+                {
+                    string own = url.StartsWith("http://127.0.0.1:", StringComparison.Ordinal) ? " --user-data-dir=\"" + System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri Room") + "\" --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows --no-first-run" : "";
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(edge, "--app=\"" + url + "\" --window-size=1180,880" + own) { UseShellExecute = false });
+                    return;
+                }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+            Browse(url);
+        };
+
         // The sheet closed: the relay forgets an open code, and a phone still waiting gets a no.
         internal void RemoteCloseCode()
         {

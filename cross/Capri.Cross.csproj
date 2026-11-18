@@ -8,7 +8,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <DefineConstants>$(DefineConstants);CROSS</DefineConstants>
     <NoWarn>$(NoWarn);CS0649;CS0169;CS0414;CA1416;SYSLIB0014</NoWarn>
-    <Version>0.9.2</Version>
+    <Version>0.9.3</Version>
     <Product>Capri</Product>
     <ApplicationIcon>../assets/chip.ico</ApplicationIcon>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
@@ -32,6 +32,7 @@
   <ItemGroup>
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
     <Compile Include="../app/PersonalSettings.cs" Link="Shared/PersonalSettings.cs" />
+    <Compile Include="../app/Doomscroll.cs" Link="Shared/Doomscroll.cs" />
     <Compile Include="../app/Probes.cs" Link="Shared/Probes.cs" />
     <Compile Include="../app/Leaks.cs" Link="Shared/Leaks.cs" />
     <Compile Include="../app/Care.cs" Link="Shared/Care.cs" />
@@ -39,6 +40,7 @@
     <Compile Include="../app/FileFinder.cs" Link="Shared/FileFinder.cs" />
     <Compile Include="../app/Files.cs" Link="Shared/Files.cs" />
     <Compile Include="../app/SelfKnow.cs" Link="Shared/SelfKnow.cs" />
+    <Compile Include="../app/Network.cs" Link="Shared/Network.cs" />
     <Compile Include="../app/Websites.cs" Link="Shared/Websites.cs" />
     <Compile Include="../app/GameNotes.cs" Link="Shared/GameNotes.cs" />
     <Compile Include="../app/Reminders.cs" Link="Shared/Reminders.cs" />
@@ -63,10 +65,12 @@
     <Compile Include="../app/RemoteVectors.cs" Link="Shared/RemoteVectors.cs" />
     <Compile Include="../app/RemoteBrainKeys.cs" Link="Shared/RemoteBrainKeys.cs" />
     <Compile Include="../app/RemoteChat.cs" Link="Shared/RemoteChat.cs" />
+    <Compile Include="../app/RemoteWake.cs" Link="Shared/RemoteWake.cs" />
     <Compile Include="../app/MainframeRemote.cs" Link="Shared/MainframeRemote.cs" />
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/voice/*.wav" LogicalName="Capri.Voice.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/chip.png" LogicalName="Capri.Chip.png" />
+    <EmbeddedResource Include="../assets/words/*.txt" LogicalName="Capri.Words.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/cursor.png" LogicalName="Capri.Cursor.png" />
     <AvaloniaResource Include="../assets/fonts/CapriMainframe-Bold.ttf" Link="Assets/CapriMainframe-Bold.ttf" />
     <AvaloniaResource Include="../assets/fonts/ShareTechMono-Regular.ttf" Link="Assets/ShareTechMono-Regular.ttf" />

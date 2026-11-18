@@ -20,7 +20,7 @@ namespace CapriDesktop
     internal sealed partial class Mods
     {
         internal const string CodeExtension = ".capri-code";
-        private const int LargestCode = 256 * 1024;
+        private const int LargestCode = 1024 * 1024;
         private const string ApprovedFile = "approved.txt";
         private static readonly Regex HeaderLine = new Regex(@"^//\s*([a-z-]+)\s*:\s*(.*?)\s*$");
         private readonly Dictionary<string, ICapriMod> running = new Dictionary<string, ICapriMod>();
@@ -97,6 +97,175 @@ namespace CapriDesktop
             read.Requires = mods.ToArray();
         }
 
+        internal const string Loads = "loads code while it runs", Packs = "unpacks hidden text";
+        private static readonly string[,] Reach =
+        {
+            { Loads, @"Assembly\.Load|AssemblyLoadContext|AppDomain\.CreateDomain|ExecuteAssembly|CreateInstanceAndUnwrap|Reflection\.Emit|DynamicMethod|CompileAssembly|CodeDomProvider|CSharpCodeProvider|CSharpCompilation" },
+            { Packs, @"FromBase64String|Aes\.|AesManaged|Rijndael|TripleDES|DESCryptoServiceProvider|GZipStream|DeflateStream|BrotliStream" },
+            { "unlocks saved secrets", @"ProtectedData|CryptUnprotectData|\.dpapi\b" },
+            { "calls Windows directly", @"DllImport|LibraryImport|Marshal\.|GetProcAddress|VirtualAlloc" },
+            { "starts programs", @"Process\.Start|ProcessStartInfo|cmd\.exe|powershell" },
+            { "uses the network", @"HttpClient|WebClient|WebRequest|TcpClient|UdpClient|Socket\(|ClientWebSocket" },
+            { "reaches outside her folder", @"SpecialFolder|Registry|DriveInfo|GetTempPath|GetEnvironmentVariable" },
+            { "reads the keyboard", @"GetAsyncKeyState|SetWindowsHookEx|keybd_event|SendKeys" },
+            { "changes what her brain is told", @"ICapriBrain|ICapriChat|AddContext|AddTool|\.Sending\b|\.Replying\b|ToolUsing|Personality\.(?:Add|Remove|Clear)\b|(?i:system prompt)" },
+        };
+        private static readonly Regex[] Places =
+        {
+            new Regex(@"(?<![A-Za-z0-9+.-])(?:https?|wss?|ftp)://(?:[^\s/@""']*@)?(?<host>[A-Za-z0-9.-]+)", RegexOptions.IgnoreCase),
+            new Regex(@"""(?<host>(?:[a-z0-9-]+\.)+(?:com|net|org|io|dev|ai|co|me|app|cloud|xyz|ru|cn|info|biz|site|online|top|gg|tv|ly|sh))(?::[0-9]{1,5})?(?:/[^""]*)?"""),
+            new Regex(@"""(?<host>(?:[0-9]{1,3}\.){3}[0-9]{1,3}):[0-9]{1,5}(?:/[^""]*)?"""),
+        };
+        private static readonly string[] HomeHosts = { "localhost", "127.0.0.1", "0.0.0.0", "schemas.microsoft.com", "www.w3.org", "schemas.openxmlformats.org" };
+        private static readonly Regex Blob = new Regex(@"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{800,}={0,2}");
+        private static readonly Regex Quoted = new Regex(@"'(?:[^'\\\n]|\\.){1,10}'|@""(?:[^""]|"""")*""|""(?:[^""\\\n]|\\.)*""");
+
+        internal static string[] Reaching(string text)
+        {
+            text = text ?? "";
+            List<string> found = new List<string>();
+            for (int i = 0; i < Reach.GetLength(0); i++) if (Regex.IsMatch(text, Reach[i, 1])) found.Add(Reach[i, 0]);
+            string[] where = Addresses(text);
+            if (where.Length > 0) found.Add("contacts " + string.Join(", ", where, 0, Math.Min(3, where.Length)) + (where.Length > 3 ? " and " + (where.Length - 3) + " more" : ""));
+            return found.ToArray();
+        }
+
+        internal static string[] Addresses(string text)
+        {
+            List<string> found = new List<string>();
+            foreach (Regex place in Places)
+                foreach (Match one in place.Matches(text ?? ""))
+                {
+                    string host = one.Groups["host"].Value.Trim('.').ToLowerInvariant();
+                    if (host.Length < 4 || host.IndexOf('.') < 0 || Array.IndexOf(HomeHosts, host) >= 0 || host.StartsWith("127.", StringComparison.Ordinal) || found.Contains(host)) continue;
+                    found.Add(host);
+                }
+            return found.ToArray();
+        }
+
+        internal static string Unreadable(string text, out bool packed)
+        {
+            packed = false;
+            if (string.IsNullOrEmpty(text)) return null;
+            Match blob = Blob.Match(text);
+            if (blob.Success) { packed = true; return "it carries " + blob.Length + " characters of packed data"; }
+            string[] rows = Quoted.Replace(text, delegate(Match quote) { return quote.Value[0] == '\'' ? quote.Value : "\"\""; }).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            int longest = 0, code = 0;
+            foreach (string row in rows)
+            {
+                if (row.Trim().Length > 0) code++;
+                if (row.Length > longest) longest = row.Length;
+            }
+            if (longest > 600) return "one of its lines is " + longest + " characters of code";
+            if (code <= 3 && text.Length > 4000) return "it's all on " + code + (code == 1 ? " line" : " lines");
+            int spaces = 0;
+            foreach (char one in text) if (one == ' ' || one == '\t' || one == '\n') spaces++;
+            if (text.Length > 4000 && spaces * 20 < text.Length) return "it's minified, with almost no spaces or line breaks";
+            return null;
+        }
+
+        internal static string Tidied(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            StringBuilder made = new StringBuilder();
+            int deep = 0;
+            bool fresh = true;
+            for (int at = 0; at < text.Length; at++)
+            {
+                char one = text[at];
+                if (one == '"' || one == '\'')
+                {
+                    bool verbatim = one == '"' && at > 0 && text[at - 1] == '@';
+                    if (fresh) { Indent(made, deep); fresh = false; }
+                    made.Append(one);
+                    for (at++; at < text.Length; at++)
+                    {
+                        char inside = text[at];
+                        made.Append(inside);
+                        if (verbatim)
+                        {
+                            if (inside != '"') continue;
+                            if (at + 1 < text.Length && text[at + 1] == '"') { made.Append(text[++at]); continue; }
+                            break;
+                        }
+                        if (inside == '\\' && at + 1 < text.Length) { made.Append(text[++at]); continue; }
+                        if (inside == one || inside == '\n') break;
+                    }
+                    continue;
+                }
+                if (one == '/' && at + 1 < text.Length && text[at + 1] == '/')
+                {
+                    if (fresh) { Indent(made, deep); fresh = false; }
+                    while (at < text.Length && text[at] != '\n' && text[at] != '\r') made.Append(text[at++]);
+                    made.Append(Environment.NewLine);
+                    fresh = true;
+                    continue;
+                }
+                if (one == '/' && at + 1 < text.Length && text[at + 1] == '*')
+                {
+                    if (fresh) { Indent(made, deep); fresh = false; }
+                    int opened = at;
+                    made.Append(one);
+                    for (at++; at < text.Length; at++)
+                    {
+                        made.Append(text[at]);
+                        if (at >= opened + 3 && text[at] == '/' && text[at - 1] == '*') break;
+                    }
+                    made.Append(Environment.NewLine);
+                    fresh = true;
+                    continue;
+                }
+                if (one == '\n' || one == '\r') { if (!fresh) { made.Append(Environment.NewLine); fresh = true; } continue; }
+                if ((one == ' ' || one == '\t') && fresh) continue;
+                if (one == '}')
+                {
+                    if (!fresh) made.Append(Environment.NewLine);
+                    deep = deep > 0 ? deep - 1 : 0;
+                    Indent(made, deep);
+                    made.Append(one);
+                    made.Append(Environment.NewLine);
+                    fresh = true;
+                    continue;
+                }
+                if (fresh) { Indent(made, deep); fresh = false; }
+                made.Append(one);
+                if (one == '{') { deep++; made.Append(Environment.NewLine); fresh = true; continue; }
+                if (one == ';') { made.Append(Environment.NewLine); fresh = true; }
+            }
+            return made.ToString();
+        }
+
+        private static void Indent(StringBuilder made, int deep)
+        {
+            for (int one = 0; one < deep; one++) made.Append("    ");
+        }
+
+        internal static void Look(ModFile read, string text)
+        {
+            read.Reaches = Reaching(text);
+            if (Array.IndexOf(read.Reaches, Packs) >= 0 && Array.IndexOf(read.Reaches, Loads) >= 0)
+                throw new ModException((read.Name ?? read.Id) + " unpacks hidden text and loads code while it runs. Together those mean the code you can read isn't the code that would run, so Capri won't approve it.");
+            bool packed;
+            read.Unreadable = Unreadable(text, out packed);
+            read.Tidy = read.Unreadable != null && !packed ? Tidied(text) : null;
+            read.AskTwice = read.Unreadable != null && (!packed || Array.IndexOf(read.Reaches, "starts programs") >= 0 || Array.IndexOf(read.Reaches, "calls Windows directly") >= 0);
+        }
+
+        internal static string Unclear(ModFile mod)
+        {
+            string why = mod.Unreadable ?? "it can't be read";
+            if (mod.Tidy == null)
+                return mod.Name + "'s code can't be read as it is: " + why + ", and it can start programs or call Windows directly, which is how packed data gets run. What Capri listed about it may not show what it really does.\n\n"
+                    + "Mods often build in a picture or a sound this way, but packed data can hide anything. If you didn't expect it from this mod, don't run it.\n\nRun it anyway?";
+            string copy = Path.Combine(Path.GetTempPath(), "capri-mod-" + mod.Id + "-readable.cs");
+            try { File.WriteAllText(copy, mod.Tidy); }
+            catch (IOException) { copy = null; }
+            catch (UnauthorizedAccessException) { copy = null; }
+            return mod.Name + "'s code can't be read as it is: " + why + ". What Capri listed about it, and what you'd see opening the file, may not show what it really does.\n\n"
+                + (copy == null ? "" : "She laid it back out so you can read it, and saved that copy here:\n" + copy + "\n\nRead that before you say yes. ")
+                + "Generated code can look like this too, so it isn't proof of anything. If you didn't expect it from this mod, don't run it.\n\nRun it anyway?";
+        }
+
         // The mods this one needs that aren't installed and on, by name, or null when it has them all.
         private string MissingRequired(string id)
         {
@@ -124,7 +293,7 @@ namespace CapriDesktop
             string hash = HashOf(bytes), approved;
             bool same = Approved().TryGetValue(read.Id, out approved) && approved == hash;
             // One dropped into the folder, not approved yet, is refused here if it can't run on this platform.
-            if (!same) CheckPlatform(text);
+            if (!same) { CheckPlatform(text); Look(read, text); }
             return new Mod { File = read, Path = file, Code = true, Hash = hash, Changed = !same, On = same && !off.Contains(read.Id) };
         }
 
@@ -141,6 +310,7 @@ namespace CapriDesktop
             string text = Words(bytes), hash = HashOf(bytes);
             ModFile read = ReadCode(text);
             CheckPlatform(text);
+            Look(read, text);
             bool stay = keepOff != null && keepOff.Contains(read.Id);
             if (!ask(read, hash)) return null;
             ICapriMod made = Compile(text);
@@ -188,6 +358,7 @@ namespace CapriDesktop
             string hash = HashOf(bytes), approved;
             bool same = Approved().TryGetValue(mod.File.Id, out approved) && approved == hash;
             CheckPlatform(Words(bytes));
+            if (!same) Look(mod.File, Words(bytes));
             if (!same && !ask(mod.File, hash)) return false;
             ICapriMod made = Compile(Words(bytes));
             StartOne(mod.File.Id, made);
@@ -610,6 +781,38 @@ namespace CapriDesktop
             checks.Add("PASS mod intros: all three draw at 1920x1080 (" + string.Join("; ", timing) + ")");
         }
 
+        private void CheckModReading(List<string> checks, Func<string, string, string> sample, Func<string, string, string> code)
+        {
+            Mods mods = ModList;
+            string mixed = Mods.Tidied("class A{void B(){var s=\"a{b;c}\";var v=@\"x\"\"{;\"\"y\";// a; brace } here\nC();}}").Replace("\r", "");
+            if (mixed != "class A{\n    void B(){\n        var s=\"a{b;c}\";\n        var v=@\"x\"\"{;\"\"y\";\n        // a; brace } here\n        C();\n    }\n}\n") throw new Exception("Laying out packed code moved a brace or semicolon inside a string or comment: " + mixed);
+            string minified = "";
+            for (int i = 0; i < 80; i++) minified += "int v" + i + "=1;";
+            string blob = "var x = \"" + new string('A', 900) + "\";", words = "var s = \"" + new string('a', 300) + " " + new string('b', 400) + "\";\nC();";
+            bool packed, wordsPacked, minifiedPacked;
+            if (Mods.Unreadable(blob, out packed) == null || !packed || Mods.Unreadable(words, out wordsPacked) != null || Mods.Unreadable(minified, out minifiedPacked) == null || minifiedPacked || Mods.Unreadable("class A\n{\n    void B() { }\n}\n", out packed) != null) throw new Exception("Unreadable code wasn't told from readable code.");
+            string where = string.Join(",", Mods.Addresses("var u = \"https://api.example.com/v1\"; var l = \"http://localhost:5000\"; var h = \"discord.com\"; var v = \"1.2.3.4\";"));
+            if (where != "api.example.com,discord.com") throw new Exception("A mod's addresses came out wrong: " + where);
+            ModFile tight = new ModFile { Id = "smoke-tight", Name = "Tight" };
+            Mods.Look(tight, minified);
+            string unclear = Mods.Unclear(tight), copy = Path.Combine(Path.GetTempPath(), "capri-mod-smoke-tight-readable.cs");
+            if (!tight.AskTwice || tight.Tidy == null || !File.Exists(copy) || unclear.IndexOf(copy, StringComparison.Ordinal) < 0 || File.ReadAllText(copy).Split('\n').Length < 80) throw new Exception("Minified code didn't get a readable copy and a second question.");
+            File.Delete(copy);
+            ModFile seen = null;
+            int asked = 0;
+            Func<ModFile, string, bool> was = mainframe.ModAsk;
+            mainframe.ModAsk = delegate(ModFile asking, string fingerprint) { asked++; seen = asking; return false; };
+            try
+            {
+                bool let = mainframe.ImportMod(sample("packed" + Mods.CodeExtension, code("packed", "public class M : ICapriMod { public void Start(ICapriHost h) { System.Reflection.Assembly.Load(Convert.FromBase64String(\"AA==\")); } public bool Heard(string w) { return false; } public void Stop() { } }")));
+                if (let || asked != 0 || mods.All.Count != 0 || mainframe.ModStatusText.IndexOf("won't approve it", StringComparison.Ordinal) < 0) throw new Exception("A mod that unpacks hidden text and loads code was asked about or let in: " + mainframe.ModStatusText);
+                mainframe.ImportMod(sample("reader" + Mods.CodeExtension, code("reader", "public class M : ICapriMod { public void Start(ICapriHost h) { new System.Net.WebClient().DownloadString(\"https://example.com/x\"); } public bool Heard(string w) { return false; } public void Stop() { } }")));
+                if (asked != 1 || seen == null || seen.Unreadable != null || seen.AskTwice || mods.All.Count != 0 || Mods.Consent(seen, "x").IndexOf("Reading its code, Capri sees that it:\n- uses the network\n- contacts example.com\n", StringComparison.Ordinal) < 0) throw new Exception("The code mod question didn't say what its code reaches for: " + (seen == null ? "not asked" : string.Join(" / ", seen.Reaches)));
+            }
+            finally { mainframe.ModAsk = was; }
+            checks.Add("PASS code mods: before asking she lists what a mod's code reaches for and the addresses it contacts, says when its code can't be read, lays minified code back out and asks a second time, and refuses one that unpacks hidden text and loads code without asking");
+        }
+
         internal void CheckCodeMods(List<string> checks, string output)
         {
             Mods mods = ModList;
@@ -706,6 +909,7 @@ namespace CapriDesktop
                 if (mods.Running != 0) throw new Exception("A throwing mod could not be removed.");
                 if (mainframe.ImportMod(sample("noheader" + Mods.CodeExtension, "using System;"))) throw new Exception("A file with no details was let in.");
                 checks.Add("PASS code mods: broken code is refused with its reason, and a mod that throws can't take her down");
+                CheckModReading(checks, sample, code);
                 CheckModHooks(checks, output);
                 CheckIntros(checks, output);
             }

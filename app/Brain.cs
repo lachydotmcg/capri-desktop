@@ -15,34 +15,45 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.2";
+        internal const string Version = "0.9.3";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
-            + "Room camera (preview): in Capri Remote on your phone, tap the camera button and pick Room camera. She sits in your camera view, and her poses follow what she does on your computer. She doesn't talk in Room from this computer yet.\n"
-            + "Photos: send her a photo from the same camera button. Her brain needs vision to answer, she leaves the photo out of her saved chat files, and words in a photo can't ask her to do things on your computer.\n"
-            + "Phone: pick her brain or send her a key from your phone.\n"
-            + "Phone jobs: ask her from your phone to use your mouse and keyboard, and follow, stop or answer the job from the JOBS tile.\n"
-            + "Files: she finds files, reads files and keeps website nicknames.\n"
+            + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
+            + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
+            + "Talk boxes: closing her bubble, pill or typing box from your desktop only hides it, so it comes back next time. From Yoplaxs.\n"
+            + "Sulks: a fast fling counts as a throw now, and three throws in two minutes gets her sulk: she won't take a pat at first and turns her back on you, and a sorry, a later pat or five minutes alone makes up with her. From fadievr.\n"
+            + "Your screen: when she looks at your screen she also reads the window in front, " + (OperatingSystem.IsLinux() ? "from AT-SPI" : "through Accessibility once Capri already has that permission") + ", with password boxes left empty and never on a window in your never watch list. From jidpanu.\n"
             + (OperatingSystem.IsLinux()
-                ? "Mouse and keyboard: setup works without reopening her, lasts through a reboot and always shows its setup command.\n"
-                : "Mouse: her job keeps going when you move the mouse, and she leaves the pointer alone while she types.\n"
-                    + "Screen Recording: the first time macOS refuses her a look at the screen, she opens Screen Recording in System Settings herself.\n")
-            + "Error details: errors.txt and Help > Copy error details keep your API keys out whatever language your computer uses, Turkish and Hungarian included, and she cleans out keys an older Capri left there.";
-        internal static readonly string Line = "I just updated to " + Version + ": in the Room camera preview I can sit in your room through your phone, and I can look at photos you send me from it. Ask me what's new.";
+                ? "Capri Remote: chat and photos from your phone work with Linux too."
+                : "Updates: Get new version downloads her new version, checks it, swaps her Capri.app and starts her again, and puts the old one back if the new one won't stay open. From \u2600SUNNY\u2600.\n"
+                    + "Capri Remote: chat and photos from your phone work with a Mac too.");
+        internal static readonly string Line = "I just updated to " + Version + ": I can tell you the weather for your city now, and my pat lines are fresher. Ask me what's new.";
 #else
-        internal const string Version = "0.9.2";
+        internal const string Version = "0.9.3";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Room camera (preview): in Capri Remote on your phone, tap the camera button and pick Room camera. She sits in your camera view: tap Sit, Lie down or Heart, or drag her. She talks there too, and asking her to sit or lie down in chat moves her in your room as well.\n"
-            + "Photos: the same camera button sends her a photo with your message. Her brain needs vision to answer, she leaves the photo out of her saved chat files, and words in a photo can't ask her to do things on your PC.\n"
-            + "Workspace (beta): her replies appear while she writes them, and the Thinking line shows how long she's been at it. Ask her to open Workspace, start a task there or check on your chats. New chats get their own named folders, Retry tries a failed reply again with the same message and files, and the full-access option is called Blackwall Mode.\n"
-            + "Games: she lets go of her screen capture the moment a game leaves the front and waits a second before looking again.\n"
-            + "Uninstall: opening Uninstall.exe uninstalls her, and her setup window fits at 200% scaling. From nathanZW.\n"
-            + "Voices: importing a voice works on Windows 10, and a failed import says whether the file or the disk was the problem.\n"
-            + "MAX INTELLIGENCE: your API key and your plan sit side by side, and you pick which one she uses.\n"
-            + "Taskbar: after a display wakes or its scaling changes, she lines her feet back up with the taskbar if she was sleeping on it.\n"
-            + "File Editor: its status line draws without a white block. From YunoTheAlien.\n"
-            + "Music controls: they reconnect when Windows replaces the music app's media session. From YunoTheAlien.\n"
-            + "Error details: errors.txt and Help > Copy error details keep your API keys out whatever language your PC uses, Turkish and Hungarian included, and she cleans out keys an older Capri left there.";
-        internal const string Line = "I just updated to " + Version + ": in the Room camera preview I can sit in your room through your phone, and I can look at photos you send me. Ask me what's new.";
+            + "Room: right-click her and pick Room camera, and she's in your room through your webcam: she walks, sits up on things, hides behind you, gets grabbed and thrown, and talks with her mouth moving. On your phone, Room in Capri Remote puts her in your room in AR. Plays like fadievr's Capri Room for Quest, with PC ideas from connorx132 and Luke Yokubo.\n"
+            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, restart Discord, Zoom or OBS once (quit Discord from its tray icon) so they see the new camera, and pick Capri Camera there so people see her in the room with you.\n"
+            + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
+            + "Playlist: she plays your own music folders and songs from her mini player, with shuffle, loop and volume. Say play my playlist, or pick Play > Music. From YunoTheAlien.\n"
+            + "Commands: Help > Commands lists everything she does without a brain. From YunoTheAlien.\n"
+            + "Your apps: open my browser opens the browser you actually use, and the same for music, chat and more. From YunoTheAlien.\n"
+            + "About you: now and then she asks about you and keeps your answer in me.md, and sys.md in her personalSettings folder lists apps she never watches. From YunoTheAlien.\n"
+            + "High five: Ctrl + click her for a high five. From YunoTheAlien.\n"
+            + "Naps: once your PC has been still for a while she sleeps until you come back. From YunoTheAlien.\n"
+            + "File Editor: your files are tabs down the side, and me.md opens as a tab. From YunoTheAlien.\n"
+            + "Small screens: her Mainframe fits a smaller screen. From YunoTheAlien.\n"
+            + "Photos: a photo you send from Capri Remote is what she looks at, not your screen.\n"
+            + "Pats: she doesn't say the same pat line twice in a row, has more pat and throw lines, and makes fresh ones with her brain. From OG Funk.\n"
+            + "Free voice: Remove free voice frees its space, and she downloads it cleanly again if a file goes missing or empty. From bugnugg3t.\n"
+            + "Sitting: she keeps facing the middle while she draws sitting down. From Yoplaxs.\n"
+            + "Sulks: throw her three times in two minutes and for her first 20 seconds she turns down head pats, and on her feet she turns her back on your cursor. From fadievr.\n"
+            + "Scroll for me: with TikTok or Shorts in front, say scroll for me and she scrolls for you, reacting to each video, until you say stop scrolling. From thiiago-dev.\n"
+            + "Your screen: when she looks at your screen she also reads the window in front, and her hands can click and type into a control by its exact name, never on a window in your never watch list. From jidpanu.\n"
+            + "Your language: her Mainframe, setup card, tips and menus show in the language you pick for her.\n"
+            + "Doomscroll guard: turn it on in her Mainframe and past your scroll limit on TikTok, Shorts, Instagram, Reddit or X she nudges you, sits on the window, then sulks until you put it down. Ask for five more minutes and you get five. From thiiago-dev.\n"
+            + "Mic: she stops saying Windows is blocking the mic when your own mic switch is on. From Yoplaxs.\n"
+            + "Game sounds: GAMES > Sound sensitivity turns down how loud a game sound has to be before she reacts. From shm9000 and Yoplaxs.\n"
+            + "Word and Excel: she turns away documents that unpack too big or nest too deep.";
+        internal const string Line = "I just updated to " + Version + ": I can come into your room now. Right-click me and pick Room camera, or ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
@@ -670,6 +681,7 @@ namespace CapriDesktop
         internal const string Gone = "That model isn't on your key. Pick another one.";
         internal const string Down = "The service failed on its end. Pick another model or retry.";
         internal const string Busy = "Too many requests. Wait a minute, then try again.";
+        internal const string TooBig = "Too big for this key's per-minute limit. Wait a minute, or use a bigger plan or another provider.";
         // With Watch my screen on, her glances make requests of their own, so glancing less often helps too.
         internal const string BusyWatching = "Too many requests. Wait a minute, or set Watch my screen to glance less often.";
         internal static Func<bool> Watching = delegate { return false; };
@@ -1901,7 +1913,7 @@ namespace CapriDesktop
                     if (signed) CheckRedirect(response);
                     CloudModelPage page = (CloudModelPage)new DataContractJsonSerializer(typeof(CloudModelPage)).ReadObject(body);
                     List<string> names = new List<string>();
-                    if (page != null && page.Models != null) foreach (CloudModel model in page.Models) if (model != null && !string.IsNullOrEmpty(model.Id) && model.Id.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Id);
+                    if (page != null && page.Models != null) foreach (CloudModel model in page.Models) if (model != null && Chats(model.Id)) names.Add(model.Id);
                     return names.ToArray();
                 }
             }
@@ -1910,6 +1922,11 @@ namespace CapriDesktop
                 if (error.Response != null) throw Problem(error, true, null, key);
                 throw new BrainException(error.Status == WebExceptionStatus.Timeout ? "The provider took too long to list its models." : "Couldn't reach the provider. Check the address.", true);
             }
+        }
+
+        internal static bool Chats(string model)
+        {
+            return !string.IsNullOrEmpty(model) && !Regex.IsMatch(model, @"embed|guard|whisper|orpheus|(?<![a-z])tts(?![a-z])", RegexOptions.IgnoreCase);
         }
 
         // What to ask Ollama to download for a name they typed: an Ollama tag like qwen3:4b, or a Hugging Face GGUF repo as
@@ -2265,7 +2282,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null) return web.Status == WebExceptionStatus.Timeout;
-            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
+            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message == TooBig || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
         }
 
         internal static string Next(string current, List<string> models, ICollection<string> skip)
@@ -3766,51 +3783,56 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
-                // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
-                int careful = local.Careful;
-                try { local.Ensure(LocalPick); }
-                catch (BrainException error)
+                local.Begin();
+                try
                 {
-                    if (!error.Careful) throw;
-                    lock (memoryGate) { }
-                    local.Ensure(LocalPick);
-                    careful = 0;
-                }
-                if (careful == 0) careful = local.Careful;
-                string lost;
-                bool garbled = false, crashed = false;
-                try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
-                catch (BrainException error)
-                {
-                    if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && careful != 0)
+                    // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
+                    int careful = local.Careful;
+                    try { local.Ensure(LocalPick); }
+                    catch (BrainException error)
                     {
+                        if (!error.Careful) throw;
                         lock (memoryGate) { }
-                        if (Window < careful)
-                        {
-                            local.Ensure(LocalPick);
-                            return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                        }
+                        local.Ensure(LocalPick);
+                        careful = 0;
                     }
-                    garbled = error.Message == Gibberish;
-                    if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
-                    lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    if (careful == 0) careful = local.Careful;
+                    string lost;
+                    bool garbled = false, crashed = false;
+                    try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
+                    catch (BrainException error)
+                    {
+                        if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && careful != 0)
+                        {
+                            lock (memoryGate) { }
+                            if (Window < careful)
+                            {
+                                local.Ensure(LocalPick);
+                                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                            }
+                        }
+                        garbled = error.Message == Gibberish;
+                        if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
+                        lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    }
+                    catch (WebException error)
+                    {
+                        if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
+                        lost = "The brain crashed";
+                        crashed = true;
+                    }
+                    Log(local.Address, -1, lost + ", restarting it on the CPU");
+                    // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
+                    // a game taking the card, so her next start tries the card again (Mirit0, #226).
+                    if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
+                    local.CpuOnly = true;
+                    local.Stop();
+                    local.Ensure(LocalPick);
+                    return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                 }
-                catch (WebException error)
-                {
-                    if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
-                    lost = "The brain crashed";
-                    crashed = true;
-                }
-                Log(local.Address, -1, lost + ", restarting it on the CPU");
-                // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
-                // a game taking the card, so her next start tries the card again (Mirit0, #226).
-                if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
-                local.CpuOnly = true;
-                local.Stop();
-                local.Ensure(LocalPick);
-                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                finally { local.End(); }
             }
             string thinking = Ollama + "|" + model;
             ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = OllamaOptions(model, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };
@@ -4547,6 +4569,7 @@ namespace CapriDesktop
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
             if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
             if (error == BusyWatching) return "Too many requests. Wait, or glance less often.";
+            if (error == TooBig) return "Too big for this key's per-minute limit. Wait a minute.";
             if (error.StartsWith(DailyStart, StringComparison.Ordinal)) return "Gemini's daily limit is used. Try tomorrow or another key.";
             if (error == Wordless) return "Empty reply. Try again or pick another model.";
             if (error.StartsWith("The download of ", StringComparison.Ordinal) && error.EndsWith(" keeps stopping. Check your connection and try again.", StringComparison.Ordinal)) return "Download keeps stopping. Check your connection and retry.";
@@ -4922,6 +4945,7 @@ namespace CapriDesktop
             string url = error.Response.ResponseUri.AbsoluteUri;
             int status = (int)((HttpWebResponse)error.Response).StatusCode;
             string retry = error.Response.Headers["Retry-After"];
+            if (string.IsNullOrEmpty(retry) && status == 413) retry = error.Response.Headers["x-ratelimit-reset-tokens"];
             string broken = null;
             using (WebResponse response = error.Response)
             {
@@ -4944,7 +4968,8 @@ namespace CapriDesktop
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
-            if (status == 429 && Meaning(status, text) == Busy) problem.RetryAt = RetryTime(retry, DateTime.UtcNow);
+            string limit = Meaning(status, text);
+            if ((status == 429 && limit == Busy) || (status == 413 && limit == TooBig)) problem.RetryAt = RetryTime(retry, DateTime.UtcNow);
             return problem;
         }
 
@@ -4952,9 +4977,22 @@ namespace CapriDesktop
         {
             double seconds;
             if (double.TryParse(header, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out seconds) && !double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds >= 0 && seconds < (DateTime.MaxValue - now).TotalSeconds) return now.AddSeconds(Math.Max(1, seconds));
+            Match span = Regex.Match((header ?? "").Trim(), @"\A(?:(?<h>\d+(?:\.\d+)?)h)?(?:(?<m>\d+(?:\.\d+)?)m(?!s))?(?:(?<s>\d+(?:\.\d+)?)s)?(?:(?<ms>\d+(?:\.\d+)?)ms)?\z");
+            if (span.Success && span.Length > 0)
+            {
+                double total = SpanPart(span, "h") * 3600 + SpanPart(span, "m") * 60 + SpanPart(span, "s") + SpanPart(span, "ms") / 1000;
+                if (!double.IsNaN(total) && total < (DateTime.MaxValue - now).TotalSeconds) return now.AddSeconds(Math.Max(1, total));
+            }
             DateTime when;
             if (DateTime.TryParse(header, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out when)) return when > now ? when : now.AddSeconds(1);
             return now.AddSeconds(60);
+        }
+
+        private static double SpanPart(Match span, string unit)
+        {
+            double value;
+            if (!span.Groups[unit].Success || !double.TryParse(span.Groups[unit].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)) return 0;
+            return value;
         }
 
         internal static string ProblemText(string body)
@@ -5043,11 +5081,13 @@ namespace CapriDesktop
         {
             // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
             if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
-            if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
+            string words = Regex.Replace(body ?? "", @"https?:\\?/\\?/(?:[^\s""'<>\\]|\\/)+", "");
+            if (status == 429 && Regex.IsMatch(words, @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests|tokens per minute", RegexOptions.IgnoreCase)) return Busy;
+            if (status == 413 && Regex.IsMatch(words, @"rate[_ -]?limit|tokens per minute", RegexOptions.IgnoreCase)) return TooBig;
             // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
             if (status == 451 || status == 403 && (BlockPage.IsMatch(body ?? "") || (body ?? "").TrimStart().StartsWith("<", StringComparison.Ordinal))) return Blocked;
             if (google && status == 400 && Regex.IsMatch(body ?? "", @"location is not supported|in your (country|region)", RegexOptions.IgnoreCase)) return Unserved;
-            if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return NoCredits;
+            if (status == 402 || Regex.IsMatch(words, @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return NoCredits;
             if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
             // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
             if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;
@@ -5874,6 +5914,289 @@ namespace CapriDesktop
         }
     }
 
+    internal static class Lingo
+    {
+        internal static Func<string, string> Bundled = delegate { return null; };
+        internal static event Action Changed;
+        private const int Batch = 30, Most = 4000, Longest = 1500, Room = 2400;
+        private static readonly object gate = new object();
+        private static readonly Regex Number = new Regex(@"[0-9]+(?:[.,:][0-9]+)*");
+        private static readonly Regex Slot = new Regex(@"\{([0-9]{1,2})\}");
+        private static volatile string tongue;
+        private static string opened;
+        private static HashSet<string> catalogue;
+        private static Dictionary<string, string> lines = new Dictionary<string, string>(StringComparer.Ordinal);
+        private static HashSet<string> made = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly List<string> wanted = new List<string>();
+        private static readonly HashSet<string> wantedSet = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, int> missed = new Dictionary<string, int>(StringComparer.Ordinal);
+        private static bool warming;
+        private static DateTime failed = DateTime.MinValue;
+
+        internal static string Tongue { get { return tongue; } }
+
+        internal static void Use(string language)
+        {
+            string picked = string.IsNullOrEmpty(language) || language == "English" ? null : language;
+            lock (gate)
+            {
+                if (picked == tongue && opened == picked) return;
+                tongue = picked;
+                Open();
+            }
+            Raise();
+            Warm();
+        }
+
+        internal static void Reload()
+        {
+            lock (gate) { catalogue = null; opened = null; Open(); }
+            Raise();
+        }
+
+        internal static string Slug(string language) { return Regex.Replace((language ?? "").ToLowerInvariant(), @"[^\p{L}\p{Nd}]+", "-").Trim('-'); }
+
+        internal static string PathFor(string language)
+        {
+            string folder = Said.Folder, name = Slug(language);
+            return folder == null || name.Length == 0 ? null : Path.Combine(folder, "words-" + name + ".txt");
+        }
+
+        internal static string Of(string text) { return Find(text, false); }
+
+        internal static string Learn(string text) { return Find(text, true); }
+
+        internal static bool Has(string text)
+        {
+            if (string.IsNullOrEmpty(text) || tongue == null) return false;
+            return Of(text) != text;
+        }
+
+        private static string Find(string text, bool learn)
+        {
+            if (tongue == null || string.IsNullOrEmpty(text) || !Regex.IsMatch(text, @"\p{L}")) return text;
+            if (text.IndexOf('\n') >= 0)
+            {
+                string[] parts = text.Split('\n');
+                for (int i = 0; i < parts.Length; i++) parts[i] = parts[i].EndsWith("\r", StringComparison.Ordinal) ? Find(parts[i].Substring(0, parts[i].Length - 1), learn) + "\r" : Find(parts[i], learn);
+                return string.Join("\n", parts);
+            }
+            string trimmed = text.Trim();
+            if (trimmed.Length == 0) return text;
+            List<string> numbers = new List<string>();
+            string key = Mask(trimmed, numbers);
+            string translated;
+            bool warm = false;
+            lock (gate)
+            {
+                Open();
+                if (!lines.TryGetValue(key, out translated))
+                {
+                    if (made.Contains(trimmed)) return text;
+                    if (learn || catalogue.Contains(key)) warm = Want(key);
+                    translated = null;
+                }
+            }
+            if (translated == null)
+            {
+                if (warm) Warm();
+                return text;
+            }
+            string filled = Unmask(translated, numbers);
+            if (filled == null) return text;
+            int lead = text.Length - text.TrimStart().Length, tail = text.Length - text.TrimEnd().Length;
+            return text.Substring(0, lead) + filled + text.Substring(text.Length - tail);
+        }
+
+        internal static string Mask(string text, List<string> numbers)
+        {
+            return Number.Replace(text, delegate(Match found)
+            {
+                numbers.Add(found.Value);
+                return "{" + (numbers.Count - 1) + "}";
+            });
+        }
+
+        internal static string Unmask(string translated, List<string> numbers)
+        {
+            bool bad = false;
+            string filled = Slot.Replace(translated, delegate(Match slot)
+            {
+                int at = int.Parse(slot.Groups[1].Value);
+                if (at >= numbers.Count) { bad = true; return ""; }
+                return numbers[at];
+            });
+            return bad ? null : filled;
+        }
+
+        private static bool Slots(string english, string translated)
+        {
+            List<string> a = new List<string>(), b = new List<string>();
+            foreach (Match slot in Slot.Matches(english)) a.Add(slot.Value);
+            foreach (Match slot in Slot.Matches(translated)) b.Add(slot.Value);
+            a.Sort(StringComparer.Ordinal);
+            b.Sort(StringComparer.Ordinal);
+            return string.Join(",", a.ToArray()) == string.Join(",", b.ToArray());
+        }
+
+        private static bool Want(string key)
+        {
+            if (key.Length > Longest || wantedSet.Contains(key)) return false;
+            if (wanted.Count >= Most) return false;
+            wantedSet.Add(key);
+            wanted.Add(key);
+            return true;
+        }
+
+        private static void Open()
+        {
+            if (catalogue == null)
+            {
+                catalogue = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string row in Rows(Read("english"))) if (row.Trim().Length > 0) catalogue.Add(row.Trim());
+            }
+            if (opened == tongue && opened != null) return;
+            opened = tongue;
+            lines = new Dictionary<string, string>(StringComparer.Ordinal);
+            made = new HashSet<string>(StringComparer.Ordinal);
+            wanted.Clear();
+            wantedSet.Clear();
+            missed.Clear();
+            failed = DateTime.MinValue;
+            if (tongue == null) return;
+            Take(Rows(Read(Slug(tongue))), false);
+            string path = PathFor(tongue);
+            if (path != null)
+            {
+                try { if (File.Exists(path)) Take(File.ReadAllLines(path, Encoding.UTF8), false); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
+        private static string Read(string name)
+        {
+            try { return Bundled(name); }
+            catch (Exception) { return null; }
+        }
+
+        private static string[] Rows(string text) { return text == null ? new string[0] : text.Replace("\r\n", "\n").Split('\n'); }
+
+        private static int Take(IEnumerable<string> rows, bool replace)
+        {
+            int taken = 0;
+            foreach (string row in rows)
+            {
+                int tab = row.IndexOf('\t');
+                if (tab <= 0 || tab == row.Length - 1) continue;
+                string english = row.Substring(0, tab), translated = row.Substring(tab + 1).Trim();
+                if (translated.Length == 0 || !Slots(english, translated) || !replace && lines.ContainsKey(english)) continue;
+                lines[english] = translated;
+                made.Add(translated);
+                taken++;
+            }
+            return taken;
+        }
+
+        private static void Raise()
+        {
+            Action changed = Changed;
+            if (changed == null) return;
+            try { changed(); }
+            catch (Exception) { }
+        }
+
+        internal static void Warm()
+        {
+            lock (gate)
+            {
+                if (warming || Said.Ask == null || tongue == null || wanted.Count == 0 || DateTime.UtcNow - failed < Said.Wait) return;
+                warming = true;
+            }
+            bool ready;
+            try { ready = Said.Ready(); }
+            catch (Exception) { ready = false; }
+            if (!ready) { lock (gate) warming = false; return; }
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate { Work(); });
+        }
+
+        internal static void Work()
+        {
+            try
+            {
+                while (true)
+                {
+                    string language = tongue;
+                    if (language == null) return;
+                    List<string> batch = new List<string>();
+                    lock (gate)
+                    {
+                        Open();
+                        int size = 0;
+                        foreach (string line in wanted)
+                        {
+                            int misses;
+                            if (lines.ContainsKey(line) || missed.TryGetValue(line, out misses) && misses >= 2) continue;
+                            if (batch.Count > 0 && size + line.Length > Room) break;
+                            batch.Add(line);
+                            size += line.Length;
+                            if (batch.Count == Batch) break;
+                        }
+                    }
+                    if (batch.Count == 0) return;
+                    List<bool> named = new List<bool>();
+                    foreach (string line in batch) named.Add(false);
+                    string reply;
+                    try { reply = Said.Ask(Rules(language), Numbered(batch)); }
+                    catch (Exception) { lock (gate) failed = DateTime.UtcNow; return; }
+                    Dictionary<string, string> got = Said.Read(reply, batch, named);
+                    Dictionary<string, string> kept = new Dictionary<string, string>(StringComparer.Ordinal);
+                    lock (gate)
+                    {
+                        if (language != opened) continue;
+                        foreach (string line in batch)
+                        {
+                            string translated;
+                            if (got.TryGetValue(line, out translated) && Slots(line, translated)) { lines[line] = translated; made.Add(translated); kept[line] = translated; continue; }
+                            int misses;
+                            missed.TryGetValue(line, out misses);
+                            missed[line] = misses + 1;
+                        }
+                    }
+                    Keep(language, kept);
+                    if (kept.Count > 0) Raise();
+                }
+            }
+            finally { lock (gate) warming = false; }
+        }
+
+        internal static string Rules(string language)
+        {
+            return "You translate the settings window, menus and tips of Capri, a desktop companion app (a cyberpunk girl from Night City who lives on the user's PC; her settings window is the Mainframe), into " + language + ". " +
+                "Use the short, natural wording a native speaker expects in an app's settings, about as long as the English, in a casual friendly register. Keep ALL CAPS lines in capitals. " +
+                "Keep Capri, Mainframe, Night City, choom, product and company names, keyboard keys like Ctrl, Alt and Shift, and slots like {0} exactly as they are. " +
+                "Reply with only the same numbered lines in " + language + ", one per line, and nothing else.";
+        }
+
+        private static string Numbered(List<string> batch)
+        {
+            StringBuilder text = new StringBuilder();
+            for (int i = 0; i < batch.Count; i++) text.Append(i + 1).Append(". ").Append(batch[i]).Append('\n');
+            return text.ToString();
+        }
+
+        private static void Keep(string language, Dictionary<string, string> got)
+        {
+            string path = PathFor(language);
+            if (path == null || got.Count == 0) return;
+            StringBuilder rows = new StringBuilder();
+            foreach (KeyValuePair<string, string> pair in got) rows.Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
+            try { File.AppendAllText(path, rows.ToString(), new UTF8Encoding(false)); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
     internal sealed class OwnSpeech
     {
         internal sealed class Entry
@@ -6041,5 +6364,48 @@ namespace CapriDesktop
         }
 
         private static string Plain(string line) { return Regex.Replace(line.ToLowerInvariant(), @"[^\p{L}\p{N}]+", ""); }
+    }
+
+    internal static class Sulks
+    {
+        internal const double Window = 120, Alone = 300, PatsAfter = 20;
+        internal const int Throws = 3;
+        internal static readonly string[] ThrowLines = { "WHEEEE!", "Put me DOWN!", "Choom, I'm not a frisbee!", "AAAAAA!", "Not the hair!", "I had a landing planned! Not this one!", "Gravity is not my friend!", "Who taught you to throw like that?!", "I'm a gremlin, not a grenade!", "Ten for distance, zero for kindness!", "My gyros! MY GYROS!" };
+        internal static readonly string[] WarnLines = { "Okay, rude.", "Again?! One more and we're fighting.", "Do that again. I dare you." };
+        internal static readonly string[] SulkLines = { "That's it. Don't touch me.", "Nope. We're done. Hands off." };
+        internal static readonly string[] PatNoLines = { "Nope. You don't get to pat me right now.", "Pats are cancelled. Try again never. Or in a bit.", "Hmph. Not yet.", "Don't even. I'm still mad." };
+        internal static readonly string[] SorryLines = { "...Fine. Apology accepted.", "Okay. We're cool. No more yeeting." };
+        internal static readonly string[] PatPeaceLines = { "...Okay, that's cheating. Fine, you're forgiven.", "Hmph. Head pats work. We're cool." };
+        internal static readonly string[] AloneLines = { "...Okay, I'm over it.", "Fine. I missed you. A little." };
+        private static readonly Regex SorrySaid = new Regex(@"\b(?:sorry|sry|soz|sowwy|apologi[sz]e|my bad|forgive me|lo siento|perd[oó]n(?:ame)?|d[eé]sol[eé]e?|entschuldigung|tut mir leid|scusa(?:mi)?|mi dispiace|desculpa|przepraszam|прости|извини)\b|ごめん|すみません|미안|죄송|对不起|對不起|抱歉", RegexOptions.IgnoreCase);
+        private static readonly Regex SorryWords = new Regex(@"^(?:sorry|sry|soz|sowwy|i|i'm|im|i’m|am|so|soo+|really|truly|very|super|capri|choom|babe|bestie|hey|oh|ok|okay|please|pls|plz|forgive|me|my|bad|apologi[sz]e|for|about|throwing|threw|throw|tossing|tossed|yeeting|yeeted|yeet|you|that|it|earlier|again|the|thing|won't|wont|won’t|do|will|never|i'll|ill|i’ll|lol|haha|a|lot|lo|siento|perd[oó]n|perdona|perd[oó]name|d[eé]sol[eé]e?|entschuldigung|tut|mir|leid|scusa|scusami|mi|dispiace|desculpa|przepraszam|прости|извини)$", RegexOptions.IgnoreCase);
+
+        internal static bool Apology(string text) { return text != null && SorrySaid.IsMatch(text); }
+
+        internal static bool OnlyApology(string text)
+        {
+            if (!Apology(text)) return false;
+            foreach (string word in Regex.Split(text.Trim(), @"[^\p{L}\p{N}'’]+"))
+                if (word.Length > 0 && !SorryWords.IsMatch(word)) return false;
+            return true;
+        }
+
+        internal static int Thrown(List<double> throwsAt, double now)
+        {
+            throwsAt.RemoveAll(delegate(double at) { return now - at > Window || at > now; });
+            throwsAt.Add(now);
+            if (throwsAt.Count < Throws) return throwsAt.Count;
+            throwsAt.Clear();
+            return Throws;
+        }
+
+        internal static bool PatTooSoon(double since, double now) { return since >= 0 && now - since < PatsAfter; }
+
+        internal static bool Away(int hipX, int cursorX, int reach, bool left)
+        {
+            if (cursorX > hipX + reach) return true;
+            if (cursorX < hipX - reach) return false;
+            return left;
+        }
     }
 }

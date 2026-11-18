@@ -109,6 +109,7 @@ namespace CapriDesktop
             {
                 if (Step(now))
                 {
+                    if (step == 0) started = -1;
                     step++;
                     // Fresh on the next tick: now is from before this step ran, and a long step isn't the next one's fault.
                     stepStart = -1;
@@ -207,6 +208,9 @@ namespace CapriDesktop
                 checks.Add("PASS her own ears: she finds the speech models you put in her ears folder and hears each language with the one that knows it, SenseVoice for Japanese and Parakeet for English, unless you picked one that's still there, and with no model for her language she keeps TALK on the widest one she has");
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
+                string doomWrong = Doomscroll.Check();
+                if (doomWrong != null) throw new Exception(doomWrong);
+                checks.Add("PASS doomscroll guard's shared rules: window titles alone, the sys.md sites and never watch lists, nudge, perch, sulk, five more minutes and the cheer");
                 string weatherWrong = Weather.Check();
                 if (weatherWrong != null) throw new Exception(weatherWrong);
                 Func<bool> weatherWas = Hands.WeatherOn;
@@ -292,6 +296,69 @@ namespace CapriDesktop
                 if (patWrong == null && !CapriDesktop.Brain.Character.Contains(CapriDesktop.Brain.Safety)) patWrong = "her brain-made pat lines lost her safety lines";
                 if (patWrong != null || Pet.PetLines.Length < 24) throw new Exception("Her pat lines went wrong: " + patWrong);
                 checks.Add("PASS pat lines: " + Pet.PetLines.Length + " lines, each said once a round in a fresh order and never twice in a row, and brain-made ones follow her safety lines and drop repeats, links and cursor talk");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                pet.Forgive();
+                double flungAt = pet.Now;
+                pet.LastYelp = null;
+                pet.Flung(Pet.FlingFrom, flungAt);
+                bool softFirst = !pet.Sulking && pet.ThrowsCounted == 1 && pet.LastYelp == null;
+                pet.Talk.Dismiss();
+                pet.Flung(Pet.FlingFrom, flungAt + 1);
+                bool warned = !pet.Sulking && Array.IndexOf(Sulks.WarnLines, pet.LastYelp) >= 0;
+                pet.Talk.Dismiss();
+                pet.Flung(Pet.FlingFrom, flungAt + 2);
+                bool sulked = pet.Sulking && pet.ThrowsCounted == 0 && Array.IndexOf(Sulks.SulkLines, pet.LastYelp) >= 0;
+                pet.Forgive();
+                pet.Flung(Pet.FlingFrom, flungAt);
+                pet.Flung(Pet.FlingFrom, flungAt + Sulks.Window + 1);
+                pet.Flung(Pet.FlingFrom, flungAt + Sulks.Window * 2 + 2);
+                bool apart = !pet.Sulking && pet.ThrowsCounted == 1;
+                pet.Forgive();
+                PixelPoint flingFrom = new PixelPoint(400, 400);
+                for (int i = 0; i <= 6; i++) pet.NoteDrag(new PixelPoint(flingFrom.X + (int)Math.Round(36 * pet.DesktopScaling) * i, flingFrom.Y), flungAt + i * 0.016);
+                double flingFast = pet.FlingSpeed(flungAt + 6 * 0.016 + 0.004);
+                double flingLate = pet.FlingSpeed(flungAt + 6 * 0.016 + Pet.FlingSpan + 0.01);
+                int flingsBefore = pet.Flings;
+                pet.LetGoFast(true, flungAt + 6 * 0.016 + 0.004);
+                bool shiftKept = pet.Flings == flingsBefore && pet.FlingSpeed(flungAt + 6 * 0.016 + 0.004) == 0;
+                for (int i = 0; i <= 6; i++) pet.NoteDrag(new PixelPoint(flingFrom.X + (int)Math.Round(36 * pet.DesktopScaling) * i, flingFrom.Y), flungAt + i * 0.016);
+                pet.LetGoFast(false, flungAt + 6 * 0.016 + 0.004);
+                bool flingCounted = pet.Flings == flingsBefore + 1 && pet.ThrowsCounted == 1;
+                pet.Forgive();
+                pet.Talk.Dismiss();
+                if (!softFirst || !warned || !sulked || !apart || flingFast < Pet.FlingFrom || flingLate != 0 || !shiftKept || !flingCounted)
+                    throw new Exception("Her grudge went wrong: soft first " + softFirst + ", warned " + warned + ", sulked " + sulked + " (" + pet.LastYelp + "), apart " + apart + ", fling speed " + (int)flingFast + " / late " + flingLate + ", shift drop kept " + shiftKept + ", fast let-go counted " + flingCounted);
+                checks.Add("PASS her grudge: a fast fling counts as a throw, a soft first one gets no line, the second in " + (int)Sulks.Window + " s a warning and the third her sulk, throws further apart don't add up, and a slow, late or Shift let-go isn't a throw");
+                double sulkAt = pet.Now;
+                pet.Sulk(sulkAt);
+                int refusedBefore = pet.PatsRefused, patsWere = pet.Pets;
+                pet.LastYelp = null;
+                pet.Pat();
+                bool patRefused = pet.Sulking && pet.PatsRefused == refusedBefore + 1 && pet.Pets == patsWere && Array.IndexOf(Sulks.PatNoLines, pet.LastYelp) >= 0;
+                pet.Talk.Dismiss();
+                pet.Sulk(pet.Now - Sulks.PatsAfter - 1);
+                pet.Pat();
+                bool patForgave = !pet.Sulking && pet.Pets == patsWere + 1;
+                pet.PetLine(pet.Pets);
+                bool patPeace = Array.IndexOf(Sulks.PatPeaceLines, pet.Talk.Bubble.Sheet.Reply) >= 0;
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                pet.Sulk(pet.Now);
+                pet.CheckSulk(pet.Now + Sulks.Alone - 1);
+                bool aloneHeld = pet.Sulking;
+                pet.CheckSulk(pet.Now + Sulks.Alone + 1);
+                bool aloneOver = !pet.Sulking;
+                pet.Talk.Dismiss();
+                pet.Sulk(pet.Now);
+                pet.Hear("I'm sorry Capri");
+                bool sorryOver = !pet.Sulking && Array.IndexOf(Sulks.SorryLines, pet.Talk.Reply) >= 0;
+                string sorrySaid = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                bool awayRight = Sulks.Away(500, 600, 40, false), awayLeft = !Sulks.Away(500, 400, 40, true), awayHeld = Sulks.Away(500, 520, 40, true) && !Sulks.Away(500, 480, 40, false);
+                if (!patRefused || !patForgave || !patPeace || !sorryOver || !aloneHeld || !aloneOver || !awayRight || !awayLeft || !awayHeld)
+                    throw new Exception("Her sulk went wrong: pat turned down at first " + patRefused + ", pat later forgave " + patForgave + " with a peace line " + patPeace + ", sorry " + sorryOver + " (" + sorrySaid + "), five minutes alone held " + aloneHeld + " then ended it " + aloneOver + ", turned away " + awayRight + " / " + awayLeft + " / " + awayHeld);
+                checks.Add("PASS her sulk: she turns down a head pat in her first " + (int)Sulks.PatsAfter + " s, a pat after that or a plain sorry makes up with her, five minutes alone ends it, and on her feet she turns her back on their cursor");
                 pet.SetWander(3);
                 pet.SetLanguage("French");
                 pet.SetReplies(1);
@@ -309,6 +376,13 @@ namespace CapriDesktop
                 pet.SetSounds(60);
                 pet.Dancing = false;
                 if (Brain.Language != null || pet.Saved.Language != null || pet.Picked != "Stay put | English | Short | Short | Normal | Dance to music") throw new Exception("Menu settings didn't go back: " + pet.Picked);
+                for (int i = 0; i < Brain.Languages.GetLength(0); i++)
+                    if (Pet.WordTable(Lingo.Slug(Brain.Languages[i, 1])) == null) throw new Exception("No settings words for " + Brain.Languages[i, 1] + ".");
+                Lingo.Use("German");
+                string germanWords = MainframeTheme.Fitted("Advanced Settings", 100000), germanFive = Lingo.Of("5 min");
+                Lingo.Use(null);
+                if (germanWords == "Advanced Settings" || germanFive.IndexOf('5') < 0 || MainframeTheme.Fitted("Advanced Settings", 100000) != "Advanced Settings") throw new Exception("Her Mainframe's words didn't follow German, or English changed: " + germanWords + " / " + germanFive);
+                checks.Add("PASS her settings in their language: her Mainframe's words ship for all " + Brain.Languages.GetLength(0) + " of her languages, German draws them in German with numbers in place, and English is untouched");
                 Func<System.Collections.IEnumerable, string, MenuItem> menuRow = delegate(System.Collections.IEnumerable rows, string header) { foreach (object row in rows) if (row is MenuItem item && item.Header as string == header) return item; return null; };
                 Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
                 MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");
@@ -726,6 +800,7 @@ namespace CapriDesktop
                 MacFingers.Checks(checks);
                 MacClickChecks();
                 MacRoutes.Checks(checks);
+                LinuxRoutes.Checks(checks);
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -1062,6 +1137,53 @@ namespace CapriDesktop
                     && Pet.LookAsk.IndexOf("The small red-haired anime girl with a speech bubble is Capri, the desktop companion, not part of their screen", StringComparison.Ordinal) > 0;
                 if (!glancesKept || !toldMirror) throw new Exception("Her own sprite in screenshots went wrong: kept " + glancesKept + ", told " + toldMirror + " | " + queued.Replace("\n", " | "));
                 checks.Add("PASS her own sprite: her glance and check-my-screen prompts say the red-haired anime girl with the speech bubble is her, not part of their screen, and her glances go in the transcript but never into memories.md, while a look they asked for still does");
+                Func<string> treeWas = TreeSight.Read;
+                Func<string, string, bool> treeSkipWas = TreeSight.Skip;
+                try
+                {
+                    TreeSight.Skip = delegate(string program, string title) { return program == "Hidden"; };
+                    string treeRead = TreeSight.Parse("Files\tDocuments - Files\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\"\n");
+                    bool treeShaped = treeRead == "Window: \"Documents - Files\" (Files)\nbutton \"New Folder\"\nbox \"Password\" (password box) (focused)\nlabel \"12 items\""
+                        && TreeSight.Parse("Hidden\tSecret chat\nbutton \"Send\"") == null && TreeSight.Parse("Files\tEmpty\n\n") == null && TreeSight.Parse("no tab here") == null && TreeSight.Parse(null) == null
+                        && TreeSight.Prompt(treeRead) == "\n\n" + TreeSight.Trust + "\n" + treeRead && TreeSight.Prompt(null) == "" && TreeSight.Seen(treeRead) == "\nExact details from their window: " + treeRead && TreeSight.Seen(" ") == "";
+                    TreeSight.Read = delegate { System.Threading.Thread.Sleep(3000); return "late"; };
+                    DateTime treeStarted = DateTime.UtcNow;
+                    bool treeQuick = TreeSight.Finish(TreeSight.Start(), 200) == null && (DateTime.UtcNow - treeStarted).TotalMilliseconds < 2000 && TreeSight.Finish(null, 200) == null;
+                    TreeSight.Read = delegate { throw new InvalidOperationException("no bus"); };
+                    bool treeQuiet = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    TreeSight.Read = treeWas;
+                    bool treeOffInSmoke = TreeSight.Finish(TreeSight.Start(), 2000) == null;
+                    DateTime spiStarted = DateTime.UtcNow;
+                    string spi = OperatingSystem.IsLinux() ? TreeSight.Spi() : null;
+                    bool spiBounded = (DateTime.UtcNow - spiStarted).TotalMilliseconds < TreeSight.Wait + 2000 && (spi == null || spi.StartsWith("Window: ", StringComparison.Ordinal));
+                    if (!treeShaped || !treeQuick || !treeQuiet || !treeOffInSmoke || !spiBounded) throw new Exception("Her tree eyes went wrong: shaped " + treeShaped + ", quick " + treeQuick + ", quiet " + treeQuiet + ", off in smoke " + treeOffInSmoke + ", at-spi " + spiBounded + " | " + treeRead + " | " + spi);
+                }
+                finally
+                {
+                    TreeSight.Read = treeWas;
+                    TreeSight.Skip = treeSkipWas;
+                }
+                Func<bool> macTrustWas = MacTree.Trusted;
+                try
+                {
+                    bool macAsked = false;
+                    MacTree.Trusted = delegate { macAsked = true; return false; };
+                    bool macUntrusted = MacTree.Read() == null && macAsked == OperatingSystem.IsMacOS();
+                    MacTree.Trusted = macTrustWas;
+                    DateTime macStarted = DateTime.UtcNow;
+                    string macRead = OperatingSystem.IsMacOS() ? MacTree.Read() : null;
+                    bool macBounded = (DateTime.UtcNow - macStarted).TotalMilliseconds < 6000 && (macRead == null || macRead.StartsWith("Window: ", StringComparison.Ordinal));
+                    bool macLines = MacTree.Line("AXButton", "Save", null, false, false) == "button \"Save\""
+                        && MacTree.Line("AXSecureTextField", "Password", "hunter2", true, false) == "box \"Password\" (password box) (focused)"
+                        && MacTree.Line("AXTextField", "Email", "me@example.com", false, true) == "box \"Email\""
+                        && MacTree.Line("AXTextField", "Search", "cats", false, false) == "box \"Search: cats\""
+                        && MacTree.Line("AXStaticText", "", "12 items", false, false) == "text \"12 items\""
+                        && MacTree.Line("AXGroup", "Toolbar", null, false, false) == null && MacTree.Line("AXButton", " ", "", false, false) == null && MacTree.Line(null, "x", "y", false, false) == null;
+                    if (!macUntrusted || !macBounded || !macLines) throw new Exception("Her mac tree eyes went wrong: untrusted " + macUntrusted + ", bounded " + macBounded + ", lines " + macLines + " | " + macRead);
+                }
+                finally { MacTree.Trusted = macTrustWas; }
+                checks.Add("PASS her tree eyes on mac: she reads the window in front through Accessibility only when Capri already has that permission, never asks for it, keeps password boxes empty and typed text hidden while discreet, and an unreadable window falls back to the screenshot");
+                checks.Add("PASS her tree eyes on linux: a look reads the window in front from AT-SPI as names and text beside the screenshot, password boxes stay empty, a never-watch window or an empty read gives nothing, and a slow or missing accessibility bus never holds up her look");
                 bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
                 if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
                 // Their personality.md takes her default's place, with her safety lines still after it, and Reset puts her back.
@@ -2825,7 +2947,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Room camera (preview):", "Photos:", "Phone:", "Phone jobs:", "JOBS", "Files:", "Mouse and keyboard:", "Error details:" } : new[] { "Room camera (preview):", "Photos:", "Phone:", "Phone jobs:", "JOBS", "Files:", "Mouse:", "Screen Recording:", "Error details:" })
+                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Weather:", "Open-Meteo", "Pats:", "Talk boxes:", "Sulks:", "Your screen:", "Capri Remote:" } : new[] { "Weather:", "Open-Meteo", "Pats:", "Talk boxes:", "Sulks:", "Your screen:", "Updates:", "Get new version", "Capri Remote:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
@@ -4184,6 +4306,7 @@ namespace CapriDesktop
                 if (pet.Talk.Reply != "New answer.") throw new Exception("A new answer did not drop the old follow-up.");
                 pet.Talk.Dismiss(); pet.HoldFollowUp("Off."); pet.SetFollowUps(false); pet.CheckFollowUp(100); pet.CheckFollowUp(103);
                 if (pet.Talk.Reply != null) throw new Exception("Follow-up messages Off kept a held thought.");
+                typeof(Pet).GetField("inputHandled", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).SetValue(pet, 100.0);
                 pet.SetFollowUps(true); pet.ObserveInput(200, 200, 20); pet.HoldFollowUp("Other typing."); pet.CheckFollowUp(100); pet.ObserveInput(201, 201, 0); pet.CheckFollowUp(103);
                 if (pet.Talk.Reply != null) throw new Exception("Desktop input did not drop the follow-up.");
                 pet.ObserveInput(400, 400.02, 20); pet.HoldFollowUp("Quiet desktop."); pet.CheckFollowUp(100); pet.ObserveInput(400.5, 400.54, 20.52); pet.CheckFollowUp(102);
@@ -6885,7 +7008,7 @@ namespace CapriDesktop
                             string path = head.Split(' ')[1];
                             string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
                             lock (brainAsked) { brainAsked.Add(path + " " + body); brainHeads.Add(head); }
-                            string reply = path == "/v1/models" ? "{\"object\":\"list\",\"data\":[{\"id\":\"qwen-test\"},{\"id\":\"nomic-embed\"},{\"id\":\"llama-test\"}]}"
+                            string reply = path == "/v1/models" ? "{\"object\":\"list\",\"data\":[{\"id\":\"meta-llama/llama-prompt-guard-2-86m\"},{\"id\":\"whisper-large-v3\"},{\"id\":\"qwen-test\"},{\"id\":\"nomic-embed\"},{\"id\":\"playai-tts\"},{\"id\":\"llama-test\"}]}"
                                 : path == "/v1/chat/completions" ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Server says hi, choom.\"},\"finish_reason\":\"stop\"}]}" : "{}";
                             byte[] bytes = Encoding.UTF8.GetBytes(reply);
                             byte[] top = Encoding.ASCII.GetBytes("HTTP/1.1 " + (reply == "{}" ? "404 Error" : "200 OK") + "\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
@@ -6900,7 +7023,8 @@ namespace CapriDesktop
             serve.Start();
             string address = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port;
             string[] models = Brain.ServerModels(address);
-            fail("its models", models.Length == 2 && models[0] == "qwen-test" && models[1] == "llama-test");
+            fail("its chat models, without guard, whisper, tts or embed ones", models.Length == 2 && models[0] == "qwen-test" && models[1] == "llama-test");
+            fail("a provider's per-minute limit, not no credits", Brain.Meaning(413, "{\"error\":{\"message\":\"Request too large on tokens per minute (TPM). Upgrade at https://console.groq.com/settings/billing\",\"code\":\"rate_limit_exceeded\"}}") == Brain.TooBig && Brain.Meaning(402, "") == Brain.NoCredits);
             string[] keyedModels = Brain.ServerModels(address, "secret-key");
             fail("a provider key reaches its models", keyedModels.Length == 2 && brainHeads.Exists(delegate(string head) { return head.StartsWith("GET /v1/models", StringComparison.Ordinal) && head.IndexOf("Authorization: Bearer secret-key", StringComparison.OrdinalIgnoreCase) >= 0; }));
             Brain thinker = new Brain { Server = address, Model = "llama-test" };
@@ -6923,7 +7047,7 @@ namespace CapriDesktop
             catch (Exception) { down = true; }
             fail("a server that's down throws for her to explain", down);
             if (wrong.Count > 0) throw new Exception("Her own brain server went wrong: " + string.Join(", ", wrong) + " / " + said + " / " + chat);
-            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
+            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, guard, whisper or tts models, reads a per-minute 413 as too big rather than no credits, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
         }
 
         private void LinuxInputChecks()
@@ -7927,7 +8051,14 @@ namespace CapriDesktop
         {
             RemoteState state = RemoteState.Fresh();
             using RemoteWire wire = new RemoteWire(state);
-            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair") throw new Exception("Remote text core offered unsupported features.");
+            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair,wake") throw new Exception("Remote text core offered unsupported features.");
+            RemoteJson.Map woke = RemoteJson.ParseMap(RemoteWake.Info());
+            if (woke == null || woke.Text("type") != "wake.info" || woke.Items("cards") == null || woke.Items("cards").Count > 4) throw new Exception("Remote wake info was malformed.");
+            foreach (object item in woke.Items("cards"))
+            {
+                RemoteJson.Map card = item as RemoteJson.Map;
+                if (card == null || !System.Text.RegularExpressions.Regex.IsMatch(card.Text("mac") ?? "", "^[0-9A-F]{2}(:[0-9A-F]{2}){5}$") || !IPAddress.TryParse(card.Text("broadcast") ?? "", out _)) throw new Exception("Remote wake info had a bad card.");
+            }
             RemoteView view = new RemoteView { On = true, Ready = wire.Link.Ready, Status = wire.Link.Status };
             RemoteSink sink = new RemoteLinkSink(wire.Link);
             byte[] nonce = new byte[16];

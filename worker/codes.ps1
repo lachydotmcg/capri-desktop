@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('new', 'list', 'off', 'on', 'limit', 'days')]
+    [ValidateSet('new', 'list', 'off', 'on', 'limit', 'days', 'stats-key')]
     [string]$Action,
     [Parameter(Position = 1)]
     [string]$Who,
@@ -39,6 +39,13 @@ try {
     if ($Action -eq 'list') {
         $answer = Invoke-RestMethod -Uri $address -Headers $headers -Method Get
         $answer.codes | Select-Object id, name, kind, tag, @{Name = 'dollars'; Expression = { if ($_.kind -eq 'staff' -and $_.dollars -eq 0) { 'no limit' } else { $_.dollars } } }, spent, @{Name = 'left'; Expression = { if ($null -eq $_.left) { 'no limit' } else { $_.left } } }, @{Name = 'expires'; Expression = { if ($_.expires) { [DateTimeOffset]::FromUnixTimeMilliseconds([long]$_.expires).LocalDateTime.ToString('yyyy-MM-dd HH:mm') } else { 'never' } } }, off, requests, @{Name = 'used'; Expression = { if ($_.used) { [DateTimeOffset]::FromUnixTimeMilliseconds([long]$_.used).LocalDateTime.ToString('yyyy-MM-dd HH:mm') } else { '' } } } | Format-Table -AutoSize
+    } elseif ($Action -eq 'stats-key') {
+        $body = $(if ($Who -eq 'off') { '{"off":true}' } else { '{}' })
+        $answer = Invoke-RestMethod -Uri ($address + '/stats-key') -Headers $headers -Method Post -ContentType 'application/json' -Body $body
+        if ($answer.off) { 'The stats key is off. Nothing can read /stats until you make a new one.' } else {
+            $answer.key
+            'This read-only stats key replaces any older one. Save it as CAPRI_STATS_KEY; it is shown only now.'
+        }
     } elseif ($Action -eq 'new') {
         $sent = @{ name = $Who; kind = $(if ($Staff) { 'staff' } else { 'giveaway' }); dollars = $Dollars; days = $Days }
         if ($PSBoundParameters.ContainsKey('Tag')) { $sent.tag = $Tag }

@@ -164,6 +164,17 @@ namespace CapriDesktop
         private const string Sounds = "emphasis|gasping|yawning|snoring|clear throat|clears throat|long-break|break|laughs?|giggl(?:e|es|ing)|chuckles?|sighs?|gasps?|whispers?|sobs?|cr(?:ying|ies)|sniffl(?:e|es|ing)|groans?|yawns?|scoff(?:s|ing)?|snorts?|hum(?:s|ming)?|pauses?|teasing(?:ly)?|playful(?:ly)?|smug(?:ly)?|flirt(?:y|atious|atiously)|sweetly|softly|warm(?:ly)?|cheerful(?:ly)?|mischievous(?:ly)?|annoyed|pout(?:s|ing)?|gentl(?:e|y)|shy(?:ly)?|sleepy|tired|dramatic(?:ally)?|mock(?:ing|ingly)?|sing(?:s|ing)|cheeky|deadpan|quietly|loudly|evil";
         internal static readonly Regex Cue = new Regex(@"\[\s*(?<cue>(?:(?:very|slightly|extremely|really|super|so|quite|a bit|a little|kind of|kinda)\s+)?(?:" + Feelings + "|" + Sounds + @")(?:[\s-]+[a-z']+){0,3})\s*\](?!\()|\(\s*(?<cue>(?!moved\b)(?:" + Feelings + @"))\s*\)", RegexOptions.IgnoreCase);
 
+        internal static string FeelingOf(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            try
+            {
+                Match found = Cue.Match(text);
+                return found.Success ? found.Groups["cue"].Value.Trim().ToLowerInvariant() : null;
+            }
+            catch (Exception) { return null; }
+        }
+
         // What she says without its cues: her bubble, her history and every voice but Fish Audio's. A cue takes the space after
         // it, or the one before it when it ends a sentence, so the words around it close up.
         internal static string Uncued(string text)
@@ -765,6 +776,72 @@ namespace CapriDesktop
                 samples[i] = (short)(Math.Max(-1, Math.Min(1, smooth * envelope / 1.4)) * peak * 32767);
             }
             return samples;
+        }
+    }
+
+    internal static class VoiceFeel
+    {
+        private static readonly object[,] Moves =
+        {
+            { "excited", 2, 112, 104 }, { "thrilled", 2, 114, 105 }, { "elated", 2, 112, 104 },
+            { "hyper", 3, 122, 106 }, { "giddy", 3, 118, 104 }, { "eager", 2, 110, 103 },
+            { "happy", 2, 106, 102 }, { "joyful", 2, 108, 103 }, { "delighted", 2, 107, 103 },
+            { "laughing", 2, 108, 103 }, { "giggling", 2, 110, 102 }, { "chuckling", 1, 104, 100 },
+            { "playful", 2, 106, 102 }, { "cheeky", 2, 105, 102 }, { "mischievous", 2, 104, 101 },
+            { "surprised", 3, 116, 106 }, { "gasping", 3, 118, 106 },
+            { "sad", -2, 90, 96 }, { "unhappy", -2, 92, 96 }, { "disappointed", -1, 92, 96 },
+            { "mournful", -2, 86, 93 }, { "wistful", -1, 90, 95 }, { "lonely", -2, 88, 93 },
+            { "depressed", -2, 85, 91 }, { "resigned", -1, 90, 94 }, { "bored", -1, 96, 96 },
+            { "sleepy", -1, 84, 94 }, { "tired", -1, 86, 95 }, { "yawning", -1, 82, 93 },
+            { "sighing", -1, 92, 95 }, { "sobbing", 1, 92, 96 }, { "crying loudly", 1, 96, 108 },
+            { "wanting", 1, 92, 97 }, { "needy", 1, 94, 97 }, { "longing", 0, 90, 95 },
+            { "breathless", 1, 104, 95 }, { "tender", 1, 94, 97 }, { "affectionate", 1, 96, 99 },
+            { "loving", 1, 95, 99 }, { "flirty", 1, 96, 99 }, { "sweetly", 1, 97, 99 },
+            { "warmly", 1, 97, 100 }, { "gently", 0, 94, 96 }, { "softly", 0, 94, 88 },
+            { "whispering", 0, 94, 70 }, { "soft tone", 0, 95, 82 }, { "quietly", 0, 96, 78 },
+            { "shouting", 1, 108, 128 }, { "screaming", 2, 112, 132 }, { "loudly", 1, 104, 122 },
+            { "angry", -1, 108, 112 }, { "furious", -1, 112, 118 }, { "frustrated", -1, 106, 108 },
+            { "upset", 1, 104, 104 }, { "disgusted", -1, 98, 102 }, { "contemptuous", -1, 96, 102 },
+            { "nervous", 1, 110, 97 }, { "anxious", 1, 110, 97 }, { "worried", 1, 104, 98 },
+            { "scared", 2, 112, 98 }, { "embarrassed", 1, 102, 94 }, { "flustered", 2, 110, 97 },
+            { "sarcastic", -1, 96, 100 }, { "smug", -1, 97, 101 }, { "teasing", 0, 98, 101 },
+            { "deadpan", -1, 96, 99 }, { "mocking", 0, 100, 101 }, { "indifferent", -1, 97, 97 },
+            { "proud", 0, 102, 106 }, { "confident", 0, 102, 105 }, { "determined", 0, 104, 106 },
+            { "curious", 1, 104, 100 }, { "hopeful", 1, 103, 100 }, { "grateful", 1, 99, 100 },
+            { "calm", 0, 95, 98 }, { "relaxed", 0, 94, 98 }
+        };
+
+        private static readonly string[] More = { "extremely", "really", "very", "super", "so" };
+        private static readonly string[] Less = { "slightly", "a bit", "a little", "kind of", "kinda", "quite" };
+
+        internal static bool Shift(string cue, out int pitch, out int pace, out int loud)
+        {
+            pitch = 0;
+            pace = 100;
+            loud = 100;
+            if (string.IsNullOrEmpty(cue)) return false;
+            string said = cue.Trim().ToLowerInvariant();
+            double strength = 1;
+            foreach (string word in More) if (said.StartsWith(word + " ", StringComparison.Ordinal)) { strength = 1.5; said = said.Substring(word.Length + 1); break; }
+            if (strength == 1)
+                foreach (string word in Less) if (said.StartsWith(word + " ", StringComparison.Ordinal)) { strength = 0.5; said = said.Substring(word.Length + 1); break; }
+
+            int found = -1;
+            for (int at = 0; at < Moves.GetLength(0); at++)
+            {
+                string name = (string)Moves[at, 0];
+                if (!said.Equals(name, StringComparison.Ordinal) && !said.StartsWith(name + " ", StringComparison.Ordinal)) continue;
+                found = at;
+                break;
+            }
+            if (found < 0) return false;
+            pitch = (int)Math.Round((int)Moves[found, 1] * strength);
+            pace = 100 + (int)Math.Round(((int)Moves[found, 2] - 100) * strength);
+            loud = 100 + (int)Math.Round(((int)Moves[found, 3] - 100) * strength);
+            pitch = Math.Max(-3, Math.Min(3, pitch));
+            pace = Math.Max(70, Math.Min(140, pace));
+            loud = Math.Max(55, Math.Min(140, loud));
+            return pitch != 0 || pace != 100 || loud != 100;
         }
     }
 

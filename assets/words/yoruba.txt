@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Àwọ̀ tí a tún kùn kò tún wà ní àwòrán.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Kọ́kọ́rọ́ ọ̀fẹ́ láti Google AI Studio, NVIDIA tàbí OpenRouter. Kò sí ohun láti gbà. Ó nílò ìsopọ̀ ayélujára.
+A held trackpad scroll got a flick's long ease:	Yíyí ìká tábà tí a dì mú gba ìrìn lọ́ra gígùn ti ìfàsẹ́yìn:
+A layout change during a slide put the page at	Àyípadà ìṣètò nígbà ìyípo mú ojú ìwé lọ sí
+A layout change left the picture up.	Àyípadà ìṣètò fi àwòrán sílẹ̀.
+A model in Ollama, on your local server or on your key.	Àwòṣe kan nínú Ollama, lórí olùpèsè rẹ tàbí pẹ̀lú kọ́kọ́rọ́ rẹ.
+A paid key goes under MAX INTELLIGENCE by itself.	Kọ́kọ́rọ́ tí a san owó fún ń lọ sí MAX INTELLIGENCE fúnra rẹ̀.
+A plan you already pay for, a key of your own, or Ollama.	Ètò tí o ti ń san owó fún, kọ́kọ́rọ́ tìrẹ, tàbí Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Àkójọ ohùn kò ní ẹ̀dà tirẹ̀ ti fọ́ǹtì páálì náà.
+A wheel turn right after a slide ended froze the picture.	Yíyí kẹ̀kẹ́ Asin lẹ́yìn ìparí ìyípo dá àwòrán dúró.
+ALLOW THIS PHONE?	ṢÉ O FẸ́ FI ÀYÍKA FÓNÌ YÌÍ ÀYÈ?
+ALMOST THERE >	Ó FẸ́RẸ̀ DÉ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI MÍÌ TI GBA ÌJỌBA · PA Á, LẸ́YÌN NÁÀ TAN Ẹ
+API key	Kọ́kọ́rọ́ API
+API key, Claude plan or ChatGPT plan	Kọ́kọ́rọ́ API, ètò Claude tàbí ètò ChatGPT
+Add	Fi kun
+Address	Àdírẹ́sì
+Address and key saved. Use saved to reconnect.	A ti fi àdírẹ́sì àti kọ́kọ́rọ́ pamọ́. Lo èyí tí a fipamọ́ láti tún sopọ̀.
+Advanced Settings	Ètò Àfikún
+All	Gbogbo
+All screens	Gbogbo ìbòjú
+Allow	Gbà láàyè
+Almost there. I'll say hi the second my brain's in.	Ó fẹ́rẹ̀ dé. Màá kí ọ ní ìṣẹ́jú-àáyá tí ọpọlọ mi bá ti wà.
+Always	Nígbàgbogbo
+Always on top	Nígbàgbogbo lórí
+Any Google account works. I opened the page in your browser.	Àkáántì Google èyíkéyìí ló ṣiṣẹ́. Mo ṣí ojú ìwé náà nínú ẹ̀rọ aṣàwákiri rẹ.
+Applies to every voice	Ó kan gbogbo ohùn
+Apps she may close	Àwọn ohun èlò tó lè ti pa
+Ask Capri for more	Béèrè fún Capri ní ìdàgbàsókè
+Asking your server...	Ń béèrè lọ́wọ́ olùpèsè rẹ...
+Asks before closing only the apps you choose.	Ó máa bèèrè kí o tó pa àwọn ohun èlò tí o yàn nìkan.
+Auto	Aládàáṣe
+Automatic: VB-CABLE, else Steam's	Aládàáṣe: VB-CABLE, bí kò bá sí, ti Steam
+BAD RELAY HOST	ÌSỌPỌ̀ RELAY BURÚ
+BIG Z open notepad	BIG Z ṣí notepad
+BRAIN	ỌPỌLỌ
+BRAIN >	ỌPỌLỌ >
+BRAIN ONLINE >	ỌPỌLỌ LÓRÍ ÌKÀNSÍ >
+BRAIN PROVIDER >	OLÙPÈSÈ ỌPỌLỌ >
+BRAIN VOICE CAPRI	OHÙN ỌPỌLỌ CAPRI
+Back	Padà
+Back on your saved API key.	O ti padà sí kọ́kọ́rọ́ API tí a fipamọ́ rẹ.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Ohun tó dára jù fún PC yìí:
+Black	Dúdú
+Blank key means no key.	Kọ́kọ́rọ́ òfo túmọ̀ sí kò sí kọ́kọ́rọ́.
+Brain API key	Kọ́kọ́rọ́ API ọpọlọ
+Brain model	Àwòṣe ọpọlọ
+Brain provider	Olùpèsè ọpọlọ
+Bring here	Mú wá síbí
+Bring to this screen	Mú wá sí ìbòjú yìí
+Browse	Wá kiri
+Browse mods	Wá kiri mods
+Browse to a voice model	Wá àwòṣe ohùn kan
+Browse...	Wá kiri...
+Bubble	Àkùkọ
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree o wà níbẹ̀ bí?
+CAN'T REACH THE RELAY · RETRYING	KÒ LÈ DÉ RELAY · Ń TÚN GBIYANJÚ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	OHÙN ỌPỌLỌ CAPRI
+CHANGED, approve it again.	A ti YÍ PADA, fọwọ́ sí i lẹ́ẹ̀kan sí i.
+CLIPS >	ÀJẸKÙ >
+CLOUD VOICE	OHÙN AWỌSÁNMỌ́
+CODE	KÓÒDÙ
+COLORS >	ÀWỌ̀ >
+CONNECTED	TI SOPỌ̀
+CONNECTING	Ń SOPỌ̀
+CUSTOM LOCAL	AGBEGBE ÀDÁDÁ
+Call mode (beta)	Ipò ìpè (beta)
+Call mode does not fit.	Ipò ìpè kò wọ̀.
+Call mode is outside its space.	Ipò ìpè wà lẹ́yìn àyè rẹ̀.
+Cancel	Fagilee
+Cancel keys	Fagilee àwọn bọ́tìnì
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Latọna jíjìn
+Capri code:	Kóòdù Capri:
+Capri mods (*	Mods Capri (*
+Capri, hello	Capri, báwo
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Rúdurùdu nígbà tí ó bá bínú
+Chat with Capri from your phone	Bá Capri sọ̀rọ̀ láti fóònù rẹ
+ChatGPT plan	Ètò ChatGPT
+Check for updates	Ṣayẹ̀wò fún àtúnṣe
+Check in on me	Wá wò mí
+Check in on me is hidden	Wò mí ti farapamọ́
+Check in on me still decides whether she visits.	Wò mí ṣì pinnu bóyá ó máa wá.
+Check in on me's tip missed	Àmì Wò mí ti sọnù
+Chess	Chess
+Choose apps	Yan àwọn ohun èlò
+Choose folder...	Yan àpò...
+Choose where future Capri clips are saved	Yan ibi tí àwọn ajẹkù Capri ọjọ́ iwájú yóò ti wà
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Ètò Claude tàbí ChatGPT, kọ́kọ́rọ́ tí a san owó fún (OpenAI, Claude, DeepSeek), tàbí Ollama.
+Claude plan	Ètò Claude
+Clear	Ko kuro
+Cleared.	Ti ko kuro.
+Click Confirm to keep Down, or press Esc.	Tẹ Jẹ́rìísí láti pa Down mọ́, tàbí tẹ Esc.
+Click to open it.	Tẹ láti ṣí i.
+Clip my games	Ṣe àjẹkù àwọn ere mi
+Clips	Àwọn ajẹkù
+Close	Pa
+Close other AIs for me	Pa àwọn AI mìíràn fún mi
+Cloud voice	Ohùn awọsánmọ́
+Cloud voice service	Iṣẹ́ ohùn awọsánmọ́
+Cloud voice setup	Ìṣètò ohùn awọsánmọ́
+Code mods can reach your whole PC. Only trusted ones.	Àwọn mod kóòdù lè dé gbogbo PC rẹ. Àwọn tí o gbẹ́kẹ̀lé nìkan.
+Code/Husk Mode	Ipò Kóòdù/Husk
+Codex	Codex
+Commands	Àwọn àṣẹ
+Comment on my games	Ṣe ọ̀rọ̀ lórí àwọn ere mi
+Comments	Àwọn ọ̀rọ̀ ìfiwéra
+Confirm	Jẹ́rìísí
+Confirm keys	Jẹ́rìísí àwọn bọ́tìnì
+Connect	Sopọ̀
+Connect / Forget brain key	Sopọ̀ / gbàgbé kọ́kọ́rọ́ ọpọlọ
+Connect / Forget voice key	Sopọ̀ / gbàgbé kọ́kọ́rọ́ ohùn
+Connect four	Mẹ́rin lórí ọ̀wọ́n
+Controls	Àwọn ìṣakoso
+Copri, what time is it	Copri, aago mélòó ni
+Copy error details	Daakọ àlàyé àṣìṣe
+Copy the key	Daakọ kọ́kọ́rọ́ náà
+Copy the key from the page, then press Paste.	Daakọ kọ́kọ́rọ́ láti ojú ìwé, lẹ́yìn náà tẹ Lẹ̀mọ́.
+Couldn't open that page:	Kò lè ṣí ojú ìwé yẹn:
+Couldn't open that:	Kò lè ṣí èyí:
+Couldn't open the mods folder:	Kò lè ṣí àpò mods:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M ti jẹ́ bọ́tìnì Mainframe rẹ̀ tẹ́lẹ̀.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N pa maikirofónù
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V ti jẹ́ bọ́tìnì ọ̀rọ̀ rẹ̀ tẹ́lẹ̀.
+Ctrl + Alt + V to talk	Ctrl + Alt + V láti sọ̀rọ̀
+Custom local voice	Ohùn agbègbè àtúnṣe
+Custom model name	Orúkọ àwòṣe àtúnṣe
+Dance	Ijó
+Dance to music	Jó sí orin
+Default	Àìyípadà
+Default (follows Windows)	Àìyípadà (tẹ̀lé Windows)
+Default duration for clip that and automatic clips	Àkókò àìyípadà fún clip that àti àwọn ajẹkù aládàáṣe
+Default length	Gígùn àìyípadà
+Default model	Àwòṣe àìyípadà
+Delay	Ìdádúró
+Deny	Kọ̀
+Discard	Sọ nù
+Discard + reload	Sọ nù + tún gbé
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ṣé o kò fẹ́ dúró? Kọ́kọ́rọ́ ọ̀fẹ́ kan yóò mú mi sọ̀rọ̀ ní nǹkan bí ìṣẹ́jú kan.
+Done	Parí
+EXTRA REQUEST JSON >	ÌBÉÈRÈ JSON AFIKÚN >
+EXTRAS >	AFIKÚN >
+Edit	Ṣatunkọ
+Edit check-in lines	Ṣatunkọ àwọn ìlà ìwọlé
+Edit check-in lines has the wrong view or dimming	Ṣíṣatunkọ àwọn ìlà ìwọlé ní ìwòye tàbí ìdínkù tí kò tọ́
+Edit check-in lines is out of place	Ṣíṣatunkọ àwọn ìlà ìwọlé kò sí ààyè rẹ̀
+Edit controls	Ṣatunkọ àwọn ìṣakoso
+ElevenLabs API key	Kọ́kọ́rọ́ API ElevenLabs
+ElevenLabs voice ID	ID ohùn ElevenLabs
+English	Gẹ̀ẹ́sì
+Enter the game's name first.	Kọ́kọ́ tẹ orúkọ eré náà.
+Every	Gbogbo
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	A ṣàyẹ̀wò gbogbo mod fún malware kí a tó gbé e sókè. Àwọn mod kóòdù ṣì ń béèrè kí wọ́n tó ṣiṣẹ́.
+Explore after	Ṣàwárí lẹ́yìn
+Explore while I'm away	Ṣàwárí nígbà tí mo bá lọ
+Extra request JSON	JSON ìbéèrè afikún
+Extras	Àfikún
+FREE KEY	KỌ́KỌ́RỌ́ ỌFẸ́
+FREE KEY >	KỌ́KỌ́RỌ́ ỌFẸ́ >
+Fast hands in games	Ọwọ́ yára nínú àwọn eré
+File editor	Olóòtú fáìlì
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs àti díẹ̀ sí i wà lábẹ́ OHÙN nínú Mainframe.
+Follow-up messages	Àwọn ifiranṣẹ atẹ̀lé
+Forget	Gbàgbé
+Fork capri-mods	Fọọ́kì capri-mods
+Frame rate	Iyara fireemu
+Free	Ọ̀fẹ́
+Free and private, works offline. Downloads	Ọ̀fẹ́ àti àṣírí, ó ń ṣiṣẹ́ láìsí ayélujára. Ó ń gbà
+Free and private, works offline. Downloads the best model for this PC.	Ọ̀fẹ́ àti àṣírí, ó ń ṣiṣẹ́ láìsí ayélujára. Ó ń gba àwòṣe tó dára jù fún PC yìí.
+Free key	Kọ́kọ́rọ́ ọ̀fẹ́
+Free key providers	Àwọn olùpèsè kọ́kọ́rọ́ ọ̀fẹ́
+Free keys can be rate limited and slow.	Àwọn kọ́kọ́rọ́ ọ̀fẹ́ lè ní ààlà ìyára àti lọ́ra.
+Free voice in games	Ohùn ọ̀fẹ́ nínú àwọn eré
+Free voice style	Àṣà ohùn ọ̀fẹ́
+Free voice:	Ohùn ọ̀fẹ́:
+Free voice: Her own	Ohùn ọ̀fẹ́: Tirẹ̀
+Free · local model	Ọ̀fẹ́ · àwòṣe agbègbè
+GAMES >	ÈRÉ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Àwọn ọ̀rọ̀ ìfiwéra ere ń ṣiṣẹ́ lọ́tọ̀ sí Wo iboju mi. Pípa wọ́n dúró, àní nínú Ipò Ere; Àwọn ìṣẹ̀lẹ̀ nìkan àti Ọ̀rọ̀ púpọ̀ jẹ́ kí ó wo eré rẹ
+Game controls	Àwọn ìṣakoso ere
+Game name	Orúkọ ere
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Ìmọ̀lára ohùn ere. Dín ín kù tí agbọ̀rọ̀ ìgbọ́ rẹ bá kéré ṣùgbọ́n Windows wà ní {0}% tí ó sì ń dáhùn sí gbogbo ohun; Pa a dúró máa fojú kéré àwọn ohun ere
+Game sounds	Àwọn ohun ere
+Games	Àwọn ere
+Gaming Mode	Ipò Ere
+Gaming Mode key	Bọ́tìnì Ipò Ere
+Gaming Mode:	Ipò Ere:
+Gaming Mode: Ctrl + Alt + G	Ipò Ere: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Gba VB-CABLE
+Get VB-CABLE (free)...	Gba VB-CABLE (ọ̀fẹ́)...
+Get free voice	Gba ohùn ọ̀fẹ́
+Getting your Fish Audio voices...	Ń gba àwọn ohùn Fish Audio rẹ...
+Giant	Ńlá
+Glitch	Glitch
+Glitch in at startup	Glitch nígbà ìbẹ̀rẹ̀
+Go to sleep	Lọ sùn
+Go to the next screen	Lọ sí ìbòjú tó tẹ̀lé
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ìpele ọ̀fẹ́ · ààlà ìyára
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ṣé o ní ètò Claude tàbí ChatGPT, tàbí kọ́kọ́rọ́ tìrẹ? Yàn án, màá sì so mọ́ ọ.
+Got it, just me. Right-click me any time for Capri Mainframe.	Ó yé mi, èmi nìkan. Tẹ ọ̀tún lórí mi nígbàkigbà fún Capri Mainframe.
+Grey	Grẹy
+H.{0} video bitrate target; higher values make larger files	Ìfojúsùn bitrate fídíò H.{0}; àwọn iye gíga ń mú fáìlì tóbi
+HABITS >	ÌWÀ >
+HER HANDS >	ỌWỌ́ RẸ̀ >
+HER JOBS >	IṢẸ́ RẸ̀ >
+HER MEMORY >	ÌRÁNTÍ RẸ̀ >
+HER MODS >	MODS RẸ̀ >
+HH:mm	HH:mm
+HOW I SOUND >	BÍ MO ṢE DÚN >
+Hang here	Dúró síbí
+Have Ollama? Open it, then press Refresh.	Ṣé o ní Ollama? Ṣí i, lẹ́yìn náà tẹ Tún ṣe.
+Head pats	Fífọwọ́ pa orí
+Hearing	Gbọ́
+Hearing engine	Ẹ̀rọ ìgbọ́
+Hearing fix	Àtúnṣe ìgbọ́
+Hearing status	Ipò ìgbọ́
+Help	Ìrànlọ́wọ́
+Help page	Ojú ìwé ìrànlọ́wọ́
+Her colors	Àwọn àwọ̀ rẹ̀
+Her folder	Àpò rẹ̀
+Her memories	Àwọn ìrántí rẹ̀
+Her own colors are back.	Àwọn àwọ̀ tirẹ̀ ti padà.
+Her own notes (no vault)	Àwọn àkọsílẹ̀ tirẹ̀ (kò sí fọ́ọ̀tì)
+Her perch frames per second	Àwọn fireemu perch rẹ̀ fún ìṣẹ́jú-àáyá
+Her personality	Ìwà rẹ̀
+Her size	Ìwọ̀n rẹ̀
+Her speaker	Agbọ̀rọ̀sọ rẹ̀
+Her speaker is hidden or outside VOICE	Agbọ̀rọ̀sọ rẹ̀ ti fara pamọ́ tàbí ó wà lẹ́yìn OHÙN
+Her speaker overlaps the mic or hearing row	Agbọ̀rọ̀sọ rẹ̀ ń bò ìlà maikirofónù tàbí ìgbọ́
+Her speaker:	Agbọ̀rọ̀sọ:
+Her speaker: Default	Agbọ̀rọ̀sọ: Àìyípadà
+Her voice in your mic	Ohùn rẹ̀ nínú maikirofónù rẹ
+Her voice in your mic: loudness	Ohùn rẹ̀ nínú maikirofónù rẹ: ìró
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Ohùn rẹ̀ fúnra rẹ̀. Ohùn orin rẹ̀ jẹ́ Ètò > OHÙN > Ohùn orin, wọ́n sì ń lọ pọ̀.
+Her voice joins your mic only in call mode.	Ohùn rẹ̀ dara pọ̀ mọ́ maikirofónù rẹ nìkan ní ipò ìpè.
+Her voice volume	Ìró ohùn rẹ̀
+Her voice's pitch	Ohùn orin ohùn rẹ̀
+Her voice's pitch, the same as Settings > VOICE > Pitch	Ohùn orin ohùn rẹ̀, bákan náà pẹ̀lú Ètò > OHÙN > Ohùn orin
+Her voice's speed	Iyára ohùn rẹ̀
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Ohùn rẹ̀, àti ẹ̀dà méjì tí a dàpọ̀ lábẹ́ rẹ̀, ọ̀kọ̀ọ̀kan pẹ̀lú ohùn orin àti ìdádúró tirẹ̀.
+Her voices · free	Àwọn ohùn rẹ̀ · ọ̀fẹ́
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Báwo, choom. Èmi ni Capri. Mo nílò ọpọlọ kí n tó lè dáhùn. Yan ọ̀kan.
+Hide / Show Capri	Fi / Ṣe àfihàn Capri
+Hide / Show key	Bọ́tìnì fi / ṣe àfihàn
+Hide Capri	Fi Capri pamọ́
+Hide for now	Fi pamọ́ fún báyìí
+Hide in full screen	Fi pamọ́ ní ipò gbogbo ìbòjú
+Hide this	Fi èyí pamọ́
+Hide/show:	Fi/ṣe àfihàn:
+Hide/show: Ctrl + Alt + H	Fi/ṣe àfihàn: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Sọ̀kalẹ̀
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Bí PC aláìṣiṣẹ́ ṣe pẹ́ tó kí ó tó rán an sùn; ìṣẹ́jú márùn-ún ṣì túmọ̀ sí pé o kò sí
+How long a stroke over her a head pat needs	Bí fífọwọ́ kan lórí orí rẹ̀ ṣe ní láti gùn tó fún fífọwọ́ pa orí
+How long her replies stay up	Bí àwọn ìdáhùn rẹ̀ ṣe ń wà lórí ìbòjú tó
+How long you are away before she scrolls a browser or reader	Bí o ṣe máa kúrò tó kí ó tó yí aṣàwákiri tàbí olùkà
+How much her voice glitches	Bí ohùn rẹ̀ ṣe ń ṣe glitch tó
+How much of the chat she keeps	Iye ìwíregbè tó ń pamọ́
+How much she wanders	Bí ó ṣe ń rìn kiri tó
+How often she pops in to say hi	Bí ó ṣe máa wọlé láti kí ọ tó
+How robotic her voice sounds	Bí ohùn rẹ̀ ṣe dàbí róbọ́ọ̀tì tó
+How to	Bí a ṣe ń ṣe
+Huge	Tó tóbi gan-an
+I can hear you.	Mo gbọ́ ọ.
+I glance at your screen and comment. Costs a little on a paid brain.	Mo ń wo ìbòjú rẹ, mo sì ń sọ̀rọ̀. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
+I keep listening. Say my name, then just talk.	Mo ń tẹ̀síwájú láti gbọ́. Sọ orúkọ mi, lẹ́yìn náà kàn sọ̀rọ̀.
+I talk about your game as you play. Costs a little on a paid brain.	Mo ń sọ̀rọ̀ nípa eré rẹ bí o ṣe ń ṣe é. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
+I type my replies and stay quiet.	Mo ń tẹ àwọn ìdáhùn mi, mo sì dákẹ́.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Èmi kò ní sọ̀rọ̀ padà, ohunkóhun kò sì ní lọ sí ibikíbi. Mo ṣì máa wà ní ìdákẹ́jẹ́ẹ́, jó sí orin rẹ, kí n sì ṣe àwọn nǹkan kíákíá tí o bá béèrè, bí ìró.
+I'll talk in	Èmi yóò sọ̀rọ̀ ní
+IN DISCORD >	NÍNÚ DISCORD >
+INSTALLED >	TI FI SÍ >
+Import a Capri mod	Gbé mod Capri wọlé
+Import mod	Gbé mod wọlé
+In games	Nínú àwọn eré
+Input	Ìwọlé
+Input, Output or How to overlaps a row	Ìwọlé, Ìjáde tàbí Báwo ni ìlà kan ṣe ń bò
+Input:	Ìwọlé:
+Input: default	Ìwọlé: àìyípadà
+Install	Fi sori ẹrọ
+Install mod	Fi mod sori ẹrọ
+Installed.	Ti fi sí.
+It may ask for a phone number. I opened the page in your browser.	Ó lè béèrè nọ́mbà fóònù. Mo ṣí ojú ìwé náà nínú aṣàwákiri rẹ.
+It still does its own job in other apps too.	Ó ṣì ń ṣe iṣẹ́ tirẹ̀ nínú àwọn ohun èlò mìíràn pẹ̀lú.
+It won't type in other apps while she runs.	Kò ní kọ nínú àwọn ohun èlò mìíràn nígbà tí ó ń ṣiṣẹ́.
+JUST ME >	ÈMI NIKAN >
+Jealous of other AIs	Ń ṣe ìlara àwọn AI mìíràn
+Join the Discord	Darapọ̀ mọ́ Discord
+KB.	KB.
+KEYS	Àwọn BỌ́TÌNÌ
+KEYS >	Àwọn BỌ́TÌNÌ >
+Keep PC awake for jobs	Jẹ́ kí PC wà lójú fún àwọn iṣẹ́
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Ó ń pa ìṣẹ́jú méjì tó kẹ́yìn ti eré rẹ mọ́ nínú ìrántí. Sọ clip that láti fipamọ́ rẹ̀.
+Key	Bọ́tìnì
+Key cleared: a model file needs none.	A ti pa kọ́kọ́rọ́ rẹ́: fáìlì àwòṣe kò nílò rẹ̀.
+Key cleared: paste the key for	A ti pa kọ́kọ́rọ́ rẹ́: lẹ̀ kọ́kọ́rọ́ fún
+Key forgotten.	Kọ́kọ́rọ́ ti gbàgbé.
+Key. It goes only to this server, as a Bearer key	Kọ́kọ́rọ́. Ó lọ sí ìsìn yìí nìkan gẹ́gẹ́ bí kọ́kọ́rọ́ Bearer
+Kokoro only, like es	Kokoro nìkan, bí es
+LAST THING >	ǸKAN KAN TÍ Ó KẸ́HÌN >
+LISTENING >	Ń GBỌ́ >
+Language	Èdè
+Large	Tóbi
+Last thing. These cost a little or use your mic, so they're your pick.	Nǹkan tó kẹ́hìn. Iwọ̀nyí ná díẹ̀ tàbí wọn lo maikirofónù rẹ, nítorí náà yíyàn rẹ ni.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Nǹkan tó kẹ́hìn. Iwọ̀nyí ná díẹ̀ tàbí wọn lo maikirofónù rẹ, nítorí náà yíyàn rẹ ni. Lẹ́yìn náà ni mo fẹ́ mọ̀ bí mo ṣe máa pè ọ́.
+Layers	Àwọn ìpele
+Learn more	Kọ́ ẹ̀kọ́ sí i
+Leaving Settings threw its picture away straight away.	Fífi Ètò sílẹ̀ ju àwòrán rẹ̀ nù lẹsẹ̀kẹsẹ.
+Legacy stand	Àtẹ atijọ
+Lie down	Dùbúlẹ̀
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Àwọn ìlà ìjíròrò PC tí a ń pamọ́ nínú ìrántí nígbà tí a ń wo papọ̀. Ìdajì àgbà di àkọsílẹ̀ nígbà tí Rántí ohun tí ó rí wà lórí
+Listen for Capri	Gbọ́ Capri
+Live reactions	Àwọn ìdáhùn lójúkan náà
+Local server address	Àdírẹ́sì olùpèsè agbègbè
+Long	Gígùn
+Longest wait (minutes)	Ìdúró tó gùn jù (ìṣẹ́jú)
+Looking at this PC...	Ń wo PC yìí...
+Looking for Ollama. Open it if it isn't running.	Ń wá Ollama. Ṣí i tí kò bá ń ṣiṣẹ́.
+Looking for a brain...	Ń wá ọpọlọ...
+Looking in the mods directory for updates...	Ń wá àwọn àtúnṣe nínú àpò mods...
+Looking in the mods directory...	Ń wo àpò mods...
+Looking...	Ń wá...
+MAIN >	ÀKỌ́KỌ́ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	ÒYE ALÁÀRÍN
+MEMORY VAULT >	ÀPÒ ÌRÁNTÍ >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	ÀPÒ MODS >
+MODS INSTALLED COLORS	ÀWỌ̀ MODS TÍ A FI SÍ
+MOVES >	ÌṢÍPÒ >
+MY BRAIN	ỌPỌLỌ MI
+MY FREE VOICE	OHÙN MI ỌFẸ́
+MY PLAN OR KEY	ÈTÒ MI TÀBÍ KỌ́KỌ́RỌ́ MI
+MY PLAN OR KEY >	ÈTÒ MI TÀBÍ KỌ́KỌ́RỌ́ MI >
+Made your Fish Audio voice. Press Test to hear it.	A ti ṣe ohùn Fish Audio rẹ. Tẹ Idanwo láti gbọ́ ọ.
+Mainframe colours	Àwọn àwọ̀ Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Àwọn àwọ̀ Mainframe. Night City jẹ́ pupa àti cyan; Dúdú, Funfun àti Grẹy yí Mainframe, àwọn àkójọ rẹ̀, àpótí Kọ̀wé àti àwọn àkọsílẹ̀ rẹ̀ pada
+Mainframe frames	Àwọn férémù Mainframe
+Mainframe key	Bọ́tìnì Mainframe
+Mainframe size	Ìwọ̀n Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Ìwọ̀n Mainframe. Aládàáṣe mú un tóbi nígbà tí Virtual Super Resolution tàbí DSR bá dín tábìlì ńlá kan kù sí ìbòjú kéré
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Isalẹ̀
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Ń ṣe ohùn Fish Audio rẹ...
+Max reply	Ìdáhùn tó pọ̀ jù
+Maximum clip resolution, keeping the game's shape without upscaling	Ìpinnu fídíò ajẹkù tó pọ̀ jù, tó ń pa ìrísí eré mọ́ láì gbé sókè
+Medium	Àárín
+Memory	Ìrántí
+Memory size	Ìwọ̀n ìrántí
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ìwọ̀n ìrántí nínú tókẹ́nì fún Ollama àti ọpọlọ inú rẹ̀. Aládàáṣe ń dàgbà nígbà tí ìbéèrè bá nílò púpọ̀ sí i
+Mg	Mb
+Mic level:	Ìpele maikirofónù:
+Mic test finished. Sound is reaching Capri.	Ìdánwò maikirofónù parí. Ohùn ń dé Capri.
+Mic:	Maikirofónù:
+Mic: default	Maikirofónù: àìyípadà
+Microphone	Maikirofónù
+Mini player	Ẹ̀rọ orin kékeré
+Mini player over full screen	Ẹ̀rọ orin kékeré lórí gbogbo ìbòjú
+Mini-games	Àwọn eré kékeré
+Minimising the Mainframe left it sliding.	Dínkù Mainframe mú kí ó máa yọ̀ lórí ìbòjú.
+Minimize	Dínkù
+Mod filter	Àlẹ̀mọ́ mod
+Mod options	Àwọn àṣàyàn mod
+Mod pages	Àwọn ojú ìwé mod
+Mod rules	Àwọn ìlànà mod
+Mod sort	Ìtòlẹ́sẹẹsẹ mod
+Mod switch	Yíyí mod
+Model	Àwòṣe
+Model folder	Àpò àwòṣe
+Model name, optional	Orúkọ àwòṣe, kò ṣe dandan
+Mods	Mods
+Mods directory	Àpò mods
+Mods folder	Àpò mods
+Most NVIDIA models can't see your screen.	Àwọn àwòṣe NVIDIA púpọ̀ kò lè rí ìbòjú rẹ.
+Mouse wheel notches got a flick's long ease:	Àwọn notch kẹ̀kẹ́ Asin gba ìrìn lọ́ra gígùn ti ìfàsẹ́yìn:
+Move	Gbé
+Move key to MAX INTELLIGENCE	Gbé kọ́kọ́rọ́ lọ sí MAX INTELLIGENCE
+Move to MAX	Gbé lọ sí MAX
+Music	Orin
+Music app	Ohun èlò orin
+Music app: where she plays music when you don't name an app	Ohun èlò orin: ibi tí ó ti ń ṣe orin nígbà tí o kò dárúkọ ohun èlò kan
+Mute	Pa ohùn
+Mute her	Pa ohùn rẹ̀
+Mute mic key	Bọ́tìnì pa maikirofónù
+Mute mic:	Pa maikirofónù:
+Mute mic: Ctrl + Alt + N	Pa maikirofónù: Ctrl + Alt + N
+My brain	Ọpọlọ mi
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Ọpọlọ mi ń bọ̀. Màá kí ọ ní ìṣẹ́jú-àáyá tó bá dé, o sì lè bá mi sọ̀rọ̀ nígbà náà.
+My brain's on its way. While it comes down, let's sort out how I sound.	Ọpọlọ mi ń bọ̀. Nígbà tí ó ń bọ̀, ẹ jẹ́ kí a ṣètò bí mo ṣe ń dún.
+My provider	Olùpèsè mi
+NO AI	KÒ SÍ AI
+NO PHONES CONNECTED	KÒ SÍ FÓNÌ TÍ A SOPỌ̀
+NO PREVIEW	KÒ SÍ ÀWÒTẸ́LẸ̀
+NORMAL	DEÉDÉÉ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ọ̀fẹ́ · sábà máa ń lọ́ra ní àwọn àkókò ìkójọpọ̀
+NVIDIA's free API is often slow, especially at busy times.	API ọ̀fẹ́ NVIDIA sábà máa ń lọ́ra, pàápàá ní àwọn àkókò ìkójọpọ̀.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Kọ́kọ́rọ́ API NVIDIA, Google AI Studio (Gemini) tàbí OpenRouter
+Names:	Àwọn orúkọ:
+Needs a key	Nílò kọ́kọ́rọ́
+Never	Rárá
+New code	Kóòdù tuntun
+New voice from a clip...	Ohùn tuntun láti inú ajẹkù...
+Next	Tókàn
+Night City	Night City
+No AI	Kò sí AI
+No AI · no brain at all	Kò sí AI · kò sí ọpọlọ rárá
+No brain runs, and nothing is sent anywhere.	Kò sí ọpọlọ tó ń ṣiṣẹ́, ohunkóhun kò sì ní lọ sí ibikíbi.
+No brain yet	Kò sí ọpọlọ síbẹ̀
+No code open	Kò sí kóòdù tí ó ṣí
+No mic found	Kò rí maikirofónù
+No mods in the directory yet.	Kò sí mod nínú àpò síbẹ̀.
+No mods match that.	Kò sí mod tó bá ìyẹn mu.
+No mods match.	Kò sí mod tó bámu.
+No phones yet	Kò sí fóònù síbẹ̀
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Kò sí maikirofónù fojú-inú síbẹ̀. Yan Ìjáde, lẹ́yìn náà Gba VB-CABLE (ọ̀fẹ́).
+None yet: pick to get VB-CABLE (free)	Kò sí síbẹ̀: yàn láti gba VB-CABLE (ọ̀fẹ́)
+Normal	Déédéé
+Not a relay host	Kì í ṣe olùpèsè relay
+Not imported. Nothing ran.	A kò gbé wọlé. Kò sí nǹkan kan tó ṣiṣẹ́.
+Not updated. The old one is still in.	A kò ṣe àtúnṣe. Àtijọ́ ṣì wà.
+Nothing needed updating.	Kò sí nǹkan tó nílò àtúnṣe.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Kò sí nǹkan láti gbà, nǹkan kan kò sì lọ sí ibikíbi. Èmi kò ní dá ọ lóhùn. Fi ọpọlọ kun nígbàkigbà nínú Mainframe.
+Nothing to show from the mods directory.	Kò sí nǹkan láti fi hàn láti àpò mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	Kò sí? Àwọn Ètò Windows > Àṣírí àti ààbò > Maikirofónù.
+Nous Portal keys aren't supported yet.	Àwọn kọ́kọ́rọ́ Nous Portal kò sí ní àtìlẹ́yìn síbẹ̀.
+OBS	OBS
+OFF	PA
+OLLAMA	OLLAMA
+ON	TAN
+ON THIS PC	LÓRÍ PC YÌÍ
+OR A KEY	TÀBÍ KỌ́KỌ́RỌ́ KAN
+Obsidian memory vault	Àpò ìrántí Obsidian
+Off	Pa
+Off. Turn on Her voice in your mic above.	Pa. Tan Ohùn rẹ̀ nínú maikirofónù rẹ lókè.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Pa: ó ń dún bí ó ti máa ń ṣe. Tan: gbogbo ohùn tó ní, pẹ̀lú ElevenLabs.
+Often	Nígbà míràn
+On	Tan
+On / Off	Tan / Pa
+On: your mic and her voice are going in.	Tan: maikirofónù rẹ àti ohùn rẹ̀ ń lọ wọlé.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Ohun JSON kan, tí a fi kún gbogbo ìbéèrè tí ọpọlọ yìí ń rán. Ó rọ́pò iye Capri fún orúkọ tí ó bá pín, a kò sì fi ṣàyẹ̀wò rẹ̀ lórí àwòṣe.
+Online speech recognition	Ìdámọ̀ ọ̀rọ̀ sísọ lórí ayélujára
+Open Capri Mainframe	Ṣí Capri Mainframe
+Open Ollama, I'll find it	Ṣí Ollama, màá rí i
+Open clips folder	Ṣí àpò àwọn ajẹkù
+Open her memories	Ṣí àwọn ìrántí rẹ̀
+Open her notes	Ṣí àwọn àkọsílẹ̀ rẹ̀
+Open mods folder	Ṣí àpò mods
+Open the page again	Ṣí ojú ìwé lẹ́ẹ̀kan sí i
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA tàbí OpenRouter.
+OpenAI-compatible server or provider.	Olùpèsè tàbí olupin tó bá OpenAI mu.
+OpenRouter · free models only	OpenRouter · àwọn àwòṣe ọ̀fẹ́ nìkan
+Optional	Ìyàn
+Optional. Blank means no key.	Ìyàn. Òfo túmọ̀ sí kò sí kọ́kọ́rọ́.
+Options	Àwọn àṣàyàn
+Out of the box a little higher, just behind her.	Díẹ̀ ga jù lọ ní ìbẹ̀rẹ̀, tó wà lẹ́yìn rẹ̀ gan-an.
+Out of the box lower, just behind her.	Díẹ̀ kéré jù lọ ní ìbẹ̀rẹ̀, tó wà lẹ́yìn rẹ̀ gan-an.
+Output	Ìjáde
+Output:	Ìjáde:
+Output: none	Ìjáde: kò sí
+PHONE CONNECTED	FÓNÌ TI SOPỌ̀
+PHONES >	FÓNÌ >
+PHONES CONNECTED	FÓNÌ TI SOPỌ̀
+PREBUILT LOCAL	ÀṢÉTÒ NÍ AGBEGBE
+PUBLISH MOD >	TẸ̀ MOD JADE >
+Pair a phone	So fóònù pọ̀
+Paste	Lẹ̀mọ́
+Paste API key	Lẹ̀mọ́ kọ́kọ́rọ́ API
+Paste a brain API key	Lẹ̀mọ́ kọ́kọ́rọ́ API ọpọlọ
+Paste reads your clipboard once, when you press it.	Lẹ̀mọ́ ka agbádá rẹ lẹ́ẹ̀kan, nígbà tí o bá tẹ ẹ.
+Paste your key here	Lẹ̀mọ́ kọ́kọ́rọ́ rẹ síbí
+Pat stroke	Fífọwọ́ pa
+Perch	Perch
+Perch over {0} fps uses more CPU	Perch lórí {0} fps ń lo CPU jù
+Pick Output to get it.	Yan Ìjáde láti rí i.
+Pick a brain so I can talk back. You can change it any time.	Yan ọpọlọ kan kí n lè dáhùn. O lè yí i padà nígbàkigbà.
+Pick a clip of a voice you have the rights and consent to use	Yan ajẹkù ohùn kan tí o ní ẹ̀tọ́ àti ìyọ̀ǹda láti lò
+Pick a free model. I opened the page in your browser.	Yan àwòṣe ọ̀fẹ́ kan. Mo ṣí ojú ìwé náà nínú aṣàwákiri rẹ.
+Pick a new clip of you...	Yan ajẹkù tuntun ti ìwọ...
+Pick a voice model...	Yan àwòṣe ohùn...
+Pick one. Only one brain runs at a time.	Yan ọ̀kan. Ọpọlọ kan ṣoṣo ni ó ń ṣiṣẹ́ ní àkókò kan.
+Pick the note her memories go in	Yan àkọsílẹ̀ tí àwọn ìrántí rẹ̀ yóò lọ sí
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Yan {0} sí {1} àáyá ohùn tí o ní ẹ̀tọ́ àti ìyọ̀ǹda láti lò
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Yan {0} sí {1} àáyá ohun tí ìwọ ń sọ, tàbí ohùn tí o ní ẹ̀tọ́ àti ìyọ̀ǹda láti lò
+Pitch	Ohùn orin
+Play	Ṣe
+Play...	Ṣe...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Àwọn àwòṣe Pocket TTS ń daakọ ohùn ajẹkù yìí. Tẹ Idanwo láti gbọ́ ọ.
+Pop-in times	Àkókò ìfarahàn
+Pop-ins	Àwọn ìfarahàn
+Power saver	Ẹni tó ń fi agbára pamọ́
+Power saver: how lightly she runs in games, or always	Ẹni tó ń fi agbára pamọ́: bí ó ṣe ń fẹ́ẹ́rẹ̀ nínú àwọn eré, tàbí nígbà gbogbo
+Preset	Ìṣètò tẹ́lẹ̀
+Press Create API key	Tẹ Ṣẹ̀dá kọ́kọ́rọ́ API
+Press Create Key	Tẹ Ṣẹ̀dá kọ́kọ́rọ́
+Press Generate API Key	Tẹ Ṣẹ̀dá kọ́kọ́rọ́ API
+Press Test and say something, so I know I can hear you.	Tẹ Idanwo kí o sì sọ nǹkan kan, kí n lè mọ̀ pé mo gbọ́ ọ.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Tẹ bọ́tìnì kan, nìkan tàbí pẹ̀lú Ctrl, Alt, Shift tàbí Win.
+Press new keys, then Confirm	Tẹ àwọn bọ́tìnì tuntun, lẹ́yìn náà Jẹ́rìísí
+Provider	Olùpèsè
+Provider API key, optional	Kọ́kọ́rọ́ API olùpèsè, kò ṣe dandan
+Provider base URL	URL ìpìlẹ̀ olùpèsè
+Provider forgotten.	Olùpèsè ti gbàgbé.
+Provider overlaps the brain name or note	Olùpèsè ń bo orúkọ ọpọlọ tàbí àkọsílẹ̀
+Publish	Tẹ̀ jáde
+Publish mod	Tẹ mod jáde
+Push to talk is off.	Tẹ láti sọ̀rọ̀ ti wa ní pípa.
+Push to talk key	Bọ́tìnì tẹ láti sọ̀rọ̀
+Push to talk:	Tẹ láti sọ̀rọ̀:
+Push to talk: not set	Tẹ láti sọ̀rọ̀: kò tí ì ṣètò
+QR CODE >	QR CODE >
+QR hidden while streaming	A fi QR pamọ́ nígbà ṣíṣàn
+Quick	Yára
+Quiet key	Bọ́tìnì ìdákẹ́jẹ́ẹ́
+Quiet:	Ìdákẹ́jẹ́ẹ́:
+Quiet: Ctrl + Alt + P	Ìdákẹ́jẹ́ẹ́: Ctrl + Alt + P
+Quit Capri	Jáde kúrò ní Capri
+RELAY >	RELAY >
+REMOTE >	LÁTỌ̀NÚ JÍJÌN >
+RUNS CODE.	Ó Ń ṢE KÓÒDÙ.
+Rarely	Ṣọ̀wọ́n
+Rate mod	Ṣe ìdíyelé mod
+Reading its README...	Ń ka README rẹ̀...
+Refresh	Sọ̀tun
+Reinstall	Tún fi sori ẹrọ
+Reload	Tún gbé
+Reloaded.	Ti tún gbé.
+Remember our chats	Rántí àwọn ìwíregbè wa
+Remember what she sees	Rántí ohun tí ó rí
+Remote	Latọ́nà jíjìn
+Remote off	Latọ́nà jíjìn pa
+Remote on	Latọ́nà jíjìn tan
+Remove	Yọ kúrò
+Remove all phones	Yọ gbogbo fóònù kúrò
+Replies	Àwọn ìdáhùn
+Reply length	Gígùn ìdáhùn
+Report a problem	Ròyìn ìṣòro kan
+Reset colors	Tún àwọn àwọ̀ ṣe
+Reset to her default	Padà sí àìyípadà rẹ̀
+Resolution	Ìpinnu
+Restart to update	Tún bẹ̀rẹ̀ láti mú àtúnṣe ṣiṣẹ́
+Restless	Àìlera ìsinmi
+Revoke	Yọ̀ǹda kúrò
+Revoke also removes the phones its links added	Yíyọ̀ǹda kúrò tún yọ àwọn fóònù tí àwọn ìsopọ̀ rẹ̀ fi kun
+Ride cursor	Gun kọ̀sọ̀ọ̀ bí ẹṣin
+Ride cursor / Hop off	Gun kọ̀sọ̀ọ̀ / Sọ̀kalẹ̀
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Tẹ ọ̀tún lórí mi nígbàkigbà fún Capri Mainframe. Ọpọlọ kan ń tàn lábẹ́ ỌPỌLỌ.
+Right-click me any time for the Mainframe, Help and the Discord.	Tẹ ọ̀tún lórí mi nígbàkigbà fún Mainframe, Ìrànlọ́wọ́ àti Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox tàbí ohun èlò mìíràn: yan
+Robot	Róbọ́ọ̀tì
+Rock, paper, scissors	Òkúta, ìwé, àkàbà
+Run this code mod?	Ṣé o fẹ́ ṣiṣẹ́ mod kóòdù yìí?
+Running on this PC	Ó ń ṣiṣẹ́ lórí PC yìí
+Running on this PC · :	Ó ń ṣiṣẹ́ lórí PC yìí · :
+Runs Claude Code or Codex on this PC, signed in.	Ó ń ṣiṣẹ́ Claude Code tàbí Codex lórí PC yìí, tí a wọlé sí.
+Runs on your PC. No key, no credits.	Ó ń ṣiṣẹ́ lórí PC rẹ. Kò sí kọ́kọ́rọ́, kò sí kírẹ́dítì.
+SCAN WITH YOUR PHONE · EXPIRES	ṢAYẸ̀WÒ PẸ̀LÚ FÓNÌ RẸ · Ó PARI
+SECURITY >	ÀÀBÒ >
+SKILL.	ÌMỌ̀.
+SKIN.	ÌRÍSÍ.
+SORT BY	TÒ BÍ
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	OHÙN ÌWÀ ỌPỌLỌ WO CAPRI DOOMSCROLL ÒJÒ ÀWỌN AJẸKÙ ÀWỌN ERE BỌ́TÌNÌ ÌṢÍPÒ OHÙN ÌWỌ
+Same as her ears (VOICE > Mic)	Bákan náà pẹ̀lú etí rẹ̀ (OHÙN > Maikirofónù)
+Same code on the phone?	Kóòdù kan náà lórí fóònù?
+Save	Fipamọ́
+Save big moments	Fi àwọn àkókò ńlá pamọ́
+Save folder	Àpò ìfipamọ́
+Save your changes, or press Discard + reload.	Fipamọ́ àwọn àyípadà rẹ, tàbí tẹ Sọ nù + tún gbé.
+Save your changes, or press Discard.	Fipamọ́ àwọn àyípadà rẹ, tàbí tẹ Sọ nù.
+Saved.	Ti fipamọ́.
+Saved. Ctrl + Alt + O opens her Mainframe.	Ti fipamọ́. Ctrl + Alt + O ṣí Mainframe rẹ̀.
+Saving your rating...	Ń fi ìdíyelé rẹ pamọ́...
+Say her name anywhere to chat	Sọ orúkọ rẹ̀ níbikíbi láti bá a sọ̀rọ̀
+Screens	Àwọn ìbòjú
+Screens is hidden or outside WATCH	Àwọn ìbòjú ti farapamọ́ tàbí wà lẹ́yìn WO
+Screens overlaps a WATCH row	Àwọn ìbòjú ń bo ìlà WO kan
+Screens to watch	Àwọn ìbòjú láti wò
+Sealed end to end	Ìpamọ́ láti ìbẹ̀rẹ̀ dé òpin
+Search by name or author	Wá nípa orúkọ tàbí òǹkọ̀wé
+Search installed mods	Wá nínú àwọn mod tí a fi sí i
+Search mods	Wá mods
+Search name, author or description	Wá orúkọ, òǹkọ̀wé tàbí àpèjúwe
+Security	Ààbò
+Security:	Ààbò:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Ṣètò
+Set up her brain	Ṣètò ọpọlọ rẹ̀
+Set up your voice model	Ṣètò àwòṣe ohùn rẹ
+Setting up her brain	Ń ṣètò ọpọlọ rẹ̀
+Settings	Ètò
+Settings / Back	Ètò / Padà
+Settings folds the wrong rows above BRAIN	Ètò ṣe àkójọ àwọn ìlà tí kò tọ́ lókè ỌPỌLỌ
+Settings had nothing to watch.	Ètò kò ní nǹkan láti wò.
+Settings lost keyboard focus during the Tab walk	Ètò pàdánù ìfojúsí kíláàvù nígbà ìrìn Tab
+Setup guide	Ìtọ́sọ́nà ìṣètò
+Setup stopped	Ìṣètò dúró
+She can read it when it fits.	Ó lè kà á nígbà tí ó bá yẹ.
+She glances at your screen and comments. Costs a little on a paid brain.	Ó wo ìbòjú rẹ, ó sì ń sọ̀rọ̀. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
+She keeps listening. Say her name, then just talk until you go quiet.	Ó ń tẹ̀síwájú láti gbọ́. Sọ orúkọ rẹ̀, lẹ́yìn náà sọ̀rọ̀ títí o fi dákẹ́.
+She reacts to your game until you close it.	Ó ń dáhùn sí eré rẹ títí o fi tì í.
+She reads these controls before each game job.	Ó ń ka àwọn ìṣakoso wọ̀nyí ṣáájú iṣẹ́ eré kọ̀ọ̀kan.
+She talks about your game as you play. Costs a little on a paid brain.	Ó ń sọ̀rọ̀ nípa eré rẹ bí o ṣe ń ṣe é. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
+She uses it when she plays	Ó ń lò ó nígbà tí ó bá ń ṣeré
+Short	Kúrú
+Shortest wait (minutes)	Ìdúró tó kúrú jù (ìṣẹ́jú)
+Show Capri	Fi Capri hàn
+Show QR	Fi QR hàn
+Show my mod file	Fi fáìlì mod mi hàn
+Show on Discord	Fi hàn lórí Discord
+Shum, what time is it	Shum, aago mélòó ni
+Sign in	Wọlé
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Wọlé, ṣe kọ́kọ́rọ́ kan kí o sì daakọ rẹ̀. Lẹ́yìn náà tẹ Lẹ̀mọ́, màá sì sopọ̀.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Wọlé, tẹ Ṣẹ̀dá kọ́kọ́rọ́ API kí o sì daakọ rẹ̀. Lẹ́yìn náà tẹ Lẹ̀mọ́, màá sì sopọ̀.
+Silent · text only	Ìdákẹ́jẹ́ẹ́ · ọ̀rọ̀ nìkan
+Simple / Advanced Settings	Ètò Rọrùn / Àfikún
+Simple Settings	Ètò Rọrùn
+Simple Settings left a gap under Check in on me	Ètò Rọrùn fi àlàfo sílẹ̀ lábẹ́ Wo mi
+Sit here	Jókòó síbí
+Sit on windows	Jókòó lórí fèrèsé
+Size	Ìwọ̀n
+Skip	Fò
+Skip all	Fò gbogbo
+Skip for now	Fò fún báyìí
+Sleep	Sùn
+Small	Kékeré
+Sometimes	Nígbà míì
+Sound effects volume	Ìwọ̀n ohun ipa
+Sound sensitivity	Ìmọ̀lára ohùn
+Sounds	Àwọn ohun
+Speaker or clip	Agbọ̀rọ̀sọ tàbí ajẹkù
+Speech model	Ẹ̀rọ ohùn
+Speed	Iyára
+Start with Windows	Bẹ̀rẹ̀ pẹ̀lú Windows
+Start with this!	Bẹ̀rẹ̀ pẹ̀lú èyí!
+Starting...	Ń bẹ̀rẹ̀...
+Stay on my model	Dúró lórí àwòṣe mi
+Still checking your mics...	Ń ṣàyẹ̀wò maikirofónù rẹ...
+Still checking your speakers...	Ń ṣàyẹ̀wò agbọ̀rọ̀sọ rẹ...
+Still checking your virtual mics...	Ń ṣàyẹ̀wò àwọn maikirofónù fojú-inú rẹ...
+Stop	Dúró
+Stopped using it. Couldn't remove the saved provider.	Mo ti dáwọ́ lílò rẹ̀ dúró. Kò lè yọ olùpèsè tí a fipamọ́ kúrò.
+Support	Àtìlẹ́yìn
+Sure?	Ó dájú?
+Sure? moved to a different phone	Ó dájú? ti lọ sí fóònù mìíràn
+TALK TO ME	SỌ̀RỌ̀ MÍ
+TEXT ONLY	ỌRỌ̀ NÌKAN
+Tab landed past the first option of	Tab kọjá àṣàyàn àkọ́kọ́ ti
+Tab never reached the quiet key	Tab kò dé bọ́tìnì ìdákẹ́jẹ́ẹ́ rí
+Tab reached nothing	Tab kò dé ohun kan
+Tab selected a control without moving keyboard focus	Tab yan ìṣakoso kan láì sí ìfojúsí kíláàvù
+Talk	Sọ̀rọ̀
+Talk key	Bọ́tìnì sọ̀rọ̀
+Talk:	Sọ̀rọ̀:
+Talk: Ctrl + Alt + V	Sọ̀rọ̀: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Iyára fireemu ìyàwòrán àfojúsùn; ó lè dín kù lábẹ́ ẹrù tàbí ìnáwó ìrántí
+Teases when another AI comes to the front.	Ó ń fi ṣe yẹ̀yẹ́ nígbà tí AI mìíràn bá wá sí iwájú.
+Test	Idanwo
+That address doesn't work. Try https://... or http://localhost:{0}.	Àdírẹ́sì yẹn kò ṣiṣẹ́. Gbìyànjú https://... tàbí http://localhost:{0}.
+That code expired	Kóòdù yẹn ti parí
+That mod is no longer installed. The list is updated.	Mod yẹn kò sí ní fífi sori ẹrọ mọ́. Àkójọ ti ṣe àtúnṣe.
+That's a paid key: it goes under MAX INTELLIGENCE.	Kọ́kọ́rọ́ tí a san owó fún nìyí: yóò lọ sí MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe dúró ní ìdàpọ̀ nígbà ìrìn.
+The Mainframe stayed uncomposited after the slide.	Mainframe dúró láì dàpọ̀ lẹ́yìn ìrìn.
+The controls moved while the picture was sliding.	Àwọn ìṣakoso yí padà nígbà tí àwòrán ń rìn.
+The cover stayed visible after the slide ended.	Ìbòrí náà dúró hàn lẹ́yìn ìparí ìrìn.
+The frame thread kept running after the page settled.	Okùn fireemu tẹ̀síwájú láti ṣiṣẹ́ lẹ́yìn tí ojú ìwé ti dúró.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Ìdáhùn tó gùn jù tí ó lè fún, ní tókẹ́nì. Aládàáṣe dúró lórí Ìdáhùn lókè; {0}K tàbí {1}K jẹ́ kí ó tẹ̀síwájú. Àwọn iṣẹ́ ń mú àyè púpọ̀ sí i nígbà tí wọ́n bá nílò rẹ̀
+The longest wait must be at least the shortest wait.	Ìdúró tó gùn jù gbọ́dọ̀ jẹ́ o kéré tán ìdúró tó kúrú jù.
+The picture doesn't match the scrolled page:	Àwòrán kò bá ojú ìwé tí a yí lọ mu:
+The picture of Settings doesn't match the page:	Àwòrán Ètò kò bá ojú ìwé mu:
+The picture stayed up after the slide ended.	Àwòrán dúró hàn lẹ́yìn ìparí ìrìn.
+The picture wasn't showing while it slid.	Àwòrán kò hàn nígbà tó ń rìn.
+The provider sheet is crowded:	Ìwé olùpèsè kún ju:
+The voice panel has no screen DPI.	Pánẹ́ẹ̀lì ohùn kò ní DPI ìbòjú.
+The voice panel's menus share one font.	Àwọn àkójọ pánẹ́ẹ̀lì ohùn pín fọ́ǹtì kan.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Kò sí kọ́kọ́rọ́ lórí agbádá rẹ síbẹ̀. Daakọ rẹ̀ láti ojú ìwé, lẹ́yìn náà tẹ Lẹ̀mọ́.
+These start off. Each costs a little or uses your mic.	Àwọn yìí bẹ̀rẹ̀ ní pípa. Kọ̀ọ̀kan ná díẹ̀ tàbí ó lo maikirofónù rẹ.
+These start off. Turn on what you want. They're all in Settings too.	Àwọn yìí bẹ̀rẹ̀ ní pípa. Tan ohun tí o fẹ́. Gbogbo wọn wà nínú Ètò náà pẹ̀lú.
+They can also call you Big Z, Capricorn or Nova	Wọ́n tún lè pè mí ní Big Z, Capricorn tàbí Nova
+They can also call you Nova, Big Z or Capricorn	Wọ́n tún lè pè mí ní Nova, Big Z tàbí Capricorn
+Thinking	Ń rò
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Eyí ni ohùn ọ̀fẹ́ mi. Tẹ Idanwo, sọ nǹkan kan, màá sì fi hàn ọ́ pé mo gbọ́ ọ.
+This mod has no description yet.	Mod yìí kò ní àpèjúwe síbẹ̀.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Àkókò láàárín àwọn ojú wíwo
+Tiny	Kékeré gan-an
+Try again	Tún gbìyànjú
+Turn Remote on first	Tan Latọna jíjìn kọ́kọ́rọ́
+Turn off mini player	Pa ẹ̀rọ orin kékeré
+Turn push to talk off	Pa tẹ láti sọ̀rọ̀
+Turning the wheel the other way kept the page heading the old way, to	Yíyí kẹ̀kẹ́ ní ọ̀nà mìíràn mú ojú ìwé dúró lórí ọ̀nà àtijọ́, sí
+Type	Tẹ̀
+Type key	Bọ́tìnì tẹ̀
+Type to me	Tẹ̀ sí mi
+Type:	Tẹ̀:
+Type: Ctrl + Alt + T	Tẹ̀: Ctrl + Alt + T
+Typing sound	Ohùn títẹ̀
+Unpacked. Press Test to hear it.	A ṣí i sílẹ̀. Tẹ Idanwo láti gbọ́ ọ.
+Unsaved changes.	Àwọn àyípadà tí a kò fipamọ́.
+Up to {0} fps	Títí dé {0} fps
+Up to {0}p	Títí dé {0}p
+Update	Ṣe àtúnṣe
+Update available.	Àtúnṣe wà.
+Update mods	Ṣe àtúnṣe mods
+Updating...	Ń ṣe àtúnṣe...
+Use	Lo
+Use her cursor	Lo kọ̀sọ̀ọ̀ rẹ̀
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Lo https:// fún olùpèsè níbòmíràn. Kọ́kọ́rọ́ lórí http lásán kò ní ààbò.
+Use preset	Lo ìṣètò tẹ́lẹ̀
+Use saved	Lo èyí tí a fipamọ́
+Use this server	Lo olupin yìí
+Using your provider with a key	Lo olùpèsè rẹ pẹ̀lú kọ́kọ́rọ́
+Using your server with no key	Lo olupin rẹ láì sí kọ́kọ́rọ́
+VIEW MOD >	WO MOD >
+VOICE >	OHÙN >
+VOICE IN YOUR MIC >	OHÙN NÍNÚ MAIKIROFÓNÙ RẸ >
+VOICE LAYERS >	ÌPELE OHÙN >
+Verbosity	Ìmọ̀ràn
+Video bitrate	Bitrate fídíò
+View	Wò
+View mod	Wo mod
+Voice	Ohùn
+Voice ID	ID ohùn
+Voice from	Ohùn láti
+Voice layers	Àwọn ìpele ohùn
+Voice model	Àwòṣe ohùn
+Voice model:	Àwòṣe ohùn:
+Voice name or ID, optional	Orúkọ ohùn tàbí ID, kò ṣe dandan
+Voice server address, or a voice model's folder	Àdírẹ́sì olupin ohùn, tàbí àpò àwòṣe ohùn kan
+Voice status	Ipò ohùn
+Voice, key and model...	Ohùn, kọ́kọ́rọ́ àti àwòṣe...
+Volume	Ìwọ̀n ohùn
+WAKE ME UP >	JI MI DÌDE >
+WATCH >	WO >
+Waiting for the relay	Ń dúró de relay
+Wake her up	Jí i dìde
+Waking her up	Ń jí i dìde
+Wander	Rìn kiri
+Wander around	Rìn káàkiri
+Watch my screen	Wo ìbòjú mi
+Watch-along memory	Ìrántí wíwo papọ̀
+Weather	Ojú ọjọ́
+Weather city	Ìlú ojú ọjọ́
+Welcome back, choom. Let's finish setting me up.	Kú àbọ̀ padà, choom. Jẹ́ kí a parí ṣíṣètò mi.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Ohun tí ó ń ṣe lórí PC rẹ láì béèrè. Pẹ̀lú yíyí tí a pa, ó béèrè ní àkọ́kọ́, ó sì ṣe é nígbà tí o bá sọ bẹ́ẹ̀ni.
+What should she call you?	Kí ló yẹ kí ó pè ọ́?
+When she types	Nígbà tí ó bá ń tẹ̀
+White	Funfun
+Windows default	Àìyípadà Windows
+Windows did not give Settings keyboard focus	Windows kò fún Ètò ní ìfojúsí kíláàvù
+Windows did not return keyboard focus to Back	Windows kò dá ìfojúsí kíláàvù padà sí Padà
+With no picture the wheel still tried to slide.	Láìsí àwòrán, kẹ̀kẹ́ náà ṣì gbìyànjú láti rìn.
+Works best on MAX INTELLIGENCE.	Ó ṣiṣẹ́ dára jù lórí MAX INTELLIGENCE.
+YOU	ÌWỌ
+YOU >	ÌWỌ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ÌWỌ OHÙN ÌṢÍPÒ BỌ́TÌNÌ ERE AJẸKÙ ÒJÒ DOOMSCROLL CAPRI WO ỌPỌLỌ ÌWÀ ÌDÁHÙN
+YOUR KEY	KỌ́KỌ́RỌ́ RẸ
+YOUR MIC	MAIKIROFÓNÙ RẸ
+YOUR PLAN	ÈTÒ RẸ
+Yokapri what's up	Yokapri kí ló ń ṣẹlẹ̀
+You can hide this. It keeps going, and the Mainframe shows it too.	O lè fi èyí pamọ́. Ó ń bá a lọ, Mainframe sì tún fi hàn.
+Your mic and her voice go into one virtual mic, and	Maikirofónù rẹ àti ohùn rẹ̀ ń lọ sínú maikirofónù fojú-inú kan ṣoṣo, àti
+Your mic is muted. Unmute it to test.	A ti pa maikirofónù rẹ. Ṣí i sílẹ̀ láti dánwò.
+Your mods are up to date.	Àwọn mods rẹ ti wà lọ́wọ́lọ́wọ́.
+Your name or a nickname	Orúkọ rẹ tàbí orúkọ ìfẹ́
+Your own model	Àwòṣe tirẹ
+Your personality	Ìwà rẹ
+Your voice	Ohùn rẹ
+Your voice (HD)	Ohùn rẹ (HD)
+Your voice (HD) · pick a clip of you...	Ohùn rẹ (HD) · yan ajẹkù tìrẹ...
+Your voice model	Àwòṣe ohùn rẹ
+as its mic.	gẹ́gẹ́ bí maikirofónù rẹ̀.
+changed. Saved as My Colors, so you can share it.	ti yípadà. Ti fipamọ́ bí Àwọn Àwọ̀ mi, kí o lè pín in.
+choice	yíyàn
+clips the input line	gé ìlà ìwọlé
+cue	àmì
+doesn't yet.	kò tí ì ṣe.
+download	gbà
+file.	fáìlì.
+flag	àsíá
+fps	fps
+hear	gbọ́
+hears	gbọ́
+hears that.	gbọ́ ìyẹn.
+hides or shows her.	fi pamọ́ tàbí ṣí i hàn.
+hint	àmì ìdánilókùn
+in the Mainframe.	nínú Mainframe.
+in the mods directory with a pull request.	nínú àpò mods pẹ̀lú pull request.
+in the picture wasn't noticed.	nínú àwòrán kò ṣe àkíyèsí.
+is already her push-to-talk key.	ti jẹ́ bọ́tìnì sọ̀rọ̀ tẹ̀ rẹ̀ tẹ́lẹ̀.
+is off.	ti pa.
+is on and running.	ń ṣiṣẹ́ lórí.
+is on, at the bottom, under	ń ṣiṣẹ́, ní ìsàlẹ̀, lábẹ́
+is on.	ti wà lórí.
+is on. She now answers to	ti wà lórí. Ó ń dá a lóhùn nísinsìnyí sí
+is removed.	ti yọ kúrò.
+is taken	ti gbà
+is taken by another app. Try another.	ti gbà láti ohun èlò mìíràn. Gbìyànjú òmíràn.
+is updated	ti ṣe àtúnṣe
+isn't hearing it yet: do {0} and {1}, then join a call.	kò tí ì gbọ́ ọ: ṣe {0} àti {1}, lẹ́yìn náà darapọ̀ mọ́ ìpè.
+it now.	báyìí.
+keeps her quiet, and lets her talk again.	pa á mọ́ ní ìdákẹ́jẹ́ẹ́, ó sì jẹ́ kí ó tún sọ̀rọ̀.
+key	bọ́tìnì
+key.	bọ́tìnì.
+min	ìṣẹ́jú
+more.	mọ́.
+ms.	ms.
+mutes mic	pa maikirofónù
+mutes your mic.	pa maikirofónù rẹ.
+name	orúkọ
+off	pa
+on this PC	lórí PC yìí
+opens her Mainframe.	ṣí Mainframe rẹ̀.
+opens her typing box.	ṣí àpótí kíkọ rẹ̀.
+phone	fóònù
+phone pixels	pixel fóònù
+phones	àwọn fóònù
+pixels	pixel
+pixels)	pixel)
+star.	ìràwọ̀.
+stars.	ìràwọ̀.
+starts voice chat.	bẹ̀rẹ̀ ìbánisọ̀rọ̀ ohùn.
+stays off. Nothing ran.	dúró pa. Kò sí nǹkan kan tó ṣiṣẹ́.
+still does its own job in other apps too. Confirm to keep it.	ṣì ń ṣe iṣẹ́ tirẹ̀ nínú àwọn ohun èlò mìíràn pẹ̀lú. Jẹ́rìísí láti pa á mọ́.
+tall	ga
+time	àkókò
+to talk	láti sọ̀rọ̀
+to talk to her, with a game in front too.	láti bá a sọ̀rọ̀, pẹ̀lú eré kan ní iwájú pẹ̀lú.
+too.	pẹ̀lú.
+turns Gaming Mode on and off.	ń tan Ipò Ere títí kan pa.
+with Ollama	pẹ̀lú Ollama
+won't type in other apps while she runs. Confirm to keep it.	kò ní kọ nínú àwọn ohun èlò mìíràn nígbà tí ó ń ṣiṣẹ́. Jẹ́rìísí láti pa á mọ́.
+{0}   Echo Cancellation: Off	{0}   Ìfagilé Ìró: Pa
+{0}   If her voice cuts off, turn off noise filtering	{0}   Bí ohùn rẹ̀ bá gé, pa àlẹ̀mọ́ ariwo
+{0}   Input Device:	{0}   Ẹ̀rọ Ìwọlé:
+{0}   Join the call and check they hear both of you	{0}   Darapọ̀ mọ́ ìpè kí o sì ṣàyẹ̀wò pé wọ́n gbọ́ ẹ̀yin méjèèjì
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Ìdánwò Maikirofónù > Ẹ jẹ́ kí a ṣàyẹ̀wò: wọ́n ó gbọ́ ìwọ, àti òun bí ó ṣe ń sọ̀rọ̀
+{0}   Microphone:	{0}   Maikirofónù:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Ìdínkù Ariwo: Kò sí. Méjèèjì lè gé ohùn rẹ̀ lẹ́yìn ìlà àkọ́kọ́.
+{0}   Open the call or meeting's audio settings	{0}   Ṣí àwọn ètò ìró ìpè tàbí ìpàdé
+{0}   Output Device: your headphones, like before	{0}   Ẹ̀rọ Ìjáde: agbekọ́rọ́ rẹ, bí tẹ́lẹ̀
+{0}   Speaker: your headphones, like before	{0}   Agbọ̀rọ̀sọ: agbekọ́rọ́ rẹ, bí tẹ́lẹ̀
+{0}   Try a mic test in your call app	{0}   Gbìyànjú ìdánwò maikirofónù nínú ohun èlò ìpè rẹ
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Àwọn Ètò Olùmúlò (kẹ̀kẹ́ tó wà lẹ́gbẹ̀ẹ́ orúkọ rẹ) > Ohùn àti Fídíò
+{0} Mbps	{0} Mbps
+{0} lines	{0} ìlà
+{0} min	{0} ìṣ
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· lórí PC yìí
+· server	· olupin

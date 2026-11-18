@@ -119,6 +119,7 @@ internal static class Program
         Site[] sites =
         {
             new Site("ci.yml", "smoke/linux/smoke-test.txt", "20"),
+            new Site("ci.yml", "smoke/linux-arm64/smoke-test.txt", "20"),
             new Site("ci.yml", "smoke/mac/smoke-test.txt", "20"),
             new Site("mac-linux.yml", "smoke/mac-arm64/smoke-test.txt", "0"),
             new Site("mac-linux.yml", "smoke/mac-x64/smoke-test.txt", "0"),
@@ -149,13 +150,32 @@ internal static class Program
             }
             Check("workflow-gate-" + site.Report.Replace('/', '-').Replace(".txt", ""), reason == "" ? "gate, stale deletion and exit capture in place" : "checked " + site.File + " reason=[" + reason + "]", reason == "");
         }
-        foreach (KeyValuePair<string, int> expected in new[] { new KeyValuePair<string, int>("ci.yml", 3), new KeyValuePair<string, int>("mac-linux.yml", 2) })
+        foreach (KeyValuePair<string, int> expected in new[] { new KeyValuePair<string, int>("ci.yml", 4), new KeyValuePair<string, int>("mac-linux.yml", 2) })
         {
             int smokeUploads = CountOf(texts[expected.Key], "name: smoke-");
-            bool oldGate = texts[expected.Key].Contains("grep -q '^FAIL'") || texts[expected.Key].Contains("grep -c '^PASS'");
+            bool oldGate = OldInlineGateInSmokeSteps(texts[expected.Key]);
             Check("workflow-" + expected.Key + "-artifacts-and-old-gate", "smoke uploads=" + smokeUploads + " old inline gate=" + oldGate,
                 smokeUploads == expected.Value && !oldGate);
         }
+    }
+
+
+    private static bool OldInlineGateInSmokeSteps(string text)
+    {
+        string[] lines = text.Replace("\r\n", "\n").Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+            if (line.IndexOf("--smoke", StringComparison.Ordinal) < 0) continue;
+            for (int j = i + 1; j < lines.Length && j < i + 12; j++)
+            {
+                string next = lines[j].Trim();
+                if (next.StartsWith("- ", StringComparison.Ordinal) || next.StartsWith("name:", StringComparison.Ordinal)) break;
+                if (next.StartsWith("bash ci/smoke-gate.sh ", StringComparison.Ordinal)) break;
+                if (next.Contains("grep -q '^FAIL'") || next.Contains("grep -c '^PASS'")) return true;
+            }
+        }
+        return false;
     }
 
     private static int CountOf(string text, string needle)

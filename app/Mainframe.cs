@@ -41,12 +41,12 @@ namespace CapriDesktop
         private static readonly FontFamily Heavy = Family("Bahnschrift SemiBold SemiConden");
         private static readonly FontFamily Narrow = Family("Bahnschrift SemiBold Condensed");
         private const int Wide = 380;
-        private const int Tall = 734;
+        private const int Tall = 764;
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 2176;
+        private const int PageTall = 2304;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -296,7 +296,7 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1372, 1424 }, new[] { 1424, 1452 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1400, 1452 }, new[] { 1452, 1480 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
         private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 1810 } };
@@ -305,7 +305,7 @@ namespace CapriDesktop
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1326;
+        private const int SimpleTall = 1454;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -342,6 +342,9 @@ namespace CapriDesktop
         private readonly Readout bubbleName;
         private readonly Slider comments;
         private readonly Readout commentsName;
+        private readonly Slider gameSoundLevel;
+        private readonly Readout gameSoundLevelName;
+        internal static readonly string[] SensitivityNames = { "Off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly Toggle intro;
         private readonly Toggle typing;
         private readonly Toggle listenCapri;
@@ -656,6 +659,7 @@ namespace CapriDesktop
             Key quit = Lower(Make("Quit Capri", 256, 250 + v, 100, 28, delegate { capri.Quit(); }));
             quit.Accent = Hot;
             updateNote = Lower(Caption("", 28, 288 + v, small, Faint));
+            MakeResourcesKey(318 + v);
             for (int i = header; i < Controls.Count; i++) mainLeft.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Left));
             int first = Controls.Count;
             // Settings: a setting to a row, its name on the left in red and its value in a box on the right, as on Cyberpunk
@@ -1058,6 +1062,10 @@ namespace CapriDesktop
             // deaths and kills still count.
             gameSounds = Switch("Game sounds", 0, 994, delegate { if (!syncing) capri.ToggleGameSounds(); });
             gameSounds.AccessibleName = "Game sounds. Big bursts of your game's sound count as moments for her reactions and comments. Off, she ignores them and still reacts to hits, deaths and kills";
+            gameSoundLevel = Setting("Sound sensitivity", SensitivityNames, 0, 1022, "Game sound sensitivity. Lower it if your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores game sounds");
+            gameSoundLevelName = new Readout(gameSoundLevel);
+            gameSoundLevel.Changed += delegate { if (syncing) return; gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value]; capri.SetGameSoundSensitivity(gameSoundLevel.Value * 10); };
+            int afterGameSounds = Controls.Count;
             gamingMode = Switch("Gaming Mode", 0, 1022, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She reacts to your game until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
             Caption("She reacts to your game until you close it.", 28, 1048, small, Faint);
@@ -1091,7 +1099,9 @@ namespace CapriDesktop
             clipHint.AutoSize = false;
             clipHint.Bounds = new Rectangle(28, 1466, 328, 36);
             BuildWeather(1514);
+            BuildDoomscroll(1642);
             int gamesTo = Controls.Count;
+            for (int belowSensitivity = afterGameSounds; belowSensitivity < gamesTo; belowSensitivity++) Controls[belowSensitivity].Top += Row;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
@@ -1164,9 +1174,9 @@ namespace CapriDesktop
                 dialog.ForeColor = White;
                 dialog.Font = Look.Mono(10f, FontStyle.Regular, GraphicsUnit.Point);
                 dialog.ClientSize = new Size(480, 172);
-                Label label = new Label { Text = "Game name", Bounds = new Rectangle(16, 16, 448, 20) };
+                Label label = new Lettering { Text = "Game name", Bounds = new Rectangle(16, 16, 448, 20) };
                 TextBox game = new TextBox { Text = GameNotes.Name(Hands.GameOpen()), Bounds = new Rectangle(16, 42, 448, 24), BackColor = Field, ForeColor = White, BorderStyle = BorderStyle.FixedSingle, AccessibleName = "Game name for controls" };
-                Label note = new Label { Text = "She reads these controls before each game job.", Bounds = new Rectangle(16, 78, 448, 30), ForeColor = Faint };
+                Label note = new Lettering { Text = "She reads these controls before each game job.", Bounds = new Rectangle(16, 78, 448, 30), ForeColor = Faint };
                 Button edit = DialogButton("Edit controls", 16, 122, 128, Cyan);
                 Button close = DialogButton("Close", 364, 122, 100, Edge);
                 edit.Click += delegate
@@ -1228,9 +1238,9 @@ namespace CapriDesktop
             }
         }
 
-        private static Label Heading(string text, int y) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, 18), ForeColor = Neon.Amber, Font = Look.Mono(9f, FontStyle.Bold, GraphicsUnit.Point) }; }
+        private static Label Heading(string text, int y) { return new Lettering { Text = text, Bounds = new Rectangle(16, y, 488, 18), ForeColor = Neon.Amber, Font = Look.Mono(9f, FontStyle.Bold, GraphicsUnit.Point) }; }
 
-        private static Label Hint(string text, int y, int height) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, height), ForeColor = Neon.SheetDim }; }
+        private static Label Hint(string text, int y, int height) { return new Lettering { Text = text, Bounds = new Rectangle(16, y, 488, height), ForeColor = Neon.SheetDim }; }
 
         // Memory vault, under HABITS: her notes can live in their Obsidian vault.
         private void ShowMemoryVault()
@@ -3091,6 +3101,8 @@ namespace CapriDesktop
             ShowPersonality();
             liveReactions.Checked = capri.ReactionsOn;
             gameSounds.Checked = capri.GameSoundsOn;
+            gameSoundLevel.Value = (capri.GameSoundSensitivity + 5) / 10;
+            gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value];
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
             ClipSettings recording = capri.ClipOptions;
@@ -3169,6 +3181,7 @@ namespace CapriDesktop
             musicAppName.Text = Hands.MusicSteps()[musicApp.Value];
             SyncSounds();
             SyncWeather();
+            SyncDoomscroll();
             syncing = false;
         }
 
@@ -3333,6 +3346,10 @@ namespace CapriDesktop
         internal void FlipReactions() { liveReactions.Checked = !liveReactions.Checked; }
 
         internal bool GameSoundsShown { get { return gameSounds.Checked; } }
+        internal string GameSensitivityShown { get { return gameSoundLevelName.Text; } }
+        internal Rectangle GameSensitivityAt { get { return gameSoundLevel.Bounds; } }
+        internal Rectangle GamingModeAt { get { return gamingMode.Bounds; } }
+        internal void SetGameSensitivityShown(int step) { gameSoundLevel.Value = step; }
 
         internal void FlipGameSounds() { gameSounds.Checked = !gameSounds.Checked; }
 
@@ -5175,7 +5192,7 @@ namespace CapriDesktop
             return key;
         }
 
-        private sealed class Note : Label
+        private sealed class Note : Lettering
         {
             // A note that takes the mouse, like the Mods status line, shows the rest of a line cut short with "..." on hover.
             internal bool Hovers;
@@ -5208,9 +5225,11 @@ namespace CapriDesktop
 
             internal string Shown { get { return Text.EndsWith(" >", StringComparison.Ordinal) ? Text.Substring(0, Text.Length - 2) : Text; } }
 
+            private string Drawn { get { string text = Lingo.Of(Text); return text.EndsWith(" >", StringComparison.Ordinal) ? text.Substring(0, text.Length - 2) : text; } }
+
             public override Size GetPreferredSize(Size proposed)
             {
-                Size text = TextRenderer.MeasureText(Shown, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                Size text = TextRenderer.MeasureText(Drawn, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
                 return new Size(text.Width + Padding.Horizontal, text.Height + Padding.Vertical);
             }
 
@@ -5218,7 +5237,7 @@ namespace CapriDesktop
 
             protected override void OnPaint(PaintEventArgs e)
             {
-                TextRenderer.DrawText(e.Graphics, Shown, Font, ClientRectangle, ForeColor, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                TextRenderer.DrawText(e.Graphics, Drawn, Font, ClientRectangle, ForeColor, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
             }
 
             protected override void WndProc(ref Message message)
@@ -5366,10 +5385,11 @@ namespace CapriDesktop
                 if (Chevron) Drop(graphics, Width - 19 * s, y, s, Enabled && !Dimmed ? Cyan : ink, hot);
                 Rectangle area = Chevron ? new Rectangle((int)(10 * s), 0, Width - (int)(32 * s), Height) : ClientRectangle;
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | (Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter);
+                string words = Lingo.Of(Text);
                 if (Heart && Enabled)
                 {
                     // The heart and the text are centred together, 5 px apart.
-                    int wide = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
+                    int wide = TextRenderer.MeasureText(graphics, words, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
                     float left = (Width - (17 * s + wide)) / 2;
                     DrawHeart(graphics, left + 6 * s, y, s * Swell);
                     area = new Rectangle((int)(left + 17 * s), 0, Width - (int)(left + 17 * s), Height);
@@ -5377,13 +5397,13 @@ namespace CapriDesktop
                 }
                 else if (Phone)
                 {
-                    int wide = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
+                    int wide = TextRenderer.MeasureText(graphics, words, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
                     float left = (Width - (PhoneRoom * s + wide)) / 2;
                     DrawPhone(graphics, left + 4 * s, y, s, ink, face);
                     area = new Rectangle((int)(left + PhoneRoom * s), 0, Width - (int)(left + PhoneRoom * s), Height);
                     flags = (flags & ~TextFormatFlags.HorizontalCenter) | TextFormatFlags.Left;
                 }
-                TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
+                TextRenderer.DrawText(graphics, words, Font, area, ink, flags);
                 if (Meter >= 0) using (Brush meter = new SolidBrush(Cyan)) graphics.FillRectangle(meter, 3 * s, Height - 4 * s, (float)((Width - 6 * s) * Math.Max(0, Math.Min(1, Meter))), 2 * s);
                 if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
             }
@@ -5553,7 +5573,7 @@ namespace CapriDesktop
                 MinimumSize = new Size(380, 300);
                 Label path = new Label { Text = note.Path, Bounds = new Rectangle(16, 14, 548, 24), AutoEllipsis = true, ForeColor = Faint, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, AccessibleName = "Note file" };
                 draft = new TextBox { Text = note.Text, Multiline = true, AcceptsReturn = true, AcceptsTab = true, WordWrap = true, ScrollBars = ScrollBars.Vertical, MaxLength = int.MaxValue, Bounds = new Rectangle(16, 44, 548, 324), BorderStyle = BorderStyle.FixedSingle, BackColor = Field, ForeColor = White, Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right, AccessibleName = title };
-                status = new Label { Bounds = new Rectangle(16, 376, 548, 34), ForeColor = Cyan, Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
+                status = new Lettering { Bounds = new Rectangle(16, 376, 548, 34), ForeColor = Cyan, Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
                 Button save = DialogButton("Save", 16, 414, 100, Cyan);
                 reload = DialogButton("Reload", 124, 414, 164, Edge);
                 close = DialogButton("Close", 464, 414, 100, Edge);
@@ -5612,11 +5632,11 @@ namespace CapriDesktop
                 ForeColor = White;
                 Font = Look.Mono(10f, FontStyle.Regular, GraphicsUnit.Point);
                 ClientSize = new Size(440, 214);
-                Label shortest = new Label { Text = "Shortest wait (minutes)", Bounds = new Rectangle(16, 18, 272, 24) };
-                Label longest = new Label { Text = "Longest wait (minutes)", Bounds = new Rectangle(16, 56, 272, 24) };
+                Label shortest = new Lettering { Text = "Shortest wait (minutes)", Bounds = new Rectangle(16, 18, 272, 24) };
+                Label longest = new Lettering { Text = "Longest wait (minutes)", Bounds = new Rectangle(16, 56, 272, 24) };
                 low = new NumericUpDown { Minimum = 1, Maximum = int.MaxValue, Value = capri.PopMin, Bounds = new Rectangle(296, 16, 128, 26), BackColor = Field, ForeColor = White, AccessibleName = "Shortest pop-in wait in minutes" };
                 high = new NumericUpDown { Minimum = 1, Maximum = int.MaxValue, Value = capri.PopMax, Bounds = new Rectangle(296, 54, 128, 26), BackColor = Field, ForeColor = White, AccessibleName = "Longest pop-in wait in minutes" };
-                status = new Label { Text = "Check in on me still decides whether she visits.", Bounds = new Rectangle(16, 94, 408, 64), ForeColor = Faint };
+                status = new Lettering { Text = "Check in on me still decides whether she visits.", Bounds = new Rectangle(16, 94, 408, 64), ForeColor = Faint };
                 Button save = DialogButton("Save", 16, 168, 96, Cyan);
                 Button preset = DialogButton("Use preset", 120, 168, 128, Edge);
                 Button close = DialogButton("Close", 328, 168, 96, Edge);
@@ -5691,8 +5711,26 @@ namespace CapriDesktop
                 if (drop == null) return;
                 drop.DropShadowEnabled = false;
                 drop.SizeChanged += delegate { Shape(drop); };
+                drop.Opening += delegate { Widen(drop); };
                 Shape(drop);
                 Scrolling(drop as ToolStripDropDownMenu);
+            }
+
+            private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ToolStripItem, object> Padded = new System.Runtime.CompilerServices.ConditionalWeakTable<ToolStripItem, object>();
+
+            private static void Widen(ToolStripDropDown drop)
+            {
+                foreach (ToolStripItem item in drop.Items)
+                {
+                    object was;
+                    if (Padded.TryGetValue(item, out was)) { item.Padding = (Padding)was; Padded.Remove(item); }
+                    string shown = Lingo.Of(item.Text);
+                    if (string.IsNullOrEmpty(item.Text) || shown == item.Text) continue;
+                    int extra = TextRenderer.MeasureText(shown, item.Font).Width - TextRenderer.MeasureText(item.Text, item.Font).Width;
+                    if (extra <= 0) continue;
+                    Padded.Add(item, item.Padding);
+                    item.Padding = new Padding(item.Padding.Left, item.Padding.Top, item.Padding.Right + extra, item.Padding.Bottom);
+                }
             }
 
             // Cuts a menu to its clipped corners: big at the top left and bottom right, small at the others.
@@ -5943,7 +5981,7 @@ namespace CapriDesktop
             {
                 ToolStripItem item = e.Item;
                 Color colour = item.Tag == Title ? Rose : !item.Enabled ? Faint : (item.Selected || item.Pressed) && e.ToolStrip is ToolStripDropDown ? Cyan : e.TextColor;
-                TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont, e.TextRectangle, colour, e.TextFormat);
+                TextRenderer.DrawText(e.Graphics, Lingo.Of(e.Text), e.TextFont, e.TextRectangle, colour, e.TextFormat);
             }
 
             protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
@@ -7821,7 +7859,7 @@ namespace CapriDesktop
                 Rectangle band = new Rectangle(0, rolls.Next(0, Math.Max(1, Height - 4)), Width, 2 + rolls.Next((int)(6 * s) + 1));
                 graphics.SetClip(band);
                 using (Brush dark = new SolidBrush(Neon.Tone(8, 6, 12))) graphics.FillRectangle(dark, band);
-                TextRenderer.DrawText(graphics, Shown, Font, new Rectangle(reach + shift, 0, Width - 2 * reach, (int)(Height - 4 * s)), red, flags | TextFormatFlags.PreserveGraphicsClipping);
+                TextRenderer.DrawText(graphics, Lingo.Of(Shown), Font, new Rectangle(reach + shift, 0, Width - 2 * reach, (int)(Height - 4 * s)), red, flags | TextFormatFlags.PreserveGraphicsClipping);
                 graphics.ResetClip();
                 using (Brush shard = new SolidBrush(red))
                 using (Brush black = new SolidBrush(Neon.Tone(8, 6, 12)))
@@ -7984,7 +8022,7 @@ namespace CapriDesktop
                     Arrow(graphics, 11 * s, middle, s, -1, live && value > 0, zone == -1);
                     Arrow(graphics, Width - 11 * s, middle, s, 1, live && value < labels.Length - 1, zone == 1);
                     int reach = (int)(26 * s);
-                    TextRenderer.DrawText(graphics, Shown, Font, new Rectangle(reach, 0, Width - 2 * reach, (int)(Height - 4 * s)), words, flags);
+                    TextRenderer.DrawText(graphics, Lingo.Of(Shown), Font, new Rectangle(reach, 0, Width - 2 * reach, (int)(Height - 4 * s)), words, flags);
                     float dash = (labels.Length <= 4 ? 11 : 8) * s, gap = 3 * s;
                     float left = Width / 2f - (labels.Length * dash + (labels.Length - 1) * gap) / 2;
                     using (Brush off = new SolidBrush(Dash))
@@ -8014,10 +8052,10 @@ namespace CapriDesktop
                 {
                     bar.Exclude(handle);
                     graphics.SetClip(bar, CombineMode.Replace);
-                    TextRenderer.DrawText(graphics, Shown, Font, area, words, flags);
+                    TextRenderer.DrawText(graphics, Lingo.Of(Shown), Font, area, words, flags);
                 }
                 graphics.SetClip(handle);
-                TextRenderer.DrawText(graphics, Shown, Font, area, Neon.Tone(40, 6, 12), flags);
+                TextRenderer.DrawText(graphics, Lingo.Of(Shown), Font, area, Neon.Tone(40, 6, 12), flags);
                 graphics.ResetClip();
                 if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
             }
@@ -8095,10 +8133,11 @@ namespace CapriDesktop
                 else using (Pen pen = new Pen(lit ? Cyan : Faint, 1.2f * s)) graphics.DrawPolygon(pen, diamond);
                 int left = (int)(24 * s);
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
-                TextRenderer.DrawText(graphics, Text, Font, new Rectangle(left, 0, Width - left, Height), Checked ? Cyan : White, flags);
-                int after = left + TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, flags).Width + (int)(8 * s);
-                if (Hint != null) TextRenderer.DrawText(graphics, Hint, HintFont ?? Font, new Rectangle(after, 0, Math.Max(0, Width - after), Height), Faint, flags);
-                if (Flag != null) TextRenderer.DrawText(graphics, Flag, FlagFont ?? Font, new Rectangle(0, 0, Width - (int)(6 * s), Height), Neon.Amber, TextFormatFlags.VerticalCenter | TextFormatFlags.Right | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+                string words = Lingo.Of(Text);
+                TextRenderer.DrawText(graphics, words, Font, new Rectangle(left, 0, Width - left, Height), Checked ? Cyan : White, flags);
+                int after = left + TextRenderer.MeasureText(graphics, words, Font, Size.Empty, flags).Width + (int)(8 * s);
+                if (Hint != null) TextRenderer.DrawText(graphics, Lingo.Of(Hint), HintFont ?? Font, new Rectangle(after, 0, Math.Max(0, Width - after), Height), Faint, flags);
+                if (Flag != null) TextRenderer.DrawText(graphics, Lingo.Of(Flag), FlagFont ?? Font, new Rectangle(0, 0, Width - (int)(6 * s), Height), Neon.Amber, TextFormatFlags.VerticalCenter | TextFormatFlags.Right | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
             }
         }
 
@@ -8231,17 +8270,18 @@ namespace CapriDesktop
                     using (Brush fill = new SolidBrush(onFill)) graphics.FillPath(fill, plate);
                     using (Pen pen = new Pen(onRim, line)) graphics.DrawPath(pen, plate);
                 }
-                TextRenderer.DrawText(graphics, "OFF", small, Rectangle.Round(off), offInk, centre);
-                TextRenderer.DrawText(graphics, "ON", small, Rectangle.Round(on), onInk, centre);
+                TextRenderer.DrawText(graphics, Lingo.Of("OFF"), small, Rectangle.Round(off), offInk, centre);
+                TextRenderer.DrawText(graphics, Lingo.Of("ON"), small, Rectangle.Round(on), onInk, centre);
                 if (Marked) using (GraphicsPath mark = MarkPath(s)) FocusMark(graphics, mark, s);
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 int room = NameRoom;
-                TextRenderer.DrawText(graphics, Text, Font, new Rectangle(0, 0, room, Height), Enabled && !Dimmed ? Rose : Faint, flags);
+                string words = Lingo.Of(Text), hinted = Lingo.Of(Hint);
+                TextRenderer.DrawText(graphics, words, Font, new Rectangle(0, 0, room, Height), Enabled && !Dimmed ? Rose : Faint, flags);
                 if (Hint == null) return;
                 TextFormatFlags measure = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
-                int after = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, measure).Width + (int)(10 * s);
+                int after = TextRenderer.MeasureText(graphics, words, Font, Size.Empty, measure).Width + (int)(10 * s);
                 Font hint = HintFont ?? Font;
-                if (after + TextRenderer.MeasureText(graphics, Hint, hint, Size.Empty, measure).Width <= room) TextRenderer.DrawText(graphics, Hint, hint, new Rectangle(after, 0, room - after, Height), Faint, flags);
+                if (after + TextRenderer.MeasureText(graphics, hinted, hint, Size.Empty, measure).Width <= room) TextRenderer.DrawText(graphics, hinted, hint, new Rectangle(after, 0, room - after, Height), Faint, flags);
             }
         }
     }

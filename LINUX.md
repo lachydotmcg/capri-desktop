@@ -10,7 +10,7 @@ The native White-look menu correction supplies the pinned Fluent menu-item, stat
 
 Use .NET 10 and the pinned Avalonia 11.3.22 dependencies. On Arch install `dotnet-sdk base-devel python wayland libxkbcommon libxcb fontconfig freetype2 libx11 libice libsm libxrandr libxext icu openssl glib2 libpulse libarchive bubblewrap pipewire ffmpeg python-dbus python-gobject`. A functioning desktop/audio session is needed for native interaction. Hyprland capture uses `grim`; input uses the bundled compositor-protocol helper, not a new root service or udev rule.
 
-`bash ci/check-linux.sh` runs focused, disposable checks. `bash ci/build-linux.sh /absolute/new/output` produces a self-contained directory with helper, bridges and notices. Run its `Capri` executable. No autostart entry is installed. The separate upstream `linux/build.sh` installs an application-menu launcher; use an isolated `XDG_DATA_HOME` if testing it alongside an existing installation. Use a separate `XDG_CONFIG_HOME` when reviewing alongside an existing Capri; each profile allows one native writer.
+`bash ci/check-linux.sh` runs focused, disposable checks. `bash ci/build-linux.sh /absolute/new/output` produces a self-contained directory with helper, bridges and notices. Add `linux-arm64` after the output directory to build for arm64; it has to run on an arm64 machine, since the input helper is compiled for the machine that builds it. Run its `Capri` executable. No autostart entry is installed. The separate upstream `linux/build.sh` installs an application-menu launcher; use an isolated `XDG_DATA_HOME` if testing it alongside an existing installation. Use a separate `XDG_CONFIG_HOME` when reviewing alongside an existing Capri; each profile allows one native writer.
 
 `python3 ci/export-arch.py /absolute/new/package-source` exports the committed root tree with its checksum-bound PKGBUILD. Build with `makepkg`, and qualify install/remove only in a disposable Arch environment. Installing on the owner host would replace its `capri` command and needs a separate activation decision.
 
@@ -24,7 +24,7 @@ The retained voice adapter reads the existing immutable local profile and its do
 
 The separate opt-in Listen for Capri setting uses the retained local ASR name gate and a 20-second follow-up window; it defaults off and offers a physical microphone chooser when one has not been selected. See [Listen for Capri](docs/NAME_LISTENING.md). Lock/session/account changes and Stop revoke name capture. Name ASR and retained speech run in separate, network-isolated bubblewrap children with only their exact model/runtime paths; the name decoder does not open an audio device.
 
-For an explicit new download or recovery, `tools/voice_pack_setup.py` retains the original checksum-bound download/stage/profile commands and `tools/kokoro-runtime.lock` pins the Python 3.14 Linux wheels. For Listen for Capri, `tools/asr_setup.py --directory NEW --lock tools/asr-models.lock.json` uses the retained Python 3.11 `tools/asr-requirements.lock` environment and verifies artifact hashes. The voice profile command requires an existing verified runtime profile. Speech never downloads during normal operation. Retain model files, runtime environments, manifests and applicable licenses for offline recovery. The native app requires no old Qt frontend or broad companion service for speech.
+For an explicit new download or recovery, `tools/voice_pack_setup.py` retains the original checksum-bound download/stage/profile commands and `tools/kokoro-runtime.lock` pins the Python 3.14 Linux wheels for x64 and arm64. For Listen for Capri, `tools/asr_setup.py --directory NEW --lock tools/asr-models.lock.json` uses the retained Python 3.11 `tools/asr-requirements.lock` environment and verifies artifact hashes. The voice profile command requires an existing verified runtime profile. Speech never downloads during normal operation. Retain model files, runtime environments, manifests and applicable licenses for offline recovery. The native app requires no old Qt frontend or broad companion service for speech.
 
 ## Native actions and limitations
 
@@ -133,9 +133,13 @@ window titles are excluded. Traces distinguish selection/capture/retry/model
 stages, epochs, frame dimensions, dispatch count and elapsed time. Public-fixture
 helpers separately retain their known public prompts and image hashes.
 
+## arm64, like a Raspberry Pi 5
+
+Each release has `Capri-linux-arm64.AppImage` and `Capri-linux-arm64.tar.gz` beside the x64 files, for 64-bit arm boards such as the Raspberry Pi 5. She needs a 64-bit system: 32-bit Raspberry Pi OS can't run her. CI builds and smoke-tests her on GitHub's arm64 runner. The local voice, Listen for Capri and ChatGPT plan locks all have arm64 wheels; Listen for Capri's `tflite-runtime` needs glibc 2.34 or newer (Raspberry Pi OS Bookworm has it). For TALK, use sherpa-onnx's `linux-aarch64-shared-cpu` build.
+
 ## The AppImage updates itself
 
-Started from `Capri-linux-x64.AppImage`, Capri downloads a newer release by herself when she checks for updates (after startup, every 6 hours, or when you pick **Check for updates**), the same as on Windows. She takes only a finished release from this repo's GitHub releases, and checks the file's size and its SHA-256 against the release's `SHA256SUMS.txt`. The download sits in `updates` inside her data folder.
+Started from `Capri-linux-x64.AppImage` or `Capri-linux-arm64.AppImage`, Capri downloads a newer release by herself when she checks for updates (after startup, every 6 hours, or when you pick **Check for updates**), the same as on Windows. She takes only a finished release from this repo's GitHub releases, and checks the file's size and its SHA-256 against the release's `SHA256SUMS.txt`. She only takes the AppImage built for her own CPU, so an arm64 Capri never updates into the x64 file or the other way round. The download sits in `updates` inside her data folder.
 
 Her right-click menu then shows **Restart Capri to update to X**. Picking it copies the new AppImage next to yours and checks it again, so a folder she can't write to or a full disk is reported while she's still running. Then she closes, a small `sh` script swaps the two files and starts the new one. If the new one closes within 4 seconds, the old one is put back. The script writes what happened to `updates/update.log`.
 

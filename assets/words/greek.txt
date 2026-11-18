@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Ένα στοιχείο ελέγχου που ξαναζωγραφίστηκε δεν ξανασχεδιάστηκε στην εικόνα.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Ένα δωρεάν κλειδί από το Google AI Studio, τη NVIDIA ή το OpenRouter. Τίποτα για λήψη. Χρειάζεται internet.
+A held trackpad scroll got a flick's long ease:	Μια κρατημένη κύλιση trackpad πήρε τη μακρά επιβράδυνση ενός γρήγορου σαρώματος:
+A layout change during a slide put the page at	Μια αλλαγή διάταξης κατά τη διάρκεια μιας διαφάνειας έβαλε τη σελίδα στο
+A layout change left the picture up.	Μια αλλαγή διάταξης άφησε την εικόνα ορατή.
+A model in Ollama, on your local server or on your key.	Ένα μοντέλο στο Ollama, στον τοπικό σου διακομιστή ή με το δικό σου κλειδί.
+A paid key goes under MAX INTELLIGENCE by itself.	Ένα επί πληρωμή κλειδί πηγαίνει μόνο του στο MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Ένα πλάνο που ήδη πληρώνεις, ένα δικό σου κλειδί ή Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Ένα μενού του πάνελ φωνής δεν έχει δικό του αντίγραφο της γραμματοσειράς του πάνελ.
+A wheel turn right after a slide ended froze the picture.	Μια περιστροφή του τροχού αμέσως μετά το τέλος μιας διαφάνειας πάγωσε την εικόνα.
+ALLOW THIS PHONE?	ΝΑ ΕΠΙΤΡΑΠΕΙ ΑΥΤΟ ΤΟ ΤΗΛΕΦΩΝΟ;
+ALMOST THERE >	ΣΧΕΔΟΝ ΕΤΟΙΜΑ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ΜΙΑ ΑΛΛΗ CAPRI ΑΝΕΛΑΒΕ ΤΟΝ ΕΛΕΓΧΟ · ΚΛΕΙΣΕ ΚΑΙ ΑΝΟΙΞΕ ΞΑΝΑ
+API key	Κλειδί API
+API key, Claude plan or ChatGPT plan	Κλειδί API, πλάνο Claude ή πλάνο ChatGPT
+Add	Προσθήκη
+Address	Διεύθυνση
+Address and key saved. Use saved to reconnect.	Η διεύθυνση και το κλειδί αποθηκεύτηκαν. Χρησιμοποίησε Αποθηκευμένο για επανασύνδεση.
+Advanced Settings	Σύνθετες ρυθμίσεις
+All	Όλα
+All screens	Όλες οι οθόνες
+Allow	Να επιτρέπεται
+Almost there. I'll say hi the second my brain's in.	Σχεδόν έτοιμο. Θα σε χαιρετήσω μόλις μπει ο εγκέφαλός μου.
+Always	Πάντα
+Always on top	Πάντα από πάνω
+Any Google account works. I opened the page in your browser.	Οποιοσδήποτε λογαριασμός Google λειτουργεί. Άνοιξα τη σελίδα στο πρόγραμμα περιήγησης.
+Applies to every voice	Ισχύει για κάθε φωνή
+Apps she may close	Εφαρμογές που μπορεί να κλείσει
+Ask Capri for more	Ζήτα από την Capri περισσότερα
+Asking your server...	Ρωτάω τον διακομιστή σου...
+Asks before closing only the apps you choose.	Ρωτά πριν κλείσει μόνο τις εφαρμογές που επιλέγεις.
+Auto	Αυτόματο
+Automatic: VB-CABLE, else Steam's	Αυτόματο: VB-CABLE, αλλιώς του Steam
+BAD RELAY HOST	ΛΑΝΘΑΣΜΕΝΟΣ HOST ΡΕΛΕ
+BIG Z open notepad	BIG Z άνοιξε το σημειωματάριο
+BRAIN	ΕΓΚΕΦΑΛΟΣ
+BRAIN >	ΕΓΚΕΦΑΛΟΣ >
+BRAIN ONLINE >	ΕΓΚΕΦΑΛΟΣ ONLINE >
+BRAIN PROVIDER >	ΠΑΡΟΧΟΣ ΕΓΚΕΦΑΛΟΥ >
+BRAIN VOICE CAPRI	ΦΩΝΗ ΕΓΚΕΦΑΛΟΥ CAPRI
+Back	Πίσω
+Back on your saved API key.	Πίσω στο αποθηκευμένο κλειδί API σου.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Καλύτερο για αυτόν τον υπολογιστή:
+Black	Μαύρο
+Blank key means no key.	Κενό κλειδί σημαίνει χωρίς κλειδί.
+Brain API key	Κλειδί API εγκεφάλου
+Brain model	Μοντέλο εγκεφάλου
+Brain provider	Πάροχος εγκεφάλου
+Bring here	Φέρε εδώ
+Bring to this screen	Φέρε σε αυτή την οθόνη
+Browse	Αναζήτηση
+Browse mods	Αναζήτηση mods
+Browse to a voice model	Αναζήτηση για μοντέλο φωνής
+Browse...	Αναζήτηση...
+Bubble	Φούσκα
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree είσαι εκεί
+CAN'T REACH THE RELAY · RETRYING	ΔΕΝ ΜΠΟΡΩ ΝΑ ΦΤΑΣΩ ΤΟ ΡΕΛΕ · ΞΑΝΑΠΡΟΣΠΑΘΩ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	ΕΓΚΕΦΑΛΟΣ ΦΩΝΗΣ CAPRI
+CHANGED, approve it again.	ΑΛΛΑΧΤΗΚΕ, ενέκρινέ το ξανά.
+CLIPS >	ΚΛΙΠ >
+CLOUD VOICE	ΦΩΝΗ CLOUD
+CODE	ΚΩΔΙΚΑΣ
+COLORS >	ΧΡΩΜΑΤΑ >
+CONNECTED	ΣΥΝΔΕΘΗΚΕ
+CONNECTING	ΣΥΝΔΕΣΗ
+CUSTOM LOCAL	ΠΡΟΣΑΡΜΟΣΜΕΝΗ ΤΟΠΙΚΗ
+Call mode (beta)	Λειτουργία κλήσης (beta)
+Call mode does not fit.	Η λειτουργία κλήσης δεν χωράει.
+Call mode is outside its space.	Η λειτουργία κλήσης είναι εκτός του χώρου της.
+Cancel	Ακύρωση
+Cancel keys	Ακύρωση πλήκτρων
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Κωδικός Capri:
+Capri mods (*	Mods Capri (*
+Capri, hello	Capri, γεια
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Χάος όταν θυμώνει
+Chat with Capri from your phone	Μίλα με την Capri από το τηλέφωνό σου
+ChatGPT plan	Πλάνο ChatGPT
+Check for updates	Έλεγχος για ενημερώσεις
+Check in on me	Έλα να με δεις
+Check in on me is hidden	Το Έλα να με δεις είναι κρυμμένο
+Check in on me still decides whether she visits.	Το Έλα να με δεις εξακολουθεί να αποφασίζει αν θα έρθει.
+Check in on me's tip missed	Η συμβουλή του Έλα να με δεις χάθηκε
+Chess	Σκάκι
+Choose apps	Επιλογή εφαρμογών
+Choose folder...	Επιλογή φακέλου...
+Choose where future Capri clips are saved	Επίλεξε πού θα αποθηκεύονται τα μελλοντικά κλιπ της Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Πλάνο Claude ή ChatGPT, επί πληρωμή κλειδί (OpenAI, Claude, DeepSeek) ή Ollama.
+Claude plan	Πλάνο Claude
+Clear	Καθαρισμός
+Cleared.	Καθαρίστηκε.
+Click Confirm to keep Down, or press Esc.	Πάτα Επιβεβαίωση για να κρατήσεις το Down, ή πάτα Esc.
+Click to open it.	Κάνε κλικ για να το ανοίξεις.
+Clip my games	Κατέγραφε τα παιχνίδια μου
+Clips	Κλιπ
+Close	Κλείσιμο
+Close other AIs for me	Κλείσε για μένα τις άλλες AI
+Cloud voice	Φωνή cloud
+Cloud voice service	Υπηρεσία φωνής cloud
+Cloud voice setup	Ρύθμιση φωνής cloud
+Code mods can reach your whole PC. Only trusted ones.	Τα mods κώδικα μπορούν να φτάσουν σε όλο τον υπολογιστή σου. Μόνο τα έμπιστα.
+Code/Husk Mode	Λειτουργία Code/Husk
+Codex	Codex
+Commands	Εντολές
+Comment on my games	Σχολίασε τα παιχνίδια μου
+Comments	Σχόλια
+Confirm	Επιβεβαίωση
+Confirm keys	Επιβεβαίωση πλήκτρων
+Connect	Σύνδεση
+Connect / Forget brain key	Σύνδεση / Ξέχασε το κλειδί εγκεφάλου
+Connect / Forget voice key	Σύνδεση / Ξέχασε το κλειδί φωνής
+Connect four	Τέσσερα στη σειρά
+Controls	Στοιχεία ελέγχου
+Copri, what time is it	Copri, τι ώρα είναι
+Copy error details	Αντιγραφή λεπτομερειών σφάλματος
+Copy the key	Αντιγραφή κλειδιού
+Copy the key from the page, then press Paste.	Αντίγραψε το κλειδί από τη σελίδα, μετά πάτα Επικόλληση.
+Couldn't open that page:	Δεν μπόρεσα να ανοίξω εκείνη τη σελίδα:
+Couldn't open that:	Δεν μπόρεσα να ανοίξω εκείνο:
+Couldn't open the mods folder:	Δεν μπόρεσα να ανοίξω τον φάκελο mods:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Το Ctrl + Alt + M είναι ήδη το πλήκτρο του Mainframe της.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Το Ctrl + Alt + N σιγάζει το μικρόφωνο
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Το Ctrl + Alt + V είναι ήδη το πλήκτρο ομιλίας της.
+Ctrl + Alt + V to talk	Ctrl + Alt + V για ομιλία
+Custom local voice	Προσαρμοσμένη τοπική φωνή
+Custom model name	Προσαρμοσμένο όνομα μοντέλου
+Dance	Χόρεψε
+Dance to music	Χόρεψε με μουσική
+Default	Προεπιλογή
+Default (follows Windows)	Προεπιλογή (ακολουθεί τα Windows)
+Default duration for clip that and automatic clips	Προεπιλεγμένη διάρκεια για το clip that και τα αυτόματα κλιπ
+Default length	Προεπιλεγμένο μήκος
+Default model	Προεπιλεγμένο μοντέλο
+Delay	Καθυστέρηση
+Deny	Απόρριψη
+Discard	Απόρριψη
+Discard + reload	Απόρριψη + επαναφόρτωση
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Δεν θες να περιμένεις; Ένα δωρεάν κλειδί με κάνει να μιλάω σε περίπου ένα λεπτό.
+Done	Τέλος
+EXTRA REQUEST JSON >	ΠΡΟΣΘΕΤΟ ΑΙΤΗΜΑ JSON >
+EXTRAS >	ΠΡΟΣΘΕΤΑ >
+Edit	Επεξεργασία
+Edit check-in lines	Επεξεργασία γραμμών check-in
+Edit check-in lines has the wrong view or dimming	Η επεξεργασία γραμμών check-in έχει λάθος προβολή ή σκίαση
+Edit check-in lines is out of place	Η επεξεργασία γραμμών check-in είναι εκτός θέσης
+Edit controls	Επεξεργασία στοιχείων ελέγχου
+ElevenLabs API key	Κλειδί API ElevenLabs
+ElevenLabs voice ID	ID φωνής ElevenLabs
+English	Αγγλικά
+Enter the game's name first.	Γράψε πρώτα το όνομα του παιχνιδιού.
+Every	Κάθε
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Κάθε mod ελέγχεται για malware πριν ανέβει. Τα mods κώδικα εξακολουθούν να ρωτούν πριν εκτελεστούν.
+Explore after	Εξερεύνησε μετά
+Explore while I'm away	Εξερεύνησε όσο λείπω
+Extra request JSON	Πρόσθετο αίτημα JSON
+Extras	Πρόσθετα
+FREE KEY	ΔΩΡΕΑΝ ΚΛΕΙΔΙ
+FREE KEY >	ΔΩΡΕΑΝ ΚΛΕΙΔΙ >
+Fast hands in games	Γρήγορα χέρια στα παιχνίδια
+File editor	Επεξεργαστής αρχείων
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Το Fish Audio, το ElevenLabs και άλλα βρίσκονται στο ΦΩΝΗ στο Mainframe.
+Follow-up messages	Μηνύματα συνέχειας
+Forget	Ξέχασε
+Fork capri-mods	Fork του capri-mods
+Frame rate	Ρυθμός καρέ
+Free	Δωρεάν
+Free and private, works offline. Downloads	Δωρεάν και ιδιωτικό, λειτουργεί offline. Λήψη
+Free and private, works offline. Downloads the best model for this PC.	Δωρεάν και ιδιωτικό, λειτουργεί offline. Κατεβάζει το καλύτερο μοντέλο για αυτόν τον υπολογιστή.
+Free key	Δωρεάν κλειδί
+Free key providers	Πάροχοι δωρεάν κλειδιών
+Free keys can be rate limited and slow.	Τα δωρεάν κλειδιά μπορεί να έχουν όριο ρυθμού και να είναι αργά.
+Free voice in games	Δωρεάν φωνή στα παιχνίδια
+Free voice style	Ύφος δωρεάν φωνής
+Free voice:	Δωρεάν φωνή:
+Free voice: Her own	Δωρεάν φωνή: Δική της
+Free · local model	Δωρεάν · τοπικό μοντέλο
+GAMES >	ΠΑΙΧΝΙΔΙΑ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Τα σχόλια παιχνιδιών τρέχουν χωριστά από το Παρακολούθησε την οθόνη μου. Το Off τα σταματά, και στο Gaming Mode· μόνο Γεγονότα και Φλύαρη της επιτρέπουν να βλέπει το παιχνίδι σου
+Game controls	Στοιχεία ελέγχου παιχνιδιού
+Game name	Όνομα παιχνιδιού
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Ευαισθησία ήχων παιχνιδιού. Χαμήλωσέ την αν τα ακουστικά σου είναι χαμηλά αλλά τα Windows είναι στο {0}% και αντιδρά σε κάθε ήχο· το Off αγνοεί τους ήχους παιχνιδιών
+Game sounds	Ήχοι παιχνιδιού
+Games	Παιχνίδια
+Gaming Mode	Gaming Mode
+Gaming Mode key	Πλήκτρο Gaming Mode
+Gaming Mode:	Gaming Mode:
+Gaming Mode: Ctrl + Alt + G	Gaming Mode: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Λήψη VB-CABLE
+Get VB-CABLE (free)...	Λήψη VB-CABLE (δωρεάν)...
+Get free voice	Πάρε δωρεάν φωνή
+Getting your Fish Audio voices...	Φέρνω τις φωνές σου του Fish Audio...
+Giant	Τεράστιο
+Glitch	Glitch
+Glitch in at startup	Glitch στην εκκίνηση
+Go to sleep	Πήγαινε για ύπνο
+Go to the next screen	Πήγαινε στην επόμενη οθόνη
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · δωρεάν επίπεδο · με όριο ρυθμού
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Έχεις πλάνο Claude ή ChatGPT, ή δικό σου κλειδί; Διάλεξε και θα συνδεθώ.
+Got it, just me. Right-click me any time for Capri Mainframe.	Εντάξει, μόνο εγώ. Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Capri Mainframe.
+Grey	Γκρι
+H.{0} video bitrate target; higher values make larger files	Στόχος ρυθμού bit βίντεο H.{0}· μεγαλύτερες τιμές δίνουν μεγαλύτερα αρχεία
+HABITS >	ΣΥΝΗΘΕΙΕΣ >
+HER HANDS >	ΤΑ ΧΕΡΙΑ ΤΗΣ >
+HER JOBS >	ΟΙ ΔΟΥΛΕΙΕΣ ΤΗΣ >
+HER MEMORY >	Η ΜΝΗΜΗ ΤΗΣ >
+HER MODS >	ΤΑ MODS ΤΗΣ >
+HH:mm	HH:mm
+HOW I SOUND >	ΠΩΣ ΑΚΟΥΓΟΜΑΙ >
+Hang here	Μείνε εδώ
+Have Ollama? Open it, then press Refresh.	Έχεις Ollama; Άνοιξέ το, μετά πάτα Ανανέωση.
+Head pats	Χάδια στο κεφάλι
+Hearing	Ακοή
+Hearing engine	Μηχανή ακοής
+Hearing fix	Διόρθωση ακοής
+Hearing status	Κατάσταση ακοής
+Help	Βοήθεια
+Help page	Σελίδα βοήθειας
+Her colors	Τα χρώματά της
+Her folder	Ο φάκελός της
+Her memories	Οι αναμνήσεις της
+Her own colors are back.	Τα δικά της χρώματα επέστρεψαν.
+Her own notes (no vault)	Οι δικές της σημειώσεις (χωρίς vault)
+Her perch frames per second	Καρέ ανά δευτερόλεπτο του κλαδιού της
+Her personality	Η προσωπικότητά της
+Her size	Το μέγεθός της
+Her speaker	Το ηχείο της
+Her speaker is hidden or outside VOICE	Το ηχείο της είναι κρυμμένο ή εκτός ΦΩΝΗΣ
+Her speaker overlaps the mic or hearing row	Το ηχείο της επικαλύπτει τη γραμμή μικροφώνου ή ακοής
+Her speaker:	Το ηχείο της:
+Her speaker: Default	Το ηχείο της: Προεπιλογή
+Her voice in your mic	Η φωνή της στο μικρόφωνό σου
+Her voice in your mic: loudness	Η φωνή της στο μικρόφωνό σου: ένταση
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Η ίδια η φωνή της. Το ύψος της είναι Ρυθμίσεις > ΦΩΝΗ > Ύψος, και κινούνται μαζί.
+Her voice joins your mic only in call mode.	Η φωνή της μπαίνει στο μικρόφωνό σου μόνο σε λειτουργία κλήσης.
+Her voice volume	Ένταση της φωνής της
+Her voice's pitch	Ύψος της φωνής της
+Her voice's pitch, the same as Settings > VOICE > Pitch	Ύψος της φωνής της, το ίδιο με Ρυθμίσεις > ΦΩΝΗ > Ύψος
+Her voice's speed	Ταχύτητα της φωνής της
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Η φωνή της, και δύο αντίγραφά της αναμεμιγμένα από κάτω, το καθένα με δικό του ύψος και καθυστέρηση.
+Her voices · free	Οι φωνές της · δωρεάν
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Γεια, choom. Είμαι η Capri. Χρειάζομαι εγκέφαλο πριν μπορέσω να απαντήσω. Διάλεξε ένα.
+Hide / Show Capri	Απόκρυψη / Εμφάνιση Capri
+Hide / Show key	Πλήκτρο απόκρυψης / εμφάνισης
+Hide Capri	Απόκρυψη Capri
+Hide for now	Κρύψε για τώρα
+Hide in full screen	Κρύψε σε πλήρη οθόνη
+Hide this	Κρύψε αυτό
+Hide/show:	Απόκρυψη/εμφάνιση:
+Hide/show: Ctrl + Alt + H	Απόκρυψη/εμφάνιση: Ctrl + Alt + H
+Hologram	Ολόγραμμα
+Hop off	Κατέβα
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Πόσο καιρό χρειάζεται ένας ακίνητος υπολογιστής για να την στείλει για ύπνο· τα πέντε λεπτά ακόμα διαβάζονται ως ότι λείπεις
+How long a stroke over her a head pat needs	Πόση ώρα χρειάζεται ένα πέρασμα πάνω της για χάδι στο κεφάλι
+How long her replies stay up	Πόση ώρα μένουν ορατές οι απαντήσεις της
+How long you are away before she scrolls a browser or reader	Πόσο πρέπει να λείπεις πριν κάνει κύλιση σε πρόγραμμα περιήγησης ή αναγνώστη
+How much her voice glitches	Πόσο παραμορφώνεται η φωνή της
+How much of the chat she keeps	Πόσο από τη συνομιλία κρατάει
+How much she wanders	Πόσο περιφέρεται
+How often she pops in to say hi	Πόσο συχνά μπαίνει για να πει γεια
+How robotic her voice sounds	Πόσο ρομποτική ακούγεται η φωνή της
+How to	Πώς
+Huge	Τεράστια
+I can hear you.	Σε ακούω.
+I glance at your screen and comment. Costs a little on a paid brain.	Κοιτάζω την οθόνη σου και σχολιάζω. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
+I keep listening. Say my name, then just talk.	Συνεχίζω να ακούω. Πες το όνομά μου και μίλα απλά.
+I talk about your game as you play. Costs a little on a paid brain.	Μιλάω για το παιχνίδι σου καθώς παίζεις. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
+I type my replies and stay quiet.	Γράφω τις απαντήσεις μου και μένω σιωπηλή.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Δεν θα μιλήσω, και τίποτα δεν στέλνεται πουθενά. Θα συνεχίσω να τριγυρνάω, να χορεύω με τη μουσική σου και να κάνω τα γρήγορα πράγματα που ζητάς, όπως την ένταση.
+I'll talk in	Θα μιλήσω στο
+IN DISCORD >	ΣΤΟ DISCORD >
+INSTALLED >	ΕΓΚΑΤΕΣΤΗΜΕΝΑ >
+Import a Capri mod	Εισαγωγή mod Capri
+Import mod	Εισαγωγή mod
+In games	Στα παιχνίδια
+Input	Είσοδος
+Input, Output or How to overlaps a row	Είσοδος, Έξοδος ή Πώς επικαλύπτει μια γραμμή
+Input:	Είσοδος:
+Input: default	Είσοδος: προεπιλογή
+Install	Εγκατάσταση
+Install mod	Εγκατάσταση mod
+Installed.	Εγκαταστάθηκε.
+It may ask for a phone number. I opened the page in your browser.	Μπορεί να ζητήσει αριθμό τηλεφώνου. Άνοιξα τη σελίδα στο πρόγραμμα περιήγησης.
+It still does its own job in other apps too.	Εξακολουθεί να κάνει τη δουλειά της και σε άλλες εφαρμογές.
+It won't type in other apps while she runs.	Δεν θα πληκτρολογεί σε άλλες εφαρμογές όσο τρέχει.
+JUST ME >	ΜΟΝΟ ΕΓΩ >
+Jealous of other AIs	Ζηλεύει άλλες AI
+Join the Discord	Γίνε μέλος του Discord
+KB.	KB.
+KEYS	ΠΛΗΚΤΡΑ
+KEYS >	ΠΛΗΚΤΡΑ >
+Keep PC awake for jobs	Κράτα τον υπολογιστή ξύπνιο για δουλειές
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Κρατάει τα τελευταία δύο λεπτά του παιχνιδιού σου στη μνήμη. Πες clip that για να τα αποθηκεύσεις.
+Key	Κλειδί
+Key cleared: a model file needs none.	Το κλειδί καθαρίστηκε: ένα αρχείο μοντέλου δεν χρειάζεται.
+Key cleared: paste the key for	Το κλειδί καθαρίστηκε: επικόλλησε το κλειδί για
+Key forgotten.	Το κλειδί ξεχάστηκε.
+Key. It goes only to this server, as a Bearer key	Κλειδί. Πηγαίνει μόνο σε αυτόν τον διακομιστή, ως κλειδί Bearer
+Kokoro only, like es	Μόνο Kokoro, όπως το es
+LAST THING >	ΤΕΛΕΥΤΑΙΟ ΠΡΑΓΜΑ >
+LISTENING >	ΑΚΟΥΩ >
+Language	Γλώσσα
+Large	Μεγάλο
+Last thing. These cost a little or use your mic, so they're your pick.	Τελευταίο πράγμα. Αυτά κοστίζουν λίγο ή χρησιμοποιούν το μικρόφωνό σου, οπότε η επιλογή είναι δική σου.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Τελευταίο πράγμα. Αυτά κοστίζουν λίγο ή χρησιμοποιούν το μικρόφωνό σου, οπότε η επιλογή είναι δική σου. Μετά θέλω να μάθω πώς να σε φωνάζω.
+Layers	Επίπεδα
+Learn more	Μάθε περισσότερα
+Leaving Settings threw its picture away straight away.	Η έξοδος από τις Ρυθμίσεις πέταξε αμέσως την εικόνα της.
+Legacy stand	Παλιά βάση
+Lie down	Ξάπλωσε
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Γραμμές διαλόγου του PC που κρατιούνται στη μνήμη όσο βλέπετε μαζί. Το παλαιότερο μισό γίνεται σημείωση όταν είναι ενεργό το Θυμήσου τι βλέπει
+Listen for Capri	Άκου την Capri
+Live reactions	Αντιδράσεις live
+Local server address	Διεύθυνση τοπικού διακομιστή
+Long	Μεγάλο
+Longest wait (minutes)	Μεγαλύτερη αναμονή (λεπτά)
+Looking at this PC...	Κοιτάζω αυτόν τον υπολογιστή...
+Looking for Ollama. Open it if it isn't running.	Ψάχνω για Ollama. Άνοιξέ το αν δεν τρέχει.
+Looking for a brain...	Ψάχνω για εγκέφαλο...
+Looking in the mods directory for updates...	Ψάχνω για ενημερώσεις στον φάκελο mods...
+Looking in the mods directory...	Ψάχνω στον φάκελο mods...
+Looking...	Ψάχνω...
+MAIN >	ΚΥΡΙΟ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	ΜΕΣΑΙΑ ΝΟΗΜΟΣΥΝΗ
+MEMORY VAULT >	ΘΗΚΗ ΜΝΗΜΗΣ >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	ΦΑΚΕΛΟΣ MODS >
+MODS INSTALLED COLORS	ΕΓΚΑΤΕΣΤΗΜΕΝΑ ΧΡΩΜΑΤΑ MODS
+MOVES >	ΚΙΝΗΣΕΙΣ >
+MY BRAIN	Ο ΕΓΚΕΦΑΛΟΣ ΜΟΥ
+MY FREE VOICE	Η ΔΩΡΕΑΝ ΦΩΝΗ ΜΟΥ
+MY PLAN OR KEY	ΤΟ ΠΛΑΝΟ ΜΟΥ Ή ΤΟ ΚΛΕΙΔΙ
+MY PLAN OR KEY >	ΤΟ ΠΛΑΝΟ ΜΟΥ Ή ΤΟ ΚΛΕΙΔΙ >
+Made your Fish Audio voice. Press Test to hear it.	Έφτιαξα τη φωνή σου του Fish Audio. Πάτα Δοκιμή για να την ακούσεις.
+Mainframe colours	Χρώματα Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Χρώματα Mainframe. Το Night City είναι κόκκινο και κυανό· το Μαύρο, Λευκό και Γκρι αλλάζουν το Mainframe, τα μενού της, το πλαίσιο πληκτρολόγησης και τις σημειώσεις της
+Mainframe frames	Πλαίσια Mainframe
+Mainframe key	Πλήκτρο Mainframe
+Mainframe size	Μέγεθος Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Μέγεθος Mainframe. Το Αυτόματο το μεγαλώνει όταν το Virtual Super Resolution ή το DSR χωρά μια μεγάλη επιφάνεια εργασίας σε μικρότερη οθόνη
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Κάτω
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Φτιάχνω τη φωνή σου του Fish Audio...
+Max reply	Μέγιστη απάντηση
+Maximum clip resolution, keeping the game's shape without upscaling	Μέγιστη ανάλυση κλιπ, διατηρώντας το σχήμα του παιχνιδιού χωρίς upscaling
+Medium	Μεσαίο
+Memory	Μνήμη
+Memory size	Μέγεθος μνήμης
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Μέγεθος μνήμης σε tokens για το Ollama και τον ενσωματωμένο εγκέφαλό της. Το Αυτόματο μεγαλώνει όταν ένα αίτημα χρειάζεται περισσότερα
+Mg	Mg
+Mic level:	Επίπεδο μικροφώνου:
+Mic test finished. Sound is reaching Capri.	Η δοκιμή μικροφώνου ολοκληρώθηκε. Ο ήχος φτάνει στην Capri.
+Mic:	Μικρόφωνο:
+Mic: default	Μικρόφωνο: προεπιλογή
+Microphone	Μικρόφωνο
+Mini player	Mini player
+Mini player over full screen	Mini player πάνω από πλήρη οθόνη
+Mini-games	Μίνι-παιχνίδια
+Minimising the Mainframe left it sliding.	Η ελαχιστοποίηση του Mainframe το άφησε να γλιστράει.
+Minimize	Ελαχιστοποίηση
+Mod filter	Φίλτρο mods
+Mod options	Επιλογές mods
+Mod pages	Σελίδες mods
+Mod rules	Κανόνες mods
+Mod sort	Ταξινόμηση mods
+Mod switch	Εναλλαγή mod
+Model	Μοντέλο
+Model folder	Φάκελος μοντέλου
+Model name, optional	Όνομα μοντέλου, προαιρετικό
+Mods	Mods
+Mods directory	Φάκελος mods
+Mods folder	Φάκελος mods
+Most NVIDIA models can't see your screen.	Τα περισσότερα μοντέλα NVIDIA δεν βλέπουν την οθόνη σου.
+Mouse wheel notches got a flick's long ease:	Τα κλικ του τροχού ποντικιού πήραν τη μακρά επιβράδυνση ενός γρήγορου σαρώματος:
+Move	Μετακίνηση
+Move key to MAX INTELLIGENCE	Μετακίνησε το κλειδί στο MAX INTELLIGENCE
+Move to MAX	Μετακίνηση στο MAX
+Music	Μουσική
+Music app	Εφαρμογή μουσικής
+Music app: where she plays music when you don't name an app	Εφαρμογή μουσικής: όπου παίζει μουσική όταν δεν ονομάζεις εφαρμογή
+Mute	Σίγαση
+Mute her	Σίγασέ την
+Mute mic key	Πλήκτρο σίγασης μικροφώνου
+Mute mic:	Σίγαση μικροφώνου:
+Mute mic: Ctrl + Alt + N	Σίγαση μικροφώνου: Ctrl + Alt + N
+My brain	Ο εγκέφαλός μου
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Ο εγκέφαλός μου κατεβαίνει. Θα σε χαιρετήσω μόλις μπει, και τότε μπορείς να μιλήσεις μαζί μου.
+My brain's on its way. While it comes down, let's sort out how I sound.	Ο εγκέφαλός μου έρχεται. Όσο κατεβαίνει, ας ρυθμίσουμε πώς ακούγομαι.
+My provider	Ο πάροχός μου
+NO AI	ΚΑΜΙΑ AI
+NO PHONES CONNECTED	ΔΕΝ ΕΧΕΙ ΣΥΝΔΕΘΕΙ ΚΑΝΕΝΑ ΤΗΛΕΦΩΝΟ
+NO PREVIEW	ΧΩΡΙΣ ΠΡΟΕΠΙΣΚΟΠΗΣΗ
+NORMAL	ΚΑΝΟΝΙΚΟ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · δωρεάν · συχνά αργό τις ώρες αιχμής
+NVIDIA's free API is often slow, especially at busy times.	Το δωρεάν API της NVIDIA είναι συχνά αργό, ειδικά τις ώρες αιχμής.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Κλειδί API NVIDIA, Google AI Studio (Gemini) ή OpenRouter
+Names:	Ονόματα:
+Needs a key	Χρειάζεται κλειδί
+Never	Ποτέ
+New code	Νέος κώδικας
+New voice from a clip...	Νέα φωνή από κλιπ...
+Next	Επόμενο
+Night City	Night City
+No AI	Καμία AI
+No AI · no brain at all	Καμία AI · καθόλου εγκέφαλος
+No brain runs, and nothing is sent anywhere.	Δεν τρέχει κανένας εγκέφαλος, και τίποτα δεν στέλνεται πουθενά.
+No brain yet	Δεν υπάρχει ακόμη εγκέφαλος
+No code open	Δεν είναι ανοιχτός κώδικας
+No mic found	Δεν βρέθηκε μικρόφωνο
+No mods in the directory yet.	Δεν υπάρχουν mods στον φάκελο ακόμα.
+No mods match that.	Κανένα mod δεν ταιριάζει.
+No mods match.	Κανένα mod δεν ταιριάζει.
+No phones yet	Δεν υπάρχουν τηλέφωνα ακόμα
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Δεν υπάρχει εικονικό μικρόφωνο ακόμα. Διάλεξε Έξοδος, μετά Λήψη VB-CABLE (δωρεάν).
+None yet: pick to get VB-CABLE (free)	Τίποτα ακόμα: διάλεξε για λήψη VB-CABLE (δωρεάν)
+Normal	Κανονικό
+Not a relay host	Δεν είναι relay host
+Not imported. Nothing ran.	Δεν εισήχθη. Δεν έτρεξε τίποτα.
+Not updated. The old one is still in.	Δεν ενημερώθηκε. Η παλιά έκδοση είναι ακόμα μέσα.
+Nothing needed updating.	Τίποτα δεν χρειαζόταν ενημέρωση.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Τίποτα για λήψη, τίποτα δεν στέλνεται πουθενά. Δεν θα μιλήσω. Πρόσθεσε εγκέφαλο οποιαδήποτε στιγμή στο Mainframe.
+Nothing to show from the mods directory.	Τίποτα να δείξω από τον φάκελο mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	Τίποτα; Ρυθμίσεις Windows > Απόρρητο και ασφάλεια > Μικρόφωνο.
+Nous Portal keys aren't supported yet.	Τα κλειδιά Nous Portal δεν υποστηρίζονται ακόμα.
+OBS	OBS
+OFF	OFF
+OLLAMA	OLLAMA
+ON	ON
+ON THIS PC	ΣΕ ΑΥΤΟΝ ΤΟΝ ΥΠΟΛΟΓΙΣΤΗ
+OR A KEY	Ή ΕΝΑ ΚΛΕΙΔΙ
+Obsidian memory vault	Vault μνήμης Obsidian
+Off	Off
+Off. Turn on Her voice in your mic above.	Off. Ενεργοποίησε Η φωνή της στο μικρόφωνό σου παραπάνω.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Off: ακούγεται όπως πάντα. On: όλες οι φωνές που έχει, και το ElevenLabs.
+Often	Συχνά
+On	On
+On / Off	On / Off
+On: your mic and her voice are going in.	On: το μικρόφωνό σου και η φωνή της μπαίνουν μέσα.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Ένα αντικείμενο JSON, προστίθεται σε κάθε αίτημα που στέλνει αυτός ο εγκέφαλος. Αντικαθιστά την τιμή της Capri για κάθε όνομα που μοιράζεται, και δεν ελέγχεται έναντι του μοντέλου.
+Online speech recognition	Αναγνώριση ομιλίας online
+Open Capri Mainframe	Άνοιξε το Capri Mainframe
+Open Ollama, I'll find it	Άνοιξε το Ollama, θα το βρω
+Open clips folder	Άνοιξε φάκελο κλιπ
+Open her memories	Άνοιξε τις αναμνήσεις της
+Open her notes	Άνοιξε τις σημειώσεις της
+Open mods folder	Άνοιξε φάκελο mods
+Open the page again	Άνοιξε ξανά τη σελίδα
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ή OpenRouter.
+OpenAI-compatible server or provider.	Διακομιστής ή πάροχος συμβατός με OpenAI.
+OpenRouter · free models only	OpenRouter · μόνο δωρεάν μοντέλα
+Optional	Προαιρετικό
+Optional. Blank means no key.	Προαιρετικό. Κενό σημαίνει χωρίς κλειδί.
+Options	Επιλογές
+Out of the box a little higher, just behind her.	Από προεπιλογή λίγο πιο ψηλά, ακριβώς πίσω της.
+Out of the box lower, just behind her.	Από προεπιλογή πιο χαμηλά, ακριβώς πίσω της.
+Output	Έξοδος
+Output:	Έξοδος:
+Output: none	Έξοδος: καμία
+PHONE CONNECTED	ΤΗΛΕΦΩΝΟ ΣΥΝΔΕΘΗΚΕ
+PHONES >	ΤΗΛΕΦΩΝΑ >
+PHONES CONNECTED	ΤΗΛΕΦΩΝΑ ΣΥΝΔΕΔΕΜΕΝΑ
+PREBUILT LOCAL	ΕΤΟΙΜΟ ΤΟΠΙΚΟ
+PUBLISH MOD >	ΔΗΜΟΣΙΕΥΣΗ MOD >
+Pair a phone	Σύζευξη τηλεφώνου
+Paste	Επικόλληση
+Paste API key	Επικόλληση κλειδιού API
+Paste a brain API key	Επικόλλησε κλειδί API εγκεφάλου
+Paste reads your clipboard once, when you press it.	Το Επικόλληση διαβάζει το πρόχειρό σου μία φορά, όταν το πατήσεις.
+Paste your key here	Επικόλλησε εδώ το κλειδί σου
+Pat stroke	Χάδι
+Perch	Κλαδί
+Perch over {0} fps uses more CPU	Κλαδί πάνω από {0} fps χρησιμοποιεί περισσότερη CPU
+Pick Output to get it.	Διάλεξε Έξοδος για να το πάρεις.
+Pick a brain so I can talk back. You can change it any time.	Διάλεξε έναν εγκέφαλο για να μπορώ να μιλάω. Μπορείς να τον αλλάξεις οποιαδήποτε στιγμή.
+Pick a clip of a voice you have the rights and consent to use	Διάλεξε ένα κλιπ φωνής για το οποίο έχεις τα δικαιώματα και τη συγκατάθεση χρήσης
+Pick a free model. I opened the page in your browser.	Διάλεξε ένα δωρεάν μοντέλο. Άνοιξα τη σελίδα στο πρόγραμμα περιήγησης.
+Pick a new clip of you...	Διάλεξε ένα νέο κλιπ σου...
+Pick a voice model...	Διάλεξε ένα μοντέλο φωνής...
+Pick one. Only one brain runs at a time.	Διάλεξε ένα. Τρέχει μόνο ένας εγκέφαλος τη φορά.
+Pick the note her memories go in	Διάλεξε τη σημείωση όπου πάνε οι αναμνήσεις της
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Διάλεξε {0} έως {1} δευτερόλεπτα φωνής για την οποία έχεις τα δικαιώματα και τη συγκατάθεση χρήσης
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Διάλεξε {0} έως {1} δευτερόλεπτα από εσένα να μιλάς, ή από φωνή για την οποία έχεις τα δικαιώματα και τη συγκατάθεση χρήσης
+Pitch	Ύψος
+Play	Αναπαραγωγή
+Play...	Αναπαραγωγή...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Τα μοντέλα Pocket TTS αντιγράφουν τη φωνή αυτού του κλιπ. Πάτα Δοκιμή για να την ακούσεις.
+Pop-in times	Χρόνοι εμφάνισης
+Pop-ins	Εμφανίσεις
+Power saver	Εξοικονόμηση ενέργειας
+Power saver: how lightly she runs in games, or always	Εξοικονόμηση ενέργειας: πόσο ελαφρά τρέχει στα παιχνίδια, ή πάντα
+Preset	Προρύθμιση
+Press Create API key	Πάτα Δημιουργία κλειδιού API
+Press Create Key	Πάτα Δημιουργία κλειδιού
+Press Generate API Key	Πάτα Δημιουργία κλειδιού API
+Press Test and say something, so I know I can hear you.	Πάτα Δοκιμή και πες κάτι, για να ξέρω ότι σε ακούω.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Πάτα ένα πλήκτρο, μόνο του ή με Ctrl, Alt, Shift ή Win.
+Press new keys, then Confirm	Πάτα νέα πλήκτρα, μετά Επιβεβαίωση
+Provider	Πάροχος
+Provider API key, optional	Κλειδί API παρόχου, προαιρετικό
+Provider base URL	Βασικό URL παρόχου
+Provider forgotten.	Ο πάροχος ξεχάστηκε.
+Provider overlaps the brain name or note	Ο πάροχος επικαλύπτει το όνομα εγκεφάλου ή τη σημείωση
+Publish	Δημοσίευση
+Publish mod	Δημοσίευση mod
+Push to talk is off.	Το Push to talk είναι απενεργοποιημένο.
+Push to talk key	Πλήκτρο push to talk
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: δεν έχει οριστεί
+QR CODE >	QR CODE >
+QR hidden while streaming	Το QR κρύβεται κατά τη ροή
+Quick	Γρήγορο
+Quiet key	Πλήκτρο σιωπής
+Quiet:	Σιωπή:
+Quiet: Ctrl + Alt + P	Σιωπή: Ctrl + Alt + P
+Quit Capri	Κλείσε την Capri
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	ΤΡΕΧΕΙ ΚΩΔΙΚΑ.
+Rarely	Σπάνια
+Rate mod	Αξιολόγησε mod
+Reading its README...	Διαβάζω το README του...
+Refresh	Ανανέωση
+Reinstall	Επανεγκατάσταση
+Reload	Επαναφόρτωση
+Reloaded.	Επαναφορτώθηκε.
+Remember our chats	Θυμήσου τις συνομιλίες μας
+Remember what she sees	Θυμήσου τι βλέπει
+Remote	Remote
+Remote off	Remote off
+Remote on	Remote on
+Remove	Αφαίρεση
+Remove all phones	Αφαίρεση όλων των τηλεφώνων
+Replies	Απαντήσεις
+Reply length	Μήκος απάντησης
+Report a problem	Αναφορά προβλήματος
+Reset colors	Επαναφορά χρωμάτων
+Reset to her default	Επαναφορά στην προεπιλογή της
+Resolution	Ανάλυση
+Restart to update	Επανεκκίνηση για ενημέρωση
+Restless	Ανήσυχη
+Revoke	Ανάκληση
+Revoke also removes the phones its links added	Η ανάκληση αφαιρεί και τα τηλέφωνα που πρόσθεσαν οι σύνδεσμοί της
+Ride cursor	Ιππασία στον δρομέα
+Ride cursor / Hop off	Ιππασία στον δρομέα / Κατέβα
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Capri Mainframe. Ένας εγκέφαλος ανοίγει κάτω από το ΕΓΚΕΦΑΛΟΣ.
+Right-click me any time for the Mainframe, Help and the Discord.	Κάνε δεξί κλικ πάνω μου ανά πάσα στιγμή για το Mainframe, τη Βοήθεια και το Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ή οποιαδήποτε άλλη εφαρμογή: διάλεξε
+Robot	Ρομπότ
+Rock, paper, scissors	Πέτρα, χαρτί, ψαλίδι
+Run this code mod?	Να εκτελεστεί αυτό το mod κώδικα;
+Running on this PC	Τρέχει σε αυτόν τον υπολογιστή
+Running on this PC · :	Τρέχει σε αυτόν τον υπολογιστή · :
+Runs Claude Code or Codex on this PC, signed in.	Τρέχει Claude Code ή Codex σε αυτόν τον υπολογιστή, με σύνδεση.
+Runs on your PC. No key, no credits.	Τρέχει στον υπολογιστή σου. Χωρίς κλειδί, χωρίς πιστώσεις.
+SCAN WITH YOUR PHONE · EXPIRES	ΣΚΑΝΑΡΕ ΜΕ ΤΟ ΤΗΛΕΦΩΝΟ ΣΟΥ · ΛΗΓΕΙ
+SECURITY >	ΑΣΦΑΛΕΙΑ >
+SKILL.	ΙΚΑΝΟΤΗΤΑ.
+SKIN.	ΕΜΦΑΝΙΣΗ.
+SORT BY	ΤΑΞΙΝΟΜΗΣΗ ΚΑΤΑ
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ΗΧΟΙ ΣΥΝΗΘΕΙΕΣ ΕΓΚΕΦΑΛΟΣ ΠΑΡΑΚΟΛΟΥΘΗΣΗ CAPRI DOOMSCROLL ΚΑΙΡΟΣ ΚΛΙΠ ΠΑΙΧΝΙΔΙΑ ΠΛΗΚΤΡΑ ΚΙΝΗΣΕΙΣ ΦΩΝΗ ΕΣΥ
+Same as her ears (VOICE > Mic)	Ίδιο με τα αυτιά της (ΦΩΝΗ > Μικρόφωνο)
+Same code on the phone?	Ο ίδιος κωδικός στο τηλέφωνο;
+Save	Αποθήκευση
+Save big moments	Αποθήκευση μεγάλων στιγμών
+Save folder	Φάκελος αποθήκευσης
+Save your changes, or press Discard + reload.	Αποθήκευσε τις αλλαγές σου, ή πάτα Απόρριψη + επαναφόρτωση.
+Save your changes, or press Discard.	Αποθήκευσε τις αλλαγές σου, ή πάτα Απόρριψη.
+Saved.	Αποθηκεύτηκε.
+Saved. Ctrl + Alt + O opens her Mainframe.	Αποθηκεύτηκε. Το Ctrl + Alt + O ανοίγει το Mainframe της.
+Saving your rating...	Αποθηκεύεται η αξιολόγησή σου...
+Say her name anywhere to chat	Πες το όνομά της οπουδήποτε για συνομιλία
+Screens	Οθόνες
+Screens is hidden or outside WATCH	Το Οθόνες είναι κρυμμένο ή εκτός ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ
+Screens overlaps a WATCH row	Το Οθόνες επικαλύπτει μια γραμμή ΠΑΡΑΚΟΛΟΥΘΗΣΗΣ
+Screens to watch	Οθόνες για παρακολούθηση
+Sealed end to end	Σφραγισμένο από άκρο σε άκρο
+Search by name or author	Αναζήτηση με όνομα ή συγγραφέα
+Search installed mods	Αναζήτηση εγκατεστημένων mods
+Search mods	Αναζήτηση mods
+Search name, author or description	Αναζήτηση ονόματος, συγγραφέα ή περιγραφής
+Security	Ασφάλεια
+Security:	Ασφάλεια:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Ρύθμιση
+Set up her brain	Ρύθμισε τον εγκέφαλό της
+Set up your voice model	Ρύθμισε το μοντέλο φωνής σου
+Setting up her brain	Ρύθμιση του εγκεφάλου της
+Settings	Ρυθμίσεις
+Settings / Back	Ρυθμίσεις / Πίσω
+Settings folds the wrong rows above BRAIN	Οι Ρυθμίσεις διπλώνουν τις λάθος γραμμές πάνω από ΕΓΚΕΦΑΛΟΣ
+Settings had nothing to watch.	Οι Ρυθμίσεις δεν είχαν τίποτα να παρακολουθήσουν.
+Settings lost keyboard focus during the Tab walk	Οι Ρυθμίσεις έχασαν την εστίαση πληκτρολογίου κατά τη διάρκεια της διαδρομής Tab
+Setup guide	Οδηγός ρύθμισης
+Setup stopped	Η ρύθμιση σταμάτησε
+She can read it when it fits.	Μπορεί να το διαβάσει όταν χωράει.
+She glances at your screen and comments. Costs a little on a paid brain.	Ρίχνει μια ματιά στην οθόνη σου και σχολιάζει. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
+She keeps listening. Say her name, then just talk until you go quiet.	Συνεχίζει να ακούει. Πες το όνομά της και μίλα μέχρι να σιωπήσεις.
+She reacts to your game until you close it.	Αντιδρά στο παιχνίδι σου μέχρι να το κλείσεις.
+She reads these controls before each game job.	Διαβάζει αυτά τα στοιχεία ελέγχου πριν από κάθε δουλειά παιχνιδιού.
+She talks about your game as you play. Costs a little on a paid brain.	Μιλάει για το παιχνίδι σου καθώς παίζεις. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
+She uses it when she plays	Το χρησιμοποιεί όταν παίζει
+Short	Σύντομο
+Shortest wait (minutes)	Συντομότερη αναμονή (λεπτά)
+Show Capri	Εμφάνιση Capri
+Show QR	Εμφάνιση QR
+Show my mod file	Δείξε το αρχείο mod μου
+Show on Discord	Εμφάνιση στο Discord
+Shum, what time is it	Shum, τι ώρα είναι
+Sign in	Σύνδεση
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Συνδέσου, φτιάξε ένα κλειδί και αντέγραψέ το. Μετά πάτα Επικόλληση και θα συνδεθώ.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Συνδέσου, πάτα Δημιουργία κλειδιού API και αντέγραψέ το. Μετά πάτα Επικόλληση και θα συνδεθώ.
+Silent · text only	Σιωπηλό · μόνο κείμενο
+Simple / Advanced Settings	Απλές / σύνθετες ρυθμίσεις
+Simple Settings	Απλές ρυθμίσεις
+Simple Settings left a gap under Check in on me	Οι απλές ρυθμίσεις άφησαν κενό κάτω από το Έλα να με δεις
+Sit here	Κάτσε εδώ
+Sit on windows	Κάθισε στα παράθυρα
+Size	Μέγεθος
+Skip	Παράλειψη
+Skip all	Παράλειψη όλων
+Skip for now	Παράλειψη προς το παρόν
+Sleep	Ύπνος
+Small	Μικρό
+Sometimes	Μερικές φορές
+Sound effects volume	Ένταση εφέ ήχου
+Sound sensitivity	Ευαισθησία ήχου
+Sounds	Ήχοι
+Speaker or clip	Ηχείο ή κλιπ
+Speech model	Μοντέλο ομιλίας
+Speed	Ταχύτητα
+Start with Windows	Εκκίνηση με τα Windows
+Start with this!	Ξεκίνα με αυτό!
+Starting...	Εκκίνηση...
+Stay on my model	Μείνε στο μοντέλο μου
+Still checking your mics...	Ακόμα ελέγχω τα μικρόφωνά σου...
+Still checking your speakers...	Ακόμα ελέγχω τα ηχεία σου...
+Still checking your virtual mics...	Ακόμα ελέγχω τα εικονικά μικρόφωνά σου...
+Stop	Διακοπή
+Stopped using it. Couldn't remove the saved provider.	Σταμάτησα να το χρησιμοποιώ. Δεν μπόρεσα να αφαιρέσω τον αποθηκευμένο πάροχο.
+Support	Υποστήριξη
+Sure?	Σίγουρα;
+Sure? moved to a different phone	Σίγουρα; μετακινήθηκε σε άλλο τηλέφωνο
+TALK TO ME	ΜΙΛΗΣΕ ΜΟΥ
+TEXT ONLY	ΜΟΝΟ ΚΕΙΜΕΝΟ
+Tab landed past the first option of	Το Tab προσγειώθηκε πέρα από την πρώτη επιλογή του
+Tab never reached the quiet key	Το Tab δεν έφτασε ποτέ στο πλήκτρο σιωπής
+Tab reached nothing	Το Tab δεν έφτασε σε τίποτα
+Tab selected a control without moving keyboard focus	Το Tab επέλεξε ένα στοιχείο χωρίς να μετακινήσει την εστίαση πληκτρολογίου
+Talk	Μίλα
+Talk key	Πλήκτρο ομιλίας
+Talk:	Ομιλία:
+Talk: Ctrl + Alt + V	Ομιλία: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Ρυθμός καρέ στόχος λήψης· μπορεί να πέσει υπό φορτίο ή με τον προϋπολογισμό μνήμης
+Teases when another AI comes to the front.	Πειράζει όταν μια άλλη AI έρχεται μπροστά.
+Test	Δοκιμή
+That address doesn't work. Try https://... or http://localhost:{0}.	Αυτή η διεύθυνση δεν λειτουργεί. Δοκίμασε https://... ή http://localhost:{0}.
+That code expired	Αυτός ο κωδικός έληξε
+That mod is no longer installed. The list is updated.	Αυτό το mod δεν είναι πια εγκατεστημένο. Η λίστα ενημερώθηκε.
+That's a paid key: it goes under MAX INTELLIGENCE.	Αυτό είναι επί πληρωμή κλειδί: πάει κάτω από το MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Το Mainframe παρέμεινε σε σύνθεση κατά τη διάρκεια της διαφάνειας.
+The Mainframe stayed uncomposited after the slide.	Το Mainframe παρέμεινε χωρίς σύνθεση μετά τη διαφάνεια.
+The controls moved while the picture was sliding.	Τα στοιχεία ελέγχου μετακινήθηκαν ενώ η εικόνα γλιστρούσε.
+The cover stayed visible after the slide ended.	Το κάλυμμα παρέμεινε ορατό μετά το τέλος της διαφάνειας.
+The frame thread kept running after the page settled.	Το νήμα καρέ συνέχισε να τρέχει αφού σταθεροποιήθηκε η σελίδα.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Η μεγαλύτερη απάντηση που μπορεί να δώσει, σε tokens. Το Αυτόματο κρατά τις Απαντήσεις παραπάνω· το {0}K ή {1}K της επιτρέπει να συνεχίσει. Οι δουλειές έχουν περισσότερο χώρο όταν τον χρειάζονται
+The longest wait must be at least the shortest wait.	Η μεγαλύτερη αναμονή πρέπει να είναι τουλάχιστον η μικρότερη αναμονή.
+The picture doesn't match the scrolled page:	Η εικόνα δεν ταιριάζει με τη σελίδα που έκανε κύλιση:
+The picture of Settings doesn't match the page:	Η εικόνα των Ρυθμίσεων δεν ταιριάζει με τη σελίδα:
+The picture stayed up after the slide ended.	Η εικόνα παρέμεινε ορατή μετά το τέλος της διαφάνειας.
+The picture wasn't showing while it slid.	Η εικόνα δεν εμφανιζόταν ενώ γλιστρούσε.
+The provider sheet is crowded:	Το φύλλο των παρόχων είναι γεμάτο:
+The voice panel has no screen DPI.	Το πάνελ φωνής δεν έχει DPI οθόνης.
+The voice panel's menus share one font.	Τα μενού του πάνελ φωνής μοιράζονται μία γραμματοσειρά.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Δεν υπάρχει ακόμα κλειδί στο πρόχειρό σου. Αντίγραψέ το από τη σελίδα, μετά πάτα Επικόλληση.
+These start off. Each costs a little or uses your mic.	Αυτά ξεκινούν απενεργοποιημένα. Το καθένα κοστίζει λίγο ή χρησιμοποιεί το μικρόφωνό σου.
+These start off. Turn on what you want. They're all in Settings too.	Αυτά ξεκινούν απενεργοποιημένα. Ενεργοποίησε ό,τι θέλεις. Είναι όλα και στις Ρυθμίσεις.
+They can also call you Big Z, Capricorn or Nova	Μπορούν επίσης να σε φωνάζουν Big Z, Capricorn ή Nova
+They can also call you Nova, Big Z or Capricorn	Μπορούν επίσης να σε φωνάζουν Nova, Big Z ή Capricorn
+Thinking	Σκέφτομαι
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Αυτή είναι η δωρεάν φωνή μου. Πάτα Δοκιμή, πες κάτι, και θα σου δείξω ότι σε ακούω.
+This mod has no description yet.	Αυτό το mod δεν έχει ακόμα περιγραφή.
+Tic-tac-toe	Τρίλιζα
+Time between glances	Χρόνος ανάμεσα στα βλέμματα
+Tiny	Μικροσκοπικό
+Try again	Δοκίμασε ξανά
+Turn Remote on first	Ενεργοποίησε πρώτα το Remote
+Turn off mini player	Απενεργοποίηση mini player
+Turn push to talk off	Απενεργοποίηση push to talk
+Turning the wheel the other way kept the page heading the old way, to	Η περιστροφή του τροχού προς την άλλη κατεύθυνση κράτησε τη σελίδα στην παλιά κατεύθυνση, προς
+Type	Πληκτρολόγηση
+Type key	Πλήκτρο πληκτρολόγησης
+Type to me	Γράψε μου
+Type:	Πληκτρολόγηση:
+Type: Ctrl + Alt + T	Πληκτρολόγηση: Ctrl + Alt + T
+Typing sound	Ήχος πληκτρολόγησης
+Unpacked. Press Test to hear it.	Αποσυμπιέστηκε. Πάτα Δοκιμή για να το ακούσεις.
+Unsaved changes.	Μη αποθηκευμένες αλλαγές.
+Up to {0} fps	Έως {0} fps
+Up to {0}p	Έως {0}p
+Update	Ενημέρωση
+Update available.	Διαθέσιμη ενημέρωση.
+Update mods	Ενημέρωση mods
+Updating...	Ενημέρωση...
+Use	Χρήση
+Use her cursor	Χρήση του δρομέα της
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Χρησιμοποίησε https:// για πάροχο αλλού. Ένα κλειδί σε απλό http δεν είναι ασφαλές.
+Use preset	Χρήση προρύθμισης
+Use saved	Χρήση αποθηκευμένου
+Use this server	Χρήση αυτού του διακομιστή
+Using your provider with a key	Χρήση του παρόχου σου με κλειδί
+Using your server with no key	Χρήση του διακομιστή σου χωρίς κλειδί
+VIEW MOD >	ΠΡΟΒΟΛΗ MOD >
+VOICE >	ΦΩΝΗ >
+VOICE IN YOUR MIC >	ΦΩΝΗ ΣΤΟ ΜΙΚΡΟΦΩΝΟ ΣΟΥ >
+VOICE LAYERS >	ΕΠΙΠΕΔΑ ΦΩΝΗΣ >
+Verbosity	Λογοδιάρροια
+Video bitrate	Bit rate βίντεο
+View	Προβολή
+View mod	Προβολή mod
+Voice	Φωνή
+Voice ID	ID φωνής
+Voice from	Φωνή από
+Voice layers	Επίπεδα φωνής
+Voice model	Μοντέλο φωνής
+Voice model:	Μοντέλο φωνής:
+Voice name or ID, optional	Όνομα ή ID φωνής, προαιρετικό
+Voice server address, or a voice model's folder	Διεύθυνση διακομιστή φωνής, ή φάκελος μοντέλου φωνής
+Voice status	Κατάσταση φωνής
+Voice, key and model...	Φωνή, κλειδί και μοντέλο...
+Volume	Ένταση
+WAKE ME UP >	ΞΥΠΝΗΣΕ ΜΕ >
+WATCH >	ΠΑΡΑΚΟΛΟΥΘΗΣΗ >
+Waiting for the relay	Αναμονή για το relay
+Wake her up	Ξύπνησέ την
+Waking her up	Την ξυπνάω
+Wander	Περιπλανιέται
+Wander around	Περιπλανιέται τριγύρω
+Watch my screen	Παρακολούθησε την οθόνη μου
+Watch-along memory	Μνήμη κοινής παρακολούθησης
+Weather	Καιρός
+Weather city	Πόλη καιρού
+Welcome back, choom. Let's finish setting me up.	Καλώς ήρθες πίσω, choom. Ας τελειώσουμε τη ρύθμισή μου.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Τι κάνει στον υπολογιστή σου χωρίς να ρωτήσει. Με διακόπτη σβηστό ρωτά πρώτα, και το κάνει όταν πεις ναι.
+What should she call you?	Πώς να σε φωνάζει;
+When she types	Όταν πληκτρολογεί
+White	Λευκό
+Windows default	Προεπιλογή των Windows
+Windows did not give Settings keyboard focus	Τα Windows δεν έδωσαν εστίαση πληκτρολογίου στις Ρυθμίσεις
+Windows did not return keyboard focus to Back	Τα Windows δεν επέστρεψαν την εστίαση πληκτρολογίου στο Πίσω
+With no picture the wheel still tried to slide.	Χωρίς εικόνα ο τροχός προσπάθησε ακόμα να γλιστρήσει.
+Works best on MAX INTELLIGENCE.	Λειτουργεί καλύτερα στο MAX INTELLIGENCE.
+YOU	ΕΣΥ
+YOU >	ΕΣΥ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ΕΣΥ ΦΩΝΗ ΚΙΝΗΣΕΙΣ ΠΛΗΚΤΡΑ ΠΑΙΧΝΙΔΙΑ ΚΛΙΠ ΚΑΙΡΟΣ DOOMSCROLL CAPRI ΠΑΡΑΚΟΛΟΥΘΗΣΗ ΕΓΚΕΦΑΛΟΣ ΣΥΝΗΘΕΙΕΣ ΗΧΟΙ
+YOUR KEY	ΤΟ ΚΛΕΙΔΙ ΣΟΥ
+YOUR MIC	ΤΟ ΜΙΚΡΟΦΩΝΟ ΣΟΥ
+YOUR PLAN	ΤΟ ΠΛΑΝΟ ΣΟΥ
+Yokapri what's up	Yokapri τι γίνεται
+You can hide this. It keeps going, and the Mainframe shows it too.	Μπορείς να το κρύψεις. Συνεχίζει να τρέχει, και το Mainframe το δείχνει επίσης.
+Your mic and her voice go into one virtual mic, and	Το μικρόφωνό σου και η φωνή της πάνε σε ένα εικονικό μικρόφωνο, και
+Your mic is muted. Unmute it to test.	Το μικρόφωνό σου είναι σε σίγαση. Κάνε Σίγαση για να δοκιμάσεις.
+Your mods are up to date.	Τα mods σου είναι ενημερωμένα.
+Your name or a nickname	Το όνομά σου ή ένα παρατσούκλι
+Your own model	Το δικό σου μοντέλο
+Your personality	Η προσωπικότητά σου
+Your voice	Η φωνή σου
+Your voice (HD)	Η φωνή σου (HD)
+Your voice (HD) · pick a clip of you...	Η φωνή σου (HD) · διάλεξε ένα κλιπ σου...
+Your voice model	Το μοντέλο φωνής σου
+as its mic.	ως το μικρόφωνό της.
+changed. Saved as My Colors, so you can share it.	άλλαξε. Αποθηκεύτηκε ως Τα χρώματά μου, για να τα μοιραστείς.
+choice	επιλογή
+clips the input line	κόβει τη γραμμή εισόδου
+cue	ένδειξη
+doesn't yet.	ακόμα όχι.
+download	λήψη
+file.	αρχείο.
+flag	σημαία
+fps	fps
+hear	ακούει
+hears	ακούει
+hears that.	το ακούει.
+hides or shows her.	κρύβει ή δείχνει εκείνη.
+hint	υπόδειξη
+in the Mainframe.	στο Mainframe.
+in the mods directory with a pull request.	στον φάκελο mods με pull request.
+in the picture wasn't noticed.	στην εικόνα δεν έγινε αντιληπτό.
+is already her push-to-talk key.	είναι ήδη το πλήκτρο push-to-talk της.
+is off.	είναι απενεργοποιημένο.
+is on and running.	είναι ενεργό και τρέχει.
+is on, at the bottom, under	είναι ενεργό, κάτω, κάτω από
+is on.	είναι ενεργό.
+is on. She now answers to	είναι ενεργό. Τώρα ανταποκρίνεται στο
+is removed.	έχει αφαιρεθεί.
+is taken	είναι κατειλημμένο
+is taken by another app. Try another.	είναι κατειλημμένο από άλλη εφαρμογή. Δοκίμασε άλλο.
+is updated	έχει ενημερωθεί
+isn't hearing it yet: do {0} and {1}, then join a call.	δεν το ακούει ακόμα: κάνε {0} και {1}, μετά μπες σε κλήση.
+it now.	τώρα.
+keeps her quiet, and lets her talk again.	την κρατά σιωπηλή, και την αφήνει να μιλήσει ξανά.
+key	πλήκτρο
+key.	πλήκτρο.
+min	λεπτ.
+more.	περισσότερο.
+ms.	ms.
+mutes mic	σιγάζει το μικρόφωνο
+mutes your mic.	σιγάζει το μικρόφωνό σου.
+name	όνομα
+off	off
+on this PC	σε αυτόν τον υπολογιστή
+opens her Mainframe.	ανοίγει το Mainframe της.
+opens her typing box.	ανοίγει το πλαίσιο πληκτρολόγησής της.
+phone	τηλέφωνο
+phone pixels	pixel τηλεφώνου
+phones	τηλέφωνα
+pixels	pixel
+pixels)	pixel)
+star.	αστέρι.
+stars.	αστέρια.
+starts voice chat.	ξεκινά τη φωνητική συνομιλία.
+stays off. Nothing ran.	μένει απενεργοποιημένο. Δεν έτρεξε τίποτα.
+still does its own job in other apps too. Confirm to keep it.	εξακολουθεί να κάνει τη δουλειά του και σε άλλες εφαρμογές. Επιβεβαίωσε για να το κρατήσεις.
+tall	ψηλό
+time	φορά
+to talk	για να μιλήσεις
+to talk to her, with a game in front too.	για να μιλήσεις μαζί της, με ένα παιχνίδι μπροστά επίσης.
+too.	επίσης.
+turns Gaming Mode on and off.	ενεργοποιεί και απενεργοποιεί το Gaming Mode.
+with Ollama	με Ollama
+won't type in other apps while she runs. Confirm to keep it.	δεν θα πληκτρολογεί σε άλλες εφαρμογές όσο τρέχει. Επιβεβαίωσε για να το κρατήσεις.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering	{0}   Αν η φωνή της κόβεται, απενεργοποίησε το φιλτράρισμα θορύβου
+{0}   Input Device:	{0}   Συσκευή εισόδου:
+{0}   Join the call and check they hear both of you	{0}   Μπες στην κλήση και έλεγξε ότι ακούν και τους δύο
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Δοκιμή μικροφώνου > Ας ελέγξουμε: θα ακούσεις τον εαυτό σου και αυτήν όσο μιλάει
+{0}   Microphone:	{0}   Μικρόφωνο:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Καταστολή θορύβου: Καμία. Και οι δύο μπορούν να κόψουν τη φωνή της μετά την πρώτη γραμμή.
+{0}   Open the call or meeting's audio settings	{0}   Άνοιξε τις ρυθμίσεις ήχου της κλήσης ή της συνάντησης
+{0}   Output Device: your headphones, like before	{0}   Συσκευή εξόδου: τα ακουστικά σου, όπως πριν
+{0}   Speaker: your headphones, like before	{0}   Ηχείο: τα ακουστικά σου, όπως πριν
+{0}   Try a mic test in your call app	{0}   Δοκίμασε δοκιμή μικροφώνου στην εφαρμογή κλήσεων
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Ρυθμίσεις χρήστη (το γρανάζι δίπλα στο όνομά σου) > Φωνή και βίντεο
+{0} Mbps	{0} Mbps
+{0} lines	{0} γραμμές
+{0} min	{0} λεπτ.
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· σε αυτόν τον υπολογιστή
+· server	· διακομιστής

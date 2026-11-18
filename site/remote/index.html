@@ -8,7 +8,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0a10">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.deepseek.com https://capri-reactions.lachydotmcg.workers.dev; manifest-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.deepseek.com https://capri-reactions.lachydotmcg.workers.dev; manifest-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Capri">
@@ -39,6 +39,7 @@
 
   <div class="banner" id="banner" role="status" hidden>
     <p class="banner-words"><strong id="banner-title">PC offline</strong><span id="banner-sub">Capri closed or the PC asleep</span></p>
+    <button class="nbtn" id="banner-wake" type="button" hidden>Wake PC</button>
     <button class="nbtn cyan" id="banner-retry" type="button">Retry</button>
   </div>
 
@@ -51,7 +52,7 @@
     <div class="room-view" id="room-view">
       <video id="room-video" muted autoplay playsinline aria-hidden="true"></video>
       <button id="room-place" type="button" aria-label="Drag Capri or use arrow keys" hidden></button>
-      <div class="her room-her" id="room-her" aria-hidden="true" hidden><span class="sprite" id="room-sprite"></span></div>
+      <div class="her room-her" id="room-her" aria-hidden="true" hidden><span class="sprite" id="room-sprite"><span class="room-tint" id="room-tint"></span></span></div>
       <img class="room-heart" id="room-heart" alt="" hidden>
     </div>
     <p class="room-status" id="room-status" role="status"></p>
@@ -60,6 +61,11 @@
       <button class="nbtn cyan" id="room-lie" type="button" aria-pressed="false">Lie down</button>
       <button class="nbtn cyan" id="room-love" type="button" aria-pressed="false">Heart</button>
       <button class="nbtn cyan" id="room-voice" type="button" aria-pressed="true">Voice</button>
+      <button class="nbtn" id="room-record" type="button" aria-pressed="false" hidden>Record</button>
+      <label class="room-size" id="room-size-box" hidden>Size <input id="room-size" type="range" min="0.5" max="4" step="0.05" value="1"></label>
+      <button class="nbtn" id="room-behind" type="button" aria-pressed="false" hidden>Behind me</button>
+      <button class="nbtn" id="room-still" type="button" aria-pressed="false" hidden>Stay still</button>
+      <button class="nbtn" id="room-cam" type="button" aria-pressed="false" hidden>Capri Camera</button>
     </div>
     <p class="room-voice-note" id="room-voice-note" role="status"></p>
     <button class="nbtn cyan room-retry" id="room-retry" type="button" hidden>Retry camera</button>
@@ -294,6 +300,25 @@
     </div>
   </section>
 
+  <section class="card nc sheet" id="wake" role="dialog" aria-modal="true" aria-labelledby="wake-title" hidden>
+    <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+    <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+    <div class="sheet-scroll">
+      <h2 class="card-title" id="wake-title">Wake your PC</h2>
+      <p class="card-note wake-same">Only works when this phone is on the same Wi-Fi or network as your PC.</p>
+      <p class="wake-lead" id="wake-lead"></p>
+      <ul class="wake-cards" id="wake-cards"></ul>
+      <p class="card-note" id="wake-note" role="status" hidden></p>
+      <h3 class="nhead">Set up your PC once</h3>
+      <ol class="steps">
+        <li><span class="step-n">1</span><span>Turn on Wake-on-LAN in your PC's BIOS</span></li>
+        <li><span class="step-n">2</span><span>In her Mainframe: Remote, then Wake from phone</span></li>
+        <li><span class="step-n">3</span><span>Plug in a network cable. Wi-Fi rarely wakes a PC</span></li>
+      </ol>
+      <button class="nbtn cyan wide" id="wake-done" type="button">Done</button>
+    </div>
+  </section>
+
   <p class="sr-only" id="announce" aria-live="polite"></p>
 </div>
 <script src="crypto.js"></script>
@@ -308,5 +333,7 @@
 <script src="screen.js"></script>
 <script src="call.js"></script>
 <script src="jobs.js"></script>
+<script src="wake.js"></script>
+<script src="android.js"></script>
 </body>
 </html>

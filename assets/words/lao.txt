@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	ອົງປະກອບທີ່ຖືກທາສີໃໝ່ບໍ່ໄດ້ຖືກແຕ້ມໃໝ່ໃນຮູບ.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	ກະແຈຟຣີຈາກ Google AI Studio, NVIDIA ຫຼື OpenRouter. ບໍ່ຕ້ອງດາວໂຫຼດຫຍັງ. ຕ້ອງການອິນເຕີເນັດ.
+A held trackpad scroll got a flick's long ease:	ການເລື່ອນ trackpad ທີ່ກົດຄ້າງໄວ້ ໄດ້ຮັບການຜ່ອນຄວາມໄວແບບ flick ທີ່ຍາວ:
+A layout change during a slide put the page at	ການປ່ຽນ layout ລະຫວ່າງ slide ເຮັດໃຫ້ໜ້າຢູ່ທີ່
+A layout change left the picture up.	ການປ່ຽນ layout ເຮັດໃຫ້ຮູບຍັງຄ້າງຢູ່.
+A model in Ollama, on your local server or on your key.	ໂມເດວໃນ Ollama, ເທິງ server ໃນເຄື່ອງຂອງເຈົ້າ ຫຼື ດ້ວຍກະແຈຂອງເຈົ້າ.
+A paid key goes under MAX INTELLIGENCE by itself.	ກະແຈທີ່ເສຍເງິນຈະໄປຢູ່ໃຕ້ MAX INTELLIGENCE ເອງ.
+A plan you already pay for, a key of your own, or Ollama.	ແພັກເກດທີ່ເຈົ້າຈ່າຍຢູ່ແລ້ວ, ກະແຈຂອງເຈົ້າເອງ, ຫຼື Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	ເມນູແຜງສຽງບໍ່ມີສຳເນົາຟອນຂອງແຜງນັ້ນເອງ.
+A wheel turn right after a slide ended froze the picture.	ການໝຸນລໍ້ເມົາສ໌ຫຼັງຈາກ slide ຈົບ ເຮັດໃຫ້ຮູບຄ້າງ.
+ALLOW THIS PHONE?	ອະນຸຍາດໂທລະສັບເຄື່ອງນີ້ບໍ?
+ALMOST THERE >	ເກືອບແລ້ວ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI ອີກໂຕໜຶ່ງເອົາການຄວບຄຸມໄປແລ້ວ · ປິດ ແລ້ວເປີດອີກຄັ້ງ
+API key	API key
+API key, Claude plan or ChatGPT plan	API key, ແພັກເກດ Claude ຫຼື ແພັກເກດ ChatGPT
+Add	ເພີ່ມ
+Address	ທີ່ຢູ່
+Address and key saved. Use saved to reconnect.	ບັນທຶກທີ່ຢູ່ ແລະ ກະແຈແລ້ວ. ໃຊ້ທີ່ບັນທຶກໄວ້ເພື່ອເຊື່ອມຕໍ່ໃໝ່.
+Advanced Settings	ການຕັ້ງຄ່າຂັ້ນສູງ
+All	ທັງໝົດ
+All screens	ທຸກໜ້າຈໍ
+Allow	ອະນຸຍາດ
+Almost there. I'll say hi the second my brain's in.	ເກືອບແລ້ວ. ຂ້ອຍຈະທັກທາຍທັນທີທີ່ສະໝອງຂ້ອຍເຂົ້າມາ.
+Always	ສະເໝີ
+Always on top	ຢູ່ເທິງສຸດສະເໝີ
+Any Google account works. I opened the page in your browser.	ບັນຊີ Google ໃດກໍໄດ້ກໍໃຊ້ໄດ້. ຂ້ອຍເປີດໜ້າໃນ browser ຂອງເຈົ້າແລ້ວ.
+Applies to every voice	ໃຊ້ກັບທຸກສຽງ
+Apps she may close	ແອັບທີ່ນາງອາດປິດໄດ້
+Ask Capri for more	ຂໍ Capri ເພີ່ມເຕີມ
+Asking your server...	ກຳລັງຖາມ server ຂອງເຈົ້າ...
+Asks before closing only the apps you choose.	ຖາມກ່ອນປິດສະເພາະແອັບທີ່ເຈົ້າເລືອກເທົ່ານັ້ນ.
+Auto	ອັດຕະໂນມັດ
+Automatic: VB-CABLE, else Steam's	ອັດຕະໂນມັດ: VB-CABLE, ບໍ່ດັ່ງນັ້ນແມ່ນຂອງ Steam
+BAD RELAY HOST	HOST ຂອງ RELAY ບໍ່ຖືກຕ້ອງ
+BIG Z open notepad	BIG Z ເປີດ notepad
+BRAIN	ສະໝອງ
+BRAIN >	ສະໝອງ >
+BRAIN ONLINE >	ສະໝອງ ONLINE >
+BRAIN PROVIDER >	ຜູ້ໃຫ້ບໍລິການສະໝອງ >
+BRAIN VOICE CAPRI	ສຽງສະໝອງ CAPRI
+Back	ກັບ
+Back on your saved API key.	ກັບໄປໃຊ້ API key ທີ່ບັນທຶກໄວ້.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	ເໝາະທີ່ສຸດສຳລັບ PC ນີ້:
+Black	ດຳ
+Blank key means no key.	ກະແຈຫວ່າງເປົ່າໝາຍເຖິງບໍ່ມີກະແຈ.
+Brain API key	API key ສະໝອງ
+Brain model	ໂມເດວສະໝອງ
+Brain provider	ຜູ້ໃຫ້ບໍລິການສະໝອງ
+Bring here	ພາມາບ່ອນນີ້
+Bring to this screen	ພາມາໜ້າຈໍນີ້
+Browse	ເລືອກ
+Browse mods	ເລືອກ mods
+Browse to a voice model	ເລືອກໂມເດວສຽງ
+Browse...	ເລືອກ...
+Bubble	ຟອງ
+CABLE Output (VB-Audio Virtual Cable)	ຜົນອອກ CABLE (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree ເຈົ້າຢູ່ບໍ
+CAN'T REACH THE RELAY · RETRYING	ບໍ່ສາມາດເຊື່ອມຕໍ່ RELAY · ກຳລັງລອງໃໝ່
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	ສະໝອງສຽງ CAPRI
+CHANGED, approve it again.	ປ່ຽນແລ້ວ, ອະນຸມັດໃໝ່.
+CLIPS >	CLIPS >
+CLOUD VOICE	ສຽງຄລາວ
+CODE	CODE
+COLORS >	ສີ >
+CONNECTED	ເຊື່ອມຕໍ່ແລ້ວ
+CONNECTING	ກຳລັງເຊື່ອມຕໍ່
+CUSTOM LOCAL	ກຳນົດເອງໃນເຄື່ອງ
+Call mode (beta)	ໂໝດໂທ (beta)
+Call mode does not fit.	ໂໝດໂທບໍ່ພໍດີ.
+Call mode is outside its space.	ໂໝດໂທຢູ່ນອກພື້ນທີ່ຂອງມັນ.
+Cancel	ຍົກເລີກ
+Cancel keys	ຍົກເລີກປຸ່ມ
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	ລະຫັດ Capri:
+Capri mods (*	Mods ຂອງ Capri (*
+Capri, hello	Capri, ສະບາຍດີ
+CapriDesktop.	CapriDesktop.
+Chaos when upset	ວຸ່ນວາຍເມື່ອນາງໃຈຮ້າຍ
+Chat with Capri from your phone	ສົນທະນາກັບ Capri ຈາກໂທລະສັບຂອງເຈົ້າ
+ChatGPT plan	ແພັກເກດ ChatGPT
+Check for updates	ກວດສອບອັບເດດ
+Check in on me	ມາທັກທາຍຂ້ອຍ
+Check in on me is hidden	ການມາທັກທາຍຂ້ອຍຖືກເຊື່ອງໄວ້
+Check in on me still decides whether she visits.	ການມາທັກທາຍຂ້ອຍຍັງຕັດສິນວ່ານາງຈະມາຢ້ຽມຢາມບໍ.
+Check in on me's tip missed	ຄຳແນະນຳຂອງການມາທັກທາຍຂ້ອຍພາດໄປ
+Chess	ໝາກຮຸກ
+Choose apps	ເລືອກແອັບ
+Choose folder...	ເລືອກໂຟນເດີ...
+Choose where future Capri clips are saved	ເລືອກບ່ອນທີ່ຈະບັນທຶກ clips Capri ໃນອະນາຄົດ
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	ແພັກເກດ Claude ຫຼື ChatGPT, ກະແຈເສຍເງິນ (OpenAI, Claude, DeepSeek), ຫຼື Ollama.
+Claude plan	ແພັກເກດ Claude
+Clear	ລ້າງ
+Cleared.	ລ້າງແລ້ວ.
+Click Confirm to keep Down, or press Esc.	ກົດ Confirm ເພື່ອເກັບ Down ໄວ້, ຫຼືກົດ Esc.
+Click to open it.	ກົດເພື່ອເປີດ.
+Clip my games	ຕັດ clip ເກມຂອງຂ້ອຍ
+Clips	Clips
+Close	ປິດ
+Close other AIs for me	ປິດ AI ອື່ນໃຫ້ຂ້ອຍ
+Cloud voice	ສຽງຄລາວ
+Cloud voice service	ບໍລິການສຽງຄລາວ
+Cloud voice setup	ການຕັ້ງຄ່າສຽງຄລາວ
+Code mods can reach your whole PC. Only trusted ones.	Mods ແບບ code ສາມາດເຂົ້າເຖິງ PC ທັງໝົດຂອງເຈົ້າໄດ້. ໃຫ້ໃຊ້ສະເພາະທີ່ໄວ້ໃຈເທົ່ານັ້ນ.
+Code/Husk Mode	ໂໝດ Code/Husk
+Codex	Codex
+Commands	ຄຳສັ່ງ
+Comment on my games	ໃຫ້ຄຳເຫັນເກມຂອງຂ້ອຍ
+Comments	ຄຳເຫັນ
+Confirm	ຢືນຢັນ
+Confirm keys	ຢືນຢັນປຸ່ມ
+Connect	ເຊື່ອມຕໍ່
+Connect / Forget brain key	ເຊື່ອມຕໍ່ / ລືມ brain key
+Connect / Forget voice key	ເຊື່ອມຕໍ່ / ລືມ voice key
+Connect four	ສີ່ຢູ່ແຖວດຽວ
+Controls	ການຄວບຄຸມ
+Copri, what time is it	Copri, ຕອນນີ້ກີ່ໂມງແລ້ວ
+Copy error details	ສຳເນົາລາຍລະອຽດ error
+Copy the key	ສຳເນົາກະແຈ
+Copy the key from the page, then press Paste.	ສຳເນົາກະແຈຈາກໜ້າ, ແລ້ວກົດ Paste.
+Couldn't open that page:	ບໍ່ສາມາດເປີດໜ້ານັ້ນໄດ້:
+Couldn't open that:	ບໍ່ສາມາດເປີດອັນນັ້ນໄດ້:
+Couldn't open the mods folder:	ບໍ່ສາມາດເປີດໂຟນເດີ mods ໄດ້:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M ເປັນປຸ່ມ Mainframe ຂອງນາງແລ້ວ.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N ປິດສຽງໄມໂຄຣໂຟນ
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V ເປັນປຸ່ມເວົ້າຂອງນາງແລ້ວ.
+Ctrl + Alt + V to talk	Ctrl + Alt + V ເພື່ອເວົ້າ
+Custom local voice	ສຽງໃນເຄື່ອງກຳນົດເອງ
+Custom model name	ຊື່ໂມເດວກຳນົດເອງ
+Dance	ເຕັ້ນ
+Dance to music	ເຕັ້ນຕາມເພງ
+Default	ຄ່າເລີ່ມຕົ້ນ
+Default (follows Windows)	ຄ່າເລີ່ມຕົ້ນ (ຕາມ Windows)
+Default duration for clip that and automatic clips	ໄລຍະເວລາເລີ່ມຕົ້ນສຳລັບ clip that ແລະ clips ອັດຕະໂນມັດ
+Default length	ຄວາມຍາວເລີ່ມຕົ້ນ
+Default model	ໂມເດວເລີ່ມຕົ້ນ
+Delay	ໜ່ວງເວລາ
+Deny	ປະຕິເສດ
+Discard	ຖິ້ມ
+Discard + reload	ຖິ້ມ + ໂຫຼດໃໝ່
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	ບໍ່ຢາກລໍຖ້າບໍ? ກະແຈຟຣີຈະເຮັດໃຫ້ຂ້ອຍເວົ້າໄດ້ພາຍໃນປະມານໜຶ່ງນາທີ.
+Done	ແລ້ວ
+EXTRA REQUEST JSON >	EXTRA REQUEST JSON >
+EXTRAS >	ສ່ວນເສີມ >
+Edit	ແກ້ໄຂ
+Edit check-in lines	ແກ້ໄຂແຖວ check-in
+Edit check-in lines has the wrong view or dimming	ແກ້ໄຂແຖວ check-in ມີມຸມມອງ ຫຼື ການຫຼຸດແສງຜິດ
+Edit check-in lines is out of place	ແກ້ໄຂແຖວ check-in ຢູ່ບ່ອນທີ່ຜິດ
+Edit controls	ແກ້ໄຂການຄວບຄຸມ
+ElevenLabs API key	ElevenLabs API key
+ElevenLabs voice ID	ElevenLabs voice ID
+English	ອັງກິດ
+Enter the game's name first.	ກະລຸນາໃສ່ຊື່ເກມກ່ອນ.
+Every	ທຸກ
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	ທຸກ mod ຖືກກວດຫາ malware ກ່ອນອັບໂຫຼດ. Mods ແບບ code ຍັງຖາມກ່ອນເລີ່ມແລ່ນ.
+Explore after	ສຳຫຼວດຫຼັງຈາກ
+Explore while I'm away	ສຳຫຼວດຕອນທີ່ຂ້ອຍບໍ່ຢູ່
+Extra request JSON	Extra request JSON
+Extras	ສ່ວນເສີມ
+FREE KEY	ກະແຈຟຣີ
+FREE KEY >	ກະແຈຟຣີ >
+Fast hands in games	ມືວ່ອງໄວໃນເກມ
+File editor	ໂປຣແກຣມແກ້ໄຂໄຟລ໌
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ແລະອື່ນໆຢູ່ໃນ VOICE ໃນ Mainframe.
+Follow-up messages	ຂໍ້ຄວາມຕິດຕາມ
+Forget	ລືມ
+Fork capri-mods	Fork capri-mods
+Frame rate	Frame rate
+Free	ຟຣີ
+Free and private, works offline. Downloads	ຟຣີ ແລະ ສ່ວນຕົວ, ເຮັດວຽກແບບ offline. ດາວໂຫຼດ
+Free and private, works offline. Downloads the best model for this PC.	ຟຣີ ແລະ ສ່ວນຕົວ, ເຮັດວຽກແບບ offline. ດາວໂຫຼດໂມເດວທີ່ດີທີ່ສຸດສຳລັບ PC ນີ້.
+Free key	ກະແຈຟຣີ
+Free key providers	ຜູ້ໃຫ້ບໍລິການກະແຈຟຣີ
+Free keys can be rate limited and slow.	ກະແຈຟຣີອາດຖືກຈຳກັດອັດຕາ ແລະ ຊ້າ.
+Free voice in games	ສຽງຟຣີໃນເກມ
+Free voice style	ສະໄຕສຽງຟຣີ
+Free voice:	ສຽງຟຣີ:
+Free voice: Her own	ສຽງຟຣີ: ຂອງນາງເອງ
+Free · local model	ຟຣີ · ໂມເດວໃນເຄື່ອງ
+GAMES >	GAMES >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	ຄຳເຫັນເກມເຮັດວຽກແຍກຕ່າງຫາກຈາກ Watch my screen. Off ຢຸດມັນ, ແມ່ນແຕ່ໃນ Gaming Mode; Events only ແລະ Chatty ໃຫ້ນາງເບິ່ງເກມຂອງເຈົ້າໄດ້
+Game controls	ການຄວບຄຸມເກມ
+Game name	ຊື່ເກມ
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	ຄວາມໄວໃນການຕອບສະໜອງຕໍ່ສຽງເກມ. ຫຼຸດລົງຖ້າ headset ຂອງເຈົ້າເບົາ ແຕ່ Windows ຢູ່ທີ່ {0}% ແລະນາງຕອບສະໜອງຕໍ່ທຸກສຽງ; Off ບໍ່ສົນໃຈສຽງເກມ
+Game sounds	ສຽງເກມ
+Games	ເກມ
+Gaming Mode	Gaming Mode
+Gaming Mode key	ປຸ່ມ Gaming Mode
+Gaming Mode:	Gaming Mode:
+Gaming Mode: Ctrl + Alt + G	Gaming Mode: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	ເອົາ VB-CABLE
+Get VB-CABLE (free)...	ເອົາ VB-CABLE (ຟຣີ)...
+Get free voice	ເອົາສຽງຟຣີ
+Getting your Fish Audio voices...	ກຳລັງດຶງສຽງ Fish Audio ຂອງເຈົ້າ...
+Giant	ໃຫຍ່ຫຼາຍ
+Glitch	Glitch
+Glitch in at startup	Glitch ຕອນເລີ່ມ
+Go to sleep	ໄປນອນ
+Go to the next screen	ໄປໜ້າຈໍຕໍ່ໄປ
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ແຜນຟຣີ · ຈຳກັດອັດຕາ
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	ມີແພັກເກດ Claude ຫຼື ChatGPT, ຫຼືກະແຈຂອງເຈົ້າເອງບໍ? ເລືອກມັນ ແລ້ວຂ້ອຍຈະເຊື່ອມຕໍ່ໃຫ້.
+Got it, just me. Right-click me any time for Capri Mainframe.	ໄດ້, ແມ່ນຂ້ອຍຄົນດຽວ. ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Capri Mainframe.
+Grey	ສີເທົາ
+H.{0} video bitrate target; higher values make larger files	ເປົ້າໝາຍ video bitrate H.{0}; ຄ່າທີ່ສູງຂຶ້ນເຮັດໃຫ້ໄຟລ໌ໃຫຍ່ຂຶ້ນ
+HABITS >	HABITS >
+HER HANDS >	HER HANDS >
+HER JOBS >	HER JOBS >
+HER MEMORY >	HER MEMORY >
+HER MODS >	HER MODS >
+HH:mm	HH:mm
+HOW I SOUND >	ຂ້ອຍອອກສຽງແບບໃດ >
+Hang here	ຢູ່ບ່ອນນີ້
+Have Ollama? Open it, then press Refresh.	ມີ Ollama ບໍ? ເປີດມັນ ແລ້ວກົດ Refresh.
+Head pats	ລູບຫົວ
+Hearing	Hearing
+Hearing engine	Hearing engine
+Hearing fix	Hearing fix
+Hearing status	Hearing status
+Help	ຊ່ວຍເຫຼືອ
+Help page	ໜ້າຊ່ວຍເຫຼືອ
+Her colors	ສີຂອງນາງ
+Her folder	ໂຟນເດີຂອງນາງ
+Her memories	ຄວາມຊົງຈຳຂອງນາງ
+Her own colors are back.	ສີຂອງນາງເອງກັບມາແລ້ວ.
+Her own notes (no vault)	ໂນດຂອງນາງເອງ (ບໍ່ມີ vault)
+Her perch frames per second	Frames ຕໍ່ວິນາທີຂອງ perch ຂອງນາງ
+Her personality	ບຸກຄະລິກຂອງນາງ
+Her size	ຂະໜາດຂອງນາງ
+Her speaker	ລຳໂພງຂອງນາງ
+Her speaker is hidden or outside VOICE	ລຳໂພງຂອງນາງຖືກເຊື່ອງໄວ້ ຫຼືຢູ່ນອກ VOICE
+Her speaker overlaps the mic or hearing row	ລຳໂພງຂອງນາງທັບກັບແຖວໄມໂຄຣໂຟນ ຫຼື hearing
+Her speaker:	ລຳໂພງຂອງນາງ:
+Her speaker: Default	ລຳໂພງຂອງນາງ: ຄ່າເລີ່ມຕົ້ນ
+Her voice in your mic	ສຽງຂອງນາງໃນໄມໂຄຣໂຟນຂອງເຈົ້າ
+Her voice in your mic: loudness	ສຽງຂອງນາງໃນໄມໂຄຣໂຟນຂອງເຈົ້າ: ຄວາມດັງ
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	ສຽງຂອງນາງເອງ. ລະດັບສຽງຂອງມັນແມ່ນ Settings > VOICE > Pitch, ແລະມັນເຄື່ອນໄປພ້ອມກັນ.
+Her voice joins your mic only in call mode.	ສຽງຂອງນາງເຂົ້າໄມໂຄຣໂຟນຂອງເຈົ້າພຽງໃນໂໝດໂທເທົ່ານັ້ນ.
+Her voice volume	ລະດັບສຽງຂອງນາງ
+Her voice's pitch	ລະດັບສຽງ (pitch) ຂອງນາງ
+Her voice's pitch, the same as Settings > VOICE > Pitch	ລະດັບສຽງຂອງນາງ, ຄືກັນກັບ Settings > VOICE > Pitch
+Her voice's speed	ຄວາມໄວຂອງສຽງນາງ
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	ສຽງຂອງນາງ, ແລະສອງສຳເນົາຂອງມັນທີ່ປະສົມຢູ່ຂ້າງລຸ່ມ, ແຕ່ລະອັນມີ pitch ແລະ delay ຂອງຕົນເອງ.
+Her voices · free	ສຽງຂອງນາງ · ຟຣີ
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	ເຮ້, choom. ຂ້ອຍແມ່ນ Capri. ຂ້ອຍຕ້ອງການສະໝອງກ່ອນຈຶ່ງຈະຕອບໄດ້. ເລືອກອັນໜຶ່ງ.
+Hide / Show Capri	ເຊື່ອງ / ສະແດງ Capri
+Hide / Show key	ປຸ່ມເຊື່ອງ / ສະແດງ
+Hide Capri	ເຊື່ອງ Capri
+Hide for now	ເຊື່ອງໄວ້ກ່ອນ
+Hide in full screen	ເຊື່ອງໃນເຕັມຈໍ
+Hide this	ເຊື່ອງອັນນີ້
+Hide/show:	ເຊື່ອງ/ສະແດງ:
+Hide/show: Ctrl + Alt + H	ເຊື່ອງ/ສະແດງ: Ctrl + Alt + H
+Hologram	ໂຮໂລແກຣມ
+Hop off	ລົງຈາກ
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	ເປັນເວລາດົນເທົ່າໃດທີ່ PC ທີ່ບໍ່ໄດ້ໃຊ້ງານຈະສົ່ງນາງເຂົ້ານອນ; ຫ້ານາທີຍັງຖືວ່າເຈົ້າບໍ່ຢູ່
+How long a stroke over her a head pat needs	ການລາກເທິງຫົວຂອງນາງຕ້ອງໃຊ້ເວລາດົນເທົ່າໃດເພື່ອນັບວ່າເປັນການລູບຫົວ
+How long her replies stay up	ຄຳຕອບຂອງນາງຢູ່ໃນໜ້າຈໍດົນເທົ່າໃດ
+How long you are away before she scrolls a browser or reader	ເຈົ້າຕ້ອງຢູ່ຫ່າງດົນເທົ່າໃດກ່ອນທີ່ນາງຈະເລື່ອນ browser ຫຼື reader
+How much her voice glitches	ສຽງຂອງນາງຕັດຂາດບໍ່ດີປານໃດ
+How much of the chat she keeps	ນາງເກັບຮັກສາ chat ໄວ້ເທົ່າໃດ
+How much she wanders	ນາງເດີນທາງໄປໄກເທົ່າໃດ
+How often she pops in to say hi	ນາງມາທັກທາຍເລື້ອຍປານໃດ
+How robotic her voice sounds	ສຽງຂອງນາງຟັງຄືຫຸ່ນຍົນປານໃດ
+How to	ວິທີ
+Huge	ໃຫຍ່ຫຼາຍ
+I can hear you.	ຂ້ອຍໄດ້ຍິນເຈົ້າ.
+I glance at your screen and comment. Costs a little on a paid brain.	ຂ້ອຍແອບເບິ່ງໜ້າຈໍຂອງເຈົ້າແລ້ວໃຫ້ຄຳເຫັນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
+I keep listening. Say my name, then just talk.	ຂ້ອຍຍັງຟັງຢູ່. ເວົ້າຊື່ຂອງຂ້ອຍ ແລ້ວເວົ້າໄດ້ເລີຍ.
+I talk about your game as you play. Costs a little on a paid brain.	ຂ້ອຍເວົ້າກ່ຽວກັບເກມຂອງເຈົ້າຕອນທີ່ເຈົ້າຫຼິ້ນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
+I type my replies and stay quiet.	ຂ້ອຍພິມຄຳຕອບຂອງຂ້ອຍ ແລະ ເງຽບ.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ຂ້ອຍຈະບໍ່ຕອບກັບ, ແລະບໍ່ມີຫຍັງຖືກສົ່ງໄປບ່ອນໃດ. ຂ້ອຍຍັງຈະມາເລັ່ນຢູ່, ເຕັ້ນຕາມເພງຂອງເຈົ້າ ແລະ ເຮັດສິ່ງດ່ວນທີ່ເຈົ້າຂໍ, ເຊັ່ນລະດັບສຽງ.
+I'll talk in	ຂ້ອຍຈະເວົ້າຢູ່
+IN DISCORD >	ໃນ DISCORD >
+INSTALLED >	ຕິດຕັ້ງແລ້ວ >
+Import a Capri mod	ນຳເຂົ້າ mod Capri
+Import mod	ນຳເຂົ້າ mod
+In games	ໃນເກມ
+Input	ປ້ອນຂໍ້ມູນ
+Input, Output or How to overlaps a row	ປ້ອນຂໍ້ມູນ, ຜົນອອກ ຫຼື ວິທີ ທັບກັນໃນແຖວ
+Input:	ປ້ອນຂໍ້ມູນ:
+Input: default	ປ້ອນຂໍ້ມູນ: ຄ່າເລີ່ມຕົ້ນ
+Install	ຕິດຕັ້ງ
+Install mod	ຕິດຕັ້ງ mod
+Installed.	ຕິດຕັ້ງແລ້ວ.
+It may ask for a phone number. I opened the page in your browser.	ມັນອາດຂໍເບີໂທລະສັບ. ຂ້ອຍເປີດໜ້າໃນ browser ຂອງເຈົ້າແລ້ວ.
+It still does its own job in other apps too.	ມັນຍັງເຮັດໜ້າທີ່ຂອງມັນໃນແອັບອື່ນດ້ວຍ.
+It won't type in other apps while she runs.	ມັນຈະບໍ່ພິມໃນແອັບອື່ນໃນຂະນະທີ່ນາງເຮັດວຽກ.
+JUST ME >	JUST ME >
+Jealous of other AIs	ອິດສາ AI ອື່ນ
+Join the Discord	ເຂົ້າຮ່ວມ Discord
+KB.	KB.
+KEYS	ປຸ່ມ
+KEYS >	ປຸ່ມ >
+Keep PC awake for jobs	ເຮັດໃຫ້ PC ຕື່ນຢູ່ສຳລັບວຽກ
+Keeps the last two minutes of your game in memory. Say clip that to save it.	ເກັບສອງນາທີສຸດທ້າຍຂອງເກມຂອງເຈົ້າໄວ້ໃນຄວາມຈຳ. ເວົ້າ clip that ເພື່ອບັນທຶກ.
+Key	ກະແຈ
+Key cleared: a model file needs none.	ລ້າງກະແຈແລ້ວ: ໄຟລ໌ໂມເດວບໍ່ຕ້ອງການກະແຈ.
+Key cleared: paste the key for	ລ້າງກະແຈແລ້ວ: ວາງກະແຈສຳລັບ
+Key forgotten.	ລືມກະແຈແລ້ວ.
+Key. It goes only to this server, as a Bearer key	ກະແຈ. ມັນຖືກສົ່ງໄປແຕ່ server ນີ້ເທົ່ານັ້ນ, ໃນຖານະ Bearer key
+Kokoro only, like es	ພຽງແຕ່ Kokoro, ເໝືອນ es
+LAST THING >	ສິ່ງສຸດທ້າຍ >
+LISTENING >	ກຳລັງຟັງ >
+Language	ພາສາ
+Large	ໃຫຍ່
+Last thing. These cost a little or use your mic, so they're your pick.	ສິ່ງສຸດທ້າຍ. ອັນເຫຼົ່ານີ້ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆ ຫຼື ໃຊ້ໄມໂຄຣໂຟນຂອງເຈົ້າ, ດັ່ງນັ້ນມັນເປັນທາງເລືອກຂອງເຈົ້າ.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	ສິ່ງສຸດທ້າຍ. ອັນເຫຼົ່ານີ້ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆ ຫຼື ໃຊ້ໄມໂຄຣໂຟນຂອງເຈົ້າ, ດັ່ງນັ້ນມັນເປັນທາງເລືອກຂອງເຈົ້າ. ແລ້ວຂ້ອຍຢາກຮູ້ວ່າຄວນເອີ້ນເຈົ້າວ່າຫຍັງ.
+Layers	ຊັ້ນ
+Learn more	ຮຽນຮູ້ເພີ່ມເຕີມ
+Leaving Settings threw its picture away straight away.	ການອອກຈາກ Settings ເຮັດໃຫ້ຮູບຂອງມັນຖືກຖິ້ມທັນທີ.
+Legacy stand	ຂາຕັ້ງແບບເກົ່າ
+Lie down	ນອນລົງ
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	ແຖວບົດສົນທະນາ PC ທີ່ຖືກເກັບໄວ້ໃນຄວາມຈຳຕອນດູນຳກັນ. ເຄິ່ງທີ່ເກົ່າກວ່າຈະກາຍເປັນໂນດເມື່ອ Remember what she sees ເປີດຢູ່
+Listen for Capri	ຟັງ Capri
+Live reactions	ປະຕິກິລິຍາສົດ
+Local server address	ທີ່ຢູ່ server ໃນເຄື່ອງ
+Long	ຍາວ
+Longest wait (minutes)	ເວລາລໍຖ້ານານທີ່ສຸດ (ນາທີ)
+Looking at this PC...	ກຳລັງເບິ່ງ PC ນີ້...
+Looking for Ollama. Open it if it isn't running.	ກຳລັງຊອກຫາ Ollama. ເປີດມັນຖ້າມັນບໍ່ໄດ້ເຮັດວຽກ.
+Looking for a brain...	ກຳລັງຊອກຫາສະໝອງ...
+Looking in the mods directory for updates...	ກຳລັງຊອກຫາອັບເດດໃນໂຟນເດີ mods...
+Looking in the mods directory...	ກຳລັງຊອກໃນໂຟນເດີ mods...
+Looking...	ກຳລັງຊອກຫາ...
+MAIN >	ຫຼັກ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	MEMORY VAULT >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	MODS DIRECTORY >
+MODS INSTALLED COLORS	MODS INSTALLED COLORS
+MOVES >	MOVES >
+MY BRAIN	MY BRAIN
+MY FREE VOICE	MY FREE VOICE
+MY PLAN OR KEY	MY PLAN OR KEY
+MY PLAN OR KEY >	MY PLAN OR KEY >
+Made your Fish Audio voice. Press Test to hear it.	ສຽງ Fish Audio ຂອງເຈົ້າສຳເລັດແລ້ວ. ກົດ Test ເພື່ອຟັງ.
+Mainframe colours	ສີ Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	ສີ Mainframe. Night City ແມ່ນສີແດງ ແລະ cyan; Black, White ແລະ Grey ປ່ຽນ Mainframe, ເມນູຂອງນາງ, ກ່ອງພິມ ແລະໂນດຂອງນາງ
+Mainframe frames	Frames ຂອງ Mainframe
+Mainframe key	ປຸ່ມ Mainframe
+Mainframe size	ຂະໜາດ Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	ຂະໜາດ Mainframe. Auto ເຮັດໃຫ້ໃຫຍ່ຂຶ້ນເມື່ອ Virtual Super Resolution ຫຼື DSR ຫຍໍ້ desktop ໃຫຍ່ໃຫ້ເປັນໜ້າຈໍນ້ອຍກວ່າ
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	ກຳລັງສ້າງສຽງ Fish Audio ຂອງເຈົ້າ...
+Max reply	ຄຳຕອບສູງສຸດ
+Maximum clip resolution, keeping the game's shape without upscaling	ຄວາມລະອຽດ clip ສູງສຸດ, ຮັກສາຮູບຮ່າງຂອງເກມໄວ້ໂດຍບໍ່ upscale
+Medium	ປານກາງ
+Memory	ຄວາມຈຳ
+Memory size	ຂະໜາດຄວາມຈຳ
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	ຂະໜາດຄວາມຈຳເປັນ tokens ສຳລັບ Ollama ແລະສະໝອງໃນຕົວຂອງນາງ. Auto ຈະໃຫຍ່ຂຶ້ນເມື່ອຄຳຖາມຕ້ອງການຫຼາຍກວ່າ
+Mg	Mg
+Mic level:	ລະດັບໄມໂຄຣໂຟນ:
+Mic test finished. Sound is reaching Capri.	ການທົດສອບໄມໂຄຣໂຟນສຳເລັດແລ້ວ. ສຽງໄປເຖິງ Capri.
+Mic:	ໄມໂຄຣໂຟນ:
+Mic: default	ໄມໂຄຣໂຟນ: ຄ່າເລີ່ມຕົ້ນ
+Microphone	ໄມໂຄຣໂຟນ
+Mini player	Mini player
+Mini player over full screen	Mini player ທັບເຕັມຈໍ
+Mini-games	Mini-games
+Minimising the Mainframe left it sliding.	ການຫຍໍ້ Mainframe ເຮັດໃຫ້ມັນຍັງເລື່ອນຢູ່.
+Minimize	ຫຍໍ້
+Mod filter	ຕົວກອງ mod
+Mod options	ຕົວເລືອກ mod
+Mod pages	ໜ້າ mod
+Mod rules	ກົດ mod
+Mod sort	ການຈັດລຽງ mod
+Mod switch	ສະຫຼັບ mod
+Model	ໂມເດວ
+Model folder	ໂຟນເດີໂມເດວ
+Model name, optional	ຊື່ໂມເດວ, ທາງເລືອກ
+Mods	Mods
+Mods directory	ໄດເຣັກທໍຣີ mods
+Mods folder	ໂຟນເດີ mods
+Most NVIDIA models can't see your screen.	ໂມເດວ NVIDIA ສ່ວນໃຫຍ່ບໍ່ສາມາດເຫັນໜ້າຈໍຂອງເຈົ້າໄດ້.
+Mouse wheel notches got a flick's long ease:	ລໍ້ເມົາສ໌ໄດ້ຮັບການຜ່ອນຄວາມໄວແບບ flick ທີ່ຍາວ:
+Move	ຍ້າຍ
+Move key to MAX INTELLIGENCE	ຍ້າຍປຸ່ມໄປ MAX INTELLIGENCE
+Move to MAX	ຍ້າຍໄປ MAX
+Music	ດົນຕີ
+Music app	ແອັບດົນຕີ
+Music app: where she plays music when you don't name an app	ແອັບດົນຕີ: ບ່ອນທີ່ນາງຫຼິ້ນດົນຕີເມື່ອເຈົ້າບໍ່ໄດ້ລະບຸແອັບ
+Mute	ປິດສຽງ
+Mute her	ປິດສຽງນາງ
+Mute mic key	ປຸ່ມປິດສຽງໄມໂຄຣໂຟນ
+Mute mic:	ປິດສຽງໄມໂຄຣໂຟນ:
+Mute mic: Ctrl + Alt + N	ປິດສຽງໄມໂຄຣໂຟນ: Ctrl + Alt + N
+My brain	ສະໝອງຂອງຂ້ອຍ
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	ສະໝອງຂອງຂ້ອຍກຳລັງລົງມາ. ຂ້ອຍຈະທັກທາຍທັນທີທີ່ມັນເຂົ້າມາ, ແລ້ວເຈົ້າຈະລົມກັບຂ້ອຍໄດ້ຕອນນັ້ນ.
+My brain's on its way. While it comes down, let's sort out how I sound.	ສະໝອງຂອງຂ້ອຍກຳລັງມາ. ໃນຂະນະທີ່ມັນລົງມາ, ມາຈັດການວ່າຂ້ອຍອອກສຽງແນວໃດ.
+My provider	ຜູ້ໃຫ້ບໍລິການຂອງຂ້ອຍ
+NO AI	ບໍ່ມີ AI
+NO PHONES CONNECTED	ບໍ່ມີໂທລະສັບເຊື່ອມຕໍ່
+NO PREVIEW	ບໍ່ມີ PREVIEW
+NORMAL	ປົກກະຕິ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ຟຣີ · ມັກຊ້າໃນຊ່ວງເວລາທີ່ຄົນໃຊ້ຫຼາຍ
+NVIDIA's free API is often slow, especially at busy times.	API ຟຣີຂອງ NVIDIA ມັກຊ້າ, ໂດຍສະເພາະໃນຊ່ວງເວລາທີ່ຄົນໃຊ້ຫຼາຍ.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	API key ຂອງ NVIDIA, Google AI Studio (Gemini) ຫຼື OpenRouter
+Names:	ຊື່:
+Needs a key	ຕ້ອງການກະແຈ
+Never	ບໍ່ເຄີຍ
+New code	ລະຫັດໃໝ່
+New voice from a clip...	ສຽງໃໝ່ຈາກ clip...
+Next	ຖັດໄປ
+Night City	Night City
+No AI	ບໍ່ມີ AI
+No AI · no brain at all	ບໍ່ມີ AI · ບໍ່ມີສະໝອງເລີຍ
+No brain runs, and nothing is sent anywhere.	ບໍ່ມີສະໝອງເຮັດວຽກ, ແລະບໍ່ມີຫຍັງຖືກສົ່ງໄປບ່ອນໃດ.
+No brain yet	ຍັງບໍ່ມີສະໝອງ
+No code open	ບໍ່ມີ code ເປີດ
+No mic found	ບໍ່ພົບໄມໂຄຣໂຟນ
+No mods in the directory yet.	ຍັງບໍ່ມີ mods ໃນໄດເຣັກທໍຣີ.
+No mods match that.	ບໍ່ມີ mods ທີ່ກົງກັບອັນນັ້ນ.
+No mods match.	ບໍ່ມີ mods ທີ່ກົງກັນ.
+No phones yet	ຍັງບໍ່ມີໂທລະສັບ
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	ຍັງບໍ່ມີໄມໂຄຣໂຟນ virtual. ເລືອກ Output ແລ້ວ Get VB-CABLE (ຟຣີ).
+None yet: pick to get VB-CABLE (free)	ຍັງບໍ່ມີ: ເລືອກເພື່ອເອົາ VB-CABLE (ຟຣີ)
+Normal	ປົກກະຕິ
+Not a relay host	ບໍ່ແມ່ນ relay host
+Not imported. Nothing ran.	ຍັງບໍ່ໄດ້ນຳເຂົ້າ. ບໍ່ມີຫຍັງເຮັດວຽກ.
+Not updated. The old one is still in.	ຍັງບໍ່ໄດ້ອັບເດດ. ອັນເກົ່າຍັງຢູ່.
+Nothing needed updating.	ບໍ່ມີຫຍັງຕ້ອງອັບເດດ.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	ບໍ່ມີຫຍັງໃຫ້ດາວໂຫຼດ, ບໍ່ມີຫຍັງຖືກສົ່ງໄປບ່ອນໃດ. ຂ້ອຍຈະບໍ່ຕອບກັບ. ເພີ່ມສະໝອງເວລາໃດກໍໄດ້ໃນ Mainframe.
+Nothing to show from the mods directory.	ບໍ່ມີຫຍັງໃຫ້ສະແດງຈາກໄດເຣັກທໍຣີ mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	ບໍ່ມີບໍ? Windows Settings > Privacy & security > Microphone.
+Nous Portal keys aren't supported yet.	ຍັງບໍ່ຮອງຮັບກະແຈ Nous Portal.
+OBS	OBS
+OFF	ປິດ
+OLLAMA	OLLAMA
+ON	ເປີດ
+ON THIS PC	ເທິງ PC ນີ້
+OR A KEY	ຫຼື API KEY
+Obsidian memory vault	ຫ້ອງຄວາມຈຳ Obsidian
+Off	ປິດ
+Off. Turn on Her voice in your mic above.	ປິດ. ເປີດ Her voice in your mic ຂ້າງເທິງ.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	ປິດ: ນາງຟັງຄືເກົ່າ. ເປີດ: ທຸກສຽງທີ່ນາງມີ, ລວມທັງ ElevenLabs.
+Often	ມັກ
+On	ເປີດ
+On / Off	ເປີດ / ປິດ
+On: your mic and her voice are going in.	ເປີດ: ໄມໂຄຣໂຟນຂອງເຈົ້າ ແລະສຽງຂອງນາງກຳລັງເຂົ້າມາ.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	JSON object ໜຶ່ງອັນ, ເພີ່ມເຂົ້າທຸກຄຳຮ້ອງຂໍທີ່ສະໝອງນີ້ສົ່ງ. ມັນແທນຄ່າຂອງ Capri ສຳລັບຊື່ໃດໆທີ່ມັນໃຊ້ຮ່ວມກັນ, ແລະບໍ່ໄດ້ກວດກັບໂມເດວ.
+Online speech recognition	ການຮັບຮູ້ສຽງເວົ້າອອນລາຍ
+Open Capri Mainframe	ເປີດ Capri Mainframe
+Open Ollama, I'll find it	ເປີດ Ollama, ຂ້ອຍຈະຊອກຫາມັນ
+Open clips folder	ເປີດໂຟນເດີ clips
+Open her memories	ເປີດຄວາມຈຳຂອງນາງ
+Open her notes	ເປີດໂນດຂອງນາງ
+Open mods folder	ເປີດໂຟນເດີ mods
+Open the page again	ເປີດໜ້ານັ້ນອີກຄັ້ງ
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ຫຼື OpenRouter.
+OpenAI-compatible server or provider.	server ຫຼື ຜູ້ໃຫ້ບໍລິການທີ່ເຂົ້າກັນໄດ້ກັບ OpenAI.
+OpenRouter · free models only	OpenRouter · ເອົາແຕ່ໂມເດວຟຣີ
+Optional	ທາງເລືອກ
+Optional. Blank means no key.	ທາງເລືອກ. ຫວ່າງເປົ່າໝາຍເຖິງບໍ່ມີກະແຈ.
+Options	ຕົວເລືອກ
+Out of the box a little higher, just behind her.	ຄ່າເລີ່ມຕົ້ນສູງຂຶ້ນເລັກນ້ອຍ, ຢູ່ຫຼັງນາງ.
+Out of the box lower, just behind her.	ຄ່າເລີ່ມຕົ້ນຕ່ຳລົງ, ຢູ່ຫຼັງນາງ.
+Output	ຜົນອອກ
+Output:	ຜົນອອກ:
+Output: none	ຜົນອອກ: ບໍ່ມີ
+PHONE CONNECTED	ໂທລະສັບເຊື່ອມຕໍ່ແລ້ວ
+PHONES >	ໂທລະສັບ >
+PHONES CONNECTED	ໂທລະສັບເຊື່ອມຕໍ່ແລ້ວ
+PREBUILT LOCAL	ໃນເຄື່ອງທີ່ສ້າງໄວ້ລ່ວງໜ້າ
+PUBLISH MOD >	ເຜີຍແຜ່ mod >
+Pair a phone	ຈັບຄູ່ໂທລະສັບ
+Paste	ວາງ
+Paste API key	ວາງ API key
+Paste a brain API key	ວາງ brain API key
+Paste reads your clipboard once, when you press it.	Paste ອ່ານ clipboard ຂອງເຈົ້າຄັ້ງດຽວ, ເວລາທີ່ເຈົ້າກົດມັນ.
+Paste your key here	ວາງກະແຈຂອງເຈົ້າບ່ອນນີ້
+Pat stroke	ການລູບ
+Perch	Perch
+Perch over {0} fps uses more CPU	Perch ເກີນ {0} fps ໃຊ້ CPU ຫຼາຍຂຶ້ນ
+Pick Output to get it.	ເລືອກ Output ເພື່ອເອົາມັນ.
+Pick a brain so I can talk back. You can change it any time.	ເລືອກສະໝອງເພື່ອໃຫ້ຂ້ອຍຕອບໄດ້. ເຈົ້າປ່ຽນໄດ້ເວລາໃດກໍໄດ້.
+Pick a clip of a voice you have the rights and consent to use	ເລືອກ clip ຂອງສຽງທີ່ເຈົ້າມີສິດ ແລະ ຍິນຍອມໃຫ້ໃຊ້
+Pick a free model. I opened the page in your browser.	ເລືອກໂມເດວຟຣີ. ຂ້ອຍເປີດໜ້າໃນ browser ຂອງເຈົ້າແລ້ວ.
+Pick a new clip of you...	ເລືອກ clip ໃໝ່ຂອງເຈົ້າ...
+Pick a voice model...	ເລືອກໂມເດວສຽງ...
+Pick one. Only one brain runs at a time.	ເລືອກອັນໜຶ່ງ. ມີສະໝອງເຮັດວຽກພຽງອັນດຽວໃນເວລາດຽວກັນ.
+Pick the note her memories go in	ເລືອກໂນດທີ່ຄວາມຈຳຂອງນາງຈະໄປ
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	ເລືອກ {0} ຫາ {1} ວິນາທີຂອງສຽງທີ່ເຈົ້າມີສິດ ແລະ ຍິນຍອມໃຫ້ໃຊ້
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	ເລືອກ {0} ຫາ {1} ວິນາທີຂອງເຈົ້າເວົ້າ, ຫຼືຂອງສຽງທີ່ເຈົ້າມີສິດ ແລະ ຍິນຍອມໃຫ້ໃຊ້
+Pitch	Pitch
+Play	ຫຼິ້ນ
+Play...	ຫຼິ້ນ...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	ໂມເດວ Pocket TTS ຄັດລອກສຽງຂອງ clip ນີ້. ກົດ Test ເພື່ອຟັງ.
+Pop-in times	ເວລາ pop-in
+Pop-ins	Pop-ins
+Power saver	ຕົວປະຢັດພະລັງງານ
+Power saver: how lightly she runs in games, or always	ຕົວປະຢັດພະລັງງານ: ນາງເຮັດວຽກເບົາແຮງປານໃດໃນເກມ, ຫຼືຕະຫຼອດເວລາ
+Preset	ພຣີເຊັດ
+Press Create API key	ກົດ Create API key
+Press Create Key	ກົດ Create Key
+Press Generate API Key	ກົດ Generate API Key
+Press Test and say something, so I know I can hear you.	ກົດ Test ແລ້ວເວົ້າຫຍັງສັກຢ່າງ, ເພື່ອໃຫ້ຂ້ອຍຮູ້ວ່າຂ້ອຍໄດ້ຍິນເຈົ້າ.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	ກົດປຸ່ມ, ດ່ຽວໆ ຫຼື ກັບ Ctrl, Alt, Shift ຫຼື Win.
+Press new keys, then Confirm	ກົດປຸ່ມໃໝ່, ແລ້ວ Confirm
+Provider	ຜູ້ໃຫ້ບໍລິການ
+Provider API key, optional	API key ຂອງຜູ້ໃຫ້ບໍລິການ, ທາງເລືອກ
+Provider base URL	Base URL ຂອງຜູ້ໃຫ້ບໍລິການ
+Provider forgotten.	ລືມຜູ້ໃຫ້ບໍລິການແລ້ວ.
+Provider overlaps the brain name or note	ຜູ້ໃຫ້ບໍລິການທັບກັບຊື່ສະໝອງ ຫຼື ໂນດ
+Publish	ເຜີຍແຜ່
+Publish mod	ເຜີຍແຜ່ mod
+Push to talk is off.	Push to talk ປິດຢູ່.
+Push to talk key	ປຸ່ມ Push to talk
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: ຍັງບໍ່ໄດ້ຕັ້ງ
+QR CODE >	QR CODE >
+QR hidden while streaming	QR ຖືກເຊື່ອງໄວ້ໃນຂະນະ stream
+Quick	ໄວ
+Quiet key	ປຸ່ມງຽບ
+Quiet:	ງຽບ:
+Quiet: Ctrl + Alt + P	ງຽບ: Ctrl + Alt + P
+Quit Capri	ອອກຈາກ Capri
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	ແລ່ນ CODE.
+Rarely	ນານໆຄັ້ງ
+Rate mod	ໃຫ້ຄະແນນ mod
+Reading its README...	ກຳລັງອ່ານ README ຂອງມັນ...
+Refresh	Refresh
+Reinstall	ຕິດຕັ້ງໃໝ່
+Reload	Reload
+Reloaded.	ໂຫຼດໃໝ່ແລ້ວ.
+Remember our chats	ຈື່ການສົນທະນາຂອງພວກເຮົາ
+Remember what she sees	ຈື່ສິ່ງທີ່ນາງເຫັນ
+Remote	Remote
+Remote off	Remote ປິດ
+Remote on	Remote ເປີດ
+Remove	ລຶບ
+Remove all phones	ລຶບໂທລະສັບທັງໝົດ
+Replies	ຄຳຕອບ
+Reply length	ຄວາມຍາວຄຳຕອບ
+Report a problem	ລາຍງານບັນຫາ
+Reset colors	ຣີເຊັດສີ
+Reset to her default	ຣີເຊັດເປັນຄ່າເລີ່ມຕົ້ນຂອງນາງ
+Resolution	ຄວາມລະອຽດ
+Restart to update	ເລີ່ມໃໝ່ເພື່ອອັບເດດ
+Restless	ບໍ່ຢູ່ນິ່ງ
+Revoke	ເພີກຖອນ
+Revoke also removes the phones its links added	ການເພີກຖອນຍັງລຶບໂທລະສັບທີ່ລິ້ງຂອງນາງເພີ່ມໄວ້ນຳ
+Ride cursor	ຂີ່ cursor
+Ride cursor / Hop off	ຂີ່ cursor / ລົງ
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Capri Mainframe. ສະໝອງເປີດຢູ່ໃຕ້ BRAIN.
+Right-click me any time for the Mainframe, Help and the Discord.	ຄລິກຂວາໃສ່ຂ້ອຍເວລາໃດກໍໄດ້ເພື່ອ Mainframe, Help ແລະ Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ຫຼື ແອັບອື່ນ: ເລືອກ
+Robot	ຫຸ່ນຍົນ
+Rock, paper, scissors	ກ້ອນຫີນ, ເຈ້ຍ, ກັນຕັດ
+Run this code mod?	ແລ່ນ mod code ນີ້ບໍ?
+Running on this PC	ກຳລັງເຮັດວຽກຢູ່ PC ນີ້
+Running on this PC · :	ກຳລັງເຮັດວຽກຢູ່ PC ນີ້ · :
+Runs Claude Code or Codex on this PC, signed in.	ແລ່ນ Claude Code ຫຼື Codex ໃນ PC ນີ້, ລົງຊື່ເຂົ້າໃຊ້ແລ້ວ.
+Runs on your PC. No key, no credits.	ເຮັດວຽກຢູ່ PC ຂອງເຈົ້າ. ບໍ່ຕ້ອງໃຊ້ກະແຈ, ບໍ່ມີເຄຣດິດ.
+SCAN WITH YOUR PHONE · EXPIRES	ສະແກນດ້ວຍໂທລະສັບຂອງເຈົ້າ · ໝົດອາຍຸ
+SECURITY >	SECURITY >
+SKILL.	ທັກສະ.
+SKIN.	ຜິວ.
+SORT BY	ຈັດລຽງຕາມ
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ສຽງ ນິໄສ ສະໝອງ ເບິ່ງ CAPRI DOOMSCROLL ອາກາດ CLIPS GAMES ປຸ່ມ MOVES ສຽງ YOU
+Same as her ears (VOICE > Mic)	ຄືກັບຫູຂອງນາງ (VOICE > Mic)
+Same code on the phone?	ລະຫັດດຽວກັນຢູ່ໂທລະສັບບໍ?
+Save	ບັນທຶກ
+Save big moments	ບັນທຶກຊ່ວງເວລາສຳຄັນ
+Save folder	ໂຟນເດີບັນທຶກ
+Save your changes, or press Discard + reload.	ບັນທຶກການປ່ຽນແປງຂອງເຈົ້າ, ຫຼືກົດ Discard + reload.
+Save your changes, or press Discard.	ບັນທຶກການປ່ຽນແປງຂອງເຈົ້າ, ຫຼືກົດ Discard.
+Saved.	ບັນທຶກແລ້ວ.
+Saved. Ctrl + Alt + O opens her Mainframe.	ບັນທຶກແລ້ວ. Ctrl + Alt + O ເປີດ Mainframe ຂອງນາງ.
+Saving your rating...	ກຳລັງບັນທຶກການໃຫ້ຄະແນນຂອງເຈົ້າ...
+Say her name anywhere to chat	ເວົ້າຊື່ຂອງນາງຢູ່ບ່ອນໃດກໍໄດ້ເພື່ອສົນທະນາ
+Screens	ໜ້າຈໍ
+Screens is hidden or outside WATCH	Screens ຖືກເຊື່ອງໄວ້ ຫຼືຢູ່ນອກ WATCH
+Screens overlaps a WATCH row	Screens ທັບແຖວ WATCH
+Screens to watch	Screens ໃຫ້ເບິ່ງ
+Sealed end to end	ເຂົ້າລະຫັດແບບ end to end
+Search by name or author	ຄົ້ນຫາດ້ວຍຊື່ ຫຼື ຜູ້ຂຽນ
+Search installed mods	ຄົ້ນຫາ mods ທີ່ຕິດຕັ້ງແລ້ວ
+Search mods	ຄົ້ນຫາ mods
+Search name, author or description	ຄົ້ນຫາຊື່, ຜູ້ຂຽນ ຫຼື ຄຳອະທິບາຍ
+Security	ຄວາມປອດໄພ
+Security:	ຄວາມປອດໄພ:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	ຕັ້ງຄ່າ
+Set up her brain	ຕັ້ງຄ່າສະໝອງຂອງນາງ
+Set up your voice model	ຕັ້ງຄ່າໂມເດວສຽງຂອງເຈົ້າ
+Setting up her brain	ກຳລັງຕັ້ງຄ່າສະໝອງຂອງນາງ
+Settings	ການຕັ້ງຄ່າ
+Settings / Back	ການຕັ້ງຄ່າ / ກັບ
+Settings folds the wrong rows above BRAIN	Settings ພັບແຖວຜິດຢູ່ເໜືອ BRAIN
+Settings had nothing to watch.	Settings ບໍ່ມີຫຍັງໃຫ້ເບິ່ງ.
+Settings lost keyboard focus during the Tab walk	Settings ເສຍ keyboard focus ໃນລະຫວ່າງການເດີນ Tab
+Setup guide	ຄູ່ມືການຕັ້ງຄ່າ
+Setup stopped	ການຕັ້ງຄ່າຢຸດລົງ
+She can read it when it fits.	ນາງອ່ານໄດ້ເມື່ອເໝາະສົມ.
+She glances at your screen and comments. Costs a little on a paid brain.	ນາງແອບເບິ່ງໜ້າຈໍຂອງເຈົ້າ ແລະໃຫ້ຄຳເຫັນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
+She keeps listening. Say her name, then just talk until you go quiet.	ນາງຍັງຟັງຢູ່. ເວົ້າຊື່ນາງ, ແລ້ວເວົ້າໄປຈົນເຈົ້າງຽບ.
+She reacts to your game until you close it.	ນາງຕອບສະໜອງຕໍ່ເກມຂອງເຈົ້າຈົນກວ່າເຈົ້າຈະປິດມັນ.
+She reads these controls before each game job.	ນາງອ່ານການຄວບຄຸມເຫຼົ່ານີ້ກ່ອນທຸກວຽກເກມ.
+She talks about your game as you play. Costs a little on a paid brain.	ນາງເວົ້າກ່ຽວກັບເກມຂອງເຈົ້າຕອນທີ່ເຈົ້າຫຼິ້ນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
+She uses it when she plays	ນາງໃຊ້ມັນເມື່ອນາງຫຼິ້ນ
+Short	ສັ້ນ
+Shortest wait (minutes)	ເວລາລໍຖ້າສັ້ນທີ່ສຸດ (ນາທີ)
+Show Capri	ສະແດງ Capri
+Show QR	ສະແດງ QR
+Show my mod file	ສະແດງໄຟລ໌ mod ຂອງຂ້ອຍ
+Show on Discord	ສະແດງໃນ Discord
+Shum, what time is it	Shum, ຕອນນີ້ກີ່ໂມງແລ້ວ
+Sign in	ລົງຊື່ເຂົ້າໃຊ້
+Sign in, make a key and copy it. Then press Paste and I'll connect.	ລົງຊື່ເຂົ້າໃຊ້, ສ້າງກະແຈ ແລະ ສຳເນົາມັນ. ຈາກນັ້ນກົດ Paste ແລ້ວຂ້ອຍຈະເຊື່ອມຕໍ່.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	ລົງຊື່ເຂົ້າໃຊ້, ກົດ Create API key ແລະ ສຳເນົາມັນ. ຈາກນັ້ນກົດ Paste ແລ້ວຂ້ອຍຈະເຊື່ອມຕໍ່.
+Silent · text only	ງຽບ · ເອົາແຕ່ຂໍ້ຄວາມ
+Simple / Advanced Settings	Simple / Advanced Settings
+Simple Settings	Simple Settings
+Simple Settings left a gap under Check in on me	Simple Settings ເຮັດໃຫ້ມີຊ່ອງຫວ່າງຢູ່ໃຕ້ Check in on me
+Sit here	ນັ່ງບ່ອນນີ້
+Sit on windows	ນັ່ງເທິງໜ້າຕ່າງ
+Size	ຂະໜາດ
+Skip	ຂ້າມ
+Skip all	ຂ້າມທັງໝົດ
+Skip for now	ຂ້າມໄວ້ກ່ອນ
+Sleep	ນອນ
+Small	ນ້ອຍ
+Sometimes	ບາງເທື່ອ
+Sound effects volume	ລະດັບສຽງເອັບເຟັກ
+Sound sensitivity	ຄວາມໄວຕໍ່ສຽງ
+Sounds	ສຽງ
+Speaker or clip	ລຳໂພງ ຫຼື clip
+Speech model	ໂມເດວການເວົ້າ
+Speed	ຄວາມໄວ
+Start with Windows	ເລີ່ມພ້ອມ Windows
+Start with this!	ເລີ່ມດ້ວຍອັນນີ້!
+Starting...	ກຳລັງເລີ່ມ...
+Stay on my model	ຢູ່ກັບໂມເດວຂອງຂ້ອຍ
+Still checking your mics...	ກຳລັງກວດໄມໂຄຣໂຟນຂອງເຈົ້າຢູ່...
+Still checking your speakers...	ກຳລັງກວດລຳໂພງຂອງເຈົ້າຢູ່...
+Still checking your virtual mics...	ກຳລັງກວດໄມໂຄຣໂຟນ virtual ຂອງເຈົ້າຢູ່...
+Stop	ຢຸດ
+Stopped using it. Couldn't remove the saved provider.	ຢຸດໃຊ້ແລ້ວ. ລຶບຜູ້ໃຫ້ບໍລິການທີ່ບັນທຶກໄວ້ບໍ່ໄດ້.
+Support	ການສະໜັບສະໜູນ
+Sure?	ແນ່ໃຈບໍ?
+Sure? moved to a different phone	ແນ່ໃຈບໍ? ຍ້າຍໄປໂທລະສັບອີກເຄື່ອງແລ້ວ
+TALK TO ME	ລົມກັບຂ້ອຍ
+TEXT ONLY	ເອົາແຕ່ຂໍ້ຄວາມ
+Tab landed past the first option of	Tab ໄປເຖິງເກີນຕົວເລືອກທຳອິດຂອງ
+Tab never reached the quiet key	Tab ບໍ່ເຄີຍໄປຮອດປຸ່ມງຽບ
+Tab reached nothing	Tab ບໍ່ໄປຮອດຫຍັງເລີຍ
+Tab selected a control without moving keyboard focus	Tab ເລືອກການຄວບຄຸມໂດຍບໍ່ຍ້າຍ keyboard focus
+Talk	ເວົ້າ
+Talk key	ປຸ່ມເວົ້າ
+Talk:	ເວົ້າ:
+Talk: Ctrl + Alt + V	ເວົ້າ: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	ອັດຕາເຟຣມການບັນທຶກເປົ້າໝາຍ; ອາດຕົກລົງພາຍໃຕ້ການໂຫຼດ ຫຼື ງົບຄວາມຈຳ
+Teases when another AI comes to the front.	ແຫຍ່ໃສ່ເມື່ອ AI ອື່ນມາຢູ່ໜ້າ.
+Test	ທົດສອບ
+That address doesn't work. Try https://... or http://localhost:{0}.	ທີ່ຢູ່ນັ້ນໃຊ້ບໍ່ໄດ້. ລອງ https://... ຫຼື http://localhost:{0}.
+That code expired	ລະຫັດນັ້ນໝົດອາຍຸແລ້ວ
+That mod is no longer installed. The list is updated.	mod ນັ້ນບໍ່ໄດ້ຕິດຕັ້ງແລ້ວ. ລາຍການຖືກອັບເດດແລ້ວ.
+That's a paid key: it goes under MAX INTELLIGENCE.	ນັ້ນເປັນກະແຈເສຍເງິນ: ມັນຈະໄປຢູ່ໃຕ້ MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe ຍັງຄົງ composited ໃນຂະນະທີ່ເລື່ອນ.
+The Mainframe stayed uncomposited after the slide.	Mainframe ຍັງຄົງ uncomposited ຫຼັງຈາກເລື່ອນ.
+The controls moved while the picture was sliding.	ການຄວບຄຸມເຄື່ອນໄປໃນຂະນະທີ່ຮູບກຳລັງເລື່ອນ.
+The cover stayed visible after the slide ended.	ຝາປິດຍັງເບິ່ງເຫັນຫຼັງຈາກ slide ຈົບ.
+The frame thread kept running after the page settled.	frame thread ຍັງເຮັດວຽກຕໍ່ຫຼັງຈາກໜ້າຢຸດນິ່ງ.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	ຄຳຕອບທີ່ຍາວທີ່ສຸດທີ່ນາງໃຫ້ໄດ້, ເປັນ tokens. Auto ຄົງຢູ່ກັບ Replies ຂ້າງເທິງ; {0}K ຫຼື {1}K ໃຫ້ນາງເວົ້າຕໍ່ໄປ. ວຽກຕ່າງໆຈະໄດ້ພື້ນທີ່ຫຼາຍຂຶ້ນເມື່ອຕ້ອງການ
+The longest wait must be at least the shortest wait.	ເວລາລໍຖ້ານານທີ່ສຸດຕ້ອງຢ່າງໜ້ອຍເທົ່າກັບເວລາລໍຖ້າສັ້ນທີ່ສຸດ.
+The picture doesn't match the scrolled page:	ຮູບບໍ່ກົງກັບໜ້າທີ່ເລື່ອນແລ້ວ:
+The picture of Settings doesn't match the page:	ຮູບຂອງ Settings ບໍ່ກົງກັບໜ້າ:
+The picture stayed up after the slide ended.	ຮູບຍັງຄ້າງຢູ່ຫຼັງຈາກ slide ຈົບ.
+The picture wasn't showing while it slid.	ຮູບບໍ່ໄດ້ສະແດງໃນຂະນະທີ່ມັນເລື່ອນ.
+The provider sheet is crowded:	ແຜ່ນຜູ້ໃຫ້ບໍລິການແໜ້ນເກີນໄປ:
+The voice panel has no screen DPI.	ແຜງສຽງບໍ່ມີ DPI ຂອງໜ້າຈໍ.
+The voice panel's menus share one font.	ເມນູຂອງແຜງສຽງໃຊ້ຟອນດຽວກັນ.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	ຍັງບໍ່ມີກະແຈໃນ clipboard ຂອງເຈົ້າ. ສຳເນົາມັນຈາກໜ້າ ແລ້ວກົດ Paste.
+These start off. Each costs a little or uses your mic.	ສິ່ງເຫຼົ່ານີ້ເລີ່ມປິດ. ແຕ່ລະອັນມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆ ຫຼືໃຊ້ໄມໂຄຣໂຟນຂອງເຈົ້າ.
+These start off. Turn on what you want. They're all in Settings too.	ສິ່ງເຫຼົ່ານີ້ເລີ່ມປິດ. ເປີດສິ່ງທີ່ເຈົ້າຕ້ອງການ. ທັງໝົດຢູ່ໃນ Settings ເຊັ່ນກັນ.
+They can also call you Big Z, Capricorn or Nova	ພວກເຂົາອາດເອີ້ນເຈົ້າວ່າ Big Z, Capricorn ຫຼື Nova ກໍໄດ້
+They can also call you Nova, Big Z or Capricorn	ພວກເຂົາອາດເອີ້ນເຈົ້າວ່າ Nova, Big Z ຫຼື Capricorn ກໍໄດ້
+Thinking	ກຳລັງຄິດ
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	ນີ້ແມ່ນສຽງຟຣີຂອງຂ້ອຍ. ກົດ Test, ເວົ້າຫຍັງໜຶ່ງ, ແລ້ວຂ້ອຍຈະໃຫ້ເຈົ້າເຫັນວ່າຂ້ອຍໄດ້ຍິນເຈົ້າ.
+This mod has no description yet.	mod ນີ້ຍັງບໍ່ມີຄຳອະທິບາຍ.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	ເວລາລະຫວ່າງການແອບເບິ່ງ
+Tiny	ນ້ອຍຫຼາຍ
+Try again	ລອງໃໝ່
+Turn Remote on first	ເປີດ Remote ກ່ອນ
+Turn off mini player	ປິດ mini player
+Turn push to talk off	ປິດ push to talk
+Turning the wheel the other way kept the page heading the old way, to	ການໝຸນລໍ້ໃນທິດທາງກົງກັນຂ້າມ ເຮັດໃຫ້ໜ້າຢູ່ໃນທິດທາງເກົ່າ, ຈົນເຖິງ
+Type	Type
+Type key	ປຸ່ມ Type
+Type to me	ພິມຫາຂ້ອຍ
+Type:	Type:
+Type: Ctrl + Alt + T	Type: Ctrl + Alt + T
+Typing sound	ສຽງພິມ
+Unpacked. Press Test to hear it.	ແຕກໄຟລ໌ແລ້ວ. ກົດ Test ເພື່ອຟັງ.
+Unsaved changes.	ການປ່ຽນແປງທີ່ບໍ່ໄດ້ບັນທຶກ.
+Up to {0} fps	ເຖິງ {0} fps
+Up to {0}p	ເຖິງ {0}p
+Update	ອັບເດດ
+Update available.	ມີການອັບເດດ.
+Update mods	ອັບເດດ mods
+Updating...	ກຳລັງອັບເດດ...
+Use	ໃຊ້
+Use her cursor	ໃຊ້ cursor ຂອງນາງ
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	ໃຊ້ https:// ສຳລັບຜູ້ໃຫ້ບໍລິການທີ່ບ່ອນອື່ນ. ກະແຈຜ່ານ http ທຳມະດາບໍ່ປອດໄພ.
+Use preset	ໃຊ້ preset
+Use saved	ໃຊ້ທີ່ບັນທຶກໄວ້
+Use this server	ໃຊ້ server ນີ້
+Using your provider with a key	ໃຊ້ຜູ້ໃຫ້ບໍລິການຂອງເຈົ້າດ້ວຍກະແຈ
+Using your server with no key	ໃຊ້ server ຂອງເຈົ້າໂດຍບໍ່ມີກະແຈ
+VIEW MOD >	VIEW MOD >
+VOICE >	VOICE >
+VOICE IN YOUR MIC >	VOICE IN YOUR MIC >
+VOICE LAYERS >	VOICE LAYERS >
+Verbosity	Verbosity
+Video bitrate	Video bitrate
+View	View
+View mod	View mod
+Voice	Voice
+Voice ID	Voice ID
+Voice from	Voice from
+Voice layers	Voice layers
+Voice model	Voice model
+Voice model:	Voice model:
+Voice name or ID, optional	ຊື່ສຽງ ຫຼື ID, ທາງເລືອກ
+Voice server address, or a voice model's folder	ທີ່ຢູ່ server ສຽງ, ຫຼື ໂຟນເດີຂອງໂມເດວສຽງ
+Voice status	ສະຖານະສຽງ
+Voice, key and model...	ສຽງ, ກະແຈ ແລະ ໂມເດວ...
+Volume	ລະດັບສຽງ
+WAKE ME UP >	ປຸກຂ້ອຍ >
+WATCH >	ເບິ່ງ >
+Waiting for the relay	ກຳລັງລໍຖ້າ relay
+Wake her up	ປຸກນາງ
+Waking her up	ກຳລັງປຸກນາງ
+Wander	Wander
+Wander around	ເດີນເລ່
+Watch my screen	ເບິ່ງໜ້າຈໍຂອງຂ້ອຍ
+Watch-along memory	ຄວາມຈຳການເບິ່ງນຳກັນ
+Weather	Weather
+Weather city	ເມືອງອາກາດ
+Welcome back, choom. Let's finish setting me up.	ຍິນດີຕ້ອນຮັບກັບມາ, choom. ມາສຳເລັດການຕັ້ງຄ່າຂ້ອຍກັນເທາະ.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	ສິ່ງທີ່ນາງເຮັດໃນ PC ຂອງເຈົ້າໂດຍບໍ່ຖາມ. ເມື່ອ toggle ປິດ ນາງຈະຖາມກ່ອນ, ແລະເຮັດເມື່ອເຈົ້າເວົ້າວ່າແມ່ນ.
+What should she call you?	ນາງຄວນເອີ້ນເຈົ້າວ່າຫຍັງ?
+When she types	ເວລານາງພິມ
+White	ຂາວ
+Windows default	ຄ່າເລີ່ມຕົ້ນຂອງ Windows
+Windows did not give Settings keyboard focus	Windows ບໍ່ໄດ້ໃຫ້ Settings ມີ keyboard focus
+Windows did not return keyboard focus to Back	Windows ບໍ່ໄດ້ສົ່ງ keyboard focus ກັບຄືນໄປ Back
+With no picture the wheel still tried to slide.	ບໍ່ມີຮູບ ລໍ້ຍັງພະຍາຍາມເລື່ອນຢູ່.
+Works best on MAX INTELLIGENCE.	ເຮັດວຽກດີທີ່ສຸດກັບ MAX INTELLIGENCE.
+YOU	ເຈົ້າ
+YOU >	ເຈົ້າ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ເຈົ້າ VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS
+YOUR KEY	ກະແຈຂອງເຈົ້າ
+YOUR MIC	ໄມໂຄຣໂຟນຂອງເຈົ້າ
+YOUR PLAN	ແພັກເກດຂອງເຈົ້າ
+Yokapri what's up	Yokapri ເປັນແນວໃດ
+You can hide this. It keeps going, and the Mainframe shows it too.	ເຈົ້າສາມາດເຊື່ອງອັນນີ້ໄດ້. ມັນຍັງເຮັດວຽກຕໍ່ໄປ, ແລະ Mainframe ກໍສະແດງມັນເຊັ່ນກັນ.
+Your mic and her voice go into one virtual mic, and	ໄມໂຄຣໂຟນຂອງເຈົ້າ ແລະສຽງຂອງນາງເຂົ້າໄປໄມໂຄຣໂຟນ virtual ອັນດຽວ, ແລະ
+Your mic is muted. Unmute it to test.	ໄມໂຄຣໂຟນຂອງເຈົ້າຖືກປິດສຽງ. ເປີດສຽງເພື່ອທົດສອບ.
+Your mods are up to date.	Mods ຂອງເຈົ້າອັບເດດແລ້ວ.
+Your name or a nickname	ຊື່ຂອງເຈົ້າ ຫຼື ຊື່ຫຼິ້ນ
+Your own model	ໂມເດວຂອງເຈົ້າເອງ
+Your personality	ບຸກຄະລິກຂອງເຈົ້າ
+Your voice	ສຽງຂອງເຈົ້າ
+Your voice (HD)	ສຽງຂອງເຈົ້າ (HD)
+Your voice (HD) · pick a clip of you...	ສຽງຂອງເຈົ້າ (HD) · ເລືອກ clip ຂອງເຈົ້າ...
+Your voice model	ໂມເດວສຽງຂອງເຈົ້າ
+as its mic.	ເປັນໄມໂຄຣໂຟນຂອງມັນ.
+changed. Saved as My Colors, so you can share it.	ປ່ຽນແລ້ວ. ບັນທຶກເປັນ My Colors, ເພື່ອໃຫ້ເຈົ້າແບ່ງປັນໄດ້.
+choice	ທາງເລືອກ
+clips the input line	ຕັດແຖວປ້ອນຂໍ້ມູນ
+cue	ສັນຍານ
+doesn't yet.	ຍັງບໍ່.
+download	ດາວໂຫຼດ
+file.	ໄຟລ໌.
+flag	ທຸງ
+fps	fps
+hear	ໄດ້ຍິນ
+hears	ໄດ້ຍິນ
+hears that.	ໄດ້ຍິນອັນນັ້ນ.
+hides or shows her.	ເຊື່ອງ ຫຼື ສະແດງນາງ.
+hint	ຄຳແນະນຳ
+in the Mainframe.	ໃນ Mainframe.
+in the mods directory with a pull request.	ໃນໄດເຣັກທໍຣີ mods ດ້ວຍ pull request.
+in the picture wasn't noticed.	ໃນຮູບ ບໍ່ໄດ້ສັງເກດເຫັນ.
+is already her push-to-talk key.	ເປັນປຸ່ມ push-to-talk ຂອງນາງແລ້ວ.
+is off.	ປິດຢູ່.
+is on and running.	ເປີດຢູ່ ແລະກຳລັງເຮັດວຽກ.
+is on, at the bottom, under	ເປີດຢູ່, ທີ່ດ້ານລຸ່ມ, ພາຍໃຕ້
+is on.	ເປີດຢູ່.
+is on. She now answers to	ເປີດຢູ່. ນາງຕອບຕໍ່ແລ້ວ
+is removed.	ຖືກລຶບອອກແລ້ວ.
+is taken	ຖືກໃຊ້ແລ້ວ
+is taken by another app. Try another.	ຖືກແອັບອື່ນໃຊ້ແລ້ວ. ລອງອັນອື່ນ.
+is updated	ອັບເດດແລ້ວ
+isn't hearing it yet: do {0} and {1}, then join a call.	ຍັງບໍ່ໄດ້ຍິນມັນ: ເຮັດ {0} ແລະ {1}, ແລ້ວເຂົ້າຮ່ວມການໂທ.
+it now.	ຕອນນີ້.
+keeps her quiet, and lets her talk again.	ເຮັດໃຫ້ນາງງຽບ, ແລະໃຫ້ນາງເວົ້າໄດ້ອີກຄັ້ງ.
+key	ກະແຈ
+key.	ກະແຈ.
+min	ນາທີ
+more.	ອີກ.
+ms.	ms.
+mutes mic	ປິດສຽງໄມໂຄຣໂຟນ
+mutes your mic.	ປິດສຽງໄມໂຄຣໂຟນຂອງເຈົ້າ.
+name	ຊື່
+off	ປິດ
+on this PC	ເທິງ PC ນີ້
+opens her Mainframe.	ເປີດ Mainframe ຂອງນາງ.
+opens her typing box.	ເປີດກ່ອງພິມຂອງນາງ.
+phone	ໂທລະສັບ
+phone pixels	pixels ຂອງໂທລະສັບ
+phones	ໂທລະສັບ
+pixels	pixels
+pixels)	pixels)
+star.	ດາວ.
+stars.	ດາວ.
+starts voice chat.	ເລີ່ມ voice chat.
+stays off. Nothing ran.	ຢູ່ປິດ. ບໍ່ມີຫຍັງເຮັດວຽກ.
+still does its own job in other apps too. Confirm to keep it.	ຍັງເຮັດໜ້າທີ່ຂອງມັນໃນແອັບອື່ນດ້ວຍ. Confirm ເພື່ອເກັບໄວ້.
+tall	ສູງ
+time	ເວລາ
+to talk	ເພື່ອເວົ້າ
+to talk to her, with a game in front too.	ເພື່ອລົມກັບນາງ, ແມ່ນແຕ່ມີເກມຢູ່ໜ້າ.
+too.	ເຊັ່ນກັນ.
+turns Gaming Mode on and off.	ເປີດ ແລະ ປິດ Gaming Mode.
+with Ollama	ກັບ Ollama
+won't type in other apps while she runs. Confirm to keep it.	ຈະບໍ່ພິມໃນແອັບອື່ນໃນຂະນະທີ່ນາງເຮັດວຽກ. Confirm ເພື່ອເກັບໄວ້.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: ປິດ
+{0}   If her voice cuts off, turn off noise filtering	{0}   ຖ້າສຽງຂອງນາງຂາດ, ໃຫ້ປິດ noise filtering
+{0}   Input Device:	{0}   Input Device:
+{0}   Join the call and check they hear both of you	{0}   ເຂົ້າຮ່ວມການໂທ ແລະກວດວ່າພວກເຂົາໄດ້ຍິນທັງສອງຄົນ
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mic Test > Let's Check: ເຈົ້າຈະໄດ້ຍິນຕົວເອງ, ແລະນາງຕອນທີ່ນາງເວົ້າ
+{0}   Microphone:	{0}   Microphone:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: None. ທັງສອງອາດຕັດສຽງຂອງນາງຫຼັງຈາກປະໂຫຍກທຳອິດ.
+{0}   Open the call or meeting's audio settings	{0}   ເປີດການຕັ້ງຄ່າສຽງຂອງການໂທ ຫຼື ການປະຊຸມ
+{0}   Output Device: your headphones, like before	{0}   Output Device: ຫູຟັງຂອງເຈົ້າ, ເໝືອນເກົ່າ
+{0}   Speaker: your headphones, like before	{0}   Speaker: ຫູຟັງຂອງເຈົ້າ, ເໝືອນເກົ່າ
+{0}   Try a mic test in your call app	{0}   ລອງ mic test ໃນແອັບໂທຂອງເຈົ້າ
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (ເຟືອງຂ້າງຊື່ຂອງເຈົ້າ) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} ແຖວ
+{0} min	{0} ນາທີ
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ເທິງ PC ນີ້
+· server	· server

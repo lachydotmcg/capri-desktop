@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.
+A held trackpad scroll got a flick's long ease:
+A layout change during a slide put the page at
+A layout change left the picture up.
+A model in Ollama, on your local server or on your key.
+A paid key goes under MAX INTELLIGENCE by itself.
+A plan you already pay for, a key of your own, or Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.
+A wheel turn right after a slide ended froze the picture.
+ALLOW THIS PHONE?
+ALMOST THERE >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON
+API key
+API key, Claude plan or ChatGPT plan
+Add
+Address
+Address and key saved. Use saved to reconnect.
+Advanced Settings
+All
+All screens
+Allow
+Almost there. I'll say hi the second my brain's in.
+Always
+Always on top
+Any Google account works. I opened the page in your browser.
+Applies to every voice
+Apps she may close
+Ask Capri for more
+Asking your server...
+Asks before closing only the apps you choose.
+Auto
+Automatic: VB-CABLE, else Steam's
+BAD RELAY HOST
+BIG Z open notepad
+BRAIN
+BRAIN >
+BRAIN ONLINE >
+BRAIN PROVIDER >
+BRAIN VOICE CAPRI
+Back
+Back on your saved API key.
+Bahnschrift
+Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed
+Best fit for this PC:
+Black
+Blank key means no key.
+Brain API key
+Brain model
+Brain provider
+Bring here
+Bring to this screen
+Browse
+Browse mods
+Browse to a voice model
+Browse...
+Bubble
+CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there
+CAN'T REACH THE RELAY · RETRYING
+CAPRI
+CAPRI >
+CAPRI VOICE BRAIN
+CHANGED, approve it again.
+CLIPS >
+CLOUD VOICE
+CODE
+COLORS >
+CONNECTED
+CONNECTING
+CUSTOM LOCAL
+Call mode (beta)
+Call mode does not fit.
+Call mode is outside its space.
+Cancel
+Cancel keys
+Capri
+Capri Mainframe
+Capri Remote
+Capri code:
+Capri mods (*
+Capri, hello
+CapriDesktop.
+Chaos when upset
+Chat with Capri from your phone
+ChatGPT plan
+Check for updates
+Check in on me
+Check in on me is hidden
+Check in on me still decides whether she visits.
+Check in on me's tip missed
+Chess
+Choose apps
+Choose folder...
+Choose where future Capri clips are saved
+Claude Code
+Claude Code + Codex
+Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.
+Claude plan
+Clear
+Cleared.
+Click Confirm to keep Down, or press Esc.
+Click to open it.
+Clip my games
+Clips
+Close
+Close other AIs for me
+Cloud voice
+Cloud voice service
+Cloud voice setup
+Code mods can reach your whole PC. Only trusted ones.
+Code/Husk Mode
+Codex
+Commands
+Comment on my games
+Comments
+Confirm
+Confirm keys
+Connect
+Connect / Forget brain key
+Connect / Forget voice key
+Connect four
+Controls
+Copri, what time is it
+Copy error details
+Copy the key
+Copy the key from the page, then press Paste.
+Couldn't open that page:
+Couldn't open that:
+Couldn't open the mods folder:
+Ctrl + Alt + G
+Ctrl + Alt + H
+Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.
+Ctrl + Alt + N
+Ctrl + Alt + N mutes mic
+Ctrl + Alt + O
+Ctrl + Alt + P
+Ctrl + Alt + T
+Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.
+Ctrl + Alt + V to talk
+Custom local voice
+Custom model name
+Dance
+Dance to music
+Default
+Default (follows Windows)
+Default duration for clip that and automatic clips
+Default length
+Default model
+Delay
+Deny
+Discard
+Discard + reload
+Discord
+Don't want to wait? A free key gets me talking in about a minute.
+Done
+EXTRA REQUEST JSON >
+EXTRAS >
+Edit
+Edit check-in lines
+Edit check-in lines has the wrong view or dimming
+Edit check-in lines is out of place
+Edit controls
+ElevenLabs API key
+ElevenLabs voice ID
+English
+Enter the game's name first.
+Every
+Every mod is checked for malware before it goes up. Code mods still ask before they run.
+Explore after
+Explore while I'm away
+Extra request JSON
+Extras
+FREE KEY
+FREE KEY >
+Fast hands in games
+File editor
+Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.
+Follow-up messages
+Forget
+Fork capri-mods
+Frame rate
+Free
+Free and private, works offline. Downloads
+Free and private, works offline. Downloads the best model for this PC.
+Free key
+Free key providers
+Free keys can be rate limited and slow.
+Free voice in games
+Free voice style
+Free voice:
+Free voice: Her own
+Free · local model
+GAMES >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game
+Game controls
+Game name
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds
+Game sounds
+Games
+Gaming Mode
+Gaming Mode key
+Gaming Mode:
+Gaming Mode: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE
+Get VB-CABLE (free)...
+Get free voice
+Getting your Fish Audio voices...
+Giant
+Glitch
+Glitch in at startup
+Go to sleep
+Go to the next screen
+Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.
+Got it, just me. Right-click me any time for Capri Mainframe.
+Grey
+H.{0} video bitrate target; higher values make larger files
+HABITS >
+HER HANDS >
+HER JOBS >
+HER MEMORY >
+HER MODS >
+HH:mm
+HOW I SOUND >
+Hang here
+Have Ollama? Open it, then press Refresh.
+Head pats
+Hearing
+Hearing engine
+Hearing fix
+Hearing status
+Help
+Help page
+Her colors
+Her folder
+Her memories
+Her own colors are back.
+Her own notes (no vault)
+Her perch frames per second
+Her personality
+Her size
+Her speaker
+Her speaker is hidden or outside VOICE
+Her speaker overlaps the mic or hearing row
+Her speaker:
+Her speaker: Default
+Her voice in your mic
+Her voice in your mic: loudness
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.
+Her voice joins your mic only in call mode.
+Her voice volume
+Her voice's pitch
+Her voice's pitch, the same as Settings > VOICE > Pitch
+Her voice's speed
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.
+Her voices · free
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.
+Hide / Show Capri
+Hide / Show key
+Hide Capri
+Hide for now
+Hide in full screen
+Hide this
+Hide/show:
+Hide/show: Ctrl + Alt + H
+Hologram
+Hop off
+How long a still PC takes to send her to sleep; five minutes still reads as you being away
+How long a stroke over her a head pat needs
+How long her replies stay up
+How long you are away before she scrolls a browser or reader
+How much her voice glitches
+How much of the chat she keeps
+How much she wanders
+How often she pops in to say hi
+How robotic her voice sounds
+How to
+Huge
+I can hear you.
+I glance at your screen and comment. Costs a little on a paid brain.
+I keep listening. Say my name, then just talk.
+I talk about your game as you play. Costs a little on a paid brain.
+I type my replies and stay quiet.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.
+I'll talk in
+IN DISCORD >
+INSTALLED >
+Import a Capri mod
+Import mod
+In games
+Input
+Input, Output or How to overlaps a row
+Input:
+Input: default
+Install
+Install mod
+Installed.
+It may ask for a phone number. I opened the page in your browser.
+It still does its own job in other apps too.
+It won't type in other apps while she runs.
+JUST ME >
+Jealous of other AIs
+Join the Discord
+KB.
+KEYS
+KEYS >
+Keep PC awake for jobs
+Keeps the last two minutes of your game in memory. Say clip that to save it.
+Key
+Key cleared: a model file needs none.
+Key cleared: paste the key for
+Key forgotten.
+Key. It goes only to this server, as a Bearer key
+Kokoro only, like es
+LAST THING >
+LISTENING >
+Language
+Large
+Last thing. These cost a little or use your mic, so they're your pick.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.
+Layers
+Learn more
+Leaving Settings threw its picture away straight away.
+Legacy stand
+Lie down
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on
+Listen for Capri
+Live reactions
+Local server address
+Long
+Longest wait (minutes)
+Looking at this PC...
+Looking for Ollama. Open it if it isn't running.
+Looking for a brain...
+Looking in the mods directory for updates...
+Looking in the mods directory...
+Looking...
+MAIN >
+MAINFRAME
+MAX INTELLIGENCE
+MEDIUM INTELLIGENCE
+MEMORY VAULT >
+MODS
+MODS >
+MODS DIRECTORY >
+MODS INSTALLED COLORS
+MOVES >
+MY BRAIN
+MY FREE VOICE
+MY PLAN OR KEY
+MY PLAN OR KEY >
+Made your Fish Audio voice. Press Test to hear it.
+Mainframe colours
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes
+Mainframe frames
+Mainframe key
+Mainframe size
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen
+Mainframe:
+Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O
+Mainframe: Down
+Mainframe: Enter
+Making your Fish Audio voice...
+Max reply
+Maximum clip resolution, keeping the game's shape without upscaling
+Medium
+Memory
+Memory size
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more
+Mg
+Mic level:
+Mic test finished. Sound is reaching Capri.
+Mic:
+Mic: default
+Microphone
+Mini player
+Mini player over full screen
+Mini-games
+Minimising the Mainframe left it sliding.
+Minimize
+Mod filter
+Mod options
+Mod pages
+Mod rules
+Mod sort
+Mod switch
+Model
+Model folder
+Model name, optional
+Mods
+Mods directory
+Mods folder
+Most NVIDIA models can't see your screen.
+Mouse wheel notches got a flick's long ease:
+Move
+Move key to MAX INTELLIGENCE
+Move to MAX
+Music
+Music app
+Music app: where she plays music when you don't name an app
+Mute
+Mute her
+Mute mic key
+Mute mic:
+Mute mic: Ctrl + Alt + N
+My brain
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.
+My brain's on its way. While it comes down, let's sort out how I sound.
+My provider
+NO AI
+NO PHONES CONNECTED
+NO PREVIEW
+NORMAL
+NVIDIA
+NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times
+NVIDIA's free API is often slow, especially at busy times.
+NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key
+Names:
+Needs a key
+Never
+New code
+New voice from a clip...
+Next
+Night City
+No AI
+No AI · no brain at all
+No brain runs, and nothing is sent anywhere.
+No brain yet
+No code open
+No mic found
+No mods in the directory yet.
+No mods match that.
+No mods match.
+No phones yet
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).
+None yet: pick to get VB-CABLE (free)
+Normal
+Not a relay host
+Not imported. Nothing ran.
+Not updated. The old one is still in.
+Nothing needed updating.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.
+Nothing to show from the mods directory.
+Nothing? Windows Settings > Privacy & security > Microphone.
+Nous Portal keys aren't supported yet.
+OBS
+OFF
+OLLAMA
+ON
+ON THIS PC
+OR A KEY
+Obsidian memory vault
+Off
+Off. Turn on Her voice in your mic above.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.
+Often
+On
+On / Off
+On: your mic and her voice are going in.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.
+Online speech recognition
+Open Capri Mainframe
+Open Ollama, I'll find it
+Open clips folder
+Open her memories
+Open her notes
+Open mods folder
+Open the page again
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.
+OpenAI-compatible server or provider.
+OpenRouter · free models only
+Optional
+Optional. Blank means no key.
+Options
+Out of the box a little higher, just behind her.
+Out of the box lower, just behind her.
+Output
+Output:
+Output: none
+PHONE CONNECTED
+PHONES >
+PHONES CONNECTED
+PREBUILT LOCAL
+PUBLISH MOD >
+Pair a phone
+Paste
+Paste API key
+Paste a brain API key
+Paste reads your clipboard once, when you press it.
+Paste your key here
+Pat stroke
+Perch
+Perch over {0} fps uses more CPU
+Pick Output to get it.
+Pick a brain so I can talk back. You can change it any time.
+Pick a clip of a voice you have the rights and consent to use
+Pick a free model. I opened the page in your browser.
+Pick a new clip of you...
+Pick a voice model...
+Pick one. Only one brain runs at a time.
+Pick the note her memories go in
+Pick {0} to {1} seconds of a voice you have the rights and consent to use
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use
+Pitch
+Play
+Play...
+Pocket TTS models copy this clip's voice. Press Test to hear it.
+Pop-in times
+Pop-ins
+Power saver
+Power saver: how lightly she runs in games, or always
+Preset
+Press Create API key
+Press Create Key
+Press Generate API Key
+Press Test and say something, so I know I can hear you.
+Press a key, alone or with Ctrl, Alt, Shift or Win.
+Press new keys, then Confirm
+Provider
+Provider API key, optional
+Provider base URL
+Provider forgotten.
+Provider overlaps the brain name or note
+Publish
+Publish mod
+Push to talk is off.
+Push to talk key
+Push to talk:
+Push to talk: not set
+QR CODE >
+QR hidden while streaming
+Quick
+Quiet key
+Quiet:
+Quiet: Ctrl + Alt + P
+Quit Capri
+RELAY >
+REMOTE >
+RUNS CODE.
+Rarely
+Rate mod
+Reading its README...
+Refresh
+Reinstall
+Reload
+Reloaded.
+Remember our chats
+Remember what she sees
+Remote
+Remote off
+Remote on
+Remove
+Remove all phones
+Replies
+Reply length
+Report a problem
+Reset colors
+Reset to her default
+Resolution
+Restart to update
+Restless
+Revoke
+Revoke also removes the phones its links added
+Ride cursor
+Ride cursor / Hop off
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.
+Right-click me any time for the Mainframe, Help and the Discord.
+Roblox
+Roblox or any other app: pick
+Robot
+Rock, paper, scissors
+Run this code mod?
+Running on this PC
+Running on this PC · :
+Runs Claude Code or Codex on this PC, signed in.
+Runs on your PC. No key, no credits.
+SCAN WITH YOUR PHONE · EXPIRES
+SECURITY >
+SKILL.
+SKIN.
+SORT BY
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as her ears (VOICE > Mic)
+Same code on the phone?
+Save
+Save big moments
+Save folder
+Save your changes, or press Discard + reload.
+Save your changes, or press Discard.
+Saved.
+Saved. Ctrl + Alt + O opens her Mainframe.
+Saving your rating...
+Say her name anywhere to chat
+Screens
+Screens is hidden or outside WATCH
+Screens overlaps a WATCH row
+Screens to watch
+Sealed end to end
+Search by name or author
+Search installed mods
+Search mods
+Search name, author or description
+Security
+Security:
+Segoe UI
+Segoe UI Semibold
+Set up
+Set up her brain
+Set up your voice model
+Setting up her brain
+Settings
+Settings / Back
+Settings folds the wrong rows above BRAIN
+Settings had nothing to watch.
+Settings lost keyboard focus during the Tab walk
+Setup guide
+Setup stopped
+She can read it when it fits.
+She glances at your screen and comments. Costs a little on a paid brain.
+She keeps listening. Say her name, then just talk until you go quiet.
+She reacts to your game until you close it.
+She reads these controls before each game job.
+She talks about your game as you play. Costs a little on a paid brain.
+She uses it when she plays
+Short
+Shortest wait (minutes)
+Show Capri
+Show QR
+Show my mod file
+Show on Discord
+Shum, what time is it
+Sign in
+Sign in, make a key and copy it. Then press Paste and I'll connect.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.
+Silent · text only
+Simple / Advanced Settings
+Simple Settings
+Simple Settings left a gap under Check in on me
+Sit here
+Sit on windows
+Size
+Skip
+Skip all
+Skip for now
+Sleep
+Small
+Sometimes
+Sound effects volume
+Sound sensitivity
+Sounds
+Speaker or clip
+Speech model
+Speed
+Start with Windows
+Start with this!
+Starting...
+Stay on my model
+Still checking your mics...
+Still checking your speakers...
+Still checking your virtual mics...
+Stop
+Stopped using it. Couldn't remove the saved provider.
+Support
+Sure?
+Sure? moved to a different phone
+TALK TO ME
+TEXT ONLY
+Tab landed past the first option of
+Tab never reached the quiet key
+Tab reached nothing
+Tab selected a control without moving keyboard focus
+Talk
+Talk key
+Talk:
+Talk: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget
+Teases when another AI comes to the front.
+Test
+That address doesn't work. Try https://... or http://localhost:{0}.
+That code expired
+That mod is no longer installed. The list is updated.
+That's a paid key: it goes under MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.
+The Mainframe stayed uncomposited after the slide.
+The controls moved while the picture was sliding.
+The cover stayed visible after the slide ended.
+The frame thread kept running after the page settled.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it
+The longest wait must be at least the shortest wait.
+The picture doesn't match the scrolled page:
+The picture of Settings doesn't match the page:
+The picture stayed up after the slide ended.
+The picture wasn't showing while it slid.
+The provider sheet is crowded:
+The voice panel has no screen DPI.
+The voice panel's menus share one font.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.
+These start off. Each costs a little or uses your mic.
+These start off. Turn on what you want. They're all in Settings too.
+They can also call you Big Z, Capricorn or Nova
+They can also call you Nova, Big Z or Capricorn
+Thinking
+This is my free voice. Press Test, say something, and I'll show you I can hear you.
+This mod has no description yet.
+Tic-tac-toe
+Time between glances
+Tiny
+Try again
+Turn Remote on first
+Turn off mini player
+Turn push to talk off
+Turning the wheel the other way kept the page heading the old way, to
+Type
+Type key
+Type to me
+Type:
+Type: Ctrl + Alt + T
+Typing sound
+Unpacked. Press Test to hear it.
+Unsaved changes.
+Up to {0} fps
+Up to {0}p
+Update
+Update available.
+Update mods
+Updating...
+Use
+Use her cursor
+Use https:// for a provider elsewhere. A key over plain http isn't safe.
+Use preset
+Use saved
+Use this server
+Using your provider with a key
+Using your server with no key
+VIEW MOD >
+VOICE >
+VOICE IN YOUR MIC >
+VOICE LAYERS >
+Verbosity
+Video bitrate
+View
+View mod
+Voice
+Voice ID
+Voice from
+Voice layers
+Voice model
+Voice model:
+Voice name or ID, optional
+Voice server address, or a voice model's folder
+Voice status
+Voice, key and model...
+Volume
+WAKE ME UP >
+WATCH >
+Waiting for the relay
+Wake her up
+Waking her up
+Wander
+Wander around
+Watch my screen
+Watch-along memory
+Weather
+Weather city
+Welcome back, choom. Let's finish setting me up.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.
+What should she call you?
+When she types
+White
+Windows default
+Windows did not give Settings keyboard focus
+Windows did not return keyboard focus to Back
+With no picture the wheel still tried to slide.
+Works best on MAX INTELLIGENCE.
+YOU
+YOU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS
+YOUR KEY
+YOUR MIC
+YOUR PLAN
+Yokapri what's up
+You can hide this. It keeps going, and the Mainframe shows it too.
+Your mic and her voice go into one virtual mic, and
+Your mic is muted. Unmute it to test.
+Your mods are up to date.
+Your name or a nickname
+Your own model
+Your personality
+Your voice
+Your voice (HD)
+Your voice (HD) · pick a clip of you...
+Your voice model
+as its mic.
+changed. Saved as My Colors, so you can share it.
+choice
+clips the input line
+cue
+doesn't yet.
+download
+file.
+flag
+fps
+hear
+hears
+hears that.
+hides or shows her.
+hint
+in the Mainframe.
+in the mods directory with a pull request.
+in the picture wasn't noticed.
+is already her push-to-talk key.
+is off.
+is on and running.
+is on, at the bottom, under
+is on.
+is on. She now answers to
+is removed.
+is taken
+is taken by another app. Try another.
+is updated
+isn't hearing it yet: do {0} and {1}, then join a call.
+it now.
+keeps her quiet, and lets her talk again.
+key
+key.
+min
+more.
+ms.
+mutes mic
+mutes your mic.
+name
+off
+on this PC
+opens her Mainframe.
+opens her typing box.
+phone
+phone pixels
+phones
+pixels
+pixels)
+star.
+stars.
+starts voice chat.
+stays off. Nothing ran.
+still does its own job in other apps too. Confirm to keep it.
+tall
+time
+to talk
+to talk to her, with a game in front too.
+too.
+turns Gaming Mode on and off.
+with Ollama
+won't type in other apps while she runs. Confirm to keep it.
+{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering
+{0}   Input Device:
+{0}   Join the call and check they hear both of you
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks
+{0}   Microphone:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.
+{0}   Open the call or meeting's audio settings
+{0}   Output Device: your headphones, like before
+{0}   Speaker: your headphones, like before
+{0}   Try a mic test in your call app
+{0}   User Settings (the cog by your name) > Voice & Video
+{0} Mbps
+{0} lines
+{0} min
+{0} ms
+· HD
+· on this PC
+· server

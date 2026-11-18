@@ -1,0 +1,884 @@
+A control that repainted wasn't redrawn in the picture.	Ohjainta, joka maalattiin uudelleen, ei piirretty kuvaan uudestaan.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Ilmainen avain Google AI Studiosta, NVIDIAlta tai OpenRouterista. Ei ladattavaa. Tarvitsee internetin.
+A held trackpad scroll got a flick's long ease:	Pidetty kosketuslevyn vieritys sai räpäyksen pitkän hidastuksen:
+A layout change during a slide put the page at	Asettelun muutos diaesityksen aikana vei sivun kohtaan
+A layout change left the picture up.	Asettelun muutos jätti kuvan näkyviin.
+A model in Ollama, on your local server or on your key.	Malli Ollamassa, paikallisella palvelimellasi tai avaimellasi.
+A paid key goes under MAX INTELLIGENCE by itself.	Maksullinen avain menee MAX INTELLIGENCEen itsestään.
+A plan you already pay for, a key of your own, or Ollama.	Jo maksamasi tilaus, oma avain tai Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Äänipaneelin valikko ei pidä omaa kopiota paneelin fontista.
+A wheel turn right after a slide ended froze the picture.	Hiiren rullan käännös heti diaesityksen jälkeen jäädytti kuvan.
+ALLOW THIS PHONE?	SALLITAANKO TÄMÄ PUHELIN?
+ALMOST THERE >	MELKEIN VALMIS >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	TOINEN CAPRI OTTI VALLAN · SAMMUTA JA KÄYNNISTÄ UUDELLEEN
+API key	API-avain
+API key, Claude plan or ChatGPT plan	API-avain, Claude-tilaus tai ChatGPT-tilaus
+Add	Lisää
+Address	Osoite
+Address and key saved. Use saved to reconnect.	Osoite ja avain tallennettu. Yhdistä uudelleen käyttämällä tallennettua.
+Advanced Settings	Lisäasetukset
+All	Kaikki
+All screens	Kaikki näytöt
+Allow	Salli
+Almost there. I'll say hi the second my brain's in.	Melkein valmis. Sanon heipat heti kun aivoni ovat valmiit.
+Always	Aina
+Always on top	Aina päällimmäisenä
+Any Google account works. I opened the page in your browser.	Mikä tahansa Google-tili käy. Avasin sivun selaimessasi.
+Applies to every voice	Koskee kaikkia ääniä
+Apps she may close	Sovellukset, jotka hän saa sulkea
+Ask Capri for more	Pyydä Capria lisää
+Asking your server...	Kysytään palvelimeltasi...
+Asks before closing only the apps you choose.	Kysyy ennen sulkemista vain valitsemiasi sovelluksia.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automaattinen: VB-CABLE, muuten Steamin
+BAD RELAY HOST	VIRHEELLINEN RELAY-PALVELIN
+BIG Z open notepad	BIG Z avaa muistion
+BRAIN	AIVOT
+BRAIN >	AIVOT >
+BRAIN ONLINE >	AIVOT PÄÄLLÄ >
+BRAIN PROVIDER >	AIVOJEN PALVELUNTARJOAJA >
+BRAIN VOICE CAPRI	AIVOÄÄNI CAPRI
+Back	Takaisin
+Back on your saved API key.	Takaisin tallennetulla API-avaimellasi.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Paras vaihtoehto tälle PC:lle:
+Black	Musta
+Blank key means no key.	Tyhjä avain tarkoittaa ei avainta.
+Brain API key	Aivojen API-avain
+Brain model	Aivomalli
+Brain provider	Aivojen palveluntarjoaja
+Bring here	Tuo tänne
+Bring to this screen	Tuo tähän näkymään
+Browse	Selaa
+Browse mods	Selaa modeja
+Browse to a voice model	Selaa äänimallia
+Browse...	Selaa...
+Bubble	Kupla
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree oletko siellä
+CAN'T REACH THE RELAY · RETRYING	EI YHTEYTTÄ RELAYHYN · YRITETÄÄN UUDELLEEN
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI-ÄÄNIAIVOT
+CHANGED, approve it again.	MUUTETTU, hyväksy uudelleen.
+CLIPS >	KLIPIT >
+CLOUD VOICE	PILVIÄÄNI
+CODE	KOODI
+COLORS >	VÄRIT >
+CONNECTED	YHDISTETTY
+CONNECTING	YHDISTETÄÄN
+CUSTOM LOCAL	MUKAUTETTU PAIKALLINEN
+Call mode (beta)	Puhelutila (beta)
+Call mode does not fit.	Puhelutila ei mahdu.
+Call mode is outside its space.	Puhelutila on tilansa ulkopuolella.
+Cancel	Peruuta
+Cancel keys	Peruuta näppäimet
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri-koodi:
+Capri mods (*	Capri-modit (*
+Capri, hello	Capri, hei
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kaaos kun harmittaa
+Chat with Capri from your phone	Keskustele Caprin kanssa puhelimestasi
+ChatGPT plan	ChatGPT-tilaus
+Check for updates	Tarkista päivitykset
+Check in on me	Kysele kuulumisia
+Check in on me is hidden	Kysele kuulumisia on piilotettu
+Check in on me still decides whether she visits.	Kysele kuulumisia päättää yhä, käykö hän.
+Check in on me's tip missed	Kysele kuulumisia -vihje meni ohi
+Chess	Shakki
+Choose apps	Valitse sovellukset
+Choose folder...	Valitse kansio...
+Choose where future Capri clips are saved	Valitse, minne tulevat Capri-klipit tallennetaan
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude- tai ChatGPT-tilaus, maksullinen avain (OpenAI, Claude, DeepSeek) tai Ollama.
+Claude plan	Claude-tilaus
+Clear	Tyhjennä
+Cleared.	Tyhjennetty.
+Click Confirm to keep Down, or press Esc.	Napsauta Vahvista pitääksesi Alas, tai paina Esc.
+Click to open it.	Napsauta avataksesi.
+Clip my games	Klippaa pelini
+Clips	Klipit
+Close	Sulje
+Close other AIs for me	Sulje muut tekoälyt puolestani
+Cloud voice	Pilviääni
+Cloud voice service	Pilviäänipalvelu
+Cloud voice setup	Pilviäänen asennus
+Code mods can reach your whole PC. Only trusted ones.	Koodimodit pääsevät koko tietokoneellesi. Vain luotetut.
+Code/Husk Mode	Koodi/Husk-tila
+Codex	Codex
+Commands	Komennot
+Comment on my games	Kommentoi pelejäni
+Comments	Kommentit
+Confirm	Vahvista
+Confirm keys	Vahvista näppäimet
+Connect	Yhdistä
+Connect / Forget brain key	Yhdistä / unohda aivoavain
+Connect / Forget voice key	Yhdistä / unohda ääniavain
+Connect four	Neljä riviin
+Controls	Ohjaimet
+Copri, what time is it	Copri, paljonko kello on
+Copy error details	Kopioi virhetiedot
+Copy the key	Kopioi avain
+Copy the key from the page, then press Paste.	Kopioi avain sivulta ja paina sitten Liitä.
+Couldn't open that page:	En voinut avata sivua:
+Couldn't open that:	En voinut avata tätä:
+Couldn't open the mods folder:	En voinut avata modikansiota:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M on jo hänen Mainframe-näppäimensä.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N mykistää mikin
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V on jo hänen puhumisnäppäimensä.
+Ctrl + Alt + V to talk	Ctrl + Alt + V puhumiseen
+Custom local voice	Mukautettu paikallinen ääni
+Custom model name	Mukautetun mallin nimi
+Dance	Tanssi
+Dance to music	Tanssi musiikin tahtiin
+Default	Oletus
+Default (follows Windows)	Oletus (seuraa Windowsia)
+Default duration for clip that and automatic clips	Oletuskesto clip that -klipeille ja automaattisille klipeille
+Default length	Oletuspituus
+Default model	Oletusmalli
+Delay	Viive
+Deny	Kiellä
+Discard	Hylkää
+Discard + reload	Hylkää + lataa uudelleen
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Etkö halua odottaa? Ilmainen avain saa minut puhumaan noin minuutissa.
+Done	Valmis
+EXTRA REQUEST JSON >	LISÄPYYNNÖN JSON >
+EXTRAS >	LISÄT >
+Edit	Muokkaa
+Edit check-in lines	Muokkaa kirjautumisrivejä
+Edit check-in lines has the wrong view or dimming	Muokkaa kirjautumisrivejä: väärä näkymä tai himmennys
+Edit check-in lines is out of place	Muokkaa kirjautumisrivejä on väärässä paikassa
+Edit controls	Muokkaa ohjaimia
+ElevenLabs API key	ElevenLabs API-avain
+ElevenLabs voice ID	ElevenLabs-äänen tunnus
+English	Englanti
+Enter the game's name first.	Kirjoita ensin pelin nimi.
+Every	Joka
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Jokainen modi tarkistetaan haittaohjelmien varalta ennen julkaisua. Koodimodit kysyvät silti ennen suoritusta.
+Explore after	Tutki sen jälkeen
+Explore while I'm away	Tutki kun olen poissa
+Extra request JSON	Lisäpyynnön JSON
+Extras	Lisät
+FREE KEY	ILMAINEN AVAIN
+FREE KEY >	ILMAINEN AVAIN >
+Fast hands in games	Nopeat kädet peleissä
+File editor	Tiedostoeditori
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ja muut ovat Mainframen ÄÄNI-osiossa.
+Follow-up messages	Jatkoviestit
+Forget	Unohda
+Fork capri-mods	Haarauta capri-mods
+Frame rate	Kuvataajuus
+Free	Ilmainen
+Free and private, works offline. Downloads	Ilmainen ja yksityinen, toimii offline. Lataa
+Free and private, works offline. Downloads the best model for this PC.	Ilmainen ja yksityinen, toimii offline. Lataa tälle PC:lle parhaan mallin.
+Free key	Ilmainen avain
+Free key providers	Ilmaisten avainten palveluntarjoajat
+Free keys can be rate limited and slow.	Ilmaisten avainten käyttöä voidaan rajoittaa ja ne voivat olla hitaita.
+Free voice in games	Ilmainen ääni peleissä
+Free voice style	Ilmaisen äänen tyyli
+Free voice:	Ilmainen ääni:
+Free voice: Her own	Ilmainen ääni: oma
+Free · local model	Ilmainen · paikallinen malli
+GAMES >	PELIT >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Pelikommentit toimivat erillään Katso näyttöäni -asetuksesta. Pois pysäyttää ne, myös pelitilassa; Vain tapahtumat ja Puhelias antavat hänen katsoa peliäsi
+Game controls	Pelin ohjaimet
+Game name	Pelin nimi
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Pelin äänten herkkyys. Laske, jos kuulokkeesi on hiljalla mutta Windows on {0}%, ja hän reagoi jokaiseen ääneen; Pois ohittaa pelin äänet
+Game sounds	Pelin äänet
+Games	Pelit
+Gaming Mode	Pelitila
+Gaming Mode key	Pelitilan näppäin
+Gaming Mode:	Pelitila:
+Gaming Mode: Ctrl + Alt + G	Pelitila: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Hanki VB-CABLE
+Get VB-CABLE (free)...	Hanki VB-CABLE (ilmainen)...
+Get free voice	Hanki ilmainen ääni
+Getting your Fish Audio voices...	Haetaan Fish Audio -äänesi...
+Giant	Jättiläinen
+Glitch	Glitch
+Glitch in at startup	Glitch käynnistyksessä
+Go to sleep	Mene nukkumaan
+Go to the next screen	Siirry seuraavalle näytölle
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ilmainen taso · käyttöä rajoitettu
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Onko sinulla Claude- tai ChatGPT-tilaus tai oma avain? Valitse se, niin liitän sen.
+Got it, just me. Right-click me any time for Capri Mainframe.	Selvä, vain minä. Napsauta minua hiiren oikealla milloin tahansa avataksesi Capri Mainframen.
+Grey	Harmaa
+H.{0} video bitrate target; higher values make larger files	H.{0} videon bittinopeuden tavoite; suuremmat arvot tekevät suurempia tiedostoja
+HABITS >	TAVAT >
+HER HANDS >	HÄNEN KÄTENSÄ >
+HER JOBS >	HÄNEN TYÖNSÄ >
+HER MEMORY >	HÄNEN MUISTINSA >
+HER MODS >	HÄNEN MODINSA >
+HH:mm	HH:mm
+HOW I SOUND >	MITEN KUULOSTAN >
+Hang here	Jää tänne
+Have Ollama? Open it, then press Refresh.	Onko Ollama? Avaa se ja paina Päivitä.
+Head pats	Päähän taputukset
+Hearing	Kuulo
+Hearing engine	Kuulomoottori
+Hearing fix	Kuulokorjaus
+Hearing status	Kuulon tila
+Help	Ohje
+Help page	Ohjesivu
+Her colors	Hänen värinsä
+Her folder	Hänen kansionsa
+Her memories	Hänen muistonsa
+Her own colors are back.	Hänen omat värinsä ovat palanneet.
+Her own notes (no vault)	Hänen omat muistiinpanonsa (ei holvia)
+Her perch frames per second	Hänen istuinpaikkansa kuvataajuus sekunnissa
+Her personality	Hänen persoonallisuutensa
+Her size	Hänen kokonsa
+Her speaker	Hänen kaiuttimensa
+Her speaker is hidden or outside VOICE	Hänen kaiuttimensa on piilossa tai ÄÄNEN ulkopuolella
+Her speaker overlaps the mic or hearing row	Hänen kaiuttimensa on päällekkäin mikin tai kuulon rivin kanssa
+Her speaker:	Hänen kaiuttimensa:
+Her speaker: Default	Hänen kaiuttimensa: Oletus
+Her voice in your mic	Hänen äänensä mikissäsi
+Her voice in your mic: loudness	Hänen äänensä mikissäsi: voimakkuus
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Hänen oma äänensä. Sen sävelkorkeus on Asetukset > ÄÄNI > Sävelkorkeus, ja ne liikkuvat yhdessä.
+Her voice joins your mic only in call mode.	Hänen äänensä liittyy mikkiisi vain puhelutilassa.
+Her voice volume	Hänen äänensä voimakkuus
+Her voice's pitch	Hänen äänensä sävelkorkeus
+Her voice's pitch, the same as Settings > VOICE > Pitch	Hänen äänensä sävelkorkeus, sama kuin Asetukset > ÄÄNI > Sävelkorkeus
+Her voice's speed	Hänen äänensä nopeus
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Hänen äänensä, ja kaksi kopiota siitä sekoitettuna taustalle, kullakin oma sävelkorkeus ja viive.
+Her voices · free	Hänen äänensä · ilmainen
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hei, choom. Olen Capri. Tarvitsen aivot ennen kuin voin vastata. Valitse yksi.
+Hide / Show Capri	Piilota / näytä Capri
+Hide / Show key	Piilota / näytä -näppäin
+Hide Capri	Piilota Capri
+Hide for now	Piilota toistaiseksi
+Hide in full screen	Piilota koko näytöllä
+Hide this	Piilota tämä
+Hide/show:	Piilota/näytä:
+Hide/show: Ctrl + Alt + H	Piilota/näytä: Ctrl + Alt + H
+Hologram	Hologrammi
+Hop off	Hyppää pois
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Kuinka pitkään paikallaan oleva PC odottaa ennen kuin hän nukahtaa; viisi minuuttia tarkoittaa yhä poissaoloa
+How long a stroke over her a head pat needs	Kuinka pitkä silitys päänpöllyttelyyn tarvitaan
+How long her replies stay up	Kuinka kauan hänen vastauksensa jäävät näkyviin
+How long you are away before she scrolls a browser or reader	Kuinka kauan olet poissa ennen kuin hän vierittää selainta tai lukijaa
+How much her voice glitches	Kuinka paljon hänen äänensä häiriintyy
+How much of the chat she keeps	Kuinka paljon keskustelua hän säilyttää
+How much she wanders	Kuinka paljon hän vaeltelee
+How often she pops in to say hi	Kuinka usein hän ilmestyy sanomaan heipat
+How robotic her voice sounds	Kuinka robottimaisesti hänen äänensä kuulostaa
+How to	Miten
+Huge	Valtava
+I can hear you.	Kuulen sinut.
+I glance at your screen and comment. Costs a little on a paid brain.	Vilkaisen näyttöäsi ja kommentoin. Maksaa vähän maksullisilla aivoilla.
+I keep listening. Say my name, then just talk.	Kuuntelen edelleen. Sano nimeni ja puhu sitten vain.
+I talk about your game as you play. Costs a little on a paid brain.	Puhun pelistäsi pelatessasi. Maksaa vähän maksullisilla aivoilla.
+I type my replies and stay quiet.	Kirjoitan vastaukseni ja pysyn hiljaa.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	En vastaa ääneen, eikä mitään lähetetä minnekään. Istun silti mukana, tanssin musiikkisi tahtiin ja teen pikkujutut, joita pyydät, kuten äänenvoimakkuuden.
+I'll talk in	Puhun sisään
+IN DISCORD >	DISCORDISSA >
+INSTALLED >	ASENNETTU >
+Import a Capri mod	Tuo Capri-modi
+Import mod	Tuo modi
+In games	Peleissä
+Input	Syöte
+Input, Output or How to overlaps a row	Syöte, Tuloste tai Miten menee päällekkäin rivin kanssa
+Input:	Syöte:
+Input: default	Syöte: oletus
+Install	Asenna
+Install mod	Asenna modi
+Installed.	Asennettu.
+It may ask for a phone number. I opened the page in your browser.	Se saattaa kysyä puhelinnumeroa. Avasin sivun selaimessasi.
+It still does its own job in other apps too.	Se tekee silti omaa työtään myös muissa sovelluksissa.
+It won't type in other apps while she runs.	Se ei kirjoita muihin sovelluksiin, kun hän on käynnissä.
+JUST ME >	VAIN MINÄ >
+Jealous of other AIs	Kateellinen muille tekoälyille
+Join the Discord	Liity Discordiin
+KB.	KB.
+KEYS	NÄPPÄIMET
+KEYS >	NÄPPÄIMET >
+Keep PC awake for jobs	Pidä PC hereillä töitä varten
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Säilyttää pelisi viimeiset kaksi minuuttia muistissa. Sano clip that tallentaaksesi.
+Key	Avain
+Key cleared: a model file needs none.	Avain tyhjennetty: mallitiedosto ei tarvitse avainta.
+Key cleared: paste the key for	Avain tyhjennetty: liitä avain
+Key forgotten.	Avain unohdettu.
+Key. It goes only to this server, as a Bearer key	Avain. Se menee vain tälle palvelimelle Bearer-avaimena
+Kokoro only, like es	Vain Kokoro, kuten es
+LAST THING >	VIIMEINEN ASIA >
+LISTENING >	KUUNTELEE >
+Language	Kieli
+Large	Iso
+Last thing. These cost a little or use your mic, so they're your pick.	Viimeinen asia. Nämä maksavat vähän tai käyttävät mikkiäsi, joten valinta on sinun.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Viimeinen asia. Nämä maksavat vähän tai käyttävät mikkiäsi, joten valinta on sinun. Sen jälkeen haluan tietää, mitä sinua kutsutaan.
+Layers	Kerrokset
+Learn more	Lue lisää
+Leaving Settings threw its picture away straight away.	Asetuksista poistuminen heitti kuvan pois heti.
+Legacy stand	Vanha teline
+Lie down	Makaa
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	PC-dialogirivit säilytetään muistissa yhdessä katsottaessa. Vanhin puolisko muuttuu muistiinpanoksi, kun Muista mitä hän näkee on päällä
+Listen for Capri	Kuuntele Capria
+Live reactions	Reaktiot livenä
+Local server address	Paikallisen palvelimen osoite
+Long	Pitkä
+Longest wait (minutes)	Pisin odotusaika (minuuttia)
+Looking at this PC...	Katsotaan tätä PC:tä...
+Looking for Ollama. Open it if it isn't running.	Etsitään Ollamaa. Avaa se, jos se ei ole käynnissä.
+Looking for a brain...	Etsitään aivoja...
+Looking in the mods directory for updates...	Haetaan päivityksiä modikansiosta...
+Looking in the mods directory...	Etsitään modikansiosta...
+Looking...	Etsitään...
+MAIN >	PÄÄ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	MUISTIHOLVI >
+MODS	MODIT
+MODS >	MODIT >
+MODS DIRECTORY >	MODIKANSIO >
+MODS INSTALLED COLORS	ASENNETUT MODIVÄRIT
+MOVES >	LIIKKEET >
+MY BRAIN	AIVONI
+MY FREE VOICE	ILMAINEN ÄÄNENI
+MY PLAN OR KEY	TILAUKSENI TAI AVAIMENI
+MY PLAN OR KEY >	TILAUKSENI TAI AVAIMENI >
+Made your Fish Audio voice. Press Test to hear it.	Fish Audio -äänesi on tehty. Paina Testaa kuullaksesi sen.
+Mainframe colours	Mainframen värit
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframen värit. Night City on punainen ja syaani; Musta, Valkoinen ja Harmaa muuttavat Mainframea, hänen valikkojaan, Kirjoituslaatikkoa ja muistiinpanojaan
+Mainframe frames	Mainframen kehykset
+Mainframe key	Mainframen näppäin
+Mainframe size	Mainframen koko
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframen koko. Auto suurentaa, kun Virtual Super Resolution tai DSR pienentää ison työpöydän pienemmälle näytölle
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Alas
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Luodaan Fish Audio -ääntäsi...
+Max reply	Enimmäisvastaus
+Maximum clip resolution, keeping the game's shape without upscaling	Klipin enimmäisresoluutio, säilyttäen pelin muodon ilman skaalausta
+Medium	Keskikokoinen
+Memory	Muisti
+Memory size	Muistin koko
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Muistin koko tokeneina Ollamalle ja hänen sisäänrakennetuille aivoilleen. Auto kasvaa, kun pyyntö tarvitsee enemmän
+Mg	Mg
+Mic level:	Mikin taso:
+Mic test finished. Sound is reaching Capri.	Mikkitesti valmis. Ääni kulkee Capriin.
+Mic:	Mikki:
+Mic: default	Mikki: oletus
+Microphone	Mikrofoni
+Mini player	Minisoitin
+Mini player over full screen	Minisoitin koko näytön päällä
+Mini-games	Minipelit
+Minimising the Mainframe left it sliding.	Mainframen pienentäminen jätti sen liukumaan.
+Minimize	Pienennä
+Mod filter	Modisuodatin
+Mod options	Modin asetukset
+Mod pages	Modisivut
+Mod rules	Modisäännöt
+Mod sort	Modilajittelu
+Mod switch	Modin vaihto
+Model	Malli
+Model folder	Mallikansio
+Model name, optional	Mallin nimi, valinnainen
+Mods	Modit
+Mods directory	Modikansio
+Mods folder	Modikansio
+Most NVIDIA models can't see your screen.	Useimmat NVIDIA-mallit eivät näe näyttöäsi.
+Mouse wheel notches got a flick's long ease:	Hiiren rullan askeleet saivat räpäyksen pitkän hidastuksen:
+Move	Siirrä
+Move key to MAX INTELLIGENCE	Siirrä näppäin MAX INTELLIGENCEen
+Move to MAX	Siirrä MAXiin
+Music	Musiikki
+Music app	Musiikkisovellus
+Music app: where she plays music when you don't name an app	Musiikkisovellus: missä hän soittaa musiikkia, kun et nimeä sovellusta
+Mute	Mykistä
+Mute her	Mykistä hänet
+Mute mic key	Mikin mykistysnäppäin
+Mute mic:	Mykistä mikki:
+Mute mic: Ctrl + Alt + N	Mykistä mikki: Ctrl + Alt + N
+My brain	Aivoni
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Aivoni laskeutuvat. Sanon heipat heti kun ne ovat paikallaan, ja voit puhua minulle silloin.
+My brain's on its way. While it comes down, let's sort out how I sound.	Aivoni ovat matkalla. Sillä aikaa kun ne laskeutuvat, selvitetään miten kuulostan.
+My provider	Palveluntarjoajani
+NO AI	EI TEKOÄLYÄ
+NO PHONES CONNECTED	EI PUHELIMIA YHDISTETTY
+NO PREVIEW	EI ESIKATSELUA
+NORMAL	NORMAALI
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ilmainen · usein hidas ruuhka-aikoina
+NVIDIA's free API is often slow, especially at busy times.	NVIDIAn ilmainen API on usein hidas, erityisesti ruuhka-aikoina.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA-, Google AI Studio (Gemini)- tai OpenRouter-API-avain
+Names:	Nimet:
+Needs a key	Tarvitsee avaimen
+Never	Ei koskaan
+New code	Uusi koodi
+New voice from a clip...	Uusi ääni klipistä...
+Next	Seuraava
+Night City	Night City
+No AI	Ei AI:ta
+No AI · no brain at all	Ei AI · ei lainkaan aivoja
+No brain runs, and nothing is sent anywhere.	Mitään aivoja ei käytetä, eikä mitään lähetetä minnekään.
+No brain yet	Ei vielä aivoja
+No code open	Ei avointa koodia
+No mic found	Mikkiä ei löytynyt
+No mods in the directory yet.	Modikansiossa ei vielä ole modeja.
+No mods match that.	Mikään modi ei vastaa tätä.
+No mods match.	Mikään modi ei vastaa.
+No phones yet	Ei vielä puhelimia
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Virtuaalimikkiä ei vielä ole. Valitse Tuloste ja sitten Hanki VB-CABLE (ilmainen).
+None yet: pick to get VB-CABLE (free)	Ei vielä: valitse hankkiaksesi VB-CABLE (ilmainen)
+Normal	Normaali
+Not a relay host	Ei relay-palvelin
+Not imported. Nothing ran.	Ei tuotu. Mitään ei suoritettu.
+Not updated. The old one is still in.	Ei päivitetty. Vanha on yhä asennettuna.
+Nothing needed updating.	Mitään ei tarvinnut päivittää.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Ei latausta, ei mitään lähetetä minnekään. En vastaa takaisin. Lisää aivot milloin tahansa Mainframessa.
+Nothing to show from the mods directory.	Modikansiosta ei ole mitään näytettävää.
+Nothing? Windows Settings > Privacy & security > Microphone.	Ei? Windowsin asetukset > Tietosuoja ja suojaus > Mikrofoni.
+Nous Portal keys aren't supported yet.	Nous Portal -avaimia ei tueta vielä.
+OBS	OBS
+OFF	POIS
+OLLAMA	OLLAMA
+ON	PÄÄLLÄ
+ON THIS PC	TÄSSÄ PC:SSÄ
+OR A KEY	TAI AVAIN
+Obsidian memory vault	Obsidian-muistiholvi
+Off	Pois
+Off. Turn on Her voice in your mic above.	Pois. Ota käyttöön Hänen äänensä mikissäni yllä.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Pois: hän kuulostaa kuten aina. Päällä: kaikki hänen äänensä, myös ElevenLabs.
+Often	Usein
+On	Päällä
+On / Off	Päällä / Pois
+On: your mic and her voice are going in.	Päällä: mikkisi ja hänen äänensä menevät sisään.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Yksi JSON-objekti, lisätään jokaiseen tämän aivojen lähettämään pyyntöön. Se korvaa Capri-arvon kaikilla yhteisillä nimillä, eikä sitä tarkisteta mallia vasten.
+Online speech recognition	Verkkopuheentunnistus
+Open Capri Mainframe	Avaa Capri Mainframe
+Open Ollama, I'll find it	Avaa Ollama, minä löydän sen
+Open clips folder	Avaa klippikansio
+Open her memories	Avaa hänen muistonsa
+Open her notes	Avaa hänen muistiinpanonsa
+Open mods folder	Avaa modikansio
+Open the page again	Avaa sivu uudelleen
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA tai OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-yhteensopiva palvelin tai palveluntarjoaja.
+OpenRouter · free models only	OpenRouter · vain ilmaiset mallit
+Optional	Valinnainen
+Optional. Blank means no key.	Valinnainen. Tyhjä tarkoittaa ei avainta.
+Options	Asetukset
+Out of the box a little higher, just behind her.	Oletuksena hieman korkeammalla, aivan hänen takanaan.
+Out of the box lower, just behind her.	Oletuksena matalammalla, aivan hänen takanaan.
+Output	Tuloste
+Output:	Tuloste:
+Output: none	Tuloste: ei mitään
+PHONE CONNECTED	PUHELIN YHDISTETTY
+PHONES >	PUHELIMET >
+PHONES CONNECTED	PUHELIMET YHDISTETTY
+PREBUILT LOCAL	VALMIIKSI ASENNETTU PAIKALLINEN
+PUBLISH MOD >	JULKAISE MODI >
+Pair a phone	Pariliitä puhelin
+Paste	Liitä
+Paste API key	Liitä API-avain
+Paste a brain API key	Liitä aivojen API-avain
+Paste reads your clipboard once, when you press it.	Liitä lukee leikepöydän kerran, kun painat sitä.
+Paste your key here	Liitä avaimesi tähän
+Pat stroke	Silitys
+Perch	Istuin
+Perch over {0} fps uses more CPU	Istuin yli {0} fps käyttää enemmän suoritinta
+Pick Output to get it.	Valitse Tuloste saadaksesi sen.
+Pick a brain so I can talk back. You can change it any time.	Valitse aivot, jotta voin vastata. Voit vaihtaa milloin tahansa.
+Pick a clip of a voice you have the rights and consent to use	Valitse klippi äänestä, johon sinulla on oikeudet ja suostumus
+Pick a free model. I opened the page in your browser.	Valitse ilmainen malli. Avasin sivun selaimessasi.
+Pick a new clip of you...	Valitse uusi klippi itsestäsi...
+Pick a voice model...	Valitse äänimalli...
+Pick one. Only one brain runs at a time.	Valitse yksi. Vain yksi aivot toimii kerrallaan.
+Pick the note her memories go in	Valitse muistiinpano, johon hänen muistonsa menevät
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Valitse {0}–{1} sekuntia äänestä, johon sinulla on oikeudet ja suostumus
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Valitse {0}–{1} sekuntia puheestasi tai äänestä, johon sinulla on oikeudet ja suostumus
+Pitch	Sävelkorkeus
+Play	Toista
+Play...	Toista...
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS -mallit kopioivat tämän klipin äänen. Paina Testaa kuullaksesi sen.
+Pop-in times	Ilmestymisajat
+Pop-ins	Ilmestymiset
+Power saver	Virransäästö
+Power saver: how lightly she runs in games, or always	Virransäästö: kuinka kevyesti hän toimii peleissä, tai aina
+Preset	Esiasetus
+Press Create API key	Paina Luo API-avain
+Press Create Key	Paina Luo avain
+Press Generate API Key	Paina Luo API-avain
+Press Test and say something, so I know I can hear you.	Paina Testaa ja sano jotain, jotta tiedän kuulevani sinut.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Paina näppäintä, yksin tai Ctrl-, Alt-, Shift- tai Win-näppäimen kanssa.
+Press new keys, then Confirm	Paina uusia näppäimiä ja sitten Vahvista
+Provider	Palveluntarjoaja
+Provider API key, optional	Palveluntarjoajan API-avain, valinnainen
+Provider base URL	Palveluntarjoajan perus-URL
+Provider forgotten.	Palveluntarjoaja unohdettu.
+Provider overlaps the brain name or note	Palveluntarjoaja on päällekkäin aivojen nimen tai muistiinpanon kanssa
+Publish	Julkaise
+Publish mod	Julkaise modi
+Push to talk is off.	Puhu-painike on pois.
+Push to talk key	Puhu-näppäin
+Push to talk:	Puhu-painike:
+Push to talk: not set	Puhu-painike: ei asetettu
+QR CODE >	QR-KOODI >
+QR hidden while streaming	QR piilotettu suoratoiston aikana
+Quick	Pikaisesti
+Quiet key	Hiljainen näppäin
+Quiet:	Hiljainen:
+Quiet: Ctrl + Alt + P	Hiljainen: Ctrl + Alt + P
+Quit Capri	Lopeta Capri
+RELAY >	RELAY >
+REMOTE >	ETÄ >
+RUNS CODE.	AJAA KOODIA.
+Rarely	Harvoin
+Rate mod	Arvioi modi
+Reading its README...	Luetaan README-tiedostoa...
+Refresh	Päivitä
+Reinstall	Asenna uudelleen
+Reload	Lataa uudelleen
+Reloaded.	Ladattu uudelleen.
+Remember our chats	Muista keskustelumme
+Remember what she sees	Muista mitä hän näkee
+Remote	Etä
+Remote off	Etä pois
+Remote on	Etä päällä
+Remove	Poista
+Remove all phones	Poista kaikki puhelimet
+Replies	Vastaukset
+Reply length	Vastauksen pituus
+Report a problem	Ilmoita ongelmasta
+Reset colors	Nollaa värit
+Reset to her default	Palauta hänen oletuksensa
+Resolution	Resoluutio
+Restart to update	Käynnistä uudelleen päivittääksesi
+Restless	Levoton
+Revoke	Peruuta
+Revoke also removes the phones its links added	Peruuta poistaa myös puhelimet, jotka sen linkit lisäsivät
+Ride cursor	Kursorikyyti
+Ride cursor / Hop off	Kursorikyyti / Hyppää pois
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Napsauta minua milloin tahansa hiiren oikealla avataksesi Capri Mainframen. Aivot kytkeytyvät päälle kohdassa AIVOT.
+Right-click me any time for the Mainframe, Help and the Discord.	Napsauta minua milloin tahansa hiiren oikealla Mainframeen, Ohjeeseen ja Discordiin.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox tai mikä tahansa muu sovellus: valitse
+Robot	Robotti
+Rock, paper, scissors	Kivi, paperi, sakset
+Run this code mod?	Ajetaanko tämä koodimodi?
+Running on this PC	Käynnissä tällä PC:llä
+Running on this PC · :	Käynnissä tällä PC:llä · :
+Runs Claude Code or Codex on this PC, signed in.	Ajaa Claude Coden tai Codexin tällä PC:llä, kirjautuneena.
+Runs on your PC. No key, no credits.	Toimii PC:llä. Ei avainta, ei krediittejä.
+SCAN WITH YOUR PHONE · EXPIRES	SKANNAA PUHELIMELLASI · VANHENEE
+SECURITY >	TURVALLISUUS >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	LAJITTELE
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ÄÄNET TAVAT AIVOT KATSO CAPRI DOOMSCROLL SÄÄ KLIPIT PELIT NÄPPÄIMET LIIKKEET ÄÄNI SINÄ
+Same as her ears (VOICE > Mic)	Sama kuin hänen korvansa (ÄÄNI > Mikki)
+Same code on the phone?	Sama koodi puhelimella?
+Save	Tallenna
+Save big moments	Tallenna isot hetket
+Save folder	Tallennuskansio
+Save your changes, or press Discard + reload.	Tallenna muutokset tai paina Hylkää + lataa uudelleen.
+Save your changes, or press Discard.	Tallenna muutokset tai paina Hylkää.
+Saved.	Tallennettu.
+Saved. Ctrl + Alt + O opens her Mainframe.	Tallennettu. Ctrl + Alt + O avaa hänen Mainframensa.
+Saving your rating...	Tallennetaan arviotasi...
+Say her name anywhere to chat	Sano hänen nimensä missä tahansa keskustellaksesi
+Screens	Näytöt
+Screens is hidden or outside WATCH	Näytöt on piilossa tai KATSO-osion ulkopuolella
+Screens overlaps a WATCH row	Näytöt on päällekkäin KATSO-rivin kanssa
+Screens to watch	Katsottavat näytöt
+Sealed end to end	Suljettu päästä päähän
+Search by name or author	Hae nimellä tai tekijällä
+Search installed mods	Hae asennettuja modeja
+Search mods	Hae modeja
+Search name, author or description	Hae nimi, tekijä tai kuvaus
+Security	Turvallisuus
+Security:	Turvallisuus:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Määritä
+Set up her brain	Määritä hänen aivonsa
+Set up your voice model	Määritä äänimallisi
+Setting up her brain	Määritetään hänen aivojaan
+Settings	Asetukset
+Settings / Back	Asetukset / Takaisin
+Settings folds the wrong rows above BRAIN	Asetukset taittaa väärät rivit AIVOJEN yläpuolelle
+Settings had nothing to watch.	Asetuksissa ei ollut mitään katsottavaa.
+Settings lost keyboard focus during the Tab walk	Asetukset menetti näppäimistön fokuksen Tab-kierroksen aikana
+Setup guide	Asennusopas
+Setup stopped	Asennus keskeytyi
+She can read it when it fits.	Hän voi lukea sen, kun se mahtuu.
+She glances at your screen and comments. Costs a little on a paid brain.	Hän vilkaisee näyttöäsi ja kommentoi. Maksaa vähän maksullisilla aivoilla.
+She keeps listening. Say her name, then just talk until you go quiet.	Hän kuuntelee edelleen. Sano hänen nimensä ja puhu, kunnes hiljenet.
+She reacts to your game until you close it.	Hän reagoi peliisi, kunnes suljet sen.
+She reads these controls before each game job.	Hän lukee nämä ohjaimet ennen jokaista pelityötä.
+She talks about your game as you play. Costs a little on a paid brain.	Hän puhuu pelistäsi pelatessasi. Maksaa vähän maksullisilla aivoilla.
+She uses it when she plays	Hän käyttää sitä pelatessaan
+Short	Lyhyt
+Shortest wait (minutes)	Lyhin odotusaika (minuuttia)
+Show Capri	Näytä Capri
+Show QR	Näytä QR
+Show my mod file	Näytä modi-tiedostoni
+Show on Discord	Näytä Discordissa
+Shum, what time is it	Shum, paljonko kello on
+Sign in	Kirjaudu
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Kirjaudu, luo avain ja kopioi se. Paina sitten Liitä, niin yhdistän.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Kirjaudu, paina Luo API-avain ja kopioi se. Paina sitten Liitä, niin yhdistän.
+Silent · text only	Hiljainen · vain teksti
+Simple / Advanced Settings	Yksinkertaiset / lisäasetukset
+Simple Settings	Yksinkertaiset asetukset
+Simple Settings left a gap under Check in on me	Yksinkertaiset asetukset jätti aukon kohdan Kysele kuulumisia alle
+Sit here	Istu tässä
+Sit on windows	Istu ikkunoilla
+Size	Koko
+Skip	Ohita
+Skip all	Ohita kaikki
+Skip for now	Ohita toistaiseksi
+Sleep	Nukkumaan
+Small	Pieni
+Sometimes	Joskus
+Sound effects volume	Äänitehosteiden voimakkuus
+Sound sensitivity	Äänen herkkyys
+Sounds	Äänet
+Speaker or clip	Kaiutin tai klippi
+Speech model	Puhemalli
+Speed	Nopeus
+Start with Windows	Käynnistä Windowsin mukana
+Start with this!	Aloita tästä!
+Starting...	Käynnistetään...
+Stay on my model	Pysy mallissani
+Still checking your mics...	Tarkistetaan vielä mikkejäsi...
+Still checking your speakers...	Tarkistetaan vielä kaiuttimiasi...
+Still checking your virtual mics...	Tarkistetaan vielä virtuaalimikkejäsi...
+Stop	Pysäytä
+Stopped using it. Couldn't remove the saved provider.	Lopetettiin käyttö. Tallennettua palveluntarjoajaa ei voitu poistaa.
+Support	Tuki
+Sure?	Varmaa?
+Sure? moved to a different phone	Varmaa? siirrettiin toiseen puhelimeen
+TALK TO ME	PUHU MINULLE
+TEXT ONLY	VAIN TEKSTI
+Tab landed past the first option of	Tab laskeutui ohi ensimmäisen vaihtoehdon kohdasta
+Tab never reached the quiet key	Tab ei koskaan saavuttanut hiljaista näppäintä
+Tab reached nothing	Tab ei saavuttanut mitään
+Tab selected a control without moving keyboard focus	Tab valitsi ohjaimen siirtämättä näppäimistön fokusta
+Talk	Puhu
+Talk key	Puhu-näppäin
+Talk:	Puhu:
+Talk: Ctrl + Alt + V	Puhu: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Kohdekaappauksen kuvataajuus; voi laskea kuormituksen tai muistibudjetin alla
+Teases when another AI comes to the front.	Kiusaa, kun toinen tekoäly tulee etualalle.
+Test	Testaa
+That address doesn't work. Try https://... or http://localhost:{0}.	Tuo osoite ei toimi. Kokeile https://... tai http://localhost:{0}.
+That code expired	Tuo koodi vanheni
+That mod is no longer installed. The list is updated.	Tuo modi ei ole enää asennettuna. Lista on päivitetty.
+That's a paid key: it goes under MAX INTELLIGENCE.	Tuo on maksullinen avain: se menee MAX INTELLIGENCEen.
+The Mainframe stayed composited while sliding.	Mainframe pysyi koostettuna liukuessaan.
+The Mainframe stayed uncomposited after the slide.	Mainframe jäi koostamattomaksi diaesityksen jälkeen.
+The controls moved while the picture was sliding.	Ohjaimet liikkuivat kuvan liukuessa.
+The cover stayed visible after the slide ended.	Kansi jäi näkyviin diaesityksen päätyttyä.
+The frame thread kept running after the page settled.	Kehyssäie jatkoi toimintaansa sivun asettumisen jälkeen.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Pisin vastaus, jonka hän voi antaa, tokeneina. Auto pysyy Vastausten rajoissa yllä; {0}K tai {1}K antaa hänen jatkaa. Työt saavat enemmän tilaa tarvittaessa
+The longest wait must be at least the shortest wait.	Pisimmän odotusajan täytyy olla vähintään lyhimmän odotusajan.
+The picture doesn't match the scrolled page:	Kuva ei vastaa vierinyttä sivua:
+The picture of Settings doesn't match the page:	Asetusten kuva ei vastaa sivua:
+The picture stayed up after the slide ended.	Kuva jäi näkyviin diaesityksen päätyttyä.
+The picture wasn't showing while it slid.	Kuva ei näkynyt liukuessa.
+The provider sheet is crowded:	Palveluntarjoajan ikkuna on täynnä:
+The voice panel has no screen DPI.	Äänipaneelilla ei ole näytön DPI:tä.
+The voice panel's menus share one font.	Äänipaneelin valikot jakavat yhden fontin.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Leikepöydällä ei vielä ole avainta. Kopioi se sivulta ja paina sitten Liitä.
+These start off. Each costs a little or uses your mic.	Nämä ovat oletuksena pois. Jokainen maksaa vähän tai käyttää mikkiäsi.
+These start off. Turn on what you want. They're all in Settings too.	Nämä ovat oletuksena pois. Ota käyttöön mitä haluat. Ne ovat kaikki myös Asetuksissa.
+They can also call you Big Z, Capricorn or Nova	He voivat myös kutsua sinua Big Z, Capricorn tai Nova
+They can also call you Nova, Big Z or Capricorn	He voivat myös kutsua sinua Nova, Big Z tai Capricorn
+Thinking	Mietin
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Tämä on minun ilmainen ääneni. Paina Testaa, sano jotain, ja näytän, että kuulen sinut.
+This mod has no description yet.	Tässä modissa ei ole vielä kuvausta.
+Tic-tac-toe	Ristinolla
+Time between glances	Aika vilkaisujen välillä
+Tiny	Pieni
+Try again	Yritä uudelleen
+Turn Remote on first	Käynnistä Etä ensin
+Turn off mini player	Sulje minisoitin
+Turn push to talk off	Sulje puhu-painike
+Turning the wheel the other way kept the page heading the old way, to	Rullan kääntäminen toiseen suuntaan piti sivun menemässä vanhaan suuntaan, kohti
+Type	Kirjoita
+Type key	Kirjoitusnäppäin
+Type to me	Kirjoita minulle
+Type:	Kirjoita:
+Type: Ctrl + Alt + T	Kirjoita: Ctrl + Alt + T
+Typing sound	Kirjoitusääni
+Unpacked. Press Test to hear it.	Purettu. Paina Testaa kuullaksesi sen.
+Unsaved changes.	Tallentamattomia muutoksia.
+Up to {0} fps	Enintään {0} fps
+Up to {0}p	Enintään {0}p
+Update	Päivitä
+Update available.	Päivitys saatavilla.
+Update mods	Päivitä modit
+Updating...	Päivitetään...
+Use	Käytä
+Use her cursor	Käytä hänen kursoriaan
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Käytä https:// muihin palveluntarjoajiin. Avain tavallisen http:n yli ei ole turvallinen.
+Use preset	Käytä esiasetusta
+Use saved	Käytä tallennettua
+Use this server	Käytä tätä palvelinta
+Using your provider with a key	Käytetään palveluntarjoajaasi avaimella
+Using your server with no key	Käytetään palvelintasi ilman avainta
+VIEW MOD >	KATSO MODI >
+VOICE >	ÄÄNI >
+VOICE IN YOUR MIC >	ÄÄNI MIKISSÄSI >
+VOICE LAYERS >	ÄÄNEN KERROKSET >
+Verbosity	Sanallisuus
+Video bitrate	Videon bittinopeus
+View	Näytä
+View mod	Näytä modi
+Voice	Ääni
+Voice ID	Äänen tunnus
+Voice from	Ääni lähteestä
+Voice layers	Äänikerrokset
+Voice model	Äänimalli
+Voice model:	Äänimalli:
+Voice name or ID, optional	Äänen nimi tai tunnus, valinnainen
+Voice server address, or a voice model's folder	Äänipalvelimen osoite tai äänimallin kansio
+Voice status	Äänen tila
+Voice, key and model...	Ääni, avain ja malli...
+Volume	Voimakkuus
+WAKE ME UP >	HERÄTÄ MINUT >
+WATCH >	KATSO >
+Waiting for the relay	Odotetaan relay-palvelinta
+Wake her up	Herätä hänet
+Waking her up	Herätetään häntä
+Wander	Vaeltele
+Wander around	Vaeltele ympäriinsä
+Watch my screen	Katso näyttöäni
+Watch-along memory	Katselumuisti
+Weather	Sää
+Weather city	Sään kaupunki
+Welcome back, choom. Let's finish setting me up.	Tervetuloa takaisin, choom. Viimeistellään asetukseni.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Mitä hän tekee PC:llä kysymättä. Kun kytkin on pois, hän kysyy ensin ja tekee, kun sanot kyllä.
+What should she call you?	Mitä hänen pitäisi kutsua sinua?
+When she types	Kun hän kirjoittaa
+White	Valkoinen
+Windows default	Windowsin oletus
+Windows did not give Settings keyboard focus	Windows ei antanut Asetuksille näppäimistön fokusta
+Windows did not return keyboard focus to Back	Windows ei palauttanut näppäimistön fokusta Takaisin-painikkeeseen
+With no picture the wheel still tried to slide.	Ilman kuvaa rulla yritti silti liukua.
+Works best on MAX INTELLIGENCE.	Toimii parhaiten MAX INTELLIGENCEllä.
+YOU	SINÄ
+YOU >	SINÄ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ÄÄNI SINÄ LIIKKEET NÄPPÄIMET PELIT KLIPIT SÄÄ DOOMSCROLL CAPRI KATSO AIVOT TAVAT ÄÄNET
+YOUR KEY	AVAIMESI
+YOUR MIC	MIKKISI
+YOUR PLAN	TILAUKSESI
+Yokapri what's up	Yokapri mitä kuuluu
+You can hide this. It keeps going, and the Mainframe shows it too.	Tämän voi piilottaa. Se jatkaa, ja Mainframe näyttää sen myös.
+Your mic and her voice go into one virtual mic, and	Mikkisi ja hänen äänensä menevät yhteen virtuaalimikkiin, ja
+Your mic is muted. Unmute it to test.	Mikkisi on mykistetty. Poista mykistys testataksesi.
+Your mods are up to date.	Modisi ovat ajan tasalla.
+Your name or a nickname	Nimesi tai lempinimesi
+Your own model	Oma malli
+Your personality	Persoonallisuutesi
+Your voice	Äänesi
+Your voice (HD)	Äänesi (HD)
+Your voice (HD) · pick a clip of you...	Äänesi (HD) · valitse klippi itsestäsi...
+Your voice model	Äänimallisi
+as its mic.	kuin hänen mikkinsä.
+changed. Saved as My Colors, so you can share it.	muutettu. Tallennettu nimellä Omat värit, jotta voit jakaa sen.
+choice	valinta
+clips the input line	leikkaa syöterivin
+cue	vihje
+doesn't yet.	ei vielä.
+download	lataa
+file.	tiedosto.
+flag	lippu
+fps	fps
+hear	kuulla
+hears	kuulee
+hears that.	kuulee sen.
+hides or shows her.	piilottaa tai näyttää hänet.
+hint	vihje
+in the Mainframe.	Mainframessa.
+in the mods directory with a pull request.	modikansioon pull requestilla.
+in the picture wasn't noticed.	kuvan muutosta ei huomattu.
+is already her push-to-talk key.	on jo hänen puhu-näppäimensä.
+is off.	on pois.
+is on and running.	on päällä ja käynnissä.
+is on, at the bottom, under	on päällä, alhaalla kohdassa
+is on.	on päällä.
+is on. She now answers to	on päällä. Hän vastaa nyt kohteelle
+is removed.	on poistettu.
+is taken	on varattu
+is taken by another app. Try another.	on toisen sovelluksen käytössä. Kokeile toista.
+is updated	on päivitetty
+isn't hearing it yet: do {0} and {1}, then join a call.	ei vielä kuule sitä: tee {0} ja {1}, ja liity puheluun.
+it now.	nyt.
+keeps her quiet, and lets her talk again.	pitää hänet hiljaisena, ja sallii hänen puhua taas.
+key	näppäin
+key.	näppäin.
+min	min
+more.	lisää.
+ms.	ms.
+mutes mic	mykistää mikin
+mutes your mic.	mykistää mikkisi.
+name	nimi
+off	pois
+on this PC	tässä PC:ssä
+opens her Mainframe.	avaa hänen Mainframensa.
+opens her typing box.	avaa hänen kirjoituslaatikkonsa.
+phone	puhelin
+phone pixels	puhelimen pikselit
+phones	puhelimet
+pixels	pikselit
+pixels)	pikselit)
+star.	tähti.
+stars.	tähteä.
+starts voice chat.	aloittaa äänichatin.
+stays off. Nothing ran.	pysyy pois. Mitään ei suoritettu.
+still does its own job in other apps too. Confirm to keep it.	tekee silti omaa työtään myös muissa sovelluksissa. Vahvista pitääksesi sen.
+tall	korkea
+time	aika
+to talk	puhua
+to talk to her, with a game in front too.	puhua hänelle, myös pelin ollessa edessä.
+too.	myös.
+turns Gaming Mode on and off.	kytkee pelitilan päälle ja pois.
+with Ollama	Ollaman kanssa
+won't type in other apps while she runs. Confirm to keep it.	ei kirjoita muihin sovelluksiin, kun hän on käynnissä. Vahvista pitääksesi sen.
+{0}   Echo Cancellation: Off	{0}   Kaiunpoisto: Pois
+{0}   If her voice cuts off, turn off noise filtering	{0}   Jos hänen äänensä katkeaa, poista kohinasuodatus
+{0}   Input Device:	{0}   Syötelaite:
+{0}   Join the call and check they hear both of you	{0}   Liity puheluun ja tarkista, että he kuulevat teidät molemmat
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikkitesti > Tarkistetaan: kuulet itsesi ja hänet puhuessaan
+{0}   Microphone:	{0}   Mikrofoni:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Kohinanvaimennus: Ei mitään. Molemmat voivat katkaista hänen äänensä ensimmäisen rivin jälkeen.
+{0}   Open the call or meeting's audio settings	{0}   Avaa puhelun tai kokouksen äänisäädöt
+{0}   Output Device: your headphones, like before	{0}   Ulostulolaite: kuulokkeesi, kuten ennenkin
+{0}   Speaker: your headphones, like before	{0}   Kaiutin: kuulokkeesi, kuten ennenkin
+{0}   Try a mic test in your call app	{0}   Kokeile mikkitestiä puhelusovelluksessasi
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Käyttäjäasetukset (rattaa nimesi vieressä) > Ääni ja video
+{0} Mbps	{0} Mbps
+{0} lines	{0} riviä
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· tässä PC:ssä
+· server	· palvelin

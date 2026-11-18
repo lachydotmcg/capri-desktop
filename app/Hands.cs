@@ -1401,8 +1401,8 @@ namespace CapriDesktop
 #if !CROSS
             { "desktop_icons", "Prank the icons and shortcuts on their desktop, then put them back. mess scatters them around for a bit, hide makes them all vanish and come back after a few seconds, and back puts everything where it was right now. Use it when they ask you to mess up, shuffle, scatter, move around, hide or bring back their desktop icons or shortcuts. Use rampage when they taunt you or say someone would beat you, like Adam Smasher would rock your shit. Every icon forms a train, rams the edge of the screen and gets flung around for about ten seconds, then they all go home. You never touch a file, only move or hide the icons.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back, rampage throws drawn copies\",\"enum\":[\"mess\",\"hide\",\"back\",\"rampage\"]}},\"required\":[\"action\"]}", "scatter, hide or throw your desktop icons and put them back", "scatter, hide or throw their desktop icons, then put them back" },
-            { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
+            { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action scroll when they ask you to scroll TikTok or Shorts for them or doomscroll for them: you press the down arrow on their feed for the next video and react to each one. Use action stop to finish watching or scrolling; watch_for is for a particular event.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"scroll\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
             { "gaming_mode", "Turn Gaming Mode on or off: you watch their game and react when something happens, until it closes. Use it when they ask, suggest or hint at your game overlay or reactions, however they word it. Playing the game yourself uses use_computer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}", "react to your games in Gaming Mode", "turn Gaming Mode on or off" },
             { "clip", "Save recent game video, open their clips folder or open the last saved clip when they ask, suggest or hint at it. save is the default and needs Clip my games on. Omit seconds for their default length. Opening saved clips works with recording off.",
@@ -1454,13 +1454,19 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"now to read, set to a level, up or down a step, mute or unmute\",\"enum\":[\"now\",\"set\",\"up\",\"down\",\"mute\",\"unmute\"]},\"name\":{\"type\":\"string\",\"description\":\"The app, like spotify, discord or chrome, or a game's program\"},\"level\":{\"type\":\"string\",\"description\":\"For set, its volume from 0 to 100. For up or down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}", "turn one app up, down or mute it, apart from your PC's volume", "turn one app's own volume up or down, or mute it" },
             { "pc_status", "See how their PC is doing right now, read over half a second: how busy its processor is, how much memory is in use, the apps using the most of either, each drive's free space, and the battery on a laptop. Use it when they say their PC or a game is slow, laggy or stuttering, or ask what's using their CPU, memory or disk space, before guessing why. Give name to see one app's use. It only reads; it changes nothing.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Only this app, if they asked about one, like chrome or a game's program\"}}}", "check why your PC or a game is slow or stuttering", "check how their PC is doing: processor, memory, disks and battery" },
-            { "internet_status", "Check their internet right now: whether they're on Ethernet or Wi-Fi, how four pings to a public address went, how long they took and how many were lost, and whether web addresses look up. Use it when they ask if their internet is down, why a site won't load, or what their ping is, and with pc_status when a game lags, to tell their PC from their connection. Give address to ping a site or server they named instead. It only reads.",
-              "{\"type\":\"object\",\"properties\":{\"address\":{\"type\":\"string\",\"description\":\"A site or server to ping instead, only if they named one, like google.com\"}}}", "check your internet and ping", "check their internet: connection, ping and lost packets" },
 #endif
+            { "internet_status", "Check their internet right now: whether they're on Ethernet or Wi-Fi, how four pings to a public address went, how long they took and how many were lost, and whether web addresses look up. Use it when they ask if their internet is down, why a site won't load, or what their ping is, and with " +
+#if CROSS
+              "linux_system" +
+#else
+              "pc_status" +
+#endif
+              " when a game lags, to tell their PC from their connection. Give address to ping a site or server they named instead. It only reads.",
+              "{\"type\":\"object\",\"properties\":{\"address\":{\"type\":\"string\",\"description\":\"A site or server to ping instead, only if they named one, like google.com\"}}}", "check your internet and ping", "check their internet: connection, ping and lost packets" },
 #if CROSS
             { "run_terminal", "Run the desktop owner's requested command using their native shell and real working directory. A visible job opens its native terminal itself; do not open a second empty terminal first. Use for terminal tasks instead of a screenshot job or project-scope runner. Returns real job identity/status and output when available; never claim completion from the request alone.", "{\"type\":\"object\",\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"The requested shell command or script; preserve its literal quoting and Unicode.\"},\"cwd\":{\"type\":\"string\",\"description\":\"Real requested working directory. If absent, use the owner's actual home directory; no project root is required.\"},\"visible\":{\"type\":\"boolean\",\"description\":\"Open the actual terminal for this job. Defaults to true; use false for a requested background command.\"}},\"required\":[\"command\"],\"additionalProperties\":false}", "run your requested native terminal task", "run their requested native terminal task" },
             { "terminal_job", "Inspect output/status or stop one native terminal job started for the owner. Use its exact returned job ID. Stop only that owned job; never all terminal processes. An exit code is reported only when actually observed.", "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"status\",\"read\",\"stop\"]},\"job_id\":{\"type\":\"string\"},\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Optional output cursor from the previous read.\"}},\"required\":[\"action\",\"job_id\"],\"additionalProperties\":false}", "run your requested native terminal task", "run their requested native terminal task" },
-            { "linux_system", "Read Linux CPU load, memory and disk status or owned process names, or inspect and operate one explicitly named user service. Never a shell or system service. Use a literal .service unit; mutations must be in the owner's request.",
+            { "linux_system", "Read Linux CPU use and load, memory, disk and battery status or owned process names, or inspect and operate one explicitly named user service. Never a shell or system service. Use a literal .service unit; mutations must be in the owner's request.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"overview\",\"status\",\"processes\",\"service_failed\",\"service_status\",\"service_start\",\"service_stop\",\"service_restart\"]},\"name\":{\"type\":\"string\"}},\"required\":[\"action\"]}", "read Linux diagnostics or manage your named user service", "read Linux diagnostics or manage their named user service" },
 #endif
         };
@@ -1984,10 +1990,10 @@ namespace CapriDesktop
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
 #endif
                 if (tool == "hologram") return Hologram(args.Action);
+                if (tool == "internet_status") return InternetStatus(args.Address);
 #if !CROSS
                 if (tool == "app_volume") return AppVolume(args);
                 if (tool == "pc_status") return PcStatus(args.Name);
-                if (tool == "internet_status") return InternetStatus(args.Address);
                 if (tool == "desktop_icons") return Icons(args.Action);
                 if (tool == "voice_chat") return Valid(tool, args) ? VoiceChat(args) : "Couldn't find that voice chat action.";
                 if (tool == "workspace") return Valid(tool, args) ? Workspace(args) : "Couldn't find that Workspace action or task.";
@@ -2353,7 +2359,11 @@ namespace CapriDesktop
                 missing.Add(new[] { "use_computer:launch", "Mac screen jobs use the app already in front" });
             }
             if (!blind && !Watching.Quiet()) missing.Add(new[] { "watch_for", "this desktop can't take quiet screenshots" });
-            if (OnMac) missing.Add(new[] { "linux_system", "Linux system tools are unavailable on macOS." });
+            if (OnMac)
+            {
+                missing.Add(new[] { "linux_system", "Linux system tools are unavailable on macOS." });
+                missing.Add(new[] { "internet_status", "not on Mac yet" });
+            }
             if (TerminalAvailable == null || !TerminalAvailable())
                 foreach (string tool in new[] { "run_terminal", "terminal_job" }) missing.Add(new[] { tool, "Native terminal jobs are unavailable on this platform." });
             if (!OwnHands)
@@ -2435,6 +2445,7 @@ namespace CapriDesktop
             { "use_computer:launch", "opening apps inside a screen job", "Open the app and bring it to the front before asking me to use it." },
             { "clone:chaos", "chaos mode", NoCloneChaos },
             { "linux_system", "Linux system tools", "I can't use Linux system tools on a Mac." },
+            { "internet_status", "checking their internet", "I can't check your internet on a Mac yet." },
             { "run_terminal", "terminal commands", "I can't run terminal commands on this desktop." },
             { "terminal_job", "terminal jobs", "I can't control terminal jobs on this desktop." },
 #endif
@@ -3779,6 +3790,7 @@ namespace CapriDesktop
 #endif
 #if !CROSS
             if (CallSession.Blank(said)) { tool = null; args = new ToolArguments(); return false; }
+            if (CapriDesktop.WatchAlong.Request(said) == "scroll") { tool = "watch_along"; args = new ToolArguments { Action = "scroll" }; return true; }
 #endif
             if (Planned(said, out tool, out args)) return true;
             List<string> tries = new List<string>();
@@ -4483,7 +4495,7 @@ namespace CapriDesktop
             if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
 #if !CROSS
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back" || args.Action == "rampage");
-            if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
+            if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "scroll" || args.Action == "stop");
 #endif
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
 #if !CROSS
@@ -4530,8 +4542,9 @@ namespace CapriDesktop
             if (tool == "open_app" || tool == "check_app") return Named(args.Name);
             if (tool == "list_windows") return true;
             if (tool == "capri_settings") return args.Action == "list" && (string.IsNullOrEmpty(args.Name) || OwnRow(args.Name) >= 0 || LevelRow(args.Name) >= 0 || args.Name == "clip_folder") || Array.IndexOf(SettingActions, args.Action) >= 0 || (args.Action == "on" || args.Action == "off") && OwnRow(args.Name) >= 0 || args.Action == "set" && (args.Name == "clip_folder" ? Named(args.Path) : LevelRow(args.Name) >= 0 && Named(args.Level));
+            if (tool == "internet_status") return true;
 #if !CROSS
-            if (tool == "pc_status" || tool == "internet_status") return true;
+            if (tool == "pc_status") return true;
             if (tool == "app_volume")
             {
                 int volume;
@@ -7116,6 +7129,7 @@ namespace CapriDesktop
 
         // How their PC is doing right now, swapped for a stand-in in the checks.
         internal static Func<PcUse> Use = Usage.Read;
+#endif
         // Their connection right now, swapped for a stand-in in the checks so nothing pings out from them.
         internal static Func<string, NetUse> Net = Network.Read;
 
@@ -7136,6 +7150,7 @@ namespace CapriDesktop
             if (net.Names == false) return said + ", but web addresses don't look up, so sites won't load: their DNS is the problem.";
             return said + (net.Names == true ? ", and web addresses look up fine." : ".");
         }
+#if !CROSS
 
         // How busy their PC is, for "my game's lagging" or "what's eating my memory": the processor and memory in use, the apps
         // using the most of either, or the one they asked about, each drive's free space, and a laptop's battery.

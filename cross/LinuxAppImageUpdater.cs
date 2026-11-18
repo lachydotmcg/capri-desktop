@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
@@ -44,7 +45,7 @@ namespace CapriDesktop
     // Restart Capri to update.
     internal static class LinuxAppImageUpdater
     {
-        internal const string AppName = "Capri-linux-x64.AppImage";
+        internal static readonly string AppName = NameFor(RuntimeInformation.ProcessArchitecture);
         internal const string SumsName = "SHA256SUMS.txt";
         private const long Largest = 512L * 1024 * 1024;
         private static readonly string[] RuntimeNames = { "APPIMAGE", "APPDIR", "OWD", "ARGV0", "APPIMAGE_UUID" };
@@ -76,8 +77,15 @@ namespace CapriDesktop
             return Path.GetFullPath(image);
         }
 
+        internal static string NameFor(Architecture cpu)
+        {
+            if (cpu == Architecture.X64) return "Capri-linux-x64.AppImage";
+            if (cpu == Architecture.Arm64) return "Capri-linux-arm64.AppImage";
+            return null;
+        }
+
         // Null when the release isn't newer than mine. Throws for a release she shouldn't install.
-        internal static LinuxUpdatePlan Pick(string json, Version mine)
+        internal static LinuxUpdatePlan Pick(string json, Version mine, string name)
         {
             ReleaseDocument release = null;
             try { using (MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(json ?? ""))) release = (ReleaseDocument)new DataContractJsonSerializer(typeof(ReleaseDocument)).ReadObject(input); }
@@ -86,8 +94,8 @@ namespace CapriDesktop
             if (release.Draft || release.Prerelease) throw new AppImageUpdateException("That release isn't finished yet.");
             string version = Pet.Newer(release.Tag, mine);
             if (version == null) return null;
-            ReleaseFile app = Find(release.Assets, AppName), sums = Find(release.Assets, SumsName);
-            if (app == null) throw new AppImageUpdateException("Capri " + version + " has no Linux AppImage.");
+            ReleaseFile app = name == null ? null : Find(release.Assets, name), sums = Find(release.Assets, SumsName);
+            if (app == null) throw new AppImageUpdateException("Capri " + version + " has no Linux AppImage for this computer's CPU.");
             if (sums == null) throw new AppImageUpdateException("Capri " + version + " has no checksum list, so I won't install it.");
             if (app.Size <= 0 || app.Size > Largest) throw new AppImageUpdateException("The AppImage's size looks wrong, so I won't install it.");
             if (!Official(app.Url) || !Official(sums.Url)) throw new AppImageUpdateException("The AppImage isn't on Capri's GitHub releases, so I won't install it.");
@@ -143,10 +151,10 @@ namespace CapriDesktop
         // Downloads and checks the newer AppImage into her data folder. Null when there's nothing newer.
         internal static LinuxUpdateReady Prepare(string json, string dataFolder, Version mine)
         {
-            string image = Image();
-            if (image == null) return null;
+            string image = Image(), name = AppName;
+            if (image == null || name == null) return null;
             string directory = Path.Combine(dataFolder, "updates");
-            LinuxUpdatePlan plan = Pick(json, mine);
+            LinuxUpdatePlan plan = Pick(json, mine, name);
             if (plan == null) { Tidy(directory, null); return null; }
             string sums;
             using (MemoryStream memory = new MemoryStream())
@@ -154,7 +162,7 @@ namespace CapriDesktop
                 Fetch(plan.SumsUrl, memory, 1024 * 1024, -1);
                 sums = Encoding.UTF8.GetString(memory.ToArray());
             }
-            string hash = Checksum(sums, AppName);
+            string hash = Checksum(sums, name);
             Directory.CreateDirectory(directory);
             string destination = Path.Combine(directory, "Capri-" + plan.Version + ".AppImage");
             Tidy(directory, destination);
@@ -426,6 +434,11 @@ exit 1
             }
             checks.Add("PASS appimage update addresses: only https github.com under capri-desktop's release downloads, with no port, user, query or fragment; a move goes only to https");
 
+            string x64 = NameFor(Architecture.X64), arm64 = NameFor(Architecture.Arm64);
+            if (x64 != "Capri-linux-x64.AppImage" || arm64 != "Capri-linux-arm64.AppImage" || NameFor(Architecture.X86) != null || NameFor(Architecture.Arm) != null)
+                throw new Exception("The AppImage for a CPU was named wrongly.");
+            checks.Add("PASS appimage per CPU: x64 takes Capri-linux-x64.AppImage, arm64 takes Capri-linux-arm64.AppImage, 32-bit CPUs take none; on " + RuntimeInformation.ProcessArchitecture + " she looks for " + (AppName ?? "none"));
+
             string a = new string('a', 64), b = new string('B', 64), c = new string('c', 64);
             var sums = new Dictionary<string, string>
             {
@@ -433,27 +446,38 @@ exit 1
                 { a + "  Capri.exe\r\n" + c + "  Capri-linux-x64.AppImage\r\n", c },
                 { c + " *Capri-linux-x64.AppImage", c },
                 { a + "\tCapri-linux-x64.AppImage\n" + b + " Capri-linux-x64.AppImage.zsync\n", a },
+                { a + " Capri-linux-arm64.AppImage\n" + c + " Capri-linux-x64.AppImage\n", c },
             };
             foreach (KeyValuePair<string, string> pair in sums)
-                if (Checksum(pair.Key, AppName) != pair.Value) throw new Exception("The checksum list was misread: " + pair.Key.Replace("\n", "|"));
-            foreach (string text in new[] { "", null, a + " Capri.exe\n", a + " Capri-linux-x64.AppImage\n" + b + " Capri-linux-x64.AppImage\n", "abc Capri-linux-x64.AppImage\n", a + " capri-linux-x64.appimage\n" })
+                if (Checksum(pair.Key, x64) != pair.Value) throw new Exception("The checksum list was misread: " + pair.Key.Replace("\n", "|"));
+            string mixed = a + " Capri-linux-x64.AppImage\n" + b + " Capri-linux-arm64.AppImage\n" + c + " Capri-linux-arm64.tar.gz\n";
+            if (Checksum(mixed, x64) != a || Checksum(mixed, arm64) != b.ToLowerInvariant()) throw new Exception("A checksum list with both CPUs gave one CPU the other's hash.");
+            foreach (string text in new[] { "", null, a + " Capri.exe\n", a + " Capri-linux-x64.AppImage\n" + b + " Capri-linux-x64.AppImage\n", "abc Capri-linux-x64.AppImage\n", a + " capri-linux-x64.appimage\n", a + " Capri-linux-arm64.AppImage\n" })
             {
                 bool refused = false;
-                try { Checksum(text, AppName); } catch (AppImageUpdateException) { refused = true; }
+                try { Checksum(text, x64); } catch (AppImageUpdateException) { refused = true; }
                 if (!refused) throw new Exception("A checksum list without exactly one AppImage line was taken: " + (text ?? "null").Replace("\n", "|"));
             }
-            checks.Add("PASS appimage checksum list: one or two spaces, a tab, CRLF and a leading star read; the name missing, listed twice or in other case is refused");
+            bool armRefused = false;
+            try { Checksum(a + " Capri-linux-x64.AppImage\n", arm64); } catch (AppImageUpdateException) { armRefused = true; }
+            if (!armRefused) throw new Exception("An arm64 Capri took the x64 AppImage's checksum.");
+            checks.Add("PASS appimage checksum list: one or two spaces, a tab, CRLF and a leading star read; each CPU gets its own line; the name missing, listed twice, in other case or only for the other CPU is refused");
 
             Version mine = new Version(0, 9, 0, 0);
             Func<string, string, string> release = (tag, rest) => "{\"tag_name\":\"" + tag + "\",\"draft\":false,\"prerelease\":false,\"assets\":[" + rest + "]}";
             Func<string, long, string> file = (name, size) => "{\"name\":\"" + name + "\",\"size\":" + size + ",\"browser_download_url\":\"https://github.com/lachydotmcg/capri-desktop/releases/download/v9/" + name + "\"}";
-            string both = file(AppName, 59394552) + "," + file(SumsName, 596);
+            string both = file(x64, 59394552) + "," + file(SumsName, 596);
             foreach (string tag in new[] { "v0.8.9", "v0.9.0", "0.9.0.0", "v0.1.12" })
-                if (Pick(release(tag, both), mine) != null) throw new Exception("An older or the same release was offered: " + tag);
-            LinuxUpdatePlan plan = Pick(release("v0.9.1", both), mine);
-            if (plan == null || plan.Version != "0.9.1" || plan.Size != 59394552 || !plan.AppUrl.EndsWith("/" + AppName, StringComparison.Ordinal) || !plan.SumsUrl.EndsWith("/" + SumsName, StringComparison.Ordinal))
+                if (Pick(release(tag, both), mine, x64) != null) throw new Exception("An older or the same release was offered: " + tag);
+            LinuxUpdatePlan plan = Pick(release("v0.9.1", both), mine, x64);
+            if (plan == null || plan.Version != "0.9.1" || plan.Size != 59394552 || !plan.AppUrl.EndsWith("/" + x64, StringComparison.Ordinal) || !plan.SumsUrl.EndsWith("/" + SumsName, StringComparison.Ordinal))
                 throw new Exception("A newer release wasn't picked up whole.");
-            if (Pick(release("v0.9.0.1", both), mine)?.Version != "0.9.0.1" || Pick(release("V1.0", both), mine)?.Version != "1.0.0") throw new Exception("A four-part or two-part newer version was missed.");
+            if (Pick(release("v0.9.0.1", both), mine, x64)?.Version != "0.9.0.1" || Pick(release("V1.0", both), mine, x64)?.Version != "1.0.0") throw new Exception("A four-part or two-part newer version was missed.");
+            string every = file(x64, 59394552) + "," + file(arm64, 57000000) + "," + file("Capri-linux-arm64.tar.gz", 50000000) + "," + file(SumsName, 700);
+            LinuxUpdatePlan onX64 = Pick(release("v0.9.1", every), mine, x64), onArm64 = Pick(release("v0.9.1", every), mine, arm64);
+            if (onX64 == null || !onX64.AppUrl.EndsWith("/" + x64, StringComparison.Ordinal) || onX64.Size != 59394552
+                || onArm64 == null || !onArm64.AppUrl.EndsWith("/" + arm64, StringComparison.Ordinal) || onArm64.Size != 57000000)
+                throw new Exception("A release with both CPUs' AppImages gave a CPU the wrong one.");
             var refusals = new Dictionary<string, string>
             {
                 { "junk tag", release("nightly", both) }, { "suffix tag", release("v0.9.1-beta", both) }, { "five parts", release("v0.9.1.0.1", both) },
@@ -461,20 +485,28 @@ exit 1
                 { "draft", release("v0.9.1", both).Replace("\"draft\":false", "\"draft\":true") },
                 { "prerelease", release("v0.9.1", both).Replace("\"prerelease\":false", "\"prerelease\":true") },
                 { "no appimage", release("v0.9.1", file(SumsName, 596)) },
-                { "no checksum list", release("v0.9.1", file(AppName, 59394552)) },
-                { "appimage twice", release("v0.9.1", both + "," + file(AppName, 59394552)) },
+                { "no checksum list", release("v0.9.1", file(x64, 59394552)) },
+                { "appimage twice", release("v0.9.1", both + "," + file(x64, 59394552)) },
                 { "checksum list twice", release("v0.9.1", both + "," + file(SumsName, 596)) },
-                { "empty appimage", release("v0.9.1", file(AppName, 0) + "," + file(SumsName, 596)) },
-                { "oversize appimage", release("v0.9.1", file(AppName, Largest + 1) + "," + file(SumsName, 596)) },
+                { "empty appimage", release("v0.9.1", file(x64, 0) + "," + file(SumsName, 596)) },
+                { "oversize appimage", release("v0.9.1", file(x64, Largest + 1) + "," + file(SumsName, 596)) },
                 { "foreign address", release("v0.9.1", both.Replace("https://github.com/lachydotmcg/", "https://github.com/someone/")) },
+                { "only the arm64 appimage", release("v0.9.1", file(arm64, 57000000) + "," + file(SumsName, 596)) },
             };
             foreach (KeyValuePair<string, string> pair in refusals)
             {
                 bool refused = false;
-                try { Pick(pair.Value, mine); } catch (AppImageUpdateException) { refused = true; }
+                try { Pick(pair.Value, mine, x64); } catch (AppImageUpdateException) { refused = true; }
                 if (!refused) throw new Exception("A release she shouldn't install was taken: " + pair.Key);
             }
-            checks.Add("PASS appimage releases: older, same, newer, four-part and junk versions; a draft, a prerelease, a missing AppImage or checksum list, either listed twice, and an empty or oversize AppImage are refused");
+            var otherCpu = new Dictionary<string, string> { { "only the x64 appimage", arm64 }, { "no appimage for a 32-bit CPU", NameFor(Architecture.Arm) } };
+            foreach (KeyValuePair<string, string> pair in otherCpu)
+            {
+                bool refused = false;
+                try { Pick(release("v0.9.1", pair.Key == "only the x64 appimage" ? both : every), mine, pair.Value); } catch (AppImageUpdateException) { refused = true; }
+                if (!refused) throw new Exception("A release she shouldn't install was taken: " + pair.Key);
+            }
+            checks.Add("PASS appimage releases: older, same, newer, four-part and junk versions; with both CPUs' AppImages each CPU takes its own; a draft, a prerelease, a missing AppImage or checksum list, only the other CPU's AppImage, either listed twice, and an empty or oversize AppImage are refused");
 
             string folder = Path.Combine(Path.GetTempPath(), "capri-appimage-check-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
