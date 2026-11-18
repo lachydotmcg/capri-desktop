@@ -11740,6 +11740,7 @@ namespace CapriDesktop
             List<string> lines = new List<string>(checks);
             lines.Insert(0, "Capri cross-platform smoke test on " + System.Runtime.InteropServices.RuntimeInformation.OSDescription);
             if (failure != null) lines.Add("FAIL " + failure);
+            else lines.Add("FAIL A system quit with her Mainframe and a sheet open did not end her.");
             File.WriteAllLines(Path.Combine(folder, "smoke-test.txt"), lines);
             if (failure != null || !SystemQuit(lines)) pet.Finish(1);
         }
@@ -11749,7 +11750,6 @@ namespace CapriDesktop
         private bool SystemQuit(List<string> lines)
         {
             string file = Path.Combine(folder, "smoke-test.txt");
-            lines.Add("FAIL A system quit with her Mainframe and a sheet open did not end her.");
             File.WriteAllLines(file, lines);
             bool ended = false;
             try
