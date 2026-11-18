@@ -268,8 +268,10 @@ Hide / Show Capri	ซ่อน / แสดง Capri
 Hide / Show key	คีย์ซ่อน / แสดง
 Hide Capri	ซ่อน Capri
 Hide for now	ซ่อนไว้ก่อน
+Hide her	ซ่อนเธอ
 Hide in full screen	ซ่อนในโหมดเต็มจอ
 Hide this	ซ่อนอันนี้
+Hide, keep player	ซ่อน เก็บเพลเยอร์ไว้
 Hide/show:	ซ่อน/แสดง:
 Hide/show: Ctrl + Alt + H	ซ่อน/แสดง: Ctrl + Alt + H
 Hologram	โฮโลแกรม
@@ -296,6 +298,7 @@ IN DISCORD >	ใน DISCORD >
 INSTALLED >	ติดตั้งแล้ว >
 Import a Capri mod	นำเข้าม็อด Capri
 Import mod	นำเข้าม็อด
+In full screen	ในโหมดเต็มจอ
 In games	ในเกม
 Input	อินพุต
 Input, Output or How to overlaps a row	อินพุต เอาต์พุต หรือ วิธีซ้อนทับแถว
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	คีย์
 KEYS >	คีย์ >
 Keep PC awake for jobs	ให้พีซีตื่นไว้สำหรับงาน
+Keep player	เก็บเพลเยอร์ไว้
 Keeps the last two minutes of your game in memory. Say clip that to save it.	เก็บสองนาทีสุดท้ายของเกมไว้ในหน่วยความจำ พูดว่าบันทึกคลิปนั้นเพื่อบันทึก
 Key	คีย์
 Key cleared: a model file needs none.	ล้างคีย์แล้ว: ไฟล์โมเดลไม่ต้องใช้คีย์
@@ -666,6 +670,7 @@ Speed	ความเร็ว
 Start with Windows	เริ่มพร้อม Windows
 Start with this!	เริ่มด้วยอันนี้!
 Starting...	กำลังเริ่ม...
+Stay	อยู่ต่อ
 Stay on my model	คงอยู่กับโมเดลของฉัน
 Still checking your mics...	ยังตรวจไมค์ของคุณอยู่...
 Still checking your speakers...	ยังตรวจลำโพงของคุณอยู่...

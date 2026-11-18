@@ -268,8 +268,10 @@ Hide / Show Capri	הסתר / הצג Capri
 Hide / Show key	מקש הסתר / הצג
 Hide Capri	הסתר את Capri
 Hide for now	הסתר לעכשיו
+Hide her	להסתיר אותה
 Hide in full screen	הסתר במסך מלא
 Hide this	הסתר את זה
+Hide, keep player	להסתיר, להשאיר נגן
 Hide/show:	הסתר/הצג:
 Hide/show: Ctrl + Alt + H	הסתר/הצג: Ctrl + Alt + H
 Hologram	הולוגרמה
@@ -296,6 +298,7 @@ IN DISCORD >	ב-DISCORD >
 INSTALLED >	מותקן >
 Import a Capri mod	ייבא מוד של Capri
 Import mod	ייבא מוד
+In full screen	במסך מלא
 In games	במשחקים
 Input	קלט
 Input, Output or How to overlaps a row	קלט, פלט או How to חופפים בשורה
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	מקשים
 KEYS >	מקשים >
 Keep PC awake for jobs	השאר את המחשב ער למשימות
+Keep player	להשאיר נגן
 Keeps the last two minutes of your game in memory. Say clip that to save it.	שומר את שתי הדקות האחרונות של המשחק שלך בזיכרון. אמור clip that כדי לשמור.
 Key	מפתח
 Key cleared: a model file needs none.	מפתח נוקה: קובץ מודל לא צריך אחד.
@@ -666,6 +670,7 @@ Speed	מהירות
 Start with Windows	התחל עם Windows
 Start with this!	התחל עם זה!
 Starting...	מתחיל...
+Stay	להישאר
 Stay on my model	הישאר במודל שלי
 Still checking your mics...	עדיין בודק את המיקרופונים שלך...
 Still checking your speakers...	עדיין בודק את הרמקולים שלך...

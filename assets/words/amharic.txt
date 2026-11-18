@@ -268,8 +268,10 @@ Hide / Show Capri	Capriን ደብቅ / አሳይ
 Hide / Show key	ደብቅ / አሳይ ቁልፍ
 Hide Capri	Capriን ደብቅ
 Hide for now	ለአሁን ደብቅ
+Hide her	ደብቃት
 Hide in full screen	በሙሉ ማያ ደብቅ
 Hide this	ይህን ደብቅ
+Hide, keep player	ደብቃት፣ ማጫወቻውን አቆይ
 Hide/show:	ደብቅ/አሳይ:
 Hide/show: Ctrl + Alt + H	ደብቅ/አሳይ: Ctrl + Alt + H
 Hologram	ሆሎግራም
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	የተጫኑ >
 Import a Capri mod	የCapri ሞድ አስመጣ
 Import mod	ሞድ አስመጣ
+In full screen	በሙሉ ማያ
 In games	በጨዋታዎች
 Input	ግቤት
 Input, Output or How to overlaps a row	ግቤት፣ ውጤት ወይም እንዴት ከረድፍ ጋር ይደራረባል
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ቁልፎች
 KEYS >	ቁልፎች >
 Keep PC awake for jobs	ለስራዎች ፒሲውን ነቅቶ አቆይ
+Keep player	ማጫወቻውን አቆይ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	የጨዋታህን የመጨረሻ ሁለት ደቂቃ በማህደረ ትውስታ ይይዛል። ለማስቀመጥ clip that በል።
 Key	ቁልፍ
 Key cleared: a model file needs none.	ቁልፍ ጸድቷል፡ የሞዴል ፋይል ምንም አያስፈልገውም።
@@ -666,6 +670,7 @@ Speed	ፍጥነት
 Start with Windows	ከWindows ጋር ጀምር
 Start with this!	ይህን ጀምር!
 Starting...	በመጀመር ላይ...
+Stay	ቆይ
 Stay on my model	በሞዴሌ ቆይ
 Still checking your mics...	አሁንም ማይኮችዎን በመፈተሽ ላይ...
 Still checking your speakers...	አሁንም ድምፅ ማጉያዎችዎን በመፈተሽ ላይ...

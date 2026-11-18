@@ -268,8 +268,10 @@ Hide / Show Capri	267|Cuddio / Dangos Capri
 Hide / Show key	268|Allwedd cuddio / dangos
 Hide Capri	269|Cuddio Capri
 Hide for now	270|Cuddio am nawr
+Hide her	Ei chuddio
 Hide in full screen	271|Cuddio mewn sgrin lawn
 Hide this	272|Cuddio hwn
+Hide, keep player	Ei chuddio, cadw'r chwaraewr
 Hide/show:	273|Cuddio/dangos:
 Hide/show: Ctrl + Alt + H	274|Cuddio/dangos: Ctrl + Alt + H
 Hologram	275|Holograffeg
@@ -296,6 +298,7 @@ IN DISCORD >	295|YN DISCORD >
 INSTALLED >	296|WEDI'I GOSOD >
 Import a Capri mod	297|Mewnforio mod Capri
 Import mod	298|Mewnforio mod
+In full screen	Mewn sgrin lawn
 In games	299|Mewn gemau
 Input	300|Mewnbwn
 Input, Output or How to overlaps a row	301|Mewnbwn, Allbwn neu Sut i'n gorgyffwrdd â rhes
@@ -314,6 +317,7 @@ KB.	313|KB.
 KEYS	314|ALLWEDDI
 KEYS >	315|ALLWEDDI >
 Keep PC awake for jobs	316|Cadw'r PC yn effro ar gyfer swyddi
+Keep player	Cadw'r chwaraewr
 Keeps the last two minutes of your game in memory. Say clip that to save it.	317|Yn cadw dwy funud olaf dy gêm yn y cof. Dywed clipio hynny i'w gadw.
 Key	318|Allwedd
 Key cleared: a model file needs none.	319|Allwedd wedi'i chlirio: nid oes angen un ar ffeil model.
@@ -666,6 +670,7 @@ Speed	665|Cyflymder
 Start with Windows	666|Dechrau gyda Windows
 Start with this!	667|Dechrau gyda hwn!
 Starting...	668|Yn dechrau...
+Stay	Aros
 Stay on my model	669|Aros ar fy model
 Still checking your mics...	670|Yn dal i wirio dy feiciau...
 Still checking your speakers...	671|Yn dal i wirio dy seinyddion...

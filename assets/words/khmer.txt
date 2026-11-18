@@ -268,8 +268,10 @@ Hide / Show Capri	267|លាក់ / បង្ហាញ Capri
 Hide / Show key	268|គ្រាប់ចុចលាក់ / បង្ហាញ
 Hide Capri	269|លាក់ Capri
 Hide for now	270|លាក់សម្រាប់ពេលនេះ
+Hide her	លាក់នាង
 Hide in full screen	271|លាក់ក្នុងអេក្រង់ពេញ
 Hide this	272|លាក់នេះ
+Hide, keep player	លាក់នាង រក្សាកម្មវិធីចាក់
 Hide/show:	273|លាក់/បង្ហាញ៖
 Hide/show: Ctrl + Alt + H	274|លាក់/បង្ហាញ៖ Ctrl + Alt + H
 Hologram	275|ហូឡូក្រាម
@@ -296,6 +298,7 @@ IN DISCORD >	295|នៅក្នុង DISCORD >
 INSTALLED >	296|បានដំឡើង >
 Import a Capri mod	297|នាំចូលម៉ូដ Capri
 Import mod	298|នាំចូលម៉ូដ
+In full screen	ក្នុងអេក្រង់ពេញ
 In games	299|នៅក្នុងហ្គេម
 Input	300|បញ្ចូល
 Input, Output or How to overlaps a row	301|បញ្ចូល, បញ្ចេញ ឬ របៀបត្រួតលើជួរ
@@ -314,6 +317,7 @@ KB.	313|KB.
 KEYS	314|គ្រាប់ចុច
 KEYS >	315|គ្រាប់ចុច >
 Keep PC awake for jobs	316|រក្សាកុំព្យូទ័រឲ្យភ្ញាក់សម្រាប់ការងារ
+Keep player	រក្សាកម្មវិធីចាក់
 Keeps the last two minutes of your game in memory. Say clip that to save it.	317|រក្សាពីរនាទីចុងក្រោយនៃហ្គេមរបស់អ្នកក្នុងការចងចាំ។ និយាយ កាត់នោះ ដើម្បីរក្សាទុកវា។
 Key	318|គន្លឹះ
 Key cleared: a model file needs none.	319|គន្លឹះត្រូវបានសម្អាត៖ ឯកសារម៉ូដែលមិនត្រូវការវាទេ។
@@ -666,6 +670,7 @@ Speed	665|ល្បឿន
 Start with Windows	666|ចាប់ផ្តើមជាមួយ Windows
 Start with this!	667|ចាប់ផ្តើមជាមួយនេះ!
 Starting...	668|កំពុងចាប់ផ្តើម...
+Stay	ស្នាក់នៅ
 Stay on my model	669|នៅជាមួយម៉ូដែលរបស់ខ្ញុំ
 Still checking your mics...	670|កំពុងពិនិត្យមីក្រូហ្វូនរបស់អ្នក...
 Still checking your speakers...	671|កំពុងពិនិត្យឧបករណ៍បំពងសំឡេងរបស់អ្នក...

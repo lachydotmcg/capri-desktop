@@ -268,8 +268,10 @@ Hide / Show Capri	隱藏／顯示 Capri
 Hide / Show key	隱藏／顯示按鍵
 Hide Capri	隱藏 Capri
 Hide for now	暫時隱藏
+Hide her	隱藏她
 Hide in full screen	全螢幕時隱藏
 Hide this	隱藏這個
+Hide, keep player	隱藏她，保留播放器
 Hide/show:	隱藏／顯示：
 Hide/show: Ctrl + Alt + H	隱藏／顯示：Ctrl + Alt + H
 Hologram	全息投影
@@ -296,6 +298,7 @@ IN DISCORD >	在 DISCORD >
 INSTALLED >	已安裝 >
 Import a Capri mod	匯入 Capri 模組
 Import mod	匯入模組
+In full screen	全螢幕時
 In games	遊戲中
 Input	輸入
 Input, Output or How to overlaps a row	輸入、輸出或如何與列重疊
@@ -314,6 +317,7 @@ KB.	KB。
 KEYS	按鍵
 KEYS >	按鍵 >
 Keep PC awake for jobs	為工作保持電腦清醒
+Keep player	保留播放器
 Keeps the last two minutes of your game in memory. Say clip that to save it.	在記憶中保留遊戲的最後兩分鐘。說「剪下這段」即可儲存。
 Key	金鑰
 Key cleared: a model file needs none.	金鑰已清除：模型檔案不需要金鑰。
@@ -666,6 +670,7 @@ Speed	速度
 Start with Windows	隨 Windows 啟動
 Start with this!	從這個開始！
 Starting...	正在啟動...
+Stay	留著
 Stay on my model	保持使用我的模型
 Still checking your mics...	仍在檢查你的麥克風...
 Still checking your speakers...	仍在檢查你的喇叭...

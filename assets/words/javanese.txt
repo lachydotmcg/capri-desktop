@@ -268,8 +268,10 @@ Hide / Show Capri	Didhelikake / Tampilake Capri
 Hide / Show key	Kunci Didhelikake / Tampilake
 Hide Capri	Didhelikake Capri
 Hide for now	Didhelikake sementara
+Hide her	Didhelikake dheweke
 Hide in full screen	Didhelikake ing layar penuh
 Hide this	Didhelikake iki
+Hide, keep player	Didhelikake, pemutar tetep
 Hide/show:	Didhelikake/tampilake:
 Hide/show: Ctrl + Alt + H	Didhelikake/tampilake: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	ING DISCORD >
 INSTALLED >	WIS DIINSTAL >
 Import a Capri mod	Impor mod Capri
 Import mod	Impor mod
+In full screen	Ing layar penuh
 In games	Ing game
 Input	Input
 Input, Output or How to overlaps a row	Input, Output utawa Cara tumpang tindih karo baris
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KUNCI
 KEYS >	KUNCI >
 Keep PC awake for jobs	Tetep nggawe PC tangi kanggo tugas
+Keep player	Pemutar tetep
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Nyimpen rong menit pungkasan game-mu ing memori. Ucapake klip kuwi kanggo nyimpen.
 Key	Kunci
 Key cleared: a model file needs none.	Kunci diresiki: file model ora butuh.
@@ -666,6 +670,7 @@ Speed	Kecepatan
 Start with Windows	Mlaku bareng Windows
 Start with this!	Wiwiti karo iki!
 Starting...	Lagi diwiwiti...
+Stay	Tetep
 Stay on my model	Tetep ing modelku
 Still checking your mics...	Isih mriksa mikropon-mu...
 Still checking your speakers...	Isih mriksa speaker-mu...

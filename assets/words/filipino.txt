@@ -268,8 +268,10 @@ Hide / Show Capri	Hide / Show Capri
 Hide / Show key	Hide / Show key
 Hide Capri	Itago si Capri
 Hide for now	Itago muna
+Hide her	Itago siya
 Hide in full screen	Itago sa full screen
 Hide this	Itago ito
+Hide, keep player	Itago, iwan ang player
 Hide/show:	Hide/show:
 Hide/show: Ctrl + Alt + H	Hide/show: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALLED >
 Import a Capri mod	Mag-import ng Capri mod
 Import mod	Import mod
+In full screen	Sa full screen
 In games	Sa mga laro
 Input	Input
 Input, Output or How to overlaps a row	Nagko-overlap ang Input, Output o How to sa isang row
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KEYS
 KEYS >	KEYS >
 Keep PC awake for jobs	Panatilihing gising ang PC para sa mga jobs
+Keep player	Iwan ang player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Itinatago sa memory ang huling dalawang minuto ng laro mo. Sabihin ang clip that para i-save.
 Key	Key
 Key cleared: a model file needs none.	Na-clear ang key: hindi kailangan ng model file ng key.
@@ -666,6 +670,7 @@ Speed	Speed
 Start with Windows	Magsimula kasabay ng Windows
 Start with this!	Simulan ito!
 Starting...	Sinisimulan...
+Stay	Manatili
 Stay on my model	Manatili sa model ko
 Still checking your mics...	Tinitingnan pa rin ang mga mic mo...
 Still checking your speakers...	Tinitingnan pa rin ang mga speaker mo...

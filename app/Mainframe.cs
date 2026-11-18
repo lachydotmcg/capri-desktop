@@ -43,16 +43,15 @@ namespace CapriDesktop
         private const int Wide = 380;
         private const int Tall = 764;
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
-        private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
+        private static readonly string[] GapNames = { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this.
-        private const int PageTall = 2220;
+        private const int PageTall = 2192;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
-        private static readonly string[] PerchNames = Array.ConvertAll(Companion.PerchRates, rate => rate + " fps");
         // Her voice's pitch in semitones, and her speed.
         private static readonly string[] PitchNames = { "-6", "-5", "-4", "-3", "-2", "-1", "Normal", "+1", "+2", "+3", "+4", "+5", "+6" };
         private static readonly int[] Paces = { 70, 80, 90, 100, 110, 120, 130, 140, 150 };
@@ -142,7 +141,6 @@ namespace CapriDesktop
         private int pendingMods = -1;
         private int pendingVk;
         private int heldMods;
-        private readonly Toggle watch;
         private readonly Key screens;
         private readonly ContextMenuStrip screenMenu;
         private readonly Toggle caughtUp;
@@ -160,16 +158,16 @@ namespace CapriDesktop
         private readonly Toggle stayOnModel;
         private readonly Toggle huskVerbosity;
         private readonly Toggle remembering;
-        private readonly Toggle keepAwake, hideFullScreen, playerFullScreen, exploreAway;
         private Key clipsFolder;
         private Key clipChoose;
         private Label clipPath;
         private Head clipHead;
         private Slider clipLength, clipRate, clipSize, clipBits;
-        private readonly Slider exploreAfter;
-        private readonly Readout exploreAfterName;
+        private readonly Slider exploreAfter, fullScreen;
+        private readonly Readout exploreAfterName, fullScreenName;
         private static readonly int[] AwayTimes = { 60, 120, 300, 600, 900, 1800 };
-        private static readonly string[] AwayNames = { "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" };
+        private static readonly string[] AwayNames = { "Off", "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" };
+        private static readonly string[] FullScreenNames = { "Stay", "Keep player", "Hide her", "Hide, keep player" };
         private readonly Toggle[] careToggles = new Toggle[7];
         private readonly Key[] careTimes = new Key[7];
         private readonly Key careEdit;
@@ -293,15 +291,15 @@ namespace CapriDesktop
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Call mode and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 344 }, new[] { 644, 1149 }, new[] { 1262, 1290 } };
-        // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
+        // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at In full screen.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1594, 1782 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 848, 1342 }, new[] { 1566, 1622 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1454;
+        private const int SimpleTall = 1426;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -381,8 +379,6 @@ namespace CapriDesktop
         private readonly Entry custom;
         private readonly Entry localAddress;
         private readonly Label customNote;
-        private readonly Slider perchFps;
-        private readonly Readout perchFpsName;
         private readonly Slider powerSaver;
         private readonly Readout powerSaverName;
         private readonly Slider musicApp;
@@ -397,7 +393,6 @@ namespace CapriDesktop
         private const int Row = 28;
         private const int ValueAt = 184;
         private const int ValueWide = 172;
-        private readonly Label perchNote;
 
         internal Mainframe(Companion owner, Icon icon, string version)
         {
@@ -894,20 +889,18 @@ namespace CapriDesktop
             }
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
-            watch = Switch("Watch my screen", c, 232, delegate { if (!syncing) capri.ToggleWatch(); });
-            watch.AccessibleName = "Watch my screen. She comments now and then about the desktop. Game comments have their own Comments setting under GAMES";
-            Named("Screens", c, 260);
+            Named("Screens", c, 232);
             screenMenu = Dropdown();
-            screens = Make("All screens", ValueAt + c, 263, ValueWide, 22, delegate { ShowScreens(); }, "Screens");
+            screens = Make("All screens", ValueAt + c, 235, ValueWide, 22, delegate { ShowScreens(); }, "Screens");
             screens.Chevron = true;
             screens.Ellipsis = true;
             screens.AccessibleName = "Screens to watch: All screens";
-            caughtUp = Switch("Remember what she sees", c, 288, delegate { if (!syncing) capri.ToggleCaughtUp(); });
+            caughtUp = Switch("Remember what she sees", c, 260, delegate { if (!syncing) capri.ToggleCaughtUp(); });
             caughtUp.AccessibleName = "Remember what she sees. What she saw on your screen stays in her memory for three hours even when she said nothing about it, which uses a little more of your API";
-            gap = Setting("Every", GapNames, c, 316, "Time between glances");
+            gap = Setting("Every", GapNames, c, 288, "Watch my screen: time between glances. Off stops her commenting now and then about the desktop. Game comments have their own Comments setting under GAMES");
             gapName = new Readout(gap);
-            gap.Changed += delegate { if (syncing) return; gapName.Text = GapNames[gap.Value]; capri.SetGlanceGap(Gaps[gap.Value]); };
-            watchMemory = Setting("Watch-along memory", WatchLineNames, c, 344, "Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on");
+            gap.Changed += delegate { if (syncing) return; gapName.Text = GapNames[gap.Value]; capri.SetWatchEvery(gap.Value == 0 ? 0 : Gaps[gap.Value - 1]); };
+            watchMemory = Setting("Watch-along memory", WatchLineNames, c, 316, "Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on");
             watchMemoryName = new Readout(watchMemory);
             watchMemory.Changed += delegate { if (!syncing) capri.SetWatchMemory(WatchLines[watchMemory.Value]); };
             int afterWatchMemory = Controls.Count;
@@ -993,7 +986,7 @@ namespace CapriDesktop
             blackwallNote.AutoSize = false;
             blackwallNote.TextAlign = ContentAlignment.MiddleRight;
             blackwallNote.Bounds = new Rectangle(28 + c, 791, 328, 18);
-            // Power saver: Off, In games or Always (issue #111). Simple Settings keeps it; the rows from Perch down fold under it.
+            // Power saver: Off, In games or Always (issue #111). Simple Settings keeps it; the rows from In full screen down fold under it.
             powerSaver = Setting("Power saver", SaverNames, c, 812, "Power saver: how lightly she runs in games, or always");
             powerSaverName = new Readout(powerSaver);
             powerSaver.Changed += delegate { if (syncing) return; powerSaverName.Text = SaverNames[powerSaver.Value]; capri.SetPowerSaver(powerSaver.Value); };
@@ -1001,26 +994,12 @@ namespace CapriDesktop
             musicAppName = new Readout(musicApp);
             musicApp.Changed += delegate { if (syncing) return; musicAppName.Text = Hands.MusicSteps()[musicApp.Value]; capri.SetMusicApp(musicApp.Value); };
             int afterSaver = Controls.Count;
-            // Frames a second while she sits on a window. Her sway takes 2 s at every fps; past 30 she draws in-betweens.
-            perchFps = Setting("Perch", PerchNames, c, 812, "Her perch frames per second");
-            perchFpsName = new Readout(perchFps);
-            perchFps.Changed += delegate { if (syncing) return; capri.SetPerchFps(Companion.PerchRates[perchFps.Value]); ShowPerch(); };
-            perchNote = Caption("", 28 + c, 840, small, Faint);
-            perchNote.AutoSize = false;
-            perchNote.TextAlign = ContentAlignment.MiddleRight;
-            perchNote.Bounds = new Rectangle(28 + c, 840, 328, 18);
-            keepAwake = Switch("Keep PC awake for jobs", c, 860, delegate { if (!syncing) capri.ToggleKeepAwake(); });
-            hideFullScreen = Switch("Hide in full screen", c, 888, delegate { if (!syncing) capri.ToggleHideFullScreen(); });
-            playerFullScreen = Switch("Mini player over full screen", c, 916, delegate { if (!syncing) capri.TogglePlayerFullScreen(); });
-            exploreAway = Switch("Explore while I'm away", c, 944, delegate { if (!syncing) capri.ToggleExploreAway(); });
-            keepAwake.Switch = hideFullScreen.Switch = playerFullScreen.Switch = exploreAway.Switch = 68;
-            keepAwake.AccessibleName = "Keep PC awake for jobs. Keeps the PC and screen awake while a job runs, waits for your answer or watches for something";
-            hideFullScreen.AccessibleName = "Hide in full screen. Gaming Mode takes priority; a manual hide stays hidden";
-            playerFullScreen.AccessibleName = "Mini player over full screen. Works over borderless windows; exclusive full screen cannot show overlays";
-            exploreAway.AccessibleName = "Explore while I'm away. Scrolls browser or reader pages without moving your mouse; your input stops her";
-            exploreAfter = Setting("Explore after", AwayNames, c, 972, "How long you are away before she scrolls a browser or reader");
+            fullScreen = Setting("In full screen", FullScreenNames, c, 812, "In full screen: whether she stays or hides, and whether her mini player stays over borderless full screen. Gaming Mode takes priority; a manual hide stays hidden");
+            fullScreenName = new Readout(fullScreen);
+            fullScreen.Changed += delegate { if (syncing) return; fullScreenName.Text = FullScreenNames[fullScreen.Value]; capri.SetFullScreenLevel(fullScreen.Value); };
+            exploreAfter = Setting("Explore after", AwayNames, c, 840, "Explore after you've been away this long: she scrolls a browser or reader page without moving your mouse, and your input stops her. Off keeps her from exploring");
             exploreAfterName = new Readout(exploreAfter);
-            exploreAfter.Changed += delegate { if (!syncing) capri.SetExploreAfter(AwayTimes[exploreAfter.Value]); };
+            exploreAfter.Changed += delegate { if (syncing) return; exploreAfterName.Text = AwayNames[exploreAfter.Value]; capri.SetExploreStep(exploreAfter.Value == 0 ? 0 : AwayTimes[exploreAfter.Value - 1]); };
             // Power saver's and Music app's rows move the rest of HABITS down two.
             for (int belowSaver = afterSaver; belowSaver < Controls.Count; belowSaver++)
                 if (Controls[belowSaver].Left >= c) Controls[belowSaver].Top += Row * 2;
@@ -1074,7 +1053,7 @@ namespace CapriDesktop
             int gamesTo = Controls.Count;
             for (int belowHands = afterFastHands; belowHands < gamesTo; belowHands++) Controls[belowHands].Top -= 108;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
-                Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
+                Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
                 if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row * 3;
             for (int belowVerbosity = afterVerbosity; belowVerbosity < Controls.Count; belowVerbosity++)
@@ -3019,7 +2998,6 @@ namespace CapriDesktop
             blackwallNote.Text = Security.Short;
             if (guard != null && !guard.IsDisposed) guard.Sync();
             if (extras != null && !extras.IsDisposed) extras.Sync();
-            watch.Checked = capri.Watching;
             ShowWatchScreen(capri.WatchScreenName);
             caughtUp.Checked = capri.CaughtUp;
             followUps.Checked = capri.FollowUps;
@@ -3028,11 +3006,9 @@ namespace CapriDesktop
             stayOnModel.Checked = capri.StayOnModel;
             huskVerbosity.Checked = capri.HuskVerbosity;
             remembering.Checked = capri.Remembers;
-            keepAwake.Checked = capri.KeepAwake;
-            hideFullScreen.Checked = capri.HideFullScreen;
-            playerFullScreen.Checked = capri.PlayerFullScreen;
-            exploreAway.Checked = capri.ExploreAway;
-            exploreAfter.Value = Math.Max(0, Array.IndexOf(AwayTimes, capri.ExploreAfter));
+            fullScreen.Value = capri.FullScreenLevel;
+            fullScreenName.Text = FullScreenNames[fullScreen.Value];
+            exploreAfter.Value = capri.ExploreAway ? 1 + Math.Max(0, Array.IndexOf(AwayTimes, capri.ExploreAfter)) : 0;
             exploreAfterName.Text = AwayNames[exploreAfter.Value];
             for (int careSync = 0; careSync < careToggles.Length; careSync++)
             {
@@ -3063,7 +3039,7 @@ namespace CapriDesktop
             frameColours.Value = capri.MainframeColours;
             VoiceTier();
             int chosen = Array.IndexOf(Gaps, capri.GlanceGap);
-            gap.Value = chosen < 0 ? 5 : chosen;
+            gap.Value = !capri.Watching ? 0 : 1 + (chosen < 0 ? 5 : chosen);
             gapName.Text = GapNames[gap.Value];
             if (!nickname.Box.Focused) nickname.Box.Text = capri.Nickname;
             SyncLanguages();
@@ -3116,8 +3092,6 @@ namespace CapriDesktop
             replyLength.Value = capri.ReplyLength;
             replyLengthName.Text = ReplyNames[replyLength.Value];
             if (!localAddress.Box.Focused) localAddress.Box.Text = capri.LocalAddress;
-            perchFps.Value = Math.Max(0, Array.IndexOf(Companion.PerchRates, capri.PerchFps));
-            ShowPerch();
             powerSaver.Value = Math.Max(0, Math.Min(SaverNames.Length - 1, capri.PowerSaver));
             powerSaverName.Text = SaverNames[powerSaver.Value];
             musicApp.Value = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, capri.MusicApp));
@@ -3128,15 +3102,6 @@ namespace CapriDesktop
             syncing = false;
         }
 
-        // Past 30 fps she draws her perch more often, so the HABITS line says it costs more.
-        private void ShowPerch()
-        {
-            perchFpsName.Text = PerchNames[perchFps.Value];
-            perchNote.Text = Companion.PerchRates[perchFps.Value] > 30 ? "Perch over 30 fps uses more CPU" : "";
-        }
-
-        internal string PerchStatus { get { return perchFpsName.Text + " | " + (perchNote.Text.Length > 0 ? perchNote.Text : "-"); } }
-
         internal string BrainSettings { get { return memorySizeName.Text + " | " + replyLengthName.Text; } }
 
         internal void SlideMemorySize(int index) { memorySize.Slide(index); }
@@ -3144,8 +3109,6 @@ namespace CapriDesktop
         internal void SlideReplyLength(int index) { replyLength.Slide(index); }
 
         internal void SlideComments(int index) { comments.Slide(index); }
-
-        internal void SlidePerch(int steps) { Press(perchFps, steps); }
 
         internal string PowerSaverShown { get { return powerSaverName.Text; } }
 
@@ -3155,19 +3118,19 @@ namespace CapriDesktop
 
         internal string MusicAppRow { get { return Folded(musicApp) ? "folded" : "shown"; } }
 
-        // Simple Settings keeps Power saver on the page and folds Perch away under it; Advanced Settings shows both.
-        internal string SaverRows { get { return (Folded(powerSaver) ? "folded" : "shown") + " | " + (Folded(perchFps) ? "folded" : "shown"); } }
+        // Simple Settings keeps Power saver on the page and folds In full screen away under it; Advanced Settings shows both.
+        internal string SaverRows { get { return (Folded(powerSaver) ? "folded" : "shown") + " | " + (Folded(fullScreen) ? "folded" : "shown"); } }
 
         internal string PopsShown { get { return popsName.Text; } }
 
         internal void SlidePops(int steps) { Press(pops, steps); }
 
-        // The HABITS row and KEYS fit inside the settings page.
-        internal bool PerchFits { get { Rectangle page = PageArea; return page.Contains(perchFpsName.Bounds) && page.Contains(perchFps.Bounds) && page.Contains(hideKeys.Bounds) && page.Contains(quietKeys.Bounds); } }
+        // The HABITS rows and KEYS fit inside the settings page.
+        internal bool HabitsFit { get { Rectangle page = PageArea; return page.Contains(fullScreenName.Bounds) && page.Contains(fullScreen.Bounds) && page.Contains(exploreAfter.Bounds) && page.Contains(hideKeys.Bounds) && page.Contains(quietKeys.Bounds); } }
 
         internal string Status { get { return brainName.Text + " | " + brainNote.Text; } }
 
-        internal bool WatchShown { get { return watch.Checked; } }
+        internal bool WatchShown { get { return gap.Value > 0; } }
 
         internal bool CaughtUpShown { get { return caughtUp.Checked; } }
         internal bool FollowUpsShown { get { return followUps.Checked; } }
@@ -3183,21 +3146,16 @@ namespace CapriDesktop
 
         internal void FlipStay() { stayOnModel.Checked = !stayOnModel.Checked; }
 
-        internal bool KeepAwakeShown { get { return keepAwake.Checked; } }
-        internal void FlipKeepAwake() { keepAwake.Checked = !keepAwake.Checked; }
-        internal string DesktopSettingsStatus { get { return hideFullScreen.Checked + " | " + playerFullScreen.Checked + " | " + exploreAway.Checked + " | " + exploreAfterName.Text; } }
-        internal void FlipHideFullScreen() { hideFullScreen.Checked = !hideFullScreen.Checked; }
-        internal void FlipPlayerFullScreen() { playerFullScreen.Checked = !playerFullScreen.Checked; }
-        internal void FlipExploreAway() { exploreAway.Checked = !exploreAway.Checked; }
+        internal bool HasRow(string name) { foreach (Control control in Controls) if (control.Text == name) return true; return false; }
+        internal string DesktopSettingsStatus { get { return fullScreenName.Text + " | " + exploreAfterName.Text; } }
+        internal void SlideFullScreen(int steps) { Press(fullScreen, steps); }
         internal void SlideExploreAfter(int steps) { Press(exploreAfter, steps); }
         internal bool DesktopSettingsFit
         {
             get
             {
-                foreach (Toggle desktopToggle in new[] { keepAwake, hideFullScreen, playerFullScreen, exploreAway })
-                    if (TextRenderer.MeasureText(desktopToggle.Text, desktopToggle.Font, Size.Empty, TextFormatFlags.NoPadding).Width > desktopToggle.NameRoom || !PageArea.Contains(desktopToggle.Bounds)) return false;
-                return keepAwake.Top >= perchNote.Bottom && keepAwake.Bottom <= hideFullScreen.Top && !string.IsNullOrEmpty(keepAwake.AccessibleName)
-                    && PageArea.Contains(exploreAfter.Bounds) && PageArea.Contains(exploreAfterName.Bounds);
+                return PageArea.Contains(fullScreen.Bounds) && PageArea.Contains(fullScreenName.Bounds) && exploreAfter.Top >= fullScreen.Bottom
+                    && PageArea.Contains(exploreAfter.Bounds) && PageArea.Contains(exploreAfterName.Bounds) && !string.IsNullOrEmpty(fullScreen.AccessibleName);
             }
         }
 
@@ -3543,12 +3501,12 @@ namespace CapriDesktop
             }
         }
 
-        // Turns the mouse wheel over the perch slider, so it reaches the page the way a real wheel does.
+        // Turns the mouse wheel over the In full screen slider, so it reaches the page the way a real wheel does.
         internal void Wheel(int notches, bool settle = true)
         {
-            Point at = perchFps.PointToScreen(new Point(perchFps.Width / 2, perchFps.Height / 2));
+            Point at = fullScreen.PointToScreen(new Point(fullScreen.Width / 2, fullScreen.Height / 2));
             for (int i = 0; i < Math.Abs(notches); i++)
-                Native.SendMessage(perchFps.Handle, 0x020A, new IntPtr((notches > 0 ? 120 : -120) << 16), new IntPtr((at.Y << 16) | (at.X & 0xFFFF)));
+                Native.SendMessage(fullScreen.Handle, 0x020A, new IntPtr((notches > 0 ? 120 : -120) << 16), new IntPtr((at.Y << 16) | (at.X & 0xFFFF)));
             if (settle) Settle();
         }
 
@@ -4872,7 +4830,7 @@ namespace CapriDesktop
             else
             {
                 if (Hidden(screens) || !screens.Visible || !PageClamped && !PageArea.Contains(screens.Bounds)) return "Screens is hidden or outside WATCH";
-                if (screens.Top < watch.Bottom || caughtUp.Top < screens.Bottom) return "Screens overlaps a WATCH row";
+                if (caughtUp.Top < screens.Bottom || gap.Top < caughtUp.Bottom) return "Screens overlaps a WATCH row";
             }
             return TextFits() ?? Overlap() ?? (paged && !PageClamped ? Outside() : null);
         }

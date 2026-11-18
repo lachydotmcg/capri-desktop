@@ -268,8 +268,10 @@ Hide / Show Capri	Zoo / Gosi Capri
 Hide / Show key	Igodo zoo / gosi
 Hide Capri	Zoo Capri
 Hide for now	Zoo ugbu a
+Hide her	Zoo ya
 Hide in full screen	Zoo n'ihuenyo zuru oke
 Hide this	Zoo nke a
+Hide, keep player	Zoo ya, debe onye ọkpụkpọ
 Hide/show:	Zoo/gosi:
 Hide/show: Ctrl + Alt + H	Zoo/gosi: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	N'IME DISCORD >
 INSTALLED >	EDOZILA >
 Import a Capri mod	Bubata mod Capri
 Import mod	Bubata mod
+In full screen	N'ihuenyo zuru oke
 In games	N'egwuregwu
 Input	Ntinye
 Input, Output or How to overlaps a row	Ntinye, Mpụta ma ọ bụ Otú esi na-agbakọ ahịrị
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	IGODO
 KEYS >	IGODO >
 Keep PC awake for jobs	Debe kọmputa ka ọ nọrọ ntụpọ maka ọrụ
+Keep player	Debe onye ọkpụkpọ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Na-echekwa nkeji abụọ ikpeazụ nke egwuregwu gị na ncheta. Kwuo "debanye nke ahụ na klip" iji chekwaa ya.
 Key	Igodo
 Key cleared: a model file needs none.	Ahichapụrụ igodo: faịlụ modul achọghị ya.
@@ -666,6 +670,7 @@ Speed	Ọsọ
 Start with Windows	Malite na Windows
 Start with this!	Malite site na nke a!
 Starting...	Na-amalite...
+Stay	Nọgide
 Stay on my model	Nọrọ na modul m
 Still checking your mics...	Ka na-enyocha mic gị...
 Still checking your speakers...	Ka na-enyocha ihe nkwupụta gị...

@@ -268,8 +268,10 @@ Hide / Show Capri	Capri を隠す / 表示
 Hide / Show key	隠す / 表示キー
 Hide Capri	Capri を隠す
 Hide for now	今は隠す
+Hide her	隠す
 Hide in full screen	フルスクリーンでは隠す
 Hide this	これを隠す
+Hide, keep player	隠す（プレイヤーは残す）
 Hide/show:	隠す/表示:
 Hide/show: Ctrl + Alt + H	隠す/表示: Ctrl + Alt + H
 Hologram	ホログラム
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD 内 >
 INSTALLED >	インストール済み >
 Import a Capri mod	Capri の Mod をインポート
 Import mod	Mod をインポート
+In full screen	フルスクリーン時
 In games	ゲーム中
 Input	入力
 Input, Output or How to overlaps a row	入力、出力、または使い方が行と重なっています
@@ -314,6 +317,7 @@ KB.	KB。
 KEYS	キー
 KEYS >	キー >
 Keep PC awake for jobs	作業のために PC を起こしておく
+Keep player	プレイヤーを残す
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ゲームの直近2分をメモリに保持します。clip that と言うと保存します。
 Key	キー
 Key cleared: a model file needs none.	キーをクリアしました。モデルファイルは不要です。
@@ -666,6 +670,7 @@ Speed	速さ
 Start with Windows	Windows と一緒に起動
 Start with this!	これで始めよう！
 Starting...	起動中...
+Stay	そのまま
 Stay on my model	私のモデルのままにする
 Still checking your mics...	マイクをまだ確認中...
 Still checking your speakers...	スピーカーをまだ確認中...

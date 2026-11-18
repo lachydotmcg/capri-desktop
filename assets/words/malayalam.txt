@@ -268,8 +268,10 @@ Hide / Show Capri	Capri മറയ്ക്കുക / കാണിക്കു�
 Hide / Show key	മറയ്ക്കുക / കാണിക്കുക കീ
 Hide Capri	Capri മറയ്ക്കുക
 Hide for now	ഇപ്പോൾ മറയ്ക്കുക
+Hide her	അവളെ മറയ്ക്കുക
 Hide in full screen	ഫുൾ സ്ക്രീനിൽ മറയ്ക്കുക
 Hide this	ഇത് മറയ്ക്കുക
+Hide, keep player	മറയ്ക്കുക, പ്ലെയർ നിലനിർത്തുക
 Hide/show:	മറയ്ക്കുക/കാണിക്കുക:
 Hide/show: Ctrl + Alt + H	മറയ്ക്കുക/കാണിക്കുക: Ctrl + Alt + H
 Hologram	ഹോളോഗ്രാം
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-ൽ >
 INSTALLED >	ഇൻസ്റ്റാൾ ചെയ്തത് >
 Import a Capri mod	Capri മോഡ് ഇറക്കുമതി ചെയ്യുക
 Import mod	മോഡ് ഇറക്കുമതി ചെയ്യുക
+In full screen	ഫുൾ സ്ക്രീനിൽ
 In games	ഗെയിമുകളിൽ
 Input	ഇൻപുട്ട്
 Input, Output or How to overlaps a row	ഇൻപുട്ട്, ഔട്ട്പുട്ട് അല്ലെങ്കിൽ How to ഒരു വരിയുമായി ഓവർലാപ് ചെയ്യുന്നു
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	കീകൾ
 KEYS >	കീകൾ >
 Keep PC awake for jobs	ജോലികൾക്കായി PC ഉണർന്നിരിക്കട്ടെ
+Keep player	പ്ലെയർ നിലനിർത്തുക
 Keeps the last two minutes of your game in memory. Say clip that to save it.	നിങ്ങളുടെ ഗെയിമിന്റെ അവസാന രണ്ട് മിനിറ്റ് മെമ്മറിയിൽ സൂക്ഷിക്കുന്നു. സേവ് ചെയ്യാൻ clip that എന്ന് പറയുക.
 Key	കീ
 Key cleared: a model file needs none.	കീ മായ്ച്ചു: മോഡൽ ഫയലിന് കീ വേണ്ട.
@@ -666,6 +670,7 @@ Speed	വേഗത
 Start with Windows	Windows-നൊപ്പം ആരംഭിക്കുക
 Start with this!	ഇതുകൊണ്ട് തുടങ്ങൂ!
 Starting...	ആരംഭിക്കുന്നു...
+Stay	നിൽക്കുക
 Stay on my model	എന്റെ മോഡലിൽ തുടരുക
 Still checking your mics...	നിങ്ങളുടെ മൈക്കുകൾ ഇപ്പോഴും പരിശോധിക്കുന്നു...
 Still checking your speakers...	നിങ്ങളുടെ സ്പീക്കറുകൾ ഇപ്പോഴും പരിശോധിക്കുന്നു...

@@ -268,8 +268,10 @@ Hide / Show Capri	Capri elrejtése / megjelenítése
 Hide / Show key	Elrejtés / megjelenítés billentyű
 Hide Capri	Capri elrejtése
 Hide for now	Elrejtés egyelőre
+Hide her	Elrejtés
 Hide in full screen	Elrejtés teljes képernyőn
 Hide this	Ezt elrejtem
+Hide, keep player	Elrejtés, lejátszó marad
 Hide/show:	Elrejtés/megjelenítés:
 Hide/show: Ctrl + Alt + H	Elrejtés/megjelenítés: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORDBAN >
 INSTALLED >	TELEPÍTVE >
 Import a Capri mod	Capri-mod importálása
 Import mod	Mod importálása
+In full screen	Teljes képernyőn
 In games	Játékokban
 Input	Bemenet
 Input, Output or How to overlaps a row	Bemenet, Kimenet vagy Hogyan átfed egy sort
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	BILLENTYŰK
 KEYS >	BILLENTYŰK >
 Keep PC awake for jobs	PC ébren tartása a feladatokhoz
+Keep player	Lejátszó marad
 Keeps the last two minutes of your game in memory. Say clip that to save it.	A játékod utolsó két percét a memóriában tartja. Mondd: clip that a mentéshez.
 Key	Billentyű
 Key cleared: a model file needs none.	Kulcs törölve: a modellfájlnak nincs szüksége rá.
@@ -666,6 +670,7 @@ Speed	Sebesség
 Start with Windows	Indítás a Windows-szal
 Start with this!	Ezzel kezdjük!
 Starting...	Indítás...
+Stay	Marad
 Stay on my model	Maradjon a modellem
 Still checking your mics...	Még ellenőrzöm a mikrofonjaidat...
 Still checking your speakers...	Még ellenőrzöm a hangszóróidat...

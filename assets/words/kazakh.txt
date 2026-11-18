@@ -268,8 +268,10 @@ Hide / Show Capri	Capri-ді жасыру / көрсету
 Hide / Show key	Жасыру / көрсету пернесі
 Hide Capri	Capri-ді жасыру
 Hide for now	Қазір жасыру
+Hide her	Оны жасыру
 Hide in full screen	Толық экранда жасыру
 Hide this	Мұны жасыру
+Hide, keep player	Жасыру, ойнатқышты қалдыру
 Hide/show:	Жасыру/көрсету:
 Hide/show: Ctrl + Alt + H	Жасыру/көрсету: Ctrl + Alt + H
 Hologram	Голограмма
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-ТА >
 INSTALLED >	ОРНАТЫЛҒАН >
 Import a Capri mod	Capri модын импорттау
 Import mod	Модты импорттау
+In full screen	Толық экранда
 In games	Ойындарда
 Input	Кіріс
 Input, Output or How to overlaps a row	Кіріс, Шығыс немесе Жол қалай қабаттасады
@@ -314,6 +317,7 @@ KB.	КБ.
 KEYS	ПЕРНЕЛЕР
 KEYS >	ПЕРНЕЛЕР >
 Keep PC awake for jobs	Жұмыстар үшін PC-ді оятып ұстау
+Keep player	Ойнатқышты қалдыру
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Ойыныңыздың соңғы екі минутын жадта сақтайды. Сақтау үшін clip that деңіз.
 Key	Кілт
 Key cleared: a model file needs none.	Кілт тазаланды: модель файлына ол керек емес.
@@ -666,6 +670,7 @@ Speed	Жылдамдық
 Start with Windows	Windows-пен бірге іске қосу
 Start with this!	Осымен бастаңыз!
 Starting...	Басталуда...
+Stay	Қалу
 Stay on my model	Модельімде қалу
 Still checking your mics...	Микрофондарыңызды әлі тексеріп жатырмыз...
 Still checking your speakers...	Динамиктеріңізді әлі тексеріп жатырмыз...

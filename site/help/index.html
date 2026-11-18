@@ -41,7 +41,7 @@
           <dt>Stacking skins</dt><dd>turn several skins on and each one goes on top, so a cat ears skin sits over any outfit</dd>
           <dt>Start with Windows</dt><dd>off on new installs until you turn it on. If you already have it on, it stays on</dd>
           <dt>File editor</dt><dd>opens and closes more smoothly on Windows</dd>
-          <dt>Reminders in games</dt><dd>with <b>Hide in full screen</b> on, she comes out to show a reminder on time, then hides again</dd>
+          <dt>Reminders in games</dt><dd>with <b>In full screen</b> on a Hide step, she comes out to show a reminder on time, then hides again</dd>
           <dt>Keys in games</dt><dd>her keys go to the window she last looked at. In a game she clicks inside it once, so WASD works without you clicking it first</dd>
           <dt>Windows 10 ears</dt><dd>she unpacks the compressed part of her ears' download herself</dd>
           <dt>Finding her brain</dt><dd>she checks for a missing local brain every 15 seconds, so she finds Ollama once it's up after a restart</dd>
@@ -256,7 +256,7 @@
           <dt>Always on top</dt><dd>above other windows</dd>
           <dt>Mainframe size</dt><dd>Auto or 100% to 200%. Auto makes the Mainframe bigger when Virtual Super Resolution or DSR draws a bigger desktop on your screen (0.7.7 and newer)</dd>
           <dt>Mainframe colours</dt><dd>Night City, Black, White or Grey for the Mainframe, her menus, the Type box and her notes. On Mac and Linux it colours the Mainframe only</dd>
-          <dt>Watch my screen</dt><dd>she comments, Every 10 s to 10 min</dd>
+          <dt>Watch my screen</dt><dd>she comments. It's the <b>Every</b> slider: Off, or 10 s to 10 min</dd>
           <dt>Keep her caught up</dt><dd>on by default, she also remembers the glances she keeps quiet about. Uses a little more of your API</dd>
           <dt>Language</dt><dd>80 languages for her replies</dd>
           <dt>What should she call you?</dt><dd>type a nickname → <b>Save</b>. <code>choom</code> resets it</dd>
@@ -288,7 +288,8 @@
           <dt>Use her cursor</dt><dd>under Security, next to Use your mouse and keyboard for jobs. On by default, she searches YouTube, plays from Spotify's search, and drags Spotify's volume slider when you say Spotify</dd>
           <dt>Security</dt><dd>where Blackwall mode was. Lockdown, Guarded, Trusted (the default) or Blackwall, and thirteen toggles in 0.8.5. <b>Friends on a call can ask, you confirm</b> starts off and needs your own mic or typing to confirm each request. <b>Keep personal details out of her memories</b> is on in every preset but Blackwall</dd>
           <dt>Power saver</dt><dd>Off, In games (the default) or Always. While a game is in front she draws herself less often when she sits still, runs her background checks less often and listens at a gentler pace, so she might take a moment longer to hear you. Watch my screen, Listen for Capri and Clip my games keep working. In games and Always also let her free voice take over from HD in a full-screen game or video</dd>
-          <dt>Perch</dt><dd>her frames a second while she sits on a window, 10 to 60 fps, 30 by default. Over 30 uses more CPU</dd>
+          <dt>In full screen</dt><dd>Stay (the default), Keep player, Hide her or Hide, keep player: whether she hides over a full-screen window and whether her mini player stays up over borderless full screen</dd>
+          <dt>Explore after</dt><dd>Off (the default), or 1 to 30 minutes away: then she scrolls a browser or reader page under your mouse with her own pointer. Your mouse or keyboard stops her</dd>
           <dt>Remember our chats</dt><dd>on by default, daily transcripts and memories.md that stay on your PC</dd>
           <dt>Open her memories</dt><dd>edit memories.md inside Mainframe</dd>
           <dt>Keys</dt><dd>Talk, Mute mic, Type and Hide/show: click, press any key or combination, then <b>Confirm</b></dd>
@@ -457,7 +458,7 @@
           <dt>Reminders on dates</dt><dd>“remind me on 5 December at 9am to call Mum”. No year means the next occurrence; no time means 9am. Uses your PC's local clock. Capri needs to be running to deliver it</dd>
           <dt>Teach game controls</dt><dd>Settings &gt; GAMES &gt; <b>Controls</b>. Use the game's window title and save its controls before she plays. Or say “remember the controls for The Binding of Isaac: shoot with the arrow keys”</dd>
           <dt>Play...</dt><dd>Settings &gt; GAMES &gt; <b>Play...</b>: <b>Chess</b>, <b>Connect four</b>, <b>Tic-tac-toe</b> or <b>Rock, paper, scissors</b>. Also works by asking, even without a brain connected</dd>
-          <dt>Paused YouTube</dt><dd>Settings &gt; Advanced Settings &gt; HABITS &gt; <b>Explore while I'm away</b>. Leave the page under your mouse with the matching video paused in Windows and no media playing in that browser. She scrolls the page and comments without clicking, typing or starting the video. Your mouse or keyboard stops her</dd>
+          <dt>Paused YouTube</dt><dd>Settings &gt; Advanced Settings &gt; HABITS &gt; <b>Explore after</b>, set to a time. Leave the page under your mouse with the matching video paused in Windows and no media playing in that browser. She scrolls the page and comments without clicking, typing or starting the video. Your mouse or keyboard stops her</dd>
         </dl>
         <p class="note">For jobs her own pink pointer clicks, and your mouse stays put. She sits on the steps box in the corner while she works; drag her or the box to move both. Only <b>Esc</b> stops her, even mid key-hold, and it stops the whole ask. Whenever she has your mouse or keys, a pink and cyan glow goes round the screen she's working on, even while she's hidden, so a mouse that moves with no glow wasn't her. “Write” or “draft” leaves a message unsent. On Trusted, the default, she asks before buying anything and skips password boxes. Settings → HABITS → <b>Security</b> changes what she asks about; with Type passwords and card numbers on, a password she types only ever shows as dots. Jobs have no step limit.</p>
       </section>
@@ -465,8 +466,8 @@
       <section id="screen" class="step">
         <h2>Watch my screen</h2>
         <ol class="moves">
-          <li>Mainframe → <b>Settings</b> → <b>Watch my screen</b></li>
-          <li><b>Every</b>: how often she looks</li>
+          <li>Mainframe → <b>Settings</b> → <b>Watch my screen</b>, the <b>Every</b> slider</li>
+          <li><b>Off</b> turns it off; any other step turns it on and sets how often she looks</li>
           <li>Settings &gt; WATCH &gt; <b>Screens</b>: choose a monitor. <b>All screens</b> follows the app in front</li>
         </ol>
         <p class="note">Any time: say “check my screen” and she looks right then.</p>
@@ -714,7 +715,7 @@
 
         <h3>Screen and Mainframe</h3>
         <dl class="stuck">
-          <dt>She never comments</dt><dd>Settings → <b>Watch my screen</b>. She skips screens that haven't changed.</dd>
+          <dt>She never comments</dt><dd>Settings → <b>Every</b> (Watch my screen), set to anything but Off. She skips screens that haven't changed.</dd>
           <dt>“Couldn't read the screen.”</dt><dd>Most NVIDIA models can't see. Pick <code>nvidia/nemotron-3.5-super-vl-120b-a12b</code>.</dd>
           <dt>“This brain can't see.”</dt><dd>Use the free NVIDIA key.</dd>
           <dt>“The screen capture is black.”</dt><dd>Set the game to borderless or windowed.</dd>

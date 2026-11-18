@@ -268,8 +268,10 @@ Hide / Show Capri	Capri-ஐ மறை / காட்டு
 Hide / Show key	மறை / காட்டு விசை
 Hide Capri	Capri-ஐ மறை
 Hide for now	இப்போதைக்கு மறை
+Hide her	அவளை மறை
 Hide in full screen	முழுத்திரையில் மறை
 Hide this	இதை மறை
+Hide, keep player	மறை, பிளேயரை வை
 Hide/show:	மறை/காட்டு:
 Hide/show: Ctrl + Alt + H	மறை/காட்டு: Ctrl + Alt + H
 Hologram	ஹோலோகிராம்
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-ல் >
 INSTALLED >	நிறுவப்பட்டது >
 Import a Capri mod	Capri மோடை இறக்குமதி செய்
 Import mod	மோடை இறக்குமதி செய்
+In full screen	முழுத்திரையில்
 In games	விளையாட்டுகளில்
 Input	உள்ளீடு
 Input, Output or How to overlaps a row	உள்ளீடு, வெளியீடு அல்லது எப்படி ஒரு வரிசையை மேலெழுதுகிறது
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	விசைகள்
 KEYS >	விசைகள் >
 Keep PC awake for jobs	வேலைகளுக்காக PC விழித்திருக்கட்டும்
+Keep player	பிளேயரை வை
 Keeps the last two minutes of your game in memory. Say clip that to save it.	உங்கள் விளையாட்டின் கடைசி இரண்டு நிமிடங்களை நினைவகத்தில் வைத்திருக்கும். சேமிக்க clip that என்று சொல்லுங்கள்.
 Key	விசை
 Key cleared: a model file needs none.	விசை அழிக்கப்பட்டது: மாதிரி கோப்புக்கு விசை தேவையில்லை.
@@ -666,6 +670,7 @@ Speed	வேகம்
 Start with Windows	Windows உடன் தொடங்கு
 Start with this!	இதனுடன் தொடங்கு!
 Starting...	தொடங்குகிறது...
+Stay	இரு
 Stay on my model	என் மாதிரியில் இரு
 Still checking your mics...	உங்கள் மைக்குகளை இன்னும் சரிபார்க்கிறது...
 Still checking your speakers...	உங்கள் ஸ்பீக்கர்களை இன்னும் சரிபார்க்கிறது...

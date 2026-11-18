@@ -268,8 +268,10 @@ Hide / Show Capri	Sembunyikan / Tampilkan Capri
 Hide / Show key	Tombol sembunyikan / tampilkan
 Hide Capri	Sembunyikan Capri
 Hide for now	Sembunyikan dulu
+Hide her	Sembunyikan dia
 Hide in full screen	Sembunyikan saat layar penuh
 Hide this	Sembunyikan ini
+Hide, keep player	Sembunyikan, pertahankan player
 Hide/show:	Sembunyikan/tampilkan:
 Hide/show: Ctrl + Alt + H	Sembunyikan/tampilkan: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	DI DISCORD >
 INSTALLED >	TERPASANG >
 Import a Capri mod	Impor mod Capri
 Import mod	Impor mod
+In full screen	Saat layar penuh
 In games	Dalam game
 Input	Input
 Input, Output or How to overlaps a row	Input, Output, atau Cara tumpang tindih dengan baris
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TOMBOL
 KEYS >	TOMBOL >
 Keep PC awake for jobs	Jaga PC tetap bangun untuk tugas
+Keep player	Pertahankan player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Menyimpan dua menit terakhir game-mu di memori. Ucapkan rekam itu untuk menyimpannya.
 Key	Kunci
 Key cleared: a model file needs none.	Kunci dihapus: file model tidak memerlukannya.
@@ -666,6 +670,7 @@ Speed	Kecepatan
 Start with Windows	Mulai bersama Windows
 Start with this!	Mulai dengan ini!
 Starting...	Memulai...
+Stay	Tetap
 Stay on my model	Tetap di modelku
 Still checking your mics...	Masih mengecek mik-mu...
 Still checking your speakers...	Masih mengecek speaker-mu...

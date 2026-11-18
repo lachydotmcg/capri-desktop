@@ -268,8 +268,10 @@ Hide / Show Capri	267|Скрий / Покажи Capri
 Hide / Show key	268|Клавиш скрий / покажи
 Hide Capri	269|Скрий Capri
 Hide for now	270|Скрий засега
+Hide her	Скрий я
 Hide in full screen	271|Скрий на цял екран
 Hide this	272|Скрий това
+Hide, keep player	Скрий, запази плейъра
 Hide/show:	273|Скрий/покажи:
 Hide/show: Ctrl + Alt + H	274|Скрий/покажи: Ctrl + Alt + H
 Hologram	275|Холограма
@@ -296,6 +298,7 @@ IN DISCORD >	295|В DISCORD >
 INSTALLED >	296|ИНСТАЛИРАНИ >
 Import a Capri mod	297|Импортирай мод на Capri
 Import mod	298|Импортирай мод
+In full screen	На цял екран
 In games	299|В игри
 Input	300|Вход
 Input, Output or How to overlaps a row	301|Вход, изход или Как да се припокрива с ред
@@ -314,6 +317,7 @@ KB.	313|KB.
 KEYS	314|КЛАВИШИ
 KEYS >	315|КЛАВИШИ >
 Keep PC awake for jobs	316|Дръж компютъра буден за задачи
+Keep player	Запази плейъра
 Keeps the last two minutes of your game in memory. Say clip that to save it.	317|Пази последните две минути от играта ти в паметта. Кажи запиши това, за да ги запазиш.
 Key	318|Ключ
 Key cleared: a model file needs none.	319|Ключът е изчистен: файлът на модела не се нуждае от такъв.
@@ -666,6 +670,7 @@ Speed	665|Скорост
 Start with Windows	666|Стартирай с Windows
 Start with this!	667|Започни с това!
 Starting...	668|Стартирам...
+Stay	Остани
 Stay on my model	669|Остани на моя модел
 Still checking your mics...	670|Още проверявам микрофоните ти...
 Still checking your speakers...	671|Още проверявам говорителите ти...

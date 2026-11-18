@@ -268,8 +268,10 @@ Hide / Show Capri	Slėpti / Rodyti Capri
 Hide / Show key	Slėpti / Rodyti klavišą
 Hide Capri	Slėpti Capri
 Hide for now	Kol kas slėpti
+Hide her	Slėpti ją
 Hide in full screen	Slėpti viso ekrano režime
 Hide this	Slėpti šį
+Hide, keep player	Slėpti, palikti grotuvą
 Hide/show:	Slėpti/rodyti:
 Hide/show: Ctrl + Alt + H	Slėpti/rodyti: Ctrl + Alt + H
 Hologram	Holograma
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD >
 INSTALLED >	ĮDIEGTA >
 Import a Capri mod	Importuoti Capri modifikaciją
 Import mod	Importuoti modifikaciją
+In full screen	Viso ekrano režime
 In games	Žaidimuose
 Input	Įvestis
 Input, Output or How to overlaps a row	Įvestis, Išvestis arba Kaip persidengia su eilute
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KLAVIŠAI
 KEYS >	KLAVIŠAI >
 Keep PC awake for jobs	Laikyti kompiuterį budintį darbams
+Keep player	Palikti grotuvą
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Išsaugo paskutines dvi jūsų žaidimo minutes atmintyje. Pasakykite įrašyti klipą, kad išsaugotumėte.
 Key	Raktas
 Key cleared: a model file needs none.	Raktas išvalytas: modelio failui jis nereikalingas.
@@ -666,6 +670,7 @@ Speed	Greitis
 Start with Windows	Paleisti kartu su Windows
 Start with this!	Pradėti nuo šio!
 Starting...	Paleidžiama...
+Stay	Likti
 Stay on my model	Likti prie mano modelio
 Still checking your mics...	Vis dar tikrinami jūsų mikrofonai...
 Still checking your speakers...	Vis dar tikrinami jūsų garsiakalbiai...

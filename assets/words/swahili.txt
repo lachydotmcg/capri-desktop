@@ -268,8 +268,10 @@ Hide / Show Capri	267|Ficha / Onyesha Capri
 Hide / Show key	268|Kitufe cha kuficha / kuonyesha
 Hide Capri	269|Ficha Capri
 Hide for now	270|Ficha kwa sasa
+Hide her	Mficha
 Hide in full screen	271|Ficha kwenye skrini nzima
 Hide this	272|Ficha hii
+Hide, keep player	Mficha, weka kicheza
 Hide/show:	273|Ficha/onyesha:
 Hide/show: Ctrl + Alt + H	274|Ficha/onyesha: Ctrl + Alt + H
 Hologram	275|Hologramu
@@ -296,6 +298,7 @@ IN DISCORD >	295|KWENYE DISCORD >
 INSTALLED >	296|IMESAKINISHWA >
 Import a Capri mod	297|Ingiza moduli ya Capri
 Import mod	298|Ingiza moduli
+In full screen	Kwenye skrini nzima
 In games	299|Kwenye michezo
 Input	300|Ingizo
 Input, Output or How to overlaps a row	301|Ingizo, Pato au Jinsi ya kuingiliana na safu
@@ -314,6 +317,7 @@ KB.	313|KB.
 KEYS	314|VITUFE
 KEYS >	315|VITUFE >
 Keep PC awake for jobs	316|Weka Kompyuta macho kwa kazi
+Keep player	Weka kicheza
 Keeps the last two minutes of your game in memory. Say clip that to save it.	317|Huhifadhi dakika mbili za mwisho za mchezo wako kwenye kumbukumbu. Sema rekodi hiyo kuihifadhi.
 Key	318|Ufunguo
 Key cleared: a model file needs none.	319|Ufunguo umefutwa: faili la modeli haliuhitaji.
@@ -666,6 +670,7 @@ Speed	665|Kasi
 Start with Windows	666|Anza na Windows
 Start with this!	667|Anza na hii!
 Starting...	668|Inaanza...
+Stay	Kaa
 Stay on my model	669|Bakia na modeli yangu
 Still checking your mics...	670|Bado naangalia maikrofoni zako...
 Still checking your speakers...	671|Bado naangalia spika zako...

@@ -268,8 +268,10 @@ Hide / Show Capri	Sorok / Papar Capri
 Hide / Show key	Kekunci sorok / papar
 Hide Capri	Sorok Capri
 Hide for now	Sorok buat masa ini
+Hide her	Sorokkan dia
 Hide in full screen	Sorok dalam skrin penuh
 Hide this	Sorok ini
+Hide, keep player	Sorokkan, kekalkan pemain
 Hide/show:	Sorok/papar:
 Hide/show: Ctrl + Alt + H	Sorok/papar: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	DIPASANG >
 Import a Capri mod	Import mod Capri
 Import mod	Import mod
+In full screen	Dalam skrin penuh
 In games	Dalam permainan
 Input	Input
 Input, Output or How to overlaps a row	Input, Output atau Cara bertindih dengan baris
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KEKUNCI
 KEYS >	KEKUNCI >
 Keep PC awake for jobs	Kekalkan PC terjaga untuk kerja
+Keep player	Kekalkan pemain
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Menyimpan dua minit terakhir permainan kau dalam memori. Sebut klipkan itu untuk menyimpannya.
 Key	Kunci
 Key cleared: a model file needs none.	Kunci dikosongkan: fail model tidak memerlukan sebarang kunci.
@@ -666,6 +670,7 @@ Speed	Kelajuan
 Start with Windows	Mula dengan Windows
 Start with this!	Mula dengan ini!
 Starting...	Memulakan...
+Stay	Kekal
 Stay on my model	Kekal pada model aku
 Still checking your mics...	Masih menyemak mikrofon kau...
 Still checking your speakers...	Masih menyemak pembesar suara kau...

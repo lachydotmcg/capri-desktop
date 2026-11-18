@@ -268,8 +268,10 @@ Hide / Show Capri	Folaigh / Taispeáin Capri
 Hide / Show key	Eochair folaigh / taispeána
 Hide Capri	Folaigh Capri
 Hide for now	Folaigh anois
+Hide her	Folaigh í
 Hide in full screen	Folaigh i lánscáileán
 Hide this	Folaigh seo
+Hide, keep player	Folaigh í, coinnigh an seinnteoir
 Hide/show:	Folaigh/taispeáin:
 Hide/show: Ctrl + Alt + H	Folaigh/taispeáin: Ctrl + Alt + H
 Hologram	Holagram
@@ -296,6 +298,7 @@ IN DISCORD >	I DISCORD >
 INSTALLED >	SUITEÁLTA >
 Import a Capri mod	Iompórtáil modh Capri
 Import mod	Iompórtáil modh
+In full screen	I lánscáileán
 In games	I gcluichí
 Input	Ionchur
 Input, Output or How to overlaps a row	Ionchur, Aschur nó Conas forluíonn le líne
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	EOCHRACHA
 KEYS >	EOCHRACHA >
 Keep PC awake for jobs	Coinnigh an PC múscailte le haghaidh jabanna
+Keep player	Coinnigh an seinnteoir
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Coinníonn sé an dá nóiméad dheireanacha de do chluiche i gcuimhne. Abair clip that chun é a shábháil.
 Key	Eochair
 Key cleared: a model file needs none.	Eochair glanta: ní theastaíonn comhad samhla uaidh.
@@ -666,6 +670,7 @@ Speed	Luas
 Start with Windows	Tosaigh le Windows
 Start with this!	Tosaigh leis seo!
 Starting...	Ag tosú...
+Stay	Fan
 Stay on my model	Fan ar mo mhúnla
 Still checking your mics...	Fós ag seiceáil do mhicreafón...
 Still checking your speakers...	Fós ag seiceáil do chainteoirí...

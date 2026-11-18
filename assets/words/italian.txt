@@ -268,8 +268,10 @@ Hide / Show Capri	Nascondi / Mostra Capri
 Hide / Show key	Tasto Nascondi / Mostra
 Hide Capri	Nascondi Capri
 Hide for now	Nascondi per ora
+Hide her	Nascondila
 Hide in full screen	Nascondi a schermo intero
 Hide this	Nascondi questo
+Hide, keep player	Nascondila, tieni il player
 Hide/show:	Nascondi/mostra:
 Hide/show: Ctrl + Alt + H	Nascondi/mostra: Ctrl + Alt + H
 Hologram	Ologramma
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALLATI >
 Import a Capri mod	Importa un mod di Capri
 Import mod	Importa mod
+In full screen	A schermo intero
 In games	Nei giochi
 Input	Ingresso
 Input, Output or How to overlaps a row	Ingresso, Uscita o Come fare si sovrappone a una riga
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TASTI
 KEYS >	TASTI >
 Keep PC awake for jobs	Tieni il PC sveglio per i lavori
+Keep player	Tieni il player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Tiene in memoria gli ultimi due minuti della partita. Dì clip that per salvarli.
 Key	Chiave
 Key cleared: a model file needs none.	Chiave cancellata: un file di modello non ne richiede.
@@ -666,6 +670,7 @@ Speed	Velocità
 Start with Windows	Avvia con Windows
 Start with this!	Inizia con questo!
 Starting...	Avvio...
+Stay	Resta
 Stay on my model	Resta sul mio modello
 Still checking your mics...	Sto ancora controllando i microfoni...
 Still checking your speakers...	Sto ancora controllando gli altoparlanti...

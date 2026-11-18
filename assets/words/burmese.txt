@@ -268,8 +268,10 @@ Hide / Show Capri	Capri ဖျောက် / ပြ
 Hide / Show key	ဖျောက် / ပြ key
 Hide Capri	Capri ဖျောက်
 Hide for now	ယခုအတွက် ဖျောက်
+Hide her	သူမကို ဖျောက်
 Hide in full screen	full screen တွင် ဖျောက်
 Hide this	ဤအရာကို ဖျောက်
+Hide, keep player	ဖျောက်၊ player ထားပါ
 Hide/show:	ဖျောက်/ပြ:
 Hide/show: Ctrl + Alt + H	ဖျောက်/ပြ: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALLED >
 Import a Capri mod	Capri mod ထည့်သွင်းရန်
 Import mod	mod ထည့်သွင်းရန်
+In full screen	Full screen တွင်
 In games	ဂိမ်းများတွင်
 Input	Input
 Input, Output or How to overlaps a row	Input၊ Output သို့မဟုတ် How to သည် အတန်းတစ်ခုနှင့် ထပ်နေသည်
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KEYS
 KEYS >	KEYS >
 Keep PC awake for jobs	အလုပ်များအတွက် PC ကို နိုးထားပါ
+Keep player	Player ထားပါ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	သင့်ဂိမ်း၏ နောက်ဆုံး မိနစ်နှစ်ခုကို မှတ်ဉာဏ်တွင် သိမ်းထားသည်။ သိမ်းရန် clip that ဟု ပြောပါ။
 Key	Key
 Key cleared: a model file needs none.	Key ရှင်းပြီး: model ဖိုင်တွင် မလိုပါ။
@@ -666,6 +670,7 @@ Speed	Speed
 Start with Windows	Windows နှင့် စတင်
 Start with this!	ဒါနဲ့ စတင်!
 Starting...	စတင်နေသည်...
+Stay	နေပါ
 Stay on my model	ကျွန်ုပ်၏ model ကို ဆက်ထား
 Still checking your mics...	သင့် mic များကို ဆက်စစ်ဆေးနေသည်...
 Still checking your speakers...	သင့် speaker များကို ဆက်စစ်ဆေးနေသည်...

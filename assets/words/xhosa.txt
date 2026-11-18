@@ -268,8 +268,10 @@ Hide / Show Capri	Fihla / Bonisa i-Capri
 Hide / Show key	Isitshixo sokufihla / bonisa
 Hide Capri	Fihla i-Capri
 Hide for now	Fihla okwangoku
+Hide her	Mfihle
 Hide in full screen	Fihla kwisikrini esipheleleyo
 Hide this	Fihla le
+Hide, keep player	Mfihle, gcina umdlali
 Hide/show:	Fihla/bonisa:
 Hide/show: Ctrl + Alt + H	Fihla/bonisa: Ctrl + Alt + H
 Hologram	Ihologram
@@ -296,6 +298,7 @@ IN DISCORD >	NGAPHAKATHI KWE-DISCORD >
 INSTALLED >	IFAKIWE >
 Import a Capri mod	Ngenisa imod ye-Capri
 Import mod	Ngenisa imod
+In full screen	Kwisikrini esipheleleyo
 In games	Kwimidlalo
 Input	Ngenisa
 Input, Output or How to overlaps a row	Ngenisa, Phuma okanye Indlela ityhila umgca
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	IZITSHIXO
 KEYS >	IZITSHIXO >
 Keep PC awake for jobs	Gcina i-PC ivuke ngemisebenzi
+Keep player	Gcina umdlali
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Igcina imizuzu emibini yokugqibela yomdlalo wakho enkumbulweni. Thetha clip that ukuze uyigcine.
 Key	Isitshixo
 Key cleared: a model file needs none.	Isitshixo sicociwe: imodeli yefayile ayifuni sitshixo.
@@ -666,6 +670,7 @@ Speed	Isantya
 Start with Windows	Qalisa kunye neWindows
 Start with this!	Qalisa ngale!
 Starting...	Iqalisa...
+Stay	Hlala
 Stay on my model	Hlala kwimodeli yam
 Still checking your mics...	Ndisajonga iimic zakho...
 Still checking your speakers...	Ndisajonga izipika zakho...

@@ -268,8 +268,10 @@ Hide / Show Capri	Capri چھپائیں / دکھائیں
 Hide / Show key	چھپائیں / دکھائیں کلید
 Hide Capri	Capri چھپائیں
 Hide for now	ابھی کے لیے چھپائیں
+Hide her	اسے چھپائیں
 Hide in full screen	فل اسکرین میں چھپائیں
 Hide this	یہ چھپائیں
+Hide, keep player	چھپائیں، پلیئر رکھیں
 Hide/show:	چھپائیں/دکھائیں:
 Hide/show: Ctrl + Alt + H	چھپائیں/دکھائیں: Ctrl + Alt + H
 Hologram	ہولوگرام
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	انسٹال شدہ >
 Import a Capri mod	Capri موڈ درآمد کریں
 Import mod	موڈ درآمد کریں
+In full screen	فل اسکرین میں
 In games	گیمز میں
 Input	ان پٹ
 Input, Output or How to overlaps a row	ان پٹ، آؤٹ پٹ یا کیسے ایک قطار سے اوورلیپ ہوتا ہے
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	کلیدیں
 KEYS >	کلیدیں >
 Keep PC awake for jobs	کاموں کے لیے PC جاگتا رکھیں
+Keep player	پلیئر رکھیں
 Keeps the last two minutes of your game in memory. Say clip that to save it.	آپ کے گیم کے آخری دو منٹ میموری میں رکھتا ہے۔ محفوظ کرنے کے لیے clip that کہیں۔
 Key	کلید
 Key cleared: a model file needs none.	کلید صاف: ماڈل فائل کو کسی کی ضرورت نہیں۔
@@ -666,6 +670,7 @@ Speed	رفتار
 Start with Windows	Windows کے ساتھ شروع کریں
 Start with this!	اس سے شروع کریں!
 Starting...	شروع ہو رہا ہے...
+Stay	رہیں
 Stay on my model	میرے ماڈل پر رہو
 Still checking your mics...	ابھی تک آپ کے مائکس چیک ہو رہے ہیں...
 Still checking your speakers...	ابھی تک آپ کے اسپیکرز چیک ہو رہے ہیں...

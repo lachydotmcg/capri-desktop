@@ -268,8 +268,10 @@ Hide / Show Capri	267|Capri છુપાવો / બતાવો
 Hide / Show key	268|છુપાવો / બતાવો કી
 Hide Capri	269|Capri છુપાવો
 Hide for now	270|હમણાં માટે છુપાવો
+Hide her	તેને છુપાવો
 Hide in full screen	271|ફુલ સ્ક્રીનમાં છુપાવો
 Hide this	272|આ છુપાવો
+Hide, keep player	છુપાવો, પ્લેયર રાખો
 Hide/show:	273|છુપાવો/બતાવો:
 Hide/show: Ctrl + Alt + H	274|છુપાવો/બતાવો: Ctrl + Alt + H
 Hologram	275|હોલોગ્રામ
@@ -296,6 +298,7 @@ IN DISCORD >	295|DISCORD માં >
 INSTALLED >	296|ઇન્સ્ટોલ થયેલ >
 Import a Capri mod	297|Capri મોડ આયાત કરો
 Import mod	298|મોડ આયાત કરો
+In full screen	ફુલ સ્ક્રીનમાં
 In games	299|ગેમ્સમાં
 Input	300|ઇનપુટ
 Input, Output or How to overlaps a row	301|ઇનપુટ, આઉટપુટ અથવા હરોળ સાથે કેવી રીતે ઓવરલૅપ થાય
@@ -314,6 +317,7 @@ KB.	313|KB.
 KEYS	314|કીઓ
 KEYS >	315|કીઓ >
 Keep PC awake for jobs	316|કામ માટે PC જાગતું રાખો
+Keep player	પ્લેયર રાખો
 Keeps the last two minutes of your game in memory. Say clip that to save it.	317|તમારી ગેમની છેલ્લી બે મિનિટ મેમરીમાં રાખે છે. તેને સાચવવા માટે clip that કહો.
 Key	318|કી
 Key cleared: a model file needs none.	319|કી સાફ: મોડેલ ફાઇલને કોઈ કીની જરૂર નથી.
@@ -666,6 +670,7 @@ Speed	665|ઝડપ
 Start with Windows	666|Windows સાથે શરૂ કરો
 Start with this!	667|આનાથી શરૂ કરો!
 Starting...	668|શરૂ થઈ રહ્યું છે...
+Stay	રહો
 Stay on my model	669|મારા મોડેલ પર રહો
 Still checking your mics...	670|હજી તમારા માઇક તપાસી રહી છું...
 Still checking your speakers...	671|હજી તમારા સ્પીકર તપાસી રહી છું...

@@ -268,8 +268,10 @@ Hide / Show Capri	267|Skrýt / Zobrazit Capri
 Hide / Show key	268|Klávesa skrýt / zobrazit
 Hide Capri	269|Skrýt Capri
 Hide for now	270|Zatím skrýt
+Hide her	Skrýt ji
 Hide in full screen	271|Skrýt na celou obrazovku
 Hide this	272|Skrýt toto
+Hide, keep player	Skrýt, nechat přehrávač
 Hide/show:	273|Skrýt/zobrazit:
 Hide/show: Ctrl + Alt + H	274|Skrýt/zobrazit: Ctrl + Alt + H
 Hologram	275|Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	295|V DISCORDU >
 INSTALLED >	296|NAINSTALOVÁNO >
 Import a Capri mod	297|Importovat mod Capri
 Import mod	298|Importovat mod
+In full screen	Na celou obrazovku
 In games	299|Ve hrách
 Input	300|Vstup
 Input, Output or How to overlaps a row	301|Vstup, výstup nebo Jak se překrývá řádek
@@ -314,6 +317,7 @@ KB.	313|KB.
 KEYS	314|KLÁVESY
 KEYS >	315|KLÁVESY >
 Keep PC awake for jobs	316|Nechat PC bdělé kvůli úkolům
+Keep player	Nechat přehrávač
 Keeps the last two minutes of your game in memory. Say clip that to save it.	317|Drží v paměti posledních dvě minuty tvé hry. Řekni ulož to a uloží se.
 Key	318|Klíč
 Key cleared: a model file needs none.	319|Klíč vymazán: model soubor nepotřebuje.
@@ -666,6 +670,7 @@ Speed	665|Rychlost
 Start with Windows	666|Spustit se systémem Windows
 Start with this!	667|Začni tímhle!
 Starting...	668|Spouštím...
+Stay	Zůstat
 Stay on my model	669|Zůstat u mého modelu
 Still checking your mics...	670|Pořád kontroluji tvé mikrofony...
 Still checking your speakers...	671|Pořád kontroluji tvé reproduktory...

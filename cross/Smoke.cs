@@ -4103,10 +4103,10 @@ namespace CapriDesktop
             pet.SetAdvancedSettings(true); frame.ShowSettings(true);
             string[,] toggles = {
                 { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
-                { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
+                { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" },
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Verbosity", "", "NoHuskVerbosity" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" },
-                { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" },
+                { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" },
                 { "Weather", "", "Weather" }
             };
             for (int i = 0; i < toggles.GetLength(0); i++)
@@ -4123,13 +4123,13 @@ namespace CapriDesktop
             var values = new Dictionary<string, Func<int, object>> {
                 { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
                 { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
-                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Every", i => Pet.GlanceGaps[i] }, { "Replies", i => i }, { "Memory", i => new[] { 8, 16, 32 }[i] },
+                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Replies", i => i }, { "Memory", i => new[] { 8, 16, 32 }[i] },
                 { "Memory size", i => Brain.MemorySizes[i] }, { "Max reply", i => i }, { "Bubble", i => i }
             };
             string[,] sliders = {
                 { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
                 { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
-                { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Mainframe colours", "MainframeColours", "mainframe_colours" }, { "Every", "GlanceGap", "glance_gap" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
+                { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Mainframe colours", "MainframeColours", "mainframe_colours" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
                 { "Memory size", "MemorySize", "" }, { "Max reply", "ReplyLength", "reply_limit" }, { "Bubble", "Bubble", "bubble" }
             };
             for (int i = 0; i < sliders.GetLength(0); i++)
@@ -4142,6 +4142,16 @@ namespace CapriDesktop
                     if (!object.Equals(saved, values[name](at)) || frame.Value(name) != slider.Choices[at] || sliders[i, 2] != "" && pet.LevelOf(sliders[i, 2]) != at) throw new Exception("A Mainframe slider did not use its saved setter: " + name + " / " + saved);
                 }
             }
+            var everyRow = (NeonSlider)frame.Row("Every");
+            if (string.Join("|", everyRow.Choices) != string.Join("|", Hands.StepsOf("glance_gap")) || everyRow.Choices[0] != "Off") throw new Exception("Every's steps differ from the settings tool's, or lost Off.");
+            foreach (int at in new[] { 6, 1, 0, 9 })
+            {
+                frame.Change("Every", at);
+                Settings every = SettingsCopy();
+                if (every.Watch != (at > 0) || at > 0 && every.GlanceGap != Pet.GlanceGaps[at - 1] || frame.Value("Every") != everyRow.Choices[at] || pet.LevelOf("glance_gap") != at || pet.Saved.Watch != (at > 0)) throw new Exception("Every did not turn Watch my screen on and off with its steps: " + at + " / " + frame.Value("Every"));
+            }
+            frame.Change("Every", 0);
+            if (SettingsCopy().Watch || SettingsCopy().GlanceGap != 600) throw new Exception("Every's Off lost the gap it had.");
             if (Brain.MemorySize != 65536 || Brain.ReplyLength != Brain.ReplySizes.Length - 1) throw new Exception("Memory size or Max reply did not reach the shared brain.");
             for (int i = 0; i < Brain.Languages.GetLength(0); i++)
             {
@@ -4373,21 +4383,26 @@ namespace CapriDesktop
             int races = 0; Awake racing = null;
             racing = new Awake(false) { Queue = run => run(), Run = (_, _) => { racing.Dispose(); return new Inhibitor(() => races++); }, Inhibit = () => null };
             racing.Set(true); if (races != 1) throw new Exception("Quitting during startup left an inhibitor.");
-            Awake before = pet.Wakeful; bool enabled = pet.KeepAwake, glancing = pet.Glancing; string security = Security.Saved;
+            Awake before = pet.Wakeful; bool oldOff = pet.Saved.NoKeepAwake, glancing = pet.Glancing; string security = Security.Saved;
             int starts = 0, stops = 0;
             pet.Wakeful = new Awake(false) { Queue = run => run(), Run = (_, _) => { starts++; return new Inhibitor(() => stops++); }, Inhibit = () => null };
             try
             {
-                pet.SetKeepAwake(true); pet.BeginWork(); pet.BeginWork();
+                pet.BeginWork(); pet.BeginWork();
                 if (starts != 1) throw new Exception("Nested job work started extra inhibitors.");
                 pet.EndWork(); if (stops != 0) throw new Exception("An inhibitor stopped before the job ended.");
                 pet.EndWork(); if (stops != 1) throw new Exception("The last job did not release its inhibitor.");
                 Security.Set(Security.Open, false); Security.Gate("open_app", new ToolArguments { Name = "Fake app" }); pet.CheckKeepAwake();
                 if (starts != 2) throw new Exception("Waiting for an answer did not keep the screen awake.");
                 Security.Drop(); pet.CheckKeepAwake(); if (stops != 2) throw new Exception("Dropping a held job kept an inhibitor.");
-                pet.BeginWork(); pet.SetKeepAwake(false); if (stops != 3) throw new Exception("The saved Off switch kept an inhibitor.");
-                pet.SetKeepAwake(true); typeof(Pet).GetField("quitting", fields).SetValue(pet, true); pet.CheckKeepAwake();
-                if (stops != 4) throw new Exception("Quitting did not stop the job inhibitor.");
+                pet.BeginWork(); pet.Saved.NoKeepAwake = true; pet.CheckKeepAwake();
+                if (starts != 3 || stops != 2 || !pet.KeepAwake) throw new Exception("An old saved Off setting released the inhibitor.");
+                typeof(Pet).GetField("quitting", fields).SetValue(pet, true); pet.CheckKeepAwake();
+                if (stops != 3) throw new Exception("Quitting did not stop the job inhibitor.");
+                typeof(Pet).GetField("quitting", fields).SetValue(pet, false); pet.CheckKeepAwake();
+                if (starts != 4) throw new Exception("Cancelling a quit did not bring the job inhibitor back.");
+                typeof(Pet).GetField("quitting", fields).SetValue(pet, true); pet.CheckKeepAwake();
+                if (stops != 4) throw new Exception("Quitting again did not stop the job inhibitor.");
                 typeof(Pet).GetField("quitting", fields).SetValue(pet, false); pet.EndWork();
                 typeof(Pet).GetField("glancing", fields).SetValue(pet, true); pet.CheckKeepAwake();
                 if (starts != 5) throw new Exception("A screen watch did not keep the screen awake.");
@@ -4410,8 +4425,8 @@ namespace CapriDesktop
                 }
                 finally { Hands.Catalog = catalog; Hands.Run = run; Hands.Opened = opened; Hands.Forget(); }
             }
-            finally { pet.StopAwake(); pet.Wakeful = before; typeof(Pet).GetField("quitting", fields).SetValue(pet, false); typeof(Pet).GetField("workCount", fields).SetValue(pet, 0); typeof(Pet).GetField("glancing", fields).SetValue(pet, glancing); Security.Drop(); Security.Load(security); pet.SetKeepAwake(enabled); }
-            checks.Add("PASS keep awake uses fake Mac and Linux processes, falls back to ScreenSaver, spans nested work and held answers, and releases on completion, Off, cancelled startup and quit");
+            finally { pet.StopAwake(); pet.Wakeful = before; typeof(Pet).GetField("quitting", fields).SetValue(pet, false); typeof(Pet).GetField("workCount", fields).SetValue(pet, 0); typeof(Pet).GetField("glancing", fields).SetValue(pet, glancing); Security.Drop(); Security.Load(security); pet.Saved.NoKeepAwake = oldOff; }
+            checks.Add("PASS keep awake uses fake Mac and Linux processes, falls back to ScreenSaver, spans nested work and held answers, and releases on completion, cancelled startup and quit, ignoring an old Off setting");
         }
 
         private void VaultChecks(Mainframe frame, System.Reflection.BindingFlags fields)
@@ -5697,7 +5712,7 @@ namespace CapriDesktop
                 string[,] sliders =
                 {
                     { "size", "", "Size" }, { "wander", "wanderPicks", "Wander" }, { "pop_ins", "popPicks", "PopPace" }, { "music_app", "", "MusicApp" }, { "sleep", "sleepPicks", "SleepAfter" }, { "volume", "volumePicks", "Volume" },
-                    { "voice_speed", "pacePicks", "Pace" }, { "replies", "replyPicks", "Replies" }, { "bubble", "bubblePicks", "Bubble" }, { "glance_gap", "gapPicks", "GlanceGap" },
+                    { "voice_speed", "pacePicks", "Pace" }, { "replies", "replyPicks", "Replies" }, { "bubble", "bubblePicks", "Bubble" }, { "glance_gap", "", "GlanceGap" },
                     { "voice_pitch", "pitchPicks", "Pitch" }, { "voice_robot", "robotPicks", "Robot" }, { "voice_glitch", "glitchPicks", "Glitch" }, { "sounds", "soundPicks", "Sounds" }, { "language", "languagePicks", "Language" }, { "typing_sound", "", "Typing" }
                 };
                 for (int i = 0; i < sliders.GetLength(0); i++)
