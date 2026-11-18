@@ -3578,6 +3578,7 @@ namespace CapriDesktop
 
         internal bool IntroShown { get { return introItem.IsChecked; } }
         internal bool OnTop { get { return !Saved.NotOnTop; } }
+        internal bool Held { get { return pressed || dragging || desktopDrag; } }
         internal bool OnTopShown { get { return onTopItem.IsChecked; } }
         internal bool Raised { get { return raisedUntil >= 0; } }
 

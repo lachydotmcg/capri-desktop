@@ -66,10 +66,12 @@ namespace CapriDesktop
         {
             if (NiriRegister is Action<Window> niri) { niri(window); return; }
             if (HyprlandDesktop.Current != null) bindings.Add(window, new NativeSurface(window, role, acceptsInput));
+            else if (Labwc.Current && role == NativeSurfaceRole.Passive) LabwcOverlay.Register(window);
         }
 
         internal static Task Prepare(Window window, CancellationToken cancellation)
         {
+            if (LabwcOverlay.Prepare(window)) return Task.CompletedTask;
             return bindings.TryGetValue(window, out NativeSurface binding) && binding.role == NativeSurfaceRole.Passive
                 ? NativePassive.Prepare(window, binding.nativeClass, cancellation) : Task.CompletedTask;
         }
