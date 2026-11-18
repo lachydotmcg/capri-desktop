@@ -60,6 +60,7 @@ namespace CapriDesktop
             herComputer.Ask = delegate(string system, string user) { return brain.Aside(system, user, 700, true); };
             herComputer.CanThink = delegate { return brain.Model != null && !Brain.Off; };
             herComputer.Tell = delegate(string line) { Post(delegate { SayOwn("her computer", line); }); };
+            herComputer.HandOff = delegate(HerJob done) { Post(delegate { HerComputerHandOff(done); }); };
             if (mainframe.Icon != null) herComputer.Icon = mainframe.Icon;
         }
 
@@ -89,7 +90,7 @@ namespace CapriDesktop
             if (!on.Success) return null;
             string job = (text.Substring(0, on.Index) + " " + text.Substring(on.Index + on.Length)).Trim().TrimStart(',', ':', ';', '-').Trim();
             job = Regex.Replace(job, @"^(?:hey\s+)?capri[,!.]?\s*", "", RegexOptions.IgnoreCase).Trim();
-            job = Regex.Replace(job, @"^(?:(?:can|could|would|will) you\s+|please\s+|go\s+|and\s+)+", "", RegexOptions.IgnoreCase).Trim().TrimEnd('?', '.', '!', ',').Trim();
+            job = Regex.Replace(job, @"^(?:(?:can|could|would|will) you\s+|please\s+|go\s+|and\s+|to\s+)+", "", RegexOptions.IgnoreCase).Trim().TrimEnd('?', '.', '!', ',').Trim();
             if (Regex.IsMatch(job, @"^(?:(?:what(?:'s| is| are)?|how(?:'s| is)?)(?: you| it)?(?: doing| going| up to)?(?: there)?|anything|something|stuff|things)$", RegexOptions.IgnoreCase)) return "";
             return job;
         }
@@ -99,8 +100,11 @@ namespace CapriDesktop
             return Regex.IsMatch((said ?? "").Trim(), @"\A(?:(?:hey\s+)?capri[,!.]?\s*)?(?:(?:can|could|would) you\s+)?(?:open|show(?: me)?|let me see|bring up)\s+(?:your|ur)\s+(?:own\s+|little\s+)?(?:computer|pc)(?: please)?[.!?]*\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
+        private string herHandOffAsk;
+
         private string HerComputerAsk(string input)
         {
+            if (input != null && herHandOffAsk != null && input.Trim() == herHandOffAsk) { herHandOffAsk = null; return null; }
             if (!preferences.HerComputer) return null;
             if (HerComputerOpenAsked(input)) { OpenHerComputer(); return Lines.Pick(new[] { "Here's my computer. Don't touch anything. Kidding.", "Welcome to my little computer.", "Ta-da. My computer." }); }
             if (Regex.IsMatch(input ?? "", @"\bstop\b.{0,30}\b(?:your|ur) (?:own |little )?(?:computer|pc)\b", RegexOptions.IgnoreCase) && herComputer != null && herComputer.Busy) { herComputer.StopTask(); return "Ok, I'll stop what I'm doing on my computer."; }
@@ -108,8 +112,41 @@ namespace CapriDesktop
             if (job == null) return null;
             HerComputerWindow window = ShowHerComputer();
             if (job.Length == 0) return window.Busy ? "I'm busy on my computer: " + window.Doing + "." : "Just pottering about on my computer. Want me to do something on it?";
-            string problem = window.Start(job);
+            string after;
+            job = HerComputerSplit(job, out after);
+            string problem = window.Start(job, after);
+            if (problem == null && after.Length > 0) return Lines.Pick(new[] { "On it. I'll look it up on my computer first, then " + HerComputer.Short(after, 80) + " on yours.", "Research first, on my computer. Then I'll " + HerComputer.Short(after, 80) + " on yours." });
             return problem ?? Lines.Pick(new[] { "On it. Watch me do it on my computer.", "Sure, I'll do that on my computer. I'll tell you when it's done.", "Leave it with me. Doing it on my computer now." });
+        }
+
+        internal static string HerComputerSplit(string job, out string after)
+        {
+            after = "";
+            string text = Regex.Replace(Regex.Replace((job ?? "").Trim(), @"\s+", " "), @" ,", ",");
+            Match then = Regex.Match(text, @"(?:\s*,\s*|\s+)(?:and\s+)?then\s+((?:go\s+|and\s+)?(?:load(?:\s+it)?\s+up|load|launch|open|start(?:\s+up)?|boot(?:\s+it)?\s+up|hop\s+on|jump\s+on|get\s+on|play|go\s+play|go\s+get|go\s+and\s+get)\b.*)$", RegexOptions.IgnoreCase);
+            if (!then.Success || then.Index == 0 || Regex.IsMatch(then.Groups[1].Value, @"\b(?:results?|links?|pages?|tabs?|sites?|websites?|articles?|videos?|notes?|diary|stickers?)\b", RegexOptions.IgnoreCase)) return text;
+            after = then.Groups[1].Value.Trim().TrimEnd('.', '!', '?').Trim();
+            return text.Substring(0, then.Index).Trim().TrimEnd(',', '.').Trim();
+        }
+
+        private void HerComputerHandOff(HerJob done)
+        {
+            if (IsDisposed || quitting || string.IsNullOrEmpty(done.After)) return;
+            string found = HerComputer.Short(Regex.Replace(done.Answer ?? "", @"\s+", " ").Trim(), 900);
+            string ask = (done.After + ". You just researched this yourself (" + HerComputer.Short(done.Task, 200) + ") and found: " + found).Trim();
+            herHandOffAsk = ask;
+            int waited = 0;
+            System.Windows.Forms.Timer wait = new System.Windows.Forms.Timer { Interval = 400 };
+            wait.Tick += delegate
+            {
+                waited += wait.Interval;
+                if (TalkingNow && waited < 30000) return;
+                wait.Stop();
+                wait.Dispose();
+                if (IsDisposed || quitting) return;
+                Hear(ask, done.After, "> you: ");
+            };
+            wait.Start();
         }
 
         internal string HerComputerShown { get { return (preferences.HerComputer ? "on" : "off") + " | " + (herComputer == null || herComputer.IsDisposed ? "closed" : herComputer.Visible ? "open" : "hidden"); } }

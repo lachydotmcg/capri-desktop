@@ -20,10 +20,11 @@ namespace CapriDesktop
         [DataMember] public long NextRun;
         [DataMember] public string Answer = "";
         [DataMember] public string Note = "";
+        [DataMember] public string After = "";
 
         internal HerJob Copy()
         {
-            return new HerJob { Id = Id, Task = Task, Repeat = Repeat, State = State, Added = Added, Ended = Ended, NextRun = NextRun, Answer = Answer, Note = Note };
+            return new HerJob { Id = Id, Task = Task, Repeat = Repeat, State = State, Added = Added, Ended = Ended, NextRun = NextRun, Answer = Answer, Note = Note, After = After };
         }
     }
 
@@ -63,13 +64,14 @@ namespace CapriDesktop
             return copy;
         }
 
-        internal HerJob Add(string task, string repeat)
+        internal HerJob Add(string task, string repeat, string after = "")
         {
             task = HerComputer.Short((task ?? "").Trim(), 300);
+            after = HerComputer.Short((after ?? "").Trim(), 300);
             if (task.Length == 0) return null;
             repeat = Array.IndexOf(Repeats, repeat ?? "") < 0 ? "" : repeat ?? "";
             DateTime now = Now();
-            HerJob job = new HerJob { Id = Guid.NewGuid().ToString("N").Substring(0, 12), Task = task, Repeat = repeat, Added = Stamp(now) };
+            HerJob job = new HerJob { Id = Guid.NewGuid().ToString("N").Substring(0, 12), Task = task, Repeat = repeat, Added = Stamp(now), After = repeat.Length > 0 ? "" : after };
             lock (gate)
             {
                 if (repeat.Length > 0)
@@ -191,6 +193,7 @@ namespace CapriDesktop
             if (fixedList.Done == null) fixedList.Done = new List<HerJob>();
             foreach (List<HerJob> jobs in new[] { fixedList.Queue, fixedList.Repeats, fixedList.Done })
                 jobs.RemoveAll(job => job == null || string.IsNullOrWhiteSpace(job.Task) || string.IsNullOrEmpty(job.Id));
+            foreach (List<HerJob> jobs in new[] { fixedList.Queue, fixedList.Repeats, fixedList.Done }) foreach (HerJob job in jobs) if (job.After == null) job.After = "";
             foreach (HerJob job in fixedList.Queue) { job.State = "queued"; if (Array.IndexOf(Repeats, job.Repeat ?? "") < 0) job.Repeat = ""; }
             fixedList.Repeats.RemoveAll(job => job.Repeat != "daily" && job.Repeat != "weekly");
             while (fixedList.Queue.Count > MostQueued) fixedList.Queue.RemoveAt(fixedList.Queue.Count - 1);
@@ -239,6 +242,8 @@ namespace CapriDesktop
             again.Remove(again.Queue()[0].Id);
             again.Next();
             if (again.Running() == null || again.Running().Task != "check the weather") return "Her jobs missed tomorrow's repeat.";
+            HerJob chained = again.Add("look up the pirate token", "", "load up fortnite and play it");
+            if (chained == null || chained.After != "load up fortnite and play it" || new HerJobs(folder).Queue().Find(job => job.Id == chained.Id).After != chained.After) return "Her jobs lost what to do after.";
             for (int i = 0; i < MostQueued + 3; i++) again.Add("job " + i, "");
             if (again.Waiting != MostQueued) return "Her jobs piled up past the limit.";
             if (Fixed(new HerJobList { Queue = null, Repeats = new List<HerJob> { new HerJob { Id = "a", Task = "x", Repeat = "hourly" } }, Done = new List<HerJob> { null } }).Repeats.Count != 0) return "Her jobs kept a broken repeat.";

@@ -27,6 +27,7 @@ namespace CapriDesktop
         internal Func<string, string, string> Ask;
         internal Action<string> Tell;
         internal Func<bool> CanThink = delegate { return false; };
+        internal Action<HerJob> HandOff;
         internal static bool Quiet;
 
         private readonly object gate = new object();
@@ -357,14 +358,16 @@ namespace CapriDesktop
             return started;
         }
 
-        internal string Start(string job)
+        internal string Start(string job) { return Start(job, ""); }
+
+        internal string Start(string job, string after)
         {
             if (string.IsNullOrWhiteSpace(job)) return "What should I do on my computer?";
             string task;
             string repeat = HerJobs.RepeatOf(job, out task);
             if (task.Length == 0) return "What should I do on my computer?";
             bool wasBusy = Busy;
-            HerJob added = Computer.Jobs.Add(task, repeat);
+            HerJob added = Computer.Jobs.Add(task, repeat, after);
             if (added == null) return repeat.Length > 0 ? "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first." : "My job list is full. Let me get through some of it first.";
             if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one in Mainframe under BRAIN."; }
             inControl = false;
@@ -411,9 +414,18 @@ namespace CapriDesktop
             if (note != null) lock (gate) selectedNote = note;
             Changed();
             Status("Done: " + HerComputer.Short(job.Task, 50));
-            Bubble(state == "done" ? "Done! It's in my notes." : "That one didn't work out.");
+            bool handing = state == "done" && !string.IsNullOrEmpty(job.After) && HandOff != null;
+            Bubble(handing ? "Done! Now for the real thing." : state == "done" ? "Done! It's in my notes." : "That one didn't work out.");
             Action<string> tell = Tell;
             if (tell != null) tell(HerComputer.Short(answer, 600));
+            if (handing)
+            {
+                HerJob done = job.Copy();
+                done.State = state;
+                done.Answer = answer ?? "";
+                done.Note = note ?? "";
+                HandOff(done);
+            }
             if (!closing && !Quiet) Thread.Sleep(2500);
             Pump();
         }

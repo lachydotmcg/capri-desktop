@@ -21167,6 +21167,13 @@ namespace CapriDesktop
             foreach (string notHers in new[] { "what's on my computer?", "is your computer cute", "my computer is slow", "open my computer" })
                 if (Companion.HerComputerJob(notHers) != null || Companion.HerComputerOpenAsked(notHers)) throw new Exception("Her computer took a line that wasn't a job for it: " + notHers);
             if (!Companion.HerComputerOpenAsked("open your computer") || !Companion.HerComputerOpenAsked("Capri, show me your little computer please")) throw new Exception("Her computer missed being asked to open.");
+            foreach (string[] herSplit in new[] { new[] { "use your computer to search about the fortnite pirate token, then research how to get it, then load up fortnite and play it", "search about the fortnite pirate token, then research how to get it", "load up fortnite and play it" },
+                new[] { "on your computer find out how to get the pirate token in fortnite and then play fortnite and get it", "find out how to get the pirate token in fortnite", "play fortnite and get it" },
+                new[] { "search for cat videos on your computer, then open the first result", "search for cat videos, then open the first result", "" } })
+            {
+                string herAfter, herFirst = Companion.HerComputerSplit(Companion.HerComputerJob(herSplit[0]), out herAfter);
+                if (herFirst != herSplit[1] || herAfter != herSplit[2]) throw new Exception("Her computer split \"" + herSplit[0] + "\" wrong: " + herFirst + " | " + herAfter);
+            }
             checks.Add("PASS her own computer: off until turned on, she reads one action at a time from any brain, works out jobs said with on your computer, saves notes and diary lines, keeps her desktop and stickers between runs, and her browser only opens web addresses");
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
