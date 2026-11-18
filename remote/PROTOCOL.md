@@ -459,7 +459,7 @@ A PC that lists `pair` in `hello-ok.features` makes a pairing link for a paired 
 
 ### 8.4 Jobs (feature `jobs`)
 
-A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, stop and answer its PC jobs, whoever started them. A phone sends these messages only in a session that offers `jobs`. There is no new PC switch and no notification support in this phase. A phone starts a job by talking to Capri in chat or a call.
+A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, stop and answer its PC jobs, whoever started them. A phone sends these messages only in a session that offers `jobs`. There is no new PC switch. Notifications for jobs are in section 8.7. A phone starts a job by talking to Capri in chat or a call.
 
 | `type` | Sender | Fields |
 |---|---|---|
@@ -504,6 +504,41 @@ A PC lists `wake` in `hello-ok.features` when it can say how to wake it with Wak
 - **`ready`** is `on` when the PC says it's armed to wake from that card (Windows' wake-armed devices, Mac's Wake for network access, Linux's `Wake-on: g`), `off` when it isn't, and empty when it can't tell. The BIOS setting can't be read, so `on` is a good sign, not a promise.
 - **The phone keeps them.** The phone asks once a session and stores the newest `wake.info` with its pairing, and forgets it when it unpairs. Nothing about waking goes through the relay: the PC is off by then.
 - **Sending it.** When the PC is offline, the phone sends a magic packet (6 bytes of `0xFF`, then the 6-byte MAC 16 times) as UDP to port 9 at each card's `broadcast` and at `255.255.255.255`. Browsers can't send UDP, so only the Android app does this (`CapriAndroid.wake`). The web app shows the MAC and broadcast address for any Wake-on-LAN app. Either way it only works from a phone on the same network as the PC.
+
+### 8.7 Phone notifications (feature `push`)
+
+A PC lists `push` in `hello-ok.features` when it can notify a phone that isn't looking: her answer to a message sent from that phone, a job asking to go ahead, a job ending, and a reminder. A phone must not send `push.*` to a PC that doesn't list it.
+
+| `type` | Sender | Context | Fields |
+|---|---|---|---|
+| `push.get` | phone | session | none |
+| `push.state` | PC | session | `key` (the PC's push key: an uncompressed P-256 point, 65 bytes, base64url), `on` (this phone gets notifications), `web` (the PC holds a web push subscription for this phone), `app` (it notifies this phone in its session) |
+| `push.sub` | phone | session | `id`, `on`; with `on: true`, `web` (`{endpoint, p256dh, auth}`, from `PushSubscription.toJSON()`) or `app: true` (the Android app), or both |
+| `push.away` | phone | session | `away`: true when the page is hidden, false when it shows again. Every session starts with `away: false`. |
+| `push.test` | phone | session | `id`; the PC sends a `test` notification to this phone by every route it has |
+| `push.result` | PC | session | `re` (the `push.sub` or `push.test` id), `ok`, `code` (`saved`, `off`, `sent`, `gone`, `failed` or `none`) |
+| `notify` | PC | session | `id`, `kind` (`reply`, `ask`, `done`, `reminder`, `checkin` or `test`), `title` (at most 60 characters), `body` (at most 200), `at` (Unix ms), and with `ask` or `done`: `job` (the job id); with `ask`: `ask_id` when the PC has one |
+
+- **Turning it on.** The phone asks `push.get`, subscribes with the PC's `key` as `applicationServerKey`, and sends `push.sub`. The PC answers `push.result` (`saved`, or `failed` for a subscription it refuses) and then `push.state`. `push.sub {on: false}` forgets both routes and answers `off`. The PC keeps a phone's subscription with its pairing (DPAPI on Windows) and forgets it when the phone is removed. A new `push.sub` replaces the old one.
+- **Subscriptions it takes.** `endpoint` must be `https`, at most 1,024 characters, with no user, password or port, on a push service's host: `fcm.googleapis.com`, or a host ending in `.push.services.mozilla.com`, `.push.apple.com` or `.notify.windows.com`. `p256dh` is a valid uncompressed P-256 point (65 bytes) and `auth` is 16 bytes. Anything else gets `failed` and nothing is saved, so a phone can't make the PC post to other addresses.
+- **Routes.** For each phone with notifications on:
+  - its session is live and `away` is false: nothing, since the page already shows it;
+  - its session is live, `away` is true and it asked for `app`: the `notify` message in that session;
+  - otherwise, with `web`: a web push. A hidden page's socket may already be frozen, so a live but away phone with `web` gets a web push too;
+  - otherwise nothing reaches it, and nothing waits for later.
+  - `test` uses every route the phone has, live or not.
+- **What sends one.** Each is sent once:
+  - `reply`: her whole answer to a `chat.send` from this phone, when that phone is away or offline as she finishes. `body` is the start of her answer, scrubbed like her chat replies.
+  - `ask`: a job goes `asking` (section 8.4) while the PC is away, or when a phone started it. `title` is the job's title and `body` its question. Every phone with notifications on gets it.
+  - `done`: a job ends `done` or `failed` while the PC is away. Jobs a phone started are left out, since its `reply` says how it went.
+  - `reminder`: one of her reminders comes due while the PC is away. `body` is the reminder.
+  - `checkin`: her own hello while the PC has been away for 45 minutes, with Check in on me on and her not hushed or asleep. At most two a day, three hours apart, between 10am and 9pm PC time, and not within an hour of a message from a phone. `body` is one of her own lines for the time of day (no brain call), in her language.
+  - The PC is **away** when it has had no keyboard or mouse input for 2 minutes. A PC that can't tell sends only `reply` and the `ask` of a job a phone started.
+- **Answering from a notification.** `ask` carries `job` and `ask_id` so a phone can answer it with `job.answer` (section 8.4) once it has a session. The phone must check that the job is still `asking` with that `ask_id` (or, without one, the same question) before it sends, and treat a lock screen as not the user: the Android app asks for the phone to be unlocked before Allow or Deny runs, and a web notification's buttons only open the page.
+- **Web push.** The payload is the `notify` object's UTF-8 JSON, at most 3,000 bytes, encrypted as RFC 8291 (`aes128gcm`, one record, `rs` 4096, a fresh sender key and salt for every message) and posted to `endpoint` with `Content-Encoding: aes128gcm`, `TTL` (`ask` and `reminder` 3600, `checkin` 7200, `test` 60, others 86400), `Urgency` (`high` for `ask` and `reminder`, else `normal`), `Topic` (`j` and the job id, for `ask` and `done`) and VAPID (RFC 8292): `Authorization: vapid t=<JWT>, k=<key>`, the JWT signed ES256 with `aud` the endpoint's origin, `exp` 12 hours on and `sub` `https://capriai.app/remote/`. The PC makes its push key once and keeps it with the room (DPAPI on Windows); a new room makes a new key, and phones subscribe again.
+  - The push service (Apple, Google, Mozilla or Microsoft) sees the PC's address, the time and the size, never the words. The relay sees nothing: the PC posts straight to the push service.
+  - `201`, `200` or `202` is `sent`. `404` or `410` is `gone`: the PC forgets that subscription and the phone's next `push.state` says `web: false`. Anything else is `failed` and isn't retried.
+- **The page** shows a notification with `tag` set to `job-<job>` for `ask` and `done` (so a job's end replaces its question) and to the `id` otherwise. Tapping it opens `https://capriai.app/remote/`, at the job for `ask` and `done`. An iPhone only gets web push in a home screen app (iOS 16.4 or later), so Safari says to add Capri to the Home Screen first.
 
 ## 9. Rules for each side
 

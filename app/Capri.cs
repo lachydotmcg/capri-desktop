@@ -1042,6 +1042,7 @@ namespace CapriDesktop
         [DataMember] public int Recall = 8;
         [DataMember] public int MemorySize;
         [DataMember] public int ReplyLength;
+        [DataMember] public int GpuLimit;
         // Remember our chats is on by default: transcripts and memories.md stay on this PC.
         [DataMember] public bool Remembers = true;
         [DataMember] public bool ClipGames;
@@ -2999,6 +3000,7 @@ namespace CapriDesktop
             Brain.Recall = preferences.Recall == 16 || preferences.Recall == 32 ? preferences.Recall : 8;
             Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, preferences.MemorySize) >= 0 ? preferences.MemorySize : 0;
             Brain.ReplyLength = Math.Max(0, Math.Min(Brain.ReplySizes.Length - 1, preferences.ReplyLength));
+            Brain.GpuLimit = Array.IndexOf(Brain.GpuLimits, preferences.GpuLimit) >= 0 ? preferences.GpuLimit : 0;
             brain.Picks = preferences.ThinkingPicks;
             brain.ThinkingChanged = delegate { OnUi(delegate { mainframe.Sync(); }); };
             Brain.Keeping = preferences.Remembers;
@@ -3339,6 +3341,7 @@ namespace CapriDesktop
                 if (!testing) lookout.Deliver();
                 if (!testing) CheckNudge(signalNow, signalIdle);
                 if (!testing && background) CheckCare(signalNow, signalIdle);
+                if (!testing && background) CheckPhoneCheckIn(DateTime.Now, signalIdle);
                 if (!testing && background) CheckHoliday(DateTime.Now, signalIdle);
                 if (!testing && background) CheckProbe(DateTime.Now, signalIdle);
                 if (!testing && background) CheckNews(signalIdle);
@@ -5419,6 +5422,7 @@ namespace CapriDesktop
             catch (IOException) { return false; }
             catch (UnauthorizedAccessException) { return false; }
             if (line == null) return false;
+            RemoteNotifyReminder(line);
             if (hidden && !fullScreenHidden) SetHidden(false);
             reminderUp = true;
             reminderText = true;
@@ -7925,6 +7929,18 @@ namespace CapriDesktop
             Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, value) >= 0 ? value : 0;
             preferences.MemorySize = Brain.MemorySize;
             SavePreferences();
+        }
+
+        internal int GpuLimit { get { return Brain.GpuLimit; } }
+
+        internal void SetGpuLimit(int value)
+        {
+            int limit = Array.IndexOf(Brain.GpuLimits, value) >= 0 ? value : 0;
+            if (limit == Brain.GpuLimit) return;
+            Brain.GpuLimit = limit;
+            preferences.GpuLimit = limit;
+            SavePreferences();
+            ThreadPool.QueueUserWorkItem(delegate { if (engine.Rest(0)) Brain.Log("brain", -1, "llama-server stopped to load again with Brain VRAM at " + Brain.GpuLimitNames[Array.IndexOf(Brain.GpuLimits, limit)]); });
         }
 
         internal int ReplyLength { get { return Brain.ReplyLength; } }
@@ -37447,6 +37463,36 @@ namespace CapriDesktop
                 if (Brain.Window != 16384) throw new Exception("Auto let an old growth shrink its starting size.");
                 Brain.Grown = 0;
                 checks.Add("PASS built-in Auto memory keeps the larger of its starting size and this run's growth");
+                Func<string, long[]> vramShapeWas = Brain.OllamaShape;
+                int vramLimitWas = Brain.GpuLimit;
+                try
+                {
+                    long vramEyes = Engine.Picks[0].EyesSize >> 20;
+                    if (Engine.Fit(0, 8L << 30, 0) != "" || Engine.Fit(4, 8L << 30, 0) != " -fitt 4096" || Engine.Fit(6, 8L << 30, 0) != " -fitt 2048" || Engine.Fit(8, 8L << 30, 0) != "" || Engine.Fit(12, 8L << 30, 0) != "" || Engine.Fit(4, 0, 0) != "" || Engine.Fit(4, 8L << 30, Engine.Picks[0].EyesSize) != " -fitt " + (4096 + vramEyes))
+                        throw new Exception("Brain VRAM gave llama-server the wrong free-memory target: " + Engine.Fit(4, 8L << 30, Engine.Picks[0].EyesSize));
+                    Brain.Vram = 8L << 30;
+                    string vramCapped = builtIn.StartInfo(Engine.Picks[0], true, false, 32123, 4096, 3).Arguments, vramAuto = builtIn.StartInfo(Engine.Picks[0], true, false, 32123, 4096, 0).Arguments, vramRam = builtIn.StartInfo(Engine.Picks[0], true, true, 32123, 4096, -1).Arguments;
+                    if (!vramCapped.EndsWith(" -fitt " + (5120 + vramEyes), StringComparison.Ordinal) || vramAuto.Contains("-fitt") || vramRam.Contains("-fitt") || !vramRam.Contains(" --device none -ngl 0 --no-mmproj-offload")) throw new Exception("Brain VRAM didn't reach the built-in launch: " + vramCapped + " / " + vramRam);
+                    Brain.GpuLimit = -1;
+                    if (!builtIn.OnCpu) throw new Exception("RAM only didn't keep her built-in brain on the CPU.");
+                    if (Brain.Layers(5L << 30, 34, 4, 16384) != 17 || Brain.Layers(5L << 30, 34, 0, 16384) != null || Brain.Layers(5L << 30, 34, -1, 16384) != 0 || Brain.Layers(2L << 30, 28, 8, 4096) != null || Brain.Layers(5L << 30, 34, 1, 16384) != 0 || Brain.Layers(0, 34, 4, 4096) != null)
+                        throw new Exception("Brain VRAM counted the wrong Ollama layers: " + Brain.Layers(5L << 30, 34, 4, 16384));
+                    Brain.OllamaShape = delegate { return new[] { 5L << 30, 34L }; };
+                    Brain.MemorySize = 16384;
+                    int[] vramLimits = { 4, -1, 0 };
+                    string[] vramSent = { "17", "0", null };
+                    for (int vramAt = 0; vramAt < vramLimits.Length; vramAt++)
+                    {
+                        Brain.GpuLimit = vramLimits[vramAt];
+                        local.Aside("Talk", "Hello", 90);
+                        string vramGpu = Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_gpu");
+                        if (vramGpu != vramSent[vramAt]) throw new Exception("Brain VRAM " + vramLimits[vramAt] + " sent Ollama num_gpu " + (vramGpu ?? "none"));
+                    }
+                    string vramWords = SelfKnow.Matching("how do I limit your vram");
+                    if (vramWords == null || !vramWords.Contains("Mainframe > Resources > Brain VRAM") || !vramWords.Contains("RAM only")) throw new Exception("Her help didn't find Brain VRAM: " + vramWords);
+                }
+                finally { Brain.OllamaShape = vramShapeWas; Brain.GpuLimit = vramLimitWas; Brain.MemorySize = 0; Brain.Vram = 0; }
+                checks.Add("PASS Brain VRAM: a limit gives llama-server a free-memory target that keeps her brain and eyes under it, RAM only runs on the CPU, and Ollama gets the layers that fit, none, or its own fit on Auto");
                 string memoryWords = SelfKnow.Matching("Explain the Memory size setting");
                 if (memoryWords == null || !memoryWords.Contains("Auto starts at 16K") || !memoryWords.Contains("about 12 GB of RAM or more") || !memoryWords.Contains("graphics card with less than about 7 GB") || !memoryWords.Contains("4K with Short Memory or 8K with Medium or Long") || !memoryWords.Contains("up to 32K") || memoryWords.Contains("loading fails")) throw new Exception("Her memory size help kept the old Auto sizes.");
                 checks.Add("PASS memory size help says where Auto starts and grows, with smaller sizes on smaller PCs");
@@ -64694,6 +64740,27 @@ namespace CapriDesktop
                 if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Names: Far & Wide" || sheet.AuthorOf(0) != "by Vocyn" || sheet.AboutOf(0) != about) throw new Exception("The mods window did not search authors and descriptions together.");
                 sheet.Type2("");
                 checks.Add("PASS mods window search: author and description words find the named card together");
+                Func<string, long, byte[]> liveGet = ModDirectory.Get;
+                string liveKept = ModDirectory.KeptFolder;
+                ModDirectory.KeptFolder = Path.Combine(output, "kept-directory-missing");
+                ModDirectory.Get = delegate(string url, long most)
+                {
+                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeApi) throw new WebException("stand-in", WebExceptionStatus.Timeout);
+                    return liveGet(url, most);
+                };
+                try
+                {
+                    sheet.LoadMods();
+                    if (sheet.ShownCount != 2 || sheet.TitleOf(1) != "Names: Far & Wide" || sheet.StatusShown != "The mods directory took too long to answer. Showing the list from before.") throw new Exception("A failed refresh emptied the mods window or hid the error: " + sheet.ShownCount + " / " + sheet.StatusShown);
+                }
+                finally
+                {
+                    ModDirectory.Get = liveGet;
+                    ModDirectory.KeptFolder = liveKept;
+                }
+                sheet.LoadMods();
+                if (sheet.ShownCount != 2 || sheet.StatusShown != "") throw new Exception("The mods window didn't load again after a failed refresh: " + sheet.StatusShown);
+                checks.Add("PASS mods window: a refresh that fails keeps the cards on screen and says what went wrong instead of emptying the list");
                 wrongBytes = true;
                 refused = false;
                 try { ModDirectory.Download(found[1], under); }
@@ -64820,7 +64887,7 @@ namespace CapriDesktop
                 if (sheet.EmptyShown != "Nothing to show from the mods directory." || sheet.StatusShown != "No mods in the directory yet.") throw new Exception("An empty directory wasn't said.");
                 tree = "{nope";
                 sheet.LoadMods();
-                if (sheet.EmptyShown == null || sheet.StatusShown != "The mods directory sent something I can't read.") throw new Exception("Broken directory data wasn't said: " + sheet.StatusShown);
+                if (sheet.EmptyShown == null || sheet.StatusShown != "The mods directory sent something I can't read. Showing the list from a moment ago.") throw new Exception("Broken directory data wasn't said with the kept list: " + sheet.StatusShown);
                 tree = smaller;
                 sheet.Close();
                 ShowMods(false);

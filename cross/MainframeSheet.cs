@@ -156,6 +156,7 @@ namespace CapriDesktop
         internal void LoadMods()
         {
             if (closed || loading || working) return;
+            bool hadStats = statsLive;
             loading = true; statsLive = false; refresh.IsEnabled = false;
             failed.Clear();
             int mine = ++ticket;
@@ -164,20 +165,28 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate
             {
                 List<ModListing> found = null;
-                string problem = null; bool stats = false;
+                string problem = null, trouble = null; bool stats = false;
                 try
                 {
-                    found = ModDirectory.Browse();
+                    found = ModDirectory.Browse(out trouble);
                     try { ModDirectory.Apply(found, ModDirectory.Stats()); stats = true; }
                     catch (Exception) { problem = "Download counts and ratings are unavailable."; }
                 }
-                catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't reach the mods directory."; }
+                catch (Exception error) { problem = ModDirectory.Trouble(error); }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (closed || mine != ticket) return;
-                    loading = false; refresh.IsEnabled = true; statsLive = stats;
-                    listings = found ?? new List<ModListing>(); first = 0;
-                    Say(problem ?? (listings.Count == 0 ? "No mods in the directory yet." : "Pick a mod to download."));
+                    loading = false; refresh.IsEnabled = true;
+                    if (found == null)
+                    {
+                        statsLive = hadStats && listings.Count > 0;
+                        Say(listings.Count > 0 ? problem + " Showing the list from before." : problem);
+                        FillDirectory();
+                        return;
+                    }
+                    statsLive = stats;
+                    listings = found; first = 0;
+                    Say(trouble ?? problem ?? (listings.Count == 0 ? "No mods in the directory yet." : "Pick a mod to download."));
                     FillDirectory();
                     // Marks the cards of installed mods with a newer copy, without saying anything on her Mods page.
                     if (found != null && found.Count > 0) frame.LookForUpdates(listings);
