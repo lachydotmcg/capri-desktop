@@ -1306,7 +1306,7 @@ namespace CapriDesktop
 #if !CROSS
               "A saved website nickname goes in site, with no search words when opening it. " +
 #endif
-              "Set browser only when they named a browser; otherwise leave it out for their default. No site named: leave site out, it uses their browser's search engine; a site or engine they named goes in site. A request naming a browser and a site, like open Wikipedia in Brave, look up X on Brave, or open a new tab on Brave, is this tool, whether or not that browser is already open: never answer that the browser is open instead of opening the page.",
+              "Set browser only when they named a browser; otherwise leave it out for their default. No site named: leave site out, it searches Google; a site or engine they named goes in site. A request naming a browser and a site, like open Wikipedia in Brave, look up X on Brave, or open a new tab on Brave, is this tool, whether or not that browser is already open: never answer that the browser is open instead of opening the page.",
               "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}}}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
 #if !CROSS
             { "media", "Control their music, video or PC volume when they ask, suggest or hint at it. Pause, resume, skip, seek to seconds from the start, like or unlike the current Spotify song, open the player that's playing, or read the song or volume. Seek and likes need a player that supports them.",
@@ -1621,10 +1621,6 @@ namespace CapriDesktop
         internal static Action<string> Run = Start;
         internal static Func<string, string> Opened = BringOpened;
         internal static Func<string, string> BrowserPath = FindBrowser;
-        internal static Func<string, string> SearchEngine = ReadSearchEngine;
-        internal static Func<string, string> ProfileRoot = SearchRoot;
-        internal static Func<string> DefaultBrowser = ReadDefaultBrowser;
-        internal static Func<DateTime> SearchNow = delegate { return DateTime.UtcNow; };
         internal static Action<string, string> Browse = StartBrowser;
         internal static Func<IntPtr> Foreground = Native.GetForegroundWindow;
         internal static Action<byte> Press = Tap;
@@ -5355,226 +5351,6 @@ namespace CapriDesktop
             return info;
         }
 
-        // Unnamed searches use the engine their browser states (YunoTheAlien, 13 Nov).
-        [DataContract]
-        private sealed class SearchSettings
-        {
-            [DataMember(Name = "default_search_provider_data")] internal SearchProvider Provider;
-        }
-
-        [DataContract]
-        private sealed class SearchProvider
-        {
-            [DataMember(Name = "template_url_data")] internal SearchUrl Template;
-        }
-
-        [DataContract]
-        private sealed class SearchUrl
-        {
-            [DataMember(Name = "url")] internal string Url;
-        }
-
-        [DataContract]
-        private sealed class BrowserState
-        {
-            [DataMember(Name = "profile")] internal BrowserProfile Profile;
-        }
-
-        [DataContract]
-        private sealed class BrowserProfile
-        {
-            [DataMember(Name = "last_used")] internal string Last;
-        }
-
-        private sealed class Engine
-        {
-            internal string Url;
-            internal DateTime At;
-        }
-
-        private static readonly object searchGate = new object();
-        private static readonly Dictionary<string, Engine> engines = new Dictionary<string, Engine>();
-
-        internal static void ForgetSearch() { lock (searchGate) engines.Clear(); }
-
-        private static T SearchJson<T>(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text) || text.Length > 4 * 1024 * 1024) return default(T);
-            using (MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(text))) return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(input);
-        }
-
-        internal static string SearchTemplate(string text)
-        {
-            try
-            {
-                SearchSettings settings = SearchJson<SearchSettings>(text);
-                return settings == null || settings.Provider == null || settings.Provider.Template == null ? null : settings.Provider.Template.Url;
-            }
-            catch (Exception) { return null; }
-        }
-
-        internal static string SearchProfile(string text)
-        {
-            try
-            {
-                BrowserState state = SearchJson<BrowserState>(text);
-                string profile = state == null || state.Profile == null ? null : state.Profile.Last;
-                if (string.IsNullOrWhiteSpace(profile)) return "Default";
-                return profile != "." && profile != ".." && Regex.IsMatch(profile, @"^[^\\/:*?""<>|\x00-\x1F]+$") ? profile : null;
-            }
-            catch (Exception) { return null; }
-        }
-
-        internal static string EngineTemplate(string template)
-        {
-            if (string.IsNullOrWhiteSpace(template) || !Regex.IsMatch(template, @"\Ahttps?://", RegexOptions.IgnoreCase) || !template.Contains("{searchTerms}")) return null;
-            try
-            {
-                int hostAt = template.IndexOf("://", StringComparison.Ordinal) + 3;
-                int hostEnd = template.IndexOfAny(new[] { '/', '?', '#' }, hostAt);
-                if (hostEnd < 0) hostEnd = template.Length;
-                if (hostEnd == hostAt) return null;
-                if (Regex.IsMatch(Uri.UnescapeDataString(template.Substring(hostAt, hostEnd - hostAt)), @"[{}]")) return null;
-                int fragmentAt = template.IndexOf('#');
-                string fragment = fragmentAt < 0 ? "" : template.Substring(fragmentAt);
-                string address = fragmentAt < 0 ? template : template.Substring(0, fragmentAt);
-                int queryAt = address.IndexOf('?');
-                string path = queryAt < 0 ? address : address.Substring(0, queryAt);
-                if (Regex.IsMatch(Uri.UnescapeDataString((path + fragment).Replace("{searchTerms}", "caprisearch")), @"[{}]")) return null;
-                List<string> parts = new List<string>();
-                if (queryAt >= 0)
-                    foreach (string part in address.Substring(queryAt + 1).Split('&'))
-                        if (!Regex.IsMatch(Uri.UnescapeDataString(part.Replace("{searchTerms}", "caprisearch")), @"[{}]")) parts.Add(part);
-                string cleaned = path + (parts.Count == 0 ? "" : "?" + string.Join("&", parts.ToArray())) + fragment;
-                Uri uri;
-                if (!cleaned.Contains("{searchTerms}") || !Uri.TryCreate(cleaned.Replace("{searchTerms}", "caprisearch"), UriKind.Absolute, out uri) || (uri.Scheme != "http" && uri.Scheme != "https") || uri.Host.Length == 0 || uri.UserInfo.Length > 0) return null;
-                return cleaned;
-            }
-            catch (Exception) { return null; }
-        }
-
-        private static string SearchAddress(string search, string browser)
-        {
-            string words = Uri.EscapeDataString(search.Trim());
-#if !CROSS
-            try
-            {
-                string name = string.IsNullOrWhiteSpace(browser) ? BrowserName(DefaultBrowser()) : BrowserName(browser);
-                if (name != null && name != "Firefox")
-                {
-                    string template;
-                    lock (searchGate)
-                    {
-                        Engine engine;
-                        DateTime now = SearchNow();
-                        if (!engines.TryGetValue(name, out engine) || now - engine.At >= TimeSpan.FromMinutes(10))
-                        {
-                            string read = null;
-                            try { read = EngineTemplate(SearchEngine(name)); } catch (Exception) { }
-                            engine = new Engine { Url = read, At = now }; engines[name] = engine;
-                        }
-                        template = engine.Url;
-                    }
-                    Uri uri;
-                    if (template != null && Uri.TryCreate(template.Replace("{searchTerms}", words), UriKind.Absolute, out uri) && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host.Length > 0 && uri.UserInfo.Length == 0) return uri.AbsoluteUri;
-                }
-            }
-            catch (Exception) { }
-#endif
-            return Searches[1, 1] + words;
-        }
-
-        private static string ReadDefaultBrowser()
-        {
-#if !CROSS
-            return DefaultBrowserChoice(ReadBrowserChoice);
-#else
-            return null;
-#endif
-        }
-
-#if !CROSS
-        internal static string DefaultBrowserChoice(Func<string, string> read)
-        {
-            const string path = @"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\";
-            foreach (string choice in new[] { @"UserChoiceLatest\ProgId", "UserChoiceLatest", "UserChoice" })
-            {
-                string id = null;
-                try { id = read(path + choice); } catch (Exception) { }
-                if (!string.IsNullOrWhiteSpace(id)) return DefaultBrowserName(id);
-            }
-            return null;
-        }
-
-        private static string ReadBrowserChoice(string path)
-        {
-            using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path))
-                return key == null ? null : key.GetValue("ProgId") as string;
-        }
-#endif
-
-        internal static string DefaultBrowserName(string id)
-        {
-            if (Regex.IsMatch(id ?? "", @"^ChromeHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Chrome";
-            if (Regex.IsMatch(id ?? "", @"^MSEdgeHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Edge";
-            if (Regex.IsMatch(id ?? "", @"^BraveHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Brave";
-            if (Regex.IsMatch(id ?? "", @"^VivaldiHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Vivaldi";
-            if (Regex.IsMatch(id ?? "", @"^OperaGX", RegexOptions.IgnoreCase)) return "Opera GX";
-            if (Regex.IsMatch(id ?? "", @"^OperaStable(?:\.|$)", RegexOptions.IgnoreCase)) return "Opera";
-            if (Regex.IsMatch(id ?? "", @"^FirefoxURL(?:-|$)", RegexOptions.IgnoreCase)) return "Firefox";
-            return null;
-        }
-
-        private static string SearchRoot(string browser)
-        {
-#if !CROSS
-            string folder = browser == "Chrome" ? @"Google\Chrome\User Data" : browser == "Edge" ? @"Microsoft\Edge\User Data" : browser == "Brave" ? @"BraveSoftware\Brave-Browser\User Data" : browser == "Vivaldi" ? @"Vivaldi\User Data" : browser == "Opera" ? @"Opera Software\Opera Stable" : browser == "Opera GX" ? @"Opera Software\Opera GX Stable" : null;
-            return folder == null ? null : Path.Combine(Environment.GetFolderPath(browser == "Opera" || browser == "Opera GX" ? Environment.SpecialFolder.ApplicationData : Environment.SpecialFolder.LocalApplicationData), folder);
-#else
-            return null;
-#endif
-        }
-
-        internal static string ReadSearchEngine(string browser)
-        {
-#if !CROSS
-            try
-            {
-                string root = ProfileRoot(browser);
-                if (string.IsNullOrWhiteSpace(root)) return null;
-                string state = Path.Combine(root, "Local State");
-                bool hasState = File.Exists(state);
-                string stateText = hasState ? ReadSearchFile(state) : null;
-                if (hasState && stateText == null) return null;
-                string profile = SearchProfile(stateText);
-                if (profile == null) return null;
-                string folder = Path.Combine(root, profile);
-                if ((browser == "Opera" || browser == "Opera GX") && !File.Exists(Path.Combine(folder, "Secure Preferences")) && !File.Exists(Path.Combine(folder, "Preferences"))) folder = root;
-                return SearchTemplate(ReadSearchFile(Path.Combine(folder, "Secure Preferences"))) ?? SearchTemplate(ReadSearchFile(Path.Combine(folder, "Preferences")));
-            }
-            catch (Exception) { }
-#endif
-            return null;
-        }
-
-#if !CROSS
-        internal static string ReadSearchFile(string path)
-        {
-            try
-            {
-                using (FileStream input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-                {
-                    if (input.Length > 4 * 1024 * 1024) return null;
-                    byte[] bytes = new byte[(int)input.Length];
-                    int offset = 0, got;
-                    while (offset < bytes.Length && (got = input.Read(bytes, offset, bytes.Length - offset)) > 0) offset += got;
-                    return offset == bytes.Length && input.Length == bytes.Length ? Encoding.UTF8.GetString(bytes) : null;
-                }
-            }
-            catch (Exception) { return null; }
-        }
-#endif
-
         // Keep a page when her website call has a misplaced address or browser name (YunoTheAlien, 13 Nov).
         internal static void WebsiteArgs(ToolArguments args)
         {
@@ -5780,7 +5556,7 @@ namespace CapriDesktop
             bool searching = !string.IsNullOrWhiteSpace(search);
             if (searching)
             {
-                if (host.Length == 0) return SearchAddress(search, browser);
+                if (host.Length == 0) return Searches[1, 1] + Uri.EscapeDataString(search.Trim());
                 for (int i = 0; i < Searches.GetLength(0); i++)
                 {
                     string key = Searches[i, 0];
