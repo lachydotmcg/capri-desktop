@@ -492,11 +492,13 @@ namespace CapriDesktop
             var voiceTest = Key("Test voice", 280, 499, 76, 22, () => { if (Program.Smoke == null) pet.HearStyle(); });
             items[items.Count - 1].When = () => pet.MainframeVoiceMode != 0;
             nameListeningNote = null;
-            if (OperatingSystem.IsLinux())
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
             {
-                Toggle("Listen for Capri", 0, 524, () => pet.NameListeningEnabled, pet.SetNameListening);
-                nameListeningNote = Caption("", 28, 555, 328, 22, MainframeTheme.Faint); nameListeningNote.Ellipsis = true;
-                MainframeTips.Explain(nameListeningNote, "Local decoder · 20-second follow-ups · selected physical microphone");
+                var nameToggle = Toggle("Listen for Hey Capri", 0, 524, () => pet.NameListeningEnabled, pet.SetNameListening);
+                nameToggle.Switch = 138;
+                var nameTip = new TextBlock { MaxWidth = 332, TextWrapping = TextWrapping.Wrap };
+                ToolTip.SetTip(nameToggle, nameTip);
+                readers.Add(() => nameTip.Text = pet.NameListeningStatus);
             }
             Section("CAPRI", 0, 540);
             remoteKey = Key("Remote", 100, 539, 88, 18, OpenRemote);

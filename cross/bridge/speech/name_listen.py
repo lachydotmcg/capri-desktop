@@ -1,7 +1,7 @@
-"""Opt-in local Capri-name listening with the retained pinned Moonshine decoder.
+"""Local Moonshine listener for Capri's name.
 
-Only name-gated accepted finals leave this network-isolated worker. This is an
-ASR name detector, not the unrelated dormant Hey Jarvis keyword model.
+Only accepted transcripts are sent to the app. Linux uses bwrap; macOS
+currently runs without a sandbox.
 """
 from __future__ import annotations
 
@@ -161,9 +161,14 @@ class NameListener:
             await self.verify_microphone(self.source, self.fingerprint)
             if self.shutdown.is_set() or admitted != self.authority or self.policy.blocked:
                 continue
-            process = await asyncio.create_subprocess_exec('pw-record', '--target', self.source,
-                '--rate', '16000', '--channels', '1', '--format', 's16', '--raw', '-',
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard)
+            if sys.platform == 'darwin':
+                helper = str(Path(__file__).resolve().parents[2] / 'capri-mic')
+                command = (helper,)
+            else:
+                command = ('pw-record', '--target', self.source,
+                    '--rate', '16000', '--channels', '1', '--format', 's16', '--raw', '-')
+            process = await asyncio.create_subprocess_exec(*command,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard if sys.platform == 'linux' else None)
             async with self.capture_lock:
                 if self.shutdown.is_set() or admitted != self.authority or self.policy.blocked:
                     await self.stop_process(process)
@@ -239,7 +244,7 @@ class NameListener:
             self.worker = await asyncio.create_subprocess_exec(sys.executable, '-u',
                 str(Path(__file__).with_name('asr_worker.py')), '--manifest', self.manifest,
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard)
+                stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard if sys.platform == 'linux' else None)
             ready = await message(self.worker.stdout)
             if not isinstance(ready, dict) or ready.get('event') != 'ready':
                 raise ValueError('The pinned local name decoder did not warm')

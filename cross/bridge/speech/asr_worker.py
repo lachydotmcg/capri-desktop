@@ -35,9 +35,12 @@ class Decoder:
     def __init__(self, manifest):
         # Affinity bounds native ORT threads as well as Python work; no CUDA
         # execution provider is selected. Children inherit the same CPU set.
-        available = sorted(os.sched_getaffinity(0))
-        os.sched_setaffinity(0, available[:2])
-        self.allowed_cpus = set(available[:2])
+        if sys.platform == "linux":
+            available = sorted(os.sched_getaffinity(0))
+            os.sched_setaffinity(0, available[:2])
+            self.allowed_cpus = set(available[:2])
+        else:
+            self.allowed_cpus = set()
         # ORT's default pool explicitly reassigns child affinity beyond the
         # caller's mask. Use Moonshine's supported sequential-session option;
         # OMP_NUM_THREADS or pinning only the main thread does not bound it.
@@ -69,6 +72,8 @@ class Decoder:
         self.verify_thread_affinity()
 
     def verify_thread_affinity(self):
+        if sys.platform != 'linux':
+            return {"platform": sys.platform, "linux_affinity_audit": "unavailable", "ort_sequential": True}
         tasks = os.listdir("/proc/self/task")
         union = set()
         for task in tasks:
@@ -190,7 +195,7 @@ def main():
     try:
         manifest = verify_manifest(args.manifest)
         decoder = Decoder(manifest)
-        emit("ready", backend="moonshine-tiny-streaming-en", cpu_affinity=sorted(os.sched_getaffinity(0)),
+        emit("ready", backend="moonshine-tiny-streaming-en", cpu_affinity=sorted(os.sched_getaffinity(0)) if sys.platform == 'linux' else [],
              code_revision=manifest["moonshine"]["source_revision"],
              weight_revision=manifest["moonshine"]["weight_revision"], wake_phrase="Hey Jarvis",
              keyterms=["Capri", "terminal", "fastfetch", "YouTube"], keyterm_boost=2.0,

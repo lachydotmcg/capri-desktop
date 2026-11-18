@@ -36,12 +36,12 @@ namespace CapriDesktop
         private long nameEpoch;
         private bool nameStopped = true, nameStartup, nameClosed, nameChecking, nameStarting;
         private string nameIdentity, nameStatus = "Local name listening is off.";
-        private double nextNameIdentityCheck;
+        private double nextNameIdentityCheck, macSpeechUntil;
 
         internal bool NameListeningEnabled => Saved.ListenCapri && !nameStopped;
         internal string NameListeningStatus => nameStatus;
         private bool NameBarred => nameClosed || quitting || away || Hushed || Asleep || Listening ||
-            Talk?.Typer.Secret == true || HyprlandDesktop.Current?.VisualSnapshot?.Locked != false;
+            Talk?.Typer.Secret == true || (OperatingSystem.IsLinux() && HyprlandDesktop.Current?.VisualSnapshot?.Locked != false);
 
         private NameContext CaptureNameContext() => new NameContext(Brain.Provider, Brain.Model, Brain.Remote,
             Brain.Remote?.Model, Brain.Local, HyprlandDesktop.Current?.SessionId, Saved.MicrophoneNode,
@@ -70,12 +70,25 @@ namespace CapriDesktop
         }
 
         private NameListeningState NameState() => new NameListeningState(nameIdentity, Saved.MicrophoneNode,
-            Saved.MicrophoneFingerprint, NameBarred, SpeechAudio.MicrophoneHeld,
+            Saved.MicrophoneFingerprint, NameBarred, SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil),
             Talk?.ThinkingNow == true || ComputerJobs.Active, ComputerJobs.GameRunning);
 
         private void InitializeNameListening()
         {
             SpeechAudio.BeforePlayback += GateNamePlayback;
+            if (OperatingSystem.IsMacOS())
+            {
+                Voice.Playback = wav =>
+                {
+                    if (Saved.ListenCapri)
+                    {
+                        nameEars.GateForPlayback();
+                        macSpeechUntil = Now + Voice.Seconds(wav) + 0.7;
+                    }
+                    Limbs.Speak(wav);
+                };
+                Voice.Silence = () => { Limbs.Hush(); macSpeechUntil = Now + 0.7; };
+            }
             nameStartup = Saved.ListenCapri;
             Closed += (_, _) =>
             {
@@ -89,8 +102,13 @@ namespace CapriDesktop
 
         internal void SetNameListening(bool on)
         {
-            if (!OperatingSystem.IsLinux() || Program.Smoke != null) return;
+            if (!(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) || Program.Smoke != null) return;
             Saved.ListenCapri = on;
+            if (on && OperatingSystem.IsMacOS())
+            {
+                Saved.MicrophoneNode = null;
+                Saved.MicrophoneFingerprint = null;
+            }
             Save();
             if (!on) { StopNameListening("Local name listening is off."); return; }
             StartNameListening();
@@ -118,7 +136,8 @@ namespace CapriDesktop
             StopNameListening();
             if (NameBarred) { SetNameStatus(Listening ? "Finish TALK, then turn Listen for Capri on." : "Name listening paused. Unmute and wake Capri, then turn it on."); return; }
             NameContext captured = CaptureNameContext();
-            if (string.IsNullOrWhiteSpace(captured.Source) || string.IsNullOrWhiteSpace(captured.Fingerprint))
+            if (string.IsNullOrWhiteSpace(captured.Source) || string.IsNullOrWhiteSpace(captured.Fingerprint) ||
+                (OperatingSystem.IsMacOS() && (captured.Source != "mac-default" || captured.Fingerprint.Length != 64)))
             { ChooseNameMicrophone(); return; }
             long ticket = nameEpoch;
             nameContext = captured;
@@ -130,8 +149,9 @@ namespace CapriDesktop
                 await nameLifetime;
                 string identity = await Task.Run(() =>
                 {
-                    if (!File.Exists(captured.Python) || !File.Exists(captured.Manifest))
-                        throw new InvalidOperationException("Configure the retained local decoder before enabling Listen for Capri.");
+                    if (string.IsNullOrWhiteSpace(captured.Python) || string.IsNullOrWhiteSpace(captured.Manifest) ||
+                        !File.Exists(captured.Python) || !File.Exists(captured.Manifest))
+                        throw new InvalidOperationException("Set up the local Moonshine decoder before enabling name listening.");
                     return NameIdentity(captured);
                 });
                 if (ticket != nameEpoch || nameStopped) return;
@@ -155,6 +175,7 @@ namespace CapriDesktop
 
         private void ChooseNameMicrophone()
         {
+            if (OperatingSystem.IsMacOS()) { ChooseMacNameMicrophone(); return; }
             long ticket = nameEpoch;
             Talk.Answer("(microphone)", "Checking available physical microphones…");
             System.Threading.ThreadPool.QueueUserWorkItem(_ =>
@@ -193,6 +214,59 @@ namespace CapriDesktop
             });
         }
 
+        private void ChooseMacNameMicrophone()
+        {
+            long ticket = nameEpoch;
+            Talk.Answer("(microphone)", "Checking the macOS default microphone…");
+            System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    string helper = Path.Combine(AppContext.BaseDirectory, "capri-mic");
+                    using var process = new System.Diagnostics.Process();
+                    process.StartInfo = new System.Diagnostics.ProcessStartInfo(helper)
+                    {
+                        UseShellExecute = false, RedirectStandardOutput = true,
+                        RedirectStandardError = true, CreateNoWindow = true
+                    };
+                    process.StartInfo.ArgumentList.Add("--identity");
+                    process.Start();
+                    string result = process.StandardOutput.ReadToEnd();
+                    if (!process.WaitForExit(5000)) { Bridge.Kill(process); throw new InvalidOperationException("The macOS microphone check timed out."); }
+                    if (process.ExitCode != 0) throw new InvalidOperationException("No macOS default microphone is available.");
+                    using var json = System.Text.Json.JsonDocument.Parse(result);
+                    string uid = json.RootElement.GetProperty("uid").GetString();
+                    string name = json.RootElement.GetProperty("name").GetString();
+                    if (string.IsNullOrWhiteSpace(uid) || string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("No macOS default microphone is available.");
+                    string fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(uid))).ToLowerInvariant();
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (ticket != nameEpoch || !Saved.ListenCapri) return;
+                        Talk.AskFor("(microphone)", "Listen for Hey Capri will use your Mac's CURRENT default mic: " + name +
+                            ". Change the default mic under System Settings > Sound > Input first if needed. Type YES to enable local listening, or NO to cancel.", answer =>
+                        {
+                            if (ticket != nameEpoch || !Saved.ListenCapri) return;
+                            if (!string.Equals(answer?.Trim(), "yes", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Saved.ListenCapri = false; Save(); StopNameListening("Local name listening is off."); return;
+                            }
+                            Saved.MicrophoneNode = "mac-default";
+                            Saved.MicrophoneFingerprint = fingerprint;
+                            Save(); StartNameListening();
+                        });
+                    });
+                }
+                catch (Exception error)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (ticket == nameEpoch && Saved.ListenCapri)
+                            StopNameListening("Mac microphone setup failed: " + error.Message);
+                    });
+                }
+            });
+        }
+
         private void ValidateNameFinal(long ticket, NameContext captured, string identity, NameTranscript transcript)
         {
             // Do not run account disk I/O on the UI thread. The generation and
@@ -211,7 +285,7 @@ namespace CapriDesktop
                     // An ordinary new Hear cancels the provider generation too. Drop
                     // that stale queued line without ending the valid name window.
                     if (providerGeneration != (captured.Provider?.Generation ?? 0)) return;
-                    if (NameBarred || SpeechAudio.MicrophoneHeld || !nameEars.IsCurrent(transcript)) return;
+                    if (NameBarred || SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil) || !nameEars.IsCurrent(transcript)) return;
                     string request = NameListeningText.Request(transcript.Text);
                     if (request.Length != 0) Hear(request, true);
                 });
@@ -220,8 +294,8 @@ namespace CapriDesktop
 
         private void TickNameListening()
         {
-            if (!OperatingSystem.IsLinux() || Program.Smoke != null || nameClosed) return;
-            if (nameStartup && opened && HyprlandDesktop.Current?.VisualSnapshot?.Locked == false)
+            if (!(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) || Program.Smoke != null || nameClosed) return;
+            if (nameStartup && opened && (!OperatingSystem.IsLinux() || HyprlandDesktop.Current?.VisualSnapshot?.Locked == false))
             { nameStartup = false; StartNameListening(); }
             if (nameStopped) return;
             if (NameBarred || nameContext != null && !SameNameContext(nameContext))
