@@ -10,7 +10,7 @@ self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() || {} : {}; } catch (error) { data = {}; }
   if (typeof data !== 'object') data = {};
-  const kind = ['reply', 'ask', 'done', 'reminder', 'test'].includes(data.kind) ? data.kind : '';
+  const kind = ['reply', 'ask', 'done', 'reminder', 'test', 'checkin'].includes(data.kind) ? data.kind : '';
   const job = idOk(data.job) ? data.job : '';
   const grouped = (kind === 'ask' || kind === 'done') && job;
   const options = {

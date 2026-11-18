@@ -6,6 +6,7 @@ Capri Remote can tell your phone when she needs you, even with Remote closed:
 - **A job asking to go ahead**, like sending a message or closing an app. In the Android app you can tap Allow or Deny straight from the notification, after unlocking your phone.
 - **A job ending** (done or stuck) while you're away from your PC.
 - **Reminders** that come due while you're away from your PC.
+- **A check-in now and then**, when you've been away from your PC for a while: a little hello from her, at most twice a day, never before 10am or after 9pm. It follows **Check in on me** in her Mainframe, so turning that off stops these too.
 
 "Away" means nobody has touched your PC's keyboard or mouse for 2 minutes. While you're at your PC she tells you there instead, and while Remote is open on your phone you see it in Remote.
 
