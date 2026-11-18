@@ -443,6 +443,7 @@ No AI · no brain at all	AI yo'q · umuman miya yo'q
 No brain runs, and nothing is sent anywhere.	Hech qanday miya ishlamaydi va hech narsa hech qayerga yuborilmaydi.
 No brain yet	Hali miya yo'q
 No code open	Hech qanday kod ochilmagan
+No limit	Cheklovsiz
 No mic found	Mikrofon topilmadi
 No mods in the directory yet.	Hali modlar yo'q.
 No mods match that.	Bu bo'yicha hech qanday mod mos kelmaydi.

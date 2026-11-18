@@ -443,6 +443,7 @@ No AI · no brain at all	AI የለም · ምንም አእምሮ የለም
 No brain runs, and nothing is sent anywhere.	ምንም አእምሮ አይሰራም፣ ምንም ወደየትም አይላክም።
 No brain yet	ገና አእምሮ የለም
 No code open	ክፍት ኮድ የለም
+No limit	ገደብ የለም
 No mic found	ማይክሮፎን አልተገኘም
 No mods in the directory yet.	በሞዶች ማውጫ ውስጥ ገና ምንም ሞድ የለም።
 No mods match that.	ያንን የሚመሳሰል ሞድ የለም።

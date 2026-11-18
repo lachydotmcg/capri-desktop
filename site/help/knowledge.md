@@ -316,7 +316,7 @@ Short replies stay up according to their length. Mainframe > Settings > BRAIN > 
 Use the mouse wheel over a long reply, or press PREV and NEXT at the bottom. Right-click her reply bubble to copy the whole reply, including pages you aren't looking at. It shows "> sys: copied". Left-click away from the page buttons to dismiss it.
 
 ### Does she remember what we talked about?
-Yes. She keeps recent chat for up to a week, even after a restart. Mainframe > Settings > BRAIN > Memory chooses Short (8 messages), Medium (16) or Long (32). Changing her language starts a fresh chat; changing her model carries on the same one, on Mac and Linux too. Memory size is a separate setting for how much text fits in her local brain at once.
+Yes. She keeps recent chat for up to a week, even after a restart. Mainframe > Settings > BRAIN > Memory chooses Short (8 messages), Medium (16) or Long (32). Changing her language starts a fresh chat; changing her model carries on the same one, on Mac and Linux too. The text window for her local brain is always Auto.
 
 She also keeps in mind what she saw on your screen in the last 3 hours, so "what did you see?" gets a real answer instead of a guess (section 16).
 
@@ -476,8 +476,8 @@ MOVES
 - Mini player: on by default, the first row under MOVES. While music plays, a small player shows what's playing, and she perches on it. See "Her mini player" in section 14.
 - Wander: Off, Rarely, Sometimes, Often or Restless.
 - Sleep: Never, 1 min, 2 min (default), 5 min, 10 min or 30 min.
-- Pop-ins: how often Check in on me brings her over to say hi. Rarely (every 20 to 40 minutes), Sometimes (every 8 to 20, default) or Often (every 3 to 8).
-- Pop-in times (0.8.3): the button in MOVES' heading sets an exact shortest and longest wait in minutes. See "Exact pop-in times" below.
+- Pop-ins (under Check in on me in CAPRI): how often Check in on me brings her over to say hi. Rarely (every 20 to 40 minutes), Sometimes (every 8 to 20, default) or Often (every 3 to 8).
+- Pop-in times (0.8.3): the button under Pop-ins in CAPRI sets an exact shortest and longest wait in minutes. See "Exact pop-in times" below.
 - Dance to music: she dances when songs play.
 - Glitch in at startup: crimson tendrils and her sound when she starts.
 
@@ -490,14 +490,14 @@ CAPRI
 - Mainframe size (0.7.7 and newer): Auto, 100%, 125%, 150%, 175% or 200%. Auto makes the Mainframe and its windows bigger when your desktop is bigger than the screen showing it, like AMD Virtual Super Resolution or NVIDIA DSR drawing 3840 x 2160 on a 1920 x 1080 screen, and shows what it picked, like "Auto · 200%". On an ordinary screen Auto is 100%, and Windows' own display scaling still applies on top. Pick a size to set it yourself. It doesn't change Capri's own size; that's Size above.
 - Mainframe colours: Night City (red and cyan), Black, White or Grey. Changes the Mainframe and its windows, her right-click menu, the Type box and her notes straight away. On Mac and Linux it changes the Mainframe only. Her bubble and her own colours stay as they are; colour sets change those.
 - Pat stroke (0.9.0): how long you have to stroke her before a head pat counts, so the cursor brushing past her doesn't count.
-- Jealous of other AIs (0.9.0): off by default. When it's on and you open another AI, like ChatGPT in a tab or an app, she gets a little jealous and can offer to close it for you. Choose apps sets which ones she may close.
+- Jealous of other AIs (0.9.0): off by default. When it's on and you open another AI, like ChatGPT in a tab or an app, she gets a little jealous. Apps she may close sets which ones she can offer to close for you; picking apps there is what lets her close them.
 
 WATCH
 - Watch my screen: she comments now and then. It's the Every slider: Off (the default), 10 s, 15 s, 30 s, 1 min, 1.5 min, 2 min, 3 min, 5 min or 10 min. Any step but Off turns it on with that gap between glances, 2 min if you never picked one, and Off turns it off and remembers your gap.
 - Keep her caught up (under Watch my screen): on by default. Glances she keeps quiet about still go in her memory, so she knows what you've been up to. Turn it off to keep only the glances she comments on. It uses a little more of your API (section 16).
 
 BRAIN
-- Stay on my model (the first row under BRAIN, off by default): when an NVIDIA model gets stuck, she says what went wrong instead of switching to another model.
+- Stay on my model (BRAIN, off by default, shown only while an NVIDIA model is in use): when an NVIDIA model gets stuck, she says what went wrong instead of switching to another model.
 - Replies: Short, Medium or Long.
 - Memory: Short, Medium or Long (how much of the chat she keeps in mind).
 - Bubble: Quick, Normal or Long (how long her replies stay up). It was under VOICE before 0.7.5.
@@ -531,15 +531,14 @@ KEYS (bottom of the left column)
 
 The new settings are here. Scroll down the Settings page to reach HABITS and GAMES.
 
-- BRAIN > Memory size: the context size for Ollama and her built-in brain.
-- BRAIN > Max reply: how much room her longest answer gets.
+- BRAIN > Replies: Short, Medium, Long or No limit. No limit is Long with an 8K token budget. Memory size and Max reply are gone; the context size is always Auto.
 - BRAIN > Local server address: enter the address, then press Save.
 - KEYS > Push to talk: choose a key or mouse button to hold while talking.
 - KEYS > Gaming Mode: change the default Ctrl + Alt + G. It flips GAMES > Comments between Off and your last pick.
 - GAMES > Comments: Off, Events only or Chatty, Events only by default. It is the one game setting: Gaming Mode is just Comments on, and Off stops game comments and live reactions.
 - GAMES > Clip my games: keeps recent game video and PC sound ready to save. Off by default.
 - GAMES > Save big moments: saves moments her game commentary picks. Off by default; turning it on also turns Clip my games on.
-- GAMES > Fast hands in games: uses Claude Haiku 5.5 for game jobs on a Claude key. On by default.
+- BRAIN > Fast hands in games: uses Claude Haiku 5.5 for game jobs on a Claude key. On by default.
 - GAMES > Comments: Off stops game comments and live reactions (0.9.0). Asking her to stop commenting does the same.
 - GAMES > Sound sensitivity (0.9.3): Off to 100%, 100% by default. Lower it when your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores loud bursts in your game while hits, deaths and kills still count, and moving it off Off turns them back on. There is no separate Game sounds switch.
 
@@ -604,7 +603,7 @@ Set Explore after to a time (Settings > HABITS; Off is the default, and 5 minute
 Right-click her > Open Capri Mainframe > Settings > Advanced Settings > HABITS > Explore after, set to a time. Leave a YouTube page under your mouse with its video paused. Windows must report that matching video as paused, with no media playing in that browser. She can scroll the page and its comments while you're away. She never starts the video, clicks or types. Your mouse or keyboard stops her.
 
 ### Exact pop-in times (0.8.3)
-Right-click her > Open Capri Mainframe > Settings > MOVES > Pop-in times. Set Shortest wait (minutes) and Longest wait (minutes), then Save. For example, 12 and 25 gives her a wait between 12 and 25 minutes. Set both to the same number for a fixed wait.
+Right-click her > Open Capri Mainframe > Settings > CAPRI > Pop-in times. Set Shortest wait (minutes) and Longest wait (minutes), then Save. For example, 12 and 25 gives her a wait between 12 and 25 minutes. Set both to the same number for a fixed wait.
 
 Use preset returns to the Pop-ins slider's pace. Moving that slider also clears your custom times. CAPRI > Check in on me still decides whether she visits.
 
@@ -732,7 +731,7 @@ The row you picked under BRAIN. Only one runs at a time.
 
 If the row you picked has no key yet, she uses her NORMAL brain until you connect one. To go back to Ollama or the built-in brain, pick NORMAL. Your keys stay saved.
 
-On a Claude key, Fast hands in games can use Haiku 5.5 for a game job while chat keeps the model you picked. Mainframe > Settings > GAMES > Fast hands in games controls this.
+On a Claude key, Fast hands in games can use Haiku 5.5 for a game job while chat keeps the model you picked. Mainframe > Settings > BRAIN > Fast hands in games controls this.
 
 ### The built-in brain
 Press Set up her brain. She picks the best fit for your PC:
@@ -818,27 +817,23 @@ Windows can use any OpenAI-compatible server or provider. Right-click her > Open
 
 The address and key stay encrypted on this computer. Keys go only to the address you set. Use saved reconnects with the saved address and key. Connect with a blank Key uses no key. Forget removes the saved provider from Capri. Changing Address clears the key box, so set the address before pasting a key. Put keys in this window, never in chat.
 
-### What's the difference between Memory and Memory size?
-Both are in Mainframe > Settings > BRAIN.
-
-- Memory chooses how many recent messages she keeps: Short 8, Medium 16 or Long 32.
-- Memory size chooses how much text fits at once in Ollama or her built-in brain: Auto, 4K, 8K, 16K, 32K or 64K tokens. Tokens are pieces of text, not messages.
+### What does Memory do?
+Mainframe > Settings > BRAIN > Memory chooses how many recent messages she keeps: Short 8, Medium 16 or Long 32. The text window for Ollama and her built-in brain is always Auto (the old Memory size row is gone), measured in tokens, which are pieces of text, not messages.
 
 Auto (0.9.1) starts at 16K on a PC with about 12 GB of RAM or more, unless her brain runs on a graphics card with less than about 7 GB of its own memory. There, and on smaller PCs, it starts at 4K with Short Memory or 8K with Medium or Long Memory. It grows by itself when an ask needs more, up to 32K, and keeps a size that works until she restarts. In 0.9.0 and older, Auto used 4K with Short Memory and 8K with Medium or Long Memory, and grew to 16K at most. A bigger window needs more memory on your PC. This setting doesn't change a cloud model's window or the window in LM Studio, Jan, KoboldCpp or llama.cpp; set those in their own server.
 
 ### She says "That was too long for my brain's memory"
 Her built-in brain ran out of room for what you asked. She names the size it has now, like 4K or 8K, and from 0.9.1 the size to pick, like 16K or Auto. Chatting fits in a small window. Asking her to do something, like opening an app, sends her whole tool list as well, and that needs more than 8K.
 
-1. Open Mainframe > Settings > BRAIN > Memory size.
-2. Pick 16K.
-3. Ask her again. If she says it again with 16K, pick 32K.
+1. Ask her again; Auto grows by itself when an ask needs more.
+2. If it still fails, say so in a bug report; the Memory size row has been removed.
 
-It is the same whether you asked on the PC or from Capri Remote on your phone. On Auto she grows it by herself when an ask needs more: up to 32K from 0.9.1, and up to 16K before. If she adds "and this PC couldn't load one big enough", a bigger size didn't load on your PC. A size you picked stays as you picked it. A bigger window needs more memory on your PC.
+It is the same whether you asked on the PC or from Capri Remote on your phone. On Auto she grows it by herself when an ask needs more: up to 32K from 0.9.1, and up to 16K before. If she adds "and this PC couldn't load one big enough", a bigger size didn't load on your PC. A bigger window needs more memory on your PC.
 
 ### How do I get longer answers?
-Mainframe > Settings > BRAIN > Replies chooses Short, Medium or Long. Max reply gives her answer more room: Auto, 256, 2K or 8K tokens. 2K is 2048 tokens and 8K is 8192.
+Mainframe > Settings > BRAIN > Replies chooses Short, Medium, Long or No limit. No limit is Long with an 8K (8192 token) budget.
 
-Auto follows Replies. Picking a bigger Max reply doesn't make every answer long; ask for the detail you want too. Jobs keep extra room when they need it. Bubble changes how long the words stay up, not how much she says.
+Picking No limit doesn't make every answer long; ask for the detail you want too. Jobs keep extra room when they need it. Bubble changes how long the words stay up, not how much she says.
 
 ### How do I make her brain think harder? (0.8.7)
 Mainframe > Settings > BRAIN > Thinking, under Advanced Settings, sets how hard the cloud brain she's on thinks: Default, Off, Low, Medium or High. Default keeps her usual setting. Each model remembers its own pick, and a level that model can't take is greyed out with the reason. It's for cloud keys and Kimi through Provider, not her local brains, your plans or Capri codes.
@@ -1271,7 +1266,7 @@ Settings can keep her memories as notes in an Obsidian vault.
 - Shift + drop: she sits right where you drop her ("Sit here"). Right-click her > Move > Stand up to undo.
 - Ctrl + drop: she hangs on right there ("Hang here"). Click her to let go.
 - She sits on windows that aren't maximized or full screen. If her window closes or gets covered, she stands up where she is.
-- Move > Sit on windows: untick it and she stays wherever you drop her, even in mid-air.
+- Move > Sit on windows (also a switch in Settings > MOVES): untick it and she stays wherever you drop her, even in mid-air.
 
 ### Ride cursor
 - Double-click her, or Move > Ride cursor, or Ride cursor in the Mainframe.
@@ -1503,7 +1498,7 @@ Ask her what you want done in the game. She works from the screen with mouse and
 She acts in turns, so fast driving and other moves that need instant reactions are difficult. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
 
 ### What are Fast hands in games and the advisor?
-Mainframe > Settings > GAMES > Fast hands in games is on by default. With a Claude key, her game jobs use Claude Haiku 5.5. Chat stays on the model you picked under BRAIN. Turn the switch off to use your picked model for the game too. Other brain services aren't changed by this switch.
+Mainframe > Settings > BRAIN > Fast hands in games is on by default. With a Claude key, her game jobs use Claude Haiku 5.5. Chat stays on the model you picked under BRAIN. Turn the switch off to use your picked model for the game too. Other brain services aren't changed by this switch.
 
 When she's stuck, repeats a failure or doesn't know what to do next, she can ask a bigger brain for advice: the Claude model you picked, or Sonnet 5.5 if you picked Haiku. It gets the game job so far; she then carries on with fast hands. She can ask again later. Those advice calls use your Claude key too, about 8 cents each on Sonnet. If the key can't use the advisor, she keeps playing without it.
 
@@ -2257,8 +2252,8 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - NVIDIA asks for a phone number: that's NVIDIA's sign-up check. It's needed to make the free key.
 
 - Local server missing from the model menu: start it with a model loaded, select NORMAL, then press Refresh. Check Settings > BRAIN > Local server address if you use a different port. This address must be on this PC. For an OpenAI-compatible provider elsewhere, use Brain > Use my own provider with a key (OpenAI API)....
-- Memory size doesn't change your local server: it controls Ollama and her built-in brain only. Change the other server's context size in that server.
-- Max reply is high but answers are still short: set Settings > BRAIN > Replies to Long and ask for more detail. Max reply gives her room; it doesn't ask her to use all of it.
+- Her context size is Auto for Ollama and her built-in brain only. Change the other server's context size in that server.
+- Replies is on No limit but answers are still short: ask for more detail. No limit gives her room; it doesn't ask her to use all of it.
 
 ### Voice (ElevenLabs)
 - "ElevenLabs rejected the key." or "ElevenLabs rejected that key.": that isn't the key, or it was deleted. ElevenLabs keys start with sk_. Make a new one and paste it.

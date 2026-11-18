@@ -443,6 +443,7 @@ No AI · no brain at all	Ei AI · ei lainkaan aivoja
 No brain runs, and nothing is sent anywhere.	Mitään aivoja ei käytetä, eikä mitään lähetetä minnekään.
 No brain yet	Ei vielä aivoja
 No code open	Ei avointa koodia
+No limit	Ei rajaa
 No mic found	Mikkiä ei löytynyt
 No mods in the directory yet.	Modikansiossa ei vielä ole modeja.
 No mods match that.	Mikään modi ei vastaa tätä.

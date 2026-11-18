@@ -443,6 +443,7 @@ No AI · no brain at all	Brez UI · sploh brez možganov
 No brain runs, and nothing is sent anywhere.	Noben možgan ne teče in nič se ne pošilja nikamor.
 No brain yet	Še brez možganov
 No code open	Ni odprte kode
+No limit	Brez omejitve
 No mic found	Mikrofon ni najden
 No mods in the directory yet.	V imeniku še ni modov.
 No mods match that.	Ni modov, ki bi ustrezali temu.

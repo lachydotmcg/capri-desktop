@@ -443,6 +443,7 @@ No AI · no brain at all	NO AI · બિલકુલ બ્રેન નથી
 No brain runs, and nothing is sent anywhere.	કોઈ બ્રેન ચાલતું નથી, અને કંઈ ક્યાંય મોકલાતું નથી.
 No brain yet	હજી કોઈ બ્રેન નથી
 No code open	કોઈ કોડ ખુલ્લો નથી
+No limit	કોઈ મર્યાદા નથી
 No mic found	કોઈ માઇક મળ્યો નથી
 No mods in the directory yet.	ડિરેક્ટરીમાં હજી કોઈ મોડ નથી.
 No mods match that.	તે સાથે કોઈ મોડ મેળ ખાતા નથી.

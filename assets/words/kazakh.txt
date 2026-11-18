@@ -443,6 +443,7 @@ No AI · no brain at all	AI жоқ · мүлде ми жоқ
 No brain runs, and nothing is sent anywhere.	Ешқандай ми іске қосылмайды, және ештеңе ешқайда жіберілмейді.
 No brain yet	Әзірге ми жоқ
 No code open	Ашық код жоқ
+No limit	Шектеусіз
 No mic found	Микрофон табылмады
 No mods in the directory yet.	Қапқада әлі мод жоқ.
 No mods match that.	Бұған сәйкес мод жоқ.

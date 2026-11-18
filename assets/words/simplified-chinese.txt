@@ -443,6 +443,7 @@ No AI · no brain at all	无 AI · 完全没有大脑
 No brain runs, and nothing is sent anywhere.	不运行任何大脑，也不向任何地方发送内容。
 No brain yet	还没有大脑
 No code open	没有打开的代码
+No limit	不限
 No mic found	未找到麦克风
 No mods in the directory yet.	模组目录中还没有模组。
 No mods match that.	没有符合该条件的模组。

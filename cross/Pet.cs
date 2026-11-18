@@ -505,6 +505,7 @@ namespace CapriDesktop
         private static readonly double[] WanderPaces = { 3, 1, 0.45, 0.18 };
         internal static readonly string[] WanderNames = { "Off", "Rarely", "Sometimes", "Often", "Restless" };
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
+        internal static readonly string[] ReplyNames = { "Short", "Medium", "Long", "No limit" };
         private static readonly int[] Recalls = { 8, 16, 32 };
         internal static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
         internal static readonly int[] SoundLevels = { 0, 30, 60, 100 };
@@ -885,10 +886,14 @@ namespace CapriDesktop
             Lingo.Bundled = WordTable;
             Lingo.Use(Program.Smoke == null ? Brain.Language : null);
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
+            if (Saved.ReplyLength == 1) { Saved.Replies = 0; Saved.ReplyLength = 0; }
+            else if (Saved.ReplyLength >= 2) { Saved.Replies = 2; Saved.ReplyLength = 3; }
+            else Saved.ReplyLength = 0;
+            Saved.MemorySize = 0;
             Brain.Wordiness = Math.Max(0, Math.Min(2, Saved.Replies));
             Brain.Recall = Saved.LinuxMigrationVersion > 0 ? Math.Clamp(Saved.Recall, 0, 60) : Saved.Recall == 16 || Saved.Recall == 32 ? Saved.Recall : 8;
-            Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, Saved.MemorySize) >= 0 ? Saved.MemorySize : 0;
-            Brain.ReplyLength = Math.Clamp(Saved.ReplyLength, 0, Brain.ReplySizes.Length - 1);
+            Brain.MemorySize = 0;
+            Brain.ReplyLength = Saved.ReplyLength;
             Brain.Picks = Saved.ThinkingPicks;
             Brain.ThinkingChanged = NotifySettings;
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
@@ -2573,13 +2578,17 @@ namespace CapriDesktop
             }
             MenuItem replies = new MenuItem { Header = "Reply length" };
             MenuItem recall = new MenuItem { Header = "Chat memory" };
-            for (int i = 0; i < Lengths.Length; i++)
+            for (int i = 0; i < ReplyNames.Length; i++)
             {
                 int level = i;
-                MenuItem reply = new MenuItem { Header = Lengths[i], ToggleType = MenuItemToggleType.Radio, GroupName = "replies" };
+                MenuItem reply = new MenuItem { Header = ReplyNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "replies" };
                 reply.Click += Guarded(delegate { SetReplies(level); });
                 replyPicks.Add(reply);
                 replies.Items.Add(reply);
+            }
+            for (int i = 0; i < Lengths.Length; i++)
+            {
+                int level = i;
                 MenuItem keep = new MenuItem { Header = Lengths[i], ToggleType = MenuItemToggleType.Radio, GroupName = "recall" };
                 keep.Click += Guarded(delegate { SetRecall(Recalls[level]); });
                 recallPicks.Add(keep);
@@ -2852,7 +2861,7 @@ namespace CapriDesktop
             onTopItem.IsChecked = OnTop;
             string language = Brain.Language ?? "English";
             foreach (MenuItem pick in languagePicks) pick.IsChecked = (string)pick.Tag == language;
-            for (int i = 0; i < replyPicks.Count; i++) replyPicks[i].IsChecked = i == Brain.Wordiness;
+            for (int i = 0; i < replyPicks.Count; i++) replyPicks[i].IsChecked = i == Replies;
             for (int i = 0; i < recallPicks.Count; i++) recallPicks[i].IsChecked = Recalls[i] == Brain.Recall;
             for (int i = 0; i < soundPicks.Count; i++) soundPicks[i].IsChecked = SoundLevels[i] == Sfx.Level;
             typingItem.IsChecked = TypingSound;
@@ -3438,7 +3447,7 @@ namespace CapriDesktop
                 case "sleep": return Nearest(Sleeps, SleepAfter);
                 case "volume": return Nearest(Volumes, Voice.Loudness);
                 case "voice_speed": return Nearest(Paces, VoiceFx.Speed);
-                case "replies": return Brain.Wordiness;
+                case "replies": return Replies;
                 case "reply_limit": return Brain.ReplyLength;
                 case "mainframe_size": return Array.IndexOf(new[] { 0, 100, 125, 150, 175, 200 }, FrameSize(Saved.MainframeSize));
                 case "mainframe_colours": return MainframeTheme.ClampLook(Saved.MainframeColours);
@@ -3724,10 +3733,17 @@ namespace CapriDesktop
             }
         }
 
+        internal int Replies { get { return Brain.ReplyLength >= 2 ? 3 : Brain.Wordiness; } }
+
+        internal bool NvidiaBrain { get { return Brain.Remote != null && Brain.Remote.Kind == "nvidia"; } }
+
         internal void SetReplies(int level)
         {
-            Brain.Wordiness = Math.Max(0, Math.Min(2, level));
+            int step = Math.Max(0, Math.Min(3, level));
+            Brain.Wordiness = Math.Min(2, step);
+            Brain.ReplyLength = step == 3 ? 3 : 0;
             Saved.Replies = Brain.Wordiness;
+            Saved.ReplyLength = Brain.ReplyLength;
             Save();
             Sync();
         }

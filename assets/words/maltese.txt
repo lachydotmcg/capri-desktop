@@ -443,6 +443,7 @@ No AI · no brain at all	L-ebda AI · l-ebda moħħ xejn
 No brain runs, and nothing is sent anywhere.	L-ebda moħħ ma jaħdem, u xejn ma jintbagħat x'imkien.
 No brain yet	Għadu l-ebda moħħ
 No code open	L-ebda kodiċi miftuħ
+No limit	Bla limitu
 No mic found	Ma nstab l-ebda mikrofon
 No mods in the directory yet.	Għadhom l-ebda mods fid-directory.
 No mods match that.	Ebda mod ma jaqbel ma' dan.

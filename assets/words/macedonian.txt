@@ -443,6 +443,7 @@ No AI · no brain at all	БЕЗ AI · без никаков мозок
 No brain runs, and nothing is sent anywhere.	Ниеден мозок не работи, и ништо не се испраќа никаде.
 No brain yet	Уште нема мозок
 No code open	Нема отворен код
+No limit	Без ограничување
 No mic found	Не е пронајден микрофон
 No mods in the directory yet.	Нема модови во папката уште.
 No mods match that.	Ниеден мод не одговара на тоа.

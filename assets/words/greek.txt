@@ -443,6 +443,7 @@ No AI · no brain at all	Καμία AI · καθόλου εγκέφαλος
 No brain runs, and nothing is sent anywhere.	Δεν τρέχει κανένας εγκέφαλος, και τίποτα δεν στέλνεται πουθενά.
 No brain yet	Δεν υπάρχει ακόμη εγκέφαλος
 No code open	Δεν είναι ανοιχτός κώδικας
+No limit	Χωρίς όριο
 No mic found	Δεν βρέθηκε μικρόφωνο
 No mods in the directory yet.	Δεν υπάρχουν mods στον φάκελο ακόμα.
 No mods match that.	Κανένα mod δεν ταιριάζει.

@@ -443,6 +443,7 @@ No AI · no brain at all	AI rik ez · buruarik ere ez
 No brain runs, and nothing is sent anywhere.	Buruak ez du exekutatzen, eta ez da ezer inora bidaltzen.
 No brain yet	Burua oraindik ez
 No code open	Kodea irekita ez
+No limit	Mugarik gabe
 No mic found	Mikrofonorik ez da aurkitu
 No mods in the directory yet.	Modak karpetan oraindik modarik ez dago.
 No mods match that.	Ez dago mod hori bat ere.

@@ -443,6 +443,7 @@ No AI · no brain at all	គ្មាន AI · គ្មានខួរក្ប
 No brain runs, and nothing is sent anywhere.	គ្មានខួរក្បាលដំណើរការទេ ហើយគ្មានអ្វីត្រូវបានផ្ញើទៅកន្លែងណាទេ។
 No brain yet	មិនទាន់មានខួរក្បាលនៅឡើយ
 No code open	គ្មានកូដបើក
+No limit	គ្មានកំណត់
 No mic found	រកមិនឃើញមីក្រូហ្វូនទេ
 No mods in the directory yet.	មិនទាន់មានម៉ូដនៅក្នុងថតទេ។
 No mods match that.	គ្មានម៉ូដណាត្រូវនឹងនោះទេ។

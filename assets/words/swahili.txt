@@ -443,6 +443,7 @@ No AI · no brain at all	Hakuna AI · hakuna ubongo kabisa
 No brain runs, and nothing is sent anywhere.	Hakuna ubongo unaoendeshwa, na hakuna kinachotumwa popote.
 No brain yet	Bado hakuna ubongo
 No code open	Hakuna msimbo uliofunguliwa
+No limit	Bila kikomo
 No mic found	Maikrofoni haijapatikana
 No mods in the directory yet.	Bado hakuna moduli kwenye saraka.
 No mods match that.	Hakuna moduli zinazolingana na hilo.

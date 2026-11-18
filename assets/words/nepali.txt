@@ -443,6 +443,7 @@ No AI · no brain at all	कुनै AI छैन · कुनै दिमा�
 No brain runs, and nothing is sent anywhere.	कुनै दिमाग चल्दैन, र केही पनि कतै पठाइँदैन।
 No brain yet	अझै दिमाग छैन
 No code open	कुनै खुला कोड छैन
+No limit	कुनै सीमा छैन
 No mic found	कुनै माइक भेटिएन
 No mods in the directory yet.	डाइरेक्टरीमा अहिलेसम्म कुनै मोड छैन।
 No mods match that.	त्यसको मेल खाने कुनै मोड छैन।

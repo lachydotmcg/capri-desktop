@@ -443,6 +443,7 @@ No AI · no brain at all	Akukho AI · akukho ngqondo nhlobo
 No brain runs, and nothing is sent anywhere.	Akukho ngqondo esebenzayo, futhi akukho okuthunyelwa noma kuphi.
 No brain yet	Akukho ngqondo okwamanje
 No code open	Akukho khodi evuliwe
+No limit	Akukho umkhawulo
 No mic found	Akukho mic etholakele
 No mods in the directory yet.	Akukho ama-mod kwifolda okwamanje.
 No mods match that.	Akukho mod ohambisana nalokho.

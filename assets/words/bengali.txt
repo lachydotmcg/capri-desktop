@@ -443,6 +443,7 @@ No AI · no brain at all	কোনো AI নেই · কোনো ব্রে�
 No brain runs, and nothing is sent anywhere.	কোনো ব্রেন চলে না, আর কোথাও কিছু পাঠানো হয় না।
 No brain yet	এখনও কোনো ব্রেন নেই
 No code open	কোনো কোড খোলা নেই
+No limit	কোনো সীমা নেই
 No mic found	কোনো মাইক পাওয়া যায়নি
 No mods in the directory yet.	ডিরেক্টরিতে এখনও কোনো মড নেই।
 No mods match that.	ওটার সঙ্গে কোনো মড মেলেনি।

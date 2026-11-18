@@ -443,6 +443,7 @@ No AI · no brain at all	AI POLE · aju üldse pole
 No brain runs, and nothing is sent anywhere.	Ühtegi aju ei käivitu ega midagi ei saadeta kuhugi.
 No brain yet	Aju veel pole
 No code open	Ühtegi koodi pole avatud
+No limit	Piiranguteta
 No mic found	Mikrofoni ei leitud
 No mods in the directory yet.	Kataloogis pole veel modifikatsioone.
 No mods match that.	Ükski modifikatsioon ei vasta sellele.

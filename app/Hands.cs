@@ -1054,7 +1054,7 @@ namespace CapriDesktop
             { "player_full_screen", "Mini player over full screen", "Habits" }, { "explore_away", "Explore while away", "Habits" },
             { "care_water", "Water check-in", "Capri" }, { "care_stretch", "Stretch check-in", "Capri" }, { "care_eyes", "Look away check-in", "Capri" }, { "care_late_night", "Sleep nudge", "Capri" },
             { "care_meals", "Meals check-in", "Capri" }, { "care_long_game", "Game break check-in", "Capri" }, { "care_boredom", "Bored check-in", "Capri" },
-            { "fast_hands", "Fast hands in games", "Games" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
+            { "fast_hands", "Fast hands in games", "Brain" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
             { "voice_layers", "Voice layers", "Voice" }, { "show_advanced", "Advanced settings", "Capri" }, { "listen_for_capri", "Listen for Capri", "Voice" }, { "voice_in_mic", "My voice in your mic", "Voice" },
             { "jealous_of_other_ais", "Jealous of other AIs", "Capri" }, { "close_other_ais", "Close other AIs for me", "Capri" },
             { "chimes", "Chimes", "Sounds" }, { "chime_sent", "Message sent chime", "Sounds" }, { "chime_heard", "Heard you chime", "Sounds" }, { "chime_listening", "Listening chime", "Sounds" }
@@ -1064,7 +1064,7 @@ namespace CapriDesktop
         // the way her Mainframe names them (Lachy, 3 Nov: "make yourself bigger" or "stop wandering" through the brain).
         internal static readonly string[,] OwnLevels =
         {
-            { "size", "my size", "Capri" }, { "wander", "Wander", "Moves" }, { "pop_ins", "Pop-ins", "Moves" }, { "sleep", "Sleep", "Moves" },
+            { "size", "my size", "Capri" }, { "wander", "Wander", "Moves" }, { "pop_ins", "Pop-ins", "Capri" }, { "sleep", "Sleep", "Moves" },
             { "volume", "my voice's volume", "Voice" }, { "voice_speed", "my voice's speed", "Voice" }, { "replies", "Replies", "Brain" }, { "bubble", "Bubble", "Brain" },
             { "explore_after", "Explore after", "Habits" }, { "glance_gap", "Time between glances", "Watch" }, { "watch_memory", "Watch-along context", "Watch" },
             { "care_water", "Water interval", "Capri" }, { "care_stretch", "Stretch interval", "Capri" }, { "care_eyes", "Look away interval", "Capri" }, { "care_late_night", "Sleep nudge after", "Capri" },
@@ -1083,7 +1083,7 @@ namespace CapriDesktop
             new[] { "Off", "Rarely", "Sometimes", "Often", "Restless" }, new[] { "Rarely", "Sometimes", "Often" },
             new[] { "Never", "1 min", "2 min", "5 min", "10 min", "30 min" },
             new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
-            new[] { "0.7x", "0.8x", "0.9x", "Normal", "1.1x", "1.2x", "1.3x", "1.4x", "1.5x" }, new[] { "Short", "Medium", "Long" }, new[] { "Quick", "Normal", "Long" },
+            new[] { "0.7x", "0.8x", "0.9x", "Normal", "1.1x", "1.2x", "1.3x", "1.4x", "1.5x" }, new[] { "Short", "Medium", "Long", "No limit" }, new[] { "Quick", "Normal", "Long" },
             new[] { "Off", "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" },
             new[] { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" }, new[] { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" },
             CareSteps(), CareSteps(), CareSteps(), new[] { "9 pm", "10 pm", "11 pm", "12 am", "1 am", "2 am", "3 am", "4 am", "5 am" },
@@ -1173,7 +1173,7 @@ namespace CapriDesktop
             { "hologram", "clicks pass through you" }, { "head_pats", "they pat your head with their cursor" }, { "chaos_when_upset", "an insult sets your clones off" },
             { "legacy_stand", "your old stand, for mods your new one broke" },
             { "jealous_of_other_ais", "playful teasing when another AI comes to the front, off by default" },
-            { "close_other_ais", "ask Yes or No before closing only the AIs they chose in Mainframe; needs Jealous of other AIs on, off by default" },
+            { "close_other_ais", "ask Yes or No before closing only the AIs they picked under Apps she may close in Mainframe; needs Jealous of other AIs on and at least one app picked, and off means none picked" },
             { "pat_stroke", "how long a stroke over you a head pat needs: Short is a quick rub, Long a slow, deliberate one" },
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
@@ -1185,8 +1185,8 @@ namespace CapriDesktop
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
             { "discord_presence", "what you're doing on their Discord profile" }, { "startup", "Capri starts when they log in; off until they ask for it" }, { "show_advanced", "Mainframe's advanced settings" },
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
-            { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are" }, { "bubble", "how long your replies stay up" },
-            { "reply_limit", "the longest a reply can be" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
+            { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are; No limit lets them run on" }, { "bubble", "how long your replies stay up" },
+            { "reply_limit", "the longest a reply can be; 256 is Short and 2K or 8K is No limit in Replies" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
             { "explore_after", "how long they're away before you explore; Off means you don't" }, { "in_full_screen", "what you do over a full-screen game or video: Stay, Keep player, Hide her or Hide, keep player, where keeping the player leaves your mini player up over borderless full screen" },
             { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace, and in games or always her free voice takes over from HD in full-screen games" },
             { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" },

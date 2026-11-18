@@ -443,6 +443,7 @@ No AI · no brain at all	AI なし · ブレインなし
 No brain runs, and nothing is sent anywhere.	ブレインは動作せず、何も送信されません。
 No brain yet	まだブレインがありません
 No code open	コードが開かれていません
+No limit	制限なし
 No mic found	マイクが見つかりません
 No mods in the directory yet.	フォルダーにまだ Mod がありません。
 No mods match that.	その条件に合う Mod はありません。

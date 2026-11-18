@@ -443,6 +443,7 @@ No AI · no brain at all	無 AI · 完全沒有大腦
 No brain runs, and nothing is sent anywhere.	沒有大腦在執行，也不會傳送任何東西到任何地方。
 No brain yet	還沒有大腦
 No code open	沒有開啟的程式碼
+No limit	不限
 No mic found	找不到麥克風
 No mods in the directory yet.	目錄中還沒有模組。
 No mods match that.	沒有符合的模組。

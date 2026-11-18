@@ -443,6 +443,7 @@ No AI · no brain at all	Geen KI · geen brein nie
 No brain runs, and nothing is sent anywhere.	Geen brein loop nie, en niks word êrens gestuur nie.
 No brain yet	Nog geen brein nie
 No code open	Geen kode oop nie
+No limit	Geen limiet
 No mic found	Geen mikrofoon gevind nie
 No mods in the directory yet.	Nog geen modifikasies in die gids nie.
 No mods match that.	Geen modifikasies pas daarby nie.

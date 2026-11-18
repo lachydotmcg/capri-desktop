@@ -443,6 +443,7 @@ No AI · no brain at all	Bez AI · w ogóle bez mózgu
 No brain runs, and nothing is sent anywhere.	Żaden mózg nie działa i nic nigdzie nie jest wysyłane.
 No brain yet	Jeszcze bez mózgu
 No code open	Brak otwartego kodu
+No limit	Bez limitu
 No mic found	Nie znaleziono mikrofonu
 No mods in the directory yet.	W katalogu nie ma jeszcze modów.
 No mods match that.	Żaden mod nie pasuje do tego.

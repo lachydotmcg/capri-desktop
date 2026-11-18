@@ -443,6 +443,7 @@ No AI · no brain at all	AI ഇല്ല · ഒരു തലച്ചോറു�
 No brain runs, and nothing is sent anywhere.	ഒരു തലച്ചോറും പ്രവർത്തിക്കില്ല, ഒന്നും എവിടേക്കും അയയ്ക്കില്ല.
 No brain yet	തലച്ചോർ ഇതുവരെ ഇല്ല
 No code open	കോഡ് തുറന്നിട്ടില്ല
+No limit	പരിധിയില്ല
 No mic found	മൈക്ക് കണ്ടെത്തിയില്ല
 No mods in the directory yet.	മോഡ്സ് ഡയറക്ടറിയിൽ ഇതുവരെ മോഡുകളൊന്നുമില്ല.
 No mods match that.	അതിനോട് പൊരുത്തപ്പെടുന്ന മോഡുകളൊന്നുമില്ല.

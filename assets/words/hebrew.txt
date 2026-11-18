@@ -443,6 +443,7 @@ No AI · no brain at all	ללא AI · בלי מוח בכלל
 No brain runs, and nothing is sent anywhere.	שום מוח לא רץ, ושום דבר לא נשלח לשום מקום.
 No brain yet	עדיין אין מוח
 No code open	אין קוד פתוח
+No limit	ללא הגבלה
 No mic found	לא נמצא מיקרופון
 No mods in the directory yet.	אין עדיין מודים בתיקייה.
 No mods match that.	אין מודים שתואמים לזה.

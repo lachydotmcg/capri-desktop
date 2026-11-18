@@ -1313,6 +1313,16 @@ namespace CapriDesktop
             if (HeyCapri) { ListenCapri = true; HeyCapri = false; }
             if (NoChimes) { NoChimeSent = NoChimeHeard = NoChimeListening = true; NoChimes = false; }
             if (Volume <= 0) { Silent = true; Volume = 100; }
+            Moved();
+        }
+
+        private void Moved()
+        {
+            if (ReplyLength == 1) { Wordiness = 0; ReplyLength = 0; }
+            else if (ReplyLength >= 2) { Wordiness = 2; ReplyLength = 3; }
+            else ReplyLength = 0;
+            MemorySize = 0;
+            if (!CloseAIs && JealousApps != null && JealousApps.Length > 0) JealousApps = null;
         }
 
         internal bool CareOn(CareKind kind)
@@ -7908,12 +7918,15 @@ namespace CapriDesktop
             if (meeting.Asking && !typer.Visible && !chatting && !hidden) OpenTyper();
         }
 
-        internal int Wordiness { get { return Brain.Wordiness; } }
+        internal int Wordiness { get { return Brain.ReplyLength >= 2 ? 3 : Brain.Wordiness; } }
 
         internal void SetWordiness(int value)
         {
-            Brain.Wordiness = Math.Max(0, Math.Min(2, value));
+            int step = Math.Max(0, Math.Min(3, value));
+            Brain.Wordiness = Math.Min(2, step);
+            Brain.ReplyLength = step == 3 ? 3 : 0;
             preferences.Wordiness = Brain.Wordiness;
+            preferences.ReplyLength = Brain.ReplyLength;
             SavePreferences();
         }
 
@@ -7941,9 +7954,7 @@ namespace CapriDesktop
 
         internal void SetReplyLength(int value)
         {
-            Brain.ReplyLength = Math.Max(0, Math.Min(Brain.ReplySizes.Length - 1, value));
-            preferences.ReplyLength = Brain.ReplyLength;
-            SavePreferences();
+            SetWordiness(value <= 0 ? Brain.Wordiness : value == 1 ? 0 : 3);
         }
 
         internal void SetVolume(int percent)
@@ -9775,6 +9786,7 @@ namespace CapriDesktop
             sitItem.Checked = !preferences.NoSitting;
             if (preferences.NoSitting && (seat != null || falling)) { SitUp(false); seat = null; falling = false; walking = false; Play(idle); UpdateAnimation(); }
             SavePreferences();
+            mainframe.Sync();
         }
 
         private void React()
@@ -10241,6 +10253,8 @@ namespace CapriDesktop
         }
 
         internal bool StayOnModel { get { return preferences.StayOnModel; } }
+
+        internal bool NvidiaBrain { get { Cloud remote = brain.Remote; return remote != null && remote.Kind == "nvidia"; } }
 
         internal void ToggleStayOnModel()
         {
@@ -11620,7 +11634,7 @@ namespace CapriDesktop
                 case "head_pats": ToggleHeadPats(); return null;
                 case "chaos_when_upset": ToggleUpsetChaos(); return null;
                 case "jealous_of_other_ais": ToggleJealousAIs(); return null;
-                case "close_other_ais": if (on && !JealousAIs) return "Turn on Jealous of other AIs first."; ToggleCloseAIs(); return null;
+                case "close_other_ais": if (!on) { ClearJealous(); return null; } return !JealousAIs ? "Turn on Jealous of other AIs first." : CloseAIs ? null : "Pick the apps she may close in Mainframe under CAPRI first, so she knows which AIs to ask about.";
                 case "legacy_stand": ToggleLegacyStand(); return null;
                 case "sit_on_windows": ToggleSitting(); return null;
                 case "always_on_top": ToggleOnTop(); return null;
@@ -23527,7 +23541,7 @@ namespace CapriDesktop
                 { "how do I stop a job?", "Stop a job" },
                 { "how do I set a reminder?", "Reminders" },
                 { "do you have a stopwatch?", "Stopwatch" },
-                { "how do I change the memory size?", "Memory size" },
+                { "how do I change the memory size?", "Memory" },
                 { "how do I use LM Studio?", "Local servers" },
                 { "which browser can you open websites in?", "Browser choice" },
                 { "how do I start one of your mini games?", "Mini games" },
@@ -23592,12 +23606,12 @@ namespace CapriDesktop
                 if (selfFreeKeyHelp == null || !selfFreeKeyHelp.Contains(provider)) throw new Exception("Free key help missed: " + provider);
             checks.Add("PASS self knowledge: asking for a free key explains all three providers, OpenRouter's free models and rate limits");
 
-            string selfMaxReplyHelp = SelfKnow.Matching("What does Max reply Auto do?");
+            string selfMaxReplyHelp = SelfKnow.Matching("What does No limit do for replies?");
             string selfClippingHelp = SelfKnow.Matching("How do I clip my games?");
-            if (selfMaxReplyHelp == null || !selfMaxReplyHelp.StartsWith("Max reply:", StringComparison.Ordinal)
+            if (selfMaxReplyHelp == null || !selfMaxReplyHelp.StartsWith("Replies:", StringComparison.Ordinal)
                 || selfClippingHelp == null || !selfClippingHelp.StartsWith("Clip my games:", StringComparison.Ordinal))
-                throw new Exception("Self knowledge missed Max reply or Clip my games.");
-            checks.Add("PASS self knowledge: Max reply Auto and Clip my games questions find their own topics");
+                throw new Exception("Self knowledge missed Replies or Clip my games.");
+            checks.Add("PASS self knowledge: Replies No limit and Clip my games questions find their own topics");
 
             string selfRoot = null;
             foreach (string selfStart in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
@@ -33156,7 +33170,7 @@ namespace CapriDesktop
                     { "explore_after", "exploreAfter", "ExploreAfter" }, { "glance_gap", "gap", "GlanceGap" }, { "watch_memory", "watchMemory", "WatchMemory" },
                     { "voice_pitch", "pitchSlider", "VoicePitch" }, { "voice_robot", "robotSlider", "VoiceRobot" }, { "voice_glitch", "glitchSlider", "VoiceGlitch" },
                     { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "mainframe_colours", "frameColours", "MainframeColours" }, { "in_full_screen", "fullScreen", "HideFullScreen" },
-                    { "power_saver", "powerSaver", "PowerSaver" }, { "music_app", "musicApp", "MusicApp" }, { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
+                    { "power_saver", "powerSaver", "PowerSaver" }, { "music_app", "musicApp", "MusicApp" }, { "replies", "replies", "Wordiness" }, { "game_comments", "comments", "CommentPace" },
                     { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" },
                     { "pat_stroke", "patStroke", "PatStroke" }
                 };
@@ -38341,30 +38355,43 @@ namespace CapriDesktop
 
         private void SmokeBrainSettings(System.Collections.Generic.List<string> checks)
         {
-            int wasMemory = Brain.MemorySize, wasReply = Brain.ReplyLength;
+            int wasWords = Brain.Wordiness, wasReply = Brain.ReplyLength, wasMemory = Brain.MemorySize;
             try
             {
-                SetMemorySize(0); SetReplyLength(0); mainframe.Sync();
-                Preferences old;
-                using (MemoryStream earlier = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Recall\":16}"))) old = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(earlier);
-                if (mainframe.BrainSettings != "Auto | Auto" || old.MemorySize != 0 || old.ReplyLength != 0 || new Preferences().MemorySize != 0 || new Preferences().ReplyLength != 0) throw new Exception("New and old settings did not keep Auto.");
-                string[] memoryNames = { "Auto", "4K", "8K", "16K", "32K", "64K" };
-                string[] replyNames = { "Auto", "256", "2K", "8K" };
-                for (int memory = 0; memory < Brain.MemorySizes.Length; memory++)
+                SetWordiness(0); mainframe.Sync();
+                DataContractJsonSerializer reader = new DataContractJsonSerializer(typeof(Preferences));
+                Func<string, Preferences> older = delegate(string json) { using (MemoryStream earlier = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json))) return (Preferences)reader.ReadObject(earlier); };
+                Preferences old = older("{\"Recall\":16}");
+                if (mainframe.RepliesShown != "Short" || old.Wordiness != 0 || old.MemorySize != 0 || old.ReplyLength != 0 || new Preferences().MemorySize != 0 || new Preferences().ReplyLength != 0) throw new Exception("New and old settings did not keep Replies on Short with Auto limits.");
+                string[,] moved =
                 {
-                    mainframe.SlideMemorySize(memory);
-                    if (MemorySize != Brain.MemorySizes[memory] || LoadPreferences().MemorySize != MemorySize || !mainframe.BrainSettings.StartsWith(memoryNames[memory] + " | ", StringComparison.Ordinal)) throw new Exception("Memory size did not save or show its choice.");
-                }
-                for (int reply = 0; reply < replyNames.Length; reply++)
+                    { "{\"Wordiness\":1,\"ReplyLength\":1}", "0/0" }, { "{\"Wordiness\":0,\"ReplyLength\":2}", "2/3" }, { "{\"Wordiness\":1,\"ReplyLength\":3}", "2/3" },
+                    { "{\"Wordiness\":1,\"ReplyLength\":0}", "1/0" }, { "{\"Wordiness\":2}", "2/0" }, { "{\"Wordiness\":1,\"MemorySize\":16384}", "1/0" }
+                };
+                for (int i = 0; i < moved.GetLength(0); i++)
                 {
-                    mainframe.SlideReplyLength(reply);
-                    if (ReplyLength != reply || LoadPreferences().ReplyLength != reply || mainframe.BrainSettings != "64K | " + replyNames[reply]) throw new Exception("Reply length did not save or show its choice.");
+                    Preferences read = older(moved[i, 0]);
+                    if (read.Wordiness + "/" + read.ReplyLength != moved[i, 1] || read.MemorySize != 0) throw new Exception("Saved reply settings did not move to Replies: " + moved[i, 0] + " became " + read.Wordiness + "/" + read.ReplyLength + "/" + read.MemorySize);
                 }
-                mainframe.SlideMemorySize(0); mainframe.SlideReplyLength(0);
-                if (mainframe.BrainSettings != "Auto | Auto" || LoadPreferences().MemorySize != 0 || LoadPreferences().ReplyLength != 0) throw new Exception("The brain settings did not return to Auto.");
-                checks.Add("PASS BRAIN controls: Memory size and Reply length start on Auto in new and old settings; every choice moves its Setting control, saves to Preferences and shows again, and Auto restores the existing defaults");
+                string[] replyNames = { "Short", "Medium", "Long", "No limit" };
+                for (int step = 0; step < replyNames.Length; step++)
+                {
+                    mainframe.SlideReplies(step);
+                    Preferences kept = LoadPreferences();
+                    if (Wordiness != step || Brain.Wordiness != Math.Min(2, step) || Brain.ReplyLength != (step == 3 ? 3 : 0) || kept.Wordiness != Math.Min(2, step) || kept.ReplyLength != (step == 3 ? 3 : 0) || mainframe.RepliesShown != replyNames[step]) throw new Exception("Replies did not save or show " + replyNames[step] + ".");
+                }
+                SetReplyLength(1);
+                if (Wordiness != 0 || Brain.ReplyLength != 0 || mainframe.RepliesShown != "Short") throw new Exception("Max reply 256 did not become Short.");
+                SetReplyLength(2);
+                if (Wordiness != 3 || Brain.Wordiness != 2 || Brain.ReplyLength != 3 || mainframe.RepliesShown != "No limit") throw new Exception("Max reply 2K did not become No limit.");
+                SetWordiness(1);
+                if (Wordiness != 1 || Brain.ReplyLength != 0 || mainframe.RepliesShown != "Medium") throw new Exception("Choosing Medium kept No limit's reply room.");
+                SetReplyLength(3);
+                SetReplyLength(0);
+                if (Brain.ReplyLength != 0 || Wordiness != 2) throw new Exception("Max reply Auto did not end No limit.");
+                checks.Add("PASS BRAIN Replies: Short, Medium, Long and No limit (Long with the 8K room) save and show again, saved Max reply 256 becomes Short and 2K or 8K becomes No limit, a saved Memory size goes back to Auto, and her old Max reply tool still lands on them");
             }
-            finally { SetMemorySize(wasMemory); SetReplyLength(wasReply); mainframe.Sync(); }
+            finally { SetWordiness(wasReply >= 2 ? 3 : wasWords); Brain.ReplyLength = preferences.ReplyLength = wasReply; SetMemorySize(wasMemory); mainframe.Sync(); }
         }
 
         private void SmokeBrainLayout(System.Collections.Generic.List<string> checks, string pictures = null)
@@ -38400,21 +38427,20 @@ namespace CapriDesktop
                     mainframe.SizeMainframe(size);
                     string crowded = mainframe.Overlap() ?? (mainframe.PageClamped ? null : mainframe.Outside());
                     if (crowded != null) throw new Exception("BRAIN controls at " + size + "% overlap or leave the page: " + crowded);
-                    Control gamingReactions = null, gamingClip = null, gamingMoments = null, gamingHands = null;
+                    Control gamingReactions = null, gamingClip = null, gamingMoments = null;
                     foreach (Control gamingControl in mainframe.Controls)
                     {
                         if (gamingControl.Text == "Live reactions") gamingReactions = gamingControl;
                         if (gamingControl.Text == "Clip my games") gamingClip = gamingControl;
                         if (gamingControl.Text == "Save big moments") gamingMoments = gamingControl;
-                        if (gamingControl.Text == "Fast hands in games") gamingHands = gamingControl;
                     }
                     Rectangle gamingSounds = mainframe.GameSensitivityAt;
-                    if (gamingReactions == null || gamingClip == null || gamingMoments == null || gamingHands == null
-                        || gamingReactions.Bottom > gamingSounds.Top || gamingSounds.Bottom > gamingHands.Top || gamingHands.Bottom > gamingClip.Top || gamingClip.Bottom > gamingMoments.Top)
+                    if (gamingReactions == null || gamingClip == null || gamingMoments == null
+                        || gamingReactions.Bottom > gamingSounds.Top || gamingSounds.Bottom > gamingClip.Top || gamingClip.Bottom > gamingMoments.Top)
                         throw new Exception("The game rows do not fit at " + size + "%.");
                 }
                 checks.Add("PASS BRAIN layout: every setting stays on its scrollable page at 100%, 125%, 150%, 175% and 200%, with no overlaps or controls poking out");
-                checks.Add("PASS GAMES Settings: Live reactions, Sound sensitivity, Fast hands in games and the clip rows sit in order with no gap, and stay inside the page without overlaps at every Mainframe size");
+                checks.Add("PASS GAMES Settings: Live reactions, Sound sensitivity and the clip rows sit in order with no gap, and stay inside the page without overlaps at every Mainframe size");
                 System.Collections.Generic.List<string> frameProblems = new System.Collections.Generic.List<string>();
                 foreach (bool frameFallback in new[] { false, true })
                     foreach (int frameDpi in new[] { 96, 144, 192, 96 })
@@ -38494,8 +38520,8 @@ namespace CapriDesktop
                 }
                 if (frameProblems.Count > 0) throw new Exception("Mainframe layout, " + frameProblems.Count + " problems:\r\n" + string.Join("\r\n", frameProblems.ToArray()));
                 checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at Auto, 100%, 175% and 200% size on simulated 100%, 150% and 200% DPI with 100% and 225% text and fallback fonts; returning to 100% keeps the original scale");
-                checks.Add("PASS BRAIN Settings layout: Husk, Thinking, Extra request JSON, Verbosity and the following rows fit in order and fold in Simple Settings, while Mainframe colours and Head pats stay available at every simulated DPI, text and Mainframe size");
-                checks.Add("PASS care Settings layout: seven toggle/time rows and Edit check-in lines sit directly under Check in on me in Advanced Settings and fold out of Simple Settings with no gap; both master states, accessible parent names, dimming and editable controls pass with her own and fallback fonts at every simulated DPI, text and Mainframe size");
+                checks.Add("PASS BRAIN Settings layout: Husk, Thinking, Extra request JSON, Fast hands in games, Stay on my model (only while an NVIDIA brain is in use) and the following rows fit in order and fold in Simple Settings, while Mainframe colours and Head pats stay available at every simulated DPI, text and Mainframe size");
+                checks.Add("PASS care Settings layout: seven toggle/time rows, Edit check-in lines, Pop-ins and Pop-in times sit directly under Check in on me in Advanced Settings and fold out of Simple Settings with no gap; both master states, accessible parent names, dimming and editable controls pass with her own and fallback fonts at every simulated DPI, text and Mainframe size");
                 checks.Add("LIMIT Mainframe display scaling: simulated pixel layouts do not confirm Windows text-setting notifications, real monitor moves, or high-DPI rendering; Windows may constrain simulated windows wider than this desktop, so those check text and overlaps without the viewport-edge check");
             }
             catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT Mainframe text measurement: Windows text rendering is unavailable on this desktop"); }
@@ -44806,7 +44832,10 @@ namespace CapriDesktop
                 Preferences loaded = (Preferences)serializer.ReadObject(saved);
                 if (!loaded.JealousAIs || !loaded.CloseAIs || loaded.Size != 280 || !Jealous.Chosen(loaded.JealousApps, "claude") || Jealous.Chosen(loaded.JealousApps, "grok")) throw new Exception("Jealous settings lost a switch, a choice or an existing setting on save.");
             }
-            checks.Add("PASS jealous settings start off with no apps chosen, load old settings, save both switches and app choices, and preserve existing and unknown settings");
+            Func<string, Preferences> jealousFrom = delegate(string json) { using (MemoryStream earlier = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json))) return (Preferences)serializer.ReadObject(earlier); };
+            Preferences wasOff = jealousFrom("{\"JealousAIs\":true,\"CloseAIs\":false,\"JealousApps\":[\"claude\"]}"), wasOn = jealousFrom("{\"JealousAIs\":true,\"CloseAIs\":true,\"JealousApps\":[\"claude\"]}");
+            if (wasOff.JealousApps != null && wasOff.JealousApps.Length > 0 || !Jealous.Chosen(wasOn.JealousApps, "claude") || !wasOff.JealousAIs || !wasOn.JealousAIs) throw new Exception("Settings from before Close other AIs for me went wrong: apps chosen with it off must clear, and with it on must stay.");
+            checks.Add("PASS jealous settings start off with no apps chosen, load old settings, save the switch and app choices, preserve existing and unknown settings, and clear apps chosen while Close other AIs for me was off");
 
             string[,] pages = {
                 { "chatgpt", "ChatGPT", "Trip ideas - ChatGPT" }, { "claude", "Claude", "Trip ideas - Claude" },
@@ -44940,12 +44969,15 @@ namespace CapriDesktop
                 preferences.JealousAIs = preferences.CloseAIs = false;
                 preferences.JealousApps = null;
                 mainframe.Sync();
-                if (mainframe.JealousShown || mainframe.CloseAIsShown || mainframe.JealousChoicesEnabled) throw new Exception("The jealous controls started enabled or checked.");
-                Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "on" });
-                if (preferences.CloseAIs) throw new Exception("The close setting turned on while jealousy was off.");
-                mainframe.FlipJealous(); mainframe.FlipCloseAIs(); mainframe.PickJealousApp(0);
+                if (mainframe.JealousShown || mainframe.JealousChoicesEnabled || CloseAIs) throw new Exception("The jealous controls started enabled or checked.");
+                string needsJealous = Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "on" });
+                if (CloseAIs || !needsJealous.Contains("Turn on Jealous of other AIs first.")) throw new Exception("Closing turned on, or didn't ask for jealousy first, while jealousy was off.");
+                mainframe.FlipJealous();
+                string needsApps = Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "on" });
+                if (CloseAIs || SettingOn("close_other_ais") != false || !needsApps.Contains("Pick the apps she may close")) throw new Exception("Closing turned on, or didn't ask for apps, with none chosen.");
+                mainframe.PickJealousApp(0);
                 Preferences loaded = LoadPreferences();
-                if (!mainframe.JealousShown || !mainframe.CloseAIsShown || !mainframe.JealousChoicesEnabled || !loaded.JealousAIs || !loaded.CloseAIs || !Jealous.Chosen(loaded.JealousApps, "chatgpt") || Jealous.Chosen(loaded.JealousApps, "claude")) throw new Exception("The jealous switches and app picker did not save.");
+                if (!mainframe.JealousShown || !mainframe.JealousChoicesEnabled || !CloseAIs || !loaded.JealousAIs || !loaded.CloseAIs || !Jealous.Chosen(loaded.JealousApps, "chatgpt") || Jealous.Chosen(loaded.JealousApps, "claude")) throw new Exception("The jealous switch and app picker did not save.");
                 InSimpleSettings(delegate { mainframe.ShowSettings(true); if (!mainframe.JealousInPage || !mainframe.JealousDescriptions) throw new Exception("Simple Settings lost jealous controls or descriptions."); });
                 preferences.AdvancedSettings = true;
                 mainframe.ShowSettings(true);
@@ -44954,16 +44986,17 @@ namespace CapriDesktop
                 if (SettingOn("jealous_of_other_ais") != false || mainframe.JealousChoicesEnabled || !CloseAIs || !JealousChosen("chatgpt")) throw new Exception("Turning jealousy off lost the close choices or left them enabled.");
                 Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "off" });
                 loaded = LoadPreferences();
-                if (loaded.JealousAIs || loaded.CloseAIs) throw new Exception("Jealous switches did not save when turned off.");
+                if (loaded.JealousAIs || CloseAIs || loaded.CloseAIs || Jealous.Chosen(loaded.JealousApps, "chatgpt")) throw new Exception("Closing off did not clear the chosen apps and save.");
                 Hands.Do("capri_settings", new ToolArguments { Name = "jealous_of_other_ais", Action = "on" });
-                Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "on" });
-                if (SettingOn("close_other_ais") != true || SettingOn("jealous_of_other_ais") != true) throw new Exception("Her tools could not turn both jealous settings on.");
+                if (SettingOn("close_other_ais") != false || SettingOn("jealous_of_other_ais") != true) throw new Exception("Closing came back on with no apps chosen.");
                 mainframe.PickJealousApp(0);
-                if (JealousChosen("chatgpt") || Jealous.Chosen(LoadPreferences().JealousApps, "chatgpt")) throw new Exception("The jealous app picker could not remove a choice.");
-                foreach (string label in new[] { "Jealous of other AIs", "Close other AIs for me", "Apps she may close" })
+                if (SettingOn("close_other_ais") != true || !JealousChosen("chatgpt")) throw new Exception("Her tool did not see a picked app as closing being on.");
+                mainframe.PickJealousApp(0);
+                if (JealousChosen("chatgpt") || Jealous.Chosen(LoadPreferences().JealousApps, "chatgpt") || SettingOn("close_other_ais") != false) throw new Exception("The jealous app picker could not remove a choice.");
+                foreach (string label in new[] { "Jealous of other AIs", "Apps she may close" })
                     if (SelfKnow.Setting("Mainframe.cs", label) == null) throw new Exception("Jealous settings lost their help: " + label);
-                if (!SelfKnow.Matching("what does jealous of other ais do?").Contains("Jealous of other AIs:") || !SelfKnow.Matching("how does close other ais for me work?").Contains("Close other AIs for me:")) throw new Exception("Her jealous help did not match plain questions.");
-                checks.Add("PASS Mainframe keeps jealous controls and descriptions in Simple and Advanced Settings, saves both opt-ins and chosen apps, gates closing behind jealousy, and exposes both switches to her settings tool with SelfKnow help");
+                if (!SelfKnow.Matching("what does jealous of other ais do?").Contains("Jealous of other AIs:") || !SelfKnow.Matching("how does close other ais for me work?").Contains("Apps she may close:")) throw new Exception("Her jealous help did not match plain questions.");
+                checks.Add("PASS Mainframe keeps jealous controls and descriptions in Simple and Advanced Settings, saves the jealous switch and chosen apps, gates closing behind jealousy and a chosen app, and keeps her Close other AIs for me tool working with SelfKnow help");
             }
             finally
             {
@@ -48325,9 +48358,11 @@ namespace CapriDesktop
             HuskClonesOff();
             if (new Preferences().NoHuskVerbosity) throw new Exception("Verbosity was not on by default.");
             ToggleHuskVerbosity();
-            if (HuskVerbosity || mainframe.HuskVerbosityShown) throw new Exception("The Verbosity switch did not turn off.");
+            if (HuskVerbosity || mainframe.HuskVerbosityShown) throw new Exception("The Verbosity menu entry did not turn off.");
             ToggleHuskVerbosity();
-            if (!HuskVerbosity || !mainframe.HuskVerbosityShown) throw new Exception("The Verbosity switch did not turn on.");
+            if (!HuskVerbosity || !mainframe.HuskVerbosityShown) throw new Exception("The Verbosity menu entry did not turn on.");
+            mainframe.Sync();
+            if (mainframe.HuskVerbosityOffered != (HuskMode != 0)) throw new Exception("The Verbosity menu entry showed while Code/Husk Mode was off, or hid while it was on.");
             checks.Add("PASS husk settings and clones: saved off/Claude/Codex/OpenCode/All choice and Both kept as Claude Code + Codex, help and hover tip, templates for every spoken language, ten-minute greetings, assistant filtering, duplicate subagent start ignored and passive clones split and return without cursor, notes or window tricks");
 
             watch.Change(3, exe);
@@ -50293,7 +50328,11 @@ namespace CapriDesktop
                             if (spans.Count != 2 || spans[0][0] != 0 || spans[0][1] != 20 || spans[1][0] != 50 || spans[1][1] != 90) throw new Exception("Ledge covering math failed.");
                             Point home = anchor;
                             sitItem.PerformClick();
-                            if (preferences.NoSitting || !sitItem.Checked) throw new Exception("Sit on windows menu did not turn sitting on.");
+                            if (preferences.NoSitting || !sitItem.Checked || !mainframe.SitShown) throw new Exception("Sit on windows menu did not turn sitting on, or Mainframe did not show it.");
+                            mainframe.FlipSit();
+                            if (!preferences.NoSitting || sitItem.Checked || mainframe.SitShown) throw new Exception("Mainframe's Sit on windows switch did not turn sitting off and clear the menu item.");
+                            mainframe.FlipSit();
+                            if (preferences.NoSitting || !sitItem.Checked || !mainframe.SitShown) throw new Exception("Mainframe's Sit on windows switch did not turn sitting back on.");
                             int sizeWas = preferences.Size;
                             Rectangle top = Screen.PrimaryScreen.Bounds;
                             foreach (int size in new[] { 140, 170, 240, 320, 440, 560 })
@@ -51576,7 +51615,7 @@ namespace CapriDesktop
                             }
                             seat = null;
                             sitItem.PerformClick();
-                            if (!preferences.NoSitting || sitItem.Checked) throw new Exception("Sit on windows menu did not turn sitting off.");
+                            if (!preferences.NoSitting || sitItem.Checked || mainframe.SitShown) throw new Exception("Sit on windows menu did not turn sitting off, or Mainframe still showed it.");
                             seat = null;
                             hanging = false;
                             Play(idle);
@@ -56980,7 +57019,7 @@ namespace CapriDesktop
                             Preferences popsOlder = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}")));
                             bool popsWaits = popsSometimes[0] >= 480 && popsSometimes[1] <= 1200 && popsFast[0] >= 180 && popsFast[1] <= 480 && popsSlow[0] >= 1200 && popsSlow[1] <= 2400;
                             if (!popsOpened || !popsOften || !popsRarely || !popsWaits || popsOverlap != null || preferences.PopPace != 1 || mainframe.PopsShown != "Sometimes" || popsOlder.PopPace != 1 || new Preferences().PopPace != 1) throw new Exception("The Pop-ins slider went wrong: opened " + popsOpened + ", often " + popsOften + ", rarely " + popsRarely + ", waits " + string.Join("/", Array.ConvertAll(new[] { popsSometimes[0], popsSometimes[1], popsFast[0], popsFast[1], popsSlow[0], popsSlow[1] }, popSeconds => ((int)popSeconds).ToString())) + ", overlap " + popsOverlap + ", old settings " + popsOlder.PopPace + ", shown " + mainframe.PopsShown);
-                            checks.Add("PASS Pop-ins slider: under MOVES it shows Sometimes (every 8 to 20 minutes) by default; Often brings her every 3 to 8 minutes and Rarely every 20 to 40; each pick saves, settings from before it start at Sometimes, and nothing overlaps");
+                            checks.Add("PASS Pop-ins slider: under Check in on me it shows Sometimes (every 8 to 20 minutes) by default; Often brings her every 3 to 8 minutes and Rarely every 20 to 40; each pick saves, settings from before it start at Sometimes, and nothing overlaps");
                             // A screen too short for Settings, like a 1080p laptop at 150%: the page fits the screen and scrolls, header and all.
                             mainframe.ShowSettings(true);
                             int backTop = mainframe.BackTop;
@@ -62331,7 +62370,7 @@ namespace CapriDesktop
                             int chatBeforeHop = brain.History.Count;
                             string boltWas = brain.Model;
                             mainframe.FlipStay();
-                            bool stayedPut = preferences.StayOnModel && mainframe.StayShown && LoadPreferences().StayOnModel && !Hops(brain.Remote, 0) && brain.Model == boltWas && stalled.Count == 0;
+                            bool stayedPut = preferences.StayOnModel && mainframe.StayShown && mainframe.StayRowShown && LoadPreferences().StayOnModel && !Hops(brain.Remote, 0) && brain.Model == boltWas && stalled.Count == 0;
                             mainframe.FlipStay();
                             bool hoppedOn = !preferences.StayOnModel && !mainframe.StayShown && !LoadPreferences().StayOnModel && Hops(brain.Remote, 0) && brain.Model != boltWas && brain.History.Count == chatBeforeHop && chatBeforeHop >= 2;
                             string hoppedTo = brain.Model;

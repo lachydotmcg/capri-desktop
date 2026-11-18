@@ -443,6 +443,7 @@ No AI · no brain at all	Nincs MI · egyáltalán nincs agy
 No brain runs, and nothing is sent anywhere.	Nem fut agy, és semmi nem megy sehova.
 No brain yet	Még nincs agy
 No code open	Nincs megnyitott kód
+No limit	Korlátlan
 No mic found	Nincs mikrofon
 No mods in the directory yet.	Még nincs mod a mappában.
 No mods match that.	Egyetlen mod sem egyezik ezzel.

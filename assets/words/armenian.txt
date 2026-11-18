@@ -443,6 +443,7 @@ No AI · no brain at all	Առանց AI · առանց որևէ ուղեղի
 No brain runs, and nothing is sent anywhere.	Ոչ մի ուղեղ չի աշխատում, և ոչինչ ոչուր չի ուղարկվում։
 No brain yet	Դեռ ուղեղ չկա
 No code open	Կոդ բաց չէ
+No limit	Առանց սահմանի
 No mic found	Խոսափող չգտնվեց
 No mods in the directory yet.	Մոդերի թղթապանակում դեռ մոդեր չկան։
 No mods match that.	Ոչ մի մոդ չի համապատասխանում դրան։

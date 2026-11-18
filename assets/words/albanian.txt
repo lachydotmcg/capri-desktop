@@ -443,6 +443,7 @@ No AI · no brain at all	Pa AI · pa tru fare
 No brain runs, and nothing is sent anywhere.	Asnjë tru nuk punon, dhe asgjë nuk dërgohet askund.
 No brain yet	Ende pa tru
 No code open	Asnjë kod i hapur
+No limit	Pa kufi
 No mic found	Nuk u gjet mikrofon
 No mods in the directory yet.	Nuk ka ende modifikime në dosje.
 No mods match that.	Asnjë modifikim nuk përputhet me atë.

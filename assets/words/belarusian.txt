@@ -443,6 +443,7 @@ No AI · no brain at all	Без ШІ · увогуле без мозгу
 No brain runs, and nothing is sent anywhere.	Мозг не запускаецца, і нічога нікуды не адпраўляецца.
 No brain yet	Мозгу пакуль няма
 No code open	Адкрытага кода няма
+No limit	Без абмежавання
 No mic found	Мікрафон не знойдзены
 No mods in the directory yet.	У папцы пакуль няма модаў.
 No mods match that.	Ніводны мод не адпавядае.

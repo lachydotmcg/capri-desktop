@@ -443,6 +443,7 @@ No AI · no brain at all	AI байхгүй · огт тархи байхгүй
 No brain runs, and nothing is sent anywhere.	Тархи ажиллахгүй, юу ч хаашаа ч илгээгдэхгүй.
 No brain yet	Одоохондоо тархи байхгүй
 No code open	Нээлттэй код байхгүй
+No limit	Хязгааргүй
 No mic found	Микрофон олдсонгүй
 No mods in the directory yet.	Санд одоохондоо модууд байхгүй.
 No mods match that.	Үүнтэй таарах модууд байхгүй.

@@ -443,6 +443,7 @@ No AI · no brain at all	Enweghị AI · enweghị ụbụrụ ọ bụla
 No brain runs, and nothing is sent anywhere.	Enweghị ụbụrụ na-agba ọsọ, ihe ọ bụla adịghị ezipụ ebe ọ bụla.
 No brain yet	Enweghị ụbụrụ ugbu a
 No code open	Enweghị koodu emepere
+No limit	Enweghị oke
 No mic found	Ahụghị mic
 No mods in the directory yet.	Enweghị mods n'ndekọ ugbu a.
 No mods match that.	Enweghị mods dabara na nke ahụ.

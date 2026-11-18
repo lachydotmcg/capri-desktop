@@ -443,6 +443,7 @@ No AI · no brain at all	بدون AI · اصلاً بدون مغز
 No brain runs, and nothing is sent anywhere.	هیچ مغزی اجرا نمی‌شود و چیزی به جایی ارسال نمی‌شود.
 No brain yet	هنوز مغزی نیست
 No code open	هیچ کدی باز نیست
+No limit	بدون محدودیت
 No mic found	میکروفونی پیدا نشد
 No mods in the directory yet.	هنوز مدی در پوشه نیست.
 No mods match that.	هیچ مدی با این مطابقت ندارد.

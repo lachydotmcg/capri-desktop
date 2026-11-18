@@ -443,6 +443,7 @@ No AI · no brain at all	Dim AI · dim ymennydd o gwbl
 No brain runs, and nothing is sent anywhere.	Dim ymennydd yn rhedeg, ac nid oes dim yn cael ei anfon i unman.
 No brain yet	Dim ymennydd eto
 No code open	Dim cod ar agor
+No limit	Dim terfyn
 No mic found	Heb ddod o hyd i feic
 No mods in the directory yet.	Dim modiau yn y cyfeiriadur eto.
 No mods match that.	Dim modiau'n cyfateb i hynny.
