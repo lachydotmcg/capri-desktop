@@ -181,7 +181,8 @@ namespace CapriDesktop
                 if (!plain) { at++; continue; }
                 string token = Encoding.ASCII.GetString(data, at + 4, length - 1);
                 at += 4 + length;
-                if (Regex.IsMatch(token, @"^(CurrentKey|Key|KeyName|PrimaryKey|CurrentBinding)$", RegexOptions.IgnoreCase)) { field = "now"; continue; }
+                if (Regex.IsMatch(token, @"^(CurrentKey|PrimaryKey|CurrentBinding)$", RegexOptions.IgnoreCase)) { field = "now"; continue; }
+                if (Regex.IsMatch(token, @"^(Key|KeyName)$", RegexOptions.IgnoreCase)) { if (field != "old") field = "now"; continue; }
                 if (Regex.IsMatch(token, @"^(DefaultKey|DefaultBinding|SecondaryKey)$", RegexOptions.IgnoreCase)) { field = "old"; continue; }
                 if (field == "now" && action != null && UnrealKey.IsMatch(token)) { Bind(bound, action, token); field = null; continue; }
                 if (UnrealKey.IsMatch(token) || UnrealNoise.IsMatch(token) || !Regex.IsMatch(token, @"^[A-Za-z][A-Za-z0-9_.]{2,63}$")) continue;
