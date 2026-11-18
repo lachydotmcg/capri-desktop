@@ -89,7 +89,7 @@ namespace CapriDesktop
                     {
                         if (initialized && tick >= refreshAt)
                         {
-                            refreshAt = tick + 2;
+                            refreshAt = tick + (Ears.Gentle ? 6 : 2);
                             available = Refresh(sessions);
                         }
                         double peak = 0;

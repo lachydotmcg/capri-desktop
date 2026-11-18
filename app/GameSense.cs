@@ -496,33 +496,83 @@ namespace CapriDesktop
             return Math.Abs(bar.Blue - blue) <= 30 && Math.Abs(bar.Green - green) <= 30 && Math.Abs(bar.Red - redValue) <= 30;
         }
 
-        internal static byte[] Bgra(Bitmap frame, int width, int height)
+        internal static unsafe byte[] Bgra(Bitmap frame, int width, int height)
         {
             if (frame == null || width <= 0 || height <= 0 || (long)width * height > int.MaxValue / 4) return null;
             try
             {
-                using (Bitmap small = new Bitmap(width, height, PixelFormat.Format32bppArgb))
+                int sourceWidth = frame.Width, sourceHeight = frame.Height;
+                if (sourceWidth < width || sourceHeight < height) return Drawn(frame, width, height);
+                byte[] result = new byte[width * height * 4];
+                bool opaque = frame.PixelFormat == PixelFormat.Format32bppRgb;
+                BitmapData locked = frame.LockBits(new Rectangle(0, 0, sourceWidth, sourceHeight), ImageLockMode.ReadOnly, opaque ? PixelFormat.Format32bppRgb : PixelFormat.Format32bppArgb);
+                try
                 {
-                    using (Graphics graphics = Graphics.FromImage(small))
+                    byte* source = (byte*)locked.Scan0;
+                    int stride = locked.Stride;
+                    int[] lefts = new int[width + 1];
+                    for (int column = 0; column <= width; column++) lefts[column] = (int)((long)column * sourceWidth / width);
+                    fixed (byte* target = result)
                     {
-                        graphics.CompositingMode = CompositingMode.SourceCopy;
-                        graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
-                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                        graphics.DrawImage(frame, new Rectangle(0, 0, width, height), new Rectangle(0, 0, frame.Width, frame.Height), GraphicsUnit.Pixel);
+                        byte* into = target;
+                        for (int row = 0; row < height; row++)
+                        {
+                            int top = (int)((long)row * sourceHeight / height), bottom = (int)((long)(row + 1) * sourceHeight / height);
+                            for (int column = 0; column < width; column++)
+                            {
+                                int left = lefts[column], right = lefts[column + 1];
+                                long blue = 0, green = 0, red = 0, alpha = 0;
+                                for (int y = top; y < bottom; y++)
+                                {
+                                    byte* pixel = source + (long)y * stride + left * 4;
+                                    for (int x = left; x < right; x++, pixel += 4)
+                                    {
+                                        blue += pixel[0];
+                                        green += pixel[1];
+                                        red += pixel[2];
+                                        alpha += pixel[3];
+                                    }
+                                }
+                                long count = (long)(right - left) * (bottom - top);
+                                long half = count / 2;
+                                into[0] = (byte)((blue + half) / count);
+                                into[1] = (byte)((green + half) / count);
+                                into[2] = (byte)((red + half) / count);
+                                into[3] = opaque ? (byte)255 : (byte)((alpha + half) / count);
+                                into += 4;
+                            }
+                        }
                     }
-                    byte[] result = new byte[width * height * 4];
-                    BitmapData locked = small.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                    try
-                    {
-                        for (int copyRow = 0; copyRow < height; copyRow++) Marshal.Copy(IntPtr.Add(locked.Scan0, copyRow * locked.Stride), result, copyRow * width * 4, width * 4);
-                    }
-                    finally { small.UnlockBits(locked); }
-                    return result;
                 }
+                finally { frame.UnlockBits(locked); }
+                return result;
             }
             catch (ArgumentException) { return null; }
             catch (ExternalException) { return null; }
             catch (ObjectDisposedException) { return null; }
+            catch (InvalidOperationException) { return null; }
+        }
+
+        private static byte[] Drawn(Bitmap frame, int width, int height)
+        {
+            using (Bitmap small = new Bitmap(width, height, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics graphics = Graphics.FromImage(small))
+                {
+                    graphics.CompositingMode = CompositingMode.SourceCopy;
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphics.DrawImage(frame, new Rectangle(0, 0, width, height), new Rectangle(0, 0, frame.Width, frame.Height), GraphicsUnit.Pixel);
+                }
+                byte[] result = new byte[width * height * 4];
+                BitmapData locked = small.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                try
+                {
+                    for (int copyRow = 0; copyRow < height; copyRow++) Marshal.Copy(IntPtr.Add(locked.Scan0, copyRow * locked.Stride), result, copyRow * width * 4, width * 4);
+                }
+                finally { small.UnlockBits(locked); }
+                return result;
+            }
         }
     }
 }

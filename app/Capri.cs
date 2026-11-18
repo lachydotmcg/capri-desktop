@@ -37,6 +37,8 @@ namespace CapriDesktop
         private static int Main(string[] args)
         {
             if (ServicePointManager.DefaultConnectionLimit < 16) ServicePointManager.DefaultConnectionLimit = 16;
+            ServicePointManager.UseNagleAlgorithm = false;
+            ServicePointManager.Expect100Continue = false;
             Started = Stopwatch.GetTimestamp();
             if (args.Length > 0 && args[0] == "--smoke-child") return SmokeRun.Child(args);
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
@@ -1659,7 +1661,7 @@ namespace CapriDesktop
         internal static int ArtVersion;
         internal static event Action ArtChanged;
         // Art that only some moments need loads off her thread when she might need it and is let go after this long undrawn:
-        // every facing-left set, and the clips made lazy (her perch talking). The rest warms after her first frame.
+        // every facing-left set, and the clips made lazy (her perch talking, her music perch). The rest warms after her first frame.
         internal const int RestAfter = 90000;
         private static readonly System.Collections.Generic.List<Clip> all = new System.Collections.Generic.List<Clip>();
         private readonly string name;
@@ -1854,20 +1856,20 @@ namespace CapriDesktop
         }
 
         // Lets go of lazy and facing-left art after RestAfter, and other art after ten minutes. Called between frames.
-        internal static void RestAll(int now)
+        internal static void RestAll(int now, int after = 600000)
         {
             Clip[] clips;
             lock (all) clips = all.ToArray();
-            foreach (Clip clip in clips) clip.Rest(now);
+            foreach (Clip clip in clips) clip.Rest(now, after);
         }
 
-        private void Rest(int now)
+        private void Rest(int now, int after)
         {
             lock (gate)
             {
                 if (fetching) return;
-                if (strip != null && unchecked(now - stripUsed) > (lazy ? RestAfter : 600000)) { strip.Dispose(); strip = null; }
-                if (flipped != null && unchecked(now - flippedUsed) > RestAfter) { flipped.Dispose(); flipped = null; }
+                if (strip != null && unchecked(now - stripUsed) > (lazy ? Math.Min(RestAfter, after) : after)) { strip.Dispose(); strip = null; }
+                if (flipped != null && unchecked(now - flippedUsed) > Math.Min(RestAfter, after)) { flipped.Dispose(); flipped = null; }
             }
         }
 
@@ -2214,7 +2216,7 @@ namespace CapriDesktop
         private readonly Clip walk = new Clip("walk", 12, 12, 1.11f);
         private readonly Clip dance;
         // her artist's music perch: she sways to the song on her window, and her beat nod goes on top. Same cells as her perch.
-        private readonly Clip perchDance = new Clip("perch_music", 60, 30, 1, PerchShiftX, PerchShiftY);
+        private readonly Clip perchDance = new Clip("perch_music", 60, 30, 1, PerchShiftX, PerchShiftY, true);
         private readonly Clip arrive = new Clip("arrive", 14, 15, 1.11f);
         private readonly Clip leave = new Clip("leave", 12, 15, 1.11f);
         private readonly Clip perchArrive = new Clip("perch_arrive", 14, 15, 1, PerchShiftX, PerchShiftY);
@@ -3604,6 +3606,7 @@ namespace CapriDesktop
             if (Dizzy(now)) return 33;
             // Asleep sitting up, her bob and z's are slow, so 15 a second is plenty.
             if (clip == perchSleep) return 66;
+            if (HoldsStill(now)) return HoldMs;
             // Power saver: resting, she ticks on whole ticks of Windows' clock at her rest rate, like a slow perch.
             if (Resting(now)) return Math.Max(1, 64 / Math.Max(1, (int)Math.Min(clip.Fps, Math.Min(preferences.PerchFps, SaverFps)))) * 1000 / 64 - 1;
             if (frontBusy)
@@ -3623,6 +3626,13 @@ namespace CapriDesktop
         // or dances gets her usual rate back by the next tick.
         internal const int SaverFps = 15;
 
+        internal const int HoldMs = 250;
+
+        private bool HoldsStill(double now)
+        {
+            return fullThrough && Resting(now) && drawnClip == clip && !drawnMods && anchor == drawnAt && facingLeft == drawnFacing;
+        }
+
         private bool Resting(double now)
         {
             return Saving && !docked && !exploring && !Dizzy(now) && Quiet(now) && (StandingStill || (SittingStill && (clip == perch || clip == laydown || clip == laydownSleep) && now - seatMovedAt >= 1));
@@ -3637,6 +3647,7 @@ namespace CapriDesktop
         // A tick off 30 fps with nothing new to show: she's only sitting, still where she was drawn, and her perch frame hasn't changed.
         private bool Steady(double now)
         {
+            if (HoldsStill(now)) return true;
             int fps = PerchRateNow(now);
             return fps != 30 && clip == perch && SittingStill && Quiet(now) && !Dizzy(now) && anchor == drawnAt && facingLeft == drawnFacing && (long)((now - clipStart) * fps) == drawnStep;
         }
@@ -8325,7 +8336,7 @@ namespace CapriDesktop
         private void RestArt(double now, int tick)
         {
             if (!CanRest) return;
-            Clip.RestAll(tick);
+            Clip.RestAll(tick, docked ? DockedArtRest : 600000);
             bodyCells.Rest(tick);
             shatter.Rest(tick);
             if (inBetween != null && perchMix == 0 && now - tweenUsed >= 600)
@@ -8333,6 +8344,8 @@ namespace CapriDesktop
                 inBetween.Dispose(); inBetween = null; mixFrom = mixTo = null;
             }
         }
+
+        internal const int DockedArtRest = 60000;
 
         // How often she looks at her mic's mute switch for Hey Capri, and at Windows' default mic for Windows speech, in seconds.
         private double MicLookGap { get { return Saving ? 6 : 2; } }
@@ -8418,8 +8431,10 @@ namespace CapriDesktop
             // in, so only her talking stops it there (Lachy, 29 Oct: "she didnt bop her head when i played the songs").
             bool busy = speech != null || (working != null ? now < voiceUntil : talkState != TalkState.Off || InChat);
             bool free = wanted && !hidden && !dragging && !pressed && !riding && !falling && !hanging && !walking && outro == null && !busy && !Hushed && !ownRest;
-            if (dancing && !free) { Play(seat != null || onPanel ? perch : idle); UpdateAnimation(); }
-            else if (!dancing && free && (clip == idle || clip == perch || clip == laydown)) { SitUp(false); Play(seat != null || onPanel ? perchDance : dance); frames.Start(); }
+            bool seated = seat != null || onPanel;
+            if (free && seated && !dancing) perchDance.Warm(false);
+            if (dancing && !free) { Play(seated ? perch : idle); UpdateAnimation(); }
+            else if (!dancing && free && (clip == idle || clip == perch || clip == laydown) && (!seated || testing || perchDance.Ready(false))) { SitUp(false); Play(seat != null || onPanel ? perchDance : dance); frames.Start(); }
             groove.Want(!testing && musicOn && !preferences.NoDance && preferences.Motion && !hidden);
         }
 
@@ -10707,6 +10722,8 @@ namespace CapriDesktop
             catch { shot.Dispose(); throw; }
         }
 
+        private static ImageCodecInfo JpegCodec;
+
         internal static byte[] Jpeg(Bitmap picture, int longest)
         {
             double scale = Math.Min(1.0, (double)longest / Math.Max(picture.Width, picture.Height));
@@ -10716,10 +10733,13 @@ namespace CapriDesktop
             {
                 using (Graphics graphics = Graphics.FromImage(small))
                 {
-                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    graphics.DrawImage(picture, 0, 0, width, height);
+                    bool same = width == picture.Width && height == picture.Height;
+                    graphics.CompositingMode = same ? CompositingMode.SourceCopy : CompositingMode.SourceOver;
+                    graphics.InterpolationMode = same ? InterpolationMode.NearestNeighbor : InterpolationMode.HighQualityBicubic;
+                    if (same) graphics.DrawImage(picture, new Rectangle(0, 0, width, height), 0, 0, width, height, GraphicsUnit.Pixel);
+                    else graphics.DrawImage(picture, 0, 0, width, height);
                 }
-                ImageCodecInfo codec = Array.Find(ImageCodecInfo.GetImageEncoders(), found => found.FormatID == ImageFormat.Jpeg.Guid);
+                ImageCodecInfo codec = JpegCodec ?? (JpegCodec = Array.Find(ImageCodecInfo.GetImageEncoders(), found => found.FormatID == ImageFormat.Jpeg.Guid));
                 using (EncoderParameters options = new EncoderParameters(1))
                 using (MemoryStream output = new MemoryStream())
                 {
@@ -14027,6 +14047,7 @@ namespace CapriDesktop
             StopExplore();
             if (typer.Visible) { typer.Hide(); return; }
             WakeRest(!SleepBusy);
+            if (!testing) brain.Preconnect();
             float s = TalkScale();
             if (docked) typer.Open(GameHud.Bounds.Location, GameHud.Bounds.Location, Screen.FromRectangle(GameHud.Bounds).WorkingArea, s, GameHud.Bounds);
             else typer.Open(Head(), new Point(Feet().X, Feet().Y + (int)(44 * s)), Screen.FromPoint(Head()).WorkingArea, s, box.Visible ? box.PanelOnScreen : Rectangle.Empty);
@@ -14038,6 +14059,7 @@ namespace CapriDesktop
             if (chatting) { earsClosed = preferences.ListenCapri; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
             earsClosed = false;
             WakeRest(true);
+            if (!testing) brain.Preconnect();
             // Listen for Capri needs her own ears; otherwise voice chat follows the VOICE pick.
             if (CallModeOn || ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, voice.Key != null)) { StartLocal(); return; }
             if ((preferences.Quiet || preferences.Silent) && voice.Key != null)
@@ -26930,10 +26952,29 @@ namespace CapriDesktop
             return (kernel + user) / 10000.0;
         }
 
+        private static Bitmap WatchSample(int width, int height)
+        {
+            Bitmap sample = new Bitmap(width, height, PixelFormat.Format32bppRgb);
+            BitmapData locked = sample.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+            try
+            {
+                int[] row = new int[width];
+                Random noise = new Random(7);
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                        row[x] = (((x * 255 / width) + noise.Next(24)) & 0xFF) << 16 | (((y * 255 / height) + noise.Next(24)) & 0xFF) << 8 | (((x + y) * 3 + noise.Next(24)) & 0xFF);
+                    Marshal.Copy(row, 0, IntPtr.Add(locked.Scan0, y * locked.Stride), width);
+                }
+            }
+            finally { sample.UnlockBits(locked); }
+            return sample;
+        }
+
         private void SmokePerf(System.Collections.Generic.List<string> checks)
         {
             bool framesWas = frames.Enabled, signalsWas = signals.Enabled, hiddenWas = hidden, dockedWas = docked;
-            bool timingWas = bodyTiming;
+            bool timingWas = bodyTiming, busyWas = frontBusy, throughWas = fullThrough;
             bool ridingWas = riding, panelWas = onPanel, fallingWas = falling, draggingWas = dragging, lyingWas = lying, walkingWas = walking;
             bool motionWas = preferences.Motion, facingWas = facingLeft, veilWas = veiled;
             int saverWas = preferences.PowerSaver, fpsWas = preferences.PerchFps, intervalWas = frames.Interval, targetWas = walkTo;
@@ -26966,14 +27007,17 @@ namespace CapriDesktop
                 preferences.PerchFps = 30;
                 Rectangle room = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
                 Point origin = new Point(room.Left + (room.Width - Width) / 2, room.Top + (room.Height - Height) / 2);
-                foreach (string scene in new[] { "idle", "perched", "lying", "walking" })
+                foreach (string scene in new[] { "idle", "perched", "lying", "walking", "game" })
                 {
+                    bool game = scene == "game";
+                    preferences.PowerSaver = game ? 1 : 0;
+                    frontBusy = fullThrough = game;
                     anchor = origin;
                     Location = anchor;
                     facingLeft = false;
                     lying = scene == "lying";
                     walking = scene == "walking";
-                    seat = scene == "perched" || lying ? new Ledge { Floor = true, Left = room.Left, Right = room.Right, Y = room.Bottom } : null;
+                    seat = scene == "perched" || game || lying ? new Ledge { Floor = true, Left = room.Left, Right = room.Right, Y = room.Bottom } : null;
                     if (seat != null) anchor = Seated(room.Left + room.Width / 2, seat.Y);
                     seatMovedAt = -10;
                     leanAngle = 0;
@@ -27038,10 +27082,41 @@ namespace CapriDesktop
                             Width, Height, drawnBounds.Width, drawnBounds.Height));
                     }
                 }
+                int shrinkWorst = 0;
+                foreach (Size game in new[] { new Size(1920, 1080), new Size(2560, 1440), new Size(3840, 2160) })
+                    foreach (int wide in new[] { 480, 1280 }) shrinkWorst = Math.Max(shrinkWorst, FrameGrab.ShrinkError(game.Width, game.Height, wide));
+                if (shrinkWorst > 3) throw new Exception("The game watcher's frame shrink strayed " + shrinkWorst + " levels from a true average.");
+                checks.Add("PASS the game watcher's frame shrink stays within " + shrinkWorst + " levels of a true average at 480 and 1280 wide from 1080p, 1440p and 4K");
+                foreach (Size game in new[] { new Size(1920, 1080), new Size(2560, 1440), new Size(3840, 2160) })
+                    checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_shrink game={0}x{1} to480_ms={2:0.000} to1280_ms={3:0.000}",
+                        game.Width, game.Height, FrameGrab.ShrinkMs(game.Width, game.Height, 480, 10), FrameGrab.ShrinkMs(game.Width, game.Height, 1280, 5)));
+                using (Bitmap keepSample = WatchSample(1280, 720))
+                using (Bitmap lookSample = WatchSample(480, 270))
+                {
+                    GameSense timedSense = new GameSense();
+                    byte[] lookPixels = GameSense.Bgra(lookSample, WatchWidth, WatchHeight);
+                    Jpeg(keepSample, 1280);
+                    GameSense.Bgra(keepSample, WatchWidth, WatchHeight);
+                    Stopwatch partWatch = Stopwatch.StartNew();
+                    for (int partRun = 0; partRun < 20; partRun++) Jpeg(keepSample, 1280);
+                    double jpegMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    partWatch.Restart();
+                    for (int partRun = 0; partRun < 20; partRun++) GameSense.Bgra(lookSample, WatchWidth, WatchHeight);
+                    double lookMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    partWatch.Restart();
+                    for (int partRun = 0; partRun < 20; partRun++) GameSense.Bgra(keepSample, WatchWidth, WatchHeight);
+                    double keepMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    partWatch.Restart();
+                    for (int partRun = 0; partRun < 20; partRun++) timedSense.Feed(lookPixels, WatchWidth, WatchHeight, partRun * 0.1);
+                    double feedMs = partWatch.Elapsed.TotalMilliseconds / 20;
+                    checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_frame jpeg1280_ms={0:0.000} sense480_ms={1:0.000} sense1280_ms={2:0.000} feed_ms={3:0.000}", jpegMs, lookMs, keepMs, feedMs));
+                }
             }
             finally
             {
                 bodyTiming = timingWas;
+                frontBusy = busyWas;
+                fullThrough = throughWas;
                 frames.Stop();
                 hidden = hiddenWas; docked = dockedWas; riding = ridingWas; onPanel = panelWas; falling = fallingWas; dragging = draggingWas;
                 lying = lyingWas; walking = walkingWas; facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; sulkSince = sulkWas;
@@ -27226,7 +27301,7 @@ namespace CapriDesktop
         private void SmokePowerSaver(System.Collections.Generic.List<string> checks, string output)
         {
             int saverWas = preferences.PowerSaver, fpsWas = preferences.PerchFps, gapWas = GlanceGap;
-            bool busyWas = frontBusy, ridingWas = riding, facingWas = facingLeft, simpleWas = simpleTest, pageWas = mainframe.SettingsShown, framesWere = frames.Enabled;
+            bool busyWas = frontBusy, throughWas = fullThrough, ridingWas = riding, facingWas = facingLeft, simpleWas = simpleTest, pageWas = mainframe.SettingsShown, framesWere = frames.Enabled;
             bool heyWas = preferences.HeyCapri, listenWas = preferences.ListenCapri, clipsWas = preferences.ClipGames, advancedWas = preferences.AdvancedSettings;
             Ledge seatWas = seat;
             Clip clipWas = clip;
@@ -27385,8 +27460,27 @@ namespace CapriDesktop
                             drawRates[pass] = drew / took;
                             workRates[pass] = spent * 1000.0 / Stopwatch.Frequency / took;
                         }
+                        preferences.PowerSaver = 1;
+                        fullThrough = true;
+                        Play(perch);
+                        pump(0.4);
+                        ticked = drew = 0;
+                        spent = 0;
+                        double heldFor = pump(1.2);
+                        double heldTicks = ticked / heldFor, heldDraws = drew / heldFor, heldWork = spent * 1000.0 / Stopwatch.Frequency / heldFor;
+                        int heldPace = FrameInterval(clock.Elapsed.TotalSeconds);
+                        bool heldSteady = Steady(clock.Elapsed.TotalSeconds);
+                        speech = "hi";
+                        int heldTalking = FrameInterval(clock.Elapsed.TotalSeconds);
+                        bool talkDraws = !Steady(clock.Elapsed.TotalSeconds);
+                        speech = null;
+                        fullThrough = false;
+                        int heldLeft = FrameInterval(clock.Elapsed.TotalSeconds);
+                        if (heldPace != HoldMs || !heldSteady || heldTalking != 33 || !talkDraws || heldLeft != 61 || drew > 1 || heldTicks > 6)
+                            throw new Exception("Over something full screen she didn't hold still: " + heldPace + " ms, steady " + heldSteady + ", talking " + heldTalking + " ms and drawn " + talkDraws + ", after it " + heldLeft + " ms, " + drew + " paints and " + heldTicks.ToString("0.0") + " ticks a second");
+                        checks.Add("PASS Power saver's hold: resting over something full screen she holds her frame, looking again every " + HoldMs + " ms (" + heldTicks.ToString("0") + " ticks and " + heldDraws.ToString("0") + " paints a second, " + heldWork.ToString("0.0") + " ms of frame work a second), and talking draws her at 33 ms again");
                     }
-                    finally { probe.Dispose(); }
+                    finally { probe.Dispose(); fullThrough = throughWas; }
                     drawn = "resting over a faked game, Off ticked " + tickRates[0].ToString("0") + " and drew " + drawRates[0].ToString("0") + " times a second (" + workRates[0].ToString("0.0") + " ms of frame work a second), In games " + tickRates[1].ToString("0") + " and " + drawRates[1].ToString("0") + " (" + workRates[1].ToString("0.0") + " ms)";
                     if (drawRates[1] >= drawRates[0] || tickRates[1] >= tickRates[0] || drawRates[1] < 5) throw new Exception("Power saver didn't draw her less often: " + drawn);
                 }
@@ -27457,6 +27551,7 @@ namespace CapriDesktop
                 Brain.LogPath = logWas;
                 preferences.PerchFps = fpsWas;
                 frontBusy = busyWas;
+                fullThrough = throughWas;
                 seat = seatWas;
                 riding = ridingWas;
                 speech = speechWas;
@@ -28336,6 +28431,11 @@ namespace CapriDesktop
                             if (speedGrab.Gray(480, speedHeight) == null) throw new Exception("Gray frames disappeared during the timing check.");
                         double speedMs = speedWatch.Elapsed.TotalMilliseconds / 30;
                         checks.Add((speedMs < 3 ? "PASS " : "LIMIT ") + "480-wide box gray from " + frameScreen.Width + "x" + frameScreen.Height + " takes " + speedMs.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " ms per copy here; " + speedGrab.Live);
+                        Stopwatch copyWatch = Stopwatch.StartNew();
+                        for (int copyRun = 0; copyRun < 30; copyRun++)
+                            using (Bitmap copied = speedGrab.Copy(480))
+                                if (copied == null || copied.Width != Math.Min(480, frameScreen.Width)) throw new Exception("Colour frames disappeared or changed size during the timing check.");
+                        checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, "perf: watch_copy screen={0}x{1} to480_ms={2:0.000} gpu_chain={3}", frameScreen.Width, frameScreen.Height, copyWatch.Elapsed.TotalMilliseconds / 30, speedGrab.Chained));
                     }
                     else checks.Add("LIMIT gray frame timing lost access to this desktop");
                 }
@@ -36914,6 +37014,19 @@ namespace CapriDesktop
         }
 
         private static string SentBody(string request) { return request.Substring(request.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4); }
+        private static string HeadFrom(NetworkStream stream)
+        {
+            System.Text.StringBuilder head = new System.Text.StringBuilder();
+            while (head.Length < 65536)
+            {
+                int one = stream.ReadByte();
+                if (one < 0) break;
+                head.Append((char)one);
+                if (head.Length >= 4 && head[head.Length - 1] == '\n' && head[head.Length - 2] == '\r' && head[head.Length - 3] == '\n' && head[head.Length - 4] == '\r') break;
+            }
+            return head.ToString();
+        }
+
 
         private static void SmokeCloudBrains(System.Collections.Generic.List<string> checks)
         {
@@ -37713,6 +37826,58 @@ namespace CapriDesktop
                 string cacheUser = cacheRequest.Messages[cacheRequest.Messages.Length - 1].Content;
                 if (!cacheChat.StartsWith("[{\"cache_control\":{\"type\":\"ephemeral\"}", StringComparison.Ordinal) || cacheChat.Contains("If the time or date is needed, it's ") || !cacheUser.StartsWith("(For you, not from them:", StringComparison.Ordinal) || !cacheUser.Contains("If the time or date is needed, it's ")) throw new Exception("The time didn't move from Claude's system prompt to the user note: " + cacheChat + " / " + cacheUser);
                 checks.Add("PASS Claude's cache: her prompts mark the part that stays the same, chat's time is in the last user message, and a prompt with nothing steady has no mark");
+                ClaudeRequest roundBody = new ClaudeRequest { Model = "claude-haiku-5-5", Messages = new[] { new ChatMessage("user", "open \"notepad\""), new ChatMessage("assistant", "(You called open_app)"), new ChatMessage("user", "open_app: \"Opened.\"\nWhat next?") } };
+                Brain.CacheTurn(roundBody);
+                string roundJson = Brain.Spliced(System.Text.Encoding.UTF8.GetString(Brain.Json(roundBody)), roundBody, "[{\"name\":\"open_app\"}]", null);
+                string roundMessages = Brain.Field(roundJson, "messages");
+                ClaudeRequest pictured = new ClaudeRequest { Messages = new[] { new ChatMessage("user", "@capri-image@") } };
+                Brain.CacheTurn(pictured);
+                if (roundMessages == null || !roundMessages.StartsWith("[{\"content\":\"open \\\"notepad\\\"\",\"role\":\"user\"}", StringComparison.Ordinal)
+                    || !roundMessages.EndsWith("{\"content\":[{\"type\":\"text\",\"text\":\"open_app: \\\"Opened.\\\"\\u000aWhat next?\",\"cache_control\":{\"type\":\"ephemeral\"}}],\"role\":\"user\"}]", StringComparison.Ordinal)
+                    || System.Text.RegularExpressions.Regex.Matches(roundJson, "cache_control").Count != 1 || roundJson.Contains("@capri-turn@") || Brain.Field(roundJson, "tools") != "[{\"name\":\"open_app\"}]" || pictured.Turn != null)
+                    throw new Exception("Her tool rounds didn't mark their history for Claude's cache: " + roundJson);
+                checks.Add("PASS Claude's cache in her tool rounds: the newest turn carries the one extra mark, so each round reads the ones before it from the cache, and a turn with a picture in it is left alone");
+                TcpListener warmServer = new TcpListener(IPAddress.Loopback, 0);
+                warmServer.Start();
+                int warmAccepts = 0;
+                string warmFirst = null, warmSecond = null;
+                Thread warmThread = new Thread(delegate()
+                {
+                    try
+                    {
+                        while (true)
+                        {
+                            TcpClient warmClient = warmServer.AcceptTcpClient();
+                            if (Interlocked.Increment(ref warmAccepts) > 1) { warmClient.Close(); continue; }
+                            NetworkStream warmStream = warmClient.GetStream();
+                            warmFirst = HeadFrom(warmStream);
+                            byte[] warmMissing = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
+                            warmStream.Write(warmMissing, 0, warmMissing.Length);
+                            warmSecond = HeadFrom(warmStream);
+                            byte[] warmOk = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok");
+                            warmStream.Write(warmOk, 0, warmOk.Length);
+                        }
+                    }
+                    catch (Exception) { }
+                }) { IsBackground = true };
+                warmThread.Start();
+                string warmHost = "http://127.0.0.1:" + ((IPEndPoint)warmServer.LocalEndpoint).Port;
+                string warmBody = null;
+                try
+                {
+                    Brain.Warm(warmHost);
+                    HttpWebRequest warmFollow = (HttpWebRequest)WebRequest.Create(warmHost + "/v1/models");
+                    warmFollow.Proxy = null;
+                    warmFollow.Timeout = warmFollow.ReadWriteTimeout = 3000;
+                    using (WebResponse warmReply = warmFollow.GetResponse())
+                    using (StreamReader warmReader = new StreamReader(warmReply.GetResponseStream())) warmBody = warmReader.ReadToEnd();
+                }
+                catch (WebException) { }
+                finally { warmServer.Stop(); }
+                if (warmFirst == null || !warmFirst.StartsWith("HEAD / HTTP/1.1", StringComparison.Ordinal) || warmFirst.IndexOf("Authorization", StringComparison.OrdinalIgnoreCase) >= 0 || warmFirst.IndexOf("x-api-key", StringComparison.OrdinalIgnoreCase) >= 0
+                    || warmSecond == null || !warmSecond.StartsWith("GET /v1/models HTTP/1.1", StringComparison.Ordinal) || warmBody != "ok" || warmAccepts != 1)
+                    throw new Exception("Her brain warm-up didn't leave one open connection for the next ask: " + warmAccepts + " / " + warmFirst + " / " + warmSecond + " / " + warmBody);
+                checks.Add("PASS her brain warm-up: a bare HEAD with no key opens the connection and the next ask goes down the same one");
                 string timeLine = Brain.Now();
                 DateTime timeDate = DateTime.Now;
                 if (!timeLine.StartsWith("\nIf the time or date is needed, it's ", StringComparison.Ordinal) || !timeLine.Contains(timeDate.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture)) || !timeLine.Contains(timeDate.ToString("yyyy", System.Globalization.CultureInfo.InvariantCulture)) || System.Text.RegularExpressions.Regex.IsMatch(timeLine, @"\b(answer|tell|say)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new Exception("Her time line lost its condition or date, or gives an order to answer.");
@@ -38372,7 +38537,7 @@ namespace CapriDesktop
                     else
                     {
                         System.Reflection.MethodInfo think = typeof(Brain).GetMethod("Think", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                        string said = (string)think.Invoke(retrying, new object[] { "test", new System.Collections.Generic.List<ChatMessage> { new ChatMessage("system", new string('s', 9000)), new ChatMessage("user", "Hello") }, false, kept, null, 90, -1, true, null, null, false, false });
+                        string said = (string)think.Invoke(retrying, new object[] { "test", new System.Collections.Generic.List<ChatMessage> { new ChatMessage("system", new string('s', 9000)), new ChatMessage("user", "Hello") }, false, kept, null, 90, -1, true, null, null, false, false, false });
                         if (said != "" || kept.Count != 1 || kept[0].Key != "open_app" || kept[0].Value.Name != "Steam") throw new Exception("A failed Longer retry lost its whole call.");
                     }
                     if (Brain.OllamaGrown != 0 || retrying.Aside("Talk", "Hello", 90) != "Done." || retried.Count != 3 || Brain.Field(Brain.Field(SentBody(retried[0]), "options"), "num_ctx") != "4096" || Brain.Field(Brain.Field(SentBody(retried[1]), "options"), "num_ctx") != "8192" || Brain.Field(Brain.Field(SentBody(retried[2]), "options"), "num_ctx") != "4096") throw new Exception("An Ollama retry kept a failed memory growth.");
@@ -49735,7 +49900,8 @@ namespace CapriDesktop
                         if (step == 0)
                         {
                             if (ServicePointManager.DefaultConnectionLimit < 16) throw new Exception("Startup left fewer than 16 connections per host.");
-                            checks.Add("PASS startup allows at least 16 connections per host");
+                            if (ServicePointManager.UseNagleAlgorithm || ServicePointManager.Expect100Continue) throw new Exception("Startup left her requests waiting on Nagle or on 100-continue: Nagle " + ServicePointManager.UseNagleAlgorithm + ", 100-continue " + ServicePointManager.Expect100Continue);
+                            checks.Add("PASS startup allows at least 16 connections per host, and her requests go out without waiting on Nagle or a 100-continue");
                             if (OnGitHub) checks.Add("LIMIT Mainframe's Auto size: GitHub's virtual screen has no real panel to compare its desktop with, so Auto stays at 100% there");
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
@@ -52713,6 +52879,15 @@ namespace CapriDesktop
                             Stopwatch warming = Stopwatch.StartNew();
                             while ((!perchTalk.Ready(false) || !perch.Ready(true)) && warming.ElapsedMilliseconds < 8000) Thread.Sleep(20);
                             if (!perchTalk.Ready(false) || !perch.Ready(true)) throw new Exception("Her perch talking and flipped perch didn't load again off her thread.");
+                            long artWarm = Clip.Loaded();
+                            Clip.RestAll(Environment.TickCount + DockedArtRest + 1000, DockedArtRest);
+                            long artDocked = Clip.Loaded();
+                            bool dockedLetGo = !perch.Ready(false) && !idle.Ready(false);
+                            Clip.WarmAll();
+                            Stopwatch rewarming = Stopwatch.StartNew();
+                            while ((!perch.Ready(false) || !idle.Ready(false)) && rewarming.ElapsedMilliseconds < 8000) Thread.Sleep(20);
+                            if (!dockedLetGo || artDocked * 4 > artWarm || !perch.Ready(false) || !idle.Ready(false)) throw new Exception("Docked in a game, her art wasn't let go after " + DockedArtRest / 1000 + " s and back again: " + artWarm + " to " + artDocked + " bytes, perch and stand back " + perch.Ready(false) + " / " + idle.Ready(false));
+                            checks.Add("PASS docked in a game, all her art undrawn for " + DockedArtRest / 1000 + " s is let go (" + (artWarm - artDocked) / (1 << 20) + " MB here) and her undock warms it again off her thread in " + rewarming.ElapsedMilliseconds + " ms");
                             checks.Add("PASS her perch talks in her artist's talking frames (changed only around her mouth, facing either way), and art undrawn for " + Clip.RestAfter / 1000 + " s is let go (" + (artBefore - artRested) / (1 << 20) + " MB here) and loads again off her thread in " + warming.ElapsedMilliseconds + " ms");
                             using (Font display = Look.Mono(14, FontStyle.Bold))
                             using (Font slanted = Look.Mono(9f, FontStyle.Italic, GraphicsUnit.Point))
