@@ -151,6 +151,7 @@ namespace CapriDesktop
                 MacFiles.Checks(checks);
                 FileToolChecks();
                 X11Safety.Checks(checks);
+                SpeechAudio.Checks(checks);
                 MoveReports.Checks(checks);
                 NiriDesktop.Checks(checks);
                 MacQuit.Checks(checks);

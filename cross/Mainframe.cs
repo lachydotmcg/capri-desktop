@@ -798,7 +798,7 @@ namespace CapriDesktop
                 textConnect.Text = pet.MainframeBrainKey == null || !string.IsNullOrWhiteSpace(textKey.Box.Text) ? "Connect" : "Forget";
                 voiceKey.Cue = pet.MainframeVoiceKey == null ? "ElevenLabs key" : "Key saved, ends " + Voice.Tail(pet.MainframeVoiceKey);
                 voiceConnect.Text = pet.MainframeVoiceKey == null || !string.IsNullOrWhiteSpace(voiceKey.Box.Text) ? "Connect" : "Forget";
-                voiceNote.Text = pet.MainframeVoiceProblem ?? (pet.MainframeVoiceMode == 0 ? "Silent · text only" : pet.MainframeVoiceMode == 1 ? "Retained local voice · existing profile" : pet.MainframeVoiceMode == 2 ? "Local voice server" : pet.MainframeVoiceName ?? "Connect your ElevenLabs key.");
+                voiceNote.Text = pet.MainframeVoiceProblem ?? (pet.MainframeVoiceMode == 0 ? "Silent · text only" : pet.MainframeVoiceMode == 1 ? (pet.MainframeRetainedVoiceReady ? "Retained local voice · existing profile" : "Retained local voice isn't configured · text only") : pet.MainframeVoiceMode == 2 ? "Local voice server" : pet.MainframeVoiceName ?? "Connect your ElevenLabs key.");
                 if (nameListeningNote != null) nameListeningNote.Text = pet.NameListeningStatus;
                 customVoice.Text = string.IsNullOrEmpty(pet.MainframeLocalModel) ? "Voice server" : pet.MainframeLocalModel;
                 showHide.Text = pet.Away ? "Show Capri" : "Hide Capri";
