@@ -268,8 +268,10 @@ Hide / Show Capri	Peida / Näita Capri
 Hide / Show key	Peida / Näita klahv
 Hide Capri	Peida Capri
 Hide for now	Peida praegu
+Hide her	Peida ta
 Hide in full screen	Peida täisekraanil
 Hide this	Peida see
+Hide, keep player	Peida, jäta mängija
 Hide/show:	Peida/näita:
 Hide/show: Ctrl + Alt + H	Peida/näita: Ctrl + Alt + H
 Hologram	Hologramm
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORDIS >
 INSTALLED >	PAIGALDATUD >
 Import a Capri mod	Impordi Capri modifikatsioon
 Import mod	Impordi modifikatsioon
+In full screen	Täisekraanil
 In games	Mängudes
 Input	Sisend
 Input, Output or How to overlaps a row	Sisend, Väljund või Kuidas kattub reaga
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KLAHVID
 KEYS >	KLAHVID >
 Keep PC awake for jobs	Hoia arvuti tööde jaoks ärkvel
+Keep player	Jäta mängija
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Hoiab mängu viimased kaks minutit mälus. Ütle „salvesta see“, et need salvestada.
 Key	Võti
 Key cleared: a model file needs none.	Võti tühjendatud: mudelifail ei vaja ühtegi.
@@ -666,6 +670,7 @@ Speed	Kiirus
 Start with Windows	Käivita koos Windowsiga
 Start with this!	Alusta sellest!
 Starting...	Käivitan...
+Stay	Jää
 Stay on my model	Jää oma mudeli juurde
 Still checking your mics...	Kontrollin veel su mikrofone...
 Still checking your speakers...	Kontrollin veel su kõlareid...

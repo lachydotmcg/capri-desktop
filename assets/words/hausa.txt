@@ -268,8 +268,10 @@ Hide / Show Capri	Ɓoye / Nuna Capri
 Hide / Show key	Maɓallin ɓoye / nuna
 Hide Capri	Ɓoye Capri
 Hide for now	Ɓoye yanzu
+Hide her	Ɓoye ta
 Hide in full screen	Ɓoye a cikakken allo
 Hide this	Ɓoye wannan
+Hide, keep player	Ɓoye ta, bar na'urar kunna
 Hide/show:	Ɓoye/nuna:
 Hide/show: Ctrl + Alt + H	Ɓoye/nuna: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	A DISCORD >
 INSTALLED >	AN SHIGAR >
 Import a Capri mod	Shigo da mod na Capri
 Import mod	Shigo da mod
+In full screen	A cikakken allo
 In games	A wasanni
 Input	Shigarwa
 Input, Output or How to overlaps a row	Shigarwa, Fitarwa ko Yadda ake yi yana haɗuwa da layi
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	MAƁALLAI
 KEYS >	MAƁALLAI >
 Keep PC awake for jobs	Ka ajiye PC a farke don ayyuka
+Keep player	Bar na'urar kunna
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Yana riƙe mintuna biyu na ƙarshe na wasanka a ƙwaƙwalwa. Faɗi clip that don adana shi.
 Key	Maɓalli
 Key cleared: a model file needs none.	An share maɓalli: fayil ɗin samfuri ba ya buƙatar kowane.
@@ -666,6 +670,7 @@ Speed	Gudu
 Start with Windows	Fara da Windows
 Start with this!	Fara da wannan!
 Starting...	Ana farawa...
+Stay	Tsaya
 Stay on my model	Ci gaba da samfurina
 Still checking your mics...	Har yanzu ana duba makirofonin ka...
 Still checking your speakers...	Har yanzu ana duba lasifikan ka...

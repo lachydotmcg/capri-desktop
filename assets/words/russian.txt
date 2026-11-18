@@ -268,8 +268,10 @@ Hide / Show Capri	Скрыть / показать Capri
 Hide / Show key	Клавиша скрыть / показать
 Hide Capri	Скрыть Capri
 Hide for now	Пока скрыть
+Hide her	Скрыть её
 Hide in full screen	Скрыть в полноэкранном режиме
 Hide this	Скрыть это
+Hide, keep player	Скрыть, оставить плеер
 Hide/show:	Скрыть/показать:
 Hide/show: Ctrl + Alt + H	Скрыть/показать: Ctrl + Alt + H
 Hologram	Голограмма
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	УСТАНОВЛЕНО >
 Import a Capri mod	Импортировать мод Capri
 Import mod	Импортировать мод
+In full screen	В полноэкранном режиме
 In games	В играх
 Input	Ввод
 Input, Output or How to overlaps a row	Ввод, вывод или Как перекрывает строку
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	КЛАВИШИ
 KEYS >	КЛАВИШИ >
 Keep PC awake for jobs	Не давать ПК засыпать для задач
+Keep player	Оставить плеер
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Держит последние две минуты твоей игры в памяти. Скажи «clip that», чтобы сохранить.
 Key	Ключ
 Key cleared: a model file needs none.	Ключ очищен: файлу модели он не нужен.
@@ -666,6 +670,7 @@ Speed	Скорость
 Start with Windows	Запускать вместе с Windows
 Start with this!	Начни с этого!
 Starting...	Запускаю...
+Stay	Остаться
 Stay on my model	Оставить мою модель
 Still checking your mics...	Всё ещё проверяю твои микрофоны...
 Still checking your speakers...	Всё ещё проверяю твои динамики...

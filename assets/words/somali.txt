@@ -268,8 +268,10 @@ Hide / Show Capri	Qari / Muuji Capri
 Hide / Show key	Furaha qari / muuji
 Hide Capri	Qari Capri
 Hide for now	Hadda qari
+Hide her	Qari iyada
 Hide in full screen	Ka qari shaashadda buuxda
 Hide this	Tan qari
+Hide, keep player	Qari, ilaali ciyaariyaha
 Hide/show:	Qari/muuji:
 Hide/show: Ctrl + Alt + H	Qari/muuji: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-KA >
 INSTALLED >	LA RAKIBAY >
 Import a Capri mod	Soo deji modka Capri
 Import mod	Soo deji mod
+In full screen	Shaashadda buuxda
 In games	Ciyaaraha dhexdooda
 Input	Gelinta
 Input, Output or How to overlaps a row	Gelinta, Soo-saarka ama Sida waxay isku dhacaysaa safka
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	FURAHA
 KEYS >	FURAHA >
 Keep PC awake for jobs	PC-ga toos u ilaali shaqooyinka
+Keep player	Ilaali ciyaariyaha
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Wuxuu xasuusta ku hayaa laba daqiiqadii u dambeysay ee ciyaartaada. Dheh duub taas si aad u kaydiso.
 Key	Furaha
 Key cleared: a model file needs none.	Furaha waa la tirtiray: faylka model-ka uma baahna.
@@ -666,6 +670,7 @@ Speed	Xawaaraha
 Start with Windows	Ku bilow Windows
 Start with this!	Tan ku bilow!
 Starting...	Waa la bilaabayaa...
+Stay	Joog
 Stay on my model	Model-kayga ku sii jir
 Still checking your mics...	Makarafoonkaaga wali waa la hubinayaa...
 Still checking your speakers...	Hadal-hayaha wali waa la hubinayaa...

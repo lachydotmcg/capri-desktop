@@ -268,8 +268,10 @@ Hide / Show Capri	Թաքցնել / ցույց տալ Capri
 Hide / Show key	Թաքցնել / ցույց տալու բանալի
 Hide Capri	Թաքցնել Capri
 Hide for now	Առայժմ թաքցնել
+Hide her	Թաքցնել նրան
 Hide in full screen	Թաքցնել լիաէկրան ռեժիմում
 Hide this	Թաքցնել սա
+Hide, keep player	Թաքցնել, նվագարկիչը թողնել
 Hide/show:	Թաքցնել/ցույց տալ՝
 Hide/show: Ctrl + Alt + H	Թաքցնել/ցույց տալ՝ Ctrl + Alt + H
 Hologram	Հոլոգրամ
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-ՈՒՄ >
 INSTALLED >	ՏԵՂԱԴՐՎԱԾ >
 Import a Capri mod	Ներմուծել Capri մոդ
 Import mod	Ներմուծել մոդ
+In full screen	Լիաէկրան ռեժիմում
 In games	Խաղերում
 Input	Մուտք
 Input, Output or How to overlaps a row	Մուտք, Ելք կամ Ինչպես համընկնում է տողի հետ
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ԲԱՆԱԼԻՆԵՐ
 KEYS >	ԲԱՆԱԼԻՆԵՐ >
 Keep PC awake for jobs	Պահել PC-ն արթուն աշխատանքների համար
+Keep player	Թողնել նվագարկիչը
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Պահում է ձեր խաղի վերջին երկու րոպեն հիշողության մեջ։ Ասեք clip that՝ պահպանելու համար։
 Key	Բանալի
 Key cleared: a model file needs none.	Բանալին մաքրված է։ Մոդելի ֆայլին բանալի պետք չէ։
@@ -666,6 +670,7 @@ Speed	Արագություն
 Start with Windows	Մեկնարկել Windows-ի հետ
 Start with this!	Սկսեք սրանով։
 Starting...	Մեկնարկվում է...
+Stay	Մնալ
 Stay on my model	Մնալ իմ մոդելի վրա
 Still checking your mics...	Դեռ ստուգում եմ ձեր խոսափողները...
 Still checking your speakers...	Դեռ ստուգում եմ ձեր բարձրախոսները...

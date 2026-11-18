@@ -268,8 +268,10 @@ Hide / Show Capri	Ezkutatu / Erakutsi Capri
 Hide / Show key	Ezkutatu / Erakutsi gakoa
 Hide Capri	Ezkutatu Capri
 Hide for now	Ezkutatu oraingoz
+Hide her	Ezkutatu hura
 Hide in full screen	Ezkutatu pantaila osoan
 Hide this	Ezkutatu hau
+Hide, keep player	Ezkutatu, erreproduktorea utzi
 Hide/show:	Ezkutatu/erakutsi:
 Hide/show: Ctrl + Alt + H	Ezkutatu/erakutsi: Ctrl + Alt + H
 Hologram	Hologramak
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-EAN >
 INSTALLED >	INSTALATUTA >
 Import a Capri mod	Inportatu Capri modu bat
 Import mod	Inportatu modua
+In full screen	Pantaila osoan
 In games	Jokoetan
 Input	Sarrera
 Input, Output or How to overlaps a row	Sarrera, Irteera edo Nola errenkada batekin gainjartzen dira
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	GAKOAK
 KEYS >	GAKOAK >
 Keep PC awake for jobs	Mantendu PC esna lanetarako
+Keep player	Utzi erreproduktorea
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Zure jokoaren azken bi minutuak memorian gordetzen ditu. Esan klip hori gordetzeko.
 Key	Gakoa
 Key cleared: a model file needs none.	Gakoa garbitu da: modelo fitxategiak ez du behar.
@@ -666,6 +670,7 @@ Speed	Abiadura
 Start with Windows	Hasi Windows-ekin
 Start with this!	Hasi honekin!
 Starting...	Hasten...
+Stay	Geratu
 Stay on my model	Mantendu nire modeloa
 Still checking your mics...	Oraindik zure mikrofonoak aztertzen...
 Still checking your speakers...	Oraindik zure bozgorailuak aztertzen...

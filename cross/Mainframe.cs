@@ -405,7 +405,7 @@ namespace CapriDesktop
         private static bool HearsHere => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
         private static int[][] With(int[][] bands, int[] band) { var all = new int[bands.Length + 1][]; bands.CopyTo(all, 0); all[bands.Length] = band; return all; }
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 400, 428 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 316, 344 }, new[] { 400, 428 }, new[] { 978, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -590,9 +590,8 @@ namespace CapriDesktop
             Toggle("Head pats", 380, 222, () => pet.HeadPats, pet.SetHeadPats);
             Toggle("Legacy stand", 380, 250, () => pet.LegacyStand, pet.SetLegacyStand);
             Section("WATCH", 380, 292);
-            Toggle("Watch my screen", 380, 316, () => pet.Saved.Watch, on => pet.SetWatch(on));
             Toggle("Remember what she sees", 380, 344, () => !pet.Saved.NoCaughtUp, pet.SetCaughtUp).Switch = 68;
-            Slider("Every", Pet.GlanceGapNames, 380, 372, () => Nearest(Pet.GlanceGaps, pet.GlanceGap), i => pet.SetGlanceGap(Pet.GlanceGaps[i]));
+            Slider("Every", Pet.GlanceStepNames, 380, 372, () => pet.Saved.Watch ? 1 + Nearest(Pet.GlanceGaps, pet.GlanceGap) : 0, i => pet.SetWatchEvery(i == 0 ? 0 : Pet.GlanceGaps[i - 1]));
             Section("BRAIN", 380, 442);
             huskLabel = Caption("Code/Husk Mode", 408, 472, 146, 16);
             readers.Add(delegate { if (huskMode != null) huskMode.Options(HuskWatch.Choices(pet.HuskMode)); });
@@ -655,7 +654,6 @@ namespace CapriDesktop
             var security = Key("Security: " + Security.PresetName, 408, 935, 328, 22, OpenSecurity);
             var securityNote = Caption(Security.Short, 408, 959, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
             readers.Add(() => { security.Text = "Security: " + Security.PresetName; securityNote.Text = Security.Short; securityNote.InvalidateVisual(); });
-            Toggle("Keep PC awake for jobs", 380, 1028, () => pet.KeepAwake, pet.SetKeepAwake).Switch = 68;
             for (int i = 0; i < Care.Names.Length; i++)
             {
                 CareKind kind = (CareKind)i;

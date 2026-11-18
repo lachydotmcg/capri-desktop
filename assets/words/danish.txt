@@ -268,8 +268,10 @@ Hide / Show Capri	Skjul / vis Capri
 Hide / Show key	Skjul / vis-tast
 Hide Capri	Skjul Capri
 Hide for now	Skjul foreløbig
+Hide her	Skjul hende
 Hide in full screen	Skjul i fuld skærm
 Hide this	Skjul dette
+Hide, keep player	Skjul, behold afspiller
 Hide/show:	Skjul/vis:
 Hide/show: Ctrl + Alt + H	Skjul/vis: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	I DISCORD >
 INSTALLED >	INSTALLERET >
 Import a Capri mod	Importer en Capri-mod
 Import mod	Importer mod
+In full screen	I fuld skærm
 In games	I spil
 Input	Input
 Input, Output or How to overlaps a row	Input, Output eller Sådan overlapper en række
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TASTER
 KEYS >	TASTER >
 Keep PC awake for jobs	Hold pc'en vågen til jobs
+Keep player	Behold afspiller
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Gemmer de sidste to minutter af dit spil i hukommelsen. Sig clip that for at gemme det.
 Key	Tast
 Key cleared: a model file needs none.	Nøgle ryddet: en modelfil behøver ingen.
@@ -666,6 +670,7 @@ Speed	Hastighed
 Start with Windows	Start med Windows
 Start with this!	Start med det her!
 Starting...	Starter...
+Stay	Bliv
 Stay on my model	Bliv ved min model
 Still checking your mics...	Tjekker stadig dine mikrofoner...
 Still checking your speakers...	Tjekker stadig dine højttalere...

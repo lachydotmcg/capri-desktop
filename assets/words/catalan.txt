@@ -268,8 +268,10 @@ Hide / Show Capri	Amaga / Mostra Capri
 Hide / Show key	Tecla amaga / mostra
 Hide Capri	Amaga Capri
 Hide for now	Amaga de moment
+Hide her	Amaga-la
 Hide in full screen	Amaga en pantalla completa
 Hide this	Amaga-ho
+Hide, keep player	Amaga-la, deixa el reproductor
 Hide/show:	Amaga/mostra:
 Hide/show: Ctrl + Alt + H	Amaga/mostra: Ctrl + Alt + H
 Hologram	Holograma
@@ -296,6 +298,7 @@ IN DISCORD >	A DISCORD >
 INSTALLED >	INSTAL·LAT >
 Import a Capri mod	Importa un mod de Capri
 Import mod	Importa un mod
+In full screen	En pantalla completa
 In games	En jocs
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Sortida o Com se sobreposa a una fila
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TECLES
 KEYS >	TECLES >
 Keep PC awake for jobs	Manté el PC despert per a les feines
+Keep player	Deixa el reproductor
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Guarda els últims dos minuts del teu joc a la memòria. Digues grava això per desar-los.
 Key	Tecla
 Key cleared: a model file needs none.	Tecla esborrada: un fitxer de model no en necessita cap.
@@ -666,6 +670,7 @@ Speed	Velocitat
 Start with Windows	Inicia amb Windows
 Start with this!	Comença amb això!
 Starting...	Iniciant...
+Stay	Queda't
 Stay on my model	Queda't amb el meu model
 Still checking your mics...	Encara comprovant els micros...
 Still checking your speakers...	Encara comprovant els altaveus...

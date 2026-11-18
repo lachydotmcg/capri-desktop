@@ -268,8 +268,10 @@ Hide / Show Capri	Capri-ni gizlət / göstər
 Hide / Show key	Gizlət / göstər düyməsi
 Hide Capri	Capri-ni gizlət
 Hide for now	Hələlik gizlət
+Hide her	Onu gizlət
 Hide in full screen	Tam ekranda gizlət
 Hide this	Bunu gizlət
+Hide, keep player	Gizlət, pleyeri saxla
 Hide/show:	Gizlət/göstər:
 Hide/show: Ctrl + Alt + H	Gizlət/göstər: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-DA >
 INSTALLED >	QURAŞDIRILIB >
 Import a Capri mod	Capri modu idxal et
 Import mod	Modu idxal et
+In full screen	Tam ekranda
 In games	Oyunlarda
 Input	Giriş
 Input, Output or How to overlaps a row	Giriş, Çıxış və ya Necə sırası ilə üst-üstə düşür
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	AÇARLAR
 KEYS >	AÇARLAR >
 Keep PC awake for jobs	İşlər üçün kompüteri oyaq saxla
+Keep player	Pleyeri saxla
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Oyununun son iki dəqiqəsini yaddaşda saxlayır. Saxlamaq üçün "bunu klipə al" de.
 Key	Açar
 Key cleared: a model file needs none.	Açar təmizləndi: model faylına açar lazım deyil.
@@ -666,6 +670,7 @@ Speed	Sürət
 Start with Windows	Windows ilə başla
 Start with this!	Bunla başla!
 Starting...	Başlayır...
+Stay	Qal
 Stay on my model	Modelimdə qal
 Still checking your mics...	Hələ mikrofonlarını yoxlayıram...
 Still checking your speakers...	Hələ dinamiklərini yoxlayıram...

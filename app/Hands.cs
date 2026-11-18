@@ -1065,7 +1065,7 @@ namespace CapriDesktop
             { "watch_my_screen", "Watch my screen", "Watch" }, { "game_comments", "Game comments", "Games" },
             { "dance_to_music", "Dance to music", "Moves" }, { "head_pats", "Head pats", "Capri" }, { "chaos_when_upset", "Chaos when upset", "Capri" }, { "legacy_stand", "Legacy stand", "Capri" }, { "sit_on_windows", "Sit on windows", "Moves" }, { "always_on_top", "Always on top", "Capri" },
             { "mini_player", "Mini player", "Moves" }, { "typing_sound", "Typing sound", "Voice" }, { "follow_ups", "Follow-up messages", "Brain" }, { "hide_in_full_screen", "Hide in full screen", "Habits" }, { "glitch_in", "Glitch in at startup", "Moves" },
-            { "keep_awake", "Keep PC awake for jobs", "Habits" }, { "player_full_screen", "Mini player over full screen", "Habits" }, { "explore_away", "Explore while away", "Habits" },
+            { "player_full_screen", "Mini player over full screen", "Habits" }, { "explore_away", "Explore while away", "Habits" },
             { "care_water", "Water check-in", "Capri" }, { "care_stretch", "Stretch check-in", "Capri" }, { "care_eyes", "Look away check-in", "Capri" }, { "care_late_night", "Sleep nudge", "Capri" },
             { "care_meals", "Meals check-in", "Capri" }, { "care_long_game", "Game break check-in", "Capri" }, { "care_boredom", "Bored check-in", "Capri" },
             { "fast_hands", "Fast hands in games", "Games" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
@@ -1088,7 +1088,8 @@ namespace CapriDesktop
             { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
             { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }, { "music_app", "Music app", "Habits" },
-            { "pat_stroke", "Pat stroke", "Capri" }, { "chime_volume", "Chime volume", "Sounds" }, { "chime_set", "Chime sound set", "Sounds" }
+            { "pat_stroke", "Pat stroke", "Capri" }, { "chime_volume", "Chime volume", "Sounds" }, { "chime_set", "Chime sound set", "Sounds" },
+            { "in_full_screen", "In full screen", "Habits" }
         };
         internal static readonly string[][] OwnSteps =
         {
@@ -1097,8 +1098,8 @@ namespace CapriDesktop
             new[] { "Never", "1 min", "2 min", "5 min", "10 min", "30 min" },
             new[] { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
             new[] { "0.7x", "0.8x", "0.9x", "Normal", "1.1x", "1.2x", "1.3x", "1.4x", "1.5x" }, new[] { "Short", "Medium", "Long" }, new[] { "Quick", "Normal", "Long" },
-            new[] { "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" },
-            new[] { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" }, new[] { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" },
+            new[] { "Off", "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" },
+            new[] { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" }, new[] { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" },
             CareSteps(), CareSteps(), CareSteps(), new[] { "9 pm", "10 pm", "11 pm", "12 am", "1 am", "2 am", "3 am", "4 am", "5 am" },
             new[] { "3 h", "4 h", "5 h", "6 h", "8 h" }, CareSteps(), CareSteps(),
             new[] { "-6", "-5", "-4", "-3", "-2", "-1", "Normal", "+1", "+2", "+3", "+4", "+5", "+6" }, AmountSteps(), AmountSteps(),
@@ -1112,7 +1113,8 @@ namespace CapriDesktop
             new[] { "Off", "Events only", "Chatty" }, new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" },
             new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" },
             new[] { "Off", "In games", "Always" }, MusicSteps(), new[] { "Short", "Medium", "Long" },
-            new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }, new[] { "Glass", "Shard", "Burst", "Crush", "Pulse", "Air" }
+            new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }, new[] { "Glass", "Shard", "Burst", "Crush", "Pulse", "Air" },
+            new[] { "Stay", "Keep player", "Hide her", "Hide, keep player" }
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -1122,7 +1124,7 @@ namespace CapriDesktop
 #else
             { "sounds", new[] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 } },
 #endif
-            { "explore_after", new[] { 60, 120, 300, 600, 900, 1800 } }, { "glance_gap", new[] { 10, 15, 30, 60, 90, 120, 180, 300, 600 } }, { "watch_memory", new[] { 8, 16, 24, 48, 96 } },
+            { "explore_after", new[] { 0, 60, 120, 300, 600, 900, 1800 } }, { "glance_gap", new[] { 0, 10, 15, 30, 60, 90, 120, 180, 300, 600 } }, { "watch_memory", new[] { 8, 16, 24, 48, 96 } },
             { "care_water", CareValues() }, { "care_stretch", CareValues() }, { "care_eyes", CareValues() }, { "care_late_night", new[] { 21, 22, 23, 0, 1, 2, 3, 4, 5 } },
             { "care_meals", new[] { 180, 240, 300, 360, 480 } }, { "care_long_game", CareValues() }, { "care_boredom", CareValues() },
             { "voice_pitch", new[] { -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6 } }, { "voice_robot", AmountValues() }, { "voice_glitch", AmountValues() },
@@ -1191,7 +1193,7 @@ namespace CapriDesktop
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
             { "game_comments", "game comments run on their own; Off stops them, in Gaming Mode too" },
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
-            { "keep_awake", "their PC stays awake for your jobs and watches" }, { "explore_away", "you explore while they're away" },
+            { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
             { "listen_for_capri", "voice chat that starts when they say your name, apart from Hey Capri" },
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
@@ -1199,7 +1201,7 @@ namespace CapriDesktop
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
             { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are" }, { "bubble", "how long your replies stay up" },
             { "reply_limit", "the longest a reply can be" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
-            { "explore_after", "how long they're away before you explore" },
+            { "explore_after", "how long they're away before you explore; Off means you don't" }, { "in_full_screen", "what you do over a full-screen game or video: Stay, Keep player, Hide her or Hide, keep player, where keeping the player leaves your mini player up over borderless full screen" },
             { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace" },
             { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" },
             { "chimes", "your soft chimes when their typed message is sent, when you've heard them and when you're listening after Hey Capri; on by default" },
@@ -1272,7 +1274,7 @@ namespace CapriDesktop
             if (name == "mini_player") return true;
             if (name == "hologram") return OnMac;
 #endif
-            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "music_app", "preview_voice", "edit_check_in_lines" }, name) >= 0;
+            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "music_app", "preview_voice", "edit_check_in_lines" }, name) >= 0;
         }
 
         private static bool HasSetting(Kit kit, string name) { return kit == null || kit.Has("capri_settings:" + name); }
@@ -7262,7 +7264,7 @@ namespace CapriDesktop
             if (name == "volume" && Regex.IsMatch(plain, @"^(?:off|muted|0%?)$")) return 0;
             if (name == "sleep" && Regex.IsMatch(plain, @"^(?:off|no|none|0)$")) return 0;
             if (name == "sleep" && Regex.IsMatch(plain, @"^half(?:an)?-?hour$")) return 5;
-            if (name == "wander" && Regex.IsMatch(plain, @"^(?:no|none|never)$")) return 0;
+            if ((name == "wander" || name == "explore_after" || name == "glance_gap") && Regex.IsMatch(plain, @"^(?:no|none|never)$")) return 0;
             if (name == "game_comments" && plain == "events") return 1;
             if (name == "care_late_night" && plain == "midnight") return 3;
             if ((name == "voice_pitch" || name.EndsWith("_pitch", StringComparison.Ordinal)) && (plain == "normal" || plain == "same")) return name == "voice_pitch" ? 6 : Array.IndexOf(steps, "Same");

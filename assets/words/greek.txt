@@ -268,8 +268,10 @@ Hide / Show Capri	Απόκρυψη / Εμφάνιση Capri
 Hide / Show key	Πλήκτρο απόκρυψης / εμφάνισης
 Hide Capri	Απόκρυψη Capri
 Hide for now	Κρύψε για τώρα
+Hide her	Κρύψ' την
 Hide in full screen	Κρύψε σε πλήρη οθόνη
 Hide this	Κρύψε αυτό
+Hide, keep player	Κρύψ' την, κράτα το player
 Hide/show:	Απόκρυψη/εμφάνιση:
 Hide/show: Ctrl + Alt + H	Απόκρυψη/εμφάνιση: Ctrl + Alt + H
 Hologram	Ολόγραμμα
@@ -296,6 +298,7 @@ IN DISCORD >	ΣΤΟ DISCORD >
 INSTALLED >	ΕΓΚΑΤΕΣΤΗΜΕΝΑ >
 Import a Capri mod	Εισαγωγή mod Capri
 Import mod	Εισαγωγή mod
+In full screen	Σε πλήρη οθόνη
 In games	Στα παιχνίδια
 Input	Είσοδος
 Input, Output or How to overlaps a row	Είσοδος, Έξοδος ή Πώς επικαλύπτει μια γραμμή
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ΠΛΗΚΤΡΑ
 KEYS >	ΠΛΗΚΤΡΑ >
 Keep PC awake for jobs	Κράτα τον υπολογιστή ξύπνιο για δουλειές
+Keep player	Κράτα το player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Κρατάει τα τελευταία δύο λεπτά του παιχνιδιού σου στη μνήμη. Πες clip that για να τα αποθηκεύσεις.
 Key	Κλειδί
 Key cleared: a model file needs none.	Το κλειδί καθαρίστηκε: ένα αρχείο μοντέλου δεν χρειάζεται.
@@ -666,6 +670,7 @@ Speed	Ταχύτητα
 Start with Windows	Εκκίνηση με τα Windows
 Start with this!	Ξεκίνα με αυτό!
 Starting...	Εκκίνηση...
+Stay	Μείνε
 Stay on my model	Μείνε στο μοντέλο μου
 Still checking your mics...	Ακόμα ελέγχω τα μικρόφωνά σου...
 Still checking your speakers...	Ακόμα ελέγχω τα ηχεία σου...

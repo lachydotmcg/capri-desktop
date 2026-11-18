@@ -268,8 +268,10 @@ Hide / Show Capri	Capri लपवा / दाखवा
 Hide / Show key	लपवा / दाखवा की
 Hide Capri	Capri लपवा
 Hide for now	आत्तापुरते लपवा
+Hide her	तिला लपवा
 Hide in full screen	फुल स्क्रीनमध्ये लपवा
 Hide this	हे लपवा
+Hide, keep player	लपवा, प्लेयर ठेवा
 Hide/show:	लपवा/दाखवा:
 Hide/show: Ctrl + Alt + H	लपवा/दाखवा: Ctrl + Alt + H
 Hologram	होलोग्राम
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD मध्ये >
 INSTALLED >	इन्स्टॉल झालेले >
 Import a Capri mod	Capri मॉड इम्पोर्ट करा
 Import mod	मॉड इम्पोर्ट करा
+In full screen	फुल स्क्रीनमध्ये
 In games	गेममध्ये
 Input	इनपुट
 Input, Output or How to overlaps a row	इनपुट, आउटपुट किंवा How to एका ओळीवर आहे
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	कीज
 KEYS >	कीज >
 Keep PC awake for jobs	कामांसाठी PC जागा ठेवा
+Keep player	प्लेयर ठेवा
 Keeps the last two minutes of your game in memory. Say clip that to save it.	तुमच्या गेमचे शेवटचे दोन मिनिटे मेमरीत ठेवते. ते जतन करण्यासाठी clip that म्हणा.
 Key	की
 Key cleared: a model file needs none.	की साफ: मॉडेल फाइलला तिची गरज नाही.
@@ -666,6 +670,7 @@ Speed	वेग
 Start with Windows	Windows सोबत सुरू करा
 Start with this!	याने सुरू करा!
 Starting...	सुरू होत आहे...
+Stay	राहा
 Stay on my model	माझ्या मॉडेलवर राहा
 Still checking your mics...	अजूनही तुमचे मायक्रोफोन तपासत आहे...
 Still checking your speakers...	अजूनही तुमचे स्पीकर तपासत आहे...

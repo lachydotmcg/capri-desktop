@@ -268,8 +268,10 @@ Hide / Show Capri	Dölj / visa Capri
 Hide / Show key	Dölj / visa-tangent
 Hide Capri	Dölj Capri
 Hide for now	Dölj tills vidare
+Hide her	Dölj henne
 Hide in full screen	Dölj i helskärm
 Hide this	Dölj detta
+Hide, keep player	Dölj, behåll spelaren
 Hide/show:	Dölj/visa:
 Hide/show: Ctrl + Alt + H	Dölj/visa: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	I DISCORD >
 INSTALLED >	INSTALLERAT >
 Import a Capri mod	Importera en Capri-mod
 Import mod	Importera mod
+In full screen	I helskärm
 In games	I spel
 Input	Indata
 Input, Output or How to overlaps a row	Indata, utdata eller Hur man överlappar en rad
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	NYCKLAR
 KEYS >	NYCKLAR >
 Keep PC awake for jobs	Håll datorn vaken för uppdrag
+Keep player	Behåll spelaren
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Behåller de senaste två minuterna av ditt spel i minnet. Säg klipp det för att spara det.
 Key	Nyckel
 Key cleared: a model file needs none.	Nyckel rensad: en modellfil behöver ingen.
@@ -666,6 +670,7 @@ Speed	Hastighet
 Start with Windows	Starta med Windows
 Start with this!	Börja med det här!
 Starting...	Startar...
+Stay	Stanna
 Stay on my model	Behåll min modell
 Still checking your mics...	Kontrollerar fortfarande dina mikrofoner...
 Still checking your speakers...	Kontrollerar fortfarande dina högtalare...

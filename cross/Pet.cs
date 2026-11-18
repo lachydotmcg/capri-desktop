@@ -718,6 +718,7 @@ namespace CapriDesktop
         // something's worth a line. Glance every sets how often; Keep her caught up keeps the glances she stays quiet about.
         internal static readonly int[] GlanceGaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         internal static readonly string[] GlanceGapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
+        internal static readonly string[] GlanceStepNames = { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private readonly List<MenuItem> gapPicks = new List<MenuItem>();
         private MenuItem watchItem;
         private MenuItem caughtUpItem;
@@ -3363,7 +3364,6 @@ namespace CapriDesktop
                 case "head_pats": return HeadPats;
                 case "legacy_stand": return LegacyStand;
                 case "follow_ups": return FollowUps;
-                case "keep_awake": return KeepAwake;
                 case "voice": return Speaks;
                 case "quiet": return Shushed;
                 case "check_ins": return CheckIns;
@@ -3395,7 +3395,6 @@ namespace CapriDesktop
                 case "head_pats": SetHeadPats(on); break;
                 case "legacy_stand": SetLegacyStand(on); break;
                 case "follow_ups": SetFollowUps(on); break;
-                case "keep_awake": SetKeepAwake(on); break;
                 case "voice": SetSpeak(on); break;
                 case "quiet": ToggleShush(false); break;
                 case "check_ins": SetCheckIns(on); break;
@@ -3443,7 +3442,7 @@ namespace CapriDesktop
                 case "mainframe_size": return Array.IndexOf(new[] { 0, 100, 125, 150, 175, 200 }, FrameSize(Saved.MainframeSize));
                 case "mainframe_colours": return MainframeTheme.ClampLook(Saved.MainframeColours);
                 case "bubble": return BubbleTime;
-                case "glance_gap": return Math.Max(0, Array.IndexOf(GlanceGaps, GlanceGap));
+                case "glance_gap": return !Saved.Watch ? 0 : 1 + Math.Max(0, Array.IndexOf(GlanceGaps, GlanceGap));
                 case "voice_pitch": return VoiceFx.Pitch + VoiceFx.MostPitch;
                 case "voice_robot": return Nearest(Amounts, VoiceFx.Robot);
                 case "voice_glitch": return Nearest(Amounts, VoiceFx.Glitch);
@@ -3492,7 +3491,7 @@ namespace CapriDesktop
                 case "mainframe_size": SetMainframeSize(new[] { 0, 100, 125, 150, 175, 200 }[step]); break;
                 case "mainframe_colours": SetMainframeColours(step); break;
                 case "bubble": SetBubbleTime(step); break;
-                case "glance_gap": SetGlanceGap(GlanceGaps[step]); break;
+                case "glance_gap": SetWatchEvery(step == 0 ? 0 : GlanceGaps[step - 1]); break;
                 case "voice_pitch": SetPitch(step - VoiceFx.MostPitch); break;
                 case "voice_robot": SetRobot(Amounts[step]); break;
                 case "voice_glitch": SetGlitch(Amounts[step]); break;
@@ -4644,6 +4643,17 @@ namespace CapriDesktop
             if (Saved.Watch) nextGlance = Now + Math.Min(20, seconds);
             Save();
             Sync();
+        }
+
+        internal void SetWatchEvery(int seconds)
+        {
+            if (seconds <= 0) { if (Saved.Watch) SetWatch(false); return; }
+            if (Saved.Watch) SetGlanceGap(seconds);
+            else
+            {
+                Saved.GlanceGap = seconds;
+                SetWatch(true);
+            }
         }
 
         internal void SetCaughtUp(bool on)

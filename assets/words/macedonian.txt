@@ -268,8 +268,10 @@ Hide / Show Capri	Скриј / Прикажи Capri
 Hide / Show key	Клуч за скриј / прикажи
 Hide Capri	Скриј Capri
 Hide for now	Скриј за сега
+Hide her	Скриј ја
 Hide in full screen	Скриј во цел екран
 Hide this	Скриј го ова
+Hide, keep player	Скриј, задржи го плеерот
 Hide/show:	Скриј/прикажи:
 Hide/show: Ctrl + Alt + H	Скриј/прикажи: Ctrl + Alt + H
 Hologram	Холограм
@@ -296,6 +298,7 @@ IN DISCORD >	ВО DISCORD >
 INSTALLED >	ИНСТАЛИРАНО >
 Import a Capri mod	Увези Capri мод
 Import mod	Увези мод
+In full screen	На цел екран
 In games	Во игри
 Input	Влез
 Input, Output or How to overlaps a row	Влез, излез или Како се преклопува редот
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	КЛУЧЕВИ
 KEYS >	КЛУЧЕВИ >
 Keep PC awake for jobs	Држи го PC будно за задачи
+Keep player	Задржи го плеерот
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Ги чува последните две минути од твојата игра во меморија. Кажи clip that за да ги зачуваш.
 Key	Клуч
 Key cleared: a model file needs none.	Клучот е исчистен: модел-датотеката не треба ниеден.
@@ -666,6 +670,7 @@ Speed	Брзина
 Start with Windows	Стартувај со Windows
 Start with this!	Почни со ова!
 Starting...	Се стартува...
+Stay	Остани
 Stay on my model	Остани на мојот модел
 Still checking your mics...	Уште ги проверувам твоите микрофони...
 Still checking your speakers...	Уште ги проверувам твоите звучници...

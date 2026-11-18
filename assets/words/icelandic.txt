@@ -268,8 +268,10 @@ Hide / Show Capri	Fela / Sýna Capri
 Hide / Show key	Fela / Sýna lykill
 Hide Capri	Fela Capri
 Hide for now	Fela í bili
+Hide her	Fela hana
 Hide in full screen	Fela í öllum skjánum
 Hide this	Fela þetta
+Hide, keep player	Fela, halda spilaranum
 Hide/show:	Fela/sýna:
 Hide/show: Ctrl + Alt + H	Fela/sýna: Ctrl + Alt + H
 Hologram	Hólógram
@@ -296,6 +298,7 @@ IN DISCORD >	Í DISCORD >
 INSTALLED >	UPPSETT >
 Import a Capri mod	Flytja inn Capri mod
 Import mod	Flytja inn mod
+In full screen	Í öllum skjánum
 In games	Í leikjum
 Input	Inntak
 Input, Output or How to overlaps a row	Inntak, Úttak eða Hvernig skarast við röð
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	LYKLAR
 KEYS >	LYKLAR >
 Keep PC awake for jobs	Halda tölvunni vakandi fyrir verkefni
+Keep player	Halda spilaranum
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Geymir síðustu tvær mínútur leiksins þíns í minni. Segðu clip that til að vista það.
 Key	Lykill
 Key cleared: a model file needs none.	Lykill hreinsaður: líkanaskrá þarf engan.
@@ -666,6 +670,7 @@ Speed	Hraði
 Start with Windows	Ræsa með Windows
 Start with this!	Byrjaðu á þessu!
 Starting...	Ræsi...
+Stay	Vera kyrr
 Stay on my model	Vertu á líkaninu mínu
 Still checking your mics...	Athuga hljóðnemana þína enn...
 Still checking your speakers...	Athuga hátalarana þína enn...

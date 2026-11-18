@@ -9791,7 +9791,7 @@ namespace CapriDesktop
             ApplyHidden(value || fullScreenHidden);
         }
 
-        internal bool KeepAwake { get { return !preferences.NoKeepAwake; } }
+        internal bool KeepAwake { get { return true; } }
         internal bool HideFullScreen { get { return preferences.HideFullScreen; } }
         internal bool PlayerFullScreen { get { return preferences.PlayerFullScreen; } }
         internal bool ExploreAway { get { return preferences.ExploreAway; } }
@@ -9817,18 +9817,10 @@ namespace CapriDesktop
         }
         internal int ExploreAfter { get { return preferences.ExploreAfter > 0 ? preferences.ExploreAfter : 300; } }
 
-        internal void ToggleKeepAwake()
-        {
-            preferences.NoKeepAwake = !preferences.NoKeepAwake;
-            CheckKeepAwake();
-            SavePreferences();
-            mainframe.Sync();
-        }
-
         private void CheckKeepAwake()
         {
             if (testing && keepAwakeTest == null) return;
-            bool wanted = KeepAwake && !quitting && (job != null || working != null || lookout.Count > 0);
+            bool wanted = !quitting && (job != null || working != null || lookout.Count > 0);
             if (wanted == keepAwakeWanted) return;
             keepAwakeWanted = wanted;
             uint state = Native.ES_CONTINUOUS | (wanted ? Native.ES_SYSTEM_REQUIRED | Native.ES_DISPLAY_REQUIRED : 0);
@@ -9864,6 +9856,29 @@ namespace CapriDesktop
         {
             preferences.ExploreAfter = seconds > 0 ? seconds : 300;
             StopExplore();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void SetExploreStep(int seconds)
+        {
+            if (seconds > 0) preferences.ExploreAfter = seconds;
+            preferences.ExploreAway = seconds > 0;
+            StopExplore();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal int FullScreenLevel { get { return (preferences.HideFullScreen ? 2 : 0) + (preferences.PlayerFullScreen ? 1 : 0); } }
+
+        internal void SetFullScreenLevel(int level)
+        {
+            level = Math.Max(0, Math.Min(3, level));
+            preferences.HideFullScreen = level >= 2;
+            preferences.PlayerFullScreen = level % 2 == 1;
+            CheckFullScreen(FullScreen());
+            tuneAt = -10;
+            if (!testing) CheckPlayer(clock.Elapsed.TotalSeconds);
             SavePreferences();
             mainframe.Sync();
         }
@@ -10167,6 +10182,21 @@ namespace CapriDesktop
             if (preferences.Watch) nextGlance = clock.Elapsed.TotalSeconds + Math.Min(20, seconds);
             SavePreferences();
             mainframe.Sync();
+        }
+
+        internal void SetWatchEvery(int seconds)
+        {
+            if (seconds <= 0)
+            {
+                if (preferences.Watch) ToggleWatch();
+                return;
+            }
+            if (preferences.Watch) SetGlanceGap(seconds);
+            else
+            {
+                preferences.GlanceGap = seconds;
+                ToggleWatch();
+            }
         }
 
         internal void ToggleWatch()
@@ -11536,7 +11566,6 @@ namespace CapriDesktop
                 case "follow_ups": return FollowUps;
                 case "hide_in_full_screen": return HideFullScreen;
                 case "glitch_in": return Intro;
-                case "keep_awake": return KeepAwake;
                 case "player_full_screen": return PlayerFullScreen;
                 case "explore_away": return ExploreAway;
                 case "fast_hands": return FastHandsOn;
@@ -11588,7 +11617,6 @@ namespace CapriDesktop
                 case "follow_ups": ToggleFollowUps(); return null;
                 case "hide_in_full_screen": ToggleHideFullScreen(); return null;
                 case "glitch_in": ToggleIntro(); return null;
-                case "keep_awake": ToggleKeepAwake(); return null;
                 case "player_full_screen": TogglePlayerFullScreen(); return null;
                 case "explore_away": ToggleExploreAway(); return null;
                 case "fast_hands": ToggleFastHands(); return null;
@@ -11634,8 +11662,9 @@ namespace CapriDesktop
                 case "replies": return Wordiness;
                 case "bubble": return BubbleTime;
                 case "pat_stroke": return PatStroke;
-                case "explore_after": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), ExploreAfter));
-                case "glance_gap": { int at = Array.IndexOf(Hands.ValuesFor(name), GlanceGap); return at < 0 ? 5 : at; }
+                case "explore_after": return !ExploreAway ? 0 : Math.Max(1, Array.IndexOf(Hands.ValuesFor(name), ExploreAfter));
+                case "glance_gap": { if (!preferences.Watch) return 0; int at = Array.IndexOf(Hands.ValuesFor(name), GlanceGap); return at < 1 ? 6 : at; }
+                case "in_full_screen": return FullScreenLevel;
                 case "watch_memory": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), WatchMemoryLines));
                 case "voice_pitch": return VoicePitch + VoiceFx.MostPitch;
                 case "voice_robot": return Nearest(Hands.ValuesFor(name), VoiceRobot);
@@ -11690,8 +11719,9 @@ namespace CapriDesktop
                 case "replies": SetWordiness(step); break;
                 case "bubble": SetBubbleTime(step); break;
                 case "pat_stroke": SetPatStroke(step); break;
-                case "explore_after": SetExploreAfter(Hands.ValuesFor(name)[step]); break;
-                case "glance_gap": SetGlanceGap(Hands.ValuesFor(name)[step]); break;
+                case "explore_after": SetExploreStep(Hands.ValuesFor(name)[step]); break;
+                case "glance_gap": SetWatchEvery(Hands.ValuesFor(name)[step]); break;
+                case "in_full_screen": SetFullScreenLevel(step); break;
                 case "watch_memory": SetWatchMemory(Hands.ValuesFor(name)[step]); break;
                 case "voice_pitch": SetVoicePitch(Hands.ValuesFor(name)[step]); break;
                 case "voice_robot": SetVoiceRobot(Hands.ValuesFor(name)[step]); break;
@@ -17061,28 +17091,18 @@ namespace CapriDesktop
         private void KeepAwakeChecks(System.Collections.Generic.List<string> checks)
         {
             DataContractJsonSerializer awakeSerializer = new DataContractJsonSerializer(typeof(Preferences));
-            Preferences awakeBlank = new Preferences(), awakeOld;
-            using (MemoryStream awakeMissing = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}"))) awakeOld = (Preferences)awakeSerializer.ReadObject(awakeMissing);
-            if (awakeBlank.NoKeepAwake || Preferences.Fresh().NoKeepAwake || awakeOld.NoKeepAwake) throw new Exception("Keeping the PC awake did not default on in new and older settings.");
-            foreach (bool awakeOff in new[] { true, false })
-            {
-                awakeBlank.NoKeepAwake = awakeOff;
-                using (MemoryStream awakeSaved = new MemoryStream())
-                {
-                    awakeSerializer.WriteObject(awakeSaved, awakeBlank);
-                    awakeSaved.Position = 0;
-                    if (((Preferences)awakeSerializer.ReadObject(awakeSaved)).NoKeepAwake != awakeOff) throw new Exception("Keep PC awake for jobs did not save and load.");
-                }
-            }
-            checks.Add("PASS Keep PC awake for jobs defaults on in new and older settings and saves and loads both choices");
+            Preferences awakeOld;
+            using (MemoryStream awakeMissing = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"NoKeepAwake\":true,\"Size\":240}"))) awakeOld = (Preferences)awakeSerializer.ReadObject(awakeMissing);
+            if (!awakeOld.NoKeepAwake || !KeepAwake) throw new Exception("An older settings file that turned keeping the PC awake off did not still load, or it stopped her keeping the PC awake.");
+            checks.Add("PASS Keep PC awake for jobs has no switch: an older settings file that turned it off still loads and she keeps the PC awake for jobs anyway");
 
             bool awakeLabel = false;
             foreach (SelfKnow.Topic awakeTopic in SelfKnow.Topics)
-                if (awakeTopic.Label == "Keep PC awake for jobs" && awakeTopic.File == "Mainframe.cs") awakeLabel = true;
+                if (awakeTopic.Name == "Keep PC awake for jobs" && awakeTopic.Label == null) awakeLabel = true;
             string awakeHelp = SelfKnow.Matching("Explain the Keep PC awake for jobs setting") ?? "";
-            if (!awakeLabel || !awakeHelp.Contains("both the PC and screen") || !awakeHelp.Contains("closed laptop lid still sleeps")
-                || !awakeHelp.Contains("never wakes a sleeping screen") || !awakeHelp.Contains("half an hour")) throw new Exception("She did not know what Keep PC awake for jobs does.");
-            checks.Add("PASS Keep PC awake for jobs has its exact label in self knowledge and explains both PC and screen, the laptop lid and separate away exploring");
+            if (!awakeLabel || !awakeHelp.Contains("both the PC and screen") || !awakeHelp.Contains("no setting for it") || !awakeHelp.Contains("closed laptop lid still sleeps")
+                || !awakeHelp.Contains("never wakes a sleeping screen") || !awakeHelp.Contains("half an hour")) throw new Exception("She did not know what keeping the PC awake for jobs does.");
+            checks.Add("PASS Keep PC awake for jobs is in self knowledge with no setting, and explains both PC and screen, the laptop lid and separate away exploring");
 
             if (lookout.Count > 0)
             {
@@ -17112,9 +17132,10 @@ namespace CapriDesktop
                     awakeCalls.Add(awakeState);
                     return 0x80000000;
                 };
+                preferences.NoKeepAwake = true;
                 mainframe.ShowSettings(true);
                 mainframe.Sync();
-                if (!KeepAwake || !mainframe.KeepAwakeShown || !mainframe.DesktopSettingsFit) throw new Exception("Keep PC awake for jobs did not show on or fit beside the other HABITS rows.");
+                if (!KeepAwake || !mainframe.DesktopSettingsFit) throw new Exception("The HABITS rows did not fit the page.");
                 CheckKeepAwake();
                 CheckKeepAwake();
                 if (awakeCalls.Count != 0) throw new Exception("An idle tick took an awake hold.");
@@ -17155,22 +17176,21 @@ namespace CapriDesktop
                 job = new Job("switch off during a job");
                 CheckKeepAwake();
                 if (awakeCalls.Count != 7 || awakeCalls[6] != 0x80000003) throw new Exception("A new job did not reacquire the awake hold.");
-                mainframe.FlipKeepAwake();
-                if (KeepAwake || mainframe.KeepAwakeShown || !LoadPreferences().NoKeepAwake || awakeCalls.Count != 8 || awakeCalls[7] != 0x80000000) throw new Exception("Switching off mid-job did not save and clear the awake hold immediately.");
+                bool awakeSetting = false;
+                for (int awakeRow = 0; awakeRow < Hands.OwnSwitches.GetLength(0); awakeRow++) if (Hands.OwnSwitches[awakeRow, 0] == "keep_awake") awakeSetting = true;
+                if (!KeepAwake || awakeSetting) throw new Exception("Keep PC awake for jobs came back as a setting her tool can change.");
                 CheckKeepAwake();
-                if (awakeCalls.Count != 8) throw new Exception("An off switch let the job reacquire the awake hold.");
-                mainframe.FlipKeepAwake();
-                if (!KeepAwake || !mainframe.KeepAwakeShown || LoadPreferences().NoKeepAwake || awakeCalls.Count != 9 || awakeCalls[8] != 0x80000003) throw new Exception("Switching on mid-job did not save and restore the awake hold.");
+                if (awakeCalls.Count != 7) throw new Exception("An old setting that turned keeping the PC awake off still changed the awake hold.");
                 quitting = true;
                 CheckKeepAwake();
                 CheckKeepAwake();
-                if (awakeCalls.Count != 10 || awakeCalls[9] != 0x80000000) throw new Exception("Quitting did not clear the awake hold exactly once.");
+                if (awakeCalls.Count != 8 || awakeCalls[7] != 0x80000000) throw new Exception("Quitting did not clear the awake hold exactly once.");
                 quitting = false;
                 job = null;
                 preferences.ExploreAway = exploring = true;
                 CheckKeepAwake();
-                if (awakeCalls.Count != 10 || ExploreFor != 1800) throw new Exception("Away exploring took an awake hold or lost its half-hour stop.");
-                checks.Add("PASS keep awake HABITS row fits, starts on and saves both choices; switching off mid-job clears immediately, switching on restores it, quitting clears once and away exploring alone takes no hold");
+                if (awakeCalls.Count != 8 || ExploreFor != 1800) throw new Exception("Away exploring took an awake hold or lost its half-hour stop.");
+                checks.Add("PASS keep awake has no HABITS row and ignores an old off setting: a job holds the PC and screen awake, quitting clears once and away exploring alone takes no hold");
             }
             finally
             {
@@ -17724,7 +17744,7 @@ namespace CapriDesktop
             }
             finally { Computer.SendMouse = desktopMouse; Computer.ExploreMedia = desktopMedia; }
             checks.Add("PASS away exploring sends only a wheel through her hands, leaves their cursor alone, and rejects cancellation, moved cursors, other windows, unreadable pages, full screen, games and Computer's blocked title groups");
-            foreach (string desktopTopic in new[] { "Hide in full screen", "Mini player over full screen", "Explore while I'm away", "Explore after" })
+            foreach (string desktopTopic in new[] { "In full screen", "Explore while I'm away", "Explore after" })
             {
                 string desktopFacts = SelfKnow.Matching("What is the " + desktopTopic + " setting in Capri?");
                 if (desktopFacts == null || !desktopFacts.StartsWith(desktopTopic + ":", StringComparison.Ordinal)) throw new Exception("Self knowledge missed " + desktopTopic + ".");
@@ -17822,9 +17842,9 @@ namespace CapriDesktop
                 FullScreen = delegate { return true; };
                 ShowHidden(false);
                 mainframe.Sync();
-                if (ExploreAfter != 300 || mainframe.DesktopSettingsStatus != "False | False | False | 5 min" || !mainframe.DesktopSettingsFit) throw new Exception("The new HABITS rows did not fit or show their defaults.");
-                mainframe.FlipHideFullScreen();
-                if (!hidden || !fullScreenHidden || manualHidden) throw new Exception("Full screen did not hide just her body.");
+                if (ExploreAfter != 300 || mainframe.DesktopSettingsStatus != "Stay | Off" || FullScreenLevel != 0 || ExploreAway || !mainframe.DesktopSettingsFit) throw new Exception("The new HABITS rows did not fit or show their defaults.");
+                mainframe.SlideFullScreen(2);
+                if (!hidden || !fullScreenHidden || manualHidden || FullScreenLevel != 2 || !preferences.HideFullScreen || preferences.PlayerFullScreen || mainframe.DesktopSettingsStatus != "Hide her | Off") throw new Exception("Full screen did not hide just her body.");
                 ShowHidden(true);
                 CheckFullScreen(false);
                 if (!hidden || !manualHidden) throw new Exception("Leaving full screen undid a manual hide.");
@@ -17840,17 +17860,23 @@ namespace CapriDesktop
                 gaming.Off();
                 CheckFullScreen(true);
                 preferences.NoPlayer = false;
-                mainframe.FlipPlayerFullScreen();
-                if (!PlayerAllowed) throw new Exception("Automatic body hiding also hid the opted-in mini player.");
+                mainframe.SlideFullScreen(1);
+                if (!PlayerAllowed || FullScreenLevel != 3 || !preferences.HideFullScreen || !preferences.PlayerFullScreen || mainframe.DesktopSettingsStatus != "Hide, keep player | Off") throw new Exception("Automatic body hiding also hid the opted-in mini player.");
                 ShowHidden(true);
                 if (PlayerAllowed) throw new Exception("The mini player ignored a manual hide.");
                 ShowHidden(false);
                 preferences.HideFullScreen = false;
                 CheckFullScreen(false);
-                mainframe.FlipExploreAway();
+                mainframe.SlideExploreAfter(4);
+                if (!ExploreAway || ExploreAfter != 600 || !LoadPreferences().ExploreAway || LoadPreferences().ExploreAfter != 600 || mainframe.DesktopSettingsStatus != "Keep player | 10 min") throw new Exception("Away controls did not save their switch and time.");
+                mainframe.SlideExploreAfter(-4);
+                if (ExploreAway || ExploreAfter != 600 || LoadPreferences().ExploreAway || LoadPreferences().ExploreAfter != 600 || mainframe.DesktopSettingsStatus != "Keep player | Off") throw new Exception("Away exploring did not turn off at Off and keep its time.");
                 mainframe.SlideExploreAfter(1);
-                if (!ExploreAway || ExploreAfter != 600 || !LoadPreferences().ExploreAway || LoadPreferences().ExploreAfter != 600) throw new Exception("Away controls did not save their switch and time.");
-                checks.Add("PASS HABITS controls fit and save; full-screen hiding returns automatically, respects manual hiding and yields to Gaming Mode; the opted-in mini player survives automatic body hiding but respects a manual hide");
+                if (!ExploreAway || ExploreAfter != 60 || mainframe.DesktopSettingsStatus != "Keep player | 1 min") throw new Exception("Away exploring did not turn back on at the first step.");
+                mainframe.SlideExploreAfter(-1);
+                SetFullScreenLevel(1);
+                if (preferences.HideFullScreen || !preferences.PlayerFullScreen || FullScreenLevel != 1 || mainframe.DesktopSettingsStatus != "Keep player | Off") throw new Exception("Keep player did not keep her and the player.");
+                checks.Add("PASS HABITS controls fit and save, Explore after's Off turns away exploring off and keeps its time, In full screen's four steps set the two full-screen choices; full-screen hiding returns automatically, respects manual hiding and yields to Gaming Mode; the opted-in mini player survives automatic body hiding but respects a manual hide");
 
                 preferences.PlayerFullScreen = false;
                 Tune desktopTune = new Tune { Title = "Smoke song", Artist = "Smoke artist", Playing = true };
@@ -27115,7 +27141,7 @@ namespace CapriDesktop
                 string facts = SelfKnow.Matching("What is the Power saver setting in Capri?") ?? "", gameFacts = SelfKnow.Matching("what does power saver in games do?") ?? "";
                 if (!facts.StartsWith("Power saver: Mainframe > Settings > HABITS > Power saver is Off, In games (the default) or Always.", StringComparison.Ordinal) || !gameFacts.StartsWith("Power saver:", StringComparison.Ordinal))
                     throw new Exception("Her self knowledge didn't explain Power saver: " + facts + " / " + gameFacts);
-                checks.Add("PASS Power saver: HABITS' row is In games for new and old settings, saves and loads Off, In games and Always from its slider and her settings tool, clamps, stays in Simple Settings with Perch folded under it, and leaves Hey Capri, Listen for Capri, Clip my games and Watch my screen as set");
+                checks.Add("PASS Power saver: HABITS' row is In games for new and old settings, saves and loads Off, In games and Always from its slider and her settings tool, clamps, stays in Simple Settings with In full screen folded under it, and leaves Hey Capri, Listen for Capri, Clip my games and Watch my screen as set");
 
                 // Resting on a seat: only while Power saver works is she drawn at 15 fps, on whole ticks of Windows' clock.
                 seat = new Ledge { Floor = true, Left = anchor.X - 400, Right = anchor.X + Width + 400, Y = Hip().Y };
@@ -33029,7 +33055,6 @@ namespace CapriDesktop
                 for (int i = 8; i < Hands.OwnLevels.GetLength(0); i++) levels[Hands.OwnLevels[i, 0]] = LevelOf(Hands.OwnLevels[i, 0]);
                 string[,] toggles =
                 {
-                    { "keep_awake", "keepAwake", "NoKeepAwake" }, { "player_full_screen", "playerFullScreen", "PlayerFullScreen" }, { "explore_away", "exploreAway", "ExploreAway" },
                     { "fast_hands", "fastHands", "SlowHands" }, { "cursor", "cursor", "QuickHands" }, { "discord_presence", "discord", "NoDiscord" }, { "listen_for_capri", "listenCapri", "ListenCapri" }
                 };
                 for (int i = 0; i < toggles.GetLength(0); i++)
@@ -33040,11 +33065,27 @@ namespace CapriDesktop
                         string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = name });
                         bool real = SettingOn(name) == true;
                         bool persisted = (bool)saved(LoadPreferences(), toggles[i, 2]);
-                        if (name == "keep_awake" || name == "fast_hands" || name == "cursor" || name == "discord_presence") persisted = !persisted;
+                        if (name == "fast_hands" || name == "cursor" || name == "discord_presence") persisted = !persisted;
                         if (real != on || ((CheckBox)shown(toggles[i, 1])).Checked != on || persisted != on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Setting switch disagreed with Mainframe or disk: " + name + " / " + line);
                     }
                     checks.Add("PASS setting " + name + " uses Mainframe's switch, saves and reads back both ways");
                 }
+                preferences.HideFullScreen = preferences.PlayerFullScreen = false;
+                mainframe.Sync();
+                string[,] fullSteps = { { "player_full_screen", "on", "Keep player" }, { "hide_in_full_screen", "on", "Hide, keep player" }, { "player_full_screen", "off", "Hide her" }, { "hide_in_full_screen", "off", "Stay" } };
+                for (int i = 0; i < fullSteps.GetLength(0); i++)
+                {
+                    string line = Hands.Do("capri_settings", new ToolArguments { Action = fullSteps[i, 1], Name = fullSteps[i, 0] });
+                    bool hideNow = (bool)saved(LoadPreferences(), "HideFullScreen"), playerNow = (bool)saved(LoadPreferences(), "PlayerFullScreen");
+                    if (mainframe.DesktopSettingsStatus.Split('|')[0].Trim() != fullSteps[i, 2] || hideNow != (fullSteps[i, 2].StartsWith("Hide", StringComparison.Ordinal)) || playerNow != (fullSteps[i, 2].EndsWith("player", StringComparison.Ordinal)) || !line.EndsWith(fullSteps[i, 1] + ".", StringComparison.Ordinal)) throw new Exception("Full-screen switches disagreed with In full screen or disk: " + fullSteps[i, 0] + " / " + line + " / " + mainframe.DesktopSettingsStatus);
+                }
+                checks.Add("PASS settings player_full_screen and hide_in_full_screen still work and move HABITS' In full screen through its four steps, saving each");
+                foreach (bool on in new[] { true, false })
+                {
+                    string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "explore_away" });
+                    if (SettingOn("explore_away") != on || (bool)saved(LoadPreferences(), "ExploreAway") != on || mainframe.DesktopSettingsStatus.EndsWith("| Off", StringComparison.Ordinal) == on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Explore while away disagreed with Explore after or disk: " + line + " / " + mainframe.DesktopSettingsStatus);
+                }
+                checks.Add("PASS setting explore_away still works and shows as Explore after's Off step, saving both ways");
                 // With nothing in the Run key, as on a new install, her tool and her switch both say it's off (#199).
                 mainframe.Sync();
                 string startupFirst = Hands.Do("capri_settings", new ToolArguments { Action = "list", Name = "startup" });
@@ -33084,11 +33125,13 @@ namespace CapriDesktop
                     if (CareTime(kind) != times[times.Length - 1]) throw new Exception("Care time did not clamp high: " + name);
                     checks.Add("PASS setting " + name + " uses its care switch and every Mainframe time, clamps, saves and reads back");
                 }
+                Cloud sliderRemote = brain.Remote;
+                brain.Remote = new Cloud("nvapi-test", "google/gemma-4-31b-it");
                 string[,] sliders =
                 {
                     { "explore_after", "exploreAfter", "ExploreAfter" }, { "glance_gap", "gap", "GlanceGap" }, { "watch_memory", "watchMemory", "WatchMemory" },
                     { "voice_pitch", "pitchSlider", "VoicePitch" }, { "voice_robot", "robotSlider", "VoiceRobot" }, { "voice_glitch", "glitchSlider", "VoiceGlitch" },
-                    { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "mainframe_colours", "frameColours", "MainframeColours" }, { "perch_fps", "perchFps", "PerchFps" },
+                    { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "mainframe_colours", "frameColours", "MainframeColours" }, { "in_full_screen", "fullScreen", "HideFullScreen" },
                     { "power_saver", "powerSaver", "PowerSaver" }, { "music_app", "musicApp", "MusicApp" }, { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
                     { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" },
                     { "pat_stroke", "patStroke", "PatStroke" }
@@ -33112,6 +33155,7 @@ namespace CapriDesktop
                     if (sliderValue() != steps.Length - 1) throw new Exception("Setting did not clamp high: " + name);
                     checks.Add("PASS setting " + name + " matches Mainframe's steps, clamps, saves and reports the value afterwards");
                 }
+                brain.Remote = sliderRemote;
                 foreach (bool hd in new[] { true, false })
                 {
                     preferences.HdVoice = hd;
@@ -44897,18 +44941,20 @@ namespace CapriDesktop
                 EndDoomscroll();
                 mainframe.Sync();
                 if (mainframe.DoomscrollShown != "off | 15 min" || DoomSnooze("5 more minutes") != null) throw new Exception("Doomscroll guard started on or gave five more minutes with nothing to snooze: " + mainframe.DoomscrollShown);
-                ToggleDoomscroll();
+                mainframe.SlideDoomscroll(1);
+                if (!preferences.DoomscrollGuard || DoomscrollLimit != 30 || mainframe.DoomscrollShown != "on | 30 s test") throw new Exception("Scroll limit's first step did not turn Doomscroll guard on at 30 s: " + mainframe.DoomscrollShown);
                 SetDoomscrollLimit(30);
                 Preferences doomLoaded = LoadPreferences();
                 if (mainframe.DoomscrollShown != "on | 30 s test" || !doomLoaded.DoomscrollGuard || doomLoaded.DoomscrollLimit != 30) throw new Exception("Doomscroll guard's switch or limit did not show or save: " + mainframe.DoomscrollShown);
+                mainframe.SlideDoomscroll(2);
+                if (!preferences.DoomscrollGuard || DoomscrollLimit != 600 || LoadPreferences().DoomscrollLimit != 600 || mainframe.DoomscrollShown != "on | 10 min") throw new Exception("Scroll limit did not move to 10 min: " + mainframe.DoomscrollShown);
                 SetDoomscrollLimit(77);
                 if (DoomscrollLimit != Doomscroll.DefaultLimit) throw new Exception("Doomscroll guard took a limit it doesn't offer.");
-                ToggleDoomscroll();
-                if (LoadPreferences().DoomscrollGuard || DoomscrollStage != 0) throw new Exception("Doomscroll guard did not turn off.");
-                foreach (string label in new[] { "Doomscroll guard", "Scroll limit" })
-                    if (SelfKnow.Setting("Mainframe.cs", label) == null) throw new Exception("Doomscroll guard lost its help: " + label);
+                mainframe.SlideDoomscroll(-9);
+                if (preferences.DoomscrollGuard || LoadPreferences().DoomscrollGuard || DoomscrollStage != 0 || mainframe.DoomscrollShown != "off | 15 min" || DoomscrollLimit != Doomscroll.DefaultLimit) throw new Exception("Scroll limit's Off did not turn Doomscroll guard off and keep its limit: " + mainframe.DoomscrollShown);
+                if (SelfKnow.Setting("Mainframe.cs", "Scroll limit") == null || SelfKnow.Setting("Mainframe.cs", "Doomscroll guard") != null) throw new Exception("Doomscroll guard's help did not move to Scroll limit.");
                 if ((SelfKnow.Matching("what does doomscroll guard do?") ?? "").IndexOf("thiiago-dev", StringComparison.Ordinal) < 0) throw new Exception("Her doomscroll help did not match a plain question.");
-                checks.Add("PASS Mainframe doomscroll guard: off by default, its switch and scroll limit save, a 30 s test limit is there for filming, and her help explains it");
+                checks.Add("PASS Mainframe doomscroll guard: off by default, Scroll limit's Off step is its switch and its other steps save, a 30 s test limit is there for filming, and her help explains it");
             }
             finally
             {
@@ -56668,8 +56714,12 @@ namespace CapriDesktop
                                     if (!preferences.Watch || !mainframe.WatchShown || mainframe.GapShown != "2 min") throw new Exception("Watch my screen did not turn on at 2 min.");
                                     mainframe.SlideGap(2);
                                     if (preferences.GlanceGap != 300 || mainframe.GapShown != "5 min" || nextGlance > clock.Elapsed.TotalSeconds + 21) throw new Exception("The glance slider did not set 5 min: " + preferences.GlanceGap + " / " + mainframe.GapShown);
-                                    mainframe.SlideGap(-9);
-                                    if (preferences.GlanceGap != 10 || mainframe.GapShown != "10 s") throw new Exception("The glance slider did not stop at 10 s: " + preferences.GlanceGap);
+                                    mainframe.SlideGap(-7);
+                                    if (!preferences.Watch || preferences.GlanceGap != 10 || mainframe.GapShown != "10 s") throw new Exception("The glance slider did not stop at 10 s: " + preferences.GlanceGap);
+                                    mainframe.SlideGap(-1);
+                                    if (preferences.Watch || mainframe.WatchShown || mainframe.GapShown != "Off" || preferences.GlanceGap != 10 || LoadPreferences().Watch || LevelOf("glance_gap") != 0) throw new Exception("The glance slider's Off did not turn Watch my screen off and keep its gap: " + preferences.Watch + " / " + mainframe.GapShown + " / " + preferences.GlanceGap);
+                                    mainframe.SlideGap(1);
+                                    if (!preferences.Watch || !mainframe.WatchShown || mainframe.GapShown != "10 s" || preferences.GlanceGap != 10 || !LoadPreferences().Watch || LevelOf("glance_gap") != 1) throw new Exception("The glance slider's first step did not turn Watch my screen back on: " + preferences.Watch + " / " + mainframe.GapShown);
                                     TalkState talkWas = talkState;
                                     talkState = TalkState.Thinking;
                                     reply = null;
@@ -56867,18 +56917,15 @@ namespace CapriDesktop
                             if (!personaUntouched || !personaTaken || personaShownMine != "Your personality | 2 lines skipped: they went against her safety lines" || !personaReset || personaShownBack != "Her personality")
                                 throw new Exception("personality.md went wrong: untouched " + personaUntouched + ", taken " + personaTaken + " (" + Brain.Personality + "), shown " + personaShownMine + ", reset " + personaReset + ", back " + personaShownBack);
                             checks.Add("PASS her personality: fixed in code with her safety lines right after it and her reply rules last (6794 characters, known SHA-256), her reply rules and game lines keep her to names she's really seen or heard, correcting a slip once instead of apologising over and over, and she thanks donors and calls them a good boy and, when asked about donating, says it helps keep her online and gives ko-fi.com/lachysdev, in chat and in games, and her chat and voice-chat prompts start with it; personality.md takes her default's place with her safety lines still right after it, chat-template tokens and lines against her safety lines come out, her voice-chat agent is re-tuned for it, and Reset keeps theirs as personality.backup.md");
-                            if (mainframe.PerchStatus != "30 fps | -" || !mainframe.PerchFits) throw new Exception("The perch fps row didn't open right: " + mainframe.PerchStatus + " / fits " + mainframe.PerchFits);
-                            mainframe.SlidePerch(3);
-                            string perchFast = mainframe.PerchStatus;
-                            int perchSaved = preferences.PerchFps;
-                            string perchOverlap = mainframe.Overlap();
-                            snap("mainframe-settings-perch.png");
-                            mainframe.SlidePerch(-6);
-                            string perchSlow = mainframe.PerchStatus;
+                            if (!mainframe.HabitsFit || mainframe.HasRow("Perch") || mainframe.Overlap() != null || preferences.PerchFps != 30 || LevelOf("perch_fps") != 3) throw new Exception("HABITS didn't open right without its Perch row: fits " + mainframe.HabitsFit + ", perch " + mainframe.HasRow("Perch") + ", overlap " + mainframe.Overlap() + ", saved " + preferences.PerchFps);
+                            snap("mainframe-settings-habits.png");
+                            SetLevel("perch_fps", 6);
+                            int perchSaved = preferences.PerchFps, perchLevel = LevelOf("perch_fps"), perchLoaded = LoadPreferences().PerchFps;
+                            SetLevel("perch_fps", 0);
                             int perchLow = preferences.PerchFps;
-                            mainframe.SlidePerch(3);
-                            if (perchFast != "60 fps | Perch over 30 fps uses more CPU" || perchSaved != 60 || perchOverlap != null || perchSlow != "10 fps | -" || perchLow != 10 || preferences.PerchFps != 30 || mainframe.PerchStatus != "30 fps | -") throw new Exception("The perch fps slider went wrong: " + perchFast + " / " + perchSaved + " / " + perchOverlap + " / " + perchSlow + " / " + perchLow + " / " + mainframe.PerchStatus);
-                            checks.Add("PASS perch fps slider: under HABITS it shows 30 fps by default, slides from 10 to 60 fps, saves each pick, says when it uses more CPU, and fits the page with nothing overlapping");
+                            SetLevel("perch_fps", 3);
+                            if (perchSaved != 60 || perchLevel != 6 || perchLoaded != 60 || perchLow != 10 || preferences.PerchFps != 30 || mainframe.HasRow("Perch") || mainframe.Overlap() != null) throw new Exception("Her saved Perch fps stopped working with its row gone: " + perchSaved + " / " + perchLevel + " / " + perchLoaded + " / " + perchLow + " / " + preferences.PerchFps);
+                            checks.Add("PASS perch fps: Settings has no Perch row now, HABITS fits with nothing overlapping, and a saved Perch fps from 10 to 60 still saves, loads and reads back through her settings tool");
                             // Pop-ins sets how long Check in on me waits between visits; settings from before it start at Sometimes.
                             Func<double[]> popSpread = delegate
                             {
@@ -56920,13 +56967,13 @@ namespace CapriDesktop
                             string shortTabs = mainframe.TabShows(out shortTabLimit);
                             if (shortTabLimit != null) mainframe.Wheel(80);
                             bool shortTabbed = mainframe.Scrolled == 0 && mainframe.BackTop == backTop;
-                            string shortPerch = mainframe.PerchStatus;
+                            bool shortHabits = mainframe.HabitsFit;
                             mainframe.Wheel(-80);
                             mainframe.ShowSettings(false);
                             bool shortLeft = mainframe.Scrolled == 0 && mainframe.BackTop == backTop && mainframe.ClientSize.Height == mainTall && mainframe.ScrollStatus == "whole | -";
                             mainframe.ShortScreen = 0;
                             mainframe.ShowSettings(true);
-                            if (!shortOpened || !shortRow || !shortBottom || shortOverlap != null || !shortTop || shortTabs != null || !shortTabbed || shortPerch != "30 fps | -" || !shortLeft || mainframe.Scrolled != 0 || !mainframe.PerchFits) throw new Exception("Settings on a short screen went wrong: opened " + shortOpened + ", row " + shortRow + ", bottom " + shortBottom + ", overlap " + shortOverlap + ", top " + shortTop + ", tab " + shortTabs + "/" + shortTabbed + ", perch " + shortPerch + ", left " + shortLeft + ", now " + mainframe.ScrollStatus + " scrolled " + mainframe.Scrolled);
+                            if (!shortOpened || !shortRow || !shortBottom || shortOverlap != null || !shortTop || shortTabs != null || !shortTabbed || !shortHabits || !shortLeft || mainframe.Scrolled != 0 || !mainframe.HabitsFit) throw new Exception("Settings on a short screen went wrong: opened " + shortOpened + ", row " + shortRow + ", bottom " + shortBottom + ", overlap " + shortOverlap + ", top " + shortTop + ", tab " + shortTabs + "/" + shortTabbed + ", habits " + shortHabits + ", left " + shortLeft + ", now " + mainframe.ScrollStatus + " scrolled " + mainframe.Scrolled);
                             checks.Add("PASS short screens: Settings shrinks to fit a screen 480 px tall; a turn of the wheel over a slider scrolls the page and its header one row and leaves the slider alone; scrolling down brings the hide key into view and reaches the end of the page, at the top Back is back where it was; nothing overlaps; leaving Settings puts it all back");
                             checks.Add(shortTabLimit == null ? "PASS short Settings keyboard walk: Back takes focus, Tab scrolls to every control it lands on including the quiet key, and Back returns to the top" : "LIMIT short Settings keyboard walk: " + shortTabLimit);
                             double scrollFrame = mainframe.FrameCost();

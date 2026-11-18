@@ -268,8 +268,10 @@ Hide / Show Capri	Capri'ni yashirish / ko'rsatish
 Hide / Show key	Yashirish / ko'rsatish tugmasi
 Hide Capri	Capri'ni yashirish
 Hide for now	Hozircha yashirish
+Hide her	Uni yashirish
 Hide in full screen	To'liq ekranda yashirish
 Hide this	Buni yashirish
+Hide, keep player	Yashirish, pleyer qolsin
 Hide/show:	Yashirish/ko'rsatish:
 Hide/show: Ctrl + Alt + H	Yashirish/ko'rsatish: Ctrl + Alt + H
 Hologram	Gologramma
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORDDA >
 INSTALLED >	O'RNATILGAN >
 Import a Capri mod	Capri modini import qilish
 Import mod	Modni import qilish
+In full screen	To'liq ekranda
 In games	O'yinlarda
 Input	Kiritish
 Input, Output or How to overlaps a row	Kiritish, Chiqarish yoki Qanday qator bilan ustma-ust tushadi
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TUGMALAR
 KEYS >	TUGMALAR >
 Keep PC awake for jobs	Ishlar uchun PC'ni uyg'oq saqlash
+Keep player	Pleyer qolsin
 Keeps the last two minutes of your game in memory. Say clip that to save it.	O'yiningizning oxirgi ikki daqiqasini xotirada saqlaydi. Saqlash uchun "shuni klip qil" deng.
 Key	Kalit
 Key cleared: a model file needs none.	Kalit tozalandi: model fayliga kalit kerak emas.
@@ -666,6 +670,7 @@ Speed	Tezlik
 Start with Windows	Windows bilan ishga tushirish
 Start with this!	Buni boshlang!
 Starting...	Boshlanmoqda...
+Stay	Qolish
 Stay on my model	Mening modelimda qoling
 Still checking your mics...	Mikrofonlaringiz hali ham tekshirilmoqda...
 Still checking your speakers...	Karnaylaringiz hali ham tekshirilmoqda...

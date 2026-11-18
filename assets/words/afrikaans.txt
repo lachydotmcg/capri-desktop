@@ -268,8 +268,10 @@ Hide / Show Capri	267|Versteek / Wys Capri
 Hide / Show key	268|Versteek / Wys-sleutel
 Hide Capri	269|Versteek Capri
 Hide for now	270|Versteek vir nou
+Hide her	Versteek haar
 Hide in full screen	271|Versteek in volskerm
 Hide this	272|Versteek dit
+Hide, keep player	Versteek, hou speler
 Hide/show:	273|Versteek/wys:
 Hide/show: Ctrl + Alt + H	274|Versteek/wys: Ctrl + Alt + H
 Hologram	275|Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	295|IN DISCORD >
 INSTALLED >	296|GEÏNSTALLEER >
 Import a Capri mod	297|Voer 'n Capri-modifikasie in
 Import mod	298|Voer modifikasie in
+In full screen	In volskerm
 In games	299|In speletjies
 Input	300|Invoer
 Input, Output or How to overlaps a row	301|Invoer, Uitvoer of Hoe om oorvleuel 'n ry
@@ -314,6 +317,7 @@ KB.	313|KB.
 KEYS	314|SLEUTELS
 KEYS >	315|SLEUTELS >
 Keep PC awake for jobs	316|Hou rekenaar wakker vir take
+Keep player	Hou speler
 Keeps the last two minutes of your game in memory. Say clip that to save it.	317|Hou die laaste twee minute van jou speletjie in die geheue. Sê knip dit om dit te stoor.
 Key	318|Sleutel
 Key cleared: a model file needs none.	319|Sleutel uitgevee: 'n modellêer benodig geen.
@@ -666,6 +670,7 @@ Speed	665|Spoed
 Start with Windows	666|Begin met Windows
 Start with this!	667|Begin hiermee!
 Starting...	668|Begin...
+Stay	Bly
 Stay on my model	669|Bly op my model
 Still checking your mics...	670|Kyk nog na jou mikrofone...
 Still checking your speakers...	671|Kyk nog na jou luidsprekers...

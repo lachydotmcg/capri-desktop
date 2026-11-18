@@ -268,8 +268,10 @@ Hide / Show Capri	Verberg / Toon Capri
 Hide / Show key	Verberg / Toon-toets
 Hide Capri	Capri verbergen
 Hide for now	Nu verbergen
+Hide her	Verberg haar
 Hide in full screen	Verbergen in volledig scherm
 Hide this	Dit verbergen
+Hide, keep player	Verberg, speler houden
 Hide/show:	Verbergen/tonen:
 Hide/show: Ctrl + Alt + H	Verbergen/tonen: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	GEÏNSTALLEERD >
 Import a Capri mod	Een Capri-mod importeren
 Import mod	Mod importeren
+In full screen	In volledig scherm
 In games	In games
 Input	Invoer
 Input, Output or How to overlaps a row	Invoer, Uitvoer of Uitleg overlapt een rij
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TOETSEN
 KEYS >	TOETSEN >
 Keep PC awake for jobs	Pc wakker houden voor klussen
+Keep player	Speler houden
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Bewaart de laatste twee minuten van je game in het geheugen. Zeg clip dat om het op te slaan.
 Key	Sleutel
 Key cleared: a model file needs none.	Sleutel gewist: een modelbestand heeft er geen nodig.
@@ -666,6 +670,7 @@ Speed	Snelheid
 Start with Windows	Starten met Windows
 Start with this!	Begin hiermee!
 Starting...	Starten...
+Stay	Blijven
 Stay on my model	Blijf bij mijn model
 Still checking your mics...	Je microfoons worden nog gecontroleerd...
 Still checking your speakers...	Je luidsprekers worden nog gecontroleerd...

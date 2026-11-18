@@ -268,8 +268,10 @@ Hide / Show Capri	Capri লুকাও / দেখাও
 Hide / Show key	লুকাও / দেখাও কী
 Hide Capri	Capri লুকাও
 Hide for now	আপাতত লুকাও
+Hide her	ওকে লুকাও
 Hide in full screen	ফুল স্ক্রিনে লুকাও
 Hide this	এটি লুকাও
+Hide, keep player	লুকাও, প্লেয়ার রাখো
 Hide/show:	লুকাও/দেখাও:
 Hide/show: Ctrl + Alt + H	লুকাও/দেখাও: Ctrl + Alt + H
 Hologram	হোলোগ্রাম
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-এ >
 INSTALLED >	ইনস্টল হয়েছে >
 Import a Capri mod	একটি Capri মড আমদানি করো
 Import mod	মড আমদানি করো
+In full screen	ফুল স্ক্রিনে
 In games	গেমে
 Input	ইনপুট
 Input, Output or How to overlaps a row	ইনপুট, আউটপুট বা কীভাবে সারির উপর পড়ছে
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	কী
 KEYS >	কী >
 Keep PC awake for jobs	কাজের জন্য PC জাগিয়ে রাখো
+Keep player	প্লেয়ার রাখো
 Keeps the last two minutes of your game in memory. Say clip that to save it.	তোমার গেমের শেষ দুই মিনিট মেমরিতে রাখে। সেভ করতে "ওটা ক্লিপ করো" বলো।
 Key	কী
 Key cleared: a model file needs none.	কী মুছে ফেলা হয়েছে: মডেল ফাইলের কী লাগে না।
@@ -666,6 +670,7 @@ Speed	গতি
 Start with Windows	Windows-এর সঙ্গে শুরু করো
 Start with this!	এটি দিয়ে শুরু করো!
 Starting...	শুরু হচ্ছে...
+Stay	থাকো
 Stay on my model	আমার মডেলেই থাকো
 Still checking your mics...	এখনও তোমার মাইক পরীক্ষা করা হচ্ছে...
 Still checking your speakers...	এখনও তোমার স্পিকার পরীক্ষা করা হচ্ছে...
