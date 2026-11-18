@@ -37433,35 +37433,35 @@ namespace CapriDesktop
                 if (Brain.Window != 16384) throw new Exception("Auto let an old growth shrink its starting size.");
                 Brain.Grown = 0;
                 checks.Add("PASS built-in Auto memory keeps the larger of its starting size and this run's growth");
-                Func<string, long[]> shapeWas = Brain.OllamaShape;
-                int limitWas = Brain.GpuLimit;
+                Func<string, long[]> vramShapeWas = Brain.OllamaShape;
+                int vramLimitWas = Brain.GpuLimit;
                 try
                 {
-                    long eyesMib = Engine.Picks[0].EyesSize >> 20;
-                    if (Engine.Fit(0, 8L << 30, 0) != "" || Engine.Fit(4, 8L << 30, 0) != " -fitt 4096" || Engine.Fit(6, 8L << 30, 0) != " -fitt 2048" || Engine.Fit(8, 8L << 30, 0) != "" || Engine.Fit(12, 8L << 30, 0) != "" || Engine.Fit(4, 0, 0) != "" || Engine.Fit(4, 8L << 30, Engine.Picks[0].EyesSize) != " -fitt " + (4096 + eyesMib))
+                    long vramEyes = Engine.Picks[0].EyesSize >> 20;
+                    if (Engine.Fit(0, 8L << 30, 0) != "" || Engine.Fit(4, 8L << 30, 0) != " -fitt 4096" || Engine.Fit(6, 8L << 30, 0) != " -fitt 2048" || Engine.Fit(8, 8L << 30, 0) != "" || Engine.Fit(12, 8L << 30, 0) != "" || Engine.Fit(4, 0, 0) != "" || Engine.Fit(4, 8L << 30, Engine.Picks[0].EyesSize) != " -fitt " + (4096 + vramEyes))
                         throw new Exception("Brain VRAM gave llama-server the wrong free-memory target: " + Engine.Fit(4, 8L << 30, Engine.Picks[0].EyesSize));
                     Brain.Vram = 8L << 30;
-                    string capped = builtIn.StartInfo(Engine.Picks[0], true, false, 32123, 4096, 3).Arguments, roomy = builtIn.StartInfo(Engine.Picks[0], true, false, 32123, 4096, 0).Arguments, ram = builtIn.StartInfo(Engine.Picks[0], true, true, 32123, 4096, -1).Arguments;
-                    if (!capped.EndsWith(" -fitt " + (5120 + eyesMib), StringComparison.Ordinal) || roomy.Contains("-fitt") || ram.Contains("-fitt") || !ram.Contains(" --device none -ngl 0 --no-mmproj-offload")) throw new Exception("Brain VRAM didn't reach the built-in launch: " + capped + " / " + ram);
+                    string vramCapped = builtIn.StartInfo(Engine.Picks[0], true, false, 32123, 4096, 3).Arguments, vramAuto = builtIn.StartInfo(Engine.Picks[0], true, false, 32123, 4096, 0).Arguments, vramRam = builtIn.StartInfo(Engine.Picks[0], true, true, 32123, 4096, -1).Arguments;
+                    if (!vramCapped.EndsWith(" -fitt " + (5120 + vramEyes), StringComparison.Ordinal) || vramAuto.Contains("-fitt") || vramRam.Contains("-fitt") || !vramRam.Contains(" --device none -ngl 0 --no-mmproj-offload")) throw new Exception("Brain VRAM didn't reach the built-in launch: " + vramCapped + " / " + vramRam);
                     Brain.GpuLimit = -1;
                     if (!builtIn.OnCpu) throw new Exception("RAM only didn't keep her built-in brain on the CPU.");
                     if (Brain.Layers(5L << 30, 34, 4, 16384) != 17 || Brain.Layers(5L << 30, 34, 0, 16384) != null || Brain.Layers(5L << 30, 34, -1, 16384) != 0 || Brain.Layers(2L << 30, 28, 8, 4096) != null || Brain.Layers(5L << 30, 34, 1, 16384) != 0 || Brain.Layers(0, 34, 4, 4096) != null)
                         throw new Exception("Brain VRAM counted the wrong Ollama layers: " + Brain.Layers(5L << 30, 34, 4, 16384));
                     Brain.OllamaShape = delegate { return new[] { 5L << 30, 34L }; };
                     Brain.MemorySize = 16384;
-                    int[] limits = { 4, -1, 0 };
-                    string[] sent = { "17", "0", null };
-                    for (int limitAt = 0; limitAt < limits.Length; limitAt++)
+                    int[] vramLimits = { 4, -1, 0 };
+                    string[] vramSent = { "17", "0", null };
+                    for (int vramAt = 0; vramAt < vramLimits.Length; vramAt++)
                     {
-                        Brain.GpuLimit = limits[limitAt];
+                        Brain.GpuLimit = vramLimits[vramAt];
                         local.Aside("Talk", "Hello", 90);
-                        string gpu = Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_gpu");
-                        if (gpu != sent[limitAt]) throw new Exception("Brain VRAM " + limits[limitAt] + " sent Ollama num_gpu " + (gpu ?? "none"));
+                        string vramGpu = Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_gpu");
+                        if (vramGpu != vramSent[vramAt]) throw new Exception("Brain VRAM " + vramLimits[vramAt] + " sent Ollama num_gpu " + (vramGpu ?? "none"));
                     }
                     string vramWords = SelfKnow.Matching("how do I limit your vram");
                     if (vramWords == null || !vramWords.Contains("Mainframe > Resources > Brain VRAM") || !vramWords.Contains("RAM only")) throw new Exception("Her help didn't find Brain VRAM: " + vramWords);
                 }
-                finally { Brain.OllamaShape = shapeWas; Brain.GpuLimit = limitWas; Brain.MemorySize = 0; Brain.Vram = 0; }
+                finally { Brain.OllamaShape = vramShapeWas; Brain.GpuLimit = vramLimitWas; Brain.MemorySize = 0; Brain.Vram = 0; }
                 checks.Add("PASS Brain VRAM: a limit gives llama-server a free-memory target that keeps her brain and eyes under it, RAM only runs on the CPU, and Ollama gets the layers that fit, none, or its own fit on Auto");
                 string memoryWords = SelfKnow.Matching("Explain the Memory size setting");
                 if (memoryWords == null || !memoryWords.Contains("Auto starts at 16K") || !memoryWords.Contains("about 12 GB of RAM or more") || !memoryWords.Contains("graphics card with less than about 7 GB") || !memoryWords.Contains("4K with Short Memory or 8K with Medium or Long") || !memoryWords.Contains("up to 32K") || memoryWords.Contains("loading fails")) throw new Exception("Her memory size help kept the old Auto sizes.");
