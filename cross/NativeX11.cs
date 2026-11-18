@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
+using Avalonia.Controls.Platform;
 
 namespace CapriDesktop
 {
@@ -53,6 +54,16 @@ namespace CapriDesktop
                     ?? throw new NotSupportedException("Pinned X11 atom contract changed: " + key));
                 XChangeProperty(x.Display, x.Handle, Atom("_NET_WM_WINDOW_TYPE"), (IntPtr)4, 32, 0, new[] { Atom("_NET_WM_WINDOW_TYPE_NORMAL") }, 1);
             }
+        }
+        internal static void Unmanaged(Window window, bool unmanaged)
+        {
+            X11Properties.SetNetWmWindowType(window, unmanaged ? X11NetWmWindowType.Utility : X11NetWmWindowType.Normal);
+            if (unmanaged) { Configure(window, true); return; }
+            var x = Connection(window);
+            var attributes = new Attributes();
+            XChangeWindowAttributes(x.Display, x.Handle, (nuint)512, ref attributes);
+            var hints = new Hints { flags = 1, input = 1 };
+            XSetWMHints(x.Display, x.Handle, ref hints);
         }
         [StructLayout(LayoutKind.Sequential)] private struct ClassHint { [MarshalAs(UnmanagedType.LPStr)] public string name; [MarshalAs(UnmanagedType.LPStr)] public string type; }
         [StructLayout(LayoutKind.Sequential)] private struct Attributes
