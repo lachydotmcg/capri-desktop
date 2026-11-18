@@ -17,7 +17,7 @@ namespace CapriDesktop
         internal const int TabTall = 42, ToolTall = 46;
         internal static readonly Rectangle PageBox = HerComputer.Page;
         internal static readonly Rectangle AddressBox = new Rectangle(AppBox.Left + 112, AppBox.Top + TabTall + 8, AppBox.Width - 172, 30);
-        internal const int DockWide = 44 + 46 * 6 + 22 * 5;
+        internal const int DockWide = 44 + 46 * 5 + 22 * 4;
         internal static readonly Rectangle DockBox = new Rectangle(HerComputer.Width / 2 - DockWide / 2, 684, DockWide, 70);
         internal static readonly Rectangle CardBox = new Rectangle(280, 96, 720, 540);
         internal const int CardHead = 52;
@@ -34,16 +34,17 @@ namespace CapriDesktop
         private readonly System.Windows.Forms.Timer ticker = new System.Windows.Forms.Timer();
         private readonly Random random = new Random();
         private readonly Dictionary<string, Image> art = new Dictionary<string, Image>();
-        private readonly Font clockFont, bigFont, textFont, smallFont, boldFont, labelFont, monoFont, diaryFont;
+        private readonly Font clockFont, bigFont, textFont, smallFont, boldFont, labelFont, monoFont;
         private PointF cursor = new PointF(700, 420), target = new PointF(700, 420);
-        private string openApp, typingField, typed, status = "Just hanging out", bubble, selectedNote, heldSticker;
-        private DateTime bubbleUntil, rippleAt = DateTime.MinValue, lastWatched = DateTime.MinValue, heyAt = DateTime.MinValue, brainDiaryAt = DateTime.MinValue;
+        private string openApp, typingField, typed, status = "Idle", bubble, selectedNote, heldSticker;
+        private DateTime bubbleUntil, rippleAt = DateTime.MinValue, handActiveAt = DateTime.MinValue;
+        private const double HandBackSeconds = 30;
         private Image frame, perch, face, pointer;
         private Bitmap backdrop;
         private RectangleF controlButton;
         private HerBrowser web;
         private string webProblem;
-        private Thread taskThread, idleThread, frameThread;
+        private Thread taskThread, frameThread;
         private volatile bool closing, stopTask, inControl;
         private volatile string runningTask;
         private readonly object pumpGate = new object();
@@ -62,24 +63,6 @@ namespace CapriDesktop
         private readonly Random sparkle = new Random();
         internal const string BombSticker = "bomb";
         private const double Fuse = 1.6, GlitchEnd = 5.0, BoomEnd = 7.2;
-        private static readonly string[] BombLooks = { "Ooh, a new sticker... wait, is it ticking?", "Thanks! Why is it fizzing?", "Cute sticker. Hang on. Is that a fuse?" };
-        private static readonly string[] BombCries = { "NONONONO", "AAAAAH my computer!", "WHAT DID YOU DO" };
-        private static readonly string[] BombReactions =
-        {
-            "Okay, WHO put malware on my computer? I just got my stickers how I like them.",
-            "Rude. Very rude. I'm keeping an eye on you now.",
-            "My whole computer just exploded and you're laughing, aren't you.",
-            "I'm fine. Everything's fine. My clock's just a little crispy.",
-            "Next time you give me a sticker, I'm checking it for wires first.",
-            "Wow. I trusted you with the sticker book.",
-        };
-        private static readonly string[] BombDiary =
-        {
-            "Someone stuck a malware bomb on my home page today. My whole computer blew up. I'm not over it.",
-            "Got bombed. Rebooted. Still cute. Still suspicious of stickers.",
-            "Note to self: never trust a sticker that fizzes.",
-        };
-
         internal HerComputerWindow(HerComputer computer)
         {
             Computer = computer;
@@ -107,7 +90,6 @@ namespace CapriDesktop
             boldFont = Neon.Type(17f, true, GraphicsUnit.Pixel);
             labelFont = Neon.Type(22f, false, GraphicsUnit.Pixel);
             monoFont = Look.Mono(13f, FontStyle.Regular);
-            diaryFont = new Font("Segoe Print", 15f, FontStyle.Regular, GraphicsUnit.Pixel);
             ticker.Interval = 33;
             ticker.Tick += delegate { Tick(); };
             Layout += delegate { Place(); };
@@ -169,12 +151,6 @@ namespace CapriDesktop
         {
             base.OnShown(e);
             Begin();
-            if (!Computer.Greeted)
-            {
-                Computer.Greeted = true;
-                Bubble("This is my computer. Watch me, or take over.");
-            }
-            lastWatched = DateTime.UtcNow;
         }
 
         private void Begin()
@@ -184,8 +160,7 @@ namespace CapriDesktop
             ticker.Start();
             frameThread = new Thread(FrameLoop) { IsBackground = true, Name = "her computer frames" };
             frameThread.Start();
-            idleThread = new Thread(IdleLoop) { IsBackground = true, Name = "her computer idle" };
-            idleThread.Start();
+            ThreadPool.QueueUserWorkItem(delegate { Computer.RefreshMemories(); });
         }
 
         internal void RunHidden()
@@ -217,17 +192,6 @@ namespace CapriDesktop
             base.OnFormClosing(e);
         }
 
-        protected override void OnActivated(EventArgs e)
-        {
-            base.OnActivated(e);
-            if (lastWatched != DateTime.MinValue && (DateTime.UtcNow - lastWatched).TotalSeconds > 90 && !Busy)
-            {
-                string line = Computer.Pick(HerComputer.PeekLines);
-                ThreadPool.QueueUserWorkItem(delegate { Wave(); Bubble(line); });
-            }
-            lastWatched = DateTime.UtcNow;
-        }
-
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             closing = true;
@@ -245,7 +209,7 @@ namespace CapriDesktop
             {
                 ticker.Dispose();
                 foreach (Image image in art.Values) if (image != null) image.Dispose();
-                foreach (IDisposable owned in new IDisposable[] { perch, face, pointer, backdrop, boomScene, boomFrame, clockFont, bigFont, textFont, smallFont, boldFont, labelFont, monoFont, diaryFont }) if (owned != null) owned.Dispose();
+                foreach (IDisposable owned in new IDisposable[] { perch, face, pointer, backdrop, boomScene, boomFrame, clockFont, bigFont, textFont, smallFont, boldFont, labelFont, monoFont }) if (owned != null) owned.Dispose();
                 lock (gate) if (frame != null) { frame.Dispose(); frame = null; }
             }
             base.Dispose(disposing);
@@ -276,7 +240,7 @@ namespace CapriDesktop
                 }
                 if (bubble != null && DateTime.UtcNow > bubbleUntil) bubble = null;
             }
-            if (ContainsFocus && WindowState != FormWindowState.Minimized) lastWatched = DateTime.UtcNow;
+            if (inControl && (DateTime.UtcNow - handActiveAt).TotalSeconds > HandBackSeconds) HandBack();
             if (!Busy && (DateTime.UtcNow - pumpedAt).TotalSeconds > 15) { pumpedAt = DateTime.UtcNow; Pump(); }
             if (!Visible) return;
             Invalidate();
@@ -308,34 +272,6 @@ namespace CapriDesktop
                 }
                 else Thread.Sleep(300);
             }
-        }
-
-        private void IdleLoop()
-        {
-            Thread.Sleep(6000);
-            while (!closing)
-            {
-                int wait = 20000 + random.Next(40000);
-                for (int waited = 0; waited < wait && !closing; waited += 250) Thread.Sleep(250);
-                if (closing || Busy || inControl || Quiet) continue;
-                bool minimized = false;
-                try { Invoke(new Action(delegate { minimized = !Seen || !Visible; })); }
-                catch (InvalidOperationException) { return; }
-                if (minimized) continue;
-                if (Booming) continue;
-                try { Computer.Potter(this, delegate { return closing || Busy || inControl || Booming; }, BrainDiary); }
-                catch (Exception) { }
-                if (!Busy) Status("Just hanging out");
-            }
-        }
-
-        private string BrainDiary()
-        {
-            if (Ask == null || !CanThink() || (DateTime.UtcNow - brainDiaryAt).TotalMinutes < 60) return null;
-            brainDiaryAt = DateTime.UtcNow;
-            List<string> recent = Computer.Diary(5);
-            string said = Ask("You are Capri writing one short line in your private diary on your own little computer. Lowercase, playful, under 18 words, no hashtags or emojis. Reply with the line only.", "Your last diary lines:\n" + string.Join("\n", recent.ToArray()) + "\nWrite today's next line.");
-            return HerComputer.Short((said ?? "").Trim().Trim('"'), 140);
         }
 
         private HerBrowser Browser()
@@ -370,8 +306,8 @@ namespace CapriDesktop
             HerJob added = Computer.Jobs.Add(task, repeat, after);
             if (added == null) return repeat.Length > 0 ? "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first." : "My job list is full. Let me get through some of it first.";
             if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one in Mainframe under BRAIN."; }
-            inControl = false;
             Pump();
+            if (inControl && repeat.Length == 0) return "It's in my Jobs app. I'll start it when you give my computer back.";
             if (repeat.Length > 0) return "Ok, I'll " + HerComputer.Short(task, 80) + " " + (repeat == "daily" ? "every day" : "every week") + " on my computer, starting " + (wasBusy ? "after this job." : "now.");
             if (wasBusy) return "I'm doing \"" + HerComputer.Short(runningTask, 60) + "\" right now. I'll do that next: it's number " + Math.Max(1, Computer.Jobs.Waiting - 1) + " in my Jobs app.";
             return null;
@@ -410,12 +346,12 @@ namespace CapriDesktop
             if (answer == null) state = "stopped";
             Computer.Jobs.Finish(job.Id, state, answer, note);
             runningTask = null;
-            if (state == "stopped") { Status("Stopped"); Bubble("Ok, stopped."); return; }
+            if (state == "stopped") { Status("Stopped"); return; }
             if (note != null) lock (gate) selectedNote = note;
             Changed();
             Status("Done: " + HerComputer.Short(job.Task, 50));
             bool handing = state == "done" && !string.IsNullOrEmpty(job.After) && HandOff != null;
-            Bubble(handing ? "Done! Now for the real thing." : state == "done" ? "Done! It's in my notes." : "That one didn't work out.");
+            Bubble(FirstLine(answer));
             Action<string> tell = Tell;
             if (tell != null) tell(HerComputer.Short(answer, 600));
             if (handing)
@@ -432,9 +368,27 @@ namespace CapriDesktop
 
         private void ToggleControl()
         {
-            inControl = !inControl;
-            if (inControl) { stopTask = Busy; Status("You've got my mouse"); Bubble("Fine, you drive. Be gentle."); }
-            else { Status("Just hanging out"); Bubble(Computer.Pick(new[] { "My turn again.", "Thank you. I'll take it from here.", "You left fingerprints." })); }
+            if (inControl) { HandBack(); return; }
+            handActiveAt = DateTime.UtcNow;
+            inControl = true;
+            stopTask = Busy;
+            lock (gate) bubble = null;
+            Status("You have the mouse");
+        }
+
+        private void HandBack()
+        {
+            if (!inControl) return;
+            inControl = false;
+            Status("Idle");
+            ThreadPool.QueueUserWorkItem(delegate { Pump(); });
+        }
+
+        internal static string FirstLine(string answer)
+        {
+            string text = System.Text.RegularExpressions.Regex.Replace(answer ?? "", @"\s+", " ").Trim();
+            System.Text.RegularExpressions.Match end = System.Text.RegularExpressions.Regex.Match(text, @"^.{20,}?[.!?](?=\s|$)");
+            return HerComputer.Short(end.Success ? end.Value : text, 110);
         }
 
         public void Status(string text) { lock (gate) status = text ?? ""; }
@@ -492,14 +446,6 @@ namespace CapriDesktop
         public void Bubble(string line)
         {
             lock (gate) { bubble = line; bubbleUntil = DateTime.UtcNow.AddSeconds(Math.Max(4, Math.Min(10, (line ?? "").Length / 9))); }
-        }
-
-        public void Wave()
-        {
-            PointF at;
-            lock (gate) at = cursor;
-            for (int i = 0; i < 4 && !closing; i++) MoveTo(new PointF(at.X + (i % 2 == 0 ? 26 : -26), at.Y - 6));
-            MoveTo(at);
         }
 
         public void Changed() { }
@@ -568,17 +514,13 @@ namespace CapriDesktop
                 if (hit != null) { hit(); return; }
                 if (!CardBox.Contains(System.Drawing.Point.Round(at))) lock (gate) jobTyped = null;
             }
-            if (DockSlot(Array.IndexOf(HerComputer.Apps, "jobs")).Contains(System.Drawing.Point.Round(at))) { OpenApp("jobs"); return; }
-            if (Busy && !inControl)
-            {
-                if ((DateTime.UtcNow - heyAt).TotalSeconds > 6 && HerComputer.Screen.Contains(System.Drawing.Point.Round(at))) { heyAt = DateTime.UtcNow; Bubble(Computer.Pick(HerComputer.HeyLines)); }
-                return;
-            }
+            if (DockSlot(Array.IndexOf(HerComputer.Apps, "jobs")).Contains(System.Drawing.Point.Round(at))) { if (app == "jobs") lock (gate) { openApp = null; jobTyped = null; } else OpenApp("jobs"); return; }
+            if (Busy && !inControl) return;
             for (int i = 0; i < HerComputer.Apps.Length; i++)
-                if (DockSlot(i).Contains(System.Drawing.Point.Round(at))) { OpenApp(HerComputer.Apps[i]); return; }
+                if (DockSlot(i).Contains(System.Drawing.Point.Round(at))) { if (app == HerComputer.Apps[i]) lock (gate) openApp = null; else OpenApp(HerComputer.Apps[i]); return; }
             bool card = app != null && app != "browser";
             if (card && new RectangleF(CardBox.Right - 48, CardBox.Top, 48, CardHead).Contains(at)) { lock (gate) { openApp = null; jobTyped = null; } return; }
-            if (card && app != "stickers" && app != "jobs" && new RectangleF(CardBox.Right - 170, CardBox.Top, 120, CardHead).Contains(at)) { OpenFolder(); return; }
+            if (card && app != "stickers" && app != "jobs" && new RectangleF(CardBox.Right - 190, CardBox.Top, 140, CardHead).Contains(at)) { if (app == "notes") OpenVault(); else OpenFolder(); return; }
             if (app == "browser" && new RectangleF(AppBox.Right - 40, AppBox.Top, 40, TabTall).Contains(at)) { lock (gate) openApp = null; return; }
             if (app == "browser" && inControl)
             {
@@ -625,8 +567,7 @@ namespace CapriDesktop
             {
                 Computer.AddSticker(heldSticker, System.Drawing.Point.Round(at), random.Next(-20, 21));
                 lock (gate) heldSticker = null;
-                Bubble("Ooh, nice placement.");
-                Status("Just hanging out");
+                Status("Idle");
                 return;
             }
             for (int i = 0; i < HerComputer.Sites.Length; i++)
@@ -636,7 +577,11 @@ namespace CapriDesktop
         private void OpenApp(string app)
         {
             lock (gate) openApp = app;
-            if (app == "notes") lock (gate) if (selectedNote == null) { List<string> notes = Computer.Notes(); if (notes.Count > 0) selectedNote = notes[0]; }
+            if (app == "notes")
+            {
+                ThreadPool.QueueUserWorkItem(delegate { Computer.RefreshMemories(); });
+                lock (gate) if (selectedNote == null) { List<string> notes = Computer.Notes(); if (notes.Count > 0) selectedNote = notes[0]; }
+            }
             if (app == "browser")
             {
                 HerBrowser current;
@@ -648,15 +593,39 @@ namespace CapriDesktop
         private void OpenSite(string address)
         {
             lock (gate) openApp = "browser";
-            ThreadPool.QueueUserWorkItem(delegate { HerBrowser started = Browser(); if (started != null) started.Go(address); Status(Busy ? Doing : "Just hanging out"); });
+            ThreadPool.QueueUserWorkItem(delegate { HerBrowser started = Browser(); if (started != null) started.Go(address); Status(Busy ? Doing : "Idle"); });
         }
 
         private void OpenFolder() { Open(Computer.Folder); }
+
+        private void OpenVault()
+        {
+            string folder = Computer.NotesFolder;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                Computer.RefreshMemories();
+                try { Process.Start(new ProcessStartInfo(HerVault.ObsidianLink(folder)) { UseShellExecute = true }); }
+                catch (Exception) { Open(folder); }
+            });
+        }
 
         private static void Open(string path)
         {
             try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
             catch (Exception) { }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (inControl && (m.Msg == 0x0100 || m.Msg == 0x0102 || m.Msg == 0x0200 || m.Msg == 0x0201 || m.Msg == 0x0204 || m.Msg == 0x020A)) handActiveAt = DateTime.UtcNow;
+            base.WndProc(ref m);
+        }
+
+        internal void TakeControlFor(double secondsIdle)
+        {
+            if (!inControl) ToggleControl();
+            handActiveAt = DateTime.UtcNow.AddSeconds(-secondsIdle);
+            Tick();
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
@@ -714,11 +683,8 @@ namespace CapriDesktop
                 backdrop = new Bitmap(Math.Max(1, ClientSize.Width), Math.Max(1, ClientSize.Height), PixelFormat.Format32bppPArgb);
                 using (Graphics b = Graphics.FromImage(backdrop))
                 {
-                    b.Clear(Ground);
                     b.SmoothingMode = SmoothingMode.AntiAlias;
-                    b.TranslateTransform(offset.X, offset.Y);
-                    b.ScaleTransform(scale, scale);
-                    DrawFrame(b);
+                    DrawBezel(b, new Rectangle(0, 0, backdrop.Width, backdrop.Height), 0);
                 }
             }
             g.DrawImageUnscaled(backdrop, 0, 0);
@@ -757,7 +723,7 @@ namespace CapriDesktop
             PointF home;
             lock (gate) { boomAt = DateTime.UtcNow; boomSpot = at; heldSticker = null; home = cursor; }
             Status("Uh oh");
-            Bubble(BombLooks[random.Next(BombLooks.Length)]);
+            lock (gate) bubble = null;
             ThreadPool.QueueUserWorkItem(delegate { BombGoesOff(home); });
         }
 
@@ -765,24 +731,35 @@ namespace CapriDesktop
         {
             DateTime began;
             lock (gate) began = boomAt;
+            string reaction = null;
+            Func<string, string, string> ask = Ask;
+            Thread thinking = null;
+            if (ask != null && CanThink())
+            {
+                thinking = new Thread(delegate()
+                {
+                    try { reaction = ask("You are Capri. Reply with one short line in your own voice, the way you'd say it out loud, with no quotes and no emojis.", "Someone just stuck a malware bomb sticker on the home page of your own little computer, the one that lives inside their PC. It fizzed, blew up, glitched your whole screen and made it reboot. It's back now. React to them."); }
+                    catch (Exception) { reaction = null; }
+                }) { IsBackground = true, Name = "her computer bomb" };
+                thinking.Start();
+            }
             while (!closing && (DateTime.UtcNow - began).TotalSeconds < Fuse) Thread.Sleep(50);
-            Bubble(BombCries[random.Next(BombCries.Length)]);
             Status("Something is very wrong");
             while (!closing && (DateTime.UtcNow - began).TotalSeconds < GlitchEnd)
             {
-                lock (gate) target = new PointF(PageBox.Left + random.Next(PageBox.Width), PageBox.Top + random.Next(PageBox.Height));
+                if (!inControl) lock (gate) target = new PointF(PageBox.Left + random.Next(PageBox.Width), PageBox.Top + random.Next(PageBox.Height));
                 Thread.Sleep(140);
             }
             Bubble(null);
             Status("Rebooting...");
             while (!closing && (DateTime.UtcNow - began).TotalSeconds < BoomEnd) Thread.Sleep(50);
             if (closing) return;
-            string line = BombReactions[random.Next(BombReactions.Length)];
-            lock (gate) { if (boomAt == began) boomAt = DateTime.MinValue; target = home; }
+            lock (gate) { if (boomAt == began) boomAt = DateTime.MinValue; if (!inControl) target = home; }
+            Status(inControl ? "You have the mouse" : "Idle");
+            if (thinking != null) thinking.Join(15000);
+            string line = HerComputer.Short((reaction ?? "").Trim().Trim('"'), 200);
+            if (line.Length == 0) return;
             Bubble(line);
-            Status("Just hanging out");
-            try { Computer.WriteDiary(BombDiary[random.Next(BombDiary.Length)]); }
-            catch (Exception) { }
             Action<string> tell = Tell;
             if (tell != null) tell(line);
         }
@@ -928,11 +905,13 @@ namespace CapriDesktop
             DrawCursor(g, at, ripple);
         }
 
-        private static void DrawFrame(Graphics g)
+        private static void DrawFrame(Graphics g) { DrawBezel(g, HerComputer.Screen, 40); }
+
+        private static void DrawBezel(Graphics g, Rectangle box, int radius)
         {
-            Rectangle box = HerComputer.Screen;
-            using (GraphicsPath shape = Round(box, 40))
+            using (GraphicsPath shape = radius > 0 ? Round(box, radius) : new GraphicsPath())
             {
+                if (radius <= 0) shape.AddRectangle(box);
                 using (LinearGradientBrush pink = new LinearGradientBrush(box, Color.FromArgb(255, 106, 142), Color.FromArgb(90, 11, 42), 62f))
                 {
                     ColorBlend blend = new ColorBlend();
@@ -946,7 +925,7 @@ namespace CapriDesktop
                 Random specks = new Random(7);
                 using (SolidBrush bright = new SolidBrush(Color.FromArgb(120, 255, 255, 255)))
                 using (SolidBrush dim = new SolidBrush(Color.FromArgb(60, 255, 255, 255)))
-                    for (int i = 0; i < 520; i++)
+                    for (int i = 0, many = (int)Math.Min(2400, 520L * box.Width * box.Height / (1248L * 748)); i < many; i++)
                     {
                         float x = box.Left + specks.Next(box.Width), y = box.Top + specks.Next(box.Height), r = 0.8f + (float)specks.NextDouble() * 1.2f;
                         g.FillEllipse(i % 3 == 0 ? bright : dim, x, y, r, r);
@@ -1039,7 +1018,7 @@ namespace CapriDesktop
                         g.DrawString(clock, clockFont, halo, new RectangleF(clockBox.X + glow * 2, clockBox.Y, clockBox.Width, clockBox.Height), centre);
                     }
                 using (SolidBrush blush = new SolidBrush(Blush)) g.DrawString(clock, clockFont, blush, clockBox, centre);
-                using (SolidBrush soft = new SolidBrush(Color.FromArgb(242, 213, 225))) g.DrawString(Busy ? "Busy busy busy" : "Welcome back", labelFont, soft, new RectangleF(PageBox.Left, PageBox.Top + 258, PageBox.Width, 30), centre);
+                using (SolidBrush soft = new SolidBrush(Color.FromArgb(242, 213, 225))) g.DrawString(Busy ? HerComputer.Short(runningTask, 60) : DateTime.Now.ToString("dddd d MMMM"), labelFont, soft, new RectangleF(PageBox.Left, PageBox.Top + 258, PageBox.Width, 30), centre);
                 using (SolidBrush white = new SolidBrush(Color.White))
                 using (SolidBrush shade = new SolidBrush(Color.FromArgb(70, 0, 0, 0)))
                 using (SolidBrush label = new SolidBrush(Color.FromArgb(233, 211, 222)))
@@ -1076,11 +1055,10 @@ namespace CapriDesktop
                 {
                     g.DrawString("My " + HerComputer.AppNames[index].ToLowerInvariant(), boldFont, ink, CardBox.Left + 58, CardBox.Top + 15);
                     g.DrawString("×", textFont, soft, CardBox.Right - 32, CardBox.Top + 14);
-                    if (app != "stickers" && app != "jobs") g.DrawString("Open folder", smallFont, soft, CardBox.Right - 150, CardBox.Top + 17);
+                    if (app != "stickers" && app != "jobs") g.DrawString(app == "notes" ? "Open in Obsidian" : "Open folder", smallFont, soft, CardBox.Right - (app == "notes" ? 178 : 150), CardBox.Top + 17);
                 }
                 if (app == "notes") DrawNotes(g, field, text, note);
                 else if (app == "files") DrawFiles(g);
-                else if (app == "diary") DrawDiary(g, field, text);
                 else if (app == "stickers") DrawStickerBook(g);
                 else if (app == "jobs") DrawJobs(g);
                 g.Clip = kept;
@@ -1116,6 +1094,7 @@ namespace CapriDesktop
                     g.DrawString(heading, bigFont, ink, new RectangleF(body.X, body.Y, body.Width, tall.Height + 2));
                     body = new RectangleF(body.X, body.Y + tall.Height + 14, body.Width, Math.Max(0, body.Height - tall.Height - 14));
                 }
+                if (field != "note") content = System.Text.RegularExpressions.Regex.Replace(content, @"(?m)^>[^\n]*\n?", "").TrimStart('\r', '\n');
                 g.DrawString(content, textFont, ink, body);
             }
         }
@@ -1138,31 +1117,6 @@ namespace CapriDesktop
             }
         }
 
-        private void DrawDiary(Graphics g, string field, string text)
-        {
-            RectangleF paper = new RectangleF(CardBox.Left + 28, CardBox.Top + CardHead + 20, CardBox.Width - 56, CardBox.Height - CardHead - 40);
-            using (SolidBrush cream = new SolidBrush(Color.FromArgb(255, 251, 243)))
-            using (Pen line = new Pen(Color.FromArgb(246, 214, 228), 1.2f))
-            {
-                g.FillRectangle(cream, paper);
-                for (float y = paper.Top + 40; y < paper.Bottom; y += 34) g.DrawLine(line, paper.Left, y, paper.Right, y);
-            }
-            List<string> lines = Computer.Diary(12);
-            if (field == "diary" && text != null) lines.Add(DateTime.Now.ToString("yyyy-MM-dd HH:mm") + "  " + text + (DateTime.UtcNow.Millisecond < 500 ? "|" : ""));
-            while (lines.Count > 12) lines.RemoveAt(0);
-            using (SolidBrush ink = new SolidBrush(Ink))
-            using (SolidBrush rose = new SolidBrush(Hot))
-                for (int i = 0; i < lines.Count; i++)
-                {
-                    string entry = lines[i];
-                    string when = entry.Length > 18 ? entry.Substring(11, 5) : "";
-                    string words = entry.Length > 18 ? entry.Substring(18) : entry;
-                    float y = paper.Top + 14 + i * 34;
-                    g.DrawString(when, smallFont, rose, paper.Left + 14, y + 6);
-                    g.DrawString(HerComputer.Short(words, 80), diaryFont, ink, paper.Left + 70, y);
-                }
-        }
-
         private void AddTypedJob()
         {
             string text;
@@ -1171,9 +1125,8 @@ namespace CapriDesktop
             if (text.Length == 0) return;
             HerJob added = Computer.Jobs.Add(text, HerJobs.Repeats[repeat]);
             lock (gate) { jobTyped = null; jobRepeat = 0; }
-            if (added == null) { Bubble("My job list is full."); return; }
-            if (Ask == null || !CanThink()) { Bubble("Saved. I need a brain for jobs though. Pick one in Mainframe."); return; }
-            Bubble(repeat > 0 ? "Ok! I'll do that " + (repeat == 1 ? "every day." : "every week.") : Busy ? "Added. I'll do it after this one." : "On it!");
+            if (added == null) { Status("Jobs list is full"); return; }
+            if (Ask == null || !CanThink()) { Status("Needs a brain: pick one in Mainframe"); return; }
             Pump();
         }
 
@@ -1325,7 +1278,7 @@ namespace CapriDesktop
 
         private void DrawControl(Graphics g, string now)
         {
-            string line = inControl ? "You have her mouse" : Busy ? "Capri is " + Lower(HerComputer.Short(now, 48)) : Lower(now) == "just hanging out" ? "Capri is pottering about" : HerComputer.Short(now, 48);
+            string line = inControl ? "You have her mouse" : Busy ? "Capri is " + Lower(HerComputer.Short(now, 48)) : now == "Idle" ? "Capri's computer" : HerComputer.Short(now, 48);
             string press = inControl ? "Give it back" : "Take control";
             SizeF words = g.MeasureString(line, textFont), knob = g.MeasureString(press, boldFont);
             float width = words.Width + knob.Width + 70, left = HerComputer.Width / 2f - width / 2f, top = HerComputer.Screen.Bottom;

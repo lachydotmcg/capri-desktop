@@ -3056,6 +3056,7 @@ namespace CapriDesktop
             menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
             menu.Items.Add(new ToolStripMenuItem("Her folder", null, delegate { OpenHerFolder(); }));
             menu.Items.Add(new ToolStripMenuItem("Room camera", null, delegate { OpenRoomWindow(); }));
+            menu.Items.Add(new ToolStripMenuItem("Her computer", null, delegate { if (!preferences.HerComputer) ToggleHerComputer(); OpenHerComputer(); }));
             ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
             menu.Items.Add(playItem);
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
@@ -44968,6 +44969,12 @@ namespace CapriDesktop
                     }
                     herWindow.ShowBoom(60, new System.Drawing.PointF(640, 300));
                     if (herWindow.Booming) throw new Exception("Her computer never came back from the malware bomb.");
+                    herWindow.TakeControlFor(5);
+                    if (!herWindow.InControl) throw new Exception("Take control on her computer didn't hand over her mouse.");
+                    herWindow.TakeControlFor(31);
+                    if (herWindow.InControl) throw new Exception("Her computer kept her mouse with you after 30 idle seconds.");
+                    string herVault = HerVault.Check(Path.Combine(Path.GetTempPath(), "capri-her-vault-" + Guid.NewGuid().ToString("N")));
+                    if (herVault != null) throw new Exception(herVault);
                 }
                 List<RemoteMonitor> herScreens = new List<RemoteMonitor>();
                 AddHerScreen(herScreens);
@@ -44982,7 +44989,7 @@ namespace CapriDesktop
                 herScreens.Clear();
                 AddHerScreen(herScreens);
                 if (LoadPreferences().HerComputer || HerComputerShown != "off | closed" || herScreens.Count != 0) throw new Exception("Her own computer did not turn off: " + HerComputerShown);
-                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, her malware bomb blows up and reboots, Capri Remote can watch it, and her help explains it");
+                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, her malware bomb blows up and reboots, take control stays yours until 30 idle seconds, her memories mirror into an Obsidian vault, Capri Remote can watch it, and her help explains it");
             }
             finally
             {
