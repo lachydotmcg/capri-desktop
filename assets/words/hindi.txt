@@ -268,8 +268,10 @@ Hide / Show Capri	Capri छिपाओ / दिखाओ
 Hide / Show key	छिपाओ / दिखाओ कुंजी
 Hide Capri	Capri छिपाओ
 Hide for now	अभी के लिए छिपाओ
+Hide her	उसे छिपाओ
 Hide in full screen	फ़ुल स्क्रीन में छिपाओ
 Hide this	इसे छिपाओ
+Hide, keep player	छिपाओ, प्लेयर रखो
 Hide/show:	छिपाओ/दिखाओ:
 Hide/show: Ctrl + Alt + H	छिपाओ/दिखाओ: Ctrl + Alt + H
 Hologram	होलोग्राम
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD में >
 INSTALLED >	इंस्टॉल्ड >
 Import a Capri mod	Capri मॉड इम्पोर्ट करो
 Import mod	मॉड इम्पोर्ट करो
+In full screen	फ़ुल स्क्रीन में
 In games	गेम्स में
 Input	इनपुट
 Input, Output or How to overlaps a row	इनपुट, आउटपुट या कैसे पंक्ति से ओवरलैप करता है
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	कुंजियाँ
 KEYS >	कुंजियाँ >
 Keep PC awake for jobs	काम के लिए PC को जागता रखो
+Keep player	प्लेयर रखो
 Keeps the last two minutes of your game in memory. Say clip that to save it.	तुम्हारे गेम के आखिरी दो मिनट मेमोरी में रखता है। सेव करने के लिए clip that बोलो।
 Key	कुंजी
 Key cleared: a model file needs none.	कुंजी साफ़ हो गई: मॉडल फ़ाइल को कोई कुंजी नहीं चाहिए।
@@ -439,6 +443,7 @@ No AI · no brain at all	कोई AI नहीं · बिल्कुल क�
 No brain runs, and nothing is sent anywhere.	कोई दिमाग नहीं चलता, और कुछ भी कहीं नहीं भेजा जाता।
 No brain yet	अभी कोई दिमाग नहीं
 No code open	कोई कोड खुला नहीं
+No limit	कोई सीमा नहीं
 No mic found	कोई माइक नहीं मिला
 No mods in the directory yet.	डायरेक्टरी में अभी कोई मॉड्स नहीं।
 No mods match that.	उससे कोई मॉड मेल नहीं खाता।
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	पिच
 Play	चलाओ
 Play...	चलाओ...
+Player only	सिर्फ़ प्लेयर
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS मॉडल इस क्लिप की आवाज़ कॉपी करते हैं। सुनने के लिए Test दबाओ।
 Pop-in times	पॉप-इन समय
 Pop-ins	पॉप-इन
@@ -666,6 +672,7 @@ Speed	स्पीड
 Start with Windows	Windows के साथ शुरू करो
 Start with this!	इसी से शुरू करो!
 Starting...	शुरू हो रहा है...
+Stay	वहीं रहो
 Stay on my model	मेरे मॉडल पर रहो
 Still checking your mics...	अभी भी तुम्हारे माइक जाँचे जा रहे हैं...
 Still checking your speakers...	अभी भी तुम्हारे स्पीकर जाँचे जा रहे हैं...

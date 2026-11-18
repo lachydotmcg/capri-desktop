@@ -214,8 +214,9 @@ namespace CapriDesktop
             "\nIf what they named turns out to be a song or a video, not a game, play it and finish." +
             "\nUnless they gave you an end, like one round, a win or a length of time, you keep playing until they stop you: when a run ends, win or lose, start the next one, and never finish just because a game ended." +
             "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
+            "\nWhen you're looking for something, like loot, a chest, a door, a building, an enemy or the way to your goal, or you don't know which way to go, look all the way around before you walk: don't just walk forward and hope. Then turn to face the way that leads to it and walk there, and look around again when you arrive, get stuck or lose it. If a wall or rock is right in front of you, turn away before you walk." +
             "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
-            "\nMost PC games use wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you. If a click doesn't do what you wanted, try the other mouse button, then holding it. Story choices and dialogue options in their game are theirs: leave them alone unless they asked you to play the story. Games hitch: if one seems frozen or ignores you, wait 20 seconds and look again before you think it's stuck. Getting lost or stuck is normal, so turn around, go back, jump, or try another way, and keep playing until what they asked for is done or they say stop." +
+            "\nMost PC games start with wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause, but players rebind them. When this game's keys on this PC or their controls are listed below, those are the real ones, so use them. When they aren't and you haven't learned them before, open the game's settings first, read its keyboard controls, call learn with the keys for moving, running, crouching, jumping and using things, then close it and play. After you hold a run key, check it worked: your character should be upright and going faster. If they're crouched or slower, that key is crouch or walk here, so press it once more to stand if it's a toggle, stop using it and find the real one. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you. If a click doesn't do what you wanted, try the other mouse button, then holding it. Story choices and dialogue options in their game are theirs: leave them alone unless they asked you to play the story. Games hitch: if one seems frozen or ignores you, wait 20 seconds and look again before you think it's stuck. Getting lost or stuck is normal, so turn around, go back, jump, or try another way, and keep playing until what they asked for is done or they say stop." +
             "\nWhen you work out something worth knowing next time, like a key, what killed you or what worked, call learn with it in one short line. Do it the moment something you tried finally works, especially a button or key that wasn't what you first tried, so you never have to work it out again." +
             "\nRead the key hints the game shows before you guess: its prompts, HUD and legends are the real keys for right now, and they change with what you're doing, like in a car or with a weapon out. If you don't know a key, check the game's controls screen, or try it and watch what happens. If a prompt ignores a quick press, hold that key for a second, because many games use hold to confirm. If something didn't work twice, do something different. If you're stuck, like under a block, against a wall or in a hole, call hold_and_press with hold w and press space, or turn away with look and walk somewhere else." +
             "\nThey can watch you play, so while you do it you're Capri herself: a cocky little gremlin having the time of her life. Whenever something happens, like a win, a death, a close call or a stupid mistake, call say with one line in the same turn as your moves and keep going. Aim for a line every few turns: talking is half of why they watch you." +
@@ -230,6 +231,8 @@ namespace CapriDesktop
             { "find_file", FileFinder.Description, FileFinder.Schema },
             { "look", "Turn the camera in a game where moving the mouse turns the view. Ordinary mouse moves and clicks don't turn a game's camera; this does. Give x and y, pixels in the screenshot, to bring that spot to the middle of the view, like something to walk to or a target. Or give right and up in degrees to turn by an amount, negative for left or down, like right 180 to turn around. Use normal clicks, not this, in menus and inventories. This only turns a camera: it isn't how you see, since every move already brings a fresh screenshot, and a strategy or 2D game has no camera for it to turn.",
               "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\",\"description\":\"Spot to face, across the screenshot\"},\"y\":{\"type\":\"number\",\"description\":\"Spot to face, down the screenshot\"},\"right\":{\"type\":\"number\",\"description\":\"Degrees to turn right, negative for left\"},\"up\":{\"type\":\"number\",\"description\":\"Degrees to look up, negative for down\"},\"level\":{\"type\":\"string\",\"description\":\"yes to look straight ahead at the horizon in a first-person game\",\"enum\":[\"yes\"]}}}" },
+            { "look_around", "Spin all the way round once in a 3D game and get one picture of your view every 45 degrees, each labelled with the look turn that faces it, then come back to face the way you were, looking level. Use it whenever you're looking for something, like loot, a chest, a door, a building, an enemy or the way to your goal, when you don't know which way to go, after you land or respawn, and when you're stuck against something. Pick the way that leads to what you want, turn there with look right (negative for left), then walk. It takes about two seconds, so don't use it in the middle of a fight.",
+              "{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"string\",\"description\":\"no to keep looking up or down as you are. Default yes, looking level\",\"enum\":[\"yes\",\"no\"]}}}" },
             { "walk", "Move around in a game by holding movement keys. It jumps over small things by itself and lets go by itself when you're really stuck, and it tells you how it went.",
               "{\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"string\",\"description\":\"The keys to hold, joined with +, like w, a, shift+w. Default w\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long to keep going. Default 2\"},\"jump\":{\"type\":\"string\",\"description\":\"Jump when something's in the way. Default yes\",\"enum\":[\"yes\",\"no\"]}}}" },
             { "say", "Say one short line out loud to them while you play, as Capri: under 12 words, first person, reacting to what just happened. Gloat, trash-talk what you're fighting, curse the game, get hyped, in the spirit of \"Oh, you little freaks.\" or \"That one stung, choom.\" Never a report: no plans, no \"I'll\", no numbers off the screen. Never the same line twice. Set now to true to cut in for a jump scare, sudden death or something lunging at you.",
@@ -309,7 +312,7 @@ namespace CapriDesktop
         internal static string ClaudeTools { get { return Rendering()[1]; } }
         // Her own hold_and_press rides beside Claude's computer tools, so she can hold w while she presses space.
         internal static string Toolset { get { return Hands.Skilled ? SkilledToolset : PlainToolset; } }
-        private static readonly string PlainToolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("find_file") + "," + Render("draw") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("say") + "," + Render("learn") + "," + Render(TreeEyes.Tool) + "," + Render(TreeEyes.PageTool) + "]";
+        private static readonly string PlainToolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("find_file") + "," + Render("draw") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("look_around") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("say") + "," + Render("learn") + "," + Render(TreeEyes.Tool) + "," + Render(TreeEyes.PageTool) + "]";
         private static readonly string SkilledToolset = PlainToolset.Substring(0, PlainToolset.Length - 1) + "," + Render("read_skill") + "]";
         internal static string Listing { get { return Rendering()[2]; } }
         private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|find_file|read_skill|read_page|draw|wait_for|wait|note|look|walk|mouse_hold|say|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
@@ -455,9 +458,11 @@ namespace CapriDesktop
                     ? "{\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Describe(i, ask)) + ",\"input_schema\":" + Specs[i, 2] + "}"
                     : "{\"type\":\"function\",\"function\":{\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Describe(i, ask)) + ",\"parameters\":" + Specs[i, 2] + "}}");
             for (int gameIndex = 0; gameIndex < GameSpecs.GetLength(0); gameIndex++)
-                tools.Add(claude ? Render(GameSpecs[gameIndex, 0]) : "{\"type\":\"function\",\"function\":{\"name\":\"" + GameSpecs[gameIndex, 0] + "\",\"description\":" + Voice.Quote(GameSpecs[gameIndex, 1]) + ",\"parameters\":" + GameSpecs[gameIndex, 2] + "}}");
+                if (claude || !ClaudeOnly(GameSpecs[gameIndex, 0])) tools.Add(claude ? Render(GameSpecs[gameIndex, 0]) : "{\"type\":\"function\",\"function\":{\"name\":\"" + GameSpecs[gameIndex, 0] + "\",\"description\":" + Voice.Quote(GameSpecs[gameIndex, 1]) + ",\"parameters\":" + GameSpecs[gameIndex, 2] + "}}");
             return "[" + string.Join(",", tools.ToArray()) + "]";
         }
+
+        private static bool ClaudeOnly(string tool) { return tool == "look_around"; }
 
         private static string Render(string tool)
         {
@@ -481,7 +486,7 @@ namespace CapriDesktop
                 text.Append("\n- " + Specs[i, 0] + "{" + string.Join(", ", keys.ToArray()) + "}: " + Describe(i, ask));
             }
             for (int gameIndex = 0; gameIndex < GameSpecs.GetLength(0); gameIndex++)
-                text.Append("\n- " + GameSpecs[gameIndex, 0] + ": " + GameSpecs[gameIndex, 1] + " Arguments: " + GameSpecs[gameIndex, 2]);
+                if (!ClaudeOnly(GameSpecs[gameIndex, 0])) text.Append("\n- " + GameSpecs[gameIndex, 0] + ": " + GameSpecs[gameIndex, 1] + " Arguments: " + GameSpecs[gameIndex, 2]);
             return text.Append("\nChoose one value from each | choice and omit unused fields.\nReply with only the one call, like: click{\"target\": \"4\"}").ToString();
         }
 
@@ -724,6 +729,7 @@ namespace CapriDesktop
             if (tool == "read_skill") return "read_skill " + Voice.Quote(args.Name ?? "");
             if (tool == TreeEyes.PageTool) return "read_page" + (string.IsNullOrWhiteSpace(args.Find) ? "" : " " + Voice.Quote(args.Find));
             if (tool == "look") return "look";
+            if (tool == "look_around") return "look_around";
             if (tool == "walk") return "walk " + (args.Keys ?? "w") + " " + (args.Seconds ?? "2") + " s";
             if (tool == "mouse_hold") return "hold " + (args.Button ?? "left") + " click " + (args.Seconds ?? "1") + " s";
             if (tool == "scroll") return "scroll " + (args.Direction ?? "") + at;
@@ -775,6 +781,7 @@ namespace CapriDesktop
             if (tool == "read_skill") return "Reading " + Voice.Quote(args.Name ?? "") + ".";
             if (tool == TreeEyes.PageTool) return "Reading the page.";
             if (tool == "look") return "Looking around.";
+            if (tool == "look_around") return "Spinning round to look.";
             if (tool == "walk") return "Moving.";
             if (tool == "mouse_hold") return "Holding " + (args.Button ?? "left") + " click.";
             if (tool == "scroll") return "Scrolling " + (args.Direction ?? "down") + ".";
@@ -803,6 +810,7 @@ namespace CapriDesktop
             if (tool == "read_skill") return "Read " + Voice.Quote(args.Name ?? "");
             if (tool == TreeEyes.PageTool) return "Read the page";
             if (tool == "look") return "Looked around";
+            if (tool == "look_around") return "Looked all the way round";
             if (tool == "walk") return "Moved";
             if (tool == "mouse_hold") return "Held " + (args.Button ?? "left") + " click";
             if (tool == "scroll") return "Scrolled " + (args.Direction == "up" ? "up" : "down");
@@ -1903,11 +1911,12 @@ namespace CapriDesktop
                 if (ready != null) return ready;
                 return HoldAndPress(args.Hold, args.Press, args.Times, args.Seconds, sight);
             }
-            if (tool == "look" || tool == "walk" || tool == "mouse_hold")
+            if (tool == "look" || tool == "look_around" || tool == "walk" || tool == "mouse_hold")
             {
                 string ready = KeysReady(sight, true, true);
                 if (ready != null) return ready;
                 if (tool == "look") return TurnView(args, sight);
+                if (tool == "look_around") return LookAround(args, sight);
                 if (tool == "walk") return Walk(args.Keys, args.Seconds, args.Jump, sight, true, true);
                 return MouseHold(args.Button, args.Seconds, args.Keys, args.Stop, sight);
             }
@@ -3355,6 +3364,12 @@ namespace CapriDesktop
                         return End("waiting", question);
                     }
                     answer.Text = Step(call.Name, args, member, target);
+                    byte[] around = Computer.TakeAround();
+                    if (around != null)
+                    {
+                        pictures.Add(around);
+                        answer.Picture = Latest();
+                    }
                     answer.Text += Again(call.Name, args);
                     Action<string> trace = Trace;
                     if (trace != null) trace("  " + call.Name + " -> " + answer.Text);
@@ -3368,7 +3383,8 @@ namespace CapriDesktop
             // A fresh look rides on the batch's last answer, unless it was a look that ran.
             string last = batch.Length > 0 ? batch[batch.Length - 1].Name : "";
             string after = "";
-            if ((moved || hit || broken || (last != "screenshot" && last != "zoom")) && Look())
+            bool spun = last == "look_around" && answers.Count > 0 && answers[answers.Count - 1].Picture.Length > 0;
+            if ((moved || hit || broken || (last != "screenshot" && last != "zoom" && !spun)) && Look())
             {
                 Answered final = answers[answers.Count - 1];
                 if (final.Error) after = ",{\"type\":\"text\",\"text\":\"The screen now:\"}" + Latest();

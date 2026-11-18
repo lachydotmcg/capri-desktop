@@ -268,8 +268,10 @@ Hide / Show Capri	إخفاء / إظهار Capri
 Hide / Show key	مفتاح إخفاء / إظهار
 Hide Capri	إخفاء Capri
 Hide for now	إخفاء الآن
+Hide her	أخفِها
 Hide in full screen	إخفاء في ملء الشاشة
 Hide this	أخفِ هذا
+Hide, keep player	أخفِها مع إبقاء المشغل
 Hide/show:	إخفاء/إظهار:
 Hide/show: Ctrl + Alt + H	إخفاء/إظهار: Ctrl + Alt + H
 Hologram	هولوغرام
@@ -296,6 +298,7 @@ IN DISCORD >	في DISCORD >
 INSTALLED >	مثبّت >
 Import a Capri mod	استيراد مود Capri
 Import mod	استيراد مود
+In full screen	في ملء الشاشة
 In games	في الألعاب
 Input	الإدخال
 Input, Output or How to overlaps a row	الإدخال أو الإخراج أو كيف يتداخل مع صف
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	المفاتيح
 KEYS >	المفاتيح >
 Keep PC awake for jobs	أبقِ الحاسوب مستيقظاً للمهام
+Keep player	أبقِ المشغل
 Keeps the last two minutes of your game in memory. Say clip that to save it.	يحتفظ بآخر دقيقتين من لعبتك في الذاكرة. قل سجّل ذلك لحفظها.
 Key	المفتاح
 Key cleared: a model file needs none.	تم مسح المفتاح: ملف النموذج لا يحتاج أي مفتاح.
@@ -439,6 +443,7 @@ No AI · no brain at all	بلا AI · بلا دماغ إطلاقاً
 No brain runs, and nothing is sent anywhere.	لا يعمل أي دماغ، ولا يُرسل شيء إلى أي مكان.
 No brain yet	لا يوجد دماغ بعد
 No code open	لا يوجد كود مفتوح
+No limit	بلا حد
 No mic found	لم يُعثر على ميكروفون
 No mods in the directory yet.	لا توجد مودات في الدليل بعد.
 No mods match that.	لا يطابق أي مود ذلك.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	الطبقة
 Play	تشغيل
 Play...	تشغيل...
+Player only	المشغل فقط
 Pocket TTS models copy this clip's voice. Press Test to hear it.	نماذج Pocket TTS تنسخ صوت هذا المقطع. اضغط اختبار للاستماع.
 Pop-in times	أوقات الظهور
 Pop-ins	مرات الظهور
@@ -666,6 +672,7 @@ Speed	السرعة
 Start with Windows	ابدأ مع Windows
 Start with this!	ابدأ بهذا!
 Starting...	جارٍ البدء...
+Stay	ابقَ
 Stay on my model	ابقَ على نموذجي
 Still checking your mics...	جارٍ فحص ميكروفوناتك...
 Still checking your speakers...	جارٍ فحص مكبراتك...

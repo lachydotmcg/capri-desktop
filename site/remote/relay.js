@@ -196,7 +196,7 @@
       let message;
       try { message = await session.open(bytes); } catch (error) { broken(); return; }
       // Her brains (PROTOCOL.md section 8.1): SETTINGS shows them. A pairing link for the home screen app (8.3).
-      if (message.type === 'brain.state' || message.type === 'brain.note' || message.type === 'pair.link') { on.message(message); return; }
+      if (message.type === 'brain.state' || message.type === 'brain.note' || message.type === 'pair.link' || message.type === 'wake.info' || message.type === 'notify' || /^push\./.test(message.type)) { on.message(message); return; }
       switch (message.type) {
         case 'ping':
           if (Number.isInteger(message.n)) send({ type: 'pong', n: message.n });
@@ -295,7 +295,7 @@
 
     // Back from the background or back online: check the socket, and reconnect at once if it's gone.
     const wake = () => {
-      if (closed || document.hidden || scan || !device) return;
+      if (closed || (document.hidden && !window.CapriKeepAlive) || scan || !device) return;
       if (ws && ws.readyState === WebSocket.OPEN) { ping(ws); return; }
       if (!ws) { clearTimeout(retryTimer); backoff = 1000; signIn(); }
     };

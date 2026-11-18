@@ -505,6 +505,7 @@ namespace CapriDesktop
         private static readonly double[] WanderPaces = { 3, 1, 0.45, 0.18 };
         internal static readonly string[] WanderNames = { "Off", "Rarely", "Sometimes", "Often", "Restless" };
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
+        internal static readonly string[] ReplyNames = { "Short", "Medium", "Long", "No limit" };
         private static readonly int[] Recalls = { 8, 16, 32 };
         internal static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
         internal static readonly int[] SoundLevels = { 0, 30, 60, 100 };
@@ -718,6 +719,7 @@ namespace CapriDesktop
         // something's worth a line. Glance every sets how often; Keep her caught up keeps the glances she stays quiet about.
         internal static readonly int[] GlanceGaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         internal static readonly string[] GlanceGapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
+        internal static readonly string[] GlanceStepNames = { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private readonly List<MenuItem> gapPicks = new List<MenuItem>();
         private MenuItem watchItem;
         private MenuItem caughtUpItem;
@@ -777,9 +779,9 @@ namespace CapriDesktop
         // Settings > Bubble, like Windows: how long her replies stay up.
         internal static readonly string[] BubbleNames = { "Quick", "Normal", "Long" };
         private readonly List<MenuItem> bubblePicks = new List<MenuItem>();
-        // Settings > Volume, like Windows: her spoken voice, Mute to 150%. Her sound effects stay on Sounds.
-        internal static readonly int[] Volumes = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
-        internal static readonly string[] VolumeNames = { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" };
+        // Settings > Volume, like Windows: her spoken voice, 10% to 150%. VOICE > OFF is her mute. Her sound effects stay on Sounds.
+        internal static readonly int[] Volumes = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+        internal static readonly string[] VolumeNames = { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" };
         private readonly List<MenuItem> volumePicks = new List<MenuItem>();
         // Settings > Voice style, Windows' Pitch, Speed, Robot and Glitch sliders. They change her ElevenLabs voice here.
         internal static readonly string[] PitchNames = { "-6", "-5", "-4", "-3", "-2", "-1", "Normal", "+1", "+2", "+3", "+4", "+5", "+6" };
@@ -884,15 +886,20 @@ namespace CapriDesktop
             Lingo.Bundled = WordTable;
             Lingo.Use(Program.Smoke == null ? Brain.Language : null);
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
+            if (Saved.ReplyLength == 1) { Saved.Replies = 0; Saved.ReplyLength = 0; }
+            else if (Saved.ReplyLength >= 2) { Saved.Replies = 2; Saved.ReplyLength = 3; }
+            else Saved.ReplyLength = 0;
+            Saved.MemorySize = 0;
             Brain.Wordiness = Math.Max(0, Math.Min(2, Saved.Replies));
             Brain.Recall = Saved.LinuxMigrationVersion > 0 ? Math.Clamp(Saved.Recall, 0, 60) : Saved.Recall == 16 || Saved.Recall == 32 ? Saved.Recall : 8;
-            Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, Saved.MemorySize) >= 0 ? Saved.MemorySize : 0;
-            Brain.ReplyLength = Math.Clamp(Saved.ReplyLength, 0, Brain.ReplySizes.Length - 1);
+            Brain.MemorySize = 0;
+            Brain.ReplyLength = Saved.ReplyLength;
             Brain.Picks = Saved.ThinkingPicks;
             Brain.ThinkingChanged = NotifySettings;
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
             Sfx.Level = Math.Max(0, Math.Min(100, Saved.Sounds ?? 60));
-            Voice.Loudness = Math.Max(0, Math.Min(150, Saved.Volume ?? 100));
+            if (Saved.Volume <= 0) { Saved.Silent = true; Saved.Volume = 100; }
+            Voice.Loudness = Math.Max(10, Math.Min(150, Saved.Volume ?? 100));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, Saved.Pitch));
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, Saved.Pace ?? 100));
             VoiceFx.Robot = Math.Max(0, Math.Min(100, Saved.Robot));
@@ -983,8 +990,24 @@ namespace CapriDesktop
             InitializeNativeAdapters();
             if (Program.Smoke == null)
             {
-                Sfx.TypeOut = delegate(short[] samples) { Limbs.Speak(Voice.Wave(samples, Sfx.Rate)); };
-                Sfx.Untyped = Limbs.Hush;
+                Sfx.TypeOut = delegate(short[] samples)
+                {
+                    if (OperatingSystem.IsMacOS() && Saved.ListenCapri)
+                    {
+                        nameEars.GateForPlayback();
+                        macSpeechUntil = Now + samples.Length / (double)Sfx.Rate + 0.7;
+                    }
+                    Limbs.Speak(Voice.Wave(samples, Sfx.Rate));
+                };
+                Sfx.Untyped = delegate
+                {
+                    if (OperatingSystem.IsMacOS() && Saved.ListenCapri)
+                    {
+                        nameEars.GateForPlayback();
+                        macSpeechUntil = Now + 0.7;
+                    }
+                    Limbs.Hush();
+                };
             }
             Look.OverGames = !Saved.NotOnTop && Program.Smoke == null;
             Look.AboveGames(this);
@@ -2571,13 +2594,17 @@ namespace CapriDesktop
             }
             MenuItem replies = new MenuItem { Header = "Reply length" };
             MenuItem recall = new MenuItem { Header = "Chat memory" };
-            for (int i = 0; i < Lengths.Length; i++)
+            for (int i = 0; i < ReplyNames.Length; i++)
             {
                 int level = i;
-                MenuItem reply = new MenuItem { Header = Lengths[i], ToggleType = MenuItemToggleType.Radio, GroupName = "replies" };
+                MenuItem reply = new MenuItem { Header = ReplyNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "replies" };
                 reply.Click += Guarded(delegate { SetReplies(level); });
                 replyPicks.Add(reply);
                 replies.Items.Add(reply);
+            }
+            for (int i = 0; i < Lengths.Length; i++)
+            {
+                int level = i;
                 MenuItem keep = new MenuItem { Header = Lengths[i], ToggleType = MenuItemToggleType.Radio, GroupName = "recall" };
                 keep.Click += Guarded(delegate { SetRecall(Recalls[level]); });
                 recallPicks.Add(keep);
@@ -2850,7 +2877,7 @@ namespace CapriDesktop
             onTopItem.IsChecked = OnTop;
             string language = Brain.Language ?? "English";
             foreach (MenuItem pick in languagePicks) pick.IsChecked = (string)pick.Tag == language;
-            for (int i = 0; i < replyPicks.Count; i++) replyPicks[i].IsChecked = i == Brain.Wordiness;
+            for (int i = 0; i < replyPicks.Count; i++) replyPicks[i].IsChecked = i == Replies;
             for (int i = 0; i < recallPicks.Count; i++) recallPicks[i].IsChecked = Recalls[i] == Brain.Recall;
             for (int i = 0; i < soundPicks.Count; i++) soundPicks[i].IsChecked = SoundLevels[i] == Sfx.Level;
             typingItem.IsChecked = TypingSound;
@@ -3014,7 +3041,7 @@ namespace CapriDesktop
 
         internal void SetVolume(int percent)
         {
-            Voice.Loudness = Math.Max(0, Math.Min(150, percent));
+            Voice.Loudness = Math.Max(10, Math.Min(150, percent));
             Saved.Volume = Voice.Loudness;
             Save();
             Sync();
@@ -3363,7 +3390,6 @@ namespace CapriDesktop
                 case "head_pats": return HeadPats;
                 case "legacy_stand": return LegacyStand;
                 case "follow_ups": return FollowUps;
-                case "keep_awake": return KeepAwake;
                 case "voice": return Speaks;
                 case "quiet": return Shushed;
                 case "check_ins": return CheckIns;
@@ -3395,7 +3421,6 @@ namespace CapriDesktop
                 case "head_pats": SetHeadPats(on); break;
                 case "legacy_stand": SetLegacyStand(on); break;
                 case "follow_ups": SetFollowUps(on); break;
-                case "keep_awake": SetKeepAwake(on); break;
                 case "voice": SetSpeak(on); break;
                 case "quiet": ToggleShush(false); break;
                 case "check_ins": SetCheckIns(on); break;
@@ -3438,12 +3463,12 @@ namespace CapriDesktop
                 case "sleep": return Nearest(Sleeps, SleepAfter);
                 case "volume": return Nearest(Volumes, Voice.Loudness);
                 case "voice_speed": return Nearest(Paces, VoiceFx.Speed);
-                case "replies": return Brain.Wordiness;
+                case "replies": return Replies;
                 case "reply_limit": return Brain.ReplyLength;
                 case "mainframe_size": return Array.IndexOf(new[] { 0, 100, 125, 150, 175, 200 }, FrameSize(Saved.MainframeSize));
                 case "mainframe_colours": return MainframeTheme.ClampLook(Saved.MainframeColours);
                 case "bubble": return BubbleTime;
-                case "glance_gap": return Math.Max(0, Array.IndexOf(GlanceGaps, GlanceGap));
+                case "glance_gap": return !Saved.Watch ? 0 : 1 + Math.Max(0, Array.IndexOf(GlanceGaps, GlanceGap));
                 case "voice_pitch": return VoiceFx.Pitch + VoiceFx.MostPitch;
                 case "voice_robot": return Nearest(Amounts, VoiceFx.Robot);
                 case "voice_glitch": return Nearest(Amounts, VoiceFx.Glitch);
@@ -3492,7 +3517,7 @@ namespace CapriDesktop
                 case "mainframe_size": SetMainframeSize(new[] { 0, 100, 125, 150, 175, 200 }[step]); break;
                 case "mainframe_colours": SetMainframeColours(step); break;
                 case "bubble": SetBubbleTime(step); break;
-                case "glance_gap": SetGlanceGap(GlanceGaps[step]); break;
+                case "glance_gap": SetWatchEvery(step == 0 ? 0 : GlanceGaps[step - 1]); break;
                 case "voice_pitch": SetPitch(step - VoiceFx.MostPitch); break;
                 case "voice_robot": SetRobot(Amounts[step]); break;
                 case "voice_glitch": SetGlitch(Amounts[step]); break;
@@ -3540,7 +3565,7 @@ namespace CapriDesktop
             nextGlance = -1;
             ForgetNudges();
             if (shushed) { StopNativeListening(); CancelSpeech(); }
-            if (say) Talk.Answer("(quiet)", shushed ? "Going quiet. Turn off Mute her in Capri Mainframe when you want me back." : "I'm back, choom.");
+            if (say) Talk.Answer("(quiet)", shushed ? "Going quiet. Turn off Quiet in my right-click menu when you want me back." : "I'm back, choom.");
             Sync();
             if (ShushChanged != null) ShushChanged();
         }
@@ -3724,10 +3749,17 @@ namespace CapriDesktop
             }
         }
 
+        internal int Replies { get { return Brain.ReplyLength >= 2 ? 3 : Brain.Wordiness; } }
+
+        internal bool NvidiaBrain { get { return Brain.Remote != null && Brain.Remote.Kind == "nvidia"; } }
+
         internal void SetReplies(int level)
         {
-            Brain.Wordiness = Math.Max(0, Math.Min(2, level));
+            int step = Math.Max(0, Math.Min(3, level));
+            Brain.Wordiness = Math.Min(2, step);
+            Brain.ReplyLength = step == 3 ? 3 : 0;
             Saved.Replies = Brain.Wordiness;
+            Saved.ReplyLength = Brain.ReplyLength;
             Save();
             Sync();
         }
@@ -4644,6 +4676,17 @@ namespace CapriDesktop
             if (Saved.Watch) nextGlance = Now + Math.Min(20, seconds);
             Save();
             Sync();
+        }
+
+        internal void SetWatchEvery(int seconds)
+        {
+            if (seconds <= 0) { if (Saved.Watch) SetWatch(false); return; }
+            if (Saved.Watch) SetGlanceGap(seconds);
+            else
+            {
+                Saved.GlanceGap = seconds;
+                SetWatch(true);
+            }
         }
 
         internal void SetCaughtUp(bool on)

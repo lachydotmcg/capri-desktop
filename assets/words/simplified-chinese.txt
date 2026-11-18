@@ -268,8 +268,10 @@ Hide / Show Capri	隐藏 / 显示 Capri
 Hide / Show key	隐藏 / 显示键
 Hide Capri	隐藏 Capri
 Hide for now	暂时隐藏
+Hide her	隐藏她
 Hide in full screen	全屏时隐藏
 Hide this	隐藏这个
+Hide, keep player	隐藏她，保留播放器
 Hide/show:	隐藏/显示：
 Hide/show: Ctrl + Alt + H	隐藏/显示：Ctrl + Alt + H
 Hologram	全息
@@ -296,6 +298,7 @@ IN DISCORD >	在 DISCORD 中 >
 INSTALLED >	已安装 >
 Import a Capri mod	导入 Capri 模组
 Import mod	导入模组
+In full screen	全屏时
 In games	在游戏中
 Input	输入
 Input, Output or How to overlaps a row	输入、输出或如何 与一行重叠
@@ -314,6 +317,7 @@ KB.	KB。
 KEYS	按键
 KEYS >	按键 >
 Keep PC awake for jobs	为任务保持电脑唤醒
+Keep player	保留播放器
 Keeps the last two minutes of your game in memory. Say clip that to save it.	在内存中保留你游戏的最后两分钟。说 clip that 即可保存。
 Key	按键
 Key cleared: a model file needs none.	已清除密钥：模型文件不需要密钥。
@@ -439,6 +443,7 @@ No AI · no brain at all	无 AI · 完全没有大脑
 No brain runs, and nothing is sent anywhere.	不运行任何大脑，也不向任何地方发送内容。
 No brain yet	还没有大脑
 No code open	没有打开的代码
+No limit	不限
 No mic found	未找到麦克风
 No mods in the directory yet.	模组目录中还没有模组。
 No mods match that.	没有符合该条件的模组。
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	音调
 Play	播放
 Play...	播放...
+Player only	仅播放器
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS 模型会复制此片段的语音。按测试即可听到。
 Pop-in times	出现时间
 Pop-ins	出现
@@ -666,6 +672,7 @@ Speed	语速
 Start with Windows	随 Windows 启动
 Start with this!	从这里开始！
 Starting...	正在启动...
+Stay	留着
 Stay on my model	保持我的模型
 Still checking your mics...	仍在检查你的麦克风...
 Still checking your speakers...	仍在检查你的扬声器...

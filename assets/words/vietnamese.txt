@@ -268,8 +268,10 @@ Hide / Show Capri	Ẩn / hiện Capri
 Hide / Show key	Phím ẩn / hiện
 Hide Capri	Ẩn Capri
 Hide for now	Ẩn tạm thời
+Hide her	Ẩn cô ấy
 Hide in full screen	Ẩn khi toàn màn hình
 Hide this	Ẩn cái này
+Hide, keep player	Ẩn, giữ trình phát
 Hide/show:	Ẩn/hiện:
 Hide/show: Ctrl + Alt + H	Ẩn/hiện: Ctrl + Alt + H
 Hologram	Hình ảnh ba chiều
@@ -296,6 +298,7 @@ IN DISCORD >	TRONG DISCORD >
 INSTALLED >	ĐÃ CÀI >
 Import a Capri mod	Nhập mod Capri
 Import mod	Nhập mod
+In full screen	Khi toàn màn hình
 In games	Trong game
 Input	Đầu vào
 Input, Output or How to overlaps a row	Đầu vào, Đầu ra hoặc Cách dùng chồng lên một hàng
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	PHÍM
 KEYS >	PHÍM >
 Keep PC awake for jobs	Giữ PC thức để làm việc
+Keep player	Giữ trình phát
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Giữ hai phút cuối trò chơi của bạn trong bộ nhớ. Nói clip that để lưu.
 Key	Khóa
 Key cleared: a model file needs none.	Đã xóa khóa: mô hình kiểu tệp không cần khóa.
@@ -439,6 +443,7 @@ No AI · no brain at all	Không AI · không có não nào
 No brain runs, and nothing is sent anywhere.	Không có não nào chạy, và không gửi gì đi đâu cả.
 No brain yet	Chưa có não
 No code open	Không có mã nào mở
+No limit	Không giới hạn
 No mic found	Không tìm thấy mic
 No mods in the directory yet.	Chưa có mod nào trong thư mục.
 No mods match that.	Không có mod nào khớp với điều đó.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Cao độ
 Play	Phát
 Play...	Phát...
+Player only	Chỉ trình phát
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Các mô hình Pocket TTS sao chép giọng của clip này. Nhấn Thử để nghe.
 Pop-in times	Thời gian ghé thăm
 Pop-ins	Lần ghé thăm
@@ -666,6 +672,7 @@ Speed	Tốc độ
 Start with Windows	Khởi động cùng Windows
 Start with this!	Bắt đầu với cái này!
 Starting...	Đang khởi động...
+Stay	Ở lại
 Stay on my model	Giữ mô hình của mình
 Still checking your mics...	Vẫn đang kiểm tra mic của bạn...
 Still checking your speakers...	Vẫn đang kiểm tra loa của bạn...
