@@ -437,8 +437,8 @@ namespace CapriDesktop
             {
                 List<ModListing> found = null;
                 string problem = null;
-                try { found = ModDirectory.Newer(ModDirectory.Updates(loaded ?? ModDirectory.Browse(), installed), installed, ModDownloads); }
-                catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't reach the mods directory: " + error.Message; }
+                try { found = ModDirectory.Newer(ModDirectory.Updates(loaded ?? ModDirectory.BrowseNow(), installed), installed, ModDownloads); }
+                catch (Exception error) { problem = ModDirectory.Trouble(error); }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (closed) { ModDirectory.Forget(found); return; }

@@ -64612,6 +64612,27 @@ namespace CapriDesktop
                 if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Names: Far & Wide" || sheet.AuthorOf(0) != "by Vocyn" || sheet.AboutOf(0) != about) throw new Exception("The mods window did not search authors and descriptions together.");
                 sheet.Type2("");
                 checks.Add("PASS mods window search: author and description words find the named card together");
+                Func<string, long, byte[]> liveGet = ModDirectory.Get;
+                string liveKept = ModDirectory.KeptFolder;
+                ModDirectory.KeptFolder = Path.Combine(output, "kept-directory-missing");
+                ModDirectory.Get = delegate(string url, long most)
+                {
+                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeApi) throw new WebException("stand-in", WebExceptionStatus.Timeout);
+                    return liveGet(url, most);
+                };
+                try
+                {
+                    sheet.LoadMods();
+                    if (sheet.ShownCount != 2 || sheet.TitleOf(1) != "Names: Far & Wide" || sheet.StatusShown != "The mods directory took too long to answer. Showing the list from before.") throw new Exception("A failed refresh emptied the mods window or hid the error: " + sheet.ShownCount + " / " + sheet.StatusShown);
+                }
+                finally
+                {
+                    ModDirectory.Get = liveGet;
+                    ModDirectory.KeptFolder = liveKept;
+                }
+                sheet.LoadMods();
+                if (sheet.ShownCount != 2 || sheet.StatusShown != "") throw new Exception("The mods window didn't load again after a failed refresh: " + sheet.StatusShown);
+                checks.Add("PASS mods window: a refresh that fails keeps the cards on screen and says what went wrong instead of emptying the list");
                 wrongBytes = true;
                 refused = false;
                 try { ModDirectory.Download(found[1], under); }
@@ -64738,7 +64759,7 @@ namespace CapriDesktop
                 if (sheet.EmptyShown != "Nothing to show from the mods directory." || sheet.StatusShown != "No mods in the directory yet.") throw new Exception("An empty directory wasn't said.");
                 tree = "{nope";
                 sheet.LoadMods();
-                if (sheet.EmptyShown == null || sheet.StatusShown != "The mods directory sent something I can't read.") throw new Exception("Broken directory data wasn't said: " + sheet.StatusShown);
+                if (sheet.EmptyShown == null || sheet.StatusShown != "The mods directory sent something I can't read. Showing the list from a moment ago.") throw new Exception("Broken directory data wasn't said with the kept list: " + sheet.StatusShown);
                 tree = smaller;
                 sheet.Close();
                 ShowMods(false);
