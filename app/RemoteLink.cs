@@ -33,7 +33,9 @@ namespace CapriDesktop
         internal const string PairFeature = "pair";
         private const int PongMs = 10000, ReadyMs = 10000, ConnectMs = 15000, FirstWaitMs = 1000, LastWaitMs = 60000, BusyWaitMs = 10000;
         private const int BatchMs = 100, TypingMs = 10000, AskMs = 180000, SeenMs = 600000, KeepMs = 600000, KeepCount = 64;
-        private const int PartChars = 4000, MaxFrame = 262144;
+        // Matches the relay's own MAX_PC_FRAME_BYTES default (65536): anything larger is refused there anyway, so a
+        // bigger limit here only let a phone push frames the relay would reject.
+        private const int PartChars = 4000, MaxFrame = 65536;
 
         // PROTOCOL.md 4.2: the exact heartbeat every 30 seconds. The tests shorten it to see several.
         internal int BeatMs = 30000;

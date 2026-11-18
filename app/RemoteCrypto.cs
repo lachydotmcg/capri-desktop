@@ -48,6 +48,9 @@ namespace CapriDesktop
         internal static byte[] Hkdf(byte[] ikm, byte[] salt, byte[] info, int length)
         {
             if (length < 0 || length > 255 * 32) throw new ArgumentOutOfRangeException("length");
+            if (ikm == null) throw new ArgumentNullException("ikm");
+            // RFC 5869 allows an empty info; a null here used to throw a NullReferenceException deep in the loop.
+            if (info == null) info = new byte[0];
             byte[] prk;
             using (HMACSHA256 extract = new HMACSHA256(salt ?? new byte[32])) prk = extract.ComputeHash(ikm);
             byte[] okm = new byte[length];
