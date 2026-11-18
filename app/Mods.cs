@@ -32,6 +32,10 @@ namespace CapriDesktop
         internal string[] Requires = new string[0];
         internal string[] Games;
         internal string Know;
+        internal string[] Reaches = new string[0];
+        internal string Unreadable;
+        internal string Tidy;
+        internal bool AskTwice;
     }
 
     [DataContract]

@@ -53,7 +53,7 @@ public class MyMod : ICapriMod
 }
 ```
 
-She asks before a code mod runs, and asks again whenever the file changes. The approve box lists the permissions it asks for. A code mod still has full access to the PC, so permissions describe what it does through Capri. They don't sandbox it.
+She asks before a code mod runs, and asks again whenever the file changes. The approve box lists the permissions it asks for, and what her quick read of its code found: whether it uses the network and which addresses, starts programs, calls Windows directly, reaches outside her folder, reads the keyboard or changes what her brain is told. Minified or packed code is said in the box and asked about a second time, with a laid-out copy to read. A mod that both unpacks hidden text and loads code while it runs is refused. A code mod still has full access to the PC, so permissions describe what it does through Capri. They don't sandbox it.
 
 `Start` gets an `ICapriHost`. Hooks run on her window's thread. If your handler throws, the error goes in `errors.txt` and she carries on. When the mod is turned off or removed, its hooks, timers, menu items, notes, options, drawing, brain tools, context, hotkeys and page are removed with it.
 

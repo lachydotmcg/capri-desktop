@@ -149,6 +149,8 @@ namespace CapriDesktop
         // marking her for the CPU, so Brain can put back the size that worked.
         internal volatile int Careful;
         private int loading;
+        private int busy;
+        private readonly Stopwatch quiet = Stopwatch.StartNew();
         private bool retryGpu;
 
         internal bool Loading { get { return Interlocked.CompareExchange(ref loading, 0, 0) > 0; } }
@@ -371,7 +373,41 @@ namespace CapriDesktop
         {
             Interlocked.Increment(ref loading);
             try { Load(pick); }
-            finally { Interlocked.Decrement(ref loading); }
+            finally { lock (gate) quiet.Restart(); Interlocked.Decrement(ref loading); }
+        }
+
+        internal void Begin() { Interlocked.Increment(ref busy); }
+
+        internal void End()
+        {
+            lock (gate) quiet.Restart();
+            Interlocked.Decrement(ref busy);
+        }
+
+        internal bool Running { get { lock (gate) return server != null && !server.HasExited; } }
+
+        internal int ServerId
+        {
+            get
+            {
+                lock (gate)
+                {
+                    try { return server != null && !server.HasExited ? server.Id : 0; }
+                    catch (InvalidOperationException) { return 0; }
+                }
+            }
+        }
+
+        internal double Unused { get { lock (gate) return quiet.Elapsed.TotalSeconds; } }
+
+        internal bool Rest(double seconds)
+        {
+            lock (gate)
+            {
+                if (server == null || Loading || Interlocked.CompareExchange(ref busy, 0, 0) > 0 || quiet.Elapsed.TotalSeconds < seconds) return false;
+                Stop();
+                return true;
+            }
         }
 
         private void Load(Pick pick)

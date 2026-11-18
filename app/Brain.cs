@@ -31,7 +31,7 @@ namespace CapriDesktop
         internal const string Version = "0.9.3";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
             + "Room: right-click her and pick Room camera, and she's in your room through your webcam: she walks, sits up on things, hides behind you, gets grabbed and thrown, and talks with her mouth moving. On your phone, Room in Capri Remote puts her in your room in AR. Plays like fadievr's Capri Room for Quest, with PC ideas from connorx132 and Luke Yokubo.\n"
-            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, and pick Capri Camera in Discord, Zoom or OBS so people see her in the room with you.\n"
+            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, restart Discord, Zoom or OBS once (quit Discord from its tray icon) so they see the new camera, and pick Capri Camera there so people see her in the room with you.\n"
             + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
             + "Playlist: she plays your own music folders and songs from her mini player, with shuffle, loop and volume. Say play my playlist, or pick Play > Music. From YunoTheAlien.\n"
             + "Commands: Help > Commands lists everything she does without a brain. From YunoTheAlien.\n"
@@ -3783,51 +3783,56 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
-                // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
-                int careful = local.Careful;
-                try { local.Ensure(LocalPick); }
-                catch (BrainException error)
+                local.Begin();
+                try
                 {
-                    if (!error.Careful) throw;
-                    lock (memoryGate) { }
-                    local.Ensure(LocalPick);
-                    careful = 0;
-                }
-                if (careful == 0) careful = local.Careful;
-                string lost;
-                bool garbled = false, crashed = false;
-                try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
-                catch (BrainException error)
-                {
-                    if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && careful != 0)
+                    // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
+                    int careful = local.Careful;
+                    try { local.Ensure(LocalPick); }
+                    catch (BrainException error)
                     {
+                        if (!error.Careful) throw;
                         lock (memoryGate) { }
-                        if (Window < careful)
-                        {
-                            local.Ensure(LocalPick);
-                            return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                        }
+                        local.Ensure(LocalPick);
+                        careful = 0;
                     }
-                    garbled = error.Message == Gibberish;
-                    if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
-                    lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    if (careful == 0) careful = local.Careful;
+                    string lost;
+                    bool garbled = false, crashed = false;
+                    try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
+                    catch (BrainException error)
+                    {
+                        if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && careful != 0)
+                        {
+                            lock (memoryGate) { }
+                            if (Window < careful)
+                            {
+                                local.Ensure(LocalPick);
+                                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                            }
+                        }
+                        garbled = error.Message == Gibberish;
+                        if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
+                        lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    }
+                    catch (WebException error)
+                    {
+                        if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
+                        lost = "The brain crashed";
+                        crashed = true;
+                    }
+                    Log(local.Address, -1, lost + ", restarting it on the CPU");
+                    // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
+                    // a game taking the card, so her next start tries the card again (Mirit0, #226).
+                    if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
+                    local.CpuOnly = true;
+                    local.Stop();
+                    local.Ensure(LocalPick);
+                    return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                 }
-                catch (WebException error)
-                {
-                    if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
-                    lost = "The brain crashed";
-                    crashed = true;
-                }
-                Log(local.Address, -1, lost + ", restarting it on the CPU");
-                // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
-                // a game taking the card, so her next start tries the card again (Mirit0, #226).
-                if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
-                local.CpuOnly = true;
-                local.Stop();
-                local.Ensure(LocalPick);
-                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                finally { local.End(); }
             }
             string thinking = Ollama + "|" + model;
             ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = OllamaOptions(model, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };

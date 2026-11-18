@@ -41,7 +41,7 @@ namespace CapriDesktop
         private static readonly FontFamily Heavy = Family("Bahnschrift SemiBold SemiConden");
         private static readonly FontFamily Narrow = Family("Bahnschrift SemiBold Condensed");
         private const int Wide = 380;
-        private const int Tall = 734;
+        private const int Tall = 764;
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
@@ -659,6 +659,7 @@ namespace CapriDesktop
             Key quit = Lower(Make("Quit Capri", 256, 250 + v, 100, 28, delegate { capri.Quit(); }));
             quit.Accent = Hot;
             updateNote = Lower(Caption("", 28, 288 + v, small, Faint));
+            MakeResourcesKey(318 + v);
             for (int i = header; i < Controls.Count; i++) mainLeft.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Left));
             int first = Controls.Count;
             // Settings: a setting to a row, its name on the left in red and its value in a box on the right, as on Cyberpunk
