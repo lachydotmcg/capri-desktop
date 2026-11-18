@@ -17902,13 +17902,13 @@ namespace CapriDesktop
                 mainframe.SlideExploreAfter(4);
                 if (!ExploreAway || ExploreAfter != 600 || !LoadPreferences().ExploreAway || LoadPreferences().ExploreAfter != 600 || mainframe.DesktopSettingsStatus != "Keep player | 10 min") throw new Exception("Away controls did not save their switch and time.");
                 mainframe.SlideExploreAfter(-4);
-                if (ExploreAway || ExploreAfter != 600 || LoadPreferences().ExploreAway || LoadPreferences().ExploreAfter != 600 || mainframe.DesktopSettingsStatus != "Keep player | Off") throw new Exception("Away exploring did not turn off at Off and keep its time.");
+                if (ExploreAway || ExploreAfter != 60 || LoadPreferences().ExploreAway || LoadPreferences().ExploreAfter != 60 || mainframe.DesktopSettingsStatus != "Keep player | Off") throw new Exception("Away exploring did not turn off at Off and keep the last time it passed.");
                 mainframe.SlideExploreAfter(1);
                 if (!ExploreAway || ExploreAfter != 60 || mainframe.DesktopSettingsStatus != "Keep player | 1 min") throw new Exception("Away exploring did not turn back on at the first step.");
                 mainframe.SlideExploreAfter(-1);
                 SetFullScreenLevel(1);
                 if (preferences.HideFullScreen || !preferences.PlayerFullScreen || FullScreenLevel != 1 || mainframe.DesktopSettingsStatus != "Keep player | Off") throw new Exception("Keep player did not keep her and the player.");
-                checks.Add("PASS HABITS controls fit and save, Explore after's Off turns away exploring off and keeps its time, In full screen's four steps set the two full-screen choices; full-screen hiding returns automatically, respects manual hiding and yields to Gaming Mode; the opted-in mini player survives automatic body hiding but respects a manual hide");
+                checks.Add("PASS HABITS controls fit and save, Explore after's Off turns away exploring off and keeps the last time it passed, In full screen's four steps set the two full-screen choices; full-screen hiding returns automatically, respects manual hiding and yields to Gaming Mode; the opted-in mini player survives automatic body hiding but respects a manual hide");
 
                 preferences.PlayerFullScreen = false;
                 Tune desktopTune = new Tune { Title = "Smoke song", Artist = "Smoke artist", Playing = true };
