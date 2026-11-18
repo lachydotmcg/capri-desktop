@@ -816,7 +816,7 @@ namespace CapriDesktop
             string game = GameAhead();
             if (game == null || !keyWarnings.Add(game)) return;
             mainframe.VoiceNote(AdminKeys, false);
-            SayOwn("keys", AdminKeys);
+            if (preferences.CheckIns) SayOwn("keys", AdminKeys);
         }
 
         private bool PushHeld()

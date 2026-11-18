@@ -4854,7 +4854,7 @@ namespace CapriDesktop
             greetTried = true;
             string[] holiday = Brain.Holiday(now);
             string line = holiday != null ? holiday[random.Next(holiday.Length)] : Brain.Greeting(now.Hour);
-            if (line == null || ticket != asking || Hushed || hidden || InChat || speech != null || talkState != TalkState.Off || typer.Visible) return;
+            if (line == null || ticket != asking || Hushed || !preferences.CheckIns || hidden || InChat || speech != null || talkState != TalkState.Off || typer.Visible) return;
             heard = "startup";
             box.Prompt = "> sys: ";
             if (holiday != null) holidaySaid = now.Date;
@@ -4881,14 +4881,14 @@ namespace CapriDesktop
         {
             string[] holiday = Brain.Holiday(now);
             if (holiday == null || now.Date == holidaySaid || !greetTried) return;
-            if (quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || FullScreen()) return;
+            if (quiet > 60000 || Hushed || !preferences.CheckIns || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || FullScreen()) return;
             holidaySaid = now.Date;
             Remark("holiday", holiday[random.Next(holiday.Length)]);
         }
 
         private void CheckProbe(DateTime now, long quiet)
         {
-            if (quiet > 60000 || brain.Model == null || meeting.Asking || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || job != null || LineBusy || FullScreen()) return;
+            if (quiet > 60000 || brain.Model == null || meeting.Asking || Hushed || !preferences.CheckIns || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || job != null || LineBusy || FullScreen()) return;
             double chatMinutes = chattedAt == DateTime.MinValue ? -1 : (now.ToUniversalTime() - chattedAt).TotalMinutes;
             if (!probe.Due(now, chatMinutes, Sulking)) return;
             probe.Known = ProbeKnown;
@@ -4932,7 +4932,7 @@ namespace CapriDesktop
 
         private bool NewsBusy(long quiet)
         {
-            return quiet < 0 || quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || outro != null || onPanel || popOut >= 0 || job != null || working != null || FullScreen();
+            return quiet < 0 || quiet > 60000 || Hushed || !preferences.CheckIns || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || outro != null || onPanel || popOut >= 0 || job != null || working != null || FullScreen();
         }
 
         private void CheckNews(long quiet)
@@ -9650,7 +9650,7 @@ namespace CapriDesktop
         {
             if (!Sulking || now - sulkBothered < SulkAlone) return;
             Forgive();
-            if (!Hushed) Yelp(null, Lines.Pick(AloneLines), true);
+            if (!Hushed && preferences.CheckIns) Yelp(null, Lines.Pick(AloneLines), true);
         }
 
         // Sulking, she keeps an eye on their cursor: one that comes at her fast gets a hop away, at most every DodgeGap seconds.
@@ -25045,11 +25045,31 @@ namespace CapriDesktop
             }
             careDay = new DateTime(2026, 10, 30, 10, 0, 0);
             checks.Add("PASS Check in on me gates all seven care kinds before choosing words, including queued and startup sleep and meal nudges; interval timers restart, missed nights are skipped, meals need a fresh morning session, and saved care choices stay intact");
+            bool greetWas = greetTried;
+            DateTime holidayWas = holidaySaid;
+            DateTime halloween = new DateTime(2026, 10, 31, 10, 0, 0);
+            CloseTalk();
+            heard = "";
+            Greet(asking, halloween);
+            careMust(heard == "startup", "her startup hello didn't come with Check in on me on.");
+            CloseTalk();
+            heard = "";
+            preferences.CheckIns = false;
+            Greet(asking, halloween);
+            greetTried = true;
+            holidaySaid = DateTime.MinValue;
+            CheckHoliday(halloween, 0);
+            CheckProbe(halloween, 0);
+            careMust(heard == "" && speech == null, "a hello, holiday line or question escaped Check in on me off: " + heard);
+            preferences.CheckIns = true;
+            greetTried = greetWas;
+            holidaySaid = holidayWas;
+            checks.Add("PASS Check in on me off also keeps her startup hello, holiday lines and questions about you to herself, and on she still says hello");
 
             foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
             {
                 string facts = SelfKnow.Matching(question) ?? "";
-                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Every set to Off stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("flip Comments between Off and your last pick") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Every set to Off stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("flip Comments between Off and your last pick") && facts.Contains("Quiet stops her speaking on her own") && facts.Contains("she only talks when you talk to her"), "settings help missed the real switches for: " + question);
             }
             for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
                 careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
