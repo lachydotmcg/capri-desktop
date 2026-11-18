@@ -67,7 +67,7 @@ namespace CapriDesktop
         {
             pet = owner;
             this.frame = frame;
-            Steered = true;
+            Steered = true; FitsScreen = true;
             ShowInTaskbar = false;
             Label("MODS DIRECTORY", 24, 15, 260, 29, MainframeTheme.Rose, 20, true).Display = true;
             Button("View on GitHub", 470, 20, 128, 22, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
@@ -419,7 +419,7 @@ namespace CapriDesktop
         internal ReadmeWindow(Pet owner, ModListing listing) : base("View mod")
         {
             this.listing = listing;
-            Steered = true;
+            Steered = true; FitsScreen = true;
             ShowInTaskbar = false;
             Label("VIEW MOD", 24, 15, 320, 29, MainframeTheme.Rose, 20, true).Display = true;
             NeonButton shut = Put(Page, new NeonButton { Glyph = 2 }, Wide - 50, 20, 26, 22, "Close");

@@ -30,9 +30,12 @@ namespace CapriDesktop
         private PixelRect lastArea;
         private double lastDpi;
         private bool fitting;
+        private double wantedZoom = 1;
         private Control keyed;
         private readonly HashSet<Key> keysHeld = new HashSet<Key>();
         protected bool Steered;
+        // Sheets whose buttons sit at the bottom shrink to fit a small screen, like Windows' sheets, instead of scrolling them off.
+        protected bool FitsScreen;
         private sealed class Stop
         {
             internal Control Control;
@@ -278,27 +281,35 @@ namespace CapriDesktop
         {
             if (fitting) return;
             fitting = true;
-            try { FitPage(width, height, zoom); }
+            try { wantedZoom = zoom; FitPage(width, height, zoom); }
             finally { fitting = false; }
         }
         private void ScreenChanged()
         {
             if (!IsVisible || fitting || double.IsNaN(Page.Width)) return;
             var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
-            if (screen != null && (screen.WorkingArea != lastArea || screen.Scaling != lastDpi)) Fit(Page.Width, Page.Height, Zoom);
+            if (screen != null && (screen.WorkingArea != lastArea || screen.Scaling != lastDpi)) Fit(Page.Width, Page.Height, wantedZoom);
         }
+        internal double FittedZoom(double zoom) { return FitsScreen ? FittedZoom(zoom, Page.Width, Page.Height, lastArea, lastDpi) : zoom; }
+        internal static double FittedZoom(double zoom, double width, double height, PixelRect area, double dpi)
+        {
+            double fits = Math.Min((area.Width / dpi - 32) / width, (area.Height / dpi - 48) / Math.Min(height, 820));
+            return Math.Max(Math.Min(zoom, 0.75), Math.Min(zoom, fits));
+        }
+
         private void FitPage(double width, double height, double zoom)
         {
+            var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+            double dpi = screen?.Scaling ?? RenderScaling;
+            var area = screen?.WorkingArea ?? new PixelRect(0, 0, 1280, 900);
+            lastArea = area; lastDpi = dpi;
+            if (FitsScreen) zoom = FittedZoom(zoom, width, height, area, dpi);
             Zoom = zoom;
             header.Width = width; headerZoom.LayoutTransform = new ScaleTransform(zoom, zoom);
             headerPlate.Zoom = zoom; headerPlate.Clip = new RectangleGeometry(new Rect(0, 0, width * zoom, 50 * zoom));
             Page.Width = width; Page.Height = height;
             Zoomed.LayoutTransform = new ScaleTransform(zoom, zoom);
             plate.Zoom = zoom; plate.Page = height;
-            var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
-            double dpi = screen?.Scaling ?? RenderScaling;
-            var area = screen?.WorkingArea ?? new PixelRect(0, 0, 1280, 900);
-            lastArea = area; lastDpi = dpi;
             Width = Math.Min(width * zoom, Math.Max(200, area.Width / dpi - 32));
             Height = Math.Min(Math.Min(height, 820) * zoom, Math.Max(180, area.Height / dpi - 48));
             if (IsVisible)
