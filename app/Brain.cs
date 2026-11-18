@@ -494,7 +494,8 @@ namespace CapriDesktop
         {
             if (code) return "Capri codes stay on Low";
             if (Plans.Is(kind)) return "its app sets this";
-            return kind == "openai" || kind == "anthropic" || kind == "google" || kind == "deepseek" || kind == "nvidia" || kind == "openrouter" || kind == "kimi" ? null : "not for local brains";
+            // A keyed OpenAI-compatible provider the user added speaks reasoning_effort like an OpenAI key, so it gets Thinking too.
+            return kind == "openai" || kind == "anthropic" || kind == "google" || kind == "deepseek" || kind == "nvidia" || kind == "openrouter" || kind == "kimi" || kind == "server" ? null : "not for local brains";
         }
 
         // Why a model can't take a level, in a few words for its menu row, or null when it can.
@@ -3556,7 +3557,9 @@ namespace CapriDesktop
                 Cloud remote = Remote;
                 string address, key;
                 GetServer(out address, out key);
-                return remote != null ? remote.Kind : ThinkingLevels.IsKimi(address) ? "kimi" : "local";
+                // A keyed OpenAI-compatible provider speaks reasoning_effort, so it gets Thinking like a cloud key. A keyless
+                // local server (Ollama, llama.cpp, LM Studio) stays "local", where Thinking is closed.
+                return remote != null ? remote.Kind : ThinkingLevels.IsKimi(address) ? "kimi" : key != null ? "server" : "local";
             }
         }
 
@@ -3779,7 +3782,7 @@ namespace CapriDesktop
             string server;
             string serverKey;
             GetServer(out server, out serverKey);
-            if (server != null) return Complete(server, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job, model, serverKey, plain || !ThinkingLevels.IsKimi(server) ? null : Picked("kimi", model, false));
+            if (server != null) return Complete(server, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job, model, serverKey, plain ? null : Picked(CurrentKind, model, false), CurrentKind);
             Engine local = Local;
             if (local != null)
             {
@@ -3925,13 +3928,13 @@ namespace CapriDesktop
             return sent != null && Regex.IsMatch(error, @"unrecognized|unknown (parameter|argument|field)|not (supported|allowed|permitted)|unsupported (parameter|argument)|extra (inputs?|fields?)", RegexOptions.IgnoreCase) ? "" : null;
         }
 
-        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null, bool job = false, string named = null, string key = null, ThinkingPick pick = null)
+        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null, bool job = false, string named = null, string key = null, ThinkingPick pick = null, string kind = "kimi")
         {
             if (!string.IsNullOrEmpty(key) && !ServerKeySafe(address)) throw new BrainException("Use https for a provider elsewhere. A key over plain http isn't safe.", true);
             EnsureServer(address, key);
             string thinking = address + "|" + model;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
-            int level = Usable(pick, "kimi", model);
+            int level = Usable(pick, kind, model);
             CompletionRequest asking = new CompletionRequest { Messages = messages.ToArray(), Limit = ThinkingLevels.Room(level, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };
             if (named != null) asking.Model = named;
             if (level != ThinkingLevels.Default) ThinkingLevels.Apply(asking, model, level);
@@ -3945,7 +3948,7 @@ namespace CapriDesktop
                 asking.Effort = null;
                 asking.Thinking = null;
                 reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key);
-                TurnedDown(address, "kimi", model, level);
+                TurnedDown(address, kind, model, level);
             }
             CompletionChoice choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             CompletionMessage message = choice != null ? choice.Message : null;

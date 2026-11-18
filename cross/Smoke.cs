@@ -5685,6 +5685,15 @@ namespace CapriDesktop
                         ((NeonButton)provider.Rows["Connect"]).Press();
                         MainframeWait(() => pet.Brain.Server == server.Address && pet.Brain.ServerKey == "provider-key-test", "the custom provider from its panel");
                         if (pet.Saved.BrainServer != server.Address) throw new Exception("The custom provider address did not save.");
+                        // Her model menu lists the provider's models and can pick one, from a cloud tier too.
+                        frame.ShowSettings(false);
+                        if (Array.IndexOf(pet.MainframeModels, "server-other") < 0) throw new Exception("The custom provider's models didn't reach the model menu.");
+                        pet.MainframePickModel("server-other");
+                        if (pet.Brain.Model != "server-other" || pet.Saved.ServerModel != "server-other") throw new Exception("Picking a custom provider model didn't take.");
+                        // A keyed provider gets the Thinking picker, and a chosen level is used for that model.
+                        if (!pet.Brain.ThinkingOpen) throw new Exception("A keyed custom provider didn't offer Thinking.");
+                        pet.SetThinking(ThinkingLevels.Low);
+                        if (pet.Brain.ThinkingLevel != ThinkingLevels.Low || pet.Brain.ThinkingSource != "server|server-other") throw new Exception("A custom provider didn't keep its Thinking level: " + pet.Brain.ThinkingSource);
                         ((NeonButton)provider.Rows["Forget"]).Press();
                         MainframeWait(() => pet.Brain.Server == null && pet.Saved.BrainServer == null, "forgetting the custom provider");
                     }

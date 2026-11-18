@@ -3752,7 +3752,7 @@ namespace CapriDesktop
         private void RefreshBrains()
         {
             if (Brain.Provider != null) { ShowPlanModel(); return; }
-            if (MainframeTier > 0 && Brain.Remote == null) { NotifySettings(); return; }
+            if (MainframeTier > 0 && Brain.Remote == null && Brain.Server == null) { NotifySettings(); return; }
             if (Brain.Remote != null) { ShowCloud(); ListCloud(); return; }
             string server;
             string serverKey;
@@ -3769,7 +3769,7 @@ namespace CapriDesktop
                     {
                         string currentServer, currentKey;
                         Brain.GetServer(out currentServer, out currentKey);
-                        if (request == localRequests && MainframeTier == 0 && Brain.Remote == null && currentServer == server && currentKey == serverKey) ShowServer(found);
+                        if (request == localRequests && Brain.Remote == null && currentServer == server && currentKey == serverKey) ShowServer(found);
                     });
                     return;
                 }
@@ -3971,7 +3971,7 @@ namespace CapriDesktop
                     if (Brain.Remote == null) Brain.Model = model;
                     Saved.ServerModel = model;
                     Save();
-                    if (MainframeTier == 0) ShowServer(found);
+                    if (Brain.Remote == null) ShowServer(found);
                     if (ticket == asking) Talk.Answer("(brain server)", key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
                 });
             });
