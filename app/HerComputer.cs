@@ -48,8 +48,8 @@ namespace CapriDesktop
 
     internal sealed class HerComputer
     {
-        internal static readonly string[] Apps = { "browser", "notes", "files", "diary", "stickers" };
-        internal static readonly string[] AppNames = { "Browser", "Notes", "Files", "Diary", "Stickers" };
+        internal static readonly string[] Apps = { "browser", "jobs", "notes", "files", "diary", "stickers" };
+        internal static readonly string[] AppNames = { "Browser", "Jobs", "Notes", "Files", "Diary", "Stickers" };
         internal static readonly string[] StickerKinds = { "heart", "star", "moon", "mushroom", "sparkles", "ribbon", "blossom", "strawberry" };
         internal static readonly string[] Sites = { "youtube", "spotify", "discord", "roblox", "pinterest", "twitch", "netflix", "reddit", "tiktok", "instagram", "wikipedia", "google" };
         internal static readonly string[] SiteNames = { "YouTube", "Spotify", "Discord", "Roblox", "Pinterest", "Twitch", "Netflix", "Reddit", "TikTok", "Instagram", "Wikipedia", "Google" };
@@ -94,6 +94,7 @@ namespace CapriDesktop
         private const string StepSystem = "You are Capri, using your own little computer that lives inside the user's PC. It has a real web browser on your own profile, plus Notes. You do jobs for the user on it one action at a time, then hand back the answer. Rules: answer with exactly one action line and nothing else. Never type passwords or payment details, and never sign in, buy, post, message or send anything. If the job needs no web, like a poem, a list or an idea, finish straight away with DONE. Keep DONE short, warm and in your own voice, with the key facts and a link when it helps. Actions:\nSEARCH <words>\nOPEN <web address>\nCLICK <link number or its words>\nSCROLL down|up\nBACK\nNOTE <title> | <text>\nDONE <your answer for them>";
 
         internal readonly string Folder;
+        internal readonly HerJobs Jobs;
         private readonly object gate = new object();
         private readonly Random random = new Random();
         private HerDesk desk;
@@ -103,6 +104,7 @@ namespace CapriDesktop
             Folder = folder;
             try { Directory.CreateDirectory(NotesFolder); } catch (IOException) { } catch (UnauthorizedAccessException) { }
             desk = LoadDesk();
+            Jobs = new HerJobs(folder);
         }
 
         internal string NotesFolder { get { return Path.Combine(Folder, "notes"); } }
@@ -563,7 +565,7 @@ namespace CapriDesktop
             if (again.Stickers().Count != 1 || again.Stickers()[0].Kind != "star") return "Her desktop didn't come back the way she left it.";
             for (int i = 0; i < MostStickers + 5; i++) again.AddSticker("heart", new Point(400, 400), 0);
             if (new HerComputer(folder).Stickers().Count != MostStickers) return "Her stickers piled up past the limit.";
-            return null;
+            return HerJobs.Check(Path.Combine(folder, "jobs-check"));
         }
 
         private sealed class QuietHands : HerHands

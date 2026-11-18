@@ -17,7 +17,8 @@ namespace CapriDesktop
         internal const int TabTall = 42, ToolTall = 46;
         internal static readonly Rectangle PageBox = HerComputer.Page;
         internal static readonly Rectangle AddressBox = new Rectangle(AppBox.Left + 112, AppBox.Top + TabTall + 8, AppBox.Width - 172, 30);
-        internal static readonly Rectangle DockBox = new Rectangle(HerComputer.Width / 2 - 181, 684, 362, 70);
+        internal const int DockWide = 44 + 46 * 6 + 22 * 5;
+        internal static readonly Rectangle DockBox = new Rectangle(HerComputer.Width / 2 - DockWide / 2, 684, DockWide, 70);
         internal static readonly Rectangle CardBox = new Rectangle(280, 96, 720, 540);
         internal const int CardHead = 52;
         private static readonly Color Ground = Color.FromArgb(11, 7, 16), Plum = Color.FromArgb(22, 11, 18), Chrome = Color.FromArgb(42, 15, 29), Rose = Color.FromArgb(255, 93, 102), Blush = Color.FromArgb(255, 227, 234), Faded = Color.FromArgb(185, 150, 168), Mint = Color.FromArgb(61, 242, 138), Ink = Color.FromArgb(42, 20, 32), SoftInk = Color.FromArgb(160, 132, 143), Paper = Color.FromArgb(255, 250, 252), PaperHead = Color.FromArgb(255, 233, 240), Hot = Color.FromArgb(192, 23, 79);
@@ -44,6 +45,12 @@ namespace CapriDesktop
         private Thread taskThread, idleThread, frameThread;
         private volatile bool closing, stopTask, inControl;
         private volatile string runningTask;
+        private readonly object pumpGate = new object();
+        private readonly List<KeyValuePair<RectangleF, Action>> jobHits = new List<KeyValuePair<RectangleF, Action>>();
+        private string jobTyped;
+        private int jobRepeat;
+        private bool begun, forceClose, toldBackground;
+        private DateTime pumpedAt = DateTime.MinValue;
         private float scale = 1f;
         private PointF offset;
         private bool quietShow;
@@ -135,17 +142,53 @@ namespace CapriDesktop
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
-            ticker.Start();
-            frameThread = new Thread(FrameLoop) { IsBackground = true, Name = "her computer frames" };
-            frameThread.Start();
-            idleThread = new Thread(IdleLoop) { IsBackground = true, Name = "her computer idle" };
-            idleThread.Start();
+            Begin();
             if (!Computer.Greeted)
             {
                 Computer.Greeted = true;
                 Bubble("This is my computer. Watch me, or take over.");
             }
             lastWatched = DateTime.UtcNow;
+        }
+
+        private void Begin()
+        {
+            if (begun) return;
+            begun = true;
+            ticker.Start();
+            frameThread = new Thread(FrameLoop) { IsBackground = true, Name = "her computer frames" };
+            frameThread.Start();
+            idleThread = new Thread(IdleLoop) { IsBackground = true, Name = "her computer idle" };
+            idleThread.Start();
+        }
+
+        internal void RunHidden()
+        {
+            IntPtr made = Handle;
+            if (made != IntPtr.Zero) Begin();
+        }
+
+        internal void CloseForGood()
+        {
+            forceClose = true;
+            Close();
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (!forceClose && e.CloseReason == CloseReason.UserClosing && (Busy || Computer.Jobs.Waiting > 0 || Computer.Jobs.Repeating().Count > 0))
+            {
+                e.Cancel = true;
+                Hide();
+                if (!toldBackground)
+                {
+                    toldBackground = true;
+                    Action<string> tell = Tell;
+                    if (tell != null) tell("I'll keep my computer running in the background for my jobs. Turn Her own computer off in Mainframe to shut it down.");
+                }
+                return;
+            }
+            base.OnFormClosing(e);
         }
 
         protected override void OnActivated(EventArgs e)
@@ -208,6 +251,8 @@ namespace CapriDesktop
                 if (bubble != null && DateTime.UtcNow > bubbleUntil) bubble = null;
             }
             if (ContainsFocus && WindowState != FormWindowState.Minimized) lastWatched = DateTime.UtcNow;
+            if (!Busy && (DateTime.UtcNow - pumpedAt).TotalSeconds > 15) { pumpedAt = DateTime.UtcNow; Pump(); }
+            if (!Visible) return;
             Invalidate();
         }
 
@@ -289,37 +334,62 @@ namespace CapriDesktop
         internal string Start(string job)
         {
             if (string.IsNullOrWhiteSpace(job)) return "What should I do on my computer?";
-            if (Busy) return "I'm still doing \"" + HerComputer.Short(runningTask, 60) + "\" on my computer. Say stop first if you want something else.";
-            if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "I need a brain to do jobs on my computer. Pick one in Mainframe under BRAIN."; }
-            stopTask = false;
+            string task;
+            string repeat = HerJobs.RepeatOf(job, out task);
+            if (task.Length == 0) return "What should I do on my computer?";
+            bool wasBusy = Busy;
+            HerJob added = Computer.Jobs.Add(task, repeat);
+            if (added == null) return repeat.Length > 0 ? "I already have " + HerJobs.MostRepeats + " repeating jobs. Take one off in my Jobs app first." : "My job list is full. Let me get through some of it first.";
+            if (Ask == null || !CanThink()) { Bubble("I need a brain for jobs. Pick one in Mainframe."); return "It's in my Jobs app, but I need a brain to do jobs on my computer. Pick one in Mainframe under BRAIN."; }
             inControl = false;
-            runningTask = job.Trim();
-            taskThread = new Thread(delegate() { RunTask(job.Trim()); }) { IsBackground = true, Name = "her computer job" };
-            taskThread.Start();
+            Pump();
+            if (repeat.Length > 0) return "Ok, I'll " + HerComputer.Short(task, 80) + " " + (repeat == "daily" ? "every day" : "every week") + " on my computer, starting " + (wasBusy ? "after this job." : "now.");
+            if (wasBusy) return "I'm doing \"" + HerComputer.Short(runningTask, 60) + "\" right now. I'll do that next: it's number " + Math.Max(1, Computer.Jobs.Waiting - 1) + " in my Jobs app.";
             return null;
+        }
+
+        private void Pump()
+        {
+            if (closing || inControl || Ask == null || !CanThink()) return;
+            HerJob next;
+            lock (pumpGate)
+            {
+                if (Busy) return;
+                next = Computer.Jobs.Next();
+                if (next == null) return;
+                stopTask = false;
+                runningTask = next.Task;
+            }
+            taskThread = new Thread(delegate() { RunTask(next); }) { IsBackground = true, Name = "her computer job" };
+            taskThread.Start();
         }
 
         internal void StopTask() { if (Busy) stopTask = true; }
 
-        private void RunTask(string job)
+        private void RunTask(HerJob job)
         {
-            string answer = null, note = null;
+            string answer = null, note = null, state = "done";
             try
             {
-                answer = Computer.Run(job, this, Ask, Browser, delegate { return stopTask || closing; }, out note);
+                answer = Computer.Run(job.Task, this, Ask, Browser, delegate { return stopTask || closing; }, out note);
             }
             catch (Exception error)
             {
+                state = "failed";
                 answer = "My computer hit a snag: " + HerComputer.Short(error.Message, 160);
             }
+            if (answer == null) state = "stopped";
+            Computer.Jobs.Finish(job.Id, state, answer, note);
             runningTask = null;
-            if (answer == null) { Status("Stopped"); Bubble("Ok, stopped."); return; }
+            if (state == "stopped") { Status("Stopped"); Bubble("Ok, stopped."); return; }
             if (note != null) lock (gate) selectedNote = note;
             Changed();
-            Status("Done: " + HerComputer.Short(job, 50));
-            Bubble("Done! It's in my notes.");
+            Status("Done: " + HerComputer.Short(job.Task, 50));
+            Bubble(state == "done" ? "Done! It's in my notes." : "That one didn't work out.");
             Action<string> tell = Tell;
             if (tell != null) tell(HerComputer.Short(answer, 600));
+            if (!closing && !Quiet) Thread.Sleep(2500);
+            Pump();
         }
 
         private void ToggleControl()
@@ -453,6 +523,14 @@ namespace CapriDesktop
             string app;
             lock (gate) { app = openApp; button = controlButton; }
             if (button.Contains(at)) { ToggleControl(); return; }
+            if (app == "jobs")
+            {
+                Action hit = null;
+                lock (gate) foreach (KeyValuePair<RectangleF, Action> spot in jobHits) if (spot.Key.Contains(at)) hit = spot.Value;
+                if (hit != null) { hit(); return; }
+                if (!CardBox.Contains(System.Drawing.Point.Round(at))) lock (gate) jobTyped = null;
+            }
+            if (DockSlot(Array.IndexOf(HerComputer.Apps, "jobs")).Contains(System.Drawing.Point.Round(at))) { OpenApp("jobs"); return; }
             if (Busy && !inControl)
             {
                 if ((DateTime.UtcNow - heyAt).TotalSeconds > 6 && HerComputer.Screen.Contains(System.Drawing.Point.Round(at))) { heyAt = DateTime.UtcNow; Bubble(Computer.Pick(HerComputer.HeyLines)); }
@@ -461,8 +539,8 @@ namespace CapriDesktop
             for (int i = 0; i < HerComputer.Apps.Length; i++)
                 if (DockSlot(i).Contains(System.Drawing.Point.Round(at))) { OpenApp(HerComputer.Apps[i]); return; }
             bool card = app != null && app != "browser";
-            if (card && new RectangleF(CardBox.Right - 48, CardBox.Top, 48, CardHead).Contains(at)) { lock (gate) openApp = null; return; }
-            if (card && app != "stickers" && new RectangleF(CardBox.Right - 170, CardBox.Top, 120, CardHead).Contains(at)) { OpenFolder(); return; }
+            if (card && new RectangleF(CardBox.Right - 48, CardBox.Top, 48, CardHead).Contains(at)) { lock (gate) { openApp = null; jobTyped = null; } return; }
+            if (card && app != "stickers" && app != "jobs" && new RectangleF(CardBox.Right - 170, CardBox.Top, 120, CardHead).Contains(at)) { OpenFolder(); return; }
             if (app == "browser" && new RectangleF(AppBox.Right - 40, AppBox.Top, 40, TabTall).Contains(at)) { lock (gate) openApp = null; return; }
             if (app == "browser" && inControl)
             {
@@ -549,6 +627,20 @@ namespace CapriDesktop
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
             base.OnKeyPress(e);
+            string draft;
+            lock (gate) draft = jobTyped;
+            if (draft != null)
+            {
+                e.Handled = true;
+                char typedKey = e.KeyChar;
+                if (typedKey == '\r') { AddTypedJob(); return; }
+                if (typedKey == (char)27) { lock (gate) jobTyped = null; return; }
+                if (typedKey == '\b') { lock (gate) if (jobTyped.Length > 0) jobTyped = jobTyped.Substring(0, jobTyped.Length - 1); return; }
+                string more = typedKey == (char)22 ? (Clipboard.ContainsText() ? Clipboard.GetText() : "") : char.IsControl(typedKey) ? "" : typedKey.ToString();
+                more = more.Replace("\r", " ").Replace("\n", " ");
+                lock (gate) jobTyped = HerComputer.Short(jobTyped + more, 300);
+                return;
+            }
             if (!inControl) return;
             HerBrowser current;
             string app, field;
@@ -771,12 +863,13 @@ namespace CapriDesktop
                 {
                     g.DrawString("My " + HerComputer.AppNames[index].ToLowerInvariant(), boldFont, ink, CardBox.Left + 58, CardBox.Top + 15);
                     g.DrawString("×", textFont, soft, CardBox.Right - 32, CardBox.Top + 14);
-                    if (app != "stickers") g.DrawString("Open folder", smallFont, soft, CardBox.Right - 150, CardBox.Top + 17);
+                    if (app != "stickers" && app != "jobs") g.DrawString("Open folder", smallFont, soft, CardBox.Right - 150, CardBox.Top + 17);
                 }
                 if (app == "notes") DrawNotes(g, field, text, note);
                 else if (app == "files") DrawFiles(g);
                 else if (app == "diary") DrawDiary(g, field, text);
                 else if (app == "stickers") DrawStickerBook(g);
+                else if (app == "jobs") DrawJobs(g);
                 g.Clip = kept;
             }
         }
@@ -855,6 +948,121 @@ namespace CapriDesktop
                     g.DrawString(when, smallFont, rose, paper.Left + 14, y + 6);
                     g.DrawString(HerComputer.Short(words, 80), diaryFont, ink, paper.Left + 70, y);
                 }
+        }
+
+        private void AddTypedJob()
+        {
+            string text;
+            int repeat;
+            lock (gate) { text = (jobTyped ?? "").Trim(); repeat = jobRepeat; }
+            if (text.Length == 0) return;
+            HerJob added = Computer.Jobs.Add(text, HerJobs.Repeats[repeat]);
+            lock (gate) { jobTyped = null; jobRepeat = 0; }
+            if (added == null) { Bubble("My job list is full."); return; }
+            if (Ask == null || !CanThink()) { Bubble("Saved. I need a brain for jobs though. Pick one in Mainframe."); return; }
+            Bubble(repeat > 0 ? "Ok! I'll do that " + (repeat == 1 ? "every day." : "every week.") : Busy ? "Added. I'll do it after this one." : "On it!");
+            Pump();
+        }
+
+        private void JobHit(RectangleF place, Action act) { jobHits.Add(new KeyValuePair<RectangleF, Action>(place, act)); }
+
+        private void DrawJobs(Graphics g)
+        {
+            jobHits.Clear();
+            using (SolidBrush ink = new SolidBrush(Ink))
+            using (SolidBrush soft = new SolidBrush(SoftInk))
+            using (SolidBrush white = new SolidBrush(Color.White))
+            using (SolidBrush hot = new SolidBrush(Hot))
+            using (SolidBrush row = new SolidBrush(Color.FromArgb(255, 241, 246)))
+            using (SolidBrush mint = new SolidBrush(Color.FromArgb(38, 196, 110)))
+            using (Pen rim = new Pen(Color.FromArgb(243, 198, 214), 1.5f))
+            using (Pen focus = new Pen(Hot, 2f))
+            using (StringFormat trim = new StringFormat(StringFormatFlags.NoWrap) { Trimming = StringTrimming.EllipsisCharacter })
+            using (StringFormat centre = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            {
+                int top = CardBox.Top + CardHead + 18, left = CardBox.Left + 24;
+                Rectangle box = new Rectangle(left, top, 456, 40);
+                using (GraphicsPath shape = Round(box, 12)) { g.FillPath(white, shape); g.DrawPath(jobTyped != null ? focus : rim, shape); }
+                string shown = jobTyped == null ? "Give me a job..." : jobTyped + (DateTime.UtcNow.Millisecond < 500 ? "|" : "");
+                g.DrawString(shown, textFont, jobTyped == null ? soft : ink, new RectangleF(box.Left + 14, box.Top + 10, box.Width - 24, 22), trim);
+                JobHit(box, delegate { lock (gate) if (jobTyped == null) jobTyped = ""; Focus(); });
+                Rectangle repeat = new Rectangle(box.Right + 10, top, 112, 40);
+                using (GraphicsPath shape = Round(repeat, 12)) { g.FillPath(row, shape); g.DrawPath(rim, shape); }
+                g.DrawString(jobRepeat == 0 ? "Just once" : jobRepeat == 1 ? "Every day" : "Every week", smallFont, ink, repeat, centre);
+                JobHit(repeat, delegate { lock (gate) jobRepeat = (jobRepeat + 1) % HerJobs.Repeats.Length; });
+                Rectangle add = new Rectangle(repeat.Right + 10, top, CardBox.Right - 24 - repeat.Right - 10, 40);
+                using (GraphicsPath shape = Round(add, 12)) g.FillPath(hot, shape);
+                g.DrawString("Add", boldFont, white, add, centre);
+                JobHit(add, AddTypedJob);
+
+                int column = CardBox.Left + 24, wide = 320, y = top + 64;
+                HerJob now = Computer.Jobs.Running();
+                g.DrawString("Now", smallFont, soft, column, y);
+                y += 24;
+                Rectangle current = new Rectangle(column, y, wide, 64);
+                using (GraphicsPath shape = Round(current, 14)) g.FillPath(row, shape);
+                if (now == null) g.DrawString(Busy ? HerComputer.Short(runningTask, 60) : "Nothing right now", textFont, soft, new RectangleF(current.Left + 14, current.Top + 22, wide - 28, 22), trim);
+                else
+                {
+                    g.DrawString(now.Task, boldFont, ink, new RectangleF(current.Left + 14, current.Top + 10, wide - 100, 22), trim);
+                    g.DrawString(status, smallFont, soft, new RectangleF(current.Left + 14, current.Top + 36, wide - 100, 20), trim);
+                    Rectangle stop = new Rectangle(current.Right - 74, current.Top + 16, 60, 32);
+                    using (GraphicsPath shape = Round(stop, 16)) g.FillPath(hot, shape);
+                    g.DrawString("Stop", smallFont, white, stop, centre);
+                    JobHit(stop, StopTask);
+                }
+                y = current.Bottom + 18;
+                List<HerJob> queue = Computer.Jobs.Queue();
+                queue.RemoveAll(job => job.State == "running");
+                g.DrawString("Up next", smallFont, soft, column, y);
+                y += 24;
+                if (queue.Count == 0) g.DrawString("Nothing queued", textFont, soft, column + 14, y + 6);
+                for (int i = 0; i < queue.Count && i < 5; i++)
+                {
+                    Rectangle line = new Rectangle(column, y + i * 40, wide, 34);
+                    using (GraphicsPath shape = Round(line, 10)) g.FillPath(row, shape);
+                    g.DrawString((i + 1) + ".  " + queue[i].Task, textFont, ink, new RectangleF(line.Left + 12, line.Top + 7, wide - 50, 22), trim);
+                    string id = queue[i].Id;
+                    RectangleF drop = new RectangleF(line.Right - 34, line.Top, 34, 34);
+                    g.DrawString("×", textFont, soft, drop, centre);
+                    JobHit(drop, delegate { Computer.Jobs.Remove(id); });
+                }
+
+                column = CardBox.Left + 24 + wide + 28;
+                wide = CardBox.Right - 24 - column;
+                y = top + 64;
+                List<HerJob> repeats = Computer.Jobs.Repeating();
+                g.DrawString("Repeats", smallFont, soft, column, y);
+                y += 24;
+                if (repeats.Count == 0) { g.DrawString("None yet. Pick Every day above.", textFont, soft, column + 14, y + 6); y += 40; }
+                for (int i = 0; i < repeats.Count && i < 3; i++, y += 52)
+                {
+                    Rectangle line = new Rectangle(column, y, wide, 46);
+                    using (GraphicsPath shape = Round(line, 10)) g.FillPath(row, shape);
+                    g.DrawString(repeats[i].Task, textFont, ink, new RectangleF(line.Left + 12, line.Top + 4, wide - 50, 22), trim);
+                    g.DrawString((repeats[i].Repeat == "daily" ? "Every day" : "Every week") + (repeats[i].NextRun <= HerJobs.Stamp(DateTime.Now) ? " · due now" : " · next " + HerJobs.Due(repeats[i].NextRun)), smallFont, soft, new RectangleF(line.Left + 12, line.Top + 25, wide - 50, 18), trim);
+                    string id = repeats[i].Id;
+                    RectangleF drop = new RectangleF(line.Right - 34, line.Top + 6, 34, 34);
+                    g.DrawString("×", textFont, soft, drop, centre);
+                    JobHit(drop, delegate { Computer.Jobs.Remove(id); });
+                }
+                y += 10;
+                List<HerJob> done = Computer.Jobs.Done();
+                g.DrawString("Done", smallFont, soft, column, y);
+                y += 24;
+                if (done.Count == 0) g.DrawString("Nothing yet", textFont, soft, column + 14, y + 6);
+                for (int i = 0; i < done.Count && y + 50 < CardBox.Bottom - 10; i++, y += 52)
+                {
+                    Rectangle line = new Rectangle(column, y, wide, 46);
+                    using (GraphicsPath shape = Round(line, 10)) g.FillPath(row, shape);
+                    g.FillEllipse(done[i].State == "done" ? mint : hot, line.Left + 12, line.Top + 19, 8, 8);
+                    g.DrawString(done[i].Task, textFont, ink, new RectangleF(line.Left + 28, line.Top + 4, wide - 40, 22), trim);
+                    string first = (done[i].Answer ?? "").Replace("\r", " ").Replace("\n", " ");
+                    g.DrawString(first.Length == 0 ? done[i].State : first, smallFont, soft, new RectangleF(line.Left + 28, line.Top + 25, wide - 40, 18), trim);
+                    string note = done[i].Note;
+                    if (!string.IsNullOrEmpty(note) && File.Exists(note)) JobHit(line, delegate { lock (gate) { selectedNote = note; openApp = "notes"; } });
+                }
+            }
         }
 
         private void DrawStickerBook(Graphics g)

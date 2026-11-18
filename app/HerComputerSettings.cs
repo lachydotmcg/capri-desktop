@@ -41,14 +41,7 @@ namespace CapriDesktop
 
         private HerComputerWindow ShowHerComputer(bool activate)
         {
-            if (herComputer == null || herComputer.IsDisposed)
-            {
-                herComputer = new HerComputerWindow(new HerComputer(HerComputerFolder));
-                herComputer.Ask = delegate(string system, string user) { return brain.Aside(system, user, 700, true); };
-                herComputer.CanThink = delegate { return brain.Model != null && !Brain.Off; };
-                herComputer.Tell = delegate(string line) { Post(delegate { SayOwn("her computer", line); }); };
-                if (mainframe.Icon != null) herComputer.Icon = mainframe.Icon;
-            }
+            MakeHerComputer();
             if (!activate)
             {
                 if (!herComputer.Visible) herComputer.ShowQuietly();
@@ -60,9 +53,32 @@ namespace CapriDesktop
             return herComputer;
         }
 
+        private void MakeHerComputer()
+        {
+            if (herComputer != null && !herComputer.IsDisposed) return;
+            herComputer = new HerComputerWindow(new HerComputer(HerComputerFolder));
+            herComputer.Ask = delegate(string system, string user) { return brain.Aside(system, user, 700, true); };
+            herComputer.CanThink = delegate { return brain.Model != null && !Brain.Off; };
+            herComputer.Tell = delegate(string line) { Post(delegate { SayOwn("her computer", line); }); };
+            if (mainframe.Icon != null) herComputer.Icon = mainframe.Icon;
+        }
+
+        private void HerComputerBackground()
+        {
+            if (!preferences.HerComputer || (herComputer != null && !herComputer.IsDisposed)) return;
+            try
+            {
+                HerJobs saved = new HerJobs(HerComputerFolder);
+                if (saved.Waiting == 0 && saved.Repeating().Count == 0) return;
+                MakeHerComputer();
+                herComputer.RunHidden();
+            }
+            catch (Exception error) { Brain.Log("her computer", -1, "background start failed: " + error.Message); }
+        }
+
         private void CloseHerComputer()
         {
-            if (herComputer != null && !herComputer.IsDisposed) herComputer.Close();
+            if (herComputer != null && !herComputer.IsDisposed) herComputer.CloseForGood();
             herComputer = null;
         }
 
