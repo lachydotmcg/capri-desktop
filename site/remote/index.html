@@ -39,6 +39,7 @@
 
   <div class="banner" id="banner" role="status" hidden>
     <p class="banner-words"><strong id="banner-title">PC offline</strong><span id="banner-sub">Capri closed or the PC asleep</span></p>
+    <button class="nbtn" id="banner-wake" type="button" hidden>Wake PC</button>
     <button class="nbtn cyan" id="banner-retry" type="button">Retry</button>
   </div>
 
@@ -299,6 +300,25 @@
     </div>
   </section>
 
+  <section class="card nc sheet" id="wake" role="dialog" aria-modal="true" aria-labelledby="wake-title" hidden>
+    <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+    <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+    <div class="sheet-scroll">
+      <h2 class="card-title" id="wake-title">Wake your PC</h2>
+      <p class="card-note wake-same">Only works when this phone is on the same Wi-Fi or network as your PC.</p>
+      <p class="wake-lead" id="wake-lead"></p>
+      <ul class="wake-cards" id="wake-cards"></ul>
+      <p class="card-note" id="wake-note" role="status" hidden></p>
+      <h3 class="nhead">Set up your PC once</h3>
+      <ol class="steps">
+        <li><span class="step-n">1</span><span>Turn on Wake-on-LAN in your PC's BIOS</span></li>
+        <li><span class="step-n">2</span><span>In her Mainframe: Remote, then Wake from phone</span></li>
+        <li><span class="step-n">3</span><span>Plug in a network cable. Wi-Fi rarely wakes a PC</span></li>
+      </ol>
+      <button class="nbtn cyan wide" id="wake-done" type="button">Done</button>
+    </div>
+  </section>
+
   <p class="sr-only" id="announce" aria-live="polite"></p>
 </div>
 <script src="crypto.js"></script>
@@ -313,6 +333,7 @@
 <script src="screen.js"></script>
 <script src="call.js"></script>
 <script src="jobs.js"></script>
+<script src="wake.js"></script>
 <script src="android.js"></script>
 </body>
 </html>

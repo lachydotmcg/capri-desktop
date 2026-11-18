@@ -491,6 +491,20 @@ A PC lists `pictures` in `hello-ok.features` when its host accepts picture messa
 - The phone preview has a Remove picture button. Their sent message shows its picture above the text. Preview and sent pictures live only in page memory; saved chat history holds text alone. Failed sends retain the draft picture and text. A picture with no receipt after 15 seconds keeps its id while the page stays connected, so sending that same draft again reaches the PC's duplicate filter; a receipt that arrives later clears the draft.
 - Phone-only mode bypasses the PC protocol. A provider that supports images receives the same JPEG in its image content block for that turn alone. A model without image support gets no request; the draft stays and the page says "This brain can't see pictures."
 
+### 8.6 Waking the PC (feature `wake`)
+
+A PC lists `wake` in `hello-ok.features` when it can say how to wake it with Wake-on-LAN. A phone must not send `wake.get` to a PC that doesn't list it.
+
+| `type` | Sender | Context | Fields |
+|---|---|---|---|
+| `wake.get` | phone | session | none |
+| `wake.info` | PC | session | `os` (`windows`, `mac` or `linux`), `cards` (at most 4, each `{mac, broadcast, name, wired, ready}`) |
+
+- **Cards** are the PC's network cards that are up with an IPv4 address, the one with the default route first, then wired ones. Virtual, VPN and Bluetooth adapters and locally administered MACs are left out. `mac` is `AA:BB:CC:DD:EE:FF`, `broadcast` the IPv4 broadcast address of the card's network, `name` the card's own name (at most 64 characters), `wired` false for Wi-Fi.
+- **`ready`** is `on` when the PC says it's armed to wake from that card (Windows' wake-armed devices, Mac's Wake for network access, Linux's `Wake-on: g`), `off` when it isn't, and empty when it can't tell. The BIOS setting can't be read, so `on` is a good sign, not a promise.
+- **The phone keeps them.** The phone asks once a session and stores the newest `wake.info` with its pairing, and forgets it when it unpairs. Nothing about waking goes through the relay: the PC is off by then.
+- **Sending it.** When the PC is offline, the phone sends a magic packet (6 bytes of `0xFF`, then the 6-byte MAC 16 times) as UDP to port 9 at each card's `broadcast` and at `255.255.255.255`. Browsers can't send UDP, so only the Android app does this (`CapriAndroid.wake`). The web app shows the MAC and broadcast address for any Wake-on-LAN app. Either way it only works from a phone on the same network as the PC.
+
 ## 9. Rules for each side
 
 ### PC (`app/`)

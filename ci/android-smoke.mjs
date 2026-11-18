@@ -78,6 +78,9 @@ const main = async () => {
   check('bridge reports the app version', bridge.version === '0.9.4', JSON.stringify(bridge));
   check('adds the phone section to the menu', await run('!!document.getElementById("d-float")'));
   check('adds Room in AR to the camera menu', await run('!!document.getElementById("room-ar")'));
+  const woke = JSON.parse(await run(`CapriAndroid.wake(JSON.stringify([{ mac: '0A:1B:2C:3D:4E:5F', broadcast: '10.0.2.255' }]))`));
+  check('sends a wake packet on the local network', woke.sent > 0, JSON.stringify(woke));
+  check('refuses a wake with no good MAC', JSON.parse(await run(`CapriAndroid.wake('[{"mac":"nope","broadcast":"10.0.2.255"}]')`)).sent === 0);
   check('fonts and sprites come from the app', await run(`fetch('/assets/sprites/idle.webp').then(r => r.ok && r.headers.get('content-type') === 'image/webp')`));
   check('a file outside the bundle is not served from it', await run(`fetch('/remote/../../secret.txt').then(r => r.status !== 200, () => true)`));
 

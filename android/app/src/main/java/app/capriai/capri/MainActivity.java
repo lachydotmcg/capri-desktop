@@ -360,6 +360,14 @@ public final class MainActivity extends Activity {
         }
 
         @android.webkit.JavascriptInterface
+        public String wake(String cards) {
+            if (!ours || cards == null || cards.length() > 4000) {
+                return "{\"sent\":0}";
+            }
+            return "{\"sent\":" + Wake.send(cards) + "}";
+        }
+
+        @android.webkit.JavascriptInterface
         public void said(String text) {
             if (!ours || text == null || visible) {
                 return;
