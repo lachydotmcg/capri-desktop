@@ -155,7 +155,7 @@ namespace CapriDesktop
     [DataContract]
     internal abstract class CloudRequest
     {
-        internal string Extra;
+        internal string Extra, Turn;
     }
 
     [DataContract]
@@ -717,6 +717,7 @@ namespace CapriDesktop
 
         internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : remote.Kind == "local" ? ", or turn pictures on in your server." : "."); }
         private const string Parts = "@capri-image@";
+        private const string Turned = "@capri-turn@";
         internal const string Declined = "[SIGNAL CORRUPTED] Lost that one in the static. Ask me something else?";
         internal const string Stuck = " If you're stuck, just join the Discord, choom. It's under Help in my right-click menu.";
         internal const string Offline = "My brain's offline. Right-click me, open Capri Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key." + Stuck;
@@ -3041,7 +3042,7 @@ namespace CapriDesktop
                 string raw;
                 // A brain that ends with no words once its steps have run leaves her own line to say what she did (Nox, 3 Nov: "My
                 // brain sent an empty reply" after a snap that worked).
-                try { raw = Think(model, asking, true, picked, null, Math.Max(budget, 200), ticket, true, kit.WorkTools, kit.WorkClaudeTools); }
+                try { raw = Think(model, asking, true, picked, null, Math.Max(budget, 200), ticket, true, kit.WorkTools, kit.WorkClaudeTools, rounds: true); }
                 catch (BrainException error) { if (calls.Count == 0 || (error.Message != Wordless && error.Message != Answerless)) throw; return ""; }
                 string said = Clean(raw), written;
                 ToolArguments writtenArgs;
@@ -3739,9 +3740,9 @@ namespace CapriDesktop
 
         // plain: a call outside her chat, which keeps today's settings whatever's picked.
 #if CROSS
-        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool computerAction = false)
+        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool computerAction = false, bool rounds = false)
 #else
-        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false)
+        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool rounds = false)
 #endif
         {
             Check(ticket);
@@ -3761,7 +3762,7 @@ namespace CapriDesktop
 #if !CROSS
             if (remote != null && remote.Plan) return Planned(remote, messages, ticket);
 #endif
-            if (remote != null && remote.Claude) return AskClaude(remote, messages, tools, calls, parts, ticket, claudeTools, routing, 0, job, plain);
+            if (remote != null && remote.Claude) return AskClaude(remote, messages, tools, calls, parts, ticket, claudeTools, routing, 0, job, plain, rounds);
             if (remote != null)
             {
                 bool openAi = remote.Kind == "openai";
@@ -4146,7 +4147,7 @@ namespace CapriDesktop
             return blocks.Count == 0 ? null : blocks.ToArray();
         }
 
-        private string AskClaude(Cloud remote, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int ticket = -1, string claudeTools = null, bool routing = false, int brief = 0, bool job = false, bool plain = false)
+        private string AskClaude(Cloud remote, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int ticket = -1, string claudeTools = null, bool routing = false, int brief = 0, bool job = false, bool plain = false, bool rounds = false)
         {
             string model = remote.Model;
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
@@ -4158,6 +4159,7 @@ namespace CapriDesktop
                 Output = ThinkingLevels.TakesEffort(model) ? new ClaudeOutput() : null,
                 Fallbacks = fallback ? "default" : null
             };
+            if (rounds) CacheTurn(body);
             ClaudeOutput usualOutput = body.Output;
             ThinkingPick pick = plain || brief > 0 ? null : Picked(remote.Kind, model, remote.Code);
             int level = Usable(pick, remote.Kind, model);
@@ -4193,6 +4195,24 @@ namespace CapriDesktop
             if (reply.StopReason == "refusal") return Declined;
             if (routing && cut(reply)) return CutShort(Spoken(reply, new List<KeyValuePair<string, ToolArguments>>()), Whole(reply), calls);
             return Spoken(reply, calls);
+        }
+
+        internal static string Spliced(string json, CloudRequest body, string tools, string parts)
+        {
+            if (body != null && body.Extra != null) json = ThinkingLevels.Merge(json, body.Extra);
+            if (body != null && body.Turn != null) json = json.Replace("\"" + Turned + "\"", body.Turn);
+            if (tools != null) json = json.Substring(0, json.LastIndexOf('}')) + ",\"tools\":" + tools + "}";
+            if (parts != null) json = json.Replace("\"" + Parts + "\"", parts);
+            return json;
+        }
+
+        internal static void CacheTurn(ClaudeRequest body)
+        {
+            if (body.Messages == null || body.Messages.Length == 0) return;
+            ChatMessage last = body.Messages[body.Messages.Length - 1];
+            if (last == null || string.IsNullOrWhiteSpace(last.Content) || last.Content.Contains(Parts) || last.Content.Contains(Turned) || last.Images != null || last.Calls != null || last.Thinking != null) return;
+            body.Messages[body.Messages.Length - 1] = new ChatMessage(last.Role, Turned);
+            body.Turn = "[{\"type\":\"text\",\"text\":" + Voice.Quote(last.Content) + ",\"cache_control\":{\"type\":\"ephemeral\"}}]";
         }
 
         private static string Spoken(ClaudeReply reply, List<KeyValuePair<string, ToolArguments>> calls)
@@ -4861,15 +4881,8 @@ namespace CapriDesktop
             // A string body is JSON built by hand, like her hands' Claude turns with their screenshots.
             byte[] payload = body is string ? Encoding.UTF8.GetBytes((string)body) : Json(body);
             CloudRequest extended = body as CloudRequest;
-            string extra = extended == null ? null : extended.Extra;
-            if (tools != null || parts != null || extra != null)
-            {
-                string json = Encoding.UTF8.GetString(payload);
-                if (extra != null) json = ThinkingLevels.Merge(json, extra);
-                if (tools != null) json = json.Substring(0, json.LastIndexOf('}')) + ",\"tools\":" + tools + "}";
-                if (parts != null) json = json.Replace("\"" + Parts + "\"", parts);
-                payload = Encoding.UTF8.GetBytes(json);
-            }
+            if (tools != null || parts != null || (extended != null && (extended.Extra != null || extended.Turn != null)))
+                payload = Encoding.UTF8.GetBytes(Spliced(Encoding.UTF8.GetString(payload), extended, tools, parts));
             lock (gate) { Check(ticket); active.Add(request); }
             System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
             int expired = 0;
@@ -5274,6 +5287,39 @@ namespace CapriDesktop
 
         private static HttpWebRequest Open(string path, int timeout) { return Create(Ollama + path, timeout); }
 
+        private string warmedHost;
+        private int warmedAt;
+
+        internal void Preconnect()
+        {
+            Cloud sending = Remote;
+            if (Off || sending == null || sending.Kind == null || sending.Kind == "local" || sending.Plan) return;
+            string host;
+            try { host = new Uri(sending.Claude ? ClaudeAddress(sending.Key, "/models") : Address(sending.Kind, "/models")).GetLeftPart(UriPartial.Authority); }
+            catch (BrainException) { return; }
+            int now = Environment.TickCount;
+            lock (gate)
+            {
+                if (host == warmedHost && unchecked(now - warmedAt) < 60000) return;
+                warmedHost = host;
+                warmedAt = now;
+            }
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate { Warm(host); });
+        }
+
+        internal static void Warm(string host)
+        {
+            if (Off) return;
+            try
+            {
+                HttpWebRequest request = Create(host + "/", 10000);
+                request.Method = "HEAD";
+                using (WebResponse response = request.GetResponse()) { }
+            }
+            catch (WebException error) { if (error.Response != null) error.Response.Close(); }
+            catch (Exception) { }
+        }
+
         private static HttpWebRequest Create(string url, int timeout)
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
@@ -5283,6 +5329,7 @@ namespace CapriDesktop
             if (request.RequestUri.IsLoopback) request.AllowAutoRedirect = false;
             request.ServicePoint.ConnectionLimit = Math.Max(request.ServicePoint.ConnectionLimit, 16);
             request.ServicePoint.Expect100Continue = false;
+            request.ServicePoint.UseNagleAlgorithm = false;
             request.Proxy = null;
             request.UserAgent = "Capri-Desktop";
             request.Timeout = timeout;

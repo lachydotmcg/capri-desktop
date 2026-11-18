@@ -1380,7 +1380,7 @@ namespace CapriDesktop
         private ToolStripMenuItem LanguageItem(int row)
         {
             string picked = Brain.Languages[row, 1];
-            ToolStripMenuItem item = Choice(LanguageName(row), false, delegate { capri.SetLanguage(picked); Sync(); });
+            ToolStripMenuItem item = Choice(LanguageName(row), false, delegate { capri.SetLanguage(picked); capri.ShowFreeVoices(); Sync(); });
             item.Tag = picked;
             return item;
         }
@@ -1408,7 +1408,7 @@ namespace CapriDesktop
             languageMenu.Font = Font;
             if (languageFont != null) { languageFont.Dispose(); languageFont = null; }
             languageMenu.Items.Add(LanguageItem(0));
-            languageCurrent = Choice("", true, delegate { capri.SetLanguage((string)languageCurrent.Tag); Sync(); });
+            languageCurrent = Choice("", true, delegate { capri.SetLanguage((string)languageCurrent.Tag); capri.ShowFreeVoices(); Sync(); });
             languageMenu.Items.Add(languageCurrent);
             languageMenu.Items.Add(new ToolStripSeparator());
             List<int> rows = new List<int>();
@@ -4187,6 +4187,9 @@ namespace CapriDesktop
                 string name = style.Name;
                 freeMenu.Items.Add(Choice(name, name == chosen, delegate { capri.ChooseVoiceStyle(name); }));
             }
+            string tongue = Brain.LanguageCode(Brain.Language);
+            if (tongue != "en" && VoiceLanguage.LatinScript(tongue) && !VoiceTongues.Knows(tongue))
+                freeMenu.Items.Add(Choice(WindowsTongueChoice, capri.WindowsTongue, delegate { capri.ToggleWindowsTongue(); }));
             freeMenu.Items.Add(new ToolStripSeparator());
             // Capri ships no voice clip, so HD copies only a clip they pick: before there is one, HD asks for it.
             if (!yours && !kept)
@@ -4256,6 +4259,8 @@ namespace CapriDesktop
                 if (item is ToolStripMenuItem && item.Enabled && item.Text.StartsWith(text, StringComparison.Ordinal)) { item.PerformClick(); return true; }
             return false;
         }
+
+        internal static string WindowsTongueChoice { get { return "Windows voice for " + Brain.Language + " (robotic)"; } }
 
         internal static string RemoveFreeChoice { get { return "Remove free voice \u00b7 frees about " + Engine.Amount(LocalVoice.PackSize); } }
 

@@ -1116,6 +1116,7 @@ namespace CapriDesktop
             dockTalk = null;
             dockWords = "";
             GameHud.Hide();
+            if (!testing) Clip.WarmAll();
             manualHidden = dockHid;
             fullScreenHidden = preferences.HideFullScreen && !GamingOn && FullScreen();
             hidden = manualHidden || fullScreenHidden;
