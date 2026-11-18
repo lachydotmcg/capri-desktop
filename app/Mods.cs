@@ -31,6 +31,7 @@ namespace CapriDesktop
         internal int NeedsApi;
         internal string[] Requires = new string[0];
         internal string[] Games;
+        internal string[] Apps = new string[0];
         internal string Know;
         internal string[] Reaches = new string[0];
         internal string Unreadable;
@@ -54,7 +55,7 @@ namespace CapriDesktop
         internal ModFile File;
         internal string Path;
         internal bool On;
-        internal bool Code, Changed, Skin, Skill;
+        internal bool Code, Changed, Skin, Skill, Own;
         internal string Hash;
     }
 
@@ -88,6 +89,7 @@ namespace CapriDesktop
         internal Mods(string data)
         {
             folder = Path.Combine(data, "mods");
+            ownFolder = Path.Combine(data, OwnFolderName);
             ModDirectory.KeptFolder = Path.Combine(data, "mod-directory");
             All = new List<Mod>();
             Problems = new List<string>();
@@ -127,7 +129,7 @@ namespace CapriDesktop
             All.Clear();
             Problems.Clear();
             HashSet<string> off;
-            string[] files;
+            string[] files, own = new string[0];
             try
             {
                 off = Off();
@@ -141,6 +143,7 @@ namespace CapriDesktop
                     found.Sort(StringComparer.OrdinalIgnoreCase);
                     files = found.ToArray();
                 }
+                own = OwnFiles();
             }
             catch (Exception error)
             {
@@ -162,6 +165,21 @@ namespace CapriDesktop
                         ModFile read = Read(File.ReadAllText(file));
                         if (!string.Equals(read.Id, Path.GetFileNameWithoutExtension(file), StringComparison.OrdinalIgnoreCase)) throw new ModException("its file name doesn't match its id, " + read.Id + ".");
                         All.Add(new Mod { File = read, Path = file, On = !off.Contains(read.Id) });
+                    }
+                    catch (Exception error)
+                    {
+                        if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
+                        string problem = Path.GetFileName(file) + ": " + error.Message;
+                        Problems.Add(problem);
+                        Brain.Log("mods", -1, problem);
+                    }
+                }
+                foreach (string file in own)
+                {
+                    try
+                    {
+                        Mod mine = LoadOwn(file, off);
+                        if (mine != null) All.Add(mine);
                     }
                     catch (Exception error)
                     {

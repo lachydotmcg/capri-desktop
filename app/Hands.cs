@@ -97,6 +97,7 @@ namespace CapriDesktop
         [DataMember(Name = "jump")] public string Jump;
         [DataMember(Name = "stop")] public string Stop;
         [DataMember(Name = "shapes")] public string Shapes;
+        [DataMember(Name = "find")] public string Find;
 #if !CROSS
         // The job a tool beside it came in for, so one that lands after that job ended never changes the next.
         internal Job Job;

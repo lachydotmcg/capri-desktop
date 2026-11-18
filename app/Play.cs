@@ -391,7 +391,7 @@ namespace CapriDesktop
 
         private static readonly Regex GameFolders = new Regex(@"\\(steamapps\\common\\|epic games\\(?!launcher\\|epic online)|riot games\\(?!riot client\\)|gog games\\|ea games\\|ubisoft game launcher\\games\\|xboxgames\\(?!minecraft launcher)|roblox\\versions\\|wildgames\\)", RegexOptions.IgnoreCase);
         private static readonly Regex NotGames = new Regex(@"wallpaper.?engine|steamvr|steamworks|soundpad|aseprite|blender|\\launcher\\|crashreport|anticheat", RegexOptions.IgnoreCase);
-        private static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|arc)$", RegexOptions.IgnoreCase);
+        internal static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|arc)$", RegexOptions.IgnoreCase);
         private static readonly Regex Documents = new Regex(@"^(notepad|notepad\+\+|wordpad|write|code|code - insiders|devenv|sublime_text|atom|textpad|winword|excel|powerpnt|onenote|soffice|soffice\.bin|acrobat|acrord32|sumatrapdf|wps|wpp)(\.exe)?$", RegexOptions.IgnoreCase);
 
         [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
@@ -505,6 +505,7 @@ namespace CapriDesktop
             "scroll{\"x\": 50, \"y\": 50, \"direction\": \"down\"} scrolls there.\n" +
             "wait{\"seconds\": \"2\"} waits.\n" +
             "open_app{\"name\": \"Minecraft\"} opens an app or game. open_website{\"site\": \"youtube.com\"} opens a website.\n" +
+            "read_page{\"find\": \"price\"} reads the web page in front as text: its address, headings, links with where they go and all its text, even below the screen. find keeps only what mentions those words. Use it on a web page to find a link or read a long page.\n" +
             "find_file{\"description\": \"cyberpunk game folder\"} finds files and folders by name and returns paths. find_file{\"action\": \"show\"} selects the first match in Explorer; action stop cancels a search.\n" +
             "draw{\"shapes\":\"circle 20 30 40 50; arrow 50 50 70 60; text 30 20 hi\"} draws on your 0-100 grid, with the same mapping as click. line and box take two corners, path takes point pairs. action add keeps earlier ink; clear erases it.\n" +
             "look{\"x\": 62, \"y\": 40} turns a game's camera so that spot comes to the middle of the view. look{\"right\": 90} or look{\"up\": -30} turns by degrees, negative for left or down. look{\"level\": \"yes\"} looks straight ahead at the horizon.\n" +
@@ -520,7 +521,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first. They already asked, and asking again annoys them. Capri stops you herself before any step that needs their OK.\n" +
             "If a cookie banner or popup covers the page, deal with it first, then carry on. If a move didn't work, try something else rather than the same thing again.";
 
-        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|read_skill|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|read_skill|read_page|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex PlainClick = new Regex(@"\b(click|double_click|right_click)\W+(\d{1,3}(?:\.\d+)?)\W+(\d{1,3}(?:\.\d+)?)\b", RegexOptions.IgnoreCase);
 
         // The moves written in a brain's reply, in order.
