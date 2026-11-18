@@ -12,14 +12,6 @@ using System.Threading;
 namespace CapriDesktop
 {
     [DataContract]
-    internal sealed class HerIcon
-    {
-        [DataMember] public string App = "";
-        [DataMember] public int X;
-        [DataMember] public int Y;
-    }
-
-    [DataContract]
     internal sealed class HerSticker
     {
         [DataMember] public string Kind = "";
@@ -31,7 +23,6 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class HerDesk
     {
-        [DataMember] public List<HerIcon> Icons = new List<HerIcon>();
         [DataMember] public List<HerSticker> Stickers = new List<HerSticker>();
         [DataMember] public int Wallpaper;
         [DataMember] public bool Greeted;
@@ -50,7 +41,6 @@ namespace CapriDesktop
         void PointPage(Rectangle box);
         void Click();
         void Typing(string field, string text);
-        void DragIcon(string app, Point to);
         void Bubble(string line);
         void Wave();
         void Changed();
@@ -60,10 +50,13 @@ namespace CapriDesktop
     {
         internal static readonly string[] Apps = { "browser", "notes", "files", "diary", "stickers" };
         internal static readonly string[] AppNames = { "Browser", "Notes", "Files", "Diary", "Stickers" };
-        internal static readonly string[] StickerKinds = { "heart", "star", "moon", "cat", "mushroom", "skull", "bolt", "chrome", "flower", "cherry" };
+        internal static readonly string[] StickerKinds = { "heart", "star", "moon", "mushroom", "sparkles", "ribbon", "blossom", "strawberry" };
+        internal static readonly string[] Sites = { "youtube", "spotify", "discord", "roblox", "pinterest", "twitch", "netflix", "reddit", "tiktok", "instagram", "wikipedia", "google" };
+        internal static readonly string[] SiteNames = { "YouTube", "Spotify", "Discord", "Roblox", "Pinterest", "Twitch", "Netflix", "Reddit", "TikTok", "Instagram", "Wikipedia", "Google" };
+        internal static readonly string[] SiteAddresses = { "https://www.youtube.com/", "https://open.spotify.com/", "https://discord.com/", "https://www.roblox.com/", "https://www.pinterest.com/", "https://www.twitch.tv/", "https://www.netflix.com/", "https://www.reddit.com/", "https://www.tiktok.com/", "https://www.instagram.com/", "https://www.wikipedia.org/", "https://www.google.com/" };
         internal const int Width = 1280, Height = 820;
-        internal static readonly Rectangle Screen = new Rectangle(24, 24, 1232, 700);
-        internal static readonly Rectangle IconArea = new Rectangle(44, 48, 1180, 560);
+        internal static readonly Rectangle Screen = new Rectangle(16, 14, 1248, 748);
+        internal static readonly Rectangle Page = new Rectangle(96, 154, 1088, 512);
         internal const int MaxSteps = 14, MostStickers = 18, PageChars = 2600, MostLinks = 30;
 
         internal static readonly string[] PeekLines =
@@ -86,19 +79,17 @@ namespace CapriDesktop
 
         internal static readonly string[] DiaryLines =
         {
-            "moved my icons again. they look better crooked.",
+            "rearranged my stickers again. they look better crooked.",
             "the internet is very big today.",
             "watched the cursor blink for a while. relaxing.",
             "new sticker. no regrets.",
             "they peeked at my computer. i acted natural.",
-            "tidied my desktop. it won't last.",
-            "thinking about chrome. the shiny kind.",
+            "pinned a new site. then unpinned it. then pinned it.",
+            "thinking about pancakes. the fluffy kind.",
             "if i had a plant i'd name it Byte.",
             "my desktop is a mood board now.",
             "quiet day. i like those too."
         };
-
-        internal static readonly string[] TidyLines = { "there. tidy.", "ok, that's better.", "organised. for now." };
 
         private const string StepSystem = "You are Capri, using your own little computer that lives inside the user's PC. It has a real web browser on your own profile, plus Notes. You do jobs for the user on it one action at a time, then hand back the answer. Rules: answer with exactly one action line and nothing else. Never type passwords or payment details, and never sign in, buy, post, message or send anything. If the job needs no web, like a poem, a list or an idea, finish straight away with DONE. Keep DONE short, warm and in your own voice, with the key facts and a link when it helps. Actions:\nSEARCH <words>\nOPEN <web address>\nCLICK <link number or its words>\nSCROLL down|up\nBACK\nNOTE <title> | <text>\nDONE <your answer for them>";
 
@@ -119,19 +110,7 @@ namespace CapriDesktop
         internal string BrowserFolder { get { return Path.Combine(Folder, "browser"); } }
         private string DeskPath { get { return Path.Combine(Folder, "desktop.json"); } }
 
-        internal static Point DefaultIcon(int index) { return new Point(IconArea.Left + 12, IconArea.Top + 16 + index * 104); }
-
         internal HerDesk Desk { get { lock (gate) return desk; } }
-
-        internal List<HerIcon> Icons()
-        {
-            lock (gate)
-            {
-                List<HerIcon> copy = new List<HerIcon>();
-                foreach (HerIcon icon in desk.Icons) copy.Add(new HerIcon { App = icon.App, X = icon.X, Y = icon.Y });
-                return copy;
-            }
-        }
 
         internal List<HerSticker> Stickers()
         {
@@ -144,46 +123,6 @@ namespace CapriDesktop
         {
             get { lock (gate) return desk.Greeted; }
             set { lock (gate) desk.Greeted = value; SaveDesk(); }
-        }
-
-        internal Point IconAt(string app)
-        {
-            lock (gate)
-            {
-                foreach (HerIcon icon in desk.Icons) if (icon.App == app) return new Point(icon.X, icon.Y);
-            }
-            return DefaultIcon(Math.Max(0, Array.IndexOf(Apps, app)));
-        }
-
-        internal void MoveIcon(string app, Point to)
-        {
-            Point kept = Keep(to);
-            lock (gate)
-            {
-                foreach (HerIcon icon in desk.Icons) if (icon.App == app) { icon.X = kept.X; icon.Y = kept.Y; }
-            }
-            SaveDesk();
-        }
-
-        internal static Point Keep(Point at)
-        {
-            return new Point(Math.Max(IconArea.Left, Math.Min(IconArea.Right - 80, at.X)), Math.Max(IconArea.Top, Math.Min(IconArea.Bottom - 92, at.Y)));
-        }
-
-        internal bool Messy
-        {
-            get
-            {
-                lock (gate)
-                {
-                    for (int i = 0; i < desk.Icons.Count; i++)
-                    {
-                        Point home = DefaultIcon(Math.Max(0, Array.IndexOf(Apps, desk.Icons[i].App)));
-                        if (Math.Abs(home.X - desk.Icons[i].X) > 8 || Math.Abs(home.Y - desk.Icons[i].Y) > 8) return true;
-                    }
-                }
-                return false;
-            }
         }
 
         internal void AddSticker(string kind, Point at, int tilt)
@@ -214,19 +153,8 @@ namespace CapriDesktop
         internal static HerDesk Fixed(HerDesk loaded)
         {
             HerDesk fixedDesk = loaded ?? new HerDesk();
-            if (fixedDesk.Icons == null) fixedDesk.Icons = new List<HerIcon>();
             if (fixedDesk.Stickers == null) fixedDesk.Stickers = new List<HerSticker>();
-            fixedDesk.Icons.RemoveAll(icon => icon == null || Array.IndexOf(Apps, icon.App) < 0);
             fixedDesk.Stickers.RemoveAll(sticker => sticker == null || Array.IndexOf(StickerKinds, sticker.Kind) < 0);
-            for (int i = 0; i < Apps.Length; i++)
-            {
-                HerIcon found = fixedDesk.Icons.Find(icon => icon.App == Apps[i]);
-                if (found == null) { Point home = DefaultIcon(i); fixedDesk.Icons.Add(new HerIcon { App = Apps[i], X = home.X, Y = home.Y }); }
-            }
-            List<HerIcon> unique = new List<HerIcon>();
-            foreach (HerIcon icon in fixedDesk.Icons)
-                if (unique.Find(kept => kept.App == icon.App) == null) { Point at = Keep(new Point(icon.X, icon.Y)); icon.X = at.X; icon.Y = at.Y; unique.Add(icon); }
-            fixedDesk.Icons = unique;
             while (fixedDesk.Stickers.Count > MostStickers) fixedDesk.Stickers.RemoveAt(0);
             fixedDesk.Wallpaper = Math.Max(0, Math.Min(2, fixedDesk.Wallpaper));
             return fixedDesk;
@@ -497,22 +425,26 @@ namespace CapriDesktop
         internal string Potter(HerHands hands, Func<bool> stop, Func<string> diaryLine)
         {
             int roll = random.Next(100);
-            if (roll < 30) return MoveSomething(hands, stop);
+            if (roll < 25) return EyeSites(hands, stop);
             if (roll < 55) return StickSomething(hands, stop);
-            if (roll < 75) return WriteSomething(hands, stop, diaryLine);
-            if (roll < 88 || !Messy) return LookAround(hands, stop);
-            return Tidy(hands, stop);
+            if (roll < 78) return WriteSomething(hands, stop, diaryLine);
+            return LookAround(hands, stop);
         }
 
-        private string MoveSomething(HerHands hands, Func<bool> stop)
+        private string EyeSites(HerHands hands, Func<bool> stop)
         {
-            string app = Apps[random.Next(Apps.Length)];
-            hands.Status("Moving my " + AppNames[Array.IndexOf(Apps, app)] + " icon");
-            Point to = Keep(new Point(IconArea.Left + random.Next(IconArea.Width), IconArea.Top + random.Next(IconArea.Height)));
-            if (stop()) return null;
-            hands.DragIcon(app, to);
+            hands.Status("Deciding what to look at");
+            int looks = 2 + random.Next(3);
+            string last = null;
+            for (int i = 0; i < looks && !stop(); i++)
+            {
+                last = Sites[random.Next(Sites.Length)];
+                hands.Point("site:" + last);
+                Thread.Sleep(500 + random.Next(900));
+            }
+            if (last != null && random.Next(3) == 0) hands.Bubble(Pick(new[] { "nah, maybe later.", "so many tabs, so little time.", "i'll leave that one for you." }));
             hands.Status("Just hanging out");
-            return "moved " + app;
+            return "looked at sites";
         }
 
         private string StickSomething(HerHands hands, Func<bool> stop)
@@ -526,7 +458,7 @@ namespace CapriDesktop
             hands.Click();
             Thread.Sleep(300);
             hands.Show(null);
-            Point at = new Point(Screen.Left + 220 + random.Next(Screen.Width - 300), Screen.Top + 60 + random.Next(Screen.Height - 200));
+            Point at = StickerSpot(random.Next(2) == 0, random.Next(1000), random.Next(1000));
             hands.Point("desk:" + at.X + "," + at.Y);
             if (stop()) return null;
             hands.Click();
@@ -562,7 +494,7 @@ namespace CapriDesktop
         {
             string app = random.Next(2) == 0 ? "notes" : "files";
             hands.Status(app == "notes" ? "Reading my notes" : "Looking through my files");
-            hands.Point("icon:" + app);
+            hands.Point("dock:" + app);
             hands.Click();
             hands.Show(app);
             for (int i = 0; i < 20 && !stop(); i++) Thread.Sleep(150);
@@ -573,13 +505,10 @@ namespace CapriDesktop
             return "looked at " + app;
         }
 
-        private string Tidy(HerHands hands, Func<bool> stop)
+        internal static Point StickerSpot(bool left, int across, int down)
         {
-            hands.Status("Tidying my desktop");
-            for (int i = 0; i < Apps.Length && !stop(); i++) hands.DragIcon(Apps[i], DefaultIcon(i));
-            hands.Bubble(TidyLines[random.Next(TidyLines.Length)]);
-            hands.Status("Just hanging out");
-            return "tidy";
+            int x = left ? Page.Left + 34 + across * 220 / 1000 : Page.Right - 254 + across * 220 / 1000;
+            return new Point(x, Page.Top + 40 + down * (Page.Height - 90) / 1000);
         }
 
         internal string Pick(string[] lines) { lock (gate) return lines[random.Next(lines.Length)]; }
@@ -598,11 +527,10 @@ namespace CapriDesktop
             if (step == null || step.Verb != "SCROLL" || step.Arg != "up") return "Her computer misread a scroll.";
             if (Parse("I think we should look it up") != null || Parse("SEARCH") != null || Parse("") != null) return "Her computer took a reply that wasn't an action.";
             if (FileName("what's a good pancake recipe?/\\:*") != "what s a good pancake recipe" || FileName("???") != "note") return "Her computer's note names aren't safe.";
-            HerDesk mended = Fixed(new HerDesk { Icons = null, Stickers = new List<HerSticker> { null, new HerSticker { Kind = "nope" }, new HerSticker { Kind = "heart", X = 300, Y = 200 } }, Wallpaper = 9 });
-            if (mended.Icons.Count != Apps.Length || mended.Stickers.Count != 1 || mended.Wallpaper != 2) return "Her computer didn't mend a broken desktop file.";
-            HerDesk doubled = Fixed(new HerDesk { Icons = new List<HerIcon> { new HerIcon { App = "notes", X = -500, Y = 99999 }, new HerIcon { App = "notes", X = 300, Y = 300 }, new HerIcon { App = "virus", X = 1, Y = 1 } } });
-            HerIcon notes = doubled.Icons.Find(icon => icon.App == "notes");
-            if (doubled.Icons.Count != Apps.Length || notes.X < IconArea.Left || notes.Y > IconArea.Bottom) return "Her computer kept a doubled, unknown or off-screen icon.";
+            HerDesk mended = Fixed(new HerDesk { Stickers = new List<HerSticker> { null, new HerSticker { Kind = "nope" }, new HerSticker { Kind = "heart", X = 300, Y = 200 } }, Wallpaper = 9 });
+            if (mended.Stickers.Count != 1 || mended.Wallpaper != 2) return "Her computer didn't mend a broken desktop file.";
+            if (Sites.Length != SiteNames.Length || Sites.Length != SiteAddresses.Length) return "Her pinned sites lost a name or an address.";
+            foreach (int corner in new[] { 0, 1000 }) foreach (bool left in new[] { true, false }) if (!Page.Contains(StickerSpot(left, corner, corner))) return "Her computer put a sticker off her page.";
             string prompt = StepPrompt("find a recipe", new List<string> { "1. SEARCH pancakes -> Bing" }, 2, "Pancakes", "https://example.com", "Mix and fry.", new List<HerLink> { new HerLink { Text = "Best pancakes" } });
             if (prompt.IndexOf("1. Best pancakes", StringComparison.Ordinal) < 0 || prompt.IndexOf("find a recipe", StringComparison.Ordinal) < 0 || prompt.IndexOf("Mix and fry.", StringComparison.Ordinal) < 0) return "Her computer's step prompt lost the page.";
             if (StepPrompt("x", new List<string>(), MaxSteps, "", null, "", null).IndexOf("finish with DONE", StringComparison.Ordinal) < 0) return "Her computer didn't tell her brain to finish on the last step.";
@@ -630,10 +558,9 @@ namespace CapriDesktop
             computer.WriteDiary("second line");
             List<string> diary = computer.Diary(1);
             if (diary.Count != 1 || !diary[0].EndsWith("second line", StringComparison.Ordinal)) return "Her diary lost a line.";
-            computer.MoveIcon("diary", new Point(600, 300));
             computer.AddSticker("star", new Point(500, 400), 10);
             HerComputer again = new HerComputer(folder);
-            if (again.IconAt("diary") != new Point(600, 300) || again.Stickers().Count != 1 || !again.Messy) return "Her desktop didn't come back the way she left it.";
+            if (again.Stickers().Count != 1 || again.Stickers()[0].Kind != "star") return "Her desktop didn't come back the way she left it.";
             for (int i = 0; i < MostStickers + 5; i++) again.AddSticker("heart", new Point(400, 400), 0);
             if (new HerComputer(folder).Stickers().Count != MostStickers) return "Her stickers piled up past the limit.";
             return null;
@@ -648,7 +575,6 @@ namespace CapriDesktop
             public void PointPage(Rectangle box) { }
             public void Click() { }
             public void Typing(string field, string text) { if (text != null) Typed.Add(text); }
-            public void DragIcon(string app, Point to) { }
             public void Bubble(string line) { }
             public void Wave() { }
             public void Changed() { }

@@ -19,6 +19,7 @@ $resources = @(('/resource:' + $icon + ',Capri.Chip.ico'), ('/resource:' + (Join
 $resources += ('/resource:' + (Join-Path $root 'assets\fonts\CapriMainframe-Bold.ttf') + ',Capri.Font.Title.ttf')
 $resources += Get-ChildItem -LiteralPath (Join-Path $root 'assets\words') -Filter *.txt | ForEach-Object { '/resource:' + $_.FullName + ',Capri.Words.' + $_.Name }
 $resources += ('/resource:' + (Join-Path $root 'assets\cursor.png') + ',Capri.Cursor.png')
+$resources += Get-ChildItem -LiteralPath (Join-Path $root 'assets\her-computer') -Filter *.png | ForEach-Object { '/resource:' + $_.FullName + ',Capri.Her.' + $_.Name }
 # The Store copy carries no driver: policy 10.1.5 leaves non-Microsoft drivers out of what an app may bring in.
 if (-not $Store) { $resources += ('/resource:' + (Join-Path $root 'assets\vbcable\VBCABLE_Driver_Pack45.zip') + ',Capri.VBCABLE.zip') }
 if (-not $Store)
