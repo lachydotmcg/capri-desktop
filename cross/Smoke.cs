@@ -5236,10 +5236,15 @@ namespace CapriDesktop
                     pet.SetMainframeSize(scale); sheet.Sync(); sheet.UpdateLayout();
                     string wrong = sheet.Crowded();
                     if (sheet.TitleOf(1) == null || sheet.TitleOf(1).Length != 120 || sheet.AuthorOf(1) == null || sheet.AuthorOf(1).Length != 83 || sheet.AboutOf(1) == null || sheet.AboutOf(1).Length != 600) throw new Exception("A full page lost its capped metadata.");
-                    if (wrong != null || Math.Abs(sheet.Zoom - scale / 100.0) > 0.001) throw new Exception("Mods layout at " + scale + "%: " + wrong);
+                    if (wrong != null || Math.Abs(sheet.Zoom - sheet.FittedZoom(scale / 100.0)) > 0.001) throw new Exception("Mods layout at " + scale + "%: " + (wrong ?? "zoom " + sheet.Zoom));
                     sheet.SavePicture(Path.Combine(folder, "mainframe-mods-" + scale + ".png"));
                 }
                 ModsPageChecks(frame);
+                double small = MainframeWindow.FittedZoom(1, ModsWindow.Wide, ModsWindow.Tall, new PixelRect(0, 36, 1280, 684), 1);
+                double roomy = MainframeWindow.FittedZoom(1.5, ModsWindow.Wide, ModsWindow.Tall, new PixelRect(0, 0, 3840, 2160), 1);
+                double tiny = MainframeWindow.FittedZoom(1, ModsWindow.Wide, ModsWindow.Tall, new PixelRect(0, 0, 800, 480), 1);
+                if (small >= 1 || ModsWindow.Tall * small > 684 - 48 + 0.5 || roomy != 1.5 || tiny != 0.75) throw new Exception("The Mods directory doesn't shrink to fit a small screen: " + small + ", " + roomy + ", " + tiny);
+                checks.Add("PASS Mods directory fits a 720p screen by shrinking, down to 75%, so Close, Back, Next and her messages stay on screen");
                 indexJson = goodIndex; json = fewJson;
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory after layout checks");
                 pet.SetMainframeSize(100); sheet.Sync(); sheet.SavePicture(Path.Combine(folder, "mainframe-mods.png"));
