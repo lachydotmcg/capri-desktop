@@ -45,6 +45,7 @@ namespace CapriDesktop
         private int arrivalsBefore;
         private double outFrom = -1;
         private TcpListener fakeVoice;
+        private bool patVoiced;
         private readonly List<string> voiceAsked = new List<string>();
         private readonly List<byte[]> spoken = new List<byte[]>();
         private readonly List<string> speechAsked = new List<string>();
@@ -1612,7 +1613,24 @@ namespace CapriDesktop
                 int voiced;
                 lock (spoken) voiced = spoken.Count;
                 string last = asked.Length == 0 ? "" : asked[asked.Length - 1];
-                if (pet.Talk.Reply != "Preem question, choom." || voiced != 2 || last.IndexOf("question", StringComparison.Ordinal) < 0 || Math.Abs(pet.Talk.Pace - 22) > 1.5) throw new Exception("Her reply wasn't spoken at the voice's pace: " + pet.Talk.Reply + " | " + voiced + " | " + pet.Talk.Pace + " | " + last);
+                if (!patVoiced)
+                {
+                    if (pet.Talk.Reply != "Preem question, choom." || voiced != 2 || last.IndexOf("question", StringComparison.Ordinal) < 0 || Math.Abs(pet.Talk.Pace - 22) > 1.5) throw new Exception("Her reply wasn't spoken at the voice's pace: " + pet.Talk.Reply + " | " + voiced + " | " + pet.Talk.Pace + " | " + last);
+                    pet.Talk.Dismiss();
+                    pet.PetLine(pet.Pets);
+                    patVoiced = true;
+                    return false;
+                }
+                if (Array.IndexOf(Pet.PetLines, pet.Talk.Reply) < 0 || voiced != 3) throw new Exception("Her pat line wasn't spoken in her voice: " + pet.Talk.Reply + " | " + voiced + " | " + last);
+                var typeAlong = typeof(Pet).GetMethod("TypeAlong", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                typeAlong.Invoke(pet, new object[] { "hi", 1 });
+                bool typedUnvoiced = Sfx.Typing && !pet.TypingSound;
+                pet.SetTypingMode(2);
+                typeAlong.Invoke(pet, new object[] { "hi", 1 });
+                bool typedOff = Sfx.Typing;
+                pet.AutoTyping();
+                if (!typedUnvoiced || typedOff) throw new Exception("A line shown without her voice typed wrong: auto " + typedUnvoiced + ", off " + typedOff);
+                pet.Talk.Dismiss();
                 pet.SetSpeak(false);
                 pet.Hear("again");
                 return true;
@@ -1622,10 +1640,14 @@ namespace CapriDesktop
                 if (pet.Talk.Reply == null) return false;
                 int voiced;
                 lock (spoken) voiced = spoken.Count;
-                if (voiced != 2 || pet.VoiceStatus != "key 1234 | Capri Test | quiet" || !pet.TypingSound) throw new Exception("Speak replies off still spoke, or typing stayed off: " + voiced + " | " + pet.VoiceStatus);
+                if (voiced != 3 || pet.VoiceStatus != "key 1234 | Capri Test | quiet" || !pet.TypingSound) throw new Exception("Speak replies off still spoke, or typing stayed off: " + voiced + " | " + pet.VoiceStatus);
+                pet.Talk.Dismiss();
+                pet.PetLine(pet.Pets);
+                lock (spoken) voiced = spoken.Count;
+                if (Array.IndexOf(Pet.PetLines, pet.Talk.Reply) < 0 || voiced != 3 || !Sfx.Typing) throw new Exception("With Speak replies off her pat line didn't show at once and type: " + pet.Talk.Reply + " | " + voiced);
                 pet.ForgetVoice();
                 if (File.Exists(Path.Combine(folder, "voice-key")) || pet.VoiceStatus != "no key | v1 | quiet" || pet.VoiceMenu != "Provider: ElevenLabs | - | Add ElevenLabs key...") throw new Exception("Remove key didn't remove it: " + pet.VoiceStatus + " | " + pet.VoiceMenu);
-                checks.Add("PASS voice: replies are spoken through ElevenLabs and type out at the voice's pace, Use ElevenLabs off keeps her quiet, and Remove key deletes the file");
+                checks.Add("PASS voice: replies and her own lines, like a pat line, are spoken through ElevenLabs and type out at the voice's pace, a line shown without her voice types with sound unless Typing mode is Off, Use ElevenLabs off keeps her quiet with the pat line typed at once, and Remove key deletes the file");
                 fakeVoice.Stop();
                 Send(shelf, "quit");
                 pet.Talk.Dismiss();
