@@ -69,11 +69,11 @@ def main():
             output.write("\n")
     elif json.loads(args.lock.read_text()) != lock:
         raise ValueError("Downloaded ASR model files do not match the reviewed artifact lock")
-    # Pin executable package payloads too, including native libmoonshine.so.
+    # Pin executable package payloads too, including native libmoonshine.so or .dylib.
     for package in ("moonshine-voice", "openwakeword", "onnxruntime"):
         distribution = importlib.metadata.distribution(package)
         for relative in distribution.files or []:
-            if str(relative).endswith((".py", ".so")):
+            if str(relative).endswith((".py", ".so", ".dylib")):
                 path = distribution.locate_file(relative).resolve()
                 runtime_files.append({"path": str(path), "sha256": digest(path)})
     manifest = {"moonshine": {"source_revision": MOONSHINE_REVISION,

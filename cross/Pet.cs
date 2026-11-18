@@ -983,8 +983,24 @@ namespace CapriDesktop
             InitializeNativeAdapters();
             if (Program.Smoke == null)
             {
-                Sfx.TypeOut = delegate(short[] samples) { Limbs.Speak(Voice.Wave(samples, Sfx.Rate)); };
-                Sfx.Untyped = Limbs.Hush;
+                Sfx.TypeOut = delegate(short[] samples)
+                {
+                    if (OperatingSystem.IsMacOS() && Saved.ListenCapri)
+                    {
+                        nameEars.GateForPlayback();
+                        macSpeechUntil = Now + samples.Length / (double)Sfx.Rate + 0.7;
+                    }
+                    Limbs.Speak(Voice.Wave(samples, Sfx.Rate));
+                };
+                Sfx.Untyped = delegate
+                {
+                    if (OperatingSystem.IsMacOS() && Saved.ListenCapri)
+                    {
+                        nameEars.GateForPlayback();
+                        macSpeechUntil = Now + 0.7;
+                    }
+                    Limbs.Hush();
+                };
             }
             Look.OverGames = !Saved.NotOnTop && Program.Smoke == null;
             Look.AboveGames(this);

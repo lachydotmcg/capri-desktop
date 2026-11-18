@@ -29,7 +29,29 @@ namespace CapriDesktop
         private sealed record StateUpdate(NameListeningState State, long Authority);
 
         internal OwnedNameEars(Func<string, string, Process> launch = null)
-        { this.launch = launch ?? ((python, manifest) => Bridge.Start(python, "speech/name_listen.py", "ears", manifest)); }
+        { this.launch = launch ?? ((python, manifest) => OperatingSystem.IsMacOS() ? StartMac(python) : Bridge.Start(python, "speech/name_listen.py", "ears", manifest)); }
+
+        private static Process StartMac(string python)
+        {
+            string script = System.IO.Path.Combine(AppContext.BaseDirectory, "bridge", "speech", "name_listen.py");
+            if (!System.IO.Path.IsPathFullyQualified(python) || !System.IO.File.Exists(python) || !System.IO.File.Exists(script))
+                throw new InvalidOperationException("Configure the local decoder runtime before listening.");
+            var start = new ProcessStartInfo(python)
+            {
+                UseShellExecute = false, RedirectStandardInput = true,
+                RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true
+            };
+            start.ArgumentList.Add("-B"); start.ArgumentList.Add("-E"); start.ArgumentList.Add("-s");
+            start.ArgumentList.Add("-u"); start.ArgumentList.Add(script);
+            start.Environment["PYTHONNOUSERSITE"] = "1";
+            start.Environment["HF_HUB_OFFLINE"] = "1";
+            start.Environment["TRANSFORMERS_OFFLINE"] = "1";
+            foreach (string key in new[] { "PYTHONPATH", "PYTHONHOME", "OPENAI_API_KEY", "ANTHROPIC_API_KEY" }) start.Environment.Remove(key);
+            Process child = Process.Start(start);
+            child.ErrorDataReceived += (_, _) => { };
+            child.BeginErrorReadLine();
+            return child;
+        }
 
         internal bool Active { get { lock (gate) return running != null && !running.IsCompleted; } }
         internal bool IsCurrent(NameTranscript transcript)

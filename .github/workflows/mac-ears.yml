@@ -1,0 +1,41 @@
+name: Mac ears
+
+on:
+  pull_request:
+    paths:
+      - 'cross/bridge/**'
+      - 'tools/asr*'
+      - 'tests/native-bridge/mac_ears_check.py'
+      - '.github/workflows/mac-ears.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-ears-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  decoder:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the pinned ears runtime
+        run: |
+          set -e
+          python -m venv "$RUNNER_TEMP/asr-venv"
+          "$RUNNER_TEMP/asr-venv/bin/python" -m pip install --quiet --disable-pip-version-check --require-hashes --only-binary=:all: -r tools/asr-requirements.lock
+          "$RUNNER_TEMP/asr-venv/bin/python" tools/asr_setup.py --directory "$RUNNER_TEMP/asr" --lock tools/asr-models.lock.json
+      - name: Record a test line
+        run: |
+          say -o "$RUNNER_TEMP/hey.aiff" "Hey Capri, what time is it?"
+          afconvert -f WAVE -d LEI16@16000 -c 1 "$RUNNER_TEMP/hey.aiff" "$RUNNER_TEMP/hey.wav"
+      - name: Decoder hears it under Seatbelt with no network
+        run: |
+          "$RUNNER_TEMP/asr-venv/bin/python" -B -E -s tests/native-bridge/mac_ears_check.py \
+            --manifest "$RUNNER_TEMP/asr/runtime-manifest.json" --audio "$RUNNER_TEMP/hey.wav"

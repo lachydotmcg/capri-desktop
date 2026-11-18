@@ -25,7 +25,8 @@ namespace CapriDesktop
             + (OperatingSystem.IsLinux()
                 ? "Capri Remote: chat and photos from your phone work with Linux too."
                 : "Updates: Get new version downloads her new version, checks it, swaps her Capri.app and starts her again, and puts the old one back if the new one won't stay open. From \u2600SUNNY\u2600.\n"
-                    + "Capri Remote: chat and photos from your phone work with a Mac too.");
+                    + "Capri Remote: chat and photos from your phone work with a Mac too.\n"
+                    + "Hey Capri: on Apple Silicon Macs, VOICE > Listen for Hey Capri hears her name through your default mic once her local ears are set up, with 20 seconds of follow-ups, and pauses while she talks. Her ears run with no internet. From Yoplaxs.");
         internal static readonly string Line = "I just updated to " + Version + ": I can tell you the weather for your city now, and my pat lines are fresher. Ask me what's new.";
 #else
         internal const string Version = "0.9.3";
