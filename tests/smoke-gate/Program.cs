@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using CapriDesktop;
 
 internal static class Program
 {
     private const string Header = "Capri cross-platform smoke test on Linux 6.8.0";
     private const string Completion = "PASS a system quit with her Mainframe and a sheet open closes every window and ends her";
+    private const string QuitFailure = "FAIL A system quit with her Mainframe and a sheet open did not end her.";
     private static int failures;
     private static string root;
 
@@ -185,6 +187,59 @@ internal static class Program
         return count;
     }
 
+    private static List<string> ProducerLines()
+    {
+        var lines = new List<string> { Header };
+        for (int i = 1; i <= 20; i++) lines.Add("PASS producer check " + i);
+        return lines;
+    }
+
+    private static void ProducerScenarios(string scratch)
+    {
+        string dir = Path.Combine(scratch, "producer");
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, "smoke-test.txt");
+        var info = new ProcessStartInfo(Environment.ProcessPath) { WorkingDirectory = dir, UseShellExecute = false,
+            RedirectStandardOutput = true, RedirectStandardInput = true };
+        if (StringComparer.OrdinalIgnoreCase.Equals(Path.GetFileNameWithoutExtension(info.FileName), "dotnet"))
+            info.ArgumentList.Add(typeof(Program).Assembly.Location);
+        info.ArgumentList.Add("--interrupt-report");
+        info.ArgumentList.Add(path);
+        using var process = Process.Start(info);
+        string ready = null;
+        bool killed = false;
+        try { ready = process.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(15)).GetAwaiter().GetResult(); }
+        catch (TimeoutException) { }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill();
+                killed = true;
+            }
+            process.WaitForExit();
+        }
+        if (ready != "ready" || !killed || !File.Exists(path))
+        {
+            Check("interrupted-producer-leaves-a-failed-report", "producer did not wait at the quit boundary", false);
+            return;
+        }
+        byte[] written = File.ReadAllBytes(path);
+        Outcome rejected = Gate(dir, "smoke-test.txt", 20, 0);
+        Outcome actual = Gate(dir, "smoke-test.txt", 20, process.ExitCode);
+        List<string> expected = ProducerLines();
+        expected.Add(QuitFailure);
+        Check("interrupted-producer-leaves-a-failed-report", "producer exit=" + process.ExitCode + ", " + rejected.Summary,
+            process.ExitCode > 0 && rejected.Exit == 1 && rejected.Output.Contains("has a FAIL line")
+            && actual.Exit == 1 && actual.Output.Contains("exited with status " + process.ExitCode)
+            && File.ReadAllText(path) == string.Join(Environment.NewLine, expected) + Environment.NewLine
+            && written.AsSpan().SequenceEqual(File.ReadAllBytes(path)));
+        bool ended = SmokeReport.Write(path, ProducerLines(), null, () => true);
+        Outcome accepted = Gate(dir, "smoke-test.txt", 20, 0);
+        Check("finished-producer-promotes-the-final-line", accepted.Summary, ended && accepted.Exit == 0
+            && File.ReadAllLines(path)[^1] == Completion && !accepted.Output.Contains(QuitFailure));
+    }
+
     private static string Root()
     {
         DirectoryInfo dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -196,8 +251,19 @@ internal static class Program
         return Directory.GetCurrentDirectory();
     }
 
-    private static int Main()
+    private static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--interrupt-report")
+        {
+            SmokeReport.Write(args[1], ProducerLines(), null, () =>
+            {
+                Console.WriteLine("ready");
+                Console.Out.Flush();
+                Console.Read();
+                return false;
+            });
+            return 2;
+        }
         root = Root();
         string scratch = Directory.CreateTempSubdirectory("capri-smoke-gate-").FullName;
         try
@@ -205,6 +271,7 @@ internal static class Program
             GateScenarios(scratch);
             failures += VerifierProbes.Run(root, scratch);
             WorkflowScenarios();
+            ProducerScenarios(scratch);
         }
         finally
         {
