@@ -114,6 +114,7 @@ namespace CapriDesktop
             link = new RemoteLink(state, relay, Environment.MachineName, "capri/" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3), delegate(RemoteState saved) { RemoteSaved(link, saved); });
             RemoteBrainsOn(link);
             link.Offer("jobs");
+            link.Offer(RemotePush.Feature);
             link.LiveHeard += RemoteJobHeard;
             link.Happened += RemoteHappened;
             link.Said += RemoteHeard;
@@ -427,7 +428,7 @@ namespace CapriDesktop
         }
 #endif
 
-        private void RemoteHeard(string device, string id, string text) { Post(delegate { RemoteHear(device, id, text); }); }
+        private void RemoteHeard(string device, string id, string text) { phoneHeardAt = DateTime.Now; Post(delegate { RemoteHear(device, id, text); }); }
 
         private void RemoteHear(string device, string id, string text, string seen = null, Func<bool> current = null, RemotePicture photo = null)
         {
@@ -785,6 +786,63 @@ namespace CapriDesktop
             }
             if (state != "running" && state != "asking") run.Ended = RemoteJobNow();
             RemoteJobSend(null, RemoteJobState(run));
+            RemoteJobNotify(run, state);
+        }
+
+        private static bool RemotePcAway()
+        {
+            try { return Native.IdleMilliseconds() >= 120000; }
+            catch (Exception) { return false; }
+        }
+
+        private void RemoteJobNotify(RemoteJob run, string state)
+        {
+            RemoteLink link = remoteLink;
+            if (link == null || remoteJobTap != null) return;
+            bool phone = run.Re != null;
+            if (state == "asking" && (phone || RemotePcAway())) link.Notify("ask", run.Task, run.Ask, run.Id, null, null);
+            else if ((state == "done" || state == "failed") && !phone && RemotePcAway())
+                link.Notify("done", (state == "done" ? "Done: " : "Couldn't finish: ") + run.Task, state == "done" ? "I finished it on your PC." : "I got stuck partway. Tap to see where.", run.Id, null, null);
+        }
+
+        private readonly Random phoneCheckRandom = new Random();
+        private DateTime phoneCheckLast = DateTime.MinValue, phoneCheckDue = DateTime.MinValue, phoneCheckDate = DateTime.MinValue, phoneHeardAt = DateTime.MinValue;
+        private int phoneCheckCount;
+        private string phoneCheckLine;
+
+        private void CheckPhoneCheckIn(DateTime now, long quiet)
+        {
+            RemoteLink link = remoteLink;
+            if (now.Date != phoneCheckDate)
+            {
+                phoneCheckDate = now.Date;
+                phoneCheckCount = 0;
+            }
+            if (link == null || !preferences.CheckIns || Hushed || link.PushPhones == 0 || (now - phoneHeardAt).TotalMinutes < 60 || !RemoteCheckIns.Allowed(now, quiet, phoneCheckLast, phoneCheckCount))
+            {
+                phoneCheckDue = DateTime.MinValue;
+                return;
+            }
+            if (phoneCheckDue == DateTime.MinValue)
+            {
+                phoneCheckDue = now.AddMinutes(phoneCheckRandom.Next(0, 90));
+                return;
+            }
+            if (now < phoneCheckDue) return;
+            string line = RemoteCheckIns.Line(now, quiet, phoneCheckRandom, phoneCheckLine);
+            phoneCheckLine = line;
+            phoneCheckLast = now;
+            phoneCheckCount++;
+            phoneCheckDue = DateTime.MinValue;
+            link.Notify("checkin", "Capri", Said.Learn(line), null, null, null);
+        }
+
+        private void RemoteNotifyReminder(string line)
+        {
+            RemoteLink link = remoteLink;
+            if (link == null || testing || string.IsNullOrEmpty(line) || !RemotePcAway()) return;
+            string body = line.StartsWith("Reminder: ", StringComparison.Ordinal) ? line.Substring(10) : line;
+            link.Notify("reminder", "Reminder", body, null, null, null);
         }
 
         // Her hands taking a job (Worked). A job that SECURITY's yes runs on this thread keeps the card she asked on; any
@@ -1087,6 +1145,9 @@ namespace CapriDesktop
             finally { Computer.Streaming = streaming; }
             if (RemoteInput("a\u202eb\u2066c\u2069\u200bd\uDB40\uDC41\u0007\te\nf\uD83D\uDE00") != "abcd e\nf\uD83D\uDE00") throw new Exception("Phone input kept a control or format character, or lost an emoji.");
             RemoteLink.SmokePairing(checks);
+            RemotePush.Smoke(checks);
+            RemoteLink.SmokePush(checks);
+            RemoteCheckIns.Smoke(checks);
             SmokeRemoteRooms(checks);
             SmokeRemoteBridge(checks);
             SmokeRemoteLive(checks, output);
@@ -1293,6 +1354,77 @@ namespace CapriDesktop
         }
     }
 #endif
+
+    internal static class RemoteCheckIns
+    {
+        internal const long Away = 45 * 60000, LongAway = 4 * 3600000L;
+        internal const int GapMinutes = 180, Daily = 2, From = 10, Until = 21;
+
+        private static readonly string[] Morning =
+        {
+            "Morning! Your PC's nice and quiet. I'm here if you need me.",
+            "Good morning! I kept your desktop warm for you.",
+            "Hey, you up and about? Tell me what you're doing today."
+        };
+
+        private static readonly string[] Afternoon =
+        {
+            "Just checking in. How's your day going?",
+            "Hi! It's quiet here without you. Want me to do anything?",
+            "Quick check-in: have you had some water lately?",
+            "I've been looking after your PC. Nothing exploded. Probably.",
+            "Thinking about you. Send me something if you're bored."
+        };
+
+        private static readonly string[] Evening =
+        {
+            "Evening! Are you coming back to your PC tonight?",
+            "Hey, how was your day? I want to hear about it.",
+            "Still out? I'll be right here when you're back.",
+            "Don't forget to eat something proper tonight, okay?"
+        };
+
+        private static readonly string[] Long =
+        {
+            "It's been a while! Everything okay?",
+            "I haven't seen you in hours. I'm starting to talk to your wallpaper.",
+            "Missing you a bit. Message me if you want company."
+        };
+
+        internal static bool Allowed(DateTime now, long idle, DateTime last, int today)
+        {
+            return idle >= Away && now.Hour >= From && now.Hour < Until && today < Daily && (last == DateTime.MinValue || (now - last).TotalMinutes >= GapMinutes);
+        }
+
+        internal static string Line(DateTime now, long idle, Random random, string last)
+        {
+            List<string> pool = new List<string>(now.Hour < 12 ? Morning : now.Hour < 17 ? Afternoon : Evening);
+            if (idle >= LongAway) pool.AddRange(Long);
+            pool.Remove(last);
+            return pool[random.Next(pool.Count)];
+        }
+
+        internal static void Smoke(List<string> checks)
+        {
+            DateTime noon = new DateTime(2026, 11, 18, 12, 0, 0);
+            if (!Allowed(noon, Away, DateTime.MinValue, 0)) throw new Exception("A phone check-in wasn't allowed at noon after 45 minutes away.");
+            if (Allowed(noon, Away - 1, DateTime.MinValue, 0) || Allowed(noon.AddHours(-2).AddMinutes(-1), Away, DateTime.MinValue, 0) || Allowed(noon.AddHours(9), Away, DateTime.MinValue, 0) || Allowed(noon.AddHours(-12), Away, DateTime.MinValue, 0))
+                throw new Exception("A phone check-in was allowed while at the PC or outside 10am to 9pm.");
+            if (Allowed(noon, Away, noon.AddMinutes(-179), 1) || Allowed(noon, Away, DateTime.MinValue, Daily) || !Allowed(noon, Away, noon.AddMinutes(-180), 1))
+                throw new Exception("Phone check-ins weren't kept to two a day, three hours apart.");
+            Random random = new Random(7);
+            string previous = null;
+            foreach (DateTime when in new[] { noon.AddHours(-1), noon, noon.AddHours(6) })
+                for (int i = 0; i < 40; i++)
+                {
+                    string line = Line(when, i % 2 == 0 ? Away : LongAway, random, previous);
+                    if (line == previous || line.Length > 200 || line.Length == 0) throw new Exception("A phone check-in repeated itself or didn't fit: " + line);
+                    if (i % 2 == 0 && Array.IndexOf(when.Hour < 12 ? Morning : when.Hour < 17 ? Afternoon : Evening, line) < 0) throw new Exception("A phone check-in didn't suit the time of day: " + line);
+                    previous = line;
+                }
+            checks.Add("PASS phone check-ins only come after 45 minutes away from the PC, between 10am and 9pm, at most two a day three hours apart, suit the time of day and never repeat the last one");
+        }
+    }
 
     internal static class RemoteJobWords
     {

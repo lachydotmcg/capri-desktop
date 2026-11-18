@@ -2061,6 +2061,9 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 ### TALK on Linux
 Follow the [Linux TALK setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup) to install `parec`, extract sherpa-onnx into her ears folder (or put `sherpa-onnx-offline` on PATH) and add her English Parakeet pack, or her European pack when her language is one of its 24 other languages. Pick your default mic in your sound settings. Hover over her, click TALK, say one line in her language and pause. Click TALK again to cancel. She transcribes the audio on your PC and uses the same brain and reply voice as TYPE.
 
+### Hey Capri on Mac (0.9.4)
+On Apple Silicon Macs, Mainframe > Settings > VOICE > Listen for Hey Capri works like on Linux once her local ears are set up (see [Listen for Capri on Mac](https://github.com/lachydotmcg/capri-desktop/blob/main/docs/NAME_LISTENING.md#mac)). Pick your mic in System Settings > Sound > Input first. Turning it on names that mic and you type YES to use it. If you change your default mic later, she stops listening until you turn it on again. Her ears run on your Mac with no internet, and she pauses them while she talks. Intel Macs don't have it yet. Thanks to Yoplaxs for bringing it to Mac.
+
 ### Right-click menu
 - Talk to her
 - Quiet: for when you focus or game. She stops pop-ins, asking for attention, cheers, the lag joke and Watch my screen until you untick it, and still answers when you talk to her. It's in the tray or menu bar menu too. Starting her again ends it.

@@ -88,6 +88,7 @@ namespace CapriDesktop
         internal Mods(string data)
         {
             folder = Path.Combine(data, "mods");
+            ModDirectory.KeptFolder = Path.Combine(data, "mod-directory");
             All = new List<Mod>();
             Problems = new List<string>();
             Hands.AlsoHeard = delegate(string words)

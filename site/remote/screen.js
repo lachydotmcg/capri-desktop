@@ -281,6 +281,7 @@
   };
 
   // ---------- Monitors and quality ----------
+  const HER = 'her';
   const chip = (group, value, text, on, label) => {
     const el = make('button', 'chip' + (on ? ' on' : ''), text);
     el.type = 'button';
@@ -293,12 +294,12 @@
   const drawChips = () => {
     screens.textContent = '';
     chip(screens, 'auto', 'Auto', pick.monitor === 'auto', 'Auto: follow what Capri is looking at');
-    for (const monitor of seen.list) chip(screens, monitor.id, monitor.id, pick.monitor === monitor.id, monitor.name + (monitor.primary ? ', main' : ''));
+    for (const monitor of seen.list) chip(screens, monitor.id, monitor.id === HER ? 'Capri' : monitor.id, pick.monitor === monitor.id, monitor.name + (monitor.primary ? ', main' : ''));
     screens.hidden = seen.list.length < 2;
     qualities.textContent = '';
     for (const [name, text] of QUALITIES) chip(qualities, name, text, pick.quality === name);
     const shown = seen.list.find(monitor => monitor.id === seen.monitor);
-    title.textContent = shown ? (seen.list.length > 1 ? 'Monitor ' + shown.id : 'Screen') + (seen.auto && seen.list.length > 1 ? ' \u00b7 Auto' : '') : 'Screen';
+    title.textContent = shown ? (shown.id === HER ? shown.name : seen.list.length > 1 ? 'Monitor ' + shown.id : 'Screen') + (seen.auto && seen.list.length > 1 ? ' \u00b7 Auto' : '') : 'Screen';
   };
   screens.addEventListener('click', event => {
     const el = event.target.closest('.chip');
@@ -320,11 +321,11 @@
     if (!Array.isArray(message.list)) return;
     const was = seen;
     seen = {
-      list: message.list.filter(m => m && typeof m.id === 'string' && /^[0-9]{1,2}$/.test(m.id)).slice(0, 9).map(m => ({ id: m.id, name: 'Monitor ' + m.id, primary: m.primary === true })),
+      list: message.list.filter(m => m && typeof m.id === 'string' && (/^[0-9]{1,2}$/.test(m.id) || m.id === HER)).slice(0, 10).map(m => ({ id: m.id, name: m.id === HER ? "Capri's computer" : 'Monitor ' + m.id, primary: m.id !== HER && m.primary === true })),
       monitor: typeof message.monitor === 'string' ? message.monitor : '',
       auto: message.auto === true
     };
-    if (message.missing === true && !was.missing && pick.monitor !== 'auto') say('Monitor ' + pick.monitor + ' is gone: showing ' + (seen.monitor || 'another'));
+    if (message.missing === true && !was.missing && pick.monitor !== 'auto') say((pick.monitor === HER ? "Capri's computer is off" : 'Monitor ' + pick.monitor + ' is gone') + ': showing ' + (seen.monitor || 'another'));
     seen.missing = message.missing === true;
     drawChips();
   };

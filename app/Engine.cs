@@ -143,8 +143,10 @@ namespace CapriDesktop
         private bool serverEyes;
         private bool serverCpu;
         private int serverWindow;
+        private int serverLimit;
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
+        internal bool OnCpu { get { return CpuOnly || Brain.GpuLimit < 0; } }
         // The window an ask is growing her to past 16K, or 0. A load of that size that stops on the graphics card throws without
         // marking her for the CPU, so Brain can put back the size that worked.
         internal volatile int Careful;
@@ -344,10 +346,17 @@ namespace CapriDesktop
 
         internal static int Threads(int processors) { return Math.Max(1, Math.Min(4, processors / 2)); }
 
-        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 4096)
+        internal static string Fit(int limit, long vram, long eyes)
+        {
+            if (limit <= 0 || vram < (1L << 30)) return "";
+            long margin = (vram >> 20) - ((long)limit << 10) + (eyes >> 20);
+            return margin > 1024 ? " -fitt " + margin : "";
+        }
+
+        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 4096, int limit = 0)
         {
             int threads = Threads(Environment.ProcessorCount);
-            ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + ModelPath(pick) + "\"" + (eyes ? " --mmproj \"" + EyesPath(pick) + "\"" : "") + " --host 127.0.0.1 --port " + number + " -c " + window + " -np 1 -a capri --jinja --reasoning off --no-webui --sleep-idle-seconds 900 --log-disable -t " + threads + " -tb " + threads + " -b 256 -ub 128 --poll 0 --poll-batch 0" + (cpu ? " --device none -ngl 0 --no-mmproj-offload" : ""));
+            ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + ModelPath(pick) + "\"" + (eyes ? " --mmproj \"" + EyesPath(pick) + "\"" : "") + " --host 127.0.0.1 --port " + number + " -c " + window + " -np 1 -a capri --jinja --reasoning off --no-webui --sleep-idle-seconds 900 --log-disable -t " + threads + " -tb " + threads + " -b 256 -ub 128 --poll 0 --poll-batch 0" + (cpu ? " --device none -ngl 0 --no-mmproj-offload" : Fit(limit, Interlocked.Read(ref Brain.Vram), eyes ? pick.EyesSize : 0)));
             info.UseShellExecute = false;
             info.CreateNoWindow = true;
             info.WorkingDirectory = Folder;
@@ -419,17 +428,20 @@ namespace CapriDesktop
                 bool eyes = HasEyes(pick);
                 window = Brain.Window;
                 careful = window == Careful;
-                if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == CpuOnly && serverWindow == window) return;
+                int limit = Brain.GpuLimit;
+                bool cpu = CpuOnly || limit < 0;
+                if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == cpu && serverWindow == window && serverLimit == limit) return;
                 if (server != null) Stop();
                 if (!File.Exists(Server) || !File.Exists(ModelPath(pick))) throw new BrainException("Brain not downloaded. Press Set up her brain.");
                 port = FreePort();
                 serverEyes = eyes;
-                serverCpu = CpuOnly;
+                serverCpu = cpu;
                 serverWindow = window;
+                serverLimit = limit;
                 // The try is marked before it starts, so a load that takes Capri or the PC down with it leaves her on the CPU for
                 // this version.
                 if (retryGpu && !serverCpu) KeepCpu("trying the graphics card again");
-                server = Spawn(StartInfo(pick, eyes, serverCpu, port, window));
+                server = Spawn(StartInfo(pick, eyes, serverCpu, port, window, limit));
                 Lower(server);
                 Bind(server);
             }

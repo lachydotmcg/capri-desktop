@@ -45,8 +45,8 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        // The left column is the taller one, and CLIPS' note at its foot sets this.
-        private const int PageTall = 2136;
+        // The left column is the taller one, and CLIPS' note at its foot sets this, with HER COMPUTER under Doomscroll guard.
+        private const int PageTall = 2264;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -300,7 +300,7 @@ namespace CapriDesktop
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1426;
+        private const int SimpleTall = 1554;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -1039,6 +1039,7 @@ namespace CapriDesktop
             clipHint.Bounds = new Rectangle(28, 1466, 328, 36);
             BuildWeather(1514);
             BuildDoomscroll(1642);
+            BuildHerComputer(1770);
             int gamesTo = Controls.Count;
             for (int belowHands = afterFastHands; belowHands < gamesTo; belowHands++) Controls[belowHands].Top -= 136;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
@@ -3103,6 +3104,7 @@ namespace CapriDesktop
             SyncSounds();
             SyncWeather();
             SyncDoomscroll();
+            SyncHerComputer();
             syncing = false;
         }
 

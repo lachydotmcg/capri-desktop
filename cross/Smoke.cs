@@ -4940,6 +4940,96 @@ namespace CapriDesktop
             }
         }
 
+        private void ModDirectoryFallbackChecks(ModsWindow sheet, byte[] json, Dictionary<string, byte[]> blobs)
+        {
+            Func<string, long, byte[]> get = ModDirectory.Get;
+            string keptWas = ModDirectory.KeptFolder, kept = Path.Combine(Path.GetTempPath(), "capri-smoke-kept-" + Guid.NewGuid().ToString("N"));
+            string commit = new string('c', 40), pinned = "https://raw.githubusercontent.com/lachydotmcg/capri-mods/" + commit + "/mods/";
+            string text = Encoding.UTF8.GetString(json);
+            byte[] rawTree = Encoding.UTF8.GetBytes(text.Substring(0, text.LastIndexOf('}')) + ",\"commit\":\"" + commit + "\"}");
+            List<ModListing> listed = ModDirectory.Parse(json);
+            bool rawDown = false, rawBroken = false, apiDown = false;
+            int apiGets = 0, blobGets = 0;
+            List<string> pinnedGets = new List<string>();
+            ModDirectory.KeptFolder = kept;
+            ModDirectory.Get = delegate(string url, long most)
+            {
+                if (url == ModDirectory.TreePage)
+                {
+                    if (rawDown) throw new WebException("stand-in");
+                    return rawBroken ? Encoding.UTF8.GetBytes("{broken") : rawTree;
+                }
+                if (url == ModDirectory.TreeApi)
+                {
+                    Interlocked.Increment(ref apiGets);
+                    if (apiDown) throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
+                    return json;
+                }
+                if (url.Contains("/blobs/")) Interlocked.Increment(ref blobGets);
+                if (url.StartsWith(pinned, StringComparison.Ordinal) && !url.EndsWith("/preview.png", StringComparison.Ordinal))
+                {
+                    lock (pinnedGets) pinnedGets.Add(url);
+                    ModListing match = listed.Find(each => pinned + each.Folder + "/" + each.FileName == url);
+                    if (match == null) throw new Exception("Unexpected pinned mods request: " + url);
+                    return blobs[match.Sha];
+                }
+                return get(url, most);
+            };
+            try
+            {
+                string trouble;
+                List<ModListing> fresh = ModDirectory.Browse(out trouble);
+                if (trouble != null || apiGets != 0 || fresh.Count != listed.Count || fresh.Exists(each => each.Commit != commit) || fresh[0].Sha != listed[0].Sha) throw new Exception("The directory didn't come from tree.json with its commit: " + apiGets + " / " + trouble);
+                string under = Path.Combine(kept, "downloads");
+                int blobsBefore = blobGets;
+                string file = ModDirectory.Download(fresh[0], under);
+                bool exact = ModDirectory.BlobSha(File.ReadAllBytes(file)) == fresh[0].Sha;
+                ModDirectory.Clean(file);
+                if (!exact || pinnedGets.Count != 1 || pinnedGets[0] != pinned + fresh[0].Folder + "/" + fresh[0].FileName || blobGets != blobsBefore) throw new Exception("A mod from tree.json wasn't downloaded from its pinned commit: " + string.Join(" | ", pinnedGets));
+                checks.Add("PASS mods directory: tree.json from raw.githubusercontent.com lists the mods without the API, and a download comes from the commit it names and matches its fingerprint");
+                rawBroken = true;
+                List<ModListing> fallback = ModDirectory.Browse(out trouble);
+                rawBroken = false;
+                rawDown = true;
+                List<ModListing> unreachable = ModDirectory.Browse(out trouble);
+                if (trouble != null || apiGets != 2 || fallback.Count != listed.Count || unreachable.Count != listed.Count || fallback[0].Commit != null || unreachable[0].Commit != null) throw new Exception("A broken or missing tree.json didn't fall back to the API: " + apiGets);
+                checks.Add("PASS mods directory: a broken or missing tree.json falls back to GitHub's API");
+                rawDown = false;
+                ModDirectory.Browse();
+                rawDown = apiDown = true;
+                List<ModListing> old = ModDirectory.Browse(out trouble);
+                if (old.Count != listed.Count || old[0].Commit != commit || trouble == null || !trouble.StartsWith("Couldn't reach GitHub for the mods directory.", StringComparison.Ordinal) || !trouble.EndsWith(" Showing the list from a moment ago.", StringComparison.Ordinal)) throw new Exception("The kept directory wasn't shown with the real error: " + trouble);
+                bool refused = false;
+                try { ModDirectory.BrowseNow(); }
+                catch (ModException) { refused = true; }
+                if (!refused) throw new Exception("An update check took the kept directory for a fresh one.");
+                checks.Add("PASS mods directory: when GitHub can't be reached the last directory that loaded comes back with the real error and its age, and update checks don't count it");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the kept directory");
+                if (sheet.TitleOf(0) == null || sheet.DirectoryText == null || !sheet.DirectoryText.EndsWith(" Showing the list from a moment ago.", StringComparison.Ordinal)) throw new Exception("The Mods window didn't show the kept directory and why: " + sheet.DirectoryText);
+                Directory.Delete(kept, true);
+                string before = sheet.TitleOf(0);
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the directory with nothing kept");
+                if (sheet.TitleOf(0) != before || sheet.DirectoryText != "Couldn't reach GitHub for the mods directory. Check your internet connection. Showing the list from before.") throw new Exception("A failed refresh cleared the Mods window or hid the error: " + sheet.DirectoryText);
+                refused = false;
+                try { ModDirectory.Browse(); }
+                catch (ModException error) { refused = error.Message == "Couldn't reach GitHub for the mods directory. Check your internet connection."; }
+                if (!refused) throw new Exception("With nothing kept, the directory didn't say what went wrong.");
+                checks.Add("PASS mods window: a refresh that fails keeps the cards on screen and says what went wrong instead of emptying the list");
+                if (ModDirectory.Ago(DateTime.Now.AddMinutes(-30)) != "30 minutes ago" || ModDirectory.Ago(DateTime.Now.AddHours(-5)) != "5 hours ago" || ModDirectory.Ago(DateTime.Now.AddDays(-3)) != "3 days ago"
+                    || ModDirectory.Trouble(new WebException("x", WebExceptionStatus.Timeout)) != "The mods directory took too long to answer." || ModDirectory.Trouble(new ModException("Own words.")) != "Own words.")
+                    throw new Exception("The directory's age or error words were wrong.");
+                checks.Add("PASS mods directory: a kept list says how old it is, and timeouts and the directory's own errors read plainly");
+            }
+            finally
+            {
+                ModDirectory.Get = get;
+                ModDirectory.KeptFolder = keptWas;
+                try { if (Directory.Exists(kept)) Directory.Delete(kept, true); }
+                catch (IOException) { }
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the directory after the fallback checks");
+            }
+        }
+
         private void ModDirectoryChecks(Mainframe frame, ModsWindow sheet, string input, string blue, string skin)
         {
             Func<string, long, byte[]> get = ModDirectory.Get, soon = ModDirectory.GetSoon;
@@ -5032,6 +5122,7 @@ namespace CapriDesktop
                 indexDown = false;
                 if (sheet.TitleOf(0) != "A Blue Hair" || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.DirectoryText != "Pick a mod to download.") throw new Exception("Losing the index left old text or an error in the Mods window.");
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory again");
+                ModDirectoryFallbackChecks(sheet, json, blobs);
                 checks.Add("PASS mods index cards: names, by author and descriptions show; search matches author and description words together, and losing the index quietly clears its text");
                 sheet.PickSort(1);
                 if (sheet.TitleOf(0) != "D Names" || sheet.TitleOf(1) != "Colors: Blue & Bright") throw new Exception("Sorting by Downloads didn't put the most downloaded first: " + sheet.TitleOf(0) + " / " + sheet.TitleOf(1));
@@ -7954,6 +8045,8 @@ namespace CapriDesktop
             RemotePairChecks();
             RemoteLink.SmokePairing(checks);
             RemoteLink.SmokeJobs(checks);
+            RemotePush.Smoke(checks);
+            RemoteLink.SmokePush(checks);
             RemoteStoreChecks();
 
             string diskRoot = Path.Combine(folder, "remote-core-" + Guid.NewGuid().ToString("N"));
@@ -8078,7 +8171,14 @@ namespace CapriDesktop
         {
             RemoteState state = RemoteState.Fresh();
             using RemoteWire wire = new RemoteWire(state);
-            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair") throw new Exception("Remote text core offered unsupported features.");
+            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair,wake") throw new Exception("Remote text core offered unsupported features.");
+            RemoteJson.Map woke = RemoteJson.ParseMap(RemoteWake.Info());
+            if (woke == null || woke.Text("type") != "wake.info" || woke.Items("cards") == null || woke.Items("cards").Count > 4) throw new Exception("Remote wake info was malformed.");
+            foreach (object item in woke.Items("cards"))
+            {
+                RemoteJson.Map card = item as RemoteJson.Map;
+                if (card == null || !System.Text.RegularExpressions.Regex.IsMatch(card.Text("mac") ?? "", "^[0-9A-F]{2}(:[0-9A-F]{2}){5}$") || !IPAddress.TryParse(card.Text("broadcast") ?? "", out _)) throw new Exception("Remote wake info had a bad card.");
+            }
             RemoteView view = new RemoteView { On = true, Ready = wire.Link.Ready, Status = wire.Link.Status };
             RemoteSink sink = new RemoteLinkSink(wire.Link);
             byte[] nonce = new byte[16];
