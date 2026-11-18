@@ -1181,7 +1181,7 @@ namespace CapriDesktop
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
-            { "listen_for_capri", "your mic stays open and a sentence with your name, or Hey Capri, starts voice chat; hey_capri and the wake word are this too" },
+            { "listen_for_capri", "your mic stays open and a sentence with your name, or Hey Capri, starts voice chat" },
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
             { "discord_presence", "what you're doing on their Discord profile" }, { "startup", "Capri starts when they log in; off until they ask for it" }, { "show_advanced", "Mainframe's advanced settings" },
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
@@ -7204,15 +7204,8 @@ namespace CapriDesktop
         internal static Func<string, string> SettingText = delegate { return "unreadable"; };
         internal static Func<string, string, string> SetSettingText = delegate { return "Couldn't change that just now."; };
 
-        private static string Alias(string name)
-        {
-            string plain = (name ?? "").Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
-            return plain == "hey_capri" || plain == "wake_word" || plain == "wakeword" || plain == "listen_for_hey_capri" ? "listen_for_capri" : name;
-        }
-
         private static int OwnRow(string name)
         {
-            name = Alias(name);
             for (int i = 0; i < OwnSwitches.GetLength(0); i++) if (OwnSwitches[i, 0] == name) return i;
             return -1;
         }
@@ -7300,7 +7293,6 @@ namespace CapriDesktop
         private static string Settings(ToolArguments args)
         {
             Kit kit = KitFor();
-            args.Name = Alias(args.Name);
             if (Array.IndexOf(SettingActions, args.Action) >= 0) return SettingAction(args);
             if (!Regex.IsMatch(args.Action ?? "", @"\A(list|on|off|set)\z")) return "Choose list, on, off or set.";
             if (args.Action == "set" && args.Name == "clip_folder")
