@@ -1007,12 +1007,23 @@ const stats = async (request, env) => {
   });
 };
 
+// The bot signs each request with the shared secret instead of sending it. Sending it as a bearer meant the secret crossed
+// the wire on every message and a logged request could be replayed forever; a signature over the timestamp and the whole
+// body means the secret never leaves the worker, an old request dies after five minutes, and `user` can't be swapped on a
+// message that was already signed.
 const relay = async (request, env, ctx, reply) => {
   if (!env.DISCORD_RELAY_SECRET) return reply({ reply: "Discord help isn't set up yet." }, 503);
-  const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Bearer ') || !await equal(auth.slice(7), env.DISCORD_RELAY_SECRET)) return reply({ error: 'Unauthorized' }, 401);
+  const stamp = request.headers.get('X-Capri-Timestamp') || '';
+  const signature = (request.headers.get('X-Capri-Signature') || '').toLowerCase();
+  if (!/^\d{13}$/.test(stamp) || Math.abs(Date.now() - Number(stamp)) > 300000) return reply({ error: 'Stale request.' }, 401);
+  const raw = await request.text();
+  const text = new TextEncoder();
+  const signKey = await crypto.subtle.importKey('raw', text.encode(env.DISCORD_RELAY_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', signKey, text.encode(stamp + '.' + raw));
+  const expected = [...new Uint8Array(mac)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  if (expected.length !== signature.length || !await equal(expected, signature)) return reply({ error: 'Unauthorized' }, 401);
   let body;
-  try { body = await request.json(); } catch (error) { return reply({ error: 'Bad request' }, 400); }
+  try { body = JSON.parse(raw); } catch (error) { return reply({ error: 'Bad request' }, 400); }
   if (!body || typeof body.user !== 'string' || !/^\d+$/.test(body.user)) return reply({ error: 'Bad user' }, 400);
   return respond(request, env, ctx, reply, body, body.user);
 };

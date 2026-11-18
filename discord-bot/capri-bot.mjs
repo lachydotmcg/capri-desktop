@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { pingRole, pingGate, called, notHere, trigger, question, context, history, attachment, result, chunks, fallback, empty, name, greeting, ticket, ticketContext, welcomed, staff, toggle, switchedOff, switchedOn, notYours, ticketsOnly, pauses, handling, together, switches } from './lib.mjs'
@@ -132,10 +132,15 @@ const respond = async (message, build, tag = '') => {
     await message.channel.sendTyping().catch(() => {})
     timer = setInterval(() => { message.channel.sendTyping().catch(() => {}) }, 8000)
     const body = await build()
+    // The secret is a signing key here, not a bearer: it never leaves this process, and the worker checks the signature
+    // over the timestamp and the exact bytes below, so a captured request can't be replayed or have its user swapped.
+    const raw = JSON.stringify({ user: message.author.id, name: name(message), ...body })
+    const stamp = String(Date.now())
+    const signature = createHmac('sha256', secret).update(stamp + '.' + raw).digest('hex')
     const response = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + secret, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: message.author.id, name: name(message), ...body }),
+      headers: { 'X-Capri-Timestamp': stamp, 'X-Capri-Signature': signature, 'Content-Type': 'application/json' },
+      body: raw,
       redirect: 'error',
       signal: AbortSignal.timeout(60000)
     })
