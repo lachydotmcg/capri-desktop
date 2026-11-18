@@ -796,6 +796,7 @@ namespace CapriDesktop
                 Pet.SelfChecks(pet, checks);
                 SecurityChecks();
                 TerminalSecurityChecks();
+                ClaudePlanChecks();
                 MacNativeChecks();
                 MacFingers.Checks(checks);
                 MacClickChecks();
@@ -3018,8 +3019,8 @@ namespace CapriDesktop
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 pet.OpenMainframe();
                 Mainframe frame = pet.Frame;
-                if (OperatingSystem.IsMacOS() && (frame.Button("ChatGPT plan") == null || frame.Button("Stop") == null))
-                    throw new Exception("The Mac Mainframe lost its plan or Stop button.");
+                if (OperatingSystem.IsMacOS() && (frame.Row("API key, Claude plan or ChatGPT plan") == null || frame.Button("Stop") == null))
+                    throw new Exception("The Mac Mainframe lost its plan picker or Stop button.");
                 foreach (string font in new[] { "BarlowSemiCondensed-Regular.ttf", "BarlowSemiCondensed-SemiBold.ttf", "BarlowCondensed-SemiBold.ttf" })
                     if (!Avalonia.Platform.AssetLoader.Exists(new Uri("avares://Capri/Assets/" + font))) throw new Exception("The Mainframe font is missing: " + font);
                 var tray = pet.TrayMenu();
@@ -6842,6 +6843,131 @@ namespace CapriDesktop
                 checks.Add("PASS Mac process backends: libproc identity, real PTY exit/output/stop, parent lifetime and Seatbelt read/write boundaries work with offline fixtures");
             }
             else checks.Add("INFO no local python3: Mac process fixtures skipped; fake adapter and Security checks passed");
+        }
+
+        private void ClaudePlanChecks()
+        {
+            if (!TerminalJobs.Supported) return;
+            string root = Path.Combine(folder, "claude-plan"), runs = Path.Combine(root, "runs"), home = Path.Combine(root, "home"), app = Path.Combine(root, "claude");
+            Directory.CreateDirectory(runs);
+            Directory.CreateDirectory(Path.Combine(home, ".local", "bin"));
+            File.WriteAllText(app, "#!/bin/sh\ndir=\"$(dirname \"$0\")\"\nprintf x >> \"$dir/count\"\nprintf '%s\\n' \"$@\" > \"$dir/args.txt\"\nenv > \"$dir/env.txt\"\npwd > \"$dir/cwd.txt\"\nprev=\"\"\nsafe=0\nfor a in \"$@\"; do\n  [ \"$prev\" = \"--append-system-prompt-file\" ] && cat \"$a\" > \"$dir/system.txt\"\n  [ \"$a\" = \"--safe-mode\" ] && safe=1\n  prev=\"$a\"\ndone\ncat > \"$dir/stdin.txt\"\nmode=\"$(cat \"$dir/mode\")\"\nif [ \"$mode\" = old ] && [ $safe = 1 ]; then echo \"error: unknown option '--safe-mode'\" >&2; exit 1; fi\nif [ \"$mode\" = sleep ]; then exec sleep 30; fi\ncat \"$dir/reply.txt\"\n");
+            File.SetUnixFileMode(app, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            string homed = Path.Combine(home, ".local", "bin", "claude");
+            File.Copy(app, homed);
+            File.SetUnixFileMode(homed, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            Action<string, string, bool> says = (mode, result, error) =>
+            {
+                File.WriteAllText(Path.Combine(root, "mode"), mode);
+                File.WriteAllText(Path.Combine(root, "reply.txt"), "{\"type\":\"system\",\"subtype\":\"init\"}\nnot json\n" + System.Text.Json.JsonSerializer.Serialize(new { type = "result", is_error = error, result }) + "\n");
+            };
+            Func<string, string> wrote = name => File.ReadAllText(Path.Combine(root, name));
+            Func<int> count = () => File.Exists(Path.Combine(root, "count")) ? wrote("count").Length : 0;
+            string overrideWas = ClaudePlanBrain.ClaudeOverride, folderWas = ClaudePlanBrain.FolderOverride, keyWas = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+            bool offWas = Brain.Off;
+            int tierWas = pet.MainframeTier;
+            Cloud remoteWas = pet.Brain.Remote;
+            string modelWas = pet.Brain.Model, kindWas = pet.Saved.PlanKind, pickWas = pet.Saved.ClaudePlanModel, problemWas = pet.MainframeProblem;
+            try
+            {
+                if (ClaudePlanBrain.Find(home) != homed) throw new Exception("Claude Code in ~/.local/bin was not found: " + ClaudePlanBrain.Find(home));
+                ClaudePlanBrain.ClaudeOverride = Path.Combine(root, "missing");
+                var brain = new ClaudePlanBrain("sonnet");
+                var asks = new List<ChatMessage> { new ChatMessage("system", "You are tested."), new ChatMessage("user", "say hi") { Images = new[] { Convert.ToBase64String(new byte[] { 1, 2, 3 }) }, ImageMime = "image/png" } };
+                Func<string, List<KeyValuePair<string, ToolArguments>>, string> ask = (tools, calls) => brain.Complete(null, asks, tools, calls, 512, null, "chat");
+                Func<string> fails = () => { try { ask(null, null); } catch (BrainException error) { return error.Message; } return null; };
+                if (fails() != Plans.Missing(ClaudePlanBrain.Kind)) throw new Exception("A missing Claude Code lost its install line.");
+                ClaudePlanBrain.ClaudeOverride = app;
+                ClaudePlanBrain.FolderOverride = runs;
+                ClaudePlanBrain.Retry();
+                Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-smoke");
+                says("plain", "Plan says hi.", false);
+                if (ask(null, null) != "Plan says hi.") throw new Exception("Claude Code's reply was lost.");
+                string args = wrote("args.txt"), env = wrote("env.txt"), sent = wrote("stdin.txt");
+                foreach (string flag in new[] { "-p\n", "--input-format\nstream-json\n", "--output-format\nstream-json\n", "--tools\n\n--strict-mcp-config\n", "--no-session-persistence\n", "--setting-sources\nproject\n", "--system-prompt\nYou are Capri.\n", "--append-system-prompt-file\n", "--model\nsonnet\n", "--safe-mode\n", "--disable-slash-commands\n" })
+                    if (!args.Contains(flag)) throw new Exception("Claude Code ran without " + flag.Replace('\n', ' ') + ": " + args);
+                if (env.Contains("ANTHROPIC_API_KEY") || !env.Contains("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1\n") || !env.Contains("NO_COLOR=1\n")) throw new Exception("Claude Code's environment kept an API key or lost its quiet settings.");
+                if (wrote("system.txt") != "You are tested." || !sent.Contains("\"type\":\"image\"") || !sent.Contains("\"media_type\":\"image/png\"") || !sent.Contains("say hi") || !sent.EndsWith("\n", StringComparison.Ordinal))
+                    throw new Exception("Claude Code wasn't sent her rules, message and screenshot: " + sent);
+                if (!wrote("cwd.txt").Trim().StartsWith(runs, StringComparison.Ordinal) || Directory.GetFileSystemEntries(runs).Length != 0) throw new Exception("Claude Code ran outside her own folder, or its run was kept.");
+                string catalog = "[{\"type\":\"function\",\"function\":{\"name\":\"run_terminal\",\"parameters\":{\"type\":\"object\",\"properties\":{\"command\":{\"type\":\"string\"},\"visible\":{\"type\":\"boolean\"}},\"required\":[\"command\"]}}}]";
+                string command = "printf 'quoted Ω'";
+                says("plain", "```json\n" + System.Text.Json.JsonSerializer.Serialize(new { text = "On it.", calls = new[] { new { name = "run_terminal", arguments = new { command, visible = false } } } }) + "\n```", false);
+                var proposed = new List<KeyValuePair<string, ToolArguments>>();
+                if (ask(catalog, proposed) != "On it." || proposed.Count != 1 || proposed[0].Key != "run_terminal" || proposed[0].Value.Command != command || proposed[0].Value.Visible != false || !wrote("system.txt").EndsWith(PlanBrain.Proposal + catalog, StringComparison.Ordinal))
+                    throw new Exception("Claude Code's fenced proposal did not become a checked call.");
+                says("plain", "{\"text\":\"Sure.\",\"calls\":[{\"name\":\"delete_everything\",\"arguments\":{}}]}", false);
+                proposed.Clear();
+                bool refused = false;
+                try { ask(catalog, proposed); }
+                catch (BrainException) { refused = true; }
+                says("plain", "Just words.", false);
+                if (!refused || proposed.Count != 0 || ask(catalog, proposed) != "Just words." || proposed.Count != 0) throw new Exception("Claude Code proposed an unlisted action, or a plain reply was lost.");
+                says("old", "From an older Claude Code.", false);
+                int before = count();
+                if (ask(null, null) != "From an older Claude Code." || count() != before + 2 || wrote("args.txt").Contains("--safe-mode") || !wrote("args.txt").Contains("--disable-slash-commands\n")) throw new Exception("An older Claude Code was not run again without the flag it doesn't know.");
+                before = count();
+                if (ask(null, null) != "From an older Claude Code." || count() != before + 1) throw new Exception("A flag an older Claude Code doesn't know was tried again.");
+                ClaudePlanBrain.Retry();
+                says("plain", "Not logged in · Please run /login", true);
+                if (fails() != "Claude Code isn't signed in. Run claude and sign in.") throw new Exception("A signed-out Claude Code lost its line.");
+                says("plain", "Claude usage limit reached. Your limit will reset at 5pm.", true);
+                if (fails() != "Your Claude plan is out of messages for now.") throw new Exception("A used-up Claude plan lost its line.");
+                says("plain", "Never asked.", false);
+                before = count();
+                Brain.Off = true;
+                if (fails() != Brain.OffLine || count() != before) throw new Exception("No AI still ran Claude Code.");
+                Brain.Off = offWas;
+                says("sleep", "Too late.", false);
+                Exception ended = null;
+                var asking = new Thread(() => { try { ask(null, null); } catch (Exception error) { ended = error; } });
+                Stopwatch stopping = Stopwatch.StartNew();
+                asking.Start();
+                while (!File.Exists(Path.Combine(root, "stdin.txt")) || wrote("mode") != "sleep" || stopping.ElapsedMilliseconds < 400) Thread.Sleep(20);
+                brain.Cancel();
+                if (!asking.Join(2500) || !(ended is OperationCanceledException) || Directory.GetFileSystemEntries(runs).Length != 0) throw new Exception("A talked-over Claude plan reply did not stop: " + ended);
+                long stoppedIn = stopping.ElapsedMilliseconds;
+
+                says("plain", "OK", false);
+                pet.OpenMainframe();
+                Mainframe frame = pet.Frame;
+                string row = "API key, Claude plan or ChatGPT plan";
+                pet.SetBrainTier(0); frame.Sync();
+                if (frame.Row(row).IsVisible) throw new Exception("The plan picker showed away from MAX INTELLIGENCE.");
+                pet.SetBrainTier(2); pet.Brain.Remote = null; pet.Brain.Model = null; frame.Sync();
+                if (!frame.Row(row).IsVisible || frame.Value(row) != "API key" || string.Join("|", ((NeonPicker)frame.Row(row)).Choices) != "API key|Claude plan|ChatGPT plan" || frame.Button("ChatGPT plan") != null || frame.Overlap() != null || frame.TextFits() != null)
+                    throw new Exception("MAX INTELLIGENCE lost its plan picker: " + (frame.Overlap() ?? frame.TextFits()));
+                pet.Saved.ClaudePlanModel = null;
+                frame.Change(row, 1);
+                RemoteBridgeWait(() => pet.Brain.Provider != null, "the Claude plan sign-in check");
+                frame.Sync();
+                if (!(pet.Brain.Provider is ClaudePlanBrain) || pet.Brain.Provider.Identity != "claude-plan:sonnet" || !pet.Saved.NativePlan || pet.MainframeTier != 2 || pet.MainframeProblem != "Claude plan connected." || !wrote("args.txt").Contains("--model\nhaiku\n"))
+                    throw new Exception("Picking Claude plan did not check sign-in and select it: " + pet.MainframeProblem);
+                pet.MainframeRefresh(); frame.Sync();
+                if (pet.MainframeBrainName != "Claude plan · Sonnet" || pet.MainframeBrainNote != "Claude plan · Claude Code on this computer" || string.Join("|", pet.MainframeModels) != "haiku|sonnet|opus" || frame.Value(row) != "Claude plan"
+                    || frame.Row("Brain API key").IsVisible || frame.Overlap() != null || frame.TextFits() != null) throw new Exception("BRAIN did not show the Claude plan: " + pet.MainframeBrainName + " | " + pet.MainframeBrainNote + " | " + (frame.Overlap() ?? frame.TextFits()));
+                if (!frame.Row("Plan model").IsVisible || frame.Value("Plan model") != "Sonnet" || string.Join("|", ((NeonPicker)frame.Row("Plan model")).Choices) != "Haiku \u00b7 fastest|Sonnet|Opus \u00b7 smartest, uses your plan fastest")
+                    throw new Exception("The plan model menu is missing under MAX INTELLIGENCE: " + frame.Value("Plan model"));
+                RemoteWire.Set(pet, "frameModels", Array.Empty<string>());
+                frame.Change("Plan model", 2);
+                if (frame.Value("Plan model") != "Opus \u00b7 smartest, uses your plan fastest" || frame.Value("Brain model") != "opus" || pet.MainframeBrainName != "Claude plan \u00b7 Opus" || frame.Overlap() != null || frame.TextFits() != null)
+                    throw new Exception("The plan model menu did not pick Opus: " + frame.Value("Plan model") + " | " + (frame.Overlap() ?? frame.TextFits()));
+                if (pet.Brain.Model != "opus" || pet.Brain.Provider.Identity != "claude-plan:opus" || pet.Saved.ClaudePlanModel != "opus") throw new Exception("The Claude plan model pick was lost.");
+                frame.Change(row, 0);
+                if (pet.Brain.Provider != null || pet.Saved.NativePlan || pet.MainframeTier != 2 || frame.Value(row) != "API key" || !frame.Row("Brain API key").IsVisible || frame.Row("Plan model").IsVisible) throw new Exception("API key did not leave the Claude plan.");
+                checks.Add("PASS Claude plan on Mac and Linux: Claude Code is found in ~/.local/bin and runs hidden in her own emptied folder with her prompt on stdin, none of its own tools, no MCP servers, nothing saved, safe mode and no API key from the environment; a screenshot goes along as a picture; a fenced proposal becomes one checked call and an unlisted one is refused; an older Claude Code runs again without a flag it doesn't know; signed out, out of plan, not installed and No AI each get her plain line; a reply talked over ends the app " + stoppedIn + " ms after it starts; and MAX INTELLIGENCE's picker offers API key, Claude plan and ChatGPT plan, with Haiku, Sonnet and Opus to pick from in a menu where the key box was");
+            }
+            finally
+            {
+                Brain.Off = offWas;
+                ClaudePlanBrain.ClaudeOverride = overrideWas; ClaudePlanBrain.FolderOverride = folderWas; ClaudePlanBrain.Retry();
+                Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", keyWas);
+                pet.Brain.Provider?.Cancel(); pet.Brain.Provider = null; pet.Saved.NativePlan = false;
+                pet.Saved.PlanKind = kindWas; pet.Saved.ClaudePlanModel = pickWas;
+                pet.SetBrainTier(tierWas); pet.Brain.Remote = remoteWas; pet.Brain.Model = modelWas;
+                RemoteWire.Set(pet, "frameProblem", problemWas);
+                pet.Talk.Dismiss(); pet.NotifySettings();
+            }
         }
 
         private void TerminalSecurityChecks()

@@ -223,12 +223,12 @@ namespace CapriDesktop
         internal Mainframe Frame { get { return mainframe; } }
         internal int MainframeTier { get { return Math.Clamp(Saved.BrainTier ?? (Brain.Remote == null ? 0 : Cloud.MediumKind(Brain.Remote.Kind) ? 1 : 2), 0, 2); } }
         internal string MainframeBrainKey { get { return Brain.Remote?.Key; } }
-        internal string MainframeBrainName { get { return Brain.Remote != null ? Brain.Remote.Name + " \u00b7 " + Brain.Model : Brain.Model ?? "Her brain isn't set up yet"; } }
+        internal string MainframeBrainName { get { return Brain.Remote != null ? Brain.Remote.Name + " \u00b7 " + Brain.Model : Brain.Provider != null && ClaudePlan ? "Claude plan \u00b7 " + Plans.Shown(ClaudePlanBrain.Kind, Brain.Model, true) : Brain.Model ?? "Her brain isn't set up yet"; } }
         internal string MainframeBrainNote { get { return BrainNote(false); } }
 
         private string BrainNote(bool phone)
         {
-            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model \u00b7 Ollama"));
+            string note = MainframeProblem ?? (Brain.Provider != null ? ClaudePlan ? "Claude plan \u00b7 Claude Code on this computer" : "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model \u00b7 Ollama"));
             return Brain.Brief(note) ?? note;
         }
         internal bool MainframeConnecting { get { return brainPending > 0; } }
@@ -245,7 +245,8 @@ namespace CapriDesktop
         internal string MainframeLocalModel { get { return localVoice.Model ?? ""; } }
         internal string MainframeLocalVoice { get { return localVoice.Speaker ?? ""; } }
         internal string MainframeLocalFormat { get { return LocalSpeaker.Known(localVoice.Format); } }
-        internal string[] MainframeModels { get { return Brain.Remote != null ? cloudModels?.ToArray() ?? Array.Empty<string>() : MainframeTier == 0 ? frameModels : Array.Empty<string>(); } }
+        internal string[] MainframeModels { get { return Brain.Provider != null ? ClaudePlan ? Plans.ClaudeModels : frameModels : Brain.Remote != null ? cloudModels?.ToArray() ?? Array.Empty<string>() : MainframeTier == 0 ? frameModels : Array.Empty<string>(); } }
+        internal string[] MainframePlanModelNames { get { return Brain.Provider == null ? Array.Empty<string>() : ClaudePlan ? Array.ConvertAll(Plans.ClaudeModels, id => Plans.Shown(ClaudePlanBrain.Kind, id)) : MainframeModels; } }
         internal string[] MainframeVoiceIds
         {
             get { var ids = new List<string>(); if (voices != null) foreach (VoiceEntry entry in voices.Voices) ids.Add(entry.Id); return ids.ToArray(); }
@@ -336,8 +337,10 @@ namespace CapriDesktop
             if (string.IsNullOrWhiteSpace(model)) return;
             if (Brain.Provider != null)
             {
-                if (model == Saved.PlanModel || Array.IndexOf(frameModels, model) < 0) return;
-                Saved.PlanModel = model; SelectPlan(); Save(); NotifySettings(); return;
+                if (model == Brain.Model || Array.IndexOf(MainframeModels, model) < 0) return;
+                if (ClaudePlan) Saved.ClaudePlanModel = model;
+                else Saved.PlanModel = model;
+                SelectPlan(); Save(); NotifySettings(); return;
             }
             if (MainframeTier > 0 && Brain.Remote == null) return;
             if (Brain.Remote != null) PickCloud(model.Trim());
