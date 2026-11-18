@@ -268,8 +268,10 @@ Hide / Show Capri	Capri 숨기기 / 보이기
 Hide / Show key	숨기기 / 보이기 키
 Hide Capri	Capri 숨기기
 Hide for now	잠시 숨기기
+Hide her	숨기기
 Hide in full screen	전체 화면에서 숨기기
 Hide this	이거 숨기기
+Hide, keep player	숨기고 플레이어 유지
 Hide/show:	숨기기/보이기:
 Hide/show: Ctrl + Alt + H	숨기기/보이기: Ctrl + Alt + H
 Hologram	홀로그램
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD에서 >
 INSTALLED >	설치됨 >
 Import a Capri mod	Capri 모드 가져오기
 Import mod	모드 가져오기
+In full screen	전체 화면에서
 In games	게임 중
 Input	입력
 Input, Output or How to overlaps a row	입력, 출력 또는 사용 방법이 한 줄과 겹침
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	키
 KEYS >	키 >
 Keep PC awake for jobs	작업을 위해 PC 깨워두기
+Keep player	플레이어 유지
 Keeps the last two minutes of your game in memory. Say clip that to save it.	게임의 마지막 2분을 메모리에 보관. clip that 이라고 말하면 저장.
 Key	키
 Key cleared: a model file needs none.	키 삭제됨: 모델 파일은 키가 필요 없음.
@@ -439,6 +443,7 @@ No AI · no brain at all	AI 없음 · 뇌 전혀 없음
 No brain runs, and nothing is sent anywhere.	뇌가 실행되지 않으며 어디에도 아무것도 전송되지 않아.
 No brain yet	아직 뇌 없음
 No code open	열린 코드 없음
+No limit	제한 없음
 No mic found	마이크를 찾을 수 없음
 No mods in the directory yet.	모드 디렉터리에 아직 모드가 없어.
 No mods match that.	그것과 일치하는 모드가 없어.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	피치
 Play	재생
 Play...	재생...
+Player only	플레이어만
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS 모델이 이 클립의 목소리를 복사해. 테스트를 눌러 들어봐.
 Pop-in times	방문 시간
 Pop-ins	방문
@@ -666,6 +672,7 @@ Speed	속도
 Start with Windows	Windows와 함께 시작
 Start with this!	이걸로 시작!
 Starting...	시작 중...
+Stay	그대로 두기
 Stay on my model	내 모델 유지
 Still checking your mics...	아직 마이크 확인 중...
 Still checking your speakers...	아직 스피커 확인 중...

@@ -268,8 +268,10 @@ Hide / Show Capri	Skryť / Zobraziť Capri
 Hide / Show key	Kláves skryť / zobraziť
 Hide Capri	Skryť Capri
 Hide for now	Zatiaľ skryť
+Hide her	Skryť ju
 Hide in full screen	Skryť na celú obrazovku
 Hide this	Skryť toto
+Hide, keep player	Skryť, nechať prehrávač
 Hide/show:	Skryť/zobraziť:
 Hide/show: Ctrl + Alt + H	Skryť/zobraziť: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	V DISCORDE >
 INSTALLED >	NAINŠTALOVANÉ >
 Import a Capri mod	Importovať mod Capri
 Import mod	Importovať mod
+In full screen	Na celú obrazovku
 In games	V hrách
 Input	Vstup
 Input, Output or How to overlaps a row	Vstup, výstup alebo Ako sa prekrýva s riadkom
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KLÁVESY
 KEYS >	KLÁVESY >
 Keep PC awake for jobs	Nevypínaj PC pri úlohách
+Keep player	Nechať prehrávač
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Uchováva v pamäti posledné dve minúty tvojej hry. Povedz strihni to, aby sa uložili.
 Key	Kľúč
 Key cleared: a model file needs none.	Kľúč vymazaný: súbor modelu ho nepotrebuje.
@@ -439,6 +443,7 @@ No AI · no brain at all	Žiadna AI · vôbec žiadny mozog
 No brain runs, and nothing is sent anywhere.	Nebeží žiadny mozog a nič sa nikam neposiela.
 No brain yet	Zatiaľ žiadny mozog
 No code open	Žiadny kód otvorený
+No limit	Bez obmedzenia
 No mic found	Mikrofón sa nenašiel
 No mods in the directory yet.	V priečinku modov zatiaľ nie sú žiadne mody.
 No mods match that.	Žiadne mody sa tomu nezhodujú.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Výška tónu
 Play	Prehrať
 Play...	Prehrať...
+Player only	Len prehrávač
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modely Pocket TTS kopírujú hlas tohto klipu. Stlač Test na vypočutie.
 Pop-in times	Časy vstupov
 Pop-ins	Vstupy
@@ -666,6 +672,7 @@ Speed	Rýchlosť
 Start with Windows	Spustiť so systémom Windows
 Start with this!	Začni s týmto!
 Starting...	Spúšťa sa...
+Stay	Zostať
 Stay on my model	Zostať pri mojom modeli
 Still checking your mics...	Stále kontrolujem tvoje mikrofóny...
 Still checking your speakers...	Stále kontrolujem tvoje reproduktory...

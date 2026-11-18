@@ -957,24 +957,23 @@ namespace CapriDesktop
 
         internal bool GamingOn { get { return gaming.State != GameDock.Stage.Off; } }
 
-        // On unless they've turned it off. With no game up there's nothing for it to do, so it only runs while one is.
-        internal bool GamingWanted { get { return GamingOn || !preferences.NoGaming; } }
+        // On while GAMES > Comments isn't Off. With no game up there's nothing for it to do, so it only runs while one is.
+        internal bool GamingWanted { get { return GamingOn || CommentPace != Commentary.Off; } }
 
-        private void WantGaming(bool on)
+        // Comments Off is Gaming Mode off, and any other Comments is Gaming Mode on, at the pick they had before it went Off.
+        private bool WantGaming(bool on)
         {
-            if (preferences.NoGaming != on) return;
-            preferences.NoGaming = !on;
-            SavePreferences();
+            if ((CommentPace != Commentary.Off) == on) return false;
+            SetCommentPace(on ? CommentPaceBack : Commentary.Off);
             mainframe.Sync();
+            return true;
         }
 
-        // Gaming Mode is them asking her to watch, so she reacts at least when something happens, HUD or no HUD. Comments set
-        // to Off by them still stops her (#234).
-        private int GamePace { get { return preferences.NoComments && CommentPace == Commentary.Off ? Commentary.Off : Math.Max(CommentPace, GamingOn ? Commentary.Events : Commentary.Off); } }
+        internal int CommentPaceBack { get { return preferences.CommentPaceWas == Commentary.Chatty ? Commentary.Chatty : Commentary.Events; } }
 
-        // Her game comments as Settings and her settings tool show them: the pace they'd run at in a game, where Gaming Mode
-        // lifts an Off nobody picked to Events only.
-        internal int CommentPaceShown { get { return preferences.NoComments && CommentPace == Commentary.Off ? Commentary.Off : Math.Max(CommentPace, GamingWanted ? Commentary.Events : Commentary.Off); } }
+        private int GamePace { get { return CommentPace; } }
+
+        internal int CommentPaceShown { get { return CommentPace; } }
 
         internal string GameKeyName { get { return KeyName(preferences.GameMods, preferences.GameVk); } }
 
@@ -991,7 +990,7 @@ namespace CapriDesktop
             gaming.Say = GamingSay;
             // Lachy, 31 Oct: for now Gaming Mode keeps her normal self, body, panel and all, and the HUD stays out of it.
             gaming.Hud = delegate { return testing; };
-            gaming.Stays = delegate { return !testing && !preferences.NoGaming; };
+            gaming.Stays = delegate { return !testing && CommentPace != Commentary.Off; };
             gaming.Name = delegate { return string.IsNullOrWhiteSpace(Brain.Nickname) ? "choom" : Brain.Nickname; };
         }
 
@@ -1001,13 +1000,18 @@ namespace CapriDesktop
         // "on", "off", or which way to move her HUD: up, down, left, right or reset.
         internal string GamingMode(string action)
         {
-            if (action == "on") { WakeRest(true); WantGaming(true); return gaming.On(clock.Elapsed.TotalSeconds); }
+            if (action == "on")
+            {
+                WakeRest(true);
+                bool lifted = WantGaming(true);
+                return gaming.On(clock.Elapsed.TotalSeconds) + (lifted ? " Game comments are on at " + Commentary.PaceNames[CommentPace] + "." : "");
+            }
             if (action == "off")
             {
                 bool wanted = GamingWanted;
-                WantGaming(false);
+                bool dropped = WantGaming(false);
                 string left = gaming.Off();
-                return wanted ? "Gaming Mode off." : left;
+                return wanted ? "Gaming Mode off." + (dropped ? " Game comments are off too." : "") : left;
             }
             if (!docked) return "My HUD isn't up right now.";
             string game = gaming.Game.Name;
@@ -1047,7 +1051,7 @@ namespace CapriDesktop
         private void CheckGame(double now)
         {
             bool playing = PlayingGame;
-            bool watching = !testing && !preferences.NoGaming && !napAsked && !Asleep;
+            bool watching = !testing && CommentPace != Commentary.Off && !napAsked && !Asleep;
             if ((!GamingOn && !playing && !watching) || now < gameCheck) return;
             gameCheck = now + 1;
             if (watching) gaming.Notice(now);

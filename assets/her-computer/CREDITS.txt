@@ -1,0 +1,5 @@
+Her computer's pictures.
+
+app-jobs, app-notes, app-diary, app-files, app-stickers, boom and sticker-*: Fluent Emoji 3D by Microsoft, MIT licence (github.com/microsoft/fluentui-emoji), via @lobehub/fluent-emoji-3d.
+site-* and app-browser: SVG Logos by Gil Barbara, CC0 (github.com/gilbarbara/logos). site-roblox and site-wikipedia: Simple Icons, CC0 (simpleicons.org).
+The logos are trademarks of their owners and only show links to their sites.

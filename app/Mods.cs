@@ -32,6 +32,10 @@ namespace CapriDesktop
         internal string[] Requires = new string[0];
         internal string[] Games;
         internal string Know;
+        internal string[] Reaches = new string[0];
+        internal string Unreadable;
+        internal string Tidy;
+        internal bool AskTwice;
     }
 
     [DataContract]
@@ -84,6 +88,7 @@ namespace CapriDesktop
         internal Mods(string data)
         {
             folder = Path.Combine(data, "mods");
+            ModDirectory.KeptFolder = Path.Combine(data, "mod-directory");
             All = new List<Mod>();
             Problems = new List<string>();
             Hands.AlsoHeard = delegate(string words)

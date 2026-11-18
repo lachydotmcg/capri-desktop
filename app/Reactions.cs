@@ -135,7 +135,7 @@ namespace CapriDesktop
         private volatile int jealousTurn;
 
         internal bool JealousAIs { get { return preferences.JealousAIs; } }
-        internal bool CloseAIs { get { return preferences.CloseAIs; } }
+        internal bool CloseAIs { get { return preferences.JealousApps != null && preferences.JealousApps.Length > 0; } }
         internal bool JealousChosen(string id) { return Jealous.Chosen(preferences.JealousApps, id); }
 
         internal void ToggleJealousAIs()
@@ -146,10 +146,10 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        internal void ToggleCloseAIs()
+        internal void ClearJealous()
         {
-            if (!preferences.CloseAIs && !preferences.JealousAIs) return;
-            preferences.CloseAIs = !preferences.CloseAIs;
+            preferences.CloseAIs = false;
+            preferences.JealousApps = null;
             EndJealous();
             SavePreferences();
             mainframe.Sync();
@@ -161,6 +161,7 @@ namespace CapriDesktop
             List<string> choices = new List<string>(preferences.JealousApps ?? new string[0]);
             if (choices.Contains(id)) choices.RemoveAll(pick => pick == id); else choices.Add(id);
             preferences.JealousApps = choices.ToArray();
+            preferences.CloseAIs = true;
             EndJealous();
             SavePreferences();
             mainframe.Sync();
@@ -168,7 +169,7 @@ namespace CapriDesktop
 
         private bool JealousMayClose(JealousWindow target)
         {
-            return JealousAIs && CloseAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
+            return JealousAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
         }
 
         private void DropJealous()
@@ -1260,24 +1261,19 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        // GAMES > Game sounds (#234), on by default. Off, her reactions and comments let bursts of the game's sound go, and
-        // everything else still counts.
+        // GAMES > Sound sensitivity (#234), 100% by default. Its Off is NoGameSounds: her reactions and comments let bursts of the
+        // game's sound go, and everything else still counts.
         internal bool GameSoundsOn { get { return !preferences.NoGameSounds; } }
 
-        internal int GameSoundSensitivity { get { return Math.Max(0, Math.Min(100, 100 - preferences.GameSoundsDown)); } }
+        internal int GameSoundSensitivity { get { return preferences.NoGameSounds ? 0 : Math.Max(0, Math.Min(100, 100 - preferences.GameSoundsDown)); } }
 
         internal void SetGameSoundSensitivity(int percent)
         {
             percent = Math.Max(0, Math.Min(100, percent));
-            if (GameSoundSensitivity == percent) return;
-            preferences.GameSoundsDown = 100 - percent;
-            SavePreferences();
-            mainframe.Sync();
-        }
-
-        internal void ToggleGameSounds()
-        {
-            preferences.NoGameSounds = !preferences.NoGameSounds;
+            if (GameSoundSensitivity == percent && (percent > 0 || preferences.NoGameSounds)) return;
+            preferences.NoGameSounds = percent == 0;
+            if (percent > 0) preferences.GameSoundsDown = 100 - percent;
+            else if (preferences.GameSoundsDown >= 100) preferences.GameSoundsDown = 0;
             SavePreferences();
             mainframe.Sync();
         }
@@ -1322,7 +1318,7 @@ namespace CapriDesktop
             ReactionVoice(line);
         }
 
-        // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Mute her, her quiet key, a hide,
+        // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Her quiet key, a hide,
         // her voice off or ElevenLabs voice chat keep reactions as text, and a voice that comes back late stays unsaid. So does a
         // call, where saying one would close her ears on a line she's hearing (#171).
         private void ReactionVoice(string line)

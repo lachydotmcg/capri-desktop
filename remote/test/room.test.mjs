@@ -677,17 +677,28 @@ test('her room inside the pc app shows only her room, talks when the pc capri ta
   const ASSETS = join(SITE, '..', 'assets');
   const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json', '.wasm': 'application/wasm' };
   const streams = new Set();
-  let frames = 0;
+  let frames = 0, installed = false, camOff = 0;
+  const sizes = new Set();
+  const jpegSize = body => {
+    for (let at = 2; at + 9 < body.length && body[at] === 0xff;) {
+      const mark = body[at + 1];
+      if (mark >= 0xc0 && mark <= 0xc2) return body.readUInt16BE(at + 7) + 'x' + body.readUInt16BE(at + 5);
+      at += 2 + body.readUInt16BE(at + 2);
+    }
+    return 'unknown';
+  };
   const say = (name, data) => { for (const out of streams) out.write(`event: ${name}\ndata: ${data}\n\n`); };
   const server = createServer((request, response) => {
     const path = new URL(request.url, 'http://127.0.0.1').pathname;
     if (!path.startsWith('/tok/')) { response.writeHead(404); response.end(); return; }
     const rest = path.slice(5);
-    if (rest === 'camera') { response.writeHead(200, { 'content-type': 'application/json' }); response.end('{"state":"ready"}'); return; }
+    if (rest === 'camera') { response.writeHead(200, { 'content-type': 'application/json' }); response.end(installed ? '{"state":"ready"}' : '{"state":"needs-install"}'); return; }
+    if (rest === 'camera/install' && request.method === 'POST') { installed = true; response.writeHead(200, { 'content-type': 'application/json' }); response.end('{"state":"ready"}'); return; }
+    if (rest === 'camera/off' && request.method === 'POST') { camOff++; response.writeHead(200); response.end(); return; }
     if (rest === 'frame' && request.method === 'POST') {
       const parts = [];
       request.on('data', part => parts.push(part));
-      request.on('end', () => { const body = Buffer.concat(parts); if (body[0] === 0xff && body[1] === 0xd8) frames++; response.writeHead(200); response.end(); });
+      request.on('end', () => { const body = Buffer.concat(parts); if (body[0] === 0xff && body[1] === 0xd8) { frames++; sizes.add(jpegSize(body)); } response.writeHead(200); response.end(); });
       return;
     }
     if (rest === 'events') {
@@ -749,9 +760,22 @@ test('her room inside the pc app shows only her room, talks when the pc capri ta
     assert.equal(await page.run("document.getElementById('room-cam').hidden"), false);
     await page.run("document.getElementById('room-cam').click()");
     await page.until("document.getElementById('room-cam').getAttribute('aria-pressed') === 'true'", 'camera on');
+    assert.match(await page.run("document.getElementById('room-status').textContent"), /Restart Discord/);
     await new Promise(done => setTimeout(done, 1500));
     assert.ok(frames >= 1, 'frames went to the pc: ' + frames);
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 760, height: 880, deviceScaleFactor: 2, mobile: false });
+    await new Promise(done => setTimeout(done, 1500));
+    assert.deepEqual([...sizes], ['1280x720'], 'Capri Camera keeps one picture size');
+    const { targetId } = await page.send('Target.createTarget', { url: 'about:blank' });
+    await page.until("document.hidden", 'room hidden behind another tab');
+    const hiddenFrom = frames;
+    await new Promise(done => setTimeout(done, 4000));
+    assert.ok(frames - hiddenFrom >= 8, 'frames keep going while the room is hidden: ' + (frames - hiddenFrom));
+    await page.send('Target.closeTarget', { targetId });
+    await page.until("!document.hidden", 'room shown again');
     await page.run("document.getElementById('room-cam').click()");
+    for (let tries = 0; tries < 40 && !camOff; tries++) await new Promise(done => setTimeout(done, 50));
+    assert.equal(camOff, 1, 'camera off told to the pc');
     const stopped = frames;
     await new Promise(done => setTimeout(done, 600));
     assert.ok(frames - stopped <= 1);

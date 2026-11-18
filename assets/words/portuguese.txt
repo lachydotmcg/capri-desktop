@@ -268,8 +268,10 @@ Hide / Show Capri	Ocultar / Mostrar Capri
 Hide / Show key	Tecla de ocultar / mostrar
 Hide Capri	Ocultar Capri
 Hide for now	Ocultar por enquanto
+Hide her	Ocultá-la
 Hide in full screen	Ocultar em tela cheia
 Hide this	Ocultar isto
+Hide, keep player	Ocultá-la, manter o player
 Hide/show:	Ocultar/mostrar:
 Hide/show: Ctrl + Alt + H	Ocultar/mostrar: Ctrl + Alt + H
 Hologram	Holograma
@@ -296,6 +298,7 @@ IN DISCORD >	NO DISCORD >
 INSTALLED >	INSTALADOS >
 Import a Capri mod	Importar um mod da Capri
 Import mod	Importar mod
+In full screen	Em tela cheia
 In games	Em jogos
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Saída ou Como usar se sobrepõe a uma linha
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TECLAS
 KEYS >	TECLAS >
 Keep PC awake for jobs	Manter o PC acordado para os trabalhos
+Keep player	Manter o player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Guarda os últimos dois minutos do seu jogo na memória. Diga clip that para salvar.
 Key	Chave
 Key cleared: a model file needs none.	Chave removida: um arquivo de modelo não precisa de nenhuma.
@@ -439,6 +443,7 @@ No AI · no brain at all	Sem IA · sem cérebro nenhum
 No brain runs, and nothing is sent anywhere.	Nenhum cérebro roda, e nada é enviado para lugar nenhum.
 No brain yet	Nenhum cérebro ainda
 No code open	Nenhum código aberto
+No limit	Sem limite
 No mic found	Nenhum mic encontrado
 No mods in the directory yet.	Nenhum mod na pasta ainda.
 No mods match that.	Nenhum mod corresponde a isso.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tom
 Play	Tocar
 Play...	Tocar...
+Player only	Só o player
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modelos Pocket TTS copiam a voz deste clipe. Clique em Testar para ouvir.
 Pop-in times	Horários das aparições
 Pop-ins	Aparições
@@ -666,6 +672,7 @@ Speed	Velocidade
 Start with Windows	Iniciar com o Windows
 Start with this!	Comece com isto!
 Starting...	Iniciando...
+Stay	Ficar
 Stay on my model	Manter meu modelo
 Still checking your mics...	Ainda verificando seus mics...
 Still checking your speakers...	Ainda verificando seus alto-falantes...

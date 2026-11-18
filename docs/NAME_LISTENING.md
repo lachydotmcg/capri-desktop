@@ -60,3 +60,42 @@ until the user enables it.
 
 Linux TALK uses the upstream English or European Parakeet pack, by her language, and sherpa-onnx. Listen for
 Capri uses its separate pinned Moonshine setup; the TALK pack does not replace it.
+
+## Mac
+
+Thanks to Yoplaxs, Listen for Hey Capri also runs on Apple Silicon Macs (Moonshine
+ships no Intel Mac wheel). It uses the same pinned decoder, name gate and 20-second
+follow-ups as Linux, with these Mac differences:
+
+- **Microphone.** There is no PipeWire node to pick, so turning the switch on asks
+  `capri-mic --identity` for the current macOS default input and names it. Typing YES
+  stores `mac-default` and a SHA-256 of the device's unique ID. The listener checks
+  that ID on startup, every two seconds and before every accepted final; if the
+  default input changes, listening stops until the switch is turned on again.
+- **Isolation.** The listener controller (`name_listen.py`, standard library only)
+  runs unsandboxed so `capri-mic` keeps Capri's microphone permission. The decoder
+  (`asr_worker.py`, which loads Moonshine and ONNX Runtime) runs under Seatbelt via
+  `mac_sandbox.decoder_command`: no network, no writes, and reads limited to the
+  interpreter, the speech bridge and the paths in the private runtime manifest.
+  The controller is bound to Capri with a kqueue parent watch, and `capri-mic` and
+  the decoder end when their pipes close.
+- **Her own voice.** Mac playback goes through the native helper, not PipeWire, so
+  every line, typing sound and hush closes capture first and keeps it closed for
+  the clip plus 700 ms.
+- **Screen lock.** Linux pauses on a locked Hyprland session. Mac has no lock check
+  yet; mute or quiet her before stepping away.
+
+Mac setup, Apple Silicon, Python 3.11 (Homebrew `python@3.11` or python.org):
+
+```sh
+python3.11 -m venv ~/CapriEars/venv
+~/CapriEars/venv/bin/python -m pip install --require-hashes --only-binary=:all: -r tools/asr-requirements.lock
+~/CapriEars/venv/bin/python tools/asr_setup.py --directory ~/CapriEars/asr --lock tools/asr-models.lock.json
+```
+
+Quit Capri, then set `OwnedAsrPython` to the full path of `~/CapriEars/venv/bin/python`
+and `OwnedAsrManifest` to the full path of `~/CapriEars/asr/runtime-manifest.json` in
+her `cross.json`. `tflite-runtime` is Linux-only in the lock; Mac uses ONNX Runtime.
+The `Mac ears` workflow installs this runtime on a macos-15 runner and checks that
+the sandboxed decoder hears a spoken line, cannot reach the network and cannot read
+the home folder.

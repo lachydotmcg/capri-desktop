@@ -27,8 +27,8 @@ namespace CapriDesktop
         private readonly object gate = new object();
         private readonly AutoResetEvent wake = new AutoResetEvent(false);
         private byte[] waiting;
-        private long lastFrame;
-        private bool closed;
+        private long lastFrame, offAt;
+        private bool closed, off;
         private Thread worker;
 
         internal static string Folder { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Capri Camera"); } }
@@ -130,14 +130,26 @@ namespace CapriDesktop
         {
             lock (gate)
             {
-                if (closed) return;
+                if (closed || off && unchecked(Environment.TickCount - offAt) < 1000) return;
                 waiting = jpeg;
+                off = false;
                 lastFrame = Environment.TickCount;
                 if (worker == null)
                 {
                     worker = new Thread(Run) { IsBackground = true, Name = "Capri Camera" };
                     worker.Start();
                 }
+            }
+            wake.Set();
+        }
+
+        internal void Off()
+        {
+            lock (gate)
+            {
+                waiting = null;
+                off = true;
+                offAt = Environment.TickCount;
             }
             wake.Set();
         }
@@ -164,7 +176,7 @@ namespace CapriDesktop
                         if (closed) return;
                         jpeg = waiting;
                         waiting = null;
-                        if (jpeg == null && unchecked(Environment.TickCount - lastFrame) > 4000) { worker = null; return; }
+                        if (jpeg == null && (off || unchecked(Environment.TickCount - lastFrame) > 15000)) { worker = null; return; }
                     }
                     if (jpeg == null) continue;
                     int w, h;

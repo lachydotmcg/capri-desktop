@@ -178,7 +178,7 @@ If your mouse moved by itself, your PC did things on its own, Capri came back af
 
 If you pressed Uninstall and she opened again, first check Settings > Apps > Installed apps for Capri or CapriAI. On some PCs Uninstall opens her instead of removing her; see "Clicking Uninstall opens her again". Deleting her shortcut or folder does not uninstall her. After a completed uninstall she has no way to reinstall herself.
 
-The real Capri uses your mouse or keys only while she is running: for a job you asked for (typed, spoken or sent from Capri Remote), in a game she plays, when Explore while I'm away is on, or when her clones grab your cursor. While she does (0.8.5 and newer), a pink and cyan glow goes round that screen with a badge that says "Capri's using your mouse. Esc stops her." It shows even while she's hidden, so if your mouse moved with no glow, it wasn't her.
+The real Capri uses your mouse or keys only while she is running: for a job you asked for (typed, spoken or sent from Capri Remote), in a game she plays, when Explore after is set to a time, or when her clones grab your cursor. While she does (0.8.5 and newer), a pink and cyan glow goes round that screen with a badge that says "Capri's using your mouse. Esc stops her." It shows even while she's hidden, so if your mouse moved with no glow, it wasn't her.
 
 Quit Capri closes her completely. Closing Mainframe only minimizes it. If her window freezes for a minute she closes herself and starts again, at most once every ten minutes. Before 0.8.7 the installed Capri turned Start with Windows on by herself, and that old entry can stay on after updates. If she opens when you sign in to Windows, check Mainframe > Settings > HABITS > Start with Windows.
 
@@ -316,7 +316,7 @@ Short replies stay up according to their length. Mainframe > Settings > BRAIN > 
 Use the mouse wheel over a long reply, or press PREV and NEXT at the bottom. Right-click her reply bubble to copy the whole reply, including pages you aren't looking at. It shows "> sys: copied". Left-click away from the page buttons to dismiss it.
 
 ### Does she remember what we talked about?
-Yes. She keeps recent chat for up to a week, even after a restart. Mainframe > Settings > BRAIN > Memory chooses Short (8 messages), Medium (16) or Long (32). Changing her language starts a fresh chat; changing her model carries on the same one, on Mac and Linux too. Memory size is a separate setting for how much text fits in her local brain at once.
+Yes. She keeps recent chat for up to a week, even after a restart. Mainframe > Settings > BRAIN > Memory chooses Short (8 messages), Medium (16) or Long (32). Changing her language starts a fresh chat; changing her model carries on the same one, on Mac and Linux too. The text window for her local brain is always Auto.
 
 She also keeps in mind what she saw on your screen in the last 3 hours, so "what did you see?" gets a real answer instead of a guess (section 16).
 
@@ -456,14 +456,14 @@ YOU
 
 VOICE ("Every voice, ElevenLabs too" on the right of the heading, then the Layers button)
 - Layers (0.7.6 and newer): the button at the right of VOICE's heading opens her VOICE LAYERS window. Its word lights up cyan while they're on. See "Voice layers" under Her voice.
-- Volume: Mute, 10% to 100%, 125%, 150%. Default 80% (100% before 0.7.7).
+- Volume: 10% to 100%, 125%, 150%, with no Mute step: turn VOICE Off to silence her. A saved Mute becomes VOICE Off at 100%. Default 80% (100% before 0.7.7).
 - Pitch (from 0.7.5): -6 to +6 semitones. Default +3 (Normal before 0.7.7). Higher or deeper, at the same speed.
 - Speed (from 0.7.5): 0.7x to 1.5x. Default 1.2x (Normal before 0.7.7).
 - Robot (from 0.7.5): Off, 5%, 10%, 15%, then 20% to 100%. Default Off. Her HD voice keeps its own, shown like "40% · HD" while HD is the voice she's using. A smooth synth under her voice that follows her pitch on the nearest note, like a talk box. Low settings add a light robotic shimmer; 100% is all robot.
 - Glitch (from 0.7.5): Off, 5%, 10%, 15%, then 20% to 100%. Default Off, her HD voice too. Stutters, crushed bits and skips in her voice, more as it goes up.
 - Sounds: her sound effects. Off, or 10% to 100%. Default 60%.
 - Typing sound: "When she types". A soft typing sound while her text replies type out.
-- Free voice in games (0.7.6 and newer): only shows while her HD voice is on, under Typing sound. Off by default, so her HD voice keeps talking while a game or video is full screen. Turn it on and her free voice talks while anything is full screen, so the game gets your graphics card back.
+- Free voice in games is gone as a switch. HABITS > Power saver In games (the default) or Always now makes her free voice take over from HD while a game or video is full screen, so the game gets your graphics card back. Power saver Off keeps HD talking.
 - Call mode (beta) (0.8.3): hears you and the call app separately. The call app menu on her call panel (click the call app's name) chooses Auto, a named call app, or any app in Windows' volume mixer, like Roblox (0.8.5). See "Call mode (beta)" in section 12.
 - Her voice in your mic (0.8.3): off by default. Her voice joins your mic only in call mode. Use Input to choose the mic for the mix and Output to choose the virtual mic. Pick its other end in your call app: CABLE Output or Steam Streaming Microphone, whichever the note names. How to opens the setup steps. With no virtual mic, Get VB-CABLE opens VB-Audio's setup: allow it, click Install Driver, then restart your PC. VB-CABLE is donationware from vb-cable.com. Her voice still plays on her speaker; her sound effects stay out of the mix.
 - Her voice in your mic: loudness (0.8.3): 50% to 200%, starting at 100%. It changes her voice in the virtual mic. Her speaker volume and your own mic level stay the same.
@@ -476,8 +476,8 @@ MOVES
 - Mini player: on by default, the first row under MOVES. While music plays, a small player shows what's playing, and she perches on it. See "Her mini player" in section 14.
 - Wander: Off, Rarely, Sometimes, Often or Restless.
 - Sleep: Never, 1 min, 2 min (default), 5 min, 10 min or 30 min.
-- Pop-ins: how often Check in on me brings her over to say hi. Rarely (every 20 to 40 minutes), Sometimes (every 8 to 20, default) or Often (every 3 to 8).
-- Pop-in times (0.8.3): the button in MOVES' heading sets an exact shortest and longest wait in minutes. See "Exact pop-in times" below.
+- Pop-ins (under Check in on me in CAPRI): how often Check in on me brings her over to say hi. Rarely (every 20 to 40 minutes), Sometimes (every 8 to 20, default) or Often (every 3 to 8).
+- Pop-in times (0.8.3): the button under Pop-ins in CAPRI sets an exact shortest and longest wait in minutes. See "Exact pop-in times" below.
 - Dance to music: she dances when songs play.
 - Glitch in at startup: crimson tendrils and her sound when she starts.
 
@@ -490,14 +490,14 @@ CAPRI
 - Mainframe size (0.7.7 and newer): Auto, 100%, 125%, 150%, 175% or 200%. Auto makes the Mainframe and its windows bigger when your desktop is bigger than the screen showing it, like AMD Virtual Super Resolution or NVIDIA DSR drawing 3840 x 2160 on a 1920 x 1080 screen, and shows what it picked, like "Auto · 200%". On an ordinary screen Auto is 100%, and Windows' own display scaling still applies on top. Pick a size to set it yourself. It doesn't change Capri's own size; that's Size above.
 - Mainframe colours: Night City (red and cyan), Black, White or Grey. Changes the Mainframe and its windows, her right-click menu, the Type box and her notes straight away. On Mac and Linux it changes the Mainframe only. Her bubble and her own colours stay as they are; colour sets change those.
 - Pat stroke (0.9.0): how long you have to stroke her before a head pat counts, so the cursor brushing past her doesn't count.
-- Jealous of other AIs (0.9.0): off by default. When it's on and you open another AI, like ChatGPT in a tab or an app, she gets a little jealous and can offer to close it for you. Choose apps sets which ones she may close.
+- Jealous of other AIs (0.9.0): off by default. When it's on and you open another AI, like ChatGPT in a tab or an app, she gets a little jealous. Apps she may close sets which ones she can offer to close for you; picking apps there is what lets her close them.
 
 WATCH
-- Watch my screen: she comments now and then. With an Every slider: 10 s, 15 s, 30 s, 1 min, 1.5 min, 2 min, 3 min, 5 min or 10 min. The default is 2 min.
+- Watch my screen: she comments now and then. It's the Every slider: Off (the default), 10 s, 15 s, 30 s, 1 min, 1.5 min, 2 min, 3 min, 5 min or 10 min. Any step but Off turns it on with that gap between glances, 2 min if you never picked one, and Off turns it off and remembers your gap.
 - Keep her caught up (under Watch my screen): on by default. Glances she keeps quiet about still go in her memory, so she knows what you've been up to. Turn it off to keep only the glances she comments on. It uses a little more of your API (section 16).
 
 BRAIN
-- Stay on my model (the first row under BRAIN, off by default): when an NVIDIA model gets stuck, she says what went wrong instead of switching to another model.
+- Stay on my model (BRAIN, off by default, shown only while an NVIDIA model is in use): when an NVIDIA model gets stuck, she says what went wrong instead of switching to another model.
 - Replies: Short, Medium or Long.
 - Memory: Short, Medium or Long (how much of the chat she keeps in mind).
 - Bubble: Quick, Normal or Long (how long her replies stay up). It was under VOICE before 0.7.5.
@@ -506,16 +506,16 @@ BRAIN
 HABITS
 - Start with Windows: off until you turn it on (0.8.7 and newer). Then she starts when you sign in to Windows. Before 0.8.7 it came on by itself, and updating keeps it the way you had it.
 - Show on Discord: on by default. While Discord is open on the same PC, your Discord profile shows "Playing Capri" with what she's doing in a few plain words (Plugged in, Chatting, Voice chatting, Dancing to music, Using the computer, Playing a game, Streaming, Multiplying, Asleep or Taking a break), a moving picture of her that matches, how long she's been running, and Get Capri and Join her Discord buttons. While she's cloned, it counts how many of her there are. Song names, game names and what her jobs are about never show.
-- Use her cursor: on by default. She does music and video jobs with her own cursor, so you can watch her: to play a YouTube video she types in YouTube's search bar, scrolls through the results and picks one; to play a song she searches Spotify and presses play; when you ask to turn Spotify up or down she drags Spotify's volume slider (plain "turn it up" changes your PC's volume). Turn it off for the quick way (straight to the top result, Windows volume). If her brain gets lost on the way, she does it the quick way.
+- Use her cursor (now under HABITS > Security, next to Use your mouse and keyboard for jobs; it isn't part of any preset): on by default. She does music and video jobs with her own cursor, so you can watch her: to play a YouTube video she types in YouTube's search bar, scrolls through the results and picks one; to play a song she searches Spotify and presses play; when you ask to turn Spotify up or down she drags Spotify's volume slider (plain "turn it up" changes your PC's volume). Turn it off for the quick way (straight to the top result, Windows volume). If her brain gets lost on the way, she does it the quick way.
 - Security (0.7.6 and newer, where Blackwall mode was): the button says which preset you're on, like "Security: Trusted", and the line under it says what that means ("She asks before paying or what you didn't say."). It opens the SECURITY window, with Lockdown, Guarded, Trusted and Blackwall on a slider and thirteen toggles in 0.8.5 (section 15, "Security: what she does without asking"). Blackwall mode (called Bypass all permissions before 0.7.4) is the Blackwall preset now: if you had it on, you're on Blackwall after updating, and everyone else starts on Trusted, which is how she worked before. On any preset she never follows orders written on your screen, and Esc still stops her. What she'll chat about, open or play comes from her personality, her safety rules and the brain model you picked, whatever the preset.
-- Power saver (under Security, 0.8.5 and newer): Off, In games (the default) or Always. While a game or anything full screen is in front, she draws herself less often while she sits still (15 frames a second instead of 30), runs her background checks once a second instead of four times, and her ears check the mic less often, so she might take a moment longer to hear you. Always does the same all the time. Your own settings stay as you set them: Watch my screen keeps its timing, and Listen for Capri, Hey Capri and Clip my games keep working. Simple Settings shows it. Her built-in brain is still the heaviest part, so use the free NVIDIA key while you play. Mac and Linux don't have Power saver yet.
-- Perch: how many frames a second she shows while she sits on a window: 10, 15, 20, 30 (default), 40, 50 or 60 fps. Her sway takes 2 seconds at every setting. 10 and 15 use less CPU. Above 30 she draws in-between frames, so she moves more smoothly but uses more CPU, and the HABITS line says "Perch over 30 fps uses more CPU". On Mac and Linux her perch stays at 30.
+- Power saver (under Security, 0.8.5 and newer): Off, In games (the default) or Always. While a game or anything full screen is in front, she draws herself less often while she sits still (15 frames a second instead of 30), runs her background checks once a second instead of four times, and her ears check the mic less often, so she might take a moment longer to hear you. Always does the same all the time. Your own settings stay as you set them: Watch my screen keeps its timing, and Listen for Capri and Clip my games keep working. In games and Always also hand full-screen games and videos her free voice instead of HD. Simple Settings shows it. Her built-in brain is still the heaviest part, so use the free NVIDIA key while you play. Mac and Linux don't have Power saver yet.
+- Perch (no longer in Settings): how many frames a second she shows while she sits on a window, 10 to 60 fps. Power saver already lowers how often she draws, so there's no row for it. A Perch you saved earlier still applies, and it's 30 fps otherwise; ask her to change it if you want. Her sway takes 2 seconds at every setting. Above 30 she draws in-between frames, so she moves more smoothly but uses more CPU. On Mac and Linux her perch stays at 30.
 - Remember our chats (under Use her cursor): on by default. She writes every chat into a daily transcript and folds older chats into memories.md. Both stay on your PC (section 13).
 - Open her memories (at the right of HABITS' heading): edits memories.md inside Mainframe. Save writes your changes. Daily transcripts stay in the transcripts folder.
 - Music app (0.9.0): where she plays music when you don't name an app: Spotify, YouTube or Apple Music. On Apple Music she plays your playlists and Favourite Songs; if Apple Music is missing she uses Spotify, and if it asks you to sign in or subscribe she stops and tells you. On Linux the choices are Spotify and YouTube.
 
 SOUNDS (0.9.0, under HABITS)
-- Chimes: on by default. Soft sounds when your typed message is sent, when she's heard you finish talking, and when hey capri opens her ears.
+- Sounds and Typing sound sit at the top of SOUNDS. Message sent, Heard you and Listening are on by default: soft sounds when your typed message is sent, when she's heard you finish talking, and when Listen for Capri opens her ears. There's no master Chimes switch; all three off means no chimes.
 - Sound set: Glass (default), Shard, Burst, Crush, Pulse or Air. Each step saves at once and plays its heard chime.
 - Chime volume: 10% to 100%. Default 40%. Letting go plays the heard chime at the new volume.
 - Message sent, Heard you, Listening: turn each chime on or off.
@@ -531,19 +531,16 @@ KEYS (bottom of the left column)
 
 The new settings are here. Scroll down the Settings page to reach HABITS and GAMES.
 
-- BRAIN > Memory size: the context size for Ollama and her built-in brain.
-- BRAIN > Max reply: how much room her longest answer gets.
+- BRAIN > Replies: Short, Medium, Long or No limit. No limit is Long with an 8K token budget. Memory size and Max reply are gone; the context size is always Auto.
 - BRAIN > Local server address: enter the address, then press Save.
 - KEYS > Push to talk: choose a key or mouse button to hold while talking.
-- KEYS > Gaming Mode: change the default Ctrl + Alt + G.
-- GAMES > Comments: Off, Events only or Chatty.
-- GAMES > Gaming Mode: on by default. She reacts when something happens in your game. Turn it off and it stays off.
+- KEYS > Gaming Mode: change the default Ctrl + Alt + G. It flips GAMES > Comments between Off and your last pick.
+- GAMES > Comments: Off, Events only or Chatty, Events only by default. It is the one game setting: Gaming Mode is just Comments on, and Off stops game comments and live reactions.
 - GAMES > Clip my games: keeps recent game video and PC sound ready to save. Off by default.
 - GAMES > Save big moments: saves moments her game commentary picks. Off by default; turning it on also turns Clip my games on.
-- GAMES > Fast hands in games: uses Claude Haiku 5.5 for game jobs on a Claude key. On by default.
-- GAMES > Comments: Off stops game comments in Gaming Mode too (0.9.0). Asking her to stop commenting does the same.
-- GAMES > Game sounds (0.9.0): lets her ignore loud bursts in your game while hits, deaths and kills still count.
-- GAMES > Sound sensitivity (0.9.3): Off to 100%, 100% by default. Lower it when your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores game sounds.
+- BRAIN > Fast hands in games: uses Claude Haiku 5.5 for game jobs on a Claude key. On by default.
+- GAMES > Comments: Off stops game comments and live reactions (0.9.0). Asking her to stop commenting does the same.
+- GAMES > Sound sensitivity (0.9.3): Off to 100%, 100% by default. Lower it when your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores loud bursts in your game while hits, deaths and kills still count, and moving it off Off turns them back on. There is no separate Game sounds switch.
 
 ### Changing her keys
 1. In the Mainframe, click Settings and use the KEYS row at the bottom (Talk, Mute mic, Type, Hide/show or Quiet). Clicking "Ctrl + Alt + V to talk" or "Ctrl + Alt + N mutes mic" on the main page opens Settings with that key ready to change.
@@ -596,20 +593,17 @@ Remove a bullet to stop that line, or all the bullets under a heading to silence
 ### Remember what she sees (it used to be called Keep her caught up)
 When she glances at your screen and says nothing, she still remembers what she saw for three hours, so you can ask her about it. It has nothing to do with updating the app. It uses a little more of your API.
 
-### Hide in full screen
-She hides while a window fills its monitor and comes back after. A manual hide stays hidden, and asking for Gaming Mode takes priority.
-
-### Mini player over full screen
-Keeps the player up over borderless full screen. Windows can't draw over exclusive full screen.
+### In full screen
+Settings > HABITS > In full screen has four steps. Stay (the default) leaves her where she is and puts her mini player away over full screen. Keep player leaves her there and keeps the player up over borderless full screen. Hide her hides her while a window fills its monitor and brings her back after. Player only hides her the same way but keeps the player up. Windows can't draw over exclusive full screen. A manual hide stays hidden, and asking for Gaming Mode takes priority.
 
 ### Explore while I'm away
-After Explore after (5 minutes by default) she scrolls the browser or reader page under your mouse with her own pointer. She never clicks or types. She stops after half an hour so your screen can turn off, she never wakes a screen that's already off, and touching your mouse or keyboard stops her.
+Set Explore after to a time (Settings > HABITS; Off is the default, and 5 minutes if you never picked one). After that long away she scrolls the browser or reader page under your mouse with her own pointer. She never clicks or types. She stops after half an hour so your screen can turn off, she never wakes a screen that's already off, and touching your mouse or keyboard stops her.
 
 ### Exploring paused YouTube pages (0.8.3)
-Right-click her > Open Capri Mainframe > Settings > Advanced Settings > HABITS > Explore while I'm away. Leave a YouTube page under your mouse with its video paused. Windows must report that matching video as paused, with no media playing in that browser. She can scroll the page and its comments while you're away. She never starts the video, clicks or types. Your mouse or keyboard stops her.
+Right-click her > Open Capri Mainframe > Settings > Advanced Settings > HABITS > Explore after, set to a time. Leave a YouTube page under your mouse with its video paused. Windows must report that matching video as paused, with no media playing in that browser. She can scroll the page and its comments while you're away. She never starts the video, clicks or types. Your mouse or keyboard stops her.
 
 ### Exact pop-in times (0.8.3)
-Right-click her > Open Capri Mainframe > Settings > MOVES > Pop-in times. Set Shortest wait (minutes) and Longest wait (minutes), then Save. For example, 12 and 25 gives her a wait between 12 and 25 minutes. Set both to the same number for a fixed wait.
+Right-click her > Open Capri Mainframe > Settings > CAPRI > Pop-in times. Set Shortest wait (minutes) and Longest wait (minutes), then Save. For example, 12 and 25 gives her a wait between 12 and 25 minutes. Set both to the same number for a fixed wait.
 
 Use preset returns to the Pop-ins slider's pace. Moving that slider also clears your custom times. CAPRI > Check in on me still decides whether she visits.
 
@@ -624,7 +618,7 @@ Already have a mod file? Press Import mod on the Mods page and pick it. The file
 - .capri-mod: settings mods, including colour sets.
 - .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
-- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your code mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
+- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings, plus what her quick read of its code found, like network use and the addresses it contacts. Minified or packed code is said in the box and asked about twice, with a laid-out copy saved to read, and a mod that both unpacks hidden text and loads code while it runs is refused. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your code mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 
@@ -737,7 +731,7 @@ The row you picked under BRAIN. Only one runs at a time.
 
 If the row you picked has no key yet, she uses her NORMAL brain until you connect one. To go back to Ollama or the built-in brain, pick NORMAL. Your keys stay saved.
 
-On a Claude key, Fast hands in games can use Haiku 5.5 for a game job while chat keeps the model you picked. Mainframe > Settings > GAMES > Fast hands in games controls this.
+On a Claude key, Fast hands in games can use Haiku 5.5 for a game job while chat keeps the model you picked. Mainframe > Settings > BRAIN > Fast hands in games controls this.
 
 ### The built-in brain
 Press Set up her brain. She picks the best fit for your PC:
@@ -823,27 +817,23 @@ Windows can use any OpenAI-compatible server or provider. Right-click her > Open
 
 The address and key stay encrypted on this computer. Keys go only to the address you set. Use saved reconnects with the saved address and key. Connect with a blank Key uses no key. Forget removes the saved provider from Capri. Changing Address clears the key box, so set the address before pasting a key. Put keys in this window, never in chat.
 
-### What's the difference between Memory and Memory size?
-Both are in Mainframe > Settings > BRAIN.
-
-- Memory chooses how many recent messages she keeps: Short 8, Medium 16 or Long 32.
-- Memory size chooses how much text fits at once in Ollama or her built-in brain: Auto, 4K, 8K, 16K, 32K or 64K tokens. Tokens are pieces of text, not messages.
+### What does Memory do?
+Mainframe > Settings > BRAIN > Memory chooses how many recent messages she keeps: Short 8, Medium 16 or Long 32. The text window for Ollama and her built-in brain is always Auto (the old Memory size row is gone), measured in tokens, which are pieces of text, not messages.
 
 Auto (0.9.1) starts at 16K on a PC with about 12 GB of RAM or more, unless her brain runs on a graphics card with less than about 7 GB of its own memory. There, and on smaller PCs, it starts at 4K with Short Memory or 8K with Medium or Long Memory. It grows by itself when an ask needs more, up to 32K, and keeps a size that works until she restarts. In 0.9.0 and older, Auto used 4K with Short Memory and 8K with Medium or Long Memory, and grew to 16K at most. A bigger window needs more memory on your PC. This setting doesn't change a cloud model's window or the window in LM Studio, Jan, KoboldCpp or llama.cpp; set those in their own server.
 
 ### She says "That was too long for my brain's memory"
 Her built-in brain ran out of room for what you asked. She names the size it has now, like 4K or 8K, and from 0.9.1 the size to pick, like 16K or Auto. Chatting fits in a small window. Asking her to do something, like opening an app, sends her whole tool list as well, and that needs more than 8K.
 
-1. Open Mainframe > Settings > BRAIN > Memory size.
-2. Pick 16K.
-3. Ask her again. If she says it again with 16K, pick 32K.
+1. Ask her again; Auto grows by itself when an ask needs more.
+2. If it still fails, say so in a bug report; the Memory size row has been removed.
 
-It is the same whether you asked on the PC or from Capri Remote on your phone. On Auto she grows it by herself when an ask needs more: up to 32K from 0.9.1, and up to 16K before. If she adds "and this PC couldn't load one big enough", a bigger size didn't load on your PC. A size you picked stays as you picked it. A bigger window needs more memory on your PC.
+It is the same whether you asked on the PC or from Capri Remote on your phone. On Auto she grows it by herself when an ask needs more: up to 32K from 0.9.1, and up to 16K before. If she adds "and this PC couldn't load one big enough", a bigger size didn't load on your PC. A bigger window needs more memory on your PC.
 
 ### How do I get longer answers?
-Mainframe > Settings > BRAIN > Replies chooses Short, Medium or Long. Max reply gives her answer more room: Auto, 256, 2K or 8K tokens. 2K is 2048 tokens and 8K is 8192.
+Mainframe > Settings > BRAIN > Replies chooses Short, Medium, Long or No limit. No limit is Long with an 8K (8192 token) budget.
 
-Auto follows Replies. Picking a bigger Max reply doesn't make every answer long; ask for the detail you want too. Jobs keep extra room when they need it. Bubble changes how long the words stay up, not how much she says.
+Picking No limit doesn't make every answer long; ask for the detail you want too. Jobs keep extra room when they need it. Bubble changes how long the words stay up, not how much she says.
 
 ### How do I make her brain think harder? (0.8.7)
 Mainframe > Settings > BRAIN > Thinking, under Advanced Settings, sets how hard the cloud brain she's on thinks: Default, Off, Low, Medium or High. Default keeps her usual setting. Each model remembers its own pick, and a level that model can't take is greyed out with the reason. It's for cloud keys and Kimi through Provider, not her local brains, your plans or Capri codes.
@@ -875,7 +865,7 @@ Her brain goes on your C: drive. Free up that much space on C:, then try again. 
 
 ### My games lag while she's running
 Her built-in brain uses your graphics card and memory, and so do games. Use the free NVIDIA key while you play. Her brain then runs on NVIDIA's servers, not your PC.
-Keep Power saver (Settings > HABITS) on In games, the default, or Always. Over a game she then draws herself less often while she sits still, runs her background checks less often and listens at a gentler pace. Watch my screen, Listen for Capri, Hey Capri and Clip my games keep working.
+Keep Power saver (Settings > HABITS) on In games, the default, or Always. Over a game she then draws herself less often while she sits still, runs her background checks less often and listens at a gentler pace. Watch my screen, Listen for Capri and Clip my games keep working. In games and Always also hand full-screen games and videos her free voice instead of HD.
 
 ---
 
@@ -932,7 +922,7 @@ On Mac and Linux: right-click her > Settings > Voice style > Layers turns them o
 - A richer voice that runs on your graphics card. It copies the voice in a clip you pick: Capri ships no voice clip, so pick a clip of your own voice, or one you have the rights and consent to use. Until you pick one, she speaks in her free voice and says HD needs a clip.
 - It needs Windows and a graphics card with 6 GB or more. Mainframe > VOICE > FREE VOICE, open the "Free voice" menu and pick "HD · graphics card, 1.7 GB". She downloads it once (1.7 GB). On a smaller card the menu says "HD · needs a 6 GB graphics card".
 - It rests after 10 quiet minutes and gives your graphics card back. The next line wakes it: "One sec, waking my HD voice."
-- Full-screen games and videos: it keeps talking. Settings > VOICE > Free voice in games (only shown while HD is on, off by default) hands them her free voice instead, so the game gets the graphics card back.
+- Full-screen games and videos: it keeps talking unless Settings > HABITS > Power saver is In games (the default) or Always, which hands them her free voice instead, so the game gets the graphics card back.
 - If it can't start or stops working, she says why under VOICE, talks with her free voice, and tries HD again 10 minutes later.
 
 ### Your voice (HD only, from 0.7.5)
@@ -1020,7 +1010,7 @@ If you'd rather keep Restrict key on, the key needs: Text to Speech and Models (
 
 ### Turning her voice off
 - 0.7.1 and newer: Capri Mainframe > VOICE > OFF. She types her replies and never talks out loud. Pick PREBUILT LOCAL, CUSTOM LOCAL or CLOUD VOICE to turn it back on.
-- 0.7.0 has no OFF row. Update to 0.7.1 (right-click her > Check for updates). Until then, Settings > Volume > Mute silences her voice.
+- 0.7.0 has no OFF row. Update to 0.7.1 (right-click her > Check for updates). Until then, Settings > Volume > Mute silences her voice (newer versions have no Mute step: turn VOICE Off).
 
 ### Switching between FREE VOICE and ELEVENLABS
 Click a row under VOICE. Switching never deletes your key.
@@ -1108,7 +1098,7 @@ Press Ctrl + Alt + V again, or TALK, to stop.
 
 ### "Hey Capri" (0.7.6 and newer, Windows)
 Say "Hey Capri" and she starts voice chat, the same as Ctrl + Alt + V. If she's hidden she glitches in first. She says something short, like "I'm here." or "Yeah, choom?", then listens.
-- Where: Capri Mainframe > Settings > HABITS > Security > Listen for "Hey Capri". It's off by default, and the Blackwall preset turns it on.
+- Where: it's now Capri Mainframe > Settings > VOICE > Listen for Capri, off by default; saying Hey Capri works there, and there's no separate Hey Capri switch. Settings that had Hey Capri on now have Listen for Capri on.
 - The first time you turn it on she downloads what it needs, once, and says so in her bubble and the Mainframe: an 18 MB listening pack ("Getting what I need to hear "Hey Capri"..."), plus her free voice (316 MB) first if it isn't in yet, because the wake word runs on the speech engine that comes with it. Then: "Listening for "Hey Capri". Nothing leaves your PC until you say it."
 - What it listens for: only the words "Hey Capri", in English for now. Other words, "Hey Siri", "Capri" on its own and the island of Capri don't start it.
 - It stays on your PC. A small speech model listens on your PC for those two words and keeps no recordings. Nothing you say leaves your PC until it hears "Hey Capri" and voice chat starts. After that it's ordinary voice chat: free voice chat stays on your PC, ElevenLabs voice chat sends your voice to ElevenLabs.
@@ -1276,7 +1266,7 @@ Settings can keep her memories as notes in an Obsidian vault.
 - Shift + drop: she sits right where you drop her ("Sit here"). Right-click her > Move > Stand up to undo.
 - Ctrl + drop: she hangs on right there ("Hang here"). Click her to let go.
 - She sits on windows that aren't maximized or full screen. If her window closes or gets covered, she stands up where she is.
-- Move > Sit on windows: untick it and she stays wherever you drop her, even in mid-air.
+- Move > Sit on windows (also a switch in Settings > MOVES): untick it and she stays wherever you drop her, even in mid-air.
 
 ### Ride cursor
 - Double-click her, or Move > Ride cursor, or Ride cursor in the Mainframe.
@@ -1408,9 +1398,9 @@ With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how mu
 
 ### Her own settings (0.8.0)
 With a cloud brain, ask her to change her own settings and she says how each one is set afterwards: "make yourself bigger", "stop wandering", "talk a bit faster", "turn off head pats", "stop sitting on my windows", "stop commenting on my game".
-- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (only when you say Gaming Mode), Hologram, Watch my screen and Comments (on means only when something happens).
-- Sliders: Size, Wander, Pop-ins, Sleep, Volume, Speed, Replies and Bubble, a step at a time or to the step you name ("set your size to Large").
-- Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for "Hey Capri" and Remember our chats stay yours to change in the Mainframe.
+- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (which turns Comments off, or back on at your last pick), Hologram, Watch my screen and Comments (on means only when something happens).
+- Sliders: Size, Wander, Pop-ins, Sleep, Volume, Speed, Replies, Bubble and In full screen, a step at a time or to the step you name ("set your size to Large").
+- Keys, brains, her voice service, SECURITY, Remember what she sees and Remember our chats stay yours to change in the Mainframe.
 
 ### Discord and Windows shortcuts
 She presses the keys for you:
@@ -1439,7 +1429,7 @@ For Discord she brings Discord to the front, presses the keys, then switches you
 - "Send hi to Sam on Discord", "Search for cats in Chrome", "End the call"
 - Her own pink pointer glides over and clicks. Your mouse stays where you left it: she only borrows it for each click and gives it back. Recordings show her pointer.
 - A "CAPRI: working on your task" box in the corner shows each step, and she sits on top of it while she works, so she never covers her pointer. Drag her or the box to move both; the box stays where you put it for later jobs until Capri restarts. When it fades she goes back to where she was. A "Capri is controlling ..." badge shows on the app she's using. Screen recordings and your screenshots show the box but not the badge, and her own screenshots look straight through both.
-- While she uses your mouse or keys (0.8.5 and newer), a thin pink and cyan glow goes round the screen she's working on, with "Capri's using your mouse. Esc stops her." on a badge just above the bottom. It's up for jobs on any brain, her shortcuts and media keys, games, Explore while you're away and her clones grabbing your cursor, and it goes the moment she gives control back. It shows even while she's hidden, so if your mouse moves with no glow, it wasn't her. Clicks go straight through it, and on Windows it stays out of screenshots and recordings. On Linux the badge says "Say stop to stop her."
+- While she uses your mouse or keys (0.8.5 and newer), a thin pink and cyan glow goes round the screen she's working on, with "Capri's using your mouse. Esc stops her." on a badge just above the bottom. It's up for jobs on any brain, her shortcuts and media keys, games, Explore after and her clones grabbing your cursor, and it goes the moment she gives control back. It shows even while she's hidden, so if your mouse moves with no glow, it wasn't her. Clicks go straight through it, and on Windows it stays out of screenshots and recordings. On Linux the badge says "Say stop to stop her."
 - Press Esc or tell her to stop: "You pressed Esc, so I stopped." Esc works even while she's holding a key down or pressing one over and over, and it stops the whole ask: if you asked for eight songs, the rest don't play. Moving your mouse doesn't stop her.
 - If her brain fails partway through a job (a rate limit, a timeout or an outage), she lets go of any mouse button she was holding and gives your mouse back.
 - One job uses your mouse at a time. Ask for another while she's busy and it waits its turn.
@@ -1473,7 +1463,7 @@ The presets:
 - Lockdown: every action toggle off. She asks first before she does anything on your PC.
 - Guarded: Open apps, games and sites, Music, media and volume, and Shortcuts on. She asks first for the rest.
 - Trusted (the default): the first seven on. She does what you ask, and asks first before paying or anything you didn't mention. It's how she worked before 0.7.6.
-- Blackwall: the first eleven toggles on, Listen for "Hey Capri" too. She does your requests without asking, and types the passwords and card numbers your job gives her. Friends on a call can ask, you confirm still starts off and always needs your confirmation. It's what Blackwall mode was (Bypass all permissions before 0.7.4). If you had Blackwall mode on, you're on Blackwall after updating; everyone else starts on Trusted.
+- Blackwall: the first ten toggles on, with HER MODS on too. She does your requests without asking, and types the passwords and card numbers your job gives her. Friends on a call can ask, you confirm still starts off and always needs your confirmation. It's what Blackwall mode was (Bypass all permissions before 0.7.4). If you had Blackwall mode on, you're on Blackwall after updating; everyone else starts on Trusted.
 - Custom: flip any toggle and the preset says Custom. Click the slider, or drag it to a preset, to start again from that preset.
 
 The toggles, in order:
@@ -1487,7 +1477,6 @@ The toggles, in order:
 8. Pay, buy and book. Off, she asks before buying, paying or booking, even when you asked for it.
 9. Things your request didn't mention. Off, she asks before a send, post, delete, install or purchase your job didn't mention, and before keys that could run anything, like Win + R ("Should I press win+r?").
 10. Type passwords and card numbers. Off, she never types them: "You'll need to sign in yourself first."
-11. Listen for "Hey Capri": she listens on this PC for her name. Only Blackwall turns it on.
 12. Friends on a call can ask, you confirm (0.8.3): off by default. In call mode, each friend's request waits for your mic or typing to confirm. See "Why can't my friends make her do things?" in section 12.
 13. Keep personal details out of her memories (0.8.5), under HER MEMORY: on in every preset but Blackwall. On, her notes leave out anything with an address, Get to know me leaves out answers like an email or a card number, what she remembers seeing leaves out addresses, numbers and emails, and in her jobs a form's name, email, address and card boxes show her "(value hidden)". Off, they work as before 0.8.5, and her notes still leave out passwords, card numbers, schools and home addresses.
 
@@ -1499,7 +1488,7 @@ How she asks:
 - During a job started from your phone, an ask-first question also shows on that phone in JOBS with Allow and Deny. Her SECURITY settings still decide what she asks first.
 - Looking at your screen, her notes, her own naps, moves and animations, checking what's playing and cancelling a shutdown never ask, even on Lockdown.
 
-On Mac and Linux it's right-click her > Settings > Security: the four presets and the five toggles Mac and Linux have (1 to 5), each with its line. Her mouse and keyboard jobs and "Hey Capri" are Windows-only so far, so there Trusted and Blackwall both do what you ask without asking first.
+On Mac and Linux it's right-click her > Settings > Security: the four presets and the five toggles Mac and Linux have (1 to 5), each with its line. Her mouse and keyboard jobs are Windows-only so far, so there Trusted and Blackwall both do what you ask without asking first.
 
 ### Can she play a game for me?
 Say "play" and the game, like "play Bloons TD 6", by voice or text. She opens it if it isn't open, picks a mode or map herself and keeps playing until you tell her to stop or press Esc. Give her an end, like one round, a win or 10 minutes, and she stops there. With SECURITY's mouse and keyboard switch off, she asks first.
@@ -1509,7 +1498,7 @@ Ask her what you want done in the game. She works from the screen with mouse and
 She acts in turns, so fast driving and other moves that need instant reactions are difficult. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
 
 ### What are Fast hands in games and the advisor?
-Mainframe > Settings > GAMES > Fast hands in games is on by default. With a Claude key, her game jobs use Claude Haiku 5.5. Chat stays on the model you picked under BRAIN. Turn the switch off to use your picked model for the game too. Other brain services aren't changed by this switch.
+Mainframe > Settings > BRAIN > Fast hands in games is on by default. With a Claude key, her game jobs use Claude Haiku 5.5. Chat stays on the model you picked under BRAIN. Turn the switch off to use your picked model for the game too. Other brain services aren't changed by this switch.
 
 When she's stuck, repeats a failure or doesn't know what to do next, she can ask a bigger brain for advice: the Claude model you picked, or Sonnet 5.5 if you picked Haiku. It gets the game job so far; she then carries on with fast hands. She can ask again later. Those advice calls use your Claude key too, about 8 cents each on Sonnet. If the key can't use the advisor, she keeps playing without it.
 
@@ -1540,16 +1529,16 @@ This is separate from GAMES > Comments, which controls her reactions while you'r
 During a game job, ask what's on screen ("what is that", "what happened") and she answers from a picture taken just then, even with "oh no, hey capri" in front. Ask about the game and she knows its skill. When you change what her job should do, she says so in her own words.
 
 ### What is Gaming Mode?
-It's on by default: a game in front brings it up with nothing said. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game. Ask separately if you want her to play.
+It's on by default, as GAMES > Comments on Events only: a game in front brings it up with nothing said. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game. Ask separately if you want her to play.
 
-To turn it off, say "Gaming Mode off", press Ctrl + Alt + G, or use Mainframe > Settings > GAMES > Gaming Mode. It stays off until you turn it back on. Change the key in Mainframe > Settings > KEYS > Gaming Mode.
+To turn it off, say "Gaming Mode off", press Ctrl + Alt + G, or set Mainframe > Settings > GAMES > Comments to Off. She says Comments went off, and it stays off until you turn it back on, with the key, by voice or by picking Events only or Chatty; the key and voice bring back your last pick. Change the key in Mainframe > Settings > KEYS > Gaming Mode.
 
 Use borderless or windowed mode if an exclusive full-screen game covers her.
 
 ### How do I change her live game comments?
 Mainframe > Settings > GAMES > Comments has Off, Events only and Chatty. She reacts to screen changes, game sound levels and supported logs written by the game. She says a short line when there's something to react to, and can stay quiet. Chatty also looks around during quieter stretches.
 
-This doesn't use WATCH > Every. Gaming Mode keeps event comments running even with Comments set to Off. To stop those comments, turn Gaming Mode off too, or use Quiet (Ctrl + Alt + P by default). While she's playing for you, her own play-by-play takes over.
+This doesn't use WATCH > Every. Comments Off stops them and her live reactions. Quiet (Ctrl + Alt + P by default) keeps her from speaking on her own, and it is also what "mute her" means; it isn't remembered after a restart. While she's playing for you, her own play-by-play takes over.
 
 ### How do I save a game clip?
 Turn on Mainframe > Settings > GAMES > Clip my games. While a detected game is in front, she keeps up to its last two minutes of video and PC playback sound in memory. It starts off.
@@ -1563,7 +1552,7 @@ It only has what was captured after you turned it on. Capture pauses when the ga
 ### What does Save big moments do?
 Mainframe > Settings > GAMES > Save big moments is directly under Clip my games. It starts off. Turning it on also turns Clip my games on; turning Clip my games off turns both off.
 
-Her game commentary decides whether a moment is worth keeping and saves the last 30 seconds. Comments must be running: Gaming Mode runs them, but Comments off outside Gaming Mode means no automatic saves. Quiet or her playing a job for you also pauses that commentary. You can still ask for a clip yourself.
+Her game commentary decides whether a moment is worth keeping and saves the last 30 seconds. Comments must be running, on Events only or Chatty; with Comments Off there are no automatic saves. Quiet or her playing a job for you also pauses that commentary. You can still ask for a clip yourself.
 
 She reacts as usual. A successful automatic save happens without a spoken announcement. Moments less than 30 seconds apart don't make another automatic clip or extend the first one. Clips stay in Videos\Capri Clips until you delete them; she doesn't clear old clips for you.
 
@@ -1625,7 +1614,7 @@ Long files can be read in parts. She reports missing or unreadable content; ask 
 "Let's watch some YouTube" or "we should open Spotify" counts as asking.
 
 ### Keep PC awake for jobs
-Settings > HABITS, on by default. While she's on a job or watching for something, your PC and screen stay on. She can't see with the screen off. A closed laptop lid still sleeps.
+She always does this, and there's no setting for it. While she's on a job or watching for something, your PC and screen stay on. She can't see with the screen off. A closed laptop lid still sleeps.
 
 ### Drawing on your screen
 Ask for a diagram and she draws it, then talks you through it: "make a diagram and help me understand linear algebra", "explain eigenvectors with a diagram" or "make a flowchart of how a bill becomes law". Say an app, like "make a chart in Excel", and she does it in that app.
@@ -1667,7 +1656,7 @@ Right-click her > Open Capri Mainframe > VOICE > Her speaker picks where her voi
 Right-click her > Open Capri Mainframe > Settings > WATCH > Screens picks a monitor for Watch my screen. All screens follows the app in front. If a chosen monitor disappears, like one that's asleep or off, she watches all screens and tells you once, then goes back to it by herself when it's back. Your pick stays saved. Asking her to look at a named screen still works separately.
 
 ### How do I turn it on?
-Mainframe > Settings > WATCH > Watch my screen. The Every slider sets how often she looks (10 s to 10 min). On Mac and Linux: right-click her > Settings > Watch my screen, and Glance every.
+Mainframe > Settings > WATCH > Every. Off is Watch my screen off; 10 s to 10 min turn it on and set how often she looks. On Mac and Linux: right-click her > Settings > Watch my screen, and Glance every.
 
 ### Check my screen
 Any time, ask "check my screen", "what's on my screen?", "can you see this?", "look at this error" or "rate my build". She takes a screenshot right then and answers about it. Watch my screen doesn't need to be on.
@@ -2072,6 +2061,9 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 ### TALK on Linux
 Follow the [Linux TALK setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup) to install `parec`, extract sherpa-onnx into her ears folder (or put `sherpa-onnx-offline` on PATH) and add her English Parakeet pack, or her European pack when her language is one of its 24 other languages. Pick your default mic in your sound settings. Hover over her, click TALK, say one line in her language and pause. Click TALK again to cancel. She transcribes the audio on your PC and uses the same brain and reply voice as TYPE.
 
+### Hey Capri on Mac (0.9.4)
+On Apple Silicon Macs, Mainframe > Settings > VOICE > Listen for Hey Capri works like on Linux once her local ears are set up (see [Listen for Capri on Mac](https://github.com/lachydotmcg/capri-desktop/blob/main/docs/NAME_LISTENING.md#mac)). Pick your mic in System Settings > Sound > Input first. Turning it on names that mic and you type YES to use it. If you change your default mic later, she stops listening until you turn it on again. Her ears run on your Mac with no internet, and she pauses them while she talks. Intel Macs don't have it yet. Thanks to Yoplaxs for bringing it to Mac.
+
 ### Right-click menu
 - Talk to her
 - Quiet: for when you focus or game. She stops pop-ins, asking for attention, cheers, the lag joke and Watch my screen until you untick it, and still answers when you talk to her. It's in the tray or menu bar menu too. Starting her again ends it.
@@ -2081,7 +2073,7 @@ Follow the [Linux TALK setup](https://github.com/lachydotmcg/capri-desktop#linux
 - Move: Stay put, Wander: Rarely, Wander: Sometimes, Wander: Often, Wander: Restless, Dance to music, Dance (on until you untick it or say "stop dancing"), Go to the next screen (only with more than one screen), Fall asleep after (Never, 1 min, 2 min, 5 min, 10 min, 30 min), Glitch in at startup
 - Size: Tiny, Small, Medium, Large, Huge, Giant
 - Brain: your Ollama models. With Ollama open but no models yet: "Download gemma4:e4b, her brain (a few GB)". With Ollama closed or not installed: "Ollama isn't running. Install it from ollama.com and open it." Below them: Get a free NVIDIA key, and Use an API key... On a key it shows "NVIDIA key ending XXXX" (or ChatGPT, Claude, DeepSeek), that key's models to pick from, Stay on my model (NVIDIA keys only), and Forget the key and use Ollama.
-- Settings: What should she call you?, Get to know me, Language, Reply length, Chat memory, Bubble (Quick, Normal, Long), Sounds (Off, Quiet, Normal, Loud, Typing sound), Voice, Volume (Mute, 10% to 100%, 125%, 150%), Voice style (Pitch, Speed, Robot, Glitch, Layers, Layer 1 pitch, Layer 1 delay, Layer 2 pitch, Layer 2 delay), Check in on me, Pop-ins (Rarely, Sometimes, Often), Always on top, Watch my screen, Glance every (10 s to 10 min), Keep her caught up, Start at login, Show on Discord, Security (Lockdown, Guarded, Trusted, Blackwall, Custom, then the five toggles), Open her notes (me.md), Remember our chats, Open her memories (memories.md)
+- Settings: What should she call you?, Get to know me, Language, Reply length, Chat memory, Bubble (Quick, Normal, Long), Sounds (Off, Quiet, Normal, Loud, Typing sound), Voice, Volume (10% to 100%, 125%, 150%), Voice style (Pitch, Speed, Robot, Glitch, Layers, Layer 1 pitch, Layer 1 delay, Layer 2 pitch, Layer 2 delay), Check in on me, Pop-ins (Rarely, Sometimes, Often), Always on top, Watch my screen, Glance every (10 s to 10 min), Keep her caught up, Start at login, Show on Discord, Security (Lockdown, Guarded, Trusted, Blackwall, Custom, then the five toggles), Open her notes (me.md), Remember our chats, Open her memories (memories.md)
 - Help: Help page, Copy error details
 - Join the Discord
 - Get Capri X, only when a new version is out
@@ -2094,7 +2086,7 @@ Tray or menu bar icon: Talk to her, Quiet, Hide her / Show her, Bring her back, 
 2. Paste your key and press Enter. It stays on this computer.
 3. She says "Key saved. I'll talk as X. Change it under Settings > Voice."
 4. Pick another voice from the same menu. Use ElevenLabs in that menu turns her voice on or off. (Mac and Linux have no free voice built in, but a voice server on your computer works: see Local voice below.)
-5. Settings > Volume sets how loud she talks, from Mute to 150%, like Windows' Volume. Sounds is her sound effects.
+5. Settings > Volume sets how loud she talks, from 10% to 150%, like Windows' Volume. Sounds is her sound effects.
 6. Settings > Voice style changes her pitch, speed, robot and glitch, like Windows' sliders (see "Pitch, speed, robot and glitch"), and Layers turns on her voice layers, with each layer's pitch and delay under it (see "Voice layers").
 
 - "Key saved, but your ElevenLabs account has no voices yet. Add one at elevenlabs.io." Make a voice first (section 11).
@@ -2263,8 +2255,8 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - NVIDIA asks for a phone number: that's NVIDIA's sign-up check. It's needed to make the free key.
 
 - Local server missing from the model menu: start it with a model loaded, select NORMAL, then press Refresh. Check Settings > BRAIN > Local server address if you use a different port. This address must be on this PC. For an OpenAI-compatible provider elsewhere, use Brain > Use my own provider with a key (OpenAI API)....
-- Memory size doesn't change your local server: it controls Ollama and her built-in brain only. Change the other server's context size in that server.
-- Max reply is high but answers are still short: set Settings > BRAIN > Replies to Long and ask for more detail. Max reply gives her room; it doesn't ask her to use all of it.
+- Her context size is Auto for Ollama and her built-in brain only. Change the other server's context size in that server.
+- Replies is on No limit but answers are still short: ask for more detail. No limit gives her room; it doesn't ask her to use all of it.
 
 ### Voice (ElevenLabs)
 - "ElevenLabs rejected the key." or "ElevenLabs rejected that key.": that isn't the key, or it was deleted. ElevenLabs keys start with sk_. Make a new one and paste it.
@@ -2286,7 +2278,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "Can't open your speakers: another app has them to itself.": close that app, or untick exclusive mode in your speaker's Sound settings (Settings > System > Sound > your speaker > Advanced).
 - "Can't open your speakers (Windows error N).": check Settings > System > Sound, then try again. On 0.6.2 the message is just "Can't open your speakers." Try the same fixes. Changing the mic doesn't help with this one. If it keeps happening, post your speaker's name, how it's plugged in (USB, Bluetooth, jack), your Windows and Capri versions and the line under VOICE in the Discord.
 - Her voice is too quiet or loud: Mainframe > Settings > Volume.
-- YouTube and every other app sound muffled, distorted, low quality or quieter while Capri runs, whatever voice is picked, until you quit her: that's Listen for "Hey Capri" keeping your mic open. A Bluetooth headset goes to call quality while its mic is open, and Windows turns other sounds down for calls. See "Hey Capri" above for the fixes.
+- YouTube and every other app sound muffled, distorted, low quality or quieter while Capri runs, whatever voice is picked, until you quit her: that's Listen for Capri keeping your mic open. A Bluetooth headset goes to call quality while its mic is open, and Windows turns other sounds down for calls. See "Hey Capri" above for the fixes.
 - Where's the voice prompt?: on the setup guide, under Her voice > Design her voice. Press Copy.
 
 ### Her free voice
@@ -2320,7 +2312,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 ### Mainframe and screen watching
 - Mainframe squashed or cut off: what's your Windows display scale? On 0.6.2, testing 100% (Settings > System > Display > Scale) and reopening Capri fixed it for one user at 150%.
 - Can't find the Mainframe: right-click her > Open Capri Mainframe.
-- She never comments: for occasional glances, turn on Mainframe > Settings > WATCH > Watch my screen. She skips unchanged or blank screens, and in voice chat she only comments while your mic is muted. For live game reactions, check Settings > GAMES > Comments or Gaming Mode. Quiet pauses unsolicited comments.
+- She never comments: for occasional glances, set Mainframe > Settings > WATCH > Every to a time (Watch my screen). She skips unchanged or blank screens, and in voice chat she only comments while your mic is muted. For live game reactions, check Settings > GAMES > Comments. Quiet pauses unsolicited comments.
 - "This brain can't see. Press Free key to fix.": use the free NVIDIA key.
 - "<model> can't see screens.": most NVIDIA models can't. Pick nvidia/nemotron-3.5-super-vl-120b-a12b.
 - "The screen capture is black.": set your game to borderless or windowed.
@@ -2360,7 +2352,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "I haven't done that yet, choom.": tell her exactly what to open or click.
 
 - "I haven't buffered any game video yet.": turn on Settings > GAMES > Clip my games and keep a detected game in front for a while. It can't save video from before capture began.
-- Save big moments isn't saving: it needs Clip my games and active game commentary. Turn on Gaming Mode or choose Events only or Chatty under GAMES > Comments. Quiet and a game job she's playing pause that commentary.
+- Save big moments isn't saving: it needs Clip my games and active game commentary. Choose Events only or Chatty under GAMES > Comments. Quiet and a game job she's playing pause that commentary.
 - A watch missed something: it checks still pictures a few seconds apart. Keep the thing visible, use a seeing brain, and ask for a repeating watch if you want more than one alert.
 
 ### Updates
@@ -2426,7 +2418,7 @@ Known problem. It's tracked and we're working on it. https://github.com/lachydot
 Her game and screen comments leave on their own after a moment.
 
 ### Gaming Mode when she plays
-When she plays a game for you she goes into Gaming Mode by herself once the game is in front. It stays up until the game closes. "Gaming mode off" keeps it off for that job.
+When she plays a game for you she goes into Gaming Mode by herself once the game is in front. It stays up until the game closes. "Gaming mode off" sets Comments to Off.
 
 ### Her chat shows the model's thinking or a written-out tool call
 From 0.9.0 she keeps a brain's thinking and written-out tool calls out of her chat, her voice and the saved chat. A tool call written into a reply is never run. If you still see one, press right-click her > Help > Copy error details and send it with the brain and model you use; her log notes each leak.

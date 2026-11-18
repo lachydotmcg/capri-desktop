@@ -25,13 +25,14 @@ namespace CapriDesktop
             + (OperatingSystem.IsLinux()
                 ? "Capri Remote: chat and photos from your phone work with Linux too."
                 : "Updates: Get new version downloads her new version, checks it, swaps her Capri.app and starts her again, and puts the old one back if the new one won't stay open. From \u2600SUNNY\u2600.\n"
-                    + "Capri Remote: chat and photos from your phone work with a Mac too.");
+                    + "Capri Remote: chat and photos from your phone work with a Mac too.\n"
+                    + "Hey Capri: on Apple Silicon Macs, VOICE > Listen for Hey Capri hears her name through your default mic once her local ears are set up, with 20 seconds of follow-ups, and pauses while she talks. Her ears run with no internet. From Yoplaxs.");
         internal static readonly string Line = "I just updated to " + Version + ": I can tell you the weather for your city now, and my pat lines are fresher. Ask me what's new.";
 #else
         internal const string Version = "0.9.3";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
             + "Room: right-click her and pick Room camera, and she's in your room through your webcam: she walks, sits up on things, hides behind you, gets grabbed and thrown, and talks with her mouth moving. On your phone, Room in Capri Remote puts her in your room in AR. Plays like fadievr's Capri Room for Quest, with PC ideas from connorx132 and Luke Yokubo.\n"
-            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, and pick Capri Camera in Discord, Zoom or OBS so people see her in the room with you.\n"
+            + "Capri Camera: in her download from GitHub or capriai.app, press Capri Camera in Room once, say yes to Windows, restart Discord, Zoom or OBS once (quit Discord from its tray icon) so they see the new camera, and pick Capri Camera there so people see her in the room with you.\n"
             + "Weather: turn on Weather in her Mainframe and give her your city. She answers forecast questions from Open-Meteo with no key and no location lookup, warns you once a day about extreme weather and reminds you to take an umbrella. From chiken73.\n"
             + "Playlist: she plays your own music folders and songs from her mini player, with shuffle, loop and volume. Say play my playlist, or pick Play > Music. From YunoTheAlien.\n"
             + "Commands: Help > Commands lists everything she does without a brain. From YunoTheAlien.\n"
@@ -1030,6 +1031,9 @@ namespace CapriDesktop
         internal static volatile int ReplyLength;
         internal static readonly int[] MemorySizes = { 0, 4096, 8192, 16384, 32768, 65536 };
         internal static readonly int[] ReplySizes = { 0, 256, 2048, 8192 };
+        internal static volatile int GpuLimit;
+        internal static readonly int[] GpuLimits = { 0, 8, 6, 4, 3, 2, -1 };
+        internal static readonly string[] GpuLimitNames = { "Auto", "8 GB", "6 GB", "4 GB", "3 GB", "2 GB", "RAM only" };
         private static readonly int[] Budgets = { 90, 180, 360 };
         private static readonly int[] Caps = { 220, 420, 820 };
 
@@ -1194,7 +1198,66 @@ namespace CapriDesktop
 
         private ChatOptions OllamaOptions(string model, int reply)
         {
-            return new ChatOptions { Limit = reply, Context = OllamaWindow, Gpu = ollamaCpu == model ? (int?)0 : null };
+            return new ChatOptions { Limit = reply, Context = OllamaWindow, Gpu = ollamaCpu == model ? (int?)0 : OllamaLayers(model, GpuLimit) };
+        }
+
+        internal static int? Layers(long size, int blocks, int limit, int window)
+        {
+            if (limit < 0) return 0;
+            if (limit == 0 || size <= 0 || blocks <= 0) return null;
+            long room = ((long)limit << 30) - (512L << 20) - (long)window * 64 * 1024;
+            int layers = blocks + 1;
+            if (room >= size) return null;
+            if (room <= 0) return 0;
+            return (int)Math.Min(layers, room * layers / size);
+        }
+
+        internal static Func<string, long[]> OllamaShape = OllamaSize;
+        private static readonly Dictionary<string, long[]> ollamaShapes = new Dictionary<string, long[]>();
+
+        private static int? OllamaLayers(string model, int limit)
+        {
+            if (limit == 0 || model == null) return null;
+            if (limit < 0) return 0;
+            long[] shape;
+            lock (ollamaShapes) ollamaShapes.TryGetValue(model, out shape);
+            if (shape == null)
+            {
+                shape = OllamaShape(model) ?? new long[2];
+                if (shape[0] > 0 && shape[1] > 0) lock (ollamaShapes) ollamaShapes[model] = shape;
+                else Log(Ollama, -1, "Couldn't read " + model + "'s size, so Ollama fits it to the graphics card itself");
+            }
+            return Layers(shape[0], (int)shape[1], limit, OllamaWindow);
+        }
+
+        private static long[] OllamaSize(string model)
+        {
+            long[] shape = new long[2];
+            try
+            {
+                HttpWebRequest listing = Open("/api/tags", 3000);
+                using (WebResponse response = listing.GetResponse())
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    string text = reader.ReadToEnd();
+                    foreach (Match entry in Regex.Matches(text, "\\{[^{}]*\"name\"\\s*:\\s*\"([^\"]*)\"[^{}]*\"size\"\\s*:\\s*(\\d+)"))
+                        if (entry.Groups[1].Value == model || entry.Groups[1].Value == model + ":latest") { long.TryParse(entry.Groups[2].Value, out shape[0]); break; }
+                }
+                HttpWebRequest card = Open("/api/show", 3000);
+                card.Method = "POST";
+                card.ContentType = "application/json";
+                byte[] asked = Encoding.UTF8.GetBytes("{\"model\":" + Voice.Quote(model) + "}");
+                using (Stream sending = card.GetRequestStream()) sending.Write(asked, 0, asked.Length);
+                using (WebResponse response = card.GetResponse())
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    Match blocks = Regex.Match(reader.ReadToEnd(), "\"[\\w.]*\\.block_count\"\\s*:\\s*(\\d+)");
+                    if (blocks.Success) long.TryParse(blocks.Groups[1].Value, out shape[1]);
+                }
+            }
+            catch (WebException) { }
+            catch (IOException) { }
+            return shape;
         }
 
         internal static int ReplyLimit(int automatic, bool job = false)
@@ -3784,51 +3847,56 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
-                // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
-                int careful = local.Careful;
-                try { local.Ensure(LocalPick); }
-                catch (BrainException error)
+                local.Begin();
+                try
                 {
-                    if (!error.Careful) throw;
-                    lock (memoryGate) { }
-                    local.Ensure(LocalPick);
-                    careful = 0;
-                }
-                if (careful == 0) careful = local.Careful;
-                string lost;
-                bool garbled = false, crashed = false;
-                try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
-                catch (BrainException error)
-                {
-                    if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                    if (error.Status == 503 && careful != 0)
+                    // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
+                    int careful = local.Careful;
+                    try { local.Ensure(LocalPick); }
+                    catch (BrainException error)
                     {
+                        if (!error.Careful) throw;
                         lock (memoryGate) { }
-                        if (Window < careful)
-                        {
-                            local.Ensure(LocalPick);
-                            return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
-                        }
+                        local.Ensure(LocalPick);
+                        careful = 0;
                     }
-                    garbled = error.Message == Gibberish;
-                    if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
-                    lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    if (careful == 0) careful = local.Careful;
+                    string lost;
+                    bool garbled = false, crashed = false;
+                    try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
+                    catch (BrainException error)
+                    {
+                        if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        if (error.Status == 503 && careful != 0)
+                        {
+                            lock (memoryGate) { }
+                            if (Window < careful)
+                            {
+                                local.Ensure(LocalPick);
+                                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                            }
+                        }
+                        garbled = error.Message == Gibberish;
+                        if (local.OnCpu || (!garbled && !Engine.Lost(error.Message))) throw;
+                        lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
+                    }
+                    catch (WebException error)
+                    {
+                        if (local.OnCpu || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
+                        lost = "The brain crashed";
+                        crashed = true;
+                    }
+                    Log(local.Address, -1, lost + ", restarting it on the CPU");
+                    // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
+                    // a game taking the card, so her next start tries the card again (Mirit0, #226).
+                    if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
+                    local.CpuOnly = true;
+                    local.Stop();
+                    local.Ensure(LocalPick);
+                    return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                 }
-                catch (WebException error)
-                {
-                    if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
-                    lost = "The brain crashed";
-                    crashed = true;
-                }
-                Log(local.Address, -1, lost + ", restarting it on the CPU");
-                // Only a crash keeps her on the CPU after a restart. A garbled reply or a lost graphics card can be one bad moment, like
-                // a game taking the card, so her next start tries the card again (Mirit0, #226).
-                if (crashed) local.KeepCpu(lost + ", restarting it on the CPU");
-                local.CpuOnly = true;
-                local.Stop();
-                local.Ensure(LocalPick);
-                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                finally { local.End(); }
             }
             string thinking = Ollama + "|" + model;
             ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = OllamaOptions(model, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };
@@ -3841,7 +3909,7 @@ namespace CapriDesktop
             }
             if (chat.Message != null && chat.Message.Calls == null && Garbled(chat.Message.Content, limit > 400))
             {
-                if (asking.Options.Gpu != null) throw new BrainException(Gibberish, true);
+                if (asking.Options.Gpu == 0) throw new BrainException(Gibberish, true);
                 Log(Ollama, -1, "Ollama's graphics card garbled the brain's reply, asking again on the CPU");
                 ollamaCpu = model;
                 asking.Options.Gpu = 0;

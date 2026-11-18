@@ -268,8 +268,10 @@ Hide / Show Capri	Aħbi / Uri lil Capri
 Hide / Show key	Ċavetta għall-aħbi / uri
 Hide Capri	Aħbi lil Capri
 Hide for now	Aħbi għalissa
+Hide her	Aħbiha
 Hide in full screen	Aħbi f'full screen
 Hide this	Aħbi dan
+Hide, keep player	Aħbiha, żomm il-player
 Hide/show:	Aħbi/uri:
 Hide/show: Ctrl + Alt + H	Aħbi/uri: Ctrl + Alt + H
 Hologram	Ologramma
@@ -296,6 +298,7 @@ IN DISCORD >	TAL-DISCORD >
 INSTALLED >	INSTALLAT >
 Import a Capri mod	Importa mod ta' Capri
 Import mod	Importa mod
+In full screen	F'full screen
 In games	Fil-logħob
 Input	Input
 Input, Output or How to overlaps a row	Input, Output jew Kif jaqbeż ringiela
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ĊWIEVET
 KEYS >	ĊWIEVET >
 Keep PC awake for jobs	Żomm il-PC miftuħ għax-xogħlijiet
+Keep player	Żomm il-player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Iżomm l-aħħar żewġ minuti tal-logħba tiegħek fil-memorja. Għid aqta' dan biex tiħażnu.
 Key	Ċavetta
 Key cleared: a model file needs none.	Ċavetta mnaddfa: fajl tal-mudell ma jeħtieġ ebda waħda.
@@ -439,6 +443,7 @@ No AI · no brain at all	L-ebda AI · l-ebda moħħ xejn
 No brain runs, and nothing is sent anywhere.	L-ebda moħħ ma jaħdem, u xejn ma jintbagħat x'imkien.
 No brain yet	Għadu l-ebda moħħ
 No code open	L-ebda kodiċi miftuħ
+No limit	Bla limitu
 No mic found	Ma nstab l-ebda mikrofon
 No mods in the directory yet.	Għadhom l-ebda mods fid-directory.
 No mods match that.	Ebda mod ma jaqbel ma' dan.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	Ipplej
 Play...	Ipplej...
+Player only	Il-player biss
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Mudelli Pocket TTS jikkopjaw il-leħen ta' dan il-klipp. Ipprem Ittestja biex tismagħha.
 Pop-in times	Ħinijiet tad-dħul
 Pop-ins	Dħul
@@ -666,6 +672,7 @@ Speed	Veloċità
 Start with Windows	Ibda ma' Windows
 Start with this!	Ibda b'dan!
 Starting...	Qed jibda...
+Stay	Ibqa'
 Stay on my model	Żomm il-mudell tiegħi
 Still checking your mics...	Għadni niċċekkja l-mikrofoni tiegħek...
 Still checking your speakers...	Għadni niċċekkja l-ispeakers tiegħek...
