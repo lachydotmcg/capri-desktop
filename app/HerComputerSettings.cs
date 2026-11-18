@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace CapriDesktop
@@ -34,7 +37,9 @@ namespace CapriDesktop
             catch (Exception error) { Notice.Tell(mainframe, error.Message, "Her computer", true); }
         }
 
-        private HerComputerWindow ShowHerComputer()
+        private HerComputerWindow ShowHerComputer() { return ShowHerComputer(true); }
+
+        private HerComputerWindow ShowHerComputer(bool activate)
         {
             if (herComputer == null || herComputer.IsDisposed)
             {
@@ -43,6 +48,11 @@ namespace CapriDesktop
                 herComputer.CanThink = delegate { return brain.Model != null && !Brain.Off; };
                 herComputer.Tell = delegate(string line) { Post(delegate { SayOwn("her computer", line); }); };
                 if (mainframe.Icon != null) herComputer.Icon = mainframe.Icon;
+            }
+            if (!activate)
+            {
+                if (!herComputer.Visible) herComputer.ShowQuietly();
+                return herComputer;
             }
             if (!herComputer.Visible) herComputer.Show();
             if (herComputer.WindowState == FormWindowState.Minimized) herComputer.WindowState = FormWindowState.Normal;
@@ -87,6 +97,88 @@ namespace CapriDesktop
         }
 
         internal string HerComputerShown { get { return (preferences.HerComputer ? "on" : "off") + " | " + (herComputer == null || herComputer.IsDisposed ? "closed" : herComputer.Visible ? "open" : "hidden"); } }
+
+        internal const string HerScreenId = "her";
+        internal static readonly Rectangle HerScreenBounds = new Rectangle(-200000, -200000, HerComputer.Width, HerComputer.Height);
+
+        internal void AddHerScreen(List<RemoteMonitor> monitors)
+        {
+            if (preferences.HerComputer) monitors.Add(new RemoteMonitor { Id = HerScreenId, Name = "Capri's computer", Device = HerScreenId, Bounds = HerScreenBounds });
+        }
+
+        private Bitmap HerScreenShot()
+        {
+            Bitmap shot = null;
+            Action take = delegate
+            {
+                if (!preferences.HerComputer || IsDisposed) return;
+                HerComputerWindow window = ShowHerComputer(false);
+                window.Watched();
+                shot = window.Snapshot();
+            };
+            if (!InvokeRequired) { take(); return shot; }
+            using (ManualResetEvent done = new ManualResetEvent(false))
+            {
+                try { BeginInvoke(new Action(delegate { try { take(); } catch (Exception) { } finally { try { done.Set(); } catch (ObjectDisposedException) { } } })); }
+                catch (InvalidOperationException) { return null; }
+                if (!done.WaitOne(1500)) return null;
+            }
+            return shot;
+        }
+
+        internal sealed class HerOrDesktop : RemoteCapture
+        {
+            private readonly Companion her;
+            private RemoteGrab desktop;
+            private bool mine, any;
+            private int lastWidth;
+            private ulong lastPrint;
+
+            internal HerOrDesktop(Companion her) { this.her = her; }
+
+            internal override bool Open(RemoteMonitor monitor)
+            {
+                mine = monitor != null && monitor.Id == HerScreenId;
+                any = false;
+                lastWidth = 0;
+                if (mine) return true;
+                if (desktop == null) desktop = new RemoteGrab();
+                return desktop.Open(monitor);
+            }
+
+            internal override Bitmap Next(int maxWidth)
+            {
+                if (!mine) return desktop == null ? null : desktop.Next(maxWidth);
+                Bitmap full;
+                try { full = her.HerScreenShot(); }
+                catch (Exception) { return null; }
+                if (full == null) return null;
+                Bitmap frame = full;
+                if (maxWidth > 0 && maxWidth < full.Width)
+                {
+                    frame = new Bitmap(maxWidth, Math.Max(1, full.Height * maxWidth / full.Width));
+                    using (Graphics g = Graphics.FromImage(frame))
+                    {
+                        g.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                        g.DrawImage(full, new Rectangle(0, 0, frame.Width, frame.Height));
+                    }
+                    full.Dispose();
+                }
+                ulong print = RemoteGrab.Print(frame);
+                if (any && maxWidth == lastWidth && print == lastPrint) { frame.Dispose(); return null; }
+                any = true;
+                lastWidth = maxWidth;
+                lastPrint = print;
+                return frame;
+            }
+
+            public override void Dispose()
+            {
+                RemoteGrab was = desktop;
+                desktop = null;
+                if (was != null) was.Dispose();
+            }
+        }
     }
 
     internal sealed partial class Mainframe

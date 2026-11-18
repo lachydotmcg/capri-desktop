@@ -44924,9 +44924,20 @@ namespace CapriDesktop
                 using (HerComputerWindow herWindow = new HerComputerWindow(new HerComputer(Path.Combine(Path.GetDirectoryName(settingsPath), "her-computer"))))
                 using (System.Drawing.Bitmap herShot = herWindow.Snapshot())
                     if (herShot.Width != HerComputer.Width || herShot.GetPixel(HerComputer.Width / 2, 60).A == 0) throw new Exception("Her computer's desktop didn't draw.");
+                List<RemoteMonitor> herScreens = new List<RemoteMonitor>();
+                AddHerScreen(herScreens);
+                if (herScreens.Count != 1 || herScreens[0].Id != HerScreenId || herScreens[0].Name != "Capri's computer") throw new Exception("Capri Remote didn't list her computer as a screen.");
+                using (HerOrDesktop herGrab = new HerOrDesktop(this))
+                {
+                    if (!herGrab.Open(herScreens[0])) throw new Exception("Capri Remote couldn't open her computer's screen.");
+                    using (System.Drawing.Bitmap herFrame = herGrab.Next(640))
+                        if (herFrame == null || herFrame.Width != 640 || herFrame.Height != 640 * HerComputer.Height / HerComputer.Width) throw new Exception("Capri Remote got no frame from her computer.");
+                }
                 ToggleHerComputer();
-                if (LoadPreferences().HerComputer || HerComputerShown != "off | closed") throw new Exception("Her own computer did not turn off: " + HerComputerShown);
-                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, and her help explains it");
+                herScreens.Clear();
+                AddHerScreen(herScreens);
+                if (LoadPreferences().HerComputer || HerComputerShown != "off | closed" || herScreens.Count != 0) throw new Exception("Her own computer did not turn off: " + HerComputerShown);
+                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, Capri Remote can watch it, and her help explains it");
             }
             finally
             {

@@ -46,6 +46,8 @@ namespace CapriDesktop
         private volatile string runningTask;
         private float scale = 1f;
         private PointF offset;
+        private bool quietShow;
+        private DateTime watchedAt = DateTime.MinValue;
 
         internal HerComputerWindow(HerComputer computer)
         {
@@ -111,6 +113,19 @@ namespace CapriDesktop
             art[name] = found;
             return found;
         }
+
+        protected override bool ShowWithoutActivation { get { return quietShow; } }
+
+        internal void ShowQuietly()
+        {
+            quietShow = true;
+            try { Show(); }
+            finally { quietShow = false; }
+        }
+
+        internal void Watched() { watchedAt = DateTime.UtcNow; }
+
+        private bool Seen { get { return WindowState != FormWindowState.Minimized || (DateTime.UtcNow - watchedAt).TotalSeconds < 3; } }
 
         internal bool Busy { get { return runningTask != null; } }
         internal string Doing { get { lock (gate) return status; } }
@@ -203,7 +218,7 @@ namespace CapriDesktop
                 HerBrowser current;
                 string app;
                 lock (gate) { current = web; app = openApp; }
-                if (current != null && app == "browser" && current.Running && WindowState != FormWindowState.Minimized)
+                if (current != null && app == "browser" && current.Running && Seen)
                 {
                     byte[] jpeg = current.Frame(72);
                     if (jpeg != null)
@@ -233,7 +248,7 @@ namespace CapriDesktop
                 for (int waited = 0; waited < wait && !closing; waited += 250) Thread.Sleep(250);
                 if (closing || Busy || inControl || Quiet) continue;
                 bool minimized = false;
-                try { Invoke(new Action(delegate { minimized = WindowState == FormWindowState.Minimized || !Visible; })); }
+                try { Invoke(new Action(delegate { minimized = !Seen || !Visible; })); }
                 catch (InvalidOperationException) { return; }
                 if (minimized) continue;
                 try { Computer.Potter(this, delegate { return closing || Busy || inControl; }, BrainDiary); }
