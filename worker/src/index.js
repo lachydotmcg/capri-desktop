@@ -1184,15 +1184,24 @@ export default {
     if (path === '/codes' || path.startsWith('/codes/')) return codes(request, env, path);
     if (path === '/stats') return stats(request, env);
     if (path === '/brain' || path.startsWith('/brain/')) return codeBrain(request, env, ctx, path);
+    // Only pages we serve may call these from a browser. A wildcard origin let any website spend the free AI budget,
+    // inflate the download and tap counters, and hammer /phone-day on the user's behalf.
+    const siteOrigins = (env.CORS_ORIGINS || 'https://capriai.app,https://www.capriai.app')
+      .split(',').map(origin => origin.trim()).filter(Boolean);
+    const caller = request.headers.get('Origin');
+    const allowed = caller && siteOrigins.includes(caller) ? caller : null;
     const cors = {
-      'Access-Control-Allow-Origin': '*',
+      ...(allowed ? { 'Access-Control-Allow-Origin': allowed, 'Vary': 'Origin' } : {}),
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Max-Age': '86400'
     };
     const reply = (body, status = 200) => Response.json(body, { status, headers: { ...cors, 'Cache-Control': 'no-store' } });
 
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (request.method === 'OPTIONS') {
+      if (caller && !allowed) return new Response(null, { status: 403, headers: cors });
+      return new Response(null, { status: 204, headers: cors });
+    }
     if (path === '/help') return request.method === 'POST' ? help(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
