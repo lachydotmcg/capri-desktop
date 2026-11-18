@@ -796,6 +796,7 @@ namespace CapriDesktop
                 Pet.SelfChecks(pet, checks);
                 SecurityChecks();
                 TerminalSecurityChecks();
+                CareClockChecks();
                 MacNativeChecks();
                 MacFingers.Checks(checks);
                 MacClickChecks();
@@ -6869,6 +6870,50 @@ namespace CapriDesktop
                 checks.Add("PASS Mac process backends: libproc identity, real PTY exit/output/stop, parent lifetime and Seatbelt read/write boundaries work with offline fixtures");
             }
             else checks.Add("INFO no local python3: Mac process fixtures skipped; fake adapter and Security checks passed");
+        }
+
+        private void CareClockChecks()
+        {
+            if (Pet.CareQuiet(30, true) != 30000 || Pet.CareQuiet(0, null) != 0 || Pet.CareQuiet(-1, false) != 0 || Pet.CareQuiet(-1, null) != 0 || Pet.CareQuiet(double.NaN, null) != 0
+                || Pet.CareQuiet(-1, true) <= Care.Away || Pet.CareQuiet(double.PositiveInfinity, true) <= Care.Away) throw new Exception("An unknown idle time lost its stand-in.");
+            double clock = 1000;
+            DateTime day = new DateTime(2026, 11, 16, 15, 0, 0);
+            Func<CareKind, bool> on = kind => kind == CareKind.Eyes;
+            Func<CareKind, int> time = kind => kind == CareKind.Late ? 1 : kind == CareKind.Meal ? 360 : 25;
+            long night = 0;
+            Care care = new Care(() => clock, () => day.AddSeconds(clock - 1000), kind => "Look away.");
+            Func<bool?, string> check = absent => { long quiet = Pet.CareQuiet(-1, absent); return care.Check(true, on, time, ref night, quiet, quiet <= 60000, null, -1, 1); };
+            if (check(false) != null) throw new Exception("A check-in came before its time.");
+            clock += 25 * 60 + 1;
+            if (check(false) != "Look away." || care.Said != CareKind.Eyes) throw new Exception("A due check-in wasn't said without an idle clock.");
+            clock += 25 * 60 + 1;
+            if (check(null) != "Look away.") throw new Exception("A due check-in wasn't said without logind.");
+            clock += 25 * 60 + 1;
+            if (check(true) != null) throw new Exception("A check-in was said to a locked screen.");
+            clock += 3600;
+            if (check(false) != null) throw new Exception("A check-in was waiting after the screen was unlocked.");
+            clock += 25 * 60 - 5;
+            if (check(false) != null) throw new Exception("A check-in came early after the screen was unlocked.");
+            clock += 10;
+            if (check(false) != "Look away.") throw new Exception("Check-ins did not start again after the screen was unlocked.");
+            if (OperatingSystem.IsLinux())
+            {
+                Func<string, string[], string> runWas = Music.Run;
+                string asked = null, hints = null;
+                try
+                {
+                    Music.Run = (file, args) => { asked = file + " " + string.Join(" ", args); return hints; };
+                    bool? none = Limbs.SessionAway();
+                    hints = "b false\nb false\n"; bool? here = Limbs.SessionAway();
+                    hints = "b false\nb true\n"; bool? locked = Limbs.SessionAway();
+                    hints = "b true\nb false\n"; bool? idle = Limbs.SessionAway();
+                    hints = "Failed to get property: No session\n"; bool? failed = Limbs.SessionAway();
+                    if (none != null || here != false || locked != true || idle != true || failed != null || asked != "busctl get-property org.freedesktop.login1 /org/freedesktop/login1/session/auto org.freedesktop.login1.Session IdleHint LockedHint")
+                        throw new Exception("logind's locked and idle hints were misread: " + none + " " + here + " " + locked + " " + idle + " " + failed + " | " + asked);
+                }
+                finally { Music.Run = runWas; }
+            }
+            checks.Add("PASS check-ins without an idle clock: where the desktop can't say how long since any input, like KDE on Wayland, she checks in by the clock, rests while logind says the session is locked or idle, and starts each wait again after an unlock");
         }
 
         private void TerminalSecurityChecks()

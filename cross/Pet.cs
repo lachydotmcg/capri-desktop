@@ -742,6 +742,7 @@ namespace CapriDesktop
         // Her brain's look at a glance, and how long they've been away from the computer. The smoke test hands in its own.
         internal Func<byte[], string, string> Seeing;
         internal Func<double> Idle = Limbs.IdleSeconds;
+        internal Func<bool?> Absent = Limbs.SessionAway;
         // Tells the tray menu whether to offer Hide her or Show her, since a pop-in or Talk to her brings her out too.
         internal Action AwayChanged;
         private bool shushed;
