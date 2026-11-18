@@ -60,7 +60,7 @@ namespace CapriDesktop
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             try { using (Stream chip = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.ico")) if (chip != null) Icon = new Icon(chip); } catch (Exception) { }
             perch = Load("Capri.Her.capri-perch.png", 0);
-            face = Load("Capri.Sprite.face.png", 64);
+            face = Load("Capri.Her.capri-avatar.png", 0);
             pointer = Load("Capri.Cursor.png", 80);
             foreach (string app in HerComputer.Apps) Art("app-" + app);
             foreach (string site in HerComputer.Sites) Art("site-" + site);
@@ -656,7 +656,7 @@ namespace CapriDesktop
                     g.FillPath(plum, shape);
                 Image favicon = !browsing ? null : site >= 0 ? Art("site-" + HerComputer.Sites[site]) : Art("app-browser");
                 if (favicon != null) DrawPicture(g, favicon, new RectangleF(tab.Left + 14, tab.Top + 8, 18, 18), 0, 1f);
-                else DrawRoundPicture(g, face, new RectangleF(tab.Left + 12, tab.Top + 7, 20, 20));
+                else DrawRoundPicture(g, face, new RectangleF(tab.Left + 10, tab.Top + 5, 24, 24));
                 using (SolidBrush blush = new SolidBrush(Blush))
                 using (SolidBrush faded = new SolidBrush(Faded))
                 using (StringFormat trim = new StringFormat(StringFormatFlags.NoWrap) { Trimming = StringTrimming.EllipsisCharacter })
@@ -684,8 +684,8 @@ namespace CapriDesktop
                 using (SolidBrush ink = new SolidBrush(Color.FromArgb(217, 191, 204)))
                 using (StringFormat trim = new StringFormat(StringFormatFlags.NoWrap) { Trimming = StringTrimming.EllipsisCharacter })
                     g.DrawString(HerComputer.Short(shown ?? "", 140), monoFont, ink, new RectangleF(AddressBox.Left + 16, AddressBox.Top + 7, AddressBox.Width - 30, 20), trim);
-                DrawRoundPicture(g, face, new RectangleF(AppBox.Right - 44, tools + 10, 26, 26));
-                using (Pen ring = new Pen(Rose, 1.5f)) g.DrawEllipse(ring, AppBox.Right - 44, tools + 10, 26, 26);
+                DrawRoundPicture(g, face, new RectangleF(AppBox.Right - 47, tools + 6, 34, 34));
+                using (Pen ring = new Pen(Rose, 2f)) g.DrawEllipse(ring, AppBox.Right - 47, tools + 6, 34, 34);
                 using (SolidBrush line = new SolidBrush(Chrome)) g.FillRectangle(line, AppBox.Left, PageBox.Top - 1, AppBox.Width, 1);
                 if (browsing)
                 {
@@ -988,12 +988,12 @@ namespace CapriDesktop
             if (image == null) return;
             GraphicsState state = g.Save();
             using (GraphicsPath circle = new GraphicsPath())
-            using (SolidBrush back = new SolidBrush(Color.FromArgb(255, 46, 99)))
+            using (SolidBrush back = new SolidBrush(Color.White))
             {
                 circle.AddEllipse(place);
                 g.SetClip(circle, CombineMode.Intersect);
                 g.FillEllipse(back, place);
-                g.DrawImage(image, place);
+                g.DrawImage(image, new RectangleF(place.X + place.Width * 0.06f, place.Y + place.Height * 0.06f, place.Width * 0.88f, place.Height * 0.88f));
             }
             g.Restore(state);
         }
