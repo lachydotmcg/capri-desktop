@@ -8018,6 +8018,8 @@ namespace CapriDesktop
             RemotePairChecks();
             RemoteLink.SmokePairing(checks);
             RemoteLink.SmokeJobs(checks);
+            RemotePush.Smoke(checks);
+            RemoteLink.SmokePush(checks);
             RemoteStoreChecks();
 
             string diskRoot = Path.Combine(folder, "remote-core-" + Guid.NewGuid().ToString("N"));
