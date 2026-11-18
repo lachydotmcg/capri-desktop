@@ -417,12 +417,12 @@ namespace CapriDesktop
                 bool freeBefore = pet.Free;
                 pet.ToggleShush();
                 string hushed = pet.Talk.Reply;
-                bool quieted = pet.Shushed && pet.QuietShown && !pet.Free && hushed == "Going quiet. Turn off Mute her in Capri Mainframe when you want me back.";
+                bool quieted = pet.Shushed && pet.QuietShown && !pet.Free && hushed == "Going quiet. Turn off Quiet in my right-click menu when you want me back.";
                 pet.ToggleShush();
                 bool unhushed = !pet.Shushed && !pet.QuietShown && pet.Talk.Reply == "I'm back, choom.";
                 pet.Talk.Dismiss();
                 if (!quieted || !unhushed || pet.Free != freeBefore) throw new Exception("Quiet went wrong: quiet " + quieted + " (" + hushed + "), back " + unhushed + ", free before " + freeBefore + " and after " + pet.Free);
-                checks.Add("PASS quiet: Mute her stops her pop-ins, check-ins, cheers, jokes and glances until it's turned off, and she says so both times");
+                checks.Add("PASS quiet: Quiet stops her pop-ins, check-ins, cheers, jokes and glances until it's turned off, and she says so both times");
                 pet.SetBubbleTime(2);
                 bool bubbleLong = pet.BubblePicked == "Long" && Talk.Hold(100, pet.BubbleTime) == 18 && Talk.Hold(1000, pet.BubbleTime) == 28;
                 pet.SetBubbleTime(0);
@@ -4105,7 +4105,7 @@ namespace CapriDesktop
                 { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
                 { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Verbosity", "", "NoHuskVerbosity" }, { "Start at login", "startup", "" },
-                { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
+                { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" },
                 { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" },
                 { "Weather", "", "Weather" }
             };

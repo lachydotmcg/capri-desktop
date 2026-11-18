@@ -578,8 +578,6 @@ namespace CapriDesktop
             weatherCity = Entry("Weather city", "Your city, like Sydney, Australia", 28, 999, 244, 22, () => pet.SetWeatherCity(weatherCity.Box.Text));
             Key("Save", 280, 999, 76, 22, () => pet.SetWeatherCity(weatherCity.Box.Text));
             Caption("From Open-Meteo, no key. Only the city you type is sent.", 28, 1024, 328, 14, MainframeTheme.Faint, 34.0 / 3);
-            Section("GAMES", 0, 1126);
-            Toggle("Mute her", 0, 1314, () => pet.Shushed, on => { if (pet.Shushed != on) pet.ToggleShush(false); });
             Section("CAPRI", 380, 58);
             Slider("Size", Pet.SizeNames, 380, 82, () => Nearest(Pet.Sizes, pet.BodySize), i => pet.Resize(Pet.Sizes[i]));
             Toggle("Check in on me", 380, 110, () => !pet.Saved.NoCheckIns, pet.SetCheckIns);

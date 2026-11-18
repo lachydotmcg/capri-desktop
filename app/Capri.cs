@@ -1075,9 +1075,11 @@ namespace CapriDesktop
         [DataMember] public int PushVk;
         // How much she says about a game they're playing: 0 off, 1 events only, 2 chatty. Off until they turn it on, since it shows her brain their screen.
         [DataMember] public int CommentPace;
-        // An Off they picked, in Settings or by asking her, which Gaming Mode leaves off (#234). An Off nobody picked is the
-        // default, and Gaming Mode runs that at Events only.
+        // Kept for old settings files: Comments Off is CommentPace 0 now, and this stays in step with it.
         [DataMember] public bool NoComments;
+        // Set once Gaming Mode's switch has been folded into Comments, and the Comments pick they had before it went Off.
+        [DataMember] public bool CommentsMerged;
+        [DataMember] public int CommentPaceWas;
         // Her live reactions over a game (F67) are on by default, so they're saved as switched off.
         [DataMember] public bool NoReactions;
         // GAMES > Game sounds is on by default too: off, a big burst of a game's sound stops counting as a moment (#234).
@@ -1198,6 +1200,8 @@ namespace CapriDesktop
         {
             Preferences fresh = new Preferences { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) };
             fresh.Tune();
+            fresh.CommentPace = fresh.CommentPaceWas = 1;
+            fresh.CommentsMerged = true;
             return fresh;
         }
 
@@ -1215,6 +1219,17 @@ namespace CapriDesktop
             LayerDelay2 = VoiceFx.Layering.Behind;
             VoiceTuned = true;
             VoiceRetuned = true;
+        }
+
+        // Gaming Mode's switch is gone, so Comments is the one setting: an Off that only Gaming Mode lifted to Events only is saved as Events only,
+        // and an Off they chose or a Gaming Mode they turned off stays Off.
+        internal void MergeComments()
+        {
+            if (CommentsMerged) return;
+            CommentsMerged = true;
+            if (CommentPace == 0 && !NoComments && !NoGaming) CommentPace = 1;
+            if (CommentPace > 0) CommentPaceWas = CommentPace;
+            NoComments = CommentPace == 0;
         }
 
         // Settings from before her tuned voice get it once if every voice slider is still where it started (Layer 1 started at
@@ -8033,8 +8048,8 @@ namespace CapriDesktop
         internal void SetCommentPace(int pace)
         {
             preferences.CommentPace = Math.Max(0, Math.Min(2, pace));
-            // An Off they pick holds in Gaming Mode too. #234: she said her comments were off and kept going.
             preferences.NoComments = preferences.CommentPace == Commentary.Off;
+            if (preferences.CommentPace > 0) preferences.CommentPaceWas = preferences.CommentPace;
             Commentary.Pace = GamePace;
             SavePreferences();
         }
@@ -11574,7 +11589,7 @@ namespace CapriDesktop
                 case "gaming_mode": return GamingMode(on ? "on" : "off");
                 case "hologram": return HologramTool(on ? "on" : "off");
                 case "watch_my_screen": ToggleWatch(); return null;
-                case "game_comments": SetCommentPace(on ? Commentary.Events : Commentary.Off); mainframe.Sync(); return null;
+                case "game_comments": SetCommentPace(on ? CommentPaceBack : Commentary.Off); mainframe.Sync(); return null;
                 case "dance_to_music": ToggleDance(); return null;
                 case "head_pats": ToggleHeadPats(); return null;
                 case "chaos_when_upset": ToggleUpsetChaos(); return null;
@@ -16637,6 +16652,7 @@ namespace CapriDesktop
                     value.PerchFps = PerchRate(value.PerchFps);
                     CheckKeys(value);
                     value.TuneOnce();
+                    value.MergeComments();
                     return value;
                 }
             }
@@ -20934,9 +20950,9 @@ namespace CapriDesktop
                 FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Valorant");
                 if (reply != null) throw new Exception("A game glance spoke after the game left the foreground.");
                 Preferences defaults = Preferences.Fresh();
-                if (defaults.Watch || defaults.CommentPace != Commentary.Off || defaults.NoGaming) throw new Exception("Game watching defaults changed.");
+                if (defaults.Watch || defaults.CommentPace != Commentary.Events || defaults.NoGaming) throw new Exception("Game watching defaults changed.");
                 string help = SelfKnow.Setting("Mainframe.cs", "Watch my screen").Facts;
-                if (!help.Contains("Comments set to Off keeps her quiet in games, even in Gaming Mode") || !help.Contains("Events only and Watch my screen off")) throw new Exception("Her watching help did not explain quiet games.");
+                if (!help.Contains("Comments set to Off keeps her quiet in games") || !help.Contains("Events only and Watch my screen off")) throw new Exception("Her watching help did not explain quiet games.");
                 checks.Add("PASS game glance gates: Comments off blocks capture and pending lines, calls and user speech still pause comments, on-demand checks still work, game changes drop old lines, defaults stay put and watching help explains quiet games");
             }
             finally
@@ -23478,7 +23494,7 @@ namespace CapriDesktop
                 { "how does Free voice in games work?", "Free voice in games" },
                 { "how do your game comments work?", "Comments" },
                 { "how do your live reactions work?", "Live reactions" },
-                { "how do I stop you reacting to game sounds?", "Game sounds" },
+                { "how do I stop you reacting to game sounds?", "Sound sensitivity" },
                 { "where is personality.md?", "personality.md" },
                 { "how do I stop a job?", "Stop a job" },
                 { "how do I set a reminder?", "Reminders" },
@@ -23539,9 +23555,9 @@ namespace CapriDesktop
                 if (!selfSteps[selfStep].StartsWith((selfStep + 1) + ". ", StringComparison.Ordinal)) throw new Exception("Her tutorial lost its step order.");
             checks.Add("PASS self knowledge: sample asks find the right topic, every named topic is reachable, a tutorial has six steps, only the three best topics fit, and ordinary chat and game questions find nothing");
             string selfGamingHelp = SelfKnow.Matching("how do I activate game mode?");
-            foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Settings > GAMES", "Gaming Mode switch", "default key is Ctrl + Alt + G", "MAX INTELLIGENCE", "weaker on other brains" })
+            foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Settings > GAMES", "no switch of its own", "default key is Ctrl + Alt + G", "MAX INTELLIGENCE", "weaker on other brains" })
                 if (selfGamingHelp == null || !selfGamingHelp.Contains(selfGamingFact)) throw new Exception("Gaming Mode help missed: " + selfGamingFact);
-            checks.Add("PASS self knowledge: Gaming Mode explains asking her, the Settings switch, the default key and the difference between MAX INTELLIGENCE and other brains");
+            checks.Add("PASS self knowledge: Gaming Mode explains asking her, that Comments in Settings is its only setting, the default key and the difference between MAX INTELLIGENCE and other brains");
 
             string selfFreeKeyHelp = SelfKnow.Matching("how do I get a free key");
             foreach (string provider in new[] { "NVIDIA", "Google AI Studio (Gemini)", "OpenRouter", "free models", "rate limited" })
@@ -24908,12 +24924,12 @@ namespace CapriDesktop
             foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
             {
                 string facts = SelfKnow.Matching(question) ?? "";
-                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("in Gaming Mode too") && facts.Contains("unless you set Comments to Off") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("flip Comments between Off and your last pick") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
             }
             for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
                 careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
             careMust(SelfKnow.Setting("Mainframe.cs", "Edit check-in lines").Facts.Contains("CAPRI > Check in on me > Edit check-in lines"), "Edit check-in lines kept its HABITS path.");
-            careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("Off stops game comments and live reactions, in Gaming Mode too"), "Comments help didn't say Off works in Gaming Mode too.");
+            careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("Off stops game comments and live reactions") && SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("flips Comments between Off and your last pick"), "Comments help didn't say Off stops everything and Gaming Mode flips it.");
             foreach (string[,] rows in new[] { Hands.OwnSwitches, Hands.OwnLevels })
                 for (int row = 0; row < rows.GetLength(0); row++)
                     if (Array.IndexOf(Hands.CareSettings, rows[row, 0]) >= 0) careMust(rows[row, 2] == "Capri", "the settings tool kept a care control under Habits.");
@@ -33406,7 +33422,7 @@ namespace CapriDesktop
         // Her live reactions in games (F67), fed a synthetic stream of moments on a clock moved by hand, each part on its own so one
         // that fails never hides the rest: quick lines from her brain go up at once and stack to four; the feed sits on the game's
         // screen in her Mainframe's look and never takes focus; lines fade, and her brain is asked in her mood; a quick line is her
-        // brain's or nothing, never a fixed one or a repeat; her brain's look follows only in time; Mute her, her quiet key and
+        // brain's or nothing, never a fixed one or a repeat; her brain's look follows only in time; her quiet key and
         // reduced motion are kept; the switch is saved; banners are read.
         private void SmokeReactions(System.Collections.Generic.List<string> checks)
         {
@@ -33935,7 +33951,7 @@ namespace CapriDesktop
             checks.Add("PASS live reactions and her brain's look: its line follows the quick one when it lands in time and is dropped when it's late, and a brain late three times running is only asked every 30 s until it's quick again");
         }
 
-        // Out loud at most once every 8 s, never over her own voice or theirs, and Mute her and her quiet key keep it to text.
+        // Out loud at most once every 8 s, never over her own voice or theirs, and her quiet key keeps it to text.
         private void SmokeReactVoice(System.Collections.Generic.List<string> checks, ReactRig rig)
         {
             Func<string, int, bool, bool> spoken = delegate(string kind, int advance, bool aloud)
@@ -33973,7 +33989,7 @@ namespace CapriDesktop
             bool back = !shushed && spoken("loss", 10100, true);
             ReactMust(first && gapKept && afterGap && overHer && overThem && overPush && muted && quietKey && back,
                 "Her voice for reactions went wrong: first " + first + ", gap " + gapKept + "/" + afterGap + ", over her " + overHer + ", over them " + overThem + "/" + overPush + ", muted " + muted + ", quiet key " + quietKey + ", back " + back + ", said " + string.Join(" / ", rig.Said.ToArray()) + ", fed " + ReactShown(rig));
-            checks.Add("PASS live reactions out loud: one at most every 8 s, never over her own voice, their voice or their push-to-talk key, and Mute her and her quiet key keep every line as text in the feed");
+            checks.Add("PASS live reactions out loud: one at most every 8 s, never over her own voice, their voice or their push-to-talk key, and her quiet key keeps every line as text in the feed");
         }
 
         // Reduced motion: no glitch and no slide. With motion on, a line glitches in and the rest slide up, then settle.
@@ -34055,18 +34071,24 @@ namespace CapriDesktop
                 SetGameSoundSensitivity(30);
                 bool sensitiveSaved = GameSoundSensitivity == 30 && LoadPreferences().GameSoundsDown == 70 && mainframe.GameSensitivityShown == "30%";
                 SetGameSoundSensitivity(0);
-                bool sensitiveOff = GameSoundSensitivity == 0 && LoadPreferences().GameSoundsDown == 100 && mainframe.GameSensitivityShown == "Off";
-                Rectangle sensitiveAt = mainframe.GameSensitivityAt, gamingAt = mainframe.GamingModeAt;
-                bool sensitiveRow = sensitiveAt.Bottom <= gamingAt.Top && gamingAt.Top - sensitiveAt.Top <= 40 && sensitiveAt.Width > 0;
+                bool sensitiveOff = GameSoundSensitivity == 0 && preferences.NoGameSounds && LoadPreferences().NoGameSounds && !GameSoundsOn && mainframe.GameSensitivityShown == "Off";
+                SetGameSoundSensitivity(60);
+                bool sensitiveBack = !preferences.NoGameSounds && !LoadPreferences().NoGameSounds && GameSoundsOn && GameSoundSensitivity == 60 && mainframe.GameSensitivityShown == "60%";
+                preferences.NoGameSounds = true;
+                mainframe.Sync();
+                bool sensitiveShownOff = mainframe.GameSensitivityShown == "Off" && GameSoundSensitivity == 0;
+                preferences.NoGameSounds = false;
+                Rectangle sensitiveAt = mainframe.GameSensitivityAt, reactionsAt = mainframe.ReactionsAt;
+                bool sensitiveRow = sensitiveAt.Top > reactionsAt.Top && sensitiveAt.Top - reactionsAt.Top <= 40 && sensitiveAt.Width > 0;
                 SetGameSoundSensitivity(100);
-                ReactMust(sensitiveDefault && sensitiveSaved && sensitiveOff && sensitiveRow && GameSoundSensitivity == 100,
-                    "Game sound sensitivity went wrong: default " + sensitiveDefault + ", saved " + sensitiveSaved + ", off " + sensitiveOff + ", row " + sensitiveRow + " (" + sensitiveAt + " above " + gamingAt + ")");
-                checks.Add("PASS Game sound sensitivity is 100% by default in new and old settings, saves 30% and Off, and sits on its own row above Gaming Mode");
+                ReactMust(sensitiveDefault && sensitiveSaved && sensitiveOff && sensitiveBack && sensitiveShownOff && sensitiveRow && GameSoundSensitivity == 100,
+                    "Game sound sensitivity went wrong: default " + sensitiveDefault + ", saved " + sensitiveSaved + ", off " + sensitiveOff + ", back " + sensitiveBack + ", shown off " + sensitiveShownOff + ", row " + sensitiveRow + " (" + sensitiveAt + " under " + reactionsAt + ")");
+                checks.Add("PASS Game sound sensitivity is 100% by default in new and old settings, saves 30% and Off, its Off is Game sounds off and moving off Off turns them back on, and it sits on its own row under Live reactions");
                 preferences.NoGameSounds = false;
                 mainframe.Sync();
-                bool shownOn = GameSoundsOn && mainframe.GameSoundsShown && !new Preferences().NoGameSounds && !Preferences.Fresh().NoGameSounds;
-                mainframe.FlipGameSounds();
-                bool savedOff = preferences.NoGameSounds && LoadPreferences().NoGameSounds && !GameSoundsOn && !mainframe.GameSoundsShown;
+                bool shownOn = GameSoundsOn && !new Preferences().NoGameSounds && !Preferences.Fresh().NoGameSounds;
+                SetGameSoundSensitivity(0);
+                bool savedOff = preferences.NoGameSounds && LoadPreferences().NoGameSounds && !GameSoundsOn && mainframe.GameSensitivityShown == "Off";
                 int before;
                 lock (rig.Fed) before = rig.Fed.Count;
                 rig.Now += 11000;
@@ -34081,8 +34103,8 @@ namespace CapriDesktop
                 Commentary.Moment("kill", null, rig.Frame, rig.Frame);
                 bool kill = ReactFed(rig, before + 1);
                 ReactSettle(0);
-                mainframe.FlipGameSounds();
-                bool savedOn = !preferences.NoGameSounds && !LoadPreferences().NoGameSounds && GameSoundsOn && mainframe.GameSoundsShown;
+                SetGameSoundSensitivity(100);
+                bool savedOn = !preferences.NoGameSounds && !LoadPreferences().NoGameSounds && GameSoundsOn && mainframe.GameSensitivityShown == "100%";
                 lock (rig.Fed) before = rig.Fed.Count;
                 rig.Now += 11000;
                 Commentary.Moment("sound", null, rig.Frame, rig.Frame);
@@ -34090,7 +34112,7 @@ namespace CapriDesktop
                 ReactSettle(0);
                 ReactMust(shownOn && savedOff && soundOff && noiseOff && kill && savedOn && soundOn,
                     "Game sounds went wrong: default " + shownOn + ", saved off " + savedOff + ", sound off " + soundOff + ", noise off " + noiseOff + ", kill " + kill + ", saved on " + savedOn + ", sound on " + soundOn + ", fed " + ReactShown(rig));
-                checks.Add("PASS Game sounds is on by default, saves both ways from Settings > GAMES, drops sound and noise moments with no reactions when off, keeps kills, and reacts to sound again when on");
+                checks.Add("PASS Game sounds is on by default, saves both ways from Sound sensitivity's Off, drops sound and noise moments with no reactions when off, keeps kills, and reacts to sound again when on");
             }
             finally
             {
@@ -34158,7 +34180,7 @@ namespace CapriDesktop
                 else checks.Add("LIMIT live reactions' banner reading: Windows OCR here didn't read a drawn VICTORY in 500 ms (" + (saidWords ?? "nothing") + "); a person must check a real VICTORY or YOU DIED screen gets its line");
             }
             checks.Add("LIMIT live reactions over a real borderless game: a person must check the feed shows on the right of the game a third of the way down, glitches in and fades, never takes a click or focus, follows the game to a second monitor, and that exclusive full screen hides it");
-            checks.Add("LIMIT live reactions out loud: a person must hear at most one reaction every 8 s in a real game, never over her voice or theirs, and none with Mute her or her quiet key");
+            checks.Add("LIMIT live reactions out loud: a person must hear at most one reaction every 8 s in a real game, never over her voice or theirs, and none with her quiet key");
         }
 
         private static void SmokeGameWindows(System.Collections.Generic.List<string> checks, Func<string> find)
@@ -35383,6 +35405,11 @@ namespace CapriDesktop
             bool wasShown = Visible;
             string keptSpots = preferences.GameSpots;
             preferences.GameSpots = null;
+            int keptPace = preferences.CommentPace, keptBack = preferences.CommentPaceWas;
+            bool keptNoComments = preferences.NoComments;
+            preferences.CommentPace = preferences.CommentPaceWas = Commentary.Events;
+            preferences.NoComments = false;
+            mainframe.Sync();
             try
             {
                 bool untouched = !GamingOn && !docked && !GameHud.Showing;
@@ -35435,10 +35462,10 @@ namespace CapriDesktop
                 bool mooded = grinned == "Grinning." && GameHud.Scene.Mood == HudMood.Happy && !Visible;
                 GameHud.Clear();
                 string off = GamingMode("off");
-                bool offRight = off == "Gaming Mode off." && !GamingOn && !docked && !GameHud.Showing && !hidden && Visible == wasShown && anchor == home && !mainframe.GamingShown && Doing != "Gaming";
+                bool offRight = off == "Gaming Mode off. Game comments are off too." && CommentPace == Commentary.Off && !GamingOn && !docked && !GameHud.Showing && !hidden && Visible == wasShown && anchor == home && !mainframe.GamingShown && Doing != "Gaming";
                 string again = GamingMode("off");
                 string landed = GamingMode("on");
-                bool onAtOnce = landed == "Gaming Mode on, " + name + ". Docking top-left until you close the game." && docked && GameHud.Showing;
+                bool onAtOnce = landed == "Gaming Mode on, " + name + ". Docking top-left until you close the game. Game comments are on at Events only." && CommentPace == Commentary.Events && docked && GameHud.Showing;
                 string twice = GamingMode("on");
                 running = false;
                 front = null;
@@ -35506,14 +35533,14 @@ namespace CapriDesktop
                 Computer.Streaming = false;
                 if (!streamHeard || !streamTold || !streamChat || !streamBeats || streamJob.Prompted(Computer.Sees).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 || streamJob.ChatWords(500).Length != 0) throw new Exception("Her stream didn't reach every brain the same way.");
                 if (!quietDropped || Computer.PlayingNow.IndexOf("keep playing quietly", StringComparison.Ordinal) < 0) throw new Exception("Her stream kept the game prompt's keep playing quietly, or a normal game lost it.");
-                preferences.NoGaming = false;
+                SetCommentPace(Commentary.Events);
                 ToggleGaming();
                 bool keyOff = !GamingOn && !GamingWanted;
                 ToggleGaming();
                 bool keyOn = gaming.State == GameDock.Stage.Armed && GamingWanted && heard == "gaming mode";
                 ToggleGaming();
                 keyOff = keyOff && !GamingOn && !GamingWanted;
-                preferences.NoGaming = false;
+                SetCommentPace(Commentary.Events);
                 Job gameJob = new Job("play Minecraft");
                 DockForJob(gameJob);
                 bool jobNoGame = !GamingOn;
@@ -35548,7 +35575,7 @@ namespace CapriDesktop
                 string plainArmed = GamingMode("on");
                 front = game;
                 gaming.Check(9000);
-                bool plainStayed = plainArmed == "Gaming Mode's armed. I'll watch as soon as a game's up." && GamingOn && !docked && !hidden && !GameHud.Showing && GamePace == Commentary.Events && Doing == "Gaming" && said.Count == 1 && said[0] == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game.";
+                bool plainStayed = plainArmed == "Gaming Mode's armed. I'll watch as soon as a game's up. Game comments are on at Events only." && GamingOn && !docked && !hidden && !GameHud.Showing && GamePace == Commentary.Events && Doing == "Gaming" && said.Count == 1 && said[0] == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game.";
                 Func<Sight> aheadWas = Computer.Glimpse;
                 Func<bool> aheadFullWas = FullScreen;
                 Job aheadJobWas = job;
@@ -35570,7 +35597,7 @@ namespace CapriDesktop
                 // On by default (Lachy, 31 Oct): a game in front takes her in with nothing said, asking still gets its answer, closing the game leaves it on for the next one, and off stays off.
                 Func<bool> staysWas = gaming.Stays;
                 gaming.Stays = delegate { return true; };
-                preferences.NoGaming = false;
+                SetCommentPace(Commentary.Events);
                 bool wantedAtRest = !GamingOn && GamingWanted;
                 said.Clear();
                 running = true;
@@ -35591,14 +35618,22 @@ namespace CapriDesktop
                 commentsSavedOff = LoadPreferences().NoComments;
                 if (GamePace != Commentary.Off || Commentary.Pace != Commentary.Off || Reactions.Running || !preferences.NoComments || !commentsSavedOff || mainframe.CommentsShown != "Off")
                     throw new Exception("Comments slider didn't stop comments in Gaming Mode: game pace " + GamePace + ", pace " + Commentary.Pace + ", reactions " + Reactions.Running + ", picked off " + preferences.NoComments + ", saved off " + commentsSavedOff + ", shown " + mainframe.CommentsShown);
-                preferences.CommentPace = 0;
-                preferences.NoComments = false;
-                SavePreferences();
-                Commentary.Pace = GamePace;
+                Func<string, Preferences> mergedRead = delegate(string text)
+                {
+                    Preferences read = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text)));
+                    read.MergeComments();
+                    return read;
+                };
+                Preferences mergedLifted = mergedRead("{\"Size\":240}"), mergedGamingOff = mergedRead("{\"NoGaming\":true}"), mergedPicked = mergedRead("{\"NoComments\":true}"), mergedChatty = mergedRead("{\"CommentPace\":2,\"NoGaming\":true}");
+                if (mergedLifted.CommentPace != Commentary.Events || mergedLifted.NoComments || mergedGamingOff.CommentPace != Commentary.Off || mergedPicked.CommentPace != Commentary.Off || mergedChatty.CommentPace != Commentary.Chatty || mergedChatty.CommentPaceWas != Commentary.Chatty || Preferences.Fresh().CommentPace != Commentary.Events || !Preferences.Fresh().CommentsMerged)
+                    throw new Exception("Old Gaming Mode and Comments settings didn't merge: lifted " + mergedLifted.CommentPace + ", gaming off " + mergedGamingOff.CommentPace + ", picked off " + mergedPicked.CommentPace + ", chatty " + mergedChatty.CommentPace);
+                mergedLifted.CommentPace = Commentary.Off;
+                mergedLifted.MergeComments();
+                if (mergedLifted.CommentPace != Commentary.Off)
+                    throw new Exception("Comments merged again after they turned them Off.");
+                SetCommentPace(Commentary.Events);
                 mainframe.Sync();
-                if (GamePace != Commentary.Events || Commentary.Pace != Commentary.Events || preferences.NoComments || mainframe.CommentsShown != "Events only")
-                    throw new Exception("Untouched Comments didn't run at Events only in Gaming Mode: game pace " + GamePace + ", pace " + Commentary.Pace + ", picked off " + preferences.NoComments + ", shown " + mainframe.CommentsShown);
-                checks.Add("PASS Comments Off stops her game comments and live reactions in Gaming Mode, from her settings tool and the slider, and untouched Comments still runs at Events only");
+                checks.Add("PASS Comments Off stops her game comments and live reactions in Gaming Mode, from her settings tool and the slider; settings from before Gaming Mode's switch went keep how she behaved, an Off that only Gaming Mode lifted becoming Events only, and new installs start on Events only");
                 string askedWhenOn = GamingMode("on");
                 bool askedRight = askedWhenOn == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game." && gaming.Asked && GamingMode("on") == "Gaming Mode's already on.";
                 running = false;
@@ -35616,9 +35651,8 @@ namespace CapriDesktop
                 gaming.Check(9600);
                 bool closedQuietly = !GamingOn && GamingWanted && said.Count == 0;
                 string turnedOffNoGame = GamingMode("off");
-                bool stayedOff = turnedOffNoGame == "Gaming Mode off." && !GamingOn && !GamingWanted && !mainframe.GamingShown && GamingMode("off") == "Gaming Mode's already off.";
+                bool stayedOff = turnedOffNoGame == "Gaming Mode off. Game comments are off too." && CommentPace == Commentary.Off && !GamingOn && !GamingWanted && !mainframe.GamingShown && GamingMode("off") == "Gaming Mode's already off.";
                 gaming.Stays = staysWas;
-                preferences.NoGaming = false;
                 if (!wantedAtRest || !noticed || !askedRight || !closedAsked || !closedQuietly || !stayedOff) throw new Exception("Gaming Mode on by default went wrong: rest " + wantedAtRest + ", noticed " + noticed + ", asked " + askedRight + " (" + askedWhenOn + "), closed " + closedAsked + "/" + closedQuietly + ", off " + stayedOff + " (" + turnedOffNoGame + "), said " + string.Join(" / ", said.ToArray()));
                 checks.Add("PASS Gaming Mode is on by default: a game in front takes her in with nothing said, asking for it still gets its answer, closing the game leaves it on for the next one, and turning it off stays off");
                 gaming.Hud = delegate { return testing; };
@@ -35635,6 +35669,9 @@ namespace CapriDesktop
                 gaming.Exclusive = realExclusive;
                 gaming.Say = realSay;
                 preferences.GameSpots = keptSpots;
+                preferences.CommentPace = keptPace;
+                preferences.CommentPaceWas = keptBack;
+                preferences.NoComments = keptNoComments;
                 if (GamingOn) gaming.Off();
             }
             Preferences freshKeys = new Preferences();
@@ -38311,26 +38348,21 @@ namespace CapriDesktop
                     mainframe.SizeMainframe(size);
                     string crowded = mainframe.Overlap() ?? (mainframe.PageClamped ? null : mainframe.Outside());
                     if (crowded != null) throw new Exception("BRAIN controls at " + size + "% overlap or leave the page: " + crowded);
-                    Control gamingToggle = null, gamingCaption = null, gamingDisclaimer = null, gamingClip = null, gamingMoments = null, gamingHands = null, gamingEnd = null;
+                    Control gamingReactions = null, gamingClip = null, gamingMoments = null, gamingHands = null;
                     foreach (Control gamingControl in mainframe.Controls)
                     {
-                        if (gamingControl.Text == "Gaming Mode") gamingToggle = gamingControl;
-                        if (gamingControl.Text == "\"Hey Capri, activate gaming mode\" turns it on.") gamingCaption = gamingControl;
-                        if (gamingControl.Text == "Works best on MAX INTELLIGENCE.") gamingDisclaimer = gamingControl;
+                        if (gamingControl.Text == "Live reactions") gamingReactions = gamingControl;
                         if (gamingControl.Text == "Clip my games") gamingClip = gamingControl;
                         if (gamingControl.Text == "Save big moments") gamingMoments = gamingControl;
                         if (gamingControl.Text == "Fast hands in games") gamingHands = gamingControl;
-                        if (gamingControl.Text == "She reacts to your game until you close it.") gamingEnd = gamingControl;
                     }
-                    if (gamingToggle == null || gamingCaption == null || gamingDisclaimer == null || gamingClip == null || gamingMoments == null || gamingHands == null || gamingEnd == null
-                        || !gamingCaption.Visible || !gamingDisclaimer.Visible
-                        || gamingToggle.Bottom > gamingEnd.Top || gamingEnd.Bottom > gamingCaption.Top || gamingCaption.Bottom > gamingDisclaimer.Top || gamingDisclaimer.Bottom > gamingHands.Top
-                        || gamingHands.Bottom > gamingClip.Top || gamingClip.Bottom > gamingMoments.Top
-                        || !(gamingToggle.AccessibleName ?? "").Contains(gamingCaption.Text) || !(gamingToggle.AccessibleName ?? "").Contains(gamingDisclaimer.Text))
-                        throw new Exception("Gaming Mode captions or rows do not fit at " + size + "%.");
+                    Rectangle gamingSounds = mainframe.GameSensitivityAt;
+                    if (gamingReactions == null || gamingClip == null || gamingMoments == null || gamingHands == null
+                        || gamingReactions.Bottom > gamingSounds.Top || gamingSounds.Bottom > gamingHands.Top || gamingHands.Bottom > gamingClip.Top || gamingClip.Bottom > gamingMoments.Top)
+                        throw new Exception("The game rows do not fit at " + size + "%.");
                 }
                 checks.Add("PASS BRAIN layout: every setting stays on its scrollable page at 100%, 125%, 150%, 175% and 200%, with no overlaps or controls poking out");
-                checks.Add("PASS Gaming Mode Settings: its three lines sit below the switch and above the other game rows, reach screen readers, and stay inside the page without overlaps at every Mainframe size");
+                checks.Add("PASS GAMES Settings: Live reactions, Sound sensitivity, Fast hands in games and the clip rows sit in order with no gap, and stay inside the page without overlaps at every Mainframe size");
                 System.Collections.Generic.List<string> frameProblems = new System.Collections.Generic.List<string>();
                 foreach (bool frameFallback in new[] { false, true })
                     foreach (int frameDpi in new[] { 96, 144, 192, 96 })

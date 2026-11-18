@@ -535,15 +535,13 @@ The new settings are here. Scroll down the Settings page to reach HABITS and GAM
 - BRAIN > Max reply: how much room her longest answer gets.
 - BRAIN > Local server address: enter the address, then press Save.
 - KEYS > Push to talk: choose a key or mouse button to hold while talking.
-- KEYS > Gaming Mode: change the default Ctrl + Alt + G.
-- GAMES > Comments: Off, Events only or Chatty.
-- GAMES > Gaming Mode: on by default. She reacts when something happens in your game. Turn it off and it stays off.
+- KEYS > Gaming Mode: change the default Ctrl + Alt + G. It flips GAMES > Comments between Off and your last pick.
+- GAMES > Comments: Off, Events only or Chatty, Events only by default. It is the one game setting: Gaming Mode is just Comments on, and Off stops game comments and live reactions.
 - GAMES > Clip my games: keeps recent game video and PC sound ready to save. Off by default.
 - GAMES > Save big moments: saves moments her game commentary picks. Off by default; turning it on also turns Clip my games on.
 - GAMES > Fast hands in games: uses Claude Haiku 5.5 for game jobs on a Claude key. On by default.
-- GAMES > Comments: Off stops game comments in Gaming Mode too (0.9.0). Asking her to stop commenting does the same.
-- GAMES > Game sounds (0.9.0): lets her ignore loud bursts in your game while hits, deaths and kills still count.
-- GAMES > Sound sensitivity (0.9.3): Off to 100%, 100% by default. Lower it when your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores game sounds.
+- GAMES > Comments: Off stops game comments and live reactions (0.9.0). Asking her to stop commenting does the same.
+- GAMES > Sound sensitivity (0.9.3): Off to 100%, 100% by default. Lower it when your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores loud bursts in your game while hits, deaths and kills still count, and moving it off Off turns them back on. There is no separate Game sounds switch.
 
 ### Changing her keys
 1. In the Mainframe, click Settings and use the KEYS row at the bottom (Talk, Mute mic, Type, Hide/show or Quiet). Clicking "Ctrl + Alt + V to talk" or "Ctrl + Alt + N mutes mic" on the main page opens Settings with that key ready to change.
@@ -1408,7 +1406,7 @@ With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how mu
 
 ### Her own settings (0.8.0)
 With a cloud brain, ask her to change her own settings and she says how each one is set afterwards: "make yourself bigger", "stop wandering", "talk a bit faster", "turn off head pats", "stop sitting on my windows", "stop commenting on my game".
-- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (only when you say Gaming Mode), Hologram, Watch my screen and Comments (on means only when something happens).
+- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (which turns Comments off, or back on at your last pick), Hologram, Watch my screen and Comments (on means only when something happens).
 - Sliders: Size, Wander, Pop-ins, Sleep, Volume, Speed, Replies and Bubble, a step at a time or to the step you name ("set your size to Large").
 - Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for "Hey Capri" and Remember our chats stay yours to change in the Mainframe.
 
@@ -1540,16 +1538,16 @@ This is separate from GAMES > Comments, which controls her reactions while you'r
 During a game job, ask what's on screen ("what is that", "what happened") and she answers from a picture taken just then, even with "oh no, hey capri" in front. Ask about the game and she knows its skill. When you change what her job should do, she says so in her own words.
 
 ### What is Gaming Mode?
-It's on by default: a game in front brings it up with nothing said. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game. Ask separately if you want her to play.
+It's on by default, as GAMES > Comments on Events only: a game in front brings it up with nothing said. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game. Ask separately if you want her to play.
 
-To turn it off, say "Gaming Mode off", press Ctrl + Alt + G, or use Mainframe > Settings > GAMES > Gaming Mode. It stays off until you turn it back on. Change the key in Mainframe > Settings > KEYS > Gaming Mode.
+To turn it off, say "Gaming Mode off", press Ctrl + Alt + G, or set Mainframe > Settings > GAMES > Comments to Off. She says Comments went off, and it stays off until you turn it back on, with the key, by voice or by picking Events only or Chatty; the key and voice bring back your last pick. Change the key in Mainframe > Settings > KEYS > Gaming Mode.
 
 Use borderless or windowed mode if an exclusive full-screen game covers her.
 
 ### How do I change her live game comments?
 Mainframe > Settings > GAMES > Comments has Off, Events only and Chatty. She reacts to screen changes, game sound levels and supported logs written by the game. She says a short line when there's something to react to, and can stay quiet. Chatty also looks around during quieter stretches.
 
-This doesn't use WATCH > Every. Gaming Mode keeps event comments running even with Comments set to Off. To stop those comments, turn Gaming Mode off too, or use Quiet (Ctrl + Alt + P by default). While she's playing for you, her own play-by-play takes over.
+This doesn't use WATCH > Every. Comments Off stops them and her live reactions. Quiet (Ctrl + Alt + P by default) keeps her from speaking on her own, and it is also what "mute her" means; it isn't remembered after a restart. While she's playing for you, her own play-by-play takes over.
 
 ### How do I save a game clip?
 Turn on Mainframe > Settings > GAMES > Clip my games. While a detected game is in front, she keeps up to its last two minutes of video and PC playback sound in memory. It starts off.
@@ -1563,7 +1561,7 @@ It only has what was captured after you turned it on. Capture pauses when the ga
 ### What does Save big moments do?
 Mainframe > Settings > GAMES > Save big moments is directly under Clip my games. It starts off. Turning it on also turns Clip my games on; turning Clip my games off turns both off.
 
-Her game commentary decides whether a moment is worth keeping and saves the last 30 seconds. Comments must be running: Gaming Mode runs them, but Comments off outside Gaming Mode means no automatic saves. Quiet or her playing a job for you also pauses that commentary. You can still ask for a clip yourself.
+Her game commentary decides whether a moment is worth keeping and saves the last 30 seconds. Comments must be running, on Events only or Chatty; with Comments Off there are no automatic saves. Quiet or her playing a job for you also pauses that commentary. You can still ask for a clip yourself.
 
 She reacts as usual. A successful automatic save happens without a spoken announcement. Moments less than 30 seconds apart don't make another automatic clip or extend the first one. Clips stay in Videos\Capri Clips until you delete them; she doesn't clear old clips for you.
 
@@ -2320,7 +2318,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 ### Mainframe and screen watching
 - Mainframe squashed or cut off: what's your Windows display scale? On 0.6.2, testing 100% (Settings > System > Display > Scale) and reopening Capri fixed it for one user at 150%.
 - Can't find the Mainframe: right-click her > Open Capri Mainframe.
-- She never comments: for occasional glances, turn on Mainframe > Settings > WATCH > Watch my screen. She skips unchanged or blank screens, and in voice chat she only comments while your mic is muted. For live game reactions, check Settings > GAMES > Comments or Gaming Mode. Quiet pauses unsolicited comments.
+- She never comments: for occasional glances, turn on Mainframe > Settings > WATCH > Watch my screen. She skips unchanged or blank screens, and in voice chat she only comments while your mic is muted. For live game reactions, check Settings > GAMES > Comments. Quiet pauses unsolicited comments.
 - "This brain can't see. Press Free key to fix.": use the free NVIDIA key.
 - "<model> can't see screens.": most NVIDIA models can't. Pick nvidia/nemotron-3.5-super-vl-120b-a12b.
 - "The screen capture is black.": set your game to borderless or windowed.
@@ -2360,7 +2358,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "I haven't done that yet, choom.": tell her exactly what to open or click.
 
 - "I haven't buffered any game video yet.": turn on Settings > GAMES > Clip my games and keep a detected game in front for a while. It can't save video from before capture began.
-- Save big moments isn't saving: it needs Clip my games and active game commentary. Turn on Gaming Mode or choose Events only or Chatty under GAMES > Comments. Quiet and a game job she's playing pause that commentary.
+- Save big moments isn't saving: it needs Clip my games and active game commentary. Choose Events only or Chatty under GAMES > Comments. Quiet and a game job she's playing pause that commentary.
 - A watch missed something: it checks still pictures a few seconds apart. Keep the thing visible, use a seeing brain, and ask for a repeating watch if you want more than one alert.
 
 ### Updates
@@ -2426,7 +2424,7 @@ Known problem. It's tracked and we're working on it. https://github.com/lachydot
 Her game and screen comments leave on their own after a moment.
 
 ### Gaming Mode when she plays
-When she plays a game for you she goes into Gaming Mode by herself once the game is in front. It stays up until the game closes. "Gaming mode off" keeps it off for that job.
+When she plays a game for you she goes into Gaming Mode by herself once the game is in front. It stays up until the game closes. "Gaming mode off" sets Comments to Off.
 
 ### Her chat shows the model's thinking or a written-out tool call
 From 0.9.0 she keeps a brain's thinking and written-out tool calls out of her chat, her voice and the saved chat. A tool call written into a reply is never run. If you still see one, press right-click her > Help > Copy error details and send it with the brain and model you use; her log notes each leak.

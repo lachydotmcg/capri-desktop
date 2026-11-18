@@ -136,7 +136,6 @@ namespace CapriDesktop
         private readonly Key pushKeys;
         private readonly Key gameKeys;
         private readonly Key frameKeys;
-        private readonly Toggle gamingMode;
         private readonly Key confirmKeys;
         private readonly Key cancelKeys;
         private readonly Key clearKeys;
@@ -177,11 +176,9 @@ namespace CapriDesktop
         private readonly Key careEdit;
         private readonly ContextMenuStrip careMenu;
         private readonly Toggle liveReactions;
-        private readonly Toggle gameSounds;
         private readonly Toggle clipGames;
         private readonly Toggle clipMoments;
         private readonly Toggle fastHands;
-        private readonly Toggle gameMute;
         private readonly Label voiceHead;
         // OFF, PREBUILT LOCAL (her own voices), CUSTOM LOCAL (a voice model they set up on their PC) and CLOUD VOICE.
         private readonly Rung[] voiceRungs = new Rung[4];
@@ -296,7 +293,7 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1400, 1452 }, new[] { 1452, 1480 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1346, 1374 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
         private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 1810 } };
@@ -824,7 +821,7 @@ namespace CapriDesktop
             pushKeys = Make("Push to talk: not set", 28, 815, 328, 22, delegate { PickKeys(Companion.PushSlot); });
             pushKeys.AccessibleName = "Her push-to-talk key: hold it to talk to her, with a game in front too. Click, press a key or a mouse button, then Confirm";
             gameKeys = Make("Gaming Mode: Ctrl + Alt + G", 28, 843, 328, 22, delegate { PickKeys(5); });
-            gameKeys.AccessibleName = "Her Gaming Mode key: she reacts to your game until you close it. Click, press new keys, then Confirm";
+            gameKeys.AccessibleName = "Her Gaming Mode key: turns game comments off, or back on at your last pick. Click, press new keys, then Confirm";
             frameKeys = Make("Mainframe: Ctrl + Alt + M", 28, 871, 328, 22, delegate { PickKeys(Companion.FrameSlot); });
             frameKeys.AccessibleName = "Her Mainframe key: it opens her Mainframe from anywhere, and closes it when it's in front. Click, press new keys, then Confirm";
             // The first key pressed while picking is always taken, so Enter, Esc and Tab can be her keys too. After that Enter
@@ -1057,25 +1054,16 @@ namespace CapriDesktop
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
             // Her live reactions (F67), on by default, under Comments since they only run while her comments do.
             liveReactions = Switch("Live reactions", 0, 966, delegate { if (!syncing) capri.ToggleReactions(); });
-            liveReactions.AccessibleName = "Live reactions. Quick lines on the right of a full-screen game when something happens, while her game comments run. Mute her keeps them as text";
-            // Game sounds (#234), on by default, under Live reactions: off, big bursts of a game's sound stop counting, and hits,
-            // deaths and kills still count.
-            gameSounds = Switch("Game sounds", 0, 994, delegate { if (!syncing) capri.ToggleGameSounds(); });
-            gameSounds.AccessibleName = "Game sounds. Big bursts of your game's sound count as moments for her reactions and comments. Off, she ignores them and still reacts to hits, deaths and kills";
-            gameSoundLevel = Setting("Sound sensitivity", SensitivityNames, 0, 1022, "Game sound sensitivity. Lower it if your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores game sounds");
+            liveReactions.AccessibleName = "Live reactions. Quick lines on the right of a full-screen game when something happens, while her game comments run. Her Quiet key keeps them as text";
+            // Game sounds (#234), under Live reactions: Off, big bursts of a game's sound stop counting, and hits, deaths and kills
+            // still count.
+            gameSoundLevel = Setting("Sound sensitivity", SensitivityNames, 0, 994, "Game sound sensitivity. Lower it if your headset is turned down but Windows is at 100% and she reacts to every sound; Off ignores game sounds");
             gameSoundLevelName = new Readout(gameSoundLevel);
             gameSoundLevel.Changed += delegate { if (syncing) return; gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value]; capri.SetGameSoundSensitivity(gameSoundLevel.Value * 10); };
-            int afterGameSounds = Controls.Count;
-            gamingMode = Switch("Gaming Mode", 0, 1022, delegate { if (!syncing) capri.ToggleGaming(); });
-            gamingMode.AccessibleName = "Gaming Mode. She reacts to your game until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
-            Caption("She reacts to your game until you close it.", 28, 1048, small, Faint);
-            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1064, small, Faint);
-            Caption("Works best on MAX INTELLIGENCE.", 28, 1080, small, Faint);
-            fastHands = Switch("Fast hands in games", 0, 1102, delegate { if (!syncing) capri.ToggleFastHands(); });
+            fastHands = Switch("Fast hands in games", 0, 1022, delegate { if (!syncing) capri.ToggleFastHands(); });
             hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
-            gameMute = Switch("Mute her", 0, 1130, delegate { if (!syncing) capri.ToggleShush(); });
-            gameMute.AccessibleName = "Mute her. She stops talking on her own and only answers when you talk to her, the same as her Quiet key";
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
+            int afterFastHands = Controls.Count;
             clipHead = Section("CLIPS >", 0, 1186);
             clipGames = Switch("Clip my games", 0, 1210, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory while the game is in front";
@@ -1101,7 +1089,7 @@ namespace CapriDesktop
             BuildWeather(1514);
             BuildDoomscroll(1642);
             int gamesTo = Controls.Count;
-            for (int belowSensitivity = afterGameSounds; belowSensitivity < gamesTo; belowSensitivity++) Controls[belowSensitivity].Top += Row;
+            for (int belowHands = afterFastHands; belowHands < gamesTo; belowHands++) Controls[belowHands].Top -= 108;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
@@ -3068,7 +3056,6 @@ namespace CapriDesktop
             startup.Checked = capri.StartsWithWindows;
             discord.Checked = capri.OnDiscord;
             cursor.Checked = capri.UsesCursor;
-            gamingMode.Checked = capri.GamingWanted;
             security.Text = "Security: " + Security.PresetName;
             blackwallNote.Text = Security.Short;
             if (guard != null && !guard.IsDisposed) guard.Sync();
@@ -3100,7 +3087,6 @@ namespace CapriDesktop
             careEdit.Dimmed = !capri.CheckIns;
             ShowPersonality();
             liveReactions.Checked = capri.ReactionsOn;
-            gameSounds.Checked = capri.GameSoundsOn;
             gameSoundLevel.Value = (capri.GameSoundSensitivity + 5) / 10;
             gameSoundLevelName.Text = SensitivityNames[gameSoundLevel.Value];
             clipGames.Checked = capri.ClipsOn;
@@ -3113,7 +3099,6 @@ namespace CapriDesktop
             clipPath.Text = recording.Folder;
             clipPath.AccessibleName = "Clips saved in " + recording.Folder;
             fastHands.Checked = capri.FastHandsOn;
-            gameMute.Checked = capri.Shushed;
             frameSize.Value = Math.Max(0, Array.IndexOf(FrameSizes, capri.MainframeSize));
             ShowFrameSize();
             frameColours.Value = capri.MainframeColours;
@@ -3345,20 +3330,17 @@ namespace CapriDesktop
 
         internal void FlipReactions() { liveReactions.Checked = !liveReactions.Checked; }
 
-        internal bool GameSoundsShown { get { return gameSounds.Checked; } }
         internal string GameSensitivityShown { get { return gameSoundLevelName.Text; } }
         internal Rectangle GameSensitivityAt { get { return gameSoundLevel.Bounds; } }
-        internal Rectangle GamingModeAt { get { return gamingMode.Bounds; } }
+        internal Rectangle ReactionsAt { get { return liveReactions.Bounds; } }
         internal void SetGameSensitivityShown(int step) { gameSoundLevel.Value = step; }
-
-        internal void FlipGameSounds() { gameSounds.Checked = !gameSounds.Checked; }
 
         internal bool ClipMomentsShown { get { return clipMoments.Checked; } }
 
         internal bool ClipsFolderShown { get { return clipsFolder != null && clipsFolder.Parent != null; } }
 
         internal bool ClipsSectionShown { get { return paged && !Folded(clipHead) && !Folded(clipChoose) && clipHead.Left < Far; } }
-        internal bool SimpleGameControls { get { return !simple || (!Folded(gameMute) && Folded(fastHands)); } }
+        internal bool SimpleGameControls { get { return !simple || (!Folded(gameSoundLevel) && Folded(fastHands)); } }
 
         internal void CheckDisplayDeferral(Action<bool> fullscreen)
         {
@@ -4811,7 +4793,7 @@ namespace CapriDesktop
         internal string CommentsShown { get { return commentsName.Text; } }
         internal string GameKeyShown { get { return gameKeys.Text; } }
         internal string FrameKeyShown { get { return frameKeys.Text; } }
-        internal bool GamingShown { get { return gamingMode.Checked; } }
+        internal bool GamingShown { get { return comments.Value != Commentary.Off; } }
 
         internal void ShowMic(string name)
         {
@@ -7135,7 +7117,7 @@ namespace CapriDesktop
             {
                 syncing = true;
                 toggles[0].Checked = owner.capri.Watching;
-                toggles[1].Checked = owner.capri.CommentPace > 0;
+                toggles[1].Checked = owner.capri.CommentPace == Commentary.Chatty;
                 toggles[2].Checked = owner.capri.ClipsOn;
                 toggles[3].Checked = owner.capri.ListenCapriOn;
                 syncing = false;

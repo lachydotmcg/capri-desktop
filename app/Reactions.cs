@@ -1260,24 +1260,19 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        // GAMES > Game sounds (#234), on by default. Off, her reactions and comments let bursts of the game's sound go, and
-        // everything else still counts.
+        // GAMES > Sound sensitivity (#234), 100% by default. Its Off is NoGameSounds: her reactions and comments let bursts of the
+        // game's sound go, and everything else still counts.
         internal bool GameSoundsOn { get { return !preferences.NoGameSounds; } }
 
-        internal int GameSoundSensitivity { get { return Math.Max(0, Math.Min(100, 100 - preferences.GameSoundsDown)); } }
+        internal int GameSoundSensitivity { get { return preferences.NoGameSounds ? 0 : Math.Max(0, Math.Min(100, 100 - preferences.GameSoundsDown)); } }
 
         internal void SetGameSoundSensitivity(int percent)
         {
             percent = Math.Max(0, Math.Min(100, percent));
-            if (GameSoundSensitivity == percent) return;
-            preferences.GameSoundsDown = 100 - percent;
-            SavePreferences();
-            mainframe.Sync();
-        }
-
-        internal void ToggleGameSounds()
-        {
-            preferences.NoGameSounds = !preferences.NoGameSounds;
+            if (GameSoundSensitivity == percent && (percent > 0 || preferences.NoGameSounds)) return;
+            preferences.NoGameSounds = percent == 0;
+            if (percent > 0) preferences.GameSoundsDown = 100 - percent;
+            else if (preferences.GameSoundsDown >= 100) preferences.GameSoundsDown = 0;
             SavePreferences();
             mainframe.Sync();
         }
@@ -1322,7 +1317,7 @@ namespace CapriDesktop
             ReactionVoice(line);
         }
 
-        // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Mute her, her quiet key, a hide,
+        // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Her quiet key, a hide,
         // her voice off or ElevenLabs voice chat keep reactions as text, and a voice that comes back late stays unsaid. So does a
         // call, where saying one would close her ears on a line she's hearing (#171).
         private void ReactionVoice(string line)
