@@ -54,5 +54,14 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Capri floats over other apps as a desktop-pet style companion the user can tap to chat with." />
         </service>
+
+        <service
+            android:name=".ListenService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Capri keeps her connection to the user's own PC open while the app is in the background so she can notify the user when she answers, asks to go ahead, or finishes a job." />
+        </service>
     </application>
 </manifest>

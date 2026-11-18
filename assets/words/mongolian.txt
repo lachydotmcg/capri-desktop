@@ -268,8 +268,10 @@ Hide / Show Capri	Capri-г нуух / харуулах
 Hide / Show key	Нуух / харуулах товчлуур
 Hide Capri	Capri-г нуух
 Hide for now	Одоохондоо нуух
+Hide her	Түүнийг нуух
 Hide in full screen	Бүтэн дэлгэцэд нуух
 Hide this	Үүнийг нуух
+Hide, keep player	Нуух, тоглуулагчийг үлдээх
 Hide/show:	Нуух/харуулах:
 Hide/show: Ctrl + Alt + H	Нуух/харуулах: Ctrl + Alt + H
 Hologram	Голограм
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD ДЭЭР >
 INSTALLED >	СУУЛГАСАН >
 Import a Capri mod	Capri мод импорт хийх
 Import mod	Мод импорт хийх
+In full screen	Бүтэн дэлгэцэд
 In games	Тоглоомд
 Input	Оролт
 Input, Output or How to overlaps a row	Оролт, гаралт эсвэл Яаж мөр давхцаж байна
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ТҮЛХҮҮРҮҮД
 KEYS >	ТҮЛХҮҮРҮҮД >
 Keep PC awake for jobs	Ажилд зориулж компьютерийг сэрүүн байлгах
+Keep player	Тоглуулагчийг үлдээх
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Таны тоглоомын сүүлийн хоёр минутыг санах ойд хадгална. Хадгалахын тулд "үүнийг клипээр бичих" гэж хэл.
 Key	Түлхүүр
 Key cleared: a model file needs none.	Түлхүүр цэвэрлэгдлээ: загварын файлд түлхүүр хэрэггүй.
@@ -439,6 +443,7 @@ No AI · no brain at all	AI байхгүй · огт тархи байхгүй
 No brain runs, and nothing is sent anywhere.	Тархи ажиллахгүй, юу ч хаашаа ч илгээгдэхгүй.
 No brain yet	Одоохондоо тархи байхгүй
 No code open	Нээлттэй код байхгүй
+No limit	Хязгааргүй
 No mic found	Микрофон олдсонгүй
 No mods in the directory yet.	Санд одоохондоо модууд байхгүй.
 No mods match that.	Үүнтэй таарах модууд байхгүй.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Өндөр
 Play	Тоглуулах
 Play...	Тоглуулах...
+Player only	Зөвхөн тоглуулагч
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS загварууд энэ клипийн дууг хуулдаг. Сонсохын тулд Туршилт дарна уу.
 Pop-in times	Орж ирэх хугацаа
 Pop-ins	Орж ирэлтүүд
@@ -666,6 +672,7 @@ Speed	Хурд
 Start with Windows	Windows-ээр эхлүүлэх
 Start with this!	Үүгээр эхлэ!
 Starting...	Эхлүүлж байна...
+Stay	Үлдэх
 Stay on my model	Миний загварт үлдэх
 Still checking your mics...	Таны микрофонуудыг шалгасаар байна...
 Still checking your speakers...	Таны чанга яригчдыг шалгасаар байна...

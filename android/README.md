@@ -6,6 +6,10 @@ She lives on your phone: the Capri Remote chat, a real AR Room, and a little Cap
 - **Room in AR** (camera button, then *Room in AR*) uses Google ARCore to find your floor or table and stand her on it, so she stays put while you walk around. Phones without ARCore get the Room camera from Remote instead.
 - **Float on my screen** (menu, *On this phone*) lets her float over other apps when you leave Capri, like she rides your cursor on the PC. Tap her to chat, drag her to move, drag her onto the X to put her away. Her replies pop up next to her while you're in another app.
 
+## Notifications
+
+Turn on *Phone notifications* in Remote's settings and Capri tells you when she answers a message you sent from the phone, when a job on your PC asks to go ahead or finishes, and when a reminder comes due. They arrive over the live connection to your PC, so the app has to keep running in the background: while it is on, Android shows an ongoing "Capri will let you know when she needs you" notification with a Stop button. (If her floating bubble is on, the bubble keeps the app alive instead.) Allow and Deny on a question only work with the phone unlocked, because they open Capri to send your answer. This has been built but not yet tried on a real phone.
+
 ## Build it
 
 You need JDK 17, the Android SDK (platform 35) and Gradle 8.9 or newer.

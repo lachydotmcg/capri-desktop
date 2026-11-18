@@ -268,8 +268,10 @@ Hide / Show Capri	Ocultar / Mostrar Capri
 Hide / Show key	Tecla ocultar / mostrar
 Hide Capri	Ocultar Capri
 Hide for now	Ocultar por ahora
+Hide her	Ocultarla
 Hide in full screen	Ocultar en pantalla completa
 Hide this	Ocultar esto
+Hide, keep player	Ocultarla, mantener el reproductor
 Hide/show:	Ocultar/mostrar:
 Hide/show: Ctrl + Alt + H	Ocultar/mostrar: Ctrl + Alt + H
 Hologram	Holograma
@@ -296,6 +298,7 @@ IN DISCORD >	EN DISCORD >
 INSTALLED >	INSTALADO >
 Import a Capri mod	Importar un mod de Capri
 Import mod	Importar mod
+In full screen	En pantalla completa
 In games	En juegos
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Salida o Cómo se solapa con una fila
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TECLAS
 KEYS >	TECLAS >
 Keep PC awake for jobs	Mantener el PC despierto para tareas
+Keep player	Mantener el reproductor
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Guarda en memoria los últimos dos minutos de tu juego. Di «clip eso» para guardarlo.
 Key	Tecla
 Key cleared: a model file needs none.	Tecla borrada: un archivo de modelo no necesita ninguna.
@@ -439,6 +443,7 @@ No AI · no brain at all	Sin IA · sin cerebro en absoluto
 No brain runs, and nothing is sent anywhere.	No se ejecuta ningún cerebro y no se envía nada a ningún sitio.
 No brain yet	Aún sin cerebro
 No code open	Ningún código abierto
+No limit	Sin límite
 No mic found	No se encontró micro
 No mods in the directory yet.	No hay mods en el directorio todavía.
 No mods match that.	Ningún mod coincide con eso.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tono
 Play	Reproducir
 Play...	Reproducir...
+Player only	Solo el reproductor
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Los modelos Pocket TTS copian la voz de este clip. Pulsa Probar para escucharla.
 Pop-in times	Horas de aparición
 Pop-ins	Apariciones
@@ -666,6 +672,7 @@ Speed	Velocidad
 Start with Windows	Iniciar con Windows
 Start with this!	¡Empieza con esto!
 Starting...	Iniciando...
+Stay	Quedarse
 Stay on my model	Quedarse con mi modelo
 Still checking your mics...	Aún revisando tus micros...
 Still checking your speakers...	Aún revisando tus altavoces...

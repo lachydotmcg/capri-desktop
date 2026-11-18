@@ -65,6 +65,8 @@
     <Compile Include="../app/RemoteVectors.cs" Link="Shared/RemoteVectors.cs" />
     <Compile Include="../app/RemoteBrainKeys.cs" Link="Shared/RemoteBrainKeys.cs" />
     <Compile Include="../app/RemoteChat.cs" Link="Shared/RemoteChat.cs" />
+    <Compile Include="../app/RemoteWake.cs" Link="Shared/RemoteWake.cs" />
+    <Compile Include="../app/RemotePush.cs" Link="Shared/RemotePush.cs" />
     <Compile Include="../app/MainframeRemote.cs" Link="Shared/MainframeRemote.cs" />
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/voice/*.wav" LogicalName="Capri.Voice.%(Filename)%(Extension)" />

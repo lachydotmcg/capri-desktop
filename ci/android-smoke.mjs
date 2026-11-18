@@ -76,8 +76,18 @@ const main = async () => {
   check('page knows it is in the app', await run('document.documentElement.dataset.android === "app"'));
   const bridge = JSON.parse(await run('CapriAndroid.info()'));
   check('bridge reports the app version', bridge.version === '0.9.4', JSON.stringify(bridge));
+  check('bridge has the notification methods', await run(`['notifyInfo', 'notifySet', 'notify'].every(name => typeof CapriAndroid[name] === 'function')`));
+  const noteInfo = JSON.parse(await run('CapriAndroid.notifyInfo()'));
+  check('notifyInfo reports on and allowed', typeof noteInfo.on === 'boolean' && typeof noteInfo.allowed === 'boolean', JSON.stringify(noteInfo));
+  const noteOn = JSON.parse(await run('CapriAndroid.notifySet(true)'));
+  const noteShown = await run(`CapriAndroid.notify(JSON.stringify({ id: 'smoke-1', kind: 'test', title: 'Capri', body: 'Smoke test', at: Date.now() }))`);
+  check('notify returns a boolean when on', typeof noteShown === 'boolean' && (!noteOn.allowed || noteShown), JSON.stringify(noteOn) + ' ' + noteShown);
+  await run('CapriAndroid.notifySet(false), true');
   check('adds the phone section to the menu', await run('!!document.getElementById("d-float")'));
   check('adds Room in AR to the camera menu', await run('!!document.getElementById("room-ar")'));
+  const woke = JSON.parse(await run(`CapriAndroid.wake(JSON.stringify([{ mac: '0A:1B:2C:3D:4E:5F', broadcast: '10.0.2.255' }]))`));
+  check('sends a wake packet on the local network', woke.sent > 0, JSON.stringify(woke));
+  check('refuses a wake with no good MAC', JSON.parse(await run(`CapriAndroid.wake('[{"mac":"nope","broadcast":"10.0.2.255"}]')`)).sent === 0);
   check('fonts and sprites come from the app', await run(`fetch('/assets/sprites/idle.webp').then(r => r.ok && r.headers.get('content-type') === 'image/webp')`));
   check('a file outside the bundle is not served from it', await run(`fetch('/remote/../../secret.txt').then(r => r.status !== 200, () => true)`));
 

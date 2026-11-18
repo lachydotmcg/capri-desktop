@@ -268,8 +268,10 @@ Hide / Show Capri	Ocultar / Mostrar Capri
 Hide / Show key	Tecla ocultar / mostrar
 Hide Capri	Ocultar Capri
 Hide for now	Ocultar por agora
+Hide her	Ocultala
 Hide in full screen	Ocultar en pantalla completa
 Hide this	Ocultar isto
+Hide, keep player	Ocultala, deixar o reprodutor
 Hide/show:	Ocultar/mostrar:
 Hide/show: Ctrl + Alt + H	Ocultar/mostrar: Ctrl + Alt + H
 Hologram	Holograma
@@ -296,6 +298,7 @@ IN DISCORD >	EN DISCORD >
 INSTALLED >	INSTALADAS >
 Import a Capri mod	Importar unha modificación de Capri
 Import mod	Importar modificación
+In full screen	En pantalla completa
 In games	Nos xogos
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Saída ou Como solapa unha fila
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TECLAS
 KEYS >	TECLAS >
 Keep PC awake for jobs	Manter o PC activo para os traballos
+Keep player	Deixar o reprodutor
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Garda os últimos dous minutos do teu xogo na memoria. Di clip que para gardalo.
 Key	Clave
 Key cleared: a model file needs none.	Clave borrada: un ficheiro de modelo non precisa ningunha.
@@ -439,6 +443,7 @@ No AI · no brain at all	Sen IA · sen cerebro ningún
 No brain runs, and nothing is sent anywhere.	Non funciona ningún cerebro e non se envía nada a ningún sitio.
 No brain yet	Aínda sen cerebro
 No code open	Non hai código aberto
+No limit	Sen límite
 No mic found	Non se atopou micrófono
 No mods in the directory yet.	Aínda non hai modificacións no directorio.
 No mods match that.	Non hai modificacións que coincidan.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ton
 Play	Reproducir
 Play...	Reproducir...
+Player only	Só o reprodutor
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Os modelos Pocket TTS copian a voz deste clip. Preme Probar para escoitala.
 Pop-in times	Momentos de aparición
 Pop-ins	Apariciones
@@ -666,6 +672,7 @@ Speed	Velocidade
 Start with Windows	Iniciar con Windows
 Start with this!	Comezar con isto!
 Starting...	Iniciando...
+Stay	Quedar
 Stay on my model	Quedar no meu modelo
 Still checking your mics...	Aínda comprobando os teus micrófonos...
 Still checking your speakers...	Aínda comprobando os teus altofalantes...

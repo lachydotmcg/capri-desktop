@@ -268,8 +268,10 @@ Hide / Show Capri	پنهان / نمایش Capri
 Hide / Show key	کلید پنهان / نمایش
 Hide Capri	پنهان کردن Capri
 Hide for now	فعلاً پنهان کن
+Hide her	پنهانش کن
 Hide in full screen	در حالت تمام‌صفحه پنهان کن
 Hide this	این را پنهان کن
+Hide, keep player	پنهان کن، پخش‌کننده بماند
 Hide/show:	پنهان/نمایش:
 Hide/show: Ctrl + Alt + H	پنهان/نمایش: Ctrl + Alt + H
 Hologram	هولوگرام
@@ -296,6 +298,7 @@ IN DISCORD >	در DISCORD >
 INSTALLED >	نصب‌شده >
 Import a Capri mod	وارد کردن یک مد Capri
 Import mod	وارد کردن مد
+In full screen	در حالت تمام‌صفحه
 In games	در بازی‌ها
 Input	ورودی
 Input, Output or How to overlaps a row	ورودی، خروجی یا راهنما روی یک ردیف افتاده
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	کلیدها
 KEYS >	کلیدها >
 Keep PC awake for jobs	رایانه را برای کارها بیدار نگه دار
+Keep player	پخش‌کننده بماند
 Keeps the last two minutes of your game in memory. Say clip that to save it.	دو دقیقه‌ی آخر بازی‌ات را در حافظه نگه می‌دارد. برای ذخیره بگو آن را کلیپ کن.
 Key	کلید
 Key cleared: a model file needs none.	کلید پاک شد: فایل مدل به آن نیازی ندارد.
@@ -439,6 +443,7 @@ No AI · no brain at all	بدون AI · اصلاً بدون مغز
 No brain runs, and nothing is sent anywhere.	هیچ مغزی اجرا نمی‌شود و چیزی به جایی ارسال نمی‌شود.
 No brain yet	هنوز مغزی نیست
 No code open	هیچ کدی باز نیست
+No limit	بدون محدودیت
 No mic found	میکروفونی پیدا نشد
 No mods in the directory yet.	هنوز مدی در پوشه نیست.
 No mods match that.	هیچ مدی با این مطابقت ندارد.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	زیر و بمی
 Play	پخش
 Play...	پخش...
+Player only	فقط پخش‌کننده
 Pocket TTS models copy this clip's voice. Press Test to hear it.	مدل‌های Pocket TTS صدای این کلیپ را کپی می‌کنند. برای شنیدنش تست را بزن.
 Pop-in times	زمان‌های سر زدن
 Pop-ins	سر زدن‌ها
@@ -666,6 +672,7 @@ Speed	سرعت
 Start with Windows	با Windows اجرا شود
 Start with this!	با این شروع کن!
 Starting...	در حال شروع...
+Stay	بمان
 Stay on my model	روی مدل من بمان
 Still checking your mics...	هنوز میکروفون‌هایت بررسی می‌شوند...
 Still checking your speakers...	هنوز بلندگوهایت بررسی می‌شوند...

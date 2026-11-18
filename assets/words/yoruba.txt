@@ -268,8 +268,10 @@ Hide / Show Capri	Fi / Ṣe àfihàn Capri
 Hide / Show key	Bọ́tìnì fi / ṣe àfihàn
 Hide Capri	Fi Capri pamọ́
 Hide for now	Fi pamọ́ fún báyìí
+Hide her	Fi í pamọ́
 Hide in full screen	Fi pamọ́ ní ipò gbogbo ìbòjú
 Hide this	Fi èyí pamọ́
+Hide, keep player	Fi í pamọ́, jẹ́ kí ẹ̀rọ orin wà
 Hide/show:	Fi/ṣe àfihàn:
 Hide/show: Ctrl + Alt + H	Fi/ṣe àfihàn: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	NÍNÚ DISCORD >
 INSTALLED >	TI FI SÍ >
 Import a Capri mod	Gbé mod Capri wọlé
 Import mod	Gbé mod wọlé
+In full screen	Ní ipò gbogbo ìbòjú
 In games	Nínú àwọn eré
 Input	Ìwọlé
 Input, Output or How to overlaps a row	Ìwọlé, Ìjáde tàbí Báwo ni ìlà kan ṣe ń bò
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	Àwọn BỌ́TÌNÌ
 KEYS >	Àwọn BỌ́TÌNÌ >
 Keep PC awake for jobs	Jẹ́ kí PC wà lójú fún àwọn iṣẹ́
+Keep player	Jẹ́ kí ẹ̀rọ orin wà
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Ó ń pa ìṣẹ́jú méjì tó kẹ́yìn ti eré rẹ mọ́ nínú ìrántí. Sọ clip that láti fipamọ́ rẹ̀.
 Key	Bọ́tìnì
 Key cleared: a model file needs none.	A ti pa kọ́kọ́rọ́ rẹ́: fáìlì àwòṣe kò nílò rẹ̀.
@@ -439,6 +443,7 @@ No AI · no brain at all	Kò sí AI · kò sí ọpọlọ rárá
 No brain runs, and nothing is sent anywhere.	Kò sí ọpọlọ tó ń ṣiṣẹ́, ohunkóhun kò sì ní lọ sí ibikíbi.
 No brain yet	Kò sí ọpọlọ síbẹ̀
 No code open	Kò sí kóòdù tí ó ṣí
+No limit	Kò sí ààlà
 No mic found	Kò rí maikirofónù
 No mods in the directory yet.	Kò sí mod nínú àpò síbẹ̀.
 No mods match that.	Kò sí mod tó bá ìyẹn mu.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ohùn orin
 Play	Ṣe
 Play...	Ṣe...
+Player only	Ẹ̀rọ orin nìkan
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Àwọn àwòṣe Pocket TTS ń daakọ ohùn ajẹkù yìí. Tẹ Idanwo láti gbọ́ ọ.
 Pop-in times	Àkókò ìfarahàn
 Pop-ins	Àwọn ìfarahàn
@@ -666,6 +672,7 @@ Speed	Iyára
 Start with Windows	Bẹ̀rẹ̀ pẹ̀lú Windows
 Start with this!	Bẹ̀rẹ̀ pẹ̀lú èyí!
 Starting...	Ń bẹ̀rẹ̀...
+Stay	Dúró
 Stay on my model	Dúró lórí àwòṣe mi
 Still checking your mics...	Ń ṣàyẹ̀wò maikirofónù rẹ...
 Still checking your speakers...	Ń ṣàyẹ̀wò agbọ̀rọ̀sọ rẹ...

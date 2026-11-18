@@ -172,7 +172,7 @@ namespace CapriDesktop
             if (skills != null) brief.Append(skills(game));
 #if !CROSS
             string keys = GameKeys.Summary(game);
-            if (keys != null) brief.Append("\nIts keys on this PC: " + keys + ".");
+            if (keys != null) brief.Append("\nIts keys on this PC, read from the game's own settings just now. These are their real keys, so use them over the usual ones and over anything you noted before: " + keys + ".");
 #endif
             string notes = Read(game);
             if (notes.Length > MostTold)

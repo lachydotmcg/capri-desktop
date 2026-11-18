@@ -268,8 +268,10 @@ Hide / Show Capri	Capri を隠す / 表示
 Hide / Show key	隠す / 表示キー
 Hide Capri	Capri を隠す
 Hide for now	今は隠す
+Hide her	隠す
 Hide in full screen	フルスクリーンでは隠す
 Hide this	これを隠す
+Hide, keep player	隠す（プレイヤーは残す）
 Hide/show:	隠す/表示:
 Hide/show: Ctrl + Alt + H	隠す/表示: Ctrl + Alt + H
 Hologram	ホログラム
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD 内 >
 INSTALLED >	インストール済み >
 Import a Capri mod	Capri の Mod をインポート
 Import mod	Mod をインポート
+In full screen	フルスクリーン時
 In games	ゲーム中
 Input	入力
 Input, Output or How to overlaps a row	入力、出力、または使い方が行と重なっています
@@ -314,6 +317,7 @@ KB.	KB。
 KEYS	キー
 KEYS >	キー >
 Keep PC awake for jobs	作業のために PC を起こしておく
+Keep player	プレイヤーを残す
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ゲームの直近2分をメモリに保持します。clip that と言うと保存します。
 Key	キー
 Key cleared: a model file needs none.	キーをクリアしました。モデルファイルは不要です。
@@ -439,6 +443,7 @@ No AI · no brain at all	AI なし · ブレインなし
 No brain runs, and nothing is sent anywhere.	ブレインは動作せず、何も送信されません。
 No brain yet	まだブレインがありません
 No code open	コードが開かれていません
+No limit	制限なし
 No mic found	マイクが見つかりません
 No mods in the directory yet.	フォルダーにまだ Mod がありません。
 No mods match that.	その条件に合う Mod はありません。
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	ピッチ
 Play	再生
 Play...	再生...
+Player only	プレイヤーのみ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS モデルはこのクリップの声をコピーします。テストを押して聞いてみてね。
 Pop-in times	出現時間
 Pop-ins	出現
@@ -666,6 +672,7 @@ Speed	速さ
 Start with Windows	Windows と一緒に起動
 Start with this!	これで始めよう！
 Starting...	起動中...
+Stay	そのまま
 Stay on my model	私のモデルのままにする
 Still checking your mics...	マイクをまだ確認中...
 Still checking your speakers...	スピーカーをまだ確認中...

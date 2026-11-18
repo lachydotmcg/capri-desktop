@@ -268,8 +268,10 @@ Hide / Show Capri	Amaga / Mostra Capri
 Hide / Show key	Tecla amaga / mostra
 Hide Capri	Amaga Capri
 Hide for now	Amaga de moment
+Hide her	Amaga-la
 Hide in full screen	Amaga en pantalla completa
 Hide this	Amaga-ho
+Hide, keep player	Amaga-la, deixa el reproductor
 Hide/show:	Amaga/mostra:
 Hide/show: Ctrl + Alt + H	Amaga/mostra: Ctrl + Alt + H
 Hologram	Holograma
@@ -296,6 +298,7 @@ IN DISCORD >	A DISCORD >
 INSTALLED >	INSTAL·LAT >
 Import a Capri mod	Importa un mod de Capri
 Import mod	Importa un mod
+In full screen	En pantalla completa
 In games	En jocs
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Sortida o Com se sobreposa a una fila
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TECLES
 KEYS >	TECLES >
 Keep PC awake for jobs	Manté el PC despert per a les feines
+Keep player	Deixa el reproductor
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Guarda els últims dos minuts del teu joc a la memòria. Digues grava això per desar-los.
 Key	Tecla
 Key cleared: a model file needs none.	Tecla esborrada: un fitxer de model no en necessita cap.
@@ -439,6 +443,7 @@ No AI · no brain at all	Sense IA · sense cervell
 No brain runs, and nothing is sent anywhere.	No s'executa cap cervell, i no s'envia res enlloc.
 No brain yet	Encara no hi ha cervell
 No code open	Cap codi obert
+No limit	Sense límit
 No mic found	No s'ha trobat cap micro
 No mods in the directory yet.	Encara no hi ha mods al directori.
 No mods match that.	Cap mod coincideix amb això.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	To
 Play	Reprodueix
 Play...	Reprodueix...
+Player only	Només el reproductor
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Els models Pocket TTS copien la veu d'aquest clip. Prem Prova per escoltar-la.
 Pop-in times	Moments d'aparició
 Pop-ins	Aparicions
@@ -666,6 +672,7 @@ Speed	Velocitat
 Start with Windows	Inicia amb Windows
 Start with this!	Comença amb això!
 Starting...	Iniciant...
+Stay	Queda't
 Stay on my model	Queda't amb el meu model
 Still checking your mics...	Encara comprovant els micros...
 Still checking your speakers...	Encara comprovant els altaveus...
