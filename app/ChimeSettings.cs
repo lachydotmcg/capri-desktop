@@ -401,8 +401,9 @@ namespace CapriDesktop
                 bool toolDown = ChimeVolume == 60;
                 if (turned != "Turned Chimes off." || !toolOff || back != "Turned Chimes on." || !ChimesOn || heardLine != "Turned Heard you chime off." || !toolHeard || !toolLoud || !toolDown || !listed.Contains("Chimes on") || !listed.Contains("Chime volume: 70%") || !listed.Contains("Listening chime on"))
                     throw new Exception("Her settings tool didn't handle her chimes: " + turned + " / " + back + " / " + heardLine + " / " + louder + " / " + listed);
-                foreach (string label in new[] { "Chimes", "Chime volume", "Message sent", "Heard you", "Listening", "Sounds", "Typing sound" })
+                foreach (string label in new[] { "Chime volume", "Message sent", "Heard you", "Listening", "Sounds", "Typing sound" })
                     if (SelfKnow.Setting("Mainframe.cs", label) == null) throw new Exception("SOUNDS lost its help: " + label);
+                if (SelfKnow.Setting("Hands.cs", "chimes") == null) throw new Exception("SOUNDS lost its help: chimes");
                 string help = SelfKnow.Matching("how do I turn off the chimes?");
                 if (help == null || !help.Contains("Chimes:")) throw new Exception("Her help didn't find her chimes: " + help);
                 checks.Add("PASS her settings tool turns Chimes (all three) and each chime on and off and sets Chime volume by step or word, keeping SOUNDS in step, and her help answers about chimes");

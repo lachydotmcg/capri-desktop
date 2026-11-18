@@ -33115,7 +33115,7 @@ namespace CapriDesktop
                 {
                     string line = Hands.Do("capri_settings", new ToolArguments { Action = fullSteps[i, 1], Name = fullSteps[i, 0] });
                     bool hideNow = (bool)saved(LoadPreferences(), "HideFullScreen"), playerNow = (bool)saved(LoadPreferences(), "PlayerFullScreen");
-                    if (mainframe.DesktopSettingsStatus.Split('|')[0].Trim() != fullSteps[i, 2] || hideNow != (fullSteps[i, 2].StartsWith("Hide", StringComparison.Ordinal)) || playerNow != (fullSteps[i, 2].EndsWith("player", StringComparison.Ordinal)) || !line.EndsWith(fullSteps[i, 1] + ".", StringComparison.Ordinal)) throw new Exception("Full-screen switches disagreed with In full screen or disk: " + fullSteps[i, 0] + " / " + line + " / " + mainframe.DesktopSettingsStatus);
+                    if (mainframe.DesktopSettingsStatus.Split('|')[0].Trim() != fullSteps[i, 2] || hideNow != (i == 1 || i == 2) || playerNow != (i < 2) || !line.EndsWith(fullSteps[i, 1] + ".", StringComparison.Ordinal)) throw new Exception("Full-screen switches disagreed with In full screen or disk: " + fullSteps[i, 0] + " / " + line + " / " + mainframe.DesktopSettingsStatus);
                 }
                 checks.Add("PASS settings player_full_screen and hide_in_full_screen still work and move HABITS' In full screen through its four steps, saving each");
                 foreach (bool on in new[] { true, false })
@@ -38382,11 +38382,11 @@ namespace CapriDesktop
                     Preferences kept = LoadPreferences();
                     if (Wordiness != step || Brain.Wordiness != Math.Min(2, step) || Brain.ReplyLength != (step == 3 ? 3 : 0) || kept.Wordiness != Math.Min(2, step) || kept.ReplyLength != (step == 3 ? 3 : 0) || mainframe.RepliesShown != replyNames[step]) throw new Exception("Replies did not save or show " + replyNames[step] + ".");
                 }
-                SetReplyLength(1);
+                SetReplyLength(1); mainframe.Sync();
                 if (Wordiness != 0 || Brain.ReplyLength != 0 || mainframe.RepliesShown != "Short") throw new Exception("Max reply 256 did not become Short.");
-                SetReplyLength(2);
+                SetReplyLength(2); mainframe.Sync();
                 if (Wordiness != 3 || Brain.Wordiness != 2 || Brain.ReplyLength != 3 || mainframe.RepliesShown != "No limit") throw new Exception("Max reply 2K did not become No limit.");
-                SetWordiness(1);
+                SetWordiness(1); mainframe.Sync();
                 if (Wordiness != 1 || Brain.ReplyLength != 0 || mainframe.RepliesShown != "Medium") throw new Exception("Choosing Medium kept No limit's reply room.");
                 SetReplyLength(3);
                 SetReplyLength(0);
