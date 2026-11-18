@@ -262,7 +262,7 @@
           <dt>What should she call you?</dt><dd>type a nickname → <b>Save</b>. <code>choom</code> resets it</dd>
           <dt>Get to know me</dt><dd>she asks your name, your pronouns and what you're into, and keeps them in me.md</dd>
           <dt>Open her notes</dt><dd>me.md, what she remembers</dd>
-          <dt>Volume</dt><dd>her voice, Mute to 150%</dd>
+          <dt>Volume</dt><dd>her voice, 10% to 150%. Turn the voice Off to mute her</dd>
           <dt>Pitch</dt><dd>every voice higher or deeper, -6 to +6, same speed</dd>
           <dt>Speed</dt><dd>every voice, 0.7x to 1.5x</dd>
           <dt>Robot</dt><dd>a smooth synth under her voice on the nearest note, like a talk box, Off, 5%, 10%, 15%, 20% to 100%. HD keeps its own, Off to start (“Off · HD”)</dd>
@@ -270,7 +270,6 @@
           <dt>Layers</dt><dd>the button in VOICE's heading, off by default. Two copies of her mixed in under her, so she sounds doubled with an AI shimmer: <b>LAYER 1</b> +1.5 and <b>LAYER 2</b> -2.5 semitones to start, both 25 ms behind her. Each has its own Pitch (-12 to +12) and Delay (0 to 250 ms), and <b>MAIN</b>'s Pitch is the Pitch above. Every voice, ElevenLabs and voice chat too. Mac and Linux: Settings → Voice style → <b>Layers</b></dd>
           <dt>Sounds</dt><dd>her effects, Off to 100%</dd>
           <dt>Typing sound</dt><dd>while her text types out</dd>
-          <dt>Free voice in games</dt><dd>only while HD is on, off by default. On, her free voice talks while a game or video is full screen, so the game gets your graphics card</dd>
           <dt>Call mode (beta)</dt><dd>Settings &gt; VOICE. On her call panel, click the call app's name to pick what she hears. <a href="#call-mode">Call setup</a></dd>
           <dt>Her voice in your mic</dt><dd>Settings &gt; VOICE, off by default. Her voice joins your mic only in call mode. <b>How to</b> opens the setup steps. <b>Input</b> picks your mic; <b>Output</b> picks the virtual mic. In your call app, pick <b>CABLE Output</b> or <b>Steam Streaming Microphone</b>, whichever the note names</dd>
           <dt>Get VB-CABLE</dt><dd>if you need a virtual mic: opens VB-Audio's setup. Allow it, click <b>Install Driver</b>, then restart. VB-CABLE is donationware from vb-cable.com</dd>
@@ -286,9 +285,9 @@
           <dt>Custom model name</dt><dd>any pulled Ollama model or model id on your key → <b>Use</b></dd>
           <dt>Start with Windows</dt><dd>off until you turn it on, then she starts when you sign in. Before 0.8.7 it came on by itself; updating keeps yours the way it was</dd>
           <dt>Show on Discord</dt><dd>on by default, your Discord profile shows "Playing Capri" and what she's doing</dd>
-          <dt>Use her cursor</dt><dd>on by default, she searches YouTube, plays from Spotify's search, and drags Spotify's volume slider when you say Spotify</dd>
+          <dt>Use her cursor</dt><dd>under Security, next to Use your mouse and keyboard for jobs. On by default, she searches YouTube, plays from Spotify's search, and drags Spotify's volume slider when you say Spotify</dd>
           <dt>Security</dt><dd>where Blackwall mode was. Lockdown, Guarded, Trusted (the default) or Blackwall, and thirteen toggles in 0.8.5. <b>Friends on a call can ask, you confirm</b> starts off and needs your own mic or typing to confirm each request. <b>Keep personal details out of her memories</b> is on in every preset but Blackwall</dd>
-          <dt>Power saver</dt><dd>Off, In games (the default) or Always. While a game is in front she draws herself less often when she sits still, runs her background checks less often and listens at a gentler pace, so she might take a moment longer to hear you. Watch my screen, Listen for Capri, Hey Capri and Clip my games keep working</dd>
+          <dt>Power saver</dt><dd>Off, In games (the default) or Always. While a game is in front she draws herself less often when she sits still, runs her background checks less often and listens at a gentler pace, so she might take a moment longer to hear you. Watch my screen, Listen for Capri and Clip my games keep working. In games and Always also let her free voice take over from HD in a full-screen game or video</dd>
           <dt>Perch</dt><dd>her frames a second while she sits on a window, 10 to 60 fps, 30 by default. Over 30 uses more CPU</dd>
           <dt>Remember our chats</dt><dd>on by default, daily transcripts and memories.md that stay on your PC</dd>
           <dt>Open her memories</dt><dd>edit memories.md inside Mainframe</dd>
@@ -404,7 +403,7 @@
         <h2>Voice chat</h2>
         <dl class="keys">
           <dt>Start, stop</dt><dd>the wave, or <b>Ctrl + Alt + V</b></dd>
-          <dt>“Hey Capri”</dt><dd>say it and voice chat starts. Windows, off by default: Settings → HABITS → <b>Security</b> → <b>Listen for “Hey Capri”</b></dd>
+          <dt>“Hey Capri”</dt><dd>say it and voice chat starts. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
           <dt>Listen for Capri</dt><dd>her mic stays open, and her name anywhere in a sentence starts a chat. Keep talking without it until 20 seconds of quiet. On a job, or talking over her, she still needs her name. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
           <dt>Mute mic</dt><dd><b>Ctrl + Alt + N</b>, or the mic button</dd>
           <dt>Free</dt><dd>anything but ElevenLabs picked, or no key: you talk, she answers. Her ears download the first time</dd>

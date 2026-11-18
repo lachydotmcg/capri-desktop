@@ -45,8 +45,8 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 2304;
+        // The left column is the taller one, and CLIPS' note at its foot sets this.
+        private const int PageTall = 2220;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -60,8 +60,8 @@ namespace CapriDesktop
         // Her robot and glitch, with small steps at the subtle end.
         private static readonly int[] Amounts = { 0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
         private static readonly string[] AmountNames = { "Off", "5%", "10%", "15%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
-        private static readonly int[] Volumes = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
-        private static readonly string[] VolumeNames = { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" };
+        private static readonly int[] Volumes = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+        private static readonly string[] VolumeNames = { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" };
         private static readonly string[] MicLevels = { "50%", "60%", "70%", "80%", "90%", "100%", "110%", "120%", "130%", "140%", "150%", "160%", "170%", "180%", "190%", "200%" };
         private static readonly int[] SizeSteps = { 140, 170, 200, 240, 280, 320, 380, 440, 500, 560 };
         private static readonly string[] SizeNames = { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" };
@@ -126,7 +126,6 @@ namespace CapriDesktop
         private readonly ContextMenuStrip jealousMenu;
         private readonly Toggle startup;
         private readonly Toggle discord;
-        private readonly Toggle cursor;
         private readonly Key security;
         private readonly Key talkKeys;
         private readonly Key muteKeys;
@@ -295,11 +294,11 @@ namespace CapriDesktop
         private int pageScroll;
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
-        // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1400, 1452 }, new[] { 1452, 1480 } };
+        // Simple Settings keeps Her voice in your mic's rows, between Call mode and MOVES.
+        private static readonly int[][] FoldedLeft = { new[] { 232, 344 }, new[] { 644, 1149 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 1810 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1594, 1782 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -336,7 +335,6 @@ namespace CapriDesktop
         private readonly Readout robotName;
         private readonly Slider glitchSlider;
         private readonly Readout glitchName;
-        private readonly Slider sounds;
         private readonly Slider sleepAfter;
         private readonly Slider bubble;
         private readonly Readout bubbleName;
@@ -346,11 +344,9 @@ namespace CapriDesktop
         private readonly Readout gameSoundLevelName;
         internal static readonly string[] SensitivityNames = { "Off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly Toggle intro;
-        private readonly Toggle typing;
         private readonly Toggle listenCapri;
-        private readonly Toggle hdGames;
         // Her voice in your mic (F66): the switch, the line saying to pick CABLE Output, and a line under it that says when it
-        // needs VB-CABLE, beside a button to VB-CABLE's page, or what's wrong while it's on. They sit under Free voice in games.
+        // needs VB-CABLE, beside a button to VB-CABLE's page, or what's wrong while it's on. They sit under Listen for Capri.
         private readonly Toggle voiceInMic;
         private readonly Label voiceInMicNote;
         private readonly Label voiceInMicState;
@@ -364,11 +360,10 @@ namespace CapriDesktop
         private MixSheet mixSheet;
         private readonly Toggle callMode;
         // The call app menu moved to her call panel (Lachy, 6 Nov), so her voice in your mic sits right under Call mode.
-        private const int MixAt = 534;
+        private const int MixAt = 450;
         private const int MixRows = 212;
         private readonly Toggle miniPlayer;
         private readonly Readout sleepName;
-        private readonly Readout soundsName;
         private readonly Slider wander;
         private readonly Readout wanderName;
         private readonly Slider pops;
@@ -725,20 +720,13 @@ namespace CapriDesktop
             glitchName = new Readout(glitchSlider);
             glitchSlider.Changed += delegate { if (syncing) return; glitchName.Text = AmountName(glitchSlider.Value); capri.SetVoiceGlitch(Amounts[glitchSlider.Value]); };
             glitchSlider.Released += delegate { if (!syncing) capri.HearVoiceStyle(); };
-            sounds = Setting("Sounds", SoundNames, 0, 344, "Sound effects volume");
-            soundsName = new Readout(sounds);
-            sounds.Changed += delegate { if (syncing) return; soundsName.Text = SoundNames[sounds.Value]; capri.SetSoundLevel(sounds.Value * 10); };
-            typing = Switch("Typing sound", 0, 372, delegate { if (!syncing) capri.ToggleTyping(); });
-            typing.Hint = "When she types";
-            typing.HintFont = small;
-            typing.AccessibleName = "Typing sound. A soft typing sound while her text replies type out";
-            listenCapri = Switch("Listen for Capri", 0, 400, delegate { if (!syncing) capri.ToggleListenCapri(); });
-            Caption("Say her name anywhere to chat", 28, 428, small, Faint);
+            listenCapri = Switch("Listen for Capri", 0, 344, delegate { if (!syncing) capri.ToggleListenCapri(); });
+            Caption("Say her name anywhere to chat", 28, 372, small, Faint);
             listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence, then just talk until you go quiet. Stop and push to talk still work";
-            Caption("Hearing", 28, 454, Type(9.5f), Rose).AccessibleName = "Hearing";
+            Caption("Hearing", 28, 398, Type(9.5f), Rose).AccessibleName = "Hearing";
             hearingMenu = Dropdown();
             hearingMenu.AccessibleName = "Hearing engine choices";
-            hearingChoice = Make("Auto", ValueAt, 450, ValueWide, 22, delegate { hearingMenu.Show(hearingChoice, new Point(0, hearingChoice.Height)); });
+            hearingChoice = Make("Auto", ValueAt, 394, ValueWide, 22, delegate { hearingMenu.Show(hearingChoice, new Point(0, hearingChoice.Height)); });
             hearingChoice.Chevron = true;
             hearingChoice.AccessibleName = "Hearing engine";
             for (int i = 0; i < HearingStatus.Choices.Length; i++)
@@ -747,11 +735,7 @@ namespace CapriDesktop
                 hearingMenu.Items.Add(Choice(HearingStatus.Choices[i], false, delegate { capri.ChooseHearing(choice); }));
                 hearingMenu.Items[i].AccessibleName = HearingStatus.Choices[i];
             }
-            // The row under Listen for Capri, shown only while her HD voice is on (Lachy, 29 Oct). Off out of the box.
-            hdGames = Switch("Free voice in games", 0, 478, delegate { if (!syncing) capri.ToggleHdGameRest(); });
-            hdGames.AccessibleName = "Free voice in games: while a game or video is full screen, her free voice talks instead of her HD voice, so the game gets the graphics card";
-            hdGames.Visible = false;
-            callMode = Switch("Call mode (beta)", 0, 506, delegate { if (!syncing) capri.PressCallMode(); });
+            callMode = Switch("Call mode (beta)", 0, 422, delegate { if (!syncing) capri.PressCallMode(); });
             callMode.AccessibleName = "Call mode. Only your mic or typing can confirm requests. Pick what she hears from the call app's name on her call panel";
             voiceInMic = Switch("Her voice in your mic", 0, MixAt, delegate { if (!syncing) capri.ToggleVoiceInMic(); });
             voiceInMic.Switch = 68;
@@ -843,7 +827,7 @@ namespace CapriDesktop
             keysNote.MaximumSize = new Size(328, 0);
             for (int i = afterVoice; i < Controls.Count; i++)
             {
-                Controls[i].Top += Row * 2 + 22 + MixRows;
+                Controls[i].Top += MixRows - 6;
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             }
             foreach (Control mixRow in MixControls) underVoice.Add(new KeyValuePair<Control, int>(mixRow, mixRow.Top));
@@ -1002,43 +986,42 @@ namespace CapriDesktop
             memoriesKey.AccessibleName = "Open her memories: edit memories.md here";
             startup = Switch("Start with Windows", c, 680, delegate { if (!syncing) capri.ToggleStartup(); });
             discord = Switch("Show on Discord", c, 708, delegate { if (!syncing) capri.ToggleDiscord(); });
-            cursor = Switch("Use her cursor", c, 736, delegate { if (!syncing) capri.ToggleCursor(); });
-            remembering = Switch("Remember our chats", c, 764, delegate { if (!syncing) capri.ToggleRemembering(); });
+            remembering = Switch("Remember our chats", c, 736, delegate { if (!syncing) capri.ToggleRemembering(); });
             remembering.AccessibleName = "Remember our chats. She keeps daily transcripts and memories.md on this PC, never uploaded";
             // SECURITY took Blackwall mode's place (Lachy, 29 Oct): its button opens her SECURITY window, and the line under it
             // says what the preset does. Blackwall mode is its Blackwall preset now.
-            security = Make("Security: " + Security.PresetName, 28 + c, 795, 328, 22, delegate { OpenSecurity(); });
+            security = Make("Security: " + Security.PresetName, 28 + c, 767, 328, 22, delegate { OpenSecurity(); });
             security.AccessibleName = "Security: what she does on your PC without asking first";
-            blackwallNote = Caption(Security.Short, 28 + c, 819, small, Faint);
+            blackwallNote = Caption(Security.Short, 28 + c, 791, small, Faint);
             blackwallNote.AutoSize = false;
             blackwallNote.TextAlign = ContentAlignment.MiddleRight;
-            blackwallNote.Bounds = new Rectangle(28 + c, 819, 328, 18);
+            blackwallNote.Bounds = new Rectangle(28 + c, 791, 328, 18);
             // Power saver: Off, In games or Always (issue #111). Simple Settings keeps it; the rows from Perch down fold under it.
-            powerSaver = Setting("Power saver", SaverNames, c, 840, "Power saver: how lightly she runs in games, or always");
+            powerSaver = Setting("Power saver", SaverNames, c, 812, "Power saver: how lightly she runs in games, or always");
             powerSaverName = new Readout(powerSaver);
             powerSaver.Changed += delegate { if (syncing) return; powerSaverName.Text = SaverNames[powerSaver.Value]; capri.SetPowerSaver(powerSaver.Value); };
-            musicApp = Setting("Music app", Hands.MusicSteps(), c, 868, "Music app: where she plays music when you don't name an app");
+            musicApp = Setting("Music app", Hands.MusicSteps(), c, 840, "Music app: where she plays music when you don't name an app");
             musicAppName = new Readout(musicApp);
             musicApp.Changed += delegate { if (syncing) return; musicAppName.Text = Hands.MusicSteps()[musicApp.Value]; capri.SetMusicApp(musicApp.Value); };
             int afterSaver = Controls.Count;
             // Frames a second while she sits on a window. Her sway takes 2 s at every fps; past 30 she draws in-betweens.
-            perchFps = Setting("Perch", PerchNames, c, 840, "Her perch frames per second");
+            perchFps = Setting("Perch", PerchNames, c, 812, "Her perch frames per second");
             perchFpsName = new Readout(perchFps);
             perchFps.Changed += delegate { if (syncing) return; capri.SetPerchFps(Companion.PerchRates[perchFps.Value]); ShowPerch(); };
-            perchNote = Caption("", 28 + c, 868, small, Faint);
+            perchNote = Caption("", 28 + c, 840, small, Faint);
             perchNote.AutoSize = false;
             perchNote.TextAlign = ContentAlignment.MiddleRight;
-            perchNote.Bounds = new Rectangle(28 + c, 868, 328, 18);
-            keepAwake = Switch("Keep PC awake for jobs", c, 888, delegate { if (!syncing) capri.ToggleKeepAwake(); });
-            hideFullScreen = Switch("Hide in full screen", c, 916, delegate { if (!syncing) capri.ToggleHideFullScreen(); });
-            playerFullScreen = Switch("Mini player over full screen", c, 944, delegate { if (!syncing) capri.TogglePlayerFullScreen(); });
-            exploreAway = Switch("Explore while I'm away", c, 972, delegate { if (!syncing) capri.ToggleExploreAway(); });
+            perchNote.Bounds = new Rectangle(28 + c, 840, 328, 18);
+            keepAwake = Switch("Keep PC awake for jobs", c, 860, delegate { if (!syncing) capri.ToggleKeepAwake(); });
+            hideFullScreen = Switch("Hide in full screen", c, 888, delegate { if (!syncing) capri.ToggleHideFullScreen(); });
+            playerFullScreen = Switch("Mini player over full screen", c, 916, delegate { if (!syncing) capri.TogglePlayerFullScreen(); });
+            exploreAway = Switch("Explore while I'm away", c, 944, delegate { if (!syncing) capri.ToggleExploreAway(); });
             keepAwake.Switch = hideFullScreen.Switch = playerFullScreen.Switch = exploreAway.Switch = 68;
             keepAwake.AccessibleName = "Keep PC awake for jobs. Keeps the PC and screen awake while a job runs, waits for your answer or watches for something";
             hideFullScreen.AccessibleName = "Hide in full screen. Gaming Mode takes priority; a manual hide stays hidden";
             playerFullScreen.AccessibleName = "Mini player over full screen. Works over borderless windows; exclusive full screen cannot show overlays";
             exploreAway.AccessibleName = "Explore while I'm away. Scrolls browser or reader pages without moving your mouse; your input stops her";
-            exploreAfter = Setting("Explore after", AwayNames, c, 1000, "How long you are away before she scrolls a browser or reader");
+            exploreAfter = Setting("Explore after", AwayNames, c, 972, "How long you are away before she scrolls a browser or reader");
             exploreAfterName = new Readout(exploreAfter);
             exploreAfter.Changed += delegate { if (!syncing) capri.SetExploreAfter(AwayTimes[exploreAfter.Value]); };
             // Power saver's and Music app's rows move the rest of HABITS down two.
@@ -1072,7 +1055,7 @@ namespace CapriDesktop
             Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1064, small, Faint);
             Caption("Works best on MAX INTELLIGENCE.", 28, 1080, small, Faint);
             fastHands = Switch("Fast hands in games", 0, 1102, delegate { if (!syncing) capri.ToggleFastHands(); });
-            hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
+            intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
             gameMute = Switch("Mute her", 0, 1130, delegate { if (!syncing) capri.ToggleShush(); });
             gameMute.AccessibleName = "Mute her. She stops talking on her own and only answers when you talk to her, the same as her Quiet key";
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
@@ -1116,7 +1099,7 @@ namespace CapriDesktop
             // The hearing row, her Mainframe key's row and Her voice in your mic's rows push GAMES down under KEYS too.
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
             {
-                Controls[gameRow].Top += Row * 2 + MixRows;
+                Controls[gameRow].Top += MixRows - Row;
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
             }
             for (int i = first; i < Controls.Count; i++)
@@ -1704,30 +1687,8 @@ namespace CapriDesktop
 
         internal void FlipListenCapri() { listenCapri.Checked = !listenCapri.Checked; }
 
-        internal string HdGamesStatus { get { return hdGames.Visible ? (hdGames.Checked ? "on" : "off") : "-"; } }
-
-        // Free voice in games has the row under Listen for Capri, shown only while her HD voice is on. Without it, MOVES and KEYS
-        // move up into its row.
-        private void ShowHdGames()
-        {
-            bool was = syncing, hd = capri.HdVoiceOn;
-            syncing = true;
-            hdGames.Visible = hd;
-            hdGames.Checked = capri.HdGameRest;
-            syncing = was;
-            int lift = hd ? 0 : Row;
-            if (lift == lifted) return;
-            lifted = lift;
-            int back = ShownScroll;
-            ScrollPage(0);
-            foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lift);
-            CloseGaps();
-            ScrollPage(back);
-        }
-
-        // MOVES' and KEYS' controls with their tops as built, and how far up they've moved.
+        // MOVES' and KEYS' controls with their tops as built.
         private readonly List<KeyValuePair<Control, int>> underVoice = new List<KeyValuePair<Control, int>>();
-        private int lifted;
 
         // Without a cable the switch can't go on: the note credits VB-CABLE with a link to its page, and the line under it says it's
         // needed, then where VB-Audio's setup is at. With Steam's mic only, the note says VB-CABLE usually sounds better and Get
@@ -1963,7 +1924,7 @@ namespace CapriDesktop
 
         internal string WanderShown { get { return wanderName.Text; } }
 
-        internal string JobsStatus { get { return (cursor.Checked ? "cursor" : "-") + " | " + security.Text; } }
+        internal string JobsStatus { get { return (capri.UsesCursor ? "cursor" : "-") + " | " + security.Text; } }
 
         internal string BlackwallStatus { get { return security.Text + " | " + blackwallNote.Text; } }
 
@@ -2030,8 +1991,7 @@ namespace CapriDesktop
                 if (!built.TryGetValue(entry.Key, out top) || Folded(entry.Key)) continue;
                 int gone = 0;
                 if (simple) foreach (int[] band in entry.Value >= Column ? FoldedRight : FoldedLeft) if (top >= band[1]) gone += band[1] - band[0];
-                bool lifts = underVoice.Exists(moved => moved.Key == entry.Key);
-                entry.Key.Top = Scaled(top - gone - (lifts && !simple ? lifted : 0));
+                entry.Key.Top = Scaled(top - gone);
             }
         }
 
@@ -2404,7 +2364,7 @@ namespace CapriDesktop
                 foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 if (languageFont != null) { languageFont.Dispose(); languageFont = null; }
-                foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
+                foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value);
                 CloseGaps();
                 freeVoices.Width = Scaled(freeReady && !yoursShown ? 328 : 196);
                 customVoice.Width = Scaled(freeReady ? 328 : 196);
@@ -3067,7 +3027,6 @@ namespace CapriDesktop
             onTop.Checked = capri.OnTop;
             startup.Checked = capri.StartsWithWindows;
             discord.Checked = capri.OnDiscord;
-            cursor.Checked = capri.UsesCursor;
             gamingMode.Checked = capri.GamingWanted;
             security.Text = "Security: " + Security.PresetName;
             blackwallNote.Text = Security.Short;
@@ -3160,7 +3119,6 @@ namespace CapriDesktop
             intro.Checked = capri.Intro;
             typing.Checked = capri.TypingSound;
             listenCapri.Checked = capri.ListenCapriOn;
-            ShowHdGames();
             ShowCallApp();
             ShowVoiceInMic();
             miniPlayer.Checked = capri.PlayerOn;
@@ -4263,7 +4221,6 @@ namespace CapriDesktop
         internal void ShowFree(bool ready, string chosen, bool busy, Machine machine, bool yours, bool kept, string served = null)
         {
             bool hd = chosen == QwenVoice.Style;
-            ShowHdGames();
             freeReady = ready;
             yoursShown = hd && yours;
             freeVoices.Text = "Free voice: " + (yoursShown ? "Your voice" : served ?? chosen);
@@ -6827,8 +6784,9 @@ namespace CapriDesktop
         // Her SECURITY window, in Settings' look (Lachy, 29 Oct): a slider of four presets, Lockdown, Guarded, Trusted and
         // Blackwall, that sets the toggles under it, and a toggle with a plain line for each kind of thing she does on their PC.
         // Flipping one makes it Custom, and a click on the slider puts the preset under its knob back. Her hands' toggles are on
-        // the left with HER MEMORY's under them, and her jobs' and listening's on the right. It opens from Settings > HABITS,
-        // where Blackwall mode was. Zoom is 1 except in the smoke test, which draws it at 150% and 200% too.
+        // the left, with Use her cursor under her mouse and keyboard and HER MEMORY's under that, and her jobs' and friends' on the
+        // right. Toggle 11, once "Hey Capri", has no row. It opens from Settings > HABITS, where Blackwall mode was. Zoom is 1
+        // except in the smoke test, which draws it at 150% and 200% too.
         private sealed class SecuritySheet : Form, LookWindow, Tinted
         {
             internal const int Wide = 900, Tall = 590, Column = 410;
@@ -6839,6 +6797,7 @@ namespace CapriDesktop
             private readonly Readout presetName;
             private readonly Label presetLine;
             private readonly Toggle[] toggles = new Toggle[Security.Count];
+            private readonly Toggle cursorRow;
             private bool syncing;
 
             internal SecuritySheet(Mainframe owner, float zoom)
@@ -6881,12 +6840,13 @@ namespace CapriDesktop
                 Heading(this, "HER HANDS >", new Point(Z(28), Z(144)), head, White, Column + 14);
                 Heading(this, "HER JOBS >", new Point(Z(52 + Column), Z(144)), head, White, Column + 14);
                 Heading(this, "LISTENING >", new Point(Z(52 + Column), Z(362)), head, White, Column + 14);
-                Heading(this, "HER MEMORY >", new Point(Z(28), Z(454)), head, White, Column + 14);
-                Heading(this, "HER MODS >", new Point(Z(52 + Column), Z(498)), head, White, Column + 14);
+                Heading(this, "HER MEMORY >", new Point(Z(28), Z(482)), head, White, Column + 14);
+                Heading(this, "HER MODS >", new Point(Z(52 + Column), Z(452)), head, White, Column + 14);
                 for (int i = 0; i < Security.Count; i++)
                 {
+                    if (i == Security.Wake) continue;
                     int x = i <= Security.Mouse || i == Security.Personal ? 28 : 52 + Column;
-                    int y = i == Security.ModTools ? 522 : i == Security.Personal ? 478 : i <= Security.Mouse ? 168 + 46 * i : i < Security.Wake ? 168 + 46 * (i - Security.Sends) : 386 + 46 * (i - Security.Wake);
+                    int y = i == Security.ModTools ? 476 : i == Security.Personal ? 506 : i <= Security.Mouse ? 168 + 46 * i : i < Security.Wake ? 168 + 46 * (i - Security.Sends) : 386 + 46 * (i - Security.Friends);
                     int toggle = i;
                     Toggle box = new Toggle();
                     box.Text = Security.Names[i];
@@ -6899,6 +6859,14 @@ namespace CapriDesktop
                     toggles[i] = box;
                     Caption(Security.Lines[i], x, y + 24, small, Faint);
                 }
+                cursorRow = new Toggle();
+                cursorRow.Text = "Use her cursor";
+                cursorRow.Font = Font;
+                cursorRow.Switch = 96;
+                cursorRow.Bounds = Box(28, 444, Column, 22);
+                cursorRow.AccessibleName = "Use her cursor. She uses her visible pointer for YouTube searches, Apple Music and Spotify's volume slider; off, she uses quick tools instead";
+                cursorRow.CheckedChanged += delegate { if (!syncing) owner.capri.ToggleCursor(); };
+                Controls.Add(cursorRow);
                 owner.Fit(this);
                 Sync();
             }
@@ -6932,7 +6900,8 @@ namespace CapriDesktop
                 presets.Torn = preset == Security.Blackwall;
                 presets.Storm = preset == Security.Blackwall && owner.capri.Moves;
                 presets.Ink = preset == Security.Blackwall ? BlackwallInk : Color.Empty;
-                for (int i = 0; i < Security.Count; i++) toggles[i].Checked = Security.On(i);
+                for (int i = 0; i < Security.Count; i++) if (toggles[i] != null) toggles[i].Checked = Security.On(i);
+                cursorRow.Checked = owner.capri.UsesCursor;
                 syncing = false;
             }
 
@@ -6955,13 +6924,13 @@ namespace CapriDesktop
                 get
                 {
                     System.Text.StringBuilder bits = new System.Text.StringBuilder();
-                    foreach (Toggle box in toggles) bits.Append(box.Checked ? '1' : '0');
-                    return presetName.Text + " | " + Security.Presets[presets.Value] + " | " + bits + " | " + presetLine.Text;
+                    foreach (Toggle box in toggles) if (box != null) bits.Append(box.Checked ? '1' : '0');
+                    return presetName.Text + " | " + Security.Presets[presets.Value] + " | " + bits + " | " + presetLine.Text + " | " + (cursorRow.Checked ? "cursor" : "-");
                 }
             }
 
             // A click on a toggle, the slider dragged to a preset and a click on the slider, as they'd do them.
-            internal void Flip(int toggle) { toggles[toggle].Checked = !toggles[toggle].Checked; }
+            internal void Flip(int toggle) { if (toggle < 0) cursorRow.Checked = !cursorRow.Checked; else toggles[toggle].Checked = !toggles[toggle].Checked; }
 
             internal void Slide(int preset) { presets.Slide(preset); }
 

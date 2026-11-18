@@ -777,9 +777,9 @@ namespace CapriDesktop
         // Settings > Bubble, like Windows: how long her replies stay up.
         internal static readonly string[] BubbleNames = { "Quick", "Normal", "Long" };
         private readonly List<MenuItem> bubblePicks = new List<MenuItem>();
-        // Settings > Volume, like Windows: her spoken voice, Mute to 150%. Her sound effects stay on Sounds.
-        internal static readonly int[] Volumes = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
-        internal static readonly string[] VolumeNames = { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" };
+        // Settings > Volume, like Windows: her spoken voice, 10% to 150%. VOICE > OFF is her mute. Her sound effects stay on Sounds.
+        internal static readonly int[] Volumes = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+        internal static readonly string[] VolumeNames = { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" };
         private readonly List<MenuItem> volumePicks = new List<MenuItem>();
         // Settings > Voice style, Windows' Pitch, Speed, Robot and Glitch sliders. They change her ElevenLabs voice here.
         internal static readonly string[] PitchNames = { "-6", "-5", "-4", "-3", "-2", "-1", "Normal", "+1", "+2", "+3", "+4", "+5", "+6" };
@@ -892,7 +892,8 @@ namespace CapriDesktop
             Brain.ThinkingChanged = NotifySettings;
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
             Sfx.Level = Math.Max(0, Math.Min(100, Saved.Sounds ?? 60));
-            Voice.Loudness = Math.Max(0, Math.Min(150, Saved.Volume ?? 100));
+            if (Saved.Volume <= 0) { Saved.Silent = true; Saved.Volume = 100; }
+            Voice.Loudness = Math.Max(10, Math.Min(150, Saved.Volume ?? 100));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, Saved.Pitch));
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, Saved.Pace ?? 100));
             VoiceFx.Robot = Math.Max(0, Math.Min(100, Saved.Robot));
@@ -3014,7 +3015,7 @@ namespace CapriDesktop
 
         internal void SetVolume(int percent)
         {
-            Voice.Loudness = Math.Max(0, Math.Min(150, percent));
+            Voice.Loudness = Math.Max(10, Math.Min(150, percent));
             Saved.Volume = Voice.Loudness;
             Save();
             Sync();

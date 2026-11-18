@@ -118,8 +118,9 @@ namespace CapriDesktop
     // Her SECURITY window (Lachy, 29 Oct): a toggle for each kind of thing she does on their PC, set by a slider of four presets.
     // A toggle that's off means she asks first in chat ("Open Spotify? Say yes and I will.") and does it on their yes, never a
     // silent no. Typing passwords and card numbers is the one exception: with it off they type those themselves. Trusted, the
-    // default, is how she worked before the window, and Blackwall is Blackwall mode (Bypass all permissions before 0.7.4) plus
-    // listening for "Hey Capri". The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
+    // default, is how she worked before the window, and Blackwall is Blackwall mode (Bypass all permissions before 0.7.4).
+    // Toggle 11, once "Hey Capri", has no row any more: Listen for Capri in VOICE is her one wake word, and its slot stays so
+    // the toggles after it keep their places. The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
     // Toggle 13, Keep personal details out of her memories (#88, Lachy, 5 Nov), is on in every preset but Blackwall: on, her
     // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
@@ -165,24 +166,21 @@ namespace CapriDesktop
             "She asks first before she does anything on your PC.",
             "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.",
             "She does what you ask, and asks first before paying or anything you didn't mention.",
-            "She never asks, types passwords and card numbers, and listens for \"Hey Capri\".",
+            "She never asks, and types passwords and card numbers.",
             "Your own mix. Pick a preset to start again from it."
         };
         // The Settings line under her SECURITY button, short enough for its row.
-        private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
-        // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first eleven.
+        private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks first.", "Your own mix of toggles." };
+        // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first ten.
         // Keeping personal details out of her memories is on in all of them but Blackwall. Tools from code mods ask first on
         // Lockdown and Guarded, and run on Trusted and Blackwall.
-        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal) | (1 << ModTools), 0x7FF | (1 << ModTools)
+        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal) | (1 << ModTools), 0x3FF | (1 << ModTools)
 #if CROSS
             | (1 << Terminal)
 #endif
         };
         private static int mask = 0x7F | (1 << Personal) | (1 << ModTools);
         private static readonly object gate = new object();
-        // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
-        internal static Func<bool> HeyOn;
-        internal static Action<bool> SetHey;
         // Whether this PC has a toggle's feature at all: Mac and Linux have the first five, with no jobs or wake word yet.
         internal static Func<int, bool> Has = delegate { return true; };
         // Saves and redraws whatever shows them, once a toggle or preset changes.
@@ -194,42 +192,29 @@ namespace CapriDesktop
 
         internal static bool On(int toggle)
         {
-            if (toggle == Wake && HeyOn != null) return HeyOn();
             lock (gate) return (mask & (1 << toggle)) != 0;
         }
 
         internal static void Set(int toggle, bool on)
         {
             if (On(toggle) == on) return;
-            if (toggle == Wake && SetHey != null) SetHey(on);
-            else lock (gate) mask = on ? mask | (1 << toggle) : mask & ~(1 << toggle);
+            lock (gate) mask = on ? mask | (1 << toggle) : mask & ~(1 << toggle);
             Action changed = Changed;
             if (changed != null) changed();
         }
 
-        // Every toggle as bits, toggle 1 in the lowest, with "Hey Capri" read from where it lives.
-        internal static int Mask
-        {
-            get
-            {
-                int bits;
-                lock (gate) bits = mask;
-                if (HeyOn != null) bits = (bits & ~(1 << Wake)) | (HeyOn() ? 1 << Wake : 0);
-                return bits;
-            }
-        }
+        // Every toggle as bits, toggle 1 in the lowest.
+        internal static int Mask { get { lock (gate) return mask; } }
 
         internal static void Pick(int preset)
         {
             if (preset < 0 || preset >= Masks.Length) return;
-            bool wake = (Masks[preset] & (1 << Wake)) != 0;
             lock (gate) mask = Masks[preset];
-            if (SetHey != null && On(Wake) != wake) SetHey(wake);
             Action changed = Changed;
             if (changed != null) changed();
         }
 
-        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" and the toggles after it alone.
+        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving the toggles after them alone.
         // Nothing is saved.
         internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal) | (1 << ModTools)
 #if CROSS
@@ -237,12 +222,12 @@ namespace CapriDesktop
 #endif
         )) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
-        // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
+        // The preset their toggles match, or Custom.
         internal static int Preset
         {
             get
             {
-                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0) | (Has(ModTools) ? 1 << ModTools : 0);
+                int bits = Mask, counted = 0x3FF | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0) | (Has(ModTools) ? 1 << ModTools : 0);
 #if CROSS
                 if (Has(Terminal)) counted |= 1 << Terminal;
 #endif
@@ -253,19 +238,20 @@ namespace CapriDesktop
 
         internal static string PresetName { get { return Presets[Preset]; } }
 
-        // What the preset does, in a line. Without her jobs (Mac and Linux so far) Trusted never asks either, and without a
-        // wake word Blackwall's line doesn't promise one.
+        // What the preset does, in a line. Without her jobs (Mac and Linux so far) Trusted never asks either.
         internal static string PresetLine(int preset)
         {
 #if CROSS
             if (preset == Trusted && Has(Terminal)) return "She does what you ask, and asks first before paying, terminal commands or anything you didn't mention.";
 #endif
             if (preset == Trusted && !Has(Mouse)) return "She does what you ask without asking first.";
-            if (preset == Blackwall && !Has(Wake)) return "She never asks before doing what you ask.";
+#if CROSS
+            if (preset == Blackwall) return "She never asks before doing what you ask.";
+#endif
             return Told[Math.Max(0, Math.Min(Custom, preset))];
         }
 
-        internal static string Short { get { int preset = Preset; return preset == Blackwall && !Has(Wake) ? "She never asks first." : Shorts[preset]; } }
+        internal static string Short { get { return Shorts[Preset]; } }
 
         // Toggles 1 to 10 as 1s and 0s for their settings file, like "1111111000" for Trusted.
         internal static string Saved { get { int bits; lock (gate) bits = mask; return Marks(bits); } }
@@ -315,7 +301,7 @@ namespace CapriDesktop
         // one of the first ten off doesn't change how the rest save.
         private static bool ModsRun(int bits) { int ten = bits & 0x3FF; return ten != (Masks[Lockdown] & 0x3FF) && ten != (Masks[Guarded] & 0x3FF); }
 
-        // Their saved toggles, or Trusted for anything unreadable. "Hey Capri" stays where it lives.
+        // Their saved toggles, or Trusted for anything unreadable.
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
@@ -1064,7 +1050,7 @@ namespace CapriDesktop
             { "clip_my_games", "Clip my games", "Clips" }, { "save_big_moments", "Save big moments", "Clips" }, { "live_reactions", "Live reactions", "Games" }, { "gaming_mode", "Gaming Mode", "Games" }, { "hologram", "Hologram mode", "Capri" },
             { "watch_my_screen", "Watch my screen", "Watch" }, { "game_comments", "Game comments", "Games" },
             { "dance_to_music", "Dance to music", "Moves" }, { "head_pats", "Head pats", "Capri" }, { "chaos_when_upset", "Chaos when upset", "Capri" }, { "legacy_stand", "Legacy stand", "Capri" }, { "sit_on_windows", "Sit on windows", "Moves" }, { "always_on_top", "Always on top", "Capri" },
-            { "mini_player", "Mini player", "Moves" }, { "typing_sound", "Typing sound", "Voice" }, { "follow_ups", "Follow-up messages", "Brain" }, { "hide_in_full_screen", "Hide in full screen", "Habits" }, { "glitch_in", "Glitch in at startup", "Moves" },
+            { "mini_player", "Mini player", "Moves" }, { "typing_sound", "Typing sound", "Sounds" }, { "follow_ups", "Follow-up messages", "Brain" }, { "hide_in_full_screen", "Hide in full screen", "Habits" }, { "glitch_in", "Glitch in at startup", "Moves" },
             { "keep_awake", "Keep PC awake for jobs", "Habits" }, { "player_full_screen", "Mini player over full screen", "Habits" }, { "explore_away", "Explore while away", "Habits" },
             { "care_water", "Water check-in", "Capri" }, { "care_stretch", "Stretch check-in", "Capri" }, { "care_eyes", "Look away check-in", "Capri" }, { "care_late_night", "Sleep nudge", "Capri" },
             { "care_meals", "Meals check-in", "Capri" }, { "care_long_game", "Game break check-in", "Capri" }, { "care_boredom", "Bored check-in", "Capri" },
@@ -1085,9 +1071,9 @@ namespace CapriDesktop
             { "care_meals", "Meals interval", "Capri" }, { "care_long_game", "Game break interval", "Capri" }, { "care_boredom", "Bored interval", "Capri" },
             { "voice_pitch", "my voice's pitch", "Voice" }, { "voice_robot", "Voice robot", "Voice" }, { "voice_glitch", "Voice glitch", "Voice" },
             { "layer_1_pitch", "Layer 1 pitch", "Voice" }, { "layer_1_delay", "Layer 1 delay", "Voice" }, { "layer_2_pitch", "Layer 2 pitch", "Voice" }, { "layer_2_delay", "Layer 2 delay", "Voice" },
-            { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
+            { "sounds", "Sound effects", "Sounds" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
-            { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }, { "music_app", "Music app", "Habits" },
+            { "typing_sound", "Typing sound mode", "Sounds" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }, { "music_app", "Music app", "Habits" },
             { "pat_stroke", "Pat stroke", "Capri" }, { "chime_volume", "Chime volume", "Sounds" }, { "chime_set", "Chime sound set", "Sounds" }
         };
         internal static readonly string[][] OwnSteps =
@@ -1095,7 +1081,7 @@ namespace CapriDesktop
             new[] { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" },
             new[] { "Off", "Rarely", "Sometimes", "Often", "Restless" }, new[] { "Rarely", "Sometimes", "Often" },
             new[] { "Never", "1 min", "2 min", "5 min", "10 min", "30 min" },
-            new[] { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
+            new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
             new[] { "0.7x", "0.8x", "0.9x", "Normal", "1.1x", "1.2x", "1.3x", "1.4x", "1.5x" }, new[] { "Short", "Medium", "Long" }, new[] { "Quick", "Normal", "Long" },
             new[] { "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" },
             new[] { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" }, new[] { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" },
@@ -1193,18 +1179,18 @@ namespace CapriDesktop
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "keep_awake", "their PC stays awake for your jobs and watches" }, { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
-            { "listen_for_capri", "voice chat that starts when they say your name, apart from Hey Capri" },
+            { "listen_for_capri", "your mic stays open and a sentence with your name, or Hey Capri, starts voice chat; hey_capri and the wake word are this too" },
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
             { "discord_presence", "what you're doing on their Discord profile" }, { "startup", "Capri starts when they log in; off until they ask for it" }, { "show_advanced", "Mainframe's advanced settings" },
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
             { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are" }, { "bubble", "how long your replies stay up" },
             { "reply_limit", "the longest a reply can be" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
             { "explore_after", "how long they're away before you explore" },
-            { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace" },
+            { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace, and in games or always her free voice takes over from HD in full-screen games" },
             { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" },
-            { "chimes", "your soft chimes when their typed message is sent, when you've heard them and when you're listening after Hey Capri; on by default" },
+            { "chimes", "all three chimes at once: when their typed message is sent, when you've heard them and when Listen for Capri opens your ears; on by default" },
             { "chime_sent", "the chime when their typed message is sent" }, { "chime_heard", "the chime when you've heard them finish talking" },
-            { "chime_listening", "the chime when Hey Capri opens your ears" }, { "chime_volume", "how loud your chimes are, apart from your voice and sound effects" },
+            { "chime_listening", "the chime when Listen for Capri opens your ears" }, { "chime_volume", "how loud your chimes are, apart from your voice and sound effects" },
             { "chime_set", "which set of chimes you play: Glass, Shard, Burst, Crush, Pulse or Air; set it by name" }
         };
 
@@ -1228,7 +1214,7 @@ namespace CapriDesktop
                 + " Keys, brains, your voice service, Security and what you remember aren't here and stay in your Settings menu.";
 #else
                 + (media || computer ? " They're yours, not their PC's:" + (media ? " its volume is media" : "") + (media && computer ? ", and" : "") + (computer ? " Windows settings like Bluetooth are use_computer jobs" : "") + "." : "")
-                + " Keys, brains, your voice service, SECURITY, Hey Capri and what you remember aren't here and stay in Capri Mainframe.";
+                + " Keys, brains, your voice service, SECURITY and what you remember aren't here and stay in Capri Mainframe.";
 #endif
         }
 
@@ -1427,7 +1413,7 @@ namespace CapriDesktop
 #if !CROSS
             { "workspace", "Open your Workspace window, start a new Claude Code chat there, or check recent chats when they ask. open is the default; a task with no action means start. start needs task in their words; folder is optional and must exist, otherwise it uses your own Workspace folder. New chats use the window's usual mode: Blackwall Mode under the Blackwall preset, Ask me otherwise. Folder trust and tool approvals stay in the window for them to answer. status gives up to three recent chats, whether they are working, waiting for an OK or finished, and their last answer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"open by default, start a chat, or check status\",\"enum\":[\"open\",\"start\",\"status\"]},\"task\":{\"type\":\"string\",\"description\":\"Required for start: their first message in their words\"},\"folder\":{\"type\":\"string\",\"description\":\"For start: an existing folder; omit for your own Workspace folder\"}}}", "open Workspace, start a chat or check recent chats", "open Workspace, start a chat or check recent chats" },
-            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY, Hey Capri and memories are changed there by them.",
+            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY and memories are changed there by them.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "updates", "Check for a Capri update or read its status when they ask, suggest or hint at it. Install only when they clearly ask to install or update Capri, through the usual update checks. A status question or hint alone never authorizes installation.",
@@ -7216,8 +7202,15 @@ namespace CapriDesktop
         internal static Func<string, string> SettingText = delegate { return "unreadable"; };
         internal static Func<string, string, string> SetSettingText = delegate { return "Couldn't change that just now."; };
 
+        private static string Alias(string name)
+        {
+            string plain = (name ?? "").Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
+            return plain == "hey_capri" || plain == "wake_word" || plain == "wakeword" || plain == "listen_for_hey_capri" ? "listen_for_capri" : name;
+        }
+
         private static int OwnRow(string name)
         {
+            name = Alias(name);
             for (int i = 0; i < OwnSwitches.GetLength(0); i++) if (OwnSwitches[i, 0] == name) return i;
             return -1;
         }
@@ -7259,7 +7252,6 @@ namespace CapriDesktop
                     if (string.Equals(said.Trim(), Brain.Languages[i, 0], StringComparison.OrdinalIgnoreCase) || string.Equals(said.Trim(), Brain.Languages[i, 2], StringComparison.OrdinalIgnoreCase)) return i;
                 return -1;
             }
-            if (name == "volume" && Regex.IsMatch(plain, @"^(?:off|muted|0%?)$")) return 0;
             if (name == "sleep" && Regex.IsMatch(plain, @"^(?:off|no|none|0)$")) return 0;
             if (name == "sleep" && Regex.IsMatch(plain, @"^half(?:an)?-?hour$")) return 5;
             if (name == "wander" && Regex.IsMatch(plain, @"^(?:no|none|never)$")) return 0;
@@ -7286,7 +7278,7 @@ namespace CapriDesktop
                 value = secondsIn / (minutes && name != "sleep" ? 60 : 1);
             }
             if (name == "sleep") values = new[] { 0, 60, 120, 300, 600, 1800 };
-            if (name == "volume") values = new[] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+            if (name == "volume") values = new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
             if (name == "voice_speed") { values = new[] { 70, 80, 90, 100, 110, 120, 130, 140, 150 }; if (unit != "%") value *= 100; }
             if (name.StartsWith("layer_", StringComparison.Ordinal))
             {
@@ -7306,6 +7298,7 @@ namespace CapriDesktop
         private static string Settings(ToolArguments args)
         {
             Kit kit = KitFor();
+            args.Name = Alias(args.Name);
             if (Array.IndexOf(SettingActions, args.Action) >= 0) return SettingAction(args);
             if (!Regex.IsMatch(args.Action ?? "", @"\A(list|on|off|set)\z")) return "Choose list, on, off or set.";
             if (args.Action == "set" && args.Name == "clip_folder")
@@ -7364,6 +7357,14 @@ namespace CapriDesktop
         {
             int row = LevelRow(args.Name);
             if (row < 0) return "There's no slider of mine called " + (args.Name ?? "that") + ".";
+            if (args.Name == "volume" && Regex.IsMatch(Spoken(args.Level ?? "").Replace(" ", ""), @"^(?:off|mute|muted|silent|0%?)$"))
+            {
+                ToolArguments quiet = args.Copy();
+                quiet.Name = "voice";
+                quiet.Action = "off";
+                quiet.Level = null;
+                return Settings(quiet);
+            }
             string label = OwnLevels[row, 1], named = char.ToUpperInvariant(label[0]) + label.Substring(1);
             string[] steps = OwnSteps[row];
             int was = LevelOf(args.Name);

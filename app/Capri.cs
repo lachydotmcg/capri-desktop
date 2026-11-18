@@ -1133,12 +1133,11 @@ namespace CapriDesktop
         // Her SECURITY window's toggles 1 to 10 as 1s and 0s, like "1111111000" for Trusted; "Hey Capri" is HeyCapri. Missing in
         // settings from before it, so Blackwall mode moves to the Blackwall preset and everyone else gets Trusted.
         [DataMember] public string Permissions;
-        // Listen for "Hey Capri" is off out of the box (Lachy, 29 Oct). It's a toggle in her Security window, and the Blackwall preset turns it on.
+        // Kept for settings from before Listen for Capri in VOICE was her only wake word: it loads as Listen for Capri on, and is never on.
         [DataMember] public bool HeyCapri;
         [DataMember] public bool HdVoice;
         [DataMember] public bool HdCpu;
-        // Free voice in games is off out of the box (Lachy, 29 Oct): her HD voice keeps talking while a game is full screen.
-        // On, her free voice takes over while anything is full screen, so the game gets the graphics card back.
+        // Kept for older settings. Power saver's In games and Always now send her HD voice to her free voice while anything is full screen.
         [DataMember] public bool HdGameRest;
         // Her voice in your mic (F66): their mic and her voice go into VB-CABLE's input for Discord or Roblox. Off out of the box.
         [DataMember] public bool VoiceInMic;
@@ -1290,7 +1289,16 @@ namespace CapriDesktop
         }
 
         [OnDeserialized]
-        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MainframeColours = Neon.ClampLook(MainframeColours); MicLoudness = MicMix.Level(MicLoudness); StartupSet = true; }
+        private void Loaded(StreamingContext context)
+        {
+            MainframeSize = FrameSize(MainframeSize);
+            MainframeColours = Neon.ClampLook(MainframeColours);
+            MicLoudness = MicMix.Level(MicLoudness);
+            StartupSet = true;
+            if (HeyCapri) { ListenCapri = true; HeyCapri = false; }
+            if (NoChimes) { NoChimeSent = NoChimeHeard = NoChimeListening = true; NoChimes = false; }
+            if (Volume <= 0) { Silent = true; Volume = 100; }
+        }
 
         internal bool CareOn(CareKind kind)
         {
@@ -2981,11 +2989,9 @@ namespace CapriDesktop
             careLines = new CareLines(Path.Combine(data, "check-ins.md"));
             if (careNew) preferences.CareWritten = careLines.Create();
             care = new Care(delegate { return clock.Elapsed.TotalSeconds; }, delegate { return DateTime.Now; }, careLines.Pick);
-            // SECURITY: their toggles, with "Hey Capri" kept in its own setting for her wake word.
+            // SECURITY: their toggles.
             Migrate(preferences);
             Security.Load(preferences.Permissions);
-            Security.HeyOn = delegate { return preferences.HeyCapri; };
-            Security.SetHey = SetHeyCapri;
             Security.Changed = SecurityChanged;
             Security.HeldChanged = RemoteJobSecurity;
             ears.Chosen = preferences.Mic;
@@ -5619,13 +5625,13 @@ namespace CapriDesktop
 
         internal void ToggleBypass() { Security.Pick(Computer.Bypass ? Security.Trusted : Security.Blackwall); }
 
-        // Settings from before the SECURITY window have no toggles: Blackwall mode moves to the Blackwall preset, "Hey Capri"
-        // and all, and everyone else gets Trusted, which is how she worked without it. True when it moved them.
+        // Settings from before the SECURITY window have no toggles: Blackwall mode moves to the Blackwall preset, with Listen for
+        // Capri on, and everyone else gets Trusted, which is how she worked without it. True when it moved them.
         internal static bool Migrate(Preferences saved)
         {
             if (saved.Permissions != null) return false;
             saved.Permissions = Security.Of(saved.Bypass ? Security.Blackwall : Security.Trusted);
-            if (saved.Bypass) saved.HeyCapri = true;
+            if (saved.Bypass) saved.ListenCapri = true;
             return true;
         }
 
@@ -5646,13 +5652,13 @@ namespace CapriDesktop
         private void SecurityChecks(System.Collections.Generic.List<string> checks, string output)
         {
             Func<string> bits = delegate { System.Text.StringBuilder all = new System.Text.StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
-            string[] presetBits = { "00000000000010", "11100000000010", "11111110000011", "11111111111001" };
+            string[] presetBits = { "00000000000010", "11100000000010", "11111110000011", "11111111110001" };
             System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
             for (int preset = Security.Lockdown; preset <= Security.Blackwall; preset++)
             {
                 Security.Pick(preset);
                 string shown = bits();
-                if (shown != presetBits[preset] || Security.Preset != preset || HeyCapriOn != (preset == Security.Blackwall) || preferences.Permissions != Security.Of(preset) || preferences.Bypass != (preset == Security.Blackwall) || Computer.Bypass != (preset == Security.Blackwall))
+                if (shown != presetBits[preset] || Security.Preset != preset || HeyCapriOn || preferences.Permissions != Security.Of(preset) || preferences.Bypass != (preset == Security.Blackwall) || Computer.Bypass != (preset == Security.Blackwall))
                     wrong.Add(Security.Presets[preset] + " " + shown + " saved " + preferences.Permissions + " hey " + HeyCapriOn);
             }
             Security.Pick(Security.Trusted);
@@ -5667,8 +5673,8 @@ namespace CapriDesktop
             DataContractJsonSerializer json = new DataContractJsonSerializer(typeof(Preferences));
             Func<string, Preferences> older = delegate(string text) { return (Preferences)json.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text))); };
             Preferences wasBlackwall = older("{\"Bypass\":true,\"Size\":240}"), wasDefault = older("{\"Size\":240}"), wasMixed = older("{\"Bypass\":true,\"Permissions\":\"1010000000\",\"Size\":240}");
-            bool movedBlackwall = Migrate(wasBlackwall) && wasBlackwall.Permissions == "1111111111" && wasBlackwall.HeyCapri;
-            bool movedDefault = Migrate(wasDefault) && wasDefault.Permissions == "1111111000" && !wasDefault.HeyCapri;
+            bool movedBlackwall = Migrate(wasBlackwall) && wasBlackwall.Permissions == "1111111111" && wasBlackwall.ListenCapri && !wasBlackwall.HeyCapri;
+            bool movedDefault = Migrate(wasDefault) && wasDefault.Permissions == "1111111000" && !wasDefault.ListenCapri;
             bool keptMixed = !Migrate(wasMixed) && wasMixed.Permissions == "1010000000" && !Migrate(wasBlackwall);
             Security.Load(wasBlackwall.Permissions);
             bool loadedBlackwall = Computer.Bypass && Security.On(Security.Mouse);
@@ -5678,7 +5684,7 @@ namespace CapriDesktop
             bool unreadable = Security.Preset == Security.Trusted;
             Security.Load(preferences.Permissions);
             if (!movedBlackwall || !movedDefault || !keptMixed || !loadedBlackwall || !loadedMixed || !unreadable || Security.Preset != Security.Trusted) throw new Exception("SECURITY didn't take over from Blackwall mode's settings: " + movedBlackwall + " " + movedDefault + " " + keptMixed + " " + loadedBlackwall + " " + loadedMixed + " " + unreadable);
-            checks.Add("PASS SECURITY from older settings: Blackwall mode (Bypass) moves to the Blackwall preset with \"Hey Capri\" on, everyone else gets Trusted, saved toggles load as they are, and unreadable ones fall back to Trusted");
+            checks.Add("PASS SECURITY from older settings: Blackwall mode (Bypass) moves to the Blackwall preset with Listen for Capri on, everyone else gets Trusted, saved toggles load as they are, and unreadable ones fall back to Trusted");
 
             // Her own tools: each toggle off holds its call and she asks; a yes runs it once, a no leaves it and anything else drops it.
             System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
@@ -5915,11 +5921,16 @@ namespace CapriDesktop
             string locked = mainframe.SecurityShown;
             mainframe.SlideSecurity(Security.Blackwall);
             string walled = mainframe.SecurityShown;
-            bool walledHey = HeyCapriOn, walledSettings = mainframe.BlackwallStatus == "Security: Blackwall | She never asks, and listens for Hey Capri.";
+            bool walledHey = !HeyCapriOn, walledSettings = mainframe.BlackwallStatus == "Security: Blackwall | She never asks first.";
             mainframe.SlideSecurity(Security.Trusted);
             mainframe.FlipSecurity(Security.Friends);
             bool friendRow = Security.On(Security.Friends) && Security.Preset == Security.Custom && preferences.Permissions == "11111110001";
             mainframe.FlipSecurity(Security.Friends);
+            string cursorStart = mainframe.SecurityShown;
+            mainframe.FlipSecurity(-1);
+            bool cursorRow = !UsesCursor && preferences.QuickHands && LoadPreferences().QuickHands && mainframe.SecurityShown.EndsWith(" | -", StringComparison.Ordinal) && mainframe.JobsStatus.StartsWith("- |", StringComparison.Ordinal) && Security.Preset == Security.Trusted;
+            mainframe.FlipSecurity(-1);
+            cursorRow = cursorRow && UsesCursor && !LoadPreferences().QuickHands && mainframe.SecurityShown.EndsWith(" | cursor", StringComparison.Ordinal) && cursorStart.EndsWith(" | cursor", StringComparison.Ordinal);
             string crowded = mainframe.SecurityCrowded;
             mainframe.CloseSecurity();
             float machine = mainframe.Px(1000) / 1000f;
@@ -5927,12 +5938,13 @@ namespace CapriDesktop
             string at150 = mainframe.SecurityAt(1.5f / machine, Path.Combine(output, "security-150.png"));
             string at200 = mainframe.SecurityAt(2f / machine, Path.Combine(output, "security-200.png"));
             Security.Pick(Security.Trusted);
-            if (opened == null || !opened.StartsWith("Trusted | Trusted | 11111110000011 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 01111110000011 | Your own mix", StringComparison.Ordinal) || flippedSaved != "0111111000"
-                || !tapped.StartsWith("Trusted | Trusted | 11111110000011", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 00000000000010 | She asks first before she does anything", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 11111111111001 | She never asks", StringComparison.Ordinal) || !walledHey || !walledSettings || HeyCapriOn)
+            if (opened == null || !opened.StartsWith("Trusted | Trusted | 1111111000011 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 0111111000011 | Your own mix", StringComparison.Ordinal) || flippedSaved != "0111111000"
+                || !tapped.StartsWith("Trusted | Trusted | 1111111000011", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 0000000000010 | She asks first before she does anything", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 1111111111001 | She never asks", StringComparison.Ordinal) || !walledHey || !walledSettings || HeyCapriOn)
                 throw new Exception("The SECURITY window went wrong: " + opened + " // " + flipped + " // " + tapped + " // " + locked + " // " + walled + " // " + walledSettings);
             if (!friendRow) throw new Exception("The SECURITY friend request row did not toggle and save.");
+            if (!cursorRow) throw new Exception("The SECURITY Use her cursor row did not toggle and save in QuickHands, or Settings did not follow it.");
             if (crowded != null || at100 != null || at150 != null || at200 != null) throw new Exception("The SECURITY window's layout doesn't fit: " + crowded + " / 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
-            checks.Add("PASS SECURITY window: Settings > HABITS opens it on Trusted; a toggle click makes it Custom and saves, a click on the slider puts Trusted back, sliding to Lockdown or Blackwall sets every toggle (and \"Hey Capri\") and Settings follows; at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (security-100.png, security-150.png, security-200.png)");
+            checks.Add("PASS SECURITY window: Settings > HABITS opens it on Trusted, with no Hey Capri row and Use her cursor under Use your mouse and keyboard for jobs, which saves where it always did and leaves the preset alone; a toggle click makes it Custom and saves, a click on the slider puts Trusted back, sliding to Lockdown or Blackwall sets every toggle and Settings follows; at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (security-100.png, security-150.png, security-200.png)");
         }
 
         // SECURITY's 13th toggle, Keep personal details out of her memories (#88, Lachy, 5 Nov), in a section of its own so a
@@ -5944,8 +5956,6 @@ namespace CapriDesktop
             string folder = Path.Combine(output, "privacy-" + Guid.NewGuid().ToString("N").Substring(0, 8));
             string notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, vaultWas = Brain.VaultFolder, securityWas = Security.Saved;
             bool keepingWas = Brain.Keeping;
-            Func<bool> heyWas = Security.HeyOn;
-            Action<bool> setHeyWas = Security.SetHey;
             try
             {
                 Brain.MemoryPath = Path.Combine(folder, "me.md");
@@ -5954,8 +5964,6 @@ namespace CapriDesktop
                 Brain.VaultFolder = null;
                 Brain.Keeping = true;
                 Brain.Unsee();
-                Security.HeyOn = null;
-                Security.SetHey = null;
 
                 // Each preset: on in Lockdown, Guarded and Trusted, off in Blackwall, and their saves read as they did before it.
                 System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
@@ -6096,8 +6104,8 @@ namespace CapriDesktop
                 string at100 = mainframe.SecurityAt(1f / machine, Path.Combine(output, "security-privacy-100.png"));
                 string at150 = mainframe.SecurityAt(1.5f / machine, Path.Combine(output, "security-privacy-150.png"));
                 string at200 = mainframe.SecurityAt(2f / machine, Path.Combine(output, "security-privacy-200.png"));
-                if (opened == null || !opened.StartsWith("Trusted | Trusted | 11111110000011", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 11111110000001 | Your own mix", StringComparison.Ordinal) || flippedSaved != "111111100000"
-                    || !back.StartsWith("Trusted | Trusted | 11111110000011", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 11111111111001", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 00000000000010 | She asks first before she does anything on your PC.", StringComparison.Ordinal)
+                if (opened == null || !opened.StartsWith("Trusted | Trusted | 1111111000011", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 1111111000001 | Your own mix", StringComparison.Ordinal) || flippedSaved != "111111100000"
+                    || !back.StartsWith("Trusted | Trusted | 1111111000011", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 1111111111001", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 0000000000010 | She asks first before she does anything on your PC.", StringComparison.Ordinal)
                     || crowded != null || at100 != null || at150 != null || at200 != null)
                     throw new Exception("The SECURITY window's 13th row went wrong: " + opened + " // " + flipped + " (" + flippedSaved + ") // " + back + " // " + walled + " // " + locked + " // fit " + crowded + " / 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
                 checks.Add("PASS SECURITY window's 13th row: Keep personal details out of her memories sits under HER MEMORY, on for Trusted and Lockdown and off for Blackwall; a click makes it Custom and saves, a second puts Trusted back; and at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (security-privacy-100.png, security-privacy-150.png, security-privacy-200.png)");
@@ -6113,8 +6121,6 @@ namespace CapriDesktop
                 Brain.Keeping = keepingWas;
                 Security.Drop();
                 Security.Load(securityWas);
-                Security.HeyOn = heyWas;
-                Security.SetHey = setHeyWas;
                 SecurityChanged();
                 try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
@@ -7372,15 +7378,6 @@ namespace CapriDesktop
         }
 
         internal bool HdVoiceOn { get { return preferences.HdVoice; } }
-
-        internal bool HdGameRest { get { return preferences.HdGameRest; } }
-
-        internal void ToggleHdGameRest()
-        {
-            preferences.HdGameRest = !preferences.HdGameRest;
-            SavePreferences();
-            mainframe.Sync();
-        }
 
         // Her voice in your mic (F66): the mix while the switch is on, or null.
         private MicMix micMix;
@@ -11606,7 +11603,7 @@ namespace CapriDesktop
         // Her sliders' steps for her settings tool, the same ones her Mainframe's sliders stop on.
         internal static readonly int[] OwnSizes = { 140, 170, 200, 240, 280, 320, 380, 440, 500, 560 };
         internal static readonly int[] OwnSleeps = { 0, 60, 120, 300, 600, 1800 };
-        internal static readonly int[] OwnVolumes = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+        internal static readonly int[] OwnVolumes = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
         internal static readonly int[] OwnPaces = { 70, 80, 90, 100, 110, 120, 130, 140, 150 };
 
         private static int Nearest(int[] steps, int value)
@@ -13263,7 +13260,7 @@ namespace CapriDesktop
             mainframe.VoiceNote(problem, true);
         }
 
-        // Her HD voice gives the graphics card back after 10 quiet minutes, and while a game is full screen if Free voice in games is on.
+        // Her HD voice gives the graphics card back after 10 quiet minutes, and while a game is full screen if Power saver is In games or Always.
         private void CheckHd(double now)
         {
             if (now - hdChecked < 3) return;
@@ -13294,8 +13291,8 @@ namespace CapriDesktop
             });
         }
 
-        // Only with Free voice in games on does a full-screen game or video send her back to her free voice.
-        private bool HdStepsAside() { return preferences.HdGameRest && Native.Gaming(); }
+        // Only with Power saver In games or Always does a full-screen game or video send her back to her free voice.
+        private bool HdStepsAside() { return preferences.PowerSaver != 0 && Native.Gaming(); }
 
         internal void ChooseVoiceStyle(string name)
         {
@@ -14066,6 +14063,8 @@ namespace CapriDesktop
             if (preferences.ListenCapri)
             {
                 pill.ListenForName = !NameChatOpen;
+                if (listenChime && !ears.Muted) Chimes.Play(Chime.Listening);
+                listenChime = false;
                 string waiting = ears.Muted ? "Listening for Capri; mic muted." : LocalListening;
                 mainframe.VoiceNote(earsLead + waiting, false);
                 if (!preferences.ListenCapriTold && talkState != TalkState.Thinking)
@@ -14352,6 +14351,7 @@ namespace CapriDesktop
         internal void ToggleListenCapri(bool later = false, bool fromAgent = false)
         {
             preferences.ListenCapri = !preferences.ListenCapri;
+            listenChime = preferences.ListenCapri;
             nameOver = false;
             CloseNameChat();
             SavePreferences();
@@ -14411,6 +14411,8 @@ namespace CapriDesktop
         private const double NameChatSeconds = 20;
         private const string NameChatNote = "Chatting. No need to say Capri.";
         private double nameChatUntil = -1;
+        // Turning Listen for Capri on plays the Listening chime once her ears are open for her name.
+        private bool listenChime;
         // When the line in her ears began, since its words only come back after it ends.
         private double lineBegan = -1;
 
@@ -23475,7 +23477,7 @@ namespace CapriDesktop
                 { "where is the game mode switch?", "Gaming Mode" },
                 { "what is the gaming mode key?", "Gaming Mode" },
                 { "does gaming mode work well on other brains?", "Gaming Mode" },
-                { "how does Free voice in games work?", "Free voice in games" },
+                { "does your free voice take over from HD in games?", "Power saver" },
                 { "how do your game comments work?", "Comments" },
                 { "how do your live reactions work?", "Live reactions" },
                 { "how do I stop you reacting to game sounds?", "Game sounds" },
@@ -32784,7 +32786,7 @@ namespace CapriDesktop
                 System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
                 Hands.SettingOn = delegate(string name) { return state.ContainsKey(name) ? state[name] : null; };
                 // Her sliders have their own check (SmokeSettingsTool); here each sits on a fixed step.
-                Hands.LevelOf = delegate(string name) { return Array.IndexOf(new[] { "pop_ins", "replies", "bubble" }, name) >= 0 ? 1 : name == "size" ? 3 : name == "wander" ? 0 : name == "sleep" ? 3 : name == "volume" ? 8 : name == "voice_speed" ? 5 : -1; };
+                Hands.LevelOf = delegate(string name) { return Array.IndexOf(new[] { "pop_ins", "replies", "bubble" }, name) >= 0 ? 1 : name == "size" ? 3 : name == "wander" ? 0 : name == "sleep" ? 3 : name == "volume" ? 7 : name == "voice_speed" ? 5 : -1; };
                 Hands.SetSetting = delegate(string name, bool on)
                 {
                     flipped.Add(name + (on ? " on" : " off"));
@@ -33030,7 +33032,7 @@ namespace CapriDesktop
                 string[,] toggles =
                 {
                     { "keep_awake", "keepAwake", "NoKeepAwake" }, { "player_full_screen", "playerFullScreen", "PlayerFullScreen" }, { "explore_away", "exploreAway", "ExploreAway" },
-                    { "fast_hands", "fastHands", "SlowHands" }, { "cursor", "cursor", "QuickHands" }, { "discord_presence", "discord", "NoDiscord" }, { "listen_for_capri", "listenCapri", "ListenCapri" }
+                    { "fast_hands", "fastHands", "SlowHands" }, { "discord_presence", "discord", "NoDiscord" }, { "listen_for_capri", "listenCapri", "ListenCapri" }
                 };
                 for (int i = 0; i < toggles.GetLength(0); i++)
                 {
@@ -33040,11 +33042,17 @@ namespace CapriDesktop
                         string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = name });
                         bool real = SettingOn(name) == true;
                         bool persisted = (bool)saved(LoadPreferences(), toggles[i, 2]);
-                        if (name == "keep_awake" || name == "fast_hands" || name == "cursor" || name == "discord_presence") persisted = !persisted;
+                        if (name == "keep_awake" || name == "fast_hands" || name == "discord_presence") persisted = !persisted;
                         if (real != on || ((CheckBox)shown(toggles[i, 1])).Checked != on || persisted != on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Setting switch disagreed with Mainframe or disk: " + name + " / " + line);
                     }
                     checks.Add("PASS setting " + name + " uses Mainframe's switch, saves and reads back both ways");
                 }
+                foreach (bool on in new[] { true, false })
+                {
+                    string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "cursor" });
+                    if (SettingOn("cursor") != on || UsesCursor != on || LoadPreferences().QuickHands == on || !mainframe.JobsStatus.StartsWith(on ? "cursor |" : "- |", StringComparison.Ordinal) || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Setting switch disagreed with SECURITY's Use her cursor or disk: cursor / " + line);
+                }
+                checks.Add("PASS setting cursor uses SECURITY's Use her cursor row, saves and reads back both ways");
                 // With nothing in the Run key, as on a new install, her tool and her switch both say it's off (#199).
                 mainframe.Sync();
                 string startupFirst = Hands.Do("capri_settings", new ToolArguments { Action = "list", Name = "startup" });
@@ -47003,8 +47011,6 @@ namespace CapriDesktop
             Func<ToolArguments, string> oldTool = Hands.Workspace;
             string saved = Security.Saved, workingWas = working;
             bool wakeWas = Security.On(Security.Wake), keepingWas = Brain.Keeping;
-            Func<bool> heyWas = Security.HeyOn;
-            Action<bool> setHeyWas = Security.SetHey;
             Job jobWas = job;
             Func<Func<string>, string> run = delegate(Func<string> action)
             {
@@ -47031,8 +47037,6 @@ namespace CapriDesktop
                     workspaceWindow = null;
                     Hands.Workspace = WorkspaceTool;
                     Brain.Keeping = false;
-                    Security.HeyOn = null;
-                    Security.SetHey = null;
                     Security.Drop();
                     Security.Load("0000000000", false);
                     string empty = run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); });
@@ -47222,8 +47226,6 @@ namespace CapriDesktop
                     workspace = oldWork;
                     Hands.Workspace = oldTool;
                     Brain.Keeping = keepingWas;
-                    Security.HeyOn = heyWas;
-                    Security.SetHey = setHeyWas;
                     Security.Load(saved, wakeWas);
                 }
             }
@@ -58473,7 +58475,7 @@ namespace CapriDesktop
                             ChooseVoiceStyle(QwenVoice.Style);
                             if (!preferences.HdVoice || mainframe.FreeStatus != "Free voice: HD | " + freeSetupText || !mainframe.HdChoice.EndsWith("(picked)", StringComparison.Ordinal)) throw new Exception("Picking her HD voice didn't stick: " + mainframe.FreeStatus + " / " + mainframe.HdChoice);
                             if (mainframe.Overlap() != null) throw new Exception("The free voice row overlaps with HD picked: " + mainframe.Overlap());
-                            // Her voice in your mic's rows (F66) sit under Free voice in games while HD is picked.
+                            // Her voice in your mic's rows (F66) fit the same with HD picked.
                             Section(checks, "SmokeVoiceInMicHdRows", delegate
                             {
                                 bool hdMixPage = mainframe.SettingsShown;
@@ -58481,38 +58483,38 @@ namespace CapriDesktop
                                 try
                                 {
                                     mainframe.ShowSettings(true);
-                                    hdMixFits = mainframe.HdGamesStatus == "-" ? "Free voice in games isn't showing" : mainframe.VoiceInMicFits() ?? mainframe.Overlap();
+                                    hdMixFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap();
                                 }
                                 finally { mainframe.ShowSettings(hdMixPage); }
-                                if (hdMixFits != null) throw new Exception("Her voice in your mic's rows don't fit with Free voice in games showing: " + hdMixFits);
-                                checks.Add("PASS her voice in your mic's rows move down under Free voice in games while HD is on and still fit, with nothing over them");
+                                if (hdMixFits != null) throw new Exception("Her voice in your mic's rows don't fit with HD picked: " + hdMixFits);
+                                checks.Add("PASS her voice in your mic's rows still fit with HD picked, with nothing over them");
                             });
                             Func<string, byte[]> hdFallback = delegate(string words) { return null; };
                             if (Hd(hdFallback) != hdFallback) throw new Exception("Her HD voice spoke before it was installed.");
-                            // Free voice in games: shown only with HD on and off out of the box, and only when it's on does a full-screen game send her to her free voice.
-                            string hdGamesPicked = mainframe.HdGamesStatus, hdGamesOn;
-                            bool hdKeptInGame, hdRestedInGame, hdKeptOutOfGame;
+                            // Power saver's In games and Always send a full-screen game to her free voice, and Off keeps HD talking.
+                            int hdSaverWas = preferences.PowerSaver;
+                            bool hdKeptInGame, hdRestedInGame, hdRestedAlways, hdKeptOutOfGame;
                             try
                             {
                                 Native.FakedGaming = true;
+                                preferences.PowerSaver = 0;
                                 hdKeptInGame = !HdStepsAside();
-                                ToggleHdGameRest();
-                                hdGamesOn = mainframe.HdGamesStatus;
+                                preferences.PowerSaver = 1;
                                 hdRestedInGame = HdStepsAside();
+                                preferences.PowerSaver = 2;
+                                hdRestedAlways = HdStepsAside();
                                 Native.FakedGaming = false;
                                 hdKeptOutOfGame = !HdStepsAside();
-                                ToggleHdGameRest();
                             }
-                            finally { Native.FakedGaming = false; }
-                            if (hdGamesPicked != "off" || hdGamesOn != "on" || !hdKeptInGame || !hdRestedInGame || !hdKeptOutOfGame || preferences.HdGameRest)
-                                throw new Exception("Free voice in games didn't work: shown " + hdGamesPicked + " then " + hdGamesOn + ", HD kept in a game with it off " + hdKeptInGame + ", rested in a game with it on " + hdRestedInGame + ", kept with nothing full screen " + hdKeptOutOfGame);
+                            finally { Native.FakedGaming = false; preferences.PowerSaver = hdSaverWas; }
+                            if (!hdKeptInGame || !hdRestedInGame || !hdRestedAlways || !hdKeptOutOfGame)
+                                throw new Exception("Power saver didn't send HD to her free voice in a game: kept in a game with it Off " + hdKeptInGame + ", rested on In games " + hdRestedInGame + ", rested on Always " + hdRestedAlways + ", kept with nothing full screen " + hdKeptOutOfGame);
                             ChooseVoiceStyle("Sly");
                             if (preferences.HdVoice || kokoro.Style.Speaker != 6 || mainframe.FreeStatus != "Free voice: Sly | " + freeSetupText) throw new Exception("Picking a free voice didn't turn HD off: " + mainframe.FreeStatus);
-                            if (mainframe.HdGamesStatus != "-") throw new Exception("Free voice in games still showed with HD off: " + mainframe.HdGamesStatus);
                             ChooseVoiceStyle(LocalVoice.Styles[0].Name);
                             qwen.Hardware = null;
                             checks.Add("PASS HD voice memory: 2, 4, 6 and 8 GB graphics with 8 and 16 GB RAM all allow HD and clips; under 6 GB uses 2-second codec chunks, 6 GB and above keeps the same 1024-frame cache and 6-second chunks; low or unknown memory warns without blocking; CPU can be picked and undone on every machine, adding only --device CPU and clearing the retry wait");
-                            checks.Add("PASS HD voice: off by default, picking it sticks, Free voice in games shows in Settings only while it's on and starts off, a full-screen game sends her to her free voice only with it on, and picking another free voice turns HD off");
+                            checks.Add("PASS HD voice: off by default, picking it sticks, a full-screen game sends her to her free voice with Power saver on In games or Always and not with it Off, and picking another free voice turns HD off");
                             // Their own voice: a clip in any coding Windows reads becomes a 24 kHz mono 16-bit reference with its quiet ends cut, a bad clip
                             // says why in plain words, and the free voice menu brings back a clip a test build shelved.
                             string yvRoot = Path.Combine(output, "your-voice");
