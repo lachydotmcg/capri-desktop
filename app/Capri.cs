@@ -23662,8 +23662,8 @@ namespace CapriDesktop
                         if (!selfLabels.Contains(selfControl.Groups[1].Value)) throw new Exception("Self knowledge is missing a setting: " + selfControl.Groups[1].Value);
                     foreach (string selfCareName in Care.Names)
                         if (!selfLabels.Contains(selfCareName)) throw new Exception("Self knowledge is missing a CAPRI check-in: " + selfCareName);
-                    foreach (string selfPermission in Security.Names)
-                        if (!selfLabels.Contains(selfPermission)) throw new Exception("Self knowledge is missing a SECURITY toggle: " + selfPermission);
+                    for (int selfToggle = 0; selfToggle < Security.Names.Length; selfToggle++)
+                        if (selfToggle != Security.Wake && !selfLabels.Contains(Security.Names[selfToggle])) throw new Exception("Self knowledge is missing a SECURITY toggle: " + Security.Names[selfToggle]);
                     foreach (string selfPreset in Security.Presets)
                         if (SelfKnow.Matching("Explain the Security setting").IndexOf(selfPreset, StringComparison.Ordinal) < 0)
                             throw new Exception("Self knowledge is missing a SECURITY preset: " + selfPreset);
