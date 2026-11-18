@@ -268,8 +268,10 @@ Hide / Show Capri	Ascunde / Arată Capri
 Hide / Show key	Tasta Ascunde / Arată
 Hide Capri	Ascunde Capri
 Hide for now	Ascunde deocamdată
+Hide her	Ascunde-o
 Hide in full screen	Ascunde în ecran complet
 Hide this	Ascunde asta
+Hide, keep player	Ascunde-o, păstrează playerul
 Hide/show:	Ascunde/arată:
 Hide/show: Ctrl + Alt + H	Ascunde/arată: Ctrl + Alt + H
 Hologram	Holograma
@@ -296,6 +298,7 @@ IN DISCORD >	PE DISCORD >
 INSTALLED >	INSTALAT >
 Import a Capri mod	Importă un mod Capri
 Import mod	Importă modul
+In full screen	În ecran complet
 In games	În jocuri
 Input	Intrare
 Input, Output or How to overlaps a row	Intrare, Ieșire sau Cum se suprapune cu un rând
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TASTE
 KEYS >	TASTE >
 Keep PC awake for jobs	Ține PC-ul treaz pentru sarcini
+Keep player	Păstrează playerul
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Păstrează în memorie ultimele două minute din jocul tău. Spune filmează asta ca să le salvezi.
 Key	Cheie
 Key cleared: a model file needs none.	Cheie ștearsă: un fișier de model nu are nevoie de ea.
@@ -439,6 +443,7 @@ No AI · no brain at all	Fără AI · fără creier deloc
 No brain runs, and nothing is sent anywhere.	Niciun creier nu rulează și nimic nu este trimis nicăieri.
 No brain yet	Încă niciun creier
 No code open	Niciun cod deschis
+No limit	Fără limită
 No mic found	Niciun microfon găsit
 No mods in the directory yet.	Încă niciun mod în director.
 No mods match that.	Niciun mod nu se potrivește cu asta.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ton
 Play	Redă
 Play...	Redă...
+Player only	Doar playerul
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modelele Pocket TTS copiază vocea acestui clip. Apasă Test ca să o auzi.
 Pop-in times	Ore de apariție
 Pop-ins	Apariții
@@ -666,6 +672,7 @@ Speed	Viteză
 Start with Windows	Pornește odată cu Windows
 Start with this!	Începe cu asta!
 Starting...	Se pornește...
+Stay	Rămâi
 Stay on my model	Rămâi pe modelul meu
 Still checking your mics...	Încă verific microfoanele tale...
 Still checking your speakers...	Încă verific boxele tale...

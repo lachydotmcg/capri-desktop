@@ -268,8 +268,10 @@ Hide / Show Capri	Paslēpt / rādīt Capri
 Hide / Show key	Paslēpt / rādīt taustiņu
 Hide Capri	Paslēpt Capri
 Hide for now	Pagaidām paslēpt
+Hide her	Paslēpt viņu
 Hide in full screen	Paslēpt pilnekrāna režīmā
 Hide this	Paslēpt to
+Hide, keep player	Paslēpt, atstāt atskaņotāju
 Hide/show:	Paslēpt/rādīt:
 Hide/show: Ctrl + Alt + H	Paslēpt/rādīt: Ctrl + Alt + H
 Hologram	Hologramma
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALĒTS >
 Import a Capri mod	Importēt Capri modifikāciju
 Import mod	Importēt modifikāciju
+In full screen	Pilnekrāna režīmā
 In games	Spēlēs
 Input	Ievade
 Input, Output or How to overlaps a row	Ievade, Izvade vai Kā pārklājas ar rindu
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TASTIŅI
 KEYS >	TASTIŅI >
 Keep PC awake for jobs	Turēt PC modinātu darbiem
+Keep player	Atstāt atskaņotāju
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Saglabā pēdējās divas minūtes tavas spēles atmiņā. Pasaki klipot to, lai to saglabātu.
 Key	Atslēga
 Key cleared: a model file needs none.	Atslēga notīrīta: modeļa failam nav vajadzīga.
@@ -439,6 +443,7 @@ No AI · no brain at all	Nav AI · nav nekādu smadzeņu
 No brain runs, and nothing is sent anywhere.	Nekādas smadzenes nedarbojas, un nekas nekur netiek sūtīts.
 No brain yet	Vēl nav smadzeņu
 No code open	Nav atvērta koda
+No limit	Bez ierobežojuma
 No mic found	Mikrofons nav atrasts
 No mods in the directory yet.	Direktorijā vēl nav modifikāciju.
 No mods match that.	Nav modifikāciju, kas atbilstu.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Augstums
 Play	Atskaņot
 Play...	Atskaņot...
+Player only	Tikai atskaņotājs
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeļi kopē šī klipa balsi. Nospied Pārbaudīt, lai to noklausītos.
 Pop-in times	Parādīšanās laiki
 Pop-ins	Parādīšanās
@@ -666,6 +672,7 @@ Speed	Ātrums
 Start with Windows	Startēt kopā ar Windows
 Start with this!	Sāc ar šo!
 Starting...	Startē...
+Stay	Palikt
 Stay on my model	Palikt pie mana modeļa
 Still checking your mics...	Vēl pārbaudu tavus mikrofonus...
 Still checking your speakers...	Vēl pārbaudu tavus skaļruņus...

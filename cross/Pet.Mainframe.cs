@@ -269,8 +269,7 @@ namespace CapriDesktop
             MainframeTheme.Repaint(mainframe);
         }
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
-        internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
-        internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
+        internal void SetReplyLength(int index) { SetReplies(index <= 0 ? Brain.Wordiness : index == 1 ? 0 : 3); }
         internal void SetThinking(int level) { if (Brain.SetThinking(level)) { Saved.ThinkingPicks = Brain.Picks; Save(); } }
         // What's wrong with it, or null once it's saved for the brain she's on.
         internal string SetThinkingExtra(string typed)

@@ -1379,12 +1379,12 @@ namespace CapriDesktop
             else Silence(false);
         }
 
-        internal bool FirstRunExtraOn(int row) { return row == 0 ? Watching : row == 1 ? CommentPace > 0 : row == 2 ? ClipsOn : ListenCapriOn; }
+        internal bool FirstRunExtraOn(int row) { return row == 0 ? Watching : row == 1 ? CommentPace == Commentary.Chatty : row == 2 ? ClipsOn : ListenCapriOn; }
 
         internal void FirstRunExtra(int row)
         {
             if (row == 0) ToggleWatch();
-            else if (row == 1) { SetCommentPace(CommentPace > 0 ? 0 : 2); mainframe.Sync(); }
+            else if (row == 1) { SetCommentPace(CommentPace == Commentary.Chatty ? 0 : 2); mainframe.Sync(); }
             else if (row == 2) ToggleClips();
             else ToggleListenCapri();
         }

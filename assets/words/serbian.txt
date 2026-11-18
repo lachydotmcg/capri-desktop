@@ -268,8 +268,10 @@ Hide / Show Capri	Sakrij / Prikaži Capri
 Hide / Show key	Taster sakrij / prikaži
 Hide Capri	Sakrij Capri
 Hide for now	Sakrij za sada
+Hide her	Sakrij je
 Hide in full screen	Sakrij u celom ekranu
 Hide this	Sakrij ovo
+Hide, keep player	Sakrij, zadrži plejer
 Hide/show:	Sakrij/prikaži:
 Hide/show: Ctrl + Alt + H	Sakrij/prikaži: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	U DISCORDU >
 INSTALLED >	INSTALIRANO >
 Import a Capri mod	Uvezi Capri mod
 Import mod	Uvezi mod
+In full screen	Na celom ekranu
 In games	U igrama
 Input	Ulaz
 Input, Output or How to overlaps a row	Ulaz, Izlaz ili Kako se preklapa sa redom
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TASTERI
 KEYS >	TASTERI >
 Keep PC awake for jobs	Drži PC budnim za poslove
+Keep player	Zadrži plejer
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Čuva poslednja dva minuta tvoje igre u memoriji. Reci snimi to da je sačuvaš.
 Key	Ključ
 Key cleared: a model file needs none.	Ključ obrisan: model fajl ne treba nijedan.
@@ -439,6 +443,7 @@ No AI · no brain at all	Bez AI · bez ikakvog mozga
 No brain runs, and nothing is sent anywhere.	Nijedan mozak ne radi i ništa se nigde ne šalje.
 No brain yet	Još nema mozga
 No code open	Nema otvorenog koda
+No limit	Без ограничења
 No mic found	Nije pronađen mikrofon
 No mods in the directory yet.	Još nema modova u direktorijumu.
 No mods match that.	Nijedan mod ne odgovara tome.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Visina
 Play	Pusti
 Play...	Pusti...
+Player only	Samo plejer
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeli kopiraju glas iz ovog klipa. Pritisni Test da ga čuješ.
 Pop-in times	Vremena pojavljivanja
 Pop-ins	Pojavljivanja
@@ -666,6 +672,7 @@ Speed	Brzina
 Start with Windows	Pokreni sa Windows-om
 Start with this!	Počni sa ovim!
 Starting...	Pokrećem...
+Stay	Ostani
 Stay on my model	Ostani na mom modelu
 Still checking your mics...	Još proveravam tvoje mikrofone...
 Still checking your speakers...	Još proveravam tvoje zvučnike...

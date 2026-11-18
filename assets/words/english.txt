@@ -268,8 +268,10 @@ Hide / Show Capri
 Hide / Show key
 Hide Capri
 Hide for now
+Hide her
 Hide in full screen
 Hide this
+Hide, keep player
 Hide/show:
 Hide/show: Ctrl + Alt + H
 Hologram
@@ -296,6 +298,7 @@ IN DISCORD >
 INSTALLED >
 Import a Capri mod
 Import mod
+In full screen
 In games
 Input
 Input, Output or How to overlaps a row
@@ -314,6 +317,7 @@ KB.
 KEYS
 KEYS >
 Keep PC awake for jobs
+Keep player
 Keeps the last two minutes of your game in memory. Say clip that to save it.
 Key
 Key cleared: a model file needs none.
@@ -439,6 +443,7 @@ No AI · no brain at all
 No brain runs, and nothing is sent anywhere.
 No brain yet
 No code open
+No limit
 No mic found
 No mods in the directory yet.
 No mods match that.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch
 Play
 Play...
+Player only
 Pocket TTS models copy this clip's voice. Press Test to hear it.
 Pop-in times
 Pop-ins
@@ -666,6 +672,7 @@ Speed
 Start with Windows
 Start with this!
 Starting...
+Stay
 Stay on my model
 Still checking your mics...
 Still checking your speakers...

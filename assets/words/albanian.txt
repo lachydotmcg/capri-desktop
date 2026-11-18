@@ -268,8 +268,10 @@ Hide / Show Capri	Fshih / Shfaq Capri
 Hide / Show key	Çelësi fshih / shfaq
 Hide Capri	Fshih Capri
 Hide for now	Fshih për tani
+Hide her	Fshije
 Hide in full screen	Fshih në ekran të plotë
 Hide this	Fshih këtë
+Hide, keep player	Fshije, mbaj lojtarin
 Hide/show:	Fshih/shfaq:
 Hide/show: Ctrl + Alt + H	Fshih/shfaq: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALUAR >
 Import a Capri mod	Importo një modifikim të Capri
 Import mod	Importo modifikim
+In full screen	Në ekran të plotë
 In games	Në lojëra
 Input	Hyrja
 Input, Output or How to overlaps a row	Hyrja, Dalja ose Si mbivendoset me një rresht
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	TASTET
 KEYS >	TASTET >
 Keep PC awake for jobs	Mbaj PC zgjuar për punët
+Keep player	Mbaj lojtarin
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Mban dy minutat e fundit të lojës tënde në memorie. Thuaj klipo kjo për ta ruajtur.
 Key	Çelës
 Key cleared: a model file needs none.	Çelësi u pastrua: një skedar modeli nuk ka nevojë për asnjë.
@@ -439,6 +443,7 @@ No AI · no brain at all	Pa AI · pa tru fare
 No brain runs, and nothing is sent anywhere.	Asnjë tru nuk punon, dhe asgjë nuk dërgohet askund.
 No brain yet	Ende pa tru
 No code open	Asnjë kod i hapur
+No limit	Pa kufi
 No mic found	Nuk u gjet mikrofon
 No mods in the directory yet.	Nuk ka ende modifikime në dosje.
 No mods match that.	Asnjë modifikim nuk përputhet me atë.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Lartësia
 Play	Luaj
 Play...	Luaj...
+Player only	Vetëm lojtari
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modelet Pocket TTS kopjojnë zërin e këtij klipi. Shtyp Testo për ta dëgjuar.
 Pop-in times	Kohët e shfaqjes
 Pop-ins	Shfaqjet
@@ -666,6 +672,7 @@ Speed	Shpejtësia
 Start with Windows	Nis me Windows
 Start with this!	Fillo me këtë!
 Starting...	Duke filluar...
+Stay	Qëndro
 Stay on my model	Qëndro te modeli im
 Still checking your mics...	Ende duke kontrolluar mikrofonat e tu...
 Still checking your speakers...	Ende duke kontrolluar altoparlantët e tu...

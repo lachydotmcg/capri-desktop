@@ -268,8 +268,10 @@ Hide / Show Capri	Fihla / Bonisa uCapri
 Hide / Show key	Ukhiye wokufihla / wokubonisa
 Hide Capri	Fihla uCapri
 Hide for now	Fihla okwamanje
+Hide her	Mfihle
 Hide in full screen	Fihla esikrinini esigcwele
 Hide this	Fihla lokhu
+Hide, keep player	Mfihle, gcina i-player
 Hide/show:	Fihla/bonisa:
 Hide/show: Ctrl + Alt + H	Fihla/bonisa: Ctrl + Alt + H
 Hologram	I-Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	KU-DISCORD >
 INSTALLED >	OKUFAKIWE >
 Import a Capri mod	Ngenisa i-mod ka-Capri
 Import mod	Ngenisa i-mod
+In full screen	Esikrinini esigcwele
 In games	Emidlalweni
 Input	Okokufaka
 Input, Output or How to overlaps a row	Okokufaka, Okokuphuma noma Indlela yokwenza kuhlanganisa umugqa
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	AMAKHIYE
 KEYS >	AMAKHIYE >
 Keep PC awake for jobs	Gcina i-PC ivuka ngemisebenzi
+Keep player	Gcina i-player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Igcina imizuzu emibili yokugcina yomdlalo wakho enkumbulweni. Sho clip that ukuze uyigcine.
 Key	Ukhiye
 Key cleared: a model file needs none.	Ukhiye usuhlanzekile: ifayela lemodeli alidingi lutho.
@@ -439,6 +443,7 @@ No AI · no brain at all	Akukho AI · akukho ngqondo nhlobo
 No brain runs, and nothing is sent anywhere.	Akukho ngqondo esebenzayo, futhi akukho okuthunyelwa noma kuphi.
 No brain yet	Akukho ngqondo okwamanje
 No code open	Akukho khodi evuliwe
+No limit	Akukho umkhawulo
 No mic found	Akukho mic etholakele
 No mods in the directory yet.	Akukho ama-mod kwifolda okwamanje.
 No mods match that.	Akukho mod ohambisana nalokho.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ipitch
 Play	Dlala
 Play...	Dlala...
+Player only	I-player kuphela
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Amamodeli e-Pocket TTS akopisha izwi laleli klipu. Cindezela Hlola ukuze uliyzwe.
 Pop-in times	Izikhathi zokuvela
 Pop-ins	Ukuvela
@@ -666,6 +672,7 @@ Speed	Isivinini
 Start with Windows	Qala ne-Windows
 Start with this!	Qala ngalokhu!
 Starting...	Iyaqala...
+Stay	Hlala
 Stay on my model	Hlala kwimodeli yami
 Still checking your mics...	Ngisahlola ama-mic akho...
 Still checking your speakers...	Ngisahlola izipikha zakho...

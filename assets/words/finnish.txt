@@ -268,8 +268,10 @@ Hide / Show Capri	Piilota / näytä Capri
 Hide / Show key	Piilota / näytä -näppäin
 Hide Capri	Piilota Capri
 Hide for now	Piilota toistaiseksi
+Hide her	Piilota hänet
 Hide in full screen	Piilota koko näytöllä
 Hide this	Piilota tämä
+Hide, keep player	Piilota, jätä soitin
 Hide/show:	Piilota/näytä:
 Hide/show: Ctrl + Alt + H	Piilota/näytä: Ctrl + Alt + H
 Hologram	Hologrammi
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORDISSA >
 INSTALLED >	ASENNETTU >
 Import a Capri mod	Tuo Capri-modi
 Import mod	Tuo modi
+In full screen	Koko näytöllä
 In games	Peleissä
 Input	Syöte
 Input, Output or How to overlaps a row	Syöte, Tuloste tai Miten menee päällekkäin rivin kanssa
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	NÄPPÄIMET
 KEYS >	NÄPPÄIMET >
 Keep PC awake for jobs	Pidä PC hereillä töitä varten
+Keep player	Jätä soitin
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Säilyttää pelisi viimeiset kaksi minuuttia muistissa. Sano clip that tallentaaksesi.
 Key	Avain
 Key cleared: a model file needs none.	Avain tyhjennetty: mallitiedosto ei tarvitse avainta.
@@ -439,6 +443,7 @@ No AI · no brain at all	Ei AI · ei lainkaan aivoja
 No brain runs, and nothing is sent anywhere.	Mitään aivoja ei käytetä, eikä mitään lähetetä minnekään.
 No brain yet	Ei vielä aivoja
 No code open	Ei avointa koodia
+No limit	Ei rajaa
 No mic found	Mikkiä ei löytynyt
 No mods in the directory yet.	Modikansiossa ei vielä ole modeja.
 No mods match that.	Mikään modi ei vastaa tätä.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Sävelkorkeus
 Play	Toista
 Play...	Toista...
+Player only	Vain soitin
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS -mallit kopioivat tämän klipin äänen. Paina Testaa kuullaksesi sen.
 Pop-in times	Ilmestymisajat
 Pop-ins	Ilmestymiset
@@ -666,6 +672,7 @@ Speed	Nopeus
 Start with Windows	Käynnistä Windowsin mukana
 Start with this!	Aloita tästä!
 Starting...	Käynnistetään...
+Stay	Pysy
 Stay on my model	Pysy mallissani
 Still checking your mics...	Tarkistetaan vielä mikkejäsi...
 Still checking your speakers...	Tarkistetaan vielä kaiuttimiasi...

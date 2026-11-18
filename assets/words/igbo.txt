@@ -268,8 +268,10 @@ Hide / Show Capri	Zoo / Gosi Capri
 Hide / Show key	Igodo zoo / gosi
 Hide Capri	Zoo Capri
 Hide for now	Zoo ugbu a
+Hide her	Zoo ya
 Hide in full screen	Zoo n'ihuenyo zuru oke
 Hide this	Zoo nke a
+Hide, keep player	Zoo ya, debe onye ọkpụkpọ
 Hide/show:	Zoo/gosi:
 Hide/show: Ctrl + Alt + H	Zoo/gosi: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	N'IME DISCORD >
 INSTALLED >	EDOZILA >
 Import a Capri mod	Bubata mod Capri
 Import mod	Bubata mod
+In full screen	N'ihuenyo zuru oke
 In games	N'egwuregwu
 Input	Ntinye
 Input, Output or How to overlaps a row	Ntinye, Mpụta ma ọ bụ Otú esi na-agbakọ ahịrị
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	IGODO
 KEYS >	IGODO >
 Keep PC awake for jobs	Debe kọmputa ka ọ nọrọ ntụpọ maka ọrụ
+Keep player	Debe onye ọkpụkpọ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Na-echekwa nkeji abụọ ikpeazụ nke egwuregwu gị na ncheta. Kwuo "debanye nke ahụ na klip" iji chekwaa ya.
 Key	Igodo
 Key cleared: a model file needs none.	Ahichapụrụ igodo: faịlụ modul achọghị ya.
@@ -439,6 +443,7 @@ No AI · no brain at all	Enweghị AI · enweghị ụbụrụ ọ bụla
 No brain runs, and nothing is sent anywhere.	Enweghị ụbụrụ na-agba ọsọ, ihe ọ bụla adịghị ezipụ ebe ọ bụla.
 No brain yet	Enweghị ụbụrụ ugbu a
 No code open	Enweghị koodu emepere
+No limit	Enweghị oke
 No mic found	Ahụghị mic
 No mods in the directory yet.	Enweghị mods n'ndekọ ugbu a.
 No mods match that.	Enweghị mods dabara na nke ahụ.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ụda
 Play	Kpọọ egwu
 Play...	Kpọọ egwu...
+Player only	Naanị onye ọkpụkpọ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modul Pocket TTS na-eme ọdịdị olu klip a. Pịa Nwalee iji nụ ya.
 Pop-in times	Oge ịbanye
 Pop-ins	Ịbanye
@@ -666,6 +672,7 @@ Speed	Ọsọ
 Start with Windows	Malite na Windows
 Start with this!	Malite site na nke a!
 Starting...	Na-amalite...
+Stay	Nọgide
 Stay on my model	Nọrọ na modul m
 Still checking your mics...	Ka na-enyocha mic gị...
 Still checking your speakers...	Ka na-enyocha ihe nkwupụta gị...

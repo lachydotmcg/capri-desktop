@@ -1017,7 +1017,7 @@ namespace CapriDesktop
             string doing = SelfKnow.Matching("what can you do?") ?? "", closing = SelfKnow.Matching("Explain the Close and switch apps and tabs setting") ?? "", sizing = SelfKnow.Matching("how do I make you bigger?") ?? "";
             string changing = SelfKnow.Matching("what settings can you change yourself?") ?? "", timing = SelfKnow.Matching("how do timers work?") ?? "";
             if (!doing.Contains("maximize, snap, move, resize") || !doing.Contains("changes her own settings when you ask") || !closing.Contains("maximizing, snapping, moving and resizing windows")
-                || !SelfKnow.Matching("how do I move a window to my other monitor?").Contains("keep Discord on top, until unpin Discord") || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Hologram, Watch my screen and game Comments, plus Size") || !changing.Contains("Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
+                || !SelfKnow.Matching("how do I move a window to my other monitor?").Contains("keep Discord on top, until unpin Discord") || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Hologram, Watch my screen and game Comments, plus Size") || !changing.Contains("Keys, brains, her voice service, SECURITY, Remember what she sees and Remember our chats stay yours"))
                 throw new Exception("Self knowledge didn't say what her tools do now: " + doing + " / " + closing + " / " + changing);
             string root = null;
             foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
@@ -1054,8 +1054,8 @@ namespace CapriDesktop
             TcpListener fake = null;
             try
             {
-                Dictionary<string, bool?> switches = new Dictionary<string, bool?> { { "wander", true }, { "head_pats", true }, { "sit_on_windows", true }, { "typing_sound", false } };
-                Dictionary<string, int> levels = new Dictionary<string, int> { { "size", 3 }, { "wander", 1 }, { "pop_ins", 1 }, { "sleep", 3 }, { "volume", 8 }, { "voice_speed", 5 }, { "replies", 1 }, { "bubble", 1 } };
+                Dictionary<string, bool?> switches = new Dictionary<string, bool?> { { "wander", true }, { "head_pats", true }, { "sit_on_windows", true }, { "typing_sound", false }, { "voice", true } };
+                Dictionary<string, int> levels = new Dictionary<string, int> { { "size", 3 }, { "wander", 1 }, { "pop_ins", 1 }, { "sleep", 3 }, { "volume", 7 }, { "voice_speed", 5 }, { "replies", 1 }, { "bubble", 1 } };
                 List<string> moved = new List<string>();
                 Hands.SettingOn = delegate(string name) { return switches.ContainsKey(name) ? switches[name] : null; };
                 Hands.SetSetting = delegate(string name, bool on) { switches[name] = on; return null; };
@@ -1068,7 +1068,7 @@ namespace CapriDesktop
                     { "size", "bigger", "Set my size to Medium+." }, { "size", "Giant", "Set my size to Giant." }, { "size", "a bit bigger", "My size is already Giant, as far as it goes." },
                     { "size", "giant", "My size is already Giant." }, { "size", "smallest", "Set my size to Tiny." }, { "size", "huge+", "Set my size to Huge+." },
                     { "wander", "off", "Set Wander to Off." }, { "wander", "more", "Set Wander to Rarely." }, { "wander", "Restless", "Set Wander to Restless." },
-                    { "volume", "50", "Set my voice's volume to 50%." }, { "volume", "louder", "Set my voice's volume to 60%." }, { "volume", "max", "Set my voice's volume to 150%." }, { "volume", "mute", "Set my voice's volume to Mute." },
+                    { "volume", "50", "Set my voice's volume to 50%." }, { "volume", "louder", "Set my voice's volume to 60%." }, { "volume", "max", "Set my voice's volume to 150%." }, { "volume", "mute", "Turned my voice off." }, { "volume", "quietest", "Set my voice's volume to 10%." },
                     { "voice_speed", "1.3", "Set my voice's speed to 1.3x." }, { "voice_speed", "slower", "Set my voice's speed to 1.2x." }, { "voice_speed", "1x", "Set my voice's speed to Normal." }, { "voice_speed", "normal", "My voice's speed is already Normal." },
                     { "sleep", "10 minutes", "Set Sleep to 10 min." }, { "sleep", "never", "Set Sleep to Never." }, { "sleep", "to 30 min", "Set Sleep to 30 min." },
                     { "pop_ins", "often", "Set Pop-ins to Often." }, { "replies", "shorter", "Set Replies to Short." }, { "replies", "shorter", "Replies is already Short, as far as it goes." },
@@ -1116,7 +1116,7 @@ namespace CapriDesktop
                 foreach (string name in new[] { "size", "wander", "pop_ins", "sleep", "volume", "voice_speed", "replies", "bubble" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = name, Level = "up" })) throw new Exception("Her settings tool's slider " + name + " wasn't taken.");
                 // Her sliders' steps are the ones her Mainframe's sliders stop on, by name and by value.
-                string[] mainframeNames = { "SizeNames", "WanderNames", "PopNames", "SleepNames", "VolumeNames", "PaceNames", "Lengths", "BubbleNames" };
+                string[] mainframeNames = { "SizeNames", "WanderNames", "PopNames", "SleepNames", "VolumeNames", "PaceNames", "ReplyNames", "BubbleNames" };
                 for (int i = 0; i < mainframeNames.Length; i++)
                 {
                     string[] shown = (string[])typeof(Mainframe).GetField(mainframeNames[i], System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);

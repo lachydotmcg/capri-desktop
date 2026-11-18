@@ -268,8 +268,10 @@ Hide / Show Capri	Capri ausblenden / einblenden
 Hide / Show key	Taste ausblenden / einblenden
 Hide Capri	Capri ausblenden
 Hide for now	Vorerst ausblenden
+Hide her	Ausblenden
 Hide in full screen	Im Vollbild ausblenden
 Hide this	Das ausblenden
+Hide, keep player	Ausblenden, Player behalten
 Hide/show:	Ausblenden/Einblenden:
 Hide/show: Ctrl + Alt + H	Ausblenden/Einblenden: Ctrl + Alt + H
 Hologram	Hologramm
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALLIERT >
 Import a Capri mod	Capri-Mod importieren
 Import mod	Mod importieren
+In full screen	Im Vollbild
 In games	In Spielen
 Input	Eingabe
 Input, Output or How to overlaps a row	Eingabe, Ausgabe oder Anleitung überlappt eine Zeile
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	SCHLÜSSEL
 KEYS >	SCHLÜSSEL >
 Keep PC awake for jobs	PC für Jobs wach halten
+Keep player	Player behalten
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Behält die letzten zwei Minuten deines Spiels im Speicher. Sag „Clip das“, um sie zu speichern.
 Key	Schlüssel
 Key cleared: a model file needs none.	Schlüssel gelöscht: Eine Modelldatei braucht keinen.
@@ -439,6 +443,7 @@ No AI · no brain at all	Keine KI · gar kein Gehirn
 No brain runs, and nothing is sent anywhere.	Kein Gehirn läuft, und nichts wird irgendwohin gesendet.
 No brain yet	Noch kein Gehirn
 No code open	Kein Code offen
+No limit	Kein Limit
 No mic found	Kein Mikro gefunden
 No mods in the directory yet.	Noch keine Mods im Verzeichnis.
 No mods match that.	Keine Mods passen dazu.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tonhöhe
 Play	Abspielen
 Play...	Abspielen...
+Player only	Nur Player
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket-TTS-Modelle kopieren die Stimme dieses Clips. Drück Testen, um sie zu hören.
 Pop-in times	Vorbeischau-Zeiten
 Pop-ins	Vorbeischauen
@@ -666,6 +672,7 @@ Speed	Geschwindigkeit
 Start with Windows	Mit Windows starten
 Start with this!	Mit diesem starten!
 Starting...	Starte...
+Stay	Bleiben
 Stay on my model	Bei meinem Modell bleiben
 Still checking your mics...	Prüfe noch deine Mikros...
 Still checking your speakers...	Prüfe noch deine Lautsprecher...

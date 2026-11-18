@@ -268,8 +268,10 @@ Hide / Show Capri	Skrij / prikaži Capri
 Hide / Show key	Tipka skrij / prikaži
 Hide Capri	Skrij Capri
 Hide for now	Za zdaj skrij
+Hide her	Skrij jo
 Hide in full screen	Skrij v celozaslonskem načinu
 Hide this	Skrij to
+Hide, keep player	Skrij, obdrži predvajalnik
 Hide/show:	Skrij/prikaži:
 Hide/show: Ctrl + Alt + H	Skrij/prikaži: Ctrl + Alt + H
 Hologram	Hologram
@@ -296,6 +298,7 @@ IN DISCORD >	NA DISCORDU >
 INSTALLED >	NAMEŠČENO >
 Import a Capri mod	Uvozi Capri mod
 Import mod	Uvozi mod
+In full screen	V celozaslonskem načinu
 In games	V igrah
 Input	Vhod
 Input, Output or How to overlaps a row	Vhod, izhod ali Kako se prekriva z vrstico
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	KLJUČI
 KEYS >	KLJUČI >
 Keep PC awake for jobs	Računalnik naj ostane buden za opravila
+Keep player	Obdrži predvajalnik
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Hrani zadnji dve minuti tvoje igre v spominu. Reci »posnemi to«, da jih shraniš.
 Key	Ključ
 Key cleared: a model file needs none.	Ključ počiščen: datoteka modela ga ne potrebuje.
@@ -439,6 +443,7 @@ No AI · no brain at all	Brez UI · sploh brez možganov
 No brain runs, and nothing is sent anywhere.	Noben možgan ne teče in nič se ne pošilja nikamor.
 No brain yet	Še brez možganov
 No code open	Ni odprte kode
+No limit	Brez omejitve
 No mic found	Mikrofon ni najden
 No mods in the directory yet.	V imeniku še ni modov.
 No mods match that.	Ni modov, ki bi ustrezali temu.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Višina
 Play	Predvajaj
 Play...	Predvajaj...
+Player only	Samo predvajalnik
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modeli Pocket TTS kopirajo glas tega posnetka. Pritisni Preizkusi, da ga slišiš.
 Pop-in times	Časi pojavljanja
 Pop-ins	Pojavitve
@@ -666,6 +672,7 @@ Speed	Hitrost
 Start with Windows	Zaženi z Windows
 Start with this!	Začni s tem!
 Starting...	Zaganjam...
+Stay	Ostani
 Stay on my model	Ostani pri mojem modelu
 Still checking your mics...	Še vedno preverjam tvoje mikrofone...
 Still checking your speakers...	Še vedno preverjam tvoje zvočnike...

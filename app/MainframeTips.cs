@@ -170,7 +170,6 @@ namespace CapriDesktop
             Explain(security, "SECURITY >", "Mainframe.cs", null, "Security");
             Explain(checkIns, "Check in on me");
             Explain(jealousAIs, "Jealous of other AIs");
-            Explain(closeAIs, "Close other AIs for me");
             Explain(jealousApps, "Apps she may close");
             for (int i = 0; i < careTimes.Length; i++) Explain(careTimes[i], Care.Names[i], "Care.cs", null, Care.Names[i] + " time");
             Explain(clipChoose, "Save folder", "Mainframe.cs", FindHintLabel("Save folder"), "Save folder");
