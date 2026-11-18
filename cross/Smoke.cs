@@ -8051,7 +8051,14 @@ namespace CapriDesktop
         {
             RemoteState state = RemoteState.Fresh();
             using RemoteWire wire = new RemoteWire(state);
-            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair") throw new Exception("Remote text core offered unsupported features.");
+            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair,wake") throw new Exception("Remote text core offered unsupported features.");
+            RemoteJson.Map woke = RemoteJson.ParseMap(RemoteWake.Info());
+            if (woke == null || woke.Text("type") != "wake.info" || woke.Items("cards") == null || woke.Items("cards").Count > 4) throw new Exception("Remote wake info was malformed.");
+            foreach (object item in woke.Items("cards"))
+            {
+                RemoteJson.Map card = item as RemoteJson.Map;
+                if (card == null || !System.Text.RegularExpressions.Regex.IsMatch(card.Text("mac") ?? "", "^[0-9A-F]{2}(:[0-9A-F]{2}){5}$") || !IPAddress.TryParse(card.Text("broadcast") ?? "", out _)) throw new Exception("Remote wake info had a bad card.");
+            }
             RemoteView view = new RemoteView { On = true, Ready = wire.Link.Ready, Status = wire.Link.Status };
             RemoteSink sink = new RemoteLinkSink(wire.Link);
             byte[] nonce = new byte[16];

@@ -451,6 +451,7 @@ namespace CapriDesktop
             all.AddRange(offered);
             if ((BrainAsked != null || BrainRequested != null) && !all.Contains(RemoteBrainKeys.Feature)) all.Add(RemoteBrainKeys.Feature);
             if (!all.Contains(PairFeature)) all.Add(PairFeature);
+            if (!all.Contains(RemoteWake.Feature)) all.Add(RemoteWake.Feature);
             return all.ToArray();
         }
 
@@ -1799,6 +1800,12 @@ namespace CapriDesktop
                     phone.Chat.Enqueue(item);
                     if (picture != null) QueuePicture(delegate { ConfirmPicture(item); });
                     said.Add(item);
+                    return;
+                }
+                case "wake.get":
+                {
+                    string device = phone.Device.Id;
+                    System.Threading.ThreadPool.QueueUserWorkItem(delegate { Send(device, RemoteWake.Info(), null, false, null); });
                     return;
                 }
                 case "ping":
