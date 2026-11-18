@@ -335,7 +335,7 @@ try {
   await step('session: hello, hello-ok with echo and features, badge count', async () => {
     const ok = await session(pc, a.phone, a.device);
     assert.equal(ok.v, 1);
-    assert.deepEqual(ok.features, ['chat', 'pictures', 'brains', 'pair']);
+    assert.deepEqual(ok.features, ['chat', 'pictures', 'brains', 'pair', 'wake']);
     assert.equal(ok.name, 'Test PC');
     const state = await pc.state();
     assert.equal(state.online, 1);

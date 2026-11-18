@@ -219,13 +219,13 @@ namespace CapriDesktop
             private readonly Label[] names = new Label[Rows], states = new Label[Rows];
             private readonly Key[] revokes = new Key[Rows];
             private readonly RemoteQrBox qr;
-            private readonly Key pair, allow, deny, saveHost, back, next, removeAll, showQr, here;
+            private readonly Key pair, allow, deny, saveHost, back, next, removeAll, showQr, here, wake;
             private readonly Entry host;
             private readonly Timer clock = new Timer { Interval = 1000 };
             private RemoteView view = new RemoteView();
             private DateTime expires;
             private int first, armedAt;
-            private string armedId, revealedQr, lastQr;
+            private string armedId, revealedQr, lastQr, woke;
             private bool syncing, armedAll, streaming;
 
             // live: the real sheet, which talks to her link. The smoke test's copies only draw.
@@ -249,6 +249,9 @@ namespace CapriDesktop
                 Heading(this, "PHONES >", new Point(Z(316), Z(146)), band, White, 270);
                 Heading(this, "RELAY >", new Point(Z(28), Z(488)), band, White, 558);
                 pair = Make("Pair a phone", 186, 145, 106, 18, delegate { if (this.live) Frame.capri.RemoteNewCode(); });
+                wake = Make("Wake from phone", 432, 487, 140, 18, delegate { Wake(); });
+                wake.Accent = Cyan;
+                wake.AccessibleName = "Wake from phone: set up turning this PC on from a phone on the same network";
                 pair.Accent = Cyan;
                 pair.Loud = true;
                 qr = new RemoteQrBox();
@@ -359,7 +362,7 @@ namespace CapriDesktop
                 removeAll.Loud = armedAll;
                 revokeNote.Text = view.Phones.Exists(delegate(RemoteDevice phone) { return phone.Parent != null; }) ? "Revoke also removes the phones its links added" : "";
                 if (!host.Box.Focused) host.Box.Text = view.Host == RemoteLink.DefaultHost ? "" : view.Host;
-                note.Text = view.Note ?? "";
+                note.Text = !string.IsNullOrEmpty(view.Note) ? view.Note : woke ?? "";
                 note.ForeColor = Cyan;
                 Invalidate(true);
             }
@@ -420,6 +423,54 @@ namespace CapriDesktop
                 if (live) Frame.capri.RemoteRemoveAll();
                 else Fill(view);
                 return true;
+            }
+
+            private void Wake()
+            {
+                if (!live) return;
+                wake.Enabled = false;
+                woke = "Checking her network cards";
+                note.Text = woke;
+                note.ForeColor = Cyan;
+                System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                {
+                    RemoteWake.Forget();
+                    List<RemoteWake.Card> cards = RemoteWake.Cards();
+                    if (cards.Count > 0 && cards[0].Wired && cards[0].Ready == "off" && ArmWake(RemoteWake.ArmCommand(cards)))
+                    {
+                        RemoteWake.Forget();
+                        cards = RemoteWake.Cards();
+                    }
+                    string words = RemoteWake.Words(cards);
+                    try { using (System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(RemoteWake.Guide) { UseShellExecute = true })) { } }
+                    catch (Exception) { }
+                    try
+                    {
+                        BeginInvoke((MethodInvoker)delegate
+                        {
+                            woke = words;
+                            wake.Enabled = true;
+                            note.Text = words;
+                            note.ForeColor = Cyan;
+                        });
+                    }
+                    catch (Exception) { }
+                });
+            }
+
+            private static bool ArmWake(string command)
+            {
+                if (command == null) return false;
+                try
+                {
+                    System.Diagnostics.ProcessStartInfo start = new System.Diagnostics.ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand " + Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(command)));
+                    start.UseShellExecute = true;
+                    start.Verb = "runas";
+                    start.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                    using (System.Diagnostics.Process run = System.Diagnostics.Process.Start(start))
+                        return run != null && run.WaitForExit(30000);
+                }
+                catch (Exception) { return false; }
             }
 
             private void SaveHost()
