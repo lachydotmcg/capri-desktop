@@ -1007,12 +1007,23 @@ const stats = async (request, env) => {
   });
 };
 
+// The bot signs each request with the shared secret instead of sending it. Sending it as a bearer meant the secret crossed
+// the wire on every message and a logged request could be replayed forever; a signature over the timestamp and the whole
+// body means the secret never leaves the worker, an old request dies after five minutes, and `user` can't be swapped on a
+// message that was already signed.
 const relay = async (request, env, ctx, reply) => {
   if (!env.DISCORD_RELAY_SECRET) return reply({ reply: "Discord help isn't set up yet." }, 503);
-  const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Bearer ') || !await equal(auth.slice(7), env.DISCORD_RELAY_SECRET)) return reply({ error: 'Unauthorized' }, 401);
+  const stamp = request.headers.get('X-Capri-Timestamp') || '';
+  const signature = (request.headers.get('X-Capri-Signature') || '').toLowerCase();
+  if (!/^\d{13}$/.test(stamp) || Math.abs(Date.now() - Number(stamp)) > 300000) return reply({ error: 'Stale request.' }, 401);
+  const raw = await request.text();
+  const text = new TextEncoder();
+  const signKey = await crypto.subtle.importKey('raw', text.encode(env.DISCORD_RELAY_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', signKey, text.encode(stamp + '.' + raw));
+  const expected = [...new Uint8Array(mac)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  if (expected.length !== signature.length || !await equal(expected, signature)) return reply({ error: 'Unauthorized' }, 401);
   let body;
-  try { body = await request.json(); } catch (error) { return reply({ error: 'Bad request' }, 400); }
+  try { body = JSON.parse(raw); } catch (error) { return reply({ error: 'Bad request' }, 400); }
   if (!body || typeof body.user !== 'string' || !/^\d+$/.test(body.user)) return reply({ error: 'Bad user' }, 400);
   return respond(request, env, ctx, reply, body, body.user);
 };
@@ -1184,15 +1195,24 @@ export default {
     if (path === '/codes' || path.startsWith('/codes/')) return codes(request, env, path);
     if (path === '/stats') return stats(request, env);
     if (path === '/brain' || path.startsWith('/brain/')) return codeBrain(request, env, ctx, path);
+    // Only pages we serve may call these from a browser. A wildcard origin let any website spend the free AI budget,
+    // inflate the download and tap counters, and hammer /phone-day on the user's behalf.
+    const siteOrigins = (env.CORS_ORIGINS || 'https://capriai.app,https://www.capriai.app')
+      .split(',').map(origin => origin.trim()).filter(Boolean);
+    const caller = request.headers.get('Origin');
+    const allowed = caller && siteOrigins.includes(caller) ? caller : null;
     const cors = {
-      'Access-Control-Allow-Origin': '*',
+      ...(allowed ? { 'Access-Control-Allow-Origin': allowed, 'Vary': 'Origin' } : {}),
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Max-Age': '86400'
     };
     const reply = (body, status = 200) => Response.json(body, { status, headers: { ...cors, 'Cache-Control': 'no-store' } });
 
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (request.method === 'OPTIONS') {
+      if (caller && !allowed) return new Response(null, { status: 403, headers: cors });
+      return new Response(null, { status: 204, headers: cors });
+    }
     if (path === '/help') return request.method === 'POST' ? help(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);

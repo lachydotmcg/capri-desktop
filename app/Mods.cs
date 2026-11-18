@@ -36,6 +36,8 @@ namespace CapriDesktop
         internal string Unreadable;
         internal string Tidy;
         internal bool AskTwice;
+        // Readable code that still reaches further than the line it matched says it does.
+        internal bool AskAgain;
     }
 
     [DataContract]

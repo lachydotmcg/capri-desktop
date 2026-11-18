@@ -117,6 +117,14 @@ namespace CapriDesktop
             new Regex(@"""(?<host>(?:[0-9]{1,3}\.){3}[0-9]{1,3}):[0-9]{1,5}(?:/[^""]*)?"""),
         };
         private static readonly string[] HomeHosts = { "localhost", "127.0.0.1", "0.0.0.0", "schemas.microsoft.com", "www.w3.org", "schemas.openxmlformats.org" };
+        // Reaches that can hide what the code really does, or run other code, or step outside her own folder. A readable
+        // mod still gets a second question for these: the scan is a set of regular expressions, not a sandbox, so a
+        // match that reads innocently can be doing something else.
+        private static readonly string[] Sharp =
+        {
+            Loads, Packs, "unlocks saved secrets", "calls Windows directly", "starts programs", "uses the network",
+            "reads the keyboard", "reaches outside her folder"
+        };
         private static readonly Regex Blob = new Regex(@"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{800,}={0,2}");
         private static readonly Regex Quoted = new Regex(@"'(?:[^'\\\n]|\\.){1,10}'|@""(?:[^""]|"""")*""|""(?:[^""\\\n]|\\.)*""");
 
@@ -249,6 +257,13 @@ namespace CapriDesktop
             read.Unreadable = Unreadable(text, out packed);
             read.Tidy = read.Unreadable != null && !packed ? Tidied(text) : null;
             read.AskTwice = read.Unreadable != null && (!packed || Array.IndexOf(read.Reaches, "starts programs") >= 0 || Array.IndexOf(read.Reaches, "calls Windows directly") >= 0);
+            // Even when the code reads fine, it now has to earn a second yes if it reaches for the network, other
+            // programs, Windows itself, her saved secrets, the keyboard or anything outside her folder.
+            read.AskAgain = false;
+            foreach (string sharp in Sharp)
+            {
+                if (Array.IndexOf(read.Reaches, sharp) >= 0) { read.AskAgain = true; break; }
+            }
         }
 
         internal static string Unclear(ModFile mod)

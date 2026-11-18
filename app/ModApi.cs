@@ -454,6 +454,19 @@ namespace CapriDesktop
 
         // What her box says before a code mod runs, the same on every platform: what it asks for, that it runs with full access to
         // the PC, and its fingerprint.
+        // The second question for code that reads fine but reaches further than it says: the scan that produced these is a
+        // set of regular expressions, so a line that matches "uses the network" can be doing anything over that network.
+        internal static string Risky(ModFile mod)
+        {
+            string reaches = "";
+            foreach (string reach in mod.Reaches ?? new string[0]) reaches += "\n- " + reach;
+            return mod.Name + "'s code reads fine, but it reaches for things that can do more than the line it matched says:"
+                + (reaches.Length == 0 ? "\n- (nothing Capri could name)" : reaches)
+                + "\n\nThat list comes from reading the code as text, not from running it in a cage: what it says and what it does can differ. "
+                + "Code mods run as part of Capri with your files, your accounts and her saved keys in reach.\n\n"
+                + "Only say yes if you wrote it, or you've read it and trust who did.\n\nRun it anyway?";
+        }
+
         internal static string Consent(ModFile mod, string hash)
         {
             string asks = "";

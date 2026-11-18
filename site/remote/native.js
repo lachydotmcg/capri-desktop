@@ -117,15 +117,34 @@
   const put = (name, value) => { try { if (value == null) localStorage.removeItem(name); else localStorage.setItem(name, value); } catch (error) {} };
   // The free brain is its own flag, so trying it never throws away a saved key. A page from before it ignores the flag.
   const FREE_ON = 'capri-remote-free';
+  // The provider key is a secret, so it never stays in localStorage: it lives in this tab's session only. Any copy an
+  // older build left beside the rest of the brain is moved out and deleted the first time the settings load. Local
+  // storage still holds what isn't secret (provider, model, the model list), so her settings survive a reload.
+  const KEY_ONLY = 'capri-remote-key';
+  const keyGet = () => { try { return sessionStorage.getItem(KEY_ONLY); } catch (error) { return null; } };
+  const keyPut = value => { try { if (value == null) sessionStorage.removeItem(KEY_ONLY); else sessionStorage.setItem(KEY_ONLY, value); } catch (error) {} };
   const readKeyed = () => {
     try {
       const saved = JSON.parse(get(BRAIN));
-      if (!saved || !PROVIDERS[saved.provider] || typeof saved.key !== 'string' || !saved.key || typeof saved.model !== 'string') return null;
-      return { provider: saved.provider, key: saved.key, model: saved.model, models: Array.isArray(saved.models) ? saved.models.filter(id => typeof id === 'string').slice(0, 500) : [saved.model], images: Array.isArray(saved.images) ? saved.images.filter(id => typeof id === 'string') : null, door: saved.door === true };
+      if (!saved || !PROVIDERS[saved.provider] || typeof saved.model !== 'string') return null;
+      const kept = Array.isArray(saved.models) ? saved.models.filter(id => typeof id === 'string').slice(0, 500) : [saved.model];
+      const images = Array.isArray(saved.images) ? saved.images.filter(id => typeof id === 'string') : null;
+      let key = keyGet();
+      if (typeof saved.key === 'string' && saved.key) {
+        // Migration: an old build kept the key next to the rest of the brain in localStorage.
+        key = saved.key;
+        keyPut(key);
+        put(BRAIN, JSON.stringify({ provider: saved.provider, model: saved.model, models: kept, images, door: saved.door === true }));
+      }
+      if (!key) return null;
+      return { provider: saved.provider, key, model: saved.model, models: kept, images, door: saved.door === true };
     } catch (error) { return null; }
   };
   const readBrain = () => get(FREE_ON) === '1' ? { provider: 'free' } : readKeyed();
-  const writeKeyed = brain => put(BRAIN, brain ? JSON.stringify({ provider: brain.provider, key: brain.key, model: brain.model, models: brain.models || [], images: brain.images || null, door: !!brain.door }) : null);
+  const writeKeyed = brain => {
+    keyPut(brain ? brain.key : null);
+    put(BRAIN, brain ? JSON.stringify({ provider: brain.provider, model: brain.model, models: brain.models || [], images: brain.images || null, door: !!brain.door }) : null);
+  };
   const writeBrain = brain => {
     if (brain && brain.provider === 'free') { put(FREE_ON, '1'); return; }
     put(FREE_ON, null);

@@ -22,6 +22,10 @@ final class Notify {
     static final String ID = "capri_id";
     static final String YES = "capri_yes";
     static final String NID = "capri_nid";
+    // MainActivity is exported for the launcher and the /remote link, so any app can build an Intent with the action and
+    // extras below. Only PendingIntents we made carry this per-process nonce; anything else is a forgery and is dropped.
+    static final String TOKEN = "capri_token";
+    private static final String NONCE = nonce();
 
     private static final String TAG = "CapriNotify";
     private static final String MESSAGES = "messages";
@@ -29,6 +33,36 @@ final class Notify {
     private static final String WISH = "notify";
 
     private Notify() {
+    }
+
+    private static String nonce() {
+        byte[] bytes = new byte[16];
+        new java.security.SecureRandom().nextBytes(bytes);
+        StringBuilder text = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) text.append(String.format("%02x", b));
+        return text.toString();
+    }
+
+    static boolean isOurs(Intent intent) {
+        return intent != null && NONCE.equals(intent.getStringExtra(TOKEN));
+    }
+
+    // One stable notification id per message key. Hashing the key let two different messages land on the same id and
+    // overwrite each other, so ids are handed out in order and remembered per key instead.
+    private static int nidFor(Context context, String key) {
+        SharedPreferences prefs = context.getSharedPreferences("capri", Context.MODE_PRIVATE);
+        String remembered = prefs.getString("nid:" + key, null);
+        if (remembered != null) {
+            try {
+                return Integer.parseInt(remembered);
+            } catch (NumberFormatException ignored) {
+                // fall through and give this key a fresh id
+            }
+        }
+        int next = prefs.getInt("nid-next", 1000);
+        if (next < 1000 || next > 200000) next = 1000;
+        prefs.edit().putString("nid:" + key, String.valueOf(next)).putInt("nid-next", next + 1).apply();
+        return next;
     }
 
     static boolean wished(Context context) {
@@ -112,7 +146,7 @@ final class Notify {
             boolean asking = kind.equals("ask");
             boolean jobbed = (asking || kind.equals("done")) && !job.isEmpty();
             String key = jobbed ? "job-" + job : "msg-" + (id.isEmpty() ? kind + at : id);
-            int nid = (key.hashCode() & 0x3fffffff) + 100;
+            int nid = nidFor(context, key);
 
             NotificationManager manager = context.getSystemService(NotificationManager.class);
             channels(manager);
@@ -160,6 +194,7 @@ final class Notify {
         return new Intent(context, MainActivity.class)
                 .setAction(action)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                .putExtra(TOKEN, NONCE)
                 .putExtra(KIND, kind)
                 .putExtra(JOB, job)
                 .putExtra(ID, id)
