@@ -465,6 +465,15 @@ namespace CapriDesktop
             return x11 != null && long.TryParse(x11.Trim(), out milliseconds) ? milliseconds / 1000.0 : -1;
         }
 
+        internal static bool? SessionAway()
+        {
+            if (OnMac || !OperatingSystem.IsLinux()) return null;
+            string hints = Music.Run("busctl", new[] { "get-property", "org.freedesktop.login1", "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session", "IdleHint", "LockedHint" });
+            MatchCollection found = hints == null ? null : Regex.Matches(hints, @"^b (true|false)\s*$", RegexOptions.Multiline);
+            if (found == null || found.Count != 2) return null;
+            return found[0].Groups[1].Value == "true" || found[1].Groups[1].Value == "true";
+        }
+
         // Her app_window tool. On Mac it's the apps in the Dock, through System Events; on Linux it's the windows wmctrl lists,
         // which on Wayland are only the apps running through XWayland, except on KDE, where KWin lists them all.
         private static readonly Dictionary<string, string> Bundles = new Dictionary<string, string>();
