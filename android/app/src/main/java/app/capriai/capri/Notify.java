@@ -100,7 +100,7 @@ final class Notify {
             JSONObject note = new JSONObject(json);
             String kind = clean(note.optString("kind"), 12);
             if (!kind.equals("reply") && !kind.equals("ask") && !kind.equals("done")
-                    && !kind.equals("reminder") && !kind.equals("test")) {
+                    && !kind.equals("reminder") && !kind.equals("test") && !kind.equals("checkin")) {
                 return false;
             }
             String id = clean(note.optString("id"), 100);

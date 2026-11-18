@@ -593,7 +593,7 @@ namespace CapriDesktop
                     if (!device.PushWeb || live && device.PushApp && !test) continue;
                     RemotePush.Keys keys = PushKeys(ref unused);
                     if (keys == null) continue;
-                    posts.Add(new WebPush { Device = device.Id, Endpoint = device.PushEndpoint, P256dh = device.PushP256dh, Auth = device.PushAuth, Json = json, Keys = keys, Ttl = kind == "ask" || kind == "reminder" ? 3600 : test ? 60 : 86400, Urgency = kind == "ask" || kind == "reminder" ? "high" : "normal", Topic = job != null && (kind == "ask" || kind == "done") && RemoteMessages.IdOk(job) && job.Length <= 31 ? "j" + job : null });
+                    posts.Add(new WebPush { Device = device.Id, Endpoint = device.PushEndpoint, P256dh = device.PushP256dh, Auth = device.PushAuth, Json = json, Keys = keys, Ttl = kind == "ask" || kind == "reminder" ? 3600 : kind == "checkin" ? 7200 : test ? 60 : 86400, Urgency = kind == "ask" || kind == "reminder" ? "high" : "normal", Topic = job != null && (kind == "ask" || kind == "done") && RemoteMessages.IdOk(job) && job.Length <= 31 ? "j" + job : null });
                 }
             }
             foreach (WebPush post in posts)

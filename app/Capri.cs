@@ -3340,6 +3340,7 @@ namespace CapriDesktop
                 if (!testing) lookout.Deliver();
                 if (!testing) CheckNudge(signalNow, signalIdle);
                 if (!testing && background) CheckCare(signalNow, signalIdle);
+                if (!testing && background) CheckPhoneCheckIn(DateTime.Now, signalIdle);
                 if (!testing && background) CheckHoliday(DateTime.Now, signalIdle);
                 if (!testing && background) CheckProbe(DateTime.Now, signalIdle);
                 if (!testing && background) CheckNews(signalIdle);
