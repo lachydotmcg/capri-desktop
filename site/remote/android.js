@@ -67,6 +67,8 @@
   window.CapriAndroidBack = () => {
     const app = byId('app');
     if (app?.classList.contains('menu')) { escape(); return true; }
+    const wake = byId('wake');
+    if (wake && !wake.hidden) { escape(); return true; }
     const home = byId('home');
     if (home && !home.hidden) { escape(); return true; }
     if (menu && !menu.hidden) { byId('room-camera')?.click(); return true; }

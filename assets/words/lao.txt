@@ -268,8 +268,10 @@ Hide / Show Capri	ເຊື່ອງ / ສະແດງ Capri
 Hide / Show key	ປຸ່ມເຊື່ອງ / ສະແດງ
 Hide Capri	ເຊື່ອງ Capri
 Hide for now	ເຊື່ອງໄວ້ກ່ອນ
+Hide her	ເຊື່ອງນາງ
 Hide in full screen	ເຊື່ອງໃນເຕັມຈໍ
 Hide this	ເຊື່ອງອັນນີ້
+Hide, keep player	ເຊື່ອງ, ຮັກສາເຄື່ອງຫຼິ້ນ
 Hide/show:	ເຊື່ອງ/ສະແດງ:
 Hide/show: Ctrl + Alt + H	ເຊື່ອງ/ສະແດງ: Ctrl + Alt + H
 Hologram	ໂຮໂລແກຣມ
@@ -296,6 +298,7 @@ IN DISCORD >	ໃນ DISCORD >
 INSTALLED >	ຕິດຕັ້ງແລ້ວ >
 Import a Capri mod	ນຳເຂົ້າ mod Capri
 Import mod	ນຳເຂົ້າ mod
+In full screen	ໃນເຕັມຈໍ
 In games	ໃນເກມ
 Input	ປ້ອນຂໍ້ມູນ
 Input, Output or How to overlaps a row	ປ້ອນຂໍ້ມູນ, ຜົນອອກ ຫຼື ວິທີ ທັບກັນໃນແຖວ
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ປຸ່ມ
 KEYS >	ປຸ່ມ >
 Keep PC awake for jobs	ເຮັດໃຫ້ PC ຕື່ນຢູ່ສຳລັບວຽກ
+Keep player	ຮັກສາເຄື່ອງຫຼິ້ນ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ເກັບສອງນາທີສຸດທ້າຍຂອງເກມຂອງເຈົ້າໄວ້ໃນຄວາມຈຳ. ເວົ້າ clip that ເພື່ອບັນທຶກ.
 Key	ກະແຈ
 Key cleared: a model file needs none.	ລ້າງກະແຈແລ້ວ: ໄຟລ໌ໂມເດວບໍ່ຕ້ອງການກະແຈ.
@@ -439,6 +443,7 @@ No AI · no brain at all	ບໍ່ມີ AI · ບໍ່ມີສະໝອງເ
 No brain runs, and nothing is sent anywhere.	ບໍ່ມີສະໝອງເຮັດວຽກ, ແລະບໍ່ມີຫຍັງຖືກສົ່ງໄປບ່ອນໃດ.
 No brain yet	ຍັງບໍ່ມີສະໝອງ
 No code open	ບໍ່ມີ code ເປີດ
+No limit	ບໍ່ຈຳກັດ
 No mic found	ບໍ່ພົບໄມໂຄຣໂຟນ
 No mods in the directory yet.	ຍັງບໍ່ມີ mods ໃນໄດເຣັກທໍຣີ.
 No mods match that.	ບໍ່ມີ mods ທີ່ກົງກັບອັນນັ້ນ.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	ຫຼິ້ນ
 Play...	ຫຼິ້ນ...
+Player only	ເຄື່ອງຫຼິ້ນເທົ່ານັ້ນ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	ໂມເດວ Pocket TTS ຄັດລອກສຽງຂອງ clip ນີ້. ກົດ Test ເພື່ອຟັງ.
 Pop-in times	ເວລາ pop-in
 Pop-ins	Pop-ins
@@ -666,6 +672,7 @@ Speed	ຄວາມໄວ
 Start with Windows	ເລີ່ມພ້ອມ Windows
 Start with this!	ເລີ່ມດ້ວຍອັນນີ້!
 Starting...	ກຳລັງເລີ່ມ...
+Stay	ຢູ່
 Stay on my model	ຢູ່ກັບໂມເດວຂອງຂ້ອຍ
 Still checking your mics...	ກຳລັງກວດໄມໂຄຣໂຟນຂອງເຈົ້າຢູ່...
 Still checking your speakers...	ກຳລັງກວດລຳໂພງຂອງເຈົ້າຢູ່...

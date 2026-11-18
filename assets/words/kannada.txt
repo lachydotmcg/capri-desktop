@@ -268,8 +268,10 @@ Hide / Show Capri	Capri ಮರೆಮಾಡಿ / ತೋರಿಸಿ
 Hide / Show key	ಮರೆಮಾಡಿ / ತೋರಿಸಿ ಕೀ
 Hide Capri	Capri ಮರೆಮಾಡಿ
 Hide for now	ಈಗ ಮರೆಮಾಡಿ
+Hide her	ಅವಳನ್ನು ಮರೆಮಾಡಿ
 Hide in full screen	ಪೂರ್ಣ ಪರದೆಯಲ್ಲಿ ಮರೆಮಾಡಿ
 Hide this	ಇದನ್ನು ಮರೆಮಾಡಿ
+Hide, keep player	ಮರೆಮಾಡಿ, ಪ್ಲೇಯರ್ ಇರಿಸಿ
 Hide/show:	ಮರೆಮಾಡಿ/ತೋರಿಸಿ:
 Hide/show: Ctrl + Alt + H	ಮರೆಮಾಡಿ/ತೋರಿಸಿ: Ctrl + Alt + H
 Hologram	ಹೋಲೋಗ್ರಾಂ
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD ನಲ್ಲಿ >
 INSTALLED >	ಸ್ಥಾಪಿಸಲಾಗಿದೆ >
 Import a Capri mod	Capri mod ಆಮದು ಮಾಡಿ
 Import mod	Mod ಆಮದು ಮಾಡಿ
+In full screen	ಪೂರ್ಣ ಪರದೆಯಲ್ಲಿ
 In games	ಆಟಗಳಲ್ಲಿ
 Input	ಇನ್‌ಪುಟ್
 Input, Output or How to overlaps a row	ಇನ್‌ಪುಟ್, ಔಟ್‌ಪುಟ್ ಅಥವಾ ಹೇಗೆ ಸಾಲನ್ನು ಅತಿಕ್ರಮಿಸುತ್ತದೆ
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ಕೀಗಳು
 KEYS >	ಕೀಗಳು >
 Keep PC awake for jobs	ಕೆಲಸಗಳಿಗಾಗಿ PC ಎಚ್ಚರವಾಗಿರಿಸು
+Keep player	ಪ್ಲೇಯರ್ ಇರಿಸಿ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ನಿನ್ನ ಆಟದ ಕೊನೆಯ ಎರಡು ನಿಮಿಷಗಳನ್ನು ಸ್ಮರಣೆಯಲ್ಲಿ ಇಡುತ್ತದೆ. ಉಳಿಸಲು clip that ಎಂದು ಹೇಳು.
 Key	ಕೀ
 Key cleared: a model file needs none.	ಕೀ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ: ಮಾದರಿ ಫೈಲ್‌ಗೆ ಯಾವುದೂ ಬೇಕಿಲ್ಲ.
@@ -439,6 +443,7 @@ No AI · no brain at all	AI ಇಲ್ಲ · ಯಾವುದೇ ಮೆದುಳ�
 No brain runs, and nothing is sent anywhere.	ಯಾವುದೇ ಮೆದುಳು ಓಡುವುದಿಲ್ಲ, ಮತ್ತು ಏನೂ ಎಲ್ಲಿಗೂ ಕಳುಹಿಸಲ್ಪಡುವುದಿಲ್ಲ.
 No brain yet	ಇನ್ನೂ ಮೆದುಳು ಇಲ್ಲ
 No code open	ಯಾವುದೇ ಕೋಡ್ ತೆರೆದಿಲ್ಲ
+No limit	ಮಿತಿ ಇಲ್ಲ
 No mic found	ಮೈಕ್ ಸಿಗಲಿಲ್ಲ
 No mods in the directory yet.	ಡೈರೆಕ್ಟರಿಯಲ್ಲಿ ಇನ್ನೂ mods ಇಲ್ಲ.
 No mods match that.	ಅದಕ್ಕೆ ಹೊಂದುವ mods ಇಲ್ಲ.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	ಪಿಚ್
 Play	ಪ್ಲೇ
 Play...	ಪ್ಲೇ...
+Player only	ಪ್ಲೇಯರ್ ಮಾತ್ರ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS ಮಾದರಿಗಳು ಈ ಕ್ಲಿಪ್‌ನ ಧ್ವನಿಯನ್ನು ನಕಲಿಸುತ್ತವೆ. ಕೇಳಲು Test ಒತ್ತಿ.
 Pop-in times	ಪಾಪ್-ಇನ್ ಸಮಯಗಳು
 Pop-ins	ಪಾಪ್-ಇನ್‌ಗಳು
@@ -666,6 +672,7 @@ Speed	ವೇಗ
 Start with Windows	Windows ಜೊತೆ ಪ್ರಾರಂಭಿಸು
 Start with this!	ಇದರಿಂದ ಶುರು ಮಾಡು!
 Starting...	ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ...
+Stay	ಇರು
 Stay on my model	ನನ್ನ ಮಾದರಿಯಲ್ಲಿಯೇ ಇರು
 Still checking your mics...	ನಿನ್ನ ಮೈಕ್‌ಗಳನ್ನು ಇನ್ನೂ ಪರಿಶೀಲಿಸುತ್ತಿದ್ದೇನೆ...
 Still checking your speakers...	ನಿನ್ನ ಸ್ಪೀಕರ್‌ಗಳನ್ನು ಇನ್ನೂ ಪರಿಶೀಲಿಸುತ್ತಿದ್ದೇನೆ...

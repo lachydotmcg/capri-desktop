@@ -19,6 +19,7 @@ namespace CapriDesktop
     internal sealed class ModListing
     {
         internal string Folder, FileName, Sha, PreviewSha;
+        internal string Commit;
         // The README in its folder, as the tree spells it (readme.md and README.md are different files on GitHub), or null.
         internal string ReadmeName;
         internal string Name = "", Author = "", About = "";
@@ -76,8 +77,12 @@ namespace CapriDesktop
         private const long LargestIndex = 2L * 1024 * 1024;
         private const long LargestReadme = 256L * 1024;
         private const int WidestPreview = 4096, PreviewWide = 444;
-        private const string Raw = "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/";
+        private const string RawRoot = "https://raw.githubusercontent.com/lachydotmcg/capri-mods/";
+        private const string Raw = RawRoot + "HEAD/";
         internal const string IndexPage = Raw + "index.json";
+        internal const string TreePage = Raw + "tree.json";
+        internal const string TreeApi = Api + "trees/HEAD?recursive=1";
+        internal static string KeptFolder = Path.Combine(Path.GetTempPath(), "capri-mod-directory");
         internal const string StatsPage = "https://capri-reactions.lachydotmcg.workers.dev/mods";
         private static readonly byte[] PngStart = { 137, 80, 78, 71, 13, 10, 26, 10 };
         private static readonly Regex PreviewFile = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/preview\.png$");
@@ -96,6 +101,7 @@ namespace CapriDesktop
         private sealed class Tree
         {
             [DataMember(Name = "tree")] public TreeEntry[] Entries;
+            [DataMember(Name = "commit")] public string Commit;
         }
 
         [DataContract]
@@ -142,10 +148,129 @@ namespace CapriDesktop
 
         internal static List<ModListing> Browse()
         {
-            List<ModListing> found = Parse(Get(Api + "trees/HEAD?recursive=1", LargestList));
-            try { ReadIndex(found, Get(IndexPage, LargestIndex)); }
+            string trouble;
+            return Browse(out trouble);
+        }
+
+        internal static List<ModListing> BrowseNow()
+        {
+            string trouble;
+            List<ModListing> found = Browse(out trouble);
+            if (trouble != null) throw new ModException(trouble);
+            return found;
+        }
+
+        internal static List<ModListing> Browse(out string trouble)
+        {
+            trouble = null;
+            byte[] tree = null;
+            List<ModListing> found = null;
+            Exception failed = null;
+            foreach (string page in new[] { TreePage, TreeApi })
+            {
+                try
+                {
+                    tree = Get(page, LargestList);
+                    found = Parse(tree);
+                    break;
+                }
+                catch (Exception error)
+                {
+                    tree = null;
+                    failed = error;
+                }
+            }
+            byte[] index = null;
+            if (found != null)
+            {
+                try { index = Get(IndexPage, LargestIndex); }
+                catch (Exception) { }
+                Keep(tree, index);
+            }
+            else
+            {
+                DateTime when;
+                if (!Kept(out tree, out index, out when)) throw new ModException(Trouble(failed));
+                try { found = Parse(tree); }
+                catch (ModException) { throw new ModException(Trouble(failed)); }
+                trouble = Trouble(failed) + " Showing the list from " + Ago(when) + ".";
+            }
+            try { ReadIndex(found, index); }
             catch (Exception) { }
             return found;
+        }
+
+        private static void Keep(byte[] tree, byte[] index)
+        {
+            try
+            {
+                Directory.CreateDirectory(KeptFolder);
+                Save(Path.Combine(KeptFolder, "tree.json"), tree);
+                if (index != null && index.Length <= LargestIndex) Save(Path.Combine(KeptFolder, "index.json"), index);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        private static void Save(string path, byte[] bytes)
+        {
+            string fresh = path + ".new";
+            File.WriteAllBytes(fresh, bytes);
+            if (File.Exists(path)) File.Replace(fresh, path, null);
+            else File.Move(fresh, path);
+        }
+
+        private static bool Kept(out byte[] tree, out byte[] index, out DateTime when)
+        {
+            tree = index = null;
+            when = DateTime.MinValue;
+            try
+            {
+                string treeFile = Path.Combine(KeptFolder, "tree.json"), indexFile = Path.Combine(KeptFolder, "index.json");
+                if (!File.Exists(treeFile) || new FileInfo(treeFile).Length > LargestList) return false;
+                tree = File.ReadAllBytes(treeFile);
+                when = File.GetLastWriteTime(treeFile);
+                if (File.Exists(indexFile) && new FileInfo(indexFile).Length <= LargestIndex) index = File.ReadAllBytes(indexFile);
+                return true;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            tree = index = null;
+            return false;
+        }
+
+        internal static string Ago(DateTime when)
+        {
+            TimeSpan gone = DateTime.Now - when;
+            if (gone < TimeSpan.FromMinutes(2)) return "a moment ago";
+            if (gone < TimeSpan.FromHours(2)) return (int)gone.TotalMinutes + " minutes ago";
+            if (gone < TimeSpan.FromDays(2)) return (int)gone.TotalHours + " hours ago";
+            return (int)gone.TotalDays + " days ago";
+        }
+
+        internal static string Trouble(Exception error)
+        {
+            if (error == null) return "Couldn't reach the mods directory.";
+            if (error is ModException) return error.Message;
+            WebException web = error as WebException;
+            HttpWebResponse answer = web != null ? web.Response as HttpWebResponse : null;
+            if (answer != null)
+            {
+                int code = (int)answer.StatusCode;
+                string left = answer.Headers["x-ratelimit-remaining"], reset = answer.Headers["x-ratelimit-reset"];
+                if (code == 429 || code == 403 && left == "0")
+                {
+                    long at;
+                    string again = long.TryParse(reset, NumberStyles.None, CultureInfo.InvariantCulture, out at) && at > 0 && at < 32503680000L
+                        ? " It resets at " + DateTimeOffset.FromUnixTimeSeconds(at).ToLocalTime().ToString("t", CultureInfo.CurrentCulture) + "." : " It resets within the hour.";
+                    return "GitHub's hourly limit for the mods directory is used up on your network." + again;
+                }
+                return "The mods directory couldn't be reached: GitHub answered " + code + " " + answer.StatusDescription + ".";
+            }
+            if (web != null && web.Status == WebExceptionStatus.Timeout) return "The mods directory took too long to answer.";
+            if (web != null && (web.Status == WebExceptionStatus.NameResolutionFailure || web.Status == WebExceptionStatus.ConnectFailure || web.Status == WebExceptionStatus.ProxyNameResolutionFailure))
+                return "Couldn't reach GitHub for the mods directory. Check your internet connection.";
+            return "Couldn't reach the mods directory: " + error.Message;
         }
 
         private static void ReadIndex(List<ModListing> listings, byte[] json)
@@ -185,6 +310,7 @@ namespace CapriDesktop
             }
             catch (SerializationException) { throw new ModException("The mods directory sent something I can't read."); }
             List<ModListing> found = new List<ModListing>();
+            string commit = tree.Commit != null && Blob.IsMatch(tree.Commit) ? tree.Commit : null;
             Dictionary<string, string> previews = new Dictionary<string, string>();
             Dictionary<string, string> readmes = new Dictionary<string, string>();
             foreach (TreeEntry entry in tree.Entries ?? new TreeEntry[0])
@@ -209,7 +335,7 @@ namespace CapriDesktop
                 string previewSha, readmeName;
                 previews.TryGetValue(match.Groups[1].Value, out previewSha);
                 readmes.TryGetValue(match.Groups[1].Value, out readmeName);
-                found.Add(new ModListing { Folder = match.Groups[1].Value, FileName = match.Groups[2].Value, Sha = entry.Sha, Size = entry.Size, PreviewSha = previewSha, ReadmeName = readmeName });
+                found.Add(new ModListing { Folder = match.Groups[1].Value, FileName = match.Groups[2].Value, Sha = entry.Sha, Size = entry.Size, PreviewSha = previewSha, ReadmeName = readmeName, Commit = commit });
             }
             found.Sort(delegate(ModListing a, ModListing b) { return Named(a, b); });
             return found;
@@ -223,7 +349,7 @@ namespace CapriDesktop
             if (listing.ReadmeName == null) return null;
             List<string> kept = ReadmeKept(listing);
             if (kept != null) return kept;
-            List<string> lines = ReadmeLines(Encoding.UTF8.GetString(GetSoon(Raw + "mods/" + listing.Folder + "/" + listing.ReadmeName, LargestReadme)));
+            List<string> lines = ReadmeLines(Encoding.UTF8.GetString(GetSoon(RawAt(listing) + "mods/" + listing.Folder + "/" + listing.ReadmeName, LargestReadme)));
             lock (Readmes)
             {
                 if (Readmes.TryGetValue(listing.Folder, out kept)) return kept;
@@ -544,10 +670,23 @@ namespace CapriDesktop
             return titles[0] + ", " + titles[1] + " and " + (titles.Count - 2) + " more";
         }
 
+        private static string RawAt(ModListing listing)
+        {
+            return listing.Commit != null ? RawRoot + listing.Commit + "/" : Raw;
+        }
+
+        private static bool Matches(byte[] bytes, ModListing listing)
+        {
+            return bytes != null && bytes.Length == listing.Size && BlobSha(bytes) == listing.Sha;
+        }
+
         internal static string Download(ModListing listing, string under)
         {
-            byte[] bytes = Get(Api + "blobs/" + listing.Sha, Largest);
-            if (bytes.Length != listing.Size || BlobSha(bytes) != listing.Sha) throw new ModException(listing.FileName + " didn't match what the directory listed, so it wasn't installed.");
+            byte[] bytes = null;
+            try { bytes = Get(RawAt(listing) + "mods/" + listing.Folder + "/" + listing.FileName, Largest); }
+            catch (Exception) { }
+            if (!Matches(bytes, listing)) bytes = Get(Api + "blobs/" + listing.Sha, Largest);
+            if (!Matches(bytes, listing)) throw new ModException(listing.FileName + " didn't match what the directory listed, so it wasn't installed.");
             string folder = Path.Combine(under, Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             string file = Path.Combine(folder, Path.GetFileName(listing.FileName));
@@ -569,7 +708,7 @@ namespace CapriDesktop
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
-            byte[] bytes = Get(Raw + "mods/" + listing.Folder + "/preview.png", LargestPreview);
+            byte[] bytes = Get(RawAt(listing) + "mods/" + listing.Folder + "/preview.png", LargestPreview);
             if (BlobSha(bytes) != listing.PreviewSha || !IsPng(bytes)) throw new ModException(listing.Folder + "'s preview didn't match what the directory listed.");
             try
             {

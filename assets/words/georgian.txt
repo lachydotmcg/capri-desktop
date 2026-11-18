@@ -268,8 +268,10 @@ Hide / Show Capri	Capri-ს დამალვა / ჩვენება
 Hide / Show key	დამალვა / ჩვენების კლავიში
 Hide Capri	Capri-ს დამალვა
 Hide for now	ახლა დამალე
+Hide her	დამალე ის
 Hide in full screen	დამალე მთელ ეკრანზე
 Hide this	ეს დამალე
+Hide, keep player	დამალე, პლეერი დატოვე
 Hide/show:	დამალვა/ჩვენება:
 Hide/show: Ctrl + Alt + H	დამალვა/ჩვენება: Ctrl + Alt + H
 Hologram	ჰოლოგრამა
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORD-ში >
 INSTALLED >	დაყენებული >
 Import a Capri mod	Capri-ს მოდის შემოტანა
 Import mod	მოდის შემოტანა
+In full screen	მთელ ეკრანზე
 In games	თამაშებში
 Input	შემავალი
 Input, Output or How to overlaps a row	შემავალი, გამომავალი ან როგორ ეფარება რიგს
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	კლავიშები
 KEYS >	კლავიშები >
 Keep PC awake for jobs	კომპიუტერი გამოფხიზლებული დატოვე სამუშაოებისთვის
+Keep player	პლეერი დატოვე
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ინახავს შენი თამაშის ბოლო ორ წუთს მეხსიერებაში. თქვი clip that მის შესანახად.
 Key	გასაღები
 Key cleared: a model file needs none.	გასაღები გასუფთავდა: მოდელის ფაილს არ სჭირდება.
@@ -439,6 +443,7 @@ No AI · no brain at all	AI არ არის · საერთოდ არ 
 No brain runs, and nothing is sent anywhere.	ტვინი არ მუშაობს და არაფერი არსად იგზავნება.
 No brain yet	ტვინი ჯერ არ არის
 No code open	კოდი არ არის გახსნილი
+No limit	შეუზღუდავი
 No mic found	მიკროფონი ვერ მოიძებნა
 No mods in the directory yet.	მოდები საქაღალდეში ჯერ არ არის.
 No mods match that.	ამას არცერთი მოდი არ ემთხვევა.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	სიმაღლე
 Play	დაკვრა
 Play...	დაკვრა...
+Player only	მხოლოდ პლეერი
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS მოდელები ამ კლიპის ხმას აკოპირებენ. დააჭირე ტესტს მოსასმენად.
 Pop-in times	გამოჩენის დროები
 Pop-ins	გამოჩენები
@@ -666,6 +672,7 @@ Speed	სიჩქარე
 Start with Windows	Windows-თან ერთად გაშვება
 Start with this!	დაიწყე ამით!
 Starting...	იწყება...
+Stay	დარჩი
 Stay on my model	დარჩი ჩემს მოდელზე
 Still checking your mics...	შენს მიკროფონებს ჯერ კიდევ ვამოწმებ...
 Still checking your speakers...	შენს დინამიკებს ჯერ კიდევ ვამოწმებ...

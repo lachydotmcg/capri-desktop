@@ -268,8 +268,10 @@ Hide / Show Capri	Схаваць / Паказаць Capri
 Hide / Show key	Клавіша схаваць / паказаць
 Hide Capri	Схаваць Capri
 Hide for now	Схаваць пакуль
+Hide her	Схаваць яе
 Hide in full screen	Схаваць у поўнаэкранным рэжыме
 Hide this	Схаваць гэта
+Hide, keep player	Схаваць, пакінуць плэер
 Hide/show:	Схаваць/паказаць:
 Hide/show: Ctrl + Alt + H	Схаваць/паказаць: Ctrl + Alt + H
 Hologram	Голаграма
@@ -296,6 +298,7 @@ IN DISCORD >	У DISCORD >
 INSTALLED >	УСТАЛЯВАНЫЯ >
 Import a Capri mod	Імпартаваць мод Capri
 Import mod	Імпартаваць мод
+In full screen	У поўнаэкранным рэжыме
 In games	У гульнях
 Input	Уваход
 Input, Output or How to overlaps a row	Уваход, Вывад або Як накладаецца на радок
@@ -314,6 +317,7 @@ KB.	КБ.
 KEYS	КЛАВІШЫ
 KEYS >	КЛАВІШЫ >
 Keep PC awake for jobs	Не даваць ПК засынаць для задач
+Keep player	Пакінуць плэер
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Захоўвае ў памяці апошнія дзве хвіліны вашай гульні. Скажыце clip that, каб захаваць.
 Key	Ключ
 Key cleared: a model file needs none.	Ключ ачышчаны: файл мадэлі яго не патрабуе.
@@ -439,6 +443,7 @@ No AI · no brain at all	Без ШІ · увогуле без мозгу
 No brain runs, and nothing is sent anywhere.	Мозг не запускаецца, і нічога нікуды не адпраўляецца.
 No brain yet	Мозгу пакуль няма
 No code open	Адкрытага кода няма
+No limit	Без абмежавання
 No mic found	Мікрафон не знойдзены
 No mods in the directory yet.	У папцы пакуль няма модаў.
 No mods match that.	Ніводны мод не адпавядае.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Вышыня
 Play	Прайграць
 Play...	Прайграць...
+Player only	Толькі плэер
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Мадэлі Pocket TTS капіююць голас гэтага кліпа. Націсніце Тэст, каб паслухаць.
 Pop-in times	Часы заходаў
 Pop-ins	Заходы
@@ -666,6 +672,7 @@ Speed	Хуткасць
 Start with Windows	Запускаць разам з Windows
 Start with this!	Пачніце з гэтага!
 Starting...	Запуск...
+Stay	Заставацца
 Stay on my model	Застацца на маёй мадэлі
 Still checking your mics...	Усё яшчэ правяраю вашы мікрафоны...
 Still checking your speakers...	Усё яшчэ правяраю вашыя дынамікі...

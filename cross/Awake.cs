@@ -162,7 +162,7 @@ namespace CapriDesktop
         internal Awake Wakeful;
         private readonly object workGate = new object();
         private int workCount;
-        internal bool KeepAwake { get { return !Saved.NoKeepAwake; } }
+        internal bool KeepAwake { get { return true; } }
         internal bool JobActive { get { return Volatile.Read(ref workCount) > 0 || Security.Holding != null || glancing; } }
 
         private void StartAwake()
@@ -184,8 +184,7 @@ namespace CapriDesktop
 
         internal void BeginWork() { lock (workGate) { workCount++; CheckKeepAwake(); } }
         internal void EndWork() { lock (workGate) { workCount = Math.Max(0, workCount - 1); CheckKeepAwake(); } }
-        internal void SetKeepAwake(bool on) { Saved.NoKeepAwake = !on; CheckKeepAwake(); Save(); }
-        internal void CheckKeepAwake() { lock (workGate) Wakeful?.Set(KeepAwake && !quitting && JobActive); }
+        internal void CheckKeepAwake() { lock (workGate) Wakeful?.Set(!quitting && JobActive); }
         internal void StopAwake() { lock (workGate) Wakeful?.Dispose(); }
     }
 }

@@ -268,8 +268,10 @@ Hide / Show Capri	Capri దాచు / చూపు
 Hide / Show key	దాచు / చూపు కీ
 Hide Capri	Capri దాచు
 Hide for now	ప్రస్తుతానికి దాచు
+Hide her	ఆమెను దాచు
 Hide in full screen	ఫుల్ స్క్రీన్‌లో దాచు
 Hide this	దీన్ని దాచు
+Hide, keep player	దాచు, ప్లేయర్ ఉంచు
 Hide/show:	దాచు/చూపు:
 Hide/show: Ctrl + Alt + H	దాచు/చూపు: Ctrl + Alt + H
 Hologram	హోలోగ్రామ్
@@ -296,6 +298,7 @@ IN DISCORD >	DISCORDలో >
 INSTALLED >	ఇన్‌స్టాల్ అయింది >
 Import a Capri mod	Capri మోడ్‌ను దిగుమతి చేయి
 Import mod	మోడ్‌ను దిగుమతి చేయి
+In full screen	ఫుల్ స్క్రీన్‌లో
 In games	ఆటల్లో
 Input	ఇన్‌పుట్
 Input, Output or How to overlaps a row	ఇన్‌పుట్, అవుట్‌పుట్ లేదా ఎలా అనేవి ఒక వరుసపై అతివ్యాప్తి చెందుతాయి
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	కీలు
 KEYS >	కీలు >
 Keep PC awake for jobs	పనుల కోసం PCని మెలకువగా ఉంచు
+Keep player	ప్లేయర్ ఉంచు
 Keeps the last two minutes of your game in memory. Say clip that to save it.	మీ ఆట చివరి రెండు నిమిషాలను మెమరీలో ఉంచుతుంది. సేవ్ చేయడానికి clip that అని చెప్పు.
 Key	కీ
 Key cleared: a model file needs none.	కీ క్లియర్ అయింది: మోడల్ ఫైల్‌కు కీ అవసరం లేదు.
@@ -439,6 +443,7 @@ No AI · no brain at all	AI లేదు · అసలు బ్రెయిన�
 No brain runs, and nothing is sent anywhere.	ఏ బ్రెయిన్ నడవదు, ఏమీ ఎక్కడికీ పంపబడదు.
 No brain yet	ఇంకా బ్రెయిన్ లేదు
 No code open	కోడ్ ఏదీ తెరవలేదు
+No limit	పరిమితి లేదు
 No mic found	మైక్ కనుగొనబడలేదు
 No mods in the directory yet.	డైరెక్టరీలో ఇంకా మోడ్‌లు లేవు.
 No mods match that.	దానికి సరిపోయే మోడ్‌లు లేవు.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	పిచ్
 Play	ప్లే
 Play...	ప్లే...
+Player only	ప్లేయర్ మాత్రమే
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS మోడల్‌లు ఈ క్లిప్ వాయిస్‌ను కాపీ చేస్తాయి. వినడానికి Test నొక్కు.
 Pop-in times	పాప్-ఇన్ సమయాలు
 Pop-ins	పాప్-ఇన్‌లు
@@ -666,6 +672,7 @@ Speed	వేగం
 Start with Windows	Windowsతో ప్రారంభించు
 Start with this!	దీంతో ప్రారంభించు!
 Starting...	ప్రారంభిస్తోంది...
+Stay	ఉండు
 Stay on my model	నా మోడల్‌పైనే ఉండు
 Still checking your mics...	మీ మైక్‌లను ఇంకా తనిఖీ చేస్తోంది...
 Still checking your speakers...	మీ స్పీకర్లను ఇంకా తనిఖీ చేస్తోంది...

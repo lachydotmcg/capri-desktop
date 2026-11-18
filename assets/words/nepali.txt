@@ -268,8 +268,10 @@ Hide / Show Capri	Capri लुकाउनु / देखाउनु
 Hide / Show key	लुकाउने / देखाउने कुञ्जी
 Hide Capri	Capri लुकाउनुहोस्
 Hide for now	अहिलेका लागि लुकाउनुहोस्
+Hide her	उसलाई लुकाउनुहोस्
 Hide in full screen	पूर्ण स्क्रिनमा लुकाउनुहोस्
 Hide this	यो लुकाउनुहोस्
+Hide, keep player	लुकाउनुहोस्, प्लेयर राख्नुहोस्
 Hide/show:	लुकाउने/देखाउने:
 Hide/show: Ctrl + Alt + H	लुकाउने/देखाउने: Ctrl + Alt + H
 Hologram	होलोग्राम
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	स्थापना भयो >
 Import a Capri mod	Capri मोड आयात गर्नुहोस्
 Import mod	मोड आयात गर्नुहोस्
+In full screen	पूर्ण स्क्रिनमा
 In games	खेलहरूमा
 Input	इनपुट
 Input, Output or How to overlaps a row	इनपुट, आउटपुट वा कसरी ले पङ्क्तिलाई ओभरल्याप गर्छ
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	कुञ्जीहरू
 KEYS >	कुञ्जीहरू >
 Keep PC awake for jobs	कामका लागि PC जागा राख्नुहोस्
+Keep player	प्लेयर राख्नुहोस्
 Keeps the last two minutes of your game in memory. Say clip that to save it.	तपाईंको खेलका अन्तिम दुई मिनेट मेमोरीमा राख्छ। बचत गर्न clip that भन्नुहोस्।
 Key	कुञ्जी
 Key cleared: a model file needs none.	कुञ्जी खाली गरियो: मोडेल फाइलले कुनै कुञ्जी चाहँदैन।
@@ -439,6 +443,7 @@ No AI · no brain at all	कुनै AI छैन · कुनै दिमा�
 No brain runs, and nothing is sent anywhere.	कुनै दिमाग चल्दैन, र केही पनि कतै पठाइँदैन।
 No brain yet	अझै दिमाग छैन
 No code open	कुनै खुला कोड छैन
+No limit	कुनै सीमा छैन
 No mic found	कुनै माइक भेटिएन
 No mods in the directory yet.	डाइरेक्टरीमा अहिलेसम्म कुनै मोड छैन।
 No mods match that.	त्यसको मेल खाने कुनै मोड छैन।
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	पिच
 Play	बजाउनुहोस्
 Play...	बजाउनुहोस्...
+Player only	प्लेयर मात्र
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS मोडेलहरूले यो क्लिपको आवाज कपी गर्छन्। सुन्न Test थिच्नुहोस्।
 Pop-in times	पप-इन समय
 Pop-ins	पप-इनहरू
@@ -666,6 +672,7 @@ Speed	गति
 Start with Windows	Windows सँग सुरु गर्नुहोस्
 Start with this!	यसैबाट सुरु गर्नुहोस्!
 Starting...	सुरु हुँदैछ...
+Stay	बस्नुहोस्
 Stay on my model	मेरो मोडेलमै रहनुहोस्
 Still checking your mics...	तपाईंका माइकहरू अझै जाँच्दै...
 Still checking your speakers...	तपाईंका स्पिकरहरू अझै जाँच्दै...

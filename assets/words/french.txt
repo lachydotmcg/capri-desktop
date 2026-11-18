@@ -268,8 +268,10 @@ Hide / Show Capri	Masquer / Afficher Capri
 Hide / Show key	Touche masquer / afficher
 Hide Capri	Masquer Capri
 Hide for now	Masquer pour l'instant
+Hide her	La masquer
 Hide in full screen	Masquer en plein écran
 Hide this	Masquer ceci
+Hide, keep player	La masquer, garder le lecteur
 Hide/show:	Masquer/afficher :
 Hide/show: Ctrl + Alt + H	Masquer/afficher : Ctrl + Alt + H
 Hologram	Hologramme
@@ -296,6 +298,7 @@ IN DISCORD >	DANS DISCORD >
 INSTALLED >	INSTALLÉ >
 Import a Capri mod	Importer un mod Capri
 Import mod	Importer un mod
+In full screen	En plein écran
 In games	Dans les jeux
 Input	Entrée
 Input, Output or How to overlaps a row	Entrée, Sortie ou Comment chevauche une ligne
@@ -314,6 +317,7 @@ KB.	Ko.
 KEYS	TOUCHES
 KEYS >	TOUCHES >
 Keep PC awake for jobs	Garder le PC éveillé pour les jobs
+Keep player	Garder le lecteur
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Garde les deux dernières minutes de ton jeu en mémoire. Dis « clip that » pour l'enregistrer.
 Key	Touche
 Key cleared: a model file needs none.	Clé effacée : un fichier de modèle n'en a pas besoin.
@@ -439,6 +443,7 @@ No AI · no brain at all	Pas d'IA · aucun cerveau du tout
 No brain runs, and nothing is sent anywhere.	Aucun cerveau ne tourne, et rien n'est envoyé nulle part.
 No brain yet	Pas encore de cerveau
 No code open	Aucun code ouvert
+No limit	Sans limite
 No mic found	Aucun micro trouvé
 No mods in the directory yet.	Aucun mod dans le dossier pour l'instant.
 No mods match that.	Aucun mod ne correspond à ça.
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Hauteur
 Play	Lecture
 Play...	Lire...
+Player only	Lecteur seul
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Les modèles Pocket TTS copient la voix de ce clip. Appuie sur Tester pour l'entendre.
 Pop-in times	Durées des apparitions
 Pop-ins	Apparitions
@@ -666,6 +672,7 @@ Speed	Vitesse
 Start with Windows	Lancer avec Windows
 Start with this!	Commence avec ça !
 Starting...	Démarrage...
+Stay	Rester
 Stay on my model	Rester sur mon modèle
 Still checking your mics...	Vérification de tes micros...
 Still checking your speakers...	Vérification de tes haut-parleurs...

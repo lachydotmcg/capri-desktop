@@ -194,7 +194,7 @@ namespace CapriDesktop
                             {
                                 int width = Math.Min(Px(328), area.Width - 20), height = Math.Min(Px(22), area.Height / 4);
                                 Rectangle anchor = new Rectangle(corner.X == 0 ? area.Left + 10 : area.Right - width - 10, corner.Y == 0 ? area.Top + 10 : area.Bottom - height - 10, width, height);
-                                foreach (Control control in new Control[] { checkIns, volume, languages, gamingMode })
+                                foreach (Control control in new Control[] { checkIns, volume, languages, liveReactions })
                                 {
                                     SettingHint row = hints[control];
                                     if (!hintCard.Place(row.Title, row.Topic.Facts, Unit(), anchor, area) || !area.Contains(hintCard.Bounds) || anchor.IntersectsWith(hintCard.Bounds))

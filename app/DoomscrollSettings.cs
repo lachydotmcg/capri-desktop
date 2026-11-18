@@ -31,6 +31,18 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
+        internal void SetDoomscrollStep(int seconds)
+        {
+            bool on = seconds > 0;
+            int limit = Doomscroll.Limit(seconds);
+            if (on == preferences.DoomscrollGuard && (!on || preferences.DoomscrollLimit == limit)) return;
+            if (on) preferences.DoomscrollLimit = limit;
+            preferences.DoomscrollGuard = on;
+            EndDoomscroll();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         internal void SetDoomscrollLimit(int seconds)
         {
             int limit = Doomscroll.Limit(seconds);
@@ -175,28 +187,35 @@ namespace CapriDesktop
 
     internal sealed partial class Mainframe
     {
-        private Toggle doomSwitch;
         private Slider doomLimit;
+        private static readonly string[] ScrollNames = WithOff(Doomscroll.LimitNames);
+
+        private static string[] WithOff(string[] names)
+        {
+            string[] all = new string[names.Length + 1];
+            all[0] = "Off";
+            names.CopyTo(all, 1);
+            return all;
+        }
 
         private void BuildDoomscroll(int y)
         {
             Section("DOOMSCROLL >", 0, y);
-            doomSwitch = Switch("Doomscroll guard", 0, y + 24, delegate { if (!syncing) capri.ToggleDoomscroll(); });
-            doomSwitch.AccessibleName = "Doomscroll guard. Off by default. She reacts when TikTok, YouTube Shorts, Instagram, Reddit or X has been in front longer than your scroll limit";
-            doomLimit = Setting("Scroll limit", Doomscroll.LimitNames, 0, y + 52, "How long a doomscroll site can stay in front before she reacts");
-            doomLimit.Changed += delegate { if (!syncing) capri.SetDoomscrollLimit(Doomscroll.Limits[doomLimit.Value]); };
-            Label hint = Caption("Sites are in personalSettings\\sys.md. Say\n\"5 more minutes\" and she gives you five.", 28, y + 84, Look.Mono(8.5f, FontStyle.Regular, GraphicsUnit.Point), Faint);
+            doomLimit = Setting("Scroll limit", ScrollNames, 0, y + 24, "Doomscroll guard: how long TikTok, YouTube Shorts, Instagram, Reddit or X can stay in front before she reacts. Off by default, and Off turns the guard off");
+            doomLimit.Changed += delegate { if (!syncing) capri.SetDoomscrollStep(doomLimit.Value == 0 ? 0 : Doomscroll.Limits[doomLimit.Value - 1]); };
+            Label hint = Caption("Sites are in personalSettings\\sys.md. Say\n\"5 more minutes\" and she gives you five.", 28, y + 56, Look.Mono(8.5f, FontStyle.Regular, GraphicsUnit.Point), Faint);
             hint.AutoSize = false;
-            hint.Bounds = new Rectangle(28, y + 84, 328, 36);
+            hint.Bounds = new Rectangle(28, y + 56, 328, 36);
         }
 
         private void SyncDoomscroll()
         {
-            doomSwitch.Checked = capri.DoomscrollOn;
-            doomLimit.Value = Math.Max(0, Array.IndexOf(Doomscroll.Limits, capri.DoomscrollLimit));
+            doomLimit.Value = capri.DoomscrollOn ? 1 + Math.Max(0, Array.IndexOf(Doomscroll.Limits, capri.DoomscrollLimit)) : 0;
         }
 
-        internal string DoomscrollShown { get { return (doomSwitch.Checked ? "on" : "off") + " | " + Doomscroll.LimitNames[doomLimit.Value]; } }
+        internal string DoomscrollShown { get { return (doomLimit.Value == 0 ? "off" : "on") + " | " + Doomscroll.LimitNames[Math.Max(0, Array.IndexOf(Doomscroll.Limits, capri.DoomscrollLimit))]; } }
+
+        internal void SlideDoomscroll(int steps) { Press(doomLimit, steps); }
 
     }
 }

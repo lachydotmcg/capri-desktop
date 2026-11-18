@@ -268,8 +268,10 @@ Hide / Show Capri	Capri ਲੁਕਾਓ / ਦਿਖਾਓ
 Hide / Show key	ਲੁਕਾਓ / ਦਿਖਾਓ ਕੁੰਜੀ
 Hide Capri	Capri ਲੁਕਾਓ
 Hide for now	ਹੁਣ ਲਈ ਲੁਕਾਓ
+Hide her	ਉਸਨੂੰ ਲੁਕਾਓ
 Hide in full screen	ਫੁੱਲ ਸਕ੍ਰੀਨ ਵਿੱਚ ਲੁਕਾਓ
 Hide this	ਇਹ ਲੁਕਾਓ
+Hide, keep player	ਲੁਕਾਓ, ਪਲੇਅਰ ਰੱਖੋ
 Hide/show:	ਲੁਕਾਓ/ਦਿਖਾਓ:
 Hide/show: Ctrl + Alt + H	ਲੁਕਾਓ/ਦਿਖਾਓ: Ctrl + Alt + H
 Hologram	ਹੋਲੋਗ੍ਰਾਮ
@@ -296,6 +298,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALLED >
 Import a Capri mod	Capri mod ਇੰਪੋਰਟ ਕਰੋ
 Import mod	Mod ਇੰਪੋਰਟ ਕਰੋ
+In full screen	ਫੁੱਲ ਸਕ੍ਰੀਨ ਵਿੱਚ
 In games	ਖੇਡਾਂ ਵਿੱਚ
 Input	Input
 Input, Output or How to overlaps a row	Input, Output ਜਾਂ How to ਇੱਕ ਕਤਾਰ ਨਾਲ ਓਵਰਲੈਪ ਕਰਦਾ ਹੈ
@@ -314,6 +317,7 @@ KB.	KB.
 KEYS	ਕੁੰਜੀਆਂ
 KEYS >	ਕੁੰਜੀਆਂ >
 Keep PC awake for jobs	ਕੰਮਾਂ ਲਈ PC ਜਾਗਦਾ ਰੱਖੋ
+Keep player	ਪਲੇਅਰ ਰੱਖੋ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ਤੁਹਾਡੀ ਖੇਡ ਦੇ ਆਖਰੀ ਦੋ ਮਿੰਟ ਯਾਦਦਾਸ਼ਤ ਵਿੱਚ ਰੱਖਦਾ ਹੈ। ਇਸਨੂੰ ਸੰਭਾਲਣ ਲਈ clip that ਕਹੋ।
 Key	ਕੁੰਜੀ
 Key cleared: a model file needs none.	ਕੁੰਜੀ ਸਾਫ਼ ਕੀਤੀ: ਮਾਡਲ ਫਾਈਲ ਨੂੰ ਕਿਸੇ ਦੀ ਲੋੜ ਨਹੀਂ।
@@ -439,6 +443,7 @@ No AI · no brain at all	ਕੋਈ AI ਨਹੀਂ · ਬਿਲਕੁਲ ਕੋ�
 No brain runs, and nothing is sent anywhere.	ਕੋਈ ਦਿਮਾਗ ਨਹੀਂ ਚੱਲਦਾ, ਅਤੇ ਕਿਤੇ ਵੀ ਕੁਝ ਨਹੀਂ ਭੇਜਿਆ ਜਾਂਦਾ।
 No brain yet	ਅਜੇ ਕੋਈ ਦਿਮਾਗ ਨਹੀਂ
 No code open	ਕੋਈ ਕੋਡ ਖੁੱਲ੍ਹਾ ਨਹੀਂ
+No limit	ਕੋਈ ਸੀਮਾ ਨਹੀਂ
 No mic found	ਕੋਈ ਮਾਈਕ ਨਹੀਂ ਮਿਲਿਆ
 No mods in the directory yet.	ਫੋਲਡਰ ਵਿੱਚ ਅਜੇ ਕੋਈ mods ਨਹੀਂ।
 No mods match that.	ਇਸ ਨਾਲ ਕੋਈ mod ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ।
@@ -516,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	ਪਿੱਚ
 Play	ਚਲਾਓ
 Play...	ਚਲਾਓ...
+Player only	ਸਿਰਫ਼ ਪਲੇਅਰ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS ਮਾਡਲ ਇਸ clip ਦੀ ਆਵਾਜ਼ ਦੀ ਨਕਲ ਕਰਦੇ ਹਨ। ਸੁਣਨ ਲਈ Test ਦਬਾਓ।
 Pop-in times	Pop-in ਸਮੇਂ
 Pop-ins	Pop-ins
@@ -666,6 +672,7 @@ Speed	ਸਪੀਡ
 Start with Windows	Windows ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ
 Start with this!	ਇਸ ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ!
 Starting...	ਸ਼ੁਰੂ ਹੋ ਰਿਹਾ ਹੈ...
+Stay	ਰਹੋ
 Stay on my model	ਮੇਰਾ ਮਾਡਲ ਰੱਖੋ
 Still checking your mics...	ਤੁਹਾਡੇ ਮਾਈਕ ਚੈੱਕ ਕਰ ਰਹੀ ਹਾਂ...
 Still checking your speakers...	ਤੁਹਾਡੇ ਸਪੀਕਰ ਚੈੱਕ ਕਰ ਰਹੀ ਹਾਂ...
