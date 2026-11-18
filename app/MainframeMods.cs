@@ -433,7 +433,10 @@ namespace CapriDesktop
         private bool AskToRun(ModFile mod, string hash)
         {
             if (!Question.Ask(this, Mods.Consent(mod, hash), "Run this code mod?")) return false;
-            return !mod.AskTwice || Question.Ask(this, Mods.Unclear(mod), "Run code you can't read?");
+            if (mod.AskTwice && !Question.Ask(this, Mods.Unclear(mod), "Run code you can't read?")) return false;
+            // Readable or not, code that can reach the network, other programs, Windows itself or her saved secrets gets a
+            // second, plainer question. The scan is a regex, so "what it says" is not "what it does".
+            return !mod.AskAgain || Question.Ask(this, Mods.Risky(mod), "Run code that reaches this far?");
         }
 
         private void RemoveMod(int row)
