@@ -27,6 +27,8 @@ import android.webkit.WebViewClient;
 import com.google.ar.core.ArCoreApk;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 
 public final class MainActivity extends Activity {
@@ -40,7 +42,6 @@ public final class MainActivity extends Activity {
     private WebFiles files;
     private PermissionRequest pendingMedia;
     private ValueCallback<Uri[]> pendingFile;
-    private volatile boolean ours;
     private volatile boolean arSupported;
     private volatile boolean visible;
     private static volatile MainActivity current;
@@ -189,6 +190,13 @@ public final class MainActivity extends Activity {
         if (!open && !answer) {
             return false;
         }
+        // The activity is exported for the launcher and the /remote link, so "open" and "answer" can be forged by any
+        // app on the phone. Only our own PendingIntents carry the process nonce; anything else is ignored.
+        if (!Notify.isOurs(intent)) {
+            Log.w(TAG, "Dropped a notification intent that did not come from us");
+            intent.setAction(null);
+            return false;
+        }
         intent.setAction(null);
         try {
             JSONObject payload = new JSONObject();
@@ -250,6 +258,35 @@ public final class MainActivity extends Activity {
             return asked;
         }
         return HOME;
+    }
+
+    // What the page showing right now really is. The old flag was set in onPageStarted, so a document that navigated
+    // inside our origin kept the bridge after it was no longer our page; this asks the WebView instead.
+    private boolean onOurPage() {
+        if (web == null) {
+            return false;
+        }
+        final boolean[] ok = {false};
+        final CountDownLatch done = new CountDownLatch(1);
+        Runnable ask = () -> {
+            try {
+                String now = web.getUrl();
+                ok[0] = now != null && WebFiles.ours(Uri.parse(now));
+            } finally {
+                done.countDown();
+            }
+        };
+        if (Thread.currentThread() == getMainLooper().getThread()) {
+            ask.run();
+        } else {
+            runOnUiThread(ask);
+            try {
+                done.await(500, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return ok[0];
     }
 
     private static String strip(String url) {
@@ -332,10 +369,6 @@ public final class MainActivity extends Activity {
             return true;
         }
 
-        @Override
-        public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
-            ours = url != null && WebFiles.ours(Uri.parse(url));
-        }
     }
 
     private final class Chrome extends WebChromeClient {
@@ -370,6 +403,12 @@ public final class MainActivity extends Activity {
 
         @Override
         public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+            // The picker hands a real file back to the page, so only open it for our own document.
+            String page = view.getUrl();
+            if (page == null || !WebFiles.ours(Uri.parse(page))) {
+                callback.onReceiveValue(null);
+                return false;
+            }
             if (pendingFile != null) {
                 pendingFile.onReceiveValue(null);
             }
@@ -395,12 +434,12 @@ public final class MainActivity extends Activity {
     private final class Bridge {
         @android.webkit.JavascriptInterface
         public String info() {
-            return ours ? MainActivity.this.info() : "{}";
+            return onOurPage() ? MainActivity.this.info() : "{}";
         }
 
         @android.webkit.JavascriptInterface
         public String bubble(boolean on) {
-            if (!ours) {
+            if (!onOurPage()) {
                 return "{}";
             }
             prefs().edit().putBoolean("bubble", on).apply();
@@ -422,12 +461,12 @@ public final class MainActivity extends Activity {
 
         @android.webkit.JavascriptInterface
         public String notifyInfo() {
-            return ours ? Notify.info(MainActivity.this) : "{\"on\":false,\"allowed\":false}";
+            return onOurPage() ? Notify.info(MainActivity.this) : "{\"on\":false,\"allowed\":false}";
         }
 
         @android.webkit.JavascriptInterface
         public String notifySet(boolean on) {
-            if (!ours) {
+            if (!onOurPage()) {
                 return "{\"on\":false,\"allowed\":false}";
             }
             Notify.wish(MainActivity.this, on);
@@ -442,12 +481,12 @@ public final class MainActivity extends Activity {
 
         @android.webkit.JavascriptInterface
         public boolean notify(String json) {
-            return ours && Notify.show(MainActivity.this, json);
+            return onOurPage() && Notify.show(MainActivity.this, json);
         }
 
         @android.webkit.JavascriptInterface
         public boolean room() {
-            if (!ours || !arSupported) {
+            if (!onOurPage() || !arSupported) {
                 return false;
             }
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, RoomActivity.class)));
@@ -456,7 +495,7 @@ public final class MainActivity extends Activity {
 
         @android.webkit.JavascriptInterface
         public String wake(String cards) {
-            if (!ours || cards == null || cards.length() > 4000) {
+            if (!onOurPage() || cards == null || cards.length() > 4000) {
                 return "{\"sent\":0}";
             }
             return "{\"sent\":" + Wake.send(cards) + "}";
@@ -464,7 +503,7 @@ public final class MainActivity extends Activity {
 
         @android.webkit.JavascriptInterface
         public void said(String text) {
-            if (!ours || text == null || visible) {
+            if (!onOurPage() || text == null || visible) {
                 return;
             }
             String line = text.trim();

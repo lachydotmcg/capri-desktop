@@ -68,14 +68,25 @@ final class WebFiles {
             return null;
         }
         for (String part : path.split("/")) {
-            if (part.equals("..") || part.equals(".") || part.contains("\\")) {
+            if (part.equals("..") || part.equals(".") || part.contains("\\") || part.indexOf('\0') >= 0) {
                 return null;
             }
+        }
+        // A percent sign left after Uri decoded the path means someone double-encoded it: refuse rather than re-decode.
+        if (path.indexOf('%') >= 0) {
+            return null;
         }
         if (path.endsWith("/")) {
             path += "index.html";
         }
-        return "web" + path;
+        // The final name is what assets.open sees, so the traversal check is made on it, not only on the request.
+        String name = "web" + path;
+        for (String part : name.split("/")) {
+            if (part.equals("..") || part.equals(".")) {
+                return null;
+            }
+        }
+        return name;
     }
 
     static String typeOf(String name) {
