@@ -44949,7 +44949,19 @@ namespace CapriDesktop
                 if (SelfKnow.Setting("Mainframe.cs", "Her own computer") == null) throw new Exception("Her own computer lost its help.");
                 using (HerComputerWindow herWindow = new HerComputerWindow(new HerComputer(Path.Combine(Path.GetDirectoryName(settingsPath), "her-computer"))))
                 using (System.Drawing.Bitmap herShot = herWindow.Snapshot())
+                {
                     if (herShot.Width != HerComputer.Width || herShot.GetPixel(HerComputer.Width / 2, 60).A == 0) throw new Exception("Her computer's desktop didn't draw.");
+                    if (!HerComputerWindow.CardBox.Contains(HerComputerWindow.StickerCell(HerComputer.StickerKinds.Length))) throw new Exception("Her malware bomb sticker fell off her sticker book.");
+                    foreach (double boomTime in new[] { 0.5, 1.7, 3.0, 6.0 })
+                    {
+                        herWindow.ShowBoom(boomTime, new System.Drawing.PointF(640, 300));
+                        if (!herWindow.Booming) throw new Exception("Her malware bomb didn't go off.");
+                        using (System.Drawing.Bitmap boomShot = herWindow.Snapshot())
+                            if (boomShot.GetPixel(HerComputer.Width / 2, 60).A == 0) throw new Exception("Her computer didn't draw while it blew up.");
+                    }
+                    herWindow.ShowBoom(60, new System.Drawing.PointF(640, 300));
+                    if (herWindow.Booming) throw new Exception("Her computer never came back from the malware bomb.");
+                }
                 List<RemoteMonitor> herScreens = new List<RemoteMonitor>();
                 AddHerScreen(herScreens);
                 if (herScreens.Count != 1 || herScreens[0].Id != HerScreenId || herScreens[0].Name != "Capri's computer") throw new Exception("Capri Remote didn't list her computer as a screen.");
@@ -44963,7 +44975,7 @@ namespace CapriDesktop
                 herScreens.Clear();
                 AddHerScreen(herScreens);
                 if (LoadPreferences().HerComputer || HerComputerShown != "off | closed" || herScreens.Count != 0) throw new Exception("Her own computer did not turn off: " + HerComputerShown);
-                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, Capri Remote can watch it, and her help explains it");
+                checks.Add("PASS Mainframe her own computer: off by default, its switch saves, her desktop draws, her malware bomb blows up and reboots, Capri Remote can watch it, and her help explains it");
             }
             finally
             {

@@ -55,6 +55,29 @@ namespace CapriDesktop
         private PointF offset;
         private bool quietShow;
         private DateTime watchedAt = DateTime.MinValue;
+        private DateTime boomAt = DateTime.MinValue;
+        private PointF boomSpot;
+        private Bitmap boomScene, boomFrame;
+        private readonly Random sparkle = new Random();
+        internal const string BombSticker = "bomb";
+        private const double Fuse = 1.6, GlitchEnd = 5.0, BoomEnd = 7.2;
+        private static readonly string[] BombLooks = { "Ooh, a new sticker... wait, is it ticking?", "Thanks! Why is it fizzing?", "Cute sticker. Hang on. Is that a fuse?" };
+        private static readonly string[] BombCries = { "NONONONO", "AAAAAH my computer!", "WHAT DID YOU DO" };
+        private static readonly string[] BombReactions =
+        {
+            "Okay, WHO put malware on my computer? I just got my stickers how I like them.",
+            "Rude. Very rude. I'm keeping an eye on you now.",
+            "My whole computer just exploded and you're laughing, aren't you.",
+            "I'm fine. Everything's fine. My clock's just a little crispy.",
+            "Next time you give me a sticker, I'm checking it for wires first.",
+            "Wow. I trusted you with the sticker book.",
+        };
+        private static readonly string[] BombDiary =
+        {
+            "Someone stuck a malware bomb on my home page today. My whole computer blew up. I'm not over it.",
+            "Got bombed. Rebooted. Still cute. Still suspicious of stickers.",
+            "Note to self: never trust a sticker that fizzes.",
+        };
 
         internal HerComputerWindow(HerComputer computer)
         {
@@ -74,6 +97,8 @@ namespace CapriDesktop
             foreach (string app in HerComputer.Apps) Art("app-" + app);
             foreach (string site in HerComputer.Sites) Art("site-" + site);
             foreach (string kind in HerComputer.StickerKinds) Art("sticker-" + kind);
+            Art("sticker-" + BombSticker);
+            Art("boom");
             clockFont = FileEditor.Title(78f);
             bigFont = Neon.Type(28f, true, GraphicsUnit.Pixel);
             textFont = Neon.Type(17f, false, GraphicsUnit.Pixel);
@@ -219,7 +244,7 @@ namespace CapriDesktop
             {
                 ticker.Dispose();
                 foreach (Image image in art.Values) if (image != null) image.Dispose();
-                foreach (IDisposable owned in new IDisposable[] { perch, face, pointer, backdrop, clockFont, bigFont, textFont, smallFont, boldFont, labelFont, monoFont, diaryFont }) if (owned != null) owned.Dispose();
+                foreach (IDisposable owned in new IDisposable[] { perch, face, pointer, backdrop, boomScene, boomFrame, clockFont, bigFont, textFont, smallFont, boldFont, labelFont, monoFont, diaryFont }) if (owned != null) owned.Dispose();
                 lock (gate) if (frame != null) { frame.Dispose(); frame = null; }
             }
             base.Dispose(disposing);
@@ -296,7 +321,8 @@ namespace CapriDesktop
                 try { Invoke(new Action(delegate { minimized = !Seen || !Visible; })); }
                 catch (InvalidOperationException) { return; }
                 if (minimized) continue;
-                try { Computer.Potter(this, delegate { return closing || Busy || inControl; }, BrainDiary); }
+                if (Booming) continue;
+                try { Computer.Potter(this, delegate { return closing || Busy || inControl || Booming; }, BrainDiary); }
                 catch (Exception) { }
                 if (!Busy) Status("Just hanging out");
             }
@@ -502,7 +528,7 @@ namespace CapriDesktop
         internal static Rectangle StickerCell(int index)
         {
             index = Math.Max(0, index);
-            return new Rectangle(CardBox.Left + 40 + (index % 4) * 164, CardBox.Top + CardHead + 70 + (index / 4) * 180, 148, 160);
+            return new Rectangle(CardBox.Left + 34 + (index % 5) * 132, CardBox.Top + CardHead + 70 + (index / 5) * 180, 124, 160);
         }
 
         internal static Rectangle FileCell(int index)
@@ -575,8 +601,14 @@ namespace CapriDesktop
             {
                 for (int i = 0; i < HerComputer.StickerKinds.Length; i++)
                     if (StickerCell(i).Contains(System.Drawing.Point.Round(at))) { lock (gate) { heldSticker = HerComputer.StickerKinds[i]; openApp = null; } Status("Click her page to stick it"); return; }
+                if (StickerCell(HerComputer.StickerKinds.Length).Contains(System.Drawing.Point.Round(at))) { lock (gate) { heldSticker = BombSticker; openApp = null; } Status("Click her page to stick it"); return; }
             }
             if (app != null) return;
+            if (heldSticker == BombSticker && PageBox.Contains(System.Drawing.Point.Round(at)))
+            {
+                if (!Booming) Bomb(at);
+                return;
+            }
             if (heldSticker != null && PageBox.Contains(System.Drawing.Point.Round(at)))
             {
                 Computer.AddSticker(heldSticker, System.Drawing.Point.Round(at), random.Next(-20, 21));
@@ -694,7 +726,176 @@ namespace CapriDesktop
 
         internal void Draw(Graphics g)
         {
+            double since;
+            lock (gate) since = (DateTime.UtcNow - boomAt).TotalSeconds;
+            if (since >= Fuse && since < BoomEnd) { DrawBoom(g, since); return; }
             lock (gate) DrawAll(g, openApp, typingField, typed, bubble, status, cursor, frame, rippleAt, heldSticker, selectedNote, webProblem);
+            if (since >= 0 && since < Fuse) DrawFuse(g, since);
+        }
+
+        internal bool Booming { get { lock (gate) return (DateTime.UtcNow - boomAt).TotalSeconds < BoomEnd; } }
+
+        internal void ShowBoom(double since, PointF at)
+        {
+            lock (gate) { boomAt = DateTime.UtcNow.AddSeconds(-since); boomSpot = at; }
+        }
+
+        private void Bomb(PointF at)
+        {
+            PointF home;
+            lock (gate) { boomAt = DateTime.UtcNow; boomSpot = at; heldSticker = null; home = cursor; }
+            Status("Uh oh");
+            Bubble(BombLooks[random.Next(BombLooks.Length)]);
+            ThreadPool.QueueUserWorkItem(delegate { BombGoesOff(home); });
+        }
+
+        private void BombGoesOff(PointF home)
+        {
+            DateTime began;
+            lock (gate) began = boomAt;
+            while (!closing && (DateTime.UtcNow - began).TotalSeconds < Fuse) Thread.Sleep(50);
+            Bubble(BombCries[random.Next(BombCries.Length)]);
+            Status("Something is very wrong");
+            while (!closing && (DateTime.UtcNow - began).TotalSeconds < GlitchEnd)
+            {
+                lock (gate) target = new PointF(PageBox.Left + random.Next(PageBox.Width), PageBox.Top + random.Next(PageBox.Height));
+                Thread.Sleep(140);
+            }
+            Bubble(null);
+            Status("Rebooting...");
+            while (!closing && (DateTime.UtcNow - began).TotalSeconds < BoomEnd) Thread.Sleep(50);
+            if (closing) return;
+            string line = BombReactions[random.Next(BombReactions.Length)];
+            lock (gate) { if (boomAt == began) boomAt = DateTime.MinValue; target = home; }
+            Bubble(line);
+            Status("Just hanging out");
+            try { Computer.WriteDiary(BombDiary[random.Next(BombDiary.Length)]); }
+            catch (Exception) { }
+            Action<string> tell = Tell;
+            if (tell != null) tell(line);
+        }
+
+        private void DrawFuse(Graphics g, double since)
+        {
+            float grow = (float)(since / Fuse);
+            float size = 64 + 10 * grow + 4 * (float)Math.Sin(since * 18);
+            int tilt = (int)(Math.Sin(since * 26) * (4 + 10 * grow));
+            float halo = size * (1.25f + 0.15f * (float)Math.Sin(since * 12));
+            using (SolidBrush pink = new SolidBrush(Color.FromArgb(70 + (int)(70 * grow), 255, 93, 140)))
+                g.FillEllipse(pink, boomSpot.X - halo / 2, boomSpot.Y - halo / 2, halo, halo);
+            DrawPicture(g, Art("sticker-" + BombSticker), new RectangleF(boomSpot.X - size / 2, boomSpot.Y - size / 2, size, size), tilt, 1f);
+            PointF spark = new PointF(boomSpot.X + size * 0.3f, boomSpot.Y - size * 0.42f);
+            using (SolidBrush glow = new SolidBrush(Color.FromArgb(120, 255, 214, 92)))
+                g.FillEllipse(glow, spark.X - 10, spark.Y - 10, 20, 20);
+            for (int i = 0; i < 7; i++)
+            {
+                double angle = sparkle.NextDouble() * Math.PI * 2, far = 6 + sparkle.NextDouble() * 16;
+                float dot = 2 + (float)sparkle.NextDouble() * 3;
+                using (SolidBrush bit = new SolidBrush(i % 2 == 0 ? Color.FromArgb(255, 255, 236, 140) : Color.FromArgb(255, 255, 140, 60)))
+                    g.FillEllipse(bit, spark.X + (float)(Math.Cos(angle) * far) - dot / 2, spark.Y + (float)(Math.Sin(angle) * far) - dot / 2, dot, dot);
+            }
+        }
+
+        private void DrawBoom(Graphics g, double since)
+        {
+            int wide = HerComputer.Width, tall = HerComputer.Height;
+            if (boomFrame == null)
+            {
+                boomFrame = new Bitmap(wide, tall, PixelFormat.Format32bppPArgb);
+                using (Graphics f = Graphics.FromImage(boomFrame)) { f.Clear(Ground); f.SmoothingMode = SmoothingMode.AntiAlias; DrawFrame(f); }
+            }
+            if (boomScene == null) boomScene = new Bitmap(wide, tall, PixelFormat.Format32bppPArgb);
+            using (Graphics s = Graphics.FromImage(boomScene))
+            {
+                s.DrawImageUnscaled(boomFrame, 0, 0);
+                Prepare(s);
+                lock (gate) DrawAll(s, openApp, typingField, typed, bubble, status, cursor, frame, rippleAt, null, selectedNote, webProblem);
+            }
+            Rectangle screen = HerComputer.Screen;
+            if (since >= GlitchEnd)
+            {
+                double r = since - GlitchEnd, span = BoomEnd - GlitchEnd;
+                g.DrawImage(boomScene, 0, 0, wide, tall);
+                int alpha = r < span - 0.5 ? 255 : (int)(255 * Math.Max(0, (span - r) / 0.5));
+                using (GraphicsPath shape = Round(screen, 40))
+                using (SolidBrush dark = new SolidBrush(Color.FromArgb(alpha, 14, 8, 13)))
+                    g.FillPath(dark, shape);
+                if (alpha < 40) return;
+                float fade = alpha / 255f;
+                if (perch != null) DrawPicture(g, perch, new RectangleF(wide / 2 - 90, 190, 180, 180), 0, fade);
+                using (SolidBrush white = new SolidBrush(Color.FromArgb(alpha, 255, 240, 246)))
+                using (SolidBrush track = new SolidBrush(Color.FromArgb(alpha / 4, 255, 255, 255)))
+                using (SolidBrush fill = new SolidBrush(Color.FromArgb(alpha, 255, 93, 140)))
+                using (StringFormat centre = new StringFormat { Alignment = StringAlignment.Center })
+                {
+                    g.DrawString("Rebooting...", labelFont, white, new RectangleF(0, 400, wide, 34), centre);
+                    Rectangle bar = new Rectangle(wide / 2 - 150, 450, 300, 10);
+                    using (GraphicsPath back = Round(bar, 5)) g.FillPath(track, back);
+                    int done = (int)(bar.Width * Math.Min(1, r / Math.Max(0.1, span - 0.5)));
+                    if (done > 10) using (GraphicsPath front = Round(new Rectangle(bar.Left, bar.Top, done, bar.Height), 5)) g.FillPath(fill, front);
+                }
+                return;
+            }
+            double k = since - Fuse;
+            float strength = (float)(1 - 0.6 * k / (GlitchEnd - Fuse));
+            float shake = (float)(18 * Math.Max(0, 1 - k / 0.9) + 3 * strength);
+            GraphicsState state = g.Save();
+            g.TranslateTransform((float)(sparkle.NextDouble() * 2 - 1) * shake, (float)(sparkle.NextDouble() * 2 - 1) * shake);
+            for (int y = 0; y < tall; )
+            {
+                int slice = Math.Min(tall - y, 6 + sparkle.Next(46));
+                int dx = sparkle.NextDouble() < 0.45 * strength ? (int)(sparkle.Next(-60, 61) * strength) : 0;
+                g.DrawImage(boomScene, new Rectangle(dx, y, wide, slice), 0, y, wide, slice, GraphicsUnit.Pixel);
+                y += slice;
+            }
+            using (ImageAttributes red = new ImageAttributes())
+            using (ImageAttributes cyan = new ImageAttributes())
+            {
+                red.SetColorMatrix(new ColorMatrix(new[] { new float[] { 1, 0, 0, 0, 0 }, new float[] { 0, 0, 0, 0, 0 }, new float[] { 0, 0, 0, 0, 0 }, new float[] { 0, 0, 0, 0.5f, 0 }, new float[] { 0, 0, 0, 0, 1 } }));
+                cyan.SetColorMatrix(new ColorMatrix(new[] { new float[] { 0, 0, 0, 0, 0 }, new float[] { 0, 1, 0, 0, 0 }, new float[] { 0, 0, 1, 0, 0 }, new float[] { 0, 0, 0, 0.5f, 0 }, new float[] { 0, 0, 0, 0, 1 } }));
+                for (int i = 0; i < 4; i++)
+                {
+                    int y = sparkle.Next(tall - 60), band = 12 + sparkle.Next(60), split = (int)(6 + 10 * strength);
+                    g.DrawImage(boomScene, new Rectangle(split, y, wide, band), 0, y, wide, band, GraphicsUnit.Pixel, red);
+                    g.DrawImage(boomScene, new Rectangle(-split, y, wide, band), 0, y, wide, band, GraphicsUnit.Pixel, cyan);
+                }
+            }
+            Color[] blocks = { Hot, Mint, Color.Black, Color.White, Color.FromArgb(255, 93, 140) };
+            for (int i = 0; i < 3 + (int)(6 * strength); i++)
+                using (SolidBrush block = new SolidBrush(Color.FromArgb(150 + sparkle.Next(100), blocks[sparkle.Next(blocks.Length)])))
+                    g.FillRectangle(block, screen.Left + sparkle.Next(screen.Width - 40), screen.Top + sparkle.Next(screen.Height - 20), 20 + sparkle.Next(220), 3 + sparkle.Next(28));
+            using (GraphicsPath shape = Round(screen, 40))
+            using (HatchBrush lines = new HatchBrush(HatchStyle.DarkHorizontal, Color.FromArgb(46, 0, 0, 0), Color.Transparent))
+                g.FillPath(lines, shape);
+            if (k > 0.55)
+            {
+                Rectangle error = new Rectangle(wide / 2 - 220 + (sparkle.NextDouble() < 0.25 ? sparkle.Next(-14, 15) : 0), 300, 440, 132);
+                using (SolidBrush paper = new SolidBrush(Paper))
+                using (SolidBrush head = new SolidBrush(Hot))
+                using (SolidBrush mint = new SolidBrush(Color.FromArgb(120, Mint)))
+                using (SolidBrush white = new SolidBrush(Color.White))
+                using (SolidBrush ink = new SolidBrush(Ink))
+                {
+                    if (sparkle.NextDouble() < 0.3) using (GraphicsPath ghost = Round(new Rectangle(error.Left + 9, error.Top - 5, error.Width, error.Height), 18)) g.FillPath(mint, ghost);
+                    using (GraphicsPath card = Round(error, 18)) g.FillPath(paper, card);
+                    using (GraphicsPath bar = Round(new Rectangle(error.Left, error.Top, error.Width, 44), 18)) g.FillPath(head, bar);
+                    g.FillRectangle(head, error.Left, error.Top + 26, error.Width, 18);
+                    DrawPicture(g, Art("sticker-" + BombSticker), new RectangleF(error.Left + 14, error.Top + 6, 32, 32), 0, 1f);
+                    g.DrawString("capri.exe went kaboom", boldFont, white, error.Left + 54, error.Top + 11);
+                    g.DrawString("A malware bomb got stuck on her home page.", textFont, ink, error.Left + 22, error.Top + 60);
+                    g.DrawString("Please hold while she freaks out.", smallFont, ink, error.Left + 22, error.Top + 90);
+                }
+            }
+            g.Restore(state);
+            if (k < 0.35)
+                using (SolidBrush flash = new SolidBrush(Color.FromArgb((int)(235 * (1 - k / 0.35)), 255, 244, 248)))
+                using (GraphicsPath shape = Round(screen, 40))
+                    g.FillPath(flash, shape);
+            if (k < 0.7)
+            {
+                float size = 140 + 520 * (float)(k / 0.7);
+                DrawPicture(g, Art("boom"), new RectangleF(boomSpot.X - size / 2, boomSpot.Y - size / 2, size, size), 0, (float)Math.Max(0, 1 - k / 0.7));
+            }
         }
 
         private void DrawAll(Graphics g, string app, string field, string text, string said, string now, PointF at, Image page, DateTime ripple, string held, string note, string problem)
@@ -1078,6 +1279,17 @@ namespace CapriDesktop
                     using (GraphicsPath shape = Round(cell, 18)) g.FillPath(card, shape);
                     DrawPicture(g, Art("sticker-" + HerComputer.StickerKinds[i]), new RectangleF(cell.Left + cell.Width / 2 - 42, cell.Top + 22, 84, 84), 0, 1f);
                     g.DrawString(HerComputer.StickerKinds[i], smallFont, soft, new RectangleF(cell.Left, cell.Bottom - 34, cell.Width, 22), centre);
+                }
+                Rectangle bomb = StickerCell(HerComputer.StickerKinds.Length);
+                using (SolidBrush danger = new SolidBrush(Color.FromArgb(255, 222, 230)))
+                using (Pen dashed = new Pen(Hot, 2f) { DashStyle = DashStyle.Dash })
+                using (SolidBrush hot = new SolidBrush(Hot))
+                using (GraphicsPath shape = Round(bomb, 18))
+                {
+                    g.FillPath(danger, shape);
+                    g.DrawPath(dashed, shape);
+                    DrawPicture(g, Art("sticker-" + BombSticker), new RectangleF(bomb.Left + bomb.Width / 2 - 42, bomb.Top + 22, 84, 84), -8, 1f);
+                    g.DrawString("malware bomb", smallFont, hot, new RectangleF(bomb.Left, bomb.Bottom - 34, bomb.Width, 22), centre);
                 }
             }
         }
