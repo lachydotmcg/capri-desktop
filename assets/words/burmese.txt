@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	Play
 Play...	Play...
+Player only	Player သာ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS models များသည် ဤ clip ၏ အသံကို ကူးယူသည်။ ကြားရန် Test နှိပ်ပါ။
 Pop-in times	Pop-in အချိန်များ
 Pop-ins	Pop-ins

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Sävelkorkeus
 Play	Toista
 Play...	Toista...
+Player only	Vain soitin
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS -mallit kopioivat tämän klipin äänen. Paina Testaa kuullaksesi sen.
 Pop-in times	Ilmestymisajat
 Pop-ins	Ilmestymiset

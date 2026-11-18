@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	Ciyaar
 Play...	Ciyaar...
+Player only	Ciyaariyaha oo kaliya
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Model-ka Pocket TTS wuxuu koobiyeeyaa codka clip-kan. Riix Tijaabi si aad u dhegaysato.
 Pop-in times	Waqtiyada soo-muuqashada
 Pop-ins	Soo-muuqashooyin

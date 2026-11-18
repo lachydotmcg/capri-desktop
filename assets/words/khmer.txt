@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	កម្រិតសូរ
 Play	លេង
 Play...	លេង...
+Player only	តែកម្មវិធីចាក់
 Pocket TTS models copy this clip's voice. Press Test to hear it.	ម៉ូដែល Pocket TTS ចម្លងសំឡេងនៃក្លីបនេះ។ ចុច សាកល្បង ដើម្បីស្ដាប់។
 Pop-in times	ម៉ោងលេចឡើង
 Pop-ins	ការលេចឡើង

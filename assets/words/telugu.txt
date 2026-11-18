@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	పిచ్
 Play	ప్లే
 Play...	ప్లే...
+Player only	ప్లేయర్ మాత్రమే
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS మోడల్‌లు ఈ క్లిప్ వాయిస్‌ను కాపీ చేస్తాయి. వినడానికి Test నొక్కు.
 Pop-in times	పాప్-ఇన్ సమయాలు
 Pop-ins	పాప్-ఇన్‌లు

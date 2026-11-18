@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Nada
 Play	Main
 Play...	Main...
+Player only	Pemain sahaja
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Model Pocket TTS menyalin suara klip ini. Tekan Uji untuk mendengar.
 Pop-in times	Masa muncul
 Pop-ins	Kemunculan

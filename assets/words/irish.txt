@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Airde
 Play	Seinn
 Play...	Seinn...
+Player only	An seinnteoir amháin
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Cóipeálann samhlacha Pocket TTS guth an chlip seo. Brúigh Tástáil chun é a chloisteáil.
 Pop-in times	Amanna teacht isteach
 Pop-ins	Teachtaí isteach

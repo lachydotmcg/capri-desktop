@@ -1100,7 +1100,7 @@ namespace CapriDesktop
             new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" },
             new[] { "Off", "In games", "Always" }, MusicSteps(), new[] { "Short", "Medium", "Long" },
             new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }, new[] { "Glass", "Shard", "Burst", "Crush", "Pulse", "Air" },
-            new[] { "Stay", "Keep player", "Hide her", "Hide, keep player" }
+            new[] { "Stay", "Keep player", "Hide her", "Player only" }
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -1187,7 +1187,7 @@ namespace CapriDesktop
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
             { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are; No limit lets them run on" }, { "bubble", "how long your replies stay up" },
             { "reply_limit", "the longest a reply can be; 256 is Short and 2K or 8K is No limit in Replies" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
-            { "explore_after", "how long they're away before you explore; Off means you don't" }, { "in_full_screen", "what you do over a full-screen game or video: Stay, Keep player, Hide her or Hide, keep player, where keeping the player leaves your mini player up over borderless full screen" },
+            { "explore_after", "how long they're away before you explore; Off means you don't" }, { "in_full_screen", "what you do over a full-screen game or video: Stay, Keep player, Hide her or Player only, where keeping the player leaves your mini player up over borderless full screen" },
             { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace, and in games or always her free voice takes over from HD in full-screen games" },
             { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" },
             { "chimes", "all three chimes at once: when their typed message is sent, when you've heard them and when Listen for Capri opens your ears; on by default" },

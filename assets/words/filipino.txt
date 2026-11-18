@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	Play
 Play...	Play...
+Player only	Player lang
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Kinokopya ng Pocket TTS models ang boses ng clip na ito. Pindutin ang Test para marinig ito.
 Pop-in times	Oras ng pop-in
 Pop-ins	Pop-ins

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Visina tona
 Play	Reproduciraj
 Play...	Reproduciraj...
+Player only	Samo plejer
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeli kopiraju glas ovog isječka. Pritisni Testiraj da ga čuješ.
 Pop-in times	Vremena pojavljivanja
 Pop-ins	Pojavljivanja

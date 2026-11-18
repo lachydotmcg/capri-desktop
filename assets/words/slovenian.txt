@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Višina
 Play	Predvajaj
 Play...	Predvajaj...
+Player only	Samo predvajalnik
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modeli Pocket TTS kopirajo glas tega posnetka. Pritisni Preizkusi, da ga slišiš.
 Pop-in times	Časi pojavljanja
 Pop-ins	Pojavitve

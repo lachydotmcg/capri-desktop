@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	پچ
 Play	چلائیں
 Play...	چلائیں...
+Player only	صرف پلیئر
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS ماڈلز اس کلپ کی آواز کاپی کرتے ہیں۔ سننے کے لیے ٹیسٹ دبائیں۔
 Pop-in times	پاپ ان اوقات
 Pop-ins	پاپ ان

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ohùn orin
 Play	Ṣe
 Play...	Ṣe...
+Player only	Ẹ̀rọ orin nìkan
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Àwọn àwòṣe Pocket TTS ń daakọ ohùn ajẹkù yìí. Tẹ Idanwo láti gbọ́ ọ.
 Pop-in times	Àkókò ìfarahàn
 Pop-ins	Àwọn ìfarahàn

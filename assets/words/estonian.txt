@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Kõrgus
 Play	Esita
 Play...	Esita...
+Player only	Ainult mängija
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS mudelid kopeerivad selle klipi hääle. Kuulmiseks vajuta Testi.
 Pop-in times	Sisselangemise ajad
 Pop-ins	Sisselangemised

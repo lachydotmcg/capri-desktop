@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ụda
 Play	Kpọọ egwu
 Play...	Kpọọ egwu...
+Player only	Naanị onye ọkpụkpọ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modul Pocket TTS na-eme ọdịdị olu klip a. Pịa Nwalee iji nụ ya.
 Pop-in times	Oge ịbanye
 Pop-ins	Ịbanye

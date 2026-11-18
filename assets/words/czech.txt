@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Výška
 Play	Přehrát
 Play...	Přehrát...
+Player only	Jen přehrávač
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modely Pocket TTS kopírují hlas tohoto klipu. Stiskni Test, aby ho slyšela.
 Pop-in times	Časy vyskakování
 Pop-ins	Vyskakování

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Augstums
 Play	Atskaņot
 Play...	Atskaņot...
+Player only	Tikai atskaņotājs
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeļi kopē šī klipa balsi. Nospied Pārbaudīt, lai to noklausītos.
 Pop-in times	Parādīšanās laiki
 Pop-ins	Parādīšanās

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Perde
 Play	Oynat
 Play...	Oynat...
+Player only	Yalnızca oynatıcı
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modelleri bu klibin sesini kopyalar. Dinlemek için Test'e bas.
 Pop-in times	Ortaya çıkma süreleri
 Pop-ins	Ortaya çıkmalar

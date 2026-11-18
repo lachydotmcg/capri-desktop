@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Hangmagasság
 Play	Lejátszás
 Play...	Lejátszás...
+Player only	Csak lejátszó
 Pocket TTS models copy this clip's voice. Press Test to hear it.	A Pocket TTS-modellek ennek a klipnek a hangját másolják. Nyomj Tesztet a meghallgatáshoz.
 Pop-in times	Megjelenési idők
 Pop-ins	Megjelenések

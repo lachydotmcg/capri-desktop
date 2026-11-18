@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Nada
 Play	Puter
 Play...	Puter...
+Player only	Mung pemutar
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Model Pocket TTS niru swara klip iki. Pencet Tes kanggo ngrungokake.
 Pop-in times	Wektu muncul
 Pop-ins	Kemunculan

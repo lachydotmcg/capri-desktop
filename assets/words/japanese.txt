@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	ピッチ
 Play	再生
 Play...	再生...
+Player only	プレイヤーのみ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS モデルはこのクリップの声をコピーします。テストを押して聞いてみてね。
 Pop-in times	出現時間
 Pop-ins	出現

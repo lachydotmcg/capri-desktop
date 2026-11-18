@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Өндөр
 Play	Тоглуулах
 Play...	Тоглуулах...
+Player only	Зөвхөн тоглуулагч
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS загварууд энэ клипийн дууг хуулдаг. Сонсохын тулд Туршилт дарна уу.
 Pop-in times	Орж ирэх хугацаа
 Pop-ins	Орж ирэлтүүд

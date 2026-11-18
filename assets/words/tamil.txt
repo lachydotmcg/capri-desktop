@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	சுருதி
 Play	இயக்கு
 Play...	இயக்கு...
+Player only	பிளேயர் மட்டும்
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS மாதிரிகள் இந்தக் கிளிப்பின் குரலை நகலெடுக்கும். கேட்க சோதனை அழுத்தவும்.
 Pop-in times	தோன்றும் நேரங்கள்
 Pop-ins	தோற்றங்கள்

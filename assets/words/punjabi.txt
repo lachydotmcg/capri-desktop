@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	ਪਿੱਚ
 Play	ਚਲਾਓ
 Play...	ਚਲਾਓ...
+Player only	ਸਿਰਫ਼ ਪਲੇਅਰ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS ਮਾਡਲ ਇਸ clip ਦੀ ਆਵਾਜ਼ ਦੀ ਨਕਲ ਕਰਦੇ ਹਨ। ਸੁਣਨ ਲਈ Test ਦਬਾਓ।
 Pop-in times	Pop-in ਸਮੇਂ
 Pop-ins	Pop-ins

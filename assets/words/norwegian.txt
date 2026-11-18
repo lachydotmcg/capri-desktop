@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tonehøyde
 Play	Spill av
 Play...	Spill av...
+Player only	Bare spilleren
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS-modeller kopierer dette klippets stemme. Trykk Test for å høre den.
 Pop-in times	Innstikkstider
 Pop-ins	Innstikk

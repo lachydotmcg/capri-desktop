@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tonua
 Play	Erreproduzitu
 Play...	Erreproduzitu...
+Player only	Erreproduktorea soilik
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeloek klip honen ahotsa kopiatzen dute. Sakatu Probatu entzuteko.
 Pop-in times	Agerpen orduak
 Pop-ins	Agerpenak

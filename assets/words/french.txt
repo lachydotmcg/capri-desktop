@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Hauteur
 Play	Lecture
 Play...	Lire...
+Player only	Lecteur seul
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Les modèles Pocket TTS copient la voix de ce clip. Appuie sur Tester pour l'entendre.
 Pop-in times	Durées des apparitions
 Pop-ins	Apparitions

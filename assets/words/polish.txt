@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Wysokość
 Play	Odtwórz
 Play...	Odtwórz...
+Player only	Tylko odtwarzacz
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modele Pocket TTS kopiują głos z tego klipu. Naciśnij Test, aby go usłyszeć.
 Pop-in times	Czasy wpadania
 Pop-ins	Wpadnięcia

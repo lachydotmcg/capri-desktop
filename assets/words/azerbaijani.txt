@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ton
 Play	Oynat
 Play...	Oynat...
+Player only	Yalnız pleyer
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modelləri bu klipin səsini kopyalayır. Eşitmək üçün Sına bas.
 Pop-in times	Görünmə vaxtları
 Pop-ins	Görünmələr

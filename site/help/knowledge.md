@@ -594,7 +594,7 @@ Remove a bullet to stop that line, or all the bullets under a heading to silence
 When she glances at your screen and says nothing, she still remembers what she saw for three hours, so you can ask her about it. It has nothing to do with updating the app. It uses a little more of your API.
 
 ### In full screen
-Settings > HABITS > In full screen has four steps. Stay (the default) leaves her where she is and puts her mini player away over full screen. Keep player leaves her there and keeps the player up over borderless full screen. Hide her hides her while a window fills its monitor and brings her back after. Hide, keep player does that with the player staying up. Windows can't draw over exclusive full screen. A manual hide stays hidden, and asking for Gaming Mode takes priority.
+Settings > HABITS > In full screen has four steps. Stay (the default) leaves her where she is and puts her mini player away over full screen. Keep player leaves her there and keeps the player up over borderless full screen. Hide her hides her while a window fills its monitor and brings her back after. Player only hides her the same way but keeps the player up. Windows can't draw over exclusive full screen. A manual hide stays hidden, and asking for Gaming Mode takes priority.
 
 ### Explore while I'm away
 Set Explore after to a time (Settings > HABITS; Off is the default, and 5 minutes if you never picked one). After that long away she scrolls the browser or reader page under your mouse with her own pointer. She never clicks or types. She stops after half an hour so your screen can turn off, she never wakes a screen that's already off, and touching your mouse or keyboard stops her.

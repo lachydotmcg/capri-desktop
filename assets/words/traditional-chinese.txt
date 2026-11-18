@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	音調
 Play	播放
 Play...	播放...
+Player only	僅播放器
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS 模型會複製此剪輯的聲音。按下測試即可聽見。
 Pop-in times	出現次數
 Pop-ins	出現

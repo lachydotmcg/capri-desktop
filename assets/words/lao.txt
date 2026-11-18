@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	ຫຼິ້ນ
 Play...	ຫຼິ້ນ...
+Player only	ເຄື່ອງຫຼິ້ນເທົ່ານັ້ນ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	ໂມເດວ Pocket TTS ຄັດລອກສຽງຂອງ clip ນີ້. ກົດ Test ເພື່ອຟັງ.
 Pop-in times	ເວລາ pop-in
 Pop-ins	Pop-ins

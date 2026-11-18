@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	Kunna
 Play...	Kunna...
+Player only	Na'urar kunna kawai
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Samfuran Pocket TTS suna kwafin muryar wannan clip. Danna Gwaji don jin ta.
 Pop-in times	Lokutan fitowa
 Pop-ins	Fitowa

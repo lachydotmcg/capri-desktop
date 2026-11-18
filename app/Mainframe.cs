@@ -168,7 +168,7 @@ namespace CapriDesktop
         private readonly Readout exploreAfterName, fullScreenName;
         private static readonly int[] AwayTimes = { 60, 120, 300, 600, 900, 1800 };
         private static readonly string[] AwayNames = { "Off", "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" };
-        private static readonly string[] FullScreenNames = { "Stay", "Keep player", "Hide her", "Hide, keep player" };
+        private static readonly string[] FullScreenNames = { "Stay", "Keep player", "Hide her", "Player only" };
         private readonly Toggle[] careToggles = new Toggle[7];
         private readonly Key[] careTimes = new Key[7];
         private readonly Key careEdit;
@@ -3137,7 +3137,7 @@ namespace CapriDesktop
         internal bool CaughtUpShown { get { return caughtUp.Checked; } }
         internal bool FollowUpsShown { get { return followUps.Checked; } }
         internal string HuskShown { get { return huskMode.Text; } }
-        internal bool HuskPicker { get { return huskMode.Chevron && huskMenu.Items.Count == 6 && huskMenu.Items[0].Text == "Off" && huskMenu.Items[1].Text == "Claude Code" && huskMenu.Items[2].Text == "Codex" && huskMenu.Items[3].Text == "OpenCode" && huskMenu.Items[4].Text == "All" && huskMenu.Items[5].Text == "Claude Code + Codex"; } }
+        internal bool HuskPicker { get { return huskMode.Chevron && huskMenu.Items.Count == 8 && huskMenu.Items[6] == huskVerbosityBar && huskMenu.Items[7] == huskVerbosityItem && huskMenu.Items[0].Text == "Off" && huskMenu.Items[1].Text == "Claude Code" && huskMenu.Items[2].Text == "Codex" && huskMenu.Items[3].Text == "OpenCode" && huskMenu.Items[4].Text == "All" && huskMenu.Items[5].Text == "Claude Code + Codex"; } }
         internal int WatchMemoryShown { get { return WatchLines[watchMemory.Value]; } }
         internal void FlipFollowUps() { followUps.Checked = !followUps.Checked; }
 

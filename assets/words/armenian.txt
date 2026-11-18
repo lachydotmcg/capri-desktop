@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Տոնայնություն
 Play	Նվագարկել
 Play...	Նվագարկել...
+Player only	Միայն նվագարկիչը
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS մոդելները պատճենում են այս հատվածի ձայնը։ Սեղմեք Փորձարկել՝ լսելու համար։
 Pop-in times	Ներկայանալու ժամանակները
 Pop-ins	Ներկայանալիներ

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	To
 Play	Reprodueix
 Play...	Reprodueix...
+Player only	Només el reproductor
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Els models Pocket TTS copien la veu d'aquest clip. Prem Prova per escoltar-la.
 Pop-in times	Moments d'aparició
 Pop-ins	Aparicions

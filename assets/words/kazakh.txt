@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Биіктік
 Play	Ойнату
 Play...	Ойнату...
+Player only	Тек ойнатқыш
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS модельдері осы клиптің дауысын көшіреді. Тыңдау үшін Тест түймесін басыңыз.
 Pop-in times	Пайда болу уақыттары
 Pop-ins	Пайда болулар

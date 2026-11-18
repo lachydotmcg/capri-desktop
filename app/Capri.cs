@@ -17893,7 +17893,7 @@ namespace CapriDesktop
                 CheckFullScreen(true);
                 preferences.NoPlayer = false;
                 mainframe.SlideFullScreen(1);
-                if (!PlayerAllowed || FullScreenLevel != 3 || !preferences.HideFullScreen || !preferences.PlayerFullScreen || mainframe.DesktopSettingsStatus != "Hide, keep player | Off") throw new Exception("Automatic body hiding also hid the opted-in mini player.");
+                if (!PlayerAllowed || FullScreenLevel != 3 || !preferences.HideFullScreen || !preferences.PlayerFullScreen || mainframe.DesktopSettingsStatus != "Player only | Off") throw new Exception("Automatic body hiding also hid the opted-in mini player.");
                 ShowHidden(true);
                 if (PlayerAllowed) throw new Exception("The mini player ignored a manual hide.");
                 ShowHidden(false);
@@ -24966,7 +24966,7 @@ namespace CapriDesktop
             foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
             {
                 string facts = SelfKnow.Matching(question) ?? "";
-                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("flip Comments between Off and your last pick") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Every set to Off stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("flip Comments between Off and your last pick") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
             }
             for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
                 careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
@@ -33110,7 +33110,7 @@ namespace CapriDesktop
                 checks.Add("PASS setting cursor uses SECURITY's Use her cursor row, saves and reads back both ways");
                 preferences.HideFullScreen = preferences.PlayerFullScreen = false;
                 mainframe.Sync();
-                string[,] fullSteps = { { "player_full_screen", "on", "Keep player" }, { "hide_in_full_screen", "on", "Hide, keep player" }, { "player_full_screen", "off", "Hide her" }, { "hide_in_full_screen", "off", "Stay" } };
+                string[,] fullSteps = { { "player_full_screen", "on", "Keep player" }, { "hide_in_full_screen", "on", "Player only" }, { "player_full_screen", "off", "Hide her" }, { "hide_in_full_screen", "off", "Stay" } };
                 for (int i = 0; i < fullSteps.GetLength(0); i++)
                 {
                     string line = Hands.Do("capri_settings", new ToolArguments { Action = fullSteps[i, 1], Name = fullSteps[i, 0] });
@@ -33174,6 +33174,8 @@ namespace CapriDesktop
                     { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" },
                     { "pat_stroke", "patStroke", "PatStroke" }
                 };
+                SetCommentPace(CommentPace);
+                mainframe.Sync();
                 for (int i = 0; i < sliders.GetLength(0); i++)
                 {
                     string name = sliders[i, 0];
@@ -45024,7 +45026,7 @@ namespace CapriDesktop
                 SetDoomscrollLimit(77);
                 if (DoomscrollLimit != Doomscroll.DefaultLimit) throw new Exception("Doomscroll guard took a limit it doesn't offer.");
                 mainframe.SlideDoomscroll(-9);
-                if (preferences.DoomscrollGuard || LoadPreferences().DoomscrollGuard || DoomscrollStage != 0 || mainframe.DoomscrollShown != "off | 15 min" || DoomscrollLimit != Doomscroll.DefaultLimit) throw new Exception("Scroll limit's Off did not turn Doomscroll guard off and keep its limit: " + mainframe.DoomscrollShown);
+                if (preferences.DoomscrollGuard || LoadPreferences().DoomscrollGuard || DoomscrollStage != 0 || mainframe.DoomscrollShown != "off | 30 s test" || DoomscrollLimit != 30) throw new Exception("Scroll limit's Off did not turn Doomscroll guard off and keep the last limit it passed: " + mainframe.DoomscrollShown);
                 if (SelfKnow.Setting("Mainframe.cs", "Scroll limit") == null || SelfKnow.Setting("Mainframe.cs", "Doomscroll guard") != null) throw new Exception("Doomscroll guard's help did not move to Scroll limit.");
                 if ((SelfKnow.Matching("what does doomscroll guard do?") ?? "").IndexOf("thiiago-dev", StringComparison.Ordinal) < 0) throw new Exception("Her doomscroll help did not match a plain question.");
                 checks.Add("PASS Mainframe doomscroll guard: off by default, Scroll limit's Off step is its switch and its other steps save, a 30 s test limit is there for filming, and her help explains it");

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	גובה צליל
 Play	נגן
 Play...	נגן...
+Player only	נגן בלבד
 Pocket TTS models copy this clip's voice. Press Test to hear it.	מודלים של Pocket TTS מעתיקים את הקול של הקליפ הזה. לחץ Test כדי לשמוע אותו.
 Pop-in times	זמני pop-in
 Pop-ins	Pop-ins

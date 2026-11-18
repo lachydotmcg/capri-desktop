@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	피치
 Play	재생
 Play...	재생...
+Player only	플레이어만
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS 모델이 이 클립의 목소리를 복사해. 테스트를 눌러 들어봐.
 Pop-in times	방문 시간
 Pop-ins	방문

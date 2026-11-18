@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	पिच
 Play	प्ले
 Play...	प्ले...
+Player only	फक्त प्लेयर
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS मॉडेल्स या क्लिपचा आवाज कॉपी करतात. ऐकण्यासाठी Test दाबा.
 Pop-in times	Pop-in वेळा
 Pop-ins	Pop-ins

@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	পিচ
 Play	চালাও
 Play...	চালাও...
+Player only	শুধু প্লেয়ার
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS মডেলগুলো এই ক্লিপের ভয়েস নকল করে। শুনতে Test চাপো।
 Pop-in times	উঁকি দেওয়ার সময়
 Pop-ins	উঁকি দেওয়া

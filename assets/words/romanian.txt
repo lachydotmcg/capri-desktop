@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ton
 Play	Redă
 Play...	Redă...
+Player only	Doar playerul
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modelele Pocket TTS copiază vocea acestui clip. Apasă Test ca să o auzi.
 Pop-in times	Ore de apariție
 Pop-ins	Apariții

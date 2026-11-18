@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	പിച്ച്
 Play	പ്ലേ
 Play...	പ്ലേ...
+Player only	പ്ലെയർ മാത്രം
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS മോഡലുകൾ ഈ ക്ലിപ്പിന്റെ ശബ്ദം പകർത്തുന്നു. കേൾക്കാൻ Test അമർത്തുക.
 Pop-in times	പോപ്പ്-ഇൻ സമയങ്ങൾ
 Pop-ins	പോപ്പ്-ഇൻസ്

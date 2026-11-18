@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tonas
 Play	Groti
 Play...	Groti...
+Player only	Tik grotuvas
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeliai kopijuoja šio klipo balsą. Paspauskite Testas, kad jį išgirstumėte.
 Pop-in times	Atsiradimo laikai
 Pop-ins	Atsiradimai

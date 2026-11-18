@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tom
 Play	Tocar
 Play...	Tocar...
+Player only	Só o player
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modelos Pocket TTS copiam a voz deste clipe. Clique em Testar para ouvir.
 Pop-in times	Horários das aparições
 Pop-ins	Aparições

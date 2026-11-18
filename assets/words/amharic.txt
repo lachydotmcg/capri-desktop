@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	ቃና
 Play	አጫውት
 Play...	አጫውት...
+Player only	ማጫወቻ ብቻ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS ሞዴሎች የዚህን ክሊፕ ድምፅ ይገለብጣሉ። ለመስማት ሞክርን ይጫኑ።
 Pop-in times	የመታየት ጊዜዎች
 Pop-ins	መታየቶች

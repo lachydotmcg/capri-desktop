@@ -521,6 +521,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tonhöhe
 Play	Abspielen
 Play...	Abspielen...
+Player only	Nur Player
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket-TTS-Modelle kopieren die Stimme dieses Clips. Drück Testen, um sie zu hören.
 Pop-in times	Vorbeischau-Zeiten
 Pop-ins	Vorbeischauen
