@@ -1,0 +1,14 @@
+# Headers for hosts that honour a _headers file (Cloudflare Pages, Netlify).
+# GitHub Pages ignores this file, so site/remote/index.html also hides itself when it is framed;
+# the two together cover both deployment paths.
+
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/remote/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Cache-Control: no-cache
