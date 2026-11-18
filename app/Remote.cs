@@ -500,6 +500,18 @@ namespace CapriDesktop
 
         internal static string JobRecent(IEnumerable<RemoteJson.Writer> list) { return Typed("job.recent").Objects("list", list).ToString(); }
 
+        internal static string PushState(string key, bool on, bool web, bool app) { return Typed("push.state").Text("key", key).Flag("on", on).Flag("web", web).Flag("app", app).ToString(); }
+
+        internal static string PushResult(string re, bool ok, string code) { return Typed("push.result").Text("re", re).Flag("ok", ok).Text("code", code).ToString(); }
+
+        internal static string Notify(string id, string kind, string title, string body, long at, string job, string askId)
+        {
+            RemoteJson.Writer note = Typed("notify").Text("id", id).Text("kind", kind).Text("title", CleanText(title, 60)).Text("body", CleanText(body, 200)).Number("at", at);
+            if (job != null) note.Text("job", job);
+            if (askId != null) note.Text("ask_id", askId);
+            return note.ToString();
+        }
+
         // Ids are 1 to 64 of A-Z a-z 0-9 _ - (PROTOCOL.md section 8).
         internal static bool IdOk(string id)
         {
@@ -571,6 +583,12 @@ namespace CapriDesktop
         // The paired phone whose pairing link added this one with no Allow (PROTOCOL.md 5.1), by name, or null.
         internal string From;
         internal string Parent;
+        internal bool PushApp;
+        internal string PushEndpoint;
+        internal byte[] PushP256dh, PushAuth;
+
+        internal bool PushOn { get { return PushApp || PushEndpoint != null; } }
+        internal bool PushWeb { get { return PushEndpoint != null && PushP256dh != null && PushAuth != null; } }
 
         internal byte[] IdBytes { get { return RemoteCrypto.FromB64u(Id, 16); } }
     }
@@ -582,6 +600,7 @@ namespace CapriDesktop
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Capri.Remote");
         internal string Room, Token;
         internal bool Used;
+        internal byte[] PushKey;
         internal readonly List<RemoteDevice> Devices = new List<RemoteDevice>();
 
         internal static RemoteState Fresh()
@@ -598,7 +617,8 @@ namespace CapriDesktop
             copy.Room = Room;
             copy.Token = Token;
             copy.Used = Used;
-            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added, From = device.From, Parent = device.Parent });
+            copy.PushKey = PushKey == null ? null : (byte[])PushKey.Clone();
+            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added, From = device.From, Parent = device.Parent, PushApp = device.PushApp, PushEndpoint = device.PushEndpoint, PushP256dh = device.PushP256dh == null ? null : (byte[])device.PushP256dh.Clone(), PushAuth = device.PushAuth == null ? null : (byte[])device.PushAuth.Clone() });
             return copy;
         }
 
@@ -616,9 +636,13 @@ namespace CapriDesktop
                 RemoteJson.Writer saved = new RemoteJson.Writer().Text("id", device.Id).Text("key", RemoteCrypto.B64u(device.Key)).Text("name", device.Name).Text("added", device.Added.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
                 if (device.From != null) saved.Text("from", device.From);
                 if (device.Parent != null) saved.Text("parent", device.Parent);
+                if (device.PushApp) saved.Flag("push_app", true);
+                if (device.PushWeb) saved.Text("push_endpoint", device.PushEndpoint).Text("push_p256dh", RemoteCrypto.B64u(device.PushP256dh)).Text("push_auth", RemoteCrypto.B64u(device.PushAuth));
                 devices.Add(saved);
             }
-            return new RemoteJson.Writer().Number("v", 1).Text("room", Room).Text("token", Token).Flag("used", Used).Objects("devices", devices).ToString();
+            RemoteJson.Writer all = new RemoteJson.Writer().Number("v", 1).Text("room", Room).Text("token", Token).Flag("used", Used);
+            if (PushKey != null) all.Text("push_key", RemoteCrypto.B64u(PushKey));
+            return all.Objects("devices", devices).ToString();
         }
 
         internal static RemoteState FromJson(string json)
@@ -629,6 +653,7 @@ namespace CapriDesktop
             state.Room = map.Text("room");
             state.Token = map.Text("token");
             state.Used = map.Is("used", true);
+            state.PushKey = RemoteCrypto.FromB64u(map.Text("push_key"), 32);
             List<object> devices = map.Items("devices");
             if (devices != null)
                 foreach (object item in devices)
@@ -640,7 +665,16 @@ namespace CapriDesktop
                     if (!DateTime.TryParse(device.Text("added"), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out added)) added = DateTime.UtcNow;
                     string linkedBy = device.Text("from") == null ? null : RemoteMessages.CleanName(device.Text("from"));
                     string parent = RemoteCrypto.FromB64u(device.Text("parent"), 16) == null ? null : device.Text("parent");
-                    state.Devices.Add(new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime(), From = linkedBy, Parent = parent });
+                    RemoteDevice kept = new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime(), From = linkedBy, Parent = parent, PushApp = device.Is("push_app", true) };
+                    byte[] p256dh = RemoteCrypto.FromB64u(device.Text("push_p256dh"), 65), auth = RemoteCrypto.FromB64u(device.Text("push_auth"), 16);
+                    string endpoint = device.Text("push_endpoint");
+                    if (endpoint != null && p256dh != null && auth != null && RemotePush.EndpointOk(endpoint))
+                    {
+                        kept.PushEndpoint = endpoint;
+                        kept.PushP256dh = p256dh;
+                        kept.PushAuth = auth;
+                    }
+                    state.Devices.Add(kept);
                 }
             return state;
         }

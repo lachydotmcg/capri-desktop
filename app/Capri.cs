@@ -5419,6 +5419,7 @@ namespace CapriDesktop
             catch (IOException) { return false; }
             catch (UnauthorizedAccessException) { return false; }
             if (line == null) return false;
+            RemoteNotifyReminder(line);
             if (hidden && !fullScreenHidden) SetHidden(false);
             reminderUp = true;
             reminderText = true;

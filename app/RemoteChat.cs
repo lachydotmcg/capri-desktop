@@ -114,6 +114,7 @@ namespace CapriDesktop
             link = new RemoteLink(state, relay, Environment.MachineName, "capri/" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3), delegate(RemoteState saved) { RemoteSaved(link, saved); });
             RemoteBrainsOn(link);
             link.Offer("jobs");
+            link.Offer(RemotePush.Feature);
             link.LiveHeard += RemoteJobHeard;
             link.Happened += RemoteHappened;
             link.Said += RemoteHeard;
@@ -785,6 +786,31 @@ namespace CapriDesktop
             }
             if (state != "running" && state != "asking") run.Ended = RemoteJobNow();
             RemoteJobSend(null, RemoteJobState(run));
+            RemoteJobNotify(run, state);
+        }
+
+        private static bool RemotePcAway()
+        {
+            try { return Native.IdleMilliseconds() >= 120000; }
+            catch (Exception) { return false; }
+        }
+
+        private void RemoteJobNotify(RemoteJob run, string state)
+        {
+            RemoteLink link = remoteLink;
+            if (link == null || remoteJobTap != null) return;
+            bool phone = run.Re != null;
+            if (state == "asking" && (phone || RemotePcAway())) link.Notify("ask", run.Task, run.Ask, run.Id, null, null);
+            else if ((state == "done" || state == "failed") && !phone && RemotePcAway())
+                link.Notify("done", (state == "done" ? "Done: " : "Couldn't finish: ") + run.Task, state == "done" ? "I finished it on your PC." : "I got stuck partway. Tap to see where.", run.Id, null, null);
+        }
+
+        private void RemoteNotifyReminder(string line)
+        {
+            RemoteLink link = remoteLink;
+            if (link == null || testing || string.IsNullOrEmpty(line) || !RemotePcAway()) return;
+            string body = line.StartsWith("Reminder: ", StringComparison.Ordinal) ? line.Substring(10) : line;
+            link.Notify("reminder", "Reminder", body, null, null, null);
         }
 
         // Her hands taking a job (Worked). A job that SECURITY's yes runs on this thread keeps the card she asked on; any
@@ -1087,6 +1113,8 @@ namespace CapriDesktop
             finally { Computer.Streaming = streaming; }
             if (RemoteInput("a\u202eb\u2066c\u2069\u200bd\uDB40\uDC41\u0007\te\nf\uD83D\uDE00") != "abcd e\nf\uD83D\uDE00") throw new Exception("Phone input kept a control or format character, or lost an emoji.");
             RemoteLink.SmokePairing(checks);
+            RemotePush.Smoke(checks);
+            RemoteLink.SmokePush(checks);
             SmokeRemoteRooms(checks);
             SmokeRemoteBridge(checks);
             SmokeRemoteLive(checks, output);
