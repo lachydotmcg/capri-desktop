@@ -143,15 +143,17 @@ def runtime():
                 ancestors=ancestors, prefixes={str(path) for path in prefixes}, libraries=library_paths(images, commands))
 
 
-def profile(reads, writes, runtime=None):
+def profile(reads, writes, runtime=None, network=True):
     rules = ['(version 1)', '(deny default)',
              '(allow process-fork)',
              '(allow signal (target same-sandbox))',
              '(allow process-info* (target same-sandbox))',
              '(allow process-info-pidinfo process-info-setcontrol (target self))',
-             '(allow sysctl-read)', '(allow file-read-metadata)',
-             '(allow network*)',
-             '(allow system-socket (require-all (socket-domain AF_SYSTEM) (socket-protocol 2)))',
+             '(allow sysctl-read)', '(allow file-read-metadata)']
+    if network:
+        rules += ['(allow network*)',
+             '(allow system-socket (require-all (socket-domain AF_SYSTEM) (socket-protocol 2)))']
+    rules += [
              '(allow mach-lookup (global-name "com.apple.system.opendirectoryd.libinfo") '
              '(global-name "com.apple.SystemConfiguration.configd") '
              '(global-name "com.apple.SystemConfiguration.DNSConfiguration") '
@@ -197,6 +199,56 @@ def profile(reads, writes, runtime=None):
                  '/System/Volumes/Preboot/Cryptexes/App/System', '/System/Volumes/Preboot/Cryptexes/OS'):
         rules.append('(allow file-read* file-map-executable (subpath ' + quoted(path) + '))')
     return '\n'.join(rules)
+
+
+SYSTEM_READS = ('/usr/share/locale', '/usr/share/icu', '/usr/share/zoneinfo', '/usr/share/zoneinfo.default',
+    '/private/var/db/timezone', '/dev/null', '/dev/random', '/dev/urandom', '/private/etc/ssl', '/private/etc/localtime',
+    '/private/etc/passwd', '/private/etc/resolv.conf', '/private/etc/hosts', '/private/etc/services', '/private/etc/protocols', '/var/empty')
+BROAD = ('/', '/Users', '/tmp', '/private/tmp', '/private', '/var', '/private/var', '/usr', '/usr/local', '/opt', '/opt/homebrew',
+    '/Library', '/System', '/Applications', '/Volumes')
+
+
+def manifest_reads(manifest):
+    manifest = Path(manifest).absolute()
+    if manifest.is_symlink() or not manifest.is_file() or manifest.stat().st_size > 1024 * 1024:
+        raise ValueError('Invalid decoder manifest')
+    if manifest.stat().st_uid != os.getuid() or manifest.stat().st_mode & 0o022:
+        raise ValueError('The decoder manifest must be private')
+    broad = {Path(path).resolve() for path in BROAD} | {Path.home().resolve()}
+    reads = {manifest}
+
+    def walk(value):
+        if isinstance(value, dict):
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+        elif isinstance(value, str) and value.startswith('/'):
+            target = Path(value)
+            if target.resolve() in broad:
+                raise ValueError('Decoder reference is too broad')
+            if target.exists():
+                reads.add(target)
+
+    walk(json.loads(manifest.read_text()))
+    return reads
+
+
+def decoder_command(worker, manifest):
+    worker, manifest = Path(worker).absolute(), Path(manifest).absolute()
+    if not worker.is_file():
+        raise ValueError('Decoder worker is missing')
+    if worker.parent.resolve() in {Path(path).resolve() for path in BROAD} | {Path.home().resolve()}:
+        raise ValueError('Runtime reference is too broad')
+    resolved = runtime()
+    reads = {worker.parent, *manifest_reads(manifest), *(Path(path) for path in SYSTEM_READS)}
+    reads = {str(path) for path in reads} | {str(path.resolve()) for path in reads}
+    environment = {'PATH': '/usr/bin:/bin', 'HOME': '/var/empty', 'TMPDIR': '/var/empty', 'LANG': 'en_US.UTF-8',
+        'PYTHONNOUSERSITE': '1', 'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1', '__PYVENV_LAUNCHER__': resolved['launcher']}
+    command = ['/usr/bin/sandbox-exec', '-p', profile(reads, set(), resolved, network=False),
+               resolved['executable'], '-B', '-E', '-s', '-u', str(worker), '--manifest', str(manifest)]
+    return command, environment
 
 
 def launch(args):

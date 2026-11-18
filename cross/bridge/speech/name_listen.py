@@ -1,7 +1,7 @@
 """Local Moonshine listener for Capri's name.
 
-Only accepted transcripts are sent to the app. Linux uses bwrap; macOS
-currently runs without a sandbox.
+Only accepted transcripts are sent to the app. On Linux the whole listener runs
+in bwrap without network; on macOS the decoder runs under Seatbelt without network.
 """
 from __future__ import annotations
 
@@ -14,6 +14,9 @@ from pathlib import Path
 import sys
 import time
 import uuid
+
+if sys.platform == 'darwin':
+    sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
 
 from listen import message, parent_guard, verified_microphone
 from name_chat import NameChat
@@ -241,8 +244,13 @@ class NameListener:
             # Start the command reader before warming the decoder. A mute/Stop or
             # playback that happens during warmup must not open the microphone.
             tasks.append(asyncio.create_task(self.commands()))
-            self.worker = await asyncio.create_subprocess_exec(sys.executable, '-u',
-                str(Path(__file__).with_name('asr_worker.py')), '--manifest', self.manifest,
+            worker = Path(__file__).with_name('asr_worker.py')
+            if sys.platform == 'darwin':
+                from mac_sandbox import decoder_command
+                command, environment = decoder_command(worker, self.manifest)
+            else:
+                command, environment = (sys.executable, '-u', str(worker), '--manifest', self.manifest), None
+            self.worker = await asyncio.create_subprocess_exec(*command, env=environment,
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL, preexec_fn=parent_guard if sys.platform == 'linux' else None)
             ready = await message(self.worker.stdout)
@@ -278,7 +286,11 @@ class NameListener:
 
 async def main():
     parent = os.getppid()
-    parent_guard()
+    if sys.platform == 'darwin':
+        from parent_watch import bind_parent
+        bind_parent()
+    else:
+        parent_guard()
     if os.getppid() != parent:
         return 1
     reader = await stdin_reader()

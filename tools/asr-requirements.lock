@@ -635,7 +635,7 @@ sounddevice==0.5.6 \
     # via
     #   -r companion/asr-requirements.in
     #   moonshine-voice
-tflite-runtime==2.14.0 \
+tflite-runtime==2.14.0 ; sys_platform == 'linux' \
     --hash=sha256:195ab752e7e57329a68e54dd3dd5439fad888b9bff1be0f0dc042a3237a90e4d \
     --hash=sha256:437167fe3d8b12f50f5d694da8f45d268ab84a495e24c3dd810e02e1012125de \
     --hash=sha256:4aa740210a0fd9e4db4a46e9778914846b136e161525681b41575ca4896158fb \

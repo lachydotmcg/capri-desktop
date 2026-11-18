@@ -499,6 +499,8 @@ namespace CapriDesktop
                 var nameTip = new TextBlock { MaxWidth = 332, TextWrapping = TextWrapping.Wrap };
                 ToolTip.SetTip(nameToggle, nameTip);
                 readers.Add(() => nameTip.Text = pet.NameListeningStatus);
+                nameListeningNote = Caption("", 28, 555, 328, 22, MainframeTheme.Faint); nameListeningNote.Ellipsis = true;
+                MainframeTips.Explain(nameListeningNote, "Listen for Capri");
             }
             Section("CAPRI", 0, 540);
             remoteKey = Key("Remote", 100, 539, 88, 18, OpenRemote);
@@ -905,7 +907,7 @@ namespace CapriDesktop
                         if (item.Y >= 499) y -= 117 + fold;
                         // A section control starts five pixels above its authored band.
                         // Move CAPRI's heading with its rows past the name controls.
-                        if (OperatingSystem.IsLinux() && control != nameListeningNote &&
+                        if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && control != nameListeningNote &&
                             (item.Y >= 539 || control is NeonHead band && band.Text == "CAPRI")) y += 70;
                     }
                     if (item.Y == 310) show &= voice == 3;
