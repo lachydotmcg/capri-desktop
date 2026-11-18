@@ -20334,6 +20334,45 @@ namespace CapriDesktop
                 File.WriteAllText(settings, "{\"data\":[{");
                 if (GameKeys.Summary("Cyberpunk 2077", keysRoot, keysRoot) != null || GameKeys.Summary("Minecraft", Path.Combine(keysRoot, "nowhere"), keysRoot) != null || GameKeys.Summary("Hades", keysRoot, keysRoot) != null) throw new Exception("A broken or missing keys file made up keys.");
                 checks.Add("PASS she reads the keys a game is really set to from its own files: Minecraft's options.txt and Cyberpunk's UserSettings.json, in plain words, and nothing from a file that's broken or missing");
+                string fortniteCloud = Path.Combine(keysRoot, "FortniteGame", "Saved", "Cloud", "abc");
+                Directory.CreateDirectory(fortniteCloud);
+                using (MemoryStream unrealSave = new MemoryStream())
+                {
+                    foreach (string unrealName in new[] { "GVAS", "PlayerKeyMappings", "ArrayProperty", "MappingName", "NameProperty", "Sprint", "CurrentKey", "StructProperty", "Key", "LeftControl", "DefaultKey", "Key", "LeftShift", "None",
+                        "MappingName", "NameProperty", "Crouch", "CurrentKey", "Key", "LeftShift", "DefaultKey", "Key", "LeftControl", "MappingName", "IA_Interact", "CurrentKey", "Key", "E", "MappingName", "Jump", "DefaultKey", "Key", "SpaceBar" })
+                    {
+                        byte[] unrealBytes = Encoding.ASCII.GetBytes(unrealName + "\0");
+                        unrealSave.Write(BitConverter.GetBytes(unrealBytes.Length), 0, 4);
+                        unrealSave.Write(unrealBytes, 0, unrealBytes.Length);
+                        unrealSave.Write(new byte[] { 0, 1, 2, 3, 0 }, 0, 5);
+                    }
+                    File.WriteAllBytes(Path.Combine(fortniteCloud, "ClientSettings.Sav"), unrealSave.ToArray());
+                }
+                string fromFortnite = GameKeys.Summary("Fortnite", keysRoot, keysRoot);
+                if (fromFortnite != "sprint left ctrl, crouch left shift, interact e") throw new Exception("Fortnite's own keys read wrong, or a default key was taken as theirs: " + fromFortnite);
+                string unrealConfig = Path.Combine(keysRoot, "ReadyOrNot", "Saved", "Config", "Windows");
+                Directory.CreateDirectory(unrealConfig);
+                File.WriteAllText(Path.Combine(unrealConfig, "Input.ini"), "[/Script/Engine.InputSettings]\n+ActionMappings=(ActionName=\"Sprint\",bShift=False,Key=LeftShift)\nActionMappings=(ActionName=\"Crouch\",Key=C)\n+AxisMappings=(AxisName=\"MoveForward\",Scale=1.000000,Key=W)\n+AxisMappings=(AxisName=\"MoveForward\",Scale=-1.000000,Key=S)\n");
+                string fromInput = GameKeys.Summary("Ready Or Not", keysRoot, keysRoot);
+                if (fromInput != "move forward w, move back s, sprint left shift, crouch c") throw new Exception("An Unreal game's Input.ini read wrong: " + fromInput);
+                checks.Add("PASS she reads Fortnite's own saved binds, taking what each is set to now rather than its default, and any Unreal game's Input.ini");
+                string paceGame = "paced-" + Guid.NewGuid().ToString("N");
+                string firstRun = Computer.Paced(paceGame, "shift+w", 0.2), plainWalk = Computer.Paced(paceGame, "w", 0.4);
+                if (firstRun != "" || plainWalk.IndexOf("shift isn't run in this game", StringComparison.Ordinal) < 0) throw new Exception("A run key that slowed her down before she'd walked plainly went unnoticed: " + firstRun + " / " + plainWalk);
+                if (Computer.Paced(paceGame, "shift+w", 0.45) != "" || Computer.Paced(paceGame, "ctrl+w", 0.1).IndexOf("ctrl isn't run in this game", StringComparison.Ordinal) < 0 || Computer.Paced(paceGame, "w", 0.1).IndexOf("you may be crouched", StringComparison.Ordinal) < 0 || Computer.Paced(paceGame, "space", 0.1) != "")
+                    throw new Exception("Her walking pace check missed a slow key or a crouched walk, or warned about a real run.");
+                checks.Add("PASS she notices when a run key slows her down, whichever she tried first, and when she's walking crouched");
+                using (Bitmap aroundFrame = new Bitmap(390, 219))
+                {
+                    byte[] aroundSheet = Computer.Sheet(new[] { aroundFrame, aroundFrame, aroundFrame, aroundFrame, aroundFrame, aroundFrame, aroundFrame, aroundFrame });
+                    using (MemoryStream aroundStream = new MemoryStream(aroundSheet))
+                    using (Image aroundImage = Image.FromStream(aroundStream))
+                        if (aroundImage.Width != 1572 || aroundImage.Height != 442) throw new Exception("Her look around picture is the wrong size: " + aroundImage.Width + "x" + aroundImage.Height);
+                }
+                if (Computer.AroundLabel(0) != "ahead (right 0)" || Computer.AroundLabel(90) != "right 90" || Computer.AroundLabel(180) != "behind (right 180)" || Computer.AroundLabel(315) != "left 45 (right -45)"
+                    || Computer.Toolset.IndexOf("{\"name\":\"look_around\",", StringComparison.Ordinal) < 0 || Computer.ClaudeTools.IndexOf("\"name\":\"look_around\"", StringComparison.Ordinal) < 0 || Computer.Tools.Contains("look_around") || Computer.Listing.Contains("look_around") || !Computer.KeyAction("look_around"))
+                    throw new Exception("Her look around isn't offered to Claude alone, or its views are labelled wrong.");
+                checks.Add("PASS her look around spins once into one labelled picture of 8 views, offered where tool results can carry it");
             }
             finally { Directory.Delete(keysRoot, true); }
         }
