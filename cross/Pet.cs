@@ -16,8 +16,6 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Capri.BrainProviderChecks")]
-
 namespace CapriDesktop
 {
     [DataContract]
@@ -6778,7 +6776,7 @@ namespace CapriDesktop
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
-        internal static Settings Kept(Settings saved, NewSettings newer)
+        internal static Settings Kept(Settings saved, NewSettings newer, string folder = null)
         {
             if (saved != null && newer != null && saved.RemoteHost == null)
             {
@@ -6788,7 +6786,7 @@ namespace CapriDesktop
             if (saved != null && newer != null)
             {
                 if (saved.BrainProvider == null) saved.BrainProvider = newer.BrainProvider;
-                if (saved.ProviderModels == null) saved.ProviderModels = RecoveredProviderModels(saved, newer.ProviderModels, settingsHome);
+                if (saved.ProviderModels == null) saved.ProviderModels = RecoveredProviderModels(saved, newer.ProviderModels, folder);
             }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
@@ -6887,7 +6885,6 @@ namespace CapriDesktop
 
         internal const string UnreadableName = "cross.unreadable.json";
 
-        [ThreadStatic] private static string settingsHome;
 
         // As on Windows: a new install has no cross.json and starts fresh. Settings that can't be read start fresh too, but
         // first the file is copied as it is to cross.unreadable.json, so the next save can't write over the only copy of their
@@ -6909,9 +6906,7 @@ namespace CapriDesktop
                 NewSettings newer = null;
                 try { using (FileStream stream = File.OpenRead(Path.Combine(Path.GetDirectoryName(path), "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
                 catch (Exception) { }
-                settingsHome = Path.GetDirectoryName(path);
-                try { return Kept(saved, newer); }
-                finally { settingsHome = null; }
+                return Kept(saved, newer, Path.GetDirectoryName(path));
             }
             catch (Exception error)
             {
