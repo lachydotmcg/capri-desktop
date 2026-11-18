@@ -439,6 +439,7 @@ No AI · no brain at all	Fără AI · fără creier deloc
 No brain runs, and nothing is sent anywhere.	Niciun creier nu rulează și nimic nu este trimis nicăieri.
 No brain yet	Încă niciun creier
 No code open	Niciun cod deschis
+No limit	Fără limită
 No mic found	Niciun microfon găsit
 No mods in the directory yet.	Încă niciun mod în director.
 No mods match that.	Niciun mod nu se potrivește cu asta.

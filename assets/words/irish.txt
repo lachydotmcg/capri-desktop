@@ -439,6 +439,7 @@ No AI · no brain at all	Gan AI · gan intinn ar chor ar bith
 No brain runs, and nothing is sent anywhere.	Ní rithfidh aon intinn, agus ní sheoltar aon rud áit ar bith.
 No brain yet	Gan intinn fós
 No code open	Gan cód oscailte
+No limit	Gan teorainn
 No mic found	Níor aimsíodh micreafón
 No mods in the directory yet.	Níl aon mhodanna san eolaire fós.
 No mods match that.	Níl aon mhodanna comhoiriúnach don sin.

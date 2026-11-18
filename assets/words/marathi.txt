@@ -439,6 +439,7 @@ No AI · no brain at all	NO AI · अजिबात मेंदू नाह�
 No brain runs, and nothing is sent anywhere.	कोणताही मेंदू चालत नाही, आणि काहीही कुठेही पाठवले जात नाही.
 No brain yet	अजून मेंदू नाही
 No code open	कोणताही कोड उघडा नाही
+No limit	मर्यादा नाही
 No mic found	मायक्रोफोन सापडला नाही
 No mods in the directory yet.	डिरेक्टरीमध्ये अजून मॉड्स नाहीत.
 No mods match that.	त्याच्याशी जुळणारे कोणतेही मॉड्स नाहीत.

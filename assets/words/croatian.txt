@@ -439,6 +439,7 @@ No AI · no brain at all	Bez AI · uopće bez mozga
 No brain runs, and nothing is sent anywhere.	Nijedan mozak ne radi i ništa se nigdje ne šalje.
 No brain yet	Još nema mozga
 No code open	Nema otvorenog koda
+No limit	Bez ograničenja
 No mic found	Nije pronađen mikrofon
 No mods in the directory yet.	U mapi još nema modova.
 No mods match that.	Nijedan mod ne odgovara tome.

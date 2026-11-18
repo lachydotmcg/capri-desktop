@@ -439,6 +439,7 @@ No AI · no brain at all	Không AI · không có não nào
 No brain runs, and nothing is sent anywhere.	Không có não nào chạy, và không gửi gì đi đâu cả.
 No brain yet	Chưa có não
 No code open	Không có mã nào mở
+No limit	Không giới hạn
 No mic found	Không tìm thấy mic
 No mods in the directory yet.	Chưa có mod nào trong thư mục.
 No mods match that.	Không có mod nào khớp với điều đó.

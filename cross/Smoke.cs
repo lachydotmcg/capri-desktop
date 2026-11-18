@@ -3875,9 +3875,17 @@ namespace CapriDesktop
                 if (pet.HuskChanging || pet.HuskMode != 1 || SettingsCopy().HuskMode != 1 || frame.Value("Code/Husk Mode") != "Claude Code" || pet.Husk.Bridge == null) throw new Exception("A failed hook setup lost the previous mode or listener.");
                 File.WriteAllText(HuskHooks.PathFor("codex"), codexGood);
                 pet.SetAdvancedSettings(false); frame.Sync();
-                if (frame.Row("Code/Husk Mode").IsVisible || frame.Row("Verbosity").IsVisible) throw new Exception("Husk mode or Verbosity did not fold with Advanced Settings.");
+                if (frame.Row("Code/Husk Mode").IsVisible) throw new Exception("Husk mode did not fold with Advanced Settings.");
                 pet.SetAdvancedSettings(true); frame.Sync();
-                if (!frame.Row("Code/Husk Mode").IsVisible || !frame.Row("Verbosity").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk rows did not fit under BRAIN.");
+                if (!frame.Row("Code/Husk Mode").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk rows did not fit under BRAIN.");
+                NeonPicker huskPicker = (NeonPicker)frame.Row("Code/Husk Mode");
+                bool verbosityWas = pet.Saved.NoHuskVerbosity;
+                int verbosityAt = HuskWatch.Choices(pet.HuskMode).Length;
+                if (huskPicker.Choices.Length != verbosityAt + 1 || !huskPicker.Choices[verbosityAt].StartsWith("Verbosity", StringComparison.Ordinal)) throw new Exception("Code/Husk Mode did not offer Verbosity while a mode was on.");
+                frame.Change("Code/Husk Mode", verbosityAt);
+                if (pet.Saved.NoHuskVerbosity == verbosityWas || SettingsCopy().NoHuskVerbosity == verbosityWas || pet.HuskMode != 1 || frame.Value("Code/Husk Mode") != "Claude Code") throw new Exception("Verbosity in the Code/Husk Mode picker did not flip or changed the mode.");
+                frame.Change("Code/Husk Mode", verbosityAt);
+                if (pet.Saved.NoHuskVerbosity != verbosityWas) throw new Exception("Verbosity in the Code/Husk Mode picker did not flip back.");
                 checks.Add("PASS cross Husk Mainframe row: Off, Claude Code, Codex and Both; settings round trip and older-copy recovery; busy picker disabled; Advanced BRAIN layout");
                 Cloud thinkingRemoteWas = pet.Brain.Remote;
                 string thinkingModelWas = pet.Brain.Model;
@@ -4104,7 +4112,7 @@ namespace CapriDesktop
             string[,] toggles = {
                 { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
                 { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
-                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Verbosity", "", "NoHuskVerbosity" }, { "Start at login", "startup", "" },
+                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
                 { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" },
                 { "Weather", "", "Weather" }
@@ -4123,14 +4131,14 @@ namespace CapriDesktop
             var values = new Dictionary<string, Func<int, object>> {
                 { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
                 { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
-                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Every", i => Pet.GlanceGaps[i] }, { "Replies", i => i }, { "Memory", i => new[] { 8, 16, 32 }[i] },
-                { "Memory size", i => Brain.MemorySizes[i] }, { "Max reply", i => i }, { "Bubble", i => i }
+                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Every", i => Pet.GlanceGaps[i] }, { "Replies", i => Math.Min(2, i) }, { "Memory", i => new[] { 8, 16, 32 }[i] },
+                { "Bubble", i => i }
             };
             string[,] sliders = {
                 { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
                 { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
                 { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Mainframe colours", "MainframeColours", "mainframe_colours" }, { "Every", "GlanceGap", "glance_gap" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
-                { "Memory size", "MemorySize", "" }, { "Max reply", "ReplyLength", "reply_limit" }, { "Bubble", "Bubble", "bubble" }
+                { "Bubble", "Bubble", "bubble" }
             };
             for (int i = 0; i < sliders.GetLength(0); i++)
             {
@@ -4142,7 +4150,7 @@ namespace CapriDesktop
                     if (!object.Equals(saved, values[name](at)) || frame.Value(name) != slider.Choices[at] || sliders[i, 2] != "" && pet.LevelOf(sliders[i, 2]) != at) throw new Exception("A Mainframe slider did not use its saved setter: " + name + " / " + saved);
                 }
             }
-            if (Brain.MemorySize != 65536 || Brain.ReplyLength != Brain.ReplySizes.Length - 1) throw new Exception("Memory size or Max reply did not reach the shared brain.");
+            if (Brain.Wordiness != 2 || Brain.ReplyLength != 3 || SettingsCopy().ReplyLength != 3 || pet.Replies != 3) throw new Exception("Replies No limit did not reach the shared brain.");
             for (int i = 0; i < Brain.Languages.GetLength(0); i++)
             {
                 frame.Change("Language", i);
@@ -4194,7 +4202,7 @@ namespace CapriDesktop
             var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local, NoHuskVerbosity = true, ThinkingPicks = new[] { new ThinkingPick { Source = "openai|gpt-6-astra", Level = ThinkingLevels.High, Extra = "{}" } } }));
             if (recovered.MainframeSize != 150 || !recovered.AdvancedSettings || recovered.MemorySize != 16384 || recovered.ReplyLength != 3 || recovered.BrainTier != 2 || recovered.PaidModel != "paid-test") throw new Exception("The Mainframe settings did not survive the older settings copy.");
             if (!recovered.NoHuskVerbosity || recovered.ThinkingPicks == null || recovered.ThinkingPicks.Length != 1 || recovered.ThinkingPicks[0].Source != "openai|gpt-6-astra" || recovered.ThinkingPicks[0].Level != ThinkingLevels.High || recovered.ThinkingPicks[0].Extra != "{}") throw new Exception("Thinking and Verbosity did not survive together in the older settings copy.");
-            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing, scale, Thinking and Verbosity persist; Pet and tool changes show without losing drafts");
+            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Replies with No limit, Auto typing, scale, Thinking and Verbosity persist; Pet and tool changes show without losing drafts");
         }
 
         private static string CareSaid(Care care, Settings saved, long quiet = 0, bool free = true, string game = "Game A", double noticed = 0)
@@ -5240,7 +5248,7 @@ namespace CapriDesktop
         private void MainframeLayout(Mainframe frame, Voice voice)
         {
             pet.SetLanguage("English"); pet.SetMainframeSize(100);
-            string[] brainRows = { "Code/Husk Mode", "Thinking", "Extra request JSON", "Verbosity", "Stay on my model", "Replies", "Memory", "Memory size", "Max reply", "Bubble", "Follow-up messages" };
+            string[] brainRows = { "Code/Husk Mode", "Thinking", "Extra request JSON", "Stay on my model", "Replies", "Memory", "Bubble", "Follow-up messages" };
             foreach (int tier in new[] { 0, 1, 2 })
                 foreach (int mode in new[] { 0, 2, 3 })
                     foreach (bool savedKey in new[] { false, true })
@@ -5256,11 +5264,15 @@ namespace CapriDesktop
                                 string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                                 if (wrong != null) throw new Exception("Mainframe layout at " + scale + "%, page " + page + ", tier " + tier + ", voice " + mode + ": " + wrong);
                                 if (Math.Abs(frame.Zoom - scale / 100.0) > 0.001 || frame.Page.Width != (page == 0 ? 380 : 760)) throw new Exception("The Mainframe changed its design coordinates while scaling.");
+                                Control above = null;
                                 for (int row = 0; row < brainRows.Length; row++)
                                 {
                                     Control control = frame.Row(brainRows[row]);
-                                    if (control.IsVisible != (page == 2)) throw new Exception("A BRAIN row has the wrong Settings view: " + brainRows[row]);
-                                    if (page == 2 && row > 0 && Math.Abs(Canvas.GetTop(control) - Canvas.GetTop(frame.Row(brainRows[row - 1])) - 28) > 0.001) throw new Exception("A BRAIN row is out of place: " + brainRows[row]);
+                                    bool shown = page == 2 && (brainRows[row] != "Stay on my model" || pet.NvidiaBrain);
+                                    if (control.IsVisible != shown) throw new Exception("A BRAIN row has the wrong Settings view: " + brainRows[row]);
+                                    if (!shown) continue;
+                                    if (above != null && Math.Abs(Canvas.GetTop(control) - Canvas.GetTop(above) - 28) > 0.001) throw new Exception("A BRAIN row is out of place: " + brainRows[row]);
+                                    above = control;
                                 }
                             }
                     }

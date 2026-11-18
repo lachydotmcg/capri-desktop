@@ -439,6 +439,7 @@ No AI · no brain at all	ບໍ່ມີ AI · ບໍ່ມີສະໝອງເ
 No brain runs, and nothing is sent anywhere.	ບໍ່ມີສະໝອງເຮັດວຽກ, ແລະບໍ່ມີຫຍັງຖືກສົ່ງໄປບ່ອນໃດ.
 No brain yet	ຍັງບໍ່ມີສະໝອງ
 No code open	ບໍ່ມີ code ເປີດ
+No limit	ບໍ່ຈຳກັດ
 No mic found	ບໍ່ພົບໄມໂຄຣໂຟນ
 No mods in the directory yet.	ຍັງບໍ່ມີ mods ໃນໄດເຣັກທໍຣີ.
 No mods match that.	ບໍ່ມີ mods ທີ່ກົງກັບອັນນັ້ນ.

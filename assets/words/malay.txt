@@ -439,6 +439,7 @@ No AI · no brain at all	Tiada AI · tiada otak langsung
 No brain runs, and nothing is sent anywhere.	Tiada otak berjalan, dan tiada apa dihantar ke mana-mana.
 No brain yet	Belum ada otak
 No code open	Tiada kod dibuka
+No limit	Tiada had
 No mic found	Tiada mikrofon dijumpai
 No mods in the directory yet.	Belum ada mod dalam direktori.
 No mods match that.	Tiada mod sepadan dengan itu.

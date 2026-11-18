@@ -439,6 +439,7 @@ No AI · no brain at all	ไม่มี AI · ไม่มีสมองเล
 No brain runs, and nothing is sent anywhere.	ไม่มีสมองทำงาน และไม่มีอะไรถูกส่งไปที่ไหนเลย
 No brain yet	ยังไม่มีสมอง
 No code open	ไม่มีโค้ดที่เปิดอยู่
+No limit	ไม่จำกัด
 No mic found	ไม่พบไมค์
 No mods in the directory yet.	ยังไม่มีม็อดในไดเรกทอรี
 No mods match that.	ไม่มีม็อดที่ตรงกับสิ่งนั้น

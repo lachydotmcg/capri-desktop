@@ -439,6 +439,7 @@ No AI · no brain at all	No AI · walang brain
 No brain runs, and nothing is sent anywhere.	Walang brain na tumatakbo, at walang ipinapadala kahit saan.
 No brain yet	Wala pang brain
 No code open	Walang bukas na code
+No limit	Walang limitasyon
 No mic found	Walang nakitang mic
 No mods in the directory yet.	Wala pang mods sa directory.
 No mods match that.	Walang mods na tumutugma diyan.

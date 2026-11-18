@@ -135,7 +135,7 @@ namespace CapriDesktop
         private volatile int jealousTurn;
 
         internal bool JealousAIs { get { return preferences.JealousAIs; } }
-        internal bool CloseAIs { get { return preferences.CloseAIs; } }
+        internal bool CloseAIs { get { return preferences.JealousApps != null && preferences.JealousApps.Length > 0; } }
         internal bool JealousChosen(string id) { return Jealous.Chosen(preferences.JealousApps, id); }
 
         internal void ToggleJealousAIs()
@@ -146,10 +146,10 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        internal void ToggleCloseAIs()
+        internal void ClearJealous()
         {
-            if (!preferences.CloseAIs && !preferences.JealousAIs) return;
-            preferences.CloseAIs = !preferences.CloseAIs;
+            preferences.CloseAIs = false;
+            preferences.JealousApps = null;
             EndJealous();
             SavePreferences();
             mainframe.Sync();
@@ -161,6 +161,7 @@ namespace CapriDesktop
             List<string> choices = new List<string>(preferences.JealousApps ?? new string[0]);
             if (choices.Contains(id)) choices.RemoveAll(pick => pick == id); else choices.Add(id);
             preferences.JealousApps = choices.ToArray();
+            preferences.CloseAIs = true;
             EndJealous();
             SavePreferences();
             mainframe.Sync();
@@ -168,7 +169,7 @@ namespace CapriDesktop
 
         private bool JealousMayClose(JealousWindow target)
         {
-            return JealousAIs && CloseAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
+            return JealousAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
         }
 
         private void DropJealous()

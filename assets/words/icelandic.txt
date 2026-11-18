@@ -439,6 +439,7 @@ No AI · no brain at all	Engin gervigreind · enginn heili yfirleitt
 No brain runs, and nothing is sent anywhere.	Enginn heili keyrir og ekkert er sent neitt.
 No brain yet	Enginn heili enn
 No code open	Enginn kóði opinn
+No limit	Engin takmörk
 No mic found	Enginn hljóðnemi fannst
 No mods in the directory yet.	Engin mod í möppunni enn.
 No mods match that.	Engin mod passa við það.

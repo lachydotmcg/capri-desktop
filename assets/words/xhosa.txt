@@ -439,6 +439,7 @@ No AI · no brain at all	Akukho AI · akukho ngqondo nje
 No brain runs, and nothing is sent anywhere.	Akukho ngqondo esebenzayo, kwaye akukho nto ethunyelwa naphi na.
 No brain yet	Akukho ngqondo okwangoku
 No code open	Akukho khowudi evulekileyo
+No limit	Akukho mda
 No mic found	Akukho mic ifunyenwe
 No mods in the directory yet.	Akukho mods kwifolda okwangoku.
 No mods match that.	Akukho mod ehambelana nale.

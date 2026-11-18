@@ -439,6 +439,7 @@ No AI · no brain at all	438|NO AI · બિલકુલ બ્રેન નથ�
 No brain runs, and nothing is sent anywhere.	439|કોઈ બ્રેન ચાલતું નથી, અને કંઈ ક્યાંય મોકલાતું નથી.
 No brain yet	440|હજી કોઈ બ્રેન નથી
 No code open	441|કોઈ કોડ ખુલ્લો નથી
+No limit	કોઈ મર્યાદા નથી
 No mic found	442|કોઈ માઇક મળ્યો નથી
 No mods in the directory yet.	443|ડિરેક્ટરીમાં હજી કોઈ મોડ નથી.
 No mods match that.	444|તે સાથે કોઈ મોડ મેળ ખાતા નથી.

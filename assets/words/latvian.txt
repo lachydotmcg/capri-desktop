@@ -439,6 +439,7 @@ No AI · no brain at all	Nav AI · nav nekādu smadzeņu
 No brain runs, and nothing is sent anywhere.	Nekādas smadzenes nedarbojas, un nekas nekur netiek sūtīts.
 No brain yet	Vēl nav smadzeņu
 No code open	Nav atvērta koda
+No limit	Bez ierobežojuma
 No mic found	Mikrofons nav atrasts
 No mods in the directory yet.	Direktorijā vēl nav modifikāciju.
 No mods match that.	Nav modifikāciju, kas atbilstu.

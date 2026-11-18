@@ -439,6 +439,7 @@ No AI · no brain at all	कोई AI नहीं · बिल्कुल क�
 No brain runs, and nothing is sent anywhere.	कोई दिमाग नहीं चलता, और कुछ भी कहीं नहीं भेजा जाता।
 No brain yet	अभी कोई दिमाग नहीं
 No code open	कोई कोड खुला नहीं
+No limit	कोई सीमा नहीं
 No mic found	कोई माइक नहीं मिला
 No mods in the directory yet.	डायरेक्टरी में अभी कोई मॉड्स नहीं।
 No mods match that.	उससे कोई मॉड मेल नहीं खाता।

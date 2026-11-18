@@ -439,6 +439,7 @@ No AI · no brain at all	438|Hakuna AI · hakuna ubongo kabisa
 No brain runs, and nothing is sent anywhere.	439|Hakuna ubongo unaoendeshwa, na hakuna kinachotumwa popote.
 No brain yet	440|Bado hakuna ubongo
 No code open	441|Hakuna msimbo uliofunguliwa
+No limit	Bila kikomo
 No mic found	442|Maikrofoni haijapatikana
 No mods in the directory yet.	443|Bado hakuna moduli kwenye saraka.
 No mods match that.	444|Hakuna moduli zinazolingana na hilo.

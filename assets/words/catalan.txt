@@ -439,6 +439,7 @@ No AI · no brain at all	Sense IA · sense cervell
 No brain runs, and nothing is sent anywhere.	No s'executa cap cervell, i no s'envia res enlloc.
 No brain yet	Encara no hi ha cervell
 No code open	Cap codi obert
+No limit	Sense límit
 No mic found	No s'ha trobat cap micro
 No mods in the directory yet.	Encara no hi ha mods al directori.
 No mods match that.	Cap mod coincideix amb això.

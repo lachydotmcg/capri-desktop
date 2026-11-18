@@ -439,6 +439,7 @@ No AI · no brain at all	ਕੋਈ AI ਨਹੀਂ · ਬਿਲਕੁਲ ਕੋ�
 No brain runs, and nothing is sent anywhere.	ਕੋਈ ਦਿਮਾਗ ਨਹੀਂ ਚੱਲਦਾ, ਅਤੇ ਕਿਤੇ ਵੀ ਕੁਝ ਨਹੀਂ ਭੇਜਿਆ ਜਾਂਦਾ।
 No brain yet	ਅਜੇ ਕੋਈ ਦਿਮਾਗ ਨਹੀਂ
 No code open	ਕੋਈ ਕੋਡ ਖੁੱਲ੍ਹਾ ਨਹੀਂ
+No limit	ਕੋਈ ਸੀਮਾ ਨਹੀਂ
 No mic found	ਕੋਈ ਮਾਈਕ ਨਹੀਂ ਮਿਲਿਆ
 No mods in the directory yet.	ਫੋਲਡਰ ਵਿੱਚ ਅਜੇ ਕੋਈ mods ਨਹੀਂ।
 No mods match that.	ਇਸ ਨਾਲ ਕੋਈ mod ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ।

@@ -439,6 +439,7 @@ No AI · no brain at all	Yapay zeka yok · hiç beyin yok
 No brain runs, and nothing is sent anywhere.	Hiçbir beyin çalışmaz ve hiçbir şey bir yere gönderilmez.
 No brain yet	Henüz beyin yok
 No code open	Açık kod yok
+No limit	Sınırsız
 No mic found	Mikrofon bulunamadı
 No mods in the directory yet.	Klasörde henüz mod yok.
 No mods match that.	Bununla eşleşen mod yok.

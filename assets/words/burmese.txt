@@ -439,6 +439,7 @@ No AI · no brain at all	AI မရှိ · ဦးနှောက် လုံ�
 No brain runs, and nothing is sent anywhere.	ဦးနှောက် မလည်ပတ်ပါ၊ မည်သည့်နေရာသို့မျှ ဘာမျှ မပို့ပါ။
 No brain yet	ဦးနှောက် မရှိသေး
 No code open	Code ဖွင့်ထားခြင်း မရှိ
+No limit	ကန့်သတ်ချက်မရှိ
 No mic found	Mic မတွေ့ပါ
 No mods in the directory yet.	directory တွင် mods မရှိသေးပါ။
 No mods match that.	ဤနှင့် ကိုက်ညီသော mod မရှိပါ။

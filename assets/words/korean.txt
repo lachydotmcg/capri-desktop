@@ -439,6 +439,7 @@ No AI · no brain at all	AI 없음 · 뇌 전혀 없음
 No brain runs, and nothing is sent anywhere.	뇌가 실행되지 않으며 어디에도 아무것도 전송되지 않아.
 No brain yet	아직 뇌 없음
 No code open	열린 코드 없음
+No limit	제한 없음
 No mic found	마이크를 찾을 수 없음
 No mods in the directory yet.	모드 디렉터리에 아직 모드가 없어.
 No mods match that.	그것과 일치하는 모드가 없어.

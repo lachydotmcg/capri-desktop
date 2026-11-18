@@ -439,6 +439,7 @@ No AI · no brain at all	بلا AI · بلا دماغ إطلاقاً
 No brain runs, and nothing is sent anywhere.	لا يعمل أي دماغ، ولا يُرسل شيء إلى أي مكان.
 No brain yet	لا يوجد دماغ بعد
 No code open	لا يوجد كود مفتوح
+No limit	بلا حد
 No mic found	لم يُعثر على ميكروفون
 No mods in the directory yet.	لا توجد مودات في الدليل بعد.
 No mods match that.	لا يطابق أي مود ذلك.

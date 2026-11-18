@@ -439,6 +439,7 @@ No AI · no brain at all	Sin IA · sin cerebro en absoluto
 No brain runs, and nothing is sent anywhere.	No se ejecuta ningún cerebro y no se envía nada a ningún sitio.
 No brain yet	Aún sin cerebro
 No code open	Ningún código abierto
+No limit	Sin límite
 No mic found	No se encontró micro
 No mods in the directory yet.	No hay mods en el directorio todavía.
 No mods match that.	Ningún mod coincide con eso.

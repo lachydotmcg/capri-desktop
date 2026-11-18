@@ -439,6 +439,7 @@ No AI · no brain at all	438|Geen KI · geen brein nie
 No brain runs, and nothing is sent anywhere.	439|Geen brein loop nie, en niks word êrens gestuur nie.
 No brain yet	440|Nog geen brein nie
 No code open	441|Geen kode oop nie
+No limit	Geen limiet
 No mic found	442|Geen mikrofoon gevind nie
 No mods in the directory yet.	443|Nog geen modifikasies in die gids nie.
 No mods match that.	444|Geen modifikasies pas daarby nie.

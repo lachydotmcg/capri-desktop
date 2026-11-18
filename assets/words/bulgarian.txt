@@ -439,6 +439,7 @@ No AI · no brain at all	438|Без AI · изобщо без мозък
 No brain runs, and nothing is sent anywhere.	439|Никакъв мозък не работи и нищо не се изпраща никъде.
 No brain yet	440|Още няма мозък
 No code open	441|Няма отворен код
+No limit	Без ограничение
 No mic found	442|Не е намерен микрофон
 No mods in the directory yet.	443|Още няма модове в папката.
 No mods match that.	444|Няма модове, които да съответстват.

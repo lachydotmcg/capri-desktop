@@ -439,6 +439,7 @@ No AI · no brain at all	Kò sí AI · kò sí ọpọlọ rárá
 No brain runs, and nothing is sent anywhere.	Kò sí ọpọlọ tó ń ṣiṣẹ́, ohunkóhun kò sì ní lọ sí ibikíbi.
 No brain yet	Kò sí ọpọlọ síbẹ̀
 No code open	Kò sí kóòdù tí ó ṣí
+No limit	Kò sí ààlà
 No mic found	Kò rí maikirofónù
 No mods in the directory yet.	Kò sí mod nínú àpò síbẹ̀.
 No mods match that.	Kò sí mod tó bá ìyẹn mu.

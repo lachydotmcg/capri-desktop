@@ -439,6 +439,7 @@ No AI · no brain at all	Babu AI · babu kwakwalwa kwata-kwata
 No brain runs, and nothing is sent anywhere.	Babu kwakwalwa da ke gudana, kuma babu abin da ake aikawa ko'ina.
 No brain yet	Babu kwakwalwa tukuna
 No code open	Babu lamba a buɗe
+No limit	Babu iyaka
 No mic found	Ba a sami makirifo ba
 No mods in the directory yet.	Babu mods a cikin directory tukuna.
 No mods match that.	Babu mod da ya dace da wannan.

@@ -1116,7 +1116,7 @@ namespace CapriDesktop
                 foreach (string name in new[] { "size", "wander", "pop_ins", "sleep", "volume", "voice_speed", "replies", "bubble" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = name, Level = "up" })) throw new Exception("Her settings tool's slider " + name + " wasn't taken.");
                 // Her sliders' steps are the ones her Mainframe's sliders stop on, by name and by value.
-                string[] mainframeNames = { "SizeNames", "WanderNames", "PopNames", "SleepNames", "VolumeNames", "PaceNames", "Lengths", "BubbleNames" };
+                string[] mainframeNames = { "SizeNames", "WanderNames", "PopNames", "SleepNames", "VolumeNames", "PaceNames", "ReplyNames", "BubbleNames" };
                 for (int i = 0; i < mainframeNames.Length; i++)
                 {
                     string[] shown = (string[])typeof(Mainframe).GetField(mainframeNames[i], System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);

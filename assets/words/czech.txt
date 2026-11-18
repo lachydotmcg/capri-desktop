@@ -439,6 +439,7 @@ No AI · no brain at all	438|Bez AI · vůbec žádný mozek
 No brain runs, and nothing is sent anywhere.	439|Žádný mozek neběží a nikam se nic neposílá.
 No brain yet	440|Zatím žádný mozek
 No code open	441|Žádný kód není otevřen
+No limit	Bez omezení
 No mic found	442|Mikrofon nenalezen
 No mods in the directory yet.	443|Zatím v adresáři nejsou žádné mody.
 No mods match that.	444|Žádné mody neodpovídají.

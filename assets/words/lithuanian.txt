@@ -439,6 +439,7 @@ No AI · no brain at all	Be AI · jokių smegenų
 No brain runs, and nothing is sent anywhere.	Joks smegenų modelis neveikia, ir niekas nesiunčiama.
 No brain yet	Smegenų dar nėra
 No code open	Kodas neatidarytas
+No limit	Be ribų
 No mic found	Mikrofonas nerastas
 No mods in the directory yet.	Aplanke dar nėra modifikacijų.
 No mods match that.	Nėra modifikacijų, atitinkančių tai.

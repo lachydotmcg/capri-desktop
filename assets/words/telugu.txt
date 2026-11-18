@@ -439,6 +439,7 @@ No AI · no brain at all	AI లేదు · అసలు బ్రెయిన�
 No brain runs, and nothing is sent anywhere.	ఏ బ్రెయిన్ నడవదు, ఏమీ ఎక్కడికీ పంపబడదు.
 No brain yet	ఇంకా బ్రెయిన్ లేదు
 No code open	కోడ్ ఏదీ తెరవలేదు
+No limit	పరిమితి లేదు
 No mic found	మైక్ కనుగొనబడలేదు
 No mods in the directory yet.	డైరెక్టరీలో ఇంకా మోడ్‌లు లేవు.
 No mods match that.	దానికి సరిపోయే మోడ్‌లు లేవు.

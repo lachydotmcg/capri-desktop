@@ -439,6 +439,7 @@ No AI · no brain at all	438|Dim AI · dim ymennydd o gwbl
 No brain runs, and nothing is sent anywhere.	439|Dim ymennydd yn rhedeg, ac nid oes dim yn cael ei anfon i unman.
 No brain yet	440|Dim ymennydd eto
 No code open	441|Dim cod ar agor
+No limit	Dim terfyn
 No mic found	442|Heb ddod o hyd i feic
 No mods in the directory yet.	443|Dim modiau yn y cyfeiriadur eto.
 No mods match that.	444|Dim modiau'n cyfateb i hynny.

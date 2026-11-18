@@ -439,6 +439,7 @@ No AI · no brain at all	AI არ არის · საერთოდ არ 
 No brain runs, and nothing is sent anywhere.	ტვინი არ მუშაობს და არაფერი არსად იგზავნება.
 No brain yet	ტვინი ჯერ არ არის
 No code open	კოდი არ არის გახსნილი
+No limit	შეუზღუდავი
 No mic found	მიკროფონი ვერ მოიძებნა
 No mods in the directory yet.	მოდები საქაღალდეში ჯერ არ არის.
 No mods match that.	ამას არცერთი მოდი არ ემთხვევა.

@@ -439,6 +439,7 @@ No AI · no brain at all	AI இல்லை · மூளையே இல்ல�
 No brain runs, and nothing is sent anywhere.	எந்த மூளையும் இயங்காது, எதுவும் எங்கும் அனுப்பப்படாது.
 No brain yet	இன்னும் மூளை இல்லை
 No code open	திறந்த குறியீடு இல்லை
+No limit	வரம்பு இல்லை
 No mic found	மைக் எதுவும் கண்டறியப்படவில்லை
 No mods in the directory yet.	மோட்கள் கோப்புறையில் இன்னும் மோட்கள் இல்லை.
 No mods match that.	அதற்குப் பொருந்தும் மோட்கள் இல்லை.

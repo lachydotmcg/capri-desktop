@@ -439,6 +439,7 @@ No AI · no brain at all	Ingen AI · ingen hjerne overhovedet
 No brain runs, and nothing is sent anywhere.	Ingen hjerne kører, og intet sendes nogen steder.
 No brain yet	Ingen hjerne endnu
 No code open	Ingen kode åben
+No limit	Ingen grænse
 No mic found	Ingen mikrofon fundet
 No mods in the directory yet.	Ingen mods i mappen endnu.
 No mods match that.	Ingen mods matcher det.

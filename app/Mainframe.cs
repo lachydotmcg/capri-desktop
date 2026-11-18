@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 2304;
+        private const int PageTall = 2248;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -74,8 +74,7 @@ namespace CapriDesktop
         private static readonly string[] WanderNames = { "Off", "Rarely", "Sometimes", "Often", "Restless" };
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
         private static readonly int[] Recalls = { 8, 16, 32 };
-        private static readonly string[] MemoryNames = { "Auto", "4K", "8K", "16K", "32K", "64K" };
-        private static readonly string[] ReplyNames = { "Auto", "256", "2K", "8K" };
+        private static readonly string[] ReplyNames = { "Short", "Medium", "Long", "No limit" };
         private const int VoiceHeight = 392;
         // While her free voice or ears download, a row with the brain setup's dotted bar opens here and pushes the rest down.
         private const int InstallAt = 535;
@@ -120,9 +119,9 @@ namespace CapriDesktop
         private readonly Toggle upsetChaos;
         private readonly Toggle hologram;
         private readonly Toggle legacyStand;
-        private readonly Toggle jealousAIs, closeAIs;
+        private readonly Toggle jealousAIs;
         private readonly Key jealousApps;
-        private readonly Label jealousNote, closeAIsNote;
+        private readonly Label jealousNote;
         private readonly ContextMenuStrip jealousMenu;
         private readonly Toggle startup;
         private readonly Toggle discord;
@@ -160,7 +159,9 @@ namespace CapriDesktop
         private static readonly int[] WatchLines = { 8, 16, 24, 48, 96 };
         private static readonly string[] WatchLineNames = { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" };
         private readonly Toggle stayOnModel;
-        private readonly Toggle huskVerbosity;
+        private readonly ToolStripMenuItem huskVerbosityItem;
+        private readonly ToolStripSeparator huskVerbosityBar;
+        private readonly Toggle sitOnWindows;
         private readonly Toggle remembering;
         private readonly Toggle keepAwake, hideFullScreen, playerFullScreen, exploreAway;
         private Key clipsFolder;
@@ -296,10 +297,10 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1400, 1452 }, new[] { 1452, 1480 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1400, 1452 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 1810 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 418 }, new[] { 446, 474 }, new[] { 876, 1314 }, new[] { 1566, 1754 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -382,10 +383,6 @@ namespace CapriDesktop
         private readonly Readout repliesName;
         private readonly Slider recall;
         private readonly Readout recallName;
-        private readonly Slider memorySize;
-        private readonly Readout memorySizeName;
-        private readonly Slider replyLength;
-        private readonly Readout replyLengthName;
         private readonly Entry custom;
         private readonly Entry localAddress;
         private readonly Label customNote;
@@ -792,8 +789,6 @@ namespace CapriDesktop
             micLoudness.Changed += delegate { if (!syncing) capri.SetMicLoudness(50 + micLoudness.Value * 10); };
             int afterVoice = Controls.Count;
             Section("MOVES >", 0, 442);
-            popTimes = Make("Pop-in times", 236, 439, 120, 20, delegate { using (PopWindow dialog = new PopWindow(capri)) dialog.ShowDialog(this); });
-            popTimes.AccessibleName = "Pop-in times: set the shortest and longest wait in minutes";
             // Her mini player shows what's playing while music plays, with her perched on it.
             miniPlayer = Switch("Mini player", 0, 466, delegate { if (!syncing) capri.TogglePlayer(); });
             miniPlayer.AccessibleName = "Mini player. It shows what's playing while music plays, and she sits on it";
@@ -803,10 +798,8 @@ namespace CapriDesktop
             sleepAfter = Setting("Sleep", SleepNames, 0, 522, "How long a still PC takes to send her to sleep; five minutes still reads as you being away");
             sleepName = new Readout(sleepAfter);
             sleepAfter.Changed += delegate { if (syncing) return; sleepName.Text = SleepNames[sleepAfter.Value]; capri.SetSleepAfter(Sleeps[sleepAfter.Value]); };
-            // How often Check in on me brings her over to say hi.
-            pops = Setting("Pop-ins", PopNames, 0, 550, "How often she pops in to say hi");
-            popsName = new Readout(pops);
-            pops.Changed += delegate { if (syncing) return; popsName.Text = PopNames[pops.Value]; capri.SetPopPace(pops.Value); };
+            sitOnWindows = Switch("Sit on windows", 0, 550, delegate { if (!syncing) capri.ToggleSitting(); });
+            sitOnWindows.AccessibleName = "Sit on windows. She lands on the top edges of your windows";
             dance = Switch("Dance to music", 0, 578, delegate { if (!syncing) capri.ToggleDance(); });
             intro = Switch("Glitch in at startup", 0, 606, delegate { if (!syncing) capri.ToggleIntro(); });
             Section("KEYS >", 0, 648);
@@ -868,6 +861,11 @@ namespace CapriDesktop
             }
             careEdit = Make("Edit check-in lines", 28 + c, 338, 328, 20, delegate { capri.OpenCare(); });
             careEdit.AccessibleName = "Check in on me: edit her check-in lines in check-ins.md; remove lines to silence a check-in";
+            pops = Setting("Pop-ins", PopNames, c, 362, "How often she pops in to say hi");
+            popsName = new Readout(pops);
+            pops.Changed += delegate { if (syncing) return; popsName.Text = PopNames[pops.Value]; capri.SetPopPace(pops.Value); };
+            popTimes = Make("Pop-in times", 28 + c, 394, 328, 20, delegate { using (PopWindow dialog = new PopWindow(capri)) dialog.ShowDialog(this); });
+            popTimes.AccessibleName = "Check in on me: Pop-in times, set the shortest and longest wait in minutes";
             int afterCare = Controls.Count;
             onTop = Switch("Always on top", c, 138, delegate { if (!syncing) capri.ToggleOnTop(); });
             // Zenni's ask (30 Oct): under Virtual Super Resolution her Mainframe came out tiny. Auto grows it by how much bigger
@@ -895,17 +893,12 @@ namespace CapriDesktop
             jealousNote = Caption("Teases when another AI comes to the front.", 28 + c, 390, small, Faint);
             jealousNote.AutoSize = false;
             jealousNote.Size = new Size(328, 20);
-            closeAIs = Switch("Close other AIs for me", c, 418, delegate { if (!syncing) capri.ToggleCloseAIs(); });
-            closeAIs.AccessibleName = "Close other AIs for me. Asks before closing only the apps you choose";
-            jealousAIs.Switch = closeAIs.Switch = 68;
-            closeAIsNote = Caption("Asks before closing only the apps you choose.", 28 + c, 446, small, Faint);
-            closeAIsNote.AutoSize = false;
-            closeAIsNote.Size = new Size(328, 20);
-            Named("Apps she may close", c, 474);
+            jealousAIs.Switch = 68;
+            Named("Apps she may close", c, 418);
             jealousMenu = Dropdown();
-            jealousApps = Make("Choose apps", ValueAt + c, 477, ValueWide, 22, delegate { jealousMenu.Show(jealousApps, new Point(0, jealousApps.Height)); }, "Apps she may close");
+            jealousApps = Make("Choose apps", ValueAt + c, 421, ValueWide, 22, delegate { jealousMenu.Show(jealousApps, new Point(0, jealousApps.Height)); }, "Apps she may close");
             jealousApps.Chevron = true;
-            jealousApps.AccessibleName = "Choose which other AIs she may ask to close";
+            jealousApps.AccessibleName = "Choose which other AIs she may ask to close. She asks before closing, and closes none until you choose";
             foreach (JealousApp app in Jealous.Apps)
             {
                 string id = app.Id;
@@ -942,6 +935,11 @@ namespace CapriDesktop
                 int choice = HuskWatch.Modes[i];
                 huskMenu.Items.Add(Choice(HuskWatch.Names[i], false, delegate { capri.SetHusk(choice); }));
             }
+            huskVerbosityBar = new ToolStripSeparator();
+            huskVerbosityItem = Choice("Verbosity", false, delegate { capri.ToggleHuskVerbosity(); });
+            huskVerbosityItem.AccessibleName = "Verbosity. Checked shows each tool the coding assistant runs. Unchecked keeps only starts, finishes, questions and crashes";
+            huskMenu.Items.Add(huskVerbosityBar);
+            huskMenu.Items.Add(huskVerbosityItem);
             Named("Thinking", c, 382);
             thinkingMenu = Dropdown();
             thinkingMenu.AccessibleName = "Thinking choices";
@@ -957,28 +955,21 @@ namespace CapriDesktop
             Named("Extra request JSON", c, 410);
             thinkingExtra = Make("Add", ValueAt + c, 413, ValueWide, 22, delegate { OpenThinkingExtra(); }, "Extra request JSON");
             thinkingExtra.AccessibleName = "Extra request JSON";
-            int afterHusk = Controls.Count;
-            huskVerbosity = Switch("Verbosity", c, 354, delegate { if (!syncing) capri.ToggleHuskVerbosity(); });
-            huskVerbosity.AccessibleName = "Verbosity. On shows each tool the coding assistant runs. Off keeps only starts, finishes, questions and crashes";
-            int afterVerbosity = Controls.Count;
-            stayOnModel = Switch("Stay on my model", c, 354, delegate { if (!syncing) capri.ToggleStayOnModel(); });
+            fastHands = Switch("Fast hands in games", c, 438, delegate { if (!syncing) capri.ToggleFastHands(); });
+            fastHands.Switch = 68;
+            fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
+            stayOnModel = Switch("Stay on my model", c, 466, delegate { if (!syncing) capri.ToggleStayOnModel(); });
             stayOnModel.AccessibleName = "Stay on my model. When an NVIDIA model gets stuck she says so instead of switching to another one";
-            replies = Setting("Replies", Lengths, c, 382, "Reply length");
+            replies = Setting("Replies", ReplyNames, c, 494, "Reply length. No limit lets her run on, and jobs keep more room when they need it");
             repliesName = new Readout(replies);
-            replies.Changed += delegate { if (syncing) return; repliesName.Text = Lengths[replies.Value]; capri.SetWordiness(replies.Value); };
-            recall = Setting("Memory", Lengths, c, 410, "How much of the chat she keeps");
+            replies.Changed += delegate { if (syncing) return; repliesName.Text = ReplyNames[replies.Value]; capri.SetWordiness(replies.Value); };
+            recall = Setting("Memory", Lengths, c, 522, "How much of the chat she keeps");
             recallName = new Readout(recall);
             recall.Changed += delegate { if (syncing) return; recallName.Text = Lengths[recall.Value]; capri.SetRecall(Recalls[recall.Value]); };
-            memorySize = Setting("Memory size", MemoryNames, c, 438, "Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more");
-            memorySizeName = new Readout(memorySize);
-            memorySize.Changed += delegate { if (syncing) return; memorySizeName.Text = MemoryNames[memorySize.Value]; capri.SetMemorySize(Brain.MemorySizes[memorySize.Value]); };
-            replyLength = Setting("Max reply", ReplyNames, c, 466, "The longest reply she can give, in tokens. Auto keeps to Replies above; 2K or 8K lets her run on. Jobs keep more room when they need it");
-            replyLengthName = new Readout(replyLength);
-            replyLength.Changed += delegate { if (syncing) return; replyLengthName.Text = ReplyNames[replyLength.Value]; capri.SetReplyLength(replyLength.Value); };
-            bubble = Setting("Bubble", BubbleNames, c, 494, "How long her replies stay up");
+            bubble = Setting("Bubble", BubbleNames, c, 550, "How long her replies stay up");
             bubbleName = new Readout(bubble);
             bubble.Changed += delegate { if (syncing) return; bubbleName.Text = BubbleNames[bubble.Value]; capri.SetBubbleTime(bubble.Value); };
-            followUps = Switch("Follow-up messages", c, 522, delegate { if (!syncing) capri.ToggleFollowUps(); });
+            followUps = Switch("Follow-up messages", c, 578, delegate { if (!syncing) capri.ToggleFollowUps(); });
             followUps.AccessibleName = "Follow-up messages. Sometimes she adds a second thought after her answer. Your typing or speech drops it";
             int afterFollowUps = Controls.Count;
             custom = Input(28 + c, 525, 244, 22);
@@ -1071,11 +1062,10 @@ namespace CapriDesktop
             Caption("She reacts to your game until you close it.", 28, 1048, small, Faint);
             Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1064, small, Faint);
             Caption("Works best on MAX INTELLIGENCE.", 28, 1080, small, Faint);
-            fastHands = Switch("Fast hands in games", 0, 1102, delegate { if (!syncing) capri.ToggleFastHands(); });
-            hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
+            int afterGamingMode = Controls.Count;
+            hdGames.Switch = intro.Switch = caughtUp.Switch = 68;
             gameMute = Switch("Mute her", 0, 1130, delegate { if (!syncing) capri.ToggleShush(); });
             gameMute.AccessibleName = "Mute her. She stops talking on her own and only answers when you talk to her, the same as her Quiet key";
-            fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
             clipHead = Section("CLIPS >", 0, 1186);
             clipGames = Switch("Clip my games", 0, 1210, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory while the game is in front";
@@ -1102,23 +1092,24 @@ namespace CapriDesktop
             BuildDoomscroll(1642);
             int gamesTo = Controls.Count;
             for (int belowSensitivity = afterGameSounds; belowSensitivity < gamesTo; belowSensitivity++) Controls[belowSensitivity].Top += Row;
+            for (int belowGamingMode = afterGamingMode; belowGamingMode < gamesTo; belowGamingMode++) Controls[belowGamingMode].Top -= Row;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
-            for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
-                if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row * 3;
-            for (int belowVerbosity = afterVerbosity; belowVerbosity < Controls.Count; belowVerbosity++)
-                if (Controls[belowVerbosity].Left >= c) Controls[belowVerbosity].Top += Row;
-            // Mainframe colours, Head pats, Pat stroke, Chaos when upset, Hologram, Legacy stand and the five jealousy rows each take a row under Mainframe size.
+            for (int belowFollowUps = afterFollowUps; belowFollowUps < Controls.Count; belowFollowUps++)
+                if (Controls[belowFollowUps].Left >= c) Controls[belowFollowUps].Top += Row * 2;
+            // Mainframe colours, Head pats, Pat stroke, Chaos when upset, Hologram, Legacy stand and the three jealousy rows each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 11;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 9;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
-                if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
+                if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 10;
             // The hearing row, her Mainframe key's row and Her voice in your mic's rows push GAMES down under KEYS too.
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
             {
                 Controls[gameRow].Top += Row * 2 + MixRows;
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
             }
+            for (int belowStay = 0; belowStay < Controls.Count; belowStay++)
+                if (Controls[belowStay].Left >= c && Controls[belowStay].Top > stayOnModel.Top) underStay.Add(new KeyValuePair<Control, int>(Controls[belowStay], Controls[belowStay].Top));
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -1728,6 +1719,26 @@ namespace CapriDesktop
         // MOVES' and KEYS' controls with their tops as built, and how far up they've moved.
         private readonly List<KeyValuePair<Control, int>> underVoice = new List<KeyValuePair<Control, int>>();
         private int lifted;
+        private readonly List<KeyValuePair<Control, int>> underStay = new List<KeyValuePair<Control, int>>();
+        private int stayLifted;
+
+        // Stay on my model only does anything while an NVIDIA brain is in use, so its row shows then. Without it, the rows under it
+        // move up into its place.
+        private void ShowStay()
+        {
+            bool was = syncing, nvidia = capri.NvidiaBrain;
+            syncing = true;
+            stayOnModel.Visible = nvidia;
+            stayOnModel.Checked = capri.StayOnModel;
+            syncing = was;
+            int lift = nvidia ? 0 : Row;
+            if (lift == stayLifted) return;
+            stayLifted = lift;
+            int back = ShownScroll;
+            ScrollPage(0);
+            CloseGaps();
+            ScrollPage(back);
+        }
 
         // Without a cable the switch can't go on: the note credits VB-CABLE with a link to its page, and the line under it says it's
         // needed, then where VB-Audio's setup is at. With Steam's mic only, the note says VB-CABLE usually sounds better and Get
@@ -1934,13 +1945,11 @@ namespace CapriDesktop
         internal bool UpsetChaosShown { get { return upsetChaos.Checked; } }
         internal bool LegacyStandShown { get { return legacyStand.Checked; } }
         internal bool JealousShown { get { return jealousAIs.Checked; } }
-        internal bool CloseAIsShown { get { return closeAIs.Checked; } }
-        internal bool JealousChoicesEnabled { get { return closeAIs.Enabled && jealousApps.Enabled; } }
+        internal bool JealousChoicesEnabled { get { return jealousApps.Enabled; } }
         internal void FlipJealous() { jealousAIs.Checked = !jealousAIs.Checked; }
-        internal void FlipCloseAIs() { closeAIs.Checked = !closeAIs.Checked; }
         internal void PickJealousApp(int index) { jealousMenu.Items[index].PerformClick(); }
-        internal bool JealousInPage { get { return !Folded(jealousAIs) && !Folded(closeAIs) && !Folded(jealousApps) && !Hidden(jealousAIs) && !Hidden(closeAIs) && !Hidden(jealousApps); } }
-        internal bool JealousDescriptions { get { return jealousNote.Text.Length > 0 && closeAIsNote.Text.Length > 0 && TextRenderer.MeasureText(jealousAIs.Text, jealousAIs.Font).Width <= jealousAIs.NameRoom && TextRenderer.MeasureText(closeAIs.Text, closeAIs.Font).Width <= closeAIs.NameRoom && TextRenderer.MeasureText(jealousNote.Text, jealousNote.Font).Width <= jealousNote.Width && TextRenderer.MeasureText(closeAIsNote.Text, closeAIsNote.Font).Width <= closeAIsNote.Width && !string.IsNullOrEmpty(jealousAIs.AccessibleDescription) && !string.IsNullOrEmpty(closeAIs.AccessibleDescription); } }
+        internal bool JealousInPage { get { return !Folded(jealousAIs) && !Folded(jealousApps) && !Hidden(jealousAIs) && !Hidden(jealousApps); } }
+        internal bool JealousDescriptions { get { return jealousNote.Text.Length > 0 && TextRenderer.MeasureText(jealousAIs.Text, jealousAIs.Font).Width <= jealousAIs.NameRoom && TextRenderer.MeasureText(jealousNote.Text, jealousNote.Font).Width <= jealousNote.Width && !string.IsNullOrEmpty(jealousAIs.AccessibleDescription) && !string.IsNullOrEmpty(jealousApps.AccessibleDescription); } }
         internal string LegacyStandTip { get { return legacyStand.AccessibleDescription; } }
         internal void FlipLegacyStand() { legacyStand.Checked = !legacyStand.Checked; }
         // How far down each column of the Settings page reaches in the view that's open, against the page's height.
@@ -2031,7 +2040,8 @@ namespace CapriDesktop
                 int gone = 0;
                 if (simple) foreach (int[] band in entry.Value >= Column ? FoldedRight : FoldedLeft) if (top >= band[1]) gone += band[1] - band[0];
                 bool lifts = underVoice.Exists(moved => moved.Key == entry.Key);
-                entry.Key.Top = Scaled(top - gone - (lifts && !simple ? lifted : 0));
+                bool stays = underStay.Exists(moved => moved.Key == entry.Key);
+                entry.Key.Top = Scaled(top - gone - (lifts && !simple ? lifted : 0) - (stays && !simple ? stayLifted : 0));
             }
         }
 
@@ -3047,11 +3057,13 @@ namespace CapriDesktop
             syncing = true;
             huskMode.Text = HuskWatch.Names[HuskWatch.Choice(capri.HuskMode)];
             huskMode.Enabled = !capri.HuskChanging;
-            for (int i = 0; i < huskMenu.Items.Count; i++)
+            for (int i = 0; i < HuskWatch.Names.Length; i++)
             {
                 ((ToolStripMenuItem)huskMenu.Items[i]).Checked = i == HuskWatch.Choice(capri.HuskMode);
                 huskMenu.Items[i].Visible = i < HuskWatch.Choices(capri.HuskMode).Length;
             }
+            huskVerbosityBar.Visible = huskVerbosityItem.Visible = capri.HuskMode != 0;
+            huskVerbosityItem.Checked = capri.HuskVerbosity;
             huskMode.Invalidate();
             FillThinking();
             hearingChoice.Text = HearingStatus.Choices[capri.HearingChoice];
@@ -3079,8 +3091,8 @@ namespace CapriDesktop
             followUps.Checked = capri.FollowUps;
             watchMemory.Value = Math.Max(0, Array.IndexOf(WatchLines, capri.WatchMemoryLines));
             watchMemoryName.Text = WatchLineNames[watchMemory.Value];
-            stayOnModel.Checked = capri.StayOnModel;
-            huskVerbosity.Checked = capri.HuskVerbosity;
+            ShowStay();
+            sitOnWindows.Checked = capri.Sitting;
             remembering.Checked = capri.Remembers;
             keepAwake.Checked = capri.KeepAwake;
             hideFullScreen.Checked = capri.HideFullScreen;
@@ -3148,9 +3160,7 @@ namespace CapriDesktop
             upsetChaos.Checked = capri.UpsetChaos;
             legacyStand.Checked = capri.LegacyStand;
             jealousAIs.Checked = capri.JealousAIs;
-            closeAIs.Checked = capri.CloseAIs;
-            closeAIs.Enabled = capri.JealousAIs;
-            jealousApps.Enabled = capri.JealousAIs && capri.CloseAIs;
+            jealousApps.Enabled = capri.JealousAIs;
             for (int jealousPick = 0; jealousPick < Jealous.Apps.Length; jealousPick++) ((ToolStripMenuItem)jealousMenu.Items[jealousPick]).Checked = capri.JealousChosen(Jealous.Apps[jealousPick].Id);
             hologram.Checked = capri.HologramOn;
             bubble.Value = capri.BubbleTime;
@@ -3165,13 +3175,9 @@ namespace CapriDesktop
             ShowVoiceInMic();
             miniPlayer.Checked = capri.PlayerOn;
             replies.Value = capri.Wordiness;
-            repliesName.Text = Lengths[replies.Value];
+            repliesName.Text = ReplyNames[replies.Value];
             recall.Value = Math.Max(0, Array.IndexOf(Recalls, capri.Recall));
             recallName.Text = Lengths[recall.Value];
-            memorySize.Value = Math.Max(0, Array.IndexOf(Brain.MemorySizes, capri.MemorySize));
-            memorySizeName.Text = MemoryNames[memorySize.Value];
-            replyLength.Value = capri.ReplyLength;
-            replyLengthName.Text = ReplyNames[replyLength.Value];
             if (!localAddress.Box.Focused) localAddress.Box.Text = capri.LocalAddress;
             perchFps.Value = Math.Max(0, Array.IndexOf(Companion.PerchRates, capri.PerchFps));
             ShowPerch();
@@ -3194,11 +3200,9 @@ namespace CapriDesktop
 
         internal string PerchStatus { get { return perchFpsName.Text + " | " + (perchNote.Text.Length > 0 ? perchNote.Text : "-"); } }
 
-        internal string BrainSettings { get { return memorySizeName.Text + " | " + replyLengthName.Text; } }
+        internal string RepliesShown { get { return repliesName.Text; } }
 
-        internal void SlideMemorySize(int index) { memorySize.Slide(index); }
-
-        internal void SlideReplyLength(int index) { replyLength.Slide(index); }
+        internal void SlideReplies(int index) { replies.Slide(index); }
 
         internal void SlideComments(int index) { comments.Slide(index); }
 
@@ -3236,7 +3240,11 @@ namespace CapriDesktop
         internal void FlipCaughtUp() { caughtUp.Checked = !caughtUp.Checked; }
 
         internal bool StayShown { get { return stayOnModel.Checked; } }
-        internal bool HuskVerbosityShown { get { return huskVerbosity.Checked; } }
+        internal bool StayRowShown { get { return stayOnModel.Visible; } }
+        internal bool HuskVerbosityShown { get { return huskVerbosityItem.Checked; } }
+        internal bool HuskVerbosityOffered { get { return huskVerbosityItem.Available; } }
+        internal bool SitShown { get { return sitOnWindows.Checked; } }
+        internal void FlipSit() { sitOnWindows.Checked = !sitOnWindows.Checked; }
 
         internal void FlipStay() { stayOnModel.Checked = !stayOnModel.Checked; }
 
@@ -3274,8 +3282,9 @@ namespace CapriDesktop
         {
             if (!paged) return null;
             Control above = null;
-            foreach (Control row in new Control[] { huskMode, thinkingLevel, thinkingExtra, huskVerbosity, stayOnModel, replies, recall, memorySize, replyLength, bubble, followUps })
+            foreach (Control row in new Control[] { huskMode, thinkingLevel, thinkingExtra, fastHands, stayOnModel, replies, recall, bubble, followUps })
             {
+                if (row == stayOnModel && !stayOnModel.Visible) continue;
                 if (Hidden(row) != simple || row.TabStop == simple) return "a BRAIN row has the wrong Settings view";
                 if (!simple && above != null && Math.Abs(row.Top - above.Top - Scaled(Row)) > 1) return "a BRAIN row is out of place";
                 above = row;
@@ -3301,7 +3310,10 @@ namespace CapriDesktop
             }
             if (Hidden(careEdit) != simple || careEdit.TabStop == simple || !careEdit.Enabled || careEdit.Dimmed != !capri.CheckIns) return "Edit check-in lines has the wrong view or dimming";
             if (!(careEdit.AccessibleName ?? "").StartsWith("Check in on me: ", StringComparison.Ordinal)) return "Edit check-in lines has lost its parent name";
-            if (!simple && (careEdit.Top < above.Bottom || careEdit.Bottom > onTop.Top || careEdit.Left != checkIns.Left)) return "Edit check-in lines is out of place";
+            if (!simple && (careEdit.Top < above.Bottom || careEdit.Bottom > pops.Top || careEdit.Left != checkIns.Left)) return "Edit check-in lines is out of place";
+            if (Hidden(pops) != simple || Hidden(popTimes) != simple || pops.TabStop == simple || popTimes.TabStop == simple) return "a pop-in row has the wrong Settings view";
+            if (!simple && (popTimes.Top < pops.Bottom || popTimes.Bottom > onTop.Top || popTimes.Left != checkIns.Left)) return "a pop-in row is out of place";
+            if (!(popTimes.AccessibleName ?? "").StartsWith("Check in on me: ", StringComparison.Ordinal)) return "Pop-in times has lost its parent name";
             if (simple && Math.Abs(onTop.Top - checkIns.Top - Scaled(Row)) > 1) return "Simple Settings left a gap under Check in on me";
             string tip = checkIns.AccessibleDescription ?? "";
             foreach (string kind in new[] { "visits", "attention", "cheers", "busy-PC", "water", "stretch", "look away", "sleep", "meals", "game breaks", "boredom" })

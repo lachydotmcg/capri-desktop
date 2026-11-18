@@ -439,6 +439,7 @@ No AI · no brain at all	Ora ana AI · ora ana otak babar pisan
 No brain runs, and nothing is sent anywhere.	Ora ana otak sing mlaku, lan ora ana sing dikirim menyang endi-endi.
 No brain yet	Durung ana otak
 No code open	Ora ana kode sing dibukak
+No limit	Tanpa wates
 No mic found	Mikropon ora ketemu
 No mods in the directory yet.	Durung ana mod ing direktori.
 No mods match that.	Ora ana mod sing cocok karo iku.

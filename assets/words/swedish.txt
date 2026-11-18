@@ -439,6 +439,7 @@ No AI · no brain at all	Ingen AI · ingen hjärna alls
 No brain runs, and nothing is sent anywhere.	Ingen hjärna körs, och inget skickas någonstans.
 No brain yet	Ingen hjärna än
 No code open	Ingen kod öppen
+No limit	Ingen gräns
 No mic found	Ingen mikrofon hittades
 No mods in the directory yet.	Inga mods i katalogen än.
 No mods match that.	Inga mods matchar det.
