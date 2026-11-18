@@ -5838,7 +5838,7 @@ namespace CapriDesktop
                 if (OperatingSystem.IsLinux() && !Security.Has(Security.Mouse)) { want.Add("-"); want.Add("Set up mouse and keyboard..."); }
                 return string.Join(" | ", want);
             };
-            string[] presetBits = { "000000000000100", "111000000000100", "111111100000110", "111111111110011" };
+            string[] presetBits = { "000000000000100", "111000000000100", "111111100000110", "111111111100011" };
             List<string> wrong = new List<string>();
             string first = pet.SecurityShown;
             bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, Security.MaskOf(Security.Trusted));
