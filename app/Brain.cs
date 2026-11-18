@@ -1029,6 +1029,9 @@ namespace CapriDesktop
         internal static volatile int ReplyLength;
         internal static readonly int[] MemorySizes = { 0, 4096, 8192, 16384, 32768, 65536 };
         internal static readonly int[] ReplySizes = { 0, 256, 2048, 8192 };
+        internal static volatile int GpuLimit;
+        internal static readonly int[] GpuLimits = { 0, 8, 6, 4, 3, 2, -1 };
+        internal static readonly string[] GpuLimitNames = { "Auto", "8 GB", "6 GB", "4 GB", "3 GB", "2 GB", "RAM only" };
         private static readonly int[] Budgets = { 90, 180, 360 };
         private static readonly int[] Caps = { 220, 420, 820 };
 
@@ -1193,7 +1196,66 @@ namespace CapriDesktop
 
         private ChatOptions OllamaOptions(string model, int reply)
         {
-            return new ChatOptions { Limit = reply, Context = OllamaWindow, Gpu = ollamaCpu == model ? (int?)0 : null };
+            return new ChatOptions { Limit = reply, Context = OllamaWindow, Gpu = ollamaCpu == model ? (int?)0 : OllamaLayers(model, GpuLimit) };
+        }
+
+        internal static int? Layers(long size, int blocks, int limit, int window)
+        {
+            if (limit < 0) return 0;
+            if (limit == 0 || size <= 0 || blocks <= 0) return null;
+            long room = ((long)limit << 30) - (512L << 20) - (long)window * 64 * 1024;
+            int layers = blocks + 1;
+            if (room >= size) return null;
+            if (room <= 0) return 0;
+            return (int)Math.Min(layers, room * layers / size);
+        }
+
+        internal static Func<string, long[]> OllamaShape = OllamaSize;
+        private static readonly Dictionary<string, long[]> ollamaShapes = new Dictionary<string, long[]>();
+
+        private static int? OllamaLayers(string model, int limit)
+        {
+            if (limit == 0 || model == null) return null;
+            if (limit < 0) return 0;
+            long[] shape;
+            lock (ollamaShapes) ollamaShapes.TryGetValue(model, out shape);
+            if (shape == null)
+            {
+                shape = OllamaShape(model) ?? new long[2];
+                if (shape[0] > 0 && shape[1] > 0) lock (ollamaShapes) ollamaShapes[model] = shape;
+                else Log(Ollama, -1, "Couldn't read " + model + "'s size, so Ollama fits it to the graphics card itself");
+            }
+            return Layers(shape[0], (int)shape[1], limit, OllamaWindow);
+        }
+
+        private static long[] OllamaSize(string model)
+        {
+            long[] shape = new long[2];
+            try
+            {
+                HttpWebRequest listing = Open("/api/tags", 3000);
+                using (WebResponse response = listing.GetResponse())
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    string text = reader.ReadToEnd();
+                    foreach (Match entry in Regex.Matches(text, "\\{[^{}]*\"name\"\\s*:\\s*\"([^\"]*)\"[^{}]*\"size\"\\s*:\\s*(\\d+)"))
+                        if (entry.Groups[1].Value == model || entry.Groups[1].Value == model + ":latest") { long.TryParse(entry.Groups[2].Value, out shape[0]); break; }
+                }
+                HttpWebRequest card = Open("/api/show", 3000);
+                card.Method = "POST";
+                card.ContentType = "application/json";
+                byte[] asked = Encoding.UTF8.GetBytes("{\"model\":" + Voice.Quote(model) + "}");
+                using (Stream sending = card.GetRequestStream()) sending.Write(asked, 0, asked.Length);
+                using (WebResponse response = card.GetResponse())
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    Match blocks = Regex.Match(reader.ReadToEnd(), "\"[\\w.]*\\.block_count\"\\s*:\\s*(\\d+)");
+                    if (blocks.Success) long.TryParse(blocks.Groups[1].Value, out shape[1]);
+                }
+            }
+            catch (WebException) { }
+            catch (IOException) { }
+            return shape;
         }
 
         internal static int ReplyLimit(int automatic, bool job = false)
@@ -3814,12 +3876,12 @@ namespace CapriDesktop
                             }
                         }
                         garbled = error.Message == Gibberish;
-                        if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
+                        if (local.OnCpu || (!garbled && !Engine.Lost(error.Message))) throw;
                         lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
                     }
                     catch (WebException error)
                     {
-                        if (local.CpuOnly || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
+                        if (local.OnCpu || error.Status == WebExceptionStatus.RequestCanceled || !local.Crashed) throw;
                         lost = "The brain crashed";
                         crashed = true;
                     }
@@ -3845,7 +3907,7 @@ namespace CapriDesktop
             }
             if (chat.Message != null && chat.Message.Calls == null && Garbled(chat.Message.Content, limit > 400))
             {
-                if (asking.Options.Gpu != null) throw new BrainException(Gibberish, true);
+                if (asking.Options.Gpu == 0) throw new BrainException(Gibberish, true);
                 Log(Ollama, -1, "Ollama's graphics card garbled the brain's reply, asking again on the CPU");
                 ollamaCpu = model;
                 asking.Options.Gpu = 0;
