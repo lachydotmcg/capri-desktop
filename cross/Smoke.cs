@@ -438,10 +438,10 @@ namespace CapriDesktop
                 short[] volumeRaised = Voice.Louder(new short[] { 1000, 30000 });
                 bool volumeLoud = pet.VolumePicked == "150%" && volumeRaised[0] == 1500 && volumeRaised[1] == short.MaxValue;
                 pet.SetVolume(0);
-                bool volumeMuted = pet.VolumePicked == "Mute" && Voice.Louder(new short[] { 1000 })[0] == 0;
+                bool volumeFloor = pet.VolumePicked == "10%" && Voice.Louder(new short[] { 1000 })[0] == 100 && Pet.VolumeNames[0] == "10%";
                 pet.SetVolume(loudnessWas);
-                if (!volumeHalf || !volumeLoud || !volumeMuted) throw new Exception("Volume went wrong: 50% " + volumeHalf + ", 150% " + volumeLoud + ", mute " + volumeMuted);
-                checks.Add("PASS volume: Settings > Volume sets her voice from Mute to 150%, like Windows");
+                if (!volumeHalf || !volumeLoud || !volumeFloor) throw new Exception("Volume went wrong: 50% " + volumeHalf + ", 150% " + volumeLoud + ", floor " + volumeFloor);
+                checks.Add("PASS volume: Settings > Volume sets her voice from 10% to 150% and has no Mute step, like Windows; VOICE > OFF is her mute");
                 short[] tonePcm = new short[12000];
                 for (int i = 0; i < tonePcm.Length; i++) tonePcm[i] = (short)(Math.Sin(2 * Math.PI * 220 * i / 24000.0) * 8000);
                 byte[] toneWav = Voice.Wave(tonePcm, 24000);

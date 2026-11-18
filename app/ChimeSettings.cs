@@ -14,7 +14,7 @@ namespace CapriDesktop
     internal sealed partial class Preferences
     {
         // SOUNDS (Lachy, 12 Nov). Her chimes are on until they turn them off, so they're saved switched off. A volume of 0 was
-        // never set, which is 40%.
+        // never set, which is 40%. NoChimes was a master switch over the three: it loads as all three off, and is never set.
         [DataMember] public bool NoChimes;
         [DataMember] public bool NoChimeSent;
         [DataMember] public bool NoChimeHeard;
@@ -118,7 +118,7 @@ namespace CapriDesktop
 
         private void ShowChimes()
         {
-            Chimes.On = !preferences.NoChimes && (!testing || chimesTested);
+            Chimes.On = ChimesOn && (!testing || chimesTested);
             Chimes.Volume = ChimeVolume;
             Chimes.Set = ChimeSet;
             Chimes.Want(Chime.Sent, !preferences.NoChimeSent);
@@ -126,7 +126,7 @@ namespace CapriDesktop
             Chimes.Want(Chime.Listening, !preferences.NoChimeListening);
         }
 
-        internal bool ChimesOn { get { return !preferences.NoChimes; } }
+        internal bool ChimesOn { get { return !(preferences.NoChimeSent && preferences.NoChimeHeard && preferences.NoChimeListening); } }
 
         internal int ChimeVolume { get { int volume = preferences.ChimeVolume; return volume <= 0 ? Chimes.DefaultVolume : Math.Max(10, Math.Min(100, volume / 10 * 10)); } }
 
@@ -146,12 +146,17 @@ namespace CapriDesktop
 
         internal void ToggleChimes()
         {
-            preferences.NoChimes = !preferences.NoChimes;
+            bool off = ChimesOn;
+            preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = off;
             ShowChimes();
-            // Off stops one still ringing too.
-            if (preferences.NoChimes && chimeSpeaker != null) ThreadPool.QueueUserWorkItem(delegate { lock (chimeGate) { try { chimeSpeaker.Clear(); } catch (Exception) { } } });
+            if (off) StopChime();
             SavePreferences();
             mainframe.Sync();
+        }
+
+        private void StopChime()
+        {
+            if (chimeSpeaker != null) ThreadPool.QueueUserWorkItem(delegate { lock (chimeGate) { try { chimeSpeaker.Clear(); } catch (Exception) { } } });
         }
 
         internal void ToggleChime(Chime chime)
@@ -160,6 +165,7 @@ namespace CapriDesktop
             else if (chime == Chime.Heard) preferences.NoChimeHeard = !preferences.NoChimeHeard;
             else preferences.NoChimeListening = !preferences.NoChimeListening;
             ShowChimes();
+            if (!ChimesOn) StopChime();
             SavePreferences();
             mainframe.Sync();
         }
@@ -229,10 +235,23 @@ namespace CapriDesktop
                     if (start.NoChimes || start.NoChimeSent || start.NoChimeHeard || start.NoChimeListening || start.ChimeVolume != 0 || start.ChimeSet != null) throw new Exception("Her chimes didn't start on Glass at 40% in new or older settings.");
             }
 
+            {
+                DataContractJsonSerializer reader = new DataContractJsonSerializer(typeof(Preferences));
+                Func<string, Preferences> older = delegate(string text) { return (Preferences)reader.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text))); };
+                Preferences noChimes = older("{\"NoChimes\":true}"), someChimes = older("{\"NoChimeHeard\":true}"), heyCapri = older("{\"HeyCapri\":true}"), both = older("{\"HeyCapri\":true,\"ListenCapri\":true}"), muted = older("{\"Volume\":0}"), quiet = older("{\"Volume\":10}");
+                if (noChimes.NoChimes || !noChimes.NoChimeSent || !noChimes.NoChimeHeard || !noChimes.NoChimeListening || someChimes.NoChimeSent || !someChimes.NoChimeHeard || someChimes.NoChimeListening)
+                    throw new Exception("Chimes off in older settings didn't become all three chimes off.");
+                if (heyCapri.HeyCapri || !heyCapri.ListenCapri || both.HeyCapri || !both.ListenCapri || new Preferences().ListenCapri)
+                    throw new Exception("Hey Capri in older settings didn't become Listen for Capri.");
+                if (!muted.Silent || muted.Volume != 100 || quiet.Silent || quiet.Volume != 10)
+                    throw new Exception("Mute in older settings didn't become her voice Off at 100%: " + muted.Silent + " " + muted.Volume);
+                checks.Add("PASS older settings move over: Chimes off turns all three chimes off, Listen for \"Hey Capri\" turns Listen for Capri on and itself off, and a voice volume of Mute becomes her voice Off with the volume back at 100%");
+            }
+
             Action<short[]> outWas = Chimes.Out;
             Func<double> leftWas = Chimes.Left;
             Func<long> clockWas = Chimes.Clock;
-            bool offWas = preferences.NoChimes, sentWas = preferences.NoChimeSent, heardWas = preferences.NoChimeHeard, listeningWas = preferences.NoChimeListening;
+            bool sentWas = preferences.NoChimeSent, heardWas = preferences.NoChimeHeard, listeningWas = preferences.NoChimeListening;
             int volumeWas = preferences.ChimeVolume;
             string setWas = preferences.ChimeSet;
             bool advancedWas = preferences.AdvancedSettings, pageWas = mainframe.SettingsShown;
@@ -248,7 +267,7 @@ namespace CapriDesktop
                 Chimes.Left = delegate { return ringing; };
                 Chimes.Out = delegate(short[] sound) { lock (played) played.Add(sound); };
                 Chimes.Reset();
-                preferences.NoChimes = preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = false;
+                preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = false;
                 preferences.ChimeVolume = 0;
                 preferences.ChimeSet = null;
                 ShowChimes();
@@ -285,8 +304,7 @@ namespace CapriDesktop
                 bool own = chimeSpeaker.Plain && chimeSpeaker != speaker && chimeSpeaker != effects && chimeSpeaker.Left > 0;
                 bool kept = speaker.SoundEnd == herEnd && speaker.Left > 0;
                 speaker.Clear();
-                // Chimes off mid-ring stops the one ringing.
-                preferences.NoChimes = false;
+                // Every chime off mid-ring stops the one ringing.
                 ToggleChimes();
                 Stopwatch off = Stopwatch.StartNew();
                 while (chimeSpeaker.Left > 0 && off.ElapsedMilliseconds < 2000) Thread.Sleep(1);
@@ -340,7 +358,7 @@ namespace CapriDesktop
                 later();
                 bool offPlayed = Chimes.Play(Chime.Sent) || Chimes.Play(Chime.Heard) || Chimes.Play(Chime.Listening);
                 Preferences saved = LoadPreferences();
-                if (ChimesOn || !saved.NoChimes || offPlayed || mainframe.SoundsStatus != "off | 40% | sent heard listening | disabled") throw new Exception("Chimes off didn't silence them, save, or grey their rows: " + mainframe.SoundsStatus + ", played " + offPlayed);
+                if (ChimesOn || !saved.NoChimeSent || !saved.NoChimeHeard || !saved.NoChimeListening || saved.NoChimes || offPlayed || mainframe.SoundsStatus != "off | 40% |  | disabled") throw new Exception("All three chimes off didn't silence them, save, or grey Sound set and Chime volume: " + mainframe.SoundsStatus + ", played " + offPlayed);
                 mainframe.FlipChimes();
                 mainframe.FlipChime(Chime.Heard);
                 later();
@@ -368,10 +386,10 @@ namespace CapriDesktop
                 if (ChimeVolume != 10 || mainframe.SoundsStatus != "on | 10% | sent heard listening | enabled") throw new Exception("Chime volume didn't stop at 10%: " + mainframe.SoundsStatus);
                 mainframe.SlideChimeVolume(3);
                 SoundSets(checks, played, delegate { now += 2000; }, delegate(double seconds) { ringing = seconds; });
-                checks.Add("PASS SOUNDS in Mainframe: Chimes off silences every chime, greys its rows and saves; Message sent, Heard you and Listening each switch their own chime; Chime volume runs 10% to 100%, saves and sets the chime's level");
+                checks.Add("PASS SOUNDS in Mainframe: with Message sent, Heard you and Listening all off every chime is silent, Sound set and Chime volume grey and it saves; each of the three switches its own chime; Chime volume runs 10% to 100%, saves and sets the chime's level");
 
                 string turned = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "chimes" });
-                bool toolOff = !ChimesOn && !mainframe.ChimesShown && LoadPreferences().NoChimes;
+                bool toolOff = !ChimesOn && !mainframe.ChimesShown && LoadPreferences().NoChimeSent && LoadPreferences().NoChimeHeard && LoadPreferences().NoChimeListening;
                 string back = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "chimes" });
                 string heardLine = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "chime_heard" });
                 bool toolHeard = !ChimeOn(Chime.Heard) && mainframe.SoundsStatus.Contains("| sent listening |");
@@ -383,11 +401,11 @@ namespace CapriDesktop
                 bool toolDown = ChimeVolume == 60;
                 if (turned != "Turned Chimes off." || !toolOff || back != "Turned Chimes on." || !ChimesOn || heardLine != "Turned Heard you chime off." || !toolHeard || !toolLoud || !toolDown || !listed.Contains("Chimes on") || !listed.Contains("Chime volume: 70%") || !listed.Contains("Listening chime on"))
                     throw new Exception("Her settings tool didn't handle her chimes: " + turned + " / " + back + " / " + heardLine + " / " + louder + " / " + listed);
-                foreach (string label in new[] { "Chimes", "Chime volume", "Message sent", "Heard you", "Listening" })
+                foreach (string label in new[] { "Chimes", "Chime volume", "Message sent", "Heard you", "Listening", "Sounds", "Typing sound" })
                     if (SelfKnow.Setting("Mainframe.cs", label) == null) throw new Exception("SOUNDS lost its help: " + label);
                 string help = SelfKnow.Matching("how do I turn off the chimes?");
                 if (help == null || !help.Contains("Chimes:")) throw new Exception("Her help didn't find her chimes: " + help);
-                checks.Add("PASS her settings tool turns Chimes and each chime on and off and sets Chime volume by step or word, keeping SOUNDS in step, and her help answers about chimes");
+                checks.Add("PASS her settings tool turns Chimes (all three) and each chime on and off and sets Chime volume by step or word, keeping SOUNDS in step, and her help answers about chimes");
                 preferences.ChimeVolume = 0;
                 ShowChimes();
                 mainframe.Sync();
@@ -457,7 +475,7 @@ namespace CapriDesktop
                 Chimes.Reset();
                 preferences.ChimeSet = setWas;
                 chimesTested = false;
-                preferences.NoChimes = offWas; preferences.NoChimeSent = sentWas; preferences.NoChimeHeard = heardWas; preferences.NoChimeListening = listeningWas;
+                preferences.NoChimeSent = sentWas; preferences.NoChimeHeard = heardWas; preferences.NoChimeListening = listeningWas;
                 preferences.ChimeVolume = volumeWas;
                 preferences.AdvancedSettings = advancedWas;
                 ShowChimes();
@@ -499,7 +517,7 @@ namespace CapriDesktop
             ring(0);
             mainframe.StepChimeSet(-1);
             // With Chimes off, a new set saves but plays nothing.
-            preferences.NoChimes = true;
+            preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = true;
             ShowChimes();
             mainframe.Sync();
             later();
@@ -507,7 +525,7 @@ namespace CapriDesktop
             mainframe.StepChimeSet(2);
             bool offPreview = count() != offWas;
             int offSet = Chimes.Set;
-            preferences.NoChimes = false;
+            preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = false;
             ShowChimes();
             mainframe.Sync();
             mainframe.StepChimeSet(-2);
@@ -733,7 +751,7 @@ namespace CapriDesktop
                 CloseTalk();
 
                 // Off, nothing.
-                preferences.NoChimes = true;
+                preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = true;
                 ShowChimes();
                 later();
                 was = count(); callsWas = calls;
@@ -749,7 +767,7 @@ namespace CapriDesktop
                 CloseTalk();
                 StopChat();
                 if (count() != was) throw new Exception("A chime played with Chimes off.");
-                preferences.NoChimes = false;
+                preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = false;
                 ShowChimes();
                 checks.Add("PASS every way of talking to her chimes once: " + string.Join(", ", steps.ToArray()) + "; with Chimes off, typing and push to talk play nothing");
                 checks.Add("LIMIT ElevenLabs voice chat's heard chime and a real mic and speakers need a live check; on a call only the sent chime plays");
@@ -1020,12 +1038,12 @@ namespace CapriDesktop
                 CloseTalk();
                 table.Add("a steady hum's level " + roomBefore.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + " before a chime and " + roomAfter.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + " after" + (humStarted ? ", and the hum started a line" : ""));
                 // With Chimes off nothing plays, so nothing masks or holds her ears and every gate lets all through, as before chimes.
-                preferences.NoChimes = true;
+                preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = true;
                 ShowChimes();
                 later();
                 bool offPlayed = Chimes.Play(Chime.Sent) | Chimes.Play(Chime.Heard) | Chimes.Play(Chime.Listening);
                 bool offOpen = !offPlayed && !Chimes.Masking && !Chimes.Holding && earsGate.Voice(0.5, WakeLevel) && wakeGate.Voice(0.5, WakeLevel) && linkGate.Voice(0.5, WakeLevel);
-                preferences.NoChimes = false;
+                preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = false;
                 ShowChimes();
                 if (!offOpen) lost.Add("with Chimes off a chime still masked or held her ears");
                 checks.Add("INFO what a chime costs what they say: " + string.Join("; ", table.ToArray()));
@@ -1168,7 +1186,7 @@ namespace CapriDesktop
     internal sealed partial class Mainframe
     {
         private static readonly string[] ChimeVolumeNames = { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
-        private Toggle chimes, chimeSent, chimeHeard, chimeListening;
+        private Toggle chimeSent, chimeHeard, chimeListening;
         private Slider chimeVolume, chimeSet;
         private Readout chimeVolumeName, chimeSetName;
 
@@ -1181,34 +1199,43 @@ namespace CapriDesktop
         }
         private Control chimeVolumeLabel, chimeSetLabel;
 
-        // SOUNDS, under HABITS: her chimes. last is where Explore after's row is, as built so far.
+        private Slider sounds;
+        private Toggle typing;
+        private Readout soundsName;
+
+        // SOUNDS, under HABITS: her sound effects, her typing sound and her chimes. last is where Explore after's row is, as built so far.
         private void BuildSounds(int c, int last)
         {
             int y = last + 42;
+            Font small = Look.Mono(8.5f, FontStyle.Regular, GraphicsUnit.Point);
             Section("SOUNDS >", c, y);
-            chimes = Switch("Chimes", c, y + 24, delegate { if (!syncing) capri.ToggleChimes(); });
-            chimes.AccessibleName = "Chimes. Soft sounds when your message is sent, when she's heard you and when she's listening";
-            chimeSet = Setting("Sound set", SetNames(), c, y + 24 + Row, "Which set of chimes she plays");
+            sounds = Setting("Sounds", SoundNames, c, y + 24, "Sound effects volume");
+            soundsName = new Readout(sounds);
+            sounds.Changed += delegate { if (syncing) return; soundsName.Text = SoundNames[sounds.Value]; capri.SetSoundLevel(sounds.Value * 10); };
+            typing = Switch("Typing sound", c, y + 24 + Row, delegate { if (!syncing) capri.ToggleTyping(); });
+            typing.Hint = "When she types";
+            typing.HintFont = small;
+            typing.AccessibleName = "Typing sound. A soft typing sound while her text replies type out";
+            chimeSet = Setting("Sound set", SetNames(), c, y + 24 + Row * 2, "Which set of chimes she plays");
             chimeSetName = new Readout(chimeSet);
             chimeSetLabel = Controls[Controls.IndexOf(chimeSet) - 1];
             chimeSet.Changed += delegate { if (syncing) return; chimeSetName.Text = SetNames()[chimeSet.Value]; capri.SetChimeSet(Chimes.Picked[chimeSet.Value]); };
-            chimeVolume = Setting("Chime volume", ChimeVolumeNames, c, y + 24 + Row * 2, "How loud her chimes are");
+            chimeVolume = Setting("Chime volume", ChimeVolumeNames, c, y + 24 + Row * 3, "How loud her chimes are");
             chimeVolumeName = new Readout(chimeVolume);
             chimeVolumeLabel = Controls[Controls.IndexOf(chimeVolume) - 1];
             chimeVolume.Changed += delegate { if (syncing) return; chimeVolumeName.Text = ChimeVolumeNames[chimeVolume.Value]; capri.SetChimeVolume((chimeVolume.Value + 1) * 10); };
             chimeVolume.Released += delegate { if (!syncing) capri.PreviewChime(); };
-            chimeSent = Switch("Message sent", c, y + 24 + Row * 3, delegate { if (!syncing) capri.ToggleChime(Chime.Sent); });
+            chimeSent = Switch("Message sent", c, y + 24 + Row * 4, delegate { if (!syncing) capri.ToggleChime(Chime.Sent); });
             chimeSent.AccessibleName = "Message sent. A soft rising tick when your typed message goes to her";
-            chimeHeard = Switch("Heard you", c, y + 24 + Row * 4, delegate { if (!syncing) capri.ToggleChime(Chime.Heard); });
+            chimeHeard = Switch("Heard you", c, y + 24 + Row * 5, delegate { if (!syncing) capri.ToggleChime(Chime.Heard); });
             chimeHeard.AccessibleName = "Heard you. A soft falling tick when she's heard you finish talking";
-            chimeListening = Switch("Listening", c, y + 24 + Row * 5, delegate { if (!syncing) capri.ToggleChime(Chime.Listening); });
-            chimeListening.AccessibleName = "Listening. Three soft rising ticks when Hey Capri opens her ears";
+            chimeListening = Switch("Listening", c, y + 24 + Row * 6, delegate { if (!syncing) capri.ToggleChime(Chime.Listening); });
+            chimeListening.AccessibleName = "Listening. Three soft rising ticks when Listen for Capri hears her name and opens her ears";
         }
 
         private void SyncSounds()
         {
             bool on = capri.ChimesOn;
-            chimes.Checked = on;
             chimeVolume.Value = Math.Max(0, Math.Min(ChimeVolumeNames.Length - 1, capri.ChimeVolume / 10 - 1));
             chimeVolumeName.Text = ChimeVolumeNames[chimeVolume.Value];
             chimeSet.Value = Math.Max(0, Array.IndexOf(Chimes.Picked, capri.ChimeSet));
@@ -1216,11 +1243,11 @@ namespace CapriDesktop
             chimeSent.Checked = capri.ChimeOn(Chime.Sent);
             chimeHeard.Checked = capri.ChimeOn(Chime.Heard);
             chimeListening.Checked = capri.ChimeOn(Chime.Listening);
-            chimeSet.Enabled = chimeVolume.Enabled = chimeSent.Enabled = chimeHeard.Enabled = chimeListening.Enabled = on;
+            chimeSet.Enabled = chimeVolume.Enabled = on;
             chimeVolumeLabel.ForeColor = chimeSetLabel.ForeColor = on ? Rose : Neon.Tone(112, 94, 104);
         }
 
-        internal bool ChimesShown { get { return chimes.Checked; } }
+        internal bool ChimesShown { get { return chimeSent.Checked || chimeHeard.Checked || chimeListening.Checked; } }
 
         internal string SoundsStatus
         {
@@ -1230,12 +1257,16 @@ namespace CapriDesktop
                 if (chimeSent.Checked) each.Add("sent");
                 if (chimeHeard.Checked) each.Add("heard");
                 if (chimeListening.Checked) each.Add("listening");
-                bool enabled = chimeVolume.Enabled && chimeSent.Enabled && chimeHeard.Enabled && chimeListening.Enabled;
-                return (chimes.Checked ? "on" : "off") + " | " + chimeVolumeName.Text + " | " + string.Join(" ", each.ToArray()) + " | " + (enabled ? "enabled" : "disabled");
+                bool enabled = chimeVolume.Enabled && chimeSet.Enabled;
+                return (ChimesShown ? "on" : "off") + " | " + chimeVolumeName.Text + " | " + string.Join(" ", each.ToArray()) + " | " + (enabled ? "enabled" : "disabled");
             }
         }
 
-        internal void FlipChimes() { chimes.Checked = !chimes.Checked; }
+        internal void FlipChimes()
+        {
+            bool off = ChimesShown;
+            foreach (Toggle row in new[] { chimeSent, chimeHeard, chimeListening }) row.Checked = !off;
+        }
 
         internal void FlipChime(Chime chime) { Toggle row = chime == Chime.Sent ? chimeSent : chime == Chime.Heard ? chimeHeard : chimeListening; row.Checked = !row.Checked; }
 
@@ -1317,7 +1348,7 @@ namespace CapriDesktop
             }
         }
 
-        // SOUNDS greyed with Chimes off, and the tips on its rows, with Windows at 100%, 125% and 150%.
+        // SOUNDS greyed with every chime off, and the tips on its rows, with Windows at 100%, 125% and 150%.
         internal void SoundsTips(string folder)
         {
             int dpiWas = layoutDpi, textWas = layoutText, sizeWas = capri.MainframeSize;
@@ -1332,19 +1363,19 @@ namespace CapriDesktop
                     SizeMainframe(100);
                     ShowSettings(true);
                     Application.DoEvents();
-                    ScrollPage((int)Math.Round((chimes.Top + Scaled(pageScroll)) / Unit()) - 300);
+                    ScrollPage((int)Math.Round((sounds.Top + Scaled(pageScroll)) / Unit()) - 300);
                     Application.DoEvents();
-                    foreach (Control control in new Control[] { chimes, chimeSet, chimeVolume, chimeHeard })
+                    foreach (Control control in new Control[] { sounds, chimeSet, chimeVolume, chimeHeard })
                     {
                         DismissHint();
                         dismissedHint = null;
                         overHint = null;
                         MoveOverHint(control);
                         AwaitHint(control);
-                        if (HintVisible) SaveTipPreview(folder, "tip-" + (control == chimes ? "chimes" : control == chimeSet ? "set" : control == chimeVolume ? "volume" : "heard") + "-" + percent + ".png");
+                        if (HintVisible) SaveTipPreview(folder, "tip-" + (control == sounds ? "sounds" : control == chimeSet ? "set" : control == chimeVolume ? "volume" : "heard") + "-" + percent + ".png");
                     }
                     DismissHint();
-                    chimes.Checked = false;
+                    FlipChimes();
                     Application.DoEvents();
                     using (Bitmap view = new Bitmap(Width, Height))
                     {
@@ -1352,7 +1383,7 @@ namespace CapriDesktop
                         DrawRims(view);
                         view.Save(Path.Combine(folder, "chimes-off-" + percent + ".png"), ImageFormat.Png);
                     }
-                    chimes.Checked = true;
+                    FlipChimes();
                 }
             }
             finally
@@ -1368,7 +1399,7 @@ namespace CapriDesktop
         {
             get
             {
-                foreach (Control row in new Control[] { chimes, chimeSet, chimeVolume, chimeSent, chimeHeard, chimeListening })
+                foreach (Control row in new Control[] { sounds, typing, chimeSet, chimeVolume, chimeSent, chimeHeard, chimeListening })
                     if (Folded(row) || Hidden(row)) return false;
                 return true;
             }
