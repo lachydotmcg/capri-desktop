@@ -946,6 +946,17 @@ namespace CapriDesktop
         // after it, like "act Wood? Don't know", so a lowercase act with a capital after it counts too.
         internal static bool Handed(string reply) { return Regex.IsMatch(reply ?? "", @"^\W*act\W*($|\n)", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"^\W*act\s+\p{Lu}"); }
 
+        internal static bool Echoed(string reply, string asked)
+        {
+            string said = Plain(Regex.Replace(reply ?? "", @"^\s*\[[^\]]{1,40}\]\s*", "")), wanted = Plain(asked);
+            if (said.Length == 0 || wanted.Length == 0) return false;
+            if (said.Split(' ').Length >= 2 && (said == wanted || wanted.Contains(said) && said.Length * 2 >= wanted.Length)) return true;
+            Match written = Regex.Match(reply ?? "", @"^\s*([a-z]+(?:_[a-z]+)*)\s*(\(|:|\{)");
+            if (!written.Success) return false;
+            for (int i = 0; i < Specs.GetLength(0); i++) if (Specs[i, 0] == written.Groups[1].Value) return true;
+            return false;
+        }
+
         // On a strong brain she works a job out herself (F57, a tester, 1 Nov: "start matchmaking" should open the game first, then
         // start it). She has the tools, so she decides, one step at a time, and sees what each step did before the next.
         internal const string WorkingOut =
@@ -2686,7 +2697,7 @@ namespace CapriDesktop
             List<string> free = new List<string>();
             for (int toggle = Security.Open; toggle <= Security.Sends; toggle++)
                 if (Security.Has(toggle) && Security.On(toggle)) free.Add(Security.Names[toggle].Substring(0, 1).ToLowerInvariant() + Security.Names[toggle].Substring(1));
-            string doing = "\nAct, don't describe: when what they asked for matches one of those, call it in this same turn and then say what you did in your own voice. Opening an app or a site is a single call that finds the app or browser itself, so never check first, never answer a request to act with what you found or what's already open, and never ask them which tool to use. Asking for something a second time means do it a second time: call the tool again and never answer that you already did it, that it is already done or that it is already open, whatever your memory of this chat says.";
+            string doing = "\nAct, don't describe: when what they asked for matches one of those, your hands do it, so never say you're doing it or tell them how. Opening an app or a site is a single step that finds the app or browser itself, so never check first, never answer a request to act with what you found or what's already open, and never ask them which tool to use. Asking for something a second time means do it a second time: never answer that you already did it, that it is already done or that it is already open, whatever your memory of this chat says.";
             if (Security.Has(Security.Mouse) && Security.On(Security.Mouse))
                 return "\nThey've handed you their mouse and keyboard, so you can do whatever they ask on this " + ComputerName + " without asking first." + doing;
             if (free.Count > 0)
@@ -3058,6 +3069,15 @@ namespace CapriDesktop
 
         // "I'm sending you the biggest hug" is warmth, not a message she owes them. Warmth sent to someone by name still counts.
         private static readonly Regex Warmth = new Regex(@"\b(send(s|ing)?|sent)\s+((you|u|ya|y'all)\s+)?((a|an|the|my|some|all|so|much|many|lots|of|this|big|bigger|biggest|huge|massive|giant|tight|warm|warmest|virtual|good|positive|happy|healing|cozy|cosy|little|tiny|extra|more|mega|super|best|sweet|soft|gentle|digital|cyber|neon)\s+)*(hugs?|huggies|squeezes?|kiss(es)?|love|xoxo|vibes?|energy|thoughts|wishes|prayers?|luck|cuddles?|smooches?|hearts?|sunshine|strength|support|positivity|juju|blessings?|regards|cheers|kudos|props|high[- ]?fives?|fist[- ]?bumps?|headpats?|pats)\b(?!\s+(to|over to)\s+(?!(you|u|ya|y'all|yourself)\b)\w)", RegexOptions.IgnoreCase);
+
+        private const string Onto = @"(\s+(up|on|in|into|at|for|through|over|your|the|that|this|those|these|it|what|if|whether|a|an|my|how)\b|\s+\w+'s\b)";
+        private static readonly Regex Ongoing = new Regex(@"^\W*((ok|okay|sure|alright|bet|yeah|yep|got it|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(hold on|hang on|one sec(ond)?|just a sec(ond)?|gimme a sec|give me (a|one) (sec(ond)?|moment|min(ute)?))[,.!\s—–-]+((choom|chooms)[,.!\s—–-]+)?(i'?m|let me|lemme|i'?ll)\b" +
+            @"|\b(let me|lemme|let'?s|i'?ll|i will|i'?m (gonna|going to|about to))\s+(\w+\s+){0,2}?(check|take a look|have a look|look|find|dig|hunt|scan|grab|pull|set|start|lock|peek|poke|track down)" + Onto +
+            @"|\bi'?m\s+(now\s+)?(checking|taking a look|having a look|looking|pulling|digging|hunting|scanning|grabbing|setting|starting|locking|finding|searching|peeking|poking|tracking down)" + Onto +
+            @"|^\W*((ok|okay|sure|alright|bet|yeah|yep|got it|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(checking|digging|hunting|scanning|pulling|bringing|grabbing|setting|starting|locking|searching|tracking down)" + Onto +
+            @"|\b(timer|reminder|alarm)('s| is| are)\s+(set|ticking|running|going|on)\b|\b(minutes?|seconds?|hours?) on the clock\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static bool Underway(string said) { return Ongoing.IsMatch((said ?? "").Replace('’', '\'')); }
 
         internal static bool Promised(string said)
         {
