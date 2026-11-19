@@ -216,6 +216,14 @@ namespace CapriDesktop
             Brain.Log("squad", -1, "done: " + HerComputer.Short(from.Job, 120));
             if (!testing) Animate("grin");
             SayOwn("squad", HerComputer.Short(answer, 900));
+            RemoteLink link = remoteLink;
+            if (link == null || testing || !RemotePcAway()) return;
+            string title = "Squad done: " + HerComputer.Short(from.Job, 60), body = HerComputerWindow.FirstLine(answer);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { link.Notify("done", title, body, null, null, null); }
+                catch (Exception error) { Brain.Log("squad", -1, "phone: " + error.Message); }
+            });
         }
 
         private void SquadCleared()
