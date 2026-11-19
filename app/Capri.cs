@@ -3193,6 +3193,7 @@ namespace CapriDesktop
             tray.DoubleClick += delegate { RestoreAtCursor(); };
             tray.BalloonTipClicked += delegate { BalloonClicked(); };
             tray.Visible = !testing;
+            Mods.WithStarters = !testing;
             ModList = new Mods(data);
             Plugins.ToolsChanged = delegate { if (IsHandleCreated && !IsDisposed) OnWindow(delegate { if (mainframe != null && !mainframe.IsDisposed) mainframe.ModsChanged(); }); };
             GameNotes.Skills = ModList.SkillsFor;

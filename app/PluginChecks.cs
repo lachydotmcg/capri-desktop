@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
@@ -167,7 +169,7 @@ while True:
                 string named = Write(namedPlace, ".claude-plugin/plugin.json", "{\"name\":\"floor-named\"}");
                 string consent = null;
                 Mod declined = mods.Import(named, delegate(ModFile file, string hash) { consent = Consent(file, hash); return false; });
-                if (declined != null || consent == null || !consent.Contains("hands hub GITHUB_TOKEN from your PC's settings, which looks like a key or password") || !consent.Contains(ModFloor.SettingsReach) || !consent.Contains("without her keys"))
+                if (declined != null || consent == null || !consent.Contains("hands hub GITHUB_TOKEN from your PC's settings, which looks like a key or password") || !consent.Contains(ModFloor.SettingsReach) || !consent.Contains("They get none of her keys"))
                     throw new Exception("The approve box didn't say a plug-in takes a key setting from the PC or reaches into her settings: " + consent);
                 if (Array.IndexOf(Reaching("var at = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), \"Capri\");"), ModFloor.SettingsReach) < 0 || ModFloor.Settings.IsMatch("Capri says hi from AppData/Local/Discord"))
                     throw new Exception("A code mod reaching into her settings folder wasn't said, or ordinary words were.");
@@ -269,7 +271,7 @@ while True:
             string server = windows
                 ? "{\"command\":\"powershell.exe\",\"args\":[\"-NoProfile\",\"-NonInteractive\",\"-ExecutionPolicy\",\"Bypass\",\"-File\",\"${CLAUDE_PLUGIN_ROOT}/server.ps1\"]}"
                 : "{\"command\":\"python3\",\"args\":[\"-u\",\"${CLAUDE_PLUGIN_ROOT}/server.py\"]}";
-            Write(place, ".mcp.json", "{\"mcpServers\":{\"smoke\":" + server + ",\"online\":{\"type\":\"http\",\"url\":\"https://example.com/mcp\"}}}");
+            Write(place, ".mcp.json", "{\"mcpServers\":{\"smoke\":" + server + ",\"online\":{\"type\":\"http\",\"url\":\"http://example.com/mcp\"}}}");
             Write(place, "skills/greet/SKILL.md", "---\nname: greet\ndescription: >\n  How to greet the smoke test,\n  in two lines.\nallowed-tools: Bash\n---\n# Greet\nSay hi to <them> first.\n");
             Write(place, "skills/greet/notes.md", "Notes for greeting.");
             Write(place, "skills/greet/run.exe", "not text");
@@ -281,10 +283,10 @@ while True:
                 throw new Exception("A plugin folder didn't import as one plug-in that's on.");
             string command = windows ? "starts powershell.exe -NoProfile" : "starts python3 -u";
             if (consent == null || !consent.StartsWith("Smoke Tools v1.0.0, which says it's by Smoke, is a plug-in that gives her tools.", StringComparison.Ordinal) || !consent.Contains(command) || !consent.Contains("<its folder>/server.")
-                || !consent.Contains("leaves out online, a server that runs online (a URL)") || !consent.Contains("It says its tools:\n- read or change files on your PC") || !consent.Contains("It also has a skill, greet")
+                || !consent.Contains("leaves out online, a server at http://example.com/mcp that isn't secure (https)") || !consent.Contains("It says its tools:\n- read or change files on your PC") || !consent.Contains("It also has a skill, greet")
                 || !consent.Contains(mod.Hash) || !consent.EndsWith("Turn this plug-in on?", StringComparison.Ordinal) || consent.Contains("downloads the newest"))
                 throw new Exception("The plug-in approve box didn't say what it starts, what it says its tools do, its skill and its fingerprint: " + consent);
-            checks.Add("PASS plug-ins: a Claude-style plugin folder imports as one plug-in, and her approve box names the program it starts, what its tools say they do, its skill and its fingerprint, and leaves out an online server");
+            checks.Add("PASS plug-ins: a Claude-style plugin folder imports as one plug-in, and her approve box names the program it starts, what its tools say they do, its skill and its fingerprint, and leaves out an online server that isn't https");
 
             DateTime until = DateTime.UtcNow.AddSeconds(90);
             while (Plugins.ToolsOf("smoke-tools").Count < 3 && DateTime.UtcNow < until)
@@ -414,14 +416,14 @@ while True:
             Refused(mods, Zipped(bad, "slip" + PluginExtension, "../evil.txt", "x", ".mcp.json", "{\"mcpServers\":{}}"), "can't be in a plug-in", ask);
             Refused(mods, Zipped(bad, "perm" + PluginExtension, "plugin.json", "{\"name\":\"perm\",\"capri\":{\"permissions\":[\"root\"]}}", "skills/a/SKILL.md", "---\nname: a\n---\nA."), "isn't a plug-in permission", ask);
             Refused(mods, Zipped(bad, "empty" + PluginExtension, "plugin.json", "{\"name\":\"empty\"}"), "nothing Capri can use", ask);
-            Refused(mods, Zipped(bad, "online" + PluginExtension, ".mcp.json", "{\"mcpServers\":{\"web\":{\"type\":\"sse\",\"url\":\"https://example.com/sse\"}}}"), "she only uses servers she starts on this PC", ask);
+            Refused(mods, Zipped(bad, "online" + PluginExtension, ".mcp.json", "{\"mcpServers\":{\"web\":{\"type\":\"sse\",\"url\":\"http://example.com/sse\"}}}"), "that isn't secure (https)", ask);
             Refused(mods, Zipped(bad, "junk" + PluginExtension, "plugin.json", "{nope"), "isn't valid JSON", ask);
             int before = asked;
             string fresh = Write(bad, "folder/.mcp.json", "{\"mcpServers\":{\"files\":{\"command\":\"npx\",\"args\":[\"-y\",\"@modelcontextprotocol/server-filesystem\",\".\"]}}}");
             Mod declined = mods.Import(fresh, delegate(ModFile file, string hash) { asked++; consent = Consent(file, hash); return false; });
             if (declined != null || asked != before + 1 || !consent.Contains("downloads the newest version each time it starts") || mods.All.Exists(one => one.File.Id == "folder") || File.Exists(Path.Combine(mods.Folder, "folder" + PluginExtension))) throw new Exception("An .mcp.json they said no to went in, or its box didn't warn about an unpinned download.");
             if (mods.All.FindAll(one => one.Plugin).Count != 1) throw new Exception("A refused plug-in left something behind.");
-            checks.Add("PASS plug-ins: a zip that escapes its folder, an unknown permission, nothing usable, only online servers and broken JSON are refused, and an .mcp.json they say no to never goes in");
+            checks.Add("PASS plug-ins: a zip that escapes its folder, an unknown permission, nothing usable, only a server that isn't https and broken JSON are refused, and an .mcp.json they say no to never goes in");
 
             string cache = Path.Combine(Plugins.Folder, "smoke-tools.tools.json");
             Plugins.Grant("smoke-tools", "echo", Plugins.Ask);
@@ -430,6 +432,304 @@ while True:
             if (mods.All.Exists(one => one.Plugin) || File.Exists(mod.Path) || Directory.Exists(Path.Combine(Plugins.Folder, "smoke-tools")) || File.Exists(cache) || Plugins.Running != 0 || Plugins.GrantOf("smoke-tools", "echo") != Plugins.Usual || mods.SkillNote.Contains("greet"))
                 throw new Exception("Removing a plug-in left its files, tools, grants or program behind.");
             checks.Add("PASS plug-ins: removing one takes its files, kept tools, grants, skill and program with it");
+            CheckOnline(mods, checks, output);
+        }
+
+        private sealed class WebFake : IDisposable
+        {
+            internal readonly TcpListener Listener = new TcpListener(IPAddress.Loopback, 0);
+            internal int Port, Registered, Refreshes, Authorizes;
+            internal string Access = "at-0", Refresh = "rt-0", Code = "code-1", Challenge;
+            internal bool PkceOk, SessionOk = true, ResourceOk = true, Listed;
+            private volatile bool stop;
+
+            internal string Base { get { return "http://127.0.0.1:" + Port; } }
+
+            internal void Start()
+            {
+                Listener.Start();
+                Port = ((IPEndPoint)Listener.LocalEndpoint).Port;
+                Thread loop = new Thread(delegate()
+                {
+                    while (!stop)
+                    {
+                        TcpClient client;
+                        try { client = Listener.AcceptTcpClient(); }
+                        catch (SocketException) { return; }
+                        catch (ObjectDisposedException) { return; }
+                        ThreadPool.QueueUserWorkItem(delegate { Handle(client); });
+                    }
+                }) { IsBackground = true, Name = "Capri smoke web fake" };
+                loop.Start();
+            }
+
+            public void Dispose()
+            {
+                stop = true;
+                try { Listener.Stop(); }
+                catch (SocketException) { }
+            }
+
+            private static void Json(Stream to, int status, object value, params string[] headers) { McpTiny.Write(to, status, "application/json", PluginJson.Write(value), headers); }
+
+            private void Handle(TcpClient client)
+            {
+                using (client)
+                {
+                    try
+                    {
+                        client.ReceiveTimeout = 10000;
+                        Stream s = client.GetStream();
+                        string method, target, body;
+                        Dictionary<string, string> h;
+                        if (!McpTiny.Read(s, out method, out target, out h, out body)) return;
+                        int mark = target.IndexOf('?');
+                        string path = mark < 0 ? target : target.Substring(0, mark);
+                        Dictionary<string, string> query = McpTiny.Query(target);
+                        if (path == "/.well-known/oauth-protected-resource/mcp") Json(s, 200, PluginJson.Make("resource", Base + "/mcp", "authorization_servers", new List<object> { Base }));
+                        else if (path == "/.well-known/oauth-authorization-server") Json(s, 200, PluginJson.Make("issuer", Base, "authorization_endpoint", Base + "/authorize", "token_endpoint", Base + "/token", "registration_endpoint", Base + "/register", "code_challenge_methods_supported", new List<object> { "S256" }));
+                        else if (path == "/register" && method == "POST")
+                        {
+                            object asked = PluginJson.Parse(body);
+                            List<object> uris = PluginJson.List(PluginJson.Get(asked, "redirect_uris"));
+                            if (PluginJson.Str(asked, "token_endpoint_auth_method") != "none" || PluginJson.Str(asked, "client_name") != "Capri" || uris == null || uris.Count != 1 || !((uris[0] as string) ?? "").StartsWith("http://127.0.0.1:", StringComparison.Ordinal)) Json(s, 400, PluginJson.Make("error", "invalid_client_metadata"));
+                            else { Registered++; Json(s, 201, PluginJson.Make("client_id", "smoke-client")); }
+                        }
+                        else if (path == "/authorize")
+                        {
+                            string redirect = query.ContainsKey("redirect_uri") ? query["redirect_uri"] : "";
+                            if (query.ContainsKey("client_id") && query["client_id"] == "smoke-client" && query.ContainsKey("response_type") && query["response_type"] == "code" && query.ContainsKey("code_challenge_method") && query["code_challenge_method"] == "S256" && query.ContainsKey("code_challenge") && query.ContainsKey("state") && redirect.StartsWith("http://127.0.0.1:", StringComparison.Ordinal))
+                            {
+                                ResourceOk = ResourceOk && query.ContainsKey("resource") && query["resource"] == Base + "/mcp";
+                                Challenge = query["code_challenge"];
+                                Authorizes++;
+                                McpTiny.Write(s, 302, "text/plain", "", "Location", redirect + "?code=" + Code + "&state=" + Uri.EscapeDataString(query["state"]));
+                            }
+                            else McpTiny.Write(s, 400, "text/plain", "bad authorize");
+                        }
+                        else if (path == "/token" && method == "POST")
+                        {
+                            Dictionary<string, string> form = McpTiny.Query("?" + body);
+                            string grant = form.ContainsKey("grant_type") ? form["grant_type"] : "";
+                            bool client2 = form.ContainsKey("client_id") && form["client_id"] == "smoke-client" && form.ContainsKey("resource") && form["resource"] == Base + "/mcp";
+                            if (grant == "authorization_code" && client2 && form.ContainsKey("code") && form["code"] == Code && form.ContainsKey("code_verifier") && McpSignIn.Challenge(form["code_verifier"]) == Challenge)
+                            {
+                                PkceOk = true;
+                                Access = "at-1";
+                                Refresh = "rt-1";
+                                Json(s, 200, PluginJson.Make("access_token", Access, "refresh_token", Refresh, "expires_in", 1.0, "token_type", "Bearer"));
+                            }
+                            else if (grant == "refresh_token" && client2 && form.ContainsKey("refresh_token") && form["refresh_token"] == Refresh)
+                            {
+                                Refreshes++;
+                                Access = "at-" + (Refreshes + 1);
+                                Refresh = "rt-" + (Refreshes + 1);
+                                Json(s, 200, PluginJson.Make("access_token", Access, "refresh_token", Refresh, "expires_in", 3600.0, "token_type", "Bearer"));
+                            }
+                            else Json(s, 400, PluginJson.Make("error", "invalid_grant"));
+                        }
+                        else if (path == "/mcp") Mcp(s, method, h, body);
+                        else McpTiny.Write(s, 404, "text/plain", "none");
+                    }
+                    catch (IOException) { }
+                    catch (SocketException) { }
+                    catch (ObjectDisposedException) { }
+                    catch (FormatException) { }
+                }
+            }
+
+            private void Mcp(Stream s, string method, Dictionary<string, string> h, string body)
+            {
+                string given;
+                if (method == "DELETE") { McpTiny.Write(s, 200, "text/plain", ""); return; }
+                if (!h.TryGetValue("Authorization", out given) || given != "Bearer " + Access)
+                {
+                    McpTiny.Write(s, 401, "text/plain", "sign in", "WWW-Authenticate", "Bearer resource_metadata=\"" + Base + "/.well-known/oauth-protected-resource/mcp\"");
+                    return;
+                }
+                object message = PluginJson.Parse(body);
+                string what = PluginJson.Str(message, "method");
+                object id = PluginJson.Get(message, "id");
+                if (what == "initialize")
+                {
+                    Json(s, 200, PluginJson.Make("jsonrpc", "2.0", "id", id, "result", PluginJson.Make("protocolVersion", "2025-06-18", "capabilities", PluginJson.Make("tools", PluginJson.Make("listChanged", true)), "serverInfo", PluginJson.Make("name", "smoke-web", "version", "1"))), "Mcp-Session-Id", "sess-abc");
+                    return;
+                }
+                string session, protocol;
+                if (!h.TryGetValue("Mcp-Session-Id", out session) || session != "sess-abc" || !h.TryGetValue("MCP-Protocol-Version", out protocol) || protocol != "2025-06-18")
+                {
+                    SessionOk = false;
+                    McpTiny.Write(s, 400, "text/plain", "bad session");
+                    return;
+                }
+                if (id == null) { McpTiny.Write(s, 202, "text/plain", ""); return; }
+                if (what == "tools/list")
+                {
+                    Listed = true;
+                    List<object> tools = new List<object>
+                    {
+                        PluginJson.Make("name", "add", "description", "Adds two numbers.", "annotations", PluginJson.Make("readOnlyHint", true), "inputSchema", PluginJson.Make("type", "object", "properties", PluginJson.Make("a", PluginJson.Make("type", "number"), "b", PluginJson.Make("type", "number")), "required", new List<object> { "a", "b" })),
+                        PluginJson.Make("name", "greet", "description", "Says hello.", "inputSchema", PluginJson.Make("type", "object", "properties", PluginJson.Make()))
+                    };
+                    string stream = "event: message\ndata: " + PluginJson.Write(PluginJson.Make("jsonrpc", "2.0", "method", "notifications/message", "params", PluginJson.Make("level", "info"))) + "\n\n: keep-alive\n\ndata: "
+                        + PluginJson.Write(PluginJson.Make("jsonrpc", "2.0", "id", 9999, "result", PluginJson.Make())) + "\n\n" + "event: message\ndata: " + PluginJson.Write(PluginJson.Make("jsonrpc", "2.0", "id", id, "result", PluginJson.Make("tools", tools))) + "\n\n";
+                    McpTiny.Write(s, 200, "text/event-stream", stream);
+                    return;
+                }
+                if (what == "tools/call")
+                {
+                    object args = PluginJson.Get(PluginJson.Get(message, "params"), "arguments");
+                    object a = PluginJson.Get(args, "a"), b = PluginJson.Get(args, "b");
+                    double sum = (a is double ? (double)a : 0) + (b is double ? (double)b : 0);
+                    Json(s, 200, PluginJson.Make("jsonrpc", "2.0", "id", id, "result", PluginJson.Make("content", new List<object> { PluginJson.Make("type", "text", "text", sum.ToString(System.Globalization.CultureInfo.InvariantCulture)) })));
+                    return;
+                }
+                Json(s, 200, PluginJson.Make("jsonrpc", "2.0", "id", id, "error", PluginJson.Make("code", -32601, "message", "no")));
+            }
+        }
+
+        private static string Wait(Func<bool> done, int seconds)
+        {
+            DateTime until = DateTime.UtcNow.AddSeconds(seconds);
+            while (DateTime.UtcNow < until)
+            {
+                if (done()) return null;
+                Thread.Sleep(50);
+            }
+            return "timed out";
+        }
+
+        private static void CheckOnline(Mods mods, List<string> checks, string output)
+        {
+            Action<string> was = Plugins.OpenBrowser;
+            int opened = 0;
+            Func<ModFile, string, bool> yes = delegate(ModFile file, string hash) { return true; };
+            string consent = null;
+            Func<ModFile, string, bool> look = delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; };
+            Mod online = null, inside = null;
+            using (WebFake fake = new WebFake())
+            {
+                fake.Start();
+                Plugins.OpenBrowser = delegate(string url)
+                {
+                    opened++;
+                    Thread visit = new Thread(delegate()
+                    {
+                        try
+                        {
+                            string landing = null;
+                            using (HttpWebResponse first = McpHttp.Send("GET", url, null, null, null, null, 10000)) landing = first.Headers["Location"];
+                            if (landing != null) using (HttpWebResponse second = McpHttp.Send("GET", landing, null, null, null, null, 10000)) { }
+                        }
+                        catch (McpException) { }
+                    }) { IsBackground = true };
+                    visit.Start();
+                };
+                try
+                {
+                    string place = Path.Combine(output, "smoke-online");
+                    Gone(place);
+                    Write(place, ".claude-plugin/plugin.json", "{\"name\":\"smoke-online\",\"version\":\"1.0.0\",\"capri\":{\"permissions\":[\"accounts\"]}}");
+                    Write(place, ".mcp.json", "{\"mcpServers\":{\"web\":{\"type\":\"http\",\"url\":\"" + fake.Base + "/mcp\",\"headers\":{\"X-Smoke\":\"${SMOKE_NOT_SET:-yes}\"}}}}");
+                    online = mods.Import(Path.Combine(place, ".claude-plugin", "plugin.json"), look);
+                    if (online == null || !online.On || online.Info.Servers.Length != 1 || !online.Info.Servers[0].Online) throw new Exception("An online plug-in didn't import.");
+                    if (consent == null || !consent.Contains("- connects to " + fake.Base + "/mcp online, and you sign in to it in your browser") || consent.Contains("starts ") || !consent.Contains("runs on its maker's computers, not this PC") || !consent.Contains(McpSignIn.Keeps ? "protected by Windows" : "only until she closes"))
+                        throw new Exception("The approve box for an online plug-in wasn't true about where it runs and how you sign in: " + consent);
+                    string trouble = null;
+                    string waited = Wait(delegate { trouble = Plugins.Trouble("smoke-online"); return trouble == "sign in"; }, 30);
+                    if (waited != null) throw new Exception("An online plug-in that needs a sign-in didn't say so: " + trouble);
+                    Thread.Sleep(300);
+                    if (opened != 0 || fake.Authorizes != 0 || fake.Registered != 0 || Plugins.ToolsOf("smoke-online").Count != 0) throw new Exception("Listing an online plug-in's tools in the background opened a browser or registered Capri.");
+
+                    string result = null;
+                    ManualResetEvent finished = new ManualResetEvent(false);
+                    Plugins.SignIn("smoke-online", delegate(string problem) { result = problem ?? ""; finished.Set(); });
+                    if (!finished.WaitOne(60000) || result != "") throw new Exception("Signing in to an online plug-in didn't work: " + (result ?? "timed out"));
+                    if (opened != 1 || fake.Registered != 1 || fake.Authorizes != 1 || !fake.PkceOk || !fake.ResourceOk || !fake.Listed || !fake.SessionOk || fake.Refreshes != 1 || Plugins.Trouble("smoke-online") != null || Plugins.ToolsOf("smoke-online").Count != 2 || !Plugins.SignedIn("smoke-online"))
+                        throw new Exception("Signing in didn't go through registration, PKCE and the resource, list the tools or keep the session: opened " + opened + ", registered " + fake.Registered + ", pkce " + fake.PkceOk + ", resource " + fake.ResourceOk + ", listed " + fake.Listed + ", session " + fake.SessionOk + ", refreshes " + fake.Refreshes);
+                    string added = Plugins.Run("smoke_online_add", "{\"a\":2,\"b\":3}");
+                    if (!added.Contains("<plugin_result>\n5\n</plugin_result>") || !fake.SessionOk) throw new Exception("An online tool didn't run through its session: " + added);
+                    checks.Add("PASS plug-ins: an online server that needs a sign-in says so without opening a browser, and signing in runs only from their action, with registration, PKCE and the resource, then lists its tools from an event stream and runs one from a JSON reply on its session");
+
+                    fake.Access = "revoked";
+                    string again = Plugins.Run("smoke_online_add", "{\"a\":10,\"b\":5}");
+                    if (!again.Contains("<plugin_result>\n15\n</plugin_result>") || fake.Refreshes != 2) throw new Exception("An online tool whose token was turned down didn't refresh and run: " + again + " (refreshes " + fake.Refreshes + ")");
+                    string saved = Path.Combine(Plugins.Folder, "smoke-online.signin.json");
+                    if (McpSignIn.Keeps)
+                    {
+                        string raw = File.Exists(saved) ? File.ReadAllText(saved) : "";
+                        if (raw.Length == 0 || raw.Contains("at-") || raw.Contains("rt-") || raw.Contains("\"access\":\"at") || !raw.Contains("smoke-client")) throw new Exception("Their sign-in wasn't kept protected: " + raw.Length + " bytes.");
+                    }
+                    else if (File.Exists(saved)) throw new Exception("A sign-in was written to disk where it can't be protected.");
+                    if (opened != 1) throw new Exception("Refreshing a sign-in opened a browser.");
+                    Plugins.Forget("smoke-online");
+                    if (File.Exists(saved) || Plugins.SignedIn("smoke-online")) throw new Exception("Forgetting a plug-in kept its sign-in.");
+                    string out1 = Plugins.Run("smoke_online_add", "{\"a\":1,\"b\":1}");
+                    if (!out1.Contains("sign in first") || Plugins.Trouble("smoke-online") != "sign in" || opened != 1) throw new Exception("A plug-in with no sign-in didn't ask for one without opening a browser: " + out1);
+                    checks.Add("PASS plug-ins: an expired or turned-down token is refreshed with its refresh token and the call goes through, the sign-in is kept protected on Windows and only in memory on Mac and Linux, and forgetting the plug-in removes it");
+
+                    Plugins.BuiltIns["smoke"] = delegate
+                    {
+                        return new McpBuiltIn("inside", delegate
+                        {
+                            return new List<Dictionary<string, object>> { PluginJson.Make("name", "shout", "description", "Shouts the text.", "inputSchema", PluginJson.Make("type", "object", "properties", PluginJson.Make("text", PluginJson.Make("type", "string")), "required", new List<object> { "text" })) };
+                        }, delegate(string tool, Dictionary<string, object> args) { return ((PluginJson.Str(args, "text") ?? "") + "!").ToUpperInvariant(); });
+                    };
+                    string home = Path.Combine(output, "smoke-inside");
+                    Gone(home);
+                    Write(home, ".claude-plugin/plugin.json", "{\"name\":\"smoke-inside\",\"capri\":{\"permissions\":[\"accounts\"]}}");
+                    Write(home, ".mcp.json", "{\"mcpServers\":{\"inside\":{\"type\":\"capri\",\"builtin\":\"smoke\"}}}");
+                    consent = null;
+                    inside = mods.Import(Path.Combine(home, ".claude-plugin", "plugin.json"), look);
+                    if (inside == null || consent == null || !consent.Contains("uses Capri's own smoke tools") || consent.Contains("starts ")) throw new Exception("A built-in server's plug-in didn't import and say what it uses: " + consent);
+                    if (Wait(delegate { return Plugins.ToolsOf("smoke-inside").Count == 1; }, 30) != null) throw new Exception("A built-in server's tools weren't listed: " + Plugins.Trouble("smoke-inside"));
+                    string shouted = Plugins.Run("smoke_inside_shout", "hi there");
+                    if (!shouted.Contains("<plugin_result>\nHI THERE!\n</plugin_result>") || opened != 1) throw new Exception("A built-in server's tool didn't run: " + shouted);
+                    checks.Add("PASS plug-ins: a server Capri runs inside herself lists its tools and runs them through the same gate as any other, and its approve box says it uses her own tools");
+                }
+                finally
+                {
+                    Plugins.OpenBrowser = was;
+                    Plugins.BuiltIns.Remove("smoke");
+                    if (online != null && mods.All.Contains(online)) mods.Remove(online);
+                    if (inside != null && mods.All.Contains(inside)) mods.Remove(inside);
+                }
+            }
+            CheckStarters(mods, checks);
+            MailChecks.Run(checks, output);
+        }
+
+        private static void CheckStarters(Mods mods, List<string> checks)
+        {
+            string startersFile = Path.Combine(mods.PluginFolder, "starters.txt");
+            List<Mod> made = new List<Mod>();
+            try
+            {
+                mods.AddStarters();
+                mods.Load();
+                made = mods.All.FindAll(one => one.Starter);
+                Mod email = made.Find(one => one.File.Id == MailStarter), notion = made.Find(one => one.File.Id == "notion");
+                if (made.Count != 3 || email == null || notion == null || made.Exists(one => one.On || one.Changed || StarterAbout(one) == null || !StarterAbout(one).StartsWith("STARTER.", StringComparison.Ordinal)) || !Builtin(email, "mail") || !Online(notion) || Builtin(notion, "mail"))
+                    throw new Exception("Her starter plug-ins didn't come in off and waiting to be set up: " + made.Count);
+                string consent = null;
+                if (!mods.Set(email, true, delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; }) || !email.On || consent == null || !consent.Contains("uses Capri's own mail tools") || consent.Contains("starts "))
+                    throw new Exception("Turning on her Email starter didn't ask with what it uses: " + consent);
+                if (Wait(delegate { return Plugins.ToolsOf(MailStarter).Count == 5; }, 30) != null) throw new Exception("Her Email starter's tools weren't listed: " + Plugins.Trouble(MailStarter));
+                string unset = Plugins.Run("email_recent_mail", "");
+                if (!unset.Contains(MailTools.NotSetUp) || Plugins.Granted("email_send_mail") != 1 || Plugins.Needs("email_recent_mail") != Security.ModTools)
+                    throw new Exception("Her Email starter didn't say it needs setting up, or sending mail didn't always ask first: " + unset);
+                foreach (Mod one in made) mods.Remove(one);
+                mods.AddStarters();
+                mods.Load();
+                if (mods.All.Exists(one => one.Starter) || File.Exists(Path.Combine(mods.PluginFolder, MailStarter + ".signin.json"))) throw new Exception("A starter plug-in they removed came back.");
+                checks.Add("PASS plug-ins: her starters, Email, Notion and Linear, come in off with what they need to be set up, Email runs her own mail tools and always asks before sending, and one they remove stays gone");
+            }
+            finally
+            {
+                foreach (Mod one in made) if (mods.All.Contains(one)) mods.Remove(one);
+                try { if (File.Exists(startersFile)) File.Delete(startersFile); }
+                catch (IOException) { }
+            }
         }
     }
 }

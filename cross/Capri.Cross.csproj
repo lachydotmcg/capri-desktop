@@ -60,7 +60,15 @@
     <Compile Include="../app/PluginJson.cs" Link="Shared/PluginJson.cs" />
     <Compile Include="../app/Mcp.cs" Link="Shared/Mcp.cs" />
     <Compile Include="../app/ModFloor.cs" Link="Shared/ModFloor.cs" />
+    <Compile Include="../app/McpOnline.cs" Link="Shared/McpOnline.cs" />
+    <Compile Include="../app/McpSignIn.cs" Link="Shared/McpSignIn.cs" />
     <Compile Include="../app/PluginChecks.cs" Link="Shared/PluginChecks.cs" />
+    <Compile Include="../app/MailMime.cs" Link="Shared/MailMime.cs" />
+    <Compile Include="../app/MailBox.cs" Link="Shared/MailBox.cs" />
+    <Compile Include="../app/MailSmtp.cs" Link="Shared/MailSmtp.cs" />
+    <Compile Include="../app/MailTools.cs" Link="Shared/MailTools.cs" />
+    <Compile Include="../app/MailChecks.cs" Link="Shared/MailChecks.cs" />
+    <Compile Include="../app/StarterPlugins.cs" Link="Shared/StarterPlugins.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />

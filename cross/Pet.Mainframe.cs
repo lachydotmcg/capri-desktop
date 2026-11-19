@@ -17,6 +17,7 @@ namespace CapriDesktop
         private void StartMods()
         {
             LegacyArt = Saved.LegacyStand;
+            Mods.WithStarters = Program.Smoke == null;
             ModList = new Mods(Program.Smoke ?? folder);
             Chores.Skills = ModList.SkillsFor;
             Hands.SkillNote = delegate { return ModList.SkillNote; };

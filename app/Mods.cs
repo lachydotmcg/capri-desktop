@@ -59,7 +59,7 @@ namespace CapriDesktop
         internal ModFile File;
         internal string Path;
         internal bool On;
-        internal bool Code, Changed, Skin, Skill, Own, Plugin;
+        internal bool Code, Changed, Skin, Skill, Own, Plugin, Starter;
         internal string Hash;
         internal string Folder;
         internal string From;
@@ -101,6 +101,7 @@ namespace CapriDesktop
             ownFolder = Path.Combine(data, OwnFolderName);
             ModDirectory.KeptFolder = Path.Combine(data, "mod-directory");
             StartPlugins(data);
+            if (WithStarters) AddStarters();
             All = new List<Mod>();
             Problems = new List<string>();
             Hands.AlsoHeard = delegate(string words)

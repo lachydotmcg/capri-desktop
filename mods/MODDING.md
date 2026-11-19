@@ -62,9 +62,19 @@ imports too, as a plug-in named after its folder. A plug-in can be up to 1 MB zi
 }
 ```
 
-`.mcp.json` is the same file Claude Code and other MCP apps use. Servers she starts on this PC (stdio) work. Online servers
-(`http`, `sse`, a `url`) are left out for now, and her approve box says so. `${CLAUDE_PLUGIN_ROOT}` (or `${CAPRI_PLUGIN_ROOT}`)
-is the plug-in's own folder, and `${NAME}` reads an environment variable.
+`.mcp.json` is the same file Claude Code and other MCP apps use. Servers she starts on this PC (stdio) work, and so do online
+servers: `{"type": "http", "url": "https://example.com/mcp"}` (`streamable-http` is the same, and an address with no type counts as
+`http`). Their address must be `https`, except `127.0.0.1` and `localhost`. `"headers": {"X-Key": "${KEY}"}` sends fixed headers
+for servers that take a key. The older `sse` kind is tried as streamable HTTP and says so if it can't connect. `${CLAUDE_PLUGIN_ROOT}`
+(or `${CAPRI_PLUGIN_ROOT}`) is the plug-in's own folder, and `${NAME}` reads an environment variable.
+
+An online server runs on its maker's computers, so her approve box says it connects there and that they sign in to it in their
+browser. When it answers 401, she shows "sign in" for the plug-in and never opens a browser by herself: signing in starts only
+from their action (`Plugins.SignIn`). It follows MCP's sign-in (OAuth 2.1 with PKCE, registering Capri as an app automatically,
+asking for the server's address as the resource), listens on `127.0.0.1` for the browser to come back, and keeps the tokens in
+`<plug-in>.signin.json` beside the plug-in's other settings, protected by Windows on Windows and only in memory on Mac and Linux.
+She refreshes them by herself, and removing the plug-in forgets them. `{"type": "capri", "builtin": "mail"}` uses a server
+Capri runs inside herself, for accounts set up in Capri.
 
 ```json
 {
