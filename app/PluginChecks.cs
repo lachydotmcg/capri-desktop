@@ -249,6 +249,7 @@ while True:
 
         internal static void CheckPlugins(Mods mods, List<string> checks, string output, Action<Mod> shown = null)
         {
+            ModFloor.Fresh();
             object parsed = PluginJson.Parse("{\"a\":[1,2.5,true,null,\"\\u00e9\\n<\"],\"b\":{}}");
             if (PluginJson.Write(parsed) != "{\"a\":[1,2.5,true,null,\"\u00e9\\n<\"],\"b\":{}}") throw new Exception("Plug-in JSON didn't read and write back the same: " + PluginJson.Write(parsed));
             object broken;
@@ -319,6 +320,7 @@ while True:
             try
             {
                 Security.Pick(Security.Trusted);
+                ModFloor.Fresh();
                 if (Security.Gate("mod", echoArgs) != null || Security.Gate("mod", noteArgs) != null) throw new Exception("Trusted asked first before a plug-in tool.");
                 if (Security.Has(Security.Sends))
                 {
