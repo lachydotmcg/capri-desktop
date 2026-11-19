@@ -3633,10 +3633,12 @@ namespace CapriDesktop
                 string pick = name;
                 choices.Add(Choice(pick, pick == model, delegate { capri.ChooseProviderModel(address, pick, found); }));
             }
+            DropPcItems();
             modelMenu.SuspendLayout();
             modelMenu.Items.Clear();
             modelMenu.Items.AddRange(choices.ToArray());
             modelMenu.ResumeLayout();
+            PcBrainItems();
             Arrange(false);
         }
 
@@ -3774,6 +3776,32 @@ namespace CapriDesktop
 
         internal void ForgotText(Cloud remote) { forgotten = remote; }
 
+        private readonly List<ToolStripItem> pcItems = new List<ToolStripItem>();
+        private bool pcOffered;
+        private int pcMode;
+        internal static readonly string[] PcBrainNames = { "Her PC brain: off", "Her PC brain: backup", "Her PC brain: first" };
+
+        internal void ShowPcBrain(bool offered, int mode) { pcOffered = offered; pcMode = mode; }
+
+        private void DropPcItems()
+        {
+            foreach (ToolStripItem item in pcItems) { modelMenu.Items.Remove(item); item.Dispose(); }
+            pcItems.Clear();
+        }
+
+        private void PcBrainItems()
+        {
+            DropPcItems();
+            if (!pcOffered) return;
+            pcItems.Add(new ToolStripSeparator());
+            for (int i = 0; i < PcBrainNames.Length; i++)
+            {
+                int mode = i;
+                pcItems.Add(Choice(PcBrainNames[i], pcMode == i, delegate { capri.SetPcBrain(mode); }));
+            }
+            modelMenu.Items.AddRange(pcItems.ToArray());
+        }
+
         internal void ShowCloud(Cloud remote, List<string> found)
         {
             if (remote != forgotten) forgotten = null;
@@ -3784,6 +3812,7 @@ namespace CapriDesktop
             models.Visible = remote.Model != null;
             hint.Visible = false;
             if (remote.Kind == "local") { LocalMenu(null, remote); Arrange(false); return; }
+            DropPcItems();
             // OpenRouter lists hundreds of models and NVIDIA over a hundred, and adding them one at a time laid the whole menu out
             // again for each: about 20 s frozen on every OpenRouter pick (NoxEterna, 1 Nov), and seconds after a slow NVIDIA reply,
             // which shows this again (Mika). The same list only moves its tick, and a new one goes in all at once.
@@ -3814,6 +3843,7 @@ namespace CapriDesktop
                 menuRemote = remote;
                 menuModels = listed;
             }
+            PcBrainItems();
             Arrange(false);
         }
 
