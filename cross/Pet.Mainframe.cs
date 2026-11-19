@@ -45,6 +45,12 @@ namespace CapriDesktop
             return typeof(Pet).Assembly.GetManifestResourceInfo(name) != null;
         }
 
+        private static bool SkinShips(string title)
+        {
+            string skin = SkinFolder;
+            return skin != null && title != null && File.Exists(Path.Combine(skin, title + ".png"));
+        }
+
         internal static PixelSize ArtSize(string name)
         {
             using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(name))
