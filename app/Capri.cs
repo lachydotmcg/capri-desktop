@@ -6015,7 +6015,7 @@ namespace CapriDesktop
                     for (int choice = 0; choice < 2; choice++)
                     {
                         bool? answer = null;
-                        prompt.Choose(delegate(bool yes) { answer = yes; }, "Move 2 things", new[] { "beach day.mp4 \u2192 Beach", "dog at beach.jpg \u2192 Beach" });
+                        prompt.Choose(delegate(bool yes) { answer = yes; }, "Move 2 files", new[] { "beach day.mp4 \u2192 Beach", "dog at beach.jpg \u2192 Beach" });
                         Point at;
                         using (Bitmap image = prompt.Render(scale, new Point((int)(500 * scale), (int)(700 * scale)), new Point((int)(500 * scale), (int)(800 * scale)), new Rectangle(0, 0, (int)(1280 * scale), (int)(900 * scale)), false, out at))
                         {

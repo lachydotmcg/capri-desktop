@@ -202,7 +202,8 @@ namespace CapriDesktop
             {
                 List<string> picked = Picked(args.Path, out error) ?? new List<string>();
                 string target = action == "rename" ? Short(args.Name) : Short(Named(args.Target) ? args.Target : args.Folder);
-                title = (action == "move" ? "Move " : "Rename ") + (picked.Count == 1 ? (Directory.Exists(picked[0]) ? "1 folder" : "1 file") : picked.Count + " things");
+                int folders = picked.FindAll(Directory.Exists).Count;
+                title = (action == "move" ? "Move " : "Rename ") + picked.Count + (folders == picked.Count ? " folder" : folders == 0 ? " file" : " thing") + (picked.Count == 1 ? "" : "s");
                 if (picked.Count == 0) lines.Add(Short(args.Path) + " \u2192 " + target);
                 foreach (string one in picked) lines.Add(System.IO.Path.GetFileName(one.TrimEnd('\\', '/')) + " \u2192 " + target);
                 return lines.ToArray();

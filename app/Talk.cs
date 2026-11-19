@@ -3487,7 +3487,7 @@ namespace CapriDesktop
                 }
                 else
                 {
-                    yesButton = new RectangleF(card.Left + 10 * s, card.Bottom - 8 * s - line * 1.3f, cw * 5 + 20 * s, line * 1.3f);
+                    yesButton = new RectangleF(card.Left + 10 * s, card.Bottom - 6 * s - line * 1.2f, cw * 5 + 20 * s, line * 1.2f);
                     noButton = new RectangleF(yesButton.Right + 8 * s, yesButton.Top, cw * 2 + 20 * s, yesButton.Height);
                 }
                 float tipX = Math.Max(panel.Left + 32 * s, Math.Min(panel.Right - 10 * s, tip.X - left));
@@ -3576,7 +3576,7 @@ namespace CapriDesktop
                 graphics.FillPath(fill, plate);
                 graphics.DrawPath(edge, plate);
             }
-            float x = card.Left + 10 * s, y = card.Top + 5 * s;
+            float x = card.Left + 10 * s, y = card.Top + 3 * s;
             string title = AskTitle.ToUpperInvariant(), side = "ASKS FIRST";
             int room = columns - side.Length - 2;
             if (Look.Cells(title) > room) title = Look.Cut(title, Math.Max(1, room - 3)) + "...";
