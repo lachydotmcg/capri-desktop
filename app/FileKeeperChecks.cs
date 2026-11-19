@@ -128,23 +128,23 @@ namespace CapriDesktop
             }
             finally { FileKeeper.Changed = changedWas; }
 #if !CROSS
-            using (Workspace work = new Workspace(Path.Combine(scratch, "work"), "CapriWorkspace-" + System.Diagnostics.Process.GetCurrentProcess().Id + "-files-" + Guid.NewGuid().ToString("N")))
+            using (Workspace desk = new Workspace(Path.Combine(scratch, "desk"), "CapriWorkspace-" + System.Diagnostics.Process.GetCurrentProcess().Id + "-files-" + Guid.NewGuid().ToString("N")))
             {
-                work.Home = Path.Combine(scratch, "home");
+                desk.Home = Path.Combine(scratch, "home");
                 FileChange change = new FileChange { Id = "a1", What = "moved 1 into Beach", Steps = new List<FileStep> { new FileStep { From = "", To = Path.Combine(scratch, "Beach") }, new FileStep { From = Path.Combine(scratch, "a.mp4"), To = Path.Combine(scratch, "Beach", "a.mp4") } } };
-                work.LogFiles(change);
-                work.LogFiles(change);
-                WorkspaceChat chat = work.FilesChat();
+                desk.LogFiles(change);
+                desk.LogFiles(change);
+                WorkspaceChat chat = desk.FilesChat();
                 List<WorkspaceItem> logged;
                 lock (chat.Gate) logged = chat.Items.FindAll(delegate(WorkspaceItem item) { return item.Kind == "files"; });
-                Expect(work.Chats().Count == 1 && chat.Title == Workspace.FilesTitle && logged.Count == 1 && logged[0].Text.StartsWith("Moved 1 into Beach.\n" + Path.Combine(scratch, "a.mp4") + " \u2192 ", StringComparison.Ordinal), "Her file change wasn't logged once in Workspace.");
+                Expect(desk.Chats().Count == 1 && chat.Title == Workspace.FilesTitle && logged.Count == 1 && logged[0].Text.StartsWith("Moved 1 into Beach.\n" + Path.Combine(scratch, "a.mp4") + " \u2192 ", StringComparison.Ordinal), "Her file change wasn't logged once in Workspace.");
                 string undid = null;
-                work.UndoFiles = delegate(string id) { undid = id; return "Put back 1 (moved 1 into Beach)."; };
-                Expect(work.UndoFile(chat, logged[0]) == "Put back 1 (moved 1 into Beach)." && undid == "a1" && logged[0].Decision == "undone" && work.UndoFile(chat, logged[0]) == null, "Workspace's Undo key didn't undo her change once.");
+                desk.UndoFiles = delegate(string id) { undid = id; return "Put back 1 (moved 1 into Beach)."; };
+                Expect(desk.UndoFile(chat, logged[0]) == "Put back 1 (moved 1 into Beach)." && undid == "a1" && logged[0].Decision == "undone" && desk.UndoFile(chat, logged[0]) == null, "Workspace's Undo key didn't undo her change once.");
                 change.Undone = true;
                 int count;
                 lock (chat.Gate) count = chat.Items.Count;
-                work.LogFiles(change);
+                desk.LogFiles(change);
                 lock (chat.Gate) Expect(chat.Items.Count == count && chat.Items[count - 1].Text == "Put back 1 (moved 1 into Beach).", "An undo from chat was shown twice in Workspace.");
             }
             passed.Add("PASS her file changes show once in Workspace's Her files chat with an Undo key that puts them back once");
