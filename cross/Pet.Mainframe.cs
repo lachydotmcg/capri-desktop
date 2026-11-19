@@ -246,7 +246,9 @@ namespace CapriDesktop
         internal string MainframeLocalModel { get { return localVoice.Model ?? ""; } }
         internal string MainframeLocalVoice { get { return localVoice.Speaker ?? ""; } }
         internal string MainframeLocalFormat { get { return LocalSpeaker.Known(localVoice.Format); } }
-        internal string[] MainframeModels { get { return Brain.Remote != null ? cloudModels?.ToArray() ?? Array.Empty<string>() : MainframeTier == 0 ? frameModels : Array.Empty<string>(); } }
+        // A custom provider is the local brain, so its models show whenever it is the active brain, even from a cloud tier that
+        // has no key entered yet. A saved cloud key still takes priority and shows that service's models instead.
+        internal string[] MainframeModels { get { return Brain.Remote != null ? cloudModels?.ToArray() ?? Array.Empty<string>() : MainframeTier == 0 || Brain.Server != null ? frameModels : Array.Empty<string>(); } }
         internal string[] MainframeVoiceIds
         {
             get { var ids = new List<string>(); if (voices != null) foreach (VoiceEntry entry in voices.Voices) ids.Add(entry.Id); return ids.ToArray(); }
@@ -339,7 +341,8 @@ namespace CapriDesktop
                 if (model == Saved.PlanModel || Array.IndexOf(frameModels, model) < 0) return;
                 Saved.PlanModel = model; SelectPlan(); Save(); NotifySettings(); return;
             }
-            if (MainframeTier > 0 && Brain.Remote == null) return;
+            // A custom provider can be picked from a cloud tier too, as long as no cloud key is overriding it.
+            if (MainframeTier > 0 && Brain.Remote == null && Brain.Server == null) return;
             if (Brain.Remote != null) PickCloud(model.Trim());
             else if (Brain.Server != null) PickServerModel(model.Trim());
             else PickBrain(model.Trim());

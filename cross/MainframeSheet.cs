@@ -889,7 +889,7 @@ namespace CapriDesktop
             ShowInTaskbar = false;
             Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "provider" ? Provider() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Program.Guard(Sync);
@@ -940,6 +940,35 @@ namespace CapriDesktop
             Button("Save", 120, 224, 150, 28, () => save()).Accent = MainframeTheme.Cyan;
             Button("Cancel", 278, 224, 78, 28, Close);
             foreach (var entry in new[] { address, model, voice }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => save()); } };
+            return 300;
+        }
+        // Any OpenAI-compatible chat endpoint, so she isn't limited to providers recognised by a key's prefix. The address
+        // and optional key are saved together by Pet.UseServer, which also checks key safety and lists the models.
+        private double Provider()
+        {
+            Caption("Use any OpenAI-compatible chat endpoint.", 28, 52, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            var address = Input("Address", "https://api.example.com/v1", 28, 84, 328, () => pet.Brain.Server ?? "");
+            var key = Input("API key", "Optional. Blank means no key.", 28, 140, 328, () => null);
+            key.Box.PasswordChar = '\u2022';
+            Caption("Saved encrypted here. Keys go only to this address.", 28, 196, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            var note = Put(Page, new NeonCaption { Ink = MainframeTheme.Faint, Ellipsis = true }, 28, 264, 328, 20);
+            Rows["Note"] = note;
+            Action<string> say = text => { note.Text = text; note.InvalidateVisual(); };
+            Action connect = () =>
+            {
+                string typed = (address.Box.Text ?? "").Trim(), secret = (key.Box.Text ?? "").Trim();
+                string url = Brain.ServerAddress(typed);
+                if (url == null) { say("That address doesn't work. Try https://... or http://localhost:1234."); return; }
+                if (secret.Length == 0) secret = null;
+                if (secret != null && !Brain.ServerKeySafe(url)) { say("Use https for a provider elsewhere. A key over plain http isn't safe."); return; }
+                say("Checking the provider...");
+                key.Box.Text = "";
+                pet.UseServer(url, secret);
+            };
+            Button("Connect", 28, 224, 104, 28, () => connect()).Accent = MainframeTheme.Cyan;
+            Button("Forget", 140, 224, 104, 28, () => { key.Box.Text = ""; address.Box.Text = ""; pet.LeaveServer(); say("Provider forgotten."); });
+            Button("Cancel", 252, 224, 104, 28, Close);
+            foreach (var entry in new[] { address, key }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => connect()); } };
             return 300;
         }
         // Extra request JSON for the brain she's on, merged into each request it sends.

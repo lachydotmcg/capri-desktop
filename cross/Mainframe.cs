@@ -444,7 +444,10 @@ namespace CapriDesktop
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);
             if (TerminalJobs.Supported) { Key("ChatGPT plan", 230, 56, 126, 20, pet.UsePlan); Key("Stop", 134, 56, 86, 20, pet.StopNativeWork); }
-            brainName = Caption("", 28, 79, 328, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
+            brainName = Caption("", 28, 79, 244, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
+            // Like Windows: the provider button beside her brain name opens a form for any OpenAI-compatible address and key,
+            // so she isn't limited to the providers Capri recognises from a key's prefix (the field below).
+            Key("Provider", 280, 79, 76, 20, OpenProvider);
             brainNote = Caption("", 28, 101, 328, 24, MainframeTheme.Faint); brainNote.Ellipsis = true;
             models = Picker("Brain model", 28, 134, 244, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => { if (i == pet.MainframeModels.Length) pet.AskPull(); else pet.MainframePickModel(pet.MainframeModels[i]); }); models.Ellipsis = true;
             refresh = Key("Refresh", 280, 134, 76, 28, pet.MainframeRefresh);
@@ -1013,6 +1016,7 @@ namespace CapriDesktop
             sheets.Add(sheet); sheet.Closed += (_, _) => sheets.Remove(sheet); sheet.Show(this);
         }
         internal void OpenServer() { ShowSheet(new MainframeSheet(pet, "CUSTOM LOCAL", "server")); }
+        internal void OpenProvider() { ShowSheet(new MainframeSheet(pet, "BRAIN PROVIDER", "provider")); }
         internal void OpenThinkingExtra() { ShowSheet(new MainframeSheet(pet, "EXTRA REQUEST JSON", "thinking")); }
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
