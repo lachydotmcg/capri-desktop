@@ -169,6 +169,7 @@ namespace CapriDesktop
                 UpdateCheckChecks();
                 LinuxAppImageUpdater.Checks(checks);
                 MacAppUpdater.Checks(checks);
+                Uninstall.Checks(checks);
                 OfflineChecks();
                 FakeCrash.Checks(checks);
                 FakeCrash.WindowChecks(checks);
