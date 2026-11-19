@@ -5702,6 +5702,7 @@ namespace CapriDesktop
         // passwords staying theirs to type, her prompts following the toggles, and the window at 100%, 150% and 200%.
         private void SecurityChecks(System.Collections.Generic.List<string> checks, string output)
         {
+            SmokeAskCard(checks, output);
             Func<string> bits = delegate { System.Text.StringBuilder all = new System.Text.StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
             string[] presetBits = { "00000000000010", "11100000000010", "11111110000011", "11111111110001" };
             System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
@@ -6002,6 +6003,41 @@ namespace CapriDesktop
         // quick run checks it: each preset's default and saves from before it, a "Favourite card game" label kept and a card
         // number dropped, her notes, Get to know me and what she saw with it on and off, a form's personal boxes hidden only
         // while it's on, and her SECURITY window with its 13th row at 100%, 150% and 200%. "Hey Capri" is left alone throughout.
+        private static void SmokeAskCard(System.Collections.Generic.List<string> checks, string output)
+        {
+            using (SpeechBox prompt = new SpeechBox())
+            {
+                prompt.State = TalkState.Online;
+                prompt.Heard = "put the beach stuff in a folder";
+                prompt.Reply = "Found two from the beach. Want me to move them into a new Beach folder?";
+                prompt.Revealed = prompt.Reply.Length;
+                foreach (float scale in new[] { 1f, 2f })
+                    for (int choice = 0; choice < 2; choice++)
+                    {
+                        bool? answer = null;
+                        prompt.Choose(delegate(bool yes) { answer = yes; }, "Move 2 things", new[] { "beach day.mp4 \u2192 Beach", "dog at beach.jpg \u2192 Beach" });
+                        Point at;
+                        using (Bitmap image = prompt.Render(scale, new Point((int)(500 * scale), (int)(700 * scale)), new Point((int)(500 * scale), (int)(800 * scale)), new Rectangle(0, 0, (int)(1280 * scale), (int)(900 * scale)), false, out at))
+                        {
+                            RectangleF whole = new RectangleF(0, 0, image.Width, image.Height);
+                            if (prompt.YesButton.IsEmpty || prompt.NoButton.IsEmpty || prompt.YesButton.IntersectsWith(prompt.NoButton) || !whole.Contains(prompt.YesButton) || !whole.Contains(prompt.NoButton) || prompt.NoButton.Left < prompt.YesButton.Right)
+                                throw new Exception("Her ask card's Allow and No keys don't fit in her bubble.");
+                            if (scale == 2 && choice == 0) image.Save(Path.Combine(output, "ask-card.png"), ImageFormat.Png);
+                        }
+                        if (answer != null) throw new Exception("Showing her ask card answered it.");
+                        RectangleF button = choice == 0 ? prompt.YesButton : prompt.NoButton;
+                        prompt.ClickChoice(new Point((int)button.Left + 4, (int)button.Top + 4));
+                        if (answer != (choice == 0) || prompt.Choosing || prompt.AskTitle != null) throw new Exception("Her ask card's keys gave the wrong answer or stayed up.");
+                    }
+                prompt.Choose(delegate { });
+                if (prompt.AskTitle != null || prompt.AskLines.Length != 0) throw new Exception("A plain Yes or No question kept an old ask card.");
+                prompt.Choose(null);
+            }
+            string title;
+            if (Security.Holding == null && HeldCard(out title) != null) throw new Exception("Her ask card showed with nothing held.");
+            checks.Add("PASS her asks show an amber card on her bubble with what changes and Allow and No keys that answer once");
+        }
+
         private void SmokePrivacy(System.Collections.Generic.List<string> checks, string output)
         {
             string folder = Path.Combine(output, "privacy-" + Guid.NewGuid().ToString("N").Substring(0, 8));
