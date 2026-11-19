@@ -3204,6 +3204,8 @@ namespace CapriDesktop
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
             ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
+            if (CompanionPack.Style != null) kokoro.Style = CompanionPack.Style;
+            CompanionPack.Changed = delegate { OnWindow(CompanionSwitched); };
             ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, ShownVersion(Packaged.Is, false));
@@ -4969,6 +4971,7 @@ namespace CapriDesktop
 
         internal static byte[] Hello(string name)
         {
+            if (CompanionPack.On) return CompanionPack.Hello(name);
             using (Stream clip = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Voice.hello-" + name + ".wav"))
             {
                 if (clip == null) return null;
@@ -45373,7 +45376,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
-            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckCompanions(ModList, checks, Path.Combine(modsOut, "companions")); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });

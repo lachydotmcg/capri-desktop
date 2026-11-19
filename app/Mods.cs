@@ -57,6 +57,7 @@ namespace CapriDesktop
         internal bool On;
         internal bool Code, Changed, Skin, Skill, Own;
         internal string Hash;
+        internal CompanionInfo Pack;
     }
 
     internal sealed class ModException : Exception
@@ -140,6 +141,7 @@ namespace CapriDesktop
                     found.AddRange(Directory.GetFiles(folder, "*" + CodeExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + SkinExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + SkillExtension));
+                    found.AddRange(Directory.GetFiles(folder, "*" + CompanionExtension));
                     found.Sort(StringComparer.OrdinalIgnoreCase);
                     files = found.ToArray();
                 }
@@ -162,6 +164,7 @@ namespace CapriDesktop
                         if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadCode(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadSkin(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadSkill(file, off)); continue; }
+                        if (IsCompanionFile(file)) { All.Add(LoadCompanion(file, off)); continue; }
                         ModFile read = Read(File.ReadAllText(file));
                         if (!string.Equals(read.Id, Path.GetFileNameWithoutExtension(file), StringComparison.OrdinalIgnoreCase)) throw new ModException("its file name doesn't match its id, " + read.Id + ".");
                         All.Add(new Mod { File = read, Path = file, On = !off.Contains(read.Id) });
@@ -190,6 +193,7 @@ namespace CapriDesktop
                     }
                 }
             }
+            OneCompanion();
             Apply();
         }
 
@@ -198,10 +202,11 @@ namespace CapriDesktop
             if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask, keepOff);
             if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file, keepOff == null);
             if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkill(file);
+            if (IsCompanionFile(file)) return ImportCompanion(file, keepOff == null);
             string text;
             try
             {
-                if (!string.Equals(Path.GetExtension(file), Extension, StringComparison.OrdinalIgnoreCase)) throw new ModException("That isn't a " + Extension + ", " + CodeExtension + ", " + SkinExtension + " or " + SkillExtension + " file.");
+                if (!string.Equals(Path.GetExtension(file), Extension, StringComparison.OrdinalIgnoreCase)) throw new ModException("That isn't a " + Extension + ", " + CodeExtension + ", " + SkinExtension + ", " + SkillExtension + " or " + CompanionExtension + " file.");
                 if (new FileInfo(file).Length > Largest) throw new ModException("That mod is too big. A mod is a small settings file.");
                 text = File.ReadAllText(file);
             }
@@ -247,6 +252,7 @@ namespace CapriDesktop
         {
             if (mod.Code) return SetCode(mod, on, ask);
             if (mod.Skin) { SetSkin(mod, on); return true; }
+            if (mod.Pack != null) { SetCompanion(mod, on); return true; }
             HashSet<string> off = Off();
             if (on)
             {
@@ -268,6 +274,7 @@ namespace CapriDesktop
         {
             if (mod.Code) RemoveCode(mod);
             if (mod.Skin) RemoveSkin(mod);
+            if (mod.Pack != null) RemoveCompanion(mod);
             File.Delete(mod.Path);
             HashSet<string> off = Off();
             if (off.Remove(mod.File.Id)) WriteOff(off);
@@ -347,10 +354,12 @@ namespace CapriDesktop
             sounds = wantSounds ? new SoundsLike(soundsLike) : null;
             logging = wantLog;
             if (!wantLog) DeleteLog();
+            ApplyCompanion();
             ApplySkin();
             skills = All.FindAll(mod => mod.Skill && mod.On).ToArray();
             knownSkills = All.FindAll(mod => mod.Skill).ToArray();
             skillNote = Standing(skills);
+            names = CompanionNames(names);
             note = names.Length == 0 ? "" : "\nThey can also call you " + Listed(names) + ". Those are nicknames for you, so answer to them like your own name.";
         }
 

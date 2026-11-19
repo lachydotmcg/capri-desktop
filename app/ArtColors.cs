@@ -146,6 +146,8 @@ namespace CapriDesktop
             get
             {
                 string[] now = new string[ArtColors.Slots];
+                Mod companion = CompanionOn;
+                if (companion != null && companion.Pack.Art) return now;
                 foreach (Mod mod in All)
                     if (mod.On && mod.File.Colors != null) now = mod.File.Colors.AsSlots();
                 return now;

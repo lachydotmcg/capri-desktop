@@ -51,6 +51,7 @@ namespace CapriDesktop
             try
             {
                 string extension = Path.GetExtension(file);
+                if (string.Equals(extension, CompanionExtension, StringComparison.OrdinalIgnoreCase)) return CompanionVersionIn(file);
                 if (string.Equals(extension, SkinExtension, StringComparison.OrdinalIgnoreCase))
                     using (ZipArchive zip = ZipFile.OpenRead(file))
                     {
@@ -269,6 +270,8 @@ namespace CapriDesktop
         // The bottom of her stack is her outfit, drawn whole, unless it's an accessory, which goes over her own look.
         private string WantedSkin()
         {
+            Mod companion = CompanionOn;
+            if (companion != null && companion.Pack.Art) return companion.Pack.Folder;
             List<Mod> stack = SkinStack;
             return stack.Count == 0 || stack[0].File.Accessory ? null : SkinHome(stack[0].File.Id);
         }
@@ -279,6 +282,8 @@ namespace CapriDesktop
         {
             List<Mod> stack = SkinStack;
             List<string> layers = new List<string>();
+            Mod companion = CompanionOn;
+            if (companion != null && companion.Pack.Art) return layers.ToArray();
             for (int i = 0; i < stack.Count; i++)
             {
                 if (i == 0 && !stack[0].File.Accessory) continue;

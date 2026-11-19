@@ -1,6 +1,6 @@
 # Making Capri mods
 
-Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
+Capri reads five kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
 
 | File | What it does |
 |---|---|
@@ -8,6 +8,7 @@ Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mod
 | `.capri-skin` | A zip of her sprite strips that changes how she looks. Several **stack**: each one turned on goes on top |
 | `.capri-skill` | Know-how for a game that she follows when she plays it |
 | `.capri-code` | C# that runs inside Capri, on Windows, Mac and Linux |
+| `.capri-companion` | A whole companion of your own: name, personality, voice and art. Capri stays the default |
 
 Share finished mods in [capri-mods](https://github.com/lachydotmcg/capri-mods).
 
@@ -27,6 +28,46 @@ top as it is:
 - It's drawn over whatever is under it in the stack, or her own look.
 - The Mods list shows each skin's layer. Turn one off and on again to move it to the top.
 - Her colours go on after, so anything drawn in her hair colour follows My Colors.
+
+## Companion packs
+
+A `.capri-companion` is a zip that swaps Capri for a companion of your own while it's on. Turn it off and Capri is back,
+exactly as she was. Only one companion is on at a time: turning one on turns the other off. Everything at the top of the zip:
+
+| File | Needed | What it is |
+|---|---|---|
+| `companion.json` | yes | Who they are (below) |
+| `personality.md` | yes | Who they are and how they talk, like her own `personality.md` |
+| `idle.png`, `walk.png`, ... | no | Their art, named and sized like her sprite strips, the same as a skin |
+| `hello-morning.wav`, `hello-late.wav`, `hello-miss.wav` | no | Their recorded hello. Without one they say their greeting in their voice |
+
+```json
+{
+  "format": 1,
+  "id": "nyx",
+  "name": "Nyx",
+  "version": "1.0.0",
+  "author": "You",
+  "description": "A sleepy moth spirit who lives in your taskbar.",
+  "wake_names": ["Nyxie"],
+  "greetings": ["Morning, lamp friend.", "Still up? Same.", "There you are."],
+  "voice": { "free_speaker": 3, "free_speed": 1.05, "british": false, "elevenlabs": "YOUR_VOICE_ID" }
+}
+```
+
+- `name` is what they're called, and they answer to it and to `wake_names`. "Hey Capri" still works too.
+- `greetings` are their three hellos: morning, late at night, and any other time. Without them they say plain ones, not Capri's.
+- `voice` is optional. `free_speaker` (0 to 199) and `free_speed` (0.5 to 2) pick their free voice on Windows. `elevenlabs` is a
+  voice ID they use with your own ElevenLabs key. If the key can't use that voice, your own ElevenLabs voice says it instead.
+  Voice chat calls keep your own voice for now.
+- With art, they're drawn with only their own art: your skins, accessories and colours wait until Capri is back. Without
+  art they wear Capri's look and your skins.
+- The pack can't hold anything else: no programs, scripts, folders or other files. It has no tools or code, so it can't do
+  anything on your PC that Capri can't.
+
+**Safety stays.** Her safety lines are in her code, not in `personality.md`, and always come after a pack's personality, the
+same as with your own. A line that tries to talk them out of those lines is dropped, and the Mods list says how many were.
+Every companion is also told its name and to say it's an AI if someone sincerely asks.
 
 ## Code mods
 

@@ -45,7 +45,7 @@ namespace CapriDesktop
             get
             {
                 string extension = Path.GetExtension(FileName);
-                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? "RUNS CODE." : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? "SKIN." : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? "SKILL." : Colours ? "COLOURS." : "SETTINGS.";
+                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? "RUNS CODE." : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? "SKIN." : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? "SKILL." : string.Equals(extension, Mods.CompanionExtension, StringComparison.OrdinalIgnoreCase) ? "COMPANION." : Colours ? "COLOURS." : "SETTINGS.";
             }
         }
         internal string Id { get { return Path.GetFileNameWithoutExtension(FileName); } }
@@ -54,7 +54,7 @@ namespace CapriDesktop
             get
             {
                 string extension = Path.GetExtension(FileName);
-                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? 2 : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? 3 : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? 4 : Colours ? 3 : 1;
+                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? 2 : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? 3 : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? 4 : string.Equals(extension, Mods.CompanionExtension, StringComparison.OrdinalIgnoreCase) ? 3 : Colours ? 3 : 1;
             }
         }
     }
@@ -91,7 +91,7 @@ namespace CapriDesktop
         private static readonly Dictionary<string, List<string>> Readmes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         internal static string PreviewFolder = Path.Combine(Path.GetTempPath(), "capri-mod-previews");
         internal static Func<string, string, byte[]> Post = Push;
-        private static readonly Regex Listed = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/([A-Za-z0-9][A-Za-z0-9._-]{0,63}\.capri-(?:mod|code|skin|skill))$");
+        private static readonly Regex Listed = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/([A-Za-z0-9][A-Za-z0-9._-]{0,63}\.capri-(?:mod|code|skin|skill|companion))$");
         private static readonly Regex Blob = new Regex(@"^[0-9a-f]{40}$");
         internal static Func<string, long, byte[]> Get = delegate(string url, long most) { return Fetch(url, most, 15000, 30000); };
         // View's README waits 4 seconds at most, so a slow connection gets the mod's description instead of a long wait.
@@ -591,7 +591,7 @@ namespace CapriDesktop
                 catch (IOException) { continue; }
                 catch (UnauthorizedAccessException) { continue; }
                 if (BlobSha(bytes) == listing.Sha) continue;
-                bool text = !string.Equals(Path.GetExtension(mod.Path), Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) && !string.Equals(Path.GetExtension(mod.Path), Mods.SkinExtension, StringComparison.OrdinalIgnoreCase);
+                bool text = !string.Equals(Path.GetExtension(mod.Path), Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) && !string.Equals(Path.GetExtension(mod.Path), Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) && !string.Equals(Path.GetExtension(mod.Path), Mods.CompanionExtension, StringComparison.OrdinalIgnoreCase);
                 if (text && listing.Size == bytes.Length + mark.Length)
                 {
                     byte[] marked = new byte[bytes.Length + mark.Length];

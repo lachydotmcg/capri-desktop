@@ -389,8 +389,20 @@ namespace CapriDesktop
 
         internal byte[] Speak(string text)
         {
+            string own = VoiceId, pack = CompanionPack.ElevenLabs;
+            if (pack == null || pack == own) return Speak(text, own);
+            try { return Speak(text, pack); }
+            catch (VoiceException error)
+            {
+                if (own == null || error.Status != 400 && error.Status != 404 && error.Status != 422) throw;
+                Brain.Log("voice", -1, "The companion pack's ElevenLabs voice didn't work with this key, so their own voice said it: " + error.Message);
+                return Speak(text, own);
+            }
+        }
+
+        private byte[] Speak(string text, string id)
+        {
             string key = Key;
-            string id = VoiceId;
             string model = Model;
             if (key == null || id == null) throw new VoiceException("No voice picked.");
             string said = Sayable(text);
@@ -2835,7 +2847,8 @@ namespace CapriDesktop
                 IntPtr audio = IntPtr.Zero;
                 try
                 {
-                    audio = SherpaOnnxOfflineTtsGenerate(tts, words, style.Speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
+                    int speaker = style.Speaker < SherpaOnnxOfflineTtsNumSpeakers(tts) ? style.Speaker : Styles[0].Speaker;
+                    audio = SherpaOnnxOfflineTtsGenerate(tts, words, speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
                     if (audio == IntPtr.Zero) throw new VoiceException("Her free voice glitched.");
                     Generated made = (Generated)Marshal.PtrToStructure(audio, typeof(Generated));
                     float[] samples = new float[Math.Max(0, made.Count)];

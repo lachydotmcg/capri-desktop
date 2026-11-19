@@ -852,6 +852,8 @@ namespace CapriDesktop
         {
             get
             {
+                CompanionInfo pack = CompanionPack.Active;
+                if (pack != null) return pack.Personality + "\n" + Holds + "\n" + CompanionPack.Honest(pack) + "\n" + Safety + "\n" + Machinery;
                 string yours = Personality;
                 return yours == DefaultPersonality ? DefaultPersonality + "\n" + Safety + "\n" + Machinery : yours + "\n" + Holds + "\n" + Safety + "\n" + Machinery;
             }
@@ -883,10 +885,10 @@ namespace CapriDesktop
 
         internal static string PersonalityFile { get { return (PersonalityHead + DefaultPersonality.Replace("\n", "\n\n") + "\n").Replace("\n", Environment.NewLine); } }
 
-        internal static string Personality { get { string note; return ReadPersonality(out note); } }
+        internal static string Personality { get { CompanionInfo pack = CompanionPack.Active; if (pack != null) return pack.Personality; string note; return ReadPersonality(out note); } }
 
         // "" when all's well, otherwise what Mainframe says about it: lines it skipped, its length or that it can't be read.
-        internal static string PersonalityNote { get { string note; ReadPersonality(out note); return note; } }
+        internal static string PersonalityNote { get { CompanionInfo pack = CompanionPack.Active; if (pack != null) return pack.Name + "'s own personality is on"; string note; ReadPersonality(out note); return note; } }
 
         internal static bool PersonalityYours { get { return Personality != DefaultPersonality; } }
 
@@ -1276,14 +1278,14 @@ namespace CapriDesktop
         }
         // Their Obsidian vault folder when her notes live there, so she can say where they are.
         internal static volatile string VaultFolder;
-        internal static string Greeting(int hour) { return Greetings[hour >= 5 && hour < 12 ? 0 : hour >= 22 || hour < 5 ? 1 : 2]; }
+        internal static string Greeting(int hour) { CompanionInfo pack = CompanionPack.Active; return (pack == null ? Greetings : pack.Greetings)[hour >= 5 && hour < 12 ? 0 : hour >= 22 || hour < 5 ? 1 : 2]; }
 
         internal static readonly string[] Greetings = { "Good morning, choom.", "Isn't it late, choom?", "Miss me, choom?" };
 
         internal static string GreetingClip(int hour) { return hour >= 5 && hour < 12 ? "morning" : hour >= 22 || hour < 5 ? "late" : "miss"; }
 
         // Her lines for a holiday on its day, by their clock, or null on an ordinary day. Halloween so far (Lachy, 30 Oct).
-        internal static string[] Holiday(DateTime day) { return day.Month == 10 && day.Day == 31 ? HalloweenLines : null; }
+        internal static string[] Holiday(DateTime day) { return day.Month == 10 && day.Day == 31 && !CompanionPack.On ? HalloweenLines : null; }
 
         internal static readonly string[] HalloweenLines = { "Happy Halloween, choom!", "Happy Halloween, choom. Trick or treat?", "Boo! Happy Halloween, choom." };
 
