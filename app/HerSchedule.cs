@@ -83,7 +83,8 @@ namespace CapriDesktop
             int offset = tomorrow ? 1 : 0;
             bool clockOk = false;
             DateTime clockDue = now;
-            if (clock.Success) clockDue = ClockDue(now, offset, clock, out clockOk);
+            bool daySlots = when.Repeat == "daily" || when.Repeat == "weekly";
+            if (clock.Success) clockDue = ClockDue(now, daySlots ? 1 : offset, clock, out clockOk);
             int clockMinute = clockOk ? clockDue.Hour * 60 + clockDue.Minute : -1;
 
             DateTime due = now;
@@ -175,6 +176,9 @@ namespace CapriDesktop
             Want(missed, "at 7:30 am", "check the weather at 7:30 am", now, new HerWhen { Task = "check the weather", Minute = 450, At = D(20, 7, 30) });
             Want(missed, "at 19:00", "check the weather at 19:00", now, new HerWhen { Task = "check the weather", Minute = 1140, At = D(19, 19, 0) });
             Want(missed, "at 7", "check the weather at 7", now, new HerWhen { Task = "check the weather", Minute = 1140, At = D(19, 19, 0) });
+            Want(missed, "at 12", "check the weather at 12", now, new HerWhen { Task = "check the weather", Minute = 720, At = D(20, 12, 0) });
+            Want(missed, "every day at 7", "water the plants every day at 7", now, new HerWhen { Task = "water the plants", Repeat = "daily", Minute = 420, At = D(20, 7, 0) });
+            Want(missed, "every friday at 8", "check the footy every friday at 8", now, new HerWhen { Task = "check the footy", Repeat = "weekly", Day = 5, Minute = 480, At = D(20, 8, 0) });
             Want(missed, "at noon", "check the weather at noon", now, new HerWhen { Task = "check the weather", Minute = 720, At = D(20, 12, 0) });
             Want(missed, "at midnight", "check the weather at midnight", now, new HerWhen { Task = "check the weather", Minute = 0, At = D(20, 0, 0) });
             Want(missed, "at 2pm already past", "check the weather at 2pm", now, new HerWhen { Task = "check the weather", Minute = 840, At = D(20, 14, 0) });
@@ -288,6 +292,7 @@ namespace CapriDesktop
             }
             if (h >= 1 && h <= 12)
             {
+                if (offset == 0 && h == 12) return ExactDue(now, 0, 720 + mm);
                 if (offset == 0) return NextClock(now, (h % 12) * 60 + mm);
                 int slot = h >= 7 && h <= 11 ? h * 60 + mm : ((h % 12) + 12) * 60 + mm;
                 return now.Date.AddDays(offset).AddMinutes(slot);
