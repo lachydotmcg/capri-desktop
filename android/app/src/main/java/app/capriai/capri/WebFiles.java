@@ -39,6 +39,11 @@ final class WebFiles {
         this.assets = assets;
     }
 
+    static boolean ourOrigin(Uri origin) {
+        return origin != null && "https".equals(origin.getScheme()) && HOST.equals(origin.getHost())
+                && (origin.getPort() == -1 || origin.getPort() == 443);
+    }
+
     static boolean ours(Uri link) {
         if (link == null || !"https".equals(link.getScheme()) || !HOST.equals(link.getHost())) {
             return false;
