@@ -3781,7 +3781,9 @@ namespace CapriDesktop
         private int pcMode;
         internal static readonly string[] PcBrainNames = { "Her PC brain: off", "Her PC brain: backup", "Her PC brain: first" };
 
-        internal void ShowPcBrain(bool offered, int mode) { pcOffered = offered; pcMode = mode; }
+        private string pcName;
+
+        internal void ShowPcBrain(bool offered, int mode, string name) { pcOffered = offered; pcMode = mode; pcName = name; }
 
         private void DropPcItems()
         {
@@ -3794,6 +3796,7 @@ namespace CapriDesktop
             DropPcItems();
             if (!pcOffered) return;
             pcItems.Add(new ToolStripSeparator());
+            if (pcName != null) pcItems.Add(new ToolStripMenuItem(pcName) { Enabled = false });
             for (int i = 0; i < PcBrainNames.Length; i++)
             {
                 int mode = i;

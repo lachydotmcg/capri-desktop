@@ -13438,21 +13438,48 @@ namespace CapriDesktop
             ++brainLook;
             preferences.PcBrain = Math.Max(0, Math.Min(2, mode));
             SavePreferences();
+            spareScanned = false;
             UseSpare();
+            ShowPcBrainMenu();
+        }
+
+        private void ShowPcBrainMenu()
+        {
             Cloud remote = brain.Remote;
             if (remote != null && remote.Kind != "local") mainframe.ShowCloud(remote, cloudModels);
             else if (brain.Server != null) mainframe.ShowProvider(brain.Server, brain.ServerKey != null, brain.Model, providerModels);
         }
 
+        private string spareOllama;
+        private bool spareScanned;
+
         private void UseSpare()
         {
             Pick pick = engine.Installed();
+            string ollama = pick == null ? spareOllama : null;
             bool cloud = brain.Remote != null && brain.Remote.Kind != "local" || brain.Server != null;
-            bool used = pick != null && cloud && preferences.PcBrain > 0 && !preferences.NoAi;
+            bool used = (pick != null || ollama != null) && cloud && preferences.PcBrain > 0 && !preferences.NoAi;
             brain.SparePick = used ? pick : null;
+            brain.SpareModel = used ? ollama : null;
             brain.SpareFirst = preferences.PcBrain == 2;
-            brain.Spare = used ? engine : null;
-            mainframe.ShowPcBrain(pick != null && cloud, preferences.PcBrain);
+            brain.Spare = used && pick != null ? engine : null;
+            mainframe.ShowPcBrain((pick != null || ollama != null) && cloud, preferences.PcBrain, pick != null ? "Built-in · " + pick.Name : ollama == null ? null : "Ollama · " + ollama);
+            if (pick != null || !cloud || spareScanned || testing) return;
+            spareScanned = true;
+            string wanted = preferences.Model;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string[] installed = null;
+                try { installed = Brain.InstalledModels(); } catch (Exception) { }
+                string found = installed == null || installed.Length == 0 ? null : Array.IndexOf(installed, wanted) >= 0 ? wanted : installed[0];
+                Post(delegate
+                {
+                    if (found == spareOllama) return;
+                    spareOllama = found;
+                    UseSpare();
+                    ShowPcBrainMenu();
+                });
+            });
         }
 
         private void CheckBrainRest(double now)

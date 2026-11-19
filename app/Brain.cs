@@ -740,6 +740,7 @@ namespace CapriDesktop
         internal volatile Engine Spare;
         internal volatile Pick SparePick;
         internal volatile bool SpareFirst;
+        internal volatile string SpareModel;
         [ThreadStatic] private static bool spared;
         // A server they run themselves that speaks OpenAI's chat API, like llama.cpp's llama-server, LM Studio, vLLM or
         // Hugging Face's TGI, at its address without /v1. It thinks instead of Ollama, with Model as its model. ServerKey
@@ -3371,7 +3372,7 @@ namespace CapriDesktop
         {
             string model = Model;
             if (model == null) throw new BrainException(Offline);
-            Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, Spare = Spare, SparePick = SparePick, SpareFirst = SpareFirst };
+            Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, Spare = Spare, SparePick = SparePick, SpareFirst = SpareFirst, SpareModel = SpareModel };
 #if CROSS
             aside.Provider = Provider;
 #endif
@@ -3763,17 +3764,18 @@ namespace CapriDesktop
 #endif
             Engine spare = Spare;
             Pick sparePick = SparePick;
-            if (!spared && spare != null && sparePick != null && parts == null && (Remote != null && Remote.Kind != "local" || Server != null) && !messages.Exists(delegate(ChatMessage message) { return message.Images != null && message.Images.Length > 0; }))
+            string spareModel = sparePick != null ? sparePick.Name : SpareModel;
+            if (!spared && (spare != null && sparePick != null || spare == null && spareModel != null) && parts == null && (Remote != null && Remote.Kind != "local" || Server != null) && !messages.Exists(delegate(ChatMessage message) { return message.Images != null && message.Images.Length > 0; }))
             {
                 spared = true;
                 try
                 {
-                    Brain own = new Brain { Model = sparePick.Name, Local = spare, LocalPick = sparePick };
+                    Brain own = new Brain { Model = spareModel, Local = sparePick == null ? null : spare, LocalPick = sparePick };
 #if CROSS
-                    Func<string> pc = delegate { calls.Clear(); return own.Think(sparePick.Name, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, computerAction, rounds); };
+                    Func<string> pc = delegate { calls.Clear(); return own.Think(spareModel, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, computerAction, rounds); };
                     Func<string> cloud = delegate { calls.Clear(); return Think(model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, claudeTools, job, plain, computerAction, rounds); };
 #else
-                    Func<string> pc = delegate { calls.Clear(); return own.Think(sparePick.Name, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, rounds); };
+                    Func<string> pc = delegate { calls.Clear(); return own.Think(spareModel, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, rounds); };
                     Func<string> cloud = delegate { calls.Clear(); return Think(model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, claudeTools, job, plain, rounds); };
 #endif
                     bool first = SpareFirst;
