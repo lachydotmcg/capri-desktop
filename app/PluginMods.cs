@@ -587,9 +587,15 @@ namespace CapriDesktop
                 + "To get them, Capri:" + reaches + "\n\n"
                 + (asks.Length == 0 ? "It doesn't say what its tools do on your PC.\n\n" : "It says its tools:" + asks + "\n\n")
                 + skillsLine
-                + "Those programs run outside Capri with your account's access to your PC, your files and your accounts. Capri asks first before using a tool whenever your SECURITY settings say to, and you can set each tool to ask, always run or stay off under its Options. She can't see or limit what the program does by itself.\n\n"
+                + "Those programs run outside Capri with your account's access to your PC, your files and your accounts. Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + ". She can't see or limit what the program does by itself.\n\n"
                 + "Only turn it on if you trust who made it.\n\nFile fingerprint (SHA-256):\n" + hash + "\n\nTurn this plug-in on?";
         }
+
+#if CROSS
+        private const string PerTool = "";
+#else
+        private const string PerTool = ", and you can set each tool to ask, always run or stay off under its Options";
+#endif
 
         private static string PluginPermission(string name)
         {
