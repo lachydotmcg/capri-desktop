@@ -30,6 +30,7 @@ namespace CapriDesktop
         [DataMember] internal string Ears;
         [DataMember] internal string Nickname;
         [DataMember] internal int Replies;
+        [DataMember] internal int FirstRunStep;
         [DataMember] internal int Recall;
         [DataMember] internal int Wander;
         [DataMember] internal bool NoDance;
@@ -1089,7 +1090,7 @@ namespace CapriDesktop
                     if (Saved.HuskMode != 0) SetHusk(Saved.HuskMode, true);
                     int ticket = asking;
                     DispatcherTimer.RunOnce(() => Greet(ticket, DateTime.Now.Hour), TimeSpan.FromMilliseconds(1800));
-                    if (fresh) { if (!OperatingSystem.IsLinux()) OpenMainframe(); meetAt = Now + 4; }
+                    StartFirstRun(fresh);
                     if (Program.ConnectChatGPT) { OpenMainframe(); UsePlan(); }
                 }
             };
@@ -1367,6 +1368,7 @@ namespace CapriDesktop
                 CheckNap();
                 CheckHide();
                 CheckMeet(now);
+                CheckFirstJob();
                 if (Program.Smoke == null) CheckPopIn(now);
                 if (Program.Smoke == null) CheckHome(now);
                 if (Program.Smoke == null) CheckLag(now);
