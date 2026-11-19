@@ -345,7 +345,7 @@ namespace CapriDesktop
                 case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
 #endif
                 case "use_computer": return Mouse;
-                case "files": return FileKeeper.Changes(args) ? Sends : -1;
+                case "files": return FileChange(args) ? Sends : -1;
                 case "workspace": return Hands.WorkspaceStarts(args) ? Mouse : -1;
                 case "stream": return action == "stop" ? -1 : Mouse;
                 case "job_control": return action == "change" ? Mouse : -1;
@@ -415,7 +415,9 @@ namespace CapriDesktop
             return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
         }
 
-        internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileKeeper.Changes(args) && (Mask & 0x3FF) != 0x3FF; }
+        internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
+
+        private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize"; }
 
         internal static bool IsHold(string result) { return result != null && result.StartsWith(Hold, StringComparison.Ordinal); }
 
@@ -549,7 +551,7 @@ namespace CapriDesktop
                 case "run_terminal": return "run terminal command " + (a.Command ?? "") + (string.IsNullOrWhiteSpace(a.Cwd) ? "" : " in " + a.Cwd);
 #endif
                 case "open_app": return "open " + Plain(a.Name, "that app");
-                case "files": return Hands.Keeper.Asking(a);
+                case "files": return Hands.FilesAsked(a);
                 case "open_website":
                     Hands.WebsiteArgs(a);
                     string site = Plain(a.Site, "that site");
@@ -1642,6 +1644,7 @@ namespace CapriDesktop
         internal static Websites Websites;
         internal static FileFinder Finder = new FileFinder();
         internal static FileKeeper Keeper = new FileKeeper(null);
+        internal static string FilesAsked(ToolArguments args) { return Keeper.Asking(args); }
         internal static Func<string, string> Fetch = Download;
         internal static Func<List<OpenWindow>> Windows = ReadWindows;
         internal static Func<OpenWindow, string, bool> Steer = Apply;

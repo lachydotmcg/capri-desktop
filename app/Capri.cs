@@ -2997,6 +2997,7 @@ namespace CapriDesktop
             Hands.Playlist = PlaylistTool;
             Hands.Websites = new Websites(data);
             Hands.Keeper = new FileKeeper(data) { Reveal = delegate(string path) { return Hands.Finder.Reveal(path) ? "Selected " + path + " in File Explorer." : null; } };
+            FileKeeper.Changed = delegate(FileChange change) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFiles(change); } catch (Exception) { } }); };
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
             Hands.GameOpen = delegate { return Computer.GameOpen(); };
