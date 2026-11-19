@@ -2070,7 +2070,7 @@ namespace CapriDesktop
             {
                 if (DesktopPointer(e)) return;
                 pointer = e.GetPosition(this);
-                if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
+                if (!pressed) { if (InControl.On) ForgetStroke(); else Stroke(this.PointToScreen(pointer)); return; }
                 if (Desk is HyprlandDesk) return;
                 PixelPoint at = DragPoint(pointer);
                 int dx = at.X - downAt.X;
@@ -2263,7 +2263,7 @@ namespace CapriDesktop
         internal void Stroke(PixelPoint cursor)
         {
             if (body.HologramOn) return;
-            if (!HeadPats || pressed || dragging || falling || outro != null || Talk.Typing || InControl.On) { ForgetStroke(); return; }
+            if (!HeadPats || pressed || dragging || falling || outro != null || Talk.Typing) { ForgetStroke(); return; }
             // Her window takes the pointer over her see-through edges too, so a pat that overshoots her outline skips that
             // spot instead of starting over.
             if (!Opaque(this.PointToClient(cursor))) return;
