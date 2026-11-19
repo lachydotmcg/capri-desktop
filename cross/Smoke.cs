@@ -4884,6 +4884,7 @@ namespace CapriDesktop
                 LegacyChecks(frame, idle, blue, input);
 
                 CodeModChecks(frame, mods, input);
+                mods.CheckTools(checks, input);
 
                 string skill = Path.Combine(input, "smoke-skill" + Mods.SkillExtension);
                 File.WriteAllText(skill, "---\ncapri-skill: 1\nid: smoke-skill\nname: Smoke skill\ngames: Minecraft\n---\nOnly dig straight down with a ladder.\n");

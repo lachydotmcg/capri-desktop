@@ -132,7 +132,7 @@ namespace CapriDesktop
         internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, ModTools = 13, Count = 14;
 #endif
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your code mods added"
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your mods added"
 #if CROSS
             , "Run terminal commands"
 #endif
@@ -350,7 +350,7 @@ namespace CapriDesktop
                 case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
                 case "updates": return action == "install" ? Open : -1;
                 // A code mod's tool can do anything its code does, so it has its own toggle, off on Lockdown and Guarded.
-                case "mod": return ModTools;
+                case "mod": case "make_tool": return ModTools;
                 case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": case "playlist": return -1;
                 default: return -1;
             }
@@ -650,6 +650,7 @@ namespace CapriDesktop
                 case "pc_status": return "check how your PC is doing";
                 case "internet_status": return "check your internet";
                 case "mod": return "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
+                case "make_tool": return "write a new tool for you to check in Mods";
                 default: return "do that";
             }
         }
@@ -810,6 +811,8 @@ namespace CapriDesktop
         internal static bool Skilled { get { return SkillNote().Length > 0; } }
         internal const string SkillDescription = "Read one of your skills in full, by its title or id: know-how someone wrote that they turned on in Mods. Read one when it fits what they ask or what you're doing.";
         internal const string SkillSchema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The skill's title or id\"}},\"required\":[\"name\"]}";
+        internal const string MakeToolDescription = "Write a new tool for yourself when they ask you to make one that looks something up on the web. Pass the whole tool as JSON in text, like {\"format\":1,\"id\":\"word-meaning\",\"name\":\"What a word means\",\"description\":\"When to use it\",\"takes\":\"One English word\",\"domains\":[\"api.dictionaryapi.dev\"],\"steps\":[{\"get\":\"https://api.dictionaryapi.dev/api/v2/entries/en/{text}\",\"keep\":{\"meaning\":\"[0].meanings[0].definitions[0].definition\"}}],\"say\":\"{text}: {meaning}\"}. Use 1 to 3 https GET steps, only to hosts in domains, and only free JSON APIs that need no key. It's saved switched off, and they turn it on in Mods. Never make one that sends, posts, buys or needs a password or key.";
+        internal const string MakeToolSchema = "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The whole tool as JSON\"}},\"required\":[\"text\"]}";
 
 #if CROSS
         private const string MiniNote = "";
@@ -1356,6 +1359,7 @@ namespace CapriDesktop
             { "stopwatch", "Start, check or stop their stopwatch, which counts up from when it starts. There's one stopwatch, with no laps. Starting it while it runs says how long it's been. A timer that counts down is a reminder: use remind.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
             { "read_skill", SkillDescription, SkillSchema, "read the skills you turned on in Mods", "read one of your skills in full" },
+            { "make_tool", MakeToolDescription, MakeToolSchema, "write new look-up tools for yourself, which they turn on in Mods", "make look-up tools" },
             { "game_notes",
 #if CROSS
               "Keep controls or instructions the user teaches you for a game, or read them back. Keep their actual controls in text.",
@@ -1909,8 +1913,17 @@ namespace CapriDesktop
                 if (unable != null) return unable;
                 if (tool == "mod")
                 {
-                    Func<string, string, string> run = RunModTool;
-                    return run == null ? "No mod has added that." : run(args.Name, args.Text ?? "");
+                    Func<string, string, string> run = RunModTool, recipe = RunRecipe;
+                    string name = args.Name;
+                    string said = recipe == null || Array.Exists(ToolsFrom(ModTools), one => one[0] == name) ? null : recipe(name, args.Text ?? "");
+                    if (said != null) return said;
+                    return run == null ? "No mod has added that." : run(name, args.Text ?? "");
+                }
+                if (tool == "make_tool")
+                {
+                    Func<string, string> make = MakeTool;
+                    if (!Valid(tool, args)) return "Couldn't make a tool: pass the whole tool as JSON in text.";
+                    return make == null ? "Making tools isn't set up here." : make(args.Text);
                 }
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
 #if CROSS
@@ -2233,11 +2246,26 @@ namespace CapriDesktop
         internal static Func<string[][]> ModTools;
         // Runs a mod's tool by name with its text, and gives back what it said.
         internal static Func<string, string, string> RunModTool;
+        // The tools her tool mods add, the same shape, and the way to run one: null when no tool mod has that name. A code mod's
+        // tool keeps its name if a tool mod picks the same one.
+        internal static Func<string[][]> RecipeTools;
+        internal static Func<string, string, string> RunRecipe;
+        // Saves a tool mod she wrote, switched off, and says what happened.
+        internal static Func<string, string> MakeTool;
         private static readonly string[][] NoModTools = new string[0][];
 
         private static string[][] ModToolsNow()
         {
-            Func<string[][]> tools = ModTools;
+            string[][] coded = ToolsFrom(ModTools), recipes = ToolsFrom(RecipeTools);
+            if (recipes.Length == 0) return coded;
+            List<string[]> all = new List<string[]>(coded);
+            foreach (string[] recipe in recipes)
+                if (!all.Exists(tool => tool[0] == recipe[0])) all.Add(recipe);
+            return all.ToArray();
+        }
+
+        private static string[][] ToolsFrom(Func<string[][]> tools)
+        {
             if (tools == null) return NoModTools;
             try { return tools() ?? NoModTools; }
             catch (Exception) { return NoModTools; }
@@ -2331,6 +2359,7 @@ namespace CapriDesktop
         private static List<string[]> Missing(bool blind)
         {
             List<string[]> missing = new List<string[]>();
+            if (MakeTool == null) missing.Add(new[] { "make_tool", "making tools isn't set up here" });
             if (blind)
             {
                 missing.Add(new[] { "look_at_screen", NoSight });
@@ -4514,6 +4543,7 @@ namespace CapriDesktop
             if (args == null) return false;
             if (tool == "read_skill") return Named(args.Name);
             if (tool == "mod") return Named(args.Name);
+            if (tool == "make_tool") return !string.IsNullOrWhiteSpace(args.Text);
             if (tool == "mini_game")
             {
                 bool chess = args.Name == "chess";

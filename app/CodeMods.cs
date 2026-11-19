@@ -313,6 +313,7 @@ namespace CapriDesktop
             Look(read, text);
             bool stay = keepOff != null && keepOff.Contains(read.Id);
             if (!ask(read, hash)) return null;
+            offThisRun.Remove(read.Id);
             ICapriMod made = Compile(text);
             string home = Path.Combine(folder, read.Id + CodeExtension);
             try
@@ -360,7 +361,10 @@ namespace CapriDesktop
             CheckPlatform(Words(bytes));
             if (!same) Look(mod.File, Words(bytes));
             if (!same && !ask(mod.File, hash)) return false;
-            ICapriMod made = Compile(Words(bytes));
+            MarkStarting(mod.File.Id, true);
+            ICapriMod made;
+            try { made = Compile(Words(bytes)); }
+            catch (ModException) { MarkStarting(mod.File.Id, false); throw; }
             StartOne(mod.File.Id, made);
             if (!same) Approve(mod.File.Id, hash);
             if (off.Remove(mod.File.Id)) WriteOff(off);
@@ -449,6 +453,7 @@ namespace CapriDesktop
             string missing = MissingRequired(id);
             if (missing != null) { Unload(made); throw new ModException("That mod needs " + missing + " installed and on first."); }
             ICapriHost host = HostFor(id);
+            MarkStarting(id, true);
             try { made.Start(host); }
             catch (Exception error)
             {
@@ -457,6 +462,7 @@ namespace CapriDesktop
                 Brain.Log("mod " + id, -1, Inner(error).ToString());
                 throw new ModException("That mod failed while starting: " + Inner(error).Message);
             }
+            finally { MarkStarting(id, false); }
             running[id] = made;
             hosts[id] = host;
         }
@@ -501,6 +507,7 @@ namespace CapriDesktop
                     {
                         byte[] bytes = File.ReadAllBytes(starting.Path);
                         if (HashOf(bytes) != starting.Hash) throw new ModException("it changed after it was approved.");
+                        MarkStarting(starting.File.Id, true);
                         ICapriMod made = Compile(Words(bytes));
                         onWindow(delegate
                         {
@@ -512,6 +519,7 @@ namespace CapriDesktop
                     {
                         if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
                         Exception failed = error;
+                        MarkStarting(starting.File.Id, false);
                         onWindow(delegate { StartFailed(starting, failed); });
                     }
                 }

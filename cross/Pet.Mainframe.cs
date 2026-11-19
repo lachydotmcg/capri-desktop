@@ -21,6 +21,10 @@ namespace CapriDesktop
             Chores.Skills = ModList.SkillsFor;
             Hands.SkillNote = delegate { return ModList.SkillNote; };
             Hands.ReadSkill = ModList.SkillText;
+            ModList.OnWindow = action => Dispatcher.UIThread.Post(() => Program.Guard(action));
+            Hands.RecipeTools = ModList.RecipeTools;
+            Hands.RunRecipe = ModList.RunRecipe;
+            Hands.MakeTool = ModList.MakeTool;
             ModList.SkinChanged = Reskinned;
             Reskinned();
             StartCodeMods();
