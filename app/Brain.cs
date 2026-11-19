@@ -2743,7 +2743,7 @@ namespace CapriDesktop
                 // Her brain says "act" when this is a job, in whatever language they said it. A brain that holds her tools then works it
                 // out with every one of them. Otherwise her hands find what to do, with a second look at every tool when the first finds
                 // nothing, and if that finds nothing too she just answers, unless they're in a game or plainly asked.
-                if (act != null && !fileChat && (Hands.Handed(Clean(raw)) || Hands.Echoed(Clean(raw), request)))
+                if (act != null && !fileChat && (Hands.Handed(Clean(raw)) || Hands.Echoed(Clean(raw), request) && (Hands.Wants(request) || Hands.Heard(request, out direct, out directArgs, true))))
                 {
                     if (chatFirst && workOut()) { if (calls.Count == 0) raw = planText; }
                     else
@@ -3060,7 +3060,7 @@ namespace CapriDesktop
                 {
                     // "Reminder set" with no remind behind it is a claim even after other tools ran this turn (F69, pass 4).
                     string claimed = Hands.Claimed(said, calls);
-                    bool promised = calls.Count == 0 && (Hands.Promised(said) || Hands.Handed(said));
+                    bool promised = calls.Count == 0 && (Hands.Promised(said) || Hands.Handed(said) || Hands.Echoed(said, request) || Hands.Underway(said) && Hands.Requested(request));
                     if (claimed == null && !promised) return raw;
                     if (reminded) return claimed == null ? Hands.Unpromised : Hands.Unclaimed(said, calls) ?? (calls.Count > 0 ? null : Hands.NotYet(claimed, kit));
                     reminded = true;
