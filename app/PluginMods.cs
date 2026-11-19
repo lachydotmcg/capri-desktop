@@ -633,15 +633,17 @@ namespace CapriDesktop
             foreach (string reach in mod.Reaches ?? new string[0]) reaches += "\n- " + reach;
             string skillsLine = mod.SkillNames == null || mod.SkillNames.Length == 0 ? "" : "It also has " + (mod.SkillNames.Length == 1 ? "a skill" : mod.SkillNames.Length + " skills") + ", " + Listed(mod.SkillNames) + ": know-how she reads when it fits. Nothing in a skill runs.\n\n";
             bool reviewed = ModDirectory.Fetched(hash);
-            bool local = false, online = false;
+            bool local = false, online = false, inside = false;
             foreach (string reach in mod.Reaches ?? new string[0])
             {
                 if (reach.StartsWith("starts ", StringComparison.Ordinal)) local = true;
                 else if (reach.StartsWith("connects to ", StringComparison.Ordinal)) online = true;
+                else if (reach.StartsWith("uses Capri's own ", StringComparison.Ordinal)) inside = true;
             }
-            string run = (local || !online ? "Those programs run outside Capri with your account's access to your PC, your files and your accounts. They get none of her keys, and none of your PC's other key, token and password settings unless it names them above. " : "")
+            string run = (inside && !local && !online ? "Its tools run inside Capri, and they reach only the accounts you set up for them in Capri. " : "")
+                + (local || !online && !inside ? "Those programs run outside Capri with your account's access to your PC, your files and your accounts. They get none of her keys, and none of your PC's other key, token and password settings unless it names them above. " : "")
                 + (online ? (local ? "The online ones run on their makers' computers, not this PC: " : "It runs on its maker's computers, not this PC: ") + "you sign in to them in your browser, and " + (McpSignIn.Keeps ? "Capri keeps that sign-in on this PC, protected by Windows, until you remove the plug-in" : "Capri keeps that sign-in only until she closes") + ". While you're signed in her tools there can do whatever that account lets them, and what she sends them leaves this PC. " : "")
-                + "She refuses any call that would send one of her keys. Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + ". She can't see or limit what " + (online ? "they do by themselves" : "the program does by itself") + ".\n\n";
+                + "She refuses any call that would send one of her keys. Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + "." + (inside && !local && !online ? "" : " She can't see or limit what " + (online ? "they do by themselves" : "the program does by itself") + ".") + "\n\n";
             return mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a plug-in that gives her tools.\n\n"
                 + (reviewed ? Reviewed : "")
                 + "To get them, Capri:" + reaches + "\n\n"
