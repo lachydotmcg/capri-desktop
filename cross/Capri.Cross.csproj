@@ -59,6 +59,8 @@
     <Compile Include="../app/Plugins.cs" Link="Shared/Plugins.cs" />
     <Compile Include="../app/PluginJson.cs" Link="Shared/PluginJson.cs" />
     <Compile Include="../app/Mcp.cs" Link="Shared/Mcp.cs" />
+    <Compile Include="../app/McpOnline.cs" Link="Shared/McpOnline.cs" />
+    <Compile Include="../app/McpSignIn.cs" Link="Shared/McpSignIn.cs" />
     <Compile Include="../app/PluginChecks.cs" Link="Shared/PluginChecks.cs" />
     <Compile Include="../app/MailMime.cs" Link="Shared/MailMime.cs" />
     <Compile Include="../app/MailBox.cs" Link="Shared/MailBox.cs" />

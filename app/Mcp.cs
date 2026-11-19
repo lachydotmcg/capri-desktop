@@ -15,6 +15,11 @@ namespace CapriDesktop
         internal string[] Args = new string[0];
         internal string Cwd;
         internal Dictionary<string, string> Env = new Dictionary<string, string>(StringComparer.Ordinal);
+        internal string Url, BuiltIn;
+        internal bool Legacy;
+        internal Dictionary<string, string> Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        internal bool Online { get { return Url != null; } }
 
         private static string Shown(string text) { return Regex.Replace(text ?? "", @"\$\{(?:CLAUDE|CAPRI)_PLUGIN_ROOT\}", "<its folder>"); }
 
@@ -29,14 +34,127 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class McpException : Exception
+    internal class McpException : Exception
     {
         internal McpException(string message) : base(message) { }
     }
 
-    internal sealed class McpServer : IDisposable
+    internal sealed class McpSignInNeeded : McpException
+    {
+        internal const string Said = "sign in";
+        internal McpSignInNeeded() : base(Said) { }
+    }
+
+    internal abstract class McpLink : IDisposable
     {
         internal const string Protocol = "2025-06-18";
+        internal DateTime Used = DateTime.UtcNow;
+        internal volatile bool Stale;
+        internal string Version, Instructions;
+
+        internal abstract string Name { get; }
+        internal abstract bool Alive { get; }
+        internal abstract string Errors { get; }
+        internal abstract void Start(int timeout);
+        internal abstract object Request(string method, object parameters, int timeout);
+        public abstract void Dispose();
+
+        internal virtual List<Dictionary<string, object>> Tools(int timeout)
+        {
+            List<Dictionary<string, object>> found = new List<Dictionary<string, object>>();
+            string cursor = null;
+            for (int page = 0; page < 10; page++)
+            {
+                object answer = Request("tools/list", cursor == null ? PluginJson.Make() : PluginJson.Make("cursor", cursor), timeout);
+                List<object> tools = PluginJson.List(PluginJson.Get(answer, "tools"));
+                if (tools != null) foreach (object tool in tools) { Dictionary<string, object> one = PluginJson.Map(tool); if (one != null && PluginJson.Str(one, "name") != null) found.Add(one); }
+                cursor = PluginJson.Str(answer, "nextCursor");
+                if (string.IsNullOrEmpty(cursor)) break;
+            }
+            Stale = false;
+            return found;
+        }
+
+        internal virtual object Call(string tool, Dictionary<string, object> arguments, int timeout)
+        {
+            Used = DateTime.UtcNow;
+            object answer = Request("tools/call", PluginJson.Make("name", tool, "arguments", arguments ?? PluginJson.Make()), timeout);
+            Used = DateTime.UtcNow;
+            return answer;
+        }
+
+        internal static object InitializeParams()
+        {
+            return PluginJson.Make("protocolVersion", Protocol, "capabilities", PluginJson.Make(), "clientInfo", PluginJson.Make("name", "capri", "version", typeof(McpLink).Assembly.GetName().Version.ToString(3)));
+        }
+    }
+
+    internal sealed class McpBuiltIn : McpLink
+    {
+        private readonly string name;
+        private readonly Func<List<Dictionary<string, object>>> list;
+        private readonly Func<string, Dictionary<string, object>, object> run;
+        private bool ended;
+
+        internal McpBuiltIn(string named, Func<List<Dictionary<string, object>>> tools, Func<string, Dictionary<string, object>, object> call)
+        {
+            name = named;
+            list = tools;
+            run = call;
+        }
+
+        internal override string Name { get { return name; } }
+        internal override bool Alive { get { return !ended; } }
+        internal override string Errors { get { return ""; } }
+        internal override void Start(int timeout) { }
+        public override void Dispose() { ended = true; }
+
+        internal override List<Dictionary<string, object>> Tools(int timeout)
+        {
+            List<Dictionary<string, object>> found = new List<Dictionary<string, object>>();
+            try
+            {
+                foreach (Dictionary<string, object> tool in list() ?? new List<Dictionary<string, object>>()) if (tool != null && PluginJson.Str(tool, "name") != null) found.Add(tool);
+            }
+            catch (McpException) { throw; }
+            catch (Exception error) { throw new McpException(name + " couldn't list its tools: " + error.Message); }
+            Stale = false;
+            return found;
+        }
+
+        internal override object Request(string method, object parameters, int timeout)
+        {
+            if (ended) throw new McpException(name + " isn't running.");
+            if (method == "tools/list")
+            {
+                List<object> all = new List<object>();
+                foreach (Dictionary<string, object> tool in Tools(timeout)) all.Add(tool);
+                return PluginJson.Make("tools", all);
+            }
+            if (method == "tools/call") return Call(PluginJson.Str(parameters, "name"), PluginJson.Map(PluginJson.Get(parameters, "arguments")), timeout);
+            if (method == "ping") return PluginJson.Make();
+            throw new McpException(name + " doesn't offer " + method + ".");
+        }
+
+        internal override object Call(string tool, Dictionary<string, object> arguments, int timeout)
+        {
+            if (ended) throw new McpException(name + " isn't running.");
+            Used = DateTime.UtcNow;
+            object answer;
+            try { answer = run(tool, arguments ?? PluginJson.Make()); }
+            catch (McpException) { throw; }
+            catch (Exception error) { throw new McpException(name + " couldn't do that: " + error.Message); }
+            Used = DateTime.UtcNow;
+            string text = answer as string;
+            if (text != null) return PluginJson.Make("content", new List<object> { PluginJson.Make("type", "text", "text", text) });
+            Dictionary<string, object> made = PluginJson.Map(answer);
+            if (made != null && (made.ContainsKey("content") || made.ContainsKey("structuredContent"))) return made;
+            return PluginJson.Make("content", new List<object> { PluginJson.Make("type", "text", "text", PluginJson.Write(answer)) });
+        }
+    }
+
+    internal sealed class McpServer : McpLink
+    {
         private const int MostLine = 4 * 1024 * 1024, MostErrors = 4000;
         private readonly PluginServer spec;
         private readonly string root;
@@ -47,9 +165,6 @@ namespace CapriDesktop
         private Stream input;
         private long next;
         private bool ended, started;
-        internal DateTime Used = DateTime.UtcNow;
-        internal volatile bool Stale;
-        internal string Version, Instructions;
 
         private sealed class Reply
         {
@@ -64,15 +179,15 @@ namespace CapriDesktop
             root = pluginRoot;
         }
 
-        internal string Name { get { return spec.Name; } }
+        internal override string Name { get { return spec.Name; } }
 
-        internal bool Alive { get { lock (gate) return started && !ended; } }
+        internal override bool Alive { get { lock (gate) return started && !ended; } }
 
-        internal string Errors { get { lock (errors) return errors.ToString().Trim(); } }
+        internal override string Errors { get { lock (errors) return errors.ToString().Trim(); } }
 
         internal static bool OnWindows { get { return Environment.OSVersion.Platform == PlatformID.Win32NT; } }
 
-        internal void Start(int timeout)
+        internal override void Start(int timeout)
         {
             lock (gate)
             {
@@ -98,7 +213,7 @@ namespace CapriDesktop
             reader.Start();
             Thread drain = new Thread(delegate() { Drain(made.StandardError); }) { IsBackground = true, Name = "Capri plug-in errors " + spec.Name };
             drain.Start();
-            object answer = Request("initialize", PluginJson.Make("protocolVersion", Protocol, "capabilities", PluginJson.Make(), "clientInfo", PluginJson.Make("name", "capri", "version", typeof(McpServer).Assembly.GetName().Version.ToString(3))), timeout);
+            object answer = Request("initialize", InitializeParams(), timeout);
             Version = PluginJson.Str(answer, "protocolVersion");
             Instructions = PluginJson.Str(answer, "instructions");
             Notify("notifications/initialized", null);
@@ -215,31 +330,7 @@ namespace CapriDesktop
             return made.ToString();
         }
 
-        internal List<Dictionary<string, object>> Tools(int timeout)
-        {
-            List<Dictionary<string, object>> found = new List<Dictionary<string, object>>();
-            string cursor = null;
-            for (int page = 0; page < 10; page++)
-            {
-                object answer = Request("tools/list", cursor == null ? PluginJson.Make() : PluginJson.Make("cursor", cursor), timeout);
-                List<object> tools = PluginJson.List(PluginJson.Get(answer, "tools"));
-                if (tools != null) foreach (object tool in tools) { Dictionary<string, object> one = PluginJson.Map(tool); if (one != null && PluginJson.Str(one, "name") != null) found.Add(one); }
-                cursor = PluginJson.Str(answer, "nextCursor");
-                if (string.IsNullOrEmpty(cursor)) break;
-            }
-            Stale = false;
-            return found;
-        }
-
-        internal object Call(string tool, Dictionary<string, object> arguments, int timeout)
-        {
-            Used = DateTime.UtcNow;
-            object answer = Request("tools/call", PluginJson.Make("name", tool, "arguments", arguments ?? PluginJson.Make()), timeout);
-            Used = DateTime.UtcNow;
-            return answer;
-        }
-
-        internal object Request(string method, object parameters, int timeout)
+        internal override object Request(string method, object parameters, int timeout)
         {
             Reply reply = new Reply();
             long id;
@@ -391,7 +482,7 @@ namespace CapriDesktop
                 }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             Process running;
             Stream to;

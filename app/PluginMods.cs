@@ -284,7 +284,12 @@ namespace CapriDesktop
             List<Mod> skills = ReadSkills(root, manifest, read);
             if (servers.Count == 0 && skills.Count == 0) throw new ModException("That plug-in has nothing Capri can use yet. It needs a .mcp.json with a server she starts, or skills in skills/<name>/SKILL.md." + (warnings.Count > 0 ? " Capri " + warnings[0] + "." : ""));
             List<string> reaches = new List<string>();
-            foreach (PluginServer server in servers) reaches.Add("starts " + Plugins.Line(server.Line, 200) + (Unpinned(server) ? ", which downloads the newest version each time it starts, so what runs can change after you say yes" : ""));
+            foreach (PluginServer server in servers)
+            {
+                if (server.Online) reaches.Add("connects to " + McpHttp.Shown(server.Url) + " online, and you sign in to it in your browser");
+                else if (server.BuiltIn != null) reaches.Add("uses Capri's own " + Plugins.Line(server.BuiltIn, 40) + " tools, which work with the accounts you've set up in Capri");
+                else reaches.Add("starts " + Plugins.Line(server.Line, 200) + (Unpinned(server) ? ", which downloads the newest version each time it starts, so what runs can change after you say yes" : ""));
+            }
             reaches.AddRange(warnings);
             read.Permissions = permissions.ToArray();
             read.Reaches = reaches.ToArray();
@@ -355,15 +360,44 @@ namespace CapriDesktop
             if (all == null) throw new ModException("Its MCP file needs an mcpServers object, like Claude's .mcp.json.");
             foreach (KeyValuePair<string, object> pair in all)
             {
-                string type = (PluginJson.Str(pair.Value, "type") ?? "stdio").ToLowerInvariant();
-                string command = PluginJson.Str(pair.Value, "command");
-                if (type != "stdio" || command == null)
+                string command = PluginJson.Str(pair.Value, "command"), address = PluginJson.Str(pair.Value, "url");
+                string type = (PluginJson.Str(pair.Value, "type") ?? (command == null && address != null ? "http" : "stdio")).ToLowerInvariant();
+                bool online = type == "http" || type == "streamable-http" || type == "sse", inside = type == "capri";
+                if (!online && !inside && (type != "stdio" || command == null))
                 {
-                    warnings.Add("leaves out " + Plugins.Line(pair.Key, 40) + ", a server that runs online (" + (PluginJson.Str(pair.Value, "url") == null ? type : "a URL") + "): she only uses servers she starts on this PC for now");
+                    warnings.Add("leaves out " + Plugins.Line(pair.Key, 40) + ", a server of a kind (" + Plugins.Line(type, 20) + ") she doesn't use");
                     continue;
                 }
                 if (servers.Count == MostServers) throw new ModException("A plug-in can start up to " + MostServers + " servers.");
                 if (!Regex.IsMatch(pair.Key, @"^[A-Za-z0-9][A-Za-z0-9 ._-]{0,39}$")) throw new ModException("\"" + pair.Key + "\" can't be a server's name. Use letters, numbers, dots, dashes and underscores.");
+                if (online)
+                {
+                    if (address == null || !McpHttp.Allowed(address))
+                    {
+                        warnings.Add("leaves out " + Plugins.Line(pair.Key, 40) + ", a server at " + Plugins.Line(address ?? "no address", 80) + " that isn't secure (https)");
+                        continue;
+                    }
+                    PluginServer web = new PluginServer { Name = pair.Key, Url = address, Legacy = type == "sse" };
+                    Dictionary<string, object> sent = PluginJson.Map(PluginJson.Get(pair.Value, "headers"));
+                    if (sent != null)
+                    {
+                        if (sent.Count > 16) throw new ModException(pair.Key + " can send up to 16 headers.");
+                        foreach (KeyValuePair<string, object> value in sent)
+                        {
+                            if (!Regex.IsMatch(value.Key, @"^[A-Za-z0-9-]{1,64}$") || McpHttp.ReservedHeader(value.Key) || !(value.Value is string)) throw new ModException(pair.Key + "'s headers must be ordinary header names with text values.");
+                            web.Headers[value.Key] = (string)value.Value;
+                        }
+                    }
+                    servers.Add(web);
+                    continue;
+                }
+                if (inside)
+                {
+                    string built = (PluginJson.Str(pair.Value, "builtin") ?? "").Trim();
+                    if (!Regex.IsMatch(built, @"^[a-z0-9][a-z0-9_-]{0,39}$")) throw new ModException(pair.Key + " needs a builtin name, like \"mail\".");
+                    servers.Add(new PluginServer { Name = pair.Key, BuiltIn = built });
+                    continue;
+                }
                 PluginServer server = new PluginServer { Name = pair.Key, Command = command, Cwd = PluginJson.Str(pair.Value, "cwd") };
                 List<string> args = new List<string>();
                 foreach (object arg in PluginJson.List(PluginJson.Get(pair.Value, "args")) ?? new List<object>())
@@ -584,12 +618,21 @@ namespace CapriDesktop
             foreach (string reach in mod.Reaches ?? new string[0]) reaches += "\n- " + reach;
             string skillsLine = mod.SkillNames == null || mod.SkillNames.Length == 0 ? "" : "It also has " + (mod.SkillNames.Length == 1 ? "a skill" : mod.SkillNames.Length + " skills") + ", " + Listed(mod.SkillNames) + ": know-how she reads when it fits. Nothing in a skill runs.\n\n";
             bool reviewed = ModDirectory.Fetched(hash);
+            bool local = false, online = false;
+            foreach (string reach in mod.Reaches ?? new string[0])
+            {
+                if (reach.StartsWith("starts ", StringComparison.Ordinal)) local = true;
+                else if (reach.StartsWith("connects to ", StringComparison.Ordinal)) online = true;
+            }
+            string run = (local || !online ? "Those programs run outside Capri with your account's access to your PC, your files and your accounts. " : "")
+                + (online ? (local ? "The online ones run on their makers' computers, not this PC: " : "It runs on its maker's computers, not this PC: ") + "you sign in to them in your browser, and " + (McpSignIn.Keeps ? "Capri keeps that sign-in on this PC, protected by Windows, until you remove the plug-in" : "Capri keeps that sign-in only until she closes") + ". While you're signed in her tools there can do whatever that account lets them, and what she sends them leaves this PC. " : "")
+                + "Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + ". She can't see or limit what " + (online ? "they do by themselves" : "the program does by itself") + ".\n\n";
             return mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a plug-in that gives her tools.\n\n"
                 + (reviewed ? Reviewed : "")
                 + "To get them, Capri:" + reaches + "\n\n"
                 + (asks.Length == 0 ? "It doesn't say what its tools do on your PC.\n\n" : "It says its tools:" + asks + "\n\n")
                 + skillsLine
-                + "Those programs run outside Capri with your account's access to your PC, your files and your accounts. Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + ". She can't see or limit what the program does by itself.\n\n"
+                + run
                 + (reviewed ? "" : "Only turn it on if you trust who made it.\n\n") + "File fingerprint (SHA-256):\n" + hash + "\n\nTurn this plug-in on?";
         }
 

@@ -25,7 +25,7 @@ namespace CapriDesktop
         {
             List<PluginTool> tools = Plugins.ToolsOf(mod.File.Id);
             string trouble = Plugins.Trouble(mod.File.Id);
-            string what = mod.Info == null || mod.Info.Servers.Length == 0 ? "" : !mod.On ? "" : tools.Count > 0 ? tools.Count + (tools.Count == 1 ? " tool. " : " tools. ") : trouble == "starting" ? "Starting its tools. " : trouble != null ? "Its tools didn't start. " : "";
+            string what = mod.Info == null || mod.Info.Servers.Length == 0 ? "" : !mod.On ? "" : tools.Count > 0 ? tools.Count + (tools.Count == 1 ? " tool. " : " tools. ") : trouble == "starting" ? "Starting its tools. " : trouble == McpSignInNeeded.Said ? "Needs you to sign in. " : trouble != null ? "Its tools didn't start. " : "";
             if (mod.Skills.Length > 0) what += mod.Skills.Length + (mod.Skills.Length == 1 ? " skill. " : " skills. ");
             return "PLUG-IN. " + what;
         }
@@ -56,11 +56,39 @@ namespace CapriDesktop
             string top = tools.Count > 0
                 ? "Like SECURITY asks first the way SECURITY > Use tools your code mods added says, and for tools that change things, Send, post and delete too."
                 : trouble == "starting" ? "Her tools from it are starting. Open this again in a moment."
+                : trouble == McpSignInNeeded.Said ? "It needs you to sign in before her tools from it show. Capri opens your browser for that, and only when you press Sign in."
                 : trouble != null ? "Its tools didn't start: " + trouble
                 : "Her tools from it show here once it has started.";
-            Label head = new Label { Text = top, Font = Type(9f), ForeColor = trouble != null && trouble != "starting" && tools.Count == 0 ? Rose : Faint, AutoSize = false, Bounds = new Rectangle(0, 0, 552, 40), UseMnemonic = false };
+            Label head = new Label { Text = top, Font = Type(9f), ForeColor = trouble != null && trouble != "starting" && trouble != McpSignInNeeded.Said && tools.Count == 0 ? Rose : Faint, AutoSize = false, Bounds = new Rectangle(0, 0, 552, 40), UseMnemonic = false };
             panel.Controls.Add(head);
             int y = 46;
+            if (trouble == McpSignInNeeded.Said)
+            {
+                Key sign = new Key { Bounds = new Rectangle(0, 46, 200, 26), Font = Type(9f), Text = "Sign in", Accent = Cyan };
+                sign.AccessibleName = "Sign in to " + mod.File.Name;
+                sign.Click += delegate
+                {
+                    sign.Text = "Signing in...";
+                    sign.Enabled = false;
+                    Plugins.SignIn(mod.File.Id, delegate(string problem)
+                    {
+                        try
+                        {
+                            BeginInvoke(new Action(delegate
+                            {
+                                if (problem == null) { OpenPluginOptions(mod); return; }
+                                head.Text = "Couldn't sign in: " + problem;
+                                head.ForeColor = Rose;
+                                sign.Text = "Sign in";
+                                sign.Enabled = true;
+                            }));
+                        }
+                        catch (InvalidOperationException) { }
+                    });
+                };
+                panel.Controls.Add(sign);
+                y = 82;
+            }
             foreach (PluginTool tool in tools)
             {
                 PluginTool one = tool;
