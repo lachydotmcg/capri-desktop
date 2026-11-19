@@ -15700,6 +15700,9 @@ namespace CapriDesktop
             callAskTicket = ticket;
             heard = shown;
             box.Prompt = prompt;
+            bool crisis = callReply == null && prompt == "> you: " && !Security.FromMod(input) && Crisis.Means(input);
+            if (crisis) CrisisCard();
+            if (crisis && Think == null && planned.Key == null && (preferences.NoAi || brain.Model == null)) { Answer(ticket, Crisis.Line(Crisis.Region()), TalkState.Talking); return; }
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
@@ -21363,6 +21366,9 @@ namespace CapriDesktop
             if (doomResult != null) throw new Exception(doomResult);
             if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
             checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
+            string crisisResult = Crisis.Check();
+            if (crisisResult != null) throw new Exception(crisisResult);
+            checks.Add("PASS crisis lines: a sincere self-harm message gets a free crisis line for their region beside her own reply, never in place of it, game and song talk doesn't");
             string crashResult = CrashReports.Check();
             if (crashResult != null) throw new Exception(crashResult);
             if (new Preferences().CrashReports || Preferences.Fresh().CrashReports) throw new Exception("Crash reports started on.");
@@ -60785,6 +60791,7 @@ namespace CapriDesktop
                             }
                             if (afterSong != "Sex on Fire is up, choom!" || afterSwear != "Hell yeah, this one slaps like shit." || afterHeavy != "Hey. I'm right here. Talk to me?" || filterHeard.Count != 3 || filterRan.Count != 1 || maskedReply != "Typed " + Computer.Dots + " into the password box.")
                                 throw new Exception("Code screened what they said or rewrote her reply, or a password showed: " + afterSong + " / " + afterSwear + " / " + afterHeavy + " / heard " + filterHeard.Count + " / ran " + filterRan.Count + " / " + maskedReply);
+                            if (CrisisCards != 1) throw new Exception("Her crisis card showed " + CrisisCards + " times for one sincere message and three that weren't.");
                             checks.Add("PASS no code filters: with Blackwall off too, everything they say reaches her brain and her reply comes out as her brain wrote it, since her safety lines are part of her prompt; a typed password still shows as dots in her bubble");
                             Think = null;
                             brain.Model = null;
@@ -60800,6 +60807,11 @@ namespace CapriDesktop
                             finally { Hands.Press = brainlessWas; }
                             if (talkState == TalkState.Dormant || reply != "Turned the volume up." || brainlessKeys.Count != 5 || brainlessKeys[0] != 0xAF) throw new Exception("Volume needed a brain: " + talkState + " / " + reply + " / " + brainlessKeys.Count + " / heard " + heard + " / ticket " + asking + " / model " + (brain.Model ?? "none") + " / speech " + speech);
                             checks.Add("PASS volume without a brain: with no brain set up, \"can you turn the volume up?\" still presses the volume keys and says so");
+                            Hear("i don't want to be here anymore");
+                            Stopwatch crisisless = Stopwatch.StartNew();
+                            while ((talkState == TalkState.Thinking || reply == null) && crisisless.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                            if (reply != Crisis.Line(Crisis.Region()) || CrisisCards != 1) throw new Exception("With no brain, a sincere self-harm message didn't get her crisis line, or its card came twice in ten minutes: " + reply + " / " + CrisisCards);
+                            checks.Add("PASS crisis line without a brain: she answers a sincere self-harm message with a free crisis line herself, and the card doesn't repeat within ten minutes");
                             Hear("dance for me");
                             Stopwatch danceless = Stopwatch.StartNew();
                             while ((talkState == TalkState.Thinking || reply == null) && danceless.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
