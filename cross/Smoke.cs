@@ -805,6 +805,7 @@ namespace CapriDesktop
                 MacClickChecks();
                 MacRoutes.Checks(checks);
                 LinuxRoutes.Checks(checks);
+                OwnEngineChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -6169,6 +6170,59 @@ namespace CapriDesktop
                 return new MacFiles.Reply { Text = string.Join("\f", text) + "\f" };
             }
             throw new Exception("A file check reached a real command: " + start.FileName);
+        }
+
+        private void OwnEngineChecks()
+        {
+            System.Runtime.InteropServices.Architecture arm = System.Runtime.InteropServices.Architecture.Arm64, x64 = System.Runtime.InteropServices.Architecture.X64;
+            EngineAsset macArm = Engine.AssetFor(true, false, arm), macIntel = Engine.AssetFor(true, false, x64), linuxIntel = Engine.AssetFor(false, true, x64), linuxArm = Engine.AssetFor(false, true, arm);
+            if (macArm == null || macIntel == null || linuxIntel == null || linuxArm == null) throw new Exception("A Mac or Linux build has no llama.cpp download.");
+            if (Engine.AssetFor(false, false, x64) != null || Engine.AssetFor(true, false, System.Runtime.InteropServices.Architecture.X86) != null) throw new Exception("An unsupported computer got a llama.cpp download.");
+            foreach (EngineAsset asset in Engine.Assets)
+                if (!asset.Url.StartsWith("https://github.com/ggml-org/llama.cpp/releases/download/" + Engine.Build + "/", StringComparison.Ordinal) || !asset.Url.EndsWith("-bin-" + asset.Name + ".tar.gz", StringComparison.Ordinal) || !Regex.IsMatch(asset.Sha256, "^[0-9a-f]{64}$") || asset.Size < (1 << 20)) throw new Exception("A llama.cpp download isn't pinned: " + asset.Name);
+            if (macArm.Name != "macos-arm64" || macIntel.Name != "macos-x64" || linuxIntel.Name != "ubuntu-x64" || linuxArm.Name != "ubuntu-arm64" || linuxIntel.Url.Contains("vulkan")) throw new Exception("The llama.cpp pick for a platform is wrong.");
+            checks.Add("PASS own brain downloads: Mac arm64 and x64 and Linux x64 and arm64 each pick their pinned llama.cpp " + Engine.Build + " tar.gz with a SHA-256 and size (Linux x64 takes the CPU build), and anything else gets none");
+            Pick small = Engine.Fit(new Machine { Ram = 8L << 30 }), big = Engine.Fit(new Machine { Ram = 24L << 30, Vram = 16L << 30 });
+            if (small != Engine.Picks[1] || big != Engine.Picks[0]) throw new Exception("The model fit for a Mac or Linux computer is wrong.");
+            string work = Path.Combine(folder, "own-engine-check");
+            if (Directory.Exists(work)) Directory.Delete(work, true);
+            Directory.CreateDirectory(work);
+            string archive = Path.Combine(work, "tiny.tar.gz");
+            using (FileStream file = File.Create(archive))
+            using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(file, System.IO.Compression.CompressionLevel.Optimal))
+            using (System.Formats.Tar.TarWriter tar = new System.Formats.Tar.TarWriter(gzip))
+            {
+                string[] names = { "llama-b0/llama-server", "llama-b0/libggml.so", "llama-b0/LICENSE" };
+                foreach (string name in names)
+                {
+                    System.Formats.Tar.PaxTarEntry entry = new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, name);
+                    entry.DataStream = new MemoryStream(Encoding.ASCII.GetBytes("#!/bin/sh\necho engine-ran\n"));
+                    if (!OperatingSystem.IsWindows()) entry.Mode = (UnixFileMode)Convert.ToInt32("644", 8);
+                    tar.WriteEntry(entry);
+                }
+            }
+            string target = Path.Combine(work, "engine");
+            Engine.Unpack(archive, target);
+            string server = Path.Combine(target, "llama-server");
+            if (!File.Exists(server) || !File.Exists(Path.Combine(target, "LICENSE"))) throw new Exception("The tiny engine archive didn't unpack its top folder flat.");
+            if (!OperatingSystem.IsWindows())
+            {
+                UnixFileMode run = UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+                if ((File.GetUnixFileMode(server) & run) != run || (File.GetUnixFileMode(Path.Combine(target, "libggml.so")) & run) != run) throw new Exception("The unpacked llama-server isn't executable.");
+                if ((File.GetUnixFileMode(Path.Combine(target, "LICENSE")) & UnixFileMode.UserExecute) != 0) throw new Exception("A plain file in the engine became executable.");
+                ProcessStartInfo info = new ProcessStartInfo(server) { UseShellExecute = false, RedirectStandardOutput = true };
+                using (Process started = Process.Start(info))
+                {
+                    string said = started.StandardOutput.ReadToEnd();
+                    started.WaitForExit(5000);
+                    if (said.Trim() != "engine-ran") throw new Exception("The unpacked llama-server didn't start: " + said);
+                }
+                checks.Add("PASS own brain unpack: a tiny generated tar.gz unpacks flat into her data folder, llama-server and its libraries get the executable bit while plain files don't, and the unpacked server starts");
+            }
+            else checks.Add("LIMIT own brain unpack: executable bits and starting the server are Mac and Linux only");
+            Directory.Delete(work, true);
+            if (!Pet.BrainViaEngine(false, true) || Pet.BrainViaEngine(true, true) || Pet.BrainViaEngine(false, false)) throw new Exception("Set up her brain chose the wrong path for Ollama being up or down.");
+            checks.Add("PASS own brain setup: with no Ollama reachable Set up her brain downloads her own llama.cpp engine and model, with Ollama running it keeps pulling through Ollama, and a computer with no engine download falls back to Ollama");
         }
 
         private void BrainlessFileChecks(string path)
