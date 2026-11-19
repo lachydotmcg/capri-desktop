@@ -40941,7 +40941,7 @@ namespace CapriDesktop
                 Brain.Nvidia = FakeServer(new[] { LocalReply("A grey hoodie.") }, requests, out server);
                 Think = delegate(string words) { given = words; return "Nice hoodie."; };
                 before = asking;
-                RemotePictureHeard("phoneA", "picture-live", "what am I holding?", received, null, null, true);
+                RemotePictureTurn("phoneA", "picture-live", "what am I holding?", received, null, null, true);
                 WaitVoice(delegate { return tap.Count > 0; }, "A look from a call got no reply.");
                 string liveExpected = "what am I holding? [picture]\n\n" + RemotePictures.LiveDescription + "A grey hoodie.";
                 if (given != liveExpected || !given.Contains("Live video call") || given.Contains(encoded) || requests.Count != 1 || !requests[0].Contains("\"type\":\"image_url\"") || tap.Take() != "reply phoneA picture-live done: Nice hoodie.") throw new Exception("A look from a call lost its words, its picture or its live note.");
@@ -40950,7 +40950,7 @@ namespace CapriDesktop
                 given = null;
                 Think = delegate(string words) { given = words; return "Looking good."; };
                 before = asking;
-                RemotePictureHeard("phoneA", "picture-live-blind", "how do I look?", received, null, null, true);
+                RemotePictureTurn("phoneA", "picture-live-blind", "how do I look?", received, null, null, true);
                 WaitVoice(delegate { return tap.Count > 0; }, "A look from a call to a brain that can't see got no reply.");
                 if (given != "how do I look?" || requests.Count != 1 || tap.Take() != "reply phoneA picture-live-blind done: Looking good.") throw new Exception("A call's look to a brain that can't see sent its sightless line or not the words alone.");
                 CloseTalk();

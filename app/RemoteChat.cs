@@ -385,10 +385,15 @@ namespace CapriDesktop
         private void RemoteLooked(string device, string id, string text, RemotePicture picture)
         {
             phoneHeardAt = DateTime.Now;
-            RemotePictureHeard(device, id, text, picture, null, null, true);
+            RemotePictureTurn(device, id, text, picture, null, null, true);
         }
 
-        private void RemotePictureHeard(string device, string id, string text, RemotePicture picture, Func<bool> current = null, Action done = null, bool live = false)
+        private void RemotePictureHeard(string device, string id, string text, RemotePicture picture, Func<bool> current = null, Action done = null)
+        {
+            RemotePictureTurn(device, id, text, picture, current, done, false);
+        }
+
+        private void RemotePictureTurn(string device, string id, string text, RemotePicture picture, Func<bool> current, Action done, bool live)
         {
             RemoteSink sink = remoteSink;
             if (current == null) current = delegate { return remoteSink == sink; };
