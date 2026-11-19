@@ -796,7 +796,7 @@ namespace CapriDesktop
             return made;
         }
 
-        internal const int LaptopWidth = 208, LaptopHeight = 98;
+        internal const int LaptopWidth = 248, LaptopHeight = 117;
         internal static readonly Color[] Inks = { Color.FromArgb(255, 255, 45, 120), Color.FromArgb(255, 60, 235, 235), Color.FromArgb(255, 255, 214, 64), Color.FromArgb(255, 170, 120, 255) };
         private readonly Font small = new Font("Consolas", 12f, FontStyle.Bold, GraphicsUnit.Pixel);
 
