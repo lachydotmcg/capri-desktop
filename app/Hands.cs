@@ -1344,8 +1344,8 @@ namespace CapriDesktop
             { "call_say", "Say a short message on the call that the user asked you to pass on. Speak about the user by their name in your own words. When you've just joined for them, say why you're there, cheeky is fine: they're away (a funny made-up reason, like <their name>'s away, probably taking a fat shit), they asked you to hop in, and you'll launch whatever the call's playing. Join first if needed. This line will be spoken with your reply, so do not repeat it in your answer.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The message, about the user in your own words\"}},\"required\":[\"text\"]}", "pass your message to the call", "say the user's message on the call" },
 #endif
-            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files and folders" },
-            { "files", FileKeeper.Description, FileKeeper.Schema, "find your files by name, words inside, kind or date, and make folders, move, rename and sort them, with undo", "find files by words inside, kind or date; make folders, move, rename, sort, undo" },
+            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files by name" },
+            { "files", FileKeeper.Description, FileKeeper.Schema, "find your files by name, words inside, kind or date, and make folders, move, rename and sort them, with undo", "search and sort files" },
             { "website_nickname",
 #if CROSS
               "Remember a website by a nickname, forget it, or list saved websites. For a supported front browser on Mac, leave site empty; its address is read without moving their mouse or keyboard. On Linux or for other browsers, give site. Open a saved nickname with open_website.",
