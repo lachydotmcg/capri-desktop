@@ -133,7 +133,9 @@ namespace CapriDesktop
                 string portFile = Path.Combine(profile, "DevToolsActivePort");
                 if (File.Exists(portFile)) File.Delete(portFile);
                 StringBuilder args = new StringBuilder();
-                args.Append("--headless=new --remote-debugging-port=0 --remote-allow-origins=* ");
+                // No --remote-allow-origins: the port then refuses any connection that carries a web page's Origin, so a site can't
+                // drive her browser. Her own socket sends no Origin and still gets in (a tester's report, 19 Nov).
+                args.Append("--headless=new --remote-debugging-port=0 ");
                 args.Append("--user-data-dir=\"").Append(profile.TrimEnd('\\', '/')).Append("\" ");
                 args.Append("--window-size=").Append(width).Append(',').Append(height).Append(' ');
                 args.Append("--no-first-run --no-default-browser-check --disable-sync --disable-extensions --mute-audio ");
