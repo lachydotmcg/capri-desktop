@@ -5055,6 +5055,8 @@ namespace CapriDesktop
         // library, and from her other launchers' lists the same way. One already in All apps by that name isn't listed twice.
         internal static List<InstalledApp> WithSteam(List<InstalledApp> apps, List<InstalledApp> steam)
         {
+            if (apps == null) apps = new List<InstalledApp>();
+            if (steam == null) return apps;
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
             foreach (InstalledApp app in apps) names.Add(AppName(app));
             foreach (InstalledApp game in steam)
@@ -5126,10 +5128,10 @@ namespace CapriDesktop
             string data = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             List<InstalledApp> apps = new List<InstalledApp>();
             if (data.Length == 0) return apps;
-            apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests")));
-            apps.AddRange(RiotApps(Path.Combine(data, "Riot Games")));
-            apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir")));
-            apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn")));
+            try { apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests"))); } catch (Exception) { }
+            try { apps.AddRange(RiotApps(Path.Combine(data, "Riot Games"))); } catch (Exception) { }
+            try { apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir"))); } catch (Exception) { }
+            try { apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn"))); } catch (Exception) { }
             return apps;
         }
 
@@ -5156,12 +5158,14 @@ namespace CapriDesktop
                     try
                     {
                         byte[] bytes = File.ReadAllBytes(manifest);
-                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3
+                            : bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE ? 2 : 0;
                         using (MemoryStream stream = new MemoryStream(bytes, start, bytes.Length - start)) item = (EpicItem)reader.ReadObject(stream);
                     }
                     catch (IOException) { continue; }
                     catch (UnauthorizedAccessException) { continue; }
                     catch (SerializationException) { continue; }
+                    catch (System.Xml.XmlException) { continue; }
                     if (item == null || item.Incomplete || string.IsNullOrWhiteSpace(item.DisplayName) || string.IsNullOrWhiteSpace(item.AppName) || string.IsNullOrWhiteSpace(item.LaunchExecutable)) continue;
                     if (!string.IsNullOrEmpty(item.MainGameAppName) && item.MainGameAppName != item.AppName) continue;
                     string app = string.IsNullOrEmpty(item.CatalogNamespace) || string.IsNullOrEmpty(item.CatalogItemId) ? Uri.EscapeDataString(item.AppName)
@@ -5171,6 +5175,8 @@ namespace CapriDesktop
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
+            catch (SerializationException) { }
+            catch (System.Xml.XmlException) { }
             return apps;
         }
 
@@ -5192,7 +5198,10 @@ namespace CapriDesktop
                     if (!named.Success || named.Groups[1].Value == "riot_client") continue;
                     string settings = Path.Combine(product, named.Value + ".product_settings.yaml");
                     if (!File.Exists(settings)) continue;
-                    string text = File.ReadAllText(settings);
+                    string text;
+                    try { text = File.ReadAllText(settings); }
+                    catch (IOException) { continue; }
+                    catch (UnauthorizedAccessException) { continue; }
                     Match shortcut = Regex.Match(text, @"(?m)^shortcut_name:\s*""?(.+?)(?:\.lnk)?""?\s*$");
                     Match place = Regex.Match(text, @"(?m)^product_install_full_path:\s*""?(.+?)""?\s*$");
                     if (!shortcut.Success || !place.Success || !Directory.Exists(place.Groups[1].Value.Replace('/', '\\'))) continue;
@@ -5209,8 +5218,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> UbisoftApps(List<string[]> installs)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (installs == null) return apps;
             foreach (string[] install in installs)
             {
+                if (install == null || install.Length < 2 || string.IsNullOrEmpty(install[0]) || string.IsNullOrEmpty(install[1])) continue;
                 string name = Uninstalled("Uplay Install " + install[0]);
                 if (Regex.IsMatch(install[0], @"^\d+$") && !string.IsNullOrWhiteSpace(name) && FolderThere(install[1])) apps.Add(new InstalledApp(name.Trim(), "uplay://launch/" + install[0] + "/0"));
             }
@@ -5221,8 +5232,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> GogApps(List<string[]> games)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (games == null) return apps;
             foreach (string[] game in games)
             {
+                if (game == null || game.Length < 5) continue;
                 string exe = game[2] ?? "", given = (game[3] ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(game[1]) || !string.IsNullOrWhiteSpace(game[4]) || !Regex.IsMatch(exe, @"^[A-Za-z]:\\.+\.exe$", RegexOptions.IgnoreCase) || !Exists(exe)) continue;
                 apps.Add(new InstalledApp(game[1].Trim(), given.Length == 0 ? exe : "\"" + exe + "\" " + given));
