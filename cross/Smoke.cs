@@ -4893,6 +4893,44 @@ namespace CapriDesktop
                 }
                 finally { draft.Dispose(); }
                 checks.Add("PASS animations: her editor lists her strips, fits, loads her own frames, keeps her mouth shapes fixed, and a frame and speed changed there are worn as a skin and taken off again");
+                AnimationDraft editing = new AnimationDraft(mods, pet.Clips);
+                try
+                {
+                    AnimationSheet editor = new AnimationSheet(pet, frame, editing);
+                    try
+                    {
+                        List<string> opened = new List<string>();
+                        editor.Opener = delegate(string file) { opened.Add(file); return true; };
+                        AnimationDraft.Strip standing = editing.Strips.Find(strip => strip.Title == "idle" && !strip.Left);
+                        Action<string, int, SkiaSharp.SKColor> draw = delegate(string file, int cells, SkiaSharp.SKColor paint)
+                        {
+                            using (SkiaSharp.SKBitmap made = new SkiaSharp.SKBitmap(standing.Wide * cells, standing.High))
+                            {
+                                made.Erase(paint);
+                                File.WriteAllBytes(file, AnimationDraft.Png(made));
+                            }
+                            File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddSeconds(5));
+                        };
+                        string one = editor.EditFile(false, true);
+                        if (one == null || opened.Count != 1 || opened[0] != one || !File.Exists(one)) throw new Exception("Edit frame in didn't write the frame and ask which app opens it.");
+                        draw(one, 1, new SkiaSharp.SKColor(255, 0, 0));
+                        editor.TakeNow();
+                        if (standing.Count != 60 || !standing.Changed || standing.Frames[0].GetPixel(10, 10) != new SkiaSharp.SKColor(255, 0, 0)) throw new Exception("A frame saved in another app didn't come back into her editor.");
+                        string whole = editor.EditFile(true, true);
+                        draw(whole, 30, new SkiaSharp.SKColor(0, 0, 255));
+                        editor.TakeNow();
+                        if (standing.Count != 30 || standing.Frames[29].GetPixel(10, 10) != new SkiaSharp.SKColor(0, 0, 255)) throw new Exception("A strip saved in another app didn't come back with its 30 frames.");
+                        File.WriteAllText(whole, "not a picture yet");
+                        File.SetLastWriteTimeUtc(whole, DateTime.UtcNow.AddSeconds(10));
+                        editor.TakeNow();
+                        if (standing.Count != 30) throw new Exception("A half-saved strip from another app replaced her frames.");
+                        editor.Close();
+                        if (File.Exists(one) || File.Exists(whole)) throw new Exception("Closing her editor left its files for other apps behind.");
+                    }
+                    finally { }
+                }
+                finally { editing.Dispose(); }
+                checks.Add("PASS animations edit in: Edit frame in and Edit strip in write a PNG, ask which app opens it, take each save back, and leave a half-saved file alone");
                 string[] badSkins = { ModSkin(input, "smoke-size", "idle.png", 10, 10), ModSkin(input, "smoke-path", "../idle.png", size.Width, size.Height), ModSkin(input, "smoke-unknown", "other.png", size.Width, size.Height) };
                 foreach (string bad in badSkins)
                 {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Automation;
@@ -286,7 +287,7 @@ namespace CapriDesktop
 
     internal sealed class AnimationSheet : MainframeWindow
     {
-        internal const int Wide = 640, Tall = 600;
+        internal const int Wide = 640, Tall = 632;
         private readonly Pet pet;
         private readonly Mainframe frame;
         private readonly AnimationDraft draft;
@@ -296,6 +297,22 @@ namespace CapriDesktop
         private readonly NeonEntry skinName;
         private readonly DispatcherTimer clock = new DispatcherTimer();
         private int shown, number;
+        private readonly DispatcherTimer rewear = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+        private readonly DispatcherTimer taking = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        private readonly List<Editing> editing = new List<Editing>();
+        private string wornAs;
+        internal Func<string, bool> Opener;
+
+        private sealed class Editing
+        {
+            internal AnimationDraft.Strip Strip;
+            internal SKBitmap Frame;
+            internal string File;
+            internal FileSystemWatcher Watcher;
+            internal DateTime Seen;
+            internal bool Due;
+            internal int Tries;
+        }
         private bool closed;
 
         internal AnimationSheet(Pet owner, Mainframe from, AnimationDraft draft) : base("Animations")
@@ -312,7 +329,7 @@ namespace CapriDesktop
             name = Label("", 66, 79, 508, 22, MainframeTheme.White, 44.0 / 3, true);
             Button(">", 580, 76, 32, 26, delegate { Pick(shown + 1); }, "Next animation");
             about = Label("", 28, 106, 584, 18, MainframeTheme.Faint, 34.0 / 3);
-            Put(Page, preview, 28, 132, 300, 330, "Animation preview");
+            Put(Page, preview, 28, 132, 300, 362, "Animation preview");
             at = Label("", 344, 132, 268, 20, MainframeTheme.White);
             play = Button("Pause", 344, 158, 84, 26, delegate { Play(!clock.IsEnabled); });
             Button("Prev", 434, 158, 86, 26, delegate { Play(false); Step(-1); }, "Previous frame");
@@ -326,25 +343,34 @@ namespace CapriDesktop
             later = Button("Move later", 482, 286, 130, 26, delegate { Shift(1); });
             Button("Replace...", 344, 318, 130, 26, Replace, "Replace this frame with a picture");
             add = Button("Add after...", 482, 318, 130, 26, AddAfter, "Add frames from pictures after this one");
-            Label("WHOLE STRIP", 344, 358, 268, 18, MainframeTheme.Rose, 34.0 / 3);
-            Button("Save PNG...", 344, 380, 130, 26, SaveStrip, "Save this strip as a PNG");
-            Button("Load PNG...", 482, 380, 130, 26, LoadStrip, "Load this strip from a PNG");
-            Button("Save frames...", 344, 412, 130, 26, SaveFrames, "Save each frame as its own PNG");
-            Button("Load frames...", 482, 412, 130, 26, LoadFrames, "Load frames from a folder of PNGs");
-            Button("Undo changes", 344, 444, 130, 26, delegate { Revert(false); });
-            Button("Her own", 482, 444, 130, 26, delegate { Revert(true); }, "Go back to her own art for this strip");
-            Label("SKIN NAME", 28, 480, 120, 18, MainframeTheme.Rose, 34.0 / 3);
-            skinName = Put(Page, new NeonEntry("Name your skin"), 28, 500, 300, 28, "Skin name");
+            Button("Edit frame in...", 344, 350, 130, 26, delegate { EditIn(false); }, "Open this frame in any app, and take it back each time it's saved");
+            Button("Edit strip in...", 482, 350, 130, 26, delegate { EditIn(true); }, "Open the whole strip in any app, and take it back each time it's saved");
+            Label("WHOLE STRIP", 344, 390, 268, 18, MainframeTheme.Rose, 34.0 / 3);
+            Button("Save PNG...", 344, 412, 130, 26, SaveStrip, "Save this strip as a PNG");
+            Button("Load PNG...", 482, 412, 130, 26, LoadStrip, "Load this strip from a PNG");
+            Button("Save frames...", 344, 444, 130, 26, SaveFrames, "Save each frame as its own PNG");
+            Button("Load frames...", 482, 444, 130, 26, LoadFrames, "Load frames from a folder of PNGs");
+            Button("Undo changes", 344, 476, 130, 26, delegate { Revert(false); });
+            Button("Her own", 482, 476, 130, 26, delegate { Revert(true); }, "Go back to her own art for this strip");
+            Label("SKIN NAME", 28, 512, 120, 18, MainframeTheme.Rose, 34.0 / 3);
+            skinName = Put(Page, new NeonEntry("Name your skin"), 28, 532, 300, 28, "Skin name");
             skinName.Box.Text = draft.BaseName == null ? "My animations" : Clamp(draft.BaseName.EndsWith(" (edited)", StringComparison.Ordinal) ? draft.BaseName : draft.BaseName + " (edited)");
-            NeonButton wear = Button("Wear it", 344, 501, 130, 28, delegate { Save(true); }, "Save these animations as a skin and wear it");
+            NeonButton wear = Button("Wear it", 344, 533, 130, 28, delegate { Save(true); }, "Save these animations as a skin and wear it");
             wear.Accent = MainframeTheme.Cyan; wear.Loud = true;
-            Button("Save skin...", 482, 501, 130, 28, delegate { Save(false); }, "Save these animations as a skin file to share");
-            status = Label("", 28, 540, 584, 40, MainframeTheme.Faint, 34.0 / 3);
+            Button("Save skin...", 482, 533, 130, 28, delegate { Save(false); }, "Save these animations as a skin file to share");
+            status = Label("", 28, 572, 584, 40, MainframeTheme.Faint, 34.0 / 3);
             status.Top = true;
             status.Ellipsis = false;
             clock.Tick += delegate { Program.Guard(delegate { Step(1); }); };
             Opened += delegate { Fit(Wide, Tall, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); };
-            Closed += delegate { closed = true; clock.Stop(); preview.Frame = null; preview.Clear(); };
+            taking.Tick += delegate { Program.Guard(TakeNow); };
+            rewear.Tick += delegate
+            {
+                rewear.Stop();
+                Mod outfit = pet.ModList.Outfit;
+                if (!closed && wornAs != null && outfit != null && outfit.File.Id == Mods.IdFor(wornAs)) Program.Guard(delegate { Wear(wornAs, true); });
+            };
+            Closed += delegate { closed = true; clock.Stop(); StopEditing(); preview.Frame = null; preview.Clear(); };
             Pick(Math.Max(0, draft.Strips.FindIndex(strip => strip.Title == "idle" && !strip.Left)));
             Play(true);
             Fit(Wide, Tall, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0);
@@ -557,20 +583,29 @@ namespace CapriDesktop
             }
         }
 
-        private void Put(int from, int replacing, List<SKBitmap> frames)
+        private void Put(int from, int replacing, List<SKBitmap> frames) { Put(Strip, from, replacing, frames); }
+
+        private bool Put(AnimationDraft.Strip strip, int from, int replacing, List<SKBitmap> frames)
         {
-            List<SKBitmap> into = Strip.Frames;
-            if (into == null || frames == null) return;
-            if (!Room(into.Count - replacing + frames.Count)) { foreach (SKBitmap made in frames) made.Dispose(); return; }
-            preview.Frame = null;
+            List<SKBitmap> into = strip.Frames;
+            if (into == null || frames == null) return false;
+            string trouble = draft.Fits(strip, into.Count - replacing + frames.Count);
+            if (trouble != null || from < 0 || from + replacing > into.Count)
+            {
+                foreach (SKBitmap made in frames) made.Dispose();
+                Say(trouble ?? strip.Shown + " changed since it was opened.", true);
+                return false;
+            }
+            if (strip == Strip) preview.Frame = null;
             List<SKBitmap> gone = into.GetRange(from, replacing);
             into.RemoveRange(from, replacing);
             into.InsertRange(from, frames);
-            preview.Keep(into);
             foreach (SKBitmap old in gone) old.Dispose();
-            number = from;
-            Changed();
+            strip.Changed = true;
+            if (strip == Strip) { number = from; preview.Keep(into); }
+            ShowFrame();
             Say(frames.Count == 1 ? "1 frame in." : frames.Count + " frames in.", false);
+            return true;
         }
 
         private void Replace()
@@ -674,6 +709,174 @@ namespace CapriDesktop
             });
         }
 
+        private static string EditFolder { get { return Path.Combine(Path.GetTempPath(), "capri-animations"); } }
+
+        private void EditIn(bool whole) { EditFile(whole, true); }
+
+        internal string EditFile(bool whole, bool open)
+        {
+            AnimationDraft.Strip strip = Strip;
+            if (strip.Frames == null || strip.Frames.Count == 0) return null;
+            string lead = strip.File.Substring(0, strip.File.Length - 4);
+            string file = Path.Combine(EditFolder, whole ? lead + ".png" : lead + "_" + (number + 1).ToString("000") + ".png");
+            Editing same = editing.Find(each => string.Equals(each.File, file, StringComparison.Ordinal));
+            if (same != null) Forget(same);
+            try
+            {
+                Directory.CreateDirectory(EditFolder);
+                if (whole) using (SKBitmap joined = AnimationDraft.Joined(strip.Frames, strip.Wide, strip.High)) File.WriteAllBytes(file, AnimationDraft.Png(joined));
+                else File.WriteAllBytes(file, AnimationDraft.Png(strip.Frames[number]));
+            }
+            catch (Exception error)
+            {
+                if (!(error is IOException || error is UnauthorizedAccessException)) throw;
+                Say("Couldn't get it ready to edit: " + error.Message, true);
+                return null;
+            }
+            Editing made = new Editing { Strip = strip, Frame = whole ? null : strip.Frames[number], File = file, Seen = File.GetLastWriteTimeUtc(file) };
+            try
+            {
+                made.Watcher = new FileSystemWatcher(EditFolder, Path.GetFileName(file));
+                made.Watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size;
+                FileSystemEventHandler saw = delegate { Dispatcher.UIThread.Post(delegate { Saw(made); }); };
+                made.Watcher.Changed += saw;
+                made.Watcher.Created += saw;
+                made.Watcher.Renamed += delegate { Dispatcher.UIThread.Post(delegate { Saw(made); }); };
+                made.Watcher.EnableRaisingEvents = true;
+            }
+            catch (Exception error)
+            {
+                if (!(error is IOException || error is ArgumentException || error is PlatformNotSupportedException || error is InvalidOperationException)) throw;
+                if (made.Watcher != null) made.Watcher.Dispose();
+                made.Watcher = null;
+                try { File.Delete(file); }
+                catch (IOException) { }
+                Say("Couldn't watch for saves: " + error.Message, true);
+                return null;
+            }
+            editing.Add(made);
+            if (open)
+            {
+                Func<string, bool> opener = Opener;
+                if (opener != null) { if (!opener(file)) { Forget(made); return null; } }
+                else OpenWith(made);
+            }
+            Say("Opened " + Path.GetFileName(file) + ". Each time you save it in that app, it comes back here" + (wornAs != null ? " and onto her." : ". Wear it to see it on her, and saves after that go straight onto her."), false);
+            return file;
+        }
+
+        private void Saw(Editing made)
+        {
+            if (closed || !editing.Contains(made)) return;
+            made.Due = true;
+            made.Tries = 0;
+            taking.Stop();
+            taking.Start();
+        }
+
+        private async void OpenWith(Editing made)
+        {
+            string file = made.File;
+            try
+            {
+                if (OperatingSystem.IsMacOS())
+                {
+                    string app = await Task.Run(delegate { return ChooseApp(); });
+                    if (closed || !editing.Contains(made)) return;
+                    if (app == null) { Forget(made); Say("Nothing was opened.", false); return; }
+                    Limbs.Launch("open", new[] { "-a", app, file });
+                }
+                else Pet.Browse(file);
+            }
+            catch (Exception error)
+            {
+                if (!closed) Say("Couldn't open it: " + error.Message, true);
+            }
+        }
+
+        private static string ChooseApp()
+        {
+            ProcessStartInfo start = new ProcessStartInfo("osascript") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+            start.ArgumentList.Add("-e");
+            start.ArgumentList.Add("POSIX path of (choose application with prompt \"Edit it in\")");
+            using (Process process = Process.Start(start))
+            {
+                string path = process.StandardOutput.ReadToEnd().Trim();
+                process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                return process.ExitCode == 0 && path.Length > 0 ? path : null;
+            }
+        }
+
+        internal void TakeNow()
+        {
+            taking.Stop();
+            bool again = false;
+            foreach (Editing made in editing.ToArray())
+            {
+                if (!made.Due && File.Exists(made.File) && File.GetLastWriteTimeUtc(made.File) == made.Seen) continue;
+                if (!Take(made) && ++made.Tries < 15) again = true;
+                else made.Due = false;
+            }
+            if (again) taking.Start();
+        }
+
+        private bool Take(Editing made)
+        {
+            DateTime written;
+            List<SKBitmap> frames;
+            try
+            {
+                if (!File.Exists(made.File)) return false;
+                written = File.GetLastWriteTimeUtc(made.File);
+                if (written == made.Seen) return true;
+                frames = draft.Read(made.Strip, made.File);
+            }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+            catch (ModException error)
+            {
+                if (made.Tries < 14) return false;
+                Say(error.Message, true);
+                return true;
+            }
+            made.Seen = written;
+            made.Due = false;
+            bool done;
+            if (made.Frame == null) done = Put(made.Strip, 0, made.Strip.Frames == null ? 0 : made.Strip.Frames.Count, frames);
+            else
+            {
+                int at = made.Strip.Frames == null ? -1 : made.Strip.Frames.IndexOf(made.Frame);
+                if (at < 0)
+                {
+                    foreach (SKBitmap extra in frames) extra.Dispose();
+                    Say("That frame isn't in " + made.Strip.Shown + " any more, so the save wasn't taken.", true);
+                    return true;
+                }
+                SKBitmap first = frames.Count > 0 ? frames[0] : null;
+                done = Put(made.Strip, at, 1, frames);
+                if (done && first != null) made.Frame = first;
+            }
+            if (done && wornAs != null) { rewear.Stop(); rewear.Start(); }
+            return true;
+        }
+
+        private void Forget(Editing made)
+        {
+            if (made.Watcher != null) { made.Watcher.EnableRaisingEvents = false; made.Watcher.Dispose(); }
+            editing.Remove(made);
+            try { if (File.Exists(made.File)) File.Delete(made.File); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        private void StopEditing()
+        {
+            taking.Stop();
+            rewear.Stop();
+            foreach (Editing made in editing.ToArray()) Forget(made);
+        }
+
         private void Revert(bool own)
         {
             try
@@ -691,9 +894,10 @@ namespace CapriDesktop
             ShowFrame();
         }
 
-        private void Save(bool wear)
+        private void Save(bool wear) { Wear((skinName.Box.Text ?? "").Trim(), wear); }
+
+        private void Wear(string title, bool wear)
         {
-            string title = (skinName.Box.Text ?? "").Trim();
             if (title.Length == 0) { Say("Name your skin first.", true); return; }
             if (!draft.Dirty) { Say("Change a frame or a speed first.", true); return; }
             string id = Mods.IdFor(title);
@@ -716,7 +920,8 @@ namespace CapriDesktop
                 if (!wear) { Say("Saved " + Path.GetFileName(file) + ". Import it on any Capri, or share it in the mods directory.", false); return; }
                 Mod worn = pet.ModList.WearOutfit(temporary);
                 frame.AnimationsWorn();
-                Say(worn == null ? "Couldn't wear it." : worn.File.Name + " is on. Find it in your mods to publish it.", worn == null);
+                wornAs = worn == null ? null : title;
+                Say(worn == null ? "Couldn't wear it." : worn.File.Name + " is on. Find it in your mods to publish it." + (editing.Count > 0 ? " Saving in your app puts it on her too." : ""), worn == null);
             }
             catch (ModException error) { Say(error.Message, true); }
             catch (IOException error) { Say("Couldn't save that skin: " + error.Message, true); }
