@@ -417,7 +417,7 @@ namespace CapriDesktop
 
         internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
 
-        private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize"; }
+        private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize" || action == "write" || action == "edit"; }
 
         internal static bool IsHold(string result) { return result != null && result.StartsWith(Hold, StringComparison.Ordinal); }
 

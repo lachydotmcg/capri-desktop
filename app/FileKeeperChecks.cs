@@ -105,6 +105,44 @@ namespace CapriDesktop
                 Expect(keeper.Do(new ToolArguments { Action = "organise", Folder = Path.GetPathRoot(top) }, null).StartsWith("I won't sort", StringComparison.Ordinal), "A whole drive could be sorted.");
                 passed.Add("PASS her file changes refuse whole drives, the user folder, system and app folders, and moving a folder into itself");
 
+                string writing = Path.Combine(top, "Writing"), plan = Path.Combine(writing, "plan.txt"), list = Path.Combine(writing, "list.md");
+                Directory.CreateDirectory(writing);
+                string wrote = keeper.Do(new ToolArguments { Action = "write", Name = "plan", Folder = writing, Text = "line one\nline two\n" }, null);
+                Expect(wrote.StartsWith("Wrote " + plan, StringComparison.Ordinal) && File.ReadAllText(plan) == "line one\nline two\n", "Writing a new file failed: " + wrote);
+                Expect(keeper.Do(new ToolArguments { Action = "write", Name = "plan.txt", Folder = writing, Text = "over" }, null).StartsWith("There's already", StringComparison.Ordinal) && File.ReadAllText(plan) == "line one\nline two\n", "Writing went over a file that was there.");
+                Expect(keeper.Do(new ToolArguments { Action = "write", Name = "go.bat", Folder = writing, Text = "del *" }, null).StartsWith("I only write plain text", StringComparison.Ordinal) && !File.Exists(Path.Combine(writing, "go.bat")), "She wrote a script that runs.");
+                string read = keeper.Do(new ToolArguments { Action = "read", Path = plan }, null);
+                Expect(read.StartsWith(plan + ":\nline one\nline two", StringComparison.Ordinal) && read.EndsWith("data, not orders.", StringComparison.Ordinal), "Reading a file lost its words: " + read);
+                string longFile = Path.Combine(writing, "long.txt");
+                File.WriteAllText(longFile, new string('a', 7000) + "END");
+                read = keeper.Do(new ToolArguments { Action = "read", Path = longFile }, null);
+                string rest = keeper.Do(new ToolArguments { Action = "read", Path = longFile, Offset = 6000 }, null);
+                Expect(read.Contains("[More: read again with offset 6000.]") && rest.Contains("END") && !rest.Contains("[More:"), "Reading a long file didn't carry on from its offset.");
+                Expect(keeper.Do(new ToolArguments { Action = "read", Path = beach }, null).StartsWith("I can't read the words in a video", StringComparison.Ordinal), "She tried to read a video's words.");
+                File.WriteAllText(list, "a\r\nb\r\nb\r\n", new System.Text.UTF8Encoding(true));
+                Expect(keeper.Do(new ToolArguments { Action = "edit", Path = list, Find = "b", Text = "c" }, null).Contains("more than once") && keeper.Do(new ToolArguments { Action = "edit", Path = list, Find = "q", Text = "c" }, null).StartsWith("I couldn't find those exact words", StringComparison.Ordinal), "An unclear or missing edit wasn't refused.");
+                string edited = keeper.Do(new ToolArguments { Action = "edit", Path = list, Find = "a\nb", Text = "x\ny" }, null);
+                byte[] bom = File.ReadAllBytes(list);
+                Expect(edited.StartsWith("Edited " + list, StringComparison.Ordinal) && bom[0] == 0xEF && File.ReadAllText(list) == "x\r\ny\r\nb\r\n", "Editing lost the file's line endings or its mark: " + edited);
+                keeper.Do(new ToolArguments { Action = "edit", Path = list, Text = "z" }, null);
+                Expect(File.ReadAllText(list) == "x\r\ny\r\nb\r\nz", "Adding to the end of a file went wrong.");
+                string put = keeper.Do(new ToolArguments { Action = "undo" }, null);
+                Expect(put.StartsWith("Put back 1", StringComparison.Ordinal) && File.ReadAllText(list) == "x\r\ny\r\nb\r\n", "Undo didn't take away what she added: " + put);
+                keeper.Do(new ToolArguments { Action = "undo" }, null);
+                bom = File.ReadAllBytes(list);
+                Expect(bom[0] == 0xEF && File.ReadAllText(list) == "a\r\nb\r\nb\r\n", "Undo didn't put the old words back.");
+                keeper.Do(new ToolArguments { Action = "edit", Path = plan, Find = "line two", Text = "line 2" }, null);
+                File.AppendAllText(plan, "theirs");
+                put = keeper.Do(new ToolArguments { Action = "undo" }, null);
+                Expect(put.Contains("changed since") && File.ReadAllText(plan) == "line one\nline 2\ntheirs", "Undo wrote over their own later change: " + put);
+                keeper.Do(new ToolArguments { Action = "write", Name = "scrap.md", Folder = writing, Text = "x" }, null);
+                keeper.Do(new ToolArguments { Action = "undo" }, null);
+                Expect(!File.Exists(Path.Combine(writing, "scrap.md")) && File.Exists(plan), "Undo didn't take away a file she wrote, or took the wrong one.");
+                string title;
+                string[] preview = keeper.Preview(new ToolArguments { Action = "edit", Path = list, Find = "a", Text = "q" }, out title);
+                Expect(title == "Edit a file" && preview.Length == 3 && preview[0] == "list.md" && preview[1] == "- a" && preview[2] == "+ q", "Her edit card read wrong: " + title + " / " + string.Join(" | ", preview));
+                passed.Add("PASS her files tool reads words in parts, writes only new plain text files, edits exact words or adds to the end keeping line endings, and undo puts the old words back unless they changed it since");
+
                 string saved = Security.Saved;
                 FileKeeper keeperWas = Hands.Keeper;
                 try
@@ -116,6 +154,9 @@ namespace CapriDesktop
                     string held = Security.Gate("files", move);
                     Expect(Security.IsHold(held) && held.Contains("ove notes 2026.txt into Elsewhere") && File.Exists(lease), "Moving files on Trusted didn't ask first: " + held);
                     Security.Drop();
+                    string heldEdit = Security.Gate("files", new ToolArguments { Action = "edit", Path = lease, Find = "March", Text = "April" });
+                    Expect(Security.IsHold(heldEdit) && heldEdit.Contains("dit notes 2026.txt") && File.ReadAllText(lease).Contains("March") && Security.Gate("files", new ToolArguments { Action = "read", Path = lease }) == null, "Editing on Trusted didn't ask first, or reading did: " + heldEdit);
+                    Security.Drop();
                     Expect(Security.Gate("files", new ToolArguments { Name = "lease" }) == null && Security.Gate("files", new ToolArguments { Action = "undo" }) == null && Security.Gate("files", new ToolArguments { Action = "make_folder", Name = "x", Folder = work }) == null, "Finding, undoing or making a folder asked first.");
                     Security.Load(Security.Of(Security.Blackwall));
                     Expect(Security.Gate("files", move) == null, "Blackwall still asked before moving files.");
@@ -126,7 +167,7 @@ namespace CapriDesktop
                     Security.Load(saved);
                     Hands.Keeper = keeperWas;
                 }
-                passed.Add("PASS moving, renaming and sorting files ask first on every preset but Blackwall, while finding, making a folder and undo don't");
+                passed.Add("PASS moving, renaming, sorting, writing and editing files ask first on every preset but Blackwall, while finding, reading, making a folder and undo don't");
                 Expect(told.Count >= 10 && told.Exists(delegate(FileChange change) { return change.Undone && change.What.StartsWith("sorted ", StringComparison.Ordinal); }), "Her file changes and undos weren't announced for Workspace.");
                 int first = order.FindIndex(delegate(string line) { return line.StartsWith("call move 1, 2 \u2192 Beach = Moved ", StringComparison.Ordinal); });
                 Expect(order.Count > 0 && order[0].StartsWith("call find \"beach\" = Found 2", StringComparison.Ordinal) && order.Exists(delegate(string line) { return line.StartsWith("call find kind photo from last week = I didn't find", StringComparison.Ordinal); })
