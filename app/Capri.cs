@@ -44595,6 +44595,7 @@ namespace CapriDesktop
                     throw new Exception("An unknown room move reached the phone.");
                 checks.Add("PASS room sit, lie down and heart come only from successful matching tools");
                 RemoteLink.SmokeJobs(checks);
+                MemoryBook.Smoke(checks);
             }
             finally
             {

@@ -1502,6 +1502,14 @@ namespace CapriDesktop
 
         private static bool Revealing(string text) { return Personal.IsMatch(text) || Whereabouts.IsMatch(text); }
 
+        internal static bool Withheld(string text) { return Discreet ? Revealing(text ?? "") : Personal.IsMatch(text ?? ""); }
+
+        internal static object NotesGate { get { return noting; } }
+
+        internal static object ChatGate { get { return writing; } }
+
+        internal static string QueueFile { get { return QueuePath; } }
+
         private static string QueuePath { get { string folder = TranscriptPath; return folder == null ? null : Path.Combine(folder, "unfolded.txt"); } }
 
         // Who is "You" or "Capri" (with " (voice)" in voice chat), or null for something she did, like a glance or a job. A line

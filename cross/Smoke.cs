@@ -8121,6 +8121,7 @@ namespace CapriDesktop
             RemoteLink.SmokeJobs(checks);
             RemotePush.Smoke(checks);
             RemoteLink.SmokePush(checks);
+            MemoryBook.Smoke(checks);
             RemoteStoreChecks();
 
             string diskRoot = Path.Combine(folder, "remote-core-" + Guid.NewGuid().ToString("N"));
@@ -8245,7 +8246,7 @@ namespace CapriDesktop
         {
             RemoteState state = RemoteState.Fresh();
             using RemoteWire wire = new RemoteWire(state);
-            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair,wake") throw new Exception("Remote text core offered unsupported features.");
+            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != (MemoryBook.Ready ? "chat,pair,wake,memory" : "chat,pair,wake")) throw new Exception("Remote text core offered unsupported features.");
             RemoteJson.Map woke = RemoteJson.ParseMap(RemoteWake.Info());
             if (woke == null || woke.Text("type") != "wake.info" || woke.Items("cards") == null || woke.Items("cards").Count > 4) throw new Exception("Remote wake info was malformed.");
             foreach (object item in woke.Items("cards"))
