@@ -98,6 +98,7 @@ namespace CapriDesktop
         [DataMember(Name = "stop")] public string Stop;
         [DataMember(Name = "shapes")] public string Shapes;
         [DataMember(Name = "find")] public string Find;
+        [DataMember(Name = "by")] public string By;
 #if !CROSS
         // The job a tool beside it came in for, so one that lands after that job ended never changes the next.
         internal Job Job;
@@ -344,6 +345,7 @@ namespace CapriDesktop
                 case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
 #endif
                 case "use_computer": return Mouse;
+                case "files": return FileChange(args) ? Sends : -1;
                 case "workspace": return Hands.WorkspaceStarts(args) ? Mouse : -1;
                 case "stream": return action == "stop" ? -1 : Mouse;
                 case "job_control": return action == "change" ? Mouse : -1;
@@ -396,7 +398,7 @@ namespace CapriDesktop
         internal static bool Asks(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args), granted = Granted(tool, args);
-            if (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle))) return false;
+            if (granted == 0 || granted < 0 && !Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return false;
             lock (gate) return !cleared.Contains(Asking(tool, args));
         }
 
@@ -404,7 +406,7 @@ namespace CapriDesktop
         internal static string Gate(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args), granted = Granted(tool, args);
-            if (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle))) return null;
+            if (granted == 0 || granted < 0 && !Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return null;
             string asked = Asking(tool, args);
             lock (gate)
             {
@@ -414,6 +416,10 @@ namespace CapriDesktop
             HeldState(HoldingId, "asking", Question);
             return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
         }
+
+        internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
+
+        private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize" || action == "write" || action == "edit"; }
 
         internal static bool IsHold(string result) { return result != null && result.StartsWith(Hold, StringComparison.Ordinal); }
 
@@ -547,6 +553,7 @@ namespace CapriDesktop
                 case "run_terminal": return "run terminal command " + (a.Command ?? "") + (string.IsNullOrWhiteSpace(a.Cwd) ? "" : " in " + a.Cwd);
 #endif
                 case "open_app": return "open " + Plain(a.Name, "that app");
+                case "files": return Hands.FilesAsked(a);
                 case "open_website":
                     Hands.WebsiteArgs(a);
                     string site = Plain(a.Site, "that site");
@@ -1339,7 +1346,8 @@ namespace CapriDesktop
             { "call_say", "Say a short message on the call that the user asked you to pass on. Speak about the user by their name in your own words. When you've just joined for them, say why you're there, cheeky is fine: they're away (a funny made-up reason, like <their name>'s away, probably taking a fat shit), they asked you to hop in, and you'll launch whatever the call's playing. Join first if needed. This line will be spoken with your reply, so do not repeat it in your answer.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The message, about the user in your own words\"}},\"required\":[\"text\"]}", "pass your message to the call", "say the user's message on the call" },
 #endif
-            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files and folders" },
+            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files by name" },
+            { "files", FileKeeper.Description, FileKeeper.Schema, "find your files by name, words inside, kind or date, and make folders, move, rename and sort them, with undo", "search and sort files" },
             { "website_nickname",
 #if CROSS
               "Remember a website by a nickname, forget it, or list saved websites. For a supported front browser on Mac, leave site empty; its address is read without moving their mouse or keyboard. On Linux or for other browsers, give site. Open a saved nickname with open_website.",
@@ -1637,6 +1645,8 @@ namespace CapriDesktop
         internal static Func<string, int?, long?, string> ReadFile = delegate { return "I don't have a file you handed me at that path."; };
         internal static Websites Websites;
         internal static FileFinder Finder = new FileFinder();
+        internal static FileKeeper Keeper = new FileKeeper(null);
+        internal static string FilesAsked(ToolArguments args) { return Keeper.Asking(args); }
         internal static Func<string, string> Fetch = Download;
         internal static Func<List<OpenWindow>> Windows = ReadWindows;
         internal static Func<OpenWindow, string, bool> Steer = Apply;
@@ -1992,6 +2002,7 @@ namespace CapriDesktop
 #endif
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
+                if (tool == "files") return Keeper.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
@@ -4572,6 +4583,7 @@ namespace CapriDesktop
             if (tool == "use_computer") return Named(args.Task);
             if (tool == "shortcut") return Regex.IsMatch(args.Name ?? "", @"\A(discord_mute|discord_deafen|screenshot|clip_that|record|game_bar|show_desktop|task_manager|clipboard|emoji|voice_typing|live_captions|narrator|magnifier|magnifier_off|color_filters|quick_settings)\z");
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
+            if (tool == "files") return FileKeeper.Valid(args);
             if (tool == "find_file") return args.Action == "show" || args.Action == "open" || args.Action == "stop" || ((string.IsNullOrEmpty(args.Action) || args.Action == "search") && Named(args.Description));
             if (tool == "website_nickname") return args.Action == "list" || (Named(args.Name) && (args.Action == "forget" || args.Action == "save"));
             if (tool == "read_file") return Named(args.Path) && (!args.Page.HasValue || args.Page.Value >= 1) && (!args.Offset.HasValue || args.Offset.Value >= 0);

@@ -223,6 +223,7 @@ namespace CapriDesktop
                 case "list_windows": return "Checking open windows";
                 case "check_app": return "Checking installed apps";
                 case "find_file": return "Finding a file";
+                case "files": return "Working on your files";
                 case "read_file": return "Reading a file";
                 case "remember": return "Updating a note";
                 case "watch_for": return "Watching for a change";
