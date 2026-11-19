@@ -233,7 +233,7 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 
 /* ---------- Her features under a thin hot rule, like the phone's row in Lachy's reference: an icon over a short name.
    What isn't built yet stays dimmed, and a tap only says SOON ---------- */
-.actions { position: relative; z-index: 2; flex: none; align-self: center; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: 100%; max-width: 720px; padding: 0 0 max(2px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--hot); }
+.actions { position: relative; z-index: 2; flex: none; align-self: center; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); width: 100%; max-width: 720px; padding: 0 0 max(2px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--hot); }
 .app.kb .actions { display: none; }
 .feat { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 60px; margin: 0; padding: 9px 2px 8px; border: 0; background: none; color: var(--white); font: 600 13px/1 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .feat svg { flex: none; width: 25px; height: 25px; fill: none; stroke: var(--rose); stroke-width: 1.5; stroke-linecap: square; stroke-linejoin: miter; }
@@ -405,6 +405,10 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
   .top { height: calc(44px + env(safe-area-inset-top, 0px)); }
   .contacts, .crumb-name { font-size: 18px; }
   .feat { min-height: 50px; padding: 6px 2px 5px; gap: 4px; }
+}
+@media (max-width: 359px) {
+  .feat { font-size: 11px; letter-spacing: .03em; }
+  .feat svg { width: 22px; height: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .drawer, .app.menu .drawer { transition: none; }
