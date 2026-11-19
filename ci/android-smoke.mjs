@@ -89,6 +89,28 @@ const main = async () => {
   check('sends a wake packet on the local network', woke.sent > 0, JSON.stringify(woke));
   check('refuses a wake with no good MAC', JSON.parse(await run(`CapriAndroid.wake('[{"mac":"nope","broadcast":"10.0.2.255"}]')`)).sent === 0);
   check('fonts and sprites come from the app', await run(`fetch('/assets/sprites/idle.webp').then(r => r.ok && r.headers.get('content-type') === 'image/webp')`));
+  check('her video call face comes from the app', await run(`fetch('/remote/models/capri-face.glb').then(r => r.ok && r.arrayBuffer()).then(b => !!b && b.byteLength > 20000)`));
+  const drawn = await run(`import('/remote/face3d.js').then(async face => {
+    const model = await face.load('/remote/models/capri-face.glb');
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;left:0;top:0;width:180px;height:360px';
+    document.body.append(canvas);
+    const stage = face.stage(canvas, model);
+    stage.draw({ mouth: { open: 1 } });
+    const copy = document.createElement('canvas');
+    copy.width = canvas.width; copy.height = canvas.height;
+    const pen = copy.getContext('2d');
+    pen.drawImage(canvas, 0, 0);
+    const pixels = pen.getImageData(0, 0, copy.width, copy.height).data;
+    let solid = 0;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 200) solid++;
+    stage.dispose();
+    canvas.remove();
+    return solid / (pixels.length / 4);
+  })`).catch(error => 'failed: ' + error.message);
+  check('her video call face draws in the app', typeof drawn === 'number' && drawn > 0.5, String(drawn));
+  const camera = await run(`navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }).then(stream => { const live = stream.getVideoTracks().some(track => track.readyState === 'live'); stream.getTracks().forEach(track => track.stop()); return live; }, error => error.name)`);
+  check('the camera opens for a video call', camera === true, String(camera));
   check('a file outside the bundle is not served from it', await run(`fetch('/remote/../../secret.txt').then(r => r.status !== 200, () => true)`));
 
   await waitFor('the demo link', () => run('document.getElementById("app").dataset.link === "connected" && "connected"'), 20000).then(state => check('demo link starts', true, state)).catch(error => check('demo link starts', false, error.message));
