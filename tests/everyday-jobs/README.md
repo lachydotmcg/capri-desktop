@@ -28,7 +28,7 @@ ANTHROPIC=sk-ant-... dotnet run --project tests/everyday-jobs/EverydayJobs.cspro
 dotnet run --project tests/everyday-jobs/EverydayJobs.csproj -c Release -- --merge results/*.json --md results/table.md
 ```
 
-`--jobs id,id` runs some of them, `--repeat n` runs each job n times (cells then show 2/3), `--list` lists them.
+`--jobs id,id` runs some of them, `--repeat n` runs each job n times (cells then show 2/3), `--wait s` gives each answer longer than the app's 180 seconds (the CI runner has no GPU, so her NORMAL brain gets 480), `--list` lists them.
 
 The `Everyday jobs` workflow runs her NORMAL brain on the CPU (Gemma 4 E2B by default, E4B or Qwen3 4B from the Run workflow menu) on every `v*` tag, on PRs that change the jobs, and by hand. Cloud brains run when their key is saved as a repository secret: `CAPRI_EVAL_ANTHROPIC_KEY`, `CAPRI_EVAL_OPENAI_KEY`, `CAPRI_EVAL_NVIDIA_KEY`, `CAPRI_EVAL_GOOGLE_KEY`, `CAPRI_EVAL_DEEPSEEK_KEY`. The merged table is in the run's summary.
 

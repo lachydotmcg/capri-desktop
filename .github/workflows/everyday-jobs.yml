@@ -33,7 +33,7 @@ concurrency:
 jobs:
   local:
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 300
     env:
       MODEL: ${{ inputs.local_model || 'gemma-4-e2b' }}
       REPEAT: ${{ inputs.repeat || '1' }}
@@ -71,7 +71,7 @@ jobs:
       - name: Everyday jobs
         run: |
           dotnet run --project tests/everyday-jobs/EverydayJobs.csproj -c Release -- --brain "$LABEL=server:http://127.0.0.1:8080|capri" \
-            --warmup --repeat "$REPEAT" --out results/local.json --md results/local.md
+            --warmup --wait 480 --repeat "$REPEAT" --out results/local.json --md results/local.md
       - name: Server log
         if: failure()
         run: tail -100 ~/capri-brain/server.log
@@ -119,7 +119,7 @@ jobs:
 
   table:
     needs: [local, cloud]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5

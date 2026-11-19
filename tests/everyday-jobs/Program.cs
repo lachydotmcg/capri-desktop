@@ -10,10 +10,12 @@ namespace CapriEverydayJobs
 {
     internal static class Program
     {
+        private static int wait = 180000;
         private const string Usage = "Usage: Capri.EverydayJobs --brain \"<label>=<spec>\" [--jobs id,id] [--repeat n] [--out results.json] [--md table.md] [--floor percent]\n"
             + "       Capri.EverydayJobs --merge a.json b.json ... --md table.md\n"
             + "       Capri.EverydayJobs --list\n"
             + "--warmup runs the first job once, unscored, so a local server has its prompt cached\n"
+            + "--wait seconds is how long one answer may take (180, as in the app), longer for a slow CPU\n"
             + "Specs: scripted | server:<address>|<model> | key:<ENV_VAR>|<model or default> | claude-plan:<model>";
 
         private static int Main(string[] args)
@@ -36,6 +38,7 @@ namespace CapriEverydayJobs
                 else if (arg == "--floor") floor = int.Parse(next(), CultureInfo.InvariantCulture);
                 else if (arg == "--claude") claude = next();
                 else if (arg == "--warmup") warmup = true;
+                else if (arg == "--wait") wait = int.Parse(next(), CultureInfo.InvariantCulture) * 1000;
                 else if (arg == "--trace") ClaudePlan.Trace = true;
                 else if (arg == "--merge") merging = new List<string>();
                 else if (arg == "--list") { foreach (Job job in Jobs.All) Console.WriteLine(job.Id.PadRight(15) + job.Area.PadRight(11) + job.Ask + "  ->  " + job.Goal); return 0; }
@@ -157,7 +160,7 @@ namespace CapriEverydayJobs
             Brain.Keeping = false;
             Outcome run = new Outcome();
             FakePc pc = new FakePc(job, run);
-            Brain brain = new Brain { OwnSteps = true, CloudWait = 180000 };
+            Brain brain = new Brain { OwnSteps = true, CloudWait = wait };
             brain.Kit = Kit;
             brain.Act = pc.Act;
             string list = Path.Combine(folder, "shopping-list.txt");
