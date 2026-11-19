@@ -62,6 +62,14 @@ namespace CapriDesktop
             Label head = new Label { Text = top, Font = Type(9f), ForeColor = trouble != null && trouble != "starting" && trouble != McpSignInNeeded.Said && tools.Count == 0 ? Rose : Faint, AutoSize = false, Bounds = new Rectangle(0, 0, 552, 40), UseMnemonic = false };
             panel.Controls.Add(head);
             int y = 46;
+            if (Mods.Builtin(mod, "mail"))
+            {
+                Key setup = new Key { Bounds = new Rectangle(0, y, 200, 26), Font = Type(9f), Text = MailTools.Ready ? "Change email account" : "Set up email", Accent = Cyan };
+                setup.AccessibleName = setup.Text;
+                setup.Click += delegate { OpenMailSetup(mod); };
+                panel.Controls.Add(setup);
+                y += 36;
+            }
             if (trouble == McpSignInNeeded.Said)
             {
                 Key sign = new Key { Bounds = new Rectangle(0, 46, 200, 26), Font = Type(9f), Text = "Sign in", Accent = Cyan };

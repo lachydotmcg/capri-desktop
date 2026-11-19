@@ -67,6 +67,7 @@
     <Compile Include="../app/MailSmtp.cs" Link="Shared/MailSmtp.cs" />
     <Compile Include="../app/MailTools.cs" Link="Shared/MailTools.cs" />
     <Compile Include="../app/MailChecks.cs" Link="Shared/MailChecks.cs" />
+    <Compile Include="../app/StarterPlugins.cs" Link="Shared/StarterPlugins.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />

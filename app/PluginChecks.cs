@@ -550,6 +550,41 @@ while True:
                     if (inside != null && mods.All.Contains(inside)) mods.Remove(inside);
                 }
             }
+            CheckStarters(mods, checks);
+            MailChecks.Run(checks, output);
+        }
+
+        private static void CheckStarters(Mods mods, List<string> checks)
+        {
+            string startersFile = Path.Combine(mods.PluginFolder, "starters.txt");
+            List<Mod> made = new List<Mod>();
+            try
+            {
+                mods.AddStarters();
+                mods.Load();
+                made = mods.All.FindAll(one => one.Starter);
+                Mod email = made.Find(one => one.File.Id == MailStarter), notion = made.Find(one => one.File.Id == "notion");
+                if (made.Count != 3 || email == null || notion == null || made.Exists(one => one.On || one.Changed || StarterAbout(one) == null || !StarterAbout(one).StartsWith("STARTER.", StringComparison.Ordinal)) || !Builtin(email, "mail") || !Online(notion) || Builtin(notion, "mail"))
+                    throw new Exception("Her starter plug-ins didn't come in off and waiting to be set up: " + made.Count);
+                string consent = null;
+                if (!mods.Set(email, true, delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; }) || !email.On || consent == null || !consent.Contains("uses Capri's own mail tools") || consent.Contains("starts "))
+                    throw new Exception("Turning on her Email starter didn't ask with what it uses: " + consent);
+                if (Wait(delegate { return Plugins.ToolsOf(MailStarter).Count == 5; }, 30) != null) throw new Exception("Her Email starter's tools weren't listed: " + Plugins.Trouble(MailStarter));
+                string unset = Plugins.Run("email_recent_mail", "");
+                if (!unset.Contains(MailTools.NotSetUp) || Plugins.Granted("email_send_mail") != 1 || Plugins.Needs("email_recent_mail") != Security.ModTools)
+                    throw new Exception("Her Email starter didn't say it needs setting up, or sending mail didn't always ask first: " + unset);
+                foreach (Mod one in made) mods.Remove(one);
+                mods.AddStarters();
+                mods.Load();
+                if (mods.All.Exists(one => one.Starter) || File.Exists(Path.Combine(mods.PluginFolder, MailStarter + ".signin.json"))) throw new Exception("A starter plug-in they removed came back.");
+                checks.Add("PASS plug-ins: her starters, Email, Notion and Linear, come in off with what they need to be set up, Email runs her own mail tools and always asks before sending, and one they remove stays gone");
+            }
+            finally
+            {
+                foreach (Mod one in made) if (mods.All.Contains(one)) mods.Remove(one);
+                try { if (File.Exists(startersFile)) File.Delete(startersFile); }
+                catch (IOException) { }
+            }
         }
     }
 }

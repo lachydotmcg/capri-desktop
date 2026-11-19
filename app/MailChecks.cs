@@ -399,7 +399,7 @@ namespace CapriDesktop
                 MailTools.Account = null;
                 text = Reply(MailTools.Call("recent_mail", Args()), out err);
                 Need(err && text == MailTools.NotSetUp, "no account says to set it up");
-                Need(MailTools.NotSetUp == "Email isn't set up yet. Set it up under Mods > Starter plug-ins > Email.", "setup message");
+                Need(MailTools.NotSetUp == "Email isn't set up yet. Turn on Email under Mods to set it up.", "setup message");
                 a.Password = "Sup3r-secret-pw";
                 a.Save(dir);
                 string file = File.ReadAllText(MailAccount.FilePath(dir));

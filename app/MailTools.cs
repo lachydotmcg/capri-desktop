@@ -11,8 +11,8 @@ namespace CapriDesktop
         internal static string Folder;
         private static MailAccount account;
         private static bool loaded;
-        internal const string NotSetUp = "Email isn't set up yet. Set it up under Mods > Starter plug-ins > Email.";
-        internal const string NeedsPassword = "Email needs its app password again this session. Enter it under Mods > Starter plug-ins > Email.";
+        internal const string NotSetUp = "Email isn't set up yet. Turn on Email under Mods to set it up.";
+        internal const string NeedsPassword = "Email needs its app password again. Turn Email off and on under Mods to give it.";
         private const int MaxText = 8000;
 
         internal static MailAccount Account
@@ -24,6 +24,10 @@ namespace CapriDesktop
             }
             set { account = value; loaded = true; }
         }
+
+        internal static void Reload() { account = null; loaded = false; }
+
+        internal static bool Ready { get { MailAccount a = Account; return a != null && a.Password.Length > 0; } }
 
         internal static void Forget()
         {
@@ -139,7 +143,7 @@ namespace CapriDesktop
             if (a.Password.Length == 0) return Result(NeedsPassword, true);
             string bad = MailAccount.Unsupported(a.Address);
             if (bad != null) return Result(bad, true);
-            if (!a.Known) return Result("Email needs its server names. Fill them in under Mods > Starter plug-ins > Email.", true);
+            if (!a.Known) return Result("Email needs its server names. Turn Email off and on under Mods to fill them in.", true);
             try
             {
                 switch (name)

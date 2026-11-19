@@ -25,6 +25,9 @@ namespace CapriDesktop
         {
             pluginFolder = Path.Combine(data, PluginsFolderName);
             Plugins.Folder = pluginFolder;
+            MailTools.Folder = pluginFolder;
+            MailTools.Reload();
+            Plugins.BuiltIns["mail"] = delegate { return new McpBuiltIn("mail", MailTools.List, MailTools.Call); };
         }
 
         internal static bool IsPluginFile(string file)
@@ -50,7 +53,8 @@ namespace CapriDesktop
             if (read.Id != id) throw new ModException("its file name doesn't match its id, " + read.Id + ".");
             string approved;
             bool same = info.Servers.Length == 0 || Approved().TryGetValue(id, out approved) && approved == hash;
-            Mod mod = new Mod { File = read, Path = file, Plugin = true, Hash = hash, Changed = !same, On = same && !off.Contains(id), Folder = root, Info = info, Skills = skillMods };
+            bool starter = IsStarter(id, hash);
+            Mod mod = new Mod { File = read, Path = file, Plugin = true, Starter = starter, Hash = hash, Changed = !same && !starter, On = same && !off.Contains(id), Folder = root, Info = info, Skills = skillMods };
             Placed(mod);
             return mod;
         }
