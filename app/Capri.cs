@@ -10864,13 +10864,14 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             if (remote != null && remote.Kind != "local")
             {
-                brain.Local = null;
+                DropLocalBrain(!quiet);
                 brain.Model = remote.Model;
                 if (!quiet || brain.Model != null) mainframe.ShowCloud(remote, cloudModels);
                 ListCloud(remote.Key, false, -1, look);
                 return;
             }
-            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { RefreshProvider(look); return; }
+            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { DropLocalBrain(!quiet); RefreshProvider(look); return; }
+            if (preferences.Tier != 0) { brainLooking = false; NeedsKey(!quiet); return; }
             if (SettingUp) return;
             if (!quiet) mainframe.Searching();
             if (finding) return;
@@ -10903,7 +10904,7 @@ namespace CapriDesktop
                         brain.Remote = new Cloud(first.Port, first.Model, first.Host);
                         Keep(brain.Remote);
                     }
-                    UseBrain(installed, found, local);
+                    UseBrain(installed, found, local, !quiet);
                 });
             });
         }
@@ -10937,7 +10938,8 @@ namespace CapriDesktop
             CloseTalk();
             brain.Remote = server == null ? null : new Cloud(server.Port, model, server.Host);
             localAddressTyped = false;
-            brain.Local = local == null ? null : engine;
+            if (local == null) DropLocalBrain(true);
+            else brain.Local = engine;
             brain.LocalPick = local;
             brain.Model = model;
             preferences.BrainPort = server == null ? 0 : server.Port;
@@ -11044,7 +11046,7 @@ namespace CapriDesktop
                     ++asking;
                     CloseTalk();
                     brain.Remote = null;
-                    brain.Local = null;
+                    DropLocalBrain(true);
                     brain.SetServer(address, key);
                     brain.Model = model;
                     cloudModels = null;
@@ -11927,7 +11929,7 @@ namespace CapriDesktop
             PassThrough();
         }
 
-        private void UseBrain(string[] installed, Machine found, Pick local)
+        private void UseBrain(string[] installed, Machine found, Pick local, bool asked = true)
         {
             machine = found;
             fit = Engine.Fit(found);
@@ -11935,19 +11937,21 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             if (remote == null && preferences.ProviderOn && brain.Server != null)
             {
+                DropLocalBrain(asked);
                 mainframe.ShowProvider(brain.Server, brain.ServerKey != null, brain.Model, providerModels);
                 return;
             }
             if (remote != null)
             {
-                brain.Local = null;
+                DropLocalBrain(asked);
                 brain.Model = remote.Model;
                 mainframe.ShowCloud(remote, cloudModels);
                 return;
             }
+            if (preferences.Tier != 0) { NeedsKey(asked); return; }
             if (installed != null && installed.Length > 0 && (local == null || preferences.Model != local.Name))
             {
-                brain.Local = null;
+                DropLocalBrain(asked);
                 brain.Model = Brain.PickModel(installed, preferences.Model, fit);
                 mainframe.ShowOllama(installed, brain.Model);
             }
@@ -11961,10 +11965,17 @@ namespace CapriDesktop
             }
             else
             {
-                brain.Local = null;
+                DropLocalBrain(asked);
                 brain.Model = null;
                 mainframe.ShowSetup(found, fit, ollamaRunning, null);
             }
+        }
+
+        private void NeedsKey(bool asked)
+        {
+            DropLocalBrain(asked);
+            brain.Model = null;
+            if (asked) mainframe.ShowNoKey();
         }
 
         internal void SetUpBrain()
@@ -12203,6 +12214,7 @@ namespace CapriDesktop
                 brain.Remote = null;
                 brain.Model = null;
                 cloudModels = null;
+                DropLocalBrain(true);
                 ShowTiers();
                 return;
             }
@@ -12341,6 +12353,7 @@ namespace CapriDesktop
                         brain.Cancel();
                         brain.SetServer(null, null);
                         brain.Remote = remote;
+                        DropLocalBrain(true);
                         if (pickedTier == 1) preferences.NvidiaKey = Voice.Protect(key);
                         else if (probe.Plan) { preferences.PaidPlan = Voice.Protect(key); preferences.PlanPicked = true; }
                         else { preferences.PaidKey = Voice.Protect(key); preferences.PlanPicked = false; }
@@ -13398,6 +13411,17 @@ namespace CapriDesktop
         internal const double BrainRest = 300, SpareBrainRest = 30;
 
         internal int BrainServerId { get { return engine.ServerId; } }
+
+        private void DropLocalBrain(bool asked)
+        {
+            brain.Local = null;
+            if (!asked || testing || !engine.Running) return;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { if (engine.Rest(0)) Brain.Log("brain", -1, "llama-server stopped when another brain was picked, giving its memory back"); }
+                catch (Exception) { }
+            });
+        }
 
         internal double BrainRestAfter { get { return brain.Local == engine && !preferences.NoAi ? BrainRest : SpareBrainRest; } }
 
@@ -37384,11 +37408,15 @@ namespace CapriDesktop
                         use(action == "empty MAX" ? "nvapi-picker-test" : "sk-proj-picker-test", action == "empty MAX" ? "openai/gpt-oss-20b" : "gpt-90-mini");
                         if (action == "Forget") ForgetText();
                         else ChooseTier(action == "NORMAL" ? 0 : action == "empty MEDIUM INTELLIGENCE" ? 1 : 2);
-                        if (brain.Remote != null || brain.Model != null || mainframe.Status != "Looking for a brain... | " || mainframe.BrainChoices.Length != 0) throw new Exception("The " + action + " action left the old cloud menu or model while local discovery was pending: " + mainframe.Status);
+                        bool empty = action.StartsWith("empty", StringComparison.Ordinal);
+                        string waiting = empty ? "No key yet | Paste a key below, or pick NORMAL for her brain on this PC." : "Looking for a brain... | ";
+                        if (brain.Remote != null || brain.Model != null || mainframe.Status != waiting || mainframe.BrainChoices.Length != 0) throw new Exception("The " + action + " action left the old cloud menu or model while local discovery was pending: " + mainframe.Status);
+                        brain.Local = engine;
                         UseBrain(new[] { "ollama-picker-test" }, new Machine { Ram = 8L << 30 }, null);
-                        if (brain.Model != "ollama-picker-test" || mainframe.BrainChoices[0] != "Ollama · ollama-picker-test") throw new Exception("Local discovery did not replace the old cloud menu.");
+                        if (empty && (brain.Model != null || brain.Local != null || mainframe.Status != waiting)) throw new Exception("The " + action + " tier ran the brain on their PC without a key: " + mainframe.Status);
+                        if (!empty && (brain.Model != "ollama-picker-test" || mainframe.BrainChoices[0] != "Ollama · ollama-picker-test")) throw new Exception("Local discovery did not replace the old cloud menu.");
                     }
-                    checks.Add("PASS NORMAL, tiers without keys and Forget clear the old cloud menu and model while local discovery is pending, then show the local brain");
+                    checks.Add("PASS NORMAL and Forget clear the old cloud menu and model while local discovery is pending, then show the local brain; MEDIUM and MAX without a key wait for one and never run the brain on their PC");
                 });
                 Section(checks, "SmokePickerSavedGemini", delegate
                 {
@@ -56485,6 +56513,11 @@ namespace CapriDesktop
                                     }
                                     finally { Hands.GameOpen = strayGame; Hands.GamingMode = straySwitch; strayFake.Stop(); cloudy.Forget(); }
                                     if (!mainframe.TextStatus.StartsWith("tier 0 | ", StringComparison.Ordinal) || !mainframe.TextStatus.EndsWith("| no key row", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("The brain tiers are wrong with no key: " + mainframe.TextStatus);
+                                    mainframe.ShowSetup(new Machine { Ram = 16L << 30 }, Engine.Picks[0], false, null);
+                                    mainframe.ShowNoAi(true);
+                                    if (mainframe.HintShown || !mainframe.TiersFit) throw new Exception("The Ollama hint stayed over the tiers once the setup steps closed: " + mainframe.TiersProblem);
+                                    mainframe.ShowNoAi(false);
+                                    checks.Add("PASS the Have Ollama hint goes with the setup steps, never over MAX INTELLIGENCE");
                                     mainframe.ShowTiers(1, null, null);
                                     if (!mainframe.TextStatus.EndsWith("| NVIDIA / Google AI Studio / OpenRouter | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MEDIUM INTELLIGENCE without a key is wrong: " + mainframe.TextStatus);
                                     // MEDIUM INTELLIGENCE's model menu marks Nemotron Super and Nemotron's reasoning model as recommended, at its top.
@@ -56548,7 +56581,8 @@ namespace CapriDesktop
                                         checks.Add("PASS MEDIUM INTELLIGENCE lists NVIDIA, Gemini and OpenRouter under BRAIN");
                                         preferences.PaidKey = null;
                                         ChooseTier(2);
-                                        if (preferences.Tier != 2 || brain.Remote != null || preferences.TextKey != null || !mainframe.TextStatus.EndsWith("| Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MAX INTELLIGENCE without its key did not fall back to her own brain: " + mainframe.TextStatus);
+                                        if (preferences.Tier != 2 || brain.Remote != null || preferences.TextKey != null || !mainframe.TextStatus.EndsWith("| Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MAX INTELLIGENCE without its key was wrong: " + mainframe.TextStatus);
+                                        if (brain.Model != null || brain.Local != null || !mainframe.TextStatus.Contains("No key yet")) throw new Exception("MAX INTELLIGENCE without its key ran the brain on their PC: " + mainframe.TextStatus);
                                     }
                                     finally
                                     {
@@ -56573,7 +56607,7 @@ namespace CapriDesktop
                                     Brain.Nvidia = realNvidia;
                                     cloudFake.Stop();
                                 }
-                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), MEDIUM INTELLIGENCE (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key running her own brain");
+                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), MEDIUM INTELLIGENCE (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key waiting for one instead of running the brain on their PC");
                                 System.Collections.Generic.List<string> quickAsked = new System.Collections.Generic.List<string>();
                                 System.Net.Sockets.TcpListener quickFake;
                                 Brain.Nvidia = FakeServer(new string[]

@@ -210,10 +210,7 @@ namespace CapriDesktop
         {
             ShowCues();
             Entry entry = control as Entry;
-            Rung rung = control as Rung;
-            if (rung != null) rung.Arriving = true;
-            try { if (entry != null) entry.Box.Select(); else control.Select(); }
-            finally { if (rung != null) rung.Arriving = false; }
+            if (entry != null) entry.Box.Select(); else control.Select();
             control.Invalidate();
         }
 

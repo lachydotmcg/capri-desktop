@@ -2898,6 +2898,8 @@ namespace CapriDesktop
             foreach (Label step in steps) step.Visible = setupShown;
             setup.Visible = setupShown;
             refresh.Top = Scaled(setupShown ? 226 : 134);
+            hint.Top = setup.Bottom + Scaled(10);
+            if (!setupShown) hint.Visible = false;
             brainNote.MaximumSize = new Size(Scaled(328), 0);
             voiceNote.MaximumSize = new Size(Scaled(328), 0);
             updateNote.MaximumSize = new Size(Scaled(328), 0);
@@ -3874,6 +3876,8 @@ namespace CapriDesktop
 
         internal bool TiersFit { get { return TiersProblem == null; } }
 
+        internal bool HintShown { get { return hint.Visible; } }
+
         // What doesn't fit among BRAIN's tiers, in words for the smoke test, or null when it all fits.
         internal string TiersProblem
         {
@@ -3900,6 +3904,7 @@ namespace CapriDesktop
                     end = movePaid.Bottom;
                 }
                 foreach (Rung brainRung in rungs) if (!brainRung.Fits) return brainRung.Text + " doesn't fit its rung (" + brainRung.Bounds + ")";
+                if (hint.Visible && (!setup.Visible || hint.Top < setup.Bottom || Array.Exists(rungs, delegate(Rung row) { return row.Bounds.IntersectsWith(hint.Bounds); }))) return "the Ollama hint (" + hint.Bounds + ") is left over the tiers";
                 if (tierNote.Right > ClientSize.Width) return "the tier note (right " + tierNote.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
                 if (rungs[0].Top < tierNote.Bottom || rungs[1].Top < rungs[0].Bottom || rungs[2].Top < rungs[1].Bottom) return "the rungs overlap the tier note or each other";
                 if (NoAiRowShown && (offRung.Top < tierNote.Bottom || rungs[0].Top < offRung.Bottom || !offRung.Fits || offRung.Right > ClientSize.Width)) return "OFF (" + offRung.Bounds + ") overlaps the tier note or NORMAL, or doesn't fit";
@@ -3958,6 +3963,18 @@ namespace CapriDesktop
             textEntry.Box.Clear();
             ClearPaidText();
             if (key != null) capri.ConnectPaidText(key);
+        }
+
+        internal void ShowNoKey()
+        {
+            brainName.Text = "No key yet";
+            brainNote.Text = "Paste a key below, or pick NORMAL for her brain on this PC.";
+            models.Visible = false;
+            hint.Visible = false;
+            modelMenu.Items.Clear();
+            menuRemote = null;
+            menuModels = null;
+            Arrange(false);
         }
 
         internal void ShowLocal(Pick pick)
@@ -8009,7 +8026,6 @@ namespace CapriDesktop
             internal Font HintFont;
             internal string Flag;
             internal Font FlagFont;
-            internal bool Arriving;
 
             internal bool Marked { get { return Focused && ShowFocusCues; } }
 
@@ -8033,8 +8049,17 @@ namespace CapriDesktop
 
             protected override void OnMouseLeave(EventArgs e) { hot = false; Invalidate(); base.OnMouseLeave(e); }
 
-            // A radio button clicks itself when focus arrives by arrow key or from code. The VOICE pair picks on a real click or Space only.
-            protected override void OnEnter(EventArgs e) { if (AutoCheck && !Arriving) base.OnEnter(e); }
+            // A radio button clicks itself when focus arrives by arrow key or from code. Every rung picks on a real click or Space only.
+            private bool entering;
+
+            protected override void OnEnter(EventArgs e)
+            {
+                entering = true;
+                try { base.OnEnter(e); }
+                finally { entering = false; }
+            }
+
+            protected override void OnClick(EventArgs e) { if (!entering) base.OnClick(e); }
 
             protected override void OnPaint(PaintEventArgs e)
             {
