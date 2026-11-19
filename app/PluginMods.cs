@@ -583,12 +583,14 @@ namespace CapriDesktop
             string reaches = "";
             foreach (string reach in mod.Reaches ?? new string[0]) reaches += "\n- " + reach;
             string skillsLine = mod.SkillNames == null || mod.SkillNames.Length == 0 ? "" : "It also has " + (mod.SkillNames.Length == 1 ? "a skill" : mod.SkillNames.Length + " skills") + ", " + Listed(mod.SkillNames) + ": know-how she reads when it fits. Nothing in a skill runs.\n\n";
+            bool reviewed = ModDirectory.Fetched(hash);
             return mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a plug-in that gives her tools.\n\n"
+                + (reviewed ? Reviewed : "")
                 + "To get them, Capri:" + reaches + "\n\n"
                 + (asks.Length == 0 ? "It doesn't say what its tools do on your PC.\n\n" : "It says its tools:" + asks + "\n\n")
                 + skillsLine
                 + "Those programs run outside Capri with your account's access to your PC, your files and your accounts. Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + ". She can't see or limit what the program does by itself.\n\n"
-                + "Only turn it on if you trust who made it.\n\nFile fingerprint (SHA-256):\n" + hash + "\n\nTurn this plug-in on?";
+                + (reviewed ? "" : "Only turn it on if you trust who made it.\n\n") + "File fingerprint (SHA-256):\n" + hash + "\n\nTurn this plug-in on?";
         }
 
 #if CROSS

@@ -5009,9 +5009,14 @@ namespace CapriDesktop
                 int blobsBefore = blobGets;
                 string file = ModDirectory.Download(fresh[0], under);
                 bool exact = ModDirectory.BlobSha(File.ReadAllBytes(file)) == fresh[0].Sha;
+                string fetchedHash = Mods.HashOf(File.ReadAllBytes(file));
+                ModFile fetchedCode = new ModFile { Id = "fetched", Name = "Fetched" }, fetchedPlugin = new ModFile { Id = "fetched", Name = "Fetched", Plugin = true };
+                if (!Mods.Consent(fetchedCode, fetchedHash).Contains(Mods.Reviewed) || !Mods.Consent(fetchedPlugin, fetchedHash).Contains(Mods.Reviewed) || Mods.Consent(fetchedCode, fetchedHash).Contains("Only run it if")
+                    || Mods.Consent(fetchedCode, new string('0', 64)).Contains(Mods.Reviewed) || !Mods.Consent(fetchedCode, new string('0', 64)).Contains("Only run it if") || Mods.Consent(fetchedPlugin, new string('0', 64)).Contains(Mods.Reviewed))
+                    throw new Exception("Her approve box didn't say a directory download was reviewed, or said it of a file from elsewhere.");
                 ModDirectory.Clean(file);
                 if (!exact || pinnedGets.Count != 1 || pinnedGets[0] != pinned + fresh[0].Folder + "/" + fresh[0].FileName || blobGets != blobsBefore) throw new Exception("A mod from tree.json wasn't downloaded from its pinned commit: " + string.Join(" | ", pinnedGets));
-                checks.Add("PASS mods directory: tree.json from raw.githubusercontent.com lists the mods without the API, and a download comes from the commit it names and matches its fingerprint");
+                checks.Add("PASS mods directory: tree.json from raw.githubusercontent.com lists the mods without the API, and a download comes from the commit it names and matches its fingerprint, and only that exact file's approve box says the Capri team reviewed it");
                 rawBroken = true;
                 List<ModListing> fallback = ModDirectory.Browse(out trouble);
                 rawBroken = false;
