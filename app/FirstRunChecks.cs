@@ -229,6 +229,7 @@ namespace CapriDesktop
                 Brain.Wordiness = 1;
                 Brain.ReplyLength = 0;
                 firstJob = null;
+                namedOnCard = false;
                 PointEars();
                 Brain.Off = false;
                 greetTried = false;
@@ -660,7 +661,7 @@ namespace CapriDesktop
                     if (!dressed || card.LookShown != 0 || hairNow() != usualHair || ModList.All.Exists(mod => mod.File.Id == Mods.MyColors)) throw new Exception("A look on the card didn't recolour her and put her back: " + dressed + " / " + card.LookShown);
                     card.Next();
                     pump();
-                    if (card.Screen != FirstRun.Voice || card.Count != "3 OF 6" || Brain.Nickname != "Sam" || LoadPreferences().Nickname != "Sam") throw new Exception("Next on MAKE ME YOURS didn't keep their name and go on to her voice: " + card.Screen + " / " + Brain.Nickname);
+                    if (card.Screen != FirstRun.Voice || card.Count != "3 OF 6" || Brain.Nickname != "Sam" || LoadPreferences().Nickname != "Sam" || !namedOnCard) throw new Exception("Next on MAKE ME YOURS didn't keep their name for her and Get to know me, and go on to her voice: " + card.Screen + " / " + Brain.Nickname);
                     picture(card, "4-voice-downloading");
                     card.Next();
                     pump();

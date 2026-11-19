@@ -1646,6 +1646,7 @@ namespace CapriDesktop
         internal void FirstRunType() { if (!typer.Visible) OpenTyper(); }
 
         private string firstJob;
+        private bool namedOnCard;
 
         internal string FirstJobWaiting { get { return firstJob; } }
 
@@ -1680,6 +1681,7 @@ namespace CapriDesktop
         internal void FirstRunName(string typed)
         {
             string name = Brain.Nick(typed);
+            namedOnCard = name.Length > 0;
             if ((Brain.Nickname ?? "") == name) return;
             Brain.Nickname = name.Length == 0 ? null : name;
             preferences.Nickname = Brain.Nickname;

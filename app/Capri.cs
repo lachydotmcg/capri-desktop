@@ -7938,7 +7938,8 @@ namespace CapriDesktop
             hideAsked = false;
             heard = "get to know me";
             box.Prompt = "> sys: ";
-            MeetLine(++asking, meeting.Start(Brain.Nickname));
+            MeetLine(++asking, meeting.Start(namedOnCard ? Brain.Nickname : null));
+            namedOnCard = false;
         }
 
         private void MeetLine(int ticket, string line)
