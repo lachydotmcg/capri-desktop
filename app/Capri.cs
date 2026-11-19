@@ -3377,6 +3377,7 @@ namespace CapriDesktop
                 if (!testing) CheckInkEsc(signalNow);
                 if (!testing && background) RestArt(signalNow, Environment.TickCount);
                 if (!testing) CheckPopIn(signalNow, signalIdle);
+                if (!testing) CheckErrandDeliveries(signalNow, signalIdle);
                 if (!testing) lookout.Deliver();
                 if (!testing) CheckNudge(signalNow, signalIdle);
                 if (!testing && background) CheckCare(signalNow, signalIdle);
@@ -21381,6 +21382,13 @@ namespace CapriDesktop
                 if (herFirst != herSplit[1] || herAfter != herSplit[2]) throw new Exception("Her computer split \"" + herSplit[0] + "\" wrong: " + herFirst + " | " + herAfter);
             }
             checks.Add("PASS her own computer: off until turned on, she reads one action at a time from any brain, works out jobs said with on your computer, saves notes and diary lines, keeps her desktop and stickers between runs, and her browser only opens web addresses");
+            foreach (string[] errandAsk in new[] { new[] { "run an errand for me: find the cheapest flights to Bali in March", "find the cheapest flights to Bali in March" }, new[] { "Capri, can you compare gaming chairs under $300 in the background?", "compare gaming chairs under $300" },
+                new[] { "find me a good birthday gift for my sister while I'm at work", "find me a good birthday gift for my sister" }, new[] { "keep an eye on the PS5 price at JB Hi-Fi", "keep an eye on the PS5 price at JB Hi-Fi" },
+                new[] { "let me know when GTA 6 tickets go on sale", "let me know when GTA 6 tickets go on sale" } })
+                if (Companion.HerErrandJob(errandAsk[0]) != errandAsk[1]) throw new Exception("Her errands heard the wrong errand in \"" + errandAsk[0] + "\": " + Companion.HerErrandJob(errandAsk[0]));
+            foreach (string notErrand in new[] { "let me know when you're ready", "tell me if you're tired", "keep going", "what's an errand?", "I ran errands today", "play music in the background" })
+                if (Companion.HerErrandJob(notErrand) != null) throw new Exception("Her errands took a line that wasn't an errand: " + notErrand);
+            checks.Add("PASS her errands: she works on a goal over several sittings, sends check-ins in her own words, asks yes or no and waits, comes back later when something isn't ready, keeps an eye on things and stays quiet when nothing's new, runs at the times they say, and hears errands said in plain words");
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
             checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
@@ -45288,6 +45296,8 @@ namespace CapriDesktop
                 CloseHerComputer();
                 mainframe.Sync(); SavePreferences();
             }
+
+            ErrandChecks(checks);
 
             Func<Sight> scrollGlimpseWas = Computer.Glimpse;
             Func<IntPtr> scrollFrontWas = Hands.Foreground;

@@ -215,16 +215,26 @@ namespace CapriDesktop
             return new List<string>(Notes());
         }
 
-        internal static HerStep Parse(string reply)
+        internal static HerStep Parse(string reply) { return Parse(reply, false); }
+
+        internal static HerStep Parse(string reply, bool errand)
         {
             if (string.IsNullOrWhiteSpace(reply)) return null;
             string[] lines = reply.Replace("\r", "").Split('\n');
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = Regex.Replace(lines[i], @"^[\s>*`#\-]*(?:action\s*:\s*)?", "", RegexOptions.IgnoreCase).Trim().Trim('`').Trim();
-                Match match = Regex.Match(line, @"^(SEARCH|OPEN|CLICK|SCROLL|BACK|NOTE|DONE)\b\s*:?\s*(.*)$", RegexOptions.IgnoreCase);
+                Match match = Regex.Match(line, errand ? @"^(SEARCH|OPEN|CLICK|SCROLL|BACK|NOTE|DONE|UPDATE|ASK|LATER|NOTHING)\b\s*:?\s*(.*)$" : @"^(SEARCH|OPEN|CLICK|SCROLL|BACK|NOTE|DONE)\b\s*:?\s*(.*)$", RegexOptions.IgnoreCase);
                 if (!match.Success) continue;
                 HerStep step = new HerStep { Verb = match.Groups[1].Value.ToUpperInvariant(), Arg = match.Groups[2].Value.Trim() };
+                if (step.Verb == "LATER")
+                {
+                    Match later = Regex.Match(step.Arg, @"^(\d{1,5})\s*(?:min(?:ute)?s?|m)?\s*(?:\|\s*(.*))?$", RegexOptions.IgnoreCase);
+                    if (!later.Success) return null;
+                    step.Arg = later.Groups[1].Value;
+                    step.Extra = later.Groups[2].Value.Trim();
+                    return step;
+                }
                 if (step.Verb == "DONE" || step.Verb == "NOTE")
                 {
                     StringBuilder rest = new StringBuilder(step.Arg);
@@ -240,7 +250,7 @@ namespace CapriDesktop
                 }
                 if (step.Verb == "SCROLL") step.Arg = Regex.IsMatch(step.Arg, @"^\s*up", RegexOptions.IgnoreCase) ? "up" : "down";
                 if (step.Arg.Length >= 2 && step.Arg[0] == '"' && step.Arg[step.Arg.Length - 1] == '"' && step.Verb != "DONE") step.Arg = step.Arg.Substring(1, step.Arg.Length - 2);
-                if ((step.Verb == "SEARCH" || step.Verb == "OPEN" || step.Verb == "CLICK" || step.Verb == "DONE") && step.Arg.Length == 0) return null;
+                if ((step.Verb == "SEARCH" || step.Verb == "OPEN" || step.Verb == "CLICK" || step.Verb == "DONE" || step.Verb == "UPDATE" || step.Verb == "ASK") && step.Arg.Length == 0) return null;
                 return step;
             }
             return null;
@@ -432,7 +442,7 @@ namespace CapriDesktop
             if (again.Stickers().Count != 1 || again.Stickers()[0].Kind != "star") return "Her desktop didn't come back the way she left it.";
             for (int i = 0; i < MostStickers + 5; i++) again.AddSticker("heart", new Point(400, 400), 0);
             if (new HerComputer(folder).Stickers().Count != MostStickers) return "Her stickers piled up past the limit.";
-            return HerJobs.Check(Path.Combine(folder, "jobs-check"));
+            return HerJobs.Check(Path.Combine(folder, "jobs-check")) ?? HerSchedule.Check() ?? HerErrand.Check(Path.Combine(folder, "errand-check"));
         }
 
         private sealed class QuietHands : HerHands
