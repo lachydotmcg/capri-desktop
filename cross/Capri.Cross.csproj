@@ -53,6 +53,7 @@
     <Compile Include="../app/ModApi.cs" Link="Shared/ModApi.cs" />
     <Compile Include="../app/CodeMods.cs" Link="Shared/CodeMods.cs" />
     <Compile Include="../app/ArtColors.cs" Link="Shared/ArtColors.cs" />
+    <Compile Include="../app/Onboarding.cs" Link="Shared/Onboarding.cs" />
     <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
     <Compile Include="../app/SkillMods.cs" Link="Shared/SkillMods.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
