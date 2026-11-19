@@ -41635,6 +41635,8 @@ namespace CapriDesktop
                 StartNews(false); CheckNews(0);
                 if (reply != null || newsPending || LoadPreferences().LastVersion != News.Version) throw new Exception("A fresh install spoke update news or missed its saved version.");
                 checks.Add("PASS fresh installs save their version without update news");
+                if (Assembly.GetExecutingAssembly().GetName().Version.ToString(3) != News.Version || FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion != News.Version) throw new Exception("Her file version is not her update news version " + News.Version + ".");
+                checks.Add("PASS her file version and the version her updates compare are the one in her update news");
                 preferences.LastVersion = null; StartNews(true);
                 CheckNews(60001);
                 if (reply != null || preferences.LastVersion != null) throw new Exception("Update news spoke while the user was away.");

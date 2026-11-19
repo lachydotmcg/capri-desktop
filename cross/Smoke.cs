@@ -2970,6 +2970,8 @@ namespace CapriDesktop
                 MainframeWait(delegate { return pet.Talk.Reply == "Held news."; }, "late news retry");
                 if (SettingsCopy().LastVersion != News.Version) throw new Exception("Late cross news did not save when free.");
                 checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
+                if (typeof(Pet).Assembly.GetName().Version.ToString(3) != News.Version) throw new Exception("Her build version " + typeof(Pet).Assembly.GetName().Version + " is not her update news version " + News.Version + ".");
+                checks.Add("PASS her build version and the version her updates compare are the one in her update news");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
                 foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Cloud brains:", "Mods:", "Raspberry Pi:", "Your PC:" } : new[] { "Cloud brains:", "Mods:", "Hey Capri:" })
