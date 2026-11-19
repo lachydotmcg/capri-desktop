@@ -4483,6 +4483,7 @@ namespace CapriDesktop
         internal static bool Valid(string tool, ToolArguments args)
         {
 #if CROSS
+            if (tool == "linux_system" && args != null && string.IsNullOrEmpty(args.Action) && string.IsNullOrEmpty(args.Name)) args.Action = "overview";
             if (tool == "linux_system") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(overview|status|processes|service_failed|service_status|service_start|service_stop|service_restart)\z")
                 && (args.Action == "overview" || args.Action == "status" || args.Action == "processes" || args.Action == "service_failed" || Named(args.Name));
             if (tool == "run_terminal") return args != null && !string.IsNullOrWhiteSpace(args.Command) && args.Command.Length <= 16000 && args.Command.IndexOf('\0') < 0;
