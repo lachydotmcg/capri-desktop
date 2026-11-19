@@ -3100,6 +3100,7 @@ namespace CapriDesktop
                 AwakeChecks(fields);
                 VaultChecks(frame, fields);
                 MainframeSheets(frame);
+                MemoryPageChecks(frame);
                 MainframeConnections(frame);
                 MainframeLayout(frame, voice);
                 foreach (string name in new[] { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" })
@@ -5335,6 +5336,75 @@ namespace CapriDesktop
 
         // Her Mods page in the Mainframe like Windows': its keys where Windows has them, the installed rows, their pages and her
         // colors, nothing out of place at 100%, 150% and 200%, and pictures of it.
+        private void MemoryPageChecks(Mainframe frame)
+        {
+            string root = Path.Combine(Path.GetTempPath(), "capri-memory-page-" + Guid.NewGuid().ToString("N"));
+            string notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, gamesWas = GameNotes.Folder;
+            bool keepingWas = Brain.Keeping;
+            MemorySheet sheet = null;
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(root, "transcripts"));
+                Directory.CreateDirectory(Path.Combine(root, "games"));
+                Brain.MemoryPath = Path.Combine(root, "me.md");
+                Brain.MemoriesPath = Path.Combine(root, "memories.md");
+                Brain.TranscriptPath = Path.Combine(root, "transcripts");
+                GameNotes.Folder = Path.Combine(root, "games");
+                Brain.Keeping = true;
+                File.WriteAllText(Brain.MemoryPath, Brain.NotesHead + "- Pronouns: she/her\n- They like cats\n- They are learning piano and want to play slowly through a whole album before the end of the year, one song at a time\n");
+                File.WriteAllText(Brain.MemoriesPath, Brain.MemoriesHead + "## Wednesday 28 October 2026\n- They beat Malenia after 40 tries.\n\n## Thursday 29 October 2026\n- They started a new piano book.\n- I helped them fix their mic.\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-28.md"), "# Capri and you, Wednesday 28 October 2026\n> Kept on this PC only.\n\n**10:00 You:** hi\n**10:00 Capri:** hey choom\n*10:01 She glanced at your screen: Elden Ring.*\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-29.md"), "# Capri and you\n\n**09:00 You:** piano time\n");
+                File.WriteAllText(Path.Combine(GameNotes.Folder, "fortnite.md"), "# Fortnite\n\n- Sprint is shift\n");
+                pet.SetMainframeSize(100);
+                frame.ShowSettings(true);
+                frame.Press("Open her memories");
+                sheet = frame.Memory;
+                if (sheet == null) throw new Exception("Open her memories didn't open HER MEMORY.");
+                MainframeWait(() => sheet.Ready, "reading her memory");
+                sheet.UpdateLayout();
+                foreach (string name in new[] { "Forget everything about me", "Forget game notes", "Edit as text", "Add", "Undo" })
+                    if (name != "Undo" && sheet.Button(name) == null) throw new Exception("HER MEMORY has no " + name + " key.");
+                int edits = sheet.Count("Edit"), forgets = sheet.Count("Forget");
+                if (edits != 7 || forgets != 7 || sheet.Button("2026-10-29") == null || sheet.Button("2026-10-28") == null) throw new Exception("HER MEMORY rows: " + edits + " edit, " + forgets + " forget keys.");
+                string crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("HER MEMORY is crowded: " + crowded);
+                string shot = Path.Combine(folder, "mainframe-memory.png");
+                sheet.SavePicture(shot);
+                File.Copy(shot, Path.Combine(folder, "mainframe-memory-1.png"), true);
+                sheet.EditRow("They like cats", "They love cats and dogs");
+                MainframeWait(() => sheet.Ready && sheet.Strip != null, "saving an edit");
+                if (!File.ReadAllText(Brain.MemoryPath).Contains("- They love cats and dogs") || sheet.Button("Undo") == null) throw new Exception("An edit through HER MEMORY didn't save or show Undo.");
+                sheet.Press("Undo");
+                MainframeWait(() => sheet.Ready && !File.ReadAllText(Brain.MemoryPath).Contains("dogs"), "undoing an edit");
+                if (!File.ReadAllText(Brain.MemoryPath).Contains("- They like cats")) throw new Exception("Undo through HER MEMORY didn't bring the note back.");
+                ((NeonEntry)sheet.Rows["Tell her something to remember"]).Box.Text = "they main Sukuna";
+                sheet.Press("Add");
+                MainframeWait(() => sheet.Ready && File.ReadAllText(Brain.MemoryPath).Contains("They main Sukuna"), "adding a memory");
+                ((NeonEntry)sheet.Rows["Search her memory"]).Box.Text = "piano";
+                MainframeWait(() => sheet.Count("Forget") == 2, "searching");
+                ((NeonEntry)sheet.Rows["Search her memory"]).Box.Text = "";
+                MainframeWait(() => sheet.Count("Forget") == 8, "clearing the search");
+                sheet.Press("2026-10-28");
+                MainframeWait(() => sheet.OpenDayShown == "2026-10-28" && sheet.Ready, "opening a chat day");
+                sheet.UpdateLayout();
+                if (sheet.Button("Back") == null || sheet.Button("Forget this day") == null) throw new Exception("The chat day has no Back or Forget this day.");
+                sheet.SavePicture(Path.Combine(folder, "mainframe-memory-day.png"));
+                sheet.Press("Forget this day");
+                if (File.Exists(Path.Combine(Brain.TranscriptPath, "2026-10-28.md")) == false) throw new Exception("Forget this day went through on the first click.");
+                sheet.Press("Back");
+                if (sheet.OpenDayShown != null) throw new Exception("Back left the chat day open.");
+                checks.Add("PASS her memory page: HER MEMORY lists about, chat, game and chat-log rows, searches them, edits then undoes a note through its own keys, adds one, opens a chat day with Back and a Forget this day that needs a second click, and fits without overlap; mainframe-memory-1.png and mainframe-memory-day.png");
+            }
+            finally
+            {
+                sheet?.Close();
+                frame.ShowSettings(false);
+                Brain.MemoryPath = notesWas; Brain.MemoriesPath = memoriesWas; Brain.TranscriptPath = transcriptsWas; GameNotes.Folder = gamesWas; Brain.Keeping = keepingWas;
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
         private void ModsPageChecks(Mainframe frame)
         {
             frame.ShowMods(true); frame.SearchInstalled("");
