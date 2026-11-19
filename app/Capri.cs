@@ -253,7 +253,8 @@ namespace CapriDesktop
     internal sealed class RunMark
     {
         internal const string Marker = "running.on";
-        internal const string Notice = "Capri closed unexpectedly last time. If it keeps happening, right-click her > Help > Copy error details and send it to us.";
+        internal const string Notice = "Capri closed unexpectedly last time. If it keeps happening, right-click her > Help > Send crash reports, or Copy error details and send it to us.";
+        internal const string Reporting = "Capri closed unexpectedly last time. She'll send us the crash report in a minute or two.";
         internal static Func<DateTime, DateTime, Record[]> Events = ReadEvents;
         private readonly string file, log, version, exe;
         private readonly int pid;
@@ -2787,6 +2788,7 @@ namespace CapriDesktop
         private const string HelpPage = "https://capriai.app/help/";
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
+        private const string PrivacyPage = "https://capriai.app/privacy/";
         private const string ModRulesPage = "https://capriai.app/privacy/#mods";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
@@ -3151,6 +3153,8 @@ namespace CapriDesktop
             // Store policies 11.12 and 11.16: AI replies and mods need a way to report them from inside the app, and mods need their rules there too.
             if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Report a problem", null, delegate { OpenPage(IssuesPage); }));
             if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Mod rules", null, delegate { OpenPage(ModRulesPage); }));
+            helpItem.DropDownItems.Add(new ToolStripMenuItem("Privacy and safety", null, delegate { OpenPage(PrivacyPage); }));
+            helpItem.DropDownItems.Add(CrashMenuItem());
             checkItem = new ToolStripMenuItem("Check for updates", null, delegate { CheckForUpdates(true); });
             helpItem.DropDownItems.Add(checkItem);
             updateItem = new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); });
@@ -3410,6 +3414,7 @@ namespace CapriDesktop
                 if (background) CheckSlow(clock.Elapsed.TotalSeconds);
                 CheckVoiceInMic(signalNow);
                 UpdatePill(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckCrashReports(clock.Elapsed.TotalSeconds);
                 if (!testing && background && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
             };
             Size = CanvasSize(preferences.Size);
@@ -3564,8 +3569,9 @@ namespace CapriDesktop
             balloonPage = null;
             balloonUpdate = false;
             balloonMainframe = false;
-            if (closeNotice != null) closeNotice(RunMark.Notice);
-            else tray.ShowBalloonTip(12000, "Capri closed unexpectedly", RunMark.Notice, ToolTipIcon.Warning);
+            string closedText = preferences.CrashReports ? RunMark.Reporting : RunMark.Notice;
+            if (closeNotice != null) closeNotice(closedText);
+            else tray.ShowBalloonTip(12000, "Capri closed unexpectedly", closedText, ToolTipIcon.Warning);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -21357,6 +21363,10 @@ namespace CapriDesktop
             if (doomResult != null) throw new Exception(doomResult);
             if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
             checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
+            string crashResult = CrashReports.Check();
+            if (crashResult != null) throw new Exception(crashResult);
+            if (new Preferences().CrashReports || Preferences.Fresh().CrashReports) throw new Exception("Crash reports started on.");
+            checks.Add("PASS crash reports: off until turned on, then only her crash, close and freeze lines since the last report go, at most 30, with keys, user folders and her PC and user names taken out");
             string herResult = HerComputer.Check();
             if (herResult != null) throw new Exception(herResult);
             string herFolder = Path.Combine(Path.GetTempPath(), "capri-her-computer-" + Guid.NewGuid().ToString("N"));
