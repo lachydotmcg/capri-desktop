@@ -20,7 +20,8 @@ namespace CapriDesktop
         // hello-ok's feature for a PC that stops her answer when a phone on a call sends call.hush.
         internal const string HushFeature = "hush";
         internal const string ListenFeature = "call-listen";
-        private const int LinesAtOnce = 2, FlushMs = 120, TimedForMs = 60000;
+        internal const string LookFeature = "call-look";
+        private const int LinesAtOnce = 2, FlushMs = 120, TimedForMs = 60000, LookHeldMs = 15000, LookWaitMs = 1500;
 
         // The phones on a call changed: the badge reads Callers(). Raised on whatever thread made the change.
         internal event Action Changed;
@@ -42,6 +43,7 @@ namespace CapriDesktop
         private readonly RemoteLink link;
         private readonly Func<short[], string> ears;
         private readonly Action<string, string, string> said;
+        private Action<string, string, string, RemotePicture> saidLooking;
         private readonly object gate = new object();
         private readonly Dictionary<string, Caller> calls = new Dictionary<string, Caller>(StringComparer.Ordinal);
         private readonly Timer flusher;
@@ -65,9 +67,20 @@ namespace CapriDesktop
             link.Happened += Happened;
         }
 
+        internal void Seeing(Action<string, string, string, RemotePicture> looked)
+        {
+            saidLooking = looked;
+            if (looked != null) link.Offer(LookFeature);
+        }
+
         private sealed class Caller
         {
             internal string Device;
+            internal readonly HashSet<string> Waiting = new HashSet<string>(StringComparer.Ordinal);
+            internal string LookId;
+            internal RemotePicture Look;
+            internal int LookAt;
+            internal bool Looked;
             internal readonly Dictionary<string, Line> Lines = new Dictionary<string, Line>(StringComparer.Ordinal);
             internal readonly List<short> Voice = new List<short>();
             internal int VoiceRate, VoiceN;
@@ -154,13 +167,23 @@ namespace CapriDesktop
                 case "call.start": Start(device, message.Is("hush", true), message.Is("listen", true)); break;
                 case "call.stop": End(device, null); break;
                 case "call.audio": Audio(device, message); break;
+                case "call.look": Look(device, message); break;
                 case "call.cancel":
                 {
                     string id = message.Text("id");
                     lock (gate)
                     {
                         Caller caller;
-                        if (id != null && calls.TryGetValue(device, out caller)) caller.Lines.Remove(id);
+                        if (id != null && calls.TryGetValue(device, out caller))
+                        {
+                            caller.Lines.Remove(id);
+                            caller.Waiting.Remove(id);
+                            if (caller.LookId == id)
+                            {
+                                caller.LookId = null;
+                                caller.Look = null;
+                            }
+                        }
                     }
                     break;
                 }
@@ -284,6 +307,7 @@ namespace CapriDesktop
                 if (disposed || !calls.TryGetValue(device, out caller) || caller.Listen) problem = "not-allowed";
                 else
                 {
+                    ExpireLook(caller);
                     Line line;
                     if (!caller.Lines.TryGetValue(id, out line))
                     {
@@ -303,6 +327,7 @@ namespace CapriDesktop
                         {
                             accepted = caller;
                             caller.Lines.Remove(id);
+                            caller.Waiting.Add(id);
                             ended = Stopwatch.GetTimestamp();
                             whole = new short[line.Bytes / 2];
                             int at = 0;
@@ -323,12 +348,90 @@ namespace CapriDesktop
             if (whole != null) ThreadPool.QueueUserWorkItem(delegate { Hear(device, id, whole, ended, accepted); });
         }
 
+        private void Look(string device, RemoteJson.Map message)
+        {
+            string id = message.Text("id");
+            if (!RemoteMessages.IdOk(id))
+            {
+                Send(device, RemoteMessages.Error("bad-message", null));
+                return;
+            }
+            if (Listening(device) || saidLooking == null)
+            {
+                Send(device, RemoteMessages.Error("not-allowed", id));
+                return;
+            }
+            if (!OnCall(device)) return;
+            RemotePicture picture = null;
+            if (!message.ContainsKey("picture") || !RemotePicture.Header(message, out picture) || picture == null)
+            {
+                Send(device, RemoteMessages.Error("bad-message", id));
+                return;
+            }
+            lock (gate)
+            {
+                Caller caller;
+                if (disposed || !calls.TryGetValue(device, out caller) || caller.Listen) return;
+                ExpireLook(caller);
+                if (!caller.Waiting.Contains(id) && !caller.Lines.ContainsKey(id)) return;
+                caller.LookId = id;
+                caller.Look = picture;
+                caller.LookAt = Environment.TickCount;
+                caller.Looked = true;
+            }
+        }
+
+        private static void ExpireLook(Caller caller)
+        {
+            if (caller.Look == null || unchecked(Environment.TickCount - caller.LookAt) <= LookHeldMs) return;
+            caller.Look = null;
+            caller.LookId = null;
+        }
+
+        private RemotePicture TakeLook(Caller accepted, string id)
+        {
+            Stopwatch waited = Stopwatch.StartNew();
+            RemotePicture look = null;
+            while (true)
+            {
+                bool wait;
+                lock (gate)
+                {
+                    if (disposed || accepted.Listen || !accepted.Waiting.Contains(id)) return null;
+                    ExpireLook(accepted);
+                    if (accepted.Look != null && accepted.LookId == id)
+                    {
+                        look = accepted.Look;
+                        accepted.Look = null;
+                        accepted.LookId = null;
+                        break;
+                    }
+                    wait = accepted.Looked;
+                }
+                if (!wait || waited.ElapsedMilliseconds >= LookWaitMs) return null;
+                Thread.Sleep(20);
+            }
+            return look.Confirm() ? look : null;
+        }
+
         // Her ears on a finished line, then the words to her as if they'd been said at the PC. On a pool thread, where
         // anything thrown would end her.
         private void Hear(string device, string id, short[] samples, long ended, Caller accepted)
         {
             try { HearLine(device, id, samples, ended, accepted); }
             catch (Exception) { }
+            finally
+            {
+                lock (gate)
+                {
+                    accepted.Waiting.Remove(id);
+                    if (accepted.LookId == id)
+                    {
+                        accepted.LookId = null;
+                        accepted.Look = null;
+                    }
+                }
+            }
         }
 
         private void HearLine(string device, string id, short[] samples, long ended, Caller accepted)
@@ -352,6 +455,8 @@ namespace CapriDesktop
             Send(device, HeardMessage(id, words));
             if (words.Length > 0 && said != null && OnCall(device))
             {
+                Action<string, string, string, RemotePicture> looking = saidLooking;
+                RemotePicture look = looking == null ? null : TakeLook(accepted, id);
                 lock (gate)
                 {
                     Caller caller;
@@ -363,7 +468,11 @@ namespace CapriDesktop
                         caller.Timing = false;
                     }
                 }
-                try { said(device, id, words); }
+                try
+                {
+                    if (look != null) looking(device, id, words, look);
+                    else said(device, id, words);
+                }
                 catch (Exception) { }
             }
         }
@@ -667,6 +776,141 @@ namespace CapriDesktop
             }
             link.Stop();
             checks.Add("PASS Room listening skips ears, refuses audio, gets voice, stops on stop, Interrupt and lost sessions, restores ordinary calls and reports calls off, voice off and busy separately; real calls remove listeners and busy or refused retries leave none behind");
+        }
+
+        internal static void SmokeLook(List<string> checks)
+        {
+            string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4____fwAJ-wP9KobjigAAAABJRU5ErkJggg";
+            int size = RemoteCrypto.FromB64u(png).Length;
+            Func<string, string> look = delegate(string id) { return "{\"type\":\"call.look\",\"id\":\"" + id + "\",\"picture\":{\"mime\":\"image/png\",\"data\":\"" + png + "\"}}"; };
+            Func<string, string> line = delegate(string id) { return "{\"type\":\"call.audio\",\"id\":\"" + id + "\",\"n\":0,\"rate\":16000,\"pcm\":\"AAA\",\"end\":true}"; };
+            RemoteLink link = new RemoteLink(RemoteState.Fresh(), "ws://127.0.0.1:1", "Test PC", "test", null);
+            List<RemoteJson.Map> sent = new List<RemoteJson.Map>();
+            List<string> turns = new List<string>();
+            using (ManualResetEvent release = new ManualResetEvent(true))
+            {
+                using (RemoteCall plain = new RemoteCall(link, delegate { return "hello"; }, delegate { }))
+                    if (Array.IndexOf(link.FeaturesNow, LookFeature) >= 0) throw new Exception("A call with no way to look offered call-look.");
+                using (RemoteCall call = new RemoteCall(link, delegate { release.WaitOne(5000); return "nice hoodie"; }, delegate(string device, string id, string words) { lock (turns) turns.Add("words " + id + " " + words); }))
+                {
+                    call.Seeing(delegate(string device, string id, string words, RemotePicture picture) { lock (turns) turns.Add("look " + id + " " + words + " " + picture.Bytes.Length); });
+                    call.Sending = delegate(string device, string json)
+                    {
+                        RemoteJson.Map row = RemoteJson.ParseMap(json);
+                        row["device"] = device;
+                        lock (sent) sent.Add(row);
+                    };
+                    Func<int, string> next = delegate(int n)
+                    {
+                        Stopwatch waited = Stopwatch.StartNew();
+                        while (waited.ElapsedMilliseconds < 6000)
+                        {
+                            lock (turns) if (turns.Count > n) return turns[n];
+                            Thread.Sleep(10);
+                        }
+                        return "nothing";
+                    };
+                    Action settle = delegate
+                    {
+                        Stopwatch waited = Stopwatch.StartNew();
+                        while (waited.ElapsedMilliseconds < 3000)
+                        {
+                            lock (call.gate)
+                            {
+                                Caller held;
+                                if (!call.calls.TryGetValue("phone", out held) || held.Waiting.Count == 0) return;
+                            }
+                            Thread.Sleep(10);
+                        }
+                        throw new Exception("A line was left waiting for its words.");
+                    };
+                    Func<RemoteJson.Map> last = delegate { lock (sent) return sent.Count == 0 ? new RemoteJson.Map() : sent[sent.Count - 1]; };
+                    if (Array.IndexOf(link.FeaturesNow, LookFeature) < 0) throw new Exception("Her hello-ok is missing call-look.");
+                    call.Heard("room", "{\"type\":\"call.start\",\"listen\":true}");
+                    call.Heard("room", look("room-line"));
+                    if (last().Text("code") != "not-allowed" || last().Text("re") != "room-line") throw new Exception("A listening phone's call.look was not refused.");
+                    call.Heard("room", "{\"type\":\"call.stop\"}");
+                    call.Heard("phone", look("early"));
+                    if (call.Any || last().Text("re") == "early") throw new Exception("A look from a phone not on a call was answered.");
+                    call.Heard("phone", "{\"type\":\"call.start\"}");
+                    int rows;
+                    lock (sent) rows = sent.Count;
+
+                    release.Reset();
+                    call.Heard("phone", line("l1"));
+                    call.Heard("phone", look("l1"));
+                    release.Set();
+                    string first = next(0);
+                    if (first != "look l1 nice hoodie " + size) throw new Exception("A look before its line's words did not go to her with them: " + first);
+                    settle();
+                    if (call.calls["phone"].Look != null) throw new Exception("A look that went to her was still held.");
+
+                    call.Heard("phone", look("ghost"));
+                    call.Heard("phone", look("l1"));
+                    lock (sent) for (int n = rows; n < sent.Count; n++) if (sent[n].Text("type") == "error") throw new Exception("A look for an unknown or finished line was answered.");
+                    if (call.calls["phone"].Look != null) throw new Exception("A look for an unknown or finished line was held.");
+
+                    call.Heard("phone", "{\"type\":\"call.look\",\"id\":\"l2\",\"picture\":{\"mime\":\"image/png\",\"data\":\"AAAA\"}}");
+                    if (last().Text("code") != "bad-message" || last().Text("re") != "l2") throw new Exception("A bad picture on a look got no bad-message.");
+                    call.Heard("phone", "{\"type\":\"call.look\",\"id\":\"l2\",\"picture\":{\"mime\":\"image/gif\",\"data\":\"" + png + "\"}}");
+                    if (last().Text("code") != "bad-message") throw new Exception("A look with the wrong picture type got no bad-message.");
+                    call.Heard("phone", "{\"type\":\"call.look\",\"id\":\"l2\"}");
+                    if (last().Text("code") != "bad-message") throw new Exception("A look with no picture got no bad-message.");
+                    call.Heard("phone", "{\"type\":\"call.look\",\"picture\":{\"mime\":\"image/png\",\"data\":\"" + png + "\"}}");
+                    if (last().Text("code") != "bad-message" || last().Text("re") != null) throw new Exception("A look with no id got no bad-message without a re.");
+
+                    Stopwatch quiet = Stopwatch.StartNew();
+                    call.Heard("phone", line("l2"));
+                    string second = next(1);
+                    if (second != "words l2 nice hoodie") throw new Exception("A line with no look did not go to her as words: " + second);
+                    if (quiet.ElapsedMilliseconds < 1000) throw new Exception("A phone that sends looks was not waited for.");
+                    settle();
+
+                    call.Heard("phone", line("l3"));
+                    Thread.Sleep(200);
+                    call.Heard("phone", look("l3"));
+                    string third = next(2);
+                    if (third != "look l3 nice hoodie " + size) throw new Exception("A look just after the words were ready was not waited for: " + third);
+                    settle();
+
+                    release.Reset();
+                    call.Heard("phone", line("l4"));
+                    call.Heard("phone", look("l4"));
+                    call.Heard("phone", "{\"type\":\"call.cancel\",\"id\":\"l4\"}");
+                    if (call.calls["phone"].Look != null) throw new Exception("Cancelling a line kept its look.");
+                    release.Set();
+                    string fourth = next(3);
+                    if (fourth != "words l4 nice hoodie") throw new Exception("A cancelled line's look went to her: " + fourth);
+                    settle();
+
+                    release.Reset();
+                    call.Heard("phone", line("l5"));
+                    call.Heard("phone", look("l5"));
+                    call.calls["phone"].LookAt = Environment.TickCount - LookHeldMs - 1000;
+                    release.Set();
+                    string fifth = next(4);
+                    if (fifth != "words l5 nice hoodie") throw new Exception("A look older than fifteen seconds went to her: " + fifth);
+                    settle();
+
+                    release.Reset();
+                    call.Heard("phone", line("l6"));
+                    call.Heard("phone", look("l6"));
+                    call.Heard("phone", line("l7"));
+                    call.Heard("phone", look("l7"));
+                    if (call.calls["phone"].LookId != "l7") throw new Exception("A caller held more than its latest look.");
+                    call.End("phone", null);
+                    release.Set();
+                    Thread.Sleep(300);
+                    lock (turns) if (turns.Count != 5) throw new Exception("An ended call's lines still reached her.");
+
+                    call.Heard("phone", "{\"type\":\"call.start\"}");
+                    call.Seeing(null);
+                    call.Heard("phone", look("l8"));
+                    if (last().Text("code") != "not-allowed" || last().Text("re") != "l8") throw new Exception("A look to a PC that does not take them was not refused.");
+                }
+            }
+            link.Stop();
+            checks.Add("PASS a phone's call.look before or just after its line's words goes to her with them as one turn, only the latest is held and never past 15 seconds or a cancel; a look for an unknown line is dropped silently, a bad picture gets bad-message, a listening phone's gets not-allowed, and a line with no look goes as words alone");
         }
 
         private void RaiseChanged()
