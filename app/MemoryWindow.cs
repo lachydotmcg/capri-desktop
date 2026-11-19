@@ -645,8 +645,8 @@ namespace CapriDesktop
                 if (games.Count == 0) Empty(ref y);
                 else
                 {
-                    int top = gamesTitle.Top;
-                    Tool(armed == "games" ? "Click again to forget" : "Forget game notes", ListWide - 190, top - P(1), 190, ForgetGames, "Forget all her game notes. Press twice to confirm", Hot);
+                    int top = gamesTitle.Bottom - P(25);
+                    Tool(armed == "games" ? "Click again to forget" : "Forget game notes", ListWide - 190, top, 190, ForgetGames, "Forget all her game notes. Press twice to confirm", Hot);
                     Part(games, Groups(games), ref y, ref rows);
                 }
                 if (rows >= Cap)
