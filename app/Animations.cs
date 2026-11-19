@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace CapriDesktop
@@ -270,7 +271,7 @@ namespace CapriDesktop
 
         private sealed class AnimationSheet : ModSheet
         {
-            internal const int Wide = 640, Tall = 600;
+            internal const int Wide = 640, Tall = 632;
             private readonly AnimationDraft draft;
             private readonly AnimationPreview preview = new AnimationPreview();
             private readonly Label name, about, at, status;
@@ -278,6 +279,31 @@ namespace CapriDesktop
             private readonly Entry skinName;
             private readonly Timer clock = new Timer();
             private int shown, frame;
+            private readonly Timer rewear = new Timer();
+            private string wornAs;
+            private sealed class Editing
+            {
+                internal AnimationDraft.Strip Strip;
+                internal Bitmap Frame;
+                internal string File;
+                internal FileSystemWatcher Watcher;
+                internal DateTime Seen;
+                internal bool Due;
+                internal int Tries;
+            }
+            private readonly Timer taking = new Timer();
+            internal Func<string, bool> Opener;
+
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+            private struct OpenAsInfo
+            {
+                [MarshalAs(UnmanagedType.LPWStr)] internal string File;
+                [MarshalAs(UnmanagedType.LPWStr)] internal string Class;
+                internal int Flags;
+            }
+
+            [DllImport("shell32.dll", CharSet = CharSet.Unicode)] private static extern int SHOpenWithDialog(IntPtr parent, ref OpenAsInfo info);
+            private readonly List<Editing> editing = new List<Editing>();
 
             internal AnimationSheet(Mainframe owner, float zoom, AnimationDraft draft) : base(owner, zoom, "Animations", "ANIMATIONS >", Wide, Tall)
             {
@@ -287,7 +313,7 @@ namespace CapriDesktop
                 name = Words("", 66, 79, 508, 22, Type(11f * Zoom, true), White);
                 Make(">", 580, 76, 32, 26, delegate { Pick(shown + 1); }).AccessibleName = "Next animation";
                 about = Words("", 28, 106, 584, 18, Small(), Faint);
-                preview.Bounds = Box(28, 132, 300, 330);
+                preview.Bounds = Box(28, 132, 300, 362);
                 Controls.Add(preview);
                 at = Words("", 344, 132, 268, 20, Font, White);
                 play = Make("Pause", 344, 158, 84, 26, delegate { Play(!clock.Enabled); });
@@ -303,26 +329,37 @@ namespace CapriDesktop
                 Make("Replace...", 344, 318, 130, 26, delegate { Replace(); }).AccessibleName = "Replace this frame with a picture";
                 add = Make("Add after...", 482, 318, 130, 26, delegate { AddAfter(); });
                 add.AccessibleName = "Add frames from pictures after this one";
-                Words("WHOLE STRIP", 344, 358, 268, 18, Small(), Rose);
-                Make("Save PNG...", 344, 380, 130, 26, delegate { SaveStrip(); }).AccessibleName = "Save this strip as a PNG";
-                Make("Load PNG...", 482, 380, 130, 26, delegate { LoadStrip(); }).AccessibleName = "Load this strip from a PNG";
-                Make("Save frames...", 344, 412, 130, 26, delegate { SaveFrames(); }).AccessibleName = "Save each frame as its own PNG";
-                Make("Load frames...", 482, 412, 130, 26, delegate { LoadFrames(); }).AccessibleName = "Load frames from a folder of PNGs";
-                Make("Undo changes", 344, 444, 130, 26, delegate { Revert(false); });
-                Make("Her own", 482, 444, 130, 26, delegate { Revert(true); }).AccessibleName = "Go back to her own art for this strip";
-                Words("SKIN NAME", 28, 480, 120, 18, Small(), Rose);
-                skinName = new Entry { Bounds = Box(28, 500, 300, 28), Cue = "Name your skin" };
+                Make("Edit frame in...", 344, 350, 130, 26, delegate { EditIn(false); }).AccessibleName = "Open this frame in any app, and take it back each time it's saved";
+                Make("Edit strip in...", 482, 350, 130, 26, delegate { EditIn(true); }).AccessibleName = "Open the whole strip in any app, and take it back each time it's saved";
+                Words("WHOLE STRIP", 344, 390, 268, 18, Small(), Rose);
+                Make("Save PNG...", 344, 412, 130, 26, delegate { SaveStrip(); }).AccessibleName = "Save this strip as a PNG";
+                Make("Load PNG...", 482, 412, 130, 26, delegate { LoadStrip(); }).AccessibleName = "Load this strip from a PNG";
+                Make("Save frames...", 344, 444, 130, 26, delegate { SaveFrames(); }).AccessibleName = "Save each frame as its own PNG";
+                Make("Load frames...", 482, 444, 130, 26, delegate { LoadFrames(); }).AccessibleName = "Load frames from a folder of PNGs";
+                Make("Undo changes", 344, 476, 130, 26, delegate { Revert(false); });
+                Make("Her own", 482, 476, 130, 26, delegate { Revert(true); }).AccessibleName = "Go back to her own art for this strip";
+                Words("SKIN NAME", 28, 512, 120, 18, Small(), Rose);
+                skinName = new Entry { Bounds = Box(28, 532, 300, 28), Cue = "Name your skin" };
                 skinName.Box.Text = draft.BaseName == null ? "My animations" : Clamp(draft.BaseName.EndsWith(" (edited)", StringComparison.Ordinal) ? draft.BaseName : draft.BaseName + " (edited)");
                 skinName.Box.AccessibleName = "Skin name";
                 Controls.Add(skinName);
-                Key wear = Make("Wear it", 344, 501, 130, 28, delegate { Save(true); });
+                Key wear = Make("Wear it", 344, 533, 130, 28, delegate { Save(true); });
                 wear.Accent = Cyan;
                 wear.Loud = true;
                 wear.AccessibleName = "Save these animations as a skin and wear it";
-                Make("Save skin...", 482, 501, 130, 28, delegate { Save(false); }).AccessibleName = "Save these animations as a skin file to share";
-                status = Words("", 28, 540, 584, 40, Small(), Faint);
+                Make("Save skin...", 482, 533, 130, 28, delegate { Save(false); }).AccessibleName = "Save these animations as a skin file to share";
+                status = Words("", 28, 572, 584, 40, Small(), Faint);
                 clock.Tick += delegate { Step(1); };
-                FormClosed += delegate { clock.Stop(); clock.Dispose(); };
+                FormClosed += delegate { clock.Stop(); clock.Dispose(); StopEditing(); };
+                taking.Interval = 400;
+                taking.Tick += delegate { TakeNow(); };
+                rewear.Interval = 700;
+                rewear.Tick += delegate
+                {
+                    rewear.Stop();
+                    Mod outfit = Frame.capri.ModList.Outfit;
+                    if (wornAs != null && outfit != null && outfit.File.Id == Mods.IdFor(wornAs)) Wear(wornAs, true);
+                };
                 Pick(Math.Max(0, draft.Strips.FindIndex(strip => strip.Title == "idle" && !strip.Left)));
                 Play(true);
                 Frame.Fit(this);
@@ -452,12 +489,14 @@ namespace CapriDesktop
                 }
             }
 
-            private List<Bitmap> ReadAll(IEnumerable<string> files)
+            private List<Bitmap> ReadAll(IEnumerable<string> files) { return ReadAll(Strip, files); }
+
+            private List<Bitmap> ReadAll(AnimationDraft.Strip strip, IEnumerable<string> files)
             {
                 List<Bitmap> found = new List<Bitmap>();
                 try
                 {
-                    foreach (string file in files) found.AddRange(draft.Read(Strip, file));
+                    foreach (string file in files) found.AddRange(draft.Read(strip, file));
                     return found;
                 }
                 catch (Exception error)
@@ -469,16 +508,21 @@ namespace CapriDesktop
                 }
             }
 
-            private void Put(int at, int replacing, List<Bitmap> frames)
+            private void Put(int at, int replacing, List<Bitmap> frames) { Put(Strip, at, replacing, frames); }
+
+            private bool Put(AnimationDraft.Strip strip, int at, int replacing, List<Bitmap> frames)
             {
-                List<Bitmap> into = Strip.Frames;
-                if (into == null || frames == null) return;
-                if (!Room(into.Count - replacing + frames.Count)) { foreach (Bitmap made in frames) made.Dispose(); return; }
+                List<Bitmap> into = strip.Frames;
+                if (into == null || frames == null) return false;
+                string trouble = draft.Fits(strip, into.Count - replacing + frames.Count);
+                if (trouble != null || at < 0 || at + replacing > into.Count) { foreach (Bitmap made in frames) made.Dispose(); Say(trouble ?? strip.Shown + " changed since it was opened.", true); return false; }
                 for (int i = 0; i < replacing; i++) { into[at].Dispose(); into.RemoveAt(at); }
                 into.InsertRange(at, frames);
-                frame = at;
-                Changed();
+                strip.Changed = true;
+                if (strip == Strip) frame = at;
+                ShowFrame();
                 Say(frames.Count == 1 ? "1 frame in." : frames.Count + " frames in.", false);
+                return true;
             }
 
             private void Replace()
@@ -580,6 +624,136 @@ namespace CapriDesktop
                 }
             }
 
+            private static string EditFolder { get { return Path.Combine(Path.GetTempPath(), "capri-animations"); } }
+
+            private void EditIn(bool whole) { EditFile(whole, true); }
+
+            internal string EditFile(bool whole, bool open)
+            {
+                AnimationDraft.Strip strip = Strip;
+                if (strip.Frames == null || strip.Frames.Count == 0) return null;
+                string lead = strip.File.Substring(0, strip.File.Length - 4);
+                string file = Path.Combine(EditFolder, whole ? lead + ".png" : lead + "_" + (frame + 1).ToString("000") + ".png");
+                Editing same = editing.Find(each => string.Equals(each.File, file, StringComparison.OrdinalIgnoreCase));
+                if (same != null) Forget(same);
+                try
+                {
+                    Directory.CreateDirectory(EditFolder);
+                    if (whole) using (Bitmap joined = AnimationDraft.Joined(strip.Frames, strip.Wide, strip.High)) joined.Save(file, ImageFormat.Png);
+                    else strip.Frames[frame].Save(file, ImageFormat.Png);
+                }
+                catch (Exception error)
+                {
+                    if (!(error is IOException || error is UnauthorizedAccessException || error is ExternalException)) throw;
+                    Say("Couldn't get it ready to edit: " + error.Message, true);
+                    return null;
+                }
+                Editing made = new Editing { Strip = strip, Frame = whole ? null : strip.Frames[frame], File = file, Seen = File.GetLastWriteTimeUtc(file) };
+                made.Watcher = new FileSystemWatcher(EditFolder, Path.GetFileName(file));
+                made.Watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size;
+                made.Watcher.SynchronizingObject = this;
+                FileSystemEventHandler saw = delegate { made.Due = true; made.Tries = 0; taking.Stop(); taking.Start(); };
+                made.Watcher.Changed += saw;
+                made.Watcher.Created += saw;
+                made.Watcher.Renamed += delegate { made.Due = true; made.Tries = 0; taking.Stop(); taking.Start(); };
+                made.Watcher.EnableRaisingEvents = true;
+                editing.Add(made);
+                if (open && !(Opener ?? OpenWith)(file)) { Forget(made); return null; }
+                Say("Opened " + Path.GetFileName(file) + ". Each time you save it in that app, it comes back here" + (wornAs != null ? " and onto her." : ". Wear it to see it on her, and saves after that go straight onto her."), false);
+                return file;
+            }
+
+            private bool OpenWith(string file)
+            {
+                OpenAsInfo info = new OpenAsInfo { File = file, Flags = 0x1 | 0x4 };
+                int result;
+                try { result = SHOpenWithDialog(Handle, ref info); }
+                catch (EntryPointNotFoundException) { result = -1; }
+                if (result >= 0) return true;
+                if (result == unchecked((int)0x800704C7)) return false;
+                try
+                {
+                    using (System.Diagnostics.Process.Start("rundll32.exe", "shell32.dll,OpenAs_RunDLL " + file)) { }
+                    return true;
+                }
+                catch (System.ComponentModel.Win32Exception error)
+                {
+                    Say("Couldn't ask which app to open it with: " + error.Message, true);
+                    return false;
+                }
+            }
+
+            internal void TakeNow()
+            {
+                taking.Stop();
+                bool again = false;
+                foreach (Editing made in editing.ToArray())
+                {
+                    if (!made.Due && File.Exists(made.File) && File.GetLastWriteTimeUtc(made.File) == made.Seen) continue;
+                    if (!Take(made) && ++made.Tries < 15) again = true;
+                    else made.Due = false;
+                }
+                if (again) taking.Start();
+            }
+
+            private bool Take(Editing made)
+            {
+                DateTime written;
+                List<Bitmap> frames;
+                try
+                {
+                    if (!File.Exists(made.File)) return false;
+                    written = File.GetLastWriteTimeUtc(made.File);
+                    if (written == made.Seen) return true;
+                    frames = draft.Read(made.Strip, made.File);
+                }
+                catch (IOException) { return false; }
+                catch (UnauthorizedAccessException) { return false; }
+                catch (ModException error)
+                {
+                    if (made.Tries < 14) return false;
+                    Say(error.Message, true);
+                    return true;
+                }
+                made.Seen = written;
+                made.Due = false;
+                bool done;
+                if (made.Frame == null) done = Put(made.Strip, 0, made.Strip.Frames == null ? 0 : made.Strip.Frames.Count, frames);
+                else
+                {
+                    int at = made.Strip.Frames == null ? -1 : made.Strip.Frames.IndexOf(made.Frame);
+                    if (at < 0)
+                    {
+                        foreach (Bitmap extra in frames) extra.Dispose();
+                        Say("That frame isn't in " + made.Strip.Shown + " any more, so the save wasn't taken.", true);
+                        return true;
+                    }
+                    done = Put(made.Strip, at, 1, frames);
+                    if (done) made.Frame = frames[0];
+                }
+                if (done && wornAs != null) { rewear.Stop(); rewear.Start(); }
+                return true;
+            }
+
+            private void Forget(Editing made)
+            {
+                made.Watcher.EnableRaisingEvents = false;
+                made.Watcher.Dispose();
+                editing.Remove(made);
+                try { if (File.Exists(made.File)) File.Delete(made.File); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+
+            private void StopEditing()
+            {
+                taking.Stop();
+                taking.Dispose();
+                rewear.Stop();
+                rewear.Dispose();
+                foreach (Editing made in editing.ToArray()) Forget(made);
+            }
+
             private void Revert(bool own)
             {
                 try { draft.Reset(Strip, own); draft.Load(Strip); }
@@ -592,9 +766,10 @@ namespace CapriDesktop
                 ShowFrame();
             }
 
-            private void Save(bool wear)
+            private void Save(bool wear) { Wear(skinName.Box.Text.Trim(), wear); }
+
+            private void Wear(string title, bool wear)
             {
-                string title = skinName.Box.Text.Trim();
                 if (title.Length == 0) { Say("Name your skin first.", true); return; }
                 if (!draft.Dirty) { Say("Change a frame or a speed first.", true); return; }
                 string id = Mods.IdFor(title);
@@ -618,7 +793,8 @@ namespace CapriDesktop
                     Mod worn = Frame.capri.ModList.WearOutfit(temporary);
                     Frame.ForgetDraftAfterWearing();
                     Frame.FillMods();
-                    Say(worn == null ? "Couldn't wear it." : worn.File.Name + " is on. Find it in your mods to publish it.", worn == null);
+                    wornAs = worn == null ? null : title;
+                    Say(worn == null ? "Couldn't wear it." : worn.File.Name + " is on. Find it in your mods to publish it." + (editing.Count > 0 ? " Saving in your app puts it on her too." : ""), worn == null);
                 }
                 catch (ModException error) { Say(error.Message, true); }
                 catch (IOException error) { Say("Couldn't save that skin: " + error.Message, true); }
@@ -689,6 +865,45 @@ namespace CapriDesktop
                 checks.Add("PASS animations: her editor lists her strips, fits, loads her own frames, keeps her mouth shapes fixed, and a frame and speed changed there are worn as a skin and taken off again");
             }
             finally { draft.Dispose(); }
+            AnimationDraft editing = new AnimationDraft(mods);
+            try
+            {
+                using (AnimationSheet sheet = new AnimationSheet(this, 1f, editing))
+                {
+                    List<string> opened = new List<string>();
+                    sheet.Opener = delegate(string file) { opened.Add(file); return true; };
+                    sheet.Show(this);
+                    AnimationDraft.Strip idle = editing.Strips.Find(strip => strip.Title == "idle" && !strip.Left);
+                    Func<string, int, Color, bool> draw = delegate(string file, int frames, Color paint)
+                    {
+                        using (Bitmap made = new Bitmap(idle.Wide * frames, idle.High, PixelFormat.Format32bppArgb))
+                        {
+                            using (Graphics paper = Graphics.FromImage(made)) paper.Clear(paint);
+                            made.Save(file, ImageFormat.Png);
+                        }
+                        File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddSeconds(5));
+                        return true;
+                    };
+                    string one = sheet.EditFile(false, true);
+                    if (one == null || opened.Count != 1 || opened[0] != one || !File.Exists(one)) throw new Exception("Edit frame in didn't write the frame and ask which app opens it.");
+                    draw(one, 1, Color.Red);
+                    sheet.TakeNow();
+                    if (idle.Count != 60 || !idle.Changed || idle.Frames[0].GetPixel(10, 10).ToArgb() != Color.Red.ToArgb()) throw new Exception("A frame saved in another app didn't come back into her editor.");
+                    string whole = sheet.EditFile(true, true);
+                    draw(whole, 30, Color.Blue);
+                    sheet.TakeNow();
+                    if (idle.Count != 30 || idle.Frames[29].GetPixel(10, 10).ToArgb() != Color.Blue.ToArgb()) throw new Exception("A strip saved in another app didn't come back with its 30 frames.");
+                    draw(whole, 1, Color.Lime);
+                    File.WriteAllText(whole, "not a picture yet");
+                    File.SetLastWriteTimeUtc(whole, DateTime.UtcNow.AddSeconds(10));
+                    sheet.TakeNow();
+                    if (idle.Count != 30) throw new Exception("A half-saved strip from another app replaced her frames.");
+                    sheet.Close();
+                    if (File.Exists(one) || File.Exists(whole)) throw new Exception("Closing her editor left its files for other apps behind.");
+                }
+                checks.Add("PASS animations: Edit frame in and Edit strip in write a PNG, ask which app opens it, take each save back, and leave a half-saved file alone");
+            }
+            finally { editing.Dispose(); }
         }
     }
 }

@@ -57,6 +57,10 @@ Set how fast a strip plays in `skin.json`, from 1 to 60 frames a second. It work
 - **Replace...** or **Add after...** with your own PNGs. A PNG can be one frame, or a strip of several side by side.
 - **Save PNG...** and **Load PNG...** the whole strip, or **Save frames...** and **Load frames...** a folder of numbered PNGs
   (`idle_001.png`, `idle_002.png`...) to draw in any art program.
+- **Edit frame in...** and **Edit strip in...** open the frame you're on, or the whole strip, in any app you pick (paint.net,
+  Aseprite, Krita, Photoshop...). Each time you save it there, it comes straight back into the editor, and onto her too once
+  you've pressed **Wear it**. On Windows you pick the app from the Open with list, on a Mac from your Applications, and on Linux
+  it opens in your default image app.
 - **Slower** and **Faster** set its speed.
 - **Wear it** saves every change as a skin and puts it on as her outfit, starting from the outfit she has on. **Save skin...**
   saves the `.capri-skin` to share.
