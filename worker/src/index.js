@@ -985,18 +985,20 @@ const stats = async (request, env) => {
   const since = today + 1 - days;
   const sinceText = new Date(since * 86400000).toISOString().slice(0, 10);
   const dayText = day => new Date(day * 86400000).toISOString().slice(0, 10);
-  const [downloads, stars, mods, phones, helps, frees, codeRows, crashDays, crashTop, crashLatest] = await env.DB.batch([
+  const [downloads, stars, mods, phones, helps, frees, codeRows] = await env.DB.batch([
     env.DB.prepare('SELECT count FROM downloads'),
     env.DB.prepare('SELECT count FROM stars'),
     env.DB.prepare('SELECT d.folder AS folder, d.count AS installs, ROUND(AVG(r.stars), 2) AS rating, COUNT(r.stars) AS votes FROM mod_downloads d LEFT JOIN mod_ratings r ON r.folder = d.folder GROUP BY d.folder ORDER BY d.count DESC'),
     env.DB.prepare('SELECT day, phones, first_time, also_paired FROM phone_days WHERE day >= ? ORDER BY day').bind(sinceText),
     env.DB.prepare('SELECT day, count FROM help_days WHERE ABS(day) >= ? ORDER BY ABS(day)').bind(since),
     env.DB.prepare("SELECT day, SUM(CASE WHEN key <> 'pool' THEN 1 ELSE 0 END) AS phones, SUM(CASE WHEN key <> 'pool' THEN count ELSE 0 END) AS messages FROM free_days GROUP BY day ORDER BY day"),
-    env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC'),
+    env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC')
+  ]);
+  const [crashDays, crashTop, crashLatest] = await env.DB.batch([
     env.DB.prepare('SELECT day, version, platform, COUNT(*) AS count FROM crashes WHERE day >= ? GROUP BY day, version, platform ORDER BY day, version, platform').bind(sinceText),
     env.DB.prepare('SELECT sig, version, COUNT(*) AS count, MAX(day) AS last_day FROM crashes WHERE day >= ? GROUP BY sig, version ORDER BY count DESC, last_day DESC LIMIT 20').bind(sinceText),
     env.DB.prepare('SELECT day, version, platform, os, store, lines FROM crashes ORDER BY id DESC LIMIT 30')
-  ]);
+  ]).catch(() => [{ results: [] }, { results: [] }, { results: [] }]);
   const first = result => (result.results && result.results[0]) || {};
   return reply({
     at: Date.now(),

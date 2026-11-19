@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -27,6 +28,7 @@ namespace CapriDesktop
         internal const string Address = "https://capri-reactions.lachydotmcg.workers.dev/crash";
         internal const int Most = 30;
         internal const int Longest = 400;
+        internal const int Biggest = 7800;
         internal const double After = 90;
         internal static readonly string[] Places = { "crash", "closed", "frozen" };
         internal static Func<string, int> Post = Send;
@@ -74,6 +76,14 @@ namespace CapriDesktop
                 new DataContractJsonSerializer(typeof(CrashBody)).WriteObject(stream, body);
                 return Encoding.UTF8.GetString(stream.ToArray());
             }
+        }
+
+        internal static string Fitted(string version, string os, bool store, string[] lines)
+        {
+            List<string> kept = new List<string>(lines);
+            string body = Body(version, os, store, kept.ToArray());
+            while (body.Length > Biggest && kept.Count > 1) { kept.RemoveAt(0); body = Body(version, os, store, kept.ToArray()); }
+            return body.Length > Biggest ? null : body;
         }
 
         internal static string Os()
@@ -135,6 +145,8 @@ namespace CapriDesktop
             if (Private("pat the cat", "C:\\Users\\al", "al", "pc") != "pat the cat") return "Crash reports took short names out of words.";
             string body = Body("0.9.4", "Windows 10.0.26100 x64", true, new[] { "a \"quoted\" line" });
             if (body != "{\"version\":\"0.9.4\",\"platform\":\"windows\",\"os\":\"Windows 10.0.26100 x64\",\"store\":true,\"lines\":[\"a \\\"quoted\\\" line\"]}") return "A crash report's body isn't the shape her server takes: " + body;
+            string fitted = Fitted("0.9.4", "Windows 10.0.26100 x64", false, capped.Select(delegate(string line) { return line + new string('y', Longest - line.Length); }).ToArray());
+            if (fitted == null || fitted.Length > Biggest || fitted.IndexOf("Crash " + (Most + 11), StringComparison.Ordinal) < 0 || fitted.IndexOf("Crash 12y", StringComparison.Ordinal) >= 0) return "A crash report didn't fit her server's size limit with its newest lines.";
             if (!Settled(200) || !Settled(400) || Settled(0) || Settled(429) || Settled(503)) return "Crash reports would give up on a report her server never took, or retry one it refused.";
             if (!Regex.IsMatch(Os(), @"^Windows \d+\.\d+\.\d+ x(64|86)$")) return "Crash reports named Windows oddly: " + Os();
             return null;
@@ -192,7 +204,8 @@ namespace CapriDesktop
                     lock (typeof(Brain)) log = File.Exists(path) ? File.ReadAllLines(path) : new string[0];
                     DateTime newest;
                     string[] lines = CrashReports.Since(log, through, out newest);
-                    if (lines.Length > 0 && CrashReports.Settled(post(CrashReports.Body(version, os, store, lines)))) sent = newest.Ticks;
+                    string body = lines.Length == 0 ? null : CrashReports.Fitted(version, os, store, lines);
+                    if (body != null && CrashReports.Settled(post(body))) sent = newest.Ticks;
                 }
                 catch (Exception) { }
                 Post(delegate
