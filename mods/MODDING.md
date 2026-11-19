@@ -313,8 +313,7 @@ A `CapriTrack` has `Title`, `Artist`, `Album`, `App` (a name to show, like `Spot
 
 ## Examples
 
-- [demo/](demo) has a checkers game she plays with you, and tool mods for Wikipedia summaries, the next public holiday
-  and currency rates.
+- [demo/](demo) has a checkers game she plays with you, and a tool mod for currency rates.
 - [hello-code.capri-code](hello-code.capri-code) answers "mod check".
 - [hooks-tour.capri-code](hooks-tour.capri-code) grows or shrinks her when asked, counts head pats, draws a heart over her head, and adds a menu item and options.
 - [startup-intros.capri-code](startup-intros.capri-code) plays a startup intro.
