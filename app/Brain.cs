@@ -5374,6 +5374,17 @@ namespace CapriDesktop
             return AskName;
         }
 
+        internal string Start(string known)
+        {
+            string line = Start();
+            string called = Brain.Nick(known);
+            if (called.Length == 0) return line;
+            name = called;
+            Keep("Name", name);
+            step = 1;
+            return "Let's get to know each other, " + name + ". " + AskPronouns + " Say skip to skip one, or stop to stop.";
+        }
+
         internal void Stop() { step = -1; }
 
         // Her next line for what they said, or null when it isn't an answer: the meeting's over and it's heard as usual. called is
