@@ -12349,6 +12349,7 @@ namespace CapriDesktop
                         ShowTiers();
                     }
                     if (brain.Remote == null || brain.Remote.Key != key) return;
+                    if (brain.Remote.Plan) BetterModels.Add(found, brain.Remote.Model);
                     cloudModels = found;
                     if (brain.Remote.Model == null || !found.Contains(brain.Remote.Model))
                     {
@@ -39561,6 +39562,51 @@ namespace CapriDesktop
         // nothing saved and no API key from the environment; a screenshot goes along as a picture; a signed-out app, a used-up plan
         // and a missing app each get her plain line; a reply they talk over ends the app at once; and My plan sits on MAX
         // INTELLIGENCE's rung with the plan in use ticked.
+        private void SmokeBetterModels(System.Collections.Generic.List<string> checks)
+        {
+            string key = "xai-fixture-key";
+            if (Cloud.KindOf(key) != "xai" || Cloud.MediumKind("xai") || Cloud.KindOf("xai-test\r\nunsafe") != null
+                || new Cloud(key, "grok-4.7").Name != "Grok" || Brain.Redacted(key) != "[redacted]")
+                throw new Exception("The xAI key didn't route to MAX or stay out of the logs.");
+            if (Brain.Address("xai", "/models") != "https://api.x.ai/v1/language-models"
+                || Brain.Address("xai", "/chat/completions") != "https://api.x.ai/v1/chat/completions")
+                throw new Exception("The xAI key went to the wrong address.");
+            var models = Brain.ReadCloudModels("xai", "{\"models\":[{\"id\":\"grok-4.7\",\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},{\"id\":\"grok-audio\",\"input_modalities\":[\"text\"],\"output_modalities\":[\"audio\"]}]}");
+            var grok = new Brain();
+            if (models.Count != 1 || Brain.DefaultCloudModel("xai", models) != "grok-4.7"
+                || !grok.Sighted(new Cloud(key, "grok-4.7")) || grok.Sighted(new Cloud(key, "grok-unknown")))
+                throw new Exception("Her xAI model picker included a media model or gave a model the wrong eyes.");
+            var codex = BetterModels.CodexJson("{\"models\":[{\"slug\":\"fixture-model\",\"visibility\":\"list\"},{\"slug\":\"hidden\",\"visibility\":\"hide\"}]}");
+            var claude = BetterModels.Claude("{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\",\"request_id\":\"capri-models\",\"response\":{\"models\":[{\"value\":\"sonnet[1m]\"}]}}}");
+            BetterModels.Add(codex, "fixture-model");
+            BetterModels.Add(codex, "bad & model");
+            if (codex.Count != 1 || codex[0] != "fixture-model" || claude.Count != 1 || claude[0] != "sonnet[1m]"
+                || !Brain.ModelFits("codex", "fixture-model") || !Brain.ModelFits("claudecode", "sonnet[1m]"))
+                throw new Exception("Her plan picker didn't keep the visible and safe CLI model names.");
+            checks.Add("PASS MAX models: xAI keys, language and image-capable models, and visible Codex and Claude plan models");
+            Cloud plan = new Cloud(Plans.CodexKey, "default");
+            try
+            {
+                mainframe.ShowNoAi(false);
+                mainframe.ShowTiers(2, null, null, null, plan.Kind);
+                mainframe.ShowCloud(plan, Plans.Models(plan.Kind));
+                if (!mainframe.ModelPickerShown || !mainframe.TiersFit) throw new Exception("MAX did not place the plan model below the tier rows.");
+                mainframe.ShowNoAi(true);
+                mainframe.ShowCloud(plan, Plans.Models(plan.Kind));
+                if (mainframe.ModelPickerShown || !mainframe.NoAiShown) throw new Exception("No AI let a late plan redraw show its model picker.");
+                mainframe.ShowNoAi(false);
+                mainframe.ShowTiers(2, null, null, null, plan.Kind);
+                mainframe.ShowCloud(plan, Plans.Models(plan.Kind));
+                if (!mainframe.ModelPickerShown || !mainframe.TiersFit) throw new Exception("Returning to MAX did not return the plan model picker.");
+                checks.Add("PASS No AI hides the model picker through a late redraw and MAX restores it below the tier rows");
+            }
+            finally
+            {
+                ShowTiers();
+                if (!preferences.NoAi && brain.Remote != null) mainframe.ShowCloud(brain.Remote, cloudModels);
+            }
+        }
+
         private void SmokePlanBrain(System.Collections.Generic.List<string> checks, string output)
         {
             string claudeWas = PlanBrain.ClaudeOverride, codexWas = PlanBrain.CodexOverride, folderWas = PlanBrain.FolderOverride;
@@ -39591,7 +39637,7 @@ namespace CapriDesktop
                 if (mainframe.MaxName != "MAX INTELLIGENCE" || mainframe.PlanName != "API key, Claude plan or ChatGPT plan") throw new Exception("The MAX row or its source picker has the wrong accessible name.");
                 checks.Add("PASS MAX row and source picker have separate plain accessible names with no trailing separator");
                 if (Brain.HasTools(claudePlan) || Brain.HasTools(codexPlan)) throw new Exception("A plan brain was sent native tools instead of her written ones.");
-                if (!Brain.ModelFits("claudecode", "sonnet") || Brain.ModelFits("claudecode", "gpt-5") || !Brain.ModelFits("codex", "default") || Brain.DefaultCloudModel("claudecode", Plans.Models("claudecode")) != "haiku") throw new Exception("Her plan models are wrong.");
+                if (!Brain.ModelFits("claudecode", "sonnet") || Brain.ModelFits("claudecode", "bad model &") || !Brain.ModelFits("codex", "default") || Brain.DefaultCloudModel("claudecode", Plans.Models("claudecode")) != "haiku") throw new Exception("Her plan models are wrong.");
                 Directory.CreateDirectory(runs);
                 PlanBrain.FolderOverride = runs;
                 PlanBrain.ClaudeOverride = Path.Combine(root, "missing.cmd");
@@ -45397,6 +45443,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
             Section(checks, "SmokeLingo", delegate { SmokeLingo(checks); });
+            Section(checks, "SmokeBetterModels", delegate { SmokeBetterModels(checks); });
             Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks, Path.Combine(output, "plan-choice")); });
             Section(checks, "SmokeLeaks", delegate { SmokeLeaks(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
