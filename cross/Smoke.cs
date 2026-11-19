@@ -6228,7 +6228,7 @@ namespace CapriDesktop
         private void FileToolChecks()
         {
             var run = MacFiles.Run; var home = MacFiles.Home; var now = MacFiles.Now; var attachments = MacFiles.Attachments;
-            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder;
+            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder; var keeper = Hands.Keeper;
             var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
             var lastField = typeof(MacFiles).GetField("last", fields); var atField = typeof(MacFiles).GetField("foundAt", fields);
             var last = new List<string>((List<string>)lastField.GetValue(null)); object foundAt = atField.GetValue(null);
@@ -6392,12 +6392,14 @@ namespace CapriDesktop
                 checks.Add("PASS cross reading: Windows-1252 text falls back the way Windows reads it");
                 checks.Add("PASS cross reading: DOCX and XLSX parts that unpack past " + (Files.LargestPart >> 20) + " MB or nest past " + Files.DeepestXml + " levels are turned away with a plain line, and ordinary ones still read");
                 checks.Add("PASS cross reading: spreadsheet scratch files are private to their user and leave the temp folder at once");
+                Hands.OnMac = OperatingSystem.IsMacOS();
+                checks.AddRange(FileKeeperChecks.Run());
             }
             finally
             {
                 MacFiles.Run = run; MacFiles.Home = home; MacFiles.Now = now; MacFiles.Attachments = attachments;
                 lastField.SetValue(null, last); atField.SetValue(null, foundAt);
-                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; Hands.GameOpen = game;
+                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Keeper = keeper; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; Hands.GameOpen = game;
                 CatchUp.Executable = executable; CatchUp.Release = release; Hands.OnMac = mac; GameNotes.Folder = notes; Files.Temp = temp;
                 Security.Drop(); Security.Load(permissions); Security.Changed = changed;
                 Directory.Delete(root, true);
@@ -9466,7 +9468,7 @@ namespace CapriDesktop
         private void RemoteFileToolChecks(RemoteBridgeFake bridge)
         {
             var run = MacFiles.Run; var home = MacFiles.Home; var now = MacFiles.Now; var attachments = MacFiles.Attachments;
-            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder;
+            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder; var keeper = Hands.Keeper;
             var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
             var lastField = typeof(MacFiles).GetField("last", fields); var atField = typeof(MacFiles).GetField("foundAt", fields);
             var last = new List<string>((List<string>)lastField.GetValue(null)); object foundAt = atField.GetValue(null);
@@ -9542,7 +9544,7 @@ namespace CapriDesktop
             {
                 MacFiles.Run = run; MacFiles.Home = home; MacFiles.Now = now; MacFiles.Attachments = attachments;
                 lastField.SetValue(null, last); atField.SetValue(null, foundAt);
-                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; pet.Think = think;
+                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Keeper = keeper; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; pet.Think = think;
                 Hands.OnMac = mac; GameNotes.Folder = notes; pet.Brain.Model = model; pet.Brain.Provider = provider;
                 Security.Changed = null; Security.Drop(); Security.Load(permissions); Security.Changed = changed;
                 Directory.Delete(root, true);

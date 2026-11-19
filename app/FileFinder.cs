@@ -21,9 +21,9 @@ namespace CapriDesktop
     internal sealed class FileFinder
     {
 #if CROSS
-        internal const string Description = "Find files or folders by name. Give the name in its original language, keeping any extension, without command words or a location. Returns whole paths, best match first. Search is bounded. Use action show or open to reveal the first result in Finder on Mac or open its folder on Linux; with a description, it searches first. Use stop to cancel. Searches names only, not file contents.";
+        internal const string Description = "Find files or folders by name. Give the name in its original language, keeping any extension, without command words or a location. Returns whole paths, best match first. Search is bounded. Use action show or open to reveal the first result in Finder on Mac or open its folder on Linux; with a description, it searches first. Use stop to cancel. Searches names only; use files to look by words inside, kind or date, or to move and sort them.";
 #else
-        internal const string Description = "Find files or folders on this PC by name. Give the name in its original language, keeping any extension, without command words or a location. Returns whole paths, best match first. Use action show or open to select the first result in File Explorer; with a description, it searches first. Use stop to cancel a search. Searches names only, not file contents.";
+        internal const string Description = "Find files or folders on this PC by name. Give the name in its original language, keeping any extension, without command words or a location. Returns whole paths, best match first. Use action show or open to select the first result in File Explorer; with a description, it searches first. Use stop to cancel a search. Searches names only; use files to look by words inside, kind or date, or to move and sort them.";
 #endif
         internal const string Schema = "{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\",\"description\":\"The file or folder name to match, in its original language; quote a literal name\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; search by default; show and open search first if needed\",\"enum\":[\"search\",\"show\",\"open\",\"stop\"]}}}";
         private readonly object gate = new object();
