@@ -36,6 +36,7 @@ namespace CapriEverydayJobs
                 else if (arg == "--floor") floor = int.Parse(next(), CultureInfo.InvariantCulture);
                 else if (arg == "--claude") claude = next();
                 else if (arg == "--warmup") warmup = true;
+                else if (arg == "--trace") ClaudePlan.Trace = true;
                 else if (arg == "--merge") merging = new List<string>();
                 else if (arg == "--list") { foreach (Job job in Jobs.All) Console.WriteLine(job.Id.PadRight(15) + job.Area.PadRight(11) + job.Ask + "  ->  " + job.Goal); return 0; }
                 else if (merging != null && !arg.StartsWith("--", StringComparison.Ordinal)) merging.Add(arg);

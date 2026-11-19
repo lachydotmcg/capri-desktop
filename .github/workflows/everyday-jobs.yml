@@ -19,6 +19,8 @@ on:
   pull_request:
     paths:
       - "tests/everyday-jobs/**"
+      - "app/Brain.cs"
+      - "app/Hands.cs"
       - ".github/workflows/everyday-jobs.yml"
 
 permissions:

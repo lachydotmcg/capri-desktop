@@ -41,7 +41,10 @@ namespace CapriEverydayJobs
 
     internal sealed class ClaudePlan : IBrainProvider
     {
+        internal static bool Trace;
         private readonly string app, model, folder;
+
+        private static string Flat(string text, int most) { text = (text ?? "").Replace("\r", " ").Replace("\n", " ⏎ "); return text.Length > most ? text.Substring(0, most) + "…" : text; }
         private readonly Outcome run;
 
         internal ClaudePlan(string app, string model, string folder, Outcome run) { this.app = app; this.model = model; this.folder = folder; this.run = run; }
@@ -107,6 +110,7 @@ namespace CapriEverydayJobs
                         }
                         catch (JsonException) { }
                     }
+                    if (Trace) Console.Error.WriteLine("[think " + purpose + (tools == null ? "" : " +tools") + "] " + (chat.Count == 0 ? "" : Flat(chat[chat.Count - 1].Content, 300)) + "\n   => " + Flat(said, 300));
                     if (said == null || failed || said.Trim().Length == 0) throw new BrainException("Claude Code couldn't answer: " + (said ?? errors.Result).Trim(), true);
                     return said.Trim();
                 }
