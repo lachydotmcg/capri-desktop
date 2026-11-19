@@ -198,7 +198,7 @@ namespace CapriDesktop
         }
 
         // They run at the cursor or a window they're after, and slow down hauling one.
-        private double Speed(CloneBody body) { return body.Returning || body == Nabber || (body.Hauling != null && !body.Hauling.Holding) ? Dash : body.Hauling != null ? Heavy : Pace; }
+        private double Speed(CloneBody body) { return body.Returning || body.Posted || body == Nabber || (body.Hauling != null && !body.Hauling.Holding) ? Dash : body.Hauling != null ? Heavy : Pace; }
 
         private void Move(CloneBody body, double now, double passed)
         {
