@@ -125,6 +125,7 @@ namespace CapriDesktop
             text = text ?? "";
             List<string> found = new List<string>();
             for (int i = 0; i < Reach.GetLength(0); i++) if (Regex.IsMatch(text, Reach[i, 1])) found.Add(Reach[i, 0]);
+            if (ModFloor.Settings.IsMatch(text)) found.Add(ModFloor.SettingsReach);
             string[] where = Addresses(text);
             if (where.Length > 0) found.Add("contacts " + string.Join(", ", where, 0, Math.Min(3, where.Length)) + (where.Length > 3 ? " and " + (where.Length - 3) + " more" : ""));
             return found.ToArray();
@@ -486,13 +487,60 @@ namespace CapriDesktop
         {
             foreach (string id in new List<string>(running.Keys)) StopOne(id);
             Plugins.StopAll();
+            Settle();
+        }
+
+        private const string StartingFile = "starting.txt";
+        private const int SettleAfter = 60000;
+        private System.Threading.Timer settling;
+
+        private bool Fell(List<Mod> wanted)
+        {
+            string file = Path.Combine(folder, StartingFile);
+            int tries = 0;
+            try { if (File.Exists(file)) int.TryParse(File.ReadAllText(file).Trim(), out tries); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            if (tries >= 2)
+            {
+                HashSet<string> off = Off();
+                foreach (Mod mod in wanted) { off.Add(mod.File.Id); mod.On = false; }
+                WriteOff(off);
+                Settle();
+                string problem = "your code mods: she closed twice in a row while they were starting, so she started with them off this time: " + ModFloor.And(wanted.ConvertAll(mod => mod.File.Name).ToArray()) + ". Turn them back on here when you're ready.";
+                Problems.Insert(0, problem);
+                Brain.Log("mods", -1, problem);
+                return true;
+            }
+            try
+            {
+                Directory.CreateDirectory(folder);
+                File.WriteAllText(file, (tries + 1).ToString());
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return false;
+        }
+
+        private void Settle()
+        {
+            System.Threading.Timer was = Interlocked.Exchange(ref settling, null);
+            if (was != null) was.Dispose();
+            try
+            {
+                string file = Path.Combine(folder, StartingFile);
+                if (File.Exists(file)) File.Delete(file);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         internal void StartCode(Action<Action> onWindow)
         {
             List<Mod> wanted = All.FindAll(mod => mod.Code && mod.On);
             CodeSettled = wanted.Count == 0;
-            if (wanted.Count == 0) return;
+            if (wanted.Count == 0) { Settle(); return; }
+            if (Fell(wanted)) { CodeSettled = true; return; }
             ThreadPool.QueueUserWorkItem(delegate
             {
                 foreach (Mod mod in wanted)
@@ -516,7 +564,13 @@ namespace CapriDesktop
                         onWindow(delegate { StartFailed(starting, failed); });
                     }
                 }
-                onWindow(delegate { CodeSettled = true; });
+                onWindow(delegate
+                {
+                    CodeSettled = true;
+                    System.Threading.Timer made = new System.Threading.Timer(delegate { Settle(); }, null, SettleAfter, Timeout.Infinite);
+                    System.Threading.Timer was = Interlocked.Exchange(ref settling, made);
+                    if (was != null) was.Dispose();
+                });
             });
         }
 

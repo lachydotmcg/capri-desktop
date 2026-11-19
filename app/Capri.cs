@@ -15870,6 +15870,7 @@ namespace CapriDesktop
             else said = Own(said);
             said = CallLine(ticket, said);
             if (state != TalkState.Dormant) said = ModsReplying(said ?? "", ticket == remarkTicket ? "remark" : "reply");
+            said = Brain.Masked(said);
             // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
             int turn = ++answerTurn;
             CancelAnswerAudio();
@@ -15883,7 +15884,7 @@ namespace CapriDesktop
             bool cued = FishCues(speak, free);
             Feel(cued || speak == null ? null : Voice.FeelingOf(Brain.Cued(said ?? "")));
             string words = Voice.Spoken((cued ? Brain.Cued(said ?? "") : said ?? "").Replace(Computer.Dots, "the password"), cued);
-            if (speak != null && state != TalkState.Dormant) words = ModsSpeaking(words);
+            if (speak != null && state != TalkState.Dormant) words = Brain.Masked(ModsSpeaking(words));
             if (speak == null || words.Length == 0 || state == TalkState.Dormant) { Begin(ticket, said, state, null); return; }
             answerVoice = ticket;
             reply = null;

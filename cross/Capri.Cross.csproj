@@ -59,6 +59,7 @@
     <Compile Include="../app/Plugins.cs" Link="Shared/Plugins.cs" />
     <Compile Include="../app/PluginJson.cs" Link="Shared/PluginJson.cs" />
     <Compile Include="../app/Mcp.cs" Link="Shared/Mcp.cs" />
+    <Compile Include="../app/ModFloor.cs" Link="Shared/ModFloor.cs" />
     <Compile Include="../app/PluginChecks.cs" Link="Shared/PluginChecks.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />

@@ -137,6 +137,7 @@ namespace CapriDesktop
             string asked = Expand(server.Cwd, pluginRoot);
             string cwd = string.IsNullOrEmpty(asked) ? pluginRoot : Path.IsPathRooted(asked) ? asked : Path.Combine(pluginRoot, asked);
             info.WorkingDirectory = Directory.Exists(cwd) ? cwd : pluginRoot;
+            ModFloor.Scrub(info.EnvironmentVariables, server.Env.Keys);
             foreach (KeyValuePair<string, string> pair in env) info.EnvironmentVariables[pair.Key] = pair.Value;
             info.EnvironmentVariables["CLAUDE_PLUGIN_ROOT"] = pluginRoot;
             info.EnvironmentVariables["CAPRI_PLUGIN_ROOT"] = pluginRoot;

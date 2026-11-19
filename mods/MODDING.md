@@ -118,6 +118,26 @@ Each call is logged in `plugins\calls.txt` in her data folder by tool and outcom
 A plug-in's servers are programs on the PC. They run outside Capri with the user's own access, and Capri can't see or limit
 what they do by themselves. Only install ones you trust.
 
+### The safety floor
+
+Whatever mods are on, Capri keeps these:
+
+- **Her keys stay hers.** A server starts without her saved keys and without any setting from the PC whose name has KEY,
+  TOKEN, SECRET, PASSWORD, PASS, PAT, CREDENTIAL or COOKIE in it. If your server needs one, name it in its `env` or args,
+  like `"env": {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}`, and her approve box says it gets it. A call whose arguments hold one of
+  her saved keys is refused, and her saved keys are taken out of what she says.
+- **A mod's words can't spend their yes.** Once another plug-in's answer or a skill she read is in her turn, tools that
+  change things from a different plug-in, code mod tools and her mouse and terminal ask first for the rest of that turn,
+  even when set to always run. Read-only tools and a plug-in's own tools don't. Their next message starts fresh.
+- **What they approve is what runs.** A server whose start line downloads code and runs it (`curl ... | sh`,
+  `iwr ... | iex`), unpacks hidden code and runs it, or runs encoded PowerShell is refused. Pin `npx` and `uvx` packages
+  (`pkg@1.2.3`, `pkg==1.2.3`); the mods directory only lists plug-ins that do.
+- **Her approve box says** when a code mod or plug-in reaches into her own settings folder, where her keys are saved.
+- **A mod can't brick her.** If she closes twice in a row while code mods are starting, the next start keeps them off and
+  says which.
+
+Refused calls are in `plugins\calls.txt` with the reason.
+
 ## Code mods
 
 A code mod is one C# 5 file (no `$"..."`, `?.` or `=>` members), starting with its details:

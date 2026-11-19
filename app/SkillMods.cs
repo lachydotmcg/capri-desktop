@@ -120,7 +120,11 @@ namespace CapriDesktop
             if (part != null) return part;
             string asked = Titled(name), wanted = Plain(name);
             Mod[] on = skills, found = Matching(on, asked, wanted);
-            if (found.Length == 1) return Read(found[0].File);
+            if (found.Length == 1)
+            {
+                if (!found[0].Own) ModFloor.Heard(Source(found[0]));
+                return Read(found[0].File);
+            }
             if (found.Length > 1) return "More than one skill fits \"" + asked + "\": " + Names(found, true) + ". Read one by its id.";
             Mod[] off = Matching(Array.FindAll(knownSkills, skill => !skill.On), asked, wanted);
             if (off.Length > 0) return "Couldn't read \"" + Titled(off[0].File.Name) + "\": it's off under Mods.";
