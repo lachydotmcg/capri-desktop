@@ -985,14 +985,17 @@ const stats = async (request, env) => {
   const since = today + 1 - days;
   const sinceText = new Date(since * 86400000).toISOString().slice(0, 10);
   const dayText = day => new Date(day * 86400000).toISOString().slice(0, 10);
-  const [downloads, stars, mods, phones, helps, frees, codeRows] = await env.DB.batch([
+  const [downloads, stars, mods, phones, helps, frees, codeRows, crashDays, crashTop, crashLatest] = await env.DB.batch([
     env.DB.prepare('SELECT count FROM downloads'),
     env.DB.prepare('SELECT count FROM stars'),
     env.DB.prepare('SELECT d.folder AS folder, d.count AS installs, ROUND(AVG(r.stars), 2) AS rating, COUNT(r.stars) AS votes FROM mod_downloads d LEFT JOIN mod_ratings r ON r.folder = d.folder GROUP BY d.folder ORDER BY d.count DESC'),
     env.DB.prepare('SELECT day, phones, first_time, also_paired FROM phone_days WHERE day >= ? ORDER BY day').bind(sinceText),
     env.DB.prepare('SELECT day, count FROM help_days WHERE ABS(day) >= ? ORDER BY ABS(day)').bind(since),
     env.DB.prepare("SELECT day, SUM(CASE WHEN key <> 'pool' THEN 1 ELSE 0 END) AS phones, SUM(CASE WHEN key <> 'pool' THEN count ELSE 0 END) AS messages FROM free_days GROUP BY day ORDER BY day"),
-    env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC')
+    env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC'),
+    env.DB.prepare('SELECT day, version, platform, COUNT(*) AS count FROM crashes WHERE day >= ? GROUP BY day, version, platform ORDER BY day, version, platform').bind(sinceText),
+    env.DB.prepare('SELECT sig, version, COUNT(*) AS count, MAX(day) AS last_day FROM crashes WHERE day >= ? GROUP BY sig, version ORDER BY count DESC, last_day DESC LIMIT 20').bind(sinceText),
+    env.DB.prepare('SELECT day, version, platform, os, store, lines FROM crashes ORDER BY id DESC LIMIT 30')
   ]);
   const first = result => (result.results && result.results[0]) || {};
   return reply({
@@ -1003,7 +1006,12 @@ const stats = async (request, env) => {
     phone_days: phones.results,
     help_days: helps.results.map(row => ({ day: dayText(Math.abs(row.day)), place: row.day < 0 ? 'discord' : 'site', count: row.count })),
     free_days: frees.results.map(row => ({ day: dayText(row.day), phones: row.phones, messages: row.messages })),
-    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight }))
+    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight })),
+    crashes: {
+      days: crashDays.results,
+      top: crashTop.results,
+      latest: crashLatest.results.map(row => ({ day: row.day, version: row.version, platform: row.platform, os: row.os, store: row.store === 1, lines: row.lines.split('\n') }))
+    }
   });
 };
 
@@ -1031,6 +1039,39 @@ const phoneDay = async (request, env, reply) => {
   } catch {
     return reply({ error: "Couldn't count that." }, 503);
   }
+  return reply({ ok: true });
+};
+
+const crashPlatforms = ['windows', 'mac', 'linux'];
+
+const crashSig = lines => (lines.find(line => line.includes(' | crash | ') || line.includes(' | closed | ')) || lines[0])
+  .replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} /, '').replace(/0x[0-9a-f]+|-?\d+/gi, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+
+const crash = async (request, env, ctx, reply) => {
+  if (request.method !== 'POST') return reply({ error: 'Not found' }, 404);
+  const raw = await request.text().catch(() => '');
+  let sent = null;
+  try { sent = raw.length <= 8000 ? JSON.parse(raw) : null; } catch { }
+  const bad = !sent || typeof sent !== 'object' || Array.isArray(sent)
+    || typeof sent.version !== 'string' || sent.version.length > 20 || !/^\d+\.\d+\.\d+(\.\d+)?$/.test(sent.version)
+    || !crashPlatforms.includes(sent.platform)
+    || typeof sent.os !== 'string' || sent.os.length > 60
+    || typeof sent.store !== 'boolean'
+    || !Array.isArray(sent.lines) || sent.lines.length < 1 || sent.lines.length > 30 || sent.lines.some(line => typeof line !== 'string' || line.length > 400);
+  if (bad) return reply({ error: 'Bad request' }, 400);
+  const today = Math.floor(Date.now() / 86400000);
+  const day = new Date(today * 86400000).toISOString().slice(0, 10);
+  const visitor = request.headers.get('CF-Connecting-IP') || 'local';
+  const key = await sha256('crash:' + visitor + ':' + today + ':' + env.SALT);
+  try {
+    const tap = await env.DB.prepare('INSERT INTO crash_taps (key, day, count) VALUES (?, ?, 1) ON CONFLICT (key) DO UPDATE SET count = count + 1 WHERE crash_taps.count < 5').bind(key, today).run();
+    if (tap.meta.changes !== 1) return reply({ error: 'Too many reports today.' }, 429);
+    await env.DB.prepare('DELETE FROM crashes WHERE day < ?').bind(new Date((today - 90) * 86400000).toISOString().slice(0, 10)).run();
+    await env.DB.prepare('INSERT INTO crashes (day, version, platform, os, store, sig, lines) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(day, sent.version, sent.platform, sent.os, sent.store ? 1 : 0, crashSig(sent.lines), sent.lines.join('\n')).run();
+  } catch {
+    return reply({ error: "Couldn't save that." }, 503);
+  }
+  ctx.waitUntil(env.DB.prepare('DELETE FROM crash_taps WHERE day < ?').bind(today).run());
   return reply({ ok: true });
 };
 
@@ -1197,6 +1238,7 @@ export default {
     if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/phone-day') return phoneDay(request, env, reply);
+    if (path === '/crash') return crash(request, env, ctx, reply);
     if (path === '/free') return free(request, env, reply);
     const table = counters[path];
     if (!table || !['GET', 'POST'].includes(request.method)) return reply({ error: 'Not found' }, 404);
