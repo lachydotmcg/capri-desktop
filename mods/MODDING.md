@@ -28,6 +28,39 @@ top as it is:
 - The Mods list shows each skin's layer. Turn one off and on again to move it to the top.
 - Her colours go on after, so anything drawn in her hair colour follows My Colors.
 
+## Animations: more frames, fewer frames, other speeds
+
+A skin's strip doesn't have to have as many frames as hers. Keep her frame size (each frame is her strip's width divided by
+her frame count, at her height) and put as many frames side by side as you like, up to 240 or 32,767 px wide. So `idle.png`
+is frames of 116 x 384, and 90 of them make a 10,440 x 384 strip.
+
+Set how fast a strip plays in `skin.json`, from 1 to 60 frames a second. It works on your own strips and on hers:
+
+```json
+{ "format": 1, "id": "slow-idle", "name": "Slow Idle", "frames": [ { "strip": "idle", "fps": 12 }, { "strip": "perch", "fps": 24 } ] }
+```
+
+- Her mouth shapes (`mouth.png`, `idle_mouth.png`), her ribbon drawings (`form.png`) and her click (`click.png`) aren't frames
+  in time, so they keep her size and speed.
+- Facing left: if your skin has `idle.png` but no `idle_flipped.png`, she mirrors your `idle.png`. A `_flipped` strip has to be
+  the same size as the strip it goes with.
+- She blinks over frames 25 to 32 of `idle` and 29 to 36 of `perch` and `laydown`. If you change how many frames one of those
+  has, ship its blink strips too (`idle_blink.png` and so on), or she won't blink in it.
+- Her talking perch and lying talk follow the plain loop's place, so a `perch_talk.png` with a different length keeps in step.
+- A whole skin stacked on top only adds a strip that's the same size as the one under it.
+
+### Her animation editor
+
+**Mainframe > CAPRI > Mods > Animations** opens it. Pick a strip, play it or step through it, then:
+
+- **Duplicate**, **Delete**, **Move earlier** and **Move later** the frame you're on.
+- **Replace...** or **Add after...** with your own PNGs. A PNG can be one frame, or a strip of several side by side.
+- **Save PNG...** and **Load PNG...** the whole strip, or **Save frames...** and **Load frames...** a folder of numbered PNGs
+  (`idle_001.png`, `idle_002.png`...) to draw in any art program.
+- **Slower** and **Faster** set its speed.
+- **Wear it** saves every change as a skin and puts it on as her outfit, starting from the outfit she has on. **Save skin...**
+  saves the `.capri-skin` to share.
+
 ## Code mods
 
 A code mod is one C# 5 file (no `$"..."`, `?.` or `=>` members), starting with its details:

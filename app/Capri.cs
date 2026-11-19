@@ -1684,8 +1684,52 @@ namespace CapriDesktop
         // at fps, drawn unshifted, with no facing-left set of their own.
         private int oldWide, oldCount;
         private double oldFps;
-        internal int Count { get { return source != null ? source.Count : Old ? oldCount : count; } }
-        internal double Fps { get { return source != null ? source.Fps : Old ? oldFps : fps; } }
+        private int ownWide, ownHigh, counted;
+        private Bitmap countedFor, fitFor;
+        private bool leftUnfit;
+        internal int Count { get { return source != null ? source.Count : Old ? oldCount : Cells(Strip); } }
+        internal double Fps
+        {
+            get
+            {
+                if (source != null) return source.Fps;
+                if (Old) return oldFps;
+                int rate = Mods.RateOf(name);
+                return rate > 0 ? rate : fps;
+            }
+        }
+        internal int OwnCount { get { return source != null ? source.OwnCount : count; } }
+        internal double OwnFps { get { return source != null ? source.OwnFps : fps; } }
+        internal bool Reframed { get { return source != null ? source.Reframed : !Old && Count != count; } }
+
+        private int Cells(Bitmap art)
+        {
+            if (art == null) return count;
+            lock (gate)
+            {
+                if (ReferenceEquals(art, countedFor)) return counted;
+                if (ownWide == 0)
+                    using (Stream own = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(Resource(false)))
+                        if (!Mods.PngSize(own, out ownWide, out ownHigh)) { ownWide = -1; ownHigh = -1; }
+                int found = ownWide > 0 ? Mods.FramesIn(name, art.Width, art.Height, ownWide, ownHigh) : 0;
+                counted = found > 0 ? found : count;
+                countedFor = art;
+                return counted;
+            }
+        }
+
+        private Bitmap Fit(Bitmap left)
+        {
+            if (left == null || ReferenceEquals(left, fitFor)) return left;
+            Bitmap right = Strip;
+            if (right == null || left.Size != right.Size)
+            {
+                leftUnfit = true;
+                return null;
+            }
+            fitFor = left;
+            return left;
+        }
         internal readonly float Height;
         internal string Title { get { return name; } }
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
@@ -1702,6 +1746,7 @@ namespace CapriDesktop
             this.shiftX = shiftX;
             this.shiftY = shiftY;
             if (!Companion.HasArt(Resource(false))) throw new FileNotFoundException("Capri's " + name + " animation is missing. Rebuild with assets/sprites.");
+            Mods.OwnFrames(name, count);
             flippable = Companion.HasArt(Resource(true));
             lock (all) all.Add(this);
         }
@@ -1748,7 +1793,7 @@ namespace CapriDesktop
         // Whether the art that's in sits in the old cells: a skin's strip, or Legacy stand's.
         internal bool Old { get { return source != null ? source.Old : oldWide > 0 && Strip.Width == oldWide; } }
 
-        private bool Turns { get { return flippable && !Old; } }
+        private bool Turns { get { return flippable && !leftUnfit && !Old; } }
 
         private string Resource(bool left) { return "Capri.Sprite." + name + (left ? "_flipped" : "") + ".png"; }
 
@@ -1780,7 +1825,7 @@ namespace CapriDesktop
                 flippedUsed = Environment.TickCount;
                 Bitmap art = flipped;
                 if (art == null) Warm(true);
-                return art;
+                return Fit(art);
             }
         }
 
@@ -1794,9 +1839,10 @@ namespace CapriDesktop
                 flippedUsed = Environment.TickCount;
                 lock (gate)
                 {
-                    if (flipped == null) flipped = Companion.LoadArt(Resource(true));
-                    return flipped;
+                    if (flipped == null) flipped = Companion.LoadLeftArt(Resource(true));
+                    if (flipped == null) leftUnfit = true;
                 }
+                return Fit(flipped);
             }
         }
 
@@ -1810,7 +1856,7 @@ namespace CapriDesktop
             if (wantLeft) flippedUsed = Environment.TickCount; else stripUsed = Environment.TickCount;
             lock (gate)
             {
-                if (wantLeft && flipped == null) flipped = Companion.LoadArt(Resource(true));
+                if (wantLeft && flipped == null) { flipped = Companion.LoadLeftArt(Resource(true)); if (flipped == null) leftUnfit = true; }
                 else if (!wantLeft && strip == null) strip = Companion.LoadArt(Resource(false));
             }
         }
@@ -1820,7 +1866,7 @@ namespace CapriDesktop
         internal bool Ready(bool left)
         {
             if (source != null) return source.Ready(left);
-            return left && Turns ? flipped != null : strip != null;
+            return left && Turns ? Fit(flipped) != null : strip != null;
         }
 
         // Starts loading the art for that way round off her thread, and counts as using it, so it stays in while she asks.
@@ -1843,7 +1889,7 @@ namespace CapriDesktop
         {
             Bitmap art = null;
             // A load that fails, out of memory say, leaves her drawn as she was, and the next ask tries again.
-            try { art = Companion.LoadArt(Resource(wantLeft)); }
+            try { art = wantLeft ? Companion.LoadLeftArt(Resource(true)) : Companion.LoadArt(Resource(false)); }
             catch (Exception) { }
             lock (gate)
             {
@@ -1892,6 +1938,8 @@ namespace CapriDesktop
                 strip = lazy ? null : Companion.LoadArt(Resource(false));
                 stripUsed = Environment.TickCount;
                 flipped = null;
+                countedFor = fitFor = null;
+                leftUnfit = flippable && Companion.SkinLacksLeft(Resource(true));
                 if (wasStrip != null) wasStrip.Dispose();
                 if (wasFlipped != null) wasFlipped.Dispose();
             }
@@ -3813,9 +3861,10 @@ namespace CapriDesktop
             int index = Math.Max(0, (int)((now - clipStart) * clip.Fps));
             perchMix = 0;
             int perchRate = PerchRateNow(now);
-            if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && perchRate != 30) index = PerchIndex(now - clipStart, perchRate, out perchMix);
+            int artRate = Math.Max(1, (int)Math.Round(clip.Fps));
+            if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && perchRate != artRate) index = PerchIndex(now - clipStart, perchRate, out perchMix, artRate);
             if (clip == idle && Resting(now)) index = (int)((long)((now - clipStart) * SaverFps) * clip.Fps / SaverFps);
-            if (clip == perchSleep) return PerchSleepCell;
+            if (clip == perchSleep) return Math.Min(PerchSleepCell, perchSleep.Count - 1);
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
             if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = Math.Max(0, (int)((now - clipStart) * clip.Fps)); }
             if (clip == arrive && index >= arrive.Count)
@@ -3845,8 +3894,14 @@ namespace CapriDesktop
             return index % clip.Count;
         }
 
-        // Her blink for the loop she's in, glitchy or not; lying, once those frames are in.
         private Clip Blinks(bool glitchy)
+        {
+            Clip found = LoopBlink(glitchy);
+            return found != null && clip.Reframed && !SkinShips(found.Title) ? null : found;
+        }
+
+        // Her blink for the loop she's in, glitchy or not; lying, once those frames are in.
+        private Clip LoopBlink(bool glitchy)
         {
             if (clip == perch) return glitchy ? perchBlinkGlitch : perchBlink;
             if (clip != laydown && idle.Old) return glitchy ? blinkGlitch : blink;
@@ -3857,9 +3912,9 @@ namespace CapriDesktop
 
         // Her perch frame t seconds into the loop at a given fps, and how much of the frame after it mixes in, in 256ths.
         // The art is 30 fps, so the loop is 2 s at every fps: slower holds each frame a while, faster lands between frames.
-        internal static int PerchIndex(double t, int fps, out int mix)
+        internal static int PerchIndex(double t, int fps, out int mix, int art = 30)
         {
-            long step = (long)(t * fps), at = step * 30;
+            long step = (long)(t * fps), at = step * art;
             mix = fps > 30 ? (int)(at % fps * 256 / fps) : 0;
             return (int)(at / fps);
         }
@@ -16200,12 +16255,13 @@ namespace CapriDesktop
             int following = (cell + 1) % clip.Count, loopCell = cell;
             if ((clip == idle || clip == perch || clip == laydown) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
             int talk = MouthCell(now, shown);
-            if (PerchTalks(TalkingNow)) { shown = perchTalk; cell = loopCell; }
-            else if (LieTalks(TalkingNow)) { shown = laydownTalk; cell = loopCell; }
+            if (PerchTalks(TalkingNow)) { shown = perchTalk; cell = Along(loopCell, clip, perchTalk); }
+            else if (LieTalks(TalkingNow)) { shown = laydownTalk; cell = Along(loopCell, clip, laydownTalk); }
             int under = -1, stoodCell = cell;
             Clip stoodIn = null;
             if (StandsIn(shown)) { stoodIn = shown; under = UnderLevel(shown, cell) > 0 ? cell : -1; shown = idle; cell = UnderCell(now); }
             underOf = stoodIn;
+            cell = Along(cell, shown, shown);
             UpdateTalk(now);
             if (pill.Visible) UpdatePill(now);
             if (!BodyChanged(now, shown, cell, talk) && under == drawnUnder && stoodIn == drawnUnderOf) return;
@@ -16397,12 +16453,20 @@ namespace CapriDesktop
             tweenUsed = clock.Elapsed.TotalSeconds;
             Clip after = shown == perchTalk || shown == laydownTalk ? shown : clip;
             if ((after == perch || after == laydown) && blinkWith != null && following >= PerchBlinkFrom && following < PerchBlinkFrom + blinkWith.Count) { after = blinkWith; following -= PerchBlinkFrom; }
+            following = Along(following, after, after);
             Bitmap from = Art(shown);
             int width = from.Width / shown.Count;
             if (inBetween != null && (inBetween.Width != width || inBetween.Height != from.Height)) { inBetween.Dispose(); inBetween = null; }
             if (inBetween == null) inBetween = new Bitmap(width, from.Height, PixelFormat.Format32bppPArgb);
             Mix(from, cell, Art(after), following, perchMix, inBetween);
             return inBetween;
+        }
+
+        private static int Along(int cell, Clip from, Clip to)
+        {
+            int frames = Math.Max(1, to.Count);
+            if (from != to && from.Count != frames) cell = (int)((long)cell * frames / Math.Max(1, from.Count));
+            return (cell % frames + frames) % frames;
         }
 
         // The strip she's drawn from: facing left, a clip's flipped art once it's in.
@@ -45373,7 +45437,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
-            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });

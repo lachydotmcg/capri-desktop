@@ -114,6 +114,8 @@ namespace CapriDesktop
                 "On the Mods page, press Hair, Accents, Eyes, Edges or Body and pick a color. It applies to all her animations and any skin straight away, and is saved as a My Colors mod you can share.", "MainframeMods.cs", "Her colors"),
             new Topic("Reset colors", "reset your colors|reset your colours|original colors",
                 "Reset colors brings her own colors back: colors you picked are deleted and color mods are turned off.", "MainframeMods.cs", "Reset colors"),
+            new Topic("Animations", "edit your animations|edit her animations|animation editor|add frames|more frames|change your frames|animation panels|sprite sheet|frame rate of a skin",
+                "On the Mods page, Animations opens her animation editor: pick a strip like idle or perch, play it, step through its frames, duplicate, delete or reorder them, swap in your own PNG frames, and make it slower or faster. Wear it saves your changes as a skin she wears straight away, and Save skin makes a .capri-skin to share. A skin strip can have more or fewer frames than hers, at her frame size.", "MainframeMods.cs", "Animations"),
             new Topic("Remove mod", "remove a mod|delete a mod|uninstall a mod",
                 "Remove deletes the mod from her mods folder and undoes its settings. A code mod is stopped, but anything it already did stays done. The file you imported it from stays where it was.", "MainframeMods.cs", "Remove"),
             new Topic("Mod pages", "more mods|next page of mods",
