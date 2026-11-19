@@ -99,6 +99,7 @@ namespace CapriDesktop
         [DataMember(Name = "shapes")] public string Shapes;
         [DataMember(Name = "find")] public string Find;
         [DataMember(Name = "by")] public string By;
+        [DataMember(Name = "number")] public int? Number;
 #if !CROSS
         // The job a tool beside it came in for, so one that lands after that job ended never changes the next.
         internal Job Job;
@@ -1348,6 +1349,7 @@ namespace CapriDesktop
 #endif
             { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files by name" },
             { "files", FileKeeper.Description, FileKeeper.Schema, "find your files by name, words inside, kind or date, and make folders, move, rename and sort them, with undo", "search and sort files" },
+            { "timeline", Timeline.Description, Timeline.Schema, "go back over what I did on your computer and undo it", "list or undo what you did" },
             { "website_nickname",
 #if CROSS
               "Remember a website by a nickname, forget it, or list saved websites. For a supported front browser on Mac, leave site empty; its address is read without moving their mouse or keyboard. On Linux or for other browsers, give site. Open a saved nickname with open_website.",
@@ -1473,7 +1475,7 @@ namespace CapriDesktop
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates" || tool == "workspace") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status" || tool == "weather"; }
+        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates" || tool == "workspace") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status" || tool == "weather" || tool == "timeline" && (args == null || args.Action != "undo"); }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1913,6 +1915,111 @@ namespace CapriDesktop
         internal static string Do(string tool, ToolArguments args)
         {
             if (args == null) args = new ToolArguments();
+            if (!Timeline.Keeps(tool, args)) return Execute(tool, args);
+            Deed deed = null;
+            HashSet<string> before = null;
+            try
+            {
+                deed = Undoing(tool, args);
+                if (tool == "files") before = ChangeIds();
+            }
+            catch (Exception) { }
+            string result = Execute(tool, args);
+            try { if (deed != null) Timeline.Add(Done(deed, tool, args, result, before)); }
+            catch (Exception) { }
+            return result;
+        }
+
+        private static HashSet<string> ChangeIds()
+        {
+            HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
+            if (Keeper != null) foreach (FileChange change in Keeper.Recent()) ids.Add(change.Id);
+            return ids;
+        }
+
+        private static Deed Undoing(string tool, ToolArguments args)
+        {
+            Deed deed = new Deed { Tool = tool };
+            string action = args.Action ?? "", name = args.Name;
+            switch (tool)
+            {
+                case "open_app": return Undo(deed, "app_window", "close", name);
+                case "open_website": return Undo(deed, "app_window", "close", Regex.Replace(Regex.Replace(args.Site ?? "", @"^\s*(?:https?://)?(?:www\.)?", "", RegexOptions.IgnoreCase), @"\.[a-z]{2,}(?:\.[a-z]{2})?(?:[/?#].*)?\s*$", "", RegexOptions.IgnoreCase));
+                case "play_music": return Undo(deed, "media", "pause", null);
+                case "media":
+                    string back = Opposite(action, "pause", "resume", "play_pause", "play_pause", "next", "previous", "like", "unlike", "mute", "unmute", "volume_up", "volume_down");
+                    return back == null ? deed : Undo(deed, "media", back, null);
+                case "app_window":
+                    if (action == "minimize") return Undo(deed, "app_window", "switch_to", name);
+                    if (action == "pin_on_top" || action == "unpin") return Undo(deed, "app_window", action == "unpin" ? "pin_on_top" : "unpin", name);
+                    deed.Kept = action == "close" ? "Whatever was open in it is gone, but I can open the app again." : "I don't keep where windows were, so I can't put it back exactly.";
+                    return deed;
+                case "remember":
+                    if (action == "forget") deed.Kept = "Notes I forget don't come back. Tell me again and I'll save it.";
+                    return deed;
+                case "capri_settings":
+                    if (action == "on" || action == "off") return Undo(deed, "capri_settings", action == "on" ? "off" : "on", name);
+                    string[] steps = StepsOf(name);
+                    int was = steps == null ? -1 : LevelOf(name);
+                    if (was >= 0 && was < steps.Length) { Undo(deed, "capri_settings", "set", name); deed.UndoLevel = steps[was]; }
+                    return deed;
+                case "power":
+                    if (action == "lock" || action == "cancel" || string.IsNullOrWhiteSpace(args.Minutes) || args.Minutes.Trim() == "0") return deed;
+                    return Undo(deed, "power", "cancel", null);
+                case "gaming_mode": return action == "on" || action == "off" ? Undo(deed, "gaming_mode", action == "on" ? "off" : "on", null) : deed;
+                case "desktop_icons": return action == "back" ? deed : Undo(deed, "desktop_icons", "back", null);
+                case "shortcut": return name == "discord_mute" || name == "discord_deafen" || name == "record" ? Undo(deed, "shortcut", null, name) : deed;
+                case "mod": deed.Kept = Timeline.ModKept; return deed;
+                default: return deed;
+            }
+        }
+
+        private static Deed Undo(Deed deed, string tool, string action, string name)
+        {
+            deed.UndoTool = tool;
+            deed.UndoAction = action;
+            deed.UndoName = name;
+            return deed;
+        }
+
+        private static string Opposite(string action, params string[] pairs)
+        {
+            for (int i = 0; i < pairs.Length; i += 2)
+            {
+                if (pairs[i] == action) return pairs[i + 1];
+                if (pairs[i + 1] == action) return pairs[i];
+            }
+            return null;
+        }
+
+        private static Deed Done(Deed deed, string tool, ToolArguments args, string result, HashSet<string> before)
+        {
+            string shown = Shown(result) ?? "";
+            Match first = Regex.Match(shown.Trim(), @"^.+?[.!?](?=\s|$)");
+            deed.What = first.Success && first.Value.Length >= 12 ? first.Value : shown.Trim();
+            if (deed.What.Length == 0) deed.What = tool.Replace('_', ' ');
+            deed.Failed = Failed(result) || Regex.IsMatch(result ?? "", @"^(?:Nothing|I'm not|I can't|I couldn't|No mod has|No running mod|There's no)\b");
+            bool kept = true;
+            switch (tool)
+            {
+                case "open_app": case "open_website": kept = Regex.IsMatch(result ?? "", @"^(?:Opened|Searched)\b") && !string.IsNullOrWhiteSpace(deed.UndoName); break;
+                case "remember":
+                    Match saved = Regex.Match(result ?? "", @"^Saved to my notes: (.+?)\.?$");
+                    if (saved.Success) { Undo(deed, "remember", "forget", null); deed.UndoText = saved.Groups[1].Value; }
+                    break;
+                case "capri_settings": kept = Regex.IsMatch(result ?? "", deed.UndoAction == "set" ? "^Set " : "^Turned "); break;
+                case "files":
+                    if (Keeper == null || before == null) break;
+                    foreach (FileChange change in Keeper.Recent())
+                        if (!change.Undone && !before.Contains(change.Id)) deed.Files = change.Id;
+                    break;
+            }
+            if (!kept || deed.Failed) { deed.UndoTool = deed.UndoAction = deed.UndoName = deed.UndoLevel = deed.UndoText = null; }
+            return deed;
+        }
+
+        private static string Execute(string tool, ToolArguments args)
+        {
             if (tool == "open_website") WebsiteArgs(args);
             try
             {
@@ -2003,6 +2110,7 @@ namespace CapriDesktop
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "files") return Keeper.Do(args, null);
+                if (tool == "timeline") return Valid(tool, args) ? Timeline.Do(args) : "Choose list or undo.";
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
@@ -4584,6 +4692,7 @@ namespace CapriDesktop
             if (tool == "shortcut") return Regex.IsMatch(args.Name ?? "", @"\A(discord_mute|discord_deafen|screenshot|clip_that|record|game_bar|show_desktop|task_manager|clipboard|emoji|voice_typing|live_captions|narrator|magnifier|magnifier_off|color_filters|quick_settings)\z");
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
             if (tool == "files") return FileKeeper.Valid(args);
+            if (tool == "timeline") return (string.IsNullOrEmpty(args.Action) || args.Action == "list" || args.Action == "undo") && (args.Number == null || args.Number.Value >= 1);
             if (tool == "find_file") return args.Action == "show" || args.Action == "open" || args.Action == "stop" || ((string.IsNullOrEmpty(args.Action) || args.Action == "search") && Named(args.Description));
             if (tool == "website_nickname") return args.Action == "list" || (Named(args.Name) && (args.Action == "forget" || args.Action == "save"));
             if (tool == "read_file") return Named(args.Path) && (!args.Page.HasValue || args.Page.Value >= 1) && (!args.Offset.HasValue || args.Offset.Value >= 0);

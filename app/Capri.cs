@@ -2999,6 +2999,8 @@ namespace CapriDesktop
             Hands.Keeper = new FileKeeper(data) { Reveal = delegate(string path) { return Hands.Finder.Reveal(path) ? "Selected " + path + " in File Explorer." : null; } };
             FileKeeper.Changed = delegate(FileChange change) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFiles(change); } catch (Exception) { } }); };
             FileKeeper.Used = delegate(string call, string result) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFilesCall(call, result); } catch (Exception) { } }); };
+            Timeline.Open(data);
+            if (!testing) Timeline.Changed = delegate(Deed deed) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogDeed(deed); } catch (Exception) { } }); };
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
             Hands.GameOpen = delegate { return Computer.GameOpen(); };
@@ -22801,6 +22803,7 @@ namespace CapriDesktop
                 if (FileFinder.Search("not here.pdf", new[] { slowRoot }, delegate { return ++scanSteps > 20; }).Count != 0 || scanSteps > 30) throw new Exception("A large folder ignored cancellation between entries.");
                 checks.Add("PASS likely folders are checked together by depth so a deep first root cannot delay a nearby redirected-folder result, duplicate roots are skipped, and a large folder cancels between entries");
                 checks.AddRange(FileKeeperChecks.Run());
+                checks.AddRange(TimelineChecks.Run());
                 FileAttributes cloudFolder = FileAttributes.Directory | FileAttributes.ReparsePoint;
                 for (uint cloudTag = 0; cloudTag < 16; cloudTag++) if (!FileFinder.Follow(cloudFolder, 0x9000001A | cloudTag << 12)) throw new Exception("A OneDrive cloud folder was skipped.");
                 if (!FileFinder.Follow(FileAttributes.Directory, 0) || !FileFinder.Follow(cloudFolder, 0x80000021) || FileFinder.Follow(cloudFolder, 0xA0000003) || FileFinder.Follow(cloudFolder, 0xA000000C) || FileFinder.Follow(cloudFolder, 0)) throw new Exception("Cloud placeholders and looping junctions weren't distinguished.");
@@ -23989,7 +23992,7 @@ namespace CapriDesktop
                 { "media", "{\"action\":\"pause\"}" }, { "look_at_screen", "{}" }, { "play_music", "{\"song\":\"I Really Want to Stay at Your House\"}" },
                 { "app_window", "{\"name\":\"Spotify\",\"action\":\"minimize\"}" }, { "use_computer", "{\"task\":\"Open the notes\"}" },
                 { "stream", "{\"action\":\"stop\"}" }, { "shortcut", "{\"name\":\"screenshot\"}" }, { "remember", "{\"text\":\"They like blue\"}" },
-                { "find_file", "{\"description\":\"notes.txt\"}" }, { "files", "{\"action\":\"undo\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
+                { "find_file", "{\"description\":\"notes.txt\"}" }, { "files", "{\"action\":\"undo\"}" }, { "timeline", "{\"action\":\"list\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
                 { "weather", "{\"action\":\"now\"}" }, { "remind", "{\"action\":\"list\"}" }, { "stopwatch", "{\"action\":\"check\"}" }, { "routine", "{\"action\":\"list\"}" }, { "power", "{\"action\":\"cancel\"}" },
                 { "nap", "{\"action\":\"wake\"}" }, { "move_yourself", "{\"action\":\"show\"}" }, { "animate", "{\"name\":\"blink\"}" },
                 { "draw", "{\"action\":\"clear\"}" }, { "clone", "{\"action\":\"stop\"}" }, { "hologram", "{\"action\":\"off\"}" },

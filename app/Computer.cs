@@ -2836,6 +2836,7 @@ namespace CapriDesktop
                 if (step.Finished) { ledgered.Add(step); underway = null; }
                 else underway = step.Label;
             }
+            if (step.Finished) Timeline.Step(this, Task, step.Label, step.Failed);
             Action<JobStep> stepped = Stepped;
             if (stepped != null) stepped(step);
         }
@@ -2845,9 +2846,10 @@ namespace CapriDesktop
         internal string Run()
         {
             InControl.Begin();
+            Timeline.Hush(true);
             try { return Running(); }
             catch { Computer.Finish(); Show(null); throw; }
-            finally { InControl.End(); }
+            finally { Timeline.Hush(false); Timeline.Ended(this, Outcome); InControl.End(); }
         }
 
         private string Running()

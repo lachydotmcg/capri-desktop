@@ -40,6 +40,8 @@
     <Compile Include="../app/FileFinder.cs" Link="Shared/FileFinder.cs" />
     <Compile Include="../app/FileKeeper.cs" Link="Shared/FileKeeper.cs" />
     <Compile Include="../app/FileKeeperChecks.cs" Link="Shared/FileKeeperChecks.cs" />
+    <Compile Include="../app/Timeline.cs" Link="Shared/Timeline.cs" />
+    <Compile Include="../app/TimelineChecks.cs" Link="Shared/TimelineChecks.cs" />
     <Compile Include="../app/Files.cs" Link="Shared/Files.cs" />
     <Compile Include="../app/SelfKnow.cs" Link="Shared/SelfKnow.cs" />
     <Compile Include="../app/Network.cs" Link="Shared/Network.cs" />

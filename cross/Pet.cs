@@ -224,6 +224,7 @@ namespace CapriDesktop
                 case "check_app": return "Checking installed apps";
                 case "find_file": return "Finding a file";
                 case "files": return "Working on your files";
+                case "timeline": return "Going over what she did";
                 case "read_file": return "Reading a file";
                 case "remember": return "Updating a note";
                 case "watch_for": return "Watching for a change";
@@ -918,6 +919,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder, Brain);
+            Timeline.Open(Program.Smoke ?? folder);
             StartReminders();
             StartWeather();
             if (OperatingSystem.IsMacOS()) MacWindows.Displays = () => Dispatcher.UIThread.Invoke(() => MacWindows.ReadDisplays(Screens.All, Desk.Pointer()));
@@ -961,6 +963,8 @@ namespace CapriDesktop
             Hands.Resume = delegate(string text) { return RemoteTurn.Working == null ? resume(text) : null; };
             ComputerJobs.Changed += RemoteJobChanged;
             ComputerJobs.Stepped += RemoteJobStep;
+            ComputerJobs.Stepped += TimelineStep;
+            ComputerJobs.Changed += TimelineJob;
             Security.HeldChanged = RemoteJobSecurity;
             Hands.NativeWork = Limbs.RemoteWork(Hands.NativeWork);
             Hands.Work = Limbs.RemoteWork(Hands.Work);
@@ -5061,6 +5065,19 @@ namespace CapriDesktop
                 RemoteJobSet(run, state);
                 if (run.Ended != 0) { run.Job = null; run.Hold = null; run.Phone = null; foreach (RemoteStep step in run.Trail) step.Action = null; }
             }
+        }
+
+        internal static void TimelineStep(ComputerJob job, ComputerAction action, bool done, bool failed)
+        {
+            if (job == null || action == null || !done) return;
+            string typed = action.Action == "type" && !action.Secret && action.Risk != "secret" ? (action.Text ?? "").Trim() : "";
+            string label = typed.Length > 0 && !failed ? "Typed " + Voice.InQuotes(Timeline.Line(typed, 32)) : RemoteJobWords.RemoteComputerLabel(action.Action, true, failed);
+            Timeline.Step(job, job.Task, RemotePrivate.Mask(label), failed);
+        }
+
+        internal static void TimelineJob(ComputerJob job, string state)
+        {
+            if (state == "done" || state == "failed" || state == "stopped") Timeline.Ended(job, state);
         }
 
         private void RemoteJobStep(ComputerJob job, ComputerAction action, bool done, bool failed)

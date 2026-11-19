@@ -1,0 +1,151 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace CapriDesktop
+{
+    internal static class TimelineChecks
+    {
+        private static void Expect(bool good, string problem) { if (!good) throw new Exception(problem); }
+
+        internal static List<string> Run()
+        {
+            List<string> passed = new List<string>();
+            string scratch = Path.Combine(Path.GetTempPath(), "capri-timeline-" + Guid.NewGuid().ToString("N"));
+            string kept = Path.Combine(scratch, "data"), top = Path.Combine(scratch, "files");
+            Directory.CreateDirectory(kept);
+            Directory.CreateDirectory(top);
+            DateTime now = new DateTime(2026, 11, 19, 12, 0, 0, DateTimeKind.Utc);
+            Action<Deed> changedWas = Timeline.Changed;
+            Func<string, ToolArguments, string> runWas = Timeline.Run;
+            Func<DateTime> nowWas = Timeline.Now;
+            Func<string, string> undoFilesWas = Timeline.UndoFiles;
+            Func<string, bool> filesBackWas = Timeline.FilesBack;
+            FileKeeper keeperWas = Hands.Keeper;
+            Action<FileChange> keeperChangedWas = FileKeeper.Changed;
+            Action<string, string> keeperUsedWas = FileKeeper.Used;
+            string memoryWas = Brain.MemoryPath, folderWas = Timeline.Folder;
+            List<Deed> told = new List<Deed>();
+            List<string> ran = new List<string>();
+            string answer = "Closed Spotify.";
+            try
+            {
+                Timeline.Now = delegate { return now; };
+                Timeline.Changed = delegate(Deed deed) { told.Add(deed); };
+                Timeline.Run = delegate(string tool, ToolArguments args)
+                {
+                    ran.Add(tool + ":" + args.Action + ":" + (args.Name ?? args.Text ?? "") + ":" + (Timeline.Quiet ? "quiet" : "loud") + ":" + Timeline.Keeps("open_app", new ToolArguments { Name = "x" }));
+                    return answer;
+                };
+                Timeline.Open(kept);
+                Expect(Timeline.Recent().Count == 0 && Timeline.List().StartsWith("I haven't done anything", StringComparison.Ordinal), "A new timeline wasn't empty.");
+
+                Expect(Timeline.Keeps("open_app", new ToolArguments { Name = "Spotify" }) && Timeline.Keeps("files", new ToolArguments { Action = "move" }) && Timeline.Keeps("capri_settings", new ToolArguments { Action = "off" })
+                    && Timeline.Keeps("mod", new ToolArguments { Name = "tool" }) && Timeline.Keeps("media", new ToolArguments { Action = "pause" }), "Her timeline skipped something she changed.");
+                Expect(!Timeline.Keeps("look_at_screen", new ToolArguments()) && !Timeline.Keeps("files", new ToolArguments { Name = "beach" }) && !Timeline.Keeps("files", new ToolArguments { Action = "undo" })
+                    && !Timeline.Keeps("capri_settings", new ToolArguments { Action = "list" }) && !Timeline.Keeps("timeline", new ToolArguments()) && !Timeline.Keeps("use_computer", new ToolArguments { Task = "x" })
+                    && !Timeline.Keeps("media", new ToolArguments { Action = "now_playing" }) && !Timeline.Keeps("remind", new ToolArguments { Action = "list" }), "Her timeline kept a look, a read or a job's own call.");
+                Timeline.Hush(true);
+                bool hushed = !Timeline.Keeps("open_app", new ToolArguments { Name = "Spotify" });
+                Timeline.Hush(false);
+                Expect(hushed && Timeline.Keeps("open_app", new ToolArguments { Name = "Spotify" }), "Hushing her timeline didn't hold or didn't let go.");
+                passed.Add("PASS her timeline keeps what she changes on the computer, not her looks, reads, lists or a job's own call, and stays quiet while she undoes or works a job");
+
+                Deed opened = Timeline.Add(new Deed { Tool = "open_app", What = "Opened Spotify.", UndoTool = "app_window", UndoAction = "close", UndoName = "Spotify" });
+                now = now.AddMinutes(1);
+                Deed mod = Timeline.Add(new Deed { Tool = "mod", What = "Posted the clip to the channel.", Kept = Timeline.ModKept });
+                now = now.AddMinutes(1);
+                Deed failed = Timeline.Add(new Deed { Tool = "open_app", What = "Couldn't find an app called Spotfy.", Failed = true, UndoTool = "app_window", UndoAction = "close", UndoName = "Spotfy" });
+                Expect(opened.Undoable && !mod.Undoable && mod.Kept == Timeline.ModKept && !failed.Undoable && failed.Kept == null && told.Count == 3, "Her timeline marked what can go back wrongly.");
+                string list = Timeline.List();
+                Expect(list.Contains("1. ") && list.IndexOf("Spotfy", StringComparison.Ordinal) < list.IndexOf("Posted the clip", StringComparison.Ordinal) && list.IndexOf("Posted the clip", StringComparison.Ordinal) < list.IndexOf("Opened Spotify", StringComparison.Ordinal)
+                    && list.Contains("Opened Spotify (can undo)") && list.Contains("can't undo: " + Timeline.ModKept.TrimEnd('.')) && list.Contains("(didn't work)"), "Her timeline list wasn't newest first with what can go back: " + list);
+                passed.Add("PASS her timeline lists what she did newest first and numbered, saying which can be undone and why the rest can't");
+
+                string undo = Timeline.Undo((int?)null);
+                Expect(undo.StartsWith("I can't undo", StringComparison.Ordinal) && undo.Contains(Timeline.ModKept) && ran.Count == 0, "Undo that skipped past her newest action or ran a mod tool: " + undo);
+                answer = "Couldn't close Spotify: it's still open.";
+                undo = Timeline.Undo((int?)3);
+                Expect(undo.StartsWith("Couldn't undo", StringComparison.Ordinal) && ran.Count == 1 && Timeline.Find(opened.Id).Undoable, "A failed undo was marked done: " + undo);
+                answer = "Closed Spotify.";
+                told.Clear();
+                undo = Timeline.Undo((int?)3);
+                Expect(undo.StartsWith("Undid it: Opened Spotify.", StringComparison.Ordinal) && ran.Count == 2 && ran[1] == "app_window:close:Spotify:quiet:False", "Undo didn't close what she opened, quietly: " + undo + " / " + string.Join(", ", ran.ToArray()));
+                Deed back = Timeline.Find(opened.Id);
+                Expect(back.Undone && !back.Undoable && back.Back == "Closed Spotify." && told.Count == 1 && told[0].Undone, "An undo wasn't kept or told.");
+                Expect(Timeline.Undo(opened.Id).StartsWith("Already put back", StringComparison.Ordinal) && ran.Count == 2, "Undoing twice ran it again.");
+                Expect(Timeline.Undo((int?)9).StartsWith("There's no number 9", StringComparison.Ordinal) && Timeline.Undo((int?)1).StartsWith("That one didn't work", StringComparison.Ordinal), "Undo by number went wrong.");
+                passed.Add("PASS undo takes back her newest action or a numbered one, quietly, says plainly when it can't, keeps a failed undo undoable and never runs one twice");
+
+                object job = new object();
+                told.Clear();
+                for (int i = 1; i <= 50; i++) Timeline.Step(job, "Send hi to Sam on Discord", i == 50 ? "Typed \"hi\" and pressed Enter" : "Clicked step " + i, i == 45);
+                Deed running = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Job; });
+                Expect(running != null && running.Steps.Count == Timeline.StepsKept && running.StepCount == 50 && running.Ended == null && told.Count == 0 && running.Kept == Timeline.JobKept, "A job's steps weren't kept together or were told before it ended.");
+                Expect(running.Steps.Exists(delegate(string step) { return step == "\u2717 Clicked step 45"; }) && running.Steps[0] == "Clicked step 11", "A job's steps lost their order or a failed step lost its mark.");
+                Timeline.Ended(job, "done");
+                Timeline.Ended(job, "done");
+                Expect(told.Count == 1 && told[0].Job && told[0].Ended == "done" && told[0].Steps[told[0].Steps.Count - 1].StartsWith("Typed", StringComparison.Ordinal), "An ended job wasn't told once with its steps.");
+                Expect(Timeline.Undo((int?)1).StartsWith("I can't undo that job. " + Timeline.JobKept, StringComparison.Ordinal), "Undo claimed it could take back clicks and typing.");
+                passed.Add("PASS a job's clicks and typing go under one entry with its newest " + Timeline.StepsKept + " steps, told once when it ends, and undo says they can't be taken back");
+
+                Timeline.Changed = null;
+                Timeline.Open(kept);
+                List<Deed> reread = Timeline.Recent();
+                Expect(reread.Count == 4 && reread[0].Undone && reread[0].Back == "Closed Spotify." && reread[3].Job && reread[3].StepCount == 50 && reread[3].Ended == "done" && reread[1].Kept == Timeline.ModKept, "Her timeline didn't come back the same after a restart.");
+                string saved = File.ReadAllText(Path.Combine(kept, "timeline.json"));
+                Expect(!saved.Contains("\"UndoLevel\"") && !saved.Contains("null"), "Her timeline file kept empty fields.");
+                for (int i = 0; i < Timeline.Kept + 10; i++) Timeline.Add(new Deed { Tool = "media", What = "Paused number " + i + "." });
+                Expect(Timeline.Recent().Count == Timeline.Kept && Timeline.Recent()[0].What == "Paused number 10.", "Her timeline grew past " + Timeline.Kept + ".");
+                now = now.AddDays(Timeline.Days + 1);
+                Timeline.Add(new Deed { Tool = "media", What = "Paused a month later." });
+                Expect(Timeline.Recent().Count == 1, "Her timeline kept things older than " + Timeline.Days + " days.");
+                passed.Add("PASS her timeline comes back after a restart, keeps no empty fields, and holds her newest " + Timeline.Kept + " things from the last " + Timeline.Days + " days");
+
+                Timeline.Run = delegate(string tool, ToolArguments args) { return Hands.Do(tool, args); };
+                Timeline.Open(kept);
+                Brain.MemoryPath = Path.Combine(kept, "me.md");
+                bool personal = Security.On(Security.Personal);
+                Security.Set(Security.Personal, false);
+                string note;
+                try { note = Hands.Do("remember", new ToolArguments { Text = "They like teal keyboards" }); }
+                finally { Security.Set(Security.Personal, personal); }
+                Deed noted = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Tool == "remember"; });
+                Expect(note.StartsWith("Saved to my notes", StringComparison.Ordinal) && noted != null && noted.Undoable && noted.UndoAction == "forget" && noted.UndoText == "They like teal keyboards", "A note she saved couldn't be undone: " + note);
+                undo = Timeline.Undo((int?)null);
+                Expect(undo.StartsWith("Undid it", StringComparison.Ordinal) && !File.ReadAllText(Brain.MemoryPath).Contains("teal") && Timeline.Recent().Count == 2, "Undoing a note didn't forget it, or the forget was kept too: " + undo);
+
+                FileKeeper.Changed = null;
+                FileKeeper.Used = null;
+                Hands.Keeper = new FileKeeper(kept) { Roots = delegate { return new[] { top }; } };
+                Timeline.UndoFiles = delegate(string id) { return Hands.Keeper.Undo(id); };
+                Timeline.FilesBack = delegate(string id) { return Hands.Keeper.Recent().Exists(delegate(FileChange change) { return change.Id == id && change.Undone; }); };
+                File.WriteAllText(Path.Combine(top, "list.txt"), "milk");
+                string renamed = Hands.Do("files", new ToolArguments { Action = "rename", Path = Path.Combine(top, "list.txt"), Name = "shopping.txt" });
+                Deed moved = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Tool == "files"; });
+                Expect(File.Exists(Path.Combine(top, "shopping.txt")) && moved != null && moved.Files != null && moved.Undoable, "A file change wasn't kept with its undo: " + renamed);
+                undo = Timeline.Undo(moved.Id);
+                Expect(undo.StartsWith("Undid it", StringComparison.Ordinal) && File.Exists(Path.Combine(top, "list.txt")) && !File.Exists(Path.Combine(top, "shopping.txt")), "Undoing a file change from her timeline didn't put it back: " + undo);
+                Hands.Do("files", new ToolArguments { Action = "rename", Path = Path.Combine(top, "list.txt"), Name = "groceries.txt" });
+                Deed again = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Tool == "files"; });
+                Hands.Keeper.Undo();
+                Expect(again.Id != moved.Id && Timeline.Find(again.Id).Undone && !Timeline.Find(again.Id).Undoable, "A file change undone in Workspace still showed as undoable.");
+                passed.Add("PASS notes and file changes she makes through her tools are kept with a real undo, and a file change put back elsewhere shows as undone");
+#if !CROSS
+                Deed shown = new Deed { Id = "x", When = now.ToString("o"), Tool = "use_computer", What = "Send hi to Sam", Steps = new List<string> { "Clicked Sam", "Typed \"hi\"" }, StepCount = 20, Ended = "asked", Kept = Timeline.JobKept };
+                string card = Workspace.DeedText(shown);
+                Expect(card.Contains("Job: Send hi to Sam") && card.Contains("18 steps before") && card.Contains("Typed \"hi\"") && card.Contains("Stopped to ask you something.") && card.Contains(Timeline.JobKept), "Her What she did card for a job was wrong: " + card);
+                passed.Add("PASS her What she did card shows a job's newest steps, how it ended and why it can't be undone");
+#endif
+            }
+            finally
+            {
+                Timeline.Changed = changedWas; Timeline.Run = runWas; Timeline.Now = nowWas; Timeline.UndoFiles = undoFilesWas; Timeline.FilesBack = filesBackWas;
+                Hands.Keeper = keeperWas; FileKeeper.Changed = keeperChangedWas; FileKeeper.Used = keeperUsedWas; Brain.MemoryPath = memoryWas;
+                Timeline.Open(folderWas);
+                try { Directory.Delete(scratch, true); } catch (Exception) { }
+            }
+            return passed;
+        }
+    }
+}
