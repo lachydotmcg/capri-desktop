@@ -96,7 +96,7 @@ namespace CapriDesktop
         internal static string First(string answer)
         {
             string text = Excerpt(answer);
-            Match end = Regex.Match(text, @"^.{12,}?[.!?](?=\s|$)");
+            Match end = Regex.Match(text, @"^.{6,}?[.!?](?=\s|$)");
             string sentence = end.Success ? end.Value : text;
             return sentence.Length > 220 ? sentence.Substring(0, 219).TrimEnd() + "…" : sentence;
         }
