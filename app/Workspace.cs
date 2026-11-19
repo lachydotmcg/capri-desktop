@@ -785,6 +785,26 @@ namespace CapriDesktop
             Add(chat, new WorkspaceItem { Kind = "note", Text = "Put back: " + change.What + "." });
         }
 
+        internal void LogFilesCall(string call, string result)
+        {
+            if (string.IsNullOrEmpty(call)) return;
+            WorkspaceChat chat = FilesChat();
+            string id = Guid.NewGuid().ToString("N"), turn = "files-" + id;
+            result = result ?? "";
+            WorkspaceItem tool = new WorkspaceItem { Kind = "tool", Name = "files", Id = id, Turn = turn, Text = "files " + call };
+            WorkspaceItem done = new WorkspaceItem { Kind = "result", Id = id, Turn = turn, Text = result.Length > 2000 ? result.Substring(0, 2000) : result };
+            lock (chat.Gate)
+            {
+                if (chat.Deleted) return;
+                chat.Items.Add(tool);
+                chat.Items.Add(done);
+                chat.Updated = DateTime.UtcNow.Ticks;
+                Save(chat);
+            }
+            Notify(chat, tool);
+            Notify(chat, done);
+        }
+
         internal string UndoFile(WorkspaceChat chat, WorkspaceItem item)
         {
             lock (chat.Gate) { if (item.Decision.Length > 0) return null; item.Decision = "undone"; }

@@ -46,6 +46,8 @@ namespace CapriDesktop
         private const long Readable = 20L << 20, TextBytes = 1L << 20;
 
         internal static Action<FileChange> Changed;
+        internal static Action<string, string> Used;
+        [ThreadStatic] private static List<FileChange> holding;
         internal Func<IEnumerable<string>> Roots = Personal;
         internal Func<string, string> Reveal;
         internal Func<DateTime> Now = delegate { return DateTime.Now; };
@@ -89,6 +91,60 @@ namespace CapriDesktop
         internal string Do(ToolArguments args, Func<bool> stopped)
         {
             if (args == null) args = new ToolArguments();
+            List<FileChange> held = new List<FileChange>(), was = holding;
+            string result;
+            holding = held;
+            try { result = Run(args, stopped); }
+            finally { holding = was; }
+            Action<string, string> used = Used;
+            if (used != null) try { used(Call(args), result); } catch (Exception) { }
+            foreach (FileChange change in held) Tell(change);
+            return result;
+        }
+
+        internal static string Call(ToolArguments args)
+        {
+            string action = args.Action ?? "";
+            if (action.Length == 0 || action == "search") action = "find";
+            if (action == "organize") action = "organise";
+            StringBuilder line = new StringBuilder(action);
+            switch (action)
+            {
+                case "find":
+                    Part(line, " ", Quoted(args.Name));
+                    Part(line, " with words ", Quoted(args.Search));
+                    if (args.Kind != "any") Part(line, " kind ", args.Kind);
+                    Part(line, " from ", args.When);
+                    Part(line, " in ", args.Folder);
+                    break;
+                case "show": Part(line, " ", args.Path); break;
+                case "make_folder": Part(line, " ", args.Name); Part(line, " in ", args.Folder); break;
+                case "move": Part(line, " ", args.Path); Part(line, " \u2192 ", Named(args.Target) ? args.Target : args.Folder); break;
+                case "rename": Part(line, " ", args.Path); Part(line, " \u2192 ", args.Name); break;
+                case "organise": Part(line, " ", args.Folder); Part(line, " by ", Named(args.By) ? args.By : "kind"); break;
+            }
+            string text = Regex.Replace(line.ToString(), @"\s+", " ").Trim();
+            return text.Length > 180 ? text.Substring(0, 177) + "..." : text;
+        }
+
+        private static void Part(StringBuilder line, string join, string value)
+        {
+            if (Named(value)) line.Append(join).Append(value.Trim());
+        }
+
+        private static string Quoted(string value)
+        {
+            return Named(value) ? "\"" + value.Trim() + "\"" : null;
+        }
+
+        private static void Tell(FileChange change)
+        {
+            Action<FileChange> changed = Changed;
+            if (changed != null) try { changed(change); } catch (Exception) { }
+        }
+
+        private string Run(ToolArguments args, Func<bool> stopped)
+        {
             if (!Valid(args)) return "Tell me what to find by its name, words inside it, its kind or when it was made, or what to move, rename, make or sort.";
             if (stopped == null) stopped = delegate { return false; };
             try
@@ -118,6 +174,25 @@ namespace CapriDesktop
                 case "rename": return "rename " + Things(args.Path) + " to " + Short(args.Name);
                 default: return "sort the loose files in " + Short(args.Folder) + " into folders by " + (args.By == "month" || args.By == "year" ? args.By : "kind");
             }
+        }
+
+        internal string[] Preview(ToolArguments args, out string title)
+        {
+            string error, action = args == null ? "" : args.Action ?? "";
+            List<string> lines = new List<string>();
+            if (action == "move" || action == "rename")
+            {
+                List<string> picked = Picked(args.Path, out error) ?? new List<string>();
+                string target = action == "rename" ? Short(args.Name) : Short(Named(args.Target) ? args.Target : args.Folder);
+                title = (action == "move" ? "Move " : "Rename ") + (picked.Count == 1 ? (Directory.Exists(picked[0]) ? "1 folder" : "1 file") : picked.Count + " things");
+                if (picked.Count == 0) lines.Add(Short(args.Path) + " \u2192 " + target);
+                foreach (string one in picked) lines.Add(System.IO.Path.GetFileName(one.TrimEnd('\\', '/')) + " \u2192 " + target);
+                return lines.ToArray();
+            }
+            title = "Sort files";
+            lines.Add("Loose files in " + Short(args == null ? null : args.Folder));
+            lines.Add("into folders by " + (args != null && (args.By == "month" || args.By == "year") ? args.By : "kind"));
+            return lines.ToArray();
         }
 
         private string Things(string path)
@@ -858,8 +933,8 @@ namespace CapriDesktop
                 if (changes.Count > Kept) changes.RemoveRange(0, changes.Count - Kept);
                 Save();
             }
-            Action<FileChange> changed = Changed;
-            if (changed != null) try { changed(change); } catch (Exception) { }
+            if (holding != null) holding.Add(change);
+            else Tell(change);
         }
 
         private void Save()
@@ -908,8 +983,8 @@ namespace CapriDesktop
                 catch (Exception) { missing++; }
             }
             lock (gate) { change.Undone = true; Save(); }
-            Action<FileChange> changed = Changed;
-            if (changed != null) try { changed(change); } catch (Exception) { }
+            if (holding != null) holding.Add(change);
+            else Tell(change);
             if (back == 0 && missing == 0) return "Undid it: " + change.What + ".";
             return "Put back " + back + (missing > 0 ? ", but " + missing + " had moved or gone since, so I left those" : "") + " (" + change.What + ").";
         }

@@ -23,8 +23,11 @@ namespace CapriDesktop
             Write(loose, "clip.mov", "v", now); Write(loose, "song.mp3", "m", now); Write(loose, "scan.pdf", "p", now); Write(loose, "mystery.qqq", "?", now);
 
             Action<FileChange> changedWas = FileKeeper.Changed;
+            Action<string, string> usedWas = FileKeeper.Used;
             List<FileChange> told = new List<FileChange>();
-            FileKeeper.Changed = told.Add;
+            List<string> order = new List<string>();
+            FileKeeper.Changed = delegate(FileChange change) { told.Add(change); order.Add("change " + change.What); };
+            FileKeeper.Used = delegate(string call, string result) { order.Add("call " + call + " = " + result); };
             try
             {
                 FileKeeper keeper = new FileKeeper(kept) { Now = delegate { return now; } };
@@ -125,8 +128,13 @@ namespace CapriDesktop
                 }
                 passed.Add("PASS moving, renaming and sorting files ask first on every preset but Blackwall, while finding, making a folder and undo don't");
                 Expect(told.Count >= 10 && told.Exists(delegate(FileChange change) { return change.Undone && change.What.StartsWith("sorted ", StringComparison.Ordinal); }), "Her file changes and undos weren't announced for Workspace.");
+                int first = order.FindIndex(delegate(string line) { return line.StartsWith("call move 1, 2 \u2192 Beach = Moved ", StringComparison.Ordinal); });
+                Expect(order.Count > 0 && order[0].StartsWith("call find \"beach\" = Found 2", StringComparison.Ordinal) && order.Exists(delegate(string line) { return line.StartsWith("call find kind photo from last week = I didn't find", StringComparison.Ordinal); })
+                    && first >= 0 && first + 1 < order.Count && order[first + 1].StartsWith("change moved ", StringComparison.Ordinal), "Her file calls weren't each told to Workspace before their changes: " + string.Join(" | ", order.ToArray()));
+                Expect(FileKeeper.Call(new ToolArguments { Action = "organize", Folder = "Downloads" }) == "organise Downloads by kind" && FileKeeper.Call(new ToolArguments { Action = "rename", Path = "2", Name = "Trip" }) == "rename 2 \u2192 Trip" && FileKeeper.Call(new ToolArguments { Search = "lease  flat", Kind = "any" }) == "find with words \"lease flat\"", "Her file calls read wrong in Workspace.");
+                passed.Add("PASS every files call, finds included, is told to Workspace as tool use before the change it made");
             }
-            finally { FileKeeper.Changed = changedWas; }
+            finally { FileKeeper.Changed = changedWas; FileKeeper.Used = usedWas; }
 #if !CROSS
             using (Workspace desk = new Workspace(Path.Combine(scratch, "desk"), "CapriWorkspace-" + System.Diagnostics.Process.GetCurrentProcess().Id + "-files-" + Guid.NewGuid().ToString("N")))
             {
@@ -146,8 +154,15 @@ namespace CapriDesktop
                 lock (chat.Gate) count = chat.Items.Count;
                 desk.LogFiles(change);
                 lock (chat.Gate) Expect(chat.Items.Count == count && chat.Items[count - 1].Text == "Put back 1 (moved 1 into Beach).", "An undo from chat was shown twice in Workspace.");
+                desk.LogFilesCall("find \"beach\"", "Found 2:");
+                lock (chat.Gate)
+                {
+                    WorkspaceItem logCall = chat.Items[chat.Items.Count - 2], logAnswer = chat.Items[chat.Items.Count - 1];
+                    Expect(chat.Items.Count == count + 2 && logCall.Kind == "tool" && logCall.Name == "files" && logCall.Text == "files find \"beach\"" && logAnswer.Kind == "result" && logAnswer.Text == "Found 2:"
+                        && logAnswer.Id == logCall.Id && logAnswer.Turn == logCall.Turn && logCall.Turn.Length > 0 && !chat.Turns.Contains(logCall.Turn), "Her files call wasn't logged in Workspace as a finished tool call.");
+                }
             }
-            passed.Add("PASS her file changes show once in Workspace's Her files chat with an Undo key that puts them back once");
+            passed.Add("PASS her file calls show in Workspace's Her files chat as tool use, and her changes show once there with an Undo key that puts them back once");
 #endif
             Directory.Delete(scratch, true);
             return passed;

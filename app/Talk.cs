@@ -3320,9 +3320,20 @@ namespace CapriDesktop
         internal RectangleF YesButton { get { return yesButton; } }
         internal RectangleF NoButton { get { return noButton; } }
 
+        internal string AskTitle;
+        internal string[] AskLines = new string[0];
+        private int ChoiceRows { get { return !Choosing ? 0 : AskTitle == null ? 2 : 3 + Math.Min(3, AskLines.Length); } }
+
         internal void Choose(Action<bool> answer)
         {
+            Choose(answer, null, null);
+        }
+
+        internal void Choose(Action<bool> answer, string title, string[] lines)
+        {
             picked = answer;
+            AskTitle = answer == null ? null : title;
+            AskLines = answer == null || lines == null ? new string[0] : lines;
             yesButton = noButton = RectangleF.Empty;
             clean = false;
         }
@@ -3453,10 +3464,11 @@ namespace CapriDesktop
                 int above = string.IsNullOrEmpty(Prompt) && !copied ? 0 : 1;
                 float panelWidth = 24 * s + columns * cw + 14 * s;
                 totalLines = lines.Count;
-                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above - (Choosing ? 2 : 0));
+                int choices = ChoiceRows;
+                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above - choices);
                 visibleLines = Math.Min(totalLines, totalLines > room ? Math.Max(1, room - 1) : room);
                 firstLine = Math.Max(0, Math.Min(firstLine, totalLines - visibleLines));
-                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0) + (Choosing ? 2 : 0)) + 10 * s;
+                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0) + choices) + 10 * s;
                 int width = (int)Math.Ceiling(panelWidth + margin * 2);
                 int height = (int)Math.Ceiling(top + panelHeight + tail + 4 * s);
                 bool below = head.Y - height < area.Top;
@@ -3466,9 +3478,18 @@ namespace CapriDesktop
                 at = new Point(left, y);
                 RectangleF panel = new RectangleF(margin, below ? tail + 4 * s : top, panelWidth, panelHeight);
                 panelOnScreen = new Rectangle(left + (int)panel.X, y + (int)panel.Y, (int)panel.Width, (int)panel.Height);
-                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line - (Choosing ? line * 2 : 0), panel.Width - 38 * s, line) : RectangleF.Empty;
-                yesButton = Choosing ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line * 1.7f, (panel.Width - 58 * s) / 2, line * 1.4f) : RectangleF.Empty;
-                noButton = Choosing ? new RectangleF(yesButton.Right + 10 * s, yesButton.Top, yesButton.Width, yesButton.Height) : RectangleF.Empty;
+                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line - line * choices, panel.Width - 38 * s, line) : RectangleF.Empty;
+                RectangleF card = Choosing && AskTitle != null ? new RectangleF(panel.Left + 22 * s, panel.Bottom - 8 * s - line * choices + 2 * s, panel.Width - 34 * s, line * choices - 2 * s) : RectangleF.Empty;
+                if (card.IsEmpty)
+                {
+                    yesButton = Choosing ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line * 1.7f, (panel.Width - 58 * s) / 2, line * 1.4f) : RectangleF.Empty;
+                    noButton = Choosing ? new RectangleF(yesButton.Right + 10 * s, yesButton.Top, yesButton.Width, yesButton.Height) : RectangleF.Empty;
+                }
+                else
+                {
+                    yesButton = new RectangleF(card.Left + 10 * s, card.Bottom - 8 * s - line * 1.3f, cw * 5 + 20 * s, line * 1.3f);
+                    noButton = new RectangleF(yesButton.Right + 8 * s, yesButton.Top, cw * 2 + 20 * s, yesButton.Height);
+                }
                 float tipX = Math.Max(panel.Left + 32 * s, Math.Min(panel.Right - 10 * s, tip.X - left));
                 float tipY = below ? 0 : height - 1;
                 Bitmap image = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
@@ -3485,7 +3506,7 @@ namespace CapriDesktop
                         for (float row = panel.Top; row < panel.Bottom; row += 3 * s) graphics.DrawLine(scan, panel.Left, row, panel.Right, row);
                     graphics.ResetClip();
                     using (Pen edge = new Pen(Look.Cyan, 2 * s)) graphics.DrawPath(edge, path);
-                    using (Brush red = new SolidBrush(Look.Red)) graphics.FillRectangle(red, panel.Left + 10 * s, panel.Top + 13 * s, 3 * s, panel.Height - 26 * s);
+                    using (Brush red = new SolidBrush(Look.Red)) graphics.FillRectangle(red, panel.Left + 10 * s, panel.Top + 13 * s, 3 * s, panel.Height - 26 * s - (card.IsEmpty ? 0 : card.Height + 6 * s));
                     float x = panel.Left + 24 * s;
                     float row2 = panel.Top + 12 * s;
                     if (above > 0)
@@ -3528,7 +3549,8 @@ namespace CapriDesktop
                         string paging = "< PREV   " + (firstLine + 1) + "-" + (firstLine + visibleLines) + "/" + totalLines + "   NEXT >";
                         using (Brush dim = new SolidBrush(Look.Dim)) Look.Draw(graphics, paging, text, dim, pages.Left, pages.Top);
                     }
-                    if (Choosing)
+                    if (Choosing && !card.IsEmpty) DrawAsk(graphics, card, s, cw, line, text, bold);
+                    else if (Choosing)
                     {
                         using (Pen edge = new Pen(Look.Cyan, Math.Max(1, s)))
                         using (Brush ink = new SolidBrush(Look.Neon))
@@ -3541,6 +3563,50 @@ namespace CapriDesktop
                     }
                 }
                 return image;
+            }
+        }
+
+        private void DrawAsk(Graphics graphics, RectangleF card, float s, float cw, float line, Font text, Font bold)
+        {
+            int columns = Math.Max(4, (int)Math.Floor((card.Width - 20 * s) / cw));
+            using (GraphicsPath plate = Neon.Cut(card, 0, 0, 8 * s, 0))
+            using (Brush fill = new SolidBrush(Color.FromArgb(250, 16, 15, 20)))
+            using (Pen edge = new Pen(Look.Yellow, Math.Max(1, 1.5f * s)))
+            {
+                graphics.FillPath(fill, plate);
+                graphics.DrawPath(edge, plate);
+            }
+            float x = card.Left + 10 * s, y = card.Top + 5 * s;
+            string title = AskTitle.ToUpperInvariant(), side = "ASKS FIRST";
+            int room = columns - side.Length - 2;
+            if (Look.Cells(title) > room) title = Look.Cut(title, Math.Max(1, room - 3)) + "...";
+            using (Brush amber = new SolidBrush(Look.Yellow)) Look.Draw(graphics, title, bold, amber, x, y);
+            using (Brush dim = new SolidBrush(Look.Dim))
+            {
+                if (room > 4) Look.Draw(graphics, side, text, dim, card.Right - 10 * s - side.Length * cw, y);
+                int shown = Math.Min(3, AskLines.Length);
+                for (int i = 0; i < shown; i++)
+                {
+                    string one = i == 2 && AskLines.Length > 3 ? (AskLines.Length - 2) + " more" : AskLines[i] ?? "";
+                    if (Look.Cells(one) > columns) one = Look.Cut(one, columns - 3) + "...";
+                    using (Brush ink = new SolidBrush(Look.Ink)) Look.Draw(graphics, one, text, ink, x, y + line * (i + 1));
+                }
+                string hint = "or say yes";
+                float after = noButton.Right + 10 * s;
+                if (after + hint.Length * cw <= card.Right - 10 * s) Look.Draw(graphics, hint, text, dim, card.Right - 10 * s - hint.Length * cw, yesButton.Top + (yesButton.Height - line) / 2 + 2 * s);
+            }
+            using (GraphicsPath yes = Neon.Cut(yesButton, 5 * s, 0, 5 * s, 0))
+            using (GraphicsPath no = Neon.Cut(noButton, 5 * s, 0, 5 * s, 0))
+            using (Brush cyan = new SolidBrush(Look.Cyan))
+            using (Brush dark = new SolidBrush(Look.Panel))
+            using (Brush red = new SolidBrush(Look.Red))
+            using (Pen redEdge = new Pen(Look.Red, Math.Max(1, 1.5f * s)))
+            {
+                graphics.FillPath(cyan, yes);
+                graphics.DrawPath(redEdge, no);
+                float top = yesButton.Top + (yesButton.Height - line) / 2 + 2 * s;
+                Look.Draw(graphics, "ALLOW", bold, dark, yesButton.Left + 10 * s, top);
+                Look.Draw(graphics, "NO", bold, red, noButton.Left + 10 * s, top);
             }
         }
 

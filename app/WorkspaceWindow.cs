@@ -2684,7 +2684,7 @@ namespace CapriDesktop
                             else server = char.ToUpperInvariant(server[0]) + server.Substring(1);
                             return server + " call";
                         }
-                    default: return name + " call";
+                    default: return name == "files" ? "file job" : name + " call";
                 }
             }
 
