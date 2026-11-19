@@ -3572,10 +3572,10 @@ namespace CapriDesktop
             return ask(this);
         }
 
-        internal string SmallJob(string system, string user, int limit)
+        internal string SmallJob(string system, string user, int limit, bool job = false)
         {
             if (Model == null) throw new BrainException(Offline);
-            return Thrifted(delegate(Brain brain) { return brain.Aside(system, user, limit); }, false, false);
+            return Thrifted(delegate(Brain brain) { return brain.Aside(system, user, limit, job); }, false, false);
         }
 
         internal string SmallJobs
