@@ -350,7 +350,7 @@ namespace CapriDesktop
                 case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
                 case "updates": return action == "install" ? Open : -1;
                 // A code mod's tool can do anything its code does, so it has its own toggle, off on Lockdown and Guarded.
-                case "mod": return ModTools;
+                case "mod": return args != null && Plugins.Owns(args.Name) ? Plugins.Needs(args.Name) : ModTools;
                 case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": case "playlist": return -1;
                 default: return -1;
             }
@@ -390,19 +390,21 @@ namespace CapriDesktop
         // Calls their yes let through, each once.
         private static readonly List<string> cleared = new List<string>();
 
+        private static int Granted(string tool, ToolArguments args) { return tool == "mod" && args != null ? Plugins.Granted(args.Name) : -1; }
+
         // True when the toggle this call needs is off here, so she'd ask first.
         internal static bool Asks(string tool, ToolArguments args)
         {
-            int toggle = Needs(tool, args);
-            if (toggle < 0 || !Has(toggle) || On(toggle)) return false;
+            int toggle = Needs(tool, args), granted = Granted(tool, args);
+            if (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle))) return false;
             lock (gate) return !cleared.Contains(Asking(tool, args));
         }
 
         // Null when the call can run. Otherwise she holds it and the result says what to ask them.
         internal static string Gate(string tool, ToolArguments args)
         {
-            int toggle = Needs(tool, args);
-            if (toggle < 0 || !Has(toggle) || On(toggle)) return null;
+            int toggle = Needs(tool, args), granted = Granted(tool, args);
+            if (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle))) return null;
             string asked = Asking(tool, args);
             lock (gate)
             {
@@ -649,7 +651,7 @@ namespace CapriDesktop
                 case "check_app": return "check whether " + Plain(a.Name, "that app") + " is installed or running";
                 case "pc_status": return "check how your PC is doing";
                 case "internet_status": return "check your internet";
-                case "mod": return "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
+                case "mod": return Plugins.Asking(a.Name) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 default: return "do that";
             }
         }
@@ -1907,6 +1909,7 @@ namespace CapriDesktop
                 // Something that can't work here gets her line saying so and why, before anything runs.
                 string unable = Unable(tool, args);
                 if (unable != null) return unable;
+                if (tool == "mod" && Plugins.Owns(args.Name)) return Plugins.Run(args.Name, args.Text ?? "");
                 if (tool == "mod")
                 {
                     Func<string, string, string> run = RunModTool;
@@ -2238,9 +2241,16 @@ namespace CapriDesktop
         private static string[][] ModToolsNow()
         {
             Func<string[][]> tools = ModTools;
-            if (tools == null) return NoModTools;
-            try { return tools() ?? NoModTools; }
-            catch (Exception) { return NoModTools; }
+            string[][] mods = NoModTools, plugins = Plugins.Tools();
+            if (tools != null)
+            {
+                try { mods = tools() ?? NoModTools; }
+                catch (Exception) { mods = NoModTools; }
+            }
+            if (plugins.Length == 0) return mods;
+            List<string[]> all = new List<string[]>(mods);
+            foreach (string[] tool in plugins) if (!all.Exists(one => one[0] == tool[0])) all.Add(tool);
+            return all.ToArray();
         }
 
         // Her one tool for every mod's tools: a name to pick from what running mods added, and the text that tool takes.

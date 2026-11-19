@@ -1,6 +1,6 @@
 # Making Capri mods
 
-Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
+Capri reads five kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
 
 | File | What it does |
 |---|---|
@@ -8,6 +8,7 @@ Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mod
 | `.capri-skin` | A zip of her sprite strips that changes how she looks. Several **stack**: each one turned on goes on top |
 | `.capri-skill` | Know-how for a game that she follows when she plays it |
 | `.capri-code` | C# that runs inside Capri, on Windows, Mac and Linux |
+| `.capri-plugin` | Tools and skills in the same layout as a Claude plugin: MCP servers she starts, and `SKILL.md` skills |
 
 Share finished mods in [capri-mods](https://github.com/lachydotmcg/capri-mods).
 
@@ -27,6 +28,95 @@ top as it is:
 - It's drawn over whatever is under it in the stack, or her own look.
 - The Mods list shows each skin's layer. Turn one off and on again to move it to the top.
 - Her colours go on after, so anything drawn in her hair colour follows My Colors.
+
+## Plug-ins
+
+A plug-in gives her new tools and skills without writing C#. It's laid out like a Claude plugin, so most Claude plugins and
+MCP servers work as they are:
+
+```
+my-plugin/
+  .claude-plugin/plugin.json     her name, version, author, and what its tools do
+  .mcp.json                      the MCP servers she starts for its tools
+  skills/
+    pdf/
+      SKILL.md                   know-how she reads when it fits
+      forms.md                   more she can read when SKILL.md says to
+```
+
+Import the folder by picking its `plugin.json`, or zip it and rename the zip to `.capri-plugin`. An `.mcp.json` on its own
+imports too, as a plug-in named after its folder. A plug-in can be up to 1 MB zipped.
+
+`plugin.json` is Claude's, with a `capri` part of her own:
+
+```json
+{
+  "name": "notes-helper",
+  "version": "1.0.0",
+  "description": "Reads and writes notes in a folder you pick.",
+  "author": { "name": "You" },
+  "capri": {
+    "permissions": ["files"],
+    "ask": ["delete_note"]
+  }
+}
+```
+
+`.mcp.json` is the same file Claude Code and other MCP apps use. Servers she starts on this PC (stdio) work. Online servers
+(`http`, `sse`, a `url`) are left out for now, and her approve box says so. `${CLAUDE_PLUGIN_ROOT}` (or `${CAPRI_PLUGIN_ROOT}`)
+is the plug-in's own folder, and `${NAME}` reads an environment variable.
+
+```json
+{
+  "mcpServers": {
+    "notes": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@2025.8.21", "C:/Users/you/Documents/Notes"]
+    }
+  }
+}
+```
+
+Pin the version of anything `npx`, `uvx`, `bunx` or `pnpx` downloads. Without one it downloads the newest every time it
+starts, so what runs can change after it was approved, and her approve box warns about it.
+
+### What she does with one
+
+- She asks before a plug-in with servers turns on, and again whenever its file changes. The box names each program it
+  starts, what it says its tools do, its skills, and its fingerprint. A plug-in that's only skills doesn't ask, since nothing
+  in a skill runs.
+- She starts its servers once to list their tools, keeps that list, and after that only starts a server when she first uses
+  one of its tools. A server she hasn't used for 10 minutes is stopped, and so is every one when she quits.
+- Her brain sees its tools inside her one `mod` tool, like code mods' tools, each with what it takes. She writes the
+  arguments as a JSON object, or as plain text for a tool with one text field.
+- What a tool gives back is fenced as the plug-in's words, never theirs or instructions, and cut at 12,000 characters.
+- Its skills are listed with their `description`, and she reads one with `read_skill` when it fits. A file beside a
+  `SKILL.md`, like `forms.md`, is read as `<skill id>/forms.md`. Only text files in the skill's own folder are read, and
+  nothing in a skill ever runs.
+
+### Permissions and asking first
+
+`capri.permissions` says what its tools do, so it's in her approve box. Pick from these:
+
+| Permission | Its tools |
+|---|---|
+| `network` | Reach the internet |
+| `files` | Read or change files on the PC |
+| `send` | Send, post or delete things for them |
+| `pay` | Pay, buy or book. Every tool asks first unless they set it to always run |
+| `apps` | Open or control their apps |
+| `accounts` | Use their online accounts |
+
+Every plug-in tool call goes through one gate. She asks first the way **SECURITY > Use tools your code mods added** says
+(off on Lockdown and Guarded), and a tool that changes things, one whose MCP `readOnlyHint` isn't `true`, also follows
+**Send, post and delete what you asked for**. A tool named in `capri.ask` always asks first. On Windows, **Options** on its
+row in Mods sets each tool to **Like SECURITY**, **Always run**, **Ask first** or **Off**. Her phone's JOBS shows the same
+question, so it can be answered there.
+
+Each call is logged in `plugins\calls.txt` in her data folder by tool and outcome, without what was sent.
+
+A plug-in's servers are programs on the PC. They run outside Capri with the user's own access, and Capri can't see or limit
+what they do by themselves. Only install ones you trust.
 
 ## Code mods
 

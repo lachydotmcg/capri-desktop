@@ -172,14 +172,15 @@ namespace CapriDesktop
             {
                 Mod mod = modFirst + i < mods.Count ? mods[modFirst + i] : null;
                 modNames[i].Visible = modAbouts[i].Visible = modSwitches[i].Visible = modRemoves[i].Visible = modPublishes[i].Visible = mod != null;
-                bool options = mod != null && mod.Code && mod.On && capri.HasModOptions(mod.File.Id);
+                bool options = mod != null && (mod.Code && mod.On && capri.HasModOptions(mod.File.Id) || mod.Plugin && mod.On && mod.Info != null && mod.Info.Servers.Length > 0);
                 modOptions[i].Visible = options;
                 modAbouts[i].Width = Scaled(options ? 180 : 256);
                 if (mod == null) continue;
-                modOptions[i].AccessibleName = "Open " + mod.File.Name + "'s options";
+                modPublishes[i].Visible = !mod.Plugin;
+                modOptions[i].AccessibleName = mod.Plugin ? "Choose when she uses " + mod.File.Name + "'s tools" : "Open " + mod.File.Name + "'s options";
                 modNames[i].Text = mod.File.Name + (string.IsNullOrEmpty(mod.File.Version) ? "" : " v" + mod.File.Version);
                 modNames[i].ForeColor = mod.On ? White : Faint;
-                modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Skin ? (mod.On && capri.ModList.SkinStack.Count > 1 ? "SKIN, LAYER " + (capri.ModList.SkinStack.IndexOf(mod) + 1) + " OF " + capri.ModList.SkinStack.Count + ". " : "SKIN. ") : mod.Skill ? (mod.Own ? "YOUR SKILL. " : "SKILL. ") : "") + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "") + (mod.Code || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames)) + (mod.Skill && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : mod.Skill && mod.File.Apps != null && mod.File.Apps.Length > 0 ? " For " + mod.File.Apps[0] + "." : "")).Trim();
+                modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Plugin ? PluginAbout(mod) : mod.Code ? "RUNS CODE. " : mod.Skin ? (mod.On && capri.ModList.SkinStack.Count > 1 ? "SKIN, LAYER " + (capri.ModList.SkinStack.IndexOf(mod) + 1) + " OF " + capri.ModList.SkinStack.Count + ". " : "SKIN. ") : mod.Skill ? (mod.Own ? "YOUR SKILL. " : "SKILL. ") : "") + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "") + (mod.Code || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames)) + (mod.Skill && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : mod.Skill && mod.File.Apps != null && mod.File.Apps.Length > 0 ? " For " + mod.File.Apps[0] + "." : "")).Trim();
                 modAbouts[i].ForeColor = mod.Changed ? Rose : Faint;
                 modSwitches[i].Text = mod.On ? "On" : "Off";
                 modSwitches[i].Accent = mod.On ? Cyan : Rose;
@@ -232,7 +233,8 @@ namespace CapriDesktop
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
                 dialog.Title = "Import a Capri mod";
-                dialog.Filter = "Capri mods (*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension + ")|*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension;
+                dialog.Filter = "Capri mods (*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension + ";*" + Mods.PluginExtension + ")|*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension + ";*" + Mods.PluginExtension
+                    + "|Claude plug-ins and MCP servers (plugin.json, .mcp.json)|plugin.json;capri-plugin.json;.mcp.json;mcp.json";
                 if (dialog.ShowDialog(this) == DialogResult.OK) ImportMod(dialog.FileName);
             }
         }
@@ -248,7 +250,7 @@ namespace CapriDesktop
                     return false;
                 }
                 FillMods();
-                ModSays(mod.Skin ? Stacked(mod) : mod.Code ? mod.File.Name + " is on and running." : mod.Skill ? mod.File.Name + " is on." + (mod.File.Games.Length > 0 ? " She uses it when she plays " + mod.File.Games[0] + "." : mod.File.Apps != null && mod.File.Apps.Length > 0 ? " She uses it when she does something in " + mod.File.Apps[0] + "." : " She can read it when it fits.") : mod.File.WakeNames.Length == 0 ? mod.File.Name + " is on." : mod.File.Name + " is on. She now answers to " + Mods.Listed(mod.File.WakeNames) + " too.", false);
+                ModSays(mod.Plugin ? PluginOn(mod) : mod.Skin ? Stacked(mod) : mod.Code ? mod.File.Name + " is on and running." : mod.Skill ? mod.File.Name + " is on." + (mod.File.Games.Length > 0 ? " She uses it when she plays " + mod.File.Games[0] + "." : mod.File.Apps != null && mod.File.Apps.Length > 0 ? " She uses it when she does something in " + mod.File.Apps[0] + "." : " She can read it when it fits.") : mod.File.WakeNames.Length == 0 ? mod.File.Name + " is on." : mod.File.Name + " is on. She now answers to " + Mods.Listed(mod.File.WakeNames) + " too.", false);
                 return true;
             }
             catch (ModException error)
@@ -362,6 +364,7 @@ namespace CapriDesktop
         {
             if (optionsSheet != null && !optionsSheet.IsDisposed && !capri.HasModOptions(optionsSheet.ModId)) optionsSheet.Close();
             if (pageSheet != null && !pageSheet.IsDisposed && !capri.ModRunningNow(pageSheet.ModId)) pageSheet.Close();
+            if (pluginSheet != null && !pluginSheet.IsDisposed && !capri.ModList.All.Exists(mod => mod.Plugin && mod.On && mod.File.Id == pluginSheet.ModId)) pluginSheet.Close();
             if (modded) FillMods();
         }
 
@@ -371,6 +374,7 @@ namespace CapriDesktop
         {
             Mod mod = ShownMod(row);
             if (mod == null) return;
+            if (mod.Plugin) { OpenPluginOptions(mod); return; }
             Control made;
             string title;
             string problem = capri.MakeModOptions(mod.File.Id, out made, out title);
@@ -433,6 +437,7 @@ namespace CapriDesktop
 
         private bool AskToRun(ModFile mod, string hash)
         {
+            if (mod.Plugin) return Question.Ask(this, Mods.Consent(mod, hash), "Turn on this plug-in?");
             if (!Question.Ask(this, Mods.Consent(mod, hash), "Run this code mod?")) return false;
             return !mod.AskTwice || Question.Ask(this, Mods.Unclear(mod), "Run code you can't read?");
         }

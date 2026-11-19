@@ -120,7 +120,7 @@ namespace CapriDesktop
                     List<Mod> stack = pet.ModList.SkinStack;
                     modNames[i].Text = mod.File.Name + (string.IsNullOrEmpty(mod.File.Version) ? "" : " v" + mod.File.Version);
                     modNames[i].Ink = mod.On ? MainframeTheme.White : MainframeTheme.Faint;
-                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : "")
+                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Plugin ? "PLUG-IN. " + (mod.On ? Plugins.ToolsOf(mod.File.Id).Count + " tools. " : "") : mod.Code ? "RUNS CODE. " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : "")
                         + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "")
                         + (mod.Code || mod.File.WakeNames == null || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames))
                         + (mod.Skill && mod.File.Games != null && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : "")).Trim();
@@ -193,7 +193,7 @@ namespace CapriDesktop
                 IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                 {
                     Title = "Import mod", AllowMultiple = false,
-                    FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*" + Mods.Extension, "*" + Mods.SkinExtension, "*" + Mods.SkillExtension, "*" + Mods.CodeExtension } } }
+                    FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*" + Mods.Extension, "*" + Mods.SkinExtension, "*" + Mods.SkillExtension, "*" + Mods.CodeExtension, "*" + Mods.PluginExtension, "plugin.json", "capri-plugin.json", ".mcp.json", "mcp.json" } } }
                 });
                 if (!closed && files.Count > 0)
                 {
@@ -247,6 +247,7 @@ namespace CapriDesktop
         // Her approve box, the same words as on Windows, waited on here so the mod list stays as it was until they answer.
         private bool AskToRun(ModFile mod, string hash)
         {
+            if (mod.Plugin) return RunBox("Turn on this plug-in?", Mods.Consent(mod, hash));
             if (!RunBox("Run this code mod?", Mods.Consent(mod, hash))) return false;
             return !mod.AskTwice || RunBox("Run code you can't read?", Mods.Unclear(mod));
         }

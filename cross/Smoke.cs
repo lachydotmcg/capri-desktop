@@ -5603,6 +5603,9 @@ namespace CapriDesktop
                 if (found == null || found.On || !found.Changed || pet.ModRunningNow("dropped")) throw new Exception("A code mod dropped into the folder ran without their OK.");
                 mods.Remove(found);
                 checks.Add("PASS mods code: off stops a code mod and on starts it again without asking, removing takes everything it added, and one dropped into the folder waits for their OK");
+                string pluginsOut = Path.Combine(input, "plugins-test");
+                Directory.CreateDirectory(pluginsOut);
+                Mods.CheckPlugins(mods, checks, pluginsOut);
 
                 PixelSize art = Pet.ArtSize("Capri.Sprite.idle.png");
                 if (!frame.ImportMod(ModSkin(input, "smoke-guard-skin", "idle.png", art.Width, art.Height))) throw new Exception("The approve box check couldn't put a skin on: " + frame.ModStatusText);
