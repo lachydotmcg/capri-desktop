@@ -36,6 +36,11 @@ namespace CapriDesktop
         internal Bitmap LineCard;
         internal CloneNote Carrying;
         internal CloneHaul Hauling;
+        internal bool Posted;
+        internal double FaceX = double.NaN;
+        internal Bitmap Screen, TagCard, CaptionCard;
+        internal string Tag, Caption, CaptionShown;
+        internal int Ink;
     }
 
     // A window one of them is after or has hold of: its frame in their room, the spot on it she grabs, when she gives up, and how
@@ -164,6 +169,8 @@ namespace CapriDesktop
                 if (Bodies[i].Returning && Math.Abs(Bodies[i].X - Bodies[i].ToX) < 1 && Math.Abs(Bodies[i].Y - Bodies[i].ToY) < 1)
                 {
                     if (Bodies[i].LineCard != null) Bodies[i].LineCard.Dispose();
+                    if (Bodies[i].Carrying != null) { if (Bodies[i].Carrying.Card != null) Bodies[i].Carrying.Card.Dispose(); Notes.Remove(Bodies[i].Carrying); }
+                    CloneWindow.Unposted(Bodies[i]);
                     Bodies.RemoveAt(i);
                 }
             Prints.RemoveAll(delegate(ClonePrint print) { return now - print.Born > PrintLife; });
@@ -220,6 +227,11 @@ namespace CapriDesktop
         private void Arrived(CloneBody body, double now)
         {
             if (body.Returning) return;
+            if (body.Posted)
+            {
+                if (!double.IsNaN(body.FaceX)) body.Left = body.FaceX < body.X;
+                return;
+            }
             if (body == Nabber || body.Hauling != null) return;
             if (body.Fetching)
             {
@@ -784,6 +796,71 @@ namespace CapriDesktop
             return made;
         }
 
+        internal const int LaptopWidth = 208, LaptopHeight = 98;
+        internal static readonly Color[] Inks = { Color.FromArgb(255, 255, 45, 120), Color.FromArgb(255, 60, 235, 235), Color.FromArgb(255, 255, 214, 64), Color.FromArgb(255, 170, 120, 255) };
+        private readonly Font small = new Font("Consolas", 12f, FontStyle.Bold, GraphicsUnit.Pixel);
+
+        internal static void Unposted(CloneBody body)
+        {
+            if (body.Screen != null) { body.Screen.Dispose(); body.Screen = null; }
+            if (body.TagCard != null) { body.TagCard.Dispose(); body.TagCard = null; }
+            if (body.CaptionCard != null) { body.CaptionCard.Dispose(); body.CaptionCard = null; }
+        }
+
+        private Bitmap Pill(string text, Color ink, int widest)
+        {
+            SizeF measured;
+            using (Bitmap probe = new Bitmap(1, 1))
+            using (Graphics measuring = Graphics.FromImage(probe)) measured = measuring.MeasureString(text, small);
+            int broad = Math.Min(widest, (int)Math.Ceiling(measured.Width) + 14), high = (int)Math.Ceiling(measured.Height) + 6;
+            Bitmap pill = new Bitmap(broad, high, PixelFormat.Format32bppPArgb);
+            using (Graphics graphics = Graphics.FromImage(pill))
+            using (SolidBrush back = new SolidBrush(Color.FromArgb(232, 16, 14, 24)))
+            using (Pen edge = new Pen(ink, 2))
+            using (SolidBrush writing = new SolidBrush(ink))
+            using (StringFormat cut = new StringFormat(StringFormatFlags.NoWrap) { Trimming = StringTrimming.EllipsisCharacter })
+            {
+                graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                graphics.FillRectangle(back, 0, 0, broad, high);
+                graphics.DrawRectangle(edge, 1, 1, broad - 3, high - 3);
+                graphics.DrawString(text, small, writing, new RectangleF(7, 3, broad - 10, high - 4), cut);
+            }
+            return pill;
+        }
+
+        private void Laptop(Graphics graphics, CloneBody body)
+        {
+            Color ink = Inks[Math.Abs(body.Ink) % Inks.Length];
+            int feet = (int)body.Y + size / 2;
+            if (body.Tag != null)
+            {
+                if (body.TagCard == null) body.TagCard = Pill(body.Tag, ink, 220);
+                graphics.DrawImage(body.TagCard, Math.Max(2, Math.Min(room.Width - body.TagCard.Width - 2, (int)body.X - body.TagCard.Width / 2)), Math.Min(room.Height - body.TagCard.Height - 2, feet + 2), body.TagCard.Width, body.TagCard.Height);
+            }
+            if (body.Screen == null || !body.Posted) return;
+            int reach = Math.Max(40, canvas / 4);
+            int x = body.Left ? (int)body.X - reach - LaptopWidth : (int)body.X + reach;
+            x = Math.Max(4, Math.Min(room.Width - LaptopWidth - 12, x));
+            int y = Math.Max(4, Math.Min(room.Height - LaptopHeight - 40, (int)body.Y - LaptopHeight / 2));
+            using (SolidBrush bezel = new SolidBrush(Color.FromArgb(240, 16, 14, 24)))
+            using (Pen edge = new Pen(ink, 2))
+            {
+                graphics.FillRectangle(bezel, x - 6, y - 6, LaptopWidth + 12, LaptopHeight + 12);
+                graphics.DrawRectangle(edge, x - 6, y - 6, LaptopWidth + 11, LaptopHeight + 11);
+                graphics.DrawImage(body.Screen, x, y, LaptopWidth, LaptopHeight);
+                graphics.FillRectangle(bezel, x - 18, y + LaptopHeight + 6, LaptopWidth + 36, 7);
+                graphics.DrawRectangle(edge, x - 18, y + LaptopHeight + 6, LaptopWidth + 35, 6);
+            }
+            if (body.Caption == null) return;
+            if (body.CaptionCard == null || body.CaptionShown != body.Caption)
+            {
+                if (body.CaptionCard != null) body.CaptionCard.Dispose();
+                body.CaptionCard = Pill(body.Caption, Color.FromArgb(255, 244, 244, 248), LaptopWidth + 36);
+                body.CaptionShown = body.Caption;
+            }
+            graphics.DrawImage(body.CaptionCard, x + LaptopWidth / 2 - body.CaptionCard.Width / 2, y + LaptopHeight + 16, body.CaptionCard.Width, body.CaptionCard.Height);
+        }
+
         private Bitmap Card(string text)
         {
             SizeF measured;
@@ -842,6 +919,7 @@ namespace CapriDesktop
                     cell -= cell % Math.Max(1, clip.Count / 16);
                     graphics.DrawImage(Cell(clip, which, cell, body.Left), (int)body.X - canvas / 2, (int)body.Y - canvas / 2, canvas, canvas);
                 }
+                foreach (CloneBody body in Swarm.Bodies) if (body.Screen != null || body.Tag != null) Laptop(graphics, body);
                 foreach (CloneBody body in Swarm.Bodies)
                 {
                     if (body.Line == null) continue;
@@ -882,7 +960,8 @@ namespace CapriDesktop
                 foreach (Bitmap cell in cells.Values) cell.Dispose();
                 cells.Clear();
                 foreach (CloneNote note in Swarm.Notes) if (note.Card != null) note.Card.Dispose();
-                foreach (CloneBody body in Swarm.Bodies) if (body.LineCard != null) body.LineCard.Dispose();
+                foreach (CloneBody body in Swarm.Bodies) { if (body.LineCard != null) body.LineCard.Dispose(); Unposted(body); }
+                small.Dispose();
                 foreach (SolidBrush ink in printInk) ink.Dispose();
                 barInk.Dispose();
                 barBack.Dispose();
