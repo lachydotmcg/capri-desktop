@@ -2263,7 +2263,7 @@ namespace CapriDesktop
         internal void Stroke(PixelPoint cursor)
         {
             if (body.HologramOn) return;
-            if (!HeadPats || pressed || dragging || falling || outro != null || Talk.Typing) { ForgetStroke(); return; }
+            if (!HeadPats || pressed || dragging || falling || outro != null || Talk.Typing || InControl.On) { ForgetStroke(); return; }
             // Her window takes the pointer over her see-through edges too, so a pat that overshoots her outline skips that
             // spot instead of starting over.
             if (!Opaque(this.PointToClient(cursor))) return;
