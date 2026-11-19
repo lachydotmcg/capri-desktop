@@ -50,6 +50,7 @@ namespace CapriDesktop
     {
         internal const string Default = "Capri";
         internal static volatile CompanionInfo Active;
+        internal static volatile CompanionInfo[] Installed = new CompanionInfo[0];
         internal static readonly string[] PlainGreetings = { "Good morning.", "Isn't it late?", "Miss me?" };
         internal static Action Changed;
 
@@ -68,6 +69,11 @@ namespace CapriDesktop
         internal static string Honest(CompanionInfo pack)
         {
             return "Your name is " + pack.Name + ". You are an AI companion on their computer, and if they sincerely ask whether you're a real person, tell them you're an AI.";
+        }
+
+        internal static string PersonaOf(CompanionInfo pack)
+        {
+            return pack.Personality + "\n" + Brain.Holds + "\n" + Honest(pack) + "\n" + Brain.Safety + "\n" + Brain.Machinery;
         }
 
         internal static byte[] Hello(string clip)
@@ -340,6 +346,7 @@ namespace CapriDesktop
         private void ApplyCompanion()
         {
             Mod on = CompanionOn;
+            CompanionPack.Installed = All.FindAll(mod => mod.Pack != null).ConvertAll(mod => mod.Pack).ToArray();
             CompanionPack.Use(on == null ? null : on.Pack);
         }
 

@@ -853,7 +853,7 @@ namespace CapriDesktop
             get
             {
                 CompanionInfo pack = CompanionPack.Active;
-                if (pack != null) return pack.Personality + "\n" + Holds + "\n" + CompanionPack.Honest(pack) + "\n" + Safety + "\n" + Machinery;
+                if (pack != null) return CompanionPack.PersonaOf(pack);
                 string yours = Personality;
                 return yours == DefaultPersonality ? DefaultPersonality + "\n" + Safety + "\n" + Machinery : yours + "\n" + Holds + "\n" + Safety + "\n" + Machinery;
             }
