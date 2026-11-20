@@ -29,6 +29,7 @@ namespace CapriDesktop
 
         private string SquadAsk(string input)
         {
+            if (input != null && herHandOffAsk != null && input.Trim() == herHandOffAsk) return null;
             if (Squad.StopAsked(input))
             {
                 if (squad == null && squadWindow == null) return null;
@@ -380,6 +381,10 @@ namespace CapriDesktop
                 SquadBrain = null;
                 if (SquadAsk("what's your favourite colour") != null || SquadAsk("stop the squad") != null) return "Her squad answered a line that wasn't for it.";
                 if (SquadAsk("squad up") != "Squad's ready. What's the job?") return "Her squad didn't ask what the job was.";
+                herHandOffAsk = "load up fortnite and play it. You just researched the pirate token on your own computer and found: it's in the shop, so go grab it with your squad.";
+                string handedOff = SquadAsk(herHandOffAsk);
+                herHandOffAsk = null;
+                if (handedOff != null) return "Her squad took what her own computer found as a job from them.";
                 Squad shown = new Squad("find a mouse and a keyboard");
                 shown.Mates.AddRange(Squad.Plan("1. mouse scout | find a mouse\n2. keyboard scout | find a keyboard\n3. deal hunter | find a deal", 0));
                 squad = shown;

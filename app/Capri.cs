@@ -15965,7 +15965,7 @@ namespace CapriDesktop
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
-            string squadLine = callReply == null && prompt == "> you: " ? SquadAsk(input) : null;
+            string squadLine = callReply == null && prompt == "> you: " && !crisis ? SquadAsk(input) : null;
             if (squadLine != null) { Answer(ticket, squadLine, TalkState.Talking); return; }
             string herLine = callReply == null && prompt == "> you: " ? HerComputerAsk(input) : null;
             if (herLine != null) { Answer(ticket, herLine, TalkState.Talking); return; }
