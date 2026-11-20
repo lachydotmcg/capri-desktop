@@ -7394,14 +7394,14 @@ namespace CapriDesktop
                 int cloaked;
                 if (!IsWindowVisible(window) || Native.GetWindow(window, 4) != IntPtr.Zero || (Native.GetWindowLong(window, -20) & 0x80) != 0) return true;
                 if (DwmGetWindowAttribute(window, 14, out cloaked, 4) == 0 && cloaked != 0) return true;
+                int id;
+                GetWindowThreadProcessId(window, out id);
+                if (id == own) return true;
                 int length = GetWindowTextLength(window);
                 if (length == 0) return true;
                 StringBuilder kind = new StringBuilder(64);
                 GetClassName(window, kind, kind.Capacity);
                 if (Array.IndexOf(Shell, kind.ToString()) >= 0) return true;
-                int id;
-                GetWindowThreadProcessId(window, out id);
-                if (id == own) return true;
                 string program;
                 if (!programs.TryGetValue(id, out program))
                 {
