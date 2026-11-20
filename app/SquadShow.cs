@@ -51,6 +51,7 @@ namespace CapriDesktop
             Squad started = new Squad(job);
             squad = started;
             squadDone = false;
+            squadChatting = false;
             int turn = ++squadTurn;
             Func<string, string, string> cheap = SquadBrain ?? SquadCheap, lead = SquadBrain ?? SquadLead;
             string folder = HerComputerFolder;
