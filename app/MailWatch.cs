@@ -186,6 +186,8 @@ namespace CapriDesktop
             }
         }
 
+        internal const string GmailBinned = "That's phishing, choom, I reported it as spam and binned it.";
+        internal const string JunkMoved = "That's phishing, choom, I moved it to your junk folder.";
         private static readonly string[] OneLines = { "Oop, something just came through.", "Ooh, new mail just landed.", "Psst. You've got a new email.", "New mail just came in, choom." };
         private static readonly string[] ManyLines = { "Oop, {0} new emails just came through.", "Ooh, {0} new emails just landed." };
         private static readonly string[] OddLines = { " Something about it looks a bit off, so go easy on the links. Want me to check it?", " It looks a bit off to me. Want me to check it before you click anything?" };
@@ -202,7 +204,7 @@ namespace CapriDesktop
             string start = late ? (news.Count == 1 ? "Some mail came in while you were busy." : news.Count + " emails came in while you were busy.") : news.Count == 1 ? Lines.Pick(OneLines) : string.Format(Lines.Pick(ManyLines), news.Count);
             if (moved != null)
             {
-                string done = moved.Spam && moved.Gmail ? "That's phishing, choom, I reported it as spam and binned it." : moved.Spam ? "That's phishing, choom, I moved it to your junk folder." : "That's phishing, choom, I moved it to " + moved.Moved + ".";
+                string done = moved.Spam && moved.Gmail ? GmailBinned : moved.Spam ? JunkMoved : "That's phishing, choom, I moved it to " + moved.Moved + ".";
                 if (news.Count > 1) done = "One of them was phishing, choom, so I " + (moved.Spam && moved.Gmail ? "reported it as spam and binned it." : moved.Spam ? "moved it to your junk folder." : "moved it to " + moved.Moved + ".");
                 return start + " " + done + (phish != null && phish != moved ? " Another looks like phishing too, so don't click anything in it." : "");
             }
