@@ -39,6 +39,13 @@ namespace CapriDesktop
         [DataMember] public long Started;
         [DataMember] public int Waits;
 
+        [OnDeserializing]
+        private void Reading(StreamingContext context)
+        {
+            Minute = -1;
+            Day = -1;
+        }
+
         internal bool Watching { get { return Kind == "watch"; } }
 
         internal HerJob Copy()
@@ -432,6 +439,11 @@ namespace CapriDesktop
             for (int i = 0; i < MostQueued + 3; i++) again.Add("job " + i, "");
             if (again.Waiting != MostQueued) return "Her jobs piled up past the limit.";
             if (Fixed(new HerJobList { Queue = null, Repeats = new List<HerJob> { new HerJob { Id = "a", Task = "x", Repeat = "minutely" } }, Done = new List<HerJob> { null } }).Repeats.Count != 0) return "Her jobs kept a broken repeat.";
+            using (MemoryStream older = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Queue\":[],\"Repeats\":[{\"Id\":\"b\",\"Task\":\"check the weather\",\"Repeat\":\"daily\",\"State\":\"repeat\"}],\"Done\":[]}")))
+            {
+                HerJobList kept = Fixed(new DataContractJsonSerializer(typeof(HerJobList)).ReadObject(older) as HerJobList);
+                if (kept.Repeats.Count != 1 || kept.Repeats[0].Minute != -1 || kept.Repeats[0].Day != -1) return "Her jobs from before set times moved to midnight.";
+            }
             return null;
         }
     }
