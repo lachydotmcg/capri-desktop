@@ -15966,7 +15966,7 @@ namespace CapriDesktop
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
-            string herLine = callReply == null && prompt == "> you: " ? HerComputerAsk(input) : null;
+            string herLine = callReply == null && prompt == "> you: " && !crisis ? HerComputerAsk(input) : null;
             if (herLine != null) { Answer(ticket, herLine, TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
@@ -45708,6 +45708,9 @@ namespace CapriDesktop
                 preferences.HerComputer = false;
                 mainframe.Sync();
                 if (mainframe.HerComputerShown != "off | can't open" || HerComputerAsk("find me a recipe on your computer") != null) throw new Exception("Her own computer started on or took a job while off: " + mainframe.HerComputerShown);
+                foreach (string notHers in new[] { "keep an eye on my health", "tell me when my health drops", "be quiet while I'm busy", "remind me to stretch while I work" })
+                    if (HerComputerAsk(notHers) != null) throw new Exception("With her own computer off, an everyday ask was taken as an errand: " + notHers);
+                if (HerComputerAsk("run an errand for me: find the cheapest flights to Bali") == null) throw new Exception("With her own computer off, an errand didn't say how to turn it on.");
                 ToggleHerComputer();
                 if (mainframe.HerComputerShown != "on | can open" || !LoadPreferences().HerComputer) throw new Exception("Her own computer's switch did not show or save: " + mainframe.HerComputerShown);
                 if (SelfKnow.Setting("Mainframe.cs", "Her own computer") == null) throw new Exception("Her own computer lost its help.");

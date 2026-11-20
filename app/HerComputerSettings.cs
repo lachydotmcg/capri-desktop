@@ -165,7 +165,7 @@ namespace CapriDesktop
         {
             if (input != null && herHandOffAsk != null && input.Trim() == herHandOffAsk) { herHandOffAsk = null; return null; }
             string errand = HerComputerJob(input) == null ? HerErrandJob(input) : null;
-            if (!preferences.HerComputer) return errand == null ? null : "I can run that in the background on my own computer. Turn on Her own computer in Mainframe under HER COMPUTER, then ask me again.";
+            if (!preferences.HerComputer) return errand == null || !Regex.IsMatch(input ?? "", @"\berrand\b", RegexOptions.IgnoreCase) ? null : "I can run that in the background on my own computer. Turn on Her own computer in Mainframe under HER COMPUTER, then ask me again.";
             if (errand != null)
             {
                 HerComputerWindow running = ShowHerComputer(false);
