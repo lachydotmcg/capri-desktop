@@ -3055,6 +3055,7 @@ namespace CapriDesktop
             FileKeeper.Used = delegate(string call, string result) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFilesCall(call, result); } catch (Exception) { } }); };
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
+            GifShelf.Folder = Path.Combine(data, "gifs");
             Hands.GameOpen = delegate { return Computer.GameOpen(); };
             engine = new Engine(data);
             kokoro = new LocalVoice(data);
@@ -3070,7 +3071,7 @@ namespace CapriDesktop
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
             CallApps.Choose(preferences.CallApp, preferences.CallAppName);
             Neon.Repaint(preferences.MainframeColours, typer);
-            foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) form.HandleCreated += delegate { PassThrough(); };
+            foreach (Form form in new Form[] { this, pill, box, taskPanel, player, gifCard }) form.HandleCreated += delegate { PassThrough(); };
             PassThrough();
             qwen.CpuOnly = preferences.HdCpu;
             bool careNew = !preferences.CareWritten;
@@ -3336,6 +3337,8 @@ namespace CapriDesktop
             Hands.Updates = UpdateTool;
             Hands.MiniPlayer = MiniPlayerTool;
             Hands.OpenClip = OpenClipTool;
+            Hands.SendGif = GifTool;
+            Hands.GifNote = GifShelf.Note;
             Hands.Upset = UpsetTool;
             Hands.Cloning = delegate { return cloneWindow != null; };
             Hands.WatchAlong = WatchAlongTool;
@@ -3657,6 +3660,7 @@ namespace CapriDesktop
             int interval = FrameInterval(now);
             if (frames.Interval != interval) frames.Interval = interval;
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
+            if ((docked || hidden) && gifCard.Showing) gifCard.Stop();
             if (docked) { DockTick(now); if (iconRampage != null) frames.Start(); return; }
             if (hidden) { if (iconRampage != null) ClearIcons(); frames.Stop(); return; }
             if (riding) FollowCursor(); else if (onPanel) HoldPanel(); else if (falling) Tumble(now); else if (seat != null) HoldSeat(now);
@@ -3666,7 +3670,8 @@ namespace CapriDesktop
             if (!riding && !dragging && !walking && !falling && outro == null && clip != arrive && clip != leave) Face();
             if (!Steady(now)) RenderFrame();
             else UpdateTalk(now);
-            if (!exploring && !riding && !dragging && !walking && !falling && !Sulking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off && iconRampage == null) frames.Stop();
+            UpdateGif(now);
+            if (!exploring && !riding && !dragging && !walking && !falling && !Sulking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off && iconRampage == null && !gifCard.Showing) frames.Stop();
         }
 
         // Over a game her quiet body follows its art and her docked mouth follows speech. Otherwise she keeps 33 ms or her
@@ -3730,7 +3735,7 @@ namespace CapriDesktop
         private bool SittingStill { get { return seat != null && !riding && !dragging && !walking && !falling && outro == null; } }
 
         // Nothing else about her moves: no words, bubble, typing box or music notes. Her pill only redraws when it changes.
-        private bool Quiet(double now) { return speech == null && talkState == TalkState.Off && !box.Visible && !typer.Visible && !LiveNotes(now); }
+        private bool Quiet(double now) { return speech == null && talkState == TalkState.Off && !box.Visible && !typer.Visible && !gifCard.Showing && !LiveNotes(now); }
 
         private bool LiveNotes(double now)
         {
@@ -10278,7 +10283,7 @@ namespace CapriDesktop
         private void ApplyHidden(bool value)
         {
             if (quitting) return;
-            if (value) { StopExplore(); if (iconRampage != null) ClearIcons(); }
+            if (value) { StopExplore(); if (iconRampage != null) ClearIcons(); gifCard.Stop(); }
             if (docked && !value) { dockHid = true; gaming.Off(); }
             if (value) WakeRest(true);
             outro = null;
@@ -12070,9 +12075,9 @@ namespace CapriDesktop
         // for one of her presses, so between presses they can drag her and the panel out of the way, including over full screen.
         private void PassThrough()
         {
-            foreach (Form form in new Form[] { this, pill, box, taskPanel, player })
+            foreach (Form form in new Form[] { this, pill, box, taskPanel, player, gifCard })
             {
-                bool through = lentOut || (preferences.Hologram && (form == this || form == pill || form == box)) || (form == this ? riding : form != taskPanel && pointing);
+                bool through = lentOut || (preferences.Hologram && (form == this || form == pill || form == box || form == gifCard)) || (form == this ? riding : form != taskPanel && pointing);
                 if (form == box && box.Choosing) through = false;
                 Overlay overlay = form as Overlay;
                 if (overlay != null) overlay.ClickThrough = through;
@@ -16042,6 +16047,7 @@ namespace CapriDesktop
                 try { kokoro.Warm(); } catch (Exception) { }
             });
             if (!testing && preferences.HdVoice && (voice.Key == null || quiet || voiceBroke || preferences.Quiet) && !preferences.Silent && qwen.Installed && !qwen.Awake && clock.Elapsed.TotalSeconds >= hdRest && !HdStepsAside()) WakeHd();
+            bool phoned = remoteHearing != null;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string said;
@@ -16049,7 +16055,7 @@ namespace CapriDesktop
                 TalkState state = TalkState.Talking;
                 string problem = null;
                 bool stuck = false;
-                try { said = JoinSpeech(ticket, text, Computer.Mask(think(text))); }
+                try { said = JoinSpeech(ticket, text, Computer.Mask(PhoneTurn(think, text, phoned))); }
                 catch (BrainException error) { said = error.Message == Brain.Offline ? Brain.Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Message; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
                 catch (Exception error) { if (plain && (error is OperationCanceledException || error is WebException && ((WebException)error).Status == WebExceptionStatus.RequestCanceled)) return; said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
                 if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; state = TalkState.Dormant; }
@@ -16437,12 +16443,13 @@ namespace CapriDesktop
         {
             if (docked)
             {
+                gifCard.Stop();
                 if (iconRampage != null || speech != null || talkState != TalkState.Off) frames.Start();
                 else frames.Stop();
                 return;
             }
             if (!preferences.Motion && !riding && seat == null && !falling && clip != glitch && clip != dangle && clip != wake && !Asleep) Play(idle);
-            if ((iconRampage != null || exploring || preferences.Motion || riding || seat != null || falling || Sulking || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
+            if ((iconRampage != null || exploring || preferences.Motion || riding || seat != null || falling || Sulking || clip != idle || speech != null || talkState != TalkState.Off || gifCard.Showing) && !hidden) frames.Start(); else frames.Stop();
             RenderFrame();
         }
 
@@ -17245,6 +17252,7 @@ namespace CapriDesktop
                 menu.Dispose();
                 pill.Dispose();
                 box.Dispose();
+                gifCard.Dispose();
                 typer.Dispose();
                 CloseCallWindows();
                 mainframe.Dispose();
@@ -24250,7 +24258,7 @@ namespace CapriDesktop
                 { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
                 { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" },
                 { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }, { "read_skill", "{\"name\":\"BTD6 strategy\"}" },
-                { "make_tool", "{\"text\":\"{}\"}" }
+                { "make_tool", "{\"text\":\"{}\"}" }, { "send_gif", "{\"name\":\"party\"}" }
             };
             for (int i = 0; i < Hands.Count; i++)
             {
@@ -24972,10 +24980,10 @@ namespace CapriDesktop
             System.Collections.Generic.List<string> openAiTools = new System.Collections.Generic.List<string>(), claudeTools = new System.Collections.Generic.List<string>();
             System.Text.StringBuilder listing = new System.Text.StringBuilder("\nYour tools:");
             // read_skill is only in her tools while a skill is on.
-            bool skilled = Hands.Skilled;
+            bool skilled = Hands.Skilled, gifted = Hands.Gifted;
             for (int i = 0; i < Hands.Count; i++)
             {
-                if (Hands.Name(i) == "read_skill" && !skilled) continue;
+                if (Hands.Name(i) == "read_skill" && !skilled || Hands.Name(i) == "send_gif" && !gifted) continue;
                 openAiTools.Add("{\"type\":\"function\",\"function\":{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"parameters\":" + Hands.Schema(i) + "}}");
                 claudeTools.Add("{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"input_schema\":" + Hands.Schema(i) + "}");
                 System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
@@ -25015,6 +25023,7 @@ namespace CapriDesktop
             {
                 string tool = Hands.Name(i);
                 if (tool == "read_skill" && !skilled) { if (kit.Brief.Contains("\n- read_skill: ")) throw new Exception("Her chat brain was told about read_skill with no skill on."); continue; }
+                if (tool == "send_gif" && !gifted) { if (kit.Brief.Contains("\n- send_gif: ")) throw new Exception("Her chat brain was told about send_gif with no GIFs saved."); continue; }
                 if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
                     throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
             }
@@ -46037,6 +46046,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSmallWording", delegate { SmokeSmallWording(checks); });
             Section(checks, "SmokePrivacy", delegate { SmokePrivacy(checks, output); });
             Section(checks, "SmokeMemoryWindow", delegate { SmokeMemoryWindow(checks, output); });
+            Section(checks, "SmokeGifs", delegate { SmokeGifs(checks, output); });
         }
 
         // What her redaction keeps and hides, on its own, so a change to it is quick to check.

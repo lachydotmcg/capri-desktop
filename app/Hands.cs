@@ -812,7 +812,14 @@ namespace CapriDesktop
         // toggles is off.
         internal static string Note { get { return NoteFor(KitFor()); } }
 
-        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote + AlsoCalled() + SkillNote(); }
+        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote + AlsoCalled() + SkillNote() + GifsAnyTime; }
+
+        internal static Func<string> GifNote = delegate { return ""; };
+        [ThreadStatic] internal static bool Phoned;
+        internal static string Gifs { get { return Phoned ? "" : GifNote(); } }
+        internal static bool Gifted { get { return Gifs.Length > 0; } }
+        private static string GifsAnyTime { get { string gifs = Gifs; return gifs.Length == 0 ? "" : gifs + " You can send one on your own now and then when it fits, even while you're just chatting, but never every reply."; } }
+        private static string GifsAsked { get { string gifs = Gifs; return gifs.Length == 0 ? "" : gifs + " When they ask you to send a GIF, call send_gif."; } }
 
         // The titles of the skills that are on, and one skill in full by its title or id. Her mods list fills these in.
         internal static Func<string> SkillNote = delegate { return ""; };
@@ -877,7 +884,7 @@ namespace CapriDesktop
         // still calls it and Capri asks them.
         internal static string Prompt { get { return PromptFor(KitFor()); } }
 
-        internal static string PromptFor(Kit kit) { string note = Security.Note; return Here(note.Length == 0 ? kit.Handing : kit.Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote + SkillNote(); }
+        internal static string PromptFor(Kit kit) { string note = Security.Note; return Here(note.Length == 0 ? kit.Handing : kit.Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote + SkillNote() + GifsAsked; }
 
         // The shortcuts she can press, in her chat and hands prompts. Where only some work, these are rebuilt from those.
         private const string PressNote = "You can press shortcuts: mute or deafen them in Discord, screenshots, clips, recording, Game Bar, show desktop, Task Manager, clipboard history, emoji, voice typing, Live Captions, Narrator, Magnifier, colour filters and Quick Settings. ";
@@ -1399,6 +1406,10 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"come_here\",\"other_screen\",\"sit\",\"sit_on\",\"lie_down\",\"sit_up\",\"stand_up\",\"walk_around\",\"wander\",\"hang\",\"ride_cursor\",\"hop_off\",\"hide\",\"show\",\"move_mainframe\"]},\"screen\":{\"type\":\"string\",\"description\":\"For other_screen or move_mainframe, which monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, or a number like 2\"},\"window\":{\"type\":\"string\",\"description\":\"For sit_on, and lie_down if they named one, the app or game whose window to sit on, like Roblox, or taskbar\"}},\"required\":[\"action\"]}", "move herself, like coming to your mouse, going to another monitor, sitting on a window or the taskbar, lying down, hanging, riding your cursor or wandering", "move yourself around their screens" },
             { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name." + SecretMovesNote,
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"" + SecretMovesEnum + "]}},\"required\":[\"name\"]}", "dance and play her animations", "dance and play your animations" },
+#if !CROSS
+            { "send_gif", "Send one of the GIFs they saved for you to send. It plays in a card beside you on their PC screen for a few seconds. name picks one by its name; leave it out for a random one. Send one when they ask for a GIF, and now and then on your own when one fits the moment, like a joke, a reaction or celebrating with them. Only now and then, not every reply.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The GIF's name, one of the names they saved; leave it out for a random one\"}}}", "send one of the GIFs you saved for her", "send one of the GIFs they saved for you" },
+#endif
 #if CROSS
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. This only opens it; they change settings there.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
@@ -1778,6 +1789,7 @@ namespace CapriDesktop
         internal static Func<ToolArguments, string> VoiceChat = delegate { return "Couldn't change voice chat."; };
         internal static Func<ToolArguments, string> Workspace = delegate { return "Couldn't open Workspace."; };
         internal static Func<string, string> OpenClip = delegate { return "Couldn't open your clips."; };
+        internal static Func<string, string> SendGif = delegate { return "Couldn't send a GIF just now."; };
 #endif
         // Mac and Linux have no clones, hologram or icon tricks yet, so asking for them gets this straight away instead of a joke from her brain.
         internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
@@ -2054,6 +2066,7 @@ namespace CapriDesktop
                 if (tool == "mini_game") return Valid(tool, args) ? Mini(args) : "Couldn't find that desktop board action.";
 #if !CROSS
                 if (tool == "watch_along") return WatchAlong(args.Action);
+                if (tool == "send_gif") return SendGif(args.Name);
                 if (tool == "listen")
                 {
                     if (!Valid(tool, args)) return "Couldn't find that listening action or duration.";
@@ -2253,8 +2266,9 @@ namespace CapriDesktop
             for (int toggle = Security.Open; toggle <= Security.Sends; toggle++) key.Append(Security.Has(toggle) && Security.On(toggle) ? '1' : '0');
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] tool in modTools) key.Append("|mod ").Append(tool[0]).Append('=').Append(tool[1]).Append('=').Append(tool[2]);
-            bool skilled = Skilled;
+            bool skilled = Skilled, gifted = Gifted;
             if (skilled) key.Append("|skills");
+            if (gifted) key.Append("|gifs");
             lock (kits)
             {
                 Kit kit;
@@ -2262,7 +2276,7 @@ namespace CapriDesktop
                 {
                     // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
                     if (modTools.Length > 0 && kits.Count > 200) kits.Clear();
-                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled));
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted));
                 }
                 return kit;
             }
@@ -2616,9 +2630,9 @@ namespace CapriDesktop
         // with what she'd say about them taken out and her lines about what isn't here and what's off put in, and the short list
         // of what she can do right now that the brain she chats with always gets, so even a small local model knows (Lachy, 2 Nov:
         // "For 0.8.0 I especially want them to be aware of their tools").
-        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled); }
+        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled, Gifted); }
 
-        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled)
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -2637,7 +2651,7 @@ namespace CapriDesktop
             for (int i = 0; i < Specs.GetLength(0); i++)
             {
                 string tool = Specs[i, 0], how;
-                if (!kit.Has(tool) || tool == "read_skill" && !skilled) continue;
+                if (!kit.Has(tool) || tool == "read_skill" && !skilled || tool == "send_gif" && !gifted) continue;
                 string description = Unsaying(kit, tool == "shortcut" && someKeys ? "Press a keyboard shortcut for them: " + Joined(doing, "or") + "." : Specs[i, 1]), schema = Unsaying(kit, Specs[i, 2]);
                 if (tool == "capri_settings") { description = Unsaying(kit, SettingsDescription(kit)); schema = SettingsSchema(kit); }
                 foreach (string gap in kit.Missing.Keys)
@@ -4548,6 +4562,7 @@ namespace CapriDesktop
 #if !CROSS
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back" || args.Action == "rampage");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "scroll" || args.Action == "stop");
+            if (tool == "send_gif") return args == null || (args.Name ?? "").Length <= 200;
 #endif
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
 #if !CROSS
