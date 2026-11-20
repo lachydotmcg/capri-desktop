@@ -5155,8 +5155,8 @@ namespace CapriDesktop
             string text = Encoding.UTF8.GetString(json);
             byte[] rawTree = Encoding.UTF8.GetBytes(text.Substring(0, text.LastIndexOf('}')) + ",\"commit\":\"" + commit + "\"}");
             List<ModListing> listed = ModDirectory.Parse(json);
-            bool rawDown = false, rawBroken = false, apiDown = false;
-            int apiGets = 0, blobGets = 0;
+            bool rawDown = false, rawBroken = false, apiDown = false, mirrorDown = true;
+            int apiGets = 0, blobGets = 0, mirrorGets = 0;
             List<string> pinnedGets = new List<string>();
             ModDirectory.KeptFolder = kept;
             ModDirectory.Get = delegate(string url, long most)
@@ -5172,9 +5172,19 @@ namespace CapriDesktop
                     if (apiDown) throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
                     return json;
                 }
+                if (url.StartsWith(ModDirectory.MirrorRoot, StringComparison.Ordinal))
+                {
+                    Interlocked.Increment(ref mirrorGets);
+                    if (mirrorDown) throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
+                    if (url == ModDirectory.TreeMirror) return rawTree;
+                    ModListing copy = listed.Find(each => ModDirectory.MirrorRoot + commit + "/mods/" + each.Folder + "/" + each.FileName == url);
+                    if (copy == null) throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
+                    return blobs[copy.Sha];
+                }
                 if (url.Contains("/blobs/")) Interlocked.Increment(ref blobGets);
                 if (url.StartsWith(pinned, StringComparison.Ordinal) && !url.EndsWith("/preview.png", StringComparison.Ordinal))
                 {
+                    if (rawDown) throw new WebException("stand-in", WebExceptionStatus.ConnectFailure);
                     lock (pinnedGets) pinnedGets.Add(url);
                     ModListing match = listed.Find(each => pinned + each.Folder + "/" + each.FileName == url);
                     if (match == null) throw new Exception("Unexpected pinned mods request: " + url);
@@ -5201,6 +5211,16 @@ namespace CapriDesktop
                 List<ModListing> unreachable = ModDirectory.Browse(out trouble);
                 if (trouble != null || apiGets != 2 || fallback.Count != listed.Count || unreachable.Count != listed.Count || fallback[0].Commit != null || unreachable[0].Commit != null) throw new Exception("A broken or missing tree.json didn't fall back to the API: " + apiGets);
                 checks.Add("PASS mods directory: a broken or missing tree.json falls back to GitHub's API");
+                mirrorDown = false;
+                int apiBefore = apiGets, blobsBeforeMirror = blobGets;
+                List<ModListing> mirrored = ModDirectory.Browse(out trouble);
+                string copied = ModDirectory.Download(mirrored[0], under);
+                bool copiedExact = ModDirectory.BlobSha(File.ReadAllBytes(copied)) == mirrored[0].Sha;
+                ModDirectory.Clean(copied);
+                mirrorDown = true;
+                ModDirectory.RawBack();
+                if (trouble != null || apiGets != apiBefore || blobGets != blobsBeforeMirror || mirrored.Count != listed.Count || mirrored[0].Commit != commit || !copiedExact || mirrorGets < 2) throw new Exception("With GitHub's raw host unreachable, the directory didn't come from her worker's copy: " + trouble + " / " + apiGets + " / " + mirrorGets);
+                checks.Add("PASS mods directory: where raw.githubusercontent.com can't be reached, the list and downloads come from her worker's copy at the listed commit, without GitHub's API");
                 rawDown = false;
                 ModDirectory.Browse();
                 rawDown = apiDown = true;

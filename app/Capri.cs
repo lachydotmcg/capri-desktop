@@ -65474,6 +65474,43 @@ namespace CapriDesktop
                 giant[16] = 1;
                 if (ModDirectory.Picture(giant) != null || ModDirectory.Picture(settings) != null) throw new Exception("A giant or broken picture was drawn.");
                 checks.Add("PASS mods window previews: a preview has to match its listing, is kept so it isn't downloaded twice, and giant or broken pictures aren't drawn");
+                Func<string, long, byte[]> standIn = ModDirectory.Get;
+                string commit = new string('c', 40), previewsWere = ModDirectory.PreviewFolder;
+                byte[] mirrorTree = Encoding.UTF8.GetBytes("{\"commit\":\"" + commit + "\"," + tree.Substring(1));
+                List<string> mirrorAsked = new List<string>();
+                ModDirectory.Get = delegate(string url, long most)
+                {
+                    lock (mirrorAsked) mirrorAsked.Add(url);
+                    if (url.StartsWith("https://raw.githubusercontent.com/", StringComparison.Ordinal)) throw new WebException("stand-in", WebExceptionStatus.ConnectFailure);
+                    if (url.StartsWith("https://api.github.com/", StringComparison.Ordinal)) throw new Exception("GitHub's API was asked while her worker's copy was up: " + url);
+                    if (url == ModDirectory.TreeMirror) return mirrorTree;
+                    if (url == ModDirectory.MirrorRoot + "HEAD/index.json") return goodIndex;
+                    if (url == ModDirectory.MirrorRoot + commit + "/mods/far-names/preview.png") return picture;
+                    if (url == ModDirectory.MirrorRoot + commit + "/mods/far-names/far-names.capri-mod") return settings;
+                    return standIn(url, most);
+                };
+                try
+                {
+                    List<ModListing> mirrored = ModDirectory.Browse();
+                    if (mirrored.Count != 2 || mirrored[1].Commit != commit || mirrored[1].Title != "Names: Far & Wide") throw new Exception("With GitHub's raw host unreachable, the list or its names didn't come from her worker's copy.");
+                    ModDirectory.PreviewFolder = Path.Combine(output, "mirror-previews");
+                    if (ModDirectory.Preview(mirrored[1], ModDirectory.PreviewFolder).Length != picture.Length) throw new Exception("A preview didn't come from her worker's copy.");
+                    string copied = ModDirectory.Download(mirrored[1], under);
+                    bool exact = ModDirectory.BlobSha(File.ReadAllBytes(copied)) == settingsSha;
+                    ModDirectory.Clean(copied);
+                    if (!exact) throw new Exception("A download from her worker's copy didn't match its listing.");
+                    int before = mirrorAsked.Count;
+                    Directory.Delete(ModDirectory.PreviewFolder, true);
+                    ModDirectory.Preview(mirrored[1], ModDirectory.PreviewFolder);
+                    if (mirrorAsked.Count != before + 1 || mirrorAsked[before] != ModDirectory.MirrorRoot + commit + "/mods/far-names/preview.png") throw new Exception("A later preview waited on GitHub's raw host again: " + string.Join(" | ", mirrorAsked.GetRange(before, mirrorAsked.Count - before).ToArray()));
+                }
+                finally
+                {
+                    ModDirectory.Get = standIn;
+                    ModDirectory.PreviewFolder = previewsWere;
+                    ModDirectory.RawBack();
+                }
+                checks.Add("PASS mods directory: where raw.githubusercontent.com can't be reached, the list, names, previews and downloads come from her worker's copy at the listed commit without GitHub's API, and later cards don't wait on GitHub again");
                 CheckReadme(checks, output, found);
                 ShowMods(true);
                 sheet = new ModsSheet(this, 1f);
@@ -65497,7 +65534,7 @@ namespace CapriDesktop
                 ModDirectory.KeptFolder = Path.Combine(output, "kept-directory-missing");
                 ModDirectory.Get = delegate(string url, long most)
                 {
-                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeApi) throw new WebException("stand-in", WebExceptionStatus.Timeout);
+                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeMirror || url == ModDirectory.TreeApi) throw new WebException("stand-in", WebExceptionStatus.Timeout);
                     return liveGet(url, most);
                 };
                 try
@@ -65712,6 +65749,7 @@ namespace CapriDesktop
                 bool down = false;
                 ModDirectory.GetSoon = delegate(string url, long most)
                 {
+                    if (url == ModDirectory.MirrorRoot + "HEAD/mods/far-names/README.md") throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
                     gets++;
                     if (url != "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/mods/far-names/README.md" || most != 256L * 1024) throw new Exception("The README address or size limit was wrong.");
                     if (down) throw new WebException("stand-in");

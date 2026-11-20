@@ -423,11 +423,41 @@ const modList = async (env, ctx) => {
   return results;
 };
 
-const mods = async (request, env, ctx, path, reply) => {
+const modsRaw = 'https://raw.githubusercontent.com/lachydotmcg/capri-mods/';
+const modRawPath = /^\/mods\/raw\/(HEAD|[0-9a-f]{40})\/(tree\.json|index\.json|mods\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/[A-Za-z0-9][A-Za-z0-9._-]{0,63})$/;
+const modRawKept = new Map();
+
+const modRaw = async (path, cors) => {
+  const match = modRawPath.exec(path);
+  const headers = { ...cors, 'Cache-Control': 'no-store' };
+  if (!match || match[2].includes('..')) return Response.json({ error: 'Not found' }, { status: 404, headers });
+  const [, at, file] = match;
+  const key = at + '/' + file, head = at === 'HEAD', listing = head && !file.startsWith('mods/');
+  const kept = modRawKept.get(key);
+  const sendKept = () => new Response(kept.body, { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60' } });
+  if (listing && kept && Date.now() - kept.at < 60000) return sendKept();
+  let answer = null;
+  try { answer = await fetch(modsRaw + key, { headers: { 'User-Agent': 'capri-reactions' }, cf: { cacheTtl: head ? 60 : 86400, cacheEverything: true } }); }
+  catch { answer = null; }
+  if (answer && answer.ok) {
+    if (listing) {
+      const body = await answer.arrayBuffer();
+      modRawKept.set(key, { at: Date.now(), body });
+      return new Response(body, { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60' } });
+    }
+    return new Response(answer.body, { headers: { ...cors, 'Content-Type': answer.headers.get('Content-Type') || 'application/octet-stream', 'Cache-Control': head ? 'public, max-age=60' : 'public, max-age=86400, immutable' } });
+  }
+  if (listing && kept) return sendKept();
+  if (answer && answer.status === 404) return Response.json({ error: 'Not found' }, { status: 404, headers });
+  return Response.json({ error: answer ? 'GitHub said ' + answer.status : 'GitHub could not be reached' }, { status: 502, headers });
+};
+
+const mods = async (request, env, ctx, path, reply, cors) => {
   if (path === '/mods') {
     if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
     return reply({ mods: await modList(env, ctx) });
   }
+  if (path.startsWith('/mods/raw/')) return request.method === 'GET' ? modRaw(path, cors) : reply({ error: 'Not found' }, 404);
   if (request.method !== 'POST' || (path !== '/mods/download' && path !== '/mods/rate')) return reply({ error: 'Not found' }, 404);
   const sent = await request.json().catch(() => null);
   const folder = sent && typeof sent.folder === 'string' ? sent.folder : '';
@@ -1194,7 +1224,7 @@ export default {
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (path === '/help') return request.method === 'POST' ? help(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
-    if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
+    if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply, cors);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/phone-day') return phoneDay(request, env, reply);
     if (path === '/free') return free(request, env, reply);
