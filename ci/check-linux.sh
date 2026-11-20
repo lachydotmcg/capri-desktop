@@ -5,6 +5,7 @@ unset WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE DISPLAY DBUS_SESSION_BUS_ADDRE
 for project in tests/native-surface/NativeSurface.Tests.csproj tests/desktop/Capri.Desktop.Tests.csproj tests/computer/ComputerChecks.csproj tests/stream-guard/Probe.csproj tests/smoke-gate/SmokeGateChecks.csproj tests/brain-provider/BrainProviderChecks.csproj tests/game-session/GameSessionChecks.csproj tests/input-cancel/InputCancelChecks.csproj tests/native-bridge/NativeBridgeChecks.csproj; do
     dotnet run --project "$root/$project" -c Release
 done
+dotnet run --project "$root/tests/everyday-jobs/EverydayJobs.csproj" -c Release -- --brain "Scripted=scripted" --floor 100
 make -C "$root/cross/native"
 python3 "$root/tests/computer/native_input_checks.py" "$root/cross/native/capri-input"
 python3 "$root/tests/native-bridge/terminal_supervisor_checks.py"

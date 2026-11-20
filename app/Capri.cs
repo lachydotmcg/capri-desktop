@@ -55,6 +55,7 @@ namespace CapriDesktop
             SmokeOptions smokeOptions = smoke ? SmokeOptions.Parse(args) : null;
             bool bench = args.Length == 2 && args[0] == "--bench";
             if (args.Length == 1 && args[0] == "--stream") Computer.Streaming = Computer.StreamingAlways = true;
+            Mods.NoneThisRun = !smoke && Array.IndexOf(args, "--no-mods") >= 0;
             string identity = WindowsIdentity.GetCurrent().User.Value;
             bool first;
             using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test.Worker" : bench ? ".Bench" : ""), out first))
@@ -205,7 +206,7 @@ namespace CapriDesktop
             fresh.PaidPlan = old.PaidPlan; fresh.PlanModel = old.PlanModel; fresh.PlanPicked = old.PlanPicked;
             // Which tier is picked and that the keys are already split: without them, a MEDIUM Gemini or OpenRouter key would
             // be split again as a paid one, over the MAX key (a Codex review, 2 Nov).
-            fresh.Tier = old.Tier; fresh.Tiered = old.Tiered; fresh.NvidiaGlm = old.NvidiaGlm;
+            fresh.Tier = old.Tier; fresh.Tiered = old.Tiered; fresh.NvidiaGlm = old.NvidiaGlm; fresh.PcBrain = old.PcBrain;
             fresh.ServerUrl = old.ServerUrl; fresh.ServerApi = old.ServerApi; fresh.ServerModel = old.ServerModel; fresh.ServerSpeaker = old.ServerSpeaker; fresh.ServerKey = old.ServerKey;
             fresh.AsideUrl = old.AsideUrl; fresh.AsideApi = old.AsideApi; fresh.AsideModel = old.AsideModel; fresh.AsideSpeaker = old.AsideSpeaker; fresh.AsideKey = old.AsideKey;
             // Their provider too, so a fresh start never sends their chats to a brain they moved away from.
@@ -253,7 +254,8 @@ namespace CapriDesktop
     internal sealed class RunMark
     {
         internal const string Marker = "running.on";
-        internal const string Notice = "Capri closed unexpectedly last time. If it keeps happening, right-click her > Help > Copy error details and send it to us.";
+        internal const string Notice = "Capri closed unexpectedly last time. If it keeps happening, right-click her > Help > Send crash reports, or Copy error details and send it to us.";
+        internal const string Reporting = "Capri closed unexpectedly last time. She'll send us the crash report in a minute or two.";
         internal static Func<DateTime, DateTime, Record[]> Events = ReadEvents;
         private readonly string file, log, version, exe;
         private readonly int pid;
@@ -949,6 +951,8 @@ namespace CapriDesktop
         [DataMember] public bool OnTop = true;
         [DataMember] public long UpdateCheckedAt;
         [DataMember] public string LastVersion;
+        // The version her door intro last played for, from YunoTheAlien: it plays once on her first start after each update.
+        [DataMember] public string DoorVersion;
         [DataMember] public string Model;
         [DataMember] public string LocalAddress;
         [DataMember] public int BrainPort;
@@ -1011,6 +1015,7 @@ namespace CapriDesktop
         [DataMember] public int WatchMemory = WatchAlong.DefaultLines;
         // Stay on my model: a stuck NVIDIA model says what went wrong instead of handing the message to another model (Zak's ask).
         [DataMember] public bool StayOnModel;
+        [DataMember] public int PcBrain;
         [DataMember] public bool Quiet;
         [DataMember] public bool Silent;
         [DataMember] public bool Wander;
@@ -1684,8 +1689,52 @@ namespace CapriDesktop
         // at fps, drawn unshifted, with no facing-left set of their own.
         private int oldWide, oldCount;
         private double oldFps;
-        internal int Count { get { return source != null ? source.Count : Old ? oldCount : count; } }
-        internal double Fps { get { return source != null ? source.Fps : Old ? oldFps : fps; } }
+        private int ownWide, ownHigh, counted;
+        private Bitmap countedFor, fitFor;
+        private bool leftUnfit;
+        internal int Count { get { return source != null ? source.Count : Old ? oldCount : Cells(Strip); } }
+        internal double Fps
+        {
+            get
+            {
+                if (source != null) return source.Fps;
+                if (Old) return oldFps;
+                int rate = Mods.RateOf(name);
+                return rate > 0 ? rate : fps;
+            }
+        }
+        internal int OwnCount { get { return source != null ? source.OwnCount : count; } }
+        internal double OwnFps { get { return source != null ? source.OwnFps : fps; } }
+        internal bool Reframed { get { return source != null ? source.Reframed : !Old && Count != count; } }
+
+        private int Cells(Bitmap art)
+        {
+            if (art == null) return count;
+            lock (gate)
+            {
+                if (ReferenceEquals(art, countedFor)) return counted;
+                if (ownWide == 0)
+                    using (Stream own = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(Resource(false)))
+                        if (!Mods.PngSize(own, out ownWide, out ownHigh)) { ownWide = -1; ownHigh = -1; }
+                int found = ownWide > 0 ? Mods.FramesIn(name, art.Width, art.Height, ownWide, ownHigh) : 0;
+                counted = found > 0 ? found : count;
+                countedFor = art;
+                return counted;
+            }
+        }
+
+        private Bitmap Fit(Bitmap left)
+        {
+            if (left == null || ReferenceEquals(left, fitFor)) return left;
+            Bitmap right = Strip;
+            if (right == null || left.Size != right.Size)
+            {
+                leftUnfit = true;
+                return null;
+            }
+            fitFor = left;
+            return left;
+        }
         internal readonly float Height;
         internal string Title { get { return name; } }
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
@@ -1702,6 +1751,7 @@ namespace CapriDesktop
             this.shiftX = shiftX;
             this.shiftY = shiftY;
             if (!Companion.HasArt(Resource(false))) throw new FileNotFoundException("Capri's " + name + " animation is missing. Rebuild with assets/sprites.");
+            Mods.OwnFrames(name, count);
             flippable = Companion.HasArt(Resource(true));
             lock (all) all.Add(this);
         }
@@ -1748,7 +1798,7 @@ namespace CapriDesktop
         // Whether the art that's in sits in the old cells: a skin's strip, or Legacy stand's.
         internal bool Old { get { return source != null ? source.Old : oldWide > 0 && Strip.Width == oldWide; } }
 
-        private bool Turns { get { return flippable && !Old; } }
+        private bool Turns { get { return flippable && !leftUnfit && !Old; } }
 
         private string Resource(bool left) { return "Capri.Sprite." + name + (left ? "_flipped" : "") + ".png"; }
 
@@ -1780,7 +1830,7 @@ namespace CapriDesktop
                 flippedUsed = Environment.TickCount;
                 Bitmap art = flipped;
                 if (art == null) Warm(true);
-                return art;
+                return Fit(art);
             }
         }
 
@@ -1794,9 +1844,10 @@ namespace CapriDesktop
                 flippedUsed = Environment.TickCount;
                 lock (gate)
                 {
-                    if (flipped == null) flipped = Companion.LoadArt(Resource(true));
-                    return flipped;
+                    if (flipped == null) flipped = Companion.LoadLeftArt(Resource(true));
+                    if (flipped == null) leftUnfit = true;
                 }
+                return Fit(flipped);
             }
         }
 
@@ -1810,7 +1861,7 @@ namespace CapriDesktop
             if (wantLeft) flippedUsed = Environment.TickCount; else stripUsed = Environment.TickCount;
             lock (gate)
             {
-                if (wantLeft && flipped == null) flipped = Companion.LoadArt(Resource(true));
+                if (wantLeft && flipped == null) { flipped = Companion.LoadLeftArt(Resource(true)); if (flipped == null) leftUnfit = true; }
                 else if (!wantLeft && strip == null) strip = Companion.LoadArt(Resource(false));
             }
         }
@@ -1820,7 +1871,7 @@ namespace CapriDesktop
         internal bool Ready(bool left)
         {
             if (source != null) return source.Ready(left);
-            return left && Turns ? flipped != null : strip != null;
+            return left && Turns ? Fit(flipped) != null : strip != null;
         }
 
         // Starts loading the art for that way round off her thread, and counts as using it, so it stays in while she asks.
@@ -1843,7 +1894,7 @@ namespace CapriDesktop
         {
             Bitmap art = null;
             // A load that fails, out of memory say, leaves her drawn as she was, and the next ask tries again.
-            try { art = Companion.LoadArt(Resource(wantLeft)); }
+            try { art = wantLeft ? Companion.LoadLeftArt(Resource(true)) : Companion.LoadArt(Resource(false)); }
             catch (Exception) { }
             lock (gate)
             {
@@ -1892,6 +1943,8 @@ namespace CapriDesktop
                 strip = lazy ? null : Companion.LoadArt(Resource(false));
                 stripUsed = Environment.TickCount;
                 flipped = null;
+                countedFor = fitFor = null;
+                leftUnfit = flippable && Companion.SkinLacksLeft(Resource(true));
                 if (wasStrip != null) wasStrip.Dispose();
                 if (wasFlipped != null) wasFlipped.Dispose();
             }
@@ -2787,6 +2840,7 @@ namespace CapriDesktop
         private const string HelpPage = "https://capriai.app/help/";
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
+        private const string PrivacyPage = "https://capriai.app/privacy/";
         private const string ModRulesPage = "https://capriai.app/privacy/#mods";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
@@ -2996,6 +3050,9 @@ namespace CapriDesktop
             Tunes.Own = delegate { return PlaylistTune(); };
             Hands.Playlist = PlaylistTool;
             Hands.Websites = new Websites(data);
+            Hands.Keeper = new FileKeeper(data) { Reveal = delegate(string path) { return Hands.Finder.Reveal(path) ? "Selected " + path + " in File Explorer." : null; } };
+            FileKeeper.Changed = delegate(FileChange change) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFiles(change); } catch (Exception) { } }); };
+            FileKeeper.Used = delegate(string call, string result) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFilesCall(call, result); } catch (Exception) { } }); };
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
             Hands.GameOpen = delegate { return Computer.GameOpen(); };
@@ -3151,6 +3208,8 @@ namespace CapriDesktop
             // Store policies 11.12 and 11.16: AI replies and mods need a way to report them from inside the app, and mods need their rules there too.
             if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Report a problem", null, delegate { OpenPage(IssuesPage); }));
             if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Mod rules", null, delegate { OpenPage(ModRulesPage); }));
+            helpItem.DropDownItems.Add(new ToolStripMenuItem("Privacy and safety", null, delegate { OpenPage(PrivacyPage); }));
+            helpItem.DropDownItems.Add(CrashMenuItem());
             checkItem = new ToolStripMenuItem("Check for updates", null, delegate { CheckForUpdates(true); });
             helpItem.DropDownItems.Add(checkItem);
             updateItem = new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); });
@@ -3183,6 +3242,7 @@ namespace CapriDesktop
             player.Loud = Math.Max(0, Math.Min(100, preferences.PlayerVolume)) / 100.0;
             try { FolderTunes.Loudness = player.Loud; } catch (Exception) { }
             player.Moved += SavePlayerSpot;
+            player.Hauling += CarriedOnPlayer;
             tray = new NotifyIcon();
             using (Stream icon = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.ico"))
             {
@@ -3204,6 +3264,10 @@ namespace CapriDesktop
             FileEditor.Skills = ModList;
             FileEditor.SkillSaved = SkillsChanged;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
+            ModList.OnWindow = Post;
+            Hands.RecipeTools = ModList.RecipeTools;
+            Hands.RunRecipe = ModList.RunRecipe;
+            Hands.MakeTool = ModList.MakeTool;
             ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
             ArtAtStart();
@@ -3412,6 +3476,7 @@ namespace CapriDesktop
                 if (background) CheckSlow(clock.Elapsed.TotalSeconds);
                 CheckVoiceInMic(signalNow);
                 UpdatePill(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckCrashReports(clock.Elapsed.TotalSeconds);
                 if (!testing && background && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
             };
             Size = CanvasSize(preferences.Size);
@@ -3566,8 +3631,9 @@ namespace CapriDesktop
             balloonPage = null;
             balloonUpdate = false;
             balloonMainframe = false;
-            if (closeNotice != null) closeNotice(RunMark.Notice);
-            else tray.ShowBalloonTip(12000, "Capri closed unexpectedly", RunMark.Notice, ToolTipIcon.Warning);
+            string closedText = preferences.CrashReports ? RunMark.Reporting : RunMark.Notice;
+            if (closeNotice != null) closeNotice(closedText);
+            else tray.ShowBalloonTip(12000, "Capri closed unexpectedly", closedText, ToolTipIcon.Warning);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -3815,9 +3881,10 @@ namespace CapriDesktop
             int index = Math.Max(0, (int)((now - clipStart) * clip.Fps));
             perchMix = 0;
             int perchRate = PerchRateNow(now);
-            if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && perchRate != 30) index = PerchIndex(now - clipStart, perchRate, out perchMix);
+            int artRate = Math.Max(1, (int)Math.Round(clip.Fps));
+            if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && perchRate != artRate) index = PerchIndex(now - clipStart, perchRate, out perchMix, artRate);
             if (clip == idle && Resting(now)) index = (int)((long)((now - clipStart) * SaverFps) * clip.Fps / SaverFps);
-            if (clip == perchSleep) return PerchSleepCell;
+            if (clip == perchSleep) return Math.Min(PerchSleepCell, perchSleep.Count - 1);
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
             if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = Math.Max(0, (int)((now - clipStart) * clip.Fps)); }
             if (clip == arrive && index >= arrive.Count)
@@ -3847,8 +3914,14 @@ namespace CapriDesktop
             return index % clip.Count;
         }
 
-        // Her blink for the loop she's in, glitchy or not; lying, once those frames are in.
         private Clip Blinks(bool glitchy)
+        {
+            Clip found = LoopBlink(glitchy);
+            return found != null && clip.Reframed && !SkinShips(found.Title) ? null : found;
+        }
+
+        // Her blink for the loop she's in, glitchy or not; lying, once those frames are in.
+        private Clip LoopBlink(bool glitchy)
         {
             if (clip == perch) return glitchy ? perchBlinkGlitch : perchBlink;
             if (clip != laydown && idle.Old) return glitchy ? blinkGlitch : blink;
@@ -3859,9 +3932,9 @@ namespace CapriDesktop
 
         // Her perch frame t seconds into the loop at a given fps, and how much of the frame after it mixes in, in 256ths.
         // The art is 30 fps, so the loop is 2 s at every fps: slower holds each frame a while, faster lands between frames.
-        internal static int PerchIndex(double t, int fps, out int mix)
+        internal static int PerchIndex(double t, int fps, out int mix, int art = 30)
         {
-            long step = (long)(t * fps), at = step * 30;
+            long step = (long)(t * fps), at = step * art;
             mix = fps > 30 ? (int)(at % fps * 256 / fps) : 0;
             return (int)(at / fps);
         }
@@ -4787,7 +4860,15 @@ namespace CapriDesktop
             Location = anchor;
         }
 
-        protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); MovePointer(Cursor.Position); Stroke(Cursor.Position); }
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            MovePointer(Cursor.Position);
+            if (StrokeBlocked()) ForgetStroke();
+            else Stroke(Cursor.Position);
+        }
+
+        private bool StrokeBlocked() { return InControl.On || working != null || Computer.CursorHidden(); }
 
         private void Stroke(Point cursor) { Stroke(cursor, clock.ElapsedMilliseconds); }
 
@@ -4938,6 +5019,9 @@ namespace CapriDesktop
         {
             newsTicket = -1;
             newsPending = existed && preferences.LastVersion != News.Version;
+            doorPending = existed && preferences.DoorVersion != DoorIntro.Version;
+            // A new install has nothing to have updated from, so its door waits for her first update.
+            if (!existed) preferences.DoorVersion = DoorIntro.Version;
             if (!existed) KeepNews();
         }
 
@@ -5701,6 +5785,7 @@ namespace CapriDesktop
         // passwords staying theirs to type, her prompts following the toggles, and the window at 100%, 150% and 200%.
         private void SecurityChecks(System.Collections.Generic.List<string> checks, string output)
         {
+            SmokeAskCard(checks, output);
             Func<string> bits = delegate { System.Text.StringBuilder all = new System.Text.StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
             string[] presetBits = { "00000000000010", "11100000000010", "11111110000011", "11111111110001" };
             System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
@@ -6001,6 +6086,41 @@ namespace CapriDesktop
         // quick run checks it: each preset's default and saves from before it, a "Favourite card game" label kept and a card
         // number dropped, her notes, Get to know me and what she saw with it on and off, a form's personal boxes hidden only
         // while it's on, and her SECURITY window with its 13th row at 100%, 150% and 200%. "Hey Capri" is left alone throughout.
+        private static void SmokeAskCard(System.Collections.Generic.List<string> checks, string output)
+        {
+            using (SpeechBox prompt = new SpeechBox())
+            {
+                prompt.State = TalkState.Online;
+                prompt.Heard = "put the beach stuff in a folder";
+                prompt.Reply = "Found two from the beach. Want me to move them into a new Beach folder?";
+                prompt.Revealed = prompt.Reply.Length;
+                foreach (float scale in new[] { 1f, 2f })
+                    for (int choice = 0; choice < 2; choice++)
+                    {
+                        bool? answer = null;
+                        prompt.Choose(delegate(bool yes) { answer = yes; }, "Move 2 files", new[] { "beach day.mp4 \u2192 Beach", "dog at beach.jpg \u2192 Beach" });
+                        Point at;
+                        using (Bitmap image = prompt.Render(scale, new Point((int)(500 * scale), (int)(700 * scale)), new Point((int)(500 * scale), (int)(800 * scale)), new Rectangle(0, 0, (int)(1280 * scale), (int)(900 * scale)), false, out at))
+                        {
+                            RectangleF whole = new RectangleF(0, 0, image.Width, image.Height);
+                            if (prompt.YesButton.IsEmpty || prompt.NoButton.IsEmpty || prompt.YesButton.IntersectsWith(prompt.NoButton) || !whole.Contains(prompt.YesButton) || !whole.Contains(prompt.NoButton) || prompt.NoButton.Left < prompt.YesButton.Right)
+                                throw new Exception("Her ask card's Allow and No keys don't fit in her bubble.");
+                            if (scale == 2 && choice == 0) image.Save(Path.Combine(output, "ask-card.png"), ImageFormat.Png);
+                        }
+                        if (answer != null) throw new Exception("Showing her ask card answered it.");
+                        RectangleF button = choice == 0 ? prompt.YesButton : prompt.NoButton;
+                        prompt.ClickChoice(new Point((int)button.Left + 4, (int)button.Top + 4));
+                        if (answer != (choice == 0) || prompt.Choosing || prompt.AskTitle != null) throw new Exception("Her ask card's keys gave the wrong answer or stayed up.");
+                    }
+                prompt.Choose(delegate { });
+                if (prompt.AskTitle != null || prompt.AskLines.Length != 0) throw new Exception("A plain Yes or No question kept an old ask card.");
+                prompt.Choose(null);
+            }
+            string title;
+            if (Security.Holding == null && HeldCard(out title) != null) throw new Exception("Her ask card showed with nothing held.");
+            checks.Add("PASS her asks show an amber card on her bubble with what changes and Allow and No keys that answer once");
+        }
+
         private void SmokePrivacy(System.Collections.Generic.List<string> checks, string output)
         {
             string folder = Path.Combine(output, "privacy-" + Guid.NewGuid().ToString("N").Substring(0, 8));
@@ -6172,6 +6292,52 @@ namespace CapriDesktop
                 Security.Drop();
                 Security.Load(securityWas);
                 SecurityChanged();
+                try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        }
+
+        // Her HER MEMORY window from Settings > HABITS > Open her memories, on sample notes, chat memories, game notes and chat days in a
+        // temp folder: what it lists, an edit, a forget, an add, a chat day and Forget everything each saved through its own handlers and
+        // put back by Undo, and at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off.
+        private void SmokeMemoryWindow(System.Collections.Generic.List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "memory-window-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            string notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, gamesWas = GameNotes.Folder;
+            bool keepingWas = Brain.Keeping;
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(folder, "transcripts"));
+                Directory.CreateDirectory(Path.Combine(folder, "games"));
+                Brain.MemoryPath = Path.Combine(folder, "me.md");
+                Brain.MemoriesPath = Path.Combine(folder, "memories.md");
+                Brain.TranscriptPath = Path.Combine(folder, "transcripts");
+                GameNotes.Folder = Path.Combine(folder, "games");
+                File.WriteAllText(Brain.MemoryPath, Brain.NotesHead + "- Pronouns: she/her\n- They like cats\n");
+                File.WriteAllText(Brain.MemoriesPath, Brain.MemoriesHead + "## Wednesday 28 October 2026\n- They beat Malenia after 40 tries.\n\n## Thursday 29 October 2026\n- They started learning piano.\n- I helped them fix their mic.\n- They are saving for a trip to Kyoto next spring and want to learn enough Japanese to order food without pointing, so they practise a few phrases every evening after dinner.\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-28.md"), "# Capri and you, Wednesday 28 October 2026\n> Kept on this PC only.\n\n**10:00 You:** hi\n**10:00 Capri:** hey choom\n*10:01 She glanced at your screen: Elden Ring.*\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-29.md"), "# Capri and you\n\n**09:00 You:** piano time\n");
+                File.WriteAllText(Path.Combine(GameNotes.Folder, "fortnite.md"), "# Fortnite\n\n- Sprint is shift\n");
+                File.WriteAllText(Path.Combine(GameNotes.Folder, "eldenring.md"), "# Elden Ring\n\n- Dodge is B\n- Torrent is on the Spectral Steed Whistle\n");
+                float machine = mainframe.Px(1000) / 1000f;
+                Brain.Keeping = true;
+                string at100 = mainframe.MemoryAt(1f / machine, Path.Combine(output, "memory-window-100.png"));
+                Brain.Keeping = false;
+                string at150 = mainframe.MemoryAt(1.5f / machine, Path.Combine(output, "memory-window-150.png"));
+                Brain.Keeping = true;
+                string at200 = mainframe.MemoryAt(2f / machine, Path.Combine(output, "memory-window-200.png"));
+                mainframe.ShowMemory();
+                mainframe.CloseMemory();
+                if (at100 != null || at150 != null || at200 != null) throw new Exception("The HER MEMORY window went wrong: 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
+                checks.Add("PASS HER MEMORY window: lists what she keeps about them, her chat memories newest day first, her game notes by game and her chat logs by day with their line counts, and says when Remember our chats is off; Edit saves one line and Esc cancels, Forget and Add change only that line and refuse a password, a chat day opens line by line and Forget this day and Forget everything about me need a second click, each change has Undo that puts it back, and at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (memory-window-100.png, memory-window-150.png, memory-window-200.png)");
+            }
+            finally
+            {
+                mainframe.CloseMemory();
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                GameNotes.Folder = gamesWas;
+                Brain.Keeping = keepingWas;
                 try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
         }
@@ -7940,7 +8106,8 @@ namespace CapriDesktop
             hideAsked = false;
             heard = "get to know me";
             box.Prompt = "> sys: ";
-            MeetLine(++asking, meeting.Start());
+            MeetLine(++asking, meeting.Start(namedOnCard ? Brain.Nickname : null));
+            namedOnCard = false;
         }
 
         private void MeetLine(int ticket, string line)
@@ -8674,6 +8841,14 @@ namespace CapriDesktop
             if (spot == null || spot.Y - Headroom() < Screen.FromPoint(new Point(x, spot.Y)).Bounds.Top) return false;
             GlitchOut(delegate { Hop(spot, x); }, false);
             return true;
+        }
+
+        private void CarriedOnPlayer()
+        {
+            if (seat == null || seat.Window != player.Handle || hidden || !IsHandleCreated) return;
+            Native.SetWindowPos(player.Handle, Handle, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            HoldSeat(clock.Elapsed.TotalSeconds);
+            RenderFrame();
         }
 
         // Her legs over its plate, so the song's name moves out from under them.
@@ -9964,6 +10139,7 @@ namespace CapriDesktop
             Sight ahead = Computer.Glimpse();
             frontBusy = full || (ahead != null && ahead.Window == Native.GetForegroundWindow() && Computer.GameWindow(ahead));
             CheckJealous(ahead, full, now);
+            CheckHeld(now);
             CheckDoomscroll(ahead, full, now);
             // Over a game with nothing to do she gives way to it. Listening, talking, clipping or working, she keeps her place so her ears and hands don't stutter.
             Native.Lower(frontBusy && working == null && !chatting && !preferences.HeyCapri && !preferences.ClipGames && talkState == TalkState.Off);
@@ -10859,6 +11035,7 @@ namespace CapriDesktop
         {
             // No AI: she never looks for a brain or says she's looking.
             if (preferences.NoAi) { mainframe.ShowNoAi(true); return; }
+            UseSpare();
             if (!quiet) ++brainLook;
             else if (brain.Model != null || SettingUp || finding || brainLooking) return;
             int look = quiet ? brainLook : -1;
@@ -10866,13 +11043,14 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             if (remote != null && remote.Kind != "local")
             {
-                brain.Local = null;
+                DropLocalBrain(!quiet);
                 brain.Model = remote.Model;
                 if (!quiet || brain.Model != null) mainframe.ShowCloud(remote, cloudModels);
                 ListCloud(remote.Key, false, -1, look);
                 return;
             }
-            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { RefreshProvider(look); return; }
+            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { DropLocalBrain(!quiet); RefreshProvider(look); return; }
+            if (preferences.Tier != 0) { brainLooking = false; NeedsKey(!quiet); return; }
             if (SettingUp) return;
             if (!quiet) mainframe.Searching();
             if (finding) return;
@@ -10905,7 +11083,7 @@ namespace CapriDesktop
                         brain.Remote = new Cloud(first.Port, first.Model, first.Host);
                         Keep(brain.Remote);
                     }
-                    UseBrain(installed, found, local);
+                    UseBrain(installed, found, local, !quiet);
                 });
             });
         }
@@ -10939,9 +11117,11 @@ namespace CapriDesktop
             CloseTalk();
             brain.Remote = server == null ? null : new Cloud(server.Port, model, server.Host);
             localAddressTyped = false;
-            brain.Local = local == null ? null : engine;
+            if (local == null) DropLocalBrain(true);
+            else brain.Local = engine;
             brain.LocalPick = local;
             brain.Model = model;
+            UseSpare();
             preferences.BrainPort = server == null ? 0 : server.Port;
             preferences.BrainAddress = server == null ? null : server.Host;
             if (server != null) preferences.LocalModel = model;
@@ -11046,8 +11226,9 @@ namespace CapriDesktop
                     ++asking;
                     CloseTalk();
                     brain.Remote = null;
-                    brain.Local = null;
+                    DropLocalBrain(true);
                     brain.SetServer(address, key);
+                    UseSpare();
                     brain.Model = model;
                     cloudModels = null;
                     providerModels = found;
@@ -11929,7 +12110,7 @@ namespace CapriDesktop
             PassThrough();
         }
 
-        private void UseBrain(string[] installed, Machine found, Pick local)
+        private void UseBrain(string[] installed, Machine found, Pick local, bool asked = true)
         {
             machine = found;
             fit = Engine.Fit(found);
@@ -11937,19 +12118,21 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             if (remote == null && preferences.ProviderOn && brain.Server != null)
             {
+                DropLocalBrain(asked);
                 mainframe.ShowProvider(brain.Server, brain.ServerKey != null, brain.Model, providerModels);
                 return;
             }
             if (remote != null)
             {
-                brain.Local = null;
+                DropLocalBrain(asked);
                 brain.Model = remote.Model;
                 mainframe.ShowCloud(remote, cloudModels);
                 return;
             }
+            if (preferences.Tier != 0) { NeedsKey(asked); return; }
             if (installed != null && installed.Length > 0 && (local == null || preferences.Model != local.Name))
             {
-                brain.Local = null;
+                DropLocalBrain(asked);
                 brain.Model = Brain.PickModel(installed, preferences.Model, fit);
                 mainframe.ShowOllama(installed, brain.Model);
             }
@@ -11963,10 +12146,17 @@ namespace CapriDesktop
             }
             else
             {
-                brain.Local = null;
+                DropLocalBrain(asked);
                 brain.Model = null;
                 mainframe.ShowSetup(found, fit, ollamaRunning, null);
             }
+        }
+
+        private void NeedsKey(bool asked)
+        {
+            DropLocalBrain(asked);
+            brain.Model = null;
+            if (asked) mainframe.ShowNoKey();
         }
 
         internal void SetUpBrain()
@@ -12020,6 +12210,7 @@ namespace CapriDesktop
             // They got in first, so her hello doesn't cancel what they asked.
             if (box.Prompt == "> you: " && talkState != TalkState.Off) return;
             if (hidden) SetHidden(false);
+            if (firstJob != null) { FirstRunJob(firstJob, true); return; }
             Hear("(You just woke up on this PC with a brand new brain. Say hi to the user in one short line.)", "brain online", "> sys: ");
         }
 
@@ -12205,6 +12396,8 @@ namespace CapriDesktop
                 brain.Remote = null;
                 brain.Model = null;
                 cloudModels = null;
+                DropLocalBrain(true);
+                UseSpare();
                 ShowTiers();
                 return;
             }
@@ -12343,6 +12536,8 @@ namespace CapriDesktop
                         brain.Cancel();
                         brain.SetServer(null, null);
                         brain.Remote = remote;
+                        DropLocalBrain(true);
+                        UseSpare();
                         if (pickedTier == 1) preferences.NvidiaKey = Voice.Protect(key);
                         else if (probe.Plan) { preferences.PaidPlan = Voice.Protect(key); preferences.PlanPicked = true; }
                         else { preferences.PaidKey = Voice.Protect(key); preferences.PlanPicked = false; }
@@ -12351,6 +12546,7 @@ namespace CapriDesktop
                         ShowTiers();
                     }
                     if (brain.Remote == null || brain.Remote.Key != key) return;
+                    if (brain.Remote.Plan) BetterModels.Add(found, brain.Remote.Model);
                     cloudModels = found;
                     if (brain.Remote.Model == null || !found.Contains(brain.Remote.Model))
                     {
@@ -13401,7 +13597,69 @@ namespace CapriDesktop
 
         internal int BrainServerId { get { return engine.ServerId; } }
 
-        internal double BrainRestAfter { get { return brain.Local == engine && !preferences.NoAi ? BrainRest : SpareBrainRest; } }
+        private void DropLocalBrain(bool asked)
+        {
+            brain.Local = null;
+            if (!asked || testing || !engine.Running) return;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { if (engine.Rest(0)) Brain.Log("brain", -1, "llama-server stopped when another brain was picked, giving its memory back"); }
+                catch (Exception) { }
+            });
+        }
+
+        internal double BrainRestAfter { get { return (brain.Local == engine || brain.Spare == engine && brain.SpareFirst) && !preferences.NoAi ? BrainRest : SpareBrainRest; } }
+
+        internal int PcBrain { get { return preferences.PcBrain; } }
+
+        internal void SetPcBrain(int mode)
+        {
+            ++brainLook;
+            preferences.PcBrain = Math.Max(0, Math.Min(2, mode));
+            SavePreferences();
+            spareScanned = false;
+            UseSpare();
+            ShowPcBrainMenu();
+        }
+
+        private void ShowPcBrainMenu()
+        {
+            Cloud remote = brain.Remote;
+            if (remote != null && remote.Kind != "local") mainframe.ShowCloud(remote, cloudModels);
+            else if (brain.Server != null) mainframe.ShowProvider(brain.Server, brain.ServerKey != null, brain.Model, providerModels);
+        }
+
+        private string spareOllama;
+        private bool spareScanned;
+
+        private void UseSpare()
+        {
+            Pick pick = engine.Installed();
+            string ollama = pick == null ? spareOllama : null;
+            bool cloud = brain.Remote != null && brain.Remote.Kind != "local" || brain.Server != null;
+            bool used = (pick != null || ollama != null) && cloud && preferences.PcBrain > 0 && !preferences.NoAi;
+            brain.SparePick = used ? pick : null;
+            brain.SpareModel = used ? ollama : null;
+            brain.SpareFirst = preferences.PcBrain == 2;
+            brain.Spare = used && pick != null ? engine : null;
+            mainframe.ShowPcBrain((pick != null || ollama != null) && cloud, preferences.PcBrain, pick != null ? "Built-in · " + pick.Name : ollama == null ? null : "Ollama · " + ollama);
+            if (pick != null || !cloud || spareScanned || testing) return;
+            spareScanned = true;
+            string wanted = preferences.Model;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string[] installed = null;
+                try { installed = Brain.InstalledModels(); } catch (Exception) { }
+                string found = installed == null || installed.Length == 0 ? null : Array.IndexOf(installed, wanted) >= 0 ? wanted : installed[0];
+                Post(delegate
+                {
+                    if (found == spareOllama) return;
+                    spareOllama = found;
+                    UseSpare();
+                    ShowPcBrainMenu();
+                });
+            });
+        }
 
         private void CheckBrainRest(double now)
         {
@@ -15696,6 +15954,9 @@ namespace CapriDesktop
             callAskTicket = ticket;
             heard = shown;
             box.Prompt = prompt;
+            bool crisis = callReply == null && prompt == "> you: " && !Security.FromMod(input) && Crisis.Means(input);
+            if (crisis) CrisisCard();
+            if (crisis && Think == null && planned.Key == null && (preferences.NoAi || brain.Model == null)) { Answer(ticket, Crisis.Line(Crisis.Region()), TalkState.Talking); return; }
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
@@ -16202,12 +16463,13 @@ namespace CapriDesktop
             int following = (cell + 1) % clip.Count, loopCell = cell;
             if ((clip == idle || clip == perch || clip == laydown) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
             int talk = MouthCell(now, shown);
-            if (PerchTalks(TalkingNow)) { shown = perchTalk; cell = loopCell; }
-            else if (LieTalks(TalkingNow)) { shown = laydownTalk; cell = loopCell; }
+            if (PerchTalks(TalkingNow)) { shown = perchTalk; cell = Along(loopCell, clip, perchTalk); }
+            else if (LieTalks(TalkingNow)) { shown = laydownTalk; cell = Along(loopCell, clip, laydownTalk); }
             int under = -1, stoodCell = cell;
             Clip stoodIn = null;
             if (StandsIn(shown)) { stoodIn = shown; under = UnderLevel(shown, cell) > 0 ? cell : -1; shown = idle; cell = UnderCell(now); }
             underOf = stoodIn;
+            cell = Along(cell, shown, shown);
             UpdateTalk(now);
             if (pill.Visible) UpdatePill(now);
             if (!BodyChanged(now, shown, cell, talk) && under == drawnUnder && stoodIn == drawnUnderOf) return;
@@ -16399,12 +16661,20 @@ namespace CapriDesktop
             tweenUsed = clock.Elapsed.TotalSeconds;
             Clip after = shown == perchTalk || shown == laydownTalk ? shown : clip;
             if ((after == perch || after == laydown) && blinkWith != null && following >= PerchBlinkFrom && following < PerchBlinkFrom + blinkWith.Count) { after = blinkWith; following -= PerchBlinkFrom; }
+            following = Along(following, after, after);
             Bitmap from = Art(shown);
             int width = from.Width / shown.Count;
             if (inBetween != null && (inBetween.Width != width || inBetween.Height != from.Height)) { inBetween.Dispose(); inBetween = null; }
             if (inBetween == null) inBetween = new Bitmap(width, from.Height, PixelFormat.Format32bppPArgb);
             Mix(from, cell, Art(after), following, perchMix, inBetween);
             return inBetween;
+        }
+
+        private static int Along(int cell, Clip from, Clip to)
+        {
+            int frames = Math.Max(1, to.Count);
+            if (from != to && from.Count != frames) cell = (int)((long)cell * frames / Math.Max(1, from.Count));
+            return (cell % frames + frames) % frames;
         }
 
         // The strip she's drawn from: facing left, a clip's flipped art once it's in.
@@ -21359,6 +21629,13 @@ namespace CapriDesktop
             if (doomResult != null) throw new Exception(doomResult);
             if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
             checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
+            string crisisResult = Crisis.Check();
+            if (crisisResult != null) throw new Exception(crisisResult);
+            checks.Add("PASS crisis lines: a sincere self-harm message gets a free crisis line for their region beside her own reply, never in place of it, game and song talk doesn't");
+            string crashResult = CrashReports.Check();
+            if (crashResult != null) throw new Exception(crashResult);
+            if (new Preferences().CrashReports || Preferences.Fresh().CrashReports) throw new Exception("Crash reports started on.");
+            checks.Add("PASS crash reports: off until turned on, then only her crash, close and freeze lines since the last report go, at most 30, with keys, user folders and her PC and user names taken out");
             string herResult = HerComputer.Check();
             if (herResult != null) throw new Exception(herResult);
             string herFolder = Path.Combine(Path.GetTempPath(), "capri-her-computer-" + Guid.NewGuid().ToString("N"));
@@ -21383,6 +21660,15 @@ namespace CapriDesktop
                 if (herFirst != herSplit[1] || herAfter != herSplit[2]) throw new Exception("Her computer split \"" + herSplit[0] + "\" wrong: " + herFirst + " | " + herAfter);
             }
             checks.Add("PASS her own computer: off until turned on, she reads one action at a time from any brain, works out jobs said with on your computer, saves notes and diary lines, keeps her desktop and stickers between runs, and her browser only opens web addresses");
+            string herLiveFolder = Path.Combine(Path.GetTempPath(), "capri-her-browser-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                bool herLiveRan;
+                string herLive = HerBrowser.CheckLive(herLiveFolder, out herLiveRan);
+                if (herLive != null) throw new Exception(herLive);
+                checks.Add(herLiveRan ? "PASS her browser: Edge or Chrome starts headless and she drives it over a private pipe, with no debugging port for a page or another program to find, and a browser of hers left running from before is closed so a new one can start" : "SKIP her browser over its pipe: no Edge or Chrome on this PC");
+            }
+            finally { try { if (Directory.Exists(herLiveFolder)) Directory.Delete(herLiveFolder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
             checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
@@ -22441,6 +22727,7 @@ namespace CapriDesktop
             Action<string, string> requestBrowse = Hands.Browse;
             Websites requestWebsites = Hands.Websites;
             FileFinder requestFinder = Hands.Finder;
+            FileKeeper requestKeeper = Hands.Keeper;
             Func<Tune> requestTune = Tunes.Spotify;
             try
             {
@@ -22760,6 +23047,7 @@ namespace CapriDesktop
                 int scanSteps = 0;
                 if (FileFinder.Search("not here.pdf", new[] { slowRoot }, delegate { return ++scanSteps > 20; }).Count != 0 || scanSteps > 30) throw new Exception("A large folder ignored cancellation between entries.");
                 checks.Add("PASS likely folders are checked together by depth so a deep first root cannot delay a nearby redirected-folder result, duplicate roots are skipped, and a large folder cancels between entries");
+                checks.AddRange(FileKeeperChecks.Run());
                 FileAttributes cloudFolder = FileAttributes.Directory | FileAttributes.ReparsePoint;
                 for (uint cloudTag = 0; cloudTag < 16; cloudTag++) if (!FileFinder.Follow(cloudFolder, 0x9000001A | cloudTag << 12)) throw new Exception("A OneDrive cloud folder was skipped.");
                 if (!FileFinder.Follow(FileAttributes.Directory, 0) || !FileFinder.Follow(cloudFolder, 0x80000021) || FileFinder.Follow(cloudFolder, 0xA0000003) || FileFinder.Follow(cloudFolder, 0xA000000C) || FileFinder.Follow(cloudFolder, 0)) throw new Exception("Cloud placeholders and looping junctions weren't distinguished.");
@@ -22776,6 +23064,7 @@ namespace CapriDesktop
                 Directory.CreateDirectory(Path.Combine(steamFixture, "steamapps")); Directory.CreateDirectory(epicFixture);
                 File.WriteAllText(Path.Combine(steamFixture, @"steamapps\libraryfolders.vdf"), "\"libraryfolders\" { \"1\" { \"path\" \"" + extraLibrary.Replace("\\", "\\\\") + "\" } }");
                 File.WriteAllText(Path.Combine(epicFixture, "game.item"), "{\"InstallLocation\":" + Voice.Quote(otherFolder) + "}");
+                File.WriteAllBytes(Path.Combine(epicFixture, "bad.item"), new byte[] { 0, 0, 0, 1 });
                 if (!new System.Collections.Generic.List<string>(FileFinder.Steam(steamFixture)).Contains(Path.Combine(extraLibrary, @"steamapps\common")) || !new System.Collections.Generic.List<string>(FileFinder.Epic(epicFixture)).Contains(otherFolder)) throw new Exception("A game store's custom folder was lost.");
                 string selectedFile = null, workerResult = null;
                 foreach (string action in new[] { "show", "open" })
@@ -22891,7 +23180,7 @@ namespace CapriDesktop
             {
                 Hands.Catalog = requestCatalog; Hands.Windows = requestWindows; Hands.Exists = requestExists; Hands.SongPlaying = requestPlaying; Hands.PressPlay = requestPress;
                 Hands.Fetch = requestFetch; Hands.BrowserPath = requestBrowser; Hands.Opened = requestOpened; Hands.GameOpen = requestGame; Hands.Plan = requestPlan;
-                Hands.Run = requestRun; Hands.Browse = requestBrowse; Hands.Websites = requestWebsites; Hands.Finder = requestFinder; Tunes.Spotify = requestTune; Hands.Steer = requestSteer;
+                Hands.Run = requestRun; Hands.Browse = requestBrowse; Hands.Websites = requestWebsites; Hands.Finder = requestFinder; Hands.Keeper = requestKeeper; Tunes.Spotify = requestTune; Hands.Steer = requestSteer;
                 Hands.Forget();
             }
         }
@@ -23819,8 +24108,8 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs", "HerComputerSettings.cs" })
-                                    foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs", "HerComputerSettings.cs", "UninstallSettings.cs" })
+                                    foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named|Make)\\(\"([^\"]+)\""))
                                         selfSource += "\n" + selfPart.Value;
                         }
                         catch (IOException) { selfReadable = false; break; }
@@ -23948,7 +24237,7 @@ namespace CapriDesktop
                 { "media", "{\"action\":\"pause\"}" }, { "look_at_screen", "{}" }, { "play_music", "{\"song\":\"I Really Want to Stay at Your House\"}" },
                 { "app_window", "{\"name\":\"Spotify\",\"action\":\"minimize\"}" }, { "use_computer", "{\"task\":\"Open the notes\"}" },
                 { "stream", "{\"action\":\"stop\"}" }, { "shortcut", "{\"name\":\"screenshot\"}" }, { "remember", "{\"text\":\"They like blue\"}" },
-                { "find_file", "{\"description\":\"notes.txt\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
+                { "find_file", "{\"description\":\"notes.txt\"}" }, { "files", "{\"action\":\"undo\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
                 { "weather", "{\"action\":\"now\"}" }, { "remind", "{\"action\":\"list\"}" }, { "stopwatch", "{\"action\":\"check\"}" }, { "routine", "{\"action\":\"list\"}" }, { "power", "{\"action\":\"cancel\"}" },
                 { "nap", "{\"action\":\"wake\"}" }, { "move_yourself", "{\"action\":\"show\"}" }, { "animate", "{\"name\":\"blink\"}" },
                 { "draw", "{\"action\":\"clear\"}" }, { "clone", "{\"action\":\"stop\"}" }, { "hologram", "{\"action\":\"off\"}" },
@@ -23959,7 +24248,8 @@ namespace CapriDesktop
                 { "mini_player", "{\"action\":\"hide\"}" }, { "playlist", "{\"action\":\"play\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
                 { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
                 { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" },
-                { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }, { "read_skill", "{\"name\":\"BTD6 strategy\"}" }
+                { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }, { "read_skill", "{\"name\":\"BTD6 strategy\"}" },
+                { "make_tool", "{\"text\":\"{}\"}" }
             };
             for (int i = 0; i < Hands.Count; i++)
             {
@@ -24986,6 +25276,8 @@ namespace CapriDesktop
                 File.WriteAllText(Path.Combine(manifests, "A3.item"), epic("Fortnite Extra Pack", "FortniteDlc", "fn", "dlc1", "Fortnite", false));
                 File.WriteAllText(Path.Combine(manifests, "A4.item"), epic("Half Installed", "Half", "hf", "h1", "Half", true));
                 File.WriteAllText(Path.Combine(manifests, "A5.item"), "{ \"DisplayName\": \"Broken");
+                File.WriteAllBytes(Path.Combine(manifests, "A6.item"), new byte[] { 0, 0, 0, 1 });
+                File.WriteAllBytes(Path.Combine(manifests, "A7.item"), new byte[] { 0xFF, 0xFE, 0x00, 0x00 });
                 // Riot: VALORANT installed, League's settings left behind after it was uninstalled.
                 string riot = Path.Combine(root, "Riot Games"), services = Path.Combine(root, @"Riot Client\RiotClientServices.exe"), valorant = Path.Combine(root, @"VALORANT\live");
                 Directory.CreateDirectory(Path.Combine(riot, @"Metadata\valorant.live"));
@@ -25006,20 +25298,23 @@ namespace CapriDesktop
                 File.WriteAllText(dosbox, "");
                 Hands.Uninstalled = delegate(string key) { return key == "Uplay Install 13504" ? "Assassin's Creed Valhalla" : key == "Uplay Install 720" ? "Gone Game" : null; };
                 Hands.FolderThere = Directory.Exists;
-                System.Collections.Generic.List<string[]> ubisoft = new System.Collections.Generic.List<string[]> { new[] { "13504", valhalla }, new[] { "720", Path.Combine(root, @"Ubisoft\Gone") }, new[] { "launcher", valhalla } };
+                System.Collections.Generic.List<string[]> ubisoft = new System.Collections.Generic.List<string[]> { new[] { "13504", valhalla }, new[] { "720", Path.Combine(root, @"Ubisoft\Gone") }, new[] { "launcher", valhalla }, null, new string[0] };
                 System.Collections.Generic.List<string[]> gog = new System.Collections.Generic.List<string[]>
                 {
                     new[] { "1207664663", "The Witcher 3: Wild Hunt", witcher, "", null },
                     new[] { "1640424747", "The Witcher 3: Hearts of Stone", witcher, "", "1207664663" },
                     new[] { "1440163901", "Fallout", dosbox, "-conf \"..\\dosboxFallout.conf\" -noconsole", "" },
-                    new[] { "1", "Uninstalled Game", Path.Combine(root, @"GOG Games\Gone\gone.exe"), "", null }
+                    new[] { "1", "Uninstalled Game", Path.Combine(root, @"GOG Games\Gone\gone.exe"), "", null },
+                    null,
+                    new string[2] { "1", "Short" }
                 };
                 Func<System.Collections.Generic.List<InstalledApp>, string> listed = delegate(System.Collections.Generic.List<InstalledApp> apps) { return string.Join(" | ", apps.ConvertAll(app => app.Name + " = " + app.Id).ToArray()); };
                 string epicList = listed(Hands.EpicApps(manifests)), riotList = listed(Hands.RiotApps(riot)), ubisoftList = listed(Hands.UbisoftApps(ubisoft)), gogList = listed(Hands.GogApps(gog));
                 string riotCommand = "\"" + services + "\" --launch-product=valorant --launch-patchline=live", falloutCommand = "\"" + dosbox + "\" -conf \"..\\dosboxFallout.conf\" -noconsole";
                 if (epicList != "Fortnite = com.epicgames.launcher://apps/fn%3A4fe75bbc5a674f4f9b356b5c90567da5%3AFortnite?action=launch&silent=true | Rocket League\u00ae = com.epicgames.launcher://apps/Sugar?action=launch&silent=true"
                     || riotList != "VALORANT = " + riotCommand || ubisoftList != "Assassin's Creed Valhalla = uplay://launch/13504/0" || gogList != "The Witcher 3: Wild Hunt = " + witcher + " | Fallout = " + falloutCommand
-                    || Hands.EpicApps(Path.Combine(root, "missing")).Count != 0 || Hands.RiotApps(Path.Combine(root, "missing")).Count != 0)
+                    || Hands.EpicApps(Path.Combine(root, "missing")).Count != 0 || Hands.RiotApps(Path.Combine(root, "missing")).Count != 0
+                    || Hands.UbisoftApps(null).Count != 0 || Hands.GogApps(null).Count != 0 || Hands.WithSteam(null, null).Count != 0)
                     throw new Exception("A launcher's games read wrong: " + epicList + " / " + riotList + " / " + ubisoftList + " / " + gogList);
                 ProcessStartInfo riotLaunch = Hands.Launch(riotCommand), falloutLaunch = Hands.Launch(falloutCommand), witcherLaunch = Hands.Launch(witcher), epicLaunch = Hands.Launch("com.epicgames.launcher://apps/Sugar?action=launch&silent=true"), uplayLaunch = Hands.Launch("uplay://launch/13504/0");
                 if (riotLaunch.FileName != services || riotLaunch.Arguments != "--launch-product=valorant --launch-patchline=live" || riotLaunch.WorkingDirectory != Path.GetDirectoryName(services) || !riotLaunch.UseShellExecute
@@ -29459,6 +29754,91 @@ namespace CapriDesktop
             window.Show();
         }
 
+        private static void SmokeForgetting(System.Collections.Generic.List<string> checks)
+        {
+            if (!CapriSetup.Program.Wanted("Capri-Uninstall-x.exe", new[] { "--remove-copy" }) || !CapriSetup.Program.Wanted("Capri.exe", new[] { "--remove-files", "--forget" })) throw new Exception("Her uninstaller's copy didn't take its own commands.");
+            string loose = @"C:\Users\a b\Downloads\Capri.exe";
+            foreach (CapriSetup.Removal sent in new[] { new CapriSetup.Removal(), new CapriSetup.Removal { Forget = true }, new CapriSetup.Removal { Forget = true, After = 4321, Started = 638700000000000000 }, new CapriSetup.Removal { Copy = true, App = loose, Forget = true, After = 7, Started = 9 }, new CapriSetup.Removal { Copy = true } })
+            {
+                System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
+                foreach (Match part in Regex.Matches(sent.Arguments(), "\"[^\"]*\"|\\S+")) parts.Add(part.Value.Trim('"'));
+                CapriSetup.Removal read = CapriSetup.Removal.Read(parts.ToArray());
+                if (read == null || read.Copy != sent.Copy || read.Forget != sent.Forget || read.App != sent.App || read.After != sent.After || read.Started != sent.Started) throw new Exception("Her uninstall command didn't read back the same: " + sent.Arguments());
+            }
+            foreach (string[] bad in new[] { new[] { "--remove-files", "--app", loose }, new[] { "--remove-files", "--forget", "--forget" }, new[] { "--remove-files", "--after", "0", "1" }, new[] { "--remove-files", "--after", "5" }, new[] { "--remove-copy", "--app", "--forget" }, new[] { "--remove-files", "--wipe" }, new[] { "--remove-copy", "--after", "-3", "1" }, new[] { "--close", "x" } })
+                if (CapriSetup.Removal.Read(bad) != null) throw new Exception("Her uninstaller took a bad command: " + string.Join(" ", bad));
+            string package;
+            bool forget;
+            if (SetupFiles.Mode(new[] { "--silent", "--uninstall", "--forget" }, out package, out forget) != 2 || !forget || SetupFiles.Mode(new[] { "--uninstall", "--silent" }, out package, out forget) != 2 || forget) throw new Exception("A silent uninstall didn't say whether to forget.");
+            foreach (string[] bad in new[] { new[] { "--silent", "--forget" }, new[] { "--silent", "--uninstall", "--forget", "--forget" }, new[] { "--silent", "--package", "winget", "--forget" } })
+            {
+                bool refused = false;
+                try { SetupFiles.Mode(bad, out package, out forget); }
+                catch (ArgumentException) { refused = true; }
+                if (!refused) throw new Exception("A silent setup took --forget where it doesn't go: " + string.Join(" ", bad));
+            }
+            checks.Add("PASS uninstall commands: --remove-files and --remove-copy read back --forget, --app and --after exactly as sent, an app path with spaces stays whole, and repeats, a missing value, an --app without --remove-copy and --forget without a silent uninstall are refused");
+            CapriSetup.Removal installed = Companion.Farewell(Companion.KindInstalled, true, @"C:\x\Capri.exe", 5, 6), copy = Companion.Farewell(Companion.KindLoose, false, loose, 5, 6), store = Companion.Farewell(Companion.KindStore, true, @"C:\Program Files\WindowsApps\x\Capri.exe", 5, 6);
+            if (installed.Copy || !installed.Forget || installed.App != null || installed.After != 5 || !copy.Copy || copy.Forget || copy.App != loose || !store.Copy || store.App != null || !store.Forget || Companion.Farewell(Companion.KindStore, false, loose, 5, 6) != null) throw new Exception("Uninstall Capri planned the wrong removal: " + installed.Arguments() + " / " + copy.Arguments() + " / " + store.Arguments());
+            if (Companion.GoodbyeKind(true, true) != Companion.KindStore || Companion.GoodbyeKind(false, true) != Companion.KindInstalled || Companion.GoodbyeKind(false, false) != Companion.KindLoose) throw new Exception("Uninstall Capri took one copy of her for another.");
+            string local = Path.Combine(Path.GetTempPath(), "capri-forget-" + Guid.NewGuid().ToString("N")), outside = local + "-outside";
+            string data = Path.Combine(local, "Capri"), room = Path.Combine(local, Forgetting.Room);
+            try
+            {
+                Directory.CreateDirectory(data);
+                if (Companion.ForgetBlock(Companion.KindStore, Path.Combine(local, "Packages", "x", "LocalCache", "Local", "Capri"), local) == null || Companion.ForgetBlock(Companion.KindStore, data, local) != null || Companion.ForgetBlock(Companion.KindLoose, data, local) != null) throw new Exception("Uninstall Capri offered or hid forgetting for the wrong copy.");
+                File.WriteAllText(Path.Combine(data, ".capri-install"), "x");
+                if (Companion.ForgetBlock(Companion.KindLoose, data, local) == null || Companion.ForgetBlock(Companion.KindStore, data, local) == null || Companion.ForgetBlock(Companion.KindInstalled, data, local) != null) throw new Exception("A copy that isn't installed offered to wipe an installed Capri's folder.");
+                checks.Add("PASS Uninstall Capri: an installed copy removes herself through --remove-files, a loose Capri.exe removes only itself, the Store copy opens Settings and only wipes a folder Windows won't, and a copy that isn't installed never wipes an installed Capri's folder");
+                if (!Forgetting.Hers(data, local) || !Forgetting.Hers(room + "\\", local) || Forgetting.Hers(local, local) || Forgetting.Hers(Path.Combine(data, "brain"), local) || Forgetting.Hers(data + "2", local) || Forgetting.Hers(Path.Combine(outside, "Capri"), local) || Forgetting.Hers(null, local)) throw new Exception("Her wipe would take a folder that isn't hers.");
+                bool refused = false;
+                try { Forgetting.Wipe(outside, local, null); }
+                catch (IOException) { refused = true; }
+                if (!refused) throw new Exception("Her wipe went ahead on a folder that isn't hers.");
+                Directory.CreateDirectory(Path.Combine(data, "her-computer", "browser", "Default"));
+                Directory.CreateDirectory(Path.Combine(data, "brain", "models"));
+                Directory.CreateDirectory(room);
+                foreach (string file in new[] { "me.md", "memories.md", "settings.json", @"her-computer\browser\Default\Cookies", @"brain\models\tiny.gguf" }) File.WriteAllText(Path.Combine(data, file), "hers");
+                File.WriteAllText(Path.Combine(room, "Local State"), "hers");
+                string sealedFile = Path.Combine(data, "keys.dpapi");
+                File.WriteAllText(sealedFile, "hers");
+                File.SetAttributes(sealedFile, FileAttributes.ReadOnly);
+                string sealedFolder = Path.Combine(data, "mods");
+                Directory.CreateDirectory(sealedFolder);
+                File.WriteAllText(Path.Combine(sealedFolder, "theirs.capri-mod"), "x");
+                new DirectoryInfo(sealedFolder).Attributes |= FileAttributes.ReadOnly;
+                Directory.CreateDirectory(outside);
+                string precious = Path.Combine(outside, "vault.md");
+                File.WriteAllText(precious, "theirs");
+                bool linked = false;
+                using (Process junction = Process.Start(new ProcessStartInfo("cmd.exe", "/d /c mklink /J \"" + Path.Combine(data, "vault") + "\" \"" + outside + "\"") { UseShellExecute = false, CreateNoWindow = true }))
+                    if (junction != null && junction.WaitForExit(10000)) linked = junction.ExitCode == 0 && Directory.Exists(Path.Combine(data, "vault"));
+                string held = Path.Combine(data, "errors.txt");
+                using (FileStream holding = new FileStream(held, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    if (!Forgetting.Holders(new[] { held }).Contains(Process.GetCurrentProcess().Id)) throw new Exception("Windows' Restart Manager didn't say who holds her file.");
+                    int stuck = Forgetting.Wipe(data, local, null);
+                    if (stuck == 0 || !File.Exists(held) || File.Exists(Path.Combine(data, "me.md")) || File.Exists(sealedFile) || Directory.Exists(sealedFolder)) throw new Exception("A wipe with a file in use didn't count it, or stopped short of the rest: " + stuck);
+                }
+                string kept = Path.Combine(data, "Uninstall.exe.old");
+                File.WriteAllText(kept, "running");
+                if (Forgetting.Wipe(local, kept) != 0 || !File.Exists(kept) || File.Exists(held) || Directory.Exists(room) || Directory.Exists(Path.Combine(data, "vault"))) throw new Exception("Her wipe didn't clear everything but the running uninstaller.");
+                if (!File.Exists(precious) || File.ReadAllText(precious) != "theirs") throw new Exception("Her wipe followed a link out of her folder and deleted their file.");
+                if (Forgetting.Wipe(local, null) != 0 || Directory.Exists(data) || Directory.Exists(room) || !Directory.Exists(local)) throw new Exception("Her wipe left her folder behind or took the folder around it.");
+                checks.Add("PASS forgetting everything: only her Capri and Capri Room folders can be wiped, read-only files and folders go, a file still in use is counted and found through Windows' Restart Manager, the running uninstaller is left for last, and a junction to their own folder is unlinked without touching what's in it");
+                if (!linked) checks.Add("LIMIT no junction could be made here, so following a link out of her folder wasn't tried");
+            }
+            finally
+            {
+                foreach (string folder in new[] { local, outside })
+                    if (Directory.Exists(folder))
+                    {
+                        foreach (string file in Directory.GetFiles(folder, "*", SearchOption.AllDirectories)) try { File.SetAttributes(file, FileAttributes.Normal); } catch (IOException) { }
+                        try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                    }
+            }
+        }
+
         private static void SmokeSetupFiles(System.Collections.Generic.List<string> checks, string output)
         {
             if (CapriSetup.Program.Wanted("Capri.exe", new string[0]) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--smoke-test", "out" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--bench", "x" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--stream" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--hook", "x" }) || CapriSetup.Program.Wanted(@"C:\setup\Capri.exe", new string[0])) throw new Exception("Capri took herself for her installer.");
@@ -29470,6 +29850,7 @@ namespace CapriDesktop
             foreach (string packed in Assembly.GetExecutingAssembly().GetManifestResourceNames())
                 if (packed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) throw new Exception("Capri still has a program packed inside her: " + packed);
             checks.Add("PASS setup names and commands choose the installer, normal app commands stay with Capri and no app is packed inside her");
+            SmokeForgetting(checks);
             foreach (string name in new[] { @"C:\Users\someone\AppData\Local\Capri\Uninstall.exe", "UNINSTALL.EXE" })
                 if (!CapriSetup.Program.Wanted(name, new string[0]) || !CapriSetup.Program.Removing(name, new string[0])) throw new Exception("Opening " + name + " with nothing after it didn't open her uninstaller.");
             if (CapriSetup.Program.Removing("Capri-Setup.exe", new string[0]) || CapriSetup.Program.Removing("Capri.exe", new string[0]) || !CapriSetup.Program.Removing("Capri-Setup.exe", new[] { "--uninstall" })) throw new Exception("Her installer opened the wrong window.");
@@ -37386,11 +37767,15 @@ namespace CapriDesktop
                         use(action == "empty MAX" ? "nvapi-picker-test" : "sk-proj-picker-test", action == "empty MAX" ? "openai/gpt-oss-20b" : "gpt-90-mini");
                         if (action == "Forget") ForgetText();
                         else ChooseTier(action == "NORMAL" ? 0 : action == "empty MEDIUM INTELLIGENCE" ? 1 : 2);
-                        if (brain.Remote != null || brain.Model != null || mainframe.Status != "Looking for a brain... | " || mainframe.BrainChoices.Length != 0) throw new Exception("The " + action + " action left the old cloud menu or model while local discovery was pending: " + mainframe.Status);
+                        bool empty = action.StartsWith("empty", StringComparison.Ordinal);
+                        string waiting = empty ? "No key yet | Paste a key below, or pick NORMAL for her brain on this PC." : "Looking for a brain... | ";
+                        if (brain.Remote != null || brain.Model != null || mainframe.Status != waiting || mainframe.BrainChoices.Length != 0) throw new Exception("The " + action + " action left the old cloud menu or model while local discovery was pending: " + mainframe.Status);
+                        brain.Local = engine;
                         UseBrain(new[] { "ollama-picker-test" }, new Machine { Ram = 8L << 30 }, null);
-                        if (brain.Model != "ollama-picker-test" || mainframe.BrainChoices[0] != "Ollama · ollama-picker-test") throw new Exception("Local discovery did not replace the old cloud menu.");
+                        if (empty && (brain.Model != null || brain.Local != null || mainframe.Status != waiting)) throw new Exception("The " + action + " tier ran the brain on their PC without a key: " + mainframe.Status);
+                        if (!empty && (brain.Model != "ollama-picker-test" || mainframe.BrainChoices[0] != "Ollama · ollama-picker-test")) throw new Exception("Local discovery did not replace the old cloud menu.");
                     }
-                    checks.Add("PASS NORMAL, tiers without keys and Forget clear the old cloud menu and model while local discovery is pending, then show the local brain");
+                    checks.Add("PASS NORMAL and Forget clear the old cloud menu and model while local discovery is pending, then show the local brain; MEDIUM and MAX without a key wait for one and never run the brain on their PC");
                 });
                 Section(checks, "SmokePickerSavedGemini", delegate
                 {
@@ -39563,6 +39948,51 @@ namespace CapriDesktop
         // nothing saved and no API key from the environment; a screenshot goes along as a picture; a signed-out app, a used-up plan
         // and a missing app each get her plain line; a reply they talk over ends the app at once; and My plan sits on MAX
         // INTELLIGENCE's rung with the plan in use ticked.
+        private void SmokeBetterModels(System.Collections.Generic.List<string> checks)
+        {
+            string key = "xai-fixture-key";
+            if (Cloud.KindOf(key) != "xai" || Cloud.MediumKind("xai") || Cloud.KindOf("xai-test\r\nunsafe") != null
+                || new Cloud(key, "grok-4.7").Name != "Grok" || Brain.Redacted(key) != "[redacted]")
+                throw new Exception("The xAI key didn't route to MAX or stay out of the logs.");
+            if (Brain.Address("xai", "/models") != "https://api.x.ai/v1/language-models"
+                || Brain.Address("xai", "/chat/completions") != "https://api.x.ai/v1/chat/completions")
+                throw new Exception("The xAI key went to the wrong address.");
+            var models = Brain.ReadCloudModels("xai", "{\"models\":[{\"id\":\"grok-4.7\",\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},{\"id\":\"grok-audio\",\"input_modalities\":[\"text\"],\"output_modalities\":[\"audio\"]}]}");
+            var grok = new Brain();
+            if (models.Count != 1 || Brain.DefaultCloudModel("xai", models) != "grok-4.7"
+                || !grok.Sighted(new Cloud(key, "grok-4.7")) || grok.Sighted(new Cloud(key, "grok-unknown")))
+                throw new Exception("Her xAI model picker included a media model or gave a model the wrong eyes.");
+            var codex = BetterModels.CodexJson("{\"models\":[{\"slug\":\"fixture-model\",\"visibility\":\"list\"},{\"slug\":\"hidden\",\"visibility\":\"hide\"}]}");
+            var claude = BetterModels.Claude("{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\",\"request_id\":\"capri-models\",\"response\":{\"models\":[{\"value\":\"sonnet[1m]\"}]}}}");
+            BetterModels.Add(codex, "fixture-model");
+            BetterModels.Add(codex, "bad & model");
+            if (codex.Count != 1 || codex[0] != "fixture-model" || claude.Count != 1 || claude[0] != "sonnet[1m]"
+                || !Brain.ModelFits("codex", "fixture-model") || !Brain.ModelFits("claudecode", "sonnet[1m]"))
+                throw new Exception("Her plan picker didn't keep the visible and safe CLI model names.");
+            checks.Add("PASS MAX models: xAI keys, language and image-capable models, and visible Codex and Claude plan models");
+            Cloud plan = new Cloud(Plans.CodexKey, "default");
+            try
+            {
+                mainframe.ShowNoAi(false);
+                mainframe.ShowTiers(2, null, null, null, plan.Kind);
+                mainframe.ShowCloud(plan, Plans.Models(plan.Kind));
+                if (!mainframe.ModelPickerShown || !mainframe.TiersFit) throw new Exception("MAX did not place the plan model below the tier rows.");
+                mainframe.ShowNoAi(true);
+                mainframe.ShowCloud(plan, Plans.Models(plan.Kind));
+                if (mainframe.ModelPickerShown || !mainframe.NoAiShown) throw new Exception("No AI let a late plan redraw show its model picker.");
+                mainframe.ShowNoAi(false);
+                mainframe.ShowTiers(2, null, null, null, plan.Kind);
+                mainframe.ShowCloud(plan, Plans.Models(plan.Kind));
+                if (!mainframe.ModelPickerShown || !mainframe.TiersFit) throw new Exception("Returning to MAX did not return the plan model picker.");
+                checks.Add("PASS No AI hides the model picker through a late redraw and MAX restores it below the tier rows");
+            }
+            finally
+            {
+                ShowTiers();
+                if (!preferences.NoAi && brain.Remote != null) mainframe.ShowCloud(brain.Remote, cloudModels);
+            }
+        }
+
         private void SmokePlanBrain(System.Collections.Generic.List<string> checks, string output)
         {
             string claudeWas = PlanBrain.ClaudeOverride, codexWas = PlanBrain.CodexOverride, folderWas = PlanBrain.FolderOverride;
@@ -39593,7 +40023,7 @@ namespace CapriDesktop
                 if (mainframe.MaxName != "MAX INTELLIGENCE" || mainframe.PlanName != "API key, Claude plan or ChatGPT plan") throw new Exception("The MAX row or its source picker has the wrong accessible name.");
                 checks.Add("PASS MAX row and source picker have separate plain accessible names with no trailing separator");
                 if (Brain.HasTools(claudePlan) || Brain.HasTools(codexPlan)) throw new Exception("A plan brain was sent native tools instead of her written ones.");
-                if (!Brain.ModelFits("claudecode", "sonnet") || Brain.ModelFits("claudecode", "gpt-5") || !Brain.ModelFits("codex", "default") || Brain.DefaultCloudModel("claudecode", Plans.Models("claudecode")) != "haiku") throw new Exception("Her plan models are wrong.");
+                if (!Brain.ModelFits("claudecode", "sonnet") || Brain.ModelFits("claudecode", "bad model &") || !Brain.ModelFits("codex", "default") || Brain.DefaultCloudModel("claudecode", Plans.Models("claudecode")) != "haiku") throw new Exception("Her plan models are wrong.");
                 Directory.CreateDirectory(runs);
                 PlanBrain.FolderOverride = runs;
                 PlanBrain.ClaudeOverride = Path.Combine(root, "missing.cmd");
@@ -40592,6 +41022,7 @@ namespace CapriDesktop
         private void SmokeRoomHost(System.Collections.Generic.List<string> checks)
         {
             RemoteCall.SmokeListening(checks);
+            RemoteCall.SmokeLook(checks);
             bool warm = remoteEarsWarm, silent = preferences.Silent;
             RemoteCall savedCall = remoteCall;
             RemoteLink link = new RemoteLink(RemoteState.Fresh(), "ws://127.0.0.1:1", "Test PC", "test", null);
@@ -40937,6 +41368,26 @@ namespace CapriDesktop
                 bool safeLog;
                 lock (typeof(Brain)) safeLog = File.Exists(captured) && !File.ReadAllText(captured).Contains(encoded);
                 if (tap.Take() != "reply phoneA picture-error done: " + RemoteOut(problem.Message) || asking != before || selected.History.Count != 6 || !safeLog) throw new Exception("A failed look started a turn or echoed picture bytes into the phone or log.");
+                server.Stop();
+                requests.Clear();
+                Brain.Nvidia = FakeServer(new[] { LocalReply("A grey hoodie.") }, requests, out server);
+                Think = delegate(string words) { given = words; return "Nice hoodie."; };
+                before = asking;
+                RemotePictureTurn("phoneA", "picture-live", "what am I holding?", received, null, null, true);
+                WaitVoice(delegate { return tap.Count > 0; }, "A look from a call got no reply.");
+                string liveExpected = "what am I holding? [picture]\n\n" + RemotePictures.LiveDescription + "A grey hoodie.";
+                if (given != liveExpected || !given.Contains("Live video call") || given.Contains(encoded) || requests.Count != 1 || !requests[0].Contains("\"type\":\"image_url\"") || tap.Take() != "reply phoneA picture-live done: Nice hoodie.") throw new Exception("A look from a call lost its words, its picture or its live note.");
+                CloseTalk();
+                brain.Unsighted = brain.Remote.Sight;
+                given = null;
+                Think = delegate(string words) { given = words; return "Looking good."; };
+                before = asking;
+                RemotePictureTurn("phoneA", "picture-live-blind", "how do I look?", received, null, null, true);
+                WaitVoice(delegate { return tap.Count > 0; }, "A look from a call to a brain that can't see got no reply.");
+                if (given != "how do I look?" || requests.Count != 1 || tap.Take() != "reply phoneA picture-live-blind done: Looking good.") throw new Exception("A call's look to a brain that can't see sent its sightless line or not the words alone.");
+                CloseTalk();
+                brain.Unsighted = null;
+                checks.Add("PASS a look from a call joins her turn with the words and a note that it is live from their camera, and a brain that cannot see gets the words alone with no sightless line");
                 server.Stop();
                 requests.Clear();
                 hold.Reset();
@@ -41637,6 +42088,8 @@ namespace CapriDesktop
                 StartNews(false); CheckNews(0);
                 if (reply != null || newsPending || LoadPreferences().LastVersion != News.Version) throw new Exception("A fresh install spoke update news or missed its saved version.");
                 checks.Add("PASS fresh installs save their version without update news");
+                if (Assembly.GetExecutingAssembly().GetName().Version.ToString(3) != News.Version || FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion != News.Version) throw new Exception("Her file version is not her update news version " + News.Version + ".");
+                checks.Add("PASS her file version and the version her updates compare are the one in her update news");
                 preferences.LastVersion = null; StartNews(true);
                 CheckNews(60001);
                 if (reply != null || preferences.LastVersion != null) throw new Exception("Update news spoke while the user was away.");
@@ -41704,33 +42157,25 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
-                    "Room:",
-                    "Room camera",
+                    "Her own computer:",
+                    "Settings:",
+                    "Resources:",
+                    "Brain VRAM:",
+                    "Games:",
+                    "Walking in games:",
+                    "Quiet:",
+                    "Languages:",
+                    "Skills:",
+                    "Phone:",
                     "Capri Camera:",
-                    "Scroll for me:",
-                    "Your screen:",
-                    "Your language:",
-                    "Weather:",
-                    "Open-Meteo",
-                    "Playlist:",
-                    "Help > Commands",
-                    "Your apps:",
-                    "About you:",
-                    "High five:",
-                    "Naps:",
-                    "File Editor:",
-                    "Small screens:",
-                    "Photos:",
-                    "Pats:",
-                    "Free voice:",
-                    "Remove free voice",
-                    "Sitting:",
-                    "Sulks:",
-                    "Doomscroll guard:",
-                    "Mic:",
-                    "Game sounds:",
-                    "GAMES > Sound sensitivity",
-                    "Word and Excel:"
+                    "Mods:",
+                    "Voice feel:",
+                    "Cloud brains:",
+                    "Searches:",
+                    "HER COMPUTER > Her own computer",
+                    "Brain VRAM",
+                    "skill.md",
+                    "Wake from phone"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
@@ -44597,6 +45042,7 @@ namespace CapriDesktop
                     throw new Exception("An unknown room move reached the phone.");
                 checks.Add("PASS room sit, lie down and heart come only from successful matching tools");
                 RemoteLink.SmokeJobs(checks);
+                MemoryBook.Smoke(checks);
             }
             finally
             {
@@ -45372,10 +45818,11 @@ namespace CapriDesktop
             Section(checks, "SmokePersonal", delegate { SmokePersonal(checks, Path.Combine(output, "personal")); });
             Section(checks, "SmokeTreeEyes", delegate { SmokeTreeEyes(checks, Path.Combine(output, "tree-eyes")); });
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
+            Section(checks, "SmokeMainframeFit", delegate { mainframe.CheckFit(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
-            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
@@ -45399,6 +45846,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
             Section(checks, "SmokeLingo", delegate { SmokeLingo(checks); });
+            Section(checks, "SmokeBetterModels", delegate { SmokeBetterModels(checks); });
             Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks, Path.Combine(output, "plan-choice")); });
             Section(checks, "SmokeLeaks", delegate { SmokeLeaks(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
@@ -45587,6 +46035,7 @@ namespace CapriDesktop
             Section(checks, "SmokeHelpQuotes", delegate { SmokeHelpQuotes(checks); });
             Section(checks, "SmokeSmallWording", delegate { SmokeSmallWording(checks); });
             Section(checks, "SmokePrivacy", delegate { SmokePrivacy(checks, output); });
+            Section(checks, "SmokeMemoryWindow", delegate { SmokeMemoryWindow(checks, output); });
         }
 
         // What her redaction keeps and hides, on its own, so a change to it is quick to check.
@@ -56487,6 +56936,11 @@ namespace CapriDesktop
                                     }
                                     finally { Hands.GameOpen = strayGame; Hands.GamingMode = straySwitch; strayFake.Stop(); cloudy.Forget(); }
                                     if (!mainframe.TextStatus.StartsWith("tier 0 | ", StringComparison.Ordinal) || !mainframe.TextStatus.EndsWith("| no key row", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("The brain tiers are wrong with no key: " + mainframe.TextStatus);
+                                    mainframe.ShowSetup(new Machine { Ram = 16L << 30 }, Engine.Picks[0], false, null);
+                                    mainframe.ShowNoAi(true);
+                                    if (mainframe.HintShown || !mainframe.TiersFit) throw new Exception("The Ollama hint stayed over the tiers once the setup steps closed: " + mainframe.TiersProblem);
+                                    mainframe.ShowNoAi(false);
+                                    checks.Add("PASS the Have Ollama hint goes with the setup steps, never over MAX INTELLIGENCE");
                                     mainframe.ShowTiers(1, null, null);
                                     if (!mainframe.TextStatus.EndsWith("| NVIDIA / Google AI Studio / OpenRouter | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MEDIUM INTELLIGENCE without a key is wrong: " + mainframe.TextStatus);
                                     // MEDIUM INTELLIGENCE's model menu marks Nemotron Super and Nemotron's reasoning model as recommended, at its top.
@@ -56550,7 +57004,8 @@ namespace CapriDesktop
                                         checks.Add("PASS MEDIUM INTELLIGENCE lists NVIDIA, Gemini and OpenRouter under BRAIN");
                                         preferences.PaidKey = null;
                                         ChooseTier(2);
-                                        if (preferences.Tier != 2 || brain.Remote != null || preferences.TextKey != null || !mainframe.TextStatus.EndsWith("| Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MAX INTELLIGENCE without its key did not fall back to her own brain: " + mainframe.TextStatus);
+                                        if (preferences.Tier != 2 || brain.Remote != null || preferences.TextKey != null || !mainframe.TextStatus.EndsWith("| Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MAX INTELLIGENCE without its key was wrong: " + mainframe.TextStatus);
+                                        if (brain.Model != null || brain.Local != null || !mainframe.TextStatus.Contains("No key yet")) throw new Exception("MAX INTELLIGENCE without its key ran the brain on their PC: " + mainframe.TextStatus);
                                     }
                                     finally
                                     {
@@ -56575,7 +57030,7 @@ namespace CapriDesktop
                                     Brain.Nvidia = realNvidia;
                                     cloudFake.Stop();
                                 }
-                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), MEDIUM INTELLIGENCE (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key running her own brain");
+                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), MEDIUM INTELLIGENCE (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key waiting for one instead of running the brain on their PC");
                                 System.Collections.Generic.List<string> quickAsked = new System.Collections.Generic.List<string>();
                                 System.Net.Sockets.TcpListener quickFake;
                                 Brain.Nvidia = FakeServer(new string[]
@@ -57240,6 +57695,7 @@ namespace CapriDesktop
                             SmokeLocalPicker(checks);
                             SmokeBrainSettings(checks);
                             int mainTall = mainframe.ClientSize.Height, mainWide = mainframe.ClientSize.Width;
+                            string mainScroll = mainframe.ScrollStatus;
                             mainframe.ShowSettings(true);
                             // Settings opens a second column beside the first. With four voice sliders and her perch row it can be taller than the main page too.
                             if (!mainframe.SettingsShown || mainframe.ClientSize.Width <= mainWide || mainframe.SettingsStatus != "English | 100% | 60% | Off | 2 min | dance | intro | Short | Short | Normal") throw new Exception("The settings page did not open right: " + mainframe.SettingsStatus + " / " + mainWide + " to " + mainframe.ClientSize.Width + " wide, " + mainTall + " to " + mainframe.ClientSize.Height + " tall");
@@ -57266,10 +57722,10 @@ namespace CapriDesktop
                             if (pageOutside != null) throw new Exception("A settings control pokes out of the page: " + pageOutside);
                             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
                             // Her default personality and safety lines are in code, her reply rules come last, and her chat and voice-chat prompts start with all three.
-                            const string todaysPersona = "2975408ad8bc6d515aa950c64ad896f5890dfdfa3eb039b105a4f972eeb51e14";
+                            const string todaysPersona = "4b1cfbe4b90790d85200f8c04b3f85dafa6ccb44885f69a66c0060fa57ad929c";
                             Func<string, string> personaHash = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
                             bool personaEditable = mainframe.PersonalityShown != "Her personality";
-                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 6964 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
+                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 7153 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
                                 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal) && Agent.Prompt.StartsWith(Brain.Persona + Hands.Note, StringComparison.Ordinal)
                                 && Brain.Machinery.IndexOf("call people only by names you've actually seen or heard", StringComparison.Ordinal) > 0 && Brain.Machinery.IndexOf("never apologise for the same thing twice", StringComparison.Ordinal) > 0
                                 && Computer.Playing.IndexOf("never invent a name, a message or something nobody said", StringComparison.Ordinal) > 0
@@ -57362,7 +57818,7 @@ namespace CapriDesktop
                             bool shortHabits = mainframe.HabitsFit;
                             mainframe.Wheel(-80);
                             mainframe.ShowSettings(false);
-                            bool shortLeft = mainframe.Scrolled == 0 && mainframe.BackTop == backTop && mainframe.ClientSize.Height == mainTall && mainframe.ScrollStatus == "whole | -";
+                            bool shortLeft = mainframe.Scrolled == 0 && mainframe.BackTop == backTop && mainframe.ClientSize.Height == mainTall && mainframe.ScrollStatus == mainScroll;
                             mainframe.ShortScreen = 0;
                             mainframe.ShowSettings(true);
                             if (!shortOpened || !shortRow || !shortBottom || shortOverlap != null || !shortTop || shortTabs != null || !shortTabbed || !shortHabits || !shortLeft || mainframe.Scrolled != 0 || !mainframe.HabitsFit) throw new Exception("Settings on a short screen went wrong: opened " + shortOpened + ", row " + shortRow + ", bottom " + shortBottom + ", overlap " + shortOverlap + ", top " + shortTop + ", tab " + shortTabs + "/" + shortTabbed + ", habits " + shortHabits + ", left " + shortLeft + ", now " + mainframe.ScrollStatus + " scrolled " + mainframe.Scrolled);
@@ -60659,6 +61115,12 @@ namespace CapriDesktop
                                 byte[] freeLine = kokoro.Speak("Hey choom, this is my free voice.");
                                 if (freeLine == null || freeLine.Length < 24000) throw new Exception("Free voice made no sound: " + (freeLine == null ? "null" : freeLine.Length + " bytes"));
                                 checks.Add("PASS free voice speech: " + kokoro.Style.Name + " said a line, " + freeLine.Length + " bytes of WAV");
+                                FreeStyle own = kokoro.Style;
+                                kokoro.Style = LocalVoice.Styles[0];
+                                byte[] ownLine = kokoro.Speak("Hey choom, her own voice here.");
+                                kokoro.Style = own;
+                                if (ownLine == null || ownLine.Length < 24000) throw new Exception("Her own voice made no sound: " + (ownLine == null ? "null" : ownLine.Length + " bytes"));
+                                checks.Add("PASS her own voice speech: " + LocalVoice.Styles[0].Name + " speaks safely, " + ownLine.Length + " bytes of WAV");
                             }
                             else checks.Add("LIMIT free voice synthesis not run; the voice pack is not installed on this PC");
                             checks.Add("PASS voice: key sealed with DPAPI, tags stripped, errors read, real HTTP round trips against a fake ElevenLabs (401 explained, audio fetched, the same line twice in a row fetched once), WAV cleanup, mouth from the audio, listing parse, voice and model picks, a blank Voice ID asks for one, forget");
@@ -60783,6 +61245,7 @@ namespace CapriDesktop
                             }
                             if (afterSong != "Sex on Fire is up, choom!" || afterSwear != "Hell yeah, this one slaps like shit." || afterHeavy != "Hey. I'm right here. Talk to me?" || filterHeard.Count != 3 || filterRan.Count != 1 || maskedReply != "Typed " + Computer.Dots + " into the password box.")
                                 throw new Exception("Code screened what they said or rewrote her reply, or a password showed: " + afterSong + " / " + afterSwear + " / " + afterHeavy + " / heard " + filterHeard.Count + " / ran " + filterRan.Count + " / " + maskedReply);
+                            if (CrisisCards != 1) throw new Exception("Her crisis card showed " + CrisisCards + " times for one sincere message and three that weren't.");
                             checks.Add("PASS no code filters: with Blackwall off too, everything they say reaches her brain and her reply comes out as her brain wrote it, since her safety lines are part of her prompt; a typed password still shows as dots in her bubble");
                             Think = null;
                             brain.Model = null;
@@ -60798,6 +61261,11 @@ namespace CapriDesktop
                             finally { Hands.Press = brainlessWas; }
                             if (talkState == TalkState.Dormant || reply != "Turned the volume up." || brainlessKeys.Count != 5 || brainlessKeys[0] != 0xAF) throw new Exception("Volume needed a brain: " + talkState + " / " + reply + " / " + brainlessKeys.Count + " / heard " + heard + " / ticket " + asking + " / model " + (brain.Model ?? "none") + " / speech " + speech);
                             checks.Add("PASS volume without a brain: with no brain set up, \"can you turn the volume up?\" still presses the volume keys and says so");
+                            Hear("i don't want to be here anymore");
+                            Stopwatch crisisless = Stopwatch.StartNew();
+                            while ((talkState == TalkState.Thinking || reply == null) && crisisless.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                            if (reply != Crisis.Line(Crisis.Region()) || CrisisCards != 1) throw new Exception("With no brain, a sincere self-harm message didn't get her crisis line, or its card came twice in ten minutes: " + reply + " / " + CrisisCards);
+                            checks.Add("PASS crisis line without a brain: she answers a sincere self-harm message with a free crisis line herself, and the card doesn't repeat within ten minutes");
                             Hear("dance for me");
                             Stopwatch danceless = Stopwatch.StartNew();
                             while ((talkState == TalkState.Thinking || reply == null) && danceless.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
@@ -63746,7 +64214,7 @@ namespace CapriDesktop
             must(Brain.Fresh("Who's Jake? Never heard of him.", "tell jake hi", noneBefore) == "Who's Jake? Never heard of him." && Brain.Fresh("Diamonds? Yes.", "i found diamonds", noneBefore) == "Diamonds? Yes.", "A real question, or a line with too little left, was cut.");
             must(Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Whoa, nice shot there.", "Okay." }) == "That boss never stood a chance." && Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Okay then, go on." }) == "Whoa, that boss never stood a chance.", "Her opener wasn't cut only when she'd just used it.");
             Func<string, string> hashed = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
-            must(hashed(Brain.Safety) == "5ba8ebf47c1bc3803515bd3145631cdf4e401a75bd3e1e96a34a50b2bc2c7198", "Her safety lines changed: " + hashed(Brain.Safety));
+            must(hashed(Brain.Safety) == "c0bd6dad84bcab7121cac80225e6d842b74256694f14d2f6594a6bb8df2b8464", "Her safety lines changed: " + hashed(Brain.Safety));
             must(Brain.Persona.IndexOf("Ask something back at most one reply in four", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("never say it depends", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("call back to it once", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("Yezzirrr, let's go", StringComparison.Ordinal) < 0 && Hands.Chat.IndexOf("say On it", StringComparison.Ordinal) < 0, "How she talks lost a rule, or got her parroted examples back.");
             must(Agent.Version >= 21 && Agent.Prompt.IndexOf("When your hands are on a job", StringComparison.Ordinal) > 0 && Agent.Prompt.StartsWith(Brain.Persona, StringComparison.Ordinal), "Voice chat's agent wasn't retuned for talking mid-job.");
             checks.Add("PASS how she talks: her prompt asks for reactions, opinions, callbacks and few questions, stock closers, their own word said back and an opener she just used are cut from the reply, real questions are left alone, voice chat's agent is retuned, and her safety lines are unchanged to the byte");
@@ -65033,6 +65501,43 @@ namespace CapriDesktop
                 giant[16] = 1;
                 if (ModDirectory.Picture(giant) != null || ModDirectory.Picture(settings) != null) throw new Exception("A giant or broken picture was drawn.");
                 checks.Add("PASS mods window previews: a preview has to match its listing, is kept so it isn't downloaded twice, and giant or broken pictures aren't drawn");
+                Func<string, long, byte[]> standIn = ModDirectory.Get;
+                string commit = new string('c', 40), previewsWere = ModDirectory.PreviewFolder;
+                byte[] mirrorTree = Encoding.UTF8.GetBytes("{\"commit\":\"" + commit + "\"," + tree.Substring(1));
+                List<string> mirrorAsked = new List<string>();
+                ModDirectory.Get = delegate(string url, long most)
+                {
+                    lock (mirrorAsked) mirrorAsked.Add(url);
+                    if (url.StartsWith("https://raw.githubusercontent.com/", StringComparison.Ordinal)) throw new WebException("stand-in", WebExceptionStatus.ConnectFailure);
+                    if (url.StartsWith("https://api.github.com/", StringComparison.Ordinal)) throw new Exception("GitHub's API was asked while her worker's copy was up: " + url);
+                    if (url == ModDirectory.TreeMirror) return mirrorTree;
+                    if (url == ModDirectory.MirrorRoot + "HEAD/index.json") return goodIndex;
+                    if (url == ModDirectory.MirrorRoot + commit + "/mods/far-names/preview.png") return picture;
+                    if (url == ModDirectory.MirrorRoot + commit + "/mods/far-names/far-names.capri-mod") return settings;
+                    return standIn(url, most);
+                };
+                try
+                {
+                    List<ModListing> mirrored = ModDirectory.Browse();
+                    if (mirrored.Count != 2 || mirrored[1].Commit != commit || mirrored[1].Title != "Names: Far & Wide") throw new Exception("With GitHub's raw host unreachable, the list or its names didn't come from her worker's copy.");
+                    ModDirectory.PreviewFolder = Path.Combine(output, "mirror-previews");
+                    if (ModDirectory.Preview(mirrored[1], ModDirectory.PreviewFolder).Length != picture.Length) throw new Exception("A preview didn't come from her worker's copy.");
+                    string copied = ModDirectory.Download(mirrored[1], under);
+                    bool exact = ModDirectory.BlobSha(File.ReadAllBytes(copied)) == settingsSha;
+                    ModDirectory.Clean(copied);
+                    if (!exact) throw new Exception("A download from her worker's copy didn't match its listing.");
+                    int before = mirrorAsked.Count;
+                    Directory.Delete(ModDirectory.PreviewFolder, true);
+                    ModDirectory.Preview(mirrored[1], ModDirectory.PreviewFolder);
+                    if (mirrorAsked.Count != before + 1 || mirrorAsked[before] != ModDirectory.MirrorRoot + commit + "/mods/far-names/preview.png") throw new Exception("A later preview waited on GitHub's raw host again: " + string.Join(" | ", mirrorAsked.GetRange(before, mirrorAsked.Count - before).ToArray()));
+                }
+                finally
+                {
+                    ModDirectory.Get = standIn;
+                    ModDirectory.PreviewFolder = previewsWere;
+                    ModDirectory.RawBack();
+                }
+                checks.Add("PASS mods directory: where raw.githubusercontent.com can't be reached, the list, names, previews and downloads come from her worker's copy at the listed commit without GitHub's API, and later cards don't wait on GitHub again");
                 CheckReadme(checks, output, found);
                 ShowMods(true);
                 sheet = new ModsSheet(this, 1f);
@@ -65056,7 +65561,7 @@ namespace CapriDesktop
                 ModDirectory.KeptFolder = Path.Combine(output, "kept-directory-missing");
                 ModDirectory.Get = delegate(string url, long most)
                 {
-                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeApi) throw new WebException("stand-in", WebExceptionStatus.Timeout);
+                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeMirror || url == ModDirectory.TreeApi) throw new WebException("stand-in", WebExceptionStatus.Timeout);
                     return liveGet(url, most);
                 };
                 try
@@ -65271,6 +65776,7 @@ namespace CapriDesktop
                 bool down = false;
                 ModDirectory.GetSoon = delegate(string url, long most)
                 {
+                    if (url == ModDirectory.MirrorRoot + "HEAD/mods/far-names/README.md") throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
                     gets++;
                     if (url != "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/mods/far-names/README.md" || most != 256L * 1024) throw new Exception("The README address or size limit was wrong.");
                     if (down) throw new WebException("stand-in");

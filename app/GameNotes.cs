@@ -17,6 +17,8 @@ namespace CapriDesktop
         private const int MostTold = 4000;
         private static readonly object writing = new object();
 
+        internal static object Gate { get { return writing; } }
+
         // How good players think in each kind of game. None of this is a walkthrough: it's what a gamer brings to a game they've never played.
         private static readonly string[,] Kinds =
         {

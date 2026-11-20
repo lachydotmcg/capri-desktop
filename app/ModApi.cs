@@ -459,6 +459,7 @@ namespace CapriDesktop
         internal static string Consent(ModFile mod, string hash)
         {
             if (mod.Plugin) return PluginConsent(mod, hash);
+            if (mod.Recipe != null) return ToolConsent(mod, hash);
             string asks = "";
             foreach (string permission in mod.Permissions ?? new string[0]) asks += "\n- " + PermissionMeaning(permission);
             string reaches = "";
