@@ -619,6 +619,7 @@ Already have a mod file? Press Import mod on the Mods page and pick it. The file
 - .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
 - .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings, plus what her quick read of its code found, like network use and the addresses it contacts. Minified or packed code is said in the box and asked about twice, with a laid-out copy saved to read, and a mod that both unpacks hidden text and loads code while it runs is refused. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
+- .capri-plugin (0.9.6): plug-ins that give her tools from MCP servers, like Claude's plug-ins. See What are plug-ins? below.
 - .capri-tool: tool mods, a JSON recipe that gives her one look-up tool: one to three HTTPS reads from the sites it lists, the values to keep, and what to tell her. They can't run code, send, post or log in. She asks before one goes on, naming the sites it reads, and again if it's edited. A site that finds nothing doesn't count against a tool, but three broken answers in a row switch it off. She can write one herself with make_tool when you ask for a look-up she doesn't have; it's saved off until you check it in Mods and turn it on. If a code mod was starting when she stopped, it's off on her next start, and starting her with --no-mods keeps every mod off for that run.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
@@ -637,6 +638,38 @@ From 0.9.0 she knows the names of every skill that's on, in chat and in jobs, an
 A skill's game also counts when it runs in a browser tab, like Five Nights at Freddy's in Chrome, when you ask her to play it or name it (Windows). A real game window still comes first.
 
 To make one: a .capri-skill file starts with a header between two --- lines (capri-skill: 1, then id, name, author, description and games, the game names separated by commas), then the know-how in plain words. Publish it like any other mod.
+
+### What are plug-ins? (0.9.6)
+A plug-in gives her tools from MCP servers, the same kind Claude's plug-ins use, and can bring skills she reads when they fit. Plug-ins sit on the Mods page with your other mods, marked PLUG-IN. She uses a plug-in's tools by herself when you ask for what they do, up to 32 from each plug-in.
+
+Before a plug-in with tools goes on, her "Turn on this plug-in?" box shows what it starts or connects to, what it says its tools do, its skills and its file fingerprint (SHA-256). If the file changes later, it stays off until you approve it again. Programs it starts run outside Capri with your account's access to your PC. They get none of her keys, and none of your PC's other key, token and password settings unless the box names them. She refuses any call that would send one of her keys. After she reads a plug-in's answer or a skill, anything that would use your mouse and keyboard, send, post, delete or pay asks first until your next message.
+
+Starters: Email, Notion and Linear come with her, switched off on the Mods page. An off starter's row says STARTER and what it needs. Turn one on and her plug-in box shows first.
+- Email checks, searches and reads your mail and writes mail for you. Turning it on opens Set up Email: your email address and an app password, never your normal password. Gmail, iCloud, Yahoo, AOL, Fastmail, GMX and Zoho fill in their own servers. For another address, type its incoming (IMAP) and outgoing (SMTP) servers. Connect signs in to check it works before she keeps it. She always asks before she sends an email. Forget account removes the account and its app password.
+- Notion searches, reads and edits your pages and databases. Linear finds, makes and updates your issues and projects. Turning either on opens your browser, so you sign in on their own page.
+
+Outlook.com, Hotmail and Live addresses don't work with Email yet. Set up Email says "Outlook and Hotmail don't take app passwords any more, so Capri can't sign in to them yet." as soon as you type one. Her Email signs in only with a password, over IMAP and SMTP, and has no Microsoft sign-in.
+
+Your own plug-ins: Mods > Import mod takes a .capri-plugin, or a Claude plug-in's plugin.json or a .mcp.json. On Windows, pick "Claude plug-ins and MCP servers" in the file box to see those.
+- A plugin.json brings its whole folder, without .git or node_modules. A .mcp.json brings only that file, and the plug-in is named after its folder.
+- Servers she starts: a command with args, env and cwd. ${NAME} comes from your PC's environment, and ${CLAUDE_PLUGIN_ROOT} is the plug-in's own folder.
+- Online servers: http, streamable-http or sse, over https or on this PC.
+- Up to 4 servers. A server of another kind is left out, and the box says so.
+- Skills in skills/<name>/SKILL.md, up to 20. Commands, agents and hooks from a Claude plug-in aren't used.
+- Up to 1 MB zipped, 400 files and 8 MB unpacked.
+- The box warns when an npx or uvx server isn't pinned to a version, since what runs can change after you say yes. A server that hides the code it would run, like an encoded PowerShell block or a download piped into a shell, is refused.
+
+Signing in: an online plug-in like Notion or Linear opens your browser to sign in when you switch it on. If it still needs you, its row says "Needs you to sign in" on Windows, where Sign in under its Options opens your browser again, or "Turn it off and on to sign in" on Mac and Linux. On Windows the sign-in stays on this PC, protected by Windows, until you remove the plug-in, and importing it again means signing in again. On Mac and Linux she keeps sign-ins and the Email app password only until she closes.
+
+Options (Windows): on a plug-in that's on, Options lists its tools. Each has a key that goes round Like SECURITY, Always run, Ask first and Off.
+- Like SECURITY asks first the way SECURITY > HER MODS > Use tools your mods added says, and for tools that change things, Send, post and delete too.
+- Always run uses the tool without asking. Ask first always asks. Off takes it away from her.
+- A plug-in that says it can pay, buy or book, or names a tool to ask about, asks first unless you pick Always run.
+- Email's Send mail always asks, and its key only turns it off. Email's Options also has Set up email, or Change email account once it's connected.
+
+On Mac and Linux there's no Options for plug-ins yet: their tools follow your SECURITY settings, and Send mail always asks.
+
+Remove stops a plug-in's programs and forgets its sign-in and its Options choices.
 
 ### Workspace (beta) (0.9.0, Windows)
 Workspace is her window for chats with Claude Code. Open it from Mainframe > BRAIN > WORKSPACE (beta), or ask her to "open workspace".

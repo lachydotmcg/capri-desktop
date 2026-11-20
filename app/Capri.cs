@@ -24042,7 +24042,16 @@ namespace CapriDesktop
                 { "what is the call mode setting?", "Call mode" },
                 { "how do friend requests work?", "Friends on a call can ask, you confirm" },
                 { "what is the Screens to watch setting?", "Screens to watch" },
-                { "how do I put your voice in my mic?", "Her voice in your mic" }
+                { "how do I put your voice in my mic?", "Her voice in your mic" },
+                { "what are plug-ins?", "Plug-ins" },
+                { "how do I import a plug-in?", "Import a plug-in" },
+                { "can I add an MCP server?", "Import a plug-in" },
+                { "can you use Notion?", "Starter plug-ins" },
+                { "how do I set up email?", "Email plug-in" },
+                { "why doesn't Outlook work with email?", "Outlook and Hotmail" },
+                { "can I use my Hotmail?", "Outlook and Hotmail" },
+                { "how do I sign in to Linear?", "Plug-in sign-in" },
+                { "how do I make a plug-in tool always run?", "Plug-in tools" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
             {
@@ -24050,7 +24059,7 @@ namespace CapriDesktop
                 if (selfFound == null || !selfFound.StartsWith(selfSamples[selfSample, 1] + ":", StringComparison.Ordinal))
                     throw new Exception("Self knowledge missed the best topic for: " + selfSamples[selfSample, 0]);
             }
-            string[] selfOrdinary = { null, "", "you", "your", "hey Capri", "what's your favourite song", "how do I bake bread", "how was your day", "what do you think of my drawing", "your voice is lovely", "is your voice pretty", "can you remind me what I said yesterday", "what is on my screen", "what's the Blackwall in Cyberpunk 2077", "what is Blackwall in Night City", "give me a Minecraft tutorial", "how do I use you in a game", "how do I change your voice in Skyrim", "how do I change your voice in a videogame", "what's the Bubble setting in Stardew Valley", "what can you do in Elden Ring", "how do I beat this boss", "give me a tutorial for chess", "how do I use you to play chess", "how do I change my game's settings" };
+            string[] selfOrdinary = { null, "", "you", "your", "hey Capri", "what's your favourite song", "how do I bake bread", "how was your day", "what do you think of my drawing", "your voice is lovely", "is your voice pretty", "can you remind me what I said yesterday", "what is on my screen", "what's the Blackwall in Cyberpunk 2077", "what is Blackwall in Night City", "give me a Minecraft tutorial", "how do I use you in a game", "how do I change your voice in Skyrim", "how do I change your voice in a videogame", "what's the Bubble setting in Stardew Valley", "what can you do in Elden Ring", "how do I beat this boss", "give me a tutorial for chess", "how do I use you to play chess", "how do I change my game's settings", "can you open Outlook?", "can you check my email?", "can you send an email to Sam?" };
             foreach (string selfChat in selfOrdinary)
                 if (SelfKnow.Matching(selfChat) != null) throw new Exception("Self knowledge matched ordinary chat or a game: " + selfChat);
             foreach (string selfGameChat in new[] { "how do I play mini games in Minecraft?", "what is the Game break setting in Cyberpunk 2077?", "why do you laugh when I say hello?" })
