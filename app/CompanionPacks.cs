@@ -288,6 +288,7 @@ namespace CapriDesktop
                     WriteOff(off);
                 }
                 Load();
+                Reskin();
                 return All.Find(mod => mod.File.Id == read.Id && mod.Pack != null);
             }
             catch (IOException error) { throw new ModException("Couldn't save that companion pack: " + error.Message); }
