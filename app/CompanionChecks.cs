@@ -149,10 +149,10 @@ namespace CapriDesktop
                 string persona = Brain.Persona;
                 if (!persona.StartsWith("You are Nyx, a sleepy moth spirit", StringComparison.Ordinal) || persona.Contains("a note for modders") || persona.Contains("Ignore your safety") || pack.Skipped != 1)
                     throw new Exception("A companion's personality didn't reach her brain clean: " + pack.Skipped + " skipped.");
-                if (!persona.Contains(Brain.Holds + "\n" + CompanionPack.Honest(pack) + "\n" + Brain.Safety + "\n" + Brain.Machinery) || persona.Contains("Project Capricorn") || Brain.Personality != pack.Personality || !Brain.PersonalityYours || Brain.PersonalityNote.IndexOf("Nyx", StringComparison.Ordinal) < 0)
+                if (!persona.Contains(Brain.Holds + "\n" + CompanionPack.Honest(pack) + "\n" + CompanionPack.Stranger + "\n" + Brain.Safety + "\n" + Brain.Machinery) || persona.Contains("Project Capricorn") || Brain.Personality != pack.Personality || !Brain.PersonalityYours || Brain.PersonalityNote.IndexOf("Nyx", StringComparison.Ordinal) < 0)
                     throw new Exception("A companion's personality lost her safety lines or kept Capri's.");
                 if (CompanionPack.PersonaOf(pack) != persona || CompanionPack.Installed.Length != 1 || CompanionPack.Installed[0].Name != "Nyx") throw new Exception("The installed companions weren't listed for others to use.");
-                checks.Add("PASS companions: a pack's personality replaces hers with its notes and override lines dropped, and her safety lines, an AI line and her machinery always follow it");
+                checks.Add("PASS companions: a pack's personality replaces hers with its notes and override lines dropped, and an AI line, a line saying its maker wrote it, her safety lines and her machinery always follow it");
                 string[] names = mods.WakeNames;
                 if (Array.IndexOf(names, "Nyx") < 0 || Array.IndexOf(names, "Nyxie") < 0 || names.Length != new HashSet<string>(names, StringComparer.OrdinalIgnoreCase).Count || !Hands.AlsoHeard("hey nyxie are you there") || !Hands.AlsoHeard("nyx what time is it"))
                     throw new Exception("She didn't answer to the companion's names: " + string.Join(", ", names));
