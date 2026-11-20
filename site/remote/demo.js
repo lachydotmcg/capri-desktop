@@ -84,6 +84,122 @@
     return { tools: [], reply: pick(said.unsure) };
   };
 
+  // ---------- Her memory (PROTOCOL.md 8.8): a small sample the demo page can edit, forget and undo, gone on reload ----------
+  const memorySample = () => {
+    const note = text => ({ id: id(), text });
+    const day = (date, lines) => ({ date, lines });
+    const at = (back, hour, minute) => {
+      const when = new Date();
+      when.setDate(when.getDate() - back);
+      when.setHours(hour, minute, 0, 0);
+      return when;
+    };
+    const heading = when => when.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
+    const ymd = when => when.getFullYear() + '-' + String(when.getMonth() + 1).padStart(2, '0') + '-' + String(when.getDate()).padStart(2, '0');
+    const stamp = when => String(when.getHours()).padStart(2, '0') + ':' + String(when.getMinutes()).padStart(2, '0');
+    const talk = (back, rows) => rows.map(([hour, minute, who, text]) => ({ at: stamp(at(back, hour, minute)), who, text }));
+    const logs = new Map([
+      [ymd(at(1, 9, 0)), talk(1, [[21, 4, 'You', 'Put on something to code to.'], [21, 4, 'Capri', 'Edgerunners OST, loud enough to annoy the neighbours.'], [21, 5, '', 'Played Edgerunners OST'], [22, 40, 'You (voice)', 'Remind me to stretch in an hour.'], [22, 40, 'Capri', 'An hour. I\'ll yell.']])],
+      [ymd(at(3, 9, 0)), talk(3, [[8, 15, 'You', 'Morning.'], [8, 15, 'Capri', 'Morning. You slept in.'], [8, 17, 'You', 'What is the weather like?'], [8, 17, 'Capri', 'Check outside. I live in a taskbar.']])],
+      [ymd(at(6, 9, 0)), talk(6, [[19, 30, 'You', 'Open Steam.'], [19, 30, 'Capri', 'Steam is up. Behave.']])]
+    ]);
+    return {
+      keeping: true,
+      about: [note('Pronouns: they/them'), note('They work late and like lofi while they code'), note('They have a cat called Miso')],
+      chats: [
+        { day: heading(at(6, 9, 0)), items: [note('They started a new game of Helldivers 2.')] },
+        { day: heading(at(1, 9, 0)), items: [note('They asked for the Edgerunners OST while coding.'), note('I promised to remind them to stretch in the evening.')] }
+      ],
+      games: [{ game: 'Helldivers 2', items: [note('Stratagems are hold Ctrl, then the arrow keys'), note('Bugs swarm from the holes, so close them with a grenade first')] }],
+      logs
+    };
+  };
+  const memory = () => {
+    const state = memorySample();
+    const undos = new Map();
+    const find = item => {
+      for (const where of [state.about, ...state.chats.map(chat => chat.items), ...state.games.map(game => game.items)]) {
+        const at = where.findIndex(row => row.id === item);
+        if (at >= 0) return { where, at };
+      }
+      return null;
+    };
+    const list = () => ({
+      type: 'memory.list',
+      keeping: state.keeping,
+      private: false,
+      cut: false,
+      about: state.about.map(row => Object.assign({}, row)),
+      chats: state.chats.map(chat => ({ day: chat.day, items: chat.items.map(row => Object.assign({}, row)) })),
+      games: state.games.map(game => ({ game: game.game, items: game.items.map(row => Object.assign({}, row)) })),
+      days: [...state.logs.keys()].sort().reverse().map(date => ({ date, lines: state.logs.get(date).length }))
+    });
+    const snapshot = () => JSON.stringify({ about: state.about, chats: state.chats, games: state.games, logs: [...state.logs] });
+    const restore = text => {
+      const was = JSON.parse(text);
+      state.about = was.about;
+      state.chats = was.chats;
+      state.games = was.games;
+      state.logs = new Map(was.logs);
+    };
+    const done = (re, ok, code, say, before) => {
+      const out = { type: 'memory.done', re, ok, code, say };
+      if (ok && before) { const token = id(); undos.set(token, before); out.undo = token; }
+      return out;
+    };
+    return message => {
+      const re = message.id;
+      const clean = text => typeof text === 'string' ? text.replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+      if (message.type === 'memory.get') return [list()];
+      if (message.type === 'memory.day') {
+        const lines = state.logs.get(message.date);
+        return [{ type: 'memory.chat', re, date: message.date, ok: !!lines, cut: false, lines: lines || [] }];
+      }
+      const before = snapshot();
+      if (message.type === 'memory.add') {
+        const text = clean(message.text);
+        if (!text) return [done(re, false, 'empty', 'There is nothing to remember in that.')];
+        if (/\d{6,}|password/i.test(text)) return [done(re, false, 'private', 'That one is personal. I keep those out of my notes.')];
+        if (state.about.some(row => row.text === text)) return [done(re, false, 'same', 'I already have that.')];
+        state.about.push({ id: id(), text });
+        return [done(re, true, 'added', 'Noted.', before), list()];
+      }
+      if (message.type === 'memory.edit' || message.type === 'memory.forget') {
+        const hit = find(message.item);
+        if (!hit) return [done(re, false, 'changed', 'That changed on your PC first.'), list()];
+        if (message.type === 'memory.forget') {
+          hit.where.splice(hit.at, 1);
+          return [done(re, true, 'forgot', 'Forgot it.', before), list()];
+        }
+        const text = clean(message.text);
+        if (!text) return [done(re, false, 'empty', 'There is nothing to save there.')];
+        if (text === hit.where[hit.at].text) return [done(re, false, 'same', 'Nothing changed.')];
+        hit.where[hit.at] = { id: id(), text };
+        return [done(re, true, 'saved', 'Saved.', before), list()];
+      }
+      if (message.type === 'memory.forget-day') {
+        if (!state.logs.delete(message.date)) return [done(re, false, 'changed', 'That day is already gone.'), list()];
+        return [done(re, true, 'forgot', 'Forgot that day.', before), list()];
+      }
+      if (message.type === 'memory.wipe') {
+        if (!['about', 'chats', 'days', 'games', 'all'].includes(message.what)) return [done(re, false, 'bad', 'I can not forget that.')];
+        if (message.what === 'about' || message.what === 'all') state.about = [];
+        if (message.what === 'chats' || message.what === 'all') state.chats = [];
+        if (message.what === 'days' || message.what === 'all') state.logs = new Map();
+        if (message.what === 'games') state.games = [];
+        return [done(re, true, 'forgot', message.what === 'games' ? 'Forgot my game notes.' : 'Forgot all of it.', before), list()];
+      }
+      if (message.type === 'memory.undo') {
+        const token = undos.get(message.undo);
+        if (!token) return [done(re, false, 'gone', 'Too late to undo that.')];
+        undos.delete(message.undo);
+        restore(token);
+        return [done(re, true, 'undone', 'Put it back.'), list()];
+      }
+      return null;
+    };
+  };
+
   // ---------- The stand-in link: the same open, send and state calls the relay link has ----------
   const link = () => {
     let on = null;
@@ -91,11 +207,13 @@
     let timers = [];
     let allowTimer = 0;
     let paired = null;
+    let answer = null;
     const after = (ms, fn) => { const timer = setTimeout(fn, ms); timers.push(timer); return timer; };
     const clear = () => { for (const timer of timers) clearTimeout(timer); timers = []; clearTimeout(allowTimer); };
     const set = (next, extra) => { state = next; on.state(next, Object.assign({ demo: true, pc: PC }, extra || {})); };
     const online = () => {
-      set('connected', { code: '', reason: '' });
+      set('connected', { code: '', reason: '', features: ['memory'] });
+      answer = answer || memory();
       on.message({ type: 'presence', pc: true });
     };
     const offline = () => {
@@ -116,6 +234,12 @@
         else waitForAllow();
       },
       send(message) {
+        if (/^memory\./.test(message.type)) {
+          const replies = state === 'connected' && answer ? answer(message) : null;
+          if (!replies) return false;
+          replies.forEach((reply, n) => after(60 + n * 20, () => { if (state === 'connected') on.message(reply); }));
+          return true;
+        }
         if (message.type !== 'chat.send' || state !== 'connected' || typeof message.text !== 'string' || !message.text || message.text.length > 8000) return false;
         const plan = brain(message.text);
         const re = message.id, reply = id();

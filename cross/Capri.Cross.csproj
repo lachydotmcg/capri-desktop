@@ -31,6 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
+    <Compile Include="../app/BetterModels.cs" Link="Shared/BetterModels.cs" />
     <Compile Include="../app/PersonalSettings.cs" Link="Shared/PersonalSettings.cs" />
     <Compile Include="../app/Doomscroll.cs" Link="Shared/Doomscroll.cs" />
     <Compile Include="../app/Probes.cs" Link="Shared/Probes.cs" />
@@ -38,6 +39,8 @@
     <Compile Include="../app/Care.cs" Link="Shared/Care.cs" />
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />
     <Compile Include="../app/FileFinder.cs" Link="Shared/FileFinder.cs" />
+    <Compile Include="../app/FileKeeper.cs" Link="Shared/FileKeeper.cs" />
+    <Compile Include="../app/FileKeeperChecks.cs" Link="Shared/FileKeeperChecks.cs" />
     <Compile Include="../app/Files.cs" Link="Shared/Files.cs" />
     <Compile Include="../app/SelfKnow.cs" Link="Shared/SelfKnow.cs" />
     <Compile Include="../app/Network.cs" Link="Shared/Network.cs" />
@@ -53,6 +56,7 @@
     <Compile Include="../app/ModApi.cs" Link="Shared/ModApi.cs" />
     <Compile Include="../app/CodeMods.cs" Link="Shared/CodeMods.cs" />
     <Compile Include="../app/ArtColors.cs" Link="Shared/ArtColors.cs" />
+    <Compile Include="../app/Onboarding.cs" Link="Shared/Onboarding.cs" />
     <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
     <Compile Include="../app/SkillMods.cs" Link="Shared/SkillMods.cs" />
     <Compile Include="../app/ToolMods.cs" Link="Shared/ToolMods.cs" />
@@ -67,6 +71,7 @@
     <Compile Include="../app/RemoteBrainKeys.cs" Link="Shared/RemoteBrainKeys.cs" />
     <Compile Include="../app/RemoteChat.cs" Link="Shared/RemoteChat.cs" />
     <Compile Include="../app/RemoteWake.cs" Link="Shared/RemoteWake.cs" />
+    <Compile Include="../app/MemoryBook.cs" Link="Shared/MemoryBook.cs" />
     <Compile Include="../app/RemotePush.cs" Link="Shared/RemotePush.cs" />
     <Compile Include="../app/MainframeRemote.cs" Link="Shared/MainframeRemote.cs" />
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />

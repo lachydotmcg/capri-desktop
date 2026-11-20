@@ -552,10 +552,17 @@ namespace CapriDesktop
     {
         private const double LongestIntro = 15, IntroWait = 8;
         private IntroScreen introScreen;
+        // Her door is due on her first start after an update, and plays instead of a mod's intro that once.
+        private bool doorPending;
+
+        private DoorIntro NewDoor(bool popups)
+        {
+            return new DoorIntro(sleep, wake, idle, herFolder == null ? null : Path.Combine(herFolder, "sounds", "intro"), popups);
+        }
 
         private bool HoldForIntro(Action arrival, bool spawn)
         {
-            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || !ModList.WantsIntro || FullScreenDisplay) return false;
+            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || !(doorPending || ModList.WantsIntro) || FullScreenDisplay) return false;
             if (spawn) SpawnInMiddle();
             WaitForIntro(arrival, IntroWait);
             return true;
@@ -577,7 +584,13 @@ namespace CapriDesktop
             wait.Tick += delegate
             {
                 if (IsDisposed) { wait.Dispose(); return; }
-                ICapriIntro intro = ModList.Intro;
+                ICapriIntro intro = doorPending ? NewDoor(true) : ModList.Intro;
+                if (doorPending)
+                {
+                    doorPending = false;
+                    preferences.DoorVersion = DoorIntro.Version;
+                    SavePreferences();
+                }
                 bool out_ = clock.Elapsed.TotalSeconds >= gaveUpAt;
                 if (intro == null && !ModList.CodeSettled && !out_) return;
                 wait.Dispose();
@@ -598,6 +611,8 @@ namespace CapriDesktop
             Action finished = delegate
             {
                 introScreen = null;
+                DoorIntro door = intro as DoorIntro;
+                if (door != null) door.Stop();
                 if (done != null) done();
             };
             if (length <= 0) { finished(); return; }
@@ -734,6 +749,7 @@ namespace CapriDesktop
             if (!veilHeld || !until(() => arrived) || clock.Elapsed.TotalSeconds < veilUntil) throw new Exception("Waiting for an intro that never comes did not bring her in.");
             Play(clipWas);
             checks.Add("PASS mod intros: if no intro turns up she's held off screen, then still arrives");
+            CheckDoor(checks, output);
             string real = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "..", "..", "mods", "startup-intros" + Mods.CodeExtension));
             if (!File.Exists(real)) { checks.Add("LIMIT mod intros: the Startup Intros file isn't beside this build, so its frames weren't drawn"); return; }
             Mod mod = ModList.Import(real, delegate { return true; });
@@ -787,6 +803,86 @@ namespace CapriDesktop
             ModList.Remove(mod);
             if (!previewed || ModList.Running != 0) throw new Exception("Startup Intros did not clean up.");
             checks.Add("PASS mod intros: all three draw at 1920x1080 (" + string.Join("; ", timing) + ")");
+        }
+
+        // Her door from YunoTheAlien: due once after an update and never on a new install, and every frame drawn in time at 1080p,
+        // kept as intro-door.png beside the other intros' sheets.
+        private void CheckDoor(List<string> checks, string output)
+        {
+            string doorWas = preferences.DoorVersion, lastWas = preferences.LastVersion;
+            bool newsWas = newsPending;
+            preferences.DoorVersion = "0.0.1";
+            StartNews(true);
+            bool updated = doorPending;
+            StartNews(true);
+            preferences.DoorVersion = null;
+            StartNews(false);
+            bool fresh = !doorPending && preferences.DoorVersion == DoorIntro.Version;
+            preferences.DoorVersion = DoorIntro.Version;
+            StartNews(true);
+            bool again = doorPending;
+            preferences.DoorVersion = doorWas;
+            preferences.LastVersion = lastWas;
+            newsPending = newsWas;
+            doorPending = false;
+            SavePreferences();
+            if (!updated || !fresh || again) throw new Exception("Her door was due at the wrong time: after an update " + updated + ", new install " + !fresh + ", same version " + again + ".");
+            Size size = new Size(1920, 1080);
+            Rectangle spot = new Rectangle(860, 420, 200, 300);
+            DoorIntro door = NewDoor(false);
+            const int across = 5, down = 3, cellW = 384, cellH = 216;
+            double worst = 0, worstAt = 0;
+            try
+            {
+                using (Bitmap fake = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+                using (Bitmap sheet = new Bitmap(across * cellW, down * cellH))
+                using (Graphics paper = Graphics.FromImage(sheet))
+                using (Bitmap frame = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+                using (Graphics pen = Graphics.FromImage(frame))
+                {
+                    using (Graphics wall = Graphics.FromImage(fake)) wall.Clear(Color.FromArgb(46, 58, 74));
+                    door.Begin(fake, new Rectangle(Point.Empty, size), spot);
+                    // Most of the sheet is the door building and opening, then her waking and standing.
+                    double[] moments = { 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.3, 8.8, 9.6, 10.6, 11.6, 12.1, 12.55 };
+                    for (int i = 0; i < moments.Length; i++)
+                    {
+                        double at = moments[i];
+                        pen.Clear(Color.Transparent);
+                        System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
+                        door.Draw(pen, new Rectangle(Point.Empty, size), spot, at);
+                        if (i > 0 && took.Elapsed.TotalMilliseconds > worst) { worst = took.Elapsed.TotalMilliseconds; worstAt = at; }
+                        Rectangle cell = new Rectangle(i % across * cellW, i / across * cellH, cellW, cellH);
+                        using (Brush desktop = new SolidBrush(Color.FromArgb(46, 58, 74))) paper.FillRectangle(desktop, cell);
+                        paper.DrawImage(frame, cell);
+                        using (Font label = new Font("Consolas", 11f)) paper.DrawString(at.ToString("0.00") + "s", label, Brushes.Yellow, cell.X + 3, cell.Y + 3);
+                    }
+                    if (worst > 60)
+                    {
+                        pen.Clear(Color.Transparent);
+                        System.Diagnostics.Stopwatch redraw = System.Diagnostics.Stopwatch.StartNew();
+                        door.Draw(pen, new Rectangle(Point.Empty, size), spot, worstAt);
+                        worst = Math.Min(worst, redraw.Elapsed.TotalMilliseconds);
+                    }
+                    sheet.Save(Path.Combine(output, "intro-door.png"), System.Drawing.Imaging.ImageFormat.Png);
+                    // A close look at the door fully built, and at her asleep in its opening.
+                    foreach (double at in new[] { 7.9, 9.4 })
+                    {
+                        pen.Clear(Color.Transparent);
+                        door.Draw(pen, new Rectangle(Point.Empty, size), spot, at);
+                        Rectangle near = new Rectangle(spot.X + spot.Width / 2 - 640, spot.Y + spot.Height / 2 - 360, 1280, 720);
+                        using (Bitmap close = new Bitmap(near.Width, near.Height))
+                        using (Graphics zoom = Graphics.FromImage(close))
+                        {
+                            zoom.Clear(Color.FromArgb(46, 58, 74));
+                            zoom.DrawImage(frame, new Rectangle(Point.Empty, near.Size), near, GraphicsUnit.Pixel);
+                            close.Save(Path.Combine(output, "intro-door-" + at.ToString("0.0").Replace('.', '_') + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                    }
+                }
+            }
+            finally { door.Stop(); }
+            if (worst > 60) throw new Exception("A door intro frame is too slow: " + worst.ToString("0") + " ms at " + worstAt.ToString("0.0") + " s.");
+            checks.Add("PASS door intro: due once after an update and not on a new install, " + DoorIntro.Length.ToString("0.0") + " s, slowest frame " + worst.ToString("0") + " ms at 1920x1080");
         }
 
         private void CheckModReading(List<string> checks, Func<string, string, string> sample, Func<string, string, string> code)

@@ -747,6 +747,72 @@ namespace CapriDesktop
             if (changed != null && !closed && !chat.Deleted) changed(chat, item);
         }
 
+        internal const string FilesTitle = "Her files";
+        internal Func<string, string> UndoFiles = delegate(string id) { return Hands.Keeper.Undo(id); };
+
+        internal WorkspaceChat FilesChat()
+        {
+            foreach (WorkspaceChat one in Chats())
+                lock (one.Gate) if (!one.Deleted && one.Title == FilesTitle) return one;
+            WorkspaceChat chat = HomeChat(false);
+            Change(chat, FilesTitle, null, null);
+            return chat;
+        }
+
+        internal static string FilesText(FileChange change)
+        {
+            StringBuilder text = new StringBuilder(char.ToUpperInvariant(change.What[0]) + change.What.Substring(1) + ".");
+            int shown = 0;
+            foreach (FileStep step in change.Steps)
+            {
+                if (string.IsNullOrEmpty(step.From)) continue;
+                if (++shown > 8) continue;
+                text.Append('\n').Append(step.From).Append(" \u2192 ").Append(step.To);
+            }
+            if (shown > 8) text.Append('\n').Append(shown - 8).Append(" more");
+            return text.ToString();
+        }
+
+        internal void LogFiles(FileChange change)
+        {
+            if (change == null || change.Steps == null || string.IsNullOrEmpty(change.What)) return;
+            WorkspaceChat chat = FilesChat();
+            WorkspaceItem logged;
+            lock (chat.Gate) logged = chat.Items.Find(delegate(WorkspaceItem item) { return item.Kind == "files" && item.Id == change.Id; });
+            if (logged == null) { if (!change.Undone) Add(chat, new WorkspaceItem { Kind = "files", Id = change.Id, Text = FilesText(change) }); return; }
+            if (!change.Undone || logged.Decision.Length > 0) return;
+            lock (chat.Gate) logged.Decision = "undone";
+            Add(chat, new WorkspaceItem { Kind = "note", Text = "Put back: " + change.What + "." });
+        }
+
+        internal void LogFilesCall(string call, string result)
+        {
+            if (string.IsNullOrEmpty(call)) return;
+            WorkspaceChat chat = FilesChat();
+            string id = Guid.NewGuid().ToString("N"), turn = "files-" + id;
+            result = result ?? "";
+            WorkspaceItem tool = new WorkspaceItem { Kind = "tool", Name = "files", Id = id, Turn = turn, Text = "files " + call };
+            WorkspaceItem done = new WorkspaceItem { Kind = "result", Id = id, Turn = turn, Text = result.Length > 2000 ? result.Substring(0, 2000) : result };
+            lock (chat.Gate)
+            {
+                if (chat.Deleted) return;
+                chat.Items.Add(tool);
+                chat.Items.Add(done);
+                chat.Updated = DateTime.UtcNow.Ticks;
+                Save(chat);
+            }
+            Notify(chat, tool);
+            Notify(chat, done);
+        }
+
+        internal string UndoFile(WorkspaceChat chat, WorkspaceItem item)
+        {
+            lock (chat.Gate) { if (item.Decision.Length > 0) return null; item.Decision = "undone"; }
+            string told = UndoFiles(item.Id);
+            Add(chat, new WorkspaceItem { Kind = "note", Text = told });
+            return told;
+        }
+
         internal void Add(WorkspaceChat chat, WorkspaceItem item)
         {
             lock (chat.Gate)
