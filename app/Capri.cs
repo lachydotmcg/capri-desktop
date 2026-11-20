@@ -21648,7 +21648,7 @@ namespace CapriDesktop
                 bool herLiveRan;
                 string herLive = HerBrowser.CheckLive(herLiveFolder, out herLiveRan);
                 if (herLive != null) throw new Exception(herLive);
-                checks.Add(herLiveRan ? "PASS her browser: Edge or Chrome starts headless and she drives it over a private pipe, with no debugging port for a page or another program to find" : "SKIP her browser over its pipe: no Edge or Chrome on this PC");
+                checks.Add(herLiveRan ? "PASS her browser: Edge or Chrome starts headless and she drives it over a private pipe, with no debugging port for a page or another program to find, and a browser of hers left running from before is closed so a new one can start" : "SKIP her browser over its pipe: no Edge or Chrome on this PC");
             }
             finally { try { if (Directory.Exists(herLiveFolder)) Directory.Delete(herLiveFolder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
             string weatherResult = Weather.Check();

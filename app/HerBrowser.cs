@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 
 namespace CapriDesktop
@@ -78,6 +79,12 @@ namespace CapriDesktop
 
         [DllImport("kernel32.dll")]
         private static extern void DeleteProcThreadAttributeList(IntPtr list);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr OpenProcess(uint access, bool inherit, int id);
+
+        [DllImport("ntdll.dll")]
+        private static extern int NtQueryInformationProcess(IntPtr process, int kind, IntPtr info, int size, out int needed);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern bool CreateProcessW(string application, StringBuilder command, IntPtr processSecurity, IntPtr threadSecurity, bool inherit, uint flags, IntPtr environment, string folder, ref StartupInfoEx startup, out ProcessInfo info);
@@ -156,6 +163,55 @@ namespace CapriDesktop
                 if (handles != IntPtr.Zero) Marshal.FreeHGlobal(handles);
                 if (fds != IntPtr.Zero) Marshal.FreeHGlobal(fds);
             }
+        }
+
+        internal static string CommandLine(int id)
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) return null;
+            IntPtr handle = OpenProcess(0x1000, false, id);
+            if (handle == IntPtr.Zero) return null;
+            IntPtr buffer = IntPtr.Zero;
+            try
+            {
+                int needed;
+                NtQueryInformationProcess(handle, 60, IntPtr.Zero, 0, out needed);
+                if (needed <= 0 || needed > 1 << 20) return null;
+                buffer = Marshal.AllocHGlobal(needed);
+                if (NtQueryInformationProcess(handle, 60, buffer, needed, out needed) != 0) return null;
+                int length = (ushort)Marshal.ReadInt16(buffer);
+                IntPtr text = Marshal.ReadIntPtr(buffer, IntPtr.Size);
+                return text == IntPtr.Zero ? null : Marshal.PtrToStringUni(text, length / 2);
+            }
+            catch (Exception) { return null; }
+            finally
+            {
+                if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer);
+                CloseHandle(handle);
+            }
+        }
+
+        internal static int EndLeftovers(string exe, string profile)
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT || string.IsNullOrEmpty(exe)) return 0;
+            string flag = "--user-data-dir=\"" + profile.TrimEnd('\\', '/') + "\"";
+            int ended = 0;
+            Process[] found;
+            try { found = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe)); }
+            catch (Exception) { return 0; }
+            foreach (Process left in found)
+            {
+                try
+                {
+                    string line = CommandLine(left.Id);
+                    if (line == null || line.IndexOf(flag, StringComparison.OrdinalIgnoreCase) < 0 || line.IndexOf("--type=", StringComparison.Ordinal) >= 0) continue;
+                    left.Kill();
+                    left.WaitForExit(5000);
+                    ended++;
+                }
+                catch (Exception) { }
+                finally { left.Dispose(); }
+            }
+            return ended;
         }
 
         public void Dispose()
@@ -260,18 +316,37 @@ namespace CapriDesktop
             roots.Add(Environment.GetEnvironmentVariable("ProgramFiles"));
             roots.Add(Environment.GetEnvironmentVariable("ProgramFiles(x86)"));
             roots.Add(Environment.GetEnvironmentVariable("LocalAppData"));
-            string[] relative = { @"Microsoft\Edge\Application\msedge.exe", @"Google\Chrome\Application\chrome.exe" };
-            foreach (string part in relative)
+            string[][] browsers =
+            {
+                new[] { "msedge.exe", @"Microsoft\Edge\Application\msedge.exe" },
+                new[] { "chrome.exe", @"Google\Chrome\Application\chrome.exe" },
+                new[] { "brave.exe", @"BraveSoftware\Brave-Browser\Application\brave.exe" }
+            };
+            foreach (string[] browser in browsers)
+            {
                 foreach (string root in roots)
                 {
                     if (string.IsNullOrEmpty(root)) continue;
                     try
                     {
-                        string path = Path.Combine(root, part);
+                        string path = Path.Combine(root, browser[1]);
                         if (File.Exists(path)) return path;
                     }
                     catch (Exception) { }
                 }
+                foreach (RegistryKey hive in new[] { Registry.LocalMachine, Registry.CurrentUser })
+                {
+                    try
+                    {
+                        using (RegistryKey key = hive.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\" + browser[0]))
+                        {
+                            string path = key == null ? null : (key.GetValue(null) as string ?? "").Trim().Trim('"');
+                            if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
             return null;
         }
 
@@ -281,8 +356,8 @@ namespace CapriDesktop
             args.Append("--headless=new --remote-debugging-pipe ");
             args.Append("--user-data-dir=\"").Append(profileFolder.TrimEnd('\\', '/')).Append("\" ");
             args.Append("--window-size=").Append(width).Append(',').Append(height).Append(' ');
-            args.Append("--no-first-run --no-default-browser-check --disable-sync --disable-extensions --mute-audio ");
-            if (Environment.OSVersion.Platform != PlatformID.Win32NT) args.Append("--no-sandbox --disable-gpu --disable-dev-shm-usage ");
+            args.Append("--no-first-run --no-default-browser-check --disable-sync --disable-extensions --mute-audio --disable-gpu ");
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) args.Append("--no-sandbox --disable-dev-shm-usage ");
             args.Append("about:blank");
             return args.ToString();
         }
@@ -297,6 +372,7 @@ namespace CapriDesktop
             if (string.IsNullOrEmpty(exe) || !File.Exists(exe))
             {
                 problem = "I couldn't find Edge or Chrome on this PC.";
+                Brain.Log("her browser", -1, "no Edge, Chrome or Brave found");
                 return false;
             }
             try
@@ -304,11 +380,14 @@ namespace CapriDesktop
                 Directory.CreateDirectory(profile);
                 string portFile = Path.Combine(profile, "DevToolsActivePort");
                 if (File.Exists(portFile)) File.Delete(portFile);
+                int ended = HerPipe.EndLeftovers(exe, profile);
+                if (ended > 0) Brain.Log("her browser", -1, "closed " + ended + " of her browsers left running from before");
                 HerPipe pipe = Launch == null ? null : Launch(exe, Arguments(profile, width, height));
                 if (pipe == null || pipe.Process == null || pipe.FromBrowser == null || pipe.ToBrowser == null)
                 {
                     if (pipe != null) pipe.Dispose();
                     problem = "I couldn't open my browser.";
+                    Brain.Log("her browser", -1, "couldn't launch " + exe);
                     return false;
                 }
                 link = pipe;
@@ -320,7 +399,7 @@ namespace CapriDesktop
 
                 string targetId = null;
                 bool made = false;
-                DateTime until = DateTime.UtcNow.AddSeconds(10);
+                DateTime began = DateTime.UtcNow, until = began.AddSeconds(30);
                 DateTime create = DateTime.UtcNow.AddSeconds(3);
                 while (DateTime.UtcNow < until && targetId == null && Running)
                 {
@@ -342,10 +421,20 @@ namespace CapriDesktop
                     }
                     if (targetId == null) Thread.Sleep(150);
                 }
-                if (targetId == null) { problem = Running ? "My browser started but wouldn't let me drive it." : "My browser didn't start in time."; Dispose(); return false; }
+                if (targetId == null)
+                {
+                    bool closed = !Running;
+                    string code = "";
+                    try { if (closed && process.HasExited) code = " with code " + process.ExitCode; }
+                    catch (Exception) { }
+                    Brain.Log("her browser", (long)(DateTime.UtcNow - began).TotalMilliseconds, exe + (closed ? " closed" + code : " never answered"));
+                    problem = closed ? "My browser closed as soon as it opened." : "My browser started but wouldn't let me drive it.";
+                    Dispose();
+                    return false;
+                }
 
                 string attached = HuskJson.Text(SendBrowser("Target.attachToTarget", HuskJson.Map("targetId", targetId, "flatten", true), 8000), "sessionId");
-                if (attached.Length == 0) { problem = "My browser started but wouldn't let me drive it."; Dispose(); return false; }
+                if (attached.Length == 0) { Brain.Log("her browser", -1, exe + " wouldn't attach to its page"); problem = "My browser started but wouldn't let me drive it."; Dispose(); return false; }
                 lock (stateLock) session = attached;
 
                 Send("Page.enable", null);
@@ -353,8 +442,9 @@ namespace CapriDesktop
                 Send("Emulation.setDeviceMetricsOverride", HuskJson.Map("width", width, "height", height, "deviceScaleFactor", 1, "mobile", false));
                 return true;
             }
-            catch (Exception)
+            catch (Exception error)
             {
+                Brain.Log("her browser", -1, "start failed: " + error.Message);
                 problem = "I couldn't start my browser.";
                 try { Dispose(); } catch (Exception) { }
                 return false;
@@ -516,6 +606,15 @@ namespace CapriDesktop
                 if (web.LastAddress != "about:blank" && web.Address != "about:blank") return "Her browser didn't start on a blank page: " + web.LastAddress;
                 byte[] frame = web.Frame(50);
                 if (frame == null || frame.Length < 2 || frame[0] != 0xFF || frame[1] != 0xD8) return "Her browser didn't send a picture of its page.";
+                using (HerBrowser again = new HerBrowser(folder, 640, 480))
+                {
+                    if (!again.Start(out problem)) return "Her browser wouldn't start while an old one still held her profile: " + problem;
+                    if (web.process.WaitForExit(5000) == false) return "Her old browser was left running beside the new one.";
+                    if (Number(again.Eval("6*7")) != 42) return "Her browser didn't answer after closing the one left from before.";
+                    id = again.process.Id;
+                    again.Dispose();
+                    if (again.Running) return "Her second browser kept running after she closed it.";
+                }
             }
             finally { web.Dispose(); }
             if (web.Running) return "Her browser kept running after she closed it.";
