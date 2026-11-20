@@ -5884,6 +5884,7 @@ namespace CapriDesktop
                 string pluginsOut = Path.Combine(input, "plugins-test");
                 Directory.CreateDirectory(pluginsOut);
                 Mods.CheckPlugins(mods, checks, pluginsOut);
+                ModFloor.Fresh();
 
                 PixelSize art = Pet.ArtSize("Capri.Sprite.idle.png");
                 if (!frame.ImportMod(ModSkin(input, "smoke-guard-skin", "idle.png", art.Width, art.Height))) throw new Exception("The approve box check couldn't put a skin on: " + frame.ModStatusText);

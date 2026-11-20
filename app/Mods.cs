@@ -72,6 +72,7 @@ namespace CapriDesktop
         internal string Hash;
         internal string Folder;
         internal string From;
+        internal string Owner;
         internal PluginInfo Info;
         internal Mod[] Skills = new Mod[0];
     }

@@ -125,6 +125,7 @@ namespace CapriDesktop
             text = text ?? "";
             List<string> found = new List<string>();
             for (int i = 0; i < Reach.GetLength(0); i++) if (Regex.IsMatch(text, Reach[i, 1])) found.Add(Reach[i, 0]);
+            if (ModFloor.Settings.IsMatch(text)) found.Add(ModFloor.SettingsReach);
             string[] where = Addresses(text);
             if (where.Length > 0) found.Add("contacts " + string.Join(", ", where, 0, Math.Min(3, where.Length)) + (where.Length > 3 ? " and " + (where.Length - 3) + " more" : ""));
             return found.ToArray();

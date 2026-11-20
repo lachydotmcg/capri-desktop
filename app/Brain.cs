@@ -5284,6 +5284,20 @@ namespace CapriDesktop
             return Scrubbed(text, SavedSecrets());
         }
 
+        internal static bool HoldsSecret(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            string[] keys = SavedSecrets();
+            return keys != null && Scrubbed(text, keys) != text;
+        }
+
+        internal static string Masked(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            string[] keys = SavedSecrets();
+            return keys == null ? text : Scrubbed(text, keys);
+        }
+
         internal static string[] Cleaned(string[] lines)
         {
             string[] keys = SavedSecrets();

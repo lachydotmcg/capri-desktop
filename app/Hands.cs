@@ -399,7 +399,7 @@ namespace CapriDesktop
         internal static bool Asks(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args), granted = Granted(tool, args);
-            if (!Careful(tool, args) && (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle)))) return false;
+            if (!Careful(tool, args) && !ModFloor.Forces(tool, args, toggle) && (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle)))) return false;
             lock (gate) return !cleared.Contains(Asking(tool, args));
         }
 
@@ -407,7 +407,7 @@ namespace CapriDesktop
         internal static string Gate(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args), granted = Granted(tool, args);
-            if (!Careful(tool, args) && (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle)))) return null;
+            if (!Careful(tool, args) && !ModFloor.Forces(tool, args, toggle) && (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle)))) return null;
             string asked = Asking(tool, args);
             lock (gate)
             {
@@ -528,7 +528,7 @@ namespace CapriDesktop
             }
         }
 
-        internal static void TheySaid() { lock (gate) modSaid.Clear(); }
+        internal static void TheySaid() { lock (gate) modSaid.Clear(); ModFloor.Fresh(); }
 
         internal static bool FromMod(string text) { lock (gate) return modSaid.Contains(Plainly(text)); }
 
