@@ -1,12 +1,13 @@
 # Making Capri mods
 
-Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
+Capri reads five kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
 
 | File | What it does |
 |---|---|
 | `.capri-mod` | Settings only: extra names, spellings, colours, the hearing log |
 | `.capri-skin` | A zip of her sprite strips that changes how she looks. Several **stack**: each one turned on goes on top |
 | `.capri-skill` | Know-how for a game that she follows when she plays it |
+| `.capri-tool` | A look-up tool she can use: one to three reads from sites it lists. It can't run code or send anything |
 | `.capri-code` | C# that runs inside Capri, on Windows, Mac and Linux |
 
 Share finished mods in [capri-mods](https://github.com/lachydotmcg/capri-mods).
@@ -64,6 +65,51 @@ Set how fast a strip plays in `skin.json`, from 1 to 60 frames a second. It work
 - **Slower** and **Faster** set its speed.
 - **Wear it** saves every change as a skin and puts it on as her outfit, starting from the outfit she has on. **Save skin...**
   saves the `.capri-skin` to share.
+
+## Tool mods
+
+A `.capri-tool` gives her one new tool without any code. It's a JSON recipe: up to three HTTPS GETs to the hosts it lists,
+the values to keep from each JSON answer, and what to tell her. Capri's own code runs it, so a broken tool fails with a reason
+instead of crashing her.
+
+```json
+{
+  "format": 1,
+  "id": "word-meaning",
+  "name": "What a word means",
+  "version": "1.0",
+  "author": "You",
+  "description": "The first dictionary meaning of an English word. Use it when they ask what a word means.",
+  "takes": "One English word",
+  "domains": ["api.dictionaryapi.dev"],
+  "steps": [
+    { "get": "https://api.dictionaryapi.dev/api/v2/entries/en/{text}", "keep": { "meaning": "[0].meanings[0].definitions[0].definition" } }
+  ],
+  "say": "{text}: {meaning}"
+}
+```
+
+- `id` becomes her tool's name, with dashes as underscores (`word_meaning`). It starts with a letter, up to 40 characters.
+- `description` tells her when to use it, up to 200 characters. `takes` says what its one text input is. Leave it out for a
+  tool that takes nothing.
+- `domains` lists 1 to 5 hosts. Every `get` starts with `https://` and one of those hosts, written out in full.
+- `{text}` is what she passes in. `{name}` is a value an earlier step kept. In a `get` they're URL-encoded; in `say` they're
+  as they came.
+- A path is keys and `[n]` indexes: `extract`, `[0].date`, `results[0].latitude`. Numbers come through as the site wrote them.
+- Only GET, no keys or logins. A redirect isn't followed, so name the final host, 4 seconds and 64 KB per answer, and 2000 characters back to her.
+
+Importing one shows the hosts it reads from and asks first, and an edited one asks again. Her tool goes through the same
+`mod` tool and the same **Use tools your mods added** toggle as code mods' tools. A site that finds nothing doesn't count
+against a tool, but three broken answers in a row (no JSON, a path that isn't there, an answer that's too big)
+switch it off until you turn it on again.
+
+She can write one herself with her `make_tool` tool when you ask for a look-up she doesn't have. It's saved in your mods
+switched off and not approved, so nothing runs until you read it in Mods and turn it on.
+
+## If a mod stops her starting
+
+Capri remembers which code mod was starting. If she stopped while one was, that mod is off on her next start and the Mods
+page says so. Start her with `--no-mods` to start with every mod off for that run, without changing what's saved.
 
 ## Code mods
 
@@ -304,6 +350,7 @@ A `CapriTrack` has `Title`, `Artist`, `Album`, `App` (a name to show, like `Spot
 
 ## Examples
 
+- [demo/](demo) has a checkers game she plays with you, and a tool mod for currency rates.
 - [hello-code.capri-code](hello-code.capri-code) answers "mod check".
 - [hooks-tour.capri-code](hooks-tour.capri-code) grows or shrinks her when asked, counts head pats, draws a heart over her head, and adds a menu item and options.
 - [startup-intros.capri-code](startup-intros.capri-code) plays a startup intro.

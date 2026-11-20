@@ -38,6 +38,7 @@ namespace CapriDesktop
         internal string Unreadable;
         internal string Tidy;
         internal bool AskTwice;
+        internal ToolRecipe Recipe;
     }
 
     [DataContract]
@@ -63,7 +64,7 @@ namespace CapriDesktop
         internal ModFile File;
         internal string Path;
         internal bool On;
-        internal bool Code, Changed, Skin, Skill, Own;
+        internal bool Code, Changed, Skin, Skill, Own, Tool;
         internal string Hash;
     }
 
@@ -112,6 +113,7 @@ namespace CapriDesktop
                 Func<string> context = ModContext;
                 return note + ModNotes + (context == null ? "" : context());
             };
+            CheckStarting();
             Load();
         }
 
@@ -148,6 +150,7 @@ namespace CapriDesktop
                     found.AddRange(Directory.GetFiles(folder, "*" + CodeExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + SkinExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + SkillExtension));
+                    found.AddRange(Directory.GetFiles(folder, "*" + ToolExtension));
                     found.Sort(StringComparer.OrdinalIgnoreCase);
                     files = found.ToArray();
                 }
@@ -170,6 +173,7 @@ namespace CapriDesktop
                         if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadCode(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadSkin(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadSkill(file, off)); continue; }
+                        if (string.Equals(Path.GetExtension(file), ToolExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadTool(file, off)); continue; }
                         ModFile read = Read(File.ReadAllText(file));
                         if (!string.Equals(read.Id, Path.GetFileNameWithoutExtension(file), StringComparison.OrdinalIgnoreCase)) throw new ModException("its file name doesn't match its id, " + read.Id + ".");
                         All.Add(new Mod { File = read, Path = file, On = !off.Contains(read.Id) });
@@ -198,6 +202,8 @@ namespace CapriDesktop
                     }
                 }
             }
+            foreach (string id in stoppedStarts) Problems.Add(id + " was starting when Capri last stopped, so it's off. Turn it on again if it wasn't the cause.");
+            OffThisRun();
             Apply();
         }
 
@@ -206,16 +212,18 @@ namespace CapriDesktop
             if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask, keepOff);
             if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file, keepOff == null);
             if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkill(file);
+            if (string.Equals(Path.GetExtension(file), ToolExtension, StringComparison.OrdinalIgnoreCase)) return ImportTool(file, ask, keepOff);
             string text;
             try
             {
-                if (!string.Equals(Path.GetExtension(file), Extension, StringComparison.OrdinalIgnoreCase)) throw new ModException("That isn't a " + Extension + ", " + CodeExtension + ", " + SkinExtension + " or " + SkillExtension + " file.");
+                if (!string.Equals(Path.GetExtension(file), Extension, StringComparison.OrdinalIgnoreCase)) throw new ModException("That isn't a " + Extension + ", " + CodeExtension + ", " + SkinExtension + ", " + SkillExtension + " or " + ToolExtension + " file.");
                 if (new FileInfo(file).Length > Largest) throw new ModException("That mod is too big. A mod is a small settings file.");
                 text = File.ReadAllText(file);
             }
             catch (IOException error) { throw new ModException("Couldn't read that file: " + error.Message); }
             catch (UnauthorizedAccessException error) { throw new ModException("Couldn't read that file: " + error.Message); }
             ModFile read = Read(text);
+            offThisRun.Remove(read.Id);
             string home = Path.Combine(folder, read.Id + Extension);
             try
             {
@@ -253,7 +261,13 @@ namespace CapriDesktop
 
         internal bool Set(Mod mod, bool on, Func<ModFile, string, bool> ask)
         {
+            if (on)
+            {
+                stoppedStarts.Remove(mod.File.Id);
+                offThisRun.Remove(mod.File.Id);
+            }
             if (mod.Code) return SetCode(mod, on, ask);
+            if (mod.Tool) return SetTool(mod, on, ask);
             if (mod.Skin) { SetSkin(mod, on); return true; }
             HashSet<string> off = Off();
             if (on)
@@ -274,7 +288,7 @@ namespace CapriDesktop
 
         internal void Remove(Mod mod)
         {
-            if (mod.Code) RemoveCode(mod);
+            if (mod.Code || mod.Tool) RemoveCode(mod);
             if (mod.Skin) RemoveSkin(mod);
             File.Delete(mod.Path);
             HashSet<string> off = Off();
@@ -357,6 +371,7 @@ namespace CapriDesktop
             if (!wantLog) DeleteLog();
             ApplySkin();
             skills = All.FindAll(mod => mod.Skill && mod.On).ToArray();
+            recipes = All.FindAll(mod => mod.Tool && mod.On).ToArray();
             knownSkills = All.FindAll(mod => mod.Skill).ToArray();
             skillNote = Standing(skills);
             note = names.Length == 0 ? "" : "\nThey can also call you " + Listed(names) + ". Those are nicknames for you, so answer to them like your own name.";
@@ -403,13 +418,16 @@ namespace CapriDesktop
         private HashSet<string> Off()
         {
             string file = Path.Combine(folder, OffFile);
-            return new HashSet<string>(File.Exists(file) ? File.ReadAllLines(file) : new string[0]);
+            lock (offGate) return new HashSet<string>(File.Exists(file) ? File.ReadAllLines(file) : new string[0]);
         }
 
         private void WriteOff(HashSet<string> off)
         {
-            Directory.CreateDirectory(folder);
-            File.WriteAllLines(Path.Combine(folder, OffFile), off);
+            lock (offGate)
+            {
+                Directory.CreateDirectory(folder);
+                File.WriteAllLines(Path.Combine(folder, OffFile), off);
+            }
         }
     }
 }

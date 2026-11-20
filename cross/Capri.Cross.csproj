@@ -59,6 +59,7 @@
     <Compile Include="../app/Onboarding.cs" Link="Shared/Onboarding.cs" />
     <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
     <Compile Include="../app/SkillMods.cs" Link="Shared/SkillMods.cs" />
+    <Compile Include="../app/ToolMods.cs" Link="Shared/ToolMods.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />
