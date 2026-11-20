@@ -491,6 +491,7 @@ namespace CapriDesktop
         internal void StopCode()
         {
             foreach (string id in new List<string>(running.Keys)) StopOne(id);
+            Plugins.StopAll();
         }
 
         internal void StartCode(Action<Action> onWindow)

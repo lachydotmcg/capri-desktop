@@ -3253,7 +3253,9 @@ namespace CapriDesktop
             tray.DoubleClick += delegate { RestoreAtCursor(); };
             tray.BalloonTipClicked += delegate { BalloonClicked(); };
             tray.Visible = !testing;
+            Mods.WithStarters = !testing;
             ModList = new Mods(data);
+            Plugins.ToolsChanged = delegate { if (IsHandleCreated && !IsDisposed) OnWindow(delegate { if (mainframe != null && !mainframe.IsDisposed) mainframe.ModsChanged(); }); };
             GameNotes.Skills = ModList.SkillsFor;
             Hands.SkillNote = delegate { return ModList.SkillNote; };
             Hands.ReadSkill = ModList.SkillText;
@@ -39948,7 +39950,7 @@ namespace CapriDesktop
         // INTELLIGENCE's rung with the plan in use ticked.
         private void SmokeBetterModels(System.Collections.Generic.List<string> checks)
         {
-            string key = "xai-fixture-key";
+            string key = "xai-fixture-key-0123456789abcdefghij";
             if (Cloud.KindOf(key) != "xai" || Cloud.MediumKind("xai") || Cloud.KindOf("xai-test\r\nunsafe") != null
                 || new Cloud(key, "grok-4.7").Name != "Grok" || Brain.Redacted(key) != "[redacted]")
                 throw new Exception("The xAI key didn't route to MAX or stay out of the logs.");
@@ -45820,7 +45822,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
-            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });

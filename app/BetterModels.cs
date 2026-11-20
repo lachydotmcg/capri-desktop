@@ -24,7 +24,7 @@ namespace CapriDesktop
 
         internal static string RedactXai(string text)
         {
-            return text == null ? null : Regex.Replace(text, @"\bxai-[A-Za-z0-9_-]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return text == null ? null : Regex.Replace(text, @"\bxai-[A-Za-z0-9_-]{20,}", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
         internal static bool PlanId(string id)

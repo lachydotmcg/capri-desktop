@@ -712,6 +712,10 @@ namespace CapriDesktop
             return bytes != null && bytes.Length == listing.Size && BlobSha(bytes) == listing.Sha;
         }
 
+        private static readonly HashSet<string> fetched = new HashSet<string>(StringComparer.Ordinal);
+
+        internal static bool Fetched(string hash) { lock (fetched) return hash != null && fetched.Contains(hash); }
+
         internal static string Download(ModListing listing, string under)
         {
             byte[] bytes = null;
@@ -719,6 +723,7 @@ namespace CapriDesktop
             catch (Exception) { }
             if (!Matches(bytes, listing)) bytes = Get(Api + "blobs/" + listing.Sha, Largest);
             if (!Matches(bytes, listing)) throw new ModException(listing.FileName + " didn't match what the directory listed, so it wasn't installed.");
+            lock (fetched) fetched.Add(Mods.HashOf(bytes));
             string folder = Path.Combine(under, Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             string file = Path.Combine(folder, Path.GetFileName(listing.FileName));
