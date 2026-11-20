@@ -61018,6 +61018,12 @@ namespace CapriDesktop
                                 byte[] freeLine = kokoro.Speak("Hey choom, this is my free voice.");
                                 if (freeLine == null || freeLine.Length < 24000) throw new Exception("Free voice made no sound: " + (freeLine == null ? "null" : freeLine.Length + " bytes"));
                                 checks.Add("PASS free voice speech: " + kokoro.Style.Name + " said a line, " + freeLine.Length + " bytes of WAV");
+                                FreeStyle own = kokoro.Style;
+                                kokoro.Style = LocalVoice.Styles[0];
+                                byte[] ownLine = kokoro.Speak("Hey choom, her own voice here.");
+                                kokoro.Style = own;
+                                if (ownLine == null || ownLine.Length < 24000) throw new Exception("Her own voice made no sound: " + (ownLine == null ? "null" : ownLine.Length + " bytes"));
+                                checks.Add("PASS her own voice speech: " + LocalVoice.Styles[0].Name + " speaks safely, " + ownLine.Length + " bytes of WAV");
                             }
                             else checks.Add("LIMIT free voice synthesis not run; the voice pack is not installed on this PC");
                             checks.Add("PASS voice: key sealed with DPAPI, tags stripped, errors read, real HTTP round trips against a fake ElevenLabs (401 explained, audio fetched, the same line twice in a row fetched once), WAV cleanup, mouth from the audio, listing parse, voice and model picks, a blank Voice ID asks for one, forget");
