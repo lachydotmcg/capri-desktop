@@ -382,7 +382,18 @@ namespace CapriDesktop
         // ---------- A phone's message in, her answer out ----------
 
 #if !CROSS
+        private void RemoteLooked(string device, string id, string text, RemotePicture picture)
+        {
+            phoneHeardAt = DateTime.Now;
+            RemotePictureTurn(device, id, text, picture, null, null, true);
+        }
+
         private void RemotePictureHeard(string device, string id, string text, RemotePicture picture, Func<bool> current = null, Action done = null)
+        {
+            RemotePictureTurn(device, id, text, picture, current, done, false);
+        }
+
+        private void RemotePictureTurn(string device, string id, string text, RemotePicture picture, Func<bool> current, Action done, bool live)
         {
             RemoteSink sink = remoteSink;
             if (current == null) current = delegate { return remoteSink == sink; };
@@ -412,10 +423,11 @@ namespace CapriDesktop
                     try
                     {
                         if (remoteSink != sink || !current()) return;
-                        if (problem != null) sink.Reply(device, RemoteMessages.NewId(), id, RemoteOut(problem.Message), true);
+                        if (live && (problem != null || unseen != null || failed)) RemoteHear(device, id, text, null, current);
+                        else if (problem != null) sink.Reply(device, RemoteMessages.NewId(), id, RemoteOut(problem.Message), true);
                         else if (unseen != null) sink.Reply(device, RemoteMessages.NewId(), id, RemoteOut(unseen), true);
                         else if (failed) sink.Error(device, "busy", id);
-                        else RemoteHear(device, id, text, seen, current, picture);
+                        else RemoteHear(device, id, text, seen, current, picture, live);
                     }
                     finally { finish(); }
                 });
@@ -430,12 +442,12 @@ namespace CapriDesktop
 
         private void RemoteHeard(string device, string id, string text) { phoneHeardAt = DateTime.Now; Post(delegate { RemoteHear(device, id, text); }); }
 
-        private void RemoteHear(string device, string id, string text, string seen = null, Func<bool> current = null, RemotePicture photo = null)
+        private void RemoteHear(string device, string id, string text, string seen = null, Func<bool> current = null, RemotePicture photo = null, bool live = false)
         {
             RemoteSink sink = remoteSink;
             if (sink == null) return;
             string shown, typed;
-            string said = RemotePictures.Turn(RemoteInput(text), seen, string.IsNullOrWhiteSpace(text), out shown, out typed);
+            string said = RemotePictures.Turn(RemoteInput(text), seen, string.IsNullOrWhiteSpace(text), out shown, out typed, live);
             RemoteAsker asker = new RemoteAsker { Device = device, Id = id, Text = said.Trim(), Shown = shown.Trim(), Current = current };
             bool beside = MidJob(job);
             int before = asking;
@@ -1573,10 +1585,11 @@ namespace CapriDesktop
     {
         internal const string FollowedPicture = " [phone picture reply]";
         private const string Description = "They sent a picture from their phone. You looked at it. You see: ";
+        internal const string LiveDescription = "(Live video call: this is a snapshot from their front camera, taken as they said this. You looked at it. Mention it only if it is relevant or notable.) You see: ";
 
         internal static bool IsTurn(string text)
         {
-            return text != null && (text.Contains("[picture]\n\n" + Description) || text.Contains("[picture] " + Description) || text.EndsWith(FollowedPicture, StringComparison.Ordinal));
+            return text != null && (text.Contains("[picture]\n\n" + Description) || text.Contains("[picture]\n\n" + LiveDescription) || text.Contains("[picture] " + Description) || text.EndsWith(FollowedPicture, StringComparison.Ordinal));
         }
 
         internal static string Shown(string input) { return (input.Trim().Length == 0 ? "" : input.Trim() + " ") + "[picture]"; }
@@ -1595,13 +1608,13 @@ namespace CapriDesktop
             catch (BrainException error) { if (selected.Remote == null && Brain.NoVision(error)) throw new BrainException(Brain.NoEyes); throw; }
         }
 
-        internal static string Turn(string input, string seen, bool empty, out string shown, out string typed)
+        internal static string Turn(string input, string seen, bool empty, out string shown, out string typed, bool live = false)
         {
             typed = seen == null ? null : input.Trim();
             shown = input;
             if (seen == null) return input;
             shown = Shown(input);
-            return shown + "\n\n" + Description + seen + (empty ? "\nReact to the picture." : "");
+            return shown + "\n\n" + (live ? LiveDescription : Description) + seen + (empty ? "\nReact to the picture." : "");
         }
     }
 
