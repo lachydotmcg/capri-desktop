@@ -305,8 +305,28 @@ namespace CapriDesktop
         // fps, drawn unshifted.
         private int oldWide, oldCount;
         private double oldFps;
-        internal int Count { get { return Old ? oldCount : count; } }
-        internal double Fps { get { return Old ? oldFps : fps; } }
+        private int ownWide, ownHigh, counted;
+        private Bitmap countedFor;
+        internal int Count { get { return Old ? oldCount : Cells(Strip); } }
+        internal double Fps { get { return Old ? oldFps : Mods.RateOf(name) > 0 ? Mods.RateOf(name) : fps; } }
+        internal int OwnCount { get { return count; } }
+        internal double OwnFps { get { return fps; } }
+        internal bool Reframed { get { return !Old && Count != count; } }
+
+        private int Cells(Bitmap art)
+        {
+            lock (artGate)
+            {
+                if (ReferenceEquals(art, countedFor)) return counted;
+                if (ownWide == 0)
+                    using (Stream own = typeof(Pet).Assembly.GetManifestResourceStream(name))
+                        if (!Mods.PngSize(own, out ownWide, out ownHigh)) ownWide = ownHigh = -1;
+                int found = ownWide > 0 ? Mods.FramesIn(name, art.PixelSize.Width, art.PixelSize.Height, ownWide, ownHigh) : 0;
+                counted = found > 0 ? found : count;
+                countedFor = art;
+                return counted;
+            }
+        }
         internal readonly double Height;
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
         internal double ShiftX { get { return Old ? 0 : shiftX; } }
@@ -323,6 +343,7 @@ namespace CapriDesktop
             Height = height;
             this.shiftX = shiftX;
             this.shiftY = shiftY;
+            Mods.OwnFrames(name, count);
             Reload();
         }
 
@@ -1789,7 +1810,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            int cell = clip == perchSleep ? PerchSleepCell : index % clip.Count;
+            int cell = clip == perchSleep ? Math.Min(PerchSleepCell, perchSleep.Count - 1) : index % clip.Count;
             Clip shown = clip;
             int blinkFrom = clip == perch ? PerchBlinkFrom : idle.Old ? BlinkFrom : IdleBlinkFrom;
             if ((clip == idle || clip == perch) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
@@ -1815,8 +1836,14 @@ namespace CapriDesktop
             body.InvalidateVisual();
         }
 
-        // Her blink for the loop she's in, glitchy or not.
         private Clip Blinks(bool glitchy)
+        {
+            Clip found = LoopBlink(glitchy);
+            return found != null && clip.Reframed && !SkinShips(found.Title) ? null : found;
+        }
+
+        // Her blink for the loop she's in, glitchy or not.
+        private Clip LoopBlink(bool glitchy)
         {
             if (clip == perch) return glitchy ? perchBlinkGlitch : perchBlink;
             if (idle.Old) return glitchy ? blinkGlitch : blink;
@@ -2070,7 +2097,7 @@ namespace CapriDesktop
             {
                 if (DesktopPointer(e)) return;
                 pointer = e.GetPosition(this);
-                if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
+                if (!pressed) { if (InControl.On) ForgetStroke(); else Stroke(this.PointToScreen(pointer)); return; }
                 if (Desk is HyprlandDesk) return;
                 PixelPoint at = DragPoint(pointer);
                 int dx = at.X - downAt.X;
