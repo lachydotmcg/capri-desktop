@@ -177,7 +177,7 @@ namespace CapriDesktop
                 if (tls && !plain)
                 {
                     SslStream ssl = new SslStream(s);
-                    ssl.AuthenticateAsClient(host);
+                    ssl.AuthenticateAsClient(host, null, (System.Security.Authentication.SslProtocols)3072, false);
                     s = ssl;
                 }
                 return new MailWire(s, host);
@@ -194,7 +194,7 @@ namespace CapriDesktop
         internal MailWire Upgrade()
         {
             SslStream ssl = new SslStream(stream);
-            try { ssl.AuthenticateAsClient(Host); }
+            try { ssl.AuthenticateAsClient(Host, null, (System.Security.Authentication.SslProtocols)3072, false); }
             catch (Exception) { throw new MailException("The secure connection to " + Host + " failed."); }
             return new MailWire(ssl, Host);
         }

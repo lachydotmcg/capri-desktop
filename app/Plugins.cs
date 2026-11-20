@@ -127,9 +127,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            catch (McpException error) { trouble = error.Message; }
-            catch (IOException error) { trouble = error.Message; }
-            catch (ArgumentException error) { trouble = error.Message; }
+            catch (Exception error) { trouble = error.Message; }
             lock (gate)
             {
                 listing.Remove(plugin.Id);
@@ -419,18 +417,40 @@ namespace CapriDesktop
             PluginInfo plugin;
             PluginTool tool;
             if (!Find(exposed, out plugin, out tool)) return -1;
+            if (Mails(plugin, tool)) return 1;
             string grant = GrantOf(plugin.Id, tool.Tool);
             if (grant == Always) return 0;
             if (grant == Ask || Array.IndexOf(plugin.Permissions, "pay") >= 0 || Array.Exists(plugin.Asks, one => string.Equals(one, tool.Tool, StringComparison.Ordinal))) return 1;
             return -1;
         }
 
-        internal static string Asking(string exposed)
+        private static bool Mails(PluginInfo plugin, PluginTool tool)
+        {
+            return tool.Tool == "send_mail" && Array.Exists(plugin.Servers, one => one.Name == tool.Server && one.BuiltIn == "mail");
+        }
+
+        internal static bool AlwaysAsks(PluginTool tool)
+        {
+            PluginInfo plugin;
+            lock (gate) plugin = loaded.Find(one => one.Id == tool.Plugin);
+            return plugin != null && Mails(plugin, tool);
+        }
+
+        internal static string Asking(string exposed, string text)
         {
             PluginInfo plugin;
             PluginTool tool;
             if (!Find(exposed, out plugin, out tool)) return null;
-            return "use " + tool.Title + " from " + plugin.Name;
+            if (!Mails(plugin, tool)) return "use " + tool.Title + " from " + plugin.Name;
+            object parsed;
+            Dictionary<string, object> args = PluginJson.TryParse((text ?? "").Trim(), out parsed) ? PluginJson.Map(parsed) : null;
+            string to = PluginJson.Str(args, "to"), subject = PluginJson.Str(args, "subject"), who;
+            if (string.IsNullOrWhiteSpace(to)) return "send an email without saying who it's for";
+            try { who = Line(string.Join(", ", MailSmtp.Recipients(to).ToArray()), 3000); }
+            catch (MailException) { who = Line(to, 300); }
+            double uid;
+            bool reply = double.TryParse(Convert.ToString(PluginJson.Get(args, "reply_to_uid"), CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out uid) && (int)uid > 0;
+            return "send an email to " + who + (!string.IsNullOrWhiteSpace(subject) ? " with the subject '" + Line(subject, 100) + "'" : reply ? " as a reply, keeping its subject" : "");
         }
 
         internal static string GrantOf(string id, string tool)
@@ -561,7 +581,12 @@ namespace CapriDesktop
             catch (ArgumentException error) { return Done(call, watch, "failed", error.Message, "Couldn't use " + tool.Title + ": " + error.Message); }
         }
 
-        internal static bool SignedIn(string id) { return McpSignIn.Has(id); }
+        internal static bool SignedIn(string id)
+        {
+            PluginInfo plugin;
+            lock (gate) plugin = loaded.Find(one => one.Id == id);
+            return McpSignIn.Has(plugin);
+        }
 
         internal static void SignIn(string id, Action<string> done)
         {

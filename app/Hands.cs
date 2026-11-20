@@ -659,7 +659,7 @@ namespace CapriDesktop
                 case "check_app": return "check whether " + Plain(a.Name, "that app") + " is installed or running";
                 case "pc_status": return "check how your PC is doing";
                 case "internet_status": return "check your internet";
-                case "mod": return Plugins.Asking(a.Name) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
+                case "mod": return Plugins.Asking(a.Name, a.Text) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 case "make_tool": return "write a new tool for you to check in Mods";
                 default: return "do that";
             }

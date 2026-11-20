@@ -82,12 +82,12 @@ namespace CapriDesktop
             p["folder"] = Prop("string", "Mail folder, INBOX by default.");
             tools.Add(Tool("read_mail", "Read mail", "Read one email's headers and text. Does not mark it as read.", true, p, "uid"));
             p = new Dictionary<string, object>();
-            p["to"] = Prop("string", "Recipient addresses, separated by commas (10 at most). Optional when replying: it defaults to whoever wrote the message.");
+            p["to"] = Prop("string", "Recipient addresses, separated by commas (10 at most). Needed when replying too, so name whoever you're answering.");
             p["subject"] = Prop("string", "Subject line. Optional when replying.");
             p["body"] = Prop("string", "Plain text body of the email.");
             p["reply_to_uid"] = Prop("integer", "Reply to the message with this uid, keeping the thread.");
             p["folder"] = Prop("string", "Folder holding the message being replied to, INBOX by default.");
-            tools.Add(Tool("send_mail", "Send mail", "Send an email from the user's account. This really sends it.", false, p, "body"));
+            tools.Add(Tool("send_mail", "Send mail", "Send an email from the user's account. This really sends it.", false, p, "to", "body"));
             tools.Add(Tool("mail_folders", "Mail folders", "List the mail folders in the account.", true, new Dictionary<string, object>()));
             return tools;
         }
@@ -259,6 +259,7 @@ namespace CapriDesktop
         {
             string to = Str(args, "to"), subject = Str(args, "subject"), body = Str(args, "body");
             int replyUid = Int(args, "reply_to_uid", 0);
+            if (to.Length == 0) throw new MailException("Say who the email is going to, even when replying.");
             if (body.Length == 0) throw new MailException("The email needs a body.");
             string inReplyTo = null, references = null;
             if (replyUid > 0)
@@ -276,7 +277,6 @@ namespace CapriDesktop
                 inReplyTo = orig.MessageId;
                 references = (orig.References + " " + orig.MessageId).Trim();
                 if (subject.Length == 0) subject = Regex.IsMatch(orig.Subject, @"^\s*re:", RegexOptions.IgnoreCase) ? orig.Subject : "Re: " + orig.Subject;
-                if (to.Length == 0) to = orig.ReplyTo.Length > 0 ? orig.ReplyTo : orig.From;
             }
             if (subject.Length == 0) throw new MailException("The email needs a subject.");
             List<string> recipients = MailSmtp.Recipients(to);

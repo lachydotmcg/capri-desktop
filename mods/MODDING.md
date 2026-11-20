@@ -156,8 +156,8 @@ browser. When it answers 401, she shows "sign in" for the plug-in and never open
 from their action (`Plugins.SignIn`). It follows MCP's sign-in (OAuth 2.1 with PKCE, registering Capri as an app automatically,
 asking for the server's address as the resource), listens on `127.0.0.1` for the browser to come back, and keeps the tokens in
 `<plug-in>.signin.json` beside the plug-in's other settings, protected by Windows on Windows and only in memory on Mac and Linux.
-She refreshes them by herself, and removing the plug-in forgets them. `{"type": "capri", "builtin": "mail"}` uses a server
-Capri runs inside herself, for accounts set up in Capri.
+She refreshes them by herself. A sign-in only goes to the address it was made for, and removing the plug-in or putting it in again
+forgets it. `{"type": "capri", "builtin": "mail"}` uses a server Capri runs inside herself, for accounts set up in Capri.
 
 ```json
 {
@@ -203,8 +203,9 @@ starts, so what runs can change after it was approved, and her approve box warns
 Every plug-in tool call goes through one gate. She asks first the way **SECURITY > Use tools your mods added** says
 (off on Lockdown and Guarded), and a tool that changes things, one whose MCP `readOnlyHint` isn't `true`, also follows
 **Send, post and delete what you asked for**. A tool named in `capri.ask` always asks first. On Windows, **Options** on its
-row in Mods sets each tool to **Like SECURITY**, **Always run**, **Ask first** or **Off**. Her phone's JOBS shows the same
-question, so it can be answered there.
+row in Mods sets each tool to **Like SECURITY**, **Always run**, **Ask first** or **Off**. Her own `send_mail` (from
+`"builtin": "mail"`) always asks first and names who it goes to and the subject, whatever SECURITY or Options says, and it
+never guesses who a reply goes to. Her phone's JOBS shows the same question, so it can be answered there.
 
 Each call is logged in `plugins\calls.txt` in her data folder by tool and outcome, without what was sent.
 

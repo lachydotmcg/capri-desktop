@@ -104,6 +104,7 @@ namespace CapriDesktop
                     string writing = home + ".new";
                     File.WriteAllBytes(writing, bytes);
                     Plugins.Stop(read.Id);
+                    McpSignIn.Forget(read.Id);
                     if (File.Exists(home)) File.Delete(home);
                     File.Move(writing, home);
                     if (info.Servers.Length > 0) Approve(read.Id, hash);

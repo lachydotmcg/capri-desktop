@@ -461,7 +461,7 @@ while True:
             Func<ModFile, string, bool> yes = delegate(ModFile file, string hash) { return true; };
             string consent = null;
             Func<ModFile, string, bool> look = delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; };
-            Mod online = null, inside = null;
+            Mod online = null, inside = null, broken = null;
             using (WebFake fake = new WebFake())
             {
                 fake.Start();
@@ -517,11 +517,14 @@ while True:
                     }
                     else if (File.Exists(saved)) throw new Exception("A sign-in was written to disk where it can't be protected.");
                     if (opened != 1) throw new Exception("Refreshing a sign-in opened a browser.");
+                    PluginInfo moved = new PluginInfo { Id = "smoke-online", Servers = new[] { new PluginServer { Name = "web", Url = fake.Base + "/moved" } } };
+                    if (McpSignIn.Has(moved) || McpSignIn.Cached("smoke-online", "web", fake.Base + "/moved") != null || McpSignIn.Token("smoke-online", "web", fake.Base + "/moved") != null || McpSignIn.Cached("smoke-online", "web", fake.Base + "/mcp") == null)
+                        throw new Exception("A sign-in would go to a server address it wasn't made for.");
                     Plugins.Forget("smoke-online");
                     if (File.Exists(saved) || Plugins.SignedIn("smoke-online")) throw new Exception("Forgetting a plug-in kept its sign-in.");
                     string out1 = Plugins.Run("smoke_online_add", "{\"a\":1,\"b\":1}");
                     if (!out1.Contains("sign in first") || Plugins.Trouble("smoke-online") != "sign in" || opened != 1) throw new Exception("A plug-in with no sign-in didn't ask for one without opening a browser: " + out1);
-                    checks.Add("PASS plug-ins: an expired or turned-down token is refreshed with its refresh token and the call goes through, the sign-in is kept protected on Windows and only in memory on Mac and Linux, and forgetting the plug-in removes it");
+                    checks.Add("PASS plug-ins: an expired or turned-down token is refreshed with its refresh token and the call goes through, the sign-in is kept protected on Windows and only in memory on Mac and Linux, only goes to the address it was made for, and forgetting the plug-in removes it");
 
                     Plugins.BuiltIns["smoke"] = delegate
                     {
@@ -541,13 +544,26 @@ while True:
                     string shouted = Plugins.Run("smoke_inside_shout", "hi there");
                     if (!shouted.Contains("<plugin_result>\nHI THERE!\n</plugin_result>") || opened != 1) throw new Exception("A built-in server's tool didn't run: " + shouted);
                     checks.Add("PASS plug-ins: a server Capri runs inside herself lists its tools and runs them through the same gate as any other, and its approve box says it uses her own tools");
+
+                    Plugins.BuiltIns["broken"] = delegate { throw new InvalidOperationException("its server broke"); };
+                    string wreck = Path.Combine(output, "smoke-broken");
+                    Gone(wreck);
+                    Write(wreck, ".claude-plugin/plugin.json", "{\"name\":\"smoke-broken\",\"capri\":{\"permissions\":[\"accounts\"]}}");
+                    Write(wreck, ".mcp.json", "{\"mcpServers\":{\"broken\":{\"type\":\"capri\",\"builtin\":\"broken\"}}}");
+                    broken = mods.Import(Path.Combine(wreck, ".claude-plugin", "plugin.json"), yes);
+                    string fell = null;
+                    if (broken == null || Wait(delegate { fell = Plugins.Trouble("smoke-broken"); return fell == "its server broke"; }, 30) != null || Plugins.ToolsOf("smoke-broken").Count != 0)
+                        throw new Exception("A plug-in server that broke while she listed its tools didn't say so: " + fell);
+                    checks.Add("PASS plug-ins: a server that breaks in an unexpected way while she lists its tools shows what went wrong on its row instead of closing her");
                 }
                 finally
                 {
                     Plugins.OpenBrowser = was;
                     Plugins.BuiltIns.Remove("smoke");
+                    Plugins.BuiltIns.Remove("broken");
                     if (online != null && mods.All.Contains(online)) mods.Remove(online);
                     if (inside != null && mods.All.Contains(inside)) mods.Remove(inside);
+                    if (broken != null && mods.All.Contains(broken)) mods.Remove(broken);
                 }
             }
             CheckStarters(mods, checks);
@@ -573,11 +589,18 @@ while True:
                 string unset = Plugins.Run("email_recent_mail", "");
                 if (!unset.Contains(MailTools.NotSetUp) || Plugins.Granted("email_send_mail") != 1 || Plugins.Needs("email_recent_mail") != Security.ModTools)
                     throw new Exception("Her Email starter didn't say it needs setting up, or sending mail didn't always ask first: " + unset);
+                Plugins.Grant(MailStarter, "send_mail", Plugins.Always);
+                ToolArguments mail = new ToolArguments { Name = "email_send_mail", Text = "{\"to\":\"Pat <pat@example.com>, lee@example.com\",\"subject\":\"Lunch\",\"body\":\"Hi\"}" };
+                bool asks = Security.Asks("mod", mail) && Plugins.Granted("email_send_mail") == 1;
+                string asking = Security.Asking("mod", mail), unaddressed = Plugins.Run("email_send_mail", "{\"body\":\"Thanks\",\"reply_to_uid\":2}");
+                Plugins.Grant(MailStarter, "send_mail", Plugins.Usual);
+                if (!asks || asking != "send an email to pat@example.com, lee@example.com with the subject 'Lunch'" || !unaddressed.StartsWith("email_send_mail needs to.", StringComparison.Ordinal))
+                    throw new Exception("Sending mail set to always run didn't still ask with who it goes to and the subject, or went without a to: " + asking + " | " + unaddressed);
                 foreach (Mod one in made) mods.Remove(one);
                 mods.AddStarters();
                 mods.Load();
                 if (mods.All.Exists(one => one.Starter) || File.Exists(Path.Combine(mods.PluginFolder, MailStarter + ".signin.json"))) throw new Exception("A starter plug-in they removed came back.");
-                checks.Add("PASS plug-ins: her starters, Email, Notion and Linear, come in off with what they need to be set up, Email runs her own mail tools and always asks before sending, and one they remove stays gone");
+                checks.Add("PASS plug-ins: her starters, Email, Notion and Linear, come in off with what they need to be set up, Email runs her own mail tools and always asks before sending, naming who it goes to and the subject even when set to always run, and one they remove stays gone");
             }
             finally
             {
