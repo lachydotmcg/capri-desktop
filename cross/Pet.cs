@@ -6174,12 +6174,12 @@ namespace CapriDesktop
                 string words = phone == null ? heard : phone.Typed ?? heard;
                 string source = string.IsNullOrEmpty(words) || words.StartsWith("(", StringComparison.Ordinal) || words == "startup" || words == "pets you" ? "remark" : "reply";
                 if (phone != null && phone.Typed == "") source = "reply";
-                said = ModsReplying(said, source);
+                said = Brain.Masked(ModsReplying(said, source));
                 lastReply = said;
                 ModsReplied(said, source);
                 if (!RemoteReply(ticket, heard, said, following, phone)) return;
                 if (phone != null && phone.Shown != null) heard = phone.Shown;
-                string spoken = Speaks ? ModsSpeaking(said) : said;
+                string spoken = Speaks ? Brain.Masked(ModsSpeaking(said)) : said;
                 if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
                 ISpeaker speaker = Speaker;
                 int speechTicket = speechGeneration;

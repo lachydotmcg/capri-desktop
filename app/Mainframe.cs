@@ -974,9 +974,13 @@ namespace CapriDesktop
             localAddress.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseLocalAddress(); } };
             Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); }, "Local server address");
             Section("HABITS >", c, 656);
-            Make("Obsidian vault", 104 + c, 653, 112, 20, delegate { ShowMemoryVault(); }).AccessibleName = "Obsidian vault: keep her notes in your Obsidian vault";
-            memoriesKey = Make("Open her memories", 220 + c, 653, 136, 20, delegate { OpenMemory(); });
+            Key vaultKey = Make("Obsidian vault", 90 + c, 653, 88, 20, delegate { ShowMemoryVault(); });
+            vaultKey.AccessibleName = "Obsidian vault: keep her notes in your Obsidian vault";
+            memoriesKey = Make("Open her memories", 184 + c, 653, 108, 20, delegate { OpenMemory(); });
             memoriesKey.AccessibleName = "Open her memories: see, edit and forget what she remembers";
+            gifsKey = Make("Her GIFs", 298 + c, 653, 58, 20, delegate { OpenGifs(); });
+            gifsKey.AccessibleName = "Her GIFs: add and name GIFs for her to send";
+            vaultKey.Ellipsis = memoriesKey.Ellipsis = gifsKey.Ellipsis = true;
             startup = Switch("Start with Windows", c, 680, delegate { if (!syncing) capri.ToggleStartup(); });
             discord = Switch("Show on Discord", c, 708, delegate { if (!syncing) capri.ToggleDiscord(); });
             remembering = Switch("Remember our chats", c, 736, delegate { if (!syncing) capri.ToggleRemembering(); });

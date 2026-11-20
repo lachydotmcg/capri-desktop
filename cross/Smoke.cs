@@ -5203,9 +5203,14 @@ namespace CapriDesktop
                 int blobsBefore = blobGets;
                 string file = ModDirectory.Download(fresh[0], under);
                 bool exact = ModDirectory.BlobSha(File.ReadAllBytes(file)) == fresh[0].Sha;
+                string fetchedHash = Mods.HashOf(File.ReadAllBytes(file));
+                ModFile fetchedCode = new ModFile { Id = "fetched", Name = "Fetched" }, fetchedPlugin = new ModFile { Id = "fetched", Name = "Fetched", Plugin = true };
+                if (!Mods.Consent(fetchedCode, fetchedHash).Contains(Mods.Reviewed) || !Mods.Consent(fetchedPlugin, fetchedHash).Contains(Mods.Reviewed) || Mods.Consent(fetchedCode, fetchedHash).Contains("Only run it if")
+                    || Mods.Consent(fetchedCode, new string('0', 64)).Contains(Mods.Reviewed) || !Mods.Consent(fetchedCode, new string('0', 64)).Contains("Only run it if") || Mods.Consent(fetchedPlugin, new string('0', 64)).Contains(Mods.Reviewed))
+                    throw new Exception("Her approve box didn't say a directory download was reviewed, or said it of a file from elsewhere.");
                 ModDirectory.Clean(file);
                 if (!exact || pinnedGets.Count != 1 || pinnedGets[0] != pinned + fresh[0].Folder + "/" + fresh[0].FileName || blobGets != blobsBefore) throw new Exception("A mod from tree.json wasn't downloaded from its pinned commit: " + string.Join(" | ", pinnedGets));
-                checks.Add("PASS mods directory: tree.json from raw.githubusercontent.com lists the mods without the API, and a download comes from the commit it names and matches its fingerprint");
+                checks.Add("PASS mods directory: tree.json from raw.githubusercontent.com lists the mods without the API, and a download comes from the commit it names and matches its fingerprint, and only that exact file's approve box says the Capri team reviewed it");
                 rawBroken = true;
                 List<ModListing> fallback = ModDirectory.Browse(out trouble);
                 rawBroken = false;
@@ -5876,6 +5881,10 @@ namespace CapriDesktop
                 if (found == null || found.On || !found.Changed || pet.ModRunningNow("dropped")) throw new Exception("A code mod dropped into the folder ran without their OK.");
                 mods.Remove(found);
                 checks.Add("PASS mods code: off stops a code mod and on starts it again without asking, removing takes everything it added, and one dropped into the folder waits for their OK");
+                string pluginsOut = Path.Combine(input, "plugins-test");
+                Directory.CreateDirectory(pluginsOut);
+                Mods.CheckPlugins(mods, checks, pluginsOut);
+                ModFloor.Fresh();
 
                 PixelSize art = Pet.ArtSize("Capri.Sprite.idle.png");
                 if (!frame.ImportMod(ModSkin(input, "smoke-guard-skin", "idle.png", art.Width, art.Height))) throw new Exception("The approve box check couldn't put a skin on: " + frame.ModStatusText);
