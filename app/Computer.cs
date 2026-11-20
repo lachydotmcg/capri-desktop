@@ -833,7 +833,7 @@ namespace CapriDesktop
                 Match risky = target == null ? Match.Empty : Risky.Match(target.Name);
                 return risky.Success ? Kind(risky.Value) : null;
             }
-            bool enter = (tool == "type" && args.Enter == "yes") || (tool == "press" && Regex.IsMatch(args.Keys ?? "", @"^\s*enter\s*$", RegexOptions.IgnoreCase));
+            bool enter = (tool == "type" && args.Enter == "yes") || (tool == "press" && Regex.IsMatch(Chorded(args.Keys), @"^(enter|return|numpadenter)$"));
             if (!enter) return null;
             // A game's own Enter starts, skips and confirms things. Roblox has a chat, so its "Enter: skip tutorial" held her job to
             // ask "Should I send that?" and it sounded like she'd given up (Lachy, 6 Nov). Straight after typing, Enter still sends
@@ -1434,7 +1434,7 @@ namespace CapriDesktop
             if (name == "type") return (args.Text ?? "").IndexOf('\n') >= 0;
             if (name != "key" && name != "hold_key") return false;
             foreach (string piece in Regex.Split((args.Text ?? "").Trim(), @"\s+"))
-                if (Regex.IsMatch(Combo(piece) ?? "", @"^((ctrl|alt)\+)?enter$")) return true;
+                if (Regex.IsMatch(Combo(piece) ?? "", @"^((ctrl|alt|rightctrl|rightalt)\+)?(enter|numpadenter)$")) return true;
             return false;
         }
 
@@ -1444,7 +1444,7 @@ namespace CapriDesktop
             List<string> keys = new List<string>();
             foreach (string part in Regex.Replace((text ?? "").Trim().ToLowerInvariant(), @"\s*\+\s*", "+").Split('+'))
             {
-                string name = part.StartsWith("kp_", StringComparison.Ordinal) ? part.Substring(3) : part;
+                string name = PadKey(part) ?? (part.StartsWith("kp_", StringComparison.Ordinal) ? part.Substring(3) : part);
                 switch (name)
                 {
                     case "return": name = "enter"; break;
@@ -1453,14 +1453,36 @@ namespace CapriDesktop
                     case "page_up": case "prior": name = "pageup"; break;
                     case "page_down": case "next": name = "pagedown"; break;
                     case "super": case "super_l": case "super_r": case "meta": case "cmd": case "command": name = "win"; break;
-                    case "control_l": case "control_r": case "ctrl_l": case "ctrl_r": name = "ctrl"; break;
-                    case "alt_l": case "alt_r": case "option": name = "alt"; break;
-                    case "shift_l": case "shift_r": name = "shift"; break;
+                    case "control_l": case "ctrl_l": case "lctrl": case "left_ctrl": case "leftctrl": case "lcontrol": name = "ctrl"; break;
+                    case "control_r": case "ctrl_r": case "rctrl": case "right_ctrl": case "rcontrol": case "rightcontrol": case "right_control": name = "rightctrl"; break;
+                    case "alt_l": case "option": case "lalt": case "left_alt": case "leftalt": name = "alt"; break;
+                    case "alt_r": case "ralt": case "right_alt": case "altgr": case "alt_gr": name = "rightalt"; break;
+                    case "shift_l": case "lshift": case "left_shift": case "leftshift": name = "shift"; break;
+                    case "shift_r": case "rshift": case "right_shift": name = "rightshift"; break;
                 }
                 if (name.Length == 0 || Code(name) == 0) return null;
                 keys.Add(name);
             }
             return keys.Count == 0 ? null : string.Join("+", keys.ToArray());
+        }
+
+        // The keypad's own keys, like kp_enter or numpad 5. Claude's kp_ digits stay the number row, as they always have.
+        private static string PadKey(string part)
+        {
+            Match pad = Regex.Match(part, @"^(?:kp_|numpad_?|num_?|keypad_?)(\d|enter|return|divide|slash|multiply|asterisk|star|subtract|minus|add|plus|decimal|period|dot)$");
+            if (!pad.Success) return null;
+            string key = pad.Groups[1].Value;
+            if (part.StartsWith("kp_", StringComparison.Ordinal) && char.IsDigit(key[0])) return null;
+            switch (key)
+            {
+                case "enter": case "return": return "numpadenter";
+                case "divide": case "slash": return "numpaddivide";
+                case "multiply": case "asterisk": case "star": return "numpadmultiply";
+                case "subtract": case "minus": return "numpadminus";
+                case "add": case "plus": return "numpadplus";
+                case "decimal": case "period": case "dot": return "numpadperiod";
+            }
+            return "numpad" + key;
         }
 
         // What her task panel says while one of Claude's actions runs, and after. Null for looks and plain mouse moves.
@@ -1975,7 +1997,24 @@ namespace CapriDesktop
         // request didn't mention is on, or they said yes to one already in this job.
         internal static bool KeysOk;
 
-        internal static bool Barred(string keys) { return !KeysOk && !Security.On(Security.Unasked) && Array.IndexOf(Banned, keys) >= 0; }
+        internal static bool Barred(string keys) { return !KeysOk && !Security.On(Security.Unasked) && Banning(keys); }
+
+        // Right Ctrl, Alt and Shift do what the left ones do, the keypad's dot is Delete with Num Lock off, and the order the
+        // keys go down in doesn't change what a chord does.
+        internal static bool Banning(string keys)
+        {
+            Func<string, string> plain = delegate(string chord)
+            {
+                List<string> parts = new List<string>();
+                foreach (string key in (Combo(chord) ?? chord ?? "").Split('+'))
+                    parts.Add(key == "rightctrl" ? "ctrl" : key == "rightalt" ? "alt" : key == "rightshift" ? "shift" : key == "numpadperiod" || key == "del" ? "delete" : key);
+                parts.Sort(StringComparer.Ordinal);
+                return string.Join("+", parts.ToArray());
+            };
+            string pressed = plain(keys);
+            foreach (string banned in Banned) if (plain(banned) == pressed) return true;
+            return false;
+        }
 
         internal static string Chorded(string keys) { return Regex.Replace((keys ?? "").ToLowerInvariant(), @"\s+", ""); }
 
@@ -2308,7 +2347,23 @@ namespace CapriDesktop
 
         // Games such as Roblox and Minecraft read a key's scan code rather than its virtual-key code, so each press sends the
         // real one, or holding w wouldn't move her. Print Screen and the media keys have no plain scan code and stay virtual.
-        internal static short Scan(short key) { return key == 0x2C || (key >= 0xA6 && key <= 0xB7) ? (short)0 : (short)MapVirtualKey((uint)key, 0); }
+        internal static short Scan(short key)
+        {
+            int code = key & 0xFF;
+            return code == 0x2C || (code >= 0xA6 && code <= 0xB7) ? (short)0 : (short)(MapVirtualKey((uint)code, 4) & 0xFF);
+        }
+
+        // Numpad Enter has no key code of its own: it's Enter on the keypad's side, so it's carried as Enter with this bit.
+        internal const short Keypad = 0x100;
+
+        // One key going down or up as SendInput gets it: its key code, its scan code, and the flags for an extended key, a key
+        // going up and a scan code that games read.
+        internal static void Keyed(short key, bool up, bool extended, out short code, out short scan, out int flags)
+        {
+            code = (short)(key & 0xFF);
+            scan = Scan(key);
+            flags = (up ? 0x0002 : 0) | (extended ? 0x0001 : 0) | (scan != 0 ? 0x0008 : 0);
+        }
 
         private static void Key(short key, bool up, bool extended = false)
         {
@@ -2327,12 +2382,13 @@ namespace CapriDesktop
 
         internal static Action<short, bool, bool> SendKey = delegate(short key, bool up, bool extended)
         {
-            if (!up) InputRelease.Key(key, extended ? 3 : 1);
-            short scan = Scan(key);
-            int flags = (up ? 0x0002 : 0) | (extended ? 0x0001 : 0) | (scan != 0 ? 0x0008 : 0);
-            Input[] inputs = { new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Key = key, Scan = scan, Flags = flags } } } };
+            short code, scan;
+            int flags;
+            Keyed(key, up, extended, out code, out scan, out flags);
+            if (!up) InputRelease.Key(code, extended ? 3 : 1);
+            Input[] inputs = { new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Key = code, Scan = scan, Flags = flags } } } };
             SendInput(1, inputs, Marshal.SizeOf(typeof(Input)));
-            if (up) InputRelease.Key(key, 0);
+            if (up) InputRelease.Key(code, 0);
         };
 
         private static void Write(string text)
@@ -2396,9 +2452,20 @@ namespace CapriDesktop
                 case "xf86audioplay": case "xf86audiopause": return 0xB3;
                 case "xf86audionext": return 0xB0;
                 case "xf86audioprev": return 0xB1;
+                case "rightctrl": return 0xA3;
+                case "rightalt": return 0xA5;
+                case "rightshift": return 0xA1;
+                case "numpadenter": return (short)(Keypad | 0x0D);
+                case "numpaddivide": return 0x6F;
+                case "numpadmultiply": return 0x6A;
+                case "numpadminus": return 0x6D;
+                case "numpadplus": return 0x6B;
+                case "numpadperiod": return 0x6E;
             }
             Match function = Regex.Match(name, @"^f([1-9]|1[0-9]|2[0-4])$");
             if (function.Success) return (short)(0x6F + int.Parse(function.Groups[1].Value));
+            Match keypad = Regex.Match(name, @"^numpad([0-9])$");
+            if (keypad.Success) return (short)(0x60 + int.Parse(keypad.Groups[1].Value));
             if (name.Length == 1 && char.IsLetterOrDigit(name[0])) return (short)char.ToUpperInvariant(name[0]);
             int mark = name.Length == 1 ? "-=,./\\;'`[]".IndexOf(name[0]) : -1;
             return mark >= 0 ? new short[] { 0xBD, 0xBB, 0xBC, 0xBE, 0xBF, 0xDC, 0xBA, 0xDE, 0xC0, 0xDB, 0xDD }[mark] : (short)0;
@@ -2426,7 +2493,14 @@ namespace CapriDesktop
             return true;
         }
 
-        private static bool Extended(short code) { return (code >= 0x21 && code <= 0x28) || code == 0x2D || code == 0x2E || code == 0x5B || code == 0x5D; }
+        // Windows says which keys are extended, like right Ctrl and Alt and the keypad's slash, and the arrows and the keys above them
+        // always are.
+        internal static bool Extended(short code)
+        {
+            int key = code & 0xFF;
+            if ((code & Keypad) != 0 || (key >= 0x21 && key <= 0x28) || key == 0x2D || key == 0x2E || key == 0x5B || key == 0x5D) return true;
+            return Scan(code) != 0 && (MapVirtualKey((uint)key, 4) & 0xFF00) == 0xE000;
+        }
     }
 
     // How long since they last touched the PC. Windows counts her own wheel too, so the moments it went in don't count.
