@@ -3036,6 +3036,11 @@ namespace CapriDesktop
         // taller moves her up rather than off the bottom of her screen, as Settings does.
         private void Arrange(bool setupShown)
         {
+            if (noAi)
+            {
+                models.Hide();
+                if (modelMenu.Visible) modelMenu.Close();
+            }
             int keep = paged ? 0 : ShownScroll;
             if (!paged && pageScroll != 0) { glide.Stop(); EndSlide(); MoveControls(0); }
             expanded = setupShown;
@@ -3993,6 +3998,7 @@ namespace CapriDesktop
 
         internal void ShowCloud(Cloud remote, List<string> found)
         {
+            if (noAi) return;
             if (remote != forgotten) forgotten = null;
             brainName.Text = remote.Name + (remote.Model == null ? "" : " · " + remote.Model);
             brainNote.Text = remote == forgotten ? remote.Plan ? "Using your saved " + Plans.Plan(remote.Kind) + "." : "Back on your saved API key." : remote.Code ? remote.CodeNote : remote.Kind == "local" ? "Running on this PC · :" + remote.Port : remote.Kind == "nvidia" ? NvidiaNote
@@ -4059,9 +4065,9 @@ namespace CapriDesktop
             syncing = false;
             string tail = tier == 1 ? nvidiaTail : tier == 2 ? paidTail : null;
             textSaved = tail != null || tier == 2 && paidPlan != null;
-            textEntry.Box.AccessibleName = tier == 1 ? "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key" : "Google AI, OpenRouter, NVIDIA, OpenAI, Anthropic or DeepSeek API key";
+            textEntry.Box.AccessibleName = tier == 1 ? "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key" : "Google AI, OpenRouter, NVIDIA, OpenAI, Anthropic, DeepSeek or xAI API key";
             textEntry.AccessibleName = textEntry.Box.AccessibleName;
-            tierNote.Text = tier == 1 ? mediumKind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : tier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
+            tierNote.Text = tier == 1 ? mediumKind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : tier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek, Grok" : "Pick one. Only one brain runs at a time.";
             textEntry.Cue = tail != null ? "Key saved, ends " + tail : tier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
             RelabelText();
             Arrange(expanded);
@@ -4094,6 +4100,7 @@ namespace CapriDesktop
         internal bool NoAiShown { get { return offRung.Checked && Array.TrueForAll(rungs, delegate(Rung rung) { return !rung.Checked; }); } }
 
         internal bool TiersFit { get { return TiersProblem == null; } }
+        internal bool ModelPickerShown { get { return models.Visible; } }
 
         internal bool HintShown { get { return hint.Visible; } }
 

@@ -397,9 +397,9 @@ namespace CapriDesktop
         internal bool Claude { get { return Kind == "anthropic"; } }
         // Their own Claude or ChatGPT plan, through Claude Code or Codex on their PC.
         internal bool Plan { get { return Plans.Is(Kind); } }
-        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Plan ? Plans.App(Kind) : Company; } }
+        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Kind == "xai" ? "Grok" : Plan ? Plans.App(Kind) : Company; } }
         internal string Company { get { return Kind == "local" ? Name : CompanyOf(Kind); } }
-        internal static string CompanyOf(string kind) { return kind == "anthropic" || kind == "claudecode" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "openai" || kind == "codex" ? "OpenAI" : "That provider"; }
+        internal static string CompanyOf(string kind) { return kind == "anthropic" || kind == "claudecode" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "xai" ? "xAI" : kind == "openai" || kind == "codex" ? "OpenAI" : "That provider"; }
         internal string Source { get { return Kind + (Kind == "local" ? "|" + Host : "") + "|" + Model; } }
         internal string Sight { get { return Kind == "local" || Kind == "google" || Kind == "openrouter" ? Source : Model; } }
 
@@ -422,6 +422,7 @@ namespace CapriDesktop
             if (Plans.KindOf(key) != null) return Plans.KindOf(key);
             // Google AI Studio gives out keys that start AQ. now (Senshy, Echo, ALASTOR and lluvia.flac, 1 Nov).
             if (key.StartsWith("AIza", StringComparison.Ordinal) || key.StartsWith("AQ.", StringComparison.Ordinal)) return "google";
+            if (BetterModels.XaiKey(key)) return "xai";
             if (key.StartsWith("sk-or-", StringComparison.Ordinal)) return "openrouter";
             if (key.StartsWith("sk-nous-", StringComparison.Ordinal)) return null;
             if (key.StartsWith("sk-ant-", StringComparison.Ordinal) || IsCode(key)) return "anthropic";
@@ -707,7 +708,7 @@ namespace CapriDesktop
             if (told != null) told(what);
         }
 
-        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.";
+        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or xAI key.";
         internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
@@ -2079,7 +2080,7 @@ namespace CapriDesktop
         internal bool Sighted(Cloud remote)
         {
             if (Unsighted == remote.Sight) return false;
-            if (remote.Kind == "openrouter") return Images(Listed(remote.Kind, remote.Model));
+            if (remote.Kind == "openrouter" || remote.Kind == "xai") return Images(Listed(remote.Kind, remote.Model));
             bool sees;
             lock (serverEyes) return remote.Kind != "local" || !serverEyes.TryGetValue(remote.Source, out sees) || sees;
         }
@@ -2184,10 +2185,13 @@ namespace CapriDesktop
             string kind = Cloud.KindOf(key);
             if (Plans.Is(kind))
             {
+                List<string> models = Plans.Models(kind);
 #if !CROSS
-                if (PlanBrain.Find(kind) == null) throw new BrainException(Plans.Missing(kind), true);
+                string app = PlanBrain.Find(kind);
+                if (app == null) throw new BrainException(Plans.Missing(kind), true);
+                PlanBrain.ListModels(kind, app, models);
 #endif
-                return Plans.Models(kind);
+                return models;
             }
             bool claude = kind == "anthropic";
             HttpWebRequest request = Create((claude ? ClaudeAddress(key, "/models") : Address(kind, "/models")) + (claude ? "?limit=100" : ""), 30000);
@@ -2250,6 +2254,11 @@ namespace CapriDesktop
 
         internal static List<string> ReadCloudModels(string kind, string json)
         {
+            if (kind == "xai")
+            {
+                try { json = BetterModels.XaiCatalog(json); }
+                catch (FormatException) { throw new BrainException(BetterModels.CatalogError, true); }
+            }
             CloudModelPage page;
             try
             {
@@ -2325,7 +2334,12 @@ namespace CapriDesktop
         internal static bool ModelFits(string kind, string id)
         {
             if (string.IsNullOrWhiteSpace(id)) return false;
+#if !CROSS
+            if (Plans.Is(kind)) return BetterModels.PlanId(id);
+#else
             if (Plans.Is(kind)) return Plans.Models(kind).Contains(id);
+#endif
+            if (kind == "xai") return BetterModels.PlanId(id) && id.StartsWith("grok-", StringComparison.Ordinal);
             if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal);
             if (kind == "openai") return Regex.IsMatch(id, @"^(gpt-|o\d|chatgpt-)");
             if (kind == "anthropic") return id.StartsWith("claude-", StringComparison.Ordinal);
@@ -2350,6 +2364,7 @@ namespace CapriDesktop
             if (kind == "google") return Google + path;
             if (kind == "openrouter") return OpenRouter + path;
             if (kind == "openai") return OpenAi + "/v1" + path;
+            if (kind == "xai") return BetterModels.XaiAddress(path);
             throw new BrainException("That key's provider isn't supported.", true);
         }
 
@@ -2373,6 +2388,7 @@ namespace CapriDesktop
             if (models == null || models.Count == 0) return null;
             if (kind == "anthropic") return models.Contains(Fastest) ? Fastest : models[0];
             if (kind == "deepseek") return models.Contains("deepseek-flash") ? "deepseek-flash" : models[0];
+            if (kind == "xai") return models.Contains("grok-4.7") ? "grok-4.7" : models[0];
             if (kind == "nvidia") { foreach (string id in NvidiaPicks) if (models.Contains(id)) return id; return models[0]; }
             if (kind == "google")
             {
@@ -5146,7 +5162,7 @@ namespace CapriDesktop
 #if CROSS
             if (CleanSecret != null) text = CleanSecret(text);
 #endif
-            string clean = Regex.Replace(text ?? "", @"CAPR[I\u0131\u0130](?:-[A-Z0-9\u0131\u0130\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|(?:sk-(?:ant|proj|or-v1|svcacct|adm[i\u0131\u0130]n)-|nvap[i\u0131\u0130]-|gsk_|xa[i\u0131\u0130]-|g[i\u0131\u0130]thub_pat_|glpat-)(?=[A-Za-z0-9_\u0131\u0130\u017F-]{0,200}?[0-9])[A-Za-z0-9_\u0131\u0130\u017F-]{16,}|(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))(?:nvap[i\u0131\u0130]-|sk-|A[I\u0131\u0130]za|gh[pousr]_|g[i\u0131\u0130]thub_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:l[i\u0131\u0130]ve|test)_|sk_(?=[A-Za-z0-9\u0131\u0130\u017F]{32}))[A-Za-z0-9_\u0131\u0130\u017F-]+|\b(?:hf|npm)_[A-Za-z0-9\u0131\u0130\u017F]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.\u0131\u0130\u017F-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            string clean = Regex.Replace(BetterModels.RedactXai(text) ?? "", @"CAPR[I\u0131\u0130](?:-[A-Z0-9\u0131\u0130\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|(?:sk-(?:ant|proj|or-v1|svcacct|adm[i\u0131\u0130]n)-|nvap[i\u0131\u0130]-|gsk_|xa[i\u0131\u0130]-|g[i\u0131\u0130]thub_pat_|glpat-)(?=[A-Za-z0-9_\u0131\u0130\u017F-]{0,200}?[0-9])[A-Za-z0-9_\u0131\u0130\u017F-]{16,}|(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))(?:nvap[i\u0131\u0130]-|sk-|A[I\u0131\u0130]za|gh[pousr]_|g[i\u0131\u0130]thub_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:l[i\u0131\u0130]ve|test)_|sk_(?=[A-Za-z0-9\u0131\u0130\u017F]{32}))[A-Za-z0-9_\u0131\u0130\u017F-]+|\b(?:hf|npm)_[A-Za-z0-9\u0131\u0130\u017F]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.\u0131\u0130\u017F-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             clean = Regex.Replace(clean, @"(""data""\s*:\s*"")[A-Za-z0-9+/_=-]{32,}("")", "$1[redacted]$2", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
