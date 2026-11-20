@@ -55,13 +55,17 @@ namespace CapriDesktop
                 checks.Add("PASS small jobs on OpenAI: a quick ask goes to the newest terra on the key, its tokens are counted, and a terra the key can't use hands the ask back to her picked model for good");
 
                 List<string> claudeAsked = new List<string>();
-                Brain.Anthropic = FakeServer(new[] { "{\"model\":\"claude-haiku-5-5\",\"content\":[{\"type\":\"text\",\"text\":\"Bonjour.\"}],\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":400,\"output_tokens\":20,\"cache_read_input_tokens\":1000,\"cache_creation_input_tokens\":0}}" }, claudeAsked, out claudeFake);
+                Brain.Anthropic = FakeServer(new[] { "{\"model\":\"claude-haiku-5-5\",\"content\":[{\"type\":\"text\",\"text\":\"Bonjour.\"}],\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":400,\"output_tokens\":20,\"cache_read_input_tokens\":1000,\"cache_creation_input_tokens\":0}}", "!402 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}" }, claudeAsked, out claudeFake);
                 Brain opus = new Brain { Model = "claude-opus-5-5", Remote = new Cloud("sk-ant-spendcheck", "claude-opus-5-5") };
                 if (opus.SmallJobs != Brain.Fastest || new Brain { Model = Brain.Fastest, Remote = new Cloud("sk-ant-spendcheck", Brain.Fastest) }.SmallJobs != null) throw new Exception("Claude's small jobs didn't name Haiku.");
                 if (opus.SmallJob("Translate.", "1. Hello", 300) != "Bonjour." || claudeAsked.Count != 1 || !claudeAsked[0].Contains("\"model\":\"" + Brain.Fastest + "\"")) throw new Exception("A translation didn't go to Haiku.");
                 SpendRow haikuRow = Spend.Today().Find(delegate(SpendRow row) { return row.Model == Brain.Fastest; });
                 if (haikuRow == null || haikuRow.Cached != 1000 || haikuRow.Cost != 0.00006m) throw new Exception("Haiku's tokens weren't counted with its cache reads.");
-                checks.Add("PASS small jobs on Claude: translations and summaries go to Haiku when a bigger Claude is picked, with its cache reads counted at their price");
+                string broke = null;
+                try { opus.SmallJob("Translate.", "1. Bye", 300); }
+                catch (BrainException error) { broke = error.Message; }
+                if (broke != Brain.NoCredits || claudeAsked.Count != 2 || opus.SmallJobs != Brain.Fastest) throw new Exception("A key out of credits gave up on Haiku for good, or asked again: " + broke);
+                checks.Add("PASS small jobs on Claude: translations and summaries go to Haiku when a bigger Claude is picked, with its cache reads counted at their price, and a key out of credits says so without giving up on Haiku");
 
                 List<SpendRow> made = new List<SpendRow>
                 {

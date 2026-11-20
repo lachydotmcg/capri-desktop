@@ -3598,13 +3598,18 @@ namespace CapriDesktop
             try { return ask(thrifty); }
             catch (BrainException error)
             {
-                if (error.Message != Gone && (Stalled(error) || error.Message == Offline)) throw;
+                if (error.Message != Gone && (Stalled(error) || error.Message == Offline || KeyWide(error.Message))) throw;
                 Cloud cheap = thrifty.Remote;
                 if (cheap.Claude && cheap.Model == Fastest) noFastest = true;
                 else lock (spurned) spurned.Add(cheap.Kind + "|" + cheap.Model);
                 Log("thrifty", -1, cheap.Kind + " " + cheap.Model + " turned down a small job (" + (error.Detail ?? error.Message) + "), using " + (Remote == null ? "her brain" : Remote.Model));
             }
             return ask(this);
+        }
+
+        private static bool KeyWide(string message)
+        {
+            return message == NoCredits || message == Blocked || message == Unserved || message.StartsWith("Key rejected", StringComparison.Ordinal) || message.EndsWith(", then paste it again.", StringComparison.Ordinal);
         }
 
         internal string SmallJob(string system, string user, int limit, bool job = false)
