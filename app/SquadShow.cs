@@ -62,13 +62,13 @@ namespace CapriDesktop
                 if (!started.Make(lead, count)) return;
                 Post(delegate { if (turn == squadTurn) SquadSpread(started); });
                 string answer = null, note;
-                try { answer = started.Work(new HerComputer(folder), cheap, lead, SquadBrowser, delegate(SquadMate mate) { return new SquadHands(this, started, mate); }, delegate(SquadMate mate) { Post(delegate { SquadMateDone(started, mate); }); }, out note); }
+                try { answer = started.Work(new HerComputer(folder), cheap, lead, delegate(SquadMate mate) { return SquadBrowser(started, mate); }, delegate(SquadMate mate) { return new SquadHands(this, started, mate); }, delegate(SquadMate mate) { Post(delegate { SquadMateDone(started, mate); }); }, out note); }
                 catch (Exception error) { Brain.Log("squad", -1, "failed: " + error.Message); }
                 Post(delegate { SquadFinished(started, answer, turn); });
             });
         }
 
-        private HerBrowser SquadBrowser(SquadMate mate)
+        private HerBrowser SquadBrowser(Squad owner, SquadMate mate)
         {
             Func<SquadMate, HerBrowser> maker = SquadBrowserMaker;
             if (maker != null) return maker(mate);
@@ -80,13 +80,21 @@ namespace CapriDesktop
                 Brain.Log("squad", -1, mate.Name + ": " + problem);
                 return null;
             }
-            HerBrowser old;
+            HerBrowser old = null;
+            bool kept = false;
             lock (squadWebs)
             {
-                if (squadWebs.TryGetValue(mate.Number, out old) && old != web) old.Dispose();
-                squadWebs[mate.Number] = web;
+                if (!owner.Stopped)
+                {
+                    if (squadWebs.TryGetValue(mate.Number, out old) && old == web) old = null;
+                    squadWebs[mate.Number] = web;
+                    kept = true;
+                }
             }
-            return web;
+            if (old != null) old.Dispose();
+            if (kept) return web;
+            web.Dispose();
+            return null;
         }
 
         private HerBrowser SquadWeb(int number)
