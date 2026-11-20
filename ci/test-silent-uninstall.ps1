@@ -76,7 +76,35 @@ try {
     if ($removed[0] -ne 0) { throw "Uninstall.exe --uninstall --silent exited $($removed[0]): $($removed[1])" }
     foreach ($gone in $app, $uninstaller, $marker, $link, $arp) { if (Test-Path $gone) { throw "$gone remains after Uninstall.exe removed her." } }
     Kept
-    Write-Output 'PASS silent uninstall: a locked app fails with a reason, clears her startup entry and stays retryable from her own uninstall entry; trying again through its quiet command removes her app, uninstaller, marker, brain, voice, ears and wake packs, Start menu shortcut and uninstall entry; removing her when she is not installed fails with a reason; her own Uninstall.exe removes a fresh install; the user''s files, mods and a shortcut to another program stay every time'
+    # Forgetting everything: she installs again, gathers memories, a read-only key file, her own computer's browser profile,
+    # Capri Room's profile and a junction to the user's own folder, then --forget wipes all of hers and nothing of theirs.
+    $installed = Run $setup '--silent'
+    if ($installed[0] -ne 0) { throw "Installing before the forget check exited $($installed[0]): $($installed[1])" }
+    $room = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Capri Room'
+    $outside = Join-Path $env:TEMP ('capri-theirs-' + [guid]::NewGuid().ToString('N'))
+    New-Item (Join-Path $capriDir 'her-computer\browser\Default') -ItemType Directory -Force | Out-Null
+    New-Item (Join-Path $capriDir 'brain\models') -ItemType Directory -Force | Out-Null
+    New-Item $room -ItemType Directory -Force | Out-Null
+    New-Item $outside -ItemType Directory -Force | Out-Null
+    foreach ($file in 'me.md', 'memories.md', 'settings.json', 'her-computer\browser\Default\Cookies', 'brain\models\tiny.gguf') { [IO.File]::WriteAllText((Join-Path $capriDir $file), 'hers') }
+    [IO.File]::WriteAllText((Join-Path $room 'Local State'), 'hers')
+    $sealed = Join-Path $capriDir 'keys.dpapi'
+    [IO.File]::WriteAllText($sealed, 'hers')
+    Set-ItemProperty $sealed -Name IsReadOnly -Value $true
+    $theirs = Join-Path $outside 'vault.md'
+    [IO.File]::WriteAllText($theirs, 'theirs')
+    New-Item -ItemType Junction -Path (Join-Path $capriDir 'vault') -Target $outside | Out-Null
+    $forgot = Run $setup '--silent --uninstall --forget'
+    if ($forgot[0] -ne 0) { throw "--silent --uninstall --forget exited $($forgot[0]): $($forgot[1])" }
+    if (![string]::IsNullOrWhiteSpace($forgot[1])) { throw "Forgetting everything left something behind: $($forgot[1])" }
+    foreach ($gone in $capriDir, $room, $arp, $link) { if (Test-Path $gone) { throw "$gone remains after forgetting everything." } }
+    if (!(Test-Path $theirs) -or [IO.File]::ReadAllText($theirs) -ne 'theirs') { throw 'Forgetting everything followed a junction and deleted the user''s own file.' }
+    if (!(Test-Path $otherLink)) { throw 'Forgetting everything removed a shortcut that starts another program.' }
+    Remove-Item $outside -Recurse -Force
+    $bad = Run $setup '--silent --forget'
+    if ($bad[0] -ne 2) { throw "--forget without --uninstall exited $($bad[0]) instead of 2." }
+
+    Write-Output 'PASS silent uninstall: a locked app fails with a reason, clears her startup entry and stays retryable from her own uninstall entry; trying again through its quiet command removes her app, uninstaller, marker, brain, voice, ears and wake packs, Start menu shortcut and uninstall entry; removing her when she is not installed fails with a reason; her own Uninstall.exe removes a fresh install; the user''s files, mods and a shortcut to another program stay every time; --forget wipes her folder, read-only keys, her browser profile and Capri Room but not a folder linked from hers'
 }
 finally {
     if (Test-Path $err) { Remove-Item $err -Force }

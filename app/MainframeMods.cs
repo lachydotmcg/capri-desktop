@@ -91,6 +91,9 @@ namespace CapriDesktop
             }
             Key colourReset = Make("Reset colors", 28, colourRow + 32, 160, 24, delegate { ResetColours(); });
             Explain(colourReset, "Reset colors", "MainframeMods.cs");
+            Key animations = Make("Animations", 196, colourRow + 32, 160, 24, delegate { EditAnimations(); });
+            animations.AccessibleName = "Edit her animations";
+            Explain(animations, "Animations", "MainframeMods.cs");
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];

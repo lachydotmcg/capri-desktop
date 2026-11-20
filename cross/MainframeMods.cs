@@ -82,6 +82,7 @@ namespace CapriDesktop
             int keys = colours + 26 + ArtColors.Slots * 28 + 6;
             Key("Save colors", 28, keys, 160, 24, SaveColours).Accent = MainframeTheme.Cyan;
             Key("Reset colors", 196, keys, 160, 24, ResetColours);
+            Key("Animations", 28, keys + 32, 160, 24, EditAnimations);
             if (pet.ModList.Problems.Count > 0) modStatus.Text = "Skipped " + pet.ModList.Problems[0];
             building = was;
         }
@@ -169,6 +170,37 @@ namespace CapriDesktop
             modStatus.Text = text;
             ToolTip.SetTip(modStatus, string.IsNullOrEmpty(text) ? null : new TextBlock { Text = text, MaxWidth = 332, TextWrapping = TextWrapping.Wrap, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size, Foreground = MainframeTheme.White });
             modStatus.InvalidateVisual();
+        }
+
+        private AnimationDraft animationDraft;
+        private AnimationSheet animationSheet;
+
+        private void EditAnimations()
+        {
+            if (animationSheet != null) { animationSheet.WindowState = WindowState.Normal; animationSheet.Activate(); return; }
+            if (animationDraft != null && animationDraft.BaseFolder != pet.ModList.OutfitFolder) ForgetAnimations();
+            if (animationDraft == null) animationDraft = new AnimationDraft(pet.ModList, pet.Clips);
+            AnimationDraft used = animationDraft;
+            AnimationSheet sheet = new AnimationSheet(pet, this, used);
+            animationSheet = sheet;
+            sheet.Closed += delegate
+            {
+                if (animationSheet == sheet) animationSheet = null;
+                if (animationDraft != used) used.Dispose();
+            };
+            ShowSheet(sheet);
+        }
+
+        private void ForgetAnimations()
+        {
+            if (animationDraft != null && animationSheet == null) animationDraft.Dispose();
+            animationDraft = null;
+        }
+
+        internal void AnimationsWorn()
+        {
+            animationDraft = null;
+            ModsChanged();
         }
 
         internal void BrowseMods()
