@@ -120,6 +120,7 @@ namespace CapriDesktop
 
         // BRAIN's OFF row, No AI: BRAIN with OFF picked and not at 100%, 125% and 150%, everything in it fitting, and BRAIN with
         // the row against BRAIN without it, where only what's under the row moves, by exactly one row, and the page grows by one.
+        // On a screen too short for her the window stays the screen's height, so it's her page that grows, scrolling one row further.
         internal void CheckNoAiRow(List<string> checks, string output)
         {
             bool wasSettings = paged, wasShown = Visible, wasNoAi = noAi;
@@ -142,7 +143,7 @@ namespace CapriDesktop
                     Arrange(expanded);
                     Dictionary<Control, Rectangle> without = new Dictionary<Control, Rectangle>();
                     foreach (Control control in Controls) without[control] = control.Bounds;
-                    int tallWithout = ClientSize.Height, rowAt = offRung.Top;
+                    int tallWithout = Scaled(ScrollTall), rowAt = offRung.Top;
                     SaveBrainPicture(output, "brain-without-off-row-" + percent);
                     NoAiRowShown = true;
                     Arrange(expanded);
@@ -151,13 +152,12 @@ namespace CapriDesktop
                     {
                         Rectangle was;
                         // Only what shows on BRAIN's page counts: Settings' rows wait off to the side, and the setup steps are folded away.
-                        if (control == offRung || !control.Visible || control.Left >= ClientSize.Width || !without.TryGetValue(control, out was)) continue;
+                        if (control == offRung || control is Rim || !control.Visible || control.Left >= ClientSize.Width || !without.TryGetValue(control, out was)) continue;
                         int moved = control.Top - was.Top, should = was.Top >= rowAt ? row : 0;
                         if (control.Left != was.Left || control.Size != was.Size || Math.Abs(moved - should) > 1)
                             moves.Add(percent + "%: " + (control.AccessibleName ?? control.Text) + " moved " + moved + " (" + was + " -> " + control.Bounds + ")");
                     }
-                    if (Math.Abs(ClientSize.Height - tallWithout - row) > 1) moves.Add(percent + "%: the page grew " + (ClientSize.Height - tallWithout) + ", not one row (" + row + ")");
-                    foreach (bool on in new[] { false, true })
+                    if (Math.Abs(Scaled(ScrollTall) - tallWithout - row) > 1) moves.Add(percent + "%: the page grew " + (Scaled(ScrollTall) - tallWithout) + ", not one row (" + row + ")");                    foreach (bool on in new[] { false, true })
                     {
                         ShowNoAi(on);
                         // Off, BRAIN shows the brain it had again, as her own ShowTiers does.

@@ -276,13 +276,14 @@ namespace CapriDesktop
             // The pinned Avalonia X11 backend cannot clip compositor blur to the
             // editor's authored panel. Full-window blur leaks into its transparent
             // header/margins, so keep the truthful transparent fallback instead.
-            var properties = new (string Name, string Value)[] {
+            var properties = new List<(string Name, string Value)> {
                 ("no_blur", "true"), ("no_shadow", "true"), ("no_dim", "true"),
                 ("border_size", "0"), ("rounding", "0"), ("decorate", "false"),
                 ("no_anim", "true"), ("no_focus", acceptsInput ? "false" : "true"),
                 ("no_follow_mouse", passive ? "true" : "false"),
                 ("stay_focused", role == NativeSurfaceRole.Composer ? "true" : "false")
             };
+            if (passive || role == NativeSurfaceRole.Composer) properties.Add(("opaque", "true"));
             StringBuilder code = new StringBuilder(Guard(address) + "assert(w,'Capri window unmapped'); ");
             code.Append("apply(hl.dsp.window.float({action=\"enable\",window=w})); ");
             if (role != NativeSurfaceRole.Mainframe && role != NativeSurfaceRole.FileEditor) code.Append("apply(hl.dsp.window.pin({action=\"enable\",window=w})); ");

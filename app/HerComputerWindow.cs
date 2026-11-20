@@ -44,6 +44,8 @@ namespace CapriDesktop
         private RectangleF controlButton;
         private HerBrowser web;
         private string webProblem;
+        private readonly object startGate = new object();
+        private volatile bool starting;
         private Thread taskThread, frameThread;
         private volatile bool closing, stopTask, inControl;
         private volatile string runningTask;
@@ -276,22 +278,45 @@ namespace CapriDesktop
 
         private HerBrowser Browser()
         {
-            HerBrowser current;
-            lock (gate) current = web;
-            if (current != null && current.Running) return current;
-            if (current != null) current.Dispose();
-            HerBrowser started = new HerBrowser(Computer.BrowserFolder, PageBox.Width, PageBox.Height);
-            string problem;
-            Status("Starting my browser");
-            if (!started.Start(out problem))
+            lock (startGate)
             {
-                started.Dispose();
-                lock (gate) { web = null; webProblem = problem; }
-                Bubble(problem);
-                return null;
+                HerBrowser current;
+                lock (gate) current = web;
+                if (current != null && current.Running) return current;
+                if (current != null) current.Dispose();
+                HerBrowser started = new HerBrowser(Computer.BrowserFolder, PageBox.Width, PageBox.Height);
+                string problem;
+                Status("Starting my browser");
+                lock (gate) { web = null; webProblem = null; }
+                starting = true;
+                try
+                {
+                    if (!started.Start(out problem))
+                    {
+                        started.Dispose();
+                        Image stale;
+                        lock (gate) { web = null; webProblem = problem; stale = frame; frame = null; }
+                        if (stale != null) stale.Dispose();
+                        Bubble(problem);
+                        return null;
+                    }
+                }
+                finally { starting = false; }
+                lock (gate) { web = started; webProblem = null; }
+                return started;
             }
-            lock (gate) { web = started; webProblem = null; }
-            return started;
+        }
+
+        private static readonly Rectangle BrowserBody = new Rectangle(AppBox.Left, AppBox.Top + TabTall, AppBox.Width, AppBox.Height - TabTall);
+
+        private bool BrowserDown
+        {
+            get
+            {
+                HerBrowser current;
+                lock (gate) current = web;
+                return !starting && (current == null || !current.Running);
+            }
         }
 
         internal string Start(string job) { return Start(job, ""); }
@@ -334,6 +359,7 @@ namespace CapriDesktop
         private void RunTask(HerJob job)
         {
             string answer = null, note = null, state = "done";
+            HerRecorder recorder = Quiet ? null : HerRecorder.Begin(ReplayShot);
             try
             {
                 answer = Computer.Run(job.Task, this, Ask, Browser, delegate { return stopTask || closing; }, out note);
@@ -344,7 +370,9 @@ namespace CapriDesktop
                 answer = "My computer hit a snag: " + HerComputer.Short(error.Message, 160);
             }
             if (answer == null) state = "stopped";
+            if (recorder != null) recorder.Stop();
             Computer.Jobs.Finish(job.Id, state, answer, note);
+            KeepReplay(job, recorder);
             runningTask = null;
             if (state == "stopped") { Status("Stopped"); return; }
             if (note != null) lock (gate) selectedNote = note;
@@ -364,6 +392,44 @@ namespace CapriDesktop
             }
             if (!closing && !Quiet) Thread.Sleep(2500);
             Pump();
+        }
+
+        private Bitmap ReplayShot()
+        {
+            if (closing || IsDisposed || !IsHandleCreated) return null;
+            Bitmap shot = null;
+            using (ManualResetEvent done = new ManualResetEvent(false))
+            {
+                try
+                {
+                    BeginInvoke(new Action(delegate
+                    {
+                        try { if (!closing && !IsDisposed) shot = Snapshot(); }
+                        catch (Exception) { }
+                        finally { try { done.Set(); } catch (ObjectDisposedException) { } }
+                    }));
+                }
+                catch (InvalidOperationException) { return null; }
+                if (!done.WaitOne(1500)) return null;
+            }
+            return shot;
+        }
+
+        private void KeepReplay(HerJob job, HerRecorder recorder)
+        {
+            if (recorder == null) return;
+            string folder = Computer.ReplayFolder, task = job.Task, id = job.Id;
+            new Thread(delegate()
+            {
+                try
+                {
+                    if (closing) return;
+                    string path = recorder.Save(folder, task);
+                    if (path != null) { Computer.Jobs.SetReplay(id, path); Changed(); }
+                }
+                catch (Exception) { }
+                finally { recorder.Dispose(); }
+            }) { IsBackground = true, Name = "her computer replay saving", Priority = ThreadPriority.BelowNormal }.Start();
         }
 
         private void ToggleControl()
@@ -515,6 +581,13 @@ namespace CapriDesktop
                 if (!CardBox.Contains(System.Drawing.Point.Round(at))) lock (gate) jobTyped = null;
             }
             if (DockSlot(Array.IndexOf(HerComputer.Apps, "jobs")).Contains(System.Drawing.Point.Round(at))) { if (app == "jobs") lock (gate) { openApp = null; jobTyped = null; } else OpenApp("jobs"); return; }
+            if (app == "browser" && BrowserBody.Contains(System.Drawing.Point.Round(at)))
+            {
+                if (Busy && !inControl) { Bubble("I'm using my browser for a job. Press Take control to borrow it."); return; }
+                if (BrowserDown) { OpenSite("https://www.bing.com/"); return; }
+                if (starting) return;
+                if (!inControl) ToggleControl();
+            }
             if (Busy && !inControl) return;
             for (int i = 0; i < HerComputer.Apps.Length; i++)
                 if (DockSlot(i).Contains(System.Drawing.Point.Round(at))) { if (app == HerComputer.Apps[i]) lock (gate) openApp = null; else OpenApp(HerComputer.Apps[i]); return; }
@@ -992,7 +1065,7 @@ namespace CapriDesktop
                     else
                         using (SolidBrush faded = new SolidBrush(Faded))
                         using (StringFormat centre = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                            g.DrawString(problem ?? "Loading...", textFont, faded, PageBox, centre);
+                            g.DrawString(problem == null ? "Loading..." : problem + "\nClick to try again.", textFont, faded, PageBox, centre);
                 }
                 g.Clip = kept;
             }
@@ -1215,6 +1288,12 @@ namespace CapriDesktop
                 y += 10;
                 List<HerJob> done = Computer.Jobs.Done();
                 g.DrawString("Done", smallFont, soft, column, y);
+                if (done.Exists(one => !string.IsNullOrEmpty(one.Replay)))
+                {
+                    RectangleF folder = new RectangleF(column + wide - 130, y - 2, 130, 22);
+                    g.DrawString("Open replays folder", smallFont, hot, folder, new StringFormat { Alignment = StringAlignment.Far });
+                    JobHit(folder, delegate { Open(Computer.ReplayFolder); });
+                }
                 y += 24;
                 if (done.Count == 0) g.DrawString("Nothing yet", textFont, soft, column + 14, y + 6);
                 for (int i = 0; i < done.Count && y + 50 < CardBox.Bottom - 10; i++, y += 52)
@@ -1222,11 +1301,20 @@ namespace CapriDesktop
                     Rectangle line = new Rectangle(column, y, wide, 46);
                     using (GraphicsPath shape = Round(line, 10)) g.FillPath(row, shape);
                     g.FillEllipse(done[i].State == "done" ? mint : hot, line.Left + 12, line.Top + 19, 8, 8);
-                    g.DrawString(done[i].Task, textFont, ink, new RectangleF(line.Left + 28, line.Top + 4, wide - 40, 22), trim);
+                    string replay = done[i].Replay;
+                    bool watch = !string.IsNullOrEmpty(replay) && File.Exists(replay);
+                    g.DrawString(done[i].Task, textFont, ink, new RectangleF(line.Left + 28, line.Top + 4, wide - (watch ? 130 : 40), 22), trim);
                     string first = (done[i].Answer ?? "").Replace("\r", " ").Replace("\n", " ");
-                    g.DrawString(first.Length == 0 ? done[i].State : first, smallFont, soft, new RectangleF(line.Left + 28, line.Top + 25, wide - 40, 18), trim);
+                    g.DrawString(first.Length == 0 ? done[i].State : first, smallFont, soft, new RectangleF(line.Left + 28, line.Top + 25, wide - (watch ? 130 : 40), 18), trim);
                     string note = done[i].Note;
                     if (!string.IsNullOrEmpty(note) && File.Exists(note)) JobHit(line, delegate { lock (gate) { selectedNote = note; openApp = "notes"; } });
+                    if (watch)
+                    {
+                        Rectangle pill = new Rectangle(line.Right - 98, line.Top + 12, 88, 22);
+                        using (GraphicsPath shape = Round(pill, 11)) g.FillPath(hot, shape);
+                        g.DrawString("Watch replay", smallFont, white, pill, centre);
+                        JobHit(pill, delegate { Open(replay); });
+                    }
                 }
             }
         }

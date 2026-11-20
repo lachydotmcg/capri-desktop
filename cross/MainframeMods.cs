@@ -82,6 +82,7 @@ namespace CapriDesktop
             int keys = colours + 26 + ArtColors.Slots * 28 + 6;
             Key("Save colors", 28, keys, 160, 24, SaveColours).Accent = MainframeTheme.Cyan;
             Key("Reset colors", 196, keys, 160, 24, ResetColours);
+            Key("Animations", 28, keys + 32, 160, 24, EditAnimations);
             if (pet.ModList.Problems.Count > 0) modStatus.Text = "Skipped " + pet.ModList.Problems[0];
             building = was;
         }
@@ -120,7 +121,7 @@ namespace CapriDesktop
                     List<Mod> stack = pet.ModList.SkinStack;
                     modNames[i].Text = mod.File.Name + (string.IsNullOrEmpty(mod.File.Version) ? "" : " v" + mod.File.Version);
                     modNames[i].Ink = mod.On ? MainframeTheme.White : MainframeTheme.Faint;
-                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : "")
+                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Plugin ? (Mods.StarterAbout(mod) ?? "PLUG-IN. " + (!mod.On ? "" : Plugins.Trouble(mod.File.Id) == McpSignInNeeded.Said ? "Turn it off and on to sign in. " : Plugins.ToolsOf(mod.File.Id).Count + " tools. ")) : mod.Code ? "RUNS CODE. " : mod.Tool ? "TOOL, reads from " + string.Join(", ", mod.File.Recipe.Domains) + ". " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : "")
                         + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "")
                         + (mod.Code || mod.File.WakeNames == null || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames))
                         + (mod.Skill && mod.File.Games != null && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : "")).Trim();
@@ -171,6 +172,37 @@ namespace CapriDesktop
             modStatus.InvalidateVisual();
         }
 
+        private AnimationDraft animationDraft;
+        private AnimationSheet animationSheet;
+
+        private void EditAnimations()
+        {
+            if (animationSheet != null) { animationSheet.WindowState = WindowState.Normal; animationSheet.Activate(); return; }
+            if (animationDraft != null && animationDraft.BaseFolder != pet.ModList.OutfitFolder) ForgetAnimations();
+            if (animationDraft == null) animationDraft = new AnimationDraft(pet.ModList, pet.Clips);
+            AnimationDraft used = animationDraft;
+            AnimationSheet sheet = new AnimationSheet(pet, this, used);
+            animationSheet = sheet;
+            sheet.Closed += delegate
+            {
+                if (animationSheet == sheet) animationSheet = null;
+                if (animationDraft != used) used.Dispose();
+            };
+            ShowSheet(sheet);
+        }
+
+        private void ForgetAnimations()
+        {
+            if (animationDraft != null && animationSheet == null) animationDraft.Dispose();
+            animationDraft = null;
+        }
+
+        internal void AnimationsWorn()
+        {
+            animationDraft = null;
+            ModsChanged();
+        }
+
         internal void BrowseMods()
         {
             if (ModsBrowser == null)
@@ -193,7 +225,7 @@ namespace CapriDesktop
                 IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                 {
                     Title = "Import mod", AllowMultiple = false,
-                    FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*" + Mods.Extension, "*" + Mods.SkinExtension, "*" + Mods.SkillExtension, "*" + Mods.CodeExtension } } }
+                    FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*" + Mods.Extension, "*" + Mods.SkinExtension, "*" + Mods.SkillExtension, "*" + Mods.CodeExtension, "*" + Mods.ToolExtension, "*" + Mods.PluginExtension, "plugin.json", "capri-plugin.json", ".mcp.json", "mcp.json" } } }
                 });
                 if (!closed && files.Count > 0)
                 {
@@ -247,7 +279,8 @@ namespace CapriDesktop
         // Her approve box, the same words as on Windows, waited on here so the mod list stays as it was until they answer.
         private bool AskToRun(ModFile mod, string hash)
         {
-            if (!RunBox("Run this code mod?", Mods.Consent(mod, hash))) return false;
+            if (mod.Plugin) return RunBox("Turn on this plug-in?", Mods.Consent(mod, hash));
+            if (!RunBox(mod.Recipe != null ? "Use this tool mod?" : "Run this code mod?", Mods.Consent(mod, hash))) return false;
             return !mod.AskTwice || RunBox("Run code you can't read?", Mods.Unclear(mod));
         }
 
@@ -321,6 +354,7 @@ namespace CapriDesktop
             {
                 pet.ModList.Set(mod, !mod.On, Ask);
                 ModSays(mod.File.Name + (mod.On ? " is on." : " is off."));
+                if (mod.On) Started(mod);
             }
             catch (Exception error) { ModSays(error.Message); }
             ModsChanged();

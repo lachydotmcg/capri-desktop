@@ -61,7 +61,7 @@ namespace CapriDesktop
                 string key = JsonSerializer.Serialize(ruleKey);
                 string code = "if not _G[" + key + "] then local rule=hl.window_rule({name=" + JsonSerializer.Serialize(ruleKey) +
                     ",match={class=" + JsonSerializer.Serialize("^" + ClassPrefix.Replace(".", "\\.") + "\\.[0-9][0-9]*$") +
-                    "},allows_input=true,pin=true,float=true,no_initial_focus=true}); local popup=hl.window_rule({name=" + JsonSerializer.Serialize(ruleKey + "_popup") + ",match={class=" + JsonSerializer.Serialize("^" + ClassPrefix.Replace(".", "\\.") + "Menu$") + "},float=true,pin=true,decorate=false,border_size=0,rounding=0,no_shadow=true,no_blur=true,no_anim=true,stay_focused=true}); _G[" + key + "]={passive=rule,popup=popup} end";
+                    "},allows_input=true,pin=true,float=true,no_initial_focus=true,decorate=false,border_size=0,rounding=0,no_shadow=true,no_blur=true,no_dim=true,no_anim=true,opaque=true}); local popup=hl.window_rule({name=" + JsonSerializer.Serialize(ruleKey + "_popup") + ",match={class=" + JsonSerializer.Serialize("^" + ClassPrefix.Replace(".", "\\.") + "Menu$") + "},float=true,pin=true,decorate=false,border_size=0,rounding=0,no_shadow=true,no_blur=true,no_dim=true,no_anim=true,opaque=true,stay_focused=true}); _G[" + key + "]={passive=rule,popup=popup} end";
                 string reply = await desktop.SurfaceRequest("/eval " + code, cancellation).ConfigureAwait(false);
                 if (reply.Trim() != "ok") throw new InvalidOperationException("Cannot prepare passive Capri surfaces: " + reply.Trim());
                 ruleRevision = revision;

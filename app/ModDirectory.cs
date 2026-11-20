@@ -13,6 +13,7 @@ using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace CapriDesktop
 {
@@ -82,6 +83,9 @@ namespace CapriDesktop
         internal const string IndexPage = Raw + "index.json";
         internal const string TreePage = Raw + "tree.json";
         internal const string TreeApi = Api + "trees/HEAD?recursive=1";
+        internal const string MirrorRoot = "https://capri-reactions.lachydotmcg.workers.dev/mods/raw/";
+        internal const string TreeMirror = MirrorRoot + "HEAD/tree.json";
+        private static long rawRestsUntil;
         internal static string KeptFolder = Path.Combine(Path.GetTempPath(), "capri-mod-directory");
         internal const string StatsPage = "https://capri-reactions.lachydotmcg.workers.dev/mods";
         private static readonly byte[] PngStart = { 137, 80, 78, 71, 13, 10, 26, 10 };
@@ -166,8 +170,9 @@ namespace CapriDesktop
             byte[] tree = null;
             List<ModListing> found = null;
             Exception failed = null;
-            foreach (string page in new[] { TreePage, TreeApi })
+            foreach (string page in new[] { TreePage, TreeMirror, TreeApi })
             {
+                if (page == TreeMirror && !(failed is WebException && Unreachable((WebException)failed))) continue;
                 try
                 {
                     tree = Get(page, LargestList);
@@ -177,13 +182,13 @@ namespace CapriDesktop
                 catch (Exception error)
                 {
                     tree = null;
-                    failed = error;
+                    if (page != TreeMirror) failed = error;
                 }
             }
             byte[] index = null;
             if (found != null)
             {
-                try { index = Get(IndexPage, LargestIndex); }
+                try { index = RawOrMirror("HEAD", "index.json", LargestIndex, Get, false); }
                 catch (Exception) { }
                 Keep(tree, index);
             }
@@ -349,7 +354,7 @@ namespace CapriDesktop
             if (listing.ReadmeName == null) return null;
             List<string> kept = ReadmeKept(listing);
             if (kept != null) return kept;
-            List<string> lines = ReadmeLines(Encoding.UTF8.GetString(GetSoon(RawAt(listing) + "mods/" + listing.Folder + "/" + listing.ReadmeName, LargestReadme)));
+            List<string> lines = ReadmeLines(Encoding.UTF8.GetString(RawOrMirror(At(listing), "mods/" + listing.Folder + "/" + listing.ReadmeName, LargestReadme, GetSoon, false)));
             lock (Readmes)
             {
                 if (Readmes.TryGetValue(listing.Folder, out kept)) return kept;
@@ -670,23 +675,55 @@ namespace CapriDesktop
             return titles[0] + ", " + titles[1] + " and " + (titles.Count - 2) + " more";
         }
 
-        private static string RawAt(ModListing listing)
+        private static string At(ModListing listing)
         {
-            return listing.Commit != null ? RawRoot + listing.Commit + "/" : Raw;
+            return listing.Commit ?? "HEAD";
         }
+
+        private static byte[] RawOrMirror(string at, string path, long most, Func<string, long, byte[]> get, bool rest)
+        {
+            string raw = RawRoot + at + "/" + path, mirror = MirrorRoot + at + "/" + path;
+            if (rest && DateTime.UtcNow.Ticks < Interlocked.Read(ref rawRestsUntil))
+            {
+                try { return get(mirror, most); }
+                catch (Exception) { }
+                return get(raw, most);
+            }
+            try { return get(raw, most); }
+            catch (WebException error)
+            {
+                if (!Unreachable(error)) throw;
+                if (rest) Interlocked.Exchange(ref rawRestsUntil, DateTime.UtcNow.AddMinutes(10).Ticks);
+                try { return get(mirror, most); }
+                catch (Exception) { throw error; }
+            }
+        }
+
+        private static bool Unreachable(WebException error)
+        {
+            HttpWebResponse answer = error.Response as HttpWebResponse;
+            return answer == null || answer.StatusCode != HttpStatusCode.NotFound;
+        }
+
+        internal static void RawBack() { Interlocked.Exchange(ref rawRestsUntil, 0); }
 
         private static bool Matches(byte[] bytes, ModListing listing)
         {
             return bytes != null && bytes.Length == listing.Size && BlobSha(bytes) == listing.Sha;
         }
 
+        private static readonly HashSet<string> fetched = new HashSet<string>(StringComparer.Ordinal);
+
+        internal static bool Fetched(string hash) { lock (fetched) return hash != null && fetched.Contains(hash); }
+
         internal static string Download(ModListing listing, string under)
         {
             byte[] bytes = null;
-            try { bytes = Get(RawAt(listing) + "mods/" + listing.Folder + "/" + listing.FileName, Largest); }
+            try { bytes = RawOrMirror(At(listing), "mods/" + listing.Folder + "/" + listing.FileName, Largest, Get, true); }
             catch (Exception) { }
             if (!Matches(bytes, listing)) bytes = Get(Api + "blobs/" + listing.Sha, Largest);
             if (!Matches(bytes, listing)) throw new ModException(listing.FileName + " didn't match what the directory listed, so it wasn't installed.");
+            lock (fetched) fetched.Add(Mods.HashOf(bytes));
             string folder = Path.Combine(under, Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             string file = Path.Combine(folder, Path.GetFileName(listing.FileName));
@@ -708,7 +745,7 @@ namespace CapriDesktop
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
-            byte[] bytes = Get(RawAt(listing) + "mods/" + listing.Folder + "/preview.png", LargestPreview);
+            byte[] bytes = RawOrMirror(At(listing), "mods/" + listing.Folder + "/preview.png", LargestPreview, Get, true);
             if (BlobSha(bytes) != listing.PreviewSha || !IsPng(bytes)) throw new ModException(listing.Folder + "'s preview didn't match what the directory listed.");
             try
             {

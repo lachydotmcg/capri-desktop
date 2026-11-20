@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "id": "currency-rate",
+  "name": "Currency rate",
+  "version": "1.0",
+  "author": "Capri demos",
+  "description": "Gets today's exchange rate from one euro into another currency, from the European Central Bank's daily rates. Use it when they ask what a euro is worth in a currency, or to convert prices.",
+  "takes": "The three-letter code of the currency to convert to, like USD, GBP, JPY or ZAR",
+  "domains": ["api.frankfurter.dev"],
+  "steps": [
+    { "get": "https://api.frankfurter.dev/v2/rates?base=EUR&quotes={text}", "keep": { "rate": "[0].rate", "quote": "[0].quote", "date": "[0].date" } }
+  ],
+  "say": "One euro is {rate} {quote}, at the rate for {date}."
+}
