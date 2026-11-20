@@ -109,6 +109,8 @@ namespace CapriDesktop
             Action haltWas = Computer.Halted;
             Action<string> runWas = Hands.Run;
             Picture shownWas = Computer.Shown;
+            Func<string[]> processesWas = AntiCheat.Processes;
+            Func<string, bool> loadedWas = AntiCheat.Loaded;
             string notesWas = GameNotes.Folder;
             bool flinchedWas = Computer.Flinched, streamWas = Computer.Streaming;
             int soundWas = Sfx.Level;
@@ -156,6 +158,8 @@ namespace CapriDesktop
                 Computer.Under = delegate { return null; };
                 Computer.Focus = delegate { return null; };
                 Computer.Halted = delegate { };
+                AntiCheat.Processes = delegate { return new string[0]; };
+                AntiCheat.Loaded = delegate { return false; };
                 Computer.Flinched = Computer.Streaming = false;
                 Sfx.Level = 0;
 
@@ -268,6 +272,10 @@ namespace CapriDesktop
                         + "{\"type\":\"tool_use\",\"id\":\"h" + turn + "\",\"name\":\"hold_key\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"d\",\"duration\":0.3}},"
                         + "{\"type\":\"tool_use\",\"id\":\"c" + turn + "\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[640,360]}}],\"stop_reason\":\"tool_use\"}";
                 }));
+                rows.Add(driven("claude: the same moves as one combo", false, delegate(int turn)
+                {
+                    return "{\"content\":[{\"type\":\"tool_use\",\"id\":\"q" + turn + "\",\"name\":\"combo\",\"input\":{\"steps\":\"w 0.4, space, d 0.3, click\"}}],\"stop_reason\":\"tool_use\"}";
+                }));
                 rows.Add(driven("claude: one key, screen unchanged", true, delegate(int turn)
                 {
                     return "{\"content\":[{\"type\":\"tool_use\",\"id\":\"k" + turn + "\",\"name\":\"key\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"f24\"}}],\"stop_reason\":\"tool_use\"}";
@@ -296,7 +304,7 @@ namespace CapriDesktop
                     {
                         Rectangle area = new Rectangle(Point.Empty, size);
                         Picture warm = Picture.Of(frame, area);
-                        List<double> whole = new List<double>(), plain = new List<double>();
+                        List<double> whole = new List<double>(), plain = new List<double>(), claude = new List<double>();
                         for (int round = 0; round < 5; round++)
                         {
                             Stopwatch encoding = Stopwatch.StartNew();
@@ -305,8 +313,13 @@ namespace CapriDesktop
                             encoding = Stopwatch.StartNew();
                             Jpeg(frame, Computer.Longest);
                             plain.Add(encoding.Elapsed.TotalMilliseconds);
+                            Computer.Plain = true;
+                            encoding = Stopwatch.StartNew();
+                            try { Picture.Of(frame, area); }
+                            finally { Computer.Plain = false; }
+                            claude.Add(encoding.Elapsed.TotalMilliseconds);
                         }
-                        table.AppendLine(size.Width + "x" + size.Height + ": picture with its sharp copy " + TurnMs(TurnMedian(whole)) + " ms, the 1280 jpeg alone " + TurnMs(TurnMedian(plain)) + " ms | " + warm.Jpeg.Length + " | " + (warm.Sharp == null ? 0 : warm.Sharp.Length));
+                        table.AppendLine(size.Width + "x" + size.Height + ": picture with its sharp copy " + TurnMs(TurnMedian(whole)) + " ms, the 1280 jpeg alone " + TurnMs(TurnMedian(plain)) + " ms, Claude's look now " + TurnMs(TurnMedian(claude)) + " ms | " + warm.Jpeg.Length + " | " + (warm.Sharp == null ? 0 : warm.Sharp.Length));
                     }
                 using (Bitmap frame = TurnFrame(1920, 1080, 5))
                 {
@@ -340,8 +353,8 @@ namespace CapriDesktop
                 catch (System.ComponentModel.Win32Exception error) { table.AppendLine("A plain screen copy failed here: " + error.Message); }
 
                 File.WriteAllText(Path.Combine(output, "game-speed.txt"), table.ToString());
-                TurnTimes moves = rows[0], unchanged = rows[1], grid = rows[2];
-                checks.Add("PASS her game turns are timed stage by stage with an instant brain: claude moves turn " + TurnMs(TurnMedian(moves.Turn)) + " ms (look " + TurnMs(TurnMedian(moves.Look)) + ", hands " + TurnMs(TurnMedian(moves.Act)) + "), unchanged screen sends " + TurnMs(TurnMedian(ToDoubles(unchanged.Pictures))) + " pictures a turn, grid brain turn " + TurnMs(TurnMedian(grid.Turn)) + " ms (grid and words " + TurnMs(TurnMedian(grid.Build)) + "); the table is in game-speed.txt");
+                TurnTimes moves = rows[0], combo = rows[1], unchanged = rows[2], grid = rows[3];
+                checks.Add("PASS her game turns are timed stage by stage with an instant brain: claude moves turn " + TurnMs(TurnMedian(moves.Turn)) + " ms (look " + TurnMs(TurnMedian(moves.Look)) + ", hands " + TurnMs(TurnMedian(moves.Act)) + "), the same moves as one combo " + TurnMs(TurnMedian(combo.Turn)) + " ms (hands " + TurnMs(TurnMedian(combo.Act)) + "), unchanged screen sends " + TurnMs(TurnMedian(ToDoubles(unchanged.Pictures))) + " pictures a turn, grid brain turn " + TurnMs(TurnMedian(grid.Turn)) + " ms (grid and words " + TurnMs(TurnMedian(grid.Build)) + "); the table is in game-speed.txt");
             }
             finally
             {
@@ -354,6 +367,7 @@ namespace CapriDesktop
                 Computer.Lending = lendWas; InControl.Changed = signWas; Computer.CursorHidden = hiddenWas; Computer.Escape = escapeWas; Computer.SecretFocus = secretWas;
                 Computer.GameUnder = gameUnderWas; Computer.Under = underWas; Computer.Focus = focusWas; Computer.GameOpen = gameOpenWas; Hands.Windows = windowsWas;
                 Computer.Use = useWas; Computer.Act = actWas; Computer.Halted = haltWas; Hands.Run = runWas; Computer.Shown = shownWas;
+                AntiCheat.Processes = processesWas; AntiCheat.Loaded = loadedWas;
                 GameNotes.Folder = notesWas; Computer.Flinched = flinchedWas; Computer.Streaming = streamWas; Sfx.Level = soundWas;
                 Computer.Finish();
                 Computer.Arm();
@@ -366,6 +380,69 @@ namespace CapriDesktop
             List<double> made = new List<double>();
             foreach (int value in values) made.Add(value);
             return made;
+        }
+
+        // A look that comes out exactly like the newest picture isn't sent again, Claude's looks skip the bigger copy made for
+        // reading words, and a grid brain reads a screen that hasn't changed only once.
+        private static void SmokeSameFrames(List<string> checks)
+        {
+            using (ComboRig rig = new ComboRig())
+            using (Bitmap small = TurnFrame(320, 180, 1))
+            using (Bitmap other = TurnFrame(320, 180, 2))
+            {
+                byte[] still = Jpeg(small, Computer.Longest), changed = Jpeg(other, Computer.Longest);
+                bool moving = false;
+                List<bool> plain = new List<bool>();
+                Computer.Shoot = delegate
+                {
+                    plain.Add(Computer.Plain);
+                    return new Picture { Jpeg = (byte[])(moving ? changed : still).Clone(), Size = new Size(320, 180), Area = new Rectangle(0, 0, 1280, 720) };
+                };
+                List<int> images = new List<int>();
+                List<string> sent = new List<string>();
+                Job driving = new Job("play minecraft");
+                driving.Drive = delegate(string system, string tools, string messages)
+                {
+                    images.Add(System.Text.RegularExpressions.Regex.Matches(messages, "\"type\":\"image\"").Count);
+                    sent.Add(messages);
+                    int turn = images.Count;
+                    if (turn == 3) moving = true;
+                    if (turn == 1 || turn == 3) return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"k" + turn + "\",\"name\":\"key\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"f24\"}}],\"stop_reason\":\"tool_use\"}");
+                    if (turn == 2) return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"s2\",\"name\":\"screenshot\",\"toolset_name\":\"computer\",\"input\":{}}],\"stop_reason\":\"tool_use\"}");
+                    return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Done.\"}],\"stop_reason\":\"end_turn\"}");
+                };
+                string drove = driving.Run();
+                string unchanged = Voice.Quote(Computer.Unchanged);
+                unchanged = unchanged.Substring(1, unchanged.Length - 2);
+                if (drove != "Done." || images.Count != 4 || images[0] != 1 || images[1] != 1 || images[2] != 1 || images[3] != 2 || sent[1].IndexOf("f24", StringComparison.Ordinal) < 0 || sent[1].IndexOf(unchanged, StringComparison.Ordinal) < 0
+                    || sent[2].IndexOf(unchanged, StringComparison.Ordinal) < 0 || sent[3].IndexOf(unchanged, StringComparison.Ordinal) < 0 || !plain.TrueForAll(on => on))
+                    throw new Exception("Claude was sent the same picture again, or wasn't told the screen hadn't changed: " + drove + " / pictures " + string.Join(",", images.ConvertAll(count => count.ToString()).ToArray()));
+                checks.Add("PASS a look that comes out exactly like Claude's newest picture isn't sent again: it's told the screen hasn't changed, a screen that moves sends a picture again, and Claude's looks skip the bigger copy made for reading words");
+
+                moving = false;
+                plain.Clear();
+                List<byte[]> grids = new List<byte[]>();
+                Job seeing = new Job("play minecraft");
+                seeing.Seer = delegate(byte[] picture, string system, string text)
+                {
+                    grids.Add(picture);
+                    if (grids.Count == 2) moving = true;
+                    return grids.Count < 3 ? "press{\"keys\": \"f24\"}" : "done{\"text\": \"Done.\"}";
+                };
+                string saw = seeing.Run();
+                if (grids.Count != 3 || !object.ReferenceEquals(grids[0], grids[1]) || object.ReferenceEquals(grids[1], grids[2]) || Computer.Same(grids[1], grids[2]) || plain.Exists(on => on))
+                    throw new Exception("A grid brain read the same screen twice, or kept an old grid for a new screen: " + saw);
+                using (Bitmap frame = TurnFrame(1920, 1080, 3))
+                {
+                    Computer.Plain = true;
+                    Picture claude;
+                    try { claude = Picture.Of(frame, new Rectangle(0, 0, 1920, 1080)); }
+                    finally { Computer.Plain = false; }
+                    Picture reading = Picture.Of(frame, new Rectangle(0, 0, 1920, 1080));
+                    if (claude.Sharp != null || reading.Sharp == null || !Computer.Same(claude.Jpeg, reading.Jpeg)) throw new Exception("Claude's look still made a sharp copy, or a reading look lost it.");
+                }
+                checks.Add("PASS a grid brain reads a screen that hasn't changed once and reads it again once it moves, and its looks keep the sharp copy for reading words");
+            }
         }
     }
 }

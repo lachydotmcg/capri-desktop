@@ -54,7 +54,7 @@ namespace CapriDesktop
         internal static Picture Of(Bitmap shot, Rectangle area)
         {
             double scale = Math.Min(1.0, (double)Computer.Longest / Math.Max(shot.Width, shot.Height));
-            return new Picture { Jpeg = Companion.Jpeg(shot, Computer.Longest), Sharp = scale < 1 ? Companion.Jpeg(shot, Computer.Sharpest) : null, Size = new Size(Math.Max(1, (int)Math.Round(shot.Width * scale)), Math.Max(1, (int)Math.Round(shot.Height * scale))), Area = area };
+            return new Picture { Jpeg = Companion.Jpeg(shot, Computer.Longest), Sharp = scale < 1 && !Computer.Plain ? Companion.Jpeg(shot, Computer.Sharpest) : null, Size = new Size(Math.Max(1, (int)Math.Round(shot.Width * scale)), Math.Max(1, (int)Math.Round(shot.Height * scale))), Area = area };
         }
     }
 
@@ -1874,6 +1874,9 @@ namespace CapriDesktop
 
         internal const string Escaped = "You pressed Esc, so I stopped.";
         internal const string TypeAgain = "That text is already in the field, so I didn't type it again.";
+        internal const string Unchanged = "The screen hasn't changed since your last screenshot.";
+        // On while she takes a look only Claude will see: it reads the picture itself, so no bigger copy is made for reading words.
+        [ThreadStatic] internal static bool Plain;
 
         // Whether this is what a job stopped on, by Esc or by their word: either ends the whole ask.
         internal static bool Stopped(string said) { return said == Escaped || (interrupted && said == why); }
@@ -2721,6 +2724,13 @@ namespace CapriDesktop
         private int streamNudges;
         private int misses;
         private Picture shown;
+        // Her last look came out exactly like the picture before it, so it wasn't sent again.
+        private bool same;
+        // A grid brain's last grid and the words read off it, kept while the screen stays exactly the same.
+        private byte[] griddedFrom, gridded;
+        private Rectangle griddedArea;
+        private string griddedWords;
+        private List<ReadWord> griddedSpots;
         private IntPtr looked;
         private string typed;
         private readonly Dictionary<string, string> notes = new Dictionary<string, string>();
@@ -3289,9 +3299,16 @@ namespace CapriDesktop
                 // Nothing on screen moved at all, or it's about to make the same moves again: small brains need telling.
                 if (lastLook != null && results.Length > 0 && !sentBack && Computer.Same(lastLook, shown.Jpeg)) results += "\nThe screen didn't change at all after that, so it didn't work. Try something different.";
                 sentBack = false;
-                string words;
-                List<ReadWord> spots;
-                byte[] picture = Computer.Gridded(shown, out words, out spots);
+                // The very same picture reads the same, so last turn's grid and words go again instead of reading it twice.
+                if (gridded == null || shown.Area != griddedArea || !Computer.Same(griddedFrom, shown.Jpeg))
+                {
+                    gridded = Computer.Gridded(shown, out griddedWords, out griddedSpots);
+                    griddedFrom = shown.Jpeg;
+                    griddedArea = shown.Area;
+                }
+                string words = griddedWords;
+                List<ReadWord> spots = griddedSpots;
+                byte[] picture = gridded;
                 string fresh = Heard();
                 if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
                 asides += Changed();
@@ -3434,8 +3451,8 @@ namespace CapriDesktop
                 {
                     lastType = null;
                     bool seen = Look();
-                    answer.Text = seen ? "This is the screen now." : "Couldn't capture the screen.";
-                    answer.Picture = seen ? Latest() : "";
+                    answer.Text = !seen ? "Couldn't capture the screen." : same ? Computer.Unchanged : "This is the screen now.";
+                    answer.Picture = seen && !same ? Latest() : "";
                 }
                 else if (member && call.Name == "zoom") { lastType = null; answer.Text = Zoom(args, answer); }
                 else
@@ -3481,7 +3498,9 @@ namespace CapriDesktop
             if ((moved || hit || broken || (last != "screenshot" && last != "zoom" && !spun)) && Look())
             {
                 Answered final = answers[answers.Count - 1];
-                if (final.Error) after = ",{\"type\":\"text\",\"text\":\"The screen now:\"}" + Latest();
+                if (same && final.Error) after = ",{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.Unchanged) + "}";
+                else if (same) final.Text += " " + Computer.Unchanged;
+                else if (final.Error) after = ",{\"type\":\"text\",\"text\":\"The screen now:\"}" + Latest();
                 else final.Picture = Latest();
             }
             // Asking is up to her, and a lost brain is the last to notice, so she's reminded every 30 turns.
@@ -3523,6 +3542,7 @@ namespace CapriDesktop
         private bool Look()
         {
             Show("Looking at the screen");
+            same = false;
             Sight target;
             Picture fresh;
             for (int tries = 1; ; tries++)
@@ -3530,7 +3550,10 @@ namespace CapriDesktop
                 // Read first, so a window that takes over during the shot counts as a change.
                 looked = Computer.Front();
                 target = Computer.Glimpse();
-                fresh = Computer.Shoot(null);
+                // Claude reads the picture itself, so the bigger copy made for reading words off it would go unused.
+                Computer.Plain = Drive != null;
+                try { fresh = Computer.Shoot(null); }
+                finally { Computer.Plain = false; }
                 if (fresh == null || looked == IntPtr.Zero || Computer.Front() == looked && (target == null || target.Window == IntPtr.Zero || target.Window == looked)) break;
                 // Another window came to the front during the shot, so the picture might not be of the window her keys would
                 // go to. She shoots again; if it keeps changing, the picture goes without a window for her keys.
@@ -3544,10 +3567,12 @@ namespace CapriDesktop
             if (fresh == null) return false;
             fresh.Sight = target;
             Computer.NoteGame(Computer.GameWindow(target) ? target : null);
+            // The very same picture as the newest one it already has tells it nothing new, so it isn't sent again.
+            same = pictures.Count > 0 && Computer.Same(pictures[pictures.Count - 1], fresh.Jpeg);
             shown = fresh;
             Computer.Shown = fresh;
             newest = fresh.Jpeg;
-            pictures.Add(fresh.Jpeg);
+            if (!same) pictures.Add(fresh.Jpeg);
             if (TraceFolder != null) File.WriteAllBytes(Path.Combine(TraceFolder, "shot-" + (++shots).ToString("0000") + ".jpg"), fresh.Jpeg);
             return true;
         }
