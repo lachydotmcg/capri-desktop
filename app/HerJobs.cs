@@ -21,10 +21,11 @@ namespace CapriDesktop
         [DataMember] public string Answer = "";
         [DataMember] public string Note = "";
         [DataMember] public string After = "";
+        [DataMember] public string Replay = "";
 
         internal HerJob Copy()
         {
-            return new HerJob { Id = Id, Task = Task, Repeat = Repeat, State = State, Added = Added, Ended = Ended, NextRun = NextRun, Answer = Answer, Note = Note, After = After };
+            return new HerJob { Id = Id, Task = Task, Repeat = Repeat, State = State, Added = Added, Ended = Ended, NextRun = NextRun, Answer = Answer, Note = Note, After = After, Replay = Replay };
         }
     }
 
@@ -148,6 +149,17 @@ namespace CapriDesktop
             Save();
         }
 
+        internal void SetReplay(string id, string replay)
+        {
+            bool found = false;
+            lock (gate)
+            {
+                HerJob job = list.Done.Find(one => one.Id == id);
+                if (job != null) { job.Replay = replay ?? ""; found = true; }
+            }
+            if (found) Save();
+        }
+
         internal static long Stamp(DateTime when) { return when.Ticks; }
         internal static DateTime When(long stamp) { return new DateTime(Math.Max(0, Math.Min(DateTime.MaxValue.Ticks, stamp))); }
 
@@ -193,7 +205,7 @@ namespace CapriDesktop
             if (fixedList.Done == null) fixedList.Done = new List<HerJob>();
             foreach (List<HerJob> jobs in new[] { fixedList.Queue, fixedList.Repeats, fixedList.Done })
                 jobs.RemoveAll(job => job == null || string.IsNullOrWhiteSpace(job.Task) || string.IsNullOrEmpty(job.Id));
-            foreach (List<HerJob> jobs in new[] { fixedList.Queue, fixedList.Repeats, fixedList.Done }) foreach (HerJob job in jobs) if (job.After == null) job.After = "";
+            foreach (List<HerJob> jobs in new[] { fixedList.Queue, fixedList.Repeats, fixedList.Done }) foreach (HerJob job in jobs) { if (job.After == null) job.After = ""; if (job.Replay == null) job.Replay = ""; }
             foreach (HerJob job in fixedList.Queue) { job.State = "queued"; if (Array.IndexOf(Repeats, job.Repeat ?? "") < 0) job.Repeat = ""; }
             fixedList.Repeats.RemoveAll(job => job.Repeat != "daily" && job.Repeat != "weekly");
             while (fixedList.Queue.Count > MostQueued) fixedList.Queue.RemoveAt(fixedList.Queue.Count - 1);

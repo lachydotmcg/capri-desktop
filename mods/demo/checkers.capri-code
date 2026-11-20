@@ -1,0 +1,576 @@
+// capri-mod: 1
+// id: checkers
+// name: Checkers
+// version: 1.0.0
+// author: Capri demos
+// description: Play checkers with her. Ask her for a game, or open the board from Mods in her right-click menu, and click to move. She plays the other side.
+// permissions: tools
+// requires: api 3
+
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using CapriDesktop;
+
+public class Checkers : ICapriMod
+{
+    private ICapriHost capri;
+    private readonly CheckersGame game = new CheckersGame();
+    private CheckersBoard board;
+    private ICapriTimer reply;
+
+    public void Start(ICapriHost host)
+    {
+        capri = host;
+        if (!game.Load(host.Store.Get("game", ""))) game.Reset();
+        host.Brain.AddTool("checkers",
+            "Play checkers with them on a board beside you. They are o at the bottom and move first, you are x. When they move, this plays your reply too. Tell them what happened from what it returns.",
+            "new, move c3 d4 (add squares for a multi-jump, like move c3 e5 c7), board, moves, resign or close",
+            Run);
+        host.Ui.AddMenuItem("Checkers", ShowBoard);
+    }
+
+    public bool Heard(string words) { return false; }
+
+    public void Stop()
+    {
+        if (reply != null) reply.Cancel();
+        if (board != null && !board.IsDisposed) board.Close();
+        board = null;
+    }
+
+    public string Run(string text)
+    {
+        string said = (text ?? "").Trim().ToLowerInvariant();
+        List<int> squares = new List<int>();
+        foreach (Match square in Regex.Matches(said, "[a-h][1-8]")) squares.Add(CheckersGame.Square(square.Value));
+        if (squares.Count >= 2) return TheirMove(squares);
+        if (said.StartsWith("new") || said == "start" || said == "restart")
+        {
+            if (reply != null) reply.Cancel();
+            game.Reset();
+            Changed();
+            ShowBoard();
+            return "New game on the board. " + State(true);
+        }
+        if (said == "close" || said == "hide")
+        {
+            if (board != null && !board.IsDisposed) board.Close();
+            return "The board is closed and the game is kept. Use board to open it again.";
+        }
+        if (said == "resign")
+        {
+            if (game.Winner.Length > 0) return "The game is already over. Use new for another.";
+            game.Winner = "capri";
+            Changed();
+            return "They resigned, so you won. Use new for another game.";
+        }
+        if (said == "moves")
+        {
+            List<int[]> moves = game.Moves();
+            if (game.Winner.Length > 0 || moves.Count == 0) return State(false);
+            return (game.Turn == 1 ? "Their moves: " : "Your moves: ") + Listed(moves) + ".";
+        }
+        if (said.Length == 0 || said == "board" || said == "show" || said == "state")
+        {
+            ShowBoard();
+            return State(true);
+        }
+        return "That isn't something checkers takes. Use new, move c3 d4, board, moves, resign or close.";
+    }
+
+    private string TheirMove(List<int> squares)
+    {
+        if (game.Winner.Length > 0) return "The game is over. " + State(false) + " Use new for another.";
+        if (game.Turn == -1)
+        {
+            HerMove();
+            Changed();
+            if (game.Winner.Length > 0) return "The game is over. " + State(false);
+        }
+        int[] chosen = Pick(game.Moves(), squares);
+        if (chosen == null)
+        {
+            List<int[]> moves = game.Moves();
+            bool jumping = moves.Count > 0 && CheckersGame.Jumps(moves[0]);
+            return "That move isn't legal. " + (jumping ? "They must capture: " : "Their moves: ") + Listed(moves) + ".";
+        }
+        game.Play(chosen);
+        string told = "They moved " + game.Last + ". ";
+        if (game.Winner.Length == 0) told += "You moved " + HerMove() + ". ";
+        Changed();
+        ShowBoard();
+        return told + State(false);
+    }
+
+    private static int[] Pick(List<int[]> moves, List<int> squares)
+    {
+        int[] ends = null, starts = null;
+        int endsFound = 0, startsFound = 0;
+        foreach (int[] move in moves)
+        {
+            if (Starts(move, squares) && move.Length == squares.Count) return move;
+            if (move[0] == squares[0] && move[move.Length - 1] == squares[squares.Count - 1]) { ends = move; endsFound++; }
+            if (Starts(move, squares)) { starts = move; startsFound++; }
+        }
+        return endsFound == 1 ? ends : startsFound == 1 ? starts : null;
+    }
+
+    private static bool Starts(int[] move, List<int> squares)
+    {
+        if (move.Length < squares.Count) return false;
+        for (int i = 0; i < squares.Count; i++) if (move[i] != squares[i]) return false;
+        return true;
+    }
+
+    private string HerMove()
+    {
+        if (reply != null) { reply.Cancel(); reply = null; }
+        int[] move = game.Best();
+        if (move == null) return "nothing";
+        game.Play(move);
+        return game.Last;
+    }
+
+    private void TheyClicked(int[] move)
+    {
+        if (game.Turn != 1 || game.Winner.Length > 0) return;
+        game.Play(move);
+        Changed();
+        if (game.Winner.Length > 0) { Ended(); return; }
+        reply = capri.Timers.After(0.7, delegate
+        {
+            reply = null;
+            if (game.Turn != -1 || game.Winner.Length > 0) return;
+            string mine = HerMove();
+            Changed();
+            if (game.Winner.Length > 0) Ended();
+            else capri.Ui.Bubble("I'll go " + mine + ". Your move.");
+        });
+    }
+
+    private void Ended()
+    {
+        if (game.Winner == "capri") capri.Say("That's my game. Good one, choom.");
+        else if (game.Winner == "them") capri.Say("You got me. Well played.");
+        else capri.Say("A draw. Rematch?");
+    }
+
+    private void Changed()
+    {
+        capri.Store.Set("game", game.Save());
+        if (board != null && !board.IsDisposed) board.Invalidate();
+    }
+
+    private void ShowBoard()
+    {
+        if (board != null && !board.IsDisposed)
+        {
+            board.Invalidate();
+            if (!board.Visible) board.Show();
+            return;
+        }
+        board = new CheckersBoard(game, TheyClicked);
+        Rectangle her = capri.Her.Bounds, area = capri.Her.Screen;
+        int x = her.Left - board.Width - 12 >= area.Left ? her.Left - board.Width - 12 : Math.Max(area.Left, Math.Min(her.Right + 12, area.Right - board.Width));
+        int y = Math.Max(area.Top, Math.Min(her.Bottom - board.Height, area.Bottom - board.Height));
+        board.Location = new Point(x, y);
+        board.Show();
+    }
+
+    private string State(bool picture)
+    {
+        StringBuilder text = new StringBuilder();
+        if (game.Winner == "them") text.Append("Game over: they won. ");
+        else if (game.Winner == "capri") text.Append("Game over: you won. ");
+        else if (game.Winner == "draw") text.Append("Game over: a draw, after 40 moves each with no capture and no man moved. ");
+        else
+        {
+            text.Append(game.Turn == 1 ? "Their turn. " : "Your turn. ");
+            List<int[]> moves = game.Moves();
+            if (game.Turn == 1 && moves.Count > 0 && CheckersGame.Jumps(moves[0])) text.Append("They must capture: " + Listed(moves) + ". ");
+        }
+        text.Append("They have " + Pieces(1) + ", you have " + Pieces(-1) + ".");
+        if (game.Last.Length > 0) text.Append(" Last move: " + game.Last + ".");
+        if (picture) text.Append("\n" + game.Picture() + "They are o, you are x, and capitals are kings.");
+        return text.ToString();
+    }
+
+    private string Pieces(int side)
+    {
+        int all = game.Count(side, false), kings = game.Count(side, true);
+        return all + (all == 1 ? " piece" : " pieces") + (kings == 0 ? "" : " (" + kings + (kings == 1 ? " king)" : " kings)"));
+    }
+
+    private static string Listed(List<int[]> moves)
+    {
+        List<string> names = new List<string>();
+        foreach (int[] move in moves) names.Add(CheckersGame.Named(move));
+        return string.Join(", ", names.ToArray());
+    }
+}
+
+public class CheckersGame
+{
+    public const int QuietLimit = 80;
+    public int[] Cells = new int[64];
+    public int Turn = 1;
+    public int Quiet;
+    public string Last = "";
+    public string Winner = "";
+
+    private static readonly int[][] Up = { new[] { 1, -1 }, new[] { 1, 1 } };
+    private static readonly int[][] Down = { new[] { -1, -1 }, new[] { -1, 1 } };
+    private static readonly int[][] All = { new[] { 1, -1 }, new[] { 1, 1 }, new[] { -1, -1 }, new[] { -1, 1 } };
+
+    public void Reset()
+    {
+        Cells = new int[64];
+        for (int square = 0; square < 64; square++)
+        {
+            if (!Dark(square)) continue;
+            if (square / 8 < 3) Cells[square] = 1;
+            else if (square / 8 > 4) Cells[square] = -1;
+        }
+        Turn = 1;
+        Quiet = 0;
+        Last = "";
+        Winner = "";
+    }
+
+    public static bool Dark(int square) { return (square / 8 + square % 8) % 2 == 0; }
+
+    public static string Name(int square) { return ((char)('a' + square % 8)).ToString() + (square / 8 + 1); }
+
+    public static int Square(string name)
+    {
+        if (name == null || name.Length != 2) return -1;
+        int column = name[0] - 'a', row = name[1] - '1';
+        return column < 0 || column > 7 || row < 0 || row > 7 ? -1 : row * 8 + column;
+    }
+
+    public static bool Jumps(int[] move) { return Math.Abs(move[1] / 8 - move[0] / 8) == 2; }
+
+    public static string Named(int[] move)
+    {
+        List<string> names = new List<string>();
+        foreach (int square in move) names.Add(Name(square));
+        return string.Join(Jumps(move) ? "x" : "-", names.ToArray());
+    }
+
+    public int Count(int side, bool kingsOnly)
+    {
+        int count = 0;
+        foreach (int piece in Cells) if (Math.Sign(piece) == side && (!kingsOnly || Math.Abs(piece) == 2)) count++;
+        return count;
+    }
+
+    public List<int[]> Moves() { return Moves(Turn); }
+
+    public List<int[]> Moves(int side)
+    {
+        List<int[]> found = new List<int[]>();
+        if (Winner.Length > 0) return found;
+        for (int square = 0; square < 64; square++)
+            if (Math.Sign(Cells[square]) == side) JumpsFrom(square, Cells[square], new List<int> { square }, new List<int>(), found);
+        if (found.Count > 0) return found;
+        for (int square = 0; square < 64; square++)
+        {
+            int piece = Cells[square];
+            if (Math.Sign(piece) != side) continue;
+            foreach (int[] way in Ways(piece))
+            {
+                int row = square / 8 + way[0], column = square % 8 + way[1];
+                if (row >= 0 && row < 8 && column >= 0 && column < 8 && Cells[row * 8 + column] == 0) found.Add(new[] { square, row * 8 + column });
+            }
+        }
+        return found;
+    }
+
+    private static int[][] Ways(int piece) { return piece == 1 ? Up : piece == -1 ? Down : All; }
+
+    private void JumpsFrom(int at, int piece, List<int> path, List<int> taken, List<int[]> found)
+    {
+        bool further = false;
+        foreach (int[] way in Ways(piece))
+        {
+            int landRow = at / 8 + 2 * way[0], landColumn = at % 8 + 2 * way[1];
+            if (landRow < 0 || landRow > 7 || landColumn < 0 || landColumn > 7) continue;
+            int over = (at / 8 + way[0]) * 8 + at % 8 + way[1], land = landRow * 8 + landColumn;
+            if (Math.Sign(Cells[over]) != -Math.Sign(piece) || taken.Contains(over)) continue;
+            if (Cells[land] != 0 && land != path[0]) continue;
+            further = true;
+            path.Add(land);
+            taken.Add(over);
+            if (Math.Abs(piece) == 1 && landRow == (piece > 0 ? 7 : 0)) found.Add(path.ToArray());
+            else JumpsFrom(land, piece, path, taken, found);
+            path.RemoveAt(path.Count - 1);
+            taken.RemoveAt(taken.Count - 1);
+        }
+        if (!further && path.Count > 1) found.Add(path.ToArray());
+    }
+
+    private void Apply(int[] move)
+    {
+        int piece = Cells[move[0]];
+        bool took = false;
+        Cells[move[0]] = 0;
+        for (int step = 1; step < move.Length; step++)
+            if (Math.Abs(move[step] / 8 - move[step - 1] / 8) == 2) { Cells[(move[step] + move[step - 1]) / 2] = 0; took = true; }
+        int end = move[move.Length - 1];
+        Quiet = took || Math.Abs(piece) == 1 ? 0 : Quiet + 1;
+        if (Math.Abs(piece) == 1 && end / 8 == (piece > 0 ? 7 : 0)) piece *= 2;
+        Cells[end] = piece;
+        Turn = -Turn;
+    }
+
+    public void Play(int[] move)
+    {
+        Last = Named(move);
+        Apply(move);
+        Settle();
+    }
+
+    private void Settle()
+    {
+        Winner = "";
+        if (Moves(Turn).Count == 0) Winner = Turn == 1 ? "capri" : "them";
+        else if (Quiet >= QuietLimit) Winner = "draw";
+    }
+
+    public int[] Best()
+    {
+        int[] best = null;
+        int bestScore = int.MinValue;
+        foreach (int[] move in Moves())
+        {
+            CheckersGame next = Copy();
+            next.Apply(move);
+            int score = -next.Search(3);
+            if (score > bestScore) { bestScore = score; best = move; }
+        }
+        return best;
+    }
+
+    private int Search(int depth)
+    {
+        List<int[]> moves = Moves(Turn);
+        if (moves.Count == 0) return -10000 - depth;
+        if (depth == 0) return Score(Turn);
+        int best = int.MinValue;
+        foreach (int[] move in moves)
+        {
+            CheckersGame next = Copy();
+            next.Apply(move);
+            best = Math.Max(best, -next.Search(depth - 1));
+        }
+        return best;
+    }
+
+    private int Score(int side)
+    {
+        int score = 0;
+        for (int square = 0; square < 64; square++)
+        {
+            int piece = Cells[square];
+            if (piece == 0) continue;
+            int worth = Math.Abs(piece) == 2 ? 160 : 100 + 3 * (piece > 0 ? square / 8 : 7 - square / 8);
+            score += Math.Sign(piece) == side ? worth : -worth;
+        }
+        return score;
+    }
+
+    public CheckersGame Copy()
+    {
+        CheckersGame copy = new CheckersGame();
+        copy.Cells = (int[])Cells.Clone();
+        copy.Turn = Turn;
+        copy.Quiet = Quiet;
+        copy.Last = Last;
+        return copy;
+    }
+
+    private static char Mark(int piece) { return piece == 1 ? 'o' : piece == 2 ? 'O' : piece == -1 ? 'x' : piece == -2 ? 'X' : '.'; }
+
+    public string Save()
+    {
+        StringBuilder text = new StringBuilder();
+        for (int row = 7; row >= 0; row--)
+        {
+            for (int column = 0; column < 8; column++) text.Append(Mark(Cells[row * 8 + column]));
+            if (row > 0) text.Append('/');
+        }
+        text.Append(Turn == 1 ? " o " : " x ").Append(Quiet).Append(' ').Append(Last.Length == 0 ? "-" : Last).Append(' ').Append(Winner.Length == 0 ? "-" : Winner);
+        return text.ToString();
+    }
+
+    public bool Load(string text)
+    {
+        string[] parts = (text ?? "").Trim().Split(' ');
+        string[] rows = parts[0].Split('/');
+        if (rows.Length != 8) return false;
+        int[] cells = new int[64];
+        for (int row = 0; row < 8; row++)
+        {
+            if (rows[row].Length != 8) return false;
+            for (int column = 0; column < 8; column++)
+            {
+                int piece = "Xx.oO".IndexOf(rows[row][column]) - 2, square = (7 - row) * 8 + column;
+                if (piece < -2 || piece != 0 && !Dark(square)) return false;
+                cells[square] = piece;
+            }
+        }
+        Cells = cells;
+        Turn = parts.Length > 1 && parts[1] == "x" ? -1 : 1;
+        int quiet;
+        Quiet = parts.Length > 2 && int.TryParse(parts[2], out quiet) ? quiet : 0;
+        Last = parts.Length > 3 && parts[3] != "-" ? parts[3] : "";
+        Settle();
+        if (parts.Length > 4 && parts[4] == "capri" && Winner.Length == 0) Winner = "capri";
+        return true;
+    }
+
+    public string Picture()
+    {
+        StringBuilder text = new StringBuilder("  a b c d e f g h\n");
+        for (int row = 7; row >= 0; row--)
+        {
+            text.Append(row + 1);
+            for (int column = 0; column < 8; column++) text.Append(' ').Append(Mark(Cells[row * 8 + column]));
+            text.Append(' ').Append(row + 1).Append('\n');
+        }
+        return text.Append("  a b c d e f g h\n").ToString();
+    }
+}
+
+public class CheckersBoard : Form
+{
+    private const int Cell = 52, Edge = 26;
+    private static readonly Color Ground = Color.FromArgb(10, 10, 16), Unplayed = Color.FromArgb(30, 20, 36), Played = Color.FromArgb(43, 38, 51);
+    private static readonly Color Rose = Color.FromArgb(255, 93, 102), White = Color.FromArgb(236, 236, 241), Cyan = Color.FromArgb(94, 240, 246);
+    private static readonly Color Gold = Color.FromArgb(244, 214, 70), Faint = Color.FromArgb(146, 130, 140);
+    private readonly CheckersGame game;
+    private readonly Action<int[]> played;
+    private readonly List<int> picked = new List<int>();
+
+    public CheckersBoard(CheckersGame playing, Action<int[]> chosen)
+    {
+        game = playing;
+        played = chosen;
+        Text = "Checkers with Capri";
+        FormBorderStyle = FormBorderStyle.FixedToolWindow;
+        MaximizeBox = false;
+        MinimizeBox = false;
+        ShowInTaskbar = false;
+        TopMost = true;
+        DoubleBuffered = true;
+        BackColor = Ground;
+        StartPosition = FormStartPosition.Manual;
+        ClientSize = new Size(Edge * 2 + Cell * 8, Edge * 2 + Cell * 8 + 30);
+    }
+
+    private static Rectangle Tile(int square) { return new Rectangle(Edge + square % 8 * Cell, Edge + (7 - square / 8) * Cell, Cell, Cell); }
+
+    private List<int[]> TheirMoves() { return game.Turn == 1 ? game.Moves() : new List<int[]>(); }
+
+    private List<int[]> Following(List<int[]> moves, List<int> path)
+    {
+        List<int[]> fitting = new List<int[]>();
+        foreach (int[] move in moves)
+        {
+            if (move.Length < path.Count) continue;
+            bool same = true;
+            for (int i = 0; i < path.Count && same; i++) same = move[i] == path[i];
+            if (same) fitting.Add(move);
+        }
+        return fitting;
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        Graphics paint = e.Graphics;
+        paint.SmoothingMode = SmoothingMode.AntiAlias;
+        List<int[]> moves = TheirMoves();
+        List<int> targets = new List<int>(), movable = new List<int>(), last = new List<int>();
+        if (picked.Count > 0) foreach (int[] move in Following(moves, picked)) if (move.Length > picked.Count) targets.Add(move[picked.Count]);
+        foreach (int[] move in moves) if (!movable.Contains(move[0])) movable.Add(move[0]);
+        foreach (string name in game.Last.Split('-', 'x')) if (CheckersGame.Square(name) >= 0) last.Add(CheckersGame.Square(name));
+        using (Font small = new Font("Segoe UI", 8.5f))
+        using (Font status = new Font("Segoe UI", 10.5f, FontStyle.Bold))
+        using (Brush unplayedTile = new SolidBrush(Unplayed), playedTile = new SolidBrush(Played), tint = new SolidBrush(Color.FromArgb(48, Cyan)), dot = new SolidBrush(Color.FromArgb(190, Cyan)))
+        using (Brush faint = new SolidBrush(Faint), theirs = new SolidBrush(White), hers = new SolidBrush(Rose), crown = new SolidBrush(Gold), words = new SolidBrush(White))
+        using (Pen ring = new Pen(Cyan, 3f), hint = new Pen(Color.FromArgb(120, Cyan), 1.5f), rim = new Pen(Ground, 2f))
+        {
+            for (int square = 0; square < 64; square++)
+            {
+                Rectangle tile = Tile(square);
+                paint.FillRectangle(CheckersGame.Dark(square) ? playedTile : unplayedTile, tile);
+                if (last.Contains(square)) paint.FillRectangle(tint, tile);
+                int piece = game.Cells[square];
+                if (piece != 0)
+                {
+                    Rectangle disc = Rectangle.Inflate(tile, -7, -7);
+                    paint.FillEllipse(piece > 0 ? theirs : hers, disc);
+                    paint.DrawEllipse(rim, Rectangle.Inflate(disc, -5, -5));
+                    if (Math.Abs(piece) == 2) paint.FillEllipse(crown, Rectangle.Inflate(disc, -12, -12));
+                    if (picked.Count > 0 && picked[0] == square) paint.DrawEllipse(ring, Rectangle.Inflate(disc, 3, 3));
+                    else if (picked.Count == 0 && movable.Contains(square)) paint.DrawEllipse(hint, Rectangle.Inflate(disc, 3, 3));
+                }
+                if (targets.Contains(square)) paint.FillEllipse(dot, tile.X + Cell / 2 - 6, tile.Y + Cell / 2 - 6, 12, 12);
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                paint.DrawString(((char)('a' + i)).ToString(), small, faint, Edge + i * Cell + Cell / 2 - 4, Edge + Cell * 8 + 4);
+                paint.DrawString((8 - i).ToString(), small, faint, 8, Edge + i * Cell + Cell / 2 - 8);
+            }
+            paint.DrawString(Status(moves), status, words, Edge, Edge * 2 + Cell * 8 - 2);
+        }
+    }
+
+    private string Status(List<int[]> moves)
+    {
+        string count = "   You " + game.Count(1, false) + "  |  Capri " + game.Count(-1, false);
+        if (game.Winner == "them") return "You win!" + count;
+        if (game.Winner == "capri") return "Capri wins." + count;
+        if (game.Winner == "draw") return "A draw." + count;
+        if (game.Turn == -1) return "Capri is thinking..." + count;
+        return (moves.Count > 0 && CheckersGame.Jumps(moves[0]) ? "You must capture." : "Your move.") + count;
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (game.Turn != 1 || game.Winner.Length > 0) return;
+        if (e.X < Edge || e.Y < Edge || e.X >= Edge + Cell * 8 || e.Y >= Edge + Cell * 8) { picked.Clear(); Invalidate(); return; }
+        int square = (7 - (e.Y - Edge) / Cell) * 8 + (e.X - Edge) / Cell;
+        List<int[]> moves = TheirMoves();
+        if (Math.Sign(game.Cells[square]) == 1 && !(picked.Count > 1 && square == picked[0]))
+        {
+            picked.Clear();
+            if (Following(moves, new List<int> { square }).Count > 0) picked.Add(square);
+            Invalidate();
+            return;
+        }
+        if (picked.Count == 0) return;
+        List<int> path = new List<int>(picked);
+        path.Add(square);
+        List<int[]> fitting = Following(moves, path);
+        int[] chosen = null;
+        foreach (int[] move in fitting) if (move.Length == path.Count) chosen = move;
+        if (fitting.Count == 0)
+        {
+            foreach (int[] move in Following(moves, new List<int> { picked[0] }))
+                if (move[move.Length - 1] == square) { if (chosen == null) chosen = move; else return; }
+            if (chosen == null) return;
+        }
+        if (chosen == null) { picked.Add(square); Invalidate(); return; }
+        picked.Clear();
+        played(chosen);
+        Invalidate();
+    }
+}

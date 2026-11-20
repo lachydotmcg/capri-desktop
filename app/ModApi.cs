@@ -454,18 +454,24 @@ namespace CapriDesktop
 
         // What her box says before a code mod runs, the same on every platform: what it asks for, that it runs with full access to
         // the PC, and its fingerprint.
+        internal const string Reviewed = "It's from the Capri mods directory. The Capri team reviewed this exact file before listing it, and Capri checked that her download matches it.\n\n";
+
         internal static string Consent(ModFile mod, string hash)
         {
+            if (mod.Plugin) return PluginConsent(mod, hash);
+            if (mod.Recipe != null) return ToolConsent(mod, hash);
             string asks = "";
             foreach (string permission in mod.Permissions ?? new string[0]) asks += "\n- " + PermissionMeaning(permission);
             string reaches = "";
             foreach (string reach in mod.Reaches ?? new string[0]) reaches += "\n- " + reach;
+            bool reviewed = ModDirectory.Fetched(hash);
             return mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a code mod.\n\n"
+                + (reviewed ? Reviewed : "")
                 + (asks.Length == 0 ? "It asks for none of Capri's permissions.\n\n" : "Through Capri, it asks to:" + asks + "\n\n")
                 + (mod.Unreadable == null ? "" : "Its code can't be read as it is: " + mod.Unreadable + ".\n\n")
                 + (reaches.Length == 0 ? "" : "Reading its code, Capri sees that it:" + reaches + "\n\n")
-                + "Code mods run as part of Capri with full access to your PC: your files, your accounts and the API keys she has saved. Nothing limits what it can do, and Capri doesn't check whether it's safe.\n\n"
-                + "Only run it if you wrote it, or you've read it and trust who did.\n\nFile fingerprint (SHA-256):\n" + hash + "\n\nRun this code?";
+                + "Code mods run as part of Capri with full access to your PC: your files, your accounts and the API keys she has saved. Nothing limits what it can do" + (reviewed ? ".\n\n" : ", and Capri doesn't check whether it's safe.\n\nOnly run it if you wrote it, or you've read it and trust who did.\n\n")
+                + "File fingerprint (SHA-256):\n" + hash + "\n\nRun this code?";
         }
     }
 

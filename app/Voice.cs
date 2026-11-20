@@ -2847,7 +2847,8 @@ namespace CapriDesktop
                 IntPtr audio = IntPtr.Zero;
                 try
                 {
-                    int speaker = style.Speaker < SherpaOnnxOfflineTtsNumSpeakers(tts) ? style.Speaker : Styles[0].Speaker;
+                    int speaker = style.Speaker, speakers = SherpaOnnxOfflineTtsNumSpeakers(tts);
+                    if (speaker < 0 || speaker >= speakers) speaker = 0;
                     audio = SherpaOnnxOfflineTtsGenerate(tts, words, speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
                     if (audio == IntPtr.Zero) throw new VoiceException("Her free voice glitched.");
                     Generated made = (Generated)Marshal.PtrToStructure(audio, typeof(Generated));

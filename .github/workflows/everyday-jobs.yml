@@ -1,0 +1,143 @@
+name: Everyday jobs
+
+# Her reliability bar: the everyday jobs in tests/everyday-jobs, run against each brain, with a pass-rate table in the run summary.
+# Her own NORMAL brain runs here on the CPU every time. A cloud brain runs when its key is saved as a repository secret:
+# CAPRI_EVAL_ANTHROPIC_KEY, CAPRI_EVAL_OPENAI_KEY, CAPRI_EVAL_NVIDIA_KEY, CAPRI_EVAL_GOOGLE_KEY or CAPRI_EVAL_DEEPSEEK_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      local_model:
+        description: Her NORMAL brain to run
+        type: choice
+        default: gemma-4-e2b
+        options: [gemma-4-e2b, gemma-4-e4b, qwen3-4b]
+      repeat:
+        description: Runs per job
+        default: "1"
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - "tests/everyday-jobs/**"
+      - "app/Brain.cs"
+      - "app/Hands.cs"
+      - ".github/workflows/everyday-jobs.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: everyday-jobs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      MODEL: ${{ inputs.local_model || 'gemma-4-e2b' }}
+      REPEAT: ${{ inputs.repeat || '1' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Pick her model
+        run: |
+          case "$MODEL" in
+            gemma-4-e2b) echo "LABEL=NORMAL · Gemma 4 E2B" >> "$GITHUB_ENV"; echo "URL=https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/0314792d7f1f7e229411f620751375812bb9faf2/gemma-4-E2B-it-Q4_K_M.gguf" >> "$GITHUB_ENV"; echo "SHA=740185b21d22ceb83a11c3aa62ad5842ef32c70f6096d756bbee85a1e4ec34b8" >> "$GITHUB_ENV" ;;
+            gemma-4-e4b) echo "LABEL=NORMAL · Gemma 4 E4B" >> "$GITHUB_ENV"; echo "URL=https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/a69f018d7678a2b9f5e705f8903d6fb29b9b25dc/gemma-4-E4B-it-Q4_0.gguf" >> "$GITHUB_ENV"; echo "SHA=a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2" >> "$GITHUB_ENV" ;;
+            qwen3-4b) echo "LABEL=NORMAL · Qwen3 4B" >> "$GITHUB_ENV"; echo "URL=https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/a06e946bb6b655725eafa393f4a9745d460374c9/Qwen3-4B-Instruct-2507-Q4_K_M.gguf" >> "$GITHUB_ENV"; echo "SHA=3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597" >> "$GITHUB_ENV" ;;
+            *) echo "unknown model $MODEL"; exit 1 ;;
+          esac
+      - uses: actions/cache@v4
+        with:
+          path: ~/capri-brain
+          key: everyday-jobs-${{ env.MODEL }}-b11669
+      - name: Her brain engine and model
+        run: |
+          mkdir -p ~/capri-brain && cd ~/capri-brain
+          [ -x llama/llama-server ] || { curl -fsSL -o llama.tar.gz https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-ubuntu-x64.tar.gz && mkdir -p llama && tar -xzf llama.tar.gz -C llama --strip-components=1 && rm llama.tar.gz; }
+          [ -f model.gguf ] || curl -fsSL --retry 3 -o model.gguf "$URL"
+          echo "$SHA  model.gguf" | sha256sum -c -
+      - name: Start her brain
+        run: |
+          cd ~/capri-brain
+          server=$(find llama -name llama-server -type f | head -1)
+          LD_LIBRARY_PATH="$(dirname "$server")" nohup "$server" -m model.gguf --host 127.0.0.1 --port 8080 -c 32768 -np 2 -a capri --jinja --reasoning off --no-webui \
+            -t "$(nproc)" -tb "$(nproc)" -b 256 -ub 128 --device none -ngl 0 > server.log 2>&1 &
+          for i in $(seq 1 120); do curl -sf http://127.0.0.1:8080/health > /dev/null && break; sleep 2; done
+          curl -sf http://127.0.0.1:8080/health
+      - name: Everyday jobs
+        run: |
+          dotnet run --project tests/everyday-jobs/EverydayJobs.csproj -c Release -- --brain "$LABEL=server:http://127.0.0.1:8080|capri" \
+            --warmup --wait 480 --repeat "$REPEAT" --out results/local.json --md results/local.md
+      - name: Server log
+        if: failure()
+        run: tail -100 ~/capri-brain/server.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: everyday-jobs-local
+          path: results
+
+  cloud:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: "Claude key · Haiku", secret: CAPRI_EVAL_ANTHROPIC_KEY, file: anthropic }
+          - { label: "OpenAI key", secret: CAPRI_EVAL_OPENAI_KEY, file: openai }
+          - { label: "MEDIUM · NVIDIA key", secret: CAPRI_EVAL_NVIDIA_KEY, file: nvidia }
+          - { label: "Google AI key", secret: CAPRI_EVAL_GOOGLE_KEY, file: google }
+          - { label: "DeepSeek key", secret: CAPRI_EVAL_DEEPSEEK_KEY, file: deepseek }
+    env:
+      EVAL_KEY: ${{ secrets[matrix.secret] }}
+      REPEAT: ${{ inputs.repeat || '1' }}
+    steps:
+      - name: Key saved?
+        id: key
+        run: if [ -n "$EVAL_KEY" ]; then echo "have=yes" >> "$GITHUB_OUTPUT"; else echo "No ${{ matrix.secret }} secret, so this brain is skipped."; fi
+      - uses: actions/checkout@v5
+        if: steps.key.outputs.have == 'yes'
+      - uses: actions/setup-dotnet@v5
+        if: steps.key.outputs.have == 'yes'
+        with:
+          dotnet-version: 10.0.x
+      - name: Everyday jobs
+        if: steps.key.outputs.have == 'yes'
+        run: |
+          dotnet run --project tests/everyday-jobs/EverydayJobs.csproj -c Release -- --brain "${{ matrix.label }}=key:EVAL_KEY|default" \
+            --repeat "$REPEAT" --out results/${{ matrix.file }}.json --md results/${{ matrix.file }}.md
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.key.outputs.have == 'yes'
+        with:
+          name: everyday-jobs-${{ matrix.file }}
+          path: results
+
+  table:
+    needs: [local, cloud]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: everyday-jobs-*
+          path: results
+          merge-multiple: true
+      - name: Results table
+        run: |
+          files=$(ls results/*.json 2>/dev/null || true)
+          [ -n "$files" ] || { echo "No results."; exit 1; }
+          dotnet run --project tests/everyday-jobs/EverydayJobs.csproj -c Release -- --merge $files --md results/table.md
+          { echo "## Everyday jobs"; echo; cat results/table.md; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: everyday-jobs-table
+          path: results
