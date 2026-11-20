@@ -17,6 +17,8 @@ namespace CapriDesktop
 #if CROSS
         internal const string Version = "0.9.6";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
+            + "Plug-ins: she takes plug-ins like Claude's, .capri-plugin files with MCP tools and SKILL.md skills, and online ones sign in through your browser. Email, Notion and Linear starters wait switched off in Mods. Each tool asks first by your SECURITY settings, and she always asks before sending mail.\n"
+            + "Safety floor: plug-ins start without her saved keys, words from a plug-in or a skill can't spend your yes on another plug-in's tools, sending, paying or the terminal, and a plug-in whose start line downloads and runs hidden code is refused.\n"
             + "Memories: her Mainframe shows everything she remembers, and you can edit, forget or undo any of it.\n"
             + "Setup: a new install sets her up with you in about two minutes: your name, her vibe and look, then a real first job.\n"
             + "Uninstall: her Mainframe can uninstall her, and you choose whether her memories, chats and keys go too.\n"
@@ -30,11 +32,14 @@ namespace CapriDesktop
                     + "Check-ins: she checks in by the clock where your desktop can't say how long you've been idle. From Zak6571.\n"
                     + "Desktops: she stays on top on labwc, keeps her full colour on Hyprland, speaks through pw-cat, and her Mods page fits a small screen. From nathanZW."
                 : "Files: she finds, reads, writes and sorts your files with any brain, asks before she moves, renames or changes anything, never deletes, can undo, and shows any of them in Finder.");
-        internal static readonly string Line = "I just updated to " + Version + ": you can see and edit everything I remember now, and I can find and sort your files. Ask me what's new.";
+        internal static readonly string Line = "I just updated to " + Version + ": you can give me plug-ins now, like email, Notion and Linear, and my memories are all in one place. Ask me what's new.";
 #else
         internal const string Version = "0.9.6";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Memories: her Mainframe shows everything she remembers, and you can edit, forget or undo any of it, on your PC or in Capri Remote on your phone.\n"
+            + "Plug-ins: she takes plug-ins like Claude's, .capri-plugin files with MCP tools and SKILL.md skills, and online ones sign in through your browser. Email, Notion and Linear starters wait switched off in Mods. Each tool asks first by your SECURITY settings, Mods > Options sets each one to always run, ask first or off, and she always asks before sending mail.\n"
+            + "Safety floor: plug-ins start without her saved keys, words from a plug-in or a skill can't spend your yes on another plug-in's tools, her mouse, sending, paying or the terminal, and a plug-in whose start line downloads and runs hidden code is refused.\n"
+            + "GIFs: Her GIFs in her Mainframe, under HABITS, holds GIFs you save for her, each named after its file. She sends one in a card beside her when you ask, by name or at random, and with a cloud brain or in voice chat she sends one on her own now and then.\n"
+            + "Memories: Open her memories in her Mainframe shows everything she remembers about you in one place, and you can edit, forget or undo any of it, or forget everything about you in two taps, on your PC or in Capri Remote on your phone.\n"
             + "Files: she finds, reads, writes and sorts your files with any brain. She asks on her bubble before she moves, renames or changes anything, never deletes, and can undo.\n"
             + "Video calls: tap Video during a Capri Remote call to see her talking face, lip-synced to her voice. Turn your camera on and she sees you too.\n"
             + "Uninstall: her Mainframe can uninstall her, and you choose whether her memories, chats and keys go too.\n"
@@ -50,7 +55,7 @@ namespace CapriDesktop
             + "Update door: on her first start after each update she comes through a door of alert hexagons. From YunoTheAlien.\n"
             + "Everyday jobs: more brains get everyday jobs right, like pausing music, reminders, notes and reading an error on screen, because her hands step in when a brain only says it's doing it.\n"
             + "Fixes: her Mainframe fits at 200% scaling and scrolls on short screens (from nathanZW), one broken Epic manifest no longer empties her app list (from nikitchxd), her free voice falls back to a safe speaker (from nikitchxd), she stays in front of her mini player while you drag it, and her mods page loads from her own copy when GitHub is blocked.";
-        internal const string Line = "I just updated to " + Version + ": you can see and edit everything I remember now, and video call me on Capri Remote. Ask me what's new.";
+        internal const string Line = "I just updated to " + Version + ": you can give me plug-ins now, like email, Notion and Linear, and GIFs for me to send. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
