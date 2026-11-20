@@ -45945,6 +45945,9 @@ namespace CapriDesktop
             Section(checks, "SmokeFrames", delegate { SmokeFrames(checks); });
             Section(checks, "SmokeGameKeys", delegate { SmokeGameKeys(checks); });
             Section(checks, "SmokeGameSpeed", delegate { SmokeGameSpeed(checks, output); });
+            Section(checks, "SmokeScanKeys", delegate { SmokeScanKeys(checks); });
+            Section(checks, "SmokeGameCombo", delegate { SmokeGameCombo(checks); });
+            Section(checks, "SmokeAntiCheat", delegate { SmokeAntiCheat(checks); });
             Section(checks, "SmokeReminders", delegate { SmokeReminders(checks); });
             Section(checks, "SmokeSavedLists", delegate { SmokeSavedLists(checks, output); });
             Section(checks, "SmokeNoteEditor", delegate { SmokeNoteEditor(checks); });

@@ -213,7 +213,7 @@ namespace CapriDesktop
             "\nIf the game isn't open, open it with open_app, then get yourself into a game: press play and pick the mode, map or difficulty yourself, without asking." +
             "\nIf what they named turns out to be a song or a video, not a game, play it and finish." +
             "\nUnless they gave you an end, like one round, a win or a length of time, you keep playing until they stop you: when a run ends, win or lose, start the next one, and never finish just because a game ended." +
-            "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
+            "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. When timing matters, like sprinting into a jump or strafing while you shoot, use combo: it does keys, holds and clicks back to back with the timing you give. Then check what changed." +
             "\nWhen you're looking for something, like loot, a chest, a door, a building, an enemy or the way to your goal, or you don't know which way to go, look all the way around before you walk: don't just walk forward and hope. Then turn to face the way that leads to it and walk there, and look around again when you arrive, get stuck or lose it. If a wall or rock is right in front of you, turn away before you walk." +
             "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
             "\nMost PC games start with wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause, but players rebind them. When this game's keys on this PC or their controls are listed below, those are the real ones, so use them. When they aren't and you haven't learned them before, open the game's settings first, read its keyboard controls, call learn with the keys for moving, running, crouching, jumping and using things, then close it and play. After you hold a run key, check it worked: your character should be upright and going faster. If they're crouched or slower, that key is crouch or walk here, so press it once more to stand if it's a toggle, stop using it and find the real one. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you. If a click doesn't do what you wanted, try the other mouse button, then holding it. Story choices and dialogue options in their game are theirs: leave them alone unless they asked you to play the story. Games hitch: if one seems frozen or ignores you, wait 20 seconds and look again before you think it's stuck. Getting lost or stuck is normal, so turn around, go back, jump, or try another way, and keep playing until what they asked for is done or they say stop." +
@@ -240,7 +240,9 @@ namespace CapriDesktop
             { "learn", "Save one short thing you worked out about this game for every time you play it after this, like a key, what killed you, what worked or where something is. You're told these before you play it again.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"One short line\"}},\"required\":[\"text\"]}" },
             { "mouse_hold", "Hold a mouse button in a game for as long as something takes, like holding left click to mine a block or fire, or right click to aim, block or use. When you're breaking something, always set stop to yes, so it lets go by itself the moment what's under the crosshair changes and you don't start on the next block.",
-              "{\"type\":\"object\",\"properties\":{\"button\":{\"type\":\"string\",\"description\":\"Which button. Default left\",\"enum\":[\"left\",\"right\"]},\"seconds\":{\"type\":\"string\",\"description\":\"Longest to hold it. Default 1\"},\"keys\":{\"type\":\"string\",\"description\":\"Keys to hold with it, joined with +, if any\"},\"stop\":{\"type\":\"string\",\"description\":\"Let go when what's under the crosshair changes\",\"enum\":[\"yes\",\"no\"]}}}" }
+              "{\"type\":\"object\",\"properties\":{\"button\":{\"type\":\"string\",\"description\":\"Which button. Default left\",\"enum\":[\"left\",\"right\"]},\"seconds\":{\"type\":\"string\",\"description\":\"Longest to hold it. Default 1\"},\"keys\":{\"type\":\"string\",\"description\":\"Keys to hold with it, joined with +, if any\"},\"stop\":{\"type\":\"string\",\"description\":\"Let go when what's under the crosshair changes\",\"enum\":[\"yes\",\"no\"]}}}" },
+            { "combo", "Do a quick run of key presses, holds and clicks in a game, back to back with the timing you give, then get one screenshot. Use it when timing matters, like sprinting into a jump, strafing while you shoot or a fighting game's combo. Steps go in order, split by commas: a key, or keys joined with +, taps them; a number of seconds after it holds them, like w 0.6; click, right_click and middle_click click where the crosshair or pointer already is, and a number holds the button; wait 0.3 waits. Up to 12 steps and 8 seconds in all.",
+              "{\"type\":\"object\",\"properties\":{\"steps\":{\"type\":\"string\",\"description\":\"The steps in order, like: shift+w 0.8, space, w 0.4, click, right_click 0.5, wait 0.2\"}},\"required\":[\"steps\"]}" }
         };
 
         private static readonly string[,] Specs =
@@ -312,10 +314,10 @@ namespace CapriDesktop
         internal static string ClaudeTools { get { return Rendering()[1]; } }
         // Her own hold_and_press rides beside Claude's computer tools, so she can hold w while she presses space.
         internal static string Toolset { get { return Hands.Skilled ? SkilledToolset : PlainToolset; } }
-        private static readonly string PlainToolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("find_file") + "," + Render("draw") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("look_around") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("say") + "," + Render("learn") + "," + Render(TreeEyes.Tool) + "," + Render(TreeEyes.PageTool) + "]";
+        private static readonly string PlainToolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("find_file") + "," + Render("draw") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("look_around") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("combo") + "," + Render("say") + "," + Render("learn") + "," + Render(TreeEyes.Tool) + "," + Render(TreeEyes.PageTool) + "]";
         private static readonly string SkilledToolset = PlainToolset.Substring(0, PlainToolset.Length - 1) + "," + Render("read_skill") + "]";
         internal static string Listing { get { return Rendering()[2]; } }
-        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|find_file|read_skill|read_page|draw|wait_for|wait|note|look|walk|mouse_hold|say|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|find_file|read_skill|read_page|draw|wait_for|wait|note|look|walk|mouse_hold|combo|say|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex BareClick = new Regex(@"^\W*click\W*(\d{1,3})\W*$", RegexOptions.IgnoreCase);
         private static readonly Regex Risky = new Regex(@"\b(send|post|publish|tweet|reply|comment|buy|purchase|pay|checkout|check out|place order|order now|book now|book it|complete booking|reserve|reserve now|subscribe|donate|delete|remove|uninstall|install|format|transfer|confirm|sign out|log out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
         private static readonly Regex Told = new Regex(@"\b(send|message|text|dm|tell|say|write|type|put|paste|share|answer|respond|ask|let|post|publish|tweet|reply|comment|delete|remove|erase|trash|uninstall|install|format|confirm|sign\s+out|log\s+out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
@@ -732,6 +734,7 @@ namespace CapriDesktop
             if (tool == "look_around") return "look_around";
             if (tool == "walk") return "walk " + (args.Keys ?? "w") + " " + (args.Seconds ?? "2") + " s";
             if (tool == "mouse_hold") return "hold " + (args.Button ?? "left") + " click " + (args.Seconds ?? "1") + " s";
+            if (tool == "combo") return "combo " + (args.Steps ?? "");
             if (tool == "scroll") return "scroll " + (args.Direction ?? "") + at;
             if (tool == "find_file") return "find_file " + Voice.Quote(args.Description ?? args.Action ?? "");
             if (tool == "open_app") return "open_app " + Voice.Quote(args.Name ?? "");
@@ -784,6 +787,7 @@ namespace CapriDesktop
             if (tool == "look_around") return "Spinning round to look.";
             if (tool == "walk") return "Moving.";
             if (tool == "mouse_hold") return "Holding " + (args.Button ?? "left") + " click.";
+            if (tool == "combo") return "Doing quick moves.";
             if (tool == "scroll") return "Scrolling " + (args.Direction ?? "down") + ".";
             if (tool == "find_file") return args.Action == "show" ? "Showing the first match." : "Looking for " + (args.Description ?? "files") + ".";
             if (tool == "open_app") return "Opening " + (args.Name ?? "it") + ".";
@@ -813,6 +817,7 @@ namespace CapriDesktop
             if (tool == "look_around") return "Looked all the way round";
             if (tool == "walk") return "Moved";
             if (tool == "mouse_hold") return "Held " + (args.Button ?? "left") + " click";
+            if (tool == "combo") return "Did quick moves";
             if (tool == "scroll") return "Scrolled " + (args.Direction == "up" ? "up" : "down");
             if (tool == "open_app") return "Opened " + (args.Name ?? "the app");
             if (tool == "open_website") return "Opened " + (args.Site ?? "the site") + (string.IsNullOrEmpty(args.Search) ? "" : " and searched " + Voice.Quote(args.Search)) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser);
@@ -827,18 +832,19 @@ namespace CapriDesktop
             // Win + R, Win + L, Ctrl + Alt + Del and the like ask first unless Things your request didn't mention is on.
             if (tool == "press" && Barred(Chorded(args.Keys))) return "keys";
             if (tool == "hold_and_press" && HeldBarred(args) != null) return "keys";
+            if (tool == "combo" && QuickBarred(args.Steps) != null) return "keys";
             Target target = sight == null ? null : sight.Find(args.Target);
             if (tool == "click")
             {
                 Match risky = target == null ? Match.Empty : Risky.Match(target.Name);
                 return risky.Success ? Kind(risky.Value) : null;
             }
-            bool enter = (tool == "type" && args.Enter == "yes") || (tool == "press" && Regex.IsMatch(Chorded(args.Keys), @"^(enter|return|numpadenter)$"));
+            bool enter = (tool == "type" && args.Enter == "yes") || (tool == "press" && Regex.IsMatch(Chorded(args.Keys), @"^(enter|return|numpadenter)$")) || (tool == "combo" && QuickEnters(args.Steps));
             if (!enter) return null;
             // A game's own Enter starts, skips and confirms things. Roblox has a chat, so its "Enter: skip tutorial" held her job to
             // ask "Should I send that?" and it sounded like she'd given up (Lachy, 6 Nov). Straight after typing, Enter still sends
             // what she typed into the game's chat.
-            if (tool == "press" && !typedFirst && GameWindow(sight)) return null;
+            if ((tool == "press" || tool == "combo") && !typedFirst && GameWindow(sight)) return null;
             Target box = (tool == "type" ? target : null) ?? (sight == null ? null : sight.Targets.Find(found => found.Focused));
             string name = box == null ? "" : box.Name;
             bool chatApp = sight != null && (Talky.IsMatch(sight.Program) || Talky.IsMatch(sight.Title));
@@ -1050,6 +1056,7 @@ namespace CapriDesktop
             Target target = sight == null ? null : sight.Find(args.Target);
             if (tool == "press" && Barred(Chorded(args.Keys))) return "Should I press " + Chorded(args.Keys) + "?";
             if (tool == "hold_and_press" && HeldBarred(args) != null) return "Should I press " + HeldBarred(args) + "?";
+            if (tool == "combo" && QuickBarred(args.Steps) != null) return "Should I press " + QuickBarred(args.Steps) + "?";
             if (tool == "click" && target != null) return "Should I press " + Voice.InQuotes(target.Name) + "?";
             if (tool == "type" && !string.IsNullOrEmpty(args.Text)) return "Should I send " + Voice.InQuotes(args.Text.Length > 60 ? args.Text.Substring(0, 57) + "..." : args.Text) + "?";
             return "Should I send that?";
@@ -1932,6 +1939,17 @@ namespace CapriDesktop
                 string ready = KeysReady(sight, true, true);
                 if (ready != null) return ready;
                 return HoldAndPress(args.Hold, args.Press, args.Times, args.Seconds, sight);
+            }
+            if (tool == "combo")
+            {
+                string problem;
+                List<QuickStep> steps = QuickSteps(args.Steps, out problem);
+                if (steps == null) return problem;
+                string cheat = AntiCheat.Running();
+                if (cheat != null) return AntiCheat.Refusal(cheat);
+                string ready = KeysReady(sight, true, true);
+                if (ready != null) return ready;
+                return Quick(steps, sight);
             }
             if (tool == "look" || tool == "look_around" || tool == "walk" || tool == "mouse_hold")
             {
@@ -3582,9 +3600,11 @@ namespace CapriDesktop
             target = null;
             question = null;
             // Win + R and the like ask first unless Things your request didn't mention is on, in her own hold_and_press too.
-            string barred = member && (name == "key" || name == "hold_key") ? Computer.BarredIn(args.Text) : !member && name == "hold_and_press" ? Computer.HeldBarred(args) : null;
+            string barred = member && (name == "key" || name == "hold_key") ? Computer.BarredIn(args.Text) : !member && name == "hold_and_press" ? Computer.HeldBarred(args) : !member && name == "combo" ? Computer.QuickBarred(args.Steps) : null;
             if (barred != null) { question = "Should I press " + barred + "?"; return "keys"; }
-            if (!member) return null;
+            // Her combo's Enter sends what she just typed, the same as Claude's own key.
+            bool comboEnter = !member && name == "combo" && Computer.QuickEnters(args.Steps);
+            if (!member && !comboEnter) return null;
             Sight front = Computer.Glimpse();
             Sight gate = new Sight { Window = front.Window, Title = front.Title, Program = front.Program, Bounds = front.Bounds };
             if (name == "left_click" || name == "double_click" || name == "triple_click" || name == "right_click" || name == "middle_click")
@@ -3598,7 +3618,7 @@ namespace CapriDesktop
                 question = Computer.Question("click", pointed, gate);
                 return Computer.Risk("click", pointed, gate);
             }
-            if (!Computer.Entering(name, args)) return null;
+            if (!comboEnter && !Computer.Entering(name, args)) return null;
             Target box = Computer.Focus();
             if (box != null) { box.Number = 1; box.Focused = true; gate.Targets.Add(box); }
             string text = name == "type" ? Regex.Replace(args.Text ?? "", @"\s+", " ").Trim() : typed;
