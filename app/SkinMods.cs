@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Text.RegularExpressions;
 #if CROSS
 using Companion = CapriDesktop.Pet;
 using Size = Avalonia.PixelSize;
@@ -158,6 +159,7 @@ namespace CapriDesktop
                     frames.Strip = StripOf(strip);
                 }
             }
+            CheckMoves(read);
             read.WakeNames = new string[0];
             read.HeardAs = new string[0];
             read.Accessory |= read.Overlay;
@@ -207,12 +209,18 @@ namespace CapriDesktop
                 using (ZipArchive zip = ZipFile.OpenRead(file))
                 {
                     if (zip.Entries.Count > MostEntries) throw new ModException("That skin has too many files. It should only hold skin.json and her sprite strips.");
+                    List<ZipArchiveEntry> moving = new List<ZipArchiveEntry>();
                     foreach (ZipArchiveEntry entry in zip.Entries)
                     {
                         string name = entry.FullName;
                         if (name.Length == 0 || name.IndexOfAny(new[] { '/', '\\', ':' }) >= 0 || name.Contains("..")) throw new ModException("\"" + name + "\" can't be in a skin. Keep every file at the top of the zip.");
                         bool isDetails = name == SkinDetails;
-                        if (!isDetails && !(name.EndsWith(".png", StringComparison.Ordinal) && Companion.HasArt("Capri.Sprite." + name))) throw new ModException("\"" + name + "\" isn't one of her sprite strips.");
+                        if (!isDetails && !(name.EndsWith(".png", StringComparison.Ordinal) && Companion.HasArt("Capri.Sprite." + name)))
+                        {
+                            // A move's strip is only known once skin.json is read, and that can come later in the zip.
+                            if (MoveFile.IsMatch(name)) { moving.Add(entry); continue; }
+                            throw new ModException("\"" + name + "\" isn't one of her sprite strips.");
+                        }
                         string target = Path.Combine(into, name);
                         long size = Copy(entry, target, isDetails ? Largest : LargestPicture);
                         total += size;
@@ -224,6 +232,20 @@ namespace CapriDesktop
                             pictures++;
                         }
                     }
+                    if (read == null) throw new ModException("A skin needs a " + SkinDetails + " file.");
+                    foreach (ZipArchiveEntry entry in moving)
+                    {
+                        ModMove move = read.Moves == null ? null : Array.Find(read.Moves, each => each.Strip == entry.FullName);
+                        if (move == null) throw new ModException("\"" + entry.FullName + "\" isn't one of her sprite strips, or a move's strip in skin.json.");
+                        string target = Path.Combine(into, entry.FullName);
+                        total += Copy(entry, target, LargestPicture);
+                        if (total > LargestUnpacked) throw new ModException("That skin unpacks too big.");
+                        CheckMove(target, move);
+                        pictures++;
+                    }
+                    if (read.Moves != null)
+                        foreach (ModMove move in read.Moves)
+                            if (!File.Exists(Path.Combine(into, move.Strip))) throw new ModException("The move " + move.Name + " needs " + move.Strip + " in the skin.");
                 }
             }
             catch (InvalidDataException) { throw new ModException("That file isn't a valid skin zip."); }
@@ -266,6 +288,11 @@ namespace CapriDesktop
             Size own = Companion.ArtSize("Capri.Sprite." + name), wanted = new Size(width, height);
             bool old = name == "idle.png" && width == OldIdleWide && height == OldIdleHigh;
             if (!old && FramesIn(name, width, height, own.Width, own.Height) == 0) throw new ModException(Misfit(name, width, height, own));
+            Decodes(file, name, wanted);
+        }
+
+        private static void Decodes(string file, string name, Size wanted)
+        {
 #if CROSS
             try { using (Avalonia.Media.Imaging.Bitmap decoded = new Avalonia.Media.Imaging.Bitmap(file)) if (decoded.PixelSize != wanted) throw new ModException("\"" + name + "\" is the wrong size."); }
 #else
@@ -289,6 +316,130 @@ namespace CapriDesktop
             int count = OwnFramesOf(name);
             if (!Reframes(name) || count <= 0) return said + "It has to match hers, " + own.Width + " x " + own.Height + ".";
             return said + "It has to match hers: " + own.Height + " px tall, and " + own.Width / count + " px wide for each frame, up to " + Math.Min(MostFrames, WidestStrip / Math.Max(1, own.Width / count)) + " frames (she has " + count + ").";
+        }
+
+        // A skin can add moves of her own, like a wave: a strip of standing frames in her idle's cells, played at its own speed,
+        // looping until she's told to stop or played once and back to her idle.
+        internal const int MostMoves = 16, MostShownMoves = 32, MoveFps = 12;
+        private static readonly Regex MoveWords = new Regex(@"\A[a-z][a-z0-9]*(?:_[a-z0-9]+)*\z");
+        private static readonly Regex MoveFile = new Regex(@"\A[a-z0-9][a-z0-9_-]{0,47}\.png\z");
+        // Names her brain already means something by stay hers, along with every strip she has.
+        private static readonly string[] OwnMoveNames = { "idle", "glitch", "grin", "smile", "blink", "dance", "dancing", "stop", "stop_dancing", "chair", "heart", "hearts" };
+        private static Size moveCell;
+
+        internal static Size MoveCell
+        {
+            get
+            {
+                if (moveCell.Width > 0) return moveCell;
+                Size own = Companion.ArtSize("Capri.Sprite.idle.png");
+                int frames = OwnFramesOf("idle");
+                moveCell = new Size(own.Width / (frames > 0 ? frames : 60), own.Height);
+                return moveCell;
+            }
+        }
+
+        internal static bool OwnMove(string name)
+        {
+            return Array.IndexOf(OwnMoveNames, name) >= 0 || Companion.HasArt("Capri.Sprite." + name + ".png") || Companion.HasArt("Capri.Sprite." + name);
+        }
+
+        // Why a move can't have that name, or null when it can.
+        internal static string MoveNameTrouble(string name)
+        {
+            if (string.IsNullOrEmpty(name) || name.Length < 2 || name.Length > 24 || !MoveWords.IsMatch(name)) return "\"" + name + "\" can't be a move's name. Use 2 to 24 lowercase letters or numbers, with _ between words, like happy_wave.";
+            if (OwnMove(name)) return "\"" + name + "\" is one of her own animations. Give your move a name of its own.";
+            return null;
+        }
+
+        private static void CheckMoves(ModFile read)
+        {
+            if (read.Moves == null) return;
+            if (read.Moves.Length > MostMoves) throw new ModException("A skin can add up to " + MostMoves + " moves.");
+            HashSet<string> names = new HashSet<string>(), strips = new HashSet<string>();
+            foreach (ModMove move in read.Moves)
+            {
+                if (move == null) throw new ModException("A move in skin.json is empty.");
+                string trouble = MoveNameTrouble(move.Name);
+                if (trouble != null) throw new ModException(trouble);
+                if (!names.Add(move.Name)) throw new ModException("The skin has two moves called " + move.Name + ".");
+                string strip = string.IsNullOrEmpty(move.Strip) ? move.Name + ".png" : move.Strip;
+                if (!MoveFile.IsMatch(strip) || OwnMove(strip)) throw new ModException("\"" + strip + "\" can't be the strip for " + move.Name + ". Call it " + move.Name + ".png and keep it at the top of the zip.");
+                if (!strips.Add(strip)) throw new ModException("Two moves can't share " + strip + ".");
+                if (move.Fps == 0) move.Fps = MoveFps;
+                if (move.Fps < 1 || move.Fps > FastestFps) throw new ModException("\"" + move.Name + "\" needs a speed from 1 to " + FastestFps + " frames a second.");
+                move.Strip = strip;
+            }
+        }
+
+        private static void CheckMove(string file, ModMove move)
+        {
+            int width, height;
+            using (FileStream reading = new FileStream(file, FileMode.Open, FileAccess.Read))
+                if (!PngSize(reading, out width, out height)) throw new ModException("\"" + move.Strip + "\" isn't a PNG.");
+            if (MoveFrames(width, height) == 0) throw new ModException(MoveMisfit(move.Strip, width, height));
+            Decodes(file, move.Strip, new Size(width, height));
+        }
+
+        // How many of her standing frames a move's strip holds, or 0 when it isn't made of them.
+        internal static int MoveFrames(int width, int height)
+        {
+            Size cell = MoveCell;
+            if (cell.Width <= 0 || height != cell.Height || width > WidestStrip || width % cell.Width != 0) return 0;
+            int frames = width / cell.Width;
+            return frames >= 1 && frames <= MostFrames ? frames : 0;
+        }
+
+        internal static string MoveMisfit(string strip, int width, int height)
+        {
+            Size cell = MoveCell;
+            return "\"" + strip + "\" is " + width + " x " + height + ". A move's frames are " + cell.Width + " x " + cell.Height + " each, like her standing frames, side by side, up to " + Math.Min(MostFrames, WidestStrip / Math.Max(1, cell.Width)) + " of them.";
+        }
+
+        // One move she can do now, from a skin that's on.
+        internal sealed class SkinMove
+        {
+            internal string Name, File, Skin;
+            internal int Fps, Frames;
+            internal bool Loop;
+        }
+
+        private static volatile SkinMove[] movesNow = new SkinMove[0];
+
+        // Every move her skins add, by name. A skin higher in her stack wins a name two of them use.
+        internal static SkinMove[] MovesNow { get { return movesNow; } }
+
+        internal static SkinMove MoveNamed(string name)
+        {
+            foreach (SkinMove move in movesNow) if (move.Name == name) return move;
+            return null;
+        }
+
+        private void GatherMoves(List<Mod> stack)
+        {
+            List<SkinMove> found = new List<SkinMove>();
+            for (int i = stack.Count - 1; i >= 0 && found.Count < MostShownMoves; i--)
+            {
+                ModFile skin = stack[i].File;
+                if (skin.Moves == null) continue;
+                foreach (ModMove move in skin.Moves)
+                {
+                    if (found.Count >= MostShownMoves || found.Exists(had => had.Name == move.Name)) continue;
+                    string file = Path.Combine(SkinHome(skin.Id), move.Strip);
+                    int width = 0, height = 0;
+                    try
+                    {
+                        using (FileStream reading = new FileStream(file, FileMode.Open, FileAccess.Read))
+                            if (!PngSize(reading, out width, out height)) continue;
+                    }
+                    catch (IOException) { continue; }
+                    catch (UnauthorizedAccessException) { continue; }
+                    int frames = MoveFrames(width, height);
+                    if (frames > 0) found.Add(new SkinMove { Name = move.Name, File = file, Skin = skin.Id, Fps = move.Fps > 0 ? move.Fps : MoveFps, Frames = frames, Loop = move.Loop });
+                }
+            }
+            found.Sort((one, other) => string.CompareOrdinal(one.Name, other.Name));
+            movesNow = found.ToArray();
         }
 
         // Skins stack: turning one on puts it on top of the others, and off takes it out of the stack.
@@ -451,7 +602,9 @@ namespace CapriDesktop
 
         private void Reskin(string wanted)
         {
-            Retime(SkinStack);
+            List<Mod> stack = SkinStack;
+            Retime(stack);
+            GatherMoves(stack);
             Companion.SkinFolder = wanted;
             Companion.SkinAccessories = WantedAccessories();
             lastSkin = wanted;
@@ -737,6 +890,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             Clip.ReloadAll();
+            RebuildMoves();
             drawnClip = null;
             blinkWith = null;
             if (IsHandleCreated && !IsDisposed) RenderFrame();

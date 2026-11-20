@@ -33,6 +33,8 @@ namespace CapriDesktop
                 found.Add("Finding files: She searches names on a worker, using Spotlight on Mac or walking their home folder on Linux, then drives mounted in /media, /run/media or /mnt when home has no match. Results show full paths, closest first. Say show it to me or open that folder to select it in Finder on Mac or open its folder on Linux. Stop cancels the search. She does not read file contents to search.");
             if (Asks(text, "website nicknames|website aliases|remember a website|name a website"))
                 found.Add("Website nicknames: Say remember apples is example.com/page, open apples, what websites do you know, or forget the apples website. Nicknames are in websites.json in her data folder. " + (Hands.OnMac ? "She reads Safari, Chrome, Edge, Brave and Arc addresses without moving input, with macOS Automation permission. For other browsers, give the address." : "Give the address when saving a nickname. She cannot read the front browser's address on Linux."));
+            if (Asks(text, "new move|new moves|add a move|make a move|make a new move|custom move|custom moves|custom animation|custom animations|skin moves|moves from skins|what moves can you do|which moves can you do|moves can you do"))
+                found.Add("New moves: " + MovesFacts());
             if (Asks(text, "handing her a file|hand you a file|give you a file|drop a file|drag a file|attach a file|read a file|read files|files can you read|files do you read|file types|file formats|read a pdf|read a spreadsheet"))
                 found.Add("Handing her a file: Drag a file onto Capri, or ask read followed by its full path; quote spaces. She reads text, code, Word .docx and Excel .xlsx. PDFs use PDFKit on Mac or Poppler on Linux, up to four pages at a time; scanned pages need OCR, which is unavailable here. Pictures use the selected brain when it can see; there is no local OCR fallback. Use page for PDFs and offset to continue text. Only named or handed paths can be read. Contents stay as data for a few follow-up turns and cannot authorize tools.");
             return found.Count == 0 ? null : string.Join("\n", found.ToArray());
@@ -115,7 +117,9 @@ namespace CapriDesktop
             new Topic("Reset colors", "reset your colors|reset your colours|original colors",
                 "Reset colors brings her own colors back: colors you picked are deleted and color mods are turned off.", "MainframeMods.cs", "Reset colors"),
             new Topic("Animations", "edit your animations|edit her animations|animation editor|add frames|more frames|change your frames|animation panels|sprite sheet|frame rate of a skin|edit in paint.net|open with",
-                "On the Mods page, Animations opens her animation editor: pick a strip like idle or perch, play it, step through its frames, duplicate, delete or reorder them, swap in your own PNG frames, and make it slower or faster. Edit frame in and Edit strip in open it in any app you pick, like paint.net, and every save there comes straight back, onto her too once it's worn. Wear it saves your changes as a skin she wears straight away, and Save skin makes a .capri-skin to share. A skin strip can have more or fewer frames than hers, at her frame size.", "MainframeMods.cs", "Animations"),
+                "On the Mods page, Animations opens her animation editor: pick a strip like idle or perch, play it, step through its frames, duplicate, delete or reorder them, swap in your own PNG frames, and make it slower or faster. Edit frame in and Edit strip in open it in any app you pick, like paint.net, and every save there comes straight back, onto her too once it's worn. Wear it saves your changes as a skin she wears straight away, and Save skin makes a .capri-skin to share. A skin strip can have more or fewer frames than hers, at her frame size. New move... adds a move of her own, like a wave.", "MainframeMods.cs", "Animations"),
+            new Topic("New moves", "new move|new moves|add a move|make a move|make a new move|custom move|custom moves|custom animation|custom animations|new animation|new animations|skin moves|moves from skins|what moves can you do|which moves can you do|moves can you do",
+                delegate(Hands.Kit kit) { return MovesFacts(); }, "Animations.cs", "New move..."),
             new Topic("Remove mod", "remove a mod|delete a mod|uninstall a mod",
                 "Remove deletes the mod from her mods folder and undoes its settings. A code mod is stopped, but anything it already did stays done. The file you imported it from stays where it was.", "MainframeMods.cs", "Remove"),
             new Topic("Mod pages", "more mods|next page of mods",
@@ -590,5 +594,16 @@ namespace CapriDesktop
             return found.Length == 0 ? null : found.ToString();
         }
 #endif
+
+        // The moves a skin can add, how to make one, and the ones she has now.
+        internal static string MovesFacts()
+        {
+            List<string> names = new List<string>();
+            foreach (Mods.SkinMove move in Mods.MovesNow) names.Add(move.Name.Replace('_', ' ') + (move.Loop ? " (loops)" : ""));
+            return "A skin can add moves of her own, like a wave. On the Mods page, Animations > New move... makes one from PNG frames " + Mods.MoveCell.Width + " x " + Mods.MoveCell.Height
+                + " each: pick pictures, one strip of frames side by side, or a folder of frames, name it, set its speed, and pick Loops or Once. Wear it puts the move on her, and Save skin makes a .capri-skin to share."
+                + " Then ask for it by name, like do the wave. Once plays it and she's back to her idle; a loop goes on until you say stop. Code mods play one with Animate and its name. In a skin's skin.json, moves lists each one's name, strip, fps and loop. "
+                + (names.Count == 0 ? "No skin adds a move right now." : "Her moves from skins now: " + string.Join(", ", names.ToArray()) + ".");
+        }
     }
 }

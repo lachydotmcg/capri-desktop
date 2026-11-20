@@ -2194,11 +2194,11 @@ namespace CapriDesktop
 
         internal static string Name(int i) { return Specs[i, 0]; }
 
-        internal static string Description(int i) { return Specs[i, 1]; }
+        internal static string Description(int i) { return Specs[i, 0] == "animate" ? AnimateDescription(Specs[i, 1], MoveNames()) : Specs[i, 1]; }
 
-        internal static string Schema(int i) { return Specs[i, 2]; }
+        internal static string Schema(int i) { return Specs[i, 0] == "animate" ? AnimateSchema(Specs[i, 2], MoveNames()) : Specs[i, 2]; }
 
-        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Specs[i, 1]) + ",\"parameters\":" + Specs[i, 2] + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "workspace" || Specs[i, 0] == "stream" || Specs[i, 0] == "listen" || Specs[i, 0] == "play_music" ? 60 : 20) + "}}"; }
+        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Description(i)) + ",\"parameters\":" + Schema(i) + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "workspace" || Specs[i, 0] == "stream" || Specs[i, 0] == "listen" || Specs[i, 0] == "play_music" ? 60 : 20) + "}}"; }
 
         private static string Render(List<string[]> specs, bool claude)
         {
@@ -2269,14 +2269,16 @@ namespace CapriDesktop
             bool skilled = Skilled, gifted = Gifted;
             if (skilled) key.Append("|skills");
             if (gifted) key.Append("|gifs");
+            string[] moves = MoveNames();
+            if (moves.Length > 0) key.Append("|moves ").Append(string.Join(",", moves));
             lock (kits)
             {
                 Kit kit;
                 if (!kits.TryGetValue(key.ToString(), out kit))
                 {
                     // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
-                    if (modTools.Length > 0 && kits.Count > 200) kits.Clear();
-                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted));
+                    if ((modTools.Length > 0 || moves.Length > 0) && kits.Count > 200) kits.Clear();
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted, moves));
                 }
                 return kit;
             }
@@ -2328,6 +2330,55 @@ namespace CapriDesktop
             foreach (string[] tool in tools) plain.Add(tool[0].Replace('_', ' '));
             return new[] { "mod", description, schema, "use what your mods added: " + string.Join(", ", plain.ToArray()), "use what their mods added: " + string.Join(", ", plain.ToArray()) };
         }
+
+        // The moves her skins added go into her animate tool: every name in its list, so any brain can pick one, and her lines name
+        // as many as fit. Her voice agent knows its tools by their descriptions, so a new set of moves has to change it.
+        private const string MovesLead = " Moves their skins added are in name's list too: ", MovesTail = ". Do one when they ask for it by name or hint at it, and stop_dancing ends one that loops.";
+        private const int MovesNamed = 8, LongestDescription = 1000;
+
+        private static string[] MoveNames()
+        {
+            Mods.SkinMove[] moves = Mods.MovesNow;
+            string[] names = new string[moves.Length];
+            for (int i = 0; i < moves.Length; i++) names[i] = moves[i].Name;
+            return names;
+        }
+
+        // What her brain and her voice agent see for animate, with the moves on now.
+        private static string AnimateDescription(string own, string[] moves)
+        {
+            if (moves.Length == 0) return own;
+            List<string> said = new List<string>();
+            int room = LongestDescription - own.Length - MovesLead.Length - MovesTail.Length - 16;
+            foreach (string name in moves)
+            {
+                if (room < name.Length + 2) { said.Add("and " + (moves.Length - said.Count) + " more"); break; }
+                said.Add(name);
+                room -= name.Length + 2;
+            }
+            return own + MovesLead + string.Join(", ", said.ToArray()) + MovesTail;
+        }
+
+        private static string AnimateSchema(string own, string[] moves)
+        {
+            int at = own.IndexOf("]}}", StringComparison.Ordinal);
+            if (moves.Length == 0 || at < 0) return own;
+            StringBuilder added = new StringBuilder();
+            foreach (string name in moves) added.Append(',').Append(Voice.Quote(name));
+            return own.Insert(at, added.ToString());
+        }
+
+        private static string AnimateAbility(string own, string[] moves, string whose)
+        {
+            if (moves.Length == 0) return own;
+            List<string> said = new List<string>();
+            for (int i = 0; i < moves.Length && i < MovesNamed; i++) said.Add(moves[i].Replace('_', ' '));
+            if (moves.Length > MovesNamed) said.Add((moves.Length - MovesNamed) + " more");
+            return own + ", including the moves " + whose + " skins added: " + Joined(said, "and");
+        }
+
+        // A stamp of the moves on now, so her voice agent is retuned when a skin adds or takes one away.
+        internal static string MovesStamp { get { return string.Join(",", MoveNames()); } }
 
         // A kit for what's missing on another computer, so her checks on Windows see what a Mac or a Linux PC gets.
         internal static Kit KitWithout(List<string[]> missing) { return Made(missing, new List<string[]>()); }
@@ -2630,9 +2681,9 @@ namespace CapriDesktop
         // with what she'd say about them taken out and her lines about what isn't here and what's off put in, and the short list
         // of what she can do right now that the brain she chats with always gets, so even a small local model knows (Lachy, 2 Nov:
         // "For 0.8.0 I especially want them to be aware of their tools").
-        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled, Gifted); }
+        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled, Gifted, MoveNames()); }
 
-        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted)
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted, string[] moves)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -2656,10 +2707,12 @@ namespace CapriDesktop
                 if (tool == "capri_settings") { description = Unsaying(kit, SettingsDescription(kit)); schema = SettingsSchema(kit); }
                 foreach (string gap in kit.Missing.Keys)
                     if (gap.StartsWith(tool + ":", StringComparison.Ordinal)) schema = Without(schema, gap.Substring(tool.Length + 1));
+                bool moving = tool == "animate" && moves.Length > 0;
+                if (moving) { description = AnimateDescription(description, moves); schema = AnimateSchema(schema, moves); }
                 specs.Add(new[] { tool, description, schema });
-                abilities.Add(tool == "shortcut" && someKeys ? "press shortcuts: " + Joined(named, "and") : Unsaying(kit, Specs[i, 3]));
+                abilities.Add(tool == "shortcut" && someKeys ? "press shortcuts: " + Joined(named, "and") : moving ? AnimateAbility(Unsaying(kit, Specs[i, 3]), moves, "your") : Unsaying(kit, Specs[i, 3]));
                 bool switchedOff = kit.Off.TryGetValue(tool, out how);
-                brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : Unsaying(kit, Specs[i, 4])) + (switchedOff ? " (off right now: " + how + ")" : ""));
+                brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : moving ? AnimateAbility(Unsaying(kit, Specs[i, 4]), moves, "their") : Unsaying(kit, Specs[i, 4])) + (switchedOff ? " (off right now: " + how + ")" : ""));
                 if (switchedOff) switched.Add(Gap(tool, 1) + " (" + how + ")");
             }
             if (modTools.Length > 0)
@@ -3638,6 +3691,8 @@ namespace CapriDesktop
 
         internal static string AnimationFor(string text)
         {
+            string added = AddedMoveFor(text);
+            if (added != null) return added;
             for (int i = 0; i < AnimationWords.Length; i += 2)
             {
                 Match found = Regex.Match(text ?? "", AnimationWords[i], RegexOptions.IgnoreCase);
@@ -3645,6 +3700,21 @@ namespace CapriDesktop
                 if (AnimationWords[i + 1].Length > 0) return AnimationWords[i + 1];
                 string name = found.Groups["n"].Value.ToLowerInvariant();
                 return name == "smile" ? "grin" : name == "dancing" ? "dance" : name;
+            }
+            return null;
+        }
+
+        // A move one of her skins added, asked for with a word that makes it hers to do: "do the wave", "show me your happy spin",
+        // "wave animation". A bare name stays chat, since a move can be called anything, and "play" stays her music's.
+        private static string AddedMoveFor(string text)
+        {
+            Mods.SkinMove[] moves = Mods.MovesNow;
+            if (moves.Length == 0 || string.IsNullOrEmpty(text)) return null;
+            foreach (Mods.SkinMove move in moves)
+            {
+                string spoken = move.Name.Replace("_", @"[\s_-]?");
+                if (Regex.IsMatch(text, @"^(?:(?:do|show me|show us|show|perform|bust out|pull off|give (?:me|us))(?: (?:your|ur|the|a|an|that|some))? " + spoken + @"(?: (?:animation|anim|move|thing|again))?|(?:your |ur |the )?" + spoken + @" (?:animation|anim|move))" + Hers, RegexOptions.IgnoreCase)) return move.Name;
+                if (move.Loop && Regex.IsMatch(text, @"^(?:stop|quit|enough|no more)(?: (?:the|your|ur|that))? " + spoken + @"(?:ing)?" + Hers, RegexOptions.IgnoreCase)) return "stop_dancing";
             }
             return null;
         }
@@ -4658,7 +4728,7 @@ namespace CapriDesktop
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
             if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|sit_on|lie_down|sit_up|stand_up|walk_around|wander|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z") && (args.Action != "sit_on" || Named(args.Window));
-            if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing" + SecretMoves + @")\z");
+            if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing" + SecretMoves + @")\z") || Mods.MoveNamed(args.Name) != null;
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube" || args.App == "applemusic");
         }
 

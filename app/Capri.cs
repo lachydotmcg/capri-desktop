@@ -1674,6 +1674,9 @@ namespace CapriDesktop
         private readonly bool lazy;
         private readonly bool flippable;
         private readonly Clip source;
+        // A move a skin added: its strip is that skin's file, not hers.
+        private readonly string file;
+        internal readonly bool Loops;
         private readonly object gate = new object();
         private Bitmap strip;
         // her artist's facing-left frames, for the clips that have them (her perches): her red arm and leg swap sides, so a
@@ -1756,7 +1759,45 @@ namespace CapriDesktop
             lock (all) all.Add(this);
         }
 
-        internal static Clip[] Every() { lock (all) return all.ToArray(); }
+        internal static Clip[] Every() { lock (all) return all.FindAll(clip => clip.file == null).ToArray(); }
+
+        private Clip(string name, string file, int count, double fps, bool loops, Clip like)
+        {
+            this.name = name;
+            this.file = file;
+            this.count = count;
+            this.fps = fps;
+            Loops = loops;
+            lazy = true;
+            Height = like.Height;
+            shiftX = like.shiftX;
+            shiftY = like.shiftY;
+            lock (all) all.Add(this);
+        }
+
+        // A move from a skin, drawn in her standing cells like her idle.
+        internal static Clip Move(string name, string file, int count, double fps, bool loops, Clip like) { return new Clip(name, file, count, fps, loops, like); }
+
+        internal bool IsMove { get { return file != null; } }
+
+        // Lets go of a move when her skins change.
+        internal void Drop()
+        {
+            lock (all) all.Remove(this);
+            lock (gate)
+            {
+                disposed = true;
+                if (strip != null) strip.Dispose();
+                strip = null;
+            }
+        }
+
+        private Bitmap Art()
+        {
+            if (file == null) return Companion.LoadArt(Resource(false));
+            // A move whose picture went missing plays as nothing rather than as somebody else's frames.
+            return Companion.MoveArt(file, name) ?? new Bitmap(Math.Max(1, count * Mods.MoveCell.Width), Mods.MoveCell.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+        }
 
         internal static void WarmAll()
         {
@@ -1813,7 +1854,7 @@ namespace CapriDesktop
                 if (art != null) return art;
                 lock (gate)
                 {
-                    if (strip == null) strip = Companion.LoadArt(Resource(false));
+                    if (strip == null) strip = Art();
                     return strip;
                 }
             }
@@ -1862,7 +1903,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (wantLeft && flipped == null) { flipped = Companion.LoadLeftArt(Resource(true)); if (flipped == null) leftUnfit = true; }
-                else if (!wantLeft && strip == null) strip = Companion.LoadArt(Resource(false));
+                else if (!wantLeft && strip == null) strip = Art();
             }
         }
 
@@ -1894,7 +1935,7 @@ namespace CapriDesktop
         {
             Bitmap art = null;
             // A load that fails, out of memory say, leaves her drawn as she was, and the next ask tries again.
-            try { art = wantLeft ? Companion.LoadLeftArt(Resource(true)) : Companion.LoadArt(Resource(false)); }
+            try { art = wantLeft ? Companion.LoadLeftArt(Resource(true)) : Art(); }
             catch (Exception) { }
             lock (gate)
             {
@@ -1940,7 +1981,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 Bitmap wasStrip = strip, wasFlipped = flipped;
-                strip = lazy ? null : Companion.LoadArt(Resource(false));
+                strip = lazy ? null : Art();
                 stripUsed = Environment.TickCount;
                 flipped = null;
                 countedFor = fitFor = null;
@@ -3271,6 +3312,7 @@ namespace CapriDesktop
             Hands.MakeTool = ModList.MakeTool;
             ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
+            RebuildMoves();
             ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, ShownVersion(Packaged.Is, false));
@@ -3891,7 +3933,7 @@ namespace CapriDesktop
             if (clip == idle && Resting(now)) index = (int)((long)((now - clipStart) * SaverFps) * clip.Fps / SaverFps);
             if (clip == perchSleep) return Math.Min(PerchSleepCell, perchSleep.Count - 1);
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
-            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = Math.Max(0, (int)((now - clipStart) * clip.Fps)); }
+            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2) || (clip.IsMove && !clip.Loops && index >= clip.Count)) { Play(idle); index = Math.Max(0, (int)((now - clipStart) * clip.Fps)); }
             if (clip == arrive && index >= arrive.Count)
             {
                 Play(idle);
@@ -4650,15 +4692,18 @@ namespace CapriDesktop
             if (docked) return DockAnimate(name);
             if (name == "stop_dancing")
             {
-                bool was = danceAsked || clip == dance || clip == perchDance;
+                string moving = clip.IsMove ? clip.Title : null;
+                bool was = danceAsked || clip == dance || clip == perchDance || moving != null;
                 danceAsked = false;
                 danceHeld = musicOn;
-                if (clip == dance || clip == perchDance) { Play(seat != null || onPanel ? perch : idle); UpdateAnimation(); }
-                return was ? "Stopped dancing." : "I wasn't dancing.";
+                if (clip == dance || clip == perchDance || moving != null) { Play(seat != null || onPanel ? perch : idle); UpdateAnimation(); }
+                return moving != null ? "Stopped my " + moving.Replace('_', ' ') + "." : was ? "Stopped dancing." : "I wasn't dancing.";
             }
             WakeRest(true);
             if (hidden) ShowHidden(false);
             if (EmoteName(name)) return PlayEmote(name);
+            Clip move = MoveClip(name);
+            if (move != null) return PlayMove(move);
             if (name == "dance")
             {
                 StopRide();
@@ -15258,7 +15303,7 @@ namespace CapriDesktop
             string voiceId = voice.VoiceId;
             string agentId = preferences.AgentId;
             bool stale = Agent.Stale(preferences.AgentVersion, preferences.AgentPersonality);
-            string stamp = Brain.PersonalityStamp;
+            string stamp = Agent.Stamp;
             string language = Brain.LanguageCode(Brain.Language);
             string polyglot = preferences.AgentPolyglot;
             ThreadPool.QueueUserWorkItem(delegate
@@ -45834,6 +45879,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); ModFloor.Fresh(); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
+            Section(checks, "SmokeMoves", delegate { string movesOut = Path.Combine(output, "moves"); Directory.CreateDirectory(movesOut); SmokeMoves(checks, movesOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
             Section(checks, "SmokeGlitchUnder", delegate { SmokeGlitchUnder(checks, Path.Combine(output, "glitch-under")); });
