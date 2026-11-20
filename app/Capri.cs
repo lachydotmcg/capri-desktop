@@ -21642,6 +21642,15 @@ namespace CapriDesktop
                 if (herFirst != herSplit[1] || herAfter != herSplit[2]) throw new Exception("Her computer split \"" + herSplit[0] + "\" wrong: " + herFirst + " | " + herAfter);
             }
             checks.Add("PASS her own computer: off until turned on, she reads one action at a time from any brain, works out jobs said with on your computer, saves notes and diary lines, keeps her desktop and stickers between runs, and her browser only opens web addresses");
+            string herLiveFolder = Path.Combine(Path.GetTempPath(), "capri-her-browser-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                bool herLiveRan;
+                string herLive = HerBrowser.CheckLive(herLiveFolder, out herLiveRan);
+                if (herLive != null) throw new Exception(herLive);
+                checks.Add(herLiveRan ? "PASS her browser: Edge or Chrome starts headless and she drives it over a private pipe, with no debugging port for a page or another program to find" : "SKIP her browser over its pipe: no Edge or Chrome on this PC");
+            }
+            finally { try { if (Directory.Exists(herLiveFolder)) Directory.Delete(herLiveFolder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
             string weatherResult = Weather.Check();
             if (weatherResult != null) throw new Exception(weatherResult);
             checks.Add("PASS weather: opt-in Open-Meteo answers now, days, the weekend and rain, warns once a day, reminds about umbrellas, and never looks anyone up by IP");
