@@ -88,7 +88,7 @@ namespace CapriDesktop
             Post(delegate
             {
                 if (IsDisposed || quitting) return;
-                if (RemoteErrandNews("checkin", line, job.Id)) return;
+                if (preferences.CheckIns && !Hushed && RemoteErrandNews("checkin", line, job.Id)) return;
                 HerComputerWindow window = herComputer;
                 if (preferences.CheckIns && !Hushed && (window == null || window.IsDisposed || !window.Visible || window.WindowState == FormWindowState.Minimized)) Remark("", line, InChat || Hushed || FullScreen());
             });
