@@ -562,6 +562,7 @@ namespace CapriDesktop
         internal event Action<string> Command;
         // They let go of it somewhere new: its plate's bottom-left on screen, to keep.
         internal event Action<Point> Moved;
+        internal event Action Hauling;
 
         internal MiniPlayer() : base("Capri mini player")
         {
@@ -791,11 +792,14 @@ namespace CapriDesktop
             grabbed = at;
             grabbedAt = Location;
             Capture = true;
+            if (Hauling != null) Hauling();
         }
 
         internal void Haul(Point at)
         {
-            if (grabbing) MoveTo(new Point(grabbedAt.X + at.X - grabbed.X, grabbedAt.Y + at.Y - grabbed.Y));
+            if (!grabbing) return;
+            MoveTo(new Point(grabbedAt.X + at.X - grabbed.X, grabbedAt.Y + at.Y - grabbed.Y));
+            if (Hauling != null) Hauling();
         }
 
         internal void LetGo()
@@ -805,6 +809,7 @@ namespace CapriDesktop
             if (Capture) Capture = false;
             if (!was || !Visible) return;
             if (Dpi() != scale) Redraw();
+            if (Hauling != null) Hauling();
             if (corner.HasValue && Moved != null) Moved(corner.Value);
         }
 

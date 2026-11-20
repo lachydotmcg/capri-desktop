@@ -2920,6 +2920,7 @@ namespace CapriDesktop
                 asides += Changed();
                 try { written = Think(Prompted(Computer.Prompt), Computer.Brief(Task, Steps, sight, notes, earlier) + asides + ChatWords(clock.Elapsed.TotalSeconds) + (lost > 0 ? "\nYour last reply had no tool call. Reply with only one tool call, or call done." : "") + nudged, calls); }
                 catch (System.Runtime.Serialization.SerializationException) { written = ""; calls.Clear(); }
+                catch (System.Xml.XmlException) { written = ""; calls.Clear(); }
                 // Their stop cut the turn off while it was still thinking.
                 catch (System.Net.WebException) { if (!Computer.Interrupted) throw; return End("stopped", Computer.Why); }
                 Show(null);
@@ -3028,6 +3029,7 @@ namespace CapriDesktop
                 Stopwatch turnClock = Stopwatch.StartNew();
                 try { reply = Drive(Prompted(Computer.Seeing), Computer.Toolset, Conversation(resuming)); }
                 catch (System.Runtime.Serialization.SerializationException) { return End("failed", "Got a reply from my brain I couldn't read. Try again."); }
+                catch (System.Xml.XmlException) { return End("failed", "Got a reply from my brain I couldn't read. Try again."); }
                 // Their Esc cut the turn off while it was still thinking.
                 catch (System.Net.WebException error)
                 {

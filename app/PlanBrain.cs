@@ -198,6 +198,43 @@ namespace CapriDesktop
             internal string Output = "", Errors = "";
         }
 
+        internal static void ListModels(string kind, string app, List<string> models)
+        {
+            if (Brain.Off) return;
+            try
+            {
+                List<string> listed = kind == "codex"
+                    ? BetterModels.Codex(BetterModels.CodexCache(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)))
+                    : ClaudeModels(app);
+                if (!Brain.Off) foreach (string model in listed) BetterModels.Add(models, model);
+            }
+            catch (BrainException) { }
+            catch (WebException) { }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (FormatException) { }
+            catch (ArgumentException) { }
+        }
+
+        private static List<string> ClaudeModels(string app)
+        {
+            string run = Path.Combine(FolderOverride ?? Path.Combine(HuskHook.Data, "plan"), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(run);
+            try
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                Ran found = Start("claudecode", app, BetterModels.ClaudeArgs(), BetterModels.ClaudeQuery, run,
+                    delegate { return Brain.Off || waited.ElapsedMilliseconds >= 6000; });
+                return BetterModels.Claude(found.Output);
+            }
+            finally
+            {
+                try { Directory.Delete(run, false); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
         // Runs the app hidden in her folder with their input on stdin. A .cmd from npm runs through cmd.exe, and none of the
         // arguments are their words, so nothing they say reaches a command line.
         private static Ran Start(string kind, string app, List<string> args, string input, string folder, Func<bool> cancelled)

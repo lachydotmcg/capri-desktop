@@ -83,6 +83,20 @@ namespace CapriDesktop
             }
         }
 
+        // A page's picture and the frame drawn round it, kept aside while the other page shows.
+        private sealed class PagePictures : IDisposable
+        {
+            internal PixelLayer Page, Glow, Rows, Columns, Canvas;
+            internal int Signature, Look;
+            internal bool Stale;
+            internal readonly List<Control> Waiting = new List<Control>();
+
+            public void Dispose()
+            {
+                foreach (PixelLayer layer in new[] { Page, Glow, Rows, Columns, Canvas }) if (layer != null) layer.Dispose();
+            }
+        }
+
         private sealed class SlideCover : Control
         {
             private readonly Mainframe owner;
@@ -116,6 +130,7 @@ namespace CapriDesktop
         private readonly Queue<Control> piecesWaiting = new Queue<Control>();
         private readonly HashSet<Control> pieceQueued = new HashSet<Control>();
         private PixelLayer pagePicture, glowColumn, frameRows, frameColumns, slideCanvas;
+        private PagePictures otherPage;
         private SlideCover slideCover;
         private bool sliding, pictureStale, pictureWaits, pictureQuiet;
         private int slideAt, slidePixels, paintedPixels, pictureLook, pictureSignature, previousDelta;
@@ -129,12 +144,17 @@ namespace CapriDesktop
         {
             slideHold.Tick += delegate { EndSlide(); };
             pictureTimer.Tick += delegate { BuildPicture(); };
-            pictureForget.Tick += delegate { pictureForget.Stop(); DropPicture(); };
+            pictureForget.Tick += delegate
+            {
+                pictureForget.Stop();
+                if (PictureIdle) DropPicture(); else DropOtherPage();
+            };
             VisibleChanged += delegate
             {
                 if (Disposing || IsDisposed) return;
-                if (!Visible) Settle();
-                else if (paged) pictureTimer.Start();
+                if (!Visible) { Settle(); pictureForget.Stop(); }
+                else if (PageSlides) pictureTimer.Start();
+                ForgetLater();
             };
         }
 
@@ -143,21 +163,40 @@ namespace CapriDesktop
             control.Invalidated += delegate { PieceChanged(control); };
             control.TextChanged += delegate { PieceChanged(control); };
             foreach (Control child in control.Controls) child.TextChanged += delegate { PieceChanged(control); };
-            control.LocationChanged += delegate { PageChanged(); };
-            control.SizeChanged += delegate { PageChanged(); };
-            control.VisibleChanged += delegate { PageChanged(); };
+            control.LocationChanged += delegate { PageChanged(control); };
+            control.SizeChanged += delegate { PageChanged(control); };
+            control.VisibleChanged += delegate { PageChanged(control); };
+        }
+
+        // A control on the page that isn't showing leaves this page's picture alone, and a change of its own waits to be redrawn
+        // in that page's kept picture. Its moves don't count, since parking a page sends those and its layout is checked against
+        // the picture's signature when it comes back; nor do repaints the window passes down to it, which every switch sends.
+        private bool OnOtherPage(Control control, bool moved)
+        {
+            if (PageControls.Contains(control)) return false;
+            if (!moved && !windowRepainting && otherPage != null && !otherPage.Waiting.Contains(control)) otherPage.Waiting.Add(control);
+            return true;
+        }
+
+        private bool windowRepainting, pictureMinimized;
+
+        protected override void OnInvalidated(InvalidateEventArgs e)
+        {
+            windowRepainting = true;
+            try { base.OnInvalidated(e); }
+            finally { windowRepainting = false; }
         }
 
         private void PieceChanged(Control control)
         {
-            if (pictureQuiet || pagePicture == null || !pieceQueued.Add(control)) return;
+            if (pictureQuiet || OnOtherPage(control, false) || pagePicture == null || !pieceQueued.Add(control)) return;
             piecesWaiting.Enqueue(control);
             pictureTimer.Start();
         }
 
-        private void PageChanged()
+        private void PageChanged(Control control)
         {
-            if (pictureQuiet || !paged) return;
+            if (pictureQuiet || OnOtherPage(control, true) || !PageSlides) return;
             pictureStale = true;
             pictureWaits = true;
             pictureAge.Restart();
@@ -166,24 +205,86 @@ namespace CapriDesktop
 
         private void PictureOpened()
         {
-            pictureForget.Stop();
             pictureStale = pagePicture == null || PictureSignature() != pictureSignature;
             pictureWaits = false;
             pictureTimer.Start();
+            ForgetLater();
         }
+
+        // Each page keeps its own picture, so going to the other page and back doesn't redraw either one. The page left behind
+        // keeps its picture, and the pieces it hadn't redrawn yet, for PictureForgetMs.
+        private void SwapPictures()
+        {
+            pictureForget.Stop();
+            PagePictures leaving = pagePicture == null ? null : new PagePictures { Page = pagePicture, Glow = glowColumn, Rows = frameRows, Columns = frameColumns, Canvas = slideCanvas, Signature = pictureSignature, Look = pictureLook, Stale = pictureStale };
+            if (leaving != null) leaving.Waiting.AddRange(piecesWaiting);
+            PagePictures coming = otherPage;
+            piecesWaiting.Clear();
+            pieceQueued.Clear();
+            pagePicture = glowColumn = frameRows = frameColumns = slideCanvas = null;
+            pictureStale = false;
+            otherPage = leaving;
+            if (coming == null) return;
+            pagePicture = coming.Page;
+            glowColumn = coming.Glow;
+            frameRows = coming.Rows;
+            frameColumns = coming.Columns;
+            slideCanvas = coming.Canvas;
+            pictureSignature = coming.Signature;
+            pictureLook = coming.Look;
+            pictureStale = coming.Stale;
+            foreach (Control control in coming.Waiting) if (pieceQueued.Add(control)) piecesWaiting.Enqueue(control);
+        }
+
+        private void DropOtherPage()
+        {
+            if (otherPage != null) otherPage.Dispose();
+            otherPage = null;
+        }
+
+        // A page that fits, or a Mainframe that's hidden or minimized, needs no picture; the other page's picture is let go too.
+        private bool PictureIdle { get { return !PageSlides || !Visible || WindowState == FormWindowState.Minimized; } }
+
+        // The forget clock starts afresh only when a page is left, or the Mainframe hides or minimizes: those stop it first.
+        private void ForgetLater()
+        {
+            if (PictureIdle || otherPage != null) pictureForget.Start();
+            else pictureForget.Stop();
+        }
+
+        // Called once her page is laid out: a page that runs past the screen keeps a picture, redrawn once its layout settles,
+        // and one that fits lets its picture go.
+        private void PictureLaidOut()
+        {
+            ForgetLater();
+            if (!PageSlides) return;
+            if (pagePicture != null && PictureSignature() == pictureSignature) return;
+            pictureStale = true;
+            pictureWaits = pagePicture != null;
+            pictureAge.Restart();
+            pictureTimer.Start();
+        }
+
+        // Settings always slides; her main page slides only while it runs past the screen, so one that fits holds no picture.
+        private bool PageSlides { get { return paged || pageView < ScrollTall; } }
+
+        private List<Control> PageControls { get { return paged ? scrolled : mainScrolled; } }
 
         private void SlideSizeChanged()
         {
             Settle();
-            if (paged && WindowState != FormWindowState.Minimized) pictureTimer.Start();
+            if (WindowState == FormWindowState.Minimized && !pictureMinimized) pictureForget.Stop();
+            pictureMinimized = WindowState == FormWindowState.Minimized;
+            if (PageSlides && !pictureMinimized) pictureTimer.Start();
+            ForgetLater();
         }
 
         private int PictureSignature()
         {
             unchecked
             {
-                int wide = ClientSize.Width, shift = Scaled(pageScroll), signature = wide * 31 + PageNow;
-                foreach (Control control in scrolled)
+                int wide = ClientSize.Width, shift = Scaled(pageScroll), signature = (wide * 31 + ScrollTall) * 2 + (paged ? 1 : 0);
+                foreach (Control control in PageControls)
                 {
                     if (control.Parent != this) continue;
                     bool shown = control.Visible && control.Left < wide;
@@ -203,11 +304,11 @@ namespace CapriDesktop
 
         private bool PictureInPlace { get { return pagePicture != null && !pictureStale && pictureLook == Neon.PaletteStamp && slideCanvas != null && slideCanvas.Tall == ClientSize.Height && pagePicture.Wide == ClientSize.Width && pagePicture.Tall == PictureTall; } }
 
-        private int PictureTall { get { return Math.Max(Scaled(PageNow), ClientSize.Height); } }
+        private int PictureTall { get { return Math.Max(Scaled(ScrollTall), ClientSize.Height); } }
 
         private void BuildPicture()
         {
-            if (!paged || !Visible || WindowState == FormWindowState.Minimized) { pictureTimer.Stop(); return; }
+            if (!PageSlides || !Visible || WindowState == FormWindowState.Minimized) { pictureTimer.Stop(); return; }
             if (sliding || glide.Enabled) return;
             if (pictureStale && pictureWaits && pictureAge.ElapsedMilliseconds < PictureSettleMs) return;
             bool drawn = TryPicture(delegate
@@ -265,11 +366,27 @@ namespace CapriDesktop
                     DrawBand(page, band, s);
                 }
             }
+            DrawPageDots();
             DrawGlowColumn(s);
             DrawFrameStrips(s);
-            foreach (Control control in scrolled)
+            foreach (Control control in PageControls)
                 if (control.Parent == this && pieceQueued.Add(control)) piecesWaiting.Enqueue(control);
             pictureSignature = PictureSignature();
+        }
+
+        // Her main page's dotted bars are painted on the window, not by a control, so the picture draws them itself.
+        private void DrawPageDots()
+        {
+            if (paged) return;
+            float s = Unit();
+            int shift = Scaled(pageScroll), wide = ClientSize.Width;
+            using (Graphics page = Graphics.FromImage(pagePicture.Picture))
+            {
+                foreach (Control control in mainScrolled)
+                    if (control.Parent == this && control.Visible && control.Left < wide) page.ExcludeClip(new Rectangle(control.Left, control.Top + shift, control.Width, control.Height));
+                page.SmoothingMode = SmoothingMode.AntiAlias;
+                MainDots(page, s, 0, Ground);
+            }
         }
 
         private void DrawGlowColumn(float s)
@@ -371,6 +488,7 @@ namespace CapriDesktop
             pictureStale = false;
             pumpToken = null;
             DropLayers();
+            DropOtherPage();
         }
 
         private void StartFramePump()
@@ -423,8 +541,8 @@ namespace CapriDesktop
         private bool BeginSlide()
         {
             if (sliding) return true;
-            if (!PictureInPlace || piecesWaiting.Count > PictureRushLimit || !IsHandleCreated) return false;
-            if (!TryPicture(delegate { while (piecesWaiting.Count > 0) DrawNextPiece(); })) return false;
+            if (!PageSlides || !PictureInPlace || piecesWaiting.Count > PictureRushLimit || !IsHandleCreated) return false;
+            if (!TryPicture(delegate { while (piecesWaiting.Count > 0) DrawNextPiece(); DrawPageDots(); })) return false;
             pictureQuiet = true;
             if (slideCover == null)
             {
@@ -478,7 +596,7 @@ namespace CapriDesktop
             AlphaBlend(canvas, 0, inset, inset, tall - inset * 2, frameColumns.Dc, 0, inset, inset, tall - inset * 2, BlendWithAlpha);
             AlphaBlend(canvas, wide - inset, inset, inset, tall - inset * 2, frameColumns.Dc, inset, inset, inset, tall - inset * 2, BlendWithAlpha);
             GdiFlush();
-            float rail = Height - 36 * s, thumb = rail * pageView / PageNow, at = 18 * s + (rail - thumb) * (float)slideExact / (PageNow - pageView);
+            float rail = Height - 36 * s, thumb = rail * pageView / ScrollTall, at = 18 * s + (rail - thumb) * (float)slideExact / (ScrollTall - pageView);
             using (Graphics marks = Graphics.FromImage(slideCanvas.Picture))
             using (Brush track = new SolidBrush(Dash))
             using (Brush lit = new SolidBrush(Cyan))
@@ -551,7 +669,7 @@ namespace CapriDesktop
 
         private string PictureDiffers(Bitmap real, int scrolledBy)
         {
-            foreach (Control control in scrolled)
+            foreach (Control control in PageControls)
             {
                 if (!Compared(control, real.Size)) continue;
                 int checkedPixels = 0, wrong = 0;
@@ -578,7 +696,7 @@ namespace CapriDesktop
             using (Bitmap real = RealPage())
             {
                 Size size = real.Size;
-                Control blanked = scrolled.Find(control => control is Key && control.Text.Length > 0 && Compared(control, size));
+                Control blanked = PageControls.Find(control => control is Key && control.Text.Length > 0 && Compared(control, size));
                 if (blanked == null) return null;
                 using (Graphics page = Graphics.FromImage(pagePicture.Picture))
                 using (Brush ground = new SolidBrush(Ground))
@@ -602,7 +720,7 @@ namespace CapriDesktop
             FormWindowState wasState = WindowState;
             bool wasPaged = paged, wasFallback = layoutFallback;
             int wasScroll = pageScroll, wasDpi = layoutDpi, wasText = layoutText;
-            double frameCost, framesASecond, longestGap;
+            double frameCost, framesASecond, longestGap, mainCost = 0, mainRate = 0, mainGap = 0;
             string problem;
             Restore();
             try
@@ -614,9 +732,24 @@ namespace CapriDesktop
                 ScrollPage(0);
                 FinishPicture();
                 problem = SlideProblem(out frameCost, out framesASecond, out longestGap);
+                if (problem == null)
+                {
+                    ShowSettings(false);
+                    TestScreen = new Rectangle(0, 0, 2880, 700);
+                    Arrange(expanded);
+                    Settle();
+                    ScrollPage(0);
+                    if (!PageSlides) problem = "Her main page fit a 700 px screen at 200%, so it had nothing to slide.";
+                    else
+                    {
+                        FinishPicture();
+                        problem = SlideProblem(out mainCost, out mainRate, out mainGap);
+                    }
+                }
             }
             finally
             {
+                TestScreen = Rectangle.Empty;
                 ScrollPage(0);
                 LayoutScale(wasDpi, wasText, wasFallback);
                 ShowSettings(wasPaged);
@@ -624,6 +757,8 @@ namespace CapriDesktop
                 WindowState = wasState;
             }
             if (problem != null) throw new Exception(problem);
+            System.Globalization.CultureInfo plain = System.Globalization.CultureInfo.InvariantCulture;
+            checks.Add((mainCost <= 16 && mainRate >= 45 ? "PASS" : "LIMIT") + " her main page, run past a short screen, slides as one picture too, at " + mainCost.ToString("0.0", plain) + " ms a frame at 200% and " + mainRate.ToString("0", plain) + " frames a second, longest gap " + mainGap.ToString("0.0", plain) + " ms; the picture matches the real page, a press, a layout change or minimising brings the real page back, and with no memory for it she scrolls the old way");
             string cost = frameCost.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
             string rate = framesASecond.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " frames a second, longest gap " + longestGap.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms";
             checks.Add((frameCost <= 16 && framesASecond >= 45 ? "PASS" : "LIMIT") + " Settings slides as one picture at " + cost + " ms a frame at 200% and " + rate + ", each frame reaching the screen whole, turning back at once and easing only a flick's lumps, without moving a control until it stops; the picture matches the real page control by control and survives reopening Settings, a control that repaints is redrawn in it, with no memory for it she scrolls the old way, and a press, a layout change or minimising brings the real page straight back where it had slid to");
@@ -632,13 +767,14 @@ namespace CapriDesktop
         private string SlideProblem(out double frameCost, out double framesASecond, out double longestGap)
         {
             frameCost = framesASecond = longestGap = 0;
+            string page = paged ? "Settings" : "Her main page";
             string differs;
             using (Bitmap real = RealPage()) differs = PictureDiffers(real, 0);
-            if (differs != null) return "The picture of Settings doesn't match the page: " + differs;
+            if (differs != null) return "The picture of " + page + " doesn't match the page: " + differs;
             string missing = MissingPieceProblem();
             if (missing != null) return missing;
-            Control watched = scrolled.Find(control => control.Parent == this && control.Visible && control.Left < ClientSize.Width);
-            if (watched == null) return "Settings had nothing to watch.";
+            Control watched = PageControls.Find(control => control.Parent == this && control.Visible && control.Left < ClientSize.Width);
+            if (watched == null) return page + " had nothing to watch.";
             int watchedTop = watched.Top;
             ScrollWheel(-120);
             if (!sliding) return "A wheel turn didn't start sliding the picture.";
@@ -739,15 +875,20 @@ namespace CapriDesktop
 
             ScrollPage(0);
             FinishPicture();
+            if (!paged) return FallbackProblem();
             PixelLayer held = pagePicture;
             ShowSettings(false);
-            if (pagePicture != held) return "Leaving Settings threw its picture away straight away.";
+            if (otherPage == null || otherPage.Page != held) return "Leaving Settings threw its picture away straight away.";
             ShowSettings(true);
             if (pagePicture != held || !PictureInPlace) return "Reopening Settings didn't keep its picture.";
             ScrollWheel(-120);
             if (!sliding) return "The first wheel turn after reopening Settings didn't slide.";
             Settle();
+            return FallbackProblem();
+        }
 
+        private string FallbackProblem()
+        {
             int beforeFallback = pageScroll;
             bool survived = TryPicture(delegate { throw new OutOfMemoryException(); });
             if (survived || pagePicture != null) return "Running out of memory for the picture didn't drop it.";

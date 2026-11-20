@@ -122,7 +122,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Engine
+    internal sealed partial class Engine
     {
         internal const string Build = "b11669";
         private const string ZipUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-win-vulkan-x64.zip";
@@ -196,7 +196,7 @@ namespace CapriDesktop
         internal static string Amount(long size) { return size < 1e9 ? Math.Round(size / 1e6) + " MB" : (size / 1e9).ToString("0.#") + " GB"; }
 
         private string Folder { get { return Path.Combine(root, "engine-" + Build); } }
-        private string Server { get { return Path.Combine(Folder, "llama-server.exe"); } }
+        private string Server { get { return Path.Combine(Folder, Path.DirectorySeparatorChar == '\\' ? "llama-server.exe" : "llama-server"); } }
         private string ModelPath(Pick pick) { return Path.Combine(Path.Combine(root, "models"), pick.File); }
         private string EyesPath(Pick pick) { return pick.EyesFile == null ? null : Path.Combine(Path.Combine(root, "models"), pick.EyesFile); }
 
@@ -580,6 +580,7 @@ namespace CapriDesktop
 
         internal static void Bind(Process child)
         {
+            if (Path.DirectorySeparatorChar != '\\') return;
             try
             {
                 lock (jobs)

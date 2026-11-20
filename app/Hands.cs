@@ -134,7 +134,7 @@ namespace CapriDesktop
         internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, ModTools = 13, Count = 14;
 #endif
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your code mods added"
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your mods added"
 #if CROSS
             , "Run terminal commands"
 #endif
@@ -354,6 +354,7 @@ namespace CapriDesktop
                 case "updates": return action == "install" ? Open : -1;
                 // A code mod's tool can do anything its code does, so it has its own toggle, off on Lockdown and Guarded.
                 case "mod": return args != null && Plugins.Owns(args.Name) ? Plugins.Needs(args.Name) : ModTools;
+                case "make_tool": return ModTools;
                 case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": case "playlist": return -1;
                 default: return -1;
             }
@@ -399,7 +400,7 @@ namespace CapriDesktop
         internal static bool Asks(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args), granted = Granted(tool, args);
-            if (granted == 0 || granted < 0 && !Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return false;
+            if (!Careful(tool, args) && !ModFloor.Forces(tool, args, toggle) && (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle)))) return false;
             lock (gate) return !cleared.Contains(Asking(tool, args));
         }
 
@@ -407,7 +408,7 @@ namespace CapriDesktop
         internal static string Gate(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args), granted = Granted(tool, args);
-            if (granted == 0 || granted < 0 && !Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return null;
+            if (!Careful(tool, args) && !ModFloor.Forces(tool, args, toggle) && (granted == 0 || granted < 0 && (toggle < 0 || !Has(toggle) || On(toggle)))) return null;
             string asked = Asking(tool, args);
             lock (gate)
             {
@@ -528,7 +529,7 @@ namespace CapriDesktop
             }
         }
 
-        internal static void TheySaid() { lock (gate) modSaid.Clear(); }
+        internal static void TheySaid() { lock (gate) modSaid.Clear(); ModFloor.Fresh(); }
 
         internal static bool FromMod(string text) { lock (gate) return modSaid.Contains(Plainly(text)); }
 
@@ -659,7 +660,8 @@ namespace CapriDesktop
                 case "check_app": return "check whether " + Plain(a.Name, "that app") + " is installed or running";
                 case "pc_status": return "check how your PC is doing";
                 case "internet_status": return "check your internet";
-                case "mod": return Plugins.Asking(a.Name) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
+                case "mod": return Plugins.Asking(a.Name, a.Text) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
+                case "make_tool": return "write a new tool for you to check in Mods";
                 default: return "do that";
             }
         }
@@ -811,7 +813,14 @@ namespace CapriDesktop
         // toggles is off.
         internal static string Note { get { return NoteFor(KitFor()); } }
 
-        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote + AlsoCalled() + SkillNote(); }
+        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote + AlsoCalled() + SkillNote() + GifsAnyTime; }
+
+        internal static Func<string> GifNote = delegate { return ""; };
+        [ThreadStatic] internal static bool Phoned;
+        internal static string Gifs { get { return Phoned ? "" : GifNote(); } }
+        internal static bool Gifted { get { return Gifs.Length > 0; } }
+        private static string GifsAnyTime { get { string gifs = Gifs; return gifs.Length == 0 ? "" : gifs + " You can send one on your own now and then when it fits, even while you're just chatting, but never every reply."; } }
+        private static string GifsAsked { get { string gifs = Gifs; return gifs.Length == 0 ? "" : gifs + " When they ask you to send a GIF, call send_gif."; } }
 
         // The titles of the skills that are on, and one skill in full by its title or id. Her mods list fills these in.
         internal static Func<string> SkillNote = delegate { return ""; };
@@ -820,6 +829,8 @@ namespace CapriDesktop
         internal static bool Skilled { get { return SkillNote().Length > 0; } }
         internal const string SkillDescription = "Read one of your skills in full, by its title or id: know-how someone wrote that they turned on in Mods. Read one when it fits what they ask or what you're doing.";
         internal const string SkillSchema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The skill's title or id\"}},\"required\":[\"name\"]}";
+        internal const string MakeToolDescription = "Write a new tool for yourself when they ask you to make one that looks something up on the web. Pass the whole tool as JSON in text, like {\"format\":1,\"id\":\"word-meaning\",\"name\":\"What a word means\",\"description\":\"When to use it\",\"takes\":\"One English word\",\"domains\":[\"api.dictionaryapi.dev\"],\"steps\":[{\"get\":\"https://api.dictionaryapi.dev/api/v2/entries/en/{text}\",\"keep\":{\"meaning\":\"[0].meanings[0].definitions[0].definition\"}}],\"say\":\"{text}: {meaning}\"}. Use 1 to 3 https GET steps, only to hosts in domains, and only free JSON APIs that need no key. It's saved switched off, and they turn it on in Mods. Never make one that sends, posts, buys or needs a password or key.";
+        internal const string MakeToolSchema = "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The whole tool as JSON\"}},\"required\":[\"text\"]}";
 
 #if CROSS
         private const string MiniNote = "";
@@ -874,7 +885,7 @@ namespace CapriDesktop
         // still calls it and Capri asks them.
         internal static string Prompt { get { return PromptFor(KitFor()); } }
 
-        internal static string PromptFor(Kit kit) { string note = Security.Note; return Here(note.Length == 0 ? kit.Handing : kit.Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote + SkillNote(); }
+        internal static string PromptFor(Kit kit) { string note = Security.Note; return Here(note.Length == 0 ? kit.Handing : kit.Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote + SkillNote() + GifsAsked; }
 
         // The shortcuts she can press, in her chat and hands prompts. Where only some work, these are rebuilt from those.
         private const string PressNote = "You can press shortcuts: mute or deafen them in Discord, screenshots, clips, recording, Game Bar, show desktop, Task Manager, clipboard history, emoji, voice typing, Live Captions, Narrator, Magnifier, colour filters and Quick Settings. ";
@@ -955,6 +966,17 @@ namespace CapriDesktop
         // Her chat brain's one-word answer that this message is a job, which works in every language. A small model can run on
         // after it, like "act Wood? Don't know", so a lowercase act with a capital after it counts too.
         internal static bool Handed(string reply) { return Regex.IsMatch(reply ?? "", @"^\W*act\W*($|\n)", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"^\W*act\s+\p{Lu}"); }
+
+        internal static bool Echoed(string reply, string asked)
+        {
+            string said = Plain(Regex.Replace(reply ?? "", @"^\s*\[[^\]]{1,40}\]\s*", "")), wanted = Plain(asked);
+            if (said.Length == 0 || wanted.Length == 0) return false;
+            if (said.Split(' ').Length >= 2 && (said == wanted || wanted.Contains(said) && said.Length * 2 >= wanted.Length)) return true;
+            Match written = Regex.Match(reply ?? "", @"^\s*([a-z]+(?:_[a-z]+)*)\s*(\(|:|\{)");
+            if (!written.Success) return false;
+            for (int i = 0; i < Specs.GetLength(0); i++) if (Specs[i, 0] == written.Groups[1].Value) return true;
+            return false;
+        }
 
         // On a strong brain she works a job out herself (F57, a tester, 1 Nov: "start matchmaking" should open the game first, then
         // start it). She has the tools, so she decides, one step at a time, and sees what each step did before the next.
@@ -1368,6 +1390,7 @@ namespace CapriDesktop
             { "stopwatch", "Start, check or stop their stopwatch, which counts up from when it starts. There's one stopwatch, with no laps. Starting it while it runs says how long it's been. A timer that counts down is a reminder: use remind.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
             { "read_skill", SkillDescription, SkillSchema, "read the skills you turned on in Mods", "read one of your skills in full" },
+            { "make_tool", MakeToolDescription, MakeToolSchema, "write new look-up tools for yourself, which they turn on in Mods", "make look-up tools" },
             { "game_notes",
 #if CROSS
               "Keep controls or instructions the user teaches you for a game, or read them back. Keep their actual controls in text.",
@@ -1385,6 +1408,10 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"come_here\",\"other_screen\",\"sit\",\"sit_on\",\"lie_down\",\"sit_up\",\"stand_up\",\"walk_around\",\"wander\",\"hang\",\"ride_cursor\",\"hop_off\",\"hide\",\"show\",\"move_mainframe\"]},\"screen\":{\"type\":\"string\",\"description\":\"For other_screen or move_mainframe, which monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, or a number like 2\"},\"window\":{\"type\":\"string\",\"description\":\"For sit_on, and lie_down if they named one, the app or game whose window to sit on, like Roblox, or taskbar\"}},\"required\":[\"action\"]}", "move herself, like coming to your mouse, going to another monitor, sitting on a window or the taskbar, lying down, hanging, riding your cursor or wandering", "move yourself around their screens" },
             { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name." + SecretMovesNote,
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"" + SecretMovesEnum + "]}},\"required\":[\"name\"]}", "dance and play her animations", "dance and play your animations" },
+#if !CROSS
+            { "send_gif", "Send one of the GIFs they saved for you to send. It plays in a card beside you on their PC screen for a few seconds. name picks one by its name; leave it out for a random one. Send one when they ask for a GIF, and now and then on your own when one fits the moment, like a joke, a reaction or celebrating with them. Only now and then, not every reply.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The GIF's name, one of the names they saved; leave it out for a random one\"}}}", "send one of the GIFs you saved for her", "send one of the GIFs they saved for you" },
+#endif
 #if CROSS
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. This only opens it; they change settings there.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
@@ -1764,6 +1791,7 @@ namespace CapriDesktop
         internal static Func<ToolArguments, string> VoiceChat = delegate { return "Couldn't change voice chat."; };
         internal static Func<ToolArguments, string> Workspace = delegate { return "Couldn't open Workspace."; };
         internal static Func<string, string> OpenClip = delegate { return "Couldn't open your clips."; };
+        internal static Func<string, string> SendGif = delegate { return "Couldn't send a GIF just now."; };
 #endif
         // Mac and Linux have no clones, hologram or icon tricks yet, so asking for them gets this straight away instead of a joke from her brain.
         internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
@@ -2029,8 +2057,17 @@ namespace CapriDesktop
                 if (tool == "mod" && Plugins.Owns(args.Name)) return Plugins.Run(args.Name, args.Text ?? "");
                 if (tool == "mod")
                 {
-                    Func<string, string, string> run = RunModTool;
-                    return run == null ? "No mod has added that." : run(args.Name, args.Text ?? "");
+                    Func<string, string, string> run = RunModTool, recipe = RunRecipe;
+                    string name = args.Name;
+                    string said = recipe == null || Array.Exists(ToolsFrom(ModTools), one => one[0] == name) ? null : recipe(name, args.Text ?? "");
+                    if (said != null) return said;
+                    return run == null ? "No mod has added that." : run(name, args.Text ?? "");
+                }
+                if (tool == "make_tool")
+                {
+                    Func<string, string> make = MakeTool;
+                    if (!Valid(tool, args)) return "Couldn't make a tool: pass the whole tool as JSON in text.";
+                    return make == null ? "Making tools isn't set up here." : make(args.Text);
                 }
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
 #if CROSS
@@ -2137,6 +2174,7 @@ namespace CapriDesktop
                 if (tool == "mini_game") return Valid(tool, args) ? Mini(args) : "Couldn't find that desktop board action.";
 #if !CROSS
                 if (tool == "watch_along") return WatchAlong(args.Action);
+                if (tool == "send_gif") return SendGif(args.Name);
                 if (tool == "listen")
                 {
                     if (!Valid(tool, args)) return "Couldn't find that listening action or duration.";
@@ -2336,8 +2374,9 @@ namespace CapriDesktop
             for (int toggle = Security.Open; toggle <= Security.Sends; toggle++) key.Append(Security.Has(toggle) && Security.On(toggle) ? '1' : '0');
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] tool in modTools) key.Append("|mod ").Append(tool[0]).Append('=').Append(tool[1]).Append('=').Append(tool[2]);
-            bool skilled = Skilled;
+            bool skilled = Skilled, gifted = Gifted;
             if (skilled) key.Append("|skills");
+            if (gifted) key.Append("|gifs");
             lock (kits)
             {
                 Kit kit;
@@ -2345,7 +2384,7 @@ namespace CapriDesktop
                 {
                     // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
                     if (modTools.Length > 0 && kits.Count > 200) kits.Clear();
-                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled));
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted));
                 }
                 return kit;
             }
@@ -2355,21 +2394,31 @@ namespace CapriDesktop
         internal static Func<string[][]> ModTools;
         // Runs a mod's tool by name with its text, and gives back what it said.
         internal static Func<string, string, string> RunModTool;
+        // The tools her tool mods add, the same shape, and the way to run one: null when no tool mod has that name. A code mod's
+        // tool keeps its name if a tool mod picks the same one.
+        internal static Func<string[][]> RecipeTools;
+        internal static Func<string, string, string> RunRecipe;
+        // Saves a tool mod she wrote, switched off, and says what happened.
+        internal static Func<string, string> MakeTool;
         private static readonly string[][] NoModTools = new string[0][];
 
         private static string[][] ModToolsNow()
         {
-            Func<string[][]> tools = ModTools;
-            string[][] mods = NoModTools, plugins = Plugins.Tools();
-            if (tools != null)
-            {
-                try { mods = tools() ?? NoModTools; }
-                catch (Exception) { mods = NoModTools; }
-            }
-            if (plugins.Length == 0) return mods;
-            List<string[]> all = new List<string[]>(mods);
-            foreach (string[] tool in plugins) if (!all.Exists(one => one[0] == tool[0])) all.Add(tool);
+            string[][] coded = ToolsFrom(ModTools), recipes = ToolsFrom(RecipeTools), plugins = Plugins.Tools();
+            if (recipes.Length == 0 && plugins.Length == 0) return coded;
+            List<string[]> all = new List<string[]>(coded);
+            foreach (string[] recipe in recipes)
+                if (!all.Exists(tool => tool[0] == recipe[0])) all.Add(recipe);
+            foreach (string[] plugin in plugins)
+                if (!all.Exists(tool => tool[0] == plugin[0])) all.Add(plugin);
             return all.ToArray();
+        }
+
+        private static string[][] ToolsFrom(Func<string[][]> tools)
+        {
+            if (tools == null) return NoModTools;
+            try { return tools() ?? NoModTools; }
+            catch (Exception) { return NoModTools; }
         }
 
         // Her one tool for every mod's tools: a name to pick from what running mods added, and the text that tool takes.
@@ -2460,6 +2509,7 @@ namespace CapriDesktop
         private static List<string[]> Missing(bool blind)
         {
             List<string[]> missing = new List<string[]>();
+            if (MakeTool == null) missing.Add(new[] { "make_tool", "making tools isn't set up here" });
             if (blind)
             {
                 missing.Add(new[] { "look_at_screen", NoSight });
@@ -2688,9 +2738,9 @@ namespace CapriDesktop
         // with what she'd say about them taken out and her lines about what isn't here and what's off put in, and the short list
         // of what she can do right now that the brain she chats with always gets, so even a small local model knows (Lachy, 2 Nov:
         // "For 0.8.0 I especially want them to be aware of their tools").
-        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled); }
+        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled, Gifted); }
 
-        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled)
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -2709,7 +2759,7 @@ namespace CapriDesktop
             for (int i = 0; i < Specs.GetLength(0); i++)
             {
                 string tool = Specs[i, 0], how;
-                if (!kit.Has(tool) || tool == "read_skill" && !skilled) continue;
+                if (!kit.Has(tool) || tool == "read_skill" && !skilled || tool == "send_gif" && !gifted) continue;
                 string description = Unsaying(kit, tool == "shortcut" && someKeys ? "Press a keyboard shortcut for them: " + Joined(doing, "or") + "." : Specs[i, 1]), schema = Unsaying(kit, Specs[i, 2]);
                 if (tool == "capri_settings") { description = Unsaying(kit, SettingsDescription(kit)); schema = SettingsSchema(kit); }
                 foreach (string gap in kit.Missing.Keys)
@@ -2815,7 +2865,7 @@ namespace CapriDesktop
             List<string> free = new List<string>();
             for (int toggle = Security.Open; toggle <= Security.Sends; toggle++)
                 if (Security.Has(toggle) && Security.On(toggle)) free.Add(Security.Names[toggle].Substring(0, 1).ToLowerInvariant() + Security.Names[toggle].Substring(1));
-            string doing = "\nAct, don't describe: when what they asked for matches one of those, call it in this same turn and then say what you did in your own voice. Opening an app or a site is a single call that finds the app or browser itself, so never check first, never answer a request to act with what you found or what's already open, and never ask them which tool to use. Asking for something a second time means do it a second time: call the tool again and never answer that you already did it, that it is already done or that it is already open, whatever your memory of this chat says.";
+            string doing = "\nAct, don't describe: when what they asked for matches one of those, your hands do it, so never say you're doing it or tell them how. Opening an app or a site is a single step that finds the app or browser itself, so never check first, never answer a request to act with what you found or what's already open, and never ask them which tool to use. Asking for something a second time means do it a second time: never answer that you already did it, that it is already done or that it is already open, whatever your memory of this chat says.";
             if (Security.Has(Security.Mouse) && Security.On(Security.Mouse))
                 return "\nThey've handed you their mouse and keyboard, so you can do whatever they ask on this " + ComputerName + " without asking first." + doing;
             if (free.Count > 0)
@@ -3187,6 +3237,15 @@ namespace CapriDesktop
 
         // "I'm sending you the biggest hug" is warmth, not a message she owes them. Warmth sent to someone by name still counts.
         private static readonly Regex Warmth = new Regex(@"\b(send(s|ing)?|sent)\s+((you|u|ya|y'all)\s+)?((a|an|the|my|some|all|so|much|many|lots|of|this|big|bigger|biggest|huge|massive|giant|tight|warm|warmest|virtual|good|positive|happy|healing|cozy|cosy|little|tiny|extra|more|mega|super|best|sweet|soft|gentle|digital|cyber|neon)\s+)*(hugs?|huggies|squeezes?|kiss(es)?|love|xoxo|vibes?|energy|thoughts|wishes|prayers?|luck|cuddles?|smooches?|hearts?|sunshine|strength|support|positivity|juju|blessings?|regards|cheers|kudos|props|high[- ]?fives?|fist[- ]?bumps?|headpats?|pats)\b(?!\s+(to|over to)\s+(?!(you|u|ya|y'all|yourself)\b)\w)", RegexOptions.IgnoreCase);
+
+        private const string Onto = @"(\s+(up|on|in|into|at|for|through|over|your|the|that|this|those|these|it|what|if|whether|a|an|my|how)\b|\s+\w+'s\b)";
+        private static readonly Regex Ongoing = new Regex(@"^\W*((ok|okay|sure|alright|bet|yeah|yep|got it|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(hold on|hang on|one sec(ond)?|just a sec(ond)?|gimme a sec|give me (a|one) (sec(ond)?|moment|min(ute)?))[,.!\s—–-]+((choom|chooms)[,.!\s—–-]+)?(i'?m|let me|lemme|i'?ll)\b" +
+            @"|\b(let me|lemme|let'?s|i'?ll|i will|i'?m (gonna|going to|about to))\s+(\w+\s+){0,2}?(check|take a look|have a look|look|find|dig|hunt|scan|grab|pull|set|start|lock|peek|poke|track down)" + Onto +
+            @"|\bi'?m\s+(now\s+)?(checking|taking a look|having a look|looking|pulling|digging|hunting|scanning|grabbing|setting|starting|locking|finding|searching|peeking|poking|tracking down)" + Onto +
+            @"|^\W*((ok|okay|sure|alright|bet|yeah|yep|got it|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(checking|digging|hunting|scanning|pulling|bringing|grabbing|setting|starting|locking|searching|tracking down)" + Onto +
+            @"|\b(timer|reminder|alarm)('s| is| are)\s+(set|ticking|running|going|on)\b|\b(minutes?|seconds?|hours?) on the clock\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static bool Underway(string said) { return Ongoing.IsMatch((said ?? "").Replace('’', '\'')); }
 
         internal static bool Promised(string said)
         {
@@ -4592,6 +4651,7 @@ namespace CapriDesktop
         internal static bool Valid(string tool, ToolArguments args)
         {
 #if CROSS
+            if (tool == "linux_system" && args != null && string.IsNullOrEmpty(args.Action) && string.IsNullOrEmpty(args.Name)) args.Action = "overview";
             if (tool == "linux_system") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(overview|status|processes|service_failed|service_status|service_start|service_stop|service_restart)\z")
                 && (args.Action == "overview" || args.Action == "status" || args.Action == "processes" || args.Action == "service_failed" || Named(args.Name));
             if (tool == "run_terminal") return args != null && !string.IsNullOrWhiteSpace(args.Command) && args.Command.Length <= 16000 && args.Command.IndexOf('\0') < 0;
@@ -4610,6 +4670,7 @@ namespace CapriDesktop
 #if !CROSS
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back" || args.Action == "rampage");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "scroll" || args.Action == "stop");
+            if (tool == "send_gif") return args == null || (args.Name ?? "").Length <= 200;
 #endif
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
 #if !CROSS
@@ -4643,6 +4704,7 @@ namespace CapriDesktop
             if (args == null) return false;
             if (tool == "read_skill") return Named(args.Name);
             if (tool == "mod") return Named(args.Name);
+            if (tool == "make_tool") return !string.IsNullOrWhiteSpace(args.Text);
             if (tool == "mini_game")
             {
                 bool chess = args.Name == "chess";
@@ -5186,6 +5248,8 @@ namespace CapriDesktop
         // library, and from her other launchers' lists the same way. One already in All apps by that name isn't listed twice.
         internal static List<InstalledApp> WithSteam(List<InstalledApp> apps, List<InstalledApp> steam)
         {
+            if (apps == null) apps = new List<InstalledApp>();
+            if (steam == null) return apps;
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
             foreach (InstalledApp app in apps) names.Add(AppName(app));
             foreach (InstalledApp game in steam)
@@ -5257,10 +5321,10 @@ namespace CapriDesktop
             string data = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             List<InstalledApp> apps = new List<InstalledApp>();
             if (data.Length == 0) return apps;
-            apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests")));
-            apps.AddRange(RiotApps(Path.Combine(data, "Riot Games")));
-            apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir")));
-            apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn")));
+            try { apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests"))); } catch (Exception) { }
+            try { apps.AddRange(RiotApps(Path.Combine(data, "Riot Games"))); } catch (Exception) { }
+            try { apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir"))); } catch (Exception) { }
+            try { apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn"))); } catch (Exception) { }
             return apps;
         }
 
@@ -5287,12 +5351,14 @@ namespace CapriDesktop
                     try
                     {
                         byte[] bytes = File.ReadAllBytes(manifest);
-                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3
+                            : bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE ? 2 : 0;
                         using (MemoryStream stream = new MemoryStream(bytes, start, bytes.Length - start)) item = (EpicItem)reader.ReadObject(stream);
                     }
                     catch (IOException) { continue; }
                     catch (UnauthorizedAccessException) { continue; }
                     catch (SerializationException) { continue; }
+                    catch (System.Xml.XmlException) { continue; }
                     if (item == null || item.Incomplete || string.IsNullOrWhiteSpace(item.DisplayName) || string.IsNullOrWhiteSpace(item.AppName) || string.IsNullOrWhiteSpace(item.LaunchExecutable)) continue;
                     if (!string.IsNullOrEmpty(item.MainGameAppName) && item.MainGameAppName != item.AppName) continue;
                     string app = string.IsNullOrEmpty(item.CatalogNamespace) || string.IsNullOrEmpty(item.CatalogItemId) ? Uri.EscapeDataString(item.AppName)
@@ -5302,6 +5368,8 @@ namespace CapriDesktop
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
+            catch (SerializationException) { }
+            catch (System.Xml.XmlException) { }
             return apps;
         }
 
@@ -5323,7 +5391,10 @@ namespace CapriDesktop
                     if (!named.Success || named.Groups[1].Value == "riot_client") continue;
                     string settings = Path.Combine(product, named.Value + ".product_settings.yaml");
                     if (!File.Exists(settings)) continue;
-                    string text = File.ReadAllText(settings);
+                    string text;
+                    try { text = File.ReadAllText(settings); }
+                    catch (IOException) { continue; }
+                    catch (UnauthorizedAccessException) { continue; }
                     Match shortcut = Regex.Match(text, @"(?m)^shortcut_name:\s*""?(.+?)(?:\.lnk)?""?\s*$");
                     Match place = Regex.Match(text, @"(?m)^product_install_full_path:\s*""?(.+?)""?\s*$");
                     if (!shortcut.Success || !place.Success || !Directory.Exists(place.Groups[1].Value.Replace('/', '\\'))) continue;
@@ -5340,8 +5411,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> UbisoftApps(List<string[]> installs)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (installs == null) return apps;
             foreach (string[] install in installs)
             {
+                if (install == null || install.Length < 2 || string.IsNullOrEmpty(install[0]) || string.IsNullOrEmpty(install[1])) continue;
                 string name = Uninstalled("Uplay Install " + install[0]);
                 if (Regex.IsMatch(install[0], @"^\d+$") && !string.IsNullOrWhiteSpace(name) && FolderThere(install[1])) apps.Add(new InstalledApp(name.Trim(), "uplay://launch/" + install[0] + "/0"));
             }
@@ -5352,8 +5425,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> GogApps(List<string[]> games)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (games == null) return apps;
             foreach (string[] game in games)
             {
+                if (game == null || game.Length < 5) continue;
                 string exe = game[2] ?? "", given = (game[3] ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(game[1]) || !string.IsNullOrWhiteSpace(game[4]) || !Regex.IsMatch(exe, @"^[A-Za-z]:\\.+\.exe$", RegexOptions.IgnoreCase) || !Exists(exe)) continue;
                 apps.Add(new InstalledApp(game[1].Trim(), given.Length == 0 ? exe : "\"" + exe + "\" " + given));

@@ -21,11 +21,16 @@ namespace CapriDesktop
             }
         }
 
+        private static string KeyWords(string grant, bool asks)
+        {
+            return asks && grant != Plugins.Off ? "Always asks" : GrantWords(grant);
+        }
+
         private static string PluginAbout(Mod mod)
         {
             List<PluginTool> tools = Plugins.ToolsOf(mod.File.Id);
             string trouble = Plugins.Trouble(mod.File.Id);
-            string what = mod.Info == null || mod.Info.Servers.Length == 0 ? "" : !mod.On ? "" : tools.Count > 0 ? tools.Count + (tools.Count == 1 ? " tool. " : " tools. ") : trouble == "starting" ? "Starting its tools. " : trouble != null ? "Its tools didn't start. " : "";
+            string what = mod.Info == null || mod.Info.Servers.Length == 0 ? "" : !mod.On ? "" : tools.Count > 0 ? tools.Count + (tools.Count == 1 ? " tool. " : " tools. ") : trouble == "starting" ? "Starting its tools. " : trouble == McpSignInNeeded.Said ? "Needs you to sign in. " : trouble != null ? "Its tools didn't start. " : "";
             if (mod.Skills.Length > 0) what += mod.Skills.Length + (mod.Skills.Length == 1 ? " skill. " : " skills. ");
             return "PLUG-IN. " + what;
         }
@@ -54,27 +59,64 @@ namespace CapriDesktop
             List<PluginTool> tools = Plugins.ToolsOf(mod.File.Id);
             string trouble = Plugins.Trouble(mod.File.Id);
             string top = tools.Count > 0
-                ? "Like SECURITY asks first the way SECURITY > Use tools your code mods added says, and for tools that change things, Send, post and delete too."
+                ? "Like SECURITY asks first the way SECURITY > Use tools your mods added says, and for tools that change things, Send, post and delete too."
                 : trouble == "starting" ? "Her tools from it are starting. Open this again in a moment."
+                : trouble == McpSignInNeeded.Said ? "It needs you to sign in before her tools from it show. Capri opens your browser for that, and only when you press Sign in."
                 : trouble != null ? "Its tools didn't start: " + trouble
                 : "Her tools from it show here once it has started.";
-            Label head = new Label { Text = top, Font = Type(9f), ForeColor = trouble != null && trouble != "starting" && tools.Count == 0 ? Rose : Faint, AutoSize = false, Bounds = new Rectangle(0, 0, 552, 40), UseMnemonic = false };
+            Label head = new Label { Text = top, Font = Type(9f), ForeColor = trouble != null && trouble != "starting" && trouble != McpSignInNeeded.Said && tools.Count == 0 ? Rose : Faint, AutoSize = false, Bounds = new Rectangle(0, 0, 552, 40), UseMnemonic = false };
             panel.Controls.Add(head);
             int y = 46;
+            if (Mods.Builtin(mod, "mail"))
+            {
+                Key setup = new Key { Bounds = new Rectangle(0, y, 200, 26), Font = Type(9f), Text = MailTools.Ready ? "Change email account" : "Set up email", Accent = Cyan };
+                setup.AccessibleName = setup.Text;
+                setup.Click += delegate { OpenMailSetup(mod); };
+                panel.Controls.Add(setup);
+                y += 36;
+            }
+            if (trouble == McpSignInNeeded.Said)
+            {
+                Key sign = new Key { Bounds = new Rectangle(0, 46, 200, 26), Font = Type(9f), Text = "Sign in", Accent = Cyan };
+                sign.AccessibleName = "Sign in to " + mod.File.Name;
+                sign.Click += delegate
+                {
+                    sign.Text = "Signing in...";
+                    sign.Enabled = false;
+                    Plugins.SignIn(mod.File.Id, delegate(string problem)
+                    {
+                        try
+                        {
+                            BeginInvoke(new Action(delegate
+                            {
+                                if (problem == null) { OpenPluginOptions(mod); return; }
+                                head.Text = "Couldn't sign in: " + problem;
+                                head.ForeColor = Rose;
+                                sign.Text = "Sign in";
+                                sign.Enabled = true;
+                            }));
+                        }
+                        catch (InvalidOperationException) { }
+                    });
+                };
+                panel.Controls.Add(sign);
+                y = 82;
+            }
             foreach (PluginTool tool in tools)
             {
                 PluginTool one = tool;
+                bool asks = Plugins.AlwaysAsks(tool);
                 Label name = new Label { Text = tool.Title, Font = Type(10f, true), ForeColor = White, AutoSize = false, AutoEllipsis = true, Bounds = new Rectangle(0, y, 400, 20), UseMnemonic = false };
                 Label about = new Label { Text = tool.Description, Font = Type(8.5f), ForeColor = Faint, AutoSize = false, AutoEllipsis = true, Bounds = new Rectangle(0, y + 20, 400, 30), UseMnemonic = false };
-                Key grant = new Key { Bounds = new Rectangle(412, y + 6, 140, 26), Font = Type(9f), Text = GrantWords(Plugins.GrantOf(mod.File.Id, tool.Tool)) };
+                Key grant = new Key { Bounds = new Rectangle(412, y + 6, 140, 26), Font = Type(9f), Text = KeyWords(Plugins.GrantOf(mod.File.Id, tool.Tool), asks) };
                 grant.AccessibleName = "When she uses " + tool.Title;
                 grant.Accent = Plugins.GrantOf(mod.File.Id, tool.Tool) == Plugins.Off ? Rose : Cyan;
                 grant.Click += delegate
                 {
                     string now = Plugins.GrantOf(mod.File.Id, one.Tool);
-                    string next = GrantOrder[(Array.IndexOf(GrantOrder, now) + 1) % GrantOrder.Length];
+                    string next = asks ? (now == Plugins.Off ? Plugins.Usual : Plugins.Off) : GrantOrder[(Array.IndexOf(GrantOrder, now) + 1) % GrantOrder.Length];
                     Plugins.Grant(mod.File.Id, one.Tool, next);
-                    grant.Text = GrantWords(next);
+                    grant.Text = KeyWords(next, asks);
                     grant.Accent = next == Plugins.Off ? Rose : Cyan;
                     grant.Invalidate();
                 };

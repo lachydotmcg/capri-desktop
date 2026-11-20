@@ -19,6 +19,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'site', 'ro
 GITHUB_NAME = re.compile(r'^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$')
 CLOSING = re.compile(r'\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b:?\s*(?:lachydotmcg/capri-desktop)?#(\d+)', re.I)
 SUGGESTED = re.compile(r'^[ \t]*Suggested\b[^\n]{0,160}', re.I | re.M)
+ON_IT = re.compile(r'^[ \t]*On it\b[^\n]{0,160}', re.I | re.M)
 
 
 def items(path, paginate):
@@ -57,6 +58,11 @@ def suggested(body):
     return found.group(0).strip() if found else ''
 
 
+def on_it(body):
+    found = ON_IT.search(body or '')
+    return found.group(0).strip() if found else ''
+
+
 def normal(item, links):
     return {
         'n': item['number'],
@@ -69,6 +75,7 @@ def normal(item, links):
         'u': login(item.get('user')),
         'p': links.get(item['number'], []),
         's': suggested(item.get('body')),
+        'o': on_it(item.get('body')),
     }
 
 

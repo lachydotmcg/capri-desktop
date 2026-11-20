@@ -387,7 +387,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 
 ### 8.2 Screen view and call
 
-`hello-ok.features` lists `watch` when the PC can show its screen, `call` when it takes calls, and `hush` with `call` when a phone's `call.hush` stops her answer on the PC. A phone sends these only when its session's `hello-ok` listed the feature.
+`hello-ok.features` lists `watch` when the PC can show its screen, `call` when it takes calls, `hush` with `call` when a phone's `call.hush` stops her answer on the PC, and `call-look` with `call` and `pictures` when she can take a snapshot of the phone's camera with each line (Windows only). A phone sends these only when its session's `hello-ok` listed the feature.
 
 | `type` | Sender | Fields |
 |---|---|---|
@@ -403,6 +403,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 | `call.state` | PC | `on`; `voice` and `ears` (her voice and her ears are on) with `on: true`; `reason` with `on: false` (`not-allowed`, `busy` or `ended`) |
 | `call.audio` | phone | `id` (the line), `n`, `rate` (16000), `pcm`, `end` (on the last part) |
 | `call.cancel` | phone | `id` |
+| `call.look` | phone | `id` (the line), `picture` (`mime` and `data`, as in `chat.send` in 8.5), only to a PC that lists `call-look` |
 | `call.heard` | PC | `id`, `text` (what her ears heard: empty when nothing) |
 | `call.voice` | PC | `n`, `rate` (24000 or less), `pcm` |
 | `call.hush` | PC | none |
@@ -428,6 +429,10 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
   - Errors carry the line id as `re`: `too-long`, `bad-message` (a part out of order or at another rate), `not-allowed` (no call), `busy` (her ears couldn't run).
   - The PC's own ears hear the line, the PC answers `call.heard`, and the words go to her as if said at the PC. Her answer comes back as `chat.reply` with `re` set to the line id.
   - `call.cancel` drops a line that's still coming in.
+  - **Video call:** with its camera on, a phone sends each line with one snapshot of him, so she can see him while he talks. A phone sends `call.look` only when `hello-ok.features` lists `call-look`, right after the line's last `call.audio` part (`end: true`), at most one a line, and only on an ordinary call: a listening Room phone's `call.look` gets `error {code: "not-allowed", re: <line id>}`. The `id` follows the same rules as a `call.audio` `id`, and the `picture` is a JPEG or PNG exactly as in 8.5 (the phone keeps it to 512 pixels on its long side or less), so the message stays under the 60,000-byte plaintext limit.
+  - The PC checks the picture's header exactly as it does for a `chat.send` picture: type, signature, size read from the header before any decode (1 to 1568 pixels each way), and canonical base64url. A bad picture gets `error {code: "bad-message", re: <line id>}`. A look for a line the PC doesn't have waiting, or with no call, is dropped without an answer, since it can race with the line being heard.
+  - Per caller the PC holds only the latest look, tied to its line, and drops it when the line is cancelled, the call ends, or after 15 seconds. It is never written to disk, chat history, memory or logs. When the line's words are heard and not empty, the words go to her together with the held picture as one turn, the way a `chat.send` with a picture does, and her answer still comes back as `chat.reply` with `re` set to the line id. A look that arrives within about 1.5 seconds after the words are ready still goes with them, once that call has sent a look. The turn tells her it is a live snapshot from their front camera on their video call, so she mentions it only when it matters.
+  - If her brain can't see pictures, the words go to her alone, with no sightless reply: a call never gets it every line. A line with no look goes exactly as before.
 - **Room listening:** a phone requires both `call` and `call-listen` in `hello-ok.features` and sends `call.start {listen: true, hush: true}` for voice alone, without opening its mic or call screen. The PC does not check or warm her ears, returns `ears: false` in `call.state`, and shows listening in its badge. Watching remains in the badge whenever any phone can see the screen. Any `call.audio` from that phone gets `error {code: "not-allowed", re: <line id>}` before parsing its audio. Listening and an ordinary call on another phone never share her voice. A listening request while another phone has an ordinary call returns `call.state {on: false, reason: "busy"}` and removes any earlier listener for the asking phone. Starting an ordinary call removes every other listening phone and sends each the same busy state. The ordinary call is left alone when a listener asks. Ordinary calls can still share with other ordinary calls.
   - Switching Voice off on the phone, leaving the room or hiding the page sends `call.stop` and releases playback. A phone leaving, being removed or starting a new session also ends listening. Interrupt (`call.hush` with a valid `re`) ends listening and returns `call.state {on: false, reason: "ended"}`. A later `call.start` without `listen: true` is an ordinary call with ears. Starting an ordinary call closes the room before starting the usual call.
   - Whenever her voice is switched off or on at the PC, every listening phone receives `call.state` again with the same acceptance shape: `{"type":"call.state","on":true,"voice":false,"ears":false}` or `{"type":"call.state","on":true,"voice":true,"ears":false}`. Listening stays active; the phone updates its voice-off note from `voice`. There is no new field and her ears stay off.
@@ -539,6 +544,31 @@ A PC lists `push` in `hello-ok.features` when it can notify a phone that isn't l
   - The push service (Apple, Google, Mozilla or Microsoft) sees the PC's address, the time and the size, never the words. The relay sees nothing: the PC posts straight to the push service.
   - `201`, `200` or `202` is `sent`. `404` or `410` is `gone`: the PC forgets that subscription and the phone's next `push.state` says `web: false`. Anything else is `failed` and isn't retried.
 - **The page** shows a notification with `tag` set to `job-<job>` for `ask` and `done` (so a job's end replaces its question) and to the `id` otherwise. Tapping it opens `https://capriai.app/remote/`, at the job for `ask` and `done`. An iPhone only gets web push in a home screen app (iOS 16.4 or later), so Safari says to add Capri to the Home Screen first.
+
+### 8.8 Her memory (feature `memory`)
+
+A PC lists `memory` in `hello-ok.features` when she keeps notes on it. Every paired phone can then read and change what she remembers about its user: the same files the PC's Mainframe opens, with nothing new stored anywhere. A phone must not send `memory.*` to a PC that doesn't list it.
+
+| `type` | Sender | Fields |
+|---|---|---|
+| `memory.get` | phone | none; the PC answers with `memory.list` |
+| `memory.list` | PC | `keeping` (Remember our chats is on), `private` (Keep personal details out of her memories is on), `cut` (some older entries were left out to fit), `about` (her notes, from me.md: `[{id, text}]`), `chats` (her memories of past chats, from memories.md, oldest day first: `[{day, items: [{id, text}]}]`), `games` (what she learned about each game: `[{game, items}]`), `days` (her daily chat logs, newest first: `[{date, lines}]`) |
+| `memory.add` | phone | `id`, `text`; a new note in me.md, through the same rule as "remember that ..." |
+| `memory.edit` | phone | `id`, `item` (an entry's `id`), `text` (its new words) |
+| `memory.forget` | phone | `id`, `item` |
+| `memory.day` | phone | `id`, `date` (`YYYY-MM-DD`); the PC answers with `memory.chat` |
+| `memory.chat` | PC | `re`, `date`, `ok`, `cut` (only the newest part fits), `lines` (`[{at, who, text}]`: `who` is `You`, `Capri` or `You (voice)`, empty for something she did) |
+| `memory.forget-day` | phone | `id`, `date`; deletes that day's chat log and the lines from it still waiting to become memories |
+| `memory.wipe` | phone | `id`, `what`: `about`, `chats`, `days`, `games`, or `all` (about, chats and days, never her game notes) |
+| `memory.undo` | phone | `id`, `undo` (the token from a `memory.done`) |
+| `memory.done` | PC | `re`, `ok`, `code`, `say` (her plain words for it, at most 200 characters), `undo` (a token, when the change can be undone) |
+
+- **Ids.** An entry's `id` comes from its file, its day or game, its words and how many times the same words came before it. Editing it makes a new id. An `edit` or `forget` whose `item` is no longer there gets `changed`, so a phone never changes something it hasn't seen. After every `memory.done` the PC sends a fresh `memory.list`.
+- **Codes.** `added`, `saved`, `forgot` and `undone` are `ok`. `changed` (it changed on the PC first), `private` (a password, address, number or other personal detail, refused like her own notes), `same` (already there, or nothing changed), `empty`, `full` (me.md is over 8,000 characters), `gone` (too late to undo), `bad` (a malformed date or `what`), `off` and `failed` are not.
+- **Undo.** The PC keeps the last 12 changes, up to 3 million characters, in memory only. An undo puts back exactly what that change took or replaced, and only if nothing has changed those files since; otherwise `changed`. Undos are lost when Capri closes.
+- **Sizes.** Text is at most 2,000 characters in and is cut to 200 for a note and 300 for other entries, on one line. `memory.list` stays under 56,000 bytes: older chat days, older game notes and the oldest day headings in memories.md are left out first, with `cut: true`. `memory.chat` holds at most about 40,000 characters of the day's newest lines.
+- **Privacy.** Memory only travels inside the end-to-end session, never in a notification or through the relay in the clear. There are no share links and no export. The phone keeps it in page memory only, never in localStorage, IndexedDB or the service worker cache, and clears it when the page is hidden, the session ends or it unpairs. Messages are handled one at a time, in order, for every phone.
+- **Errors.** A malformed `id` gets `error` `bad-message`. A PC that has stopped keeping notes answers `error` `not-allowed`.
 
 ## 9. Rules for each side
 

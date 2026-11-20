@@ -305,18 +305,23 @@ namespace CapriDesktop
             try
             {
                 if (!Directory.Exists(folder)) return installs;
+                DataContractJsonSerializer reader = new DataContractJsonSerializer(typeof(EpicInstall));
                 foreach (string manifest in Directory.EnumerateFiles(folder, "*.item"))
                     try
                     {
-                        using (FileStream stream = File.OpenRead(manifest))
+                        byte[] bytes = File.ReadAllBytes(manifest);
+                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3
+                            : bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE ? 2 : 0;
+                        using (MemoryStream stream = new MemoryStream(bytes, start, bytes.Length - start))
                         {
-                            EpicInstall item = (EpicInstall)new DataContractJsonSerializer(typeof(EpicInstall)).ReadObject(stream);
-                            if (!string.IsNullOrWhiteSpace(item.InstallLocation) && Path.IsPathRooted(item.InstallLocation)) installs.Add(item.InstallLocation);
+                            EpicInstall item = (EpicInstall)reader.ReadObject(stream);
+                            if (item != null && !string.IsNullOrWhiteSpace(item.InstallLocation) && Path.IsPathRooted(item.InstallLocation)) installs.Add(item.InstallLocation);
                         }
                     }
                     catch (IOException) { }
                     catch (UnauthorizedAccessException) { }
                     catch (SerializationException) { }
+                    catch (System.Xml.XmlException) { }
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
