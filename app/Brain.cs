@@ -3583,10 +3583,10 @@ namespace CapriDesktop
             if (Provider != null) return null;
 #endif
             Cloud remote = Remote;
-            if (remote == null || (remote.Claude && noFastest)) return null;
+            if (remote == null || (remote.Claude && noFastest) || Spares) return null;
             string cheap = Cheaper(remote, pictures, tools);
             if (cheap == null) return null;
-            Brain thrifty = new Brain { Model = cheap, Remote = new Cloud(remote.Key, cheap), Local = Local, LocalPick = LocalPick, Spare = Spare, SparePick = SparePick, SpareFirst = SpareFirst, SpareModel = SpareModel, Act = Act, Kit = Kit, CloudWait = CloudWait };
+            Brain thrifty = new Brain { Model = cheap, Remote = new Cloud(remote.Key, cheap), Local = Local, LocalPick = LocalPick, Act = Act, Kit = Kit, CloudWait = CloudWait };
             CopyServer(thrifty);
             return thrifty;
         }
@@ -3623,8 +3623,17 @@ namespace CapriDesktop
             get
             {
                 Cloud remote = Remote;
-                if (remote == null || (remote.Claude && noFastest)) return null;
+                if (remote == null || (remote.Claude && noFastest) || Spares) return null;
                 return Cheaper(remote, false, false);
+            }
+        }
+
+        private bool Spares
+        {
+            get
+            {
+                Engine spare = Spare;
+                return spare != null && SparePick != null || spare == null && SpareModel != null;
             }
         }
 

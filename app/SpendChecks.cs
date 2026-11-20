@@ -73,6 +73,7 @@ namespace CapriDesktop
                 try { opus.SmallJob("Translate.", "1. Bye", 300); }
                 catch (BrainException error) { broke = error.Message; }
                 if (broke != Brain.NoCredits || claudeAsked.Count != 2 || opus.SmallJobs != Brain.Fastest) throw new Exception("A key out of credits gave up on Haiku for good, or asked again: " + broke);
+                if (new Brain { Model = "claude-opus-5-5", Remote = new Cloud("sk-ant-spendcheck", "claude-opus-5-5"), SpareModel = "gemma4:e4b" }.SmallJobs != null) throw new Exception("With her PC brain as a spare, small jobs left her picked model and its spare.");
                 checks.Add("PASS small jobs on Claude: translations and summaries go to Haiku when a bigger Claude is picked, with its cache reads counted at their price, and a key out of credits says so without giving up on Haiku");
 
                 List<SpendRow> made = new List<SpendRow>
