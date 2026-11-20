@@ -2331,8 +2331,6 @@ namespace CapriDesktop
             return new[] { "mod", description, schema, "use what your mods added: " + string.Join(", ", plain.ToArray()), "use what their mods added: " + string.Join(", ", plain.ToArray()) };
         }
 
-        // The moves her skins added go into her animate tool: every name in its list, so any brain can pick one, and her lines name
-        // as many as fit. Her voice agent knows its tools by their descriptions, so a new set of moves has to change it.
         private const string MovesLead = " Moves their skins added are in name's list too: ", MovesTail = ". Do one when they ask for it by name or hint at it, and stop_dancing ends one that loops.";
         private const int MovesNamed = 8, LongestDescription = 1000;
 
@@ -2344,7 +2342,6 @@ namespace CapriDesktop
             return names;
         }
 
-        // What her brain and her voice agent see for animate, with the moves on now.
         private static string AnimateDescription(string own, string[] moves)
         {
             if (moves.Length == 0) return own;
@@ -2377,7 +2374,6 @@ namespace CapriDesktop
             return own + ", including the moves " + whose + " skins added: " + Joined(said, "and");
         }
 
-        // A stamp of the moves on now, so her voice agent is retuned when a skin adds or takes one away.
         internal static string MovesStamp { get { return string.Join(",", MoveNames()); } }
 
         // A kit for what's missing on another computer, so her checks on Windows see what a Mac or a Linux PC gets.
@@ -3704,8 +3700,6 @@ namespace CapriDesktop
             return null;
         }
 
-        // A move one of her skins added, asked for with a word that makes it hers to do: "do the wave", "show me your happy spin",
-        // "wave animation". A bare name stays chat, since a move can be called anything, and "play" stays her music's.
         private static string AddedMoveFor(string text)
         {
             Mods.SkinMove[] moves = Mods.MovesNow;

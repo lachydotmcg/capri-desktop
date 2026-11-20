@@ -217,7 +217,6 @@ namespace CapriDesktop
                         bool isDetails = name == SkinDetails;
                         if (!isDetails && !(name.EndsWith(".png", StringComparison.Ordinal) && Companion.HasArt("Capri.Sprite." + name)))
                         {
-                            // A move's strip is only known once skin.json is read, and that can come later in the zip.
                             if (MoveFile.IsMatch(name)) { moving.Add(entry); continue; }
                             throw new ModException("\"" + name + "\" isn't one of her sprite strips.");
                         }
@@ -318,12 +317,9 @@ namespace CapriDesktop
             return said + "It has to match hers: " + own.Height + " px tall, and " + own.Width / count + " px wide for each frame, up to " + Math.Min(MostFrames, WidestStrip / Math.Max(1, own.Width / count)) + " frames (she has " + count + ").";
         }
 
-        // A skin can add moves of her own, like a wave: a strip of standing frames in her idle's cells, played at its own speed,
-        // looping until she's told to stop or played once and back to her idle.
         internal const int MostMoves = 16, MostShownMoves = 32, MoveFps = 12;
         private static readonly Regex MoveWords = new Regex(@"\A[a-z][a-z0-9]*(?:_[a-z0-9]+)*\z");
         private static readonly Regex MoveFile = new Regex(@"\A[a-z0-9][a-z0-9_-]{0,47}\.png\z");
-        // Names her brain already means something by stay hers, along with every strip she has.
         private static readonly string[] OwnMoveNames = { "idle", "glitch", "grin", "smile", "blink", "dance", "dancing", "stop", "stop_dancing", "chair", "heart", "hearts" };
         private static Size moveCell;
 
@@ -344,7 +340,6 @@ namespace CapriDesktop
             return Array.IndexOf(OwnMoveNames, name) >= 0 || Companion.HasArt("Capri.Sprite." + name + ".png") || Companion.HasArt("Capri.Sprite." + name);
         }
 
-        // Why a move can't have that name, or null when it can.
         internal static string MoveNameTrouble(string name)
         {
             if (string.IsNullOrEmpty(name) || name.Length < 2 || name.Length > 24 || !MoveWords.IsMatch(name)) return "\"" + name + "\" can't be a move's name. Use 2 to 24 lowercase letters or numbers, with _ between words, like happy_wave.";
@@ -381,7 +376,6 @@ namespace CapriDesktop
             Decodes(file, move.Strip, new Size(width, height));
         }
 
-        // How many of her standing frames a move's strip holds, or 0 when it isn't made of them.
         internal static int MoveFrames(int width, int height)
         {
             Size cell = MoveCell;
@@ -396,7 +390,6 @@ namespace CapriDesktop
             return "\"" + strip + "\" is " + width + " x " + height + ". A move's frames are " + cell.Width + " x " + cell.Height + " each, like her standing frames, side by side, up to " + Math.Min(MostFrames, WidestStrip / Math.Max(1, cell.Width)) + " of them.";
         }
 
-        // One move she can do now, from a skin that's on.
         internal sealed class SkinMove
         {
             internal string Name, File, Skin;
@@ -406,7 +399,6 @@ namespace CapriDesktop
 
         private static volatile SkinMove[] movesNow = new SkinMove[0];
 
-        // Every move her skins add, by name. A skin higher in her stack wins a name two of them use.
         internal static SkinMove[] MovesNow { get { return movesNow; } }
 
         internal static SkinMove MoveNamed(string name)

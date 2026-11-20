@@ -120,7 +120,6 @@ namespace CapriDesktop
         // ElevenLabs keeps its own copy of her prompt, so her agent is tuned again after an update, or when it was tuned with an edited personality.md before 0.7.6.
         internal static bool Stale(int version, string personality) { return version < Version || (personality ?? "") != Stamp; }
 
-        // Her personality's stamp, and the moves her skins added, since those change her animate tool.
         internal static string Stamp
         {
             get

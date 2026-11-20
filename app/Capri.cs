@@ -1674,7 +1674,6 @@ namespace CapriDesktop
         private readonly bool lazy;
         private readonly bool flippable;
         private readonly Clip source;
-        // A move a skin added: its strip is that skin's file, not hers.
         private readonly string file;
         internal readonly bool Loops;
         private readonly object gate = new object();
@@ -1775,12 +1774,10 @@ namespace CapriDesktop
             lock (all) all.Add(this);
         }
 
-        // A move from a skin, drawn in her standing cells like her idle.
         internal static Clip Move(string name, string file, int count, double fps, bool loops, Clip like) { return new Clip(name, file, count, fps, loops, like); }
 
         internal bool IsMove { get { return file != null; } }
 
-        // Lets go of a move when her skins change.
         internal void Drop()
         {
             lock (all) all.Remove(this);
@@ -1795,7 +1792,6 @@ namespace CapriDesktop
         private Bitmap Art()
         {
             if (file == null) return Companion.LoadArt(Resource(false));
-            // A move whose picture went missing plays as nothing rather than as somebody else's frames.
             return Companion.MoveArt(file, name) ?? new Bitmap(Math.Max(1, count * Mods.MoveCell.Width), Mods.MoveCell.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
         }
 

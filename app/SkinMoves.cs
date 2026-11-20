@@ -11,10 +11,8 @@ namespace CapriDesktop
 {
     internal sealed partial class Companion
     {
-        // The moves her skins added, drawn in her standing cells like her idle. Made again whenever her skins change.
         private Clip[] moveClips = new Clip[0];
 
-        // A move's strip from its skin, in her colours.
         internal static Bitmap MoveArt(string file, string name)
         {
             using (Bitmap read = SkinPicture(file, "Capri.Sprite." + name + ".png"))
@@ -43,7 +41,6 @@ namespace CapriDesktop
             return null;
         }
 
-        // A move is a standing one, so she gets up for it, like her grin.
         private string PlayMove(Clip move)
         {
             EndWalk();
@@ -61,7 +58,6 @@ namespace CapriDesktop
             return move.Loops ? "Doing my " + said + ". Tell me to stop when you've had enough." : "Doing my " + said + ".";
         }
 
-        // A move's strip for checks: her own standing frames with a cyan hand going over in an arc.
         private static byte[] MoveStrip(int frames)
         {
             Size cell = Mods.MoveCell;
@@ -233,7 +229,6 @@ namespace CapriDesktop
 
     internal sealed partial class Mainframe
     {
-        // Her New move window: a name, frames from pictures, one strip or a folder, a speed, and whether it loops or plays once.
         private sealed class MoveSheet : ModSheet
         {
             internal const int Wide = 460, Tall = 556;
@@ -247,7 +242,6 @@ namespace CapriDesktop
             private int fps = Mods.MoveFps, shown;
             private bool loop;
             internal AnimationDraft.Strip Made;
-            // How it asks for files and folders. Checks answer for her.
             internal Func<string, bool, string[]> PickFiles;
             internal Func<string, string> PickFolder;
 
@@ -419,7 +413,6 @@ namespace CapriDesktop
                 frames = null;
             }
 
-            // Plain words become a move's name: "Happy Wave" is happy_wave.
             internal static string NameFrom(string text)
             {
                 return System.Text.RegularExpressions.Regex.Replace((text ?? "").Trim().ToLowerInvariant(), @"[\s-]+", "_");
@@ -441,8 +434,6 @@ namespace CapriDesktop
             }
         }
 
-        // Her New move window and the editor it adds to: a move made from a folder of frames and from a strip, its name checked,
-        // its speed and loop kept, worn as a skin she can do it from, opened again from that skin and taken out.
         internal void CheckNewMove(List<string> checks, string output)
         {
             ForgetAnimations();

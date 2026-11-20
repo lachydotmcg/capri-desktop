@@ -11,8 +11,6 @@ using SkiaSharp;
 
 namespace CapriDesktop
 {
-    // Her New move window, like on Windows: a name, frames from pictures, one strip or a folder, a speed, and whether it loops
-    // or plays once.
     internal sealed class MoveSheet : MainframeWindow
     {
         internal const int Wide = 460, Tall = 556;
@@ -27,7 +25,6 @@ namespace CapriDesktop
         private bool loop, closed;
         internal AnimationDraft.Strip Made;
         internal Action<AnimationDraft.Strip> Added;
-        // How it asks for files and folders. Checks answer for her.
         internal Func<string, bool, string[]> PickFiles;
         internal Func<string, string> PickFolder;
 
@@ -237,7 +234,6 @@ namespace CapriDesktop
             frames = null;
         }
 
-        // Plain words become a move's name: "Happy Wave" is happy_wave.
         internal static string NameFrom(string text)
         {
             return System.Text.RegularExpressions.Regex.Replace((text ?? "").Trim().ToLowerInvariant(), @"[\s-]+", "_");

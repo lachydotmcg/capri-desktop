@@ -12,10 +12,8 @@ namespace CapriDesktop
 {
     internal sealed partial class Pet
     {
-        // The moves her skins added, drawn in her standing cells like her idle. Made again whenever her skins change.
         private Clip[] moveClips = Array.Empty<Clip>();
 
-        // A move's strip from its skin, in her colours. One that can't be read plays as nothing rather than as other frames.
         internal static Bitmap ReadMoveArt(string file, int count)
         {
             try
@@ -53,7 +51,6 @@ namespace CapriDesktop
             return null;
         }
 
-        // A move is a standing one, so she gets up for it, like her grin.
         private string PlayMove(Clip move)
         {
             if (seat != null) StandUp();
@@ -64,7 +61,6 @@ namespace CapriDesktop
             return move.Loops ? "Doing my " + said + ". Tell me to stop when you've had enough." : "Doing my " + said + ".";
         }
 
-        // A move's strip for checks: frames her standing size, each with a cyan hand a little further over.
         private static byte[] MoveStrip(int frames)
         {
             PixelSize cell = Mods.MoveCell;
@@ -85,8 +81,6 @@ namespace CapriDesktop
             }
         }
 
-        // A skin's own moves here, like on Windows: they load from skin.json, her brain gets them in animate, they play and go back
-        // to her idle or loop until stop, a code mod plays one, taking the skin off takes them away, and bad ones are refused.
         internal void CheckMoves(List<string> checks, string input)
         {
             Mods mods = ModList;
@@ -198,8 +192,6 @@ namespace CapriDesktop
             }
         }
 
-        // Her New move window and the editor it adds to, like on Windows: frames from a folder in name order, its name checked, its
-        // speed and loop kept, packed into a skin she can do it from, and taken out again.
         private void CheckNewMove(List<string> checks, string input)
         {
             Mods mods = ModList;

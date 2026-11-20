@@ -20,8 +20,6 @@ namespace CapriDesktop
             internal List<Bitmap> Frames;
             internal bool Changed, Retimed;
             internal string From;
-            // A move of her own instead of one of her strips: whether it loops until she's told to stop, and the file it came
-            // from in the skin it was opened from.
             internal bool Move, Loop, OwnLoop;
             internal string MoveStrip;
 
@@ -85,7 +83,6 @@ namespace CapriDesktop
 
         internal List<Strip> Moves { get { return Strips.FindAll(strip => strip.Move); } }
 
-        // Why a new move can't have that name here, or null when it can.
         internal string MoveTrouble(string name)
         {
             string trouble = Mods.MoveNameTrouble(name);
@@ -110,7 +107,6 @@ namespace CapriDesktop
             if (strip.MoveStrip != null) movesDropped = true;
         }
 
-        // A move's frames from one PNG: a single frame, or several side by side.
         internal static List<Bitmap> ReadMove(string file)
         {
             Size cell = Mods.MoveCell;
@@ -290,7 +286,6 @@ namespace CapriDesktop
             List<ModFrames> made = new List<ModFrames>();
             foreach (KeyValuePair<string, int> speed in speeds) made.Add(new ModFrames { Strip = speed.Key, Fps = speed.Value });
             rates = made.Count == 0 ? null : made.ToArray();
-            // Only her strips and the moves kept here go in, so a move taken out doesn't ride along in its old file.
             HashSet<string> kept = new HashSet<string>(moving.ConvertAll(move => move.Strip));
             foreach (string name in new List<string>(files.Keys))
                 if (!kept.Contains(name) && !Companion.HasArt("Capri.Sprite." + name)) files.Remove(name);

@@ -595,7 +595,6 @@ namespace CapriDesktop
         }
 #endif
 
-        // The moves a skin can add, how to make one, and the ones she has now.
         internal static string MovesFacts()
         {
             List<string> names = new List<string>();

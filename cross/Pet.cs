@@ -300,7 +300,6 @@ namespace CapriDesktop
         private bool loadingLeft, triedLeft;
         internal Bitmap Strip { get { if (strip == null) strip = file != null ? Pet.ReadMoveArt(file, count) : Pet.ReadArt(name); return strip; } }
         private readonly string name;
-        // A move a skin added: its strip is that skin's file, not hers, and it's known by its own name.
         private readonly string file, move;
         internal readonly bool Loops;
         internal bool IsMove { get { return file != null; } }
@@ -354,7 +353,6 @@ namespace CapriDesktop
             shiftY = like.shiftY;
         }
 
-        // A move from a skin, drawn in her standing cells like her idle.
         internal static Clip Move(string move, string file, int count, double fps, bool loops, Clip like) { return new Clip(move, file, count, fps, loops, like); }
 
         internal Clip(string name, int count, double fps, double height, double shiftX = 0, double shiftY = 0)

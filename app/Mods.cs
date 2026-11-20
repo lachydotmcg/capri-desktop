@@ -53,8 +53,6 @@ namespace CapriDesktop
         [DataMember(Name = "fps")] public int Fps;
     }
 
-    // A move of her own that a skin adds, like a wave: its strip of standing frames, how fast it plays, and whether it loops
-    // until she's told to stop or plays once and goes back to her idle.
     [DataContract]
     internal sealed class ModMove
     {
