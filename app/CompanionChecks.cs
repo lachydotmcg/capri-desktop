@@ -199,7 +199,8 @@ namespace CapriDesktop
                     { "only-override", "override" },
                     { "bad-greetings", "greetings" },
                     { "linked-greetings", "link" },
-                    { "bad-clip", "clip" }
+                    { "bad-clip", "clip" },
+                    { "stereo-clip", "stereo" }
                 };
                 for (int i = 0; i < bad.GetLength(0); i++)
                 {
@@ -211,6 +212,12 @@ namespace CapriDesktop
                     if (kind == "folder") files["art/" + face] = picture;
                     if (kind == "art") files[face] = SolidPng(8, 8, 1, 2, 3);
                     if (kind == "clip") files["hello-late.wav"] = Utf8("not a wave file");
+                    if (kind == "stereo")
+                    {
+                        byte[] stereo = QuietWave();
+                        stereo[22] = 2;
+                        files["hello-late.wav"] = stereo;
+                    }
                     string file = Pack(output, id, files);
                     bool refused = false;
                     try { mods.Import(file, null); }
@@ -219,7 +226,7 @@ namespace CapriDesktop
                         throw new Exception("A bad companion pack was let in: " + kind);
                 }
                 if (CompanionPack.Name != "Nyx") throw new Exception("A refused companion pack changed who was on.");
-                checks.Add("PASS companions: packs with no personality, a program, a folder, art the wrong size, a bad name, voice or greetings, a link in a greeting, a bad clip, or only override lines are refused and leave nothing behind");
+                checks.Add("PASS companions: packs with no personality, a program, a folder, art the wrong size, a bad name, voice or greetings, a link in a greeting, a bad or stereo clip, or only override lines are refused and leave nothing behind");
             }
             finally
             {

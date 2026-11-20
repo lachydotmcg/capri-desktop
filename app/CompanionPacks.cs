@@ -231,10 +231,23 @@ namespace CapriDesktop
 
         private static bool IsWave(string file)
         {
-            byte[] head = new byte[12];
-            using (FileStream reading = new FileStream(file, FileMode.Open, FileAccess.Read))
-                if (reading.Read(head, 0, 12) != 12) return false;
-            return Encoding.ASCII.GetString(head, 0, 4) == "RIFF" && Encoding.ASCII.GetString(head, 8, 4) == "WAVE";
+            byte[] wav = File.ReadAllBytes(file);
+            if (wav.Length < 12 || Encoding.ASCII.GetString(wav, 0, 4) != "RIFF" || Encoding.ASCII.GetString(wav, 8, 4) != "WAVE") return false;
+            int at = 12;
+            while (at + 8 <= wav.Length)
+            {
+                int size = BitConverter.ToInt32(wav, at + 4);
+                if (Encoding.ASCII.GetString(wav, at, 4) == "fmt ")
+                {
+                    if (size < 16 || at + 24 > wav.Length) return false;
+                    int format = BitConverter.ToInt16(wav, at + 8), channels = BitConverter.ToInt16(wav, at + 10), rate = BitConverter.ToInt32(wav, at + 12), bits = BitConverter.ToInt16(wav, at + 22);
+                    return format == 1 && channels == 1 && bits == 16 && rate >= 8000 && rate <= 48000;
+                }
+                long next = (long)at + 8 + size + (size & 1);
+                if (size < 0 || next > wav.Length) return false;
+                at = (int)next;
+            }
+            return false;
         }
 
         private static CompanionFile UnpackCompanion(string file, string into)
@@ -260,7 +273,7 @@ namespace CapriDesktop
                         if (total > LargestUnpacked) throw new ModException("That companion pack unpacks too big.");
                         if (details) read = ReadCompanion(File.ReadAllText(target, Encoding.UTF8));
                         else if (words) personality = true;
-                        else if (clip) { if (!IsWave(target)) throw new ModException("\"" + name + "\" isn't a WAV file."); }
+                        else if (clip) { if (!IsWave(target)) throw new ModException("\"" + name + "\" has to be a 16-bit mono PCM WAV file at 8 to 48 kHz."); }
                         else CheckPicture(target, name);
                     }
                 }

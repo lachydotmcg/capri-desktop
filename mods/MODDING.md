@@ -244,7 +244,7 @@ exactly as she was. Only one companion is on at a time: turning one on turns the
 | `companion.json` | yes | Who they are (below) |
 | `personality.md` | yes | Who they are and how they talk, like her own `personality.md` |
 | `idle.png`, `walk.png`, ... | no | Their art, named and sized like her sprite strips, the same as a skin |
-| `hello-morning.wav`, `hello-late.wav`, `hello-miss.wav` | no | Their recorded hello. Without one they say their greeting in their voice |
+| `hello-morning.wav`, `hello-late.wav`, `hello-miss.wav` | no | Their recorded hello, as a 16-bit mono PCM WAV at 8 to 48 kHz. Without one they say their greeting in their voice |
 
 ```json
 {
