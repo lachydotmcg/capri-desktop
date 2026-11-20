@@ -23984,8 +23984,8 @@ namespace CapriDesktop
                             // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
                             // the calls that make a control are taken, never any other string in that file.
                             if (selfEntry.File == "Mainframe.cs")
-                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs", "HerComputerSettings.cs" })
-                                    foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
+                                foreach (string selfPartFile in new[] { "ChimeSettings.cs", "WeatherSettings.cs", "DoomscrollSettings.cs", "HerComputerSettings.cs", "UninstallSettings.cs" })
+                                    foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", selfPartFile)), "(?<![\\w.])(?:Switch|Setting|Named|Make)\\(\"([^\"]+)\""))
                                         selfSource += "\n" + selfPart.Value;
                         }
                         catch (IOException) { selfReadable = false; break; }
@@ -29624,6 +29624,91 @@ namespace CapriDesktop
             window.Show();
         }
 
+        private static void SmokeForgetting(System.Collections.Generic.List<string> checks)
+        {
+            if (!CapriSetup.Program.Wanted("Capri-Uninstall-x.exe", new[] { "--remove-copy" }) || !CapriSetup.Program.Wanted("Capri.exe", new[] { "--remove-files", "--forget" })) throw new Exception("Her uninstaller's copy didn't take its own commands.");
+            string loose = @"C:\Users\a b\Downloads\Capri.exe";
+            foreach (CapriSetup.Removal sent in new[] { new CapriSetup.Removal(), new CapriSetup.Removal { Forget = true }, new CapriSetup.Removal { Forget = true, After = 4321, Started = 638700000000000000 }, new CapriSetup.Removal { Copy = true, App = loose, Forget = true, After = 7, Started = 9 }, new CapriSetup.Removal { Copy = true } })
+            {
+                System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
+                foreach (Match part in Regex.Matches(sent.Arguments(), "\"[^\"]*\"|\\S+")) parts.Add(part.Value.Trim('"'));
+                CapriSetup.Removal read = CapriSetup.Removal.Read(parts.ToArray());
+                if (read == null || read.Copy != sent.Copy || read.Forget != sent.Forget || read.App != sent.App || read.After != sent.After || read.Started != sent.Started) throw new Exception("Her uninstall command didn't read back the same: " + sent.Arguments());
+            }
+            foreach (string[] bad in new[] { new[] { "--remove-files", "--app", loose }, new[] { "--remove-files", "--forget", "--forget" }, new[] { "--remove-files", "--after", "0", "1" }, new[] { "--remove-files", "--after", "5" }, new[] { "--remove-copy", "--app", "--forget" }, new[] { "--remove-files", "--wipe" }, new[] { "--remove-copy", "--after", "-3", "1" }, new[] { "--close", "x" } })
+                if (CapriSetup.Removal.Read(bad) != null) throw new Exception("Her uninstaller took a bad command: " + string.Join(" ", bad));
+            string package;
+            bool forget;
+            if (SetupFiles.Mode(new[] { "--silent", "--uninstall", "--forget" }, out package, out forget) != 2 || !forget || SetupFiles.Mode(new[] { "--uninstall", "--silent" }, out package, out forget) != 2 || forget) throw new Exception("A silent uninstall didn't say whether to forget.");
+            foreach (string[] bad in new[] { new[] { "--silent", "--forget" }, new[] { "--silent", "--uninstall", "--forget", "--forget" }, new[] { "--silent", "--package", "winget", "--forget" } })
+            {
+                bool refused = false;
+                try { SetupFiles.Mode(bad, out package, out forget); }
+                catch (ArgumentException) { refused = true; }
+                if (!refused) throw new Exception("A silent setup took --forget where it doesn't go: " + string.Join(" ", bad));
+            }
+            checks.Add("PASS uninstall commands: --remove-files and --remove-copy read back --forget, --app and --after exactly as sent, an app path with spaces stays whole, and repeats, a missing value, an --app without --remove-copy and --forget without a silent uninstall are refused");
+            CapriSetup.Removal installed = Companion.Farewell(Companion.KindInstalled, true, @"C:\x\Capri.exe", 5, 6), copy = Companion.Farewell(Companion.KindLoose, false, loose, 5, 6), store = Companion.Farewell(Companion.KindStore, true, @"C:\Program Files\WindowsApps\x\Capri.exe", 5, 6);
+            if (installed.Copy || !installed.Forget || installed.App != null || installed.After != 5 || !copy.Copy || copy.Forget || copy.App != loose || !store.Copy || store.App != null || !store.Forget || Companion.Farewell(Companion.KindStore, false, loose, 5, 6) != null) throw new Exception("Uninstall Capri planned the wrong removal: " + installed.Arguments() + " / " + copy.Arguments() + " / " + store.Arguments());
+            if (Companion.GoodbyeKind(true, true) != Companion.KindStore || Companion.GoodbyeKind(false, true) != Companion.KindInstalled || Companion.GoodbyeKind(false, false) != Companion.KindLoose) throw new Exception("Uninstall Capri took one copy of her for another.");
+            string local = Path.Combine(Path.GetTempPath(), "capri-forget-" + Guid.NewGuid().ToString("N")), outside = local + "-outside";
+            string data = Path.Combine(local, "Capri"), room = Path.Combine(local, Forgetting.Room);
+            try
+            {
+                Directory.CreateDirectory(data);
+                if (Companion.ForgetBlock(Companion.KindStore, Path.Combine(local, "Packages", "x", "LocalCache", "Local", "Capri"), local) == null || Companion.ForgetBlock(Companion.KindStore, data, local) != null || Companion.ForgetBlock(Companion.KindLoose, data, local) != null) throw new Exception("Uninstall Capri offered or hid forgetting for the wrong copy.");
+                File.WriteAllText(Path.Combine(data, ".capri-install"), "x");
+                if (Companion.ForgetBlock(Companion.KindLoose, data, local) == null || Companion.ForgetBlock(Companion.KindStore, data, local) == null || Companion.ForgetBlock(Companion.KindInstalled, data, local) != null) throw new Exception("A copy that isn't installed offered to wipe an installed Capri's folder.");
+                checks.Add("PASS Uninstall Capri: an installed copy removes herself through --remove-files, a loose Capri.exe removes only itself, the Store copy opens Settings and only wipes a folder Windows won't, and a copy that isn't installed never wipes an installed Capri's folder");
+                if (!Forgetting.Hers(data, local) || !Forgetting.Hers(room + "\\", local) || Forgetting.Hers(local, local) || Forgetting.Hers(Path.Combine(data, "brain"), local) || Forgetting.Hers(data + "2", local) || Forgetting.Hers(Path.Combine(outside, "Capri"), local) || Forgetting.Hers(null, local)) throw new Exception("Her wipe would take a folder that isn't hers.");
+                bool refused = false;
+                try { Forgetting.Wipe(outside, local, null); }
+                catch (IOException) { refused = true; }
+                if (!refused) throw new Exception("Her wipe went ahead on a folder that isn't hers.");
+                Directory.CreateDirectory(Path.Combine(data, "her-computer", "browser", "Default"));
+                Directory.CreateDirectory(Path.Combine(data, "brain", "models"));
+                Directory.CreateDirectory(room);
+                foreach (string file in new[] { "me.md", "memories.md", "settings.json", @"her-computer\browser\Default\Cookies", @"brain\models\tiny.gguf" }) File.WriteAllText(Path.Combine(data, file), "hers");
+                File.WriteAllText(Path.Combine(room, "Local State"), "hers");
+                string sealedFile = Path.Combine(data, "keys.dpapi");
+                File.WriteAllText(sealedFile, "hers");
+                File.SetAttributes(sealedFile, FileAttributes.ReadOnly);
+                string sealedFolder = Path.Combine(data, "mods");
+                Directory.CreateDirectory(sealedFolder);
+                File.WriteAllText(Path.Combine(sealedFolder, "theirs.capri-mod"), "x");
+                new DirectoryInfo(sealedFolder).Attributes |= FileAttributes.ReadOnly;
+                Directory.CreateDirectory(outside);
+                string precious = Path.Combine(outside, "vault.md");
+                File.WriteAllText(precious, "theirs");
+                bool linked = false;
+                using (Process junction = Process.Start(new ProcessStartInfo("cmd.exe", "/d /c mklink /J \"" + Path.Combine(data, "vault") + "\" \"" + outside + "\"") { UseShellExecute = false, CreateNoWindow = true }))
+                    if (junction != null && junction.WaitForExit(10000)) linked = junction.ExitCode == 0 && Directory.Exists(Path.Combine(data, "vault"));
+                string held = Path.Combine(data, "errors.txt");
+                using (FileStream holding = new FileStream(held, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    if (!Forgetting.Holders(new[] { held }).Contains(Process.GetCurrentProcess().Id)) throw new Exception("Windows' Restart Manager didn't say who holds her file.");
+                    int stuck = Forgetting.Wipe(data, local, null);
+                    if (stuck == 0 || !File.Exists(held) || File.Exists(Path.Combine(data, "me.md")) || File.Exists(sealedFile) || Directory.Exists(sealedFolder)) throw new Exception("A wipe with a file in use didn't count it, or stopped short of the rest: " + stuck);
+                }
+                string kept = Path.Combine(data, "Uninstall.exe.old");
+                File.WriteAllText(kept, "running");
+                if (Forgetting.Wipe(local, kept) != 0 || !File.Exists(kept) || File.Exists(held) || Directory.Exists(room) || Directory.Exists(Path.Combine(data, "vault"))) throw new Exception("Her wipe didn't clear everything but the running uninstaller.");
+                if (!File.Exists(precious) || File.ReadAllText(precious) != "theirs") throw new Exception("Her wipe followed a link out of her folder and deleted their file.");
+                if (Forgetting.Wipe(local, null) != 0 || Directory.Exists(data) || Directory.Exists(room) || !Directory.Exists(local)) throw new Exception("Her wipe left her folder behind or took the folder around it.");
+                checks.Add("PASS forgetting everything: only her Capri and Capri Room folders can be wiped, read-only files and folders go, a file still in use is counted and found through Windows' Restart Manager, the running uninstaller is left for last, and a junction to their own folder is unlinked without touching what's in it");
+                if (!linked) checks.Add("LIMIT no junction could be made here, so following a link out of her folder wasn't tried");
+            }
+            finally
+            {
+                foreach (string folder in new[] { local, outside })
+                    if (Directory.Exists(folder))
+                    {
+                        foreach (string file in Directory.GetFiles(folder, "*", SearchOption.AllDirectories)) try { File.SetAttributes(file, FileAttributes.Normal); } catch (IOException) { }
+                        try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                    }
+            }
+        }
+
         private static void SmokeSetupFiles(System.Collections.Generic.List<string> checks, string output)
         {
             if (CapriSetup.Program.Wanted("Capri.exe", new string[0]) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--smoke-test", "out" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--bench", "x" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--stream" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--hook", "x" }) || CapriSetup.Program.Wanted(@"C:\setup\Capri.exe", new string[0])) throw new Exception("Capri took herself for her installer.");
@@ -29635,6 +29720,7 @@ namespace CapriDesktop
             foreach (string packed in Assembly.GetExecutingAssembly().GetManifestResourceNames())
                 if (packed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) throw new Exception("Capri still has a program packed inside her: " + packed);
             checks.Add("PASS setup names and commands choose the installer, normal app commands stay with Capri and no app is packed inside her");
+            SmokeForgetting(checks);
             foreach (string name in new[] { @"C:\Users\someone\AppData\Local\Capri\Uninstall.exe", "UNINSTALL.EXE" })
                 if (!CapriSetup.Program.Wanted(name, new string[0]) || !CapriSetup.Program.Removing(name, new string[0])) throw new Exception("Opening " + name + " with nothing after it didn't open her uninstaller.");
             if (CapriSetup.Program.Removing("Capri-Setup.exe", new string[0]) || CapriSetup.Program.Removing("Capri.exe", new string[0]) || !CapriSetup.Program.Removing("Capri-Setup.exe", new[] { "--uninstall" })) throw new Exception("Her installer opened the wrong window.");

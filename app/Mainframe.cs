@@ -1040,6 +1040,7 @@ namespace CapriDesktop
             BuildWeather(1514);
             BuildDoomscroll(1642);
             BuildHerComputer(1770);
+            BuildUninstall(1898);
             int gamesTo = Controls.Count;
             for (int belowHands = afterFastHands; belowHands < gamesTo; belowHands++) Controls[belowHands].Top -= 136;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
