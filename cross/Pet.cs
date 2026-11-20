@@ -5105,12 +5105,32 @@ namespace CapriDesktop
             if (job == null || action == null || !done) return;
             string typed = action.Action == "type" && !action.Secret && action.Risk != "secret" ? (action.Text ?? "").Trim() : "";
             string label = typed.Length > 0 && !failed ? "Typed " + Voice.InQuotes(Timeline.Line(typed, 32)) : RemoteJobWords.RemoteComputerLabel(action.Action, true, failed);
-            Timeline.Step(job, job.Task, RemotePrivate.Mask(label), failed);
+            string task = job.Task;
+            TimelineLater(() => Timeline.Step(job, task, RemotePrivate.Mask(label), failed));
         }
 
         internal static void TimelineJob(ComputerJob job, string state)
         {
-            if (state == "done" || state == "failed" || state == "stopped") Timeline.Ended(job, state);
+            if (state == "done" || state == "failed" || state == "stopped") TimelineLater(() => Timeline.Ended(job, state));
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentQueue<Action> timelineWork = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+        private static int timelineBusy;
+
+        private static void TimelineLater(Action work)
+        {
+            timelineWork.Enqueue(work);
+            if (Interlocked.CompareExchange(ref timelineBusy, 1, 0) == 0) ThreadPool.QueueUserWorkItem(_ => TimelineDrain());
+        }
+
+        private static void TimelineDrain()
+        {
+            do
+            {
+                while (timelineWork.TryDequeue(out Action work)) { try { work(); } catch (Exception) { } }
+                Volatile.Write(ref timelineBusy, 0);
+            }
+            while (!timelineWork.IsEmpty && Interlocked.CompareExchange(ref timelineBusy, 1, 0) == 0);
         }
 
         private void RemoteJobStep(ComputerJob job, ComputerAction action, bool done, bool failed)
