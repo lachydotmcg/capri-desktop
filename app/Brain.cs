@@ -176,6 +176,12 @@ namespace CapriDesktop
     {
         [DataMember(Name = "choices")] public CompletionChoice[] Choices;
         [DataMember(Name = "model")] public string Model;
+        internal CloudUsage Usage;
+    }
+
+    [DataContract]
+    internal sealed class CompletionUsage
+    {
         [DataMember(Name = "usage")] public CloudUsage Usage;
     }
 
@@ -5133,6 +5139,15 @@ namespace CapriDesktop
                         T reply;
                         if (typeof(T) == typeof(string)) using (StreamReader text = new StreamReader(incoming, Encoding.UTF8)) reply = (T)(object)text.ReadToEnd();
                         else if (typeof(T) == typeof(CompletionReply) && (response.ContentType ?? "").StartsWith("text/event-stream", StringComparison.OrdinalIgnoreCase)) reply = (T)(object)ReadCompletion(incoming, secret);
+                        else if (typeof(T) == typeof(CompletionReply))
+                        {
+                            byte[] whole;
+                            using (MemoryStream copy = new MemoryStream()) { incoming.CopyTo(copy); whole = copy.ToArray(); }
+                            CompletionReply completion;
+                            using (MemoryStream buffer = new MemoryStream(whole)) completion = (CompletionReply)new DataContractJsonSerializer(typeof(CompletionReply)).ReadObject(buffer);
+                            if (completion != null) completion.Usage = UsageIn(whole);
+                            reply = (T)(object)completion;
+                        }
                         else reply = (T)new DataContractJsonSerializer(typeof(T)).ReadObject(incoming);
                         if (System.Threading.Interlocked.CompareExchange(ref expired, 0, 0) != 0) throw new WebException("The reply took too long.", WebExceptionStatus.Timeout);
                         Tally(url, payload, reply);
@@ -5183,6 +5198,15 @@ namespace CapriDesktop
             IPAddress numbered;
             if (!Uri.TryCreate(url, UriKind.Absolute, out where) || where.Scheme != Uri.UriSchemeHttps || where.IsLoopback || IPAddress.TryParse(where.Host.Trim('[', ']'), out numbered) || where.Host.IndexOf('.') < 0 || where.Host.EndsWith(".local", StringComparison.OrdinalIgnoreCase)) return null;
             return "other:" + where.Host;
+        }
+
+        private static CloudUsage UsageIn(byte[] whole)
+        {
+            try
+            {
+                using (MemoryStream buffer = new MemoryStream(whole)) return ((CompletionUsage)new DataContractJsonSerializer(typeof(CompletionUsage)).ReadObject(buffer)).Usage;
+            }
+            catch (Exception) { return null; }
         }
 
         private static void Tally(string url, byte[] payload, object reply)

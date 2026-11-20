@@ -52,15 +52,17 @@ namespace CapriDesktop
                 List<string> openAiAsked = new List<string>();
                 string terraReply = "{\"model\":\"gpt-6.1-terra\",\"choices\":[{\"message\":{\"content\":\"Hi.\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1200,\"completion_tokens\":40,\"prompt_tokens_details\":{\"cached_tokens\":200}}}";
                 string solReply = "{\"model\":\"gpt-6.2-sol\",\"choices\":[{\"message\":{\"content\":\"Hello.\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":10}}";
-                Brain.OpenAi = FakeServer(new[] { terraReply, "!404 {\"error\":{\"message\":\"The model gpt-6.1-terra does not exist\"}}", solReply }, openAiAsked, out openAiFake);
+                string oddUsage = "{\"model\":\"gpt-6.1-terra\",\"choices\":[{\"message\":{\"content\":\"Hey.\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":null,\"completion_tokens\":3,\"cost\":{\"total_cost\":0.1}}}";
+                Brain.OpenAi = FakeServer(new[] { terraReply, oddUsage, "!404 {\"error\":{\"message\":\"The model gpt-6.1-terra does not exist\"}}", solReply }, openAiAsked, out openAiFake);
                 Brain.ReadCloudModels("openai", "{\"data\":[{\"id\":\"gpt-6.2-sol\"},{\"id\":\"gpt-6-terra\"},{\"id\":\"gpt-6.1-terra\"},{\"id\":\"gpt-6.2-luna\"}]}");
                 Brain thrifty = new Brain { Model = "gpt-6.2-sol", Remote = new Cloud("sk-spendcheck", "gpt-6.2-sol") };
                 if (thrifty.SmallJobs != "gpt-6.1-terra" || new Brain { Model = "gpt-6.1-terra", Remote = new Cloud("sk-spendcheck", "gpt-6.1-terra") }.SmallJobs != null) throw new Exception("OpenAI's small jobs didn't pick its newest terra: " + thrifty.SmallJobs);
                 if (thrifty.Quick("Be brief.", "Say hi.", 60) != "Hi." || openAiAsked.Count != 1 || !openAiAsked[0].Contains("\"model\":\"gpt-6.1-terra\"")) throw new Exception("A quick OpenAI ask didn't go to the cheaper model.");
                 SpendRow terra = Spend.Today().Find(delegate(SpendRow row) { return row.Model == "gpt-6.1-terra"; });
                 if (terra == null || terra.Fresh != 1000 || terra.Cached != 200 || terra.Written != 40 || terra.Cost != 0.000605m) throw new Exception("The cheaper model's tokens weren't counted: " + (terra == null ? "missing" : terra.Fresh + "/" + terra.Cached + "/" + terra.Written + " " + terra.Cost));
-                if (thrifty.Quick("Be brief.", "Say hello.", 60) != "Hello." || openAiAsked.Count != 3 || !openAiAsked[2].Contains("\"model\":\"gpt-6.2-sol\"") || thrifty.SmallJobs != null) throw new Exception("A cheaper model that isn't on the key didn't hand the ask back to her picked brain.");
-                checks.Add("PASS small jobs on OpenAI: a quick ask goes to the newest terra on the key, its tokens are counted, and a terra the key can't use hands the ask back to her picked model for good");
+                if (thrifty.Quick("Be brief.", "Say hey.", 60) != "Hey." || openAiAsked.Count != 2) throw new Exception("A reply with a usage block she can't read didn't answer.");
+                if (thrifty.Quick("Be brief.", "Say hello.", 60) != "Hello." || openAiAsked.Count != 4 || !openAiAsked[3].Contains("\"model\":\"gpt-6.2-sol\"") || thrifty.SmallJobs != null) throw new Exception("A cheaper model that isn't on the key didn't hand the ask back to her picked brain.");
+                checks.Add("PASS small jobs on OpenAI: a quick ask goes to the newest terra on the key, its tokens are counted, a reply with a usage block she can't read still answers, and a terra the key can't use hands the ask back to her picked model for good");
 
                 List<string> claudeAsked = new List<string>();
                 Brain.Anthropic = FakeServer(new[] { "{\"model\":\"claude-haiku-5-5\",\"content\":[{\"type\":\"text\",\"text\":\"Bonjour.\"}],\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":400,\"output_tokens\":20,\"cache_read_input_tokens\":1000,\"cache_creation_input_tokens\":0}}", "!402 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}" }, claudeAsked, out claudeFake);
