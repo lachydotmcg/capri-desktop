@@ -3333,6 +3333,7 @@ namespace CapriDesktop
             Hands.JobControl = JobTool;
             Hands.Quit = QuitTool;
             Hands.Mainframe = MainframeTool;
+            Hands.ImportMod = ImportModTool;
             Hands.Workspace = WorkspaceTool;
             Hands.Updates = UpdateTool;
             Hands.MiniPlayer = MiniPlayerTool;
@@ -6785,6 +6786,15 @@ namespace CapriDesktop
             if (InvokeRequired) return (string)Invoke(new Func<string, string>(MainframeTool), page);
             if (page == "workspace") return WorkspaceTool(new ToolArguments());
             return mainframe.OpenTool(page) ? "Opened Capri Mainframe." : "Couldn't find that Mainframe page.";
+        }
+
+        private string ImportModTool(string path)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string>(ImportModTool), path);
+            if (!File.Exists(path)) return "Couldn't import " + Mods.FileName(path) + ": it isn't there any more.";
+            mainframe.OpenTool("mods");
+            mainframe.ImportMod(path);
+            return mainframe.ModStatusText;
         }
 
         // updates: check and status never install. install runs once this reply is over, through her usual checked installer,
@@ -15868,8 +15878,24 @@ namespace CapriDesktop
             base.OnDragDrop(e);
             string[] paths = e.Data == null ? null : e.Data.GetData(DataFormats.FileDrop) as string[];
             if (paths == null) return;
+            if (paths.Length > 0 && Array.TrueForAll(paths, Mods.Importable)) { HandMods(paths); return; }
             string names = brain.Attachments.Give(paths);
             if (names.Length > 0) Hear(Files.Dropped, names, "> file: ");
+        }
+
+        private void HandMods(string[] paths)
+        {
+            string[] names = Array.ConvertAll(paths, Mods.FileName);
+            Hear(Mods.Dropped, string.Join(", ", names), "> file: ", handed: delegate
+            {
+                int turn = asking;
+                Security.Drop();
+                System.Collections.Generic.List<string> results = new System.Collections.Generic.List<string>();
+                foreach (string path in paths) results.Add(DoTool("import_mod", new ToolArguments { Path = path }));
+                string said = Hands.Shown(Security.Reply(results) ?? string.Join(" ", results.ToArray()));
+                if (turn == asking) brain.Remember(Mods.Dropped, said);
+                return said;
+            });
         }
 
         private bool StopListening(string text)
@@ -15884,7 +15910,7 @@ namespace CapriDesktop
 
         private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
-        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null)
+        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null, Func<string, string> handed = null)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -15992,6 +16018,7 @@ namespace CapriDesktop
             Func<string, string> think = callReply == null ? Think : delegate { return callReply(ticket); };
             if (callReply == null && planned.Key != null) think = delegate { return Security.Said(DoTool(planned.Key, planned.Value, ticket)); };
             Func<string, string> firstThink = think;
+            if (handed != null) { think = handed; followAllowed = false; }
             string quick;
             ToolArguments quickArgs;
             bool plain = false;
@@ -23849,6 +23876,112 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeModDrop(System.Collections.Generic.List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "mod-drop-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            Directory.CreateDirectory(folder);
+            string names = Path.Combine(folder, "drop-names" + Mods.Extension), plugin = Path.Combine(folder, "drop-tools" + Mods.PluginExtension), notes = Path.Combine(folder, "notes.txt");
+            File.WriteAllText(names, "{\"format\":1,\"id\":\"drop-names\",\"name\":\"Drop Names\",\"version\":\"1.0.0\",\"wake_names\":[\"Dropsy\"]}");
+            File.WriteAllText(notes, "MOD-DROP-NOTES");
+            using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(plugin, System.IO.Compression.ZipArchiveMode.Create))
+                FilePart(zip, ".claude-plugin/plugin.json", "{\"name\":\"drop-tools\",\"displayName\":\"Drop Tools\",\"version\":\"1.0.0\",\"mcpServers\":{\"none\":{\"type\":\"capri\",\"builtin\":\"smoke-none\"}}}");
+            Func<string, string> thinkWas = Think;
+            Func<ModFile, string, bool> askWas = mainframe.ModAsk;
+            string heardWas = heard, replyWas = reply, promptWas = box.Prompt, saved = Security.Saved;
+            TalkState stateWas = talkState;
+            FormWindowState frameWas = mainframe.WindowState;
+            bool wakeWas = Security.On(Security.Wake), shownWas = mainframe.Visible, settingsWas = mainframe.SettingsShown;
+            System.Collections.Generic.List<string> boxes = new System.Collections.Generic.List<string>();
+            try
+            {
+                Security.Load("1111111111");
+                Think = delegate { return "A mod drop reached her brain."; };
+                mainframe.ModAsk = delegate(ModFile mod, string hash) { boxes.Add(mod.Id); return false; };
+                Func<string[], bool> drop = delegate(string[] files)
+                {
+                    DragEventArgs dropEvent = new DragEventArgs(new DataObject(DataFormats.FileDrop, files), 0, 0, 0, DragDropEffects.Copy, DragDropEffects.None);
+                    OnDragEnter(dropEvent);
+                    OnDragDrop(dropEvent);
+                    return dropEvent.Effect == DragDropEffects.Copy;
+                };
+                Func<string, bool> offered = delegate(string question)
+                {
+                    Stopwatch waited = Stopwatch.StartNew();
+                    while ((reply != question || Security.Holding != "import_mod") && waited.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                    return reply == question && Security.Holding == "import_mod";
+                };
+                if (!drop(new[] { names }) || !offered("Import drop-names.capri-mod into your mods? Say yes and I will.") || heard != "drop-names.capri-mod" || box.Prompt != "> file: " || brain.Attachments.Waiting || ModList.All.Exists(mod => mod.File.Id == "drop-names"))
+                    throw new Exception("A dropped mod wasn't offered for import in her bubble: " + reply + " / " + heard + " / " + Security.Holding);
+                System.Collections.Generic.List<ChatMessage> told = brain.History;
+                if (told.Count < 2 || told[told.Count - 2].Content != Mods.Dropped || told[told.Count - 1].Content != reply) throw new Exception("Her ask about a dropped mod didn't join her chat.");
+                string title;
+                string[] card = HeldCard(out title);
+                if (title != "Allow this" || card == null || card.Length != 1 || card[0] != "Import drop-names.capri-mod into your mods") throw new Exception("Her ask card didn't name the dropped mod: " + title);
+                using (SpeechBox look = new SpeechBox())
+                {
+                    look.State = TalkState.Online;
+                    look.Prompt = box.Prompt;
+                    look.Heard = heard;
+                    look.Reply = reply;
+                    look.Revealed = reply.Length;
+                    look.Choose(delegate { }, title, card);
+                    Point at;
+                    using (Bitmap image = look.Render(2f, new Point(1000, 1400), new Point(1000, 1600), new Rectangle(0, 0, 2560, 1800), false, out at))
+                    {
+                        if (look.YesButton.IsEmpty || look.NoButton.IsEmpty) throw new Exception("Her mod drop ask lost its Allow and No keys.");
+                        image.Save(Path.Combine(output, "mod-drop-ask.png"), ImageFormat.Png);
+                    }
+                    look.Choose(null);
+                }
+                string yes = ResumeJob("yes");
+                Mod got = ModList.All.Find(mod => mod.File.Id == "drop-names");
+                if (got == null || !got.On || Security.Holding != null || yes != "Drop Names is on. She now answers to Dropsy too." || !mainframe.ModsShown || boxes.Count != 0)
+                    throw new Exception("Their yes didn't import the dropped mod the way Mods > Import mod does: " + yes);
+                checks.Add("PASS a dropped mod file is offered for import in her bubble with her Allow and No card, even on Blackwall, and their yes runs Mods > Import mod on her Mods page (mod-drop-ask.png)");
+                if (!drop(new[] { plugin }) || !offered("Import drop-tools.capri-plugin into your mods? Say yes and I will.")) throw new Exception("A dropped plug-in wasn't offered for import: " + reply);
+                string refused = ResumeJob("yes");
+                if (boxes.Count != 1 || boxes[0] != "drop-tools" || refused != "Not imported. Nothing ran." || ModList.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A dropped plug-in skipped its own box: " + refused);
+                if (!drop(new[] { plugin }) || !offered("Import drop-tools.capri-plugin into your mods? Say yes and I will.")) throw new Exception("A dropped plug-in wasn't offered again: " + reply);
+                string no = ResumeJob("no");
+                if (no != Security.Left || Security.Holding != null || boxes.Count != 1 || ModList.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A no to a dropped plug-in still imported or asked: " + no);
+                checks.Add("PASS a dropped plug-in still shows its own Turn on this plug-in? box after their yes, and their no leaves it alone");
+                string mixedMessage = null;
+                using (ManualResetEvent mixedRead = new ManualResetEvent(false))
+                {
+                    Think = delegate(string words)
+                    {
+                        brain.Attachments.Next(words, null);
+                        mixedMessage = brain.Attachments.Message(words);
+                        mixedRead.Set();
+                        return "Two files.";
+                    };
+                    drop(new[] { names, notes });
+                    if (!mixedRead.WaitOne(5000) || mixedMessage == null || !mixedMessage.Contains("MOD-DROP-NOTES") || Security.Holding != null) throw new Exception("A mod dropped with another file didn't go the usual file way.");
+                }
+                if (Hands.Valid("import_mod", new ToolArguments { Path = notes }) || !Hands.Valid("import_mod", new ToolArguments { Path = plugin }) || !Security.IsHold(Security.Gate("import_mod", new ToolArguments { Path = names })) || !Hands.Tools.Contains("\"name\":\"import_mod\""))
+                    throw new Exception("import_mod took a plain file, skipped asking first or isn't in her tools.");
+                Security.Drop();
+                checks.Add("PASS a mod dropped with other files goes the usual file way, and her import_mod tool always asks first and only takes mod and plug-in files");
+            }
+            finally
+            {
+                Security.Drop();
+                Mod left = ModList.All.Find(mod => mod.File.Id == "drop-names");
+                if (left != null) ModList.Remove(left);
+                ++asking;
+                Think = thinkWas;
+                mainframe.ModAsk = askWas;
+                brain.Attachments.Clear();
+                heard = heardWas; reply = replyWas; box.Prompt = promptWas; talkState = stateWas;
+                Security.Load(saved, wakeWas);
+                mainframe.ShowMods(false);
+                mainframe.ShowSettings(settingsWas);
+                if (mainframe.WindowState != frameWas) mainframe.WindowState = frameWas;
+                if (!shownWas) mainframe.Hide();
+                try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        }
+
         private static void SmokeFileChat(System.Collections.Generic.List<string> checks, string folder, string docPath)
         {
             string handedPath = Path.Combine(folder, "handed words.txt");
@@ -24045,6 +24178,8 @@ namespace CapriDesktop
                 { "how do I put your voice in my mic?", "Her voice in your mic" },
                 { "what are plug-ins?", "Plug-ins" },
                 { "how do I import a plug-in?", "Import a plug-in" },
+                { "can I drop a mod file on you?", "Import mod" },
+                { "can I drag a plug-in onto you?", "Import mod" },
                 { "can I add an MCP server?", "Import a plug-in" },
                 { "can you use Notion?", "Starter plug-ins" },
                 { "how do I set up email?", "Email plug-in" },
@@ -24269,7 +24404,7 @@ namespace CapriDesktop
                 { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
                 { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" },
                 { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }, { "read_skill", "{\"name\":\"BTD6 strategy\"}" },
-                { "make_tool", "{\"text\":\"{}\"}" }, { "send_gif", "{\"name\":\"party\"}" }
+                { "make_tool", "{\"text\":\"{}\"}" }, { "send_gif", "{\"name\":\"party\"}" }, { "import_mod", "{\"path\":\"C:\\\\Mods\\\\drop-tools.capri-plugin\"}" }
             };
             for (int i = 0; i < Hands.Count; i++)
             {
@@ -45988,6 +46123,7 @@ namespace CapriDesktop
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
             Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
+            Section(checks, "SmokeModDrop", delegate { SmokeModDrop(checks, output); });
             Section(checks, "SmokeRequests", delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
             Section(checks, "SmokeCare", delegate { SmokeCare(checks); });
             Section(checks, "SmokeClips", delegate { SmokeClips(checks); });

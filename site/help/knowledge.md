@@ -614,7 +614,7 @@ Press Install on the mod you want. View lets you read about it first. Once insta
 
 View on a mod (0.9.0) shows the first few lines of its README, with Learn more for the whole page. A mod with no description takes one from its README.
 
-Already have a mod file? Press Import mod on the Mods page and pick it. The file types are:
+Already have a mod file? Press Import mod on the Mods page and pick it, or drop it on her. Dropped on their own, mod and plug-in files make her ask first, and your yes opens Mods and imports them the same way, with the same boxes. The file types are:
 - .capri-mod: settings mods, including colour sets.
 - .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
@@ -1626,7 +1626,7 @@ Rock paper scissors is first to three points. The boards keep your scores for th
 Right-click her > Open Capri Mainframe > Settings > GAMES > Play... opens the menu. From 0.8.9, right-click her > Play opens it too. Pick Chess, Connect four, Tic-tac-toe or Rock, paper, scissors. You can also ask her to play one, even without a brain connected.
 
 ### Can I give her a file to read?
-Drag a file onto her, or ask her to read its full path. Put paths with spaces in quotes, such as `read "C:\Notes\project plan.txt"`. Then ask about its contents.
+Drag a file onto her, or ask her to read its full path. Put paths with spaces in quotes, such as `read "C:\Notes\project plan.txt"`. Then ask about its contents. Mod and plug-in files dropped on their own are for importing instead: she asks, then imports them on your yes.
 
 She reads text and code, Word .docx, Excel .xlsx, PDFs, and PNG, JPG, JPEG, GIF, BMP and WebP pictures. Pictures use your selected brain if it can see, otherwise Windows reads their text. PDFs use Windows to read text from the pages, so mistakes are possible. Spreadsheets use their saved cell values.
 

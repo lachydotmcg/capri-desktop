@@ -4892,6 +4892,69 @@ namespace CapriDesktop
             public void Move(int x, int y, CancellationToken token) { throw new Exception("A skill read moved the pointer."); }
         }
 
+        private void ModDropChecks(Mainframe frame, string input)
+        {
+            Mods mods = pet.ModList;
+            Func<string, string> think = pet.Think;
+            Func<ModFile, string, bool> ask = frame.ModAsk;
+            var provider = pet.Brain.Provider;
+            string model = pet.Brain.Model, permissions = Security.Saved;
+            bool wake = Security.On(Security.Wake);
+            string names = ModSample(input, "drop-names", "\"wake_names\":[\"Dropsy\"]"), tools = Path.Combine(input, "drop-tools" + Mods.PluginExtension), notes = Path.Combine(input, "drop-notes.txt");
+            File.WriteAllText(notes, "MOD-DROP-NOTES");
+            if (File.Exists(tools)) File.Delete(tools);
+            FileParts(tools, new Dictionary<string, string> { { ".claude-plugin/plugin.json", "{\"name\":\"drop-tools\",\"displayName\":\"Drop Tools\",\"version\":\"1.0.0\",\"mcpServers\":{\"none\":{\"type\":\"capri\",\"builtin\":\"smoke-none\"}}}" } });
+            List<string> boxes = new List<string>();
+            try
+            {
+                pet.Think = null; pet.Brain.Model = null; pet.Brain.Provider = new FileToolBrain();
+                Security.Load("1111111111");
+                frame.ModAsk = (mod, hash) => { boxes.Add(mod.Id); return false; };
+                Func<string[], string> drop = files =>
+                {
+                    string plain = null;
+                    pet.Talk.Dismiss();
+                    MacFiles.Drop(files, words => plain = words, pet.HandMods);
+                    if (plain == null) RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a dropped mod file");
+                    return plain;
+                };
+                Func<string, string> answer = words =>
+                {
+                    pet.Talk.Dismiss(); pet.Hear(words);
+                    RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "an answer about a dropped mod file");
+                    return pet.Talk.Reply;
+                };
+                const string offer = "Import drop-names.capri-mod into your mods? Say yes and I will.";
+                if (drop(new[] { names }) != null || pet.Talk.Reply != offer || Security.Holding != "import_mod" || mods.All.Exists(mod => mod.File.Id == "drop-names")) throw new Exception("A dropped mod file wasn't offered for import in her bubble: " + pet.Talk.Reply);
+                List<ChatMessage> told = pet.Brain.History;
+                if (told.Count < 2 || told[told.Count - 2].Content != Mods.Dropped || told[told.Count - 1].Content != offer) throw new Exception("Her ask about a dropped mod file didn't join her chat.");
+                string yes = answer("yes");
+                Mod got = mods.All.Find(mod => mod.File.Id == "drop-names");
+                if (yes != "drop-names is on." || got == null || !got.On || !Hands.HeardName("Dropsy") || Security.Holding != null || !frame.ModsShown || boxes.Count != 0) throw new Exception("Their yes didn't import a dropped mod file the way Mods > Import mod does: " + yes);
+                frame.RemoveMod(0);
+                if (mods.All.Count != 0 || Hands.HeardName("Dropsy")) throw new Exception("A dropped mod file didn't remove like an imported one.");
+                if (drop(new[] { tools }) != null || pet.Talk.Reply != "Import drop-tools.capri-plugin into your mods? Say yes and I will.") throw new Exception("A dropped plug-in wasn't offered for import: " + pet.Talk.Reply);
+                string refused = answer("yes");
+                if (boxes.Count != 1 || boxes[0] != "drop-tools" || refused != "Not imported. Nothing ran." || mods.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A dropped plug-in skipped its own box: " + refused);
+                if (drop(new[] { tools }) != null || answer("no") != Security.Left || Security.Holding != null || boxes.Count != 1 || mods.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A no to a dropped plug-in still imported or asked: " + pet.Talk.Reply);
+                string plainDrop = drop(new[] { names, notes });
+                if (plainDrop != Files.Dropped || Security.Holding != null || !MacFiles.Attachments.Waiting) throw new Exception("A mod dropped with another file didn't go the usual file way.");
+                if (Hands.Valid("import_mod", new ToolArguments { Path = notes }) || !Hands.Valid("import_mod", new ToolArguments { Path = tools }) || !Security.IsHold(Security.Gate("import_mod", new ToolArguments { Path = names })) || !Hands.KitFor().Tools.Contains("\"import_mod\""))
+                    throw new Exception("Her import_mod tool took a plain file, skipped asking first or isn't in her Mac and Linux tools.");
+                checks.Add("PASS a mod or plug-in file dropped on her is offered for import in her bubble, even on Blackwall and without a brain; their yes runs Mods > Import mod with its own box, their no leaves it alone, and a mod dropped with other files goes the usual file way");
+            }
+            finally
+            {
+                Security.Drop();
+                Mod left = mods.All.Find(mod => mod.File.Id == "drop-names");
+                if (left != null) mods.Remove(left);
+                MacFiles.Attachments.Clear();
+                pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider;
+                frame.ModAsk = ask;
+                Security.Load(permissions, wake);
+            }
+        }
+
         private void ModsChecks(Mainframe frame)
         {
             Mods mods = pet.ModList;
@@ -4927,6 +4990,7 @@ namespace CapriDesktop
                 frame.RemoveMod(0);
                 if (mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, "smoke-names" + Mods.Extension)) || Hands.HeardName("Vee")) throw new Exception("Removing a settings mod left it applied.");
                 checks.Add("PASS mods settings: import, on, off, reload and remove share Windows' names, spellings, sounds-like and hearing-log behavior");
+                ModDropChecks(frame, input);
 
                 Clip idle = pet.Clips[0], walk = pet.Clips[10];
                 SkiaSharp.SKColor original = ModPixel(idle.Strip, 36, 74), accent = ModPixel(idle.Strip, 52, 218);

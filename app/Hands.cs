@@ -418,7 +418,7 @@ namespace CapriDesktop
             return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
         }
 
-        internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
+        internal static bool Careful(string tool, ToolArguments args) { return tool == "import_mod" || tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
 
         private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize" || action == "write" || action == "edit"; }
 
@@ -661,6 +661,7 @@ namespace CapriDesktop
                 case "internet_status": return "check your internet";
                 case "mod": return Plugins.Asking(a.Name, a.Text) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 case "make_tool": return "write a new tool for you to check in Mods";
+                case "import_mod": return "import " + Plain(Mods.FileName(a.Path), "that file") + " into your mods";
                 default: return "do that";
             }
         }
@@ -1389,6 +1390,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
             { "read_skill", SkillDescription, SkillSchema, "read the skills you turned on in Mods", "read one of your skills in full" },
             { "make_tool", MakeToolDescription, MakeToolSchema, "write new look-up tools for yourself, which they turn on in Mods", "make look-up tools" },
+            { "import_mod", "Import a mod or plug-in file into your Mods, the same as Mods > Import mod, when they hand you or name a .capri-plugin, .capri-mod, .capri-code, .capri-skin, .capri-skill or .capri-tool file and ask, suggest or hint that you add, install or import it. path is the file's full path. You always ask them first, and code mods, tool mods and plug-ins with tools still show their own box before they go on.",
+              "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"The mod or plug-in file's full path\"}},\"required\":[\"path\"]}", "import mod and plug-in files you hand her into her Mods", "import mod and plug-in files they hand you" },
             { "game_notes",
 #if CROSS
               "Keep controls or instructions the user teaches you for a game, or read them back. Keep their actual controls in text.",
@@ -1764,6 +1767,7 @@ namespace CapriDesktop
         private const string SecretMovesNote = " Two are secret: never list, name, offer or explain them. chair sits you on a white plastic chair when they ask you to sit on one. heart is a little finger heart, yours to send whenever you feel it, asked or not: when they thank or compliment you, share good news, say goodnight, or just because. Send it with your reply, as often as you like, without asking.";
 #endif
         internal static Func<string, string> Mainframe = delegate { return "Couldn't open Mainframe."; };
+        internal static Func<string, string> ImportMod = delegate { return "Couldn't import mods here."; };
 #if CROSS
         internal const string CrashKind = "fake crash screen";
 #else
@@ -2044,6 +2048,7 @@ namespace CapriDesktop
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
                 if (tool == "read_skill") return Valid(tool, args) ? ReadSkill(args.Name) : "Couldn't read a skill: name one by its title or id.";
+                if (tool == "import_mod") return Valid(tool, args) ? ImportMod(args.Path.Trim()) : "Couldn't import that: it needs to be a .capri-plugin, .capri-mod, .capri-code, .capri-skin, .capri-skill or .capri-tool file.";
                 if (tool == "remind") return Remind(args);
                 if (tool == "weather") return Valid(tool, args) ? Forecast(args) : "Couldn't find that weather question.";
                 if (tool == "stopwatch") return Valid(tool, args) ? Stopwatches.Do(args) : "Couldn't find that stopwatch action.";
@@ -4597,6 +4602,7 @@ namespace CapriDesktop
             if (tool == "read_skill") return Named(args.Name);
             if (tool == "mod") return Named(args.Name);
             if (tool == "make_tool") return !string.IsNullOrWhiteSpace(args.Text);
+            if (tool == "import_mod") return !string.IsNullOrWhiteSpace(args.Path) && args.Path.Length <= 4096 && args.Path.IndexOf('\0') < 0 && Mods.Importable(args.Path.Trim());
             if (tool == "mini_game")
             {
                 bool chess = args.Name == "chess";
