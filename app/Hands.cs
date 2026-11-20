@@ -1411,8 +1411,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The GIF's name, one of the names they saved; leave it out for a random one\"}}}", "send one of the GIFs you saved for her", "send one of the GIFs they saved for you" },
 #endif
 #if CROSS
-            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. This only opens it; they change settings there.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. mods is your Mods page, with their mods and plug-ins like Email, Notion and Linear. This only opens it; they change settings there.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\",\"mods\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "draw", Ink.Description, Ink.Schema, "draw and write on your screen", "draw on their screen" },
 #if CROSS
@@ -1453,8 +1453,8 @@ namespace CapriDesktop
 #if !CROSS
             { "workspace", "Open your Workspace window, start a new Claude Code chat there, or check recent chats when they ask. open is the default; a task with no action means start. start needs task in their words; folder is optional and must exist, otherwise it uses your own Workspace folder. New chats use the window's usual mode: Blackwall Mode under the Blackwall preset, Ask me otherwise. Folder trust and tool approvals stay in the window for them to answer. status gives up to three recent chats, whether they are working, waiting for an OK or finished, and their last answer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"open by default, start a chat, or check status\",\"enum\":[\"open\",\"start\",\"status\"]},\"task\":{\"type\":\"string\",\"description\":\"Required for start: their first message in their words\"},\"folder\":{\"type\":\"string\",\"description\":\"For start: an existing folder; omit for your own Workspace folder\"}}}", "open Workspace, start a chat or check recent chats", "open Workspace, start a chat or check recent chats" },
-            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY and memories are changed there by them.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you, and mods is your Mods page, with their mods and plug-ins like Email, Notion and Linear. This only opens it; keys, brains, voice services, SECURITY and memories are changed there by them.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\",\"mods\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "updates", "Check for a Capri update or read its status when they ask, suggest or hint at it. Install only when they clearly ask to install or update Capri, through the usual update checks. A status question or hint alone never authorizes installation.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"check, status or install; install needs a clear request\",\"enum\":[\"check\",\"status\",\"install\"]}},\"required\":[\"action\"]}", "check Capri updates or install when asked", "check Capri updates or install when asked" },
@@ -4550,9 +4550,9 @@ namespace CapriDesktop
             if (tool == "terminal_job") return args != null && !string.IsNullOrEmpty(args.JobId) && (args.Offset == null || args.Offset >= 0) && (args.Action == "status" || args.Action == "read" || args.Action == "stop");
 #endif
 #if CROSS
-            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|files|notes)\z"));
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|files|notes|mods|plugins)\z"));
 #else
-            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|workspace)\z"));
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|workspace|mods|plugins)\z"));
             if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
             if (tool == "call_say") return args != null && Named(args.Text);
 #endif

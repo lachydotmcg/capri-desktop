@@ -3203,8 +3203,17 @@ namespace CapriDesktop
                     if (earsRow.IsVisible || !frame.Row("Volume").IsVisible) throw new Exception("Simple Settings didn't fold her ears with the rest of VOICE.");
                     pet.SetAdvancedSettings(true);
                 }
+                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened Capri Mainframe." || !frame.ModsShown || frame.SettingsShown) throw new Exception("Her Mainframe tool did not open her Mods page.");
+                Hands.Do("mainframe", new ToolArguments { Name = "main" });
+                if (frame.ModsShown || frame.SettingsShown) throw new Exception("Her Mainframe tool left her Mods page over the main page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened Capri Mainframe." || !frame.ModsShown) throw new Exception("Her Mainframe tool did not open her plug-ins on the Mods page.");
+                if (!Hands.KitFor().Tools.Contains("\"mods\"") || !Hands.KitFor().Tools.Contains("plug-ins like Email, Notion and Linear") || !Hands.Valid("mainframe", new ToolArguments { Name = "mods" })) throw new Exception("Her mainframe tool doesn't tell her brain about the Mods page.");
+                string pluginHelp = SelfKnow.Matching("what are plug-ins?") ?? "";
+                if (!pluginHelp.StartsWith("Plug-ins:", StringComparison.Ordinal) || !pluginHelp.Contains(MailAccount.OutlookNote) || !pluginHelp.Contains("Turn it off and on to sign in") || SelfKnow.Matching("can you open Outlook?") != null || SelfKnow.Matching("can you check my email?") != null)
+                    throw new Exception("Her Mac and Linux help lost plug-ins or took over an ordinary ask: " + pluginHelp);
+                Hands.Do("mainframe", new ToolArguments { Name = "moves" });
                 pet.Talk.Dismiss();
-                checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps the pet running and closes the Mac and Linux window");
+                checks.Add("PASS Mainframe opens from her tool and a direct request, her tool opens her Mods page for mods and plug-ins, and her help knows plug-ins; Close keeps the pet running and closes the Mac and Linux window");
                 MainframePictures(frame, voice);
                 PlainChecks(frame, fields);
                 ModsChecks(frame);

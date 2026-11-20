@@ -24226,6 +24226,8 @@ namespace CapriDesktop
                 { "mainframe", "{}", "Your controls would be handy right now" },
                 { "mainframe", "{\"name\":\"clips\"}", "We could have a look at your clips settings" },
                 { "mainframe", "{\"name\":\"workspace\"}", "Your coding window would be handy" },
+                { "mainframe", "{\"name\":\"mods\"}", "Show me my plug-ins" },
+                { "mainframe", "{\"name\":\"mods\"}", "Open your mods" },
                 { "workspace", "{}", "We could bring up your coding window" },
                 { "workspace", "{\"action\":\"open\"}", "Can you open the workspace" },
                 { "workspace", "{\"action\":\"start\",\"task\":\"Build a snake game\"}", "Build me a snake game in the workspace" },
@@ -24520,6 +24522,13 @@ namespace CapriDesktop
                 if (!mainframe.Visible || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open its main page.");
                 MainframeTool("clips");
                 if (!mainframe.SettingsShown || !mainframe.ClipsSectionShown) throw new Exception("The Mainframe tool did not open clips.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened Capri Mainframe." || !mainframe.Visible || !mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open her Mods page.");
+                MainframeTool("main");
+                if (mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool left her Mods page over the main page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened Capri Mainframe." || !mainframe.ModsShown) throw new Exception("The Mainframe tool did not open her plug-ins on the Mods page.");
+                MainframeTool("brain");
+                if (mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool left her Mods page over BRAIN.");
+                if (!Hands.Tools.Contains("\"mods\"") || !Hands.Tools.Contains("plug-ins like Email, Notion and Linear")) throw new Exception("Her mainframe tool doesn't tell her brain about the Mods page.");
                 FullScreen = delegate { return false; };
                 hidden = docked = false;
                 preferences.NoPlayer = false;
