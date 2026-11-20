@@ -67,6 +67,38 @@ Set how fast a strip plays in `skin.json`, from 1 to 60 frames a second. It work
 - **Wear it** saves every change as a skin and puts it on as her outfit, starting from the outfit she has on. **Save skin...**
   saves the `.capri-skin` to share.
 
+## New moves
+
+A skin can add moves of her own, like a wave or a spin. Once it's on, she does one when you ask for it by name ("do the
+wave"), when her brain picks it from a hint, or when a code mod calls `capri.Her.Animate("wave")`. Every move she has is in her
+animate tool for every brain, on Windows, Mac and Linux, and taking the skin off takes its moves away again.
+
+List them in `skin.json` under `moves`, and put each strip at the top of the zip:
+
+```json
+{ "format": 1, "id": "wave-pack", "name": "Wave Pack", "accessory": true,
+  "moves": [ { "name": "wave", "fps": 12 }, { "name": "happy_spin", "strip": "spin.png", "fps": 24, "loop": true } ] }
+```
+
+- **name**: 2 to 24 lowercase letters or numbers, with `_` between words. It can't be one of hers, like `dance`, `grin`,
+  `idle` or the name of any of her strips, so a move never takes over one of her own animations. A `dance.png` in a skin
+  still just replaces her dance.
+- **strip**: the PNG with its frames, `name.png` if you leave it out. Each frame is 116 x 384, like her standing frames, side
+  by side, from 1 to 240 of them.
+- **fps**: 1 to 60 frames a second, 12 if you leave it out.
+- **loop**: `true` and it goes on until you say stop (stop dancing stops it too). Leave it out and it plays once, then she's
+  back to her idle.
+- Up to 16 moves a skin. If two skins on at once have a move with the same name, the one higher in the stack wins.
+- She stands up for a move, like her grin. Her colours go on it, and facing left she's mirrored.
+
+### Making one in her editor
+
+In **Mainframe > CAPRI > Mods > Animations**, press **New move...**, name it, then pick its frames: **Pictures...** (one PNG
+a frame, in name order), **Strip...** (one PNG of frames side by side) or **Folder...** (a folder of PNG frames, in name
+order). Set its speed and **Loops** or **Once**, then **Add move**. It shows in the editor like her strips, so you can edit
+its frames, change its speed, switch **Loops** on or off, or **Remove move**. **Wear it** puts it on her, and **Save skin...**
+saves it to share.
+
 ## Tool mods
 
 A `.capri-tool` gives her one new tool without any code. It's a JSON recipe: up to three HTTPS GETs to the hosts it lists,
@@ -403,7 +435,7 @@ These are the same switches and sliders her own settings tool uses. API keys and
 |---|---|
 | `Bounds`, `Head`, `Size` | Where she is on screen |
 | `State`, `StateChanged` | `idle`, `thinking`, `talking`, `dancing`, `asleep` or `hidden` |
-| `Animation`, `Animate(name)` | The strip she's showing, and play one: `dance`, `stop_dancing`, `idle`, `grin`, `glitch` or `blink` |
+| `Animation`, `Animate(name)` | The strip she's showing, and play one: `dance`, `stop_dancing`, `idle`, `grin`, `glitch`, `blink`, or a move a skin added, by its name. A name she doesn't have gets "I don't have an animation called ..." back |
 | `Clicked`, `Patted` | They clicked her, or gave her a head pat |
 | `Dragged`, `Dropped(hip)`, `Dragging` | They picked her up, or let go of her and where |
 | `Screen` | The working area of the monitor she's on |
