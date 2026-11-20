@@ -26,6 +26,7 @@ namespace CapriDesktop
         private static int Main(string[] args)
         {
             ConnectChatGPT = Array.IndexOf(args, "--connect-chatgpt") >= 0;
+            Mods.NoneThisRun = Array.IndexOf(args, "--no-mods") >= 0 && Array.IndexOf(args, "--smoke") < 0;
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
             Desk.Niri = () => NiriDesktop.Start() is NiriDesktop niri ? new NiriDesk(niri) : null;
             NativeFontBootstrap.Initialize();

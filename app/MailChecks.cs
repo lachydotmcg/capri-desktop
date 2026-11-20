@@ -340,7 +340,12 @@ namespace CapriDesktop
                 Need(!imap.SetSeenByFetch && !imap.Seen.Contains(2) && !imap.Seen.Contains(3), "reading never asks for \\Seen");
                 string html = MailMime.HtmlToText("<html><head><style>p{}</style></head><body><p>Hi&nbsp;there &amp; you</p>Next<script>x()</script></body></html>");
                 Need(html == "Hi there & you\nNext", "html to text: " + html);
-                checks.Add("PASS mail: lists, searches and reads encoded, multipart and base64 messages without marking them read");
+                DateTime hostileStart = DateTime.UtcNow;
+                string unclosed = MailMime.HtmlToText("<b>Hi</b> " + new string('<', 150000));
+                string comments = MailMime.HtmlToText("<p>Yo</p>" + new StringBuilder().Insert(0, "<!--x", 30000).ToString());
+                double hostileSeconds = (DateTime.UtcNow - hostileStart).TotalSeconds;
+                Need(unclosed.StartsWith("Hi", StringComparison.Ordinal) && comments.StartsWith("Yo", StringComparison.Ordinal) && hostileSeconds < 15, "hostile html gives up quickly: " + hostileSeconds + " s");
+                checks.Add("PASS mail: lists, searches and reads encoded, multipart and base64 messages without marking them read, and hostile html can't hang her");
 
                 text = Reply(MailTools.Call("send_mail", Args("to", "Pat <pat@example.com>, lee@example.com", "subject", "Café ☕ plans", "body", "Hello é\r\n.starts with a dot\r\nBye", "reply_to_uid", 2)), out err);
                 Need(!err && smtp.From == "me@example.com" && smtp.To.Count == 2 && smtp.To[0] == "pat@example.com", "send: " + text);
@@ -352,14 +357,17 @@ namespace CapriDesktop
                 List<string> none = new List<string>();
                 string sentBody = MailMime.Body(sent, none);
                 Need(sentBody == "Hello é\n.starts with a dot\nBye", "sent body round trip: " + sentBody);
+                smtp.Data = null;
                 text = Reply(MailTools.Call("send_mail", Args("body", "Thanks", "reply_to_uid", 2)), out err);
+                Need(err && smtp.Data == null && text.Contains("Say who"), "a reply with no recipient is refused: " + text);
+                text = Reply(MailTools.Call("send_mail", Args("to", "jose@example.com", "body", "Thanks", "reply_to_uid", 2)), out err);
                 MailPart again = MailMime.Parse(smtp.Data, 0);
-                Need(!err && smtp.To[0] == "jose@example.com" && MailMime.DecodeHeader(again.Header("subject")) == "Re: Café menu", "reply fills recipient and Re: subject: " + text);
+                Need(!err && smtp.To[0] == "jose@example.com" && MailMime.DecodeHeader(again.Header("subject")) == "Re: Café menu", "reply keeps the Re: subject: " + text);
                 text = Reply(MailTools.Call("send_mail", Args("to", "not-an-address", "subject", "x", "body", "y")), out err);
                 Need(err && text.Contains("not-an-address"), "bad address refused");
                 text = Reply(MailTools.Call("send_mail", Args("to", "a1@example.com,a2@example.com,a3@example.com,a4@example.com,a5@example.com,a6@example.com,a7@example.com,a8@example.com,a9@example.com,a10@example.com,a11@example.com", "subject", "x", "body", "y")), out err);
                 Need(err && text.Contains("10"), "recipient cap");
-                checks.Add("PASS mail: sends a correct message with dot-stuffing, an encoded subject and reply headers");
+                checks.Add("PASS mail: sends a correct message with dot-stuffing, an encoded subject and reply headers, and never guesses who a reply goes to");
 
                 a.Password = "wrong-pass-xyz";
                 text = Reply(MailTools.Call("recent_mail", Args()), out err);

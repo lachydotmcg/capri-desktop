@@ -95,7 +95,7 @@ namespace CapriDesktop
 
         private sealed class Grant
         {
-            internal string Client, Auth, Token, Resource, Access, Refresh;
+            internal string Client, Auth, Token, Resource, Url, Access, Refresh;
             internal long Expires;
         }
 
@@ -138,7 +138,7 @@ namespace CapriDesktop
                     if (servers == null) return;
                     foreach (KeyValuePair<string, object> pair in servers)
                     {
-                        Grant one = new Grant { Client = PluginJson.Str(pair.Value, "client"), Auth = PluginJson.Str(pair.Value, "auth"), Token = PluginJson.Str(pair.Value, "token"), Resource = PluginJson.Str(pair.Value, "resource") };
+                        Grant one = new Grant { Client = PluginJson.Str(pair.Value, "client"), Auth = PluginJson.Str(pair.Value, "auth"), Token = PluginJson.Str(pair.Value, "token"), Resource = PluginJson.Str(pair.Value, "resource"), Url = PluginJson.Str(pair.Value, "url") };
                         object expires = PluginJson.Get(pair.Value, "expires");
                         if (expires is double) one.Expires = (long)(double)expires;
                         one.Access = Voice.Unprotect(PluginJson.Str(pair.Value, "access"));
@@ -163,7 +163,7 @@ namespace CapriDesktop
                 {
                     if (!pair.Key.StartsWith(id + "/", StringComparison.Ordinal)) continue;
                     Grant one = pair.Value;
-                    Dictionary<string, object> saved = PluginJson.Make("client", one.Client, "auth", one.Auth, "token", one.Token, "resource", one.Resource, "expires", (double)one.Expires);
+                    Dictionary<string, object> saved = PluginJson.Make("client", one.Client, "auth", one.Auth, "token", one.Token, "resource", one.Resource, "url", one.Url, "expires", (double)one.Expires);
                     try
                     {
                         if (one.Access != null) saved["access"] = Voice.Protect(one.Access);
@@ -181,22 +181,26 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException error) { Brain.Log("plugins", -1, error.Message); }
         }
 
-        private static Grant Find(string id, string server)
+        private static Grant Find(string id, string server, string url)
         {
             Load(id);
             lock (gate)
             {
                 Grant one;
-                return grants.TryGetValue(id + "/" + server, out one) ? one : null;
+                return grants.TryGetValue(id + "/" + server, out one) && one.Url != null && string.Equals(one.Url, url, StringComparison.Ordinal) ? one : null;
             }
         }
 
-        internal static bool Has(string id)
+        internal static bool Has(PluginInfo plugin)
         {
-            Load(id);
-            lock (gate)
-                foreach (KeyValuePair<string, Grant> pair in grants)
-                    if (pair.Key.StartsWith(id + "/", StringComparison.Ordinal) && (pair.Value.Access != null || pair.Value.Refresh != null)) return true;
+            if (plugin == null) return false;
+            foreach (PluginServer spec in plugin.Servers)
+            {
+                if (!spec.Online) continue;
+                Grant one = Find(plugin.Id, spec.Name, spec.Url);
+                if (one == null) continue;
+                lock (gate) if (one.Access != null || one.Refresh != null) return true;
+            }
             return false;
         }
 
@@ -213,15 +217,15 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException) { }
         }
 
-        internal static string Cached(string id, string server)
+        internal static string Cached(string id, string server, string url)
         {
-            Grant one = Find(id, server);
+            Grant one = Find(id, server, url);
             lock (gate) return one == null ? null : one.Access;
         }
 
-        internal static string Token(string id, string server)
+        internal static string Token(string id, string server, string url)
         {
-            Grant one = Find(id, server);
+            Grant one = Find(id, server, url);
             if (one == null) return null;
             lock (gate)
             {
@@ -235,9 +239,9 @@ namespace CapriDesktop
             }
         }
 
-        internal static string Refreshed(string id, string server, string stale)
+        internal static string Refreshed(string id, string server, string url, string stale)
         {
-            Grant one = Find(id, server);
+            Grant one = Find(id, server, url);
             if (one == null) return null;
             lock (renewing)
             {
@@ -405,7 +409,7 @@ namespace CapriDesktop
                 object tokens = McpHttp.Post(tokenUrl, "application/x-www-form-urlencoded", Form("grant_type", "authorization_code", "code", code, "redirect_uri", redirect, "client_id", clientId, "code_verifier", verifier, "resource", resource), Quick, out status);
                 string access = PluginJson.Str(tokens, "access_token");
                 if (status < 200 || status > 299 || access == null) throw new McpException(host + " didn't let Capri in" + (PluginJson.Str(tokens, "error") == null ? "." : " (" + Plugins.Line(PluginJson.Str(tokens, "error"), 60) + ")."));
-                Grant made = new Grant { Client = clientId, Auth = authorizeUrl, Token = tokenUrl, Resource = resource };
+                Grant made = new Grant { Client = clientId, Auth = authorizeUrl, Token = tokenUrl, Resource = resource, Url = spec.Url };
                 Load(plugin.Id);
                 Keep(made, tokens, access);
                 lock (gate) grants[plugin.Id + "/" + spec.Name] = made;

@@ -161,6 +161,7 @@ namespace CapriDesktop
                 GuardChecks();
                 Ink.Check(checks);
                 MainframeGuardChecks();
+                FirstRunChecks();
                 Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
                 MacWindows.Checks(checks);
@@ -169,6 +170,7 @@ namespace CapriDesktop
                 UpdateCheckChecks();
                 LinuxAppImageUpdater.Checks(checks);
                 MacAppUpdater.Checks(checks);
+                Uninstall.Checks(checks);
                 OfflineChecks();
                 FakeCrash.Checks(checks);
                 FakeCrash.WindowChecks(checks);
@@ -805,6 +807,7 @@ namespace CapriDesktop
                 MacClickChecks();
                 MacRoutes.Checks(checks);
                 LinuxRoutes.Checks(checks);
+                OwnEngineChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -2295,6 +2298,117 @@ namespace CapriDesktop
 
         // Mainframe's buttons, pickers, switches, sliders and drop-downs go through Program.Guard like her menu, so a bug behind
         // one can't end her on Linux.
+        private void FirstRunChecks()
+        {
+            checks.AddRange(Onboarding.Check());
+            if (!Pet.WantsFirstRun(true, 0) || Pet.WantsFirstRun(false, 0) || !Pet.WantsFirstRun(false, 2)) throw new Exception("The first run card was wanted at the wrong times.");
+            string oldFile = Path.Combine(folder, "old-cross.json");
+            File.WriteAllText(oldFile, "{\"Nickname\":\"V\",\"Replies\":1}");
+            string unread;
+            Settings old = Pet.ReadSettings(oldFile, out unread);
+            if (old.FirstRunStep != 0 || old.Nickname != "V" || Pet.WantsFirstRun(false, old.FirstRunStep)) throw new Exception("An older settings file wasn't read as set up already.");
+            pet.StartFirstRun(false);
+            if (pet.FirstRunOpen) throw new Exception("The first run card opened for settings that already existed.");
+            checks.Add("PASS first run: the card is only for a brand-new install or one quit part way, and an older settings file reads as done and never shows it");
+
+            string nickWas = Brain.Nickname, modelWas = pet.Brain.Model;
+            int repliesWas = pet.Replies;
+            List<string> sent = new List<string>();
+            int pulls = 0;
+            pet.FirstJobTo = delegate(string job) { sent.Add(job); };
+            pet.FirstRunPulls = delegate { pulls++; };
+            pet.FirstRunLines.Clear();
+            try
+            {
+                pet.Brain.Model = null;
+                pet.Saved.FirstRunStep = 0;
+                pet.MainframeRefresh();
+                pet.StartFirstRun(true);
+                FirstRunCard card = pet.FirstRunWindow;
+                if (card == null || card.Screen != 1 || pet.Saved.FirstRunStep != 1) throw new Exception("A fresh install didn't open the card on its first screen.");
+                if (card.Crowded() != null || !card.NoteText.StartsWith("Next starts", StringComparison.Ordinal)) throw new Exception("The brain screen was crowded or said the wrong thing: " + card.Crowded() + " / " + card.NoteText);
+                card.SavePicture(Path.Combine(folder, "first-run-1-brain.png"));
+                card.Press("Free key");
+                card.UpdateLayout();
+                if (card.Picked != 1 || card.Crowded() != null || !card.Rows.ContainsKey("Brain API key") || !card.Rows.ContainsKey("Connect")) throw new Exception("Free key didn't show its key box.");
+                card.SavePicture(Path.Combine(folder, "first-run-1-free-key.png"));
+                card.Press("Skip");
+                if (card.Screen != 2 || pulls != 0 || pet.Saved.FirstRunStep != 2) throw new Exception("Skip on the brain screen started a download or didn't move on.");
+                card.Press("Skip");
+                if (card.Screen != 3 || Brain.Nickname != nickWas) throw new Exception("Skip on the name screen saved a name or didn't move on.");
+                card.Press("Skip all");
+                if (pet.FirstRunOpen || pet.Saved.FirstRunStep != 0 || sent.Count != 0 || pulls != 0) throw new Exception("Skip all left the card up, kept its step or did something.");
+                checks.Add("PASS first run: Skip moves on without downloading or saving a name, Skip all ends the card, and the step is saved only while it's up");
+
+                pet.Saved.FirstRunStep = 0;
+                pet.StartFirstRun(true);
+                card = pet.FirstRunWindow;
+                card.Press("Next");
+                if (pulls != 1 || card.Screen != 2 || pet.Saved.FirstRunStep != 2) throw new Exception("Next with her own brain picked didn't start it once and move on.");
+                if (!card.Rows.ContainsKey("Name") || card.Rows["Name"] is not NeonEntry named || named.Cue != Onboarding.NameCue) throw new Exception("The name box is missing or has the wrong cue.");
+                named.Box.Text = "Vee";
+                card.Press("Chatty");
+                if (pet.Replies != 2 || Brain.Wordiness != 2) throw new Exception("The Chatty vibe didn't set her reply length.");
+                card.Press("Chill");
+                if (pet.Replies != 0) throw new Exception("The Chill vibe didn't set her reply length.");
+                card.Press("Cyber Cyan");
+                if (pet.ModList.ColoursNow[ArtColors.Hair] != "#00D8FF" || card.LookPicked != 1) throw new Exception("A look didn't recolour her.");
+                card.Press("Hers");
+                if (Array.Exists(pet.ModList.ColoursNow, colour => colour != null) || card.LookPicked != 0) throw new Exception("Hers didn't bring her own colours back.");
+                card.Press("Bubblegum");
+                card.UpdateLayout();
+                if (card.Crowded() != null) throw new Exception("The look screen was crowded: " + card.Crowded());
+                card.SavePicture(Path.Combine(folder, "first-run-2-yours.png"));
+                card.Press("Hers");
+                card.Press("Next");
+                if (Brain.Nickname != "Vee" || pet.Saved.Nickname != "Vee" || card.Screen != 3) throw new Exception("Next didn't save the name.");
+                if (!pet.FirstRunLines.Contains(Onboarding.MeLine) || !pet.FirstRunLines.Contains(Onboarding.JobWaitLine) || card.Said != Onboarding.JobWaitLine) throw new Exception("She didn't say the make me yours and wait for the brain lines.");
+                if (card.Crowded() != null) throw new Exception("The job screen was crowded: " + card.Crowded());
+                card.SavePicture(Path.Combine(folder, "first-run-3-job.png"));
+                checks.Add("PASS first run: Next starts her own brain once, saves the name, a vibe sets her reply length and a look recolours her live until Hers puts her colours back");
+
+                FirstJob first = Onboarding.Jobs(false, OperatingSystem.IsMacOS(), DateTime.Now.Hour)[0];
+                card.Press(first.Label);
+                if (pet.FirstRunOpen || pet.Saved.FirstRunStep != 0 || sent.Count != 0 || pet.FirstJobWaiting != first.Said) throw new Exception("A job picked before her brain was in wasn't kept.");
+                if (pet.FirstRunLines.FindAll(line => line == Onboarding.JobQueuedLine).Count != 1) throw new Exception("She didn't say the queued line once.");
+                pet.CheckFirstJob();
+                if (sent.Count != 0) throw new Exception("The job was sent with no brain.");
+                pet.Brain.Model = "qwen3:8b";
+                pet.CheckFirstJob();
+                pet.CheckFirstJob();
+                if (sent.Count != 1 || sent[0] != first.Said || pet.FirstJobWaiting != null) throw new Exception("The kept job wasn't sent exactly once when the brain came in.");
+                checks.Add("PASS first run: a job picked before her brain is in is kept, she says so once, and it's sent exactly once the moment it is");
+
+                sent.Clear();
+                pet.Saved.FirstRunStep = 3;
+                pet.StartFirstRun(false);
+                card = pet.FirstRunWindow;
+                if (card == null || card.Screen != 3 || card.Said != Onboarding.JobLine) throw new Exception("A card quit on the job screen didn't come back there with her brain in.");
+                pet.Brain.Model = null;
+                card.Refresh();
+                if (card.Said != Onboarding.JobWaitLine) throw new Exception("The job line didn't follow her brain going away.");
+                pet.Brain.Model = "qwen3:8b";
+                card.Refresh();
+                ((NeonEntry)card.Rows["Own job"]).Box.Text = "  open my notes  ";
+                card.Press("Do it");
+                if (pet.FirstRunOpen || sent.Count != 1 || sent[0] != "open my notes" || pet.FirstJobWaiting != null) throw new Exception("An own job with her brain in wasn't sent straight away, tidied.");
+                checks.Add("PASS first run: a card quit part way comes back on the same screen, and a job typed or picked with her brain in goes to her right away as if typed");
+                if (pet.Saved.FirstRunStep != 0) throw new Exception("The first run step wasn't cleared.");
+            }
+            finally
+            {
+                if (pet.FirstRunWindow != null) pet.FirstRunWindow.Close();
+                pet.FirstJobTo = null;
+                pet.FirstRunPulls = null;
+                pet.Saved.FirstRunStep = 0;
+                pet.ModList.UseColours(null);
+                pet.Brain.Model = modelWas;
+                Brain.Nickname = nickWas;
+                pet.Saved.Nickname = nickWas;
+                pet.SetReplies(repliesWas);
+            }
+        }
+
         private void MainframeGuardChecks()
         {
             List<string> ran = new List<string>();
@@ -2970,9 +3084,11 @@ namespace CapriDesktop
                 MainframeWait(delegate { return pet.Talk.Reply == "Held news."; }, "late news retry");
                 if (SettingsCopy().LastVersion != News.Version) throw new Exception("Late cross news did not save when free.");
                 checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
+                if (typeof(Pet).Assembly.GetName().Version.ToString(3) != News.Version) throw new Exception("Her build version " + typeof(Pet).Assembly.GetName().Version + " is not her update news version " + News.Version + ".");
+                checks.Add("PASS her build version and the version her updates compare are the one in her update news");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Weather:", "Open-Meteo", "Pats:", "Talk boxes:", "Sulks:", "Your screen:", "Capri Remote:" } : new[] { "Weather:", "Open-Meteo", "Pats:", "Talk boxes:", "Sulks:", "Your screen:", "Updates:", "Get new version", "Capri Remote:" })
+                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Cloud brains:", "Mods:", "Raspberry Pi:", "Your PC:" } : new[] { "Cloud brains:", "Mods:", "Hey Capri:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
@@ -3100,6 +3216,7 @@ namespace CapriDesktop
                 AwakeChecks(fields);
                 VaultChecks(frame, fields);
                 MainframeSheets(frame);
+                MemoryPageChecks(frame);
                 MainframeConnections(frame);
                 MainframeLayout(frame, voice);
                 foreach (string name in new[] { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" })
@@ -4608,13 +4725,13 @@ namespace CapriDesktop
             throw new Exception("No mod color entry: " + name);
         }
 
-        private static string ModSkin(string into, string id, string picture, int width, int height)
+        private static string ModSkin(string into, string id, string picture, int width, int height, string frames = null)
         {
             string file = Path.Combine(into, id + Mods.SkinExtension);
             if (File.Exists(file)) File.Delete(file);
             using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
             {
-                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"}"));
+                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"" + (frames == null ? "" : ",\"frames\":" + frames) + "}"));
                 using (SkiaSharp.SKBitmap art = new SkiaSharp.SKBitmap(width, height))
                 {
                     art.Erase(new SkiaSharp.SKColor(255, 0, 70));
@@ -4865,6 +4982,72 @@ namespace CapriDesktop
                 if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 if (Pet.SkinFolder != null || ModPixel(idle.Strip, 36, 74) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
+                if (!frame.ImportMod(ModSkin(input, "smoke-half", "idle.png", size.Width / 2, size.Height, "[{\"strip\":\"idle\",\"fps\":12}]")) || idle.Count != 30 || idle.Fps != 12 || !idle.Reframed || idle.OwnCount != 60) throw new Exception("A skin with half her frames didn't re-frame her idle: " + idle.Count + " at " + idle.Fps + ".");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                if (idle.Count != 60 || idle.Fps != 24 || idle.Reframed) throw new Exception("Removing a re-framed skin left her idle at " + idle.Count + " frames, " + idle.Fps + " fps.");
+                checks.Add("PASS mods frames: a skin strip with half her frames and a speed of its own re-frames her idle to 30 at 12 fps, and removing it brings back 60 at 24");
+                AnimationDraft draft = new AnimationDraft(mods, pet.Clips);
+                try
+                {
+                    AnimationDraft.Strip drawn = draft.Strips.Find(strip => strip.Title == "idle" && !strip.Left), shut = draft.Strips.Find(strip => strip.Title == "mouth");
+                    if (drawn == null || shut == null || !shut.Fixed || drawn.Fixed || !draft.Strips.Exists(strip => strip.Title == "perch" && strip.Left) || draft.Strips.Exists(strip => strip.Title == "walk" && strip.Left))
+                        throw new Exception("Her animation editor didn't list her strips and their facing-left sets.");
+                    draft.Load(drawn);
+                    if (drawn.Count != 60 || drawn.Frames[0].Width != drawn.Wide || drawn.Frames[0].Height != drawn.High || drawn.From != "her own art") throw new Exception("Her idle didn't load into her animation editor as her own 60 frames.");
+                    if (draft.Fits(drawn, Mods.MostFrames + 1) == null || draft.Fits(shut, shut.OwnCount + 1) == null || draft.Fits(drawn, 0) == null || draft.Fits(drawn, 61) != null) throw new Exception("Her animation editor let a strip take a frame count it can't.");
+                    drawn.Frames.Add(AnimationDraft.Copy(drawn.Frames[0]));
+                    drawn.Changed = true;
+                    foreach (AnimationDraft.Strip strip in draft.Strips) if (strip.Title == "idle") { strip.Fps = 30; strip.Retimed = true; }
+                    ModFrames[] rates;
+                    Dictionary<string, byte[]> packed = draft.Pack(out rates);
+                    if (packed.Count != 1 || !packed.ContainsKey("idle.png") || rates == null || rates.Length != 1 || rates[0].Strip != "idle" || rates[0].Fps != 30) throw new Exception("Her animation editor packed more or less than what changed.");
+                    string made = Path.Combine(input, "animations-test" + Mods.SkinExtension);
+                    Mods.PackSkin(made, new ModFile { Id = Mods.IdFor("Animations Test!"), Name = "Animations Test", Frames = rates }, packed);
+                    Mod worn = mods.WearOutfit(made);
+                    try { if (worn == null || worn.File.Id != "animations-test" || mods.Outfit != worn || idle.Count != 61 || idle.Fps != 30) throw new Exception("Wearing a skin from her animation editor didn't give her its 61 frames at 30 fps: " + idle.Count + " at " + idle.Fps); }
+                    finally { if (worn != null) mods.Remove(worn); }
+                    if (idle.Count != 60 || idle.Fps != 24) throw new Exception("Removing a skin from her animation editor didn't bring her own idle back.");
+                }
+                finally { draft.Dispose(); }
+                checks.Add("PASS animations: her editor lists her strips, fits, loads her own frames, keeps her mouth shapes fixed, and a frame and speed changed there are worn as a skin and taken off again");
+                AnimationDraft editing = new AnimationDraft(mods, pet.Clips);
+                try
+                {
+                    AnimationSheet editor = new AnimationSheet(pet, frame, editing);
+                    try
+                    {
+                        List<string> opened = new List<string>();
+                        editor.Opener = delegate(string file) { opened.Add(file); return true; };
+                        AnimationDraft.Strip standing = editing.Strips.Find(strip => strip.Title == "idle" && !strip.Left);
+                        Action<string, int, SkiaSharp.SKColor> draw = delegate(string file, int cells, SkiaSharp.SKColor paint)
+                        {
+                            using (SkiaSharp.SKBitmap made = new SkiaSharp.SKBitmap(standing.Wide * cells, standing.High))
+                            {
+                                made.Erase(paint);
+                                File.WriteAllBytes(file, AnimationDraft.Png(made));
+                            }
+                            File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddSeconds(5));
+                        };
+                        string one = editor.EditFile(false, true);
+                        if (one == null || opened.Count != 1 || opened[0] != one || !File.Exists(one)) throw new Exception("Edit frame in didn't write the frame and ask which app opens it.");
+                        draw(one, 1, new SkiaSharp.SKColor(255, 0, 0));
+                        editor.TakeNow();
+                        if (standing.Count != 60 || !standing.Changed || standing.Frames[0].GetPixel(10, 10) != new SkiaSharp.SKColor(255, 0, 0)) throw new Exception("A frame saved in another app didn't come back into her editor.");
+                        string whole = editor.EditFile(true, true);
+                        draw(whole, 30, new SkiaSharp.SKColor(0, 0, 255));
+                        editor.TakeNow();
+                        if (standing.Count != 30 || standing.Frames[29].GetPixel(10, 10) != new SkiaSharp.SKColor(0, 0, 255)) throw new Exception("A strip saved in another app didn't come back with its 30 frames.");
+                        File.WriteAllText(whole, "not a picture yet");
+                        File.SetLastWriteTimeUtc(whole, DateTime.UtcNow.AddSeconds(10));
+                        editor.TakeNow();
+                        if (standing.Count != 30) throw new Exception("A half-saved strip from another app replaced her frames.");
+                        editor.Close();
+                        if (File.Exists(one) || File.Exists(whole)) throw new Exception("Closing her editor left its files for other apps behind.");
+                    }
+                    finally { }
+                }
+                finally { editing.Dispose(); }
+                checks.Add("PASS animations edit in: Edit frame in and Edit strip in write a PNG, ask which app opens it, take each save back, and leave a half-saved file alone");
                 string[] badSkins = { ModSkin(input, "smoke-size", "idle.png", 10, 10), ModSkin(input, "smoke-path", "../idle.png", size.Width, size.Height), ModSkin(input, "smoke-unknown", "other.png", size.Width, size.Height) };
                 foreach (string bad in badSkins)
                 {
@@ -4884,6 +5067,7 @@ namespace CapriDesktop
                 LegacyChecks(frame, idle, blue, input);
 
                 CodeModChecks(frame, mods, input);
+                mods.CheckTools(checks, input);
 
                 string skill = Path.Combine(input, "smoke-skill" + Mods.SkillExtension);
                 File.WriteAllText(skill, "---\ncapri-skill: 1\nid: smoke-skill\nname: Smoke skill\ngames: Minecraft\n---\nOnly dig straight down with a ladder.\n");
@@ -4973,8 +5157,8 @@ namespace CapriDesktop
             string text = Encoding.UTF8.GetString(json);
             byte[] rawTree = Encoding.UTF8.GetBytes(text.Substring(0, text.LastIndexOf('}')) + ",\"commit\":\"" + commit + "\"}");
             List<ModListing> listed = ModDirectory.Parse(json);
-            bool rawDown = false, rawBroken = false, apiDown = false;
-            int apiGets = 0, blobGets = 0;
+            bool rawDown = false, rawBroken = false, apiDown = false, mirrorDown = true;
+            int apiGets = 0, blobGets = 0, mirrorGets = 0;
             List<string> pinnedGets = new List<string>();
             ModDirectory.KeptFolder = kept;
             ModDirectory.Get = delegate(string url, long most)
@@ -4990,9 +5174,19 @@ namespace CapriDesktop
                     if (apiDown) throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
                     return json;
                 }
+                if (url.StartsWith(ModDirectory.MirrorRoot, StringComparison.Ordinal))
+                {
+                    Interlocked.Increment(ref mirrorGets);
+                    if (mirrorDown) throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
+                    if (url == ModDirectory.TreeMirror) return rawTree;
+                    ModListing copy = listed.Find(each => ModDirectory.MirrorRoot + commit + "/mods/" + each.Folder + "/" + each.FileName == url);
+                    if (copy == null) throw new WebException("stand-in", WebExceptionStatus.NameResolutionFailure);
+                    return blobs[copy.Sha];
+                }
                 if (url.Contains("/blobs/")) Interlocked.Increment(ref blobGets);
                 if (url.StartsWith(pinned, StringComparison.Ordinal) && !url.EndsWith("/preview.png", StringComparison.Ordinal))
                 {
+                    if (rawDown) throw new WebException("stand-in", WebExceptionStatus.ConnectFailure);
                     lock (pinnedGets) pinnedGets.Add(url);
                     ModListing match = listed.Find(each => pinned + each.Folder + "/" + each.FileName == url);
                     if (match == null) throw new Exception("Unexpected pinned mods request: " + url);
@@ -5024,6 +5218,16 @@ namespace CapriDesktop
                 List<ModListing> unreachable = ModDirectory.Browse(out trouble);
                 if (trouble != null || apiGets != 2 || fallback.Count != listed.Count || unreachable.Count != listed.Count || fallback[0].Commit != null || unreachable[0].Commit != null) throw new Exception("A broken or missing tree.json didn't fall back to the API: " + apiGets);
                 checks.Add("PASS mods directory: a broken or missing tree.json falls back to GitHub's API");
+                mirrorDown = false;
+                int apiBefore = apiGets, blobsBeforeMirror = blobGets;
+                List<ModListing> mirrored = ModDirectory.Browse(out trouble);
+                string copied = ModDirectory.Download(mirrored[0], under);
+                bool copiedExact = ModDirectory.BlobSha(File.ReadAllBytes(copied)) == mirrored[0].Sha;
+                ModDirectory.Clean(copied);
+                mirrorDown = true;
+                ModDirectory.RawBack();
+                if (trouble != null || apiGets != apiBefore || blobGets != blobsBeforeMirror || mirrored.Count != listed.Count || mirrored[0].Commit != commit || !copiedExact || mirrorGets < 2) throw new Exception("With GitHub's raw host unreachable, the directory didn't come from her worker's copy: " + trouble + " / " + apiGets + " / " + mirrorGets);
+                checks.Add("PASS mods directory: where raw.githubusercontent.com can't be reached, the list and downloads come from her worker's copy at the listed commit, without GitHub's API");
                 rawDown = false;
                 ModDirectory.Browse();
                 rawDown = apiDown = true;
@@ -5340,13 +5544,82 @@ namespace CapriDesktop
 
         // Her Mods page in the Mainframe like Windows': its keys where Windows has them, the installed rows, their pages and her
         // colors, nothing out of place at 100%, 150% and 200%, and pictures of it.
+        private void MemoryPageChecks(Mainframe frame)
+        {
+            string root = Path.Combine(Path.GetTempPath(), "capri-memory-page-" + Guid.NewGuid().ToString("N"));
+            string notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, gamesWas = GameNotes.Folder;
+            bool keepingWas = Brain.Keeping;
+            MemorySheet sheet = null;
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(root, "transcripts"));
+                Directory.CreateDirectory(Path.Combine(root, "games"));
+                Brain.MemoryPath = Path.Combine(root, "me.md");
+                Brain.MemoriesPath = Path.Combine(root, "memories.md");
+                Brain.TranscriptPath = Path.Combine(root, "transcripts");
+                GameNotes.Folder = Path.Combine(root, "games");
+                Brain.Keeping = true;
+                File.WriteAllText(Brain.MemoryPath, Brain.NotesHead + "- Pronouns: she/her\n- They like cats\n- They are learning piano and want to play slowly through a whole album before the end of the year, one song at a time\n");
+                File.WriteAllText(Brain.MemoriesPath, Brain.MemoriesHead + "## Wednesday 28 October 2026\n- They beat Malenia after 40 tries.\n\n## Thursday 29 October 2026\n- They started a new piano book.\n- I helped them fix their mic.\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-28.md"), "# Capri and you, Wednesday 28 October 2026\n> Kept on this PC only.\n\n**10:00 You:** hi\n**10:00 Capri:** hey choom\n*10:01 She glanced at your screen: Elden Ring.*\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-29.md"), "# Capri and you\n\n**09:00 You:** piano time\n");
+                File.WriteAllText(Path.Combine(GameNotes.Folder, "fortnite.md"), "# Fortnite\n\n- Sprint is shift\n");
+                pet.SetMainframeSize(100);
+                frame.ShowSettings(true);
+                frame.Press("Open her memories");
+                sheet = frame.Memory;
+                if (sheet == null) throw new Exception("Open her memories didn't open HER MEMORY.");
+                MainframeWait(() => sheet.Ready, "reading her memory");
+                sheet.UpdateLayout();
+                foreach (string name in new[] { "Forget everything about me", "Forget game notes", "Edit as text", "Add", "Undo" })
+                    if (name != "Undo" && sheet.Button(name) == null) throw new Exception("HER MEMORY has no " + name + " key.");
+                int edits = sheet.Count("Edit"), forgets = sheet.Count("Forget");
+                if (edits != 7 || forgets != 7 || sheet.Button("2026-10-29") == null || sheet.Button("2026-10-28") == null) throw new Exception("HER MEMORY rows: " + edits + " edit, " + forgets + " forget keys.");
+                string crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("HER MEMORY is crowded: " + crowded);
+                string shot = Path.Combine(folder, "mainframe-memory.png");
+                sheet.SavePicture(shot);
+                File.Copy(shot, Path.Combine(folder, "mainframe-memory-1.png"), true);
+                sheet.EditRow("They like cats", "They love cats and dogs");
+                MainframeWait(() => sheet.Ready && sheet.Strip != null, "saving an edit");
+                if (!File.ReadAllText(Brain.MemoryPath).Contains("- They love cats and dogs") || sheet.Button("Undo") == null) throw new Exception("An edit through HER MEMORY didn't save or show Undo.");
+                sheet.Press("Undo");
+                MainframeWait(() => sheet.Ready && !File.ReadAllText(Brain.MemoryPath).Contains("dogs"), "undoing an edit");
+                if (!File.ReadAllText(Brain.MemoryPath).Contains("- They like cats")) throw new Exception("Undo through HER MEMORY didn't bring the note back.");
+                ((NeonEntry)sheet.Rows["Tell her something to remember"]).Box.Text = "they main Sukuna";
+                sheet.Press("Add");
+                MainframeWait(() => sheet.Ready && File.ReadAllText(Brain.MemoryPath).Contains("They main Sukuna"), "adding a memory");
+                ((NeonEntry)sheet.Rows["Search her memory"]).Box.Text = "piano";
+                MainframeWait(() => sheet.Count("Forget") == 2, "searching");
+                ((NeonEntry)sheet.Rows["Search her memory"]).Box.Text = "";
+                MainframeWait(() => sheet.Count("Forget") == 8, "clearing the search");
+                sheet.Press("2026-10-28");
+                MainframeWait(() => sheet.OpenDayShown == "2026-10-28" && sheet.Ready, "opening a chat day");
+                sheet.UpdateLayout();
+                if (sheet.Button("Back") == null || sheet.Button("Forget this day") == null) throw new Exception("The chat day has no Back or Forget this day.");
+                sheet.SavePicture(Path.Combine(folder, "mainframe-memory-day.png"));
+                sheet.Press("Forget this day");
+                if (File.Exists(Path.Combine(Brain.TranscriptPath, "2026-10-28.md")) == false) throw new Exception("Forget this day went through on the first click.");
+                sheet.Press("Back");
+                if (sheet.OpenDayShown != null) throw new Exception("Back left the chat day open.");
+                checks.Add("PASS her memory page: HER MEMORY lists about, chat, game and chat-log rows, searches them, edits then undoes a note through its own keys, adds one, opens a chat day with Back and a Forget this day that needs a second click, and fits without overlap; mainframe-memory-1.png and mainframe-memory-day.png");
+            }
+            finally
+            {
+                sheet?.Close();
+                frame.ShowSettings(false);
+                Brain.MemoryPath = notesWas; Brain.MemoriesPath = memoriesWas; Brain.TranscriptPath = transcriptsWas; GameNotes.Folder = gamesWas; Brain.Keeping = keepingWas;
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
         private void ModsPageChecks(Mainframe frame)
         {
             frame.ShowMods(true); frame.SearchInstalled("");
             pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
             string wrong = null;
-            string[] names = { "Import mod", "Browse mods", "Mods folder", "Update mods", "Save colors", "Reset colors", "Mods", "Back" };
-            Rect[] boxes = { new Rect(28, 104, 100, 28), new Rect(134, 104, 100, 28), new Rect(240, 104, 116, 28), new Rect(256, 204, 100, 26), new Rect(28, 688, 160, 24), new Rect(196, 688, 160, 24), new Rect(234, 20, 56, 22), new Rect(146, 20, 84, 22) };
+            string[] names = { "Import mod", "Browse mods", "Mods folder", "Update mods", "Save colors", "Reset colors", "Animations", "Mods", "Back" };
+            Rect[] boxes = { new Rect(28, 104, 100, 28), new Rect(134, 104, 100, 28), new Rect(240, 104, 116, 28), new Rect(256, 204, 100, 26), new Rect(28, 688, 160, 24), new Rect(196, 688, 160, 24), new Rect(28, 720, 160, 24), new Rect(234, 20, 56, 22), new Rect(146, 20, 84, 22) };
             for (int i = 0; wrong == null && i < names.Length; i++)
             {
                 NeonButton key = frame.Button(names[i]);
@@ -6180,6 +6453,59 @@ namespace CapriDesktop
             throw new Exception("A file check reached a real command: " + start.FileName);
         }
 
+        private void OwnEngineChecks()
+        {
+            System.Runtime.InteropServices.Architecture arm = System.Runtime.InteropServices.Architecture.Arm64, x64 = System.Runtime.InteropServices.Architecture.X64;
+            EngineAsset macArm = Engine.AssetFor(true, false, arm), macIntel = Engine.AssetFor(true, false, x64), linuxIntel = Engine.AssetFor(false, true, x64), linuxArm = Engine.AssetFor(false, true, arm);
+            if (macArm == null || macIntel == null || linuxIntel == null || linuxArm == null) throw new Exception("A Mac or Linux build has no llama.cpp download.");
+            if (Engine.AssetFor(false, false, x64) != null || Engine.AssetFor(true, false, System.Runtime.InteropServices.Architecture.X86) != null) throw new Exception("An unsupported computer got a llama.cpp download.");
+            foreach (EngineAsset asset in Engine.Assets)
+                if (!asset.Url.StartsWith("https://github.com/ggml-org/llama.cpp/releases/download/" + Engine.Build + "/", StringComparison.Ordinal) || !asset.Url.EndsWith("-bin-" + asset.Name + ".tar.gz", StringComparison.Ordinal) || !Regex.IsMatch(asset.Sha256, "^[0-9a-f]{64}$") || asset.Size < (1 << 20)) throw new Exception("A llama.cpp download isn't pinned: " + asset.Name);
+            if (macArm.Name != "macos-arm64" || macIntel.Name != "macos-x64" || linuxIntel.Name != "ubuntu-x64" || linuxArm.Name != "ubuntu-arm64" || linuxIntel.Url.Contains("vulkan")) throw new Exception("The llama.cpp pick for a platform is wrong.");
+            checks.Add("PASS own brain downloads: Mac arm64 and x64 and Linux x64 and arm64 each pick their pinned llama.cpp " + Engine.Build + " tar.gz with a SHA-256 and size (Linux x64 takes the CPU build), and anything else gets none");
+            Pick small = Engine.Fit(new Machine { Ram = 8L << 30 }), big = Engine.Fit(new Machine { Ram = 24L << 30, Vram = 16L << 30 });
+            if (small != Engine.Picks[1] || big != Engine.Picks[0]) throw new Exception("The model fit for a Mac or Linux computer is wrong.");
+            string work = Path.Combine(folder, "own-engine-check");
+            if (Directory.Exists(work)) Directory.Delete(work, true);
+            Directory.CreateDirectory(work);
+            string archive = Path.Combine(work, "tiny.tar.gz");
+            using (FileStream file = File.Create(archive))
+            using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(file, System.IO.Compression.CompressionLevel.Optimal))
+            using (System.Formats.Tar.TarWriter tar = new System.Formats.Tar.TarWriter(gzip))
+            {
+                string[] names = { "llama-b0/llama-server", "llama-b0/libggml.so", "llama-b0/LICENSE" };
+                foreach (string name in names)
+                {
+                    System.Formats.Tar.PaxTarEntry entry = new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, name);
+                    entry.DataStream = new MemoryStream(Encoding.ASCII.GetBytes("#!/bin/sh\necho engine-ran\n"));
+                    if (!OperatingSystem.IsWindows()) entry.Mode = (UnixFileMode)Convert.ToInt32("644", 8);
+                    tar.WriteEntry(entry);
+                }
+            }
+            string target = Path.Combine(work, "engine");
+            Engine.Unpack(archive, target);
+            string server = Path.Combine(target, "llama-server");
+            if (!File.Exists(server) || !File.Exists(Path.Combine(target, "LICENSE"))) throw new Exception("The tiny engine archive didn't unpack its top folder flat.");
+            if (!OperatingSystem.IsWindows())
+            {
+                UnixFileMode run = UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+                if ((File.GetUnixFileMode(server) & run) != run || (File.GetUnixFileMode(Path.Combine(target, "libggml.so")) & run) != run) throw new Exception("The unpacked llama-server isn't executable.");
+                if ((File.GetUnixFileMode(Path.Combine(target, "LICENSE")) & UnixFileMode.UserExecute) != 0) throw new Exception("A plain file in the engine became executable.");
+                ProcessStartInfo info = new ProcessStartInfo(server) { UseShellExecute = false, RedirectStandardOutput = true };
+                using (Process started = Process.Start(info))
+                {
+                    string said = started.StandardOutput.ReadToEnd();
+                    started.WaitForExit(5000);
+                    if (said.Trim() != "engine-ran") throw new Exception("The unpacked llama-server didn't start: " + said);
+                }
+                checks.Add("PASS own brain unpack: a tiny generated tar.gz unpacks flat into her data folder, llama-server and its libraries get the executable bit while plain files don't, and the unpacked server starts");
+            }
+            else checks.Add("LIMIT own brain unpack: executable bits and starting the server are Mac and Linux only");
+            Directory.Delete(work, true);
+            if (!Pet.BrainViaEngine(false, true) || Pet.BrainViaEngine(true, true) || Pet.BrainViaEngine(false, false)) throw new Exception("Set up her brain chose the wrong path for Ollama being up or down.");
+            checks.Add("PASS own brain setup: with no Ollama reachable Set up her brain downloads her own llama.cpp engine and model, with Ollama running it keeps pulling through Ollama, and a computer with no engine download falls back to Ollama");
+        }
+
         private void BrainlessFileChecks(string path)
         {
             var think = pet.Think; var provider = pet.Brain.Provider; var changed = Security.Changed; var opener = Hands.Run;
@@ -6237,7 +6563,7 @@ namespace CapriDesktop
         private void FileToolChecks()
         {
             var run = MacFiles.Run; var home = MacFiles.Home; var now = MacFiles.Now; var attachments = MacFiles.Attachments;
-            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder;
+            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder; var keeper = Hands.Keeper;
             var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
             var lastField = typeof(MacFiles).GetField("last", fields); var atField = typeof(MacFiles).GetField("foundAt", fields);
             var last = new List<string>((List<string>)lastField.GetValue(null)); object foundAt = atField.GetValue(null);
@@ -6401,12 +6727,14 @@ namespace CapriDesktop
                 checks.Add("PASS cross reading: Windows-1252 text falls back the way Windows reads it");
                 checks.Add("PASS cross reading: DOCX and XLSX parts that unpack past " + (Files.LargestPart >> 20) + " MB or nest past " + Files.DeepestXml + " levels are turned away with a plain line, and ordinary ones still read");
                 checks.Add("PASS cross reading: spreadsheet scratch files are private to their user and leave the temp folder at once");
+                Hands.OnMac = OperatingSystem.IsMacOS();
+                checks.AddRange(FileKeeperChecks.Run());
             }
             finally
             {
                 MacFiles.Run = run; MacFiles.Home = home; MacFiles.Now = now; MacFiles.Attachments = attachments;
                 lastField.SetValue(null, last); atField.SetValue(null, foundAt);
-                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; Hands.GameOpen = game;
+                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Keeper = keeper; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; Hands.GameOpen = game;
                 CatchUp.Executable = executable; CatchUp.Release = release; Hands.OnMac = mac; GameNotes.Folder = notes; Files.Temp = temp;
                 Security.Drop(); Security.Load(permissions); Security.Changed = changed;
                 Directory.Delete(root, true);
@@ -8130,6 +8458,7 @@ namespace CapriDesktop
             RemoteLink.SmokeJobs(checks);
             RemotePush.Smoke(checks);
             RemoteLink.SmokePush(checks);
+            MemoryBook.Smoke(checks);
             RemoteStoreChecks();
 
             string diskRoot = Path.Combine(folder, "remote-core-" + Guid.NewGuid().ToString("N"));
@@ -8254,7 +8583,7 @@ namespace CapriDesktop
         {
             RemoteState state = RemoteState.Fresh();
             using RemoteWire wire = new RemoteWire(state);
-            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair,wake") throw new Exception("Remote text core offered unsupported features.");
+            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != (MemoryBook.Ready ? "chat,pair,wake,memory" : "chat,pair,wake")) throw new Exception("Remote text core offered unsupported features.");
             RemoteJson.Map woke = RemoteJson.ParseMap(RemoteWake.Info());
             if (woke == null || woke.Text("type") != "wake.info" || woke.Items("cards") == null || woke.Items("cards").Count > 4) throw new Exception("Remote wake info was malformed.");
             foreach (object item in woke.Items("cards"))
@@ -9475,7 +9804,7 @@ namespace CapriDesktop
         private void RemoteFileToolChecks(RemoteBridgeFake bridge)
         {
             var run = MacFiles.Run; var home = MacFiles.Home; var now = MacFiles.Now; var attachments = MacFiles.Attachments;
-            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder;
+            var read = Hands.ReadFile; var websites = Hands.Websites; var finder = Hands.Finder; var keeper = Hands.Keeper;
             var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
             var lastField = typeof(MacFiles).GetField("last", fields); var atField = typeof(MacFiles).GetField("foundAt", fields);
             var last = new List<string>((List<string>)lastField.GetValue(null)); object foundAt = atField.GetValue(null);
@@ -9551,7 +9880,7 @@ namespace CapriDesktop
             {
                 MacFiles.Run = run; MacFiles.Home = home; MacFiles.Now = now; MacFiles.Attachments = attachments;
                 lastField.SetValue(null, last); atField.SetValue(null, foundAt);
-                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; pet.Think = think;
+                Hands.ReadFile = read; Hands.Websites = websites; Hands.Finder = finder; Hands.Keeper = keeper; Hands.Run = open; Hands.NativeWebsite = native; Hands.Catalog = catalog; pet.Think = think;
                 Hands.OnMac = mac; GameNotes.Folder = notes; pet.Brain.Model = model; pet.Brain.Provider = provider;
                 Security.Changed = null; Security.Drop(); Security.Load(permissions); Security.Changed = changed;
                 Directory.Delete(root, true);

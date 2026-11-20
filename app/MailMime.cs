@@ -226,18 +226,44 @@ namespace CapriDesktop
             return clean.Length > 40 ? clean.Substring(0, 40) : clean;
         }
 
+        private const int MostHtml = 100000;
+        private static readonly TimeSpan HtmlWait = TimeSpan.FromMilliseconds(500);
+
         internal static string HtmlToText(string html)
         {
-            string t = Regex.Replace(html, @"<(script|style|head)[^>]*>.*?</\1\s*>", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            t = Regex.Replace(t, @"<!--.*?-->", " ", RegexOptions.Singleline);
-            t = Regex.Replace(t, @"<br\s*/?>|</(p|div|li|tr|h[1-6]|table|blockquote)\s*>", "\n", RegexOptions.IgnoreCase);
-            t = Regex.Replace(t, @"<[^>]*>", "");
+            string t = html ?? "";
+            if (t.Length > MostHtml) t = t.Substring(0, char.IsHighSurrogate(t[MostHtml - 1]) ? MostHtml - 1 : MostHtml);
+            try
+            {
+                t = Regex.Replace(t, @"<(script|style|head)[^>]*>.*?</\1\s*>", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase, HtmlWait);
+                t = Regex.Replace(t, @"<!--.*?-->", " ", RegexOptions.Singleline, HtmlWait);
+                t = Regex.Replace(t, @"<br\s*/?>|</(p|div|li|tr|h[1-6]|table|blockquote)\s*>", "\n", RegexOptions.IgnoreCase, HtmlWait);
+                t = Regex.Replace(t, @"<[^>]*>", "", RegexOptions.None, HtmlWait);
+            }
+            catch (RegexMatchTimeoutException) { t = Untagged(t); }
             t = WebUtility.HtmlDecode(t);
             t = t.Replace(' ', ' ');
             t = Regex.Replace(t, @"[ \t]+", " ");
             t = Regex.Replace(t, @" ?\n ?", "\n");
             t = Regex.Replace(t, @"\n{3,}", "\n\n");
             return t.Trim();
+        }
+
+        private static string Untagged(string html)
+        {
+            StringBuilder sb = new StringBuilder(html.Length);
+            int at = 0;
+            while (at < html.Length)
+            {
+                int open = html.IndexOf('<', at);
+                if (open < 0) { sb.Append(html, at, html.Length - at); break; }
+                sb.Append(html, at, open - at);
+                int close = html.IndexOf('>', open);
+                if (close < 0) break;
+                sb.Append(' ');
+                at = close + 1;
+            }
+            return sb.ToString();
         }
 
         private static string Text(MailPart p)

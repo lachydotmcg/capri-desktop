@@ -84,6 +84,7 @@ namespace CapriDesktop
             catch (IOException error) { throw new ModException("Couldn't read that file: " + error.Message); }
             catch (UnauthorizedAccessException error) { throw new ModException("Couldn't read that file: " + error.Message); }
             ModFile read = ReadSkill(text);
+            offThisRun.Remove(read.Id);
             string home = Path.Combine(folder, read.Id + SkillExtension);
             try
             {

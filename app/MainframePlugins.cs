@@ -21,6 +21,11 @@ namespace CapriDesktop
             }
         }
 
+        private static string KeyWords(string grant, bool asks)
+        {
+            return asks && grant != Plugins.Off ? "Always asks" : GrantWords(grant);
+        }
+
         private static string PluginAbout(Mod mod)
         {
             List<PluginTool> tools = Plugins.ToolsOf(mod.File.Id);
@@ -54,7 +59,7 @@ namespace CapriDesktop
             List<PluginTool> tools = Plugins.ToolsOf(mod.File.Id);
             string trouble = Plugins.Trouble(mod.File.Id);
             string top = tools.Count > 0
-                ? "Like SECURITY asks first the way SECURITY > Use tools your code mods added says, and for tools that change things, Send, post and delete too."
+                ? "Like SECURITY asks first the way SECURITY > Use tools your mods added says, and for tools that change things, Send, post and delete too."
                 : trouble == "starting" ? "Her tools from it are starting. Open this again in a moment."
                 : trouble == McpSignInNeeded.Said ? "It needs you to sign in before her tools from it show. Capri opens your browser for that, and only when you press Sign in."
                 : trouble != null ? "Its tools didn't start: " + trouble
@@ -100,17 +105,18 @@ namespace CapriDesktop
             foreach (PluginTool tool in tools)
             {
                 PluginTool one = tool;
+                bool asks = Plugins.AlwaysAsks(tool);
                 Label name = new Label { Text = tool.Title, Font = Type(10f, true), ForeColor = White, AutoSize = false, AutoEllipsis = true, Bounds = new Rectangle(0, y, 400, 20), UseMnemonic = false };
                 Label about = new Label { Text = tool.Description, Font = Type(8.5f), ForeColor = Faint, AutoSize = false, AutoEllipsis = true, Bounds = new Rectangle(0, y + 20, 400, 30), UseMnemonic = false };
-                Key grant = new Key { Bounds = new Rectangle(412, y + 6, 140, 26), Font = Type(9f), Text = GrantWords(Plugins.GrantOf(mod.File.Id, tool.Tool)) };
+                Key grant = new Key { Bounds = new Rectangle(412, y + 6, 140, 26), Font = Type(9f), Text = KeyWords(Plugins.GrantOf(mod.File.Id, tool.Tool), asks) };
                 grant.AccessibleName = "When she uses " + tool.Title;
                 grant.Accent = Plugins.GrantOf(mod.File.Id, tool.Tool) == Plugins.Off ? Rose : Cyan;
                 grant.Click += delegate
                 {
                     string now = Plugins.GrantOf(mod.File.Id, one.Tool);
-                    string next = GrantOrder[(Array.IndexOf(GrantOrder, now) + 1) % GrantOrder.Length];
+                    string next = asks ? (now == Plugins.Off ? Plugins.Usual : Plugins.Off) : GrantOrder[(Array.IndexOf(GrantOrder, now) + 1) % GrantOrder.Length];
                     Plugins.Grant(mod.File.Id, one.Tool, next);
-                    grant.Text = GrantWords(next);
+                    grant.Text = KeyWords(next, asks);
                     grant.Accent = next == Plugins.Off ? Rose : Cyan;
                     grant.Invalidate();
                 };
