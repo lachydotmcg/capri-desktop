@@ -661,7 +661,7 @@ namespace CapriDesktop
                 case "internet_status": return "check your internet";
                 case "mod": return Plugins.Asking(a.Name, a.Text) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 case "make_tool": return "write a new tool for you to check in Mods";
-                case "import_mod": return "import " + Plain(Mods.FileName(a.Path), "that file") + " into your mods";
+                case "import_mod": return "import " + Plain(Regex.Match(a.Path ?? "", @"[^\\/]*$").Value, "that file") + " into your mods";
                 default: return "do that";
             }
         }

@@ -5614,8 +5614,8 @@ namespace CapriDesktop
                 Rect card = sheet.CardBox(i), want = new Rect(28 + 233 * (i % 3), 140 + 284 * (i / 3), 222, 272);
                 if (sheet.TitleOf(i) == null || !sheet.HasPreview(i) || card != want) wrong = "card " + i + " is at " + card;
             }
-            string[] names = { "Search the mods directory", "Show all in the mods directory", "Show skills in the mods directory", "Sort the mods directory by a to z", "Sort the mods directory by top rated", "Refresh", "Close", "Back", "Next" };
-            Rect[] boxes = { new Rect(28, 74, 270, 26), new Rect(306, 76, 76, 22), new Rect(634, 76, 76, 22), new Rect(476, 106, 76, 22), new Rect(640, 106, 76, 22), new Rect(604, 20, 80, 22), new Rect(690, 20, 26, 22), new Rect(28, 710, 60, 22), new Rect(656, 710, 60, 22) };
+            string[] names = { "Search the mods directory", "Show all in the mods directory", "Show skills in the mods directory", "Show plug-ins in the mods directory", "Sort the mods directory by a to z", "Sort the mods directory by top rated", "Refresh", "Close", "Back", "Next" };
+            Rect[] boxes = { new Rect(28, 74, 270, 26), new Rect(306, 76, 64, 22), new Rect(578, 76, 64, 22), new Rect(646, 76, 64, 22), new Rect(476, 106, 76, 22), new Rect(640, 106, 76, 22), new Rect(604, 20, 80, 22), new Rect(690, 20, 26, 22), new Rect(28, 710, 60, 22), new Rect(656, 710, 60, 22) };
             for (int i = 0; wrong == null && i < names.Length; i++) if (sheet.BoxOf(names[i]) != boxes[i]) wrong = names[i] + " is at " + sheet.BoxOf(names[i]);
             if (wrong == null && (sheet.PageText != "Page 1 of 2" || sheet.EmptyText != null)) wrong = "eight mods show " + sheet.PageText;
             if (wrong == null) wrong = sheet.Crowded();
@@ -5631,7 +5631,7 @@ namespace CapriDesktop
             if (wrong == null && (sheet.EmptyText != "No mods match that." || sheet.PageText != null || sheet.TitleOf(0) != null)) wrong = "a search with no match shows " + sheet.EmptyText;
             sheet.Search("");
             if (wrong != null) throw new Exception("The mods directory isn't Windows' 3 x 2 grid: " + wrong);
-            checks.Add("PASS mods directory grid: a 744 x 782 window like Windows with three cards across and two down, 222 wide at 28 + 233 across and 140 + 284 down; search, the five kinds, the three sorts, Refresh, Close, Back and Next where Windows has them; eight mods page 1 of 2 to 2 of 2, a new sort goes back to page 1, and no match says so; mods-directory-100.png and mods-directory-150.png");
+            checks.Add("PASS mods directory grid: a 744 x 782 window like Windows with three cards across and two down, 222 wide at 28 + 233 across and 140 + 284 down; search, the six kinds, the three sorts, Refresh, Close, Back and Next where Windows has them; eight mods page 1 of 2 to 2 of 2, a new sort goes back to page 1, and no match says so; mods-directory-100.png and mods-directory-150.png");
         }
 
         // Mods beside Settings in her title bar and her version beside Support, where Windows has them.
