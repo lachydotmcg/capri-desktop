@@ -949,6 +949,8 @@ namespace CapriDesktop
         [DataMember] public bool OnTop = true;
         [DataMember] public long UpdateCheckedAt;
         [DataMember] public string LastVersion;
+        // The version her door intro last played for, from YunoTheAlien: it plays once on her first start after each update.
+        [DataMember] public string DoorVersion;
         [DataMember] public string Model;
         [DataMember] public string LocalAddress;
         [DataMember] public int BrainPort;
@@ -4946,6 +4948,9 @@ namespace CapriDesktop
         {
             newsTicket = -1;
             newsPending = existed && preferences.LastVersion != News.Version;
+            doorPending = existed && preferences.DoorVersion != DoorIntro.Version;
+            // A new install has nothing to have updated from, so its door waits for her first update.
+            if (!existed) preferences.DoorVersion = DoorIntro.Version;
             if (!existed) KeepNews();
         }
 
