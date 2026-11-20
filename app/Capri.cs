@@ -3183,6 +3183,7 @@ namespace CapriDesktop
             player.Loud = Math.Max(0, Math.Min(100, preferences.PlayerVolume)) / 100.0;
             try { FolderTunes.Loudness = player.Loud; } catch (Exception) { }
             player.Moved += SavePlayerSpot;
+            player.Hauling += CarriedOnPlayer;
             tray = new NotifyIcon();
             using (Stream icon = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.ico"))
             {
@@ -4785,7 +4786,15 @@ namespace CapriDesktop
             Location = anchor;
         }
 
-        protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); MovePointer(Cursor.Position); Stroke(Cursor.Position); }
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            MovePointer(Cursor.Position);
+            if (StrokeBlocked()) ForgetStroke();
+            else Stroke(Cursor.Position);
+        }
+
+        private bool StrokeBlocked() { return InControl.On || working != null || Computer.CursorHidden(); }
 
         private void Stroke(Point cursor) { Stroke(cursor, clock.ElapsedMilliseconds); }
 
@@ -8672,6 +8681,14 @@ namespace CapriDesktop
             if (spot == null || spot.Y - Headroom() < Screen.FromPoint(new Point(x, spot.Y)).Bounds.Top) return false;
             GlitchOut(delegate { Hop(spot, x); }, false);
             return true;
+        }
+
+        private void CarriedOnPlayer()
+        {
+            if (seat == null || seat.Window != player.Handle || hidden || !IsHandleCreated) return;
+            Native.SetWindowPos(player.Handle, Handle, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            HoldSeat(clock.Elapsed.TotalSeconds);
+            RenderFrame();
         }
 
         // Her legs over its plate, so the song's name moves out from under them.

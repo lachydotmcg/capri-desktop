@@ -2070,7 +2070,7 @@ namespace CapriDesktop
             {
                 if (DesktopPointer(e)) return;
                 pointer = e.GetPosition(this);
-                if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
+                if (!pressed) { if (InControl.On) ForgetStroke(); else Stroke(this.PointToScreen(pointer)); return; }
                 if (Desk is HyprlandDesk) return;
                 PixelPoint at = DragPoint(pointer);
                 int dx = at.X - downAt.X;
