@@ -7466,6 +7466,7 @@ namespace CapriDesktop
             List<ToolStripItem> standIns = new List<ToolStripItem>();
             SpeechBox liveBubble = new SpeechBox();
             MiniPlayer livePlayer = new MiniPlayer();
+            TalkPill livePill = new TalkPill();
             try
             {
                 // Every dropdown and menu gets a stand-in item with no colours of its own, like most of hers, and each colour they
@@ -7484,6 +7485,9 @@ namespace CapriDesktop
                 liveBubble.Revealed = liveBubble.Reply.Length;
                 livePlayer.Layer = delegate { };
                 livePlayer.ShowTune(SmokeColourTune(), new Point(40, 40));
+                livePill.Layer = delegate { };
+                livePill.Motion = false;
+                livePill.Place(new Point(200, 200), 1);
                 for (int look = 3; look >= 0; look--)
                 {
                     mainframe.PickColours(look);
@@ -7502,7 +7506,7 @@ namespace CapriDesktop
                     if (LoadPreferences().MainframeColours != look) throw new Exception(Neon.LookNames[look] + " was not saved.");
                     if (Neon.ShownToWindows(typer)) throw new Exception(Neon.LookNames[look] + " made the hidden Type box visible to Windows.");
                     if (playerMenu.BackColor != Mainframe.MenuLook.Panel) throw new Exception(Neon.LookNames[look] + " did not reach the mini player's menu.");
-                    CheckBubbleColours(look, liveBubble, livePlayer, output);
+                    CheckBubbleColours(look, liveBubble, livePlayer, livePill, output);
                     Application.DoEvents();
                     if (ForeColor.ToArgb() != herFore || BackColor.ToArgb() != herBack || pill.ForeColor.ToArgb() != pillFore || pill.BackColor.ToArgb() != pillBack) throw new Exception(Neon.LookNames[look] + " changed a window outside the Mainframe look.");
                     mainframe.Settle();
@@ -7531,6 +7535,7 @@ namespace CapriDesktop
                 foreach (ToolStripItem standIn in standIns) standIn.Dispose();
                 liveBubble.Dispose();
                 livePlayer.Dispose();
+                livePill.Dispose();
                 mainframe.PickColours(0);
                 mainframe.ShowSettings(false);
                 mainframe.WindowState = stateWas;
@@ -7539,14 +7544,14 @@ namespace CapriDesktop
             }
             if (Neon.Mono || Neon.Rose.ToArgb() != Color.FromArgb(255, 93, 102).ToArgb()) throw new Exception("Night City did not come back as it was.");
             if (CityLook.Hot.ToArgb() != Color.FromArgb(232, 66, 70).ToArgb()) throw new Exception("Her game windows lost Night City's colours.");
-            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, Blackwall's name included, change the Mainframe, its dropdowns, the Type box, her menus, her bubble and her music player straight away from any look to any other, keep her bubble and player as they were on Night City, leave hidden windows hidden, are saved, and Night City comes back as it was");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, Blackwall's name included, change the Mainframe, its dropdowns, the Type box, her menus, her bubble, her TYPE | TALK pill and her music player straight away from any look to any other, keep her bubble, pill and player as they were on Night City, leave hidden windows hidden, are saved, and Night City comes back as it was");
         }
 
         private static Tune SmokeColourTune() { return new Tune { Title = "Smoke song", Artist = "Smoke artist", App = "Spotify.exe", Playing = true, Shuffle = true, Repeat = "all" }; }
 
         // Her bubble and music player in this look: Night City keeps the colours they had before they followed the look, every
         // look's words read on its sheet, Black, White and Grey leave no colour in them, and the ones on screen redraw at once.
-        private void CheckBubbleColours(int look, SpeechBox liveBubble, MiniPlayer livePlayer, string output)
+        private void CheckBubbleColours(int look, SpeechBox liveBubble, MiniPlayer livePlayer, TalkPill livePill, string output)
         {
             string name = Neon.LookNames[look];
             if (look == 0)
@@ -7554,6 +7559,8 @@ namespace CapriDesktop
                 Color[] themed = { BubbleLook.Panel, BubbleLook.Ink, BubbleLook.Dim, BubbleLook.Yellow, BubbleLook.Cyan, BubbleLook.Red, BubbleLook.Blue, BubbleLook.Pink };
                 Color[] before = { Look.Panel, Look.Ink, Look.Dim, Look.Yellow, Look.Cyan, Look.Red, Look.Neon, Look.Pink };
                 for (int i = 0; i < before.Length; i++) if (themed[i].ToArgb() != before[i].ToArgb()) throw new Exception("Night City changed her bubble and music player's colours.");
+                string pillLook = TalkPill.Check();
+                if (pillLook != null) throw new Exception("Night City changed her TYPE | TALK pill: " + pillLook);
             }
             foreach (Color words in new[] { BubbleLook.Ink, BubbleLook.Blue, BubbleLook.Yellow })
                 if (LookContrast(words, BubbleLook.Panel) < 4.5) throw new Exception(name + "'s bubble words are hard to read.");
@@ -7569,6 +7576,16 @@ namespace CapriDesktop
             if (Neon.Mono && (Colourful(bubble) > 0 || Colourful(player) > 0)) throw new Exception(name + " left colour in her bubble or music player.");
             if (!Neon.Mono && (Colourful(bubble) < 50 || Colourful(player) < 50)) throw new Exception("Night City took the colour out of her bubble or music player.");
             if (BubbleLeftover(player, BubbleLook.Ink) < 20) throw new Exception(name + " did not reach her music player straight away.");
+            Bitmap pillShown = livePill.Image;
+            using (Bitmap pillFresh = TalkPill.Render(1, 0))
+            using (Bitmap pillHover = TalkPill.Render(1, 2))
+            {
+                if (pillShown == null || !SamePicture(pillShown, pillFresh)) throw new Exception(name + " did not reach her TYPE | TALK pill straight away.");
+                if (Neon.Mono && (Colourful(pillFresh) > 0 || Colourful(pillHover) > 0)) throw new Exception(name + " left colour in her TYPE | TALK pill.");
+                if (!Neon.Mono && Colourful(pillFresh) < 50) throw new Exception("Night City took the colour out of her TYPE | TALK pill.");
+                if (LookContrast(TalkPill.Caption, BubbleLook.Panel) < 4.5) throw new Exception(name + "'s TYPE and TALK are hard to read.");
+                pillHover.Save(Path.Combine(output, "pill-colours-" + name.Replace(" ", "-") + ".png"), ImageFormat.Png);
+            }
             bubble.Save(Path.Combine(output, "bubble-colours-" + name.Replace(" ", "-") + ".png"), ImageFormat.Png);
             player.Save(Path.Combine(output, "player-colours-" + name.Replace(" ", "-") + ".png"), ImageFormat.Png);
         }
@@ -7583,6 +7600,15 @@ namespace CapriDesktop
                     if (seen.A == 255 && seen.R == colour.R && seen.G == colour.G && seen.B == colour.B) found++;
                 }
             return found;
+        }
+
+        private static bool SamePicture(Bitmap one, Bitmap two)
+        {
+            if (one.Size != two.Size) return false;
+            for (int y = 0; y < one.Height; y++)
+                for (int x = 0; x < one.Width; x++)
+                    if (one.GetPixel(x, y) != two.GetPixel(x, y)) return false;
+            return true;
         }
 
         private static int Colourful(Bitmap image)
@@ -7653,7 +7679,11 @@ namespace CapriDesktop
             windows.AddRange(mainframe.Dropdowns);
             Neon.Repaint(preferences.MainframeColours, windows.ToArray());
             mainframe.ShowColours();
-            foreach (Form open in Application.OpenForms) { MiniPlayer shown = open as MiniPlayer; if (shown != null) shown.Restyle(); }
+            foreach (Form open in Application.OpenForms)
+            {
+                if (open is MiniPlayer) ((MiniPlayer)open).Restyle();
+                else if (open is TalkPill) ((TalkPill)open).Restyle();
+            }
         }
 
         internal double PopGap() { return ((double)PopMin + random.NextDouble() * ((double)PopMax - PopMin)) * 60; }

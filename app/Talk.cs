@@ -855,9 +855,9 @@ namespace CapriDesktop
         internal const int TearFrames = 4;
         // Segments in each of the wave's five bars when it's full: the wave's shape, and the top of the mic level.
         internal static readonly int[] Bars = { 2, 4, 5, 3, 2 };
-        internal static readonly Color Fill = Color.FromArgb(246, 9, 11, 15);
-        internal static readonly Color Unlit = Color.FromArgb(46, 52, 64);
-        internal static readonly Color Caption = Color.FromArgb(168, 174, 184);
+        internal static Color Fill { get { return Color.FromArgb(246, BubbleLook.Panel); } }
+        internal static Color Unlit { get { return Neon.Tone(46, 52, 64); } }
+        internal static Color Caption { get { return Neon.Mono ? BubbleLook.Dim : Color.FromArgb(168, 174, 184); } }
         private const int WashAlpha = 40;
         private static readonly Random random = new Random();
         private readonly Beat ticks = new Beat();
@@ -923,6 +923,9 @@ namespace CapriDesktop
             level = step;
             if (Visible) Redraw();
         }
+
+        // Her Mainframe colours changed, so it redraws in the new ones.
+        internal void Restyle() { if (Visible) Redraw(); }
 
         private void Redraw()
         {
@@ -1057,29 +1060,29 @@ namespace CapriDesktop
                 Rectangle body = Body(s);
                 int mid = size.Width / 2;
                 Rectangle lit = hover == 1 ? Rectangle.FromLTRB(body.Left, body.Top, mid, body.Bottom) : hover == 2 ? Rectangle.FromLTRB(mid, body.Top, body.Right, body.Bottom) : Rectangle.Empty;
-                Plate(graphics, body, s, lit, Look.Pink, Look.Cyan);
+                Plate(graphics, body, s, lit, BubbleLook.Pink, BubbleLook.Cyan);
                 // A slanted seam where the two halves' hit areas meet.
-                using (Pen seam = new Pen(Color.FromArgb(66, 72, 86), Math.Max(1, (int)Math.Round(s))))
+                using (Pen seam = new Pen(Neon.Tone(66, 72, 86), Math.Max(1, (int)Math.Round(s))))
                     graphics.DrawLine(seam, mid + 1.5f * s, body.Top + 10 * s, mid - 1.5f * s, body.Bottom - 10 * s);
                 // Her glitch, like her mini player: slivers of the edge torn loose, cyan at the top right and pink at the bottom left.
                 int sliver = Math.Max(1, (int)Math.Round(s));
-                using (Brush cyan = new SolidBrush(Color.FromArgb(220, Look.Cyan))) graphics.FillRectangle(cyan, body.Right - (int)Math.Round(32 * s), body.Top - (int)Math.Round(2 * s), (int)Math.Round(15 * s), sliver);
-                using (Brush pink = new SolidBrush(Color.FromArgb(220, Look.Pink))) graphics.FillRectangle(pink, body.Left + (int)Math.Round(12 * s), body.Bottom + (int)Math.Round(2 * s) - sliver, (int)Math.Round(11 * s), sliver);
-                Color wash = Mix(Fill, Look.Cyan, WashAlpha);
+                using (Brush cyan = new SolidBrush(Color.FromArgb(220, BubbleLook.Cyan))) graphics.FillRectangle(cyan, body.Right - (int)Math.Round(32 * s), body.Top - (int)Math.Round(2 * s), (int)Math.Round(15 * s), sliver);
+                using (Brush pink = new SolidBrush(Color.FromArgb(220, BubbleLook.Pink))) graphics.FillRectangle(pink, body.Left + (int)Math.Round(12 * s), body.Bottom + (int)Math.Round(2 * s) - sliver, (int)Math.Round(11 * s), sliver);
+                Color wash = Mix(Fill, BubbleLook.Cyan, WashAlpha);
                 string talk = Label(2, chatting, muted, listenForName);
                 bool on = TalkLit(chatting, muted, listenForName);
                 Rectangle[] pencil = Layout(s, 1, Ink(font, "TYPE"));
                 Rectangle[] wave = Layout(s, 2, Ink(font, talk));
-                DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? Look.Cyan : Look.Ink, hover == 1 ? wash : Fill);
-                DrawLabel(graphics, "TYPE", font, pencil[1], hover == 1 ? Look.Cyan : Caption);
-                DrawMeter(graphics, wave[0], s, on, muted, level, hover == 2 || on ? Look.Cyan : Look.Ink);
-                DrawLabel(graphics, talk, font, wave[1], chatting && muted ? Look.Red : hover == 2 || on ? Look.Cyan : Caption);
+                DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? BubbleLook.Cyan : BubbleLook.Ink, hover == 1 ? wash : Fill);
+                DrawLabel(graphics, "TYPE", font, pencil[1], hover == 1 ? BubbleLook.Cyan : Caption);
+                DrawMeter(graphics, wave[0], s, on, muted, level, hover == 2 || on ? BubbleLook.Cyan : BubbleLook.Ink);
+                DrawLabel(graphics, talk, font, wave[1], chatting && muted ? BubbleLook.Red : hover == 2 || on ? BubbleLook.Cyan : Caption);
                 if (chatting)
                 {
                     Rectangle mic = MicBody(s);
-                    Color edge = muted ? Look.Red : Look.Cyan;
+                    Color edge = muted ? BubbleLook.Red : BubbleLook.Cyan;
                     Plate(graphics, mic, s, hover == 3 ? mic : Rectangle.Empty, edge, edge);
-                    DrawMic(graphics, new PointF(mic.X + mic.Width / 2f, mic.Y + mic.Height / 2f), s, hover == 3 ? Look.Cyan : muted ? Look.Dim : Look.Ink, muted, hover == 3 ? wash : Fill);
+                    DrawMic(graphics, new PointF(mic.X + mic.Width / 2f, mic.Y + mic.Height / 2f), s, hover == 3 ? BubbleLook.Cyan : muted ? BubbleLook.Dim : BubbleLook.Ink, muted, hover == 3 ? wash : Fill);
                 }
             }
             if (tear > 0) Tear(image, s, Math.Min(1, (float)tear / TearFrames), seed + tear);
@@ -1106,7 +1109,7 @@ namespace CapriDesktop
                 int line = Math.Max(1, (int)Math.Round(s));
                 using (Pen scan = new Pen(Color.FromArgb(9, 255, 255, 255), line))
                     for (int row = box.Top; row < box.Bottom; row += Math.Max(3, (int)Math.Round(3 * s))) graphics.DrawLine(scan, box.Left, row + line / 2f, box.Right, row + line / 2f);
-                if (!lit.IsEmpty) using (Brush wash = new SolidBrush(Color.FromArgb(WashAlpha, Look.Cyan))) graphics.FillRectangle(wash, lit);
+                if (!lit.IsEmpty) using (Brush wash = new SolidBrush(Color.FromArgb(WashAlpha, BubbleLook.Cyan))) graphics.FillRectangle(wash, lit);
                 graphics.ResetClip();
             }
             float inset = edge / 2f;
@@ -1136,7 +1139,7 @@ namespace CapriDesktop
             float[] heights = { 5, 10, 14, 9, 4 };
             float stretch = !chatting ? 1 : 0.45f + (muted ? 0 : level) * 0.14f;
             PointF centre = new PointF(meter.X + meter.Width / 2f, meter.Y + meter.Height / 2f);
-            using (Pen bar = new Pen(chatting && muted ? Look.Dim : colour, 2.3f * s))
+            using (Pen bar = new Pen(chatting && muted ? BubbleLook.Dim : colour, 2.3f * s))
             {
                 bar.StartCap = LineCap.Round;
                 bar.EndCap = LineCap.Round;
@@ -1166,7 +1169,7 @@ namespace CapriDesktop
             }
             if (!muted) return;
             using (Pen gap = new Pen(back, 4.2f * s))
-            using (Pen slash = new Pen(Look.Red, 2 * s))
+            using (Pen slash = new Pen(BubbleLook.Red, 2 * s))
             {
                 slash.StartCap = LineCap.Round;
                 slash.EndCap = LineCap.Round;
@@ -1219,7 +1222,7 @@ namespace CapriDesktop
                     graphics.SetClip(Body(s));
                     if (chatting) graphics.SetClip(MicBody(s), CombineMode.Union);
                     graphics.IntersectClip(strip);
-                    using (Brush tint = new SolidBrush(Color.FromArgb((int)(96 * amount), i % 2 == 0 ? Look.Pink : Look.Cyan))) graphics.FillRectangle(tint, strip);
+                    using (Brush tint = new SolidBrush(Color.FromArgb((int)(96 * amount), i % 2 == 0 ? BubbleLook.Pink : BubbleLook.Cyan))) graphics.FillRectangle(tint, strip);
                     graphics.ResetClip();
                 }
             }
@@ -3292,7 +3295,7 @@ namespace CapriDesktop
         }
     }
 
-    // Her bubble's, task panel's and mini player's colours, from her Mainframe colours: on Night City they're Look's own, on Black, White and
+    // Her bubble's, task panel's, TYPE | TALK pill's and mini player's colours, from her Mainframe colours: on Night City they're Look's own, on Black, White and
     // Grey they're greys that read on that look's sheet.
     internal static class BubbleLook
     {

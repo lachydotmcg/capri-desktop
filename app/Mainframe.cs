@@ -885,7 +885,7 @@ namespace CapriDesktop
             frameSizeName = new Readout(frameSize);
             frameSize.Changed += delegate { if (!syncing) ShowFrameSize(); };
             frameSize.Released += delegate { if (!syncing) { capri.SetMainframeSize(FrameSizes[frameSize.Value]); Rezoom(Wanted()); ShowFrameSize(); } };
-            frameColours = Setting("Mainframe colours", Neon.LookNames, c, 194, "Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box, her bubble, her music player and her notes");
+            frameColours = Setting("Mainframe colours", Neon.LookNames, c, 194, "Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box, her bubble, her TYPE | TALK pill, her music player and her notes");
             frameColours.Changed += delegate { if (!syncing) capri.SetMainframeColours(frameColours.Value); };
             headPats = Switch("Head pats", c, 222, delegate { if (!syncing) capri.ToggleHeadPats(); });
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
