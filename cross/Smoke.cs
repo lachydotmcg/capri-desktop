@@ -5213,6 +5213,7 @@ namespace CapriDesktop
                 checks.Add("PASS mods skills: a .capri-skill imports, reaches her jobs only while its game is open, and removing it takes it out");
 
                 ModDirectoryChecks(frame, sheet, input, blue, skin);
+                ModDirectoryPluginChecks(frame, sheet);
             }
             finally
             {
@@ -5335,6 +5336,52 @@ namespace CapriDesktop
                 catch (IOException) { }
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the directory after the fallback checks");
             }
+        }
+
+        private void ModDirectoryPluginChecks(Mainframe frame, ModsWindow sheet)
+        {
+            Func<string, long, byte[]> get = ModDirectory.Get;
+            Func<string, string, byte[]> post = ModDirectory.Post;
+            Func<ModFile, string, bool> ask = frame.ModAsk;
+            byte[] plugin;
+            using (MemoryStream held = new MemoryStream())
+            {
+                using (System.IO.Compression.ZipArchive zip = new System.IO.Compression.ZipArchive(held, System.IO.Compression.ZipArchiveMode.Create, true))
+                    ModEntry(zip, ".claude-plugin/plugin.json", Encoding.UTF8.GetBytes("{\"name\":\"far-tools\",\"displayName\":\"Far Tools\",\"version\":\"1.2.0\",\"capri\":{\"permissions\":[\"accounts\"]},\"mcpServers\":{\"inside\":{\"type\":\"capri\",\"builtin\":\"smoke-directory\"}}}"));
+                plugin = held.ToArray();
+            }
+            string sha = ModDirectory.BlobSha(plugin);
+            byte[] tree = Encoding.UTF8.GetBytes("{\"tree\":[{\"path\":\"mods/far-tools/far-tools.capri-plugin\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":" + plugin.Length + "},{\"path\":\"mods/far-tools/far-tools.capri-tool\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":10}]}");
+            byte[] index = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"far-tools\",\"file\":\"far-tools.capri-plugin\",\"name\":\"Far Tools\",\"author\":\"Vocyn\",\"about\":\"Gives her a tool from a server she runs inside herself.\",\"kind\":\"plugin\"}]}");
+            int counted = 0;
+            string consent = null;
+            ModDirectory.Get = delegate(string url, long most)
+            {
+                if (url.Contains("/trees/") || url == ModDirectory.TreePage) return tree;
+                if (url == ModDirectory.IndexPage) return index;
+                if (url.EndsWith("/far-tools.capri-plugin", StringComparison.Ordinal) || url.EndsWith(sha, StringComparison.Ordinal)) return plugin;
+                throw new System.Net.WebException("stand-in");
+            };
+            ModDirectory.Post = delegate(string url, string body) { Interlocked.Increment(ref counted); return Encoding.UTF8.GetBytes("{}"); };
+            try
+            {
+                List<ModListing> found = ModDirectory.Browse();
+                if (found.Count != 1 || found[0].Kind != "PLUG-IN." || found[0].KindIndex != 5 || found[0].Title != "Far Tools" || ModDirectory.Kinds.Length != 6 || ModDirectory.Kinds[5] != "Plug-ins" || ModDirectory.Filter(found, "", 5).Count != 1 || ModDirectory.Filter(found, "", 1).Count != 0)
+                    throw new Exception("The Mac and Linux mods directory didn't list a plug-in under Plug-ins.");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "a directory with a plug-in");
+                sheet.Search(""); sheet.PickKind(5);
+                if (sheet.TitleOf(0) != "Far Tools" || sheet.MetaOf(0) != "PLUG-IN." || !sheet.CanDownload(0)) throw new Exception("The Plug-ins filter didn't show the plug-in card on Mac and Linux: " + sheet.MetaOf(0));
+                string wrong = sheet.Crowded();
+                if (wrong != null) throw new Exception("The Mac and Linux mods window with six filters doesn't fit: " + wrong);
+                sheet.SavePicture(Path.Combine(folder, "mainframe-mods-plugins.png"));
+                frame.ModAsk = delegate(ModFile mod, string hash) { consent = Mods.Consent(mod, hash); return false; };
+                sheet.Install(0); MainframeWait(delegate { return !sheet.Working; }, "a declined directory plug-in");
+                if (consent == null || !consent.Contains(Mods.Reviewed) || !consent.EndsWith("Turn this plug-in on?", StringComparison.Ordinal) || pet.ModList.All.Exists(m => m.File.Id == "far-tools") || counted != 0 || frame.ModStatusText != "Not imported. Nothing ran.")
+                    throw new Exception("A plug-in from the Mac and Linux directory didn't ask with the directory's line, or a no left something: " + frame.ModStatusText);
+                sheet.PickKind(0);
+                checks.Add("PASS mods directory on Mac and Linux: a plug-in shows under Plug-ins as PLUG-IN., six filters fit, and installing one asks Turn this plug-in on? with the line saying the Capri team reviewed that exact file; a no leaves nothing and isn't counted (mainframe-mods-plugins.png)");
+            }
+            finally { frame.ModAsk = ask; ModDirectory.Get = get; ModDirectory.Post = post; }
         }
 
         private void ModDirectoryChecks(Mainframe frame, ModsWindow sheet, string input, string blue, string skin)

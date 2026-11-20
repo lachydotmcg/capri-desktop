@@ -65889,6 +65889,142 @@ namespace CapriDesktop
             }
         }
 
+        private static byte[] DirectoryPlugin(string top, string version)
+        {
+            using (MemoryStream held = new MemoryStream())
+            {
+                using (System.IO.Compression.ZipArchive zip = new System.IO.Compression.ZipArchive(held, System.IO.Compression.ZipArchiveMode.Create, true))
+                {
+                    System.IO.Compression.ZipArchiveEntry entry = zip.CreateEntry(top + ".claude-plugin/plugin.json");
+                    using (StreamWriter write = new StreamWriter(entry.Open(), new UTF8Encoding(false)))
+                        write.Write("{\"name\":\"far-tools\",\"displayName\":\"Far Tools\",\"version\":\"" + version + "\",\"author\":{\"name\":\"Vocyn\"},\"capri\":{\"permissions\":[\"accounts\"]},\"mcpServers\":{\"inside\":{\"type\":\"capri\",\"builtin\":\"smoke-directory\"}}}");
+                }
+                return held.ToArray();
+            }
+        }
+
+        private void CheckDirectoryPlugins(List<string> checks, string output)
+        {
+            FormWindowState wasState = WindowState;
+            Restore();
+            Mods mods = capri.ModList;
+            Func<string, long, byte[]> wasGet = ModDirectory.Get;
+            Func<string, string, byte[]> wasPost = ModDirectory.Post;
+            string wasFolder = ModDirectory.PreviewFolder;
+            Func<ModFile, string, bool> wasAsk = ModAsk;
+            string under = Path.Combine(output, "directory-plugin-downloads");
+            ModDirectory.PreviewFolder = Path.Combine(output, "directory-plugin-previews");
+            ModsSheet sheet = null;
+            Plugins.BuiltIns["smoke-directory"] = delegate { return new McpBuiltIn("inside", delegate { return new List<Dictionary<string, object>>(); }, delegate(string tool, Dictionary<string, object> args) { return ""; }); };
+            try
+            {
+                byte[] settings = Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"wake_names\":[\"Nova\"]}");
+                byte[] plugin = DirectoryPlugin("", "1.2.0");
+                string pluginSha = ModDirectory.BlobSha(plugin), settingsSha = ModDirectory.BlobSha(settings);
+                Func<byte[], string> treeOf = delegate(byte[] listed)
+                {
+                    return "{\"tree\":[{\"path\":\"mods/far-tools/far-tools.capri-plugin\",\"type\":\"blob\",\"size\":" + listed.Length + ",\"sha\":\"" + ModDirectory.BlobSha(listed) + "\"}"
+                        + ",{\"path\":\"mods/far-names/far-names.capri-mod\",\"type\":\"blob\",\"size\":" + settings.Length + ",\"sha\":\"" + settingsSha + "\"}"
+                        + ",{\"path\":\"mods/far-tools/far-tools.capri-tool\",\"type\":\"blob\",\"size\":10,\"sha\":\"" + settingsSha + "\"}]}";
+                };
+                byte[] served = plugin;
+                string tree = treeOf(plugin);
+                byte[] index = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"far-tools\",\"file\":\"far-tools.capri-plugin\",\"name\":\"Far Tools\",\"author\":\"Vocyn\",\"about\":\"Gives her a tool from a server she runs inside herself.\",\"kind\":\"plugin\"}]}");
+                List<string> posts = new List<string>();
+                ModDirectory.Get = delegate(string url, long most)
+                {
+                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeApi) return Encoding.UTF8.GetBytes(tree);
+                    if (url == ModDirectory.IndexPage) return index;
+                    if (url.EndsWith("/far-tools.capri-plugin", StringComparison.Ordinal) || url.EndsWith(ModDirectory.BlobSha(served), StringComparison.Ordinal)) return served;
+                    if (url.EndsWith("/far-names.capri-mod", StringComparison.Ordinal) || url.EndsWith(settingsSha, StringComparison.Ordinal)) return settings;
+                    throw new WebException("stand-in", WebExceptionStatus.ConnectFailure);
+                };
+                ModDirectory.Post = delegate(string url, string body)
+                {
+                    posts.Add(url + " " + body);
+                    return Encoding.UTF8.GetBytes("{\"folder\":\"far-tools\",\"downloads\":1,\"rating\":0,\"votes\":0}");
+                };
+                List<ModListing> found = ModDirectory.Browse();
+                ModListing tools = found.Find(delegate(ModListing listing) { return listing.FileName == "far-tools.capri-plugin"; });
+                if (found.Count != 2 || tools == null || tools.Kind != "PLUG-IN." || tools.KindIndex != 5 || tools.Title != "Far Tools" || tools.Author != "Vocyn" || ModDirectory.Kinds.Length != 6 || ModDirectory.Kinds[5] != "Plug-ins"
+                    || ModDirectory.Filter(found, "", 5).Count != 1 || ModDirectory.Filter(found, "", 5)[0] != tools || ModDirectory.Filter(found, "", 1).Count != 1 || ModDirectory.Filter(found, "inside herself", 0).Count != 1)
+                    throw new Exception("The mods directory didn't list a plug-in under Plug-ins: " + found.Count + " / " + (tools == null ? "none" : tools.Kind + " " + tools.KindIndex));
+                checks.Add("PASS mods directory: a .capri-plugin is listed as PLUG-IN. with its index name and author, under its own Plug-ins filter, and other files beside it stay out");
+                ShowMods(true);
+                sheet = new ModsSheet(this, 1f);
+                sheet.Inline = true;
+                ModInline = true;
+                sheet.Show(this);
+                sheet.LoadMods();
+                sheet.PressFilter(5);
+                if (sheet.ShownCount != 1 || !sheet.Filtered(5) || sheet.Filtered(0) || sheet.TitleOf(0) != "Far Tools" || !sheet.MetaOf(0).StartsWith("PLUG-IN. ", StringComparison.Ordinal)) throw new Exception("The Plug-ins filter didn't show the plug-in card: " + sheet.ShownCount + " / " + sheet.MetaOf(0));
+                string crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("The mods window with six filters doesn't fit: " + crowded);
+                sheet.Picture(Path.Combine(output, "mods-window-plugins.png"));
+                foreach (float size in new[] { 1.5f, 2f })
+                    using (ModsSheet sized = new ModsSheet(this, size))
+                    {
+                        sized.Inline = true;
+                        sized.Show(this);
+                        sized.LoadMods();
+                        sized.PressFilter(5);
+                        string problem = sized.Crowded();
+                        sized.Picture(Path.Combine(output, "mods-window-plugins-" + (int)(size * 100) + ".png"));
+                        sized.Close();
+                        if (problem != null) throw new Exception("The mods window with six filters doesn't fit at " + size + ": " + problem);
+                    }
+                string consent = null;
+                ModAsk = delegate(ModFile mod, string hash) { consent = Mods.Consent(mod, hash); return false; };
+                sheet.PressInstall(0);
+                if (consent == null || !consent.Contains(Mods.Reviewed) || !consent.EndsWith("Turn this plug-in on?", StringComparison.Ordinal) || consent.Contains("Only turn it on if you trust who made it.") || !consent.Contains("uses Capri's own smoke-directory tools")
+                    || mods.All.Exists(delegate(Mod mod) { return mod.File.Id == "far-tools"; }) || posts.Count != 0 || sheet.StatusShown != "Not imported. Nothing ran.")
+                    throw new Exception("A plug-in from the directory didn't ask with the directory's line, or a no left something: " + sheet.StatusShown + " / " + consent);
+                ModAsk = delegate(ModFile mod, string hash) { consent = Mods.Consent(mod, hash); return true; };
+                sheet.PressInstall(0);
+                Mod got = mods.All.Find(delegate(Mod mod) { return mod.File.Id == "far-tools"; });
+                if (got == null || !got.Plugin || !got.On || got.File.Version != "1.2.0" || posts.Count != 1 || !posts[0].EndsWith("/mods/download {\"folder\":\"far-tools\"}", StringComparison.Ordinal) || !sheet.MetaOf(0).EndsWith("Installed.", StringComparison.Ordinal) || sheet.InstallTextOf(0) != "Reinstall")
+                    throw new Exception("A plug-in from the directory didn't install through its box: " + sheet.StatusShown);
+                checks.Add("PASS mods directory: installing a plug-in shows the same Turn on this plug-in? box as Import mod, with the line saying the Capri team reviewed that exact file; a no leaves nothing and isn't counted, and a yes installs and counts it (mods-window-plugins.png)");
+                if (ModDirectory.Updates(found, mods.All).Count != 0) throw new Exception("An installed plug-in that matches its listing looked out of date.");
+                served = DirectoryPlugin("", "1.3.0");
+                tree = treeOf(served);
+                List<ModListing> later = ModDirectory.Browse();
+                List<ModListing> newer = ModDirectory.Newer(ModDirectory.Updates(later, mods.All), mods.All, under);
+                bool fetched = newer.Count == 1 && newer[0].Fetched != null && File.Exists(newer[0].Fetched);
+                ModDirectory.Forget(newer);
+                Mod starter = new Mod { File = got.File, Path = got.Path, Plugin = true, Starter = true };
+                if (!fetched || ModDirectory.Updates(later, new List<Mod> { starter }).Count != 0) throw new Exception("A newer plug-in wasn't found as an update, or a starter was offered one.");
+                served = DirectoryPlugin("", "1.1.0");
+                tree = treeOf(served);
+                later = ModDirectory.Browse();
+                newer = ModDirectory.Newer(ModDirectory.Updates(later, mods.All), mods.All, under);
+                ModDirectory.Forget(newer);
+                if (newer.Count != 0) throw new Exception("An older plug-in in the directory was offered as an update.");
+                string folded = Path.Combine(output, "folded" + Mods.PluginExtension), loose = Path.Combine(output, "loose" + Mods.PluginExtension);
+                File.WriteAllBytes(folded, DirectoryPlugin("far-tools/", "2.0.1"));
+                File.WriteAllBytes(loose, DirectoryPlugin("far-tools/", "2.0.2"));
+                using (System.IO.Compression.ZipArchive extra = System.IO.Compression.ZipFile.Open(loose, System.IO.Compression.ZipArchiveMode.Update)) extra.CreateEntry("notes.txt");
+                if (Mods.VersionIn(folded) != "2.0.1" || Mods.VersionIn(loose) != null) throw new Exception("A plug-in's version wasn't read from where she reads its plugin.json: " + Mods.VersionIn(folded) + " / " + Mods.VersionIn(loose));
+                checks.Add("PASS mods directory: a newer plug-in shows as an update by its plugin.json version, an older one doesn't, an installed one that matches doesn't, and her starters are never offered one");
+            }
+            finally
+            {
+                if (sheet != null && !sheet.IsDisposed) sheet.Close();
+                Mod left = mods.All.Find(delegate(Mod mod) { return mod.File.Id == "far-tools"; });
+                if (left != null) mods.Remove(left);
+                Plugins.BuiltIns.Remove("smoke-directory");
+                ModDirectory.Get = wasGet;
+                ModDirectory.Post = wasPost;
+                ModDirectory.PreviewFolder = wasFolder;
+                ModAsk = wasAsk;
+                ShowMods(false);
+                WindowState = wasState;
+                ModInline = false;
+                ModDirectory.Forget(modUpdates);
+                modUpdates = null;
+            }
+        }
+
         // View's README preview (issue #221): the tree's README names, the line picker, the window, and its fallback to the
         // description. GitHub is a stand-in here, so nothing goes online.
         private void CheckReadme(List<string> checks, string output, List<ModListing> found)

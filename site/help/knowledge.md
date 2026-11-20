@@ -608,7 +608,7 @@ Right-click her > Open Capri Mainframe > Settings > CAPRI > Pop-in times. Set Sh
 Use preset returns to the Pop-ins slider's pace. Moving that slider also clears your custom times. CAPRI > Check in on me still decides whether she visits.
 
 ### How do I get mods? (0.8.3)
-Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins and Skills filter the list.
+Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins, Skills and Plug-ins filter the list.
 
 Press Install on the mod you want. View lets you read about it first. Once installed, click its stars to rate it from 1 to 5.
 
@@ -658,6 +658,8 @@ Your own plug-ins: Mods > Import mod takes a .capri-plugin, or a Claude plug-in'
 - Skills in skills/<name>/SKILL.md, up to 20. Commands, agents and hooks from a Claude plug-in aren't used.
 - Up to 1 MB zipped, 400 files and 8 MB unpacked.
 - The box warns when an npx or uvx server isn't pinned to a version, since what runs can change after you say yes. A server that hides the code it would run, like an encoded PowerShell block or a download piped into a shell, is refused.
+
+In the mods directory: Browse mods can list plug-ins, under Plug-ins. Install shows the same box, with a line saying the Capri team reviewed that exact file. A listed plug-in has every npx and uvx server pinned to a version.
 
 Signing in: an online plug-in like Notion or Linear opens your browser to sign in when you switch it on. If it still needs you, its row says "Needs you to sign in" on Windows, where Sign in under its Options opens your browser again, or "Turn it off and on to sign in" on Mac and Linux. On Windows the sign-in stays on this PC, protected by Windows, until you remove the plug-in, and importing it again means signing in again. On Mac and Linux she keeps sign-ins and the Email app password only until she closes.
 
