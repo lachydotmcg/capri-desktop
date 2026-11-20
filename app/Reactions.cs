@@ -183,6 +183,67 @@ namespace CapriDesktop
             if (choosing) PassThrough();
         }
 
+        private string heldChoice;
+        private double heldShown;
+        private bool heldOpen;
+
+        private void CheckHeld(double now)
+        {
+            string held = Security.Holding;
+            if (heldChoice != null && held != heldChoice) { DropHeldChoice(); heldChoice = null; }
+            if (heldChoice != null)
+            {
+                if (heldOpen && (now - heldShown > 60 || !box.Visible || box.Leaving >= 0)) DropHeldChoice();
+                return;
+            }
+            if (held == null || jealousOffer != null || box.Choosing || CallModeOn || chatting || hidden || !box.Visible || box.Leaving >= 0 || replyDone < 0) return;
+            string title;
+            string[] lines = HeldCard(out title);
+            if (lines == null) return;
+            heldChoice = held;
+            heldShown = now;
+            heldOpen = true;
+            box.Choose(AnswerHeld, title, lines);
+            PassThrough();
+        }
+
+        private static string[] HeldCard(out string title)
+        {
+            title = null;
+            List<KeyValuePair<string, ToolArguments>> calls = Security.HeldCalls(Security.HoldingId);
+            if (calls.Count == 0) return null;
+            if (calls.Count == 1 && calls[0].Key == "files" && Hands.Keeper != null)
+            {
+                try { return Hands.Keeper.Preview(calls[0].Value, out title); }
+                catch (Exception) { }
+            }
+            title = calls.Count == 1 ? "Allow this" : "Allow " + calls.Count + " things";
+            List<string> lines = new List<string>();
+            foreach (KeyValuePair<string, ToolArguments> call in calls)
+            {
+                string asked = Security.Asking(call.Key, call.Value);
+                if (!string.IsNullOrEmpty(asked)) lines.Add(char.ToUpperInvariant(asked[0]) + asked.Substring(1));
+            }
+            return lines.ToArray();
+        }
+
+        private void DropHeldChoice()
+        {
+            bool open = heldOpen;
+            heldOpen = false;
+            if (!open || !box.Choosing || jealousOffer != null) return;
+            box.Choose(null);
+            PassThrough();
+        }
+
+        private void AnswerHeld(bool yes)
+        {
+            heldOpen = false;
+            box.Choose(null);
+            PassThrough();
+            Hear(yes ? "yes" : "no");
+        }
+
         private void EndJealous()
         {
             bool shown = jealousAsked && jealousTicket == asking;

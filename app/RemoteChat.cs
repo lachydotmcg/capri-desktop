@@ -646,6 +646,7 @@ namespace CapriDesktop
                 }
                 case "volume": return "Changing the volume";
                 case "find_file": return "Finding a file";
+                case "files": return "Working on your files";
                 case "read_file": return "Reading a file";
                 case "screenshot": return "Taking a screenshot";
                 case "clipboard": return "Using the clipboard";

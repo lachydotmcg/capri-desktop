@@ -682,6 +682,7 @@ namespace CapriDesktop
             if ((BrainAsked != null || BrainRequested != null) && !all.Contains(RemoteBrainKeys.Feature)) all.Add(RemoteBrainKeys.Feature);
             if (!all.Contains(PairFeature)) all.Add(PairFeature);
             if (!all.Contains(RemoteWake.Feature)) all.Add(RemoteWake.Feature);
+            if (MemoryBook.Ready && !all.Contains(MemoryBook.Feature)) all.Add(MemoryBook.Feature);
             return all.ToArray();
         }
 
@@ -2130,6 +2131,24 @@ namespace CapriDesktop
                 {
                     string device = phone.Device.Id;
                     System.Threading.ThreadPool.QueueUserWorkItem(delegate { Send(device, RemoteWake.Info(), null, false, null); });
+                    return;
+                }
+                case "memory.get":
+                case "memory.edit":
+                case "memory.forget":
+                case "memory.add":
+                case "memory.day":
+                case "memory.forget-day":
+                case "memory.wipe":
+                case "memory.undo":
+                {
+                    string device = phone.Device.Id;
+                    if (!MemoryBook.Ready)
+                    {
+                        Push(Outgoing.Message(phone, RemoteMessages.Error("not-allowed", RemoteMessages.IdOk(message.Text("id")) ? message.Text("id") : null)));
+                        return;
+                    }
+                    MemoryBook.Queue(delegate { foreach (string json in MemoryBook.Answer(message)) Send(device, json, null, false, null); });
                     return;
                 }
                 case "ping":

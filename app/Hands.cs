@@ -98,6 +98,7 @@ namespace CapriDesktop
         [DataMember(Name = "stop")] public string Stop;
         [DataMember(Name = "shapes")] public string Shapes;
         [DataMember(Name = "find")] public string Find;
+        [DataMember(Name = "by")] public string By;
 #if !CROSS
         // The job a tool beside it came in for, so one that lands after that job ended never changes the next.
         internal Job Job;
@@ -344,6 +345,7 @@ namespace CapriDesktop
                 case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
 #endif
                 case "use_computer": return Mouse;
+                case "files": return FileChange(args) ? Sends : -1;
                 case "workspace": return Hands.WorkspaceStarts(args) ? Mouse : -1;
                 case "stream": return action == "stop" ? -1 : Mouse;
                 case "job_control": return action == "change" ? Mouse : -1;
@@ -394,7 +396,7 @@ namespace CapriDesktop
         internal static bool Asks(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args);
-            if (toggle < 0 || !Has(toggle) || On(toggle)) return false;
+            if (!Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return false;
             lock (gate) return !cleared.Contains(Asking(tool, args));
         }
 
@@ -402,7 +404,7 @@ namespace CapriDesktop
         internal static string Gate(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args);
-            if (toggle < 0 || !Has(toggle) || On(toggle)) return null;
+            if (!Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return null;
             string asked = Asking(tool, args);
             lock (gate)
             {
@@ -412,6 +414,10 @@ namespace CapriDesktop
             HeldState(HoldingId, "asking", Question);
             return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
         }
+
+        internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
+
+        private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize" || action == "write" || action == "edit"; }
 
         internal static bool IsHold(string result) { return result != null && result.StartsWith(Hold, StringComparison.Ordinal); }
 
@@ -545,6 +551,7 @@ namespace CapriDesktop
                 case "run_terminal": return "run terminal command " + (a.Command ?? "") + (string.IsNullOrWhiteSpace(a.Cwd) ? "" : " in " + a.Cwd);
 #endif
                 case "open_app": return "open " + Plain(a.Name, "that app");
+                case "files": return Hands.FilesAsked(a);
                 case "open_website":
                     Hands.WebsiteArgs(a);
                     string site = Plain(a.Site, "that site");
@@ -1337,7 +1344,8 @@ namespace CapriDesktop
             { "call_say", "Say a short message on the call that the user asked you to pass on. Speak about the user by their name in your own words. When you've just joined for them, say why you're there, cheeky is fine: they're away (a funny made-up reason, like <their name>'s away, probably taking a fat shit), they asked you to hop in, and you'll launch whatever the call's playing. Join first if needed. This line will be spoken with your reply, so do not repeat it in your answer.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The message, about the user in your own words\"}},\"required\":[\"text\"]}", "pass your message to the call", "say the user's message on the call" },
 #endif
-            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files and folders" },
+            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files by name" },
+            { "files", FileKeeper.Description, FileKeeper.Schema, "find your files by name, words inside, kind or date, and make folders, move, rename and sort them, with undo", "search and sort files" },
             { "website_nickname",
 #if CROSS
               "Remember a website by a nickname, forget it, or list saved websites. For a supported front browser on Mac, leave site empty; its address is read without moving their mouse or keyboard. On Linux or for other browsers, give site. Open a saved nickname with open_website.",
@@ -1635,6 +1643,8 @@ namespace CapriDesktop
         internal static Func<string, int?, long?, string> ReadFile = delegate { return "I don't have a file you handed me at that path."; };
         internal static Websites Websites;
         internal static FileFinder Finder = new FileFinder();
+        internal static FileKeeper Keeper = new FileKeeper(null);
+        internal static string FilesAsked(ToolArguments args) { return Keeper.Asking(args); }
         internal static Func<string, string> Fetch = Download;
         internal static Func<List<OpenWindow>> Windows = ReadWindows;
         internal static Func<OpenWindow, string, bool> Steer = Apply;
@@ -1989,6 +1999,7 @@ namespace CapriDesktop
 #endif
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
+                if (tool == "files") return Keeper.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
@@ -4562,6 +4573,7 @@ namespace CapriDesktop
             if (tool == "use_computer") return Named(args.Task);
             if (tool == "shortcut") return Regex.IsMatch(args.Name ?? "", @"\A(discord_mute|discord_deafen|screenshot|clip_that|record|game_bar|show_desktop|task_manager|clipboard|emoji|voice_typing|live_captions|narrator|magnifier|magnifier_off|color_filters|quick_settings)\z");
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
+            if (tool == "files") return FileKeeper.Valid(args);
             if (tool == "find_file") return args.Action == "show" || args.Action == "open" || args.Action == "stop" || ((string.IsNullOrEmpty(args.Action) || args.Action == "search") && Named(args.Description));
             if (tool == "website_nickname") return args.Action == "list" || (Named(args.Name) && (args.Action == "forget" || args.Action == "save"));
             if (tool == "read_file") return Named(args.Path) && (!args.Page.HasValue || args.Page.Value >= 1) && (!args.Offset.HasValue || args.Offset.Value >= 0);
@@ -5055,6 +5067,8 @@ namespace CapriDesktop
         // library, and from her other launchers' lists the same way. One already in All apps by that name isn't listed twice.
         internal static List<InstalledApp> WithSteam(List<InstalledApp> apps, List<InstalledApp> steam)
         {
+            if (apps == null) apps = new List<InstalledApp>();
+            if (steam == null) return apps;
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
             foreach (InstalledApp app in apps) names.Add(AppName(app));
             foreach (InstalledApp game in steam)
@@ -5126,10 +5140,10 @@ namespace CapriDesktop
             string data = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             List<InstalledApp> apps = new List<InstalledApp>();
             if (data.Length == 0) return apps;
-            apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests")));
-            apps.AddRange(RiotApps(Path.Combine(data, "Riot Games")));
-            apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir")));
-            apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn")));
+            try { apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests"))); } catch (Exception) { }
+            try { apps.AddRange(RiotApps(Path.Combine(data, "Riot Games"))); } catch (Exception) { }
+            try { apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir"))); } catch (Exception) { }
+            try { apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn"))); } catch (Exception) { }
             return apps;
         }
 
@@ -5156,12 +5170,14 @@ namespace CapriDesktop
                     try
                     {
                         byte[] bytes = File.ReadAllBytes(manifest);
-                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3
+                            : bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE ? 2 : 0;
                         using (MemoryStream stream = new MemoryStream(bytes, start, bytes.Length - start)) item = (EpicItem)reader.ReadObject(stream);
                     }
                     catch (IOException) { continue; }
                     catch (UnauthorizedAccessException) { continue; }
                     catch (SerializationException) { continue; }
+                    catch (System.Xml.XmlException) { continue; }
                     if (item == null || item.Incomplete || string.IsNullOrWhiteSpace(item.DisplayName) || string.IsNullOrWhiteSpace(item.AppName) || string.IsNullOrWhiteSpace(item.LaunchExecutable)) continue;
                     if (!string.IsNullOrEmpty(item.MainGameAppName) && item.MainGameAppName != item.AppName) continue;
                     string app = string.IsNullOrEmpty(item.CatalogNamespace) || string.IsNullOrEmpty(item.CatalogItemId) ? Uri.EscapeDataString(item.AppName)
@@ -5171,6 +5187,8 @@ namespace CapriDesktop
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
+            catch (SerializationException) { }
+            catch (System.Xml.XmlException) { }
             return apps;
         }
 
@@ -5192,7 +5210,10 @@ namespace CapriDesktop
                     if (!named.Success || named.Groups[1].Value == "riot_client") continue;
                     string settings = Path.Combine(product, named.Value + ".product_settings.yaml");
                     if (!File.Exists(settings)) continue;
-                    string text = File.ReadAllText(settings);
+                    string text;
+                    try { text = File.ReadAllText(settings); }
+                    catch (IOException) { continue; }
+                    catch (UnauthorizedAccessException) { continue; }
                     Match shortcut = Regex.Match(text, @"(?m)^shortcut_name:\s*""?(.+?)(?:\.lnk)?""?\s*$");
                     Match place = Regex.Match(text, @"(?m)^product_install_full_path:\s*""?(.+?)""?\s*$");
                     if (!shortcut.Success || !place.Success || !Directory.Exists(place.Groups[1].Value.Replace('/', '\\'))) continue;
@@ -5209,8 +5230,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> UbisoftApps(List<string[]> installs)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (installs == null) return apps;
             foreach (string[] install in installs)
             {
+                if (install == null || install.Length < 2 || string.IsNullOrEmpty(install[0]) || string.IsNullOrEmpty(install[1])) continue;
                 string name = Uninstalled("Uplay Install " + install[0]);
                 if (Regex.IsMatch(install[0], @"^\d+$") && !string.IsNullOrWhiteSpace(name) && FolderThere(install[1])) apps.Add(new InstalledApp(name.Trim(), "uplay://launch/" + install[0] + "/0"));
             }
@@ -5221,8 +5244,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> GogApps(List<string[]> games)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (games == null) return apps;
             foreach (string[] game in games)
             {
+                if (game == null || game.Length < 5) continue;
                 string exe = game[2] ?? "", given = (game[3] ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(game[1]) || !string.IsNullOrWhiteSpace(game[4]) || !Regex.IsMatch(exe, @"^[A-Za-z]:\\.+\.exe$", RegexOptions.IgnoreCase) || !Exists(exe)) continue;
                 apps.Add(new InstalledApp(game[1].Trim(), given.Length == 0 ? exe : "\"" + exe + "\" " + given));

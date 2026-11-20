@@ -210,10 +210,7 @@ namespace CapriDesktop
         {
             ShowCues();
             Entry entry = control as Entry;
-            Rung rung = control as Rung;
-            if (rung != null) rung.Arriving = true;
-            try { if (entry != null) entry.Box.Select(); else control.Select(); }
-            finally { if (rung != null) rung.Arriving = false; }
+            if (entry != null) entry.Box.Select(); else control.Select();
             control.Invalidate();
         }
 
@@ -588,8 +585,8 @@ namespace CapriDesktop
             more.Focus();
             string modPage = TabWalk(1, 12);
             Strike(Keys.H);
-            if (main != "BRAIN VOICE CAPRI" || mainBack != "CAPRI VOICE BRAIN" || fromTitle != "CAPRI" || page != "YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL HER COMPUTER CAPRI WATCH BRAIN HABITS SOUNDS"
-                || pageBack != "SOUNDS HABITS BRAIN WATCH CAPRI HER COMPUTER DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU" || fromMiddle != "KEYS" || !first || modPage != "MODS INSTALLED COLORS")
+            if (main != "BRAIN VOICE CAPRI" || mainBack != "CAPRI VOICE BRAIN" || fromTitle != "CAPRI" || page != "YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL HER COMPUTER UNINSTALL CAPRI WATCH BRAIN HABITS SOUNDS"
+                || pageBack != "SOUNDS HABITS BRAIN WATCH CAPRI UNINSTALL HER COMPUTER DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU" || fromMiddle != "KEYS" || !first || modPage != "MODS INSTALLED COLORS")
                 throw new Exception("Tab between her Mainframe's sections went wrong: main " + main + " / back " + mainBack + " / from the title " + fromTitle + " / Settings " + page + " / back " + pageBack + " / from Dance to music " + fromMiddle + ", first " + first + " / Mods " + modPage);
             checks.Add("PASS Mainframe Tab and Shift+Tab: Tab jumps to the first option of the next section and Shift+Tab to the one before, BRAIN, VOICE, CAPRI on her main page, YOU, VOICE, MOVES, KEYS and on through both columns of Settings, and MODS, INSTALLED, COLORS on Mods, wrapping at either end");
         }

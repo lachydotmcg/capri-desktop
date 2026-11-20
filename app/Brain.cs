@@ -738,6 +738,11 @@ namespace CapriDesktop
         internal volatile string Model;
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
+        internal volatile Engine Spare;
+        internal volatile Pick SparePick;
+        internal volatile bool SpareFirst;
+        internal volatile string SpareModel;
+        [ThreadStatic] private static bool spared;
         // A server they run themselves that speaks OpenAI's chat API, like llama.cpp's llama-server, LM Studio, vLLM or
         // Hugging Face's TGI, at its address without /v1. It thinks instead of Ollama, with Model as its model. ServerKey
         // is optional: local servers need none, and an OpenAI-compatible provider gets it as a Bearer token. The address
@@ -1502,6 +1507,14 @@ namespace CapriDesktop
         private static readonly Regex Whereabouts = new Regex(@"(?i:\baddress(es)?\b)|\b\d{1,5}[A-Za-z]?\s+(?:[A-Z][\p{L}']*\s+){1,3}(?:Street|St|Road|Rd|Avenue|Ave|Lane|Drive|Court|Place|Crescent|Boulevard|Blvd|Way|Terrace|Close|Parade|Highway|Grove|Square)\b");
 
         private static bool Revealing(string text) { return Personal.IsMatch(text) || Whereabouts.IsMatch(text); }
+
+        internal static bool Withheld(string text) { return Discreet ? Revealing(text ?? "") : Personal.IsMatch(text ?? ""); }
+
+        internal static object NotesGate { get { return noting; } }
+
+        internal static object ChatGate { get { return writing; } }
+
+        internal static string QueueFile { get { return QueuePath; } }
 
         private static string QueuePath { get { string folder = TranscriptPath; return folder == null ? null : Path.Combine(folder, "unfolded.txt"); } }
 
@@ -3383,7 +3396,7 @@ namespace CapriDesktop
         {
             string model = Model;
             if (model == null) throw new BrainException(Offline);
-            Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
+            Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, Spare = Spare, SparePick = SparePick, SpareFirst = SpareFirst, SpareModel = SpareModel };
 #if CROSS
             aside.Provider = Provider;
 #endif
@@ -3773,6 +3786,35 @@ namespace CapriDesktop
                 return result;
             }
 #endif
+            Engine spare = Spare;
+            Pick sparePick = SparePick;
+            string spareModel = sparePick != null ? sparePick.Name : SpareModel;
+            if (!spared && (spare != null && sparePick != null || spare == null && spareModel != null) && parts == null && (Remote != null && Remote.Kind != "local" || Server != null) && !messages.Exists(delegate(ChatMessage message) { return message.Images != null && message.Images.Length > 0; }))
+            {
+                spared = true;
+                try
+                {
+                    Brain own = new Brain { Model = spareModel, Local = sparePick == null ? null : spare, LocalPick = sparePick };
+#if CROSS
+                    Func<string> pc = delegate { calls.Clear(); return own.Think(spareModel, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, computerAction, rounds); };
+                    Func<string> cloud = delegate { calls.Clear(); return Think(model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, claudeTools, job, plain, computerAction, rounds); };
+#else
+                    Func<string> pc = delegate { calls.Clear(); return own.Think(spareModel, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, rounds); };
+                    Func<string> cloud = delegate { calls.Clear(); return Think(model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, claudeTools, job, plain, rounds); };
+#endif
+                    bool first = SpareFirst;
+                    try { return first ? pc() : cloud(); }
+                    catch (Exception missed)
+                    {
+                        if (!Sparable(missed)) throw;
+                        Check(ticket);
+                        Log("brain", -1, (first ? "Her PC brain" : "The cloud brain") + " couldn't answer (" + Redacted(missed.Message) + "), asking " + (first ? "the cloud brain" : "her PC brain"));
+                        try { return first ? cloud() : pc(); }
+                        catch (Exception again) { if (!Sparable(again)) throw; throw missed; }
+                    }
+                }
+                finally { spared = false; }
+            }
             Cloud remote = Remote;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
 #if !CROSS
@@ -4477,6 +4519,12 @@ namespace CapriDesktop
 #endif
         }
 
+        private static bool Sparable(Exception error)
+        {
+            WebException web = error as WebException;
+            return error is BrainException || error is IOException || (web != null && web.Status != WebExceptionStatus.RequestCanceled);
+        }
+
         private void Check(int ticket)
         {
             lock (gate) if (ticket >= 0 && ticket != cancelled) throw new WebException("Reply cancelled.", WebExceptionStatus.RequestCanceled);
@@ -4636,7 +4684,7 @@ namespace CapriDesktop
             if (error is FileNotFoundException || error is DirectoryNotFoundException || code == 2 || code == 3) return "a file or folder it needs isn't there anymore.";
             if (error is PathTooLongException || code == 206) return "its path is too long for Windows.";
             if (error is WebException) return "the connection failed. Check your internet.";
-            if (error is SerializationException || error is FormatException) return "the reply couldn't be read.";
+            if (error is SerializationException || error is System.Xml.XmlException || error is FormatException) return "the reply couldn't be read.";
             if (error is IOException) return "Windows couldn't read or write a file it needs.";
             return "something in Windows failed.";
         }
@@ -5388,6 +5436,17 @@ namespace CapriDesktop
             trouble = null;
             name = null;
             return AskName;
+        }
+
+        internal string Start(string known)
+        {
+            string line = Start();
+            string called = Brain.Nick(known);
+            if (called.Length == 0) return line;
+            name = called;
+            Keep("Name", name);
+            step = 1;
+            return "Let's get to know each other, " + name + ". " + AskPronouns + " Say skip to skip one, or stop to stop.";
         }
 
         internal void Stop() { step = -1; }
