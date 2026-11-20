@@ -3828,15 +3828,20 @@ namespace CapriDesktop
         internal static bool StandsIn(Clip shown, Clip stand)
         {
             if (shown == null || shown == stand || stand.Old || shown.Title == null || !StandIns.ContainsKey(shown.Title)) return false;
+            return !SkinShips(shown.Title);
+        }
+
+        internal static bool SkinShips(string title)
+        {
             string skin = SkinFolder;
-            if (skin == null) return true;
+            if (skin == null || title == null) return false;
             bool ships;
             lock (skinShips)
             {
                 if (!ReferenceEquals(skin, standInSkin)) { standInSkin = skin; skinShips.Clear(); }
-                if (!skinShips.TryGetValue(shown.Title, out ships)) skinShips[shown.Title] = ships = File.Exists(Path.Combine(skin, shown.Title + ".png"));
+                if (!skinShips.TryGetValue(title, out ships)) skinShips[title] = ships = File.Exists(Path.Combine(skin, title + ".png"));
             }
-            return !ships;
+            return ships;
         }
 
         // Her glitch on her artist's standing set: drawn through her own RenderFrame, every step is her new frame whole on top

@@ -45,6 +45,12 @@ namespace CapriDesktop
             return typeof(Pet).Assembly.GetManifestResourceInfo(name) != null;
         }
 
+        private static bool SkinShips(string title)
+        {
+            string skin = SkinFolder;
+            return skin != null && title != null && File.Exists(Path.Combine(skin, title + ".png"));
+        }
+
         internal static PixelSize ArtSize(string name)
         {
             using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(name))
@@ -330,6 +336,13 @@ namespace CapriDesktop
             RefreshBrains();
         }
         internal void MainframeUpdateCheck() { CheckUpdate(true); }
+        internal UninstallPlan MainframeUninstallPlan(bool wipe) { return Uninstall.Live(wipe); }
+        internal void MainframeUninstall(bool wipe)
+        {
+            if (Program.Smoke != null) return;
+            if (Uninstall.Start(Uninstall.Live(wipe), Environment.ProcessId)) Quit();
+            else Talk.Answer("(uninstall)", "I couldn't start the helper that removes me, so nothing changed. You can delete my app by hand.");
+        }
         internal void MainframeSetupInput() { if (HyprlandDesktop.Current != null) { Talk.Answer("(input)", ComputerJobs.Available ? "Native compositor input is ready." : "The native compositor input helper is unavailable. Check the Linux package and compositor protocol support; no global input setup was applied."); return; } CopyFingersSetup(); }
         internal void MainframePickModel(string model)
         {

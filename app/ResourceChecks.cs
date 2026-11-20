@@ -90,6 +90,79 @@ namespace CapriDesktop
                 }
                 finally { brain.Local = was; }
                 checks.Add("PASS brain rest: llama-server stops after " + BrainRest / 60 + " minutes unused, or " + SpareBrainRest + " seconds once another brain is picked, never during an ask, and starts again on the next one");
+
+                Engine heldLocal = brain.Local;
+                Cloud heldRemote = brain.Remote;
+                string heldAddress, heldKey;
+                brain.GetServer(out heldAddress, out heldKey);
+                bool providerWas = preferences.ProviderOn, noAiWas = preferences.NoAi, ollamaWas = ollamaRunning;
+                int tierWas = preferences.Tier;
+                string modelWas = brain.Model;
+                Machine machineWas = machine;
+                Pick fitWas = fit;
+                string[] providersWas = providerModels;
+                Machine stand = new Machine { Ram = 32L << 30, Vram = 8L << 30 };
+                List<string> letGo = new List<string>();
+                try
+                {
+                    foreach (string way in new[] { "provider", "cloud", "ollama", "none", "medium without a key", "no ai" })
+                    {
+                        preferences.Tier = way == "medium without a key" ? 1 : 0;
+                        brain.Local = engine;
+                        brain.Remote = way == "cloud" ? new Cloud("sk-rest-check", "gpt-stand-in") : null;
+                        preferences.ProviderOn = way == "provider";
+                        brain.SetServer(way == "provider" ? "http://127.0.0.1:1/v1" : null, null);
+                        providerModels = way == "provider" ? new[] { "stand-in" } : null;
+                        preferences.NoAi = false;
+                        Brain.Off = false;
+                        if (way == "no ai") SetNoAi(true);
+                        else UseBrain(way == "ollama" ? new[] { "llama-stand-in" } : null, stand, way == "none" ? null : Engine.Picks[2]);
+                        if (brain.Local != null || BrainRestAfter != SpareBrainRest) letGo.Add(way + " kept " + (brain.Local == null ? "the long rest" : "her brain"));
+                    }
+                }
+                finally
+                {
+                    preferences.NoAi = noAiWas;
+                    Brain.Off = noAiWas;
+                    preferences.ProviderOn = providerWas;
+                    preferences.Tier = tierWas;
+                    brain.SetServer(heldAddress, heldKey);
+                    brain.Remote = heldRemote;
+                    brain.Local = heldLocal;
+                    brain.Model = modelWas;
+                    providerModels = providersWas;
+                    machine = machineWas;
+                    fit = fitWas;
+                    ollamaRunning = ollamaWas;
+                    ShowTiers();
+                }
+                if (letGo.Count > 0) throw new Exception("Picking another brain didn't let go of hers: " + string.Join(", ", letGo.ToArray()));
+                checks.Add("PASS her brain is let go: a provider, a cloud key, Ollama, no brain at all, MEDIUM without a key and No AI each leave it unpicked and on the " + SpareBrainRest + " second rest, so it stops whether or not she is listening or in a call");
+
+                resting.Stop();
+                Engine.Spawn = delegate(ProcessStartInfo info)
+                {
+                    System.Net.Sockets.TcpListener fake;
+                    FakeServer(new string[12], new List<string>(), out fake, port: int.Parse(Regex.Match(info.Arguments, @"--port (\d+)").Groups[1].Value), respond: delegate(string raw) { return raw.Contains("/chat/completions") ? LocalReply("From her PC.") : "{\"status\":\"ok\"}"; });
+                    lock (fakes) fakes.Add(fake);
+                    return Process.Start(new ProcessStartInfo("ping.exe", "-n 120 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true });
+                };
+                List<string> providerAsked = new List<string>();
+                System.Net.Sockets.TcpListener providerFake;
+                string providerAddress = FakeServer(new[] { "!401 {\"error\":{\"message\":\"Key rejected\"}}", LocalReply("From the cloud.") }, providerAsked, out providerFake);
+                lock (fakes) fakes.Add(providerFake);
+                Brain backed = new Brain { Model = "cloud-stand-in", Spare = resting, SparePick = Engine.Picks[2] };
+                backed.SetServer(providerAddress, null);
+                string backup = backed.Aside("Chat", "Hello", 90);
+                backed.SpareFirst = true;
+                string first = backed.Aside("Chat", "Hello", 90);
+                int beforeBroken = providerAsked.Count;
+                resting.Stop();
+                backed.SparePick = Engine.Picks[0];
+                string broken = backed.Aside("Chat", "Hello", 90);
+                if (backup != "From her PC." || first != "From her PC." || beforeBroken != 1 || broken != "From the cloud." || providerAsked.Count != 2)
+                    throw new Exception("Her PC brain didn't back the cloud up: backup " + backup + ", first " + first + ", then " + broken + ", " + providerAsked.Count + " cloud asks");
+                checks.Add("PASS her PC brain from YunoTheAlien: as backup it answers when the cloud fails, as first it answers before the cloud is asked, and the cloud answers when her PC brain can't");
             }
             finally
             {

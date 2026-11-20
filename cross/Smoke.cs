@@ -169,6 +169,7 @@ namespace CapriDesktop
                 UpdateCheckChecks();
                 LinuxAppImageUpdater.Checks(checks);
                 MacAppUpdater.Checks(checks);
+                Uninstall.Checks(checks);
                 OfflineChecks();
                 FakeCrash.Checks(checks);
                 FakeCrash.WindowChecks(checks);
@@ -4608,13 +4609,13 @@ namespace CapriDesktop
             throw new Exception("No mod color entry: " + name);
         }
 
-        private static string ModSkin(string into, string id, string picture, int width, int height)
+        private static string ModSkin(string into, string id, string picture, int width, int height, string frames = null)
         {
             string file = Path.Combine(into, id + Mods.SkinExtension);
             if (File.Exists(file)) File.Delete(file);
             using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
             {
-                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"}"));
+                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"" + (frames == null ? "" : ",\"frames\":" + frames) + "}"));
                 using (SkiaSharp.SKBitmap art = new SkiaSharp.SKBitmap(width, height))
                 {
                     art.Erase(new SkiaSharp.SKColor(255, 0, 70));
@@ -4865,6 +4866,72 @@ namespace CapriDesktop
                 if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 if (Pet.SkinFolder != null || ModPixel(idle.Strip, 36, 74) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
+                if (!frame.ImportMod(ModSkin(input, "smoke-half", "idle.png", size.Width / 2, size.Height, "[{\"strip\":\"idle\",\"fps\":12}]")) || idle.Count != 30 || idle.Fps != 12 || !idle.Reframed || idle.OwnCount != 60) throw new Exception("A skin with half her frames didn't re-frame her idle: " + idle.Count + " at " + idle.Fps + ".");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                if (idle.Count != 60 || idle.Fps != 24 || idle.Reframed) throw new Exception("Removing a re-framed skin left her idle at " + idle.Count + " frames, " + idle.Fps + " fps.");
+                checks.Add("PASS mods frames: a skin strip with half her frames and a speed of its own re-frames her idle to 30 at 12 fps, and removing it brings back 60 at 24");
+                AnimationDraft draft = new AnimationDraft(mods, pet.Clips);
+                try
+                {
+                    AnimationDraft.Strip drawn = draft.Strips.Find(strip => strip.Title == "idle" && !strip.Left), shut = draft.Strips.Find(strip => strip.Title == "mouth");
+                    if (drawn == null || shut == null || !shut.Fixed || drawn.Fixed || !draft.Strips.Exists(strip => strip.Title == "perch" && strip.Left) || draft.Strips.Exists(strip => strip.Title == "walk" && strip.Left))
+                        throw new Exception("Her animation editor didn't list her strips and their facing-left sets.");
+                    draft.Load(drawn);
+                    if (drawn.Count != 60 || drawn.Frames[0].Width != drawn.Wide || drawn.Frames[0].Height != drawn.High || drawn.From != "her own art") throw new Exception("Her idle didn't load into her animation editor as her own 60 frames.");
+                    if (draft.Fits(drawn, Mods.MostFrames + 1) == null || draft.Fits(shut, shut.OwnCount + 1) == null || draft.Fits(drawn, 0) == null || draft.Fits(drawn, 61) != null) throw new Exception("Her animation editor let a strip take a frame count it can't.");
+                    drawn.Frames.Add(AnimationDraft.Copy(drawn.Frames[0]));
+                    drawn.Changed = true;
+                    foreach (AnimationDraft.Strip strip in draft.Strips) if (strip.Title == "idle") { strip.Fps = 30; strip.Retimed = true; }
+                    ModFrames[] rates;
+                    Dictionary<string, byte[]> packed = draft.Pack(out rates);
+                    if (packed.Count != 1 || !packed.ContainsKey("idle.png") || rates == null || rates.Length != 1 || rates[0].Strip != "idle" || rates[0].Fps != 30) throw new Exception("Her animation editor packed more or less than what changed.");
+                    string made = Path.Combine(input, "animations-test" + Mods.SkinExtension);
+                    Mods.PackSkin(made, new ModFile { Id = Mods.IdFor("Animations Test!"), Name = "Animations Test", Frames = rates }, packed);
+                    Mod worn = mods.WearOutfit(made);
+                    try { if (worn == null || worn.File.Id != "animations-test" || mods.Outfit != worn || idle.Count != 61 || idle.Fps != 30) throw new Exception("Wearing a skin from her animation editor didn't give her its 61 frames at 30 fps: " + idle.Count + " at " + idle.Fps); }
+                    finally { if (worn != null) mods.Remove(worn); }
+                    if (idle.Count != 60 || idle.Fps != 24) throw new Exception("Removing a skin from her animation editor didn't bring her own idle back.");
+                }
+                finally { draft.Dispose(); }
+                checks.Add("PASS animations: her editor lists her strips, fits, loads her own frames, keeps her mouth shapes fixed, and a frame and speed changed there are worn as a skin and taken off again");
+                AnimationDraft editing = new AnimationDraft(mods, pet.Clips);
+                try
+                {
+                    AnimationSheet editor = new AnimationSheet(pet, frame, editing);
+                    try
+                    {
+                        List<string> opened = new List<string>();
+                        editor.Opener = delegate(string file) { opened.Add(file); return true; };
+                        AnimationDraft.Strip standing = editing.Strips.Find(strip => strip.Title == "idle" && !strip.Left);
+                        Action<string, int, SkiaSharp.SKColor> draw = delegate(string file, int cells, SkiaSharp.SKColor paint)
+                        {
+                            using (SkiaSharp.SKBitmap made = new SkiaSharp.SKBitmap(standing.Wide * cells, standing.High))
+                            {
+                                made.Erase(paint);
+                                File.WriteAllBytes(file, AnimationDraft.Png(made));
+                            }
+                            File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddSeconds(5));
+                        };
+                        string one = editor.EditFile(false, true);
+                        if (one == null || opened.Count != 1 || opened[0] != one || !File.Exists(one)) throw new Exception("Edit frame in didn't write the frame and ask which app opens it.");
+                        draw(one, 1, new SkiaSharp.SKColor(255, 0, 0));
+                        editor.TakeNow();
+                        if (standing.Count != 60 || !standing.Changed || standing.Frames[0].GetPixel(10, 10) != new SkiaSharp.SKColor(255, 0, 0)) throw new Exception("A frame saved in another app didn't come back into her editor.");
+                        string whole = editor.EditFile(true, true);
+                        draw(whole, 30, new SkiaSharp.SKColor(0, 0, 255));
+                        editor.TakeNow();
+                        if (standing.Count != 30 || standing.Frames[29].GetPixel(10, 10) != new SkiaSharp.SKColor(0, 0, 255)) throw new Exception("A strip saved in another app didn't come back with its 30 frames.");
+                        File.WriteAllText(whole, "not a picture yet");
+                        File.SetLastWriteTimeUtc(whole, DateTime.UtcNow.AddSeconds(10));
+                        editor.TakeNow();
+                        if (standing.Count != 30) throw new Exception("A half-saved strip from another app replaced her frames.");
+                        editor.Close();
+                        if (File.Exists(one) || File.Exists(whole)) throw new Exception("Closing her editor left its files for other apps behind.");
+                    }
+                    finally { }
+                }
+                finally { editing.Dispose(); }
+                checks.Add("PASS animations edit in: Edit frame in and Edit strip in write a PNG, ask which app opens it, take each save back, and leave a half-saved file alone");
                 string[] badSkins = { ModSkin(input, "smoke-size", "idle.png", 10, 10), ModSkin(input, "smoke-path", "../idle.png", size.Width, size.Height), ModSkin(input, "smoke-unknown", "other.png", size.Width, size.Height) };
                 foreach (string bad in badSkins)
                 {
@@ -5340,8 +5407,8 @@ namespace CapriDesktop
             frame.ShowMods(true); frame.SearchInstalled("");
             pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
             string wrong = null;
-            string[] names = { "Import mod", "Browse mods", "Mods folder", "Update mods", "Save colors", "Reset colors", "Mods", "Back" };
-            Rect[] boxes = { new Rect(28, 104, 100, 28), new Rect(134, 104, 100, 28), new Rect(240, 104, 116, 28), new Rect(256, 204, 100, 26), new Rect(28, 688, 160, 24), new Rect(196, 688, 160, 24), new Rect(234, 20, 56, 22), new Rect(146, 20, 84, 22) };
+            string[] names = { "Import mod", "Browse mods", "Mods folder", "Update mods", "Save colors", "Reset colors", "Animations", "Mods", "Back" };
+            Rect[] boxes = { new Rect(28, 104, 100, 28), new Rect(134, 104, 100, 28), new Rect(240, 104, 116, 28), new Rect(256, 204, 100, 26), new Rect(28, 688, 160, 24), new Rect(196, 688, 160, 24), new Rect(28, 720, 160, 24), new Rect(234, 20, 56, 22), new Rect(146, 20, 84, 22) };
             for (int i = 0; wrong == null && i < names.Length; i++)
             {
                 NeonButton key = frame.Button(names[i]);
