@@ -3047,6 +3047,9 @@ namespace CapriDesktop
             Tunes.Own = delegate { return PlaylistTune(); };
             Hands.Playlist = PlaylistTool;
             Hands.Websites = new Websites(data);
+            Hands.Keeper = new FileKeeper(data) { Reveal = delegate(string path) { return Hands.Finder.Reveal(path) ? "Selected " + path + " in File Explorer." : null; } };
+            FileKeeper.Changed = delegate(FileChange change) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFiles(change); } catch (Exception) { } }); };
+            FileKeeper.Used = delegate(string call, string result) { Post(delegate { if (quitting) return; try { LoadWorkspace(); workspace.LogFilesCall(call, result); } catch (Exception) { } }); };
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
             Hands.GameOpen = delegate { return Computer.GameOpen(); };
@@ -5769,6 +5772,7 @@ namespace CapriDesktop
         // passwords staying theirs to type, her prompts following the toggles, and the window at 100%, 150% and 200%.
         private void SecurityChecks(System.Collections.Generic.List<string> checks, string output)
         {
+            SmokeAskCard(checks, output);
             Func<string> bits = delegate { System.Text.StringBuilder all = new System.Text.StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
             string[] presetBits = { "00000000000010", "11100000000010", "11111110000011", "11111111110001" };
             System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
@@ -6069,6 +6073,41 @@ namespace CapriDesktop
         // quick run checks it: each preset's default and saves from before it, a "Favourite card game" label kept and a card
         // number dropped, her notes, Get to know me and what she saw with it on and off, a form's personal boxes hidden only
         // while it's on, and her SECURITY window with its 13th row at 100%, 150% and 200%. "Hey Capri" is left alone throughout.
+        private static void SmokeAskCard(System.Collections.Generic.List<string> checks, string output)
+        {
+            using (SpeechBox prompt = new SpeechBox())
+            {
+                prompt.State = TalkState.Online;
+                prompt.Heard = "put the beach stuff in a folder";
+                prompt.Reply = "Found two from the beach. Want me to move them into a new Beach folder?";
+                prompt.Revealed = prompt.Reply.Length;
+                foreach (float scale in new[] { 1f, 2f })
+                    for (int choice = 0; choice < 2; choice++)
+                    {
+                        bool? answer = null;
+                        prompt.Choose(delegate(bool yes) { answer = yes; }, "Move 2 files", new[] { "beach day.mp4 \u2192 Beach", "dog at beach.jpg \u2192 Beach" });
+                        Point at;
+                        using (Bitmap image = prompt.Render(scale, new Point((int)(500 * scale), (int)(700 * scale)), new Point((int)(500 * scale), (int)(800 * scale)), new Rectangle(0, 0, (int)(1280 * scale), (int)(900 * scale)), false, out at))
+                        {
+                            RectangleF whole = new RectangleF(0, 0, image.Width, image.Height);
+                            if (prompt.YesButton.IsEmpty || prompt.NoButton.IsEmpty || prompt.YesButton.IntersectsWith(prompt.NoButton) || !whole.Contains(prompt.YesButton) || !whole.Contains(prompt.NoButton) || prompt.NoButton.Left < prompt.YesButton.Right)
+                                throw new Exception("Her ask card's Allow and No keys don't fit in her bubble.");
+                            if (scale == 2 && choice == 0) image.Save(Path.Combine(output, "ask-card.png"), ImageFormat.Png);
+                        }
+                        if (answer != null) throw new Exception("Showing her ask card answered it.");
+                        RectangleF button = choice == 0 ? prompt.YesButton : prompt.NoButton;
+                        prompt.ClickChoice(new Point((int)button.Left + 4, (int)button.Top + 4));
+                        if (answer != (choice == 0) || prompt.Choosing || prompt.AskTitle != null) throw new Exception("Her ask card's keys gave the wrong answer or stayed up.");
+                    }
+                prompt.Choose(delegate { });
+                if (prompt.AskTitle != null || prompt.AskLines.Length != 0) throw new Exception("A plain Yes or No question kept an old ask card.");
+                prompt.Choose(null);
+            }
+            string title;
+            if (Security.Holding == null && HeldCard(out title) != null) throw new Exception("Her ask card showed with nothing held.");
+            checks.Add("PASS her asks show an amber card on her bubble with what changes and Allow and No keys that answer once");
+        }
+
         private void SmokePrivacy(System.Collections.Generic.List<string> checks, string output)
         {
             string folder = Path.Combine(output, "privacy-" + Guid.NewGuid().ToString("N").Substring(0, 8));
@@ -10040,6 +10079,7 @@ namespace CapriDesktop
             Sight ahead = Computer.Glimpse();
             frontBusy = full || (ahead != null && ahead.Window == Native.GetForegroundWindow() && Computer.GameWindow(ahead));
             CheckJealous(ahead, full, now);
+            CheckHeld(now);
             CheckDoomscroll(ahead, full, now);
             // Over a game with nothing to do she gives way to it. Listening, talking, clipping or working, she keeps her place so her ears and hands don't stutter.
             Native.Lower(frontBusy && working == null && !chatting && !preferences.HeyCapri && !preferences.ClipGames && talkState == TalkState.Off);
@@ -22606,6 +22646,7 @@ namespace CapriDesktop
             Action<string, string> requestBrowse = Hands.Browse;
             Websites requestWebsites = Hands.Websites;
             FileFinder requestFinder = Hands.Finder;
+            FileKeeper requestKeeper = Hands.Keeper;
             Func<Tune> requestTune = Tunes.Spotify;
             try
             {
@@ -22925,6 +22966,7 @@ namespace CapriDesktop
                 int scanSteps = 0;
                 if (FileFinder.Search("not here.pdf", new[] { slowRoot }, delegate { return ++scanSteps > 20; }).Count != 0 || scanSteps > 30) throw new Exception("A large folder ignored cancellation between entries.");
                 checks.Add("PASS likely folders are checked together by depth so a deep first root cannot delay a nearby redirected-folder result, duplicate roots are skipped, and a large folder cancels between entries");
+                checks.AddRange(FileKeeperChecks.Run());
                 FileAttributes cloudFolder = FileAttributes.Directory | FileAttributes.ReparsePoint;
                 for (uint cloudTag = 0; cloudTag < 16; cloudTag++) if (!FileFinder.Follow(cloudFolder, 0x9000001A | cloudTag << 12)) throw new Exception("A OneDrive cloud folder was skipped.");
                 if (!FileFinder.Follow(FileAttributes.Directory, 0) || !FileFinder.Follow(cloudFolder, 0x80000021) || FileFinder.Follow(cloudFolder, 0xA0000003) || FileFinder.Follow(cloudFolder, 0xA000000C) || FileFinder.Follow(cloudFolder, 0)) throw new Exception("Cloud placeholders and looping junctions weren't distinguished.");
@@ -23056,7 +23098,7 @@ namespace CapriDesktop
             {
                 Hands.Catalog = requestCatalog; Hands.Windows = requestWindows; Hands.Exists = requestExists; Hands.SongPlaying = requestPlaying; Hands.PressPlay = requestPress;
                 Hands.Fetch = requestFetch; Hands.BrowserPath = requestBrowser; Hands.Opened = requestOpened; Hands.GameOpen = requestGame; Hands.Plan = requestPlan;
-                Hands.Run = requestRun; Hands.Browse = requestBrowse; Hands.Websites = requestWebsites; Hands.Finder = requestFinder; Tunes.Spotify = requestTune; Hands.Steer = requestSteer;
+                Hands.Run = requestRun; Hands.Browse = requestBrowse; Hands.Websites = requestWebsites; Hands.Finder = requestFinder; Hands.Keeper = requestKeeper; Tunes.Spotify = requestTune; Hands.Steer = requestSteer;
                 Hands.Forget();
             }
         }
@@ -24113,7 +24155,7 @@ namespace CapriDesktop
                 { "media", "{\"action\":\"pause\"}" }, { "look_at_screen", "{}" }, { "play_music", "{\"song\":\"I Really Want to Stay at Your House\"}" },
                 { "app_window", "{\"name\":\"Spotify\",\"action\":\"minimize\"}" }, { "use_computer", "{\"task\":\"Open the notes\"}" },
                 { "stream", "{\"action\":\"stop\"}" }, { "shortcut", "{\"name\":\"screenshot\"}" }, { "remember", "{\"text\":\"They like blue\"}" },
-                { "find_file", "{\"description\":\"notes.txt\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
+                { "find_file", "{\"description\":\"notes.txt\"}" }, { "files", "{\"action\":\"undo\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
                 { "weather", "{\"action\":\"now\"}" }, { "remind", "{\"action\":\"list\"}" }, { "stopwatch", "{\"action\":\"check\"}" }, { "routine", "{\"action\":\"list\"}" }, { "power", "{\"action\":\"cancel\"}" },
                 { "nap", "{\"action\":\"wake\"}" }, { "move_yourself", "{\"action\":\"show\"}" }, { "animate", "{\"name\":\"blink\"}" },
                 { "draw", "{\"action\":\"clear\"}" }, { "clone", "{\"action\":\"stop\"}" }, { "hologram", "{\"action\":\"off\"}" },
