@@ -61,7 +61,46 @@ namespace CapriDesktop
             herComputer.CanThink = delegate { return brain.Model != null && !Brain.Off; };
             herComputer.Tell = delegate(string line) { Post(delegate { SayOwn("her computer", line); }); };
             herComputer.HandOff = delegate(HerJob done) { Post(delegate { HerComputerHandOff(done); }); };
+            herComputer.Finished = delegate(HerJob done) { Post(delegate { HerErrandDone(done); }); };
+            herComputer.CheckedIn = HerErrandCheckIn;
+            herComputer.Asked = delegate(HerJob asking) { Post(delegate { HerErrandAsked(asking); }); };
+            herComputer.StateChanged = delegate(HerJob job, string state) { Post(delegate { RemoteErrand(job, state); }); };
+            ErrandOpenNote = delegate(string note) { if (!preferences.HerComputer) return; HerComputerWindow window = ShowHerComputer(); window.ShowNote(note); };
+            ErrandWatch = delegate(string task) { if (!preferences.HerComputer) return; HerComputerWindow window = ShowHerComputer(false); string said = window.Watch(task); if (said != null) Remark("", said, InChat || Hushed || FullScreen()); };
             if (mainframe.Icon != null) herComputer.Icon = mainframe.Icon;
+        }
+
+        internal const int ErrandCheckInGap = 10;
+
+        private void HerErrandDone(HerJob done)
+        {
+            if (IsDisposed || quitting || done == null) return;
+            string answer = (done.Answer ?? "").Trim();
+            if (answer.Length == 0) return;
+            if (RemoteErrandNews("done", HerComputerWindow.FirstLine(answer), done.Id)) Brain.Log("her computer", 0, "errand done while away, told the phone");
+            DeliverErrand(done.Id, done.Task, answer, done.Note, done.Suggest);
+        }
+
+        private bool HerErrandCheckIn(HerJob job, string line)
+        {
+            if (job == null || job.Updates.Count >= HerJobs.MostUpdates) return false;
+            if (job.Updates.Count > 0 && (DateTime.Now - HerJobs.When(job.Updates[job.Updates.Count - 1].At)).TotalMinutes < ErrandCheckInGap) return false;
+            Post(delegate
+            {
+                if (IsDisposed || quitting) return;
+                if (preferences.CheckIns && !Hushed && RemoteErrandNews("checkin", line, job.Id)) return;
+                HerComputerWindow window = herComputer;
+                if (preferences.CheckIns && !Hushed && (window == null || window.IsDisposed || !window.Visible || window.WindowState == FormWindowState.Minimized)) Remark("", line, InChat || Hushed || FullScreen());
+            });
+            return true;
+        }
+
+        private void HerErrandAsked(HerJob asking)
+        {
+            if (IsDisposed || quitting || asking == null || string.IsNullOrEmpty(asking.Question)) return;
+            HerComputerWindow window = herComputer;
+            if (window != null && !window.IsDisposed && window.Visible && window.WindowState != FormWindowState.Minimized) return;
+            Remark("", asking.Question, InChat || Hushed || FullScreen());
         }
 
         private void HerComputerBackground()
@@ -81,6 +120,7 @@ namespace CapriDesktop
         {
             if (herComputer != null && !herComputer.IsDisposed) herComputer.CloseForGood();
             herComputer = null;
+            ForgetErrands();
         }
 
         internal static string HerComputerJob(string said)
@@ -95,6 +135,26 @@ namespace CapriDesktop
             return job;
         }
 
+        internal static string HerErrandJob(string said)
+        {
+            string text = Regex.Replace((said ?? "").Trim(), @"\s+", " ");
+            text = Regex.Replace(text, @"^(?:hey\s+)?capri[,!.]?\s*", "", RegexOptions.IgnoreCase).Trim();
+            const RegexOptions options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+            Match errand = Regex.Match(text, @"^(?:(?:can|could|would|will) you\s+|please\s+)*(?:(?:go\s+)?(?:run|do)\s+(?:me\s+)?an errand|errand)\s*(?:for me)?\s*[:,-]?\s*(?:to\s+)?(.{3,})$", options);
+            if (errand.Success) return Tidy(errand.Groups[1].Value);
+            Match background = Regex.Match(text, @"^(.{3,}?)\s*,?\s*(?:in the background|while i'?m (?:away|out|gone|asleep|at work|at school|busy|sleeping|offline)|while i (?:sleep|work|game|play))[.!?]*$", options);
+            if (background.Success && !Regex.IsMatch(background.Groups[1].Value, @"^(?:(?:can|could|would|will) you\s+|please\s+|go\s+)*(?:play|open|launch|start|run|listen|put on|stream|record|keep|leave|have)\b", options)) return Tidy(background.Groups[1].Value);
+            if (Regex.IsMatch(text, @"\bkeep an eye on\b", options)) return Tidy(text);
+            if (Regex.IsMatch(text, @"\b(?:let me know|tell me|ping me|notify me|text me)\s+(?:when|if|once|as soon as)\b.*\b(?:drops?|on sale|sale|back in stock|restocks?|in stock|comes? out|releases?|released|announced|goes live|drops|price|cheaper|available|tickets|results?|score)\b", options)) return Tidy(text);
+            return null;
+        }
+
+        private static string Tidy(string job)
+        {
+            job = Regex.Replace(job ?? "", @"^(?:(?:can|could|would|will) you\s+|please\s+|go\s+|and\s+|to\s+)+", "", RegexOptions.IgnoreCase).Trim().TrimEnd('?', '.', '!', ',').Trim();
+            return job.Length < 3 ? null : job;
+        }
+
         internal static bool HerComputerOpenAsked(string said)
         {
             return Regex.IsMatch((said ?? "").Trim(), @"\A(?:(?:hey\s+)?capri[,!.]?\s*)?(?:(?:can|could|would) you\s+)?(?:open|show(?: me)?|let me see|bring up)\s+(?:your|ur)\s+(?:own\s+|little\s+)?(?:computer|pc)(?: please)?[.!?]*\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -105,7 +165,13 @@ namespace CapriDesktop
         private string HerComputerAsk(string input)
         {
             if (input != null && herHandOffAsk != null && input.Trim() == herHandOffAsk) { herHandOffAsk = null; return null; }
-            if (!preferences.HerComputer) return null;
+            string errand = HerComputerJob(input) == null ? HerErrandJob(input) : null;
+            if (!preferences.HerComputer) return errand == null || !Regex.IsMatch(input ?? "", @"\berrand\b", RegexOptions.IgnoreCase) ? null : "I can run that in the background on my own computer. Turn on Her own computer in Mainframe under HER COMPUTER, then ask me again.";
+            if (errand != null)
+            {
+                HerComputerWindow running = ShowHerComputer(false);
+                return running.Start(errand, "") ?? "On it. I'll work on that on my computer and come find you when it's done.";
+            }
             if (HerComputerOpenAsked(input)) { OpenHerComputer(); return "Opened my computer."; }
             if (Regex.IsMatch(input ?? "", @"\bstop\b.{0,30}\b(?:your|ur) (?:own |little )?(?:computer|pc)\b", RegexOptions.IgnoreCase) && herComputer != null && herComputer.Busy) { herComputer.StopTask(); return "Ok, I'll stop what I'm doing on my computer."; }
             string job = HerComputerJob(input);
