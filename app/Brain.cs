@@ -3586,7 +3586,7 @@ namespace CapriDesktop
             if (remote == null || (remote.Claude && noFastest)) return null;
             string cheap = Cheaper(remote, pictures, tools);
             if (cheap == null) return null;
-            Brain thrifty = new Brain { Model = cheap, Remote = new Cloud(remote.Key, cheap), Local = Local, LocalPick = LocalPick, Act = Act, Kit = Kit, CloudWait = CloudWait };
+            Brain thrifty = new Brain { Model = cheap, Remote = new Cloud(remote.Key, cheap), Local = Local, LocalPick = LocalPick, Spare = Spare, SparePick = SparePick, SpareFirst = SpareFirst, SpareModel = SpareModel, Act = Act, Kit = Kit, CloudWait = CloudWait };
             CopyServer(thrifty);
             return thrifty;
         }
