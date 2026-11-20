@@ -392,6 +392,9 @@ namespace CapriDesktop
         private readonly NeonCaption build;
         private readonly Dictionary<NeonEntry, string> entries = new Dictionary<NeonEntry, string>();
         private readonly NeonRung[] brains = new NeonRung[3];
+        private readonly NeonRung offBrain;
+        // BRAIN's OFF row sits above NORMAL, so everything under it moves down one row, like Windows.
+        private const double OffRow = 24;
         private readonly NeonRung[] voices = new NeonRung[4];
         private readonly NeonPicker models, freeKeys, voicePicker, speechModels;
         private readonly NeonPicker huskMode;
@@ -444,7 +447,9 @@ namespace CapriDesktop
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);
             if (TerminalJobs.Supported) { Key("ChatGPT plan", 230, 56, 126, 20, pet.UsePlan); Key("Stop", 134, 56, 86, 20, pet.StopNativeWork); }
-            brainName = Caption("", 28, 79, 328, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
+            brainName = Caption("", 28, 79, 244, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
+            var provider = Key("Provider", 280, 79, 76, 20, OpenProvider);
+            AutomationProperties.SetName(provider, "OpenAI-compatible provider address and key");
             brainNote = Caption("", 28, 101, 328, 24, MainframeTheme.Faint); brainNote.Ellipsis = true;
             models = Picker("Brain model", 28, 134, 244, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => { if (i == pet.MainframeModels.Length) pet.AskPull(); else pet.MainframePickModel(pet.MainframeModels[i]); }); models.Ellipsis = true;
             refresh = Key("Refresh", 280, 134, 76, 28, pet.MainframeRefresh);
@@ -454,6 +459,9 @@ namespace CapriDesktop
             Caption("3. Pick a model.", 28, 182, 328, 18, MainframeTheme.Faint);
             Caption("Have Ollama? Open it, then press Refresh.", 28, 264, 328, 18, MainframeTheme.Faint, 12);
             tierNote = Caption("", 28, 168, 328, 16, MainframeTheme.Faint, 34.0 / 3);
+            offBrain = Add(new NeonRung { Text = "OFF", Hint = "No AI · no brain at all" }, 28, 184, 328, 24, "No AI");
+            AutomationProperties.SetName(offBrain, "OFF, No AI · no brain at all");
+            offBrain.Click += (_, _) => pet.SetNoAi(true);
             string[] brainNames = { "NORMAL", "MEDIUM INTELLIGENCE", "MAX INTELLIGENCE" };
             string[] brainHints = { "Free · local model", "Free", "Cloud API keys" };
             for (int i = 0; i < 3; i++)
@@ -793,7 +801,7 @@ namespace CapriDesktop
             try
             {
                 var choices = new List<string>(pet.MainframeModels);
-                if (pet.MainframeTier == 0) choices.Add("Download a model...");
+                if (pet.MainframeTier == 0 && !pet.MainframeNoAi) choices.Add("Download a model...");
                 models.Options(choices.ToArray());
                 voicePicker.Options(pet.MainframeVoices);
                 speechModels.Options(pet.MainframeSpeechModels);
@@ -805,11 +813,12 @@ namespace CapriDesktop
                 remoteKey.InvalidateVisual();
                 if (Array.IndexOf(pet.MainframeModels, pet.Brain.Model) < 0 && pet.Brain.Model != null) models.Text = pet.Brain.Model;
                 if (Array.IndexOf(pet.MainframeVoiceIds, pet.Saved.VoiceId) < 0) voicePicker.Text = "Voices";
-                for (int i = 0; i < brains.Length; i++) { brains[i].Checked = i == pet.MainframeTier; brains[i].InvalidateVisual(); }
+                for (int i = 0; i < brains.Length; i++) { brains[i].Checked = !pet.MainframeNoAi && i == pet.MainframeTier; brains[i].InvalidateVisual(); }
+                offBrain.Checked = pet.MainframeNoAi; offBrain.InvalidateVisual();
                 for (int i = 0; i < voices.Length; i++) if (voices[i] != null) { voices[i].Checked = i == pet.MainframeVoiceMode; voices[i].InvalidateVisual(); }
                 brainName.Text = pet.MainframeBrainName;
                 brainNote.Text = pet.MainframeBrainNote;
-                tierNote.Text = pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
+                tierNote.Text = pet.MainframeNoAi ? "Pick one. Only one brain runs at a time." : pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
                 textKey.Cue = pet.MainframeBrainKey != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
                 textConnect.Text = pet.MainframeBrainKey == null || !string.IsNullOrWhiteSpace(textKey.Box.Text) ? "Connect" : "Forget";
                 voiceKey.Cue = pet.MainframeVoiceKey == null ? "ElevenLabs key" : "Key saved, ends " + Voice.Tail(pet.MainframeVoiceKey);
@@ -821,13 +830,13 @@ namespace CapriDesktop
                 updateNote.Text = pet.MainframeUpdate;
                 Read(nickname, Brain.Nickname); Read(weatherCity, pet.WeatherCity); Read(custom, pet.Brain.Model); Read(localAddress, pet.Brain.Server); Read(voiceId, pet.Saved.VoiceId);
                 more.Text = paged || modded ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
-                string next = paged + "|" + modded + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup + "|" + pet.NvidiaBrain;
+                string next = paged + "|" + modded + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup + "|" + pet.NvidiaBrain + "|" + pet.MainframeNoAi;
                 if (layout != next) { layout = next; ArrangePage(); }
                 FillMods();
             }
             finally { syncing = false; }
         }
-        private bool Expanded { get { return pet.MainframeTier == 0 && (pet.Brain.Model == null || pet.MainframePulling); } }
+        private bool Expanded { get { return pet.MainframeTier == 0 && !pet.MainframeNoAi && (pet.Brain.Model == null || pet.MainframePulling); } }
         internal bool SettingsShown { get { return paged; } }
         internal void Shut() { finishing = true; Close(); }
         internal void ShowSettings(bool on) { paged = on; if (on) modded = false; layout = null; CloseMenus(); Top(); Sync(); }
@@ -883,7 +892,7 @@ namespace CapriDesktop
             bool simple = !pet.Saved.AdvancedSettings;
             bool inputSetup = pet.MainframeInputSetup;
             int tier = pet.MainframeTier, voice = pet.MainframeVoiceMode;
-            double extra = Expanded ? 118 : 0, shift = extra + (tier == 0 ? 94 : 128 + (tier != 1 ? 0 : paidKey != null ? 86 : 20));
+            double extra = Expanded ? 118 : 0, shift = extra + OffRow + (tier == 0 || pet.MainframeNoAi ? 94 : 128 + (tier != 1 ? 0 : paidKey != null ? 86 : 20));
             double fold = voice == 0 ? 72 : voice == 3 && pet.MainframeVoiceKey != null ? 0 : 36;
             double bottom = 0;
             foreach (Item item in items)
@@ -915,11 +924,12 @@ namespace CapriDesktop
                     if (item.Y == 138 || item.Y == 160 || item.Y == 182) show &= Expanded;
                     if (control == models) show &= !Expanded;
                     if (control == refresh) y = Expanded ? 226 : 134;
-                    if (control == tierNote || Array.IndexOf(brains, control) >= 0 || control == freeKeys || control == textKey || control == textConnect || item.Y == 294) y += extra;
-                    if (control == textKey || control == textConnect) show &= tier > 0;
-                    if (item.Y == 294) show &= tier == 1;
-                    if (item.Y == 315 || item.Y == 350) show &= tier == 1 && paidKey != null;
-                    if (control == freeKeys) show &= tier == 1;
+                    if (control == tierNote || control == offBrain || Array.IndexOf(brains, control) >= 0 || control == freeKeys || control == textKey || control == textConnect || item.Y == 294) y += extra;
+                    if (Array.IndexOf(brains, control) >= 0 || control == freeKeys || control == textKey || control == textConnect || item.Y == 294 || item.Y == 315 || item.Y == 350) y += OffRow;
+                    if (control == textKey || control == textConnect) show &= tier > 0 && !pet.MainframeNoAi;
+                    if (item.Y == 294) show &= tier == 1 && !pet.MainframeNoAi;
+                    if (item.Y == 315 || item.Y == 350) show &= tier == 1 && paidKey != null && !pet.MainframeNoAi;
+                    if (control == freeKeys) show &= tier == 1 && !pet.MainframeNoAi;
                     bool below = control is NeonHead head && head.Text != "BRAIN" || item.Y >= 499 || Array.IndexOf(voices, control) >= 0 || item.Y == 257 || item.Y == 281 || item.Y == 310 || item.Y == 346;
                     if (below)
                     {
@@ -962,7 +972,8 @@ namespace CapriDesktop
         }
         private void UseServer() { if (string.IsNullOrWhiteSpace(localAddress.Box.Text)) pet.LeaveServer(); else pet.UseServer(localAddress.Box.Text); }
         internal void Change(string name, int value) { changes[name](value); Sync(); }
-        internal void PickBrainTier(int tier) { brains[tier].Press(); Sync(); }
+        // -1 is BRAIN's OFF row (No AI), as Windows' smoke test names it.
+        internal void PickBrainTier(int tier) { (tier < 0 ? offBrain : brains[tier]).Press(); Sync(); }
         internal void PickVoiceTier(int tier) { voices[tier].Press(); Sync(); }
         internal void Press(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) { button.Press(); return; } throw new Exception("No Mainframe button: " + text); }
         internal NeonButton Button(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) return button; return null; }
@@ -1019,6 +1030,7 @@ namespace CapriDesktop
             sheets.Add(sheet); sheet.Closed += (_, _) => sheets.Remove(sheet); sheet.Show(this);
         }
         internal void OpenServer() { ShowSheet(new MainframeSheet(pet, "CUSTOM LOCAL", "server")); }
+        internal void OpenProvider() { ShowSheet(new MainframeSheet(pet, "BRAIN PROVIDER", "provider")); }
         internal void OpenThinkingExtra() { ShowSheet(new MainframeSheet(pet, "EXTRA REQUEST JSON", "thinking")); }
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }

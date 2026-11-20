@@ -685,6 +685,10 @@ namespace CapriDesktop
         // No AI (Lachy, 12 Nov): with it on, nothing at all is asked of a model, a provider, Ollama, her own engine, Claude Code
         // or Codex. Every request to one is made in Create or PlanBrain's Start, and both turn it away here.
         internal static volatile bool Off;
+#if CROSS
+        // The one request No AI lets through: listing the models of a provider they're connecting, on that probe's own thread.
+        [ThreadStatic] internal static bool Probing;
+#endif
         internal const string OffLine = "My brain's switched off, so that one's beyond me. Turn one on under BRAIN in Capri Mainframe.";
         // The smoke test's stand-in: told about anything No AI turned away, which means something still tried to ask.
         internal static Action<string> TurnedAway;
@@ -5382,7 +5386,11 @@ namespace CapriDesktop
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
             // Cancelled before it's sent: nothing goes out, and its caller gets the usual cancelled request it already handles.
+#if CROSS
+            if (Off && !Probing) { TurnAway(url); request.Abort(); }
+#else
             if (Off) { TurnAway(url); request.Abort(); }
+#endif
             if (request.RequestUri.IsLoopback) request.AllowAutoRedirect = false;
             request.ServicePoint.ConnectionLimit = Math.Max(request.ServicePoint.ConnectionLimit, 16);
             request.ServicePoint.Expect100Continue = false;

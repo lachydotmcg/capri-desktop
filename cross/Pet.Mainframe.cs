@@ -232,12 +232,14 @@ namespace CapriDesktop
         internal event Action SettingsChanged;
         internal Mainframe Frame { get { return mainframe; } }
         internal int MainframeTier { get { return Math.Clamp(Saved.BrainTier ?? (Brain.Remote == null ? 0 : Cloud.MediumKind(Brain.Remote.Kind) ? 1 : 2), 0, 2); } }
+        internal bool MainframeNoAi { get { return Saved.NoAi; } }
         internal string MainframeBrainKey { get { return Brain.Remote?.Key; } }
-        internal string MainframeBrainName { get { return Brain.Remote != null ? Brain.Remote.Name + " \u00b7 " + Brain.Model : Brain.Model ?? "Her brain isn't set up yet"; } }
+        internal string MainframeBrainName { get { return Saved.NoAi ? "No AI" : Brain.Remote != null ? Brain.Remote.Name + " \u00b7 " + Brain.Model : Brain.Model ?? "Her brain isn't set up yet"; } }
         internal string MainframeBrainNote { get { return BrainNote(false); } }
 
         private string BrainNote(bool phone)
         {
+            if (Saved.NoAi) return "No brain runs, and nothing is sent anywhere.";
             string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : Brain.Local != null ? "Local model \u00b7 on this computer" : "Local model \u00b7 Ollama"));
             return Brain.Brief(note) ?? note;
         }
@@ -350,7 +352,7 @@ namespace CapriDesktop
         internal void MainframeSetupInput() { if (HyprlandDesktop.Current != null) { Talk.Answer("(input)", ComputerJobs.Available ? "Native compositor input is ready." : "The native compositor input helper is unavailable. Check the Linux package and compositor protocol support; no global input setup was applied."); return; } CopyFingersSetup(); }
         internal void MainframePickModel(string model)
         {
-            if (string.IsNullOrWhiteSpace(model)) return;
+            if (string.IsNullOrWhiteSpace(model) || Saved.NoAi) return;
             if (Brain.Provider != null)
             {
                 if (model == Saved.PlanModel || Array.IndexOf(frameModels, model) < 0) return;
@@ -413,6 +415,8 @@ namespace CapriDesktop
             if (!Saved.BrainTier.HasValue) Saved.BrainTier = Brain.Remote == null ? 0 : Cloud.MediumKind(Brain.Remote.Kind) ? 1 : 2;
             if (MainframeTier == 0) { Brain.Remote = null; Brain.Model = Brain.Server == null ? Saved.Model : Saved.ServerModel; }
             else if (Brain.Remote == null) Brain.Model = null;
+            Brain.Off = Saved.NoAi;
+            if (Saved.NoAi) { Brain.Remote = null; Brain.Model = null; }
         }
         internal void SetBrainTier(int tier)
         {
@@ -420,7 +424,10 @@ namespace CapriDesktop
             string savedCustom = Saved.BrainProvider;
             if (EndpointIdOf(savedCustom) == null || EndpointFor(Saved, EndpointIdOf(savedCustom)) == null) savedCustom = null;
             CancelAccountConnection();
-            if (MainframeTier == tier && Brain.Provider == null) return;
+            if (MainframeTier == tier && Brain.Provider == null && !Saved.NoAi) return;
+            // Picking any brain switches No AI off, like Windows.
+            Saved.NoAi = false;
+            Brain.Off = false;
             StopNativeListening();
             Brain.Provider?.Cancel();
             Brain.Provider = null;
@@ -466,6 +473,45 @@ namespace CapriDesktop
                 if (Brain.Remote != null) ListCloud();
                 else if (tier == 0) { RefreshBrains(); if (Brain.Model == null) FindBrain(); }
             }
+        }
+        // No AI on (Windows' OFF rung): she stays on their desktop with no brain at all, and their downloaded brain, keys and
+        // ChatGPT plan stay where they are. Off: the brain they had before comes back, the way picking its tier does.
+        internal void SetNoAi(bool on)
+        {
+            CancelAccountConnection();
+            if (Saved.NoAi == on) { NotifySettings(); return; }
+            if (!on)
+            {
+                if (Saved.NativePlan && TerminalJobs.Supported)
+                {
+                    try { Brain.Off = false; SelectPlan(); Saved.NoAi = false; Save(); RefreshBrains(); return; }
+                    catch (Exception error) { Saved.NativePlan = false; Brain.Log("ChatGPT plan", -1, error.Message); }
+                }
+                SetBrainTier(MainframeTier);
+                return;
+            }
+            KeepBrainTier();
+            pullStopped = true;
+            StopNativeListening();
+            ComputerJobs.Stop();
+            Brain.Provider?.Cancel();
+            Brain.Provider = null;
+            Brain.Cancel();
+            ++asking;
+            Talk.Dismiss(false);
+            brainRequests++;
+            cloudRequests++;
+            localRequests++;
+            frameProblem = null;
+            Saved.NoAi = true;
+            Brain.Off = true;
+            Brain.Remote = null;
+            Brain.Model = null;
+            cloudModels = null;
+            cloudListing = false;
+            frameModels = Array.Empty<string>();
+            Save();
+            RefreshBrains();
         }
         internal void MainframeForgetBrain()
         {

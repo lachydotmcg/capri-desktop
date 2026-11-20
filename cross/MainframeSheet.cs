@@ -890,7 +890,7 @@ namespace CapriDesktop
             ShowInTaskbar = false;
             Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "provider" ? Provider() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Program.Guard(Sync);
@@ -942,6 +942,22 @@ namespace CapriDesktop
             Button("Cancel", 278, 224, 78, 28, Close);
             foreach (var entry in new[] { address, model, voice }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => save()); } };
             return 300;
+        }
+        // Windows' Brain provider window, on the same path as the Brain menu's own provider: any OpenAI-compatible address,
+        // with a key if it needs one. She says how it went herself.
+        private double Provider()
+        {
+            Caption("OpenAI-compatible server or provider.", 28, 52, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            var address = Input("Address", "http://localhost:1234/v1", 28, 80, 328, () => pet.Brain.Server ?? "");
+            Caption("Key", 28, 136, 328, 18);
+            var key = Put(Page, new NeonEntry("Optional. Blank means no key.", true), 28, 156, 328, 28, "Provider API key, optional"); Rows["Key"] = key;
+            Caption("Keys go only to this address and stay on this computer.", 28, 196, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            Action connect = () => { string url = address.Box.Text ?? "", secret = key.Box.Text ?? ""; key.Box.Text = ""; pet.UseServer(url, secret); };
+            Button("Connect", 28, 228, 160, 28, connect).Accent = MainframeTheme.Cyan;
+            Button("Forget", 196, 228, 160, 28, () => { key.Box.Text = ""; address.Box.Text = ""; pet.LeaveServer(); }).Accent = MainframeTheme.Hot;
+            foreach (var entry in new[] { address, key }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(connect); } };
+            Closed += (_, _) => key.Box.Text = "";
+            return 284;
         }
         // Extra request JSON for the brain she's on, merged into each request it sends.
         private double ThinkingExtra()
