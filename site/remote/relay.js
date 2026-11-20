@@ -208,6 +208,9 @@
         case 'job.state':
         case 'job.step':
         case 'job.recent':
+        case 'memory.list':
+        case 'memory.done':
+        case 'memory.chat':
         case 'error':
           on.message(message);
           return;

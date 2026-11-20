@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -889,7 +890,7 @@ namespace CapriDesktop
             ShowInTaskbar = false;
             Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Program.Guard(Sync);
@@ -1024,6 +1025,23 @@ namespace CapriDesktop
             }
             if (pet.MainframeInputSetup) { Button("Set up mouse and keyboard", 28, y + 8, 328, 28, pet.MainframeSetupInput); y += 44; }
             return y + 24;
+        }
+        private double Uninstalling()
+        {
+            bool wipe = false;
+            string[] said = { Uninstall.Says(pet.MainframeUninstallPlan(false), false), Uninstall.Says(pet.MainframeUninstallPlan(true), true) };
+            int lines = Math.Max(said[0].Split('\n').Sum(line => 1 + line.Length / 44), said[1].Split('\n').Sum(line => 1 + line.Length / 44));
+            double box = 20 + lines * 16;
+            var note = Put(Page, new TextBlock { Foreground = MainframeTheme.Rose, FontSize = 34.0 / 3, TextWrapping = TextWrapping.Wrap }, 28, 60, 328, box, "Uninstall note"); Rows["Uninstall note"] = note;
+            double y = 60 + box + 12;
+            var toggle = Toggle("Also delete everything she knows", (int)y, () => wipe, on => { wipe = on; });
+            toggle.Width = 328; toggle.Switch = 68;
+            readers.Add(() => { string text = said[wipe ? 1 : 0]; if (note.Text != text) note.Text = text; });
+            Put(Page, new TextBlock { Foreground = MainframeTheme.Faint, FontSize = 34.0 / 3, TextWrapping = TextWrapping.Wrap }, 28, y + 28, 328, 64, "Uninstall keeps").Text = "Her memories, notes, chats, keys, settings, mods, and the brain and voice she downloaded. Leave this off to keep them for a reinstall.";
+            double at = y + 100;
+            Button("Cancel", 28, (int)at, 160, 28, Close);
+            Button("Uninstall", 196, (int)at, 160, 28, () => { Close(); pet.MainframeUninstall(wipe); }).Accent = MainframeTheme.Hot;
+            return at + 28 + 28;
         }
         private double Vault()
         {

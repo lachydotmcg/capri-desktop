@@ -30,6 +30,7 @@ namespace CapriDesktop
         [DataMember] internal string Ears;
         [DataMember] internal string Nickname;
         [DataMember] internal int Replies;
+        [DataMember] internal int FirstRunStep;
         [DataMember] internal int Recall;
         [DataMember] internal int Wander;
         [DataMember] internal bool NoDance;
@@ -223,6 +224,7 @@ namespace CapriDesktop
                 case "list_windows": return "Checking open windows";
                 case "check_app": return "Checking installed apps";
                 case "find_file": return "Finding a file";
+                case "files": return "Working on your files";
                 case "read_file": return "Reading a file";
                 case "remember": return "Updating a note";
                 case "watch_for": return "Watching for a change";
@@ -305,8 +307,28 @@ namespace CapriDesktop
         // fps, drawn unshifted.
         private int oldWide, oldCount;
         private double oldFps;
-        internal int Count { get { return Old ? oldCount : count; } }
-        internal double Fps { get { return Old ? oldFps : fps; } }
+        private int ownWide, ownHigh, counted;
+        private Bitmap countedFor;
+        internal int Count { get { return Old ? oldCount : Cells(Strip); } }
+        internal double Fps { get { return Old ? oldFps : Mods.RateOf(name) > 0 ? Mods.RateOf(name) : fps; } }
+        internal int OwnCount { get { return count; } }
+        internal double OwnFps { get { return fps; } }
+        internal bool Reframed { get { return !Old && Count != count; } }
+
+        private int Cells(Bitmap art)
+        {
+            lock (artGate)
+            {
+                if (ReferenceEquals(art, countedFor)) return counted;
+                if (ownWide == 0)
+                    using (Stream own = typeof(Pet).Assembly.GetManifestResourceStream(name))
+                        if (!Mods.PngSize(own, out ownWide, out ownHigh)) ownWide = ownHigh = -1;
+                int found = ownWide > 0 ? Mods.FramesIn(name, art.PixelSize.Width, art.PixelSize.Height, ownWide, ownHigh) : 0;
+                counted = found > 0 ? found : count;
+                countedFor = art;
+                return counted;
+            }
+        }
         internal readonly double Height;
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
         internal double ShiftX { get { return Old ? 0 : shiftX; } }
@@ -323,6 +345,7 @@ namespace CapriDesktop
             Height = height;
             this.shiftX = shiftX;
             this.shiftY = shiftY;
+            Mods.OwnFrames(name, count);
             Reload();
         }
 
@@ -524,7 +547,7 @@ namespace CapriDesktop
         internal const string NoOllama = "Ollama isn't running. Install it from ollama.com and open it.";
         private const string FreeKeyPage = "https://build.nvidia.com/settings/api-keys";
         internal const string KeyChoice = "Use an API key...";
-        internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude or DeepSeek.";
+        internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude, DeepSeek or xAI.";
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
@@ -982,6 +1005,7 @@ namespace CapriDesktop
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
+            RestoreOwnBrain();
             RestoreCustomEndpoint();
             KeepAdoptedProvider();
             voice.Key = ReadVoiceKey();
@@ -1088,7 +1112,7 @@ namespace CapriDesktop
                     if (Saved.HuskMode != 0) SetHusk(Saved.HuskMode, true);
                     int ticket = asking;
                     DispatcherTimer.RunOnce(() => Greet(ticket, DateTime.Now.Hour), TimeSpan.FromMilliseconds(1800));
-                    if (fresh) { if (!OperatingSystem.IsLinux()) OpenMainframe(); meetAt = Now + 4; }
+                    StartFirstRun(fresh);
                     if (Program.ConnectChatGPT) { OpenMainframe(); UsePlan(); }
                 }
             };
@@ -1366,6 +1390,7 @@ namespace CapriDesktop
                 CheckNap();
                 CheckHide();
                 CheckMeet(now);
+                CheckFirstJob();
                 if (Program.Smoke == null) CheckPopIn(now);
                 if (Program.Smoke == null) CheckHome(now);
                 if (Program.Smoke == null) CheckLag(now);
@@ -1789,7 +1814,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            int cell = clip == perchSleep ? PerchSleepCell : index % clip.Count;
+            int cell = clip == perchSleep ? Math.Min(PerchSleepCell, perchSleep.Count - 1) : index % clip.Count;
             Clip shown = clip;
             int blinkFrom = clip == perch ? PerchBlinkFrom : idle.Old ? BlinkFrom : IdleBlinkFrom;
             if ((clip == idle || clip == perch) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
@@ -1815,8 +1840,14 @@ namespace CapriDesktop
             body.InvalidateVisual();
         }
 
-        // Her blink for the loop she's in, glitchy or not.
         private Clip Blinks(bool glitchy)
+        {
+            Clip found = LoopBlink(glitchy);
+            return found != null && clip.Reframed && !SkinShips(found.Title) ? null : found;
+        }
+
+        // Her blink for the loop she's in, glitchy or not.
+        private Clip LoopBlink(bool glitchy)
         {
             if (clip == perch) return glitchy ? perchBlinkGlitch : perchBlink;
             if (idle.Old) return glitchy ? blinkGlitch : blink;
@@ -2070,7 +2101,7 @@ namespace CapriDesktop
             {
                 if (DesktopPointer(e)) return;
                 pointer = e.GetPosition(this);
-                if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
+                if (!pressed) { if (InControl.On) ForgetStroke(); else Stroke(this.PointToScreen(pointer)); return; }
                 if (Desk is HyprlandDesk) return;
                 PixelPoint at = DragPoint(pointer);
                 int dx = at.X - downAt.X;
@@ -3822,6 +3853,7 @@ namespace CapriDesktop
 
         internal void ShowBrains(string[] found)
         {
+            if (found == null && Brain.Local != null && Brain.Remote == null) { frameModels = new[] { Brain.Model }; if (MainframeTier == 0) frameProblem = null; NotifySettings(); return; }
             frameModels = found ?? Array.Empty<string>();
             if (MainframeTier == 0) frameProblem = found == null ? NoOllama : null;
             NotifySettings();
@@ -4164,7 +4196,7 @@ namespace CapriDesktop
         }
 
         // Ollama has no models yet: she pulls her own brain, shows how far it's got on the Brain menu, then picks it and says so.
-        internal void PullBrain() { PullBrain(Starter); }
+        internal void PullBrain() { SetUpLocalBrain(); }
 
         internal void PullBrain(string tag)
         {
@@ -4190,6 +4222,7 @@ namespace CapriDesktop
                     NotifySettings();
                     if (problem != null) { Talk.Notice(BrainHeard, problem); return; }
                     Saved.Model = tag;
+                    LeaveOwnBrain();
                     string currentServer, currentKey;
                     Brain.GetServer(out currentServer, out currentKey);
                     if (MainframeTier == 0 && Brain.Remote == null && currentServer == null) Brain.Model = tag;
@@ -4206,6 +4239,7 @@ namespace CapriDesktop
             ownedVoice?.Cancel();
             StopNativeListening();
             Brain.Cancel();
+            LeaveOwnBrain();
             // Her chat carries on with the new model, so changing brains never wipes what she was doing.
             Brain.Model = model;
             Saved.Model = model;
@@ -6140,12 +6174,12 @@ namespace CapriDesktop
                 string words = phone == null ? heard : phone.Typed ?? heard;
                 string source = string.IsNullOrEmpty(words) || words.StartsWith("(", StringComparison.Ordinal) || words == "startup" || words == "pets you" ? "remark" : "reply";
                 if (phone != null && phone.Typed == "") source = "reply";
-                said = ModsReplying(said, source);
+                said = Brain.Masked(ModsReplying(said, source));
                 lastReply = said;
                 ModsReplied(said, source);
                 if (!RemoteReply(ticket, heard, said, following, phone)) return;
                 if (phone != null && phone.Shown != null) heard = phone.Shown;
-                string spoken = Speaks ? ModsSpeaking(said) : said;
+                string spoken = Speaks ? Brain.Masked(ModsSpeaking(said)) : said;
                 if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
                 ISpeaker speaker = Speaker;
                 int speechTicket = speechGeneration;
@@ -7382,6 +7416,7 @@ namespace CapriDesktop
             }
             quitting = true;
             ClonesOff();
+            StopOwnBrain();
             // Her click guard writes down a bug in any of these, so she still goes after it instead of being left unable to quit.
             try
             {
@@ -7450,8 +7485,8 @@ namespace CapriDesktop
         private void PrepareHusk()
         {
             // Her listener file goes with her even when she closes without Quit: at logout, shutdown or a kill signal.
-            AppDomain.CurrentDomain.ProcessExit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
-            desktop.Exit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => { StopOwnBrain(); HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
+            desktop.Exit += (_, _) => { StopOwnBrain(); HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
             Saved.HuskMode = HuskWatch.Allowed(Saved.HuskMode);
             husk = new HuskWatch(Program.Smoke ?? folder);
             HuskHooks.BackupFolder = Program.Smoke ?? folder;
