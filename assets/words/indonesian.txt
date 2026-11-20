@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Kontrol yang digambar ulang tidak tergambar ulang di gambar.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Kunci gratis dari Google AI Studio, NVIDIA, atau OpenRouter. Tidak perlu unduh apa pun. Butuh internet.
+A held trackpad scroll got a flick's long ease:	Gulir trackpad yang ditahan mendapat efek melambat panjang:
+A layout change during a slide put the page at	Perubahan tata letak saat geser membuat halaman berada di
+A layout change left the picture up.	Perubahan tata letak membuat gambar tetap tampil.
+A model in Ollama, on your local server or on your key.	Sebuah model di Ollama, di server lokalmu atau dengan kunci milikmu.
+A paid key goes under MAX INTELLIGENCE by itself.	Kunci berbayar otomatis masuk ke MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Paket yang sudah kamu bayar, kunci sendiri, atau Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menu panel suara tidak punya salinan font panel sendiri.
+A wheel turn right after a slide ended froze the picture.	Putaran roda tepat setelah geser selesai membekukan gambar.
+ALLOW THIS PHONE?	IZINKAN TELEPON INI?
+ALMOST THERE >	HAMPIR SELESAI >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI LAIN MENGAMBIL ALIH · MATIKAN LALU HIDUPKAN
+API key	Kunci API
+API key, Claude plan or ChatGPT plan	Kunci API, paket Claude, atau paket ChatGPT
+Add	Tambah
+Address	Alamat
+Address and key saved. Use saved to reconnect.	Alamat dan kunci disimpan. Pakai yang tersimpan untuk menghubungkan ulang.
+Advanced Settings	Pengaturan Lanjutan
+All	Semua
+All screens	Semua layar
+Allow	Izinkan
+Almost there. I'll say hi the second my brain's in.	Hampir selesai. Aku akan menyapa begitu otakku masuk.
+Always	Selalu
+Always on top	Selalu di atas
+Any Google account works. I opened the page in your browser.	Akun Google apa pun bisa. Aku sudah membuka halaman di browser-mu.
+Applies to every voice	Berlaku untuk semua suara
+Apps she may close	Aplikasi yang boleh ia tutup
+Ask Capri for more	Minta Capri lagi
+Asking your server...	Menanyakan ke servermu...
+Asks before closing only the apps you choose.	Hanya bertanya sebelum menutup aplikasi yang kamu pilih.
+Auto	Otomatis
+Automatic: VB-CABLE, else Steam's	Otomatis: VB-CABLE, lainnya milik Steam
+BAD RELAY HOST	HOST RELAY SALAH
+BIG Z open notepad	BIG Z buka notepad
+BRAIN	OTAK
+BRAIN >	OTAK >
+BRAIN ONLINE >	OTAK ONLINE >
+BRAIN PROVIDER >	PENYEDIA OTAK >
+BRAIN VOICE CAPRI	SUARA OTAK CAPRI
+Back	Kembali
+Back on your saved API key.	Kembali ke kunci API yang tersimpan.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Paling pas untuk PC ini:
+Black	Hitam
+Blank key means no key.	Kunci kosong berarti tanpa kunci.
+Brain API key	Kunci API otak
+Brain model	Model otak
+Brain provider	Penyedia otak
+Bring here	Bawa ke sini
+Bring to this screen	Bawa ke layar ini
+Browse	Jelajahi
+Browse mods	Jelajahi mod
+Browse to a voice model	Cari model suara
+Browse...	Jelajahi...
+Bubble	Gelembung
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, kamu di situ?
+CAN'T REACH THE RELAY · RETRYING	TIDAK BISA MENJANGKAU RELAY · MENCOBA LAGI
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	OTAK SUARA CAPRI
+CHANGED, approve it again.	BERUBAH, setujui lagi.
+CLIPS >	KLIP >
+CLOUD VOICE	SUARA CLOUD
+CODE	KODE
+COLORS >	WARNA >
+CONNECTED	TERHUBUNG
+CONNECTING	MENGHUBUNGKAN
+CUSTOM LOCAL	LOKAL KUSTOM
+Call mode (beta)	Mode panggilan (beta)
+Call mode does not fit.	Mode panggilan tidak muat.
+Call mode is outside its space.	Mode panggilan berada di luar ruangnya.
+Cancel	Batal
+Cancel keys	Batalkan tombol
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Kode Capri:
+Capri mods (*	Mod Capri (*
+Capri, hello	Capri, halo
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kacau saat kesal
+Chat with Capri from your phone	Mengobrol dengan Capri dari ponselmu
+ChatGPT plan	Paket ChatGPT
+Check for updates	Periksa pembaruan
+Check in on me	Cek keadaanku
+Check in on me is hidden	Cek keadaanku disembunyikan
+Check in on me still decides whether she visits.	Cek keadaanku tetap menentukan apakah dia berkunjung.
+Check in on me's tip missed	Tips Cek keadaanku terlewat
+Chess	Catur
+Choose apps	Pilih aplikasi
+Choose folder...	Pilih folder...
+Choose where future Capri clips are saved	Pilih tempat klip Capri akan disimpan
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Paket Claude atau ChatGPT, kunci berbayar (OpenAI, Claude, DeepSeek), atau Ollama.
+Claude plan	Paket Claude
+Clear	Hapus
+Cleared.	Dihapus.
+Click Confirm to keep Down, or press Esc.	Klik Konfirmasi untuk menyimpan Bawah, atau tekan Esc.
+Click to open it.	Klik untuk membukanya.
+Clip my games	Rekam game saya
+Clips	Klip
+Close	Tutup
+Close other AIs for me	Tutup AI lain untukku
+Cloud voice	Suara cloud
+Cloud voice service	Layanan suara cloud
+Cloud voice setup	Pengaturan suara cloud
+Code mods can reach your whole PC. Only trusted ones.	Mod kode bisa menjangkau seluruh PC-mu. Hanya yang terpercaya.
+Code/Husk Mode	Mode Kode/Husk
+Codex	Codex
+Commands	Perintah
+Comment on my games	Komentari game saya
+Comments	Komentar
+Confirm	Konfirmasi
+Confirm keys	Konfirmasi tombol
+Connect	Hubungkan
+Connect / Forget brain key	Hubungkan / Lupakan kunci otak
+Connect / Forget voice key	Hubungkan / Lupakan kunci suara
+Connect four	Empat berderet
+Controls	Kontrol
+Copri, what time is it	Copri, jam berapa sekarang
+Copy error details	Salin detail galat
+Copy the key	Salin kunci
+Copy the key from the page, then press Paste.	Salin kunci dari halaman, lalu tekan Tempel.
+Couldn't open that page:	Tidak bisa membuka halaman itu:
+Couldn't open that:	Tidak bisa membuka itu:
+Couldn't open the mods folder:	Tidak bisa membuka folder mod:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M sudah menjadi tombol Mainframe-nya.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N membisukan mik
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V sudah menjadi tombol bicaranya.
+Ctrl + Alt + V to talk	Ctrl + Alt + V untuk bicara
+Custom local voice	Suara lokal kustom
+Custom model name	Nama model kustom
+Dance	Menari
+Dance to music	Menari mengikuti musik
+Default	Default
+Default (follows Windows)	Default (mengikuti Windows)
+Default duration for clip that and automatic clips	Durasi default untuk klip "rekam itu" dan klip otomatis
+Default length	Panjang default
+Default model	Model default
+Delay	Jeda
+Deny	Tolak
+Discard	Buang
+Discard + reload	Buang + muat ulang
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Tidak mau menunggu? Kunci gratis membuatku bicara dalam sekitar satu menit.
+Done	Selesai
+EXTRA REQUEST JSON >	JSON PERMINTAAN TAMBAHAN >
+EXTRAS >	TAMBAHAN >
+Edit	Edit
+Edit check-in lines	Edit baris cek-masuk
+Edit check-in lines has the wrong view or dimming	Edit baris cek-masuk tampilannya atau redupnya salah
+Edit check-in lines is out of place	Edit baris cek-masuk posisinya salah
+Edit controls	Edit kontrol
+ElevenLabs API key	Kunci API ElevenLabs
+ElevenLabs voice ID	ID suara ElevenLabs
+English	Inggris
+Enter the game's name first.	Masukkan nama game dulu.
+Every	Setiap
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Setiap mod diperiksa dari malware sebelum diunggah. Mod kode tetap meminta izin sebelum dijalankan.
+Explore after	Jelajahi setelah
+Explore while I'm away	Jelajahi saat aku pergi
+Extra request JSON	JSON permintaan tambahan
+Extras	Tambahan
+FREE KEY	KUNCI GRATIS
+FREE KEY >	KUNCI GRATIS >
+Fast hands in games	Tangan cepat di game
+File editor	Editor file
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs, dan lainnya ada di bawah SUARA di Mainframe.
+Follow-up messages	Pesan lanjutan
+Forget	Lupakan
+Fork capri-mods	Fork capri-mods
+Frame rate	Frame rate
+Free	Gratis
+Free and private, works offline. Downloads	Gratis dan privat, bisa offline. Mengunduh
+Free and private, works offline. Downloads the best model for this PC.	Gratis dan privat, bisa offline. Mengunduh model terbaik untuk PC ini.
+Free key	Kunci gratis
+Free key providers	Penyedia kunci gratis
+Free keys can be rate limited and slow.	Kunci gratis bisa dibatasi dan lambat.
+Free voice in games	Suara gratis di game
+Free voice style	Gaya suara gratis
+Free voice:	Suara gratis:
+Free voice: Her own	Suara gratis: Miliknya sendiri
+Free · local model	Gratis · model lokal
+GAMES >	GAME >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Komentar game berjalan terpisah dari Tonton layarku. Mati menghentikannya, juga dalam Mode Game; Hanya event dan Cerewet membiarkannya menonton game-mu
+Game controls	Kontrol game
+Game name	Nama game
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Sensitivitas suara game. Turunkan jika headset-mu pelan tapi Windows di {0}% dan dia bereaksi ke setiap suara; Mati mengabaikan suara game
+Game sounds	Suara game
+Games	Game
+Gaming Mode	Mode Game
+Gaming Mode key	Tombol Mode Game
+Gaming Mode:	Mode Game:
+Gaming Mode: Ctrl + Alt + G	Mode Game: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Dapatkan VB-CABLE
+Get VB-CABLE (free)...	Dapatkan VB-CABLE (gratis)...
+Get free voice	Dapatkan suara gratis
+Getting your Fish Audio voices...	Mengambil suara Fish Audio-mu...
+Giant	Raksasa
+Glitch	Glitch
+Glitch in at startup	Glitch saat startup
+Go to sleep	Pergi tidur
+Go to the next screen	Ke layar berikutnya
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · tingkat gratis · dibatasi
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Punya paket Claude atau ChatGPT, atau kunci sendiri? Pilih dan aku akan terhubung.
+Got it, just me. Right-click me any time for Capri Mainframe.	Oke, cuma aku. Klik kanan aku kapan saja untuk Capri Mainframe.
+Grey	Abu-abu
+H.{0} video bitrate target; higher values make larger files	Target bitrate video H.{0}; nilai lebih tinggi menghasilkan file lebih besar
+HABITS >	KEBIASAAN >
+HER HANDS >	TANGANNYA >
+HER JOBS >	PEKERJAANNYA >
+HER MEMORY >	MEMORINYA >
+HER MODS >	MOD-NYA >
+HH:mm	HH:mm
+HOW I SOUND >	CARA AKU TERDENGAR >
+Hang here	Diam di sini
+Have Ollama? Open it, then press Refresh.	Punya Ollama? Buka, lalu tekan Segarkan.
+Head pats	Usap kepala
+Hearing	Pendengaran
+Hearing engine	Mesin pendengaran
+Hearing fix	Perbaikan pendengaran
+Hearing status	Status pendengaran
+Help	Bantuan
+Help page	Halaman bantuan
+Her colors	Warnanya
+Her folder	Foldernya
+Her memories	Kenangannya
+Her own colors are back.	Warna miliknya sudah kembali.
+Her own notes (no vault)	Catatan miliknya (tanpa vault)
+Her perch frames per second	Bingkai per detik tempat duduknya
+Her personality	Kepribadiannya
+Her size	Ukurannya
+Her speaker	Speakernya
+Her speaker is hidden or outside VOICE	Speakernya tersembunyi atau di luar SUARA
+Her speaker overlaps the mic or hearing row	Speakernya tumpang tindih dengan baris mik atau pendengaran
+Her speaker:	Speakernya:
+Her speaker: Default	Speakernya: Default
+Her voice in your mic	Suaranya di mikmu
+Her voice in your mic: loudness	Suaranya di mikmu: volume
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Suaranya sendiri. Pitch-nya Pengaturan > SUARA > Pitch, dan keduanya bergerak bersama.
+Her voice joins your mic only in call mode.	Suaranya masuk ke mikmu hanya dalam mode panggilan.
+Her voice volume	Volume suaranya
+Her voice's pitch	Pitch suaranya
+Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch suaranya, sama dengan Pengaturan > SUARA > Pitch
+Her voice's speed	Kecepatan suaranya
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Suaranya, dan dua salinan yang dicampur di bawahnya, masing-masing dengan pitch dan jeda sendiri.
+Her voices · free	Suaranya · gratis
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hei, choom. Aku Capri. Aku butuh otak sebelum bisa menjawab. Pilih satu.
+Hide / Show Capri	Sembunyikan / Tampilkan Capri
+Hide / Show key	Tombol sembunyikan / tampilkan
+Hide Capri	Sembunyikan Capri
+Hide for now	Sembunyikan dulu
+Hide her	Sembunyikan dia
+Hide in full screen	Sembunyikan saat layar penuh
+Hide this	Sembunyikan ini
+Hide, keep player	Sembunyikan, pertahankan player
+Hide/show:	Sembunyikan/tampilkan:
+Hide/show: Ctrl + Alt + H	Sembunyikan/tampilkan: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Turun
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Berapa lama PC diam sebelum dia tidur; lima menit masih terbaca sebagai kamu pergi
+How long a stroke over her a head pat needs	Berapa lama gerakan di atasnya dihitung sebagai usap kepala
+How long her replies stay up	Berapa lama balasannya tetap tampil
+How long you are away before she scrolls a browser or reader	Berapa lama kamu pergi sebelum dia menggulir browser atau pembaca
+How much her voice glitches	Seberapa sering suaranya glitch
+How much of the chat she keeps	Seberapa banyak obrolan yang dia simpan
+How much she wanders	Seberapa sering dia berkeliaran
+How often she pops in to say hi	Seberapa sering dia mampir untuk menyapa
+How robotic her voice sounds	Seberapa robotik suaranya terdengar
+How to	Cara
+Huge	Sangat besar
+I can hear you.	Aku bisa mendengarmu.
+I glance at your screen and comment. Costs a little on a paid brain.	Aku melirik layarmu dan berkomentar. Memakan sedikit biaya di otak berbayar.
+I keep listening. Say my name, then just talk.	Aku terus mendengarkan. Sebut namaku, lalu bicara saja.
+I talk about your game as you play. Costs a little on a paid brain.	Aku bicara tentang game-mu saat kamu bermain. Memakan sedikit biaya di otak berbayar.
+I type my replies and stay quiet.	Aku mengetik balasanku dan diam.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Aku tidak akan membalas, dan tidak ada yang dikirim ke mana pun. Aku tetap nongkrong, menari mengikuti musikmu, dan melakukan hal cepat yang kamu minta, seperti volume.
+I'll talk in	Aku akan bicara dalam
+IN DISCORD >	DI DISCORD >
+INSTALLED >	TERPASANG >
+Import a Capri mod	Impor mod Capri
+Import mod	Impor mod
+In full screen	Saat layar penuh
+In games	Dalam game
+Input	Input
+Input, Output or How to overlaps a row	Input, Output, atau Cara tumpang tindih dengan baris
+Input:	Input:
+Input: default	Input: default
+Install	Pasang
+Install mod	Pasang mod
+Installed.	Terpasang.
+It may ask for a phone number. I opened the page in your browser.	Mungkin meminta nomor telepon. Aku sudah membuka halaman di browser-mu.
+It still does its own job in other apps too.	Ia tetap menjalankan tugasnya di aplikasi lain juga.
+It won't type in other apps while she runs.	Ia tidak akan mengetik di aplikasi lain saat dia berjalan.
+JUST ME >	HANYA AKU >
+Jealous of other AIs	Cemburu pada AI lain
+Join the Discord	Gabung Discord
+KB.	KB.
+KEYS	TOMBOL
+KEYS >	TOMBOL >
+Keep PC awake for jobs	Jaga PC tetap bangun untuk tugas
+Keep player	Pertahankan player
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Menyimpan dua menit terakhir game-mu di memori. Ucapkan rekam itu untuk menyimpannya.
+Key	Kunci
+Key cleared: a model file needs none.	Kunci dihapus: file model tidak memerlukannya.
+Key cleared: paste the key for	Kunci dihapus: tempel kunci untuk
+Key forgotten.	Kunci dilupakan.
+Key. It goes only to this server, as a Bearer key	Kunci. Hanya dikirim ke server ini, sebagai kunci Bearer
+Kokoro only, like es	Hanya Kokoro, seperti es
+LAST THING >	HAL TERAKHIR >
+LISTENING >	MENDENGARKAN >
+Language	Bahasa
+Large	Besar
+Last thing. These cost a little or use your mic, so they're your pick.	Hal terakhir. Ini memakan biaya sedikit atau memakai mikmu, jadi pilihanmu sendiri.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Hal terakhir. Ini memakan biaya sedikit atau memakai mikmu, jadi pilihanmu sendiri. Lalu aku ingin tahu bagaimana memanggilmu.
+Layers	Lapisan
+Learn more	Pelajari lebih lanjut
+Leaving Settings threw its picture away straight away.	Keluar dari Pengaturan langsung membuang gambarnya.
+Legacy stand	Dudukan lama
+Lie down	Berbaring
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Baris dialog PC yang disimpan di memori saat menonton bersama. Separuh tertua menjadi catatan saat Ingat apa yang dia lihat aktif
+Listen for Capri	Dengarkan Capri
+Live reactions	Reaksi langsung
+Local server address	Alamat server lokal
+Long	Panjang
+Longest wait (minutes)	Tunggu terlama (menit)
+Looking at this PC...	Melihat PC ini...
+Looking for Ollama. Open it if it isn't running.	Mencari Ollama. Buka jika tidak berjalan.
+Looking for a brain...	Mencari otak...
+Looking in the mods directory for updates...	Mencari pembaruan di direktori mod...
+Looking in the mods directory...	Mencari di direktori mod...
+Looking...	Mencari...
+MAIN >	UTAMA >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELLIGENCE SEDANG
+MEMORY VAULT >	BRANKAS MEMORI >
+MODS	MOD
+MODS >	MOD >
+MODS DIRECTORY >	DIREKTORI MOD >
+MODS INSTALLED COLORS	WARNA MOD TERPASANG
+MOVES >	GERAKAN >
+MY BRAIN	OTAKKU
+MY FREE VOICE	SUARA GRATISKU
+MY PLAN OR KEY	PAKET ATAU KUNCIKU
+MY PLAN OR KEY >	PAKET ATAU KUNCIKU >
+Made your Fish Audio voice. Press Test to hear it.	Suara Fish Audio-mu sudah dibuat. Tekan Uji untuk mendengarnya.
+Mainframe colours	Warna Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Warna Mainframe. Night City itu merah dan cyan; Hitam, Putih, dan Abu-abu mengubah Mainframe, menunya, kotak Ketik, dan catatannya
+Mainframe frames	Bingkai Mainframe
+Mainframe key	Tombol Mainframe
+Mainframe size	Ukuran Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Ukuran Mainframe. Otomatis membesarkannya saat Virtual Super Resolution atau DSR mengecilkan desktop besar ke layar yang lebih kecil
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Bawah
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Membuat suara Fish Audio-mu...
+Max reply	Balasan maks
+Maximum clip resolution, keeping the game's shape without upscaling	Resolusi klip maksimum, menjaga bentuk game tanpa upscaling
+Medium	Sedang
+Memory	Memori
+Memory size	Ukuran memori
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ukuran memori dalam token untuk Ollama dan otak bawaannya. Otomatis membesar saat permintaan butuh lebih
+Mg	Mg
+Mic level:	Level mik:
+Mic test finished. Sound is reaching Capri.	Tes mik selesai. Suara sampai ke Capri.
+Mic:	Mik:
+Mic: default	Mik: default
+Microphone	Mikrofon
+Mini player	Mini player
+Mini player over full screen	Mini player di atas layar penuh
+Mini-games	Mini-game
+Minimising the Mainframe left it sliding.	Meminimalkan Mainframe membuatnya meluncur.
+Minimize	Perkecil
+Mod filter	Filter mod
+Mod options	Opsi mod
+Mod pages	Halaman mod
+Mod rules	Aturan mod
+Mod sort	Urutkan mod
+Mod switch	Ganti mod
+Model	Model
+Model folder	Folder model
+Model name, optional	Nama model, opsional
+Mods	Mod
+Mods directory	Direktori mod
+Mods folder	Folder mod
+Most NVIDIA models can't see your screen.	Sebagian besar model NVIDIA tidak bisa melihat layarmu.
+Mouse wheel notches got a flick's long ease:	Putaran roda mouse mendapat efek melambat panjang:
+Move	Pindah
+Move key to MAX INTELLIGENCE	Pindahkan tombol ke MAX INTELLIGENCE
+Move to MAX	Pindah ke MAX
+Music	Musik
+Music app	Aplikasi musik
+Music app: where she plays music when you don't name an app	Aplikasi musik: tempat dia memutar musik saat kamu tidak menyebut aplikasi
+Mute	Bisukan
+Mute her	Bisukan dia
+Mute mic key	Tombol bisukan mik
+Mute mic:	Bisukan mik:
+Mute mic: Ctrl + Alt + N	Bisukan mik: Ctrl + Alt + N
+My brain	Otakku
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Otakku sedang turun. Aku akan menyapa begitu sudah masuk, dan kamu bisa bicara denganku saat itu.
+My brain's on its way. While it comes down, let's sort out how I sound.	Otakku sedang dalam perjalanan. Sambil turun, mari atur cara aku terdengar.
+My provider	Penyediaku
+NO AI	TANPA AI
+NO PHONES CONNECTED	TIDAK ADA TELEPON TERHUBUNG
+NO PREVIEW	TIDAK ADA PRATINJAU
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · gratis · sering lambat saat sibuk
+NVIDIA's free API is often slow, especially at busy times.	API gratis NVIDIA sering lambat, terutama saat sibuk.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini), atau kunci API OpenRouter
+Names:	Nama:
+Needs a key	Perlu kunci
+Never	Tidak pernah
+New code	Kode baru
+New voice from a clip...	Suara baru dari klip...
+Next	Berikutnya
+Night City	Night City
+No AI	Tanpa AI
+No AI · no brain at all	Tanpa AI · tanpa otak sama sekali
+No brain runs, and nothing is sent anywhere.	Tidak ada otak yang berjalan, dan tidak ada yang dikirim ke mana pun.
+No brain yet	Belum ada otak
+No code open	Tidak ada kode terbuka
+No limit	Tanpa batas
+No mic found	Mik tidak ditemukan
+No mods in the directory yet.	Belum ada mod di direktori.
+No mods match that.	Tidak ada mod yang cocok dengan itu.
+No mods match.	Tidak ada mod yang cocok.
+No phones yet	Belum ada telepon
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Belum ada mik virtual. Pilih Output, lalu Dapatkan VB-CABLE (gratis).
+None yet: pick to get VB-CABLE (free)	Belum ada: pilih untuk mendapatkan VB-CABLE (gratis)
+Normal	Normal
+Not a relay host	Bukan host relay
+Not imported. Nothing ran.	Tidak diimpor. Tidak ada yang berjalan.
+Not updated. The old one is still in.	Tidak diperbarui. Yang lama masih terpasang.
+Nothing needed updating.	Tidak ada yang perlu diperbarui.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Tidak ada yang diunduh, tidak ada yang dikirim ke mana pun. Aku tidak akan membalas. Tambahkan otak kapan saja di Mainframe.
+Nothing to show from the mods directory.	Tidak ada yang bisa ditampilkan dari direktori mod.
+Nothing? Windows Settings > Privacy & security > Microphone.	Tidak ada? Pengaturan Windows > Privasi & keamanan > Mikrofon.
+Nous Portal keys aren't supported yet.	Kunci Nous Portal belum didukung.
+OBS	OBS
+OFF	MATI
+OLLAMA	OLLAMA
+ON	NYALA
+ON THIS PC	DI PC INI
+OR A KEY	ATAU KUNCI
+Obsidian memory vault	Brankas memori Obsidian
+Off	Mati
+Off. Turn on Her voice in your mic above.	Mati. Nyalakan Suaranya di mikmu di atas.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Mati: dia terdengar seperti biasa. Nyala: semua suara yang dia punya, termasuk ElevenLabs.
+Often	Sering
+On	Nyala
+On / Off	Nyala / Mati
+On: your mic and her voice are going in.	Nyala: mik dan suaranya sedang masuk.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Satu objek JSON, ditambahkan ke setiap permintaan yang dikirim otak ini. Ini menggantikan nilai Capri untuk nama apa pun yang sama, dan tidak diperiksa terhadap model.
+Online speech recognition	Pengenalan suara daring
+Open Capri Mainframe	Buka Capri Mainframe
+Open Ollama, I'll find it	Buka Ollama, aku akan mencarinya
+Open clips folder	Buka folder klip
+Open her memories	Buka kenangannya
+Open her notes	Buka catatannya
+Open mods folder	Buka folder mod
+Open the page again	Buka halaman lagi
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA, atau OpenRouter.
+OpenAI-compatible server or provider.	Server atau penyedia yang kompatibel dengan OpenAI.
+OpenRouter · free models only	OpenRouter · hanya model gratis
+Optional	Opsional
+Optional. Blank means no key.	Opsional. Kosong berarti tanpa kunci.
+Options	Opsi
+Out of the box a little higher, just behind her.	Sedikit lebih tinggi bawaannya, tepat di belakangnya.
+Out of the box lower, just behind her.	Sedikit lebih rendah bawaannya, tepat di belakangnya.
+Output	Output
+Output:	Output:
+Output: none	Output: tidak ada
+PHONE CONNECTED	TELEPON TERHUBUNG
+PHONES >	TELEPON >
+PHONES CONNECTED	TELEPON TERHUBUNG
+PREBUILT LOCAL	LOKAL BAWAAN
+PUBLISH MOD >	TERBITKAN MOD >
+Pair a phone	Pasangkan telepon
+Paste	Tempel
+Paste API key	Tempel kunci API
+Paste a brain API key	Tempel kunci API otak
+Paste reads your clipboard once, when you press it.	Tempel membaca papan klip sekali, saat kamu menekannya.
+Paste your key here	Tempel kunci kamu di sini
+Pat stroke	Usapan kepala
+Perch	Tempat bertengger
+Perch over {0} fps uses more CPU	Tempat bertengger di atas {0} fps memakai CPU lebih banyak
+Pick Output to get it.	Pilih Output untuk mendapatkannya.
+Pick a brain so I can talk back. You can change it any time.	Pilih otak supaya aku bisa membalas. Kamu bisa mengubahnya kapan saja.
+Pick a clip of a voice you have the rights and consent to use	Pilih klip suara yang kamu punya hak dan izin untuk digunakan
+Pick a free model. I opened the page in your browser.	Pilih model gratis. Aku sudah membuka halaman di browser-mu.
+Pick a new clip of you...	Pilih klip baru dirimu...
+Pick a voice model...	Pilih model suara...
+Pick one. Only one brain runs at a time.	Pilih satu. Hanya satu otak yang berjalan dalam satu waktu.
+Pick the note her memories go in	Pilih catatan tempat kenangannya masuk
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Pilih {0} sampai {1} detik suara yang kamu punya hak dan izin untuk digunakan
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Pilih {0} sampai {1} detik kamu berbicara, atau suara yang kamu punya hak dan izin untuk digunakan
+Pitch	Pitch
+Play	Putar
+Play...	Putar...
+Player only	Hanya player
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Model Pocket TTS menyalin suara klip ini. Tekan Uji untuk mendengarnya.
+Pop-in times	Waktu muncul
+Pop-ins	Kemunculan
+Power saver	Penghemat daya
+Power saver: how lightly she runs in games, or always	Penghemat daya: seberapa ringan dia berjalan di game, atau selalu
+Preset	Preset
+Press Create API key	Tekan Buat kunci API
+Press Create Key	Tekan Buat Kunci
+Press Generate API Key	Tekan Generate API Key
+Press Test and say something, so I know I can hear you.	Tekan Uji dan katakan sesuatu, supaya aku tahu aku bisa mendengarmu.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Tekan tombol, sendiri atau dengan Ctrl, Alt, Shift, atau Win.
+Press new keys, then Confirm	Tekan tombol baru, lalu Konfirmasi
+Provider	Penyedia
+Provider API key, optional	Kunci API penyedia, opsional
+Provider base URL	URL dasar penyedia
+Provider forgotten.	Penyedia dilupakan.
+Provider overlaps the brain name or note	Penyedia tumpang tindih dengan nama atau catatan otak
+Publish	Terbitkan
+Publish mod	Terbitkan mod
+Push to talk is off.	Tombol bicara tidak aktif.
+Push to talk key	Tombol bicara
+Push to talk:	Tombol bicara:
+Push to talk: not set	Tombol bicara: belum diatur
+QR CODE >	KODE QR >
+QR hidden while streaming	QR disembunyikan saat streaming
+Quick	Cepat
+Quiet key	Tombol diam
+Quiet:	Diam:
+Quiet: Ctrl + Alt + P	Diam: Ctrl + Alt + P
+Quit Capri	Keluar dari Capri
+RELAY >	RELAY >
+REMOTE >	JARAK JAUH >
+RUNS CODE.	MENJALANKAN KODE.
+Rarely	Jarang
+Rate mod	Nilai mod
+Reading its README...	Membaca README-nya...
+Refresh	Segarkan
+Reinstall	Pasang ulang
+Reload	Muat ulang
+Reloaded.	Dimuat ulang.
+Remember our chats	Ingat obrolan kita
+Remember what she sees	Ingat apa yang dia lihat
+Remote	Jarak jauh
+Remote off	Jarak jauh mati
+Remote on	Jarak jauh nyala
+Remove	Hapus
+Remove all phones	Hapus semua telepon
+Replies	Balasan
+Reply length	Panjang balasan
+Report a problem	Laporkan masalah
+Reset colors	Reset warna
+Reset to her default	Reset ke default-nya
+Resolution	Resolusi
+Restart to update	Mulai ulang untuk memperbarui
+Restless	Gelisah
+Revoke	Cabut
+Revoke also removes the phones its links added	Mencabut juga menghapus telepon yang ditautkan oleh tautannya
+Ride cursor	Tunggangi kursor
+Ride cursor / Hop off	Tunggangi kursor / Turun
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Klik kanan aku kapan saja untuk Capri Mainframe. Otak akan menyala di bawah OTAK.
+Right-click me any time for the Mainframe, Help and the Discord.	Klik kanan aku kapan saja untuk Mainframe, Bantuan, dan Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox atau aplikasi lain: pilih
+Robot	Robot
+Rock, paper, scissors	Batu, gunting, kertas
+Run this code mod?	Jalankan mod kode ini?
+Running on this PC	Berjalan di PC ini
+Running on this PC · :	Berjalan di PC ini · :
+Runs Claude Code or Codex on this PC, signed in.	Menjalankan Claude Code atau Codex di PC ini, sudah masuk.
+Runs on your PC. No key, no credits.	Berjalan di PC-mu. Tanpa kunci, tanpa kredit.
+SCAN WITH YOUR PHONE · EXPIRES	PINDAI DENGAN TELEPON-MU · KEDALUWARSA
+SECURITY >	KEAMANAN >
+SKILL.	KEMAMPUAN.
+SKIN.	KULIT.
+SORT BY	URUTKAN BERDASARKAN
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SUARA KEBIASAAN OTAK TONTON CAPRI DOOMSCROLL CUACA KLIP GAME TOMBOL GERAKAN SUARA KAMU
+Same as her ears (VOICE > Mic)	Sama seperti telinganya (SUARA > Mik)
+Same code on the phone?	Kode sama di ponsel?
+Save	Simpan
+Save big moments	Simpan momen besar
+Save folder	Folder simpan
+Save your changes, or press Discard + reload.	Simpan perubahanmu, atau tekan Buang + muat ulang.
+Save your changes, or press Discard.	Simpan perubahanmu, atau tekan Buang.
+Saved.	Tersimpan.
+Saved. Ctrl + Alt + O opens her Mainframe.	Tersimpan. Ctrl + Alt + O membuka Mainframe-nya.
+Saving your rating...	Menyimpan penilaianmu...
+Say her name anywhere to chat	Sebut namanya di mana saja untuk mengobrol
+Screens	Layar
+Screens is hidden or outside WATCH	Layar tersembunyi atau di luar TONTON
+Screens overlaps a WATCH row	Layar tumpang tindih dengan baris TONTON
+Screens to watch	Layar untuk ditonton
+Sealed end to end	Terenkripsi ujung ke ujung
+Search by name or author	Cari berdasarkan nama atau pembuat
+Search installed mods	Cari mod terpasang
+Search mods	Cari mod
+Search name, author or description	Cari nama, pembuat, atau deskripsi
+Security	Keamanan
+Security:	Keamanan:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Atur
+Set up her brain	Atur otaknya
+Set up your voice model	Atur model suaramu
+Setting up her brain	Mengatur otaknya
+Settings	Pengaturan
+Settings / Back	Pengaturan / Kembali
+Settings folds the wrong rows above BRAIN	Pengaturan melipat baris yang salah di atas OTAK
+Settings had nothing to watch.	Pengaturan tidak punya apa-apa untuk ditonton.
+Settings lost keyboard focus during the Tab walk	Pengaturan kehilangan fokus keyboard saat jalur Tab
+Setup guide	Panduan pengaturan
+Setup stopped	Pengaturan dihentikan
+She can read it when it fits.	Dia bisa membacanya saat muat.
+She glances at your screen and comments. Costs a little on a paid brain.	Dia melirik layarmu dan berkomentar. Memakan sedikit biaya di otak berbayar.
+She keeps listening. Say her name, then just talk until you go quiet.	Dia terus mendengarkan. Sebut namanya, lalu bicara terus sampai kamu diam.
+She reacts to your game until you close it.	Dia bereaksi terhadap game-mu sampai kamu menutupnya.
+She reads these controls before each game job.	Dia membaca kontrol ini sebelum setiap tugas game.
+She talks about your game as you play. Costs a little on a paid brain.	Dia bicara tentang game-mu saat kamu bermain. Memakan sedikit biaya di otak berbayar.
+She uses it when she plays	Dia memakainya saat bermain
+Short	Pendek
+Shortest wait (minutes)	Tunggu tersingkat (menit)
+Show Capri	Tampilkan Capri
+Show QR	Tampilkan QR
+Show my mod file	Tampilkan file mod-ku
+Show on Discord	Tampilkan di Discord
+Shum, what time is it	Shum, jam berapa sekarang
+Sign in	Masuk
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Masuk, buat kunci, dan salin. Lalu tekan Tempel dan aku akan terhubung.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Masuk, tekan Buat kunci API, dan salin. Lalu tekan Tempel dan aku akan terhubung.
+Silent · text only	Diam · hanya teks
+Simple / Advanced Settings	Pengaturan Sederhana / Lanjutan
+Simple Settings	Pengaturan Sederhana
+Simple Settings left a gap under Check in on me	Pengaturan Sederhana menyisakan celah di bawah Cek keadaanku
+Sit here	Duduk di sini
+Sit on windows	Duduk di jendela
+Size	Ukuran
+Skip	Lewati
+Skip all	Lewati semua
+Skip for now	Lewati dulu
+Sleep	Tidur
+Small	Kecil
+Sometimes	Kadang-kadang
+Sound effects volume	Volume efek suara
+Sound sensitivity	Sensitivitas suara
+Sounds	Suara
+Speaker or clip	Speaker atau klip
+Speech model	Model ucapan
+Speed	Kecepatan
+Start with Windows	Mulai bersama Windows
+Start with this!	Mulai dengan ini!
+Starting...	Memulai...
+Stay	Tetap
+Stay on my model	Tetap di modelku
+Still checking your mics...	Masih mengecek mik-mu...
+Still checking your speakers...	Masih mengecek speaker-mu...
+Still checking your virtual mics...	Masih mengecek mik virtual-mu...
+Stop	Berhenti
+Stopped using it. Couldn't remove the saved provider.	Berhenti memakainya. Tidak bisa menghapus penyedia yang tersimpan.
+Support	Dukungan
+Sure?	Yakin?
+Sure? moved to a different phone	Yakin? pindah ke telepon lain
+TALK TO ME	BICARA DENGANKU
+TEXT ONLY	HANYA TEKS
+Tab landed past the first option of	Tab mendarat melewati opsi pertama dari
+Tab never reached the quiet key	Tab tidak pernah sampai ke tombol diam
+Tab reached nothing	Tab tidak mencapai apa pun
+Tab selected a control without moving keyboard focus	Tab memilih kontrol tanpa memindahkan fokus keyboard
+Talk	Bicara
+Talk key	Tombol bicara
+Talk:	Bicara:
+Talk: Ctrl + Alt + V	Bicara: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Target frame rate tangkapan; bisa turun saat beban atau anggaran memori tinggi
+Teases when another AI comes to the front.	Mengejek saat AI lain muncul di depan.
+Test	Tes
+That address doesn't work. Try https://... or http://localhost:{0}.	Alamat itu tidak berfungsi. Coba https://... atau http://localhost:{0}.
+That code expired	Kode itu sudah kedaluwarsa
+That mod is no longer installed. The list is updated.	Mod itu tidak lagi terpasang. Daftar sudah diperbarui.
+That's a paid key: it goes under MAX INTELLIGENCE.	Itu kunci berbayar: masuk ke MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe tetap komposit saat meluncur.
+The Mainframe stayed uncomposited after the slide.	Mainframe tetap tidak komposit setelah geser.
+The controls moved while the picture was sliding.	Kontrol bergerak saat gambar meluncur.
+The cover stayed visible after the slide ended.	Sampul tetap terlihat setelah geser selesai.
+The frame thread kept running after the page settled.	Thread frame tetap berjalan setelah halaman stabil.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Balasan terpanjang yang bisa dia berikan, dalam token. Otomatis tetap di Balasan di atas; {0}K atau {1}K membiarkannya berlanjut. Tugas mendapat ruang lebih saat dibutuhkan
+The longest wait must be at least the shortest wait.	Tunggu terpanjang harus setidaknya sama dengan tunggu tersingkat.
+The picture doesn't match the scrolled page:	Gambar tidak cocok dengan halaman yang digulir:
+The picture of Settings doesn't match the page:	Gambar Pengaturan tidak cocok dengan halaman:
+The picture stayed up after the slide ended.	Gambar tetap tampil setelah geser selesai.
+The picture wasn't showing while it slid.	Gambar tidak terlihat saat meluncur.
+The provider sheet is crowded:	Lembar penyedia penuh sesak:
+The voice panel has no screen DPI.	Panel suara tidak punya DPI layar.
+The voice panel's menus share one font.	Menu panel suara berbagi satu font.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Belum ada kunci di papan klip. Salin dari halaman, lalu tekan Tempel.
+These start off. Each costs a little or uses your mic.	Ini mulai dalam keadaan mati. Masing-masing memakan sedikit biaya atau memakai mikmu.
+These start off. Turn on what you want. They're all in Settings too.	Ini mulai dalam keadaan mati. Nyalakan yang kamu mau. Semuanya juga ada di Pengaturan.
+They can also call you Big Z, Capricorn or Nova	Mereka juga bisa memanggilku Big Z, Capricorn, atau Nova
+They can also call you Nova, Big Z or Capricorn	Mereka juga bisa memanggilku Nova, Big Z, atau Capricorn
+Thinking	Berpikir
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Ini suara gratisku. Tekan Uji, katakan sesuatu, dan aku akan menunjukkan bahwa aku bisa mendengarmu.
+This mod has no description yet.	Mod ini belum punya deskripsi.
+Tic-tac-toe	Tik-tak-to
+Time between glances	Waktu antar lirikan
+Tiny	Mungil
+Try again	Coba lagi
+Turn Remote on first	Nyalakan Jarak jauh dulu
+Turn off mini player	Matikan mini player
+Turn push to talk off	Matikan tombol bicara
+Turning the wheel the other way kept the page heading the old way, to	Memutar roda ke arah sebaliknya membuat halaman tetap ke arah lama, sampai
+Type	Ketik
+Type key	Tombol ketik
+Type to me	Ketik ke aku
+Type:	Ketik:
+Type: Ctrl + Alt + T	Ketik: Ctrl + Alt + T
+Typing sound	Suara mengetik
+Unpacked. Press Test to hear it.	Sudah diekstrak. Tekan Uji untuk mendengarnya.
+Unsaved changes.	Perubahan belum disimpan.
+Up to {0} fps	Hingga {0} fps
+Up to {0}p	Hingga {0}p
+Update	Perbarui
+Update available.	Pembaruan tersedia.
+Update mods	Perbarui mod
+Updating...	Memperbarui...
+Use	Pakai
+Use her cursor	Pakai kursornya
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Gunakan https:// untuk penyedia di tempat lain. Kunci lewat http biasa tidak aman.
+Use preset	Pakai preset
+Use saved	Pakai yang tersimpan
+Use this server	Pakai server ini
+Using your provider with a key	Memakai penyediamu dengan kunci
+Using your server with no key	Memakai servermu tanpa kunci
+VIEW MOD >	LIHAT MOD >
+VOICE >	SUARA >
+VOICE IN YOUR MIC >	SUARA DI MIK-MU >
+VOICE LAYERS >	LAPISAN SUARA >
+Verbosity	Verbositas
+Video bitrate	Bitrate video
+View	Lihat
+View mod	Lihat mod
+Voice	Suara
+Voice ID	ID suara
+Voice from	Suara dari
+Voice layers	Lapisan suara
+Voice model	Model suara
+Voice model:	Model suara:
+Voice name or ID, optional	Nama atau ID suara, opsional
+Voice server address, or a voice model's folder	Alamat server suara, atau folder model suara
+Voice status	Status suara
+Voice, key and model...	Suara, kunci, dan model...
+Volume	Volume
+WAKE ME UP >	BANGUNKAN AKU >
+WATCH >	TONTON >
+Waiting for the relay	Menunggu relay
+Wake her up	Bangunkan dia
+Waking her up	Membangunkannya
+Wander	Berkeliaran
+Wander around	Berkeliaran di sekitar
+Watch my screen	Tonton layarku
+Watch-along memory	Memori menonton bersama
+Weather	Cuaca
+Weather city	Kota cuaca
+Welcome back, choom. Let's finish setting me up.	Selamat datang kembali, choom. Ayo selesaikan pengaturanku.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Apa yang dia lakukan di PC-mu tanpa bertanya. Dengan sakelar mati dia bertanya dulu, dan melakukannya saat kamu bilang ya.
+What should she call you?	Dia harus memanggilmu apa?
+When she types	Saat dia mengetik
+White	Putih
+Windows default	Default Windows
+Windows did not give Settings keyboard focus	Windows tidak memberi Pengaturan fokus keyboard
+Windows did not return keyboard focus to Back	Windows tidak mengembalikan fokus keyboard ke Kembali
+With no picture the wheel still tried to slide.	Tanpa gambar, roda tetap mencoba meluncur.
+Works best on MAX INTELLIGENCE.	Paling baik dengan MAX INTELLIGENCE.
+YOU	KAMU
+YOU >	KAMU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	KAMU SUARA GERAKAN TOMBOL GAME KLIP CUACA DOOMSCROLL CAPRI TONTON OTAK KEBIASAAN SUARA
+YOUR KEY	KUNCI KAMU
+YOUR MIC	MIK KAMU
+YOUR PLAN	PAKET KAMU
+Yokapri what's up	Yokapri ada apa
+You can hide this. It keeps going, and the Mainframe shows it too.	Kamu bisa menyembunyikan ini. Ia tetap berjalan, dan Mainframe juga menampilkannya.
+Your mic and her voice go into one virtual mic, and	Mik-mu dan suaranya masuk ke satu mik virtual, dan
+Your mic is muted. Unmute it to test.	Mik-mu dibisukan. Nyalakan lagi untuk mencoba.
+Your mods are up to date.	Mod-mu sudah terbaru.
+Your name or a nickname	Nama atau panggilanmu
+Your own model	Model milikmu sendiri
+Your personality	Kepribadianmu
+Your voice	Suaramu
+Your voice (HD)	Suaramu (HD)
+Your voice (HD) · pick a clip of you...	Suaramu (HD) · pilih klip dirimu...
+Your voice model	Model suaramu
+as its mic.	sebagai mik-nya.
+changed. Saved as My Colors, so you can share it.	berubah. Disimpan sebagai Warna Saya, supaya kamu bisa membagikannya.
+choice	pilihan
+clips the input line	memotong baris input
+cue	isyarat
+doesn't yet.	belum.
+download	unduhan
+file.	file.
+flag	bendera
+fps	fps
+hear	dengar
+hears	mendengar
+hears that.	mendengar itu.
+hides or shows her.	menyembunyikan atau menampilkannya.
+hint	petunjuk
+in the Mainframe.	di Mainframe.
+in the mods directory with a pull request.	di direktori mod dengan pull request.
+in the picture wasn't noticed.	di gambar tidak disadari.
+is already her push-to-talk key.	sudah menjadi tombol bicara-nya.
+is off.	mati.
+is on and running.	nyala dan berjalan.
+is on, at the bottom, under	nyala, di bawah, di bawah
+is on.	nyala.
+is on. She now answers to	nyala. Sekarang dia menjawab ke
+is removed.	dihapus.
+is taken	sudah dipakai
+is taken by another app. Try another.	dipakai aplikasi lain. Coba yang lain.
+is updated	diperbarui
+isn't hearing it yet: do {0} and {1}, then join a call.	belum mendengarnya: lakukan {0} dan {1}, lalu bergabung ke panggilan.
+it now.	sekarang.
+keeps her quiet, and lets her talk again.	membuatnya diam, dan membiarkannya bicara lagi.
+key	tombol
+key.	tombol.
+min	mnt
+more.	lagi.
+ms.	ms.
+mutes mic	membisukan mik
+mutes your mic.	membisukan mik-mu.
+name	nama
+off	mati
+on this PC	di PC ini
+opens her Mainframe.	membuka Mainframe-nya.
+opens her typing box.	membuka kotak ketiknya.
+phone	telepon
+phone pixels	piksel telepon
+phones	telepon
+pixels	piksel
+pixels)	piksel)
+star.	bintang.
+stars.	bintang.
+starts voice chat.	memulai obrolan suara.
+stays off. Nothing ran.	tetap mati. Tidak ada yang berjalan.
+still does its own job in other apps too. Confirm to keep it.	tetap menjalankan tugasnya di aplikasi lain juga. Konfirmasi untuk menyimpannya.
+tall	tinggi
+time	waktu
+to talk	untuk bicara
+to talk to her, with a game in front too.	untuk bicara dengannya, dengan game di depan juga.
+too.	juga.
+turns Gaming Mode on and off.	menyalakan dan mematikan Mode Game.
+with Ollama	dengan Ollama
+won't type in other apps while she runs. Confirm to keep it.	tidak akan mengetik di aplikasi lain saat dia berjalan. Konfirmasi untuk menyimpannya.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Mati
+{0}   If her voice cuts off, turn off noise filtering	{0}   Jika suaranya terputus, matikan filter kebisingan
+{0}   Input Device:	{0}   Perangkat Input:
+{0}   Join the call and check they hear both of you	{0}   Bergabung ke panggilan dan cek apakah kalian berdua terdengar
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Tes Mik > Mari Cek: kamu akan mendengar dirimu, dan dia saat berbicara
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Peredam Kebisingan: Tidak ada. Keduanya bisa memotong suaranya setelah baris pertama.
+{0}   Open the call or meeting's audio settings	{0}   Buka pengaturan audio panggilan atau rapat
+{0}   Output Device: your headphones, like before	{0}   Perangkat Output: headphone-mu, seperti sebelumnya
+{0}   Speaker: your headphones, like before	{0}   Speaker: headphone-mu, seperti sebelumnya
+{0}   Try a mic test in your call app	{0}   Coba tes mik di aplikasi panggilanmu
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Pengaturan Pengguna (roda gigi di sebelah namamu) > Suara & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} baris
+{0} min	{0} mnt
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· di PC ini
+· server	· server

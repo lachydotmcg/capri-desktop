@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Kontroll li reġa' ġie pitturat ma ġiex iddisinjat mill-ġdid fl-immaġni.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Ċavetta bla ħlas minn Google AI Studio, NVIDIA jew OpenRouter. Xejn x'tniżżel. Teħtieġ internet.
+A held trackpad scroll got a flick's long ease:	Xkupptu miżmum fuq it-trackpad irċieva t-tnaqqis twil ta' flick:
+A layout change during a slide put the page at	Bidla fil-layout waqt tranżizzjoni qiegħdet il-paġna fuq
+A layout change left the picture up.	Bidla fil-layout ħalliet l-immaġni fuq.
+A model in Ollama, on your local server or on your key.	Mudell f'Ollama, fuq is-server lokali tiegħek jew bil-ċavetta tiegħek.
+A paid key goes under MAX INTELLIGENCE by itself.	Ċavetta bi ħlas tmur waħedha taħt MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Pjan li diġà tħallas għalih, ċavetta tiegħek, jew Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menu tal-pannell tal-leħen ma għandux kopja tiegħu stess tal-font tal-pannell.
+A wheel turn right after a slide ended froze the picture.	Dawra tar-rota ftit wara li tranżizzjoni spiċċat iffriżat l-immaġni.
+ALLOW THIS PHONE?	TILLIMA DIN IT-TELEFON?
+ALMOST THERE >	QIEGĦED QRIB >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	KAPRI OĦRA ħadet il-kontroll · ITFI U IXGĦEL
+API key	Ċavetta API
+API key, Claude plan or ChatGPT plan	Ċavetta API, pjan ta' Claude jew pjan ta' ChatGPT
+Add	Żid
+Address	Indirizz
+Address and key saved. Use saved to reconnect.	L-indirizz u ċ-ċavetta ġew salvati. Uża Salvat biex terġa' tgħaqqad.
+Advanced Settings	Impostazzjonijiet avvanzati
+All	Kollha
+All screens	L-iskrins kollha
+Allow	Ippermetti
+Almost there. I'll say hi the second my brain's in.	Ftit ieħor. Ngħidlek hi malli moħħi jkun lest.
+Always	Dejjem
+Always on top	Dejjem fuq nett
+Any Google account works. I opened the page in your browser.	Kwalunkwe kont ta' Google jaħdem. Iftaħt il-paġna fil-browser tiegħek.
+Applies to every voice	Japplika għal kull leħen
+Apps she may close	Applikazzjonijiet li tista' tagħlaq
+Ask Capri for more	Staqsi lil Capri għal aktar
+Asking your server...	Qed nistaqsi s-server tiegħek...
+Asks before closing only the apps you choose.	Jistaqsi qabel jagħlaq biss l-applikazzjonijiet li tagħżel.
+Auto	Awtomatiku
+Automatic: VB-CABLE, else Steam's	Awtomatiku: VB-CABLE, inkella dak ta' Steam
+BAD RELAY HOST	HOST TAR-RELAY ħażin
+BIG Z open notepad	BIG Z iftaħ notepad
+BRAIN	MOĦĦ
+BRAIN >	MOĦĦ >
+BRAIN ONLINE >	MOĦĦ ONLINE >
+BRAIN PROVIDER >	FORNITUR TAL-MOĦĦ >
+BRAIN VOICE CAPRI	MOĦĦ LEĦEN CAPRI
+Back	Lura
+Back on your saved API key.	Lura għaċ-ċavetta API salvata tiegħek.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	L-aħjar għal dan il-PC:
+Black	Iswed
+Blank key means no key.	Kamp vojt ifisser l-ebda ċavetta.
+Brain API key	Ċavetta API tal-moħħ
+Brain model	Mudell tal-moħħ
+Brain provider	Fornitur tal-moħħ
+Bring here	Ġibha hawn
+Bring to this screen	Ġibha f'dan l-iskrin
+Browse	Fittex
+Browse mods	Fittex mods
+Browse to a voice model	Fittex mudell tal-leħen
+Browse...	Fittex...
+Bubble	Bżieqa
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree int hemm?
+CAN'T REACH THE RELAY · RETRYING	MA NISTAX NILħaq ir-RELAY · QED NERĠA' NIPPROVA
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	MOĦĦ TAL-LEĦEN CAPRI
+CHANGED, approve it again.	BDIL, approvah mill-ġdid.
+CLIPS >	KLIPS >
+CLOUD VOICE	LEĦEN CLOUD
+CODE	KODIĊI
+COLORS >	KULURI >
+CONNECTED	KONNESS
+CONNECTING	QED JIKKONNETTJA
+CUSTOM LOCAL	LOKALI PERSONALIZZAT
+Call mode (beta)	Modalità ta' sejħa (beta)
+Call mode does not fit.	Il-modalità tas-sejħa ma tidholx.
+Call mode is outside its space.	Il-modalità tas-sejħa barra mill-ispazju tagħha.
+Cancel	Ikkanċella
+Cancel keys	Ikkanċella ċwievet
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Kodiċi ta' Capri:
+Capri mods (*	Mods ta' Capri (*
+Capri, hello	Capri, ċaw
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kaos meta tkun imdejqa
+Chat with Capri from your phone	Kellem lil Capri mit-telefon tiegħek
+ChatGPT plan	Pjan ta' ChatGPT
+Check for updates	Iċċekkja għal aġġornamenti
+Check in on me	Ara kif inkun
+Check in on me is hidden	Ara kif inkun huwa moħbi
+Check in on me still decides whether she visits.	Ara kif inkun għadu jiddeċiedi jekk tiġix iżżur.
+Check in on me's tip missed	Il-pariri ta' Ara kif inkun tfawwet
+Chess	Taraġ
+Choose apps	Agħżel applikazzjonijiet
+Choose folder...	Agħżel folder...
+Choose where future Capri clips are saved	Agħżel fejn jinħażnu l-klipps futuri ta' Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Pjan ta' Claude jew ChatGPT, ċavetta bi ħlas (OpenAI, Claude, DeepSeek), jew Ollama.
+Claude plan	Pjan ta' Claude
+Clear	Ineħħi
+Cleared.	Imnaddaf.
+Click Confirm to keep Down, or press Esc.	Ikklikkja Ikkonferma biex iżżomm Isfel, jew ipprem Esc.
+Click to open it.	Ikklikkja biex tiftaħha.
+Clip my games	Ikklipja l-logħob tiegħi
+Clips	Klips
+Close	Agħlaq
+Close other AIs for me	Agħlaq AI oħra għalija
+Cloud voice	Leħen cloud
+Cloud voice service	Servizz tal-leħen cloud
+Cloud voice setup	Installazzjoni tal-leħen cloud
+Code mods can reach your whole PC. Only trusted ones.	Mods tal-kodiċi jistgħu jilħqu l-PC kollu tiegħek. Biss dawk fdati.
+Code/Husk Mode	Modalità Code/Husk
+Codex	Codex
+Commands	Kmandi
+Comment on my games	Ikkummenta fuq il-logħob tiegħi
+Comments	Kummenti
+Confirm	Ikkonferma
+Confirm keys	Ikkonferma ċwievet
+Connect	Konnettja
+Connect / Forget brain key	Konnettja / Ħassar ċavetta tal-moħħ
+Connect / Forget voice key	Konnettja / Ħassar ċavetta tal-leħen
+Connect four	Erba' f'ringiela
+Controls	Kontrolli
+Copri, what time is it	Copri, x'ħin hu
+Copy error details	Ikkopja d-dettalji tal-iżball
+Copy the key	Ikkopja ċ-ċavetta
+Copy the key from the page, then press Paste.	Ikkopja ċ-ċavetta mill-paġna, imbagħad ipprem Ipponi.
+Couldn't open that page:	Ma stajtx niftaħ dik il-paġna:
+Couldn't open that:	Ma stajtx niftaħ dak:
+Couldn't open the mods folder:	Ma stajtx niftaħ il-folder tal-mods:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M diġà hi ċ-ċavetta tal-Mainframe tagħha.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N jagħmel il-mikrofon mute
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V diġà hi ċ-ċavetta tal-kelma tagħha.
+Ctrl + Alt + V to talk	Ctrl + Alt + V biex titkellem
+Custom local voice	Leħen lokali personalizzat
+Custom model name	Isem tal-mudell personalizzat
+Dance	Iżfen
+Dance to music	Iżfen għall-mużika
+Default	Default
+Default (follows Windows)	Default (isegwi Windows)
+Default duration for clip that and automatic clips	Tul default għal «aqta' dan» u l-klipps awtomatiċi
+Default length	Tul default
+Default model	Mudell default
+Delay	Dewmien
+Deny	Iċħad
+Discard	Ħassar
+Discard + reload	Ħassar + erġa' tgħabba
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ma tridx tistenna? Ċavetta bla ħlas tagħmilni nitkellem f'madwar minuta.
+Done	Lest
+EXTRA REQUEST JSON >	TALBA EXTRA JSON >
+EXTRAS >	EXTRA >
+Edit	Editja
+Edit check-in lines	Editja l-linji tal-check-in
+Edit check-in lines has the wrong view or dimming	Editja l-linji tal-check-in għandhom il-veduta jew it-tixħim ħażin
+Edit check-in lines is out of place	Editja l-linji tal-check-in qegħdin barra post
+Edit controls	Editja l-kontrolli
+ElevenLabs API key	Ċavetta API ta' ElevenLabs
+ElevenLabs voice ID	ID tal-leħen ta' ElevenLabs
+English	Ingliż
+Enter the game's name first.	Ikteb l-isem tal-logħba l-ewwel.
+Every	Kull
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Kull mod jiġi ċċekkjat għal malware qabel ma jitqiegħed. Mods tal-kodiċi għadhom jistaqsu qabel jaħdmu.
+Explore after	Esplora wara
+Explore while I'm away	Esplora waqt li m'intix hawn
+Extra request JSON	Talba extra JSON
+Extras	Extras
+FREE KEY	ĊAVETTA BLA ĦLAS
+FREE KEY >	ĊAVETTA BLA ĦLAS >
+Fast hands in games	Idejn mgħaġġla fil-logħob
+File editor	Editur tal-fajls
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs u aktar jinsabu taħt LEĦEN fil-Mainframe.
+Follow-up messages	Messaġġi ta' segwitu
+Forget	Ħassar
+Fork capri-mods	Forka capri-mods
+Frame rate	Frame rate
+Free	Bla ħlas
+Free and private, works offline. Downloads	Bla ħlas u privat, jaħdem offline. Iniżżel
+Free and private, works offline. Downloads the best model for this PC.	Bla ħlas u privat, jaħdem offline. Iniżżel l-aħjar mudell għal dan il-PC.
+Free key	Ċavetta bla ħlas
+Free key providers	Fornituri ta' ċwievet bla ħlas
+Free keys can be rate limited and slow.	Ċwievet bla ħlas jistgħu jkunu bil-limitu u bil-mod.
+Free voice in games	Leħen bla ħlas fil-logħob
+Free voice style	Stil ta' leħen bla ħlas
+Free voice:	Leħen bla ħlas:
+Free voice: Her own	Leħen bla ħlas: Tagħha stess
+Free · local model	Bla ħlas · mudell lokali
+GAMES >	LOGĦOB >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Il-kummenti tal-logħba jaħdmu separatament minn Ara l-iskrin tiegħi. Off iwaqqafhom, anke fil-Gaming Mode; Events only u Chatty jħallu tara l-logħba tiegħek
+Game controls	Kontrolli tal-logħba
+Game name	Isem tal-logħba
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Sensittività tal-ħoss tal-logħba. Naqqasha jekk il-headset tiegħek hu baxx imma Windows hu fuq {0}% u hi tirreaġixxi għal kull ħoss; Off jinjora l-ħsejjes tal-logħba
+Game sounds	Ħsejjes tal-logħba
+Games	Logħob
+Gaming Mode	Gaming Mode
+Gaming Mode key	Ċavetta tal-Gaming Mode
+Gaming Mode:	Gaming Mode:
+Gaming Mode: Ctrl + Alt + G	Gaming Mode: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Ikseb VB-CABLE
+Get VB-CABLE (free)...	Ikseb VB-CABLE (bla ħlas)...
+Get free voice	Ikseb leħen bla ħlas
+Getting your Fish Audio voices...	Qed niġbdu l-vuċijiet tal-Fish Audio tiegħek...
+Giant	Gant
+Glitch	Glitch
+Glitch in at startup	Glitch waqt l-istartjar
+Go to sleep	Mur torqod
+Go to the next screen	Mur għall-iskrin li jmiss
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · livell bla ħlas · limitu tar-rata
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Għandek pjan ta' Claude jew ChatGPT, jew ċavetta tiegħek? Agħżel waħda u jien ngħaqqadha.
+Got it, just me. Right-click me any time for Capri Mainframe.	Sew, jien biss. Ikklikkja d-destra fuqi kull ħin għall-Capri Mainframe.
+Grey	Griż
+H.{0} video bitrate target; higher values make larger files	Mira tar-rata tal-bits tal-vidjo H.{0}; valuri ogħla jagħmlu fajls akbar
+HABITS >	ABITUDNIJIET >
+HER HANDS >	IDEJN TAGĦHA >
+HER JOBS >	XOGĦLIJIET TAGĦHA >
+HER MEMORY >	MEMORJA TAGĦHA >
+HER MODS >	MODS TAGĦHA >
+HH:mm	HH:mm
+HOW I SOUND >	KIF NIL-LEĦEN >
+Hang here	Oqgħod hawn
+Have Ollama? Open it, then press Refresh.	Għandek Ollama? Iftaħha, imbagħad ipprem Aġġorna.
+Head pats	Bugħi
+Hearing	Smigħ
+Hearing engine	Magna tas-smigħ
+Hearing fix	Tiswija tas-smigħ
+Hearing status	Stat tas-smigħ
+Help	Għajnuna
+Help page	Paġna tal-għajnuna
+Her colors	Il-kuluri tagħha
+Her folder	Il-folder tagħha
+Her memories	Il-memorji tagħha
+Her own colors are back.	Il-kuluri tagħha reġgħu lura.
+Her own notes (no vault)	In-noti tagħha stess (mingħajr vault)
+Her perch frames per second	Frejms kull sekonda tal-perch tagħha
+Her personality	Il-personalità tagħha
+Her size	Id-daqs tagħha
+Her speaker	Il-kelliem tagħha
+Her speaker is hidden or outside VOICE	Il-kelliem tagħha hu moħbi jew barra mill-VOĊI
+Her speaker overlaps the mic or hearing row	Il-kelliem tagħha jaqbeż fuq ir-ringiela tal-mikrofon jew tas-smigħ
+Her speaker:	Il-kelliem tagħha:
+Her speaker: Default	Il-kelliem tagħha: Default
+Her voice in your mic	Il-leħen tagħha fil-mikrofon tiegħek
+Her voice in your mic: loudness	Il-leħen tagħha fil-mikrofon tiegħek: il-leħen
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Il-leħen tagħha nnifsu. Il-pitch tiegħu hu Impostazzjonijiet > VOĊI > Pitch, u jimxu flimkien.
+Her voice joins your mic only in call mode.	Il-leħen tagħha jingħaqad mal-mikrofon tiegħek biss fil-modalità tas-sejħa.
+Her voice volume	Il-volum tal-leħen tagħha
+Her voice's pitch	Il-pitch tal-leħen tagħha
+Her voice's pitch, the same as Settings > VOICE > Pitch	Il-pitch tal-leħen tagħha, l-istess bħal Impostazzjonijiet > VOĊI > Pitch
+Her voice's speed	Il-veloċità tal-leħen tagħha
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Il-leħen tagħha, u żewġ kopji tiegħu mħalltin taħtha, kull wieħed bil-pitch u d-dewmien tiegħu.
+Her voices · free	Il-vuċijiet tagħha · bla ħlas
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Ħej, choom. Jien Capri. Għandi bżonn moħħ qabel ma nkun nista' nwieġeb lura. Agħżel wieħed.
+Hide / Show Capri	Aħbi / Uri lil Capri
+Hide / Show key	Ċavetta għall-aħbi / uri
+Hide Capri	Aħbi lil Capri
+Hide for now	Aħbi għalissa
+Hide her	Aħbiha
+Hide in full screen	Aħbi f'full screen
+Hide this	Aħbi dan
+Hide, keep player	Aħbiha, żomm il-player
+Hide/show:	Aħbi/uri:
+Hide/show: Ctrl + Alt + H	Aħbi/uri: Ctrl + Alt + H
+Hologram	Ologramma
+Hop off	Inżel
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Kemm idum PC bla moviment biex jibagħtha torqod; ħames minuti għadhom jitqiesu bħala li inti 'l bogħod
+How long a stroke over her a head pat needs	Kemm idum ġest fuqha biex titqies bħala ċappa
+How long her replies stay up	Kemm iżommu t-tweġibiet tagħha fuq l-iskrin
+How long you are away before she scrolls a browser or reader	Kemm idum 'l bogħod qabel ma tiskrolla browser jew qarrej
+How much her voice glitches	Kemm il-leħen tagħha jiħbel
+How much of the chat she keeps	Kemm mill-chat iżomm
+How much she wanders	Kemm jiġġerra
+How often she pops in to say hi	Kemm tiddaħħal biex tgħid ċaw
+How robotic her voice sounds	Kemm il-leħen tagħha jħoss robotiku
+How to	Kif
+Huge	Kbir ħafna
+I can hear you.	Nisimgħek.
+I glance at your screen and comment. Costs a little on a paid brain.	Nara l-iskrin tiegħek u nikkummenta. Jiswa ftit b'moħħ bi ħlas.
+I keep listening. Say my name, then just talk.	Nibqa' nisma'. Għid ismi, imbagħad tkellem biss.
+I talk about your game as you play. Costs a little on a paid brain.	Nitkellem dwar il-logħba tiegħek waqt li tilgħab. Jiswa ftit b'moħħ bi ħlas.
+I type my replies and stay quiet.	Nikteb it-tweġibiet tiegħi u nibqa' ħadt.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ma nweġibx lura, u xejn ma jintbagħat x'imkien. Xorta nibqa' hawn, nispiċċa mal-mużika tiegħek u nagħmel l-affarijiet mgħaġġla li titlob, bħall-volum.
+I'll talk in	Se nitkellem fi
+IN DISCORD >	TAL-DISCORD >
+INSTALLED >	INSTALLAT >
+Import a Capri mod	Importa mod ta' Capri
+Import mod	Importa mod
+In full screen	F'full screen
+In games	Fil-logħob
+Input	Input
+Input, Output or How to overlaps a row	Input, Output jew Kif jaqbeż ringiela
+Input:	Input:
+Input: default	Input: default
+Install	Installa
+Install mod	Installa mod
+Installed.	Installat.
+It may ask for a phone number. I opened the page in your browser.	Jista' jitlob numru tat-telefon. Iftaħt il-paġna fil-browser tiegħek.
+It still does its own job in other apps too.	Jibqa' jagħmel ix-xogħol tiegħu f'applikazzjonijiet oħra wkoll.
+It won't type in other apps while she runs.	Ma jiktibx f'applikazzjonijiet oħra waqt li hi taħdem.
+JUST ME >	JIEN BISS >
+Jealous of other AIs	Għira minn AI oħra
+Join the Discord	Ingħaqad mad-Discord
+KB.	KB.
+KEYS	ĊWIEVET
+KEYS >	ĊWIEVET >
+Keep PC awake for jobs	Żomm il-PC miftuħ għax-xogħlijiet
+Keep player	Żomm il-player
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Iżomm l-aħħar żewġ minuti tal-logħba tiegħek fil-memorja. Għid aqta' dan biex tiħażnu.
+Key	Ċavetta
+Key cleared: a model file needs none.	Ċavetta mnaddfa: fajl tal-mudell ma jeħtieġ ebda waħda.
+Key cleared: paste the key for	Ċavetta mnaddfa: ipprejja ċ-ċavetta għal
+Key forgotten.	Ċavetta ġiet imnissija.
+Key. It goes only to this server, as a Bearer key	Ċavetta. Tintbagħat biss lil dan is-server, bħala ċavetta Bearer
+Kokoro only, like es	Kokoro biss, bħal es
+LAST THING >	L-aħħar ħaġa >
+LISTENING >	QED TISMA' >
+Language	Lingwa
+Large	Kbir
+Last thing. These cost a little or use your mic, so they're your pick.	L-aħħar ħaġa. Dawn jiswew ftit jew jużaw il-mikrofon tiegħek, għalhekk huma l-għażla tiegħek.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	L-aħħar ħaġa. Dawn jiswew ftit jew jużaw il-mikrofon tiegħek, għalhekk huma l-għażla tiegħek. Imbagħad irrid nkun naf kif għandi nsejħek.
+Layers	Saffi
+Learn more	Itgħallem aktar
+Leaving Settings threw its picture away straight away.	Ħalli l-Impostazzjonijiet immedjatament ħawwad l-immaġni tiegħu.
+Legacy stand	Stand legacy
+Lie down	Istenna
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Linji ta' djalogu tal-PC miżmuma fil-memorja waqt li tarawhom flimkien. In-nofs l-iktar qadim isir nota meta Ftakar dak li tara hi mixgħula
+Listen for Capri	Isma' lil Capri
+Live reactions	Reazzjonijiet diretti
+Local server address	Indirizz tas-server lokali
+Long	Twil
+Longest wait (minutes)	L-itwal stennija (minuti)
+Looking at this PC...	Qed nħares lejn dan il-PC...
+Looking for Ollama. Open it if it isn't running.	Qed infittex Ollama. Iftaħha jekk mhijiex qed taħdem.
+Looking for a brain...	Qed infittex moħħ...
+Looking in the mods directory for updates...	Qed infittex aġġornamenti fid-directory tal-mods...
+Looking in the mods directory...	Qed infittex fid-directory tal-mods...
+Looking...	Qed infittex...
+MAIN >	PRINĊIPALI >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELLIĠENZA MEDJA
+MEMORY VAULT >	VAULT TAL-MEMORJA >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	DIRECTORY TAL-MODS >
+MODS INSTALLED COLORS	KULURI TAL-MODS INSTALLATI
+MOVES >	MOVIMENTI >
+MY BRAIN	MOĦĦI
+MY FREE VOICE	IL-LEĦEN BLA ĦLAS TIEGĦI
+MY PLAN OR KEY	IL-PJAN JEW ĊAVETTA TIEGĦI
+MY PLAN OR KEY >	IL-PJAN JEW ĊAVETTA TIEGĦI >
+Made your Fish Audio voice. Press Test to hear it.	Il-leħen tal-Fish Audio tiegħek sar. Ipprem Ittestja biex tismagħha.
+Mainframe colours	Kuluri tal-Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Kuluri tal-Mainframe. Night City huwa aħmar u ċjan; Iswed, Abjad u Griż ibiddlu l-Mainframe, il-menus tagħha, il-kaxxa tat-Type u n-noti tagħha
+Mainframe frames	Frejms tal-Mainframe
+Mainframe key	Ċavetta tal-Mainframe
+Mainframe size	Daqs tal-Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Daqs tal-Mainframe. Auto jagħmlu akbar meta Virtual Super Resolution jew DSR jnaqqsu desktop kbir fuq skrin iżgħar
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Isfel
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Qed inġib il-leħen tal-Fish Audio tiegħek...
+Max reply	Tweġiba massima
+Maximum clip resolution, keeping the game's shape without upscaling	Riżoluzzjoni massima tal-klipp, filwaqt li żżomm il-forma tal-logħba mingħajr upscaling
+Medium	Medju
+Memory	Memorja
+Memory size	Daqs tal-memorja
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Daqs tal-memorja f'tokens għal Ollama u l-moħħ integrat tagħha. Auto jikber meta mitlub iktar
+Mg	Mg
+Mic level:	Livell tal-mikrofon:
+Mic test finished. Sound is reaching Capri.	Test tal-mikrofon spiċċa. Il-ħoss qed jasal lil Capri.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: default
+Microphone	Mikrofon
+Mini player	Mini player
+Mini player over full screen	Mini player fuq full screen
+Mini-games	Mini-games
+Minimising the Mainframe left it sliding.	Tnaqqis tal-Mainframe ħalliha tiżqaq.
+Minimize	Naqqas
+Mod filter	Filtru tal-mods
+Mod options	Għażliet tal-mod
+Mod pages	Paġni tal-mods
+Mod rules	Regoli tal-mods
+Mod sort	Ordni tal-mods
+Mod switch	Bidla tal-mod
+Model	Mudell
+Model folder	Folder tal-mudell
+Model name, optional	Isem tal-mudell, fakultattiv
+Mods	Mods
+Mods directory	Directory tal-mods
+Mods folder	Folder tal-mods
+Most NVIDIA models can't see your screen.	Ħafna mill-mudelli tal-NVIDIA ma jarawx l-iskrin tiegħek.
+Mouse wheel notches got a flick's long ease:	Il-logħba tar-rota tal-maws ġiet b'tnaqqis twil ta' flick:
+Move	Mexxi
+Move key to MAX INTELLIGENCE	Mexxi ċ-ċavetta għal MAX INTELLIGENCE
+Move to MAX	Mexxi għal MAX
+Music	Mużika
+Music app	App tal-mużika
+Music app: where she plays music when you don't name an app	App tal-mużika: fejn tilgħab il-mużika meta ma tisimmix app
+Mute	Ittaffi
+Mute her	Ittaffi lilha
+Mute mic key	Ċavetta tal-mute tal-mikrofon
+Mute mic:	Mute tal-mikrofon:
+Mute mic: Ctrl + Alt + N	Mute tal-mikrofon: Ctrl + Alt + N
+My brain	Il-moħħ tiegħi
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Il-moħħ tiegħi qed jinżel. Ngħidlek ċaw malli jidħol, u tkun tista' titkellem miegħi mbagħad.
+My brain's on its way. While it comes down, let's sort out how I sound.	Il-moħħ tiegħi qed jiġi. Waqt li jinżel, ejja naħdmu fuq kif nidher.
+My provider	Il-fornitur tiegħi
+NO AI	L-ebda AI
+NO PHONES CONNECTED	MA HEMM TELEFONI KONNESSI
+NO PREVIEW	L-EBDA PREVIEW
+NORMAL	NORMALI
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · bla ħlas · sovente bil-mod fil-ħin tal-għadd
+NVIDIA's free API is often slow, especially at busy times.	L-API bla ħlas ta' NVIDIA sovente hija bil-mod, speċjalment fil-ħin tal-għadd.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Ċavetta API ta' NVIDIA, Google AI Studio (Gemini) jew OpenRouter
+Names:	Ismijiet:
+Needs a key	Teħtieġ ċavetta
+Never	Qatt
+New code	Kodiċi ġdid
+New voice from a clip...	Leħen ġdid minn klipp...
+Next	Li jmiss
+Night City	Night City
+No AI	L-ebda AI
+No AI · no brain at all	L-ebda AI · l-ebda moħħ xejn
+No brain runs, and nothing is sent anywhere.	L-ebda moħħ ma jaħdem, u xejn ma jintbagħat x'imkien.
+No brain yet	Għadu l-ebda moħħ
+No code open	L-ebda kodiċi miftuħ
+No limit	Bla limitu
+No mic found	Ma nstab l-ebda mikrofon
+No mods in the directory yet.	Għadhom l-ebda mods fid-directory.
+No mods match that.	Ebda mod ma jaqbel ma' dan.
+No mods match.	Ebda mod ma jaqbel.
+No phones yet	Għadhom l-ebda telefoni
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Għadu l-ebda mikrofon virtwali. Agħżel Output, imbagħad Ikseb VB-CABLE (bla ħlas).
+None yet: pick to get VB-CABLE (free)	Għadu xejn: agħżel biex tikseb VB-CABLE (bla ħlas)
+Normal	Normali
+Not a relay host	Mhux host ta' relay
+Not imported. Nothing ran.	Mhux iġġib. Ma ħadima xejn.
+Not updated. The old one is still in.	Mhux aġġornat. Il-qadima għadha installata.
+Nothing needed updating.	Xejn ma kellu bżonn aġġornament.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Xejn x'tniżżel, xejn ma jintbagħat x'imkien. Ma nweġibx lura. Żid moħħ f'kull ħin fil-Mainframe.
+Nothing to show from the mods directory.	Xejn x'juri mid-directory tal-mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	Xejn? Impostazzjonijiet ta' Windows > Privatezza u sigurtà > Mikrofon.
+Nous Portal keys aren't supported yet.	Ċwievet ta' Nous Portal għadhom ma jiġux appoġġjati.
+OBS	OBS
+OFF	OFF
+OLLAMA	OLLAMA
+ON	ON
+ON THIS PC	F'DAN IL-PC
+OR A KEY	JEW ĊAVETTA
+Obsidian memory vault	Vault tan-noti ta' Obsidian
+Off	Off
+Off. Turn on Her voice in your mic above.	Off. Ixgħel Il-leħen tagħha fil-mikrofon tiegħek hawn fuq.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Off: tħoss kif dejjem kienet. On: kull leħen li għandha, anke ElevenLabs.
+Often	Sovente
+On	On
+On / Off	On / Off
+On: your mic and her voice are going in.	On: il-mikrofon tiegħek u l-leħen tagħha qed jidħlu.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Oġġett JSON wieħed, miżjud ma' kull talba li dan il-moħħ jibgħat. Jissostitwixxi l-valur ta' Capri għal kwalunkwe isem li jaqsam, u ma jiġix ivverifikat mal-mudell.
+Online speech recognition	Rikonoxximent tal-kelma online
+Open Capri Mainframe	Iftaħ Capri Mainframe
+Open Ollama, I'll find it	Iftaħ Ollama, insibha jien
+Open clips folder	Iftaħ il-folder tal-klipps
+Open her memories	Iftaħ il-memorji tagħha
+Open her notes	Iftaħ in-noti tagħha
+Open mods folder	Iftaħ il-folder tal-mods
+Open the page again	Erġa' iftaħ il-paġna
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA jew OpenRouter.
+OpenAI-compatible server or provider.	Server jew fornitur kompatibbli ma' OpenAI.
+OpenRouter · free models only	OpenRouter · mudelli bla ħlas biss
+Optional	Fakultattiv
+Optional. Blank means no key.	Fakultattiv. Kamp vojt ifisser l-ebda ċavetta.
+Options	Għażliet
+Out of the box a little higher, just behind her.	Mill-kaxxa ftit ogħla, ftit wara din.
+Out of the box lower, just behind her.	Mill-kaxxa ftit aktar baxx, ftit wara din.
+Output	Output
+Output:	Output:
+Output: none	Output: xejn
+PHONE CONNECTED	TELEFON KONNESS
+PHONES >	TELEFONI >
+PHONES CONNECTED	TELEFONI KONNESSI
+PREBUILT LOCAL	MODELL LOKALI PREINSTALLAT
+PUBLISH MOD >	PUBBLIKA MOD >
+Pair a phone	Ippari telefon
+Paste	Ipejpes
+Paste API key	Ipejpes ċavetta API
+Paste a brain API key	Ipejpes ċavetta API tal-moħħ
+Paste reads your clipboard once, when you press it.	Ipejpes taqra l-clipboard tiegħek darba, meta tippremiha.
+Paste your key here	Ipejpes ċavetta tiegħek hawn
+Pat stroke	Ħuġ tal-karezzi
+Perch	Perch
+Perch over {0} fps uses more CPU	Perch fuq {0} fps juża aktar CPU
+Pick Output to get it.	Agħżel Output biex tiksibha.
+Pick a brain so I can talk back. You can change it any time.	Agħżel moħħ biex nkun nista' nweġibek. Tista' tibdlu meta trid.
+Pick a clip of a voice you have the rights and consent to use	Agħżel klipp ta' leħen li għandek id-drittijiet u l-kunsens biex tuża
+Pick a free model. I opened the page in your browser.	Agħżel mudell bla ħlas. Iftaħt il-paġna fil-browser tiegħek.
+Pick a new clip of you...	Agħżel klipp ġdid tiegħek...
+Pick a voice model...	Agħżel mudell tal-leħen...
+Pick one. Only one brain runs at a time.	Agħżel wieħed. Moħħ wieħed biss jaħdem f'daqqa.
+Pick the note her memories go in	Agħżel in-nota fejn għandhom jinħażnu l-memorji tagħha
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Agħżel {0} sa {1} sekondi ta' leħen li għandek id-drittijiet u l-kunsens biex tuża
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Agħżel {0} sa {1} sekondi tiegħek tkellem, jew ta' leħen li għandek id-drittijiet u l-kunsens biex tuża
+Pitch	Pitch
+Play	Ipplej
+Play...	Ipplej...
+Player only	Il-player biss
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Mudelli Pocket TTS jikkopjaw il-leħen ta' dan il-klipp. Ipprem Ittestja biex tismagħha.
+Pop-in times	Ħinijiet tad-dħul
+Pop-ins	Dħul
+Power saver	Power saver
+Power saver: how lightly she runs in games, or always	Power saver: kemm jaħdem bi ftit f'logħob, jew dejjem
+Preset	Preset
+Press Create API key	Ipprem Oħloq ċavetta API
+Press Create Key	Ipprem Oħloq Ċavetta
+Press Generate API Key	Ipprem Iġġenera ċavetta API
+Press Test and say something, so I know I can hear you.	Ipprem Ittestja u għid xi ħaġa, biex nkun naf li nista' nismagħek.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Ipprem ċavetta waħedha, jew ma' Ctrl, Alt, Shift jew Win.
+Press new keys, then Confirm	Ipprem ċwievet ġodda, imbagħad Ikkonferma
+Provider	Fornitur
+Provider API key, optional	Ċavetta API tal-fornitur, fakultattiva
+Provider base URL	URL bażi tal-fornitur
+Provider forgotten.	Fornitur mnissi.
+Provider overlaps the brain name or note	Il-fornitur jaqbeż ma' isem il-moħħ jew in-nota
+Publish	Ippubblika
+Publish mod	Ippubblika mod
+Push to talk is off.	Push to talk huwa mitfi.
+Push to talk key	Ċavetta tal-push to talk
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: mhux issettjat
+QR CODE >	QR CODE >
+QR hidden while streaming	QR moħbi waqt l-istreaming
+Quick	Mgħaġġel
+Quiet key	Ċavetta tal-kwiet
+Quiet:	Kwiet:
+Quiet: Ctrl + Alt + P	Kwiet: Ctrl + Alt + P
+Quit Capri	Ħalli Capri
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	JIMXI KODIĊI.
+Rarely	Rarament
+Rate mod	Ivvaluta mod
+Reading its README...	Qed naqra l-README tiegħu...
+Refresh	Aġġorna
+Reinstall	Erġa' installa
+Reload	Erġa' tgħabba
+Reloaded.	Erġa' tgħabba.
+Remember our chats	Ftakar iċ-chats tagħna
+Remember what she sees	Ftakar dak li tara
+Remote	Remote
+Remote off	Remote off
+Remote on	Remote on
+Remove	Neħħi
+Remove all phones	Neħħi t-telefoni kollha
+Replies	Tweġibiet
+Reply length	Tul it-tweġiba
+Report a problem	Irrapporta problema
+Reset colors	Ħassar il-kuluri
+Reset to her default	Erġa' lura għad-default tagħha
+Resolution	Riżoluzzjoni
+Restart to update	Erġa' tibda biex taġġorna
+Restless	Inkwiet
+Revoke	Irrevoka
+Revoke also removes the phones its links added	L-irrevoka tneħħi wkoll it-telefoni li zidu l-links tagħha
+Ride cursor	Irkeb il-cursor
+Ride cursor / Hop off	Irkeb il-cursor / Inżel
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Ikklikkja d-destra fuqi kull ħin għall-Capri Mainframe. Moħħ jitqallab taħt MOĦĦ.
+Right-click me any time for the Mainframe, Help and the Discord.	Ikklikkja d-destra fuqi kull ħin għall-Mainframe, l-Għajnuna u d-Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox jew kwalunkwe app oħra: agħżel
+Robot	Robot
+Rock, paper, scissors	Ġebla, karta, qasab
+Run this code mod?	Tħaddem dan il-mod tal-kodiċi?
+Running on this PC	Qed jaħdem fuq dan il-PC
+Running on this PC · :	Qed jaħdem fuq dan il-PC · :
+Runs Claude Code or Codex on this PC, signed in.	Iħaddem Claude Code jew Codex fuq dan il-PC, illoggjat.
+Runs on your PC. No key, no credits.	Jaħdem fuq il-PC tiegħek. Mingħajr ċavetta, mingħajr krediti.
+SCAN WITH YOUR PHONE · EXPIRES	SKENJA MAT-TELEFON TIEGĦEK · JISPIċĊA
+SECURITY >	SIGURTÀ >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	ISSORTJA SKOND
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ĦSEJJES ABITUDNIJIET MOĦĦ ARA CAPRI DOOMSCROLL TIEMP KLIPS LOGĦOB ĊWIEVET MOVIMENTI LEĦEN INTI
+Same as her ears (VOICE > Mic)	L-istess bħas-smigħ tagħha (LEĦEN > Mikrofon)
+Same code on the phone?	L-istess kodiċi fuq it-telefon?
+Save	Salva
+Save big moments	Salva l-momenti kbar
+Save folder	Folder tas-salvataġġ
+Save your changes, or press Discard + reload.	Salva l-bidliet tiegħek, jew ipprem Ħassar + erġa' tgħabba.
+Save your changes, or press Discard.	Salva l-bidliet tiegħek, jew ipprem Ħassar.
+Saved.	Salvat.
+Saved. Ctrl + Alt + O opens her Mainframe.	Salvat. Ctrl + Alt + O jiftaħ il-Mainframe tagħha.
+Saving your rating...	Qed nissalva l-valutazzjoni tiegħek...
+Say her name anywhere to chat	Għid ismha kullimkien biex tkellem
+Screens	Skrins
+Screens is hidden or outside WATCH	Skrins huwa moħbi jew barra mill-ARA
+Screens overlaps a WATCH row	Skrins jaqbeż ma' ringiela ta' ARA
+Screens to watch	Skrins biex tara
+Sealed end to end	Imsaffar minn tarf sa tarf
+Search by name or author	Fittex skont l-isem jew l-awtur
+Search installed mods	Fittex mods installati
+Search mods	Fittex mods
+Search name, author or description	Fittex l-isem, l-awtur jew id-deskrizzjoni
+Security	Sigurtà
+Security:	Sigurtà:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Issettja
+Set up her brain	Issettja l-moħħ tagħha
+Set up your voice model	Issettja l-mudell tal-leħen tiegħek
+Setting up her brain	Qed nissettja l-moħħ tagħha
+Settings	Impostazzjonijiet
+Settings / Back	Impostazzjonijiet / Lura
+Settings folds the wrong rows above BRAIN	Impostazzjonijiet itwi r-ringiela ħażina fuq MOĦĦ
+Settings had nothing to watch.	L-Impostazzjonijiet ma kellhom xejn biex jaraw.
+Settings lost keyboard focus during the Tab walk	L-Impostazzjonijiet tilfu l-fokus tat-tastiera waqt il-mixja tat-Tab
+Setup guide	Gwida għall-installazzjoni
+Setup stopped	Installazzjoni mwaqqfa
+She can read it when it fits.	Tista' taqrah meta jkun xieraq.
+She glances at your screen and comments. Costs a little on a paid brain.	Tara l-iskrin tiegħek u tikkummenta. Jiswa ftit b'moħħ bi ħlas.
+She keeps listening. Say her name, then just talk until you go quiet.	Tibqa' tisma'. Għid ismha, imbagħad tkellem sakemm tieqaf.
+She reacts to your game until you close it.	Tirreaġixxi għal-logħba tiegħek sakemm tagħlaqha.
+She reads these controls before each game job.	Taqra dawn il-kontrolli qabel kull xogħol tal-logħba.
+She talks about your game as you play. Costs a little on a paid brain.	Titkellem dwar il-logħba tiegħek waqt li tilgħab. Jiswa ftit b'moħħ bi ħlas.
+She uses it when she plays	Tuża waqt li tilgħab
+Short	Qasir
+Shortest wait (minutes)	L-itqar stennija iqsar (minuti)
+Show Capri	Uri lil Capri
+Show QR	Uri QR
+Show my mod file	Uri l-fajl tal-mod tiegħi
+Show on Discord	Uri fuq Discord
+Shum, what time is it	Shum, x'ħin hu
+Sign in	Idħol
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Idħol, ħoloq ċavetta u ikkopjaha. Imbagħad ipprem Ipejpes u nkonnettjak.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Idħol, ipprem Oħloq ċavetta API u ikkopjaha. Imbagħad ipprem Ipejpes u nkonnettjak.
+Silent · text only	Ħoss mitfi · test biss
+Simple / Advanced Settings	Impostazzjonijiet sempliċi / avvanzati
+Simple Settings	Impostazzjonijiet sempliċi
+Simple Settings left a gap under Check in on me	Impostazzjonijiet sempliċi ħallew vojt taħt Ara kif inkun
+Sit here	Oqgħod hawn
+Sit on windows	Oqgħod fuq it-twieqi
+Size	Daqs
+Skip	Aqbeż
+Skip all	Aqbeż kollox
+Skip for now	Aqbeż għalissa
+Sleep	Irqad
+Small	Żgħir
+Sometimes	Xi drabi
+Sound effects volume	Volum tal-effetti tal-ħoss
+Sound sensitivity	Sensittività għall-ħoss
+Sounds	Ħsejjes
+Speaker or clip	Kelliem jew klipp
+Speech model	Mudell tal-leħen
+Speed	Veloċità
+Start with Windows	Ibda ma' Windows
+Start with this!	Ibda b'dan!
+Starting...	Qed jibda...
+Stay	Ibqa'
+Stay on my model	Żomm il-mudell tiegħi
+Still checking your mics...	Għadni niċċekkja l-mikrofoni tiegħek...
+Still checking your speakers...	Għadni niċċekkja l-ispeakers tiegħek...
+Still checking your virtual mics...	Għadni niċċekkja l-mikrofoni virtwali tiegħek...
+Stop	Waqqaf
+Stopped using it. Couldn't remove the saved provider.	Ma nużax iktar. Ma stajtx inneħħi l-fornitur salvat.
+Support	Appoġġ
+Sure?	Żgur?
+Sure? moved to a different phone	Żgur? Ċaqlaq għal telefon ieħor
+TALK TO ME	TITKELLEM MIEGĦI
+TEXT ONLY	TEST BISS
+Tab landed past the first option of	Tab wasal lil hinn mill-ewwel għażla ta'
+Tab never reached the quiet key	Tab qatt ma wasal għall-ċavetta tal-kwiet
+Tab reached nothing	Tab ma laħaq xejn
+Tab selected a control without moving keyboard focus	Tab għażel kontroll mingħajr ma tmexxa l-fokus tat-tastiera
+Talk	Kellem
+Talk key	Ċavetta tal-kelma
+Talk:	Kellem:
+Talk: Ctrl + Alt + V	Kellem: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Frame rate fil-mira; jista' jaqa' taħt it-tagħbija jew il-limitu tal-memorja
+Teases when another AI comes to the front.	Iqarras meta AI oħra tiġi quddiem.
+Test	Ittestja
+That address doesn't work. Try https://... or http://localhost:{0}.	Dak l-indirizz ma jaħdimx. Ipprova https://... jew http://localhost:{0}.
+That code expired	Dak il-kodiċi skada
+That mod is no longer installed. The list is updated.	Dak il-mod m'għadux installat. Il-lista ġiet aġġornata.
+That's a paid key: it goes under MAX INTELLIGENCE.	Dik ċavetta bi ħlas: tmur taħt MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Il-Mainframe baqa' kompost waqt li kien qed jiżqaq.
+The Mainframe stayed uncomposited after the slide.	Il-Mainframe baqa' mhux kompost wara l-mixja.
+The controls moved while the picture was sliding.	Il-kontrolli telqu waqt li l-immaġni kienet qed tiżqaq.
+The cover stayed visible after the slide ended.	Il-kopertina baqgħet viżibbli wara li spiċċat it-tranżizzjoni.
+The frame thread kept running after the page settled.	Il-ħajt tal-frames baqa' jaħdem wara li l-paġna stabbilizzat.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	L-itwal tweġiba li tista' tagħti, f'tokens. Auto jibqa' mal-Tweġibiet 'il fuq; {0}K jew {1}K tħallilha tkompli. Ix-xogħlijiet jieħdu iktar spazju meta jkollhom bżonn
+The longest wait must be at least the shortest wait.	L-itwal stennija trid tkun mill-inqas l-iqsar stennija.
+The picture doesn't match the scrolled page:	L-immaġni ma taqbilx mal-paġna mxarrka:
+The picture of Settings doesn't match the page:	L-immaġni tal-Impostazzjonijiet ma taqbilx mal-paġna:
+The picture stayed up after the slide ended.	L-immaġni baqgħet fuq wara li spiċċa t-tranżizzjoni.
+The picture wasn't showing while it slid.	L-immaġni ma kinitx qed tidher waqt li kienet qed tiżqaq.
+The provider sheet is crowded:	Il-folja tal-fornituri hija mimlija:
+The voice panel has no screen DPI.	Il-pannell tal-leħen m'għandux DPI tal-iskrin.
+The voice panel's menus share one font.	Il-menus tal-pannell tal-leħen jaqsmu font wieħed.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Għadu m'hemm l-ebda ċavetta fil-clipboard tiegħek. Ikkopjaha mill-paġna, imbagħad ipprem Ipejpes.
+These start off. Each costs a little or uses your mic.	Dawn jibdew mitfija. Kull wieħed jiswa ftit jew juża l-mikrofon tiegħek.
+These start off. Turn on what you want. They're all in Settings too.	Dawn jibdew mitfija. Ixgħel dak li trid. Huma kollha wkoll fl-Impostazzjonijiet.
+They can also call you Big Z, Capricorn or Nova	Jistgħu jsejħulek ukoll Big Z, Capricorn jew Nova
+They can also call you Nova, Big Z or Capricorn	Jistgħu jsejħulek ukoll Nova, Big Z jew Capricorn
+Thinking	Naħseb
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Dan huwa l-leħen bla ħlas tiegħi. Ipprem Ittestja, għid xi ħaġa, u nuriek li nista' nismagħek.
+This mod has no description yet.	Dan il-mod għadu m'għandux deskrizzjoni.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Ħin bejn l-ħarsiet
+Tiny	Iċken ħafna
+Try again	Erġa' pprova
+Turn Remote on first	Ixgħel Remote l-ewwel
+Turn off mini player	Itfi l-mini player
+Turn push to talk off	Itfi l-push to talk
+Turning the wheel the other way kept the page heading the old way, to	Idur ir-rota fid-direzzjoni l-oħra ħalla l-paġna tibqa' fid-direzzjoni l-qadima, sa
+Type	Ikteb
+Type key	Ċavetta tal-kitba
+Type to me	Ikteb lili
+Type:	Ikteb:
+Type: Ctrl + Alt + T	Ikteb: Ctrl + Alt + T
+Typing sound	Ħoss tal-kitba
+Unpacked. Press Test to hear it.	Ġie mhux imkomplut. Ipprem Ittestja biex tismagħha.
+Unsaved changes.	Bidliet mhux salvati.
+Up to {0} fps	Sa {0} fps
+Up to {0}p	Sa {0}p
+Update	Aġġorna
+Update available.	Aġġornament disponibbli.
+Update mods	Aġġorna mods
+Updating...	Qed naġġorna...
+Use	Uża
+Use her cursor	Uża l-cursor tagħha
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Uża https:// għal fornitur barra. Ċavetta fuq http sempliċi mhix sigura.
+Use preset	Uża preset
+Use saved	Uża dik salvata
+Use this server	Uża dan is-server
+Using your provider with a key	Qed nuża l-fornitur tiegħek b'ċavetta
+Using your server with no key	Qed nuża s-server tiegħek mingħajr ċavetta
+VIEW MOD >	GĦARRAF MOD >
+VOICE >	LEĦEN >
+VOICE IN YOUR MIC >	LEĦEN FIL-MIKROFON TIEGĦEK >
+VOICE LAYERS >	SAFFI TAL-LEĦEN >
+Verbosity	Verbożità
+Video bitrate	Bitrate tal-vidjo
+View	Ara
+View mod	Ara mod
+Voice	Leħen
+Voice ID	ID tal-leħen
+Voice from	Leħen minn
+Voice layers	Saffi tal-leħen
+Voice model	Mudell tal-leħen
+Voice model:	Mudell tal-leħen:
+Voice name or ID, optional	Isem jew ID tal-leħen, fakultattiv
+Voice server address, or a voice model's folder	Indirizz tas-server tal-leħen, jew folder ta' mudell tal-leħen
+Voice status	Status tal-leħen
+Voice, key and model...	Leħen, ċavetta u mudell...
+Volume	Volum
+WAKE ME UP >	QAJJIMNI >
+WATCH >	ARA >
+Waiting for the relay	Qed nistenna r-relay
+Wake her up	Qajjem lilha
+Waking her up	Qed nqajjimha
+Wander	Iġġerra
+Wander around	Iġġerra madwar
+Watch my screen	Ara l-iskrin tiegħi
+Watch-along memory	Memorja tat-tfarrik flimkien
+Weather	Temp
+Weather city	Belt tat-temp
+Welcome back, choom. Let's finish setting me up.	Merħba lura, choom. Ejja nlestu s-setup tiegħi.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Dak li tagħmel fuq il-PC tiegħek mingħajr ma tistaqsi. Bil-toggle mitfi tistaqsi l-ewwel, u tagħmlu meta tgħid iva.
+What should she call you?	X'għandha tsejjaħlek?
+When she types	Meta tikteb
+White	Abjad
+Windows default	Default ta' Windows
+Windows did not give Settings keyboard focus	Windows ma tatx lill-Impostazzjonijiet il-fokus tat-tastiera
+Windows did not return keyboard focus to Back	Windows ma rritornatx il-fokus tat-tastiera lil Lura
+With no picture the wheel still tried to slide.	Mingħajr ħsara tal-immaġni, ir-rota xorta ppruvat tiżqaq.
+Works best on MAX INTELLIGENCE.	Jaħdem l-aħjar fuq MAX INTELLIGENCE.
+YOU	INT
+YOU >	INT >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	INT LEĦEN MOVIMENTI ĊWIEVET LOGĦOB KLIPS TEMP DOOMSCROLL CAPRI WATCH MOĦĦ ABITUDNIJIET ĦSEJJES
+YOUR KEY	IĊ-ĊAVETTA TIEGĦEK
+YOUR MIC	IL-MIKROFON TIEGĦEK
+YOUR PLAN	IL-PJAN TIEGĦEK
+Yokapri what's up	Yokapri x'hemm
+You can hide this. It keeps going, and the Mainframe shows it too.	Tista' taħbi dan. Jibqa' jaħdem, u l-Mainframe juriha wkoll.
+Your mic and her voice go into one virtual mic, and	Il-mikrofon tiegħek u l-leħen tagħha jmorru f'mikrofon virtwali wieħed, u
+Your mic is muted. Unmute it to test.	Il-mikrofon tiegħek huwa mute. Itneħħa l-mute biex tittestja.
+Your mods are up to date.	Il-mods tiegħek huma aġġornati.
+Your name or a nickname	Ismek jew laqam
+Your own model	Il-mudell tiegħek stess
+Your personality	Il-personalità tiegħek
+Your voice	Il-leħen tiegħek
+Your voice (HD)	Il-leħen tiegħek (HD)
+Your voice (HD) · pick a clip of you...	Il-leħen tiegħek (HD) · agħżel klipp tiegħek...
+Your voice model	Il-mudell tal-leħen tiegħek
+as its mic.	bħala l-mikrofon tagħha.
+changed. Saved as My Colors, so you can share it.	mibdul. Issalvat bħala Il-Kuluri Tiegħi, biex tkun tista' taqsmu.
+choice	għażla
+clips the input line	jaqta' l-linja tad-dħul
+cue	sinjal
+doesn't yet.	għadu.
+download	niżżel
+file.	fajl.
+flag	bandiera
+fps	fps
+hear	tisma'
+hears	tisma'
+hears that.	tisma' dan.
+hides or shows her.	jaħbi jew juri lilha.
+hint	suggeriment
+in the Mainframe.	fil-Mainframe.
+in the mods directory with a pull request.	fid-directory tal-mods b'pull request.
+in the picture wasn't noticed.	fl-immaġni ma ġiex innutat.
+is already her push-to-talk key.	diġà hi ċ-ċavetta tal-push to talk tagħha.
+is off.	hu mitfi.
+is on and running.	hu mixgħul u qed jaħdem.
+is on, at the bottom, under	hu mixgħul, isfel, taħt
+is on.	hu mixgħul.
+is on. She now answers to	hu mixgħul. Issa twieġeb għal
+is removed.	hu mneħħi.
+is taken	hu meħud
+is taken by another app. Try another.	hu meħud minn app oħra. Ipprova ieħor.
+is updated	hu aġġornat
+isn't hearing it yet: do {0} and {1}, then join a call.	mhux qed tisma' dan għadu: agħmel {0} u {1}, imbagħad ingħaqad ma' sejħa.
+it now.	issa.
+keeps her quiet, and lets her talk again.	iżommha kwieta, u tħalliha titkellem mill-ġdid.
+key	ċavetta
+key.	ċavetta.
+min	min
+more.	iktar.
+ms.	ms.
+mutes mic	jagħmel mute lill-mikrofon
+mutes your mic.	jagħmel mute lill-mikrofon tiegħek.
+name	isem
+off	mitfi
+on this PC	f'dan il-PC
+opens her Mainframe.	jiftaħ il-Mainframe tagħha.
+opens her typing box.	jiftaħ il-kaxxa tal-kitba tagħha.
+phone	telefon
+phone pixels	pixels tat-telefon
+phones	telefoni
+pixels	pixels
+pixels)	pixels)
+star.	stilla.
+stars.	stillet.
+starts voice chat.	jibda chat tal-leħen.
+stays off. Nothing ran.	jibqa' mitfi. Ma ħadima xejn.
+still does its own job in other apps too. Confirm to keep it.	jibqa' jagħmel ix-xogħol tiegħu f'applikazzjonijiet oħra wkoll. Ikkonferma biex iżżomm.
+tall	għoli
+time	ħin
+to talk	biex titkellem
+to talk to her, with a game in front too.	biex titkellem miegħa, b'logħba quddiem ukoll.
+too.	ukoll.
+turns Gaming Mode on and off.	iħaddem jew iwaqqaf il-Gaming Mode.
+with Ollama	mal-Ollama
+won't type in other apps while she runs. Confirm to keep it.	ma jiktibx f'applikazzjonijiet oħra waqt li taħdem. Ikkonferma biex iżżomm.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering	{0}   Jekk leħenha jinqata', itfi l-filtrazzjoni tal-ħoss
+{0}   Input Device:	{0}   Input Device:
+{0}   Join the call and check they hear both of you	{0}   Ingħaqad mas-sejħa u ara li jisimgħu t-tnejn tagħkom
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Test tal-mikrofon > Ejja nkkontrollaw: tisma' lilek innifsek, u lilha hi titkellem
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: None. It-tnejn jistgħu jaqtgħu leħenha wara l-ewwel linja.
+{0}   Open the call or meeting's audio settings	{0}   Iftaħ is-settings tal-awdjo tas-sejħa jew il-laqgħa
+{0}   Output Device: your headphones, like before	{0}   Output Device: il-headphones tiegħek, kif qabel
+{0}   Speaker: your headphones, like before	{0}   Speaker: il-headphones tiegħek, kif qabel
+{0}   Try a mic test in your call app	{0}   Ipprova test tal-mikrofon fl-app tas-sejħa tiegħek
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (ir-rota ħdejn ismek) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} linji
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· f'dan il-PC
+· server	· server

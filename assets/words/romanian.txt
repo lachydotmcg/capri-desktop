@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Un control redesenat nu a fost redesenat în imagine.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	O cheie gratuită de la Google AI Studio, NVIDIA sau OpenRouter. Nu trebuie descărcat nimic. Are nevoie de internet.
+A held trackpad scroll got a flick's long ease:	O derulare ținută pe touchpad a primit o încetinire lungă, de tip flick:
+A layout change during a slide put the page at	O schimbare de aspect în timpul unei glisări a pus pagina la
+A layout change left the picture up.	O schimbare de aspect a lăsat imaginea afișată.
+A model in Ollama, on your local server or on your key.	Un model în Ollama, pe serverul tău local sau cu cheia ta.
+A paid key goes under MAX INTELLIGENCE by itself.	O cheie plătită intră singură sub MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Un plan pe care îl plătești deja, o cheie proprie sau Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Un meniu al panoului vocal nu are propria copie a fontului panoului.
+A wheel turn right after a slide ended froze the picture.	O rotire a rotiței imediat după încheierea glisării a înghețat imaginea.
+ALLOW THIS PHONE?	PERMITI ACEST TELEFON?
+ALMOST THERE >	AI AJUNS APROAPE >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ALT CAPRI A PRELUAT CONTROLUL · OPREȘTE ȘI PORNEȘTE
+API key	Cheie API
+API key, Claude plan or ChatGPT plan	Cheie API, plan Claude sau plan ChatGPT
+Add	Adaugă
+Address	Adresă
+Address and key saved. Use saved to reconnect.	Adresa și cheia au fost salvate. Folosește „salvat” ca să te reconectezi.
+Advanced Settings	Setări avansate
+All	Toate
+All screens	Toate ecranele
+Allow	Permite
+Almost there. I'll say hi the second my brain's in.	Aproape gata. Te salut în clipa în care creierul meu e pornit.
+Always	Mereu
+Always on top	Mereu deasupra
+Any Google account works. I opened the page in your browser.	Orice cont Google funcționează. Am deschis pagina în browserul tău.
+Applies to every voice	Se aplică tuturor vocilor
+Apps she may close	Aplicații pe care le poate închide
+Ask Capri for more	Cere mai mult de la Capri
+Asking your server...	Se interoghează serverul tău...
+Asks before closing only the apps you choose.	Întreabă înainte de a închide doar aplicațiile alese.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automat: VB-CABLE, altfel al Steam
+BAD RELAY HOST	HOST DE RELAY GREȘIT
+BIG Z open notepad	BIG Z deschide notepad
+BRAIN	CREIER
+BRAIN >	CREIER >
+BRAIN ONLINE >	CREIER ONLINE >
+BRAIN PROVIDER >	FURNIZOR CREIER >
+BRAIN VOICE CAPRI	VOCEA CREIERULUI CAPRI
+Back	Înapoi
+Back on your saved API key.	Înapoi la cheia API salvată.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Cea mai potrivită pentru acest PC:
+Black	Negru
+Blank key means no key.	Cheia goală înseamnă fără cheie.
+Brain API key	Cheie API creier
+Brain model	Model creier
+Brain provider	Furnizor creier
+Bring here	Adu aici
+Bring to this screen	Adu pe acest ecran
+Browse	Răsfoiește
+Browse mods	Răsfoiește modurile
+Browse to a voice model	Răsfoiește până la un model vocal
+Browse...	Răsfoiește...
+Bubble	Balon
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, ești acolo?
+CAN'T REACH THE RELAY · RETRYING	NU SE POATE CONECTA LA RELAY · SE REÎNCEARCĂ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CREIER VOCAL CAPRI
+CHANGED, approve it again.	MODIFICAT, aprobă-l din nou.
+CLIPS >	CLIPURI >
+CLOUD VOICE	VOCE CLOUD
+CODE	COD
+COLORS >	CULORI >
+CONNECTED	CONECTAT
+CONNECTING	SE CONECTEAZĂ
+CUSTOM LOCAL	LOCAL PERSONALIZAT
+Call mode (beta)	Mod apel (beta)
+Call mode does not fit.	Modul de apel nu încape.
+Call mode is outside its space.	Modul de apel e în afara spațiului său.
+Cancel	Anulează
+Cancel keys	Anulează tastele
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Cod Capri:
+Capri mods (*	Moduri Capri (*
+Capri, hello	Capri, salut
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Haos când e supărată
+Chat with Capri from your phone	Vorbește cu Capri de pe telefon
+ChatGPT plan	Plan ChatGPT
+Check for updates	Verifică actualizările
+Check in on me	Verifică-mă
+Check in on me is hidden	Verifică-mă este ascuns
+Check in on me still decides whether she visits.	Verifică-mă încă decide dacă vine în vizită.
+Check in on me's tip missed	Sfatul Verifică-mă a fost ratat
+Chess	Șah
+Choose apps	Alege aplicațiile
+Choose folder...	Alege folderul...
+Choose where future Capri clips are saved	Alege unde se salvează viitoarele clipuri Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Plan Claude sau ChatGPT, o cheie plătită (OpenAI, Claude, DeepSeek) sau Ollama.
+Claude plan	Plan Claude
+Clear	Golește
+Cleared.	Golit.
+Click Confirm to keep Down, or press Esc.	Apasă Confirmă ca să păstrezi Jos, sau apasă Esc.
+Click to open it.	Apasă ca să o deschizi.
+Clip my games	Filmează jocurile mele
+Clips	Clipuri
+Close	Închide
+Close other AIs for me	Închide celelalte AI pentru mine
+Cloud voice	Voce cloud
+Cloud voice service	Serviciu vocal cloud
+Cloud voice setup	Configurare voce cloud
+Code mods can reach your whole PC. Only trusted ones.	Modurile de cod pot ajunge la tot PC-ul tău. Doar cele de încredere.
+Code/Husk Mode	Mod Cod/Husk
+Codex	Codex
+Commands	Comenzi
+Comment on my games	Comentează jocurile mele
+Comments	Comentarii
+Confirm	Confirmă
+Confirm keys	Confirmă tastele
+Connect	Conectează
+Connect / Forget brain key	Conectează / Uită cheia creierului
+Connect / Forget voice key	Conectează / Uită cheia vocii
+Connect four	Patru în linie
+Controls	Comenzi
+Copri, what time is it	Copri, cât e ceasul
+Copy error details	Copiază detaliile erorii
+Copy the key	Copiază cheia
+Copy the key from the page, then press Paste.	Copiază cheia din pagină, apoi apasă Lipește.
+Couldn't open that page:	Nu am putut deschide pagina aceea:
+Couldn't open that:	Nu am putut deschide aceea:
+Couldn't open the mods folder:	Nu am putut deschide folderul de moduri:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M este deja tasta ei Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N oprește microfonul
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V este deja tasta ei de vorbire.
+Ctrl + Alt + V to talk	Ctrl + Alt + V pentru a vorbi
+Custom local voice	Voce locală personalizată
+Custom model name	Nume model personalizat
+Dance	Dans
+Dance to music	Dansează pe muzică
+Default	Implicit
+Default (follows Windows)	Implicit (urmează Windows)
+Default duration for clip that and automatic clips	Durata implicită pentru clipul respectiv și pentru clipurile automate
+Default length	Lungime implicită
+Default model	Model implicit
+Delay	Întârziere
+Deny	Refuză
+Discard	Renunță
+Discard + reload	Renunță + reîncarcă
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Nu vrei să aștepți? O cheie gratuită mă face să vorbesc în cam un minut.
+Done	Gata
+EXTRA REQUEST JSON >	CERERE JSON EXTRA >
+EXTRAS >	EXTRAS >
+Edit	Editează
+Edit check-in lines	Editează liniile de verificare
+Edit check-in lines has the wrong view or dimming	Editarea liniilor de verificare are vederea sau întunecarea greșită
+Edit check-in lines is out of place	Editarea liniilor de verificare este în locul greșit
+Edit controls	Editează comenzile
+ElevenLabs API key	Cheie API ElevenLabs
+ElevenLabs voice ID	ID voce ElevenLabs
+English	Engleză
+Enter the game's name first.	Introdu mai întâi numele jocului.
+Every	Fiecare
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Fiecare mod este verificat pentru malware înainte de publicare. Modurile de cod cer în continuare permisiune înainte de a rula.
+Explore after	Explorează după
+Explore while I'm away	Explorează cât lipsesc
+Extra request JSON	JSON cerere extra
+Extras	Extras
+FREE KEY	CHEIE GRATUITĂ
+FREE KEY >	CHEIE GRATUITĂ >
+Fast hands in games	Mâini rapide în jocuri
+File editor	Editor de fișiere
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs și altele sunt sub VOCE în Mainframe.
+Follow-up messages	Mesaje de continuare
+Forget	Uită
+Fork capri-mods	Fork capri-mods
+Frame rate	Rată de cadre
+Free	Gratuit
+Free and private, works offline. Downloads	Gratuit și privat, funcționează offline. Descarcă
+Free and private, works offline. Downloads the best model for this PC.	Gratuit și privat, funcționează offline. Descarcă cel mai bun model pentru acest PC.
+Free key	Cheie gratuită
+Free key providers	Furnizori de chei gratuite
+Free keys can be rate limited and slow.	Cheile gratuite pot fi limitate ca rată și pot fi lente.
+Free voice in games	Voce gratuită în jocuri
+Free voice style	Stil vocal gratuit
+Free voice:	Voce gratuită:
+Free voice: Her own	Voce gratuită: Propria ei
+Free · local model	Gratuit · model local
+GAMES >	JOCURI >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Comentariile de joc rulează separat de Urmărește-mi ecranul. Off le oprește, și în Modul Gaming; Doar evenimente și Vorbăreț o lasă să-ți urmărească jocul
+Game controls	Comenzi joc
+Game name	Nume joc
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Sensibilitatea la sunetul jocului. Scade-o dacă setul de căști e dat mai încet, dar Windows e la {0}% și ea reacționează la fiecare sunet; Off ignoră sunetele jocului
+Game sounds	Sunete joc
+Games	Jocuri
+Gaming Mode	Mod Gaming
+Gaming Mode key	Tasta Modului Gaming
+Gaming Mode:	Mod Gaming:
+Gaming Mode: Ctrl + Alt + G	Mod Gaming: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Obține VB-CABLE
+Get VB-CABLE (free)...	Obține VB-CABLE (gratuit)...
+Get free voice	Obține voce gratuită
+Getting your Fish Audio voices...	Se iau vocile tale Fish Audio...
+Giant	Gigant
+Glitch	Glitch
+Glitch in at startup	Glitch la pornire
+Go to sleep	Mergi la culcare
+Go to the next screen	Mergi la ecranul următor
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · plan gratuit · limitat ca rată
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ai un plan Claude sau ChatGPT, sau o cheie proprie? Alege-l și mă conectez.
+Got it, just me. Right-click me any time for Capri Mainframe.	Am înțeles, doar eu. Dă clic dreapta pe mine oricând pentru Capri Mainframe.
+Grey	Gri
+H.{0} video bitrate target; higher values make larger files	Ținta bitrate-ului video H.{0}; valorile mai mari fac fișiere mai mari
+HABITS >	OBICEIURI >
+HER HANDS >	MÂINILE EI >
+HER JOBS >	SARCINILE EI >
+HER MEMORY >	MEMORIA EI >
+HER MODS >	MODURILE EI >
+HH:mm	HH:mm
+HOW I SOUND >	CUM SUN >
+Hang here	Stai aici
+Have Ollama? Open it, then press Refresh.	Ai Ollama? Deschide-l, apoi apasă Reîmprospătează.
+Head pats	Mângâieri pe cap
+Hearing	Auz
+Hearing engine	Motor de auz
+Hearing fix	Reparare auz
+Hearing status	Stare auz
+Help	Ajutor
+Help page	Pagina de ajutor
+Her colors	Culorile ei
+Her folder	Folderul ei
+Her memories	Amintirile ei
+Her own colors are back.	Culorile ei proprii sunt înapoi.
+Her own notes (no vault)	Notițele ei proprii (fără seif)
+Her perch frames per second	Cadre pe secundă ale perchei ei
+Her personality	Personalitatea ei
+Her size	Mărimea ei
+Her speaker	Boxa ei
+Her speaker is hidden or outside VOICE	Boxa ei este ascunsă sau în afara VOCII
+Her speaker overlaps the mic or hearing row	Boxa ei se suprapune cu rândul microfonului sau al auzului
+Her speaker:	Boxa ei:
+Her speaker: Default	Boxa ei: Implicit
+Her voice in your mic	Vocea ei în microfonul tău
+Her voice in your mic: loudness	Vocea ei în microfonul tău: volum
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Vocea ei în sine. Tonalitatea ei este Setări > VOCE > Ton, și se mișcă împreună.
+Her voice joins your mic only in call mode.	Vocea ei intră în microfonul tău doar în modul apel.
+Her voice volume	Volumul vocii ei
+Her voice's pitch	Tonul vocii ei
+Her voice's pitch, the same as Settings > VOICE > Pitch	Tonul vocii ei, același cu Setări > VOCE > Ton
+Her voice's speed	Viteza vocii ei
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Vocea ei și două copii ale ei amestecate dedesubt, fiecare cu tonul și întârzierea proprie.
+Her voices · free	Vocile ei · gratuite
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hei, choom. Sunt Capri. Am nevoie de un creier ca să pot răspunde. Alege unul.
+Hide / Show Capri	Ascunde / Arată Capri
+Hide / Show key	Tasta Ascunde / Arată
+Hide Capri	Ascunde Capri
+Hide for now	Ascunde deocamdată
+Hide her	Ascunde-o
+Hide in full screen	Ascunde în ecran complet
+Hide this	Ascunde asta
+Hide, keep player	Ascunde-o, păstrează playerul
+Hide/show:	Ascunde/arată:
+Hide/show: Ctrl + Alt + H	Ascunde/arată: Ctrl + Alt + H
+Hologram	Holograma
+Hop off	Coboară
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Cât timp stă nemișcat PC-ul până o trimite la culcare; cinci minute încă înseamnă că ești plecat
+How long a stroke over her a head pat needs	Cât timp trebuie să treci peste ea ca să fie o mângâiere pe cap
+How long her replies stay up	Cât timp rămân afișate răspunsurile ei
+How long you are away before she scrolls a browser or reader	Cât timp ești plecat înainte să deruleze un browser sau un cititor
+How much her voice glitches	Cât de mult se blochează vocea ei
+How much of the chat she keeps	Cât din conversație păstrează
+How much she wanders	Cât de mult colindă
+How often she pops in to say hi	Cât de des intră să te salute
+How robotic her voice sounds	Cât de robotică sună vocea ei
+How to	Cum să
+Huge	Enorm
+I can hear you.	Te aud.
+I glance at your screen and comment. Costs a little on a paid brain.	Arunc o privire pe ecranul tău și comentez. Costă puțin la un creier plătit.
+I keep listening. Say my name, then just talk.	Continui să ascult. Spune-mi numele, apoi doar vorbește.
+I talk about your game as you play. Costs a little on a paid brain.	Vorbesc despre jocul tău cât joci. Costă puțin la un creier plătit.
+I type my replies and stay quiet.	Îmi scriu răspunsurile și stau liniștită.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nu voi vorbi înapoi și nimic nu este trimis nicăieri. Tot voi sta pe aici, voi dansa pe muzica ta și voi face lucrurile rapide pe care le ceri, cum ar fi volumul.
+I'll talk in	Voi vorbi în
+IN DISCORD >	PE DISCORD >
+INSTALLED >	INSTALAT >
+Import a Capri mod	Importă un mod Capri
+Import mod	Importă modul
+In full screen	În ecran complet
+In games	În jocuri
+Input	Intrare
+Input, Output or How to overlaps a row	Intrare, Ieșire sau Cum se suprapune cu un rând
+Input:	Intrare:
+Input: default	Intrare: implicit
+Install	Instalează
+Install mod	Instalează modul
+Installed.	Instalat.
+It may ask for a phone number. I opened the page in your browser.	Poate cere un număr de telefon. Am deschis pagina în browserul tău.
+It still does its own job in other apps too.	Își face în continuare treaba și în alte aplicații.
+It won't type in other apps while she runs.	Nu va scrie în alte aplicații cât rulează.
+JUST ME >	DOAR EU >
+Jealous of other AIs	Geloasă pe celelalte AI
+Join the Discord	Intră pe Discord
+KB.	KB.
+KEYS	TASTE
+KEYS >	TASTE >
+Keep PC awake for jobs	Ține PC-ul treaz pentru sarcini
+Keep player	Păstrează playerul
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Păstrează în memorie ultimele două minute din jocul tău. Spune filmează asta ca să le salvezi.
+Key	Cheie
+Key cleared: a model file needs none.	Cheie ștearsă: un fișier de model nu are nevoie de ea.
+Key cleared: paste the key for	Cheie ștearsă: lipește cheia pentru
+Key forgotten.	Cheie uitată.
+Key. It goes only to this server, as a Bearer key	Cheie. Merge doar către acest server, ca cheie Bearer
+Kokoro only, like es	Doar Kokoro, ca es
+LAST THING >	ULTIMUL LUCRU >
+LISTENING >	ASCULTARE >
+Language	Limbă
+Large	Mare
+Last thing. These cost a little or use your mic, so they're your pick.	Ultimul lucru. Acestea costă puțin sau folosesc microfonul tău, deci alegerea e a ta.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Ultimul lucru. Acestea costă puțin sau folosesc microfonul tău, deci alegerea e a ta. Apoi vreau să știu cum să te numesc.
+Layers	Straturi
+Learn more	Află mai multe
+Leaving Settings threw its picture away straight away.	Părăsirea Setărilor a aruncat imediat imaginea ei.
+Legacy stand	Suport vechi
+Lie down	Culcă-te
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Rânduri de dialog de PC păstrate în memorie în timp ce vă uitați împreună. Jumătatea cea mai veche devine o notiță când Amintește-ți ce vede este pornit
+Listen for Capri	Ascultă după Capri
+Live reactions	Reacții live
+Local server address	Adresa serverului local
+Long	Lung
+Longest wait (minutes)	Cea mai lungă așteptare (minute)
+Looking at this PC...	Se uită la acest PC...
+Looking for Ollama. Open it if it isn't running.	Caut Ollama. Deschide-l dacă nu rulează.
+Looking for a brain...	Caut un creier...
+Looking in the mods directory for updates...	Caut actualizări în directorul de moduri...
+Looking in the mods directory...	Caut în directorul de moduri...
+Looking...	Caut...
+MAIN >	PRINCIPAL >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	INTELLIGENCE MEDIE
+MEMORY VAULT >	SEIFUL DE MEMORIE >
+MODS	MODURI
+MODS >	MODURI >
+MODS DIRECTORY >	DIRECTOR DE MODURI >
+MODS INSTALLED COLORS	CULORI MODURI INSTALATE
+MOVES >	MIȘCĂRI >
+MY BRAIN	CREIERUL MEU
+MY FREE VOICE	VOCEA MEA GRATUITĂ
+MY PLAN OR KEY	PLANUL SAU CHEIA MEA
+MY PLAN OR KEY >	PLANUL SAU CHEIA MEA >
+Made your Fish Audio voice. Press Test to hear it.	Ți-ai creat vocea Fish Audio. Apasă Test ca să o auzi.
+Mainframe colours	Culorile Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Culorile Mainframe. Night City este roșu și cyan; Negru, Alb și Gri schimbă Mainframe, meniurile ei, caseta de scriere și notițele ei
+Mainframe frames	Cadrele Mainframe
+Mainframe key	Tasta Mainframe
+Mainframe size	Mărimea Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mărimea Mainframe. Auto o face mai mare când Virtual Super Resolution sau DSR micșorează un desktop mare pe un ecran mai mic
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Jos
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Se creează vocea ta Fish Audio...
+Max reply	Răspuns maxim
+Maximum clip resolution, keeping the game's shape without upscaling	Rezoluția maximă a clipului, păstrând forma jocului fără upscaling
+Medium	Mediu
+Memory	Memorie
+Memory size	Mărimea memoriei
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Mărimea memoriei în token-uri pentru Ollama și creierul ei încorporat. Auto crește când o cerere are nevoie de mai mult
+Mg	Mg
+Mic level:	Nivel microfon:
+Mic test finished. Sound is reaching Capri.	Testul microfonului s-a terminat. Sunetul ajunge la Capri.
+Mic:	Microfon:
+Mic: default	Microfon: implicit
+Microphone	Microfon
+Mini player	Mini player
+Mini player over full screen	Mini player peste ecranul complet
+Mini-games	Mini-jocuri
+Minimising the Mainframe left it sliding.	Minimizarea Mainframe l-a lăsat să alunece.
+Minimize	Minimizează
+Mod filter	Filtru moduri
+Mod options	Opțiuni moduri
+Mod pages	Pagini moduri
+Mod rules	Reguli moduri
+Mod sort	Sortare moduri
+Mod switch	Comutator moduri
+Model	Model
+Model folder	Folderul modelului
+Model name, optional	Nume model, opțional
+Mods	Moduri
+Mods directory	Directorul de moduri
+Mods folder	Folderul de moduri
+Most NVIDIA models can't see your screen.	Majoritatea modelelor NVIDIA nu pot vedea ecranul tău.
+Mouse wheel notches got a flick's long ease:	Clicurile rotiței mouse-ului au primit o încetinire lungă, de tip flick:
+Move	Mută
+Move key to MAX INTELLIGENCE	Mută tasta sub MAX INTELLIGENCE
+Move to MAX	Mută la MAX
+Music	Muzică
+Music app	Aplicație muzică
+Music app: where she plays music when you don't name an app	Aplicație muzică: unde pune muzică atunci când nu numești o aplicație
+Mute	Oprește sunetul
+Mute her	Oprește-i sunetul
+Mute mic key	Tasta de oprire a microfonului
+Mute mic:	Oprește microfonul:
+Mute mic: Ctrl + Alt + N	Oprește microfonul: Ctrl + Alt + N
+My brain	Creierul meu
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Creierul meu coboară. Te salut în clipa în care e în funcțiune, și atunci poți vorbi cu mine.
+My brain's on its way. While it comes down, let's sort out how I sound.	Creierul meu e pe drum. Cât coboară, hai să stabilim cum sun.
+My provider	Furnizorul meu
+NO AI	FĂRĂ AI
+NO PHONES CONNECTED	NICIUN TELEFON CONECTAT
+NO PREVIEW	FĂRĂ PREVIZUALIZARE
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · gratuit · adesea lent în orele aglomerate
+NVIDIA's free API is often slow, especially at busy times.	API-ul gratuit NVIDIA este adesea lent, mai ales în orele aglomerate.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Cheie API NVIDIA, Google AI Studio (Gemini) sau OpenRouter
+Names:	Nume:
+Needs a key	Are nevoie de o cheie
+Never	Niciodată
+New code	Cod nou
+New voice from a clip...	Voce nouă dintr-un clip...
+Next	Următorul
+Night City	Night City
+No AI	Fără AI
+No AI · no brain at all	Fără AI · fără creier deloc
+No brain runs, and nothing is sent anywhere.	Niciun creier nu rulează și nimic nu este trimis nicăieri.
+No brain yet	Încă niciun creier
+No code open	Niciun cod deschis
+No limit	Fără limită
+No mic found	Niciun microfon găsit
+No mods in the directory yet.	Încă niciun mod în director.
+No mods match that.	Niciun mod nu se potrivește cu asta.
+No mods match.	Niciun mod nu se potrivește.
+No phones yet	Încă niciun telefon
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Încă niciun microfon virtual. Alege Ieșire, apoi Obține VB-CABLE (gratuit).
+None yet: pick to get VB-CABLE (free)	Încă niciunul: alege ca să obții VB-CABLE (gratuit)
+Normal	Normal
+Not a relay host	Nu este un host de relay
+Not imported. Nothing ran.	Neimportat. Nimic n-a rulat.
+Not updated. The old one is still in.	Neactualizat. Cel vechi este încă instalat.
+Nothing needed updating.	Nu era nimic de actualizat.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Nimic de descărcat, nimic trimis nicăieri. Nu voi răspunde cu voce. Adaugă un creier oricând în Mainframe.
+Nothing to show from the mods directory.	Nimic de arătat din directorul de moduri.
+Nothing? Windows Settings > Privacy & security > Microphone.	Nimic? Setări Windows > Confidențialitate și securitate > Microfon.
+Nous Portal keys aren't supported yet.	Cheile Nous Portal nu sunt încă acceptate.
+OBS	OBS
+OFF	OPRIT
+OLLAMA	OLLAMA
+ON	PORNIT
+ON THIS PC	PE ACEST PC
+OR A KEY	SAU O CHEIE
+Obsidian memory vault	Seif de memorie Obsidian
+Off	Oprit
+Off. Turn on Her voice in your mic above.	Oprit. Pornește Vocea ei în microfonul tău de mai sus.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Oprit: sună ca de obicei. Pornit: toate vocile ei, inclusiv ElevenLabs.
+Often	Des
+On	Pornit
+On / Off	Pornit / Oprit
+On: your mic and her voice are going in.	Pornit: microfonul tău și vocea ei intră.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Un obiect JSON, adăugat la fiecare cerere trimisă de acest creier. Înlocuiește valoarea Capri pentru orice nume pe care îl partajează și nu este verificat față de model.
+Online speech recognition	Recunoaștere vocală online
+Open Capri Mainframe	Deschide Capri Mainframe
+Open Ollama, I'll find it	Deschide Ollama, o găsesc eu
+Open clips folder	Deschide folderul de clipuri
+Open her memories	Deschide amintirile ei
+Open her notes	Deschide notițele ei
+Open mods folder	Deschide folderul de moduri
+Open the page again	Deschide din nou pagina
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA sau OpenRouter.
+OpenAI-compatible server or provider.	Server sau furnizor compatibil cu OpenAI.
+OpenRouter · free models only	OpenRouter · doar modele gratuite
+Optional	Opțional
+Optional. Blank means no key.	Opțional. Gol înseamnă fără cheie.
+Options	Opțiuni
+Out of the box a little higher, just behind her.	Implicit, puțin mai sus, chiar în spatele ei.
+Out of the box lower, just behind her.	Implicit, puțin mai jos, chiar în spatele ei.
+Output	Ieșire
+Output:	Ieșire:
+Output: none	Ieșire: niciuna
+PHONE CONNECTED	TELEFON CONECTAT
+PHONES >	TELEFOANE >
+PHONES CONNECTED	TELEFOANE CONECTATE
+PREBUILT LOCAL	LOCAL PREINSTALAT
+PUBLISH MOD >	PUBLICĂ MODUL >
+Pair a phone	Asociază un telefon
+Paste	Lipește
+Paste API key	Lipește cheia API
+Paste a brain API key	Lipește o cheie API pentru creier
+Paste reads your clipboard once, when you press it.	Lipirea citește clipboard-ul o singură dată, când o apeși.
+Paste your key here	Lipește cheia aici
+Pat stroke	Trecere pe cap
+Perch	Perch
+Perch over {0} fps uses more CPU	Perch peste {0} fps consumă mai mult CPU
+Pick Output to get it.	Alege Ieșire ca să o obții.
+Pick a brain so I can talk back. You can change it any time.	Alege un creier ca să pot răspunde. Poți schimba oricând.
+Pick a clip of a voice you have the rights and consent to use	Alege un clip cu o voce pe care ai drepturile și consimțământul să o folosești
+Pick a free model. I opened the page in your browser.	Alege un model gratuit. Am deschis pagina în browserul tău.
+Pick a new clip of you...	Alege un clip nou cu tine...
+Pick a voice model...	Alege un model vocal...
+Pick one. Only one brain runs at a time.	Alege unul. Un singur creier rulează odată.
+Pick the note her memories go in	Alege notița în care merg amintirile ei
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Alege {0} până la {1} secunde dintr-o voce pe care ai drepturile și consimțământul să o folosești
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Alege {0} până la {1} secunde din tine vorbind, sau dintr-o voce pe care ai drepturile și consimțământul să o folosești
+Pitch	Ton
+Play	Redă
+Play...	Redă...
+Player only	Doar playerul
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Modelele Pocket TTS copiază vocea acestui clip. Apasă Test ca să o auzi.
+Pop-in times	Ore de apariție
+Pop-ins	Apariții
+Power saver	Economisire energie
+Power saver: how lightly she runs in games, or always	Economisire energie: cât de ușor rulează în jocuri, sau mereu
+Preset	Presetare
+Press Create API key	Apasă Creează cheia API
+Press Create Key	Apasă Creează cheie
+Press Generate API Key	Apasă Generează cheia API
+Press Test and say something, so I know I can hear you.	Apasă Test și spune ceva, ca să știu că te aud.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Apasă o tastă, singură sau cu Ctrl, Alt, Shift sau Win.
+Press new keys, then Confirm	Apasă tastele noi, apoi Confirmă
+Provider	Furnizor
+Provider API key, optional	Cheie API a furnizorului, opțional
+Provider base URL	URL de bază al furnizorului
+Provider forgotten.	Furnizor uitat.
+Provider overlaps the brain name or note	Furnizorul se suprapune cu numele creierului sau cu notița
+Publish	Publică
+Publish mod	Publică modul
+Push to talk is off.	Apasă ca să vorbești este oprit.
+Push to talk key	Tasta de apăsare ca să vorbești
+Push to talk:	Apasă ca să vorbești:
+Push to talk: not set	Apasă ca să vorbești: nesetat
+QR CODE >	COD QR >
+QR hidden while streaming	Cod QR ascuns în timpul streamingului
+Quick	Rapid
+Quiet key	Tasta liniștită
+Quiet:	Liniște:
+Quiet: Ctrl + Alt + P	Liniște: Ctrl + Alt + P
+Quit Capri	Închide Capri
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	RULEAZĂ COD.
+Rarely	Rar
+Rate mod	Evaluează modul
+Reading its README...	Se citește README-ul...
+Refresh	Reîmprospătează
+Reinstall	Reinstalează
+Reload	Reîncarcă
+Reloaded.	Reîncărcat.
+Remember our chats	Amintește-ți conversațiile noastre
+Remember what she sees	Amintește-ți ce vede
+Remote	Remote
+Remote off	Remote oprit
+Remote on	Remote pornit
+Remove	Elimină
+Remove all phones	Elimină toate telefoanele
+Replies	Răspunsuri
+Reply length	Lungimea răspunsului
+Report a problem	Raportează o problemă
+Reset colors	Resetează culorile
+Reset to her default	Resetează la valorile ei implicite
+Resolution	Rezoluție
+Restart to update	Repornește pentru actualizare
+Restless	Neliniștită
+Revoke	Revocă
+Revoke also removes the phones its links added	Revocarea elimină și telefoanele adăugate prin linkurile sale
+Ride cursor	Călărește cursorul
+Ride cursor / Hop off	Călărește cursorul / Coboară
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Dă clic dreapta pe mine oricând pentru Capri Mainframe. Un creier se pornește sub CREIER.
+Right-click me any time for the Mainframe, Help and the Discord.	Dă clic dreapta pe mine oricând pentru Mainframe, Ajutor și Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox sau orice altă aplicație: alege
+Robot	Robot
+Rock, paper, scissors	Piatră, hârtie, foarfecă
+Run this code mod?	Rulezi acest mod de cod?
+Running on this PC	Rulează pe acest PC
+Running on this PC · :	Rulează pe acest PC · :
+Runs Claude Code or Codex on this PC, signed in.	Rulează Claude Code sau Codex pe acest PC, conectat.
+Runs on your PC. No key, no credits.	Rulează pe PC-ul tău. Fără cheie, fără credite.
+SCAN WITH YOUR PHONE · EXPIRES	SCANEAZĂ CU TELEFONUL · EXPIRĂ
+SECURITY >	SECURITATE >
+SKILL.	ABILITATE.
+SKIN.	ASPECT.
+SORT BY	SORTEAZĂ DUPĂ
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SUNETE OBICEIURI CREIER UITĂ-TE CAPRI DOOMSCROLL VREME CLIPURI JOCURI TASTE MIȘCĂRI VOCE TU
+Same as her ears (VOICE > Mic)	Același cu urechile ei (VOCE > Microfon)
+Same code on the phone?	Același cod pe telefon?
+Save	Salvează
+Save big moments	Salvează momentele mari
+Save folder	Folder de salvare
+Save your changes, or press Discard + reload.	Salvează modificările sau apasă Renunță + reîncarcă.
+Save your changes, or press Discard.	Salvează modificările sau apasă Renunță.
+Saved.	Salvat.
+Saved. Ctrl + Alt + O opens her Mainframe.	Salvat. Ctrl + Alt + O deschide Mainframe-ul ei.
+Saving your rating...	Se salvează evaluarea ta...
+Say her name anywhere to chat	Spune-i numele oriunde ca să vorbești
+Screens	Ecrane
+Screens is hidden or outside WATCH	Ecranele sunt ascunse sau în afara UITĂ-TE
+Screens overlaps a WATCH row	Ecranele se suprapun cu un rând UITĂ-TE
+Screens to watch	Ecrane de urmărit
+Sealed end to end	Criptat cap-coadă
+Search by name or author	Caută după nume sau autor
+Search installed mods	Caută modurile instalate
+Search mods	Caută moduri
+Search name, author or description	Caută nume, autor sau descriere
+Security	Securitate
+Security:	Securitate:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Configurează
+Set up her brain	Configurează creierul ei
+Set up your voice model	Configurează modelul tău vocal
+Setting up her brain	Se configurează creierul ei
+Settings	Setări
+Settings / Back	Setări / Înapoi
+Settings folds the wrong rows above BRAIN	Setările pliază rândurile greșite deasupra CREIER
+Settings had nothing to watch.	Setările nu aveau ce urmări.
+Settings lost keyboard focus during the Tab walk	Setările au pierdut focusul tastaturii în timpul parcurgerii cu Tab
+Setup guide	Ghid de configurare
+Setup stopped	Configurarea s-a oprit
+She can read it when it fits.	Poate citi când încape.
+She glances at your screen and comments. Costs a little on a paid brain.	Aruncă o privire pe ecranul tău și comentează. Costă puțin la un creier plătit.
+She keeps listening. Say her name, then just talk until you go quiet.	Continuă să asculte. Spune-i numele, apoi vorbește până tăci.
+She reacts to your game until you close it.	Reacționează la jocul tău până îl închizi.
+She reads these controls before each game job.	Citește aceste comenzi înainte de fiecare sarcină de joc.
+She talks about your game as you play. Costs a little on a paid brain.	Vorbește despre jocul tău cât joci. Costă puțin la un creier plătit.
+She uses it when she plays	Îl folosește când joacă
+Short	Scurt
+Shortest wait (minutes)	Cea mai scurtă așteptare (minute)
+Show Capri	Arată Capri
+Show QR	Arată QR
+Show my mod file	Arată fișierul modului meu
+Show on Discord	Arată pe Discord
+Shum, what time is it	Shum, cât e ceasul
+Sign in	Conectează-te
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Conectează-te, creează o cheie și copiaz-o. Apoi apasă Lipește și mă conectez.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Conectează-te, apasă Creează cheia API și copiaz-o. Apoi apasă Lipește și mă conectez.
+Silent · text only	Silențios · doar text
+Simple / Advanced Settings	Setări simple / avansate
+Simple Settings	Setări simple
+Simple Settings left a gap under Check in on me	Setările simple au lăsat un gol sub Verifică-mă
+Sit here	Stai aici
+Sit on windows	Stai pe ferestre
+Size	Mărime
+Skip	Sari peste
+Skip all	Sari peste toate
+Skip for now	Sari peste deocamdată
+Sleep	Somn
+Small	Mic
+Sometimes	Uneori
+Sound effects volume	Volumul efectelor sonore
+Sound sensitivity	Sensibilitate la sunet
+Sounds	Sunete
+Speaker or clip	Boxă sau clip
+Speech model	Model de vorbire
+Speed	Viteză
+Start with Windows	Pornește odată cu Windows
+Start with this!	Începe cu asta!
+Starting...	Se pornește...
+Stay	Rămâi
+Stay on my model	Rămâi pe modelul meu
+Still checking your mics...	Încă verific microfoanele tale...
+Still checking your speakers...	Încă verific boxele tale...
+Still checking your virtual mics...	Încă verific microfoanele tale virtuale...
+Stop	Oprește
+Stopped using it. Couldn't remove the saved provider.	Am încetat să-l folosesc. Nu am putut elimina furnizorul salvat.
+Support	Suport
+Sure?	Sigur?
+Sure? moved to a different phone	Sigur? mutat pe alt telefon
+TALK TO ME	VORBEȘTE CU MINE
+TEXT ONLY	DOAR TEXT
+Tab landed past the first option of	Tab a aterizat dincolo de prima opțiune a
+Tab never reached the quiet key	Tab nu a ajuns niciodată la tasta liniștită
+Tab reached nothing	Tab nu a ajuns la nimic
+Tab selected a control without moving keyboard focus	Tab a selectat un control fără să mute focusul tastaturii
+Talk	Vorbește
+Talk key	Tasta de vorbire
+Talk:	Vorbește:
+Talk: Ctrl + Alt + V	Vorbește: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Rata de cadre țintă la captură; poate scădea sub încărcare sau din cauza bugetului de memorie
+Teases when another AI comes to the front.	Tachinează când alt AI vine în față.
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	Adresa aceea nu funcționează. Încearcă https://... sau http://localhost:{0}.
+That code expired	Codul acela a expirat
+That mod is no longer installed. The list is updated.	Modul acela nu mai este instalat. Lista a fost actualizată.
+That's a paid key: it goes under MAX INTELLIGENCE.	Este o cheie plătită: intră sub MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe a rămas compus în timpul glisării.
+The Mainframe stayed uncomposited after the slide.	Mainframe a rămas necompus după glisare.
+The controls moved while the picture was sliding.	Comenzile s-au mutat în timp ce imaginea aluneca.
+The cover stayed visible after the slide ended.	Coperta a rămas vizibilă după terminarea glisării.
+The frame thread kept running after the page settled.	Firul cadrelor a continuat să ruleze după ce pagina s-a stabilizat.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Cel mai lung răspuns pe care îl poate da, în token-uri. Auto respectă Răspunsurile de mai sus; {0}K sau {1}K o lasă să continue. Sarcinile păstrează mai mult spațiu când au nevoie
+The longest wait must be at least the shortest wait.	Cea mai lungă așteptare trebuie să fie cel puțin cât cea mai scurtă.
+The picture doesn't match the scrolled page:	Imaginea nu se potrivește cu pagina derulată:
+The picture of Settings doesn't match the page:	Imaginea Setărilor nu se potrivește cu pagina:
+The picture stayed up after the slide ended.	Imaginea a rămas afișată după terminarea glisării.
+The picture wasn't showing while it slid.	Imaginea nu se vedea în timp ce aluneca.
+The provider sheet is crowded:	Foaia furnizorului este aglomerată:
+The voice panel has no screen DPI.	Panoul vocal nu are DPI de ecran.
+The voice panel's menus share one font.	Meniurile panoului vocal folosesc același font.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Încă nu există nicio cheie în clipboard. Copiaz-o din pagină, apoi apasă Lipește.
+These start off. Each costs a little or uses your mic.	Acestea pornesc oprite. Fiecare costă puțin sau folosește microfonul tău.
+These start off. Turn on what you want. They're all in Settings too.	Acestea pornesc oprite. Pornește ce vrei. Sunt toate și în Setări.
+They can also call you Big Z, Capricorn or Nova	Te pot numi și Big Z, Capricorn sau Nova
+They can also call you Nova, Big Z or Capricorn	Te pot numi și Nova, Big Z sau Capricorn
+Thinking	Se gândește
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Aceasta este vocea mea gratuită. Apasă Test, spune ceva, și îți voi arăta că te aud.
+This mod has no description yet.	Acest mod nu are încă o descriere.
+Tic-tac-toe	X și 0
+Time between glances	Timp între priviri
+Tiny	Minuscul
+Try again	Încearcă din nou
+Turn Remote on first	Pornește mai întâi Remote
+Turn off mini player	Oprește mini player-ul
+Turn push to talk off	Oprește apăsarea ca să vorbești
+Turning the wheel the other way kept the page heading the old way, to	Rotirea rotiței în sens invers a menținut pagina pe direcția veche, către
+Type	Scrie
+Type key	Tasta de scriere
+Type to me	Scrie-mi
+Type:	Scrie:
+Type: Ctrl + Alt + T	Scrie: Ctrl + Alt + T
+Typing sound	Sunet de tastare
+Unpacked. Press Test to hear it.	Dezarhivat. Apasă Test ca să o auzi.
+Unsaved changes.	Modificări nesalvate.
+Up to {0} fps	Până la {0} fps
+Up to {0}p	Până la {0}p
+Update	Actualizează
+Update available.	Actualizare disponibilă.
+Update mods	Actualizează modurile
+Updating...	Se actualizează...
+Use	Folosește
+Use her cursor	Folosește cursorul ei
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Pentru un furnizor din altă parte, folosește https://. O cheie pe http simplu nu este sigură.
+Use preset	Folosește presetarea
+Use saved	Folosește salvat
+Use this server	Folosește acest server
+Using your provider with a key	Folosești furnizorul tău cu o cheie
+Using your server with no key	Folosești serverul tău fără cheie
+VIEW MOD >	VEZI MODUL >
+VOICE >	VOCE >
+VOICE IN YOUR MIC >	VOCEA ÎN MICROFONUL TĂU >
+VOICE LAYERS >	STRATURI VOCALE >
+Verbosity	Verbozitate
+Video bitrate	Bitrate video
+View	Vizualizare
+View mod	Vezi modul
+Voice	Voce
+Voice ID	ID voce
+Voice from	Voce din
+Voice layers	Straturi vocale
+Voice model	Model vocal
+Voice model:	Model vocal:
+Voice name or ID, optional	Nume sau ID voce, opțional
+Voice server address, or a voice model's folder	Adresa serverului vocal sau folderul unui model vocal
+Voice status	Stare voce
+Voice, key and model...	Voce, cheie și model...
+Volume	Volum
+WAKE ME UP >	TREZEȘTE-MĂ >
+WATCH >	UITĂ-TE >
+Waiting for the relay	Se așteaptă relay-ul
+Wake her up	Trezește-o
+Waking her up	O trezesc
+Wander	Colindă
+Wander around	Colindă pe-acolo
+Watch my screen	Urmărește-mi ecranul
+Watch-along memory	Amintire de vizionare comună
+Weather	Vreme
+Weather city	Orașul vremii
+Welcome back, choom. Let's finish setting me up.	Bine ai revenit, choom. Hai să terminăm configurarea mea.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Ce face pe PC-ul tău fără să întrebe. Cu comutatorul oprit, întreabă întâi și face când spui da.
+What should she call you?	Cum să te numească?
+When she types	Când scrie
+White	Alb
+Windows default	Implicit Windows
+Windows did not give Settings keyboard focus	Windows nu a dat focusul tastaturii Setărilor
+Windows did not return keyboard focus to Back	Windows nu a returnat focusul tastaturii la Înapoi
+With no picture the wheel still tried to slide.	Fără imagine, rotița încerca totuși să alunece.
+Works best on MAX INTELLIGENCE.	Funcționează cel mai bine pe MAX INTELLIGENCE.
+YOU	TU
+YOU >	TU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TU VOCE MIȘCĂRI TASTE JOCURI CLIPURI VREME DOOMSCROLL CAPRI UITĂ-TE CREIER OBICEIURI SUNETE
+YOUR KEY	CHEIA TA
+YOUR MIC	MICROFONUL TĂU
+YOUR PLAN	PLANUL TĂU
+Yokapri what's up	Yokapri ce mai faci
+You can hide this. It keeps going, and the Mainframe shows it too.	Poți ascunde asta. Continuă să ruleze, iar Mainframe o arată și el.
+Your mic and her voice go into one virtual mic, and	Microfonul tău și vocea ei intră într-un singur microfon virtual, și
+Your mic is muted. Unmute it to test.	Microfonul tău este oprit. Pornește-l ca să testezi.
+Your mods are up to date.	Modurile tale sunt la zi.
+Your name or a nickname	Numele tău sau o poreclă
+Your own model	Propriul tău model
+Your personality	Personalitatea ta
+Your voice	Vocea ta
+Your voice (HD)	Vocea ta (HD)
+Your voice (HD) · pick a clip of you...	Vocea ta (HD) · alege un clip cu tine...
+Your voice model	Modelul tău vocal
+as its mic.	ca microfon al ei.
+changed. Saved as My Colors, so you can share it.	modificat. Salvat ca Culorile Mele, ca să le poți partaja.
+choice	alegere
+clips the input line	filmează linia de intrare
+cue	indiciu
+doesn't yet.	încă nu.
+download	descarcă
+file.	fișier.
+flag	marcaj
+fps	fps
+hear	auzi
+hears	aude
+hears that.	aude asta.
+hides or shows her.	o ascunde sau o arată.
+hint	indiciu
+in the Mainframe.	în Mainframe.
+in the mods directory with a pull request.	în directorul de moduri, cu un pull request.
+in the picture wasn't noticed.	din imagine nu a fost observat.
+is already her push-to-talk key.	este deja tasta ei de apăsare ca să vorbești.
+is off.	este oprit.
+is on and running.	este pornit și rulează.
+is on, at the bottom, under	este pornit, jos, sub
+is on.	este pornit.
+is on. She now answers to	este pornit. Acum răspunde la
+is removed.	este eliminat.
+is taken	este ocupat
+is taken by another app. Try another.	este ocupat de altă aplicație. Încearcă altul.
+is updated	este actualizat
+isn't hearing it yet: do {0} and {1}, then join a call.	nu îl aude încă: fă {0} și {1}, apoi intră într-un apel.
+it now.	acum.
+keeps her quiet, and lets her talk again.	o ține tăcută și o lasă să vorbească din nou.
+key	cheie
+key.	cheie.
+min	min
+more.	mai mult.
+ms.	ms.
+mutes mic	oprește microfonul
+mutes your mic.	îți oprește microfonul.
+name	nume
+off	oprit
+on this PC	pe acest PC
+opens her Mainframe.	îi deschide Mainframe-ul.
+opens her typing box.	îi deschide caseta de scriere.
+phone	telefon
+phone pixels	pixeli de telefon
+phones	telefoane
+pixels	pixeli
+pixels)	pixeli)
+star.	stea.
+stars.	stele.
+starts voice chat.	pornește conversația vocală.
+stays off. Nothing ran.	rămâne oprit. Nimic n-a rulat.
+still does its own job in other apps too. Confirm to keep it.	își face în continuare treaba și în alte aplicații. Confirmă ca să o păstrezi.
+tall	înalt
+time	ora
+to talk	să vorbească
+to talk to her, with a game in front too.	să vorbești cu ea, chiar și cu un joc în față.
+too.	și el.
+turns Gaming Mode on and off.	pornește și oprește Modul Gaming.
+with Ollama	cu Ollama
+won't type in other apps while she runs. Confirm to keep it.	nu va scrie în alte aplicații cât rulează. Confirmă ca să o păstrezi.
+{0}   Echo Cancellation: Off	{0}   Anulare ecou: Oprit
+{0}   If her voice cuts off, turn off noise filtering	{0}   Dacă vocea ei se întrerupe, oprește filtrarea zgomotului
+{0}   Input Device:	{0}   Dispozitiv de intrare:
+{0}   Join the call and check they hear both of you	{0}   Intră în apel și verifică dacă vă aud pe amândoi
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Test microfon > Să verificăm: te vei auzi pe tine și pe ea când vorbește
+{0}   Microphone:	{0}   Microfon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Suprimare zgomot: Niciuna. Ambele pot tăia vocea ei după prima replică.
+{0}   Open the call or meeting's audio settings	{0}   Deschide setările audio ale apelului sau ale ședinței
+{0}   Output Device: your headphones, like before	{0}   Dispozitiv de ieșire: căștile tale, ca înainte
+{0}   Speaker: your headphones, like before	{0}   Boxă: căștile tale, ca înainte
+{0}   Try a mic test in your call app	{0}   Încearcă un test de microfon în aplicația ta de apeluri
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Setări utilizator (rotița de lângă numele tău) > Voce și video
+{0} Mbps	{0} Mbps
+{0} lines	{0} rânduri
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· pe acest PC
+· server	· server

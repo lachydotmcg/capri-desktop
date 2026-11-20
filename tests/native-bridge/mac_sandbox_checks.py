@@ -315,6 +315,56 @@ class MacSandboxChecks(unittest.TestCase):
                 sandbox.launch(SimpleNamespace(kind=kind, cache=None))
             execute.assert_not_called()
 
+    def decoder_fixture(self, mode=0o600, extra=None):
+        model = self.root / 'asr/moonshine/model'
+        model.mkdir(parents=True)
+        (model / 'encoder.ort').write_bytes(b'weights')
+        worker = self.root / 'bridge/speech/asr_worker.py'
+        worker.parent.mkdir(parents=True)
+        worker.write_text('')
+        manifest = self.root / 'asr/runtime-manifest.json'
+        body = {'moonshine': {'model_dir': str(model)}, 'files': [{'path': str(model / 'encoder.ort'), 'sha256': '0'}]}
+        if extra is not None:
+            body['extra'] = extra
+        manifest.write_text(json.dumps(body))
+        manifest.chmod(mode)
+        return worker, manifest, model
+
+    def test_decoder_runs_under_seatbelt_without_network(self):
+        worker, manifest, model = self.decoder_fixture()
+        with patch.object(sandbox, 'runtime', return_value=self.resolved):
+            command, environment = sandbox.decoder_command(worker, manifest)
+        self.assertEqual(command[:2], ['/usr/bin/sandbox-exec', '-p'])
+        self.assertEqual(command[3:], [str(self.executable), '-B', '-E', '-s', '-u', str(worker), '--manifest', str(manifest)])
+        rules = command[2]
+        self.assertNotIn('network', rules.replace('com.apple.networkd', ''))
+        self.assertNotIn('file-write*', rules)
+        for path in (worker.parent, model, manifest):
+            self.assertIn('(allow file-read* (subpath ' + sandbox.quoted(path) + '))', rules)
+        self.assertEqual(environment['HF_HUB_OFFLINE'], '1')
+        self.assertEqual(environment['__PYVENV_LAUNCHER__'], str(self.launcher))
+        self.assertNotIn('ANTHROPIC_API_KEY', environment)
+
+    def test_network_stays_for_plan_profiles_only(self):
+        self.assertIn('(allow network*)', sandbox.profile(set(), set(), self.resolved))
+        self.assertNotIn('(allow network*)', sandbox.profile(set(), set(), self.resolved, network=False))
+        self.assertEqual(sandbox.profile(set(), set(), self.resolved, network=False),
+                         sandbox.profile(set(), set(), self.resolved).replace('\n(allow network*)', '').replace(
+                             '\n(allow system-socket (require-all (socket-domain AF_SYSTEM) (socket-protocol 2)))', ''))
+
+    def test_decoder_manifest_must_be_private_and_narrow(self):
+        worker, manifest, _ = self.decoder_fixture(mode=0o666)
+        with patch.object(sandbox, 'runtime', return_value=self.resolved), self.assertRaises(ValueError):
+            sandbox.decoder_command(worker, manifest)
+        for broad in ('/', '/Users', str(Path.home()), '/tmp'):
+            with self.subTest(path=broad):
+                temporary = tempfile.TemporaryDirectory()
+                self.addCleanup(temporary.cleanup)
+                self.root = Path(temporary.name).resolve()
+                worker, manifest, _ = self.decoder_fixture(extra=[broad])
+                with patch.object(sandbox, 'runtime', return_value=self.resolved), self.assertRaises(ValueError):
+                    sandbox.decoder_command(worker, manifest)
+
     def denial_capture(self, show_control=True, stream_control=False, show_error=None, stream_error=None, query_exit=0,
                        extra=b'', stream_extra=b''):
         record, launch = self.captured_launch()
@@ -861,9 +911,10 @@ class MacSandboxChecks(unittest.TestCase):
         self.assertEqual(smoke.DIAGNOSTIC_SECONDS, 120)
         root = BRIDGE.parents[1]
         self.assertIn('process.WaitForExit(240000)', (root / 'cross/Smoke.cs').read_text(encoding='utf-8'))
-        for name, count in (('mac-linux.yml', 2), ('ci.yml', 1)):
+        for name, count, rosetta in (('mac-linux.yml', 1, 1), ('ci.yml', 1, 0)):
             workflow = (root / '.github/workflows' / name).read_text(encoding='utf-8')
             self.assertEqual(workflow.count('timeout-minutes: 8'), count)
+            self.assertEqual(workflow.count('timeout-minutes: 14'), rosetta)
 
     def test_path_bisection_retains_a_proven_set_when_narrow_rules_exceed_the_report_limit(self):
         record, launch = self.captured_launch()

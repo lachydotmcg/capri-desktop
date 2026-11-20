@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Stjórntæki sem var teiknað aftur náði ekki inn á myndina.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Frír lykill frá Google AI Studio, NVIDIA eða OpenRouter. Ekkert að sækja. Þarf nettengingu.
+A held trackpad scroll got a flick's long ease:	Haldin skrunun á snertiborði fékk langa mýkt af snöggu strjúki:
+A layout change during a slide put the page at	Breyting á útliti meðan glæra var í gangi setti síðuna á
+A layout change left the picture up.	Breyting á útliti skildi myndina eftir.
+A model in Ollama, on your local server or on your key.	Líkan í Ollama, á þínum staðbundna þjóni eða með þínum lykli.
+A paid key goes under MAX INTELLIGENCE by itself.	Greiddur lykill fer sjálfkrafa undir MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Áskrift sem þú borgar nú þegar fyrir, þinn eigin lykill eða Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Valmynd raddspjaldsins heldur ekki eigin afriti af letri spjaldsins.
+A wheel turn right after a slide ended froze the picture.	Snúningur á hjóli rétt eftir að glæru lauk frysti myndina.
+ALLOW THIS PHONE?	LEYFA ÞENNAN SÍMA?
+ALMOST THERE >	NÆSTUM BÚIN >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ÖNNUR CAPRI TÓK VIÐ · SLÖKKTU OG KVEIKTU
+API key	API-lykill
+API key, Claude plan or ChatGPT plan	API-lykill, Claude-áskrift eða ChatGPT-áskrift
+Add	Bæta við
+Address	Vistfang
+Address and key saved. Use saved to reconnect.	Vistfang og lykill vistað. Notaðu Vistað til að tengjast aftur.
+Advanced Settings	Ítarlegar stillingar
+All	Allt
+All screens	Allir skjáir
+Allow	Leyfa
+Almost there. I'll say hi the second my brain's in.	Næstum búin. Ég heilsa um leið og heilinn minn er kominn.
+Always	Alltaf
+Always on top	Alltaf efst
+Any Google account works. I opened the page in your browser.	Hvaða Google-aðgangur sem er virkar. Ég opnaði síðuna í vafranum þínum.
+Applies to every voice	Gildir fyrir allar raddir
+Apps she may close	Forrit sem hún má loka
+Ask Capri for more	Biddu Capri um meira
+Asking your server...	Spyr þjóninn þinn...
+Asks before closing only the apps you choose.	Spyr áður en lokað er aðeins forritunum sem þú velur.
+Auto	Sjálfvirkt
+Automatic: VB-CABLE, else Steam's	Sjálfvirkt: VB-CABLE, annars Steam
+BAD RELAY HOST	ÓGILD RELAY-VEFSLÓÐ
+BIG Z open notepad	BIG Z opna glósublokk
+BRAIN	HEILI
+BRAIN >	HEILI >
+BRAIN ONLINE >	HEILI TENGDUR >
+BRAIN PROVIDER >	HEILAVEITA >
+BRAIN VOICE CAPRI	HEILARÖDD CAPRI
+Back	Til baka
+Back on your saved API key.	Aftur í vistaða API-lykilinn þinn.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Best fyrir þessa tölvu:
+Black	Svart
+Blank key means no key.	Tómur lykill þýðir enginn lykill.
+Brain API key	API-lykill heila
+Brain model	Heilalíkan
+Brain provider	Heilaveita
+Bring here	Koma hingað
+Bring to this screen	Koma á þennan skjá
+Browse	Vafra
+Browse mods	Vafra um mod
+Browse to a voice model	Finna raddlíkan
+Browse...	Vafra...
+Bubble	Blaðra
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree ertu þarna
+CAN'T REACH THE RELAY · RETRYING	NÆ EKKI Í RELAY · REYNI AFTUR
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI RADDHEILI
+CHANGED, approve it again.	BREYTT, samþykktu aftur.
+CLIPS >	KLIPP >
+CLOUD VOICE	SKÝJARÖDD
+CODE	KÓÐI
+COLORS >	LITIR >
+CONNECTED	TENGT
+CONNECTING	TENGI
+CUSTOM LOCAL	SÉRSNIÐIN STAÐBUNDIN
+Call mode (beta)	Símtalsstilling (beta)
+Call mode does not fit.	Símtalsstilling passar ekki.
+Call mode is outside its space.	Símtalsstilling er utan síns svæðis.
+Cancel	Hætta við
+Cancel keys	Hætta við lykla
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri-kóði:
+Capri mods (*	Capri mod (*
+Capri, hello	Capri, hæ
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Ringulreið þegar hún verður pirruð
+Chat with Capri from your phone	Spjallaðu við Capri úr símanum þínum
+ChatGPT plan	ChatGPT-áskrift
+Check for updates	Athuga uppfærslur
+Check in on me	Kíktu á mig
+Check in on me is hidden	Kíktu á mig er falið
+Check in on me still decides whether she visits.	Kíktu á mig ræður enn hvort hún kemur í heimsókn.
+Check in on me's tip missed	Ábending Kíktu á mig misstist
+Chess	Skák
+Choose apps	Velja forrit
+Choose folder...	Velja möppu...
+Choose where future Capri clips are saved	Veldu hvar framtíðarklipp Capri eru vistuð
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude- eða ChatGPT-áskrift, greiddur lykill (OpenAI, Claude, DeepSeek) eða Ollama.
+Claude plan	Claude-áskrift
+Clear	Hreinsa
+Cleared.	Hreinsað.
+Click Confirm to keep Down, or press Esc.	Smelltu á Staðfesta til að halda Niðri, eða ýttu á Esc.
+Click to open it.	Smelltu til að opna.
+Clip my games	Taka upp leikina mína
+Clips	Klipp
+Close	Loka
+Close other AIs for me	Loka öðrum gervigreindum fyrir mig
+Cloud voice	Skýjarödd
+Cloud voice service	Skýjaraddþjónusta
+Cloud voice setup	Skýjaraddsuppsetning
+Code mods can reach your whole PC. Only trusted ones.	Kóðamod geta náð í alla tölvuna. Aðeins treyst.
+Code/Husk Mode	Kóðastilling/Husk-stilling
+Codex	Codex
+Commands	Skipanir
+Comment on my games	Skrifa athugasemdir við leikina mína
+Comments	Athugasemdir
+Confirm	Staðfesta
+Confirm keys	Staðfesta lykla
+Connect	Tengja
+Connect / Forget brain key	Tengja / Gleyma heilalykli
+Connect / Forget voice key	Tengja / Gleyma raddlykli
+Connect four	Fjórir í röð
+Controls	Stýringar
+Copri, what time is it	Copri, hvað er klukkan
+Copy error details	Afrita villuupplýsingar
+Copy the key	Afrita lykilinn
+Copy the key from the page, then press Paste.	Afritaðu lykilinn af síðunni og ýttu svo á Líma.
+Couldn't open that page:	Gat ekki opnað þá síðu:
+Couldn't open that:	Gat ekki opnað það:
+Couldn't open the mods folder:	Gat ekki opnað mod-möppuna:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M er nú þegar Mainframe-lykillinn hennar.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N þaggar hljóðnema
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V er nú þegar talkey-ið hennar.
+Ctrl + Alt + V to talk	Ctrl + Alt + V til að tala
+Custom local voice	Sérsniðin staðbundin rödd
+Custom model name	Sérsniðið líkanaheiti
+Dance	Dansa
+Dance to music	Dansa við tónlist
+Default	Sjálfgefið
+Default (follows Windows)	Sjálfgefið (fylgir Windows)
+Default duration for clip that and automatic clips	Sjálfgefin lengd fyrir „clip that“ og sjálfvirk klipp
+Default length	Sjálfgefin lengd
+Default model	Sjálfgefið líkan
+Delay	Seinkun
+Deny	Hafna
+Discard	Henda
+Discard + reload	Henda + endurhlaða
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Viltu ekki bíða? Frír lykill fær mig til að tala á um einni mínútu.
+Done	Lokið
+EXTRA REQUEST JSON >	AUKA BEIÐNI JSON >
+EXTRAS >	AUKA >
+Edit	Breyta
+Edit check-in lines	Breyta innskráningarlínum
+Edit check-in lines has the wrong view or dimming	Breyta innskráningarlínum er með rangt útsýni eða myrkvun
+Edit check-in lines is out of place	Breyta innskráningarlínum er á röngum stað
+Edit controls	Breyta stýringum
+ElevenLabs API key	ElevenLabs API-lykill
+ElevenLabs voice ID	ElevenLabs rödd-auðkenni
+English	Enska
+Enter the game's name first.	Sláðu fyrst inn nafn leiksins.
+Every	Hver
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Sérhvert mod er skannað fyrir spilliforritum áður en það fer upp. Kóðamod spyrja samt áður en þau keyra.
+Explore after	Kanna eftir
+Explore while I'm away	Kanna á meðan ég er í burtu
+Extra request JSON	Aukabeiðni JSON
+Extras	Aukahlutir
+FREE KEY	ÓKEYPIS LYKILL
+FREE KEY >	ÓKEYPIS LYKILL >
+Fast hands in games	Hröð hönd í leikjum
+File editor	Skráaritill
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs og fleira er undir RÖDD í Mainframe.
+Follow-up messages	Eftirfylgjandi skilaboð
+Forget	Gleyma
+Fork capri-mods	Forka capri-mods
+Frame rate	Rammatíðni
+Free	Frítt
+Free and private, works offline. Downloads	Frjálst og einkamál, virkar án nettengingar. Sækir
+Free and private, works offline. Downloads the best model for this PC.	Frjálst og einkamál, virkar án nettengingar. Sækir besta líkanið fyrir þessa tölvu.
+Free key	Frír lykill
+Free key providers	Veitendur fríra lykla
+Free keys can be rate limited and slow.	Frír lyklar geta verið takmarkaðir og hægir.
+Free voice in games	Frí rödd í leikjum
+Free voice style	Stíll ókeypis raddar
+Free voice:	Frí rödd:
+Free voice: Her own	Frí rödd: Hennar eigin
+Free · local model	Frítt · staðbundið líkan
+GAMES >	LEIKIR >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Athugasemdir við leiki keyra sér frá Horfa á skjáinn minn. Slökkt stöðvar þær, líka í Leikjastillingu; Aðeins atburðir og Málglöð leyfa henni að horfa á leikinn þinn
+Game controls	Leikjastýringar
+Game name	Heiti leiks
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Næmi leikjahljóða. Lækkaðu ef heyrnartólin eru lág en Windows er í {0}% og hún bregst við hverju hljóði; Slökkt hunsar leikjahljóð
+Game sounds	Leikjahljóð
+Games	Leikir
+Gaming Mode	Leikjastilling
+Gaming Mode key	Leikjastillingarlykill
+Gaming Mode:	Leikjastilling:
+Gaming Mode: Ctrl + Alt + G	Leikjastilling: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Sækja VB-CABLE
+Get VB-CABLE (free)...	Sækja VB-CABLE (frítt)...
+Get free voice	Fá frjálsa rödd
+Getting your Fish Audio voices...	Sæki Fish Audio raddirnar þínar...
+Giant	Risastór
+Glitch	Glitch
+Glitch in at startup	Glitch við ræsingu
+Go to sleep	Fara að sofa
+Go to the next screen	Fara á næsta skjá
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · frjáls flokkur · takmarkað
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ertu með Claude- eða ChatGPT-áskrift, eða þinn eigin lykil? Veldu hann og ég tengist.
+Got it, just me. Right-click me any time for Capri Mainframe.	Fínt, bara ég. Hægrismelltu á mig hvenær sem er fyrir Capri Mainframe.
+Grey	Grátt
+H.{0} video bitrate target; higher values make larger files	H.{0} markbitahraði myndbands; hærri gildi gera stærri skrár
+HABITS >	VENJUR >
+HER HANDS >	HENDUR HENNAR >
+HER JOBS >	STÖRF HENNAR >
+HER MEMORY >	MINNI HENNAR >
+HER MODS >	MOD HENNAR >
+HH:mm	HH:mm
+HOW I SOUND >	HVERNIG ÉG HLJÓMA >
+Hang here	Vertu hér
+Have Ollama? Open it, then press Refresh.	Ertu með Ollama? Opnaðu það og ýttu á Endurhlaða.
+Head pats	Klapp á kollinn
+Hearing	Heyrn
+Hearing engine	Heyrnarvél
+Hearing fix	Heyrnarlagfæring
+Hearing status	Staða heyrnar
+Help	Hjálp
+Help page	Hjálparsíða
+Her colors	Litirnir hennar
+Her folder	Mappan hennar
+Her memories	Minningarnar hennar
+Her own colors are back.	Litirnir hennar eru komnir aftur.
+Her own notes (no vault)	Eigin glósur hennar (ekkert hvelfing)
+Her perch frames per second	Rammar á sekúndu á setstaðnum hennar
+Her personality	Persónuleiki hennar
+Her size	Stærð hennar
+Her speaker	Hátalarinn hennar
+Her speaker is hidden or outside VOICE	Hátalarinn hennar er falinn eða utan RÖDD
+Her speaker overlaps the mic or hearing row	Hátalarinn hennar skarast við hljóðnema- eða heyrnarröðina
+Her speaker:	Hátalarinn hennar:
+Her speaker: Default	Hátalarinn hennar: Sjálfgefið
+Her voice in your mic	Rödd hennar í hljóðnemanum þínum
+Her voice in your mic: loudness	Rödd hennar í hljóðnemanum þínum: hljóðstyrkur
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Rödd hennar sjálf. Tónhæðin er Stillingar > RÖDD > Tónhæð og þær hreyfast saman.
+Her voice joins your mic only in call mode.	Rödd hennar fer í hljóðnemann þinn aðeins í símtalsstillingu.
+Her voice volume	Hljóðstyrkur raddar hennar
+Her voice's pitch	Tónhæð raddar hennar
+Her voice's pitch, the same as Settings > VOICE > Pitch	Tónhæð raddar hennar, sú sama og Stillingar > RÖDD > Tónhæð
+Her voice's speed	Hraði raddar hennar
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Rödd hennar, og tvö afrit af henni blönduð undir, hvort með sína tónhæð og seinkun.
+Her voices · free	Raddir hennar · frítt
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hæ, choom. Ég er Capri. Ég þarf heila áður en ég get svarað. Veldu einn.
+Hide / Show Capri	Fela / Sýna Capri
+Hide / Show key	Fela / Sýna lykill
+Hide Capri	Fela Capri
+Hide for now	Fela í bili
+Hide her	Fela hana
+Hide in full screen	Fela í öllum skjánum
+Hide this	Fela þetta
+Hide, keep player	Fela, halda spilaranum
+Hide/show:	Fela/sýna:
+Hide/show: Ctrl + Alt + H	Fela/sýna: Ctrl + Alt + H
+Hologram	Hólógram
+Hop off	Stíga af
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Hve lengi kyrr tölva bíður áður en hún sendir hana að sofa; fimm mínútur teljast enn sem þú sért fjarri
+How long a stroke over her a head pat needs	Hve lengi strok yfir hana þarf til að fá klapp á kollinn
+How long her replies stay up	Hve lengi svör hennar haldast uppi
+How long you are away before she scrolls a browser or reader	Hve lengi þú þarft að vera fjarri áður en hún flettir vafra eða lesara
+How much her voice glitches	Hve mikið rödd hennar hikstar
+How much of the chat she keeps	Hve mikið af spjallinu hún geymir
+How much she wanders	Hve mikið hún reikar
+How often she pops in to say hi	Hve oft hún kíkir inn til að heilsa
+How robotic her voice sounds	Hve vélrænt rödd hennar hljómar
+How to	Hvernig
+Huge	Gríðarstór
+I can hear you.	Ég heyri í þér.
+I glance at your screen and comment. Costs a little on a paid brain.	Ég lít á skjáinn þinn og kommenta. Kostar smá með greiddum heila.
+I keep listening. Say my name, then just talk.	Ég held áfram að hlusta. Segðu nafnið mitt og talaðu svo bara.
+I talk about your game as you play. Costs a little on a paid brain.	Ég tala um leikinn þinn meðan þú spilar. Kostar smá með greiddum heila.
+I type my replies and stay quiet.	Ég skrifa svörin mín og held mig hljóðri.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ég svara ekki upphátt og ekkert er sent neitt. Ég held mig samt til hlés, dansa við tónlistina þína og geri fljótu hlutina sem þú biður um, eins og hljóðstyrkinn.
+I'll talk in	Ég tala í
+IN DISCORD >	Í DISCORD >
+INSTALLED >	UPPSETT >
+Import a Capri mod	Flytja inn Capri mod
+Import mod	Flytja inn mod
+In full screen	Í öllum skjánum
+In games	Í leikjum
+Input	Inntak
+Input, Output or How to overlaps a row	Inntak, Úttak eða Hvernig skarast við röð
+Input:	Inntak:
+Input: default	Inntak: sjálfgefið
+Install	Setja upp
+Install mod	Setja upp mod
+Installed.	Uppsett.
+It may ask for a phone number. I opened the page in your browser.	Það gæti beðið um símanúmer. Ég opnaði síðuna í vafranum þínum.
+It still does its own job in other apps too.	Hún sinnir samt sínu hlutverki í öðrum forritum líka.
+It won't type in other apps while she runs.	Hún skrifar ekki í öðrum forritum meðan hún er í gangi.
+JUST ME >	BARA ÉG >
+Jealous of other AIs	Öfundsjúk út í aðrar gervigreindir
+Join the Discord	Taktu þátt í Discord
+KB.	KB.
+KEYS	LYKLAR
+KEYS >	LYKLAR >
+Keep PC awake for jobs	Halda tölvunni vakandi fyrir verkefni
+Keep player	Halda spilaranum
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Geymir síðustu tvær mínútur leiksins þíns í minni. Segðu clip that til að vista það.
+Key	Lykill
+Key cleared: a model file needs none.	Lykill hreinsaður: líkanaskrá þarf engan.
+Key cleared: paste the key for	Lykill hreinsaður: límdu lykilinn fyrir
+Key forgotten.	Lykill gleymdur.
+Key. It goes only to this server, as a Bearer key	Lykill. Hann fer aðeins til þessa þjóns, sem Bearer-lykill
+Kokoro only, like es	Aðeins Kokoro, eins og es
+LAST THING >	SÍÐASTA ATRIÐI >
+LISTENING >	HLUSTAR >
+Language	Tungumál
+Large	Stórt
+Last thing. These cost a little or use your mic, so they're your pick.	Síðasta atriði. Þetta kostar smá eða notar hljóðnemann þinn, svo valið er þitt.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Síðasta atriði. Þetta kostar smá eða notar hljóðnemann þinn, svo valið er þitt. Þá vil ég vita hvað ég á að kalla þig.
+Layers	Lög
+Learn more	Lesa meira
+Leaving Settings threw its picture away straight away.	Að fara úr Stillingum henti myndinni strax.
+Legacy stand	Eldri stoð
+Lie down	Leggstu
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Línur úr PC-samtali geymdar í minni meðan horft er saman. Elsti helmingurinn verður minnispunktur þegar Muna hvað hún sér er á
+Listen for Capri	Hlusta eftir Capri
+Live reactions	Viðbrögð í beinni
+Local server address	Vistfang staðbundins þjóns
+Long	Langt
+Longest wait (minutes)	Lengsta bið (mínútur)
+Looking at this PC...	Skoða þessa tölvu...
+Looking for Ollama. Open it if it isn't running.	Leita að Ollama. Opnaðu það ef það keyrir ekki.
+Looking for a brain...	Leita að heila...
+Looking in the mods directory for updates...	Leita að uppfærslum í mod-möppunni...
+Looking in the mods directory...	Leita í mod-möppunni...
+Looking...	Leita...
+MAIN >	AÐAL >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MIÐLUNGS INTELLIGENCE
+MEMORY VAULT >	MINNISHVELFING >
+MODS	MOD
+MODS >	MOD >
+MODS DIRECTORY >	MOD-MAPPA >
+MODS INSTALLED COLORS	UPPSETTIR MOD-LITIR
+MOVES >	HREYFINGAR >
+MY BRAIN	HEILINN MINN
+MY FREE VOICE	FRÍA RÖDDIN MÍN
+MY PLAN OR KEY	ÁSKRIFT EÐA LYKILL
+MY PLAN OR KEY >	ÁSKRIFT EÐA LYKILL >
+Made your Fish Audio voice. Press Test to hear it.	Bjó til Fish Audio röddina þína. Ýttu á Prófa til að heyra hana.
+Mainframe colours	Litir Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Litir Mainframe. Night City er rautt og blágrænt; Svart, Hvítt og Grátt breyta Mainframe, valmyndum hennar, skriftarreitnum og glósunum hennar
+Mainframe frames	Rammar Mainframe
+Mainframe key	Mainframe-lykill
+Mainframe size	Stærð Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Stærð Mainframe. Sjálfvirkt stækkar það þegar Virtual Super Resolution eða DSR þjappar stóru skjáborði á minni skjá
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Niður
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Bý til Fish Audio röddina þína...
+Max reply	Hámarkssvar
+Maximum clip resolution, keeping the game's shape without upscaling	Hámarksupplausn klipps, heldur lögun leiksins án upskölunar
+Medium	Miðlungs
+Memory	Minni
+Memory size	Stærð minnis
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Stærð minnis í táknum fyrir Ollama og innbyggða heilann hennar. Sjálfvirkt stækkar þegar beiðni þarf meira
+Mg	Mg
+Mic level:	Hljóðstyrkur hljóðnema:
+Mic test finished. Sound is reaching Capri.	Hljóðnemaprófi lokið. Hljóð berst til Capri.
+Mic:	Hljóðnemi:
+Mic: default	Hljóðnemi: sjálfgefið
+Microphone	Hljóðnemi
+Mini player	Smáspilari
+Mini player over full screen	Smáspilari yfir öllum skjánum
+Mini-games	Smáleikir
+Minimising the Mainframe left it sliding.	Að minnka Mainframe lét það renna.
+Minimize	Lágmarka
+Mod filter	Mod-sía
+Mod options	Mod-valkostir
+Mod pages	Mod-síður
+Mod rules	Mod-reglur
+Mod sort	Mod-röðun
+Mod switch	Mod-skipti
+Model	Líkan
+Model folder	Líkanamappa
+Model name, optional	Líkanaheiti, valfrjálst
+Mods	Mod
+Mods directory	Mod-mappa
+Mods folder	Mod-mappa
+Most NVIDIA models can't see your screen.	Flest NVIDIA-líkön sjá ekki skjáinn þinn.
+Mouse wheel notches got a flick's long ease:	Músarhjólsskref fengu langa mýkt af snöggu strjúki:
+Move	Færa
+Move key to MAX INTELLIGENCE	Færa lykil á MAX INTELLIGENCE
+Move to MAX	Færa á MAX
+Music	Tónlist
+Music app	Tónlistarforrit
+Music app: where she plays music when you don't name an app	Tónlistarforrit: þar sem hún spilar tónlist þegar þú nefnir ekki forrit
+Mute	Þagga
+Mute her	Þagga niður í henni
+Mute mic key	Lykill fyrir þögn hljóðnema
+Mute mic:	Þagga hljóðnema:
+Mute mic: Ctrl + Alt + N	Þagga hljóðnema: Ctrl + Alt + N
+My brain	Heilinn minn
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Heilinn minn er að koma. Ég heilsa um leið og hann er kominn, og þá geturðu talað við mig.
+My brain's on its way. While it comes down, let's sort out how I sound.	Heilinn minn er á leiðinni. Meðan hann kemur niður, skulum við laga hvernig ég hljóma.
+My provider	Veitan mín
+NO AI	ENGIN GERVIGREIND
+NO PHONES CONNECTED	ENGIN SÍMAR TENGDIR
+NO PREVIEW	ENGIN FORSKOÐUN
+NORMAL	VENJULEGT
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · frítt · oft hægt á annatímum
+NVIDIA's free API is often slow, especially at busy times.	Frítt API NVIDIA er oft hægt, sérstaklega á annatímum.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) eða OpenRouter API-lykill
+Names:	Nöfn:
+Needs a key	Þarf lykil
+Never	Aldrei
+New code	Nýr kóði
+New voice from a clip...	Ný rödd úr klippi...
+Next	Næsta
+Night City	Night City
+No AI	Engin gervigreind
+No AI · no brain at all	Engin gervigreind · enginn heili yfirleitt
+No brain runs, and nothing is sent anywhere.	Enginn heili keyrir og ekkert er sent neitt.
+No brain yet	Enginn heili enn
+No code open	Enginn kóði opinn
+No limit	Engin takmörk
+No mic found	Enginn hljóðnemi fannst
+No mods in the directory yet.	Engin mod í möppunni enn.
+No mods match that.	Engin mod passa við það.
+No mods match.	Engin mod passa.
+No phones yet	Engir símar enn
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Enginn sýndarhljóðnemi enn. Veldu Úttak og svo Sækja VB-CABLE (frítt).
+None yet: pick to get VB-CABLE (free)	Enginn enn: veldu til að sækja VB-CABLE (frítt)
+Normal	Venjulegt
+Not a relay host	Ekki RELAY-vefþjónn
+Not imported. Nothing ran.	Ekki flutt inn. Ekkert keyrði.
+Not updated. The old one is still in.	Ekki uppfært. Gamla útgáfan er enn inni.
+Nothing needed updating.	Ekkert þurfti uppfærslu.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Ekkert að sækja, ekkert sent neitt. Ég svara ekki upphátt. Bættu við heila hvenær sem er í Mainframe.
+Nothing to show from the mods directory.	Ekkert að sýna úr mod-möppunni.
+Nothing? Windows Settings > Privacy & security > Microphone.	Ekkert? Windows-stillingar > Persónuvernd og öryggi > Hljóðnemi.
+Nous Portal keys aren't supported yet.	Nous Portal-lyklar eru ekki studdir enn.
+OBS	OBS
+OFF	SLÖKKT
+OLLAMA	OLLAMA
+ON	KVEIKT
+ON THIS PC	Á ÞESSARI TÖLVU
+OR A KEY	EÐA LYKILL
+Obsidian memory vault	Obsidian minnishvelfing
+Off	Slökkt
+Off. Turn on Her voice in your mic above.	Slökkt. Kveiktu á Rödd hennar í hljóðnemanum þínum fyrir ofan.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Slökkt: hún hljómar eins og alltaf. Kveikt: allar raddirnar hennar, líka ElevenLabs.
+Often	Oft
+On	Kveikt
+On / Off	Kveikt / Slökkt
+On: your mic and her voice are going in.	Kveikt: hljóðneminn þinn og rödd hennar eru að fara inn.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Eitt JSON-hlutur, bætt við hverja beiðni sem þessi heili sendir. Hann kemur í stað gildis Capri fyrir hvert nafn sem hann deilir og er ekki athugaður gegn líkaninu.
+Online speech recognition	Talgreining á netinu
+Open Capri Mainframe	Opna Capri Mainframe
+Open Ollama, I'll find it	Opna Ollama, ég finn það
+Open clips folder	Opna klippamöppu
+Open her memories	Opna minningarnar hennar
+Open her notes	Opna glósurnar hennar
+Open mods folder	Opna mod-möppu
+Open the page again	Opna síðuna aftur
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA eða OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-samhæfður þjónn eða veitandi.
+OpenRouter · free models only	OpenRouter · aðeins frí líkön
+Optional	Valfrjálst
+Optional. Blank means no key.	Valfrjálst. Autt þýðir enginn lykill.
+Options	Valkostir
+Out of the box a little higher, just behind her.	Sjálfgefið aðeins hærra, rétt á bak við hana.
+Out of the box lower, just behind her.	Sjálfgefið neðar, rétt á bak við hana.
+Output	Úttak
+Output:	Úttak:
+Output: none	Úttak: ekkert
+PHONE CONNECTED	SÍMI TENGDUR
+PHONES >	SÍMAR >
+PHONES CONNECTED	SÍMAR TENGDIR
+PREBUILT LOCAL	FORSMÍÐAÐ STAÐBUNDIÐ
+PUBLISH MOD >	BIRTA MOD >
+Pair a phone	Para síma
+Paste	Líma
+Paste API key	Líma API-lykil
+Paste a brain API key	Líma API-lykil heila
+Paste reads your clipboard once, when you press it.	Líming les klippiborðið einu sinni, þegar þú ýtir á það.
+Paste your key here	Límdu lykilinn þinn hér
+Pat stroke	Klapp
+Perch	Setstaður
+Perch over {0} fps uses more CPU	Setstaður yfir {0} fps notar meira CPU
+Pick Output to get it.	Veldu Úttak til að fá það.
+Pick a brain so I can talk back. You can change it any time.	Veldu heila svo ég geti svarað. Þú getur breytt því hvenær sem er.
+Pick a clip of a voice you have the rights and consent to use	Veldu klipp af rödd sem þú hefur réttindi og samþykki til að nota
+Pick a free model. I opened the page in your browser.	Veldu frítt líkan. Ég opnaði síðuna í vafranum þínum.
+Pick a new clip of you...	Veldu nýjan klipp af þér...
+Pick a voice model...	Veldu raddlíkan...
+Pick one. Only one brain runs at a time.	Veldu eitt. Aðeins einn heili keyrir í einu.
+Pick the note her memories go in	Veldu glósuna sem minningarnar hennar fara í
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Veldu {0} til {1} sekúndur af rödd sem þú hefur réttindi og samþykki til að nota
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Veldu {0} til {1} sekúndur af þér tala, eða af rödd sem þú hefur réttindi og samþykki til að nota
+Pitch	Tónhæð
+Play	Spila
+Play...	Spila...
+Player only	Aðeins spilarinn
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS-líkön afrita rödd þessa klipps. Ýttu á Prófa til að heyra hana.
+Pop-in times	Tímar innskráningar
+Pop-ins	Innskráningar
+Power saver	Orkusparnaður
+Power saver: how lightly she runs in games, or always	Orkusparnaður: hve létt hún keyrir í leikjum, eða alltaf
+Preset	Forstilling
+Press Create API key	Ýttu á Búa til API-lykil
+Press Create Key	Ýttu á Búa til lykil
+Press Generate API Key	Ýttu á Búa til API-lykil
+Press Test and say something, so I know I can hear you.	Ýttu á Prófa og segðu eitthvað, svo ég viti að ég heyri í þér.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Ýttu á lykil, einan eða með Ctrl, Alt, Shift eða Win.
+Press new keys, then Confirm	Ýttu á nýja lykla, og svo Staðfesta
+Provider	Veitandi
+Provider API key, optional	API-lykill veitanda, valfrjálst
+Provider base URL	Grunn-vefslóð veitanda
+Provider forgotten.	Veitanda gleymt.
+Provider overlaps the brain name or note	Veitandi skarast við heilanafnið eða glósuna
+Publish	Birta
+Publish mod	Birta mod
+Push to talk is off.	Ýta-til-að-tala er slökkt.
+Push to talk key	Lykill fyrir ýta-til-að-tala
+Push to talk:	Ýta-til-að-tala:
+Push to talk: not set	Ýta-til-að-tala: ekki stillt
+QR CODE >	QR-KÓÐI >
+QR hidden while streaming	QR falið meðan streymt er
+Quick	Fljótt
+Quiet key	Þaggunarlykill
+Quiet:	Þögn:
+Quiet: Ctrl + Alt + P	Þögn: Ctrl + Alt + P
+Quit Capri	Hætta Capri
+RELAY >	RELAY >
+REMOTE >	FJARSTÝRING >
+RUNS CODE.	KEYRIR KÓÐA.
+Rarely	Sjaldan
+Rate mod	Meta mod
+Reading its README...	Les README-skrána hennar...
+Refresh	Endurhlaða
+Reinstall	Setja upp aftur
+Reload	Endurhlaða
+Reloaded.	Endurhlaðið.
+Remember our chats	Muna spjöllin okkar
+Remember what she sees	Muna hvað hún sér
+Remote	Fjarstýring
+Remote off	Fjarstýring slökkt
+Remote on	Fjarstýring kveikt
+Remove	Fjarlægja
+Remove all phones	Fjarlægja alla síma
+Replies	Svör
+Reply length	Lengd svars
+Report a problem	Tilkynna vandamál
+Reset colors	Endurstilla liti
+Reset to her default	Endurstilla í sjálfgefið
+Resolution	Upplausn
+Restart to update	Endurræsa til að uppfæra
+Restless	Eirðarlaus
+Revoke	Afturkalla
+Revoke also removes the phones its links added	Afturköllun fjarlægir líka símana sem tenglar hennar bættu við
+Ride cursor	Ríða bendlinum
+Ride cursor / Hop off	Ríða bendlinum / Stíga af
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Hægrismelltu á mig hvenær sem er fyrir Capri Mainframe. Heili kveikir undir HEILI.
+Right-click me any time for the Mainframe, Help and the Discord.	Hægrismelltu á mig hvenær sem er fyrir Mainframe, Hjálp og Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox eða annað forrit: veldu
+Robot	Vélmenni
+Rock, paper, scissors	Steinn, skæri, blað
+Run this code mod?	Keyra þetta kóða-mod?
+Running on this PC	Keyrir á þessari tölvu
+Running on this PC · :	Keyrir á þessari tölvu · :
+Runs Claude Code or Codex on this PC, signed in.	Keyrir Claude Code eða Codex á þessari tölvu, innskráð.
+Runs on your PC. No key, no credits.	Keyrir á tölvunni þinni. Enginn lykill, engar inneignir.
+SCAN WITH YOUR PHONE · EXPIRES	SKANNAÐU MEÐ SÍMANUM · RENNUR ÚT
+SECURITY >	ÖRYGGI >
+SKILL.	HÆFNI.
+SKIN.	ÚTLIT.
+SORT BY	RAÐA EFTIR
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	HLJÓÐ VENJUR HEILI HORFA CAPRI DOOMSCROLL VEÐUR KLIPP LEIKIR LYKLAR HREYFINGAR RÖDD ÞÚ
+Same as her ears (VOICE > Mic)	Sama og eyru hennar (RÖDD > Hljóðnemi)
+Same code on the phone?	Sami kóði í símanum?
+Save	Vista
+Save big moments	Vista stór augnablik
+Save folder	Vistunarmappa
+Save your changes, or press Discard + reload.	Vistaðu breytingarnar þínar, eða ýttu á Henda + endurhlaða.
+Save your changes, or press Discard.	Vistaðu breytingarnar þínar, eða ýttu á Henda.
+Saved.	Vistað.
+Saved. Ctrl + Alt + O opens her Mainframe.	Vistað. Ctrl + Alt + O opnar Mainframe hennar.
+Saving your rating...	Vista einkunnina þína...
+Say her name anywhere to chat	Segðu nafnið hennar hvar sem er til að spjalla
+Screens	Skjáir
+Screens is hidden or outside WATCH	Skjáir er falið eða utan HORFA
+Screens overlaps a WATCH row	Skjáir skarast við HORFA-röð
+Screens to watch	Skjáir til að horfa á
+Sealed end to end	Lokað frá enda til enda
+Search by name or author	Leita eftir nafni eða höfundi
+Search installed mods	Leita í uppsettum mod
+Search mods	Leita í mod
+Search name, author or description	Leita að nafni, höfundi eða lýsingu
+Security	Öryggi
+Security:	Öryggi:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Setja upp
+Set up her brain	Setja upp heilann hennar
+Set up your voice model	Setja upp raddlíkanið þitt
+Setting up her brain	Set upp heilann hennar
+Settings	Stillingar
+Settings / Back	Stillingar / Til baka
+Settings folds the wrong rows above BRAIN	Stillingar felldu röng röð fyrir ofan HEILI
+Settings had nothing to watch.	Stillingar höfðu ekkert til að horfa á.
+Settings lost keyboard focus during the Tab walk	Stillingar misstu lyklaborðsfókus í Tab-göngunni
+Setup guide	Uppsetningarleiðbeiningar
+Setup stopped	Uppsetningu hætt
+She can read it when it fits.	Hún getur lesið það þegar það passar.
+She glances at your screen and comments. Costs a little on a paid brain.	Hún lítur á skjáinn þinn og kommentar. Kostar smá með greiddum heila.
+She keeps listening. Say her name, then just talk until you go quiet.	Hún heldur áfram að hlusta. Segðu nafnið hennar, og talaðu svo þangað til þú þagnar.
+She reacts to your game until you close it.	Hún bregst við leiknum þínum þangað til þú lokar honum.
+She reads these controls before each game job.	Hún les þessar stýringar fyrir hvert leikjaverkefni.
+She talks about your game as you play. Costs a little on a paid brain.	Hún talar um leikinn þinn meðan þú spilar. Kostar smá með greiddum heila.
+She uses it when she plays	Hún notar það þegar hún spilar
+Short	Stutt
+Shortest wait (minutes)	Stystu bið (mínútur)
+Show Capri	Sýna Capri
+Show QR	Sýna QR
+Show my mod file	Sýna mod-skrána mína
+Show on Discord	Sýna á Discord
+Shum, what time is it	Shum, hvað er klukkan
+Sign in	Skrá inn
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Skráðu þig inn, búðu til lykil og afritaðu hann. Ýttu svo á Líma og ég tengist.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Skráðu þig inn, ýttu á Búa til API-lykil og afritaðu hann. Ýttu svo á Líma og ég tengist.
+Silent · text only	Hljóð · aðeins texti
+Simple / Advanced Settings	Einfaldar / ítarlegar stillingar
+Simple Settings	Einfaldar stillingar
+Simple Settings left a gap under Check in on me	Einfaldar stillingar skildu eftir bil undir Kíktu á mig
+Sit here	Settu þig hér
+Sit on windows	Settu þig á glugga
+Size	Stærð
+Skip	Sleppa
+Skip all	Sleppa öllu
+Skip for now	Sleppa í bili
+Sleep	Sofa
+Small	Lítið
+Sometimes	Stundum
+Sound effects volume	Hljóðstyrkur hljóðbrellna
+Sound sensitivity	Næmi hljóðs
+Sounds	Hljóð
+Speaker or clip	Hátalari eða klipp
+Speech model	Talgerðarlíkan
+Speed	Hraði
+Start with Windows	Ræsa með Windows
+Start with this!	Byrjaðu á þessu!
+Starting...	Ræsi...
+Stay	Vera kyrr
+Stay on my model	Vertu á líkaninu mínu
+Still checking your mics...	Athuga hljóðnemana þína enn...
+Still checking your speakers...	Athuga hátalarana þína enn...
+Still checking your virtual mics...	Athuga sýndarhljóðnemana þína enn...
+Stop	Stöðva
+Stopped using it. Couldn't remove the saved provider.	Hætt að nota það. Gat ekki fjarlægt vistaða veitandann.
+Support	Stuðningur
+Sure?	Viss?
+Sure? moved to a different phone	Viss? flutt í annan síma
+TALK TO ME	TALAÐU VIÐ MIG
+TEXT ONLY	AÐEINS TEXTI
+Tab landed past the first option of	Tab lenti framhjá fyrsta valkosti
+Tab never reached the quiet key	Tab náði aldrei að hljóðlátu takkanum
+Tab reached nothing	Tab náði engu
+Tab selected a control without moving keyboard focus	Tab valdi stýringu án þess að færa lyklaborðsfókus
+Talk	Tala
+Talk key	Talalykill
+Talk:	Tala:
+Talk: Ctrl + Alt + V	Tala: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Markbiti rammatíðni við upptöku; gæti lækkað undir álagi eða minnisbúnaði
+Teases when another AI comes to the front.	Stríðir þegar önnur gervigreind kemur fram.
+Test	Prófa
+That address doesn't work. Try https://... or http://localhost:{0}.	Þetta vistfang virkar ekki. Prófaðu https://... eða http://localhost:{0}.
+That code expired	Sá kóði er útrunninn
+That mod is no longer installed. The list is updated.	Það mod er ekki lengur uppsett. Listinn er uppfærður.
+That's a paid key: it goes under MAX INTELLIGENCE.	Þetta er greiddur lykill: hann fer undir MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe var áfram samsett meðan það rann.
+The Mainframe stayed uncomposited after the slide.	Mainframe var áfram ósamsett eftir rennsli.
+The controls moved while the picture was sliding.	Stýringarnar hreyfðust meðan myndin rann.
+The cover stayed visible after the slide ended.	Forsíðan var sýnileg eftir að rennslinu lauk.
+The frame thread kept running after the page settled.	Rammaþráðurinn hélt áfram að keyra eftir að síðan settist.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Lengsta svar sem hún getur gefið, í táknum. Sjálfvirkt heldur sig við Svör hér að ofan; {0}K eða {1}K leyfir henni að halda áfram. Verkefni fá meira rými þegar þau þurfa þess
+The longest wait must be at least the shortest wait.	Lengsta bið verður að vera að minnsta kosti stysta bið.
+The picture doesn't match the scrolled page:	Myndin passar ekki við skrunaða síðuna:
+The picture of Settings doesn't match the page:	Mynd af Stillingum passar ekki við síðuna:
+The picture stayed up after the slide ended.	Myndin var áfram uppi eftir að rennslinu lauk.
+The picture wasn't showing while it slid.	Myndin sást ekki meðan hún rann.
+The provider sheet is crowded:	Veitandaglugginn er troðfullur:
+The voice panel has no screen DPI.	Raddspjaldið hefur engan skjá-DPI.
+The voice panel's menus share one font.	Valmyndir raddspjaldsins deila einu letri.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Það er enginn lykill á klippiborðinu þínu enn. Afritaðu hann af síðunni og ýttu svo á Líma.
+These start off. Each costs a little or uses your mic.	Þessi byrja slökkt. Hvert kostar smá eða notar hljóðnemann þinn.
+These start off. Turn on what you want. They're all in Settings too.	Þessi byrja slökkt. Kveiktu á því sem þú vilt. Þau eru öll líka í Stillingum.
+They can also call you Big Z, Capricorn or Nova	Þeir geta líka kallað þig Big Z, Capricorn eða Nova
+They can also call you Nova, Big Z or Capricorn	Þeir geta líka kallað þig Nova, Big Z eða Capricorn
+Thinking	Hugsa
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Þetta er frjáls rödd mín. Ýttu á Prófa, segðu eitthvað, og ég sýni þér að ég heyri í þér.
+This mod has no description yet.	Þetta mod hefur enga lýsingu enn.
+Tic-tac-toe	Krossa-bolti
+Time between glances	Tími milli augnkasta
+Tiny	Pínulítið
+Try again	Reyna aftur
+Turn Remote on first	Kveiktu á Fjarstýringu fyrst
+Turn off mini player	Slökkva á smáspilara
+Turn push to talk off	Slökkva á ýta-til-að-tala
+Turning the wheel the other way kept the page heading the old way, to	Að snúa hjólinu hinn veginn hélt síðunni í gömlu stefnunni, til
+Type	Skrifa
+Type key	Ritunarlykill
+Type to me	Skrifa til mín
+Type:	Skrifa:
+Type: Ctrl + Alt + T	Skrifa: Ctrl + Alt + T
+Typing sound	Hljóð við innslátt
+Unpacked. Press Test to hear it.	Upppakkað. Ýttu á Prófa til að heyra það.
+Unsaved changes.	Óvistaðar breytingar.
+Up to {0} fps	Allt að {0} fps
+Up to {0}p	Allt að {0}p
+Update	Uppfæra
+Update available.	Uppfærsla tiltæk.
+Update mods	Uppfæra mod
+Updating...	Uppfæri...
+Use	Nota
+Use her cursor	Nota bendilinn hennar
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Notaðu https:// fyrir veitanda annars staðar. Lykill yfir venjulegu http er ekki öruggur.
+Use preset	Nota forstillingu
+Use saved	Nota vistað
+Use this server	Nota þennan þjón
+Using your provider with a key	Nota veitandann þinn með lykli
+Using your server with no key	Nota þjóninn þinn án lykils
+VIEW MOD >	SKOÐA MOD >
+VOICE >	RÖDD >
+VOICE IN YOUR MIC >	RÖDD Í HLJÓÐNEMANUM ÞÍNUM >
+VOICE LAYERS >	RADDLÖG >
+Verbosity	Orðfæri
+Video bitrate	Myndbandsbitahraði
+View	Sýn
+View mod	Skoða mod
+Voice	Rödd
+Voice ID	Rödd-auðkenni
+Voice from	Rödd frá
+Voice layers	Raddlög
+Voice model	Raddlíkan
+Voice model:	Raddlíkan:
+Voice name or ID, optional	Raddnafn eða auðkenni, valfrjálst
+Voice server address, or a voice model's folder	Vistfang raddþjóns, eða mappa raddlíkans
+Voice status	Staða raddar
+Voice, key and model...	Rödd, lykill og líkan...
+Volume	Hljóðstyrkur
+WAKE ME UP >	VAKTU MIG >
+WATCH >	HORFA >
+Waiting for the relay	Bíð eftir RELAY
+Wake her up	Vektu hana
+Waking her up	Vek hana
+Wander	Reika
+Wander around	Reika um
+Watch my screen	Horfa á skjáinn minn
+Watch-along memory	Minning vegna áhorfs saman
+Weather	Veður
+Weather city	Veðurborg
+Welcome back, choom. Let's finish setting me up.	Velkominn aftur, choom. Klárum að setja mig upp.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Það sem hún gerir á tölvunni þinni án þess að spyrja. Með rofa slökktum spyr hún fyrst og gerir það þegar þú segir já.
+What should she call you?	Hvað á hún að kalla þig?
+When she types	Þegar hún skrifar
+White	Hvítt
+Windows default	Sjálfgefið í Windows
+Windows did not give Settings keyboard focus	Windows gaf Stillingum ekki lyklaborðsfókus
+Windows did not return keyboard focus to Back	Windows skilaði ekki lyklaborðsfókus til Til baka
+With no picture the wheel still tried to slide.	Án myndar reyndi hjólið samt að renna.
+Works best on MAX INTELLIGENCE.	Virkar best á MAX INTELLIGENCE.
+YOU	ÞÚ
+YOU >	ÞÚ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ÞÚ RÖDD HREYFINGAR LYKLAR LEIKIR KLIPP VEÐUR DOOMSCROLL CAPRI HORFA HEILI VENJUR HLJÓÐ
+YOUR KEY	LYKILLINN ÞINN
+YOUR MIC	HLJÓÐNEMINN ÞINN
+YOUR PLAN	ÁSKRIFTIN ÞÍN
+Yokapri what's up	Yokapri hvað er að frétta
+You can hide this. It keeps going, and the Mainframe shows it too.	Þú getur falið þetta. Það heldur áfram, og Mainframe sýnir það líka.
+Your mic and her voice go into one virtual mic, and	Hljóðneminn þinn og rödd hennar fara í einn sýndarhljóðnema, og
+Your mic is muted. Unmute it to test.	Hljóðneminn þinn er þaggaður. Taktu hann af þagnarstöðu til að prófa.
+Your mods are up to date.	Mod-in þín eru uppfærð.
+Your name or a nickname	Nafnið þitt eða gælunafn
+Your own model	Eigið líkan
+Your personality	Persónuleikinn þinn
+Your voice	Röddin þín
+Your voice (HD)	Röddin þín (HD)
+Your voice (HD) · pick a clip of you...	Röddin þín (HD) · veldu klipp af þér...
+Your voice model	Raddlíkanið þitt
+as its mic.	sem hljóðnemi hennar.
+changed. Saved as My Colors, so you can share it.	breytt. Vistað sem Litirnir mínir, svo þú getir deilt því.
+choice	val
+clips the input line	klippir inntaksröðina
+cue	vísbending
+doesn't yet.	gerir það ekki enn.
+download	sækja
+file.	skrá.
+flag	fáni
+fps	fps
+hear	heyra
+hears	heyrir
+hears that.	heyrir það.
+hides or shows her.	felur eða sýnir hana.
+hint	vísbending
+in the Mainframe.	í Mainframe.
+in the mods directory with a pull request.	í mod-möppunni með pull request.
+in the picture wasn't noticed.	í myndinni var ekki tekið eftir.
+is already her push-to-talk key.	er nú þegar talkey-ið hennar.
+is off.	er slökkt.
+is on and running.	er kveikt og keyrir.
+is on, at the bottom, under	er kveikt, neðst, undir
+is on.	er kveikt.
+is on. She now answers to	er kveikt. Hún svarar nú til
+is removed.	er fjarlægt.
+is taken	er upptekið
+is taken by another app. Try another.	er upptekið af öðru forriti. Prófaðu annað.
+is updated	er uppfært
+isn't hearing it yet: do {0} and {1}, then join a call.	heyrir það ekki enn: gerðu {0} og {1}, og taktu svo þátt í símtali.
+it now.	núna.
+keeps her quiet, and lets her talk again.	heldur henni hljóðri, og leyfir henni að tala aftur.
+key	lykill
+key.	lykill.
+min	mín
+more.	meira.
+ms.	ms.
+mutes mic	þaggar hljóðnema
+mutes your mic.	þaggar hljóðnemann þinn.
+name	nafn
+off	slökkt
+on this PC	á þessari tölvu
+opens her Mainframe.	opnar Mainframe hennar.
+opens her typing box.	opnar skriftarreitinn hennar.
+phone	sími
+phone pixels	pixlar síma
+phones	símar
+pixels	pixlar
+pixels)	pixlar)
+star.	stjarna.
+stars.	stjörnur.
+starts voice chat.	ræsir raddspjall.
+stays off. Nothing ran.	helst slökkt. Ekkert keyrði.
+still does its own job in other apps too. Confirm to keep it.	sinnir samt sínu hlutverki í öðrum forritum líka. Staðfestu til að halda því.
+tall	hár
+time	sinnum
+to talk	til að tala
+to talk to her, with a game in front too.	til að tala við hana, líka með leik í forgrunni.
+too.	líka.
+turns Gaming Mode on and off.	kveikir og slekkur á Leikjastillingu.
+with Ollama	með Ollama
+won't type in other apps while she runs. Confirm to keep it.	skrifar ekki í öðrum forritum meðan hún er í gangi. Staðfestu til að halda því.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Slökkt
+{0}   If her voice cuts off, turn off noise filtering	{0}   Ef rödd hennar slitnar, slökktu á hávaðasíun
+{0}   Input Device:	{0}   Inntakstæki:
+{0}   Join the call and check they hear both of you	{0}   Farðu í símtalið og athugaðu hvort þau heyri ykkur bæði
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Hljóðnemapróf > Athugum: þú heyrir sjálfan þig, og hana meðan hún talar
+{0}   Microphone:	{0}   Hljóðnemi:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Hávaðabæling: Engin. Báðar geta skorið niður rödd hennar eftir fyrstu línuna.
+{0}   Open the call or meeting's audio settings	{0}   Opnaðu hljóðstillingar símtalsins eða fundarins
+{0}   Output Device: your headphones, like before	{0}   Úttakstæki: heyrnartólin þín, eins og áður
+{0}   Speaker: your headphones, like before	{0}   Hátalari: heyrnartólin þín, eins og áður
+{0}   Try a mic test in your call app	{0}   Prófaðu hljóðnemapróf í símtalsforritinu þínu
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Notandastillingar (hjólið við nafnið þitt) > Rödd og mynd
+{0} Mbps	{0} Mbps
+{0} lines	{0} línur
+{0} min	{0} mín
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· á þessari tölvu
+· server	· þjónn

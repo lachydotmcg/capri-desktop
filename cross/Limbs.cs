@@ -46,7 +46,7 @@ namespace CapriDesktop
 
         private static string Player()
         {
-            if (soundPlayer == null) soundPlayer = OnMac ? "afplay" : Music.Run("sh", new[] { "-c", "command -v paplay" }) != null ? "paplay" : "aplay";
+            if (soundPlayer == null) soundPlayer = OnMac ? "afplay" : SpeechAudio.OnPath("paplay") ? "paplay" : SpeechAudio.OnPath("pw-play") ? "pw-play" : "aplay";
             return soundPlayer;
         }
 
@@ -463,6 +463,15 @@ namespace CapriDesktop
             string x11 = Music.Run("xprintidle", new string[0]);
             long milliseconds;
             return x11 != null && long.TryParse(x11.Trim(), out milliseconds) ? milliseconds / 1000.0 : -1;
+        }
+
+        internal static bool? SessionAway()
+        {
+            if (OnMac || !OperatingSystem.IsLinux()) return null;
+            string hints = Music.Run("busctl", new[] { "get-property", "org.freedesktop.login1", "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session", "IdleHint", "LockedHint" });
+            MatchCollection found = hints == null ? null : Regex.Matches(hints, @"^b (true|false)\s*$", RegexOptions.Multiline);
+            if (found == null || found.Count != 2) return null;
+            return found[0].Groups[1].Value == "true" || found[1].Groups[1].Value == "true";
         }
 
         // Her app_window tool. On Mac it's the apps in the Dock, through System Events; on Linux it's the windows wmctrl lists,

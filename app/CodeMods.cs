@@ -20,7 +20,7 @@ namespace CapriDesktop
     internal sealed partial class Mods
     {
         internal const string CodeExtension = ".capri-code";
-        private const int LargestCode = 256 * 1024;
+        private const int LargestCode = 1024 * 1024;
         private const string ApprovedFile = "approved.txt";
         private static readonly Regex HeaderLine = new Regex(@"^//\s*([a-z-]+)\s*:\s*(.*?)\s*$");
         private readonly Dictionary<string, ICapriMod> running = new Dictionary<string, ICapriMod>();
@@ -97,6 +97,175 @@ namespace CapriDesktop
             read.Requires = mods.ToArray();
         }
 
+        internal const string Loads = "loads code while it runs", Packs = "unpacks hidden text";
+        private static readonly string[,] Reach =
+        {
+            { Loads, @"Assembly\.Load|AssemblyLoadContext|AppDomain\.CreateDomain|ExecuteAssembly|CreateInstanceAndUnwrap|Reflection\.Emit|DynamicMethod|CompileAssembly|CodeDomProvider|CSharpCodeProvider|CSharpCompilation" },
+            { Packs, @"FromBase64String|Aes\.|AesManaged|Rijndael|TripleDES|DESCryptoServiceProvider|GZipStream|DeflateStream|BrotliStream" },
+            { "unlocks saved secrets", @"ProtectedData|CryptUnprotectData|\.dpapi\b" },
+            { "calls Windows directly", @"DllImport|LibraryImport|Marshal\.|GetProcAddress|VirtualAlloc" },
+            { "starts programs", @"Process\.Start|ProcessStartInfo|cmd\.exe|powershell" },
+            { "uses the network", @"HttpClient|WebClient|WebRequest|TcpClient|UdpClient|Socket\(|ClientWebSocket" },
+            { "reaches outside her folder", @"SpecialFolder|Registry|DriveInfo|GetTempPath|GetEnvironmentVariable" },
+            { "reads the keyboard", @"GetAsyncKeyState|SetWindowsHookEx|keybd_event|SendKeys" },
+            { "changes what her brain is told", @"ICapriBrain|ICapriChat|AddContext|AddTool|\.Sending\b|\.Replying\b|ToolUsing|Personality\.(?:Add|Remove|Clear)\b|(?i:system prompt)" },
+        };
+        private static readonly Regex[] Places =
+        {
+            new Regex(@"(?<![A-Za-z0-9+.-])(?:https?|wss?|ftp)://(?:[^\s/@""']*@)?(?<host>[A-Za-z0-9.-]+)", RegexOptions.IgnoreCase),
+            new Regex(@"""(?<host>(?:[a-z0-9-]+\.)+(?:com|net|org|io|dev|ai|co|me|app|cloud|xyz|ru|cn|info|biz|site|online|top|gg|tv|ly|sh))(?::[0-9]{1,5})?(?:/[^""]*)?"""),
+            new Regex(@"""(?<host>(?:[0-9]{1,3}\.){3}[0-9]{1,3}):[0-9]{1,5}(?:/[^""]*)?"""),
+        };
+        private static readonly string[] HomeHosts = { "localhost", "127.0.0.1", "0.0.0.0", "schemas.microsoft.com", "www.w3.org", "schemas.openxmlformats.org" };
+        private static readonly Regex Blob = new Regex(@"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{800,}={0,2}");
+        private static readonly Regex Quoted = new Regex(@"'(?:[^'\\\n]|\\.){1,10}'|@""(?:[^""]|"""")*""|""(?:[^""\\\n]|\\.)*""");
+
+        internal static string[] Reaching(string text)
+        {
+            text = text ?? "";
+            List<string> found = new List<string>();
+            for (int i = 0; i < Reach.GetLength(0); i++) if (Regex.IsMatch(text, Reach[i, 1])) found.Add(Reach[i, 0]);
+            string[] where = Addresses(text);
+            if (where.Length > 0) found.Add("contacts " + string.Join(", ", where, 0, Math.Min(3, where.Length)) + (where.Length > 3 ? " and " + (where.Length - 3) + " more" : ""));
+            return found.ToArray();
+        }
+
+        internal static string[] Addresses(string text)
+        {
+            List<string> found = new List<string>();
+            foreach (Regex place in Places)
+                foreach (Match one in place.Matches(text ?? ""))
+                {
+                    string host = one.Groups["host"].Value.Trim('.').ToLowerInvariant();
+                    if (host.Length < 4 || host.IndexOf('.') < 0 || Array.IndexOf(HomeHosts, host) >= 0 || host.StartsWith("127.", StringComparison.Ordinal) || found.Contains(host)) continue;
+                    found.Add(host);
+                }
+            return found.ToArray();
+        }
+
+        internal static string Unreadable(string text, out bool packed)
+        {
+            packed = false;
+            if (string.IsNullOrEmpty(text)) return null;
+            Match blob = Blob.Match(text);
+            if (blob.Success) { packed = true; return "it carries " + blob.Length + " characters of packed data"; }
+            string[] rows = Quoted.Replace(text, delegate(Match quote) { return quote.Value[0] == '\'' ? quote.Value : "\"\""; }).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            int longest = 0, code = 0;
+            foreach (string row in rows)
+            {
+                if (row.Trim().Length > 0) code++;
+                if (row.Length > longest) longest = row.Length;
+            }
+            if (longest > 600) return "one of its lines is " + longest + " characters of code";
+            if (code <= 3 && text.Length > 4000) return "it's all on " + code + (code == 1 ? " line" : " lines");
+            int spaces = 0;
+            foreach (char one in text) if (one == ' ' || one == '\t' || one == '\n') spaces++;
+            if (text.Length > 4000 && spaces * 20 < text.Length) return "it's minified, with almost no spaces or line breaks";
+            return null;
+        }
+
+        internal static string Tidied(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            StringBuilder made = new StringBuilder();
+            int deep = 0;
+            bool fresh = true;
+            for (int at = 0; at < text.Length; at++)
+            {
+                char one = text[at];
+                if (one == '"' || one == '\'')
+                {
+                    bool verbatim = one == '"' && at > 0 && text[at - 1] == '@';
+                    if (fresh) { Indent(made, deep); fresh = false; }
+                    made.Append(one);
+                    for (at++; at < text.Length; at++)
+                    {
+                        char inside = text[at];
+                        made.Append(inside);
+                        if (verbatim)
+                        {
+                            if (inside != '"') continue;
+                            if (at + 1 < text.Length && text[at + 1] == '"') { made.Append(text[++at]); continue; }
+                            break;
+                        }
+                        if (inside == '\\' && at + 1 < text.Length) { made.Append(text[++at]); continue; }
+                        if (inside == one || inside == '\n') break;
+                    }
+                    continue;
+                }
+                if (one == '/' && at + 1 < text.Length && text[at + 1] == '/')
+                {
+                    if (fresh) { Indent(made, deep); fresh = false; }
+                    while (at < text.Length && text[at] != '\n' && text[at] != '\r') made.Append(text[at++]);
+                    made.Append(Environment.NewLine);
+                    fresh = true;
+                    continue;
+                }
+                if (one == '/' && at + 1 < text.Length && text[at + 1] == '*')
+                {
+                    if (fresh) { Indent(made, deep); fresh = false; }
+                    int opened = at;
+                    made.Append(one);
+                    for (at++; at < text.Length; at++)
+                    {
+                        made.Append(text[at]);
+                        if (at >= opened + 3 && text[at] == '/' && text[at - 1] == '*') break;
+                    }
+                    made.Append(Environment.NewLine);
+                    fresh = true;
+                    continue;
+                }
+                if (one == '\n' || one == '\r') { if (!fresh) { made.Append(Environment.NewLine); fresh = true; } continue; }
+                if ((one == ' ' || one == '\t') && fresh) continue;
+                if (one == '}')
+                {
+                    if (!fresh) made.Append(Environment.NewLine);
+                    deep = deep > 0 ? deep - 1 : 0;
+                    Indent(made, deep);
+                    made.Append(one);
+                    made.Append(Environment.NewLine);
+                    fresh = true;
+                    continue;
+                }
+                if (fresh) { Indent(made, deep); fresh = false; }
+                made.Append(one);
+                if (one == '{') { deep++; made.Append(Environment.NewLine); fresh = true; continue; }
+                if (one == ';') { made.Append(Environment.NewLine); fresh = true; }
+            }
+            return made.ToString();
+        }
+
+        private static void Indent(StringBuilder made, int deep)
+        {
+            for (int one = 0; one < deep; one++) made.Append("    ");
+        }
+
+        internal static void Look(ModFile read, string text)
+        {
+            read.Reaches = Reaching(text);
+            if (Array.IndexOf(read.Reaches, Packs) >= 0 && Array.IndexOf(read.Reaches, Loads) >= 0)
+                throw new ModException((read.Name ?? read.Id) + " unpacks hidden text and loads code while it runs. Together those mean the code you can read isn't the code that would run, so Capri won't approve it.");
+            bool packed;
+            read.Unreadable = Unreadable(text, out packed);
+            read.Tidy = read.Unreadable != null && !packed ? Tidied(text) : null;
+            read.AskTwice = read.Unreadable != null && (!packed || Array.IndexOf(read.Reaches, "starts programs") >= 0 || Array.IndexOf(read.Reaches, "calls Windows directly") >= 0);
+        }
+
+        internal static string Unclear(ModFile mod)
+        {
+            string why = mod.Unreadable ?? "it can't be read";
+            if (mod.Tidy == null)
+                return mod.Name + "'s code can't be read as it is: " + why + ", and it can start programs or call Windows directly, which is how packed data gets run. What Capri listed about it may not show what it really does.\n\n"
+                    + "Mods often build in a picture or a sound this way, but packed data can hide anything. If you didn't expect it from this mod, don't run it.\n\nRun it anyway?";
+            string copy = Path.Combine(Path.GetTempPath(), "capri-mod-" + mod.Id + "-readable.cs");
+            try { File.WriteAllText(copy, mod.Tidy); }
+            catch (IOException) { copy = null; }
+            catch (UnauthorizedAccessException) { copy = null; }
+            return mod.Name + "'s code can't be read as it is: " + why + ". What Capri listed about it, and what you'd see opening the file, may not show what it really does.\n\n"
+                + (copy == null ? "" : "She laid it back out so you can read it, and saved that copy here:\n" + copy + "\n\nRead that before you say yes. ")
+                + "Generated code can look like this too, so it isn't proof of anything. If you didn't expect it from this mod, don't run it.\n\nRun it anyway?";
+        }
+
         // The mods this one needs that aren't installed and on, by name, or null when it has them all.
         private string MissingRequired(string id)
         {
@@ -124,7 +293,7 @@ namespace CapriDesktop
             string hash = HashOf(bytes), approved;
             bool same = Approved().TryGetValue(read.Id, out approved) && approved == hash;
             // One dropped into the folder, not approved yet, is refused here if it can't run on this platform.
-            if (!same) CheckPlatform(text);
+            if (!same) { CheckPlatform(text); Look(read, text); }
             return new Mod { File = read, Path = file, Code = true, Hash = hash, Changed = !same, On = same && !off.Contains(read.Id) };
         }
 
@@ -141,8 +310,10 @@ namespace CapriDesktop
             string text = Words(bytes), hash = HashOf(bytes);
             ModFile read = ReadCode(text);
             CheckPlatform(text);
+            Look(read, text);
             bool stay = keepOff != null && keepOff.Contains(read.Id);
             if (!ask(read, hash)) return null;
+            offThisRun.Remove(read.Id);
             ICapriMod made = Compile(text);
             string home = Path.Combine(folder, read.Id + CodeExtension);
             try
@@ -188,8 +359,12 @@ namespace CapriDesktop
             string hash = HashOf(bytes), approved;
             bool same = Approved().TryGetValue(mod.File.Id, out approved) && approved == hash;
             CheckPlatform(Words(bytes));
+            if (!same) Look(mod.File, Words(bytes));
             if (!same && !ask(mod.File, hash)) return false;
-            ICapriMod made = Compile(Words(bytes));
+            MarkStarting(mod.File.Id, true);
+            ICapriMod made;
+            try { made = Compile(Words(bytes)); }
+            catch (ModException) { MarkStarting(mod.File.Id, false); throw; }
             StartOne(mod.File.Id, made);
             if (!same) Approve(mod.File.Id, hash);
             if (off.Remove(mod.File.Id)) WriteOff(off);
@@ -278,6 +453,7 @@ namespace CapriDesktop
             string missing = MissingRequired(id);
             if (missing != null) { Unload(made); throw new ModException("That mod needs " + missing + " installed and on first."); }
             ICapriHost host = HostFor(id);
+            MarkStarting(id, true);
             try { made.Start(host); }
             catch (Exception error)
             {
@@ -286,6 +462,7 @@ namespace CapriDesktop
                 Brain.Log("mod " + id, -1, Inner(error).ToString());
                 throw new ModException("That mod failed while starting: " + Inner(error).Message);
             }
+            finally { MarkStarting(id, false); }
             running[id] = made;
             hosts[id] = host;
         }
@@ -330,6 +507,7 @@ namespace CapriDesktop
                     {
                         byte[] bytes = File.ReadAllBytes(starting.Path);
                         if (HashOf(bytes) != starting.Hash) throw new ModException("it changed after it was approved.");
+                        MarkStarting(starting.File.Id, true);
                         ICapriMod made = Compile(Words(bytes));
                         onWindow(delegate
                         {
@@ -341,6 +519,7 @@ namespace CapriDesktop
                     {
                         if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
                         Exception failed = error;
+                        MarkStarting(starting.File.Id, false);
                         onWindow(delegate { StartFailed(starting, failed); });
                     }
                 }
@@ -373,10 +552,17 @@ namespace CapriDesktop
     {
         private const double LongestIntro = 15, IntroWait = 8;
         private IntroScreen introScreen;
+        // Her door is due on her first start after an update, and plays instead of a mod's intro that once.
+        private bool doorPending;
+
+        private DoorIntro NewDoor(bool popups)
+        {
+            return new DoorIntro(sleep, wake, idle, herFolder == null ? null : Path.Combine(herFolder, "sounds", "intro"), popups);
+        }
 
         private bool HoldForIntro(Action arrival, bool spawn)
         {
-            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || !ModList.WantsIntro || FullScreenDisplay) return false;
+            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || !(doorPending || ModList.WantsIntro) || FullScreenDisplay) return false;
             if (spawn) SpawnInMiddle();
             WaitForIntro(arrival, IntroWait);
             return true;
@@ -398,7 +584,13 @@ namespace CapriDesktop
             wait.Tick += delegate
             {
                 if (IsDisposed) { wait.Dispose(); return; }
-                ICapriIntro intro = ModList.Intro;
+                ICapriIntro intro = doorPending ? NewDoor(true) : ModList.Intro;
+                if (doorPending)
+                {
+                    doorPending = false;
+                    preferences.DoorVersion = DoorIntro.Version;
+                    SavePreferences();
+                }
                 bool out_ = clock.Elapsed.TotalSeconds >= gaveUpAt;
                 if (intro == null && !ModList.CodeSettled && !out_) return;
                 wait.Dispose();
@@ -419,6 +611,8 @@ namespace CapriDesktop
             Action finished = delegate
             {
                 introScreen = null;
+                DoorIntro door = intro as DoorIntro;
+                if (door != null) door.Stop();
                 if (done != null) done();
             };
             if (length <= 0) { finished(); return; }
@@ -555,6 +749,7 @@ namespace CapriDesktop
             if (!veilHeld || !until(() => arrived) || clock.Elapsed.TotalSeconds < veilUntil) throw new Exception("Waiting for an intro that never comes did not bring her in.");
             Play(clipWas);
             checks.Add("PASS mod intros: if no intro turns up she's held off screen, then still arrives");
+            CheckDoor(checks, output);
             string real = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "..", "..", "mods", "startup-intros" + Mods.CodeExtension));
             if (!File.Exists(real)) { checks.Add("LIMIT mod intros: the Startup Intros file isn't beside this build, so its frames weren't drawn"); return; }
             Mod mod = ModList.Import(real, delegate { return true; });
@@ -608,6 +803,118 @@ namespace CapriDesktop
             ModList.Remove(mod);
             if (!previewed || ModList.Running != 0) throw new Exception("Startup Intros did not clean up.");
             checks.Add("PASS mod intros: all three draw at 1920x1080 (" + string.Join("; ", timing) + ")");
+        }
+
+        // Her door from YunoTheAlien: due once after an update and never on a new install, and every frame drawn in time at 1080p,
+        // kept as intro-door.png beside the other intros' sheets.
+        private void CheckDoor(List<string> checks, string output)
+        {
+            string doorWas = preferences.DoorVersion, lastWas = preferences.LastVersion;
+            bool newsWas = newsPending;
+            preferences.DoorVersion = "0.0.1";
+            StartNews(true);
+            bool updated = doorPending;
+            StartNews(true);
+            preferences.DoorVersion = null;
+            StartNews(false);
+            bool fresh = !doorPending && preferences.DoorVersion == DoorIntro.Version;
+            preferences.DoorVersion = DoorIntro.Version;
+            StartNews(true);
+            bool again = doorPending;
+            preferences.DoorVersion = doorWas;
+            preferences.LastVersion = lastWas;
+            newsPending = newsWas;
+            doorPending = false;
+            SavePreferences();
+            if (!updated || !fresh || again) throw new Exception("Her door was due at the wrong time: after an update " + updated + ", new install " + !fresh + ", same version " + again + ".");
+            Size size = new Size(1920, 1080);
+            Rectangle spot = new Rectangle(860, 420, 200, 300);
+            DoorIntro door = NewDoor(false);
+            const int across = 5, down = 3, cellW = 384, cellH = 216;
+            double worst = 0, worstAt = 0;
+            try
+            {
+                using (Bitmap fake = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+                using (Bitmap sheet = new Bitmap(across * cellW, down * cellH))
+                using (Graphics paper = Graphics.FromImage(sheet))
+                using (Bitmap frame = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+                using (Graphics pen = Graphics.FromImage(frame))
+                {
+                    using (Graphics wall = Graphics.FromImage(fake)) wall.Clear(Color.FromArgb(46, 58, 74));
+                    door.Begin(fake, new Rectangle(Point.Empty, size), spot);
+                    // Most of the sheet is the door building and opening, then her waking and standing.
+                    double[] moments = { 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.3, 8.8, 9.6, 10.6, 11.6, 12.1, 12.55 };
+                    for (int i = 0; i < moments.Length; i++)
+                    {
+                        double at = moments[i];
+                        pen.Clear(Color.Transparent);
+                        System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
+                        door.Draw(pen, new Rectangle(Point.Empty, size), spot, at);
+                        if (i > 0 && took.Elapsed.TotalMilliseconds > worst) { worst = took.Elapsed.TotalMilliseconds; worstAt = at; }
+                        Rectangle cell = new Rectangle(i % across * cellW, i / across * cellH, cellW, cellH);
+                        using (Brush desktop = new SolidBrush(Color.FromArgb(46, 58, 74))) paper.FillRectangle(desktop, cell);
+                        paper.DrawImage(frame, cell);
+                        using (Font label = new Font("Consolas", 11f)) paper.DrawString(at.ToString("0.00") + "s", label, Brushes.Yellow, cell.X + 3, cell.Y + 3);
+                    }
+                    if (worst > 60)
+                    {
+                        pen.Clear(Color.Transparent);
+                        System.Diagnostics.Stopwatch redraw = System.Diagnostics.Stopwatch.StartNew();
+                        door.Draw(pen, new Rectangle(Point.Empty, size), spot, worstAt);
+                        worst = Math.Min(worst, redraw.Elapsed.TotalMilliseconds);
+                    }
+                    sheet.Save(Path.Combine(output, "intro-door.png"), System.Drawing.Imaging.ImageFormat.Png);
+                    // A close look at the door fully built, and at her asleep in its opening.
+                    foreach (double at in new[] { 7.9, 9.4 })
+                    {
+                        pen.Clear(Color.Transparent);
+                        door.Draw(pen, new Rectangle(Point.Empty, size), spot, at);
+                        Rectangle near = new Rectangle(spot.X + spot.Width / 2 - 640, spot.Y + spot.Height / 2 - 360, 1280, 720);
+                        using (Bitmap close = new Bitmap(near.Width, near.Height))
+                        using (Graphics zoom = Graphics.FromImage(close))
+                        {
+                            zoom.Clear(Color.FromArgb(46, 58, 74));
+                            zoom.DrawImage(frame, new Rectangle(Point.Empty, near.Size), near, GraphicsUnit.Pixel);
+                            close.Save(Path.Combine(output, "intro-door-" + at.ToString("0.0").Replace('.', '_') + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                    }
+                }
+            }
+            finally { door.Stop(); }
+            if (worst > 60) throw new Exception("A door intro frame is too slow: " + worst.ToString("0") + " ms at " + worstAt.ToString("0.0") + " s.");
+            checks.Add("PASS door intro: due once after an update and not on a new install, " + DoorIntro.Length.ToString("0.0") + " s, slowest frame " + worst.ToString("0") + " ms at 1920x1080");
+        }
+
+        private void CheckModReading(List<string> checks, Func<string, string, string> sample, Func<string, string, string> code)
+        {
+            Mods mods = ModList;
+            string mixed = Mods.Tidied("class A{void B(){var s=\"a{b;c}\";var v=@\"x\"\"{;\"\"y\";// a; brace } here\nC();}}").Replace("\r", "");
+            if (mixed != "class A{\n    void B(){\n        var s=\"a{b;c}\";\n        var v=@\"x\"\"{;\"\"y\";\n        // a; brace } here\n        C();\n    }\n}\n") throw new Exception("Laying out packed code moved a brace or semicolon inside a string or comment: " + mixed);
+            string minified = "";
+            for (int i = 0; i < 80; i++) minified += "int v" + i + "=1;";
+            string blob = "var x = \"" + new string('A', 900) + "\";", words = "var s = \"" + new string('a', 300) + " " + new string('b', 400) + "\";\nC();";
+            bool packed, wordsPacked, minifiedPacked;
+            if (Mods.Unreadable(blob, out packed) == null || !packed || Mods.Unreadable(words, out wordsPacked) != null || Mods.Unreadable(minified, out minifiedPacked) == null || minifiedPacked || Mods.Unreadable("class A\n{\n    void B() { }\n}\n", out packed) != null) throw new Exception("Unreadable code wasn't told from readable code.");
+            string where = string.Join(",", Mods.Addresses("var u = \"https://api.example.com/v1\"; var l = \"http://localhost:5000\"; var h = \"discord.com\"; var v = \"1.2.3.4\";"));
+            if (where != "api.example.com,discord.com") throw new Exception("A mod's addresses came out wrong: " + where);
+            ModFile tight = new ModFile { Id = "smoke-tight", Name = "Tight" };
+            Mods.Look(tight, minified);
+            string unclear = Mods.Unclear(tight), copy = Path.Combine(Path.GetTempPath(), "capri-mod-smoke-tight-readable.cs");
+            if (!tight.AskTwice || tight.Tidy == null || !File.Exists(copy) || unclear.IndexOf(copy, StringComparison.Ordinal) < 0 || File.ReadAllText(copy).Split('\n').Length < 80) throw new Exception("Minified code didn't get a readable copy and a second question.");
+            File.Delete(copy);
+            ModFile seen = null;
+            int asked = 0;
+            Func<ModFile, string, bool> was = mainframe.ModAsk;
+            mainframe.ModAsk = delegate(ModFile asking, string fingerprint) { asked++; seen = asking; return false; };
+            try
+            {
+                bool let = mainframe.ImportMod(sample("packed" + Mods.CodeExtension, code("packed", "public class M : ICapriMod { public void Start(ICapriHost h) { System.Reflection.Assembly.Load(Convert.FromBase64String(\"AA==\")); } public bool Heard(string w) { return false; } public void Stop() { } }")));
+                if (let || asked != 0 || mods.All.Count != 0 || mainframe.ModStatusText.IndexOf("won't approve it", StringComparison.Ordinal) < 0) throw new Exception("A mod that unpacks hidden text and loads code was asked about or let in: " + mainframe.ModStatusText);
+                mainframe.ImportMod(sample("reader" + Mods.CodeExtension, code("reader", "public class M : ICapriMod { public void Start(ICapriHost h) { new System.Net.WebClient().DownloadString(\"https://example.com/x\"); } public bool Heard(string w) { return false; } public void Stop() { } }")));
+                if (asked != 1 || seen == null || seen.Unreadable != null || seen.AskTwice || mods.All.Count != 0 || Mods.Consent(seen, "x").IndexOf("Reading its code, Capri sees that it:\n- uses the network\n- contacts example.com\n", StringComparison.Ordinal) < 0) throw new Exception("The code mod question didn't say what its code reaches for: " + (seen == null ? "not asked" : string.Join(" / ", seen.Reaches)));
+            }
+            finally { mainframe.ModAsk = was; }
+            checks.Add("PASS code mods: before asking she lists what a mod's code reaches for and the addresses it contacts, says when its code can't be read, lays minified code back out and asks a second time, and refuses one that unpacks hidden text and loads code without asking");
         }
 
         internal void CheckCodeMods(List<string> checks, string output)
@@ -706,6 +1013,7 @@ namespace CapriDesktop
                 if (mods.Running != 0) throw new Exception("A throwing mod could not be removed.");
                 if (mainframe.ImportMod(sample("noheader" + Mods.CodeExtension, "using System;"))) throw new Exception("A file with no details was let in.");
                 checks.Add("PASS code mods: broken code is refused with its reason, and a mod that throws can't take her down");
+                CheckModReading(checks, sample, code);
                 CheckModHooks(checks, output);
                 CheckIntros(checks, output);
             }

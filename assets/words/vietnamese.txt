@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Điều khiển đã vẽ lại không được vẽ lại trong hình.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Khóa miễn phí từ Google AI Studio, NVIDIA hoặc OpenRouter. Không cần tải về. Cần internet.
+A held trackpad scroll got a flick's long ease:	Cuộn bàn di chuột đang giữ được hiệu ứng chậm dần như cú vuốt:
+A layout change during a slide put the page at	Thay đổi bố cục trong lúc chuyển slide đã đưa trang tới
+A layout change left the picture up.	Thay đổi bố cục làm hình còn nguyên trên màn hình.
+A model in Ollama, on your local server or on your key.	Một mô hình trong Ollama, trên máy chủ cục bộ hoặc bằng khóa của bạn.
+A paid key goes under MAX INTELLIGENCE by itself.	Khóa trả phí tự động vào MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Gói bạn đã trả tiền, khóa riêng hoặc Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menu bảng giọng nói không giữ bản sao phông chữ riêng của bảng.
+A wheel turn right after a slide ended froze the picture.	Lăn chuột ngay sau khi slide kết thúc làm đứng hình.
+ALLOW THIS PHONE?	CHO PHÉP ĐIỆN THOẠI NÀY?
+ALMOST THERE >	SẮP XONG >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI KHÁC ĐÃ CHIẾM · TẮT RỒI BẬT LẠI
+API key	Khóa API
+API key, Claude plan or ChatGPT plan	Khóa API, gói Claude hoặc gói ChatGPT
+Add	Thêm
+Address	Địa chỉ
+Address and key saved. Use saved to reconnect.	Đã lưu địa chỉ và khóa. Dùng Đã lưu để kết nối lại.
+Advanced Settings	Cài đặt nâng cao
+All	Tất cả
+All screens	Tất cả màn hình
+Allow	Cho phép
+Almost there. I'll say hi the second my brain's in.	Sắp xong rồi. Mình sẽ chào ngay khi não mình sẵn sàng.
+Always	Luôn luôn
+Always on top	Luôn ở trên cùng
+Any Google account works. I opened the page in your browser.	Tài khoản Google nào cũng được. Mình đã mở trang trong trình duyệt của bạn.
+Applies to every voice	Áp dụng cho mọi giọng
+Apps she may close	Ứng dụng cô ấy có thể đóng
+Ask Capri for more	Yêu cầu Capri thêm
+Asking your server...	Đang hỏi máy chủ của bạn...
+Asks before closing only the apps you choose.	Chỉ hỏi trước khi đóng các ứng dụng bạn chọn.
+Auto	Tự động
+Automatic: VB-CABLE, else Steam's	Tự động: VB-CABLE, nếu không thì của Steam
+BAD RELAY HOST	MÁY CHỦ RELAY LỖI
+BIG Z open notepad	BIG Z mở notepad
+BRAIN	NÃO
+BRAIN >	NÃO >
+BRAIN ONLINE >	NÃO TRỰC TUYẾN >
+BRAIN PROVIDER >	NHÀ CUNG CẤP NÃO >
+BRAIN VOICE CAPRI	GIỌNG NÃO CAPRI
+Back	Quay lại
+Back on your saved API key.	Quay lại khóa API đã lưu.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Phù hợp nhất với PC này:
+Black	Đen
+Blank key means no key.	Ô khóa trống nghĩa là không có khóa.
+Brain API key	Khóa API của não
+Brain model	Mô hình não
+Brain provider	Nhà cung cấp não
+Bring here	Đưa đến đây
+Bring to this screen	Đưa đến màn hình này
+Browse	Duyệt
+Browse mods	Duyệt mod
+Browse to a voice model	Duyệt tới mô hình giọng nói
+Browse...	Duyệt...
+Bubble	Bong bóng
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, bạn có đó không
+CAN'T REACH THE RELAY · RETRYING	KHÔNG KẾT NỐI ĐƯỢC RELAY · ĐANG THỬ LẠI
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	NÃO GIỌNG CAPRI
+CHANGED, approve it again.	ĐÃ THAY ĐỔI, hãy phê duyệt lại.
+CLIPS >	CLIP >
+CLOUD VOICE	GIỌNG ĐÁM MÂY
+CODE	MÃ
+COLORS >	MÀU SẮC >
+CONNECTED	ĐÃ KẾT NỐI
+CONNECTING	ĐANG KẾT NỐI
+CUSTOM LOCAL	CỤC BỘ TÙY CHỈNH
+Call mode (beta)	Chế độ gọi (beta)
+Call mode does not fit.	Chế độ gọi không vừa.
+Call mode is outside its space.	Chế độ gọi nằm ngoài khu vực của nó.
+Cancel	Hủy
+Cancel keys	Hủy phím
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Mã Capri:
+Capri mods (*	Mod Capri (*
+Capri, hello	Capri, chào
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Hỗn loạn khi bực
+Chat with Capri from your phone	Trò chuyện với Capri từ điện thoại
+ChatGPT plan	Gói ChatGPT
+Check for updates	Kiểm tra cập nhật
+Check in on me	Hỏi thăm mình
+Check in on me is hidden	Hỏi thăm mình đang bị ẩn
+Check in on me still decides whether she visits.	Hỏi thăm mình vẫn quyết định việc cô ấy có ghé thăm không.
+Check in on me's tip missed	Gợi ý hỏi thăm mình đã bị bỏ lỡ
+Chess	Cờ vua
+Choose apps	Chọn ứng dụng
+Choose folder...	Chọn thư mục...
+Choose where future Capri clips are saved	Chọn nơi lưu các clip Capri sau này
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Gói Claude hoặc ChatGPT, khóa trả phí (OpenAI, Claude, DeepSeek) hoặc Ollama.
+Claude plan	Gói Claude
+Clear	Xóa
+Cleared.	Đã xóa.
+Click Confirm to keep Down, or press Esc.	Nhấn Xác nhận để giữ Xuống, hoặc nhấn Esc.
+Click to open it.	Nhấn để mở.
+Clip my games	Ghi lại các trận game của tôi
+Clips	Clip
+Close	Đóng
+Close other AIs for me	Đóng các AI khác giúp mình
+Cloud voice	Giọng đám mây
+Cloud voice service	Dịch vụ giọng đám mây
+Cloud voice setup	Thiết lập giọng đám mây
+Code mods can reach your whole PC. Only trusted ones.	Mod mã có thể truy cập toàn bộ PC của bạn. Chỉ dùng mod đáng tin.
+Code/Husk Mode	Chế độ Code/Husk
+Codex	Codex
+Commands	Lệnh
+Comment on my games	Bình luận về các trận game của tôi
+Comments	Bình luận
+Confirm	Xác nhận
+Confirm keys	Xác nhận phím
+Connect	Kết nối
+Connect / Forget brain key	Kết nối / Quên khóa não
+Connect / Forget voice key	Kết nối / Quên khóa giọng
+Connect four	Connect Four
+Controls	Điều khiển
+Copri, what time is it	Copri, mấy giờ rồi
+Copy error details	Sao chép chi tiết lỗi
+Copy the key	Sao chép khóa
+Copy the key from the page, then press Paste.	Sao chép khóa từ trang, rồi nhấn Dán.
+Couldn't open that page:	Không mở được trang đó:
+Couldn't open that:	Không mở được cái đó:
+Couldn't open the mods folder:	Không mở được thư mục mod:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M đã là phím Mainframe của cô ấy.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N tắt mic
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V đã là phím nói của cô ấy.
+Ctrl + Alt + V to talk	Ctrl + Alt + V để nói
+Custom local voice	Giọng cục bộ tùy chỉnh
+Custom model name	Tên mô hình tùy chỉnh
+Dance	Nhảy
+Dance to music	Nhảy theo nhạc
+Default	Mặc định
+Default (follows Windows)	Mặc định (theo Windows)
+Default duration for clip that and automatic clips	Thời lượng mặc định cho clip that và clip tự động
+Default length	Độ dài mặc định
+Default model	Mô hình mặc định
+Delay	Độ trễ
+Deny	Từ chối
+Discard	Bỏ
+Discard + reload	Bỏ + tải lại
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Không muốn chờ? Khóa miễn phí giúp mình nói chuyện trong khoảng một phút.
+Done	Xong
+EXTRA REQUEST JSON >	JSON YÊU CẦU THÊM >
+EXTRAS >	THÊM >
+Edit	Sửa
+Edit check-in lines	Sửa các câu chào hỏi
+Edit check-in lines has the wrong view or dimming	Sửa câu chào hỏi bị sai giao diện hoặc làm mờ
+Edit check-in lines is out of place	Sửa câu chào hỏi nằm sai vị trí
+Edit controls	Sửa điều khiển
+ElevenLabs API key	Khóa API ElevenLabs
+ElevenLabs voice ID	ID giọng ElevenLabs
+English	Tiếng Anh
+Enter the game's name first.	Nhập tên trò chơi trước.
+Every	Mỗi
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Mọi mod đều được quét phần mềm độc hại trước khi đăng. Mod mã vẫn hỏi trước khi chạy.
+Explore after	Khám phá sau
+Explore while I'm away	Khám phá khi mình vắng mặt
+Extra request JSON	JSON yêu cầu thêm
+Extras	Thêm
+FREE KEY	KHÓA MIỄN PHÍ
+FREE KEY >	KHÓA MIỄN PHÍ >
+Fast hands in games	Tay nhanh trong game
+File editor	Trình soạn tệp
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs và các dịch vụ khác nằm trong GIỌNG trong Mainframe.
+Follow-up messages	Tin nhắn tiếp theo
+Forget	Quên
+Fork capri-mods	Fork capri-mods
+Frame rate	Tốc độ khung hình
+Free	Miễn phí
+Free and private, works offline. Downloads	Miễn phí và riêng tư, hoạt động ngoại tuyến. Tải
+Free and private, works offline. Downloads the best model for this PC.	Miễn phí và riêng tư, hoạt động ngoại tuyến. Tải mô hình tốt nhất cho PC này.
+Free key	Khóa miễn phí
+Free key providers	Nhà cung cấp khóa miễn phí
+Free keys can be rate limited and slow.	Khóa miễn phí có thể bị giới hạn tốc độ và chậm.
+Free voice in games	Giọng miễn phí trong game
+Free voice style	Phong cách giọng miễn phí
+Free voice:	Giọng miễn phí:
+Free voice: Her own	Giọng miễn phí: Của cô ấy
+Free · local model	Miễn phí · mô hình cục bộ
+GAMES >	GAME >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Bình luận game chạy riêng với Xem màn hình của tôi. Tắt sẽ dừng chúng, kể cả trong Chế độ Game; Chỉ sự kiện và Nhiều chuyện cho phép cô ấy xem game của bạn
+Game controls	Điều khiển game
+Game name	Tên game
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Độ nhạy âm thanh game. Giảm xuống nếu tai nghe nhỏ nhưng Windows ở {0}% và cô ấy phản ứng với mọi âm thanh; Tắt sẽ bỏ qua âm thanh game
+Game sounds	Âm thanh game
+Games	Game
+Gaming Mode	Chế độ Game
+Gaming Mode key	Phím Chế độ Game
+Gaming Mode:	Chế độ Game:
+Gaming Mode: Ctrl + Alt + G	Chế độ Game: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Tải VB-CABLE
+Get VB-CABLE (free)...	Tải VB-CABLE (miễn phí)...
+Get free voice	Lấy giọng miễn phí
+Getting your Fish Audio voices...	Đang lấy giọng Fish Audio của bạn...
+Giant	Khổng lồ
+Glitch	Glitch
+Glitch in at startup	Glitch khi khởi động
+Go to sleep	Đi ngủ
+Go to the next screen	Chuyển sang màn hình kế tiếp
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gói miễn phí · giới hạn tốc độ
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Có gói Claude hoặc ChatGPT, hoặc khóa riêng? Chọn đi và mình sẽ kết nối.
+Got it, just me. Right-click me any time for Capri Mainframe.	Được rồi, chỉ mình thôi. Nhấn chuột phải vào mình bất cứ lúc nào để mở Capri Mainframe.
+Grey	Xám
+H.{0} video bitrate target; higher values make larger files	Mục tiêu bitrate video H.{0}; giá trị cao hơn tạo tệp lớn hơn
+HABITS >	THÓI QUEN >
+HER HANDS >	TAY CỦA CÔ ẤY >
+HER JOBS >	VIỆC CỦA CÔ ẤY >
+HER MEMORY >	TRÍ NHỚ CỦA CÔ ẤY >
+HER MODS >	MOD CỦA CÔ ẤY >
+HH:mm	HH:mm
+HOW I SOUND >	GIỌNG MÌNH NGHE RA SAO >
+Hang here	Ở lại đây
+Have Ollama? Open it, then press Refresh.	Có Ollama? Mở nó lên, rồi nhấn Làm mới.
+Head pats	Xoa đầu
+Hearing	Nghe
+Hearing engine	Công cụ nghe
+Hearing fix	Sửa lỗi nghe
+Hearing status	Trạng thái nghe
+Help	Trợ giúp
+Help page	Trang trợ giúp
+Her colors	Màu của cô ấy
+Her folder	Thư mục của cô ấy
+Her memories	Kỷ niệm của cô ấy
+Her own colors are back.	Màu riêng của cô ấy đã trở lại.
+Her own notes (no vault)	Ghi chú riêng của cô ấy (không có kho)
+Her perch frames per second	Số khung hình mỗi giây khi cô ấy đậu
+Her personality	Tính cách của cô ấy
+Her size	Kích thước của cô ấy
+Her speaker	Loa của cô ấy
+Her speaker is hidden or outside VOICE	Loa của cô ấy bị ẩn hoặc nằm ngoài GIỌNG
+Her speaker overlaps the mic or hearing row	Loa của cô ấy chồng lên hàng mic hoặc nghe
+Her speaker:	Loa của cô ấy:
+Her speaker: Default	Loa của cô ấy: Mặc định
+Her voice in your mic	Giọng cô ấy trong mic của bạn
+Her voice in your mic: loudness	Giọng cô ấy trong mic của bạn: âm lượng
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Chính giọng của cô ấy. Cao độ là Cài đặt > GIỌNG > Cao độ, và chúng thay đổi cùng nhau.
+Her voice joins your mic only in call mode.	Giọng cô ấy chỉ đi vào mic của bạn ở chế độ gọi.
+Her voice volume	Âm lượng giọng cô ấy
+Her voice's pitch	Cao độ giọng cô ấy
+Her voice's pitch, the same as Settings > VOICE > Pitch	Cao độ giọng cô ấy, giống Cài đặt > GIỌNG > Cao độ
+Her voice's speed	Tốc độ giọng cô ấy
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Giọng cô ấy, và hai bản sao trộn bên dưới, mỗi bản có cao độ và độ trễ riêng.
+Her voices · free	Giọng cô ấy · miễn phí
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Chào, choom. Mình là Capri. Mình cần não trước khi có thể trả lời. Chọn một cái đi.
+Hide / Show Capri	Ẩn / hiện Capri
+Hide / Show key	Phím ẩn / hiện
+Hide Capri	Ẩn Capri
+Hide for now	Ẩn tạm thời
+Hide her	Ẩn cô ấy
+Hide in full screen	Ẩn khi toàn màn hình
+Hide this	Ẩn cái này
+Hide, keep player	Ẩn, giữ trình phát
+Hide/show:	Ẩn/hiện:
+Hide/show: Ctrl + Alt + H	Ẩn/hiện: Ctrl + Alt + H
+Hologram	Hình ảnh ba chiều
+Hop off	Xuống
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	PC đứng yên bao lâu thì cô ấy đi ngủ; năm phút vẫn được hiểu là bạn đi vắng
+How long a stroke over her a head pat needs	Cần vuốt trên cô ấy bao lâu để được xoa đầu
+How long her replies stay up	Câu trả lời của cô ấy hiển thị bao lâu
+How long you are away before she scrolls a browser or reader	Bạn vắng mặt bao lâu thì cô ấy cuộn trình duyệt hoặc trình đọc
+How much her voice glitches	Giọng cô ấy bị lỗi nhiều đến mức nào
+How much of the chat she keeps	Cô ấy giữ lại bao nhiêu của đoạn chat
+How much she wanders	Cô ấy đi lang thang nhiều đến đâu
+How often she pops in to say hi	Cô ấy ghé vào chào thường xuyên thế nào
+How robotic her voice sounds	Giọng cô ấy nghe máy móc đến mức nào
+How to	Cách dùng
+Huge	Khổng lồ
+I can hear you.	Mình nghe thấy bạn.
+I glance at your screen and comment. Costs a little on a paid brain.	Mình liếc màn hình của bạn và bình luận. Tốn một chút với não trả phí.
+I keep listening. Say my name, then just talk.	Mình tiếp tục nghe. Gọi tên mình, rồi cứ nói.
+I talk about your game as you play. Costs a little on a paid brain.	Mình nói về game của bạn khi bạn chơi. Tốn một chút với não trả phí.
+I type my replies and stay quiet.	Mình gõ trả lời và im lặng.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Mình sẽ không nói lại, và không gửi gì đi đâu cả. Mình vẫn ở đây, nhảy theo nhạc của bạn và làm các việc nhanh bạn yêu cầu, như âm lượng.
+I'll talk in	Mình sẽ nói trong
+IN DISCORD >	TRONG DISCORD >
+INSTALLED >	ĐÃ CÀI >
+Import a Capri mod	Nhập mod Capri
+Import mod	Nhập mod
+In full screen	Khi toàn màn hình
+In games	Trong game
+Input	Đầu vào
+Input, Output or How to overlaps a row	Đầu vào, Đầu ra hoặc Cách dùng chồng lên một hàng
+Input:	Đầu vào:
+Input: default	Đầu vào: mặc định
+Install	Cài đặt
+Install mod	Cài mod
+Installed.	Đã cài.
+It may ask for a phone number. I opened the page in your browser.	Có thể hỏi số điện thoại. Mình đã mở trang trong trình duyệt của bạn.
+It still does its own job in other apps too.	Nó vẫn làm việc của nó trong các ứng dụng khác.
+It won't type in other apps while she runs.	Nó sẽ không gõ trong ứng dụng khác khi cô ấy đang chạy.
+JUST ME >	CHỈ MÌNH >
+Jealous of other AIs	Ghen với các AI khác
+Join the Discord	Tham gia Discord
+KB.	KB.
+KEYS	PHÍM
+KEYS >	PHÍM >
+Keep PC awake for jobs	Giữ PC thức để làm việc
+Keep player	Giữ trình phát
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Giữ hai phút cuối trò chơi của bạn trong bộ nhớ. Nói clip that để lưu.
+Key	Khóa
+Key cleared: a model file needs none.	Đã xóa khóa: mô hình kiểu tệp không cần khóa.
+Key cleared: paste the key for	Đã xóa khóa: dán khóa cho
+Key forgotten.	Đã quên khóa.
+Key. It goes only to this server, as a Bearer key	Khóa. Chỉ gửi đến máy chủ này, dưới dạng khóa Bearer
+Kokoro only, like es	Chỉ Kokoro, như es
+LAST THING >	VIỆC CUỐI >
+LISTENING >	ĐANG NGHE >
+Language	Ngôn ngữ
+Large	Lớn
+Last thing. These cost a little or use your mic, so they're your pick.	Việc cuối. Các mục này tốn một chút hoặc dùng mic của bạn, nên tùy bạn chọn.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Việc cuối. Các mục này tốn một chút hoặc dùng mic của bạn, nên tùy bạn chọn. Sau đó mình muốn biết nên gọi bạn là gì.
+Layers	Lớp
+Learn more	Tìm hiểu thêm
+Leaving Settings threw its picture away straight away.	Rời khỏi Cài đặt làm mất hình của cô ấy ngay lập tức.
+Legacy stand	Giá đỡ cũ
+Lie down	Nằm xuống
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Các dòng hội thoại PC được giữ trong bộ nhớ khi xem cùng nhau. Nửa cũ nhất sẽ thành ghi chú khi bật Nhớ những gì cô ấy thấy
+Listen for Capri	Nghe Capri
+Live reactions	Phản ứng trực tiếp
+Local server address	Địa chỉ máy chủ cục bộ
+Long	Dài
+Longest wait (minutes)	Thời gian chờ lâu nhất (phút)
+Looking at this PC...	Đang xem PC này...
+Looking for Ollama. Open it if it isn't running.	Đang tìm Ollama. Mở nó lên nếu chưa chạy.
+Looking for a brain...	Đang tìm não...
+Looking in the mods directory for updates...	Đang tìm bản cập nhật trong thư mục mod...
+Looking in the mods directory...	Đang tìm trong thư mục mod...
+Looking...	Đang tìm...
+MAIN >	CHÍNH >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	KHO BỘ NHỚ >
+MODS	MOD
+MODS >	MOD >
+MODS DIRECTORY >	THƯ MỤC MOD >
+MODS INSTALLED COLORS	MÀU MOD ĐÃ CÀI
+MOVES >	CHIÊU >
+MY BRAIN	NÃO CỦA MÌNH
+MY FREE VOICE	GIỌNG MIỄN PHÍ CỦA MÌNH
+MY PLAN OR KEY	GÓI HOẶC KHÓA CỦA MÌNH
+MY PLAN OR KEY >	GÓI HOẶC KHÓA CỦA MÌNH >
+Made your Fish Audio voice. Press Test to hear it.	Đã tạo giọng Fish Audio của bạn. Nhấn Thử để nghe.
+Mainframe colours	Màu Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Màu Mainframe. Night City là đỏ và cyan; Đen, Trắng và Xám đổi Mainframe, menu của cô ấy, ô gõ và ghi chú của cô ấy
+Mainframe frames	Khung Mainframe
+Mainframe key	Phím Mainframe
+Mainframe size	Kích thước Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Kích thước Mainframe. Tự động sẽ lớn hơn khi Virtual Super Resolution hoặc DSR thu nhỏ màn hình lớn vào màn hình nhỏ hơn
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Xuống
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Đang tạo giọng Fish Audio của bạn...
+Max reply	Trả lời tối đa
+Maximum clip resolution, keeping the game's shape without upscaling	Độ phân giải clip tối đa, giữ tỉ lệ game mà không phóng to
+Medium	Vừa
+Memory	Bộ nhớ
+Memory size	Kích thước bộ nhớ
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Kích thước bộ nhớ tính bằng token cho Ollama và não tích hợp của cô ấy. Tự động tăng khi yêu cầu cần nhiều hơn
+Mg	Mg
+Mic level:	Mức mic:
+Mic test finished. Sound is reaching Capri.	Kiểm tra mic xong. Âm thanh đã đến được Capri.
+Mic:	Mic:
+Mic: default	Mic: mặc định
+Microphone	Micro
+Mini player	Trình phát nhỏ
+Mini player over full screen	Trình phát nhỏ trên toàn màn hình
+Mini-games	Mini-game
+Minimising the Mainframe left it sliding.	Thu nhỏ Mainframe khiến nó vẫn trượt.
+Minimize	Thu nhỏ
+Mod filter	Bộ lọc mod
+Mod options	Tùy chọn mod
+Mod pages	Trang mod
+Mod rules	Quy tắc mod
+Mod sort	Sắp xếp mod
+Mod switch	Chuyển mod
+Model	Mô hình
+Model folder	Thư mục mô hình
+Model name, optional	Tên mô hình, tùy chọn
+Mods	Mod
+Mods directory	Thư mục mod
+Mods folder	Thư mục mod
+Most NVIDIA models can't see your screen.	Hầu hết mô hình NVIDIA không thể thấy màn hình của bạn.
+Mouse wheel notches got a flick's long ease:	Các nấc lăn chuột nhận hiệu ứng chậm dần như cú vuốt:
+Move	Di chuyển
+Move key to MAX INTELLIGENCE	Chuyển phím sang MAX INTELLIGENCE
+Move to MAX	Chuyển sang MAX
+Music	Nhạc
+Music app	Ứng dụng nhạc
+Music app: where she plays music when you don't name an app	Ứng dụng nhạc: nơi cô ấy phát nhạc khi bạn không nêu tên ứng dụng
+Mute	Tắt tiếng
+Mute her	Tắt tiếng cô ấy
+Mute mic key	Phím tắt mic
+Mute mic:	Tắt tiếng mic:
+Mute mic: Ctrl + Alt + N	Tắt tiếng mic: Ctrl + Alt + N
+My brain	Não của mình
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Não của mình đang xuống. Mình sẽ chào ngay khi nó vào, và bạn có thể nói chuyện với mình khi đó.
+My brain's on its way. While it comes down, let's sort out how I sound.	Não của mình đang tới. Trong khi nó xuống, hãy chỉnh cách mình nghe.
+My provider	Nhà cung cấp của mình
+NO AI	KHÔNG AI
+NO PHONES CONNECTED	CHƯA KẾT NỐI ĐIỆN THOẠI NÀO
+NO PREVIEW	KHÔNG CÓ XEM TRƯỚC
+NORMAL	BÌNH THƯỜNG
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · miễn phí · thường chậm vào giờ cao điểm
+NVIDIA's free API is often slow, especially at busy times.	API miễn phí của NVIDIA thường chậm, nhất là vào giờ cao điểm.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Khóa API NVIDIA, Google AI Studio (Gemini) hoặc OpenRouter
+Names:	Tên:
+Needs a key	Cần khóa
+Never	Không bao giờ
+New code	Mã mới
+New voice from a clip...	Giọng mới từ clip...
+Next	Tiếp
+Night City	Night City
+No AI	Không AI
+No AI · no brain at all	Không AI · không có não nào
+No brain runs, and nothing is sent anywhere.	Không có não nào chạy, và không gửi gì đi đâu cả.
+No brain yet	Chưa có não
+No code open	Không có mã nào mở
+No limit	Không giới hạn
+No mic found	Không tìm thấy mic
+No mods in the directory yet.	Chưa có mod nào trong thư mục.
+No mods match that.	Không có mod nào khớp với điều đó.
+No mods match.	Không có mod nào khớp.
+No phones yet	Chưa có điện thoại nào
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Chưa có mic ảo. Chọn Đầu ra, rồi Tải VB-CABLE (miễn phí).
+None yet: pick to get VB-CABLE (free)	Chưa có: chọn để tải VB-CABLE (miễn phí)
+Normal	Bình thường
+Not a relay host	Không phải máy chủ relay
+Not imported. Nothing ran.	Chưa nhập. Không có gì được chạy.
+Not updated. The old one is still in.	Chưa cập nhật. Bản cũ vẫn còn đó.
+Nothing needed updating.	Không có gì cần cập nhật.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Không cần tải về, không gửi gì đi đâu cả. Mình sẽ không nói lại. Thêm não bất cứ lúc nào trong Mainframe.
+Nothing to show from the mods directory.	Không có gì để hiển thị từ thư mục mod.
+Nothing? Windows Settings > Privacy & security > Microphone.	Không có? Cài đặt Windows > Quyền riêng tư và bảo mật > Micro.
+Nous Portal keys aren't supported yet.	Khóa Nous Portal chưa được hỗ trợ.
+OBS	OBS
+OFF	TẮT
+OLLAMA	OLLAMA
+ON	BẬT
+ON THIS PC	TRÊN PC NÀY
+OR A KEY	HOẶC KHÓA
+Obsidian memory vault	Kho bộ nhớ Obsidian
+Off	Tắt
+Off. Turn on Her voice in your mic above.	Tắt. Bật Giọng của cô ấy trong mic của bạn ở trên.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Tắt: cô ấy vẫn nghe như trước giờ. Bật: mọi giọng cô ấy có, kể cả ElevenLabs.
+Often	Thường xuyên
+On	Bật
+On / Off	Bật / Tắt
+On: your mic and her voice are going in.	Bật: mic của bạn và giọng cô ấy đang được đưa vào.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Một đối tượng JSON, được thêm vào mỗi yêu cầu mà não này gửi đi. Nó ghi đè giá trị của Capri cho bất kỳ tên nào trùng, và không được kiểm tra với mô hình.
+Online speech recognition	Nhận dạng giọng nói trực tuyến
+Open Capri Mainframe	Mở Capri Mainframe
+Open Ollama, I'll find it	Mở Ollama, mình sẽ tìm
+Open clips folder	Mở thư mục clip
+Open her memories	Mở kỷ niệm của cô ấy
+Open her notes	Mở ghi chú của cô ấy
+Open mods folder	Mở thư mục mod
+Open the page again	Mở lại trang
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA hoặc OpenRouter.
+OpenAI-compatible server or provider.	Máy chủ hoặc nhà cung cấp tương thích OpenAI.
+OpenRouter · free models only	OpenRouter · chỉ mô hình miễn phí
+Optional	Tùy chọn
+Optional. Blank means no key.	Tùy chọn. Để trống nghĩa là không có khóa.
+Options	Tùy chọn
+Out of the box a little higher, just behind her.	Mặc định cao hơn một chút, ngay phía sau cô ấy.
+Out of the box lower, just behind her.	Mặc định thấp hơn, ngay phía sau cô ấy.
+Output	Đầu ra
+Output:	Đầu ra:
+Output: none	Đầu ra: không có
+PHONE CONNECTED	ĐIỆN THOẠI ĐÃ KẾT NỐI
+PHONES >	ĐIỆN THOẠI >
+PHONES CONNECTED	ĐIỆN THOẠI ĐÃ KẾT NỐI
+PREBUILT LOCAL	MÁY CỤC BỘ ĐÓNG SẴN
+PUBLISH MOD >	ĐĂNG MOD >
+Pair a phone	Ghép nối điện thoại
+Paste	Dán
+Paste API key	Dán khóa API
+Paste a brain API key	Dán khóa API của não
+Paste reads your clipboard once, when you press it.	Dán đọc clipboard một lần, khi bạn nhấn.
+Paste your key here	Dán khóa của bạn vào đây
+Pat stroke	Vuốt đầu
+Perch	Ghế đậu
+Perch over {0} fps uses more CPU	Ghế đậu trên {0} fps tốn nhiều CPU hơn
+Pick Output to get it.	Chọn Đầu ra để có nó.
+Pick a brain so I can talk back. You can change it any time.	Chọn một não để mình có thể nói. Bạn có thể đổi bất cứ lúc nào.
+Pick a clip of a voice you have the rights and consent to use	Chọn clip giọng nói mà bạn có quyền và đồng ý sử dụng
+Pick a free model. I opened the page in your browser.	Chọn một mô hình miễn phí. Mình đã mở trang trong trình duyệt của bạn.
+Pick a new clip of you...	Chọn clip mới của bạn...
+Pick a voice model...	Chọn mô hình giọng nói...
+Pick one. Only one brain runs at a time.	Chọn một cái. Chỉ một não chạy cùng lúc.
+Pick the note her memories go in	Chọn ghi chú nơi kỷ niệm của cô ấy được lưu
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Chọn {0} đến {1} giây giọng nói mà bạn có quyền và đồng ý sử dụng
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Chọn {0} đến {1} giây bạn nói, hoặc giọng nói mà bạn có quyền và đồng ý sử dụng
+Pitch	Cao độ
+Play	Phát
+Play...	Phát...
+Player only	Chỉ trình phát
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Các mô hình Pocket TTS sao chép giọng của clip này. Nhấn Thử để nghe.
+Pop-in times	Thời gian ghé thăm
+Pop-ins	Lần ghé thăm
+Power saver	Tiết kiệm pin
+Power saver: how lightly she runs in games, or always	Tiết kiệm pin: cô ấy chạy nhẹ đến đâu trong game, hoặc luôn luôn
+Preset	Cài sẵn
+Press Create API key	Nhấn Tạo khóa API
+Press Create Key	Nhấn Tạo khóa
+Press Generate API Key	Nhấn Tạo khóa API
+Press Test and say something, so I know I can hear you.	Nhấn Thử và nói gì đó, để mình biết mình nghe được bạn.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Nhấn một phím, đơn lẻ hoặc cùng Ctrl, Alt, Shift hoặc Win.
+Press new keys, then Confirm	Nhấn các phím mới, rồi Xác nhận
+Provider	Nhà cung cấp
+Provider API key, optional	Khóa API của nhà cung cấp, tùy chọn
+Provider base URL	URL gốc của nhà cung cấp
+Provider forgotten.	Đã quên nhà cung cấp.
+Provider overlaps the brain name or note	Nhà cung cấp chồng lên tên hoặc ghi chú của não
+Publish	Đăng
+Publish mod	Đăng mod
+Push to talk is off.	Nói khi nhấn đang tắt.
+Push to talk key	Phím nói khi nhấn
+Push to talk:	Nói khi nhấn:
+Push to talk: not set	Nói khi nhấn: chưa đặt
+QR CODE >	MÃ QR >
+QR hidden while streaming	QR ẩn khi đang phát trực tiếp
+Quick	Nhanh
+Quiet key	Phím im lặng
+Quiet:	Im lặng:
+Quiet: Ctrl + Alt + P	Im lặng: Ctrl + Alt + P
+Quit Capri	Thoát Capri
+RELAY >	RELAY >
+REMOTE >	TỪ XA >
+RUNS CODE.	CHẠY MÃ.
+Rarely	Hiếm khi
+Rate mod	Đánh giá mod
+Reading its README...	Đang đọc README...
+Refresh	Làm mới
+Reinstall	Cài lại
+Reload	Tải lại
+Reloaded.	Đã tải lại.
+Remember our chats	Nhớ các cuộc trò chuyện của chúng mình
+Remember what she sees	Nhớ những gì cô ấy thấy
+Remote	Từ xa
+Remote off	Từ xa tắt
+Remote on	Từ xa bật
+Remove	Gỡ
+Remove all phones	Gỡ tất cả điện thoại
+Replies	Trả lời
+Reply length	Độ dài trả lời
+Report a problem	Báo cáo sự cố
+Reset colors	Đặt lại màu
+Reset to her default	Đặt lại về mặc định của cô ấy
+Resolution	Độ phân giải
+Restart to update	Khởi động lại để cập nhật
+Restless	Bồn chồn
+Revoke	Thu hồi
+Revoke also removes the phones its links added	Thu hồi cũng gỡ các điện thoại do liên kết của nó thêm vào
+Ride cursor	Cưỡi con trỏ
+Ride cursor / Hop off	Cưỡi con trỏ / Xuống
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Nhấn chuột phải vào mình bất cứ lúc nào để mở Capri Mainframe. Một não sẽ bật ở mục NÃO.
+Right-click me any time for the Mainframe, Help and the Discord.	Nhấn chuột phải vào mình bất cứ lúc nào để mở Mainframe, Trợ giúp và Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox hoặc ứng dụng khác: chọn
+Robot	Robot
+Rock, paper, scissors	Kéo, búa, bao
+Run this code mod?	Chạy mod mã này?
+Running on this PC	Đang chạy trên PC này
+Running on this PC · :	Đang chạy trên PC này · :
+Runs Claude Code or Codex on this PC, signed in.	Chạy Claude Code hoặc Codex trên PC này, đã đăng nhập.
+Runs on your PC. No key, no credits.	Chạy trên PC của bạn. Không cần khóa, không cần tín dụng.
+SCAN WITH YOUR PHONE · EXPIRES	QUÉT BẰNG ĐIỆN THOẠI · HẾT HẠN
+SECURITY >	BẢO MẬT >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	SẮP XẾP THEO
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ÂM THANH THÓI QUEN NÃO XEM CAPRI DOOMSCROLL THỜI TIẾT CLIP GAME PHÍM CHIÊU GIỌNG BẠN
+Same as her ears (VOICE > Mic)	Giống tai của cô ấy (GIỌNG > Mic)
+Same code on the phone?	Cùng mã trên điện thoại?
+Save	Lưu
+Save big moments	Lưu khoảnh khắc quan trọng
+Save folder	Thư mục lưu
+Save your changes, or press Discard + reload.	Lưu thay đổi, hoặc nhấn Bỏ + tải lại.
+Save your changes, or press Discard.	Lưu thay đổi, hoặc nhấn Bỏ.
+Saved.	Đã lưu.
+Saved. Ctrl + Alt + O opens her Mainframe.	Đã lưu. Ctrl + Alt + O mở Mainframe của cô ấy.
+Saving your rating...	Đang lưu đánh giá của bạn...
+Say her name anywhere to chat	Nói tên cô ấy ở bất cứ đâu để trò chuyện
+Screens	Màn hình
+Screens is hidden or outside WATCH	Màn hình bị ẩn hoặc nằm ngoài XEM
+Screens overlaps a WATCH row	Màn hình chồng lên một hàng XEM
+Screens to watch	Màn hình để xem
+Sealed end to end	Mã hóa đầu cuối
+Search by name or author	Tìm theo tên hoặc tác giả
+Search installed mods	Tìm mod đã cài
+Search mods	Tìm mod
+Search name, author or description	Tìm tên, tác giả hoặc mô tả
+Security	Bảo mật
+Security:	Bảo mật:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Thiết lập
+Set up her brain	Thiết lập não của cô ấy
+Set up your voice model	Thiết lập mô hình giọng của bạn
+Setting up her brain	Đang thiết lập não của cô ấy
+Settings	Cài đặt
+Settings / Back	Cài đặt / Quay lại
+Settings folds the wrong rows above BRAIN	Cài đặt gấp sai các hàng phía trên NÃO
+Settings had nothing to watch.	Cài đặt không có gì để xem.
+Settings lost keyboard focus during the Tab walk	Cài đặt mất tiêu điểm bàn phím trong lúc duyệt bằng Tab
+Setup guide	Hướng dẫn thiết lập
+Setup stopped	Thiết lập đã dừng
+She can read it when it fits.	Cô ấy có thể đọc khi vừa.
+She glances at your screen and comments. Costs a little on a paid brain.	Cô ấy liếc màn hình của bạn và bình luận. Tốn một chút với não trả phí.
+She keeps listening. Say her name, then just talk until you go quiet.	Cô ấy tiếp tục nghe. Gọi tên cô ấy, rồi cứ nói cho đến khi bạn im lặng.
+She reacts to your game until you close it.	Cô ấy phản ứng với game của bạn cho đến khi bạn đóng nó.
+She reads these controls before each game job.	Cô ấy đọc các điều khiển này trước mỗi việc trong game.
+She talks about your game as you play. Costs a little on a paid brain.	Cô ấy nói về game của bạn khi bạn chơi. Tốn một chút với não trả phí.
+She uses it when she plays	Cô ấy dùng nó khi chơi
+Short	Ngắn
+Shortest wait (minutes)	Thời gian chờ ngắn nhất (phút)
+Show Capri	Hiện Capri
+Show QR	Hiện QR
+Show my mod file	Hiện tệp mod của tôi
+Show on Discord	Hiện trên Discord
+Shum, what time is it	Shum, mấy giờ rồi
+Sign in	Đăng nhập
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Đăng nhập, tạo khóa và sao chép. Sau đó nhấn Dán và mình sẽ kết nối.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Đăng nhập, nhấn Tạo khóa API và sao chép. Sau đó nhấn Dán và mình sẽ kết nối.
+Silent · text only	Im lặng · chỉ văn bản
+Simple / Advanced Settings	Cài đặt đơn giản / nâng cao
+Simple Settings	Cài đặt đơn giản
+Simple Settings left a gap under Check in on me	Cài đặt đơn giản để lại khoảng trống dưới Hỏi thăm mình
+Sit here	Ngồi đây
+Sit on windows	Ngồi trên cửa sổ
+Size	Kích thước
+Skip	Bỏ qua
+Skip all	Bỏ qua tất cả
+Skip for now	Bỏ qua tạm thời
+Sleep	Ngủ
+Small	Nhỏ
+Sometimes	Thỉnh thoảng
+Sound effects volume	Âm lượng hiệu ứng âm thanh
+Sound sensitivity	Độ nhạy âm thanh
+Sounds	Âm thanh
+Speaker or clip	Loa hoặc clip
+Speech model	Mô hình nói
+Speed	Tốc độ
+Start with Windows	Khởi động cùng Windows
+Start with this!	Bắt đầu với cái này!
+Starting...	Đang khởi động...
+Stay	Ở lại
+Stay on my model	Giữ mô hình của mình
+Still checking your mics...	Vẫn đang kiểm tra mic của bạn...
+Still checking your speakers...	Vẫn đang kiểm tra loa của bạn...
+Still checking your virtual mics...	Vẫn đang kiểm tra mic ảo của bạn...
+Stop	Dừng
+Stopped using it. Couldn't remove the saved provider.	Đã ngừng dùng. Không gỡ được nhà cung cấp đã lưu.
+Support	Hỗ trợ
+Sure?	Chắc chứ?
+Sure? moved to a different phone	Chắc chứ? đã chuyển sang điện thoại khác
+TALK TO ME	NÓI CHUYỆN VỚI MÌNH
+TEXT ONLY	CHỈ VĂN BẢN
+Tab landed past the first option of	Tab đã nhảy qua tùy chọn đầu tiên của
+Tab never reached the quiet key	Tab không bao giờ tới được phím im lặng
+Tab reached nothing	Tab không tới được gì cả
+Tab selected a control without moving keyboard focus	Tab chọn một điều khiển mà không di chuyển tiêu điểm bàn phím
+Talk	Nói
+Talk key	Phím nói
+Talk:	Nói:
+Talk: Ctrl + Alt + V	Nói: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Tốc độ khung hình chụp mục tiêu; có thể giảm khi tải nặng hoặc hết ngân sách bộ nhớ
+Teases when another AI comes to the front.	Trêu chọc khi một AI khác xuất hiện phía trước.
+Test	Thử
+That address doesn't work. Try https://... or http://localhost:{0}.	Địa chỉ đó không hoạt động. Thử https://... hoặc http://localhost:{0}.
+That code expired	Mã đó đã hết hạn
+That mod is no longer installed. The list is updated.	Mod đó không còn được cài. Danh sách đã được cập nhật.
+That's a paid key: it goes under MAX INTELLIGENCE.	Đó là khóa trả phí: nó vào MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe vẫn được hợp thành khi trượt.
+The Mainframe stayed uncomposited after the slide.	Mainframe không còn được hợp thành sau slide.
+The controls moved while the picture was sliding.	Các điều khiển di chuyển khi hình đang trượt.
+The cover stayed visible after the slide ended.	Lớp phủ vẫn hiển thị sau khi slide kết thúc.
+The frame thread kept running after the page settled.	Luồng khung hình vẫn chạy sau khi trang đã ổn định.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Câu trả lời dài nhất cô ấy có thể đưa ra, tính bằng token. Tự động giữ theo Trả lời phía trên; {0}K hoặc {1}K cho phép cô ấy nói tiếp. Các việc sẽ có thêm chỗ khi cần
+The longest wait must be at least the shortest wait.	Thời gian chờ dài nhất phải ít nhất bằng thời gian chờ ngắn nhất.
+The picture doesn't match the scrolled page:	Hình không khớp với trang đã cuộn:
+The picture of Settings doesn't match the page:	Hình của Cài đặt không khớp với trang:
+The picture stayed up after the slide ended.	Hình vẫn hiện sau khi slide kết thúc.
+The picture wasn't showing while it slid.	Hình không hiển thị khi đang trượt.
+The provider sheet is crowded:	Bảng nhà cung cấp quá đông:
+The voice panel has no screen DPI.	Bảng giọng nói không có DPI màn hình.
+The voice panel's menus share one font.	Các menu của bảng giọng nói dùng chung một phông chữ.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Chưa có khóa trên clipboard của bạn. Sao chép từ trang, rồi nhấn Dán.
+These start off. Each costs a little or uses your mic.	Các mục này mặc định tắt. Mỗi mục tốn một chút hoặc dùng mic của bạn.
+These start off. Turn on what you want. They're all in Settings too.	Các mục này mặc định tắt. Bật những gì bạn muốn. Tất cả cũng có trong Cài đặt.
+They can also call you Big Z, Capricorn or Nova	Họ cũng có thể gọi bạn là Big Z, Capricorn hoặc Nova
+They can also call you Nova, Big Z or Capricorn	Họ cũng có thể gọi bạn là Nova, Big Z hoặc Capricorn
+Thinking	Đang nghĩ
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Đây là giọng miễn phí của mình. Nhấn Thử, nói gì đó, và mình sẽ cho bạn thấy mình nghe được bạn.
+This mod has no description yet.	Mod này chưa có mô tả.
+Tic-tac-toe	Cờ caro
+Time between glances	Thời gian giữa các lần liếc
+Tiny	Nhỏ xíu
+Try again	Thử lại
+Turn Remote on first	Bật Từ xa trước
+Turn off mini player	Tắt trình phát nhỏ
+Turn push to talk off	Tắt nói khi nhấn
+Turning the wheel the other way kept the page heading the old way, to	Xoay bánh xe theo chiều ngược lại khiến trang tiếp tục đi theo hướng cũ, về phía
+Type	Gõ
+Type key	Phím gõ
+Type to me	Gõ cho mình
+Type:	Gõ:
+Type: Ctrl + Alt + T	Gõ: Ctrl + Alt + T
+Typing sound	Âm thanh gõ phím
+Unpacked. Press Test to hear it.	Đã giải nén. Nhấn Thử để nghe.
+Unsaved changes.	Thay đổi chưa lưu.
+Up to {0} fps	Lên tới {0} fps
+Up to {0}p	Lên tới {0}p
+Update	Cập nhật
+Update available.	Có bản cập nhật.
+Update mods	Cập nhật mod
+Updating...	Đang cập nhật...
+Use	Dùng
+Use her cursor	Dùng con trỏ của cô ấy
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Dùng https:// cho nhà cung cấp ở nơi khác. Khóa qua http thường không an toàn.
+Use preset	Dùng cài sẵn
+Use saved	Dùng đã lưu
+Use this server	Dùng máy chủ này
+Using your provider with a key	Đang dùng nhà cung cấp của bạn với khóa
+Using your server with no key	Đang dùng máy chủ của bạn không có khóa
+VIEW MOD >	XEM MOD >
+VOICE >	GIỌNG >
+VOICE IN YOUR MIC >	GIỌNG TRONG MIC CỦA BẠN >
+VOICE LAYERS >	LỚP GIỌNG >
+Verbosity	Mức độ nói nhiều
+Video bitrate	Bitrate video
+View	Xem
+View mod	Xem mod
+Voice	Giọng
+Voice ID	ID giọng
+Voice from	Giọng từ
+Voice layers	Lớp giọng
+Voice model	Mô hình giọng
+Voice model:	Mô hình giọng:
+Voice name or ID, optional	Tên hoặc ID giọng, tùy chọn
+Voice server address, or a voice model's folder	Địa chỉ máy chủ giọng, hoặc thư mục của mô hình giọng
+Voice status	Trạng thái giọng
+Voice, key and model...	Giọng, khóa và mô hình...
+Volume	Âm lượng
+WAKE ME UP >	ĐÁNH THỨC MÌNH >
+WATCH >	XEM >
+Waiting for the relay	Đang chờ relay
+Wake her up	Đánh thức cô ấy
+Waking her up	Đang đánh thức cô ấy
+Wander	Lang thang
+Wander around	Đi lang thang
+Watch my screen	Xem màn hình của tôi
+Watch-along memory	Bộ nhớ xem cùng nhau
+Weather	Thời tiết
+Weather city	Thành phố thời tiết
+Welcome back, choom. Let's finish setting me up.	Chào mừng trở lại, choom. Hãy hoàn tất thiết lập cho mình nhé.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Những việc cô ấy làm trên PC mà không hỏi. Khi tắt công tắc, cô ấy sẽ hỏi trước và làm khi bạn nói có.
+What should she call you?	Cô ấy nên gọi bạn là gì?
+When she types	Khi cô ấy gõ
+White	Trắng
+Windows default	Mặc định của Windows
+Windows did not give Settings keyboard focus	Windows không trao tiêu điểm bàn phím cho Cài đặt
+Windows did not return keyboard focus to Back	Windows không trả tiêu điểm bàn phím về Quay lại
+With no picture the wheel still tried to slide.	Không có hình, bánh xe vẫn cố trượt.
+Works best on MAX INTELLIGENCE.	Hoạt động tốt nhất với MAX INTELLIGENCE.
+YOU	BẠN
+YOU >	BẠN >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	GIỌNG BẠN CHIÊU PHÍM GAME CLIP THỜI TIẾT DOOMSCROLL CAPRI XEM NÃO THÓI QUEN ÂM THANH
+YOUR KEY	KHÓA CỦA BẠN
+YOUR MIC	MIC CỦA BẠN
+YOUR PLAN	GÓI CỦA BẠN
+Yokapri what's up	Yokapri có sao không
+You can hide this. It keeps going, and the Mainframe shows it too.	Bạn có thể ẩn cái này. Nó vẫn chạy, và Mainframe cũng hiển thị nó.
+Your mic and her voice go into one virtual mic, and	Mic của bạn và giọng cô ấy đi vào một mic ảo, và
+Your mic is muted. Unmute it to test.	Mic của bạn đang tắt. Bật lên để kiểm tra.
+Your mods are up to date.	Các mod của bạn đều đã cập nhật.
+Your name or a nickname	Tên hoặc biệt danh của bạn
+Your own model	Mô hình riêng của bạn
+Your personality	Tính cách của bạn
+Your voice	Giọng của bạn
+Your voice (HD)	Giọng của bạn (HD)
+Your voice (HD) · pick a clip of you...	Giọng của bạn (HD) · chọn clip của bạn...
+Your voice model	Mô hình giọng của bạn
+as its mic.	như mic của cô ấy.
+changed. Saved as My Colors, so you can share it.	đã thay đổi. Đã lưu là Màu của tôi, để bạn chia sẻ.
+choice	lựa chọn
+clips the input line	cắt dòng đầu vào
+cue	tín hiệu
+doesn't yet.	chưa.
+download	tải về
+file.	tệp.
+flag	cờ
+fps	fps
+hear	nghe
+hears	nghe
+hears that.	nghe điều đó.
+hides or shows her.	ẩn hoặc hiện cô ấy.
+hint	gợi ý
+in the Mainframe.	trong Mainframe.
+in the mods directory with a pull request.	vào thư mục mod bằng pull request.
+in the picture wasn't noticed.	trên hình không được nhận ra.
+is already her push-to-talk key.	đã là phím nói khi nhấn của cô ấy.
+is off.	đang tắt.
+is on and running.	đang bật và chạy.
+is on, at the bottom, under	đang bật, ở dưới cùng, dưới
+is on.	đang bật.
+is on. She now answers to	đang bật. Cô ấy giờ trả lời
+is removed.	đã được gỡ bỏ.
+is taken	đã bị chiếm
+is taken by another app. Try another.	đã bị ứng dụng khác dùng. Thử cái khác.
+is updated	đã được cập nhật
+isn't hearing it yet: do {0} and {1}, then join a call.	chưa nghe được: làm {0} và {1}, rồi tham gia cuộc gọi.
+it now.	bây giờ.
+keeps her quiet, and lets her talk again.	giữ cô ấy im lặng, và cho phép cô ấy nói lại.
+key	khóa
+key.	khóa.
+min	phút
+more.	hơn.
+ms.	ms.
+mutes mic	tắt mic
+mutes your mic.	tắt mic của bạn.
+name	tên
+off	tắt
+on this PC	trên PC này
+opens her Mainframe.	mở Mainframe của cô ấy.
+opens her typing box.	mở hộp gõ của cô ấy.
+phone	điện thoại
+phone pixels	điểm ảnh điện thoại
+phones	điện thoại
+pixels	điểm ảnh
+pixels)	điểm ảnh)
+star.	sao.
+stars.	sao.
+starts voice chat.	bắt đầu trò chuyện giọng nói.
+stays off. Nothing ran.	vẫn tắt. Không có gì được chạy.
+still does its own job in other apps too. Confirm to keep it.	vẫn làm việc của nó trong các ứng dụng khác. Xác nhận để giữ.
+tall	cao
+time	thời gian
+to talk	để nói
+to talk to her, with a game in front too.	để nói chuyện với cô ấy, kể cả khi có game ở phía trước.
+too.	cũng vậy.
+turns Gaming Mode on and off.	bật và tắt Chế độ Game.
+with Ollama	với Ollama
+won't type in other apps while she runs. Confirm to keep it.	sẽ không gõ trong ứng dụng khác khi cô ấy đang chạy. Xác nhận để giữ.
+{0}   Echo Cancellation: Off	{0}   Khử echo: Tắt
+{0}   If her voice cuts off, turn off noise filtering	{0}   Nếu giọng cô ấy bị cắt, tắt lọc tiếng ồn
+{0}   Input Device:	{0}   Thiết bị đầu vào:
+{0}   Join the call and check they hear both of you	{0}   Tham gia cuộc gọi và kiểm tra họ nghe được cả hai bạn
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Kiểm tra mic > Kiểm tra nào: bạn sẽ nghe chính mình, và cô ấy khi cô ấy nói
+{0}   Microphone:	{0}   Micro:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Khử ồn: Không. Cả hai có thể làm đứt giọng cô ấy sau dòng đầu tiên.
+{0}   Open the call or meeting's audio settings	{0}   Mở cài đặt âm thanh của cuộc gọi hoặc cuộc họp
+{0}   Output Device: your headphones, like before	{0}   Thiết bị đầu ra: tai nghe của bạn, như trước
+{0}   Speaker: your headphones, like before	{0}   Loa: tai nghe của bạn, như trước
+{0}   Try a mic test in your call app	{0}   Thử kiểm tra mic trong ứng dụng gọi của bạn
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Cài đặt người dùng (bánh răng cạnh tên bạn) > Giọng nói & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} dòng
+{0} min	{0} phút
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· trên PC này
+· server	· máy chủ

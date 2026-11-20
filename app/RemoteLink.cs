@@ -390,6 +390,7 @@ namespace CapriDesktop
         // however finely her words stream; done marks the last.
         internal void Reply(string device, string id, string re, string text, bool done)
         {
+            string said = null;
             lock (gate)
             {
                 Phone phone = Live(device);
@@ -405,14 +406,21 @@ namespace CapriDesktop
                     parts.Add(part);
                 }
                 part.Words.Append(text ?? "");
+                string key = device + " " + id;
+                StringBuilder start;
+                if (!replyStarts.TryGetValue(key, out start)) replyStarts[key] = start = new StringBuilder();
+                if (start.Length < 400) start.Append(RemoteMessages.Clip(text ?? "", 400 - start.Length));
                 if (done)
                 {
                     part.Done = true;
                     asks.Remove(phone.Device.Id + " " + re);
+                    replyStarts.Remove(key);
+                    if (re != null && phone.Device.PushOn && !(phone.Online && phone.Session != null && !phone.Away) && start.ToString().Trim().Length > 0) said = start.ToString();
                 }
                 else Touch(phone, re);
                 Arm(BatchMs);
             }
+            if (said != null) Notify("reply", "Capri", said, null, null, device);
         }
 
         private void Send(string device, string json, string re, bool stale, string toolId)
@@ -429,6 +437,228 @@ namespace CapriDesktop
                 if (re != null && asks.TryGetValue(device + " " + re, out ask)) item.Bound = ask.Bound;
                 Push(item);
                 Touch(phone, re);
+            }
+        }
+
+        private readonly Dictionary<string, StringBuilder> replyStarts = new Dictionary<string, StringBuilder>(StringComparer.Ordinal);
+        private RemotePush.Keys pushKeys;
+        private byte[] pushKeysFor;
+
+        internal Func<string, byte[], string, int, string, string, string> PushPost = RemotePush.Post;
+
+        internal int PushPhones
+        {
+            get
+            {
+                lock (gate)
+                {
+                    int count = 0;
+                    foreach (RemoteDevice device in state.Devices) if (device.PushOn) count++;
+                    return count;
+                }
+            }
+        }
+
+        private RemotePush.Keys PushKeys(ref RemoteState copy)
+        {
+            if (state.PushKey == null)
+            {
+                RemotePush.Keys made = RemotePush.NewKeys();
+                if (made == null) return null;
+                state.PushKey = made.Private;
+                pushKeys = made;
+                pushKeysFor = made.Private;
+                copy = state.Copy();
+                return made;
+            }
+            if (pushKeys == null || pushKeysFor != state.PushKey)
+            {
+                pushKeys = RemotePush.FromPrivate(state.PushKey);
+                pushKeysFor = state.PushKey;
+            }
+            return pushKeys;
+        }
+
+        private string PushStateFor(RemoteDevice device, RemotePush.Keys keys)
+        {
+            return RemoteMessages.PushState(keys == null ? "" : RemoteCrypto.B64u(keys.Public), device.PushOn, device.PushWeb, device.PushApp);
+        }
+
+        private void PushHeard(Phone phone, RemoteJson.Map message, ref RemoteState copy)
+        {
+            string type = message.Text("type"), id = message.Text("id");
+            if (!offered.Contains(RemotePush.Feature))
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.Error("not-allowed", RemoteMessages.IdOk(id) ? id : null)));
+                return;
+            }
+            RemoteDevice device = phone.Device;
+            if (type == "push.away")
+            {
+                phone.Away = message.Is("away", true);
+                return;
+            }
+            if (type == "push.get")
+            {
+                Push(Outgoing.Message(phone, PushStateFor(device, PushKeys(ref copy))));
+                return;
+            }
+            if (!RemoteMessages.IdOk(id))
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.Error("bad-message", null)));
+                return;
+            }
+            if (type == "push.test")
+            {
+                string deviceId = device.Id;
+                System.Threading.ThreadPool.QueueUserWorkItem(delegate { PushTest(deviceId, id); });
+                return;
+            }
+            bool on;
+            if (message.Is("on", false)) on = false;
+            else if (message.Is("on", true)) on = true;
+            else
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.Error("bad-message", id)));
+                return;
+            }
+            RemotePush.Keys keys = PushKeys(ref copy);
+            if (!on)
+            {
+                device.PushApp = false;
+                device.PushEndpoint = null;
+                device.PushP256dh = device.PushAuth = null;
+                copy = state.Copy();
+                Push(Outgoing.Message(phone, RemoteMessages.PushResult(id, true, "off")));
+                Push(Outgoing.Message(phone, PushStateFor(device, keys)));
+                return;
+            }
+            bool app = message.Is("app", true);
+            RemoteJson.Map web = message.Child("web");
+            string endpoint = null;
+            byte[] p256dh = null, auth = null;
+            if (web != null)
+            {
+                RemoteJson.Map webKeys = web.Child("keys");
+                endpoint = web.Text("endpoint");
+                p256dh = RemoteCrypto.FromB64u(webKeys != null ? webKeys.Text("p256dh") : web.Text("p256dh"), 65);
+                auth = RemoteCrypto.FromB64u(webKeys != null ? webKeys.Text("auth") : web.Text("auth"), 16);
+            }
+            bool webOk = web != null && keys != null && RemotePush.EndpointOk(endpoint) && RemotePush.PointOk(p256dh) && auth != null;
+            if (web != null && !webOk || !app && !webOk)
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.PushResult(id, false, "failed")));
+                Push(Outgoing.Message(phone, PushStateFor(device, keys)));
+                return;
+            }
+            device.PushApp = app;
+            device.PushEndpoint = webOk ? endpoint : null;
+            device.PushP256dh = webOk ? p256dh : null;
+            device.PushAuth = webOk ? auth : null;
+            copy = state.Copy();
+            Push(Outgoing.Message(phone, RemoteMessages.PushResult(id, true, "saved")));
+            Push(Outgoing.Message(phone, PushStateFor(device, keys)));
+        }
+
+        private sealed class WebPush
+        {
+            internal string Device, Endpoint, Json, Topic, Urgency;
+            internal byte[] P256dh, Auth;
+            internal int Ttl;
+            internal RemotePush.Keys Keys;
+        }
+
+        internal string Notify(string kind, string title, string body, string job, string askId, string only)
+        {
+            string id = RemoteMessages.NewId();
+            string json = RemoteMessages.Notify(id, kind, title, body, (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds, job, askId);
+            bool test = kind == "test";
+            List<WebPush> posts = new List<WebPush>();
+            lock (gate)
+            {
+                if (stopped || !offered.Contains(RemotePush.Feature)) return null;
+                RemoteState unused = null;
+                foreach (Phone phone in phones.Values)
+                {
+                    RemoteDevice device = phone.Device;
+                    if (phone.Removed || !device.PushOn || only != null && device.Id != only) continue;
+                    bool live = phone.Online && phone.Session != null && !phone.Kicked;
+                    if (live && !phone.Away && !test) continue;
+                    if (live && device.PushApp && (phone.Away || test))
+                    {
+                        Outgoing note = Outgoing.Message(phone, json);
+                        note.Stale = true;
+                        Push(note);
+                    }
+                    if (!device.PushWeb || live && device.PushApp && !test) continue;
+                    RemotePush.Keys keys = PushKeys(ref unused);
+                    if (keys == null) continue;
+                    posts.Add(new WebPush { Device = device.Id, Endpoint = device.PushEndpoint, P256dh = device.PushP256dh, Auth = device.PushAuth, Json = json, Keys = keys, Ttl = kind == "ask" || kind == "reminder" ? 3600 : kind == "checkin" ? 7200 : test ? 60 : 86400, Urgency = kind == "ask" || kind == "reminder" ? "high" : "normal", Topic = job != null && (kind == "ask" || kind == "done") && RemoteMessages.IdOk(job) && job.Length <= 31 ? "j" + job : null });
+                }
+            }
+            foreach (WebPush post in posts)
+            {
+                WebPush sending = post;
+                System.Threading.ThreadPool.QueueUserWorkItem(delegate { PostWeb(sending); });
+            }
+            return id;
+        }
+
+        private string PostWeb(WebPush post)
+        {
+            string result;
+            try
+            {
+                byte[] body = RemotePush.Encrypt(Encoding.UTF8.GetBytes(post.Json), post.P256dh, post.Auth);
+                long now = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+                result = body == null ? "failed" : PushPost(post.Endpoint, body, RemotePush.Vapid(post.Endpoint, post.Keys, now), post.Ttl, post.Urgency, post.Topic);
+            }
+            catch (Exception) { result = "failed"; }
+            if (result != "gone") return result;
+            RemoteState copy = null;
+            lock (gate)
+            {
+                RemoteDevice device = state.Find(post.Device);
+                if (device != null && device.PushEndpoint == post.Endpoint)
+                {
+                    device.PushEndpoint = null;
+                    device.PushP256dh = device.PushAuth = null;
+                    copy = state.Copy();
+                }
+            }
+            Save(copy);
+            return result;
+        }
+
+        private void PushTest(string deviceId, string re)
+        {
+            RemotePush.Keys keys;
+            WebPush post = null;
+            bool app = false;
+            string json = RemoteMessages.Notify(RemoteMessages.NewId(), "test", "Capri", "Notifications work. I'll tell you here when I need you.", (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds, null, null);
+            lock (gate)
+            {
+                Phone phone = Live(deviceId);
+                if (phone == null) return;
+                RemoteState unused = null;
+                keys = PushKeys(ref unused);
+                RemoteDevice device = phone.Device;
+                if (device.PushApp && phone.Online && phone.Session != null)
+                {
+                    Outgoing note = Outgoing.Message(phone, json);
+                    note.Stale = true;
+                    Push(note);
+                    app = true;
+                }
+                if (device.PushWeb && keys != null) post = new WebPush { Device = device.Id, Endpoint = device.PushEndpoint, P256dh = device.PushP256dh, Auth = device.PushAuth, Json = json, Keys = keys, Ttl = 60, Urgency = "normal" };
+            }
+            string code = post != null ? PostWeb(post) : app ? "sent" : "none";
+            if (post != null && code != "sent" && app) code = "sent";
+            Send(deviceId, RemoteMessages.PushResult(re, code == "sent", code), null, false, null);
+            lock (gate)
+            {
+                Phone phone = Live(deviceId);
+                if (phone != null) Push(Outgoing.Message(phone, PushStateFor(phone.Device, keys)));
             }
         }
 
@@ -451,6 +681,8 @@ namespace CapriDesktop
             all.AddRange(offered);
             if ((BrainAsked != null || BrainRequested != null) && !all.Contains(RemoteBrainKeys.Feature)) all.Add(RemoteBrainKeys.Feature);
             if (!all.Contains(PairFeature)) all.Add(PairFeature);
+            if (!all.Contains(RemoteWake.Feature)) all.Add(RemoteWake.Feature);
+            if (MemoryBook.Ready && !all.Contains(MemoryBook.Feature)) all.Add(MemoryBook.Feature);
             return all.ToArray();
         }
 
@@ -610,6 +842,99 @@ namespace CapriDesktop
                 finally { link.wire.Socket.Dispose(); }
             }
             checks.Add("PASS job messages reach both live phones, open with each phone's keys, batch steps, stay at five frames a second, drop frames from a replaced session and keep a phone that fell behind to the newest 30 steps");
+        }
+
+        internal static void SmokePush(List<string> checks)
+        {
+            RemoteState state = RemoteState.Fresh();
+            for (int i = 0; i < 2; i++) state.Devices.Add(new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone " + i });
+            RemoteLink link = new RemoteLink(state, "ws://127.0.0.1:1", "Test PC", "test", null);
+            link.Offer(RemotePush.Feature);
+            if (Array.IndexOf(link.FeaturesNow, RemotePush.Feature) < 0) throw new Exception("Notifications weren't offered at hello.");
+            RemotePush.Keys phoneKeys = RemotePush.NewKeys();
+            byte[] auth = RemoteCrypto.Random(16);
+            List<string[]> posted = new List<string[]>();
+            string answer = "sent";
+            using (ManualResetEvent post = new ManualResetEvent(false))
+            using (CancellationTokenSource stop = new CancellationTokenSource())
+            {
+                link.PushPost = delegate(string endpoint, byte[] body, string authorization, int ttl, string urgency, string topic)
+                {
+                    byte[] plain = RemotePush.Decrypt(body, phoneKeys.Private, phoneKeys.Public, auth);
+                    lock (posted) posted.Add(new[] { endpoint, plain == null ? null : Encoding.UTF8.GetString(plain), authorization, ttl.ToString(System.Globalization.CultureInfo.InvariantCulture), urgency, topic });
+                    post.Set();
+                    return answer;
+                };
+                link.wire = new Wire(stop);
+                try
+                {
+                    List<Phone> list = new List<Phone>(link.phones.Values);
+                    Phone app = list[0], web = list[1];
+                    app.Online = true;
+                    app.Session = new RemoteChannel(RemoteCrypto.SessionKeys(app.Device.Key, new byte[16], RemoteCrypto.Random(16)), RemoteCrypto.KindSession);
+                    Func<List<RemoteJson.Map>> take = delegate
+                    {
+                        List<RemoteJson.Map> got = new List<RemoteJson.Map>();
+                        Outgoing item;
+                        while ((item = link.wire.Take()) != null) { if (item.Json != null) got.Add(RemoteJson.ParseMap(item.Json)); item.Finish(); }
+                        return got;
+                    };
+                    Action<Phone, string> heard = delegate(Phone phone, string json)
+                    {
+                        RemoteState copy = null;
+                        lock (link.gate) link.PushHeard(phone, RemoteJson.ParseMap(json), ref copy);
+                    };
+                    heard(app, "{\"type\":\"push.get\"}");
+                    List<RemoteJson.Map> sent = take();
+                    if (sent.Count != 1 || sent[0].Text("type") != "push.state" || RemoteCrypto.FromB64u(sent[0].Text("key"), 65) == null || !sent[0].Is("on", false) || state.PushKey == null) throw new Exception("push.get didn't answer with her push key.");
+                    string key = sent[0].Text("key");
+                    heard(app, "{\"type\":\"push.sub\",\"id\":\"s1\",\"on\":true,\"web\":{\"endpoint\":\"https://fcm.googleapis.com.evil.example/x\",\"keys\":{\"p256dh\":\"" + RemoteCrypto.B64u(phoneKeys.Public) + "\",\"auth\":\"" + RemoteCrypto.B64u(auth) + "\"}}}");
+                    sent = take();
+                    if (sent.Count != 2 || sent[0].Text("code") != "failed" || app.Device.PushOn) throw new Exception("A push subscription to another host was saved.");
+                    heard(app, "{\"type\":\"push.sub\",\"id\":\"s2\",\"on\":true,\"app\":true}");
+                    sent = take();
+                    if (sent.Count != 2 || sent[0].Text("code") != "saved" || !sent[1].Is("app", true) || !sent[1].Is("on", true) || !app.Device.PushApp) throw new Exception("The Android app's notifications weren't saved.");
+                    link.Notify("ask", "Sending a message", "Allow sending this message?", "j1", null, null);
+                    if (take().Count != 0) throw new Exception("A phone looking at Remote got a notification.");
+                    heard(app, "{\"type\":\"push.away\",\"away\":true}");
+                    link.Notify("ask", "Sending a message", "Allow sending this message?", "j1", null, null);
+                    sent = take();
+                    if (sent.Count != 1 || sent[0].Text("type") != "notify" || sent[0].Text("kind") != "ask" || sent[0].Text("job") != "j1" || sent[0].Text("body") != "Allow sending this message?") throw new Exception("An away Android app didn't get the question in its session.");
+                    link.Reply(app.Device.Id, "r1", "m1", "Your train leaves ", false);
+                    link.Reply(app.Device.Id, "r1", "m1", "at 5:40.", true);
+                    link.FlushParts(null);
+                    sent = take();
+                    if (!sent.Exists(delegate(RemoteJson.Map m) { return m.Text("type") == "notify" && m.Text("kind") == "reply" && m.Text("body") == "Your train leaves at 5:40."; })) throw new Exception("Her answer to an away phone wasn't a notification.");
+                    web.Online = true;
+                    web.Session = new RemoteChannel(RemoteCrypto.SessionKeys(web.Device.Key, new byte[16], RemoteCrypto.Random(16)), RemoteCrypto.KindSession);
+                    heard(web, "{\"type\":\"push.sub\",\"id\":\"s3\",\"on\":true,\"web\":{\"endpoint\":\"https://fcm.googleapis.com/fcm/send/abc\",\"keys\":{\"p256dh\":\"" + RemoteCrypto.B64u(phoneKeys.Public) + "\",\"auth\":\"" + RemoteCrypto.B64u(auth) + "\"}}}");
+                    sent = take();
+                    if (sent.Count != 2 || sent[0].Text("code") != "saved" || !sent[1].Is("web", true) || sent[1].Text("key") != key) throw new Exception("A web push subscription wasn't saved.");
+                    web.Online = false;
+                    web.Session = null;
+                    heard(app, "{\"type\":\"push.away\",\"away\":false}");
+                    link.Notify("done", "Done: Booking a table", "Finished on your PC.", "j2", null, null);
+                    if (!post.WaitOne(15000) || posted.Count != 1) throw new Exception("An offline phone's web push wasn't posted.");
+                    string[] one = posted[0];
+                    RemoteJson.Map pushed = one[1] == null ? null : RemoteJson.ParseMap(one[1]);
+                    if (pushed == null || pushed.Text("kind") != "done" || pushed.Text("job") != "j2" || one[0] != "https://fcm.googleapis.com/fcm/send/abc" || !one[2].StartsWith("vapid t=", StringComparison.Ordinal) || !one[2].EndsWith(", k=" + key, StringComparison.Ordinal) || one[3] != "86400" || one[4] != "normal" || one[5] != "jj2") throw new Exception("A web push didn't open on the phone with its kind, job, VAPID key and headers.");
+                    if (take().Count != 0) throw new Exception("A phone looking at Remote got a job's end.");
+                    post.Reset();
+                    answer = "gone";
+                    link.Notify("reminder", "Reminder", "take the pizza out", null, null, null);
+                    if (!post.WaitOne(15000)) throw new Exception("A reminder wasn't posted.");
+                    for (int wait = 0; wait < 100 && web.Device.PushWeb; wait++) Thread.Sleep(50);
+                    if (web.Device.PushWeb || !RemoteJson.ParseMap(posted[1][1]).Text("body").Contains("pizza") || posted[1][4] != "high") throw new Exception("A subscription the push service said was gone was kept.");
+                    RemoteState back = RemoteState.FromJson(state.ToJson());
+                    if (back == null || back.PushKey == null || RemoteCrypto.B64u(back.PushKey) != RemoteCrypto.B64u(state.PushKey) || !back.Find(app.Device.Id).PushApp || back.Find(web.Device.Id).PushOn) throw new Exception("Saved notification settings didn't come back.");
+                    heard(app, "{\"type\":\"push.sub\",\"id\":\"s4\",\"on\":false}");
+                    sent = take();
+                    if (sent.Count != 2 || sent[0].Text("code") != "off" || app.Device.PushOn) throw new Exception("Turning notifications off didn't forget them.");
+                    if (RemoteState.Fresh().PushKey != null) throw new Exception("A new room kept the old push key.");
+                }
+                finally { link.wire.Socket.Dispose(); }
+            }
+            checks.Add("PASS phone notifications: her push key, the Android app's in-session notify only while it's away, her answer to an away phone, web push posted encrypted to the phone's own push service with VAPID, other hosts refused, gone subscriptions forgotten, and all of it saved with the room");
         }
 
         internal static RemoteLink SmokeSession(RemoteState state)
@@ -1741,6 +2066,7 @@ namespace CapriDesktop
             phone.Jobs.Clear();
             phone.JobHello = false;
             phone.JobStepNext = false;
+            phone.Away = false;
             phone.Hellos++;
             if (message == null || message.Text("type") != "hello")
             {
@@ -1801,6 +2127,30 @@ namespace CapriDesktop
                     said.Add(item);
                     return;
                 }
+                case "wake.get":
+                {
+                    string device = phone.Device.Id;
+                    System.Threading.ThreadPool.QueueUserWorkItem(delegate { Send(device, RemoteWake.Info(), null, false, null); });
+                    return;
+                }
+                case "memory.get":
+                case "memory.edit":
+                case "memory.forget":
+                case "memory.add":
+                case "memory.day":
+                case "memory.forget-day":
+                case "memory.wipe":
+                case "memory.undo":
+                {
+                    string device = phone.Device.Id;
+                    if (!MemoryBook.Ready)
+                    {
+                        Push(Outgoing.Message(phone, RemoteMessages.Error("not-allowed", RemoteMessages.IdOk(message.Text("id")) ? message.Text("id") : null)));
+                        return;
+                    }
+                    MemoryBook.Queue(delegate { foreach (string json in MemoryBook.Answer(message)) Send(device, json, null, false, null); });
+                    return;
+                }
                 case "ping":
                 {
                     double n;
@@ -1823,6 +2173,12 @@ namespace CapriDesktop
                 }
                 case "pair.ask":
                     PairAsk(phone, message.Text("id"), notes);
+                    return;
+                case "push.get":
+                case "push.sub":
+                case "push.away":
+                case "push.test":
+                    PushHeard(phone, message, ref copy);
                     return;
                 default:
                     // Screen and call messages go to their own parts, after this frame (RaiseLive).
@@ -2312,6 +2668,7 @@ namespace CapriDesktop
             internal bool PairAsked;
             internal long PairAt;
             internal int Hellos;
+            internal bool Away;
 
             internal Phone(RemoteDevice device)
             {

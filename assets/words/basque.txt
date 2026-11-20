@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Berriz margotutako kontrola ez zen irudian berriz marraztu.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Doako gakoa Google AI Studio, NVIDIA edo OpenRouter-etik. Ez dago deskargarik. Internet behar du.
+A held trackpad scroll got a flick's long ease:	Sagu-panelaren korritze luzeak keinu baten mugimendu luzea izan zuen:
+A layout change during a slide put the page at	Diapositiba baten artean diseinua aldatzeak orria hemen jarri zuen
+A layout change left the picture up.	Diseinu aldaketak irudia irekita utzi zuen.
+A model in Ollama, on your local server or on your key.	Modelo bat Ollama-n, zure tokiko zerbitzarian edo zure gakoarekin.
+A paid key goes under MAX INTELLIGENCE by itself.	Ordaindutako gakoa berez sartzen da MAX INTELLIGENCE azpian.
+A plan you already pay for, a key of your own, or Ollama.	Dagoeneko ordaintzen duzun plana, zure gakoa edo Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Ahots-panelaren menuak ez dauka panelaren letra-tipoaren kopiarik.
+A wheel turn right after a slide ended froze the picture.	Diapositiba amaitu eta berehala gurpilaren biraketak irudia izoztu zuen.
+ALLOW THIS PHONE?	TELEFONO HAU BAIMENDU?
+ALMOST THERE >	IA IRITSI DA >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	BESTE CAPRI BAT HARTU DU · ITZALI ETA PIZTU
+API key	API gakoa
+API key, Claude plan or ChatGPT plan	API gakoa, Claude plana edo ChatGPT plana
+Add	Gehitu
+Address	Helbidea
+Address and key saved. Use saved to reconnect.	Helbidea eta gakoa gorde dira. Berriz konektatzeko, erabili gordetakoa.
+Advanced Settings	Ezarpen aurreratuak
+All	Denak
+All screens	Pantaila guztiak
+Allow	Baimendu
+Almost there. I'll say hi the second my brain's in.	Ia hor. Burua sartu bezain laster agurtuko zaitut.
+Always	Beti
+Always on top	Beti goian
+Any Google account works. I opened the page in your browser.	Edozein Google kontu balio du. Orria zure arakatzailean ireki dut.
+Applies to every voice	Ahots guztietan aplikatzen da
+Apps she may close	Itxi ditzakeen aplikazioak
+Ask Capri for more	Eskatu Capri-ri gehiago
+Asking your server...	Zure zerbitzaria galdetzen...
+Asks before closing only the apps you choose.	Zuk aukeratutako aplikazioak bakarrik itxi aurretik galdetuko du.
+Auto	Automatikoa
+Automatic: VB-CABLE, else Steam's	Automatikoa: VB-CABLE, bestela Steam-ena
+BAD RELAY HOST	RELAY OSTALARI OKERRA
+BIG Z open notepad	BIG Z ireki notepad
+BRAIN	BURUA
+BRAIN >	BURUA >
+BRAIN ONLINE >	BURUA KONEKTATUTA >
+BRAIN PROVIDER >	BURUAREN HORNITZAILEA >
+BRAIN VOICE CAPRI	CAPRI BURUAREN AHOTSA
+Back	Atzera
+Back on your saved API key.	Berriz gordetako API gakoarekin.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	PC honentzat egokiena:
+Black	Beltza
+Blank key means no key.	Hutsik utzitako gakoak gakorik ez dagoela esan nahi du.
+Brain API key	Burua API gakoa
+Brain model	Burua modeloa
+Brain provider	Burua hornitzailea
+Bring here	Ekarri hona
+Bring to this screen	Ekarri pantaila honetara
+Browse	Arakatu
+Browse mods	Arakatu modak
+Browse to a voice model	Arakatu ahots modelo batera
+Browse...	Arakatu...
+Bubble	Burbuila
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, hor zaude?
+CAN'T REACH THE RELAY · RETRYING	EZIN DA RELAYRA IRITSI · BERRIZ SAIATZEN
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI AHOTS BURUA
+CHANGED, approve it again.	ALDATU DA, berriz onartu.
+CLIPS >	KLIPAK >
+CLOUD VOICE	HODEI AHOTSA
+CODE	KODEA
+COLORS >	KOLOREAK >
+CONNECTED	KONEKTATUTA
+CONNECTING	KONEKTATZEN
+CUSTOM LOCAL	PERTSONALIZATUA LOKALA
+Call mode (beta)	Deia modua (beta)
+Call mode does not fit.	Deia modua ez dago ondo.
+Call mode is outside its space.	Deia modua bere espaziotik kanpo dago.
+Cancel	Utzi
+Cancel keys	Utzi gakoak
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Urrunekoa
+Capri code:	Capri kodea:
+Capri mods (*	Capri modak (*
+Capri, hello	Capri, kaixo
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Kaosa haserretzen denean
+Chat with Capri from your phone	Hitz egin Capri-rekin zure telefonotik
+ChatGPT plan	ChatGPT plana
+Check for updates	Bilatu eguneraketak
+Check in on me	Begiratu nola nagoen
+Check in on me is hidden	Begiratu nola nagoen ezkutatuta dago
+Check in on me still decides whether she visits.	Begiratu nola nagoen oraindik erabakitzen du bisitatzen duen ala ez.
+Check in on me's tip missed	Begiratu nola nagoen aholkua galdu da
+Chess	Xakea
+Choose apps	Aukeratu aplikazioak
+Choose folder...	Aukeratu karpeta...
+Choose where future Capri clips are saved	Aukeratu non gordeko diren etorkizuneko Capri klipak
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude edo ChatGPT plana, ordaindutako gakoa (OpenAI, Claude, DeepSeek) edo Ollama.
+Claude plan	Claude plana
+Clear	Garbitu
+Cleared.	Garbitu da.
+Click Confirm to keep Down, or press Esc.	Egin klik Berretsi Behera mantentzeko, edo sakatu Esc.
+Click to open it.	Egin klik irekitzeko.
+Clip my games	Klipatu nire jokoak
+Clips	Klipak
+Close	Itxi
+Close other AIs for me	Itxi beste AIak nire ordez
+Cloud voice	Hodei ahotsa
+Cloud voice service	Hodei ahots zerbitzua
+Cloud voice setup	Hodei ahotsaren konfigurazioa
+Code mods can reach your whole PC. Only trusted ones.	Kode modek zure PC osora iritsi daitezke. Fidagarriak bakarrik.
+Code/Husk Mode	Kodea/Husk modua
+Codex	Codex
+Commands	Aginduak
+Comment on my games	Iruzkindu nire jokoak
+Comments	Iruzkinak
+Confirm	Berretsi
+Confirm keys	Berretsi gakoak
+Connect	Konektatu
+Connect / Forget brain key	Konektatu / Ahaztu burua gakoa
+Connect / Forget voice key	Konektatu / Ahaztu ahots gakoa
+Connect four	Lau ondo konektatu
+Controls	Kontrolak
+Copri, what time is it	Copri, zer ordu da
+Copy error details	Kopiatu errorearen xehetasunak
+Copy the key	Kopiatu gakoa
+Copy the key from the page, then press Paste.	Kopiatu gakoa orritik, eta gero sakatu Itsatsi.
+Couldn't open that page:	Ezin izan da orri hori ireki:
+Couldn't open that:	Ezin izan da hori ireki:
+Couldn't open the mods folder:	Ezin izan da modak karpeta ireki:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M dagoeneko bere Mainframe gakoa da.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N mikrofonoa isilarazten du
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V dagoeneko bere hitz egiteko gakoa da.
+Ctrl + Alt + V to talk	Ctrl + Alt + V hitz egiteko
+Custom local voice	Tokiko ahots pertsonalizatua
+Custom model name	Modelo izen pertsonalizatua
+Dance	Dantzatu
+Dance to music	Dantzatu musikara
+Default	Lehenetsia
+Default (follows Windows)	Lehenetsia (Windows-ena jarraituz)
+Default duration for clip that and automatic clips	Klip horren eta klip automatikoen iraupen lehenetsia
+Default length	Iraupen lehenetsia
+Default model	Modelo lehenetsia
+Delay	Atzerapena
+Deny	Ukatu
+Discard	Baztertu
+Discard + reload	Baztertu + birkargatu
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ez duzu itxaron nahi? Doako gako batekin minutu bat inguruan hitz egingo dut.
+Done	Eginda
+EXTRA REQUEST JSON >	JSON ESKAERA GEHIGARRIA >
+EXTRAS >	GEHIGARRIAK >
+Edit	Editatu
+Edit check-in lines	Editatu begiratze lerroak
+Edit check-in lines has the wrong view or dimming	Begiratze lerroen editatzeak ikuspegi edo iluntze okerra du
+Edit check-in lines is out of place	Begiratze lerroen editatzea tokitik kanpo dago
+Edit controls	Editatu kontrolak
+ElevenLabs API key	ElevenLabs API gakoa
+ElevenLabs voice ID	ElevenLabs ahots IDa
+English	Ingelesa
+Enter the game's name first.	Sartu jokoaren izena lehenik.
+Every	Bakoitza
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Mod bakoitza malwarearen bila aztertzen da igo aurretik. Kode modek oraindik galdetzen dute exekutatu aurretik.
+Explore after	Arakatu ondoren
+Explore while I'm away	Arakatu ni kanpoan nagoen bitartean
+Extra request JSON	JSON eskaera gehigarria
+Extras	Gehigarriak
+FREE KEY	DOAKO GAKOA
+FREE KEY >	DOAKO GAKOA >
+Fast hands in games	Eskuak azkar jokoetan
+File editor	Fitxategi editorea
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs eta gehiago AHOTSA atalean daude Mainframe-n.
+Follow-up messages	Jarraipen mezuak
+Forget	Ahaztu
+Fork capri-mods	Bifurkatu capri-mods
+Frame rate	Fotograma tasa
+Free	Doakoa
+Free and private, works offline. Downloads	Doakoa eta pribatua, konexiorik gabe funtzionatzen du. Deskargatzen
+Free and private, works offline. Downloads the best model for this PC.	Doakoa eta pribatua, konexiorik gabe funtzionatzen du. PC honentzat modelo onena deskargatzen du.
+Free key	Doako gakoa
+Free key providers	Doako gako hornitzaileak
+Free keys can be rate limited and slow.	Doako gakoen eskaerak mugatuak eta motelak izan daitezke.
+Free voice in games	Doako ahotsa jokoetan
+Free voice style	Doako ahots estiloa
+Free voice:	Doako ahotsa:
+Free voice: Her own	Doako ahotsa: Bere ahotsa
+Free · local model	Doakoa · tokiko modeloa
+GAMES >	JOKOAK >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Jokoaren iruzkinak Ikusi nire pantaila-tik bereizita exekutatzen dira. Off-ek geldiarazten ditu, Jokoen Moduan ere; Gertaerak soilik eta Hizketakoa-k uzten dute zure jokoa ikusten.
+Game controls	Joko kontrolak
+Game name	Jokoaren izena
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Jokoaren soinuaren sentikortasuna. Txikitu belarriko entzungailua baxu badago baina Windows {0}%-an badago eta soinu guztiei erreakzionatzen badio; Off-ek jokoko soinuak ez ditu kontuan hartzen.
+Game sounds	Joko soinuak
+Games	Jokoak
+Gaming Mode	Jokoen modua
+Gaming Mode key	Jokoen moduaren gakoa
+Gaming Mode:	Jokoen modua:
+Gaming Mode: Ctrl + Alt + G	Jokoen modua: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Lortu VB-CABLE
+Get VB-CABLE (free)...	Lortu VB-CABLE (doakoa)...
+Get free voice	Lortu doako ahotsa
+Getting your Fish Audio voices...	Zure Fish Audio ahotsak lortzen...
+Giant	Erraldoia
+Glitch	Akatsa
+Glitch in at startup	Akatsa abiaraztean
+Go to sleep	Lo egin
+Go to the next screen	Joan hurrengo pantailara
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · doakoa · eskaera mugatua
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude edo ChatGPT plana, edo zure gakoa? Aukeratu eta konektatuko naiz.
+Got it, just me. Right-click me any time for Capri Mainframe.	Ulertuta, ni bakarrik. Egin eskuineko klik nigan Capri Mainframe-rako edozein unetan.
+Grey	Grisa
+H.{0} video bitrate target; higher values make larger files	H.{0} bideo bit-tasa helburua; balio handiagoek fitxategi handiagoak sortzen dituzte
+HABITS >	OHITURAK >
+HER HANDS >	BERE ESKUAK >
+HER JOBS >	BERE LANAK >
+HER MEMORY >	BERE MEMORIA >
+HER MODS >	BERE MODAK >
+HH:mm	HH:mm
+HOW I SOUND >	NOLA ENTZUTEN NAUN >
+Hang here	Hemen egon
+Have Ollama? Open it, then press Refresh.	Ollama duzu? Ireki, eta gero sakatu Freskatu.
+Head pats	Burua laztanak
+Hearing	Entzumena
+Hearing engine	Entzute motorra
+Hearing fix	Entzute konponketa
+Hearing status	Entzute egoera
+Help	Laguntza
+Help page	Laguntza orria
+Her colors	Bere koloreak
+Her folder	Bere karpeta
+Her memories	Bere oroitzapenak
+Her own colors are back.	Bere kolore propioak berriz daude.
+Her own notes (no vault)	Bere oharrak (biltegirik gabe)
+Her perch frames per second	Bere perch-aren fotogramak segundoko
+Her personality	Bere izaera
+Her size	Bere tamaina
+Her speaker	Bere bozgorailua
+Her speaker is hidden or outside VOICE	Bere bozgorailua ezkutatuta dago edo AHOTSA atalaren kanpoan
+Her speaker overlaps the mic or hearing row	Bere bozgorailua mikrofonoarekin edo entzute lerroarekin gainjartzen da
+Her speaker:	Bere bozgorailua:
+Her speaker: Default	Bere bozgorailua: Lehenetsia
+Her voice in your mic	Bere ahotsa zure mikrofonoan
+Her voice in your mic: loudness	Bere ahotsa zure mikrofonoan: bolumena
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Bere ahotsa berez. Bere tonua Ezarpenak > AHOTSA > Tonua da, eta biak batera mugitzen dira.
+Her voice joins your mic only in call mode.	Bere ahotsa zure mikrofonoan sartzen da deia moduan soilik.
+Her voice volume	Bere ahotsaren bolumena
+Her voice's pitch	Bere ahotsaren tonua
+Her voice's pitch, the same as Settings > VOICE > Pitch	Bere ahotsaren tonua, Ezarpenak > AHOTSA > Tonua bezalakoa
+Her voice's speed	Bere ahotsaren abiadura
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Bere ahotsa, eta azpian nahastutako bi kopia, bakoitzak bere tonua eta atzerapena dituela.
+Her voices · free	Bere ahotsak · doakoak
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Kaixo, choom. Capri naiz. Hitz egin ahal izateko burua behar dut. Aukeratu bat.
+Hide / Show Capri	Ezkutatu / Erakutsi Capri
+Hide / Show key	Ezkutatu / Erakutsi gakoa
+Hide Capri	Ezkutatu Capri
+Hide for now	Ezkutatu oraingoz
+Hide her	Ezkutatu hura
+Hide in full screen	Ezkutatu pantaila osoan
+Hide this	Ezkutatu hau
+Hide, keep player	Ezkutatu, erreproduktorea utzi
+Hide/show:	Ezkutatu/erakutsi:
+Hide/show: Ctrl + Alt + H	Ezkutatu/erakutsi: Ctrl + Alt + H
+Hologram	Hologramak
+Hop off	Jaitsi
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Zenbat denbora behar duen geldi dagoen PC-ak bera lo egin dezan; bost minutuk oraindik kanpoan zaudela esan nahi du
+How long a stroke over her a head pat needs	Zenbat denbora behar den bere gainean burua laztana egiteko
+How long her replies stay up	Zenbat denboraz egoten diren bere erantzunak ikusgai
+How long you are away before she scrolls a browser or reader	Zenbat denbora kanpoan zauden arakatzailea edo irakurgailua mugitu aurretik
+How much her voice glitches	Bere ahotsak zenbat akats egiten dituen
+How much of the chat she keeps	Txatetik zenbat gordetzen duen
+How much she wanders	Zenbat ibiltzen den
+How often she pops in to say hi	Zenbat aldiz sartzen den agurtzeko
+How robotic her voice sounds	Bere ahotsa zenbat robotikoa den
+How to	Nola
+Huge	Erraldoia
+I can hear you.	Entzuten zaitut.
+I glance at your screen and comment. Costs a little on a paid brain.	Zure pantaila begiratu eta iruzkintzen dut. Ordaindutako burua bada, apur bat kostatzen da.
+I keep listening. Say my name, then just talk.	Entzuten jarraitzen dut. Esan nire izena, eta gero hitz egin besterik gabe.
+I talk about your game as you play. Costs a little on a paid brain.	Zure jokoaz hitz egiten dut jokatzen duzun bitartean. Ordaindutako burua bada, apur bat kostatzen da.
+I type my replies and stay quiet.	Nire erantzunak idazten ditut eta isilik egoten naiz.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ez dut ahoz erantzungo, eta ez da ezer inora bidaltzen. Hala ere, inguruan egongo naiz, zure musikara dantzatuko dut eta eskatzen dituzun gauza azkarrak egingo ditut, esaterako bolumena.
+I'll talk in	Hemen hitz egingo dut
+IN DISCORD >	DISCORD-EAN >
+INSTALLED >	INSTALATUTA >
+Import a Capri mod	Inportatu Capri modu bat
+Import mod	Inportatu modua
+In full screen	Pantaila osoan
+In games	Jokoetan
+Input	Sarrera
+Input, Output or How to overlaps a row	Sarrera, Irteera edo Nola errenkada batekin gainjartzen dira
+Input:	Sarrera:
+Input: default	Sarrera: lehenetsia
+Install	Instalatu
+Install mod	Instalatu modua
+Installed.	Instalatuta.
+It may ask for a phone number. I opened the page in your browser.	Telefono zenbakia eska dezake. Orria zure arakatzailean ireki dut.
+It still does its own job in other apps too.	Beste aplikazioetan ere bere lana egiten jarraitzen du.
+It won't type in other apps while she runs.	Ez du beste aplikazioetan idatziko exekutatzen den bitartean.
+JUST ME >	NI BAKARRIK >
+Jealous of other AIs	Beste AIen gainean jeloskor
+Join the Discord	Sartu Discord-era
+KB.	KB.
+KEYS	GAKOAK
+KEYS >	GAKOAK >
+Keep PC awake for jobs	Mantendu PC esna lanetarako
+Keep player	Utzi erreproduktorea
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Zure jokoaren azken bi minutuak memorian gordetzen ditu. Esan klip hori gordetzeko.
+Key	Gakoa
+Key cleared: a model file needs none.	Gakoa garbitu da: modelo fitxategiak ez du behar.
+Key cleared: paste the key for	Gakoa garbitu da: itsatsi gakoa honentzat
+Key forgotten.	Gakoa ahaztu da.
+Key. It goes only to this server, as a Bearer key	Gakoa. Zerbitzari honetara bakarrik joaten da, Bearer gako gisa
+Kokoro only, like es	Kokoro bakarrik, es bezala
+LAST THING >	AZKEN GAUZA >
+LISTENING >	ENTZUTEN >
+Language	Hizkuntza
+Large	Handia
+Last thing. These cost a little or use your mic, so they're your pick.	Azken gauza. Hauek apur bat kostatzen dira edo zure mikrofonoa erabiltzen dute, beraz zuk aukeratu.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Azken gauza. Hauek apur bat kostatzen dira edo zure mikrofonoa erabiltzen dute, beraz zuk aukeratu. Gero jakin nahi dut nola deitu behar zaidan.
+Layers	Geruzak
+Learn more	Ikasi gehiago
+Leaving Settings threw its picture away straight away.	Ezarpenetatik irtetean irudia berehala bota zen.
+Legacy stand	Legado oinarria
+Lie down	Etzan
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	PC elkarrizketaren lerroak memorian gordeta elkarrekin ikusten ari garen bitartean. Zaharrena erdia oharra bihurtzen da Gogoratu zer ikusten duen aktibo dagoenean
+Listen for Capri	Entzun Capri-ri
+Live reactions	Zuzeneko erreakzioak
+Local server address	Tokiko zerbitzariaren helbidea
+Long	Luzea
+Longest wait (minutes)	Itxaron luzeena (minutuak)
+Looking at this PC...	PC hau begiratzen...
+Looking for Ollama. Open it if it isn't running.	Ollama bilatzen. Ireki exekutatzen ez badago.
+Looking for a brain...	Burua bilatzen...
+Looking in the mods directory for updates...	Modak karpetan eguneraketak bilatzen...
+Looking in the mods directory...	Modak karpetan bilatzen...
+Looking...	Bilatzen...
+MAIN >	NAGUSIA >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	ERDI MAILAKO INTELLIGENCE
+MEMORY VAULT >	MEMORIA BILTEGIA >
+MODS	MODAK
+MODS >	MODAK >
+MODS DIRECTORY >	MODEN KARPETA >
+MODS INSTALLED COLORS	INSTALATUTAKO MODEN KOLOREAK
+MOVES >	MUGIMENDUAK >
+MY BRAIN	NIRE BURUA
+MY FREE VOICE	NIRE DOAKO AHOTSA
+MY PLAN OR KEY	NIRE PLANA EDO GAKOA
+MY PLAN OR KEY >	NIRE PLANA EDO GAKOA >
+Made your Fish Audio voice. Press Test to hear it.	Zure Fish Audio ahotsa egin da. Sakatu Probatu entzuteko.
+Mainframe colours	Mainframe koloreak
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe koloreak. Night City gorria eta zian da; Beltza, Zuria eta Grisa Mainframe-a, bere menuak, Idazteko kutxa eta bere oharrak aldatzen dituzte
+Mainframe frames	Mainframe markoak
+Mainframe key	Mainframe gakoa
+Mainframe size	Mainframe tamaina
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe tamaina. Automatikoak handiagotzen du Virtual Super Resolution edo DSR-k mahai-gainean handi bat pantaila txikiago batera txikitzen duenean
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Behera
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Zure Fish Audio ahotsa egiten...
+Max reply	Erantzun maximoa
+Maximum clip resolution, keeping the game's shape without upscaling	Klipen bereizmen maximoa, jokoaren forma mantenduz eta handitu gabe
+Medium	Ertaina
+Memory	Memoria
+Memory size	Memoria tamaina
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Memoria tamaina tokenetan Ollama-rako eta bere barne burua-rako. Automatikoak hazten du eskaerak gehiago behar duenean
+Mg	Mg
+Mic level:	Mikrofono maila:
+Mic test finished. Sound is reaching Capri.	Mikrofono proba amaitu da. Soinua Capri-ra iristen ari da.
+Mic:	Mikrofonoa:
+Mic: default	Mikrofonoa: lehenetsia
+Microphone	Mikrofonoa
+Mini player	Mini erreproduktorea
+Mini player over full screen	Mini erreproduktorea pantaila osoan gainean
+Mini-games	Mini jokoak
+Minimising the Mainframe left it sliding.	Mainframe minimizatzeak irristatzen utzi zuen.
+Minimize	Minimizatu
+Mod filter	Modak iragazkia
+Mod options	Modak aukerak
+Mod pages	Modak orriak
+Mod rules	Modak arauak
+Mod sort	Modak ordenatu
+Mod switch	Modak aldatzailea
+Model	Modeloa
+Model folder	Modelo karpeta
+Model name, optional	Modelo izena, aukerakoa
+Mods	Modak
+Mods directory	Modak karpeta
+Mods folder	Modak karpeta
+Most NVIDIA models can't see your screen.	NVIDIA modelo gehienek ezin dute zure pantaila ikusi.
+Mouse wheel notches got a flick's long ease:	Sagu gurpilaren urratsek keinu baten mugimendu luzea izan zuten:
+Move	Mugitu
+Move key to MAX INTELLIGENCE	Mugitu gakoa MAX INTELLIGENCE-ra
+Move to MAX	Mugitu MAX-era
+Music	Musika
+Music app	Musika aplikazioa
+Music app: where she plays music when you don't name an app	Musika aplikazioa: non jartzen duen musika aplikaziorik aipatzen ez baduzu
+Mute	Isildu
+Mute her	Isildu bera
+Mute mic key	Mikrofonoa isiltzeko gakoa
+Mute mic:	Mikrofonoa isildu:
+Mute mic: Ctrl + Alt + N	Mikrofonoa isildu: Ctrl + Alt + N
+My brain	Nire burua
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Nire burua jaisten ari da. Sartu bezain laster agurtuko zaitut, eta orduan hitz egin ahal izango duzu nirekin.
+My brain's on its way. While it comes down, let's sort out how I sound.	Nire burua bidean dago. Jaitsi bitartean, konpon dezagun nola entzuten naizen.
+My provider	Nire hornitzailea
+NO AI	AI RIK EZ
+NO PHONES CONNECTED	TELEFONORIK KONEKTATUTA EZ
+NO PREVIEW	AURREIKUSPENIK EZ
+NORMAL	ARRUNTA
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · doakoa · askotan motela ordu gorenetan
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-ren doako APIa askotan motela da, batez ere ordu gorenetan.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) edo OpenRouter API gakoa
+Names:	Izenak:
+Needs a key	Gakoa behar du
+Never	Inoiz ez
+New code	Kode berria
+New voice from a clip...	Ahots berria klip batetik...
+Next	Hurrengoa
+Night City	Night City
+No AI	AI rik ez
+No AI · no brain at all	AI rik ez · buruarik ere ez
+No brain runs, and nothing is sent anywhere.	Buruak ez du exekutatzen, eta ez da ezer inora bidaltzen.
+No brain yet	Burua oraindik ez
+No code open	Kodea irekita ez
+No limit	Mugarik gabe
+No mic found	Mikrofonorik ez da aurkitu
+No mods in the directory yet.	Modak karpetan oraindik modarik ez dago.
+No mods match that.	Ez dago mod hori bat ere.
+No mods match.	Ez dago bat datorren modarik.
+No phones yet	Telefonorik oraindik ez
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Oraindik ez dago mikrofono birtualik. Aukeratu Irteera, eta gero Lortu VB-CABLE (doakoa).
+None yet: pick to get VB-CABLE (free)	Oraindik ez: aukeratu VB-CABLE lortzeko (doakoa)
+Normal	Arrunta
+Not a relay host	Ez da relay ostalari bat
+Not imported. Nothing ran.	Ez da inportatu. Ez da ezer exekutatu.
+Not updated. The old one is still in.	Ez da eguneratu. Zaharra oraindik dago.
+Nothing needed updating.	Eguneratu beharrik ez zegoen.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Ez dago deskargarik, ez da ezer inora bidaltzen. Ez dut ahoz erantzungo. Gehitu burua noiznahi Mainframe-n.
+Nothing to show from the mods directory.	Modak karpetan ez dago erakusteko ezer.
+Nothing? Windows Settings > Privacy & security > Microphone.	Ezer ez? Windows ezarpenak > Pribatutasuna eta segurtasuna > Mikrofonoa.
+Nous Portal keys aren't supported yet.	Nous Portal gakoak ez dira oraindik onartzen.
+OBS	OBS
+OFF	OFF
+OLLAMA	OLLAMA
+ON	ON
+ON THIS PC	PC HONETAN
+OR A KEY	EDO GAKO BAT
+Obsidian memory vault	Obsidian memoria biltegia
+Off	Off
+Off. Turn on Her voice in your mic above.	Off. Piztu goian Bere ahotsa zure mikrofonoan.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Off: bere ahots ohikoa. On: bere ahots guztiak, ElevenLabs barne.
+Often	Askotan
+On	On
+On / Off	On / Off
+On: your mic and her voice are going in.	On: zure mikrofonoa eta bere ahotsa sartzen ari dira.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	JSON objektu bat, burua honek bidaltzen duen eskaera bakoitzari gehituta. Partekatzen duen izen bakoitzeko Capri-ren balioa ordezkatzen du, eta ez da modeloarekin egiaztatzen.
+Online speech recognition	Ahozko aitortza linean
+Open Capri Mainframe	Ireki Capri Mainframe
+Open Ollama, I'll find it	Ireki Ollama, aurkituko dut
+Open clips folder	Ireki klipen karpeta
+Open her memories	Ireki bere oroitzapenak
+Open her notes	Ireki bere oharrak
+Open mods folder	Ireki modak karpeta
+Open the page again	Berriz ireki orria
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA edo OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-rekin bateragarria den zerbitzaria edo hornitzailea.
+OpenRouter · free models only	OpenRouter · modelo doakoak soilik
+Optional	Aukerakoa
+Optional. Blank means no key.	Aukerakoa. Hutsik utzitako gakoak gakorik ez dagoela esan nahi du.
+Options	Aukerak
+Out of the box a little higher, just behind her.	Lehenetsitako balioa apur bat handiagoa, bere atzean.
+Out of the box lower, just behind her.	Lehenetsitako balioa apur bat txikiagoa, bere atzean.
+Output	Irteera
+Output:	Irteera:
+Output: none	Irteera: bat ere ez
+PHONE CONNECTED	TELEFONOA KONEKTATUTA
+PHONES >	TELEFONOAK >
+PHONES CONNECTED	TELEFONOAK KONEKTATUTA
+PREBUILT LOCAL	AURREKONFIGURATUTA LOKALA
+PUBLISH MOD >	MODA ARGITARATU >
+Pair a phone	Parekatu telefono bat
+Paste	Itsatsi
+Paste API key	Itsatsi API gakoa
+Paste a brain API key	Itsatsi burua API gakoa
+Paste reads your clipboard once, when you press it.	Itsatsiak zure arbela behin irakurtzen du, sakatzen duzunean.
+Paste your key here	Itsatsi zure gakoa hemen
+Pat stroke	Burua laztanaren marra
+Perch	Perch
+Perch over {0} fps uses more CPU	{0} fps-tik gorako perch-ak CPU gehiago erabiltzen du
+Pick Output to get it.	Aukeratu Irteera hura lortzeko.
+Pick a brain so I can talk back. You can change it any time.	Aukeratu burua, erantzun ahal izateko. Noiznahi alda dezakezu.
+Pick a clip of a voice you have the rights and consent to use	Aukeratu erabiltzeko eskubideak eta baimena dituzun ahots baten klip bat
+Pick a free model. I opened the page in your browser.	Aukeratu modelo doako bat. Orria zure arakatzailean ireki dut.
+Pick a new clip of you...	Aukeratu zure klip berri bat...
+Pick a voice model...	Aukeratu ahots modelo bat...
+Pick one. Only one brain runs at a time.	Aukeratu bat. Burua bakar bat exekutatzen da aldi berean.
+Pick the note her memories go in	Aukeratu bere oroitzapenak sartuko diren oharra
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Aukeratu {0} eta {1} segundo arteko zati bat erabiltzeko eskubideak eta baimena dituzun ahots batetik
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Aukeratu {0} eta {1} segundo arteko zati bat zu hitz egiten ari zarela, edo erabiltzeko eskubideak eta baimena dituzun ahots batetik
+Pitch	Tonua
+Play	Erreproduzitu
+Play...	Erreproduzitu...
+Player only	Erreproduktorea soilik
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeloek klip honen ahotsa kopiatzen dute. Sakatu Probatu entzuteko.
+Pop-in times	Agerpen orduak
+Pop-ins	Agerpenak
+Power saver	Energia aurrezlea
+Power saver: how lightly she runs in games, or always	Energia aurrezlea: nola arin exekutatzen den jokoetan, edo beti
+Preset	Aurrezarpena
+Press Create API key	Sakatu Sortu API gakoa
+Press Create Key	Sakatu Sortu gakoa
+Press Generate API Key	Sakatu API gakoa sortu
+Press Test and say something, so I know I can hear you.	Sakatu Probatu eta esan zerbait, entzuten zaitudala jakiteko.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Sakatu tekla bat, bakarrik edo Ctrl, Alt, Shift edo Win-ekin.
+Press new keys, then Confirm	Sakatu tekla berriak, eta gero Berretsi
+Provider	Hornitzailea
+Provider API key, optional	Hornitzailearen API gakoa, aukerakoa
+Provider base URL	Hornitzailearen oinarrizko URLa
+Provider forgotten.	Hornitzailea ahaztu da.
+Provider overlaps the brain name or note	Hornitzailea burua izenarekin edo oharrarekin gainjartzen da
+Publish	Argitaratu
+Publish mod	Argitaratu modua
+Push to talk is off.	Hitz egiteko sakatzea desaktibatuta dago.
+Push to talk key	Hitz egiteko sakatzeko gakoa
+Push to talk:	Hitz egiteko sakatu:
+Push to talk: not set	Hitz egiteko sakatu: ezarri gabe
+QR CODE >	QR KODEA >
+QR hidden while streaming	QR ezkutatuta emititzen ari denean
+Quick	Azkarra
+Quiet key	Isilpeko gakoa
+Quiet:	Isila:
+Quiet: Ctrl + Alt + P	Isila: Ctrl + Alt + P
+Quit Capri	Itxi Capri
+RELAY >	RELAY >
+REMOTE >	URRUNEKOA >
+RUNS CODE.	KODEA EXEKUTATZEN DU.
+Rarely	Gutxitan
+Rate mod	Balioetsi modua
+Reading its README...	README irakurtzen...
+Refresh	Freskatu
+Reinstall	Berriz instalatu
+Reload	Birkargatu
+Reloaded.	Birkargatu da.
+Remember our chats	Gogoratu gure txatak
+Remember what she sees	Gogoratu zer ikusten duen
+Remote	Urrunekoa
+Remote off	Urrunekoa itzalita
+Remote on	Urrunekoa piztuta
+Remove	Kendu
+Remove all phones	Kendu telefono guztiak
+Replies	Erantzunak
+Reply length	Erantzunaren luzera
+Report a problem	Eman arazo baten berri
+Reset colors	Berrezarri koloreak
+Reset to her default	Berrezarri bere lehenetsira
+Resolution	Bereizmena
+Restart to update	Berrabiarazi eguneratzeko
+Restless	Lasaitu ezina
+Revoke	Ezeztatu
+Revoke also removes the phones its links added	Ezeztatzeak bere estekek gehitutako telefonoak ere kentzen ditu
+Ride cursor	Gurpilaren kurtsorea
+Ride cursor / Hop off	Kurtsorea gurpilean / Jaitsi
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Egin eskuineko klik nigan Capri Mainframe-rako edozein unetan. Burua BURUA atalaren azpian piztuko da.
+Right-click me any time for the Mainframe, Help and the Discord.	Egin eskuineko klik nigan Mainframe-rako, Laguntzarako eta Discord-erako edozein unetan.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox edo beste edozein aplikazio: aukeratu
+Robot	Robota
+Rock, paper, scissors	Harria, papera, makila
+Run this code mod?	Kode mod hau exekutatu?
+Running on this PC	PC honetan exekutatzen
+Running on this PC · :	PC honetan exekutatzen · :
+Runs Claude Code or Codex on this PC, signed in.	Claude Code edo Codex exekutatzen du PC honetan, saioa hasita.
+Runs on your PC. No key, no credits.	Zure PCan exekutatzen da. Gakorik ez, kreditu gabe.
+SCAN WITH YOUR PHONE · EXPIRES	ESKANEATU TELEFONOAREKIN · AMAITZEN DA
+SECURITY >	SEGURTASUNA >
+SKILL.	TRESNA.
+SKIN.	AZALA.
+SORT BY	ORDENATU HAUEN ARABERA
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOINUAK OHITURAK BURUA BEGIRATU CAPRI DOOMSCROLL EGURALDIA KLIPAK JOKOAK GAKOAK MUGIMENDUAK AHOTSA ZU
+Same as her ears (VOICE > Mic)	Bere belarriak bezala (AHOTSA > Mikrofonoa)
+Same code on the phone?	Kode bera telefonoan?
+Save	Gorde
+Save big moments	Gorde une handiak
+Save folder	Gorde karpeta
+Save your changes, or press Discard + reload.	Gorde zure aldaketak, edo sakatu Baztertu + birkargatu.
+Save your changes, or press Discard.	Gorde zure aldaketak, edo sakatu Baztertu.
+Saved.	Gordeta.
+Saved. Ctrl + Alt + O opens her Mainframe.	Gordeta. Ctrl + Alt + O bere Mainframe irekitzen du.
+Saving your rating...	Zure balorazioa gordetzen...
+Say her name anywhere to chat	Esan bere izena edonon txateatzeko
+Screens	Pantailak
+Screens is hidden or outside WATCH	Pantailak ezkutatuta daude edo BEGIRATU atalaren kanpoan
+Screens overlaps a WATCH row	Pantailak BEGIRATU lerro batekin gainjartzen dira
+Screens to watch	Begiratzeko pantailak
+Sealed end to end	Muturretik muturrera zigilatuta
+Search by name or author	Bilatu izenaren edo egilearen arabera
+Search installed mods	Bilatu instalatutako modak
+Search mods	Bilatu modak
+Search name, author or description	Bilatu izena, egilea edo deskribapena
+Security	Segurtasuna
+Security:	Segurtasuna:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Konfiguratu
+Set up her brain	Konfiguratu bere burua
+Set up your voice model	Konfiguratu zure ahots modeloa
+Setting up her brain	Bere burua konfiguratzen
+Settings	Ezarpenak
+Settings / Back	Ezarpenak / Atzera
+Settings folds the wrong rows above BRAIN	Ezarpenek ondo ez dauden lerroak mugitzen dituzte BURUA gainean
+Settings had nothing to watch.	Ezarpenek ez zuten ikusteko ezer.
+Settings lost keyboard focus during the Tab walk	Ezarpenek teklatuaren fokua galdu zuten Tab ibilbidean
+Setup guide	Konfigurazio gida
+Setup stopped	Konfigurazioa gelditu da
+She can read it when it fits.	Ondo ateratzen denean irakur dezake.
+She glances at your screen and comments. Costs a little on a paid brain.	Zure pantaila begiratzen du eta iruzkintzen du. Ordaindutako burua bada, apur bat kostatzen da.
+She keeps listening. Say her name, then just talk until you go quiet.	Entzuten jarraitzen du. Esan bere izena, eta gero hitz egin isildu arte.
+She reacts to your game until you close it.	Zure jokoari erreakzionatzen dio itxi arte.
+She reads these controls before each game job.	Kontrol hauek irakurtzen ditu jokoko lan bakoitza baino lehen.
+She talks about your game as you play. Costs a little on a paid brain.	Zure jokoaz hitz egiten du jokatzen duzun bitartean. Ordaindutako burua bada, apur bat kostatzen da.
+She uses it when she plays	Jokatzen duenean erabiltzen du
+Short	Laburra
+Shortest wait (minutes)	Itxaron laburrena (minutuak)
+Show Capri	Erakutsi Capri
+Show QR	Erakutsi QR
+Show my mod file	Erakutsi nire modaren fitxategia
+Show on Discord	Erakutsi Discord-en
+Shum, what time is it	Shum, zer ordu da
+Sign in	Hasi saioa
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Hasi saioa, egin gako bat eta kopiatu. Gero sakatu Itsatsi eta konektatuko naiz.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Hasi saioa, sakatu Sortu API gakoa eta kopiatu. Gero sakatu Itsatsi eta konektatuko naiz.
+Silent · text only	Isila · testua soilik
+Simple / Advanced Settings	Ezarpen sinpleak / aurreratuak
+Simple Settings	Ezarpen sinpleak
+Simple Settings left a gap under Check in on me	Ezarpen sinpleek hutsune bat utzi zuten Begiratu nola nagoen azpian
+Sit here	Eseri hemen
+Sit on windows	Eseri leihoen gainean
+Size	Tamaina
+Skip	Saltatu
+Skip all	Saltatu guztiak
+Skip for now	Saltatu oraingoz
+Sleep	Lo
+Small	Txikia
+Sometimes	Batzuetan
+Sound effects volume	Efektu soinuen bolumena
+Sound sensitivity	Soinu sentikortasuna
+Sounds	Soinuak
+Speaker or clip	Bozgorailua edo klipa
+Speech model	Ahots modeloa
+Speed	Abiadura
+Start with Windows	Hasi Windows-ekin
+Start with this!	Hasi honekin!
+Starting...	Hasten...
+Stay	Geratu
+Stay on my model	Mantendu nire modeloa
+Still checking your mics...	Oraindik zure mikrofonoak aztertzen...
+Still checking your speakers...	Oraindik zure bozgorailuak aztertzen...
+Still checking your virtual mics...	Oraindik zure mikrofono birtualak aztertzen...
+Stop	Gelditu
+Stopped using it. Couldn't remove the saved provider.	Erabiltzeari utzi zaio. Ezin izan da gordetako hornitzailea kendu.
+Support	Laguntza
+Sure?	Ziur?
+Sure? moved to a different phone	Ziur? beste telefono batera mugitu da
+TALK TO ME	HITZ EGIN NIREKIN
+TEXT ONLY	TESTU SOILIK
+Tab landed past the first option of	Tab-a lehen aukeraren gainetik lehorreratu zen
+Tab never reached the quiet key	Tab-a ez zen inoiz isilpeko gakora iritsi
+Tab reached nothing	Tab-ak ez zuen ezer iritsi
+Tab selected a control without moving keyboard focus	Tab-ak kontrol bat hautatu zuen teklatuaren fokua mugitu gabe
+Talk	Hitz egin
+Talk key	Hitz egiteko gakoa
+Talk:	Hitz egin:
+Talk: Ctrl + Alt + V	Hitz egin: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Helburuko harrapaketa fotogramak segundoko; kargapean edo memoria aurrekontuaren azpian jaitsi daiteke
+Teases when another AI comes to the front.	Beste AI bat aurrealdera datorrenean txantxetan ari da.
+Test	Probatu
+That address doesn't work. Try https://... or http://localhost:{0}.	Helbide hori ez dabil. Saiatu https://... edo http://localhost:{0}.
+That code expired	Kode hori iraungi da
+That mod is no longer installed. The list is updated.	Mod hori ez dago instalatuta jada. Zerrenda eguneratu da.
+That's a paid key: it goes under MAX INTELLIGENCE.	Ordaindutako gakoa da: MAX INTELLIGENCE azpian sartzen da.
+The Mainframe stayed composited while sliding.	Mainframe konposatuta mantendu zen irristatzean.
+The Mainframe stayed uncomposited after the slide.	Mainframe konposatu gabe geratu zen irristatu ondoren.
+The controls moved while the picture was sliding.	Kontrolak mugitu ziren irudia irristatzen ari zen bitartean.
+The cover stayed visible after the slide ended.	Azala ikusgai geratu zen irristatzea amaitu ondoren.
+The frame thread kept running after the page settled.	Fotogramen haria exekutatzen jarraitu zuen orria finkatu ondoren.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Berak eman dezakeen erantzun luzeena, tokenetan. Automatikoak goiko Erantzunak mantentzen ditu; {0}K edo {1}K-k exekutatzen jarraitzea ahalbidetzen dio. Lanek behar duten lekua gehiago mantentzen dute.
+The longest wait must be at least the shortest wait.	Itxaron luzeenak laburrenaren balioa izan behar du gutxienez.
+The picture doesn't match the scrolled page:	Irudiak ez du bat egiten korritutako orriarekin:
+The picture of Settings doesn't match the page:	Ezarpenen irudiak ez du bat egiten orriarekin:
+The picture stayed up after the slide ended.	Irudia ikusgai geratu zen irristatzea amaitu ondoren.
+The picture wasn't showing while it slid.	Irudia ez zen ikusten irristatzen zen bitartean.
+The provider sheet is crowded:	Hornitzailearen orria beteta dago:
+The voice panel has no screen DPI.	Ahots panelak ez dauka pantailaren DPI-rik.
+The voice panel's menus share one font.	Ahots panelaren menuek letra-tipo bera partekatzen dute.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Oraindik ez dago gakorik zure arbelean. Kopiatu orritik, eta gero sakatu Itsatsi.
+These start off. Each costs a little or uses your mic.	Hauek desaktibatuta hasten dira. Bakoitzak apur bat kostatzen da edo zure mikrofonoa erabiltzen du.
+These start off. Turn on what you want. They're all in Settings too.	Hauek desaktibatuta hasten dira. Piztu nahi dituzunak. Ezarpenetan ere daude denak.
+They can also call you Big Z, Capricorn or Nova	Big Z, Capricorn edo Nova ere deitu ahal didazu
+They can also call you Nova, Big Z or Capricorn	Nova, Big Z edo Capricorn ere deitu ahal didazu
+Thinking	Pentsatzen
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Hau da nire doako ahotsa. Sakatu Probatu, esan zerbait, eta erakutsiko dizut entzuten zaitudala.
+This mod has no description yet.	Mod honek ez du oraindik deskribapenik.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Begiradeen arteko denbora
+Tiny	Txiki-txikia
+Try again	Saiatu berriz
+Turn Remote on first	Piztu Urrunekoa lehenik
+Turn off mini player	Itzali mini erreproduktorea
+Turn push to talk off	Itzali hitz egiteko sakatzea
+Turning the wheel the other way kept the page heading the old way, to	Gurpila beste aldera biratzeak orria zaharreko norabidean mantendu zuen, honetara:
+Type	Idatzi
+Type key	Idazteko gakoa
+Type to me	Idatzi niri
+Type:	Idatzi:
+Type: Ctrl + Alt + T	Idatzi: Ctrl + Alt + T
+Typing sound	Idazte soinua
+Unpacked. Press Test to hear it.	Deskonprimatuta. Sakatu Probatu entzuteko.
+Unsaved changes.	Gorde gabeko aldaketak.
+Up to {0} fps	{0} fps-raino
+Up to {0}p	{0}p-raino
+Update	Eguneratu
+Update available.	Eguneratzea eskuragarri.
+Update mods	Eguneratu modak
+Updating...	Eguneratzen...
+Use	Erabili
+Use her cursor	Erabili bere kurtsorea
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Erabili https:// beste nonbaiteko hornitzailerako. http arrunteko gako bat ez da segurua.
+Use preset	Erabili aurrezarpena
+Use saved	Erabili gordetakoa
+Use this server	Erabili zerbitzari hau
+Using your provider with a key	Zure hornitzailea gakoarekin erabiltzen
+Using your server with no key	Zure zerbitzaria gakorik gabe erabiltzen
+VIEW MOD >	IKUSI MODA >
+VOICE >	AHOTSA >
+VOICE IN YOUR MIC >	AHOTSA ZURE MIKROFONOAN >
+VOICE LAYERS >	AHOTS GERUZAK >
+Verbosity	Hitz-kopurua
+Video bitrate	Bideo bit-tasa
+View	Ikusi
+View mod	Ikusi modua
+Voice	Ahotsa
+Voice ID	Ahots IDa
+Voice from	Ahotsa hemendik
+Voice layers	Ahots geruzak
+Voice model	Ahots modeloa
+Voice model:	Ahots modeloa:
+Voice name or ID, optional	Ahots izena edo IDa, aukerakoa
+Voice server address, or a voice model's folder	Ahots zerbitzariaren helbidea, edo ahots modelo baten karpeta
+Voice status	Ahots egoera
+Voice, key and model...	Ahotsa, gakoa eta modeloa...
+Volume	Bolumena
+WAKE ME UP >	ESNATU NAIZ >
+WATCH >	BEGIRATU >
+Waiting for the relay	Erlearen zain
+Wake her up	Esnatu bera
+Waking her up	Bera esnatzen
+Wander	Ibili
+Wander around	Inguruan ibili
+Watch my screen	Begiratu nire pantaila
+Watch-along memory	Batera ikusteko oroitzapena
+Weather	Eguraldia
+Weather city	Eguraldiaren hiria
+Welcome back, choom. Let's finish setting me up.	Ongi etorri berriro, choom. Amaitu dezagun neure konfigurazioa.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Zer egiten duen zure PCan galdetu gabe. Etengailua itzalita dagoenean lehenik galdetzen du, eta bai esaten duzunean egiten du.
+What should she call you?	Nola deitu behar zaio?
+When she types	Idazten duenean
+White	Zuria
+Windows default	Windows lehenetsia
+Windows did not give Settings keyboard focus	Windows-ek ez zion Ezarpenei teklatuaren fokua eman
+Windows did not return keyboard focus to Back	Windows-ek ez zion teklatuaren fokua Atzera-ri itzuli
+With no picture the wheel still tried to slide.	Irudirik gabe gurpilak irristatzen saiatu zen oraindik.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE-n funtzionatzen du hobeto.
+YOU	ZU
+YOU >	ZU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ZU AHOTSA MUGIMENDUAK GAKOAK JOKOAK KLIPAK EGURALDIA DOOMSCROLL CAPRI BEGIRATU BURUA OHITURAK SOINUAK
+YOUR KEY	ZURE GAKOA
+YOUR MIC	ZURE MIKROFONOA
+YOUR PLAN	ZURE PLANA
+Yokapri what's up	Yokapri zer moduz
+You can hide this. It keeps going, and the Mainframe shows it too.	Hau ezkuta dezakezu. Jarraitzen du, eta Mainframe-ak ere erakusten du.
+Your mic and her voice go into one virtual mic, and	Zure mikrofonoa eta bere ahotsa mikrofono birtual bakar batera sartzen dira, eta
+Your mic is muted. Unmute it to test.	Zure mikrofonoa isilduta dago. Desisildu probatzeko.
+Your mods are up to date.	Zure modak egunean daude.
+Your name or a nickname	Zure izena edo ezizena
+Your own model	Zure modelo propioa
+Your personality	Zure izaera
+Your voice	Zure ahotsa
+Your voice (HD)	Zure ahotsa (HD)
+Your voice (HD) · pick a clip of you...	Zure ahotsa (HD) · aukeratu zure klip bat...
+Your voice model	Zure ahots modeloa
+as its mic.	bere mikrofono gisa.
+changed. Saved as My Colors, so you can share it.	aldatu da. My Colors gisa gorde da, partekatu ahal izateko.
+choice	aukera
+clips the input line	sarrera lerroa klipatzen du
+cue	seinalea
+doesn't yet.	ez oraindik.
+download	deskargatu
+file.	fitxategia.
+flag	bandera
+fps	fps
+hear	entzun
+hears	entzuten du
+hears that.	hori entzuten du.
+hides or shows her.	ezkutatu edo erakusten du.
+hint	aholkua
+in the Mainframe.	Mainframe-n.
+in the mods directory with a pull request.	modak karpetan pull request batekin.
+in the picture wasn't noticed.	irudian ez zen nabaritu.
+is already her push-to-talk key.	dagoeneko bere hitz egiteko sakatzeko gakoa da.
+is off.	itzalita dago.
+is on and running.	piztuta eta exekutatzen ari da.
+is on, at the bottom, under	piztuta dago, behean, azpian
+is on.	piztuta dago.
+is on. She now answers to	piztuta dago. Orain honi erantzuten dio:
+is removed.	kendu da.
+is taken	hartuta dago
+is taken by another app. Try another.	beste aplikazio batek hartuta dago. Saiatu beste bat.
+is updated	eguneratuta dago
+isn't hearing it yet: do {0} and {1}, then join a call.	oraindik ez du entzuten: egin {0} eta {1}, eta gero sartu deian.
+it now.	orain.
+keeps her quiet, and lets her talk again.	isilarazten du, eta berriz hitz egiten utzi.
+key	gakoa
+key.	gakoa.
+min	min
+more.	gehiago.
+ms.	ms.
+mutes mic	mikrofonoa isildu
+mutes your mic.	zure mikrofonoa isildu.
+name	izena
+off	itzalita
+on this PC	PC honetan
+opens her Mainframe.	bere Mainframe irekitzen du.
+opens her typing box.	bere idazteko kutxa irekitzen du.
+phone	telefonoa
+phone pixels	telefono pixelak
+phones	telefonoak
+pixels	pixelak
+pixels)	pixelak)
+star.	izarra.
+stars.	izarrak.
+starts voice chat.	ahots txata hasten du.
+stays off. Nothing ran.	itzalita geratzen da. Ez da ezer exekutatu.
+still does its own job in other apps too. Confirm to keep it.	beste aplikazioetan bere lana egiten jarraitzen du. Berretsi mantentzeko.
+tall	altua
+time	ordua
+to talk	hitz egiteko
+to talk to her, with a game in front too.	hari hitz egiteko, jokoa aurrean dagoela ere.
+too.	ere bai.
+turns Gaming Mode on and off.	Jokoen modua piztu eta itzaltzen du.
+with Ollama	Ollama-rekin
+won't type in other apps while she runs. Confirm to keep it.	ez du beste aplikazioetan idatziko exekutatzen den bitartean. Berretsi mantentzeko.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering	{0}   Bere ahotsa moztuta geratzen bada, desaktibatu zarata iragazketa
+{0}   Input Device:	{0}   Sarrera gailua:
+{0}   Join the call and check they hear both of you	{0}   Sartu deira eta egiaztatu biok entzuten zaituztela
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofono proba > Egiazta dezagun: zu entzungo duzu, eta hitz egiten duen bitartean berau ere
+{0}   Microphone:	{0}   Mikrofonoa:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Zarata murrizketa: Bat ere ez. Biek moztu dezakete bere ahotsa lehen lerroaren ondoren.
+{0}   Open the call or meeting's audio settings	{0}   Ireki deiaren edo bileraren audio ezarpenak
+{0}   Output Device: your headphones, like before	{0}   Irteera gailua: zure belarriko entzungailuak, lehen bezala
+{0}   Speaker: your headphones, like before	{0}   Bozgorailua: zure belarriko entzungailuak, lehen bezala
+{0}   Try a mic test in your call app	{0}   Egin mikrofono proba zure deia aplikazioan
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Erabiltzaile ezarpenak (zure izenaren ondoko gurpila) > Ahotsa eta bideoa
+{0} Mbps	{0} Mbps
+{0} lines	{0} lerro
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· PC honetan
+· server	· zerbitzaria

@@ -37,7 +37,7 @@
     const r = remote();
     return !!(r && r.state === 'connected' && Array.isArray(r.info.features) && r.info.features.includes('jobs'));
   };
-  let current = null, recent = [], shown = false, waiting = '', timer = 0, focus = null, tile = null;
+  let current = null, recent = [], shown = false, waiting = '', timer = 0, focus = null, tile = null, pinned = '';
   const records = new Map(), trail = new Map(), behind = new Map();
 
   // ---------- The page: the job now, then Recent ----------
@@ -96,6 +96,7 @@
   };
   const recentRow = row => {
     const item = make('li', 'job-recent-item');
+    if (row.id === pinned) item.dataset.pinned = 'true';
     const heading = make('div', 'job-head');
     const state = make('span', 'job-state', states[row.state]);
     state.dataset.state = row.state;
@@ -146,6 +147,8 @@
     }
     const rows = recent.filter(row => !now || row.id !== current.id);
     list.replaceChildren(...(rows.length ? rows.map(recentRow) : [make('li', 'jobs-empty', 'No recent jobs')]));
+    const mark = list.querySelector('[data-pinned]');
+    if (mark && shown && pinned) { pinned = ''; mark.scrollIntoView({ block: 'nearest' }); }
   };
   const tell = text => { note.textContent = text; note.hidden = !text; };
   const clearWait = () => { clearTimeout(timer); waiting = ''; };
@@ -267,5 +270,21 @@
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
   else mount();
-  window.CapriJobs = { supported, open, close };
+  const state = id => {
+    const row = current && current.id === id ? current : records.get(id) || recent.find(old => old.id === id);
+    return row ? { state: row.state, ask: row.ask, ask_id: row.askId } : null;
+  };
+  const show = id => {
+    pinned = idOk(id) ? id : '';
+    return open();
+  };
+  const answerFor = (id, yes, askId) => {
+    if (!supported() || !current || current.id !== id || current.state !== 'asking' || waiting) return false;
+    if ((askId || null) !== (current.askId || null)) return false;
+    const body = { id, yes: yes === true };
+    if (current.askId) body.ask_id = current.askId;
+    send('job.answer', body);
+    return !!waiting;
+  };
+  window.CapriJobs = { supported, open, close, state, show, answer: answerFor };
 })();

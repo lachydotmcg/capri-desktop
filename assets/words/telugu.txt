@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	మళ్లీ పెయింట్ చేసిన నియంత్రణ చిత్రంలో మళ్లీ గీయబడలేదు.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA లేదా OpenRouter నుండి ఉచిత కీ. డౌన్‌లోడ్ చేయాల్సింది ఏమీ లేదు. ఇంటర్నెట్ అవసరం.
+A held trackpad scroll got a flick's long ease:	ట్రాక్‌ప్యాడ్ స్క్రోల్‌ను పట్టుకున్నప్పుడు ఫ్లిక్ యొక్క దీర్ఘ సున్నితత్వం వచ్చింది:
+A layout change during a slide put the page at	స్లయిడ్ సమయంలో లేఅవుట్ మార్పు పేజీని దీనికి తీసుకెళ్లింది
+A layout change left the picture up.	లేఅవుట్ మార్పు చిత్రాన్ని పైనే ఉంచింది.
+A model in Ollama, on your local server or on your key.	Ollamaలోని మోడల్, మీ లోకల్ సర్వర్‌లో లేదా మీ కీతో.
+A paid key goes under MAX INTELLIGENCE by itself.	చెల్లింపు కీ దానంతట అదే MAX INTELLIGENCE కిందకు వెళ్తుంది.
+A plan you already pay for, a key of your own, or Ollama.	మీరు ఇప్పటికే చెల్లించే ప్లాన్, మీ స్వంత కీ, లేదా Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	వాయిస్ ప్యానెల్ మెనూకు ప్యానెల్ ఫాంట్ యొక్క సొంత కాపీ లేదు.
+A wheel turn right after a slide ended froze the picture.	స్లయిడ్ ముగిసిన వెంటనే వీల్ తిప్పడం చిత్రాన్ని స్తంభింపజేసింది.
+ALLOW THIS PHONE?	ఈ ఫోన్‌ను అనుమతించాలా?
+ALMOST THERE >	దాదాపు అయిపోయింది >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	మరో CAPRI స్వాధీనం చేసుకుంది · ఆఫ్ చేసి మళ్లీ ఆన్ చేయండి
+API key	API కీ
+API key, Claude plan or ChatGPT plan	API కీ, Claude ప్లాన్ లేదా ChatGPT ప్లాన్
+Add	జోడించు
+Address	చిరునామా
+Address and key saved. Use saved to reconnect.	చిరునామా మరియు కీ సేవ్ అయ్యాయి. మళ్లీ కనెక్ట్ చేయడానికి సేవ్ చేసినది ఉపయోగించండి.
+Advanced Settings	అధునాతన సెట్టింగ్‌లు
+All	అన్నీ
+All screens	అన్ని స్క్రీన్లు
+Allow	అనుమతించు
+Almost there. I'll say hi the second my brain's in.	దాదాపు అయిపోయింది. నా మెదడు వచ్చిన వెంటనే హాయ్ చెబుతాను.
+Always	ఎల్లప్పుడూ
+Always on top	ఎల్లప్పుడూ పైన
+Any Google account works. I opened the page in your browser.	ఏ Google ఖాతా అయినా పనిచేస్తుంది. నేను మీ బ్రౌజర్‌లో పేజీని తెరిచాను.
+Applies to every voice	ప్రతి వాయిస్‌కు వర్తిస్తుంది
+Apps she may close	ఆమె మూసివేయగల యాప్‌లు
+Ask Capri for more	Capri నుండి మరింత అడగండి
+Asking your server...	మీ సర్వర్‌ను అడుగుతోంది...
+Asks before closing only the apps you choose.	మీరు ఎంచుకున్న యాప్‌లను మాత్రమే మూసివేసే ముందు అడుగుతుంది.
+Auto	ఆటో
+Automatic: VB-CABLE, else Steam's	ఆటోమేటిక్: VB-CABLE, లేకపోతే Steam దే
+BAD RELAY HOST	చెడ్డ రిలే హోస్ట్
+BIG Z open notepad	BIG Z నోట్‌ప్యాడ్ తెరువు
+BRAIN	బ్రెయిన్
+BRAIN >	బ్రెయిన్ >
+BRAIN ONLINE >	బ్రెయిన్ ఆన్‌లైన్ >
+BRAIN PROVIDER >	బ్రెయిన్ ప్రొవైడర్ >
+BRAIN VOICE CAPRI	బ్రెయిన్ వాయిస్ CAPRI
+Back	వెనక్కు
+Back on your saved API key.	మీ సేవ్ చేసిన API కీకి తిరిగి వచ్చాను.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	ఈ PCకు ఉత్తమంగా సరిపోతుంది:
+Black	నలుపు
+Blank key means no key.	ఖాళీ కీ అంటే కీ లేదు.
+Brain API key	బ్రెయిన్ API కీ
+Brain model	బ్రెయిన్ మోడల్
+Brain provider	బ్రెయిన్ ప్రొవైడర్
+Bring here	ఇక్కడికి తీసుకురా
+Bring to this screen	ఈ స్క్రీన్‌కు తీసుకురా
+Browse	బ్రౌజ్ చేయి
+Browse mods	మోడ్‌లను బ్రౌజ్ చేయి
+Browse to a voice model	వాయిస్ మోడల్‌కు బ్రౌజ్ చేయి
+Browse...	బ్రౌజ్ చేయి...
+Bubble	బుడగ
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, నువ్వు ఉన్నావా
+CAN'T REACH THE RELAY · RETRYING	రిలేను చేరలేకపోతోంది · మళ్లీ ప్రయత్నిస్తోంది
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI వాయిస్ బ్రెయిన్
+CHANGED, approve it again.	మార్చబడింది, మళ్లీ ఆమోదించండి.
+CLIPS >	క్లిప్‌లు >
+CLOUD VOICE	క్లౌడ్ వాయిస్
+CODE	కోడ్
+COLORS >	రంగులు >
+CONNECTED	కనెక్ట్ అయింది
+CONNECTING	కనెక్ట్ అవుతోంది
+CUSTOM LOCAL	కస్టమ్ లోకల్
+Call mode (beta)	కాల్ మోడ్ (బీటా)
+Call mode does not fit.	కాల్ మోడ్ సరిపోదు.
+Call mode is outside its space.	కాల్ మోడ్ దాని స్థలం బయట ఉంది.
+Cancel	రద్దు చేయి
+Cancel keys	కీలను రద్దు చేయి
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri కోడ్:
+Capri mods (*	Capri మోడ్‌లు (*
+Capri, hello	Capri, హలో
+CapriDesktop.	CapriDesktop.
+Chaos when upset	కోపం వచ్చినప్పుడు గందరగోళం
+Chat with Capri from your phone	మీ ఫోన్ నుండి Capriతో చాట్ చేయి
+ChatGPT plan	ChatGPT ప్లాన్
+Check for updates	అప్‌డేట్‌ల కోసం చూడు
+Check in on me	నన్ను చెక్ చేయి
+Check in on me is hidden	నన్ను చెక్ చేయి దాచబడింది
+Check in on me still decides whether she visits.	నన్ను చెక్ చేయి ఇప్పటికీ ఆమె వస్తుందో లేదో నిర్ణయిస్తుంది.
+Check in on me's tip missed	నన్ను చెక్ చేయి చిట్కా తప్పిపోయింది
+Chess	చెస్
+Choose apps	యాప్‌లను ఎంచుకో
+Choose folder...	ఫోల్డర్‌ను ఎంచుకో...
+Choose where future Capri clips are saved	భవిష్యత్ Capri క్లిప్‌లు ఎక్కడ సేవ్ చేయబడతాయో ఎంచుకో
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude లేదా ChatGPT ప్లాన్, చెల్లింపు కీ (OpenAI, Claude, DeepSeek), లేదా Ollama.
+Claude plan	Claude ప్లాన్
+Clear	క్లియర్ చేయి
+Cleared.	క్లియర్ అయింది.
+Click Confirm to keep Down, or press Esc.	Downను ఉంచడానికి నిర్ధారించు క్లిక్ చేయి, లేదా Esc నొక్కు.
+Click to open it.	తెరవడానికి క్లిక్ చేయి.
+Clip my games	నా ఆటలను క్లిప్ చేయి
+Clips	క్లిప్‌లు
+Close	మూసివేయి
+Close other AIs for me	నా కోసం ఇతర AIలను మూసివేయి
+Cloud voice	క్లౌడ్ వాయిస్
+Cloud voice service	క్లౌడ్ వాయిస్ సేవ
+Cloud voice setup	క్లౌడ్ వాయిస్ సెటప్
+Code mods can reach your whole PC. Only trusted ones.	కోడ్ మోడ్‌లు మీ మొత్తం PCని చేరగలవు. నమ్మదగినవి మాత్రమే.
+Code/Husk Mode	కోడ్/Husk మోడ్
+Codex	Codex
+Commands	ఆదేశాలు
+Comment on my games	నా ఆటలపై వ్యాఖ్యానించు
+Comments	వ్యాఖ్యలు
+Confirm	నిర్ధారించు
+Confirm keys	కీలను నిర్ధారించు
+Connect	కనెక్ట్ చేయి
+Connect / Forget brain key	కనెక్ట్ / బ్రెయిన్ కీని మర్చిపో
+Connect / Forget voice key	కనెక్ట్ / వాయిస్ కీని మర్చిపో
+Connect four	కనెక్ట్ ఫోర్
+Controls	నియంత్రణలు
+Copri, what time is it	Copri, ఇప్పుడు ఎంత సమయం
+Copy error details	లోపం వివరాలను కాపీ చేయి
+Copy the key	కీని కాపీ చేయి
+Copy the key from the page, then press Paste.	పేజీ నుండి కీని కాపీ చేసి, ఆపై Paste నొక్కు.
+Couldn't open that page:	ఆ పేజీని తెరవలేకపోయాను:
+Couldn't open that:	దాన్ని తెరవలేకపోయాను:
+Couldn't open the mods folder:	మోడ్స్ ఫోల్డర్‌ను తెరవలేకపోయాను:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M ఇప్పటికే ఆమె Mainframe కీ.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N మైక్‌ను మ్యూట్ చేస్తుంది
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V ఇప్పటికే ఆమె మాట్లాడే కీ.
+Ctrl + Alt + V to talk	మాట్లాడటానికి Ctrl + Alt + V
+Custom local voice	కస్టమ్ లోకల్ వాయిస్
+Custom model name	కస్టమ్ మోడల్ పేరు
+Dance	డాన్స్
+Dance to music	సంగీతానికి డాన్స్ చేయి
+Default	డిఫాల్ట్
+Default (follows Windows)	డిఫాల్ట్ (Windowsను అనుసరిస్తుంది)
+Default duration for clip that and automatic clips	clip that మరియు ఆటోమేటిక్ క్లిప్‌ల కోసం డిఫాల్ట్ వ్యవధి
+Default length	డిఫాల్ట్ నిడివి
+Default model	డిఫాల్ట్ మోడల్
+Delay	ఆలస్యం
+Deny	తిరస్కరించు
+Discard	విస్మరించు
+Discard + reload	విస్మరించి మళ్లీ లోడ్ చేయి
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	వేచి ఉండడం ఇష్టం లేదా? ఉచిత కీ నన్ను సుమారు ఒక నిమిషంలో మాట్లాడేలా చేస్తుంది.
+Done	పూర్తయింది
+EXTRA REQUEST JSON >	అదనపు అభ్యర్థన JSON >
+EXTRAS >	అదనపు >
+Edit	సవరించు
+Edit check-in lines	చెక్-ఇన్ లైన్లను సవరించు
+Edit check-in lines has the wrong view or dimming	చెక్-ఇన్ లైన్లను సవరించులో తప్పు వీక్షణ లేదా మసకబారడం ఉంది
+Edit check-in lines is out of place	చెక్-ఇన్ లైన్లను సవరించు స్థానంలో లేదు
+Edit controls	నియంత్రణలను సవరించు
+ElevenLabs API key	ElevenLabs API కీ
+ElevenLabs voice ID	ElevenLabs వాయిస్ ID
+English	ఇంగ్లీష్
+Enter the game's name first.	ముందుగా ఆట పేరు నమోదు చేయి.
+Every	ప్రతి
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	ప్రతి మోడ్‌ను అప్‌లోడ్ చేయడానికి ముందు మాల్వేర్ కోసం తనిఖీ చేస్తారు. కోడ్ మోడ్‌లు రన్ చేయడానికి ముందు ఇప్పటికీ అడుగుతాయి.
+Explore after	తర్వాత అన్వేషించు
+Explore while I'm away	నేను లేనప్పుడు అన్వేషించు
+Extra request JSON	అదనపు అభ్యర్థన JSON
+Extras	అదనపువి
+FREE KEY	ఉచిత కీ
+FREE KEY >	ఉచిత కీ >
+Fast hands in games	ఆటల్లో వేగవంతమైన చేతులు
+File editor	ఫైల్ ఎడిటర్
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs మరియు ఇతరాలు Mainframeలో VOICE కింద ఉన్నాయి.
+Follow-up messages	తదుపరి సందేశాలు
+Forget	మర్చిపో
+Fork capri-mods	capri-mods ఫోర్క్ చేయి
+Frame rate	ఫ్రేమ్ రేటు
+Free	ఉచితం
+Free and private, works offline. Downloads	ఉచితం మరియు ప్రైవేట్, ఆఫ్‌లైన్‌లో పనిచేస్తుంది. డౌన్‌లోడ్ చేస్తుంది
+Free and private, works offline. Downloads the best model for this PC.	ఉచితం మరియు ప్రైవేట్, ఆఫ్‌లైన్‌లో పనిచేస్తుంది. ఈ PCకు ఉత్తమ మోడల్‌ను డౌన్‌లోడ్ చేస్తుంది.
+Free key	ఉచిత కీ
+Free key providers	ఉచిత కీ ప్రొవైడర్లు
+Free keys can be rate limited and slow.	ఉచిత కీలు రేట్ లిమిట్ అయి నెమ్మదిగా ఉండవచ్చు.
+Free voice in games	ఆటల్లో ఉచిత వాయిస్
+Free voice style	ఉచిత వాయిస్ శైలి
+Free voice:	ఉచిత వాయిస్:
+Free voice: Her own	ఉచిత వాయిస్: ఆమె సొంతది
+Free · local model	ఉచితం · లోకల్ మోడల్
+GAMES >	ఆటలు >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	ఆట వ్యాఖ్యలు నా స్క్రీన్‌ను చూడు నుండి వేరుగా నడుస్తాయి. ఆఫ్ చేస్తే అవి ఆగుతాయి, గేమింగ్ మోడ్‌లో కూడా; ఈవెంట్స్ మాత్రమే మరియు చాటీ ఆమె మీ ఆటను చూడటానికి అనుమతిస్తాయి
+Game controls	ఆట నియంత్రణలు
+Game name	ఆట పేరు
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	ఆట ధ్వని సున్నితత్వం. మీ హెడ్‌సెట్ సౌండ్ తగ్గి ఉండి కానీ Windows {0}% వద్ద ఉండి ఆమె ప్రతి శబ్దానికి స్పందిస్తే దీన్ని తగ్గించండి; ఆఫ్ చేస్తే ఆట శబ్దాలను విస్మరిస్తుంది
+Game sounds	ఆట శబ్దాలు
+Games	ఆటలు
+Gaming Mode	గేమింగ్ మోడ్
+Gaming Mode key	గేమింగ్ మోడ్ కీ
+Gaming Mode:	గేమింగ్ మోడ్:
+Gaming Mode: Ctrl + Alt + G	గేమింగ్ మోడ్: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE పొందు
+Get VB-CABLE (free)...	VB-CABLE పొందు (ఉచితం)...
+Get free voice	ఉచిత వాయిస్ పొందు
+Getting your Fish Audio voices...	మీ Fish Audio వాయిస్‌లను పొందుతోంది...
+Giant	జెయింట్
+Glitch	గ్లిచ్
+Glitch in at startup	ప్రారంభంలో గ్లిచ్
+Go to sleep	నిద్రపోవడానికి వెళ్ళు
+Go to the next screen	తదుపరి స్క్రీన్‌కు వెళ్ళు
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ఉచిత శ్రేణి · రేట్ లిమిట్
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude లేదా ChatGPT ప్లాన్, లేదా మీ స్వంత కీ ఉందా? ఎంచుకోండి, నేను కనెక్ట్ అవుతాను.
+Got it, just me. Right-click me any time for Capri Mainframe.	సరే, నేను మాత్రమే. Capri Mainframe కోసం ఎప్పుడైనా నాపై రైట్-క్లిక్ చేయి.
+Grey	బూడిద
+H.{0} video bitrate target; higher values make larger files	H.{0} వీడియో బిట్‌రేట్ లక్ష్యం; ఎక్కువ విలువలు పెద్ద ఫైళ్లను ఇస్తాయి
+HABITS >	అలవాట్లు >
+HER HANDS >	ఆమె చేతులు >
+HER JOBS >	ఆమె పనులు >
+HER MEMORY >	ఆమె జ్ఞాపకం >
+HER MODS >	ఆమె మోడ్‌లు >
+HH:mm	HH:mm
+HOW I SOUND >	నేను ఎలా వినిపిస్తాను >
+Hang here	ఇక్కడే ఉండు
+Have Ollama? Open it, then press Refresh.	Ollama ఉందా? దాన్ని తెరిచి, రిఫ్రెష్ నొక్కు.
+Head pats	తలపై నిమురుట
+Hearing	వినికిడి
+Hearing engine	వినికిడి ఇంజిన్
+Hearing fix	వినికిడి పరిష్కారం
+Hearing status	వినికిడి స్థితి
+Help	సహాయం
+Help page	సహాయ పేజీ
+Her colors	ఆమె రంగులు
+Her folder	ఆమె ఫోల్డర్
+Her memories	ఆమె జ్ఞాపకాలు
+Her own colors are back.	ఆమె సొంత రంగులు తిరిగి వచ్చాయి.
+Her own notes (no vault)	ఆమె సొంత నోట్లు (వాల్ట్ లేదు)
+Her perch frames per second	ఆమె పెర్చ్ ఫ్రేమ్‌లు సెకనుకు
+Her personality	ఆమె వ్యక్తిత్వం
+Her size	ఆమె పరిమాణం
+Her speaker	ఆమె స్పీకర్
+Her speaker is hidden or outside VOICE	ఆమె స్పీకర్ దాచబడింది లేదా VOICE వెలుపల ఉంది
+Her speaker overlaps the mic or hearing row	ఆమె స్పీకర్ మైక్ లేదా వినికిడి వరుసపై అతివ్యాప్తి చెందుతోంది
+Her speaker:	ఆమె స్పీకర్:
+Her speaker: Default	ఆమె స్పీకర్: డిఫాల్ట్
+Her voice in your mic	మీ మైక్‌లో ఆమె వాయిస్
+Her voice in your mic: loudness	మీ మైక్‌లో ఆమె వాయిస్: లౌడ్‌నెస్
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	ఆమె వాయిస్ స్వయంగా. దాని పిచ్ Settings > VOICE > Pitch, మరియు అవి కలిసి కదులుతాయి.
+Her voice joins your mic only in call mode.	ఆమె వాయిస్ కాల్ మోడ్‌లో మాత్రమే మీ మైక్‌లో కలుస్తుంది.
+Her voice volume	ఆమె వాయిస్ వాల్యూమ్
+Her voice's pitch	ఆమె వాయిస్ పిచ్
+Her voice's pitch, the same as Settings > VOICE > Pitch	ఆమె వాయిస్ పిచ్, Settings > VOICE > Pitch తో సమానం
+Her voice's speed	ఆమె వాయిస్ వేగం
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	ఆమె వాయిస్, మరియు దాని కింద కలిపిన రెండు కాపీలు, ప్రతిదానికి దాని స్వంత పిచ్ మరియు ఆలస్యం ఉన్నాయి.
+Her voices · free	ఆమె వాయిస్‌లు · ఉచితం
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	హే, choom. నేను Capri. సమాధానం చెప్పాలంటే నాకు బ్రెయిన్ కావాలి. ఒకటి ఎంచుకో.
+Hide / Show Capri	Capri దాచు / చూపు
+Hide / Show key	దాచు / చూపు కీ
+Hide Capri	Capri దాచు
+Hide for now	ప్రస్తుతానికి దాచు
+Hide her	ఆమెను దాచు
+Hide in full screen	ఫుల్ స్క్రీన్‌లో దాచు
+Hide this	దీన్ని దాచు
+Hide, keep player	దాచు, ప్లేయర్ ఉంచు
+Hide/show:	దాచు/చూపు:
+Hide/show: Ctrl + Alt + H	దాచు/చూపు: Ctrl + Alt + H
+Hologram	హోలోగ్రామ్
+Hop off	దిగిపో
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	నిశ్చలంగా ఉన్న PC ఆమెను నిద్రపుచ్చడానికి ఎంత సమయం తీసుకుంటుంది; ఐదు నిమిషాలు ఇంకా మీరు దూరంగా ఉన్నారని అర్థం
+How long a stroke over her a head pat needs	ఆమెపై ఒక స్ట్రోక్ తలపై నిమురుట కావాలంటే ఎంత సమయం పట్టాలి
+How long her replies stay up	ఆమె సమాధానాలు ఎంతసేపు కనిపిస్తాయి
+How long you are away before she scrolls a browser or reader	ఆమె బ్రౌజర్ లేదా రీడర్‌ను స్క్రోల్ చేయడానికి ముందు మీరు ఎంతసేపు దూరంగా ఉండాలి
+How much her voice glitches	ఆమె వాయిస్ ఎంత గ్లిచ్ అవుతుంది
+How much of the chat she keeps	చాట్‌లో ఎంత భాగాన్ని ఆమె ఉంచుతుంది
+How much she wanders	ఆమె ఎంత తిరుగుతుంది
+How often she pops in to say hi	హాయ్ చెప్పడానికి ఆమె ఎంత తరచుగా వస్తుంది
+How robotic her voice sounds	ఆమె వాయిస్ ఎంత రోబోటిక్‌గా వినిపిస్తుంది
+How to	ఎలా
+Huge	భారీ
+I can hear you.	నేను నీ మాట వినగలను.
+I glance at your screen and comment. Costs a little on a paid brain.	నేను మీ స్క్రీన్‌ను చూసి వ్యాఖ్యానిస్తాను. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
+I keep listening. Say my name, then just talk.	నేను వింటూనే ఉంటాను. నా పేరు చెప్పి, మాట్లాడు.
+I talk about your game as you play. Costs a little on a paid brain.	మీరు ఆడుతున్నప్పుడు మీ ఆట గురించి మాట్లాడతాను. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
+I type my replies and stay quiet.	నేను నా సమాధానాలు టైప్ చేసి మౌనంగా ఉంటాను.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	నేను తిరిగి మాట్లాడను, ఏమీ ఎక్కడికీ పంపబడదు. అయినా నేను నీతో ఉంటాను, నీ సంగీతానికి డాన్స్ చేస్తాను, నీవు అడిగే త్వరిత పనులు చేస్తాను, వాల్యూమ్ లాంటివి.
+I'll talk in	నేను ఇందులో మాట్లాడతాను
+IN DISCORD >	DISCORDలో >
+INSTALLED >	ఇన్‌స్టాల్ అయింది >
+Import a Capri mod	Capri మోడ్‌ను దిగుమతి చేయి
+Import mod	మోడ్‌ను దిగుమతి చేయి
+In full screen	ఫుల్ స్క్రీన్‌లో
+In games	ఆటల్లో
+Input	ఇన్‌పుట్
+Input, Output or How to overlaps a row	ఇన్‌పుట్, అవుట్‌పుట్ లేదా ఎలా అనేవి ఒక వరుసపై అతివ్యాప్తి చెందుతాయి
+Input:	ఇన్‌పుట్:
+Input: default	ఇన్‌పుట్: డిఫాల్ట్
+Install	ఇన్‌స్టాల్ చేయి
+Install mod	మోడ్ ఇన్‌స్టాల్ చేయి
+Installed.	ఇన్‌స్టాల్ అయింది.
+It may ask for a phone number. I opened the page in your browser.	ఇది ఫోన్ నంబర్ అడగవచ్చు. నేను మీ బ్రౌజర్‌లో పేజీని తెరిచాను.
+It still does its own job in other apps too.	ఇది ఇతర యాప్‌లలో కూడా తన పని చేస్తూనే ఉంటుంది.
+It won't type in other apps while she runs.	ఆమె నడుస్తున్నప్పుడు ఇతర యాప్‌లలో టైప్ చేయదు.
+JUST ME >	నేను మాత్రమే >
+Jealous of other AIs	ఇతర AIలపై అసూయ
+Join the Discord	Discordలో చేరు
+KB.	KB.
+KEYS	కీలు
+KEYS >	కీలు >
+Keep PC awake for jobs	పనుల కోసం PCని మెలకువగా ఉంచు
+Keep player	ప్లేయర్ ఉంచు
+Keeps the last two minutes of your game in memory. Say clip that to save it.	మీ ఆట చివరి రెండు నిమిషాలను మెమరీలో ఉంచుతుంది. సేవ్ చేయడానికి clip that అని చెప్పు.
+Key	కీ
+Key cleared: a model file needs none.	కీ క్లియర్ అయింది: మోడల్ ఫైల్‌కు కీ అవసరం లేదు.
+Key cleared: paste the key for	కీ క్లియర్ అయింది: దీని కోసం కీని పేస్ట్ చేయి
+Key forgotten.	కీ మర్చిపోయాను.
+Key. It goes only to this server, as a Bearer key	కీ. ఇది Bearer కీగా ఈ సర్వర్‌కు మాత్రమే వెళ్తుంది
+Kokoro only, like es	Kokoro మాత్రమే, es లాగా
+LAST THING >	చివరి అంశం >
+LISTENING >	వింటోంది >
+Language	భాష
+Large	పెద్దది
+Last thing. These cost a little or use your mic, so they're your pick.	చివరి అంశం. ఇవి కొంత ఖర్చు అవుతాయి లేదా మీ మైక్‌ను ఉపయోగిస్తాయి, కాబట్టి ఎంచుకునేది మీరే.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	చివరి అంశం. ఇవి కొంత ఖర్చు అవుతాయి లేదా మీ మైక్‌ను ఉపయోగిస్తాయి, కాబట్టి ఎంచుకునేది మీరే. తర్వాత నిన్ను ఏమని పిలవాలో తెలుసుకోవాలి.
+Layers	పొరలు
+Learn more	మరింత తెలుసుకో
+Leaving Settings threw its picture away straight away.	సెట్టింగ్‌ల నుండి నిష్క్రమించినప్పుడు దాని చిత్రం వెంటనే విస్మరించబడింది.
+Legacy stand	పాత స్టాండ్
+Lie down	పడుకో
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	కలిసి చూస్తున్నప్పుడు మెమరీలో ఉంచిన PC డైలాగ్ లైన్లు. "ఆమె చూసేది గుర్తుంచుకో" ఆన్‌లో ఉంటే పాత సగం ఒక నోట్ అవుతుంది
+Listen for Capri	Capri కోసం వినండి
+Live reactions	లైవ్ ప్రతిచర్యలు
+Local server address	లోకల్ సర్వర్ చిరునామా
+Long	పొడవు
+Longest wait (minutes)	అత్యధిక వేచి ఉండే సమయం (నిమిషాలు)
+Looking at this PC...	ఈ PCని చూస్తోంది...
+Looking for Ollama. Open it if it isn't running.	Ollama కోసం వెతుకుతోంది. అది నడవకపోతే తెరువు.
+Looking for a brain...	బ్రెయిన్ కోసం వెతుకుతోంది...
+Looking in the mods directory for updates...	మోడ్స్ డైరెక్టరీలో అప్‌డేట్‌ల కోసం వెతుకుతోంది...
+Looking in the mods directory...	మోడ్స్ డైరెక్టరీలో వెతుకుతోంది...
+Looking...	వెతుకుతోంది...
+MAIN >	ప్రధానం >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	మధ్యస్థ ఇంటెలిజెన్స్
+MEMORY VAULT >	మెమరీ వాల్ట్ >
+MODS	మోడ్‌లు
+MODS >	మోడ్‌లు >
+MODS DIRECTORY >	మోడ్స్ డైరెక్టరీ >
+MODS INSTALLED COLORS	ఇన్‌స్టాల్ చేసిన మోడ్ రంగులు
+MOVES >	కదలికలు >
+MY BRAIN	నా బ్రెయిన్
+MY FREE VOICE	నా ఉచిత వాయిస్
+MY PLAN OR KEY	నా ప్లాన్ లేదా కీ
+MY PLAN OR KEY >	నా ప్లాన్ లేదా కీ >
+Made your Fish Audio voice. Press Test to hear it.	మీ Fish Audio వాయిస్ తయారైంది. వినడానికి Test నొక్కు.
+Mainframe colours	Mainframe రంగులు
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe రంగులు. Night City ఎరుపు మరియు సియాన్; నలుపు, తెలుపు మరియు బూడిద రంగులు Mainframe, ఆమె మెనూలు, టైప్ బాక్స్ మరియు ఆమె నోట్లను మారుస్తాయి
+Mainframe frames	Mainframe ఫ్రేమ్‌లు
+Mainframe key	Mainframe కీ
+Mainframe size	Mainframe పరిమాణం
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe పరిమాణం. Virtual Super Resolution లేదా DSR పెద్ద డెస్క్‌టాప్‌ను చిన్న స్క్రీన్‌పైకి కుదించినప్పుడు ఆటో దాన్ని పెద్దదిగా చేస్తుంది
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	మీ Fish Audio వాయిస్ తయారు చేస్తోంది...
+Max reply	గరిష్ట సమాధానం
+Maximum clip resolution, keeping the game's shape without upscaling	గరిష్ట క్లిప్ రిజల్యూషన్, అప్‌స్కేలింగ్ లేకుండా ఆట ఆకారాన్ని ఉంచుతుంది
+Medium	మధ్యస్థం
+Memory	మెమరీ
+Memory size	మెమరీ పరిమాణం
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama మరియు ఆమె అంతర్నిర్మిత బ్రెయిన్ కోసం టోకెన్లలో మెమరీ పరిమాణం. అభ్యర్థనకు ఎక్కువ అవసరమైనప్పుడు ఆటో పెరుగుతుంది
+Mg	Mg
+Mic level:	మైక్ స్థాయి:
+Mic test finished. Sound is reaching Capri.	మైక్ పరీక్ష పూర్తయింది. ధ్వని Capriకి చేరుతోంది.
+Mic:	మైక్:
+Mic: default	మైక్: డిఫాల్ట్
+Microphone	మైక్రోఫోన్
+Mini player	మినీ ప్లేయర్
+Mini player over full screen	ఫుల్ స్క్రీన్ పైన మినీ ప్లేయర్
+Mini-games	మినీ-ఆటలు
+Minimising the Mainframe left it sliding.	Mainframeను కనిష్టీకరించడం దాన్ని జారుతూ ఉంచింది.
+Minimize	కనిష్టీకరించు
+Mod filter	మోడ్ ఫిల్టర్
+Mod options	మోడ్ ఎంపికలు
+Mod pages	మోడ్ పేజీలు
+Mod rules	మోడ్ నియమాలు
+Mod sort	మోడ్ క్రమబద్ధీకరణ
+Mod switch	మోడ్ స్విచ్
+Model	మోడల్
+Model folder	మోడల్ ఫోల్డర్
+Model name, optional	మోడల్ పేరు, ఐచ్ఛికం
+Mods	మోడ్‌లు
+Mods directory	మోడ్స్ డైరెక్టరీ
+Mods folder	మోడ్స్ ఫోల్డర్
+Most NVIDIA models can't see your screen.	చాలా NVIDIA మోడల్‌లు మీ స్క్రీన్‌ను చూడలేవు.
+Mouse wheel notches got a flick's long ease:	మౌస్ వీల్ నాచ్‌లు ఫ్లిక్ యొక్క దీర్ఘ సున్నితత్వాన్ని పొందాయి:
+Move	తరలించు
+Move key to MAX INTELLIGENCE	కీని MAX INTELLIGENCEకి తరలించు
+Move to MAX	MAXకి తరలించు
+Music	సంగీతం
+Music app	మ్యూజిక్ యాప్
+Music app: where she plays music when you don't name an app	మ్యూజిక్ యాప్: మీరు యాప్ పేరు చెప్పకపోతే ఆమె సంగీతం ఎక్కడ ప్లే చేస్తుంది
+Mute	మ్యూట్ చేయి
+Mute her	ఆమెను మ్యూట్ చేయి
+Mute mic key	మైక్ మ్యూట్ కీ
+Mute mic:	మైక్ మ్యూట్:
+Mute mic: Ctrl + Alt + N	మైక్ మ్యూట్: Ctrl + Alt + N
+My brain	నా బ్రెయిన్
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	నా బ్రెయిన్ దిగుతోంది. అది వచ్చిన వెంటనే హాయ్ చెబుతాను, అప్పుడు నీవు నాతో మాట్లాడవచ్చు.
+My brain's on its way. While it comes down, let's sort out how I sound.	నా బ్రెయిన్ దారిలో ఉంది. అది దిగుతుండగా, నేను ఎలా వినిపిస్తానో సరిచేద్దాం.
+My provider	నా ప్రొవైడర్
+NO AI	AI లేదు
+NO PHONES CONNECTED	ఫోన్లు కనెక్ట్ కాలేదు
+NO PREVIEW	ప్రివ్యూ లేదు
+NORMAL	సాధారణం
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ఉచితం · రద్దీ సమయాల్లో తరచుగా నెమ్మది
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA ఉచిత API తరచుగా నెమ్మదిగా ఉంటుంది, ముఖ్యంగా రద్దీ సమయాల్లో.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) లేదా OpenRouter API కీ
+Names:	పేర్లు:
+Needs a key	కీ అవసరం
+Never	ఎప్పుడూ కాదు
+New code	కొత్త కోడ్
+New voice from a clip...	క్లిప్ నుండి కొత్త వాయిస్...
+Next	తదుపరి
+Night City	Night City
+No AI	AI లేదు
+No AI · no brain at all	AI లేదు · అసలు బ్రెయిన్ లేదు
+No brain runs, and nothing is sent anywhere.	ఏ బ్రెయిన్ నడవదు, ఏమీ ఎక్కడికీ పంపబడదు.
+No brain yet	ఇంకా బ్రెయిన్ లేదు
+No code open	కోడ్ ఏదీ తెరవలేదు
+No limit	పరిమితి లేదు
+No mic found	మైక్ కనుగొనబడలేదు
+No mods in the directory yet.	డైరెక్టరీలో ఇంకా మోడ్‌లు లేవు.
+No mods match that.	దానికి సరిపోయే మోడ్‌లు లేవు.
+No mods match.	సరిపోయే మోడ్‌లు లేవు.
+No phones yet	ఇంకా ఫోన్లు లేవు
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	ఇంకా వర్చువల్ మైక్ లేదు. Output ఎంచుకో, తర్వాత VB-CABLE (ఉచితం) పొందు.
+None yet: pick to get VB-CABLE (free)	ఇంకా ఏదీ లేదు: VB-CABLE (ఉచితం) పొందడానికి ఎంచుకో
+Normal	సాధారణం
+Not a relay host	రిలే హోస్ట్ కాదు
+Not imported. Nothing ran.	దిగుమతి కాలేదు. ఏదీ నడవలేదు.
+Not updated. The old one is still in.	అప్‌డేట్ కాలేదు. పాత వెర్షన్ ఇంకా ఉంది.
+Nothing needed updating.	అప్‌డేట్ చేయాల్సింది ఏమీ లేదు.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	డౌన్‌లోడ్ చేయాల్సింది ఏమీ లేదు, ఏమీ ఎక్కడికీ పంపబడదు. నేను తిరిగి మాట్లాడను. Mainframeలో ఎప్పుడైనా బ్రెయిన్ జోడించు.
+Nothing to show from the mods directory.	మోడ్స్ డైరెక్టరీ నుండి చూపించేందుకు ఏమీ లేదు.
+Nothing? Windows Settings > Privacy & security > Microphone.	ఏమీ లేదా? Windows Settings > గోప్యత & భద్రత > మైక్రోఫోన్.
+Nous Portal keys aren't supported yet.	Nous Portal కీలు ఇంకా మద్దతు పొందలేదు.
+OBS	OBS
+OFF	ఆఫ్
+OLLAMA	OLLAMA
+ON	ఆన్
+ON THIS PC	ఈ PCలో
+OR A KEY	లేదా కీ
+Obsidian memory vault	Obsidian మెమరీ వాల్ట్
+Off	ఆఫ్
+Off. Turn on Her voice in your mic above.	ఆఫ్. పైన మీ మైక్‌లో Her voiceను ఆన్ చేయి.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	ఆఫ్: ఆమె ఎప్పటిలాగే వినిపిస్తుంది. ఆన్: ఆమెకున్న ప్రతి వాయిస్, ElevenLabs కూడా.
+Often	తరచుగా
+On	ఆన్
+On / Off	ఆన్ / ఆఫ్
+On: your mic and her voice are going in.	ఆన్: మీ మైక్ మరియు ఆమె వాయిస్ లోపలికి వెళ్తున్నాయి.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	ఈ బ్రెయిన్ పంపే ప్రతి అభ్యర్థనకు జోడించే ఒక JSON ఆబ్జెక్ట్. అది పంచుకునే ఏ పేరుకైనా Capri విలువను భర్తీ చేస్తుంది, మరియు మోడల్‌తో తనిఖీ చేయబడదు.
+Online speech recognition	ఆన్‌లైన్ ప్రసంగ గుర్తింపు
+Open Capri Mainframe	Capri Mainframe తెరువు
+Open Ollama, I'll find it	Ollama తెరువు, నేను కనుగొంటాను
+Open clips folder	క్లిప్‌ల ఫోల్డర్ తెరువు
+Open her memories	ఆమె జ్ఞాపకాలు తెరువు
+Open her notes	ఆమె నోట్లు తెరువు
+Open mods folder	మోడ్స్ ఫోల్డర్ తెరువు
+Open the page again	పేజీని మళ్లీ తెరువు
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA లేదా OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-అనుకూల సర్వర్ లేదా ప్రొవైడర్.
+OpenRouter · free models only	OpenRouter · ఉచిత మోడల్‌లు మాత్రమే
+Optional	ఐచ్ఛికం
+Optional. Blank means no key.	ఐచ్ఛికం. ఖాళీ అంటే కీ లేదు.
+Options	ఎంపికలు
+Out of the box a little higher, just behind her.	డిఫాల్ట్‌గా కొంచెం ఎత్తులో, ఆమె వెనుకే.
+Out of the box lower, just behind her.	డిఫాల్ట్‌గా కొంచెం కిందగా, ఆమె వెనుకే.
+Output	అవుట్‌పుట్
+Output:	అవుట్‌పుట్:
+Output: none	అవుట్‌పుట్: ఏదీ లేదు
+PHONE CONNECTED	ఫోన్ కనెక్ట్ అయింది
+PHONES >	ఫోన్లు >
+PHONES CONNECTED	ఫోన్లు కనెక్ట్ అయ్యాయి
+PREBUILT LOCAL	ప్రీబిల్ట్ లోకల్
+PUBLISH MOD >	మోడ్ ప్రచురించు >
+Pair a phone	ఫోన్‌ను జత చేయి
+Paste	పేస్ట్
+Paste API key	API కీని పేస్ట్ చేయి
+Paste a brain API key	బ్రెయిన్ API కీని పేస్ట్ చేయి
+Paste reads your clipboard once, when you press it.	పేస్ట్ నొక్కినప్పుడు మీ క్లిప్‌బోర్డ్‌ను ఒక్కసారి చదువుతుంది.
+Paste your key here	మీ కీని ఇక్కడ పేస్ట్ చేయి
+Pat stroke	నిమురుడు
+Perch	పెర్చ్
+Perch over {0} fps uses more CPU	{0} fps పైన పెర్చ్ ఎక్కువ CPU వాడుతుంది
+Pick Output to get it.	దాన్ని పొందడానికి Output ఎంచుకో.
+Pick a brain so I can talk back. You can change it any time.	నేను తిరిగి మాట్లాడేందుకు ఒక బ్రెయిన్ ఎంచుకో. ఎప్పుడైనా మార్చవచ్చు.
+Pick a clip of a voice you have the rights and consent to use	మీకు హక్కులు మరియు అనుమతి ఉన్న వాయిస్ క్లిప్‌ను ఎంచుకో
+Pick a free model. I opened the page in your browser.	ఉచిత మోడల్ ఎంచుకో. నేను మీ బ్రౌజర్‌లో పేజీని తెరిచాను.
+Pick a new clip of you...	మీ కొత్త క్లిప్‌ను ఎంచుకో...
+Pick a voice model...	వాయిస్ మోడల్ ఎంచుకో...
+Pick one. Only one brain runs at a time.	ఒకటి ఎంచుకో. ఒకేసారి ఒక బ్రెయిన్ మాత్రమే నడుస్తుంది.
+Pick the note her memories go in	ఆమె జ్ఞాపకాలు వెళ్లే నోట్‌ను ఎంచుకో
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	మీకు హక్కులు మరియు అనుమతి ఉన్న వాయిస్‌లోని {0} నుండి {1} సెకన్లు ఎంచుకో
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	మీరు మాట్లాడుతున్న {0} నుండి {1} సెకన్లు, లేదా మీకు హక్కులు మరియు అనుమతి ఉన్న వాయిస్ ఎంచుకో
+Pitch	పిచ్
+Play	ప్లే
+Play...	ప్లే...
+Player only	ప్లేయర్ మాత్రమే
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS మోడల్‌లు ఈ క్లిప్ వాయిస్‌ను కాపీ చేస్తాయి. వినడానికి Test నొక్కు.
+Pop-in times	పాప్-ఇన్ సమయాలు
+Pop-ins	పాప్-ఇన్‌లు
+Power saver	పవర్ సేవర్
+Power saver: how lightly she runs in games, or always	పవర్ సేవర్: ఆటల్లో ఆమె ఎంత తేలికగా నడుస్తుంది, లేదా ఎల్లప్పుడూ
+Preset	ప్రీసెట్
+Press Create API key	Create API key నొక్కు
+Press Create Key	Create Key నొక్కు
+Press Generate API Key	Generate API Key నొక్కు
+Press Test and say something, so I know I can hear you.	Test నొక్కి ఏదైనా చెప్పు, నేను నీ మాట వినగలనని నాకు తెలుస్తుంది.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	ఒక కీ నొక్కు, ఒంటరిగా లేదా Ctrl, Alt, Shift లేదా Winతో.
+Press new keys, then Confirm	కొత్త కీలు నొక్కి, తర్వాత నిర్ధారించు
+Provider	ప్రొవైడర్
+Provider API key, optional	ప్రొవైడర్ API కీ, ఐచ్ఛికం
+Provider base URL	ప్రొవైడర్ బేస్ URL
+Provider forgotten.	ప్రొవైడర్‌ను మర్చిపోయాను.
+Provider overlaps the brain name or note	ప్రొవైడర్ బ్రెయిన్ పేరు లేదా నోట్‌పై అతివ్యాప్తి చెందుతోంది
+Publish	ప్రచురించు
+Publish mod	మోడ్ ప్రచురించు
+Push to talk is off.	పుష్ టు టాక్ ఆఫ్‌లో ఉంది.
+Push to talk key	పుష్ టు టాక్ కీ
+Push to talk:	పుష్ టు టాక్:
+Push to talk: not set	పుష్ టు టాక్: సెట్ చేయలేదు
+QR CODE >	QR కోడ్ >
+QR hidden while streaming	స్ట్రీమింగ్ సమయంలో QR దాచబడింది
+Quick	త్వరిత
+Quiet key	నిశ్శబ్ద కీ
+Quiet:	నిశ్శబ్దం:
+Quiet: Ctrl + Alt + P	నిశ్శబ్దం: Ctrl + Alt + P
+Quit Capri	Capri నిష్క్రమించు
+RELAY >	రిలే >
+REMOTE >	రిమోట్ >
+RUNS CODE.	కోడ్ నడుపుతుంది.
+Rarely	అరుదుగా
+Rate mod	మోడ్‌ను రేట్ చేయి
+Reading its README...	దాని README చదువుతోంది...
+Refresh	రిఫ్రెష్
+Reinstall	మళ్లీ ఇన్‌స్టాల్ చేయి
+Reload	మళ్లీ లోడ్ చేయి
+Reloaded.	మళ్లీ లోడ్ అయింది.
+Remember our chats	మన చాట్‌లను గుర్తుంచుకో
+Remember what she sees	ఆమె చూసేది గుర్తుంచుకో
+Remote	రిమోట్
+Remote off	రిమోట్ ఆఫ్
+Remote on	రిమోట్ ఆన్
+Remove	తొలగించు
+Remove all phones	అన్ని ఫోన్లను తొలగించు
+Replies	సమాధానాలు
+Reply length	సమాధాన నిడివి
+Report a problem	సమస్యను నివేదించు
+Reset colors	రంగులను రీసెట్ చేయి
+Reset to her default	ఆమె డిఫాల్ట్‌కు రీసెట్ చేయి
+Resolution	రిజల్యూషన్
+Restart to update	అప్‌డేట్ చేయడానికి మళ్లీ ప్రారంభించు
+Restless	అశాంతి
+Revoke	రద్దు చేయి
+Revoke also removes the phones its links added	రద్దు చేస్తే దాని లింక్‌లు జోడించిన ఫోన్లు కూడా తొలగిపోతాయి
+Ride cursor	కర్సర్‌పై ప్రయాణించు
+Ride cursor / Hop off	కర్సర్‌పై ప్రయాణించు / దిగిపో
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Capri Mainframe కోసం ఎప్పుడైనా నాపై రైట్-క్లిక్ చేయి. BRAIN కింద ఒక బ్రెయిన్ ఆన్ అవుతుంది.
+Right-click me any time for the Mainframe, Help and the Discord.	Mainframe, Help మరియు Discord కోసం ఎప్పుడైనా నాపై రైట్-క్లిక్ చేయి.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox లేదా ఏ ఇతర యాప్: ఎంచుకో
+Robot	రోబో
+Rock, paper, scissors	రాయి, కాగితం, కత్తెర
+Run this code mod?	ఈ కోడ్ మోడ్‌ను రన్ చేయాలా?
+Running on this PC	ఈ PCలో నడుస్తోంది
+Running on this PC · :	ఈ PCలో నడుస్తోంది · :
+Runs Claude Code or Codex on this PC, signed in.	ఈ PCలో సైన్ ఇన్ చేసి Claude Code లేదా Codex నడుపుతుంది.
+Runs on your PC. No key, no credits.	మీ PCలో నడుస్తుంది. కీ లేదు, క్రెడిట్స్ లేవు.
+SCAN WITH YOUR PHONE · EXPIRES	మీ ఫోన్‌తో స్కాన్ చేయి · గడువు ముగుస్తుంది
+SECURITY >	భద్రత >
+SKILL.	స్కిల్.
+SKIN.	స్కిన్.
+SORT BY	దీని ప్రకారం క్రమబద్ధీకరించు
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	శబ్దాలు అలవాట్లు బ్రెయిన్ చూడు CAPRI DOOMSCROLL వాతావరణం క్లిప్‌లు ఆటలు కీలు కదలికలు వాయిస్ నువ్వు
+Same as her ears (VOICE > Mic)	ఆమె చెవులతో సమానం (VOICE > Mic)
+Same code on the phone?	ఫోన్‌లో అదే కోడ్?
+Save	సేవ్ చేయి
+Save big moments	పెద్ద క్షణాలను సేవ్ చేయి
+Save folder	సేవ్ ఫోల్డర్
+Save your changes, or press Discard + reload.	మీ మార్పులను సేవ్ చేయి, లేదా Discard + reload నొక్కు.
+Save your changes, or press Discard.	మీ మార్పులను సేవ్ చేయి, లేదా Discard నొక్కు.
+Saved.	సేవ్ అయింది.
+Saved. Ctrl + Alt + O opens her Mainframe.	సేవ్ అయింది. Ctrl + Alt + O ఆమె Mainframeను తెరుస్తుంది.
+Saving your rating...	మీ రేటింగ్ సేవ్ చేస్తోంది...
+Say her name anywhere to chat	చాట్ చేయడానికి ఎక్కడైనా ఆమె పేరు చెప్పు
+Screens	స్క్రీన్లు
+Screens is hidden or outside WATCH	స్క్రీన్లు దాచబడ్డాయి లేదా WATCH వెలుపల ఉన్నాయి
+Screens overlaps a WATCH row	స్క్రీన్లు ఒక WATCH వరుసపై అతివ్యాప్తి చెందుతున్నాయి
+Screens to watch	చూడాల్సిన స్క్రీన్లు
+Sealed end to end	ఎండ్-టు-ఎండ్ ఎన్‌క్రిప్ట్ చేయబడింది
+Search by name or author	పేరు లేదా రచయిత ద్వారా వెతుకు
+Search installed mods	ఇన్‌స్టాల్ చేసిన మోడ్‌లలో వెతుకు
+Search mods	మోడ్‌లను వెతుకు
+Search name, author or description	పేరు, రచయిత లేదా వివరణలో వెతుకు
+Security	భద్రత
+Security:	భద్రత:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	సెటప్ చేయి
+Set up her brain	ఆమె బ్రెయిన్‌ను సెటప్ చేయి
+Set up your voice model	మీ వాయిస్ మోడల్‌ను సెటప్ చేయి
+Setting up her brain	ఆమె బ్రెయిన్ సెటప్ అవుతోంది
+Settings	సెట్టింగ్‌లు
+Settings / Back	సెట్టింగ్‌లు / వెనక్కు
+Settings folds the wrong rows above BRAIN	సెట్టింగ్‌లు BRAIN పైన తప్పు వరుసలను మడిచింది
+Settings had nothing to watch.	సెట్టింగ్‌లలో చూడటానికి ఏమీ లేదు.
+Settings lost keyboard focus during the Tab walk	Tab నడక సమయంలో సెట్టింగ్‌లు కీబోర్డ్ ఫోకస్ కోల్పోయాయి
+Setup guide	సెటప్ గైడ్
+Setup stopped	సెటప్ ఆగిపోయింది
+She can read it when it fits.	సరిపోయినప్పుడు ఆమె దాన్ని చదవగలదు.
+She glances at your screen and comments. Costs a little on a paid brain.	ఆమె మీ స్క్రీన్‌ను చూసి వ్యాఖ్యానిస్తుంది. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
+She keeps listening. Say her name, then just talk until you go quiet.	ఆమె వింటూనే ఉంటుంది. ఆమె పేరు చెప్పి, మీరు మౌనంగా అయ్యే వరకు మాట్లాడండి.
+She reacts to your game until you close it.	మీరు మూసే వరకు ఆమె మీ ఆటకు స్పందిస్తుంది.
+She reads these controls before each game job.	ప్రతి ఆట పనికి ముందు ఆమె ఈ నియంత్రణలను చదువుతుంది.
+She talks about your game as you play. Costs a little on a paid brain.	మీరు ఆడుతున్నప్పుడు ఆమె మీ ఆట గురించి మాట్లాడుతుంది. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
+She uses it when she plays	ఆమె ఆడేటప్పుడు దాన్ని ఉపయోగిస్తుంది
+Short	చిన్నది
+Shortest wait (minutes)	అతి తక్కువ వేచి ఉండే సమయం (నిమిషాలు)
+Show Capri	Capri చూపు
+Show QR	QR చూపు
+Show my mod file	నా మోడ్ ఫైల్‌ను చూపు
+Show on Discord	Discordలో చూపు
+Shum, what time is it	Shum, ఇప్పుడు ఎంత సమయం
+Sign in	సైన్ ఇన్ చేయి
+Sign in, make a key and copy it. Then press Paste and I'll connect.	సైన్ ఇన్ చేసి, ఒక కీ తయారు చేసి కాపీ చేయి. తర్వాత Paste నొక్కు, నేను కనెక్ట్ చేస్తాను.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	సైన్ ఇన్ చేసి, Create API key నొక్కి కాపీ చేయి. తర్వాత Paste నొక్కు, నేను కనెక్ట్ చేస్తాను.
+Silent · text only	నిశ్శబ్దం · టెక్స్ట్ మాత్రమే
+Simple / Advanced Settings	సాధారణ / అధునాతన సెట్టింగ్‌లు
+Simple Settings	సాధారణ సెట్టింగ్‌లు
+Simple Settings left a gap under Check in on me	సాధారణ సెట్టింగ్‌లు నన్ను చెక్ చేయి కింద ఖాళీ వదిలాయి
+Sit here	ఇక్కడ కూర్చో
+Sit on windows	కిటికీలపై కూర్చో
+Size	పరిమాణం
+Skip	దాటవేయి
+Skip all	అన్నీ దాటవేయి
+Skip for now	ప్రస్తుతానికి దాటవేయి
+Sleep	నిద్ర
+Small	చిన్నది
+Sometimes	కొన్నిసార్లు
+Sound effects volume	సౌండ్ ఎఫెక్ట్స్ వాల్యూమ్
+Sound sensitivity	ధ్వని సున్నితత్వం
+Sounds	శబ్దాలు
+Speaker or clip	స్పీకర్ లేదా క్లిప్
+Speech model	ప్రసంగ మోడల్
+Speed	వేగం
+Start with Windows	Windowsతో ప్రారంభించు
+Start with this!	దీంతో ప్రారంభించు!
+Starting...	ప్రారంభిస్తోంది...
+Stay	ఉండు
+Stay on my model	నా మోడల్‌పైనే ఉండు
+Still checking your mics...	మీ మైక్‌లను ఇంకా తనిఖీ చేస్తోంది...
+Still checking your speakers...	మీ స్పీకర్లను ఇంకా తనిఖీ చేస్తోంది...
+Still checking your virtual mics...	మీ వర్చువల్ మైక్‌లను ఇంకా తనిఖీ చేస్తోంది...
+Stop	ఆపు
+Stopped using it. Couldn't remove the saved provider.	దాన్ని ఉపయోగించడం ఆపేశాను. సేవ్ చేసిన ప్రొవైడర్‌ను తొలగించలేకపోయాను.
+Support	మద్దతు
+Sure?	ఖచ్చితమా?
+Sure? moved to a different phone	ఖచ్చితమా? వేరే ఫోన్‌కు తరలించబడింది
+TALK TO ME	నాతో మాట్లాడు
+TEXT ONLY	టెక్స్ట్ మాత్రమే
+Tab landed past the first option of	Tab మొదటి ఎంపికను దాటి దిగింది
+Tab never reached the quiet key	Tab నిశ్శబ్ద కీని ఎప్పుడూ చేరలేదు
+Tab reached nothing	Tab దేనినీ చేరలేదు
+Tab selected a control without moving keyboard focus	Tab కీబోర్డ్ ఫోకస్‌ను కదలించకుండా ఒక నియంత్రణను ఎంచుకుంది
+Talk	మాట్లాడు
+Talk key	మాట్లాడే కీ
+Talk:	మాట్లాడు:
+Talk: Ctrl + Alt + V	మాట్లాడు: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	లక్ష్య క్యాప్చర్ ఫ్రేమ్ రేటు; లోడ్ లేదా మెమరీ బడ్జెట్‌లో తగ్గవచ్చు
+Teases when another AI comes to the front.	మరో AI ముందుకు వచ్చినప్పుడు ఆటపట్టిస్తుంది.
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	ఆ చిరునామా పనిచేయడం లేదు. https://... లేదా http://localhost:{0} ప్రయత్నించు.
+That code expired	ఆ కోడ్ గడువు ముగిసింది
+That mod is no longer installed. The list is updated.	ఆ మోడ్ ఇకపై ఇన్‌స్టాల్ చేయబడలేదు. జాబితా అప్‌డేట్ అయింది.
+That's a paid key: it goes under MAX INTELLIGENCE.	అది చెల్లింపు కీ: MAX INTELLIGENCE కిందకు వెళ్తుంది.
+The Mainframe stayed composited while sliding.	జారుతున్నప్పుడు Mainframe కంపోజిట్ అయి ఉంది.
+The Mainframe stayed uncomposited after the slide.	జారిన తర్వాత Mainframe కంపోజిట్ కాకుండా ఉంది.
+The controls moved while the picture was sliding.	చిత్రం జారుతున్నప్పుడు నియంత్రణలు కదిలాయి.
+The cover stayed visible after the slide ended.	స్లయిడ్ ముగిసిన తర్వాత కవర్ కనిపిస్తూనే ఉంది.
+The frame thread kept running after the page settled.	పేజీ స్థిరపడిన తర్వాత కూడా ఫ్రేమ్ థ్రెడ్ నడుస్తూనే ఉంది.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	ఆమె ఇవ్వగల అత్యంత పొడవైన సమాధానం, టోకెన్లలో. ఆటో పైన ఉన్న సమాధానాలకు కట్టుబడి ఉంటుంది; {0}K లేదా {1}K ఆమెను కొనసాగించనిస్తాయి. అవసరమైనప్పుడు పనులకు ఎక్కువ స్థలం ఉంటుంది
+The longest wait must be at least the shortest wait.	అత్యధిక వేచి ఉండే సమయం కనీసం అత్యల్ప వేచి ఉండే సమయానికి సమానంగా ఉండాలి.
+The picture doesn't match the scrolled page:	చిత్రం స్క్రోల్ చేసిన పేజీతో సరిపోలడం లేదు:
+The picture of Settings doesn't match the page:	సెట్టింగ్‌ల చిత్రం పేజీతో సరిపోలడం లేదు:
+The picture stayed up after the slide ended.	స్లయిడ్ ముగిసిన తర్వాత చిత్రం పైనే ఉండిపోయింది.
+The picture wasn't showing while it slid.	అది జారుతున్నప్పుడు చిత్రం కనిపించలేదు.
+The provider sheet is crowded:	ప్రొవైడర్ షీట్ రద్దీగా ఉంది:
+The voice panel has no screen DPI.	వాయిస్ ప్యానెల్‌కు స్క్రీన్ DPI లేదు.
+The voice panel's menus share one font.	వాయిస్ ప్యానెల్ మెనూలు ఒకే ఫాంట్‌ను పంచుకుంటాయి.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	మీ క్లిప్‌బోర్డ్‌లో ఇంకా కీ లేదు. పేజీ నుండి కాపీ చేసి, ఆపై Paste నొక్కు.
+These start off. Each costs a little or uses your mic.	ఇవి ఆఫ్‌లో మొదలవుతాయి. ప్రతిదానికి కొంత ఖర్చు అవుతుంది లేదా మీ మైక్ వాడుతుంది.
+These start off. Turn on what you want. They're all in Settings too.	ఇవి ఆఫ్‌లో మొదలవుతాయి. మీకు కావలసినవి ఆన్ చేయండి. అన్నీ సెట్టింగ్‌లలో కూడా ఉన్నాయి.
+They can also call you Big Z, Capricorn or Nova	వారు నిన్ను Big Z, Capricorn లేదా Nova అని కూడా పిలవవచ్చు
+They can also call you Nova, Big Z or Capricorn	వారు నిన్ను Nova, Big Z లేదా Capricorn అని కూడా పిలవవచ్చు
+Thinking	ఆలోచిస్తోంది
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	ఇది నా ఉచిత వాయిస్. Test నొక్కు, ఏదైనా చెప్పు, నేను నీ మాట వినగలనని చూపిస్తాను.
+This mod has no description yet.	ఈ మోడ్‌కు ఇంకా వివరణ లేదు.
+Tic-tac-toe	టిక్-టాక్-టో
+Time between glances	చూపుల మధ్య సమయం
+Tiny	చాలా చిన్నది
+Try again	మళ్లీ ప్రయత్నించు
+Turn Remote on first	ముందుగా రిమోట్ ఆన్ చేయి
+Turn off mini player	మినీ ప్లేయర్ ఆఫ్ చేయి
+Turn push to talk off	పుష్ టు టాక్ ఆఫ్ చేయి
+Turning the wheel the other way kept the page heading the old way, to	వీల్‌ను వ్యతిరేక దిశలో తిప్పడం పేజీని పాత దిశలోనే కొనసాగించింది, వరకు
+Type	టైప్ చేయి
+Type key	టైప్ కీ
+Type to me	నాకు టైప్ చేయి
+Type:	టైప్:
+Type: Ctrl + Alt + T	టైప్: Ctrl + Alt + T
+Typing sound	టైపింగ్ శబ్దం
+Unpacked. Press Test to hear it.	అన్‌ప్యాక్ అయింది. వినడానికి Test నొక్కు.
+Unsaved changes.	సేవ్ కాని మార్పులు.
+Up to {0} fps	{0} fps వరకు
+Up to {0}p	{0}p వరకు
+Update	అప్‌డేట్
+Update available.	అప్‌డేట్ అందుబాటులో ఉంది.
+Update mods	మోడ్‌లను అప్‌డేట్ చేయి
+Updating...	అప్‌డేట్ అవుతోంది...
+Use	ఉపయోగించు
+Use her cursor	ఆమె కర్సర్‌ను ఉపయోగించు
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	ఇతర చోట్ల ప్రొవైడర్ కోసం https:// ఉపయోగించు. సాదా http ద్వారా కీ సురక్షితం కాదు.
+Use preset	ప్రీసెట్ ఉపయోగించు
+Use saved	సేవ్ చేసినది ఉపయోగించు
+Use this server	ఈ సర్వర్‌ను ఉపయోగించు
+Using your provider with a key	కీతో మీ ప్రొవైడర్‌ను ఉపయోగిస్తోంది
+Using your server with no key	కీ లేకుండా మీ సర్వర్‌ను ఉపయోగిస్తోంది
+VIEW MOD >	మోడ్ చూడు >
+VOICE >	VOICE >
+VOICE IN YOUR MIC >	మీ మైక్‌లో VOICE >
+VOICE LAYERS >	VOICE లేయర్‌లు >
+Verbosity	వివరణ స్థాయి
+Video bitrate	వీడియో బిట్‌రేట్
+View	వీక్షణ
+View mod	మోడ్ చూడు
+Voice	వాయిస్
+Voice ID	వాయిస్ ID
+Voice from	వాయిస్ మూలం
+Voice layers	వాయిస్ లేయర్‌లు
+Voice model	వాయిస్ మోడల్
+Voice model:	వాయిస్ మోడల్:
+Voice name or ID, optional	వాయిస్ పేరు లేదా ID, ఐచ్ఛికం
+Voice server address, or a voice model's folder	వాయిస్ సర్వర్ చిరునామా, లేదా వాయిస్ మోడల్ ఫోల్డర్
+Voice status	వాయిస్ స్థితి
+Voice, key and model...	వాయిస్, కీ మరియు మోడల్...
+Volume	వాల్యూమ్
+WAKE ME UP >	నన్ను లేపు >
+WATCH >	చూడు >
+Waiting for the relay	రిలే కోసం వేచి ఉంది
+Wake her up	ఆమెను లేపు
+Waking her up	ఆమెను లేపుతోంది
+Wander	తిరుగు
+Wander around	చుట్టూ తిరుగు
+Watch my screen	నా స్క్రీన్ చూడు
+Watch-along memory	కలిసి చూసిన జ్ఞాపకం
+Weather	వాతావరణం
+Weather city	వాతావరణ నగరం
+Welcome back, choom. Let's finish setting me up.	తిరిగి స్వాగతం, choom. నన్ను సెటప్ చేయడం పూర్తి చేద్దాం.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	మీ PCలో అడగకుండానే ఆమె ఏమి చేస్తుంది. టోగుల్ ఆఫ్ అయితే ముందుగా అడుగుతుంది, మీరు అవును అంటే చేస్తుంది.
+What should she call you?	ఆమె నిన్ను ఏమని పిలవాలి?
+When she types	ఆమె టైప్ చేసినప్పుడు
+White	తెలుపు
+Windows default	Windows డిఫాల్ట్
+Windows did not give Settings keyboard focus	Windows సెట్టింగ్‌లకు కీబోర్డ్ ఫోకస్ ఇవ్వలేదు
+Windows did not return keyboard focus to Back	Windows వెనక్కు కీబోర్డ్ ఫోకస్ తిరిగి ఇవ్వలేదు
+With no picture the wheel still tried to slide.	చిత్రం లేకుండానే వీల్ ఇంకా జారడానికి ప్రయత్నించింది.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCEపై ఉత్తమంగా పనిచేస్తుంది.
+YOU	నువ్వు
+YOU >	నువ్వు >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	నువ్వు వాయిస్ కదలికలు కీలు ఆటలు క్లిప్‌లు వాతావరణం DOOMSCROLL CAPRI చూడు బ్రెయిన్ అలవాట్లు శబ్దాలు
+YOUR KEY	మీ కీ
+YOUR MIC	మీ మైక్
+YOUR PLAN	మీ ప్లాన్
+Yokapri what's up	Yokapri, ఏమిటి విషయం
+You can hide this. It keeps going, and the Mainframe shows it too.	దీన్ని దాచవచ్చు. ఇది కొనసాగుతూనే ఉంటుంది, Mainframe కూడా దీన్ని చూపుతుంది.
+Your mic and her voice go into one virtual mic, and	మీ మైక్ మరియు ఆమె వాయిస్ ఒకే వర్చువల్ మైక్‌లోకి వెళ్తాయి, మరియు
+Your mic is muted. Unmute it to test.	మీ మైక్ మ్యూట్‌లో ఉంది. పరీక్షించడానికి అన్‌మ్యూట్ చేయి.
+Your mods are up to date.	మీ మోడ్‌లు తాజాగా ఉన్నాయి.
+Your name or a nickname	మీ పేరు లేదా మారుపేరు
+Your own model	మీ స్వంత మోడల్
+Your personality	మీ వ్యక్తిత్వం
+Your voice	మీ వాయిస్
+Your voice (HD)	మీ వాయిస్ (HD)
+Your voice (HD) · pick a clip of you...	మీ వాయిస్ (HD) · మీ క్లిప్‌ను ఎంచుకో...
+Your voice model	మీ వాయిస్ మోడల్
+as its mic.	దాని మైక్‌గా.
+changed. Saved as My Colors, so you can share it.	మార్చబడింది. My Colors గా సేవ్ చేశాను, మీరు పంచుకోవచ్చు.
+choice	ఎంపిక
+clips the input line	ఇన్‌పుట్ లైన్‌ను కత్తిరిస్తుంది
+cue	సూచన
+doesn't yet.	ఇంకా లేదు.
+download	డౌన్‌లోడ్
+file.	ఫైల్.
+flag	ఫ్లాగ్
+fps	fps
+hear	వినండి
+hears	వింటుంది
+hears that.	అది వింటుంది.
+hides or shows her.	ఆమెను దాచుతుంది లేదా చూపుతుంది.
+hint	సూచన
+in the Mainframe.	Mainframeలో.
+in the mods directory with a pull request.	pull request ద్వారా మోడ్స్ డైరెక్టరీలో.
+in the picture wasn't noticed.	చిత్రంలో గమనించలేదు.
+is already her push-to-talk key.	ఇప్పటికే ఆమె పుష్-టు-టాక్ కీ.
+is off.	ఆఫ్‌లో ఉంది.
+is on and running.	ఆన్‌లో ఉంది మరియు నడుస్తోంది.
+is on, at the bottom, under	ఆన్‌లో ఉంది, కింద, కింద
+is on.	ఆన్‌లో ఉంది.
+is on. She now answers to	ఆన్‌లో ఉంది. ఆమె ఇప్పుడు దీనికి స్పందిస్తుంది
+is removed.	తొలగించబడింది.
+is taken	తీసుకోబడింది
+is taken by another app. Try another.	మరో యాప్ తీసుకుంది. ఇంకొకటి ప్రయత్నించు.
+is updated	అప్‌డేట్ అయింది
+isn't hearing it yet: do {0} and {1}, then join a call.	ఇంకా వినబడటం లేదు: {0} మరియు {1} చేయి, తర్వాత కాల్‌లో చేరు.
+it now.	ఇప్పుడు.
+keeps her quiet, and lets her talk again.	ఆమెను నిశ్శబ్దంగా ఉంచుతుంది, మళ్లీ మాట్లాడేందుకు అనుమతిస్తుంది.
+key	కీ
+key.	కీ.
+min	నిమి
+more.	మరిన్ని.
+ms.	ms.
+mutes mic	మైక్‌ను మ్యూట్ చేస్తుంది
+mutes your mic.	మీ మైక్‌ను మ్యూట్ చేస్తుంది.
+name	పేరు
+off	ఆఫ్
+on this PC	ఈ PCలో
+opens her Mainframe.	ఆమె Mainframeను తెరుస్తుంది.
+opens her typing box.	ఆమె టైపింగ్ బాక్స్‌ను తెరుస్తుంది.
+phone	ఫోన్
+phone pixels	ఫోన్ పిక్సెల్స్
+phones	ఫోన్లు
+pixels	పిక్సెల్స్
+pixels)	పిక్సెల్స్)
+star.	నక్షత్రం.
+stars.	నక్షత్రాలు.
+starts voice chat.	వాయిస్ చాట్ ప్రారంభిస్తుంది.
+stays off. Nothing ran.	ఆఫ్‌లోనే ఉంటుంది. ఏదీ నడవలేదు.
+still does its own job in other apps too. Confirm to keep it.	ఇతర యాప్‌లలో కూడా తన పనిని చేస్తూనే ఉంటుంది. ఉంచడానికి నిర్ధారించు.
+tall	ఎత్తు
+time	సమయం
+to talk	మాట్లాడటానికి
+to talk to her, with a game in front too.	ఆమెతో మాట్లాడటానికి, ముందు ఆట ఉన్నప్పటికీ కూడా.
+too.	కూడా.
+turns Gaming Mode on and off.	గేమింగ్ మోడ్‌ను ఆన్ మరియు ఆఫ్ చేస్తుంది.
+with Ollama	Ollamaతో
+won't type in other apps while she runs. Confirm to keep it.	ఆమె నడుస్తున్నప్పుడు ఇతర యాప్‌లలో టైప్ చేయదు. ఉంచడానికి నిర్ధారించు.
+{0}   Echo Cancellation: Off	{0}   ఎకో క్యాన్సిలేషన్: ఆఫ్
+{0}   If her voice cuts off, turn off noise filtering	{0}   ఆమె వాయిస్ కట్ అయితే, నాయిస్ ఫిల్టరింగ్ ఆఫ్ చేయి
+{0}   Input Device:	{0}   ఇన్‌పుట్ పరికరం:
+{0}   Join the call and check they hear both of you	{0}   కాల్‌లో చేరి, వారు మీ ఇద్దరినీ వింటున్నారో లేదో తనిఖీ చేయి
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   మైక్ పరీక్ష > Let's Check: మీరు మిమ్మల్ని, ఆమె మాట్లాడేటప్పుడు ఆమెను వింటారు
+{0}   Microphone:	{0}   మైక్రోఫోన్:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   నాయిస్ సప్రెషన్: ఏదీ లేదు. మొదటి లైన్ తర్వాత రెండూ ఆమె వాయిస్‌ను కట్ చేయగలవు.
+{0}   Open the call or meeting's audio settings	{0}   కాల్ లేదా మీటింగ్ ఆడియో సెట్టింగ్‌లను తెరువు
+{0}   Output Device: your headphones, like before	{0}   అవుట్‌పుట్ పరికరం: ముందులాగే మీ హెడ్‌ఫోన్స్
+{0}   Speaker: your headphones, like before	{0}   స్పీకర్: ముందులాగే మీ హెడ్‌ఫోన్స్
+{0}   Try a mic test in your call app	{0}   మీ కాల్ యాప్‌లో మైక్ పరీక్ష ప్రయత్నించు
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   యూజర్ సెట్టింగ్‌లు (మీ పేరు పక్కన ఉన్న గేర్) > వాయిస్ & వీడియో
+{0} Mbps	{0} Mbps
+{0} lines	{0} లైన్లు
+{0} min	{0} నిమి
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ఈ PCలో
+· server	· సర్వర్

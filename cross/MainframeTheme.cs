@@ -94,6 +94,21 @@ namespace CapriDesktop
             if (desktop != null) foreach (var window in desktop.Windows) RepaintAll(window);
             if (also != null) RepaintAll(also);
         }
+        internal static void Reword()
+        {
+            var desktop = Application.Current == null ? null : Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+            if (desktop == null) return;
+            foreach (var window in desktop.Windows)
+            {
+                window.InvalidateMeasure();
+                foreach (var child in window.GetVisualDescendants())
+                {
+                    var layout = child as Avalonia.Layout.Layoutable;
+                    if (layout != null) layout.InvalidateMeasure();
+                    child.InvalidateVisual();
+                }
+            }
+        }
         private static void RepaintAll(Visual visual)
         {
             visual.InvalidateVisual();
@@ -115,7 +130,7 @@ namespace CapriDesktop
         internal static IBrush Brush(string value) { return new SolidColorBrush(Tint(value)); }
         internal static FormattedText Words(string text, double size = Size, bool bold = false, IBrush ink = null, bool display = false)
         {
-            return new FormattedText(text ?? "", CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            return new FormattedText(Lingo.Of(text) ?? "", CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                 new Typeface(display ? Display : Text, FontStyle.Normal, bold ? FontWeight.SemiBold : FontWeight.Normal), size, ink ?? White);
         }
 
@@ -131,7 +146,7 @@ namespace CapriDesktop
         }
         internal static string Fitted(string text, double width, double size = Size, bool bold = false, bool display = false)
         {
-            text = text ?? "";
+            text = Lingo.Of(text) ?? "";
             if (Words(text, size, bold, display: display).Width <= width) return text;
             while (text.Length > 0 && Words(text + "…", size, bold, display: display).Width > width) text = text.Substring(0, text.Length - 1);
             return text + "…";

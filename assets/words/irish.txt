@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Ní athtarraingíodh rialtán a athpéinteáladh sa phictiúr.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Eochair shaor in aisce ó Google AI Studio, NVIDIA nó OpenRouter. Gan aon rud le híoslódáil. Teastaíonn idirlíon.
+A held trackpad scroll got a flick's long ease:	Fuair scroll coinnithe an pad rianaithe mall fada an bhrúite:
+A layout change during a slide put the page at	Chuir athrú leagan amach le linn sleamhnaithe an leathanach ag
+A layout change left the picture up.	D'fhág athrú leagan amach an pictiúr ar scáileán.
+A model in Ollama, on your local server or on your key.	Samhail in Ollama, ar do fhreastalaí áitiúil nó ar d'eochair.
+A paid key goes under MAX INTELLIGENCE by itself.	Téann eochair íoctha faoi MAX INTELLIGENCE féin.
+A plan you already pay for, a key of your own, or Ollama.	Plean atá íoctha agat cheana, eochair duit féin, nó Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Níl cóip de chló an phainéil ag roghchlár painéil gutha féin.
+A wheel turn right after a slide ended froze the picture.	Reoigh cas rotha díreach tar éis sleamhnaithe an pictiúr.
+ALLOW THIS PHONE?	AN LÍON AN FÓN SEO?
+ALMOST THERE >	BEAGNACH ANN >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	THÓG CAPRI EILE SEILBH · CAS AR AGUS AS
+API key	Eochair API
+API key, Claude plan or ChatGPT plan	Eochair API, plean Claude nó plean ChatGPT
+Add	Cuir leis
+Address	Seoladh
+Address and key saved. Use saved to reconnect.	Sábháladh an seoladh agus an eochair. Úsáid Sábháilte chun athcheangal.
+Advanced Settings	Socruithe Casta
+All	Uile
+All screens	Gach scáileán
+Allow	Ceadaigh
+Almost there. I'll say hi the second my brain's in.	Beagnach ann. Déanfaidh mé dia duit an nóiméad a bhíonn m'intinn istigh.
+Always	I gcónaí
+Always on top	I gcónaí ar barr
+Any Google account works. I opened the page in your browser.	Oibríonn aon chuntas Google. D'oscail mé an leathanach i do bhrabhsálaí.
+Applies to every voice	Baineann sé le gach guth
+Apps she may close	Aipeanna a d'fhéadfadh sí a dhúnadh
+Ask Capri for more	Iarr ar Capri níos mó
+Asking your server...	Ag fiafraí de do fhreastalaí...
+Asks before closing only the apps you choose.	Fiafraíonn sé sula ndúnfaidh sé na haipeanna a roghnaíonn tú amháin.
+Auto	Uathoibríoch
+Automatic: VB-CABLE, else Steam's	Uathoibríoch: VB-CABLE, nó ceann Steam
+BAD RELAY HOST	ÓSTACH ATHSEOLTA MÍCHEART
+BIG Z open notepad	BIG Z oscail notepad
+BRAIN	INTINN
+BRAIN >	INTINN >
+BRAIN ONLINE >	INTINN AR LÍNE >
+BRAIN PROVIDER >	SOLÁTHRAITHE INTINNE >
+BRAIN VOICE CAPRI	GUTH INTINNE CAPRI
+Back	Ar ais
+Back on your saved API key.	Ar ais chuig d'eochair API shábháilte.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	An rogha is fearr don ríomhaire seo:
+Black	Dubh
+Blank key means no key.	Ciallaíonn eochair fholamh gan eochair.
+Brain API key	Eochair API intinne
+Brain model	Samhail intinne
+Brain provider	Soláthraí intinne
+Bring here	Tabhair anseo
+Bring to this screen	Tabhair chuig an scáileán seo
+Browse	Brabhsáil
+Browse mods	Brabhsáil modanna
+Browse to a voice model	Brabhsáil chuig samhail gutha
+Browse...	Brabhsáil...
+Bubble	Bolgán
+CABLE Output (VB-Audio Virtual Cable)	Aschur CABLE (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, an bhfuil tú ann
+CAN'T REACH THE RELAY · RETRYING	NÍ FÉIDIR AN ATHSEOLTÓIR A BHAINT AMACH · AG ATHRIALACHT
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	GUTH INTINNE CAPRI
+CHANGED, approve it again.	ATHRAITHE, faomh arís é.
+CLIPS >	CLIPEANNA >
+CLOUD VOICE	GUTH SCÝTHE
+CODE	COD
+COLORS >	DATHANNA >
+CONNECTED	NASCTHA
+CONNECTING	AG NASC
+CUSTOM LOCAL	LOGH ÁITIÚIL SAINORDAITHE
+Call mode (beta)	Mód glaoch (béite)
+Call mode does not fit.	Ní oireann mód glaoch.
+Call mode is outside its space.	Tá an mód glaoch lasmuigh dá spás.
+Cancel	Cealaigh
+Cancel keys	Cealaigh eochracha
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Cód Capri:
+Capri mods (*	Modanna Capri (*
+Capri, hello	Capri, dia duit
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Caos nuair a bhíonn sí feargach
+Chat with Capri from your phone	Comhrá le Capri ó do fhón
+ChatGPT plan	Plean ChatGPT
+Check for updates	Lorg nuashonruithe
+Check in on me	Seiceáil orm
+Check in on me is hidden	Tá Seiceáil orm i bhfolach
+Check in on me still decides whether she visits.	Cinneann Seiceáil orm fós an dtiocfaidh sí ar cuairt.
+Check in on me's tip missed	Leid Seiceáil orm ar iarraidh
+Chess	Ficheall
+Choose apps	Roghnaigh aipeanna
+Choose folder...	Roghnaigh fillteán...
+Choose where future Capri clips are saved	Roghnaigh cá sábhálfar clipeanna Capri amach anseo
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Plean Claude nó ChatGPT, eochair íoctha (OpenAI, Claude, DeepSeek), nó Ollama.
+Claude plan	Plean Claude
+Clear	Glan
+Cleared.	Glanta.
+Click Confirm to keep Down, or press Esc.	Cliceáil Deimhnigh chun Síos a choinneáil, nó brúigh Esc.
+Click to open it.	Cliceáil chun é a oscailt.
+Clip my games	Clipeáil mo chluichí
+Clips	Clipeanna
+Close	Dún
+Close other AIs for me	Dún AInna eile chugam
+Cloud voice	Guth scýthe
+Cloud voice service	Seirbhís guth scýthe
+Cloud voice setup	Socrú guth scýthe
+Code mods can reach your whole PC. Only trusted ones.	Is féidir le modanna cóid do ríomhaire ar fad a bhaint amach. Ach iad siúd atá iontaofa amháin.
+Code/Husk Mode	Mód Cód/Husk
+Codex	Codex
+Commands	Orduithe
+Comment on my games	Déan trácht ar mo chluichí
+Comments	Tráchtanna
+Confirm	Deimhnigh
+Confirm keys	Deimhnigh eochracha
+Connect	Nasc
+Connect / Forget brain key	Nasc / Dearmad eochair intinne
+Connect / Forget voice key	Nasc / Dearmad eochair gutha
+Connect four	Ceithre i líne
+Controls	Rialuithe
+Copri, what time is it	Copri, cad is am ann
+Copy error details	Cóipeáil sonraí earráide
+Copy the key	Cóipeáil an eochair
+Copy the key from the page, then press Paste.	Cóipeáil an eochair ón leathanach, ansin brúigh Greamaigh.
+Couldn't open that page:	Níorbh fhéidir an leathanach sin a oscailt:
+Couldn't open that:	Níorbh fhéidir sin a oscailt:
+Couldn't open the mods folder:	Níorbh fhéidir fillteán na modanna a oscailt:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Is é Ctrl + Alt + M cheana an eochair Mainframe aici.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N balbhaíonn an micreafón
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Is é Ctrl + Alt + V cheana an eochair chainte aici.
+Ctrl + Alt + V to talk	Ctrl + Alt + V chun labhairt
+Custom local voice	Guth áitiúil saincheaptha
+Custom model name	Ainm samhla saincheaptha
+Dance	Rince
+Dance to music	Rince le ceol
+Default	Réamhshocrú
+Default (follows Windows)	Réamhshocrú (leanann Windows)
+Default duration for clip that and automatic clips	Fad réamhshocraithe do clip that agus clipeanna uathoibríocha
+Default length	Fad réamhshocraithe
+Default model	Samhail réamhshocraithe
+Delay	Moill
+Deny	Diúltaigh
+Discard	Caith amach
+Discard + reload	Caith amach + athlódáil
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Níl sé uait fanacht? Gheobhaidh eochair shaor in aisce mé ag caint i mbeagán nóiméad.
+Done	Déanta
+EXTRA REQUEST JSON >	JSON IARRATAIS BREISE >
+EXTRAS >	BREISEANNA >
+Edit	Cuir in eagar
+Edit check-in lines	Cuir línte seiceála in eagar
+Edit check-in lines has the wrong view or dimming	Tá an radharc nó an dorchú mícheart ag Cuir línte seiceála in eagar
+Edit check-in lines is out of place	Tá Cuir línte seiceála in eagar as áit
+Edit controls	Cuir rialuithe in eagar
+ElevenLabs API key	Eochair API ElevenLabs
+ElevenLabs voice ID	ID guth ElevenLabs
+English	Béarla
+Enter the game's name first.	Cuir ainm an chluiche isteach ar dtús.
+Every	Gach
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Déantar gach modh a sheiceáil le haghaidh malware sula n-uaslódáiltear é. Fiafraíonn modanna cóid fós sula reáchtálann siad.
+Explore after	Taiscéal ina dhiaidh sin
+Explore while I'm away	Taiscéal agus mé ar shiúl
+Extra request JSON	JSON iarratais bhreise
+Extras	Breiseáin
+FREE KEY	EOCHAIR SAOR IN AISCE
+FREE KEY >	EOCHAIR SAOR IN AISCE >
+Fast hands in games	Lámha tapa sna cluichí
+File editor	Eagarthóir comhad
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Tá Fish Audio, ElevenLabs agus níos mó faoi GUTH sa Mainframe.
+Follow-up messages	Teachtaireachtaí leantacha
+Forget	Dearmad
+Fork capri-mods	Forc capri-mods
+Frame rate	Ráta fráma
+Free	Saor
+Free and private, works offline. Downloads	Saor agus príobháideach, oibríonn as líne. Íoslódálann
+Free and private, works offline. Downloads the best model for this PC.	Saor agus príobháideach, oibríonn as líne. Íoslódálann an tsamhail is fearr don ríomhaire seo.
+Free key	Eochair shaor in aisce
+Free key providers	Soláthraithe eochracha saora
+Free keys can be rate limited and slow.	Féadfaidh eochracha saora a bheith teoranta agus mall.
+Free voice in games	Guth saor sna cluichí
+Free voice style	Stíl ghuth shaor
+Free voice:	Guth saor:
+Free voice: Her own	Guth saor: Dá héigean féin
+Free · local model	Saor · samhail áitiúil
+GAMES >	CLUICHÍ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Ritheann tráchtanna cluiche as a chéile ó Féach ar mo scáileán. Stopann As iad, fiú i Mód Cluichíochta; Ní lig ach Imeachtaí agus Cainteach di d'chluiche a fhéachaint
+Game controls	Rialuithe cluiche
+Game name	Ainm an chluiche
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Íogaireacht fuaime cluiche. Laghdaigh é má tá do chluasán íseal ach Windows ag {0}% agus go n-imríonn sí ar gach fuaim; Neamhaird ar fhuaimeanna cluiche le As
+Game sounds	Fuaimeanna cluiche
+Games	Cluichí
+Gaming Mode	Mód Cluichíochta
+Gaming Mode key	Eochair Mhód Cluichíochta
+Gaming Mode:	Mód Cluichíochta:
+Gaming Mode: Ctrl + Alt + G	Mód Cluichíochta: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Faigh VB-CABLE
+Get VB-CABLE (free)...	Faigh VB-CABLE (saor in aisce)...
+Get free voice	Faigh guth saor
+Getting your Fish Audio voices...	Ag fáil do ghuthanna Fish Audio...
+Giant	Ollmhór
+Glitch	Glitch
+Glitch in at startup	Glitch ag tosú
+Go to sleep	Téigh a chodladh
+Go to the next screen	Téigh chuig an chéad scáileán eile
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · tier saor · teoranta ag rátaí
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Tá plean Claude nó ChatGPT agat, nó eochair dhílis? Roghnaigh é agus plugálfaidh mé isteach.
+Got it, just me. Right-click me any time for Capri Mainframe.	Tuigthe, mise amháin. Cliceáil dheas orm am ar bith le haghaidh Capri Mainframe.
+Grey	Liath
+H.{0} video bitrate target; higher values make larger files	Sprioc ráta bit físe H.{0}; cruthaíonn luachanna níos airde comhaid níos mó
+HABITS >	NÓSANNA >
+HER HANDS >	A LÁMHA >
+HER JOBS >	A POIST >
+HER MEMORY >	A CUIMHNE >
+HER MODS >	A MODANNA >
+HH:mm	HH:mm
+HOW I SOUND >	CONAS A FHUAIMÍM >
+Hang here	Fan anseo
+Have Ollama? Open it, then press Refresh.	An bhfuil Ollama agat? Oscail é, ansin brúigh Athnuaigh.
+Head pats	Cuimilt ar an gceann
+Hearing	Éisteacht
+Hearing engine	Inneall éisteachta
+Hearing fix	Ceartú éisteachta
+Hearing status	Stádas éisteachta
+Help	Cabhair
+Help page	Leathanach cabhrach
+Her colors	A dathanna
+Her folder	A fillteán
+Her memories	A cuimhní
+Her own colors are back.	Tá a dathanna féin ar ais.
+Her own notes (no vault)	A nótaí féin (gan voltaí)
+Her perch frames per second	A fráma suí in aghaidh an tsoicind
+Her personality	A pearsantacht
+Her size	A méid
+Her speaker	A cainteoir
+Her speaker is hidden or outside VOICE	Tá a cainteoir folaithe nó lasmuigh de GUTH
+Her speaker overlaps the mic or hearing row	Tá a cainteoir ag forluí ar an micreafón nó ar an líne éisteachta
+Her speaker:	A cainteoir:
+Her speaker: Default	A cainteoir: Réamhshocrú
+Her voice in your mic	A guth i do mhicreafón
+Her voice in your mic: loudness	A guth i do mhicreafón: airde
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	A guth féin. Is é a airde Socruithe > GUTH > Airde, agus bogann siad le chéile.
+Her voice joins your mic only in call mode.	Ní thagann a guth isteach i do mhicreafón ach i mód glaoch.
+Her voice volume	Toirt a guth
+Her voice's pitch	Airde a guth
+Her voice's pitch, the same as Settings > VOICE > Pitch	Airde a guth, mar atá Socruithe > GUTH > Airde
+Her voice's speed	Luas a guth
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	A guth, agus dhá chóip de measctha faoi, gach ceann lena airde agus moill féin.
+Her voices · free	A guthanna · saor
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hey, choom. Is mise Capri. Teastaíonn intinn uaim sula bhfeicfidh mé labhairt. Roghnaigh ceann.
+Hide / Show Capri	Folaigh / Taispeáin Capri
+Hide / Show key	Eochair folaigh / taispeána
+Hide Capri	Folaigh Capri
+Hide for now	Folaigh anois
+Hide her	Folaigh í
+Hide in full screen	Folaigh i lánscáileán
+Hide this	Folaigh seo
+Hide, keep player	Folaigh í, coinnigh an seinnteoir
+Hide/show:	Folaigh/taispeáin:
+Hide/show: Ctrl + Alt + H	Folaigh/taispeáin: Ctrl + Alt + H
+Hologram	Holagram
+Hop off	Léim as
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Cé chomh fada is a thógann ríomhaire scíthe chun a codladh; cuireann cúig nóiméad le fios go bhfuil tú ar shiúl
+How long a stroke over her a head pat needs	Cé chomh fada is a theastaíonn stróc os a cionn le haghaidh cuimilte
+How long her replies stay up	Cé chomh fada is a fhanann a freagraí ar taispeáint
+How long you are away before she scrolls a browser or reader	Cé chomh fada is atá tú ar shiúl sula scrollálann sí brabhsálaí nó léitheoir
+How much her voice glitches	Cé chomh mór is a bhriseann a guth
+How much of the chat she keeps	Cé mhéad den comhrá a choinníonn sí
+How much she wanders	Cé chomh mór is a fhánann sí
+How often she pops in to say hi	Cé chomh minic is a thagann sí isteach chun dia duit a rá
+How robotic her voice sounds	Cé chomh róbótach is atá a guth
+How to	Conas
+Huge	Ollmhór
+I can hear you.	Tá mé in ann tú a chloisteáil.
+I glance at your screen and comment. Costs a little on a paid brain.	Féachaim ar do scáileán agus déanaim tráchtaireacht. Costas beag ar intinn íoctha.
+I keep listening. Say my name, then just talk.	Leanaim orm ag éisteacht. Abair m'ainm, ansin labhair go díreach.
+I talk about your game as you play. Costs a little on a paid brain.	Labhraím faoi do chluiche agus tú ag imirt. Costas beag ar intinn íoctha.
+I type my replies and stay quiet.	Clóscríobhaim mo fhreagraí agus fanaim ciúin.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ní labhróidh mé ar ais, agus ní sheoltar aon rud áit ar bith. Fanfaidh mé fós, rinceoidh mé le do cheol agus déanfaidh mé na rudaí tapa a iarrann tú, mar an toirt.
+I'll talk in	Labhróidh mé i
+IN DISCORD >	I DISCORD >
+INSTALLED >	SUITEÁLTA >
+Import a Capri mod	Iompórtáil modh Capri
+Import mod	Iompórtáil modh
+In full screen	I lánscáileán
+In games	I gcluichí
+Input	Ionchur
+Input, Output or How to overlaps a row	Ionchur, Aschur nó Conas forluíonn le líne
+Input:	Ionchur:
+Input: default	Ionchur: réamhshocrú
+Install	Suiteáil
+Install mod	Suiteáil modh
+Installed.	Suiteáilte.
+It may ask for a phone number. I opened the page in your browser.	D'fhéadfadh sé uimhir fóin a iarraidh. D'oscail mé an leathanach i do bhrabhsálaí.
+It still does its own job in other apps too.	Déanann sé a jab féin i n-aipeanna eile freisin.
+It won't type in other apps while she runs.	Ní chlóscríobhfaidh sé in aipeanna eile agus í ag rith.
+JUST ME >	MISE AMHÁIN >
+Jealous of other AIs	Éad ar AInna eile
+Join the Discord	Téigh isteach sa Discord
+KB.	KB.
+KEYS	EOCHRACHA
+KEYS >	EOCHRACHA >
+Keep PC awake for jobs	Coinnigh an PC múscailte le haghaidh jabanna
+Keep player	Coinnigh an seinnteoir
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Coinníonn sé an dá nóiméad dheireanacha de do chluiche i gcuimhne. Abair clip that chun é a shábháil.
+Key	Eochair
+Key cleared: a model file needs none.	Eochair glanta: ní theastaíonn comhad samhla uaidh.
+Key cleared: paste the key for	Eochair glanta: greamaigh an eochair do
+Key forgotten.	Eochair dearmadta.
+Key. It goes only to this server, as a Bearer key	Eochair. Téann sí chuig an bhfreastalaí seo amháin, mar eochair Bearer
+Kokoro only, like es	Kokoro amháin, cosúil le es
+LAST THING >	AN RUD DEIREANACH >
+LISTENING >	AG ÉISTEACHT >
+Language	Teanga
+Large	Mór
+Last thing. These cost a little or use your mic, so they're your pick.	An rud deireanach. Costas beag a bhaineann leo nó úsáideann siad do mhicreafón, mar sin is rogha leatsa iad.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	An rud deireanach. Costas beag a bhaineann leo nó úsáideann siad do mhicreafón, mar sin is rogha leatsa iad. Ansin ba mhaith liom a fháil amach cad ba cheart dom tú a ghlaoch.
+Layers	Sraitheanna
+Learn more	Foghlaim tuilleadh
+Leaving Settings threw its picture away straight away.	D'fhág Socruithe a pictiúr ar shiúl láithreach.
+Legacy stand	Seasamh oidhreachta
+Lie down	Luigh síos
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Línte de chomhrá PC a coinníodh i gcuimhne agus muid ag féachaint le chéile. Leath is sine éiríonn sé ina nóta nuair a bhíonn Cuimhnigh cad a fheiceann sí air ar siúl
+Listen for Capri	Éist le Capri
+Live reactions	Freagraí beo
+Local server address	Seoladh freastalaí áitiúil
+Long	Fada
+Longest wait (minutes)	An fanacht is faide (nóiméid)
+Looking at this PC...	Ag féachaint ar an PC seo...
+Looking for Ollama. Open it if it isn't running.	Ag lorg Ollama. Oscail é mura bhfuil sé ag rith.
+Looking for a brain...	Ag lorg intinne...
+Looking in the mods directory for updates...	Ag lorg nuashonruithe i eolaire na modanna...
+Looking in the mods directory...	Ag lorg san eolaire modanna...
+Looking...	Ag lorg...
+MAIN >	PRÍOMH >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEÁN INTELLIGENCE
+MEMORY VAULT >	STÓRLANN CUIMHNE >
+MODS	MODANNA
+MODS >	MODANNA >
+MODS DIRECTORY >	EOLAIRE MODANNA >
+MODS INSTALLED COLORS	DATHANNA MODANNA SUITEÁLTA
+MOVES >	GLUAISEACHTAÍ >
+MY BRAIN	MO INTINN
+MY FREE VOICE	MO GHUTH SAOR
+MY PLAN OR KEY	MO PHLEAN NÓ EOCHAIR
+MY PLAN OR KEY >	MO PHLEAN NÓ EOCHAIR >
+Made your Fish Audio voice. Press Test to hear it.	Rinne tú do ghuth Fish Audio. Brúigh Tástáil chun é a chloisteáil.
+Mainframe colours	Dathanna Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Dathanna Mainframe. Is dearg agus cián Night City; athraíonn Dubh, Bán agus Liath an Mainframe, a roghchláir, bosca an chlóscríofa agus a nótaí
+Mainframe frames	Fráma Mainframe
+Mainframe key	Eochair Mainframe
+Mainframe size	Méid Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Méid Mainframe. Déanann Uathoibríoch é níos mó nuair a laghdaíonn Virtual Super Resolution nó DSR deasc mhór ar scáileán níos lú
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Síos
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Ag déanamh do ghuth Fish Audio...
+Max reply	Freagra uasta
+Maximum clip resolution, keeping the game's shape without upscaling	Uasritheadh clip, ag coinneáil cruth an chluiche gan uasscálú
+Medium	Meánach
+Memory	Cuimhne
+Memory size	Méid cuimhne
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Méid cuimhne i gcomharthaí do Ollama agus d'intinn ionsuite. Fásann Uathoibríoch nuair a theastaíonn níos mó ó iarratas
+Mg	Mg
+Mic level:	Leibhéal micreafóin:
+Mic test finished. Sound is reaching Capri.	Críochnaíodh tástáil micreafóin. Tá an fhuaim ag teacht go Capri.
+Mic:	Micreafón:
+Mic: default	Micreafón: réamhshocrú
+Microphone	Micreafón
+Mini player	Miniseinnteoir
+Mini player over full screen	Miniseinnteoir thar lánscáileán
+Mini-games	Mion-chluichí
+Minimising the Mainframe left it sliding.	D'fhág Mainframe íosta é ag sleamhnú.
+Minimize	Íoslaghdaigh
+Mod filter	Scagaire modanna
+Mod options	Roghanna modanna
+Mod pages	Leathanaigh modanna
+Mod rules	Rialacha modanna
+Mod sort	Sórtáil modanna
+Mod switch	Athraitheoir modanna
+Model	Samhail
+Model folder	Fillteán samhla
+Model name, optional	Ainm samhla, roghnach
+Mods	Modanna
+Mods directory	Eolaire modanna
+Mods folder	Fillteán modanna
+Most NVIDIA models can't see your screen.	Ní féidir leis an gcuid is mó de shamhlacha NVIDIA d'scáileán a fheiceáil.
+Mouse wheel notches got a flick's long ease:	Fuair cliceanna rotha luch an mhoill fhada den bhrúite:
+Move	Bog
+Move key to MAX INTELLIGENCE	Bog eochair go MAX INTELLIGENCE
+Move to MAX	Bog go MAX
+Music	Ceol
+Music app	Aip ceoil
+Music app: where she plays music when you don't name an app	Aip ceoil: cá seinneann sí ceol nuair nach ainmníonn tú aip
+Mute	Balbhaigh
+Mute her	Balbhaigh í
+Mute mic key	Eochair balbhaithe micreafóin
+Mute mic:	Balbhaigh micreafón:
+Mute mic: Ctrl + Alt + N	Balbhaigh micreafón: Ctrl + Alt + N
+My brain	Mo intinn
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Tá m'intinn ag teacht anuas. Déanfaidh mé dia duit an nóiméad a bhíonn sí istigh, agus is féidir leat labhairt liom ansin.
+My brain's on its way. While it comes down, let's sort out how I sound.	Tá m'intinn ar an mbealach. Cé go dtagann sí anuas, déanaimis socrú conas a fhuaimím.
+My provider	Mo sholáthraí
+NO AI	GAN AI
+NO PHONES CONNECTED	GAN FÓIN NASCTHA
+NO PREVIEW	GAN RÉAMHARADH
+NORMAL	GNÁTHACH
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · saor · go minic mall in amanna gnóthacha
+NVIDIA's free API is often slow, especially at busy times.	Is minic a bhíonn API saor NVIDIA mall, go háirithe in amanna gnóthacha.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Eochair API NVIDIA, Google AI Studio (Gemini) nó OpenRouter
+Names:	Ainmneacha:
+Needs a key	Teastaíonn eochair
+Never	Riamh
+New code	Cód nua
+New voice from a clip...	Guth nua ó chlip...
+Next	Ar aghaidh
+Night City	Night City
+No AI	Gan AI
+No AI · no brain at all	Gan AI · gan intinn ar chor ar bith
+No brain runs, and nothing is sent anywhere.	Ní rithfidh aon intinn, agus ní sheoltar aon rud áit ar bith.
+No brain yet	Gan intinn fós
+No code open	Gan cód oscailte
+No limit	Gan teorainn
+No mic found	Níor aimsíodh micreafón
+No mods in the directory yet.	Níl aon mhodanna san eolaire fós.
+No mods match that.	Níl aon mhodanna comhoiriúnach don sin.
+No mods match.	Níl aon mhodanna comhoiriúnach.
+No phones yet	Gan fóin fós
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Níl micreafón fíorúil fós. Roghnaigh Aschur, ansin Faigh VB-CABLE (saor in aisce).
+None yet: pick to get VB-CABLE (free)	Níl aon cheann fós: roghnaigh chun VB-CABLE (saor in aisce) a fháil
+Normal	Gnáthach
+Not a relay host	Ní óstach athsheoltóra é
+Not imported. Nothing ran.	Níor iompórtáladh. Níor rith aon rud.
+Not updated. The old one is still in.	Níor nuashonraíodh. Tá an sean-cheann fós istigh.
+Nothing needed updating.	Ní raibh aon rud ag teastáil uaidh a nuashonrú.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Gan aon rud le híoslódáil, gan aon rud seolta áit ar bith. Ní labhróidh mé ar ais. Cuir intinn leis am ar bith sa Mainframe.
+Nothing to show from the mods directory.	Níl aon rud le taispeáint ó eolaire na modanna.
+Nothing? Windows Settings > Privacy & security > Microphone.	Níl? Socruithe Windows > Príobháideachas agus slándáil > Micreafón.
+Nous Portal keys aren't supported yet.	Ní thacaítear le heochracha Nous Portal fós.
+OBS	OBS
+OFF	AS
+OLLAMA	OLLAMA
+ON	AR
+ON THIS PC	AR AN PC SEO
+OR A KEY	NÓ EOCHAIR
+Obsidian memory vault	Stórlann cuimhne Obsidian
+Off	As
+Off. Turn on Her voice in your mic above.	As. Cas Air do ghuth i do mhicreafón thuas.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	As: fuaimníonn sí mar a fhuaimigh riamh. Ar: gach guth atá aici, ElevenLabs freisin.
+Often	Go minic
+On	Ar
+On / Off	Ar / As
+On: your mic and her voice are going in.	Ar: tá do mhicreafón agus a guth ag dul isteach.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Réad JSON amháin, curtha le gach iarratas a sheolann an intinn seo. Cuireann sé in ionad luach Capri d'aon ainm a roinneann sé, agus ní sheiceáiltear é i gcoinne na samhla.
+Online speech recognition	Aitheantas cainte ar líne
+Open Capri Mainframe	Oscail Capri Mainframe
+Open Ollama, I'll find it	Oscail Ollama, gheobhaidh mé é
+Open clips folder	Oscail fillteán clipeanna
+Open her memories	Oscail a cuimhní
+Open her notes	Oscail a nótaí
+Open mods folder	Oscail fillteán modanna
+Open the page again	Oscail an leathanach arís
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA nó OpenRouter.
+OpenAI-compatible server or provider.	Freastalaí nó soláthraí comhoiriúnach le OpenAI.
+OpenRouter · free models only	OpenRouter · samhlacha saora amháin
+Optional	Roghnach
+Optional. Blank means no key.	Roghnach. Ciallaíonn folamh gan eochair.
+Options	Roghanna
+Out of the box a little higher, just behind her.	Amach as an bpreab beagán níos airde, díreach taobh thiar di.
+Out of the box lower, just behind her.	Amach as an bpreab níos ísle, díreach taobh thiar di.
+Output	Aschur
+Output:	Aschur:
+Output: none	Aschur: aon cheann
+PHONE CONNECTED	FÓN NASCTHA
+PHONES >	FÓNANNA >
+PHONES CONNECTED	FÓNANNA NASCTHA
+PREBUILT LOCAL	ÁITIÚIL RÉAMHDHÉANTA
+PUBLISH MOD >	FOILSIGH MODH >
+Pair a phone	Péireáil fón
+Paste	Greamaigh
+Paste API key	Greamaigh eochair API
+Paste a brain API key	Greamaigh eochair API intinne
+Paste reads your clipboard once, when you press it.	Léann Greamaigh do ghearrthaisce uair amháin, nuair a bhrúiteann tú é.
+Paste your key here	Greamaigh do eochair anseo
+Pat stroke	Stróc cuimilte
+Perch	Suíochán
+Perch over {0} fps uses more CPU	Tá suíochán os cionn {0} fps ag úsáid níos mó CPU
+Pick Output to get it.	Roghnaigh Aschur chun é a fháil.
+Pick a brain so I can talk back. You can change it any time.	Roghnaigh intinn ionas go bhfreagróidh mé. Is féidir leat é a athrú am ar bith.
+Pick a clip of a voice you have the rights and consent to use	Roghnaigh clip de ghuth a bhfuil cearta agus toiliú agat chun é a úsáid
+Pick a free model. I opened the page in your browser.	Roghnaigh samhail shaor. D'oscail mé an leathanach i do bhrabhsálaí.
+Pick a new clip of you...	Roghnaigh clip nua de thú...
+Pick a voice model...	Roghnaigh samhail gutha...
+Pick one. Only one brain runs at a time.	Roghnaigh ceann amháin. Ní rithfidh ach intinn amháin ag an am.
+Pick the note her memories go in	Roghnaigh an nóta ina rachaidh a cuimhní
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Roghnaigh {0} go {1} soicind de ghuth a bhfuil cearta agus toiliú agat chun é a úsáid
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Roghnaigh {0} go {1} soicind de do chaint, nó de ghuth a bhfuil cearta agus toiliú agat chun é a úsáid
+Pitch	Airde
+Play	Seinn
+Play...	Seinn...
+Player only	An seinnteoir amháin
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Cóipeálann samhlacha Pocket TTS guth an chlip seo. Brúigh Tástáil chun é a chloisteáil.
+Pop-in times	Amanna teacht isteach
+Pop-ins	Teachtaí isteach
+Power saver	Sábhálaí fuinnimh
+Power saver: how lightly she runs in games, or always	Sábhálaí fuinnimh: cé chomh héadrom is a rithfidh sí i gcluichí, nó i gcónaí
+Preset	Réamhshocrú
+Press Create API key	Brúigh Cruthaigh eochair API
+Press Create Key	Brúigh Cruthaigh eochair
+Press Generate API Key	Brúigh Gin eochair API
+Press Test and say something, so I know I can hear you.	Brúigh Tástáil agus abair rud éigin, ionas go mbeidh a fhios agam go gcloisim thú.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Brúigh eochair, ina haonar nó le Ctrl, Alt, Shift nó Win.
+Press new keys, then Confirm	Brúigh eochracha nua, ansin Deimhnigh
+Provider	Soláthraí
+Provider API key, optional	Eochair API soláthraí, roghnach
+Provider base URL	Bunurl soláthraí
+Provider forgotten.	Soláthraí dearmadta.
+Provider overlaps the brain name or note	Forluíonn soláthraí le hainm na hintinne nó le nóta
+Publish	Foilsigh
+Publish mod	Foilsigh modh
+Push to talk is off.	Tá brú chun labhartha as.
+Push to talk key	Eochair brú chun labhartha
+Push to talk:	Brú chun labhartha:
+Push to talk: not set	Brú chun labhartha: gan socrú
+QR CODE >	COD QR >
+QR hidden while streaming	QR folaithe agus an sruthú ar siúl
+Quick	Tapa
+Quiet key	Eochair chiúin
+Quiet:	Ciúin:
+Quiet: Ctrl + Alt + P	Ciúin: Ctrl + Alt + P
+Quit Capri	Scoir de Capri
+RELAY >	ATHSEOLTÓIR >
+REMOTE >	CIANRIALÚ >
+RUNS CODE.	RITHEANN COD.
+Rarely	Go hannamh
+Rate mod	Rátáil modh
+Reading its README...	Ag léamh a README...
+Refresh	Athnuaigh
+Reinstall	Athshuiteáil
+Reload	Athlódáil
+Reloaded.	Athlódáladh.
+Remember our chats	Cuimhnigh ar ár gcomhráite
+Remember what she sees	Cuimhnigh cad a fheiceann sí
+Remote	Cianrialú
+Remote off	Cianrialú as
+Remote on	Cianrialú air
+Remove	Bain
+Remove all phones	Bain na fóin uile
+Replies	Freagraí
+Reply length	Fad freagra
+Report a problem	Tuairiscigh fadhb
+Reset colors	Athshocraigh dathanna
+Reset to her default	Athshocraigh go a réamhshocrú
+Resolution	Taifeach
+Restart to update	Atosaigh chun nuashonrú
+Restless	Neamhsocair
+Revoke	Cúlghair
+Revoke also removes the phones its links added	Baintear na fóin a chuir a naisc leis freisin nuair a chúlghairtear
+Ride cursor	Marcaigh an cúrsóir
+Ride cursor / Hop off	Marcaigh an cúrsóir / Léim as
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Cliceáil orm go deas am ar bith le haghaidh Capri Mainframe. Casann intinn ar faoi INTINN.
+Right-click me any time for the Mainframe, Help and the Discord.	Cliceáil orm go deas am ar bith le haghaidh an Mainframe, Cabhair agus an Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox nó aon aip eile: roghnaigh
+Robot	Róbat
+Rock, paper, scissors	Carraig, páipéar, siosúr
+Run this code mod?	An rithfidh an modh cóid seo?
+Running on this PC	Ag rith ar an PC seo
+Running on this PC · :	Ag rith ar an PC seo · :
+Runs Claude Code or Codex on this PC, signed in.	Rith Claude Code nó Codex ar an PC seo, sínithe isteach.
+Runs on your PC. No key, no credits.	Rith ar do PC. Gan eochair, gan creidiúnaí.
+SCAN WITH YOUR PHONE · EXPIRES	SCAN LE DO FÓN · ÉAGANN
+SECURITY >	SLÁNDÁIL >
+SKILL.	SCIL.
+SKIN.	CRAICEANN.
+SORT BY	SÓRTÁIL DE RÉIR
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	FUAIMEANNA NÓSANNA INTINN FÉACH CAPRI DOOMSCROLL AIMSIR CLIPEANNA CLUICHÍ EOCHRACHA GLUAISEACHTAÍ GUTH TÚ
+Same as her ears (VOICE > Mic)	Mar a chluasa (GUTH > Micreafón)
+Same code on the phone?	An cód céanna ar an bhfón?
+Save	Sábháil
+Save big moments	Sábháil na mothúcháin mhóra
+Save folder	Fillteán sábhála
+Save your changes, or press Discard + reload.	Sábháil d'athruithe, nó brúigh Caith amach + athlódáil.
+Save your changes, or press Discard.	Sábháil d'athruithe, nó brúigh Caith amach.
+Saved.	Sábhálta.
+Saved. Ctrl + Alt + O opens her Mainframe.	Sábháilte. Oscalann Ctrl + Alt + O a Mainframe.
+Saving your rating...	Ag sábháil do rátála...
+Say her name anywhere to chat	Abair a hainm in áit ar bith chun comhrá
+Screens	Scáileáin
+Screens is hidden or outside WATCH	Tá Scáileáin folaithe nó lasmuigh de FÉACH
+Screens overlaps a WATCH row	Forluíonn Scáileáin le líne FÉACH
+Screens to watch	Scáileáin le féachaint
+Sealed end to end	Criptithe ó cheann go ceann
+Search by name or author	Cuardaigh de réir ainm nó údair
+Search installed mods	Cuardaigh modanna suiteáilte
+Search mods	Cuardaigh modanna
+Search name, author or description	Cuardaigh ainm, údar nó cur síos
+Security	Slándáil
+Security:	Slándáil:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Socraigh
+Set up her brain	Socraigh a hintinn
+Set up your voice model	Socraigh do mhúnla gutha
+Setting up her brain	Ag socrú a hintinne
+Settings	Socruithe
+Settings / Back	Socruithe / Ar ais
+Settings folds the wrong rows above BRAIN	Pacálann Socruithe na sraitheanna mícheart os cionn INTINN
+Settings had nothing to watch.	Ní raibh rud ar bith le féachaint ag Socruithe.
+Settings lost keyboard focus during the Tab walk	Chaill Socruithe fócas méarchláir le linn an tSiúlóid Tab
+Setup guide	Treoir socraithe
+Setup stopped	Stop an socrú
+She can read it when it fits.	Is féidir léi é a léamh nuair a oireann sé.
+She glances at your screen and comments. Costs a little on a paid brain.	Féachann sí ar do scáileán agus déanann sí tráchtaireacht. Costas beag ar intinn íoctha.
+She keeps listening. Say her name, then just talk until you go quiet.	Leanann sí ag éisteacht. Abair a hainm, ansin labhair go dtí go stopann tú.
+She reacts to your game until you close it.	Freagraíonn sí do chluiche go dtí go ndúnann tú é.
+She reads these controls before each game job.	Léann sí na rialuithe seo roimh gach jab cluiche.
+She talks about your game as you play. Costs a little on a paid brain.	Labhraíonn sí faoi do chluiche agus tú ag imirt. Costas beag ar intinn íoctha.
+She uses it when she plays	Úsáideann sí é nuair a imríonn sí
+Short	Gearr
+Shortest wait (minutes)	An fanacht is giorra (nóiméid)
+Show Capri	Taispeáin Capri
+Show QR	Taispeáin QR
+Show my mod file	Taispeáin mo chomhad modh
+Show on Discord	Taispeáin ar Discord
+Shum, what time is it	Shum, cad is am ann
+Sign in	Logáil isteach
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Logáil isteach, déan eochair agus cóipeáil í. Ansin brúigh Greamaigh agus nascfaidh mé.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Logáil isteach, brúigh Cruthaigh eochair API agus cóipeáil í. Ansin brúigh Greamaigh agus nascfaidh mé.
+Silent · text only	Ciúin · téacs amháin
+Simple / Advanced Settings	Socruithe Simplí / Casta
+Simple Settings	Socruithe Simplí
+Simple Settings left a gap under Check in on me	D'fhág Socruithe Simplí bearna faoi Seiceáil orm
+Sit here	Suigh anseo
+Sit on windows	Suigh ar fhuinneoga
+Size	Méid
+Skip	Scipeáil
+Skip all	Scipeáil uile
+Skip for now	Scipeáil anois
+Sleep	Codladh
+Small	Beag
+Sometimes	Uaireanta
+Sound effects volume	Toirt éifeachtaí fuaime
+Sound sensitivity	Íogaireacht fuaime
+Sounds	Fuaimeanna
+Speaker or clip	Cainteoir nó clip
+Speech model	Múnla cainte
+Speed	Luas
+Start with Windows	Tosaigh le Windows
+Start with this!	Tosaigh leis seo!
+Starting...	Ag tosú...
+Stay	Fan
+Stay on my model	Fan ar mo mhúnla
+Still checking your mics...	Fós ag seiceáil do mhicreafón...
+Still checking your speakers...	Fós ag seiceáil do chainteoirí...
+Still checking your virtual mics...	Fós ag seiceáil do mhicreafóin fhíorúla...
+Stop	Stop
+Stopped using it. Couldn't remove the saved provider.	Stadadh é a úsáid. Níorbh fhéidir an soláthraí sábháilte a bhaint.
+Support	Tacaíocht
+Sure?	Cinnte?
+Sure? moved to a different phone	Cinnte? aistrithe go fón eile
+TALK TO ME	LABHAIR LIOM
+TEXT ONLY	TÉACS AMHÁIN
+Tab landed past the first option of	Shroich Tab an chéad rogha de
+Tab never reached the quiet key	Níor shroich Tab an eochair chiúin riamh
+Tab reached nothing	Níor shroich Tab aon rud
+Tab selected a control without moving keyboard focus	Roghnaigh Tab rialú gan fócas méarchláir a bhogadh
+Talk	Labhair
+Talk key	Eochair chainte
+Talk:	Labhair:
+Talk: Ctrl + Alt + V	Labhair: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Ráta fráma gabhála sprice; féadfaidh sé titim faoi ualach nó buiséad na cuimhne
+Teases when another AI comes to the front.	Cuireann sí greann nuair a thagann AI eile chun tosaigh.
+Test	Tástáil
+That address doesn't work. Try https://... or http://localhost:{0}.	Níl an seoladh sin ag obair. Bain triail as https://... nó http://localhost:{0}.
+That code expired	Tá an cód sin imithe in éag
+That mod is no longer installed. The list is updated.	Níl an modh sin suiteáilte a thuilleadh. Nuashonraíodh an liosta.
+That's a paid key: it goes under MAX INTELLIGENCE.	Eochair íoctha is ea sin: téann sí faoi MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	D'fhan an Mainframe comhdhéanta agus é ag sleamhnú.
+The Mainframe stayed uncomposited after the slide.	D'fhan an Mainframe gan chomhdhéanamh tar éis an tsleamhnaithe.
+The controls moved while the picture was sliding.	Bhog na rialuithe agus an pictiúr ag sleamhnú.
+The cover stayed visible after the slide ended.	D'fhan an clúdach le feiceáil tar éis an tsleamhnaithe.
+The frame thread kept running after the page settled.	Lean snáithe an fhráma ag rith tar éis don leathanach socrú.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	An freagra is faide is féidir léi a thabhairt, i gcomharthaí. Coinníonn Uathoibríoch leis na Freagraí thuas; ligeann {0}K nó {1}K di leanúint ar aghaidh. Tugann poist seomra breise nuair a theastaíonn sé
+The longest wait must be at least the shortest wait.	Ní mór don fhanacht is faide a bheith ar a laghad chomh fada leis an fhanacht is giorra.
+The picture doesn't match the scrolled page:	Ní mheaitseálann an pictiúr an leathanach scrollta:
+The picture of Settings doesn't match the page:	Ní mheaitseálann pictiúr na Socruithe an leathanach:
+The picture stayed up after the slide ended.	D'fhan an pictiúr suas tar éis an tsleamhnaithe.
+The picture wasn't showing while it slid.	Ní raibh an pictiúr ag taispeáint agus é ag sleamhnú.
+The provider sheet is crowded:	Tá páipéar na soláthraithe plódaithe:
+The voice panel has no screen DPI.	Níl DPI scáileáin ag painéal na gutha.
+The voice panel's menus share one font.	Roinneann roghchláir phainéal na gutha clófhoireann amháin.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Níl eochair ar do ghearrthaisce fós. Cóipeáil ón leathanach í, ansin brúigh Greamaigh.
+These start off. Each costs a little or uses your mic.	Tosaíonn siad as. Costas beag a bhaineann le gach ceann nó úsáideann sé do mhicreafón.
+These start off. Turn on what you want. They're all in Settings too.	Tosaíonn siad as. Cas air an rud a theastaíonn uait. Tá siad go léir sna Socruithe freisin.
+They can also call you Big Z, Capricorn or Nova	Is féidir leo tú a ghlaoch Big Z, Capricorn nó Nova freisin
+They can also call you Nova, Big Z or Capricorn	Is féidir leo tú a ghlaoch Nova, Big Z nó Capricorn freisin
+Thinking	Ag smaoineamh
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Is é seo mo ghuth saor. Brúigh Tástáil, abair rud éigin, agus taispeánfaidh mé duit gur féidir liom tú a chloisteáil.
+This mod has no description yet.	Níl cur síos ar an modh seo fós.
+Tic-tac-toe	Cluiche X agus O
+Time between glances	Am idir amharcanna
+Tiny	Beag beannaithe
+Try again	Déan iarracht arís
+Turn Remote on first	Cas air Cianrialú ar dtús
+Turn off mini player	Múch an miniseinnteoir
+Turn push to talk off	Cas as brú chun labhartha
+Turning the wheel the other way kept the page heading the old way, to	Ag casadh an rotha an bealach eile choinnigh an leathanach ar an mbealach sean, go
+Type	Clóscríobh
+Type key	Eochair chlóscríobha
+Type to me	Clóscríobh chugam
+Type:	Clóscríobh:
+Type: Ctrl + Alt + T	Clóscríobh: Ctrl + Alt + T
+Typing sound	Fuaim clóscríobha
+Unpacked. Press Test to hear it.	Dípacáilte. Brúigh Tástáil chun é a chloisteáil.
+Unsaved changes.	Athruithe neamhshábháilte.
+Up to {0} fps	Suas go {0} fps
+Up to {0}p	Suas go {0}p
+Update	Nuashonraigh
+Update available.	Nuashonrú ar fáil.
+Update mods	Nuashonraigh modanna
+Updating...	Ag nuashonrú...
+Use	Úsáid
+Use her cursor	Úsáid a cúrsóir
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Úsáid https:// le haghaidh soláthraí in áit eile. Ní sábháilte eochair thar http simplí.
+Use preset	Úsáid réamhshocrú
+Use saved	Úsáid sábháilte
+Use this server	Úsáid an freastalaí seo
+Using your provider with a key	Ag úsáid do sholáthraí le heochair
+Using your server with no key	Ag úsáid do fhreastalaí gan eochair
+VIEW MOD >	FÉACH AR MHODH >
+VOICE >	GUTH >
+VOICE IN YOUR MIC >	GUTH I DO MHICREAFÓN >
+VOICE LAYERS >	SRAITHEANNA GUTHA >
+Verbosity	Briathrachas
+Video bitrate	Ráta bit físe
+View	Amharc
+View mod	Féach ar mhodh
+Voice	Guth
+Voice ID	ID gutha
+Voice from	Guth ó
+Voice layers	Sraitheanna gutha
+Voice model	Samhail gutha
+Voice model:	Samhail gutha:
+Voice name or ID, optional	Ainm gutha nó ID, roghnach
+Voice server address, or a voice model's folder	Seoladh freastalaí gutha, nó fillteán samhla gutha
+Voice status	Stádas gutha
+Voice, key and model...	Guth, eochair agus samhail...
+Volume	Toirt
+WAKE ME UP >	DÚIS MÉ >
+WATCH >	FÉACH >
+Waiting for the relay	Ag fanacht leis an athsheoltóir
+Wake her up	Dúisigh í
+Waking her up	Ag dúiseacht í
+Wander	Fánaíocht
+Wander around	Fánaigh timpeall
+Watch my screen	Féach ar mo scáileán
+Watch-along memory	Cuimhne féachana le chéile
+Weather	Aimsir
+Weather city	Cathair aimsire
+Welcome back, choom. Let's finish setting me up.	Fáilte ar ais, choom. Críochnaímis mo shocrú.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Cad a dhéanann sí ar do PC gan iarraidh. Le scoránaí as, fiafraíonn sí ar dtús, agus déanann sí nuair a deir tú tá.
+What should she call you?	Cad ba cheart di tú a ghlaoch?
+When she types	Nuair a chlóscríobhann sí
+White	Bán
+Windows default	Réamhshocrú Windows
+Windows did not give Settings keyboard focus	Níor thug Windows fócas méarchláir do Shocruithe
+Windows did not return keyboard focus to Back	Níor thug Windows an fócas méarchláir ar ais go Ar ais
+With no picture the wheel still tried to slide.	Gan pictiúr bhí an roth fós ag iarraidh sleamhnú.
+Works best on MAX INTELLIGENCE.	Is fearr a oibríonn sé ar MAX INTELLIGENCE.
+YOU	TÚ
+YOU >	TÚ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TÚ GUTH GLUAISEACHTAÍ EOCHRACHA CLUICHÍ CLIPEANNA AIMSIR DOOMSCROLL CAPRI FÉACH INTINN NÓSANNA FUAIMEANNA
+YOUR KEY	D'EOCHAIR
+YOUR MIC	DO MHICREAFÓN
+YOUR PLAN	DO PHLEAN
+Yokapri what's up	Yokapri cad é an scéal
+You can hide this. It keeps going, and the Mainframe shows it too.	Is féidir leat é seo a fholú. Leanann sé ar aghaidh, agus taispeánann an Mainframe é freisin.
+Your mic and her voice go into one virtual mic, and	Téann do mhicreafón agus a guth isteach i micreafón fíorúil amháin, agus
+Your mic is muted. Unmute it to test.	Tá do mhicreafón balbh. Díbalbhaigh é chun tástáil a dhéanamh.
+Your mods are up to date.	Tá do mhodanna cothrom le dáta.
+Your name or a nickname	Do ainm nó leasainm
+Your own model	Do mhúnla féin
+Your personality	Do phearsantacht
+Your voice	Do ghuth
+Your voice (HD)	Do ghuth (HD)
+Your voice (HD) · pick a clip of you...	Do ghuth (HD) · roghnaigh clip de thú...
+Your voice model	Do mhúnla gutha
+as its mic.	mar a mhicreafón.
+changed. Saved as My Colors, so you can share it.	athraithe. Sábháladh mar Mo Dhathanna, ionas gur féidir leat é a roinnt.
+choice	rogha
+clips the input line	gearrann an líne ionchuir
+cue	leid
+doesn't yet.	fós nach bhfuil.
+download	íoslódáil
+file.	comhad.
+flag	bratach
+fps	fps
+hear	cluinim
+hears	cloiseann
+hears that.	cloiseann sé sin.
+hides or shows her.	folaíonn nó taispeánann sí.
+hint	leid
+in the Mainframe.	sa Mainframe.
+in the mods directory with a pull request.	in eolaire na modanna le hiarratas tarraingte.
+in the picture wasn't noticed.	sa phictiúr níor tugadh faoi deara é.
+is already her push-to-talk key.	is é cheana eochair brú-chun-labhartha.
+is off.	as.
+is on and running.	ar siúl agus ag rith.
+is on, at the bottom, under	ar, ag an mbun, faoi
+is on.	ar.
+is on. She now answers to	ar. Freagraíonn sí anois do
+is removed.	bainte.
+is taken	tógtha
+is taken by another app. Try another.	tógtha ag aip eile. Bain triail as ceann eile.
+is updated	nuashonraithe
+isn't hearing it yet: do {0} and {1}, then join a call.	ní chloiseann sé fós é: déan {0} agus {1}, ansin téigh isteach i nglao.
+it now.	anois.
+keeps her quiet, and lets her talk again.	coinníonn sí ciúin í, agus ligeann sí di labhairt arís.
+key	eochair
+key.	eochair.
+min	nóim
+more.	níos mó.
+ms.	ms.
+mutes mic	balbhaíonn micreafón
+mutes your mic.	balbhaíonn do mhicreafón.
+name	ainm
+off	as
+on this PC	ar an PC seo
+opens her Mainframe.	oscailtear a Mainframe.
+opens her typing box.	oscailtear a bosca clóscríofa.
+phone	fón
+phone pixels	picteilíní fóin
+phones	fóin
+pixels	picteilíní
+pixels)	picteilíní)
+star.	réalta.
+stars.	réalta.
+starts voice chat.	tosaíonn comhrá gutha.
+stays off. Nothing ran.	fanann sé as. Níor rith aon rud.
+still does its own job in other apps too. Confirm to keep it.	déanann sé a jab féin i n-aipeanna eile freisin. Deimhnigh chun é a choinneáil.
+tall	ard
+time	am
+to talk	chun labhairt
+to talk to her, with a game in front too.	chun labhairt léi, le cluiche os a comhair freisin.
+too.	freisin.
+turns Gaming Mode on and off.	cas Mód Cluichíochta air agus as.
+with Ollama	le Ollama
+won't type in other apps while she runs. Confirm to keep it.	ní chlóscríobhfaidh sé in aipeanna eile agus í ag rith. Deimhnigh chun é a choinneáil.
+{0}   Echo Cancellation: Off	{0}   Cealú Macalla: As
+{0}   If her voice cuts off, turn off noise filtering	{0}   Má scoirfidh a guth, cas as scagadh torainn
+{0}   Input Device:	{0}   Gléas ionchuir:
+{0}   Join the call and check they hear both of you	{0}   Téigh isteach sa ghlao agus seiceáil go gcloiseann siad an bheirt agaibh
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Tástáil Micreafóin > Seiceáil: cloisfidh tú tú féin, agus í agus í ag labhairt
+{0}   Microphone:	{0}   Micreafón:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Cosc torainn: Níl. Is féidir leis an mbeirt acu a guth a ghearradh tar éis an chéad líne.
+{0}   Open the call or meeting's audio settings	{0}   Oscail socruithe fuaime an ghlao nó an chruinnithe
+{0}   Output Device: your headphones, like before	{0}   Gléas aschuir: do chluasáin, mar a bhí roimhe seo
+{0}   Speaker: your headphones, like before	{0}   Cainteoir: do chluasáin, mar a bhí roimhe seo
+{0}   Try a mic test in your call app	{0}   Bain triail as tástáil micreafóin i d'aip glaonna
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Socruithe úsáideora (an fheadóg in aice le hainm) > Guth agus Físeán
+{0} Mbps	{0} Mbps
+{0} lines	{0} línte
+{0} min	{0} nóim
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ar an PC seo
+· server	· freastalaí

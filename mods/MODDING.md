@@ -1,12 +1,13 @@
 # Making Capri mods
 
-Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
+Capri reads five kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
 
 | File | What it does |
 |---|---|
 | `.capri-mod` | Settings only: extra names, spellings, colours, the hearing log |
 | `.capri-skin` | A zip of her sprite strips that changes how she looks. Several **stack**: each one turned on goes on top |
 | `.capri-skill` | Know-how for a game that she follows when she plays it |
+| `.capri-tool` | A look-up tool she can use: one to three reads from sites it lists. It can't run code or send anything |
 | `.capri-code` | C# that runs inside Capri, on Windows, Mac and Linux |
 
 Share finished mods in [capri-mods](https://github.com/lachydotmcg/capri-mods).
@@ -27,6 +28,88 @@ top as it is:
 - It's drawn over whatever is under it in the stack, or her own look.
 - The Mods list shows each skin's layer. Turn one off and on again to move it to the top.
 - Her colours go on after, so anything drawn in her hair colour follows My Colors.
+
+## Animations: more frames, fewer frames, other speeds
+
+A skin's strip doesn't have to have as many frames as hers. Keep her frame size (each frame is her strip's width divided by
+her frame count, at her height) and put as many frames side by side as you like, up to 240 or 32,767 px wide. So `idle.png`
+is frames of 116 x 384, and 90 of them make a 10,440 x 384 strip.
+
+Set how fast a strip plays in `skin.json`, from 1 to 60 frames a second. It works on your own strips and on hers:
+
+```json
+{ "format": 1, "id": "slow-idle", "name": "Slow Idle", "frames": [ { "strip": "idle", "fps": 12 }, { "strip": "perch", "fps": 24 } ] }
+```
+
+- Her mouth shapes (`mouth.png`, `idle_mouth.png`), her ribbon drawings (`form.png`) and her click (`click.png`) aren't frames
+  in time, so they keep her size and speed.
+- Facing left: if your skin has `idle.png` but no `idle_flipped.png`, she mirrors your `idle.png`. A `_flipped` strip has to be
+  the same size as the strip it goes with.
+- She blinks over frames 25 to 32 of `idle` and 29 to 36 of `perch` and `laydown`. If you change how many frames one of those
+  has, ship its blink strips too (`idle_blink.png` and so on), or she won't blink in it.
+- Her talking perch and lying talk follow the plain loop's place, so a `perch_talk.png` with a different length keeps in step.
+- A whole skin stacked on top only adds a strip that's the same size as the one under it.
+
+### Her animation editor
+
+**Mainframe > CAPRI > Mods > Animations** opens it. Pick a strip, play it or step through it, then:
+
+- **Duplicate**, **Delete**, **Move earlier** and **Move later** the frame you're on.
+- **Replace...** or **Add after...** with your own PNGs. A PNG can be one frame, or a strip of several side by side.
+- **Save PNG...** and **Load PNG...** the whole strip, or **Save frames...** and **Load frames...** a folder of numbered PNGs
+  (`idle_001.png`, `idle_002.png`...) to draw in any art program.
+- **Edit frame in...** and **Edit strip in...** open the frame you're on, or the whole strip, in any app you pick (paint.net,
+  Aseprite, Krita, Photoshop...). Each time you save it there, it comes straight back into the editor, and onto her too once
+  you've pressed **Wear it**. On Windows you pick the app from the Open with list, on a Mac from your Applications, and on Linux
+  it opens in your default image app.
+- **Slower** and **Faster** set its speed.
+- **Wear it** saves every change as a skin and puts it on as her outfit, starting from the outfit she has on. **Save skin...**
+  saves the `.capri-skin` to share.
+
+## Tool mods
+
+A `.capri-tool` gives her one new tool without any code. It's a JSON recipe: up to three HTTPS GETs to the hosts it lists,
+the values to keep from each JSON answer, and what to tell her. Capri's own code runs it, so a broken tool fails with a reason
+instead of crashing her.
+
+```json
+{
+  "format": 1,
+  "id": "word-meaning",
+  "name": "What a word means",
+  "version": "1.0",
+  "author": "You",
+  "description": "The first dictionary meaning of an English word. Use it when they ask what a word means.",
+  "takes": "One English word",
+  "domains": ["api.dictionaryapi.dev"],
+  "steps": [
+    { "get": "https://api.dictionaryapi.dev/api/v2/entries/en/{text}", "keep": { "meaning": "[0].meanings[0].definitions[0].definition" } }
+  ],
+  "say": "{text}: {meaning}"
+}
+```
+
+- `id` becomes her tool's name, with dashes as underscores (`word_meaning`). It starts with a letter, up to 40 characters.
+- `description` tells her when to use it, up to 200 characters. `takes` says what its one text input is. Leave it out for a
+  tool that takes nothing.
+- `domains` lists 1 to 5 hosts. Every `get` starts with `https://` and one of those hosts, written out in full.
+- `{text}` is what she passes in. `{name}` is a value an earlier step kept. In a `get` they're URL-encoded; in `say` they're
+  as they came.
+- A path is keys and `[n]` indexes: `extract`, `[0].date`, `results[0].latitude`. Numbers come through as the site wrote them.
+- Only GET, no keys or logins. A redirect isn't followed, so name the final host, 4 seconds and 64 KB per answer, and 2000 characters back to her.
+
+Importing one shows the hosts it reads from and asks first, and an edited one asks again. Her tool goes through the same
+`mod` tool and the same **Use tools your mods added** toggle as code mods' tools. A site that finds nothing doesn't count
+against a tool, but three broken answers in a row (no JSON, a path that isn't there, an answer that's too big)
+switch it off until you turn it on again.
+
+She can write one herself with her `make_tool` tool when you ask for a look-up she doesn't have. It's saved in your mods
+switched off and not approved, so nothing runs until you read it in Mods and turn it on.
+
+## If a mod stops her starting
+
+Capri remembers which code mod was starting. If she stopped while one was, that mod is off on her next start and the Mods
+page says so. Start her with `--no-mods` to start with every mod off for that run, without changing what's saved.
 
 ## Code mods
 
@@ -53,7 +136,7 @@ public class MyMod : ICapriMod
 }
 ```
 
-She asks before a code mod runs, and asks again whenever the file changes. The approve box lists the permissions it asks for. A code mod still has full access to the PC, so permissions describe what it does through Capri. They don't sandbox it.
+She asks before a code mod runs, and asks again whenever the file changes. The approve box lists the permissions it asks for, and what her quick read of its code found: whether it uses the network and which addresses, starts programs, calls Windows directly, reaches outside her folder, reads the keyboard or changes what her brain is told. Minified or packed code is said in the box and asked about a second time, with a laid-out copy to read. A mod that both unpacks hidden text and loads code while it runs is refused. A code mod still has full access to the PC, so permissions describe what it does through Capri. They don't sandbox it.
 
 `Start` gets an `ICapriHost`. Hooks run on her window's thread. If your handler throws, the error goes in `errors.txt` and she carries on. When the mod is turned off or removed, its hooks, timers, menu items, notes, options, drawing, brain tools, context, hotkeys and page are removed with it.
 
@@ -267,6 +350,11 @@ A `CapriTrack` has `Title`, `Artist`, `Album`, `App` (a name to show, like `Spot
 
 ## Examples
 
+- [demo/](demo) has a checkers game she plays with you, and a tool mod for currency rates.
 - [hello-code.capri-code](hello-code.capri-code) answers "mod check".
 - [hooks-tour.capri-code](hooks-tour.capri-code) grows or shrinks her when asked, counts head pats, draws a heart over her head, and adds a menu item and options.
 - [startup-intros.capri-code](startup-intros.capri-code) plays a startup intro.
+- [twitch-camera.capri-code](twitch-camera.capri-code) reads your Twitch chat, says who on your watch list is live,
+  and makes her a webcam device through OBS's virtual camera. Its settings are a `twitch.md` in its own folder, it
+  reads Twitch rather than posting to it, and a chat reply is a one-shot `Brain.Ask` with no tools, so nothing a
+  stranger types can reach the PC.

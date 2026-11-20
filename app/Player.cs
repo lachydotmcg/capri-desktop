@@ -48,7 +48,12 @@ namespace CapriDesktop
         // Windows' own session for it, or null for one made up in a test.
         internal object Session;
 
+        internal bool Mine;
+        internal bool Fav;
+
         internal bool Spotify { get { return App.IndexOf("spotify", StringComparison.OrdinalIgnoreCase) >= 0; } }
+
+        internal bool Heartable { get { return Spotify || Mine; } }
 
         // The same song in the same app.
         internal string Key { get { return App + "\n" + Title + "\n" + Artist; } }
@@ -73,6 +78,8 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
 
         internal static double Now { get { return clock.Elapsed.TotalSeconds; } }
+
+        internal static Func<Tune> Own;
 
         // What's playing, or null. Tests swap it out.
         internal static Func<Tune> Read = ReadSession;
@@ -166,6 +173,18 @@ namespace CapriDesktop
                 double now = Now, pressed;
                 lock (pressing) pressed = pressedAt;
                 if (shared != null && now - sharedAt < 0.9 && sharedAt >= pressed + 0.3) return shared;
+                Func<Tune> mine = Own;
+                if (mine != null)
+                {
+                    Tune ours = null;
+                    try { ours = mine(); } catch (Exception) { ours = null; }
+                    if (ours != null)
+                    {
+                        shared = new List<Tune> { ours };
+                        sharedAt = now;
+                        return shared;
+                    }
+                }
                 shared = Sessions();
                 sharedAt = now;
                 return shared;
@@ -505,7 +524,7 @@ namespace CapriDesktop
     // The mini player's parts. The plate itself drags it.
     internal static class PlayerPart
     {
-        internal const int Menu = 1, Previous = 2, PlayPause = 3, Next = 4, Heart = 5, Seek = 6, Close = 7;
+        internal const int Menu = 1, Previous = 2, PlayPause = 3, Next = 4, Heart = 5, Seek = 6, Close = 7, Shuffle = 8, Loop = 9, Volume = 10;
     }
 
     // Her mini player (Lachy's ask, 28 Oct): what's playing, from Windows' media session, on a small black plate with her pink
@@ -513,10 +532,10 @@ namespace CapriDesktop
     internal sealed class MiniPlayer : Overlay
     {
         internal const int Wide = 336;
-        internal const int Tall = 116;
+        internal const int Tall = 138;
         // Where she sits on it when she hops on, from its left end: near the corner, like Lachy's picture.
         internal const float Perch = 0.1f;
-        private const int TitleY = 11, ArtistY = 31, SeekY = 58, ControlsY = 88;
+        private const int TitleY = 11, ArtistY = 31, SeekY = 58, ControlsY = 88, VolumeY = 118;
         [DllImport("user32.dll")] private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
         private readonly System.Windows.Forms.Timer ticks = new System.Windows.Forms.Timer();
         private readonly Random random = new Random();
@@ -543,6 +562,7 @@ namespace CapriDesktop
         internal event Action<string> Command;
         // They let go of it somewhere new: its plate's bottom-left on screen, to keep.
         internal event Action<Point> Moved;
+        internal event Action Hauling;
 
         internal MiniPlayer() : base("Capri mini player")
         {
@@ -593,7 +613,8 @@ namespace CapriDesktop
         internal void ShowTune(Tune now, Point? spot)
         {
             if (now == null) return;
-            if (tune == null || now.Key != tune.Key) { liked = false; heartAt = -10; }
+            if (tune == null || now.Key != tune.Key) { liked = now.Mine && now.Fav; heartAt = -10; }
+            else if (now.Mine && Tunes.Now >= heartAt + 2) liked = now.Fav;
             tune = now;
             if (!Visible)
             {
@@ -612,13 +633,13 @@ namespace CapriDesktop
         {
             if (tune == null) return;
             double now = Tunes.Now;
-            Bitmap image = Render(scale, tune, now, hover, liked, scrub, legsFrom, legsTo, Motion && glitchUntil >= 0 ? glitchSeed : 0);
+            Bitmap image = Render(scale, tune, now, hover, liked, scrub, legsFrom, legsTo, Motion && glitchUntil >= 0 ? glitchSeed : 0, sliding >= 0 ? sliding : Loud, held == PlayerPart.Volume);
             Present(image, Spot(image.Size));
             float dpi = Dpi();
             if (dpi == scale) return;
             // It landed on a screen with another scale.
             scale = dpi;
-            image = Render(scale, tune, now, hover, liked, scrub, legsFrom, legsTo, 0);
+            image = Render(scale, tune, now, hover, liked, scrub, legsFrom, legsTo, 0, sliding >= 0 ? sliding : Loud, held == PlayerPart.Volume);
             Present(image, Spot(image.Size));
         }
 
@@ -646,16 +667,18 @@ namespace CapriDesktop
             if (!Visible || tune == null) { ticks.Stop(); return; }
             double now = Tunes.Now;
             // Now and then a glitch tears through it for a moment, in her pink and cyan.
-            if (glitchUntil >= 0 && now >= glitchUntil) { glitchUntil = -1; nextGlitch = now + 8 + random.NextDouble() * 10; ticks.Interval = 500; }
+            if (glitchUntil >= 0 && now >= glitchUntil) { glitchUntil = -1; nextGlitch = now + 8 + random.NextDouble() * 10; ticks.Interval = titleRolls ? 40 : 500; }
             else if (glitchUntil < 0 && Motion && now >= nextGlitch) { glitchUntil = now + 0.36; ticks.Interval = 60; }
             if (glitchUntil >= 0) glitchSeed = random.Next(1, int.MaxValue);
+            titleRolls = false;
             Redraw();
+            if (glitchUntil < 0) ticks.Interval = titleRolls ? 40 : 500;
         }
 
         protected override void OnVisibleChanged(EventArgs e)
         {
             base.OnVisibleChanged(e);
-            if (!Visible) { ticks.Stop(); grabbing = false; held = 0; scrub = -1; hover = 0; glitchUntil = -1; ticks.Interval = 500; }
+            if (!Visible) { ticks.Stop(); grabbing = false; held = 0; scrub = -1; sliding = -1; hover = 0; glitchUntil = -1; ticks.Interval = 500; }
             Seat();
         }
 
@@ -678,6 +701,7 @@ namespace CapriDesktop
                 from = hip - (int)(size * (facingLeft ? 0.36f : 0.1f));
                 to = hip + (int)(size * (facingLeft ? 0.1f : 0.36f));
             }
+            if (from >= 0 && to >= 0 && legsFrom >= 0 && legsTo >= 0 && Math.Abs(from - legsFrom) < 4 && Math.Abs(to - legsTo) < 4) return;
             if (from == legsFrom && to == legsTo) return;
             legsFrom = from;
             legsTo = to;
@@ -701,11 +725,12 @@ namespace CapriDesktop
         {
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left || tune == null) return;
-            int part = PartAt(OnPlate(e.Location), scale, tune.Spotify);
+            int part = PartAt(OnPlate(e.Location), scale, tune.Heartable);
             if (part == 0) { Grab(PointToScreen(e.Location)); return; }
             held = part;
             Capture = true;
             if (part == PlayerPart.Seek && tune.CanSeek) { scrub = Fraction(OnPlate(e.Location).X); Redraw(); }
+            else if (part == PlayerPart.Volume) { sliding = Level(OnPlate(e.Location).X); Raise("volume:" + sliding.ToString("0.###", CultureInfo.InvariantCulture)); Redraw(); }
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -714,7 +739,13 @@ namespace CapriDesktop
             if (grabbing) { Haul(PointToScreen(e.Location)); return; }
             if (tune == null) return;
             if (scrub >= 0) { scrub = Fraction(OnPlate(e.Location).X); Redraw(); return; }
-            int part = PartAt(OnPlate(e.Location), scale, tune.Spotify);
+            if (held == PlayerPart.Volume)
+            {
+                double want = Level(OnPlate(e.Location).X);
+                if (Math.Abs(want - sliding) > 0.004) { sliding = want; Raise("volume:" + sliding.ToString("0.###", CultureInfo.InvariantCulture)); Redraw(); }
+                return;
+            }
+            int part = PartAt(OnPlate(e.Location), scale, tune.Heartable);
             Cursor = part == 0 ? Cursors.SizeAll : Look.Pointer;
             if (part != hover) { hover = part; Redraw(); }
         }
@@ -727,11 +758,13 @@ namespace CapriDesktop
             double to = scrub;
             held = 0;
             scrub = -1;
+            sliding = -1;
             if (Capture) Capture = false;
             if (tune == null) return;
             if (e.Button == MouseButtons.Right) { Raise("menu"); return; }
+            if (was == PlayerPart.Volume) return;
             if (to >= 0) { SeekTo(to); return; }
-            if (was != 0 && was == PartAt(OnPlate(e.Location), scale, tune.Spotify)) Press(was);
+            if (was != 0 && was == PartAt(OnPlate(e.Location), scale, tune.Heartable)) Press(was);
         }
 
         protected override void OnMouseLeave(EventArgs e)
@@ -746,9 +779,10 @@ namespace CapriDesktop
             base.OnMouseCaptureChanged(e);
             if (Capture) return;
             if (grabbing) LetGo();
-            if (held == 0 && scrub < 0) return;
+            if (held == 0 && scrub < 0 && sliding < 0) return;
             held = 0;
             scrub = -1;
+            sliding = -1;
             if (Visible) Redraw();
         }
 
@@ -758,11 +792,14 @@ namespace CapriDesktop
             grabbed = at;
             grabbedAt = Location;
             Capture = true;
+            if (Hauling != null) Hauling();
         }
 
         internal void Haul(Point at)
         {
-            if (grabbing) MoveTo(new Point(grabbedAt.X + at.X - grabbed.X, grabbedAt.Y + at.Y - grabbed.Y));
+            if (!grabbing) return;
+            MoveTo(new Point(grabbedAt.X + at.X - grabbed.X, grabbedAt.Y + at.Y - grabbed.Y));
+            if (Hauling != null) Hauling();
         }
 
         internal void LetGo()
@@ -772,6 +809,7 @@ namespace CapriDesktop
             if (Capture) Capture = false;
             if (!was || !Visible) return;
             if (Dpi() != scale) Redraw();
+            if (Hauling != null) Hauling();
             if (corner.HasValue && Moved != null) Moved(corner.Value);
         }
 
@@ -795,8 +833,21 @@ namespace CapriDesktop
             if (part == PlayerPart.Close) { Raise("close"); return; }
             if (shown == null) return;
             double now = Tunes.Now;
-            if (part == PlayerPart.Previous && shown.CanBack) Raise("previous");
-            else if (part == PlayerPart.Next && shown.CanSkip) Raise("next");
+            if (part == PlayerPart.Previous) Raise("previous");
+            else if (part == PlayerPart.Next) Raise("next");
+            else if (part == PlayerPart.Shuffle)
+            {
+                bool on = !(shown.Shuffle ?? false);
+                shown.Shuffle = on;
+                Raise(on ? "shuffle:on" : "shuffle:off");
+            }
+            else if (part == PlayerPart.Loop)
+            {
+                string was = shown.Repeat ?? "off";
+                string next = was == "off" ? "all" : was == "all" ? "one" : "off";
+                shown.Repeat = next;
+                Raise("repeat:" + next);
+            }
             else if (part == PlayerPart.PlayPause)
             {
                 shown.Position = shown.At(now);
@@ -804,7 +855,7 @@ namespace CapriDesktop
                 shown.Playing = !shown.Playing;
                 Raise(shown.Playing ? "play" : "pause");
             }
-            else if (part == PlayerPart.Heart && shown.Spotify) { liked = !liked; heartAt = now; Raise(liked ? "like" : "unlike"); }
+            else if (part == PlayerPart.Heart && shown.Heartable) { liked = !liked; heartAt = now; if (shown.Mine) shown.Fav = liked; Raise(liked ? "like" : "unlike"); }
             else return;
             if (Visible) Redraw();
         }
@@ -843,6 +894,17 @@ namespace CapriDesktop
             if (Command != null) Command(what);
         }
 
+        internal double Loud = 1;
+        private double sliding = -1;
+
+        private double Level(float x)
+        {
+            RectangleF bar = Box(PlayerPart.Volume, scale);
+            if (bar.Width <= 0) return Loud;
+            double at = (x - bar.X) / bar.Width;
+            return at < 0 ? 0 : at > 1 ? 1 : at;
+        }
+
         private static RectangleF Around(float x, float y, float width, float height, float s) { return new RectangleF((x - width / 2) * s, (y - height / 2) * s, width * s, height * s); }
 
         // Where a part takes its clicks on the plate.
@@ -857,6 +919,9 @@ namespace CapriDesktop
                 case PlayerPart.Heart: return Around(Wide - 30, ControlsY, 34, 34, s);
                 case PlayerPart.Seek: return new RectangleF(10 * s, (SeekY - 9) * s, (Wide - 20) * s, 18 * s);
                 case PlayerPart.Close: return Around(Wide - 18, 17, 26, 26, s);
+                case PlayerPart.Volume: return new RectangleF(38 * s, (VolumeY - 9) * s, (Wide - 54) * s, 18 * s);
+                case PlayerPart.Shuffle: return Around(Wide / 2 - 98, ControlsY, 32, 32, s);
+                case PlayerPart.Loop: return Around(Wide / 2 + 98, ControlsY, 32, 32, s);
             }
             return RectangleF.Empty;
         }
@@ -870,7 +935,7 @@ namespace CapriDesktop
         // The part at a point on the plate, or 0 for the plate itself. The heart is only there for Spotify.
         internal static int PartAt(PointF spot, float s, bool heart)
         {
-            for (int part = PlayerPart.Menu; part <= PlayerPart.Close; part++)
+            for (int part = PlayerPart.Menu; part <= PlayerPart.Volume; part++)
                 if ((part != PlayerPart.Heart || heart) && Box(part, s).Contains(spot)) return part;
             return 0;
         }
@@ -897,7 +962,28 @@ namespace CapriDesktop
             return new[] { left, right };
         }
 
-        internal static Bitmap Render(float s, Tune tune, double now, int hover, bool liked, double scrub, int legsFrom, int legsTo, int glitch)
+        private const double MarqueeHold = 1.6, MarqueeSpeed = 34;
+
+        private static bool titleRolls;
+
+        internal static bool Marquee(Graphics graphics, string text, Font font, float width, double now, out float shift)
+        {
+            shift = 0;
+            if (string.IsNullOrEmpty(text) || width <= 0) return false;
+            float wants = graphics.MeasureString(text, font, PointF.Empty, StringFormat.GenericTypographic).Width;
+            float over = wants - width;
+            if (over <= 1) return false;
+            double travel = over / MarqueeSpeed;
+            double lap = MarqueeHold * 2 + travel * 2;
+            double at = now % lap;
+            if (at < MarqueeHold) shift = 0;
+            else if (at < MarqueeHold + travel) shift = (float)((at - MarqueeHold) / travel * over);
+            else if (at < MarqueeHold * 2 + travel) shift = over;
+            else shift = (float)(over - (at - MarqueeHold * 2 - travel) / travel * over);
+            return true;
+        }
+
+        internal static Bitmap Render(float s, Tune tune, double now, int hover, bool liked, double scrub, int legsFrom, int legsTo, int glitch, double loud = 1, bool sliding = false)
         {
             int glow = (int)Math.Round(12 * s);
             int w = (int)Math.Round(Wide * s), h = (int)Math.Round(Tall * s);
@@ -937,10 +1023,16 @@ namespace CapriDesktop
                 using (Font big = Look.Mono(13.5f * s, FontStyle.Regular, GraphicsUnit.Pixel, title))
                 using (Font small = Look.Mono(11 * s, FontStyle.Regular, GraphicsUnit.Pixel, artist + time))
                 {
-                    string shown = Fit(graphics, title, big, span[1] - span[0]);
-                    using (Brush pink = new SolidBrush(Color.FromArgb(140, Look.Pink))) Look.Draw(graphics, shown, big, pink, span[0] - 1.1f * s, TitleY * s);
-                    using (Brush cyan = new SolidBrush(Color.FromArgb(140, Look.Cyan))) Look.Draw(graphics, shown, big, cyan, span[0] + 1.1f * s, TitleY * s);
-                    using (Brush ink = new SolidBrush(Look.Ink)) Look.Draw(graphics, shown, big, ink, span[0], TitleY * s);
+                    float slide;
+                    bool rolls = Marquee(graphics, title, big, span[1] - span[0], now, out slide);
+                    string shown = rolls ? title : Fit(graphics, title, big, span[1] - span[0]);
+                    Region kept = null;
+                    if (rolls) { kept = graphics.Clip; graphics.SetClip(new RectangleF(span[0] - 2 * s, (TitleY - 4) * s, span[1] - span[0] + 4 * s, 22 * s)); }
+                    float titleX = span[0] - slide;
+                    using (Brush pink = new SolidBrush(Color.FromArgb(140, Look.Pink))) Look.Draw(graphics, shown, big, pink, titleX - 1.1f * s, TitleY * s);
+                    using (Brush cyan = new SolidBrush(Color.FromArgb(140, Look.Cyan))) Look.Draw(graphics, shown, big, cyan, titleX + 1.1f * s, TitleY * s);
+                    using (Brush ink = new SolidBrush(Look.Ink)) Look.Draw(graphics, shown, big, ink, titleX, TitleY * s);
+                    if (rolls) { graphics.Clip = kept; kept.Dispose(); titleRolls = true; }
                     float timeWidth = time.Length > 0 ? graphics.MeasureString(time, small, PointF.Empty, StringFormat.GenericTypographic).Width : 0;
                     float timeLeft = w - 18 * s - timeWidth;
                     bool timeShown = time.Length > 0 && !(legsTo > legsFrom && legsTo + 4 * s > timeLeft && legsFrom - 4 * s < w - 18 * s);
@@ -972,18 +1064,23 @@ namespace CapriDesktop
                     using (Brush halo = new SolidBrush(Color.FromArgb(lit ? 90 : 60, lit ? Look.Cyan : Look.Pink))) graphics.FillEllipse(halo, x - r * 1.9f, barY - r * 1.9f, r * 3.8f, r * 3.8f);
                     using (Brush knob = new SolidBrush(Look.Ink)) graphics.FillEllipse(knob, x - r, barY - r, r * 2, r * 2);
                 }
-                foreach (int part in new[] { PlayerPart.Menu, PlayerPart.Previous, PlayerPart.Next, PlayerPart.Heart })
+                foreach (int part in new[] { PlayerPart.Menu, PlayerPart.Previous, PlayerPart.Next, PlayerPart.Heart, PlayerPart.Shuffle, PlayerPart.Loop })
                 {
-                    if (hover != part || (part == PlayerPart.Heart && !tune.Spotify)) continue;
+                    if (hover != part || (part == PlayerPart.Heart && !tune.Heartable)) continue;
                     PointF lit = Middle(part, s);
                     using (Brush glowing = new SolidBrush(Color.FromArgb(30, 255, 255, 255))) graphics.FillEllipse(glowing, lit.X - 15 * s, lit.Y - 15 * s, 30 * s, 30 * s);
                 }
                 DrawMenu(graphics, Middle(PlayerPart.Menu, s), s, hover == PlayerPart.Menu ? Look.Cyan : Look.Ink);
-                DrawSkip(graphics, Middle(PlayerPart.Previous, s), s, !tune.CanBack ? Look.Dim : hover == PlayerPart.Previous ? Look.Cyan : Look.Ink, false);
-                DrawSkip(graphics, Middle(PlayerPart.Next, s), s, !tune.CanSkip ? Look.Dim : hover == PlayerPart.Next ? Look.Cyan : Look.Ink, true);
+                DrawSkip(graphics, Middle(PlayerPart.Previous, s), s, hover == PlayerPart.Previous ? Look.Cyan : Look.Ink, false);
+                DrawSkip(graphics, Middle(PlayerPart.Next, s), s, hover == PlayerPart.Next ? Look.Cyan : Look.Ink, true);
+                bool mixing = tune.Shuffle ?? false;
+                string over = tune.Repeat ?? "off";
+                DrawShuffle(graphics, Middle(PlayerPart.Shuffle, s), s, mixing ? Look.Pink : hover == PlayerPart.Shuffle ? Look.Cyan : Look.Dim);
+                DrawLoop(graphics, Middle(PlayerPart.Loop, s), s, over != "off" ? Look.Pink : hover == PlayerPart.Loop ? Look.Cyan : Look.Dim, over == "one");
                 DrawPlay(graphics, Middle(PlayerPart.PlayPause, s), s, hover == PlayerPart.PlayPause, tune.Playing);
-                if (tune.Spotify) DrawHeart(graphics, Middle(PlayerPart.Heart, s), s, hover == PlayerPart.Heart, liked);
+                if (tune.Heartable) DrawHeart(graphics, Middle(PlayerPart.Heart, s), s, hover == PlayerPart.Heart, liked);
                 DrawClose(graphics, Middle(PlayerPart.Close, s), s, hover == PlayerPart.Close);
+                DrawVolume(graphics, s, hover == PlayerPart.Volume || sliding, loud);
                 if (glitch != 0) Tear(image, graphics, glow, w, h, s, glitch);
             }
             return image;
@@ -1066,6 +1163,80 @@ namespace CapriDesktop
                 graphics.FillPolygon(ink, new[] { new PointF(c.X - d * 1.5f * s, c.Y - 6.5f * s), new PointF(c.X - d * 1.5f * s, c.Y + 6.5f * s), new PointF(c.X + d * 6 * s, c.Y) });
                 graphics.FillRectangle(ink, next ? c.X + 6 * s : c.X - 8.4f * s, c.Y - 6.5f * s, 2.4f * s, 13 * s);
             }
+        }
+
+        private static void DrawShuffle(Graphics graphics, PointF c, float s, Color colour)
+        {
+            using (Pen line = new Pen(colour, 1.7f * s))
+            {
+                line.StartCap = LineCap.Round;
+                line.EndCap = LineCap.Round;
+                float w = 8 * s, h = 5 * s;
+                graphics.DrawLine(line, c.X - w, c.Y - h, c.X + w, c.Y + h);
+                graphics.DrawLine(line, c.X - w, c.Y + h, c.X + w, c.Y - h);
+                foreach (int side in new[] { -1, 1 })
+                {
+                    PointF tip = new PointF(c.X + w, c.Y + side * h);
+                    graphics.DrawLine(line, tip, new PointF(tip.X - 3.4f * s, tip.Y - side * 3.4f * s));
+                    graphics.DrawLine(line, tip, new PointF(tip.X - 3.4f * s, tip.Y + side * 0.6f * s));
+                }
+            }
+        }
+
+        private static void DrawLoop(Graphics graphics, PointF c, float s, Color colour, bool one)
+        {
+            using (Pen line = new Pen(colour, 1.7f * s))
+            {
+                line.StartCap = LineCap.Round;
+                line.EndCap = LineCap.Round;
+                float r = 7 * s;
+                graphics.DrawArc(line, c.X - r, c.Y - r, r * 2, r * 2, 40, 285);
+                PointF tip = new PointF(c.X + r * 0.77f, c.Y + r * 0.64f);
+                graphics.DrawLine(line, tip, new PointF(tip.X - 4 * s, tip.Y - 1.4f * s));
+                graphics.DrawLine(line, tip, new PointF(tip.X + 0.6f * s, tip.Y + 4 * s));
+            }
+            if (!one) return;
+            using (Brush dot = new SolidBrush(colour)) graphics.FillEllipse(dot, c.X - 1.8f * s, c.Y - 1.8f * s, 3.6f * s, 3.6f * s);
+        }
+
+        private static void DrawVolume(Graphics graphics, float s, bool lit, double level)
+        {
+            RectangleF bar = Box(PlayerPart.Volume, s);
+            float midY = bar.Y + bar.Height / 2;
+            Color ink = lit ? Look.Cyan : Look.Dim;
+            using (Pen line = new Pen(ink, 1.6f * s))
+            {
+                line.StartCap = LineCap.Round;
+                line.EndCap = LineCap.Round;
+                float x = 20 * s;
+                graphics.DrawLine(line, x - 4 * s, midY - 2.5f * s, x - 4 * s, midY + 2.5f * s);
+                graphics.DrawLine(line, x - 4 * s, midY - 2.5f * s, x, midY - 6 * s);
+                graphics.DrawLine(line, x - 4 * s, midY + 2.5f * s, x, midY + 6 * s);
+                graphics.DrawLine(line, x, midY - 6 * s, x, midY + 6 * s);
+                if (level > 0.02) graphics.DrawArc(line, x + 1 * s, midY - 4 * s, 6 * s, 8 * s, -60, 120);
+                if (level > 0.55) graphics.DrawArc(line, x + 1 * s, midY - 7 * s, 11 * s, 14 * s, -60, 120);
+                if (level <= 0.02)
+                {
+                    graphics.DrawLine(line, x + 4 * s, midY - 4 * s, x + 11 * s, midY + 4 * s);
+                    graphics.DrawLine(line, x + 11 * s, midY - 4 * s, x + 4 * s, midY + 4 * s);
+                }
+            }
+            using (Pen rail = new Pen(Look.Dim, 2.2f * s))
+            {
+                rail.StartCap = LineCap.Round;
+                rail.EndCap = LineCap.Round;
+                graphics.DrawLine(rail, bar.X, midY, bar.Right, midY);
+            }
+            float upto = bar.X + (float)(bar.Width * level);
+            if (upto > bar.X)
+                using (Pen done = new Pen(lit ? Look.Cyan : Look.Pink, 2.2f * s))
+                {
+                    done.StartCap = LineCap.Round;
+                    done.EndCap = LineCap.Round;
+                    graphics.DrawLine(done, bar.X, midY, upto, midY);
+                }
+            using (Brush knob = new SolidBrush(lit ? Look.Cyan : Look.Pink))
+                graphics.FillEllipse(knob, upto - 3 * s, midY - 3 * s, 6 * s, 6 * s);
         }
 
         // Her white disc, split pink and cyan at its edges.

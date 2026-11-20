@@ -21,6 +21,10 @@ namespace CapriDesktop
             Chores.Skills = ModList.SkillsFor;
             Hands.SkillNote = delegate { return ModList.SkillNote; };
             Hands.ReadSkill = ModList.SkillText;
+            ModList.OnWindow = action => Dispatcher.UIThread.Post(() => Program.Guard(action));
+            Hands.RecipeTools = ModList.RecipeTools;
+            Hands.RunRecipe = ModList.RunRecipe;
+            Hands.MakeTool = ModList.MakeTool;
             ModList.SkinChanged = Reskinned;
             Reskinned();
             StartCodeMods();
@@ -43,6 +47,12 @@ namespace CapriDesktop
         internal static bool HasArt(string name)
         {
             return typeof(Pet).Assembly.GetManifestResourceInfo(name) != null;
+        }
+
+        private static bool SkinShips(string title)
+        {
+            string skin = SkinFolder;
+            return skin != null && title != null && File.Exists(Path.Combine(skin, title + ".png"));
         }
 
         internal static PixelSize ArtSize(string name)
@@ -230,7 +240,7 @@ namespace CapriDesktop
         private string BrainNote(bool phone)
         {
             if (Saved.NoAi) return "No brain runs, and nothing is sent anywhere.";
-            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model \u00b7 Ollama"));
+            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : Brain.Local != null ? "Local model \u00b7 on this computer" : "Local model \u00b7 Ollama"));
             return Brain.Brief(note) ?? note;
         }
         internal bool MainframeConnecting { get { return brainPending > 0; } }
@@ -241,6 +251,7 @@ namespace CapriDesktop
         internal bool MainframePulling { get { return pulling; } }
         internal string MainframeProgress { get { return pulling ? Pulling : null; } }
         internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !(Program.Smoke == null ? InputReady() : fingers); } }
+        internal bool MainframeRetainedVoiceReady { get { return ownedVoice.Ready; } }
         internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : Speakers.Known(Saved.VoiceProvider) == Speakers.Owned ? 1 : 3; } }
         internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : updateNote ?? UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
         internal string MainframeLocalAddress { get { return localVoice.Url ?? ""; } }
@@ -271,8 +282,7 @@ namespace CapriDesktop
             MainframeTheme.Repaint(mainframe);
         }
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
-        internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
-        internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
+        internal void SetReplyLength(int index) { SetReplies(index <= 0 ? Brain.Wordiness : index == 1 ? 0 : 3); }
         internal void SetThinking(int level) { if (Brain.SetThinking(level)) { Saved.ThinkingPicks = Brain.Picks; Save(); } }
         // What's wrong with it, or null once it's saved for the brain she's on.
         internal string SetThinkingExtra(string typed)
@@ -332,6 +342,13 @@ namespace CapriDesktop
             RefreshBrains();
         }
         internal void MainframeUpdateCheck() { CheckUpdate(true); }
+        internal UninstallPlan MainframeUninstallPlan(bool wipe) { return Uninstall.Live(wipe); }
+        internal void MainframeUninstall(bool wipe)
+        {
+            if (Program.Smoke != null) return;
+            if (Uninstall.Start(Uninstall.Live(wipe), Environment.ProcessId)) Quit();
+            else Talk.Answer("(uninstall)", "I couldn't start the helper that removes me, so nothing changed. You can delete my app by hand.");
+        }
         internal void MainframeSetupInput() { if (HyprlandDesktop.Current != null) { Talk.Answer("(input)", ComputerJobs.Available ? "Native compositor input is ready." : "The native compositor input helper is unavailable. Check the Linux package and compositor protocol support; no global input setup was applied."); return; } CopyFingersSetup(); }
         internal void MainframePickModel(string model)
         {
@@ -385,6 +402,8 @@ namespace CapriDesktop
             WriteSecret(TierKeyFile(tier), Brain.Remote.Key, "brain key");
             if (tier == 1) Saved.FreeModel = Brain.Remote.Model;
             else Saved.PaidModel = Brain.Remote.Model;
+            Saved.BrainProvider = Brain.Remote.Kind;
+            RememberProviderModel(Saved, ProviderKind(Saved, Brain.Remote.Kind), Brain.Remote.Model, tier);
         }
         private void RestoreBrainTier()
         {
@@ -402,6 +421,8 @@ namespace CapriDesktop
         internal void SetBrainTier(int tier)
         {
             tier = Math.Clamp(tier, 0, 2);
+            string savedCustom = Saved.BrainProvider;
+            if (EndpointIdOf(savedCustom) == null || EndpointFor(Saved, EndpointIdOf(savedCustom)) == null) savedCustom = null;
             CancelAccountConnection();
             if (MainframeTier == tier && Brain.Provider == null && !Saved.NoAi) return;
             // Picking any brain switches No AI off, like Windows.
@@ -420,9 +441,30 @@ namespace CapriDesktop
             cloudModels = null;
             cloudListing = false;
             string key = tier == 0 ? null : ReadSecret(TierKeyFile(tier));
-            string model = tier == 1 ? Saved.FreeModel : Saved.PaidModel;
-            Brain.Remote = key == null || Cloud.KindOf(key) == null ? null : new Cloud(key, model);
-            Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            string kind = Cloud.KindOf(key);
+            string model = kind == null ? (tier == 1 ? Saved.FreeModel : Saved.PaidModel) : TierModel(Saved, kind, tier);
+            ProviderEndpoint custom = null;
+            if (tier == 0)
+            {
+                if (savedCustom != null) custom = EndpointFor(Saved, EndpointIdOf(savedCustom));
+                if (custom != null && !string.Equals(Brain.ServerAddress(custom.Address), Brain.Server, StringComparison.Ordinal)) custom = null;
+                if (custom == null) custom = EndpointAt(Saved, Brain.Server);
+            }
+            string customProvider = custom == null ? null : EndpointProviderId(custom.Id);
+            Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);
+            if (customProvider != null)
+            {
+                string customAddress = Brain.ServerAddress(custom.Address);
+                string customKey = ReadEndpointKey(custom.Id);
+                Brain.SetServer(customAddress, EndpointKeySafe(customAddress, customKey) ? customKey : null);
+                Saved.BrainProvider = customProvider;
+                Brain.Model = ProviderModel(Saved, customProvider, 0);
+            }
+            else
+            {
+                Saved.BrainProvider = tier == 0 ? null : savedCustom ?? (Brain.Remote == null ? null : Brain.Remote.Kind);
+                Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            }
             Saved.CloudModel = Brain.Remote?.Model;
             WriteSecret(BrainKeyFile, key, "brain key");
             Save();

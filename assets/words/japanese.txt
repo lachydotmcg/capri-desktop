@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	再描画されたコントロールが画像に反映されませんでした。
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio、NVIDIA、OpenRouter の無料キー。ダウンロード不要。インターネットが必要。
+A held trackpad scroll got a flick's long ease:	押しっぱなしのトラックパッドスクロールが、フリックの長い減速を受けました:
+A layout change during a slide put the page at	スライド中にレイアウトが変わり、ページが次の位置に移動しました：
+A layout change left the picture up.	レイアウト変更で画像が表示されたままになりました。
+A model in Ollama, on your local server or on your key.	Ollama のモデル。ローカルサーバーまたは自分のキーで。
+A paid key goes under MAX INTELLIGENCE by itself.	有料キーは自動的に MAX INTELLIGENCE に入ります。
+A plan you already pay for, a key of your own, or Ollama.	すでに払っているプラン、自分のキー、または Ollama。
+A voice panel menu doesn't hold its own copy of the panel's font.	音声パネルのメニューは、パネルのフォントを独自に持っていません。
+A wheel turn right after a slide ended froze the picture.	スライド終了直後のホイール操作で画像が固まりました。
+ALLOW THIS PHONE?	このスマホを許可しますか？
+ALMOST THERE >	あと少し >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	別の CAPRI が引き継ぎました · オフにしてからオンに
+API key	APIキー
+API key, Claude plan or ChatGPT plan	APIキー、Claude プラン、または ChatGPT プラン
+Add	追加
+Address	アドレス
+Address and key saved. Use saved to reconnect.	アドレスとキーを保存しました。「保存済み」で再接続できます。
+Advanced Settings	詳細設定
+All	すべて
+All screens	すべての画面
+Allow	許可
+Almost there. I'll say hi the second my brain's in.	もうすぐ！頭が動き出したらすぐに挨拶するね。
+Always	常に
+Always on top	常に最前面
+Any Google account works. I opened the page in your browser.	どの Google アカウントでも使えます。ブラウザでページを開きました。
+Applies to every voice	すべての音声に適用
+Apps she may close	閉じてもいいアプリ
+Ask Capri for more	Capri にもっと頼む
+Asking your server...	サーバーに問い合わせ中...
+Asks before closing only the apps you choose.	選んだアプリだけ、閉じる前に確認します。
+Auto	自動
+Automatic: VB-CABLE, else Steam's	自動: VB-CABLE、なければ Steam のもの
+BAD RELAY HOST	リレーホストが不正です
+BIG Z open notepad	BIG Z でメモ帳を開く
+BRAIN	ブレイン
+BRAIN >	ブレイン >
+BRAIN ONLINE >	ブレイン オンライン >
+BRAIN PROVIDER >	ブレインプロバイダー >
+BRAIN VOICE CAPRI	CAPRI 音声ブレイン
+Back	戻る
+Back on your saved API key.	保存済みの API キーに戻しました。
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	この PC に最適:
+Black	黒
+Blank key means no key.	キーを空にすると、キーなしになります。
+Brain API key	ブレインの API キー
+Brain model	ブレインのモデル
+Brain provider	ブレインのプロバイダー
+Bring here	ここに呼ぶ
+Bring to this screen	この画面に呼ぶ
+Browse	参照
+Browse mods	Mod を参照
+Browse to a voice model	音声モデルを参照
+Browse...	参照...
+Bubble	吹き出し
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree いる？
+CAN'T REACH THE RELAY · RETRYING	リレーに接続できません · 再試行中
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI 音声ブレイン
+CHANGED, approve it again.	変更されました。もう一度承認してください。
+CLIPS >	クリップ >
+CLOUD VOICE	クラウド音声
+CODE	コード
+COLORS >	カラー >
+CONNECTED	接続済み
+CONNECTING	接続中
+CUSTOM LOCAL	カスタムローカル
+Call mode (beta)	通話モード（ベータ）
+Call mode does not fit.	通話モードが収まりません。
+Call mode is outside its space.	通話モードが表示範囲外です。
+Cancel	キャンセル
+Cancel keys	キーをキャンセル
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri コード:
+Capri mods (*	Capri Mod (*
+Capri, hello	Capri、こんにちは
+CapriDesktop.	CapriDesktop.
+Chaos when upset	怒るとカオスになる
+Chat with Capri from your phone	スマホから Capri とチャット
+ChatGPT plan	ChatGPT プラン
+Check for updates	アップデートを確認
+Check in on me	様子を見に来る
+Check in on me is hidden	「様子を見に来る」は非表示
+Check in on me still decides whether she visits.	様子を見に来るは、訪問するかどうかを今も決めます。
+Check in on me's tip missed	「様子を見に来る」のヒントを逃しました
+Chess	チェス
+Choose apps	アプリを選択
+Choose folder...	フォルダーを選択...
+Choose where future Capri clips are saved	今後の Capri のクリップの保存先を選択
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude か ChatGPT のプラン、有料キー（OpenAI、Claude、DeepSeek）、または Ollama。
+Claude plan	Claude プラン
+Clear	クリア
+Cleared.	クリアしました。
+Click Confirm to keep Down, or press Esc.	Down を残すには確認をクリックするか、Esc を押してください。
+Click to open it.	クリックして開く。
+Clip my games	ゲームを録画
+Clips	クリップ
+Close	閉じる
+Close other AIs for me	他の AI を閉じる
+Cloud voice	クラウド音声
+Cloud voice service	クラウド音声サービス
+Cloud voice setup	クラウド音声のセットアップ
+Code mods can reach your whole PC. Only trusted ones.	コード Mod は PC 全体にアクセスできます。信頼できるものだけ使ってください。
+Code/Husk Mode	Code/Husk モード
+Codex	Codex
+Commands	コマンド
+Comment on my games	ゲームにコメント
+Comments	コメント
+Confirm	確認
+Confirm keys	キーを確認
+Connect	接続
+Connect / Forget brain key	接続 / ブレインキーを忘れる
+Connect / Forget voice key	接続 / 音声キーを忘れる
+Connect four	コネクトフォー
+Controls	操作
+Copri, what time is it	Copri、今何時？
+Copy error details	エラーの詳細をコピー
+Copy the key	キーをコピー
+Copy the key from the page, then press Paste.	ページからキーをコピーして、貼り付けを押してください。
+Couldn't open that page:	そのページを開けませんでした:
+Couldn't open that:	それを開けませんでした:
+Couldn't open the mods folder:	Mod フォルダーを開けませんでした:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M は既に彼女の Mainframe キーです。
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N でマイクをミュート
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V は既に彼女の話すキーです。
+Ctrl + Alt + V to talk	Ctrl + Alt + V で話す
+Custom local voice	カスタムローカル音声
+Custom model name	カスタムモデル名
+Dance	踊る
+Dance to music	音楽に合わせて踊る
+Default	デフォルト
+Default (follows Windows)	デフォルト（Windows に従う）
+Default duration for clip that and automatic clips	clip that と自動クリップの既定の長さ
+Default length	既定の長さ
+Default model	既定のモデル
+Delay	遅延
+Deny	拒否
+Discard	破棄
+Discard + reload	破棄 + 再読み込み
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	待ちきれない？無料キーならおよそ1分で話せるようになるよ。
+Done	完了
+EXTRA REQUEST JSON >	追加リクエスト JSON >
+EXTRAS >	追加 >
+Edit	編集
+Edit check-in lines	チェックインのセリフを編集
+Edit check-in lines has the wrong view or dimming	チェックインのセリフの表示または暗転がおかしい
+Edit check-in lines is out of place	チェックインのセリフの位置がずれています
+Edit controls	コントロールを編集
+ElevenLabs API key	ElevenLabs API キー
+ElevenLabs voice ID	ElevenLabs 音声 ID
+English	英語
+Enter the game's name first.	まずゲーム名を入力してください。
+Every	毎回
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	すべての Mod は公開前にマルウェアチェックを受けます。コード Mod は実行前に今も確認します。
+Explore after	後で探索
+Explore while I'm away	離れている間に探索
+Extra request JSON	追加リクエスト JSON
+Extras	追加
+FREE KEY	無料キー
+FREE KEY >	無料キー >
+Fast hands in games	ゲームでの器用な手
+File editor	ファイルエディター
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio、ElevenLabs などは Mainframe の音声にあります。
+Follow-up messages	フォローアップメッセージ
+Forget	忘れる
+Fork capri-mods	capri-mods をフォーク
+Frame rate	フレームレート
+Free	無料
+Free and private, works offline. Downloads	無料でプライベート、オフラインで動作。ダウンロード
+Free and private, works offline. Downloads the best model for this PC.	無料でプライベート、オフラインで動作。この PC に最適なモデルをダウンロード。
+Free key	無料キー
+Free key providers	無料キーのプロバイダー
+Free keys can be rate limited and slow.	無料キーはレート制限があり、遅いことがあります。
+Free voice in games	ゲーム中の無料音声
+Free voice style	無料音声のスタイル
+Free voice:	無料音声:
+Free voice: Her own	無料音声: 彼女自身
+Free · local model	無料 · ローカルモデル
+GAMES >	ゲーム >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	ゲームのコメントは「画面を見る」とは別に動作します。オフで停止（ゲームモードでも）。イベントのみとおしゃべりでは、彼女がゲームを見られます
+Game controls	ゲームの操作
+Game name	ゲーム名
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	ゲーム音の感度。ヘッドセットの音量は小さいのに Windows が {0}% で、どんな音にも反応してしまうなら下げてください。オフではゲーム音を無視します
+Game sounds	ゲーム音
+Games	ゲーム
+Gaming Mode	ゲームモード
+Gaming Mode key	ゲームモードのキー
+Gaming Mode:	ゲームモード:
+Gaming Mode: Ctrl + Alt + G	ゲームモード: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE を入手
+Get VB-CABLE (free)...	VB-CABLE を入手（無料）...
+Get free voice	無料音声を入手
+Getting your Fish Audio voices...	Fish Audio の音声を取得中...
+Giant	巨大
+Glitch	Glitch
+Glitch in at startup	起動時にグリッチ
+Go to sleep	おやすみ
+Go to the next screen	次の画面へ
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · 無料枠 · レート制限あり
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude か ChatGPT のプラン、または自分のキーがある？選んでくれたら接続するよ。
+Got it, just me. Right-click me any time for Capri Mainframe.	了解、私だけね。いつでも右クリックで Capri Mainframe を開けるよ。
+Grey	グレー
+H.{0} video bitrate target; higher values make larger files	H.{0} 映像ビットレート目標。値が大きいほどファイルが大きくなります
+HABITS >	習慣 >
+HER HANDS >	彼女の手 >
+HER JOBS >	彼女の仕事 >
+HER MEMORY >	彼女の記憶 >
+HER MODS >	彼女の Mod >
+HH:mm	HH:mm
+HOW I SOUND >	話し方 >
+Hang here	ここにいる
+Have Ollama? Open it, then press Refresh.	Ollama ある？開いてから更新を押してね。
+Head pats	頭なでなで
+Hearing	聞き取り
+Hearing engine	聞き取りエンジン
+Hearing fix	聞き取りの修正
+Hearing status	聞き取りの状態
+Help	ヘルプ
+Help page	ヘルプページ
+Her colors	彼女の色
+Her folder	彼女のフォルダー
+Her memories	彼女の思い出
+Her own colors are back.	彼女の色が元に戻りました。
+Her own notes (no vault)	彼女のメモ（Vault なし）
+Her perch frames per second	彼女の止まり木のフレームレート（毎秒）
+Her personality	彼女の性格
+Her size	彼女のサイズ
+Her speaker	彼女のスピーカー
+Her speaker is hidden or outside VOICE	彼女のスピーカーは非表示か、音声の範囲外です
+Her speaker overlaps the mic or hearing row	彼女のスピーカーがマイクまたは聞き取りの行と重なっています
+Her speaker:	彼女のスピーカー:
+Her speaker: Default	彼女のスピーカー: デフォルト
+Her voice in your mic	あなたのマイクに入る彼女の声
+Her voice in your mic: loudness	あなたのマイクに入る彼女の声: 音量
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	彼女の声そのもの。ピッチは 設定 > 音声 > ピッチ で、両方一緒に動きます。
+Her voice joins your mic only in call mode.	彼女の声は通話モードのときだけマイクに入ります。
+Her voice volume	彼女の声の音量
+Her voice's pitch	彼女の声のピッチ
+Her voice's pitch, the same as Settings > VOICE > Pitch	彼女の声のピッチ。設定 > 音声 > ピッチ と同じ
+Her voice's speed	彼女の声の速さ
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	彼女の声と、その下に2つのコピーがミックスされます。それぞれ独自のピッチと遅延があります。
+Her voices · free	彼女の音声 · 無料
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	ねえ、choom。Capri だよ。話す前に頭が必要なの。ひとつ選んでね。
+Hide / Show Capri	Capri を隠す / 表示
+Hide / Show key	隠す / 表示キー
+Hide Capri	Capri を隠す
+Hide for now	今は隠す
+Hide her	隠す
+Hide in full screen	フルスクリーンでは隠す
+Hide this	これを隠す
+Hide, keep player	隠す（プレイヤーは残す）
+Hide/show:	隠す/表示:
+Hide/show: Ctrl + Alt + H	隠す/表示: Ctrl + Alt + H
+Hologram	ホログラム
+Hop off	降りる
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	PC が止まっていてから彼女が寝るまでの時間。5分だと、まだあなたが離れていると判断されます
+How long a stroke over her a head pat needs	頭をなでるために必要な撫でる時間
+How long her replies stay up	彼女の返答が表示されている時間
+How long you are away before she scrolls a browser or reader	ブラウザやリーダーをスクロールするまでに、あなたが離れている時間
+How much her voice glitches	彼女の声がどれくらいグリッチするか
+How much of the chat she keeps	チャットをどれだけ保持するか
+How much she wanders	どれくらい歩き回るか
+How often she pops in to say hi	どれくらいの頻度で挨拶しに来るか
+How robotic her voice sounds	彼女の声がどれくらいロボットっぽいか
+How to	使い方
+Huge	巨大
+I can hear you.	聞こえてるよ。
+I glance at your screen and comment. Costs a little on a paid brain.	あなたの画面をちらっと見てコメントします。有料の頭だと少し費用がかかります。
+I keep listening. Say my name, then just talk.	聞き続けるね。名前を呼んでから話しかけてね。
+I talk about your game as you play. Costs a little on a paid brain.	ゲームをプレイ中に話しかけます。有料の頭だと少し費用がかかります。
+I type my replies and stay quiet.	返答は入力して、静かにしています。
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	声では返事をしないし、何も外に送られません。それでもそばにいて、音楽に合わせて踊ったり、音量など頼まれた簡単なことはやります。
+I'll talk in	話すのは
+IN DISCORD >	DISCORD 内 >
+INSTALLED >	インストール済み >
+Import a Capri mod	Capri の Mod をインポート
+Import mod	Mod をインポート
+In full screen	フルスクリーン時
+In games	ゲーム中
+Input	入力
+Input, Output or How to overlaps a row	入力、出力、または使い方が行と重なっています
+Input:	入力:
+Input: default	入力: デフォルト
+Install	インストール
+Install mod	Mod をインストール
+Installed.	インストールしました。
+It may ask for a phone number. I opened the page in your browser.	電話番号を求められるかもしれません。ブラウザでページを開きました。
+It still does its own job in other apps too.	他のアプリでも、本来の仕事は続けます。
+It won't type in other apps while she runs.	彼女が動いている間は、他のアプリに入力しません。
+JUST ME >	自分だけ >
+Jealous of other AIs	他の AI に嫉妬
+Join the Discord	Discord に参加
+KB.	KB。
+KEYS	キー
+KEYS >	キー >
+Keep PC awake for jobs	作業のために PC を起こしておく
+Keep player	プレイヤーを残す
+Keeps the last two minutes of your game in memory. Say clip that to save it.	ゲームの直近2分をメモリに保持します。clip that と言うと保存します。
+Key	キー
+Key cleared: a model file needs none.	キーをクリアしました。モデルファイルは不要です。
+Key cleared: paste the key for	キーをクリアしました。次のキーを貼り付けてください:
+Key forgotten.	キーを忘れました。
+Key. It goes only to this server, as a Bearer key	キー。このサーバーにのみ送信され、Bearer キーとして使われます
+Kokoro only, like es	Kokoro のみ、es と同様
+LAST THING >	最後に >
+LISTENING >	聞いています >
+Language	言語
+Large	大
+Last thing. These cost a little or use your mic, so they're your pick.	最後に。これらは費用がかかるかマイクを使うので、選ぶのはあなたです。
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	最後に。これらは費用がかかるかマイクを使うので、選ぶのはあなたです。そのあとで、どう呼べばいいか教えてね。
+Layers	レイヤー
+Learn more	詳しく
+Leaving Settings threw its picture away straight away.	設定を閉じたら、画像はすぐに消えました。
+Legacy stand	旧スタンド
+Lie down	横になる
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	一緒に見ている間にメモリに保持される PC の会話の行。「見ているものを覚える」がオンのとき、古い半分がメモになります
+Listen for Capri	Capri の声を待つ
+Live reactions	リアルタイムのリアクション
+Local server address	ローカルサーバーのアドレス
+Long	長い
+Longest wait (minutes)	最長待機時間（分）
+Looking at this PC...	この PC を確認中...
+Looking for Ollama. Open it if it isn't running.	Ollama を探しています。動いていなければ開いてね。
+Looking for a brain...	ブレインを探しています...
+Looking in the mods directory for updates...	Mod フォルダーで更新を確認中...
+Looking in the mods directory...	Mod フォルダーを確認中...
+Looking...	確認中...
+MAIN >	メイン >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	中くらいの知性
+MEMORY VAULT >	メモリ Vault >
+MODS	MOD
+MODS >	MOD >
+MODS DIRECTORY >	MOD フォルダー >
+MODS INSTALLED COLORS	インストール済み Mod のカラー
+MOVES >	動き >
+MY BRAIN	私のブレイン
+MY FREE VOICE	私の無料音声
+MY PLAN OR KEY	私のプランかキー
+MY PLAN OR KEY >	私のプランかキー >
+Made your Fish Audio voice. Press Test to hear it.	Fish Audio の音声を作成しました。テストを押して聞いてみてね。
+Mainframe colours	Mainframe の色
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe の色。Night City は赤とシアン。黒、白、グレーは Mainframe、彼女のメニュー、入力ボックス、メモを変えます
+Mainframe frames	Mainframe の枠
+Mainframe key	Mainframe キー
+Mainframe size	Mainframe のサイズ
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe のサイズ。自動は、Virtual Super Resolution や DSR が大きなデスクトップを小さい画面に縮めたときに大きくします
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Fish Audio の音声を作成中...
+Max reply	最大の返答
+Maximum clip resolution, keeping the game's shape without upscaling	ゲームの形を保ちつつ、アップスケールせずに最大のクリップ解像度
+Medium	中
+Memory	メモリ
+Memory size	メモリサイズ
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama と彼女の内蔵ブレインのトークン数でのメモリサイズ。要求で必要なときは自動で増えます
+Mg	Mg
+Mic level:	マイクのレベル:
+Mic test finished. Sound is reaching Capri.	マイクのテストが完了しました。音が Capri に届いています。
+Mic:	マイク:
+Mic: default	マイク: デフォルト
+Microphone	マイク
+Mini player	ミニプレイヤー
+Mini player over full screen	フルスクリーンの上にミニプレイヤー
+Mini-games	ミニゲーム
+Minimising the Mainframe left it sliding.	Mainframe を最小化したら、スライドし続けてしまいました。
+Minimize	最小化
+Mod filter	Mod フィルター
+Mod options	Mod オプション
+Mod pages	Mod のページ
+Mod rules	Mod のルール
+Mod sort	Mod の並べ替え
+Mod switch	Mod の切り替え
+Model	モデル
+Model folder	モデルフォルダー
+Model name, optional	モデル名（任意）
+Mods	Mod
+Mods directory	Mod ディレクトリ
+Mods folder	Mod フォルダー
+Most NVIDIA models can't see your screen.	NVIDIA のモデルの多くは、あなたの画面を見られません。
+Mouse wheel notches got a flick's long ease:	マウスホイールの一段ごとの動きが、フリックの長い減速を受けました:
+Move	移動
+Move key to MAX INTELLIGENCE	キーを MAX INTELLIGENCE に移動
+Move to MAX	MAX に移動
+Music	音楽
+Music app	音楽アプリ
+Music app: where she plays music when you don't name an app	音楽アプリ: アプリ名を言わないときに音楽を再生する場所
+Mute	ミュート
+Mute her	彼女をミュート
+Mute mic key	マイクミュートのキー
+Mute mic:	マイクミュート:
+Mute mic: Ctrl + Alt + N	マイクミュート: Ctrl + Alt + N
+My brain	私のブレイン
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	私のブレインが降りてきています。届いたらすぐ挨拶するので、そのあと話しかけてね。
+My brain's on its way. While it comes down, let's sort out how I sound.	私のブレインは向かっています。降りてくるまで、私の話し方を整えよう。
+My provider	私のプロバイダー
+NO AI	AI なし
+NO PHONES CONNECTED	電話が接続されていません
+NO PREVIEW	プレビューなし
+NORMAL	通常
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · 無料 · 混雑時は遅いことが多い
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA の無料 API は、特に混雑時に遅いことが多いです。
+NVIDIA, Gemini, OpenRouter	NVIDIA、Gemini、OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA、Google AI Studio（Gemini）、または OpenRouter の API キー
+Names:	名前:
+Needs a key	キーが必要
+Never	しない
+New code	新しいコード
+New voice from a clip...	クリップから新しい声...
+Next	次へ
+Night City	Night City
+No AI	AI なし
+No AI · no brain at all	AI なし · ブレインなし
+No brain runs, and nothing is sent anywhere.	ブレインは動作せず、何も送信されません。
+No brain yet	まだブレインがありません
+No code open	コードが開かれていません
+No limit	制限なし
+No mic found	マイクが見つかりません
+No mods in the directory yet.	フォルダーにまだ Mod がありません。
+No mods match that.	その条件に合う Mod はありません。
+No mods match.	Mod が一致しません。
+No phones yet	まだ電話がありません
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	まだ仮想マイクがありません。出力を選び、VB-CABLE を入手（無料）を押してください。
+None yet: pick to get VB-CABLE (free)	まだありません: 選んで VB-CABLE を入手（無料）
+Normal	通常
+Not a relay host	リレーホストではありません
+Not imported. Nothing ran.	インポートされませんでした。何も実行されていません。
+Not updated. The old one is still in.	更新されませんでした。古いバージョンのままです。
+Nothing needed updating.	更新は不要でした。
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	ダウンロードするものはなく、何も送信されません。私は返事をしません。ブレインはいつでも Mainframe で追加できます。
+Nothing to show from the mods directory.	Mod フォルダーに表示するものがありません。
+Nothing? Windows Settings > Privacy & security > Microphone.	何もない？Windows の設定 > プライバシーとセキュリティ > マイク。
+Nous Portal keys aren't supported yet.	Nous Portal のキーはまだ対応していません。
+OBS	OBS
+OFF	オフ
+OLLAMA	OLLAMA
+ON	オン
+ON THIS PC	この PC 上
+OR A KEY	またはキー
+Obsidian memory vault	Obsidian メモリ Vault
+Off	オフ
+Off. Turn on Her voice in your mic above.	オフ。上の「彼女の声をマイクに入れる」をオンにしてください。
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	オフ: いつも通りの声です。オン: ElevenLabs を含む、すべての声を使います。
+Often	よく
+On	オン
+On / Off	オン / オフ
+On: your mic and her voice are going in.	オン: マイクと彼女の声を入れています。
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	1つの JSON オブジェクト。このブレインが送るすべてのリクエストに追加されます。共有する名前については Capri の値を置き換え、モデルでは検証されません。
+Online speech recognition	オンライン音声認識
+Open Capri Mainframe	Capri Mainframe を開く
+Open Ollama, I'll find it	Ollama を開いて。見つけるから
+Open clips folder	クリップフォルダーを開く
+Open her memories	彼女の思い出を開く
+Open her notes	彼女のメモを開く
+Open mods folder	Mod フォルダーを開く
+Open the page again	ページをもう一度開く
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI、Claude、DeepSeek、Google、NVIDIA、または OpenRouter。
+OpenAI-compatible server or provider.	OpenAI 互換のサーバーまたはプロバイダー。
+OpenRouter · free models only	OpenRouter · 無料モデルのみ
+Optional	任意
+Optional. Blank means no key.	任意。空欄はキーなしを意味します。
+Options	オプション
+Out of the box a little higher, just behind her.	初期設定では少し高く、彼女のすぐ後ろ。
+Out of the box lower, just behind her.	初期設定では低く、彼女のすぐ後ろ。
+Output	出力
+Output:	出力:
+Output: none	出力: なし
+PHONE CONNECTED	電話が接続されました
+PHONES >	電話 >
+PHONES CONNECTED	電話が接続中
+PREBUILT LOCAL	プリセットのローカル
+PUBLISH MOD >	Mod を公開 >
+Pair a phone	電話をペアリング
+Paste	貼り付け
+Paste API key	API キーを貼り付け
+Paste a brain API key	ブレインの API キーを貼り付け
+Paste reads your clipboard once, when you press it.	貼り付けは押した時点で一度だけクリップボードを読みます。
+Paste your key here	ここにキーを貼り付け
+Pat stroke	撫で
+Perch	止まり木
+Perch over {0} fps uses more CPU	{0} fps を超えると CPU をより多く使います
+Pick Output to get it.	出力を選んで取得してください。
+Pick a brain so I can talk back. You can change it any time.	話せるようにブレインを選んでね。いつでも変更できます。
+Pick a clip of a voice you have the rights and consent to use	使用する権利と同意がある人の声のクリップを選んでください
+Pick a free model. I opened the page in your browser.	無料モデルを選んでね。ブラウザでページを開いたよ。
+Pick a new clip of you...	あなたの新しいクリップを選んで...
+Pick a voice model...	音声モデルを選んで...
+Pick one. Only one brain runs at a time.	1つ選んでね。同時に動くブレインは1つだけです。
+Pick the note her memories go in	彼女の思い出を入れるメモを選んで
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	使用する権利と同意がある声を {0} 〜 {1} 秒選んでください
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	あなたが話している {0} 〜 {1} 秒、または使用する権利と同意がある声を選んでください
+Pitch	ピッチ
+Play	再生
+Play...	再生...
+Player only	プレイヤーのみ
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS モデルはこのクリップの声をコピーします。テストを押して聞いてみてね。
+Pop-in times	出現時間
+Pop-ins	出現
+Power saver	省電力
+Power saver: how lightly she runs in games, or always	省電力: ゲームでどれだけ軽く動くか、または常に
+Preset	プリセット
+Press Create API key	API キーを作成を押してください
+Press Create Key	キーを作成を押してください
+Press Generate API Key	API キーを生成を押してください
+Press Test and say something, so I know I can hear you.	テストを押して何か話してね。聞こえているかわかるように。
+Press a key, alone or with Ctrl, Alt, Shift or Win.	キーを押してください。単独でも、Ctrl、Alt、Shift、Win との組み合わせでも可。
+Press new keys, then Confirm	新しいキーを押してから確認
+Provider	プロバイダー
+Provider API key, optional	プロバイダーの API キー（任意）
+Provider base URL	プロバイダーのベース URL
+Provider forgotten.	プロバイダーを忘れました。
+Provider overlaps the brain name or note	プロバイダーがブレイン名またはメモと重なっています
+Publish	公開
+Publish mod	Mod を公開
+Push to talk is off.	プッシュトゥトークはオフです。
+Push to talk key	プッシュトゥトークのキー
+Push to talk:	プッシュトゥトーク:
+Push to talk: not set	プッシュトゥトーク: 未設定
+QR CODE >	QR コード >
+QR hidden while streaming	配信中は QR を非表示
+Quick	速い
+Quiet key	静かにさせるキー
+Quiet:	静か:
+Quiet: Ctrl + Alt + P	静か: Ctrl + Alt + P
+Quit Capri	Capri を終了
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	コードを実行します。
+Rarely	めったにない
+Rate mod	Mod を評価
+Reading its README...	README を読んでいます...
+Refresh	更新
+Reinstall	再インストール
+Reload	再読み込み
+Reloaded.	再読み込みしました。
+Remember our chats	チャットを覚える
+Remember what she sees	見ているものを覚える
+Remote	Remote
+Remote off	Remote オフ
+Remote on	Remote オン
+Remove	削除
+Remove all phones	すべての電話を削除
+Replies	返答
+Reply length	返答の長さ
+Report a problem	問題を報告
+Reset colors	色をリセット
+Reset to her default	デフォルトに戻す
+Resolution	解像度
+Restart to update	更新するには再起動
+Restless	落ち着きがない
+Revoke	取り消し
+Revoke also removes the phones its links added	取り消すと、そのリンクで追加された電話も削除されます
+Ride cursor	カーソルに乗る
+Ride cursor / Hop off	カーソルに乗る / 降りる
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	いつでも右クリックで Capri Mainframe を開けるよ。ブレインは BRAIN の下でオンになります。
+Right-click me any time for the Mainframe, Help and the Discord.	いつでも右クリックで Mainframe、ヘルプ、Discord を開けるよ。
+Roblox	Roblox
+Roblox or any other app: pick	Roblox やその他のアプリ: 選択
+Robot	ロボット
+Rock, paper, scissors	じゃんけん
+Run this code mod?	このコード Mod を実行しますか？
+Running on this PC	この PC で実行中
+Running on this PC · :	この PC で実行中 · :
+Runs Claude Code or Codex on this PC, signed in.	この PC で Claude Code または Codex をサインイン済みで実行します。
+Runs on your PC. No key, no credits.	PC で動作します。キー不要、クレジット不要。
+SCAN WITH YOUR PHONE · EXPIRES	スマホでスキャン · 期限切れ
+SECURITY >	セキュリティ >
+SKILL.	スキル。
+SKIN.	スキン。
+SORT BY	並べ替え
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	サウンド 習慣 ブレイン 見る CAPRI DOOMSCROLL 天気 クリップ ゲーム キー 動き 音声 あなた
+Same as her ears (VOICE > Mic)	彼女の耳と同じ（音声 > マイク）
+Same code on the phone?	スマホでも同じコード？
+Save	保存
+Save big moments	大事な瞬間を保存
+Save folder	保存先フォルダー
+Save your changes, or press Discard + reload.	変更を保存するか、破棄 + 再読み込みを押してください。
+Save your changes, or press Discard.	変更を保存するか、破棄を押してください。
+Saved.	保存しました。
+Saved. Ctrl + Alt + O opens her Mainframe.	保存しました。Ctrl + Alt + O で彼女の Mainframe を開きます。
+Saving your rating...	評価を保存中...
+Say her name anywhere to chat	どこでも名前を呼ぶとチャットできるよ
+Screens	画面
+Screens is hidden or outside WATCH	画面は非表示か、WATCH の範囲外です
+Screens overlaps a WATCH row	画面が WATCH の行と重なっています
+Screens to watch	見る画面
+Sealed end to end	エンドツーエンドで暗号化
+Search by name or author	名前か作者で検索
+Search installed mods	インストール済み Mod を検索
+Search mods	Mod を検索
+Search name, author or description	名前、作者、説明で検索
+Security	セキュリティ
+Security:	セキュリティ:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	セットアップ
+Set up her brain	彼女のブレインをセットアップ
+Set up your voice model	音声モデルをセットアップ
+Setting up her brain	彼女のブレインをセットアップ中
+Settings	設定
+Settings / Back	設定 / 戻る
+Settings folds the wrong rows above BRAIN	設定が BRAIN の上の行を誤って折りたたみました
+Settings had nothing to watch.	設定には見るものがありませんでした。
+Settings lost keyboard focus during the Tab walk	Tab の移動中に設定がキーボードフォーカスを失いました
+Setup guide	セットアップガイド
+Setup stopped	セットアップが中止されました
+She can read it when it fits.	収まるときに読めます。
+She glances at your screen and comments. Costs a little on a paid brain.	あなたの画面をちらっと見て、コメントします。有料の頭だと少し費用がかかります。
+She keeps listening. Say her name, then just talk until you go quiet.	聞き続けます。名前を呼んで、静かになるまで話してね。
+She reacts to your game until you close it.	ゲームを閉じるまで、ゲームに反応します。
+She reads these controls before each game job.	ゲームの各作業の前に、これらの操作を読みます。
+She talks about your game as you play. Costs a little on a paid brain.	ゲームをプレイ中、そのことを話します。有料の頭だと少し費用がかかります。
+She uses it when she plays	プレイ中に使います
+Short	短い
+Shortest wait (minutes)	最短待機時間（分）
+Show Capri	Capri を表示
+Show QR	QR を表示
+Show my mod file	Mod ファイルを表示
+Show on Discord	Discord で表示
+Shum, what time is it	Shum、今何時？
+Sign in	サインイン
+Sign in, make a key and copy it. Then press Paste and I'll connect.	サインインしてキーを作ってコピーして。そのあと貼り付けを押せば接続するよ。
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	サインインして API キーを作成を押し、コピーして。そのあと貼り付けを押せば接続するよ。
+Silent · text only	無音 · テキストのみ
+Simple / Advanced Settings	シンプル / 詳細設定
+Simple Settings	シンプル設定
+Simple Settings left a gap under Check in on me	シンプル設定で「様子を見に来る」の下に隙間ができました
+Sit here	ここに座る
+Sit on windows	窓に座る
+Size	サイズ
+Skip	スキップ
+Skip all	すべてスキップ
+Skip for now	今はスキップ
+Sleep	寝る
+Small	小
+Sometimes	時々
+Sound effects volume	効果音の音量
+Sound sensitivity	音の感度
+Sounds	サウンド
+Speaker or clip	スピーカーまたはクリップ
+Speech model	音声認識モデル
+Speed	速さ
+Start with Windows	Windows と一緒に起動
+Start with this!	これで始めよう！
+Starting...	起動中...
+Stay	そのまま
+Stay on my model	私のモデルのままにする
+Still checking your mics...	マイクをまだ確認中...
+Still checking your speakers...	スピーカーをまだ確認中...
+Still checking your virtual mics...	仮想マイクをまだ確認中...
+Stop	停止
+Stopped using it. Couldn't remove the saved provider.	使用をやめました。保存済みのプロバイダーを削除できませんでした。
+Support	サポート
+Sure?	本当に？
+Sure? moved to a different phone	本当に？別の電話に移動しました
+TALK TO ME	話しかける
+TEXT ONLY	テキストのみ
+Tab landed past the first option of	Tab が最初の選択肢を越えて移動しました:
+Tab never reached the quiet key	Tab が静かにさせるキーに届きませんでした
+Tab reached nothing	Tab が何にも届きませんでした
+Tab selected a control without moving keyboard focus	Tab がキーボードフォーカスを移動せずにコントロールを選択しました
+Talk	話す
+Talk key	話すキー
+Talk:	話す:
+Talk: Ctrl + Alt + V	話す: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	目標キャプチャーのフレームレート。負荷やメモリ予算によっては下がることがあります
+Teases when another AI comes to the front.	別の AI が前に出てくると、からかいます。
+Test	テスト
+That address doesn't work. Try https://... or http://localhost:{0}.	そのアドレスは動作しません。https://... または http://localhost:{0} を試してください。
+That code expired	そのコードは期限切れです
+That mod is no longer installed. The list is updated.	その Mod はもうインストールされていません。リストを更新しました。
+That's a paid key: it goes under MAX INTELLIGENCE.	それは有料キーです: MAX INTELLIGENCE に入ります。
+The Mainframe stayed composited while sliding.	スライド中、Mainframe はコンポジットのままでした。
+The Mainframe stayed uncomposited after the slide.	スライド後、Mainframe は非コンポジットのままでした。
+The controls moved while the picture was sliding.	画像がスライド中、コントロールが動きました。
+The cover stayed visible after the slide ended.	スライド終了後もカバーが表示されたままでした。
+The frame thread kept running after the page settled.	ページが落ち着いた後も、フレームスレッドが動き続けました。
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	彼女が返せる最長の返答（トークン数）。自動は上の返答を守ります。{0}K や {1}K で続けられます。作業は必要なときに余裕を増やします
+The longest wait must be at least the shortest wait.	最長待機時間は、少なくとも最短待機時間以上である必要があります。
+The picture doesn't match the scrolled page:	画像がスクロールされたページと一致しません:
+The picture of Settings doesn't match the page:	設定の画像がページと一致しません:
+The picture stayed up after the slide ended.	スライド終了後も画像が表示されたままでした。
+The picture wasn't showing while it slid.	スライド中、画像は表示されていませんでした。
+The provider sheet is crowded:	プロバイダーシートが混みすぎています:
+The voice panel has no screen DPI.	音声パネルに画面の DPI がありません。
+The voice panel's menus share one font.	音声パネルのメニューは1つのフォントを共有しています。
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	クリップボードにまだキーがありません。ページからコピーして、貼り付けを押してください。
+These start off. Each costs a little or uses your mic.	これらは最初はオフです。それぞれ少し費用がかかるか、マイクを使います。
+These start off. Turn on what you want. They're all in Settings too.	これらは最初はオフです。欲しいものをオンにしてください。すべて設定にもあります。
+They can also call you Big Z, Capricorn or Nova	あなたのことを Big Z、Capricorn、Nova とも呼べます
+They can also call you Nova, Big Z or Capricorn	あなたのことを Nova、Big Z、Capricorn とも呼べます
+Thinking	考え中
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	これが私の無料音声です。テストを押して何か話すと、聞こえていることを見せます。
+This mod has no description yet.	この Mod にはまだ説明がありません。
+Tic-tac-toe	三目並べ
+Time between glances	見る間隔
+Tiny	極小
+Try again	もう一度試す
+Turn Remote on first	先に Remote をオンにしてください
+Turn off mini player	ミニプレイヤーをオフにする
+Turn push to talk off	プッシュトゥトークをオフにする
+Turning the wheel the other way kept the page heading the old way, to	ホイールを逆方向に回したので、ページは以前の向きのまま、次へ
+Type	入力
+Type key	入力キー
+Type to me	私に入力
+Type:	入力:
+Type: Ctrl + Alt + T	入力: Ctrl + Alt + T
+Typing sound	タイピング音
+Unpacked. Press Test to hear it.	展開しました。テストを押して聞いてみてね。
+Unsaved changes.	未保存の変更があります。
+Up to {0} fps	最大 {0} fps
+Up to {0}p	最大 {0}p
+Update	更新
+Update available.	更新があります。
+Update mods	Mod を更新
+Updating...	更新中...
+Use	使う
+Use her cursor	彼女のカーソルを使う
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	別の場所のプロバイダーには https:// を使ってください。平文の http 上のキーは安全ではありません。
+Use preset	プリセットを使う
+Use saved	保存済みを使う
+Use this server	このサーバーを使う
+Using your provider with a key	キー付きでプロバイダーを使用中
+Using your server with no key	キーなしでサーバーを使用中
+VIEW MOD >	MOD を表示 >
+VOICE >	音声 >
+VOICE IN YOUR MIC >	マイクの音声 >
+VOICE LAYERS >	音声レイヤー >
+Verbosity	冗長さ
+Video bitrate	映像ビットレート
+View	表示
+View mod	Mod を表示
+Voice	音声
+Voice ID	音声 ID
+Voice from	音声の元
+Voice layers	音声レイヤー
+Voice model	音声モデル
+Voice model:	音声モデル:
+Voice name or ID, optional	音声名または ID（任意）
+Voice server address, or a voice model's folder	音声サーバーのアドレス、または音声モデルのフォルダー
+Voice status	音声の状態
+Voice, key and model...	音声、キー、モデル...
+Volume	音量
+WAKE ME UP >	起こして >
+WATCH >	見る >
+Waiting for the relay	リレーを待っています
+Wake her up	起こす
+Waking her up	起こしています
+Wander	うろうろ
+Wander around	うろうろする
+Watch my screen	画面を見る
+Watch-along memory	一緒に見た時の記憶
+Weather	天気
+Weather city	天気の都市
+Welcome back, choom. Let's finish setting me up.	おかえり、choom。セットアップの続きをしよう。
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	あなたの PC で、聞かずに行うこと。トグルがオフなら最初に確認し、あなたが「はい」と言ったら行います。
+What should she call you?	なんて呼べばいい？
+When she types	入力中
+White	白
+Windows default	Windows の既定
+Windows did not give Settings keyboard focus	Windows が設定にキーボードフォーカスを渡しませんでした
+Windows did not return keyboard focus to Back	Windows が戻るにキーボードフォーカスを戻しませんでした
+With no picture the wheel still tried to slide.	画像がないのに、ホイールはまだスライドしようとしました。
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE で一番よく動きます。
+YOU	あなた
+YOU >	あなた >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	あなた 音声 動き キー ゲーム クリップ 天気 DOOMSCROLL CAPRI 見る ブレイン 習慣 サウンド
+YOUR KEY	あなたのキー
+YOUR MIC	あなたのマイク
+YOUR PLAN	あなたのプラン
+Yokapri what's up	Yokapri 元気？
+You can hide this. It keeps going, and the Mainframe shows it too.	これは隠せます。動き続けますし、Mainframe にも表示されます。
+Your mic and her voice go into one virtual mic, and	あなたのマイクと彼女の声は1つの仮想マイクに入り、
+Your mic is muted. Unmute it to test.	マイクがミュートされています。テストするにはミュートを解除してください。
+Your mods are up to date.	Mod は最新です。
+Your name or a nickname	あなたの名前またはニックネーム
+Your own model	あなたのモデル
+Your personality	あなたの性格
+Your voice	あなたの声
+Your voice (HD)	あなたの声 (HD)
+Your voice (HD) · pick a clip of you...	あなたの声 (HD) · あなたのクリップを選んで...
+Your voice model	あなたの音声モデル
+as its mic.	彼女のマイクとして。
+changed. Saved as My Colors, so you can share it.	変更されました。共有できるように My Colors として保存されました。
+choice	選択
+clips the input line	入力行をクリップする
+cue	キュー
+doesn't yet.	まだです。
+download	ダウンロード
+file.	ファイル。
+flag	フラグ
+fps	fps
+hear	聞く
+hears	聞く
+hears that.	それを聞いている。
+hides or shows her.	彼女を隠す / 表示します。
+hint	ヒント
+in the Mainframe.	Mainframe で。
+in the mods directory with a pull request.	pull request で Mod フォルダーに。
+in the picture wasn't noticed.	画像の中では気づかれませんでした。
+is already her push-to-talk key.	はすでに彼女のプッシュトゥトークのキーです。
+is off.	はオフです。
+is on and running.	はオンで動作中です。
+is on, at the bottom, under	はオンで、下部、
+is on.	はオンです。
+is on. She now answers to	はオンです。彼女は今こう返事をするように。
+is removed.	は削除されました。
+is taken	は使用中です
+is taken by another app. Try another.	は別のアプリに使われています。別のものを試してください。
+is updated	は更新されました
+isn't hearing it yet: do {0} and {1}, then join a call.	はまだ聞こえていません：{0} と {1} をしてから通話に参加してください。
+it now.	今すぐ。
+keeps her quiet, and lets her talk again.	静かにさせ、また話せるようにします。
+key	キー
+key.	キー。
+min	分
+more.	以上。
+ms.	ms。
+mutes mic	マイクをミュート
+mutes your mic.	あなたのマイクをミュートします。
+name	名前
+off	オフ
+on this PC	この PC 上
+opens her Mainframe.	彼女の Mainframe を開きます。
+opens her typing box.	彼女の入力ボックスを開きます。
+phone	電話
+phone pixels	電話のピクセル
+phones	電話
+pixels	ピクセル
+pixels)	ピクセル)
+star.	つ星。
+stars.	つ星。
+starts voice chat.	ボイスチャットを開始します。
+stays off. Nothing ran.	オフのままです。何も実行されていません。
+still does its own job in other apps too. Confirm to keep it.	他のアプリでも本来の仕事は続けます。残すには確認してください。
+tall	高い
+time	回
+to talk	話すため
+to talk to her, with a game in front too.	ゲームを前面に出したままでも、彼女と話すため。
+too.	も。
+turns Gaming Mode on and off.	ゲームモードのオン・オフを切り替えます。
+with Ollama	Ollama と一緒に
+won't type in other apps while she runs. Confirm to keep it.	彼女が動いている間は、他のアプリに入力しません。残すには確認してください。
+{0}   Echo Cancellation: Off	{0}   エコーキャンセル: オフ
+{0}   If her voice cuts off, turn off noise filtering	{0}   彼女の声が途切れる場合は、ノイズフィルターをオフにしてください
+{0}   Input Device:	{0}   入力デバイス:
+{0}   Join the call and check they hear both of you	{0}   通話に参加して、2人ともの声が聞こえるか確認してください
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   マイクテスト > 確認しよう: あなたの声と、彼女が話す声が聞こえます
+{0}   Microphone:	{0}   マイク:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   ノイズ抑制: なし。両方とも最初の一言の後に彼女の声を切ってしまうことがあります。
+{0}   Open the call or meeting's audio settings	{0}   通話またはミーティングのオーディオ設定を開く
+{0}   Output Device: your headphones, like before	{0}   出力デバイス: いつものヘッドホン
+{0}   Speaker: your headphones, like before	{0}   スピーカー: いつものヘッドホン
+{0}   Try a mic test in your call app	{0}   通話アプリでマイクテストをしてみてください
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   ユーザー設定（名前の横の歯車）> 音声とビデオ
+{0} Mbps	{0} Mbps
+{0} lines	{0} 行
+{0} min	{0} 分
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· この PC 上
+· server	· サーバー

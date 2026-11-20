@@ -24,7 +24,7 @@ namespace CapriSetup
         internal static bool Wanted(string file, string[] args)
         {
             if (Array.IndexOf(args, "--silent") >= 0 || Array.IndexOf(args, "--package") >= 0) return true;
-            if (args.Length > 0 && Array.IndexOf(new[] { "--close", "--update", "--verify", "--verify-voice", "--remove-files", "--uninstall" }, args[0]) >= 0) return true;
+            if (args.Length > 0 && Array.IndexOf(new[] { "--close", "--update", "--verify", "--verify-voice", "--remove-files", "--remove-copy", "--uninstall" }, args[0]) >= 0) return true;
             string name = Path.GetFileNameWithoutExtension(file);
             return name.IndexOf("setup", StringComparison.OrdinalIgnoreCase) >= 0 || string.Equals(name, "Uninstall", StringComparison.OrdinalIgnoreCase);
         }
@@ -35,11 +35,12 @@ namespace CapriSetup
             // A silent command she can't read exits 2, and one that fails exits 1, each with the reason on stderr.
             int mode;
             string package;
-            try { mode = SetupFiles.Mode(args, out package); }
+            bool forget;
+            try { mode = SetupFiles.Mode(args, out package, out forget); }
             catch (ArgumentException error) { Console.Error.WriteLine(error.Message); return 2; }
             try
             {
-                if (mode == 2) return RemoveFiles(true);
+                if (mode == 2) return RemoveFiles(true, forget);
                 if (mode == 1)
                 {
                     string unsaved = Install(false, true);
@@ -56,7 +57,13 @@ namespace CapriSetup
             if (args.Length > 0 && args[0] == "--update") return Update(args);
             if (args.Length == 2 && args[0] == "--verify") return Verify(args[1]);
             if (args.Length == 2 && args[0] == "--verify-voice") return VerifyVoice(args[1]);
-            if (args.Length == 1 && args[0] == "--remove-files") return RemoveFiles(false);
+            if (args.Length > 0 && (args[0] == "--remove-files" || args[0] == "--remove-copy"))
+            {
+                Removal plan = Removal.Read(args);
+                if (plan == null) { Notice.Tell(null, "That uninstall command is invalid.", "Capri could not be removed", true); return 2; }
+                plan.Wait();
+                return plan.Copy ? RemoveCopy(plan) : RemoveFiles(false, plan.Forget);
+            }
             using (SetupWindow window = new SetupWindow(Removing(Application.ExecutablePath, args))) Application.Run(window);
             return 0;
         }
@@ -152,12 +159,17 @@ namespace CapriSetup
                         doubled.Close();
                     }
                 // Her notices, which stand in for Windows' grey boxes, fit their message under their title with OK below it.
-                using (Notice told = new Notice("Capri has been removed.\n\nYour position and size settings were kept in " + InstallPath + ".", "Capri", false))
+                using (Notice told = new Notice("Capri has been removed.\n\nHer memories, chats and settings were kept in " + InstallPath + ", in case you come back.", "Capri", false))
                 using (Notice failed = new Notice("There's a Capri.exe in " + InstallPath + " that isn't this Capri. Move it out of that folder, then install again.", "Capri couldn't install", true))
+                using (Notice wiped = new Notice(Forgotten(0, InstallPath), "Capri", false))
+                using (Notice stuck = new Notice(Forgotten(3, InstallPath), "Capri", true))
                 {
                     told.Show();
                     failed.Show();
+                    wiped.Show();
+                    stuck.Show();
                     Application.DoEvents();
+                    if (!wiped.Fits || !stuck.Fits || !stuck.Said.Contains(InstallPath)) throw new InvalidDataException("Her uninstall's goodbye doesn't fit or name her folder: " + wiped.Said + " / " + stuck.Said);
                     if (!told.Fits || !failed.Fits || !told.Said.StartsWith("CAPRI\nCapri has been removed.", StringComparison.Ordinal) || !failed.Said.StartsWith("CAPRI COULDN'T INSTALL\n", StringComparison.Ordinal)) throw new InvalidDataException("A notice doesn't fit or show its message: " + told.Said + " / " + failed.Said);
                     Snap(told, Path.Combine(output, "notice.png"));
                     Snap(failed, Path.Combine(output, "notice-error.png"));
@@ -334,6 +346,7 @@ namespace CapriSetup
             string staging = folder + ".new";
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             ZipFile.ExtractToDirectory(zip, staging);
+            VoicePack.Seal(staging);
             if (!VoicePack.Complete(staging)) throw new IOException("The download is missing files.");
             if (Directory.Exists(folder)) Directory.Delete(folder, true);
             Directory.Move(staging, folder);
@@ -411,14 +424,73 @@ namespace CapriSetup
             void SetPath([MarshalAs(UnmanagedType.LPWStr)] string file);
         }
 
-        internal static void BeginUninstall()
+        internal static void BeginUninstall(bool forget) { Launch(Application.ExecutablePath, new Removal { Forget = forget }); }
+
+        internal static void Launch(string exe, Removal plan)
         {
             string temporary = UninstallCopy();
-            File.Copy(Application.ExecutablePath, temporary);
-            Process.Start(new ProcessStartInfo(temporary, "--remove-files") { UseShellExecute = true });
+            File.Copy(exe, temporary);
+            using (Process.Start(new ProcessStartInfo(temporary, plan.Arguments()) { UseShellExecute = true })) { }
         }
 
-        private static int RemoveFiles(bool silent)
+        internal static string Local { get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData); } }
+
+        internal static bool Installed(string exe)
+        {
+            try { return File.Exists(Path.Combine(InstallPath, ".capri-install")) && string.Equals(Path.GetFullPath(exe), Path.Combine(InstallPath, "Capri.exe"), StringComparison.OrdinalIgnoreCase); }
+            catch (ArgumentException) { return false; }
+            catch (NotSupportedException) { return false; }
+        }
+
+        internal static string Forgotten(int left, string folder)
+        {
+            return left == 0 ? "Capri has been removed, along with everything she knew on this PC." : "Capri has been removed, but a few of her files were still in use. Restart your PC, then delete " + folder + ".";
+        }
+
+        private static int RemoveCopy(Removal plan)
+        {
+            try
+            {
+                string data = Path.Combine(Local, "Capri");
+                if (plan.Forget && File.Exists(Path.Combine(data, ".capri-install"))) throw new IOException("Capri is also installed on this PC, so her memories were kept. Remove her in Settings > Apps > Installed apps and tick Also delete everything she knows.");
+                if (plan.App != null)
+                {
+                    string app = Path.GetFullPath(plan.App);
+                    if (!Ours(app) || Installed(app) || app.IndexOf("\\WindowsApps\\", StringComparison.OrdinalIgnoreCase) >= 0) throw new IOException("That isn't a copy of Capri this can remove.");
+                    CloseCopy(app);
+                    SetupFiles.RemoveApp(app);
+                }
+                int left = 0;
+                if (plan.Forget)
+                {
+                    foreach (string folder in Forgetting.Folders(Local)) if (Directory.Exists(folder)) CloseEverything(folder);
+                    left = Forgetting.Wipe(Local, null);
+                }
+                Notice.Tell(null, plan.Forget ? Forgotten(left, data) : "This copy of Capri has been removed.\n\nHer memories, chats and settings were kept in " + data + ".", "Capri", left > 0);
+                return 0;
+            }
+            catch (Exception error) { Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
+        }
+
+        private static void CloseCopy(string app)
+        {
+            foreach (Process process in Process.GetProcesses())
+                using (process)
+                {
+                    try
+                    {
+                        bool held;
+                        if (!string.Equals(SetupFiles.FileOf(process, out held), app, StringComparison.OrdinalIgnoreCase) || Gone(process, 0)) continue;
+                        process.Kill();
+                        process.WaitForExit(5000);
+                    }
+                    catch (System.ComponentModel.Win32Exception) { }
+                    catch (InvalidOperationException) { }
+                    catch (NotSupportedException) { }
+                }
+        }
+
+        private static int RemoveFiles(bool silent, bool forget)
         {
             try
             {
@@ -432,7 +504,8 @@ namespace CapriSetup
                     if (CloseEverything(destination)) throw new IOException(AdminCopy);
                 }
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
-                SetupFiles.Retire(uninstaller, string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase));
+                bool self = string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase);
+                SetupFiles.Retire(uninstaller, self);
                 try
                 {
                     SetupFiles.RemoveApp(Path.Combine(destination, "Capri.exe"));
@@ -453,7 +526,18 @@ namespace CapriSetup
                 }
                 Registry.CurrentUser.DeleteSubKeyTree(RegistryPath, false);
                 File.Delete(Path.Combine(destination, ".capri-install"));
-                if (!silent) Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);
+                int left = forget ? Forgetting.Wipe(Local, self ? uninstaller + ".old" : null) : 0;
+                if (!silent && Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Capri Camera")))
+                {
+                    try
+                    {
+                        using (Process camera = Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--camera-remove") { UseShellExecute = true, Verb = "runas" }))
+                            if (camera != null) camera.WaitForExit(60000);
+                    }
+                    catch (System.ComponentModel.Win32Exception) { }
+                }
+                if (silent && left > 0) Console.Error.WriteLine(Forgotten(left, destination));
+                if (!silent) Notice.Tell(null, forget ? Forgotten(left, destination) : "Capri has been removed.\n\nHer memories, chats and settings were kept in " + destination + ", in case you come back.", "Capri", left > 0);
                 return 0;
             }
             catch (Exception error) { if (silent) Console.Error.WriteLine(error.Message); else Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
@@ -538,6 +622,57 @@ namespace CapriSetup
         }
     }
 
+    internal sealed class Removal
+    {
+        internal bool Copy;
+        internal bool Forget;
+        internal string App;
+        internal int After;
+        internal long Started;
+
+        internal static Removal Read(string[] args)
+        {
+            if (args.Length == 0 || (args[0] != "--remove-files" && args[0] != "--remove-copy")) return null;
+            Removal plan = new Removal { Copy = args[0] == "--remove-copy" };
+            for (int i = 1; i < args.Length; i++)
+            {
+                if (args[i] == "--forget" && !plan.Forget) plan.Forget = true;
+                else if (args[i] == "--app" && plan.Copy && plan.App == null && i + 1 < args.Length && args[i + 1].Length > 0 && !args[i + 1].StartsWith("--", StringComparison.Ordinal)) plan.App = args[++i];
+                else if (args[i] == "--after" && plan.After == 0 && i + 2 < args.Length)
+                {
+                    if (!int.TryParse(args[i + 1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out plan.After) || plan.After <= 0) return null;
+                    if (!long.TryParse(args[i + 2], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out plan.Started) || plan.Started <= 0) return null;
+                    i += 2;
+                }
+                else return null;
+            }
+            return plan;
+        }
+
+        internal string Arguments()
+        {
+            System.Text.StringBuilder line = new System.Text.StringBuilder(Copy ? "--remove-copy" : "--remove-files");
+            if (Forget) line.Append(" --forget");
+            if (App != null) line.Append(" --app \"").Append(App).Append('"');
+            if (After > 0) line.Append(" --after ").Append(After.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(' ').Append(Started.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return line.ToString();
+        }
+
+        internal void Wait()
+        {
+            if (After <= 0) return;
+            Process process;
+            try { process = Process.GetProcessById(After); }
+            catch (ArgumentException) { return; }
+            using (process)
+            {
+                try { if (process.StartTime.ToUniversalTime().Ticks == Started) process.WaitForExit(60000); }
+                catch (InvalidOperationException) { }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+        }
+    }
+
     // Her installer in her Mainframe's look: a borderless window cut at the corners with a red rim and hot red strokes over her
     // wine glow, INSTALL CAPRI in rose for its title, its options on a band, cyan tick boxes, and a solid cyan Install Capri
     // (a red Remove Capri). It drags from anywhere that isn't a control and lays itself out for the screen's scale.
@@ -551,6 +686,7 @@ namespace CapriSetup
         private readonly Plate primary;
         private readonly Tick desktop;
         private readonly Tick launch;
+        private readonly Tick forget;
         private readonly Label section;
         private readonly Label status;
         private readonly Label stage;
@@ -588,7 +724,6 @@ namespace CapriSetup
             Place(chip, 462, 74, 180, 112, Face.Kept, 0);
             LabelAt(removing ? "Remove the app and its shortcuts for this Windows user.\nQuit Capri from the tray before continuing." : File.Exists(Path.Combine(Program.InstallPath, "settings.json")) ? "Right-click for her menu." : "She'll show you around when she opens.", 34, 198, 610, 50, Face.Plain, 11f, Neon.Faint);
             section = LabelAt("OPTIONS", 34, 254, 400, 20, Face.Bold, 10f, Neon.White);
-            section.Visible = !removing;
             desktop = new Tick();
             desktop.Text = "Add a desktop shortcut";
             desktop.Visible = !removing;
@@ -598,7 +733,13 @@ namespace CapriSetup
             launch.Checked = true;
             launch.Visible = !removing;
             Place(launch, 34, 314, 340, 26, Face.Kept, 0);
-            status = LabelAt(removing ? "Your saved position and size will be kept." : "", 34, 352, 604, 22, Face.Plain, 9.5f, Neon.Faint);
+            forget = new Tick();
+            forget.Text = "Also delete everything she knows";
+            forget.AccessibleName = "Also delete everything she knows: her memories, chats, notes, keys, settings, mods, her computer and her downloads";
+            forget.Visible = removing;
+            Place(forget, 34, 284, 604, 26, Face.Kept, 0);
+            status = LabelAt(removing ? Keeping(false) : "", 34, 352, 604, 22, Face.Plain, 9.5f, Neon.Faint);
+            forget.CheckedChanged += delegate { status.Text = Keeping(forget.Checked); };
             stage = LabelAt("", 34, 282, 604, 28, Face.Bold, 13f, Neon.White);
             stage.Visible = false;
             note = LabelAt("", 34, 314, 604, 22, Face.Plain, 10f, Neon.Faint);
@@ -624,6 +765,10 @@ namespace CapriSetup
             CancelButton = cancel;
             Lay(Location);
         }
+
+        internal static string Keeping(bool forget) { return forget ? "Her memories, chats, notes, keys, settings, mods and downloads go too." : "Her memories, chats and settings stay, in case you come back."; }
+
+        internal bool Wiping { get { return forget.Checked; } set { forget.Checked = value; } }
 
         private enum Face { Kept, Plain, Bold, Display }
 
@@ -756,7 +901,7 @@ namespace CapriSetup
             primary.Enabled = false;
             try
             {
-                if (removing) { Program.BeginUninstall(); Close(); return; }
+                if (removing) { Program.BeginUninstall(forget.Checked); Close(); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
                 try { SetupFiles.Mark(Program.InstallPath, "manual"); }

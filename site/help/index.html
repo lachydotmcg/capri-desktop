@@ -7,9 +7,9 @@
   <meta name="description" content="Capri help: install, the Mainframe, her brain, her voice, voice chat, settings and fixes.">
   <title>Capri help</title>
   <link rel="icon" type="image/x-icon" href="../assets/chip.ico">
-  <link rel="stylesheet" href="../style.css?v=0.9.2">
+  <link rel="stylesheet" href="../style.css?v=0.9.4">
   <script src="../guide.js" defer></script>
-  <script src="../helper.js?v=0.9.2" defer></script>
+  <script src="../helper.js?v=0.9.4" defer></script>
 </head>
 <body>
   <div class="page">
@@ -29,19 +29,19 @@
       <section id="new" class="step">
         <h2>New in 0.8.7</h2>
         <dl class="keys">
-          <dt>Capri Remote</dt><dd>text, call and watch her from your phone's browser while you're away from your PC. Off until you turn it on. Windows only for now. <a href="#remote">Set it up</a></dd>
+          <dt>Capri Remote</dt><dd>text, call and watch her from your phone's browser while you're away from your PC. Off until you turn it on. Chat and photos work on Windows, Mac and Linux; calls, Room voice and the screen view are Windows-only for now. <a href="#remote">Set it up</a></dd>
           <dt>Her tools</dt><dd>her brain's tool choices run as picked. Phrase checks only step in when her brain can't use tools</dd>
           <dt>Thinking</dt><dd>Settings &gt; <b>BRAIN</b> &gt; <b>Thinking</b>, in Advanced Settings, sets how hard a cloud brain thinks, from Off to High, for each model. <b>Extra request JSON</b> sits beside it</dd>
           <dt>Local jobs</dt><dd>a brain on your PC that supports tools can work out jobs with all of them. Plain chat still gets a quick answer</dd>
           <dt>Voice chat</dt><dd>replies with no tool behind them get a second look from her brain, so she can follow through</dd>
-          <dt>Code/Husk Mode</dt><dd>she acts out OpenCode's work too, and with Verbosity off she keeps to the big moments. <a href="#code-mode">Set it up</a></dd>
+          <dt>Code/Husk Mode</dt><dd>she acts out OpenCode's work too, and with Verbosity (in the Code/Husk Mode menu) off she keeps to the big moments. <a href="#code-mode">Set it up</a></dd>
           <dt>Mods</dt><dd>on Windows: sort the directory by downloads or rating, search your installed mods by name or author, and update them from the mods page</dd>
           <dt>Mod checks</dt><dd>the directory now says every mod is checked for malware before it goes up</dd>
           <dt>Code mods</dt><dd>mod API 3: a code mod can give her tools, see and change chat, add its own options and more, and lists each permission it asks for. They run on Mac and Linux too. <a href="../mods/">Mods docs</a></dd>
           <dt>Stacking skins</dt><dd>turn several skins on and each one goes on top, so a cat ears skin sits over any outfit</dd>
           <dt>Start with Windows</dt><dd>off on new installs until you turn it on. If you already have it on, it stays on</dd>
           <dt>File editor</dt><dd>opens and closes more smoothly on Windows</dd>
-          <dt>Reminders in games</dt><dd>with <b>Hide in full screen</b> on, she comes out to show a reminder on time, then hides again</dd>
+          <dt>Reminders in games</dt><dd>with <b>In full screen</b> on a Hide step, she comes out to show a reminder on time, then hides again</dd>
           <dt>Keys in games</dt><dd>her keys go to the window she last looked at. In a game she clicks inside it once, so WASD works without you clicking it first</dd>
           <dt>Windows 10 ears</dt><dd>she unpacks the compressed part of her ears' download herself</dd>
           <dt>Finding her brain</dt><dd>she checks for a missing local brain every 15 seconds, so she finds Ollama once it's up after a restart</dd>
@@ -96,7 +96,7 @@
 
         <h3 id="latest">Windows, latest release <small>10 or 11, 64-bit</small></h3>
         <ol class="moves">
-          <li><a class="download inline" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.9.2/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a></li>
+          <li><a class="download inline" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.9.4/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a></li>
           <li>Open <code>Capri-Setup.exe</code></li>
           <li>“Windows protected your PC”? <b>More info</b> → <b>Run anyway</b></li>
           <li><b>Install Capri</b></li>
@@ -256,13 +256,13 @@
           <dt>Always on top</dt><dd>above other windows</dd>
           <dt>Mainframe size</dt><dd>Auto or 100% to 200%. Auto makes the Mainframe bigger when Virtual Super Resolution or DSR draws a bigger desktop on your screen (0.7.7 and newer)</dd>
           <dt>Mainframe colours</dt><dd>Night City, Black, White or Grey for the Mainframe, her menus, the Type box and her notes. On Mac and Linux it colours the Mainframe only</dd>
-          <dt>Watch my screen</dt><dd>she comments, Every 10 s to 10 min</dd>
+          <dt>Watch my screen</dt><dd>she comments. It's the <b>Every</b> slider: Off, or 10 s to 10 min</dd>
           <dt>Keep her caught up</dt><dd>on by default, she also remembers the glances she keeps quiet about. Uses a little more of your API</dd>
           <dt>Language</dt><dd>80 languages for her replies</dd>
           <dt>What should she call you?</dt><dd>type a nickname → <b>Save</b>. <code>choom</code> resets it</dd>
           <dt>Get to know me</dt><dd>she asks your name, your pronouns and what you're into, and keeps them in me.md</dd>
           <dt>Open her notes</dt><dd>me.md, what she remembers</dd>
-          <dt>Volume</dt><dd>her voice, Mute to 150%</dd>
+          <dt>Volume</dt><dd>her voice, 10% to 150%. Turn the voice Off to mute her</dd>
           <dt>Pitch</dt><dd>every voice higher or deeper, -6 to +6, same speed</dd>
           <dt>Speed</dt><dd>every voice, 0.7x to 1.5x</dd>
           <dt>Robot</dt><dd>a smooth synth under her voice on the nearest note, like a talk box, Off, 5%, 10%, 15%, 20% to 100%. HD keeps its own, Off to start (“Off · HD”)</dd>
@@ -270,14 +270,13 @@
           <dt>Layers</dt><dd>the button in VOICE's heading, off by default. Two copies of her mixed in under her, so she sounds doubled with an AI shimmer: <b>LAYER 1</b> +1.5 and <b>LAYER 2</b> -2.5 semitones to start, both 25 ms behind her. Each has its own Pitch (-12 to +12) and Delay (0 to 250 ms), and <b>MAIN</b>'s Pitch is the Pitch above. Every voice, ElevenLabs and voice chat too. Mac and Linux: Settings → Voice style → <b>Layers</b></dd>
           <dt>Sounds</dt><dd>her effects, Off to 100%</dd>
           <dt>Typing sound</dt><dd>while her text types out</dd>
-          <dt>Free voice in games</dt><dd>only while HD is on, off by default. On, her free voice talks while a game or video is full screen, so the game gets your graphics card</dd>
           <dt>Call mode (beta)</dt><dd>Settings &gt; VOICE. On her call panel, click the call app's name to pick what she hears. <a href="#call-mode">Call setup</a></dd>
           <dt>Her voice in your mic</dt><dd>Settings &gt; VOICE, off by default. Her voice joins your mic only in call mode. <b>How to</b> opens the setup steps. <b>Input</b> picks your mic; <b>Output</b> picks the virtual mic. In your call app, pick <b>CABLE Output</b> or <b>Steam Streaming Microphone</b>, whichever the note names</dd>
           <dt>Get VB-CABLE</dt><dd>if you need a virtual mic: opens VB-Audio's setup. Allow it, click <b>Install Driver</b>, then restart. VB-CABLE is donationware from vb-cable.com</dd>
           <dt>Her voice in your mic: loudness</dt><dd>50% to 200%, starts at 100%. Her speaker volume and your mic level stay the same</dd>
           <dt>Wander</dt><dd>Off to Restless</dd>
           <dt>Sleep</dt><dd>Never to 30 min</dd>
-          <dt>Pop-in times</dt><dd>Settings &gt; MOVES. Set <b>Shortest wait (minutes)</b> and <b>Longest wait (minutes)</b>, then <b>Save</b>. Try 12 to 25, or equal values for a fixed wait. <b>Use preset</b> or moving <b>Pop-ins</b> clears custom times</dd>
+          <dt>Pop-in times</dt><dd>Settings &gt; CAPRI. Set <b>Shortest wait (minutes)</b> and <b>Longest wait (minutes)</b>, then <b>Save</b>. Try 12 to 25, or equal values for a fixed wait. <b>Use preset</b> or moving <b>Pop-ins</b> clears custom times</dd>
           <dt>Dance to music</dt><dd>when songs play</dd>
           <dt>Glitch in at startup</dt><dd>tendrils and sound when she starts</dd>
           <dt>Replies</dt><dd>Short, Medium, Long</dd>
@@ -286,10 +285,11 @@
           <dt>Custom model name</dt><dd>any pulled Ollama model or model id on your key → <b>Use</b></dd>
           <dt>Start with Windows</dt><dd>off until you turn it on, then she starts when you sign in. Before 0.8.7 it came on by itself; updating keeps yours the way it was</dd>
           <dt>Show on Discord</dt><dd>on by default, your Discord profile shows "Playing Capri" and what she's doing</dd>
-          <dt>Use her cursor</dt><dd>on by default, she searches YouTube, plays from Spotify's search, and drags Spotify's volume slider when you say Spotify</dd>
+          <dt>Use her cursor</dt><dd>under Security, next to Use your mouse and keyboard for jobs. On by default, she searches YouTube, plays from Spotify's search, and drags Spotify's volume slider when you say Spotify</dd>
           <dt>Security</dt><dd>where Blackwall mode was. Lockdown, Guarded, Trusted (the default) or Blackwall, and thirteen toggles in 0.8.5. <b>Friends on a call can ask, you confirm</b> starts off and needs your own mic or typing to confirm each request. <b>Keep personal details out of her memories</b> is on in every preset but Blackwall</dd>
-          <dt>Power saver</dt><dd>Off, In games (the default) or Always. While a game is in front she draws herself less often when she sits still, runs her background checks less often and listens at a gentler pace, so she might take a moment longer to hear you. Watch my screen, Listen for Capri, Hey Capri and Clip my games keep working</dd>
-          <dt>Perch</dt><dd>her frames a second while she sits on a window, 10 to 60 fps, 30 by default. Over 30 uses more CPU</dd>
+          <dt>Power saver</dt><dd>Off, In games (the default) or Always. While a game is in front she draws herself less often when she sits still, runs her background checks less often and listens at a gentler pace, so she might take a moment longer to hear you. Watch my screen, Listen for Capri and Clip my games keep working. In games and Always also let her free voice take over from HD in a full-screen game or video</dd>
+          <dt>In full screen</dt><dd>Stay (the default), Keep player, Hide her or Player only: whether she hides over a full-screen window and whether her mini player stays up over borderless full screen</dd>
+          <dt>Explore after</dt><dd>Off (the default), or 1 to 30 minutes away: then she scrolls a browser or reader page under your mouse with her own pointer. Your mouse or keyboard stops her</dd>
           <dt>Remember our chats</dt><dd>on by default, daily transcripts and memories.md that stay on your PC</dd>
           <dt>Open her memories</dt><dd>edit memories.md inside Mainframe</dd>
           <dt>Keys</dt><dd>Talk, Mute mic, Type and Hide/show: click, press any key or combination, then <b>Confirm</b></dd>
@@ -404,7 +404,7 @@
         <h2>Voice chat</h2>
         <dl class="keys">
           <dt>Start, stop</dt><dd>the wave, or <b>Ctrl + Alt + V</b></dd>
-          <dt>“Hey Capri”</dt><dd>say it and voice chat starts. Windows, off by default: Settings → HABITS → <b>Security</b> → <b>Listen for “Hey Capri”</b></dd>
+          <dt>“Hey Capri”</dt><dd>say it and voice chat starts. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
           <dt>Listen for Capri</dt><dd>her mic stays open, and her name anywhere in a sentence starts a chat. Keep talking without it until 20 seconds of quiet. On a job, or talking over her, she still needs her name. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
           <dt>Mute mic</dt><dd><b>Ctrl + Alt + N</b>, or the mic button</dd>
           <dt>Free</dt><dd>anything but ElevenLabs picked, or no key: you talk, she answers. Her ears download the first time</dd>
@@ -458,7 +458,7 @@
           <dt>Reminders on dates</dt><dd>“remind me on 5 December at 9am to call Mum”. No year means the next occurrence; no time means 9am. Uses your PC's local clock. Capri needs to be running to deliver it</dd>
           <dt>Teach game controls</dt><dd>Settings &gt; GAMES &gt; <b>Controls</b>. Use the game's window title and save its controls before she plays. Or say “remember the controls for The Binding of Isaac: shoot with the arrow keys”</dd>
           <dt>Play...</dt><dd>Settings &gt; GAMES &gt; <b>Play...</b>: <b>Chess</b>, <b>Connect four</b>, <b>Tic-tac-toe</b> or <b>Rock, paper, scissors</b>. Also works by asking, even without a brain connected</dd>
-          <dt>Paused YouTube</dt><dd>Settings &gt; Advanced Settings &gt; HABITS &gt; <b>Explore while I'm away</b>. Leave the page under your mouse with the matching video paused in Windows and no media playing in that browser. She scrolls the page and comments without clicking, typing or starting the video. Your mouse or keyboard stops her</dd>
+          <dt>Paused YouTube</dt><dd>Settings &gt; Advanced Settings &gt; HABITS &gt; <b>Explore after</b>, set to a time. Leave the page under your mouse with the matching video paused in Windows and no media playing in that browser. She scrolls the page and comments without clicking, typing or starting the video. Your mouse or keyboard stops her</dd>
         </dl>
         <p class="note">For jobs her own pink pointer clicks, and your mouse stays put. She sits on the steps box in the corner while she works; drag her or the box to move both. Only <b>Esc</b> stops her, even mid key-hold, and it stops the whole ask. Whenever she has your mouse or keys, a pink and cyan glow goes round the screen she's working on, even while she's hidden, so a mouse that moves with no glow wasn't her. “Write” or “draft” leaves a message unsent. On Trusted, the default, she asks before buying anything and skips password boxes. Settings → HABITS → <b>Security</b> changes what she asks about; with Type passwords and card numbers on, a password she types only ever shows as dots. Jobs have no step limit.</p>
       </section>
@@ -466,8 +466,8 @@
       <section id="screen" class="step">
         <h2>Watch my screen</h2>
         <ol class="moves">
-          <li>Mainframe → <b>Settings</b> → <b>Watch my screen</b></li>
-          <li><b>Every</b>: how often she looks</li>
+          <li>Mainframe → <b>Settings</b> → <b>Watch my screen</b>, the <b>Every</b> slider</li>
+          <li><b>Off</b> turns it off; any other step turns it on and sets how often she looks</li>
           <li>Settings &gt; WATCH &gt; <b>Screens</b>: choose a monitor. <b>All screens</b> follows the app in front</li>
         </ol>
         <p class="note">Any time: say “check my screen” and she looks right then.</p>
@@ -478,7 +478,7 @@
       <section id="remote" class="step">
         <h2>Capri Remote</h2>
         <p class="note">Text, call and watch her from your phone's browser while you're away from your PC. <a href="../remote/">Open Capri Remote</a>.</p>
-        <p class="note">Off until you turn it on. Windows only for now. Keep your PC awake with Capri open.</p>
+        <p class="note">Off until you turn it on. Chat and photos work on Windows, Mac and Linux; calls, Room voice and the screen view are Windows-only for now. Keep your PC awake with Capri open.</p>
 
         <h3>Set it up</h3>
         <ol class="moves">
@@ -593,11 +593,11 @@
         </dl>
         <h3 id="uninstall">Uninstall</h3>
         <ol class="moves">
-          <li>Right-click her → <b>Quit Capri</b></li>
-          <li>Windows Settings → Apps → Installed apps → Capri → <b>Uninstall</b></li>
-          <li><b>Remove Capri</b></li>
+          <li>Mainframe → Settings → UNINSTALL → <b>Uninstall Capri</b>, or Windows Settings → Apps → Installed apps → Capri → <b>Uninstall</b></li>
+          <li>Tick <b>Also delete everything she knows</b> to wipe her memories, chats, keys and downloads too</li>
+          <li><b>Uninstall</b></li>
         </ol>
-        <p class="note">Your settings, notes, personality and chat stay in <code>%LOCALAPPDATA%\Capri</code>. Delete that folder to remove everything. Used voice chat? Delete the “Capri” agent in ElevenLabs too.</p>
+        <p class="note">Without the tick, your settings, notes, personality and chat stay in <code>%LOCALAPPDATA%\Capri</code> in case you come back. The Store copy is CapriAI in Installed apps, and Windows deletes what she knows with it. Your clips and Obsidian vault always stay. Used voice chat? Delete the “Capri” agent in ElevenLabs too.</p>
       </section>
 
       <section id="privacy" class="step">
@@ -621,7 +621,7 @@
           <dt>Mods (0.8.3)</dt><dd>the Mods window and directory, settings mods, colour sets and skins. From 0.8.7, stacking skins and code mods too, except code mods that use Windows-only parts</dd>
           <dt>Works</dt><dd>sitting, chatting, Ollama, your own local server, any OpenAI-compatible provider with a key, her ElevenLabs voice or a local voice server, notes, wander, dancing, apps, Spotify, Discord status, “check my screen”, Watch my screen, Check in on me</dd>
           <dt>Linux TALK</dt><dd>set up <a href="https://github.com/lachydotmcg/capri-desktop#linux-talk-setup">her offline ears</a>, then hover over her and click <b>TALK</b>. Say one line in English and pause. Click <b>TALK</b> again to cancel.</dd>
-          <dt>Capri Remote</dt><dd>Windows only for now. <a href="#remote">Remote setup</a></dd>
+          <dt>Capri Remote</dt><dd>Chat and photos on Windows, Mac and Linux; calls and Room voice are Windows-only. <a href="#remote">Remote setup</a></dd>
           <dt>Not yet</dt><dd>voice input on Mac, call mode and wake words on Mac and Linux, built-in brain, shortcuts, auto-updates, mouse jobs on Mac, code mods that use Windows-only parts</dd>
           <dt>Brain</dt><dd>right-click her → <b>Brain</b>, pick an Ollama model, or <b>Get a free NVIDIA key</b> then <b>Use an API key...</b></dd>
           <dt>Voice</dt><dd>right-click her → <b>Settings</b> → <b>Voice</b> → <b>Add ElevenLabs key...</b></dd>
@@ -715,7 +715,7 @@
 
         <h3>Screen and Mainframe</h3>
         <dl class="stuck">
-          <dt>She never comments</dt><dd>Settings → <b>Watch my screen</b>. She skips screens that haven't changed.</dd>
+          <dt>She never comments</dt><dd>Settings → <b>Every</b> (Watch my screen), set to anything but Off. She skips screens that haven't changed.</dd>
           <dt>“Couldn't read the screen.”</dt><dd>Most NVIDIA models can't see. Pick <code>nvidia/nemotron-3.5-super-vl-120b-a12b</code>.</dd>
           <dt>“This brain can't see.”</dt><dd>Use the free NVIDIA key.</dd>
           <dt>“The screen capture is black.”</dt><dd>Set the game to borderless or windowed.</dd>

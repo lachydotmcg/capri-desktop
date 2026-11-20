@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Njikwa a e mere ọzọ agbanyeghị ọ dọghị na foto ahụ ọzọ.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Igodo efu sitere na Google AI Studio, NVIDIA ma ọ bụ OpenRouter. Ihe ọ bụla achọghị ibudata. Chọrọ intanet.
+A held trackpad scroll got a flick's long ease:	Mkpịsị ọdụ akụ trackpad jigidere nwetara ogologo nwayọ nke mkpịsị ọdụ:
+A layout change during a slide put the page at	Mgbanwe nhazi n'oge slaịd debara ibe ahụ n'ọnọdụ
+A layout change left the picture up.	Mgbanwe nhazi hapụrụ foto ahụ n'elu.
+A model in Ollama, on your local server or on your key.	Otu ụdịdị modul na Ollama, n'ihe nkesa gị nke ime obodo ma ọ bụ n'igodo gị.
+A paid key goes under MAX INTELLIGENCE by itself.	Igodo a kwụrụ ụgwọ na-aga n'okpuru MAX INTELLIGENCE n'onwe ya.
+A plan you already pay for, a key of your own, or Ollama.	Atụmatụ ị na-akwụ ụgwọ ya, igodo nke gị, ma ọ bụ Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menu panel olu anaghị ejide ederede nke panel ahụ n'onwe ya.
+A wheel turn right after a slide ended froze the picture.	Mgbe ịgbanye ụgbọ ala ozugbo slaịd gwụrụ kpọnwụrụ foto ahụ.
+ALLOW THIS PHONE?	KWE EKWE ỤLỌ A?
+ALMOST THERE >	ỌDỊKWA NSO >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI ỌZỌ WETARA NDU · MECHIE NA MGHE
+API key	Igodo API
+API key, Claude plan or ChatGPT plan	Igodo API, atụmatụ Claude ma ọ bụ atụmatụ ChatGPT
+Add	Tinye
+Address	Adreesị
+Address and key saved. Use saved to reconnect.	Echekwara adreesị na igodo. Jiri nke echekwara jikọọ ọzọ.
+Advanced Settings	Ntọala dị elu
+All	Niile
+All screens	Ihuenyo niile
+Allow	Kwe
+Almost there. I'll say hi the second my brain's in.	Ọdịkwa nso. M ga-ekele gị ozugbo ụbụrụ m banyere.
+Always	Mgbe niile
+Always on top	Mgbe niile n'elu
+Any Google account works. I opened the page in your browser.	Akaụntụ Google ọ bụla ga-arụ ọrụ. Emepere m ibe ahụ na ihe nchọta gị.
+Applies to every voice	Na-emetụta olu ọ bụla
+Apps she may close	Ngwa ọ nwere ike imechi
+Ask Capri for more	Jụọ Capri ọzọ
+Asking your server...	Ana m ajụ sava gị...
+Asks before closing only the apps you choose.	Na-ajụ naanị tupu imechi ngwa ndị ị họrọ.
+Auto	Akpaaka
+Automatic: VB-CABLE, else Steam's	Akpaaka: VB-CABLE, ma ọ bụghị Steam
+BAD RELAY HOST	ỌJỌ RELAY ỌJỌ
+BIG Z open notepad	BIG Z mepee notepad
+BRAIN	ỤBỤRỤ
+BRAIN >	ỤBỤRỤ >
+BRAIN ONLINE >	ỤBỤRỤ N'ỊNTANETI >
+BRAIN PROVIDER >	ONYE NNYEFE ỤBỤRỤ >
+BRAIN VOICE CAPRI	OLU ỤBỤRỤ CAPRI
+Back	Laghachi
+Back on your saved API key.	Alaghachiri na igodo API echekwara gị.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Kacha mma maka kọmputa a:
+Black	Ojii
+Blank key means no key.	Igodo efu pụtara na igodo adịghị.
+Brain API key	Igodo API ụbụrụ
+Brain model	Modul ụbụrụ
+Brain provider	Onye nnyefe ụbụrụ
+Bring here	Kpọtara ebe a
+Bring to this screen	Kpọtara n'ihuenyo a
+Browse	Lelee
+Browse mods	Lelee mods
+Browse to a voice model	Lelee modul olu
+Browse...	Lelee...
+Bubble	Ụzụ
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, ị nọ ebe ahụ?
+CAN'T REACH THE RELAY · RETRYING	ỌNYE N'ỊNWE RELAY · NA-ANWA ỌZỌ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI OLU ỤBỤRỤ
+CHANGED, approve it again.	GBANWEERE, kwado ya ọzọ.
+CLIPS >	KLIP >
+CLOUD VOICE	OLU ICHU
+CODE	KỌỌDỤ
+COLORS >	AGWỌ >
+CONNECTED	JIKỌRỌ
+CONNECTING	NA-EJIKỌ
+CUSTOM LOCAL	NKE ỌNỤ ỌCHA
+Call mode (beta)	Ọnọdụ ịkpọ oku (beta)
+Call mode does not fit.	Ọnọdụ ịkpọ oku adịghị edozi.
+Call mode is outside its space.	Ọnọdụ ịkpọ oku nọ na mpụga ohere ya.
+Cancel	Kagbuo
+Cancel keys	Kagbuo igodo
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Koodu Capri:
+Capri mods (*	Capri mods (*
+Capri, hello	Capri, nnọọ
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Nsogbu mgbe ọ na-enwe iwe
+Chat with Capri from your phone	Kwuo okwu na Capri site na ekwentị gị
+ChatGPT plan	Atụmatụ ChatGPT
+Check for updates	Lelee mmelite
+Check in on me	Nyochaa m
+Check in on me is hidden	Nyochaa m ezoro ya
+Check in on me still decides whether she visits.	Nyochaa m ka na-ekpebi ma ọ ga-abịa ọ bụghị.
+Check in on me's tip missed	Ndụmọdụ Nyochaa m efuola
+Chess	Chess
+Choose apps	Họrọ ngwa
+Choose folder...	Họrọ folda...
+Choose where future Capri clips are saved	Họrọ ebe e ga-echekwa klip Capri ọdịnihu
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Atụmatụ Claude ma ọ bụ ChatGPT, igodo a kwụrụ ụgwọ (OpenAI, Claude, DeepSeek), ma ọ bụ Ollama.
+Claude plan	Atụmatụ Claude
+Clear	Hichapụ
+Cleared.	Ahichapụrụ.
+Click Confirm to keep Down, or press Esc.	Pịa Kwenye iji debe Down, ma ọ bụ pịa Esc.
+Click to open it.	Pịa iji mepee ya.
+Clip my games	Debanye egwuregwu m na klip
+Clips	Klip
+Close	Mechie
+Close other AIs for me	Mechie AI ndị ọzọ maka m
+Cloud voice	Olu igwe ojii
+Cloud voice service	Ọrụ olu igwe ojii
+Cloud voice setup	Ntọala olu igwe ojii
+Code mods can reach your whole PC. Only trusted ones.	Code mods nwere ike ịru kọmputa gị niile. Naanị ndị a ntụkwasị obi.
+Code/Husk Mode	Ọnọdụ Code/Husk
+Codex	Codex
+Commands	Iwu
+Comment on my games	Kwuo maka egwuregwu m
+Comments	Nkọwa
+Confirm	Kwenye
+Confirm keys	Kwenye igodo
+Connect	Jikọọ
+Connect / Forget brain key	Jikọọ / Chefuo igodo ụbụrụ
+Connect / Forget voice key	Jikọọ / Chefuo igodo olu
+Connect four	Jikọọ anọ
+Controls	Njikwa
+Copri, what time is it	Copri, oge ole ka ọ bụ
+Copy error details	Detuo nkọwa njehie
+Copy the key	Detuo igodo
+Copy the key from the page, then press Paste.	Detuo igodo site na ibe ahụ, wee pịa Paste.
+Couldn't open that page:	Enweghị ike imepe ibe ahụ:
+Couldn't open that:	Enweghị ike imepe nke ahụ:
+Couldn't open the mods folder:	Enweghị ike imepe folda mods:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M bụ igodo Mainframe ya ugbu a.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N na-agbanye mic
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V bụ igodo ya ikwu okwu ugbu a.
+Ctrl + Alt + V to talk	Ctrl + Alt + V iji kwuo okwu
+Custom local voice	Olu obodo nke onwe
+Custom model name	Aha modul nke onwe
+Dance	Ịgba egwu
+Dance to music	Gbaa egwu na egwu
+Default	Ndabere
+Default (follows Windows)	Ndabere (na-esote Windows)
+Default duration for clip that and automatic clips	Oge ndabere maka "debanye nke ahụ na klip" na klip akpaaka
+Default length	Ogologo ndabere
+Default model	Modul ndabere
+Delay	Ọgbọ
+Deny	Jụ
+Discard	Tụfuo
+Discard + reload	Tụfuo + bulite ọzọ
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ị chọghị ichere? Igodo efu na-eme ka m kwuo okwu n'ime otu nkeji.
+Done	Emechara
+EXTRA REQUEST JSON >	JSON ARỤRỤ NKE NKỊ >
+EXTRAS >	NKE NKỊ >
+Edit	Dezie
+Edit check-in lines	Dezie akara nyocha
+Edit check-in lines has the wrong view or dimming	Dezie akara nyocha nwere ụdị ọhụụ ma ọ bụ gbanwee ìhè ụgha
+Edit check-in lines is out of place	Dezie akara nyocha adịghị n'ọnọdụ ya
+Edit controls	Dezie njikwa
+ElevenLabs API key	Igodo API ElevenLabs
+ElevenLabs voice ID	ID olu ElevenLabs
+English	Bekee
+Enter the game's name first.	Tinye aha egwuregwu ahụ tupu.
+Every	Ọ bụla
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	A na-enyocha mod ọ bụla maka malware tupu ebulite ya. Code mods ka na-ajụ tupu ha agba ọsọ.
+Explore after	Chọpụta mgbe
+Explore while I'm away	Chọpụta mgbe m na-apụ
+Extra request JSON	JSON arụrụ nke nkịọ
+Extras	Nke nkịọ
+FREE KEY	IGODO EFU
+FREE KEY >	IGODO EFU >
+Fast hands in games	Aka ngwa n'egwuregwu
+File editor	Onye dezie faịlụ
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs na ndị ọzọ dị n'okpuru OLU na Mainframe.
+Follow-up messages	Ozi na-esote
+Forget	Chefuo
+Fork capri-mods	Fork capri-mods
+Frame rate	Ọnụọgụ fremu
+Free	Efu
+Free and private, works offline. Downloads	Efu na nzuzo, na-arụ ọrụ na-enweghị ịntanetị. Na-ebudata
+Free and private, works offline. Downloads the best model for this PC.	Efu na nzuzo, na-arụ ọrụ na-enweghị ịntanetị. Na-ebudata modul kacha mma maka kọmputa a.
+Free key	Igodo efu
+Free key providers	Ndị nnyefe igodo efu
+Free keys can be rate limited and slow.	Igodo efu nwere ike ịnwe oke ọnụọgụ ma dịkwa nwayọ.
+Free voice in games	Olu efu n'egwuregwu
+Free voice style	Ụdị olu efu
+Free voice:	Olu efu:
+Free voice: Her own	Olu efu: Nke ya
+Free · local model	Efu · modul obodo
+GAMES >	EGWUREGWU >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Nkọwa egwuregwu na-agba ọsọ n'ụzọ dị iche na Lee ihuenyo m. Mapụ na-akwụsị ha, n'ọnọdụ egwuregwu kwa; Naanị ihe omume na Okwu ka ọ lee egwuregwu gị
+Game controls	Njikwa egwuregwu
+Game name	Aha egwuregwu
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Mmetụta olu egwuregwu. Belata ya ma ọ bụrụ na ntị gị adịghị elu mana Windows dị na {0}% ọ na-eme ihe n'olu ọ bụla; Mapụ na-ejighị olu egwuregwu n'anya
+Game sounds	Olu egwuregwu
+Games	Egwuregwu
+Gaming Mode	Ọnọdụ egwuregwu
+Gaming Mode key	Igodo ọnọdụ egwuregwu
+Gaming Mode:	Ọnọdụ egwuregwu:
+Gaming Mode: Ctrl + Alt + G	Ọnọdụ egwuregwu: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Nweta VB-CABLE
+Get VB-CABLE (free)...	Nweta VB-CABLE (efu)...
+Get free voice	Nweta olu efu
+Getting your Fish Audio voices...	Na-enweta olu Fish Audio gị...
+Giant	Nnukwu
+Glitch	Njehie
+Glitch in at startup	Njehie mgbe ọ malitere
+Go to sleep	Ra ihi ụra
+Go to the next screen	Gaa ihuenyo ọzọ
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ọkwa efu · ọnụọgụ akara
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ị nwere atụmatụ Claude ma ọ bụ ChatGPT, ma ọ bụ igodo nke gị? Họrọ ya, m ga-ejikọ.
+Got it, just me. Right-click me any time for Capri Mainframe.	Aghọtara m, naanị m. Pịa m aka nri mgbe ọ bụla maka Capri Mainframe.
+Grey	Agba mmiri ozuzu
+H.{0} video bitrate target; higher values make larger files	Ebumnuche bitrate vidiyo H.{0}; ọnụ ọgụgụ dị elu na-eme faịlụ ka ukwuu
+HABITS >	ỤZỤ >
+HER HANDS >	AKA YA >
+HER JOBS >	ỌRỤ YA >
+HER MEMORY >	ỌKWỤ ỤBỤRỤ YA >
+HER MODS >	MODS YA >
+HH:mm	HH:mm
+HOW I SOUND >	OLE KA M DI >
+Hang here	Kwụọ ebe a
+Have Ollama? Open it, then press Refresh.	Ị nwere Ollama? Mepee ya, wee pịa Refresh.
+Head pats	Ịdụ isi
+Hearing	Ịnụ
+Hearing engine	Igwe ịnụ
+Hearing fix	Ndozi ịnụ
+Hearing status	Ọnọdụ ịnụ
+Help	Enyemaka
+Help page	Ibe enyemaka
+Her colors	Agwọ ya
+Her folder	Folda ya
+Her memories	Ncheta ya
+Her own colors are back.	Agwọ nke ya alaghachila.
+Her own notes (no vault)	Ndetu nke ya (enweghị ụlọ nchekwa)
+Her perch frames per second	Fremu ọnọdụ ọnọdụ ya kwa sekọnd
+Her personality	Àgwà ya
+Her size	Ọnụ ọgụgụ ya
+Her speaker	Ihe nkwupụta ya
+Her speaker is hidden or outside VOICE	Ihe nkwupụta ya zoro ezo ma ọ bụ na mpụga OLU
+Her speaker overlaps the mic or hearing row	Ihe nkwupụta ya na-agbakọ na mic ma ọ bụahịrị ịnụ
+Her speaker:	Ihe nkwupụta ya:
+Her speaker: Default	Ihe nkwupụta ya: Ndabere
+Her voice in your mic	Olu ya n'ime mic gị
+Her voice in your mic: loudness	Olu ya n'ime mic gị: ịdị elu
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Olu ya n'onwe ya. Ụda ya bụ Ntọala > OLU > Ụda, ha na-aga ọnụ.
+Her voice joins your mic only in call mode.	Olu ya na-abanye n'ime mic gị naanị n'ọnọdụ oku.
+Her voice volume	Ịdị elu olu ya
+Her voice's pitch	Ụda olu ya
+Her voice's pitch, the same as Settings > VOICE > Pitch	Ụda olu ya, otu ihe ahụ dị ka Ntọala > OLU > Ụda
+Her voice's speed	Ọsọ olu ya
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Olu ya, na ọdịdị abụọ nke ya agwakọtara n'okpuru ya, ọ bụla nwere ụda na ọgbọ nke ya.
+Her voices · free	Olu ya · efu
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Ọ dị mma, choom. Abụ m Capri. Achọrọ m ụbụrụ tupu m ekwuo okwu. Họrọ otu.
+Hide / Show Capri	Zoo / Gosi Capri
+Hide / Show key	Igodo zoo / gosi
+Hide Capri	Zoo Capri
+Hide for now	Zoo ugbu a
+Hide her	Zoo ya
+Hide in full screen	Zoo n'ihuenyo zuru oke
+Hide this	Zoo nke a
+Hide, keep player	Zoo ya, debe onye ọkpụkpọ
+Hide/show:	Zoo/gosi:
+Hide/show: Ctrl + Alt + H	Zoo/gosi: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Pụọ
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Oge kọmputa nọ jụụ ga-ewe iji zipu ya ka ọ rahie ụra; nkeji ise ka a na-agụ dị ka ị nọ na-apụ
+How long a stroke over her a head pat needs	Oge a ga-ejiri were aka dọọ ya iji bụrụ ịdụ isi
+How long her replies stay up	Oge azịza ya na-anọ elu
+How long you are away before she scrolls a browser or reader	Oge ị ga-anọ na-apụ tupu ọ na-agbakwụnye ihuenyo nchọta ma ọ bụ onye na-agụ
+How much her voice glitches	Ọ dị ukwuu olu ya na-ahụ njehie
+How much of the chat she keeps	Akụkụ ole nke mkparịta ụka ọ na-echekwa
+How much she wanders	Ọ dị ukwuu ọ na-ebugharị
+How often she pops in to say hi	Ugboro ole ọ na-abanye ịgwa gị ndewo
+How robotic her voice sounds	Olu ya na-adị ka ihe eji akpali ọrụ ukwuu
+How to	Otú esi
+Huge	Nnukwu
+I can hear you.	Enwere m ike ịnụ gị.
+I glance at your screen and comment. Costs a little on a paid brain.	Ana m ele ihuenyo gị anya ma kwuo nkọwa. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
+I keep listening. Say my name, then just talk.	Ana m ka na-ege ntị. Kwuo aha m, wee kwuo okwu.
+I talk about your game as you play. Costs a little on a paid brain.	Ana m ekwu maka egwuregwu gị mgbe ị na-egwu. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
+I type my replies and stay quiet.	Ana m ede azịza m ma nọrọ jụụ.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Agaghị m azaghachi, ihe ọ bụla adịghị ezipụ ebe ọ bụla. Ka m ga-anọ ọnụ, gba egwu na egwu gị, me ihe ngwa ngwa ị jụrụ, dị ka olu.
+I'll talk in	M ga-ekwu okwu n'ime
+IN DISCORD >	N'IME DISCORD >
+INSTALLED >	EDOZILA >
+Import a Capri mod	Bubata mod Capri
+Import mod	Bubata mod
+In full screen	N'ihuenyo zuru oke
+In games	N'egwuregwu
+Input	Ntinye
+Input, Output or How to overlaps a row	Ntinye, Mpụta ma ọ bụ Otú esi na-agbakọ ahịrị
+Input:	Ntinye:
+Input: default	Ntinye: ndabere
+Install	Wunye
+Install mod	Wunye mod
+Installed.	Edozila.
+It may ask for a phone number. I opened the page in your browser.	Ọ nwere ike ịjụ nọmba ekwentị. Emepere m ibe ahụ na ihe nchọta gị.
+It still does its own job in other apps too.	Ọ ka na-arụ ọrụ ya n'ngwa ndị ọzọ kwa.
+It won't type in other apps while she runs.	Ọ gaghị ede n'ngwa ndị ọzọ mgbe ọ na-agba ọsọ.
+JUST ME >	NAANỊ M >
+Jealous of other AIs	Na-ekwesị ntụkwasị na AI ndị ọzọ
+Join the Discord	Sonyere Discord
+KB.	KB.
+KEYS	IGODO
+KEYS >	IGODO >
+Keep PC awake for jobs	Debe kọmputa ka ọ nọrọ ntụpọ maka ọrụ
+Keep player	Debe onye ọkpụkpọ
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Na-echekwa nkeji abụọ ikpeazụ nke egwuregwu gị na ncheta. Kwuo "debanye nke ahụ na klip" iji chekwaa ya.
+Key	Igodo
+Key cleared: a model file needs none.	Ahichapụrụ igodo: faịlụ modul achọghị ya.
+Key cleared: paste the key for	Ahichapụrụ igodo: pasteụ igodo maka
+Key forgotten.	Chefuola igodo.
+Key. It goes only to this server, as a Bearer key	Igodo. Ọ na-aga naanị n'ihe nkesa a, dị ka igodo Bearer
+Kokoro only, like es	Naanị Kokoro, dị ka es
+LAST THING >	IHE IKPEAZỤ >
+LISTENING >	NA-EGE NTỊ >
+Language	Asụsụ
+Large	Nnukwu
+Last thing. These cost a little or use your mic, so they're your pick.	Ihe ikpeazụ. Ndị a na-enwe ọnụ ahịa nta ma ọ bụ na-eji mic gị, ya mere ọ bụ nhọrọ gị.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Ihe ikpeazụ. Ndị a na-enwe ọnụ ahịa nta ma ọ bụ na-eji mic gị, ya mere ọ bụ nhọrọ gị. Mgbe ahụ achọrọ m ịmata ihe a ga-akpọ gị.
+Layers	Oyi
+Learn more	Mụta ihe karịa
+Leaving Settings threw its picture away straight away.	Mgbe ọ pụrụ na Ntọala, ọ tụfuru foto ya ozugbo.
+Legacy stand	Ọnụ ọdụ ochie
+Lie down	Dina ala
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Ahịrị mkparịta ụka kọmputa echekwara na ncheta mgbe a na-ele anya ọnụ. Ọkara kacha ochie ghọrọ ndetu mgbe Cheta ihe ọ na-ahụ dị na mmalite
+Listen for Capri	Gee ntị maka Capri
+Live reactions	Mmeghachi omume ndụ
+Local server address	Adreesị sava obodo
+Long	Ogologo
+Longest wait (minutes)	Ogologo oge ichere (nkeji)
+Looking at this PC...	Na-ele kọmputa a anya...
+Looking for Ollama. Open it if it isn't running.	Na-achọ Ollama. Mepee ya ma ọ bụrụ na ọ naghị agba ọsọ.
+Looking for a brain...	Na-achọ ụbụrụ...
+Looking in the mods directory for updates...	Na-elele ndekọ mods maka mmelite...
+Looking in the mods directory...	Na-elele ndekọ mods...
+Looking...	Na-elele...
+MAIN >	ỤZỤ ISI >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	AMỌMA ỌGỤGỤ
+MEMORY VAULT >	ỤLỌ NCHEKWA NCHETA >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	NDEKỌ MODS >
+MODS INSTALLED COLORS	AGWỌ MODS EDOZILA
+MOVES >	NYOCHAPỤ >
+MY BRAIN	ỤBỤRỤ M
+MY FREE VOICE	OLU M EFU
+MY PLAN OR KEY	ATỤMATỤ M MA Ọ BỤ IGODO M
+MY PLAN OR KEY >	ATỤMATỤ M MA Ọ BỤ IGODO M >
+Made your Fish Audio voice. Press Test to hear it.	Emeela olu Fish Audio gị. Pịa Nwalee iji nụ ya.
+Mainframe colours	Agwọ Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Agwọ Mainframe. Night City bụ uhie na cyan; Ojii, Ọcha na Agba mmiri ozuzu na-agbanwe Mainframe, menu ya, igbe ederede na ndetu ya
+Mainframe frames	Fremu Mainframe
+Mainframe key	Igodo Mainframe
+Mainframe size	Ịdị elu Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Ịdị elu Mainframe. Akpaaka na-eme ka ọ bụrụ nnukwu mgbe Virtual Super Resolution ma ọ bụ DSR na-ebelata desktop buru ibu n'ihuenyo nta
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Na-eme olu Fish Audio gị...
+Max reply	Azịza kacha
+Maximum clip resolution, keeping the game's shape without upscaling	Azụ klip kacha, na-echekwa ụdị egwuregwu ahụ na-enweghị ịbawanye
+Medium	Ọkara
+Memory	Ncheta
+Memory size	Ịdị elu ncheta
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ịdị elu ncheta n'akara maka Ollama na ụbụrụ ya sitere n'ime. Akpaaka na-eto mgbe ajụjụ chọrọ ihe karịrị
+Mg	Mg
+Mic level:	Ọkwa mic:
+Mic test finished. Sound is reaching Capri.	Nnwale mic edozila. Olu na-aga Capri.
+Mic:	Mic:
+Mic: default	Mic: ndabere
+Microphone	Mic
+Mini player	Onye ọkpụkpọ nta
+Mini player over full screen	Onye ọkpụkpọ nta n'elu ihuenyo zuru oke
+Mini-games	Egwuregwu nta
+Minimising the Mainframe left it sliding.	Mbelata Mainframe hapụrụ ya na-agbaba.
+Minimize	Belata
+Mod filter	Nzacha mod
+Mod options	Nhọrọ mod
+Mod pages	Ibe mod
+Mod rules	Iwu mod
+Mod sort	Ihe mod
+Mod switch	Ịgbanwe mod
+Model	Modul
+Model folder	Folda modul
+Model name, optional	Aha modul, nhọrọ
+Mods	Mods
+Mods directory	Ndekọ mods
+Mods folder	Folda mods
+Most NVIDIA models can't see your screen.	Ọtụtụ modul NVIDIA enweghị ike ịhụ ihuenyo gị.
+Mouse wheel notches got a flick's long ease:	Akara bọọlụ nkwụ nwetara ogologo nwayọ nke mkpịsị ọdụ:
+Move	Kpọgabe
+Move key to MAX INTELLIGENCE	Kpọgabe igodo gaa MAX INTELLIGENCE
+Move to MAX	Kpọgabe gaa MAX
+Music	Egwu
+Music app	Ngwa egwu
+Music app: where she plays music when you don't name an app	Ngwa egwu: ebe ọ na-akpọ egwu mgbe ị naghị aha ngwa
+Mute	Gbanyụọ olu
+Mute her	Gbanyụọ olu ya
+Mute mic key	Igodo gbanyụọ mic
+Mute mic:	Gbanyụọ mic:
+Mute mic: Ctrl + Alt + N	Gbanyụọ mic: Ctrl + Alt + N
+My brain	Ụbụrụ m
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Ụbụrụ m na-ada. Ana m ekele gị ozugbo ọ banyere, mgbe ahụ ị nwere ike ịkwu okwu na m.
+My brain's on its way. While it comes down, let's sort out how I sound.	Ụbụrụ m na-aga. Ka ọ na-ada, ka anyị hazie otú m si dị.
+My provider	Onye nnyefe m
+NO AI	ENWEGHỊ AI
+NO PHONES CONNECTED	EKWENTỊ EJIKỌRỌ
+NO PREVIEW	ENWEGHỊ NLELE ANYA
+NORMAL	NKỊTỊ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · efu · na-enwekarị nwayọ mgbe ndị mmadụ dị ukwuu
+NVIDIA's free API is often slow, especially at busy times.	API efu nke NVIDIA na-enwekarị nwayọ, karịsịa mgbe ndị mmadụ dị ukwuu.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Igodo API NVIDIA, Google AI Studio (Gemini) ma ọ bụ OpenRouter
+Names:	Aha:
+Needs a key	Chọrọ igodo
+Never	Ọ dịghị mgbe
+New code	Koodu ọhụrụ
+New voice from a clip...	Olu ọhụrụ sitere na klip...
+Next	Ọzọ
+Night City	Night City
+No AI	Enweghị AI
+No AI · no brain at all	Enweghị AI · enweghị ụbụrụ ọ bụla
+No brain runs, and nothing is sent anywhere.	Enweghị ụbụrụ na-agba ọsọ, ihe ọ bụla adịghị ezipụ ebe ọ bụla.
+No brain yet	Enweghị ụbụrụ ugbu a
+No code open	Enweghị koodu emepere
+No limit	Enweghị oke
+No mic found	Ahụghị mic
+No mods in the directory yet.	Enweghị mods n'ndekọ ugbu a.
+No mods match that.	Enweghị mods dabara na nke ahụ.
+No mods match.	Enweghị mods dabara.
+No phones yet	Enweghị ekwentị ugbu a
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Enweghị mic virtual ugbu a. Họrọ Mpụta, wee nweta VB-CABLE (efu).
+None yet: pick to get VB-CABLE (free)	Enweghị ugbu a: họrọ iji nweta VB-CABLE (efu)
+Normal	Nkịtị
+Not a relay host	Abụghị ihe nkesa relay
+Not imported. Nothing ran.	Abubataghị. Ihe ọ bụla agbaghị ọsọ.
+Not updated. The old one is still in.	Emelitaghị. Ochie ka dị n'ime.
+Nothing needed updating.	Ihe ọ bụla achọghị imelite.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Ihe ọ bụla achọghị ibudata, ihe ọ bụla adịghị ezipụ ebe ọ bụla. Agaghị m azaghachi. Tinye ụbụrụ mgbe ọ bụla n'ime Mainframe.
+Nothing to show from the mods directory.	Ihe ọ bụla adịghị ngosi site na ndekọ mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	Ihe ọ bụla? Ntọala Windows > Nzuzo na nchekwa > Mic.
+Nous Portal keys aren't supported yet.	Igodo Nous Portal akwadoghị ugbu a.
+OBS	OBS
+OFF	MAPỤ
+OLLAMA	OLLAMA
+ON	MEE
+ON THIS PC	N'ỌNỤ KỌMPUTA A
+OR A KEY	MA Ọ BỤ IGODO
+Obsidian memory vault	Ụlọ nchekwa ncheta Obsidian
+Off	Mapụ
+Off. Turn on Her voice in your mic above.	Emechiri. Mepụta Olu ya n'elu mic gị.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Mapụ: ọ na-eti olu dị ka ọ na-emekarị. Mee: olu ọ bụla o nwere, ElevenLabs kwa.
+Often	Ọtụtụ mgbe
+On	Mee
+On / Off	Mee / Mapụ
+On: your mic and her voice are going in.	Mee: mic gị na olu ya na-abanye.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Otu ihe JSON, agbakwunyere na ịchọ ọ bụla ụbụrụ a na-eziga. Ọ na-anọchi anya uru Capri maka aha ọ bụla o kekọrịtara, a naghị enyocha ya na modul.
+Online speech recognition	Nnabata okwu n'ịntanetị
+Open Capri Mainframe	Mepee Capri Mainframe
+Open Ollama, I'll find it	Mepee Ollama, m ga-achọta ya
+Open clips folder	Mepee folda klip
+Open her memories	Mepee ncheta ya
+Open her notes	Mepee ndetu ya
+Open mods folder	Mepee folda mods
+Open the page again	Mepee ibe ahụ ọzọ
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ma ọ bụ OpenRouter.
+OpenAI-compatible server or provider.	Sava ma ọ bụ onye nnyefe dabara na OpenAI.
+OpenRouter · free models only	OpenRouter · naanị modul efu
+Optional	Nhọrọ
+Optional. Blank means no key.	Nhọrọ. Ihe efu pụtara na igodo adịghị.
+Options	Nhọrọ
+Out of the box a little higher, just behind her.	Site na mbido ọ dị elu nta, naanị azụ ya.
+Out of the box lower, just behind her.	Site na mbido ọ dị ala nta, naanị azụ ya.
+Output	Mpụta
+Output:	Mpụta:
+Output: none	Mpụta: enweghị
+PHONE CONNECTED	EKWENTỊ EJIKỌRỌ
+PHONES >	EKWENTỊ >
+PHONES CONNECTED	EKWENTỊ EJIKỌRỌ
+PREBUILT LOCAL	ỌDỊ ỌNỤ ỌCHA
+PUBLISH MOD >	BIPỤTA MOD >
+Pair a phone	Jikọọ ekwentị
+Paste	Pasteụ
+Paste API key	Pasteụ igodo API
+Paste a brain API key	Pasteụ igodo API ụbụrụ
+Paste reads your clipboard once, when you press it.	Pasteụ na-agụ clipboard gị otu ugboro, mgbe ị pịrị ya.
+Paste your key here	Pasteụ igodo gị ebe a
+Pat stroke	Mkpịsị ọdụ ịdụ
+Perch	Ọnọdụ nọdụ
+Perch over {0} fps uses more CPU	Ọnọdụ nọdụ karịa {0} fps na-eji CPU ka ukwuu
+Pick Output to get it.	Họrọ Mpụta iji nweta ya.
+Pick a brain so I can talk back. You can change it any time.	Họrọ ụbụrụ ka m wee nwee ike azaghachi. Ị nwere ike ịgbanwe ya mgbe ọ bụla.
+Pick a clip of a voice you have the rights and consent to use	Họrọ klip olu nke ị nwere ikike na ikike iji
+Pick a free model. I opened the page in your browser.	Họrọ modul efu. Emepere m ibe ahụ na ihe nchọta gị.
+Pick a new clip of you...	Họrọ klip ọhụrụ nke gị...
+Pick a voice model...	Họrọ modul olu...
+Pick one. Only one brain runs at a time.	Họrọ otu. Naanị otu ụbụrụ na-agba ọsọ n'otu oge.
+Pick the note her memories go in	Họrọ ndetu ebe ncheta ya ga-aga
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Họrọ {0} ruo {1} sekọnd nke olu nke ị nwere ikike na ikike iji
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Họrọ {0} ruo {1} sekọnd nke ị na-ekwu okwu, ma ọ bụ nke olu nke ị nwere ikike na ikike iji
+Pitch	Ụda
+Play	Kpọọ egwu
+Play...	Kpọọ egwu...
+Player only	Naanị onye ọkpụkpọ
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Modul Pocket TTS na-eme ọdịdị olu klip a. Pịa Nwalee iji nụ ya.
+Pop-in times	Oge ịbanye
+Pop-ins	Ịbanye
+Power saver	Onye chekwa ike
+Power saver: how lightly she runs in games, or always	Onye chekwa ike: ọ na-agba ọsọ nwayọ n'egwuregwu, ma ọ bụ mgbe niile
+Preset	Ntọala ndabere
+Press Create API key	Pịa Kepụta igodo API
+Press Create Key	Pịa Kepụta igodo
+Press Generate API Key	Pịa Mepụta igodo API
+Press Test and say something, so I know I can hear you.	Pịa Nwalee ma kwuo ihe ọ bụla, ka m mara na m nwere ike ịnụ gị.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Pịa igodo, naanị ya ma ọ bụ na Ctrl, Alt, Shift ma ọ bụ Win.
+Press new keys, then Confirm	Pịa igodo ọhụrụ, wee kwenye
+Provider	Onye nnyefe
+Provider API key, optional	Igodo API onye nnyefe, nhọrọ
+Provider base URL	URL isi onye nnyefe
+Provider forgotten.	Chefuola onye nnyefe.
+Provider overlaps the brain name or note	Onye nnyefe na-agbakọ aha ụbụrụ ma ọ bụ ndetu
+Publish	Bipụta
+Publish mod	Bipụta mod
+Push to talk is off.	Pịa iji kwuo okwu emechiri.
+Push to talk key	Igodo pịa iji kwuo okwu
+Push to talk:	Pịa iji kwuo okwu:
+Push to talk: not set	Pịa iji kwuo okwu: edobeghị
+QR CODE >	KOODU QR >
+QR hidden while streaming	QR zoro ezo mgbe ọ na-agba ọsọ
+Quick	Ngwa ngwa
+Quiet key	Igodo dara jụụ
+Quiet:	Dara jụụ:
+Quiet: Ctrl + Alt + P	Dara jụụ: Ctrl + Alt + P
+Quit Capri	Pụọ Capri
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	NA-EME KOODU.
+Rarely	Ọ dịghị ọtụtụ mgbe
+Rate mod	Nyochaa mod
+Reading its README...	Na-agụ README ya...
+Refresh	Bulite ọzọ
+Reinstall	Wunye ọzọ
+Reload	Bulite ọzọ
+Reloaded.	Ebulitere ọzọ.
+Remember our chats	Cheta mkparịta ụka anyị
+Remember what she sees	Cheta ihe ọ na-ahụ
+Remote	Remote
+Remote off	Remote emechiri
+Remote on	Remote mepere
+Remove	Wepu
+Remove all phones	Wepu ekwentị niile
+Replies	Azịza
+Reply length	Ogologo azịza
+Report a problem	Kọọrọ nsogbu
+Reset colors	Tọgharia agwọ
+Reset to her default	Tọgharia ndabere ya
+Resolution	Azụ
+Restart to update	Malitegharịa iji melite
+Restless	Enweghị ezumike
+Revoke	Kagbuo
+Revoke also removes the phones its links added	Ikagbu nke a na-ewepụkwa ekwentị njikọ ya tinyere
+Ride cursor	Gbaa cursor
+Ride cursor / Hop off	Gbaa cursor / Pụọ
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Pịa m aka nri mgbe ọ bụla maka Capri Mainframe. Ụbụrụ na-emeghe n'okpuru ỤBỤRỤ.
+Right-click me any time for the Mainframe, Help and the Discord.	Pịa m aka nri mgbe ọ bụla maka Mainframe, Enyemaka na Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ma ọ bụ ngwa ọ bụla ọzọ: họrọ
+Robot	Robot
+Rock, paper, scissors	Okwute, akwụkwọ, mkpịsị ọdụ
+Run this code mod?	Gbaa mod koodu a?
+Running on this PC	Na-agba ọsọ n'ọnụ kọmputa a
+Running on this PC · :	Na-agba ọsọ n'ọnụ kọmputa a · :
+Runs Claude Code or Codex on this PC, signed in.	Na-agba Claude Code ma ọ bụ Codex n'ọnụ kọmputa a, banyere.
+Runs on your PC. No key, no credits.	Na-agba ọsọ na kọmputa gị. Enweghị igodo, enweghị kredit.
+SCAN WITH YOUR PHONE · EXPIRES	SCAN SITE NA EKWENTỊ GỊ · NA-AGWỤCHA
+SECURITY >	NCHEKWA >
+SKILL.	NKA.
+SKIN.	AKPỤKỌ.
+SORT BY	HAZIE SITE NA
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	OLU ỤZỤ ỤBỤRỤ LEE CAPRI DOOMSCROLL ỌNWA KLIP EGWUREGWU IGODO NYOCHAPỤ OLU GỊ
+Same as her ears (VOICE > Mic)	Otu ihe ahụ dị ka ntị ya (OLU > Mic)
+Same code on the phone?	Otu koodu na ekwentị?
+Save	Chekwaa
+Save big moments	Chekwaa oge buru ibu
+Save folder	Folda nchekwa
+Save your changes, or press Discard + reload.	Chekwaa mgbanwe gị, ma ọ bụ pịa Tụfuo + bulite ọzọ.
+Save your changes, or press Discard.	Chekwaa mgbanwe gị, ma ọ bụ pịa Tụfuo.
+Saved.	Echekwara.
+Saved. Ctrl + Alt + O opens her Mainframe.	Echekwara. Ctrl + Alt + O na-emeghe Mainframe ya.
+Saving your rating...	Na-echekwa ntụle gị...
+Say her name anywhere to chat	Kwuo aha ya ebe ọ bụla iji kparịta
+Screens	Ihuenyo
+Screens is hidden or outside WATCH	Ihuenyo zoro ezo ma ọ bụ na mpụga LEE
+Screens overlaps a WATCH row	Ihuenyo na-agbakọ ahịrị LEE
+Screens to watch	Ihuenyo ị ga-ele anya
+Sealed end to end	Echefere site n'otu ọkwa ruo n'ọkwa ọzọ
+Search by name or author	Chọọ site na aha ma ọ bụ onye dere
+Search installed mods	Chọọ mods edozilarị
+Search mods	Chọọ mods
+Search name, author or description	Chọọ aha, onye dere ma ọ bụ nkọwa
+Security	Nchekwa
+Security:	Nchekwa:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Hazie
+Set up her brain	Hazie ụbụrụ ya
+Set up your voice model	Hazie modul olu gị
+Setting up her brain	Na-ahazi ụbụrụ ya
+Settings	Ntọala
+Settings / Back	Ntọala / Laghachi
+Settings folds the wrong rows above BRAIN	Ntọala na-agbakọ ahịrị ụgha n'elu ỤBỤRỤ
+Settings had nothing to watch.	Ntọala enweghị ihe ọ bụla iji lee anya.
+Settings lost keyboard focus during the Tab walk	Ntọala tụfuru lekọ igodo mgbe njem Tab
+Setup guide	Akwụkwọ ntuziaka nhazi
+Setup stopped	Nhazi kwụsịrị
+She can read it when it fits.	Ọ nwere ike ịgụ ya mgbe ọ dabara.
+She glances at your screen and comments. Costs a little on a paid brain.	Ọ na-ele ihuenyo gị anya ma kwuo nkọwa. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
+She keeps listening. Say her name, then just talk until you go quiet.	Ọ ka na-ege ntị. Kwuo aha ya, wee kwuo okwu ruo mgbe ị dara jụụ.
+She reacts to your game until you close it.	Ọ na-aza egwuregwu gị ruo mgbe ị mechiri ya.
+She reads these controls before each game job.	Ọ na-agụ njikwa ndị a tupu ọrụ egwuregwu ọ bụla.
+She talks about your game as you play. Costs a little on a paid brain.	Ọ na-ekwu maka egwuregwu gị mgbe ị na-egwu. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
+She uses it when she plays	Ọ na-eji ya mgbe ọ na-egwu
+Short	Mkpụmkpụ
+Shortest wait (minutes)	Oge ichere kacha nta (nkeji)
+Show Capri	Gosi Capri
+Show QR	Gosi QR
+Show my mod file	Gosi faịlụ mod m
+Show on Discord	Gosi na Discord
+Shum, what time is it	Shum, oge ole ka ọ bụ
+Sign in	Banye
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Banye, mepụta igodo wee detuo ya. Mgbe ahụ pịa Pasteụ, m ga-ejikọ.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Banye, pịa Kepụta igodo API wee detuo ya. Mgbe ahụ pịa Pasteụ, m ga-ejikọ.
+Silent · text only	Dara jụụ · naanị ederede
+Simple / Advanced Settings	Ntọala dị mfe / dị elu
+Simple Settings	Ntọala dị mfe
+Simple Settings left a gap under Check in on me	Ntọala dị mfe hapụrụ oghere n'okpuru Nyochaa m
+Sit here	Nọdụ ebe a
+Sit on windows	Nọdụ n'elu windows
+Size	Ọnụ ọgụgụ
+Skip	Gafee
+Skip all	Gafee ihe niile
+Skip for now	Gafee ugbu a
+Sleep	Ụra
+Small	Nta
+Sometimes	Mgbe ụfọdụ
+Sound effects volume	Ịdị elu mmetụta olu
+Sound sensitivity	Mmetụta olu
+Sounds	Olu
+Speaker or clip	Ihe nkwupụta ma ọ bụ klip
+Speech model	Modul okwu
+Speed	Ọsọ
+Start with Windows	Malite na Windows
+Start with this!	Malite site na nke a!
+Starting...	Na-amalite...
+Stay	Nọgide
+Stay on my model	Nọrọ na modul m
+Still checking your mics...	Ka na-enyocha mic gị...
+Still checking your speakers...	Ka na-enyocha ihe nkwupụta gị...
+Still checking your virtual mics...	Ka na-enyocha mic virtual gị...
+Stop	Kwụsị
+Stopped using it. Couldn't remove the saved provider.	Akwụsịrị iji ya. Enweghị ike iwepụ onye nnyefe echekwara.
+Support	Nkwado
+Sure?	Ị ka n'obi?
+Sure? moved to a different phone	Ị ka n'obi? kpọgabere ekwentị ọzọ
+TALK TO ME	KWUO OKWU NA M
+TEXT ONLY	NAANỊ EDERÈDE
+Tab landed past the first option of	Tab dakwara n'azụ nhọrọ mbụ nke
+Tab never reached the quiet key	Tab enweghị ike ịru igodo dara jụụ
+Tab reached nothing	Tab enwetaghị ihe ọ bụla
+Tab selected a control without moving keyboard focus	Tab họrọ njikwa na-enweghị ịkpọgabe lekọ igodo
+Talk	Kwuo okwu
+Talk key	Igodo ikwu okwu
+Talk:	Kwuo okwu:
+Talk: Ctrl + Alt + V	Kwuo okwu: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Ọnụọgụ fremu ebumnuche; nwere ike ịda n'okpuru ibu ma ọ bụ mmefu ncheta
+Teases when another AI comes to the front.	Na-ekwu okwu nchịkọ mgbe AI ọzọ abịa n'ihu.
+Test	Nwalee
+That address doesn't work. Try https://... or http://localhost:{0}.	Adreesị ahụ adịghị arụ ọrụ. Nwalee https://... ma ọ bụ http://localhost:{0}.
+That code expired	Koodu ahụ agwụla
+That mod is no longer installed. The list is updated.	Mod ahụ edozilaghị ugbu a. Ndepụta emelitela.
+That's a paid key: it goes under MAX INTELLIGENCE.	Nke ahụ bụ igodo a kwụrụ ụgwọ: ọ na-aga n'okpuru MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe nọrọ edobere mgbe ọ na-agbaba.
+The Mainframe stayed uncomposited after the slide.	Mainframe nọrọ enweghị edobe mgbe slaịd gasịrị.
+The controls moved while the picture was sliding.	Njikwa ahụ kwagara mgbe foto ahụ na-agbaba.
+The cover stayed visible after the slide ended.	Ikpuchi ahụ nọrọ na-ahụ anya mgbe slaịd gwụrụ.
+The frame thread kept running after the page settled.	Eriri fremu ahụ gara n'ihu na-agba ọsọ mgbe ibe ahụ nọdụrụ ala.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Azịza kacha ogologo ọ nwere ike inye, n'akara. Akpaaka na-agbaso Azịza dị n'elu; {0}K ma ọ bụ {1}K na-enye ya ohere ịga n'ihu. Ọrụ na-echekwa ohere karịa mgbe ha chọrọ ya
+The longest wait must be at least the shortest wait.	Oge ichere kacha ogologo ga-abụ aka nke oge ichere kacha nta.
+The picture doesn't match the scrolled page:	Foto adabaghị na ibe e gbagara ọdụ:
+The picture of Settings doesn't match the page:	Foto Ntọala adabaghị na ibe ahụ:
+The picture stayed up after the slide ended.	Foto nọrọ n'elu mgbe slaịd gwụrụ.
+The picture wasn't showing while it slid.	Foto egosighị mgbe ọ na-agbaba.
+The provider sheet is crowded:	Akwụkwọ onye nnyefe juru ọnụ:
+The voice panel has no screen DPI.	Panel olu enweghị DPI ihuenyo.
+The voice panel's menus share one font.	Menu panel olu na-ekerịta otu ederede.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Enweghị igodo na clipboard gị ugbu a. Detuo ya site na ibe ahụ, wee pịa Pasteụ.
+These start off. Each costs a little or uses your mic.	Ndị a na-amalite emechiri. Ọ bụla na-enwe ọnụ ahịa nta ma ọ bụ na-eji mic gị.
+These start off. Turn on what you want. They're all in Settings too.	Ndị a na-amalite emechiri. Mepụta ihe ịchọrọ. Ha niile dịkwa na Ntọala.
+They can also call you Big Z, Capricorn or Nova	Ha nwekwara ike ịkpọ gị Big Z, Capricorn ma ọ bụ Nova
+They can also call you Nova, Big Z or Capricorn	Ha nwekwara ike ịkpọ gị Nova, Big Z ma ọ bụ Capricorn
+Thinking	Na-eche echiche
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Nke a bụ olu m efu. Pịa Nwalee, kwuo ihe, m ga-egosi gị na m nwere ike ịnụ gị.
+This mod has no description yet.	Mod a enweghị nkọwa ugbu a.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Oge n'etiti ele anya
+Tiny	Obere nke ukwuu
+Try again	Nwalee ọzọ
+Turn Remote on first	Mepee Remote tupu
+Turn off mini player	Mechie onye ọkpụkpọ nta
+Turn push to talk off	Mechie pịa iji kwuo okwu
+Turning the wheel the other way kept the page heading the old way, to	Ịgbanye ụgbọ ala n'ụzọ ọzọ mere ka ibe ahụ na-aga n'ụzọ ochie, ruo
+Type	Dee
+Type key	Igodo dee
+Type to me	Dee m
+Type:	Dee:
+Type: Ctrl + Alt + T	Dee: Ctrl + Alt + T
+Typing sound	Olu mgbe ị na-ede
+Unpacked. Press Test to hear it.	Emepeela. Pịa Nwalee iji nụ ya.
+Unsaved changes.	Mgbanwe echekwaghị.
+Up to {0} fps	Ruo {0} fps
+Up to {0}p	Ruo {0}p
+Update	Melite
+Update available.	Mmelite dị.
+Update mods	Melite mods
+Updating...	Na-emelite...
+Use	Jiri
+Use her cursor	Jiri cursor ya
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Jiri https:// maka onye nnyefe ebe ọzọ. Igodo n'elu http dị mfe adịghị nchebe.
+Use preset	Jiri ntọala ndabere
+Use saved	Jiri nke echekwara
+Use this server	Jiri sava a
+Using your provider with a key	Na-eji onye nnyefe gị na igodo
+Using your server with no key	Na-eji sava gị na-enweghị igodo
+VIEW MOD >	LEE MOD >
+VOICE >	OLU >
+VOICE IN YOUR MIC >	OLU N'IME MIC GỊ >
+VOICE LAYERS >	OYI OLU >
+Verbosity	Ogologo okwu
+Video bitrate	Bitrate vidiyo
+View	Ọhụụ
+View mod	Lee mod
+Voice	Olu
+Voice ID	ID olu
+Voice from	Olu sitere na
+Voice layers	Oyi olu
+Voice model	Modul olu
+Voice model:	Modul olu:
+Voice name or ID, optional	Aha olu ma ọ bụ ID, nhọrọ
+Voice server address, or a voice model's folder	Adreesị sava olu, ma ọ bụ folda modul olu
+Voice status	Ọnọdụ olu
+Voice, key and model...	Olu, igodo na modul...
+Volume	Ịdị elu olu
+WAKE ME UP >	KPỌỌ M ỌNỌ >
+WATCH >	LEE >
+Waiting for the relay	Na-echere relay
+Wake her up	Kpọọ ya ọnọ
+Waking her up	Na-akpọ ya ọnọ
+Wander	Gbanwee ebe
+Wander around	Gbanwee ebe gburugburu
+Watch my screen	Lee ihuenyo m anya
+Watch-along memory	Ncheta nke ile anya ọnụ
+Weather	Ihu igwe
+Weather city	Obodo ihu igwe
+Welcome back, choom. Let's finish setting me up.	Nnọọ ọzọ, choom. Ka anyị mezuo nhazi m.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Ihe ọ na-eme na kọmputa gị na-ajụghị. Mgbe mgbanwe emechiri, ọ na-ajụ tupu, ọ na-eme mgbe ị sịrị ee.
+What should she call you?	Kedu ka ọ kwesịrị ikpọ gị?
+When she types	Mgbe ọ na-ede
+White	Ọcha
+Windows default	Ndabere Windows
+Windows did not give Settings keyboard focus	Windows enyeghị Ntọala lekọ igodo
+Windows did not return keyboard focus to Back	Windows echighachitaghị lekọ igodo na Laghachi
+With no picture the wheel still tried to slide.	Na-enweghị foto, ụgbọ ala ahụ ka nwara ịgbaba.
+Works best on MAX INTELLIGENCE.	Na-arụ ọrụ kacha mma na MAX INTELLIGENCE.
+YOU	Ị
+YOU >	Ị >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	Ị OLU NYOCHAPỤ IGODO EGWUREGWU KLIP IHU IGWE DOOMSCROLL CAPRI LEE ỤBỤRỤ ỤZỤ OLU
+YOUR KEY	IGODO GỊ
+YOUR MIC	MIC GỊ
+YOUR PLAN	ATỤMATỤ GỊ
+Yokapri what's up	Yokapri, gịnị na-eme
+You can hide this. It keeps going, and the Mainframe shows it too.	Ị nwere ike izo nke a. Ọ na-aga n'ihu, Mainframe na-egosikwa ya.
+Your mic and her voice go into one virtual mic, and	Mic gị na olu ya na-abanye n'otu mic virtual, na
+Your mic is muted. Unmute it to test.	Mic gị agbanyela olu. Mepee olu ya iji nwalee.
+Your mods are up to date.	Mods gị ọhụrụ.
+Your name or a nickname	Aha gị ma ọ bụ aha nkịtị
+Your own model	Modul gị nke onwe gị
+Your personality	Àgwà gị
+Your voice	Olu gị
+Your voice (HD)	Olu gị (HD)
+Your voice (HD) · pick a clip of you...	Olu gị (HD) · họrọ klip nke gị...
+Your voice model	Modul olu gị
+as its mic.	dị ka mic ya.
+changed. Saved as My Colors, so you can share it.	gbanwere. Echekwara dị ka Agwọ M, ka ị wee kekọrịta ya.
+choice	nhọrọ
+clips the input line	na-egbutu ahịrị ntinye
+cue	ihe ngosi
+doesn't yet.	agaghị ya ugbu a.
+download	ibudata
+file.	faịlụ.
+flag	akara
+fps	fps
+hear	nụ
+hears	na-anụ
+hears that.	na-anụ nke ahụ.
+hides or shows her.	na-ezo ma ọ bụ na-egosi ya.
+hint	ndokwa
+in the Mainframe.	n'ime Mainframe.
+in the mods directory with a pull request.	n'ndekọ mods site na pull request.
+in the picture wasn't noticed.	n'ime foto ahụ amaghị.
+is already her push-to-talk key.	bụ igodo ya iji kwuo okwu ugbu a.
+is off.	emechiri.
+is on and running.	mepere ma na-agba ọsọ.
+is on, at the bottom, under	mepere, n'okpuru, n'okpuru
+is on.	mepere.
+is on. She now answers to	mepere. Ọ na-aza ugbu a maka
+is removed.	wepụrụ ya.
+is taken	ejirila ya
+is taken by another app. Try another.	ngwa ọzọ jirila ya. Nwalee ọzọ.
+is updated	emelitela
+isn't hearing it yet: do {0} and {1}, then join a call.	anụghị ya ugbu a: mee {0} na {1}, wee sonye n'oku.
+it now.	ya ugbu a.
+keeps her quiet, and lets her talk again.	na-eme ka ọ dara jụụ, ma na-ekwe ka ọ kwuo okwu ọzọ.
+key	igodo
+key.	igodo.
+min	nkeji
+more.	ọzọ.
+ms.	ms.
+mutes mic	na-agbanyụ mic
+mutes your mic.	na-agbanyụ mic gị.
+name	aha
+off	mapụ
+on this PC	n'ọnụ kọmputa a
+opens her Mainframe.	na-emepe Mainframe ya.
+opens her typing box.	na-emepe igbe ederede ya.
+phone	ekwentị
+phone pixels	pikselụ ekwentị
+phones	ekwentị
+pixels	pikselụ
+pixels)	pikselụ)
+star.	kpakpando.
+stars.	kpakpando.
+starts voice chat.	na-amalite mkparịta ụka olu.
+stays off. Nothing ran.	na-anọgide na-emechi. Ihe ọ bụla agbaghị ọsọ.
+still does its own job in other apps too. Confirm to keep it.	ka na-arụ ọrụ ya n'ngwa ndị ọzọ kwa. Kwenye iji debe ya.
+tall	ogologo
+time	oge
+to talk	iji kwuo okwu
+to talk to her, with a game in front too.	iji kwuo okwu na ya, na egwuregwu n'ihu kwa.
+too.	kwa.
+turns Gaming Mode on and off.	na-emeghe na mechie ọnọdụ egwuregwu.
+with Ollama	na Ollama
+won't type in other apps while she runs. Confirm to keep it.	agaghị ede n'ngwa ndị ọzọ mgbe ọ na-agba ọsọ. Kwenye iji debe ya.
+{0}   Echo Cancellation: Off	{0}   Ihe ebegharị: Mapụ
+{0}   If her voice cuts off, turn off noise filtering	{0}   Ọ bụrụ na olu ya kwụsịrị, gbanyụọ nzacha mkpọtụ
+{0}   Input Device:	{0}   Ngwaọrụ ntinye:
+{0}   Join the call and check they hear both of you	{0}   Sonyere oku wee lelee ma ha nụrụ unu abụọ
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Nnwale Mic > Let's Check: ị ga-anụ onwe gị, na ya mgbe ọ na-ekwu okwu
+{0}   Microphone:	{0}   Mic:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Ibelata mkpọtụ: Enweghị. Abụọ nwere ike ịkwụsị olu ya mgbe akara mbụ gasịrị.
+{0}   Open the call or meeting's audio settings	{0}   Mepee ntọala olu nke oku ma ọ bụ nzukọ
+{0}   Output Device: your headphones, like before	{0}   Ngwaọrụ mpụta: earphones gị, dị ka tupu a
+{0}   Speaker: your headphones, like before	{0}   Ihe nkwupụta: earphones gị, dị ka tupu a
+{0}   Try a mic test in your call app	{0}   Nwalee mic n'ngwa oku gị
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Ntọala onye ọrụ (ụgbọ ala n'akụkụ aha gị) > Olu na Vidiyo
+{0} Mbps	{0} Mbps
+{0} lines	{0} ahịrị
+{0} min	{0} nkeji
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· n'ọnụ kọmputa a
+· server	· sava

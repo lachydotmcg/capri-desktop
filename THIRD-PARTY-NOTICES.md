@@ -17,3 +17,15 @@ Capri Remote's pairing QR code (app/RemoteQr.cs) is ported from Project Nayuki's
 The click animation is by **mixmix312352**, reused from the pinned upstream click strip. The stand/orientation, editor PanelArt and CapriMainframe-Bold font are reused from lachydotmcg/capri-desktop v0.8.6.1 under the existing project terms. Preserve upstream LICENSE.md and notices. Original Mochiiwuff source attribution remains https://github.com/mochiiwuff/capri-desktop. No generated visual media was added.
 
 The Linux native font bootstrap adapts SkiaSharp’s MIT-licensed LibraryLoader isolation flag from PR2247, merge `482e6ee2913a08a7cad76520ccf5fbce97c7c23b`. Its source provenance and MIT license are retained in `docs/provenance/SkiaSharp`; packaged HarfBuzzSharp and SkiaSharp dependency pins are unchanged.
+
+## Room 3D
+
+Capri Remote's Room draws her with [three.js](https://threejs.org) r170 (three.module.min.js in `site/remote/vendor/three/`), Copyright (c) 2010-2024 three.js authors, under the [MIT License](https://opensource.org/licenses/MIT). The licence text is in `site/remote/vendor/three/LICENSE`.
+
+## Room cutout
+
+Capri Remote's Room on a PC webcam finds you in the picture with [MediaPipe Tasks Vision](https://github.com/google-ai-edge/mediapipe) 0.10.21 (`vision_bundle.js` and its SIMD wasm in `site/remote/vendor/mediapipe/`) and the MediaPipe selfie segmenter model (`selfie_segmenter.tflite`), Copyright Google LLC, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). The licence text is in `site/remote/vendor/mediapipe/LICENSE`.
+
+## Capri Camera
+
+Capri Camera, the virtual camera that shows her Room in other apps, is built from [softcam](https://github.com/tshino/softcam) (commit d1acde4, renamed to Capri Camera with its own class ID), Copyright (c) 2020 tshino, under the MIT License, and the DirectShow Base Classes from [Windows classic samples](https://github.com/microsoft/Windows-classic-samples), Copyright (c) Microsoft Corporation, under the MIT License. The source and licence text are in `native/softcam/`.

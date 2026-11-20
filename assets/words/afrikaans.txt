@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	'n Beheer wat weer geverf is, is nie in die prent herteken nie.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	'n Gratis sleutel van Google AI Studio, NVIDIA of OpenRouter. Niks om af te laai nie. Benodig internet.
+A held trackpad scroll got a flick's long ease:	'n Gehoue raakpaneel-rol het 'n flik se lang uitvaag gekry:
+A layout change during a slide put the page at	'n Uitlegverandering tydens 'n skuif het die bladsy by
+A layout change left the picture up.	'n Uitlegverandering het die prent laat staan.
+A model in Ollama, on your local server or on your key.	'n Model in Ollama, op jou plaaslike bediener of met jou sleutel.
+A paid key goes under MAX INTELLIGENCE by itself.	'n Betaalde sleutel gaan self onder MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	'n Plan waarvoor jy reeds betaal, jou eie sleutel, of Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	'n Stempaneel-kieslys hou nie sy eie afskrif van die paneel se lettertipe nie.
+A wheel turn right after a slide ended froze the picture.	'n Wieldraai net nadat 'n skuif geëindig het, het die prent laat vries.
+ALLOW THIS PHONE?	TOESTAAN HIERDIE FOON?
+ALMOST THERE >	AMPER KLAAR >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	'N ANDER CAPRI HET OORGENEEM · SKAKEL AF EN WEER AAN
+API key	API-sleutel
+API key, Claude plan or ChatGPT plan	API-sleutel, Claude-plan of ChatGPT-plan
+Add	Voeg by
+Address	Adres
+Address and key saved. Use saved to reconnect.	Adres en sleutel gestoor. Gebruik gestoor om weer te koppel.
+Advanced Settings	Gevorderde instellings
+All	Alles
+All screens	Alle skerms
+Allow	Laat toe
+Almost there. I'll say hi the second my brain's in.	Amper klaar. Ek sê hallo sodra my brein inkom.
+Always	Altyd
+Always on top	Altyd bo-op
+Any Google account works. I opened the page in your browser.	Enige Google-rekening werk. Ek het die bladsy in jou blaaier oopgemaak.
+Applies to every voice	Geld vir elke stem
+Apps she may close	Programme wat sy mag sluit
+Ask Capri for more	Vra Capri vir meer
+Asking your server...	Vra tans jou bediener...
+Asks before closing only the apps you choose.	Vra eers voordat net die programme wat jy kies, gesluit word.
+Auto	Outo
+Automatic: VB-CABLE, else Steam's	Outomaties: VB-CABLE, anders Steam s'n
+BAD RELAY HOST	SLEGTE RELAISBEDIENER
+BIG Z open notepad	BIG Z maak kladblok oop
+BRAIN	BREIN
+BRAIN >	BREIN >
+BRAIN ONLINE >	BREIN AANLYN >
+BRAIN PROVIDER >	BREINVERSKAFFER >
+BRAIN VOICE CAPRI	BREIN-STEM CAPRI
+Back	Terug
+Back on your saved API key.	Terug op jou gestoorde API-sleutel.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Beste pas vir hierdie rekenaar:
+Black	Swart
+Blank key means no key.	'n Leë sleutel beteken geen sleutel nie.
+Brain API key	Brein-API-sleutel
+Brain model	Breinmodel
+Brain provider	Breinverskaffer
+Bring here	Bring hierheen
+Bring to this screen	Bring na hierdie skerm
+Browse	Blaai
+Browse mods	Blaai deur modifikasies
+Browse to a voice model	Blaai na 'n stemmodel
+Browse...	Blaai...
+Bubble	Borrel
+CABLE Output (VB-Audio Virtual Cable)	CABLE-uitset (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, is jy daar
+CAN'T REACH THE RELAY · RETRYING	KAN NIE DIE RELAIS BEREIK NIE · PROBEER WEER
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI-STEMBREIN
+CHANGED, approve it again.	VERANDER, keur dit weer goed.
+CLIPS >	KLIPPE >
+CLOUD VOICE	WOLKSTEM
+CODE	KODE
+COLORS >	KLEURE >
+CONNECTED	VERBIND
+CONNECTING	BESIG OM TE VERBIND
+CUSTOM LOCAL	PERSOONLIK PLAASLIK
+Call mode (beta)	Oproepmodus (beta)
+Call mode does not fit.	Oproepmodus pas nie.
+Call mode is outside its space.	Oproepmodus is buite sy ruimte.
+Cancel	Kanselleer
+Cancel keys	Kanselleer sleutels
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri-afstandbeheer
+Capri code:	Capri-kode:
+Capri mods (*	Capri-modifikasies (*
+Capri, hello	Capri, hallo
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Chaos wanneer ontsteld
+Chat with Capri from your phone	Klets met Capri vanaf jou foon
+ChatGPT plan	ChatGPT-plan
+Check for updates	Soek vir opdaterings
+Check in on me	Kyk na my
+Check in on me is hidden	Kyk na my is versteek
+Check in on me still decides whether she visits.	Kyk na my besluit steeds of sy kom kuier.
+Check in on me's tip missed	Kyk na my se wenk het gemis
+Chess	Skaak
+Choose apps	Kies programme
+Choose folder...	Kies gids...
+Choose where future Capri clips are saved	Kies waar toekomstige Capri-snitte gestoor word
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude- of ChatGPT-plan, 'n betaalde sleutel (OpenAI, Claude, DeepSeek), of Ollama.
+Claude plan	Claude-plan
+Clear	Maak skoon
+Cleared.	Skoongemaak.
+Click Confirm to keep Down, or press Esc.	Klik Bevestig om Af te hou, of druk Esc.
+Click to open it.	Klik om dit oop te maak.
+Clip my games	Knip my speletjies
+Clips	Klips
+Close	Maak toe
+Close other AIs for me	Maak ander KI's vir my toe
+Cloud voice	Wolkstem
+Cloud voice service	Wolkstemdiens
+Cloud voice setup	Wolkstemopstelling
+Code mods can reach your whole PC. Only trusted ones.	Kodemodifikasies kan jou hele rekenaar bereik. Net vertroude.
+Code/Husk Mode	Kode/Husk-modus
+Codex	Codex
+Commands	Opdragte
+Comment on my games	Kommentaar oor my speletjies
+Comments	Kommentaar
+Confirm	Bevestig
+Confirm keys	Bevestig sleutels
+Connect	Koppel
+Connect / Forget brain key	Koppel / Vergeet breinsleutel
+Connect / Forget voice key	Koppel / Vergeet stemsleutel
+Connect four	Vier op 'n ry
+Controls	Beheer
+Copri, what time is it	Copri, hoe laat is dit
+Copy error details	Kopieer foutbesonderhede
+Copy the key	Kopieer die sleutel
+Copy the key from the page, then press Paste.	Kopieer die sleutel van die bladsy, en druk dan Plak.
+Couldn't open that page:	Kon nie daardie bladsy oopmaak nie:
+Couldn't open that:	Kon nie dit oopmaak nie:
+Couldn't open the mods folder:	Kon nie die modifikasiegids oopmaak nie:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M is reeds haar Mainframe-sleutel.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N demp mikrofoon
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V is reeds haar praatsleutel.
+Ctrl + Alt + V to talk	Ctrl + Alt + V om te praat
+Custom local voice	Persoonlike plaaslike stem
+Custom model name	Persoonlike modelnaam
+Dance	Dans
+Dance to music	Dans na musiek
+Default	Standaard
+Default (follows Windows)	Standaard (volg Windows)
+Default duration for clip that and automatic clips	Standaardduur vir knip dit en outomatiese snitte
+Default length	Standaardlengte
+Default model	Standaardmodel
+Delay	Vertraging
+Deny	Weier
+Discard	Gooi weg
+Discard + reload	Gooi weg + herlaai
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Wil jy nie wag nie? 'n Gratis sleutel laat my binne ongeveer 'n minuut praat.
+Done	Klaar
+EXTRA REQUEST JSON >	EKSTRA VERSOEK-JSON >
+EXTRAS >	EKSTRA'S >
+Edit	Wysig
+Edit check-in lines	Wysig inboekreëls
+Edit check-in lines has the wrong view or dimming	Wysig inboekreëls het die verkeerde aansig of verdowing
+Edit check-in lines is out of place	Wysig inboekreëls is uit plek
+Edit controls	Wysig beheer
+ElevenLabs API key	ElevenLabs API-sleutel
+ElevenLabs voice ID	ElevenLabs stem-ID
+English	Engels
+Enter the game's name first.	Voer eers die speletjie se naam in.
+Every	Elke
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Elke modifikasie word vir malware nagegaan voordat dit opgelaai word. Kode-modifikasies vra steeds voordat hulle loop.
+Explore after	Verken daarna
+Explore while I'm away	Verken terwyl ek weg is
+Extra request JSON	Ekstra versoek-JSON
+Extras	Ekstras
+FREE KEY	GRATIS SLEUTEL
+FREE KEY >	GRATIS SLEUTEL >
+Fast hands in games	Vinnige hande in speletjies
+File editor	Lêerredigeerder
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs en meer is onder STEM in die Mainframe.
+Follow-up messages	Opvolgboodskappe
+Forget	Vergeet
+Fork capri-mods	Vertak capri-mods
+Frame rate	Raamkoers
+Free	Gratis
+Free and private, works offline. Downloads	Gratis en privaat, werk vanlyn. Laai af
+Free and private, works offline. Downloads the best model for this PC.	Gratis en privaat, werk vanlyn. Laai die beste model vir hierdie rekenaar af.
+Free key	Gratis sleutel
+Free key providers	Gratis sleutelverskaffers
+Free keys can be rate limited and slow.	Gratis sleutels kan beperk en stadig wees.
+Free voice in games	Gratis stem in speletjies
+Free voice style	Gratis stemstyl
+Free voice:	Gratis stem:
+Free voice: Her own	Gratis stem: Haar eie
+Free · local model	Gratis · plaaslike model
+GAMES >	SPELETJIES >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Speletjiekommentaar loop apart van Kyk na my skerm. Af stop dit, ook in Speelmodus; Net gebeure en Kletserig laat haar jou speletjie kyk.
+Game controls	Speletjiebeheer
+Game name	Speletjienaam
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Speletjiklanksensitiwiteit. Verlaag dit as jou gehoorstel stilgedraai is maar Windows op {0}% is en sy op elke klank reageer; Af ignoreer speletjiklanke
+Game sounds	Speletjiklanke
+Games	Speletjies
+Gaming Mode	Speelmodus
+Gaming Mode key	Speelmodus-sleutel
+Gaming Mode:	Speelmodus:
+Gaming Mode: Ctrl + Alt + G	Speelmodus: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Kry VB-CABLE
+Get VB-CABLE (free)...	Kry VB-CABLE (gratis)...
+Get free voice	Kry gratis stem
+Getting your Fish Audio voices...	Haal jou Fish Audio-stemme...
+Giant	Reusagtig
+Glitch	Gly
+Glitch in at startup	Gly by opstart
+Go to sleep	Gaan slaap
+Go to the next screen	Gaan na die volgende skerm
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · gratis vlak · beperk
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Het jy 'n Claude- of ChatGPT-plan, of jou eie sleutel? Kies dit en ek koppel in.
+Got it, just me. Right-click me any time for Capri Mainframe.	Verstaan, net ek. Regsklik op my enige tyd vir Capri Mainframe.
+Grey	Grys
+H.{0} video bitrate target; higher values make larger files	H.{0}-video-bitkoersdoel; hoër waardes maak groter lêers
+HABITS >	GEWOONTES >
+HER HANDS >	HAAR HANDE >
+HER JOBS >	HAAR TAKKE >
+HER MEMORY >	HAAR GEHEUE >
+HER MODS >	HAAR MODIFIKASIES >
+HH:mm	HH:mm
+HOW I SOUND >	HOE EK KLINK >
+Hang here	Hang hier
+Have Ollama? Open it, then press Refresh.	Het jy Ollama? Maak dit oop en druk dan Verfris.
+Head pats	Kopklopsels
+Hearing	Gehoor
+Hearing engine	Gehoorenjin
+Hearing fix	Gehoorherstel
+Hearing status	Gehoorstatus
+Help	Hulp
+Help page	Hulpbladsy
+Her colors	Haar kleure
+Her folder	Haar gids
+Her memories	Haar herinneringe
+Her own colors are back.	Haar eie kleure is terug.
+Her own notes (no vault)	Haar eie notas (geen kluis)
+Her perch frames per second	Haar sitplek-rame per sekonde
+Her personality	Haar persoonlikheid
+Her size	Haar grootte
+Her speaker	Haar luidspreker
+Her speaker is hidden or outside VOICE	Haar luidspreker is versteek of buite STEM
+Her speaker overlaps the mic or hearing row	Haar luidspreker oorvleuel die mikrofoon- of gehoorry
+Her speaker:	Haar luidspreker:
+Her speaker: Default	Haar luidspreker: Standaard
+Her voice in your mic	Haar stem in jou mikrofoon
+Her voice in your mic: loudness	Haar stem in jou mikrofoon: luidheid
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Haar stem self. Die toonhoogte is Instellings > STEM > Toonhoogte, en hulle beweeg saam.
+Her voice joins your mic only in call mode.	Haar stem sluit net in oproepmodus by jou mikrofoon aan.
+Her voice volume	Haar stemvolume
+Her voice's pitch	Haar stem se toonhoogte
+Her voice's pitch, the same as Settings > VOICE > Pitch	Haar stem se toonhoogte, dieselfde as Instellings > STEM > Toonhoogte
+Her voice's speed	Haar stem se spoed
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Haar stem, en twee afskrifte daarvan onder haar gemeng, elk met sy eie toonhoogte en vertraging.
+Her voices · free	Haar stemme · gratis
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Haai, choom. Ek is Capri. Ek het 'n brein nodig voordat ek kan terugpraat. Kies een.
+Hide / Show Capri	Versteek / Wys Capri
+Hide / Show key	Versteek / Wys-sleutel
+Hide Capri	Versteek Capri
+Hide for now	Versteek vir nou
+Hide her	Versteek haar
+Hide in full screen	Versteek in volskerm
+Hide this	Versteek dit
+Hide, keep player	Versteek, hou speler
+Hide/show:	Versteek/wys:
+Hide/show: Ctrl + Alt + H	Versteek/wys: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Klim af
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Hoe lank 'n stil rekenaar neem om haar aan die slaap te stuur; vyf minute tel steeds as jy weg wees
+How long a stroke over her a head pat needs	Hoe lank 'n streel oor haar kop vir 'n kopklopsel nodig het
+How long her replies stay up	Hoe lank haar antwoorde sigbaar bly
+How long you are away before she scrolls a browser or reader	Hoe lank jy weg moet wees voordat sy deur 'n blaaier of leser rol
+How much her voice glitches	Hoeveel haar stem gly
+How much of the chat she keeps	Hoeveel van die klets sy hou
+How much she wanders	Hoeveel sy rondloop
+How often she pops in to say hi	Hoe gereeld sy inloer om hallo te sê
+How robotic her voice sounds	Hoe robotagtig haar stem klink
+How to	Hoe om
+Huge	Enorm
+I can hear you.	Ek kan jou hoor.
+I glance at your screen and comment. Costs a little on a paid brain.	Ek kyk na jou skerm en kommentarieer. Kos 'n bietjie op 'n betaalde brein.
+I keep listening. Say my name, then just talk.	Ek luister aanhoudend. Sê my naam en praat dan net.
+I talk about your game as you play. Costs a little on a paid brain.	Ek praat oor jou speletjie terwyl jy speel. Kos 'n bietjie op 'n betaalde brein.
+I type my replies and stay quiet.	Ek tik my antwoorde en bly stil.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ek sal nie terugpraat nie, en niks word êrens gestuur nie. Ek hang steeds rond, dans na jou musiek en doen die vinnige dinge wat jy vra, soos die volume.
+I'll talk in	Ek sal praat in
+IN DISCORD >	IN DISCORD >
+INSTALLED >	GEÏNSTALLEER >
+Import a Capri mod	Voer 'n Capri-modifikasie in
+Import mod	Voer modifikasie in
+In full screen	In volskerm
+In games	In speletjies
+Input	Invoer
+Input, Output or How to overlaps a row	Invoer, Uitvoer of Hoe om oorvleuel 'n ry
+Input:	Invoer:
+Input: default	Invoer: standaard
+Install	Installeer
+Install mod	Installeer modifikasie
+Installed.	Geïnstalleer.
+It may ask for a phone number. I opened the page in your browser.	Dit mag na 'n foonnommer vra. Ek het die bladsy in jou blaaier oopgemaak.
+It still does its own job in other apps too.	Dit doen steeds sy eie werk in ander programme ook.
+It won't type in other apps while she runs.	Dit tik nie in ander programme terwyl sy loop nie.
+JUST ME >	NET EK >
+Jealous of other AIs	Jaloers op ander KI's
+Join the Discord	Sluit aan by die Discord
+KB.	KB.
+KEYS	SLEUTELS
+KEYS >	SLEUTELS >
+Keep PC awake for jobs	Hou rekenaar wakker vir take
+Keep player	Hou speler
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Hou die laaste twee minute van jou speletjie in die geheue. Sê knip dit om dit te stoor.
+Key	Sleutel
+Key cleared: a model file needs none.	Sleutel uitgevee: 'n modellêer benodig geen.
+Key cleared: paste the key for	Sleutel uitgevee: plak die sleutel vir
+Key forgotten.	Sleutel vergeet.
+Key. It goes only to this server, as a Bearer key	Sleutel. Dit gaan net na hierdie bediener, as 'n Bearer-sleutel
+Kokoro only, like es	Net Kokoro, soos es
+LAST THING >	LAASTE DING >
+LISTENING >	LUISTER >
+Language	Taal
+Large	Groot
+Last thing. These cost a little or use your mic, so they're your pick.	Laaste ding. Hierdie kos 'n bietjie of gebruik jou mikrofoon, so dit is jou keuse.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Laaste ding. Hierdie kos 'n bietjie of gebruik jou mikrofoon, so dit is jou keuse. Daarna wil ek weet wat ek jou moet noem.
+Layers	Lae
+Learn more	Leer meer
+Leaving Settings threw its picture away straight away.	Die verlaat van Instellings het sy prent dadelik weggegooi.
+Legacy stand	Ou standaard
+Lie down	Gaan lê
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Reëls van rekenaardialoog wat in die geheue gehou word terwyl julle saam kyk. Die oudste helfte word 'n notas wanneer Onthou wat sy sien aan is
+Listen for Capri	Luister vir Capri
+Live reactions	Lewendige reaksies
+Local server address	Plaaslike bedieneradres
+Long	Lank
+Longest wait (minutes)	Langste wag (minute)
+Looking at this PC...	Kyk na hierdie rekenaar...
+Looking for Ollama. Open it if it isn't running.	Soek na Ollama. Maak dit oop as dit nie loop nie.
+Looking for a brain...	Soek na 'n brein...
+Looking in the mods directory for updates...	Soek in die modifikasiegids na opdaterings...
+Looking in the mods directory...	Soek in die modifikasiegids...
+Looking...	Soek...
+MAIN >	HOOF >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	GEHEUEKLUIS >
+MODS	MODIFIKASIES
+MODS >	MODIFIKASIES >
+MODS DIRECTORY >	MODIFIKASIEGIDS >
+MODS INSTALLED COLORS	GEÏNSTALLEERDE MODIFIKASIE-KLEURE
+MOVES >	BEWEGINGS >
+MY BRAIN	MY BREIN
+MY FREE VOICE	MY GRATIS STEM
+MY PLAN OR KEY	MY PLAN OF SLEUTEL
+MY PLAN OR KEY >	MY PLAN OF SLEUTEL >
+Made your Fish Audio voice. Press Test to hear it.	Jou Fish Audio-stem is gemaak. Druk Toets om dit te hoor.
+Mainframe colours	Mainframe-kleure
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe-kleure. Night City is rooi en siaan; Swart, Wit en Grys verander die Mainframe, haar kieslyste, die Tik-blokkie en haar notas
+Mainframe frames	Mainframe-rame
+Mainframe key	Mainframe-sleutel
+Mainframe size	Mainframe-grootte
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe-grootte. Outo maak dit groter wanneer Virtual Super Resolution of DSR 'n groot werkskerm op 'n kleiner skerm krimp
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Af
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Maak jou Fish Audio-stem...
+Max reply	Maksimum antwoord
+Maximum clip resolution, keeping the game's shape without upscaling	Maksimum snitresolusie, wat die speletjie se vorm behou sonder opskalering
+Medium	Medium
+Memory	Geheue
+Memory size	Geheuegrootte
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Geheuegrootte in tokens vir Ollama en haar ingeboude brein. Outo groei wanneer 'n vraag meer benodig
+Mg	Mg
+Mic level:	Mikrofoonvlak:
+Mic test finished. Sound is reaching Capri.	Mikrofoontoets klaar. Klank bereik Capri.
+Mic:	Mikrofoon:
+Mic: default	Mikrofoon: standaard
+Microphone	Mikrofoon
+Mini player	Mini-speler
+Mini player over full screen	Mini-speler oor volskerm
+Mini-games	Mini-speletjies
+Minimising the Mainframe left it sliding.	Om die Mainframe te minimeer het dit laat gly.
+Minimize	Minimeer
+Mod filter	Modifikasiefilter
+Mod options	Modifikasie-opsies
+Mod pages	Modifikasiebladsye
+Mod rules	Modifikasiereëls
+Mod sort	Modifikasiesortering
+Mod switch	Modifikasieskakelaar
+Model	Model
+Model folder	Modelgids
+Model name, optional	Modelnaam, opsioneel
+Mods	Modifikasies
+Mods directory	Modifikasiegids
+Mods folder	Modifikasiegids
+Most NVIDIA models can't see your screen.	Die meeste NVIDIA-modelle kan nie jou skerm sien nie.
+Mouse wheel notches got a flick's long ease:	Muiswiel-klikke het 'n flik se lang uitvaag gekry:
+Move	Skuif
+Move key to MAX INTELLIGENCE	Skuif sleutel na MAX INTELLIGENCE
+Move to MAX	Skuif na MAX
+Music	Musiek
+Music app	Musiekprogram
+Music app: where she plays music when you don't name an app	Musiekprogram: waar sy musiek speel wanneer jy nie 'n program noem nie
+Mute	Demp
+Mute her	Demp haar
+Mute mic key	Demp mikrofoon-sleutel
+Mute mic:	Demp mikrofoon:
+Mute mic: Ctrl + Alt + N	Demp mikrofoon: Ctrl + Alt + N
+My brain	My brein
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	My brein kom af. Ek sê hallo sodra dit in is, en jy kan dan met my praat.
+My brain's on its way. While it comes down, let's sort out how I sound.	My brein is onderweg. Terwyl dit afkom, kom ons stel my klank reg.
+My provider	My verskaffer
+NO AI	GEEN KI NIE
+NO PHONES CONNECTED	GEEN FONE VERBIND NIE
+NO PREVIEW	GEEN VOORSKOU NIE
+NORMAL	NORMAAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · gratis · dikwels stadig op besige tye
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA se gratis API is dikwels stadig, veral op besige tye.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA-, Google AI Studio (Gemini)- of OpenRouter API-sleutel
+Names:	Name:
+Needs a key	Benodig 'n sleutel
+Never	Nooit
+New code	Nuwe kode
+New voice from a clip...	Nuwe stem uit 'n snit...
+Next	Volgende
+Night City	Night City
+No AI	Geen KI
+No AI · no brain at all	Geen KI · geen brein nie
+No brain runs, and nothing is sent anywhere.	Geen brein loop nie, en niks word êrens gestuur nie.
+No brain yet	Nog geen brein nie
+No code open	Geen kode oop nie
+No limit	Geen limiet
+No mic found	Geen mikrofoon gevind nie
+No mods in the directory yet.	Nog geen modifikasies in die gids nie.
+No mods match that.	Geen modifikasies pas daarby nie.
+No mods match.	Geen modifikasies pas nie.
+No phones yet	Nog geen fone nie
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Nog geen virtuele mikrofoon nie. Kies Uitset, en dan Kry VB-CABLE (gratis).
+None yet: pick to get VB-CABLE (free)	Nog niks: kies om VB-CABLE (gratis) te kry
+Normal	Normaal
+Not a relay host	Nie 'n relais-bediener nie
+Not imported. Nothing ran.	Nie ingevoer nie. Niks het gehardloop nie.
+Not updated. The old one is still in.	Nie opgedateer nie. Die ou een is steeds in.
+Nothing needed updating.	Niks het opdatering benodig nie.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Niks om af te laai nie, niks word êrens gestuur nie. Ek sal nie terugpraat nie. Voeg enige tyd 'n brein in die Mainframe by.
+Nothing to show from the mods directory.	Niks om van die modifikasiegids te wys nie.
+Nothing? Windows Settings > Privacy & security > Microphone.	Niks? Windows-instellings > Privaatheid en sekuriteit > Mikrofoon.
+Nous Portal keys aren't supported yet.	Nous Portal-sleutels word nog nie ondersteun nie.
+OBS	OBS
+OFF	AF
+OLLAMA	OLLAMA
+ON	AAN
+ON THIS PC	OP HIERDIE REKENAAR
+OR A KEY	OF 'N SLEUTEL
+Obsidian memory vault	Obsidian-geheuekluis
+Off	Af
+Off. Turn on Her voice in your mic above.	Af. Skakel Haar stem in jou mikrofoon hierbo aan.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Af: sy klink soos altyd. Aan: elke stem wat sy het, ook ElevenLabs.
+Often	Dikwels
+On	Aan
+On / Off	Aan / Af
+On: your mic and her voice are going in.	Aan: jou mikrofoon en haar stem gaan in.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Een JSON-objek, by elke versoek wat hierdie brein stuur gevoeg. Dit vervang Capri se waarde vir enige naam wat dit deel, en word nie teen die model nagegaan nie.
+Online speech recognition	Aanlyn spraakherkenning
+Open Capri Mainframe	Maak Capri Mainframe oop
+Open Ollama, I'll find it	Maak Ollama oop, ek vind dit
+Open clips folder	Maak klipsgids oop
+Open her memories	Maak haar herinneringe oop
+Open her notes	Maak haar notas oop
+Open mods folder	Maak modifikasiegids oop
+Open the page again	Maak die bladsy weer oop
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA of OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-verenigbare bediener of verskaffer.
+OpenRouter · free models only	OpenRouter · net gratis modelle
+Optional	Opsioneel
+Optional. Blank means no key.	Opsioneel. Leeg beteken geen sleutel nie.
+Options	Opsies
+Out of the box a little higher, just behind her.	Standaard 'n bietjie hoër, net agter haar.
+Out of the box lower, just behind her.	Standaard laer, net agter haar.
+Output	Uitset
+Output:	Uitset:
+Output: none	Uitset: geen
+PHONE CONNECTED	FOON VERBIND
+PHONES >	FONE >
+PHONES CONNECTED	FONE VERBIND
+PREBUILT LOCAL	VOORGEBOU PLAASLIK
+PUBLISH MOD >	PUBLISEER MODIFIKASIE >
+Pair a phone	Koppel 'n foon
+Paste	Plak
+Paste API key	Plak API-sleutel
+Paste a brain API key	Plak 'n brein-API-sleutel
+Paste reads your clipboard once, when you press it.	Plak lees jou knipbord een keer, wanneer jy dit druk.
+Paste your key here	Plak jou sleutel hier
+Pat stroke	Kopklopsel-streel
+Perch	Sitplek
+Perch over {0} fps uses more CPU	Sitplek bo {0} fps gebruik meer CPU
+Pick Output to get it.	Kies Uitset om dit te kry.
+Pick a brain so I can talk back. You can change it any time.	Kies 'n brein sodat ek kan terugpraat. Jy kan dit enige tyd verander.
+Pick a clip of a voice you have the rights and consent to use	Kies 'n snit van 'n stem waarvoor jy die regte en toestemming het
+Pick a free model. I opened the page in your browser.	Kies 'n gratis model. Ek het die bladsy in jou blaaier oopgemaak.
+Pick a new clip of you...	Kies 'n nuwe snit van jou...
+Pick a voice model...	Kies 'n stemmodel...
+Pick one. Only one brain runs at a time.	Kies een. Net een brein loop op 'n slag.
+Pick the note her memories go in	Kies die notas waarin haar herinneringe gaan
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Kies {0} tot {1} sekondes van 'n stem waarvoor jy die regte en toestemming het
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Kies {0} tot {1} sekondes van jou praat, of van 'n stem waarvoor jy die regte en toestemming het
+Pitch	Toonhoogte
+Play	Speel
+Play...	Speel...
+Player only	Net speler
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS-modelle kopieer hierdie snit se stem. Druk Toets om dit te hoor.
+Pop-in times	Inloer-tye
+Pop-ins	Inloerbesoeke
+Power saver	Kragspaar
+Power saver: how lightly she runs in games, or always	Kragspaar: hoe liggies sy in speletjies loop, of altyd
+Preset	Voorinstelling
+Press Create API key	Druk Skep API-sleutel
+Press Create Key	Druk Skep sleutel
+Press Generate API Key	Druk Genereer API-sleutel
+Press Test and say something, so I know I can hear you.	Druk Toets en sê iets, sodat ek weet ek kan jou hoor.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Druk 'n sleutel, alleen of met Ctrl, Alt, Shift of Win.
+Press new keys, then Confirm	Druk nuwe sleutels, en dan Bevestig
+Provider	Verskaffer
+Provider API key, optional	Verskaffer se API-sleutel, opsioneel
+Provider base URL	Verskaffer se basis-URL
+Provider forgotten.	Verskaffer vergeet.
+Provider overlaps the brain name or note	Verskaffer oorvleuel die breinnaam of notas
+Publish	Publiseer
+Publish mod	Publiseer modifikasie
+Push to talk is off.	Druk-om-te-praat is af.
+Push to talk key	Druk-om-te-praat-sleutel
+Push to talk:	Druk-om-te-praat:
+Push to talk: not set	Druk-om-te-praat: nie ingestel nie
+QR CODE >	QR-KODE >
+QR hidden while streaming	QR versteek tydens stroom
+Quick	Vinnig
+Quiet key	Stil-sleutel
+Quiet:	Stil:
+Quiet: Ctrl + Alt + P	Stil: Ctrl + Alt + P
+Quit Capri	Sluit Capri af
+RELAY >	RELAIS >
+REMOTE >	AFSTAND >
+RUNS CODE.	LOOP KODE.
+Rarely	Selde
+Rate mod	Gee 'n graad aan modifikasie
+Reading its README...	Lees sy README...
+Refresh	Verfris
+Reinstall	Herinstalleer
+Reload	Herlaai
+Reloaded.	Herlaai.
+Remember our chats	Onthou ons klets
+Remember what she sees	Onthou wat sy sien
+Remote	Afstand
+Remote off	Afstand af
+Remote on	Afstand aan
+Remove	Verwyder
+Remove all phones	Verwyder alle fone
+Replies	Antwoorde
+Reply length	Antwoordlengte
+Report a problem	Rapporteer 'n probleem
+Reset colors	Stel kleure terug
+Reset to her default	Stel terug na haar standaard
+Resolution	Resolusie
+Restart to update	Herbegin om op te dateer
+Restless	Rusteloos
+Revoke	Herroep
+Revoke also removes the phones its links added	Herroep verwyder ook die fone wat sy skakels bygevoeg het
+Ride cursor	Ry kursor
+Ride cursor / Hop off	Ry kursor / Klim af
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Regsklik op my enige tyd vir Capri Mainframe. 'n Brein skakel aan onder BREIN.
+Right-click me any time for the Mainframe, Help and the Discord.	Regsklik op my enige tyd vir die Mainframe, Hulp en die Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox of enige ander program: kies
+Robot	Robot
+Rock, paper, scissors	Klip, papier, skêr
+Run this code mod?	Laat hierdie kodemodifikasie loop?
+Running on this PC	Loop op hierdie rekenaar
+Running on this PC · :	Loop op hierdie rekenaar · :
+Runs Claude Code or Codex on this PC, signed in.	Loop Claude Code of Codex op hierdie rekenaar, aangemeld.
+Runs on your PC. No key, no credits.	Loop op jou rekenaar. Geen sleutel, geen krediete nie.
+SCAN WITH YOUR PHONE · EXPIRES	SKANDEER MET JOU FOON · VERVAL
+SECURITY >	SEKURITEIT >
+SKILL.	VAARDIGHEID.
+SKIN.	VEL.
+SORT BY	SORTEER VOLGENS
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	KLANKE GEWOONTES BREIN KYK CAPRI DOOMSCROLL WEER KLIPPE SPELETJIES SLEUTELS BEWEGINGS STEM JOU
+Same as her ears (VOICE > Mic)	Dieselfde as haar ore (STEM > Mikrofoon)
+Same code on the phone?	Dieselfde kode op die foon?
+Save	Stoor
+Save big moments	Stoor groot oomblikke
+Save folder	Stoorgids
+Save your changes, or press Discard + reload.	Stoor jou veranderinge, of druk Gooi weg + herlaai.
+Save your changes, or press Discard.	Stoor jou veranderinge, of druk Gooi weg.
+Saved.	Gestoor.
+Saved. Ctrl + Alt + O opens her Mainframe.	Gestoor. Ctrl + Alt + O maak haar Mainframe oop.
+Saving your rating...	Stoor jou gradering...
+Say her name anywhere to chat	Sê haar naam enige plek om te klets
+Screens	Skerms
+Screens is hidden or outside WATCH	Skerms is versteek of buite KYK
+Screens overlaps a WATCH row	Skerms oorvleuel 'n KYK-ry
+Screens to watch	Skerms om te kyk
+Sealed end to end	Heeltemal geseël
+Search by name or author	Soek volgens naam of outeur
+Search installed mods	Soek geïnstalleerde modifikasies
+Search mods	Soek modifikasies
+Search name, author or description	Soek naam, outeur of beskrywing
+Security	Sekuriteit
+Security:	Sekuriteit:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Stel op
+Set up her brain	Stel haar brein op
+Set up your voice model	Stel jou stemmodel op
+Setting up her brain	Haar brein word opgestel
+Settings	Instellings
+Settings / Back	Instellings / Terug
+Settings folds the wrong rows above BRAIN	Instellings vou die verkeerde rye bo BREIN
+Settings had nothing to watch.	Instellings het niks om te kyk nie.
+Settings lost keyboard focus during the Tab walk	Instellings het sleutelbordfokus verloor tydens die Tab-stap
+Setup guide	Opstelgids
+Setup stopped	Opstelling gestop
+She can read it when it fits.	Sy kan dit lees wanneer dit pas.
+She glances at your screen and comments. Costs a little on a paid brain.	Sy kyk na jou skerm en kommentarieer. Kos 'n bietjie op 'n betaalde brein.
+She keeps listening. Say her name, then just talk until you go quiet.	Sy luister aanhoudend. Sê haar naam en praat dan net totdat jy stil raak.
+She reacts to your game until you close it.	Sy reageer op jou speletjie totdat jy dit toemaak.
+She reads these controls before each game job.	Sy lees hierdie beheerelemente voor elke speletjietaak.
+She talks about your game as you play. Costs a little on a paid brain.	Sy praat oor jou speletjie terwyl jy speel. Kos 'n bietjie op 'n betaalde brein.
+She uses it when she plays	Sy gebruik dit wanneer sy speel
+Short	Kort
+Shortest wait (minutes)	Kortste wag (minute)
+Show Capri	Wys Capri
+Show QR	Wys QR
+Show my mod file	Wys my modifikasielêer
+Show on Discord	Wys op Discord
+Shum, what time is it	Shum, hoe laat is dit
+Sign in	Meld aan
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Meld aan, maak 'n sleutel en kopieer dit. Druk dan Plak en ek koppel in.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Meld aan, druk Skep API-sleutel en kopieer dit. Druk dan Plak en ek koppel in.
+Silent · text only	Stil · net teks
+Simple / Advanced Settings	Eenvoudige / Gevorderde instellings
+Simple Settings	Eenvoudige instellings
+Simple Settings left a gap under Check in on me	Eenvoudige instellings het 'n gaping onder Kyk na my gelaat
+Sit here	Sit hier
+Sit on windows	Sit op vensters
+Size	Grootte
+Skip	Slaan oor
+Skip all	Slaan alles oor
+Skip for now	Slaan oor vir nou
+Sleep	Slaap
+Small	Klein
+Sometimes	Soms
+Sound effects volume	Klankeffekte-volume
+Sound sensitivity	Klanksensitiwiteit
+Sounds	Klanke
+Speaker or clip	Luidspreker of snit
+Speech model	Spraakmodel
+Speed	Spoed
+Start with Windows	Begin met Windows
+Start with this!	Begin hiermee!
+Starting...	Begin...
+Stay	Bly
+Stay on my model	Bly op my model
+Still checking your mics...	Kyk nog na jou mikrofone...
+Still checking your speakers...	Kyk nog na jou luidsprekers...
+Still checking your virtual mics...	Kyk nog na jou virtuele mikrofone...
+Stop	Stop
+Stopped using it. Couldn't remove the saved provider.	Gestop om dit te gebruik. Kon nie die gestoorde verskaffer verwyder nie.
+Support	Ondersteuning
+Sure?	Seker?
+Sure? moved to a different phone	Seker? geskuif na 'n ander foon
+TALK TO ME	PRAAT MET MY
+TEXT ONLY	NET TEKS
+Tab landed past the first option of	Tab het verby die eerste opsie van
+Tab never reached the quiet key	Tab het nooit die stil-sleutel bereik nie
+Tab reached nothing	Tab het niks bereik nie
+Tab selected a control without moving keyboard focus	Tab het 'n beheer gekies sonder om sleutelbordfokus te skuif
+Talk	Praat
+Talk key	Praat-sleutel
+Talk:	Praat:
+Talk: Ctrl + Alt + V	Praat: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Teiken-opnamekoers; kan onder lading of die geheuebegroting daal
+Teases when another AI comes to the front.	Terg wanneer 'n ander KI na vore kom.
+Test	Toets
+That address doesn't work. Try https://... or http://localhost:{0}.	Daardie adres werk nie. Probeer https://... of http://localhost:{0}.
+That code expired	Daardie kode het verval
+That mod is no longer installed. The list is updated.	Daardie modifikasie is nie meer geïnstalleer nie. Die lys is opgedateer.
+That's a paid key: it goes under MAX INTELLIGENCE.	Dis 'n betaalde sleutel: dit gaan onder MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Die Mainframe het saamgestel gebly terwyl dit geskuif het.
+The Mainframe stayed uncomposited after the slide.	Die Mainframe het na die skuif ongesaamgestel gebly.
+The controls moved while the picture was sliding.	Die beheerelemente het geskuif terwyl die prent geskuif het.
+The cover stayed visible after the slide ended.	Die bedekking het sigbaar gebly nadat die skuif geëindig het.
+The frame thread kept running after the page settled.	Die raamdraad het aan die loop gebly nadat die bladsy gesettel het.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Die langste antwoord wat sy kan gee, in tokens. Outo hou by Antwoorde hierbo; {0}K of {1}K laat haar voortgaan. Take behou meer ruimte wanneer dit nodig is
+The longest wait must be at least the shortest wait.	Die langste wag moet ten minste die kortste wag wees.
+The picture doesn't match the scrolled page:	Die prent stem nie ooreen met die gerolde bladsy nie:
+The picture of Settings doesn't match the page:	Die prent van Instellings stem nie ooreen met die bladsy nie:
+The picture stayed up after the slide ended.	Die prent het sigbaar gebly nadat die skuif geëindig het.
+The picture wasn't showing while it slid.	Die prent het nie gewys terwyl dit geskuif het nie.
+The provider sheet is crowded:	Die verskaffersblad is vol:
+The voice panel has no screen DPI.	Die stempaneel het geen skerm-DPI nie.
+The voice panel's menus share one font.	Die stempaneel se kieslyste deel een lettertipe.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Daar is nog geen sleutel op jou knipbord nie. Kopieer dit van die bladsy en druk dan Plak.
+These start off. Each costs a little or uses your mic.	Hierdie begin af. Elk kos 'n bietjie of gebruik jou mikrofoon.
+These start off. Turn on what you want. They're all in Settings too.	Hierdie begin af. Skakel aan wat jy wil. Hulle is almal ook in Instellings.
+They can also call you Big Z, Capricorn or Nova	Hulle kan jou ook Big Z, Capricorn of Nova noem
+They can also call you Nova, Big Z or Capricorn	Hulle kan jou ook Nova, Big Z of Capricorn noem
+Thinking	Dink
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Dit is my gratis stem. Druk Toets, sê iets, en ek wys jou dat ek jou kan hoor.
+This mod has no description yet.	Hierdie modifikasie het nog geen beskrywing nie.
+Tic-tac-toe	Boter, kaas en eiers
+Time between glances	Tyd tussen blikke
+Tiny	Piepklein
+Try again	Probeer weer
+Turn Remote on first	Skakel eers Afstand aan
+Turn off mini player	Skakel mini-speler af
+Turn push to talk off	Skakel druk-om-te-praat af
+Turning the wheel the other way kept the page heading the old way, to	Die wiel na die ander kant draai het die bladsy in die ou rigting laat aanhou, na
+Type	Tik
+Type key	Tik-sleutel
+Type to me	Tik vir my
+Type:	Tik:
+Type: Ctrl + Alt + T	Tik: Ctrl + Alt + T
+Typing sound	Tiklank
+Unpacked. Press Test to hear it.	Uitgepak. Druk Toets om dit te hoor.
+Unsaved changes.	Ongestoorde veranderinge.
+Up to {0} fps	Tot {0} fps
+Up to {0}p	Tot {0}p
+Update	Opdateer
+Update available.	Opdatering beskikbaar.
+Update mods	Werk modifikasies op
+Updating...	Besig om op te dateer...
+Use	Gebruik
+Use her cursor	Gebruik haar kursor
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Gebruik https:// vir 'n verskaffer elders. 'n Sleutel oor gewone http is nie veilig nie.
+Use preset	Gebruik voorinstelling
+Use saved	Gebruik gestoor
+Use this server	Gebruik hierdie bediener
+Using your provider with a key	Gebruik jou verskaffer met 'n sleutel
+Using your server with no key	Gebruik jou bediener sonder 'n sleutel
+VIEW MOD >	KYK MODIFIKASIE >
+VOICE >	STEM >
+VOICE IN YOUR MIC >	STEM IN JOU MIKROFOON >
+VOICE LAYERS >	STEMLAE >
+Verbosity	Woordrykheid
+Video bitrate	Video-bitkoers
+View	Kyk
+View mod	Kyk modifikasie
+Voice	Stem
+Voice ID	Stem-ID
+Voice from	Stem van
+Voice layers	Stemlae
+Voice model	Stemmodel
+Voice model:	Stemmodel:
+Voice name or ID, optional	Stemnaam of -ID, opsioneel
+Voice server address, or a voice model's folder	Stembedieneradres, of 'n stemmodel se gids
+Voice status	Stemstatus
+Voice, key and model...	Stem, sleutel en model...
+Volume	Volume
+WAKE ME UP >	WEK MY OP >
+WATCH >	KYK >
+Waiting for the relay	Wag vir die relais
+Wake her up	Wek haar op
+Waking her up	Haar word wakker gemaak
+Wander	Rondloop
+Wander around	Rondloop
+Watch my screen	Kyk na my skerm
+Watch-along memory	Saamkyk-geheue
+Weather	Weer
+Weather city	Weerstad
+Welcome back, choom. Let's finish setting me up.	Welkom terug, choom. Kom ons voltooi my opstelling.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Wat sy op jou rekenaar doen sonder om te vra. Met 'n skakelaar af vra sy eers, en doen dit wanneer jy ja sê.
+What should she call you?	Wat moet sy jou noem?
+When she types	Wanneer sy tik
+White	Wit
+Windows default	Windows-standaard
+Windows did not give Settings keyboard focus	Windows het nie sleutelbordfokus aan Instellings gegee nie
+Windows did not return keyboard focus to Back	Windows het nie sleutelbordfokus na Terug teruggegee nie
+With no picture the wheel still tried to slide.	Sonder 'n prent het die wiel steeds probeer skuif.
+Works best on MAX INTELLIGENCE.	Werk die beste op MAX INTELLIGENCE.
+YOU	JOU
+YOU >	JOU >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	JOU STEM BEWEGINGS SLEUTELS SPELETJIES KLIPPE WEER DOOMSCROLL CAPRI KYK BREIN GEWOONTES KLANKE
+YOUR KEY	JOU SLEUTEL
+YOUR MIC	JOU MIKROFOON
+YOUR PLAN	JOU PLAN
+Yokapri what's up	Yokapri, wat gaan aan
+You can hide this. It keeps going, and the Mainframe shows it too.	Jy kan dit versteek. Dit gaan voort, en die Mainframe wys dit ook.
+Your mic and her voice go into one virtual mic, and	Jou mikrofoon en haar stem gaan in een virtuele mikrofoon, en
+Your mic is muted. Unmute it to test.	Jou mikrofoon is gedemp. Ontdemp dit om te toets.
+Your mods are up to date.	Jou modifikasies is op datum.
+Your name or a nickname	Jou naam of 'n bynaam
+Your own model	Jou eie model
+Your personality	Jou persoonlikheid
+Your voice	Jou stem
+Your voice (HD)	Jou stem (HD)
+Your voice (HD) · pick a clip of you...	Jou stem (HD) · kies 'n snit van jou...
+Your voice model	Jou stemmodel
+as its mic.	as sy mikrofoon.
+changed. Saved as My Colors, so you can share it.	verander. Gestoor as My Kleure, sodat jy dit kan deel.
+choice	keuse
+clips the input line	knip die invoerlyn
+cue	sein
+doesn't yet.	nog nie.
+download	aflaai
+file.	lêer.
+flag	vlag
+fps	fps
+hear	hoor
+hears	hoor
+hears that.	hoor dit.
+hides or shows her.	versteek of wys haar.
+hint	wenk
+in the Mainframe.	in die Mainframe.
+in the mods directory with a pull request.	in die modifikasiegids met 'n pull request.
+in the picture wasn't noticed.	in die prent is nie opgemerk nie.
+is already her push-to-talk key.	is reeds haar druk-om-te-praat-sleutel.
+is off.	is af.
+is on and running.	is aan en loop.
+is on, at the bottom, under	is aan, onderaan, onder
+is on.	is aan.
+is on. She now answers to	is aan. Sy antwoord nou op
+is removed.	is verwyder.
+is taken	is geneem
+is taken by another app. Try another.	is reeds deur 'n ander program gebruik. Probeer 'n ander een.
+is updated	is opgedateer
+isn't hearing it yet: do {0} and {1}, then join a call.	hoor dit nog nie: doen {0} en {1}, en sluit dan aan by 'n oproep.
+it now.	dit nou.
+keeps her quiet, and lets her talk again.	hou haar stil, en laat haar weer praat.
+key	sleutel
+key.	sleutel.
+min	min
+more.	meer.
+ms.	ms.
+mutes mic	demp mikrofoon
+mutes your mic.	demp jou mikrofoon.
+name	naam
+off	af
+on this PC	op hierdie rekenaar
+opens her Mainframe.	maak haar Mainframe oop.
+opens her typing box.	maak haar tikblokkie oop.
+phone	foon
+phone pixels	foonpixels
+phones	fone
+pixels	pixels
+pixels)	pixels)
+star.	ster.
+stars.	sterre.
+starts voice chat.	begin stempraatjie.
+stays off. Nothing ran.	bly af. Niks het gehardloop nie.
+still does its own job in other apps too. Confirm to keep it.	doen steeds sy eie werk in ander programme ook. Bevestig om dit te hou.
+tall	hoog
+time	tyd
+to talk	om te praat
+to talk to her, with a game in front too.	om met haar te praat, ook met 'n speletjie vooraan.
+too.	ook.
+turns Gaming Mode on and off.	skakel Speelmodus aan en af.
+with Ollama	met Ollama
+won't type in other apps while she runs. Confirm to keep it.	tik nie in ander programme terwyl sy loop nie. Bevestig om dit te hou.
+{0}   Echo Cancellation: Off	{0}   Eggo-kansellering: Af
+{0}   If her voice cuts off, turn off noise filtering	{0}   As haar stem afsny, skakel ruisfiltering af
+{0}   Input Device:	{0}   Invoertoestel:
+{0}   Join the call and check they hear both of you	{0}   Sluit aan by die oproep en kyk of hulle julle albei hoor
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofoontoets > Kom Ons Kyk: jy hoor jouself, en haar terwyl sy praat
+{0}   Microphone:	{0}   Mikrofoon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Geraasonderdrukking: Geen. Albei kan haar stem na die eerste reël afsny.
+{0}   Open the call or meeting's audio settings	{0}   Maak die oproep of vergadering se klankinstellings oop
+{0}   Output Device: your headphones, like before	{0}   Uitsettoestel: jou koptelefoon, soos vantevore
+{0}   Speaker: your headphones, like before	{0}   Luidspreker: jou koptelefoon, soos vantevore
+{0}   Try a mic test in your call app	{0}   Probeer 'n mikrofoontoets in jou oproepprogram
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Gebruikersinstellings (die rat by jou naam) > Stem en video
+{0} Mbps	{0} Mbps
+{0} lines	{0} reëls
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· op hierdie rekenaar
+· server	· bediener

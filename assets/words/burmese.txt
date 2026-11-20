@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	ပြန်ဆွဲထားသော ထိန်းချုပ်မှုကို ပုံထဲတွင် ပြန်မဆွဲရသေးပါ။
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio၊ NVIDIA သို့မဟုတ် OpenRouter မှ အခမဲ့ key။ ဒေါင်းလုဒ်ဆွဲစရာ မလိုပါ။ အင်တာနက် လိုအပ်သည်။
+A held trackpad scroll got a flick's long ease:	trackpad ပေါ်တွင် ဆွဲလှိမ့်ထားသော scroll သည် flick ၏ ရှည်လျားသော လျော့ကျမှုကို ရရှိခဲ့သည်:
+A layout change during a slide put the page at	slide အတွင်း layout ပြောင်းလဲမှုက စာမျက်နှာကို ထားခဲ့သည်
+A layout change left the picture up.	layout ပြောင်းလဲမှုက ပုံကို ဆက်ပြနေစေသည်။
+A model in Ollama, on your local server or on your key.	Ollama ရှိ မော်ဒယ်၊ သင့်ဒေသဆာဗာ သို့မဟုတ် သင့် key ဖြင့်။
+A paid key goes under MAX INTELLIGENCE by itself.	ပေးချေထားသော key သည် MAX INTELLIGENCE အောက်သို့ အလိုအလျောက် ရောက်သွားသည်။
+A plan you already pay for, a key of your own, or Ollama.	သင် ပေးချေနေပြီးသော plan၊ သင့်ကိုယ်ပိုင် key၊ သို့မဟုတ် Ollama။
+A voice panel menu doesn't hold its own copy of the panel's font.	အသံ panel menu တွင် panel ၏ ဖောင့်ကို ကိုယ်ပိုင်မိတ္တူ မရှိပါ။
+A wheel turn right after a slide ended froze the picture.	slide ပြီးဆုံးပြီးနောက် wheel လှည့်လိုက်သဖြင့် ပုံ ရပ်သွားသည်။
+ALLOW THIS PHONE?	ဤဖုန်းကို ခွင့်ပြုမလား?
+ALMOST THERE >	နီးပြီ >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	နောက်တစ်ခု Capri က ထိန်းချုပ်ထားသည် · ပိတ်ပြီး ပြန်ဖွင့်ပါ
+API key	API key
+API key, Claude plan or ChatGPT plan	API key၊ Claude plan သို့မဟုတ် ChatGPT plan
+Add	ထည့်
+Address	လိပ်စာ
+Address and key saved. Use saved to reconnect.	လိပ်စာနှင့် key သိမ်းပြီးပါပြီ။ ပြန်ချိတ်ရန် သိမ်းထားသည်ကို သုံးပါ။
+Advanced Settings	အဆင့်မြင့် ဆက်တင်များ
+All	အားလုံး
+All screens	မျက်နှာပြင်အားလုံး
+Allow	ခွင့်ပြုမည်
+Almost there. I'll say hi the second my brain's in.	နီးပြီ။ ဦးနှောက် ဝင်လာတာနဲ့ ချက်ချင်း နှုတ်ဆက်ပါမယ်။
+Always	အမြဲတမ်း
+Always on top	အမြဲ အပေါ်ဆုံး
+Any Google account works. I opened the page in your browser.	ဘယ် Google အကောင့်မဆို အလုပ်လုပ်ပါသည်။ သင့် browser တွင် စာမျက်နှာကို ဖွင့်ပေးထားပါသည်။
+Applies to every voice	အသံအားလုံးအတွက် သက်ရောက်သည်
+Apps she may close	ပိတ်ခွင့်ရှိသော app များ
+Ask Capri for more	Capri ထံ ပိုတောင်းပါ
+Asking your server...	သင့်ဆာဗာကို မေးနေသည်...
+Asks before closing only the apps you choose.	သင်ရွေးထားသော app များကိုသာ ပိတ်ခင် မေးပါမည်။
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	အလိုအလျောက်: VB-CABLE၊ မဟုတ်ရင် Steam
+BAD RELAY HOST	RELAY host မှားနေသည်
+BIG Z open notepad	BIG Z notepad ဖွင့်
+BRAIN	ဦးနှောက်
+BRAIN >	ဦးနှောက် >
+BRAIN ONLINE >	ဦးနှောက် ONLINE >
+BRAIN PROVIDER >	ဦးနှောက် ပံ့ပိုးသူ >
+BRAIN VOICE CAPRI	Capri ဦးနှောက် အသံ
+Back	နောက်သို့
+Back on your saved API key.	သိမ်းထားသော API key သို့ ပြန်သွားသည်။
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	ဤ PC အတွက် အကောင်းဆုံး:
+Black	အနက်
+Blank key means no key.	key အလွတ်ဆိုသည်မှာ key မရှိဟု ဆိုလိုသည်။
+Brain API key	ဦးနှောက် API key
+Brain model	ဦးနှောက် မော်ဒယ်
+Brain provider	ဦးနှောက် ပံ့ပိုးသူ
+Bring here	ဤနေရာသို့ ခေါ်
+Bring to this screen	ဤမျက်နှာပြင်သို့ ခေါ်
+Browse	ရှာဖွေ
+Browse mods	mod များ ရှာဖွေ
+Browse to a voice model	အသံ မော်ဒယ်သို့ သွားပါ
+Browse...	ရှာဖွေ...
+Bubble	ပူဖောင်းကွင်း
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree ရှိနေလား
+CAN'T REACH THE RELAY · RETRYING	RELAY ချိတ်ဆက်၍ မရပါ · ထပ်ကြိုးစားနေသည်
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI အသံ ဦးနှောက်
+CHANGED, approve it again.	ပြောင်းလဲပြီး၊ ထပ်အတည်ပြုပါ။
+CLIPS >	ခလုတ်များ >
+CLOUD VOICE	CLOUD အသံ
+CODE	ကုဒ်
+COLORS >	အရောင်များ >
+CONNECTED	ချိတ်ဆက်ပြီးပါပြီ
+CONNECTING	ချိတ်ဆက်နေသည်
+CUSTOM LOCAL	စိတ်ကြိုက် LOCAL
+Call mode (beta)	ခေါ်ဆိုမှုမုဒ် (beta)
+Call mode does not fit.	ခေါ်ဆိုမှုမုဒ် မဝင်ပါ။
+Call mode is outside its space.	ခေါ်ဆိုမှုမုဒ်သည် ၎င်း၏နေရာပြင်ပတွင် ရှိသည်။
+Cancel	မလုပ်တော့ပါ
+Cancel keys	key များ ဖျက်ရန်
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri code:
+Capri mods (*	Capri mods (*
+Capri, hello	Capri၊ မင်္ဂလာပါ
+CapriDesktop.	CapriDesktop.
+Chaos when upset	စိတ်ဆိုးလျှင် ရှုပ်ထွေးမှု
+Chat with Capri from your phone	Capri ကို သင့်ဖုန်းမှ စကားပြောပါ
+ChatGPT plan	ChatGPT plan
+Check for updates	အပ်ဒိတ်များ စစ်ဆေးရန်
+Check in on me	ငါ့ကို စစ်ဆေးပါ
+Check in on me is hidden	ငါ့ကို စစ်ဆေးပါ ဝှက်ထားသည်
+Check in on me still decides whether she visits.	ငါ့ကို စစ်ဆေးပါ က သူလာမလာ ဆုံးဖြတ်ဆဲ ဖြစ်သည်။
+Check in on me's tip missed	ငါ့ကို စစ်ဆေးပါ အကြံပြုချက် လွတ်သွားသည်
+Chess	ချက်စ်
+Choose apps	app များ ရွေးပါ
+Choose folder...	ဖိုဒါ ရွေးပါ...
+Choose where future Capri clips are saved	Capri clip များ သိမ်းမည့်နေရာ ရွေးပါ
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude သို့မဟုတ် ChatGPT plan၊ ပေးချေထားသော key (OpenAI၊ Claude၊ DeepSeek)၊ သို့မဟုတ် Ollama။
+Claude plan	Claude plan
+Clear	ရှင်း
+Cleared.	ရှင်းပြီးပါပြီ။
+Click Confirm to keep Down, or press Esc.	Confirm ကိုနှိပ်၍ အောက်ကို ထားရန်၊ သို့မဟုတ် Esc နှိပ်ပါ။
+Click to open it.	ဖွင့်ရန် နှိပ်ပါ။
+Clip my games	ကျွန်ုပ်၏ဂိမ်းများကို clip ဖတ်ပါ
+Clips	Clips
+Close	ပိတ်
+Close other AIs for me	ကျွန်ုပ်အတွက် အခြား AI များကို ပိတ်
+Cloud voice	Cloud အသံ
+Cloud voice service	Cloud အသံ ဝန်ဆောင်မှု
+Cloud voice setup	Cloud အသံ စနစ်ထည့်သွင်းခြင်း
+Code mods can reach your whole PC. Only trusted ones.	Code mod များသည် သင့် PC တစ်ခုလုံးသို့ ရောက်နိုင်သည်။ ယုံကြည်ရသည်များသာ။
+Code/Husk Mode	Code/Husk မုဒ်
+Codex	Codex
+Commands	ညွှန်ကြားချက်များ
+Comment on my games	ကျွန်ုပ်၏ဂိမ်းများတွင် မှတ်ချက်ပေးပါ
+Comments	မှတ်ချက်များ
+Confirm	အတည်ပြု
+Confirm keys	key များ အတည်ပြု
+Connect	ချိတ်ဆက်
+Connect / Forget brain key	ချိတ်ဆက် / ဦးနှောက် key မေ့
+Connect / Forget voice key	ချိတ်ဆက် / အသံ key မေ့
+Connect four	Connect four
+Controls	ထိန်းချုပ်မှုများ
+Copri, what time is it	Copri၊ အခု ဘယ်နာရီလဲ
+Copy error details	Error အသေးစိတ် ကူးယူ
+Copy the key	key ကို ကူးယူ
+Copy the key from the page, then press Paste.	စာမျက်နှာမှ key ကို ကူးပြီး Paste နှိပ်ပါ။
+Couldn't open that page:	ထိုစာမျက်နှာကို ဖွင့်၍ မရပါ:
+Couldn't open that:	ထိုအရာကို ဖွင့်၍ မရပါ:
+Couldn't open the mods folder:	mods ဖိုဒါကို ဖွင့်၍ မရပါ:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M သည် သူမ၏ Mainframe key ဖြစ်ပြီးသား ဖြစ်သည်။
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N သည် မိုက်ကို အသံပိတ်သည်
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V သည် သူမ၏ talk key ဖြစ်ပြီးသား ဖြစ်သည်။
+Ctrl + Alt + V to talk	Ctrl + Alt + V ပြောရန်
+Custom local voice	စိတ်ကြိုက် local အသံ
+Custom model name	စိတ်ကြိုက် မော်ဒယ်အမည်
+Dance	ကခုန်
+Dance to music	သီချင်းအတွက် ကခုန်
+Default	Default
+Default (follows Windows)	Default (Windows ကို လိုက်သည်)
+Default duration for clip that and automatic clips	clip that နှင့် အလိုအလျောက် clip များအတွက် ပုံမှန်ကြာချိန်
+Default length	ပုံမှန်ကြာချိန်
+Default model	Default မော်ဒယ်
+Delay	နောက်ကျခြင်း
+Deny	ငြင်းပယ်
+Discard	ပယ်ဖျက်
+Discard + reload	ပယ်ဖျက် + ပြန်တင်
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	စောင့်ချင်မလား? အခမဲ့ key ဖြင့် မိနစ်အနည်းငယ်အတွင်း ကျွန်ုပ် ပြောနိုင်ပါပြီ။
+Done	ပြီးပြီ
+EXTRA REQUEST JSON >	EXTRA REQUEST JSON >
+EXTRAS >	EXTRAS >
+Edit	ပြင်ဆင်
+Edit check-in lines	check-in စာကြောင်းများ ပြင်ဆင်
+Edit check-in lines has the wrong view or dimming	check-in စာကြောင်းများ၏ ပြသမှု သို့မဟုတ် မှိန်ခြင်း မှားနေသည်
+Edit check-in lines is out of place	check-in စာကြောင်းများ နေရာမှားနေသည်
+Edit controls	ထိန်းချုပ်မှုများ ပြင်ဆင်
+ElevenLabs API key	ElevenLabs API key
+ElevenLabs voice ID	ElevenLabs အသံ ID
+English	အင်္ဂလိပ်
+Enter the game's name first.	ဂိမ်းအမည်ကို ဦးစွာ ရိုက်ပါ။
+Every	အားလုံး
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	mod တိုင်းကို ထုတ်ပြန်မီ malware အတွက် စစ်ဆေးသည်။ Code mod များသည် မလုပ်ဆောင်မီ ဆက်လက် မေးမြန်းသည်။
+Explore after	နောက်မှ စူးစမ်း
+Explore while I'm away	ငါမရှိချိန် စူးစမ်း
+Extra request JSON	Extra request JSON
+Extras	Extras
+FREE KEY	အခမဲ့ KEY
+FREE KEY >	အခမဲ့ KEY >
+Fast hands in games	ဂိမ်းများတွင် မြန်သော လက်
+File editor	ဖိုင် တည်းဖြတ်ကိရိယာ
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio၊ ElevenLabs နှင့် အခြားများသည် Mainframe ရှိ အသံ အောက်တွင် ရှိသည်။
+Follow-up messages	Follow-up မက်ဆေ့ချ်များ
+Forget	မေ့
+Fork capri-mods	Fork capri-mods
+Frame rate	Frame rate
+Free	အခမဲ့
+Free and private, works offline. Downloads	အခမဲ့နှင့် ကိုယ်ပိုင်၊ offline လုပ်ဆောင်သည်။ ဒေါင်းလုဒ်
+Free and private, works offline. Downloads the best model for this PC.	အခမဲ့နှင့် ကိုယ်ပိုင်၊ offline လုပ်ဆောင်သည်။ ဤ PC အတွက် အကောင်းဆုံး မော်ဒယ်ကို ဒေါင်းလုဒ်။
+Free key	အခမဲ့ key
+Free key providers	အခမဲ့ key ပံ့ပိုးသူများ
+Free keys can be rate limited and slow.	အခမဲ့ key များသည် နှုန်းကန့်သတ်ခံရနိုင်ပြီး နှေးနိုင်သည်။
+Free voice in games	ဂိမ်းထဲရှိ အခမဲ့ အသံ
+Free voice style	အခမဲ့ အသံပုံစံ
+Free voice:	အခမဲ့ အသံ:
+Free voice: Her own	အခမဲ့ အသံ: သူမ၏ကိုယ်ပိုင်
+Free · local model	အခမဲ့ · local မော်ဒယ်
+GAMES >	ဂိမ်းများ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	ဂိမ်း မှတ်ချက်များသည် Watch my screen နှင့် သီးခြား လုပ်ဆောင်သည်။ Off ဖြင့် ရပ်နိုင်သည်၊ Gaming Mode တွင်ပါ; Events only နှင့် Chatty ဖြင့် သူမက သင့်ဂိမ်းကို ကြည့်နိုင်သည်
+Game controls	ဂိမ်း ထိန်းချုပ်မှုများ
+Game name	ဂိမ်းအမည်
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	ဂိမ်းအသံ အာရုံခံနိုင်မှု။ နားကြပ် တိုးနိုးနေပြီး Windows {0}% ဖြစ်သော်လည်း သူမက အသံတိုင်းကို တုံ့ပြန်လျှင် လျှော့ပါ။ Off က ဂိမ်းအသံများကို လျစ်လျူရှုသည်
+Game sounds	ဂိမ်းအသံများ
+Games	ဂိမ်းများ
+Gaming Mode	Gaming Mode
+Gaming Mode key	Gaming Mode key
+Gaming Mode:	Gaming Mode:
+Gaming Mode: Ctrl + Alt + G	Gaming Mode: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini၊ OpenRouter၊ ChatGPT၊ Claude၊ DeepSeek
+Get VB-CABLE	VB-CABLE ရယူ
+Get VB-CABLE (free)...	VB-CABLE ရယူ (အခမဲ့)...
+Get free voice	အခမဲ့ အသံ ရယူ
+Getting your Fish Audio voices...	သင့် Fish Audio အသံများကို ရယူနေသည်...
+Giant	ကြီးမား
+Glitch	Glitch
+Glitch in at startup	စတင်ချိန် Glitch
+Go to sleep	အိပ်ရန် သွား
+Go to the next screen	နောက် မျက်နှာပြင်သို့ သွား
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · အခမဲ့အဆင့် · နှုန်းကန့်သတ်ထား
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude သို့မဟုတ် ChatGPT plan၊ သို့မဟုတ် ကိုယ်ပိုင် key ရှိသလား? ရွေးချယ်ပါ၊ ကျွန်ုပ် ချိတ်ဆက်ပေးမည်။
+Got it, just me. Right-click me any time for Capri Mainframe.	ကောင်းပြီ၊ ကျွန်ုပ်တစ်ယောက်တည်းပဲ။ Capri Mainframe အတွက် ငါ့ကို ညာကလစ်နှိပ်ပါ အချိန်မရွေး။
+Grey	မီးခိုးရောင်
+H.{0} video bitrate target; higher values make larger files	H.{0} ဗီဒီယို bitrate ပန်းတိုင်; ပိုမြင့်သော တန်ဖိုးများသည် ဖိုင်ပိုကြီးစေသည်
+HABITS >	အလေ့အထများ >
+HER HANDS >	သူမ၏ လက်များ >
+HER JOBS >	သူမ၏ အလုပ်များ >
+HER MEMORY >	သူမ၏ မှတ်ဉာဏ် >
+HER MODS >	သူမ၏ mods >
+HH:mm	HH:mm
+HOW I SOUND >	ကျွန်ုပ် အသံ ဘယ်လိုလဲ >
+Hang here	ဒီမှာ နေပါ
+Have Ollama? Open it, then press Refresh.	Ollama ရှိလား? ဖွင့်ပြီး Refresh နှိပ်ပါ။
+Head pats	ခေါင်းပုတ်ခြင်း
+Hearing	နားထောင်ခြင်း
+Hearing engine	နားထောင်ခြင်း engine
+Hearing fix	နားထောင်ခြင်း ပြင်ဆင်ချက်
+Hearing status	နားထောင်ခြင်း အခြေအနေ
+Help	အကူအညီ
+Help page	အကူအညီ စာမျက်နှာ
+Her colors	သူမ၏ အရောင်များ
+Her folder	သူမ၏ ဖိုဒါ
+Her memories	သူမ၏ မှတ်ဉာဏ်များ
+Her own colors are back.	သူမ၏ အရောင်များ ပြန်ရောက်ပြီ။
+Her own notes (no vault)	သူမ၏ ကိုယ်ပိုင် မှတ်စုများ (vault မရှိ)
+Her perch frames per second	သူမ၏ perch frames တစ်စက္ကန့်ချင်း
+Her personality	သူမ၏ personality
+Her size	သူမ၏ အရွယ်အစား
+Her speaker	သူမ၏ speaker
+Her speaker is hidden or outside VOICE	သူမ၏ speaker သည် ဝှက်ထားသည် သို့မဟုတ် VOICE ပြင်ပတွင် ရှိသည်
+Her speaker overlaps the mic or hearing row	သူမ၏ speaker သည် mic သို့မဟုတ် နားထောင်ခြင်း အတန်းနှင့် ထပ်နေသည်
+Her speaker:	သူမ၏ speaker:
+Her speaker: Default	သူမ၏ speaker: Default
+Her voice in your mic	သင့် mic ထဲရှိ သူမ၏ အသံ
+Her voice in your mic: loudness	သင့် mic ထဲရှိ သူမ၏ အသံ: အသံကျယ်
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	သူမ၏ အသံကိုယ်တိုင်။ ၎င်း၏ pitch သည် Settings > VOICE > Pitch ဖြစ်ပြီး အတူတူ ရွေ့သွားသည်။
+Her voice joins your mic only in call mode.	သူမ၏ အသံသည် call mode တွင်သာ သင့် mic သို့ ဝင်သည်။
+Her voice volume	သူမ၏ အသံအတိုးအကျယ်
+Her voice's pitch	သူမ၏ အသံ pitch
+Her voice's pitch, the same as Settings > VOICE > Pitch	သူမ၏ အသံ pitch၊ Settings > VOICE > Pitch နှင့် တူသည်
+Her voice's speed	သူမ၏ အသံ အမြန်နှုန်း
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	သူမ၏ အသံနှင့် ၎င်း၏ မိတ္တူ နှစ်ခု၊ သူမအောက်တွင် ရောထားပြီး၊ တစ်ခုချင်းစီသည် ကိုယ်ပိုင် pitch နှင့် delay ရှိသည်။
+Her voices · free	သူမ၏ အသံများ · အခမဲ့
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	ဟေ့၊ choom။ ကျွန်မက Capri ပါ။ ပြန်ပြောနိုင်ဖို့ ဦးနှောက် လိုအပ်သည်။ တစ်ခုရွေးပါ။
+Hide / Show Capri	Capri ဖျောက် / ပြ
+Hide / Show key	ဖျောက် / ပြ key
+Hide Capri	Capri ဖျောက်
+Hide for now	ယခုအတွက် ဖျောက်
+Hide her	သူမကို ဖျောက်
+Hide in full screen	full screen တွင် ဖျောက်
+Hide this	ဤအရာကို ဖျောက်
+Hide, keep player	ဖျောက်၊ player ထားပါ
+Hide/show:	ဖျောက်/ပြ:
+Hide/show: Ctrl + Alt + H	ဖျောက်/ပြ: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	ဆင်းပါ
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	PC အလုပ်မလုပ်ဘဲ သူမကို အိပ်ရန် ပို့ရန် ဘယ်လောက်ကြာမလဲ; ငါး မိနစ်သည် သင် ဝေးနေသည်ဟု ဆိုလိုသေးသည်
+How long a stroke over her a head pat needs	သူမ အပေါ် ခေါင်းပုတ်ရန် ဘယ်လောက်ကြာ ပွတ်ရမလဲ
+How long her replies stay up	သူမ၏ အဖြေများ ဘယ်လောက်ကြာ ပေါ်နေမလဲ
+How long you are away before she scrolls a browser or reader	browser သို့မဟုတ် reader ကို သူမ scroll မလုပ်ခင် သင် ဘယ်လောက်ကြာ ဝေးနေရမလဲ
+How much her voice glitches	သူမ၏ အသံ ဘယ်လောက် glitch ဖြစ်မလဲ
+How much of the chat she keeps	စကားဝိုင်းမှ ဘယ်လောက် ထိန်းထားမလဲ
+How much she wanders	သူမ ဘယ်လောက် လှည့်လည်မလဲ
+How often she pops in to say hi	သူမ နှုတ်ဆက်ရန် ဘယ်လောက်မကြာခဏ ဝင်လာမလဲ
+How robotic her voice sounds	သူမ၏ အသံ ရိုဘော့ဆန်ဆန် ဘယ်လောက် ကြားရမလဲ
+How to	နည်းလမ်း
+Huge	ကြီးလွန်း
+I can hear you.	ကျွန်မ ကြားနေတယ်။
+I glance at your screen and comment. Costs a little on a paid brain.	သင့်ဖန်သားပြင်ကို ကြည့်ပြီး မှတ်ချက်ပေးမည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
+I keep listening. Say my name, then just talk.	ဆက်နားထောင်နေမည်။ ကျွန်မနာမည် ခေါ်ပြီးနောက် စကားပြောပါ။
+I talk about your game as you play. Costs a little on a paid brain.	ဂိမ်းကစားနေစဉ် သင့်ဂိမ်းအကြောင်း ပြောမည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
+I type my replies and stay quiet.	ကျွန်မ၏ အဖြေများကို ရိုက်ပြီး တိတ်ဆိတ်နေမည်။
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ပြန်မပြောပါ၊ မည်သည့်နေရာသို့မျှ ဘာမျှ မပို့ပါ။ သင့်သီချင်းကို ကခုန်ပြီး အမြန်အလုပ်များကို လုပ်ဆောင်ပေးမည်၊ volume ကဲ့သို့။
+I'll talk in	ဤအချိန်တွင် ပြောမည်
+IN DISCORD >	IN DISCORD >
+INSTALLED >	INSTALLED >
+Import a Capri mod	Capri mod ထည့်သွင်းရန်
+Import mod	mod ထည့်သွင်းရန်
+In full screen	Full screen တွင်
+In games	ဂိမ်းများတွင်
+Input	Input
+Input, Output or How to overlaps a row	Input၊ Output သို့မဟုတ် How to သည် အတန်းတစ်ခုနှင့် ထပ်နေသည်
+Input:	Input:
+Input: default	Input: default
+Install	ထည့်သွင်း
+Install mod	mod ထည့်သွင်း
+Installed.	ထည့်သွင်းပြီး။
+It may ask for a phone number. I opened the page in your browser.	ဖုန်းနံပါတ် တောင်းနိုင်သည်။ သင့် browser တွင် စာမျက်နှာကို ဖွင့်ပေးထားသည်။
+It still does its own job in other apps too.	အခြား app များတွင်လည်း ၎င်း၏ လုပ်ငန်းကို ဆက်လုပ်နေသည်။
+It won't type in other apps while she runs.	သူမ လုပ်ဆောင်နေစဉ် အခြား app များတွင် မရိုက်ပါ။
+JUST ME >	JUST ME >
+Jealous of other AIs	အခြား AI များကို မနာလိုဖြစ်
+Join the Discord	Discord သို့ ဝင်ပါ
+KB.	KB.
+KEYS	KEYS
+KEYS >	KEYS >
+Keep PC awake for jobs	အလုပ်များအတွက် PC ကို နိုးထားပါ
+Keep player	Player ထားပါ
+Keeps the last two minutes of your game in memory. Say clip that to save it.	သင့်ဂိမ်း၏ နောက်ဆုံး မိနစ်နှစ်ခုကို မှတ်ဉာဏ်တွင် သိမ်းထားသည်။ သိမ်းရန် clip that ဟု ပြောပါ။
+Key	Key
+Key cleared: a model file needs none.	Key ရှင်းပြီး: model ဖိုင်တွင် မလိုပါ။
+Key cleared: paste the key for	Key ရှင်းပြီး: key ကို ကူးထည့်ပါ
+Key forgotten.	Key မေ့သွားပြီ။
+Key. It goes only to this server, as a Bearer key	Key။ ၎င်းသည် ဤဆာဗာသို့သာ Bearer key အဖြစ် ပို့သည်
+Kokoro only, like es	Kokoro သာ၊ es ကဲ့သို့
+LAST THING >	နောက်ဆုံးအရာ >
+LISTENING >	နားထောင်နေသည် >
+Language	ဘာသာစကား
+Large	ကြီး
+Last thing. These cost a little or use your mic, so they're your pick.	နောက်ဆုံးအရာ။ ဤအရာများသည် အနည်းငယ် ကုန်ကျသည် သို့မဟုတ် သင့် mic ကို သုံးသည်၊ ထို့ကြောင့် သင့်ရွေးချယ်မှုဖြစ်သည်။
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	နောက်ဆုံးအရာ။ ဤအရာများသည် အနည်းငယ် ကုန်ကျသည် သို့မဟုတ် သင့် mic ကို သုံးသည်၊ ထို့ကြောင့် သင့်ရွေးချယ်မှုဖြစ်သည်။ ထို့နောက် သင့်ကို ဘာခေါ်ရမလဲ သိချင်သည်။
+Layers	အလွှာများ
+Learn more	ပိုမိုလေ့လာရန်
+Leaving Settings threw its picture away straight away.	Settings မှ ထွက်ခြင်းက သူမ၏ ပုံကို ချက်ချင်း ပစ်ပစ်လိုက်သည်။
+Legacy stand	Legacy stand
+Lie down	ခွေနေပါ
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	အတူကြည့်နေစဉ် မှတ်ဉာဏ်တွင်ထားသော PC dialogue လိုင်းများ။ Remember what she sees ဖွင့်ထားသောအခါ အဟောင်းဆုံးတစ်ဝက်သည် မှတ်စုဖြစ်သွားသည်
+Listen for Capri	Capri ကို နားထောင်ပါ
+Live reactions	တိုက်ရိုက် တုံ့ပြန်မှုများ
+Local server address	ဒေသဆာဗာ လိပ်စာ
+Long	ရှည်
+Longest wait (minutes)	အရှည်ဆုံး စောင့်ချိန် (မိနစ်)
+Looking at this PC...	ဤ PC ကို ကြည့်နေသည်...
+Looking for Ollama. Open it if it isn't running.	Ollama ကို ရှာနေသည်။ မလည်ပတ်ပါက ဖွင့်ပါ။
+Looking for a brain...	ဦးနှောက်ကို ရှာနေသည်...
+Looking in the mods directory for updates...	mods directory တွင် အပ်ဒိတ်များ ရှာနေသည်...
+Looking in the mods directory...	mods directory တွင် ရှာနေသည်...
+Looking...	ရှာနေသည်...
+MAIN >	MAIN >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	မှတ်ဉာဏ် vault >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	MODS DIRECTORY >
+MODS INSTALLED COLORS	MODS ထည့်ထားသော အရောင်များ
+MOVES >	ရွှေ့ခြင်းများ >
+MY BRAIN	ကျွန်ုပ်၏ ဦးနှောက်
+MY FREE VOICE	ကျွန်ုပ်၏ အခမဲ့ အသံ
+MY PLAN OR KEY	ကျွန်ုပ်၏ PLAN သို့မဟုတ် KEY
+MY PLAN OR KEY >	ကျွန်ုပ်၏ PLAN သို့မဟုတ် KEY >
+Made your Fish Audio voice. Press Test to hear it.	သင့် Fish Audio အသံကို ပြုလုပ်ပြီးပါပြီ။ ကြားရန် Test နှိပ်ပါ။
+Mainframe colours	Mainframe အရောင်များ
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe အရောင်များ။ Night City သည် အနီနှင့် cyan ဖြစ်သည်; Black၊ White နှင့် Grey သည် Mainframe၊ သူမ menu များ၊ Type box နှင့် မှတ်စုများကို ပြောင်းသည်
+Mainframe frames	Mainframe frames
+Mainframe key	Mainframe key
+Mainframe size	Mainframe အရွယ်အစား
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe အရွယ်အစား။ Auto သည် Virtual Super Resolution သို့မဟုတ် DSR က ကြီးသော desktop ကို ပိုသေးသော စခရင်သို့ ချုံ့သောအခါ ပိုကြီးစေသည်
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	သင့် Fish Audio အသံကို ပြုလုပ်နေသည်...
+Max reply	အမြင့်ဆုံး တုံ့ပြန်ချက်
+Maximum clip resolution, keeping the game's shape without upscaling	upscaling မလုပ်ဘဲ ဂိမ်း၏ ပုံသဏ္ဍာန်ကို ထိန်းထားသော clip အမြင့်ဆုံး resolution
+Medium	အလယ်အလတ်
+Memory	မှတ်ဉာဏ်
+Memory size	မှတ်ဉာဏ် အရွယ်အစား
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama နှင့် ၎င်း၏ built-in ဦးနှောက်အတွက် tokens ဖြင့် မှတ်ဉာဏ် အရွယ်အစား။ Auto သည် တောင်းဆိုမှုက ပိုလိုအပ်သောအခါ ကြီးလာသည်
+Mg	Mg
+Mic level:	Mic အဆင့်:
+Mic test finished. Sound is reaching Capri.	Mic စမ်းသပ်မှု ပြီးပါပြီ။ အသံသည် Capri ထံ ရောက်နေသည်။
+Mic:	Mic:
+Mic: default	Mic: default
+Microphone	Microphone
+Mini player	Mini player
+Mini player over full screen	Mini player full screen အပေါ်တွင်
+Mini-games	Mini-games
+Minimising the Mainframe left it sliding.	Mainframe ကို လျှော့ချခြင်းက ၎င်းကို ဆွဲလျှောဖြစ်စေခဲ့သည်။
+Minimize	Minimize
+Mod filter	Mod filter
+Mod options	Mod options
+Mod pages	Mod pages
+Mod rules	Mod rules
+Mod sort	Mod sort
+Mod switch	Mod switch
+Model	Model
+Model folder	Model ဖိုင်တွဲ
+Model name, optional	Model အမည်၊ ရွေးချယ်နိုင်သည်
+Mods	Mods
+Mods directory	Mods directory
+Mods folder	Mods ဖိုင်တွဲ
+Most NVIDIA models can't see your screen.	NVIDIA မော်ဒယ်အများစုသည် သင့်စခရင်ကို မမြင်နိုင်ပါ။
+Mouse wheel notches got a flick's long ease:	Mouse wheel notches သည် flick ၏ ရှည်လျားသော လျော့ကျမှုကို ရရှိခဲ့သည်:
+Move	Move
+Move key to MAX INTELLIGENCE	key ကို MAX INTELLIGENCE သို့ ရွှေ့ပါ
+Move to MAX	MAX သို့ ရွှေ့ပါ
+Music	Music
+Music app	Music app
+Music app: where she plays music when you don't name an app	Music app: အက်ပ်အမည် မပြောသည့်အခါ သူမ သီချင်းဖွင့်သည့်နေရာ
+Mute	Mute
+Mute her	သူမကို အသံပိတ်
+Mute mic key	Mute mic key
+Mute mic:	Mute mic:
+Mute mic: Ctrl + Alt + N	Mute mic: Ctrl + Alt + N
+My brain	ကျွန်ုပ်၏ ဦးနှောက်
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	ကျွန်ုပ်၏ ဦးနှောက် ဆင်းလာနေသည်။ ရောက်ရောက်ချင်း နှုတ်ဆက်မည်ဖြစ်ပြီး ထိုအချိန်တွင် ကျွန်ုပ်နှင့် စကားပြောနိုင်ပါပြီ။
+My brain's on its way. While it comes down, let's sort out how I sound.	ကျွန်ုပ်၏ ဦးနှောက် လမ်းတွင်ရှိသည်။ ဆင်းနေစဉ် ကျွန်ုပ်အသံကို ညှိကြပါစို့။
+My provider	ကျွန်ုပ်၏ ပံ့ပိုးသူ
+NO AI	AI မရှိ
+NO PHONES CONNECTED	ချိတ်ဆက်ထားသော ဖုန်းမရှိ
+NO PREVIEW	PREVIEW မရှိ
+NORMAL	ပုံမှန်
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · အခမဲ့ · အသုံးပြုသူများများသောအချိန်တွင် မကြာခဏ နှေး
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA ၏ အခမဲ့ API သည် အထူးသဖြင့် အလုပ်ရှုပ်သောအချိန်တွင် မကြာခဏ နှေးသည်။
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA၊ Google AI Studio (Gemini) သို့မဟုတ် OpenRouter API key
+Names:	အမည်များ:
+Needs a key	key လိုသည်
+Never	Never
+New code	Code အသစ်
+New voice from a clip...	clip မှ အသံအသစ်...
+Next	Next
+Night City	Night City
+No AI	AI မရှိ
+No AI · no brain at all	AI မရှိ · ဦးနှောက် လုံးဝမရှိ
+No brain runs, and nothing is sent anywhere.	ဦးနှောက် မလည်ပတ်ပါ၊ မည်သည့်နေရာသို့မျှ ဘာမျှ မပို့ပါ။
+No brain yet	ဦးနှောက် မရှိသေး
+No code open	Code ဖွင့်ထားခြင်း မရှိ
+No limit	ကန့်သတ်ချက်မရှိ
+No mic found	Mic မတွေ့ပါ
+No mods in the directory yet.	directory တွင် mods မရှိသေးပါ။
+No mods match that.	ဤနှင့် ကိုက်ညီသော mod မရှိပါ။
+No mods match.	ကိုက်ညီသော mod မရှိပါ။
+No phones yet	ဖုန်းများ မရှိသေး
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	virtual mic မရှိသေး။ Output ရွေး၊ ထို့နောက် VB-CABLE (အခမဲ့) ရယူပါ။
+None yet: pick to get VB-CABLE (free)	မရှိသေး: VB-CABLE (အခမဲ့) ရယူရန် ရွေးပါ
+Normal	ပုံမှန်
+Not a relay host	relay host မဟုတ်ပါ
+Not imported. Nothing ran.	မသွင်းသေးပါ။ ဘာမှ မလည်ပတ်ပါ။
+Not updated. The old one is still in.	မအပ်ဒိတ်သေးပါ။ အဟောင်းကို ဆက်ထားသည်။
+Nothing needed updating.	အပ်ဒိတ် လိုအပ်သည် မရှိပါ။
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	ဒေါင်းလုဒ်ဆွဲစရာ မရှိ၊ မည်သည့်နေရာသို့မျှ ဘာမျှ မပို့ပါ။ ပြန်မပြောပါ။ Mainframe တွင် ဘယ်အချိန်မဆို ဦးနှောက် ထည့်ပါ။
+Nothing to show from the mods directory.	mods directory မှ ပြသစရာ မရှိပါ။
+Nothing? Windows Settings > Privacy & security > Microphone.	မရှိဘူးလား? Windows Settings > Privacy & security > Microphone။
+Nous Portal keys aren't supported yet.	Nous Portal keys ကို မထောက်ပံ့သေးပါ။
+OBS	OBS
+OFF	OFF
+OLLAMA	OLLAMA
+ON	ON
+ON THIS PC	ဤ PC တွင်
+OR A KEY	သို့မဟုတ် KEY
+Obsidian memory vault	Obsidian memory vault
+Off	Off
+Off. Turn on Her voice in your mic above.	Off။ အပေါ်ရှိ သင့် mic ထဲ သူမ၏ အသံကို ဖွင့်ပါ။
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Off: သူမ အမြဲလိုပဲ အသံထွက်သည်။ On: သူမရှိသမျှ အသံအားလုံး၊ ElevenLabs အပါအဝင်။
+Often	မကြာခဏ
+On	On
+On / Off	On / Off
+On: your mic and her voice are going in.	On: သင့် mic နှင့် သူမ၏ အသံ ဝင်လာသည်။
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	ဤဦးနှောက် ပို့သော တောင်းဆိုမှု တိုင်းသို့ ထည့်ထားသော JSON object တစ်ခု။ ၎င်း မျှဝေသော အမည်တိုင်းအတွက် Capri ၏ တန်ဖိုးကို အစားထိုးပြီး model ဖြင့် စစ်ဆေးခြင်း မပြုပါ။
+Online speech recognition	Online speech recognition
+Open Capri Mainframe	Capri Mainframe ဖွင့်
+Open Ollama, I'll find it	Ollama ဖွင့်ပါ၊ ငါရှာပေးမယ်
+Open clips folder	clips ဖိုဒါ ဖွင့်
+Open her memories	သူမ၏ မှတ်ဉာဏ်များ ဖွင့်
+Open her notes	သူမ၏ မှတ်စုများ ဖွင့်
+Open mods folder	mods ဖိုဒါ ဖွင့်
+Open the page again	စာမျက်နှာကို ထပ်ဖွင့်
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI၊ Claude၊ DeepSeek၊ Google၊ NVIDIA သို့မဟုတ် OpenRouter။
+OpenAI-compatible server or provider.	OpenAI-compatible ဆာဗာ သို့မဟုတ် ပံ့ပိုးသူ။
+OpenRouter · free models only	OpenRouter · အခမဲ့ model များသာ
+Optional	ရွေးချယ်စရာ
+Optional. Blank means no key.	ရွေးချယ်နိုင်သည်။ အလွတ်ဆိုသည်မှာ key မရှိဟု ဆိုလိုသည်။
+Options	ရွေးချယ်ချက်များ
+Out of the box a little higher, just behind her.	စက်ရုံအနေအထားတွင် အနည်းငယ်မြင့်ပြီး သူမနောက်ကွယ်တွင် ရှိသည်။
+Out of the box lower, just behind her.	စက်ရုံအနေအထားတွင် အနည်းငယ်နိမ့်ပြီး သူမနောက်ကွယ်တွင် ရှိသည်။
+Output	Output
+Output:	Output:
+Output: none	Output: မရှိ
+PHONE CONNECTED	ဖုန်း ချိတ်ဆက်ထားသည်
+PHONES >	ဖုန်းများ >
+PHONES CONNECTED	ချိတ်ဆက်ထားသော ဖုန်းများ
+PREBUILT LOCAL	PREBUILT LOCAL
+PUBLISH MOD >	mod ထုတ်ဝေ >
+Pair a phone	ဖုန်းတစ်လုံး တွဲပါ
+Paste	Paste
+Paste API key	API key ကူးထည့်
+Paste a brain API key	ဦးနှောက် API key ကူးထည့်
+Paste reads your clipboard once, when you press it.	Paste သည် နှိပ်လိုက်သည့်အခါ clipboard ကို တစ်ကြိမ်ဖတ်သည်။
+Paste your key here	သင့် key ကို ဤနေရာတွင် ကူးထည့်ပါ
+Pat stroke	ခေါင်းပွတ်ခြင်း
+Perch	Perch
+Perch over {0} fps uses more CPU	Perch {0} fps အထက်တွင် CPU ပိုသုံးသည်
+Pick Output to get it.	ရယူရန် Output ရွေးပါ။
+Pick a brain so I can talk back. You can change it any time.	ငါပြန်ပြောနိုင်ရန် ဦးနှောက် တစ်ခုရွေးပါ။ အချိန်မရွေး ပြောင်းလဲနိုင်သည်။
+Pick a clip of a voice you have the rights and consent to use	သင်အခွင့်အရေးနှင့် ခွင့်ပြုချက်ရှိသော အသံ၏ clip ကို ရွေးပါ
+Pick a free model. I opened the page in your browser.	အခမဲ့ model တစ်ခု ရွေးပါ။ သင့် browser တွင် စာမျက်နှာကို ဖွင့်ပေးထားသည်။
+Pick a new clip of you...	သင့်အတွက် clip အသစ် ရွေးပါ...
+Pick a voice model...	အသံ model ရွေးပါ...
+Pick one. Only one brain runs at a time.	တစ်ခု ရွေးပါ။ ဦးနှောက် တစ်ခုသာ တစ်ချိန်တည်း လည်ပတ်သည်။
+Pick the note her memories go in	သူမ၏ မှတ်ဉာဏ်များ ဝင်ရမည့် မှတ်စု ရွေးပါ
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	သင်အခွင့်အရေးနှင့် ခွင့်ပြုချက်ရှိသော အသံ၏ စက္ကန့် {0} မှ {1} ရွေးပါ
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	သင်အခွင့်အရေးနှင့် ခွင့်ပြုချက်ရှိသော အသံ သို့မဟုတ် သင် ပြောနေသည့် စက္ကန့် {0} မှ {1} ရွေးပါ
+Pitch	Pitch
+Play	Play
+Play...	Play...
+Player only	Player သာ
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS models များသည် ဤ clip ၏ အသံကို ကူးယူသည်။ ကြားရန် Test နှိပ်ပါ။
+Pop-in times	Pop-in အချိန်များ
+Pop-ins	Pop-ins
+Power saver	Power saver
+Power saver: how lightly she runs in games, or always	Power saver: ဂိမ်းတွင် ဘယ်လောက်ပေါ့ပေါ့ပါးပါး လည်ပတ်မလဲ၊ သို့မဟုတ် အမြဲ
+Preset	Preset
+Press Create API key	Create API key ကို နှိပ်ပါ
+Press Create Key	Create Key ကို နှိပ်ပါ
+Press Generate API Key	Generate API Key ကို နှိပ်ပါ
+Press Test and say something, so I know I can hear you.	Test နှိပ်ပြီး တစ်ခုခု ပြောပါ၊ သင့်ကို ကြားနိုင်သည်ကို ငါသိရန်။
+Press a key, alone or with Ctrl, Alt, Shift or Win.	ကိုယ်တိုင် သို့မဟုတ် Ctrl, Alt, Shift သို့မဟုတ် Win နှင့်အတူ key တစ်ခု နှိပ်ပါ။
+Press new keys, then Confirm	key အသစ်များ နှိပ်ပြီး Confirm ရွေးပါ
+Provider	Provider
+Provider API key, optional	Provider API key၊ ရွေးချယ်နိုင်သည်
+Provider base URL	Provider base URL
+Provider forgotten.	Provider ကို မေ့ပြီးပြီ။
+Provider overlaps the brain name or note	Provider သည် ဦးနှောက်အမည် သို့မဟုတ် မှတ်စုနှင့် ထပ်နေသည်
+Publish	Publish
+Publish mod	Mod ထုတ်ဝေ
+Push to talk is off.	Push to talk ပိတ်ထားသည်။
+Push to talk key	Push to talk key
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: မသတ်မှတ်ရသေး
+QR CODE >	QR CODE >
+QR hidden while streaming	Streaming ဖြစ်နေစဉ် QR ဝှက်ထား
+Quick	Quick
+Quiet key	Quiet key
+Quiet:	Quiet:
+Quiet: Ctrl + Alt + P	Quiet: Ctrl + Alt + P
+Quit Capri	Capri ထွက်
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	CODE ကို ဖွင့်သည်။
+Rarely	ရံဖန်ရံခါ
+Rate mod	Mod ကို အမှတ်ပေး
+Reading its README...	README ဖတ်နေသည်...
+Refresh	Refresh
+Reinstall	ပြန်တပ်ဆင်
+Reload	Reload
+Reloaded.	ပြန်တင်ပြီး။
+Remember our chats	ကျွန်ုပ်တို့ စကားဝိုင်းများ မှတ်ထား
+Remember what she sees	သူမ မြင်သည်များ မှတ်ထား
+Remote	Remote
+Remote off	Remote ပိတ်
+Remote on	Remote ဖွင့်
+Remove	ဖယ်ရှား
+Remove all phones	ဖုန်းအားလုံး ဖယ်ရှား
+Replies	Replies
+Reply length	Reply length
+Report a problem	ပြဿနာ တင်ပြ
+Reset colors	အရောင်များ ပြန်သတ်မှတ်
+Reset to her default	သူမ၏ ပုံမှန်သို့ ပြန်ထား
+Resolution	Resolution
+Restart to update	အပ်ဒိတ်အတွက် ပြန်စတင်
+Restless	ငြိမ်မနေ
+Revoke	Revoke
+Revoke also removes the phones its links added	Revoke သည် ၎င်း၏ link များက ထည့်ထားသော ဖုန်းများကိုလည်း ဖယ်ရှားသည်
+Ride cursor	Cursor ကို စီးပါ
+Ride cursor / Hop off	Cursor ကို စီး / ဆင်းပါ
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	ငါ့ကို ညာကလစ်နှိပ်ပြီး Capri Mainframe ဖွင့်ပါ။ ဦးနှောက်သည် BRAIN အောက်တွင် ဖွင့်သည်။
+Right-click me any time for the Mainframe, Help and the Discord.	ငါ့ကို ညာကလစ်နှိပ်ပြီး Mainframe၊ Help နှင့် Discord ဖွင့်ပါ။
+Roblox	Roblox
+Roblox or any other app: pick	Roblox သို့မဟုတ် အခြား app ဖြစ်စေ: ရွေးပါ
+Robot	Robot
+Rock, paper, scissors	ကျောက်ခဲ၊ စက္ကူ၊ ကတ်ကြေး
+Run this code mod?	ဤ code mod ကို လည်ပတ်မလား?
+Running on this PC	ဤ PC တွင် လည်ပတ်နေသည်
+Running on this PC · :	ဤ PC တွင် လည်ပတ်နေသည် · :
+Runs Claude Code or Codex on this PC, signed in.	ဤ PC တွင် ဝင်ရောက်ထားသော Claude Code သို့မဟုတ် Codex ကို လည်ပတ်သည်။
+Runs on your PC. No key, no credits.	သင့် PC တွင် လည်ပတ်သည်။ key မလို၊ credits မလို။
+SCAN WITH YOUR PHONE · EXPIRES	ဖုန်းဖြင့် စကင်န်ဖတ်ပါ · သက်တမ်းကုန်မည်
+SECURITY >	SECURITY >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	ခွဲခြားမှု
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	အသံ အလေ့အထ ဦးနှောက် ကြည့်ရှု Capri doomscroll ရာသီဥတု clips ဂိမ်း keys ရွေ့လျားမှု အသံ သင်
+Same as her ears (VOICE > Mic)	သူမ၏ နား (VOICE > Mic) နှင့် တူသည်
+Same code on the phone?	ဖုန်းပေါ်ရှိ code တူပါသလား?
+Save	သိမ်း
+Save big moments	အရေးကြီးသောအခိုက်အတန့်များ သိမ်း
+Save folder	သိမ်းဆည်းမည့် ဖိုဒါ
+Save your changes, or press Discard + reload.	သင့်ပြောင်းလဲမှုများ သိမ်းပါ၊ သို့မဟုတ် Discard + reload နှိပ်ပါ။
+Save your changes, or press Discard.	သင့်ပြောင်းလဲမှုများ သိမ်းပါ၊ သို့မဟုတ် Discard နှိပ်ပါ။
+Saved.	သိမ်းပြီး။
+Saved. Ctrl + Alt + O opens her Mainframe.	သိမ်းပြီး။ Ctrl + Alt + O သည် သူမ၏ Mainframe ကို ဖွင့်သည်။
+Saving your rating...	သင့်အဆင့်သတ်မှတ်ချက် သိမ်းနေသည်...
+Say her name anywhere to chat	ဘယ်နေရာမဆို သူမ၏ နာမည်ကို ပြောပြီး စကားပြောပါ
+Screens	Screens
+Screens is hidden or outside WATCH	Screens သည် ဝှက်ထားသည် သို့မဟုတ် WATCH ပြင်ပတွင် ရှိသည်
+Screens overlaps a WATCH row	Screens သည် WATCH အတန်းတစ်ခုနှင့် ထပ်နေသည်
+Screens to watch	ကြည့်ရန် Screens
+Sealed end to end	End to end ကုဒ်ဝှက်ထား
+Search by name or author	နာမည် သို့မဟုတ် စာရေးဆရာဖြင့် ရှာ
+Search installed mods	ထည့်ထားသော mods ရှာ
+Search mods	Mods ရှာ
+Search name, author or description	နာမည်၊ စာရေးဆရာ သို့မဟုတ် ဖော်ပြချက် ရှာ
+Security	လုံခြုံရေး
+Security:	လုံခြုံရေး:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Set up
+Set up her brain	သူမ၏ ဦးနှောက် ထည့်သွင်း
+Set up your voice model	သင့် အသံ model ထည့်သွင်း
+Setting up her brain	သူမ၏ ဦးနှောက် ထည့်သွင်းနေသည်
+Settings	Settings
+Settings / Back	Settings / Back
+Settings folds the wrong rows above BRAIN	Settings သည် BRAIN အပေါ်ရှိ မှားသော အတန်းများကို ခေါက်သည်
+Settings had nothing to watch.	Settings တွင် ကြည့်ရန်ဘာမျှ မရှိပါ။
+Settings lost keyboard focus during the Tab walk	Tab လမ်းလျှောက်စဉ် Settings သည် keyboard focus ဆုံးရှုံးသည်
+Setup guide	Setup guide
+Setup stopped	Setup ရပ်သွားသည်
+She can read it when it fits.	သူမ သင့်လျော်သောအခါ ဖတ်နိုင်သည်။
+She glances at your screen and comments. Costs a little on a paid brain.	သူမ သင့်ဖန်သားပြင်ကို ကြည့်ပြီး မှတ်ချက်ပေးသည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
+She keeps listening. Say her name, then just talk until you go quiet.	သူမ နားထောင်ဆဲ ဖြစ်သည်။ နာမည်ခေါ်ပြီး တိတ်သွားသည်အထိ ပြောပါ။
+She reacts to your game until you close it.	သင်ဂိမ်းကို ပိတ်သည်အထိ သူမ တုံ့ပြန်သည်။
+She reads these controls before each game job.	ဂိမ်းလုပ်ငန်းတစ်ခုစီ မတိုင်မီ သူမ ဤထိန်းချုပ်မှုများကို ဖတ်သည်။
+She talks about your game as you play. Costs a little on a paid brain.	သင်ဂိမ်းကစားနေစဉ် သင့်ဂိမ်းအကြောင်း ပြောသည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
+She uses it when she plays	သူမ ဂိမ်းကစားသည့်အခါ သုံးသည်
+Short	Short
+Shortest wait (minutes)	အတိုဆုံး စောင့်ချိန် (မိနစ်)
+Show Capri	Capri ပြ
+Show QR	QR ပြ
+Show my mod file	ကျွန်ုပ်၏ mod ဖိုင်ကို ပြ
+Show on Discord	Discord တွင် ပြ
+Shum, what time is it	Shum၊ အခု ဘယ်နာရီလဲ
+Sign in	Sign in
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Sign in လုပ်၊ key ဖန်တီးပြီး ကူးယူပါ။ ထို့နောက် Paste နှိပ်ပါ၊ ငါချိတ်ဆက်ပေးမည်။
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Sign in လုပ်၊ Create API key ကို နှိပ်ပြီး ကူးယူပါ။ ထို့နောက် Paste နှိပ်ပါ၊ ငါချိတ်ဆက်ပေးမည်။
+Silent · text only	တိတ်ဆိတ် · စာသားသာ
+Simple / Advanced Settings	Simple / Advanced Settings
+Simple Settings	Simple Settings
+Simple Settings left a gap under Check in on me	Simple Settings သည် Check in on me အောက်တွင် အလွတ်ဖြစ်စေခဲ့သည်
+Sit here	ဒီမှာ ထိုင်
+Sit on windows	ပြတင်းပေါက်များ ပေါ်ထိုင်
+Size	Size
+Skip	Skip
+Skip all	Skip all
+Skip for now	Skip for now
+Sleep	Sleep
+Small	သေး
+Sometimes	တစ်ခါတစ်ရံ
+Sound effects volume	Sound effects volume
+Sound sensitivity	Sound sensitivity
+Sounds	Sounds
+Speaker or clip	Speaker သို့မဟုတ် clip
+Speech model	Speech model
+Speed	Speed
+Start with Windows	Windows နှင့် စတင်
+Start with this!	ဒါနဲ့ စတင်!
+Starting...	စတင်နေသည်...
+Stay	နေပါ
+Stay on my model	ကျွန်ုပ်၏ model ကို ဆက်ထား
+Still checking your mics...	သင့် mic များကို ဆက်စစ်ဆေးနေသည်...
+Still checking your speakers...	သင့် speaker များကို ဆက်စစ်ဆေးနေသည်...
+Still checking your virtual mics...	သင့် virtual mic များကို ဆက်စစ်ဆေးနေသည်...
+Stop	ရပ်
+Stopped using it. Couldn't remove the saved provider.	အသုံးပြုခြင်းကို ရပ်လိုက်သည်။ သိမ်းထားသော provider ကို ဖယ်ရှား၍ မရပါ။
+Support	Support
+Sure?	သေချာလား?
+Sure? moved to a different phone	သေချာလား? အခြားဖုန်းသို့ ရွှေ့ပြီးပြီ
+TALK TO ME	ငါ့ကို ပြော
+TEXT ONLY	စာသားသာ
+Tab landed past the first option of	Tab သည် ပထမရွေးချယ်စရာကို ကျော်သွားသည်
+Tab never reached the quiet key	Tab သည် quiet key ထိ မရောက်ခဲ့ပါ
+Tab reached nothing	Tab သည် တစ်ခုမှ မရောက်ခဲ့ပါ
+Tab selected a control without moving keyboard focus	Tab သည် keyboard focus မရွှေ့ဘဲ ထိန်းချုပ်မှုကို ရွေးချယ်သည်
+Talk	ပြော
+Talk key	Talk key
+Talk:	Talk:
+Talk: Ctrl + Alt + V	Talk: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	ပန်းတိုင် capture frame rate; load သို့မဟုတ် memory budget အောက်တွင် ကျနိုင်သည်
+Teases when another AI comes to the front.	အခြား AI ရှေ့ထွက်လာသောအခါ နောက်ပြောင်သည်။
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	ထိုလိပ်စာ အလုပ်မလုပ်ပါ။ https://... သို့မဟုတ် http://localhost:{0} ကို စမ်းကြည့်ပါ။
+That code expired	ထို code သက်တမ်းကုန်သွားပြီ
+That mod is no longer installed. The list is updated.	ထို mod ကို ယခု မထည့်သွင်းတော့ပါ။ စာရင်း အပ်ဒိတ်ပြီးပြီ။
+That's a paid key: it goes under MAX INTELLIGENCE.	ထိုသည် ပေးချေထားသော key ဖြစ်သည်: MAX INTELLIGENCE အောက်သို့ သွားသည်။
+The Mainframe stayed composited while sliding.	ဆွဲရွှေ့နေစဉ် Mainframe သည် composited ဖြစ်နေဆဲ ဖြစ်သည်။
+The Mainframe stayed uncomposited after the slide.	ဆွဲရွှေ့ပြီးနောက် Mainframe သည် uncomposited ဖြစ်နေဆဲ ဖြစ်သည်။
+The controls moved while the picture was sliding.	ပုံ ဆွဲရွှေ့နေစဉ် ထိန်းချုပ်မှုများ ရွေ့သွားသည်။
+The cover stayed visible after the slide ended.	ဆွဲရွှေ့ပြီးနောက် cover သည် မြင်နေဆဲ ဖြစ်သည်။
+The frame thread kept running after the page settled.	စာမျက်နှာ တည်ငြိမ်ပြီးနောက် frame thread သည် ဆက်လည်ပတ်နေဆဲ ဖြစ်သည်။
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	သူမ ပေးနိုင်သော အရှည်ဆုံး တုံ့ပြန်ချက်၊ tokens ဖြင့်။ Auto သည် အပေါ်ရှိ Replies ကို လိုက်နာသည်; {0}K သို့မဟုတ် {1}K က သူမ ဆက်ပြောနိုင်စေသည်။ Jobs သည် လိုအပ်လျှင် နေရာပိုယူသည်
+The longest wait must be at least the shortest wait.	အရှည်ဆုံး စောင့်ချိန်သည် အတိုဆုံး စောင့်ချိန်ထက် မနည်းရပါ။
+The picture doesn't match the scrolled page:	ပုံသည် ဆွဲလှိမ့်ထားသော စာမျက်နှာနှင့် မကိုက်ညီပါ:
+The picture of Settings doesn't match the page:	Settings ပုံသည် စာမျက်နှာနှင့် မကိုက်ညီပါ:
+The picture stayed up after the slide ended.	ပြီးဆုံးပြီးနောက်တွင် ပုံ မြင်နေဆဲ ဖြစ်သည်။
+The picture wasn't showing while it slid.	ပုံ ဆွဲနေစဉ် မပြသခဲ့ပါ။
+The provider sheet is crowded:	Provider sheet သည် ပြည့်နေသည်:
+The voice panel has no screen DPI.	Voice panel တွင် screen DPI မရှိပါ။
+The voice panel's menus share one font.	Voice panel ၏ menu များသည် font တစ်ခုတည်း မျှဝေသည်။
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	သင့် clipboard တွင် key မရှိသေးပါ။ စာမျက်နှာမှ ကူးပြီး Paste နှိပ်ပါ။
+These start off. Each costs a little or uses your mic.	ဤအရာများ ပိတ်ထားသည်စဖြင့်။ တစ်ခုစီသည် အနည်းငယ် ကုန်ကျ သို့မဟုတ် သင့် mic ကို သုံးသည်။
+These start off. Turn on what you want. They're all in Settings too.	ဤအရာများ ပိတ်ထားသည်စဖြင့်။ သင်လိုချင်သည်များကို ဖွင့်ပါ။ အားလုံးသည် Settings တွင်လည်း ရှိသည်။
+They can also call you Big Z, Capricorn or Nova	ငါ့ကို Big Z၊ Capricorn သို့မဟုတ် Nova ဟုလည်း ခေါ်နိုင်သည်
+They can also call you Nova, Big Z or Capricorn	ငါ့ကို Nova၊ Big Z သို့မဟုတ် Capricorn ဟုလည်း ခေါ်နိုင်သည်
+Thinking	စဉ်းစားနေသည်
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	ဤသည် ကျွန်ုပ်၏ အခမဲ့ အသံ။ Test နှိပ်၊ တစ်ခုခု ပြော၊ ကျွန်ုပ်ကြားနိုင်ကြောင်း ပြပါမည်။
+This mod has no description yet.	ဤ mod တွင် ဖော်ပြချက် မရှိသေးပါ။
+Tic-tac-toe	Tic-tac-toe
+Time between glances	ကြည့်ချိန်များကြား အချိန်
+Tiny	အလွန်သေး
+Try again	ထပ်ကြိုးစား
+Turn Remote on first	Remote ကို အရင်ဖွင့်ပါ
+Turn off mini player	Mini player ပိတ်
+Turn push to talk off	Push to talk ပိတ်
+Turning the wheel the other way kept the page heading the old way, to	ဘီးကို တခြားလမ်းကြောင်းသို့ လှည့်သဖြင့် စာမျက်နှာသည် အဟောင်းလမ်းကြောင်းအတိုင်း ဆက်သွားသည်၊
+Type	ရိုက်
+Type key	Type key
+Type to me	ငါ့ကို ရိုက်
+Type:	Type:
+Type: Ctrl + Alt + T	Type: Ctrl + Alt + T
+Typing sound	Typing sound
+Unpacked. Press Test to hear it.	Unpacked။ ကြားရန် Test နှိပ်ပါ။
+Unsaved changes.	မသိမ်းရသေးသော ပြောင်းလဲမှုများ။
+Up to {0} fps	{0} fps အထိ
+Up to {0}p	{0}p အထိ
+Update	Update
+Update available.	Update ရနိုင်သည်။
+Update mods	Mods များ Update လုပ်
+Updating...	Updating...
+Use	Use
+Use her cursor	သူမ၏ cursor ကို သုံး
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	ပြင်ပ provider အတွက် https:// ကို သုံးပါ။ ရိုးရိုး http ပေါ်ရှိ key သည် လုံခြုံမှုမရှိပါ။
+Use preset	Preset သုံး
+Use saved	Saved ကို သုံး
+Use this server	ဤ server ကို သုံး
+Using your provider with a key	key ဖြင့် သင့် provider ကို သုံးနေသည်
+Using your server with no key	key မပါဘဲ သင့် server ကို သုံးနေသည်
+VIEW MOD >	VIEW MOD >
+VOICE >	VOICE >
+VOICE IN YOUR MIC >	VOICE IN YOUR MIC >
+VOICE LAYERS >	VOICE LAYERS >
+Verbosity	Verbosity
+Video bitrate	Video bitrate
+View	View
+View mod	View mod
+Voice	Voice
+Voice ID	Voice ID
+Voice from	Voice from
+Voice layers	Voice layers
+Voice model	Voice model
+Voice model:	Voice model:
+Voice name or ID, optional	Voice name သို့မဟုတ် ID၊ ရွေးချယ်နိုင်သည်
+Voice server address, or a voice model's folder	Voice server လိပ်စာ၊ သို့မဟုတ် voice model ၏ ဖိုဒါ
+Voice status	Voice status
+Voice, key and model...	Voice၊ key နှင့် model...
+Volume	Volume
+WAKE ME UP >	WAKE ME UP >
+WATCH >	WATCH >
+Waiting for the relay	Relay ကို စောင့်နေသည်
+Wake her up	သူမကို နိုးပါ
+Waking her up	သူမကို နှိုးနေသည်
+Wander	Wander
+Wander around	ပတ်ပတ်လည် လှည့်
+Watch my screen	ကျွန်ုပ်၏ စခရင်ကို ကြည့်
+Watch-along memory	Watch-along memory
+Weather	ရာသီဥတု
+Weather city	Weather city
+Welcome back, choom. Let's finish setting me up.	ပြန်လာတာ ကြိုဆိုပါတယ်၊ choom။ ကျွန်ုပ်၏ setup ကို ပြီးအောင် လုပ်ကြပါစို့။
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	သူမသည် မေးမနေဘဲ သင့် PC တွင် လုပ်ဆောင်သည်။ toggle ပိတ်ထားလျှင် သူမ ဦးစွာ မေးပြီး သင်ဟုတ်ကဲ့ပြောမှ လုပ်သည်။
+What should she call you?	သူမ သင့်ကို ဘာခေါ်ရမလဲ?
+When she types	သူမ ရိုက်သောအခါ
+White	ဖြူ
+Windows default	Windows default
+Windows did not give Settings keyboard focus	Windows သည် Settings ကို keyboard focus မပေးခဲ့ပါ
+Windows did not return keyboard focus to Back	Windows သည် keyboard focus ကို Back သို့ ပြန်မပေးခဲ့ပါ
+With no picture the wheel still tried to slide.	ပုံမရှိဘဲ ဘီးသည် ဆွဲရွှေ့ရန် ကြိုးစားနေဆဲ ဖြစ်သည်။
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE တွင် အကောင်းဆုံး အလုပ်လုပ်သည်။
+YOU	သင်
+YOU >	သင် >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	သင် အသံ ရွေ့လျားမှု keys ဂိမ်း clips ရာသီဥတု doomscroll Capri ကြည့် ဦးနှောက် အလေ့အထ အသံများ
+YOUR KEY	သင့် KEY
+YOUR MIC	သင့် MIC
+YOUR PLAN	သင့် PLAN
+Yokapri what's up	Yokapri ဘာဖြစ်လဲ
+You can hide this. It keeps going, and the Mainframe shows it too.	ဤအရာကို ဝှက်နိုင်သည်။ ဆက်လည်ပတ်ပြီး Mainframe က ၎င်းကိုလည်း ပြသသည်။
+Your mic and her voice go into one virtual mic, and	သင့် mic နှင့် သူမ၏ အသံသည် virtual mic တစ်ခုတည်းသို့ ဝင်ပြီး၊
+Your mic is muted. Unmute it to test.	သင့် mic ပိတ်ထားသည်။ စမ်းသပ်ရန် ပြန်ဖွင့်ပါ။
+Your mods are up to date.	သင့် mods များ နောက်ဆုံးဖြစ်သည်။
+Your name or a nickname	သင့်နာမည် သို့မဟုတ် နာမည်ပြောင်
+Your own model	သင့်ကိုယ်ပိုင် model
+Your personality	သင့် personality
+Your voice	သင့် အသံ
+Your voice (HD)	သင့် အသံ (HD)
+Your voice (HD) · pick a clip of you...	သင့် အသံ (HD) · သင့် clip ရွေးပါ...
+Your voice model	သင့် voice model
+as its mic.	as its mic.
+changed. Saved as My Colors, so you can share it.	ပြောင်းလဲပြီး။ My Colors အဖြစ် သိမ်းပြီး မျှဝေနိုင်ပါသည်။
+choice	ရွေးချယ်မှု
+clips the input line	input line ကို ဖြတ်သည်
+cue	cue
+doesn't yet.	မရသေးပါ။
+download	download
+file.	ဖိုင်။
+flag	flag
+fps	fps
+hear	hear
+hears	hears
+hears that.	hears that.
+hides or shows her.	သူမကို ဖျောက် သို့မဟုတ် ပြသသည်။
+hint	hint
+in the Mainframe.	Mainframe တွင်။
+in the mods directory with a pull request.	pull request ဖြင့် mods directory တွင်။
+in the picture wasn't noticed.	ပုံတွင် မသတိထားမိပါ။
+is already her push-to-talk key.	သူမ၏ push-to-talk key ဖြစ်ပြီးသား ဖြစ်သည်။
+is off.	ပိတ်ထားသည်။
+is on and running.	ဖွင့်ပြီး ပြေးနေသည်။
+is on, at the bottom, under	ဖွင့်ထား၊ အောက်၊ အောက်တွင်
+is on.	ဖွင့်ထားသည်။
+is on. She now answers to	ဖွင့်ထားသည်။ ယခု သူမသည် ဖြေသည်
+is removed.	ဖယ်ရှားပြီးပြီ။
+is taken	ယူထားပြီး
+is taken by another app. Try another.	အခြား app က ယူထားသည်။ တစ်ခု စမ်းကြည့်ပါ။
+is updated	အပ်ဒိတ်ပြီး
+isn't hearing it yet: do {0} and {1}, then join a call.	ဒီအချိန်တွင် မကြားသေးပါ: {0} နှင့် {1} လုပ်ပြီး call ထဲ ဝင်ပါ။
+it now.	ယခု။
+keeps her quiet, and lets her talk again.	သူမကို တိတ်ဆိတ်စေပြီး ထပ်ပြောခွင့်ပြုသည်။
+key	key
+key.	key.
+min	min
+more.	ပို။
+ms.	ms.
+mutes mic	mic ကို mute လုပ်သည်
+mutes your mic.	သင့် mic ကို mute လုပ်သည်။
+name	name
+off	off
+on this PC	ဤ PC တွင်
+opens her Mainframe.	သူမ၏ Mainframe ကို ဖွင့်သည်။
+opens her typing box.	သူမ၏ typing box ကို ဖွင့်သည်။
+phone	phone
+phone pixels	phone pixels
+phones	phones
+pixels	pixels
+pixels)	pixels)
+star.	star.
+stars.	stars.
+starts voice chat.	voice chat ကို စတင်သည်။
+stays off. Nothing ran.	off ဖြစ်ဆဲ ဖြစ်သည်။ ဘာမျှ မလည်ပတ်ပါ။
+still does its own job in other apps too. Confirm to keep it.	အခြား app များတွင်လည်း ၎င်း၏ လုပ်ငန်းကို ဆက်လုပ်သည်။ ထားရန် Confirm ပါ။
+tall	tall
+time	time
+to talk	to talk
+to talk to her, with a game in front too.	ဂိမ်း ရှေ့ရှိစဉ် သူမနှင့် စကားပြောရန်။
+too.	too.
+turns Gaming Mode on and off.	Gaming Mode ကို ဖွင့်/ပိတ်သည်။
+with Ollama	with Ollama
+won't type in other apps while she runs. Confirm to keep it.	သူမ လည်ပတ်နေစဉ် အခြား app များတွင် မရိုက်ပါ။ ထားရန် Confirm ပါ။
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering	{0}   သူမ၏ အသံ ပြတ်ပါက noise filtering ကို ပိတ်ပါ
+{0}   Input Device:	{0}   Input Device:
+{0}   Join the call and check they hear both of you	{0}   Call ထဲ ဝင်ပြီး နှစ်ယောက်စလုံးကို ကြားနိုင်ကြောင်း စစ်ပါ
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mic Test > Let's Check: သင်ကိုယ်တိုင်နှင့် သူမ ပြောသည့်အခါ ကြားရမည်
+{0}   Microphone:	{0}   Microphone:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: None။ နှစ်ခုစလုံးက ပထမစာကြောင်းပြီးနောက် သူမ၏ အသံကို ဖြတ်နိုင်သည်။
+{0}   Open the call or meeting's audio settings	{0}   Call သို့မဟုတ် meeting ၏ audio settings ကို ဖွင့်ပါ
+{0}   Output Device: your headphones, like before	{0}   Output Device: နားကြပ်၊ ယခင်အတိုင်း
+{0}   Speaker: your headphones, like before	{0}   Speaker: နားကြပ်၊ ယခင်အတိုင်း
+{0}   Try a mic test in your call app	{0}   သင့် call app တွင် mic test လုပ်ကြည့်ပါ
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (နာမည်ဘေးရှိ gear) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} လိုင်း
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ဤ PC တွင်
+· server	· server

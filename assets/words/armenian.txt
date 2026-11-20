@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Վերանկարված կառավարման տարրը նկարում չվերանկարվեց։
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Անվճար բանալի Google AI Studio-ից, NVIDIA-ից կամ OpenRouter-ից։ Ներբեռնելու բան չկա։ Պահանջում է ինտերնետ։
+A held trackpad scroll got a flick's long ease:	Պահած թաչպադի ոլորումը ստացավ երկար մարման էֆեկտ՝
+A layout change during a slide put the page at	Դասավորության փոփոխությունը սլայդի ընթացքում էջը տեղափոխեց
+A layout change left the picture up.	Դասավորության փոփոխությունը թողեց նկարը էկրանին։
+A model in Ollama, on your local server or on your key.	Մոդել Ollama-ում, ձեր տեղական սերվերի վրա կամ ձեր բանալիով։
+A paid key goes under MAX INTELLIGENCE by itself.	Վճարովի բանալին ինքնուրույն գնում է MAX INTELLIGENCE։
+A plan you already pay for, a key of your own, or Ollama.	Արդեն վճարվող պլան, ձեր սեփական բանալին կամ Ollama։
+A voice panel menu doesn't hold its own copy of the panel's font.	Ձայնի պանելի ընտրացանկը չունի պանելի տառատեսակի սեփական պատճենը։
+A wheel turn right after a slide ended froze the picture.	Անիվի շրջումը սլայդի ավարտից անմիջապես հետո սառեցրեց նկարը։
+ALLOW THIS PHONE?	ԹՈՒՅԼԱՏՐԵԼ ԱՅՍ ՀԵՌԱԽՈՍԸ՞
+ALMOST THERE >	ԳՐԵԹԷ ՄՈՏ Է >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ՄԵԿ ԱՅԼ CAPRI ՎԵՐՑՐԵՑ · ԱՆՋԱՏԵՔ ԵՎ ՄԻԱՑՐԵՔ
+API key	API բանալի
+API key, Claude plan or ChatGPT plan	API բանալի, Claude պլան կամ ChatGPT պլան
+Add	Ավելացնել
+Address	Հասցե
+Address and key saved. Use saved to reconnect.	Հասցեն և բանալին պահված են։ Օգտագործեք «Պահվածը» վերամիանալու համար։
+Advanced Settings	Ընդլայնված կարգավորումներ
+All	Բոլորը
+All screens	Բոլոր էկրանները
+Allow	Թույլատրել
+Almost there. I'll say hi the second my brain's in.	Գրեթե պատրաստ է։ Կողջունեմ, հենց որ ուղեղս միանա։
+Always	Միշտ
+Always on top	Միշտ վերևում
+Any Google account works. I opened the page in your browser.	Ցանկացած Google հաշիվ է աշխատում։ Բացեցի էջը ձեր դիտարկիչում։
+Applies to every voice	Վերաբերում է բոլոր ձայներին
+Apps she may close	Հավելվածներ, որոնք կարող է փակել
+Ask Capri for more	Խնդրեք Capri-ից ավելին
+Asking your server...	Հարցնում եմ ձեր սերվերից...
+Asks before closing only the apps you choose.	Փակելուց առաջ հարցնում է միայն ձեր ընտրած հավելվածների մասին։
+Auto	Ավտո
+Automatic: VB-CABLE, else Steam's	Ավտոմատ՝ VB-CABLE, հակառակ դեպքում՝ Steam-ի
+BAD RELAY HOST	ՍԽԱԼ RELAY ՀՈՍՏ
+BIG Z open notepad	BIG Z բացել նոթատետր
+BRAIN	ՈՒՂԵՂ
+BRAIN >	ՈՒՂԵՂ >
+BRAIN ONLINE >	ՈՒՂԵՂԸ ԱՌՑԱՆՑ >
+BRAIN PROVIDER >	ՈՒՂԵՂԻ ՄԱՏԱԿԱՐԱՐ >
+BRAIN VOICE CAPRI	ՁԱՅՆԱՅԻՆ ՈՒՂԵՂ CAPRI
+Back	Հետ
+Back on your saved API key.	Հետ՝ պահված API բանալիով։
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Լավագույնը այս PC-ի համար՝
+Black	Սև
+Blank key means no key.	Դատարկ բանալին նշանակում է առանց բանալիի։
+Brain API key	Ուղեղի API բանալի
+Brain model	Ուղեղի մոդել
+Brain provider	Ուղեղի մատակարար
+Bring here	Բերել այստեղ
+Bring to this screen	Բերել այս էկրանին
+Browse	Դիտել
+Browse mods	Դիտել մոդերը
+Browse to a voice model	Դիտել ձայնի մոդել
+Browse...	Դիտել...
+Bubble	Փուչիկ
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, դու այստեղ ես
+CAN'T REACH THE RELAY · RETRYING	ՉԵՄ ԿԱՐՈՂ ՄԻԱՆԱԼ RELAY-ԻՆ · ՆՈՐԻՑ ՓՈՐՁՈՒՄ ԵՄ
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI ՁԱՅՆԱՅԻՆ ՈՒՂԵՂ
+CHANGED, approve it again.	ՓՈՓՈԽՎԱԾ Է, նորից հաստատեք։
+CLIPS >	ՏԵՍԱՀԱՏՎԱԾՆԵՐ >
+CLOUD VOICE	ԱՄՊԱՅԻՆ ՁԱՅՆ
+CODE	ԿՈԴ
+COLORS >	ԳՈՒՅՆԵՐ >
+CONNECTED	ՄԻԱՑՎԱԾ Է
+CONNECTING	ՄԻԱՑՎՈՒՄ Է
+CUSTOM LOCAL	ՀԱՄԱՐՏՎԱԾ ՏԵՂԱԿԱՆ
+Call mode (beta)	Զանգի ռեժիմ (բետա)
+Call mode does not fit.	Զանգի ռեժիմը չի տեղավորվում։
+Call mode is outside its space.	Զանգի ռեժիմը իր տարածքից դուրս է։
+Cancel	Չեղարկել
+Cancel keys	Չեղարկել բանալիները
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri կոդ՝
+Capri mods (*	Capri մոդեր (*
+Capri, hello	Capri, բարև
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Քաոս, երբ նեղվում է
+Chat with Capri from your phone	Զրուցեք Capri-ի հետ ձեր հեռախոսից
+ChatGPT plan	ChatGPT պլան
+Check for updates	Ստուգել թարմացումները
+Check in on me	Հետաքրքրվել ինձ
+Check in on me is hidden	Հետաքրքրվել ինձ թաքնված է
+Check in on me still decides whether she visits.	Հետաքրքրվել ինձ դեռ որոշում է՝ արդյոք նա այցելում է։
+Check in on me's tip missed	Հետաքրքրվել ինձ հուշումը բաց թողնվեց
+Chess	Շախմատ
+Choose apps	Ընտրել հավելվածներ
+Choose folder...	Ընտրել թղթապանակ...
+Choose where future Capri clips are saved	Ընտրեք, թե որտեղ պահվեն Capri-ի տեսահատվածները
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude կամ ChatGPT պլան, վճարովի բանալի (OpenAI, Claude, DeepSeek) կամ Ollama։
+Claude plan	Claude պլան
+Clear	Մաքրել
+Cleared.	Մաքրված է։
+Click Confirm to keep Down, or press Esc.	Սեղմեք Հաստատել՝ Ներքևը պահելու համար, կամ սեղմեք Esc։
+Click to open it.	Սեղմեք բացելու համար։
+Clip my games	Ձայնագրել իմ խաղերը
+Clips	Տեսահատվածներ
+Close	Փակել
+Close other AIs for me	Փակել այլ AI-ները իմ փոխարեն
+Cloud voice	Ամպային ձայն
+Cloud voice service	Ամպային ձայնի ծառայություն
+Cloud voice setup	Ամպային ձայնի կարգավորում
+Code mods can reach your whole PC. Only trusted ones.	Կոդային մոդերը կարող են հասնել ձեր ամբողջ PC-ին։ Միայն վստահելիները։
+Code/Husk Mode	Code/Husk ռեժիմ
+Codex	Codex
+Commands	Հրամաններ
+Comment on my games	Մեկնաբանել իմ խաղերը
+Comments	Մեկնաբանություններ
+Confirm	Հաստատել
+Confirm keys	Հաստատել բանալիները
+Connect	Միացնել
+Connect / Forget brain key	Միացնել / մոռանալ ուղեղի բանալին
+Connect / Forget voice key	Միացնել / մոռանալ ձայնի բանալին
+Connect four	Չորս շարքով
+Controls	Կառավարում
+Copri, what time is it	Copri, ժամը քանիսն է
+Copy error details	Պատճենել սխալի մանրամասները
+Copy the key	Պատճենել բանալին
+Copy the key from the page, then press Paste.	Պատճենեք բանալին էջից, հետո սեղմեք Տեղադրել։
+Couldn't open that page:	Չկարողացա բացել այդ էջը՝
+Couldn't open that:	Չկարողացա բացել այդ՝
+Couldn't open the mods folder:	Չկարողացա բացել մոդերի թղթապանակը՝
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M արդեն նրա Mainframe բանալին է։
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N-ը անջատում է խոսափողը
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V արդեն նրա խոսելու բանալին է։
+Ctrl + Alt + V to talk	Ctrl + Alt + V՝ խոսելու համար
+Custom local voice	Անհատական տեղական ձայն
+Custom model name	Անհատական մոդելի անուն
+Dance	Պարել
+Dance to music	Պարել երաժշտությանը
+Default	Լռելյայն
+Default (follows Windows)	Լռելյայն (հետևում է Windows-ին)
+Default duration for clip that and automatic clips	Լռելյայն տևողություն clip that-ի և ավտոմատ տեսահատվածների համար
+Default length	Լռելյայն երկարություն
+Default model	Լռելյայն մոդել
+Delay	Ուշացում
+Deny	Մերժել
+Discard	Հրաժարվել
+Discard + reload	Հրաժարվել + վերբեռնել
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Չե՞ք ուզում սպասել։ Անվճար բանալին մոտ մեկ րոպեում ինձ կխոսեցնի։
+Done	Պատրաստ է
+EXTRA REQUEST JSON >	ԼՐԱՑՈՒՑԻՉ JSON ՀԱՐՑՄԱՆ >
+EXTRAS >	ԼՐԱՑՈՒՑԻՉՆԵՐ >
+Edit	Խմբագրել
+Edit check-in lines	Խմբագրել ողջույնի տողերը
+Edit check-in lines has the wrong view or dimming	Խմբագրել ողջույնի տողերը՝ սխալ տեսք կամ մգացում
+Edit check-in lines is out of place	Խմբագրել ողջույնի տողերը տեղից դուրս է
+Edit controls	Խմբագրել կառավարումը
+ElevenLabs API key	ElevenLabs API բանալի
+ElevenLabs voice ID	ElevenLabs ձայնի ID
+English	Անգլերեն
+Enter the game's name first.	Նախ մուտքագրեք խաղի անունը։
+Every	Յուրաքանչյուր
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Յուրաքանչյուր մոդ ստուգվում է վնասակար ծրագրերի համար նախքան վերբեռնելը։ Կոդային մոդերը դեռ հարցնում են նախքան գործարկելը։
+Explore after	Ուսումնասիրել հետո
+Explore while I'm away	Ուսումնասիրել, երբ բացակայում եմ
+Extra request JSON	Լրացուցիչ հարցման JSON
+Extras	Լրացուցիչներ
+FREE KEY	ԱՆՎՃԱՐ ԲԱՆԱԼԻ
+FREE KEY >	ԱՆՎՃԱՐ ԲԱՆԱԼԻ >
+Fast hands in games	Արագ ձեռքեր խաղերում
+File editor	Ֆայլերի խմբագիր
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio-ն, ElevenLabs-ը և այլը Mainframe-ում գտնվում են ՁԱՅՆ բաժնում։
+Follow-up messages	Հետագա հաղորդագրություններ
+Forget	Մոռանալ
+Fork capri-mods	Պատճենել capri-mods-ը (fork)
+Frame rate	Կադրերի արագություն
+Free	Անվճար
+Free and private, works offline. Downloads	Անվճար և մասնավոր, աշխատում է առանց ինտերնետի։ Ներբեռնում է
+Free and private, works offline. Downloads the best model for this PC.	Անվճար և մասնավոր, աշխատում է առանց ինտերնետի։ Ներբեռնում է այս PC-ի լավագույն մոդելը։
+Free key	Անվճար բանալի
+Free key providers	Անվճար բանալիների մատակարարներ
+Free keys can be rate limited and slow.	Անվճար բանալիները կարող են սահմանափակված և դանդաղ լինել։
+Free voice in games	Անվճար ձայն խաղերում
+Free voice style	Անվճար ձայնի ոճ
+Free voice:	Անվճար ձայն՝
+Free voice: Her own	Անվճար ձայն՝ Իր սեփականը
+Free · local model	Անվճար · տեղական մոդել
+GAMES >	ԽԱՂԵՐ >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Խաղի մեկնաբանությունները աշխատում են առանձին «Դիտել իմ էկրանը»-ից։ Անջատվածը դրանք դադարեցնում է, նաև Խաղային ռեժիմում; Միայն իրադարձություններ և Զրուցասեր թույլ են տալիս դիտել ձեր խաղը
+Game controls	Խաղի կառավարում
+Game name	Խաղի անուն
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Խաղի ձայների զգայունություն։ Իջեցրեք, եթե ականջակալը ցածր է, բայց Windows-ը {0}%-ի վրա է և նա արձագանքում է ամեն ձայնի։ Անջատված՝ անտեսում է խաղի ձայները
+Game sounds	Խաղի ձայներ
+Games	Խաղեր
+Gaming Mode	Խաղային ռեժիմ
+Gaming Mode key	Խաղային ռեժիմի բանալի
+Gaming Mode:	Խաղային ռեժիմ՝
+Gaming Mode: Ctrl + Alt + G	Խաղային ռեժիմ՝ Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Ստանալ VB-CABLE
+Get VB-CABLE (free)...	Ստանալ VB-CABLE (անվճար)...
+Get free voice	Ստանալ անվճար ձայն
+Getting your Fish Audio voices...	Ստացվում են ձեր Fish Audio ձայները...
+Giant	Հսկա
+Glitch	Glitch
+Glitch in at startup	Glitch մեկնարկի ժամանակ
+Go to sleep	Գնալ քնելու
+Go to the next screen	Անցնել հաջորդ էկրան
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · անվճար շերտ · սահմանափակ
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Ունե՞ք Claude կամ ChatGPT պլան, կամ սեփական բանալի։ Ընտրեք այն, և ես կմիանամ։
+Got it, just me. Right-click me any time for Capri Mainframe.	Հասկացա, միայն ես։ Աջ սեղմեք ինձ ցանկացած պահի՝ Capri Mainframe-ի համար։
+Grey	Մոխրագույն
+H.{0} video bitrate target; higher values make larger files	H.{0} վիդեոյի բիթրեյթի նպատակ․ ավելի բարձր արժեքները ավելի մեծ ֆայլեր են ստեղծում
+HABITS >	ՍՈՎՈՐՈՒԹՅՈՒՆՆԵՐ >
+HER HANDS >	ՆՐԱ ՁԵՌՔԵՐԸ >
+HER JOBS >	ՆՐԱ ԱՇԽԱՏԱՆՔՆԵՐԸ >
+HER MEMORY >	ՆՐԱ ՀՈՇՈՂՈՒԹՅՈՒՆԸ >
+HER MODS >	ՆՐԱ ՄՈԴԵՐԸ >
+HH:mm	HH:mm
+HOW I SOUND >	ԻՆՉՊԵՍ Եմ ՀՆՉՈՒՄ >
+Hang here	Մնալ այստեղ
+Have Ollama? Open it, then press Refresh.	Ունե՞ք Ollama։ Բացեք այն և սեղմեք Թարմացնել։
+Head pats	Գլխին շոյանքներ
+Hearing	Լսողություն
+Hearing engine	Լսողության շարժիչ
+Hearing fix	Լսողության շտկում
+Hearing status	Լսողության կարգավիճակ
+Help	Օգնություն
+Help page	Օգնության էջ
+Her colors	Նրա գույները
+Her folder	Նրա թղթապանակը
+Her memories	Նրա հիշողությունները
+Her own colors are back.	Նրա սեփական գույները վերադարձվել են։
+Her own notes (no vault)	Նրա սեփական նշումները (առանց պահոցի)
+Her perch frames per second	Նրա վայրի կադրերի քանակը վայրկյանում
+Her personality	Նրա անհատականությունը
+Her size	Նրա չափը
+Her speaker	Նրա բարձրախոսը
+Her speaker is hidden or outside VOICE	Նրա բարձրախոսը թաքնված է կամ ՁԱՅՆ-ից դուրս է
+Her speaker overlaps the mic or hearing row	Նրա բարձրախոսը համընկնում է խոսափողի կամ լսողության տողի հետ
+Her speaker:	Նրա բարձրախոսը՝
+Her speaker: Default	Նրա բարձրախոսը՝ Լռելյայն
+Her voice in your mic	Նրա ձայնը ձեր խոսափողում
+Her voice in your mic: loudness	Նրա ձայնը ձեր խոսափողում՝ ծավալ
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Նրա սեփական ձայնը։ Նրա տոնայնությունը Կարգավորումներ > ՁԱՅՆ > Տոնայնություն է, և դրանք միասին են շարժվում։
+Her voice joins your mic only in call mode.	Նրա ձայնը խոսափողին միանում է միայն զանգի ռեժիմում։
+Her voice volume	Նրա ձայնի ծավալը
+Her voice's pitch	Նրա ձայնի տոնայնությունը
+Her voice's pitch, the same as Settings > VOICE > Pitch	Նրա ձայնի տոնայնությունը, նույնը ինչ Կարգավորումներ > ՁԱՅՆ > Տոնայնություն
+Her voice's speed	Նրա ձայնի արագությունը
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Նրա ձայնը և դրա երկու պատճենը ներքևում խառնված, յուրաքանչյուրն իր տոնայնությամբ և ուշացմամբ։
+Her voices · free	Նրա ձայները · անվճար
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Հեյ, choom։ Ես Capri-ն եմ։ Ինձ ուղեղ է պետք, մինչև կարողանամ պատասխանել։ Ընտրեք մեկը։
+Hide / Show Capri	Թաքցնել / ցույց տալ Capri
+Hide / Show key	Թաքցնել / ցույց տալու բանալի
+Hide Capri	Թաքցնել Capri
+Hide for now	Առայժմ թաքցնել
+Hide her	Թաքցնել նրան
+Hide in full screen	Թաքցնել լիաէկրան ռեժիմում
+Hide this	Թաքցնել սա
+Hide, keep player	Թաքցնել, նվագարկիչը թողնել
+Hide/show:	Թաքցնել/ցույց տալ՝
+Hide/show: Ctrl + Alt + H	Թաքցնել/ցույց տալ՝ Ctrl + Alt + H
+Hologram	Հոլոգրամ
+Hop off	Իջնել
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Որքան ժամանակ անշարժ PC-ն սպասում է, մինչև նա քնի ուղարկի․ հինգ րոպեն դեռ հաշվվում է որպես բացակայություն
+How long a stroke over her a head pat needs	Որքան երկար պետք է գլխին շոյելու համար մատը սահեցնել
+How long her replies stay up	Որքան երկար են մնում նրա պատասխանները
+How long you are away before she scrolls a browser or reader	Որքան երկար եք բացակայում, մինչև նա գլորի դիտարկիչը կամ ընթերցողը
+How much her voice glitches	Որքան է նրա ձայնը խափանվում
+How much of the chat she keeps	Զրույցից որքան է պահում
+How much she wanders	Որքան է թափառում
+How often she pops in to say hi	Որքան հաճախ է ներս նայում ողջունելու
+How robotic her voice sounds	Որքան ռոբոտային է հնչում նրա ձայնը
+How to	Ինչպես
+Huge	Հսկայական
+I can hear you.	Ես քեզ լսում եմ։
+I glance at your screen and comment. Costs a little on a paid brain.	Նայում եմ ձեր էկրանին և մեկնաբանում։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
+I keep listening. Say my name, then just talk.	Ես շարունակում եմ լսել։ Ասեք իմ անունը, հետո պարզապես խոսեք։
+I talk about your game as you play. Costs a little on a paid brain.	Խաղի ընթացքում ես խոսում եմ ձեր խաղի մասին։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
+I type my replies and stay quiet.	Ես գրում եմ իմ պատասխանները և լռում եմ։
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ես չեմ պատասխանում ձայնով, և ոչինչ ոչուր չի ուղարկվում։ Ես դեռ կմնամ, կպարեմ ձեր երաժշտությանը և կանեմ արագ բաները, որ խնդրում եք, օրինակ՝ ծավալը։
+I'll talk in	Ես կխոսեմ
+IN DISCORD >	DISCORD-ՈՒՄ >
+INSTALLED >	ՏԵՂԱԴՐՎԱԾ >
+Import a Capri mod	Ներմուծել Capri մոդ
+Import mod	Ներմուծել մոդ
+In full screen	Լիաէկրան ռեժիմում
+In games	Խաղերում
+Input	Մուտք
+Input, Output or How to overlaps a row	Մուտք, Ելք կամ Ինչպես համընկնում է տողի հետ
+Input:	Մուտք՝
+Input: default	Մուտք՝ լռելյայն
+Install	Տեղադրել
+Install mod	Տեղադրել մոդ
+Installed.	Տեղադրված է։
+It may ask for a phone number. I opened the page in your browser.	Կարող է հեռախոսահամար հարցնել։ Բացեցի էջը ձեր դիտարկիչում։
+It still does its own job in other apps too.	Այն դեռ կատարում է իր աշխատանքը նաև այլ հավելվածներում։
+It won't type in other apps while she runs.	Այն չի գրի այլ հավելվածներում, մինչ նա աշխատում է։
+JUST ME >	ՄԻԱՅՆ ԵՍ >
+Jealous of other AIs	Նախանձում է այլ AI-ներին
+Join the Discord	Միանալ Discord-ին
+KB.	KB.
+KEYS	ԲԱՆԱԼԻՆԵՐ
+KEYS >	ԲԱՆԱԼԻՆԵՐ >
+Keep PC awake for jobs	Պահել PC-ն արթուն աշխատանքների համար
+Keep player	Թողնել նվագարկիչը
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Պահում է ձեր խաղի վերջին երկու րոպեն հիշողության մեջ։ Ասեք clip that՝ պահպանելու համար։
+Key	Բանալի
+Key cleared: a model file needs none.	Բանալին մաքրված է։ Մոդելի ֆայլին բանալի պետք չէ։
+Key cleared: paste the key for	Բանալին մաքրված է՝ տեղադրեք բանալին՝
+Key forgotten.	Բանալին մոռացված է։
+Key. It goes only to this server, as a Bearer key	Բանալի։ Այն գնում է միայն այս սերվեր՝ որպես Bearer բանալի
+Kokoro only, like es	Միայն Kokoro, ինչպես es
+LAST THING >	ՎԵՐՋԻՆ ՊԱՀ >
+LISTENING >	ԼՍՈՒՄ Է >
+Language	Լեզու
+Large	Մեծ
+Last thing. These cost a little or use your mic, so they're your pick.	Վերջին բան։ Սրանք մի փոքր արժեն կամ օգտագործում են ձեր խոսափողը, ուստի ընտրությունը ձերն է։
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Վերջին բան։ Սրանք մի փոքր արժեն կամ օգտագործում են ձեր խոսափողը, ուստի ընտրությունը ձերն է։ Հետո ուզում եմ իմանալ, թե ինչ կանչեմ ձեզ։
+Layers	Շերտեր
+Learn more	Իմանալ ավելին
+Leaving Settings threw its picture away straight away.	Կարգավորումներից դուրս գալը անմիջապես դուրս շպրտեց նրա նկարը։
+Legacy stand	Հին կանգնակ
+Lie down	Պառկել
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	PC-ի երկխոսության տողերը պահվում են հիշողության մեջ միասին դիտելիս։ Ամենահին կեսը դառնում է նշում, երբ միացված է «Հիշել, ինչ նա տեսնում է»-ը
+Listen for Capri	Լսել Capri-ին
+Live reactions	Ակնթարթային արձագանքներ
+Local server address	Տեղական սերվերի հասցե
+Long	Երկար
+Longest wait (minutes)	Ամենաերկար սպասում (րոպե)
+Looking at this PC...	Նայում եմ այս PC-ին...
+Looking for Ollama. Open it if it isn't running.	Փնտրում եմ Ollama-ն։ Բացեք, եթե չի աշխատում։
+Looking for a brain...	Փնտրում եմ ուղեղ...
+Looking in the mods directory for updates...	Թարմացումներ եմ փնտրում մոդերի թղթապանակում...
+Looking in the mods directory...	Փնտրում եմ մոդերի թղթապանակում...
+Looking...	Փնտրում եմ...
+MAIN >	ԳԼԽԱՎՈՐ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	ՀԻՇՈՂՈՒԹՅԱՆ ՊԱՀՈՑ >
+MODS	ՄՈԴԵՐ
+MODS >	ՄՈԴԵՐ >
+MODS DIRECTORY >	ՄՈԴԵՐԻ ԹՂԱՊԱՆԱԿ >
+MODS INSTALLED COLORS	ՏԵՂԱԴՐՎԱԾ ՄՈԴԵՐԻ ԳՈՒՅՆԵՐ
+MOVES >	ՇԱՐԺՈՒՄՆԵՐ >
+MY BRAIN	ԻՄ ՈՒՂԵՂԸ
+MY FREE VOICE	ԻՄ ԱՆՎՃԱՐ ՁԱՅՆԸ
+MY PLAN OR KEY	ԻՄ ՊԼԱՆԸ ԿԱՄ ԲԱՆԱԼԻՆ
+MY PLAN OR KEY >	ԻՄ ՊԼԱՆԸ ԿԱՄ ԲԱՆԱԼԻՆ >
+Made your Fish Audio voice. Press Test to hear it.	Ստեղծեցի ձեր Fish Audio ձայնը։ Սեղմեք Փորձարկել՝ լսելու համար։
+Mainframe colours	Mainframe գույներ
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe գույներ։ Night City-ն կարմիր և ցիան է; Սև, Սպիտակ և Մոխրագույն փոխում են Mainframe-ը, նրա ընտրացանկերը, Մուտքագրման տուփը և նրա նշումները
+Mainframe frames	Mainframe շրջանակներ
+Mainframe key	Mainframe բանալի
+Mainframe size	Mainframe չափ
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe չափ։ Ավտո-ն մեծացնում է, երբ Virtual Super Resolution կամ DSR-ը մեծ աշխատասեղանը փոքր էկրանին է տեղավորում
+Mainframe:	Mainframe՝
+Mainframe: Ctrl + Alt + M	Mainframe՝ Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe՝ Ctrl + Alt + O
+Mainframe: Down	Mainframe՝ Ներքև
+Mainframe: Enter	Mainframe՝ Enter
+Making your Fish Audio voice...	Ստեղծվում է ձեր Fish Audio ձայնը...
+Max reply	Առավելագույն պատասխան
+Maximum clip resolution, keeping the game's shape without upscaling	Տեսահատվածի առավելագույն թույլտվություն, պահելով խաղի ձևը առանց մեծացման
+Medium	Միջին
+Memory	Հիշողություն
+Memory size	Հիշողության չափ
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Հիշողության չափը թոքեններով Ollama-ի և նրա ներկառուցված ուղեղի համար։ Ավտո-ն մեծանում է, երբ հարցումը ավելի շատ է պահանջում
+Mg	Մգ
+Mic level:	Խոսափողի մակարդակ՝
+Mic test finished. Sound is reaching Capri.	Խոսափողի թեստը ավարտվեց։ Ձայնը հասնում է Capri-ին։
+Mic:	Խոսափող՝
+Mic: default	Խոսափող՝ լռելյայն
+Microphone	Խոսափող
+Mini player	Մինի նվագարկիչ
+Mini player over full screen	Մինի նվագարկիչ լիաէկրան ռեժիմում
+Mini-games	Մինի-խաղեր
+Minimising the Mainframe left it sliding.	Mainframe-ը փոքրացնելը թողեց, որ այն սահի։
+Minimize	Փոքրացնել
+Mod filter	Մոդերի զտիչ
+Mod options	Մոդի ընտրանքներ
+Mod pages	Մոդի էջեր
+Mod rules	Մոդի կանոններ
+Mod sort	Մոդի դասավորություն
+Mod switch	Մոդի փոխանջատում
+Model	Մոդել
+Model folder	Մոդելի թղթապանակ
+Model name, optional	Մոդելի անուն, ըստ ցանկության
+Mods	Մոդեր
+Mods directory	Մոդերի թղթապանակ
+Mods folder	Մոդերի թղթապանակ
+Most NVIDIA models can't see your screen.	NVIDIA մոդելների մեծ մասը չի կարող տեսնել ձեր էկրանը։
+Mouse wheel notches got a flick's long ease:	Մկնիկի անիվի քայլերը ստացան երկար մարման էֆեկտ՝
+Move	Տեղափոխել
+Move key to MAX INTELLIGENCE	Տեղափոխել բանալին MAX INTELLIGENCE
+Move to MAX	Տեղափոխել MAX-ին
+Music	Երաժշտություն
+Music app	Երաժշտական հավելված
+Music app: where she plays music when you don't name an app	Երաժշտական հավելված՝ որտեղ նա երաժշտություն է նվագում, երբ հավելված չեք նշում
+Mute	Անջատել ձայնը
+Mute her	Անջատել նրան
+Mute mic key	Խոսափողի անջատման բանալի
+Mute mic:	Անջատել խոսափողը՝
+Mute mic: Ctrl + Alt + N	Անջատել խոսափողը՝ Ctrl + Alt + N
+My brain	Իմ ուղեղը
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Իմ ուղեղը իջնում է։ Կողջունեմ, հենց որ այն մտնի, և դուք կարող եք խոսել ինձ հետ այն ժամանակ։
+My brain's on its way. While it comes down, let's sort out how I sound.	Իմ ուղեղը ճանապարհին է։ Մինչ այն իջնում է, եկեք սահմանենք, թե ինչպես եմ հնչում։
+My provider	Իմ մատակարարը
+NO AI	ԱՌԱՆՑ AI
+NO PHONES CONNECTED	ՀԵՌԱԽՈՍՆԵՐ ՉԿԱՆ ՄԻԱՑՎԱԾ
+NO PREVIEW	ՆԱԽԱՎԵՏՈՒՄ ՉԿԱ
+NORMAL	ՆՈՐՄԱԼ
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · անվճար · հաճախ դանդաղ է բեռնված ժամերին
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA-ի անվճար API-ն հաճախ դանդաղ է, հատկապես բեռնված ժամերին։
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) կամ OpenRouter API բանալի
+Names:	Անուններ՝
+Needs a key	Պահանջում է բանալի
+Never	Երբեք
+New code	Նոր կոդ
+New voice from a clip...	Նոր ձայն տեսահատվածից...
+Next	Հաջորդը
+Night City	Night City
+No AI	Առանց AI
+No AI · no brain at all	Առանց AI · առանց որևէ ուղեղի
+No brain runs, and nothing is sent anywhere.	Ոչ մի ուղեղ չի աշխատում, և ոչինչ ոչուր չի ուղարկվում։
+No brain yet	Դեռ ուղեղ չկա
+No code open	Կոդ բաց չէ
+No limit	Առանց սահմանի
+No mic found	Խոսափող չգտնվեց
+No mods in the directory yet.	Մոդերի թղթապանակում դեռ մոդեր չկան։
+No mods match that.	Ոչ մի մոդ չի համապատասխանում դրան։
+No mods match.	Ոչ մի մոդ չի համապատասխանում։
+No phones yet	Դեռ հեռախոսներ չկան
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Վիրտուալ խոսափող դեռ չկա։ Ընտրեք Ելք, ապա Ստանալ VB-CABLE (անվճար)։
+None yet: pick to get VB-CABLE (free)	Դեռ չկա՝ ընտրեք VB-CABLE (անվճար) ստանալու համար
+Normal	Նորմալ
+Not a relay host	Relay հոստ չէ
+Not imported. Nothing ran.	Չի ներմուծվել։ Ոչինչ չի գործարկվել։
+Not updated. The old one is still in.	Չի թարմացվել։ Հին տարբերակը դեռ տեղադրված է։
+Nothing needed updating.	Թարմացում պետք չեղավ։
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Ներբեռնելու բան չկա, ոչինչ ոչուր չի ուղարկվում։ Ես չեմ պատասխանի։ Ուղեղ ավելացրեք ցանկացած ժամանակ Mainframe-ում։
+Nothing to show from the mods directory.	Մոդերի թղթապանակից ցուցադրելու բան չկա։
+Nothing? Windows Settings > Privacy & security > Microphone.	Ոչ? Windows-ի կարգավորումներ > Գաղտնիություն և անվտանգություն > Խոսափող։
+Nous Portal keys aren't supported yet.	Nous Portal բանալիները դեռ չեն աջակցվում։
+OBS	OBS
+OFF	ԱՆՋԱՏՎԱԾ Է
+OLLAMA	OLLAMA
+ON	ՄԻԱՑՎԱԾ Է
+ON THIS PC	ԱՅՍ PC-ՈՒՄ
+OR A KEY	ԿԱՄ ԲԱՆԱԼԻ
+Obsidian memory vault	Obsidian հիշողության պահոց
+Off	Անջատված
+Off. Turn on Her voice in your mic above.	Անջատված։ Միացրեք Նրա ձայնը ձեր խոսափողում վերևում։
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Անջատված՝ նա հնչում է, ինչպես միշտ։ Միացված՝ իր բոլոր ձայները, ներառյալ ElevenLabs-ը։
+Often	Հաճախ
+On	Միացված
+On / Off	Միացված / Անջատված
+On: your mic and her voice are going in.	Միացված՝ ձեր խոսափողը և նրա ձայնը մտնում են։
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Մեկ JSON օբյեկտ, ավելացվում է այս ուղեղի ուղարկած յուրաքանչյուր հարցմանը։ Այն փոխարինում է Capri-ի արժեքը ցանկացած ընդհանուր անվան համար և չի ստուգվում մոդելի դեմ։
+Online speech recognition	Առցանց խոսքի ճանաչում
+Open Capri Mainframe	Բացել Capri Mainframe-ը
+Open Ollama, I'll find it	Բացեք Ollama-ն, ես կգտնեմ
+Open clips folder	Բացել տեսահատվածների թղթապանակը
+Open her memories	Բացել նրա հիշողությունները
+Open her notes	Բացել նրա նշումները
+Open mods folder	Բացել մոդերի թղթապանակը
+Open the page again	Նորից բացել էջը
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA կամ OpenRouter։
+OpenAI-compatible server or provider.	OpenAI-ի հետ համատեղելի սերվեր կամ մատակարար։
+OpenRouter · free models only	OpenRouter · միայն անվճար մոդելներ
+Optional	Ըստ ցանկության
+Optional. Blank means no key.	Ըստ ցանկության։ Դատարկը նշանակում է առանց բանալիի։
+Options	Ընտրանքներ
+Out of the box a little higher, just behind her.	Լռելյայն մի փոքր ավելի բարձր, նրա հետևում։
+Out of the box lower, just behind her.	Լռելյայն ավելի ցածր, նրա հետևում։
+Output	Ելք
+Output:	Ելք՝
+Output: none	Ելք՝ ոչ մի
+PHONE CONNECTED	ՀԵՌԱԽՈՍԸ ՄԻԱՑՎԱԾ Է
+PHONES >	ՀԵՌԱԽՈՍՆԵՐ >
+PHONES CONNECTED	ՀԵՌԱԽՈՍՆԵՐԸ ՄԻԱՑՎԱԾ ԵՆ
+PREBUILT LOCAL	ՆԱԽԱԿԱՌՈՒՑՎԱԾ ՏԵՂԱԿԱՆ
+PUBLISH MOD >	ՀՐԱՊԱՐԱԿԵԼ ՄՈԴԸ >
+Pair a phone	Զուգակցել հեռախոս
+Paste	Տեղադրել
+Paste API key	Տեղադրել API բանալի
+Paste a brain API key	Տեղադրել ուղեղի API բանալի
+Paste reads your clipboard once, when you press it.	Տեղադրելը կարդում է ձեր սեղմատախտակը մեկ անգամ, երբ սեղմում եք։
+Paste your key here	Տեղադրեք ձեր բանալին այստեղ
+Pat stroke	Շոյանք
+Perch	Նստարան
+Perch over {0} fps uses more CPU	Նստարան {0} fps-ից բարձր ավելի շատ CPU է օգտագործում
+Pick Output to get it.	Ընտրեք Ելք՝ այն ստանալու համար։
+Pick a brain so I can talk back. You can change it any time.	Ընտրեք ուղեղ, որպեսզի կարողանամ պատասխանել։ Կարող եք ցանկացած պահի փոխել։
+Pick a clip of a voice you have the rights and consent to use	Ընտրեք ձայնի հատված, որի օգտագործման իրավունքն ու համաձայնությունը ունեք
+Pick a free model. I opened the page in your browser.	Ընտրեք անվճար մոդել։ Բացեցի էջը ձեր դիտարկիչում։
+Pick a new clip of you...	Ընտրեք ձեր նոր հատվածը...
+Pick a voice model...	Ընտրեք ձայնի մոդել...
+Pick one. Only one brain runs at a time.	Ընտրեք մեկը։ Միաժամանակ աշխատում է միայն մեկ ուղեղ։
+Pick the note her memories go in	Ընտրեք նշումը, որտեղ պահվում են նրա հիշողությունները
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Ընտրեք {0}-ից {1} վայրկյան այն ձայնից, որի օգտագործման իրավունքն ու համաձայնությունը ունեք
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Ընտրեք {0}-ից {1} վայրկյան ձեր խոսքից, կամ այն ձայնից, որի օգտագործման իրավունքն ու համաձայնությունը ունեք
+Pitch	Տոնայնություն
+Play	Նվագարկել
+Play...	Նվագարկել...
+Player only	Միայն նվագարկիչը
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS մոդելները պատճենում են այս հատվածի ձայնը։ Սեղմեք Փորձարկել՝ լսելու համար։
+Pop-in times	Ներկայանալու ժամանակները
+Pop-ins	Ներկայանալիներ
+Power saver	Էներգախնայող
+Power saver: how lightly she runs in games, or always	Էներգախնայող՝ որքան թեթև է աշխատում խաղերում, կամ միշտ
+Preset	Նախադրված
+Press Create API key	Սեղմեք Ստեղծել API բանալի
+Press Create Key	Սեղմեք Ստեղծել բանալի
+Press Generate API Key	Սեղմեք Generate API Key
+Press Test and say something, so I know I can hear you.	Սեղմեք Փորձարկել և ասեք ինչ-որ բան, որ իմանամ, որ ձեզ լսում եմ։
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Սեղմեք բանալի՝ միայնակ կամ Ctrl, Alt, Shift կամ Win-ի հետ միասին։
+Press new keys, then Confirm	Սեղմեք նոր բանալիներ, ապա Հաստատել
+Provider	Մատակարար
+Provider API key, optional	Մատակարարի API բանալի, ըստ ցանկության
+Provider base URL	Մատակարարի հիմնական URL
+Provider forgotten.	Մատակարարը մոռացված է։
+Provider overlaps the brain name or note	Մատակարարը համընկնում է ուղեղի անվան կամ նշման հետ
+Publish	Հրապարակել
+Publish mod	Հրապարակել մոդը
+Push to talk is off.	Սեղմել-և-խոսել-ը անջատված է։
+Push to talk key	Սեղմել-և-խոսել բանալի
+Push to talk:	Սեղմել-և-խոսել՝
+Push to talk: not set	Սեղմել-և-խոսել՝ սահմանված չէ
+QR CODE >	QR ԿՈԴ >
+QR hidden while streaming	QR թաքնված է հեռարձակման ժամանակ
+Quick	Արագ
+Quiet key	Լուռ բանալի
+Quiet:	Լուռ՝
+Quiet: Ctrl + Alt + P	Լուռ՝ Ctrl + Alt + P
+Quit Capri	Փակել Capri-ն
+RELAY >	RELAY >
+REMOTE >	ՀԵՌԱՎԱՐ >
+RUNS CODE.	ԿՈԴ Է ԳՈՐԾԱՐԿՈՒՄ։
+Rarely	Հազվադեպ
+Rate mod	Գնահատել մոդը
+Reading its README...	Կարդում եմ նրա README-ն...
+Refresh	Թարմացնել
+Reinstall	Նորից տեղադրել
+Reload	Նորից բեռնել
+Reloaded.	Նորից բեռնված է։
+Remember our chats	Հիշել մեր զրույցները
+Remember what she sees	Հիշել, ինչ նա տեսնում է
+Remote	Հեռավար
+Remote off	Հեռավարն անջատված
+Remote on	Հեռավարն միացված
+Remove	Հեռացնել
+Remove all phones	Հեռացնել բոլոր հեռախոսները
+Replies	Պատասխաններ
+Reply length	Պատասխանի երկարություն
+Report a problem	Հայտնել խնդրի մասին
+Reset colors	Վերականգնել գույները
+Reset to her default	Վերադարձնել իր լռելյայնին
+Resolution	Լուծաչափ
+Restart to update	Վերագործարկել թարմացնելու համար
+Restless	Անհանգիստ
+Revoke	Չեղարկել
+Revoke also removes the phones its links added	Չեղարկումը հեռացնում է նաև այն հեռախոսները, որոնք ավելացրել են նրա հղումները
+Ride cursor	Կուրսորի վերելք
+Ride cursor / Hop off	Կուրսորի վերելք / Իջնել
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Աջ սեղմեք ինձ ցանկացած պահի՝ Capri Mainframe-ի համար։ Ուղեղը միանում է ՈՒՂԵՂ-ի տակ։
+Right-click me any time for the Mainframe, Help and the Discord.	Աջ սեղմեք ինձ ցանկացած պահի՝ Mainframe-ի, Օգնության և Discord-ի համար։
+Roblox	Roblox
+Roblox or any other app: pick	Roblox կամ որևէ այլ հավելված՝ ընտրեք
+Robot	Ռոբոտ
+Rock, paper, scissors	Քար, թուղթ, մկրատ
+Run this code mod?	Գործարկե՞լ այս կոդային մոդը
+Running on this PC	Աշխատում է այս PC-ում
+Running on this PC · :	Աշխատում է այս PC-ում · :
+Runs Claude Code or Codex on this PC, signed in.	Աշխատեցնում է Claude Code կամ Codex այս PC-ում, մուտք գործած։
+Runs on your PC. No key, no credits.	Աշխատում է ձեր PC-ում։ Բանալի չի պահանջվում, ծախսեր չկան։
+SCAN WITH YOUR PHONE · EXPIRES	ՍԿԱՆԱՎՈՐԵՔ ՀԵՌԱԽՈՍՈՎ · ԺԱՄԿԵՏԸ ԼՐԱՆՈՒՄ Է
+SECURITY >	ԱՆՎՏԱՆԳՈՒԹՅՈՒՆ >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	ԴԱՍԱՎՈՐԵԼ ԸՍՏ
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ՁԱՅՆԵՐ ՍՈՎՈՐՈՒԹՅՈՒՆՆԵՐ ՈՒՂԵՂ ԴԻՏԵԼ CAPRI DOOMSCROLL ԵՂԱՆԱԿ ՏԵՍԱՀԱՏՎԱԾՆԵՐ ԽԱՂԵՐ ԲԱՆԱԼԻՆԵՐ ՇԱՐԺՈՒՄՆԵՐ ՁԱՅՆ ԴՈՒ
+Same as her ears (VOICE > Mic)	Նույնը, ինչ նրա ականջները (ՁԱՅՆ > Խոսափող)
+Same code on the phone?	Նույն կոդը հեռախոսի՞ վրա։
+Save	Պահել
+Save big moments	Պահել մեծ պահերը
+Save folder	Պահելու թղթապանակ
+Save your changes, or press Discard + reload.	Պահեք ձեր փոփոխությունները կամ սեղմեք Հրաժարվել + վերբեռնել։
+Save your changes, or press Discard.	Պահեք ձեր փոփոխությունները կամ սեղմեք Հրաժարվել։
+Saved.	Պահված է։
+Saved. Ctrl + Alt + O opens her Mainframe.	Պահված է։ Ctrl + Alt + O-ն բացում է նրա Mainframe-ը։
+Saving your rating...	Պահում եմ ձեր գնահատականը...
+Say her name anywhere to chat	Ասեք նրա անունը ցանկացած տեղ՝ զրուցելու համար
+Screens	Էկրաններ
+Screens is hidden or outside WATCH	Էկրանները թաքնված են կամ ԴԻՏԵԼ-ից դուրս են
+Screens overlaps a WATCH row	Էկրանները համընկնում են ԴԻՏԵԼ տողի հետ
+Screens to watch	Դիտարկելու էկրաններ
+Sealed end to end	Ծայրից ծայր գաղտնագրված
+Search by name or author	Փնտրել անունով կամ հեղինակով
+Search installed mods	Փնտրել տեղադրված մոդերում
+Search mods	Փնտրել մոդեր
+Search name, author or description	Փնտրել անունը, հեղինակը կամ նկարագրությունը
+Security	Անվտանգություն
+Security:	Անվտանգություն՝
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Կարգավորել
+Set up her brain	Կարգավորել նրա ուղեղը
+Set up your voice model	Կարգավորել ձեր ձայնի մոդելը
+Setting up her brain	Նրա ուղեղը կարգավորվում է
+Settings	Կարգավորումներ
+Settings / Back	Կարգավորումներ / Հետ
+Settings folds the wrong rows above BRAIN	Կարգավորումները սխալ տողեր է ծալում ՈՒՂԵՂ-ի վերևում
+Settings had nothing to watch.	Կարգավորումները դիտելու ոչինչ չուներ։
+Settings lost keyboard focus during the Tab walk	Կարգավորումները կորցրեց ստեղնաշարի ֆոկուսը Tab-ի անցման ժամանակ
+Setup guide	Տեղադրման ուղեցույց
+Setup stopped	Տեղադրումը կանգ առավ
+She can read it when it fits.	Նա կարող է կարդալ, երբ տեղավորվի։
+She glances at your screen and comments. Costs a little on a paid brain.	Նա նայում է ձեր էկրանին և մեկնաբանում։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
+She keeps listening. Say her name, then just talk until you go quiet.	Նա շարունակում է լսել։ Ասեք նրա անունը, հետո խոսեք, մինչև լռեք։
+She reacts to your game until you close it.	Նա արձագանքում է ձեր խաղին, մինչև փակեք այն։
+She reads these controls before each game job.	Նա կարդում է այս կառավարումները յուրաքանչյուր խաղային աշխատանքից առաջ։
+She talks about your game as you play. Costs a little on a paid brain.	Նա խոսում է ձեր խաղի մասին, մինչ դուք խաղում եք։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
+She uses it when she plays	Նա օգտագործում է այն, երբ խաղում է
+Short	Կարճ
+Shortest wait (minutes)	Ամենակարճ սպասում (րոպե)
+Show Capri	Ցույց տալ Capri-ն
+Show QR	Ցույց տալ QR
+Show my mod file	Ցույց տալ իմ մոդի ֆայլը
+Show on Discord	Ցույց տալ Discord-ում
+Shum, what time is it	Շում, ժամը քանիսն է
+Sign in	Մուտք գործել
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Մուտք գործեք, ստեղծեք բանալի և պատճենեք այն։ Հետո սեղմեք Տեղադրել, և ես կմիանամ։
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Մուտք գործեք, սեղմեք Ստեղծել API բանալի և պատճենեք այն։ Հետո սեղմեք Տեղադրել, և ես կմիանամ։
+Silent · text only	Լուռ · միայն տեքստ
+Simple / Advanced Settings	Պարզ / Ընդլայնված կարգավորումներ
+Simple Settings	Պարզ կարգավորումներ
+Simple Settings left a gap under Check in on me	Պարզ կարգավորումները բաց թողեց տարածություն Հետաքրքրվել ինձ-ի տակ
+Sit here	Նստիր այստեղ
+Sit on windows	Նստիր պատուհանների վրա
+Size	Չափ
+Skip	Բաց թողնել
+Skip all	Բաց թողնել բոլորը
+Skip for now	Առայժմ բաց թողնել
+Sleep	Քնել
+Small	Փոքր
+Sometimes	Երբեմն
+Sound effects volume	Ձայնային էֆեկտների ծավալ
+Sound sensitivity	Ձայնի զգայունություն
+Sounds	Ձայներ
+Speaker or clip	Բարձրախոս կամ հատված
+Speech model	Խոսքի մոդել
+Speed	Արագություն
+Start with Windows	Մեկնարկել Windows-ի հետ
+Start with this!	Սկսեք սրանով։
+Starting...	Մեկնարկվում է...
+Stay	Մնալ
+Stay on my model	Մնալ իմ մոդելի վրա
+Still checking your mics...	Դեռ ստուգում եմ ձեր խոսափողները...
+Still checking your speakers...	Դեռ ստուգում եմ ձեր բարձրախոսները...
+Still checking your virtual mics...	Դեռ ստուգում եմ ձեր վիրտուալ խոսափողները...
+Stop	Կանգնեցնել
+Stopped using it. Couldn't remove the saved provider.	Դադարեցվեց օգտագործումը։ Պահված մատակարարը հեռացնել չհաջողվեց։
+Support	Աջակցություն
+Sure?	Վստա՞հ եք։
+Sure? moved to a different phone	Վստա՞հ եք։ տեղափոխվեց այլ հեռախոս
+TALK TO ME	ԽՈՍԵՔ ԻՄ ՀԵՏ
+TEXT ONLY	ՄԻԱՅՆ ՏԵՔՍՏ
+Tab landed past the first option of	Tab-ը հասավ առաջին տարբերակից անդին՝
+Tab never reached the quiet key	Tab-ը երբեք չհասավ լուռ բանալիին
+Tab reached nothing	Tab-ը ոչինչ չհասավ
+Tab selected a control without moving keyboard focus	Tab-ը ընտրեց կառավարումը՝ առանց ստեղնաշարի ֆոկուսը տեղափոխելու
+Talk	Խոսել
+Talk key	Խոսելու բանալի
+Talk:	Խոսել՝
+Talk: Ctrl + Alt + V	Խոսել՝ Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Նպատակային գրավման կադրերի արագություն․ կարող է ընկնել բեռնվածության կամ հիշողության բյուջեի տակ
+Teases when another AI comes to the front.	Ծաղրում է, երբ մեկ այլ AI գալիս է առաջին պլան։
+Test	Փորձարկել
+That address doesn't work. Try https://... or http://localhost:{0}.	Այդ հասցեն չի աշխատում։ Փորձեք https://... կամ http://localhost:{0}։
+That code expired	Այդ կոդի ժամկետը լրացել է
+That mod is no longer installed. The list is updated.	Այդ մոդն այլևս տեղադրված չէ։ Ցուցակը թարմացվել է։
+That's a paid key: it goes under MAX INTELLIGENCE.	Դա վճարովի բանալի է՝ այն գնում է MAX INTELLIGENCE։
+The Mainframe stayed composited while sliding.	Mainframe-ը մնաց կոմպոզիտված՝ սահելիս։
+The Mainframe stayed uncomposited after the slide.	Mainframe-ը մնաց ոչ կոմպոզիտված սլայդից հետո։
+The controls moved while the picture was sliding.	Կառավարումները շարժվեցին, մինչ նկարը սահում էր։
+The cover stayed visible after the slide ended.	Շապիկը տեսանելի մնաց սլայդի ավարտից հետո։
+The frame thread kept running after the page settled.	Կադրերի թելը շարունակեց աշխատել էջը հանգստանալուց հետո։
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Ամենաերկար պատասխանը, որ նա կարող է տալ, թոքեններով։ Ավտո-ն մնում է վերևի Պատասխաններին; {0}K կամ {1}K թույլ է տալիս նրան շարունակել։ Աշխատանքները ավելի տեղ են ունենում, երբ պետք է
+The longest wait must be at least the shortest wait.	Ամենաերկար սպասումը պետք է լինի առնվազն ամենակարճ սպասման չափ։
+The picture doesn't match the scrolled page:	Նկարը չի համընկնում ոլորված էջի հետ՝
+The picture of Settings doesn't match the page:	Կարգավորումների նկարը չի համընկնում էջի հետ՝
+The picture stayed up after the slide ended.	Նկարը մնաց ցուցադրված սլայդի ավարտից հետո։
+The picture wasn't showing while it slid.	Նկարը չէր երևում, երբ սահում էր։
+The provider sheet is crowded:	Մատակարարների թերթիկը խիտ է՝
+The voice panel has no screen DPI.	Ձայնի պանելը չունի էկրանի DPI։
+The voice panel's menus share one font.	Ձայնի պանելի ընտրացանկերը կիսում են մեկ տառատեսակ։
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Ձեր սեղմատախտակում դեռ բանալի չկա։ Պատճենեք այն էջից, ապա սեղմեք Տեղադրել։
+These start off. Each costs a little or uses your mic.	Սրանք սկզբում անջատված են։ Յուրաքանչյուրը մի փոքր արժե կամ օգտագործում է ձեր խոսափողը։
+These start off. Turn on what you want. They're all in Settings too.	Սրանք սկզբում անջատված են։ Միացրեք ցանկացածը։ Դրանք բոլորը նաև Կարգավորումներում են։
+They can also call you Big Z, Capricorn or Nova	Նրանք կարող են նաև ձեզ անվանել Big Z, Capricorn կամ Nova
+They can also call you Nova, Big Z or Capricorn	Նրանք կարող են նաև ձեզ անվանել Nova, Big Z կամ Capricorn
+Thinking	Մտածում եմ
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Սա իմ անվճար ձայնն է։ Սեղմեք Փորձարկել, ասեք ինչ-որ բան, և ես ցույց կտամ, որ կարող եմ ձեզ լսել։
+This mod has no description yet.	Այս մոդն դեռ նկարագրություն չունի։
+Tic-tac-toe	Խաչ ու զրո
+Time between glances	Ժամանակը հայացքների միջև
+Tiny	Փոքրիկ
+Try again	Փորձեք նորից
+Turn Remote on first	Նախ միացրեք Հեռավարը
+Turn off mini player	Անջատել մինի նվագարկիչը
+Turn push to talk off	Անջատել սեղմել-և-խոսել-ը
+Turning the wheel the other way kept the page heading the old way, to	Անիվը հակառակ ուղղությամբ շրջելը թողեց, որ էջը գնա հին ուղղությամբ՝
+Type	Մուտքագրել
+Type key	Մուտքագրելու բանալի
+Type to me	Գրեք ինձ
+Type:	Մուտքագրել՝
+Type: Ctrl + Alt + T	Մուտքագրել՝ Ctrl + Alt + T
+Typing sound	Մուտքագրման ձայն
+Unpacked. Press Test to hear it.	Բացվեց։ Սեղմեք Փորձարկել՝ լսելու համար։
+Unsaved changes.	Չպահված փոփոխություններ։
+Up to {0} fps	Մինչև {0} fps
+Up to {0}p	Մինչև {0}p
+Update	Թարմացնել
+Update available.	Թարմացում կա։
+Update mods	Թարմացնել մոդերը
+Updating...	Թարմացվում է...
+Use	Օգտագործել
+Use her cursor	Օգտագործել նրա կուրսորը
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Մատակարարի համար օգտագործեք https:// այլ տեղ։ Բանալին պարզ http-ով անվտանգ չէ։
+Use preset	Օգտագործել նախադրվածը
+Use saved	Օգտագործել պահվածը
+Use this server	Օգտագործել այս սերվերը
+Using your provider with a key	Օգտագործում եք ձեր մատակարարը բանալիով
+Using your server with no key	Օգտագործում եք ձեր սերվերը առանց բանալու
+VIEW MOD >	ԴԻՏԵԼ ՄՈԴԸ >
+VOICE >	ՁԱՅՆ >
+VOICE IN YOUR MIC >	ՁԱՅՆԸ ՁԵՐ ԽՈՍԱՓՈՂՈՒՄ >
+VOICE LAYERS >	ՁԱՅՆԻ ՇԵՐՏԵՐ >
+Verbosity	Բառախոսություն
+Video bitrate	Վիդեոյի բիթրեյթ
+View	Դիտել
+View mod	Դիտել մոդը
+Voice	Ձայն
+Voice ID	Ձայնի ID
+Voice from	Ձայնը՝
+Voice layers	Ձայնի շերտեր
+Voice model	Ձայնի մոդել
+Voice model:	Ձայնի մոդել՝
+Voice name or ID, optional	Ձայնի անուն կամ ID, ըստ ցանկության
+Voice server address, or a voice model's folder	Ձայնային սերվերի հասցե կամ ձայնի մոդելի թղթապանակ
+Voice status	Ձայնի կարգավիճակ
+Voice, key and model...	Ձայն, բանալի և մոդել...
+Volume	Ծավալ
+WAKE ME UP >	ԶԱՐԹՈՒՑԵՔ ԻՄ ՎՐԱ >
+WATCH >	ԴԻՏԵԼ >
+Waiting for the relay	Սպասում եմ relay-ին
+Wake her up	Զարթնեցրեք նրան
+Waking her up	Զարթնեցնում եմ նրան
+Wander	Թափառել
+Wander around	Թափառել շուրջը
+Watch my screen	Դիտել իմ էկրանը
+Watch-along memory	Միասին դիտելու հիշողություն
+Weather	Եղանակ
+Weather city	Եղանակի քաղաք
+Welcome back, choom. Let's finish setting me up.	Բարի վերադարձ, choom։ Եկեք ավարտենք իմ կարգավորումը։
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Ինչ է անում ձեր PC-ում առանց հարցնելու։ Երբ անջատիչը անջատված է, նա նախ հարցնում է, և անում է, երբ ասում եք այո։
+What should she call you?	Ինչպե՞ս պետք է ձեզ կանչի։
+When she types	Երբ նա մուտքագրում է
+White	Սպիտակ
+Windows default	Windows-ի լռելյայն
+Windows did not give Settings keyboard focus	Windows-ը Կարգավորումներին ստեղնաշարի ֆոկուս չտվեց
+Windows did not return keyboard focus to Back	Windows-ը ստեղնաշարի ֆոկուսը Հետ-ին չվերադարձրեց
+With no picture the wheel still tried to slide.	Առանց նկարի անիվը դեռ փորձում էր սահել։
+Works best on MAX INTELLIGENCE.	Լավագույնս աշխատում է MAX INTELLIGENCE-ով։
+YOU	ԴՈՒ
+YOU >	ԴՈՒ >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	ՁԱՅՆ ԴՈՒ ՇԱՐԺՈՒՄՆԵՐ ԿՈՃԱԿՆԵՐ ԽԱՂԵՐ ՏԵՍԱՀԱՏՎԱԾՆԵՐ ԵՂԱՆԱԿ DOOMSCROLL CAPRI ԴԻՏԵԼ ՈՒՂԵՂ ՍՈՎՈՐՈՒԹՅՈՒՆՆԵՐ ՁԱՅՆԵՐ
+YOUR KEY	ՁԵՐ ԲԱՆԱԼԻՆ
+YOUR MIC	ՁԵՐ ԽՈՍԱՓՈՂԸ
+YOUR PLAN	ՁԵՐ ՊԼԱՆԸ
+Yokapri what's up	Yokapri ի՞նչ է կատարվում
+You can hide this. It keeps going, and the Mainframe shows it too.	Սա կարող եք թաքցնել։ Այն շարունակում է աշխատել, և Mainframe-ը նույնպես ցույց է տալիս դա։
+Your mic and her voice go into one virtual mic, and	Ձեր խոսափողը և նրա ձայնը մտնում են մեկ վիրտուալ խոսափողի մեջ, և
+Your mic is muted. Unmute it to test.	Ձեր խոսափողն անջատված է։ Միացրեք փորձարկելու համար։
+Your mods are up to date.	Ձեր մոդերը թարմ են։
+Your name or a nickname	Ձեր անունը կամ մականունը
+Your own model	Ձեր սեփական մոդելը
+Your personality	Ձեր անհատականությունը
+Your voice	Ձեր ձայնը
+Your voice (HD)	Ձեր ձայնը (HD)
+Your voice (HD) · pick a clip of you...	Ձեր ձայնը (HD) · ընտրեք ձեր հատվածը...
+Your voice model	Ձեր ձայնի մոդելը
+as its mic.	որպես նրա խոսափող։
+changed. Saved as My Colors, so you can share it.	փոխվել է։ Պահված է որպես Իմ գույները, որ կարողանաք կիսվել։
+choice	ընտրություն
+clips the input line	կտրում է մուտքի տողը
+cue	նշան
+doesn't yet.	դեռ չի։
+download	ներբեռնել
+file.	ֆայլ։
+flag	դրոշ
+fps	fps
+hear	լսել
+hears	լսում է
+hears that.	լսում է դա։
+hides or shows her.	թաքցնում կամ ցույց է տալիս նրան։
+hint	հուշում
+in the Mainframe.	Mainframe-ում։
+in the mods directory with a pull request.	մոդերի թղթապանակում pull request-ով։
+in the picture wasn't noticed.	նկարում չնկատվեց։
+is already her push-to-talk key.	արդեն նրա սեղմել-և-խոսել բանալին է։
+is off.	անջատված է։
+is on and running.	միացված է և աշխատում է։
+is on, at the bottom, under	միացված է, ներքևում, տակ
+is on.	միացված է։
+is on. She now answers to	միացված է։ Նա այժմ պատասխանում է
+is removed.	հեռացված է։
+is taken	զբաղված է
+is taken by another app. Try another.	զբաղված է այլ հավելվածի կողմից։ Փորձեք մեկ այլ։
+is updated	թարմացվել է
+isn't hearing it yet: do {0} and {1}, then join a call.	դեռ չի լսում դա՝ կատարեք {0} և {1}, ապա միացեք զանգին։
+it now.	հիմա։
+keeps her quiet, and lets her talk again.	լռեցնում է նրան և նորից թույլ է տալիս խոսել։
+key	բանալի
+key.	բանալի։
+min	րոպե
+more.	ավելին։
+ms.	ms։
+mutes mic	անջատում է խոսափողը
+mutes your mic.	անջատում է ձեր խոսափողը։
+name	անուն
+off	անջատված
+on this PC	այս PC-ում
+opens her Mainframe.	բացում է նրա Mainframe-ը։
+opens her typing box.	բացում է նրա մուտքագրման տուփը։
+phone	հեռախոս
+phone pixels	հեռախոսի պիքսելներ
+phones	հեռախոսներ
+pixels	պիքսելներ
+pixels)	պիքսելներ)
+star.	աստղ։
+stars.	աստղ։
+starts voice chat.	սկսում է ձայնային չատ։
+stays off. Nothing ran.	մնում է անջատված։ Ոչինչ չի գործարկվել։
+still does its own job in other apps too. Confirm to keep it.	դեռ կատարում է իր աշխատանքը նաև այլ հավելվածներում։ Հաստատեք՝ պահելու համար։
+tall	բարձր
+time	ժամանակ
+to talk	խոսել
+to talk to her, with a game in front too.	խոսել նրա հետ, նաև խաղը առաջին պլանում։
+too.	նույնպես։
+turns Gaming Mode on and off.	միացնում և անջատում է Խաղային ռեժիմը։
+with Ollama	Ollama-ի հետ
+won't type in other apps while she runs. Confirm to keep it.	չի մուտքագրի այլ հավելվածներում, մինչ նա աշխատում է։ Հաստատեք՝ պահելու համար։
+{0}   Echo Cancellation: Off	{0}   Արձագանքի չեղարկում՝ Անջատված
+{0}   If her voice cuts off, turn off noise filtering	{0}   Եթե նրա ձայնը կտրվի, անջատեք աղմուկի զտումը
+{0}   Input Device:	{0}   Մուտքի սարք՝
+{0}   Join the call and check they hear both of you	{0}   Միացեք զանգին և ստուգեք, որ երկուսդ լսում եք միմյանց
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Խոսափողի թեստ > Ստուգենք՝ դուք կլսեք ինքներդ ձեզ և նրան, երբ նա խոսում է
+{0}   Microphone:	{0}   Խոսափող՝
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Աղմուկի ճնշում՝ Ոչ։ Երկուսն էլ կարող են կտրել նրա ձայնը առաջին տողից հետո։
+{0}   Open the call or meeting's audio settings	{0}   Բացեք զանգի կամ հանդիպման աուդիո կարգավորումները
+{0}   Output Device: your headphones, like before	{0}   Ելքի սարք՝ ձեր ականջակալները, ինչպես նախկինում
+{0}   Speaker: your headphones, like before	{0}   Բարձրախոս՝ ձեր ականջակալները, ինչպես նախկինում
+{0}   Try a mic test in your call app	{0}   Փորձեք խոսափողի թեստ ձեր զանգի հավելվածում
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Օգտատիրոջ կարգավորումներ (ձեր անվան կողքի անիվը) > Ձայն և վիդեո
+{0} Mbps	{0} Mbps
+{0} lines	{0} տող
+{0} min	{0} րոպե
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· այս PC-ում
+· server	· սերվեր

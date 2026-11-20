@@ -97,6 +97,8 @@ namespace CapriDesktop
         [DataMember(Name = "jump")] public string Jump;
         [DataMember(Name = "stop")] public string Stop;
         [DataMember(Name = "shapes")] public string Shapes;
+        [DataMember(Name = "find")] public string Find;
+        [DataMember(Name = "by")] public string By;
 #if !CROSS
         // The job a tool beside it came in for, so one that lands after that job ended never changes the next.
         internal Job Job;
@@ -118,8 +120,9 @@ namespace CapriDesktop
     // Her SECURITY window (Lachy, 29 Oct): a toggle for each kind of thing she does on their PC, set by a slider of four presets.
     // A toggle that's off means she asks first in chat ("Open Spotify? Say yes and I will.") and does it on their yes, never a
     // silent no. Typing passwords and card numbers is the one exception: with it off they type those themselves. Trusted, the
-    // default, is how she worked before the window, and Blackwall is Blackwall mode (Bypass all permissions before 0.7.4) plus
-    // listening for "Hey Capri". The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
+    // default, is how she worked before the window, and Blackwall is Blackwall mode (Bypass all permissions before 0.7.4).
+    // Toggle 11, once "Hey Capri", has no row any more: Listen for Capri in VOICE is her one wake word, and its slot stays so
+    // the toggles after it keep their places. The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
     // Toggle 13, Keep personal details out of her memories (#88, Lachy, 5 Nov), is on in every preset but Blackwall: on, her
     // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
@@ -130,7 +133,7 @@ namespace CapriDesktop
         internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, ModTools = 13, Count = 14;
 #endif
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your code mods added"
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your mods added"
 #if CROSS
             , "Run terminal commands"
 #endif
@@ -165,24 +168,21 @@ namespace CapriDesktop
             "She asks first before she does anything on your PC.",
             "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.",
             "She does what you ask, and asks first before paying or anything you didn't mention.",
-            "She never asks, types passwords and card numbers, and listens for \"Hey Capri\".",
+            "She never asks, and types passwords and card numbers.",
             "Your own mix. Pick a preset to start again from it."
         };
         // The Settings line under her SECURITY button, short enough for its row.
-        private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
-        // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first eleven.
+        private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks first.", "Your own mix of toggles." };
+        // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first ten.
         // Keeping personal details out of her memories is on in all of them but Blackwall. Tools from code mods ask first on
         // Lockdown and Guarded, and run on Trusted and Blackwall.
-        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal) | (1 << ModTools), 0x7FF | (1 << ModTools)
+        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal) | (1 << ModTools), 0x3FF | (1 << ModTools)
 #if CROSS
             | (1 << Terminal)
 #endif
         };
         private static int mask = 0x7F | (1 << Personal) | (1 << ModTools);
         private static readonly object gate = new object();
-        // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
-        internal static Func<bool> HeyOn;
-        internal static Action<bool> SetHey;
         // Whether this PC has a toggle's feature at all: Mac and Linux have the first five, with no jobs or wake word yet.
         internal static Func<int, bool> Has = delegate { return true; };
         // Saves and redraws whatever shows them, once a toggle or preset changes.
@@ -194,42 +194,29 @@ namespace CapriDesktop
 
         internal static bool On(int toggle)
         {
-            if (toggle == Wake && HeyOn != null) return HeyOn();
             lock (gate) return (mask & (1 << toggle)) != 0;
         }
 
         internal static void Set(int toggle, bool on)
         {
             if (On(toggle) == on) return;
-            if (toggle == Wake && SetHey != null) SetHey(on);
-            else lock (gate) mask = on ? mask | (1 << toggle) : mask & ~(1 << toggle);
+            lock (gate) mask = on ? mask | (1 << toggle) : mask & ~(1 << toggle);
             Action changed = Changed;
             if (changed != null) changed();
         }
 
-        // Every toggle as bits, toggle 1 in the lowest, with "Hey Capri" read from where it lives.
-        internal static int Mask
-        {
-            get
-            {
-                int bits;
-                lock (gate) bits = mask;
-                if (HeyOn != null) bits = (bits & ~(1 << Wake)) | (HeyOn() ? 1 << Wake : 0);
-                return bits;
-            }
-        }
+        // Every toggle as bits, toggle 1 in the lowest.
+        internal static int Mask { get { lock (gate) return mask; } }
 
         internal static void Pick(int preset)
         {
             if (preset < 0 || preset >= Masks.Length) return;
-            bool wake = (Masks[preset] & (1 << Wake)) != 0;
             lock (gate) mask = Masks[preset];
-            if (SetHey != null && On(Wake) != wake) SetHey(wake);
             Action changed = Changed;
             if (changed != null) changed();
         }
 
-        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" and the toggles after it alone.
+        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving the toggles after them alone.
         // Nothing is saved.
         internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal) | (1 << ModTools)
 #if CROSS
@@ -237,12 +224,12 @@ namespace CapriDesktop
 #endif
         )) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
-        // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
+        // The preset their toggles match, or Custom.
         internal static int Preset
         {
             get
             {
-                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0) | (Has(ModTools) ? 1 << ModTools : 0);
+                int bits = Mask, counted = 0x3FF | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0) | (Has(ModTools) ? 1 << ModTools : 0);
 #if CROSS
                 if (Has(Terminal)) counted |= 1 << Terminal;
 #endif
@@ -253,19 +240,20 @@ namespace CapriDesktop
 
         internal static string PresetName { get { return Presets[Preset]; } }
 
-        // What the preset does, in a line. Without her jobs (Mac and Linux so far) Trusted never asks either, and without a
-        // wake word Blackwall's line doesn't promise one.
+        // What the preset does, in a line. Without her jobs (Mac and Linux so far) Trusted never asks either.
         internal static string PresetLine(int preset)
         {
 #if CROSS
             if (preset == Trusted && Has(Terminal)) return "She does what you ask, and asks first before paying, terminal commands or anything you didn't mention.";
 #endif
             if (preset == Trusted && !Has(Mouse)) return "She does what you ask without asking first.";
-            if (preset == Blackwall && !Has(Wake)) return "She never asks before doing what you ask.";
+#if CROSS
+            if (preset == Blackwall) return "She never asks before doing what you ask.";
+#endif
             return Told[Math.Max(0, Math.Min(Custom, preset))];
         }
 
-        internal static string Short { get { int preset = Preset; return preset == Blackwall && !Has(Wake) ? "She never asks first." : Shorts[preset]; } }
+        internal static string Short { get { return Shorts[Preset]; } }
 
         // Toggles 1 to 10 as 1s and 0s for their settings file, like "1111111000" for Trusted.
         internal static string Saved { get { int bits; lock (gate) bits = mask; return Marks(bits); } }
@@ -315,7 +303,7 @@ namespace CapriDesktop
         // one of the first ten off doesn't change how the rest save.
         private static bool ModsRun(int bits) { int ten = bits & 0x3FF; return ten != (Masks[Lockdown] & 0x3FF) && ten != (Masks[Guarded] & 0x3FF); }
 
-        // Their saved toggles, or Trusted for anything unreadable. "Hey Capri" stays where it lives.
+        // Their saved toggles, or Trusted for anything unreadable.
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
@@ -357,14 +345,15 @@ namespace CapriDesktop
                 case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
 #endif
                 case "use_computer": return Mouse;
+                case "files": return FileChange(args) ? Sends : -1;
                 case "workspace": return Hands.WorkspaceStarts(args) ? Mouse : -1;
                 case "stream": return action == "stop" ? -1 : Mouse;
                 case "job_control": return action == "change" ? Mouse : -1;
                 case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
                 case "updates": return action == "install" ? Open : -1;
                 // A code mod's tool can do anything its code does, so it has its own toggle, off on Lockdown and Guarded.
-                case "mod": return ModTools;
-                case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": return -1;
+                case "mod": case "make_tool": return ModTools;
+                case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": case "playlist": return -1;
                 default: return -1;
             }
         }
@@ -407,7 +396,7 @@ namespace CapriDesktop
         internal static bool Asks(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args);
-            if (toggle < 0 || !Has(toggle) || On(toggle)) return false;
+            if (!Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return false;
             lock (gate) return !cleared.Contains(Asking(tool, args));
         }
 
@@ -415,7 +404,7 @@ namespace CapriDesktop
         internal static string Gate(string tool, ToolArguments args)
         {
             int toggle = Needs(tool, args);
-            if (toggle < 0 || !Has(toggle) || On(toggle)) return null;
+            if (!Careful(tool, args) && (toggle < 0 || !Has(toggle) || On(toggle))) return null;
             string asked = Asking(tool, args);
             lock (gate)
             {
@@ -425,6 +414,10 @@ namespace CapriDesktop
             HeldState(HoldingId, "asking", Question);
             return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
         }
+
+        internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
+
+        private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize" || action == "write" || action == "edit"; }
 
         internal static bool IsHold(string result) { return result != null && result.StartsWith(Hold, StringComparison.Ordinal); }
 
@@ -558,6 +551,7 @@ namespace CapriDesktop
                 case "run_terminal": return "run terminal command " + (a.Command ?? "") + (string.IsNullOrWhiteSpace(a.Cwd) ? "" : " in " + a.Cwd);
 #endif
                 case "open_app": return "open " + Plain(a.Name, "that app");
+                case "files": return Hands.FilesAsked(a);
                 case "open_website":
                     Hands.WebsiteArgs(a);
                     string site = Plain(a.Site, "that site");
@@ -663,6 +657,7 @@ namespace CapriDesktop
                 case "pc_status": return "check how your PC is doing";
                 case "internet_status": return "check your internet";
                 case "mod": return "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
+                case "make_tool": return "write a new tool for you to check in Mods";
                 default: return "do that";
             }
         }
@@ -823,6 +818,8 @@ namespace CapriDesktop
         internal static bool Skilled { get { return SkillNote().Length > 0; } }
         internal const string SkillDescription = "Read one of your skills in full, by its title or id: know-how someone wrote that they turned on in Mods. Read one when it fits what they ask or what you're doing.";
         internal const string SkillSchema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The skill's title or id\"}},\"required\":[\"name\"]}";
+        internal const string MakeToolDescription = "Write a new tool for yourself when they ask you to make one that looks something up on the web. Pass the whole tool as JSON in text, like {\"format\":1,\"id\":\"word-meaning\",\"name\":\"What a word means\",\"description\":\"When to use it\",\"takes\":\"One English word\",\"domains\":[\"api.dictionaryapi.dev\"],\"steps\":[{\"get\":\"https://api.dictionaryapi.dev/api/v2/entries/en/{text}\",\"keep\":{\"meaning\":\"[0].meanings[0].definitions[0].definition\"}}],\"say\":\"{text}: {meaning}\"}. Use 1 to 3 https GET steps, only to hosts in domains, and only free JSON APIs that need no key. It's saved switched off, and they turn it on in Mods. Never make one that sends, posts, buys or needs a password or key.";
+        internal const string MakeToolSchema = "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The whole tool as JSON\"}},\"required\":[\"text\"]}";
 
 #if CROSS
         private const string MiniNote = "";
@@ -959,6 +956,17 @@ namespace CapriDesktop
         // after it, like "act Wood? Don't know", so a lowercase act with a capital after it counts too.
         internal static bool Handed(string reply) { return Regex.IsMatch(reply ?? "", @"^\W*act\W*($|\n)", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"^\W*act\s+\p{Lu}"); }
 
+        internal static bool Echoed(string reply, string asked)
+        {
+            string said = Plain(Regex.Replace(reply ?? "", @"^\s*\[[^\]]{1,40}\]\s*", "")), wanted = Plain(asked);
+            if (said.Length == 0 || wanted.Length == 0) return false;
+            if (said.Split(' ').Length >= 2 && (said == wanted || wanted.Contains(said) && said.Length * 2 >= wanted.Length)) return true;
+            Match written = Regex.Match(reply ?? "", @"^\s*([a-z]+(?:_[a-z]+)*)\s*(\(|:|\{)");
+            if (!written.Success) return false;
+            for (int i = 0; i < Specs.GetLength(0); i++) if (Specs[i, 0] == written.Groups[1].Value) return true;
+            return false;
+        }
+
         // On a strong brain she works a job out herself (F57, a tester, 1 Nov: "start matchmaking" should open the game first, then
         // start it). She has the tools, so she decides, one step at a time, and sees what each step did before the next.
         internal const string WorkingOut =
@@ -1025,6 +1033,8 @@ namespace CapriDesktop
         // A window as her brain sees it: its title, trimmed and quoted, and its program.
         private static string Titled(OpenWindow window)
         {
+            if (Streaming)
+                return string.IsNullOrEmpty(window.Program) ? "\"a window\"" : "\"" + window.Program + "\"";
             string title = Regex.Replace(window.Title ?? "", @"\s+", " ").Trim().Replace('"', '\'');
             if (title.Length > 60) title = title.Substring(0, 57).TrimEnd() + "...";
             return "\"" + title + "\"" + (string.IsNullOrEmpty(window.Program) ? "" : " (" + window.Program + ")");
@@ -1062,11 +1072,11 @@ namespace CapriDesktop
             { "clip_my_games", "Clip my games", "Clips" }, { "save_big_moments", "Save big moments", "Clips" }, { "live_reactions", "Live reactions", "Games" }, { "gaming_mode", "Gaming Mode", "Games" }, { "hologram", "Hologram mode", "Capri" },
             { "watch_my_screen", "Watch my screen", "Watch" }, { "game_comments", "Game comments", "Games" },
             { "dance_to_music", "Dance to music", "Moves" }, { "head_pats", "Head pats", "Capri" }, { "chaos_when_upset", "Chaos when upset", "Capri" }, { "legacy_stand", "Legacy stand", "Capri" }, { "sit_on_windows", "Sit on windows", "Moves" }, { "always_on_top", "Always on top", "Capri" },
-            { "mini_player", "Mini player", "Moves" }, { "typing_sound", "Typing sound", "Voice" }, { "follow_ups", "Follow-up messages", "Brain" }, { "hide_in_full_screen", "Hide in full screen", "Habits" }, { "glitch_in", "Glitch in at startup", "Moves" },
-            { "keep_awake", "Keep PC awake for jobs", "Habits" }, { "player_full_screen", "Mini player over full screen", "Habits" }, { "explore_away", "Explore while away", "Habits" },
+            { "mini_player", "Mini player", "Moves" }, { "typing_sound", "Typing sound", "Sounds" }, { "follow_ups", "Follow-up messages", "Brain" }, { "hide_in_full_screen", "Hide in full screen", "Habits" }, { "glitch_in", "Glitch in at startup", "Moves" },
+            { "player_full_screen", "Mini player over full screen", "Habits" }, { "explore_away", "Explore while away", "Habits" },
             { "care_water", "Water check-in", "Capri" }, { "care_stretch", "Stretch check-in", "Capri" }, { "care_eyes", "Look away check-in", "Capri" }, { "care_late_night", "Sleep nudge", "Capri" },
             { "care_meals", "Meals check-in", "Capri" }, { "care_long_game", "Game break check-in", "Capri" }, { "care_boredom", "Bored check-in", "Capri" },
-            { "fast_hands", "Fast hands in games", "Games" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
+            { "fast_hands", "Fast hands in games", "Brain" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
             { "voice_layers", "Voice layers", "Voice" }, { "show_advanced", "Advanced settings", "Capri" }, { "listen_for_capri", "Listen for Capri", "Voice" }, { "voice_in_mic", "My voice in your mic", "Voice" },
             { "jealous_of_other_ais", "Jealous of other AIs", "Capri" }, { "close_other_ais", "Close other AIs for me", "Capri" },
             { "chimes", "Chimes", "Sounds" }, { "chime_sent", "Message sent chime", "Sounds" }, { "chime_heard", "Heard you chime", "Sounds" }, { "chime_listening", "Listening chime", "Sounds" }
@@ -1076,27 +1086,28 @@ namespace CapriDesktop
         // the way her Mainframe names them (Lachy, 3 Nov: "make yourself bigger" or "stop wandering" through the brain).
         internal static readonly string[,] OwnLevels =
         {
-            { "size", "my size", "Capri" }, { "wander", "Wander", "Moves" }, { "pop_ins", "Pop-ins", "Moves" }, { "sleep", "Sleep", "Moves" },
+            { "size", "my size", "Capri" }, { "wander", "Wander", "Moves" }, { "pop_ins", "Pop-ins", "Capri" }, { "sleep", "Sleep", "Moves" },
             { "volume", "my voice's volume", "Voice" }, { "voice_speed", "my voice's speed", "Voice" }, { "replies", "Replies", "Brain" }, { "bubble", "Bubble", "Brain" },
             { "explore_after", "Explore after", "Habits" }, { "glance_gap", "Time between glances", "Watch" }, { "watch_memory", "Watch-along context", "Watch" },
             { "care_water", "Water interval", "Capri" }, { "care_stretch", "Stretch interval", "Capri" }, { "care_eyes", "Look away interval", "Capri" }, { "care_late_night", "Sleep nudge after", "Capri" },
             { "care_meals", "Meals interval", "Capri" }, { "care_long_game", "Game break interval", "Capri" }, { "care_boredom", "Bored interval", "Capri" },
             { "voice_pitch", "my voice's pitch", "Voice" }, { "voice_robot", "Voice robot", "Voice" }, { "voice_glitch", "Voice glitch", "Voice" },
             { "layer_1_pitch", "Layer 1 pitch", "Voice" }, { "layer_1_delay", "Layer 1 delay", "Voice" }, { "layer_2_pitch", "Layer 2 pitch", "Voice" }, { "layer_2_delay", "Layer 2 delay", "Voice" },
-            { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
+            { "sounds", "Sound effects", "Sounds" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
-            { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }, { "music_app", "Music app", "Habits" },
-            { "pat_stroke", "Pat stroke", "Capri" }, { "chime_volume", "Chime volume", "Sounds" }, { "chime_set", "Chime sound set", "Sounds" }
+            { "typing_sound", "Typing sound mode", "Sounds" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }, { "music_app", "Music app", "Habits" },
+            { "pat_stroke", "Pat stroke", "Capri" }, { "chime_volume", "Chime volume", "Sounds" }, { "chime_set", "Chime sound set", "Sounds" },
+            { "in_full_screen", "In full screen", "Habits" }
         };
         internal static readonly string[][] OwnSteps =
         {
             new[] { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" },
             new[] { "Off", "Rarely", "Sometimes", "Often", "Restless" }, new[] { "Rarely", "Sometimes", "Often" },
             new[] { "Never", "1 min", "2 min", "5 min", "10 min", "30 min" },
-            new[] { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
-            new[] { "0.7x", "0.8x", "0.9x", "Normal", "1.1x", "1.2x", "1.3x", "1.4x", "1.5x" }, new[] { "Short", "Medium", "Long" }, new[] { "Quick", "Normal", "Long" },
-            new[] { "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" },
-            new[] { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" }, new[] { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" },
+            new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
+            new[] { "0.7x", "0.8x", "0.9x", "Normal", "1.1x", "1.2x", "1.3x", "1.4x", "1.5x" }, new[] { "Short", "Medium", "Long", "No limit" }, new[] { "Quick", "Normal", "Long" },
+            new[] { "Off", "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" },
+            new[] { "Off", "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" }, new[] { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" },
             CareSteps(), CareSteps(), CareSteps(), new[] { "9 pm", "10 pm", "11 pm", "12 am", "1 am", "2 am", "3 am", "4 am", "5 am" },
             new[] { "3 h", "4 h", "5 h", "6 h", "8 h" }, CareSteps(), CareSteps(),
             new[] { "-6", "-5", "-4", "-3", "-2", "-1", "Normal", "+1", "+2", "+3", "+4", "+5", "+6" }, AmountSteps(), AmountSteps(),
@@ -1110,7 +1121,8 @@ namespace CapriDesktop
             new[] { "Off", "Events only", "Chatty" }, new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" },
             new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" },
             new[] { "Off", "In games", "Always" }, MusicSteps(), new[] { "Short", "Medium", "Long" },
-            new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }, new[] { "Glass", "Shard", "Burst", "Crush", "Pulse", "Air" }
+            new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }, new[] { "Glass", "Shard", "Burst", "Crush", "Pulse", "Air" },
+            new[] { "Stay", "Keep player", "Hide her", "Player only" }
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -1120,7 +1132,7 @@ namespace CapriDesktop
 #else
             { "sounds", new[] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 } },
 #endif
-            { "explore_after", new[] { 60, 120, 300, 600, 900, 1800 } }, { "glance_gap", new[] { 10, 15, 30, 60, 90, 120, 180, 300, 600 } }, { "watch_memory", new[] { 8, 16, 24, 48, 96 } },
+            { "explore_after", new[] { 0, 60, 120, 300, 600, 900, 1800 } }, { "glance_gap", new[] { 0, 10, 15, 30, 60, 90, 120, 180, 300, 600 } }, { "watch_memory", new[] { 8, 16, 24, 48, 96 } },
             { "care_water", CareValues() }, { "care_stretch", CareValues() }, { "care_eyes", CareValues() }, { "care_late_night", new[] { 21, 22, 23, 0, 1, 2, 3, 4, 5 } },
             { "care_meals", new[] { 180, 240, 300, 360, 480 } }, { "care_long_game", CareValues() }, { "care_boredom", CareValues() },
             { "voice_pitch", new[] { -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6 } }, { "voice_robot", AmountValues() }, { "voice_glitch", AmountValues() },
@@ -1183,26 +1195,26 @@ namespace CapriDesktop
             { "hologram", "clicks pass through you" }, { "head_pats", "they pat your head with their cursor" }, { "chaos_when_upset", "an insult sets your clones off" },
             { "legacy_stand", "your old stand, for mods your new one broke" },
             { "jealous_of_other_ais", "playful teasing when another AI comes to the front, off by default" },
-            { "close_other_ais", "ask Yes or No before closing only the AIs they chose in Mainframe; needs Jealous of other AIs on, off by default" },
+            { "close_other_ais", "ask Yes or No before closing only the AIs they picked under Apps she may close in Mainframe; needs Jealous of other AIs on and at least one app picked, and off means none picked" },
             { "pat_stroke", "how long a stroke over you a head pat needs: Short is a quick rub, Long a slow, deliberate one" },
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
-            { "game_comments", "game comments run on their own; Off stops them, in Gaming Mode too" },
+            { "game_comments", "game comments run on their own; Off stops them and her live reactions, and Gaming Mode is this setting: it flips it between Off and the last pick" },
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
-            { "keep_awake", "their PC stays awake for your jobs and watches" }, { "explore_away", "you explore while they're away" },
+            { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
-            { "listen_for_capri", "voice chat that starts when they say your name, apart from Hey Capri" },
+            { "listen_for_capri", "your mic stays open and a sentence with your name, or Hey Capri, starts voice chat" },
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
             { "discord_presence", "what you're doing on their Discord profile" }, { "startup", "Capri starts when they log in; off until they ask for it" }, { "show_advanced", "Mainframe's advanced settings" },
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
-            { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are" }, { "bubble", "how long your replies stay up" },
-            { "reply_limit", "the longest a reply can be" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
-            { "explore_after", "how long they're away before you explore" },
-            { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace" },
+            { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are; No limit lets them run on" }, { "bubble", "how long your replies stay up" },
+            { "reply_limit", "the longest a reply can be; 256 is Short and 2K or 8K is No limit in Replies" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
+            { "explore_after", "how long they're away before you explore; Off means you don't" }, { "in_full_screen", "what you do over a full-screen game or video: Stay, Keep player, Hide her or Player only, where keeping the player leaves your mini player up over borderless full screen" },
+            { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace, and in games or always her free voice takes over from HD in full-screen games" },
             { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" },
-            { "chimes", "your soft chimes when their typed message is sent, when you've heard them and when you're listening after Hey Capri; on by default" },
+            { "chimes", "all three chimes at once: when their typed message is sent, when you've heard them and when Listen for Capri opens your ears; on by default" },
             { "chime_sent", "the chime when their typed message is sent" }, { "chime_heard", "the chime when you've heard them finish talking" },
-            { "chime_listening", "the chime when Hey Capri opens your ears" }, { "chime_volume", "how loud your chimes are, apart from your voice and sound effects" },
+            { "chime_listening", "the chime when Listen for Capri opens your ears" }, { "chime_volume", "how loud your chimes are, apart from your voice and sound effects" },
             { "chime_set", "which set of chimes you play: Glass, Shard, Burst, Crush, Pulse or Air; set it by name" }
         };
 
@@ -1226,7 +1238,7 @@ namespace CapriDesktop
                 + " Keys, brains, your voice service, Security and what you remember aren't here and stay in your Settings menu.";
 #else
                 + (media || computer ? " They're yours, not their PC's:" + (media ? " its volume is media" : "") + (media && computer ? ", and" : "") + (computer ? " Windows settings like Bluetooth are use_computer jobs" : "") + "." : "")
-                + " Keys, brains, your voice service, SECURITY, Hey Capri and what you remember aren't here and stay in Capri Mainframe.";
+                + " Keys, brains, your voice service, SECURITY and what you remember aren't here and stay in Capri Mainframe.";
 #endif
         }
 
@@ -1270,7 +1282,7 @@ namespace CapriDesktop
             if (name == "mini_player") return true;
             if (name == "hologram") return OnMac;
 #endif
-            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "music_app", "preview_voice", "edit_check_in_lines" }, name) >= 0;
+            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "music_app", "preview_voice", "edit_check_in_lines" }, name) >= 0;
         }
 
         private static bool HasSetting(Kit kit, string name) { return kit == null || kit.Has("capri_settings:" + name); }
@@ -1310,13 +1322,13 @@ namespace CapriDesktop
 
         private static readonly string[,] Specs =
         {
-            { "open_app", "Open or launch an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. If they want you to play a game, call use_computer once instead, open or not: it opens the game itself and plays it, so this alone never plays anything. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
+            { "open_app", "Open or launch an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. When they name an app to open, call this first and straight away: it looks the name up itself and says so when nothing matches, so there's nothing to check beforehand. If they want you to play a game, call use_computer once instead, open or not: it opens the game itself and plays it, so this alone never plays anything. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name\"}},\"required\":[\"name\"]}", "open your apps and games", "open their apps and games" },
             { "open_website", "Open a website in their browser, or search a site like YouTube or Google. " +
 #if !CROSS
               "A saved website nickname goes in site, with no search words when opening it. " +
 #endif
-              "Set browser only when they named a browser; otherwise leave it out for their default. No site named: leave site out, it uses their browser's search engine; a site or engine they named goes in site.",
+              "Set browser only when they named a browser; otherwise leave it out for their default. No site named: leave site out, it searches Google; a site or engine they named goes in site. A request naming a browser and a site, like open Wikipedia in Brave, look up X on Brave, or open a new tab on Brave, is this tool, whether or not that browser is already open: never answer that the browser is open instead of opening the page.",
               "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}}}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
 #if !CROSS
             { "media", "Control their music, video or PC volume when they ask, suggest or hint at it. Pause, resume, skip, seek to seconds from the start, like or unlike the current Spotify song, open the player that's playing, or read the song or volume. Seek and likes need a player that supports them.",
@@ -1332,7 +1344,7 @@ namespace CapriDesktop
             { "app_window", "Switch to, minimize or close an app or game that's open on their PC, found by its name or a word in its window's title. Naming a site closes that browser tab." + Arranging,
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name or a word from its window's title, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"maximize\",\"restore\",\"close\",\"snap_left\",\"snap_right\",\"snap_top\",\"snap_bottom\",\"move_to_screen\",\"move\",\"resize\",\"pin_on_top\",\"unpin\"]}" + Placing + "},\"required\":[\"name\",\"action\"]}",
               "switch to, minimize, maximize, snap, move, resize or close your apps' windows and browser tabs, on any of your monitors", "switch to, minimize, maximize, snap, move, resize or close their windows" },
-            { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it, or in a game: picking a mode, queueing for a match, or waiting for one and accepting it while they're away. This is also how you play a game yourself: when they want you to play one, call this once with their words, open or not. It opens the game, gets into a match or map and keeps playing until they stop you. You always have their mouse and keyboard through this tool. For join the Discord call, hop in the call or join the vc, click a Join button already on screen, or else the server voice channel with people in it; their friends are the people in that call, never Discord's Friends page or DMs. Keep that job to joining; pass messages with call_say and leave their choice to call_errand afterwards.",
+            { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it, or in a game: picking a mode, queueing for a match, or waiting for one and accepting it while they're away. This is also how you play a game yourself: when they want you to play one, call this once with their words, open or not. It opens the game, gets into a match or map and keeps playing until they stop you. You always have their mouse and keyboard through this tool. For join the Discord call, hop in the call or join the vc, click a Join button already on screen, or else the server voice channel with people in it; their friends are the people in that call, never Discord's Friends page or DMs. Keep that job to joining; pass messages with call_say and leave their choice to call_errand afterwards. Working in something already open is this tool too: don't say the app is open instead.",
               "{\"type\":\"object\",\"properties\":{\"task\":{\"type\":\"string\",\"description\":\"The whole job in their exact words, including any message to send\"}},\"required\":[\"task\"]}", "do mouse and keyboard jobs in your apps, sites and games, like sending messages, changing settings or playing a game herself", "mouse and keyboard jobs in their apps, sites and games" },
             { "stream", "Start or stop your stream. On stream you play a game yourself, live for their stream, and talk to their chat between plays, until they stop you. Start it whenever they ask, suggest or hint that you stream, go live, play for their chat or viewers, or entertain their chat, in any words, like stream for me, you should stream, wanna go live, or chat wants to see you play. name is the game to play if they named one; leave it out to play the game that's open. stop ends your stream.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"start or stop\",\"enum\":[\"start\",\"stop\"]},\"name\":{\"type\":\"string\",\"description\":\"The game to play, if they named one\"}},\"required\":[\"action\"]}", "stream for you, playing a game herself live and talking to your chat", "stream live for them: play a game yourself and talk to their chat" },
@@ -1346,7 +1358,8 @@ namespace CapriDesktop
             { "call_say", "Say a short message on the call that the user asked you to pass on. Speak about the user by their name in your own words. When you've just joined for them, say why you're there, cheeky is fine: they're away (a funny made-up reason, like <their name>'s away, probably taking a fat shit), they asked you to hop in, and you'll launch whatever the call's playing. Join first if needed. This line will be spoken with your reply, so do not repeat it in your answer.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The message, about the user in your own words\"}},\"required\":[\"text\"]}", "pass your message to the call", "say the user's message on the call" },
 #endif
-            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files and folders" },
+            { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files by name" },
+            { "files", FileKeeper.Description, FileKeeper.Schema, "find your files by name, words inside, kind or date, and make folders, move, rename and sort them, with undo", "search and sort files" },
             { "website_nickname",
 #if CROSS
               "Remember a website by a nickname, forget it, or list saved websites. For a supported front browser on Mac, leave site empty; its address is read without moving their mouse or keyboard. On Linux or for other browsers, give site. Open a saved nickname with open_website.",
@@ -1360,9 +1373,12 @@ namespace CapriDesktop
               "read files you hand her, like PDFs, Word and Excel files and pictures", "read files they hand you" },
             { "remind", "Save a reminder on their PC, list their reminders, or cancel a reminder. Times use their local clock. Give the reminder in their words; the PC works out when it is due.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to remind them about, or which reminder to cancel\"},\"when\":{\"type\":\"string\",\"description\":\"Local time, like in 20 minutes, in 3 days, at 5pm, tomorrow at 9, on 2026-12-05 at 9am or on 5 December at noon. Use YYYY-MM-DD for dates in any language\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"cancel\"]}}}", "set reminders", "set reminders" },
+            { "weather", "Check the weather from Open-Meteo for their city (set in Settings under WEATHER) or a place they name: now, a day this week, the week, or the chance of rain. Use it for weather, forecast, how hot or cold it is, rain or umbrella questions instead of a search. It never guesses where they are.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"now for right now and today, day for one day, week for the week or weekend, rain for the chance of rain, summary for today and tomorrow\",\"enum\":[\"now\",\"day\",\"week\",\"rain\",\"summary\"]},\"when\":{\"type\":\"string\",\"description\":\"today, tomorrow, a weekday, this week or this weekend\"},\"name\":{\"type\":\"string\",\"description\":\"A place they named, like Paris, France; leave out for their own city\"}}}", "check the weather and forecast for your city", "check the weather and forecast for their city" },
             { "stopwatch", "Start, check or stop their stopwatch, which counts up from when it starts. There's one stopwatch, with no laps. Starting it while it runs says how long it's been. A timer that counts down is a reminder: use remind.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
             { "read_skill", SkillDescription, SkillSchema, "read the skills you turned on in Mods", "read one of your skills in full" },
+            { "make_tool", MakeToolDescription, MakeToolSchema, "write new look-up tools for yourself, which they turn on in Mods", "make look-up tools" },
             { "game_notes",
 #if CROSS
               "Keep controls or instructions the user teaches you for a game, or read them back. Keep their actual controls in text.",
@@ -1397,8 +1413,8 @@ namespace CapriDesktop
 #if !CROSS
             { "desktop_icons", "Prank the icons and shortcuts on their desktop, then put them back. mess scatters them around for a bit, hide makes them all vanish and come back after a few seconds, and back puts everything where it was right now. Use it when they ask you to mess up, shuffle, scatter, move around, hide or bring back their desktop icons or shortcuts. Use rampage when they taunt you or say someone would beat you, like Adam Smasher would rock your shit. Every icon forms a train, rams the edge of the screen and gets flung around for about ten seconds, then they all go home. You never touch a file, only move or hide the icons.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back, rampage throws drawn copies\",\"enum\":[\"mess\",\"hide\",\"back\",\"rampage\"]}},\"required\":[\"action\"]}", "scatter, hide or throw your desktop icons and put them back", "scatter, hide or throw their desktop icons, then put them back" },
-            { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
+            { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action scroll when they ask you to scroll TikTok or Shorts for them or doomscroll for them: you press the down arrow on their feed for the next video and react to each one. Use action stop to finish watching or scrolling; watch_for is for a particular event.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"scroll\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
             { "gaming_mode", "Turn Gaming Mode on or off: you watch their game and react when something happens, until it closes. Use it when they ask, suggest or hint at your game overlay or reactions, however they word it. Playing the game yourself uses use_computer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}", "react to your games in Gaming Mode", "turn Gaming Mode on or off" },
             { "clip", "Save recent game video, open their clips folder or open the last saved clip when they ask, suggest or hint at it. save is the default and needs Clip my games on. Omit seconds for their default length. Opening saved clips works with recording off.",
@@ -1423,7 +1439,7 @@ namespace CapriDesktop
 #if !CROSS
             { "workspace", "Open your Workspace window, start a new Claude Code chat there, or check recent chats when they ask. open is the default; a task with no action means start. start needs task in their words; folder is optional and must exist, otherwise it uses your own Workspace folder. New chats use the window's usual mode: Blackwall Mode under the Blackwall preset, Ask me otherwise. Folder trust and tool approvals stay in the window for them to answer. status gives up to three recent chats, whether they are working, waiting for an OK or finished, and their last answer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"open by default, start a chat, or check status\",\"enum\":[\"open\",\"start\",\"status\"]},\"task\":{\"type\":\"string\",\"description\":\"Required for start: their first message in their words\"},\"folder\":{\"type\":\"string\",\"description\":\"For start: an existing folder; omit for your own Workspace folder\"}}}", "open Workspace, start a chat or check recent chats", "open Workspace, start a chat or check recent chats" },
-            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY, Hey Capri and memories are changed there by them.",
+            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY and memories are changed there by them.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "updates", "Check for a Capri update or read its status when they ask, suggest or hint at it. Install only when they clearly ask to install or update Capri, through the usual update checks. A status question or hint alone never authorizes installation.",
@@ -1431,14 +1447,18 @@ namespace CapriDesktop
             { "mini_player", "Show or hide your mini music player for now when they ask, suggest or hint at it. Showing turns its setting on if needed; hiding leaves the setting on.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or hide the mini player\",\"enum\":[\"show\",\"hide\"]}},\"required\":[\"action\"]}", "show or hide her mini player", "show or hide your mini player" },
 #if !CROSS
+            { "playlist", "Her own playlist of music folders on this PC. action play starts or resumes it, skip goes to the next song, stop ends it, and remove takes the song that is playing off the playlist without ever deleting the file. add_folder takes a folder path in path and add_song takes one file. Use it when they talk about her playlist, their music folders, skipping a song or taking a song off; play_music is for Spotify and YouTube instead.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do with her playlist\",\"enum\":[\"play\",\"skip\",\"stop\",\"remove\",\"add_folder\",\"add_song\"]},\"path\":{\"type\":\"string\",\"description\":\"The folder or file, for add_folder and add_song only\"}},\"required\":[\"action\"]}", "play, skip and manage her folder playlist", "play, skip and manage your folder playlist" },
+#endif
+#if !CROSS
             { "listen", "Capture PC dialogue and return or translate the words when they ask, suggest or hint at it. start listens from now for 15 seconds by default, after your voice finishes. stop ends a running capture; its original call returns the words so far. It cannot replay earlier sound or identify songs by ear.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"start by default, or stop a running capture\",\"enum\":[\"start\",\"stop\"]},\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to listen from now; defaults to 15\"},\"focus\":{\"type\":\"string\",\"description\":\"What they want to know or translate, if they said\"}}}", "listen to PC dialogue or stop listening", "hear PC dialogue, translate it or stop listening" },
 #endif
             // Her checks, for every brain: her hands' one-shot pick and voice chat as well as one that works jobs out (Lachy, 2 Nov: "ensure
             // they have the tools they need to perform everything themself", and 3 Nov: every brain must know what it can do).
-            { "list_windows", "See what's open on their PC right now: each open window's title, trimmed, and its program, which one is in front, which are minimized or games, and which monitor each is on when they have more than one, with their monitors named left to right and their sizes in pixels. Give name to see only one app's windows, with how big each is and where its top left corner is on its monitor, before you move or resize one. Use it when they ask what's open, and when you can call more tools after it, before you act when what's open matters and after, to check a window opened, closed, moved or came to the front.",
+            { "list_windows", "See what's open on their PC right now: each open window's title, trimmed, and its program, which one is in front, which are minimized or games, and which monitor each is on when they have more than one, with their monitors named left to right and their sizes in pixels. Give name to see only one app's windows, with how big each is and where its top left corner is on its monitor, before you move or resize one. Use it when they ask what's open, before you act when what's open matters, and after, to check a window opened, closed, moved or came to the front. It only looks. Finding a window is never the answer to a request to do something with it: follow it in the same turn with open_website, app_window or use_computer.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Only this app's or game's windows, if you want one\"}}}", "see what's open on your PC", "see what's open on their PC and which window is in front" },
-            { "check_app", "Check whether an app or game is installed on their PC, by the name open_app would open, and whether it's running: with a window open, in front or minimized, or in the background with no window, like Discord in the tray. Use it when they ask whether something is installed or running, and when you can call more tools after it, before opening something that might already be open and after opening or closing one to check it worked.",
+            { "check_app", "Check whether an app or game is installed on their PC, by the name open_app would open, and whether it's running: with a window open, in front or minimized, or in the background with no window, like Discord in the tray. Use it when they ask whether something is installed or running, and after opening or closing one to check it worked. Don't check before opening: when they name an app to open, call open_app straight away, because it finds the app itself and tells you when there's nothing by that name. It only looks. Never answer a request to do something with what it found: if they asked you to open, search, click, type or change anything, call the tool that does that in the same turn and say what you did, not what you saw.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's or game's name\"}},\"required\":[\"name\"]}", "check whether an app or game is installed or running", "check whether an app or game is installed or running" },
             { "capri_settings", SettingsDescription(null), SettingsSchema(null), "change her own settings, like her size, quiet mode or wandering", "read or change your own Capri settings, like your size, quiet mode or wandering" },
 #if !CROSS
@@ -1466,7 +1486,7 @@ namespace CapriDesktop
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates" || tool == "workspace") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
+        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates" || tool == "workspace") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status" || tool == "weather"; }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1625,10 +1645,6 @@ namespace CapriDesktop
         internal static Action<string> Run = Start;
         internal static Func<string, string> Opened = BringOpened;
         internal static Func<string, string> BrowserPath = FindBrowser;
-        internal static Func<string, string> SearchEngine = ReadSearchEngine;
-        internal static Func<string, string> ProfileRoot = SearchRoot;
-        internal static Func<string> DefaultBrowser = ReadDefaultBrowser;
-        internal static Func<DateTime> SearchNow = delegate { return DateTime.UtcNow; };
         internal static Action<string, string> Browse = StartBrowser;
         internal static Func<IntPtr> Foreground = Native.GetForegroundWindow;
         internal static Action<byte> Press = Tap;
@@ -1642,6 +1658,8 @@ namespace CapriDesktop
         internal static Func<string, int?, long?, string> ReadFile = delegate { return "I don't have a file you handed me at that path."; };
         internal static Websites Websites;
         internal static FileFinder Finder = new FileFinder();
+        internal static FileKeeper Keeper = new FileKeeper(null);
+        internal static string FilesAsked(ToolArguments args) { return Keeper.Asking(args); }
         internal static Func<string, string> Fetch = Download;
         internal static Func<List<OpenWindow>> Windows = ReadWindows;
         internal static Func<OpenWindow, string, bool> Steer = Apply;
@@ -1670,6 +1688,8 @@ namespace CapriDesktop
         internal static Func<string, string> Resume = delegate { return null; };
         internal static Func<string, KeyValuePair<string, ToolArguments>> Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
         internal static Func<ToolArguments, string> Remind = delegate { return "Couldn't open your reminders."; };
+        internal static Func<ToolArguments, string> Forecast = delegate { return CapriDesktop.Weather.OffLine; };
+        internal static Func<bool> WeatherOn = delegate { return false; };
         internal static Func<ToolArguments, string> WatchFor = delegate { return "Couldn't watch the screen just now."; };
 #if !CROSS
         internal static Func<string, string> WatchAlong = delegate { return "Couldn't start watching together just now."; };
@@ -1914,8 +1934,17 @@ namespace CapriDesktop
                 if (unable != null) return unable;
                 if (tool == "mod")
                 {
-                    Func<string, string, string> run = RunModTool;
-                    return run == null ? "No mod has added that." : run(args.Name, args.Text ?? "");
+                    Func<string, string, string> run = RunModTool, recipe = RunRecipe;
+                    string name = args.Name;
+                    string said = recipe == null || Array.Exists(ToolsFrom(ModTools), one => one[0] == name) ? null : recipe(name, args.Text ?? "");
+                    if (said != null) return said;
+                    return run == null ? "No mod has added that." : run(name, args.Text ?? "");
+                }
+                if (tool == "make_tool")
+                {
+                    Func<string, string> make = MakeTool;
+                    if (!Valid(tool, args)) return "Couldn't make a tool: pass the whole tool as JSON in text.";
+                    return make == null ? "Making tools isn't set up here." : make(args.Text);
                 }
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
 #if CROSS
@@ -1941,6 +1970,19 @@ namespace CapriDesktop
                 if (tool == "use_computer")
                 {
                     if (string.IsNullOrWhiteSpace(args.Task)) return "Which job, choom?";
+#if !CROSS
+                    if (Named(args.Name))
+                    {
+                        string into = args.Name.Trim();
+                        try
+                        {
+                            if (Showing(into)) Opened(into);
+                            else if (Installed(into)) { OpenApp(into); System.Threading.Thread.Sleep(1200); Opened(into); }
+                        }
+                        catch (Exception) { }
+                        args.Name = null;
+                    }
+#endif
                     ToolArguments musicArgs;
                     if (MusicJob(args.Task, out musicArgs)) return Do("play_music", musicArgs);
 #if CROSS
@@ -1976,13 +2018,18 @@ namespace CapriDesktop
                 if (tool == "workspace") return Valid(tool, args) ? Workspace(args) : "Couldn't find that Workspace action or task.";
 #endif
                 if (tool == "mini_player") return Valid(tool, args) ? MiniPlayer(args.Action) : "Couldn't find that mini player action.";
+#if !CROSS
+                if (tool == "playlist") { Func<string, string, string> run = Playlist; return run == null ? "No playlist on this PC." : run(args.Action, args.Path ?? args.Name ?? args.Song); }
+#endif
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
+                if (tool == "files") return Keeper.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
                 if (tool == "read_skill") return Valid(tool, args) ? ReadSkill(args.Name) : "Couldn't read a skill: name one by its title or id.";
                 if (tool == "remind") return Remind(args);
+                if (tool == "weather") return Valid(tool, args) ? Forecast(args) : "Couldn't find that weather question.";
                 if (tool == "stopwatch") return Valid(tool, args) ? Stopwatches.Do(args) : "Couldn't find that stopwatch action.";
                 if (tool == "routine") return Routine(args);
                 if (tool == "power") return Turn(args.Action, args.Minutes);
@@ -2198,6 +2245,8 @@ namespace CapriDesktop
             string[][] modTools = ModToolsNow();
             StringBuilder key = new StringBuilder(ComputerName);
             foreach (string[] gap in missing) key.Append('|').Append(gap[0]).Append('=').Append(gap[1]);
+            key.Append("|acts=");
+            for (int toggle = Security.Open; toggle <= Security.Sends; toggle++) key.Append(Security.Has(toggle) && Security.On(toggle) ? '1' : '0');
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] tool in modTools) key.Append("|mod ").Append(tool[0]).Append('=').Append(tool[1]).Append('=').Append(tool[2]);
             bool skilled = Skilled;
@@ -2219,11 +2268,26 @@ namespace CapriDesktop
         internal static Func<string[][]> ModTools;
         // Runs a mod's tool by name with its text, and gives back what it said.
         internal static Func<string, string, string> RunModTool;
+        // The tools her tool mods add, the same shape, and the way to run one: null when no tool mod has that name. A code mod's
+        // tool keeps its name if a tool mod picks the same one.
+        internal static Func<string[][]> RecipeTools;
+        internal static Func<string, string, string> RunRecipe;
+        // Saves a tool mod she wrote, switched off, and says what happened.
+        internal static Func<string, string> MakeTool;
         private static readonly string[][] NoModTools = new string[0][];
 
         private static string[][] ModToolsNow()
         {
-            Func<string[][]> tools = ModTools;
+            string[][] coded = ToolsFrom(ModTools), recipes = ToolsFrom(RecipeTools);
+            if (recipes.Length == 0) return coded;
+            List<string[]> all = new List<string[]>(coded);
+            foreach (string[] recipe in recipes)
+                if (!all.Exists(tool => tool[0] == recipe[0])) all.Add(recipe);
+            return all.ToArray();
+        }
+
+        private static string[][] ToolsFrom(Func<string[][]> tools)
+        {
             if (tools == null) return NoModTools;
             try { return tools() ?? NoModTools; }
             catch (Exception) { return NoModTools; }
@@ -2317,6 +2381,7 @@ namespace CapriDesktop
         private static List<string[]> Missing(bool blind)
         {
             List<string[]> missing = new List<string[]>();
+            if (MakeTool == null) missing.Add(new[] { "make_tool", "making tools isn't set up here" });
             if (blind)
             {
                 missing.Add(new[] { "look_at_screen", NoSight });
@@ -2372,6 +2437,7 @@ namespace CapriDesktop
         private static List<string[]> Switches()
         {
             List<string[]> off = new List<string[]>();
+            if (!WeatherOn()) off.Add(new[] { "weather", "turn on Weather in Settings > WEATHER and type their city" });
 #if !CROSS
             if (!ClipsOn()) off.Add(new[] { "clip", "turn on Clip my games in Settings > CLIPS to save; opening saved clips still works" });
 #endif
@@ -2606,7 +2672,7 @@ namespace CapriDesktop
             kit.Noted = (kit.NotHere.Length == 0 ? noted : noted + "\n" + kit.NotHere + Unsure) + turnOn;
             kit.Handing = kit.NotHere.Length == 0 ? handing : handing.Insert(handing.LastIndexOf(HandsLast, StringComparison.Ordinal), kit.NotHere + " If they ask for one of these, call no tool and reply with only the word: chat\n");
             kit.Brief = "\nWhat you can do on their " + ComputerName + " right now (your hands run these tools for you, so never write a tool's name or a call in your reply):\n" + string.Join("\n", brief.ToArray())
-                + (kit.NotHere.Length == 0 ? "" : "\n" + kit.NotHere + Unsure) + (switched.Count == 0 ? "" : "\nIf they ask for one that's off right now, tell them how to turn it on.");
+                + (kit.NotHere.Length == 0 ? "" : "\n" + kit.NotHere + Unsure) + (switched.Count == 0 ? "" : "\nIf they ask for one that's off right now, tell them how to turn it on.") + Posture();
             kit.Chat = kit.Brief + chat;
             kit.ChatOnly = kit.Chat.Substring(0, kit.Chat.LastIndexOf(JobWord, StringComparison.Ordinal));
             return kit;
@@ -2666,6 +2732,20 @@ namespace CapriDesktop
         }
 
         // "a, b and c", or "a, b or c".
+        private static string Posture()
+        {
+            List<string> free = new List<string>();
+            for (int toggle = Security.Open; toggle <= Security.Sends; toggle++)
+                if (Security.Has(toggle) && Security.On(toggle)) free.Add(Security.Names[toggle].Substring(0, 1).ToLowerInvariant() + Security.Names[toggle].Substring(1));
+            string doing = "\nAct, don't describe: when what they asked for matches one of those, your hands do it, so never say you're doing it or tell them how. Opening an app or a site is a single step that finds the app or browser itself, so never check first, never answer a request to act with what you found or what's already open, and never ask them which tool to use. Asking for something a second time means do it a second time: never answer that you already did it, that it is already done or that it is already open, whatever your memory of this chat says.";
+            if (Security.Has(Security.Mouse) && Security.On(Security.Mouse))
+                return "\nThey've handed you their mouse and keyboard, so you can do whatever they ask on this " + ComputerName + " without asking first." + doing;
+            if (free.Count > 0)
+                return "\nThese run the moment you call them, with no yes needed: " + Joined(free, "and") + "." + doing
+                    + " Anything else waits for their yes, so for those say what you'd do and let them agree instead of reporting it as done.";
+            return "\nThey've switched off everything you'd use to act, so talk first and answer in words. Your tools above still exist and each one waits for their yes, so say what you'd do and let them agree. Never report an action as done.";
+        }
+
         private static string Joined(List<string> items, string last)
         {
             if (items.Count < 2) return string.Join("", items.ToArray());
@@ -3030,6 +3110,15 @@ namespace CapriDesktop
         // "I'm sending you the biggest hug" is warmth, not a message she owes them. Warmth sent to someone by name still counts.
         private static readonly Regex Warmth = new Regex(@"\b(send(s|ing)?|sent)\s+((you|u|ya|y'all)\s+)?((a|an|the|my|some|all|so|much|many|lots|of|this|big|bigger|biggest|huge|massive|giant|tight|warm|warmest|virtual|good|positive|happy|healing|cozy|cosy|little|tiny|extra|more|mega|super|best|sweet|soft|gentle|digital|cyber|neon)\s+)*(hugs?|huggies|squeezes?|kiss(es)?|love|xoxo|vibes?|energy|thoughts|wishes|prayers?|luck|cuddles?|smooches?|hearts?|sunshine|strength|support|positivity|juju|blessings?|regards|cheers|kudos|props|high[- ]?fives?|fist[- ]?bumps?|headpats?|pats)\b(?!\s+(to|over to)\s+(?!(you|u|ya|y'all|yourself)\b)\w)", RegexOptions.IgnoreCase);
 
+        private const string Onto = @"(\s+(up|on|in|into|at|for|through|over|your|the|that|this|those|these|it|what|if|whether|a|an|my|how)\b|\s+\w+'s\b)";
+        private static readonly Regex Ongoing = new Regex(@"^\W*((ok|okay|sure|alright|bet|yeah|yep|got it|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(hold on|hang on|one sec(ond)?|just a sec(ond)?|gimme a sec|give me (a|one) (sec(ond)?|moment|min(ute)?))[,.!\s—–-]+((choom|chooms)[,.!\s—–-]+)?(i'?m|let me|lemme|i'?ll)\b" +
+            @"|\b(let me|lemme|let'?s|i'?ll|i will|i'?m (gonna|going to|about to))\s+(\w+\s+){0,2}?(check|take a look|have a look|look|find|dig|hunt|scan|grab|pull|set|start|lock|peek|poke|track down)" + Onto +
+            @"|\bi'?m\s+(now\s+)?(checking|taking a look|having a look|looking|pulling|digging|hunting|scanning|grabbing|setting|starting|locking|finding|searching|peeking|poking|tracking down)" + Onto +
+            @"|^\W*((ok|okay|sure|alright|bet|yeah|yep|got it|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(checking|digging|hunting|scanning|pulling|bringing|grabbing|setting|starting|locking|searching|tracking down)" + Onto +
+            @"|\b(timer|reminder|alarm)('s| is| are)\s+(set|ticking|running|going|on)\b|\b(minutes?|seconds?|hours?) on the clock\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static bool Underway(string said) { return Ongoing.IsMatch((said ?? "").Replace('’', '\'')); }
+
         internal static bool Promised(string said)
         {
             string plain = Warmth.Replace((said ?? "").Replace('’', '\''), "");
@@ -3161,6 +3250,10 @@ namespace CapriDesktop
         // The title of a game open on their PC, or null. Each app sets it where it can see their windows.
         internal static Func<string> GameOpen = delegate { return null; };
 
+        internal static Func<string, string, string> Playlist;
+
+        internal static Func<bool> PlaylistBusy;
+
         // "Play minecraft and punch a tree" is more than opening it, so all of it goes to her hands.
         private static readonly Regex AndThen = new Regex(@"(?:^|\s)(?:and|then|until|und|dann|y|luego|et|puis|e|depois|i|potem|и|потом)\s+\S", RegexOptions.IgnoreCase);
 
@@ -3201,6 +3294,73 @@ namespace CapriDesktop
         // A look at one of their monitors by name: "what's on my second monitor", "look at my left screen", "check the portrait one".
         private static readonly Regex MonitorLook = new Regex(@"^(?:(?:can|could|would|will) (?:you|u) )?(?:(?:take a |have a |quick )?(?:look|peek|peep|glance)(?: at)?|check(?: out)?|see|read|scan) (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display|one)$|^what(?:'s| is) on (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display)$", RegexOptions.IgnoreCase);
         // A reply that says she can't see their screen means she should look instead.
+        private static readonly Regex PlaylistAdd = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*playlist[\s,]+(?:add|added|and)\s+(?:the\s+)?(?:folder|dir|directory|path)?\s*(?<path>.+?)[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistFolder = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:add|put)\s+(?:the\s+)?(?:folder|directory|path)?\s*(?<path>.+?)"
+            + @"\s+(?:to|into|on|in)\s+(?:my\s+|the\s+|her\s+|your\s+)?playlist[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistDrop = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:remove|delete|drop|take\s+off|get\s+rid\s+of|bin|ditch)\s*"
+            + @"(?:this\s+|that\s+|the\s+|current\s+)?(?:song|track|tune|one)(?:\s+(?:from|off)\s+(?:my\s+|the\s+|her\s+)?playlist)?[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistSkip = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:skip(?:\s+(?:this|that|the))?(?:\s+(?:song|track|tune|one))?"
+            + @"|next(?:\s+(?:song|track|tune|one))?|go\s+to\s+the\s+next(?:\s+(?:song|track|tune|one))?"
+            + @"|play\s+the\s+next(?:\s+(?:song|track|tune|one))?)[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistBack = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:(?:go\s+)?back(?:\s+(?:a|one|to\s+the\s+last))?(?:\s+(?:song|track|tune))?"
+            + @"|previous(?:\s+(?:song|track|tune|one))?|prev(?:\s+(?:song|track|tune))?|last\s+(?:song|track|tune)"
+            + @"|play\s+the\s+(?:previous|last)(?:\s+(?:song|track|tune|one))?)[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistShuffle = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:shuffle|randomi[sz]e|mix\s+up)(?:\s+(?:my|the|her|your))?(?:\s+(?:playlist|songs|music|tracks))?(?<off>\s+off)?[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistRepeatOne = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:repeat|loop)\s+(?:(?:this|that|the|just)\s+)?(?:song|track|tune|one)[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistRepeatAll = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:repeat|loop)\s+(?:all|everything|the\s+)?(?:playlist|list|album)?[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistRepeatOff = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:(?:turn\s+)?repeat\s+off|stop\s+repeating|no\s+repeat|repeat\s+none)[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistStop = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:stop|end|kill|quit|close)\s+(?:my\s+|the\s+|her\s+|your\s+)?playlist[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlaylistPlay = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:play|start|resume|put\s+on|shuffle)\s+(?:my\s+|the\s+|her\s+|your\s+)?playlist[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex AskedCommands = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay)[\s,]+)*(?:show\s+(?:me\s+)?(?:your\s+|the\s+|all\s+)?commands?"
+            + @"|(?:what|which)\s+commands?(?:\s+(?:do|can)\s+you\s+(?:have|know|understand|do))?"
+            + @"|commands?\s+list|list\s+(?:your\s+|the\s+)?commands?|open\s+commands?(?:\.md)?|show\s+commands?)[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex Typing = new Regex(
+            @"^(?:(?:please|hey|capri|ok|okay|go|now)[\s,]+)*"
+            + @"(?:(?:(?:take|grab|get)\s+)?control(?:\s+of)?\s+(?<app>.+?)\s*(?:,|\s)\s*(?:and\s+|then\s+)?(?:type|write|enter|put|say)\s+(?<what>.+?)"
+            + @"|(?:type|write|enter|put)\s+(?<what>.+?)\s+(?:in|into|on|onto|to)\s+(?:the\s+|my\s+|this\s+|that\s+)?(?<app2>.+?)"
+            + @"|(?:type|write|enter|put)\s+(?:in|into|on|onto)\s+(?:the\s+|my\s+|this\s+|that\s+)?(?<app2>[\w.+#-]+(?:\s+(?:application|app|window|editor))?)\s*[,:]?\s+(?<what>.+?)"
+            + @"|(?:in|into|on|onto)?\s*(?<app2>[\w.+#-]+(?:\s+(?:application|app|window|editor))?)\s*[,:]?\s+(?:type|write|enter|put)\s+(?<what>.+?)"
+            + @"|(?:use|using|go\s+(?:in)?to|open)\s+(?<app>.+?)\s+(?:to|and(?:\s+then)?)\s+(?:say|type|write|enter|put|send|post)\s+(?<what>.+?)"
+            + @"|(?:say|send|post|message)\s+(?<what>.+?)\s+(?:in|into|on|onto|to)\s+(?:the\s+|my\s+|this\s+|that\s+)?(?<app2>.+?))"
+            + @"[\s.!?]*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly Regex Unseen = new Regex(@"\b(can'?t|cannot|can not|don'?t|do not|unable to|not able to|no way to|have no way to)\s+(\w+\s+){0,4}(see|look at|view|access|check|read)\s+(your|ur|the|their)\s+(screen|monitor|display|desktop)\b|\b(no|without)\s+(access to|way to see|eyes on)\s+(your|ur|the)\s+screen\b|\b(share|show)\s+(me\s+)?(your|ur)\s+screen\b|\bi('m| am)\s+(blind|not looking at (your|the) screen)\b", RegexOptions.IgnoreCase);
 
         internal static bool CantSee(string reply) { return Unseen.IsMatch(reply ?? ""); }
@@ -3675,6 +3835,7 @@ namespace CapriDesktop
 #endif
 #if !CROSS
             if (CallSession.Blank(said)) { tool = null; args = new ToolArguments(); return false; }
+            if (CapriDesktop.WatchAlong.Request(said) == "scroll") { tool = "watch_along"; args = new ToolArguments { Action = "scroll" }; return true; }
 #endif
             if (Planned(said, out tool, out args)) return true;
             List<string> tries = new List<string>();
@@ -3829,6 +3990,49 @@ namespace CapriDesktop
 #endif
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
+            ToolArguments forecast = WeatherOn() ? CapriDesktop.Weather.Request(text) : null;
+            if (forecast != null) { tool = "weather"; args = forecast; return true; }
+
+            Match asked = PlaylistAdd.Match(text);
+            if (asked.Success && Playlist != null)
+            {
+                tool = "playlist";
+                args.Action = "add_folder";
+                args.Path = asked.Groups["path"].Value.Trim().Trim('"');
+                args.Asked = said;
+                return true;
+            }
+            Match playlistFolder = PlaylistFolder.Match(text);
+            if (playlistFolder.Success && Playlist != null)
+            {
+                tool = "playlist";
+                args.Action = "add_folder";
+                args.Path = playlistFolder.Groups["path"].Value.Trim().Trim('"');
+                args.Asked = said;
+                return true;
+            }
+            if (Playlist != null)
+            {
+                bool spinning = PlaylistBusy != null && PlaylistBusy();
+                string doing = AskedCommands.IsMatch(text) ? "commands"
+                    : PlaylistRepeatOff.IsMatch(text) ? "repeat_off"
+                    : PlaylistRepeatOne.IsMatch(text) ? "repeat_one"
+                    : PlaylistRepeatAll.IsMatch(text) ? "repeat_all"
+                    : PlaylistShuffle.IsMatch(text) && (spinning || PlaylistShuffle.Match(text).Groups[0].Value.IndexOf("playlist", StringComparison.OrdinalIgnoreCase) >= 0) ? "shuffle"
+                    : PlaylistBack.IsMatch(text) && spinning ? "back"
+                    : PlaylistSkip.IsMatch(text) && spinning ? "skip"
+                    : PlaylistDrop.IsMatch(text) ? "remove"
+                    : PlaylistStop.IsMatch(text) ? "stop"
+                    : PlaylistPlay.IsMatch(text) ? "play" : null;
+                if (doing != null)
+                {
+                    tool = "playlist";
+                    args.Action = doing;
+                    if (doing == "shuffle" && PlaylistShuffle.Match(text).Groups["off"].Success) args.Path = "off";
+                    args.Asked = said;
+                    return true;
+                }
+            }
 #if CROSS
             // Mac and Linux have no reminders route to hear her stopwatch's words, so they're heard here. Windows hears them in
             // Reminders.Route, before any brain, like a timer.
@@ -4047,6 +4251,25 @@ namespace CapriDesktop
                 if (how == "move_to_screen") args.Screen = Regex.IsMatch(found.Groups["s"].Value, "^(?:other|another|next)$", RegexOptions.IgnoreCase) ? "next" : found.Groups["s"].Value.ToLowerInvariant();
                 return true;
             }
+#if !CROSS
+            Match typing = Typing.Match(text);
+            if (typing.Success)
+            {
+                string into = typing.Groups["app"].Success ? typing.Groups["app"].Value : typing.Groups["app2"].Value;
+                into = Regex.Replace(into ?? "", @"\s+(?:application|app|window|editor)$", "", RegexOptions.IgnoreCase).Trim(' ', '.', ',', ':', '!', '?');
+                string words = (typing.Groups["what"].Value ?? "").Trim(' ', '.', ',', ':', '!', '?', '"');
+                bool place = Regex.IsMatch(into, @"^#|\b(?:chat|channel|server|dms?|group|thread|call|vc|general)\b", RegexOptions.IgnoreCase);
+                string app = place ? null : AppMeant(into);
+                if (app != null && words.Length > 0)
+                {
+                    tool = "use_computer";
+                    args.Task = "Type \"" + words + "\" into " + app;
+                    args.Name = app;
+                    args.Asked = said;
+                    return true;
+                }
+            }
+#endif
             found = Regex.Match(text, @"^end (?:the )?task(?: (?:for )?(.+))?$", RegexOptions.IgnoreCase);
             if (found.Success)
             {
@@ -4300,6 +4523,7 @@ namespace CapriDesktop
         internal static bool Valid(string tool, ToolArguments args)
         {
 #if CROSS
+            if (tool == "linux_system" && args != null && string.IsNullOrEmpty(args.Action) && string.IsNullOrEmpty(args.Name)) args.Action = "overview";
             if (tool == "linux_system") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(overview|status|processes|service_failed|service_status|service_start|service_stop|service_restart)\z")
                 && (args.Action == "overview" || args.Action == "status" || args.Action == "processes" || args.Action == "service_failed" || Named(args.Name));
             if (tool == "run_terminal") return args != null && !string.IsNullOrWhiteSpace(args.Command) && args.Command.Length <= 16000 && args.Command.IndexOf('\0') < 0;
@@ -4317,7 +4541,7 @@ namespace CapriDesktop
             if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
 #if !CROSS
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back" || args.Action == "rampage");
-            if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
+            if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "scroll" || args.Action == "stop");
 #endif
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
 #if !CROSS
@@ -4329,6 +4553,9 @@ namespace CapriDesktop
             if (tool == "quit") return args != null && args.Action == "quit";
             if (tool == "updates") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(check|status|install)\z");
             if (tool == "mini_player") return args != null && (args.Action == "show" || args.Action == "hide");
+            if (tool == "playlist") return args != null && (args.Action == "commands" || args.Action == "play" || args.Action == "skip" || args.Action == "back" || args.Action == "stop" || args.Action == "remove"
+                || args.Action == "shuffle" || args.Action == "repeat_one" || args.Action == "repeat_all" || args.Action == "repeat_off"
+                || ((args.Action == "add_folder" || args.Action == "add_song") && Named(args.Path ?? args.Name ?? args.Song)));
 #if !CROSS
             if (tool == "listen")
             {
@@ -4348,6 +4575,7 @@ namespace CapriDesktop
             if (args == null) return false;
             if (tool == "read_skill") return Named(args.Name);
             if (tool == "mod") return Named(args.Name);
+            if (tool == "make_tool") return !string.IsNullOrWhiteSpace(args.Text);
             if (tool == "mini_game")
             {
                 bool chess = args.Name == "chess";
@@ -4396,6 +4624,7 @@ namespace CapriDesktop
             if (tool == "use_computer") return Named(args.Task);
             if (tool == "shortcut") return Regex.IsMatch(args.Name ?? "", @"\A(discord_mute|discord_deafen|screenshot|clip_that|record|game_bar|show_desktop|task_manager|clipboard|emoji|voice_typing|live_captions|narrator|magnifier|magnifier_off|color_filters|quick_settings)\z");
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
+            if (tool == "files") return FileKeeper.Valid(args);
             if (tool == "find_file") return args.Action == "show" || args.Action == "open" || args.Action == "stop" || ((string.IsNullOrEmpty(args.Action) || args.Action == "search") && Named(args.Description));
             if (tool == "website_nickname") return args.Action == "list" || (Named(args.Name) && (args.Action == "forget" || args.Action == "save"));
             if (tool == "read_file") return Named(args.Path) && (!args.Page.HasValue || args.Page.Value >= 1) && (!args.Offset.HasValue || args.Offset.Value >= 0);
@@ -4403,6 +4632,7 @@ namespace CapriDesktop
             if (tool == "game_notes") return args != null && (args.Action == "read" || (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text));
             if (tool == "remind") return args.Action == "list" || (args.Action == "cancel" ? Named(args.Text) : (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text) && Named(args.When));
             if (tool == "stopwatch") return string.IsNullOrEmpty(args.Action) || args.Action == "start" || args.Action == "check" || args.Action == "stop";
+            if (tool == "weather") return args == null || string.IsNullOrEmpty(args.Action) || Regex.IsMatch(args.Action, @"\A(now|day|week|rain|summary)\z");
             if (tool == "routine") return args.Action == "list" || (Named(args.Phrase) && (args.Action == "forget" || args.Action == "run" || ((string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Steps))));
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
@@ -4543,6 +4773,19 @@ namespace CapriDesktop
         private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
+#if !CROSS
+            string kind = null;
+            try { kind = Favourites.KindOf(wanted); } catch (Exception) { }
+            if (kind != null)
+            {
+                string theirs = null;
+                try { theirs = Favourites.Best(kind); } catch (Exception) { }
+                bool installed = false;
+                if (!string.IsNullOrEmpty(theirs)) try { installed = FindApps(theirs).Count > 0; } catch (Exception) { installed = false; }
+                if (installed) wanted = theirs;
+                else if (string.Equals(kind, "browser", StringComparison.OrdinalIgnoreCase)) return OpenBrowserKind(current);
+            }
+#endif
             List<InstalledApp> found;
 #if CROSS
             found = FindApps(wanted);
@@ -4555,6 +4798,9 @@ namespace CapriDesktop
             InstalledApp chosen = found[0];
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
             if (current != null && !current()) return "That call errand has ended.";
+#if !CROSS
+            try { Favourites.SheOpened(chosen.Id); } catch (Exception) { }
+#endif
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
             // Windows saying no gets said, instead of "Opened" over nothing.
             try { Run(chosen.Id); }
@@ -4562,6 +4808,68 @@ namespace CapriDesktop
             catch (System.ComponentModel.Win32Exception) { return "Couldn't open " + openedName + ": Windows wouldn't start it. Try opening it from the Start menu."; }
             return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
         }
+
+#if !CROSS
+        private static string OpenBrowserKind(Func<bool> current)
+        {
+            foreach (string known in new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "zen" })
+            {
+                List<InstalledApp> found;
+                try { found = FindApps(known); }
+                catch (Exception) { continue; }
+                if (found.Count == 0) continue;
+                if (current != null && !current()) return "That call errand has ended.";
+                string named = found[0].Name;
+                try { Run(found[0].Id); }
+                catch (InvalidOperationException) { continue; }
+                catch (System.ComponentModel.Win32Exception) { continue; }
+                return "Opened " + named + (current == null ? Opened(named) : "") + ".";
+            }
+            return "I can't tell which browser is yours yet. Name it once and I'll remember.";
+        }
+#endif
+
+#if !CROSS
+        internal static string AppMeant(string named)
+        {
+            string want = (named ?? "").Trim();
+            if (want.Length == 0) return null;
+            string[] words = Regex.Split(want, @"\s+");
+            for (int from = 0; from < words.Length && from < 4; from++)
+            {
+                string tail = string.Join(" ", words, from, words.Length - from).Trim(' ', '.', ',', ':', '!', '?');
+                string found = AppExactly(tail);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        private static string AppExactly(string want)
+        {
+            if (want.Length == 0 || Regex.IsMatch(want, @"^(?:the|a|an|my|this|that|in|on|to|it|chat|window|app)$", RegexOptions.IgnoreCase)) return null;
+            try
+            {
+                OpenWindow open = OpenedWindow(Windows(), want);
+                if (open != null) return BrowserName(open.Program) ?? AppTitle(open) ?? want;
+            }
+            catch (Exception) { }
+            if (Showing(want)) return want;
+            if (Installed(want)) return want;
+            string signs = Regex.Replace(want, @"\s*\bplus\s*plus\b", "++", RegexOptions.IgnoreCase);
+            signs = Regex.Replace(signs, @"\s*\bplus\b", "+", RegexOptions.IgnoreCase).Trim();
+            if (signs != want && (Showing(signs) || Installed(signs))) return signs;
+            return null;
+        }
+
+        private static string AppTitle(OpenWindow window)
+        {
+            if (window == null) return null;
+            string title = (window.Title ?? "").Trim();
+            int dash = title.LastIndexOf(" - ", StringComparison.Ordinal);
+            string tail = dash > 0 ? title.Substring(dash + 3).Trim() : null;
+            return string.IsNullOrEmpty(tail) ? (string.IsNullOrEmpty(window.Program) ? null : window.Program) : tail;
+        }
+#endif
 
         private static List<InstalledApp> FindApps(List<InstalledApp> apps, string wanted)
         {
@@ -4810,6 +5118,8 @@ namespace CapriDesktop
         // library, and from her other launchers' lists the same way. One already in All apps by that name isn't listed twice.
         internal static List<InstalledApp> WithSteam(List<InstalledApp> apps, List<InstalledApp> steam)
         {
+            if (apps == null) apps = new List<InstalledApp>();
+            if (steam == null) return apps;
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
             foreach (InstalledApp app in apps) names.Add(AppName(app));
             foreach (InstalledApp game in steam)
@@ -4881,10 +5191,10 @@ namespace CapriDesktop
             string data = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             List<InstalledApp> apps = new List<InstalledApp>();
             if (data.Length == 0) return apps;
-            apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests")));
-            apps.AddRange(RiotApps(Path.Combine(data, "Riot Games")));
-            apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir")));
-            apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn")));
+            try { apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests"))); } catch (Exception) { }
+            try { apps.AddRange(RiotApps(Path.Combine(data, "Riot Games"))); } catch (Exception) { }
+            try { apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir"))); } catch (Exception) { }
+            try { apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn"))); } catch (Exception) { }
             return apps;
         }
 
@@ -4911,12 +5221,14 @@ namespace CapriDesktop
                     try
                     {
                         byte[] bytes = File.ReadAllBytes(manifest);
-                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3
+                            : bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE ? 2 : 0;
                         using (MemoryStream stream = new MemoryStream(bytes, start, bytes.Length - start)) item = (EpicItem)reader.ReadObject(stream);
                     }
                     catch (IOException) { continue; }
                     catch (UnauthorizedAccessException) { continue; }
                     catch (SerializationException) { continue; }
+                    catch (System.Xml.XmlException) { continue; }
                     if (item == null || item.Incomplete || string.IsNullOrWhiteSpace(item.DisplayName) || string.IsNullOrWhiteSpace(item.AppName) || string.IsNullOrWhiteSpace(item.LaunchExecutable)) continue;
                     if (!string.IsNullOrEmpty(item.MainGameAppName) && item.MainGameAppName != item.AppName) continue;
                     string app = string.IsNullOrEmpty(item.CatalogNamespace) || string.IsNullOrEmpty(item.CatalogItemId) ? Uri.EscapeDataString(item.AppName)
@@ -4926,6 +5238,8 @@ namespace CapriDesktop
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
+            catch (SerializationException) { }
+            catch (System.Xml.XmlException) { }
             return apps;
         }
 
@@ -4947,7 +5261,10 @@ namespace CapriDesktop
                     if (!named.Success || named.Groups[1].Value == "riot_client") continue;
                     string settings = Path.Combine(product, named.Value + ".product_settings.yaml");
                     if (!File.Exists(settings)) continue;
-                    string text = File.ReadAllText(settings);
+                    string text;
+                    try { text = File.ReadAllText(settings); }
+                    catch (IOException) { continue; }
+                    catch (UnauthorizedAccessException) { continue; }
                     Match shortcut = Regex.Match(text, @"(?m)^shortcut_name:\s*""?(.+?)(?:\.lnk)?""?\s*$");
                     Match place = Regex.Match(text, @"(?m)^product_install_full_path:\s*""?(.+?)""?\s*$");
                     if (!shortcut.Success || !place.Success || !Directory.Exists(place.Groups[1].Value.Replace('/', '\\'))) continue;
@@ -4964,8 +5281,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> UbisoftApps(List<string[]> installs)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (installs == null) return apps;
             foreach (string[] install in installs)
             {
+                if (install == null || install.Length < 2 || string.IsNullOrEmpty(install[0]) || string.IsNullOrEmpty(install[1])) continue;
                 string name = Uninstalled("Uplay Install " + install[0]);
                 if (Regex.IsMatch(install[0], @"^\d+$") && !string.IsNullOrWhiteSpace(name) && FolderThere(install[1])) apps.Add(new InstalledApp(name.Trim(), "uplay://launch/" + install[0] + "/0"));
             }
@@ -4976,8 +5295,10 @@ namespace CapriDesktop
         internal static List<InstalledApp> GogApps(List<string[]> games)
         {
             List<InstalledApp> apps = new List<InstalledApp>();
+            if (games == null) return apps;
             foreach (string[] game in games)
             {
+                if (game == null || game.Length < 5) continue;
                 string exe = game[2] ?? "", given = (game[3] ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(game[1]) || !string.IsNullOrWhiteSpace(game[4]) || !Regex.IsMatch(exe, @"^[A-Za-z]:\\.+\.exe$", RegexOptions.IgnoreCase) || !Exists(exe)) continue;
                 apps.Add(new InstalledApp(game[1].Trim(), given.Length == 0 ? exe : "\"" + exe + "\" " + given));
@@ -5106,226 +5427,6 @@ namespace CapriDesktop
             info.UseShellExecute = true;
             return info;
         }
-
-        // Unnamed searches use the engine their browser states (YunoTheAlien, 13 Nov).
-        [DataContract]
-        private sealed class SearchSettings
-        {
-            [DataMember(Name = "default_search_provider_data")] internal SearchProvider Provider;
-        }
-
-        [DataContract]
-        private sealed class SearchProvider
-        {
-            [DataMember(Name = "template_url_data")] internal SearchUrl Template;
-        }
-
-        [DataContract]
-        private sealed class SearchUrl
-        {
-            [DataMember(Name = "url")] internal string Url;
-        }
-
-        [DataContract]
-        private sealed class BrowserState
-        {
-            [DataMember(Name = "profile")] internal BrowserProfile Profile;
-        }
-
-        [DataContract]
-        private sealed class BrowserProfile
-        {
-            [DataMember(Name = "last_used")] internal string Last;
-        }
-
-        private sealed class Engine
-        {
-            internal string Url;
-            internal DateTime At;
-        }
-
-        private static readonly object searchGate = new object();
-        private static readonly Dictionary<string, Engine> engines = new Dictionary<string, Engine>();
-
-        internal static void ForgetSearch() { lock (searchGate) engines.Clear(); }
-
-        private static T SearchJson<T>(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text) || text.Length > 4 * 1024 * 1024) return default(T);
-            using (MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(text))) return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(input);
-        }
-
-        internal static string SearchTemplate(string text)
-        {
-            try
-            {
-                SearchSettings settings = SearchJson<SearchSettings>(text);
-                return settings == null || settings.Provider == null || settings.Provider.Template == null ? null : settings.Provider.Template.Url;
-            }
-            catch (Exception) { return null; }
-        }
-
-        internal static string SearchProfile(string text)
-        {
-            try
-            {
-                BrowserState state = SearchJson<BrowserState>(text);
-                string profile = state == null || state.Profile == null ? null : state.Profile.Last;
-                if (string.IsNullOrWhiteSpace(profile)) return "Default";
-                return profile != "." && profile != ".." && Regex.IsMatch(profile, @"^[^\\/:*?""<>|\x00-\x1F]+$") ? profile : null;
-            }
-            catch (Exception) { return null; }
-        }
-
-        internal static string EngineTemplate(string template)
-        {
-            if (string.IsNullOrWhiteSpace(template) || !Regex.IsMatch(template, @"\Ahttps?://", RegexOptions.IgnoreCase) || !template.Contains("{searchTerms}")) return null;
-            try
-            {
-                int hostAt = template.IndexOf("://", StringComparison.Ordinal) + 3;
-                int hostEnd = template.IndexOfAny(new[] { '/', '?', '#' }, hostAt);
-                if (hostEnd < 0) hostEnd = template.Length;
-                if (hostEnd == hostAt) return null;
-                if (Regex.IsMatch(Uri.UnescapeDataString(template.Substring(hostAt, hostEnd - hostAt)), @"[{}]")) return null;
-                int fragmentAt = template.IndexOf('#');
-                string fragment = fragmentAt < 0 ? "" : template.Substring(fragmentAt);
-                string address = fragmentAt < 0 ? template : template.Substring(0, fragmentAt);
-                int queryAt = address.IndexOf('?');
-                string path = queryAt < 0 ? address : address.Substring(0, queryAt);
-                if (Regex.IsMatch(Uri.UnescapeDataString((path + fragment).Replace("{searchTerms}", "caprisearch")), @"[{}]")) return null;
-                List<string> parts = new List<string>();
-                if (queryAt >= 0)
-                    foreach (string part in address.Substring(queryAt + 1).Split('&'))
-                        if (!Regex.IsMatch(Uri.UnescapeDataString(part.Replace("{searchTerms}", "caprisearch")), @"[{}]")) parts.Add(part);
-                string cleaned = path + (parts.Count == 0 ? "" : "?" + string.Join("&", parts.ToArray())) + fragment;
-                Uri uri;
-                if (!cleaned.Contains("{searchTerms}") || !Uri.TryCreate(cleaned.Replace("{searchTerms}", "caprisearch"), UriKind.Absolute, out uri) || (uri.Scheme != "http" && uri.Scheme != "https") || uri.Host.Length == 0 || uri.UserInfo.Length > 0) return null;
-                return cleaned;
-            }
-            catch (Exception) { return null; }
-        }
-
-        private static string SearchAddress(string search, string browser)
-        {
-            string words = Uri.EscapeDataString(search.Trim());
-#if !CROSS
-            try
-            {
-                string name = string.IsNullOrWhiteSpace(browser) ? BrowserName(DefaultBrowser()) : BrowserName(browser);
-                if (name != null && name != "Firefox")
-                {
-                    string template;
-                    lock (searchGate)
-                    {
-                        Engine engine;
-                        DateTime now = SearchNow();
-                        if (!engines.TryGetValue(name, out engine) || now - engine.At >= TimeSpan.FromMinutes(10))
-                        {
-                            string read = null;
-                            try { read = EngineTemplate(SearchEngine(name)); } catch (Exception) { }
-                            engine = new Engine { Url = read, At = now }; engines[name] = engine;
-                        }
-                        template = engine.Url;
-                    }
-                    Uri uri;
-                    if (template != null && Uri.TryCreate(template.Replace("{searchTerms}", words), UriKind.Absolute, out uri) && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host.Length > 0 && uri.UserInfo.Length == 0) return uri.AbsoluteUri;
-                }
-            }
-            catch (Exception) { }
-#endif
-            return Searches[1, 1] + words;
-        }
-
-        private static string ReadDefaultBrowser()
-        {
-#if !CROSS
-            return DefaultBrowserChoice(ReadBrowserChoice);
-#else
-            return null;
-#endif
-        }
-
-#if !CROSS
-        internal static string DefaultBrowserChoice(Func<string, string> read)
-        {
-            const string path = @"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\";
-            foreach (string choice in new[] { @"UserChoiceLatest\ProgId", "UserChoiceLatest", "UserChoice" })
-            {
-                string id = null;
-                try { id = read(path + choice); } catch (Exception) { }
-                if (!string.IsNullOrWhiteSpace(id)) return DefaultBrowserName(id);
-            }
-            return null;
-        }
-
-        private static string ReadBrowserChoice(string path)
-        {
-            using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path))
-                return key == null ? null : key.GetValue("ProgId") as string;
-        }
-#endif
-
-        internal static string DefaultBrowserName(string id)
-        {
-            if (Regex.IsMatch(id ?? "", @"^ChromeHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Chrome";
-            if (Regex.IsMatch(id ?? "", @"^MSEdgeHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Edge";
-            if (Regex.IsMatch(id ?? "", @"^BraveHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Brave";
-            if (Regex.IsMatch(id ?? "", @"^VivaldiHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Vivaldi";
-            if (Regex.IsMatch(id ?? "", @"^OperaGX", RegexOptions.IgnoreCase)) return "Opera GX";
-            if (Regex.IsMatch(id ?? "", @"^OperaStable(?:\.|$)", RegexOptions.IgnoreCase)) return "Opera";
-            if (Regex.IsMatch(id ?? "", @"^FirefoxURL(?:-|$)", RegexOptions.IgnoreCase)) return "Firefox";
-            return null;
-        }
-
-        private static string SearchRoot(string browser)
-        {
-#if !CROSS
-            string folder = browser == "Chrome" ? @"Google\Chrome\User Data" : browser == "Edge" ? @"Microsoft\Edge\User Data" : browser == "Brave" ? @"BraveSoftware\Brave-Browser\User Data" : browser == "Vivaldi" ? @"Vivaldi\User Data" : browser == "Opera" ? @"Opera Software\Opera Stable" : browser == "Opera GX" ? @"Opera Software\Opera GX Stable" : null;
-            return folder == null ? null : Path.Combine(Environment.GetFolderPath(browser == "Opera" || browser == "Opera GX" ? Environment.SpecialFolder.ApplicationData : Environment.SpecialFolder.LocalApplicationData), folder);
-#else
-            return null;
-#endif
-        }
-
-        internal static string ReadSearchEngine(string browser)
-        {
-#if !CROSS
-            try
-            {
-                string root = ProfileRoot(browser);
-                if (string.IsNullOrWhiteSpace(root)) return null;
-                string state = Path.Combine(root, "Local State");
-                bool hasState = File.Exists(state);
-                string stateText = hasState ? ReadSearchFile(state) : null;
-                if (hasState && stateText == null) return null;
-                string profile = SearchProfile(stateText);
-                if (profile == null) return null;
-                string folder = Path.Combine(root, profile);
-                if ((browser == "Opera" || browser == "Opera GX") && !File.Exists(Path.Combine(folder, "Secure Preferences")) && !File.Exists(Path.Combine(folder, "Preferences"))) folder = root;
-                return SearchTemplate(ReadSearchFile(Path.Combine(folder, "Secure Preferences"))) ?? SearchTemplate(ReadSearchFile(Path.Combine(folder, "Preferences")));
-            }
-            catch (Exception) { }
-#endif
-            return null;
-        }
-
-#if !CROSS
-        internal static string ReadSearchFile(string path)
-        {
-            try
-            {
-                using (FileStream input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-                {
-                    if (input.Length > 4 * 1024 * 1024) return null;
-                    byte[] bytes = new byte[(int)input.Length];
-                    int offset = 0, got;
-                    while (offset < bytes.Length && (got = input.Read(bytes, offset, bytes.Length - offset)) > 0) offset += got;
-                    return offset == bytes.Length && input.Length == bytes.Length ? Encoding.UTF8.GetString(bytes) : null;
-                }
-            }
-            catch (Exception) { return null; }
-        }
-#endif
 
         // Keep a page when her website call has a misplaced address or browser name (YunoTheAlien, 13 Nov).
         internal static void WebsiteArgs(ToolArguments args)
@@ -5532,7 +5633,7 @@ namespace CapriDesktop
             bool searching = !string.IsNullOrWhiteSpace(search);
             if (searching)
             {
-                if (host.Length == 0) return SearchAddress(search, browser);
+                if (host.Length == 0) return Searches[1, 1] + Uri.EscapeDataString(search.Trim());
                 for (int i = 0; i < Searches.GetLength(0); i++)
                 {
                     string key = Searches[i, 0];
@@ -6999,10 +7100,9 @@ namespace CapriDesktop
                     if (string.Equals(said.Trim(), Brain.Languages[i, 0], StringComparison.OrdinalIgnoreCase) || string.Equals(said.Trim(), Brain.Languages[i, 2], StringComparison.OrdinalIgnoreCase)) return i;
                 return -1;
             }
-            if (name == "volume" && Regex.IsMatch(plain, @"^(?:off|muted|0%?)$")) return 0;
             if (name == "sleep" && Regex.IsMatch(plain, @"^(?:off|no|none|0)$")) return 0;
             if (name == "sleep" && Regex.IsMatch(plain, @"^half(?:an)?-?hour$")) return 5;
-            if (name == "wander" && Regex.IsMatch(plain, @"^(?:no|none|never)$")) return 0;
+            if ((name == "wander" || name == "explore_after" || name == "glance_gap") && Regex.IsMatch(plain, @"^(?:no|none|never)$")) return 0;
             if (name == "game_comments" && plain == "events") return 1;
             if (name == "care_late_night" && plain == "midnight") return 3;
             if ((name == "voice_pitch" || name.EndsWith("_pitch", StringComparison.Ordinal)) && (plain == "normal" || plain == "same")) return name == "voice_pitch" ? 6 : Array.IndexOf(steps, "Same");
@@ -7026,7 +7126,7 @@ namespace CapriDesktop
                 value = secondsIn / (minutes && name != "sleep" ? 60 : 1);
             }
             if (name == "sleep") values = new[] { 0, 60, 120, 300, 600, 1800 };
-            if (name == "volume") values = new[] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+            if (name == "volume") values = new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
             if (name == "voice_speed") { values = new[] { 70, 80, 90, 100, 110, 120, 130, 140, 150 }; if (unit != "%") value *= 100; }
             if (name.StartsWith("layer_", StringComparison.Ordinal))
             {
@@ -7104,6 +7204,14 @@ namespace CapriDesktop
         {
             int row = LevelRow(args.Name);
             if (row < 0) return "There's no slider of mine called " + (args.Name ?? "that") + ".";
+            if (args.Name == "volume" && Regex.IsMatch(Spoken(args.Level ?? "").Replace(" ", ""), @"^(?:off|mute|muted|silent|0%?)$"))
+            {
+                ToolArguments quiet = args.Copy();
+                quiet.Name = "voice";
+                quiet.Action = "off";
+                quiet.Level = null;
+                return Settings(quiet);
+            }
             string label = OwnLevels[row, 1], named = char.ToUpperInvariant(label[0]) + label.Substring(1);
             string[] steps = OwnSteps[row];
             int was = LevelOf(args.Name);

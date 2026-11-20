@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Ulawulo oluphinde lwapeyintwa alubuyiselwanga kumfanekiso.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Isitshixo simahala esivela kwi-Google AI Studio, i-NVIDIA okanye i-OpenRouter. Akukho nto yokulanda. Kufuneka i-intanethi.
+A held trackpad scroll got a flick's long ease:	Ukuskrola kwepadi yokuhamba okubanjiweyo kufumene ukuthamba kwesiphelo sokutyibilika:
+A layout change during a slide put the page at	Ukutshintsha kolungelelwano ngexesha lesilayidi kwabeka iphepha kwi
+A layout change left the picture up.	Ukutshintsha kolungelelwano kushiye umfanekiso usemi.
+A model in Ollama, on your local server or on your key.	Imodeli kwi-Ollama, kwisiseva sakho sasekhaya okanye ngesitshixo sakho.
+A paid key goes under MAX INTELLIGENCE by itself.	Isitshixo esihlawulelwayo sihamba sodwa siye kwi-MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	Isicwangciso osele uhlawula ngaso, isitshixo sakho okanye i-Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Imenyu yephaneli yezwi ayinayo ikopi yayo yefonti yephaneli.
+A wheel turn right after a slide ended froze the picture.	Ukujikeleza kwevili emva nje kokuphela kwesilayidi kuyimisile umfanekiso.
+ALLOW THIS PHONE?	VUMELA LE FONI?
+ALMOST THERE >	SELE KUFUTHI >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ENYE I-CAPRI ITHATHE · CIMA UZE UVULE
+API key	Isitshixo se-API
+API key, Claude plan or ChatGPT plan	Isitshixo se-API, isicwangciso se-Claude okanye isicwangciso se-ChatGPT
+Add	Yongeza
+Address	Idilesi
+Address and key saved. Use saved to reconnect.	Idilesi nesitshixo zigciniwe. Sebenzisa ogciniweyo ukuqhagamshelana kwakhona.
+Advanced Settings	Izicwangciso ezikhulu
+All	Zonke
+All screens	Zonke iiscreen
+Allow	Vumela
+Almost there. I'll say hi the second my brain's in.	Sele kufuthi. Ndiza kuthi molo ngoxa ingqondo yam ifika.
+Always	Ngaso sonke ixesha
+Always on top	Ngaphezulu ngaphezulu
+Any Google account works. I opened the page in your browser.	Nasiphi na i-akhawunti ye-Google iyasebenza. Ndivule iphepha kwisikhangeli sakho.
+Applies to every voice	Isebenza kwawo onke amazwi
+Apps she may close	Izicelo angavala
+Ask Capri for more	Cela i-Capri ngakumbi
+Asking your server...	Ndibuza iseva yakho...
+Asks before closing only the apps you choose.	Ibuza phambi kokuvala kuphela izicelo ozikhethileyo.
+Auto	Ngokuzenzekelayo
+Automatic: VB-CABLE, else Steam's	Ngokuzenzekelayo: VB-CABLE, okanye ye-Steam
+BAD RELAY HOST	IHOSTI YE-RELAY EMBI
+BIG Z open notepad	BIG Z vula i-notepad
+BRAIN	INGQONDO
+BRAIN >	INGQONDO >
+BRAIN ONLINE >	INGQONDO IKWI-ONLINE >
+BRAIN PROVIDER >	UMBONELELI WENGQONDO >
+BRAIN VOICE CAPRI	I-CAPRI YEZWI LENGQONDO
+Back	Emva
+Back on your saved API key.	Emva kwesitshixo sakho se-API esigciniweyo.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Okulungileyo kule PC:
+Black	Mnyama
+Blank key means no key.	Isitshixo esingenanto sithetha akukho sitshixo.
+Brain API key	Isitshixo se-API sengqondo
+Brain model	Imodeli yengqondo
+Brain provider	Umbonelelei wengqondo
+Bring here	Yisa apha
+Bring to this screen	Yisa kule screen
+Browse	Phanda
+Browse mods	Phanda ii-mods
+Browse to a voice model	Phanda imodeli yezwi
+Browse...	Phanda...
+Bubble	Ibhamuni
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree ukhona na
+CAN'T REACH THE RELAY · RETRYING	AKUKWAZI UKUFIKELA KU-RELAY · IYAZAMA KWAKHONA
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	I-CAPRI YEZWI LENGQONDO
+CHANGED, approve it again.	UTSHINTSHIWE, vuma kwakhona.
+CLIPS >	IIKLIP >
+CLOUD VOICE	EZWI LELIFU
+CODE	IKHOWUDI
+COLORS >	IIMBALA >
+CONNECTED	IQHAGAMSHELWE
+CONNECTING	IYAQHAGAMSHELWA
+CUSTOM LOCAL	ENDAWONI IHLELIWE
+Call mode (beta)	Imo yokudlala ikholi (beta)
+Call mode does not fit.	Imo yokudlala ikholi ayilingani.
+Call mode is outside its space.	Imo yokudlala ikholi iphume kwindawo yayo.
+Cancel	Rhoxisa
+Cancel keys	Rhoxisa izitshixo
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Ikhowudi ye-Capri:
+Capri mods (*	Ii-mods ze-Capri (*
+Capri, hello	Capri, molo
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Isiphithiphithi xa ecaphukile
+Chat with Capri from your phone	Ncokola ne-Capri ngefowuni yakho
+ChatGPT plan	Isicwangciso se-ChatGPT
+Check for updates	Hlola izibuyekezo
+Check in on me	Ndibuze ukuba ndinjani
+Check in on me is hidden	Ndibuze ukuba ndinjani ufihliwe
+Check in on me still decides whether she visits.	Ndibuze ukuba ndinjani usaqwalasela ukuba uza kuvakalisa na.
+Check in on me's tip missed	Icebiso lokundibuza ukuba ndinjani alivelanga
+Chess	Chess
+Choose apps	Khetha izicelo
+Choose folder...	Khetha ifolda...
+Choose where future Capri clips are saved	Khetha apho kuza kugcinwa khona iiklip ze-Capri ezizayo
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Isicwangciso se-Claude okanye se-ChatGPT, isitshixo esihlawulelwayo (OpenAI, Claude, DeepSeek), okanye i-Ollama.
+Claude plan	Isicwangciso se-Claude
+Clear	Coca
+Cleared.	Icocekile.
+Click Confirm to keep Down, or press Esc.	Cofa Qinisekisa ukuze ugcine Phantsi, okanye ucinezele Esc.
+Click to open it.	Cofa ukuvula.
+Clip my games	Qopha imidlalo yam
+Clips	Iiklip
+Close	Vala
+Close other AIs for me	Vala ezinye i-AI ngam
+Cloud voice	Izwi lefu
+Cloud voice service	Inkonzo yezwi lefu
+Cloud voice setup	Ulungiselelo lwezwi lefu
+Code mods can reach your whole PC. Only trusted ones.	Ii-mods zekhowudi zinokufikelela kwi-PC yakho yonke. Ezithembekileyo kuphela.
+Code/Husk Mode	Imo ye-Code/Husk
+Codex	Codex
+Commands	Imiyalelo
+Comment on my games	Phawula kwimidlalo yam
+Comments	Izimvo
+Confirm	Qinisekisa
+Confirm keys	Qinisekisa izitshixo
+Connect	Qhagamshelana
+Connect / Forget brain key	Qhagamshelana / Libala isitshixo sengqondo
+Connect / Forget voice key	Qhagamshelana / Libala isitshixo sezwi
+Connect four	Connect Four
+Controls	Izilawuli
+Copri, what time is it	Copri, lixesha nini
+Copy error details	Kopa iinkcukacha zempazamo
+Copy the key	Kopa isitshixo
+Copy the key from the page, then press Paste.	Kopa isitshixo esuka kwiphepha, emva koko ucinezele Namathisela.
+Couldn't open that page:	Ayikwazanga ukuvula leyo phepha:
+Couldn't open that:	Ayikwazanga ukuvula leyo:
+Couldn't open the mods folder:	Ayikwazanga ukuvula ifolda ye-mods:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M sele yisitshixo sakhe se-Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N ivala imike
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V sele yisitshixo sakhe sokuthetha.
+Ctrl + Alt + V to talk	Ctrl + Alt + V ukuthetha
+Custom local voice	Izwi lasekhaya elilungiselelweyo
+Custom model name	Igama lemodeli elilungiselelweyo
+Dance	Dansa
+Dance to music	Dansa kumculo
+Default	Okuzenzekelayo
+Default (follows Windows)	Okuzenzekelayo (kulandela i-Windows)
+Default duration for clip that and automatic clips	Ixesha elizenzekelayo lee-clip that nee-clip ezizenzekelayo
+Default length	Ubude obuzenzekelayo
+Default model	Imodeli ezenzekelayo
+Delay	Ukulibaziseka
+Deny	Yala
+Discard	Lahla
+Discard + reload	Lahla + layisha kwakhona
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Awufuni ukulinda? Isitshixo simahala sindenza ndithethe malunga nemizuzu emi-1.
+Done	Kwenziwe
+EXTRA REQUEST JSON >	I-JSON YECELO ELONGEZIWEYO >
+EXTRAS >	ZONGEZIWEYO >
+Edit	Hlela
+Edit check-in lines	Hlela imigca yokungena
+Edit check-in lines has the wrong view or dimming	Hlela imigca yokungena: imbonakalo okanye ukuthuthumba okungalunganga
+Edit check-in lines is out of place	Hlela imigca yokungena ikwindawo engalunganga
+Edit controls	Hlela izilawuli
+ElevenLabs API key	Isitshixo se-API se-ElevenLabs
+ElevenLabs voice ID	I-ID yezwi le-ElevenLabs
+English	Isingesi
+Enter the game's name first.	Faka igama lomdlalo kuqala.
+Every	Yonke
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Yonke imod ihlolwa ukuba ayinamakhompyuter angathandekiyo ngaphambi kokuba ikhutshwe. Ii-mods zekhowudi zisabuza ngaphambi kokusebenza.
+Explore after	Phanda emva koko
+Explore while I'm away	Phanda xa ndingekho
+Extra request JSON	I-JSON yecelo elongezelelweyo
+Extras	Izongezelelo
+FREE KEY	ISITSHIXO SIMAHALA
+FREE KEY >	ISITSHIXO SIMAHALA >
+Fast hands in games	Izandla ezikhawulezayo kwimidlalo
+File editor	Umhleli wefayile
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	I-Fish Audio, i-ElevenLabs nezinye zikwi-ZEZWI kwi-Mainframe.
+Follow-up messages	Imiyalezo elandelayo
+Forget	Libala
+Fork capri-mods	Yenza i-fork ye-capri-mods
+Frame rate	Izinga lefreyimu
+Free	Simahla
+Free and private, works offline. Downloads	Simahla kwaye iyimfihlo, isebenza ngaphandle kwe-intanethi. Ilanda
+Free and private, works offline. Downloads the best model for this PC.	Simahla kwaye iyimfihlo, isebenza ngaphandle kwe-intanethi. Ilanda imodeli elungileyo kule PC.
+Free key	Isitshixo simahala
+Free key providers	Abonelelii besitshixo simahala
+Free keys can be rate limited and slow.	Izitshixo ezimahala zinokuthintelwa ngobungakanani bokufikelela kwaye zingacothisi.
+Free voice in games	Izwi elimahala kwimidlalo
+Free voice style	Isitayile sezwi elimahala
+Free voice:	Izwi elimahala:
+Free voice: Her own	Izwi elimahala: Elakhe
+Free · local model	Simahla · imodeli yasekhaya
+GAMES >	IIMIDLALO >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Izimvo zomdlalo zisebenza ngokwahlukileyo kwi-Jonga isikrini sam. Ukucima kuzimisa, nakwiModi yoMdlalo; Iziganeko kuphela kunye ne-Ncokolayo zimvumela ukuba ajonge umdlalo wakho
+Game controls	Izilawuli zomdlalo
+Game name	Igama lomdlalo
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Uzwelo lwesandi somdlalo. Yehlisa ukuba iheadset yakho ithotywe kodwa i-Windows ikwi-{0}% kwaye uphendula kwisandi ngasinye; Ukucima kuyawuzisa izandi zomdlalo
+Game sounds	Izandi zomdlalo
+Games	Imidlalo
+Gaming Mode	Imodi yoMdlalo
+Gaming Mode key	Isitshixo seModi yoMdlalo
+Gaming Mode:	Imodi yoMdlalo:
+Gaming Mode: Ctrl + Alt + G	Imodi yoMdlalo: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Fumana i-VB-CABLE
+Get VB-CABLE (free)...	Fumana i-VB-CABLE (simahla)...
+Get free voice	Fumana izwi elimahala
+Getting your Fish Audio voices...	Ifumana iindawo zakho zeFish Audio...
+Giant	Omkhulu
+Glitch	Glitch
+Glitch in at startup	Glitch xa iqala
+Go to sleep	Yiya kulala
+Go to the next screen	Yiya kwisikrini esilandelayo
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · icandelo elimahala · liyathintelwa ngobungakanani bokufikelela
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Une-Claude okanye isicwangciso se-ChatGPT, okanye isitshixo sakho? Khetha kwaye ndiza kudibanisa.
+Got it, just me. Right-click me any time for Capri Mainframe.	Kulungile, ndim kuphela. Cofa ngasekunene kum nanini na ukuze ufumane i-Capri Mainframe.
+Grey	Mdaka
+H.{0} video bitrate target; higher values make larger files	Injongo ye-bitrate yevidiyo ye-H.{0}; amaxabiso aphezulu adala iifayile ezikhulu
+HABITS >	IZINTLOBO >
+HER HANDS >	IZANDLA ZAKHE >
+HER JOBS >	IMISEBENZI YAKHE >
+HER MEMORY >	INKUMBULO YAKHE >
+HER MODS >	II-MODS ZAKHE >
+HH:mm	HH:mm
+HOW I SOUND >	NDIVAKALA NJANI >
+Hang here	Hlala apha
+Have Ollama? Open it, then press Refresh.	Une-Ollama? Yivule, emva koko ucinezele Hlaziya.
+Head pats	Ukukhwaza intloko
+Hearing	Ukuva
+Hearing engine	Injini yokuva
+Hearing fix	Ukulungiswa kokuva
+Hearing status	Imeko yokuva
+Help	Uncedo
+Help page	Iphepha loncedo
+Her colors	Imibala yakhe
+Her folder	Ifolda yakhe
+Her memories	Iinkumbulo zakhe
+Her own colors are back.	Imibala yakhe yemvelo ibuyile.
+Her own notes (no vault)	Amanqaku akhe (akukho vault)
+Her perch frames per second	Iifreyimu zakhe ngomzuzwana xa ehleli
+Her personality	Ubuntu bakhe
+Her size	Ubungakanani bakhe
+Her speaker	Isipika sakhe
+Her speaker is hidden or outside VOICE	Isipika sakhe sifihliwe okanye sisesingaphandle kwe-ZEZWI
+Her speaker overlaps the mic or hearing row	Isipika sakhe sidibene nomgca we-mic okanye wokuva
+Her speaker:	Isipika sakhe:
+Her speaker: Default	Isipika sakhe: Ezizenzekelayo
+Her voice in your mic	Izwi lakhe kwi-mic yakho
+Her voice in your mic: loudness	Izwi lakhe kwi-mic yakho: ukuphakama kwesandi
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Izwi lakhe ngokwalo. Umgangatho wesandi ngu-Izicwangciso > IZWI > Umgangatho, kwaye ziyahamba kunye.
+Her voice joins your mic only in call mode.	Izwi lakhe lingena kwi-mic yakho kuphela kwimodi yekholi.
+Her voice volume	Ivolyum yezwi lakhe
+Her voice's pitch	Umgangatho wezwi lakhe
+Her voice's pitch, the same as Settings > VOICE > Pitch	Umgangatho wezwi lakhe, ofana noIzicwangciso > IZWI > Umgangatho
+Her voice's speed	Isantya sezwi lakhe
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Izwi lakhe, kunye neekopi ezimbini zalo ezixutywe phantsi kwalo, ngalinye linomgangatho walo nokulibaziseka kwalo.
+Her voices · free	Amazwi akhe · simahla
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Molo, choom. NdinguCapri. Ndifuna ingqondo phambi kokuba ndikwazi ukuphendula. Khetha enye.
+Hide / Show Capri	Fihla / Bonisa i-Capri
+Hide / Show key	Isitshixo sokufihla / bonisa
+Hide Capri	Fihla i-Capri
+Hide for now	Fihla okwangoku
+Hide her	Mfihle
+Hide in full screen	Fihla kwisikrini esipheleleyo
+Hide this	Fihla le
+Hide, keep player	Mfihle, gcina umdlali
+Hide/show:	Fihla/bonisa:
+Hide/show: Ctrl + Alt + H	Fihla/bonisa: Ctrl + Alt + H
+Hologram	Ihologram
+Hop off	Yehla
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Ixesha isiPC esimi ngaphandle kokushukuma esilinde ngalo ngaphambi kokuba imlale; imizuzu emihlanu isaqondwa njengokungabikho kwakho
+How long a stroke over her a head pat needs	Ixesha elifuna ukuhamba ngomnwe phezu kwakhe ukuze afumane ukukhwazwa intloko
+How long her replies stay up	Iimpendulo zakhe zihlala nini
+How long you are away before she scrolls a browser or reader	Ixesha olungabikho ngalo ngaphambi kokuba askrole isikhangeli okanye umfundi
+How much her voice glitches	Izwi lakhe liqhwala kangakanani
+How much of the chat she keeps	Uzigcina kangakanani incoko
+How much she wanders	Uzulazula kangakanani
+How often she pops in to say hi	Uvela kangangexesha elingakanani ukuza kuthi molo
+How robotic her voice sounds	Izwi lakhe linjengerobhothi kangakanani
+How to	Indlela
+Huge	Omkhulu kakhulu
+I can hear you.	Ndiyakuva.
+I glance at your screen and comment. Costs a little on a paid brain.	Ndijonga isikrini sakho ndize ndigxeke. Iyabiza kancinci kwingqondo ekhokelelwa ngemali.
+I keep listening. Say my name, then just talk.	Ndiqhubeka ndiphulaphula. Thetha igama lam, emva koko thetha nje.
+I talk about your game as you play. Costs a little on a paid brain.	Ndithetha ngomdlalo wakho xa udlala. Iyabiza kancinci kwingqondo ekhokelelwa ngemali.
+I type my replies and stay quiet.	Ndibhala iimpendulo zam kwaye ndithule.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Andiphenduli ngelizwi, kwaye akukho nto ethunyelwa naphi na. Ndisaza kuhlala, ndidansele umculo wakho kwaye ndenze izinto ezikhawulezayo ozicelayo, njengevolyum.
+I'll talk in	Ndiza kuthetha ngaphakathi
+IN DISCORD >	NGAPHAKATHI KWE-DISCORD >
+INSTALLED >	IFAKIWE >
+Import a Capri mod	Ngenisa imod ye-Capri
+Import mod	Ngenisa imod
+In full screen	Kwisikrini esipheleleyo
+In games	Kwimidlalo
+Input	Ngenisa
+Input, Output or How to overlaps a row	Ngenisa, Phuma okanye Indlela ityhila umgca
+Input:	Ngenisa:
+Input: default	Ngenisa: okuzenzekelayo
+Install	Faka
+Install mod	Faka imod
+Installed.	Ifakiwe.
+It may ask for a phone number. I opened the page in your browser.	Ingacela inombolo yefowuni. Ndivule iphepha kwisikhangeli sakho.
+It still does its own job in other apps too.	Usenza umsebenzi wayo nakwezinye izicelo.
+It won't type in other apps while she runs.	Akuyi kutshixa kwezinye izicelo xa esebenza.
+JUST ME >	NDIM KWAPHELA >
+Jealous of other AIs	Ukunyanisa ezinye ii-AI
+Join the Discord	Joyina i-Discord
+KB.	KB.
+KEYS	IZITSHIXO
+KEYS >	IZITSHIXO >
+Keep PC awake for jobs	Gcina i-PC ivuke ngemisebenzi
+Keep player	Gcina umdlali
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Igcina imizuzu emibini yokugqibela yomdlalo wakho enkumbulweni. Thetha clip that ukuze uyigcine.
+Key	Isitshixo
+Key cleared: a model file needs none.	Isitshixo sicociwe: imodeli yefayile ayifuni sitshixo.
+Key cleared: paste the key for	Isitshixo sicociwe: namathisela isitshixo se
+Key forgotten.	Isitshixo silibele.
+Key. It goes only to this server, as a Bearer key	Isitshixo. Siya kule seva kuphela, njengesitshixo se-Bearer
+Kokoro only, like es	Kokoro kuphela, njenge-es
+LAST THING >	INTO EKUGQIBELA >
+LISTENING >	IPHULAPHULA >
+Language	Ulwimi
+Large	Mkhulu
+Last thing. These cost a little or use your mic, so they're your pick.	Into yokugqibela. Ezi zibiza kancinci okanye zisebenzisa i-mic yakho, ngoko kukhetho lwakho.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Into yokugqibela. Ezi zibiza kancinci okanye zisebenzisa i-mic yakho, ngoko kukhetho lwakho. Emva koko ndifuna ukwazi ukuba ndikubize njani.
+Layers	Iindawo
+Learn more	Funda okungakumbi
+Leaving Settings threw its picture away straight away.	Ukuphuma kwiSettings kuphosa umfanekiso wakhe kwangoko.
+Legacy stand	Isiseko sakudala
+Lie down	Lala phantsi
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Imigca yencoko yePC egcinwe enkumbulweni xa nibukela ndinye. Icala elidala kakhulu liba sisikhumbuzo xa Khumbula Anayibona ivuliwe
+Listen for Capri	Phulaphula iCapri
+Live reactions	Iimpendulo zangoku
+Local server address	Idilesi yesiseva yasekhaya
+Long	Ende
+Longest wait (minutes)	Ixesha elide kakhulu lokulinda (imizuzu)
+Looking at this PC...	Ijonga le PC...
+Looking for Ollama. Open it if it isn't running.	Ndifuna i-Ollama. Yivule ukuba ayisebenzi.
+Looking for a brain...	Ndifuna ingqondo...
+Looking in the mods directory for updates...	Ndikhangela izibuyekezo kwifolda yee-mods...
+Looking in the mods directory...	Ndikhangela kwifolda yee-mods...
+Looking...	Ndikhangela...
+MAIN >	IPHAMBILI >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	IVAULT YENKUMBULO >
+MODS	II-MODS
+MODS >	II-MODS >
+MODS DIRECTORY >	IFOLDA YEE-MODS >
+MODS INSTALLED COLORS	IIMBALA ZEMODS EZIFAKIWEYO
+MOVES >	IZENZO >
+MY BRAIN	INGQONDO YAM
+MY FREE VOICE	IZWI LAM ELIMAHALA
+MY PLAN OR KEY	ISICWANGCISO OKANYE ISITSHIXO SAM
+MY PLAN OR KEY >	ISICWANGCISO OKANYE ISITSHIXO SAM >
+Made your Fish Audio voice. Press Test to hear it.	Ndiyenzile izwi lakho le-Fish Audio. Cofa Vavanya ukulimamela.
+Mainframe colours	Imibala ye-Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Imibala ye-Mainframe. I-Night City libomvu kunye ne-cyan; Mnyama, Mhlophe kunye neMdaka zitshintsha i-Mainframe, imenyu yakhe, ibhokisi yokuTyapha kunye namanqaku akhe
+Mainframe frames	Iifreyimu ze-Mainframe
+Mainframe key	Isitshixo se-Mainframe
+Mainframe size	Ubungakanani be-Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Ubungakanani be-Mainframe. I-Auto iyenza ibe mkhulu xa i-Virtual Super Resolution okanye i-DSR idla idesktop enkulu ibe sisikrini esincinci
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Phantsi
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Ukwenza izwi lakho le-Fish Audio...
+Max reply	Impendulo enkulu
+Maximum clip resolution, keeping the game's shape without upscaling	Ukulunga okuphezulu kweclip, kugcinwa imo yomdlalo ngaphandle kokuphakamisa
+Medium	Phakathi
+Memory	Inkumbulo
+Memory size	Ubungakanani benkumbulo
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ubungakanani benkumbulo ngee-token ze-Ollama nengqondo yakhe eyakhelwe ngaphakathi. I-Auto iyakhula xa isicelo sifuna ngakumbi
+Mg	Mg
+Mic level:	Inqanaba le-mic:
+Mic test finished. Sound is reaching Capri.	Uvavanyo lwe-mic luphelile. Isandi siyafika kwi-Capri.
+Mic:	Mic:
+Mic: default	Mic: okuzenzekelayo
+Microphone	Imakrofoni
+Mini player	Umdlali omncinci
+Mini player over full screen	Umdlali omncinci phezu kwesikrini esipheleleyo
+Mini-games	Imidlalo emincinci
+Minimising the Mainframe left it sliding.	Ukuncitshiswa kweMainframe kwayishiya isiya ngokutyibilika.
+Minimize	Ncitsha
+Mod filter	Isihluzi semod
+Mod options	Ukhetho lwemod
+Mod pages	Iphepha lee-mods
+Mod rules	Imithetho yemod
+Mod sort	Ukuhlela kwemod
+Mod switch	Utshintsho lwemod
+Model	Imodeli
+Model folder	Ifolda yemodeli
+Model name, optional	Igama lemodeli, ukuba uyafuna
+Mods	Ii-mods
+Mods directory	Ifolda ye-mods
+Mods folder	Ifolda ye-mods
+Most NVIDIA models can't see your screen.	Uninzi lweemodeli ze-NVIDIA alukwazi ukubona isikrini sakho.
+Mouse wheel notches got a flick's long ease:	Izinyathelo zevili yemouse zifumene ukutyibilika kwesiphelo sokutyibilika:
+Move	Hambisa
+Move key to MAX INTELLIGENCE	Hambisa isitshixo sibe kwi-MAX INTELLIGENCE
+Move to MAX	Hambisela kwi-MAX
+Music	Umculo
+Music app	Isicelo somculo
+Music app: where she plays music when you don't name an app	Isicelo somculo: apho edlala khona umculo xa ungabizi sicelo
+Mute	Thulisa
+Mute her	Mthulisele
+Mute mic key	Isitshixo se-mic mute
+Mute mic:	Thulisa i-mic:
+Mute mic: Ctrl + Alt + N	Thulisa i-mic: Ctrl + Alt + N
+My brain	Ingqondo yam
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Ingqondo yam iyehla. Ndiza kuthi molo xa ingena, kwaye unokuthetha nam ngoko.
+My brain's on its way. While it comes down, let's sort out how I sound.	Ingqondo yam isendleleni. Ngelixa iyehla, masilungise indlela endiyimamela ngayo.
+My provider	Umbonelelei wam
+NO AI	AKUNA AI
+NO PHONES CONNECTED	AKUKHO FOWUNI EQHAGAMSHELWEYO
+NO PREVIEW	AKUKHO KUBONISWA
+NORMAL	QHELEKILEYO
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · simahla · ihlala icotha ngamaxesha axakeneyo
+NVIDIA's free API is often slow, especially at busy times.	I-API simahla ye-NVIDIA ihlala icotha, ngakumbi ngamaxesha axakeneyo.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Isitshixo se-API se-NVIDIA, Google AI Studio (Gemini) okanye OpenRouter
+Names:	Amagama:
+Needs a key	Ifuna isitshixo
+Never	Akusoze
+New code	Ikhowudi entsha
+New voice from a clip...	Izwi elitsha kwiclip...
+Next	Elandelayo
+Night City	Night City
+No AI	Akukho AI
+No AI · no brain at all	Akukho AI · akukho ngqondo nje
+No brain runs, and nothing is sent anywhere.	Akukho ngqondo esebenzayo, kwaye akukho nto ethunyelwa naphi na.
+No brain yet	Akukho ngqondo okwangoku
+No code open	Akukho khowudi evulekileyo
+No limit	Akukho mda
+No mic found	Akukho mic ifunyenwe
+No mods in the directory yet.	Akukho mods kwifolda okwangoku.
+No mods match that.	Akukho mod ehambelana nale.
+No mods match.	Akukho mods ehambelanayo.
+No phones yet	Akukho zifowuni okwangoku
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Akukho mic yevirtual okwangoku. Khetha Output, emva koko Fumana i-VB-CABLE (simahla).
+None yet: pick to get VB-CABLE (free)	Akukho okwangoku: khetha ukufumana i-VB-CABLE (simahla)
+Normal	Eqhelekileyo
+Not a relay host	Ayisiyo i-relay host
+Not imported. Nothing ran.	Ayingeniswanga. Akukho nto isebenzileyo.
+Not updated. The old one is still in.	Ayihlaziywanga. Eyakudala isekho.
+Nothing needed updating.	Akukho nto yayifuna ukuhlaziywa.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Akukho nto yokulanda, akukho nto ethunyelwa naphi na. Akuyi kuphendula. Yongeza ingqondo nangaliphi na ixesha kwi-Mainframe.
+Nothing to show from the mods directory.	Akukho nto yokubonisa kwifolda ye-mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	Akukho? Izicwangciso zeWindows > Ubumfihlo nokhuseleko > Imakrofoni.
+Nous Portal keys aren't supported yet.	Izitshixo ze-Nous Portal azixhaswa okwangoku.
+OBS	OBS
+OFF	VALIWE
+OLLAMA	OLLAMA
+ON	VULIWE
+ON THIS PC	KULE PC
+OR A KEY	OKANYE ISITSHIXO
+Obsidian memory vault	Ivault yenkumbulo ye-Obsidian
+Off	Valiwe
+Off. Turn on Her voice in your mic above.	Valiwe. Vula Izwi lakhe kwi-mic yakho ngaphezulu.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Valiwe: uvakala njengokuba enjalo ngaso sonke ixesha. Vuliwe: onke amazwi akhe, nako i-ElevenLabs.
+Often	Rhoqo
+On	Vuliwe
+On / Off	Vulwa / Valwa
+On: your mic and her voice are going in.	Vuliwe: i-mic yakho nezwi lakhe ziyangena.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Into enye ye-JSON, yongezwa kwisicelo ngasinye esithunyelwa yile ngqondo. Ibhalisa indawo ka-Capri yalo naliphi na igama elabelana ngalo, kwaye ayijongwa xa kuthelekiswa nemodeli.
+Online speech recognition	Ukuqondwa kwentetho ku-intanethi
+Open Capri Mainframe	Vula i-Capri Mainframe
+Open Ollama, I'll find it	Vula i-Ollama, ndiza kuyifumana
+Open clips folder	Vula ifolda yeeklip
+Open her memories	Vula iinkumbulo zakhe
+Open her notes	Vula amanqaku akhe
+Open mods folder	Vula ifolda ye-mods
+Open the page again	Vula iphepha kwakhona
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA okanye OpenRouter.
+OpenAI-compatible server or provider.	Iseva okanye umbonelelei ohambelana ne-OpenAI.
+OpenRouter · free models only	OpenRouter · iimodeli ezimahala kuphela
+Optional	Ukhetho
+Optional. Blank means no key.	Ukhetho. Ilanga elingenanto lithetha akukho sitshixo.
+Options	Ukhetho
+Out of the box a little higher, just behind her.	Ngokuzenzekelayo kuphezulu kancinane, ngasemva kwakhe.
+Out of the box lower, just behind her.	Ngokuzenzekelayo kuphantsi, ngasemva kwakhe.
+Output	Output
+Output:	Output:
+Output: none	Output: akukho
+PHONE CONNECTED	IFONI IQHAGAMSHELWE
+PHONES >	IIFONI >
+PHONES CONNECTED	IIFONI ZIQHAGAMSHELWE
+PREBUILT LOCAL	ENDAWONI YASEKHAYA EYAKHIWEYO KUSENGAPHAMBILI
+PUBLISH MOD >	PAPASHA I-MOD >
+Pair a phone	Ncedisa ifoni
+Paste	Namathisela
+Paste API key	Namathisela isitshixo se-API
+Paste a brain API key	Namathisela isitshixo se-API sengqondo
+Paste reads your clipboard once, when you press it.	Namathisela ifunda i-clipboard yakho kanye, xa ucinezela.
+Paste your key here	Namathisela isitshixo sakho apha
+Pat stroke	Ukukhwaza
+Perch	Isihlalo
+Perch over {0} fps uses more CPU	Isihlalo phezu kwe-{0} fps sisebenzisa i-CPU eninzi
+Pick Output to get it.	Khetha i-Output ukuze uyifumane.
+Pick a brain so I can talk back. You can change it any time.	Khetha ingqondo ukuze ndikwazi ukuphendula. Ungayitshintsha nangaliphi na ixesha.
+Pick a clip of a voice you have the rights and consent to use	Khetha iklip yezwi onelungelo kunye nemvume yokulisebenzisa
+Pick a free model. I opened the page in your browser.	Khetha imodeli emahala. Ndivule iphepha kwisikhangeli sakho.
+Pick a new clip of you...	Khetha iklip entsha yakho...
+Pick a voice model...	Khetha imodeli yezwi...
+Pick one. Only one brain runs at a time.	Khetha enye. Ingqondo enye kuphela esebenza ngexesha elinye.
+Pick the note her memories go in	Khetha inqaku apho kuya khona iinkumbulo zakhe
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Khetha {0} ukuya ku-{1} wamasekhondi ezwi onelungelo kunye nemvume yokulisebenzisa
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Khetha {0} ukuya ku-{1} wamasekhondi wokuthetha kwakho, okanye ezwi onelungelo kunye nemvume yokulisebenzisa
+Pitch	Umgangatho
+Play	Dlala
+Play...	Dlala...
+Player only	Umdlali kuphela
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Iimodeli ze-Pocket TTS ziphinda izwi leklip. Cofa Vavanya ukulimamela.
+Pop-in times	Amaxesha okuvela
+Pop-ins	Ukuvela
+Power saver	Umgcini wamandla
+Power saver: how lightly she runs in games, or always	Umgcini wamandla: ukuba usebenza kangakanani ngobunono kwimidlalo, okanye ngaso sonke ixesha
+Preset	Isicwangciso esilungiselelweyo
+Press Create API key	Cofa Yenza isitshixo se-API
+Press Create Key	Cofa Yenza isitshixo
+Press Generate API Key	Cofa Yenza isitshixo se-API
+Press Test and say something, so I know I can hear you.	Cofa Vavanya uthethe into ethile, ukuze ndazi ukuba ndiyakuva.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Cofa isitshixo, sodwa okanye ne-Ctrl, Alt, Shift okanye Win.
+Press new keys, then Confirm	Cofa izitshixo ezintsha, emva koko Qinisekisa
+Provider	Umbonelelei
+Provider API key, optional	Isitshixo se-API somboneleli, ukuba uyafuna
+Provider base URL	I-URL esisiseko somboneleli
+Provider forgotten.	Umbonelelei silibele.
+Provider overlaps the brain name or note	Umbonelelei udibana negama lengqondo okanye inqaku
+Publish	Papasha
+Publish mod	Papasha imod
+Push to talk is off.	Thetha-ukucinezela kucinyiwe.
+Push to talk key	Isitshixo sokuthetha-ukucinezela
+Push to talk:	Thetha-ukucinezela:
+Push to talk: not set	Thetha-ukucinezela: akukasetwa
+QR CODE >	IKHOWUDI YE-QR >
+QR hidden while streaming	I-QR ifihliwe ngexesha lokusasaza
+Quick	Ngokukhawuleza
+Quiet key	Isitshixo sokuthula
+Quiet:	Ukuthula:
+Quiet: Ctrl + Alt + P	Ukuthula: Ctrl + Alt + P
+Quit Capri	Phuma kwi-Capri
+RELAY >	RELAY >
+REMOTE >	UKUQHAGAMSHELWA KUKHUTSHO >
+RUNS CODE.	UKUQHUBA IKHOWUDI.
+Rarely	Kwinqanaba elingaphantsi
+Rate mod	Vavanya i-mod
+Reading its README...	Ifunda i-README yayo...
+Refresh	Hlaziya
+Reinstall	Faka kwakhona
+Reload	Layisha kwakhona
+Reloaded.	Layishiwe kwakhona.
+Remember our chats	Khumbula iincoko zethu
+Remember what she sees	Khumbula azibonayo
+Remote	Ukuqhagamshelwa kukhutsho
+Remote off	Ukuqhagamshelwa kukhutsho kucinyiwe
+Remote on	Ukuqhagamshelwa kukhutsho kuvuliwe
+Remove	Susa
+Remove all phones	Susa zonke iifowuni
+Replies	Iimpendulo
+Reply length	Ubude bempendulo
+Report a problem	Xela iingxaki
+Reset colors	Seta kwakhona imibala
+Reset to her default	Buyela kwisiseto sakhe esizenzekelayo
+Resolution	Isisombululo
+Restart to update	Qalisa kwakhona ukuhlaziya
+Restless	Engaphumli
+Revoke	Rhoxisa
+Revoke also removes the phones its links added	Ukurhoxisa kususa namafowuni ongezwe ngokhonongo lwawo
+Ride cursor	Ukuqhuba umlethi
+Ride cursor / Hop off	Ukuqhuba umlethi / Yehla
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Cofa ngasekunene kum nanini na ukuze ufumane i-Capri Mainframe. Ingqondo iyavula phantsi kwe-INGQONDO.
+Right-click me any time for the Mainframe, Help and the Discord.	Cofa ngasekunene kum nanini na ukuze ufumane i-Mainframe, uncedo kunye ne-Discord.
+Roblox	Roblox
+Roblox or any other app: pick	I-Roblox okanye nasiphi na esinye isicelo: khetha
+Robot	Irobhothi
+Rock, paper, scissors	Ilitye, iphepha, izikere
+Run this code mod?	Qhuba le mod yekhowudi?
+Running on this PC	Ibaleka kule PC
+Running on this PC · :	Ibaleka kule PC · :
+Runs Claude Code or Codex on this PC, signed in.	Iqhuba i-Claude Code okanye i-Codex kule PC, ingenile.
+Runs on your PC. No key, no credits.	Iqhuba kwi-PC yakho. Akukho sitshixo, akukho makhredithi.
+SCAN WITH YOUR PHONE · EXPIRES	SKENA NGEFOWUNI YAKHO · IYAPHELA
+SECURITY >	UKHUSELEKO >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	HLELA NGOKU
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	IZANDI IZINTLOBO INGQONDO JONGA CAPRI DOOMSCROLL IMOZULU IIKLIP IIMIDLALO IZITSHIXO IZENZO IZWI WENA
+Same as her ears (VOICE > Mic)	Njengeendlebe zakhe (IZWI > Mic)
+Same code on the phone?	Ikhowudi efanayo kwifowuni?
+Save	Gcina
+Save big moments	Gcina iimini ezikhulu
+Save folder	Ifolda yokugcina
+Save your changes, or press Discard + reload.	Gcina iinguqulelo zakho, okanye ucinezele Lahla + layisha kwakhona.
+Save your changes, or press Discard.	Gcina iinguqulelo zakho, okanye ucinezele Lahla.
+Saved.	Igciniwe.
+Saved. Ctrl + Alt + O opens her Mainframe.	Igciniwe. Ctrl + Alt + O ivula i-Mainframe yakhe.
+Saving your rating...	Igcina ireyithingi yakho...
+Say her name anywhere to chat	Thetha igama lakhe naphi na ukuze uncokole
+Screens	Iiscreen
+Screens is hidden or outside WATCH	Iiscreen zifihliwe okanye zisesingaphandle kwe-JONGA
+Screens overlaps a WATCH row	Iiscreen zidibene nomgca we-JONGA
+Screens to watch	Iiscreen zokujonga
+Sealed end to end	Ibhaliwe ukusuka kwelinye icala ukuya kwelinye
+Search by name or author	Khangela ngegama okanye umbhali
+Search installed mods	Khangela ii-mods ezifakiweyo
+Search mods	Khangela ii-mods
+Search name, author or description	Khangela igama, umbhali okanye inkcazo
+Security	Ukhuseleko
+Security:	Ukhuseleko:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Seta
+Set up her brain	Seta ingqondo yakhe
+Set up your voice model	Seta imodeli yakho yezwi
+Setting up her brain	Iseta ingqondo yakhe
+Settings	Izicwangciso
+Settings / Back	Izicwangciso / Emva
+Settings folds the wrong rows above BRAIN	Izicwangciso zigoba imigca engalunganga phezu kwe-INGQONDO
+Settings had nothing to watch.	Izicwangciso azinanto yokujonga.
+Settings lost keyboard focus during the Tab walk	Izicwangciso ilahlekelwe yigxalathelo lekhibhodi ngexesha lohambo lwe-Tab
+Setup guide	Isikhokelo sokuseta
+Setup stopped	Ukuseta kuyimisile
+She can read it when it fits.	Inokuyifunda xa ilingana.
+She glances at your screen and comments. Costs a little on a paid brain.	Ijonga isikrini sakho ize igxeke. Iyabiza kancinci kwingqondo ekhokelelwa ngemali.
+She keeps listening. Say her name, then just talk until you go quiet.	Iqhubeka ukuphulaphula. Thetha igama lakhe, emva koko thetha nje de uthule.
+She reacts to your game until you close it.	Iphendula kumdlalo wakho de uyivale.
+She reads these controls before each game job.	Ifunda ezi zilawuli ngaphambi komsebenzi ngamnye womdlalo.
+She talks about your game as you play. Costs a little on a paid brain.	Ithetha ngomdlalo wakho xa udlala. Iyabiza kancinci kwingqondo ekhokelelwa ngemali.
+She uses it when she plays	Iyisebenzisa xa idlala
+Short	Mfutshane
+Shortest wait (minutes)	Ixesha elifutshane kakhulu lokulinda (imizuzu)
+Show Capri	Bonisa i-Capri
+Show QR	Bonisa i-QR
+Show my mod file	Bonisa ifayile yam ye-mod
+Show on Discord	Bonisa kwi-Discord
+Shum, what time is it	Shum, lixesha nini
+Sign in	Ngena
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Ngena, yenza isitshixo kwaye uyikopi. Emva koko cofa Namathisela ndize ndidibane.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Ngena, cofa Yenza isitshixo se-API kwaye uyikopi. Emva koko cofa Namathisela ndize ndidibane.
+Silent · text only	Uthule · umbhalo kuphela
+Simple / Advanced Settings	Izicwangciso ezilula / ezikhulu
+Simple Settings	Izicwangciso ezilula
+Simple Settings left a gap under Check in on me	Izicwangciso ezilula zishiye ibhlaka phantsi kwe-Ndibuze ukuba ndinjani
+Sit here	Hlala apha
+Sit on windows	Hlala phezu kwefestile
+Size	Ubungakanani
+Skip	Tyeza
+Skip all	Tyeza zonke
+Skip for now	Tyeza okwangoku
+Sleep	Lala
+Small	Ncinci
+Sometimes	Ngamanye amaxesha
+Sound effects volume	Ivolyum yeempawu zesandi
+Sound sensitivity	Uzwelo lwesandi
+Sounds	Izandi
+Speaker or clip	Isipika okanye iklip
+Speech model	Imodeli yentetho
+Speed	Isantya
+Start with Windows	Qalisa kunye neWindows
+Start with this!	Qalisa ngale!
+Starting...	Iqalisa...
+Stay	Hlala
+Stay on my model	Hlala kwimodeli yam
+Still checking your mics...	Ndisajonga iimic zakho...
+Still checking your speakers...	Ndisajonga izipika zakho...
+Still checking your virtual mics...	Ndisajonga iimic zakho ze-virtual...
+Stop	Misa
+Stopped using it. Couldn't remove the saved provider.	Yekile ukusebenzisa. Ayikwazanga ukususa umbonelelei ogciniweyo.
+Support	Inkxaso
+Sure?	Uqinisekile?
+Sure? moved to a different phone	Uqinisekile? ifudlulele kwenye ifowuni
+TALK TO ME	NCOKOLA NAM
+TEXT ONLY	UMBHALO KUPHELA
+Tab landed past the first option of	I-Tab ifike ngaphaya kwenketho yokuqala ye-
+Tab never reached the quiet key	I-Tab ayizange ifikelele isitshixo esithuleyo
+Tab reached nothing	I-Tab ayifikanga nto
+Tab selected a control without moving keyboard focus	I-Tab ikhethe ulawulo ngaphandle kokuhambisa ugxalathelo lwekhibhodi
+Talk	Thetha
+Talk key	Isitshixo sokuthetha
+Talk:	Thetha:
+Talk: Ctrl + Alt + V	Thetha: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Izinga lefreyimu yokuthatha ojongelwa ngalo; lingehla phantsi koxinzelelo okanye isabelo sememori
+Teases when another AI comes to the front.	Iyadanisa xa enye i-AI ifika phambili.
+Test	Vavanya
+That address doesn't work. Try https://... or http://localhost:{0}.	Leyo dilesi ayisebenzi. Zama https://... okanye http://localhost:{0}.
+That code expired	Leyo khowudi iphelelwe lixesha
+That mod is no longer installed. The list is updated.	Leyo mod ayisafakiwe. Uluhlu luhlaziyiwe.
+That's a paid key: it goes under MAX INTELLIGENCE.	Sisitshixo esihlawulelwayo: siya kwi-MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	I-Mainframe yahlala idityaniswe xa yayitshintsha.
+The Mainframe stayed uncomposited after the slide.	I-Mainframe yahlala ingadityaniswanga emva kwesilayidi.
+The controls moved while the picture was sliding.	Izilawuli zahamba ngelixa umfanekiso wawutshintsha.
+The cover stayed visible after the slide ended.	Isigubungelo sahlala sibonakala emva kokuphela kwesilayidi.
+The frame thread kept running after the page settled.	Umcu wefreyimu uqhubeke usebenza emva kokuba iphepha lizinzile.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Impendulo ende kakhulu anokuyinika, ngee-token. I-Auto ihlala kwiimpendulo ezikwiphezulu; i-{0}K okanye i-{1}K imvumela ukuba iqhubeke. Imisebenzi igcina indawo engakumbi xa iyifuna
+The longest wait must be at least the shortest wait.	Ixesha elide kakhulu lokulinda kufuneka libe ngaphezulu okanye lilingane nelifutshane kakhulu.
+The picture doesn't match the scrolled page:	Umfanekiso awuhambelani nephepha elisikrolwe:
+The picture of Settings doesn't match the page:	Umfanekiso weSettings awuhambelani nephepha:
+The picture stayed up after the slide ended.	Umfanekiso wahlala ubonakala emva kokuphela kwesilayidi.
+The picture wasn't showing while it slid.	Umfanekiso wawungabonakali xa wawutshintsha.
+The provider sheet is crowded:	Ishiti lomboneleli ligcwele:
+The voice panel has no screen DPI.	Iphaneli yezwi ayinayo i-DPI yesikrini.
+The voice panel's menus share one font.	Imenyu zephaneli yezwi zabelana ngefonti enye.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Akukho sitshixo kwi-clipboard yakho okwangoku. Kopa esuka kwiphepha, emva koko cofa Namathisela.
+These start off. Each costs a little or uses your mic.	Ezi zisetyenziswa okwangoku. Enye nenye iyabiza kancinci okanye isebenzisa imic yakho.
+These start off. Turn on what you want. They're all in Settings too.	Ezi zisetyenziswa okwangoku. Vula oko ufuna. Zonke zikwiSettings.
+They can also call you Big Z, Capricorn or Nova	Zinokukubiza ngokuba nguBig Z, Capricorn okanye uNova
+They can also call you Nova, Big Z or Capricorn	Zinokukubiza ngokuba nguNova, Big Z okanye uCapricorn
+Thinking	Ucinga
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Eli lizwi lam elimahala. Cofa Vavanya, uthethe into ethile, ndiya kukubonisa ukuba ndiyakuva.
+This mod has no description yet.	Le mod ayinankcazo okwangoku.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Ixesha phakathi kwenkangeleko
+Tiny	Incinci kakhulu
+Try again	Zama kwakhona
+Turn Remote on first	Vula kuqala iRemote
+Turn off mini player	Vala umdlali omncinci
+Turn push to talk off	Vala thetha-ukucinezela
+Turning the wheel the other way kept the page heading the old way, to	Ukujikeleza kwevili ngendlela ephikisayo kugcine iphepha lihamba ngendlela endala, ukuya
+Type	Bhala
+Type key	Isitshixo sokubhala
+Type to me	Bhala kum
+Type:	Bhala:
+Type: Ctrl + Alt + T	Bhala: Ctrl + Alt + T
+Typing sound	Isandi sokubhala
+Unpacked. Press Test to hear it.	Iyavulwa. Cofa Vavanya ukulimamela.
+Unsaved changes.	Utshintsho olungagcinwanga.
+Up to {0} fps	Ukuya kwi-{0} fps
+Up to {0}p	Ukuya kwi-{0}p
+Update	Hlaziya
+Update available.	Uhlaziyo lukhona.
+Update mods	Hlaziya ii-mods
+Updating...	Iyahlaziywa...
+Use	Sebenzisa
+Use her cursor	Sebenzisa umlethi wakhe
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Sebenzisa https:// kumbonelelei ongaphandle. Isitshixo kwi-http ecacileyo asikhuselekanga.
+Use preset	Sebenzisa isicwangciso
+Use saved	Sebenzisa ogciniweyo
+Use this server	Sebenzisa le seva
+Using your provider with a key	Usebenzisa umbonelelei wakho ngesitshixo
+Using your server with no key	Usebenzisa iseva yakho ngaphandle kwesitshixo
+VIEW MOD >	JONGA I-MOD >
+VOICE >	IZWI >
+VOICE IN YOUR MIC >	IZWI KWI-MIC YAKHO >
+VOICE LAYERS >	IZIQENGA ZEZWI >
+Verbosity	Ubuninzi bamazwi
+Video bitrate	I-bitrate yevidiyo
+View	Jonga
+View mod	Jonga i-mod
+Voice	Izwi
+Voice ID	I-ID yezwi
+Voice from	Izwi elivela ku
+Voice layers	Iziqenga zezwi
+Voice model	Imodeli yezwi
+Voice model:	Imodeli yezwi:
+Voice name or ID, optional	Igama lezwi okanye i-ID, ukuba uyafuna
+Voice server address, or a voice model's folder	Idilesi yeseva yezwi, okanye ifolda yemodeli yezwi
+Voice status	Imeko yezwi
+Voice, key and model...	Izwi, isitshixo nemodeli...
+Volume	Ivolyum
+WAKE ME UP >	VUSA NDIVUKE >
+WATCH >	JONGA >
+Waiting for the relay	Ulinde i-relay
+Wake her up	Mvuse
+Waking her up	Umvusa
+Wander	Zulazula
+Wander around	Zulazula
+Watch my screen	Jonga isikrini sam
+Watch-along memory	Inkumbulo yokujonga ndinye
+Weather	Imozulu
+Weather city	Idolophu yemozulu
+Welcome back, choom. Let's finish setting me up.	Wamkelekile kwakhona, choom. Masigqibe ukuseta mna.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Yenza ntoni kwi-PC yakho ngaphandle kokubuza. Xa isitshintshi sivaliwe, uqala ukubuza, yenze xa uthi ewe.
+What should she call you?	Kufuneka amke njani?
+When she types	Xa ebhala
+White	Mhlophe
+Windows default	I-Windows ezenzekelayo
+Windows did not give Settings keyboard focus	I-Windows ayinikanga iSettings ugxalathelo lwekhibhodi
+Windows did not return keyboard focus to Back	I-Windows ayibuyisanga ugxalathelo lwekhibhodi kwi-Back
+With no picture the wheel still tried to slide.	Ngaphandle komfanekiso ivili lalisazama ukuthamba.
+Works best on MAX INTELLIGENCE.	Usebenza kakuhle kakhulu nge-MAX INTELLIGENCE.
+YOU	WENA
+YOU >	WENA >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	IZWI WENA IZENZO IZITSHIXO IIMIDLALO IIKLIP IMOZULU DOOMSCROLL CAPRI JONGA INGQONDO IZIJIKO IZANDI
+YOUR KEY	ISITSHIXO SAKHO
+YOUR MIC	I-MIC YAKHO
+YOUR PLAN	ISICWANGCISO SAKHO
+Yokapri what's up	Yokapri uyenza ntoni
+You can hide this. It keeps going, and the Mainframe shows it too.	Ungayifihla le. Iqhubeka isebenza, kwaye ne-Mainframe iyabonisa.
+Your mic and her voice go into one virtual mic, and	I-mic yakho nezwi lakhe ziya kwi-mic yevirtual enye, kwaye
+Your mic is muted. Unmute it to test.	I-mic yakho ithulisiwe. Yithulule ukuze uvavanye.
+Your mods are up to date.	Ii-mods zakho zihlaziyiwe.
+Your name or a nickname	Igama lakho okanye igama lokuhlekisa
+Your own model	Imodeli yakho
+Your personality	Ubuntu bakho
+Your voice	Izwi lakho
+Your voice (HD)	Izwi lakho (HD)
+Your voice (HD) · pick a clip of you...	Izwi lakho (HD) · khetha iklip yakho...
+Your voice model	Imodeli yakho yezwi
+as its mic.	njengemic yakhe.
+changed. Saved as My Colors, so you can share it.	itshintshiwe. Igciniwe njengemibala yam, ukuze ukwazi ukwabelana ngayo.
+choice	ukhetho
+clips the input line	inqumla umgca wokungenisa
+cue	isignali
+doesn't yet.	akukabi njalo.
+download	landa
+file.	ifayile.
+flag	umqondiso
+fps	fps
+hear	ukuva
+hears	uyava
+hears that.	uyakuva oko.
+hides or shows her.	ifihla okanye ibonise yona.
+hint	isiluleko
+in the Mainframe.	kwi-Mainframe.
+in the mods directory with a pull request.	kwifolda ye-mods nge-pull request.
+in the picture wasn't noticed.	kumfanekiso akuqatshelwanga.
+is already her push-to-talk key.	sele sisitshixo sakhe sokuthetha-ukucinezela.
+is off.	ivaliwe.
+is on and running.	ivuliwe kwaye iyasebenza.
+is on, at the bottom, under	ivuliwe, ezantsi, phantsi kwe
+is on.	ivuliwe.
+is on. She now answers to	ivuliwe. Ngoku iphendula ku
+is removed.	isusiwe.
+is taken	ithathiwe
+is taken by another app. Try another.	ithathwe yesinye isicelo. Zama enye.
+is updated	ihlaziyiwe
+isn't hearing it yet: do {0} and {1}, then join a call.	akakayiva okwangoku: yenza {0} no {1}, emva koko ujoyine ikholi.
+it now.	ngoku.
+keeps her quiet, and lets her talk again.	imgcina ethule, kwaye imvumela ukuba athethe kwakhona.
+key	isitshixo
+key.	isitshixo.
+min	imiz
+more.	ngaphezulu.
+ms.	ms.
+mutes mic	ithulisa imic
+mutes your mic.	ithulisa imic yakho.
+name	igama
+off	valiwe
+on this PC	kule PC
+opens her Mainframe.	ivula i-Mainframe yakhe.
+opens her typing box.	ivula ibhokisi yakhe yokubhala.
+phone	ifowuni
+phone pixels	iipikseli zefowuni
+phones	iifowuni
+pixels	iipikseli
+pixels)	iipikseli)
+star.	inkwenkwezi.
+stars.	iinkwenkwezi.
+starts voice chat.	iqala incoko yezwi.
+stays off. Nothing ran.	ihlala ivaliwe. Akukho nto isebenzileyo.
+still does its own job in other apps too. Confirm to keep it.	isasebenza umsebenzi wayo nakwezinye izicelo. Qinisekisa ukuyigcina.
+tall	phezulu
+time	ixesha
+to talk	ukuthetha
+to talk to her, with a game in front too.	ukuthetha naye, nomdlalo phambili.
+too.	nawo.
+turns Gaming Mode on and off.	iyavula kwaye iyavala iModi yoMdlalo.
+with Ollama	ne-Ollama
+won't type in other apps while she runs. Confirm to keep it.	akuyi kubhala kwezinye izicelo xa esebenza. Qinisekisa ukuyigcina.
+{0}   Echo Cancellation: Off	{0}   Ukucima i-echo: Valiwe
+{0}   If her voice cuts off, turn off noise filtering	{0}   Ukuba izwi lakhe liyayekwa, vala ukucoca umsindo
+{0}   Input Device:	{0}   Isixhobo sokungenisa:
+{0}   Join the call and check they hear both of you	{0}   Joyina ikholi kwaye ujonge ukuba bayakuva bobabini
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Uvavanyo lwe-mic > Masijonge: uya kuzva wena, nokuzva yena xa ethetha
+{0}   Microphone:	{0}   Imakrofoni:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Ukucinezela umsindo: Akukho. Zombini zinokunqumla izwi lakhe emva komgca wokuqala.
+{0}   Open the call or meeting's audio settings	{0}   Vula izicwangciso zomsindo zekholi okanye yenkomfa
+{0}   Output Device: your headphones, like before	{0}   Isixhobo sokuphuma: iintloko zakho, njengakwangaphambili
+{0}   Speaker: your headphones, like before	{0}   Ispika: iintloko zakho, njengakwangaphambili
+{0}   Try a mic test in your call app	{0}   Zama uvavanyo lwe-mic kwisicelo sakho sekholi
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Izicwangciso zomsebenzisi (iwiili eduze kwegama lakho) > Izwi nevidiyo
+{0} Mbps	{0} Mbps
+{0} lines	{0} imigca
+{0} min	{0} imiz
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· kule PC
+· server	· iseva

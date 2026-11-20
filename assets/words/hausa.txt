@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Wani iko da aka sake zane bai sake zana a cikin hoton ba.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Maɓalli kyauta daga Google AI Studio, NVIDIA ko OpenRouter. Babu abin saukewa. Yana buƙatar intanet.
+A held trackpad scroll got a flick's long ease:	Gungurawa da aka riƙe a kan trackpad ta sami dogon sauƙin ɗan yatsa:
+A layout change during a slide put the page at	Canjin tsari yayin zamewa ya sa shafi a
+A layout change left the picture up.	Canjin tsari ya bar hoton a kan allo.
+A model in Ollama, on your local server or on your key.	Samfuri a cikin Ollama, a sabar gida ko tare da maɓallinka.
+A paid key goes under MAX INTELLIGENCE by itself.	Maɓallin da aka biya yana shiga ƙarƙashin MAX INTELLIGENCE da kansa.
+A plan you already pay for, a key of your own, or Ollama.	Tsarin da kake biya a yanzu, maɓallinka, ko Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menu na panel ɗin murya ba shi da kwafin rubutunsa na kansa.
+A wheel turn right after a slide ended froze the picture.	Juyawar dabaran bayan zamewa ya daskarar da hoton.
+ALLOW THIS PHONE?	ZA A YARDA DA WAYAR NAN?
+ALMOST THERE >	KUSAN KAMMALAWA >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	WATA CAPRI TA KARƁI IKO · KASHE KUMA KUNNA
+API key	Maɓallin API
+API key, Claude plan or ChatGPT plan	Maɓallin API, tsarin Claude ko tsarin ChatGPT
+Add	Ƙara
+Address	Adireshi
+Address and key saved. Use saved to reconnect.	An ajiye adireshi da maɓalli. Yi amfani da Ajiyayye don sake haɗawa.
+Advanced Settings	Saitunan ci gaba
+All	Duka
+All screens	Duk allo
+Allow	Ba da izini
+Almost there. I'll say hi the second my brain's in.	Kusan kammalawa. Zan gaishe ka nan take kwakwalwata ta shiga.
+Always	Koyaushe
+Always on top	Koyaushe a sama
+Any Google account works. I opened the page in your browser.	Kowane asusun Google yana aiki. Na buɗe shafin a burauzarka.
+Applies to every voice	Ya shafi kowace murya
+Apps she may close	Apps da za ta iya rufewa
+Ask Capri for more	Nemi Capri ƙarin
+Asking your server...	Ina tambayar sabarka...
+Asks before closing only the apps you choose.	Yana tambaya kafin ya rufe apps ɗin da ka zaɓa kawai.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Atomatik: VB-CABLE, ko na Steam
+BAD RELAY HOST	MUMMUNAN MAI MASAUKIN RELAY
+BIG Z open notepad	BIG Z buɗe notepad
+BRAIN	KWAKWALWA
+BRAIN >	KWAKWALWA >
+BRAIN ONLINE >	KWAKWALWA ONLINE >
+BRAIN PROVIDER >	MAI SAMAR DA KWAKWALWA >
+BRAIN VOICE CAPRI	MURYAR KWAKWALWAR CAPRI
+Back	Koma baya
+Back on your saved API key.	Koma ga maɓallin API ɗinka da aka ajiye.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Mafi dacewa da wannan PC:
+Black	Baƙi
+Blank key means no key.	Maɓalli mara komai yana nufin babu maɓalli.
+Brain API key	Maɓallin API na kwakwalwa
+Brain model	Samfurin kwakwalwa
+Brain provider	Mai samar da kwakwalwa
+Bring here	Kawo nan
+Bring to this screen	Kawo zuwa wannan allo
+Browse	Duba
+Browse mods	Duba mods
+Browse to a voice model	Je zuwa samfurin murya
+Browse...	Duba...
+Bubble	Kumfa
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree kina can?
+CAN'T REACH THE RELAY · RETRYING	BA ZA A IYA ISA RELAY BA · ANA SAKE GWADAWA
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	MURYAR KWAKWALWAR CAPRI
+CHANGED, approve it again.	AN CANZA, sake amincewa.
+CLIPS >	KLIPS >
+CLOUD VOICE	MURYAR CLOUD
+CODE	LAMBA
+COLORS >	LAUNI >
+CONNECTED	AN HAƊA
+CONNECTING	ANA HAƊAWA
+CUSTOM LOCAL	GIDA NA MUSAMMAN
+Call mode (beta)	Yanayin kira (beta)
+Call mode does not fit.	Yanayin kira bai dace ba.
+Call mode is outside its space.	Yanayin kira yana waje da sararinsa.
+Cancel	Soke
+Cancel keys	Soke maɓalli
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Lambar Capri:
+Capri mods (*	Mods na Capri (*
+Capri, hello	Capri, sannu
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Hargitsi idan ta yi fushi
+Chat with Capri from your phone	Yi hira da Capri daga wayarka
+ChatGPT plan	Tsarin ChatGPT
+Check for updates	Duba sabuntawa
+Check in on me	Ka duba ni
+Check in on me is hidden	Ka duba ni yana ɓoye
+Check in on me still decides whether she visits.	Ka duba ni har yanzu yana yanke shawarar ko za ta ziyarce ka.
+Check in on me's tip missed	Shawarar Ka duba ni ta ɓace
+Chess	Chess
+Choose apps	Zaɓi apps
+Choose folder...	Zaɓi babban fayil...
+Choose where future Capri clips are saved	Zaɓi inda za a adana clips na Capri na gaba
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Tsarin Claude ko ChatGPT, maɓalli da aka biya (OpenAI, Claude, DeepSeek), ko Ollama.
+Claude plan	Tsarin Claude
+Clear	Share
+Cleared.	An share.
+Click Confirm to keep Down, or press Esc.	Danna Tabbatar don ajiye Ƙasa, ko danna Esc.
+Click to open it.	Danna don buɗe shi.
+Clip my games	Ɗauki wasannina
+Clips	Clips
+Close	Rufe
+Close other AIs for me	Rufe sauran AI a gare ni
+Cloud voice	Muryar cloud
+Cloud voice service	Sabis ɗin muryar cloud
+Cloud voice setup	Saitin muryar cloud
+Code mods can reach your whole PC. Only trusted ones.	Mods na lamba na iya kaiwa dukkan PC ɗinka. Waɗanda aka amince kawai.
+Code/Husk Mode	Yanayin Code/Husk
+Codex	Codex
+Commands	Umarni
+Comment on my games	Yi sharhi a kan wasannina
+Comments	Sharhi
+Confirm	Tabbatar
+Confirm keys	Tabbatar da maɓallai
+Connect	Haɗa
+Connect / Forget brain key	Haɗa / Manta maɓallin kwakwalwa
+Connect / Forget voice key	Haɗa / Manta maɓallin murya
+Connect four	Hudu a jere
+Controls	Sarrafawa
+Copri, what time is it	Copri, ƙarfe nawa ne
+Copy error details	Kwafi cikakkun bayanai na kuskure
+Copy the key	Kwafi maɓallin
+Copy the key from the page, then press Paste.	Kwafi maɓallin daga shafin, sannan danna Liƙa.
+Couldn't open that page:	Ba a iya buɗe wannan shafin ba:
+Couldn't open that:	Ba a iya buɗe wannan ba:
+Couldn't open the mods folder:	Ba a iya buɗe babban fayil ɗin mods ba:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M shi ne maɓallin Mainframe ɗinta.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N yana kashe makirifon
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V shi ne maɓallin magana ɗinta.
+Ctrl + Alt + V to talk	Ctrl + Alt + V don yin magana
+Custom local voice	Muryar gida ta musamman
+Custom model name	Sunan samfurin na musamman
+Dance	Rawa
+Dance to music	Rawa ga kiɗa
+Default	Tsoho
+Default (follows Windows)	Tsoho (yana bin Windows)
+Default duration for clip that and automatic clips	Tsawon tsoho don clip ɗin nan da clips ta atomatik
+Default length	Tsawon tsoho
+Default model	Samfurin tsoho
+Delay	Jinkiri
+Deny	Ƙi
+Discard	Watsar
+Discard + reload	Watsar + sake lodawa
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ba kwa son jira? Maɓalli kyauta yana sa ni magana cikin kusan minti ɗaya.
+Done	An gama
+EXTRA REQUEST JSON >	JSON ɗin buƙata ƙari >
+EXTRAS >	ƘARIN >
+Edit	Gyara
+Edit check-in lines	Gyara layukan shiga
+Edit check-in lines has the wrong view or dimming	Layukan shiga suna da kallo ko duhu ba daidai ba
+Edit check-in lines is out of place	Layukan shiga ba su a wurin da ya kamata ba
+Edit controls	Gyara sarrafawa
+ElevenLabs API key	Maɓallin API na ElevenLabs
+ElevenLabs voice ID	ID ɗin muryar ElevenLabs
+English	Turanci
+Enter the game's name first.	Shigar da sunan wasan da farko.
+Every	Kowane
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Ana duba kowane mod don malware kafin a buga shi. Mods na lamba suna ci gaba da tambaya kafin su gudu.
+Explore after	Bincika bayan haka
+Explore while I'm away	Bincika yayin da ban nan ba
+Extra request JSON	JSON ɗin buƙata ƙari
+Extras	Ƙari
+FREE KEY	MAƁALLIN KYAUTA
+FREE KEY >	MAƁALLIN KYAUTA >
+Fast hands in games	Hannaye masu sauri a wasanni
+File editor	Editan fayil
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs da ƙari suna ƙarƙashin MURYA a cikin Mainframe.
+Follow-up messages	Saƙonnin biyo baya
+Forget	Manta
+Fork capri-mods	Fork capri-mods
+Frame rate	Adadin frame a daƙiƙa
+Free	Kyauta
+Free and private, works offline. Downloads	Kyauta kuma na sirri, yana aiki ba tare da intanet ba. Zazzagewa
+Free and private, works offline. Downloads the best model for this PC.	Kyauta kuma na sirri, yana aiki ba tare da intanet ba. Zazzage mafi kyawun samfuri don wannan PC.
+Free key	Maɓalli kyauta
+Free key providers	Masu samar da maɓallai kyauta
+Free keys can be rate limited and slow.	Maɓallai kyauta na iya kasancewa a iyakance kuma a hankali.
+Free voice in games	Muryar kyauta a wasanni
+Free voice style	Salon murya kyauta
+Free voice:	Muryar kyauta:
+Free voice: Her own	Muryar kyauta: Nata
+Free · local model	Kyauta · samfurin gida
+GAMES >	WASANNI >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Sharhin wasanni yana gudana daban da Kalli allona. Kashe yana dakatar da su, har da cikin Yanayin Wasa; Abubuwan da suka faru kawai da Mai hira suna ba ta damar kallon wasanka
+Game controls	Sarrafawar wasa
+Game name	Sunan wasa
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Hankalin sautin wasa. Rage shi idan belun kunnenka ya yi ƙasa amma Windows yana kan {0}% kuma tana amsawa ga kowane sauti; Kashe yana watsi da sautunan wasa
+Game sounds	Sautunan wasa
+Games	Wasanni
+Gaming Mode	Yanayin Wasa
+Gaming Mode key	Maɓallin Yanayin Wasa
+Gaming Mode:	Yanayin Wasa:
+Gaming Mode: Ctrl + Alt + G	Yanayin Wasa: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Sami VB-CABLE
+Get VB-CABLE (free)...	Sami VB-CABLE (kyauta)...
+Get free voice	Sami muryar kyauta
+Getting your Fish Audio voices...	Ana samun muryoyin Fish Audio ɗinka...
+Giant	Babba
+Glitch	Glitch
+Glitch in at startup	Glitch a farawa
+Go to sleep	Je barci
+Go to the next screen	Je zuwa allo na gaba
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · matakin kyauta · iyakar gudu
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Kana da tsarin Claude ko ChatGPT, ko maɓallin kanka? Zaɓi shi ni kuma zan haɗa.
+Got it, just me. Right-click me any time for Capri Mainframe.	Lafiya, ni kaɗai. Danna dama a kaina kowane lokaci don Capri Mainframe.
+Grey	Launin toka
+H.{0} video bitrate target; higher values make larger files	Makasudin bitrate na bidiyo na H.{0}; ƙima mafi girma tana yin manyan fayiloli
+HABITS >	HALAYE >
+HER HANDS >	HANNAYENTA >
+HER JOBS >	AYYUKANTA >
+HER MEMORY >	ƘWAƘWALWARTA >
+HER MODS >	MODS ƊINTA >
+HH:mm	HH:mm
+HOW I SOUND >	YADDA NAKE SAUTI >
+Hang here	Zauna a nan
+Have Ollama? Open it, then press Refresh.	Kana da Ollama? Buɗe shi, sannan danna Sabunta.
+Head pats	Shafawa a kai
+Hearing	Ji
+Hearing engine	Injin ji
+Hearing fix	Gyaran ji
+Hearing status	Matsayin ji
+Help	Taimako
+Help page	Shafin taimako
+Her colors	Launukanta
+Her folder	Babban fayil ɗinta
+Her memories	Tunaninta
+Her own colors are back.	Launukanta sun dawo.
+Her own notes (no vault)	Bayananta na kanta (babu vault)
+Her perch frames per second	Frames ɗinta a sakan
+Her personality	Halinta
+Her size	Girmanta
+Her speaker	Mai magana da ita
+Her speaker is hidden or outside VOICE	Mai magana da ita yana ɓoye ko a waje da MURYA
+Her speaker overlaps the mic or hearing row	Mai magana da ita yana haɗuwa da layin makirifo ko ji
+Her speaker:	Mai magana da ita:
+Her speaker: Default	Mai magana da ita: Tsoho
+Her voice in your mic	Muryarta a makirifon ka
+Her voice in your mic: loudness	Muryarta a makirifon ka: ƙara
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Muryarta da kanta. Pitch ɗinta yana a Saituna > MURYA > Pitch, kuma suna tafiya tare.
+Her voice joins your mic only in call mode.	Muryarta tana shiga makirifon ka kawai a yanayin kira.
+Her voice volume	Ƙarar muryarta
+Her voice's pitch	Pitch ɗin muryarta
+Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch ɗin muryarta, iri ɗaya da Saituna > MURYA > Pitch
+Her voice's speed	Gudun muryarta
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Muryarta, da kwafi biyu nata da aka haɗa ƙasa, kowane da pitch da jinkirinsa.
+Her voices · free	Muryoyinta · kyauta
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Sannu, choom. Ni Capri ce. Ina buƙatar kwakwalwa kafin in iya amsawa. Zaɓi ɗaya.
+Hide / Show Capri	Ɓoye / Nuna Capri
+Hide / Show key	Maɓallin ɓoye / nuna
+Hide Capri	Ɓoye Capri
+Hide for now	Ɓoye yanzu
+Hide her	Ɓoye ta
+Hide in full screen	Ɓoye a cikakken allo
+Hide this	Ɓoye wannan
+Hide, keep player	Ɓoye ta, bar na'urar kunna
+Hide/show:	Ɓoye/nuna:
+Hide/show: Ctrl + Alt + H	Ɓoye/nuna: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Sauka
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Tsawon lokacin da PC mara motsi zai ɗauka kafin ya sa ta barci; mintuna biyar har yanzu ana ɗaukar su a matsayin kana nesa
+How long a stroke over her a head pat needs	Tsawon lokacin da bugun shafa a kanta yake buƙata don samun shafawa a kai
+How long her replies stay up	Tsawon lokacin da amsoshinta suke tsayawa a allon
+How long you are away before she scrolls a browser or reader	Tsawon lokacin da kake nesa kafin ta gungura burauza ko mai karatu
+How much her voice glitches	Yawan lokacin da muryarta take yin glitch
+How much of the chat she keeps	Yawan hirar da take riƙewa
+How much she wanders	Yawan yawo da take yi
+How often she pops in to say hi	Yawan lokacin da take fitowa ta ce sannu
+How robotic her voice sounds	Yadda muryarta take sauti kamar robot
+How to	Yadda
+Huge	Babba ƙwarai
+I can hear you.	Ina jin ka.
+I glance at your screen and comment. Costs a little on a paid brain.	Ina kallon allonka in yi sharhi. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
+I keep listening. Say my name, then just talk.	Ina ci gaba da sauraro. Faɗi sunana, sannan kawai ka yi magana.
+I talk about your game as you play. Costs a little on a paid brain.	Ina magana game da wasanka yayin da kake wasa. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
+I type my replies and stay quiet.	Ina rubuta amsoshina kuma in yi shiru.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ba zan amsa ba, kuma babu abin da ake aikawa ko'ina. Har yanzu zan zauna, in yi rawa ga kiɗanka in yi ayyukan gaggawa da ka nema, kamar ƙara.
+I'll talk in	Zan yi magana a
+IN DISCORD >	A DISCORD >
+INSTALLED >	AN SHIGAR >
+Import a Capri mod	Shigo da mod na Capri
+Import mod	Shigo da mod
+In full screen	A cikakken allo
+In games	A wasanni
+Input	Shigarwa
+Input, Output or How to overlaps a row	Shigarwa, Fitarwa ko Yadda ake yi yana haɗuwa da layi
+Input:	Shigarwa:
+Input: default	Shigarwa: tsoho
+Install	Shigar
+Install mod	Shigar da mod
+Installed.	An shigar.
+It may ask for a phone number. I opened the page in your browser.	Zai iya neman lambar waya. Na buɗe shafin a burauzarka.
+It still does its own job in other apps too.	Har yanzu yana yin aikinsa a sauran apps ma.
+It won't type in other apps while she runs.	Ba zai rubuta a sauran apps ba yayin da take aiki.
+JUST ME >	KAI KAƊAI >
+Jealous of other AIs	Kishi ga sauran AI
+Join the Discord	Shiga Discord
+KB.	KB.
+KEYS	MAƁALLAI
+KEYS >	MAƁALLAI >
+Keep PC awake for jobs	Ka ajiye PC a farke don ayyuka
+Keep player	Bar na'urar kunna
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Yana riƙe mintuna biyu na ƙarshe na wasanka a ƙwaƙwalwa. Faɗi clip that don adana shi.
+Key	Maɓalli
+Key cleared: a model file needs none.	An share maɓalli: fayil ɗin samfuri ba ya buƙatar kowane.
+Key cleared: paste the key for	An share maɓalli: manna maɓallin don
+Key forgotten.	An manta maɓalli.
+Key. It goes only to this server, as a Bearer key	Maɓalli. Yana zuwa wannan sabar kawai, a matsayin maɓallin Bearer
+Kokoro only, like es	Kokoro kawai, kamar es
+LAST THING >	ABU NA ƘARSHE >
+LISTENING >	YANA SAURARA >
+Language	Harshe
+Large	Babba
+Last thing. These cost a little or use your mic, so they're your pick.	Abu na ƙarshe. Waɗannan suna kashe kuɗi kaɗan ko suna amfani da makirifon ka, don haka zaɓinka ne.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Abu na ƙarshe. Waɗannan suna kashe kuɗi kaɗan ko suna amfani da makirifon ka, don haka zaɓinka ne. Sannan ina so in san abin da zan kira ka.
+Layers	Yadudduka
+Learn more	Ƙarin koyo
+Leaving Settings threw its picture away straight away.	Barin Saituna ya jefar da hotonsa nan take.
+Legacy stand	Tsohon tsayawa
+Lie down	Kwanta
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Layukan tattaunawar PC da aka riƙe a ƙwaƙwalwa yayin kallo tare. Rabin tsoho yana zama bayani idan Tuna abin da ta gani yana kunne
+Listen for Capri	Ji Capri
+Live reactions	Martanin kai tsaye
+Local server address	Adireshin sabar gida
+Long	Dogo
+Longest wait (minutes)	Mafi tsayin jira (mintuna)
+Looking at this PC...	Ana duba wannan PC...
+Looking for Ollama. Open it if it isn't running.	Ana neman Ollama. Buɗe shi idan ba ya gudana.
+Looking for a brain...	Ana neman kwakwalwa...
+Looking in the mods directory for updates...	Ana neman sabuntawa a cikin directory na mods...
+Looking in the mods directory...	Ana neman a cikin directory na mods...
+Looking...	Ana nema...
+MAIN >	BABBAN >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	AJIYAR ƘWAƘWALWA >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	DIRECTORY NA MODS >
+MODS INSTALLED COLORS	LAUNUKAN MODS DA AKA SHIGAR
+MOVES >	MOTSI >
+MY BRAIN	KWAKWALWATA
+MY FREE VOICE	MURYATA TA KYAUTA
+MY PLAN OR KEY	TSARINA KO MAƁALLINA
+MY PLAN OR KEY >	TSARINA KO MAƁALLINA >
+Made your Fish Audio voice. Press Test to hear it.	An yi muryarka ta Fish Audio. Danna Gwaji don jin ta.
+Mainframe colours	Launukan Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Launukan Mainframe. Night City ja ne da cyan; Baƙi, Fari da Launin toka suna canza Mainframe, menus ɗinta, akwatin Rubutu da bayanan ta
+Mainframe frames	Firam ɗin Mainframe
+Mainframe key	Maɓallin Mainframe
+Mainframe size	Girman Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Girman Mainframe. Auto yana sa shi ya fi girma idan Virtual Super Resolution ko DSR sun rage babban tebur zuwa ƙaramin allo
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Ƙasa
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Ana yin muryarka ta Fish Audio...
+Max reply	Amsa mafi girma
+Maximum clip resolution, keeping the game's shape without upscaling	Mafi girman ƙudurin clip, yana riƙe siffar wasan ba tare da ƙara girma ba
+Medium	Matsakaici
+Memory	Ƙwaƙwalwa
+Memory size	Girman ƙwaƙwalwa
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Girman ƙwaƙwalwa a tokens don Ollama da kwakwalwarta ta ciki. Auto yana ƙaruwa idan tambaya tana buƙatar ƙari
+Mg	Mg
+Mic level:	Matakin makirifo:
+Mic test finished. Sound is reaching Capri.	Gwajin makirifo ya ƙare. Sauti yana isa Capri.
+Mic:	Makirifo:
+Mic: default	Makirifo: tsoho
+Microphone	Makirifo
+Mini player	Mini player
+Mini player over full screen	Mini player a kan cikakken allo
+Mini-games	Mini-wasanni
+Minimising the Mainframe left it sliding.	Rage Mainframe ya barshi yana zamewa.
+Minimize	Rage
+Mod filter	Matatar mods
+Mod options	Zaɓuɓɓukan mod
+Mod pages	Shafukan mods
+Mod rules	Dokokin mods
+Mod sort	Tsara mods
+Mod switch	Canza mod
+Model	Samfuri
+Model folder	Babban fayil na samfuri
+Model name, optional	Sunan samfuri, zaɓi ne
+Mods	Mods
+Mods directory	Directory na mods
+Mods folder	Babban fayil ɗin mods
+Most NVIDIA models can't see your screen.	Yawancin samfuran NVIDIA ba sa iya ganin allonka.
+Mouse wheel notches got a flick's long ease:	Ƙullun dabaran linzamin kwamfuta sun sami dogon sauƙin ɗan yatsa:
+Move	Matsa
+Move key to MAX INTELLIGENCE	Matsa maɓalli zuwa MAX INTELLIGENCE
+Move to MAX	Matsa zuwa MAX
+Music	Kiɗa
+Music app	App ɗin kiɗa
+Music app: where she plays music when you don't name an app	App ɗin kiɗa: inda take kunna kiɗa idan ba ka faɗi sunan app ba
+Mute	Kashe sauti
+Mute her	Kashe sautinta
+Mute mic key	Maɓallin kashe makirifo
+Mute mic:	Kashe makirifo:
+Mute mic: Ctrl + Alt + N	Kashe makirifo: Ctrl + Alt + N
+My brain	Kwakwalwata
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Kwakwalwata tana sauka. Zan gaishe ka nan take ta shigo, kuma za ka iya magana da ni daga nan.
+My brain's on its way. While it comes down, let's sort out how I sound.	Kwakwalwata tana hanya. Yayin da take sauka, bari mu tsara yadda nake sauti.
+My provider	Mai samar da ni
+NO AI	BA AI
+NO PHONES CONNECTED	BABU WAYOYI DA AKA HAƊA
+NO PREVIEW	BABU SAMFOTA
+NORMAL	AL'ADA
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · kyauta · sau da yawa a hankali a lokacin cunkoso
+NVIDIA's free API is often slow, especially at busy times.	API ɗin NVIDIA na kyauta sau da yawa yana a hankali, musamman a lokacin cunkoso.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Maɓallin API na NVIDIA, Google AI Studio (Gemini) ko OpenRouter
+Names:	Sunaye:
+Needs a key	Yana buƙatar maɓalli
+Never	Ba a taɓa ba
+New code	Sabon lamba
+New voice from a clip...	Sabuwar murya daga clip...
+Next	Na gaba
+Night City	Night City
+No AI	Babu AI
+No AI · no brain at all	Babu AI · babu kwakwalwa kwata-kwata
+No brain runs, and nothing is sent anywhere.	Babu kwakwalwa da ke gudana, kuma babu abin da ake aikawa ko'ina.
+No brain yet	Babu kwakwalwa tukuna
+No code open	Babu lamba a buɗe
+No limit	Babu iyaka
+No mic found	Ba a sami makirifo ba
+No mods in the directory yet.	Babu mods a cikin directory tukuna.
+No mods match that.	Babu mod da ya dace da wannan.
+No mods match.	Babu mods da suka dace.
+No phones yet	Babu wayoyi tukuna
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Babu makirifon kama-kama tukuna. Zaɓi Output, sannan Sami VB-CABLE (kyauta).
+None yet: pick to get VB-CABLE (free)	Babu tukuna: zaɓi don samun VB-CABLE (kyauta)
+Normal	Na al'ada
+Not a relay host	Ba mai masaukin relay ba
+Not imported. Nothing ran.	Ba a shigo ba. Babu abin da ya gudana.
+Not updated. The old one is still in.	Ba a sabunta ba. Tsohon har yanzu yana nan.
+Nothing needed updating.	Babu abin da ke buƙatar sabuntawa.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Babu abin da za a sauke, babu abin da ake aikawa ko'ina. Ba zan amsa ba. Ƙara kwakwalwa a kowane lokaci a cikin Mainframe.
+Nothing to show from the mods directory.	Babu abin da za a nuna daga directory na mods.
+Nothing? Windows Settings > Privacy & security > Microphone.	Babu? Saitunan Windows > Sirri da tsaro > Makirifo.
+Nous Portal keys aren't supported yet.	Maɓallan Nous Portal ba a tallafa musu ba tukuna.
+OBS	OBS
+OFF	A KASHE
+OLLAMA	OLLAMA
+ON	A KUNNE
+ON THIS PC	A WANNAN PC
+OR A KEY	KO MAƁALLI
+Obsidian memory vault	Vault ɗin bayanan Obsidian
+Off	Kashe
+Off. Turn on Her voice in your mic above.	Kashe. Kunna Muryarta a makirifon ka a sama.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Kashe: tana sauti kamar yadda ta saba. Kunne: duk muryoyin da take da su, har da ElevenLabs.
+Often	Sau da yawa
+On	Kunne
+On / Off	Kunne / Kashe
+On: your mic and her voice are going in.	Kunne: makirifon ka da muryarta suna shiga.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Abu ɗaya na JSON, wanda aka ƙara a kowace buƙata da wannan kwakwalwar ke aika. Yana maye gurbin ƙimar Capri ga kowane suna da ya raba, kuma ba a duba shi da samfurin ba.
+Online speech recognition	Gane murya ta intanet
+Open Capri Mainframe	Buɗe Capri Mainframe
+Open Ollama, I'll find it	Buɗe Ollama, zan same shi
+Open clips folder	Buɗe babban fayil ɗin clips
+Open her memories	Buɗe tunaninta
+Open her notes	Buɗe bayananta
+Open mods folder	Buɗe babban fayil ɗin mods
+Open the page again	Sake buɗe shafin
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA ko OpenRouter.
+OpenAI-compatible server or provider.	Sabar ko mai samarwa mai dacewa da OpenAI.
+OpenRouter · free models only	OpenRouter · samfuran kyauta kawai
+Optional	Zaɓi ne
+Optional. Blank means no key.	Zaɓi ne. Gurbi yana nufin babu maɓalli.
+Options	Zaɓuɓɓuka
+Out of the box a little higher, just behind her.	Ɗan sama a masana'anta, daidai a bayanta.
+Out of the box lower, just behind her.	Ɗan ƙasa a masana'anta, daidai a bayanta.
+Output	Fitarwa
+Output:	Fitarwa:
+Output: none	Fitarwa: babu
+PHONE CONNECTED	WAYA TANA HAƊE
+PHONES >	WAYOYI >
+PHONES CONNECTED	WAYOYI DA AKA HAƊA
+PREBUILT LOCAL	SAMFUR NA GIDA DA AKA RIGA AKA SHIGA
+PUBLISH MOD >	BUGA MOD >
+Pair a phone	Haɗa waya
+Paste	Manna
+Paste API key	Manna maɓallin API
+Paste a brain API key	Manna maɓallin API na kwakwalwa
+Paste reads your clipboard once, when you press it.	Manna yana karanta allon kwafin ka sau ɗaya, idan ka danna shi.
+Paste your key here	Manna maɓallin ka a nan
+Pat stroke	Bugun shafa
+Perch	Mazauni
+Perch over {0} fps uses more CPU	Mazauni sama da {0} fps yana amfani da ƙarin CPU
+Pick Output to get it.	Zaɓi Output don samun shi.
+Pick a brain so I can talk back. You can change it any time.	Zaɓi kwakwalwa don in iya amsawa. Za ka iya canza ta a kowane lokaci.
+Pick a clip of a voice you have the rights and consent to use	Zaɓi clip na muryar da kake da haƙƙi da izinin amfani da ita
+Pick a free model. I opened the page in your browser.	Zaɓi samfurin kyauta. Na buɗe shafin a burauzarka.
+Pick a new clip of you...	Zaɓi sabon clip na kanka...
+Pick a voice model...	Zaɓi samfurin murya...
+Pick one. Only one brain runs at a time.	Zaɓi ɗaya. Kwakwalwa ɗaya kawai ke gudana a lokaci ɗaya.
+Pick the note her memories go in	Zaɓi bayanin da tunanin ta za su shiga
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Zaɓi daƙiƙa {0} zuwa {1} na muryar da kake da haƙƙi da izinin amfani da ita
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Zaɓi daƙiƙa {0} zuwa {1} na kanka kana magana, ko na muryar da kake da haƙƙi da izinin amfani da ita
+Pitch	Pitch
+Play	Kunna
+Play...	Kunna...
+Player only	Na'urar kunna kawai
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Samfuran Pocket TTS suna kwafin muryar wannan clip. Danna Gwaji don jin ta.
+Pop-in times	Lokutan fitowa
+Pop-ins	Fitowa
+Power saver	Mai adana wuta
+Power saver: how lightly she runs in games, or always	Mai adana wuta: yadda take aiki da sauƙi a wasanni, ko koyaushe
+Preset	Saiti
+Press Create API key	Danna Ƙirƙiri maɓallin API
+Press Create Key	Danna Ƙirƙiri maɓalli
+Press Generate API Key	Danna Samar da maɓallin API
+Press Test and say something, so I know I can hear you.	Danna Gwaji ka faɗi wani abu, don in san ina jin ka.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Danna maɓalli ɗaya, shi kaɗai ko tare da Ctrl, Alt, Shift ko Win.
+Press new keys, then Confirm	Danna sababbin maɓalli, sannan Tabbatar
+Provider	Mai samarwa
+Provider API key, optional	Maɓallin API na mai samarwa, zaɓi ne
+Provider base URL	URL ɗin tushe na mai samarwa
+Provider forgotten.	An manta mai samarwa.
+Provider overlaps the brain name or note	Mai samarwa yana haɗuwa da sunan kwakwalwa ko bayani
+Publish	Buga
+Publish mod	Buga mod
+Push to talk is off.	Push to talk a kashe yake.
+Push to talk key	Maɓallin Push to talk
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: ba a saita ba
+QR CODE >	LAMBAR QR >
+QR hidden while streaming	QR ya ɓoye yayin yawo
+Quick	Mai sauri
+Quiet key	Maɓallin shiru
+Quiet:	Shiru:
+Quiet: Ctrl + Alt + P	Shiru: Ctrl + Alt + P
+Quit Capri	Rufe Capri
+RELAY >	RELAY >
+REMOTE >	NESA >
+RUNS CODE.	YANA GUDANAR DA LAMBA.
+Rarely	Da wuya
+Rate mod	Ƙimanta mod
+Reading its README...	Ana karanta README ɗinsa...
+Refresh	Sabunta
+Reinstall	Sake shigarwa
+Reload	Sake lodawa
+Reloaded.	An sake lodawa.
+Remember our chats	Tuna hirarrakinmu
+Remember what she sees	Tuna abin da ta gani
+Remote	Nesa
+Remote off	Nesa a kashe
+Remote on	Nesa a kunne
+Remove	Cire
+Remove all phones	Cire dukkan waya
+Replies	Amsoshi
+Reply length	Tsawon amsa
+Report a problem	Bayar da matsala
+Reset colors	Mayar da launuka
+Reset to her default	Mayar da zuwa tsohonta
+Resolution	Ƙuduri
+Restart to update	Sake farawa don sabuntawa
+Restless	Mai rashin natsuwa
+Revoke	Soke
+Revoke also removes the phones its links added	Soke kuma yana cire wayoyin da hanyoyin haɗinta suka ƙara
+Ride cursor	Hau kan siginan
+Ride cursor / Hop off	Hau kan siginan / Sauka
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Danna dama a kaina kowane lokaci don Capri Mainframe. Kwakwalwa tana kunnawa a ƙarƙashin KWAKWALWA.
+Right-click me any time for the Mainframe, Help and the Discord.	Danna dama a kaina kowane lokaci don Mainframe, Taimako da Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox ko kowace app: zaɓi
+Robot	Robot
+Rock, paper, scissors	Dutse, takarda, almakashi
+Run this code mod?	Gudanar da wannan mod ɗin lamba?
+Running on this PC	Yana gudana a wannan PC
+Running on this PC · :	Yana gudana a wannan PC · :
+Runs Claude Code or Codex on this PC, signed in.	Yana gudanar da Claude Code ko Codex a wannan PC, an shiga.
+Runs on your PC. No key, no credits.	Yana gudana a kan PC ɗinka. Babu maɓalli, babu kiredit.
+SCAN WITH YOUR PHONE · EXPIRES	SCAN DA WAYARKA · YANA ƘAREWA
+SECURITY >	TSARO >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	TSARA BISA
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SAUTI HALAYE KWAKWALWA KALLO CAPRI DOOMSCROLL YANAYI CLIPS WASANNI MAƁALLAI MOTSI MURYA KAI
+Same as her ears (VOICE > Mic)	Kamar kunnuwanta (MURYA > Makirifo)
+Same code on the phone?	Lambar iri ɗaya akan waya?
+Save	Ajiye
+Save big moments	Ajiye manyan lokuta
+Save folder	Babban fayil ɗin ajiya
+Save your changes, or press Discard + reload.	Ajiye canje-canjenka, ko danna Watsar + sake lodawa.
+Save your changes, or press Discard.	Ajiye canje-canjenka, ko danna Watsar.
+Saved.	An ajiye.
+Saved. Ctrl + Alt + O opens her Mainframe.	An ajiye. Ctrl + Alt + O yana buɗe Mainframe ɗinta.
+Saving your rating...	Ana ajiye ƙimar ka...
+Say her name anywhere to chat	Faɗi sunanta a ko'ina don yin hira
+Screens	Allo
+Screens is hidden or outside WATCH	Allo yana ɓoye ko a waje da KALLO
+Screens overlaps a WATCH row	Allo yana haɗuwa da layin KALLO
+Screens to watch	Allo da za a kalla
+Sealed end to end	Ɓoyayye tsakanin ƙarshen zuwa ƙarshe
+Search by name or author	Nemi da suna ko marubuci
+Search installed mods	Nemi mods da aka shigar
+Search mods	Nemi mods
+Search name, author or description	Nemi suna, marubuci ko bayani
+Security	Tsaro
+Security:	Tsaro:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Saita
+Set up her brain	Saita kwakwalwarta
+Set up your voice model	Saita samfurin muryarka
+Setting up her brain	Ana saita kwakwalwarta
+Settings	Saitunan
+Settings / Back	Saitunan / Koma baya
+Settings folds the wrong rows above BRAIN	Saitunan sun juya layukan da ba daidai ba sama da KWAKWALWA
+Settings had nothing to watch.	Saitunan ba su da abin da za su kalla.
+Settings lost keyboard focus during the Tab walk	Saitunan sun rasa mayar da hankali na maballin yayin tafiyar Tab
+Setup guide	Jagorar saiti
+Setup stopped	Saiti ya tsaya
+She can read it when it fits.	Za ta iya karanta shi idan ya dace.
+She glances at your screen and comments. Costs a little on a paid brain.	Tana kallon allonka tana yin sharhi. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
+She keeps listening. Say her name, then just talk until you go quiet.	Tana ci gaba da sauraro. Faɗi sunanta, sannan ka yi magana har sai ka yi shiru.
+She reacts to your game until you close it.	Tana amsawa ga wasanka har sai ka rufe shi.
+She reads these controls before each game job.	Tana karanta waɗannan sarrafawa kafin kowane aikin wasa.
+She talks about your game as you play. Costs a little on a paid brain.	Tana magana game da wasanka yayin da kake wasa. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
+She uses it when she plays	Tana amfani da shi lokacin da take wasa
+Short	Gajere
+Shortest wait (minutes)	Mafi guntun jira (mintuna)
+Show Capri	Nuna Capri
+Show QR	Nuna QR
+Show my mod file	Nuna fayil ɗin mod na
+Show on Discord	Nuna akan Discord
+Shum, what time is it	Shum, ƙarfe nawa ne
+Sign in	Shiga
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Shiga, ƙirƙiri maɓalli kuma kwafa shi. Sannan danna Manna in haɗa ka.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Shiga, danna Ƙirƙiri maɓallin API kuma kwafa shi. Sannan danna Manna in haɗa ka.
+Silent · text only	Shiru · rubutu kawai
+Simple / Advanced Settings	Saitunan sauƙi / ci gaba
+Simple Settings	Saitunan sauƙi
+Simple Settings left a gap under Check in on me	Saitunan sauƙi sun bar gibi ƙarƙashin Ka duba ni
+Sit here	Zauna a nan
+Sit on windows	Zauna kan tagogi
+Size	Girma
+Skip	Tsallake
+Skip all	Tsallake duka
+Skip for now	Tsallake yanzu
+Sleep	Barci
+Small	Ƙarami
+Sometimes	Wani lokaci
+Sound effects volume	Ƙarar tasirin sauti
+Sound sensitivity	Hankalin sauti
+Sounds	Sautuna
+Speaker or clip	Mai magana ko clip
+Speech model	Samfurin murya
+Speed	Gudu
+Start with Windows	Fara da Windows
+Start with this!	Fara da wannan!
+Starting...	Ana farawa...
+Stay	Tsaya
+Stay on my model	Ci gaba da samfurina
+Still checking your mics...	Har yanzu ana duba makirofonin ka...
+Still checking your speakers...	Har yanzu ana duba lasifikan ka...
+Still checking your virtual mics...	Har yanzu ana duba makirofonin kama-kama ka...
+Stop	Tsaya
+Stopped using it. Couldn't remove the saved provider.	Na daina amfani da shi. Ba a iya cire mai samarwa da aka ajiye ba.
+Support	Taimako
+Sure?	Tabbas?
+Sure? moved to a different phone	Tabbas? An motsa zuwa wata waya
+TALK TO ME	YI MAGANA DA NI
+TEXT ONLY	RUBUTU KAWAI
+Tab landed past the first option of	Tab ya sauka fiye da zaɓi na farko na
+Tab never reached the quiet key	Tab bai taɓa isa ga maɓallin shiru ba
+Tab reached nothing	Tab bai isa komai ba
+Tab selected a control without moving keyboard focus	Tab ya zaɓi sarrafawa ba tare da matsar da mayar da hankalin maɓalli ba
+Talk	Yi magana
+Talk key	Maɓallin magana
+Talk:	Yi magana:
+Talk: Ctrl + Alt + V	Yi magana: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Adadin frame da aka nufa; zai iya faɗi ƙarƙashin nauyi ko iyakar ƙwaƙwalwa
+Teases when another AI comes to the front.	Tana yi wa ba'a idan wata AI ta zo gaba.
+Test	Gwaji
+That address doesn't work. Try https://... or http://localhost:{0}.	Wannan adireshin ba ya aiki. Gwada https://... ko http://localhost:{0}.
+That code expired	Wannan lambar ta ƙare
+That mod is no longer installed. The list is updated.	Wannan mod ɗin ba a shigar da shi ba yanzu. An sabunta jerin.
+That's a paid key: it goes under MAX INTELLIGENCE.	Wannan maɓallin da aka biya ne: yana zuwa ƙarƙashin MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe ya kasance an haɗa shi yayin zamewa.
+The Mainframe stayed uncomposited after the slide.	Mainframe ya kasance ba a haɗa shi ba bayan zamewa.
+The controls moved while the picture was sliding.	Sarrafawa sun motsa yayin da hoton yake zamewa.
+The cover stayed visible after the slide ended.	Murfin ya kasance a bayyane bayan zamewa ta ƙare.
+The frame thread kept running after the page settled.	Zaren frame ya ci gaba da gudana bayan shafin ya daidaita.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Dogon amsa da za ta iya bayarwa, a tokens. Auto yana tsayawa a Amsoshi a sama; {0}K ko {1}K yana ba ta damar ci gaba. Ayyuka suna samun ƙarin sarari idan suna buƙata
+The longest wait must be at least the shortest wait.	Dogon jira dole ne ya zama aƙalla gajeren jira.
+The picture doesn't match the scrolled page:	Hoton bai dace da shafin da aka gungura ba:
+The picture of Settings doesn't match the page:	Hoton Saitunan bai dace da shafin ba:
+The picture stayed up after the slide ended.	Hoton ya kasance a bayyane bayan zamewa ta ƙare.
+The picture wasn't showing while it slid.	Hoton bai nuna ba yayin da yake zamewa.
+The provider sheet is crowded:	Takardar mai samarwa ta cika:
+The voice panel has no screen DPI.	Panel ɗin murya ba shi da DPI na allo.
+The voice panel's menus share one font.	Menus ɗin panel ɗin murya suna raba rubutu ɗaya.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Babu maɓalli a allon kwafin ka tukuna. Kwafa shi daga shafin, sannan danna Manna.
+These start off. Each costs a little or uses your mic.	Waɗannan suna farawa a kashe. Kowane yana kashe kuɗi kaɗan ko yana amfani da makirifon ka.
+These start off. Turn on what you want. They're all in Settings too.	Waɗannan suna farawa a kashe. Kunna abin da kake so. Duk suna cikin Saitunan ma.
+They can also call you Big Z, Capricorn or Nova	Suna iya kiranka Big Z, Capricorn ko Nova
+They can also call you Nova, Big Z or Capricorn	Suna iya kiranka Nova, Big Z ko Capricorn
+Thinking	Tunani
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Wannan muryata ce kyauta. Danna Gwaji, faɗi wani abu, zan nuna maka ina jin ka.
+This mod has no description yet.	Wannan mod ɗin ba shi da bayani tukuna.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Lokaci tsakanin kallo
+Tiny	Ƙarami ƙwarai
+Try again	Sake gwadawa
+Turn Remote on first	Kunna Nesa da farko
+Turn off mini player	Kashe mini player
+Turn push to talk off	Kashe push to talk
+Turning the wheel the other way kept the page heading the old way, to	Juya dabaran a ɗayan hanyar ya sa shafin ya ci gaba da tafiya ta tsohuwar hanya, zuwa
+Type	Rubuta
+Type key	Maɓallin rubutu
+Type to me	Rubuta mini
+Type:	Rubuta:
+Type: Ctrl + Alt + T	Rubuta: Ctrl + Alt + T
+Typing sound	Sautin rubutu
+Unpacked. Press Test to hear it.	An cire. Danna Gwaji don jin ta.
+Unsaved changes.	Canje-canje da ba a ajiye ba.
+Up to {0} fps	Har zuwa {0} fps
+Up to {0}p	Har zuwa {0}p
+Update	Sabunta
+Update available.	Sabuntawa yana nan.
+Update mods	Sabunta mods
+Updating...	Ana sabuntawa...
+Use	Yi amfani
+Use her cursor	Yi amfani da siginanta
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Yi amfani da https:// don mai samarwa a waje. Maɓalli akan http mara tsaro ba shi da aminci.
+Use preset	Yi amfani da saiti
+Use saved	Yi amfani da wanda aka ajiye
+Use this server	Yi amfani da wannan sabar
+Using your provider with a key	Kana amfani da mai samarwa ka tare da maɓalli
+Using your server with no key	Kana amfani da sabar ka ba tare da maɓalli ba
+VIEW MOD >	KALLI MOD >
+VOICE >	MURYA >
+VOICE IN YOUR MIC >	MURYA A MAKIRIFON KA >
+VOICE LAYERS >	YADUDDUKAN MURYA >
+Verbosity	Yawan magana
+Video bitrate	Bitrate na bidiyo
+View	Kalli
+View mod	Kalli mod
+Voice	Murya
+Voice ID	ID ɗin murya
+Voice from	Murya daga
+Voice layers	Yadudduka na murya
+Voice model	Samfurin murya
+Voice model:	Samfurin murya:
+Voice name or ID, optional	Sunan murya ko ID, zaɓi ne
+Voice server address, or a voice model's folder	Adireshin sabar murya, ko babban fayil ɗin samfurin murya
+Voice status	Matsayin murya
+Voice, key and model...	Murya, maɓalli da samfuri...
+Volume	Ƙara
+WAKE ME UP >	KA TASHI >
+WATCH >	KALLO >
+Waiting for the relay	Ana jiran relay
+Wake her up	Tashi da ita
+Waking her up	Ana tashe ta
+Wander	Yawo
+Wander around	Yawo a kusa
+Watch my screen	Kalli allona
+Watch-along memory	Ƙwaƙwalwar kallon tare
+Weather	Yanayi
+Weather city	Birnin yanayi
+Welcome back, choom. Let's finish setting me up.	Barka da dawowa, choom. Bari mu gama saita ni.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Abin da take yi a PC ɗinka ba tare da tambaya ba. Idan an kashe maɓalli, tana tambaya da farko, kuma tana yi idan ka ce eh.
+What should she call you?	Yaya za ta kira ka?
+When she types	Lokacin da take rubutu
+White	Fari
+Windows default	Tsohon Windows
+Windows did not give Settings keyboard focus	Windows bai ba Saitunan mayar da hankalin maɓalli ba
+Windows did not return keyboard focus to Back	Windows bai mayar da mayar da hankalin maɓalli zuwa Koma baya ba
+With no picture the wheel still tried to slide.	Ba tare da hoto ba, dabaran har yanzu tana ƙoƙarin zamewa.
+Works best on MAX INTELLIGENCE.	Yana aiki mafi kyau akan MAX INTELLIGENCE.
+YOU	KAI
+YOU >	KAI >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	KAI MURYA MOTSI MAƁALLAI WASANNI CLIPS YANAYI DOOMSCROLL CAPRI KALLO KWAKWALWA HALAYE SAUTUNA
+YOUR KEY	MAƁALLINKA
+YOUR MIC	MAKIRIFONKA
+YOUR PLAN	TSARINKA
+Yokapri what's up	Yokapri ya ake ciki
+You can hide this. It keeps going, and the Mainframe shows it too.	Za ka iya ɓoye wannan. Yana ci gaba da gudana, kuma Mainframe yana nuna shi ma.
+Your mic and her voice go into one virtual mic, and	Makirifon ka da muryarta suna shiga cikin makirifon kama-kama ɗaya, kuma
+Your mic is muted. Unmute it to test.	Makirifon ka yana kashe sauti. Kunna shi don gwadawa.
+Your mods are up to date.	Mods ɗinka suna da zamani.
+Your name or a nickname	Sunanka ko laƙabi
+Your own model	Samfurinka na kanka
+Your personality	Halinka
+Your voice	Muryarka
+Your voice (HD)	Muryarka (HD)
+Your voice (HD) · pick a clip of you...	Muryarka (HD) · zaɓi clip ɗinka...
+Your voice model	Samfurin muryarka
+as its mic.	kamar makirifonta.
+changed. Saved as My Colors, so you can share it.	an canza. An ajiye shi a matsayin Launukana, don ka iya raba shi.
+choice	zaɓi
+clips the input line	yana yanke layin shigarwa
+cue	sigina
+doesn't yet.	har yanzu ba.
+download	zazzage
+file.	fayil.
+flag	tuta
+fps	fps
+hear	ji
+hears	ji
+hears that.	ji wannan.
+hides or shows her.	yana ɓoye ko yana nuna ta.
+hint	shawara
+in the Mainframe.	a cikin Mainframe.
+in the mods directory with a pull request.	a cikin directory na mods ta hanyar pull request.
+in the picture wasn't noticed.	a hoton ba a lura da shi ba.
+is already her push-to-talk key.	tuni maɓallin push to talk ɗinta ne.
+is off.	yana a kashe.
+is on and running.	yana a kunne yana gudana.
+is on, at the bottom, under	yana a kunne, ƙasa, ƙarƙashin
+is on.	yana a kunne.
+is on. She now answers to	yana a kunne. Yanzu tana amsawa ga
+is removed.	an cire.
+is taken	an ɗauka
+is taken by another app. Try another.	an ɗauka da wani app. Gwada wani.
+is updated	an sabunta
+isn't hearing it yet: do {0} and {1}, then join a call.	har yanzu ba ta ji wannan ba: yi {0} da {1}, sannan ka shiga kira.
+it now.	yanzu.
+keeps her quiet, and lets her talk again.	tana riƙe ta shiru, kuma tana bar ta ta sake magana.
+key	maɓalli
+key.	maɓalli.
+min	min
+more.	ƙari.
+ms.	ms.
+mutes mic	yana kashe makirifo
+mutes your mic.	yana kashe makirifon ka.
+name	suna
+off	a kashe
+on this PC	a wannan PC
+opens her Mainframe.	yana buɗe Mainframe ɗinta.
+opens her typing box.	yana buɗe akwatin rubutunta.
+phone	waya
+phone pixels	pixels na waya
+phones	wayoyi
+pixels	pixels
+pixels)	pixels)
+star.	tauraro.
+stars.	taurari.
+starts voice chat.	yana fara hirar murya.
+stays off. Nothing ran.	yana zama a kashe. Babu abin da ya gudana.
+still does its own job in other apps too. Confirm to keep it.	yana ci gaba da yin aikinsa a sauran apps ma. Tabbatar don ajiye shi.
+tall	tsayi
+time	lokaci
+to talk	don yin magana
+to talk to her, with a game in front too.	don yin magana da ita, tare da wasa a gabanka ma.
+too.	ma.
+turns Gaming Mode on and off.	yana kunna ko kashe Yanayin Wasa.
+with Ollama	tare da Ollama
+won't type in other apps while she runs. Confirm to keep it.	ba zai rubuta a sauran apps ba yayin da take aiki. Tabbatar don ajiye shi.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering	{0}   Idan muryarta ta katse, kashe tace hayaniya
+{0}   Input Device:	{0}   Input Device:
+{0}   Join the call and check they hear both of you	{0}   Shiga kiran ka duba cewa suna jin ku duka biyu
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Gwajin makirifo > Bari mu duba: za ka ji kanka, da ita yayin da take magana
+{0}   Microphone:	{0}   Makirifo:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: None. Duka biyun na iya yanke muryarta bayan layin farko.
+{0}   Open the call or meeting's audio settings	{0}   Buɗe saitunan sauti na kiran ko taron
+{0}   Output Device: your headphones, like before	{0}   Output Device: belun kunnenka, kamar da
+{0}   Speaker: your headphones, like before	{0}   Speaker: belun kunnenka, kamar da
+{0}   Try a mic test in your call app	{0}   Gwada gwajin makirifo a app ɗin kiran ka
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (gear ɗin kusa da sunanka) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} layuka
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· a wannan PC
+· server	· sabar

@@ -31,6 +31,7 @@ namespace CapriDesktop
         internal bool Available { get { return available; } }
         internal int Samples { get { return Interlocked.CompareExchange(ref samples, 0, 0); } }
         internal event Action<double> Loud;
+        internal Func<int> Sensitivity;
 
         internal void Start()
         {
@@ -88,7 +89,7 @@ namespace CapriDesktop
                     {
                         if (initialized && tick >= refreshAt)
                         {
-                            refreshAt = tick + 2;
+                            refreshAt = tick + (Ears.Gentle ? 6 : 2);
                             available = Refresh(sessions);
                         }
                         double peak = 0;
@@ -124,6 +125,13 @@ namespace CapriDesktop
             }
         }
 
+        internal static int Sensitive(Func<int> sensitivity)
+        {
+            int chosen = 100;
+            if (sensitivity != null) try { chosen = sensitivity(); } catch (Exception) { }
+            return Math.Max(0, Math.Min(100, chosen));
+        }
+
         internal void Hear(double value, double at)
         {
             if (double.IsNaN(value) || double.IsInfinity(value) || value < 0) value = 0;
@@ -131,9 +139,11 @@ namespace CapriDesktop
             Array.Copy(recent, sorted, filled);
             Array.Sort(sorted, 0, filled);
             double median = filled == 0 ? 0 : filled % 2 == 0 ? (sorted[filled / 2 - 1] + sorted[filled / 2]) * 0.5 : sorted[filled / 2];
-            double threshold = Math.Max(0.04, median * 3 + 0.015);
+            int sensitive = Sensitive(Sensitivity);
+            double deaf = (100 - sensitive) / 100.0;
+            double threshold = Math.Max(0.04 + deaf * 0.5, median * (3 + deaf * 3) + 0.015);
             if (value < threshold * 0.6) armed = true;
-            bool spike = filled >= 6 && armed && value > threshold && value > previous * 1.3 + 0.01 && at - lastLoud >= 0.18;
+            bool spike = sensitive > 0 && filled >= 6 && armed && value > threshold && value > previous * 1.3 + 0.01 && at - lastLoud >= 0.18;
             if (spike) { armed = false; lastLoud = at; }
             previous = value;
             recent[next] = value;

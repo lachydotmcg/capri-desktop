@@ -67,7 +67,7 @@ namespace CapriDesktop
                     catch (Exception error) { Saved.NativePlan = false; frameProblem = error.Message; }
                 }
             }
-            if (OperatingSystem.IsLinux()) InitializeNameListening();
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) InitializeNameListening();
             Closed += (_, _) => { TerminalJobs.Shutdown(); CancelAccountConnection(); ComputerJobs.Stop(); ownedVoice.Dispose(); StopNativeListening(); SpeechAudio.Stop(); };
         }
 

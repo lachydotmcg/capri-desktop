@@ -73,8 +73,8 @@ namespace CapriDesktop
             {
                 List<ModListing> found = null;
                 string problem = null;
-                try { found = ModDirectory.Newer(ModDirectory.Updates(ModDirectory.Browse(), installed), installed, ModDownloads); }
-                catch (Exception error) { problem = DirectoryProblem(error, "Couldn't reach the mods directory: "); }
+                try { found = ModDirectory.Newer(ModDirectory.Updates(ModDirectory.BrowseNow(), installed), installed, ModDownloads); }
+                catch (Exception error) { problem = ModDirectory.Trouble(error); }
                 try
                 {
                     ModBack(delegate
@@ -395,7 +395,7 @@ namespace CapriDesktop
                     graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                     graphics.DrawImage(image, (Width - wide) / 2, (Height - tall) / 2, wide, tall);
                 }
-                else TextRenderer.DrawText(graphics, "NO PREVIEW", Font, ClientRectangle, Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                else TextRenderer.DrawText(graphics, Lingo.Of("NO PREVIEW"), Font, ClientRectangle, Faint, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                 using (Pen rim = new Pen(WellEdge)) graphics.DrawRectangle(rim, 0, 0, Width - 1, Height - 1);
             }
         }
@@ -595,29 +595,36 @@ namespace CapriDesktop
             internal void LoadMods()
             {
                 int mine = ++ticket;
-                listings = new List<ModListing>();
-                statsLive = false;
-                first = 0;
                 Says("Looking in the mods directory...", false);
                 Fill();
                 Run(delegate
                 {
                     List<ModListing> found = null;
-                    string problem = null;
-                    try { found = ModDirectory.Browse(); }
-                    catch (Exception error) { problem = DirectoryProblem(error, "Couldn't reach the mods directory: "); }
-                    Back(delegate { if (mine == ticket) Showing(found, problem, mine); });
+                    string problem = null, trouble = null;
+                    try { found = ModDirectory.Browse(out trouble); }
+                    catch (Exception error) { problem = ModDirectory.Trouble(error); }
+                    Back(delegate { if (mine == ticket) Showing(found, problem ?? trouble, mine); });
                 });
             }
 
             private void Showing(List<ModListing> found, string problem, int mine)
             {
-                listings = found ?? new List<ModListing>();
+                if (found == null)
+                {
+                    Fill();
+                    Says(listings.Count > 0 ? problem + " Showing the list from before." : problem, true);
+                    return;
+                }
+                listings = found;
+                statsLive = false;
                 Fill();
-                if (problem != null) { Says(problem, true); return; }
-                if (listings.Count == 0) { Says("No mods in the directory yet.", false); return; }
-                statusTimer.Stop();
-                status.Text = "";
+                if (problem != null) Says(problem, true);
+                else if (listings.Count == 0) { Says("No mods in the directory yet.", false); return; }
+                else
+                {
+                    statusTimer.Stop();
+                    status.Text = "";
+                }
                 // Marks the cards of installed mods with a newer copy, without saying anything on her mods page.
                 Frame.LookForUpdates(true);
                 Run(delegate

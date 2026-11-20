@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Hindi muling iginuhit sa larawan ang kontrol na muling pininturahan.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Libreng key mula sa Google AI Studio, NVIDIA o OpenRouter. Walang kailangang i-download. Kailangan ng internet.
+A held trackpad scroll got a flick's long ease:	Ang hawak na scroll ng trackpad ay nakakuha ng mahabang bagal ng flick:
+A layout change during a slide put the page at	Ang pagbabago ng layout habang may slide ay inilagay ang page sa
+A layout change left the picture up.	Ang pagbabago ng layout ay iniwan ang larawan sa screen.
+A model in Ollama, on your local server or on your key.	Isang model sa Ollama, sa local server mo o gamit ang key mo.
+A paid key goes under MAX INTELLIGENCE by itself.	Kusang mapupunta sa MAX INTELLIGENCE ang bayad na key.
+A plan you already pay for, a key of your own, or Ollama.	Planong binabayaran mo na, sarili mong key, o Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Walang sariling kopya ng font ng panel ang menu ng voice panel.
+A wheel turn right after a slide ended froze the picture.	Ang pag-ikot ng wheel pagkatapos ng slide ay nag-freeze sa larawan.
+ALLOW THIS PHONE?	PAYAGAN ANG PHONE NA ITO?
+ALMOST THERE >	MALAPIT NA >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	ANG IBANG CAPRI ANG NAG-TAKE OVER · I-OFF AT I-ON ULIT
+API key	API key
+API key, Claude plan or ChatGPT plan	API key, Claude plan o ChatGPT plan
+Add	Idagdag
+Address	Address
+Address and key saved. Use saved to reconnect.	Na-save ang address at key. Gamitin ang saved para muling kumonekta.
+Advanced Settings	Advanced Settings
+All	Lahat
+All screens	Lahat ng screen
+Allow	Payagan
+Almost there. I'll say hi the second my brain's in.	Malapit na. Babatiin kita sa sandaling maayos na ang utak ko.
+Always	Palagi
+Always on top	Palaging nasa ibabaw
+Any Google account works. I opened the page in your browser.	Gumagana ang anumang Google account. Binuksan ko ang page sa browser mo.
+Applies to every voice	Nalalapat sa bawat boses
+Apps she may close	Mga app na maaari niyang isara
+Ask Capri for more	Hingin pa kay Capri
+Asking your server...	Tinatanong ang server mo...
+Asks before closing only the apps you choose.	Nagtatanong bago isara ang mga app na pipiliin mo lang.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automatic: VB-CABLE, kung wala ay sa Steam
+BAD RELAY HOST	MALI ANG RELAY HOST
+BIG Z open notepad	BIG Z buksan ang notepad
+BRAIN	BRAIN
+BRAIN >	BRAIN >
+BRAIN ONLINE >	BRAIN ONLINE >
+BRAIN PROVIDER >	BRAIN PROVIDER >
+BRAIN VOICE CAPRI	BRAIN VOICE CAPRI
+Back	Bumalik
+Back on your saved API key.	Bumalik sa naka-save mong API key.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Pinakaangkop sa PC na ito:
+Black	Itim
+Blank key means no key.	Ang blangkong key ay walang key.
+Brain API key	Brain API key
+Brain model	Brain model
+Brain provider	Brain provider
+Bring here	Dalhin dito
+Bring to this screen	Dalhin sa screen na ito
+Browse	Mag-browse
+Browse mods	Mag-browse ng mods
+Browse to a voice model	Mag-browse sa voice model
+Browse...	Mag-browse...
+Bubble	Bubble
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree nandiyan ka ba
+CAN'T REACH THE RELAY · RETRYING	HINDI MAABOT ANG RELAY · SINUSUBUKAN ULIT
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI VOICE BRAIN
+CHANGED, approve it again.	NAGBAGO, aprubahan ulit.
+CLIPS >	CLIPS >
+CLOUD VOICE	CLOUD VOICE
+CODE	CODE
+COLORS >	COLORS >
+CONNECTED	NAKAKONEKTA
+CONNECTING	KUMOKONEKTA
+CUSTOM LOCAL	CUSTOM LOCAL
+Call mode (beta)	Call mode (beta)
+Call mode does not fit.	Hindi kasya ang call mode.
+Call mode is outside its space.	Nasa labas ng espasyo nito ang call mode.
+Cancel	Kanselahin
+Cancel keys	Kanselahin ang mga key
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri code:
+Capri mods (*	Capri mods (*
+Capri, hello	Capri, hello
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Chaos kapag naiinis
+Chat with Capri from your phone	Makipag-chat kay Capri mula sa phone mo
+ChatGPT plan	ChatGPT plan
+Check for updates	Tingnan ang mga update
+Check in on me	Kumustahin mo ako
+Check in on me is hidden	Nakatago ang Kumustahin mo ako
+Check in on me still decides whether she visits.	Ang Kumustahin mo ako pa rin ang nagpapasya kung bibisita siya.
+Check in on me's tip missed	Hindi nagawa ang tip ng Kumustahin mo ako
+Chess	Chess
+Choose apps	Pumili ng apps
+Choose folder...	Pumili ng folder...
+Choose where future Capri clips are saved	Piliin kung saan sine-save ang mga susunod na Capri clips
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude o ChatGPT plan, bayad na key (OpenAI, Claude, DeepSeek), o Ollama.
+Claude plan	Claude plan
+Clear	I-clear
+Cleared.	Na-clear.
+Click Confirm to keep Down, or press Esc.	I-click ang Confirm para panatilihin ang Down, o pindutin ang Esc.
+Click to open it.	I-click para buksan.
+Clip my games	I-clip ang mga laro ko
+Clips	Clips
+Close	Isara
+Close other AIs for me	Isara ang ibang AI para sa akin
+Cloud voice	Cloud voice
+Cloud voice service	Cloud voice service
+Cloud voice setup	Cloud voice setup
+Code mods can reach your whole PC. Only trusted ones.	Maaaring abutin ng code mods ang buong PC mo. Mga pinagkakatiwalaan lang.
+Code/Husk Mode	Code/Husk Mode
+Codex	Codex
+Commands	Commands
+Comment on my games	Mag-comment sa mga laro ko
+Comments	Comments
+Confirm	Confirm
+Confirm keys	Confirm keys
+Connect	Connect
+Connect / Forget brain key	Connect / Kalimutan ang brain key
+Connect / Forget voice key	Connect / Kalimutan ang voice key
+Connect four	Connect four
+Controls	Controls
+Copri, what time is it	Copri, anong oras na
+Copy error details	Kopyahin ang error details
+Copy the key	Kopyahin ang key
+Copy the key from the page, then press Paste.	Kopyahin ang key mula sa page, saka pindutin ang Paste.
+Couldn't open that page:	Hindi mabuksan ang page na iyon:
+Couldn't open that:	Hindi mabuksan iyon:
+Couldn't open the mods folder:	Hindi mabuksan ang mods folder:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ang Ctrl + Alt + M ay Mainframe key na niya.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Pinapatay ng Ctrl + Alt + N ang mic
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ang Ctrl + Alt + V ay talk key na niya.
+Ctrl + Alt + V to talk	Ctrl + Alt + V para magsalita
+Custom local voice	Custom local voice
+Custom model name	Custom model name
+Dance	Sayaw
+Dance to music	Sumayaw sa musika
+Default	Default
+Default (follows Windows)	Default (sumusunod sa Windows)
+Default duration for clip that and automatic clips	Default na tagal para sa clip that at mga automatic clips
+Default length	Default na haba
+Default model	Default model
+Delay	Delay
+Deny	Tanggihan
+Discard	Itapon
+Discard + reload	Itapon + i-reload
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ayaw mong maghintay? Ang libreng key ay magpapakausap sa akin sa mga isang minuto.
+Done	Tapos
+EXTRA REQUEST JSON >	EXTRA REQUEST JSON >
+EXTRAS >	EXTRAS >
+Edit	I-edit
+Edit check-in lines	I-edit ang check-in lines
+Edit check-in lines has the wrong view or dimming	Mali ang view o dimming ng I-edit ang check-in lines
+Edit check-in lines is out of place	Wala sa lugar ang I-edit ang check-in lines
+Edit controls	I-edit ang controls
+ElevenLabs API key	ElevenLabs API key
+ElevenLabs voice ID	ElevenLabs voice ID
+English	English
+Enter the game's name first.	Ilagay muna ang pangalan ng laro.
+Every	Bawat
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Bawat mod ay sinusuri para sa malware bago ma-upload. Nagtatanong pa rin ang code mods bago tumakbo.
+Explore after	Mag-explore pagkatapos
+Explore while I'm away	Mag-explore habang wala ako
+Extra request JSON	Extra request JSON
+Extras	Extras
+FREE KEY	LIBRENG KEY
+FREE KEY >	LIBRENG KEY >
+Fast hands in games	Mabilis na kamay sa mga laro
+File editor	File editor
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Nasa VOICE sa Mainframe ang Fish Audio, ElevenLabs at iba pa.
+Follow-up messages	Follow-up messages
+Forget	Kalimutan
+Fork capri-mods	Fork capri-mods
+Frame rate	Frame rate
+Free	Libre
+Free and private, works offline. Downloads	Libre at pribado, gumagana offline. Dina-download
+Free and private, works offline. Downloads the best model for this PC.	Libre at pribado, gumagana offline. Dina-download ang pinakamahusay na model para sa PC na ito.
+Free key	Libreng key
+Free key providers	Mga libreng key provider
+Free keys can be rate limited and slow.	Maaaring limitado at mabagal ang mga libreng key.
+Free voice in games	Libreng boses sa mga laro
+Free voice style	Libreng voice style
+Free voice:	Libreng boses:
+Free voice: Her own	Libreng boses: Sarili niya
+Free · local model	Libre · local model
+GAMES >	GAMES >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Hiwalay sa Watch my screen tumatakbo ang game comments. Ang Off ang humihinto sa mga ito, pati sa Gaming Mode; Events only at Chatty ang nagpapahintulot sa kanyang panoorin ang laro mo
+Game controls	Game controls
+Game name	Pangalan ng laro
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Sensitivity ng game sound. Ibaba kung mahina ang headset mo pero nasa {0}% ang Windows at sumasagot siya sa bawat tunog; ang Off ay binabalewala ang game sounds
+Game sounds	Game sounds
+Games	Games
+Gaming Mode	Gaming Mode
+Gaming Mode key	Gaming Mode key
+Gaming Mode:	Gaming Mode:
+Gaming Mode: Ctrl + Alt + G	Gaming Mode: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Kunin ang VB-CABLE
+Get VB-CABLE (free)...	Kunin ang VB-CABLE (libre)...
+Get free voice	Kunin ang libreng boses
+Getting your Fish Audio voices...	Kinukuha ang mga Fish Audio voices mo...
+Giant	Napakalaki
+Glitch	Glitch
+Glitch in at startup	Glitch sa startup
+Go to sleep	Matulog na
+Go to the next screen	Pumunta sa susunod na screen
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · free tier · may rate limit
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	May Claude o ChatGPT plan ka, o sarili mong key? Piliin mo at ikakabit ko ito.
+Got it, just me. Right-click me any time for Capri Mainframe.	Sige, ako lang. I-right-click ako anumang oras para sa Capri Mainframe.
+Grey	Kulay abo
+H.{0} video bitrate target; higher values make larger files	Target na video bitrate ng H.{0}; mas malalaki ang file kapag mas mataas ang halaga
+HABITS >	HABITS >
+HER HANDS >	HER HANDS >
+HER JOBS >	HER JOBS >
+HER MEMORY >	HER MEMORY >
+HER MODS >	HER MODS >
+HH:mm	HH:mm
+HOW I SOUND >	HOW I SOUND >
+Hang here	Dito lang tumambay
+Have Ollama? Open it, then press Refresh.	May Ollama ka ba? Buksan ito, saka pindutin ang Refresh.
+Head pats	Head pats
+Hearing	Hearing
+Hearing engine	Hearing engine
+Hearing fix	Hearing fix
+Hearing status	Hearing status
+Help	Help
+Help page	Help page
+Her colors	Kulay niya
+Her folder	Folder niya
+Her memories	Mga alaala niya
+Her own colors are back.	Bumalik na ang sarili niyang kulay.
+Her own notes (no vault)	Sarili niyang notes (walang vault)
+Her perch frames per second	Frames per second ng perch niya
+Her personality	Personalidad niya
+Her size	Laki niya
+Her speaker	Speaker niya
+Her speaker is hidden or outside VOICE	Nakatago ang speaker niya o nasa labas ng VOICE
+Her speaker overlaps the mic or hearing row	Nagko-overlap ang speaker niya sa mic o hearing row
+Her speaker:	Speaker niya:
+Her speaker: Default	Speaker niya: Default
+Her voice in your mic	Boses niya sa mic mo
+Her voice in your mic: loudness	Boses niya sa mic mo: loudness
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Ang mismong boses niya. Ang pitch nito ay Settings > VOICE > Pitch, at magkasabay silang gumagalaw.
+Her voice joins your mic only in call mode.	Papasok lang sa mic mo ang boses niya sa call mode.
+Her voice volume	Volume ng boses niya
+Her voice's pitch	Pitch ng boses niya
+Her voice's pitch, the same as Settings > VOICE > Pitch	Pitch ng boses niya, kapareho ng Settings > VOICE > Pitch
+Her voice's speed	Bilis ng boses niya
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Ang boses niya, at dalawang kopya nito na nakahalo sa ilalim, bawat isa may sariling pitch at delay.
+Her voices · free	Mga boses niya · libre
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hey, choom. Ako si Capri. Kailangan ko ng brain bago ako makasagot. Pumili ka ng isa.
+Hide / Show Capri	Hide / Show Capri
+Hide / Show key	Hide / Show key
+Hide Capri	Itago si Capri
+Hide for now	Itago muna
+Hide her	Itago siya
+Hide in full screen	Itago sa full screen
+Hide this	Itago ito
+Hide, keep player	Itago, iwan ang player
+Hide/show:	Hide/show:
+Hide/show: Ctrl + Alt + H	Hide/show: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Bumaba
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Gaano katagal bago siya patulugin ng walang galaw na PC; ang limang minuto ay senyales pa ring wala ka
+How long a stroke over her a head pat needs	Gaano katagal dapat ang haplos sa ibabaw niya para maging head pat
+How long her replies stay up	Gaano katagal nananatili ang mga sagot niya
+How long you are away before she scrolls a browser or reader	Gaano katagal kang wala bago siya mag-scroll sa browser o reader
+How much her voice glitches	Gaano kalakas ang glitch ng boses niya
+How much of the chat she keeps	Gaano karami sa chat ang pinapanatili niya
+How much she wanders	Gaano siya kalayo kung gumala
+How often she pops in to say hi	Gaano kadalas siyang sumisilip para mangumusta
+How robotic her voice sounds	Gaano ka-robotic ang tunog ng boses niya
+How to	Paano
+Huge	Napakalaki
+I can hear you.	Naririnig kita.
+I glance at your screen and comment. Costs a little on a paid brain.	Sinisilip ko ang screen mo at nagko-comment. May kaunting gastos sa bayad na brain.
+I keep listening. Say my name, then just talk.	Patuloy akong nakikinig. Sabihin ang pangalan ko, tapos magsalita ka lang.
+I talk about your game as you play. Costs a little on a paid brain.	Nagsasalita ako tungkol sa laro mo habang naglalaro ka. May kaunting gastos sa bayad na brain.
+I type my replies and stay quiet.	Tina-type ko ang mga sagot ko at tahimik lang ako.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Hindi ako sasagot, at walang ipinapadala kahit saan. Makikisama pa rin ako, sasayaw sa musika mo at gagawin ang mabilisang hiling mo, gaya ng volume.
+I'll talk in	Magsasalita ako sa
+IN DISCORD >	IN DISCORD >
+INSTALLED >	INSTALLED >
+Import a Capri mod	Mag-import ng Capri mod
+Import mod	Import mod
+In full screen	Sa full screen
+In games	Sa mga laro
+Input	Input
+Input, Output or How to overlaps a row	Nagko-overlap ang Input, Output o How to sa isang row
+Input:	Input:
+Input: default	Input: default
+Install	Install
+Install mod	Install mod
+Installed.	Na-install.
+It may ask for a phone number. I opened the page in your browser.	Maaaring humingi ito ng phone number. Binuksan ko ang page sa browser mo.
+It still does its own job in other apps too.	Ginagawa pa rin nito ang sarili nitong trabaho sa ibang apps.
+It won't type in other apps while she runs.	Hindi ito magta-type sa ibang apps habang tumatakbo siya.
+JUST ME >	JUST ME >
+Jealous of other AIs	Nagseselos sa ibang AI
+Join the Discord	Sumali sa Discord
+KB.	KB.
+KEYS	KEYS
+KEYS >	KEYS >
+Keep PC awake for jobs	Panatilihing gising ang PC para sa mga jobs
+Keep player	Iwan ang player
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Itinatago sa memory ang huling dalawang minuto ng laro mo. Sabihin ang clip that para i-save.
+Key	Key
+Key cleared: a model file needs none.	Na-clear ang key: hindi kailangan ng model file ng key.
+Key cleared: paste the key for	Na-clear ang key: i-paste ang key para sa
+Key forgotten.	Nakalimutan na ang key.
+Key. It goes only to this server, as a Bearer key	Key. Dadalhin lang ito sa server na ito bilang Bearer key
+Kokoro only, like es	Kokoro lang, tulad ng es
+LAST THING >	LAST THING >
+LISTENING >	LISTENING >
+Language	Language
+Large	Large
+Last thing. These cost a little or use your mic, so they're your pick.	Huling bagay. May gastos o gumagamit ng mic ang mga ito, kaya ikaw ang pumili.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Huling bagay. May gastos o gumagamit ng mic ang mga ito, kaya ikaw ang pumili. Pagkatapos nito, gusto kong malaman kung ano ang itatawag ko sa iyo.
+Layers	Layers
+Learn more	Alamin pa
+Leaving Settings threw its picture away straight away.	Agad na itinapon ng Settings ang picture niya nang umalis.
+Legacy stand	Legacy stand
+Lie down	Humiga
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Mga linya ng PC dialogue na nakatago sa memory habang nanonood nang sabay. Nagiging note ang mas lumang kalahati kapag naka-on ang Remember what she sees
+Listen for Capri	Makinig kay Capri
+Live reactions	Live reactions
+Local server address	Local server address
+Long	Long
+Longest wait (minutes)	Pinakamahabang paghihintay (minuto)
+Looking at this PC...	Tinitingnan ang PC na ito...
+Looking for Ollama. Open it if it isn't running.	Hinahanap ang Ollama. Buksan ito kung hindi tumatakbo.
+Looking for a brain...	Naghahanap ng brain...
+Looking in the mods directory for updates...	Naghahanap ng updates sa mods directory...
+Looking in the mods directory...	Naghahanap sa mods directory...
+Looking...	Naghahanap...
+MAIN >	MAIN >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	MEMORY VAULT >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	MODS DIRECTORY >
+MODS INSTALLED COLORS	MODS INSTALLED COLORS
+MOVES >	MOVES >
+MY BRAIN	MY BRAIN
+MY FREE VOICE	MY FREE VOICE
+MY PLAN OR KEY	MY PLAN OR KEY
+MY PLAN OR KEY >	MY PLAN OR KEY >
+Made your Fish Audio voice. Press Test to hear it.	Nagawa ang Fish Audio voice mo. Pindutin ang Test para marinig ito.
+Mainframe colours	Mainframe colours
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe colours. Ang Night City ay pula at cyan; binabago ng Black, White at Grey ang Mainframe, mga menu niya, ang Type box at mga notes niya
+Mainframe frames	Mainframe frames
+Mainframe key	Mainframe key
+Mainframe size	Mainframe size
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe size. Pinalalaki ng Auto kapag pinaliit ng Virtual Super Resolution o DSR ang malaking desktop sa mas maliit na screen
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Ginagawa ang Fish Audio voice mo...
+Max reply	Max reply
+Maximum clip resolution, keeping the game's shape without upscaling	Pinakamataas na clip resolution, pinapanatili ang hugis ng laro nang walang upscaling
+Medium	Medium
+Memory	Memory
+Memory size	Memory size
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Laki ng memory sa tokens para sa Ollama at sa built-in brain niya. Lumalaki ang Auto kapag kailangan ng hiling ng mas marami
+Mg	Mg
+Mic level:	Mic level:
+Mic test finished. Sound is reaching Capri.	Tapos na ang mic test. Umaabot na ang tunog kay Capri.
+Mic:	Mic:
+Mic: default	Mic: default
+Microphone	Microphone
+Mini player	Mini player
+Mini player over full screen	Mini player sa ibabaw ng full screen
+Mini-games	Mini-games
+Minimising the Mainframe left it sliding.	Dumudulas pa rin ang Mainframe nang minimize ito.
+Minimize	Minimize
+Mod filter	Mod filter
+Mod options	Mod options
+Mod pages	Mod pages
+Mod rules	Mod rules
+Mod sort	Mod sort
+Mod switch	Mod switch
+Model	Model
+Model folder	Model folder
+Model name, optional	Model name, optional
+Mods	Mods
+Mods directory	Mods directory
+Mods folder	Mods folder
+Most NVIDIA models can't see your screen.	Karamihan sa NVIDIA models ay hindi nakakakita ng screen mo.
+Mouse wheel notches got a flick's long ease:	Nakakuha ng mahabang bagal ng flick ang mouse wheel notches:
+Move	Move
+Move key to MAX INTELLIGENCE	Ilipat ang key sa MAX INTELLIGENCE
+Move to MAX	Ilipat sa MAX
+Music	Music
+Music app	Music app
+Music app: where she plays music when you don't name an app	Music app: saan siya nagpapatugtog ng musika kapag walang pinangalanang app
+Mute	Mute
+Mute her	I-mute siya
+Mute mic key	Mute mic key
+Mute mic:	Mute mic:
+Mute mic: Ctrl + Alt + N	Mute mic: Ctrl + Alt + N
+My brain	Brain ko
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Bumababa na ang brain ko. Babatiin kita sa sandaling pumasok ito, at puwede mo na akong kausapin noon.
+My brain's on its way. While it comes down, let's sort out how I sound.	Papunta na ang brain ko. Habang bumababa ito, ayusin natin kung paano ako tumunog.
+My provider	Provider ko
+NO AI	NO AI
+NO PHONES CONNECTED	NO PHONES CONNECTED
+NO PREVIEW	NO PREVIEW
+NORMAL	NORMAL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · libre · madalas mabagal sa mga oras ng dami ng gumagamit
+NVIDIA's free API is often slow, especially at busy times.	Madalas mabagal ang libreng API ng NVIDIA, lalo na sa mga oras na maraming gumagamit.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) o OpenRouter API key
+Names:	Names:
+Needs a key	Kailangan ng key
+Never	Never
+New code	New code
+New voice from a clip...	Bagong boses mula sa clip...
+Next	Next
+Night City	Night City
+No AI	No AI
+No AI · no brain at all	No AI · walang brain
+No brain runs, and nothing is sent anywhere.	Walang brain na tumatakbo, at walang ipinapadala kahit saan.
+No brain yet	Wala pang brain
+No code open	Walang bukas na code
+No limit	Walang limitasyon
+No mic found	Walang nakitang mic
+No mods in the directory yet.	Wala pang mods sa directory.
+No mods match that.	Walang mods na tumutugma diyan.
+No mods match.	Walang mods na tumutugma.
+No phones yet	Wala pang phones
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Wala pang virtual mic. Piliin ang Output, saka ang Get VB-CABLE (libre).
+None yet: pick to get VB-CABLE (free)	Wala pa: pumili para makuha ang VB-CABLE (libre)
+Normal	Normal
+Not a relay host	Hindi relay host
+Not imported. Nothing ran.	Hindi na-import. Walang tumakbo.
+Not updated. The old one is still in.	Hindi na-update. Nandoon pa rin ang luma.
+Nothing needed updating.	Walang kailangang i-update.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Walang i-download, walang ipinapadala kahit saan. Hindi ako sasagot. Magdagdag ng brain anumang oras sa Mainframe.
+Nothing to show from the mods directory.	Walang maipapakita mula sa mods directory.
+Nothing? Windows Settings > Privacy & security > Microphone.	Wala? Windows Settings > Privacy & security > Microphone.
+Nous Portal keys aren't supported yet.	Hindi pa suportado ang Nous Portal keys.
+OBS	OBS
+OFF	OFF
+OLLAMA	OLLAMA
+ON	ON
+ON THIS PC	SA PC NA ITO
+OR A KEY	O KEY
+Obsidian memory vault	Obsidian memory vault
+Off	Off
+Off. Turn on Her voice in your mic above.	Off. I-on ang Her voice sa mic mo sa itaas.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Off: tunog pa rin niya gaya ng dati. On: bawat boses na mayroon siya, pati ang ElevenLabs.
+Often	Madalas
+On	On
+On / Off	On / Off
+On: your mic and her voice are going in.	On: papasok na ang mic mo at boses niya.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Isang JSON object, idinadagdag sa bawat request na ipinapadala ng brain na ito. Pinapalitan nito ang value ni Capri para sa anumang pangalang pareho ang ginagamit, at hindi ito sinusuri laban sa model.
+Online speech recognition	Online speech recognition
+Open Capri Mainframe	Buksan ang Capri Mainframe
+Open Ollama, I'll find it	Buksan ang Ollama, hahanapin ko ito
+Open clips folder	Buksan ang clips folder
+Open her memories	Buksan ang mga alaala niya
+Open her notes	Buksan ang mga notes niya
+Open mods folder	Buksan ang mods folder
+Open the page again	Buksan muli ang page
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA o OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-compatible server o provider.
+OpenRouter · free models only	OpenRouter · libreng models lang
+Optional	Optional
+Optional. Blank means no key.	Optional. Ang blangko ay walang key.
+Options	Options
+Out of the box a little higher, just behind her.	Medyo mas mataas sa default, sa likod lang niya.
+Out of the box lower, just behind her.	Mas mababa sa default, sa likod lang niya.
+Output	Output
+Output:	Output:
+Output: none	Output: wala
+PHONE CONNECTED	PHONE CONNECTED
+PHONES >	PHONES >
+PHONES CONNECTED	PHONES CONNECTED
+PREBUILT LOCAL	PREBUILT LOCAL
+PUBLISH MOD >	PUBLISH MOD >
+Pair a phone	Ipares ang phone
+Paste	Paste
+Paste API key	I-paste ang API key
+Paste a brain API key	I-paste ang brain API key
+Paste reads your clipboard once, when you press it.	Binabasa ng Paste ang clipboard mo nang isang beses, kapag pinindot mo ito.
+Paste your key here	I-paste dito ang key mo
+Pat stroke	Haplos sa ibabaw
+Perch	Perch
+Perch over {0} fps uses more CPU	Ang perch na lampas {0} fps ay gumagamit ng mas maraming CPU
+Pick Output to get it.	Piliin ang Output para makuha ito.
+Pick a brain so I can talk back. You can change it any time.	Pumili ng brain para makasagot ako. Puwede mo itong palitan anumang oras.
+Pick a clip of a voice you have the rights and consent to use	Pumili ng clip ng boses na may karapatan at pahintulot kang gamitin
+Pick a free model. I opened the page in your browser.	Pumili ng libreng model. Binuksan ko ang page sa browser mo.
+Pick a new clip of you...	Pumili ng bagong clip ng ikaw...
+Pick a voice model...	Pumili ng voice model...
+Pick one. Only one brain runs at a time.	Pumili ng isa. Isa lang ang brain na tumatakbo sa isang pagkakataon.
+Pick the note her memories go in	Piliin ang note kung saan mapupunta ang mga alaala niya
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Pumili ng {0} hanggang {1} segundo ng boses na may karapatan at pahintulot kang gamitin
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Pumili ng {0} hanggang {1} segundo ng pagsasalita mo, o ng boses na may karapatan at pahintulot kang gamitin
+Pitch	Pitch
+Play	Play
+Play...	Play...
+Player only	Player lang
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Kinokopya ng Pocket TTS models ang boses ng clip na ito. Pindutin ang Test para marinig ito.
+Pop-in times	Oras ng pop-in
+Pop-ins	Pop-ins
+Power saver	Power saver
+Power saver: how lightly she runs in games, or always	Power saver: gaano kagaan ang takbo niya sa mga laro, o palagi
+Preset	Preset
+Press Create API key	Pindutin ang Create API key
+Press Create Key	Pindutin ang Create Key
+Press Generate API Key	Pindutin ang Generate API Key
+Press Test and say something, so I know I can hear you.	Pindutin ang Test at magsalita ka ng kahit ano, para malaman kong naririnig kita.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Pumindot ng key, mag-isa o kasama ang Ctrl, Alt, Shift o Win.
+Press new keys, then Confirm	Pindutin ang mga bagong key, saka Confirm
+Provider	Provider
+Provider API key, optional	Provider API key, optional
+Provider base URL	Provider base URL
+Provider forgotten.	Nakalimutan na ang provider.
+Provider overlaps the brain name or note	Nagko-overlap ang provider sa pangalan ng brain o note
+Publish	Publish
+Publish mod	Publish mod
+Push to talk is off.	Naka-off ang push to talk.
+Push to talk key	Push to talk key
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: hindi pa nakatakda
+QR CODE >	QR CODE >
+QR hidden while streaming	Nakatago ang QR habang nagsi-stream
+Quick	Quick
+Quiet key	Quiet key
+Quiet:	Quiet:
+Quiet: Ctrl + Alt + P	Quiet: Ctrl + Alt + P
+Quit Capri	Isara si Capri
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	NAGPAPATAKBO NG CODE.
+Rarely	Bihira
+Rate mod	I-rate ang mod
+Reading its README...	Binabasa ang README nito...
+Refresh	Refresh
+Reinstall	I-reinstall
+Reload	Reload
+Reloaded.	Na-reload.
+Remember our chats	Alalahanin ang mga chat natin
+Remember what she sees	Alalahanin ang nakikita niya
+Remote	Remote
+Remote off	Remote off
+Remote on	Remote on
+Remove	Alisin
+Remove all phones	Alisin lahat ng phones
+Replies	Replies
+Reply length	Haba ng reply
+Report a problem	Mag-ulat ng problema
+Reset colors	I-reset ang mga kulay
+Reset to her default	I-reset sa default niya
+Resolution	Resolution
+Restart to update	I-restart para mag-update
+Restless	Restless
+Revoke	Bawiin
+Revoke also removes the phones its links added	Kasama sa pagbawi ang pag-alis ng mga phone na idinagdag ng mga link niya
+Ride cursor	Ride cursor
+Ride cursor / Hop off	Ride cursor / Hop off
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	I-right-click ako anumang oras para sa Capri Mainframe. Bumubukas ang brain sa ilalim ng BRAIN.
+Right-click me any time for the Mainframe, Help and the Discord.	I-right-click ako anumang oras para sa Mainframe, Help at sa Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox o ibang app: pumili
+Robot	Robot
+Rock, paper, scissors	Rock, paper, scissors
+Run this code mod?	Patakbuhin ang code mod na ito?
+Running on this PC	Tumatakbo sa PC na ito
+Running on this PC · :	Tumatakbo sa PC na ito · :
+Runs Claude Code or Codex on this PC, signed in.	Nagpapatakbo ng Claude Code o Codex sa PC na ito, naka-sign in.
+Runs on your PC. No key, no credits.	Tumatakbo sa PC mo. Walang key, walang credits.
+SCAN WITH YOUR PHONE · EXPIRES	I-SCAN GAMIT ANG PHONE MO · NAG-EEXPIRE
+SECURITY >	SECURITY >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	SORT BY
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as her ears (VOICE > Mic)	Kapareho ng tainga niya (VOICE > Mic)
+Same code on the phone?	Pareho ba ang code sa phone?
+Save	Save
+Save big moments	I-save ang malalaking sandali
+Save folder	Save folder
+Save your changes, or press Discard + reload.	I-save ang mga pagbabago mo, o pindutin ang Discard + reload.
+Save your changes, or press Discard.	I-save ang mga pagbabago mo, o pindutin ang Discard.
+Saved.	Na-save.
+Saved. Ctrl + Alt + O opens her Mainframe.	Na-save. Binubuksan ng Ctrl + Alt + O ang Mainframe niya.
+Saving your rating...	Sine-save ang rating mo...
+Say her name anywhere to chat	Sabihin ang pangalan niya kahit saan para makipag-chat
+Screens	Screens
+Screens is hidden or outside WATCH	Nakatago ang Screens o nasa labas ng WATCH
+Screens overlaps a WATCH row	Nagko-overlap ang Screens sa isang WATCH row
+Screens to watch	Screens na babantayan
+Sealed end to end	Sealed end to end
+Search by name or author	Maghanap ayon sa pangalan o author
+Search installed mods	Maghanap ng naka-install na mods
+Search mods	Maghanap ng mods
+Search name, author or description	Maghanap ayon sa pangalan, author o description
+Security	Security
+Security:	Security:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Itakda
+Set up her brain	Itakda ang brain niya
+Set up your voice model	Itakda ang voice model mo
+Setting up her brain	Itinatakda ang brain niya
+Settings	Settings
+Settings / Back	Settings / Back
+Settings folds the wrong rows above BRAIN	Mali ang pagtiklop ng Settings sa mga row sa itaas ng BRAIN
+Settings had nothing to watch.	Walang mapanood ang Settings.
+Settings lost keyboard focus during the Tab walk	Nawala ang keyboard focus ng Settings habang nasa Tab walk
+Setup guide	Setup guide
+Setup stopped	Huminto ang setup
+She can read it when it fits.	Mababasa niya ito kapag bagay.
+She glances at your screen and comments. Costs a little on a paid brain.	Sumisilip siya sa screen mo at nagko-comment. May kaunting gastos sa bayad na brain.
+She keeps listening. Say her name, then just talk until you go quiet.	Patuloy siyang nakikinig. Sabihin ang pangalan niya, tapos magsalita ka lang hanggang tumahimik ka.
+She reacts to your game until you close it.	Tumutugon siya sa laro mo hanggang isara mo ito.
+She reads these controls before each game job.	Binabasa niya ang mga control na ito bago ang bawat game job.
+She talks about your game as you play. Costs a little on a paid brain.	Nagsasalita siya tungkol sa laro mo habang naglalaro ka. May kaunting gastos sa bayad na brain.
+She uses it when she plays	Ginagamit niya ito kapag naglalaro siya
+Short	Short
+Shortest wait (minutes)	Pinakamaikling paghihintay (minuto)
+Show Capri	Ipakita si Capri
+Show QR	Ipakita ang QR
+Show my mod file	Ipakita ang mod file ko
+Show on Discord	Ipakita sa Discord
+Shum, what time is it	Shum, anong oras na
+Sign in	Sign in
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Mag-sign in, gumawa ng key at kopyahin ito. Pagkatapos, pindutin ang Paste at ikokonekta kita.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Mag-sign in, pindutin ang Create API key at kopyahin ito. Pagkatapos, pindutin ang Paste at ikokonekta kita.
+Silent · text only	Tahimik · text lang
+Simple / Advanced Settings	Simple / Advanced Settings
+Simple Settings	Simple Settings
+Simple Settings left a gap under Check in on me	Nag-iwan ng puwang ang Simple Settings sa ilalim ng Kumustahin mo ako
+Sit here	Maupo dito
+Sit on windows	Maupo sa mga bintana
+Size	Size
+Skip	Skip
+Skip all	Skip all
+Skip for now	Skip muna
+Sleep	Sleep
+Small	Small
+Sometimes	Minsan
+Sound effects volume	Volume ng sound effects
+Sound sensitivity	Sound sensitivity
+Sounds	Sounds
+Speaker or clip	Speaker o clip
+Speech model	Speech model
+Speed	Speed
+Start with Windows	Magsimula kasabay ng Windows
+Start with this!	Simulan ito!
+Starting...	Sinisimulan...
+Stay	Manatili
+Stay on my model	Manatili sa model ko
+Still checking your mics...	Tinitingnan pa rin ang mga mic mo...
+Still checking your speakers...	Tinitingnan pa rin ang mga speaker mo...
+Still checking your virtual mics...	Tinitingnan pa rin ang mga virtual mic mo...
+Stop	Stop
+Stopped using it. Couldn't remove the saved provider.	Tumigil sa paggamit. Hindi maalis ang naka-save na provider.
+Support	Support
+Sure?	Sigurado?
+Sure? moved to a different phone	Sigurado? lumipat sa ibang phone
+TALK TO ME	KAUSAPIN MO AKO
+TEXT ONLY	TEXT LANG
+Tab landed past the first option of	Lumampas ang Tab sa unang option ng
+Tab never reached the quiet key	Hindi naabot ng Tab ang quiet key
+Tab reached nothing	Walang naabot ang Tab
+Tab selected a control without moving keyboard focus	Pumili ang Tab ng control nang hindi gumagalaw ang keyboard focus
+Talk	Talk
+Talk key	Talk key
+Talk:	Talk:
+Talk: Ctrl + Alt + V	Talk: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Target capture frame rate; maaaring bumaba kapag mabigat ang load o memory budget
+Teases when another AI comes to the front.	Inaasar kapag may ibang AI na pumasok sa harapan.
+Test	Test
+That address doesn't work. Try https://... or http://localhost:{0}.	Hindi gumagana ang address na iyon. Subukan ang https://... o http://localhost:{0}.
+That code expired	Nag-expire na ang code na iyon
+That mod is no longer installed. The list is updated.	Hindi na naka-install ang mod na iyon. Na-update na ang listahan.
+That's a paid key: it goes under MAX INTELLIGENCE.	Bayad na key iyon: mapupunta ito sa MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Nanatiling composited ang Mainframe habang nag-slide.
+The Mainframe stayed uncomposited after the slide.	Nanatiling uncomposited ang Mainframe pagkatapos ng slide.
+The controls moved while the picture was sliding.	Gumalaw ang mga control habang nag-slide ang picture.
+The cover stayed visible after the slide ended.	Nanatiling nakikita ang cover pagkatapos ng slide.
+The frame thread kept running after the page settled.	Patuloy na tumakbo ang frame thread pagkatapos mag-settle ng page.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Ang pinakamahabang reply na kaya niyang ibigay, sa tokens. Nananatili ang Auto sa Replies sa itaas; ang {0}K o {1}K ay nagpapahintulot na magpatuloy siya. Mas maraming espasyo ang ibinibigay ng jobs kapag kailangan
+The longest wait must be at least the shortest wait.	Dapat hindi bababa sa pinakamaikling paghihintay ang pinakamahabang paghihintay.
+The picture doesn't match the scrolled page:	Hindi tumutugma ang picture sa na-scroll na page:
+The picture of Settings doesn't match the page:	Hindi tumutugma ang picture ng Settings sa page:
+The picture stayed up after the slide ended.	Nanatili ang picture pagkatapos ng slide.
+The picture wasn't showing while it slid.	Hindi nakikita ang picture habang nag-slide.
+The provider sheet is crowded:	Siksikan ang provider sheet:
+The voice panel has no screen DPI.	Walang screen DPI ang voice panel.
+The voice panel's menus share one font.	Iisang font ang mga menu ng voice panel.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Walang key sa clipboard mo. Kopyahin ito mula sa page, saka pindutin ang Paste.
+These start off. Each costs a little or uses your mic.	Naka-off ang mga ito sa simula. Bawat isa ay may kaunting gastos o gumagamit ng mic mo.
+These start off. Turn on what you want. They're all in Settings too.	Naka-off ang mga ito sa simula. I-on ang gusto mo. Nasa Settings din ang lahat ng ito.
+They can also call you Big Z, Capricorn or Nova	Maaari ka rin nilang tawaging Big Z, Capricorn o Nova
+They can also call you Nova, Big Z or Capricorn	Maaari ka rin nilang tawaging Nova, Big Z o Capricorn
+Thinking	Nag-iisip
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Ito ang libre kong boses. Pindutin ang Test, magsalita ka, at ipapakita ko sa iyo na naririnig kita.
+This mod has no description yet.	Wala pang description ang mod na ito.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Oras sa pagitan ng mga sulyap
+Tiny	Tiny
+Try again	Subukan ulit
+Turn Remote on first	I-on muna ang Remote
+Turn off mini player	I-off ang mini player
+Turn push to talk off	I-off ang push to talk
+Turning the wheel the other way kept the page heading the old way, to	Ang pag-ikot ng wheel sa kabilang direksyon ay nagpanatili ng page sa lumang direksyon, hanggang
+Type	Type
+Type key	Type key
+Type to me	Mag-type sa akin
+Type:	Type:
+Type: Ctrl + Alt + T	Type: Ctrl + Alt + T
+Typing sound	Typing sound
+Unpacked. Press Test to hear it.	Na-unpack. Pindutin ang Test para marinig ito.
+Unsaved changes.	Hindi pa na-save ang mga pagbabago.
+Up to {0} fps	Hanggang {0} fps
+Up to {0}p	Hanggang {0}p
+Update	Update
+Update available.	May available na update.
+Update mods	I-update ang mods
+Updating...	Ina-update...
+Use	Gamitin
+Use her cursor	Gamitin ang cursor niya
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Gumamit ng https:// para sa provider sa ibang lugar. Hindi ligtas ang key sa plain http.
+Use preset	Gamitin ang preset
+Use saved	Gamitin ang naka-save
+Use this server	Gamitin ang server na ito
+Using your provider with a key	Ginagamit ang provider mo na may key
+Using your server with no key	Ginagamit ang server mo nang walang key
+VIEW MOD >	VIEW MOD >
+VOICE >	VOICE >
+VOICE IN YOUR MIC >	VOICE IN YOUR MIC >
+VOICE LAYERS >	VOICE LAYERS >
+Verbosity	Verbosity
+Video bitrate	Video bitrate
+View	View
+View mod	View mod
+Voice	Voice
+Voice ID	Voice ID
+Voice from	Voice from
+Voice layers	Voice layers
+Voice model	Voice model
+Voice model:	Voice model:
+Voice name or ID, optional	Voice name o ID, optional
+Voice server address, or a voice model's folder	Address ng voice server, o folder ng voice model
+Voice status	Voice status
+Voice, key and model...	Voice, key at model...
+Volume	Volume
+WAKE ME UP >	WAKE ME UP >
+WATCH >	WATCH >
+Waiting for the relay	Naghihintay sa relay
+Wake her up	Gisingin siya
+Waking her up	Ginigising siya
+Wander	Wander
+Wander around	Gumala
+Watch my screen	Panoorin ang screen ko
+Watch-along memory	Memory ng panonood nang magkasama
+Weather	Weather
+Weather city	Weather city
+Welcome back, choom. Let's finish setting me up.	Welcome back, choom. Tapusin na natin ang setup ko.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Ang ginagawa niya sa PC mo nang hindi nagtatanong. Kapag naka-off ang toggle, magtatanong muna siya, at gagawin lang kapag sinabi mong oo.
+What should she call you?	Ano ang itatawag niya sa iyo?
+When she types	Kapag nagta-type siya
+White	White
+Windows default	Windows default
+Windows did not give Settings keyboard focus	Hindi binigyan ng Windows ng keyboard focus ang Settings
+Windows did not return keyboard focus to Back	Hindi ibinalik ng Windows ang keyboard focus sa Back
+With no picture the wheel still tried to slide.	Nang walang picture, sinubukan pa ring mag-slide ng wheel.
+Works best on MAX INTELLIGENCE.	Pinakamahusay sa MAX INTELLIGENCE.
+YOU	IKAW
+YOU >	IKAW >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	IKAW VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS
+YOUR KEY	IYONG KEY
+YOUR MIC	IYONG MIC
+YOUR PLAN	IYONG PLAN
+Yokapri what's up	Yokapri anong balita
+You can hide this. It keeps going, and the Mainframe shows it too.	Puwede mo itong itago. Tuloy pa rin ito, at ipinapakita rin ito ng Mainframe.
+Your mic and her voice go into one virtual mic, and	Papasok ang mic mo at boses niya sa iisang virtual mic, at
+Your mic is muted. Unmute it to test.	Naka-mute ang mic mo. I-unmute ito para masubukan.
+Your mods are up to date.	Up to date ang mods mo.
+Your name or a nickname	Pangalan mo o palayaw
+Your own model	Sarili mong model
+Your personality	Personalidad mo
+Your voice	Boses mo
+Your voice (HD)	Boses mo (HD)
+Your voice (HD) · pick a clip of you...	Boses mo (HD) · pumili ng clip ng ikaw...
+Your voice model	Voice model mo
+as its mic.	bilang mic niya.
+changed. Saved as My Colors, so you can share it.	nagbago. Na-save bilang My Colors, para maibahagi mo.
+choice	pagpipilian
+clips the input line	pinuputol ang input line
+cue	cue
+doesn't yet.	hindi pa.
+download	download
+file.	file.
+flag	flag
+fps	fps
+hear	marinig
+hears	naririnig
+hears that.	naririnig iyon.
+hides or shows her.	itinatago o ipinapakita siya.
+hint	hint
+in the Mainframe.	sa Mainframe.
+in the mods directory with a pull request.	sa mods directory sa pamamagitan ng pull request.
+in the picture wasn't noticed.	sa picture ay hindi napansin.
+is already her push-to-talk key.	ay push-to-talk key na niya.
+is off.	ay naka-off.
+is on and running.	ay naka-on at tumatakbo.
+is on, at the bottom, under	ay naka-on, sa ibaba, sa ilalim ng
+is on.	ay naka-on.
+is on. She now answers to	ay naka-on. Sumasagot na siya ngayon sa
+is removed.	ay tinanggal.
+is taken	ay kinuha na
+is taken by another app. Try another.	ay kinuha na ng ibang app. Sumubok ng iba.
+is updated	ay na-update
+isn't hearing it yet: do {0} and {1}, then join a call.	hindi pa naririnig: gawin ang {0} at {1}, saka sumali sa call.
+it now.	ito ngayon.
+keeps her quiet, and lets her talk again.	pinapanatili siyang tahimik, at pinapayagan siyang magsalita muli.
+key	key
+key.	key.
+min	min
+more.	pa.
+ms.	ms.
+mutes mic	pinapatay ang mic
+mutes your mic.	pinapatay ang mic mo.
+name	pangalan
+off	off
+on this PC	sa PC na ito
+opens her Mainframe.	binubuksan ang Mainframe niya.
+opens her typing box.	binubuksan ang typing box niya.
+phone	phone
+phone pixels	phone pixels
+phones	phones
+pixels	pixels
+pixels)	pixels)
+star.	bituin.
+stars.	mga bituin.
+starts voice chat.	sinisimulan ang voice chat.
+stays off. Nothing ran.	nananatiling naka-off. Walang tumakbo.
+still does its own job in other apps too. Confirm to keep it.	ginagawa pa rin ang sarili nitong trabaho sa ibang apps. I-confirm para panatilihin ito.
+tall	matangkad
+time	oras
+to talk	para magsalita
+to talk to her, with a game in front too.	para makipag-usap sa kanya, kahit may larong nasa harap.
+too.	rin.
+turns Gaming Mode on and off.	ina-on at ina-off ang Gaming Mode.
+with Ollama	kasama ang Ollama
+won't type in other apps while she runs. Confirm to keep it.	hindi magta-type sa ibang apps habang tumatakbo siya. I-confirm para panatilihin ito.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: Off
+{0}   If her voice cuts off, turn off noise filtering	{0}   Kung napuputol ang boses niya, i-off ang noise filtering
+{0}   Input Device:	{0}   Input Device:
+{0}   Join the call and check they hear both of you	{0}   Sumali sa call at tingnan kung naririnig kayong dalawa
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mic Test > Let's Check: maririnig mo ang sarili mo, at siya habang nagsasalita
+{0}   Microphone:	{0}   Microphone:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: None. Parehong puwedeng putulin ang boses niya pagkatapos ng unang linya.
+{0}   Open the call or meeting's audio settings	{0}   Buksan ang audio settings ng call o meeting
+{0}   Output Device: your headphones, like before	{0}   Output Device: ang headphones mo, gaya ng dati
+{0}   Speaker: your headphones, like before	{0}   Speaker: ang headphones mo, gaya ng dati
+{0}   Try a mic test in your call app	{0}   Subukan ang mic test sa call app mo
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (ang cog sa tabi ng pangalan mo) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} lines
+{0} min	{0} min
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· sa PC na ito
+· server	· server

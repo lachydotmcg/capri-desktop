@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	ווידג'ט שצבעו השתנה לא צויר מחדש בתמונה.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	מפתח חינמי מ-Google AI Studio, NVIDIA או OpenRouter. אין מה להוריד. נדרש אינטרנט.
+A held trackpad scroll got a flick's long ease:	גלילה ממושכת בלוח המגע קיבלה האטה ארוכה של הנפה:
+A layout change during a slide put the page at	שינוי פריסה במהלך שקופית הציב את הדף ב
+A layout change left the picture up.	שינוי פריסה השאיר את התמונה על המסך.
+A model in Ollama, on your local server or on your key.	מודל ב-Ollama, בשרת המקומי שלך או במפתח שלך.
+A paid key goes under MAX INTELLIGENCE by itself.	מפתח בתשלום נכנס אוטומטית תחת MAX INTELLIGENCE.
+A plan you already pay for, a key of your own, or Ollama.	תוכנית שכבר משלמים עליה, מפתח משלך, או Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	לתפריט של פאנל הקול אין עותק משלו של הגופן של הפאנל.
+A wheel turn right after a slide ended froze the picture.	סיבוב גלגלת מיד אחרי שקופית הקפיא את התמונה.
+ALLOW THIS PHONE?	לאשר את הטלפון הזה?
+ALMOST THERE >	כמעט שם >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI אחרת השתלטה · כבה והדלק
+API key	מפתח API
+API key, Claude plan or ChatGPT plan	מפתח API, תוכנית Claude או תוכנית ChatGPT
+Add	הוסף
+Address	כתובת
+Address and key saved. Use saved to reconnect.	הכתובת והמפתח נשמרו. השתמש בשמורים כדי להתחבר מחדש.
+Advanced Settings	הגדרות מתקדמות
+All	הכול
+All screens	כל המסכים
+Allow	אפשר
+Almost there. I'll say hi the second my brain's in.	כמעט שם. אגיד שלום ברגע שהמוח שלי יעלה.
+Always	תמיד
+Always on top	תמיד למעלה
+Any Google account works. I opened the page in your browser.	כל חשבון Google עובד. פתחתי את הדף בדפדפן שלך.
+Applies to every voice	חל על כל קול
+Apps she may close	אפליקציות שהיא עשויה לסגור
+Ask Capri for more	בקש מ-Capri עוד
+Asking your server...	שואלת את השרת שלך...
+Asks before closing only the apps you choose.	שואלת לפני סגירה רק של האפליקציות שתבחר.
+Auto	אוטומטי
+Automatic: VB-CABLE, else Steam's	אוטומטי: VB-CABLE, אחרת של Steam
+BAD RELAY HOST	שרת ממסר שגוי
+BIG Z open notepad	BIG Z פתח notepad
+BRAIN	מוח
+BRAIN >	מוח >
+BRAIN ONLINE >	מוח מחובר >
+BRAIN PROVIDER >	ספק מוח >
+BRAIN VOICE CAPRI	קול מוח CAPRI
+Back	חזרה
+Back on your saved API key.	חזרה למפתח ה-API השמור.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	הכי מתאים למחשב הזה:
+Black	שחור
+Blank key means no key.	מפתח ריק פירושו אין מפתח.
+Brain API key	מפתח API של המוח
+Brain model	מודל המוח
+Brain provider	ספק המוח
+Bring here	הבא לכאן
+Bring to this screen	הבא למסך הזה
+Browse	עיון
+Browse mods	עיון במודים
+Browse to a voice model	עיון במודל קול
+Browse...	עיון...
+Bubble	בועה
+CABLE Output (VB-Audio Virtual Cable)	פלט CABLE (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree, את כאן?
+CAN'T REACH THE RELAY · RETRYING	לא מצליח להתחבר לממסר · מנסה שוב
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	מוח הקול של CAPRI
+CHANGED, approve it again.	השתנה, אשר שוב.
+CLIPS >	קליפים >
+CLOUD VOICE	קול ענן
+CODE	CODE
+COLORS >	צבעים >
+CONNECTED	מחובר
+CONNECTING	מתחבר
+CUSTOM LOCAL	מקומי מותאם
+Call mode (beta)	מצב שיחה (בטא)
+Call mode does not fit.	מצב שיחה לא נכנס.
+Call mode is outside its space.	מצב שיחה מחוץ לאזור שלו.
+Cancel	ביטול
+Cancel keys	ביטול מקשים
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	קוד Capri:
+Capri mods (*	מודים של Capri (*
+Capri, hello	Capri, שלום
+CapriDesktop.	CapriDesktop.
+Chaos when upset	כאוס כשהיא מתעצבנת
+Chat with Capri from your phone	דברי עם Capri מהטלפון שלך
+ChatGPT plan	תוכנית ChatGPT
+Check for updates	בדוק עדכונים
+Check in on me	בדוק אותי
+Check in on me is hidden	בדוק אותי מוסתר
+Check in on me still decides whether she visits.	בדוק אותי עדיין מחליט אם היא תבקר.
+Check in on me's tip missed	הטיפ של בדוק אותי הוחמץ
+Chess	שחמט
+Choose apps	בחר אפליקציות
+Choose folder...	בחר תיקייה...
+Choose where future Capri clips are saved	בחר היכן יישמרו קליפים עתידיים של Capri
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	תוכנית Claude או ChatGPT, מפתח בתשלום (OpenAI, Claude, DeepSeek), או Ollama.
+Claude plan	תוכנית Claude
+Clear	נקה
+Cleared.	נוקה.
+Click Confirm to keep Down, or press Esc.	לחץ אשר כדי לשמור על Down, או לחץ Esc.
+Click to open it.	לחץ כדי לפתוח.
+Clip my games	הקלט את המשחקים שלי
+Clips	קליפים
+Close	סגור
+Close other AIs for me	סגור בשבילי AI אחרים
+Cloud voice	קול ענן
+Cloud voice service	שירות קול ענן
+Cloud voice setup	הגדרת קול ענן
+Code mods can reach your whole PC. Only trusted ones.	מודים של קוד יכולים להגיע לכל המחשב שלך. רק מהימנים.
+Code/Husk Mode	מצב Code/Husk
+Codex	Codex
+Commands	פקודות
+Comment on my games	הגב על המשחקים שלי
+Comments	הערות
+Confirm	אשר
+Confirm keys	אשר מקשים
+Connect	התחבר
+Connect / Forget brain key	התחבר / שכח מפתח מוח
+Connect / Forget voice key	התחבר / שכח מפתח קול
+Connect four	ארבע בשורה
+Controls	בקרה
+Copri, what time is it	Copri, מה השעה
+Copy error details	העתק פרטי שגיאה
+Copy the key	העתק את המפתח
+Copy the key from the page, then press Paste.	העתק את המפתח מהדף, ואז לחץ הדבק.
+Couldn't open that page:	לא הצלחתי לפתוח את הדף הזה:
+Couldn't open that:	לא הצלחתי לפתוח את זה:
+Couldn't open the mods folder:	לא הצלחתי לפתוח את תיקיית המודים:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M הוא כבר מקש ה-Mainframe שלה.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N משתיק את המיקרופון
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V הוא כבר מקש הדיבור שלה.
+Ctrl + Alt + V to talk	Ctrl + Alt + V לדיבור
+Custom local voice	קול מקומי מותאם
+Custom model name	שם מודל מותאם
+Dance	ריקוד
+Dance to music	רקוד לפי מוזיקה
+Default	ברירת מחדל
+Default (follows Windows)	ברירת מחדל (לפי Windows)
+Default duration for clip that and automatic clips	משך ברירת מחדל ל-clip that ולקליפים אוטומטיים
+Default length	אורך ברירת מחדל
+Default model	מודל ברירת מחדל
+Delay	עיכוב
+Deny	דחה
+Discard	זרוק
+Discard + reload	זרוק + טען מחדש
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	לא רוצה לחכות? מפתח חינמי יגרום לי לדבר בתוך בערך דקה.
+Done	סיום
+EXTRA REQUEST JSON >	EXTRA REQUEST JSON >
+EXTRAS >	תוספות >
+Edit	ערוך
+Edit check-in lines	ערוך שורות check-in
+Edit check-in lines has the wrong view or dimming	לערוך שורות check-in יש תצוגה או עמעום לא נכונים
+Edit check-in lines is out of place	ערוך שורות check-in במקום לא נכון
+Edit controls	ערוך בקרות
+ElevenLabs API key	מפתח API של ElevenLabs
+ElevenLabs voice ID	מזהה קול של ElevenLabs
+English	אנגלית
+Enter the game's name first.	הכנס קודם את שם המשחק.
+Every	כל
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	כל מוד נבדק לווירוסים לפני העלאה. מודי קוד עדיין שואלים לפני ריצה.
+Explore after	חקור אחר כך
+Explore while I'm away	חקור כשאני לא פה
+Extra request JSON	Extra request JSON
+Extras	תוספות
+FREE KEY	מפתח חינמי
+FREE KEY >	מפתח חינמי >
+Fast hands in games	ידיים מהירות במשחקים
+File editor	עורך קבצים
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs ועוד נמצאים תחת VOICE ב-Mainframe.
+Follow-up messages	הודעות המשך
+Forget	שכח
+Fork capri-mods	Fork capri-mods
+Frame rate	קצב פריימים
+Free	חינמי
+Free and private, works offline. Downloads	חינמי ופרטי, עובד ללא חיבור. מוריד
+Free and private, works offline. Downloads the best model for this PC.	חינמי ופרטי, עובד ללא חיבור. מוריד את המודל הטוב ביותר למחשב הזה.
+Free key	מפתח חינמי
+Free key providers	ספקי מפתחות חינמיים
+Free keys can be rate limited and slow.	מפתחות חינמיים יכולים להיות מוגבלים ואיטיים.
+Free voice in games	קול חינמי במשחקים
+Free voice style	סגנון קול חינמי
+Free voice:	קול חינמי:
+Free voice: Her own	קול חינמי: משלה
+Free · local model	חינמי · מודל מקומי
+GAMES >	GAMES >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	תגובות משחק רצות בנפרד מ-Watch my screen. Off עוצר אותן, גם במצב גיימינג; Events only ו-Chatty מאפשרים לה לצפות במשחק שלך
+Game controls	בקרות משחק
+Game name	שם המשחק
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	רגישות לצלילי משחק. הורד אם האוזניות שלך שקטות אבל Windows על {0}% והיא מגיבה לכל צליל; Off מתעלם מצלילי משחק
+Game sounds	צלילי משחק
+Games	משחקים
+Gaming Mode	מצב גיימינג
+Gaming Mode key	מקש מצב גיימינג
+Gaming Mode:	מצב גיימינג:
+Gaming Mode: Ctrl + Alt + G	מצב גיימינג: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	קבל VB-CABLE
+Get VB-CABLE (free)...	קבל VB-CABLE (חינם)...
+Get free voice	קבל קול חינמי
+Getting your Fish Audio voices...	מביא את קולות Fish Audio שלך...
+Giant	ענק
+Glitch	Glitch
+Glitch in at startup	Glitch בהפעלה
+Go to sleep	לך לישון
+Go to the next screen	עבור למסך הבא
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · שכבה חינמית · מוגבל בקצב
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	יש לך תוכנית Claude או ChatGPT, או מפתח משלך? בחר ואחבר.
+Got it, just me. Right-click me any time for Capri Mainframe.	בסדר, רק אני. לחץ עליי ימני בכל רגע לפתיחת Capri Mainframe.
+Grey	אפור
+H.{0} video bitrate target; higher values make larger files	יעד bitrate של וידאו H.{0}; ערכים גבוהים יותר יוצרים קבצים גדולים יותר
+HABITS >	הרגלים >
+HER HANDS >	HER HANDS >
+HER JOBS >	HER JOBS >
+HER MEMORY >	HER MEMORY >
+HER MODS >	HER MODS >
+HH:mm	HH:mm
+HOW I SOUND >	איך אני נשמעת >
+Hang here	תישאר כאן
+Have Ollama? Open it, then press Refresh.	יש לך Ollama? פתח אותה, ואז לחץ רענן.
+Head pats	ליטוף על הראש
+Hearing	שמיעה
+Hearing engine	מנוע שמיעה
+Hearing fix	תיקון שמיעה
+Hearing status	מצב שמיעה
+Help	עזרה
+Help page	דף עזרה
+Her colors	הצבעים שלה
+Her folder	התיקייה שלה
+Her memories	הזיכרונות שלה
+Her own colors are back.	הצבעים המקוריים שלה חזרו.
+Her own notes (no vault)	ההערות שלה (ללא כספת)
+Her perch frames per second	פריימים לישיבה בשנייה שלה
+Her personality	האישיות שלה
+Her size	הגודל שלה
+Her speaker	הרמקול שלה
+Her speaker is hidden or outside VOICE	הרמקול שלה מוסתר או מחוץ ל-VOICE
+Her speaker overlaps the mic or hearing row	הרמקול שלה חופף לשורת המיקרופון או השמיעה
+Her speaker:	הרמקול שלה:
+Her speaker: Default	הרמקול שלה: ברירת מחדל
+Her voice in your mic	הקול שלה במיקרופון שלך
+Her voice in your mic: loudness	הקול שלה במיקרופון שלך: עוצמה
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	הקול שלה עצמו. הגובה שלו הוא הגדרות > VOICE > Pitch, והם זזים יחד.
+Her voice joins your mic only in call mode.	הקול שלה מצטרף למיקרופון שלך רק במצב שיחה.
+Her voice volume	עוצמת הקול שלה
+Her voice's pitch	גובה הקול שלה
+Her voice's pitch, the same as Settings > VOICE > Pitch	גובה הקול שלה, זהה להגדרות > VOICE > Pitch
+Her voice's speed	מהירות הקול שלה
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	הקול שלה, ושני עותקים שלו מעורבבים מתחתיו, לכל אחד גובה ועיכוב משלו.
+Her voices · free	הקולות שלה · חינם
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	היי, choom. אני Capri. אני צריכה מוח לפני שאוכל לענות. בחר אחד.
+Hide / Show Capri	הסתר / הצג Capri
+Hide / Show key	מקש הסתר / הצג
+Hide Capri	הסתר את Capri
+Hide for now	הסתר לעכשיו
+Hide her	להסתיר אותה
+Hide in full screen	הסתר במסך מלא
+Hide this	הסתר את זה
+Hide, keep player	להסתיר, להשאיר נגן
+Hide/show:	הסתר/הצג:
+Hide/show: Ctrl + Alt + H	הסתר/הצג: Ctrl + Alt + H
+Hologram	הולוגרמה
+Hop off	רד
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	כמה זמן מחשב שקט לוקח עד שהוא שולח אותה לישון; חמש דקות עדיין נחשבות כהיעדרות
+How long a stroke over her a head pat needs	כמה זמן צריכה ליטוף על ראשה כדי לספור כליטוף ראש
+How long her replies stay up	כמה זמן התשובות שלה נשארות על המסך
+How long you are away before she scrolls a browser or reader	כמה זמן אתה צריך להיות בחוץ לפני שהיא תגלול דפדפן או קורא
+How much her voice glitches	כמה הקול שלה נתקע
+How much of the chat she keeps	כמה מהצ'אט היא שומרת
+How much she wanders	כמה היא משוטטת
+How often she pops in to say hi	כמה לעיתים היא נכנסת להגיד שלום
+How robotic her voice sounds	כמה רובוטי נשמע הקול שלה
+How to	איך
+Huge	ענק
+I can hear you.	אני שומעת אותך.
+I glance at your screen and comment. Costs a little on a paid brain.	אני מציצה במסך שלך ומגיבה. עולה קצת במוח בתשלום.
+I keep listening. Say my name, then just talk.	אני ממשיכה להקשיב. אמור את השם שלי ואז פשוט דבר.
+I talk about your game as you play. Costs a little on a paid brain.	אני מדברת על המשחק שלך בזמן שאתה משחק. עולה קצת במוח בתשלום.
+I type my replies and stay quiet.	אני מקלידה את התשובות שלי ושותקת.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	אני לא אענה בחזרה, ושום דבר לא נשלח לשום מקום. אני עדיין אסתובב, ארקוד למוזיקה שלך ואעשה את הדברים המהירים שתבקש, כמו עוצמת הקול.
+I'll talk in	אני אדבר ב
+IN DISCORD >	ב-DISCORD >
+INSTALLED >	מותקן >
+Import a Capri mod	ייבא מוד של Capri
+Import mod	ייבא מוד
+In full screen	במסך מלא
+In games	במשחקים
+Input	קלט
+Input, Output or How to overlaps a row	קלט, פלט או How to חופפים בשורה
+Input:	קלט:
+Input: default	קלט: ברירת מחדל
+Install	התקן
+Install mod	התקן מוד
+Installed.	הותקן.
+It may ask for a phone number. I opened the page in your browser.	ייתכן שיבקש מספר טלפון. פתחתי את הדף בדפדפן שלך.
+It still does its own job in other apps too.	זה עדיין עושה את העבודה שלו גם באפליקציות אחרות.
+It won't type in other apps while she runs.	זה לא יקליד באפליקציות אחרות כשהיא רצה.
+JUST ME >	רק אני >
+Jealous of other AIs	מקנאה ב-AI אחרים
+Join the Discord	הצטרף ל-Discord
+KB.	KB.
+KEYS	מקשים
+KEYS >	מקשים >
+Keep PC awake for jobs	השאר את המחשב ער למשימות
+Keep player	להשאיר נגן
+Keeps the last two minutes of your game in memory. Say clip that to save it.	שומר את שתי הדקות האחרונות של המשחק שלך בזיכרון. אמור clip that כדי לשמור.
+Key	מפתח
+Key cleared: a model file needs none.	מפתח נוקה: קובץ מודל לא צריך אחד.
+Key cleared: paste the key for	מפתח נוקה: הדבק את המפתח עבור
+Key forgotten.	המפתח נשכח.
+Key. It goes only to this server, as a Bearer key	מפתח. הוא נשלח רק לשרת הזה, כמפתח Bearer
+Kokoro only, like es	Kokoro בלבד, כמו es
+LAST THING >	הדבר האחרון >
+LISTENING >	מאזין >
+Language	שפה
+Large	גדול
+Last thing. These cost a little or use your mic, so they're your pick.	הדבר האחרון. אלה עולים מעט או משתמשים במיקרופון שלך, אז הבחירה שלך.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	הדבר האחרון. אלה עולים מעט או משתמשים במיקרופון שלך, אז הבחירה שלך. אחר כך אני רוצה לדעת איך לקרוא לך.
+Layers	שכבות
+Learn more	למד עוד
+Leaving Settings threw its picture away straight away.	יציאה מההגדרות זרקה את התמונה שלה מיד.
+Legacy stand	עמדה ישנה
+Lie down	שכב
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	שורות של דיאלוג מחשב שנשמרות בזיכרון בזמן צפייה משותפת. החצי הישן הופך להערה כש-Remember what she sees מופעל
+Listen for Capri	האזן ל-Capri
+Live reactions	תגובות חיות
+Local server address	כתובת שרת מקומי
+Long	ארוך
+Longest wait (minutes)	ההמתנה הארוכה ביותר (דקות)
+Looking at this PC...	בודק את המחשב הזה...
+Looking for Ollama. Open it if it isn't running.	מחפש את Ollama. פתח אותה אם היא לא רצה.
+Looking for a brain...	מחפש מוח...
+Looking in the mods directory for updates...	מחפש עדכונים בתיקיית המודים...
+Looking in the mods directory...	מחפש בתיקיית המודים...
+Looking...	מחפש...
+MAIN >	ראשי >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	MEMORY VAULT >
+MODS	MODS
+MODS >	MODS >
+MODS DIRECTORY >	MODS DIRECTORY >
+MODS INSTALLED COLORS	MODS INSTALLED COLORS
+MOVES >	MOVES >
+MY BRAIN	המוח שלי
+MY FREE VOICE	הקול החינמי שלי
+MY PLAN OR KEY	התוכנית או המפתח שלי
+MY PLAN OR KEY >	התוכנית או המפתח שלי >
+Made your Fish Audio voice. Press Test to hear it.	קול ה-Fish Audio שלך נוצר. לחץ Test כדי לשמוע אותו.
+Mainframe colours	צבעי Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	צבעי Mainframe. Night City הוא אדום וציאן; Black, White ו-Grey משנים את ה-Mainframe, התפריטים שלה, תיבת ההקלדה וההערות שלה
+Mainframe frames	מסגרות Mainframe
+Mainframe key	מקש Mainframe
+Mainframe size	גודל Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	גודל Mainframe. Auto מגדיל כש-Virtual Super Resolution או DSR מכווצים שולחן עבודה גדול למסך קטן יותר
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	יוצר את קול ה-Fish Audio שלך...
+Max reply	תשובה מקסימלית
+Maximum clip resolution, keeping the game's shape without upscaling	רזולוציית קליפ מקסימלית, שומרת על צורת המשחק בלי הגדלה
+Medium	בינוני
+Memory	זיכרון
+Memory size	גודל זיכרון
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	גודל הזיכרון באסימונים עבור Ollama והמוח המובנה שלה. Auto גדל כשבקשה צריכה יותר
+Mg	Mg
+Mic level:	רמת מיקרופון:
+Mic test finished. Sound is reaching Capri.	בדיקת המיקרופון הסתיימה. הצליל מגיע ל-Capri.
+Mic:	מיקרופון:
+Mic: default	מיקרופון: ברירת מחדל
+Microphone	מיקרופון
+Mini player	נגן מיני
+Mini player over full screen	נגן מיני מעל מסך מלא
+Mini-games	מיני-משחקים
+Minimising the Mainframe left it sliding.	מזעור ה-Mainframe השאיר אותו מחליק.
+Minimize	מזער
+Mod filter	מסנן מודים
+Mod options	אפשרויות מוד
+Mod pages	דפי מודים
+Mod rules	כללי מוד
+Mod sort	מיון מודים
+Mod switch	מחליף מודים
+Model	מודל
+Model folder	תיקיית מודל
+Model name, optional	שם מודל, אופציונלי
+Mods	מודים
+Mods directory	תיקיית מודים
+Mods folder	תיקיית מודים
+Most NVIDIA models can't see your screen.	רוב מודלי NVIDIA לא יכולים לראות את המסך שלך.
+Mouse wheel notches got a flick's long ease:	קליקי גלגלת העכבר קיבלו האטה ארוכה של הנפה:
+Move	הזז
+Move key to MAX INTELLIGENCE	הזז מקש ל-MAX INTELLIGENCE
+Move to MAX	הזז ל-MAX
+Music	מוזיקה
+Music app	אפליקציית מוזיקה
+Music app: where she plays music when you don't name an app	אפליקציית מוזיקה: איפה היא מנגנת מוזיקה כשלא שם אפליקציה
+Mute	השתק
+Mute her	השתק אותה
+Mute mic key	מקש השתקת מיקרופון
+Mute mic:	השתקת מיקרופון:
+Mute mic: Ctrl + Alt + N	השתקת מיקרופון: Ctrl + Alt + N
+My brain	המוח שלי
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	המוח שלי יורד. אגיד שלום ברגע שהוא נכנס, ואז תוכל לדבר איתי.
+My brain's on its way. While it comes down, let's sort out how I sound.	המוח שלי בדרך. בזמן שהוא יורד, בוא נסדר איך אני נשמעת.
+My provider	הספק שלי
+NO AI	ללא AI
+NO PHONES CONNECTED	אין טלפונים מחוברים
+NO PREVIEW	אין תצוגה מקדימה
+NORMAL	רגיל
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · חינם · לרוב איטי בשעות עמוסות
+NVIDIA's free API is often slow, especially at busy times.	ה-API החינמי של NVIDIA לרוב איטי, במיוחד בשעות עמוסות.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	מפתח API של NVIDIA, Google AI Studio (Gemini) או OpenRouter
+Names:	שמות:
+Needs a key	צריך מפתח
+Never	אף פעם
+New code	קוד חדש
+New voice from a clip...	קול חדש מקליפ...
+Next	הבא
+Night City	Night City
+No AI	ללא AI
+No AI · no brain at all	ללא AI · בלי מוח בכלל
+No brain runs, and nothing is sent anywhere.	שום מוח לא רץ, ושום דבר לא נשלח לשום מקום.
+No brain yet	עדיין אין מוח
+No code open	אין קוד פתוח
+No limit	ללא הגבלה
+No mic found	לא נמצא מיקרופון
+No mods in the directory yet.	אין עדיין מודים בתיקייה.
+No mods match that.	אין מודים שתואמים לזה.
+No mods match.	אין מודים תואמים.
+No phones yet	אין עדיין טלפונים
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	עדיין אין מיקרופון וירטואלי. בחר פלט, ואז קבל VB-CABLE (חינם).
+None yet: pick to get VB-CABLE (free)	עדיין לא: בחר כדי לקבל VB-CABLE (חינם)
+Normal	רגיל
+Not a relay host	לא שרת ממסר
+Not imported. Nothing ran.	לא יובא. שום דבר לא רץ.
+Not updated. The old one is still in.	לא עודכן. הישן עדיין מותקן.
+Nothing needed updating.	שום דבר לא היה צריך עדכון.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	אין מה להוריד, ושום דבר לא נשלח לשום מקום. לא אענה בחזרה. אפשר להוסיף מוח בכל עת ב-Mainframe.
+Nothing to show from the mods directory.	אין מה להציג מתיקיית המודים.
+Nothing? Windows Settings > Privacy & security > Microphone.	כלום? הגדרות Windows > פרטיות ואבטחה > מיקרופון.
+Nous Portal keys aren't supported yet.	מפתחות Nous Portal עדיין לא נתמכים.
+OBS	OBS
+OFF	כבוי
+OLLAMA	OLLAMA
+ON	פעיל
+ON THIS PC	במחשב הזה
+OR A KEY	או מפתח
+Obsidian memory vault	כספת זיכרון של Obsidian
+Off	כבוי
+Off. Turn on Her voice in your mic above.	כבוי. הפעל את Her voice in your mic למעלה.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	כבוי: היא נשמעת כמו תמיד. פעיל: כל הקולות שיש לה, כולל ElevenLabs.
+Often	לעיתים קרובות
+On	פעיל
+On / Off	פעיל / כבוי
+On: your mic and her voice are going in.	פעיל: המיקרופון שלך והקול שלה נכנסים.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	אובייקט JSON אחד, מתווסף לכל בקשה שהמוח הזה שולח. הוא מחליף את הערך של Capri לכל שם שהוא חולק, ולא נבדק מול המודל.
+Online speech recognition	זיהוי דיבור מקוון
+Open Capri Mainframe	פתח את Capri Mainframe
+Open Ollama, I'll find it	פתח את Ollama, אמצא אותה
+Open clips folder	פתח תיקיית קליפים
+Open her memories	פתח את הזיכרונות שלה
+Open her notes	פתח את ההערות שלה
+Open mods folder	פתח תיקיית מודים
+Open the page again	פתח את הדף שוב
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA או OpenRouter.
+OpenAI-compatible server or provider.	שרת או ספק תואם OpenAI.
+OpenRouter · free models only	OpenRouter · מודלים חינמיים בלבד
+Optional	אופציונלי
+Optional. Blank means no key.	אופציונלי. ריק פירושו אין מפתח.
+Options	אפשרויות
+Out of the box a little higher, just behind her.	ברירת מחדל מעט גבוה יותר, ממש מאחוריה.
+Out of the box lower, just behind her.	ברירת מחדל נמוך יותר, ממש מאחוריה.
+Output	פלט
+Output:	פלט:
+Output: none	פלט: אין
+PHONE CONNECTED	טלפון מחובר
+PHONES >	טלפונים >
+PHONES CONNECTED	טלפונים מחוברים
+PREBUILT LOCAL	מקומי מובנה מראש
+PUBLISH MOD >	פרסם מוד >
+Pair a phone	זווג טלפון
+Paste	הדבק
+Paste API key	הדבק מפתח API
+Paste a brain API key	הדבק מפתח API של מוח
+Paste reads your clipboard once, when you press it.	הדבק קורא את הלוח שלך פעם אחת, כשלוחצים עליו.
+Paste your key here	הדבק כאן את המפתח שלך
+Pat stroke	שבץ ליטוף
+Perch	כן ישיבה
+Perch over {0} fps uses more CPU	ישיבה מעל {0} fps צורכת יותר CPU
+Pick Output to get it.	בחר פלט כדי לקבל אותו.
+Pick a brain so I can talk back. You can change it any time.	בחר מוח כדי שאוכל לענות. אפשר לשנות בכל עת.
+Pick a clip of a voice you have the rights and consent to use	בחר קליפ של קול שיש לך זכויות והסכמה להשתמש בו
+Pick a free model. I opened the page in your browser.	בחר מודל חינמי. פתחתי את הדף בדפדפן שלך.
+Pick a new clip of you...	בחר קליפ חדש שלך...
+Pick a voice model...	בחר מודל קול...
+Pick one. Only one brain runs at a time.	בחר אחד. רק מוח אחד רץ בכל פעם.
+Pick the note her memories go in	בחר את ההערה שאליה ייכנסו הזיכרונות שלה
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	בחר {0} עד {1} שניות של קול שיש לך זכויות והסכמה להשתמש בו
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	בחר {0} עד {1} שניות של דיבור שלך, או של קול שיש לך זכויות והסכמה להשתמש בו
+Pitch	גובה צליל
+Play	נגן
+Play...	נגן...
+Player only	נגן בלבד
+Pocket TTS models copy this clip's voice. Press Test to hear it.	מודלים של Pocket TTS מעתיקים את הקול של הקליפ הזה. לחץ Test כדי לשמוע אותו.
+Pop-in times	זמני pop-in
+Pop-ins	Pop-ins
+Power saver	חיסכון בחשמל
+Power saver: how lightly she runs in games, or always	חיסכון בחשמל: כמה קל היא רצה במשחקים, או תמיד
+Preset	הגדרה מוכנה
+Press Create API key	לחץ Create API key
+Press Create Key	לחץ Create Key
+Press Generate API Key	לחץ Generate API Key
+Press Test and say something, so I know I can hear you.	לחץ Test ותגיד משהו, כדי שאדע שאני שומעת אותך.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	לחץ מקש, לבד או עם Ctrl, Alt, Shift או Win.
+Press new keys, then Confirm	לחץ מקשים חדשים, ואז Confirm
+Provider	ספק
+Provider API key, optional	מפתח API של הספק, אופציונלי
+Provider base URL	כתובת בסיס של הספק
+Provider forgotten.	הספק נשכח.
+Provider overlaps the brain name or note	הספק חופף לשם המוח או להערה
+Publish	פרסם
+Publish mod	פרסם מוד
+Push to talk is off.	Push to talk כבוי.
+Push to talk key	מקש Push to talk
+Push to talk:	Push to talk:
+Push to talk: not set	Push to talk: לא מוגדר
+QR CODE >	QR CODE >
+QR hidden while streaming	QR מוסתר בזמן סטרימינג
+Quick	מהיר
+Quiet key	מקש שקט
+Quiet:	שקט:
+Quiet: Ctrl + Alt + P	שקט: Ctrl + Alt + P
+Quit Capri	צא מ-Capri
+RELAY >	RELAY >
+REMOTE >	REMOTE >
+RUNS CODE.	מריץ קוד.
+Rarely	לעיתים רחוקות
+Rate mod	דרג מוד
+Reading its README...	קורא את ה-README שלו...
+Refresh	רענן
+Reinstall	התקן מחדש
+Reload	טען מחדש
+Reloaded.	נטען מחדש.
+Remember our chats	זכור את השיחות שלנו
+Remember what she sees	זכור מה שהיא רואה
+Remote	Remote
+Remote off	Remote כבוי
+Remote on	Remote פעיל
+Remove	הסר
+Remove all phones	הסר את כל הטלפונים
+Replies	תשובות
+Reply length	אורך תשובה
+Report a problem	דווח על בעיה
+Reset colors	אפס צבעים
+Reset to her default	אפס לברירת המחדל שלה
+Resolution	רזולוציה
+Restart to update	הפעל מחדש לעדכון
+Restless	לא רגוע
+Revoke	בטל
+Revoke also removes the phones its links added	ביטול מסיר גם את הטלפונים שהקישורים שלה הוסיפו
+Ride cursor	רכוב על הסמן
+Ride cursor / Hop off	רכוב על הסמן / רד
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	לחץ עליי ימני בכל רגע לפתיחת Capri Mainframe. מוח מופעל תחת BRAIN.
+Right-click me any time for the Mainframe, Help and the Discord.	לחץ עליי ימני בכל רגע לפתיחת ה-Mainframe, העזרה וה-Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox או כל אפליקציה אחרת: בחר
+Robot	רובוט
+Rock, paper, scissors	אבן, נייר, מספריים
+Run this code mod?	להריץ את מוד הקוד הזה?
+Running on this PC	רץ במחשב הזה
+Running on this PC · :	רץ במחשב הזה · :
+Runs Claude Code or Codex on this PC, signed in.	מריץ Claude Code או Codex במחשב הזה, מחובר.
+Runs on your PC. No key, no credits.	רץ במחשב שלך. בלי מפתח, בלי קרדיטים.
+SCAN WITH YOUR PHONE · EXPIRES	סרוק עם הטלפון שלך · פג תוקף
+SECURITY >	SECURITY >
+SKILL.	כישור.
+SKIN.	עור.
+SORT BY	מיין לפי
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as her ears (VOICE > Mic)	כמו האוזניים שלה (VOICE > Mic)
+Same code on the phone?	אותו קוד בטלפון?
+Save	שמור
+Save big moments	שמור רגעים גדולים
+Save folder	תיקיית שמירה
+Save your changes, or press Discard + reload.	שמור את השינויים, או לחץ Discard + reload.
+Save your changes, or press Discard.	שמור את השינויים, או לחץ Discard.
+Saved.	נשמר.
+Saved. Ctrl + Alt + O opens her Mainframe.	נשמר. Ctrl + Alt + O פותח את ה-Mainframe שלה.
+Saving your rating...	שומר את הדירוג שלך...
+Say her name anywhere to chat	אמור את שמה בכל מקום כדי לדבר
+Screens	מסכים
+Screens is hidden or outside WATCH	מסכים מוסתר או מחוץ ל-WATCH
+Screens overlaps a WATCH row	מסכים חופף לשורת WATCH
+Screens to watch	מסכים לצפייה
+Sealed end to end	מוצפן מקצה לקצה
+Search by name or author	חפש לפי שם או יוצר
+Search installed mods	חפש מודים מותקנים
+Search mods	חפש מודים
+Search name, author or description	חפש שם, יוצר או תיאור
+Security	אבטחה
+Security:	אבטחה:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	הגדר
+Set up her brain	הגדר את המוח שלה
+Set up your voice model	הגדר את מודל הקול שלך
+Setting up her brain	מגדיר את המוח שלה
+Settings	הגדרות
+Settings / Back	הגדרות / חזרה
+Settings folds the wrong rows above BRAIN	Settings מקפל את השורות השגויות מעל BRAIN
+Settings had nothing to watch.	להגדרות לא היה מה לצפות.
+Settings lost keyboard focus during the Tab walk	להגדרות אבד מיקוד המקלדת במהלך מעבר Tab
+Setup guide	מדריך הגדרה
+Setup stopped	ההגדרה נעצרה
+She can read it when it fits.	היא יכולה לקרוא את זה כשזה מתאים.
+She glances at your screen and comments. Costs a little on a paid brain.	היא מציצה במסך שלך ומגיבה. עולה קצת במוח בתשלום.
+She keeps listening. Say her name, then just talk until you go quiet.	היא ממשיכה להקשיב. אמור את השם שלה, ואז דבר עד שאתה שותק.
+She reacts to your game until you close it.	היא מגיבה למשחק שלך עד שתסגור אותו.
+She reads these controls before each game job.	היא קוראת את הבקרות האלה לפני כל משימת משחק.
+She talks about your game as you play. Costs a little on a paid brain.	היא מדברת על המשחק שלך בזמן שאתה משחק. עולה קצת במוח בתשלום.
+She uses it when she plays	היא משתמשת בזה כשהיא משחקת
+Short	קצר
+Shortest wait (minutes)	ההמתנה הקצרה ביותר (דקות)
+Show Capri	הצג את Capri
+Show QR	הצג QR
+Show my mod file	הצג את קובץ המוד שלי
+Show on Discord	הצג ב-Discord
+Shum, what time is it	Shum, מה השעה
+Sign in	התחבר
+Sign in, make a key and copy it. Then press Paste and I'll connect.	התחבר, צור מפתח והעתק אותו. אחר כך לחץ הדבק ואתחבר.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	התחבר, לחץ Create API key והעתק אותו. אחר כך לחץ הדבק ואתחבר.
+Silent · text only	שקט · טקסט בלבד
+Simple / Advanced Settings	הגדרות פשוטות / מתקדמות
+Simple Settings	הגדרות פשוטות
+Simple Settings left a gap under Check in on me	הגדרות פשוטות השאירו רווח מתחת ל-Check in on me
+Sit here	שב כאן
+Sit on windows	שב על חלונות
+Size	גודל
+Skip	דלג
+Skip all	דלג על הכול
+Skip for now	דלג לעכשיו
+Sleep	שינה
+Small	קטן
+Sometimes	לפעמים
+Sound effects volume	עוצמת אפקטים קוליים
+Sound sensitivity	רגישות לצליל
+Sounds	צלילים
+Speaker or clip	רמקול או קליפ
+Speech model	מודל דיבור
+Speed	מהירות
+Start with Windows	התחל עם Windows
+Start with this!	התחל עם זה!
+Starting...	מתחיל...
+Stay	להישאר
+Stay on my model	הישאר במודל שלי
+Still checking your mics...	עדיין בודק את המיקרופונים שלך...
+Still checking your speakers...	עדיין בודק את הרמקולים שלך...
+Still checking your virtual mics...	עדיין בודק את המיקרופונים הווירטואליים שלך...
+Stop	עצור
+Stopped using it. Couldn't remove the saved provider.	הפסקתי להשתמש בו. לא הצלחתי להסיר את הספק השמור.
+Support	תמיכה
+Sure?	בטוח?
+Sure? moved to a different phone	בטוח? הועבר לטלפון אחר
+TALK TO ME	דבר איתי
+TEXT ONLY	טקסט בלבד
+Tab landed past the first option of	Tab הגיע מעבר לאפשרות הראשונה של
+Tab never reached the quiet key	Tab מעולם לא הגיע למקש השקט
+Tab reached nothing	Tab לא הגיע לשום דבר
+Tab selected a control without moving keyboard focus	Tab בחר בקרה בלי להזיז את מיקוד המקלדת
+Talk	דיבור
+Talk key	מקש דיבור
+Talk:	דיבור:
+Talk: Ctrl + Alt + V	דיבור: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	קצב פריימים ללכידה יעד; עלול לרדת תחת עומס או תקציב זיכרון
+Teases when another AI comes to the front.	מציקה כש-AI אחר מגיע לחזית.
+Test	בדיקה
+That address doesn't work. Try https://... or http://localhost:{0}.	הכתובת הזאת לא עובדת. נסה https://... או http://localhost:{0}.
+That code expired	הקוד הזה פג תוקף
+That mod is no longer installed. The list is updated.	המוד הזה כבר לא מותקן. הרשימה עודכנה.
+That's a paid key: it goes under MAX INTELLIGENCE.	זה מפתח בתשלום: הוא ייכנס תחת MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	ה-Mainframe נשאר composited בזמן ההחלקה.
+The Mainframe stayed uncomposited after the slide.	ה-Mainframe נשאר uncomposited אחרי ההחלקה.
+The controls moved while the picture was sliding.	הבקרות זזו בזמן שהתמונה החליקה.
+The cover stayed visible after the slide ended.	הכיסוי נשאר גלוי אחרי שהשקופית הסתיימה.
+The frame thread kept running after the page settled.	שרשור הפריימים המשיך לרוץ אחרי שהדף התייצב.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	התשובה הארוכה ביותר שהיא יכולה לתת, באסימונים. Auto נשאר בתשובות למעלה; {0}K או {1}K מאפשרים לה להמשיך. משימות מקבלות מקום נוסף כשצריך
+The longest wait must be at least the shortest wait.	ההמתנה הארוכה ביותר חייבת להיות לפחות ההמתנה הקצרה ביותר.
+The picture doesn't match the scrolled page:	התמונה לא תואמת לדף שגלל:
+The picture of Settings doesn't match the page:	התמונה של ההגדרות לא תואמת לדף:
+The picture stayed up after the slide ended.	התמונה נשארה אחרי סיום השקופית.
+The picture wasn't showing while it slid.	התמונה לא הוצגה בזמן שהחליקה.
+The provider sheet is crowded:	גיליון הספקים עמוס:
+The voice panel has no screen DPI.	לפאנל הקול אין DPI של המסך.
+The voice panel's menus share one font.	התפריטים של פאנל הקול חולקים גופן אחד.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	אין מפתח בלוח שלך עדיין. העתק אותו מהדף, ואז לחץ הדבק.
+These start off. Each costs a little or uses your mic.	אלה מתחילים כבויים. כל אחד עולה קצת או משתמש במיקרופון שלך.
+These start off. Turn on what you want. They're all in Settings too.	אלה מתחילים כבויים. הפעל מה שאתה רוצה. כולם נמצאים גם בהגדרות.
+They can also call you Big Z, Capricorn or Nova	הם יכולים גם לקרוא לך Big Z, Capricorn או Nova
+They can also call you Nova, Big Z or Capricorn	הם יכולים גם לקרוא לך Nova, Big Z או Capricorn
+Thinking	חושבת
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	זה הקול החינמי שלי. לחץ Test, תגיד משהו, ואראה לך שאני שומעת אותך.
+This mod has no description yet.	למוד הזה עדיין אין תיאור.
+Tic-tac-toe	איקס עיגול
+Time between glances	זמן בין מבטים
+Tiny	זעיר
+Try again	נסה שוב
+Turn Remote on first	הפעל קודם את Remote
+Turn off mini player	כבה את הנגן המיני
+Turn push to talk off	כבה את push to talk
+Turning the wheel the other way kept the page heading the old way, to	סיבוב הגלגלת לכיוון ההפוך השאיר את הדף בכיוון הישן, עד
+Type	הקלדה
+Type key	מקש הקלדה
+Type to me	הקלד אליי
+Type:	הקלדה:
+Type: Ctrl + Alt + T	הקלדה: Ctrl + Alt + T
+Typing sound	צליל הקלדה
+Unpacked. Press Test to hear it.	נפרס. לחץ Test כדי לשמוע אותו.
+Unsaved changes.	שינויים לא שמורים.
+Up to {0} fps	עד {0} fps
+Up to {0}p	עד {0}p
+Update	עדכן
+Update available.	עדכון זמין.
+Update mods	עדכן מודים
+Updating...	מעדכן...
+Use	השתמש
+Use her cursor	השתמש בסמן שלה
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	השתמש ב-https:// לספק במקום אחר. מפתח מעל http רגיל אינו בטוח.
+Use preset	השתמש בהגדרה מוכנה
+Use saved	השתמש בשמור
+Use this server	השתמש בשרת הזה
+Using your provider with a key	משתמש בספק שלך עם מפתח
+Using your server with no key	משתמש בשרת שלך בלי מפתח
+VIEW MOD >	VIEW MOD >
+VOICE >	VOICE >
+VOICE IN YOUR MIC >	VOICE IN YOUR MIC >
+VOICE LAYERS >	VOICE LAYERS >
+Verbosity	שפעתיות
+Video bitrate	bitrate וידאו
+View	תצוגה
+View mod	הצג מוד
+Voice	קול
+Voice ID	מזהה קול
+Voice from	קול מ
+Voice layers	שכבות קול
+Voice model	מודל קול
+Voice model:	מודל קול:
+Voice name or ID, optional	שם קול או מזהה, אופציונלי
+Voice server address, or a voice model's folder	כתובת שרת קול, או תיקיית מודל קול
+Voice status	מצב הקול
+Voice, key and model...	קול, מפתח ומודל...
+Volume	עוצמה
+WAKE ME UP >	הער אותי >
+WATCH >	WATCH >
+Waiting for the relay	ממתין לממסר
+Wake her up	הער אותה
+Waking her up	מעירה אותה
+Wander	שיטוט
+Wander around	שוטט
+Watch my screen	צפה במסך שלי
+Watch-along memory	זיכרון צפייה משותפת
+Weather	מזג אוויר
+Weather city	עיר מזג אוויר
+Welcome back, choom. Let's finish setting me up.	ברוך השב, choom. בוא נסיים את ההגדרה שלי.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	מה שהיא עושה במחשב שלך בלי לשאול. כשהמתג כבוי היא שואלת קודם, ועושה כשאתה אומר כן.
+What should she call you?	איך היא צריכה לקרוא לך?
+When she types	כשהיא מקלידה
+White	לבן
+Windows default	ברירת מחדל של Windows
+Windows did not give Settings keyboard focus	Windows לא נתן להגדרות מיקוד מקלדת
+Windows did not return keyboard focus to Back	Windows לא החזיר מיקוד מקלדת ל-Back
+With no picture the wheel still tried to slide.	בלי תמונה הגלגלת עדיין ניסתה להחליק.
+Works best on MAX INTELLIGENCE.	עובד הכי טוב על MAX INTELLIGENCE.
+YOU	אתה
+YOU >	אתה >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	אתה VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS
+YOUR KEY	המפתח שלך
+YOUR MIC	המיקרופון שלך
+YOUR PLAN	התוכנית שלך
+Yokapri what's up	Yokapri מה נשמע
+You can hide this. It keeps going, and the Mainframe shows it too.	אתה יכול להסתיר את זה. זה ממשיך לרוץ, וה-Mainframe מציג את זה גם כן.
+Your mic and her voice go into one virtual mic, and	המיקרופון שלך והקול שלה נכנסים למיקרופון וירטואלי אחד, ו
+Your mic is muted. Unmute it to test.	המיקרופון שלך מושתק. בטל את ההשתקה כדי לבדוק.
+Your mods are up to date.	המודים שלך מעודכנים.
+Your name or a nickname	השם שלך או כינוי
+Your own model	המודל שלך
+Your personality	האישיות שלך
+Your voice	הקול שלך
+Your voice (HD)	הקול שלך (HD)
+Your voice (HD) · pick a clip of you...	הקול שלך (HD) · בחר קליפ שלך...
+Your voice model	מודל הקול שלך
+as its mic.	כמיקרופון שלה.
+changed. Saved as My Colors, so you can share it.	השתנה. נשמר כ-My Colors, כדי שתוכל לשתף.
+choice	בחירה
+clips the input line	חותך את שורת הקלט
+cue	רמז
+doesn't yet.	עדיין לא.
+download	הורד
+file.	קובץ.
+flag	דגל
+fps	fps
+hear	שומע
+hears	שומעת
+hears that.	שומעת את זה.
+hides or shows her.	מסתירה או מציגה אותה.
+hint	רמז
+in the Mainframe.	ב-Mainframe.
+in the mods directory with a pull request.	בתיקיית המודים עם pull request.
+in the picture wasn't noticed.	בתמונה לא שמו לב.
+is already her push-to-talk key.	כבר מקש push-to-talk שלה.
+is off.	כבוי.
+is on and running.	פעיל ורץ.
+is on, at the bottom, under	פעיל, למטה, מתחת ל
+is on.	פעיל.
+is on. She now answers to	פעיל. היא עונה עכשיו ל
+is removed.	הוסר.
+is taken	תפוס
+is taken by another app. Try another.	תפוס על ידי אפליקציה אחרת. נסה אחרת.
+is updated	עודכן
+isn't hearing it yet: do {0} and {1}, then join a call.	עדיין לא שומעת את זה: עשה {0} ו-{1}, ואז הצטרף לשיחה.
+it now.	עכשיו.
+keeps her quiet, and lets her talk again.	משתיק אותה, ומאפשר לה לדבר שוב.
+key	מפתח
+key.	מפתח.
+min	דק׳
+more.	עוד.
+ms.	ms.
+mutes mic	משתיק מיקרופון
+mutes your mic.	משתיק את המיקרופון שלך.
+name	שם
+off	כבוי
+on this PC	במחשב הזה
+opens her Mainframe.	פותח את ה-Mainframe שלה.
+opens her typing box.	פותח את תיבת ההקלדה שלה.
+phone	טלפון
+phone pixels	פיקסלים של טלפון
+phones	טלפונים
+pixels	פיקסלים
+pixels)	פיקסלים)
+star.	כוכב.
+stars.	כוכבים.
+starts voice chat.	מתחיל צ'אט קולי.
+stays off. Nothing ran.	נשאר כבוי. שום דבר לא רץ.
+still does its own job in other apps too. Confirm to keep it.	זה עדיין עושה את העבודה שלו גם באפליקציות אחרות. אשר כדי לשמור.
+tall	גבוה
+time	זמן
+to talk	כדי לדבר
+to talk to her, with a game in front too.	כדי לדבר איתה, גם עם משחק בחזית.
+too.	גם.
+turns Gaming Mode on and off.	מפעיל ומכבה את Gaming Mode.
+with Ollama	עם Ollama
+won't type in other apps while she runs. Confirm to keep it.	לא יקליד באפליקציות אחרות כשהיא רצה. אשר כדי לשמור.
+{0}   Echo Cancellation: Off	{0}   Echo Cancellation: כבוי
+{0}   If her voice cuts off, turn off noise filtering	{0}   אם הקול שלה נקטע, כבה את noise filtering
+{0}   Input Device:	{0}   Input Device:
+{0}   Join the call and check they hear both of you	{0}   הצטרף לשיחה ובדוק שהם שומעים את שניכם
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mic Test > Let's Check: תשמע את עצמך, ואותה כשהיא מדברת
+{0}   Microphone:	{0}   Microphone:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Noise Suppression: None. שניהם יכולים לחתוך את הקול שלה אחרי השורה הראשונה.
+{0}   Open the call or meeting's audio settings	{0}   פתח את הגדרות האודיו של השיחה או הפגישה
+{0}   Output Device: your headphones, like before	{0}   Output Device: האוזניות שלך, כמו קודם
+{0}   Speaker: your headphones, like before	{0}   Speaker: האוזניות שלך, כמו קודם
+{0}   Try a mic test in your call app	{0}   נסה בדיקת מיקרופון באפליקציית השיחות שלך
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   User Settings (גלגל השיניים ליד השם שלך) > Voice & Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} שורות
+{0} min	{0} דק׳
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· במחשב הזה
+· server	· שרת

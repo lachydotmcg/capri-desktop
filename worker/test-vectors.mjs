@@ -26,7 +26,7 @@ globalThis.fetch = async url => {
 };
 const prompts = [];
 globalThis.claudeCall = async body => {
-  prompts.push(body.system);
+  prompts.push(Array.isArray(body.system) ? body.system.map(block => block.text).join('') : body.system);
   return { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Stand-in reply.' }] };
 };
 const logs = [];

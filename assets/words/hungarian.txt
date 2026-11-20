@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Egy átfestett vezérlő nem lett újrarajzolva a képen.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Ingyenes kulcs a Google AI Studio, az NVIDIA vagy az OpenRouter szolgáltatásától. Nem kell letölteni. Internet kell hozzá.
+A held trackpad scroll got a flick's long ease:	Egy tartott touchpad-görgetés egy pörgetés hosszú lecsengését kapta:
+A layout change during a slide put the page at	Egy elrendezésváltozás egy váltás közben az oldalt erre tette:
+A layout change left the picture up.	Egy elrendezésváltozás miatt a kép a helyén maradt.
+A model in Ollama, on your local server or on your key.	Egy modell az Ollamában, a helyi szervereden vagy a saját kulcsoddal.
+A paid key goes under MAX INTELLIGENCE by itself.	Egy fizetős kulcs automatikusan a MAX INTELLIGENCE alá kerül.
+A plan you already pay for, a key of your own, or Ollama.	Egy csomag, amit már fizetsz, saját kulcs, vagy Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	A hangpanel menüje nem tartja meg a panel betűtípusának saját másolatát.
+A wheel turn right after a slide ended froze the picture.	A görgetőkerék egy váltás vége utáni fordulása lefagyasztotta a képet.
+ALLOW THIS PHONE?	ENGEDÉLYEZED EZT A TELEFONT?
+ALMOST THERE >	MÁR ALIG VAN HÁTRA >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	EGY MÁSIK CAPRI ÁTVETTE · KAPCSOLD KI ÉS BE
+API key	API-kulcs
+API key, Claude plan or ChatGPT plan	API-kulcs, Claude-csomag vagy ChatGPT-csomag
+Add	Hozzáadás
+Address	Cím
+Address and key saved. Use saved to reconnect.	A cím és a kulcs mentve. A mentett gombbal újra csatlakozhatsz.
+Advanced Settings	Speciális beállítások
+All	Mind
+All screens	Minden képernyő
+Allow	Engedélyezés
+Almost there. I'll say hi the second my brain's in.	Már majdnem kész. Köszönök, amint az agyam működik.
+Always	Mindig
+Always on top	Mindig felül
+Any Google account works. I opened the page in your browser.	Bármilyen Google-fiók működik. Megnyitottam az oldalt a böngészőben.
+Applies to every voice	Minden hangra vonatkozik
+Apps she may close	Alkalmazások, amelyeket bezárhat
+Ask Capri for more	Kérj még Caprit
+Asking your server...	Megkérdezem a szervered...
+Asks before closing only the apps you choose.	Csak a kiválasztott alkalmazásoknál kérdez bezárás előtt.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Automatikus: VB-CABLE, különben a Steamé
+BAD RELAY HOST	ROSSZ RELÉCSOMÓPONT
+BIG Z open notepad	BIG Z nyisd meg a jegyzettömböt
+BRAIN	AGY
+BRAIN >	AGY >
+BRAIN ONLINE >	AGY ONLINE >
+BRAIN PROVIDER >	AGY-SZOLGÁLTATÓ >
+BRAIN VOICE CAPRI	CAPRI AGYHANG
+Back	Vissza
+Back on your saved API key.	Visszatértél a mentett API-kulcsodhoz.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Ehhez a PC-hez legjobb:
+Black	Fekete
+Blank key means no key.	Üres kulcs azt jelenti, hogy nincs kulcs.
+Brain API key	Agy API-kulcs
+Brain model	Agymodell
+Brain provider	Agy-szolgáltató
+Bring here	Hozd ide
+Bring to this screen	Hozd erre a képernyőre
+Browse	Tallózás
+Browse mods	Modok böngészése
+Browse to a voice model	Tallózz egy hangmodellhez
+Browse...	Tallózás...
+Bubble	Buborék
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree itt vagy
+CAN'T REACH THE RELAY · RETRYING	NEM ÉRHETŐ EL A RELÉ · ÚJRAPRÓBÁLKOZÁS
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI AGYHANG
+CHANGED, approve it again.	MÓDOSÍTVA, hagyd jóvá újra.
+CLIPS >	KLIPEK >
+CLOUD VOICE	FELHŐS HANG
+CODE	KÓD
+COLORS >	SZÍNEK >
+CONNECTED	CSATLAKOZVA
+CONNECTING	CSATLAKOZÁS
+CUSTOM LOCAL	EGYEDI HELYI
+Call mode (beta)	Hívásmód (béta)
+Call mode does not fit.	A hívásmód nem fér el.
+Call mode is outside its space.	A hívásmód a helyén kívül van.
+Cancel	Mégse
+Cancel keys	Billentyűk megszakítása
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri távoli
+Capri code:	Capri-kód:
+Capri mods (*	Capri modok (*
+Capri, hello	Capri, helló
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Káosz, ha ideges
+Chat with Capri from your phone	Beszélgess Capri-val a telefonodról
+ChatGPT plan	ChatGPT-csomag
+Check for updates	Frissítések keresése
+Check in on me	Nézz rám
+Check in on me is hidden	A Nézz rám el van rejtve
+Check in on me still decides whether she visits.	A Nézz rám továbbra is dönti el, hogy átjön-e.
+Check in on me's tip missed	A Nézz rám tipp elmaradt
+Chess	Sakk
+Choose apps	Alkalmazások kiválasztása
+Choose folder...	Mappa kiválasztása...
+Choose where future Capri clips are saved	Válaszd ki, hová mentse a jövőbeli Capri-klipeket
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude- vagy ChatGPT-csomag, fizetős kulcs (OpenAI, Claude, DeepSeek) vagy Ollama.
+Claude plan	Claude-csomag
+Clear	Törlés
+Cleared.	Törölve.
+Click Confirm to keep Down, or press Esc.	Kattints a Megerősítésre a Le megtartásához, vagy nyomj Esc-et.
+Click to open it.	Kattints a megnyitáshoz.
+Clip my games	Klippeld a játékaimat
+Clips	Klipek
+Close	Bezárás
+Close other AIs for me	Zárd be helyettem a többi MI-t
+Cloud voice	Felhő hang
+Cloud voice service	Felhő hangszolgáltatás
+Cloud voice setup	Felhő hang beállítása
+Code mods can reach your whole PC. Only trusted ones.	A kódmodok elérhetik az egész PC-det. Csak megbízhatókat.
+Code/Husk Mode	Kód/Husk mód
+Codex	Codex
+Commands	Parancsok
+Comment on my games	Kommentálja a játékaimat
+Comments	Megjegyzések
+Confirm	Megerősítés
+Confirm keys	Billentyűk megerősítése
+Connect	Csatlakozás
+Connect / Forget brain key	Csatlakozás / agykulcs elfelejtése
+Connect / Forget voice key	Csatlakozás / hangkulcs elfelejtése
+Connect four	Négy a sorban
+Controls	Vezérlők
+Copri, what time is it	Copri, hány óra van
+Copy error details	Hibaadatok másolása
+Copy the key	Kulcs másolása
+Copy the key from the page, then press Paste.	Másold ki a kulcsot az oldalról, majd nyomj Beillesztést.
+Couldn't open that page:	Nem sikerült megnyitni ezt az oldalt:
+Couldn't open that:	Nem sikerült megnyitni ezt:
+Couldn't open the mods folder:	Nem sikerült megnyitni a modok mappáját:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M már a Mainframe-billentyű.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	A Ctrl + Alt + N elnémítja a mikrofont
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V már a beszédgomb.
+Ctrl + Alt + V to talk	Ctrl + Alt + V a beszédhez
+Custom local voice	Egyéni helyi hang
+Custom model name	Egyéni modellnév
+Dance	Tánc
+Dance to music	Táncolj zenére
+Default	Alapértelmezett
+Default (follows Windows)	Alapértelmezett (a Windowst követi)
+Default duration for clip that and automatic clips	Alapértelmezett hossz a clip that és az automatikus klipekhez
+Default length	Alapértelmezett hossz
+Default model	Alapértelmezett modell
+Delay	Késleltetés
+Deny	Elutasítás
+Discard	Elvetés
+Discard + reload	Elvetés + újratöltés
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Nem akarsz várni? Egy ingyenes kulcs kb. egy perc alatt megszólaltat.
+Done	Kész
+EXTRA REQUEST JSON >	EXTRA KÉRÉS JSON >
+EXTRAS >	EXTRÁK >
+Edit	Szerkesztés
+Edit check-in lines	Üdvözlő sorok szerkesztése
+Edit check-in lines has the wrong view or dimming	Az üdvözlő sorok szerkesztése rossz nézetet vagy elhalványítást használ
+Edit check-in lines is out of place	Az üdvözlő sorok szerkesztése nincs a helyén
+Edit controls	Vezérlők szerkesztése
+ElevenLabs API key	ElevenLabs API-kulcs
+ElevenLabs voice ID	ElevenLabs hang-azonosító
+English	Angol
+Enter the game's name first.	Először add meg a játék nevét.
+Every	Minden
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Minden modot malware-ellenőrzésnek vetnek alá, mielőtt feltöltődik. A kódmodok futtatás előtt továbbra is kérdeznek.
+Explore after	Felfedezés utána
+Explore while I'm away	Felfedezés, amíg távol vagyok
+Extra request JSON	Extra kérés JSON
+Extras	Extrák
+FREE KEY	INGYENES KULCS
+FREE KEY >	INGYENES KULCS >
+Fast hands in games	Gyors kezek játékokban
+File editor	Fájlszerkesztő
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	A Fish Audio, az ElevenLabs és más szolgáltatások a Mainframe HANG menüpontjában vannak.
+Follow-up messages	Követő üzenetek
+Forget	Elfelejtés
+Fork capri-mods	capri-mods forkolása
+Frame rate	Képkockasebesség
+Free	Ingyenes
+Free and private, works offline. Downloads	Ingyenes és privát, offline is működik. Letölt
+Free and private, works offline. Downloads the best model for this PC.	Ingyenes és privát, offline is működik. Letölti a legjobb modellt ehhez a PC-hez.
+Free key	Ingyenes kulcs
+Free key providers	Ingyenes kulcs-szolgáltatók
+Free keys can be rate limited and slow.	Az ingyenes kulcsok sebessége korlátozott és lassú lehet.
+Free voice in games	Ingyenes hang játékokban
+Free voice style	Ingyenes hangstílus
+Free voice:	Ingyenes hang:
+Free voice: Her own	Ingyenes hang: a saját
+Free · local model	Ingyenes · helyi modell
+GAMES >	JÁTÉKOK >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	A játékkommentek külön futnak a Nézd a képernyőmet funkciótól. A Ki leállítja őket, a Játékmódban is; az Csak események és a Fecsegős hagyja, hogy lásd a játékodat
+Game controls	Játékvezérlők
+Game name	Játék neve
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Játékhang-érzékenység. Csökkentsd, ha a fejhallgató halk, de a Windows {0}%-on van, és minden hangra reagál; a Ki figyelmen kívül hagyja a játékhangokat
+Game sounds	Játékhangok
+Games	Játékok
+Gaming Mode	Játékmód
+Gaming Mode key	Játékmód billentyű
+Gaming Mode:	Játékmód:
+Gaming Mode: Ctrl + Alt + G	Játékmód: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE letöltése
+Get VB-CABLE (free)...	VB-CABLE letöltése (ingyenes)...
+Get free voice	Ingyenes hang beszerzése
+Getting your Fish Audio voices...	A Fish Audio hangjaid letöltése...
+Giant	Óriás
+Glitch	Glitch
+Glitch in at startup	Glitch indításkor
+Go to sleep	Elalvás
+Go to the next screen	Ugrás a következő képernyőre
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · ingyenes csomag · sebességkorlátozott
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Van Claude- vagy ChatGPT-csomagod, vagy saját kulcsod? Válaszd ki, és bekötöm.
+Got it, just me. Right-click me any time for Capri Mainframe.	Értem, csak én. Bármikor jobb klikk rám a Capri Mainframe-hez.
+Grey	Szürke
+H.{0} video bitrate target; higher values make larger files	H.{0} cél videó-bitráta; a magasabb értékek nagyobb fájlokat adnak
+HABITS >	SZOKÁSOK >
+HER HANDS >	A KEZEI >
+HER JOBS >	A MUNKÁI >
+HER MEMORY >	AZ EMLÉKEI >
+HER MODS >	A MODJAI >
+HH:mm	HH:mm
+HOW I SOUND >	HOGYAN HANGZOK >
+Hang here	Maradj itt
+Have Ollama? Open it, then press Refresh.	Van Ollamád? Nyisd meg, majd nyomj Frissítést.
+Head pats	Fejsimogatások
+Hearing	Hallás
+Hearing engine	Hallási motor
+Hearing fix	Hallási javítás
+Hearing status	Hallási állapot
+Help	Súgó
+Help page	Súgóoldal
+Her colors	Az ő színei
+Her folder	Az ő mappája
+Her memories	Az ő emlékei
+Her own colors are back.	Visszaálltak a saját színei.
+Her own notes (no vault)	Saját jegyzetei (nincs széf)
+Her perch frames per second	Perch-képkocka másodpercenként
+Her personality	Személyisége
+Her size	Mérete
+Her speaker	Hangszórója
+Her speaker is hidden or outside VOICE	A hangszórója el van rejtve, vagy a HANG-on kívül van
+Her speaker overlaps the mic or hearing row	A hangszórója átfed a mikrofon vagy a hallás sorával
+Her speaker:	Hangszóró:
+Her speaker: Default	Hangszóró: alapértelmezett
+Her voice in your mic	Hangja a mikrofonodban
+Her voice in your mic: loudness	Hangja a mikrofonodban: hangerő
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Maga a hangja. Hangmagassága Beállítások > HANG > Hangmagasság, és együtt mozognak.
+Her voice joins your mic only in call mode.	Hangja csak hívásmódban kerül a mikrofonodba.
+Her voice volume	Hangjának hangereje
+Her voice's pitch	Hangja hangmagassága
+Her voice's pitch, the same as Settings > VOICE > Pitch	Hangja hangmagassága, ugyanaz mint Beállítások > HANG > Hangmagasság
+Her voice's speed	Hangja sebessége
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Hangja, és két másolata alatta keverve, mindegyiknek saját hangmagassággal és késleltetéssel.
+Her voices · free	Hangjai · ingyenes
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Szia, choom. Capri vagyok. Agy nélkül nem tudok válaszolni. Válassz egyet.
+Hide / Show Capri	Capri elrejtése / megjelenítése
+Hide / Show key	Elrejtés / megjelenítés billentyű
+Hide Capri	Capri elrejtése
+Hide for now	Elrejtés egyelőre
+Hide her	Elrejtés
+Hide in full screen	Elrejtés teljes képernyőn
+Hide this	Ezt elrejtem
+Hide, keep player	Elrejtés, lejátszó marad
+Hide/show:	Elrejtés/megjelenítés:
+Hide/show: Ctrl + Alt + H	Elrejtés/megjelenítés: Ctrl + Alt + H
+Hologram	Hologram
+Hop off	Leszállás
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Mennyi idő után altatja el egy tétlen PC; öt perc még távollétnek számít
+How long a stroke over her a head pat needs	Mennyi ideig kell egy simogatásnak a fején lennie egy fejsimogatáshoz
+How long her replies stay up	Mennyi ideig maradnak fent a válaszai
+How long you are away before she scrolls a browser or reader	Mennyi ideig kell távol lenned, hogy egy böngészőt vagy olvasót görgessen
+How much her voice glitches	Mennyire recseg a hangja
+How much of the chat she keeps	Mennyi csevegést tart meg
+How much she wanders	Mennyire kóborol
+How often she pops in to say hi	Milyen gyakran ugrik be köszönni
+How robotic her voice sounds	Mennyire robotos a hangja
+How to	Hogyan
+Huge	Hatalmas
+I can hear you.	Hallak.
+I glance at your screen and comment. Costs a little on a paid brain.	Ránézek a képernyődre és kommentálok. Fizetős agyon kicsit költ.
+I keep listening. Say my name, then just talk.	Továbbra is hallgatok. Mondd ki a nevem, aztán csak beszélj.
+I talk about your game as you play. Costs a little on a paid brain.	Kommentálom a játékodat, amíg játszol. Fizetős agyon kicsit költ.
+I type my replies and stay quiet.	Beírom a válaszaimat, és csendben maradok.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nem szólok vissza, és semmi nem megy sehova. Azért lógok, zenére táncolok és megcsinálom a gyors dolgokat, amiket kérsz, például a hangerőt.
+I'll talk in	Beszélni fogok ebben:
+IN DISCORD >	DISCORDBAN >
+INSTALLED >	TELEPÍTVE >
+Import a Capri mod	Capri-mod importálása
+Import mod	Mod importálása
+In full screen	Teljes képernyőn
+In games	Játékokban
+Input	Bemenet
+Input, Output or How to overlaps a row	Bemenet, Kimenet vagy Hogyan átfed egy sort
+Input:	Bemenet:
+Input: default	Bemenet: alapértelmezett
+Install	Telepítés
+Install mod	Mod telepítése
+Installed.	Telepítve.
+It may ask for a phone number. I opened the page in your browser.	Telefonszámot kérhet. Megnyitottam az oldalt a böngészőben.
+It still does its own job in other apps too.	Más alkalmazásokban is végzi a dolgát.
+It won't type in other apps while she runs.	Más alkalmazásokba nem ír, amíg fut.
+JUST ME >	CSAK ÉN >
+Jealous of other AIs	Féltékeny a többi MI-re
+Join the Discord	Csatlakozz a Discordhoz
+KB.	KB.
+KEYS	BILLENTYŰK
+KEYS >	BILLENTYŰK >
+Keep PC awake for jobs	PC ébren tartása a feladatokhoz
+Keep player	Lejátszó marad
+Keeps the last two minutes of your game in memory. Say clip that to save it.	A játékod utolsó két percét a memóriában tartja. Mondd: clip that a mentéshez.
+Key	Billentyű
+Key cleared: a model file needs none.	Kulcs törölve: a modellfájlnak nincs szüksége rá.
+Key cleared: paste the key for	Kulcs törölve: illeszd be a kulcsot ehhez:
+Key forgotten.	Kulcs elfelejtve.
+Key. It goes only to this server, as a Bearer key	Kulcs. Csak erre a szerverre megy, Bearer kulcsként
+Kokoro only, like es	Csak a Kokoro, mint es
+LAST THING >	UTOLSÓ DOLOG >
+LISTENING >	HALLGAT >
+Language	Nyelv
+Large	Nagy
+Last thing. These cost a little or use your mic, so they're your pick.	Utolsó dolog. Ezek kicsit költenek, vagy a mikrofonodat használják, ezért te döntesz.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Utolsó dolog. Ezek kicsit költenek, vagy a mikrofonodat használják, ezért te döntesz. Utána azt szeretném tudni, mit szólítsalak.
+Layers	Rétegek
+Learn more	Tudj meg többet
+Leaving Settings threw its picture away straight away.	A Beállítások elhagyása azonnal eldobta a képét.
+Legacy stand	Régi állvány
+Lie down	Feküdj le
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	PC-párbeszédsorok a közös nézés alatt. A legrégebbi fele jegyzet lesz, amikor a Emlékezz arra, amit lát be van kapcsolva
+Listen for Capri	Hallgass Capri-ra
+Live reactions	Élő reakciók
+Local server address	Helyi szerver címe
+Long	Hosszú
+Longest wait (minutes)	Leghosszabb várakozás (perc)
+Looking at this PC...	Ezt a PC-t nézi...
+Looking for Ollama. Open it if it isn't running.	Ollama keresése. Nyisd meg, ha nem fut.
+Looking for a brain...	Agy keresése...
+Looking in the mods directory for updates...	Frissítések keresése a modok mappájában...
+Looking in the mods directory...	Keresés a modok mappájában...
+Looking...	Keresés...
+MAIN >	FŐ >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	KÖZEPES INTELLIGENCIA
+MEMORY VAULT >	EMLÉKTÁR >
+MODS	MODOK
+MODS >	MODOK >
+MODS DIRECTORY >	MODOK MAPPÁJA >
+MODS INSTALLED COLORS	TELEPÍTETT MODOK SZÍNEI
+MOVES >	MOZDULATOK >
+MY BRAIN	AZ AGYAM
+MY FREE VOICE	AZ INGYENES HANGOM
+MY PLAN OR KEY	A CSOMAGOM VAGY A KULCSOM
+MY PLAN OR KEY >	A CSOMAGOM VAGY A KULCSOM >
+Made your Fish Audio voice. Press Test to hear it.	A Fish Audio hangod elkészült. Nyomj Tesztet a meghallgatáshoz.
+Mainframe colours	Mainframe színei
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe színei. A Night City piros és cián; a Fekete, Fehér és Szürke a Mainframe-et, a menüit, a Gépelés dobozt és a jegyzeteit változtatja
+Mainframe frames	Mainframe keretek
+Mainframe key	Mainframe billentyű
+Mainframe size	Mainframe mérete
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe mérete. Az Auto nagyobbra veszi, ha a Virtual Super Resolution vagy a DSR egy nagy asztalt kisebb képernyőre zsugorít
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Le
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	A Fish Audio hangod készül...
+Max reply	Maximális válasz
+Maximum clip resolution, keeping the game's shape without upscaling	Maximális klipfelbontás, a játék alakját megtartva, felskálázás nélkül
+Medium	Közepes
+Memory	Memória
+Memory size	Memória mérete
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Memória mérete tokenekben az Ollamának és a beépített agyának. Az Auto nő, ha egy kérés többet igényel
+Mg	MB
+Mic level:	Mikrofonszint:
+Mic test finished. Sound is reaching Capri.	A mikrofonteszt kész. A hang eljut Caprihez.
+Mic:	Mikrofon:
+Mic: default	Mikrofon: alapértelmezett
+Microphone	Mikrofon
+Mini player	Mini lejátszó
+Mini player over full screen	Mini lejátszó teljes képernyő felett
+Mini-games	Minijátékok
+Minimising the Mainframe left it sliding.	A Mainframe minimalizálása csúszásban hagyta.
+Minimize	Minimalizálás
+Mod filter	Mod-szűrő
+Mod options	Mod-beállítások
+Mod pages	Mod-oldalak
+Mod rules	Mod-szabályok
+Mod sort	Mod-rendezés
+Mod switch	Mod-váltás
+Model	Modell
+Model folder	Modellmappa
+Model name, optional	Modellnév, nem kötelező
+Mods	Modok
+Mods directory	Modok mappája
+Mods folder	Modok mappája
+Most NVIDIA models can't see your screen.	A legtöbb NVIDIA-modell nem látja a képernyődet.
+Mouse wheel notches got a flick's long ease:	Az egérgörgetés-fokozatok egy pörgetés hosszú lecsengését kapták:
+Move	Mozgatás
+Move key to MAX INTELLIGENCE	Kulcs áthelyezése a MAX INTELLIGENCE-be
+Move to MAX	Áthelyezés a MAXBA
+Music	Zene
+Music app	Zenei alkalmazás
+Music app: where she plays music when you don't name an app	Zenei alkalmazás: ahol zenét játszik, ha nem nevezel meg alkalmazást
+Mute	Némítás
+Mute her	Elnémítás
+Mute mic key	Mikrofon némítása billentyű
+Mute mic:	Mikrofon némítása:
+Mute mic: Ctrl + Alt + N	Mikrofon némítása: Ctrl + Alt + N
+My brain	Az agyam
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Az agyam jön. Amint megérkezik, köszönök, és akkor már beszélhetsz velem.
+My brain's on its way. While it comes down, let's sort out how I sound.	Az agyam úton van. Amíg jön, rendezzük, hogyan hangzom.
+My provider	Szolgáltatóm
+NO AI	NINCS MI
+NO PHONES CONNECTED	NINCS CSATLAKOZTATOTT TELEFON
+NO PREVIEW	NINCS ELŐNÉZET
+NORMAL	NORMÁL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · ingyenes · csúcsidőben gyakran lassú
+NVIDIA's free API is often slow, especially at busy times.	Az NVIDIA ingyenes API-ja gyakran lassú, főleg csúcsidőben.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) vagy OpenRouter API-kulcs
+Names:	Nevek:
+Needs a key	Kulcs kell
+Never	Soha
+New code	Új kód
+New voice from a clip...	Új hang klipből...
+Next	Következő
+Night City	Night City
+No AI	Nincs MI
+No AI · no brain at all	Nincs MI · egyáltalán nincs agy
+No brain runs, and nothing is sent anywhere.	Nem fut agy, és semmi nem megy sehova.
+No brain yet	Még nincs agy
+No code open	Nincs megnyitott kód
+No limit	Korlátlan
+No mic found	Nincs mikrofon
+No mods in the directory yet.	Még nincs mod a mappában.
+No mods match that.	Egyetlen mod sem egyezik ezzel.
+No mods match.	Nincs egyező mod.
+No phones yet	Még nincs telefon
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Még nincs virtuális mikrofon. Válaszd a Kimenetet, majd a VB-CABLE letöltését (ingyenes).
+None yet: pick to get VB-CABLE (free)	Még nincs: válassz a VB-CABLE (ingyenes) letöltéséhez
+Normal	Normál
+Not a relay host	Ez nem relécsomópont
+Not imported. Nothing ran.	Nem importálva. Semmi nem futott.
+Not updated. The old one is still in.	Nincs frissítve. A régi még benne van.
+Nothing needed updating.	Nem kellett frissíteni.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Nincs mit letölteni, semmi nem megy sehova. Nem szólok vissza. Bármikor adhatsz agyat a Mainframe-ben.
+Nothing to show from the mods directory.	Nincs megjeleníthető a modok mappájából.
+Nothing? Windows Settings > Privacy & security > Microphone.	Semmi? Windows-beállítások > Adatvédelem és biztonság > Mikrofon.
+Nous Portal keys aren't supported yet.	A Nous Portal kulcsai még nem támogatottak.
+OBS	OBS
+OFF	KI
+OLLAMA	OLLAMA
+ON	BE
+ON THIS PC	EZEN A PC-N
+OR A KEY	VAGY KULCS
+Obsidian memory vault	Obsidian emlékszéf
+Off	Ki
+Off. Turn on Her voice in your mic above.	Ki. Kapcsold be fent a Hangja a mikrofonodban beállítást.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Ki: úgy szól, ahogy eddig. Be: minden hangja, az ElevenLabs is.
+Often	Gyakran
+On	Be
+On / Off	Be / Ki
+On: your mic and her voice are going in.	Be: a mikrofonod és a hangja bekerül.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Egy JSON-objektum, minden kérésnél hozzáadódik, amit ez az agy küld. Felülírja Capri értékét minden olyan névnél, amit megoszt, és a modell nem ellenőrzi.
+Online speech recognition	Online beszédfelismerés
+Open Capri Mainframe	Capri Mainframe megnyitása
+Open Ollama, I'll find it	Nyisd meg az Ollamát, megtalálom
+Open clips folder	Klipek mappájának megnyitása
+Open her memories	Emlékeinek megnyitása
+Open her notes	Jegyzeteinek megnyitása
+Open mods folder	Modok mappájának megnyitása
+Open the page again	Oldal újbóli megnyitása
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA vagy OpenRouter.
+OpenAI-compatible server or provider.	OpenAI-kompatibilis szerver vagy szolgáltató.
+OpenRouter · free models only	OpenRouter · csak ingyenes modellek
+Optional	Opcionális
+Optional. Blank means no key.	Opcionális. Üresen nincs kulcs.
+Options	Beállítások
+Out of the box a little higher, just behind her.	Alapból kicsit magasabban, közvetlenül mögötte.
+Out of the box lower, just behind her.	Alapból kicsit lejjebb, közvetlenül mögötte.
+Output	Kimenet
+Output:	Kimenet:
+Output: none	Kimenet: nincs
+PHONE CONNECTED	TELEFON CSATLAKOZVA
+PHONES >	TELEFONOK >
+PHONES CONNECTED	TELEFONOK CSATLAKOZVA
+PREBUILT LOCAL	ELŐRE ELKÉSZÍTETT HELYI
+PUBLISH MOD >	MOD KÖZZÉTÉTELE >
+Pair a phone	Telefon párosítása
+Paste	Beillesztés
+Paste API key	API-kulcs beillesztése
+Paste a brain API key	Agy API-kulcs beillesztése
+Paste reads your clipboard once, when you press it.	A Beillesztés egyszer olvassa a vágólapot, amikor megnyomod.
+Paste your key here	Illeszd be ide a kulcsodat
+Pat stroke	Fejsimogatás
+Perch	Perch
+Perch over {0} fps uses more CPU	A {0} fps feletti perch több CPU-t használ
+Pick Output to get it.	Válaszd a Kimenetet, hogy megkapd.
+Pick a brain so I can talk back. You can change it any time.	Válassz agyat, hogy válaszolhassak. Bármikor megváltoztathatod.
+Pick a clip of a voice you have the rights and consent to use	Válassz egy klipet olyan hangról, amelyhez van jogod és hozzájárulásod a használathoz
+Pick a free model. I opened the page in your browser.	Válassz egy ingyenes modellt. Megnyitottam az oldalt a böngészőben.
+Pick a new clip of you...	Válassz egy új klipet rólad...
+Pick a voice model...	Válassz egy hangmodellt...
+Pick one. Only one brain runs at a time.	Válassz egyet. Egyszerre csak egy agy fut.
+Pick the note her memories go in	Válaszd ki a jegyzetet, ahová az emlékei kerülnek
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Válassz {0}–{1} másodpercet olyan hangból, amelyhez van jogod és hozzájárulásod a használathoz
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Válassz {0}–{1} másodpercnyi beszédet magadtól, vagy olyan hangból, amelyhez van jogod és hozzájárulásod a használathoz
+Pitch	Hangmagasság
+Play	Lejátszás
+Play...	Lejátszás...
+Player only	Csak lejátszó
+Pocket TTS models copy this clip's voice. Press Test to hear it.	A Pocket TTS-modellek ennek a klipnek a hangját másolják. Nyomj Tesztet a meghallgatáshoz.
+Pop-in times	Megjelenési idők
+Pop-ins	Megjelenések
+Power saver	Energiatakarékos
+Power saver: how lightly she runs in games, or always	Energiatakarékos: mennyire óvatosan fut játékokban, vagy mindig
+Preset	Előbeállítás
+Press Create API key	Nyomd meg az API-kulcs létrehozása gombot
+Press Create Key	Nyomd meg a Kulcs létrehozása gombot
+Press Generate API Key	Nyomd meg az API-kulcs generálása gombot
+Press Test and say something, so I know I can hear you.	Nyomj Tesztet és mondj valamit, hogy tudjam, hallak.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Nyomj egy billentyűt, egyedül vagy Ctrl, Alt, Shift vagy Win kombinációban.
+Press new keys, then Confirm	Nyomj új billentyűket, majd Megerősítést
+Provider	Szolgáltató
+Provider API key, optional	Szolgáltatói API-kulcs, opcionális
+Provider base URL	Szolgáltató alap-URL-je
+Provider forgotten.	A szolgáltató elfelejtve.
+Provider overlaps the brain name or note	A szolgáltató átfed az agy nevével vagy a jegyzettel
+Publish	Közzététel
+Publish mod	Mod közzététele
+Push to talk is off.	A beszéd gombnyomásra ki van kapcsolva.
+Push to talk key	Beszédgomb
+Push to talk:	Beszéd gombnyomásra:
+Push to talk: not set	Beszéd gombnyomásra: nincs beállítva
+QR CODE >	QR-KÓD >
+QR hidden while streaming	QR elrejtve streamelés közben
+Quick	Gyors
+Quiet key	Csend billentyű
+Quiet:	Csend:
+Quiet: Ctrl + Alt + P	Csend: Ctrl + Alt + P
+Quit Capri	Capri bezárása
+RELAY >	RELÉ >
+REMOTE >	TÁVOLI >
+RUNS CODE.	KÓDOT FUTTAT.
+Rarely	Ritkán
+Rate mod	Mod értékelése
+Reading its README...	README olvasása...
+Refresh	Frissítés
+Reinstall	Újratelepítés
+Reload	Újratöltés
+Reloaded.	Újratöltve.
+Remember our chats	Emlékezz a csevegéseinkre
+Remember what she sees	Emlékezz arra, amit lát
+Remote	Távoli
+Remote off	Távoli ki
+Remote on	Távoli be
+Remove	Eltávolítás
+Remove all phones	Összes telefon eltávolítása
+Replies	Válaszok
+Reply length	Válasz hossza
+Report a problem	Hiba jelentése
+Reset colors	Színek alaphelyzetbe
+Reset to her default	Visszaállítás az alapértelmezettre
+Resolution	Felbontás
+Restart to update	Újraindítás a frissítéshez
+Restless	Nyughatatlan
+Revoke	Visszavonás
+Revoke also removes the phones its links added	A visszavonás a hivatkozásai által hozzáadott telefonokat is eltávolítja
+Ride cursor	Kurzor lovaglása
+Ride cursor / Hop off	Kurzor lovaglása / Leszállás
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Jobb klikk rám bármikor a Capri Mainframe-hez. Az AGY alatt bekapcsol egy agy.
+Right-click me any time for the Mainframe, Help and the Discord.	Jobb klikk rám bármikor a Mainframe-hez, a Súgóhoz és a Discordhoz.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox vagy más alkalmazás: válassz
+Robot	Robot
+Rock, paper, scissors	Kő, papír, olló
+Run this code mod?	Futtatod ezt a kódmodot?
+Running on this PC	Fut ezen a PC-n
+Running on this PC · :	Fut ezen a PC-n · :
+Runs Claude Code or Codex on this PC, signed in.	Claude Code vagy Codex fut ezen a PC-n, bejelentkezve.
+Runs on your PC. No key, no credits.	A PC-don fut. Nincs kulcs, nincs kredit.
+SCAN WITH YOUR PHONE · EXPIRES	OLVASD BE A TELEFONODDAL · LEJÁR
+SECURITY >	BIZTONSÁG >
+SKILL.	KÉPESSÉG.
+SKIN.	BŐR.
+SORT BY	RENDEZÉS
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	HANGOK SZOKÁSOK AGY NÉZÉS CAPRI DOOMSCROLL IDŐJÁRÁS KLIPEK JÁTÉKOK BILLENTYŰK MOZGÁSOK HANG TE
+Same as her ears (VOICE > Mic)	Ugyanaz, mint a fülei (HANG > Mikrofon)
+Same code on the phone?	Ugyanaz a kód a telefonon?
+Save	Mentés
+Save big moments	Nagy pillanatok mentése
+Save folder	Mentési mappa
+Save your changes, or press Discard + reload.	Mentsd a módosításaidat, vagy nyomj Elvetés + újratöltés gombot.
+Save your changes, or press Discard.	Mentsd a módosításaidat, vagy nyomj Elvetést.
+Saved.	Mentve.
+Saved. Ctrl + Alt + O opens her Mainframe.	Mentve. A Ctrl + Alt + O megnyitja a Mainframe-jét.
+Saving your rating...	Az értékelésed mentése...
+Say her name anywhere to chat	Bárhol mondd ki a nevét a csevegéshez
+Screens	Képernyők
+Screens is hidden or outside WATCH	A Képernyők el van rejtve, vagy a NÉZÉS-en kívül van
+Screens overlaps a WATCH row	A Képernyők átfed egy NÉZÉS sort
+Screens to watch	Figyelendő képernyők
+Sealed end to end	Végponttól végpontig titkosítva
+Search by name or author	Keresés név vagy szerző szerint
+Search installed mods	Keresés a telepített modokban
+Search mods	Modok keresése
+Search name, author or description	Keresés név, szerző vagy leírás alapján
+Security	Biztonság
+Security:	Biztonság:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Beállítás
+Set up her brain	Agy beállítása
+Set up your voice model	Hangmodell beállítása
+Setting up her brain	Agy beállítása folyamatban
+Settings	Beállítások
+Settings / Back	Beállítások / Vissza
+Settings folds the wrong rows above BRAIN	A Beállítások rossz sorokat csukott be az AGY fölött
+Settings had nothing to watch.	A Beállításoknak nem volt mit figyelnie.
+Settings lost keyboard focus during the Tab walk	A Beállítások elvesztette a billentyűzetfókuszt a Tab-bejárás közben
+Setup guide	Beállítási útmutató
+Setup stopped	A beállítás leállt
+She can read it when it fits.	Ha belefér, el tudja olvasni.
+She glances at your screen and comments. Costs a little on a paid brain.	Ránéz a képernyődre és kommentál. Fizetős agyon kicsit költ.
+She keeps listening. Say her name, then just talk until you go quiet.	Továbbra is hallgat. Mondd ki a nevét, aztán beszélj, amíg el nem hallgatsz.
+She reacts to your game until you close it.	A játékodra reagál, amíg be nem zárod.
+She reads these controls before each game job.	Minden játékfeladat előtt elolvassa ezeket a vezérlőket.
+She talks about your game as you play. Costs a little on a paid brain.	Kommentálja a játékodat, amíg játszol. Fizetős agyon kicsit költ.
+She uses it when she plays	Játékközben használja
+Short	Rövid
+Shortest wait (minutes)	Legrövidebb várakozás (perc)
+Show Capri	Capri megjelenítése
+Show QR	QR megjelenítése
+Show my mod file	Mod-fájlom megjelenítése
+Show on Discord	Megjelenítés a Discordon
+Shum, what time is it	Shum, hány óra van
+Sign in	Bejelentkezés
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Jelentkezz be, készíts kulcsot és másold ki. Majd nyomj Beillesztést, és csatlakozom.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Jelentkezz be, nyomj API-kulcs létrehozását, és másold ki. Majd nyomj Beillesztést, és csatlakozom.
+Silent · text only	Csendes · csak szöveg
+Simple / Advanced Settings	Egyszerű / speciális beállítások
+Simple Settings	Egyszerű beállítások
+Simple Settings left a gap under Check in on me	Az egyszerű beállítások rést hagytak a Nézz rám alatt
+Sit here	Ülj ide
+Sit on windows	Ülj az ablakokra
+Size	Méret
+Skip	Kihagyás
+Skip all	Mindet kihagyja
+Skip for now	Kihagyás egyelőre
+Sleep	Alvás
+Small	Kicsi
+Sometimes	Néha
+Sound effects volume	Effektek hangereje
+Sound sensitivity	Hangérzékenység
+Sounds	Hangok
+Speaker or clip	Hangszóró vagy klip
+Speech model	Hangmotor
+Speed	Sebesség
+Start with Windows	Indítás a Windows-szal
+Start with this!	Ezzel kezdjük!
+Starting...	Indítás...
+Stay	Marad
+Stay on my model	Maradjon a modellem
+Still checking your mics...	Még ellenőrzöm a mikrofonjaidat...
+Still checking your speakers...	Még ellenőrzöm a hangszóróidat...
+Still checking your virtual mics...	Még ellenőrzöm a virtuális mikrofonjaidat...
+Stop	Leállítás
+Stopped using it. Couldn't remove the saved provider.	Abbahagytam a használatát. Nem sikerült eltávolítani a mentett szolgáltatót.
+Support	Támogatás
+Sure?	Biztos?
+Sure? moved to a different phone	Biztos? másik telefonra költözött
+TALK TO ME	BESZÉLJ HOZZÁM
+TEXT ONLY	CSAK SZÖVEG
+Tab landed past the first option of	A Tab az első lehetőség mellé ért itt:
+Tab never reached the quiet key	A Tab soha nem érte el a csend billentyűt
+Tab reached nothing	A Tab nem ért el semmit
+Tab selected a control without moving keyboard focus	A Tab vezérlőt választott anélkül, hogy a billentyűzetfókusz elmozdult volna
+Talk	Beszéd
+Talk key	Beszédgomb
+Talk:	Beszéd:
+Talk: Ctrl + Alt + V	Beszéd: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	A rögzítés céljának képkockasebessége; terhelés vagy memóriakeret alatt eshet
+Teases when another AI comes to the front.	Csipkelődik, amikor egy másik MI kerül előtérbe.
+Test	Teszt
+That address doesn't work. Try https://... or http://localhost:{0}.	Ez a cím nem működik. Próbáld a https://... vagy a http://localhost:{0} címet.
+That code expired	Ez a kód lejárt
+That mod is no longer installed. The list is updated.	Ez a mod már nincs telepítve. A lista frissült.
+That's a paid key: it goes under MAX INTELLIGENCE.	Ez egy fizetős kulcs: a MAX INTELLIGENCE alá kerül.
+The Mainframe stayed composited while sliding.	A Mainframe csúsztatás közben kompozitban maradt.
+The Mainframe stayed uncomposited after the slide.	A Mainframe csúsztatás után sem lett kompozit.
+The controls moved while the picture was sliding.	A vezérlők elmozdultak, miközben a kép csúszott.
+The cover stayed visible after the slide ended.	A borítás a csúsztatás vége után is látszott.
+The frame thread kept running after the page settled.	A képszál a lap megállapodása után is futott tovább.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	A leghosszabb válasz, amit adhat, tokenben. Az Auto a fenti Válaszokhoz tartja magát; a {0}K vagy {1}K hagyja, hogy tovább fusson. A feladatok több helyet kapnak, ha szükségük van rá
+The longest wait must be at least the shortest wait.	A leghosszabb várakozásnak legalább a legrövidebb várakozással egyenlőnek kell lennie.
+The picture doesn't match the scrolled page:	A kép nem egyezik a görgetett oldallal:
+The picture of Settings doesn't match the page:	A Beállítások képe nem egyezik az oldallal:
+The picture stayed up after the slide ended.	A kép a csúsztatás vége után is látszott.
+The picture wasn't showing while it slid.	A kép nem látszott, amíg csúszott.
+The provider sheet is crowded:	A szolgáltatói lap zsúfolt:
+The voice panel has no screen DPI.	A hangpanelnek nincs képernyő-DPI-je.
+The voice panel's menus share one font.	A hangpanel menüi egy betűtípust használnak.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Még nincs kulcs a vágólapodon. Másold ki az oldalról, majd nyomj Beillesztést.
+These start off. Each costs a little or uses your mic.	Ezek alapból ki vannak kapcsolva. Mindegyik kicsit költ, vagy a mikrofonodat használja.
+These start off. Turn on what you want. They're all in Settings too.	Ezek alapból ki vannak kapcsolva. Kapcsold be, amit akarsz. A Beállításokban is megtalálod őket.
+They can also call you Big Z, Capricorn or Nova	Hívhatnak Big Z-nek, Capricornnak vagy Novának is
+They can also call you Nova, Big Z or Capricorn	Hívhatnak Novának, Big Z-nek vagy Capricornnak is
+Thinking	Gondolkodom
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Ez az ingyenes hangom. Nyomj Tesztet, mondj valamit, és megmutatom, hogy hallak.
+This mod has no description yet.	Ennek a modnak még nincs leírása.
+Tic-tac-toe	Amőba
+Time between glances	Idő a pillantások között
+Tiny	Apró
+Try again	Próbáld újra
+Turn Remote on first	Kapcsold be előbb a Távolit
+Turn off mini player	Mini lejátszó kikapcsolása
+Turn push to talk off	Beszéd gombnyomásra kikapcsolása
+Turning the wheel the other way kept the page heading the old way, to	A görgetőkerék másik irányba fordítása a régi irányban hagyta az oldalt, hogy
+Type	Gépelés
+Type key	Gépelési billentyű
+Type to me	Írj nekem
+Type:	Gépelés:
+Type: Ctrl + Alt + T	Gépelés: Ctrl + Alt + T
+Typing sound	Gépelési hang
+Unpacked. Press Test to hear it.	Kicsomagolva. Nyomj Tesztet a meghallgatáshoz.
+Unsaved changes.	Mentetlen módosítások.
+Up to {0} fps	Legfeljebb {0} fps
+Up to {0}p	Legfeljebb {0}p
+Update	Frissítés
+Update available.	Frissítés elérhető.
+Update mods	Modok frissítése
+Updating...	Frissítés...
+Use	Használat
+Use her cursor	Használja a kurzorát
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Használj https://-t egy másik helyen lévő szolgáltatóhoz. A sima http-n küldött kulcs nem biztonságos.
+Use preset	Előbeállítás használata
+Use saved	Mentett használata
+Use this server	Ezen a szerveren
+Using your provider with a key	Szolgáltató használata kulccsal
+Using your server with no key	Saját szerver használata kulcs nélkül
+VIEW MOD >	MOD MEGTEKINTÉSE >
+VOICE >	HANG >
+VOICE IN YOUR MIC >	HANG A MIKROFONODBAN >
+VOICE LAYERS >	HANGRÉTEGEK >
+Verbosity	Szövegesség
+Video bitrate	Videó-bitráta
+View	Nézet
+View mod	Mod megtekintése
+Voice	Hang
+Voice ID	Hang-azonosító
+Voice from	Hang innen:
+Voice layers	Hangrétegek
+Voice model	Hangmodell
+Voice model:	Hangmodell:
+Voice name or ID, optional	Hangnév vagy azonosító, opcionális
+Voice server address, or a voice model's folder	Hangszerver címe, vagy egy hangmodell mappája
+Voice status	Hang állapota
+Voice, key and model...	Hang, kulcs és modell...
+Volume	Hangerő
+WAKE ME UP >	ÉBRESZTŐ >
+WATCH >	NÉZÉS >
+Waiting for the relay	Várakozás a relére
+Wake her up	Ébreszd fel
+Waking her up	Ébresztés folyamatban
+Wander	Kóborlás
+Wander around	Kóborolj körbe
+Watch my screen	Nézd a képernyőmet
+Watch-along memory	Közös nézés emléke
+Weather	Időjárás
+Weather city	Időjárási város
+Welcome back, choom. Let's finish setting me up.	Üdv újra, choom. Fejezzük be a beállításomat.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Amit kérdés nélkül csinál a PC-den. Kikapcsolt kapcsolónál először kérdez, és akkor csinálja, ha igent mondasz.
+What should she call you?	Hogyan szólítsalak?
+When she types	Amikor gépel
+White	Fehér
+Windows default	Windows alapértelmezett
+Windows did not give Settings keyboard focus	A Windows nem adott billentyűzetfókuszt a Beállításoknak
+Windows did not return keyboard focus to Back	A Windows nem adta vissza a billentyűzetfókuszt a Vissza gombhoz
+With no picture the wheel still tried to slide.	Kép nélkül a görgetőkerék is megpróbált csúszni.
+Works best on MAX INTELLIGENCE.	A MAX INTELLIGENCE-en működik a legjobban.
+YOU	TE
+YOU >	TE >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	TE HANG MOZGÁSOK BILLENTYŰK JÁTÉKOK KLIPEK IDŐJÁRÁS DOOMSCROLL CAPRI NÉZÉS AGY SZOKÁSOK HANGOK
+YOUR KEY	A KULCSOD
+YOUR MIC	A MIKROFONOD
+YOUR PLAN	A CSOMAGOD
+Yokapri what's up	Yokapri mi a helyzet
+You can hide this. It keeps going, and the Mainframe shows it too.	Ezt elrejtheted. Fut tovább, és a Mainframe is mutatja.
+Your mic and her voice go into one virtual mic, and	A mikrofonod és a hangja egyetlen virtuális mikrofonba kerül, és
+Your mic is muted. Unmute it to test.	A mikrofonod némítva van. Némítsd fel a teszteléshez.
+Your mods are up to date.	A modjaid naprakészek.
+Your name or a nickname	A neved vagy egy becenév
+Your own model	Saját modell
+Your personality	A személyiséged
+Your voice	A hangod
+Your voice (HD)	A hangod (HD)
+Your voice (HD) · pick a clip of you...	A hangod (HD) · válassz egy klipet rólad...
+Your voice model	A hangmodelled
+as its mic.	mint a mikrofonja.
+changed. Saved as My Colors, so you can share it.	megváltozott. Saját színekként mentve, hogy megoszthasd.
+choice	választás
+clips the input line	átfedi a bemeneti sort
+cue	jel
+doesn't yet.	még nem.
+download	letöltés
+file.	fájl.
+flag	jelző
+fps	fps
+hear	hallani
+hears	hallja
+hears that.	ezt hallja.
+hides or shows her.	elrejti vagy megjeleníti.
+hint	tipp
+in the Mainframe.	a Mainframe-ben.
+in the mods directory with a pull request.	a modok mappájában pull requesttel.
+in the picture wasn't noticed.	a képen nem vették észre.
+is already her push-to-talk key.	már a beszédgombja.
+is off.	ki van kapcsolva.
+is on and running.	be van kapcsolva, és fut.
+is on, at the bottom, under	be van kapcsolva, alul, ez alatt:
+is on.	be van kapcsolva.
+is on. She now answers to	be van kapcsolva. Mostantól erre válaszol:
+is removed.	el lett távolítva.
+is taken	foglalt
+is taken by another app. Try another.	másik alkalmazás foglalta. Próbálj másikat.
+is updated	frissítve van
+isn't hearing it yet: do {0} and {1}, then join a call.	még nem hallja: csináld meg a {0} és {1} lépést, majd csatlakozz hívásba.
+it now.	most.
+keeps her quiet, and lets her talk again.	csendben tartja, és újra beszélhet.
+key	billentyű
+key.	billentyű.
+min	perc
+more.	még.
+ms.	ms.
+mutes mic	elnémítja a mikrofont
+mutes your mic.	elnémítja a mikrofonodat.
+name	név
+off	ki
+on this PC	ezen a PC-n
+opens her Mainframe.	megnyitja a Mainframe-jét.
+opens her typing box.	megnyitja a gépelő dobozát.
+phone	telefon
+phone pixels	telefonpixel
+phones	telefonok
+pixels	pixel
+pixels)	pixel)
+star.	csillag.
+stars.	csillag.
+starts voice chat.	elindítja a hangcsetet.
+stays off. Nothing ran.	kikapcsolva marad. Semmi nem futott.
+still does its own job in other apps too. Confirm to keep it.	más alkalmazásokban is végzi a dolgát. Erősítsd meg a megtartáshoz.
+tall	magas
+time	idő
+to talk	a beszédhez
+to talk to her, with a game in front too.	a beszédhez, játék az előtérben is.
+too.	is.
+turns Gaming Mode on and off.	be- és kikapcsolja a Játékmódot.
+with Ollama	Ollamával
+won't type in other apps while she runs. Confirm to keep it.	nem ír más alkalmazásokba, amíg fut. Erősítsd meg a megtartáshoz.
+{0}   Echo Cancellation: Off	{0}   Visszhangszűrés: Ki
+{0}   If her voice cuts off, turn off noise filtering	{0}   Ha a hangja elvág, kapcsold ki a zajszűrést
+{0}   Input Device:	{0}   Bemeneti eszköz:
+{0}   Join the call and check they hear both of you	{0}   Csatlakozz a hívásba, és ellenőrizd, hogy mindkettőtöket hallják
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Mikrofonteszt > Ellenőrizzük: magadat és őt hallod, ahogy beszél
+{0}   Microphone:	{0}   Mikrofon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Zajelnyomás: Nincs. Mindkettő elvághatja a hangját az első sor után.
+{0}   Open the call or meeting's audio settings	{0}   Nyisd meg a hívás vagy értekezlet hangbeállításait
+{0}   Output Device: your headphones, like before	{0}   Kimeneti eszköz: a fejhallgatód, mint eddig
+{0}   Speaker: your headphones, like before	{0}   Hangszóró: a fejhallgatód, mint eddig
+{0}   Try a mic test in your call app	{0}   Próbáld ki a mikrofonos tesztet a hívásalkalmazásodban
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Felhasználói beállítások (a neved melletti fogaskerék) > Hang és videó
+{0} Mbps	{0} Mbps
+{0} lines	{0} sor
+{0} min	{0} perc
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ezen a PC-n
+· server	· szerver

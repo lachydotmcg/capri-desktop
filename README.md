@@ -18,7 +18,7 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 
 [Every download](https://capriai.app/#download) · [Setup guide](https://capriai.app/setup/) · [Website](https://capriai.app/) · [Help](https://capriai.app/help/) · [Support](#support)
 
-<sub>Get Capri only from [capriai.app](https://capriai.app/), [GitHub](https://github.com/lachydotmcg/capri-desktop/releases) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Copies on other sites aren't ours. Zero telemetry.</sub>
+<sub>Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G), and check it against the release's `SHA256SUMS.txt` ([how](SECURITY.md#windows-or-your-antivirus-warned-me)). Copies on other sites or GitHub accounts aren't ours. Zero telemetry.</sub>
 
 <sub>Inspired by jpartnma_'s TikTok video.</sub>
 
@@ -91,7 +91,7 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 <summary><h2><a name="what-she-does"></a>What she does</h2><br><a name="what-she-does-1"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"></a> <a name="what-she-does-2"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"></a> <a name="what-she-does-3"><img src="assets/readme/mainframe.png" alt="The Capri Mainframe with her BRAIN and VOICE rows" width="170"></a></summary>
 
 - **Talks back.** Type to her or voice chat, and turn on "Hey Capri" to call her by name. She answers in her own words, in 80 languages.
-- **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (Windows).
+- **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (chat and photos on Windows, Mac and Linux; calls and Room voice are Windows-only).
 - **Talks out loud.** In her own free voice, a voice model of yours, or Fish Audio, ElevenLabs or OpenAI. See [Her voice](#her-voice).
 - **Joins your calls.** She covers for you on Discord and other call apps, and launches what your friends pick (Windows, beta). See [She joins your calls](#she-joins-your-calls).
 - **Plays your games.** She comments while you play, and she can play too. She's still learning.
@@ -131,19 +131,19 @@ Mac and Linux can hear one line at a time through **TALK** once you set up her o
 
 On Linux, streaming computer-use jobs are unavailable when Capri has to use her fallback desktop controls. Other computer-use jobs are unchanged.
 
-1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage) or [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
+1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage), [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz), [Linux arm64 (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.AppImage) or [Linux arm64 (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-arm64.tar.gz). The arm64 files are for boards like the Raspberry Pi 5 running a 64-bit system
 2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
 3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
    ```bash
    xattr -dr com.apple.quarantine /Applications/Capri.app
    ```
    Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
-4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
+4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`, or `Capri-linux-arm64.AppImage` on arm64), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
 
 ### Linux TALK setup
 
 1. Install `parec` from your distribution's PulseAudio tools (`pulseaudio-utils` on Ubuntu). Pick your default mic in your system sound settings. PipeWire works when its PulseAudio service is running.
-2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine into `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/`, keeping its libraries with the extracted build. She also finds `sherpa-onnx-offline` on your `PATH` or in `~/.local/bin`, `/usr/local/bin` or `/usr/bin`.
+2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine (`linux-aarch64-shared-cpu` on arm64) into `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/`, keeping its libraries with the extracted build. She also finds `sherpa-onnx-offline` on your `PATH` or in `~/.local/bin`, `/usr/local/bin` or `/usr/bin`.
 3. Extract her [English Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2). Put `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx` and `tokens.txt` directly in `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/parakeet-tdt-0.6b-v2-int8/`. With her language set to another European language under **Mainframe > Settings**, extract her [European Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8.tar.bz2) instead and put the same four files in `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/parakeet-tdt-0.6b-ultra-int8/`. It hears 25 European languages, French, German and Spanish among them.
 4. Hover over her and click **TALK**. Say one line and pause. Click **TALK** again to cancel. She reads the mic audio on your PC and sends only the words through the same chat as **TYPE**. She answers out loud when you've set up a voice under **Mainframe > VOICE**.
 
@@ -219,7 +219,7 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 
 **Two ways to get her on Windows.** The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI, 0.8.9) is signed and checked by Microsoft, so there's no warning. It has Capri Remote and updates through the Store. The latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. Both are on [capriai.app](https://capriai.app/#download), with the one for your device on top.
 
-Get Capri only from [capriai.app](https://capriai.app/), [GitHub](https://github.com/lachydotmcg/capri-desktop/releases) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Copies on other sites aren't ours.
+Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Every release has a `SHA256SUMS.txt` with the SHA-256 of each file, Windows, Mac and Linux, and [SECURITY.md](SECURITY.md#windows-or-your-antivirus-warned-me) shows how to check yours. Copies on other sites or GitHub accounts aren't ours.
 
 **Zero telemetry.** No analytics, crash reports or usage pings. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
 
@@ -266,7 +266,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 | Shift + drop | sit her right where you drop her |
 | Ctrl + drop | she hangs on; click her to let go |
 | Mic button | mute your mic in voice chat |
-| "Hey Capri" | she glitches in and opens voice chat. Turn on Listen for "Hey Capri" under Settings > HABITS > Security (Windows and English for now) |
+| "Hey Capri" | she glitches in and opens voice chat. Turn on Listen for Capri under Settings > VOICE (Windows and English for now) |
 | Ctrl + Alt + V | start or stop voice chat (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + N | mute your mic (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + T | open her typing box from anywhere |

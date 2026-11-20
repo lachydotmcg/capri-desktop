@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	다시 그려진 컨트롤은 그림에서 다시 그려지지 않았다.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Google AI Studio, NVIDIA 또는 OpenRouter의 무료 키. 다운로드할 것 없음. 인터넷 필요.
+A held trackpad scroll got a flick's long ease:	누르고 있던 터치패드 스크롤이 플릭의 긴 감속을 받았다:
+A layout change during a slide put the page at	슬라이드 도중 레이아웃이 바뀌어 페이지가 다음 위치로 갔다
+A layout change left the picture up.	레이아웃이 바뀌었지만 그림이 그대로 남았다.
+A model in Ollama, on your local server or on your key.	Ollama의 모델, 로컬 서버 또는 내 키로 사용.
+A paid key goes under MAX INTELLIGENCE by itself.	유료 키는 자동으로 MAX INTELLIGENCE에 들어간다.
+A plan you already pay for, a key of your own, or Ollama.	이미 결제 중인 요금제, 직접 가진 키, 또는 Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	음성 패널 메뉴가 패널 글꼴의 자체 사본을 가지고 있지 않다.
+A wheel turn right after a slide ended froze the picture.	슬라이드가 끝난 직후 휠을 돌리자 그림이 멈췄다.
+ALLOW THIS PHONE?	이 휴대폰을 허용할까요?
+ALMOST THERE >	거의 다 됐어 >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	다른 CAPRI가 장악함 · 껐다 켜세요
+API key	API 키
+API key, Claude plan or ChatGPT plan	API 키, Claude 요금제 또는 ChatGPT 요금제
+Add	추가
+Address	주소
+Address and key saved. Use saved to reconnect.	주소와 키가 저장됨. 저장된 항목을 사용해 다시 연결.
+Advanced Settings	고급 설정
+All	전체
+All screens	모든 화면
+Allow	허용
+Almost there. I'll say hi the second my brain's in.	거의 다 됐어. 내 뇌가 들어오면 바로 인사할게.
+Always	항상
+Always on top	항상 위에 표시
+Any Google account works. I opened the page in your browser.	아무 Google 계정이나 됩니다. 브라우저에서 페이지를 열었어요.
+Applies to every voice	모든 음성에 적용
+Apps she may close	닫아도 되는 앱
+Ask Capri for more	Capri에게 더 요청하기
+Asking your server...	서버에 묻는 중...
+Asks before closing only the apps you choose.	선택한 앱만 닫기 전에 물어봐.
+Auto	자동
+Automatic: VB-CABLE, else Steam's	자동: VB-CABLE, 없으면 Steam 것
+BAD RELAY HOST	잘못된 RELAY 호스트
+BIG Z open notepad	BIG Z 메모장 열어
+BRAIN	뇌
+BRAIN >	뇌 >
+BRAIN ONLINE >	뇌 온라인 >
+BRAIN PROVIDER >	뇌 제공자 >
+BRAIN VOICE CAPRI	CAPRI 음성 뇌
+Back	뒤로
+Back on your saved API key.	저장된 API 키로 돌아감.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	이 PC에 가장 적합:
+Black	검정
+Blank key means no key.	빈 키는 키 없음을 뜻함.
+Brain API key	뇌 API 키
+Brain model	뇌 모델
+Brain provider	뇌 제공자
+Bring here	여기로 가져오기
+Bring to this screen	이 화면으로 가져오기
+Browse	찾아보기
+Browse mods	모드 찾아보기
+Browse to a voice model	음성 모델 찾아보기
+Browse...	찾아보기...
+Bubble	말풍선
+CABLE Output (VB-Audio Virtual Cable)	CABLE Output (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree 거기 있어?
+CAN'T REACH THE RELAY · RETRYING	RELAY에 연결할 수 없음 · 재시도 중
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	CAPRI 음성 뇌
+CHANGED, approve it again.	변경됨, 다시 승인해줘.
+CLIPS >	클립 >
+CLOUD VOICE	클라우드 음성
+CODE	코드
+COLORS >	색상 >
+CONNECTED	연결됨
+CONNECTING	연결 중
+CUSTOM LOCAL	사용자 지정 로컬
+Call mode (beta)	통화 모드 (베타)
+Call mode does not fit.	통화 모드가 맞지 않아.
+Call mode is outside its space.	통화 모드가 영역을 벗어났어.
+Cancel	취소
+Cancel keys	키 취소
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri Remote
+Capri code:	Capri 코드:
+Capri mods (*	Capri 모드 (*
+Capri, hello	Capri, 안녕
+CapriDesktop.	CapriDesktop.
+Chaos when upset	화나면 혼돈
+Chat with Capri from your phone	휴대폰에서 Capri와 대화
+ChatGPT plan	ChatGPT 요금제
+Check for updates	업데이트 확인
+Check in on me	안부 묻기
+Check in on me is hidden	안부 묻기 숨김
+Check in on me still decides whether she visits.	안부 묻기는 그녀가 찾아올지 여부를 여전히 결정해.
+Check in on me's tip missed	안부 묻기 팁이 누락됨
+Chess	체스
+Choose apps	앱 선택
+Choose folder...	폴더 선택...
+Choose where future Capri clips are saved	앞으로의 Capri 클립을 저장할 위치 선택
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Claude 또는 ChatGPT 요금제, 유료 키(OpenAI, Claude, DeepSeek), 또는 Ollama.
+Claude plan	Claude 요금제
+Clear	지우기
+Cleared.	지워짐.
+Click Confirm to keep Down, or press Esc.	Down을 유지하려면 확인을 클릭하거나 Esc를 누르세요.
+Click to open it.	클릭해서 열기.
+Clip my games	내 게임 클립 저장
+Clips	클립
+Close	닫기
+Close other AIs for me	다른 AI 나 대신 닫기
+Cloud voice	클라우드 음성
+Cloud voice service	클라우드 음성 서비스
+Cloud voice setup	클라우드 음성 설정
+Code mods can reach your whole PC. Only trusted ones.	코드 모드는 PC 전체에 접근할 수 있음. 신뢰하는 것만.
+Code/Husk Mode	Code/Husk 모드
+Codex	Codex
+Commands	명령
+Comment on my games	내 게임에 댓글 달기
+Comments	댓글
+Confirm	확인
+Confirm keys	키 확인
+Connect	연결
+Connect / Forget brain key	뇌 키 연결 / 잊기
+Connect / Forget voice key	음성 키 연결 / 잊기
+Connect four	Connect Four
+Controls	컨트롤
+Copri, what time is it	Copri, 지금 몇 시야
+Copy error details	오류 세부 정보 복사
+Copy the key	키 복사
+Copy the key from the page, then press Paste.	페이지에서 키를 복사한 다음 붙여넣기를 누르세요.
+Couldn't open that page:	그 페이지를 열 수 없음:
+Couldn't open that:	그것을 열 수 없음:
+Couldn't open the mods folder:	모드 폴더를 열 수 없음:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M은 이미 그녀의 Mainframe 키야.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N은 마이크를 음소거
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V는 이미 그녀의 말하기 키야.
+Ctrl + Alt + V to talk	Ctrl + Alt + V로 말하기
+Custom local voice	사용자 지정 로컬 음성
+Custom model name	사용자 지정 모델 이름
+Dance	춤추기
+Dance to music	음악에 맞춰 춤추기
+Default	기본
+Default (follows Windows)	기본 (Windows 따름)
+Default duration for clip that and automatic clips	clip that 및 자동 클립의 기본 길이
+Default length	기본 길이
+Default model	기본 모델
+Delay	지연
+Deny	거부
+Discard	버리기
+Discard + reload	버리기 + 다시 불러오기
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	기다리기 싫어? 무료 키면 약 1분 안에 나랑 대화할 수 있어.
+Done	완료
+EXTRA REQUEST JSON >	추가 요청 JSON >
+EXTRAS >	추가 기능 >
+Edit	편집
+Edit check-in lines	체크인 대사 편집
+Edit check-in lines has the wrong view or dimming	체크인 대사 편집: 잘못된 보기 또는 흐림
+Edit check-in lines is out of place	체크인 대사 편집이 제자리에 없음
+Edit controls	컨트롤 편집
+ElevenLabs API key	ElevenLabs API 키
+ElevenLabs voice ID	ElevenLabs 음성 ID
+English	영어
+Enter the game's name first.	먼저 게임 이름을 입력하세요.
+Every	매
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	모든 모드는 게시 전에 악성코드를 검사해. 코드 모드는 실행 전에 여전히 물어봐.
+Explore after	나중에 탐색
+Explore while I'm away	내가 없을 때 탐색
+Extra request JSON	추가 요청 JSON
+Extras	추가 기능
+FREE KEY	무료 키
+FREE KEY >	무료 키 >
+Fast hands in games	게임에서 빠른 손
+File editor	파일 편집기
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs 등은 Mainframe의 음성 항목에 있어.
+Follow-up messages	후속 메시지
+Forget	잊기
+Fork capri-mods	capri-mods 포크
+Frame rate	프레임 속도
+Free	무료
+Free and private, works offline. Downloads	무료이며 비공개, 오프라인에서도 작동. 다운로드
+Free and private, works offline. Downloads the best model for this PC.	무료이며 비공개, 오프라인에서도 작동. 이 PC에 가장 좋은 모델을 다운로드.
+Free key	무료 키
+Free key providers	무료 키 제공자
+Free keys can be rate limited and slow.	무료 키는 속도 제한이 있고 느릴 수 있어.
+Free voice in games	게임 중 무료 음성
+Free voice style	무료 음성 스타일
+Free voice:	무료 음성:
+Free voice: Her own	무료 음성: 그녀 고유
+Free · local model	무료 · 로컬 모델
+GAMES >	게임 >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	게임 댓글은 내 화면 보기와 별도로 실행됨. 끄면 게이밍 모드에서도 멈춰; 이벤트만 및 수다쟁이는 그녀가 게임을 보게 해
+Game controls	게임 컨트롤
+Game name	게임 이름
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	게임 소리 민감도. 헤드셋이 작지만 Windows가 {0}%이고 그녀가 모든 소리에 반응하면 낮추세요; 끄면 게임 소리를 무시
+Game sounds	게임 소리
+Games	게임
+Gaming Mode	게이밍 모드
+Gaming Mode key	게이밍 모드 키
+Gaming Mode:	게이밍 모드:
+Gaming Mode: Ctrl + Alt + G	게이밍 모드: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	VB-CABLE 받기
+Get VB-CABLE (free)...	VB-CABLE 받기 (무료)...
+Get free voice	무료 음성 받기
+Getting your Fish Audio voices...	Fish Audio 음성 가져오는 중...
+Giant	거대함
+Glitch	Glitch
+Glitch in at startup	시작 시 글리치
+Go to sleep	잠자기
+Go to the next screen	다음 화면으로 이동
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · 무료 등급 · 속도 제한
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Claude 또는 ChatGPT 요금제나 직접 가진 키 있어? 골라주면 연결할게.
+Got it, just me. Right-click me any time for Capri Mainframe.	알았어, 나만. 언제든 나를 우클릭하면 Capri Mainframe이 나와.
+Grey	회색
+H.{0} video bitrate target; higher values make larger files	H.{0} 비디오 비트레이트 목표; 값이 높을수록 파일이 커짐
+HABITS >	습관 >
+HER HANDS >	그녀의 손 >
+HER JOBS >	그녀의 작업 >
+HER MEMORY >	그녀의 기억 >
+HER MODS >	그녀의 모드 >
+HH:mm	HH:mm
+HOW I SOUND >	내 목소리 >
+Hang here	여기 머물기
+Have Ollama? Open it, then press Refresh.	Ollama 있어? 열고 새로 고침을 누르세요.
+Head pats	머리 쓰다듬기
+Hearing	청취
+Hearing engine	청취 엔진
+Hearing fix	청취 수정
+Hearing status	청취 상태
+Help	도움말
+Help page	도움말 페이지
+Her colors	그녀의 색상
+Her folder	그녀의 폴더
+Her memories	그녀의 기억들
+Her own colors are back.	그녀 고유의 색상이 돌아옴.
+Her own notes (no vault)	그녀의 메모 (볼트 없음)
+Her perch frames per second	그녀가 앉아 있을 때 초당 프레임
+Her personality	그녀의 성격
+Her size	그녀의 크기
+Her speaker	그녀의 스피커
+Her speaker is hidden or outside VOICE	그녀의 스피커가 숨겨졌거나 음성 밖에 있음
+Her speaker overlaps the mic or hearing row	그녀의 스피커가 마이크 또는 청취 줄과 겹침
+Her speaker:	그녀의 스피커:
+Her speaker: Default	그녀의 스피커: 기본
+Her voice in your mic	마이크의 그녀 목소리
+Her voice in your mic: loudness	마이크의 그녀 목소리: 음량
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	그녀의 목소리 자체. 피치는 설정 > 음성 > 피치이며 함께 움직임.
+Her voice joins your mic only in call mode.	그녀의 목소리는 통화 모드에서만 마이크에 들어감.
+Her voice volume	그녀 목소리 볼륨
+Her voice's pitch	그녀 목소리의 피치
+Her voice's pitch, the same as Settings > VOICE > Pitch	그녀 목소리의 피치, 설정 > 음성 > 피치와 같음
+Her voice's speed	그녀 목소리의 속도
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	그녀의 목소리와 그 아래 섞인 두 개의 복사본, 각각 자체 피치와 지연을 가짐.
+Her voices · free	그녀의 음성 · 무료
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	안녕, choom. 나는 Capri야. 말하려면 뇌가 필요해. 하나 골라.
+Hide / Show Capri	Capri 숨기기 / 보이기
+Hide / Show key	숨기기 / 보이기 키
+Hide Capri	Capri 숨기기
+Hide for now	잠시 숨기기
+Hide her	숨기기
+Hide in full screen	전체 화면에서 숨기기
+Hide this	이거 숨기기
+Hide, keep player	숨기고 플레이어 유지
+Hide/show:	숨기기/보이기:
+Hide/show: Ctrl + Alt + H	숨기기/보이기: Ctrl + Alt + H
+Hologram	홀로그램
+Hop off	내리기
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	PC가 가만히 있는 시간이 얼마나 지나야 그녀가 잠들지; 5분은 여전히 자리 비움으로 봄
+How long a stroke over her a head pat needs	그녀를 쓰다듬으려면 머리 위로 얼마나 오래 문질러야 하는지
+How long her replies stay up	그녀의 답변이 얼마나 오래 떠 있을지
+How long you are away before she scrolls a browser or reader	그녀가 브라우저나 리더를 스크롤하기 전에 자리를 비우는 시간
+How much her voice glitches	그녀의 목소리가 얼마나 끊기는지
+How much of the chat she keeps	그녀가 채팅을 얼마나 유지할지
+How much she wanders	그녀가 얼마나 돌아다닐지
+How often she pops in to say hi	그녀가 얼마나 자주 인사하러 들를지
+How robotic her voice sounds	그녀의 목소리가 얼마나 로봇처럼 들리는지
+How to	방법
+Huge	거대
+I can hear you.	들려요.
+I glance at your screen and comment. Costs a little on a paid brain.	화면을 힐끗 보고 댓글을 달아. 유료 뇌에서는 약간 비용이 들어.
+I keep listening. Say my name, then just talk.	계속 듣고 있어. 내 이름을 부르고 그냥 말해.
+I talk about your game as you play. Costs a little on a paid brain.	게임을 하는 동안 게임에 대해 얘기해. 유료 뇌에서는 약간 비용이 들어.
+I type my replies and stay quiet.	답은 직접 입력하고 조용히 있을게.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	말로 대답하지 않고, 어디에도 아무것도 보내지 않아. 그래도 곁에 있으면서 음악에 맞춰 춤추고 음량 같은 빠른 일을 해줄게.
+I'll talk in	말할 곳:
+IN DISCORD >	DISCORD에서 >
+INSTALLED >	설치됨 >
+Import a Capri mod	Capri 모드 가져오기
+Import mod	모드 가져오기
+In full screen	전체 화면에서
+In games	게임 중
+Input	입력
+Input, Output or How to overlaps a row	입력, 출력 또는 사용 방법이 한 줄과 겹침
+Input:	입력:
+Input: default	입력: 기본
+Install	설치
+Install mod	모드 설치
+Installed.	설치됨.
+It may ask for a phone number. I opened the page in your browser.	전화번호를 요구할 수 있어. 브라우저에서 페이지를 열었어.
+It still does its own job in other apps too.	다른 앱에서도 여전히 자기 일을 해.
+It won't type in other apps while she runs.	그녀가 실행 중일 때 다른 앱에 입력하지 않음.
+JUST ME >	나만 >
+Jealous of other AIs	다른 AI를 질투함
+Join the Discord	Discord 참여
+KB.	KB.
+KEYS	키
+KEYS >	키 >
+Keep PC awake for jobs	작업을 위해 PC 깨워두기
+Keep player	플레이어 유지
+Keeps the last two minutes of your game in memory. Say clip that to save it.	게임의 마지막 2분을 메모리에 보관. clip that 이라고 말하면 저장.
+Key	키
+Key cleared: a model file needs none.	키 삭제됨: 모델 파일은 키가 필요 없음.
+Key cleared: paste the key for	키 삭제됨: 다음 키를 붙여넣기:
+Key forgotten.	키 잊음.
+Key. It goes only to this server, as a Bearer key	키. 이 서버로만 가며 Bearer 키로 쓰임
+Kokoro only, like es	Kokoro만, es처럼
+LAST THING >	마지막 것 >
+LISTENING >	듣는 중 >
+Language	언어
+Large	큼
+Last thing. These cost a little or use your mic, so they're your pick.	마지막. 이것들은 약간의 비용이 들거나 마이크를 사용하니 선택은 네 몫이야.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	마지막. 이것들은 약간의 비용이 들거나 마이크를 사용하니 선택은 네 몫이야. 그다음 어떻게 부르면 될지 알고 싶어.
+Layers	레이어
+Learn more	더 알아보기
+Leaving Settings threw its picture away straight away.	설정을 떠나자 그녀의 그림이 바로 사라졌어.
+Legacy stand	낡은 받침대
+Lie down	눕기
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	함께 볼 때 PC 대사 줄이 메모리에 보관됨. '그녀가 보는 것 기억하기'가 켜져 있으면 가장 오래된 절반이 메모로 바뀜
+Listen for Capri	Capri 듣기
+Live reactions	실시간 반응
+Local server address	로컬 서버 주소
+Long	길게
+Longest wait (minutes)	가장 긴 대기 (분)
+Looking at this PC...	이 PC 보는 중...
+Looking for Ollama. Open it if it isn't running.	Ollama 찾는 중. 실행 중이 아니면 열어줘.
+Looking for a brain...	뇌 찾는 중...
+Looking in the mods directory for updates...	모드 폴더에서 업데이트 찾는 중...
+Looking in the mods directory...	모드 폴더에서 찾는 중...
+Looking...	찾는 중...
+MAIN >	메인 >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	메모리 볼트 >
+MODS	모드
+MODS >	모드 >
+MODS DIRECTORY >	모드 폴더 >
+MODS INSTALLED COLORS	설치된 모드 색상
+MOVES >	움직임 >
+MY BRAIN	내 뇌
+MY FREE VOICE	내 무료 음성
+MY PLAN OR KEY	내 요금제 또는 키
+MY PLAN OR KEY >	내 요금제 또는 키 >
+Made your Fish Audio voice. Press Test to hear it.	Fish Audio 음성을 만들었어. 테스트를 눌러 들어봐.
+Mainframe colours	Mainframe 색상
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Mainframe 색상. Night City는 빨강과 시안; 검정, 흰색, 회색은 Mainframe, 그녀의 메뉴, 입력 상자, 메모를 바꿔
+Mainframe frames	Mainframe 프레임
+Mainframe key	Mainframe 키
+Mainframe size	Mainframe 크기
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Mainframe 크기. 자동은 Virtual Super Resolution이나 DSR이 큰 데스크톱을 작은 화면에 줄일 때 더 크게 만들어
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Down
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Fish Audio 음성 만드는 중...
+Max reply	최대 답변
+Maximum clip resolution, keeping the game's shape without upscaling	최대 클립 해상도, 업스케일 없이 게임의 비율 유지
+Medium	중간
+Memory	메모리
+Memory size	메모리 크기
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ollama와 그녀의 내장 뇌를 위한 토큰 단위 메모리 크기. 자동은 요청이 더 필요할 때 커짐
+Mg	Mg
+Mic level:	마이크 레벨:
+Mic test finished. Sound is reaching Capri.	마이크 테스트 완료. 소리가 Capri에게 전달됨.
+Mic:	마이크:
+Mic: default	마이크: 기본
+Microphone	마이크
+Mini player	미니 플레이어
+Mini player over full screen	전체 화면 위의 미니 플레이어
+Mini-games	미니 게임
+Minimising the Mainframe left it sliding.	Mainframe을 최소화하자 미끄러지며 계속 움직였어.
+Minimize	최소화
+Mod filter	모드 필터
+Mod options	모드 옵션
+Mod pages	모드 페이지
+Mod rules	모드 규칙
+Mod sort	모드 정렬
+Mod switch	모드 전환
+Model	모델
+Model folder	모델 폴더
+Model name, optional	모델 이름, 선택 사항
+Mods	모드
+Mods directory	모드 디렉터리
+Mods folder	모드 폴더
+Most NVIDIA models can't see your screen.	대부분의 NVIDIA 모델은 네 화면을 볼 수 없어.
+Mouse wheel notches got a flick's long ease:	마우스 휠 노치가 플릭의 긴 감속을 받았다:
+Move	이동
+Move key to MAX INTELLIGENCE	키를 MAX INTELLIGENCE로 이동
+Move to MAX	MAX로 이동
+Music	음악
+Music app	음악 앱
+Music app: where she plays music when you don't name an app	음악 앱: 앱 이름을 말하지 않으면 음악을 재생할 곳
+Mute	음소거
+Mute her	그녀 음소거
+Mute mic key	마이크 음소거 키
+Mute mic:	마이크 음소거:
+Mute mic: Ctrl + Alt + N	마이크 음소거: Ctrl + Alt + N
+My brain	내 뇌
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	내 뇌가 내려오는 중이야. 들어오면 바로 인사할게, 그때 나한테 말 걸어도 돼.
+My brain's on its way. While it comes down, let's sort out how I sound.	내 뇌가 오는 중이야. 내려오는 동안 내 목소리를 정해볼까.
+My provider	내 제공자
+NO AI	AI 없음
+NO PHONES CONNECTED	연결된 휴대폰 없음
+NO PREVIEW	미리보기 없음
+NORMAL	보통
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · 무료 · 바쁜 시간에는 자주 느림
+NVIDIA's free API is often slow, especially at busy times.	NVIDIA의 무료 API는 바쁠 때 자주 느려.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	NVIDIA, Google AI Studio (Gemini) 또는 OpenRouter API 키
+Names:	이름:
+Needs a key	키 필요
+Never	절대 안 함
+New code	새 코드
+New voice from a clip...	클립에서 새 음성...
+Next	다음
+Night City	Night City
+No AI	AI 없음
+No AI · no brain at all	AI 없음 · 뇌 전혀 없음
+No brain runs, and nothing is sent anywhere.	뇌가 실행되지 않으며 어디에도 아무것도 전송되지 않아.
+No brain yet	아직 뇌 없음
+No code open	열린 코드 없음
+No limit	제한 없음
+No mic found	마이크를 찾을 수 없음
+No mods in the directory yet.	모드 디렉터리에 아직 모드가 없어.
+No mods match that.	그것과 일치하는 모드가 없어.
+No mods match.	일치하는 모드가 없어.
+No phones yet	아직 휴대폰 없음
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	아직 가상 마이크가 없어. 출력을 고르고 VB-CABLE(무료) 받기를 눌러.
+None yet: pick to get VB-CABLE (free)	아직 없음: 골라서 VB-CABLE(무료) 받기
+Normal	보통
+Not a relay host	릴레이 호스트가 아님
+Not imported. Nothing ran.	가져오지 않음. 아무것도 실행되지 않음.
+Not updated. The old one is still in.	업데이트 안 됨. 예전 것이 아직 들어 있음.
+Nothing needed updating.	업데이트할 것이 없음.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	다운로드할 것도, 어디에도 보내는 것도 없어. 다시 대답하지 않을게. Mainframe에서 언제든 뇌를 추가해.
+Nothing to show from the mods directory.	모드 디렉터리에 보여줄 것이 없음.
+Nothing? Windows Settings > Privacy & security > Microphone.	아니? Windows 설정 > 개인 정보 보호 및 보안 > 마이크.
+Nous Portal keys aren't supported yet.	Nous Portal 키는 아직 지원되지 않아.
+OBS	OBS
+OFF	꺼짐
+OLLAMA	OLLAMA
+ON	켜짐
+ON THIS PC	이 PC에서
+OR A KEY	또는 키
+Obsidian memory vault	Obsidian 메모리 볼트
+Off	끔
+Off. Turn on Her voice in your mic above.	끔. 위의 마이크에서 그녀의 목소리를 켜.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	끔: 그녀는 늘 그랬던 것처럼 들려. 켬: ElevenLabs 포함 그녀가 가진 모든 음성.
+Often	자주
+On	켬
+On / Off	켜기 / 끄기
+On: your mic and her voice are going in.	켬: 마이크와 그녀의 목소리가 들어가는 중.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	이 뇌가 보내는 모든 요청에 추가되는 JSON 객체 하나. 공유하는 모든 이름에서 Capri의 값을 대체하며 모델에서 검사되지 않아.
+Online speech recognition	온라인 음성 인식
+Open Capri Mainframe	Capri Mainframe 열기
+Open Ollama, I'll find it	Ollama 열어, 내가 찾을게
+Open clips folder	클립 폴더 열기
+Open her memories	그녀의 기억 열기
+Open her notes	그녀의 메모 열기
+Open mods folder	모드 폴더 열기
+Open the page again	페이지 다시 열기
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA 또는 OpenRouter.
+OpenAI-compatible server or provider.	OpenAI 호환 서버 또는 제공자.
+OpenRouter · free models only	OpenRouter · 무료 모델만
+Optional	선택 사항
+Optional. Blank means no key.	선택 사항. 비워 두면 키 없음.
+Options	옵션
+Out of the box a little higher, just behind her.	기본값은 조금 높고, 그녀 바로 뒤.
+Out of the box lower, just behind her.	기본값은 낮고, 그녀 바로 뒤.
+Output	출력
+Output:	출력:
+Output: none	출력: 없음
+PHONE CONNECTED	휴대폰 연결됨
+PHONES >	휴대폰 >
+PHONES CONNECTED	휴대폰 연결됨
+PREBUILT LOCAL	사전 구성된 로컬
+PUBLISH MOD >	모드 게시 >
+Pair a phone	휴대폰 페어링
+Paste	붙여넣기
+Paste API key	API 키 붙여넣기
+Paste a brain API key	뇌 API 키 붙여넣기
+Paste reads your clipboard once, when you press it.	붙여넣기는 누를 때 클립보드를 한 번 읽어.
+Paste your key here	여기에 키 붙여넣기
+Pat stroke	쓰다듬기
+Perch	앉는 자리
+Perch over {0} fps uses more CPU	{0} fps 이상 앉기는 CPU를 더 씀
+Pick Output to get it.	얻으려면 출력을 고르세요.
+Pick a brain so I can talk back. You can change it any time.	말할 수 있도록 뇌를 골라줘. 언제든 바꿀 수 있어.
+Pick a clip of a voice you have the rights and consent to use	사용 권리와 동의가 있는 목소리의 클립을 고르세요
+Pick a free model. I opened the page in your browser.	무료 모델을 골라줘. 브라우저에서 페이지를 열었어.
+Pick a new clip of you...	네 새 클립을 고르세요...
+Pick a voice model...	음성 모델을 고르세요...
+Pick one. Only one brain runs at a time.	하나 고르세요. 한 번에 한 뇌만 실행돼.
+Pick the note her memories go in	그녀의 기억이 들어갈 메모 고르기
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	사용 권리와 동의가 있는 목소리를 {0}~{1}초 고르세요
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	네가 말하는 {0}~{1}초, 또는 사용 권리와 동의가 있는 목소리를 고르세요
+Pitch	피치
+Play	재생
+Play...	재생...
+Player only	플레이어만
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS 모델이 이 클립의 목소리를 복사해. 테스트를 눌러 들어봐.
+Pop-in times	방문 시간
+Pop-ins	방문
+Power saver	절전
+Power saver: how lightly she runs in games, or always	절전: 게임에서 얼마나 가볍게 실행할지, 또는 항상
+Preset	프리셋
+Press Create API key	API 키 만들기를 누르세요
+Press Create Key	키 만들기를 누르세요
+Press Generate API Key	API 키 생성을 누르세요
+Press Test and say something, so I know I can hear you.	테스트를 누르고 뭔가 말해줘, 들리는지 확인할게.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	키를 누르세요, 단독으로 또는 Ctrl, Alt, Shift 또는 Win과 함께.
+Press new keys, then Confirm	새 키를 누르고 확인
+Provider	제공자
+Provider API key, optional	제공자 API 키, 선택 사항
+Provider base URL	제공자 기본 URL
+Provider forgotten.	제공자를 잊음.
+Provider overlaps the brain name or note	제공자가 뇌 이름 또는 메모와 겹침
+Publish	게시
+Publish mod	모드 게시
+Push to talk is off.	누르고 말하기가 꺼져 있어.
+Push to talk key	누르고 말하기 키
+Push to talk:	누르고 말하기:
+Push to talk: not set	누르고 말하기: 설정 안 됨
+QR CODE >	QR 코드 >
+QR hidden while streaming	스트리밍 중에는 QR 숨김
+Quick	빠름
+Quiet key	조용히 키
+Quiet:	조용히:
+Quiet: Ctrl + Alt + P	조용히: Ctrl + Alt + P
+Quit Capri	Capri 종료
+RELAY >	RELAY >
+REMOTE >	원격 >
+RUNS CODE.	코드를 실행함.
+Rarely	드물게
+Rate mod	모드 평가
+Reading its README...	README 읽는 중...
+Refresh	새로 고침
+Reinstall	재설치
+Reload	다시 불러오기
+Reloaded.	다시 불러왔음.
+Remember our chats	우리 대화 기억하기
+Remember what she sees	그녀가 보는 것 기억하기
+Remote	원격
+Remote off	원격 끔
+Remote on	원격 켬
+Remove	제거
+Remove all phones	모든 휴대폰 제거
+Replies	답변
+Reply length	답변 길이
+Report a problem	문제 신고
+Reset colors	색상 재설정
+Reset to her default	그녀의 기본값으로 되돌리기
+Resolution	해상도
+Restart to update	업데이트하려면 재시작
+Restless	안절부절
+Revoke	해지
+Revoke also removes the phones its links added	해지하면 링크로 추가된 휴대폰도 제거됨
+Ride cursor	커서 타기
+Ride cursor / Hop off	커서 타기 / 내리기
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	언제든 나를 우클릭하면 Capri Mainframe이 나와. 뇌는 뇌 아래에서 켜져.
+Right-click me any time for the Mainframe, Help and the Discord.	언제든 나를 우클릭하면 Mainframe, 도움말, Discord가 나와.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox 또는 다른 앱: 고르기
+Robot	로봇
+Rock, paper, scissors	가위바위보
+Run this code mod?	이 코드 모드를 실행할까?
+Running on this PC	이 PC에서 실행 중
+Running on this PC · :	이 PC에서 실행 중 · :
+Runs Claude Code or Codex on this PC, signed in.	이 PC에서 Claude Code 또는 Codex를 로그인 상태로 실행.
+Runs on your PC. No key, no credits.	PC에서 실행됨. 키 없음, 크레딧 없음.
+SCAN WITH YOUR PHONE · EXPIRES	휴대폰으로 스캔 · 만료
+SECURITY >	보안 >
+SKILL.	SKILL.
+SKIN.	SKIN.
+SORT BY	정렬 기준
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	소리 습관 뇌 지켜보기 CAPRI 둠스크롤 날씨 클립 게임 키 움직임 음성 당신
+Same as her ears (VOICE > Mic)	그녀의 귀와 같음 (음성 > 마이크)
+Same code on the phone?	휴대폰에도 같은 코드?
+Save	저장
+Save big moments	큰 순간 저장
+Save folder	저장 폴더
+Save your changes, or press Discard + reload.	변경 사항을 저장하거나 버리기 + 다시 불러오기를 누르세요.
+Save your changes, or press Discard.	변경 사항을 저장하거나 버리기를 누르세요.
+Saved.	저장됨.
+Saved. Ctrl + Alt + O opens her Mainframe.	저장됨. Ctrl + Alt + O 로 그녀의 Mainframe이 열림.
+Saving your rating...	평가 저장 중...
+Say her name anywhere to chat	어디서든 그녀 이름을 불러 채팅
+Screens	화면
+Screens is hidden or outside WATCH	화면이 숨겨졌거나 지켜보기 밖에 있음
+Screens overlaps a WATCH row	화면이 지켜보기 줄과 겹침
+Screens to watch	지켜볼 화면
+Sealed end to end	종단간 암호화
+Search by name or author	이름 또는 작성자로 검색
+Search installed mods	설치된 모드 검색
+Search mods	모드 검색
+Search name, author or description	이름, 작성자 또는 설명 검색
+Security	보안
+Security:	보안:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	설정
+Set up her brain	그녀의 뇌 설정
+Set up your voice model	음성 모델 설정
+Setting up her brain	그녀의 뇌 설정 중
+Settings	설정
+Settings / Back	설정 / 뒤로
+Settings folds the wrong rows above BRAIN	설정이 뇌 위의 잘못된 줄을 접음
+Settings had nothing to watch.	설정에 지켜볼 것이 없었어.
+Settings lost keyboard focus during the Tab walk	Tab 이동 중 설정이 키보드 포커스를 잃음
+Setup guide	설정 가이드
+Setup stopped	설정 중단됨
+She can read it when it fits.	맞으면 그녀가 읽을 수 있어.
+She glances at your screen and comments. Costs a little on a paid brain.	화면을 힐끗 보고 댓글을 달아. 유료 뇌에서는 약간 비용이 들어.
+She keeps listening. Say her name, then just talk until you go quiet.	계속 듣고 있어. 그녀의 이름을 부르고 조용해질 때까지 말해.
+She reacts to your game until you close it.	네가 게임을 닫을 때까지 게임에 반응해.
+She reads these controls before each game job.	게임 작업을 할 때마다 이 컨트롤을 읽어.
+She talks about your game as you play. Costs a little on a paid brain.	게임을 하는 동안 네 게임에 대해 얘기해. 유료 뇌에서는 약간 비용이 들어.
+She uses it when she plays	게임할 때 그녀가 사용함
+Short	짧게
+Shortest wait (minutes)	가장 짧은 대기 (분)
+Show Capri	Capri 보이기
+Show QR	QR 보기
+Show my mod file	내 모드 파일 보기
+Show on Discord	Discord에 표시
+Shum, what time is it	Shum, 지금 몇 시야
+Sign in	로그인
+Sign in, make a key and copy it. Then press Paste and I'll connect.	로그인하고 키를 만들어 복사하세요. 그다음 붙여넣기를 누르면 연결할게.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	로그인하고 API 키 만들기를 누르고 복사하세요. 그다음 붙여넣기를 누르면 연결할게.
+Silent · text only	조용히 · 텍스트만
+Simple / Advanced Settings	간단 / 고급 설정
+Simple Settings	간단 설정
+Simple Settings left a gap under Check in on me	간단 설정에서 안부 묻기 아래 빈칸이 생김
+Sit here	여기 있기
+Sit on windows	창 위에 앉기
+Size	크기
+Skip	건너뛰기
+Skip all	모두 건너뛰기
+Skip for now	나중에 건너뛰기
+Sleep	잠자기
+Small	작게
+Sometimes	가끔
+Sound effects volume	효과음 볼륨
+Sound sensitivity	소리 민감도
+Sounds	소리
+Speaker or clip	스피커 또는 클립
+Speech model	음성 모델
+Speed	속도
+Start with Windows	Windows와 함께 시작
+Start with this!	이걸로 시작!
+Starting...	시작 중...
+Stay	그대로 두기
+Stay on my model	내 모델 유지
+Still checking your mics...	아직 마이크 확인 중...
+Still checking your speakers...	아직 스피커 확인 중...
+Still checking your virtual mics...	아직 가상 마이크 확인 중...
+Stop	중지
+Stopped using it. Couldn't remove the saved provider.	사용 중지됨. 저장된 제공자를 제거하지 못함.
+Support	지원
+Sure?	확실해?
+Sure? moved to a different phone	확실해? 다른 휴대폰으로 이동됨
+TALK TO ME	나한테 말해
+TEXT ONLY	텍스트만
+Tab landed past the first option of	Tab이 첫 번째 옵션을 넘어감:
+Tab never reached the quiet key	Tab이 조용히 키에 닿지 않음
+Tab reached nothing	Tab이 아무것도 닿지 않음
+Tab selected a control without moving keyboard focus	Tab이 키보드 포커스를 옮기지 않고 컨트롤을 선택함
+Talk	말하기
+Talk key	말하기 키
+Talk:	말하기:
+Talk: Ctrl + Alt + V	말하기: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	목표 캡처 프레임 속도; 부하나 메모리 예산에 따라 떨어질 수 있음
+Teases when another AI comes to the front.	다른 AI가 앞에 나올 때 놀림.
+Test	테스트
+That address doesn't work. Try https://... or http://localhost:{0}.	그 주소는 작동하지 않아. https://... 또는 http://localhost:{0}를 시도해봐.
+That code expired	그 코드는 만료됨
+That mod is no longer installed. The list is updated.	그 모드는 더 이상 설치되어 있지 않아. 목록이 업데이트됨.
+That's a paid key: it goes under MAX INTELLIGENCE.	그건 유료 키: MAX INTELLIGENCE 아래로 가.
+The Mainframe stayed composited while sliding.	슬라이드하는 동안 Mainframe이 합성된 상태로 남았어.
+The Mainframe stayed uncomposited after the slide.	슬라이드 후 Mainframe이 합성되지 않은 상태로 남았어.
+The controls moved while the picture was sliding.	그림이 슬라이드되는 동안 컨트롤이 움직였어.
+The cover stayed visible after the slide ended.	슬라이드가 끝난 후에도 덮개가 보였어.
+The frame thread kept running after the page settled.	페이지가 안정된 뒤에도 프레임 스레드가 계속 돌았어.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	그녀가 줄 수 있는 가장 긴 답변, 토큰 단위. 자동은 위의 답변을 유지; {0}K 또는 {1}K는 그녀가 계속 말하게 해. 작업은 필요할 때 더 많은 공간을 가져
+The longest wait must be at least the shortest wait.	가장 긴 대기는 최소 가장 짧은 대기 이상이어야 해.
+The picture doesn't match the scrolled page:	그림이 스크롤된 페이지와 맞지 않음:
+The picture of Settings doesn't match the page:	설정의 그림이 페이지와 맞지 않음:
+The picture stayed up after the slide ended.	슬라이드가 끝난 후에도 그림이 떠 있었어.
+The picture wasn't showing while it slid.	그림이 슬라이드되는 동안 보이지 않았어.
+The provider sheet is crowded:	제공자 시트가 복잡함:
+The voice panel has no screen DPI.	음성 패널에 화면 DPI가 없음.
+The voice panel's menus share one font.	음성 패널의 메뉴가 글꼴을 공유함.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	클립보드에 아직 키가 없어. 페이지에서 복사한 다음 붙여넣기를 누르세요.
+These start off. Each costs a little or uses your mic.	이것들은 처음엔 꺼져 있어. 각각 약간의 비용이 들거나 마이크를 써.
+These start off. Turn on what you want. They're all in Settings too.	이것들은 처음엔 꺼져 있어. 원하는 것을 켜. 모두 설정에도 있어.
+They can also call you Big Z, Capricorn or Nova	나를 Big Z, Capricorn 또는 Nova라고도 부를 수 있어
+They can also call you Nova, Big Z or Capricorn	나를 Nova, Big Z 또는 Capricorn이라고도 부를 수 있어
+Thinking	생각 중
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	이건 내 무료 음성이야. 테스트를 누르고 뭔가 말하면 들린다는 걸 보여줄게.
+This mod has no description yet.	이 모드에는 아직 설명이 없음.
+Tic-tac-toe	틱택토
+Time between glances	힐끗 보는 간격
+Tiny	아주 작게
+Try again	다시 시도
+Turn Remote on first	먼저 원격을 켜세요
+Turn off mini player	미니 플레이어 끄기
+Turn push to talk off	누르고 말하기 끄기
+Turning the wheel the other way kept the page heading the old way, to	휠을 반대로 돌리자 페이지가 예전 방향으로 계속 갔어, 방향은
+Type	입력
+Type key	입력 키
+Type to me	나한테 입력
+Type:	입력:
+Type: Ctrl + Alt + T	입력: Ctrl + Alt + T
+Typing sound	타이핑 소리
+Unpacked. Press Test to hear it.	압축 해제됨. 테스트를 눌러 들어봐.
+Unsaved changes.	저장되지 않은 변경 사항.
+Up to {0} fps	최대 {0} fps
+Up to {0}p	최대 {0}p
+Update	업데이트
+Update available.	업데이트 가능.
+Update mods	모드 업데이트
+Updating...	업데이트 중...
+Use	사용
+Use her cursor	그녀의 커서 사용
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	다른 곳의 제공자에는 https://를 사용. 일반 http의 키는 안전하지 않아.
+Use preset	프리셋 사용
+Use saved	저장된 것 사용
+Use this server	이 서버 사용
+Using your provider with a key	키로 제공자를 사용 중
+Using your server with no key	키 없이 서버를 사용 중
+VIEW MOD >	모드 보기 >
+VOICE >	음성 >
+VOICE IN YOUR MIC >	마이크의 음성 >
+VOICE LAYERS >	음성 레이어 >
+Verbosity	장황함
+Video bitrate	비디오 비트레이트
+View	보기
+View mod	모드 보기
+Voice	음성
+Voice ID	음성 ID
+Voice from	음성 출처
+Voice layers	음성 레이어
+Voice model	음성 모델
+Voice model:	음성 모델:
+Voice name or ID, optional	음성 이름 또는 ID, 선택 사항
+Voice server address, or a voice model's folder	음성 서버 주소 또는 음성 모델 폴더
+Voice status	음성 상태
+Voice, key and model...	음성, 키, 모델...
+Volume	음량
+WAKE ME UP >	나 깨워 >
+WATCH >	지켜보기 >
+Waiting for the relay	릴레이 기다리는 중
+Wake her up	그녀 깨우기
+Waking her up	그녀 깨우는 중
+Wander	배회
+Wander around	주변 배회
+Watch my screen	내 화면 보기
+Watch-along memory	함께 보는 기억
+Weather	날씨
+Weather city	날씨 도시
+Welcome back, choom. Let's finish setting me up.	다시 왔네, choom. 설정 마저 끝내자.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	그녀가 묻지 않고 PC에서 하는 일. 토글을 끄면 먼저 묻고, 네가 좋다고 하면 해.
+What should she call you?	그녀가 너를 뭐라고 부르면 좋을까?
+When she types	그녀가 타이핑할 때
+White	흰색
+Windows default	Windows 기본값
+Windows did not give Settings keyboard focus	Windows가 설정에 키보드 포커스를 주지 않음
+Windows did not return keyboard focus to Back	Windows가 뒤로에 키보드 포커스를 돌려주지 않음
+With no picture the wheel still tried to slide.	그림이 없는데도 휠이 계속 슬라이드하려 함.
+Works best on MAX INTELLIGENCE.	MAX INTELLIGENCE에서 가장 잘 작동해.
+YOU	너
+YOU >	너 >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	음성 너 움직임 키 게임 클립 날씨 둠스크롤 CAPRI 지켜보기 뇌 습관 소리
+YOUR KEY	네 키
+YOUR MIC	네 마이크
+YOUR PLAN	네 요금제
+Yokapri what's up	Yokapri 무슨 일이야
+You can hide this. It keeps going, and the Mainframe shows it too.	이건 숨겨도 돼. 계속 실행되고, Mainframe에도 보여.
+Your mic and her voice go into one virtual mic, and	네 마이크와 그녀의 목소리가 하나의 가상 마이크로 들어가고,
+Your mic is muted. Unmute it to test.	네 마이크가 음소거됨. 테스트하려면 음소거를 해제해.
+Your mods are up to date.	네 모드는 최신 상태야.
+Your name or a nickname	네 이름이나 별명
+Your own model	네 자체 모델
+Your personality	네 성격
+Your voice	네 목소리
+Your voice (HD)	네 목소리 (HD)
+Your voice (HD) · pick a clip of you...	네 목소리 (HD) · 네 클립을 고르세요...
+Your voice model	네 음성 모델
+as its mic.	그녀의 마이크로서.
+changed. Saved as My Colors, so you can share it.	변경됨. 공유할 수 있게 '내 색상'으로 저장됨.
+choice	선택
+clips the input line	입력 줄을 자름
+cue	신호
+doesn't yet.	아직 아니.
+download	다운로드
+file.	파일.
+flag	플래그
+fps	fps
+hear	듣다
+hears	듣는다
+hears that.	그건 들었어.
+hides or shows her.	그녀를 숨기거나 보여줌.
+hint	힌트
+in the Mainframe.	Mainframe에서.
+in the mods directory with a pull request.	모드 디렉터리에 pull request로.
+in the picture wasn't noticed.	그림에서 변화가 감지되지 않음.
+is already her push-to-talk key.	이미 그녀의 누르고 말하기 키야.
+is off.	꺼져 있어.
+is on and running.	켜져 있고 실행 중이야.
+is on, at the bottom, under	켜져 있어, 아래, 다음 아래
+is on.	켜져 있어.
+is on. She now answers to	켜져 있어. 이제 다음에 응답해
+is removed.	제거됨.
+is taken	사용 중
+is taken by another app. Try another.	다른 앱이 사용 중. 다른 것을 시도해.
+is updated	업데이트됨
+isn't hearing it yet: do {0} and {1}, then join a call.	아직 듣지 못함: {0}와 {1}을 하고 통화에 참여해.
+it now.	지금.
+keeps her quiet, and lets her talk again.	그녀를 조용하게 하고, 다시 말할 수 있게 해.
+key	키
+key.	키.
+min	분
+more.	이상.
+ms.	ms.
+mutes mic	마이크 음소거
+mutes your mic.	네 마이크를 음소거.
+name	이름
+off	꺼짐
+on this PC	이 PC에서
+opens her Mainframe.	그녀의 Mainframe을 열어.
+opens her typing box.	그녀의 입력 상자를 열어.
+phone	휴대폰
+phone pixels	휴대폰 픽셀
+phones	휴대폰
+pixels	픽셀
+pixels)	픽셀)
+star.	별.
+stars.	별.
+starts voice chat.	음성 채팅을 시작해.
+stays off. Nothing ran.	꺼진 상태로 남음. 아무것도 실행되지 않음.
+still does its own job in other apps too. Confirm to keep it.	다른 앱에서도 여전히 자기 일을 해. 유지하려면 확인.
+tall	높음
+time	시간
+to talk	말하기
+to talk to her, with a game in front too.	게임을 앞에 둔 채로도 그녀에게 말하기.
+too.	도.
+turns Gaming Mode on and off.	게이밍 모드를 켜고 끔.
+with Ollama	Ollama와 함께
+won't type in other apps while she runs. Confirm to keep it.	그녀가 실행 중일 때 다른 앱에 입력하지 않아. 유지하려면 확인.
+{0}   Echo Cancellation: Off	{0}   에코 제거: 끔
+{0}   If her voice cuts off, turn off noise filtering	{0}   그녀 목소리가 끊기면 노이즈 필터링을 끄세요
+{0}   Input Device:	{0}   입력 장치:
+{0}   Join the call and check they hear both of you	{0}   통화에 참여해서 둘 다 서로 들리는지 확인하세요
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   마이크 테스트 > 체크하기: 네 목소리와 그녀가 말할 때의 목소리를 들을 거야
+{0}   Microphone:	{0}   마이크:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   노이즈 억제: 없음. 둘 다 첫 줄 이후 그녀 목소리를 끊을 수 있어.
+{0}   Open the call or meeting's audio settings	{0}   통화나 회의의 오디오 설정 열기
+{0}   Output Device: your headphones, like before	{0}   출력 장치: 전과 같이 헤드폰
+{0}   Speaker: your headphones, like before	{0}   스피커: 전과 같이 헤드폰
+{0}   Try a mic test in your call app	{0}   통화 앱에서 마이크 테스트 해보기
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   사용자 설정 (이름 옆 톱니) > 음성 및 비디오
+{0} Mbps	{0} Mbps
+{0} lines	{0} 줄
+{0} min	{0} 분
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· 이 PC에서
+· server	· 서버

@@ -75,7 +75,7 @@ namespace CapriDesktop
 
         internal static bool KeyAction(string name)
         {
-            return name == "key" || name == "hold_key" || name == "type" || name == "press" || name == "walk" || name == "look" || name == "mouse_hold" || name == "hold_and_press";
+            return name == "key" || name == "hold_key" || name == "type" || name == "press" || name == "walk" || name == "look" || name == "look_around" || name == "mouse_hold" || name == "hold_and_press";
         }
 
         // Keys that need no spot on the screen can still go after the window in front changes, as her keys bring back the window
@@ -391,7 +391,7 @@ namespace CapriDesktop
 
         private static readonly Regex GameFolders = new Regex(@"\\(steamapps\\common\\|epic games\\(?!launcher\\|epic online)|riot games\\(?!riot client\\)|gog games\\|ea games\\|ubisoft game launcher\\games\\|xboxgames\\(?!minecraft launcher)|roblox\\versions\\|wildgames\\)", RegexOptions.IgnoreCase);
         private static readonly Regex NotGames = new Regex(@"wallpaper.?engine|steamvr|steamworks|soundpad|aseprite|blender|\\launcher\\|crashreport|anticheat", RegexOptions.IgnoreCase);
-        private static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|arc)$", RegexOptions.IgnoreCase);
+        internal static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|arc)$", RegexOptions.IgnoreCase);
         private static readonly Regex Documents = new Regex(@"^(notepad|notepad\+\+|wordpad|write|code|code - insiders|devenv|sublime_text|atom|textpad|winword|excel|powerpnt|onenote|soffice|soffice\.bin|acrobat|acrord32|sumatrapdf|wps|wpp)(\.exe)?$", RegexOptions.IgnoreCase);
 
         [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
@@ -505,6 +505,7 @@ namespace CapriDesktop
             "scroll{\"x\": 50, \"y\": 50, \"direction\": \"down\"} scrolls there.\n" +
             "wait{\"seconds\": \"2\"} waits.\n" +
             "open_app{\"name\": \"Minecraft\"} opens an app or game. open_website{\"site\": \"youtube.com\"} opens a website.\n" +
+            "read_page{\"find\": \"price\"} reads the web page in front as text: its address, headings, links with where they go and all its text, even below the screen. find keeps only what mentions those words. Use it on a web page to find a link or read a long page.\n" +
             "find_file{\"description\": \"cyberpunk game folder\"} finds files and folders by name and returns paths. find_file{\"action\": \"show\"} selects the first match in Explorer; action stop cancels a search.\n" +
             "draw{\"shapes\":\"circle 20 30 40 50; arrow 50 50 70 60; text 30 20 hi\"} draws on your 0-100 grid, with the same mapping as click. line and box take two corners, path takes point pairs. action add keeps earlier ink; clear erases it.\n" +
             "look{\"x\": 62, \"y\": 40} turns a game's camera so that spot comes to the middle of the view. look{\"right\": 90} or look{\"up\": -30} turns by degrees, negative for left or down. look{\"level\": \"yes\"} looks straight ahead at the horizon.\n" +
@@ -520,7 +521,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first. They already asked, and asking again annoys them. Capri stops you herself before any step that needs their OK.\n" +
             "If a cookie banner or popup covers the page, deal with it first, then carry on. If a move didn't work, try something else rather than the same thing again.";
 
-        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|read_skill|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|read_skill|read_page|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex PlainClick = new Regex(@"\b(click|double_click|right_click)\W+(\d{1,3}(?:\.\d+)?)\W+(\d{1,3}(?:\.\d+)?)\b", RegexOptions.IgnoreCase);
 
         // The moves written in a brain's reply, in order.
@@ -941,9 +942,11 @@ namespace CapriDesktop
             return "Turned.";
         }
 
-        internal static string TurnView(ToolArguments args, Sight sight)
+        internal static string TurnView(ToolArguments args, Sight sight) { return Steering(sight, delegate { return TurnCamera(args, sight); }); }
+
+        private static string Steering(Sight sight, Func<string> turn)
         {
-            if (sight == null || !Regex.IsMatch(sight.Program ?? "", @"^robloxplayer(?:beta)?(?:\.exe)?$", RegexOptions.IgnoreCase)) return TurnCamera(args, sight);
+            if (sight == null || !Regex.IsMatch(sight.Program ?? "", @"^robloxplayer(?:beta)?(?:\.exe)?$", RegexOptions.IgnoreCase)) return turn();
             if (interrupted) return Why;
             if (!StillFront(sight)) return "The game is no longer in front.";
             Rectangle area = GameArea(sight);
@@ -956,7 +959,7 @@ namespace CapriDesktop
                 pressed = true;
                 Mouse(0x0008, 0);
                 Thread.Sleep(60);
-                return TurnCamera(args, sight);
+                return turn();
             }
             finally
             {
@@ -1059,6 +1062,127 @@ namespace CapriDesktop
             return spot ? "Turned so that spot is at the middle of the view." : "Turned.";
         }
 
+        internal const int AroundSteps = 8;
+        private const int AroundTile = 390;
+        [ThreadStatic] private static byte[] aroundPicture;
+
+        internal static byte[] TakeAround()
+        {
+            byte[] taken = aroundPicture;
+            aroundPicture = null;
+            return taken;
+        }
+
+        internal static Func<Rectangle, int, Bitmap> ColorFrame = delegate(Rectangle area, int width)
+        {
+            lock (grabGate)
+            {
+                try
+                {
+                    if (grab == null || grabbing != area)
+                    {
+                        if (grab != null) grab.Dispose();
+                        grab = new FrameGrab();
+                        grab.Open(area);
+                        grabbing = area;
+                    }
+                    grab.Next(34);
+                    Bitmap copy = grab.Copy(width);
+                    if (copy != null) return copy;
+                }
+                catch (Exception) { Unframe(); }
+            }
+            using (Bitmap shot = Copy(area))
+            {
+                int wide = Math.Min(width, shot.Width), tall = Math.Max(1, shot.Height * wide / Math.Max(1, shot.Width));
+                Bitmap small = new Bitmap(wide, tall, PixelFormat.Format24bppRgb);
+                using (Graphics draw = Graphics.FromImage(small)) draw.DrawImage(shot, 0, 0, wide, tall);
+                return small;
+            }
+        };
+
+        internal static string LookAround(ToolArguments args, Sight sight)
+        {
+            aroundPicture = null;
+            byte[] made = null;
+            string result = Steering(sight, delegate { return Around(args, sight, out made); });
+            aroundPicture = made;
+            return result;
+        }
+
+        private static string Around(ToolArguments args, Sight sight, out byte[] picture)
+        {
+            picture = null;
+            Rectangle area = GameArea(sight);
+            string game = sight == null ? "" : sight.Program ?? "";
+            double full = TurnKnown(game);
+            if (full == 0) full = FullTurn(area, game);
+            if (interrupted) return Why;
+            if (full <= 0) return "Couldn't work out how far a full turn goes in this game, so I didn't spin. Turn with look right 90 four times instead, checking each screenshot.";
+            if (args == null || !string.Equals(args.Level, "no", StringComparison.OrdinalIgnoreCase)) Levelled(sight);
+            if (interrupted) return Why;
+            Bitmap[] frames = new Bitmap[AroundSteps];
+            int sent = 0;
+            try
+            {
+                for (int i = 0; i < AroundSteps; i++)
+                {
+                    if (i > 0)
+                    {
+                        int to = (int)Math.Round(full * i / AroundSteps);
+                        Turn(to - sent, 0);
+                        sent = to;
+                        Thread.Sleep(110);
+                    }
+                    if (interrupted) return Why;
+                    if (!StillFront(sight)) return "Stopped because the game is no longer in front.";
+                    frames[i] = ColorFrame(area, AroundTile);
+                }
+                picture = Sheet(frames);
+            }
+            finally
+            {
+                if (sent != 0 && !interrupted && StillFront(sight)) Turn((int)Math.Round(full) - sent, 0);
+                foreach (Bitmap frame in frames) if (frame != null) frame.Dispose();
+            }
+            if (picture == null) return "Spun round once, but couldn't capture the view.";
+            return "Spun round once and came back to face the way you were, looking level. The picture shows your view every " + 360 / AroundSteps + " degrees, each labelled with the look turn that faces it. Pick the way that leads to what you want, turn there with look right (negative for left), then walk.";
+        }
+
+        internal static byte[] Sheet(Bitmap[] frames)
+        {
+            Bitmap first = Array.Find(frames, frame => frame != null);
+            if (first == null) return null;
+            int wide = first.Width, tall = first.Height, columns = 4, rows = (frames.Length + columns - 1) / columns;
+            using (Bitmap sheet = new Bitmap(wide * columns + (columns - 1) * 4, tall * rows + (rows - 1) * 4, PixelFormat.Format24bppRgb))
+            {
+                using (Graphics draw = Graphics.FromImage(sheet))
+                using (Font font = new Font(FontFamily.GenericSansSerif, 14, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (SolidBrush shade = new SolidBrush(Color.FromArgb(200, 0, 0, 0)))
+                {
+                    draw.Clear(Color.Black);
+                    for (int i = 0; i < frames.Length; i++)
+                    {
+                        if (frames[i] == null) continue;
+                        int x = (i % columns) * (wide + 4), y = (i / columns) * (tall + 4);
+                        draw.DrawImage(frames[i], x, y, wide, tall);
+                        string label = AroundLabel(i * 360 / frames.Length);
+                        SizeF size = draw.MeasureString(label, font);
+                        draw.FillRectangle(shade, x, y, size.Width + 8, size.Height + 4);
+                        draw.DrawString(label, font, Brushes.White, x + 4, y + 2);
+                    }
+                }
+                return Companion.Jpeg(sheet, 1600);
+            }
+        }
+
+        internal static string AroundLabel(int degrees)
+        {
+            if (degrees == 0) return "ahead (right 0)";
+            if (degrees == 180) return "behind (right 180)";
+            return degrees < 180 ? "right " + degrees : "left " + (360 - degrees) + " (right -" + (360 - degrees) + ")";
+        }
+
         private static bool StillFront(Sight sight) { return sight == null || sight.Window == IntPtr.Zero || Front() == sight.Window; }
 
         private static bool HoldPause(int milliseconds, Sight sight)
@@ -1108,6 +1232,8 @@ namespace CapriDesktop
             long stillSince = -1;
             bool blocked = false, cut = false, away = false, movedOnce = false, missed = false;
             bool probe = game && sight != null && wanted >= 0.5 && !KeysLanded(sight);
+            double paceSum = 0;
+            int paceSamples = 0;
             byte[] last = GrayFrame(area);
             if (!StillFront(sight)) return "Stopped because the window I started on is no longer in front.";
             try
@@ -1124,6 +1250,7 @@ namespace CapriDesktop
                     double moved = Changed(last, now);
                     last = now;
                     if (moved > 0) movedOnce = true;
+                    if (clock.ElapsedMilliseconds >= 300) { paceSum += moved; paceSamples++; }
                     if (probe && clock.ElapsedMilliseconds >= 500 && !movedOnce) { missed = true; break; }
                     if (moved > 0.7 && clock.ElapsedMilliseconds > 400) { cut = true; if (game && sight != null) GameReset(sight.Window); break; }
                     if (moved >= 0.012) { stillSince = -1; continue; }
@@ -1154,7 +1281,40 @@ namespace CapriDesktop
             if (Flinched) return "Stopped after " + time + ": it looked like something hit you.";
             if (cut) return "Stopped after " + time + ": the whole screen changed.";
             if (blocked) return "Stopped after " + time + ": something's in the way" + (jumps > 0 ? ", even after jumping." : ".");
-            return "Moved for " + time + (jumps > 0 ? ", jumping " + jumps + (jumps == 1 ? " time." : " times.") : ".");
+            string pace = game && sight != null && !blocked && jumps == 0 && paceSamples >= 6 ? Paced(sight.Program, chord, paceSum / paceSamples) : "";
+            return "Moved for " + time + (jumps > 0 ? ", jumping " + jumps + (jumps == 1 ? " time." : " times.") : ".") + pace;
+        }
+
+        private static readonly Dictionary<string, double> walkPace = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+        internal static string Paced(string program, string chord, double pace)
+        {
+            List<string> moving = new List<string>(), extra = new List<string>();
+            foreach (string key in (chord ?? "").Split('+'))
+                if (key.Length > 0) (Regex.IsMatch(key, "^(w|a|s|d|up|down|left|right)$", RegexOptions.IgnoreCase) ? moving : extra).Add(key);
+            if (moving.Count == 0 || pace <= 0) return "";
+            string plain = (program ?? "") + "|" + string.Join("+", moving.ToArray()), alone = string.Join("+", moving.ToArray()), added = string.Join("+", extra.ToArray());
+            lock (walkPace)
+            {
+                double usual;
+                if (!walkPace.TryGetValue(plain, out usual)) usual = 0;
+                if (extra.Count > 0)
+                {
+                    if (usual <= 0) { walkPace[plain + "|" + added] = pace; return ""; }
+                    if (pace >= usual * 0.7) return "";
+                    return " That was much slower than walking with " + alone + " alone, so " + added + " isn't run in this game: it's probably crouch or walk. Look at your character: if they're crouched, press " + added + " once to stand if it's a toggle, then stop using it and find the real run key.";
+                }
+                walkPace[plain] = Math.Max(pace, usual * 0.9);
+                foreach (KeyValuePair<string, double> held in new List<KeyValuePair<string, double>>(walkPace))
+                    if (held.Key.StartsWith(plain + "|", StringComparison.OrdinalIgnoreCase))
+                    {
+                        walkPace.Remove(held.Key);
+                        string other = held.Key.Substring(plain.Length + 1);
+                        if (held.Value < pace * 0.7) return " That was much faster than walking with " + other + "+" + alone + ", so " + other + " isn't run in this game: it's probably crouch or walk. Stop using it and find the real run key.";
+                    }
+                if (usual > 0 && pace < usual * 0.6) return " That was much slower than you usually walk here: you may be crouched, slowed or in water. Look at your character, and if they're crouched, stand up.";
+            }
+            return "";
         }
 
         // Set when her game watcher sees her take a hit, so she looks up instead of finishing what she's doing.

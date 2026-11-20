@@ -135,7 +135,7 @@ namespace CapriDesktop
         private volatile int jealousTurn;
 
         internal bool JealousAIs { get { return preferences.JealousAIs; } }
-        internal bool CloseAIs { get { return preferences.CloseAIs; } }
+        internal bool CloseAIs { get { return preferences.JealousApps != null && preferences.JealousApps.Length > 0; } }
         internal bool JealousChosen(string id) { return Jealous.Chosen(preferences.JealousApps, id); }
 
         internal void ToggleJealousAIs()
@@ -146,10 +146,10 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        internal void ToggleCloseAIs()
+        internal void ClearJealous()
         {
-            if (!preferences.CloseAIs && !preferences.JealousAIs) return;
-            preferences.CloseAIs = !preferences.CloseAIs;
+            preferences.CloseAIs = false;
+            preferences.JealousApps = null;
             EndJealous();
             SavePreferences();
             mainframe.Sync();
@@ -161,6 +161,7 @@ namespace CapriDesktop
             List<string> choices = new List<string>(preferences.JealousApps ?? new string[0]);
             if (choices.Contains(id)) choices.RemoveAll(pick => pick == id); else choices.Add(id);
             preferences.JealousApps = choices.ToArray();
+            preferences.CloseAIs = true;
             EndJealous();
             SavePreferences();
             mainframe.Sync();
@@ -168,7 +169,7 @@ namespace CapriDesktop
 
         private bool JealousMayClose(JealousWindow target)
         {
-            return JealousAIs && CloseAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
+            return JealousAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
         }
 
         private void DropJealous()
@@ -180,6 +181,67 @@ namespace CapriDesktop
             jealousTicket = -1;
             box.Choose(null);
             if (choosing) PassThrough();
+        }
+
+        private string heldChoice;
+        private double heldShown;
+        private bool heldOpen;
+
+        private void CheckHeld(double now)
+        {
+            string held = Security.Holding;
+            if (heldChoice != null && held != heldChoice) { DropHeldChoice(); heldChoice = null; }
+            if (heldChoice != null)
+            {
+                if (heldOpen && (now - heldShown > 60 || !box.Visible || box.Leaving >= 0)) DropHeldChoice();
+                return;
+            }
+            if (held == null || jealousOffer != null || box.Choosing || CallModeOn || chatting || hidden || !box.Visible || box.Leaving >= 0 || replyDone < 0) return;
+            string title;
+            string[] lines = HeldCard(out title);
+            if (lines == null) return;
+            heldChoice = held;
+            heldShown = now;
+            heldOpen = true;
+            box.Choose(AnswerHeld, title, lines);
+            PassThrough();
+        }
+
+        private static string[] HeldCard(out string title)
+        {
+            title = null;
+            List<KeyValuePair<string, ToolArguments>> calls = Security.HeldCalls(Security.HoldingId);
+            if (calls.Count == 0) return null;
+            if (calls.Count == 1 && calls[0].Key == "files" && Hands.Keeper != null)
+            {
+                try { return Hands.Keeper.Preview(calls[0].Value, out title); }
+                catch (Exception) { }
+            }
+            title = calls.Count == 1 ? "Allow this" : "Allow " + calls.Count + " things";
+            List<string> lines = new List<string>();
+            foreach (KeyValuePair<string, ToolArguments> call in calls)
+            {
+                string asked = Security.Asking(call.Key, call.Value);
+                if (!string.IsNullOrEmpty(asked)) lines.Add(char.ToUpperInvariant(asked[0]) + asked.Substring(1));
+            }
+            return lines.ToArray();
+        }
+
+        private void DropHeldChoice()
+        {
+            bool open = heldOpen;
+            heldOpen = false;
+            if (!open || !box.Choosing || jealousOffer != null) return;
+            box.Choose(null);
+            PassThrough();
+        }
+
+        private void AnswerHeld(bool yes)
+        {
+            heldOpen = false;
+            box.Choose(null);
+            PassThrough();
+            Hear(yes ? "yes" : "no");
         }
 
         private void EndJealous()
@@ -1260,13 +1322,19 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        // GAMES > Game sounds (#234), on by default. Off, her reactions and comments let bursts of the game's sound go, and
-        // everything else still counts.
+        // GAMES > Sound sensitivity (#234), 100% by default. Its Off is NoGameSounds: her reactions and comments let bursts of the
+        // game's sound go, and everything else still counts.
         internal bool GameSoundsOn { get { return !preferences.NoGameSounds; } }
 
-        internal void ToggleGameSounds()
+        internal int GameSoundSensitivity { get { return preferences.NoGameSounds ? 0 : Math.Max(0, Math.Min(100, 100 - preferences.GameSoundsDown)); } }
+
+        internal void SetGameSoundSensitivity(int percent)
         {
-            preferences.NoGameSounds = !preferences.NoGameSounds;
+            percent = Math.Max(0, Math.Min(100, percent));
+            if (GameSoundSensitivity == percent && (percent > 0 || preferences.NoGameSounds)) return;
+            preferences.NoGameSounds = percent == 0;
+            if (percent > 0) preferences.GameSoundsDown = 100 - percent;
+            else if (preferences.GameSoundsDown >= 100) preferences.GameSoundsDown = 0;
             SavePreferences();
             mainframe.Sync();
         }
@@ -1311,7 +1379,7 @@ namespace CapriDesktop
             ReactionVoice(line);
         }
 
-        // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Mute her, her quiet key, a hide,
+        // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Her quiet key, a hide,
         // her voice off or ElevenLabs voice chat keep reactions as text, and a voice that comes back late stays unsaid. So does a
         // call, where saying one would close her ears on a line she's hearing (#171).
         private void ReactionVoice(string line)

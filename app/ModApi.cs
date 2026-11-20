@@ -456,10 +456,15 @@ namespace CapriDesktop
         // the PC, and its fingerprint.
         internal static string Consent(ModFile mod, string hash)
         {
+            if (mod.Recipe != null) return ToolConsent(mod, hash);
             string asks = "";
             foreach (string permission in mod.Permissions ?? new string[0]) asks += "\n- " + PermissionMeaning(permission);
+            string reaches = "";
+            foreach (string reach in mod.Reaches ?? new string[0]) reaches += "\n- " + reach;
             return mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a code mod.\n\n"
                 + (asks.Length == 0 ? "It asks for none of Capri's permissions.\n\n" : "Through Capri, it asks to:" + asks + "\n\n")
+                + (mod.Unreadable == null ? "" : "Its code can't be read as it is: " + mod.Unreadable + ".\n\n")
+                + (reaches.Length == 0 ? "" : "Reading its code, Capri sees that it:" + reaches + "\n\n")
                 + "Code mods run as part of Capri with full access to your PC: your files, your accounts and the API keys she has saved. Nothing limits what it can do, and Capri doesn't check whether it's safe.\n\n"
                 + "Only run it if you wrote it, or you've read it and trust who did.\n\nFile fingerprint (SHA-256):\n" + hash + "\n\nRun this code?";
         }

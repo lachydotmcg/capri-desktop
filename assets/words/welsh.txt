@@ -1,0 +1,891 @@
+A control that repainted wasn't redrawn in the picture.	Nid oedd rheolydd a aildynnodd wedi'i ailddarlunio yn y llun.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Allwedd rydd o Google AI Studio, NVIDIA neu OpenRouter. Dim i'w lawrlwytho. Mae angen rhyngrwyd.
+A held trackpad scroll got a flick's long ease:	Cafodd sgrolio bad cyffwrdd a ddaliwyd hirhoedledd fflic:
+A layout change during a slide put the page at	Newid cynllun yn ystod sleid a roddodd y dudalen ar
+A layout change left the picture up.	Gadawodd newid cynllun y llun i fyny.
+A model in Ollama, on your local server or on your key.	Model yn Ollama, ar dy weinydd lleol neu ar dy allwedd.
+A paid key goes under MAX INTELLIGENCE by itself.	Mae allwedd dâl yn mynd o dan MAX INTELLIGENCE ei hun.
+A plan you already pay for, a key of your own, or Ollama.	Cynllun rwyt ti eisoes yn talu amdano, dy allwedd dy hun, neu Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Nid yw dewislen panel llais yn dal ei gopi ei hun o ffont y panel.
+A wheel turn right after a slide ended froze the picture.	Gwnaeth troi olwyn yn union ar ôl i sleid orffen rewi'r llun.
+ALLOW THIS PHONE?	CANIATÁU'R FFÔN HWN?
+ALMOST THERE >	BRON YNO >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	MAE CAPRI ARALL WEDI CYMRYD DROS · DIFFODDWCH AC YMLAENWCH
+API key	Allwedd API
+API key, Claude plan or ChatGPT plan	Allwedd API, cynllun Claude neu gynllun ChatGPT
+Add	Ychwanegu
+Address	Cyfeiriad
+Address and key saved. Use saved to reconnect.	Cyfeiriad ac allwedd wedi'u cadw. Defnyddia Cadwyd i ailgysylltu.
+Advanced Settings	Gosodiadau Uwch
+All	Pob un
+All screens	Pob sgrin
+Allow	Caniatáu
+Almost there. I'll say hi the second my brain's in.	Bron yno. Dw i'n dweud helo'r eiliad mae fy ymennydd i mewn.
+Always	Bob amser
+Always on top	Bob amser ar ei ben
+Any Google account works. I opened the page in your browser.	Mae unrhyw gyfrif Google yn gweithio. Dw i wedi agor y dudalen yn dy borwr.
+Applies to every voice	Yn berthnasol i bob llais
+Apps she may close	Apiau y caiff hi eu cau
+Ask Capri for more	Gofyn i Capri am ragor
+Asking your server...	Yn gofyn i dy weinydd...
+Asks before closing only the apps you choose.	Yn gofyn cyn cau dim ond yr apiau dewisi di.
+Auto	Auto
+Automatic: VB-CABLE, else Steam's	Awtomatig: VB-CABLE, fel arall Steam
+BAD RELAY HOST	GWESTEIWR RELAI DRWG
+BIG Z open notepad	BIG Z agor notepad
+BRAIN	YMENNYDD
+BRAIN >	YMENNYDD >
+BRAIN ONLINE >	YMENNYDD AR-LEIN >
+BRAIN PROVIDER >	DARPARYDD YMENNYDD >
+BRAIN VOICE CAPRI	LLAIS YMENNYDD CAPRI
+Back	Yn ôl
+Back on your saved API key.	Yn ôl at dy allwedd API a gadwyd.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Yr addas orau ar gyfer y PC hwn:
+Black	Du
+Blank key means no key.	Mae bylchnod gwag yn golygu dim allwedd.
+Brain API key	Allwedd API ymennydd
+Brain model	Model ymennydd
+Brain provider	Darparydd ymennydd
+Bring here	Dod yma
+Bring to this screen	Dod i'r sgrin hon
+Browse	Pori
+Browse mods	Pori modiau
+Browse to a voice model	Pori i fodel llais
+Browse...	Pori...
+Bubble	Swigen
+CABLE Output (VB-Audio Virtual Cable)	Allbwn CABLE (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree wyt ti yna
+CAN'T REACH THE RELAY · RETRYING	METHU CYRRAEDD Y RELAI · YN AILGEISIO
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	YMENNYDD LLAIS CAPRI
+CHANGED, approve it again.	WEDI NEWID, cymeradwya eto.
+CLIPS >	CLIPIAU >
+CLOUD VOICE	LLAIS CWMWL
+CODE	COD
+COLORS >	LLIWIAU >
+CONNECTED	WEDI CYSYLLTU
+CONNECTING	YN CYSYLLTU
+CUSTOM LOCAL	LLEOL WEDI'I ADDASU
+Call mode (beta)	Modd galwad (beta)
+Call mode does not fit.	Nid yw modd galwad yn ffitio.
+Call mode is outside its space.	Mae modd galwad y tu allan i'w le.
+Cancel	Canslo
+Cancel keys	Canslo allweddi
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri o Bell
+Capri code:	Cod Capri:
+Capri mods (*	Modiau Capri (*
+Capri, hello	Capri, helo
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Anhrefn pan mae hi'n gynhyrfus
+Chat with Capri from your phone	Sgwrsia gyda Capri o dy ffôn
+ChatGPT plan	Cynllun ChatGPT
+Check for updates	Chwilio am ddiweddariadau
+Check in on me	Dw i'n galw heibio
+Check in on me is hidden	Mae galw heibio wedi'i guddio
+Check in on me still decides whether she visits.	Mae galw heibio yn dal i benderfynu a yw hi'n ymweld.
+Check in on me's tip missed	Cafodd awgrym galw heibio ei golli
+Chess	Gwyddbwyll
+Choose apps	Dewis apiau
+Choose folder...	Dewis ffolder...
+Choose where future Capri clips are saved	Dewis ble i gadw clipiau Capri yn y dyfodol
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Cynllun Claude neu ChatGPT, allwedd dâl (OpenAI, Claude, DeepSeek), neu Ollama.
+Claude plan	Cynllun Claude
+Clear	Clirio
+Cleared.	Wedi clirio.
+Click Confirm to keep Down, or press Esc.	Cliciwch Cadarnhau i gadw Lawr, neu pwyswch Esc.
+Click to open it.	Cliciwch i'w agor.
+Clip my games	Clipio fy ngemau
+Clips	Clipiau
+Close	Cau
+Close other AIs for me	Cau AIs eraill ar fy rhan
+Cloud voice	Llais cwmwl
+Cloud voice service	Gwasanaeth llais cwmwl
+Cloud voice setup	Gosodiad llais cwmwl
+Code mods can reach your whole PC. Only trusted ones.	Gall modiau cod gyrraedd dy PC cyfan. Dim ond rhai dibynadwy.
+Code/Husk Mode	Modd Cod/Husk
+Codex	Codex
+Commands	Gorchmynion
+Comment on my games	Rhoi sylwadau ar fy ngemau
+Comments	Sylwadau
+Confirm	Cadarnhau
+Confirm keys	Cadarnhau allweddi
+Connect	Cysylltu
+Connect / Forget brain key	Cysylltu / Anghofio allwedd ymennydd
+Connect / Forget voice key	Cysylltu / Anghofio allwedd llais
+Connect four	Pedwar yn olynol
+Controls	Rheolyddion
+Copri, what time is it	Copri, faint o'r gloch yw hi
+Copy error details	Copïo manylion gwall
+Copy the key	Copïo'r allwedd
+Copy the key from the page, then press Paste.	Copïa'r allwedd o'r dudalen, yna pwyso Gludo.
+Couldn't open that page:	Methu agor y dudalen honno:
+Couldn't open that:	Methu agor hynny:
+Couldn't open the mods folder:	Methu agor y ffolder modiau:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M eisoes yw ei allwedd Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N yn tawelu'r meic
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V eisoes yw ei allwedd siarad.
+Ctrl + Alt + V to talk	Ctrl + Alt + V i siarad
+Custom local voice	Llais lleol personol
+Custom model name	Enw model personol
+Dance	Dawnsio
+Dance to music	Dawnsio i gerddoriaeth
+Default	Rhagosodiad
+Default (follows Windows)	Rhagosodiad (yn dilyn Windows)
+Default duration for clip that and automatic clips	Hyd rhagosodedig ar gyfer clip sy'n Cadw hynny a chlipiau awtomatig
+Default length	Hyd rhagosodedig
+Default model	Model rhagosodedig
+Delay	Oedi
+Deny	Gwrthod
+Discard	Taflu
+Discard + reload	Taflu + ailllwytho
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Ddim eisiau aros? Mae allwedd rhad ac am ddim yn fy ngwneud i'n siarad mewn tua munud.
+Done	Wedi gorffen
+EXTRA REQUEST JSON >	CAIS JSON YCHWANEGOL >
+EXTRAS >	YCHWANEGOL >
+Edit	Golygu
+Edit check-in lines	Golygu llinellau galw heibio
+Edit check-in lines has the wrong view or dimming	Mae gan olygu llinellau galw heibio'r golwg neu bylu anghywir
+Edit check-in lines is out of place	Mae golygu llinellau galw heibio allan o'i le
+Edit controls	Golygu rheolyddion
+ElevenLabs API key	Allwedd API ElevenLabs
+ElevenLabs voice ID	ID llais ElevenLabs
+English	Saesneg
+Enter the game's name first.	Rho enw'r gêm yn gyntaf.
+Every	Bob
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Mae pob mod yn cael ei wirio am falware cyn ei uwchlwytho. Mae modiau cod yn dal i ofyn cyn eu rhedeg.
+Explore after	Archwilio wedyn
+Explore while I'm away	Archwilio tra dw i i ffwrdd
+Extra request JSON	Cais JSON ychwanegol
+Extras	Ychwanegol
+FREE KEY	ALLWEDD RHAD AC AM DDIM
+FREE KEY >	ALLWEDD RHAD AC AM DDIM >
+Fast hands in games	Dwylo cyflym mewn gemau
+File editor	Golygydd ffeiliau
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Mae Fish Audio, ElevenLabs a mwy o dan LLAIS yn y Mainframe.
+Follow-up messages	Negeseuon dilynol
+Forget	Anghofio
+Fork capri-mods	Fforchio capri-mods
+Frame rate	Cyfradd ffrâm
+Free	Am ddim
+Free and private, works offline. Downloads	Am ddim a phreifat, yn gweithio all-lein. Yn lawrlwytho
+Free and private, works offline. Downloads the best model for this PC.	Am ddim a phreifat, yn gweithio all-lein. Yn lawrlwytho'r model gorau ar gyfer y PC hwn.
+Free key	Allwedd am ddim
+Free key providers	Darparwyr allweddi am ddim
+Free keys can be rate limited and slow.	Gall allweddi am ddim fod wedi'u cyfyngu o ran cyflymder ac yn araf.
+Free voice in games	Llais rhad ac am ddim mewn gemau
+Free voice style	Arddull llais rhad ac am ddim
+Free voice:	Llais rhad ac am ddim:
+Free voice: Her own	Llais rhad ac am ddim: Ei llais ei hun
+Free · local model	Am ddim · model lleol
+GAMES >	GEMAU >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Mae sylwadau gêm yn rhedeg ar wahân i Gwylio fy sgrin. Mae Diffodd yn eu stopio, hyd yn oed yn y Modd Gemau; Digwyddiadau yn unig a Siaradus yn gadael iddi wylio dy gêm
+Game controls	Rheolyddion gêm
+Game name	Enw'r gêm
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Sensitifrwydd sain gêm. Gostwng os yw dy glustffonau wedi'u troi i lawr ond mae Windows ar {0}% ac mae hi'n ymateb i bob sŵn; Mae Diffodd yn anwybyddu synau gêm
+Game sounds	Synau gêm
+Games	Gemau
+Gaming Mode	Modd Gemau
+Gaming Mode key	Allwedd Modd Gemau
+Gaming Mode:	Modd Gemau:
+Gaming Mode: Ctrl + Alt + G	Modd Gemau: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Cael VB-CABLE
+Get VB-CABLE (free)...	Cael VB-CABLE (am ddim)...
+Get free voice	Cael llais rhad ac am ddim
+Getting your Fish Audio voices...	Yn cael dy lais Fish Audio...
+Giant	Anferth
+Glitch	Glitch
+Glitch in at startup	Glitch wrth gychwyn
+Go to sleep	Mynd i gysgu
+Go to the next screen	Mynd i'r sgrin nesaf
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · haen rhad ac am ddim · cyfyngedig o ran cyflymder
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Oes gen ti gynllun Claude neu ChatGPT, neu dy allwedd dy hun? Dewisa fe ac fe wna i gysylltu.
+Got it, just me. Right-click me any time for Capri Mainframe.	Iawn, dim ond fi. Cliciwch dde arnaf unrhyw bryd am Capri Mainframe.
+Grey	Llwyd
+H.{0} video bitrate target; higher values make larger files	Targed cyfradd did fideo H.{0}; mae gwerthoedd uwch yn creu ffeiliau mwy
+HABITS >	ARFERION >
+HER HANDS >	EI DWYLO >
+HER JOBS >	EI SWYDDI >
+HER MEMORY >	EI COF >
+HER MODS >	EI MODIAU >
+HH:mm	HH:mm
+HOW I SOUND >	SUT Dw I'N SWNIO >
+Hang here	Aros yma
+Have Ollama? Open it, then press Refresh.	Oes gen ti Ollama? Agora fe, yna pwyso Adnewyddu.
+Head pats	Mwythau pen
+Hearing	Clywed
+Hearing engine	Injan clywed
+Hearing fix	Trwsio clywed
+Hearing status	Statws clywed
+Help	Cymorth
+Help page	Tudalen gymorth
+Her colors	Ei lliwiau
+Her folder	Ei ffolder
+Her memories	Ei hatgofion
+Her own colors are back.	Mae ei lliwiau ei hun yn ôl.
+Her own notes (no vault)	Ei nodiadau ei hun (dim cell)
+Her perch frames per second	Ffrâmau ei chlwyd yr eiliad
+Her personality	Ei phersonoliaeth
+Her size	Ei maint
+Her speaker	Ei seinydd
+Her speaker is hidden or outside VOICE	Mae ei seinydd wedi'i guddio neu y tu allan i LLAIS
+Her speaker overlaps the mic or hearing row	Mae ei seinydd yn gorgyffwrdd â'r rhes meic neu glywed
+Her speaker:	Ei seinydd:
+Her speaker: Default	Ei seinydd: Rhagosodiad
+Her voice in your mic	Ei llais yn dy feic
+Her voice in your mic: loudness	Ei llais yn dy feic: uchder sain
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Ei llais ei hun. Mae ei thraw yn Gosodiadau > LLAIS > Traw, ac maen nhw'n symud gyda'i gilydd.
+Her voice joins your mic only in call mode.	Dim ond mewn modd galwad mae ei llais yn ymuno â'th feic.
+Her voice volume	Cyfaint ei llais
+Her voice's pitch	Traw ei llais
+Her voice's pitch, the same as Settings > VOICE > Pitch	Traw ei llais, yr un fath â Gosodiadau > LLAIS > Traw
+Her voice's speed	Cyflymder ei llais
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Ei llais, a dau gopi ohono wedi'u cymysgu oddi tani, pob un gyda'i draw a'i oedi ei hun.
+Her voices · free	Ei lleisiau · am ddim
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Hei, choom. Capri ydw i. Mae angen ymennydd arna i cyn y gallaf ateb yn ôl. Dewisa un.
+Hide / Show Capri	Cuddio / Dangos Capri
+Hide / Show key	Allwedd cuddio / dangos
+Hide Capri	Cuddio Capri
+Hide for now	Cuddio am nawr
+Hide her	Ei chuddio
+Hide in full screen	Cuddio mewn sgrin lawn
+Hide this	Cuddio hwn
+Hide, keep player	Ei chuddio, cadw'r chwaraewr
+Hide/show:	Cuddio/dangos:
+Hide/show: Ctrl + Alt + H	Cuddio/dangos: Ctrl + Alt + H
+Hologram	Holograffeg
+Hop off	Neidio i ffwrdd
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Pa mor hir mae PC llonydd yn ei gymryd i'w hanfon i gysgu; mae pum munud yn dal i olygu dy fod wedi mynd
+How long a stroke over her a head pat needs	Pa mor hir mae strôc dros ei phen yn ei gymryd ar gyfer mwyth pen
+How long her replies stay up	Pa mor hir mae ei hatebion yn aros i fyny
+How long you are away before she scrolls a browser or reader	Pa mor hir wyt ti wedi mynd cyn iddi sgrolio porwr neu ddarllenydd
+How much her voice glitches	Pa mor glitchlyd yw ei llais
+How much of the chat she keeps	Faint o'r sgwrs mae hi'n ei gadw
+How much she wanders	Pa mor bell mae hi'n crwydro
+How often she pops in to say hi	Pa mor aml mae hi'n galw heibio i ddweud helo
+How robotic her voice sounds	Pa mor robotig mae ei llais yn swnio
+How to	Sut i
+Huge	Enfawr
+I can hear you.	Galla i dy glywed di.
+I glance at your screen and comment. Costs a little on a paid brain.	Dw i'n edrych ar dy sgrin ac yn gwneud sylwadau. Mae'n costio ychydig ar ymennydd taledig.
+I keep listening. Say my name, then just talk.	Dw i'n dal i wrando. Dywed fy enw, yna siarada.
+I talk about your game as you play. Costs a little on a paid brain.	Dw i'n siarad am dy gêm wrth i ti chwarae. Mae'n costio ychydig ar ymennydd taledig.
+I type my replies and stay quiet.	Dw i'n teipio fy atebion ac yn aros yn dawel.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Fydda i ddim yn ateb yn ôl, ac nid oes dim yn cael ei anfon i unman. Fydda i'n dal i hongian o gwmpas, dawnsio i dy gerddoriaeth a gwneud y pethau cyflym rwyt ti'n gofyn, fel y gyfrol.
+I'll talk in	Fe siaradaf i mewn
+IN DISCORD >	YN DISCORD >
+INSTALLED >	WEDI'I GOSOD >
+Import a Capri mod	Mewnforio mod Capri
+Import mod	Mewnforio mod
+In full screen	Mewn sgrin lawn
+In games	Mewn gemau
+Input	Mewnbwn
+Input, Output or How to overlaps a row	Mewnbwn, Allbwn neu Sut i'n gorgyffwrdd â rhes
+Input:	Mewnbwn:
+Input: default	Mewnbwn: rhagosodiad
+Install	Gosod
+Install mod	Gosod mod
+Installed.	Wedi'i osod.
+It may ask for a phone number. I opened the page in your browser.	Efallai y bydd yn gofyn am rif ffôn. Dw i wedi agor y dudalen yn dy borwr.
+It still does its own job in other apps too.	Mae'n dal i wneud ei waith ei hun mewn apiau eraill hefyd.
+It won't type in other apps while she runs.	Fydd e ddim yn teipio mewn apiau eraill tra mae hi'n rhedeg.
+JUST ME >	DIM OND FI >
+Jealous of other AIs	Eiddigeddus o AIs eraill
+Join the Discord	Ymuno â'r Discord
+KB.	KB.
+KEYS	ALLWEDDI
+KEYS >	ALLWEDDI >
+Keep PC awake for jobs	Cadw'r PC yn effro ar gyfer swyddi
+Keep player	Cadw'r chwaraewr
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Yn cadw dwy funud olaf dy gêm yn y cof. Dywed clipio hynny i'w gadw.
+Key	Allwedd
+Key cleared: a model file needs none.	Allwedd wedi'i chlirio: nid oes angen un ar ffeil model.
+Key cleared: paste the key for	Allwedd wedi'i chlirio: gludo'r allwedd ar gyfer
+Key forgotten.	Allwedd wedi'i hanghofio.
+Key. It goes only to this server, as a Bearer key	Allwedd. Mae'n mynd i'r gweinydd hwn yn unig, fel allwedd Bearer
+Kokoro only, like es	Kokoro yn unig, fel es
+LAST THING >	PETH OLAF >
+LISTENING >	YN GWRANDO >
+Language	Iaith
+Large	Mawr
+Last thing. These cost a little or use your mic, so they're your pick.	Y peth olaf. Mae'r rhain yn costio ychydig neu'n defnyddio dy feic, felly dy ddewis di ydyn nhw.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Y peth olaf. Mae'r rhain yn costio ychydig neu'n defnyddio dy feic, felly dy ddewis di ydyn nhw. Wedyn dw i eisiau gwybod sut i dy alw di.
+Layers	Haenau
+Learn more	Dysgu mwy
+Leaving Settings threw its picture away straight away.	Gadawodd Gosodiadau ei llun yn syth.
+Legacy stand	Hen stand
+Lie down	Gorwedd i lawr
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Llinellau deialog PC wedi'u cadw yn y cof wrth wylio gyda'n gilydd. Mae'r hanner hynaf yn troi'n nodyn pan mae Cofia beth mae hi'n ei weld ymlaen
+Listen for Capri	Gwrando am Capri
+Live reactions	Adweithiau byw
+Local server address	Cyfeiriad gweinydd lleol
+Long	Hir
+Longest wait (minutes)	Aros hiraf (munudau)
+Looking at this PC...	Yn edrych ar y PC hwn...
+Looking for Ollama. Open it if it isn't running.	Yn chwilio am Ollama. Agora hi os nad yw'n rhedeg.
+Looking for a brain...	Yn chwilio am ymennydd...
+Looking in the mods directory for updates...	Yn chwilio yn y cyfeiriadur modiau am ddiweddariadau...
+Looking in the mods directory...	Yn chwilio yn y cyfeiriadur modiau...
+Looking...	Yn chwilio...
+MAIN >	PRIF >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	FFOLD COF >
+MODS	MODIAU
+MODS >	MODIAU >
+MODS DIRECTORY >	CYFEIRIADUR MODIAU >
+MODS INSTALLED COLORS	LLIWIAU MODIAU WEDI'U GOSOD
+MOVES >	SYMUDIADAU >
+MY BRAIN	FY YMENNYDD
+MY FREE VOICE	FY LLAIS RHAD AC AM DDIM
+MY PLAN OR KEY	FY CYNLLUN NEU ALLWEDD
+MY PLAN OR KEY >	FY CYNLLUN NEU ALLWEDD >
+Made your Fish Audio voice. Press Test to hear it.	Wedi creu dy llais Fish Audio. Pwyswch Prawf i'w glywed.
+Mainframe colours	Lliwiau Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Lliwiau Mainframe. Mae Night City yn goch a sïan; mae Du, Gwyn a Llwyd yn newid y Mainframe, ei dewislenni, y blwch Teipio a'i nodiadau
+Mainframe frames	Fframiau Mainframe
+Mainframe key	Allwedd Mainframe
+Mainframe size	Maint Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Maint Mainframe. Mae Auto yn ei wneud yn fwy pan mae Virtual Super Resolution neu DSR yn crebachu bwrdd gwaith mawr i sgrin lai
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Lawr
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Yn creu dy lais Fish Audio...
+Max reply	Ateb mwyaf
+Maximum clip resolution, keeping the game's shape without upscaling	Datrysiad clip mwyaf, gan gadw siâp y gêm heb uwchraddio
+Medium	Canolig
+Memory	Cof
+Memory size	Maint cof
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Maint cof mewn tocynnau ar gyfer Ollama a'i hymennydd adeiledig. Mae Auto yn tyfu pan fydd cais angen mwy
+Mg	Mg
+Mic level:	Lefel meic:
+Mic test finished. Sound is reaching Capri.	Prawf meic wedi gorffen. Mae sain yn cyrraedd Capri.
+Mic:	Meic:
+Mic: default	Meic: rhagosodiad
+Microphone	Meicroffon
+Mini player	Mini chwaraewr
+Mini player over full screen	Mini chwaraewr dros sgrin lawn
+Mini-games	Mini-gemau
+Minimising the Mainframe left it sliding.	Gadawodd lleihau'r Mainframe iddo lithro.
+Minimize	Lleihau
+Mod filter	Hidlydd modiau
+Mod options	Opsiynau modiau
+Mod pages	Tudalennau modiau
+Mod rules	Rheolau modiau
+Mod sort	Didoli modiau
+Mod switch	Newid modiau
+Model	Model
+Model folder	Ffolder model
+Model name, optional	Enw model, dewisol
+Mods	Modiau
+Mods directory	Cyfeiriadur modiau
+Mods folder	Ffolder modiau
+Most NVIDIA models can't see your screen.	Ni all y rhan fwyaf o fodelau NVIDIA weld dy sgrin.
+Mouse wheel notches got a flick's long ease:	Cafodd nodiadau olwyn llygoden eu hesmwytho fel fflic hir:
+Move	Symud
+Move key to MAX INTELLIGENCE	Symud allwedd i MAX INTELLIGENCE
+Move to MAX	Symud i MAX
+Music	Cerddoriaeth
+Music app	App cerddoriaeth
+Music app: where she plays music when you don't name an app	App cerddoriaeth: ble mae hi'n chwarae cerddoriaeth pan nad wyt ti'n enwi ap
+Mute	Tewi
+Mute her	Tewi hi
+Mute mic key	Allwedd tewi meic
+Mute mic:	Tewi meic:
+Mute mic: Ctrl + Alt + N	Tewi meic: Ctrl + Alt + N
+My brain	Fy ymennydd
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Mae fy ymennydd yn dod i lawr. Dw i'n dweud helo'r eiliad mae i mewn, a gelli di siarad â fi wedyn.
+My brain's on its way. While it comes down, let's sort out how I sound.	Mae fy ymennydd ar ei ffordd. Tra mae'n dod i lawr, gadewch i ni drefnu sut dw i'n swnio.
+My provider	Fy narparydd
+NO AI	DIM AI
+NO PHONES CONNECTED	DIM FFÔN WEDI'I GYSYLLTU
+NO PREVIEW	DIM RHAGOLWG
+NORMAL	ARFEROL
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · am ddim · yn aml yn araf adeg prysur
+NVIDIA's free API is often slow, especially at busy times.	Mae API rhad ac am ddim NVIDIA yn aml yn araf, yn enwedig adeg prysur.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Allwedd API NVIDIA, Google AI Studio (Gemini) neu OpenRouter
+Names:	Enwau:
+Needs a key	Angen allwedd
+Never	Byth
+New code	Cod newydd
+New voice from a clip...	Llais newydd o glip...
+Next	Nesaf
+Night City	Night City
+No AI	Dim AI
+No AI · no brain at all	Dim AI · dim ymennydd o gwbl
+No brain runs, and nothing is sent anywhere.	Dim ymennydd yn rhedeg, ac nid oes dim yn cael ei anfon i unman.
+No brain yet	Dim ymennydd eto
+No code open	Dim cod ar agor
+No limit	Dim terfyn
+No mic found	Heb ddod o hyd i feic
+No mods in the directory yet.	Dim modiau yn y cyfeiriadur eto.
+No mods match that.	Dim modiau'n cyfateb i hynny.
+No mods match.	Dim modiau'n cyfateb.
+No phones yet	Dim ffonau eto
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Dim meic rhithwir eto. Dewis Allbwn, yna Cael VB-CABLE (am ddim).
+None yet: pick to get VB-CABLE (free)	Dim eto: dewisa i gael VB-CABLE (am ddim)
+Normal	Arferol
+Not a relay host	Nid yn westeiwr relai
+Not imported. Nothing ran.	Heb ei fewnforio. Ni redodd dim.
+Not updated. The old one is still in.	Heb ei ddiweddaru. Mae'r hen un yn dal i fod i mewn.
+Nothing needed updating.	Doedd dim angen diweddaru dim.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Dim i'w lawrlwytho, dim wedi'i anfon i unman. Fydda i ddim yn ateb yn ôl. Ychwanega ymennydd unrhyw bryd yn y Mainframe.
+Nothing to show from the mods directory.	Dim i'w ddangos o'r cyfeiriadur modiau.
+Nothing? Windows Settings > Privacy & security > Microphone.	Dim? Gosodiadau Windows > Preifatrwydd a diogelwch > Meicroffon.
+Nous Portal keys aren't supported yet.	Nid yw allweddi Nous Portal yn cael eu cefnogi eto.
+OBS	OBS
+OFF	I FFWRDD
+OLLAMA	OLLAMA
+ON	YMLAEN
+ON THIS PC	AR Y PC HWN
+OR A KEY	NEU ALLWEDD
+Obsidian memory vault	Cofrestr gofod Obsidian
+Off	I ffwrdd
+Off. Turn on Her voice in your mic above.	I ffwrdd. Trowch Ei llais yn dy feic ymlaen uchod.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	I ffwrdd: mae hi'n swnio fel bob amser. Ymlaen: pob llais sydd ganddi, ElevenLabs hefyd.
+Often	Yn aml
+On	Ymlaen
+On / Off	Ymlaen / I ffwrdd
+On: your mic and her voice are going in.	Ymlaen: mae dy feic a'i llais yn mynd i mewn.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Un gwrthrych JSON, wedi'i ychwanegu at bob cais y mae'r ymennydd hwn yn ei anfon. Mae'n disodli gwerth Capri ar gyfer unrhyw enw y mae'n ei rannu, ac nid yw'n cael ei wirio yn erbyn y model.
+Online speech recognition	Adnabod lleferydd ar-lein
+Open Capri Mainframe	Agor Capri Mainframe
+Open Ollama, I'll find it	Agora Ollama, mi wna i ddod o hyd iddo
+Open clips folder	Agor ffolder clipiau
+Open her memories	Agor ei hatgofion
+Open her notes	Agor ei nodiadau
+Open mods folder	Agor ffolder modiau
+Open the page again	Agor y dudalen eto
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA neu OpenRouter.
+OpenAI-compatible server or provider.	Gweinydd neu ddarparwr sy'n gydnaws ag OpenAI.
+OpenRouter · free models only	OpenRouter · modelau rhad ac am ddim yn unig
+Optional	Dewisol
+Optional. Blank means no key.	Dewisol. Mae bylchnod gwag yn golygu dim allwedd.
+Options	Opsiynau
+Out of the box a little higher, just behind her.	Ychydig yn uwch allan o'r bocs, y tu ôl iddi.
+Out of the box lower, just behind her.	Yn is allan o'r bocs, y tu ôl iddi.
+Output	Allbwn
+Output:	Allbwn:
+Output: none	Allbwn: dim
+PHONE CONNECTED	FFÔN WEDI'I GYSYLLTU
+PHONES >	FFONAU >
+PHONES CONNECTED	FFONAU WEDI'U CYSYLLTU
+PREBUILT LOCAL	LLEOL WEDI'I BERFFEITHIO YMLAEN LLAW
+PUBLISH MOD >	CYHOEDDI MOD >
+Pair a phone	Paru ffôn
+Paste	Gludo
+Paste API key	Gludo allwedd API
+Paste a brain API key	Gludo allwedd API ymennydd
+Paste reads your clipboard once, when you press it.	Mae gludo yn darllen dy glipfwrdd unwaith, pan wyt ti'n ei wasgu.
+Paste your key here	Gludo dy allwedd yma
+Pat stroke	Strôc mwyth pen
+Perch	Clwyd
+Perch over {0} fps uses more CPU	Clwyd dros {0} fps yn defnyddio mwy o CPU
+Pick Output to get it.	Dewisa Allbwn i'w gael.
+Pick a brain so I can talk back. You can change it any time.	Dewisa ymennydd fel y gallaf ateb yn ôl. Gelli di ei newid unrhyw bryd.
+Pick a clip of a voice you have the rights and consent to use	Dewisa glip o lais y mae gen ti'r hawliau a'r caniatâd i'w ddefnyddio
+Pick a free model. I opened the page in your browser.	Dewisa fodel rhad ac am ddim. Dw i wedi agor y dudalen yn dy borwr.
+Pick a new clip of you...	Dewisa glip newydd ohonot ti...
+Pick a voice model...	Dewisa fodel llais...
+Pick one. Only one brain runs at a time.	Dewisa un. Dim ond un ymennydd sy'n rhedeg ar y tro.
+Pick the note her memories go in	Dewisa'r nodyn lle bydd ei hatgofion yn mynd
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Dewisa {0} i {1} eiliad o lais y mae gen ti'r hawliau a'r caniatâd i'w ddefnyddio
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Dewisa {0} i {1} eiliad ohonot ti'n siarad, neu o lais y mae gen ti'r hawliau a'r caniatâd i'w ddefnyddio
+Pitch	Traw
+Play	Chwarae
+Play...	Chwarae...
+Player only	Y chwaraewr yn unig
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Mae modelau Pocket TTS yn copïo llais y clip hwn. Pwyswch Prawf i'w glywed.
+Pop-in times	Amserau ymddangos
+Pop-ins	Ymddangosiadau
+Power saver	Arbedwr pŵer
+Power saver: how lightly she runs in games, or always	Arbedwr pŵer: pa mor ysgafn mae hi'n rhedeg mewn gemau, neu bob amser
+Preset	Rhagosodiad
+Press Create API key	Pwyswch Creu allwedd API
+Press Create Key	Pwyswch Creu Allwedd
+Press Generate API Key	Pwyswch Cynhyrchu Allwedd API
+Press Test and say something, so I know I can hear you.	Pwyswch Prawf a dweud rhywbeth, fel bod gen i wybod y gallaf dy glywed.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Pwyswch allwedd, ar ei phen ei hun neu gyda Ctrl, Alt, Shift neu Win.
+Press new keys, then Confirm	Pwyswch allweddi newydd, yna Cadarnhau
+Provider	Darparwr
+Provider API key, optional	Allwedd API y darparwr, dewisol
+Provider base URL	URL sylfaenol y darparwr
+Provider forgotten.	Anghofiwyd y darparwr.
+Provider overlaps the brain name or note	Mae'r darparwr yn gorgyffwrdd ag enw'r ymennydd neu'r nodyn
+Publish	Cyhoeddi
+Publish mod	Cyhoeddi mod
+Push to talk is off.	Mae siarad gwthio i ffwrdd.
+Push to talk key	Allwedd siarad gwthio
+Push to talk:	Siarad gwthio:
+Push to talk: not set	Siarad gwthio: heb ei osod
+QR CODE >	COD QR >
+QR hidden while streaming	QR wedi'i guddio wrth ffrydio
+Quick	Cyflym
+Quiet key	Allwedd dawel
+Quiet:	Tawel:
+Quiet: Ctrl + Alt + P	Tawel: Ctrl + Alt + P
+Quit Capri	Gadael Capri
+RELAY >	RELAI >
+REMOTE >	O BELL >
+RUNS CODE.	MAE'N RHEDEG COD.
+Rarely	Prin
+Rate mod	Graddio mod
+Reading its README...	Yn darllen ei README...
+Refresh	Adnewyddu
+Reinstall	Ailosod
+Reload	Ailllwytho
+Reloaded.	Ailllwythwyd.
+Remember our chats	Cofia ein sgyrsiau
+Remember what she sees	Cofia beth mae hi'n ei weld
+Remote	O bell
+Remote off	O bell i ffwrdd
+Remote on	O bell ymlaen
+Remove	Tynnu
+Remove all phones	Tynnu pob ffôn
+Replies	Atebion
+Reply length	Hyd yr ateb
+Report a problem	Rhoi gwybod am broblem
+Reset colors	Ailosod lliwiau
+Reset to her default	Ailosod i'w rhagosodiad
+Resolution	Datrysiad
+Restart to update	Ailgychwyn i ddiweddaru
+Restless	Aflonydd
+Revoke	Dirymu
+Revoke also removes the phones its links added	Mae dirymu hefyd yn tynnu'r ffonau a ychwanegwyd gan ei gysylltiadau
+Ride cursor	Marchogaeth cyrchwr
+Ride cursor / Hop off	Marchogaeth cyrchwr / Neidio i ffwrdd
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Cliciwch dde arnaf unrhyw bryd am Capri Mainframe. Mae ymennydd yn troi ymlaen o dan YMENNYDD.
+Right-click me any time for the Mainframe, Help and the Discord.	Cliciwch dde arnaf unrhyw bryd am y Mainframe, Cymorth a'r Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox neu unrhyw ap arall: dewisa
+Robot	Robot
+Rock, paper, scissors	Carreg, papur, siswrn
+Run this code mod?	Rhedeg y mod cod hwn?
+Running on this PC	Yn rhedeg ar y PC hwn
+Running on this PC · :	Yn rhedeg ar y PC hwn · :
+Runs Claude Code or Codex on this PC, signed in.	Yn rhedeg Claude Code neu Codex ar y PC hwn, wedi mewngofnodi.
+Runs on your PC. No key, no credits.	Yn rhedeg ar dy PC. Dim allwedd, dim credydau.
+SCAN WITH YOUR PHONE · EXPIRES	SGANIA GYDA DY FFÔN · YN DOD I BEN
+SECURITY >	DIOGELWCH >
+SKILL.	SGIL.
+SKIN.	CROEN.
+SORT BY	DIDOLI YN ÔL
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SYNAU ARFERION YMENNYDD GWYLIO CAPRI DOOMSCROLL TYWYDD CLIPIAU GEMAU ALLWEDDI SYMUDIADAU LLAIS CHI
+Same as her ears (VOICE > Mic)	Yr un fath â'i chlustiau (LLAIS > Meic)
+Same code on the phone?	Yr un cod ar y ffôn?
+Save	Cadw
+Save big moments	Cadw eiliadau mawr
+Save folder	Ffolder cadw
+Save your changes, or press Discard + reload.	Cadw dy newidiadau, neu wasgu Taflu + ailllwytho.
+Save your changes, or press Discard.	Cadw dy newidiadau, neu wasgu Taflu.
+Saved.	Wedi cadw.
+Saved. Ctrl + Alt + O opens her Mainframe.	Wedi cadw. Mae Ctrl + Alt + O yn agor ei Mainframe.
+Saving your rating...	Yn cadw dy sgôr...
+Say her name anywhere to chat	Dywed ei henw unrhyw le i sgwrsio
+Screens	Sgriniau
+Screens is hidden or outside WATCH	Mae Sgriniau wedi'u cuddio neu y tu allan i WYLIO
+Screens overlaps a WATCH row	Mae Sgriniau yn gorgyffwrdd â rhes WYLIO
+Screens to watch	Sgriniau i'w gwylio
+Sealed end to end	Wedi'i selio o'r dechrau i'r diwedd
+Search by name or author	Chwilio yn ôl enw neu awdur
+Search installed mods	Chwilio modiau wedi'u gosod
+Search mods	Chwilio modiau
+Search name, author or description	Chwilio enw, awdur neu ddisgrifiad
+Security	Diogelwch
+Security:	Diogelwch:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Sefydlu
+Set up her brain	Sefydlu ei hymennydd
+Set up your voice model	Sefydlu dy fodel llais
+Setting up her brain	Yn sefydlu ei hymennydd
+Settings	Gosodiadau
+Settings / Back	Gosodiadau / Yn ôl
+Settings folds the wrong rows above BRAIN	Mae Gosodiadau yn plygu'r rhesi anghywir uwchben YMENNYDD
+Settings had nothing to watch.	Doedd dim i'w wylio gan Gosodiadau.
+Settings lost keyboard focus during the Tab walk	Collodd Gosodiadau ffocws bysellfwrdd yn ystod taith Tab
+Setup guide	Canllaw gosod
+Setup stopped	Gosod wedi stopio
+She can read it when it fits.	Gall ei ddarllen pan mae'n ffitio.
+She glances at your screen and comments. Costs a little on a paid brain.	Mae hi'n edrych ar dy sgrin ac yn gwneud sylwadau. Mae'n costio ychydig ar ymennydd taledig.
+She keeps listening. Say her name, then just talk until you go quiet.	Mae hi'n dal i wrando. Dywed ei henw, yna siarada nes byddi di'n dawel.
+She reacts to your game until you close it.	Mae hi'n ymateb i dy gêm nes i ti ei chau.
+She reads these controls before each game job.	Mae hi'n darllen y rheolyddion hyn cyn pob tasg gêm.
+She talks about your game as you play. Costs a little on a paid brain.	Mae hi'n siarad am dy gêm wrth i ti chwarae. Mae'n costio ychydig ar ymennydd taledig.
+She uses it when she plays	Mae hi'n ei ddefnyddio pan mae hi'n chwarae
+Short	Byr
+Shortest wait (minutes)	Aros lleiaf (munudau)
+Show Capri	Dangos Capri
+Show QR	Dangos QR
+Show my mod file	Dangos fy ffeil mod
+Show on Discord	Dangos ar Discord
+Shum, what time is it	Shum, faint o'r gloch yw hi
+Sign in	Mewngofnodi
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Mewngofnoda, gwna allwedd a'i chopïo. Yna pwyswch Gludo a bydda i'n cysylltu.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Mewngofnoda, pwyswch Creu allwedd API a'i chopïo. Yna pwyswch Gludo a bydda i'n cysylltu.
+Silent · text only	Tawel · testun yn unig
+Simple / Advanced Settings	Gosodiadau Syml / Uwch
+Simple Settings	Gosodiadau Syml
+Simple Settings left a gap under Check in on me	Gadawodd Gosodiadau Syml fwlch o dan Galw heibio
+Sit here	Eistedda yma
+Sit on windows	Eistedd ar ffenestri
+Size	Maint
+Skip	Hepgor
+Skip all	Hepgor y cyfan
+Skip for now	Hepgor am y tro
+Sleep	Cysgu
+Small	Bach
+Sometimes	Weithiau
+Sound effects volume	Cyfaint effeithiau sain
+Sound sensitivity	Sensitifrwydd sain
+Sounds	Synau
+Speaker or clip	Seinydd neu glip
+Speech model	Model lleferydd
+Speed	Cyflymder
+Start with Windows	Dechrau gyda Windows
+Start with this!	Dechrau gyda hwn!
+Starting...	Yn dechrau...
+Stay	Aros
+Stay on my model	Aros ar fy model
+Still checking your mics...	Yn dal i wirio dy feiciau...
+Still checking your speakers...	Yn dal i wirio dy seinyddion...
+Still checking your virtual mics...	Yn dal i wirio dy feiciau rhithwir...
+Stop	Stopio
+Stopped using it. Couldn't remove the saved provider.	Wedi peidio â'i ddefnyddio. Methwyd tynnu'r darparwr wedi'i gadw.
+Support	Cymorth
+Sure?	Siŵr?
+Sure? moved to a different phone	Siŵr? wedi symud i ffôn gwahanol
+TALK TO ME	SIARADA Â FI
+TEXT ONLY	TESTUN YN UNIG
+Tab landed past the first option of	Glaniodd Tab heibio'r opsiwn cyntaf o
+Tab never reached the quiet key	Ni chyrhaeddodd Tab yr allwedd dawel erioed
+Tab reached nothing	Ni chyrhaeddodd Tab ddim
+Tab selected a control without moving keyboard focus	Dewisodd Tab reolydd heb symud ffocws y bysellfwrdd
+Talk	Siarad
+Talk key	Allwedd siarad
+Talk:	Siarad:
+Talk: Ctrl + Alt + V	Siarad: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Cyfradd ffrâm dal targed; gall ollwng dan lwyth neu gyllideb y cof
+Teases when another AI comes to the front.	Yn tynnu coes pan mae AI arall yn dod i'r blaen.
+Test	Prawf
+That address doesn't work. Try https://... or http://localhost:{0}.	Dyw'r cyfeiriad yna ddim yn gweithio. Rho gynnig ar https://... neu http://localhost:{0}.
+That code expired	Mae'r cod yna wedi dod i ben
+That mod is no longer installed. The list is updated.	Dydy'r mod yna ddim wedi'i osod mwyach. Mae'r rhestr wedi'i diweddaru.
+That's a paid key: it goes under MAX INTELLIGENCE.	Allwedd dâl yw hon: mae'n mynd o dan MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Arhosodd y Mainframe yn gyfansawdd wrth lithro.
+The Mainframe stayed uncomposited after the slide.	Arhosodd y Mainframe heb fod yn gyfansawdd ar ôl y sleid.
+The controls moved while the picture was sliding.	Symudodd y rheolyddion tra roedd y llun yn llithro.
+The cover stayed visible after the slide ended.	Arhosodd y gorchudd yn weladwy ar ôl i'r sleid orffen.
+The frame thread kept running after the page settled.	Parhaodd edefyn y ffrâm i redeg ar ôl i'r dudalen setlo.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Yr ateb hiraf y gall hi ei roi, mewn tocynnau. Mae Auto yn cadw at Atebion uchod; mae {0}K neu {1}K yn gadael iddi barhau. Mae tasgau yn cadw mwy o le pan fydd ei angen
+The longest wait must be at least the shortest wait.	Rhaid i'r aros hiraf fod o leiaf yr aros byrraf.
+The picture doesn't match the scrolled page:	Dydy'r llun ddim yn cyfateb i'r dudalen sgrolio:
+The picture of Settings doesn't match the page:	Dydy llun Gosodiadau ddim yn cyfateb i'r dudalen:
+The picture stayed up after the slide ended.	Arhosodd y llun yn weladwy ar ôl i'r sleid orffen.
+The picture wasn't showing while it slid.	Doedd y llun ddim yn dangos wrth iddo lithro.
+The provider sheet is crowded:	Mae taflen y darparwr yn orlawn:
+The voice panel has no screen DPI.	Nid oes gan y panel llais DPI sgrin.
+The voice panel's menus share one font.	Mae dewislenni'r panel llais yn rhannu un ffont.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Does dim allwedd ar dy glipfwrdd eto. Copïa hi o'r dudalen, yna pwyso Gludo.
+These start off. Each costs a little or uses your mic.	Mae'r rhain yn dechrau i ffwrdd. Mae pob un yn costio ychydig neu'n defnyddio dy feic.
+These start off. Turn on what you want. They're all in Settings too.	Mae'r rhain yn dechrau i ffwrdd. Tro ymlaen beth bynnag wyt ti eisiau. Maen nhw i gyd yng Ngosodiadau hefyd.
+They can also call you Big Z, Capricorn or Nova	Gallan nhw dy alw di'n Big Z, Capricorn neu Nova hefyd
+They can also call you Nova, Big Z or Capricorn	Gallan nhw dy alw di'n Nova, Big Z neu Capricorn hefyd
+Thinking	Yn meddwl
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Dyma fy llais rhad ac am ddim. Pwyswch Prawf, dywed rywbeth, a dangosaf i ti fy mod i'n gallu dy glywed.
+This mod has no description yet.	Does gan y mod yma ddim disgrifiad eto.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Amser rhwng cipolwg
+Tiny	Bach iawn
+Try again	Ceisia eto
+Turn Remote on first	Troi Pell ymlaen yn gyntaf
+Turn off mini player	Diffodd mini chwaraewr
+Turn push to talk off	Diffodd siarad gwthio
+Turning the wheel the other way kept the page heading the old way, to	Roedd troi'r olwyn y ffordd arall wedi cadw'r dudalen yn mynd y ffordd hen, i
+Type	Teipio
+Type key	Allwedd teipio
+Type to me	Teipia ata i
+Type:	Teipio:
+Type: Ctrl + Alt + T	Teipio: Ctrl + Alt + T
+Typing sound	Sain teipio
+Unpacked. Press Test to hear it.	Dadbaciwyd. Pwyswch Prawf i'w glywed.
+Unsaved changes.	Newidiadau heb eu cadw.
+Up to {0} fps	Hyd at {0} fps
+Up to {0}p	Hyd at {0}p
+Update	Diweddaru
+Update available.	Diweddariad ar gael.
+Update mods	Diweddaru modiau
+Updating...	Yn diweddaru...
+Use	Defnyddio
+Use her cursor	Defnyddia ei chyrchwr
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Defnyddia https:// ar gyfer darparwr arall. Nid yw allwedd dros http plaen yn ddiogel.
+Use preset	Defnyddia ragosodiad
+Use saved	Defnyddia'r un a gadwyd
+Use this server	Defnyddia'r gweinydd hwn
+Using your provider with a key	Defnyddio dy ddarparwr gydag allwedd
+Using your server with no key	Defnyddio dy weinydd heb allwedd
+VIEW MOD >	GWELA MOD >
+VOICE >	LLAIS >
+VOICE IN YOUR MIC >	LLAIS YN DY FEIC >
+VOICE LAYERS >	HAENAU LLAIS >
+Verbosity	Geirioldeb
+Video bitrate	Cyfradd did fideo
+View	Gweld
+View mod	Gweld mod
+Voice	Llais
+Voice ID	ID llais
+Voice from	Llais o
+Voice layers	Haenau llais
+Voice model	Model llais
+Voice model:	Model llais:
+Voice name or ID, optional	Enw neu ID llais, dewisol
+Voice server address, or a voice model's folder	Cyfeiriad gweinydd llais, neu ffolder model llais
+Voice status	Statws llais
+Voice, key and model...	Llais, allwedd a model...
+Volume	Cyfaint
+WAKE ME UP >	DEFFRO FI >
+WATCH >	WYLIO >
+Waiting for the relay	Yn aros am y relai
+Wake her up	Deffra hi
+Waking her up	Yn ei deffro hi
+Wander	Crwydro
+Wander around	Crwydro o gwmpas
+Watch my screen	Gwylia fy sgrin
+Watch-along memory	Cof gwylio gyda'n gilydd
+Weather	Tywydd
+Weather city	Dinas y tywydd
+Welcome back, choom. Let's finish setting me up.	Croeso'n ôl, choom. Gadewch i ni orffen fy sefydlu.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Beth mae hi'n ei wneud ar dy PC heb ofyn. Gyda thoglo i ffwrdd mae hi'n gofyn yn gyntaf, ac yn gwneud hynny pan wyt ti'n dweud ie.
+What should she call you?	Beth ddylai hi dy alw di?
+When she types	Pan mae hi'n teipio
+White	Gwyn
+Windows default	Rhagosodiad Windows
+Windows did not give Settings keyboard focus	Ni roddodd Windows ffocws bysellfwrdd i Gosodiadau
+Windows did not return keyboard focus to Back	Ni ddychwelodd Windows ffocws bysellfwrdd i Yn ôl
+With no picture the wheel still tried to slide.	Heb lun, roedd yr olwyn yn dal i geisio llithro.
+Works best on MAX INTELLIGENCE.	Gweithia orau ar MAX INTELLIGENCE.
+YOU	TI
+YOU >	TI >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	DY LLAIS SYMUDIADAU ALLWEDDI GEMAU CLIPIAU TYWYDD DOOMSCROLL CAPRI GWYLIO YMENNYDD ARFERION SYNAU
+YOUR KEY	DY ALLWEDD
+YOUR MIC	DY FEIC
+YOUR PLAN	DY CYNLLUN
+Yokapri what's up	Yokapri beth sy'n digwydd
+You can hide this. It keeps going, and the Mainframe shows it too.	Gelli di guddio hwn. Mae'n parhau, ac mae'r Mainframe yn ei ddangos hefyd.
+Your mic and her voice go into one virtual mic, and	Mae dy feic a'i llais yn mynd i mewn i un meic rhithwir, a
+Your mic is muted. Unmute it to test.	Mae dy feic wedi'i dawelu. Dad-dawelwch i brofi.
+Your mods are up to date.	Mae dy fodiau'n gyfoes.
+Your name or a nickname	Dy enw neu lysenw
+Your own model	Dy fodel dy hun
+Your personality	Dy bersonoliaeth
+Your voice	Dy lais
+Your voice (HD)	Dy lais (HD)
+Your voice (HD) · pick a clip of you...	Dy lais (HD) · dewisa glip ohonot ti...
+Your voice model	Dy fodel llais
+as its mic.	fel ei feic.
+changed. Saved as My Colors, so you can share it.	wedi newid. Wedi'i gadw fel Fy Lliwiau, fel y gelli di ei rannu.
+choice	dewis
+clips the input line	yn clipio'r llinell fewnbwn
+cue	ciw
+doesn't yet.	eto.
+download	lawrlwytho
+file.	ffeil.
+flag	baner
+fps	fps
+hear	clywed
+hears	yn clywed
+hears that.	yn clywed hynny.
+hides or shows her.	yn cuddio neu'n dangos hi.
+hint	awgrym
+in the Mainframe.	yn y Mainframe.
+in the mods directory with a pull request.	yn y cyfeiriadur modiau gyda cais tynnu.
+in the picture wasn't noticed.	yn y llun heb ei sylwi.
+is already her push-to-talk key.	eisoes yw ei allwedd siarad gwthio.
+is off.	i ffwrdd.
+is on and running.	ymlaen ac yn rhedeg.
+is on, at the bottom, under	ymlaen, ar y gwaelod, o dan
+is on.	ymlaen.
+is on. She now answers to	ymlaen. Mae hi nawr yn ateb i
+is removed.	wedi'i dynnu.
+is taken	wedi'i gymryd
+is taken by another app. Try another.	wedi'i gymryd gan ap arall. Rho gynnig ar un arall.
+is updated	wedi'i ddiweddaru
+isn't hearing it yet: do {0} and {1}, then join a call.	dydy hi ddim yn ei glywed eto: gwna {0} a {1}, yna ymuna â galwad.
+it now.	nawr.
+keeps her quiet, and lets her talk again.	yn ei chadw'n dawel, ac yn gadael iddi siarad eto.
+key	allwedd
+key.	allwedd.
+min	mun
+more.	mwy.
+ms.	ms.
+mutes mic	yn tewi'r meic
+mutes your mic.	yn tewi dy feic.
+name	enw
+off	i ffwrdd
+on this PC	ar y PC hwn
+opens her Mainframe.	yn agor ei Mainframe.
+opens her typing box.	yn agor ei blwch teipio.
+phone	ffôn
+phone pixels	picseli ffôn
+phones	ffonau
+pixels	picseli
+pixels)	picseli)
+star.	seren.
+stars.	sêr.
+starts voice chat.	yn dechrau sgwrs llais.
+stays off. Nothing ran.	yn aros i ffwrdd. Ni redodd dim.
+still does its own job in other apps too. Confirm to keep it.	mae'n dal i wneud ei waith ei hun mewn apiau eraill hefyd. Cadarnha i'w gadw.
+tall	uchel
+time	amser
+to talk	i siarad
+to talk to her, with a game in front too.	i siarad â hi, gyda gêm o'i blaen hefyd.
+too.	hefyd.
+turns Gaming Mode on and off.	yn troi Modd Gemau ymlaen ac i ffwrdd.
+with Ollama	gydag Ollama
+won't type in other apps while she runs. Confirm to keep it.	wnaiff hi ddim teipio mewn apiau eraill tra mae hi'n rhedeg. Cadarnha i'w gadw.
+{0}   Echo Cancellation: Off	{0}   Canslo Adlais: I ffwrdd
+{0}   If her voice cuts off, turn off noise filtering	{0}   Os yw ei llais yn torri, diffodd hidlo sŵn
+{0}   Input Device:	{0}   Dyfais Mewnbwn:
+{0}   Join the call and check they hear both of you	{0}   Ymuna â'r alwad a gwiria eu bod yn dy glywed di a hi
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Prawf Meic > Gadewch i ni Wirio: byddi di'n clywed dy hun, a hi wrth iddi siarad
+{0}   Microphone:	{0}   Meicroffon:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Atal sŵn: Dim. Gall y ddau dorri ei llais ar ôl y llinell gyntaf.
+{0}   Open the call or meeting's audio settings	{0}   Agor gosodiadau sain yr alwad neu'r cyfarfod
+{0}   Output Device: your headphones, like before	{0}   Dyfais Allbwn: dy glustffonau, fel o'r blaen
+{0}   Speaker: your headphones, like before	{0}   Seinydd: dy glustffonau, fel o'r blaen
+{0}   Try a mic test in your call app	{0}   Rhoi cynnig ar brawf meic yn dy ap galw
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Gosodiadau Defnyddiwr (yr olwyn wrth dy enw) > Llais a Fideo
+{0} Mbps	{0} Mbps
+{0} lines	{0} llinell
+{0} min	{0} mun
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· ar y PC hwn
+· server	· gweinydd

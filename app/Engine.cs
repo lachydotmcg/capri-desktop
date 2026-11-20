@@ -122,7 +122,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Engine
+    internal sealed partial class Engine
     {
         internal const string Build = "b11669";
         private const string ZipUrl = "https://github.com/ggml-org/llama.cpp/releases/download/b11669/llama-b11669-bin-win-vulkan-x64.zip";
@@ -143,12 +143,16 @@ namespace CapriDesktop
         private bool serverEyes;
         private bool serverCpu;
         private int serverWindow;
+        private int serverLimit;
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
+        internal bool OnCpu { get { return CpuOnly || Brain.GpuLimit < 0; } }
         // The window an ask is growing her to past 16K, or 0. A load of that size that stops on the graphics card throws without
         // marking her for the CPU, so Brain can put back the size that worked.
         internal volatile int Careful;
         private int loading;
+        private int busy;
+        private readonly Stopwatch quiet = Stopwatch.StartNew();
         private bool retryGpu;
 
         internal bool Loading { get { return Interlocked.CompareExchange(ref loading, 0, 0) > 0; } }
@@ -192,7 +196,7 @@ namespace CapriDesktop
         internal static string Amount(long size) { return size < 1e9 ? Math.Round(size / 1e6) + " MB" : (size / 1e9).ToString("0.#") + " GB"; }
 
         private string Folder { get { return Path.Combine(root, "engine-" + Build); } }
-        private string Server { get { return Path.Combine(Folder, "llama-server.exe"); } }
+        private string Server { get { return Path.Combine(Folder, Path.DirectorySeparatorChar == '\\' ? "llama-server.exe" : "llama-server"); } }
         private string ModelPath(Pick pick) { return Path.Combine(Path.Combine(root, "models"), pick.File); }
         private string EyesPath(Pick pick) { return pick.EyesFile == null ? null : Path.Combine(Path.Combine(root, "models"), pick.EyesFile); }
 
@@ -342,10 +346,17 @@ namespace CapriDesktop
 
         internal static int Threads(int processors) { return Math.Max(1, Math.Min(4, processors / 2)); }
 
-        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 4096)
+        internal static string Fit(int limit, long vram, long eyes)
+        {
+            if (limit <= 0 || vram < (1L << 30)) return "";
+            long margin = (vram >> 20) - ((long)limit << 10) + (eyes >> 20);
+            return margin > 1024 ? " -fitt " + margin : "";
+        }
+
+        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 4096, int limit = 0)
         {
             int threads = Threads(Environment.ProcessorCount);
-            ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + ModelPath(pick) + "\"" + (eyes ? " --mmproj \"" + EyesPath(pick) + "\"" : "") + " --host 127.0.0.1 --port " + number + " -c " + window + " -np 1 -a capri --jinja --reasoning off --no-webui --sleep-idle-seconds 900 --log-disable -t " + threads + " -tb " + threads + " -b 256 -ub 128 --poll 0 --poll-batch 0" + (cpu ? " --device none -ngl 0 --no-mmproj-offload" : ""));
+            ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + ModelPath(pick) + "\"" + (eyes ? " --mmproj \"" + EyesPath(pick) + "\"" : "") + " --host 127.0.0.1 --port " + number + " -c " + window + " -np 1 -a capri --jinja --reasoning off --no-webui --sleep-idle-seconds 900 --log-disable -t " + threads + " -tb " + threads + " -b 256 -ub 128 --poll 0 --poll-batch 0" + (cpu ? " --device none -ngl 0 --no-mmproj-offload" : Fit(limit, Interlocked.Read(ref Brain.Vram), eyes ? pick.EyesSize : 0)));
             info.UseShellExecute = false;
             info.CreateNoWindow = true;
             info.WorkingDirectory = Folder;
@@ -371,7 +382,41 @@ namespace CapriDesktop
         {
             Interlocked.Increment(ref loading);
             try { Load(pick); }
-            finally { Interlocked.Decrement(ref loading); }
+            finally { lock (gate) quiet.Restart(); Interlocked.Decrement(ref loading); }
+        }
+
+        internal void Begin() { Interlocked.Increment(ref busy); }
+
+        internal void End()
+        {
+            lock (gate) quiet.Restart();
+            Interlocked.Decrement(ref busy);
+        }
+
+        internal bool Running { get { lock (gate) return server != null && !server.HasExited; } }
+
+        internal int ServerId
+        {
+            get
+            {
+                lock (gate)
+                {
+                    try { return server != null && !server.HasExited ? server.Id : 0; }
+                    catch (InvalidOperationException) { return 0; }
+                }
+            }
+        }
+
+        internal double Unused { get { lock (gate) return quiet.Elapsed.TotalSeconds; } }
+
+        internal bool Rest(double seconds)
+        {
+            lock (gate)
+            {
+                if (server == null || Loading || Interlocked.CompareExchange(ref busy, 0, 0) > 0 || quiet.Elapsed.TotalSeconds < seconds) return false;
+                Stop();
+                return true;
+            }
         }
 
         private void Load(Pick pick)
@@ -383,17 +428,20 @@ namespace CapriDesktop
                 bool eyes = HasEyes(pick);
                 window = Brain.Window;
                 careful = window == Careful;
-                if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == CpuOnly && serverWindow == window) return;
+                int limit = Brain.GpuLimit;
+                bool cpu = CpuOnly || limit < 0;
+                if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == cpu && serverWindow == window && serverLimit == limit) return;
                 if (server != null) Stop();
                 if (!File.Exists(Server) || !File.Exists(ModelPath(pick))) throw new BrainException("Brain not downloaded. Press Set up her brain.");
                 port = FreePort();
                 serverEyes = eyes;
-                serverCpu = CpuOnly;
+                serverCpu = cpu;
                 serverWindow = window;
+                serverLimit = limit;
                 // The try is marked before it starts, so a load that takes Capri or the PC down with it leaves her on the CPU for
                 // this version.
                 if (retryGpu && !serverCpu) KeepCpu("trying the graphics card again");
-                server = Spawn(StartInfo(pick, eyes, serverCpu, port, window));
+                server = Spawn(StartInfo(pick, eyes, serverCpu, port, window, limit));
                 Lower(server);
                 Bind(server);
             }
@@ -532,6 +580,7 @@ namespace CapriDesktop
 
         internal static void Bind(Process child)
         {
+            if (Path.DirectorySeparatorChar != '\\') return;
             try
             {
                 lock (jobs)
