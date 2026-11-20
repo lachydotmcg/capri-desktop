@@ -4347,15 +4347,15 @@ namespace CapriDesktop
                 pet.SetMainframeColours(look);
                 if (pet.Saved.MainframeColours != look || ((SolidColorBrush)MainframeTheme.Ground).Color != Color.Parse(MainframeTheme.LookColours(look)[0]) || MainframeTheme.Mono != (look != 0))
                     throw new Exception(MainframeTheme.LookNames[look] + " did not reach the Mainframe.");
-                Color[] themed = { BubbleLook.Panel, BubbleLook.Ink, BubbleLook.Dim, BubbleLook.Cyan, BubbleLook.Red, BubbleLook.Blue, BubbleLook.Pink };
+                Color[] themed = { BubbleLook.Panel, BubbleLook.Ink, BubbleLook.Dim, BubbleLook.Cyan, BubbleLook.Red, BubbleLook.Blue, BubbleLook.Pink, PillFace.Unlit, PillFace.Caption };
                 if (look == 0)
                 {
-                    Color[] before = { Look.Panel, Look.Ink, Look.Dim, Look.Cyan, Look.Red, Look.Neon, Look.Pink };
-                    for (int i = 0; i < before.Length; i++) if (themed[i] != before[i]) throw new Exception("Night City changed her bubble and Type box colours.");
+                    Color[] before = { Look.Panel, Look.Ink, Look.Dim, Look.Cyan, Look.Red, Look.Neon, Look.Pink, Color.FromRgb(46, 52, 64), Color.FromRgb(168, 174, 184) };
+                    for (int i = 0; i < before.Length; i++) if (themed[i] != before[i]) throw new Exception("Night City changed her bubble, Type box or TYPE | TALK pill colours.");
                 }
-                else foreach (Color colour in themed) if (colour.R != colour.G || colour.G != colour.B) throw new Exception(MainframeTheme.LookNames[look] + " left colour in her bubble or Type box.");
+                else foreach (Color colour in themed) if (colour.R != colour.G || colour.G != colour.B) throw new Exception(MainframeTheme.LookNames[look] + " left colour in her bubble, Type box or TYPE | TALK pill.");
             }
-            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey change her Mainframe, her bubble and her Type box straight away and are saved, and her bubble and Type box keep their colours on Night City");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey change her Mainframe, her bubble, her Type box and her TYPE | TALK pill straight away and are saved, and those keep their colours on Night City");
             if (Pet.FrameSize(-1) != 0 || Pet.FrameSize(110) != 0 || Pet.FrameSize(200) != 200) throw new Exception("Unsupported Mainframe sizes did not become Auto.");
             pet.SetMainframeSize(0); if (frame.Zoom != 1) throw new Exception("Auto scaled the Mainframe twice.");
             var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local, NoHuskVerbosity = true, ThinkingPicks = new[] { new ThinkingPick { Source = "openai|gpt-6-astra", Level = ThinkingLevels.High, Extra = "{}" } } }));
