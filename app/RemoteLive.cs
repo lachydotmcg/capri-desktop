@@ -41,6 +41,9 @@ namespace CapriDesktop
             call.EarsOn = delegate { return OwnCallEars() != null || Hearing.Available; };
             call.Interrupted = RemoteInterrupted;
             call.Timed = RemoteTimed;
+#if !CROSS
+            call.Seeing(RemoteLooked);
+#endif
             screen.Changed += RemoteLiveChanged;
             call.Changed += RemoteLiveChanged;
             remoteScreen = screen;

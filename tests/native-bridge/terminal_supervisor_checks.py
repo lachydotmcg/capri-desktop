@@ -93,7 +93,7 @@ class SupervisorTests(unittest.TestCase):
     def test_stop_covers_another_process_group_in_owned_session(self):
         command = "python3 -c 'import os,time; p=os.fork();\nif p==0: os.setpgrp();open(\"child.pid\",\"w\").write(str(os.getpid()));time.sleep(30);os._exit(0)\nelse: os.waitpid(p,0)'"
         folder, process = self.launch(command)
-        self.until(lambda: (folder/'child.pid').exists())
+        self.until(lambda: (folder/'child.pid').exists() and (folder/'child.pid').read_text().strip() != '')
         child = int((folder/'child.pid').read_text()); self.children.add(child)
         (folder/'stop').write_text('stop')
         self.assertEqual(self.finish(folder, process)['state'], 'stopped')
@@ -102,7 +102,7 @@ class SupervisorTests(unittest.TestCase):
     def test_eof_before_shell_exit_still_cleans_redirected_children(self):
         command = "trap '' HUP; sleep 30 >/dev/null 2>&1 & echo $! > child.pid; exec </dev/null >/dev/null 2>&1; sleep 0.3; exit 0"
         folder, process = self.launch(command)
-        self.until(lambda: (folder/'child.pid').exists())
+        self.until(lambda: (folder/'child.pid').exists() and (folder/'child.pid').read_text().strip() != '')
         child = int((folder/'child.pid').read_text()); self.children.add(child)
         state = self.finish(folder, process)
         self.assertEqual(state['exit_code'], 0)

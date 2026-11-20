@@ -74,6 +74,7 @@ namespace CapriDesktop
         }
 
         internal string NotesFolder { get { return Path.Combine(Folder, "notes"); } }
+        internal string ReplayFolder { get { return Path.Combine(Folder, "replays"); } }
         internal string BrowserFolder { get { return Path.Combine(Folder, "browser"); } }
         private string DeskPath { get { return Path.Combine(Folder, "desktop.json"); } }
 
@@ -417,6 +418,9 @@ namespace CapriDesktop
             string prompt = StepPrompt("find a recipe", new List<string> { "1. SEARCH pancakes -> Bing" }, 2, "Pancakes", "https://example.com", "Mix and fry.", new List<HerLink> { new HerLink { Text = "Best pancakes" } });
             if (prompt.IndexOf("1. Best pancakes", StringComparison.Ordinal) < 0 || prompt.IndexOf("find a recipe", StringComparison.Ordinal) < 0 || prompt.IndexOf("Mix and fry.", StringComparison.Ordinal) < 0) return "Her computer's step prompt lost the page.";
             if (StepPrompt("x", new List<string>(), MaxSteps, "", null, "", null).IndexOf("finish with DONE", StringComparison.Ordinal) < 0) return "Her computer didn't tell her brain to finish on the last step.";
+            string browserArgs = HerBrowser.Arguments(@"C:\her\browser\", 800, 600);
+            if (browserArgs.IndexOf("--remote-debugging-pipe", StringComparison.Ordinal) < 0 || browserArgs.IndexOf("remote-debugging-port", StringComparison.Ordinal) >= 0 || browserArgs.IndexOf("remote-allow-origins", StringComparison.Ordinal) >= 0) return "Her browser would open a debugging port instead of its pipe.";
+            if (browserArgs.IndexOf("--disable-gpu", StringComparison.Ordinal) < 0) return "Her browser would draw its pages on the graphics card.";
             if (HerBrowser.Resolve("javascript:alert(1)").StartsWith("javascript", StringComparison.OrdinalIgnoreCase) || HerBrowser.Resolve("file:///c:/x").StartsWith("file", StringComparison.OrdinalIgnoreCase)) return "Her browser would open a script or a file address.";
             return null;
         }
@@ -442,7 +446,8 @@ namespace CapriDesktop
             if (again.Stickers().Count != 1 || again.Stickers()[0].Kind != "star") return "Her desktop didn't come back the way she left it.";
             for (int i = 0; i < MostStickers + 5; i++) again.AddSticker("heart", new Point(400, 400), 0);
             if (new HerComputer(folder).Stickers().Count != MostStickers) return "Her stickers piled up past the limit.";
-            return HerJobs.Check(Path.Combine(folder, "jobs-check")) ?? HerSchedule.Check() ?? HerErrand.Check(Path.Combine(folder, "errand-check"));
+            string jobsResult = HerJobs.Check(Path.Combine(folder, "jobs-check"));
+            return jobsResult ?? HerSchedule.Check() ?? HerErrand.Check(Path.Combine(folder, "errand-check")) ?? HerRecorder.Check(Path.Combine(folder, "replay-check"));
         }
 
         private sealed class QuietHands : HerHands

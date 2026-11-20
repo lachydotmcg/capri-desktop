@@ -74,13 +74,13 @@ namespace CapriDesktop
                 Brain.MemoryPath = memoryWas;
             }
 
-            if (Math.Abs(Mainframe.FitZoom(1f, 1920, 1040, 1f, 380, 950) - 1f) > 0.001f) throw new Exception("Her Mainframe shrank on a screen with room for it.");
-            float shortFit = Mainframe.FitZoom(1f, 1366, 728, 1f, 380, 950);
-            if (Math.Abs(shortFit - 728f / 950f) > 0.001f) throw new Exception("Her Mainframe on a 1366 x 768 screen was " + shortFit);
-            if (Math.Abs(Mainframe.FitZoom(2f, 1920, 1040, 1f, 380, 950) - 1040f / 950f) > 0.001f) throw new Exception("Her picked size ran off a short screen.");
-            if (Math.Abs(Mainframe.FitZoom(1f, 600, 300, 1f, 380, 950) - Mainframe.SmallestFit) > 0.001f) throw new Exception("Her Mainframe shrank past legible.");
-            if (Math.Abs(Mainframe.FitZoom(1.5f, 700, 2000, 1.25f, 760, 0) - 700f / 760f / 1.25f) > 0.001f) throw new Exception("Her paged Mainframe ran off a narrow screen.");
-            checks.Add("PASS her Mainframe fits a short or narrow screen, never smaller than 60%, and keeps its size where it fits");
+            if (Math.Abs(Mainframe.FitZoom(1f, 2880, 2f, 760) - 1f) > 0.001f) throw new Exception("Her Mainframe shrank on a 2880 x 1800 screen at 200%, which 0.9.2 fit.");
+            float shortFit = Mainframe.FitZoom(1f, 1366, 1f, 760);
+            if (Math.Abs(shortFit - 1f) > 0.001f) throw new Exception("Her Mainframe on a 1366 x 768 screen was " + shortFit + " rather than scrolling at 100%.");
+            if (Math.Abs(Mainframe.FitZoom(2f, 1366, 1f, 760) - 1366f / 760f) > 0.001f) throw new Exception("Her picked size ran off a narrow screen.");
+            if (Math.Abs(Mainframe.FitZoom(1f, 300, 1f, 760) - Mainframe.SmallestFit) > 0.001f) throw new Exception("Her Mainframe shrank past legible.");
+            if (Math.Abs(Mainframe.FitZoom(1.5f, 700, 1.25f, 760) - 700f / 760f / 1.25f) > 0.001f) throw new Exception("Her Mainframe ran off a narrow screen.");
+            checks.Add("PASS her Mainframe only shrinks for a screen too narrow for Settings, never smaller than 60%, and keeps its size on a short screen, which scrolls instead");
 
             short[] clap = Sfx.Make(Cue.Clap, 60);
             int loudest = 0;

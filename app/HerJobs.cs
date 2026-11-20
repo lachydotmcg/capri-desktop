@@ -21,6 +21,7 @@ namespace CapriDesktop
         [DataMember] public string Answer = "";
         [DataMember] public string Note = "";
         [DataMember] public string After = "";
+        [DataMember] public string Replay = "";
         [DataMember] public string Kind = "";
         [DataMember] public long At;
         [DataMember] public int Every;
@@ -298,6 +299,17 @@ namespace CapriDesktop
             return text.Length <= limit ? text : "\u2026" + text.Substring(text.Length - limit + 1);
         }
 
+        internal void SetReplay(string id, string replay)
+        {
+            bool found = false;
+            lock (gate)
+            {
+                HerJob job = list.Done.Find(one => one.Id == id);
+                if (job != null) { job.Replay = replay ?? ""; found = true; }
+            }
+            if (found) Save();
+        }
+
         internal static long Stamp(DateTime when) { return when.Ticks; }
         internal static DateTime When(long stamp) { return new DateTime(Math.Max(0, Math.Min(DateTime.MaxValue.Ticks, stamp))); }
 
@@ -347,6 +359,7 @@ namespace CapriDesktop
                 foreach (HerJob job in jobs)
                 {
                     if (job.After == null) job.After = "";
+                    if (job.Replay == null) job.Replay = "";
                     if (job.Kind != "watch") job.Kind = "";
                     if (job.Progress == null) job.Progress = "";
                     if (job.Question == null) job.Question = "";

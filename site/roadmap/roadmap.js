@@ -58,6 +58,16 @@
     const names = (match[1] || '').split(/\s*,\s*|\s+and\s+|\s*&\s*/).map(displayName).filter(Boolean);
     return names.length || match[2] ? { names, where: match[2] || '' } : null;
   };
+  const onItLine = body => {
+    const match = /^[ \t]*On it\b[^\n]{0,160}/imu.exec(String(body || ''));
+    return match ? match[0].trim() : '';
+  };
+  const doersOf = item => {
+    const match = /^On it:?\s+(.+?)\.?$/iu.exec(item.o || '');
+    const helpers = match ? match[1].split(/\s*,\s*|\s+and\s+|\s*&\s*/).map(displayName).filter(Boolean) : [];
+    const fresh = helpers.filter(name => !item.a.some(login => login.toLowerCase() === name.toLowerCase()));
+    return [...item.a.map(name => [name, true]), ...fresh.map(name => [name, false])];
+  };
 
   const keep = item => item && !item.pull_request && Number.isInteger(item.number) && typeof item.title === 'string' && Array.isArray(item.labels) && item.labels.length > 0 && !item.labels.some(label => !label || skip.has(label.name));
   const trim = (item, links) => ({
@@ -70,7 +80,8 @@
     done: item.closed_at || null,
     u: loginOf(item.user),
     p: links.get(item.number) || [],
-    s: suggestedLine(item.body)
+    s: suggestedLine(item.body),
+    o: onItLine(item.body)
   });
   const sane = item => item && Number.isInteger(item.n) && item.n > 0 && typeof item.t === 'string' && Array.isArray(item.l) && Array.isArray(item.a);
   const tidy = item => ({
@@ -78,7 +89,8 @@
     a: item.a.filter(name => typeof name === 'string' && githubName.test(name)),
     u: typeof item.u === 'string' && githubName.test(item.u) ? item.u : '',
     p: Array.isArray(item.p) ? item.p.filter(name => typeof name === 'string' && githubName.test(name)) : [],
-    s: typeof item.s === 'string' ? item.s.slice(0, 200) : ''
+    s: typeof item.s === 'string' ? item.s.slice(0, 200) : '',
+    o: typeof item.o === 'string' ? item.o.slice(0, 200) : ''
   });
 
   const readJson = async url => {
@@ -170,15 +182,16 @@
     const meta = make('span', 'card-meta');
     if (item.l.includes('good first issue') && lane !== 'shipped') meta.append(make('span', 'badge', 'Good first issue'));
     if (item.l.includes('help wanted') && lane !== 'grabs' && lane !== 'shipped') meta.append(make('span', 'badge', 'Help wanted'));
-    if (item.a.length && lane !== 'shipped') {
+    const doers = doersOf(item);
+    if (doers.length && lane !== 'shipped') {
       const who = make('span', 'who');
-      if (item.a.length === 1 && item.a[0] === lachy) who.textContent = "Lachy's on it";
+      if (doers.length === 1 && doers[0][0] === lachy) who.textContent = "Lachy's on it";
       else {
-        item.a.forEach((name, at) => {
-          if (at) who.append(at === item.a.length - 1 ? ' and ' : ', ');
-          who.append(name === lachy ? 'Lachy' : handle(name, true));
+        doers.forEach(([name, onGithub], at) => {
+          if (at) who.append(at === doers.length - 1 ? ' and ' : ', ');
+          who.append(name === lachy ? 'Lachy' : handle(name, onGithub));
         });
-        who.append(item.a.length === 1 ? "'s on it" : ' are on it');
+        who.append(doers.length === 1 ? "'s on it" : ' are on it');
       }
       meta.append(who);
     }
@@ -220,12 +233,12 @@
     const sorted = { fix: [], plan: [], grabs: [], shipped: [] };
     for (const item of board.open) sorted[laneOf(item)].push(item);
     // Work someone's on comes first; in Up for grabs, good first issues lead.
-    sortBy(sorted.fix, item => item.a.length > 0);
-    sortBy(sorted.plan, item => item.a.length > 0);
+    sortBy(sorted.fix, item => doersOf(item).length > 0);
+    sortBy(sorted.plan, item => doersOf(item).length > 0);
     sortBy(sorted.grabs, item => item.l.includes('good first issue'));
     sorted.shipped = board.shipped.slice().sort((a, b) => (dateOf(b.done) || 0) - (dateOf(a.done) || 0)).slice(0, 24);
     for (const list of Object.values(sorted)) {
-      for (const item of list) item.find = [item.t, '#' + item.n, ...item.l, ...item.a, item.u, ...item.p, item.s].join(' ').toLowerCase();
+      for (const item of list) item.find = [item.t, '#' + item.n, ...item.l, ...item.a, item.u, ...item.p, item.s, item.o].join(' ').toLowerCase();
     }
     return sorted;
   };
