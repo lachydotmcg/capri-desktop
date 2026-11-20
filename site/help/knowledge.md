@@ -618,7 +618,8 @@ Already have a mod file? Press Import mod on the Mods page and pick it. The file
 - .capri-mod: settings mods, including colour sets.
 - .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
-- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings, plus what her quick read of its code found, like network use and the addresses it contacts. Minified or packed code is said in the box and asked about twice, with a laid-out copy saved to read, and a mod that both unpacks hidden text and loads code while it runs is refused. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your code mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
+- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings, plus what her quick read of its code found, like network use and the addresses it contacts. Minified or packed code is said in the box and asked about twice, with a laid-out copy saved to read, and a mod that both unpacks hidden text and loads code while it runs is refused. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
+- .capri-tool: tool mods, a JSON recipe that gives her one look-up tool: one to three HTTPS reads from the sites it lists, the values to keep, and what to tell her. They can't run code, send, post or log in. She asks before one goes on, naming the sites it reads, and again if it's edited. A site that finds nothing doesn't count against a tool, but three broken answers in a row switch it off. She can write one herself with make_tool when you ask for a look-up she doesn't have; it's saved off until you check it in Mods and turn it on. If a code mod was starting when she stopped, it's off on her next start, and starting her with --no-mods keeps every mod off for that run.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 
@@ -1902,20 +1903,28 @@ On a Mac, and on Linux from the tarball, there are no automatic updates yet, but
 
 ## 18. Uninstall
 
-### Windows
-1. Right-click her > Quit Capri.
-2. Settings > Apps > Installed apps > Capri > Uninstall. (Windows 10: Settings > Apps > Apps & features.)
-3. In "Remove Capri", press Remove Capri.
+### The quick way
+Open Capri Mainframe > Settings > UNINSTALL and press Uninstall Capri. Tick "Also delete everything she knows" to wipe her memories, notes, chats, keys, settings, mods, her own computer and her brain and voice downloads too. Leave it off to keep them in case you come back. Your clips in Videos\Capri Clips and your Obsidian vault always stay.
+- Installed from Capri-Setup.exe: she closes and removes herself, her shortcuts and her Installed apps entry.
+- A Capri.exe you ran from somewhere like Downloads: she closes and deletes that copy and its Start with Windows entry.
+- Microsoft Store copy (CapriAI): it opens Settings > Apps > Installed apps. Find CapriAI, press the three dots, then Uninstall. Windows deletes what she knows with it.
+- Mac and Linux: she closes, then removes her app (Capri.app, her AppImage or her unpacked Capri folder) and, if ticked, her folder. A copy installed by a package manager tells you the command instead, like sudo pacman -Rns capri-desktop.
 
-It removes the app, her brain download, the shortcuts and the Installed apps entry. It keeps your settings, notes, personality, chat and error log in %LOCALAPPDATA%\Capri, in case you come back.
+### Windows Settings
+1. Right-click her > Quit Capri.
+2. Settings > Apps > Installed apps > Capri > Uninstall. (Windows 10: Settings > Apps > Apps & features.) The Store copy is listed as CapriAI.
+3. In "Remove Capri", tick "Also delete everything she knows" if you want her data gone too, then press Remove Capri.
+
+Without the tick it removes the app, her brain download, the shortcuts and the Installed apps entry, and keeps your settings, notes, personality, chat and error log in %LOCALAPPDATA%\Capri, in case you come back.
 
 Errors:
 - "Quit Capri from her tray menu before removing her."
 - "The uninstaller is still open. Close it and try removing Capri again."
+- "A few of her files were still in use": restart your PC, then delete the folder it names.
 
-### Remove everything
+### Remove everything by hand
 1. Uninstall as above.
-2. Delete the folder %LOCALAPPDATA%\Capri.
+2. Delete the folders %LOCALAPPDATA%\Capri and %LOCALAPPDATA%\Capri Room.
 3. If you used voice chat: in ElevenLabs, delete the agent called "Capri".
 4. If you want: delete the keys you made for Capri on ElevenLabs and NVIDIA (or OpenAI, Claude, DeepSeek).
 

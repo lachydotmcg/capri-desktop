@@ -397,9 +397,9 @@ namespace CapriDesktop
         internal bool Claude { get { return Kind == "anthropic"; } }
         // Their own Claude or ChatGPT plan, through Claude Code or Codex on their PC.
         internal bool Plan { get { return Plans.Is(Kind); } }
-        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Plan ? Plans.App(Kind) : Company; } }
+        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Kind == "xai" ? "Grok" : Plan ? Plans.App(Kind) : Company; } }
         internal string Company { get { return Kind == "local" ? Name : CompanyOf(Kind); } }
-        internal static string CompanyOf(string kind) { return kind == "anthropic" || kind == "claudecode" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "openai" || kind == "codex" ? "OpenAI" : "That provider"; }
+        internal static string CompanyOf(string kind) { return kind == "anthropic" || kind == "claudecode" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "xai" ? "xAI" : kind == "openai" || kind == "codex" ? "OpenAI" : "That provider"; }
         internal string Source { get { return Kind + (Kind == "local" ? "|" + Host : "") + "|" + Model; } }
         internal string Sight { get { return Kind == "local" || Kind == "google" || Kind == "openrouter" ? Source : Model; } }
 
@@ -422,6 +422,7 @@ namespace CapriDesktop
             if (Plans.KindOf(key) != null) return Plans.KindOf(key);
             // Google AI Studio gives out keys that start AQ. now (Senshy, Echo, ALASTOR and lluvia.flac, 1 Nov).
             if (key.StartsWith("AIza", StringComparison.Ordinal) || key.StartsWith("AQ.", StringComparison.Ordinal)) return "google";
+            if (BetterModels.XaiKey(key)) return "xai";
             if (key.StartsWith("sk-or-", StringComparison.Ordinal)) return "openrouter";
             if (key.StartsWith("sk-nous-", StringComparison.Ordinal)) return null;
             if (key.StartsWith("sk-ant-", StringComparison.Ordinal) || IsCode(key)) return "anthropic";
@@ -707,7 +708,7 @@ namespace CapriDesktop
             if (told != null) told(what);
         }
 
-        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.";
+        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or xAI key.";
         internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
@@ -737,6 +738,11 @@ namespace CapriDesktop
         internal volatile string Model;
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
+        internal volatile Engine Spare;
+        internal volatile Pick SparePick;
+        internal volatile bool SpareFirst;
+        internal volatile string SpareModel;
+        [ThreadStatic] private static bool spared;
         // A server they run themselves that speaks OpenAI's chat API, like llama.cpp's llama-server, LM Studio, vLLM or
         // Hugging Face's TGI, at its address without /v1. It thinks instead of Ollama, with Model as its model. ServerKey
         // is optional: local servers need none, and an OpenAI-compatible provider gets it as a Bearer token. The address
@@ -1502,6 +1508,14 @@ namespace CapriDesktop
 
         private static bool Revealing(string text) { return Personal.IsMatch(text) || Whereabouts.IsMatch(text); }
 
+        internal static bool Withheld(string text) { return Discreet ? Revealing(text ?? "") : Personal.IsMatch(text ?? ""); }
+
+        internal static object NotesGate { get { return noting; } }
+
+        internal static object ChatGate { get { return writing; } }
+
+        internal static string QueueFile { get { return QueuePath; } }
+
         private static string QueuePath { get { string folder = TranscriptPath; return folder == null ? null : Path.Combine(folder, "unfolded.txt"); } }
 
         // Who is "You" or "Capri" (with " (voice)" in voice chat), or null for something she did, like a glance or a job. A line
@@ -2066,7 +2080,7 @@ namespace CapriDesktop
         internal bool Sighted(Cloud remote)
         {
             if (Unsighted == remote.Sight) return false;
-            if (remote.Kind == "openrouter") return Images(Listed(remote.Kind, remote.Model));
+            if (remote.Kind == "openrouter" || remote.Kind == "xai") return Images(Listed(remote.Kind, remote.Model));
             bool sees;
             lock (serverEyes) return remote.Kind != "local" || !serverEyes.TryGetValue(remote.Source, out sees) || sees;
         }
@@ -2171,10 +2185,13 @@ namespace CapriDesktop
             string kind = Cloud.KindOf(key);
             if (Plans.Is(kind))
             {
+                List<string> models = Plans.Models(kind);
 #if !CROSS
-                if (PlanBrain.Find(kind) == null) throw new BrainException(Plans.Missing(kind), true);
+                string app = PlanBrain.Find(kind);
+                if (app == null) throw new BrainException(Plans.Missing(kind), true);
+                PlanBrain.ListModels(kind, app, models);
 #endif
-                return Plans.Models(kind);
+                return models;
             }
             bool claude = kind == "anthropic";
             HttpWebRequest request = Create((claude ? ClaudeAddress(key, "/models") : Address(kind, "/models")) + (claude ? "?limit=100" : ""), 30000);
@@ -2237,6 +2254,11 @@ namespace CapriDesktop
 
         internal static List<string> ReadCloudModels(string kind, string json)
         {
+            if (kind == "xai")
+            {
+                try { json = BetterModels.XaiCatalog(json); }
+                catch (FormatException) { throw new BrainException(BetterModels.CatalogError, true); }
+            }
             CloudModelPage page;
             try
             {
@@ -2312,7 +2334,12 @@ namespace CapriDesktop
         internal static bool ModelFits(string kind, string id)
         {
             if (string.IsNullOrWhiteSpace(id)) return false;
+#if !CROSS
+            if (Plans.Is(kind)) return BetterModels.PlanId(id);
+#else
             if (Plans.Is(kind)) return Plans.Models(kind).Contains(id);
+#endif
+            if (kind == "xai") return BetterModels.PlanId(id) && id.StartsWith("grok-", StringComparison.Ordinal);
             if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal);
             if (kind == "openai") return Regex.IsMatch(id, @"^(gpt-|o\d|chatgpt-)");
             if (kind == "anthropic") return id.StartsWith("claude-", StringComparison.Ordinal);
@@ -2337,6 +2364,7 @@ namespace CapriDesktop
             if (kind == "google") return Google + path;
             if (kind == "openrouter") return OpenRouter + path;
             if (kind == "openai") return OpenAi + "/v1" + path;
+            if (kind == "xai") return BetterModels.XaiAddress(path);
             throw new BrainException("That key's provider isn't supported.", true);
         }
 
@@ -2360,6 +2388,7 @@ namespace CapriDesktop
             if (models == null || models.Count == 0) return null;
             if (kind == "anthropic") return models.Contains(Fastest) ? Fastest : models[0];
             if (kind == "deepseek") return models.Contains("deepseek-flash") ? "deepseek-flash" : models[0];
+            if (kind == "xai") return models.Contains("grok-4.7") ? "grok-4.7" : models[0];
             if (kind == "nvidia") { foreach (string id in NvidiaPicks) if (models.Contains(id)) return id; return models[0]; }
             if (kind == "google")
             {
@@ -2743,7 +2772,7 @@ namespace CapriDesktop
                 // Her brain says "act" when this is a job, in whatever language they said it. A brain that holds her tools then works it
                 // out with every one of them. Otherwise her hands find what to do, with a second look at every tool when the first finds
                 // nothing, and if that finds nothing too she just answers, unless they're in a game or plainly asked.
-                if (act != null && !fileChat && Hands.Handed(Clean(raw)))
+                if (act != null && !fileChat && (Hands.Handed(Clean(raw)) || Hands.Echoed(Clean(raw), request) && (Hands.Wants(request) || Hands.Heard(request, out direct, out directArgs, true))))
                 {
                     if (chatFirst && workOut()) { if (calls.Count == 0) raw = planText; }
                     else
@@ -2778,7 +2807,7 @@ namespace CapriDesktop
                 // Her brain on their PC said it would, asked whether to, said it can't, or hedged on something to look up, with no tool
                 // behind it: it takes every tool and decides, instead of her hands guessing for it.
                 string chatted = Clean(raw);
-                if (chatFirst && !planned && act != null && (Hands.Lookup(input, chatted) != null || Hands.Hesitant(chatted, request) || Hands.Promised(chatted) || Hands.Claimed(chatted, calls) != null || Hands.Requested(request) && (Hands.Refused(chatted) || Hands.Denied(chatted)) || kit.Has("look_at_screen") && Hands.CantSee(chatted)) && workOut() && calls.Count == 0) raw = planText;
+                if (chatFirst && !planned && act != null && (Hands.Lookup(input, chatted) != null || Hands.Hesitant(chatted, request) || Hands.Promised(chatted) || Hands.Underway(chatted) && Hands.Requested(request) || Hands.Claimed(chatted, calls) != null || Hands.Requested(request) && (Hands.Refused(chatted) || Hands.Denied(chatted)) || kit.Has("look_at_screen") && Hands.CantSee(chatted)) && workOut() && calls.Count == 0) raw = planText;
                 // A brain that worked it out itself already had its go with the tools, so none of these second guesses apply.
                 ToolArguments lookup = act != null && !planned ? Hands.Lookup(input, Clean(raw)) : null;
                 bool hesitant = act != null && !planned && Hands.Hesitant(Clean(raw), request);
@@ -2799,6 +2828,11 @@ namespace CapriDesktop
                 // "I can't see your screen" is never true for a brain that sees: she looks instead.
                 else if (act != null && !planned && kit.Has("look_at_screen") && Hands.CantSee(Clean(raw))) calls.Add(new KeyValuePair<string, ToolArguments>("look_at_screen", new ToolArguments { Focus = request }));
                 else if (lookup != null && !refused) calls.Add(new KeyValuePair<string, ToolArguments>("open_website", lookup));
+                else if (act != null && !planned && !hesitant && !Hands.Promised(Clean(raw)) && Hands.Underway(Clean(raw)) && Hands.Requested(request))
+                {
+                    try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit, reached, callContext + callLines); if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null); }
+                    catch (BrainException) { calls.Clear(); }
+                }
                 else if (act != null && !planned && (hesitant || Hands.Promised(Clean(raw))))
                 {
                     if (!reached)
@@ -3055,7 +3089,7 @@ namespace CapriDesktop
                 {
                     // "Reminder set" with no remind behind it is a claim even after other tools ran this turn (F69, pass 4).
                     string claimed = Hands.Claimed(said, calls);
-                    bool promised = calls.Count == 0 && (Hands.Promised(said) || Hands.Handed(said));
+                    bool promised = calls.Count == 0 && (Hands.Promised(said) || Hands.Handed(said) || Hands.Echoed(said, request) || Hands.Underway(said) && Hands.Requested(request));
                     if (claimed == null && !promised) return raw;
                     if (reminded) return claimed == null ? Hands.Unpromised : Hands.Unclaimed(said, calls) ?? (calls.Count > 0 ? null : Hands.NotYet(claimed, kit));
                     reminded = true;
@@ -3367,7 +3401,7 @@ namespace CapriDesktop
         {
             string model = Model;
             if (model == null) throw new BrainException(Offline);
-            Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
+            Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, Spare = Spare, SparePick = SparePick, SpareFirst = SpareFirst, SpareModel = SpareModel };
 #if CROSS
             aside.Provider = Provider;
 #endif
@@ -3757,6 +3791,35 @@ namespace CapriDesktop
                 return result;
             }
 #endif
+            Engine spare = Spare;
+            Pick sparePick = SparePick;
+            string spareModel = sparePick != null ? sparePick.Name : SpareModel;
+            if (!spared && (spare != null && sparePick != null || spare == null && spareModel != null) && parts == null && (Remote != null && Remote.Kind != "local" || Server != null) && !messages.Exists(delegate(ChatMessage message) { return message.Images != null && message.Images.Length > 0; }))
+            {
+                spared = true;
+                try
+                {
+                    Brain own = new Brain { Model = spareModel, Local = sparePick == null ? null : spare, LocalPick = sparePick };
+#if CROSS
+                    Func<string> pc = delegate { calls.Clear(); return own.Think(spareModel, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, computerAction, rounds); };
+                    Func<string> cloud = delegate { calls.Clear(); return Think(model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, claudeTools, job, plain, computerAction, rounds); };
+#else
+                    Func<string> pc = delegate { calls.Clear(); return own.Think(spareModel, messages, tools, calls, null, limit, -1, routing, openAiTools, null, job, plain, rounds); };
+                    Func<string> cloud = delegate { calls.Clear(); return Think(model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, claudeTools, job, plain, rounds); };
+#endif
+                    bool first = SpareFirst;
+                    try { return first ? pc() : cloud(); }
+                    catch (Exception missed)
+                    {
+                        if (!Sparable(missed)) throw;
+                        Check(ticket);
+                        Log("brain", -1, (first ? "Her PC brain" : "The cloud brain") + " couldn't answer (" + Redacted(missed.Message) + "), asking " + (first ? "the cloud brain" : "her PC brain"));
+                        try { return first ? cloud() : pc(); }
+                        catch (Exception again) { if (!Sparable(again)) throw; throw missed; }
+                    }
+                }
+                finally { spared = false; }
+            }
             Cloud remote = Remote;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
 #if !CROSS
@@ -4461,6 +4524,12 @@ namespace CapriDesktop
 #endif
         }
 
+        private static bool Sparable(Exception error)
+        {
+            WebException web = error as WebException;
+            return error is BrainException || error is IOException || (web != null && web.Status != WebExceptionStatus.RequestCanceled);
+        }
+
         private void Check(int ticket)
         {
             lock (gate) if (ticket >= 0 && ticket != cancelled) throw new WebException("Reply cancelled.", WebExceptionStatus.RequestCanceled);
@@ -4620,7 +4689,7 @@ namespace CapriDesktop
             if (error is FileNotFoundException || error is DirectoryNotFoundException || code == 2 || code == 3) return "a file or folder it needs isn't there anymore.";
             if (error is PathTooLongException || code == 206) return "its path is too long for Windows.";
             if (error is WebException) return "the connection failed. Check your internet.";
-            if (error is SerializationException || error is FormatException) return "the reply couldn't be read.";
+            if (error is SerializationException || error is System.Xml.XmlException || error is FormatException) return "the reply couldn't be read.";
             if (error is IOException) return "Windows couldn't read or write a file it needs.";
             return "something in Windows failed.";
         }
@@ -5098,7 +5167,7 @@ namespace CapriDesktop
 #if CROSS
             if (CleanSecret != null) text = CleanSecret(text);
 #endif
-            string clean = Regex.Replace(text ?? "", @"CAPR[I\u0131\u0130](?:-[A-Z0-9\u0131\u0130\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|(?:sk-(?:ant|proj|or-v1|svcacct|adm[i\u0131\u0130]n)-|nvap[i\u0131\u0130]-|gsk_|xa[i\u0131\u0130]-|g[i\u0131\u0130]thub_pat_|glpat-)(?=[A-Za-z0-9_\u0131\u0130\u017F-]{0,200}?[0-9])[A-Za-z0-9_\u0131\u0130\u017F-]{16,}|(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))(?:nvap[i\u0131\u0130]-|sk-|A[I\u0131\u0130]za|gh[pousr]_|g[i\u0131\u0130]thub_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:l[i\u0131\u0130]ve|test)_|sk_(?=[A-Za-z0-9\u0131\u0130\u017F]{32}))[A-Za-z0-9_\u0131\u0130\u017F-]+|\b(?:hf|npm)_[A-Za-z0-9\u0131\u0130\u017F]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.\u0131\u0130\u017F-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            string clean = Regex.Replace(BetterModels.RedactXai(text) ?? "", @"CAPR[I\u0131\u0130](?:-[A-Z0-9\u0131\u0130\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|(?:sk-(?:ant|proj|or-v1|svcacct|adm[i\u0131\u0130]n)-|nvap[i\u0131\u0130]-|gsk_|xa[i\u0131\u0130]-|g[i\u0131\u0130]thub_pat_|glpat-)(?=[A-Za-z0-9_\u0131\u0130\u017F-]{0,200}?[0-9])[A-Za-z0-9_\u0131\u0130\u017F-]{16,}|(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))(?:nvap[i\u0131\u0130]-|sk-|A[I\u0131\u0130]za|gh[pousr]_|g[i\u0131\u0130]thub_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:l[i\u0131\u0130]ve|test)_|sk_(?=[A-Za-z0-9\u0131\u0130\u017F]{32}))[A-Za-z0-9_\u0131\u0130\u017F-]+|\b(?:hf|npm)_[A-Za-z0-9\u0131\u0130\u017F]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.\u0131\u0130\u017F-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             clean = Regex.Replace(clean, @"(""data""\s*:\s*"")[A-Za-z0-9+/_=-]{32,}("")", "$1[redacted]$2", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
@@ -5372,6 +5441,17 @@ namespace CapriDesktop
             trouble = null;
             name = null;
             return AskName;
+        }
+
+        internal string Start(string known)
+        {
+            string line = Start();
+            string called = Brain.Nick(known);
+            if (called.Length == 0) return line;
+            name = called;
+            Keep("Name", name);
+            step = 1;
+            return "Let's get to know each other, " + name + ". " + AskPronouns + " Say skip to skip one, or stop to stop.";
         }
 
         internal void Stop() { step = -1; }

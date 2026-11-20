@@ -593,6 +593,12 @@ namespace CapriDesktop
             weatherCity = Entry("Weather city", "Your city, like Sydney, Australia", 28, 999, 244, 22, () => pet.SetWeatherCity(weatherCity.Box.Text));
             Key("Save", 280, 999, 76, 22, () => pet.SetWeatherCity(weatherCity.Box.Text));
             Caption("From Open-Meteo, no key. Only the city you type is sent.", 28, 1024, 328, 14, MainframeTheme.Faint, 34.0 / 3);
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            {
+                Section("UNINSTALL", 0, 1730);
+                Key("Uninstall Capri", 28, 1757, 328, 28, OpenUninstall).Accent = MainframeTheme.Hot;
+                Caption("Removes her from this computer. You choose if her memories go too.", 28, 1791, 328, 18, MainframeTheme.Faint, 34.0 / 3).Ellipsis = true;
+            }
             Section("CAPRI", 380, 58);
             Slider("Size", Pet.SizeNames, 380, 82, () => Nearest(Pet.Sizes, pet.BodySize), i => pet.Resize(Pet.Sizes[i]));
             Toggle("Check in on me", 380, 110, () => !pet.Saved.NoCheckIns, pet.SetCheckIns);
@@ -656,7 +662,7 @@ namespace CapriDesktop
             Key("Save", 660, 755, 76, 22, UseServer);
             Section("HABITS", 380, 796);
             Key("Obsidian vault", 484, 793, 112, 20, OpenVault);
-            Key("Open her memories", 600, 793, 136, 20, () => pet.OpenMemories());
+            Key("Open her memories", 600, 793, 136, 20, OpenMemory);
             Toggle("Start at login", 380, 820, () => pet.StartsAtLogin, on => pet.SetLogin(on, false));
             Toggle("Show on Discord", 380, 848, () => !pet.Saved.NoDiscord, pet.SetDiscord);
             Named("Music app", 380, 876);
@@ -1016,7 +1022,20 @@ namespace CapriDesktop
         internal void OpenThinkingExtra() { ShowSheet(new MainframeSheet(pet, "EXTRA REQUEST JSON", "thinking")); }
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
+        internal MemorySheet Memory { get; private set; }
+        internal void OpenMemory()
+        {
+            if (Memory == null)
+            {
+                MemorySheet sheet = new MemorySheet(pet);
+                Memory = sheet;
+                sheet.Closed += delegate { Memory = null; };
+                ShowSheet(sheet);
+            }
+            else { Memory.WindowState = WindowState.Normal; Memory.Activate(); }
+        }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
+        internal void OpenUninstall() { ShowSheet(new MainframeSheet(pet, "UNINSTALL CAPRI", "uninstall")); }
         internal void OpenRemote()
         {
             if (Remote == null)

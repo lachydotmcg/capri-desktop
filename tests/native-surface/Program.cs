@@ -71,6 +71,7 @@ internal static class Program {
    Check(decorative.NativeClass.Contains(".Decoration.")==!input,"passive class separates decoration from pointer-interactive window "+input);
    decorative.Show();await d.ApplyEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));NativeSurface.TryMove(decorative,new(10,20));var moved=NativeSurface.FlushMoves(decorative);d.ApplyRelease.SetResult();Check(await moved.WaitAsync(TimeSpan.FromSeconds(2)),"passive role policy validates expected no_focus state "+input);
    Check(d.Requests.Any(q=>q.Contains("no_focus")&&q.Contains("prop=\"no_focus\",value=\""+(input?"false":"true")+"\"")),"generated scoped policy requests correct input state "+input);
+   Check(d.Requests.Any(q=>q.Contains("prop=\"opaque\",value=\"true\"")),"passive surface ignores Hyprland window opacity "+input);
    decorative.Hide();await Worker(decorative).WaitAsync(TimeSpan.FromSeconds(2));
   }
   d=new(){HoldApply=true};HyprlandDesktop.Current=d;var editor=new Window();NativeSurface.Register(editor,NativeSurfaceRole.FileEditor);d.Class=editor.NativeClass;
@@ -79,6 +80,7 @@ internal static class Program {
   string policy=d.Requests.Single(q=>q.Contains("window.float("));
   Check(policy.Contains("w.pid~="+Environment.ProcessId)&&policy.Contains(editor.NativeClass)&&policy.Contains("w.title~="),"editor retains exact process class and title identity guard");
   Check(!policy.Contains("window.pin(")&&!policy.Contains("stay_focused\",value=\"true"),"editor remains unpinned without composer focus ownership");
+  Check(!policy.Contains("prop=\"opaque\""),"editor keeps the user's Hyprland window opacity");
   foreach(var value in new[]{("no_blur","true"),("no_shadow","true"),("no_dim","true"),("border_size","0"),("rounding","0"),("decorate","false"),("no_anim","true"),("no_focus","false")})
    Check(policy.Contains("prop=\""+value.Item1+"\",value=\""+value.Item2+"\""),"editor scoped property "+value.Item1+"="+value.Item2);
   editor.Hide();await Worker(editor).WaitAsync(TimeSpan.FromSeconds(2));
