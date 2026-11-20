@@ -76,6 +76,7 @@ namespace CapriDesktop
         internal static Func<string, string> UndoFiles = delegate(string id) { return Hands.Keeper.Undo(id); };
         internal static Func<string, bool> FilesBack = delegate(string id) { return Hands.Keeper.Recent().Exists(delegate(FileChange change) { return change.Id == id && change.Undone; }); };
         internal static Func<string, bool> FilesKept = delegate(string id) { return Hands.Keeper.Recent().Exists(delegate(FileChange change) { return change.Id == id; }); };
+        internal static Func<string, int> OpenWindows = delegate(string name) { return Hands.OpenCount(name); };
         internal static Func<DateTime> Now = delegate { return DateTime.UtcNow; };
 
         private static readonly object gate = new object();
@@ -276,6 +277,7 @@ namespace CapriDesktop
             if (deed.Undone) return "Already put back: " + deed.What.TrimEnd('.') + ".";
             if (deed.Failed) return "That one didn't work in the first place, so there's nothing to undo.";
             if (!deed.Undoable) return "I can't undo " + (deed.Job ? "that job" : Voice.Quote(deed.What.TrimEnd('.'))) + ". " + (deed.Kept ?? PlainKept);
+            if (deed.UndoTool == "app_window" && deed.UndoAction == "close" && OpenWindows(deed.UndoName) > 1) return "I won't close " + deed.UndoName + ": more of its windows are open now than the one I opened, and closing them all could lose your work.";
             lock (gate) if (!undoing.Add(deed.Id)) return "I'm already putting that back.";
             string result;
             try

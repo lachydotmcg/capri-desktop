@@ -2037,13 +2037,15 @@ namespace CapriDesktop
             return null;
         }
 
-        internal static bool OpenAlready(string name)
+        internal static bool OpenAlready(string name) { return OpenCount(name) > 0; }
+
+        internal static int OpenCount(string name)
         {
             string want = Regex.Replace(Plain(Regex.Replace(name ?? "", @"\.exe$", "", RegexOptions.IgnoreCase)), @"^the |( app| application| game| tab| window)$", "");
-            if (want.Length == 0) return false;
+            if (want.Length == 0) return 0;
             int best;
-            try { return Best(want, out best, true, null).Count > 0; }
-            catch (Exception) { return false; }
+            try { return Best(want, out best, true, null).Count; }
+            catch (Exception) { return 0; }
         }
 
         private static Deed Done(Deed deed, string tool, ToolArguments args, string result, HashSet<string> before)

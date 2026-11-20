@@ -21,6 +21,8 @@ namespace CapriDesktop
             Func<DateTime> nowWas = Timeline.Now;
             Func<string, string> undoFilesWas = Timeline.UndoFiles;
             Func<string, bool> filesBackWas = Timeline.FilesBack;
+            Func<string, int> openWindowsWas = Timeline.OpenWindows;
+            int windowsOpen = 1;
             FileKeeper keeperWas = Hands.Keeper;
             Action<FileChange> keeperChangedWas = FileKeeper.Changed;
             Action<string, string> keeperUsedWas = FileKeeper.Used;
@@ -31,6 +33,7 @@ namespace CapriDesktop
             try
             {
                 Timeline.Now = delegate { return now; };
+                Timeline.OpenWindows = delegate { return windowsOpen; };
                 Timeline.Changed = delegate(Deed deed) { told.Add(deed); };
                 Timeline.Run = delegate(string tool, ToolArguments args)
                 {
@@ -84,6 +87,10 @@ namespace CapriDesktop
                 undo = Timeline.Undo((int?)3);
                 Expect(undo.StartsWith("Couldn't undo", StringComparison.Ordinal) && ran.Count == 1 && Timeline.Find(opened.Id).Undoable, "A failed undo was marked done: " + undo);
                 answer = "Closed Spotify.";
+                windowsOpen = 2;
+                undo = Timeline.Undo((int?)3);
+                Expect(undo.StartsWith("I won't close Spotify", StringComparison.Ordinal) && ran.Count == 1 && Timeline.Find(opened.Id).Undoable, "Undo closed every window of an app with more open than the one she opened: " + undo);
+                windowsOpen = 1;
                 told.Clear();
                 undo = Timeline.Undo((int?)3);
                 Expect(undo.StartsWith("Undid it: Opened Spotify.", StringComparison.Ordinal) && ran.Count == 2 && ran[1] == "app_window:close:Spotify:quiet:False", "Undo didn't close what she opened, quietly: " + undo + " / " + string.Join(", ", ran.ToArray()));
@@ -91,7 +98,7 @@ namespace CapriDesktop
                 Expect(back.Undone && !back.Undoable && back.Back == "Closed Spotify." && told.Count == 1 && told[0].Undone, "An undo wasn't kept or told.");
                 Expect(Timeline.Undo(opened.Id).StartsWith("Already put back", StringComparison.Ordinal) && ran.Count == 2, "Undoing twice ran it again.");
                 Expect(Timeline.Undo((int?)9).StartsWith("There's no number 9", StringComparison.Ordinal) && Timeline.Undo((int?)1).StartsWith("That one didn't work", StringComparison.Ordinal), "Undo by number went wrong.");
-                passed.Add("PASS undo takes back her newest action or a numbered one, quietly, says plainly when it can't, keeps a failed undo undoable and never runs one twice");
+                passed.Add("PASS undo takes back her newest action or a numbered one, quietly, says plainly when it can't, keeps a failed undo undoable, never runs one twice, and won't close an app with more windows open than the one she opened");
 
                 object job = new object();
                 told.Clear();
@@ -185,7 +192,7 @@ namespace CapriDesktop
             }
             finally
             {
-                Timeline.Changed = changedWas; Timeline.Run = runWas; Timeline.Now = nowWas; Timeline.UndoFiles = undoFilesWas; Timeline.FilesBack = filesBackWas;
+                Timeline.Changed = changedWas; Timeline.Run = runWas; Timeline.Now = nowWas; Timeline.UndoFiles = undoFilesWas; Timeline.FilesBack = filesBackWas; Timeline.OpenWindows = openWindowsWas;
                 Hands.Keeper = keeperWas; FileKeeper.Changed = keeperChangedWas; FileKeeper.Used = keeperUsedWas; Brain.MemoryPath = memoryWas;
                 Timeline.Open(folderWas);
                 try { Directory.Delete(scratch, true); } catch (Exception) { }
