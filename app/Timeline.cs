@@ -60,6 +60,7 @@ namespace CapriDesktop
         internal const string JobKept = "Clicks and typing can't be taken back from here. Ctrl+Z in that app may undo what I typed.";
         internal const string ModKept = "That ran in a mod or plug-in, outside me, so I can't take it back.";
         internal const string PlainKept = "I can't take that one back.";
+        internal const string FilesGone = "I only keep my newest file changes, and that one's too old to put back now.";
 #if CROSS
         private const string Older = "I keep older ones too, going back 30 days.";
 #else
@@ -70,6 +71,7 @@ namespace CapriDesktop
         internal static Func<string, ToolArguments, string> Run = delegate(string tool, ToolArguments args) { return Hands.Do(tool, args); };
         internal static Func<string, string> UndoFiles = delegate(string id) { return Hands.Keeper.Undo(id); };
         internal static Func<string, bool> FilesBack = delegate(string id) { return Hands.Keeper.Recent().Exists(delegate(FileChange change) { return change.Id == id && change.Undone; }); };
+        internal static Func<string, bool> FilesKept = delegate(string id) { return Hands.Keeper.Recent().Exists(delegate(FileChange change) { return change.Id == id; }); };
         internal static Func<DateTime> Now = delegate { return DateTime.UtcNow; };
 
         private static readonly object gate = new object();
@@ -257,12 +259,12 @@ namespace CapriDesktop
             try
             {
                 Hush(true);
-                try { result = deed.Files != null ? UndoFiles(deed.Files) : Run(deed.UndoTool, deed.UndoArguments()); }
+                try { result = deed.Files != null ? UndoFiles(deed.Files) : deed.UndoTool == "remember" && deed.UndoAction == "forget" && deed.UndoText != null ? Brain.Unsave(deed.UndoText) : Run(deed.UndoTool, deed.UndoArguments()); }
                 finally { Hush(false); }
             }
             catch (Exception error) { result = Hands.Problem(error); }
             finally { lock (gate) undoing.Remove(deed.Id); }
-            bool back = deed.Files != null ? !Regex.IsMatch(result ?? "", @"^(There's nothing|Couldn't)") : !Hands.Failed(result);
+            bool back = deed.Files != null ? !Regex.IsMatch(result ?? "", @"^(There's nothing|Couldn't)") && Back(deed.Files) : !Hands.Failed(result);
             if (!back) return "Couldn't undo " + Voice.Quote(deed.What.TrimEnd('.')) + ": " + (result ?? "").TrimEnd('.') + ".";
             Deed shown;
             lock (gate)
@@ -287,8 +289,18 @@ namespace CapriDesktop
         private static void Refresh(Deed deed)
         {
             if (deed.Files == null || deed.Undone) return;
-            try { if (FilesBack(deed.Files)) deed.Undone = true; }
+            try
+            {
+                if (FilesBack(deed.Files)) deed.Undone = true;
+                else if (!FilesKept(deed.Files)) { deed.Files = null; deed.Kept = FilesGone; }
+            }
             catch (Exception) { }
+        }
+
+        private static bool Back(string files)
+        {
+            try { return FilesBack(files); }
+            catch (Exception) { return false; }
         }
 
         private static void Trim()

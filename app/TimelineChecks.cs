@@ -121,6 +121,7 @@ namespace CapriDesktop
                 Timeline.Run = delegate(string tool, ToolArguments args) { return Hands.Do(tool, args); };
                 Timeline.Open(kept);
                 Brain.MemoryPath = Path.Combine(kept, "me.md");
+                File.WriteAllText(Brain.MemoryPath, "- They like teal keyboards with clicky switches\n");
                 bool personal = Security.On(Security.Personal);
                 Security.Set(Security.Personal, false);
                 string note;
@@ -129,7 +130,7 @@ namespace CapriDesktop
                 Deed noted = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Tool == "remember"; });
                 Expect(note.StartsWith("Saved to my notes", StringComparison.Ordinal) && noted != null && noted.Undoable && noted.UndoAction == "forget" && noted.UndoText == "They like teal keyboards", "A note she saved couldn't be undone: " + note);
                 undo = Timeline.Undo((int?)null);
-                Expect(undo.StartsWith("Undid it", StringComparison.Ordinal) && !File.ReadAllText(Brain.MemoryPath).Contains("teal") && Timeline.Recent().Count == 2, "Undoing a note didn't forget it, or the forget was kept too: " + undo);
+                Expect(undo.StartsWith("Undid it", StringComparison.Ordinal) && File.ReadAllText(Brain.MemoryPath) == "- They like teal keyboards with clicky switches\n" && Timeline.Recent().Count == 2, "Undoing a note didn't take out just that note, or the forget was kept too: " + undo);
 
                 FileKeeper.Changed = null;
                 FileKeeper.Used = null;
@@ -146,7 +147,10 @@ namespace CapriDesktop
                 Deed again = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Tool == "files"; });
                 Hands.Keeper.Undo();
                 Expect(again.Id != moved.Id && Timeline.Find(again.Id).Undone && !Timeline.Find(again.Id).Undoable, "A file change undone in Workspace still showed as undoable.");
-                passed.Add("PASS notes and file changes she makes through her tools are kept with a real undo, and a file change put back elsewhere shows as undone");
+                Deed old = Timeline.Add(new Deed { Tool = "files", What = "Moved an old photo.", Files = "0123456789abcdef0123456789abcdef" });
+                string tooOld = Timeline.Undo(old.Id);
+                Expect(old.Undoable && !Timeline.Find(old.Id).Undoable && tooOld.Contains(Timeline.FilesGone), "A file change she no longer keeps still showed as undoable, or said it went back: " + tooOld);
+                passed.Add("PASS notes and file changes she makes through her tools are kept with a real undo that takes out only that note, a file change put back elsewhere shows as undone, and one she no longer keeps says it can't go back");
 #if !CROSS
                 Deed shown = new Deed { Id = "x", When = now.ToString("o"), Tool = "use_computer", What = "Send hi to Sam", Steps = new List<string> { "Clicked Sam", "Typed \"hi\"" }, StepCount = 20, Ended = "asked", Kept = Timeline.JobKept };
                 string card = Workspace.DeedText(shown);
