@@ -57,6 +57,11 @@ def suggested(body):
     return found.group(0).strip() if found else ''
 
 
+def on_it(body):
+    found = ON_IT.search(body or '')
+    return found.group(0).strip() if found else ''
+
+
 def normal(item, links):
     return {
         'n': item['number'],
@@ -69,6 +74,7 @@ def normal(item, links):
         'u': login(item.get('user')),
         'p': links.get(item['number'], []),
         's': suggested(item.get('body')),
+        'o': on_it(item.get('body')),
     }
 
 
