@@ -540,6 +540,31 @@ A PC lists `push` in `hello-ok.features` when it can notify a phone that isn't l
   - `201`, `200` or `202` is `sent`. `404` or `410` is `gone`: the PC forgets that subscription and the phone's next `push.state` says `web: false`. Anything else is `failed` and isn't retried.
 - **The page** shows a notification with `tag` set to `job-<job>` for `ask` and `done` (so a job's end replaces its question) and to the `id` otherwise. Tapping it opens `https://capriai.app/remote/`, at the job for `ask` and `done`. An iPhone only gets web push in a home screen app (iOS 16.4 or later), so Safari says to add Capri to the Home Screen first.
 
+### 8.8 Her memory (feature `memory`)
+
+A PC lists `memory` in `hello-ok.features` when she keeps notes on it. Every paired phone can then read and change what she remembers about its user: the same files the PC's Mainframe opens, with nothing new stored anywhere. A phone must not send `memory.*` to a PC that doesn't list it.
+
+| `type` | Sender | Fields |
+|---|---|---|
+| `memory.get` | phone | none; the PC answers with `memory.list` |
+| `memory.list` | PC | `keeping` (Remember our chats is on), `private` (Keep personal details out of her memories is on), `cut` (some older entries were left out to fit), `about` (her notes, from me.md: `[{id, text}]`), `chats` (her memories of past chats, from memories.md, oldest day first: `[{day, items: [{id, text}]}]`), `games` (what she learned about each game: `[{game, items}]`), `days` (her daily chat logs, newest first: `[{date, lines}]`) |
+| `memory.add` | phone | `id`, `text`; a new note in me.md, through the same rule as "remember that ..." |
+| `memory.edit` | phone | `id`, `item` (an entry's `id`), `text` (its new words) |
+| `memory.forget` | phone | `id`, `item` |
+| `memory.day` | phone | `id`, `date` (`YYYY-MM-DD`); the PC answers with `memory.chat` |
+| `memory.chat` | PC | `re`, `date`, `ok`, `cut` (only the newest part fits), `lines` (`[{at, who, text}]`: `who` is `You`, `Capri` or `You (voice)`, empty for something she did) |
+| `memory.forget-day` | phone | `id`, `date`; deletes that day's chat log and the lines from it still waiting to become memories |
+| `memory.wipe` | phone | `id`, `what`: `about`, `chats`, `days`, `games`, or `all` (about, chats and days, never her game notes) |
+| `memory.undo` | phone | `id`, `undo` (the token from a `memory.done`) |
+| `memory.done` | PC | `re`, `ok`, `code`, `say` (her plain words for it, at most 200 characters), `undo` (a token, when the change can be undone) |
+
+- **Ids.** An entry's `id` comes from its file, its day or game, its words and how many times the same words came before it. Editing it makes a new id. An `edit` or `forget` whose `item` is no longer there gets `changed`, so a phone never changes something it hasn't seen. After every `memory.done` the PC sends a fresh `memory.list`.
+- **Codes.** `added`, `saved`, `forgot` and `undone` are `ok`. `changed` (it changed on the PC first), `private` (a password, address, number or other personal detail, refused like her own notes), `same` (already there, or nothing changed), `empty`, `full` (me.md is over 8,000 characters), `gone` (too late to undo), `bad` (a malformed date or `what`), `off` and `failed` are not.
+- **Undo.** The PC keeps the last 12 changes, up to 3 million characters, in memory only. An undo puts back exactly what that change took or replaced, and only if nothing has changed those files since; otherwise `changed`. Undos are lost when Capri closes.
+- **Sizes.** Text is at most 2,000 characters in and is cut to 200 for a note and 300 for other entries, on one line. `memory.list` stays under 56,000 bytes: older chat days, older game notes and the oldest day headings in memories.md are left out first, with `cut: true`. `memory.chat` holds at most about 40,000 characters of the day's newest lines.
+- **Privacy.** Memory only travels inside the end-to-end session, never in a notification or through the relay in the clear. There are no share links and no export. The phone keeps it in page memory only, never in localStorage, IndexedDB or the service worker cache, and clears it when the page is hidden, the session ends or it unpairs. Messages are handled one at a time, in order, for every phone.
+- **Errors.** A malformed `id` gets `error` `bad-message`. A PC that has stopped keeping notes answers `error` `not-allowed`.
+
 ## 9. Rules for each side
 
 ### PC (`app/`)

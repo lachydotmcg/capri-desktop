@@ -662,7 +662,7 @@ namespace CapriDesktop
             Key("Save", 660, 755, 76, 22, UseServer);
             Section("HABITS", 380, 796);
             Key("Obsidian vault", 484, 793, 112, 20, OpenVault);
-            Key("Open her memories", 600, 793, 136, 20, () => pet.OpenMemories());
+            Key("Open her memories", 600, 793, 136, 20, OpenMemory);
             Toggle("Start at login", 380, 820, () => pet.StartsAtLogin, on => pet.SetLogin(on, false));
             Toggle("Show on Discord", 380, 848, () => !pet.Saved.NoDiscord, pet.SetDiscord);
             Named("Music app", 380, 876);
@@ -1022,6 +1022,18 @@ namespace CapriDesktop
         internal void OpenThinkingExtra() { ShowSheet(new MainframeSheet(pet, "EXTRA REQUEST JSON", "thinking")); }
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
+        internal MemorySheet Memory { get; private set; }
+        internal void OpenMemory()
+        {
+            if (Memory == null)
+            {
+                MemorySheet sheet = new MemorySheet(pet);
+                Memory = sheet;
+                sheet.Closed += delegate { Memory = null; };
+                ShowSheet(sheet);
+            }
+            else { Memory.WindowState = WindowState.Normal; Memory.Activate(); }
+        }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
         internal void OpenUninstall() { ShowSheet(new MainframeSheet(pet, "UNINSTALL CAPRI", "uninstall")); }
         internal void OpenRemote()

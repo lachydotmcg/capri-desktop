@@ -6283,6 +6283,52 @@ namespace CapriDesktop
             }
         }
 
+        // Her HER MEMORY window from Settings > HABITS > Open her memories, on sample notes, chat memories, game notes and chat days in a
+        // temp folder: what it lists, an edit, a forget, an add, a chat day and Forget everything each saved through its own handlers and
+        // put back by Undo, and at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off.
+        private void SmokeMemoryWindow(System.Collections.Generic.List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "memory-window-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            string notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, gamesWas = GameNotes.Folder;
+            bool keepingWas = Brain.Keeping;
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(folder, "transcripts"));
+                Directory.CreateDirectory(Path.Combine(folder, "games"));
+                Brain.MemoryPath = Path.Combine(folder, "me.md");
+                Brain.MemoriesPath = Path.Combine(folder, "memories.md");
+                Brain.TranscriptPath = Path.Combine(folder, "transcripts");
+                GameNotes.Folder = Path.Combine(folder, "games");
+                File.WriteAllText(Brain.MemoryPath, Brain.NotesHead + "- Pronouns: she/her\n- They like cats\n");
+                File.WriteAllText(Brain.MemoriesPath, Brain.MemoriesHead + "## Wednesday 28 October 2026\n- They beat Malenia after 40 tries.\n\n## Thursday 29 October 2026\n- They started learning piano.\n- I helped them fix their mic.\n- They are saving for a trip to Kyoto next spring and want to learn enough Japanese to order food without pointing, so they practise a few phrases every evening after dinner.\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-28.md"), "# Capri and you, Wednesday 28 October 2026\n> Kept on this PC only.\n\n**10:00 You:** hi\n**10:00 Capri:** hey choom\n*10:01 She glanced at your screen: Elden Ring.*\n");
+                File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-29.md"), "# Capri and you\n\n**09:00 You:** piano time\n");
+                File.WriteAllText(Path.Combine(GameNotes.Folder, "fortnite.md"), "# Fortnite\n\n- Sprint is shift\n");
+                File.WriteAllText(Path.Combine(GameNotes.Folder, "eldenring.md"), "# Elden Ring\n\n- Dodge is B\n- Torrent is on the Spectral Steed Whistle\n");
+                float machine = mainframe.Px(1000) / 1000f;
+                Brain.Keeping = true;
+                string at100 = mainframe.MemoryAt(1f / machine, Path.Combine(output, "memory-window-100.png"));
+                Brain.Keeping = false;
+                string at150 = mainframe.MemoryAt(1.5f / machine, Path.Combine(output, "memory-window-150.png"));
+                Brain.Keeping = true;
+                string at200 = mainframe.MemoryAt(2f / machine, Path.Combine(output, "memory-window-200.png"));
+                mainframe.ShowMemory();
+                mainframe.CloseMemory();
+                if (at100 != null || at150 != null || at200 != null) throw new Exception("The HER MEMORY window went wrong: 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
+                checks.Add("PASS HER MEMORY window: lists what she keeps about them, her chat memories newest day first, her game notes by game and her chat logs by day with their line counts, and says when Remember our chats is off; Edit saves one line and Esc cancels, Forget and Add change only that line and refuse a password, a chat day opens line by line and Forget this day and Forget everything about me need a second click, each change has Undo that puts it back, and at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (memory-window-100.png, memory-window-150.png, memory-window-200.png)");
+            }
+            finally
+            {
+                mainframe.CloseMemory();
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                GameNotes.Folder = gamesWas;
+                Brain.Keeping = keepingWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        }
+
         // The smoke test's voice layer checks (Lachy, 29 Oct): the shared ones of the sound itself, her ElevenLabs replies and
         // voice chat getting them, the settings saving and loading, and her VOICE LAYERS window from Settings > VOICE.
         private void LayersChecks(System.Collections.Generic.List<string> checks, string output, short[] tone, Action<string> snap)
@@ -44896,6 +44942,7 @@ namespace CapriDesktop
                     throw new Exception("An unknown room move reached the phone.");
                 checks.Add("PASS room sit, lie down and heart come only from successful matching tools");
                 RemoteLink.SmokeJobs(checks);
+                MemoryBook.Smoke(checks);
             }
             finally
             {
@@ -45886,6 +45933,7 @@ namespace CapriDesktop
             Section(checks, "SmokeHelpQuotes", delegate { SmokeHelpQuotes(checks); });
             Section(checks, "SmokeSmallWording", delegate { SmokeSmallWording(checks); });
             Section(checks, "SmokePrivacy", delegate { SmokePrivacy(checks, output); });
+            Section(checks, "SmokeMemoryWindow", delegate { SmokeMemoryWindow(checks, output); });
         }
 
         // What her redaction keeps and hides, on its own, so a change to it is quick to check.

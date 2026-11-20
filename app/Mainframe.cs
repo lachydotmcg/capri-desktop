@@ -963,8 +963,8 @@ namespace CapriDesktop
             Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); }, "Local server address");
             Section("HABITS >", c, 656);
             Make("Obsidian vault", 104 + c, 653, 112, 20, delegate { ShowMemoryVault(); }).AccessibleName = "Obsidian vault: keep her notes in your Obsidian vault";
-            memoriesKey = Make("Open her memories", 220 + c, 653, 136, 20, delegate { EditNotes(true); });
-            memoriesKey.AccessibleName = "Open her memories: edit memories.md here";
+            memoriesKey = Make("Open her memories", 220 + c, 653, 136, 20, delegate { OpenMemory(); });
+            memoriesKey.AccessibleName = "Open her memories: see, edit and forget what she remembers";
             startup = Switch("Start with Windows", c, 680, delegate { if (!syncing) capri.ToggleStartup(); });
             discord = Switch("Show on Discord", c, 708, delegate { if (!syncing) capri.ToggleDiscord(); });
             remembering = Switch("Remember our chats", c, 736, delegate { if (!syncing) capri.ToggleRemembering(); });
