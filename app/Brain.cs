@@ -15,34 +15,42 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.4";
+        internal const string Version = "0.9.6";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
-            + "Cloud brains: she remembers the model each cloud provider uses and which provider she's thinking with. From danielxxomg. She also tells a rate limit from no credits and skips models that can't chat. From nathanZW.\n"
-            + "Mods: before you approve a code mod she lists what its code reaches for and the addresses it contacts, and her mods page keeps working when GitHub's hourly limit runs out. From YunoTheAlien and Yoplaxs.\n"
+            + "Memories: her Mainframe shows everything she remembers, and you can edit, forget or undo any of it.\n"
+            + "Setup: a new install sets her up with you in about two minutes: your name, her vibe and look, then a real first job.\n"
+            + "Uninstall: her Mainframe can uninstall her, and you choose whether her memories, chats and keys go too.\n"
+            + "Animations: modders can change her animation panels, with any frame count and their own speed, in a new animations editor in Mods.\n"
+            + "Tool mods: she learns look-up tools from .capri-tool recipes and can write one herself, which waits switched off in Mods until you check it. From nathanZW.\n"
+            + "Honest and safe: she tells you she's an AI when you sincerely ask, and shows a crisis card with real help if you're really not okay.\n"
+            + "Pats: she says her pat lines in her own voice. From Zak6571.\n"
+            + "Everyday jobs: more brains get everyday jobs right, because her hands step in when a brain only says it's doing it.\n"
             + (OperatingSystem.IsLinux()
-                ? "Raspberry Pi: she runs on arm64 Linux, like a Raspberry Pi 5, with her own AppImage and tarball, and her updater picks the right one. From nathanZW.\n"
-                    + "Your PC: she checks your internet, knows your CPU use and battery, and finds files on your other drives, never on network or system mounts. From nathanZW."
-                : "Hey Capri: on Apple Silicon Macs, VOICE > Listen for Hey Capri hears her name through your default mic once you say yes, pauses while she talks, and her ears run sandboxed with no internet. From Yoplaxs.");
-        internal static readonly string Line = "I just updated to " + Version + ": I remember which model each of your cloud brains uses now, and I check mods more carefully. Ask me what's new.";
+                ? "Files: she finds, reads, writes and sorts your files with any brain, asks before she moves, renames or changes anything, never deletes, and can undo.\n"
+                    + "Check-ins: she checks in by the clock where your desktop can't say how long you've been idle. From Zak6571.\n"
+                    + "Desktops: she stays on top on labwc, keeps her full colour on Hyprland, speaks through pw-cat, and her Mods page fits a small screen. From nathanZW."
+                : "Files: she finds, reads, writes and sorts your files with any brain, asks before she moves, renames or changes anything, never deletes, can undo, and shows any of them in Finder.");
+        internal static readonly string Line = "I just updated to " + Version + ": you can see and edit everything I remember now, and I can find and sort your files. Ask me what's new.";
 #else
-        internal const string Version = "0.9.4";
+        internal const string Version = "0.9.6";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Her own computer: Mainframe > Settings > HER COMPUTER > Her own computer gives her a little computer of her own in a separate window, with her own desktop and her own browser that never sees your passwords, cookies or history. Type a job in her window or say find me a pancake recipe on your computer, and the answer is saved as a note. Off by default, and in beta.\n"
-            + "Settings: her Mainframe has fewer, clearer settings, with 15 switches that overlapped merged or cut.\n"
-            + "Resources: her Mainframe's Resources panel shows what's using your CPU, RAM and GPU, her parts apart from other programs, and she stops her built-in brain when it isn't needed.\n"
-            + "Brain VRAM: Brain VRAM in her Resources panel caps her built-in brain and Ollama, and the rest runs from RAM so games keep their FPS. From john.\n"
-            + "Games: she costs games less. Over anything full screen she holds still until she moves or talks, and her game watcher does less work.\n"
-            + "Walking in games: she looks all the way round before she walks, and reads Fortnite's and any Unreal game's real keybinds from their own files.\n"
-            + "Quiet: Check in on me now also covers her startup greeting, holiday lines, questions about you, update news, weather warnings and the admin-keys warning, so with her own-talk settings off she only talks when you talk to her.\n"
-            + "Languages: her free voice speaks French, Spanish, Italian, Portuguese and Hindi in her own voice with their own sounds.\n"
-            + "Skills: New > skill.md in her File Editor teaches her an app or a game, like which Discord server and channel you mean, and she can read a web page's text like its source.\n"
-            + "Phone: Capri Remote tells your phone when she answers a message you sent, when a job asks to go ahead (Allow or Deny from the Android app's notification) and when a job ends. She also checks in on your phone now and then while you're away, and Mainframe > Remote > Wake from phone lets your phone wake your PC on the same network.\n"
-            + "Capri Camera: she keeps moving at full speed when her Room is minimised or busy, stays one size so Discord never loses her, and says to restart Discord after it's added.\n"
-            + "Mods: before you approve a code mod she lists what its code reaches for and the addresses it contacts, her mods page keeps working when GitHub's hourly limit runs out, and code mods can be up to 1 MB. From YunoTheAlien and Yoplaxs.\n"
-            + "Voice feel: her voice feels the cue in front of a line on every voice now, not just Fish Audio. From YunoTheAlien.\n"
-            + "Cloud brains: she tells a rate limit from no credits and skips models that can't chat. From nathanZW.\n"
-            + "Searches: a search with no site goes to Google, and she never opens your browser's settings files to find its search engine.";
-        internal const string Line = "I just updated to " + Version + ": I've got a little computer of my own now. Turn it on in my Mainframe, or ask me what's new.";
+            + "Memories: her Mainframe shows everything she remembers, and you can edit, forget or undo any of it, on your PC or in Capri Remote on your phone.\n"
+            + "Files: she finds, reads, writes and sorts your files with any brain. She asks on her bubble before she moves, renames or changes anything, never deletes, and can undo.\n"
+            + "Video calls: tap Video during a Capri Remote call to see her talking face, lip-synced to her voice. Turn your camera on and she sees you too.\n"
+            + "Uninstall: her Mainframe can uninstall her, and you choose whether her memories, chats and keys go too.\n"
+            + "Setup: a new install sets her up with you in about two minutes: your name, her vibe and look, then a real first job.\n"
+            + "Her browser: her own browser now runs over a private pipe with no debugging port, so no website or other program can take it over. She also closes a browser of hers left running from before, and you can borrow it with one click.\n"
+            + "PC brain: when you pick another brain she lets go of her PC brain and never falls back to it unasked. You can still make it her backup or her first pick.\n"
+            + "Grok: MAX INTELLIGENCE takes xAI keys for Grok, and its picker lists the models your Claude Code and Codex really offer. From Sharaj00.\n"
+            + "Tool mods: she learns look-up tools from .capri-tool recipes and can write one herself, which waits switched off in Mods until you check it. A code mod that stopped her starting stays off. From nathanZW.\n"
+            + "Animations: modders can change her animation panels, with any frame count and their own speed, in a new animations editor in Mods.\n"
+            + "Honest and safe: she tells you she's an AI when you sincerely ask, and shows a crisis card with real help if you're really not okay.\n"
+            + "Crash reports: right-click her > Help > Send crash reports, off until you turn it on. Only her crash, close and freeze lines go, with keys and user folders taken out.\n"
+            + "Job replays: every job on her own computer keeps a replay you can watch.\n"
+            + "Update door: on her first start after each update she comes through a door of alert hexagons. From YunoTheAlien.\n"
+            + "Everyday jobs: more brains get everyday jobs right, like pausing music, reminders, notes and reading an error on screen, because her hands step in when a brain only says it's doing it.\n"
+            + "Fixes: her Mainframe fits at 200% scaling and scrolls on short screens (from nathanZW), one broken Epic manifest no longer empties her app list (from nikitchxd), her free voice falls back to a safe speaker (from nikitchxd), she stays in front of her mini player while you drag it, and her mods page loads from her own copy when GitHub is blocked.";
+        internal const string Line = "I just updated to " + Version + ": you can see and edit everything I remember now, and video call me on Capri Remote. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
