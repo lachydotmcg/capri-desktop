@@ -101,6 +101,14 @@ namespace CapriDesktop
                 Computer.Keyed(Computer.Code("xf86audioraisevolume"), true, false, out virtualCode, out virtualScan, out virtualFlags);
                 if (virtualScan != 0 || virtualFlags != 0x0002) throw new Exception("A media key went out with a scan code.");
                 checks.Add("PASS her combo and held keys carry the same scan codes and extended bits, and Print Screen and the media keys stay virtual-key only");
+
+                Sight chat = new Sight { Window = new IntPtr(7501), Title = "#general - Discord", Program = "Discord" };
+                if (Computer.Combo("KP_Enter") != "numpadenter" || Computer.Combo("KP_5") != "5" || Computer.Combo("Control_R+Return") != "rightctrl+enter" || Computer.Combo("Alt_R") != "rightalt" || Computer.Combo("numpad_7") != "numpad7"
+                    || !Computer.Entering("key", new ToolArguments { Text = "KP_Enter" }) || !Computer.Entering("key", new ToolArguments { Text = "Control_R+Return" }) || !Computer.Entering("key", new ToolArguments { Text = "Alt_R+KP_Enter" }) || Computer.Entering("key", new ToolArguments { Text = "shift+KP_Enter" })
+                    || Computer.Risk("press", new ToolArguments { Keys = "numpadenter" }, chat) != "send" || Computer.Risk("press", new ToolArguments { Keys = "Return" }, chat) != "send" || Computer.Risk("press", new ToolArguments { Keys = "enter" }, chat) != "send"
+                    || !Computer.Banning("rightctrl+alt+delete") || !Computer.Banning("ctrl+rightalt+numpadperiod") || !Computer.Banning("rightctrl+rightshift+esc") || !Computer.Banning("esc+shift+ctrl") || !Computer.Banning("shift+numpadperiod") || !Computer.Banning("win+r") || Computer.Banning("ctrl+c") || Computer.Banning("rightctrl+w"))
+                    throw new Exception("Her new key names got round an ask: KP_Enter is " + Computer.Combo("KP_Enter") + ", Control_R+Return is " + Computer.Combo("Control_R+Return"));
+                checks.Add("PASS the keypad's Enter and right Ctrl or Alt with Enter still ask before sending in a chat app, right-hand modifiers, the keypad's dot and any key order still ask first for Ctrl + Alt + Del and the rest, and Claude's KP_ digits stay the number row");
             }
             finally
             {
