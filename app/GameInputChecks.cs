@@ -11,8 +11,6 @@ namespace CapriDesktop
 {
     internal sealed partial class Companion
     {
-        // A stand-in for a game's window that's never shown: it keeps the key messages that reach it, with their scan codes, the
-        // way a game that reads raw keys sees them.
         private sealed class KeyCatcher : NativeWindow, IDisposable
         {
             internal readonly List<int[]> Got = new List<int[]>();
@@ -37,7 +35,6 @@ namespace CapriDesktop
 
         [DllImport("user32.dll", EntryPoint = "SendMessageW")] private static extern IntPtr KeyMessage(IntPtr window, int message, IntPtr code, IntPtr bits);
 
-        // Her keys as a game gets them: each key she presses goes to the stand-in as the message Windows would send for it.
         private static void SmokeScanKeys(List<string> checks)
         {
             Action<short, bool, bool> keyWas = Computer.SendKey;
@@ -120,8 +117,6 @@ namespace CapriDesktop
             }
         }
 
-        // Everything a game job's hands touch, faked for one game window, so her combos can run without a real keyboard, mouse or
-        // window. What she sends is kept with when she sent it.
         private sealed class ComboRig : IDisposable
         {
             private readonly Func<List<OpenWindow>> windowsWas = Hands.Windows;
@@ -155,7 +150,6 @@ namespace CapriDesktop
             internal readonly IntPtr Game = new IntPtr(7401), Other = new IntPtr(7402);
             internal readonly Sight Sight;
             internal readonly Stopwatch Clock = Stopwatch.StartNew();
-            // Each event is { kind, code, ms }: kind 0 a key going down, 1 a key coming up, 2 a button going down, 3 one coming up.
             internal readonly List<long[]> Sent = new List<long[]>();
             internal readonly HashSet<short> Down = new HashSet<short>();
             internal int Buttons, Taps, FrontReads;
@@ -249,7 +243,6 @@ namespace CapriDesktop
                 Computer.Arm();
             }
 
-            // Starts the record again for the next check.
             internal void Clear()
             {
                 lock (Sent) { Sent.Clear(); firstDown = -1; }
@@ -284,8 +277,6 @@ namespace CapriDesktop
             return string.Join(", ", said.ToArray());
         }
 
-        // Her combo: steps in the order given with the timing given and no settling pause between them, and every key and button
-        // let go however it ends.
         private static void SmokeGameCombo(List<string> checks)
         {
             using (ComboRig rig = new ComboRig())
@@ -420,7 +411,6 @@ namespace CapriDesktop
             }
         }
 
-        // The anti-cheat guard, with made-up process and driver names: while one runs, her combo sends nothing at all and says why.
         private static void SmokeAntiCheat(List<string> checks)
         {
             Func<string[]> realProcesses = AntiCheat.Processes;

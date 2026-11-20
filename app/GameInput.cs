@@ -8,11 +8,8 @@ using System.Threading;
 
 namespace CapriDesktop
 {
-    // Kernel anti-cheat bans accounts for input that isn't a person's own, so her quick moves never run beside it.
     internal static class AntiCheat
     {
-        // Processes and drivers that mean anti-cheat is running, and the name people know it by. Call of Duty's runs inside the
-        // game itself, so its games count.
         private static readonly string[,] Known =
         {
             { "vgc", "Riot Vanguard" }, { "vgk", "Riot Vanguard" },
@@ -28,7 +25,6 @@ namespace CapriDesktop
             { "cod", "Ricochet" }, { "ModernWarfare", "Ricochet" }, { "BlackOps6", "Ricochet" }, { "BlackOpsColdWar", "Ricochet" }, { "Vanguard", "Ricochet" }
         };
 
-        // Drivers and services that run without a process of their own.
         private static readonly string[] Drivers = { "vgk", "vgc", "BEDaisy", "BEService", "EasyAntiCheat", "EasyAntiCheat_EOS", "FACEIT", "ESEADriver2", "xhunter1", "mhyprot2", "mhyprot3" };
 
         internal static Func<string[]> Processes = delegate
@@ -72,7 +68,6 @@ namespace CapriDesktop
             finally { CloseServiceHandle(manager); }
         };
 
-        // The anti-cheat running now, by the name people know it by, or null when there's none.
         internal static string Running()
         {
             HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -97,8 +92,6 @@ namespace CapriDesktop
         internal static string Refusal(string name) { return "Won't do quick moves while " + name + " is running: anti-cheat like that can ban for them."; }
     }
 
-    // Quick moves in a game: key taps, holds, clicks and waits back to back, with the timing her brain gave, then one look. Her
-    // other tools pause after each move for an app to catch up; a game doesn't need that, and a jump that waits a moment misses.
     internal static partial class Computer
     {
         internal const int QuickMostSteps = 12;
@@ -127,7 +120,6 @@ namespace CapriDesktop
 
         private static string Secs(double seconds) { return seconds.ToString("0.##", CultureInfo.InvariantCulture) + " s"; }
 
-        // "shift+w 0.8, space, click, right_click 0.5, wait 0.2" as steps, or null with what's wrong in problem.
         internal static List<QuickStep> QuickSteps(string text, out string problem)
         {
             problem = null;
@@ -172,7 +164,6 @@ namespace CapriDesktop
                         step.Chord = chord;
                         Modifiers(chord, out step.Codes);
                     }
-                    // Shorter than a few frames and the game never sees it.
                     if (held > 0 && held < 0.05) step.Seconds = held = 0.05;
                     step.Said = what + (held > 0 ? " " + Secs(held) : "");
                 }
@@ -185,7 +176,6 @@ namespace CapriDesktop
             return steps;
         }
 
-        // The first key a combo would press that asks first, like win+r, or null.
         internal static string QuickBarred(string text)
         {
             string problem;
@@ -194,7 +184,6 @@ namespace CapriDesktop
             return null;
         }
 
-        // Whether a combo presses Enter, which sends what she just typed into a chat.
         internal static bool QuickEnters(string text)
         {
             string problem;
@@ -209,7 +198,6 @@ namespace CapriDesktop
             return string.Join(", ", said.GetRange(0, said.Count - 1).ToArray()) + " and " + said[said.Count - 1];
         }
 
-        // Runs the steps in order, each straight after the last, and lets go of every key and button it pressed however it ends.
         internal static string Quick(List<QuickStep> steps, Sight sight)
         {
             foreach (QuickStep step in steps)
@@ -231,7 +219,6 @@ namespace CapriDesktop
                         Hold(step.Codes, true);
                         if (step.Button != null && !interrupted) { Mouse(down, 0); pressed = true; }
                     }
-                    // A tap stays down for a few frames, as a game reads its keys and buttons once a frame.
                     away = !HoldPause(step.Waiting || step.Seconds > 0 ? (int)Math.Round(step.Seconds * 1000) : 70, sight);
                 }
                 finally
@@ -243,10 +230,8 @@ namespace CapriDesktop
                 if (interrupted) return Why;
                 if (away) return "Stopped because the window I started on is no longer in front.";
                 did.Add(step.Said);
-                // Long enough for the game to see a key come up before the same key goes down again.
                 Thread.Sleep(30);
             }
-            // The look after it should show what the last step did.
             Thread.Sleep(120);
             return interrupted ? Why : "Did " + Listed(did) + ".";
         }

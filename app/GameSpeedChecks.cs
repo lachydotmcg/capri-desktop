@@ -33,8 +33,6 @@ namespace CapriDesktop
 
         private static string TurnMs(double value) { return value.ToString("0", CultureInfo.InvariantCulture); }
 
-        // A made-up game frame: sky, ground, trees, a HUD and some grain, panned a little each step, so it costs about what a
-        // real one does to encode and send.
         private static Bitmap TurnFrame(int width, int height, int step)
         {
             Bitmap frame = new Bitmap(width, height, PixelFormat.Format24bppRgb);
@@ -78,8 +76,6 @@ namespace CapriDesktop
             return frame;
         }
 
-        // Her game loop timed stage by stage on made-up frames, with a brain that answers at once, so the numbers are hers alone:
-        // the look (capture and encoding), building the request, and her hands. Nothing here touches the real mouse or keyboard.
         private static void SmokeGameSpeed(List<string> checks, string output)
         {
             Func<Rectangle, Bitmap> grabWas = Computer.Grab;
@@ -382,8 +378,6 @@ namespace CapriDesktop
             return made;
         }
 
-        // A look that comes out exactly like the newest picture isn't sent again, Claude's looks skip the bigger copy made for
-        // reading words, and a grid brain reads a screen that hasn't changed only once.
         private static void SmokeSameFrames(List<string> checks)
         {
             using (ComboRig rig = new ComboRig())

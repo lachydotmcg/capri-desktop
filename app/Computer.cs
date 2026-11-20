@@ -1473,7 +1473,6 @@ namespace CapriDesktop
             return keys.Count == 0 ? null : string.Join("+", keys.ToArray());
         }
 
-        // The keypad's own keys, like kp_enter or numpad 5. Claude's kp_ digits stay the number row, as they always have.
         private static string PadKey(string part)
         {
             Match pad = Regex.Match(part, @"^(?:kp_|numpad_?|num_?|keypad_?)(\d|enter|return|divide|slash|multiply|asterisk|star|subtract|minus|add|plus|decimal|period|dot)$");
@@ -1875,7 +1874,6 @@ namespace CapriDesktop
         internal const string Escaped = "You pressed Esc, so I stopped.";
         internal const string TypeAgain = "That text is already in the field, so I didn't type it again.";
         internal const string Unchanged = "The screen hasn't changed since your last screenshot.";
-        // On while she takes a look only Claude will see: it reads the picture itself, so no bigger copy is made for reading words.
         [ThreadStatic] internal static bool Plain;
 
         // Whether this is what a job stopped on, by Esc or by their word: either ends the whole ask.
@@ -2020,8 +2018,6 @@ namespace CapriDesktop
 
         internal static bool Barred(string keys) { return !KeysOk && !Security.On(Security.Unasked) && Banning(keys); }
 
-        // Right Ctrl, Alt and Shift do what the left ones do, the keypad's dot is Delete with Num Lock off, and the order the
-        // keys go down in doesn't change what a chord does.
         internal static bool Banning(string keys)
         {
             Func<string, string> plain = delegate(string chord)
@@ -2374,11 +2370,8 @@ namespace CapriDesktop
             return code == 0x2C || (code >= 0xA6 && code <= 0xB7) ? (short)0 : (short)(MapVirtualKey((uint)code, 4) & 0xFF);
         }
 
-        // Numpad Enter has no key code of its own: it's Enter on the keypad's side, so it's carried as Enter with this bit.
         internal const short Keypad = 0x100;
 
-        // One key going down or up as SendInput gets it: its key code, its scan code, and the flags for an extended key, a key
-        // going up and a scan code that games read.
         internal static void Keyed(short key, bool up, bool extended, out short code, out short scan, out int flags)
         {
             code = (short)(key & 0xFF);
@@ -2514,8 +2507,6 @@ namespace CapriDesktop
             return true;
         }
 
-        // Windows says which keys are extended, like right Ctrl and Alt and the keypad's slash, and the arrows and the keys above them
-        // always are.
         internal static bool Extended(short code)
         {
             int key = code & 0xFF;
@@ -2724,9 +2715,7 @@ namespace CapriDesktop
         private int streamNudges;
         private int misses;
         private Picture shown;
-        // Her last look came out exactly like the picture before it, so it wasn't sent again.
         private bool same;
-        // A grid brain's last grid and the words read off it, kept while the screen stays exactly the same.
         private byte[] griddedFrom, gridded;
         private Rectangle griddedArea;
         private string griddedWords;
@@ -3299,7 +3288,6 @@ namespace CapriDesktop
                 // Nothing on screen moved at all, or it's about to make the same moves again: small brains need telling.
                 if (lastLook != null && results.Length > 0 && !sentBack && Computer.Same(lastLook, shown.Jpeg)) results += "\nThe screen didn't change at all after that, so it didn't work. Try something different.";
                 sentBack = false;
-                // The very same picture reads the same, so last turn's grid and words go again instead of reading it twice.
                 if (gridded == null || shown.Area != griddedArea || !Computer.Same(griddedFrom, shown.Jpeg))
                 {
                     gridded = Computer.Gridded(shown, out griddedWords, out griddedSpots);
@@ -3550,7 +3538,6 @@ namespace CapriDesktop
                 // Read first, so a window that takes over during the shot counts as a change.
                 looked = Computer.Front();
                 target = Computer.Glimpse();
-                // Claude reads the picture itself, so the bigger copy made for reading words off it would go unused.
                 Computer.Plain = Drive != null;
                 try { fresh = Computer.Shoot(null); }
                 finally { Computer.Plain = false; }
@@ -3567,7 +3554,6 @@ namespace CapriDesktop
             if (fresh == null) return false;
             fresh.Sight = target;
             Computer.NoteGame(Computer.GameWindow(target) ? target : null);
-            // The very same picture as the newest one it already has tells it nothing new, so it isn't sent again.
             same = pictures.Count > 0 && Computer.Same(pictures[pictures.Count - 1], fresh.Jpeg);
             shown = fresh;
             Computer.Shown = fresh;
@@ -3627,7 +3613,6 @@ namespace CapriDesktop
             // Win + R and the like ask first unless Things your request didn't mention is on, in her own hold_and_press too.
             string barred = member && (name == "key" || name == "hold_key") ? Computer.BarredIn(args.Text) : !member && name == "hold_and_press" ? Computer.HeldBarred(args) : !member && name == "combo" ? Computer.QuickBarred(args.Steps) : null;
             if (barred != null) { question = "Should I press " + barred + "?"; return "keys"; }
-            // Her combo's Enter sends what she just typed, the same as Claude's own key.
             bool comboEnter = !member && name == "combo" && Computer.QuickEnters(args.Steps);
             if (!member && !comboEnter) return null;
             Sight front = Computer.Glimpse();
