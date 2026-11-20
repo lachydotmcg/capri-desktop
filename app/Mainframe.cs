@@ -2898,6 +2898,8 @@ namespace CapriDesktop
             foreach (Label step in steps) step.Visible = setupShown;
             setup.Visible = setupShown;
             refresh.Top = Scaled(setupShown ? 226 : 134);
+            hint.Top = setup.Bottom + Scaled(10);
+            if (!setupShown) hint.Visible = false;
             brainNote.MaximumSize = new Size(Scaled(328), 0);
             voiceNote.MaximumSize = new Size(Scaled(328), 0);
             updateNote.MaximumSize = new Size(Scaled(328), 0);
@@ -3631,10 +3633,12 @@ namespace CapriDesktop
                 string pick = name;
                 choices.Add(Choice(pick, pick == model, delegate { capri.ChooseProviderModel(address, pick, found); }));
             }
+            DropPcItems();
             modelMenu.SuspendLayout();
             modelMenu.Items.Clear();
             modelMenu.Items.AddRange(choices.ToArray());
             modelMenu.ResumeLayout();
+            PcBrainItems();
             Arrange(false);
         }
 
@@ -3772,6 +3776,35 @@ namespace CapriDesktop
 
         internal void ForgotText(Cloud remote) { forgotten = remote; }
 
+        private readonly List<ToolStripItem> pcItems = new List<ToolStripItem>();
+        private bool pcOffered;
+        private int pcMode;
+        internal static readonly string[] PcBrainNames = { "Her PC brain: off", "Her PC brain: backup", "Her PC brain: first" };
+
+        private string pcName;
+
+        internal void ShowPcBrain(bool offered, int mode, string name) { pcOffered = offered; pcMode = mode; pcName = name; }
+
+        private void DropPcItems()
+        {
+            foreach (ToolStripItem item in pcItems) { modelMenu.Items.Remove(item); item.Dispose(); }
+            pcItems.Clear();
+        }
+
+        private void PcBrainItems()
+        {
+            DropPcItems();
+            if (!pcOffered) return;
+            pcItems.Add(new ToolStripSeparator());
+            if (pcName != null) pcItems.Add(new ToolStripMenuItem(pcName) { Enabled = false });
+            for (int i = 0; i < PcBrainNames.Length; i++)
+            {
+                int mode = i;
+                pcItems.Add(Choice(PcBrainNames[i], pcMode == i, delegate { capri.SetPcBrain(mode); }));
+            }
+            modelMenu.Items.AddRange(pcItems.ToArray());
+        }
+
         internal void ShowCloud(Cloud remote, List<string> found)
         {
             if (remote != forgotten) forgotten = null;
@@ -3782,6 +3815,7 @@ namespace CapriDesktop
             models.Visible = remote.Model != null;
             hint.Visible = false;
             if (remote.Kind == "local") { LocalMenu(null, remote); Arrange(false); return; }
+            DropPcItems();
             // OpenRouter lists hundreds of models and NVIDIA over a hundred, and adding them one at a time laid the whole menu out
             // again for each: about 20 s frozen on every OpenRouter pick (NoxEterna, 1 Nov), and seconds after a slow NVIDIA reply,
             // which shows this again (Mika). The same list only moves its tick, and a new one goes in all at once.
@@ -3812,6 +3846,7 @@ namespace CapriDesktop
                 menuRemote = remote;
                 menuModels = listed;
             }
+            PcBrainItems();
             Arrange(false);
         }
 
@@ -3874,6 +3909,8 @@ namespace CapriDesktop
 
         internal bool TiersFit { get { return TiersProblem == null; } }
 
+        internal bool HintShown { get { return hint.Visible; } }
+
         // What doesn't fit among BRAIN's tiers, in words for the smoke test, or null when it all fits.
         internal string TiersProblem
         {
@@ -3900,6 +3937,7 @@ namespace CapriDesktop
                     end = movePaid.Bottom;
                 }
                 foreach (Rung brainRung in rungs) if (!brainRung.Fits) return brainRung.Text + " doesn't fit its rung (" + brainRung.Bounds + ")";
+                if (hint.Visible && (!setup.Visible || hint.Top < setup.Bottom || Array.Exists(rungs, delegate(Rung row) { return row.Bounds.IntersectsWith(hint.Bounds); }))) return "the Ollama hint (" + hint.Bounds + ") is left over the tiers";
                 if (tierNote.Right > ClientSize.Width) return "the tier note (right " + tierNote.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
                 if (rungs[0].Top < tierNote.Bottom || rungs[1].Top < rungs[0].Bottom || rungs[2].Top < rungs[1].Bottom) return "the rungs overlap the tier note or each other";
                 if (NoAiRowShown && (offRung.Top < tierNote.Bottom || rungs[0].Top < offRung.Bottom || !offRung.Fits || offRung.Right > ClientSize.Width)) return "OFF (" + offRung.Bounds + ") overlaps the tier note or NORMAL, or doesn't fit";
@@ -3958,6 +3996,18 @@ namespace CapriDesktop
             textEntry.Box.Clear();
             ClearPaidText();
             if (key != null) capri.ConnectPaidText(key);
+        }
+
+        internal void ShowNoKey()
+        {
+            brainName.Text = "No key yet";
+            brainNote.Text = "Paste a key below, or pick NORMAL for her brain on this PC.";
+            models.Visible = false;
+            hint.Visible = false;
+            modelMenu.Items.Clear();
+            menuRemote = null;
+            menuModels = null;
+            Arrange(false);
         }
 
         internal void ShowLocal(Pick pick)
@@ -8009,7 +8059,6 @@ namespace CapriDesktop
             internal Font HintFont;
             internal string Flag;
             internal Font FlagFont;
-            internal bool Arriving;
 
             internal bool Marked { get { return Focused && ShowFocusCues; } }
 
@@ -8033,8 +8082,17 @@ namespace CapriDesktop
 
             protected override void OnMouseLeave(EventArgs e) { hot = false; Invalidate(); base.OnMouseLeave(e); }
 
-            // A radio button clicks itself when focus arrives by arrow key or from code. The VOICE pair picks on a real click or Space only.
-            protected override void OnEnter(EventArgs e) { if (AutoCheck && !Arriving) base.OnEnter(e); }
+            // A radio button clicks itself when focus arrives by arrow key or from code. Every rung picks on a real click or Space only.
+            private bool entering;
+
+            protected override void OnEnter(EventArgs e)
+            {
+                entering = true;
+                try { base.OnEnter(e); }
+                finally { entering = false; }
+            }
+
+            protected override void OnClick(EventArgs e) { if (!entering) base.OnClick(e); }
 
             protected override void OnPaint(PaintEventArgs e)
             {
