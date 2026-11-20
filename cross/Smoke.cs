@@ -5064,6 +5064,7 @@ namespace CapriDesktop
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 if (idle.Old || idle.Count != 60 || idle.Fps != 24 || idle.Wide != 116) throw new Exception("Taking an old skin off didn't bring her new stand back.");
                 checks.Add("PASS mods old skins: a 3840 x 384 idle.png keeps its 16 cells at 8 fps through a reload, and off brings her new stand back");
+                pet.CheckMoves(checks, input);
                 LegacyChecks(frame, idle, blue, input);
 
                 CodeModChecks(frame, mods, input);
