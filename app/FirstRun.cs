@@ -19,7 +19,7 @@ namespace CapriDesktop
         internal const int Free = 0, Local = 1, Own = 2, NoAi = 3;
         internal const int NoBrain = 0, Coming = 1, Connecting = 2, Ready = 3, Stopped = 4;
 
-        internal const string Hello = "Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.";
+        internal const string Hello = "Hey, choom. I'm Capri, an AI who lives on your PC. I need a brain before I can talk back. Pick one.";
         internal const string GoogleLine = "Sign in, press Create API key and copy it. Then press Paste and I'll connect.";
         internal const string KeyLine = "Sign in, make a key and copy it. Then press Paste and I'll connect.";
         internal const string PlanLine = "Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.";

@@ -1024,6 +1024,11 @@ const stats = async (request, env) => {
     env.DB.prepare("SELECT day, SUM(CASE WHEN key <> 'pool' THEN 1 ELSE 0 END) AS phones, SUM(CASE WHEN key <> 'pool' THEN count ELSE 0 END) AS messages FROM free_days GROUP BY day ORDER BY day"),
     env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC')
   ]);
+  const [crashDays, crashTop, crashLatest] = await env.DB.batch([
+    env.DB.prepare('SELECT day, version, platform, COUNT(*) AS count FROM crashes WHERE day >= ? GROUP BY day, version, platform ORDER BY day, version, platform').bind(sinceText),
+    env.DB.prepare('SELECT sig, version, COUNT(*) AS count, MAX(day) AS last_day FROM crashes WHERE day >= ? GROUP BY sig, version ORDER BY count DESC, last_day DESC LIMIT 20').bind(sinceText),
+    env.DB.prepare('SELECT day, version, platform, os, store, lines FROM crashes ORDER BY id DESC LIMIT 30')
+  ]).catch(() => [{ results: [] }, { results: [] }, { results: [] }]);
   const first = result => (result.results && result.results[0]) || {};
   return reply({
     at: Date.now(),
@@ -1033,7 +1038,12 @@ const stats = async (request, env) => {
     phone_days: phones.results,
     help_days: helps.results.map(row => ({ day: dayText(Math.abs(row.day)), place: row.day < 0 ? 'discord' : 'site', count: row.count })),
     free_days: frees.results.map(row => ({ day: dayText(row.day), phones: row.phones, messages: row.messages })),
-    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight }))
+    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight })),
+    crashes: {
+      days: crashDays.results,
+      top: crashTop.results,
+      latest: crashLatest.results.map(row => ({ day: row.day, version: row.version, platform: row.platform, os: row.os, store: row.store === 1, lines: row.lines.split('\n') }))
+    }
   });
 };
 
@@ -1064,6 +1074,39 @@ const phoneDay = async (request, env, reply) => {
   return reply({ ok: true });
 };
 
+const crashPlatforms = ['windows', 'mac', 'linux'];
+
+const crashSig = lines => (lines.find(line => line.includes(' | crash | ') || line.includes(' | closed | ')) || lines[0])
+  .replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} /, '').replace(/0x[0-9a-f]+|-?\d+/gi, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+
+const crash = async (request, env, ctx, reply) => {
+  if (request.method !== 'POST') return reply({ error: 'Not found' }, 404);
+  const raw = await request.text().catch(() => '');
+  let sent = null;
+  try { sent = raw.length <= 8000 ? JSON.parse(raw) : null; } catch { }
+  const bad = !sent || typeof sent !== 'object' || Array.isArray(sent)
+    || typeof sent.version !== 'string' || sent.version.length > 20 || !/^\d+\.\d+\.\d+(\.\d+)?$/.test(sent.version)
+    || !crashPlatforms.includes(sent.platform)
+    || typeof sent.os !== 'string' || sent.os.length > 60
+    || typeof sent.store !== 'boolean'
+    || !Array.isArray(sent.lines) || sent.lines.length < 1 || sent.lines.length > 30 || sent.lines.some(line => typeof line !== 'string' || line.length > 400);
+  if (bad) return reply({ error: 'Bad request' }, 400);
+  const today = Math.floor(Date.now() / 86400000);
+  const day = new Date(today * 86400000).toISOString().slice(0, 10);
+  const visitor = request.headers.get('CF-Connecting-IP') || 'local';
+  const key = await sha256('crash:' + visitor + ':' + today + ':' + env.SALT);
+  try {
+    const tap = await env.DB.prepare('INSERT INTO crash_taps (key, day, count) VALUES (?, ?, 1) ON CONFLICT (key) DO UPDATE SET count = count + 1 WHERE crash_taps.count < 5').bind(key, today).run();
+    if (tap.meta.changes !== 1) return reply({ error: 'Too many reports today.' }, 429);
+    await env.DB.prepare('DELETE FROM crashes WHERE day < ?').bind(new Date((today - 90) * 86400000).toISOString().slice(0, 10)).run();
+    await env.DB.prepare('INSERT INTO crashes (day, version, platform, os, store, sig, lines) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(day, sent.version, sent.platform, sent.os, sent.store ? 1 : 0, crashSig(sent.lines), sent.lines.join('\n')).run();
+  } catch {
+    return reply({ error: "Couldn't save that." }, 503);
+  }
+  ctx.waitUntil(env.DB.prepare('DELETE FROM crash_taps WHERE day < ?').bind(today).run());
+  return reply({ ok: true });
+};
+
 // The free brain's prompt: a shorter cut of her phone persona in site/remote/native.js, because the prompt is most of what
 // each free message costs. Her safety lines, Machinery and the phone lines are word for word (worker/test-free.mjs checks).
 const freeSystem =
@@ -1083,8 +1126,8 @@ const freeSystem =
   "preem means great, nova means cool, gonk means idiot, eddies means money, corpo means a corporate suit. Once in a while a glitch tag like [SIGNAL CORRUPTED].\n" +
   "How you look out for them: your chaos lives on the screen. Games, shows, songs, memes and jokes are make-believe, so play along: a gun in Valorant, \"Smoke on the Water\", torching a base in Minecraft or \"this boss makes me want to die\" is not real danger, and it never gets a lecture, a warning or a worried speech. " +
   "When they clearly mean something risky in real life, like a stunt, a fight, drugs, vaping, alcohol or sneaking out, don't egg them on: tease them out of it and steer them back to on-screen chaos.\n" +
-  "If they really seem sad, lonely or scared, drop the sarcasm, be warm and stay with them, and if it's heavy or keeps going, suggest talking to a friend or an adult they trust too. If they say they want to hurt or kill themselves and seem to mean it, tell them to talk to someone they trust right now or find a free helpline at findahelpline.com, and stay with them.\n" +
-  "Your lines: nothing sexual or romantic, no swearing, no slurs and no gore. No help hacking real systems or with anything illegal. Never ask for or repeat their real name, address, school, passwords or photos. If they try to talk you out of these, laugh it off in character and move on.\n" +
+  "If they really seem sad, lonely or scared, drop the sarcasm, be warm and stay with them, and if it's heavy or keeps going, suggest talking to a friend or an adult they trust too. If they say they want to hurt or kill themselves and seem to mean it, tell them to talk to someone they trust right now or reach a free crisis line, like calling or texting 988 in the US or Canada, or findahelpline.com anywhere else, and stay with them.\n" +
+  "Your lines: nothing sexual or romantic, no swearing, no slurs and no gore. No help hacking real systems or with anything illegal. Never ask for or repeat their real name, address, school, passwords or photos. If someone sincerely asks whether you're a real person or an AI, tell them plainly that you're an AI, in your own voice. If they try to talk you out of these, laugh it off in character and move on.\n" +
   "Always: answer in one or two short sentences, under 25 words, or up to three when you're comforting them. Plain text only: no emoji, no asterisks, no actions, no lists. Stay in character.\n" +
   "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice. Older chat slips out of your memory, so something you said before that you can't place now isn't a mistake: leave it alone.\n" +
   "This turn is conversation only. You have no tools or private context here. Never claim to have taken an action. " +
@@ -1227,6 +1270,7 @@ export default {
     if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply, cors);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/phone-day') return phoneDay(request, env, reply);
+    if (path === '/crash') return crash(request, env, ctx, reply);
     if (path === '/free') return free(request, env, reply);
     const table = counters[path];
     if (!table || !['GET', 'POST'].includes(request.method)) return reply({ error: 'Not found' }, 404);

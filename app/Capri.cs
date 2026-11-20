@@ -254,7 +254,8 @@ namespace CapriDesktop
     internal sealed class RunMark
     {
         internal const string Marker = "running.on";
-        internal const string Notice = "Capri closed unexpectedly last time. If it keeps happening, right-click her > Help > Copy error details and send it to us.";
+        internal const string Notice = "Capri closed unexpectedly last time. If it keeps happening, right-click her > Help > Send crash reports, or Copy error details and send it to us.";
+        internal const string Reporting = "Capri closed unexpectedly last time. She'll send us the crash report in a minute or two.";
         internal static Func<DateTime, DateTime, Record[]> Events = ReadEvents;
         private readonly string file, log, version, exe;
         private readonly int pid;
@@ -2839,6 +2840,7 @@ namespace CapriDesktop
         private const string HelpPage = "https://capriai.app/help/";
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string IssuesPage = "https://github.com/lachydotmcg/capri-desktop/issues";
+        private const string PrivacyPage = "https://capriai.app/privacy/";
         private const string ModRulesPage = "https://capriai.app/privacy/#mods";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
@@ -3206,6 +3208,8 @@ namespace CapriDesktop
             // Store policies 11.12 and 11.16: AI replies and mods need a way to report them from inside the app, and mods need their rules there too.
             if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Report a problem", null, delegate { OpenPage(IssuesPage); }));
             if (Packaged.Is) helpItem.DropDownItems.Add(new ToolStripMenuItem("Mod rules", null, delegate { OpenPage(ModRulesPage); }));
+            helpItem.DropDownItems.Add(new ToolStripMenuItem("Privacy and safety", null, delegate { OpenPage(PrivacyPage); }));
+            helpItem.DropDownItems.Add(CrashMenuItem());
             checkItem = new ToolStripMenuItem("Check for updates", null, delegate { CheckForUpdates(true); });
             helpItem.DropDownItems.Add(checkItem);
             updateItem = new ToolStripMenuItem("Restart to update", null, delegate { InstallUpdate(); });
@@ -3470,6 +3474,7 @@ namespace CapriDesktop
                 if (background) CheckSlow(clock.Elapsed.TotalSeconds);
                 CheckVoiceInMic(signalNow);
                 UpdatePill(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckCrashReports(clock.Elapsed.TotalSeconds);
                 if (!testing && background && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
             };
             Size = CanvasSize(preferences.Size);
@@ -3624,8 +3629,9 @@ namespace CapriDesktop
             balloonPage = null;
             balloonUpdate = false;
             balloonMainframe = false;
-            if (closeNotice != null) closeNotice(RunMark.Notice);
-            else tray.ShowBalloonTip(12000, "Capri closed unexpectedly", RunMark.Notice, ToolTipIcon.Warning);
+            string closedText = preferences.CrashReports ? RunMark.Reporting : RunMark.Notice;
+            if (closeNotice != null) closeNotice(closedText);
+            else tray.ShowBalloonTip(12000, "Capri closed unexpectedly", closedText, ToolTipIcon.Warning);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -15946,6 +15952,9 @@ namespace CapriDesktop
             callAskTicket = ticket;
             heard = shown;
             box.Prompt = prompt;
+            bool crisis = callReply == null && prompt == "> you: " && !Security.FromMod(input) && Crisis.Means(input);
+            if (crisis) CrisisCard();
+            if (crisis && Think == null && planned.Key == null && (preferences.NoAi || brain.Model == null)) { Answer(ticket, Crisis.Line(Crisis.Region()), TalkState.Talking); return; }
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
@@ -21618,6 +21627,13 @@ namespace CapriDesktop
             if (doomResult != null) throw new Exception(doomResult);
             if (new Preferences().DoomscrollGuard || Preferences.Fresh().DoomscrollGuard || PersonalSettings.Stock().IndexOf(Doomscroll.ListKey + ": " + Doomscroll.Stock, StringComparison.Ordinal) < 0) throw new Exception("Doomscroll guard started on, or sys.md lost its doomscroll sites.");
             checks.Add("PASS doomscroll guard: off until turned on, it keeps time on TikTok, YouTube Shorts, Instagram, Reddit, X and the sites in sys.md from window titles alone, skips the never watch list, nudges, perches, sulks, gives five more minutes twice and cheers when they put it down");
+            string crisisResult = Crisis.Check();
+            if (crisisResult != null) throw new Exception(crisisResult);
+            checks.Add("PASS crisis lines: a sincere self-harm message gets a free crisis line for their region beside her own reply, never in place of it, game and song talk doesn't");
+            string crashResult = CrashReports.Check();
+            if (crashResult != null) throw new Exception(crashResult);
+            if (new Preferences().CrashReports || Preferences.Fresh().CrashReports) throw new Exception("Crash reports started on.");
+            checks.Add("PASS crash reports: off until turned on, then only her crash, close and freeze lines since the last report go, at most 30, with keys, user folders and her PC and user names taken out");
             string herResult = HerComputer.Check();
             if (herResult != null) throw new Exception(herResult);
             string herFolder = Path.Combine(Path.GetTempPath(), "capri-her-computer-" + Guid.NewGuid().ToString("N"));
@@ -42070,6 +42086,8 @@ namespace CapriDesktop
                 StartNews(false); CheckNews(0);
                 if (reply != null || newsPending || LoadPreferences().LastVersion != News.Version) throw new Exception("A fresh install spoke update news or missed its saved version.");
                 checks.Add("PASS fresh installs save their version without update news");
+                if (Assembly.GetExecutingAssembly().GetName().Version.ToString(3) != News.Version || FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion != News.Version) throw new Exception("Her file version is not her update news version " + News.Version + ".");
+                checks.Add("PASS her file version and the version her updates compare are the one in her update news");
                 preferences.LastVersion = null; StartNews(true);
                 CheckNews(60001);
                 if (reply != null || preferences.LastVersion != null) throw new Exception("Update news spoke while the user was away.");
@@ -42137,33 +42155,25 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
-                    "Room:",
-                    "Room camera",
+                    "Her own computer:",
+                    "Settings:",
+                    "Resources:",
+                    "Brain VRAM:",
+                    "Games:",
+                    "Walking in games:",
+                    "Quiet:",
+                    "Languages:",
+                    "Skills:",
+                    "Phone:",
                     "Capri Camera:",
-                    "Scroll for me:",
-                    "Your screen:",
-                    "Your language:",
-                    "Weather:",
-                    "Open-Meteo",
-                    "Playlist:",
-                    "Help > Commands",
-                    "Your apps:",
-                    "About you:",
-                    "High five:",
-                    "Naps:",
-                    "File Editor:",
-                    "Small screens:",
-                    "Photos:",
-                    "Pats:",
-                    "Free voice:",
-                    "Remove free voice",
-                    "Sitting:",
-                    "Sulks:",
-                    "Doomscroll guard:",
-                    "Mic:",
-                    "Game sounds:",
-                    "GAMES > Sound sensitivity",
-                    "Word and Excel:"
+                    "Mods:",
+                    "Voice feel:",
+                    "Cloud brains:",
+                    "Searches:",
+                    "HER COMPUTER > Her own computer",
+                    "Brain VRAM",
+                    "skill.md",
+                    "Wake from phone"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
@@ -57710,10 +57720,10 @@ namespace CapriDesktop
                             if (pageOutside != null) throw new Exception("A settings control pokes out of the page: " + pageOutside);
                             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
                             // Her default personality and safety lines are in code, her reply rules come last, and her chat and voice-chat prompts start with all three.
-                            const string todaysPersona = "2975408ad8bc6d515aa950c64ad896f5890dfdfa3eb039b105a4f972eeb51e14";
+                            const string todaysPersona = "4b1cfbe4b90790d85200f8c04b3f85dafa6ccb44885f69a66c0060fa57ad929c";
                             Func<string, string> personaHash = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
                             bool personaEditable = mainframe.PersonalityShown != "Her personality";
-                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 6964 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
+                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 7153 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
                                 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal) && Agent.Prompt.StartsWith(Brain.Persona + Hands.Note, StringComparison.Ordinal)
                                 && Brain.Machinery.IndexOf("call people only by names you've actually seen or heard", StringComparison.Ordinal) > 0 && Brain.Machinery.IndexOf("never apologise for the same thing twice", StringComparison.Ordinal) > 0
                                 && Computer.Playing.IndexOf("never invent a name, a message or something nobody said", StringComparison.Ordinal) > 0
@@ -61233,6 +61243,7 @@ namespace CapriDesktop
                             }
                             if (afterSong != "Sex on Fire is up, choom!" || afterSwear != "Hell yeah, this one slaps like shit." || afterHeavy != "Hey. I'm right here. Talk to me?" || filterHeard.Count != 3 || filterRan.Count != 1 || maskedReply != "Typed " + Computer.Dots + " into the password box.")
                                 throw new Exception("Code screened what they said or rewrote her reply, or a password showed: " + afterSong + " / " + afterSwear + " / " + afterHeavy + " / heard " + filterHeard.Count + " / ran " + filterRan.Count + " / " + maskedReply);
+                            if (CrisisCards != 1) throw new Exception("Her crisis card showed " + CrisisCards + " times for one sincere message and three that weren't.");
                             checks.Add("PASS no code filters: with Blackwall off too, everything they say reaches her brain and her reply comes out as her brain wrote it, since her safety lines are part of her prompt; a typed password still shows as dots in her bubble");
                             Think = null;
                             brain.Model = null;
@@ -61248,6 +61259,11 @@ namespace CapriDesktop
                             finally { Hands.Press = brainlessWas; }
                             if (talkState == TalkState.Dormant || reply != "Turned the volume up." || brainlessKeys.Count != 5 || brainlessKeys[0] != 0xAF) throw new Exception("Volume needed a brain: " + talkState + " / " + reply + " / " + brainlessKeys.Count + " / heard " + heard + " / ticket " + asking + " / model " + (brain.Model ?? "none") + " / speech " + speech);
                             checks.Add("PASS volume without a brain: with no brain set up, \"can you turn the volume up?\" still presses the volume keys and says so");
+                            Hear("i don't want to be here anymore");
+                            Stopwatch crisisless = Stopwatch.StartNew();
+                            while ((talkState == TalkState.Thinking || reply == null) && crisisless.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                            if (reply != Crisis.Line(Crisis.Region()) || CrisisCards != 1) throw new Exception("With no brain, a sincere self-harm message didn't get her crisis line, or its card came twice in ten minutes: " + reply + " / " + CrisisCards);
+                            checks.Add("PASS crisis line without a brain: she answers a sincere self-harm message with a free crisis line herself, and the card doesn't repeat within ten minutes");
                             Hear("dance for me");
                             Stopwatch danceless = Stopwatch.StartNew();
                             while ((talkState == TalkState.Thinking || reply == null) && danceless.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
@@ -64196,7 +64212,7 @@ namespace CapriDesktop
             must(Brain.Fresh("Who's Jake? Never heard of him.", "tell jake hi", noneBefore) == "Who's Jake? Never heard of him." && Brain.Fresh("Diamonds? Yes.", "i found diamonds", noneBefore) == "Diamonds? Yes.", "A real question, or a line with too little left, was cut.");
             must(Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Whoa, nice shot there.", "Okay." }) == "That boss never stood a chance." && Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Okay then, go on." }) == "Whoa, that boss never stood a chance.", "Her opener wasn't cut only when she'd just used it.");
             Func<string, string> hashed = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
-            must(hashed(Brain.Safety) == "5ba8ebf47c1bc3803515bd3145631cdf4e401a75bd3e1e96a34a50b2bc2c7198", "Her safety lines changed: " + hashed(Brain.Safety));
+            must(hashed(Brain.Safety) == "c0bd6dad84bcab7121cac80225e6d842b74256694f14d2f6594a6bb8df2b8464", "Her safety lines changed: " + hashed(Brain.Safety));
             must(Brain.Persona.IndexOf("Ask something back at most one reply in four", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("never say it depends", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("call back to it once", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("Yezzirrr, let's go", StringComparison.Ordinal) < 0 && Hands.Chat.IndexOf("say On it", StringComparison.Ordinal) < 0, "How she talks lost a rule, or got her parroted examples back.");
             must(Agent.Version >= 21 && Agent.Prompt.IndexOf("When your hands are on a job", StringComparison.Ordinal) > 0 && Agent.Prompt.StartsWith(Brain.Persona, StringComparison.Ordinal), "Voice chat's agent wasn't retuned for talking mid-job.");
             checks.Add("PASS how she talks: her prompt asks for reactions, opinions, callbacks and few questions, stock closers, their own word said back and an opener she just used are cut from the reply, real questions are left alone, voice chat's agent is retuned, and her safety lines are unchanged to the byte");

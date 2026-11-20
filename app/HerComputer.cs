@@ -74,6 +74,7 @@ namespace CapriDesktop
         }
 
         internal string NotesFolder { get { return Path.Combine(Folder, "notes"); } }
+        internal string ReplayFolder { get { return Path.Combine(Folder, "replays"); } }
         internal string BrowserFolder { get { return Path.Combine(Folder, "browser"); } }
         private string DeskPath { get { return Path.Combine(Folder, "desktop.json"); } }
 
@@ -435,7 +436,8 @@ namespace CapriDesktop
             if (again.Stickers().Count != 1 || again.Stickers()[0].Kind != "star") return "Her desktop didn't come back the way she left it.";
             for (int i = 0; i < MostStickers + 5; i++) again.AddSticker("heart", new Point(400, 400), 0);
             if (new HerComputer(folder).Stickers().Count != MostStickers) return "Her stickers piled up past the limit.";
-            return HerJobs.Check(Path.Combine(folder, "jobs-check"));
+            string jobsResult = HerJobs.Check(Path.Combine(folder, "jobs-check"));
+            return jobsResult ?? HerRecorder.Check(Path.Combine(folder, "replay-check"));
         }
 
         private sealed class QuietHands : HerHands
