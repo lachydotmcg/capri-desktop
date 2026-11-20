@@ -4668,7 +4668,7 @@ namespace CapriDesktop
             if (error is FileNotFoundException || error is DirectoryNotFoundException || code == 2 || code == 3) return "a file or folder it needs isn't there anymore.";
             if (error is PathTooLongException || code == 206) return "its path is too long for Windows.";
             if (error is WebException) return "the connection failed. Check your internet.";
-            if (error is SerializationException || error is FormatException) return "the reply couldn't be read.";
+            if (error is SerializationException || error is System.Xml.XmlException || error is FormatException) return "the reply couldn't be read.";
             if (error is IOException) return "Windows couldn't read or write a file it needs.";
             return "something in Windows failed.";
         }
