@@ -2772,7 +2772,7 @@ namespace CapriDesktop
                 // Her brain says "act" when this is a job, in whatever language they said it. A brain that holds her tools then works it
                 // out with every one of them. Otherwise her hands find what to do, with a second look at every tool when the first finds
                 // nothing, and if that finds nothing too she just answers, unless they're in a game or plainly asked.
-                if (act != null && !fileChat && Hands.Handed(Clean(raw)))
+                if (act != null && !fileChat && (Hands.Handed(Clean(raw)) || Hands.Echoed(Clean(raw), request) && (Hands.Wants(request) || Hands.Heard(request, out direct, out directArgs, true))))
                 {
                     if (chatFirst && workOut()) { if (calls.Count == 0) raw = planText; }
                     else
@@ -2807,7 +2807,7 @@ namespace CapriDesktop
                 // Her brain on their PC said it would, asked whether to, said it can't, or hedged on something to look up, with no tool
                 // behind it: it takes every tool and decides, instead of her hands guessing for it.
                 string chatted = Clean(raw);
-                if (chatFirst && !planned && act != null && (Hands.Lookup(input, chatted) != null || Hands.Hesitant(chatted, request) || Hands.Promised(chatted) || Hands.Claimed(chatted, calls) != null || Hands.Requested(request) && (Hands.Refused(chatted) || Hands.Denied(chatted)) || kit.Has("look_at_screen") && Hands.CantSee(chatted)) && workOut() && calls.Count == 0) raw = planText;
+                if (chatFirst && !planned && act != null && (Hands.Lookup(input, chatted) != null || Hands.Hesitant(chatted, request) || Hands.Promised(chatted) || Hands.Underway(chatted) && Hands.Requested(request) || Hands.Claimed(chatted, calls) != null || Hands.Requested(request) && (Hands.Refused(chatted) || Hands.Denied(chatted)) || kit.Has("look_at_screen") && Hands.CantSee(chatted)) && workOut() && calls.Count == 0) raw = planText;
                 // A brain that worked it out itself already had its go with the tools, so none of these second guesses apply.
                 ToolArguments lookup = act != null && !planned ? Hands.Lookup(input, Clean(raw)) : null;
                 bool hesitant = act != null && !planned && Hands.Hesitant(Clean(raw), request);
@@ -2828,6 +2828,11 @@ namespace CapriDesktop
                 // "I can't see your screen" is never true for a brain that sees: she looks instead.
                 else if (act != null && !planned && kit.Has("look_at_screen") && Hands.CantSee(Clean(raw))) calls.Add(new KeyValuePair<string, ToolArguments>("look_at_screen", new ToolArguments { Focus = request }));
                 else if (lookup != null && !refused) calls.Add(new KeyValuePair<string, ToolArguments>("open_website", lookup));
+                else if (act != null && !planned && !hesitant && !Hands.Promised(Clean(raw)) && Hands.Underway(Clean(raw)) && Hands.Requested(request))
+                {
+                    try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit, reached, callContext + callLines); if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null); }
+                    catch (BrainException) { calls.Clear(); }
+                }
                 else if (act != null && !planned && (hesitant || Hands.Promised(Clean(raw))))
                 {
                     if (!reached)
@@ -3084,7 +3089,7 @@ namespace CapriDesktop
                 {
                     // "Reminder set" with no remind behind it is a claim even after other tools ran this turn (F69, pass 4).
                     string claimed = Hands.Claimed(said, calls);
-                    bool promised = calls.Count == 0 && (Hands.Promised(said) || Hands.Handed(said));
+                    bool promised = calls.Count == 0 && (Hands.Promised(said) || Hands.Handed(said) || Hands.Echoed(said, request) || Hands.Underway(said) && Hands.Requested(request));
                     if (claimed == null && !promised) return raw;
                     if (reminded) return claimed == null ? Hands.Unpromised : Hands.Unclaimed(said, calls) ?? (calls.Count > 0 ? null : Hands.NotYet(claimed, kit));
                     reminded = true;
