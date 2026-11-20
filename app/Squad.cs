@@ -113,7 +113,7 @@ namespace CapriDesktop
         internal bool Make(Func<string, string, string> lead, int count)
         {
             string reply = null;
-            try { reply = lead(PlanPrompt(count), "The user's job: " + Job); }
+            try { reply = lead(PlanPrompt(count) + "\n" + Brain.Safety, "The user's job: " + Job); }
             catch (Exception error) { Brain.Log("squad", -1, "plan failed: " + error.Message); }
             List<SquadMate> made = Plan(reply, count);
             if (made.Count == 0) made.Add(new SquadMate { Number = 1, Name = "capri 2", Part = Job });
@@ -197,7 +197,7 @@ namespace CapriDesktop
             foreach (Thread thread in threads) thread.Join();
             if (stopped) return null;
             string merged = null;
-            try { merged = lead(MergeSystem, MergePrompt()); }
+            try { merged = lead(MergeSystem + "\n" + Brain.Safety, MergePrompt()); }
             catch (Exception error) { Brain.Log("squad", -1, "merge failed: " + error.Message); }
             if (stopped) return null;
             if (string.IsNullOrWhiteSpace(merged)) merged = Plain();
@@ -319,8 +319,10 @@ namespace CapriDesktop
         {
             HerComputer computer = new HerComputer(folder);
             Squad squad = new Squad("find me a mouse and a keyboard");
+            int unguarded = 0;
             Func<string, string, string> lead = delegate(string system, string user)
             {
+                if (system.IndexOf(Brain.Safety, StringComparison.Ordinal) < 0) Interlocked.Increment(ref unguarded);
                 if (system.IndexOf("Split the user's job", StringComparison.Ordinal) >= 0) return "1. mouse scout | find a mouse\n2. keyboard scout | find a keyboard\n3. deal hunter | find a bundle deal";
                 return "Got you a mouse, a keyboard and a bundle." + (user.IndexOf("G305", StringComparison.Ordinal) >= 0 && user.IndexOf("K380", StringComparison.Ordinal) >= 0 ? " G305 and K380." : "");
             };
@@ -343,6 +345,7 @@ namespace CapriDesktop
             string answer = squad.Work(computer, cheap, lead, delegate { return null; }, delegate { return quiet; }, delegate { Interlocked.Increment(ref done); }, out note);
             if (Volatile.Read(ref started) < 3 || boards.Count < 3) return "Her squad's copies didn't work at the same time.";
             if (answer != "Got you a mouse, a keyboard and a bundle. G305 and K380." || done != 3) return "Her squad didn't put its finds together: " + answer;
+            if (Volatile.Read(ref unguarded) != 0) return "Her squad planned or answered without her safety lines.";
             if (squad.Mates[2].Asked != 3 || squad.Mates[2].State != "done") return "A copy in her squad kept going past bad replies.";
             if (note == null || !File.Exists(note) || HerComputer.Read(note, 4000).IndexOf("keyboard scout", StringComparison.Ordinal) < 0) return "Her squad didn't save its note.";
             if (computer.Notes().Count != 1) return "Her squad's copies each saved a note of their own.";
