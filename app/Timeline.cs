@@ -60,6 +60,9 @@ namespace CapriDesktop
         internal const string JobKept = "Clicks and typing can't be taken back from here. Ctrl+Z in that app may undo what I typed.";
         internal const string ModKept = "That ran in a mod or plug-in, outside me, so I can't take it back.";
         internal const string PlainKept = "I can't take that one back.";
+        internal const string OpenKept = "It was open before I opened it, so I won't close it and lose what's in it.";
+        internal const string TabKept = "Your browser's own name is in every tab's title, so I can't tell which tab is that site's.";
+        internal const string ToggleKept = "That one flips back and forth, so pressing it again later could do the opposite.";
         internal const string FilesGone = "I only keep my newest file changes, and that one's too old to put back now.";
 #if CROSS
         private const string Older = "I keep older ones too, going back 30 days.";

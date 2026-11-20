@@ -1977,12 +1977,21 @@ namespace CapriDesktop
             string action = args.Action ?? "", name = args.Name;
             switch (tool)
             {
-                case "open_app": return Undo(deed, "app_window", "close", name);
-                case "open_website": return Undo(deed, "app_window", "close", Regex.Replace(Regex.Replace(args.Site ?? "", @"^\s*(?:https?://)?(?:www\.)?", "", RegexOptions.IgnoreCase), @"\.[a-z]{2,}(?:\.[a-z]{2})?(?:[/?#].*)?\s*$", "", RegexOptions.IgnoreCase));
+                case "open_app":
+                    if (OpenAlready(name)) { deed.Kept = Timeline.OpenKept; return deed; }
+                    return Undo(deed, "app_window", "close", name);
+                case "open_website":
+                    string site = Regex.Replace(Regex.Replace(args.Site ?? "", @"^\s*(?:https?://)?(?:www\.)?", "", RegexOptions.IgnoreCase), @"\.[a-z]{2,}(?:\.[a-z]{2})?(?:[/?#].*)?\s*$", "", RegexOptions.IgnoreCase);
+                    if (Regex.IsMatch(site.Trim(), @"^(?:google|microsoft|mozilla|firefox|chrome|edge|opera|brave|vivaldi)$", RegexOptions.IgnoreCase)) { deed.Kept = Timeline.TabKept; return deed; }
+                    return Undo(deed, "app_window", "close", site);
                 case "play_music": return Undo(deed, "media", "pause", null);
                 case "media":
-                    string back = Opposite(action, "pause", "resume", "play_pause", "play_pause", "next", "previous", "like", "unlike", "mute", "unmute", "volume_up", "volume_down");
-                    return back == null ? deed : Undo(deed, "media", back, null);
+                    if (action == "play_pause") { deed.Kept = Timeline.ToggleKept; return deed; }
+                    string back = Opposite(action, "pause", "resume", "next", "previous", "like", "unlike", "mute", "unmute", "volume_up", "volume_down");
+                    if (back == null) return deed;
+                    Undo(deed, "media", back, null);
+                    deed.UndoLevel = args.Level;
+                    return deed;
                 case "app_window":
                     if (action == "minimize") return Undo(deed, "app_window", "switch_to", name);
                     if (action == "pin_on_top" || action == "unpin") return Undo(deed, "app_window", action == "unpin" ? "pin_on_top" : "unpin", name);
@@ -2002,7 +2011,9 @@ namespace CapriDesktop
                     return Undo(deed, "power", "cancel", null);
                 case "gaming_mode": return action == "on" || action == "off" ? Undo(deed, "gaming_mode", action == "on" ? "off" : "on", null) : deed;
                 case "desktop_icons": return action == "back" ? deed : Undo(deed, "desktop_icons", "back", null);
-                case "shortcut": return name == "discord_mute" || name == "discord_deafen" || name == "record" ? Undo(deed, "shortcut", null, name) : deed;
+                case "shortcut":
+                    if (name == "discord_mute" || name == "discord_deafen" || name == "record") deed.Kept = Timeline.ToggleKept;
+                    return deed;
                 case "mod": deed.Kept = Timeline.ModKept; return deed;
                 default: return deed;
             }
@@ -2024,6 +2035,15 @@ namespace CapriDesktop
                 if (pairs[i + 1] == action) return pairs[i];
             }
             return null;
+        }
+
+        internal static bool OpenAlready(string name)
+        {
+            string want = Regex.Replace(Plain(Regex.Replace(name ?? "", @"\.exe$", "", RegexOptions.IgnoreCase)), @"^the |( app| application| game| tab| window)$", "");
+            if (want.Length == 0) return false;
+            int best;
+            try { return Best(want, out best, true, null).Count > 0; }
+            catch (Exception) { return false; }
         }
 
         private static Deed Done(Deed deed, string tool, ToolArguments args, string result, HashSet<string> before)
@@ -2048,6 +2068,7 @@ namespace CapriDesktop
                         if (!change.Undone && !before.Contains(change.Id)) deed.Files = change.Id;
                     break;
             }
+            if (Regex.IsMatch(result ?? "", @"\balready\b", RegexOptions.IgnoreCase)) kept = false;
             if (!kept || deed.Failed) { deed.UndoTool = deed.UndoAction = deed.UndoName = deed.UndoLevel = deed.UndoText = null; }
             return deed;
         }

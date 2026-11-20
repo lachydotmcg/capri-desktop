@@ -151,6 +151,15 @@ namespace CapriDesktop
                 string tooOld = Timeline.Undo(old.Id);
                 Expect(old.Undoable && !Timeline.Find(old.Id).Undoable && tooOld.Contains(Timeline.FilesGone), "A file change she no longer keeps still showed as undoable, or said it went back: " + tooOld);
                 passed.Add("PASS notes and file changes she makes through her tools are kept with a real undo that takes out only that note, a file change put back elsewhere shows as undone, and one she no longer keeps says it can't go back");
+
+                Func<List<OpenWindow>> windowsWas = Hands.Windows;
+                try
+                {
+                    Hands.Windows = delegate { return new List<OpenWindow> { new OpenWindow(new IntPtr(9), "Inbox - Google Chrome", "chrome") }; };
+                    Expect(Hands.OpenAlready("Chrome") && !Hands.OpenAlready("Spotify"), "She'd offer to close an app that was open before she opened it.");
+                }
+                finally { Hands.Windows = windowsWas; }
+                passed.Add("PASS her undo won't offer to close an app that was open before she opened it");
 #if !CROSS
                 Deed shown = new Deed { Id = "x", When = now.ToString("o"), Tool = "use_computer", What = "Send hi to Sam", Steps = new List<string> { "Clicked Sam", "Typed \"hi\"" }, StepCount = 20, Ended = "asked", Kept = Timeline.JobKept };
                 string card = Workspace.DeedText(shown);
