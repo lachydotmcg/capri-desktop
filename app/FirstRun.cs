@@ -15,7 +15,7 @@ namespace CapriDesktop
     // comes when it's in, wherever they are by then.
     internal static class FirstRun
     {
-        internal const int None = 0, Pick = 1, Key = 2, Online = 3, Voice = 4, Extras = 5, Plan = 6, Wait = 7, Alone = 8;
+        internal const int None = 0, Pick = 1, Key = 2, Online = 3, Voice = 4, Extras = 5, Plan = 6, Wait = 7, Alone = 8, Me = 9, Job = 10;
         internal const int Free = 0, Local = 1, Own = 2, NoAi = 3;
         internal const int NoBrain = 0, Coming = 1, Connecting = 2, Ready = 3, Stopped = 4;
 
@@ -23,15 +23,15 @@ namespace CapriDesktop
         internal const string GoogleLine = "Sign in, press Create API key and copy it. Then press Paste and I'll connect.";
         internal const string KeyLine = "Sign in, make a key and copy it. Then press Paste and I'll connect.";
         internal const string PlanLine = "Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.";
-        internal const string WhileLine = "My brain's on its way. While it comes down, let's sort out how I sound.";
+        internal const string WhileLine = "My brain's on its way. While it comes down, make me yours.";
         internal const string VoiceLine = "This is my free voice. Press Test, say something, and I'll show you I can hear you.";
         internal const string NoVoiceLine = "Press Test and say something, so I know I can hear you.";
-        internal const string ExtrasLine = "Last thing. These cost a little or use your mic, so they're your pick.";
-        internal const string ExtrasMeetLine = "Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.";
+        internal const string ExtrasLine = "These cost a little or use your mic, so they're your pick.";
+        internal const string ExtrasMeetLine = "These cost a little or use your mic, so they're your pick. Then give me my first job.";
         internal const string WaitLine = "Almost there. I'll say hi the second my brain's in.";
         internal const string BackLine = "Welcome back, choom. Let's finish setting me up.";
         internal const string AloneLine = "Got it, just me. Right-click me any time for Capri Mainframe.";
-        internal static readonly string[] Lines = { Hello, GoogleLine, KeyLine, PlanLine, WhileLine, VoiceLine, NoVoiceLine, ExtrasLine, ExtrasMeetLine, WaitLine, BackLine, AloneLine };
+        internal static readonly string[] Lines = { Hello, GoogleLine, KeyLine, PlanLine, WhileLine, VoiceLine, NoVoiceLine, ExtrasLine, ExtrasMeetLine, WaitLine, BackLine, AloneLine, Onboarding.MeLine, Onboarding.JobLine, Onboarding.JobWaitLine, Onboarding.JobQueuedLine };
 
         // The free key pages, Google AI Studio first: any Google account works and it doesn't ask for a phone.
         internal static readonly string[] Providers = { "Google AI Studio", "NVIDIA", "OpenRouter" };
@@ -74,7 +74,7 @@ namespace CapriDesktop
             internal int Brain = FirstRun.NoBrain;
             internal int Provider;
             internal bool ExtrasSeen, BrainSkipped, Finished;
-            private int returnTo = FirstRun.Voice;
+            private int returnTo = FirstRun.Me;
             private string checking, problem;
             private bool waitingOllama, pendingLocal, wasTesting, quiet, moved;
             private Rectangle placedBy;
@@ -90,6 +90,13 @@ namespace CapriDesktop
             private Key languagePick, micPick, micTest;
             private Toggle[] extras;
             private Key[] tabs;
+            private Key[] vibes, styles;
+            private Swatch[] looks;
+            private Entry nameBox, jobBox;
+            private Pickable[] jobs;
+            private FirstJob[] offered;
+            internal int JobPicked;
+            internal string Queued;
             private Key primary;
             internal string Line;
 
@@ -153,9 +160,9 @@ namespace CapriDesktop
             private int[] Route()
             {
                 if (Picked == FirstRun.NoAi && !BrainSkipped) return new[] { FirstRun.Pick, FirstRun.Alone };
-                if (BrainSkipped) return new[] { FirstRun.Pick, FirstRun.Voice, FirstRun.Extras };
-                if (Picked == FirstRun.Local) return new[] { FirstRun.Pick, FirstRun.Voice, FirstRun.Extras, FirstRun.Online };
-                return new[] { FirstRun.Pick, Picked == FirstRun.Own ? FirstRun.Plan : FirstRun.Key, FirstRun.Online, FirstRun.Voice, FirstRun.Extras };
+                if (BrainSkipped) return new[] { FirstRun.Pick, FirstRun.Me, FirstRun.Voice, FirstRun.Extras };
+                if (Picked == FirstRun.Local) return new[] { FirstRun.Pick, FirstRun.Me, FirstRun.Voice, FirstRun.Extras, FirstRun.Job, FirstRun.Online };
+                return new[] { FirstRun.Pick, Picked == FirstRun.Own ? FirstRun.Plan : FirstRun.Key, FirstRun.Online, FirstRun.Me, FirstRun.Voice, FirstRun.Extras, FirstRun.Job };
             }
 
             internal string Count
@@ -187,6 +194,7 @@ namespace CapriDesktop
                 // is dropped from here on.
                 built++;
                 shownBrain = Brain;
+                if (Screen == FirstRun.Me && screen != FirstRun.Me) KeepName();
                 bool leavingVoice = Screen == FirstRun.Voice && screen != FirstRun.Voice;
                 if (leavingVoice && owner.MicTesting) capri.TestMic();
                 Screen = screen;
@@ -200,8 +208,8 @@ namespace CapriDesktop
                 fonts.Clear();
                 Action drop = delegate { foreach (Control control in old) control.Dispose(); foreach (Font font in gone) font.Dispose(); };
                 if (IsHandleCreated) BeginInvoke(drop); else drop();
-                picks = null; voiceFree = voiceText = null; keyBox = null; status = heard = null; gauge = null; faster = null; bars = null; languagePick = micPick = micTest = null; extras = null; tabs = null; primary = null;
-                string[] titles = { "", "WAKE ME UP >", "FREE KEY >", "BRAIN ONLINE >", "HOW I SOUND >", "LAST THING >", "MY PLAN OR KEY >", "ALMOST THERE >", "JUST ME >" };
+                picks = null; voiceFree = voiceText = null; keyBox = null; status = heard = null; gauge = null; faster = null; bars = null; languagePick = micPick = micTest = null; extras = null; tabs = null; primary = null; vibes = styles = null; looks = null; nameBox = jobBox = null; jobs = null;
+                string[] titles = { "", "WAKE ME UP >", "FREE KEY >", "BRAIN ONLINE >", "HOW I SOUND >", "EXTRAS >", "MY PLAN OR KEY >", "ALMOST THERE >", "JUST ME >", "MAKE ME YOURS >", "FIRST JOB >" };
                 Heading(this, titles[screen], new Point(Z(28), Z(18)), Title(30), Rose, 0);
                 Note count = Caption(Count, Wide - 28 - 120, 28, 120, 20, Mono(16), Faint);
                 count.TextAlign = ContentAlignment.TopRight;
@@ -213,6 +221,8 @@ namespace CapriDesktop
                 else if (screen == FirstRun.Voice) y = BuildVoice();
                 else if (screen == FirstRun.Extras) y = BuildExtras();
                 else if (screen == FirstRun.Alone) y = BuildAlone();
+                else if (screen == FirstRun.Me) y = BuildMe();
+                else if (screen == FirstRun.Job) y = BuildJob();
                 else y = BuildWait();
                 y = Strip(y);
                 y = BottomRow(y);
@@ -231,9 +241,11 @@ namespace CapriDesktop
                 string line = screen == FirstRun.Pick ? FirstRun.Hello
                     : screen == FirstRun.Key ? (Provider == 0 ? FirstRun.GoogleLine : FirstRun.KeyLine)
                     : screen == FirstRun.Plan ? FirstRun.PlanLine
-                    : screen == FirstRun.Voice ? (Brain == FirstRun.Coming ? FirstRun.WhileLine : capri.FreeVoiceIn && !capri.Silent ? FirstRun.VoiceLine : FirstRun.NoVoiceLine)
-                    : screen == FirstRun.Extras ? (Brain == FirstRun.Ready && !capri.Met ? FirstRun.ExtrasMeetLine : FirstRun.ExtrasLine)
-                    : screen == FirstRun.Wait ? FirstRun.WaitLine
+                    : screen == FirstRun.Voice ? (capri.FreeVoiceIn && !capri.Silent ? FirstRun.VoiceLine : FirstRun.NoVoiceLine)
+                    : screen == FirstRun.Extras ? (BrainReady || BrainComing ? FirstRun.ExtrasMeetLine : FirstRun.ExtrasLine)
+                    : screen == FirstRun.Wait ? (Queued != null ? Onboarding.JobQueuedLine : FirstRun.WaitLine)
+                    : screen == FirstRun.Me ? (Brain == FirstRun.Coming ? FirstRun.WhileLine : Onboarding.MeLine)
+                    : screen == FirstRun.Job ? (BrainReady ? Onboarding.JobLine : Onboarding.JobWaitLine)
                     : screen == FirstRun.Alone ? FirstRun.AloneLine : null;
                 // Her brain-online hello is her own words, from the brain itself.
                 if (line == null) return;
@@ -593,20 +605,30 @@ namespace CapriDesktop
                 bool silent = capri.Silent;
                 voiceFree = Option(80, 62, "MY FREE VOICE", "Runs on your PC. No key, no credits.", capri.FreeVoiceAside, null, !silent, delegate { Voice(true); });
                 voiceText = Option(146, 62, "TEXT ONLY", "I type my replies and stay quiet.", null, null, silent, delegate { Voice(false); });
-                Caption("Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.", 58, 212, Wide - 58 - 18, 24, Body(17), Faint);
-                Caption("YOUR MIC", 28, 254, 200, 20, Mono(15), Faint);
-                micPick = MakeKey("Mic: " + capri.FirstRunMicName, 28, 278, Wide - 56 - 112, 40, Body(18, true), Rose, delegate { owner.FirstRunMics(micPick); });
+                styles = new Key[LocalVoice.Styles.Length];
+                int across = (Wide - 56 - 10 * (styles.Length - 1)) / styles.Length;
+                for (int i = 0; i < styles.Length; i++)
+                {
+                    string name = LocalVoice.Styles[i].Name;
+                    styles[i] = MakeKey(name, 28 + (across + 10) * i, 214, across, 36, Body(18, true), Cyan, delegate { Style(name); });
+                    styles[i].AccessibleName = "Her voice: " + name;
+                    styles[i].StateValue = true;
+                    styles[i].Picked = !silent && capri.FreeStyleName == name;
+                }
+                Caption("Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.", 58, 260, Wide - 58 - 18, 24, Body(17), Faint);
+                Caption("YOUR MIC", 28, 302, 200, 20, Mono(15), Faint);
+                micPick = MakeKey("Mic: " + capri.FirstRunMicName, 28, 326, Wide - 56 - 112, 40, Body(18, true), Rose, delegate { owner.FirstRunMics(micPick); });
                 micPick.Chevron = true;
                 micPick.AccessibleName = "Your mic";
-                micTest = MakeKey("Test", Wide - 28 - 102, 278, 102, 40, Body(18, true), Rose, delegate { TestMic(); });
+                micTest = MakeKey("Test", Wide - 28 - 102, 326, 102, 40, Body(18, true), Rose, delegate { TestMic(); });
                 micTest.AccessibleName = "Test your mic";
                 bars = new Bars();
-                bars.Bounds = Box(28, 330, 340, 30);
+                bars.Bounds = Box(28, 378, 340, 30);
                 Controls.Add(bars);
-                heard = Caption("", 380, 332, Wide - 28 - 380, 28, Body(19, true), Cyan);
+                heard = Caption("", 380, 380, Wide - 28 - 380, 28, Body(19, true), Cyan);
                 heard.AutoEllipsis = true;
-                Caption("Nothing? Windows Settings > Privacy & security > Microphone.", 28, 372, Wide - 56, 20, Mono(14), Faint);
-                return 392;
+                Caption("Nothing? Windows Settings > Privacy & security > Microphone.", 28, 420, Wide - 56, 20, Mono(14), Faint);
+                return 440;
             }
 
             internal void Voice(bool free)
@@ -614,6 +636,30 @@ namespace CapriDesktop
                 capri.FirstRunVoice(free);
                 if (voiceFree != null) { voiceFree.Picked = free; voiceFree.Invalidate(); }
                 if (voiceText != null) { voiceText.Picked = !free; voiceText.Invalidate(); }
+                ShowStyle(free ? capri.FreeStyleName : null);
+            }
+
+            internal void Style(string name)
+            {
+                if (capri.Silent) Voice(true);
+                capri.FirstRunStyle(name);
+                ShowStyle(name);
+            }
+
+            private void ShowStyle(string now)
+            {
+                if (styles == null) return;
+                foreach (Key key in styles) key.Pick(key.Text == now);
+            }
+
+            internal string StyleShown
+            {
+                get
+                {
+                    if (styles == null) return null;
+                    foreach (Key key in styles) if (key.Picked) return key.Text;
+                    return "";
+                }
             }
 
             internal void TestMic()
@@ -660,6 +706,144 @@ namespace CapriDesktop
 
             internal void FlipExtra(int row) { extras[row].Checked = !extras[row].Checked; }
 
+            internal bool BrainReady { get { return Brain == FirstRun.Ready || Brain != FirstRun.Coming && !pendingLocal && capri.BrainModel != null && !capri.SettingUp; } }
+
+            internal bool BrainComing { get { return !BrainReady && (Brain == FirstRun.Coming || Brain == FirstRun.Stopped || pendingLocal); } }
+
+            private int BuildMe()
+            {
+                Caption("All of it changes any time in the Mainframe.", 28, 74, Wide - 56, 26, Body(19), Faint);
+                Caption("CALL YOU", 28, 112, 200, 20, Mono(15), Faint);
+                nameBox = new Entry();
+                nameBox.Bounds = Box(28, 136, Wide - 56, 42);
+                nameBox.Box.Font = Body(19);
+                nameBox.Box.MaxLength = 24;
+                nameBox.Box.AccessibleName = "What she calls you";
+                nameBox.Cue = Onboarding.NameCue;
+                nameBox.Box.Text = capri.Nickname;
+                Controls.Add(nameBox);
+                Caption("VIBE", 28, 198, 200, 20, Mono(15), Faint);
+                vibes = new Key[Onboarding.Vibes.Length];
+                int across = (Wide - 56 - 10 * (vibes.Length - 1)) / vibes.Length, vibe = Onboarding.VibeOf(capri.Wordiness);
+                for (int i = 0; i < vibes.Length; i++)
+                {
+                    int which = i;
+                    vibes[i] = MakeKey(Onboarding.Vibes[i], 28 + (across + 10) * i, 222, across, 38, Body(18, true), Cyan, delegate { Vibe(which); });
+                    vibes[i].AccessibleName = "Her vibe: " + Onboarding.Vibes[i] + ". " + Onboarding.VibeNotes[i];
+                    vibes[i].StateValue = true;
+                    vibes[i].Picked = i == vibe;
+                }
+                status = Caption(Onboarding.VibeNotes[vibe], 28, 266, Wide - 56, 24, Body(17), Faint);
+                Caption("LOOK", 28, 306, 200, 20, Mono(15), Faint);
+                looks = new Swatch[Onboarding.Looks.Length];
+                int now = capri.FirstRunLookNow, wide = (Wide - 56 - 8 * (looks.Length - 1)) / looks.Length;
+                for (int i = 0; i < looks.Length; i++)
+                {
+                    int which = i;
+                    Outfit look = Onboarding.Looks[i];
+                    Swatch swatch = new Swatch();
+                    swatch.Text = look.Name;
+                    swatch.Colours = look.Colours ?? ArtColors.Usual;
+                    swatch.Picked = i == now;
+                    swatch.Font = Body(16, true);
+                    swatch.AccessibleName = "Her look: " + look.Name;
+                    swatch.Bounds = Box(28 + (wide + 8) * i, 330, wide, 84);
+                    swatch.Click += Live(delegate { Dress(which); });
+                    Controls.Add(swatch);
+                    looks[i] = swatch;
+                }
+                Linked("More looks and outfits in Mods", 28, 424, Body(18, true), Rose, delegate { capri.FirstRunMods(); });
+                return 452;
+            }
+
+            internal void Vibe(int which)
+            {
+                if (vibes == null) return;
+                capri.SetWordiness(which);
+                for (int i = 0; i < vibes.Length; i++) vibes[i].Pick(i == which);
+                if (status != null) status.Text = Onboarding.VibeNotes[which];
+            }
+
+            internal void Dress(int which)
+            {
+                if (looks == null) return;
+                string problem = capri.FirstRunLook(which);
+                int now = capri.FirstRunLookNow;
+                for (int i = 0; i < looks.Length; i++) { looks[i].Picked = i == now; looks[i].Invalidate(); }
+                if (problem != null && status != null) { status.ForeColor = Hot; status.Text = problem; }
+            }
+
+            internal string Named { get { return nameBox == null ? null : nameBox.Box.Text; } set { if (nameBox != null) nameBox.Box.Text = value; } }
+
+            internal int VibeShown { get { if (vibes != null) for (int i = 0; i < vibes.Length; i++) if (vibes[i].Picked) return i; return -1; } }
+
+            internal int LookShown { get { if (looks != null) for (int i = 0; i < looks.Length; i++) if (looks[i].Picked) return i; return -1; } }
+
+            private void KeepName()
+            {
+                if (nameBox == null) return;
+                capri.FirstRunName(nameBox.Box.Text);
+            }
+
+            private int BuildJob()
+            {
+                Caption(BrainReady ? "Pick one, or tell me your own. I do it the moment you press Do it." : "Pick one now. I'll do it the second my brain's in.", 28, 74, Wide - 56, 26, Body(19), Faint);
+                offered = Onboarding.Jobs(true, false, DateTime.Now.Hour);
+                jobs = new Pickable[offered.Length];
+                if (JobPicked >= offered.Length) JobPicked = 0;
+                for (int i = 0; i < offered.Length; i++)
+                {
+                    int which = i;
+                    jobs[i] = Option(112 + 64 * i, 58, offered[i].Label.ToUpperInvariant(), "\u201C" + offered[i].Said + "\u201D", null, null, i == JobPicked, delegate { PickJob(which); });
+                }
+                int y = 112 + 64 * offered.Length + 10;
+                jobBox = new Entry();
+                jobBox.Bounds = Box(28, y, Wide - 56, 42);
+                jobBox.Box.Font = Body(19);
+                jobBox.Box.MaxLength = 500;
+                jobBox.Box.AccessibleName = "Your own first job";
+                jobBox.Cue = Onboarding.OwnCue;
+                jobBox.Box.TextChanged += Live(delegate { if (jobBox.Box.Text.Length > 0) PickJob(-1); });
+                Controls.Add(jobBox);
+                heard = Caption("", 28, y + 50, Wide - 56, 24, Body(17), Hot);
+                return y + 74;
+            }
+
+            internal void PickJob(int which)
+            {
+                if (jobs == null) return;
+                JobPicked = which;
+                for (int i = 0; i < jobs.Length; i++) { jobs[i].Picked = i == which; jobs[i].Invalidate(); }
+                if (which >= 0 && jobBox != null && jobBox.Box.Text.Length > 0) jobBox.Box.Text = "";
+            }
+
+            internal string OwnJob { get { return jobBox == null ? null : jobBox.Box.Text; } set { if (jobBox != null) jobBox.Box.Text = value; } }
+
+            internal string JobChosen
+            {
+                get
+                {
+                    string own = Onboarding.Job(OwnJob);
+                    if (own != null) return own;
+                    return offered != null && JobPicked >= 0 && JobPicked < offered.Length ? offered[JobPicked].Said : null;
+                }
+            }
+
+            internal void DoJob()
+            {
+                string job = JobChosen;
+                if (job == null) { Problem("Pick one, or type your own."); return; }
+                if (BrainReady)
+                {
+                    Finish(false);
+                    capri.FirstRunJob(job, true);
+                    return;
+                }
+                Queued = job;
+                capri.FirstRunJob(job, false);
+                Go(FirstRun.Wait);
+            }
+
             // NO AI's last screen: what she still does, and where the Mainframe is.
             private int BuildAlone()
             {
@@ -670,7 +854,8 @@ namespace CapriDesktop
 
             private int BuildWait()
             {
-                Caption("My brain is coming down. I'll say hi the second it's in, and you can talk to me then.", 28, 74, Wide - 56, 50, Body(19), Faint);
+                if (Queued != null) Caption("My brain is coming down. The second it's in, I'll do your first job: \u201C" + Queued + "\u201D", 28, 74, Wide - 56, 50, Body(19), Faint).AutoEllipsis = true;
+                else Caption("My brain is coming down. I'll say hi the second it's in, and you can talk to me then.", 28, 74, Wide - 56, 50, Body(19), Faint);
                 Caption("You can hide this. It keeps going, and the Mainframe shows it too.", 28, 130, Wide - 56, 24, Body(18), Faint);
                 return 154;
             }
@@ -756,7 +941,7 @@ namespace CapriDesktop
             private int BottomRow(int y)
             {
                 int top = y + 24;
-                string next = Screen == FirstRun.Key || Screen == FirstRun.Plan ? "Connect" : Screen == FirstRun.Wait ? "Hide this" : Screen == FirstRun.Extras || Screen == FirstRun.Alone || Screen == FirstRun.Online && returnTo == FirstRun.None ? "Done" : "Next";
+                string next = Screen == FirstRun.Job ? "Do it" : Screen == FirstRun.Key || Screen == FirstRun.Plan ? "Connect" : Screen == FirstRun.Wait ? "Hide this" : Screen == FirstRun.Extras || Screen == FirstRun.Alone || Screen == FirstRun.Online && returnTo == FirstRun.None ? "Done" : "Next";
                 primary = MakeKey(next, Wide - 28 - 160, top, 160, 40, Body(20, true), Cyan, delegate { Next(); });
                 primary.Picked = true;
                 AcceptButton = primary;
@@ -784,15 +969,17 @@ namespace CapriDesktop
                 if (Screen == FirstRun.Pick)
                 {
                     BrainSkipped = false;
-                    if (Picked == FirstRun.Local) { StartLocal(); Go(FirstRun.Voice); }
+                    if (Picked == FirstRun.Local) { StartLocal(); Go(FirstRun.Me); }
                     else if (Picked == FirstRun.Free) { Provider = 0; capri.FirstRunPage(0); Go(FirstRun.Key); }
                     else if (Picked == FirstRun.NoAi) { capri.FirstRunNoAi(); Go(FirstRun.Alone); }
                     else Go(FirstRun.Plan);
                 }
                 else if (Screen == FirstRun.Key || Screen == FirstRun.Plan) Connect();
                 else if (Screen == FirstRun.Online) { if (returnTo == FirstRun.None) Finish(false); else Go(returnTo); }
+                else if (Screen == FirstRun.Me) Go(FirstRun.Voice);
                 else if (Screen == FirstRun.Voice) Go(FirstRun.Extras);
-                else if (Screen == FirstRun.Extras) { if (Brain == FirstRun.Coming || pendingLocal) Go(FirstRun.Wait); else Finish(false); }
+                else if (Screen == FirstRun.Extras) { if (BrainReady || BrainComing) Go(FirstRun.Job); else Finish(false); }
+                else if (Screen == FirstRun.Job) DoJob();
                 else Finish(false);
             }
 
@@ -801,8 +988,9 @@ namespace CapriDesktop
                 if (Screen == FirstRun.Pick || Screen == FirstRun.Key || Screen == FirstRun.Plan)
                 {
                     if (Brain != FirstRun.Coming && Brain != FirstRun.Ready) { BrainSkipped = true; Brain = FirstRun.NoBrain; waitingOllama = false; }
-                    Go(FirstRun.Voice);
+                    Go(FirstRun.Me);
                 }
+                else if (Screen == FirstRun.Job) { if (BrainComing) Go(FirstRun.Wait); else Finish(false); }
                 else Next();
             }
 
@@ -825,7 +1013,7 @@ namespace CapriDesktop
 
             internal void Resume(int screen)
             {
-                if (Picked == FirstRun.Local && capri.BrainModel == null && (screen == FirstRun.Voice || screen == FirstRun.Extras || screen == FirstRun.Wait)) StartLocal();
+                if (Picked == FirstRun.Local && capri.BrainModel == null && (screen == FirstRun.Me || screen == FirstRun.Voice || screen == FirstRun.Extras || screen == FirstRun.Job || screen == FirstRun.Wait)) StartLocal();
                 else if (capri.BrainModel != null) Brain = FirstRun.Ready;
                 ExtrasSeen = screen == FirstRun.Wait;
             }
@@ -835,7 +1023,7 @@ namespace CapriDesktop
             {
                 if (Finished || Brain == FirstRun.Ready && Screen == FirstRun.Online) return;
                 if (Screen == FirstRun.Wait) returnTo = FirstRun.None;
-                else if (Screen == FirstRun.Voice || Screen == FirstRun.Extras) returnTo = Screen;
+                else if (Screen == FirstRun.Voice || Screen == FirstRun.Extras || Screen == FirstRun.Me || Screen == FirstRun.Job) returnTo = Screen;
                 Brain = FirstRun.Ready;
                 pendingLocal = waitingOllama = false;
                 checking = null;
@@ -845,6 +1033,7 @@ namespace CapriDesktop
             private void Finish(bool all)
             {
                 if (Finished) return;
+                if (Screen == FirstRun.Me) KeepName();
                 Finished = true;
                 pulse.Stop();
                 if (owner.MicTesting) capri.TestMic();
@@ -942,7 +1131,7 @@ namespace CapriDesktop
                 if (Screen == FirstRun.Online)
                     using (Pen rule = new Pen(Edge, Math.Max(1, Unit))) graphics.DrawLine(rule, Z(28), Z(156), ClientSize.Width - Z(28), Z(156));
                 if (Screen == FirstRun.Voice)
-                    using (Pen rule = new Pen(Edge, Math.Max(1, Unit))) graphics.DrawLine(rule, Z(28), Z(242), ClientSize.Width - Z(28), Z(242));
+                    using (Pen rule = new Pen(Edge, Math.Max(1, Unit))) graphics.DrawLine(rule, Z(28), Z(290), ClientSize.Width - Z(28), Z(290));
                 if (Screen == FirstRun.Extras)
                     using (Pen rule = new Pen(Edge, Math.Max(1, Unit))) graphics.DrawLine(rule, Z(28), Z(428), ClientSize.Width - Z(28), Z(428));
                 Neon.Frame(graphics, ClientSize, Unit, 16 * Unit, 6 * Unit, 74 * Unit, 54 * Unit);
@@ -1117,6 +1306,71 @@ namespace CapriDesktop
                     graphics.DrawLines(tick, new[] { new PointF(x - 7 * s, y), new PointF(x - 2 * s, y + 6 * s), new PointF(x + 8 * s, y - 6 * s) });
                 }
             }
+        }
+
+        private sealed class Swatch : Control
+        {
+            internal string[] Colours;
+            internal bool Picked;
+            private bool hot;
+
+            internal Swatch()
+            {
+                SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Selectable, true);
+                Cursor = Cursors.Hand;
+                TabStop = true;
+            }
+
+            protected override void OnMouseEnter(EventArgs e) { hot = true; Invalidate(); base.OnMouseEnter(e); }
+
+            protected override void OnMouseLeave(EventArgs e) { hot = false; Invalidate(); base.OnMouseLeave(e); }
+
+            protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
+
+            protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
+
+            protected override void OnKeyDown(KeyEventArgs e)
+            {
+                if (e.KeyCode == Keys.Space || e.KeyCode == Keys.Enter) { OnClick(EventArgs.Empty); e.Handled = true; }
+                base.OnKeyDown(e);
+            }
+
+            private static Color Of(string hex, Color usual)
+            {
+                if (hex == null || hex.Length != 7) return usual;
+                try { return ColorTranslator.FromHtml(hex); }
+                catch (Exception) { return usual; }
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                float s = ScaleOf(this);
+                Graphics graphics = e.Graphics;
+                Backdrop(graphics, this, s);
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                float line = Math.Max(1f, s);
+                RectangleF box = new RectangleF(line / 2, line / 2, Width - line, Height - line);
+                using (GraphicsPath plate = Cut(box, 0, 0, 5 * s, 0))
+                {
+                    using (Brush brush = new SolidBrush(hot ? Hover : Field)) graphics.FillPath(brush, plate);
+                    using (Pen pen = new Pen(Picked ? Cyan : hot || Focused ? Hot : Edge, Picked ? 2 * line : line)) graphics.DrawPath(pen, plate);
+                }
+                string[] usual = ArtColors.Usual;
+                Color hair = Of(Colours[0], Of(usual[0], Rose)), accent = Of(Colours[1], Of(usual[1], Cyan)), eyes = Of(Colours[2], Of(usual[2], Cyan)), body = Of(Colours[4], Of(usual[4], Ground));
+                float size = Math.Min(Width - 20 * s, Height - 34 * s), x = (Width - size) / 2f, y = 8 * s;
+                RectangleF ring = new RectangleF(x, y, size, size);
+                using (Brush fill = new SolidBrush(body)) graphics.FillEllipse(fill, ring);
+                using (Brush fill = new SolidBrush(hair)) graphics.FillPie(fill, ring.X, ring.Y, ring.Width, ring.Height, 180, 180);
+                using (Pen pen = new Pen(accent, 2.5f * s)) graphics.DrawEllipse(pen, ring);
+                float eye = Math.Max(3 * s, size * 0.14f);
+                using (Brush fill = new SolidBrush(eyes))
+                {
+                    graphics.FillEllipse(fill, x + size * 0.3f - eye / 2, y + size * 0.62f - eye / 2, eye, eye);
+                    graphics.FillEllipse(fill, x + size * 0.7f - eye / 2, y + size * 0.62f - eye / 2, eye, eye);
+                }
+                TextRenderer.DrawText(graphics, Lingo.Of(Text), Font, new Rectangle(0, (int)(y + size + 2 * s), Width, Height - (int)(y + size + 2 * s)), Picked ? Cyan : White, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+            }
+
         }
 
         // A progress row: a rule above it, its name and how far on in her mono, and the brain setup's dotted bar under them.
@@ -1295,7 +1549,7 @@ namespace CapriDesktop
             Said.Know(FirstRun.Lines);
             if (FirstRunShowing) firstRun.Dispose();
             // Picking up after a quit: her brain-online screen has had its turn, and the free key page isn't opened again.
-            int screen = step == FirstRun.Online ? FirstRun.Voice : step < FirstRun.Pick || step > FirstRun.Alone ? FirstRun.Pick : step;
+            int screen = step == FirstRun.Online ? FirstRun.Voice : step < FirstRun.Pick || step > FirstRun.Job ? FirstRun.Pick : step;
             if (pick < FirstRun.Free || pick > FirstRun.NoAi) pick = FirstRun.Local;
             if (screen == FirstRun.Wait && pick == FirstRun.Local && (engine.Installed() != null || brain.Model != null)) { FirstRunDone(false); return null; }
             firstRun = mainframe.NewFirstRun(scale);
@@ -1390,6 +1644,60 @@ namespace CapriDesktop
         }
 
         internal void FirstRunType() { if (!typer.Visible) OpenTyper(); }
+
+        private string firstJob;
+        private bool namedOnCard;
+
+        internal string FirstJobWaiting { get { return firstJob; } }
+
+        internal string FreeStyleName { get { return LocalVoice.Find(preferences.VoiceStyle).Name; } }
+
+        internal void FirstRunStyle(string name)
+        {
+            if (FreeStyleName == name && !preferences.HdVoice) { HearVoiceStyle(); return; }
+            ChooseVoiceStyle(name);
+            mainframe.Sync();
+        }
+
+        internal int FirstRunLookNow { get { return Onboarding.LookOf(ModList.ColoursNow); } }
+
+        internal string FirstRunLook(int which)
+        {
+            if (which < 0 || which >= Onboarding.Looks.Length) return null;
+            try { ModList.UseColours(Onboarding.Looks[which].Colours); }
+            catch (ModException error) { return error.Message; }
+            catch (System.IO.IOException error) { return Brain.Brief(error.Message) ?? "Couldn't save that look."; }
+            catch (UnauthorizedAccessException) { return "Couldn't save that look."; }
+            mainframe.Sync();
+            return null;
+        }
+
+        internal void FirstRunMods()
+        {
+            mainframe.Restore();
+            mainframe.ShowMods(true);
+        }
+
+        internal void FirstRunName(string typed)
+        {
+            string name = Brain.Nick(typed);
+            namedOnCard = name.Length > 0;
+            if ((Brain.Nickname ?? "") == name) return;
+            Brain.Nickname = name.Length == 0 ? null : name;
+            preferences.Nickname = Brain.Nickname;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void FirstRunJob(string job, bool now)
+        {
+            job = Onboarding.Job(job);
+            if (job == null) return;
+            if (!now) { firstJob = job; return; }
+            firstJob = null;
+            if (hidden) SetHidden(false);
+            Hear(job);
+        }
 
         // The card's done, finished or skipped (Lachy, 12 Nov: Skip all ends the whole thing). With a brain, or hers on its way,
         // or with No AI picked, she just stands there ready; with none, the Mainframe opens on Set up her brain so they can see

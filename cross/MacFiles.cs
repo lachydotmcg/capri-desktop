@@ -55,6 +55,7 @@ namespace CapriDesktop
             Hands.Websites.Current = CurrentAddress;
             Hands.Websites.CurrentProblem = () => addressProblem;
             GameNotes.Folder = Path.Combine(folder, "games");
+            Hands.Keeper = new FileKeeper(folder) { Reveal = Shown };
         }
 
         internal static void Choose(string path)
@@ -335,7 +336,7 @@ namespace CapriDesktop
             finally { lock (gate) if (searching == request) searching = null; request.Dispose(); }
         }
 
-        private static string Shown(string first)
+        internal static string Shown(string first)
         {
             if (!File.Exists(first) && !Directory.Exists(first)) return "That path is no longer there: " + first;
             Reply shown = Run(Hands.OnMac ? Start("/usr/bin/open", "-R", first) : Start("xdg-open", Path.GetDirectoryName(first)), Milliseconds, 0, null);

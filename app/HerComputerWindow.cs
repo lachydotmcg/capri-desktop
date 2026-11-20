@@ -44,6 +44,8 @@ namespace CapriDesktop
         private RectangleF controlButton;
         private HerBrowser web;
         private string webProblem;
+        private readonly object startGate = new object();
+        private volatile bool starting;
         private Thread taskThread, frameThread;
         private volatile bool closing, stopTask, inControl;
         private volatile string runningTask;
@@ -276,22 +278,45 @@ namespace CapriDesktop
 
         private HerBrowser Browser()
         {
-            HerBrowser current;
-            lock (gate) current = web;
-            if (current != null && current.Running) return current;
-            if (current != null) current.Dispose();
-            HerBrowser started = new HerBrowser(Computer.BrowserFolder, PageBox.Width, PageBox.Height);
-            string problem;
-            Status("Starting my browser");
-            if (!started.Start(out problem))
+            lock (startGate)
             {
-                started.Dispose();
-                lock (gate) { web = null; webProblem = problem; }
-                Bubble(problem);
-                return null;
+                HerBrowser current;
+                lock (gate) current = web;
+                if (current != null && current.Running) return current;
+                if (current != null) current.Dispose();
+                HerBrowser started = new HerBrowser(Computer.BrowserFolder, PageBox.Width, PageBox.Height);
+                string problem;
+                Status("Starting my browser");
+                lock (gate) { web = null; webProblem = null; }
+                starting = true;
+                try
+                {
+                    if (!started.Start(out problem))
+                    {
+                        started.Dispose();
+                        Image stale;
+                        lock (gate) { web = null; webProblem = problem; stale = frame; frame = null; }
+                        if (stale != null) stale.Dispose();
+                        Bubble(problem);
+                        return null;
+                    }
+                }
+                finally { starting = false; }
+                lock (gate) { web = started; webProblem = null; }
+                return started;
             }
-            lock (gate) { web = started; webProblem = null; }
-            return started;
+        }
+
+        private static readonly Rectangle BrowserBody = new Rectangle(AppBox.Left, AppBox.Top + TabTall, AppBox.Width, AppBox.Height - TabTall);
+
+        private bool BrowserDown
+        {
+            get
+            {
+                HerBrowser current;
+                lock (gate) current = web;
+                return !starting && (current == null || !current.Running);
+            }
         }
 
         internal string Start(string job) { return Start(job, ""); }
@@ -556,6 +581,13 @@ namespace CapriDesktop
                 if (!CardBox.Contains(System.Drawing.Point.Round(at))) lock (gate) jobTyped = null;
             }
             if (DockSlot(Array.IndexOf(HerComputer.Apps, "jobs")).Contains(System.Drawing.Point.Round(at))) { if (app == "jobs") lock (gate) { openApp = null; jobTyped = null; } else OpenApp("jobs"); return; }
+            if (app == "browser" && BrowserBody.Contains(System.Drawing.Point.Round(at)))
+            {
+                if (Busy && !inControl) { Bubble("I'm using my browser for a job. Press Take control to borrow it."); return; }
+                if (BrowserDown) { OpenSite("https://www.bing.com/"); return; }
+                if (starting) return;
+                if (!inControl) ToggleControl();
+            }
             if (Busy && !inControl) return;
             for (int i = 0; i < HerComputer.Apps.Length; i++)
                 if (DockSlot(i).Contains(System.Drawing.Point.Round(at))) { if (app == HerComputer.Apps[i]) lock (gate) openApp = null; else OpenApp(HerComputer.Apps[i]); return; }
@@ -1033,7 +1065,7 @@ namespace CapriDesktop
                     else
                         using (SolidBrush faded = new SolidBrush(Faded))
                         using (StringFormat centre = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                            g.DrawString(problem ?? "Loading...", textFont, faded, PageBox, centre);
+                            g.DrawString(problem == null ? "Loading..." : problem + "\nClick to try again.", textFont, faded, PageBox, centre);
                 }
                 g.Clip = kept;
             }

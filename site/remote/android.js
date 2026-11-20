@@ -69,6 +69,8 @@
     if (app?.classList.contains('menu')) { escape(); return true; }
     const wake = byId('wake');
     if (wake && !wake.hidden) { escape(); return true; }
+    const memory = byId('memory');
+    if (memory && !memory.hidden) { memory.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true; }
     const home = byId('home');
     if (home && !home.hidden) { escape(); return true; }
     if (menu && !menu.hidden) { byId('room-camera')?.click(); return true; }

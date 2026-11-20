@@ -30,12 +30,18 @@ final class WebFiles {
         TYPES.put("woff2", "font/woff2");
         TYPES.put("woff", "font/woff");
         TYPES.put("wasm", "application/wasm");
+        TYPES.put("glb", "model/gltf-binary");
     }
 
     private final AssetManager assets;
 
     WebFiles(AssetManager assets) {
         this.assets = assets;
+    }
+
+    static boolean ourOrigin(Uri origin) {
+        return origin != null && "https".equals(origin.getScheme()) && HOST.equals(origin.getHost())
+                && (origin.getPort() == -1 || origin.getPort() == 443);
     }
 
     static boolean ours(Uri link) {

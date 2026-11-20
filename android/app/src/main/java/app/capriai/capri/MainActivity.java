@@ -342,7 +342,7 @@ public final class MainActivity extends Activity {
         @Override
         public void onPermissionRequest(PermissionRequest request) {
             runOnUiThread(() -> {
-                if (!WebFiles.ours(request.getOrigin())) {
+                if (!ours || !WebFiles.ourOrigin(request.getOrigin())) {
                     request.deny();
                     return;
                 }
