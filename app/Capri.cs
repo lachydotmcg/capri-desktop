@@ -24042,7 +24042,8 @@ namespace CapriDesktop
                 { "what is the call mode setting?", "Call mode" },
                 { "how do friend requests work?", "Friends on a call can ask, you confirm" },
                 { "what is the Screens to watch setting?", "Screens to watch" },
-                { "how do I put your voice in my mic?", "Her voice in your mic" }
+                { "how do I put your voice in my mic?", "Her voice in your mic" },
+                { "do you do quick moves when anti-cheat is running?", "Quick moves in games" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
             {
