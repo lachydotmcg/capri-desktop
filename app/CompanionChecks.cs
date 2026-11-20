@@ -163,8 +163,15 @@ namespace CapriDesktop
                     throw new Exception("A companion used Capri's recorded hello, or not its own.");
                 if (CompanionPack.ElevenLabs != "abcdefghij1234567890" || CompanionPack.Active.Speaker != 3 || CompanionPack.Active.Speed != 1f || CompanionPack.Active.British)
                     throw new Exception("A companion's voice wasn't picked up.");
-                if (!CompanionPack.Art || Companion.SkinFolder == null || Path.GetFullPath(Companion.SkinFolder) != Path.GetFullPath(pack.Folder) || Companion.SkinAccessories.Length != 0 || Array.Exists(mods.ColoursNow, colour => colour != null))
+                if (!CompanionPack.Art || Companion.SkinFolder == null || Path.GetFullPath(Companion.SkinFolder) != Path.GetFullPath(pack.Folder) || Companion.SkinAccessories.Length != 0 || Array.Exists(mods.ColoursWorn, colour => colour != null))
                     throw new Exception("A companion's own art wasn't worn alone: " + Companion.SkinFolder);
+                mods.SetColour(ArtColors.Hair, "#112233");
+                mods.SetColour(ArtColors.Eyes, "#445566");
+                string[] keptColours = mods.ColoursNow;
+                bool coloursOver = Array.Exists(mods.ColoursWorn, colour => colour != null);
+                mods.ResetColours();
+                if (keptColours[ArtColors.Hair] != "#112233" || keptColours[ArtColors.Eyes] != "#445566" || coloursOver)
+                    throw new Exception("Picking a colour with a companion's art on lost her other colours, or put them over its art.");
 #if CROSS
                 if (Sheet.Speaker != "NYX: ") throw new Exception("Her speech box didn't say the companion's name: " + Sheet.Speaker);
 #endif

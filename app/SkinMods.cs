@@ -421,7 +421,7 @@ namespace CapriDesktop
         private void ApplySkin()
         {
             string wanted = WantedSkin();
-            string colours = string.Join(",", ColoursNow), layers = string.Join("|", WantedAccessories());
+            string colours = string.Join(",", ColoursWorn), layers = string.Join("|", WantedAccessories());
             if (wanted != Companion.SkinFolder || lastSkin != wanted || colours != lastColours || layers != string.Join("|", Companion.SkinAccessories) || layers != lastAccessories) Reskin(wanted);
         }
 
@@ -461,7 +461,7 @@ namespace CapriDesktop
             Companion.SkinAccessories = WantedAccessories();
             lastSkin = wanted;
             lastAccessories = string.Join("|", Companion.SkinAccessories);
-            string[] now = ColoursNow;
+            string[] now = ColoursWorn;
             lastColours = string.Join(",", now);
             ArtColors.Set(now);
             if (SkinChanged != null) SkinChanged();
