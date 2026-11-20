@@ -102,6 +102,7 @@ namespace CapriDesktop
                 Timeline.Ended(job, "done");
                 Timeline.Ended(job, "done");
                 Expect(told.Count == 1 && told[0].Job && told[0].Ended == "done" && told[0].Steps[told[0].Steps.Count - 1].StartsWith("Typed", StringComparison.Ordinal), "An ended job wasn't told once with its steps.");
+                Timeline.List();
                 Expect(Timeline.Undo((int?)1).StartsWith("I can't undo that job. " + Timeline.JobKept, StringComparison.Ordinal), "Undo claimed it could take back clicks and typing.");
                 passed.Add("PASS a job's clicks and typing go under one entry with its newest " + Timeline.StepsKept + " steps, told once when it ends, and undo says they can't be taken back");
 
@@ -151,6 +152,21 @@ namespace CapriDesktop
                 string tooOld = Timeline.Undo(old.Id);
                 Expect(old.Undoable && !Timeline.Find(old.Id).Undoable && tooOld.Contains(Timeline.FilesGone), "A file change she no longer keeps still showed as undoable, or said it went back: " + tooOld);
                 passed.Add("PASS notes and file changes she makes through her tools are kept with a real undo that takes out only that note, a file change put back elsewhere shows as undone, and one she no longer keeps says it can't go back");
+
+                object paying = new object();
+                Timeline.Step(paying, "Pay for the order\nTheir exact words: \"use my card 4242 4242 4242 4242\"", "Typed \"4242 4242 4242 4242\"", false);
+                Timeline.Step(paying, "Pay for the order", "Typed \"sam@example.com\" and pressed Enter", false);
+                Timeline.Step(paying, "Pay for the order", "Typed \"hi\" and pressed Enter", false);
+                Timeline.Ended(paying, "done");
+                Deed paid = Timeline.Recent().FindLast(delegate(Deed deed) { return deed.Job; });
+                string written = File.ReadAllText(Path.Combine(kept, "timeline.json"));
+                Expect(paid != null && paid.What == "Pay for the order" && paid.Steps.Count == 3 && paid.Steps[0] == Timeline.Typed && paid.Steps[1] == Timeline.Typed && paid.Steps[2] == "Typed \"hi\" and pressed Enter"
+                    && !written.Contains("4242") && !written.Contains("example.com") && !written.Contains("exact words"), "A job's card number, email or their exact words reached her timeline: " + (paid == null ? "missing" : paid.What + " / " + string.Join(" / ", paid.Steps.ToArray())));
+                Timeline.List();
+                Deed after = Timeline.Add(new Deed { Tool = "media", What = "Paused the timeline check.", UndoTool = "timeline_check", UndoAction = "none" });
+                string numbered = Timeline.Undo((int?)1);
+                Expect(numbered.StartsWith("I can't undo that job", StringComparison.Ordinal) && Timeline.Find(after.Id).Undoable, "Undo by number took what she did after her list, not what the list showed: " + numbered);
+                passed.Add("PASS her timeline keeps card numbers, emails and their exact words out of a job's steps, and undo by number takes what her list showed");
 
                 Func<List<OpenWindow>> windowsWas = Hands.Windows;
                 try

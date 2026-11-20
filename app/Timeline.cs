@@ -64,6 +64,7 @@ namespace CapriDesktop
         internal const string TabKept = "Your browser's own name is in every tab's title, so I can't tell which tab is that site's.";
         internal const string ToggleKept = "That one flips back and forth, so pressing it again later could do the opposite.";
         internal const string FilesGone = "I only keep my newest file changes, and that one's too old to put back now.";
+        internal const string Typed = "Typed some text";
 #if CROSS
         private const string Older = "I keep older ones too, going back 30 days.";
 #else
@@ -81,6 +82,7 @@ namespace CapriDesktop
         private static readonly List<Deed> deeds = new List<Deed>();
         private static readonly Dictionary<object, Deed> jobs = new Dictionary<object, Deed>();
         private static readonly HashSet<string> undoing = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly List<string> listed = new List<string>();
         private static SavedList<Deed> saved;
         private static DateTime savedAt;
         [ThreadStatic] private static int hushed;
@@ -93,6 +95,7 @@ namespace CapriDesktop
             {
                 deeds.Clear();
                 jobs.Clear();
+                listed.Clear();
                 Folder = folder;
                 saved = string.IsNullOrEmpty(folder) ? null : new SavedList<Deed>(Path.Combine(folder, "timeline.json"), "timeline");
                 if (saved != null) deeds.AddRange(saved.Read(delegate(Deed deed) { return !string.IsNullOrEmpty(deed.Id) && !string.IsNullOrEmpty(deed.When) && !string.IsNullOrEmpty(deed.What); }));
@@ -147,6 +150,8 @@ namespace CapriDesktop
         internal static void Step(object job, string task, string label, bool failed)
         {
             if (job == null || string.IsNullOrWhiteSpace(label)) return;
+            label = Private(label, label.StartsWith("Typed", StringComparison.Ordinal) ? Typed : "Did a step with your details in it");
+            task = Private(Regex.Replace(task ?? "", @"\s*(?:\\n)?\s*Their exact words\b.*$", "", RegexOptions.Singleline | RegexOptions.IgnoreCase), "A job with your details in it");
             lock (gate)
             {
                 Deed deed;
@@ -210,14 +215,21 @@ namespace CapriDesktop
         internal static string List()
         {
             List<Deed> recent = Recent();
-            if (recent.Count == 0) return "I haven't done anything on this computer yet that I keep track of.";
+            List<string> shown = new List<string>();
+            if (recent.Count == 0)
+            {
+                lock (gate) listed.Clear();
+                return "I haven't done anything on this computer yet that I keep track of.";
+            }
             StringBuilder text = new StringBuilder("What I did, newest first:");
             int number = 0;
             for (int i = recent.Count - 1; i >= 0 && number < Listed; i--)
             {
                 Deed deed = recent[i];
+                shown.Add(deed.Id);
                 text.Append('\n').Append(++number).Append(". ").Append(deed.At.ToString("ddd h:mm tt", CultureInfo.InvariantCulture)).Append(": ").Append(Said(deed));
             }
+            lock (gate) { listed.Clear(); listed.AddRange(shown); }
             if (recent.Count > Listed) text.Append("\n").Append(Older);
             return text.ToString();
         }
@@ -232,11 +244,18 @@ namespace CapriDesktop
         internal static Deed Target(ToolArguments args)
         {
             if (args == null || args.Action != "undo") return null;
+            if (args.Number != null)
+            {
+                if (args.Number.Value < 1) return null;
+                string id = null;
+                lock (gate) if (args.Number.Value <= listed.Count) id = listed[args.Number.Value - 1];
+                if (id != null) return Find(id);
+            }
             List<Deed> recent = Recent();
             if (args.Number != null)
             {
                 int index = recent.Count - args.Number.Value;
-                return args.Number.Value < 1 || index < 0 ? null : recent[index];
+                return index < 0 ? null : recent[index];
             }
             for (int i = recent.Count - 1; i >= 0; i--)
                 if (!recent[i].Undone && !recent[i].Failed) return recent[i];
@@ -281,6 +300,12 @@ namespace CapriDesktop
             }
             Tell(shown);
             return "Undid it: " + deed.What.TrimEnd('.') + ". " + result;
+        }
+
+        private static string Private(string text, string instead)
+        {
+            string kept = RemoteJobWords.RemoteOut(text);
+            return Brain.Withheld(kept) ? instead : kept;
         }
 
         internal static string Line(string text, int most)
