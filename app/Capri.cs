@@ -39950,7 +39950,7 @@ namespace CapriDesktop
         // INTELLIGENCE's rung with the plan in use ticked.
         private void SmokeBetterModels(System.Collections.Generic.List<string> checks)
         {
-            string key = "xai-fixture-key";
+            string key = "xai-fixture-key-0123456789abcdefghij";
             if (Cloud.KindOf(key) != "xai" || Cloud.MediumKind("xai") || Cloud.KindOf("xai-test\r\nunsafe") != null
                 || new Cloud(key, "grok-4.7").Name != "Grok" || Brain.Redacted(key) != "[redacted]")
                 throw new Exception("The xAI key didn't route to MAX or stay out of the logs.");
