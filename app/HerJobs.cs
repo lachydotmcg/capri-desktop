@@ -116,7 +116,7 @@ namespace CapriDesktop
             DateTime now = Now();
             HerJob job = new HerJob
             {
-                Id = NewId(), Task = task, Repeat = repeat, Added = Stamp(now), After = repeat.Length > 0 ? "" : after,
+                Id = NewId(), Task = task, Repeat = repeat, Added = Stamp(now), After = repeat.Length > 0 || wanted.At > Stamp(now) ? "" : after,
                 Kind = wanted.Kind == "watch" ? "watch" : "", Every = repeat == "hourly" ? Math.Max(1, Math.Min(24, wanted.Every)) : 0,
                 Minute = wanted.Minute >= 0 && wanted.Minute < 1440 ? wanted.Minute : -1, Day = wanted.Day >= 0 && wanted.Day <= 6 ? wanted.Day : -1,
                 Until = wanted.Until && wanted.Kind == "watch", At = wanted.At > Stamp(now) ? wanted.At : 0
@@ -436,6 +436,9 @@ namespace CapriDesktop
             if (again.Running() == null || again.Running().Task != "check the weather") return "Her jobs missed tomorrow's repeat.";
             HerJob chained = again.Add("look up the pirate token", "", "load up fortnite and play it");
             if (chained == null || chained.After != "load up fortnite and play it" || new HerJobs(folder).Queue().Find(job => job.Id == chained.Id).After != chained.After) return "Her jobs lost what to do after.";
+            HerJob later = again.Plan(new HerJob { Task = "look up the pirate token", After = "load up fortnite and play it", At = Stamp(clock.AddDays(1)) });
+            if (later == null || later.After.Length != 0) return "Her jobs kept what to do after for a job that waits until later.";
+            again.Remove(later.Id);
             for (int i = 0; i < MostQueued + 3; i++) again.Add("job " + i, "");
             if (again.Waiting != MostQueued) return "Her jobs piled up past the limit.";
             if (Fixed(new HerJobList { Queue = null, Repeats = new List<HerJob> { new HerJob { Id = "a", Task = "x", Repeat = "minutely" } }, Done = new List<HerJob> { null } }).Repeats.Count != 0) return "Her jobs kept a broken repeat.";

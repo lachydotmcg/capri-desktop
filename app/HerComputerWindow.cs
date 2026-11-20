@@ -335,7 +335,7 @@ namespace CapriDesktop
             string plan = HerErrand.Plan(added);
             if (added.Watching) return "Ok, I'll keep an eye on that on my computer " + (plan.Length > 0 ? plan : "now and then") + (added.Until ? " and tell you as soon as it happens." : " and tell you when there's something new.");
             if (added.Repeat.Length > 0) return "Ok, I'll " + HerComputer.Short(task, 80) + " " + plan + " on my computer, starting " + (added.NextRun > HerJobs.Stamp(DateTime.Now) ? HerJobs.Due(added.NextRun) + "." : wasBusy ? "after this job." : "now.");
-            if (added.At > 0) return "Ok, I'll do that on my computer " + HerJobs.Due(added.At) + ".";
+            if (added.At > 0) return "Ok, I'll do that on my computer " + HerJobs.Due(added.At) + "." + (string.IsNullOrWhiteSpace(after) ? "" : " Ask me to " + HerComputer.Short(after.Trim(), 60) + " then.");
             if (inControl) return "It's in my Jobs app. I'll start it when you give my computer back.";
             if (wasBusy) return "I'm doing \"" + HerComputer.Short(runningTask, 60) + "\" right now. I'll do that next: it's number " + Math.Max(1, Computer.Jobs.Waiting - 1) + " in my Jobs app.";
             return null;
