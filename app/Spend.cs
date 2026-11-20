@@ -148,8 +148,8 @@ namespace CapriDesktop
                     rows.Add(row);
                 }
             }
-            catch (IOException error) { Brain.Log("spend", -1, error.Message); }
-            catch (UnauthorizedAccessException error) { Brain.Log("spend", -1, error.Message); }
+            catch (IOException error) { Brain.Log("spend", -1, error.Message); loaded = null; }
+            catch (UnauthorizedAccessException error) { Brain.Log("spend", -1, error.Message); loaded = null; }
         }
 
         private static void Save()

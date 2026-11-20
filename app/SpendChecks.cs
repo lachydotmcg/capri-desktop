@@ -39,7 +39,15 @@ namespace CapriDesktop
                 Spend.Forget();
                 if (Spend.Total(Spend.Today()) != total || Spend.Month().Count != 3 || Spend.Line() != "$0.26 today · $0.26 this month") throw new Exception("Spend didn't come back the same from spend.tsv: " + Spend.Line());
                 if (Spend.Money(0.004m) != "<$0.01" || Spend.Money(1234.5m) != "$1,234.50" || Spend.Tokens(1260) != "1.3K" || Spend.Tokens(12600000) != "13M") throw new Exception("Money or tokens read wrong.");
-                checks.Add("PASS spend ledger: each model's asks, tokens and cost add up by day in spend.tsv, read back the same after a restart, and the Mainframe line says today's and this month's");
+                using (FileStream locked = new FileStream(Spend.FileAt, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    Spend.Forget();
+                    Spend.Add("anthropic", "claude-sonnet-5-5", 10, 0, 0, 5);
+                }
+                Spend.Add("anthropic", "claude-sonnet-5-5", 10, 0, 0, 5);
+                Spend.Forget();
+                if (Spend.Month().Count != 3) throw new Exception("A spend.tsv she couldn't read was written over: " + Spend.Month().Count + " models left.");
+                checks.Add("PASS spend ledger: each model's asks, tokens and cost add up by day in spend.tsv, read back the same after a restart, keep the file when it can't be read, and the Mainframe line says today's and this month's");
 
                 List<string> openAiAsked = new List<string>();
                 string terraReply = "{\"model\":\"gpt-6.1-terra\",\"choices\":[{\"message\":{\"content\":\"Hi.\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1200,\"completion_tokens\":40,\"prompt_tokens_details\":{\"cached_tokens\":200}}}";
