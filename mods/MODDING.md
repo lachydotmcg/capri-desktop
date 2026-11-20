@@ -227,8 +227,8 @@ Whatever mods are on, Capri keeps these:
   `iwr ... | iex`), unpacks hidden code and runs it, or runs encoded PowerShell is refused. Pin `npx` and `uvx` packages
   (`pkg@1.2.3`, `pkg==1.2.3`); the mods directory only lists plug-ins that do.
 - **Her approve box says** when a code mod or plug-in reaches into her own settings folder, where her keys are saved.
-- **A mod can't brick her.** If she closes twice in a row while code mods are starting, the next start keeps them off and
-  says which.
+- **A code mod that was starting when she stopped stays off** on her next start, and the Mods page says why (see
+  [If a mod stops her starting](#if-a-mod-stops-her-starting)).
 
 Refused calls are in `plugins\calls.txt` with the reason.
 

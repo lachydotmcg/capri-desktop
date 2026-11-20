@@ -226,27 +226,6 @@ while True:
                 Action securityChanged = Security.Changed;
                 if (securityChanged != null) securityChanged();
             }
-
-            HashSet<string> offWas = mods.Off();
-            string starting = Path.Combine(mods.Folder, StartingFile);
-            List<Mod> wanted = new List<Mod> { new Mod { Code = true, On = true, File = new ModFile { Id = "floor-a", Name = "Floor A" } }, new Mod { Code = true, On = true, File = new ModFile { Id = "floor-b", Name = "Floor B" } } };
-            try
-            {
-                mods.Settle();
-                if (mods.Fell(wanted) || mods.Fell(wanted) || File.ReadAllText(starting).Trim() != "2") throw new Exception("Starts that hadn't settled weren't counted.");
-                if (!mods.Fell(wanted) || wanted.Exists(mod => mod.On) || !mods.Off().Contains("floor-a") || !mods.Off().Contains("floor-b") || File.Exists(starting) || !mods.Problems[0].Contains("closed twice in a row") || !mods.Problems[0].Contains("Floor A and Floor B"))
-                    throw new Exception("Two closes in a row while code mods started didn't start her with them off: " + (mods.Problems.Count == 0 ? "no problem said" : mods.Problems[0]));
-                mods.Problems.RemoveAt(0);
-                if (mods.Fell(wanted)) throw new Exception("A fresh start after the guard still kept code mods off.");
-                mods.StopCode();
-                if (File.Exists(starting)) throw new Exception("Closing cleanly didn't clear her starting count.");
-                checks.Add("PASS mod floor: if she closes twice in a row while code mods are starting, the next start keeps them off and says which, and a clean close clears the count");
-            }
-            finally
-            {
-                mods.Settle();
-                mods.WriteOff(offWas);
-            }
         }
 
         internal static void CheckPlugins(Mods mods, List<string> checks, string output, Action<Mod> shown = null)
