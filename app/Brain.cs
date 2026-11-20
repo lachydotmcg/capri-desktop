@@ -3604,6 +3604,7 @@ namespace CapriDesktop
             try { return ask(thrifty); }
             catch (BrainException error)
             {
+                if (error.RetryAt != default(DateTime)) Waits(error);
                 if (error.Message != Gone && (Stalled(error) || error.Message == Offline || KeyWide(error.Message))) throw;
                 Cloud cheap = thrifty.Remote;
                 if (cheap.Claude && cheap.Model == Fastest) noFastest = true;
@@ -3611,6 +3612,12 @@ namespace CapriDesktop
                 Log("thrifty", -1, cheap.Kind + " " + cheap.Model + " turned down a small job (" + (error.Detail ?? error.Message) + "), using " + (Remote == null ? "her brain" : Remote.Model));
             }
             return ask(this);
+        }
+
+        private void Waits(BrainException error)
+        {
+            Cloud current = Remote;
+            if (current != null) lock (gate) { waitingRemote = current; waitingSource = current.Source; waiting = error; }
         }
 
         private static bool KeyWide(string message)
