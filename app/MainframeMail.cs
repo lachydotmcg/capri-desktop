@@ -141,7 +141,6 @@ namespace CapriDesktop
                 string account = File.ReadAllText(MailAccount.FilePath(dir));
                 using (Control made = MailPanel(null))
                 {
-                    int tall = made.Height;
                     Toggle watch = null, hands = null;
                     foreach (Control c in made.Controls)
                     {
@@ -151,14 +150,14 @@ namespace CapriDesktop
                     }
                     if (watch == null || hands == null || watch.Checked || hands.Checked || !hands.Dimmed || MailTools.Watch || MailTools.OwnHands)
                         throw new Exception("Email's settings didn't open with both new switches off, and dealing with phishing waiting on watching.");
-                    MailPicture(made, tall, Path.Combine(output, "mail-setup.png"));
+                    MailPicture(Path.Combine(output, "mail-setup.png"));
                     InvokeOnClick(watch, EventArgs.Empty);
                     if (!watch.Checked || !MailTools.Watch || MailTools.OwnHands || hands.Dimmed) throw new Exception("Turning on Watch for new mail didn't save it, or let her deal with phishing on her own.");
                     InvokeOnClick(hands, EventArgs.Empty);
                     string saved = File.ReadAllText(Path.Combine(dir, MailTools.WatchName));
                     if (!MailTools.OwnHands || !saved.Contains("\"watch\":true") || !saved.Contains("\"own_hands\":true") || saved.Contains("demo-panel-pass-1") || File.ReadAllText(MailAccount.FilePath(dir)) != account)
                         throw new Exception("Email's switches weren't saved on their own, apart from the account and its password: " + saved);
-                    MailPicture(made, tall, Path.Combine(output, "mail-setup-on.png"));
+                    MailPicture(Path.Combine(output, "mail-setup-on.png"));
                     InvokeOnClick(watch, EventArgs.Empty);
                     if (MailTools.Watch || MailTools.OwnHands || !MailTools.HandsSet || !hands.Dimmed) throw new Exception("Turning watching off didn't stop her dealing with phishing on her own.");
                     MailTools.Forget();
@@ -173,12 +172,14 @@ namespace CapriDesktop
             checks.Add("PASS mail: Email's settings show Watch for new mail and Deal with phishing on her own, both off, saved apart from the password, and dealing with phishing only counts while she watches");
         }
 
-        private void MailPicture(Control made, int tall, string path)
+        private void MailPicture(string path)
         {
-            using (ModOptionsSheet sheet = new ModOptionsSheet(this, SheetZoom(620, tall + 84), "email", "Set up Email", made, 620, tall + 84))
+            Control made = MailPanel(null);
+            using (ModOptionsSheet sheet = new ModOptionsSheet(this, SheetZoom(620, made.Height + 84), "email", "Set up Email", made, 620, made.Height + 84))
             {
+                sheet.Show(this);
                 sheet.Picture(path);
-                sheet.Controls.Remove(made);
+                sheet.Close();
             }
         }
 
