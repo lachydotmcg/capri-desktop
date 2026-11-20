@@ -10,6 +10,19 @@ using Avalonia.Media.Imaging;
 
 namespace CapriDesktop
 {
+    // Her bubble's and Type box's colours, from her Mainframe colours: on Night City they're Look's own, on Black, White and
+    // Grey they're greys that read on that look's sheet.
+    internal static class BubbleLook
+    {
+        internal static Color Panel { get { return ((ISolidColorBrush)MainframeTheme.SpeechPanel).Color; } }
+        internal static Color Ink { get { return ((ISolidColorBrush)MainframeTheme.SpeechInk).Color; } }
+        internal static Color Dim { get { return ((ISolidColorBrush)MainframeTheme.SpeechDim).Color; } }
+        internal static Color Cyan { get { return ((ISolidColorBrush)MainframeTheme.SpeechCyan).Color; } }
+        internal static Color Red { get { return ((ISolidColorBrush)MainframeTheme.SpeechRed).Color; } }
+        internal static Color Blue { get { return ((ISolidColorBrush)MainframeTheme.SpeechBlue).Color; } }
+        internal static Color Pink { get { return ((ISolidColorBrush)MainframeTheme.SpeechPink).Color; } }
+    }
+
     internal sealed class Sheet : Control
     {
         internal const int Columns = 34;
@@ -50,7 +63,7 @@ namespace CapriDesktop
                 double band = 2 + random.Next(6);
                 double row = random.Next(Math.Max(1, (int)(Bounds.Height - band)));
                 double shift = (random.NextDouble() * 2 - 1) * 14 * Glitch;
-                Color tint = i == 0 ? Look.Cyan : Look.Red;
+                Color tint = i == 0 ? BubbleLook.Cyan : BubbleLook.Red;
                 using (context.PushClip(new Rect(shift, row, Bounds.Width, band)))
                     context.FillRectangle(new SolidColorBrush(Color.FromArgb((byte)(150 * Glitch), tint.R, tint.G, tint.B)), new Rect(0, row, Bounds.Width, band));
             }
@@ -61,15 +74,15 @@ namespace CapriDesktop
         {
             Rect panel = Panel;
             Geometry path = Look.Plate(panel, 10, TipX, TipY, 18);
-            context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(46, Look.Cyan.R, Look.Cyan.G, Look.Cyan.B)), 7), path);
-            context.DrawGeometry(new SolidColorBrush(Color.FromArgb(238, Look.Panel.R, Look.Panel.G, Look.Panel.B)), null, path);
+            context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(46, BubbleLook.Cyan.R, BubbleLook.Cyan.G, BubbleLook.Cyan.B)), 7), path);
+            context.DrawGeometry(new SolidColorBrush(Color.FromArgb(238, BubbleLook.Panel.R, BubbleLook.Panel.G, BubbleLook.Panel.B)), null, path);
             using (context.PushGeometryClip(path))
             {
                 Pen scan = new Pen(new SolidColorBrush(Color.FromArgb(9, 255, 255, 255)), 1);
                 for (double row = panel.Top; row < panel.Bottom; row += 3) context.DrawLine(scan, new Point(panel.Left, row), new Point(panel.Right, row));
             }
-            context.DrawGeometry(null, new Pen(new SolidColorBrush(Look.Cyan), 2), path);
-            context.FillRectangle(new SolidColorBrush(Look.Red), new Rect(panel.Left + 10, panel.Top + 13, 3, panel.Height - 26));
+            context.DrawGeometry(null, new Pen(MainframeTheme.SpeechCyan, 2), path);
+            context.FillRectangle(MainframeTheme.SpeechRed, new Rect(panel.Left + 10, panel.Top + 13, 3, panel.Height - 26));
         }
 
         private void TextLayer(DrawingContext context)
@@ -78,7 +91,7 @@ namespace CapriDesktop
             double cw = Look.CharWidth(Type), x = Math.Round(Panel.Left + 24), top = Math.Round(Panel.Top + 12);
             string you = (Prompt + (Heard ?? "")).Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
             if (Look.Cells(you) > Columns) you = Look.Cut(you, Columns - 3) + "...";
-            context.DrawText(Look.Text(you, Look.Italic, Type, Look.Dim), new Point(x, top));
+            context.DrawText(Look.Text(you, Look.Italic, Type, BubbleLook.Dim), new Point(x, top));
             top += layout.LineHeight;
             int reveal = Speaker.Length + (Thinking ? 0 : Math.Max(0, Revealed));
             Point caret = new Point(x, top);
@@ -89,16 +102,16 @@ namespace CapriDesktop
                 if (shown.Length == 0) continue;
                 double y = top + i * layout.LineHeight;
                 int name = i == 0 ? Math.Min(shown.Length, Speaker.Length) : 0;
-                if (name > 0) context.DrawText(Look.Text(shown.Substring(0, name), Look.Bold, Type, Look.Red), new Point(x, y));
+                if (name > 0) context.DrawText(Look.Text(shown.Substring(0, name), Look.Bold, Type, BubbleLook.Red), new Point(x, y));
                 string ink = shown.Substring(name);
                 double prefix = ReplyLayout.Measure(shown.Substring(0, name));
                 bool rtl = Look.RightToLeft(row.Text.Substring(Math.Min(name, row.Text.Length)));
-                var words = Look.Text(rtl ? "\u200f" + ink + "\u200f" : ink, Look.Regular, Type, Look.Neon);
+                var words = Look.Text(rtl ? "\u200f" + ink + "\u200f" : ink, Look.Regular, Type, BubbleLook.Blue);
                 double left = rtl ? x + Columns * cw - words.WidthIncludingTrailingWhitespace : x + prefix;
                 context.DrawText(words, new Point(left, y));
                 caret = new Point(rtl ? left - cw - 2 : left + words.WidthIncludingTrailingWhitespace, y);
             }
-            if (CursorOn) context.FillRectangle(new SolidColorBrush(Look.Neon), new Rect(caret.X + 1, caret.Y + 1, cw * 0.85, layout.LineHeight - 5));
+            if (CursorOn) context.FillRectangle(MainframeTheme.SpeechBlue, new Rect(caret.X + 1, caret.Y + 1, cw * 0.85, layout.LineHeight - 5));
         }
     }
 
@@ -153,8 +166,8 @@ namespace CapriDesktop
         public override void Render(DrawingContext context)
         {
             Geometry path = Look.Plate(new Rect(1, 1, Bounds.Width - 2, Bounds.Height - 2), 10, -1, Bounds.Height / 2, 0, true);
-            context.DrawGeometry(new SolidColorBrush(Look.Panel), new Pen(new SolidColorBrush(Look.Cyan), 2), path);
-            context.FillRectangle(new SolidColorBrush(Look.Red), new Rect(10, 10, 3, Bounds.Height - 20));
+            context.DrawGeometry(MainframeTheme.SpeechPanel, new Pen(MainframeTheme.SpeechCyan, 2), path);
+            context.FillRectangle(MainframeTheme.SpeechRed, new Rect(10, 10, 3, Bounds.Height - 20));
         }
     }
 
@@ -176,7 +189,7 @@ namespace CapriDesktop
             Look.HideOnClose(this, Hide);
             Width = Math.Ceiling(Sheet.PanelWidth());
             Height = Tall;
-            prompt = new TextBlock { Text = "> you:", FontFamily = Look.Mono, FontStyle = FontStyle.Italic, FontSize = Sheet.Type, Foreground = new SolidColorBrush(Look.Dim), VerticalAlignment = VerticalAlignment.Center };
+            prompt = new TextBlock { Text = "> you:", FontFamily = Look.Mono, FontStyle = FontStyle.Italic, FontSize = Sheet.Type, Foreground = MainframeTheme.SpeechDim, VerticalAlignment = VerticalAlignment.Center };
             input.FontFamily = Look.Mono;
             input.FontSize = Sheet.Type;
             // No limit, so her brain reads a long request whole.
@@ -187,11 +200,12 @@ namespace CapriDesktop
             input.VerticalAlignment = VerticalAlignment.Center;
             input.VerticalContentAlignment = VerticalAlignment.Center;
             IBrush clear = Brushes.Transparent;
-            IBrush ink = new SolidColorBrush(Look.Ink);
+            IBrush ink = MainframeTheme.SpeechInk;
             foreach (string key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver", "TextControlBackgroundFocused", "TextControlBorderBrush", "TextControlBorderBrushPointerOver", "TextControlBorderBrushFocused" }) input.Resources[key] = clear;
             foreach (string key in new[] { "TextControlForeground", "TextControlForegroundPointerOver", "TextControlForegroundFocused" }) input.Resources[key] = ink;
-            input.Resources["TextControlSelectionHighlightColor"] = new SolidColorBrush(Look.Neon);
-            input.CaretBrush = new SolidColorBrush(Look.Neon);
+            input.Resources["TextControlSelectionHighlightColor"] = MainframeTheme.SpeechBlue;
+            input.SelectionForegroundBrush = MainframeTheme.SpeechPanel;
+            input.CaretBrush = MainframeTheme.SpeechBlue;
             input.TextChanged += delegate { if (Typed != null) Typed(); };
             input.KeyDown += delegate(object sender, KeyEventArgs e)
             {

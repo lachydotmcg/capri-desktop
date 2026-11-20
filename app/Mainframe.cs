@@ -12,8 +12,8 @@ namespace CapriDesktop
     {
         // Her Mainframe's own look, after Cyberpunk 2077's settings screen (Lachy, 30 Oct): near black with a wine glow at the
         // top, sections on dark bands under a teal rule, setting names in red, values in cyan, and boxes with a dark red rim and
-        // clipped corners. The colours come from Neon, which her menus, type box, installer and notices share too; her bubbles
-        // keep Look's.
+        // clipped corners. The colours come from Neon, which her menus, type box, bubble, music player, installer and notices
+        // share too.
         private static Color Ground { get { return Neon.Ground; } }
         private static Color Glow { get { return Neon.Glow; } }
         private static Color Band { get { return Neon.Band; } }
@@ -885,7 +885,7 @@ namespace CapriDesktop
             frameSizeName = new Readout(frameSize);
             frameSize.Changed += delegate { if (!syncing) ShowFrameSize(); };
             frameSize.Released += delegate { if (!syncing) { capri.SetMainframeSize(FrameSizes[frameSize.Value]); Rezoom(Wanted()); ShowFrameSize(); } };
-            frameColours = Setting("Mainframe colours", Neon.LookNames, c, 194, "Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes");
+            frameColours = Setting("Mainframe colours", Neon.LookNames, c, 194, "Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box, her bubble, her music player and her notes");
             frameColours.Changed += delegate { if (!syncing) capri.SetMainframeColours(frameColours.Value); };
             headPats = Switch("Head pats", c, 222, delegate { if (!syncing) capri.ToggleHeadPats(); });
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
