@@ -147,7 +147,7 @@ namespace CapriDesktop
             if (structureNames != null) foreach (string name in structureNames) if (!files.Contains(name)) files.Add(name);
             string htmlText = html.Length > 0 ? MailMime.HtmlToText(html.ToString()) : "";
             string words = v.Subject + "\n" + plain + "\n" + htmlText;
-            string brand = Claimed(fromName), sender = Official(fromSite);
+            string brand = Claimed(fromName), sender = Webmail.Contains(fromSite) ? null : Official(fromSite);
             Claims(v, fromName, fromAddress, fromSite, brand);
             Replies(v, fromSite, replyAddress, brand);
             Auth(v, root.Header("authentication-results"), fromDomain);
