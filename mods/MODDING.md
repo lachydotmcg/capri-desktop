@@ -218,8 +218,9 @@ Whatever mods are on, Capri keeps these:
 
 - **Her keys stay hers.** A server starts without her saved keys and without any setting from the PC whose name has KEY,
   TOKEN, SECRET, PASSWORD, PASS, PAT, CREDENTIAL or COOKIE in it. If your server needs one, name it in its `env` or args,
-  like `"env": {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}`, and her approve box says it gets it. A call whose arguments hold one of
-  her saved keys is refused, and her saved keys are taken out of what she says.
+  like `"env": {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}`, and her approve box says it gets it. When an online server's `headers`
+  name one, her approve box says it's sent to that server. A call whose arguments hold one of her saved keys is refused, and
+  her saved keys are taken out of what she says.
 - **A mod's words can't spend their yes.** Once another plug-in's answer or a skill she read is in her turn, tools that
   change things from a different plug-in, code mod tools and her mouse and terminal ask first for the rest of that turn,
   even when set to always run. Read-only tools and a plug-in's own tools don't. Their next message starts fresh.

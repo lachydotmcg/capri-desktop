@@ -291,7 +291,12 @@ namespace CapriDesktop
             List<string> reaches = new List<string>();
             foreach (PluginServer server in servers)
             {
-                if (server.Online) reaches.Add("connects to " + McpHttp.Shown(server.Url) + " online, and you sign in to it in your browser");
+                if (server.Online)
+                {
+                    reaches.Add("connects to " + McpHttp.Shown(server.Url) + " online, and you sign in to it in your browser");
+                    string[] sent = ModFloor.Pulled(server);
+                    if (sent.Length > 0) reaches.Add("sends " + ModFloor.And(sent) + " from your PC's settings to " + new Uri(server.Url).Host + ", which " + (sent.Length == 1 ? "looks" : "look") + " like a key or password");
+                }
                 else if (server.BuiltIn != null) reaches.Add("uses Capri's own " + Plugins.Line(server.BuiltIn, 40) + " tools, which work with the accounts you've set up in Capri");
                 else
                 {

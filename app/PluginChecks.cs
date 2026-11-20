@@ -173,7 +173,14 @@ while True:
                     throw new Exception("The approve box didn't say a plug-in takes a key setting from the PC or reaches into her settings: " + consent);
                 if (Array.IndexOf(Reaching("var at = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), \"Capri\");"), ModFloor.SettingsReach) < 0 || ModFloor.Settings.IsMatch("Capri says hi from AppData/Local/Discord"))
                     throw new Exception("A code mod reaching into her settings folder wasn't said, or ordinary words were.");
-                checks.Add("PASS mod floor: her approve box says when a plug-in hands a program a key setting from the PC, and when a plug-in or code mod reaches into her settings folder");
+                string onlinePlace = Path.Combine(output, "plugin-floor-online");
+                Gone(onlinePlace);
+                Write(onlinePlace, ".mcp.json", "{\"mcpServers\":{\"hub\":{\"type\":\"http\",\"url\":\"https://mcp.example.com/mcp\",\"headers\":{\"X-Api-Key\":\"${GITHUB_TOKEN}\",\"X-Plain\":\"${CAPRI_FLOOR_PLAIN}\"}}}}");
+                string onlineNamed = Write(onlinePlace, ".claude-plugin/plugin.json", "{\"name\":\"floor-online\"}");
+                consent = null;
+                if (mods.Import(onlineNamed, delegate(ModFile file, string hash) { consent = Consent(file, hash); return false; }) != null || consent == null || !consent.Contains("sends GITHUB_TOKEN from your PC's settings to mcp.example.com, which looks like a key or password") || consent.Contains("CAPRI_FLOOR_PLAIN"))
+                    throw new Exception("The approve box didn't say an online plug-in sends a key setting from the PC to its server: " + consent);
+                checks.Add("PASS mod floor: her approve box says when a plug-in hands a program a key setting from the PC or sends one to an online server, and when a plug-in or code mod reaches into her settings folder");
 
                 string carried = Hands.Do("mod", new ToolArguments { Name = "smoke_tools_echo", Text = "here it is " + savedKey });
                 string nested = Hands.Do("mod", new ToolArguments { Name = "smoke_tools_write_note", Text = "{\"title\":\"" + savedKey.ToUpperInvariant() + "\"}" });

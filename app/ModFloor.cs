@@ -51,6 +51,7 @@ namespace CapriDesktop
             List<string> places = new List<string> { server.Command, server.Cwd };
             places.AddRange(server.Args ?? new string[0]);
             places.AddRange(server.Env.Values);
+            places.AddRange(server.Headers.Values);
             foreach (string place in places)
                 foreach (Match one in Regex.Matches(place ?? "", @"\$\{([A-Za-z_][A-Za-z0-9_]*)"))
                 {
