@@ -62,6 +62,22 @@ namespace CapriDesktop
                     && list.Contains("Opened Spotify (can undo)") && list.Contains("can't undo: " + Timeline.ModKept.TrimEnd('.')) && list.Contains("(didn't work)"), "Her timeline list wasn't newest first with what can go back: " + list);
                 passed.Add("PASS her timeline lists what she did newest first and numbered, saying which can be undone and why the rest can't");
 
+                string securityWas = Security.Saved;
+                bool wakeWas = Security.On(Security.Wake);
+                try
+                {
+                    Security.Load(Security.Of(Security.Guarded));
+                    ToolArguments undoOpened = new ToolArguments { Action = "undo", Number = 3 };
+                    string held = Security.Gate("timeline", undoOpened);
+                    Expect(Security.IsHold(held) && held.Contains("\"Close Spotify?") && ran.Count == 0, "Undo from her timeline skipped the SECURITY toggle its undo needs: " + held);
+                    Security.Drop();
+                    Expect(Security.Gate("timeline", new ToolArguments { Action = "undo" }) == null && Security.Gate("timeline", new ToolArguments { Action = "list" }) == null, "Her timeline asked first to list, or to undo something with nothing to run.");
+                    Security.Load(Security.Of(Security.Trusted));
+                    Expect(Security.Gate("timeline", undoOpened) == null, "Undo from her timeline asked first on Trusted.");
+                }
+                finally { Security.Drop(); Security.Load(securityWas, wakeWas); }
+                passed.Add("PASS undo from her timeline asks first when their SECURITY settings ask before what it would do, like closing an app on Guarded");
+
                 string undo = Timeline.Undo((int?)null);
                 Expect(undo.StartsWith("I can't undo", StringComparison.Ordinal) && undo.Contains(Timeline.ModKept) && ran.Count == 0, "Undo that skipped past her newest action or ran a mod tool: " + undo);
                 answer = "Couldn't close Spotify: it's still open.";

@@ -355,6 +355,9 @@ namespace CapriDesktop
                 // A code mod's tool can do anything its code does, so it has its own toggle, off on Lockdown and Guarded.
                 case "mod": return args != null && Plugins.Owns(args.Name) ? Plugins.Needs(args.Name) : ModTools;
                 case "make_tool": return ModTools;
+                case "timeline":
+                    Deed undoing = Timeline.Target(args);
+                    return undoing == null || !undoing.Undoable || undoing.UndoTool == null ? -1 : Needs(undoing.UndoTool, undoing.UndoArguments());
                 case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": case "playlist": return -1;
                 default: return -1;
             }
@@ -662,6 +665,9 @@ namespace CapriDesktop
                 case "internet_status": return "check your internet";
                 case "mod": return Plugins.Asking(a.Name, a.Text) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 case "make_tool": return "write a new tool for you to check in Mods";
+                case "timeline":
+                    Deed undoing = Timeline.Target(a);
+                    return undoing == null || undoing.UndoTool == null ? "undo what I did" : Asking(undoing.UndoTool, undoing.UndoArguments());
                 default: return "do that";
             }
         }

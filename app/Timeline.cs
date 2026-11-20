@@ -224,23 +224,25 @@ namespace CapriDesktop
             return what + " (" + state + ")";
         }
 
+        internal static Deed Target(ToolArguments args)
+        {
+            if (args == null || args.Action != "undo") return null;
+            List<Deed> recent = Recent();
+            if (args.Number != null)
+            {
+                int index = recent.Count - args.Number.Value;
+                return args.Number.Value < 1 || index < 0 ? null : recent[index];
+            }
+            for (int i = recent.Count - 1; i >= 0; i--)
+                if (!recent[i].Undone && !recent[i].Failed) return recent[i];
+            return null;
+        }
+
         internal static string Undo(int? number)
         {
-            Deed deed = null;
-            List<Deed> recent = Recent();
-            if (number != null)
-            {
-                int index = recent.Count - number.Value;
-                if (number.Value < 1 || index < 0) return "There's no number " + number.Value + " in what I did. Call timeline with list to see the numbers.";
-                deed = recent[index];
-            }
-            else
-            {
-                for (int i = recent.Count - 1; i >= 0 && deed == null; i--)
-                    if (!recent[i].Undone && !recent[i].Failed) deed = recent[i];
-                if (deed == null) return "There's nothing of mine to undo.";
-            }
-            return Undo(deed.Id);
+            Deed deed = Target(new ToolArguments { Action = "undo", Number = number });
+            if (deed != null) return Undo(deed.Id);
+            return number != null ? "There's no number " + number.Value + " in what I did. Call timeline with list to see the numbers." : "There's nothing of mine to undo.";
         }
 
         internal static string Undo(string id)
