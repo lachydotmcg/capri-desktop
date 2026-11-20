@@ -165,6 +165,13 @@ namespace CapriDesktop
             if (note != null && !note.IsDisposed) note.Close();
         }
 
+        private void ForgetErrands()
+        {
+            errandQueue.Clear();
+            CloseErrandNote();
+            errandGoing = false;
+        }
+
         private void ErrandChecks(List<string> checks)
         {
             string longAnswer = "I found three good options for the trip and compared them by price, travel time and reviews, then wrote everything into the note with links so you can pick one without searching again. The cheapest is the night train but it takes much longer than the others and the seats are not great, the middle one is the best value overall.";
@@ -223,7 +230,9 @@ namespace CapriDesktop
                 errandNow = errandQueue[0];
                 if (ErrandReady(5000, 0)) throw new Exception("A second errand started while one was being delivered.");
                 errandNow = null;
-                checks.Add("PASS Errand notes: a long answer wraps to four lines inside the card at three scales, buttons show only when there is a note or a suggestion, the card stays on the working area, the queue keeps five and replaces by id, and delivery waits while they are away");
+                ForgetErrands();
+                if (errandQueue.Count != 0 || errandNote != null || ErrandReady(5000, 0)) throw new Exception("Turning her own computer off left errands to deliver.");
+                checks.Add("PASS Errand notes: a long answer wraps to four lines inside the card at three scales, buttons show only when there is a note or a suggestion, the card stays on the working area, the queue keeps five and replaces by id, delivery waits while they are away, and turning her own computer off drops the ones still waiting");
             }
             finally
             {

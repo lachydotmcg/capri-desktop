@@ -65,8 +65,8 @@ namespace CapriDesktop
             herComputer.CheckedIn = HerErrandCheckIn;
             herComputer.Asked = delegate(HerJob asking) { Post(delegate { HerErrandAsked(asking); }); };
             herComputer.StateChanged = delegate(HerJob job, string state) { Post(delegate { RemoteErrand(job, state); }); };
-            ErrandOpenNote = delegate(string note) { HerComputerWindow window = ShowHerComputer(); window.ShowNote(note); };
-            ErrandWatch = delegate(string task) { HerComputerWindow window = ShowHerComputer(false); string said = window.Watch(task); if (said != null) Remark("", said, InChat || Hushed || FullScreen()); };
+            ErrandOpenNote = delegate(string note) { if (!preferences.HerComputer) return; HerComputerWindow window = ShowHerComputer(); window.ShowNote(note); };
+            ErrandWatch = delegate(string task) { if (!preferences.HerComputer) return; HerComputerWindow window = ShowHerComputer(false); string said = window.Watch(task); if (said != null) Remark("", said, InChat || Hushed || FullScreen()); };
             if (mainframe.Icon != null) herComputer.Icon = mainframe.Icon;
         }
 
@@ -120,6 +120,7 @@ namespace CapriDesktop
         {
             if (herComputer != null && !herComputer.IsDisposed) herComputer.CloseForGood();
             herComputer = null;
+            ForgetErrands();
         }
 
         internal static string HerComputerJob(string said)
