@@ -161,6 +161,7 @@ namespace CapriDesktop
                 GuardChecks();
                 Ink.Check(checks);
                 MainframeGuardChecks();
+                FirstRunChecks();
                 Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
                 MacWindows.Checks(checks);
@@ -806,6 +807,7 @@ namespace CapriDesktop
                 MacClickChecks();
                 MacRoutes.Checks(checks);
                 LinuxRoutes.Checks(checks);
+                OwnEngineChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -2296,6 +2298,117 @@ namespace CapriDesktop
 
         // Mainframe's buttons, pickers, switches, sliders and drop-downs go through Program.Guard like her menu, so a bug behind
         // one can't end her on Linux.
+        private void FirstRunChecks()
+        {
+            checks.AddRange(Onboarding.Check());
+            if (!Pet.WantsFirstRun(true, 0) || Pet.WantsFirstRun(false, 0) || !Pet.WantsFirstRun(false, 2)) throw new Exception("The first run card was wanted at the wrong times.");
+            string oldFile = Path.Combine(folder, "old-cross.json");
+            File.WriteAllText(oldFile, "{\"Nickname\":\"V\",\"Replies\":1}");
+            string unread;
+            Settings old = Pet.ReadSettings(oldFile, out unread);
+            if (old.FirstRunStep != 0 || old.Nickname != "V" || Pet.WantsFirstRun(false, old.FirstRunStep)) throw new Exception("An older settings file wasn't read as set up already.");
+            pet.StartFirstRun(false);
+            if (pet.FirstRunOpen) throw new Exception("The first run card opened for settings that already existed.");
+            checks.Add("PASS first run: the card is only for a brand-new install or one quit part way, and an older settings file reads as done and never shows it");
+
+            string nickWas = Brain.Nickname, modelWas = pet.Brain.Model;
+            int repliesWas = pet.Replies;
+            List<string> sent = new List<string>();
+            int pulls = 0;
+            pet.FirstJobTo = delegate(string job) { sent.Add(job); };
+            pet.FirstRunPulls = delegate { pulls++; };
+            pet.FirstRunLines.Clear();
+            try
+            {
+                pet.Brain.Model = null;
+                pet.Saved.FirstRunStep = 0;
+                pet.MainframeRefresh();
+                pet.StartFirstRun(true);
+                FirstRunCard card = pet.FirstRunWindow;
+                if (card == null || card.Screen != 1 || pet.Saved.FirstRunStep != 1) throw new Exception("A fresh install didn't open the card on its first screen.");
+                if (card.Crowded() != null || !card.NoteText.StartsWith("Next starts", StringComparison.Ordinal)) throw new Exception("The brain screen was crowded or said the wrong thing: " + card.Crowded() + " / " + card.NoteText);
+                card.SavePicture(Path.Combine(folder, "first-run-1-brain.png"));
+                card.Press("Free key");
+                card.UpdateLayout();
+                if (card.Picked != 1 || card.Crowded() != null || !card.Rows.ContainsKey("Brain API key") || !card.Rows.ContainsKey("Connect")) throw new Exception("Free key didn't show its key box.");
+                card.SavePicture(Path.Combine(folder, "first-run-1-free-key.png"));
+                card.Press("Skip");
+                if (card.Screen != 2 || pulls != 0 || pet.Saved.FirstRunStep != 2) throw new Exception("Skip on the brain screen started a download or didn't move on.");
+                card.Press("Skip");
+                if (card.Screen != 3 || Brain.Nickname != nickWas) throw new Exception("Skip on the name screen saved a name or didn't move on.");
+                card.Press("Skip all");
+                if (pet.FirstRunOpen || pet.Saved.FirstRunStep != 0 || sent.Count != 0 || pulls != 0) throw new Exception("Skip all left the card up, kept its step or did something.");
+                checks.Add("PASS first run: Skip moves on without downloading or saving a name, Skip all ends the card, and the step is saved only while it's up");
+
+                pet.Saved.FirstRunStep = 0;
+                pet.StartFirstRun(true);
+                card = pet.FirstRunWindow;
+                card.Press("Next");
+                if (pulls != 1 || card.Screen != 2 || pet.Saved.FirstRunStep != 2) throw new Exception("Next with her own brain picked didn't start it once and move on.");
+                if (!card.Rows.ContainsKey("Name") || card.Rows["Name"] is not NeonEntry named || named.Cue != Onboarding.NameCue) throw new Exception("The name box is missing or has the wrong cue.");
+                named.Box.Text = "Vee";
+                card.Press("Chatty");
+                if (pet.Replies != 2 || Brain.Wordiness != 2) throw new Exception("The Chatty vibe didn't set her reply length.");
+                card.Press("Chill");
+                if (pet.Replies != 0) throw new Exception("The Chill vibe didn't set her reply length.");
+                card.Press("Cyber Cyan");
+                if (pet.ModList.ColoursNow[ArtColors.Hair] != "#00D8FF" || card.LookPicked != 1) throw new Exception("A look didn't recolour her.");
+                card.Press("Hers");
+                if (Array.Exists(pet.ModList.ColoursNow, colour => colour != null) || card.LookPicked != 0) throw new Exception("Hers didn't bring her own colours back.");
+                card.Press("Bubblegum");
+                card.UpdateLayout();
+                if (card.Crowded() != null) throw new Exception("The look screen was crowded: " + card.Crowded());
+                card.SavePicture(Path.Combine(folder, "first-run-2-yours.png"));
+                card.Press("Hers");
+                card.Press("Next");
+                if (Brain.Nickname != "Vee" || pet.Saved.Nickname != "Vee" || card.Screen != 3) throw new Exception("Next didn't save the name.");
+                if (!pet.FirstRunLines.Contains(Onboarding.MeLine) || !pet.FirstRunLines.Contains(Onboarding.JobWaitLine) || card.Said != Onboarding.JobWaitLine) throw new Exception("She didn't say the make me yours and wait for the brain lines.");
+                if (card.Crowded() != null) throw new Exception("The job screen was crowded: " + card.Crowded());
+                card.SavePicture(Path.Combine(folder, "first-run-3-job.png"));
+                checks.Add("PASS first run: Next starts her own brain once, saves the name, a vibe sets her reply length and a look recolours her live until Hers puts her colours back");
+
+                FirstJob first = Onboarding.Jobs(false, OperatingSystem.IsMacOS(), DateTime.Now.Hour)[0];
+                card.Press(first.Label);
+                if (pet.FirstRunOpen || pet.Saved.FirstRunStep != 0 || sent.Count != 0 || pet.FirstJobWaiting != first.Said) throw new Exception("A job picked before her brain was in wasn't kept.");
+                if (pet.FirstRunLines.FindAll(line => line == Onboarding.JobQueuedLine).Count != 1) throw new Exception("She didn't say the queued line once.");
+                pet.CheckFirstJob();
+                if (sent.Count != 0) throw new Exception("The job was sent with no brain.");
+                pet.Brain.Model = "qwen3:8b";
+                pet.CheckFirstJob();
+                pet.CheckFirstJob();
+                if (sent.Count != 1 || sent[0] != first.Said || pet.FirstJobWaiting != null) throw new Exception("The kept job wasn't sent exactly once when the brain came in.");
+                checks.Add("PASS first run: a job picked before her brain is in is kept, she says so once, and it's sent exactly once the moment it is");
+
+                sent.Clear();
+                pet.Saved.FirstRunStep = 3;
+                pet.StartFirstRun(false);
+                card = pet.FirstRunWindow;
+                if (card == null || card.Screen != 3 || card.Said != Onboarding.JobLine) throw new Exception("A card quit on the job screen didn't come back there with her brain in.");
+                pet.Brain.Model = null;
+                card.Refresh();
+                if (card.Said != Onboarding.JobWaitLine) throw new Exception("The job line didn't follow her brain going away.");
+                pet.Brain.Model = "qwen3:8b";
+                card.Refresh();
+                ((NeonEntry)card.Rows["Own job"]).Box.Text = "  open my notes  ";
+                card.Press("Do it");
+                if (pet.FirstRunOpen || sent.Count != 1 || sent[0] != "open my notes" || pet.FirstJobWaiting != null) throw new Exception("An own job with her brain in wasn't sent straight away, tidied.");
+                checks.Add("PASS first run: a card quit part way comes back on the same screen, and a job typed or picked with her brain in goes to her right away as if typed");
+                if (pet.Saved.FirstRunStep != 0) throw new Exception("The first run step wasn't cleared.");
+            }
+            finally
+            {
+                if (pet.FirstRunWindow != null) pet.FirstRunWindow.Close();
+                pet.FirstJobTo = null;
+                pet.FirstRunPulls = null;
+                pet.Saved.FirstRunStep = 0;
+                pet.ModList.UseColours(null);
+                pet.Brain.Model = modelWas;
+                Brain.Nickname = nickWas;
+                pet.Saved.Nickname = nickWas;
+                pet.SetReplies(repliesWas);
+            }
+        }
+
         private void MainframeGuardChecks()
         {
             List<string> ran = new List<string>();
@@ -6236,6 +6349,59 @@ namespace CapriDesktop
                 return new MacFiles.Reply { Text = string.Join("\f", text) + "\f" };
             }
             throw new Exception("A file check reached a real command: " + start.FileName);
+        }
+
+        private void OwnEngineChecks()
+        {
+            System.Runtime.InteropServices.Architecture arm = System.Runtime.InteropServices.Architecture.Arm64, x64 = System.Runtime.InteropServices.Architecture.X64;
+            EngineAsset macArm = Engine.AssetFor(true, false, arm), macIntel = Engine.AssetFor(true, false, x64), linuxIntel = Engine.AssetFor(false, true, x64), linuxArm = Engine.AssetFor(false, true, arm);
+            if (macArm == null || macIntel == null || linuxIntel == null || linuxArm == null) throw new Exception("A Mac or Linux build has no llama.cpp download.");
+            if (Engine.AssetFor(false, false, x64) != null || Engine.AssetFor(true, false, System.Runtime.InteropServices.Architecture.X86) != null) throw new Exception("An unsupported computer got a llama.cpp download.");
+            foreach (EngineAsset asset in Engine.Assets)
+                if (!asset.Url.StartsWith("https://github.com/ggml-org/llama.cpp/releases/download/" + Engine.Build + "/", StringComparison.Ordinal) || !asset.Url.EndsWith("-bin-" + asset.Name + ".tar.gz", StringComparison.Ordinal) || !Regex.IsMatch(asset.Sha256, "^[0-9a-f]{64}$") || asset.Size < (1 << 20)) throw new Exception("A llama.cpp download isn't pinned: " + asset.Name);
+            if (macArm.Name != "macos-arm64" || macIntel.Name != "macos-x64" || linuxIntel.Name != "ubuntu-x64" || linuxArm.Name != "ubuntu-arm64" || linuxIntel.Url.Contains("vulkan")) throw new Exception("The llama.cpp pick for a platform is wrong.");
+            checks.Add("PASS own brain downloads: Mac arm64 and x64 and Linux x64 and arm64 each pick their pinned llama.cpp " + Engine.Build + " tar.gz with a SHA-256 and size (Linux x64 takes the CPU build), and anything else gets none");
+            Pick small = Engine.Fit(new Machine { Ram = 8L << 30 }), big = Engine.Fit(new Machine { Ram = 24L << 30, Vram = 16L << 30 });
+            if (small != Engine.Picks[1] || big != Engine.Picks[0]) throw new Exception("The model fit for a Mac or Linux computer is wrong.");
+            string work = Path.Combine(folder, "own-engine-check");
+            if (Directory.Exists(work)) Directory.Delete(work, true);
+            Directory.CreateDirectory(work);
+            string archive = Path.Combine(work, "tiny.tar.gz");
+            using (FileStream file = File.Create(archive))
+            using (System.IO.Compression.GZipStream gzip = new System.IO.Compression.GZipStream(file, System.IO.Compression.CompressionLevel.Optimal))
+            using (System.Formats.Tar.TarWriter tar = new System.Formats.Tar.TarWriter(gzip))
+            {
+                string[] names = { "llama-b0/llama-server", "llama-b0/libggml.so", "llama-b0/LICENSE" };
+                foreach (string name in names)
+                {
+                    System.Formats.Tar.PaxTarEntry entry = new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, name);
+                    entry.DataStream = new MemoryStream(Encoding.ASCII.GetBytes("#!/bin/sh\necho engine-ran\n"));
+                    if (!OperatingSystem.IsWindows()) entry.Mode = (UnixFileMode)Convert.ToInt32("644", 8);
+                    tar.WriteEntry(entry);
+                }
+            }
+            string target = Path.Combine(work, "engine");
+            Engine.Unpack(archive, target);
+            string server = Path.Combine(target, "llama-server");
+            if (!File.Exists(server) || !File.Exists(Path.Combine(target, "LICENSE"))) throw new Exception("The tiny engine archive didn't unpack its top folder flat.");
+            if (!OperatingSystem.IsWindows())
+            {
+                UnixFileMode run = UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+                if ((File.GetUnixFileMode(server) & run) != run || (File.GetUnixFileMode(Path.Combine(target, "libggml.so")) & run) != run) throw new Exception("The unpacked llama-server isn't executable.");
+                if ((File.GetUnixFileMode(Path.Combine(target, "LICENSE")) & UnixFileMode.UserExecute) != 0) throw new Exception("A plain file in the engine became executable.");
+                ProcessStartInfo info = new ProcessStartInfo(server) { UseShellExecute = false, RedirectStandardOutput = true };
+                using (Process started = Process.Start(info))
+                {
+                    string said = started.StandardOutput.ReadToEnd();
+                    started.WaitForExit(5000);
+                    if (said.Trim() != "engine-ran") throw new Exception("The unpacked llama-server didn't start: " + said);
+                }
+                checks.Add("PASS own brain unpack: a tiny generated tar.gz unpacks flat into her data folder, llama-server and its libraries get the executable bit while plain files don't, and the unpacked server starts");
+            }
+            else checks.Add("LIMIT own brain unpack: executable bits and starting the server are Mac and Linux only");
+            Directory.Delete(work, true);
+            if (!Pet.BrainViaEngine(false, true) || Pet.BrainViaEngine(true, true) || Pet.BrainViaEngine(false, false)) throw new Exception("Set up her brain chose the wrong path for Ollama being up or down.");
+            checks.Add("PASS own brain setup: with no Ollama reachable Set up her brain downloads her own llama.cpp engine and model, with Ollama running it keeps pulling through Ollama, and a computer with no engine download falls back to Ollama");
         }
 
         private void BrainlessFileChecks(string path)

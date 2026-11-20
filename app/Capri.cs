@@ -8047,7 +8047,8 @@ namespace CapriDesktop
             hideAsked = false;
             heard = "get to know me";
             box.Prompt = "> sys: ";
-            MeetLine(++asking, meeting.Start());
+            MeetLine(++asking, meeting.Start(namedOnCard ? Brain.Nickname : null));
+            namedOnCard = false;
         }
 
         private void MeetLine(int ticket, string line)
@@ -12150,6 +12151,7 @@ namespace CapriDesktop
             // They got in first, so her hello doesn't cancel what they asked.
             if (box.Prompt == "> you: " && talkState != TalkState.Off) return;
             if (hidden) SetHidden(false);
+            if (firstJob != null) { FirstRunJob(firstJob, true); return; }
             Hear("(You just woke up on this PC with a brand new brain. Say hi to the user in one short line.)", "brain online", "> sys: ");
         }
 

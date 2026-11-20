@@ -234,7 +234,7 @@ namespace CapriDesktop
 
         private string BrainNote(bool phone)
         {
-            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model \u00b7 Ollama"));
+            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : Brain.Local != null ? "Local model \u00b7 on this computer" : "Local model \u00b7 Ollama"));
             return Brain.Brief(note) ?? note;
         }
         internal bool MainframeConnecting { get { return brainPending > 0; } }

@@ -30,6 +30,7 @@ namespace CapriDesktop
         [DataMember] internal string Ears;
         [DataMember] internal string Nickname;
         [DataMember] internal int Replies;
+        [DataMember] internal int FirstRunStep;
         [DataMember] internal int Recall;
         [DataMember] internal int Wander;
         [DataMember] internal bool NoDance;
@@ -1004,6 +1005,7 @@ namespace CapriDesktop
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
+            RestoreOwnBrain();
             RestoreCustomEndpoint();
             KeepAdoptedProvider();
             voice.Key = ReadVoiceKey();
@@ -1110,7 +1112,7 @@ namespace CapriDesktop
                     if (Saved.HuskMode != 0) SetHusk(Saved.HuskMode, true);
                     int ticket = asking;
                     DispatcherTimer.RunOnce(() => Greet(ticket, DateTime.Now.Hour), TimeSpan.FromMilliseconds(1800));
-                    if (fresh) { if (!OperatingSystem.IsLinux()) OpenMainframe(); meetAt = Now + 4; }
+                    StartFirstRun(fresh);
                     if (Program.ConnectChatGPT) { OpenMainframe(); UsePlan(); }
                 }
             };
@@ -1388,6 +1390,7 @@ namespace CapriDesktop
                 CheckNap();
                 CheckHide();
                 CheckMeet(now);
+                CheckFirstJob();
                 if (Program.Smoke == null) CheckPopIn(now);
                 if (Program.Smoke == null) CheckHome(now);
                 if (Program.Smoke == null) CheckLag(now);
@@ -3850,6 +3853,7 @@ namespace CapriDesktop
 
         internal void ShowBrains(string[] found)
         {
+            if (found == null && Brain.Local != null && Brain.Remote == null) { frameModels = new[] { Brain.Model }; if (MainframeTier == 0) frameProblem = null; NotifySettings(); return; }
             frameModels = found ?? Array.Empty<string>();
             if (MainframeTier == 0) frameProblem = found == null ? NoOllama : null;
             NotifySettings();
@@ -4192,7 +4196,7 @@ namespace CapriDesktop
         }
 
         // Ollama has no models yet: she pulls her own brain, shows how far it's got on the Brain menu, then picks it and says so.
-        internal void PullBrain() { PullBrain(Starter); }
+        internal void PullBrain() { SetUpLocalBrain(); }
 
         internal void PullBrain(string tag)
         {
@@ -4218,6 +4222,7 @@ namespace CapriDesktop
                     NotifySettings();
                     if (problem != null) { Talk.Notice(BrainHeard, problem); return; }
                     Saved.Model = tag;
+                    LeaveOwnBrain();
                     string currentServer, currentKey;
                     Brain.GetServer(out currentServer, out currentKey);
                     if (MainframeTier == 0 && Brain.Remote == null && currentServer == null) Brain.Model = tag;
@@ -4234,6 +4239,7 @@ namespace CapriDesktop
             ownedVoice?.Cancel();
             StopNativeListening();
             Brain.Cancel();
+            LeaveOwnBrain();
             // Her chat carries on with the new model, so changing brains never wipes what she was doing.
             Brain.Model = model;
             Saved.Model = model;
@@ -7410,6 +7416,7 @@ namespace CapriDesktop
             }
             quitting = true;
             ClonesOff();
+            StopOwnBrain();
             // Her click guard writes down a bug in any of these, so she still goes after it instead of being left unable to quit.
             try
             {
@@ -7478,8 +7485,8 @@ namespace CapriDesktop
         private void PrepareHusk()
         {
             // Her listener file goes with her even when she closes without Quit: at logout, shutdown or a kill signal.
-            AppDomain.CurrentDomain.ProcessExit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
-            desktop.Exit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => { StopOwnBrain(); HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
+            desktop.Exit += (_, _) => { StopOwnBrain(); HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
             Saved.HuskMode = HuskWatch.Allowed(Saved.HuskMode);
             husk = new HuskWatch(Program.Smoke ?? folder);
             HuskHooks.BackupFolder = Program.Smoke ?? folder;
