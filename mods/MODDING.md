@@ -262,6 +262,7 @@ exactly as she was. Only one companion is on at a time: turning one on turns the
 
 - `name` is what they're called, and they answer to it and to `wake_names`. "Hey Capri" still works too.
 - `greetings` are their three hellos: morning, late at night, and any other time. Without them they say plain ones, not Capri's.
+  A greeting with a link, an @ handle, an email or a phone number in it is refused.
 - `voice` is optional. `free_speaker` (0 to 199) and `free_speed` (0.5 to 2) pick their free voice on Windows. `elevenlabs` is a
   voice ID they use with your own ElevenLabs key. If the key can't use that voice, your own ElevenLabs voice says it instead.
   Voice chat calls keep your own voice for now.

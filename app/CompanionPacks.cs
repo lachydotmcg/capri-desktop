@@ -188,6 +188,8 @@ namespace CapriDesktop
             return mod.Pack == null ? "" : mod.On ? "COMPANION, ON INSTEAD OF " + CompanionPack.Default.ToUpperInvariant() + ". " : "COMPANION. ";
         }
 
+        private static readonly Regex GreetingLink = new Regex(@"https?:|www\.|\b[a-z0-9-]{2,}\.[a-z]{2,}\b|@\w|\d[\d\s().-]{6,}\d", RegexOptions.IgnoreCase);
+
         internal static CompanionFile ReadCompanion(string text)
         {
             CompanionFile read;
@@ -212,6 +214,7 @@ namespace CapriDesktop
                 {
                     string line = Regex.Replace(read.Greetings[i] ?? "", @"[\p{Cc}\p{Cf}\s]+", " ").Trim();
                     if (line.Length == 0 || line.Length > 120) throw new ModException("Each greeting has to be 1 to 120 characters.");
+                    if (GreetingLink.IsMatch(line)) throw new ModException("A greeting can't have a link, an @ handle, an email or a phone number in it.");
                     read.Greetings[i] = line;
                 }
             }
