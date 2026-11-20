@@ -163,6 +163,9 @@ namespace CapriDesktop
                     throw new Exception("A companion used Capri's recorded hello, or not its own.");
                 if (CompanionPack.ElevenLabs != "abcdefghij1234567890" || CompanionPack.Active.Speaker != 3 || CompanionPack.Active.Speed != 1f || CompanionPack.Active.British)
                     throw new Exception("A companion's voice wasn't picked up.");
+                if (!Voice.PackVoiceOnly(new VoiceException(Voice.LibraryVoice, 403)) || !Voice.PackVoiceOnly(new VoiceException("Voice not found. Add it to your ElevenLabs voices.", 404))
+                    || Voice.PackVoiceOnly(new VoiceException("Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe.", 401)) || Voice.PackVoiceOnly(new VoiceException(Voice.Rejected, 401)))
+                    throw new Exception("A pack voice their key can't use didn't hand over to their own voice, or a key problem did.");
                 if (!CompanionPack.Art || Companion.SkinFolder == null || Path.GetFullPath(Companion.SkinFolder) != Path.GetFullPath(pack.Folder) || Companion.SkinAccessories.Length != 0 || Array.Exists(mods.ColoursWorn, colour => colour != null))
                     throw new Exception("A companion's own art wasn't worn alone: " + Companion.SkinFolder);
                 mods.SetColour(ArtColors.Hair, "#112233");
@@ -175,7 +178,7 @@ namespace CapriDesktop
 #if CROSS
                 if (Sheet.Speaker != "NYX: ") throw new Exception("Her speech box didn't say the companion's name: " + Sheet.Speaker);
 #endif
-                checks.Add("PASS companions: a pack's names wake her, and its greetings, hello clip, free voice, ElevenLabs voice and art replace Capri's, with no skins or colours over its art");
+                checks.Add("PASS companions: a pack's names wake her, and its greetings, hello clip, free voice, ElevenLabs voice and art replace Capri's, with no skins or colours over its art, and a pack voice their key can't use hands over to their own");
                 Mod second = mods.Import(echo, null);
                 made = mods.All.Find(mod => mod.File.Id == "smoke-nyx");
                 if (second == null || !second.On || made == null || made.On || CompanionPack.Name != "Echo" || CompanionPack.Art || CompanionPack.Active.Speaker >= 0 || CompanionPack.ElevenLabs != null || Brain.Greeting(8) != CompanionPack.PlainGreetings[0])

@@ -390,14 +390,23 @@ namespace CapriDesktop
         internal byte[] Speak(string text)
         {
             string own = VoiceId, pack = CompanionPack.ElevenLabs;
-            if (pack == null || pack == own) return Speak(text, own);
+            if (pack == null || pack == own || own != null && pack == packFailed) return Speak(text, own);
             try { return Speak(text, pack); }
             catch (VoiceException error)
             {
-                if (own == null || error.Status != 400 && error.Status != 404 && error.Status != 422) throw;
+                if (own == null || !PackVoiceOnly(error)) throw;
+                if (error.Status != 400 && error.Status != 422) packFailed = pack;
                 Brain.Log("voice", -1, "The companion pack's ElevenLabs voice didn't work with this key, so their own voice said it: " + error.Message);
                 return Speak(text, own);
             }
+        }
+
+        private volatile string packFailed;
+
+        internal static bool PackVoiceOnly(VoiceException error)
+        {
+            string said = error.Message ?? "";
+            return error.Status == 400 || error.Status == 404 || error.Status == 422 || said == LibraryVoice || said.StartsWith("Voice not found", StringComparison.Ordinal) || said.StartsWith("That voice is still training", StringComparison.Ordinal);
         }
 
         private byte[] Speak(string text, string id)
