@@ -19,6 +19,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'site', 'ro
 GITHUB_NAME = re.compile(r'^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$')
 CLOSING = re.compile(r'\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b:?\s*(?:lachydotmcg/capri-desktop)?#(\d+)', re.I)
 SUGGESTED = re.compile(r'^[ \t]*Suggested\b[^\n]{0,160}', re.I | re.M)
+ON_IT = re.compile(r'^[ \t]*On it\b[^\n]{0,160}', re.I | re.M)
 
 
 def items(path, paginate):
