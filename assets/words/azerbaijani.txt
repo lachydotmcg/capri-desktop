@@ -30,6 +30,7 @@ Ask Capri for more	Capri-dən daha çox istə
 Asking your server...	Serverindən soruşuram...
 Asks before closing only the apps you choose.	Yalnız seçdiyin tətbiqləri bağlamazdan əvvəl soruşur.
 Auto	Avtomatik
+Auto (match what I say)	Avtomatik (dediyimə görə)
 Automatic: VB-CABLE, else Steam's	Avtomatik: VB-CABLE, yoxdursa Steam-inki
 BAD RELAY HOST	PİS RELE HOSTU
 BIG Z open notepad	BIG Z notepad aç
@@ -290,6 +291,7 @@ Huge	Nəhəng
 I can hear you.	Səni eşidirəm.
 I glance at your screen and comment. Costs a little on a paid brain.	Ekranına baxıb şərh yazıram. Ödənişli beyində bir az xərc tələb edir.
 I keep listening. Say my name, then just talk.	Dinləməyə davam edirəm. Adımı de, sonra sadəcə danış.
+I speak	Danışdığım dil
 I talk about your game as you play. Costs a little on a paid brain.	Oynayarkən oyununuz haqqında danışıram. Ödənişli beyində bir az xərc tələb edir.
 I type my replies and stay quiet.	Cavablarımı yazıram və sakit qalıram.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Cavab verməyəcəyəm və heç nə heç yerə göndərilmir. Yenə də yanında olacağam, musiqinə rəqs edəcəyəm və istədiyin sürətli işləri görəcəyəm, məsələn səsi.
@@ -598,6 +600,7 @@ SKILL.	BACARIQ.
 SKIN.	SKİN.
 SORT BY	SIRALA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SƏSLƏR ADƏTLƏR BEYİN BAX CAPRI DOOMSCROLL HAVA KLİPLƏR OYUNLAR AÇARLAR HƏRƏKƏTLƏR SƏS SƏN
+Same as I speak	Mənim dilim kimi
 Same as her ears (VOICE > Mic)	Onun qulaqları ilə eynidir (SƏS > Mikrofon)
 Same code on the phone?	Telefonda eyni kod?
 Save	Yadda saxla
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Parametrlərdə izləyəcək heç nə yox idi.
 Settings lost keyboard focus during the Tab walk	Tab gəzintisi zamanı Parametrlər klaviatura fokusunu itirdi
 Setup guide	Quraşdırma təlimatı
 Setup stopped	Quraşdırma dayandırıldı
+She answers in	Cavab dili
 She can read it when it fits.	Yerinə düşəndə oxuya bilər.
 She glances at your screen and comments. Costs a little on a paid brain.	Ekranına baxır və şərh yazır. Ödənişli beyində bir az xərc tələb edir.
 She keeps listening. Say her name, then just talk until you go quiet.	Dinləməyə davam edir. Adını de, sonra susana qədər sadəcə danış.

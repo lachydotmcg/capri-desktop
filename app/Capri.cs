@@ -1044,6 +1044,9 @@ namespace CapriDesktop
         // Off until they turn it on (Lachy, 7 Nov: "Maybe add a legacy stand"): her stand from 0.8.5, for mods her new one broke.
         [DataMember] public bool LegacyStand;
         [DataMember] public string Language;
+        [DataMember] public string ReplyLanguage;
+        [DataMember] public bool OwnAccent;
+        [DataMember] public bool TextOnlyTongues;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
         [DataMember] public int Recall = 8;
@@ -3086,7 +3089,7 @@ namespace CapriDesktop
             ears.Chosen = preferences.Mic;
             if (!smoke) MixVoice();
             kokoro.Style = LocalVoice.Find(preferences.VoiceStyle);
-            Brain.Language = Brain.LanguageCode(preferences.Language) == "en" ? null : preferences.Language;
+            PointReplies();
             KnowLines(data);
             PointEars();
             Brain.Nickname = Brain.Nick(preferences.Nickname).Length == 0 ? null : Brain.Nick(preferences.Nickname);
@@ -8020,19 +8023,54 @@ namespace CapriDesktop
             }
         }
 
-        internal string Language { get { return Brain.Language ?? "English"; } }
+        internal string Language { get { return preferences.ReplyLanguage == null ? Brain.Language ?? "English" : Speaks; } }
+
+        private string Speaks { get { return Brain.LanguageCode(preferences.Language) == "en" ? "English" : preferences.Language; } }
+
+        internal string ReplyLanguage { get { return LanguagePair.Answers(preferences.ReplyLanguage); } }
 
         // A picked English is saved as English, so she listens in English. Never picked, it stays empty (agir's Japanese PC).
         internal void SetLanguage(string language)
         {
             string code = Brain.LanguageCode(language);
-            Brain.Language = code == "en" ? null : language;
             preferences.Language = code == "en" ? "English" : language;
+            Brain.Language = LanguagePair.Reply(preferences.ReplyLanguage, preferences.Language);
             brain.Forget();
             SavePreferences();
             PointEars();
             Said.Warm();
-            if (!testing) Lingo.Use(Brain.Language);
+            if (!testing) Lingo.Use(code == "en" ? null : language);
+        }
+
+        internal void SetReplyLanguage(string answers)
+        {
+            preferences.ReplyLanguage = LanguagePair.Answers(answers);
+            PointReplies();
+            brain.Forget();
+            SavePreferences();
+            PointEars();
+            Said.Warm();
+        }
+
+        private void PointReplies()
+        {
+            string answers = LanguagePair.Answers(preferences.ReplyLanguage);
+            preferences.ReplyLanguage = answers;
+            Brain.Matching = answers == LanguagePair.Auto;
+            Brain.Firm = answers != null && !Brain.Matching;
+            Brain.Language = LanguagePair.Reply(answers, preferences.Language);
+        }
+
+        private void Match(string said)
+        {
+            if (!Brain.Matching) return;
+            string was = Brain.Language;
+            string heard = LanguagePair.Detect(said, was ?? "English");
+            if (heard == null) return;
+            string now = Brain.LanguageCode(heard) == "en" ? null : heard;
+            if (now == was) return;
+            Brain.Language = now;
+            Said.Warm();
         }
 
         private void Reword()
@@ -8062,7 +8100,7 @@ namespace CapriDesktop
             Lingo.Changed -= Reword;
             Lingo.Changed += Reword;
             Lingo.Reload();
-            Lingo.Use(testing ? null : Brain.Language);
+            Lingo.Use(testing || Language == "English" ? null : Language);
             Said.Know(Brain.Greetings, Brain.HalloweenLines, PetLines, PatPeaceLines, PatNoLines, ThrowLines, WarnLines, DizzyLines, SulkLines, DodgeLines, SorryLines, AloneLines,
                 PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
@@ -11944,6 +11982,7 @@ namespace CapriDesktop
                 case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
                 case "music_app": return Math.Max(0, Math.Min(2, MusicApp));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
+                case "reply_language": return ReplyLanguage == null ? 0 : Math.Max(0, Array.IndexOf(Hands.StepsOf(name), ReplyLanguage));
                 case "reply_limit": return ReplyLength;
                 case "game_comments": return CommentPaceShown;
                 case "clip_length": return Array.IndexOf(ClipSettings.Lengths, ClipOptions.Seconds);
@@ -11997,6 +12036,7 @@ namespace CapriDesktop
                 case "power_saver": SetPowerSaver(step); break;
                 case "music_app": SetMusicApp(step); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
+                case "reply_language": SetReplyLanguage(Hands.StepsOf(name)[step]); break;
                 case "reply_limit": SetReplyLength(step); break;
                 case "game_comments": SetCommentPace(step); break;
                 case "clip_length": SetClipOptions(ClipSettings.Lengths[step], ClipOptions.Fps, ClipOptions.Resolution, ClipOptions.Mbps); break;
@@ -13031,6 +13071,7 @@ namespace CapriDesktop
         private void PointEars()
         {
             string was = parakeet.Model;
+            parakeet.Multi = Brain.Matching;
             parakeet.Language = Listening(preferences.Language, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
             UpdateHearing();
             if (parakeet.Model == was || !chatting || !local) return;
@@ -15901,6 +15942,7 @@ namespace CapriDesktop
             }
             pictureShown = shown; pictureText = text; pictureTyped = typed;
             if (typed == "") Security.Drop();
+            if (prompt == "> you: ") Match(input);
             Func<int, string> callReply = prompt == "> you: " && !Security.FromMod(input) && (typed == null || input.Length > 0) ? FriendAnswer(input) : null;
             int callVersion = (callInput || prompt == "> you: ") && CallModeOn ? callSession.Generation : -1;
             string callContext = callVersion < 0 ? null : callSession.Rules(callVersion);

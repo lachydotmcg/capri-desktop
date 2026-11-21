@@ -27,6 +27,7 @@ namespace CapriDesktop
         [DataMember] internal double Size = 240;
         [DataMember] internal string Model;
         [DataMember] internal string Language;
+        [DataMember] internal string ReplyLanguage;
         [DataMember] internal string Ears;
         [DataMember] internal string Nickname;
         [DataMember] internal int Replies;
@@ -629,6 +630,7 @@ namespace CapriDesktop
         private readonly Body body = new Body();
         private readonly List<MenuItem> wanderPicks = new List<MenuItem>();
         private readonly List<MenuItem> languagePicks = new List<MenuItem>();
+        private readonly List<MenuItem> answerPicks = new List<MenuItem>();
         private readonly List<MenuItem> replyPicks = new List<MenuItem>();
         private readonly List<MenuItem> recallPicks = new List<MenuItem>();
         private readonly List<MenuItem> soundPicks = new List<MenuItem>();
@@ -875,7 +877,7 @@ namespace CapriDesktop
         {
             this.desktop = desktop;
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
-            if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears).Listen;
+            if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears, () => TheirLanguage).Listen;
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
@@ -913,9 +915,9 @@ namespace CapriDesktop
             Brain.FoldsGlances = false;
             Brain.Keeping = !Saved.NoMemories;
             if (Program.Smoke == null) Brain.Keeper = Brain;
-            Brain.Language = Brain.LanguageCode(Saved.Language) == "en" ? null : Saved.Language;
+            PointReplies();
             Lingo.Bundled = WordTable;
-            Lingo.Use(Program.Smoke == null ? Brain.Language : null);
+            Lingo.Use(Program.Smoke == null && TheirLanguage != "English" ? TheirLanguage : null);
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
             if (Saved.ReplyLength == 1) { Saved.Replies = 0; Saved.ReplyLength = 0; }
             else if (Saved.ReplyLength >= 2) { Saved.Replies = 2; Saved.ReplyLength = 3; }
@@ -2622,7 +2624,7 @@ namespace CapriDesktop
             brainMenu = new MenuItem { Header = "Brain" };
             brainMenu.Items.Add(new MenuItem { Header = "Looking for models...", IsEnabled = false });
             MenuItem settings = new MenuItem { Header = "Settings" };
-            MenuItem language = new MenuItem { Header = "Language" };
+            MenuItem language = new MenuItem { Header = "I speak" };
             for (int i = 0; i < Brain.Languages.GetLength(0); i++)
             {
                 string name = Brain.Languages[i, 1];
@@ -2630,6 +2632,16 @@ namespace CapriDesktop
                 pick.Click += Guarded(delegate { SetLanguage(name); });
                 languagePicks.Add(pick);
                 language.Items.Add(pick);
+            }
+            MenuItem answering = new MenuItem { Header = "She answers in" };
+            string[] answerSteps = Hands.StepsOf("reply_language");
+            for (int i = 0; i < answerSteps.Length; i++)
+            {
+                string picked = answerSteps[i];
+                MenuItem pick = new MenuItem { Header = i == 0 ? LanguagePair.SameName : i == 1 ? LanguagePair.AutoName : Brain.Languages[i - 2, 0], ToggleType = MenuItemToggleType.Radio, GroupName = "answers", Tag = picked };
+                pick.Click += Guarded(delegate { SetReplyLanguage(picked); });
+                answerPicks.Add(pick);
+                answering.Items.Add(pick);
             }
             MenuItem replies = new MenuItem { Header = "Reply length" };
             MenuItem recall = new MenuItem { Header = "Chat memory" };
@@ -2679,6 +2691,7 @@ namespace CapriDesktop
             meet.Click += Guarded(delegate { GetToKnow(); });
             settings.Items.Add(meet);
             settings.Items.Add(language);
+            settings.Items.Add(answering);
             settings.Items.Add(replies);
             settings.Items.Add(recall);
             MenuItem bubble = new MenuItem { Header = "Bubble" };
@@ -2914,8 +2927,9 @@ namespace CapriDesktop
             musicItem.IsChecked = !Saved.NoDance;
             introItem.IsChecked = !Saved.NoIntro;
             onTopItem.IsChecked = OnTop;
-            string language = Brain.Language ?? "English";
+            string language = TheirLanguage, answering = Saved.ReplyLanguage ?? LanguagePair.SameName;
             foreach (MenuItem pick in languagePicks) pick.IsChecked = (string)pick.Tag == language;
+            foreach (MenuItem pick in answerPicks) pick.IsChecked = (string)pick.Tag == answering;
             for (int i = 0; i < replyPicks.Count; i++) replyPicks[i].IsChecked = i == Replies;
             for (int i = 0; i < recallPicks.Count; i++) recallPicks[i].IsChecked = Recalls[i] == Brain.Recall;
             for (int i = 0; i < soundPicks.Count; i++) soundPicks[i].IsChecked = SoundLevels[i] == Sfx.Level;
@@ -3517,7 +3531,8 @@ namespace CapriDesktop
                 case "layer_1_delay": return Nearest(LayerDelays, VoiceFx.Layers.Delay1);
                 case "layer_2_delay": return Nearest(LayerDelays, VoiceFx.Layers.Delay2);
                 case "sounds": return Nearest(SoundLevels, Sfx.Level);
-                case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Brain.Language ?? "English"));
+                case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), TheirLanguage));
+                case "reply_language": return Saved.ReplyLanguage == null ? 0 : Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Saved.ReplyLanguage));
                 case "typing_sound": return Math.Max(0, Math.Min(2, Saved.Typing));
                 default: return -1;
             }
@@ -3562,6 +3577,7 @@ namespace CapriDesktop
                 case "voice_glitch": SetGlitch(Amounts[step]); break;
                 case "sounds": SetSounds(SoundLevels[step]); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
+                case "reply_language": SetReplyLanguage(Hands.StepsOf(name)[step]); break;
                 case "typing_sound": SetTypingMode(step); break;
             }
             Sync();
@@ -3772,12 +3788,38 @@ namespace CapriDesktop
 
         internal void SetLanguage(string language)
         {
-            Brain.Language = Brain.LanguageCode(language) == "en" ? null : language;
-            Saved.Language = Brain.Language;
+            Saved.Language = Brain.LanguageCode(language) == "en" ? null : language;
+            Brain.Language = LanguagePair.Reply(Saved.ReplyLanguage, Saved.Language);
             Brain.Forget();
             Save();
-            if (Program.Smoke == null) { Lingo.Use(Brain.Language); MainframeTheme.Reword(); }
+            if (Program.Smoke == null) { Lingo.Use(Saved.Language); MainframeTheme.Reword(); }
             Sync();
+        }
+
+        internal string TheirLanguage { get { return Saved.ReplyLanguage == null ? Brain.Language ?? "English" : Brain.LanguageCode(Saved.Language) == "en" ? "English" : Saved.Language; } }
+
+        internal void SetReplyLanguage(string answers)
+        {
+            Saved.ReplyLanguage = LanguagePair.Answers(answers);
+            PointReplies();
+            Brain.Forget();
+            Save();
+            Sync();
+        }
+
+        private void PointReplies()
+        {
+            string answers = LanguagePair.Answers(Saved.ReplyLanguage);
+            Saved.ReplyLanguage = answers;
+            Brain.Matching = answers == LanguagePair.Auto;
+            Brain.Firm = answers != null && !Brain.Matching;
+            Brain.Language = LanguagePair.Reply(answers, Saved.Language);
+        }
+
+        private void Match(string said)
+        {
+            string heard = LanguagePair.Detect(said, Brain.Language ?? "English");
+            if (heard != null) Brain.Language = Brain.LanguageCode(heard) == "en" ? null : heard;
         }
 
         internal static string WordTable(string name)
@@ -5954,6 +5996,7 @@ namespace CapriDesktop
             Typed();
             if (meeting.Asking && phone == null) { Met(input); return; }
             lastHeard = input;
+            if (Brain.Matching) Match(input);
             if (ModList.Heard(input)) return;
             if (phone != null)
             {
