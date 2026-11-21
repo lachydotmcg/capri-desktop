@@ -34,6 +34,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             foreach (Clip shown in Clips) shown.Reload();
+            RebuildMoves();
             blinkWith = null;
             herPointer?.ReloadArt();
             if (body == null) return;

@@ -26,6 +26,7 @@ namespace CapriDesktop
         // What accessories were called before they had a name of their own.
         [DataMember(Name = "overlay")] public bool Overlay;
         [DataMember(Name = "frames")] public ModFrames[] Frames;
+        [DataMember(Name = "moves", EmitDefaultValue = false)] public ModMove[] Moves;
         internal bool Intro;
         internal string[] Permissions = new string[0];
         // A code mod's // requires: line: the mod API it needs, and other mods that must be installed and on.
@@ -50,6 +51,15 @@ namespace CapriDesktop
     {
         [DataMember(Name = "strip")] public string Strip;
         [DataMember(Name = "fps")] public int Fps;
+    }
+
+    [DataContract]
+    internal sealed class ModMove
+    {
+        [DataMember(Name = "name")] public string Name;
+        [DataMember(Name = "strip")] public string Strip;
+        [DataMember(Name = "fps")] public int Fps;
+        [DataMember(Name = "loop")] public bool Loop;
     }
 
     [DataContract]

@@ -1199,6 +1199,7 @@ namespace CapriDesktop
         {
             if (name == "grin" || name == "dance") { GameHud.Mood(HudMood.Happy); return "Grinning."; }
             if (name == "glitch") { GameHud.Mood(HudMood.Surprise); return "Glitched."; }
+            if (Mods.MoveNamed(name) != null) { GameHud.Mood(HudMood.Happy); return "I can't do my " + name.Replace('_', ' ') + " from your game's HUD."; }
             return name == "blink" ? "Blinked." : name == "idle" ? "Back to my idle." : name == "stop_dancing" ? "I wasn't dancing." : "I don't have an animation called " + name + ".";
         }
     }

@@ -616,7 +616,7 @@ View on a mod (0.9.0) shows the first few lines of its README, with Learn more f
 
 Already have a mod file? Press Import mod on the Mods page and pick it, or drop it on her. Dropped on their own, mod and plug-in files make her ask first, and your yes opens Mods and imports them the same way, with the same boxes. The file types are:
 - .capri-mod: settings mods, including colour sets.
-- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
+- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is. A skin can also add new moves for her, like a wave (0.9.7).
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
 - .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings, plus what her quick read of its code found, like network use and the addresses it contacts. Minified or packed code is said in the box and asked about twice, with a laid-out copy saved to read, and a mod that both unpacks hidden text and loads code while it runs is refused. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
 - .capri-plugin (0.9.6): plug-ins that give her tools from MCP servers, like Claude's plug-ins. See What are plug-ins? below.
@@ -1334,6 +1334,16 @@ After two to five quiet minutes sitting on a window or the taskbar with room, sh
 
 ### Her animations (0.7.6 and newer)
 Ask for one by name: "do your glitch", "smile" or "grin", "blink", "play your idle animation", or "dance". Her dance goes on, with or without music, until you say "stop dancing" or untick Move > Dance. Telling her to stop while a song plays keeps her still until the song ends.
+
+### New moves from skins (0.9.7 and newer)
+A skin can add moves of her own, like a wave or a spin, on Windows, Mac and Linux.
+- Make one: Mainframe > CAPRI > Mods > Animations > New move... Name it, pick its frames (Pictures..., Strip... or Folder...), set its speed, pick Loops or Once, then Add move. Wear it puts it on her, and Save skin... saves it to share.
+- Frames are 116 x 384 each, like her standing frames, up to 240 of them.
+- Ask for it by name: "do the wave" or "show me your happy spin". Her brain also picks one when you hint at it.
+- Once plays it and she's back to her idle. A loop goes on until you tell her to stop, like "stop the spin" or "stop dancing".
+- Names are 2 to 24 lowercase letters or numbers, with _ between words, and can't be one of hers, like dance or grin.
+- Code mods play one with capri.Her.Animate and its name.
+- Taking the skin off takes its moves away. If she says "I don't have an animation called ...", the skin with that move isn't on.
 
 ### Size
 - Mainframe > Settings > CAPRI > Size: Tiny to Giant.

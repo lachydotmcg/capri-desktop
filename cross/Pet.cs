@@ -298,8 +298,11 @@ namespace CapriDesktop
         private readonly object artGate = new object();
         private int artGeneration;
         private bool loadingLeft, triedLeft;
-        internal Bitmap Strip { get { if (strip == null) strip = Pet.ReadArt(name); return strip; } }
+        internal Bitmap Strip { get { if (strip == null) strip = file != null ? Pet.ReadMoveArt(file, count) : Pet.ReadArt(name); return strip; } }
         private readonly string name;
+        private readonly string file, move;
+        internal readonly bool Loops;
+        internal bool IsMove { get { return file != null; } }
         private readonly int count;
         private readonly double fps;
         private readonly double shiftX, shiftY;
@@ -335,7 +338,22 @@ namespace CapriDesktop
         internal double ShiftY { get { return Old ? 0 : shiftY; } }
 
         // The strip's own name, like "idle" or "perch", the way mods and Windows name it.
-        internal string Title { get { return name.Substring("Capri.Sprite.".Length, name.Length - "Capri.Sprite.".Length - ".png".Length); } }
+        internal string Title { get { return move ?? name.Substring("Capri.Sprite.".Length, name.Length - "Capri.Sprite.".Length - ".png".Length); } }
+
+        private Clip(string move, string file, int count, double fps, bool loops, Clip like)
+        {
+            name = "Capri.Move." + move + ".png";
+            this.move = move;
+            this.file = file;
+            this.count = count;
+            this.fps = fps;
+            Loops = loops;
+            Height = like.Height;
+            shiftX = like.shiftX;
+            shiftY = like.shiftY;
+        }
+
+        internal static Clip Move(string move, string file, int count, double fps, bool loops, Clip like) { return new Clip(move, file, count, fps, loops, like); }
 
         internal Clip(string name, int count, double fps, double height, double shiftX = 0, double shiftY = 0)
         {
@@ -1778,7 +1796,7 @@ namespace CapriDesktop
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
             int index = (int)((now - clipStart) * clip.Fps);
             if (clip == leave || clip == perchLeave) index = Math.Min(index, clip.Count - 1);
-            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
+            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2) || (clip.IsMove && !clip.Loops && index >= clip.Count)) { Play(idle); index = 0; }
             // Like on Windows, she's awake as soon as she has something to say or they open her typing box.
             if (Asleep && !Talk.Quiet) { sleptAt = null; Play(clip == perchSleep ? perch : idle); index = 0; }
             if (clip == arrive && index >= arrive.Count)
@@ -3361,16 +3379,20 @@ namespace CapriDesktop
             StopMoves();
             if (name == "stop_dancing")
             {
-                bool was = dancing || clip == dance || clip == perchDance;
+                string moving = clip != null && clip.IsMove ? clip.Title : null;
+                bool was = dancing || clip == dance || clip == perchDance || moving != null;
                 danceHeld = musicOn;
                 Dancing = false;
                 if (clip == dance || clip == perchDance) Play(clip == perchDance ? perch : idle);
-                return was ? "Stopped dancing." : "I wasn't dancing.";
+                else if (moving != null) Play(seat != null ? perch : idle);
+                return moving != null ? "Stopped my " + moving.Replace('_', ' ') + "." : was ? "Stopped dancing." : "I wasn't dancing.";
             }
             napAsked = false;
             napping = false;
             ComeBack();
             if (hanging) LetGo();
+            Clip move = MoveClip(name);
+            if (move != null) return PlayMove(move);
             if (name == "dance")
             {
                 danceHeld = false;
@@ -3407,6 +3429,7 @@ namespace CapriDesktop
         {
             get
             {
+                if (clip != null && clip.IsMove) return clip.Title;
                 Clip[] named = { idle, glitch, grin, dance, perchDance, dangle, perch, perchGlitch, arrive, leave, sleep, wake };
                 string[] names = { "idle", "glitch", "grin", "dance", "perch_music", "dangle", "perch", "perch_glitch", "arrive", "leave", "sleep", "wake" };
                 int at = Array.IndexOf(named, clip);
