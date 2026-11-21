@@ -716,7 +716,7 @@ while True:
                 string consent = null;
                 if (!mods.Set(email, true, delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; }) || !email.On || consent == null || !consent.Contains("uses Capri's own mail tools") || consent.Contains("starts "))
                     throw new Exception("Turning on her Email starter didn't ask with what it uses: " + consent);
-                if (Wait(delegate { return Plugins.ToolsOf(MailStarter).Count == 5; }, 30) != null) throw new Exception("Her Email starter's tools weren't listed: " + Plugins.Trouble(MailStarter));
+                if (Wait(delegate { return Plugins.ToolsOf(MailStarter).Count == 8; }, 30) != null) throw new Exception("Her Email starter's tools weren't listed: " + Plugins.Trouble(MailStarter));
                 string unset = Plugins.Run("email_recent_mail", "");
                 if (!unset.Contains(MailTools.NotSetUp) || Plugins.Granted("email_send_mail") != 1 || Plugins.Needs("email_recent_mail") != Security.ModTools)
                     throw new Exception("Her Email starter didn't say it needs setting up, or sending mail didn't always ask first: " + unset);
@@ -727,6 +727,7 @@ while True:
                 Plugins.Grant(MailStarter, "send_mail", Plugins.Usual);
                 if (!asks || asking != "send an email to pat@example.com, lee@example.com with the subject 'Lunch'" || !unaddressed.StartsWith("email_send_mail needs to.", StringComparison.Ordinal))
                     throw new Exception("Sending mail set to always run didn't still ask with who it goes to and the subject, or went without a to: " + asking + " | " + unaddressed);
+                MailChecks.CheckStarter(checks);
                 foreach (Mod one in made) mods.Remove(one);
                 mods.AddStarters();
                 mods.Load();

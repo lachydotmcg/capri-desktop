@@ -812,13 +812,21 @@ namespace CapriDesktop
             }
             if (root == null) { checks.Add("LIMIT help quotes: the source tree isn't beside this executable or working directory"); return; }
             string help = File.ReadAllText(Path.Combine(root, "site", "help", "knowledge.md"));
-            string[] current = { Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.TooBig, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size.", Brain.LiteLine, Brain.LiteNote };
+            string[] current = {MailWatch.GmailBinned, MailWatch.JunkMoved, Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.TooBig, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size.", MailAccount.OutlookNote, Brain.LiteLine, Brain.LiteNote};
             string[] old = { "or watch slower", "Their servers failed", "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.", "Can't open your mic. Pick another under VOICE.", "Pick FREE VOICE or ELEVENLABS to turn it back on", "came down the wrong size", "failed its checksum", "Add credits on their site,", "Pick another row under VOICE" };
             List<string> missing = new List<string>(Array.FindAll(current, line => help.IndexOf(line, StringComparison.Ordinal) < 0));
             List<string> stale = new List<string>(Array.FindAll(old, line => help.IndexOf(line, StringComparison.Ordinal) >= 0));
             if (missing.Count > 0 || stale.Count > 0 || help.IndexOf('—') >= 0)
                 throw new Exception("Her help page quotes old wording: missing " + string.Join(" | ", missing.ToArray()) + "; still has " + string.Join(" | ", stale.ToArray()));
-            checks.Add("PASS her help page quotes her lines as she says them now: keys, rate limits, Gemini's daily limit, the service's servers, her mic and Windows speech, cloud voice credit, the special-letters folder, call mode hearing, unreadable settings and Lite mode, with none of the old wording");
+            checks.Add("PASS her help page quotes her lines as she says them now: keys, rate limits, Gemini's daily limit, the service's servers, her mic and Windows speech, cloud voice credit, the special-letters folder, call mode hearing, unreadable settings, Outlook in Email and Lite mode, with none of the old wording");
+            int pluginsAt = help.IndexOf("### What are plug-ins? (0.9.6)", StringComparison.Ordinal);
+            int pluginsEnd = pluginsAt < 0 ? -1 : help.IndexOf("\n### ", pluginsAt + 4, StringComparison.Ordinal);
+            string pluginHelp = pluginsAt < 0 ? "" : help.Substring(pluginsAt, (pluginsEnd < 0 ? help.Length : pluginsEnd) - pluginsAt);
+            foreach (string part in new[] { ".capri-plugin", "plugin.json", ".mcp.json", "Email, Notion and Linear", "Set up Email", "app password", MailAccount.OutlookNote, "no Microsoft sign-in", "Needs you to sign in", "Like SECURITY, Always run, Ask first and Off", "Send mail always asks", "up to 32", "Up to 4 servers" })
+                if (pluginHelp.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page's plug-ins section is missing: " + part);
+            if (SelfKnow.Setting("MainframePlugins.cs", "Like SECURITY") == null || SelfKnow.Setting("MainframePlugins.cs", "Sign in") == null || SelfKnow.Setting("MainframeMail.cs", "Set up Email") == null || !(SelfKnow.Matching("why doesn't Outlook work with email?") ?? "").Contains(MailAccount.OutlookNote))
+                throw new Exception("Her plug-in help lost a topic or the Outlook line.");
+            checks.Add("PASS her help page and her self knowledge explain plug-ins: what they are, the Email, Notion and Linear starters, importing, signing in, each tool's Options and why Outlook doesn't work with Email");
         }
 
         // The owner's smaller wording flags: each line keeps its cause and its fix inside the note that shows it.

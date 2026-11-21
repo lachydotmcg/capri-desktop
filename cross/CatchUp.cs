@@ -277,10 +277,12 @@ namespace CapriDesktop
             return true;
         }
 
-        private void ReminderSay(string line)
+        private void ReminderSay(string line) { OwnLine("reminder", "reminder", line); }
+
+        private void OwnLine(string asked, string label, string line)
         {
-            Brain.Remember("reminder", line);
-            Talk.Answer("reminder", line);
+            Brain.Remember(asked, line);
+            Talk.Answer(label, line);
             ISpeaker speaker = ReminderSpeaker ?? Speaker;
             if (Hushed || Saved.Silent || !speaker.Ready || Voice.Loudness <= 0) return;
             int ticket = asking, speechTicket = speechGeneration;
@@ -288,11 +290,11 @@ namespace CapriDesktop
             {
                 byte[] wav = null;
                 try { wav = StyledSpeech(speaker, line); }
-                catch (Exception error) { Brain.Log("reminder voice", -1, error.Message); }
+                catch (Exception error) { Brain.Log(label + " voice", -1, error.Message); }
                 ReminderPost(() =>
                 {
                     if (wav == null || quitting || away || Hushed || Saved.Silent || ticket != asking || speechTicket != speechGeneration || (ReminderSpeaker ?? Speaker) != speaker || Talk.Reply != line) return;
-                    Talk.Answer("reminder", line, Voice.Seconds(wav));
+                    Talk.Answer(label, line, Voice.Seconds(wav));
                     ReminderPlay(wav);
                 });
             });

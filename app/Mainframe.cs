@@ -3161,7 +3161,14 @@ namespace CapriDesktop
         {
             string page = (name ?? "main").Trim().ToLowerInvariant();
             if (page.Length == 0) page = "main";
-            if (!Regex.IsMatch(page, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories)\z")) return false;
+            if (!Regex.IsMatch(page, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|mods|plugins)\z")) return false;
+            if (page == "mods" || page == "plugins")
+            {
+                ShowMods(true);
+                Restore();
+                return true;
+            }
+            if (modded) ShowMods(false);
             bool settings = page != "main" && page != "brain" && page != "voice";
             ShowSettings(settings);
             if (settings && page != "settings" && page != "mixer" && !capri.AdvancedSettings)

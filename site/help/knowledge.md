@@ -610,17 +610,18 @@ Right-click her > Open Capri Mainframe > Settings > CAPRI > Pop-in times. Set Sh
 Use preset returns to the Pop-ins slider's pace. Moving that slider also clears your custom times. CAPRI > Check in on me still decides whether she visits.
 
 ### How do I get mods? (0.8.3)
-Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins and Skills filter the list.
+Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins, Skills and Plug-ins filter the list.
 
 Press Install on the mod you want. View lets you read about it first. Once installed, click its stars to rate it from 1 to 5.
 
 View on a mod (0.9.0) shows the first few lines of its README, with Learn more for the whole page. A mod with no description takes one from its README.
 
-Already have a mod file? Press Import mod on the Mods page and pick it. The file types are:
+Already have a mod file? Press Import mod on the Mods page and pick it, or drop it on her. Dropped on their own, mod and plug-in files make her ask first, and your yes opens Mods and imports them the same way, with the same boxes. The file types are:
 - .capri-mod: settings mods, including colour sets.
-- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
+- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is. A skin can also add new moves for her, like a wave (0.9.7).
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
 - .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings, plus what her quick read of its code found, like network use and the addresses it contacts. Minified or packed code is said in the box and asked about twice, with a laid-out copy saved to read, and a mod that both unpacks hidden text and loads code while it runs is refused. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
+- .capri-plugin (0.9.6): plug-ins that give her tools from MCP servers, like Claude's plug-ins. See What are plug-ins? below.
 - .capri-tool: tool mods, a JSON recipe that gives her one look-up tool: one to three HTTPS reads from the sites it lists, the values to keep, and what to tell her. They can't run code, send, post or log in. She asks before one goes on, naming the sites it reads, and again if it's edited. A site that finds nothing doesn't count against a tool, but three broken answers in a row switch it off. She can write one herself with make_tool when you ask for a look-up she doesn't have; it's saved off until you check it in Mods and turn it on. If a code mod was starting when she stopped, it's off on her next start, and starting her with --no-mods keeps every mod off for that run.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
@@ -639,6 +640,48 @@ From 0.9.0 she knows the names of every skill that's on, in chat and in jobs, an
 A skill's game also counts when it runs in a browser tab, like Five Nights at Freddy's in Chrome, when you ask her to play it or name it (Windows). A real game window still comes first.
 
 To make one: a .capri-skill file starts with a header between two --- lines (capri-skill: 1, then id, name, author, description and games, the game names separated by commas), then the know-how in plain words. Publish it like any other mod.
+
+### Email: new mail and phishing (0.9.7)
+Turn on the Email plug-in in Mods and set it up with your address and an app password. In Mods, Options on Email opens its tools, and Email settings (Set up email before it's connected) opens the window with your account and two switches below Connect, both off until you turn them on:
+- Watch for new mail: she watches your inbox in the background and speaks up when something lands, like "Oop, something just came through." Mail that was already there isn't announced. Nothing gets marked read, and she never opens links or attachments. Gmail usually tells her about new mail within seconds; servers without IMAP IDLE are checked about once a minute. You can also ask her to start or stop watching.
+- Deal with phishing on her own: it only counts while she's watching. Mail she's sure is phishing goes straight to your spam folder without asking. On Gmail she says "That's phishing, choom, I reported it as spam and binned it." because moving mail into Gmail's Spam reports it. On other servers she says "That's phishing, choom, I moved it to your junk folder." If the move fails, she says so and why. Mail she isn't sure of stays where it is.
+
+Ask "is this email legit?" or "check that email for phishing" and she checks it with check_mail, using her own rules rather than a brain's guess. She compares who it says it's from with where it really came from, and looks for replies that go somewhere else, look-alike addresses (letters from another alphabet, rn for m, 0 for o, 1 for l, vv for w, extra words around a brand's name, endings like .zip or .top), links that show one address but go to another, bare number addresses, link shorteners and @ tricks, pushy asks (a suspended account, a 24 hour deadline, your password, gift cards, a wire transfer, crypto, an overdue invoice), risky attachments (.exe, .scr, .js, .vbs, .lnk, .iso, .img, .hta, .html, two endings, macro documents, a zip with its password in the email) and failed sender checks (SPF, DKIM and DMARC). She answers fine, suspicious or phishing with plain reasons.
+
+Ask her to bin an email, or move it to spam, the trash, the archive or a folder, and she moves just that one with move_mail. She asks first by SECURITY > Send, post and delete what you asked for, and always asks when she's just read an email, so an email's own words can't spend your yes. She uses MOVE when your mail server has it. Otherwise she copies the email, marks it deleted and clears only that one (UIDPLUS); a server with neither is told plainly and nothing moves. She never deletes mail for good herself.
+### What are plug-ins? (0.9.6)
+A plug-in gives her tools from MCP servers, the same kind Claude's plug-ins use, and can bring skills she reads when they fit. Plug-ins sit on the Mods page with your other mods, marked PLUG-IN. She uses a plug-in's tools by herself when you ask for what they do, up to 32 from each plug-in.
+
+Before a plug-in with tools goes on, her "Turn on this plug-in?" box shows what it starts or connects to, what it says its tools do, its skills and its file fingerprint (SHA-256). If the file changes later, it stays off until you approve it again. Programs it starts run outside Capri with your account's access to your PC. They get none of her keys, and none of your PC's other key, token and password settings unless the box names them. She refuses any call that would send one of her keys. After she reads a plug-in's answer or a skill, anything that would use your mouse and keyboard, send, post, delete or pay asks first until your next message.
+
+Starters: Email, Notion and Linear come with her, switched off on the Mods page. An off starter's row says STARTER and what it needs. Turn one on and her plug-in box shows first.
+- Email checks, searches and reads your mail and writes mail for you. Turning it on opens Set up Email: your email address and an app password, never your normal password. Gmail, iCloud, Yahoo, AOL, Fastmail, GMX and Zoho fill in their own servers. For another address, type its incoming (IMAP) and outgoing (SMTP) servers. Connect signs in to check it works before she keeps it. She always asks before she sends an email. Forget account removes the account and its app password.
+- Notion searches, reads and edits your pages and databases. Linear finds, makes and updates your issues and projects. Turning either on opens your browser, so you sign in on their own page.
+
+Outlook.com, Hotmail and Live addresses don't work with Email yet. Set up Email says "Outlook and Hotmail don't take app passwords any more, so Capri can't sign in to them yet." as soon as you type one. Her Email signs in only with a password, over IMAP and SMTP, and has no Microsoft sign-in.
+
+Your own plug-ins: Mods > Import mod takes a .capri-plugin, or a Claude plug-in's plugin.json or a .mcp.json. On Windows, pick "Claude plug-ins and MCP servers" in the file box to see those.
+- A plugin.json brings its whole folder, without .git or node_modules. A .mcp.json brings only that file, and the plug-in is named after its folder.
+- Servers she starts: a command with args, env and cwd. ${NAME} comes from your PC's environment, and ${CLAUDE_PLUGIN_ROOT} is the plug-in's own folder.
+- Online servers: http, streamable-http or sse, over https or on this PC.
+- Up to 4 servers. A server of another kind is left out, and the box says so.
+- Skills in skills/<name>/SKILL.md, up to 20. Commands, agents and hooks from a Claude plug-in aren't used.
+- Up to 1 MB zipped, 400 files and 8 MB unpacked.
+- The box warns when an npx or uvx server isn't pinned to a version, since what runs can change after you say yes. A server that hides the code it would run, like an encoded PowerShell block or a download piped into a shell, is refused.
+
+In the mods directory: Browse mods can list plug-ins, under Plug-ins. Install shows the same box, with a line saying the Capri team reviewed that exact file. A listed plug-in has every npx and uvx server pinned to a version.
+
+Signing in: an online plug-in like Notion or Linear opens your browser to sign in when you switch it on. If it still needs you, its row says "Needs you to sign in" on Windows, where Sign in under its Options opens your browser again, or "Turn it off and on to sign in" on Mac and Linux. On Windows the sign-in stays on this PC, protected by Windows, until you remove the plug-in, and importing it again means signing in again. On Mac and Linux she keeps sign-ins and the Email app password only until she closes.
+
+Options (Windows): on a plug-in that's on, Options lists its tools. Each has a key that goes round Like SECURITY, Always run, Ask first and Off.
+- Like SECURITY asks first the way SECURITY > HER MODS > Use tools your mods added says, and for tools that change things, Send, post and delete too.
+- Always run uses the tool without asking. Ask first always asks. Off takes it away from her.
+- A plug-in that says it can pay, buy or book, or names a tool to ask about, asks first unless you pick Always run.
+- Email's Send mail always asks, and its key only turns it off. Email's Options also has Set up email, or Change email account once it's connected.
+
+On Mac and Linux there's no Options for plug-ins yet: their tools follow your SECURITY settings, and Send mail always asks.
+
+Remove stops a plug-in's programs and forgets its sign-in and its Options choices.
 
 ### Workspace (beta) (0.9.0, Windows)
 Workspace is her window for chats with Claude Code. Open it from Mainframe > BRAIN > WORKSPACE (beta), or ask her to "open workspace".
@@ -1306,6 +1349,16 @@ After two to five quiet minutes sitting on a window or the taskbar with room, sh
 ### Her animations (0.7.6 and newer)
 Ask for one by name: "do your glitch", "smile" or "grin", "blink", "play your idle animation", or "dance". Her dance goes on, with or without music, until you say "stop dancing" or untick Move > Dance. Telling her to stop while a song plays keeps her still until the song ends.
 
+### New moves from skins (0.9.7 and newer)
+A skin can add moves of her own, like a wave or a spin, on Windows, Mac and Linux.
+- Make one: Mainframe > CAPRI > Mods > Animations > New move... Name it, pick its frames (Pictures..., Strip... or Folder...), set its speed, pick Loops or Once, then Add move. Wear it puts it on her, and Save skin... saves it to share.
+- Frames are 116 x 384 each, like her standing frames, up to 240 of them.
+- Ask for it by name: "do the wave" or "show me your happy spin". Her brain also picks one when you hint at it.
+- Once plays it and she's back to her idle. A loop goes on until you tell her to stop, like "stop the spin" or "stop dancing".
+- Names are 2 to 24 lowercase letters or numbers, with _ between words, and can't be one of hers, like dance or grin.
+- Code mods play one with capri.Her.Animate and its name.
+- Taking the skin off takes its moves away. If she says "I don't have an animation called ...", the skin with that move isn't on.
+
 ### Size
 - Mainframe > Settings > CAPRI > Size: Tiny to Giant.
 - Right-click her > Size: Small, Medium, Large, Huge or Giant.
@@ -1502,7 +1555,10 @@ Say "play" and the game, like "play Bloons TD 6", by voice or text. She opens it
 
 Ask her what you want done in the game. She works from the screen with mouse and keyboard input: turning the camera, walking, jumping, holding buttons and using menus. She checks what changed and tries another way when a click keeps doing nothing.
 
-She acts in turns, so fast driving and other moves that need instant reactions are difficult. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
+She acts in turns, so fast driving and other moves that need instant reactions are still hard. When timing matters, like sprinting into a jump, she can send a quick run of key presses, holds and clicks in one go and then look once. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
+
+### What about games with anti-cheat?
+Her quick moves never run while kernel anti-cheat is running, like Riot Vanguard, Easy Anti-Cheat, BattlEye, FACEIT or ACE, because games that use it can ban accounts for input that isn't yours. She says so instead. Riot Vanguard usually loads when Windows starts on a PC with Valorant or League of Legends installed, and while it's loaded she doesn't use quick moves in any game.
 
 ### What are Fast hands in games and the advisor?
 Mainframe > Settings > BRAIN > Fast hands in games is on by default. With a Claude key, her game jobs use Claude Haiku 5.5. Chat stays on the model you picked under BRAIN. Turn the switch off to use your picked model for the game too. Other brain services aren't changed by this switch.
@@ -1599,7 +1655,7 @@ Rock paper scissors is first to three points. The boards keep your scores for th
 Right-click her > Open Capri Mainframe > Settings > GAMES > Play... opens the menu. From 0.8.9, right-click her > Play opens it too. Pick Chess, Connect four, Tic-tac-toe or Rock, paper, scissors. You can also ask her to play one, even without a brain connected.
 
 ### Can I give her a file to read?
-Drag a file onto her, or ask her to read its full path. Put paths with spaces in quotes, such as `read "C:\Notes\project plan.txt"`. Then ask about its contents.
+Drag a file onto her, or ask her to read its full path. Put paths with spaces in quotes, such as `read "C:\Notes\project plan.txt"`. Then ask about its contents. Mod and plug-in files dropped on their own are for importing instead: she asks, then imports them on your yes.
 
 She reads text and code, Word .docx, Excel .xlsx, PDFs, and PNG, JPG, JPEG, GIF, BMP and WebP pictures. Pictures use your selected brain if it can see, otherwise Windows reads their text. PDFs use Windows to read text from the pages, so mistakes are possible. Spreadsheets use their saved cell values.
 

@@ -320,7 +320,7 @@ namespace CapriDesktop
             {
                 Mod mod = pet.ModList.Import(file, Ask);
                 // A file removed during import can be missing from the reloaded mod list.
-                if (mod == null) throw new ModException("Couldn't load that mod. Check the mods folder.");
+                if (mod == null) throw new ModException("Not imported. Nothing ran.");
                 ModSays(mod.File.Name + " is on."); ModsChanged(); return true;
             }
             catch (Exception error)

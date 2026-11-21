@@ -34,6 +34,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             foreach (Clip shown in Clips) shown.Reload();
+            RebuildMoves();
             blinkWith = null;
             herPointer?.ReloadArt();
             if (body == null) return;
@@ -321,6 +322,15 @@ namespace CapriDesktop
             OpenMainframe();
             mainframe.OpenPage(page);
             return "Opened Capri Mainframe.";
+        }
+        private string ImportModTool(string path)
+        {
+            if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.Invoke(() => ImportModTool(path));
+            if (!File.Exists(path)) return "Couldn't import " + Mods.FileName(path) + ": it isn't there any more.";
+            OpenMainframe();
+            mainframe.OpenPage("mods");
+            mainframe.ImportMod(path);
+            return mainframe.ModStatusText;
         }
         private string MoveMainframe(string which)
         {
