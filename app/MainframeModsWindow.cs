@@ -515,7 +515,7 @@ namespace CapriDesktop
 
             internal ModsSheet(Mainframe owner, float zoom) : base(owner, zoom, "Mods directory", "MODS DIRECTORY >", Wide, Tall)
             {
-                Words("Every mod is checked for malware before it goes up. Code mods still ask before they run.", 28, 52, 688, 16, Small(), Faint);
+                Words("Every mod is checked for malware before it goes up. Code mods and plug-ins still ask before they run.", 28, 52, 688, 16, Small(), Faint);
                 search = new Entry();
                 search.Bounds = Box(28, 74, 270, 26);
                 search.Cue = "Search name, author or description";
@@ -526,7 +526,7 @@ namespace CapriDesktop
                 for (int i = 0; i < filters.Length; i++)
                 {
                     int kind = i;
-                    filters[i] = Make(ModDirectory.Kinds[i], 306 + i * 82, 76, 76, 22, delegate { first = 0; filter = kind; Fill(); });
+                    filters[i] = Make(ModDirectory.Kinds[i], 306 + i * 68, 76, 64, 22, delegate { first = 0; filter = kind; Fill(); });
                     filters[i].AccessibleName = "Show " + ModDirectory.Kinds[i].ToLowerInvariant() + " in the mods directory";
                     filters[i].AccessibleDescription = "Mod filter";
                 }

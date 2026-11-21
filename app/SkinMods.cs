@@ -130,6 +130,7 @@ namespace CapriDesktop
                         if (details == null || details.Length > Largest) return null;
                         using (StreamReader reading = new StreamReader(details.Open(), Encoding.UTF8)) return ReadJson(reading.ReadToEnd()).Version;
                     }
+                if (string.Equals(extension, PluginExtension, StringComparison.OrdinalIgnoreCase)) return PluginVersionIn(file);
                 if (new FileInfo(file).Length > 4 * 1024 * 1024) return null;
                 string text = File.ReadAllText(file, Encoding.UTF8);
                 if (string.Equals(extension, CodeExtension, StringComparison.OrdinalIgnoreCase)) return ReadCode(text).Version;

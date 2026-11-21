@@ -3203,8 +3203,17 @@ namespace CapriDesktop
                     if (earsRow.IsVisible || !frame.Row("Volume").IsVisible) throw new Exception("Simple Settings didn't fold her ears with the rest of VOICE.");
                     pet.SetAdvancedSettings(true);
                 }
+                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened Capri Mainframe." || !frame.ModsShown || frame.SettingsShown) throw new Exception("Her Mainframe tool did not open her Mods page.");
+                Hands.Do("mainframe", new ToolArguments { Name = "main" });
+                if (frame.ModsShown || frame.SettingsShown) throw new Exception("Her Mainframe tool left her Mods page over the main page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened Capri Mainframe." || !frame.ModsShown) throw new Exception("Her Mainframe tool did not open her plug-ins on the Mods page.");
+                if (!Hands.KitFor().Tools.Contains("\"mods\"") || !Hands.KitFor().Tools.Contains("plug-ins like Email, Notion and Linear") || !Hands.Valid("mainframe", new ToolArguments { Name = "mods" })) throw new Exception("Her mainframe tool doesn't tell her brain about the Mods page.");
+                string pluginHelp = SelfKnow.Matching("what are plug-ins?") ?? "";
+                if (!pluginHelp.StartsWith("Plug-ins:", StringComparison.Ordinal) || !pluginHelp.Contains(MailAccount.OutlookNote) || !pluginHelp.Contains("Turn it off and on to sign in") || SelfKnow.Matching("can you open Outlook?") != null || SelfKnow.Matching("can you check my email?") != null)
+                    throw new Exception("Her Mac and Linux help lost plug-ins or took over an ordinary ask: " + pluginHelp);
+                Hands.Do("mainframe", new ToolArguments { Name = "moves" });
                 pet.Talk.Dismiss();
-                checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps the pet running and closes the Mac and Linux window");
+                checks.Add("PASS Mainframe opens from her tool and a direct request, her tool opens her Mods page for mods and plug-ins, and her help knows plug-ins; Close keeps the pet running and closes the Mac and Linux window");
                 MainframePictures(frame, voice);
                 PlainChecks(frame, fields);
                 ModsChecks(frame);
@@ -4883,6 +4892,69 @@ namespace CapriDesktop
             public void Move(int x, int y, CancellationToken token) { throw new Exception("A skill read moved the pointer."); }
         }
 
+        private void ModDropChecks(Mainframe frame, string input)
+        {
+            Mods mods = pet.ModList;
+            Func<string, string> think = pet.Think;
+            Func<ModFile, string, bool> ask = frame.ModAsk;
+            var provider = pet.Brain.Provider;
+            string model = pet.Brain.Model, permissions = Security.Saved;
+            bool wake = Security.On(Security.Wake);
+            string names = ModSample(input, "drop-names", "\"wake_names\":[\"Dropsy\"]"), tools = Path.Combine(input, "drop-tools" + Mods.PluginExtension), notes = Path.Combine(input, "drop-notes.txt");
+            File.WriteAllText(notes, "MOD-DROP-NOTES");
+            if (File.Exists(tools)) File.Delete(tools);
+            FileParts(tools, new Dictionary<string, string> { { ".claude-plugin/plugin.json", "{\"name\":\"drop-tools\",\"displayName\":\"Drop Tools\",\"version\":\"1.0.0\",\"mcpServers\":{\"none\":{\"type\":\"capri\",\"builtin\":\"smoke-none\"}}}" } });
+            List<string> boxes = new List<string>();
+            try
+            {
+                pet.Think = null; pet.Brain.Model = null; pet.Brain.Provider = new FileToolBrain();
+                Security.Load("1111111111");
+                frame.ModAsk = (mod, hash) => { boxes.Add(mod.Id); return false; };
+                Func<string[], string> drop = files =>
+                {
+                    string plain = null;
+                    pet.Talk.Dismiss();
+                    MacFiles.Drop(files, words => plain = words, pet.HandMods);
+                    if (plain == null) RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a dropped mod file");
+                    return plain;
+                };
+                Func<string, string> answer = words =>
+                {
+                    pet.Talk.Dismiss(); pet.Hear(words);
+                    RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "an answer about a dropped mod file");
+                    return pet.Talk.Reply;
+                };
+                const string offer = "Import drop-names.capri-mod into your mods? Say yes and I will.";
+                if (drop(new[] { names }) != null || pet.Talk.Reply != offer || Security.Holding != "import_mod" || mods.All.Exists(mod => mod.File.Id == "drop-names")) throw new Exception("A dropped mod file wasn't offered for import in her bubble: " + pet.Talk.Reply);
+                List<ChatMessage> told = pet.Brain.History;
+                if (told.Count < 2 || told[told.Count - 2].Content != Mods.Dropped || told[told.Count - 1].Content != offer) throw new Exception("Her ask about a dropped mod file didn't join her chat.");
+                string yes = answer("yes");
+                Mod got = mods.All.Find(mod => mod.File.Id == "drop-names");
+                if (yes != "drop-names is on." || got == null || !got.On || !Hands.HeardName("Dropsy") || Security.Holding != null || !frame.ModsShown || boxes.Count != 0) throw new Exception("Their yes didn't import a dropped mod file the way Mods > Import mod does: " + yes);
+                frame.RemoveMod(0);
+                if (mods.All.Count != 0 || Hands.HeardName("Dropsy")) throw new Exception("A dropped mod file didn't remove like an imported one.");
+                if (drop(new[] { tools }) != null || pet.Talk.Reply != "Import drop-tools.capri-plugin into your mods? Say yes and I will.") throw new Exception("A dropped plug-in wasn't offered for import: " + pet.Talk.Reply);
+                string refused = answer("yes");
+                if (boxes.Count != 1 || boxes[0] != "drop-tools" || refused != "Not imported. Nothing ran." || mods.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A dropped plug-in skipped its own box: " + refused);
+                if (drop(new[] { tools }) != null || answer("no") != Security.Left || Security.Holding != null || boxes.Count != 1 || mods.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A no to a dropped plug-in still imported or asked: " + pet.Talk.Reply);
+                string plainDrop = drop(new[] { names, notes });
+                if (plainDrop != Files.Dropped || Security.Holding != null || !MacFiles.Attachments.Waiting) throw new Exception("A mod dropped with another file didn't go the usual file way.");
+                if (Hands.Valid("import_mod", new ToolArguments { Path = notes }) || !Hands.Valid("import_mod", new ToolArguments { Path = tools }) || !Security.IsHold(Security.Gate("import_mod", new ToolArguments { Path = names })) || !Hands.KitFor().Tools.Contains("\"import_mod\""))
+                    throw new Exception("Her import_mod tool took a plain file, skipped asking first or isn't in her Mac and Linux tools.");
+                checks.Add("PASS a mod or plug-in file dropped on her is offered for import in her bubble, even on Blackwall and without a brain; their yes runs Mods > Import mod with its own box, their no leaves it alone, and a mod dropped with other files goes the usual file way");
+            }
+            finally
+            {
+                Security.Drop();
+                Mod left = mods.All.Find(mod => mod.File.Id == "drop-names");
+                if (left != null) mods.Remove(left);
+                MacFiles.Attachments.Clear();
+                pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider;
+                frame.ModAsk = ask;
+                Security.Load(permissions, wake);
+            }
+        }
+
         private void ModsChecks(Mainframe frame)
         {
             Mods mods = pet.ModList;
@@ -4918,6 +4990,7 @@ namespace CapriDesktop
                 frame.RemoveMod(0);
                 if (mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, "smoke-names" + Mods.Extension)) || Hands.HeardName("Vee")) throw new Exception("Removing a settings mod left it applied.");
                 checks.Add("PASS mods settings: import, on, off, reload and remove share Windows' names, spellings, sounds-like and hearing-log behavior");
+                ModDropChecks(frame, input);
 
                 Clip idle = pet.Clips[0], walk = pet.Clips[10];
                 SkiaSharp.SKColor original = ModPixel(idle.Strip, 36, 74), accent = ModPixel(idle.Strip, 52, 218);
@@ -5141,6 +5214,7 @@ namespace CapriDesktop
                 checks.Add("PASS mods skills: a .capri-skill imports, reaches her jobs only while its game is open, and removing it takes it out");
 
                 ModDirectoryChecks(frame, sheet, input, blue, skin);
+                ModDirectoryPluginChecks(frame, sheet);
             }
             finally
             {
@@ -5263,6 +5337,52 @@ namespace CapriDesktop
                 catch (IOException) { }
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the directory after the fallback checks");
             }
+        }
+
+        private void ModDirectoryPluginChecks(Mainframe frame, ModsWindow sheet)
+        {
+            Func<string, long, byte[]> get = ModDirectory.Get;
+            Func<string, string, byte[]> post = ModDirectory.Post;
+            Func<ModFile, string, bool> ask = frame.ModAsk;
+            byte[] plugin;
+            using (MemoryStream held = new MemoryStream())
+            {
+                using (System.IO.Compression.ZipArchive zip = new System.IO.Compression.ZipArchive(held, System.IO.Compression.ZipArchiveMode.Create, true))
+                    ModEntry(zip, ".claude-plugin/plugin.json", Encoding.UTF8.GetBytes("{\"name\":\"far-tools\",\"displayName\":\"Far Tools\",\"version\":\"1.2.0\",\"capri\":{\"permissions\":[\"accounts\"]},\"mcpServers\":{\"inside\":{\"type\":\"capri\",\"builtin\":\"smoke-directory\"}}}"));
+                plugin = held.ToArray();
+            }
+            string sha = ModDirectory.BlobSha(plugin);
+            byte[] tree = Encoding.UTF8.GetBytes("{\"tree\":[{\"path\":\"mods/far-tools/far-tools.capri-plugin\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":" + plugin.Length + "},{\"path\":\"mods/far-tools/far-tools.capri-tool\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":10}]}");
+            byte[] index = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"far-tools\",\"file\":\"far-tools.capri-plugin\",\"name\":\"Far Tools\",\"author\":\"Vocyn\",\"about\":\"Gives her a tool from a server she runs inside herself.\",\"kind\":\"plugin\"}]}");
+            int counted = 0;
+            string consent = null;
+            ModDirectory.Get = delegate(string url, long most)
+            {
+                if (url.Contains("/trees/") || url == ModDirectory.TreePage) return tree;
+                if (url == ModDirectory.IndexPage) return index;
+                if (url.EndsWith("/far-tools.capri-plugin", StringComparison.Ordinal) || url.EndsWith(sha, StringComparison.Ordinal)) return plugin;
+                throw new System.Net.WebException("stand-in");
+            };
+            ModDirectory.Post = delegate(string url, string body) { Interlocked.Increment(ref counted); return Encoding.UTF8.GetBytes("{}"); };
+            try
+            {
+                List<ModListing> found = ModDirectory.Browse();
+                if (found.Count != 1 || found[0].Kind != "PLUG-IN." || found[0].KindIndex != 5 || found[0].Title != "Far Tools" || ModDirectory.Kinds.Length != 6 || ModDirectory.Kinds[5] != "Plug-ins" || ModDirectory.Filter(found, "", 5).Count != 1 || ModDirectory.Filter(found, "", 1).Count != 0)
+                    throw new Exception("The Mac and Linux mods directory didn't list a plug-in under Plug-ins.");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "a directory with a plug-in");
+                sheet.Search(""); sheet.PickKind(5);
+                if (sheet.TitleOf(0) != "Far Tools" || sheet.MetaOf(0) != "PLUG-IN." || !sheet.CanDownload(0)) throw new Exception("The Plug-ins filter didn't show the plug-in card on Mac and Linux: " + sheet.MetaOf(0));
+                string wrong = sheet.Crowded();
+                if (wrong != null) throw new Exception("The Mac and Linux mods window with six filters doesn't fit: " + wrong);
+                sheet.SavePicture(Path.Combine(folder, "mainframe-mods-plugins.png"));
+                frame.ModAsk = delegate(ModFile mod, string hash) { consent = Mods.Consent(mod, hash); return false; };
+                sheet.Install(0); MainframeWait(delegate { return !sheet.Working; }, "a declined directory plug-in");
+                if (consent == null || !consent.Contains(Mods.Reviewed) || !consent.EndsWith("Turn this plug-in on?", StringComparison.Ordinal) || pet.ModList.All.Exists(m => m.File.Id == "far-tools") || counted != 0 || frame.ModStatusText != "Not imported. Nothing ran.")
+                    throw new Exception("A plug-in from the Mac and Linux directory didn't ask with the directory's line, or a no left something: " + frame.ModStatusText);
+                sheet.PickKind(0);
+                checks.Add("PASS mods directory on Mac and Linux: a plug-in shows under Plug-ins as PLUG-IN., six filters fit, and installing one asks Turn this plug-in on? with the line saying the Capri team reviewed that exact file; a no leaves nothing and isn't counted (mainframe-mods-plugins.png)");
+            }
+            finally { frame.ModAsk = ask; ModDirectory.Get = get; ModDirectory.Post = post; }
         }
 
         private void ModDirectoryChecks(Mainframe frame, ModsWindow sheet, string input, string blue, string skin)
@@ -5495,8 +5615,8 @@ namespace CapriDesktop
                 Rect card = sheet.CardBox(i), want = new Rect(28 + 233 * (i % 3), 140 + 284 * (i / 3), 222, 272);
                 if (sheet.TitleOf(i) == null || !sheet.HasPreview(i) || card != want) wrong = "card " + i + " is at " + card;
             }
-            string[] names = { "Search the mods directory", "Show all in the mods directory", "Show skills in the mods directory", "Sort the mods directory by a to z", "Sort the mods directory by top rated", "Refresh", "Close", "Back", "Next" };
-            Rect[] boxes = { new Rect(28, 74, 270, 26), new Rect(306, 76, 76, 22), new Rect(634, 76, 76, 22), new Rect(476, 106, 76, 22), new Rect(640, 106, 76, 22), new Rect(604, 20, 80, 22), new Rect(690, 20, 26, 22), new Rect(28, 710, 60, 22), new Rect(656, 710, 60, 22) };
+            string[] names = { "Search the mods directory", "Show all in the mods directory", "Show skills in the mods directory", "Show plug-ins in the mods directory", "Sort the mods directory by a to z", "Sort the mods directory by top rated", "Refresh", "Close", "Back", "Next" };
+            Rect[] boxes = { new Rect(28, 74, 270, 26), new Rect(306, 76, 64, 22), new Rect(578, 76, 64, 22), new Rect(646, 76, 64, 22), new Rect(476, 106, 76, 22), new Rect(640, 106, 76, 22), new Rect(604, 20, 80, 22), new Rect(690, 20, 26, 22), new Rect(28, 710, 60, 22), new Rect(656, 710, 60, 22) };
             for (int i = 0; wrong == null && i < names.Length; i++) if (sheet.BoxOf(names[i]) != boxes[i]) wrong = names[i] + " is at " + sheet.BoxOf(names[i]);
             if (wrong == null && (sheet.PageText != "Page 1 of 2" || sheet.EmptyText != null)) wrong = "eight mods show " + sheet.PageText;
             if (wrong == null) wrong = sheet.Crowded();
@@ -5512,7 +5632,7 @@ namespace CapriDesktop
             if (wrong == null && (sheet.EmptyText != "No mods match that." || sheet.PageText != null || sheet.TitleOf(0) != null)) wrong = "a search with no match shows " + sheet.EmptyText;
             sheet.Search("");
             if (wrong != null) throw new Exception("The mods directory isn't Windows' 3 x 2 grid: " + wrong);
-            checks.Add("PASS mods directory grid: a 744 x 782 window like Windows with three cards across and two down, 222 wide at 28 + 233 across and 140 + 284 down; search, the five kinds, the three sorts, Refresh, Close, Back and Next where Windows has them; eight mods page 1 of 2 to 2 of 2, a new sort goes back to page 1, and no match says so; mods-directory-100.png and mods-directory-150.png");
+            checks.Add("PASS mods directory grid: a 744 x 782 window like Windows with three cards across and two down, 222 wide at 28 + 233 across and 140 + 284 down; search, the six kinds, the three sorts, Refresh, Close, Back and Next where Windows has them; eight mods page 1 of 2 to 2 of 2, a new sort goes back to page 1, and no match says so; mods-directory-100.png and mods-directory-150.png");
         }
 
         // Mods beside Settings in her title bar and her version beside Support, where Windows has them.

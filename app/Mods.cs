@@ -114,6 +114,19 @@ namespace CapriDesktop
         private volatile SoundsLike sounds;
         private volatile bool logging;
 
+        internal static readonly string[] Handed = { PluginExtension, Extension, CodeExtension, SkinExtension, SkillExtension, ToolExtension };
+        internal const string Dropped = "I handed you these mod files.";
+
+        internal static string FileName(string path) { return Regex.Match(path ?? "", @"[^\\/]*$").Value; }
+
+        internal static bool Importable(string path)
+        {
+            string name = FileName(path);
+            foreach (string ending in Handed)
+                if (name.Length > ending.Length && name.EndsWith(ending, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
         internal Mods(string data)
         {
             folder = Path.Combine(data, "mods");

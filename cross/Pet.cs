@@ -969,6 +969,7 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Mainframe = MainframeTool;
+            Hands.ImportMod = ImportModTool;
             AttachSelfTools();
             StartMiniPlayer();
             Hands.Animate = AnimateTool;
@@ -1078,7 +1079,7 @@ namespace CapriDesktop
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
-            MacFiles.Drops(body, words => Hear(words));
+            MacFiles.Drops(body, words => Hear(words), HandMods);
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
@@ -5924,10 +5925,24 @@ namespace CapriDesktop
 
         internal void Hear(string text, bool fromVoice = false) { Hear(text, fromVoice, null); }
 
-        private void Hear(string text, bool fromVoice, RemoteTurn phone)
+        internal void HandMods(string[] paths)
+        {
+            Hear(Mods.Dropped, false, null, delegate(string line)
+            {
+                int turn = asking;
+                Security.Drop();
+                List<string> results = new List<string>();
+                foreach (string path in paths) results.Add(Brain.Act("import_mod", new ToolArguments { Path = path }));
+                string said = Hands.Shown(Security.Reply(results) ?? string.Join(" ", results));
+                if (turn == asking) Brain.Remember(line, said);
+                return said;
+            });
+        }
+
+        private void Hear(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
         {
             RemoteTurn previous = RemoteTurn.Working;
-            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone); }
+            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone, handed); }
             catch { RemoteEnd(phone, true); throw; }
             finally
             {
@@ -5943,7 +5958,7 @@ namespace CapriDesktop
             finally { RemoteTurn.Working = previous; }
         }
 
-        private void HearLine(string text, bool fromVoice, RemoteTurn phone)
+        private void HearLine(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -5959,6 +5974,18 @@ namespace CapriDesktop
                 if (RemoteEarly(phone, text)) return;
             }
             StopListening();
+            if (handed != null)
+            {
+                Typed();
+                int handing = ++asking;
+                if (!SelfJobs.Active) { ComputerJobs.Stop(); Brain.Cancel(); }
+                ownedVoice?.Cancel();
+                StopNativeListening(!fromVoice);
+                voice.Stop();
+                Talk.Thinking(text);
+                Ask(handing, text, 0, 0, null, handed);
+                return;
+            }
             if (modSendDepth == 0 && !(phone != null && phone.Hold != null && Security.Declines(input)) && System.Text.RegularExpressions.Regex.IsMatch(input, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
             bool fromMod = false;
             if (!meeting.Asking || phone != null)
@@ -6050,7 +6077,8 @@ namespace CapriDesktop
             if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
             bool fileRequest = tool == "find_file" || tool == "read_file" || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
             bool websiteHeld = phone == null ? Security.Holding == "open_website" : phone.Hold != null && phone.Hold.Calls.Count == 1 && phone.Hold.Calls[0].Key == "open_website";
-            if (Think == null && Brain.Model == null && (fileRequest || websiteHeld && (Security.Agrees(input) || Security.Declines(input))))
+            bool modHeld = phone == null && Security.Holding == "import_mod";
+            if (Think == null && Brain.Model == null && (fileRequest || (websiteHeld || modHeld) && (Security.Agrees(input) || Security.Declines(input))))
             {
                 Talk.Thinking(text);
                 Ask(ticket, text, 0, 0, phone, delegate(string line)
