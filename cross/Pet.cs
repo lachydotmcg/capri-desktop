@@ -2432,6 +2432,7 @@ namespace CapriDesktop
 
         internal static byte[] Hello(string name)
         {
+            if (CompanionPack.On) return CompanionPack.Hello(name);
             using (Stream clip = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Voice.hello-" + name + ".wav"))
             {
                 if (clip == null) return null;

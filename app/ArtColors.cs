@@ -152,6 +152,15 @@ namespace CapriDesktop
             }
         }
 
+        internal string[] ColoursWorn
+        {
+            get
+            {
+                Mod companion = CompanionOn;
+                return companion != null && companion.Pack.Art ? new string[ArtColors.Slots] : ColoursNow;
+            }
+        }
+
         private static void CheckColours(ModColors colours)
         {
             bool any = false;
