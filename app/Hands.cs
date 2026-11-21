@@ -117,6 +117,12 @@ namespace CapriDesktop
         internal InstalledApp(string name, string id) { Name = name; Id = id; }
     }
 
+    internal sealed class PartialApps : Exception
+    {
+        internal readonly List<InstalledApp> Apps;
+        internal PartialApps(Exception missed, List<InstalledApp> apps) : base(missed.Message, missed) { Apps = apps; }
+    }
+
     // Her SECURITY window (Lachy, 29 Oct): a toggle for each kind of thing she does on their PC, set by a slider of four presets.
     // A toggle that's off means she asks first in chat ("Open Spotify? Say yes and I will.") and does it on their yes, never a
     // silent no. Typing passwords and card numbers is the one exception: with it off they type those themselves. Trusted, the
@@ -4201,6 +4207,8 @@ namespace CapriDesktop
                 if (Regex.IsMatch(target, @"\s(and|then|&)\s|,\s*\S", RegexOptions.IgnoreCase)) return false;
                 if (Regex.IsMatch(target, @"^(your|ur|capri'?s|the capri)( own)? (web ?site|site|page|download page)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = Home; return true; }
                 if (Installed(target)) { tool = "open_app"; args.Name = target; return true; }
+                string known = KnownAs(target);
+                if (known != null && Installed(known)) { tool = "open_app"; args.Name = known; return true; }
 #if CROSS
                 // "Open minecraft from my modrinth launcher": her hands can't reach inside it here, so the launcher opens (Mako, 1 Nov).
                 Match launcher = Regex.Match(target, @"\s(?:from|in|on|with|through|using|via)\s+(?:(?:my|the)\s+)?(.+?)(?:\s+launcher)?$", RegexOptions.IgnoreCase);
@@ -4762,6 +4770,17 @@ namespace CapriDesktop
             return null;
         }
 
+        private static readonly string[,] SoundAlikes = { { "fortnight", "fortnite" }, { "fort night", "fortnite" } };
+
+        internal static string KnownAs(string wanted)
+        {
+            string nicknamed = Nickname(wanted);
+            if (nicknamed != null) return nicknamed;
+            string said = Regex.Replace(Plain(wanted), @"^the | (app|game)$", "");
+            for (int i = 0; i < SoundAlikes.GetLength(0); i++) if (said == SoundAlikes[i, 0]) return SoundAlikes[i, 1];
+            return null;
+        }
+
         // The installed game a job is in, like cs in "start matchmaking in cs", when it isn't open yet: a brain that goes straight
         // to use_computer gets it opened first (F57). Null when the job names none, or it's open already.
         internal static string Unopened(string job)
@@ -4895,7 +4914,7 @@ namespace CapriDesktop
         private static List<InstalledApp> FindApps(List<InstalledApp> apps, string wanted)
         {
             List<InstalledApp> found = Match(apps, wanted);
-            string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
+            string nicknamed = found.Count == 0 ? KnownAs(wanted) : null;
             return nicknamed == null ? found : Match(apps, nicknamed);
         }
 
@@ -5085,6 +5104,7 @@ namespace CapriDesktop
                 List<InstalledApp> apps;
                 Exception failed = null;
                 try { apps = new List<InstalledApp>(Catalog()); }
+                catch (PartialApps partial) { apps = new List<InstalledApp>(partial.Apps ?? new List<InstalledApp>()); failed = partial.InnerException ?? partial; }
                 catch (Exception error) { apps = new List<InstalledApp>(); failed = error; }
                 string folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 string path = folder.Length == 0 ? "" : Path.Combine(folder, @"Spotify\Spotify.exe");
@@ -5102,7 +5122,21 @@ namespace CapriDesktop
             }
         }
 
-        private static List<InstalledApp> ReadCatalog()
+        internal static Func<List<InstalledApp>> StartMenu = ReadStartMenu;
+        internal static Func<List<InstalledApp>> Launchers = ReadLaunchers;
+
+        internal static List<InstalledApp> ReadCatalog()
+        {
+            List<InstalledApp> listed;
+            Exception missed = null;
+            try { listed = StartMenu(); }
+            catch (Exception error) { listed = new List<InstalledApp>(); missed = error; }
+            listed = WithSteam(listed, Launchers());
+            if (missed != null) throw new PartialApps(missed, listed);
+            return listed;
+        }
+
+        private static List<InstalledApp> ReadStartMenu()
         {
             List<InstalledApp> apps = new List<InstalledApp>();
             Exception failed = null;
@@ -5128,7 +5162,12 @@ namespace CapriDesktop
             reader.Start();
             if (!reader.Join(10000)) throw new TimeoutException("The app list took too long.");
             if (failed != null) throw failed;
-            List<InstalledApp> listed = WithSteam(apps, SteamApps(SteamFolder()));
+            return apps;
+        }
+
+        private static List<InstalledApp> ReadLaunchers()
+        {
+            List<InstalledApp> listed = SteamApps(SteamFolder());
 #if !CROSS
             listed = WithSteam(listed, StoreApps());
 #endif

@@ -25366,6 +25366,79 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeLauncherGames(System.Collections.Generic.List<string> checks, string output)
+        {
+            string root = Path.Combine(output, "launcher-games");
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog, startWas = Hands.StartMenu, launchersWas = Hands.Launchers;
+            Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> openedWas = Hands.Opened;
+            string appsPathWas = Hands.AppsPath;
+            try
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+                string manifests = Path.Combine(root, @"Epic\EpicGamesLauncher\Data\Manifests"), steam = Path.Combine(root, "Steam");
+                Directory.CreateDirectory(manifests);
+                Directory.CreateDirectory(Path.Combine(steam, "steamapps"));
+                File.WriteAllText(Path.Combine(manifests, "F1.item"), "{\n\t\"FormatVersion\": 0,\n\t\"bIsIncompleteInstall\": false,\n\t\"LaunchExecutable\": \"FortniteGame/Binaries/Win64/FortniteLauncher.exe\",\n\t\"DisplayName\": \"Fortnite\",\n\t\"CatalogNamespace\": \"fn\",\n\t\"CatalogItemId\": \"4fe75bbc5a674f4f9b356b5c90567da5\",\n\t\"AppName\": \"Fortnite\",\n\t\"MainGameAppName\": \"Fortnite\"\n}");
+                File.WriteAllText(Path.Combine(steam, @"steamapps\appmanifest_730.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"730\"\n\t\"name\"\t\t\"Counter-Strike 2\"\n\t\"StateFlags\"\t\t\"4\"\n}\n");
+                string fortniteLink = "com.epicgames.launcher://apps/fn%3A4fe75bbc5a674f4f9b356b5c90567da5%3AFortnite?action=launch&silent=true";
+                System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>();
+                int looks = 0;
+                Hands.StartMenu = delegate { looks++; throw new TimeoutException("The app list took too long."); };
+                Hands.Launchers = delegate { return Hands.WithSteam(Hands.SteamApps(steam), Hands.EpicApps(manifests)); };
+                Hands.Catalog = Hands.ReadCatalog;
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                Hands.Run = delegate(string id) { ran.Add(id); };
+                Hands.Opened = delegate { return ""; };
+                Hands.AppsPath = null;
+                Hands.Forget();
+                string opened = Hands.Do("open_app", new ToolArguments { Name = "Fortnite" });
+                if (opened != "Opened Fortnite." || ran.Count != 1 || ran[0] != fortniteLink || !Hands.Installed("fortnite") || looks == 0)
+                    throw new Exception("A slow Start menu list lost the games from her launchers: " + opened + " / " + string.Join(" | ", ran.ToArray()));
+                string tool;
+                ToolArguments heard;
+                foreach (string misheard in new[] { "open fortnight", "open Fort Night", "launch fort nite", "open fn" })
+                {
+                    if (!Hands.Direct(misheard, out tool, out heard) || tool != "open_app") throw new Exception("A misheard or short Fortnite didn't go straight to opening it: " + misheard + " / " + tool);
+                    int before = ran.Count;
+                    string said = Hands.Do(tool, heard);
+                    if (said != "Opened Fortnite." || ran.Count != before + 1 || ran[before] != fortniteLink) throw new Exception("A misheard Fortnite didn't open through Epic: " + misheard + " / " + said);
+                }
+                string typed = Hands.Do("open_app", new ToolArguments { Name = "Fortnight" });
+                if (typed != "Opened Fortnite." || ran[ran.Count - 1] != fortniteLink) throw new Exception("Her brain's open_app for Fortnight didn't find Fortnite: " + typed);
+                if (!Hands.Direct("open cs", out tool, out heard) || tool != "open_app" || heard.Name != "counter strike") throw new Exception("\"open cs\" didn't go straight to Counter-Strike 2: " + tool);
+                string cs = Hands.Do(tool, heard);
+                if (cs != "Opened Counter-Strike 2." || ran[ran.Count - 1] != "steam://rungameid/730") throw new Exception("Steam's Counter-Strike 2 didn't open after a slow Start menu list: " + cs);
+                if (!Hands.Direct("play fortnight", out tool, out heard) || tool != "play_music" || heard.Song != "fortnight") throw new Exception("\"play fortnight\" stopped being the song: " + tool);
+                Hands.AppsPath = Path.Combine(root, "apps.json");
+                Hands.Forget();
+                int beforeMiss = ran.Count;
+                string missing = Hands.Do("open_app", new ToolArguments { Name = "Missing Game" });
+                string stillOpens = Hands.Do("open_app", new ToolArguments { Name = "fortnite" });
+                if (missing != "Couldn't read their apps just now: The app list took too long." || stillOpens != "Opened Fortnite." || ran.Count != beforeMiss + 1) throw new Exception("A slow Start menu list hid its failure or lost Fortnite: " + missing + " / " + stillOpens);
+                Hands.AppsPath = null;
+                Hands.StartMenu = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Notepad", "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App"), new InstalledApp("Fortnite", "{A77F5D77-2E2B-44C3-A6A2-ABA601054A51}\\Fortnite.url") }; };
+                Hands.Forget();
+                System.Collections.Generic.List<InstalledApp> listed = Hands.ReadCatalog();
+                if (string.Join(" | ", listed.ConvertAll(app => app.Name + " = " + app.Id).ToArray()) != "Notepad = Microsoft.WindowsNotepad_8wekyb3d8bbwe!App | Fortnite = {A77F5D77-2E2B-44C3-A6A2-ABA601054A51}\\Fortnite.url | Counter-Strike 2 = steam://rungameid/730")
+                    throw new Exception("Her full app list changed order or listed Fortnite twice: " + listed.Count);
+                checks.Add("PASS launcher games: when the Start menu's list fails or takes too long, Epic's and Steam's games still open through their launchers and a miss still says the list failed; \"open fortnight\", \"fort nite\" and \"open fn\" go straight to Fortnite, \"open cs\" to Counter-Strike 2, and \"play fortnight\" stays a song");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.StartMenu = startWas;
+                Hands.Launchers = launchersWas;
+                Hands.Windows = windowsWas;
+                Hands.Run = runWas;
+                Hands.Opened = openedWas;
+                Hands.AppsPath = appsPathWas;
+                Hands.Forget();
+                try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch (IOException) { }
+            }
+        }
+
         private void SmokeCare(System.Collections.Generic.List<string> checks)
         {
             double careNow = 0;
@@ -46068,6 +46141,7 @@ namespace CapriDesktop
             Section(checks, "SmokeAsideGame", delegate { SmokeAsideGame(checks, output); });
             Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
+            Section(checks, "SmokeLauncherGames", delegate { SmokeLauncherGames(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
             Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
