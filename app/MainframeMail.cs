@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -15,7 +17,7 @@ namespace CapriDesktop
         {
             if (mailSheet != null && !mailSheet.IsDisposed) mailSheet.Close();
             Control made = MailPanel(mod);
-            mailSheet = new ModOptionsSheet(this, SheetZoom(620, made.Height + 84), mod.File.Id, "Set up Email", made, 620, made.Height + 84);
+            mailSheet = new ModOptionsSheet(this, SheetZoom(620, made.Height + 84), mod == null ? "email" : mod.File.Id, "Set up Email", made, 620, made.Height + 84);
             mailSheet.Show(this);
             mailSheet.Activate();
         }
@@ -82,16 +84,103 @@ namespace CapriDesktop
                     catch (InvalidOperationException) { }
                 });
             };
+            Toggle watch = new Toggle { Text = "Watch for new mail", Font = Type(9.5f), Switch = 96, Bounds = new Rectangle(0, 304, 552, 22), Checked = MailTools.Watch };
+            watch.AccessibleName = "Watch for new mail. She tells you when new mail lands and warns you about phishing; off by default";
+            Label watchNote = new Label { Text = "She keeps an eye on your inbox and speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.", Font = Type(8.5f), ForeColor = Faint, AutoSize = false, Bounds = new Rectangle(0, 330, 552, 34), UseMnemonic = false };
+            Toggle hands = new Toggle { Text = "Deal with phishing on her own", Font = Type(9.5f), Switch = 96, Bounds = new Rectangle(0, 372, 552, 22), Checked = MailTools.HandsSet, Dimmed = !MailTools.Watch };
+            hands.AccessibleName = "Deal with phishing on her own. Only while she watches: mail she's sure is phishing goes to spam without asking; off by default";
+            Label handsNote = new Label { Text = "Only while she's watching. Mail she's sure is phishing goes straight to spam. Anything else waits for your yes.", Font = Type(8.5f), ForeColor = Faint, AutoSize = false, Bounds = new Rectangle(0, 398, 552, 34), UseMnemonic = false };
+            bool filling = false;
+            EventHandler saveSwitches = delegate
+            {
+                if (filling) return;
+                hands.Dimmed = !watch.Checked;
+                try { MailTools.SetWatch(watch.Checked, hands.Checked); }
+                catch (Exception error)
+                {
+                    if (!(error is IOException || error is UnauthorizedAccessException)) throw;
+                    status.Text = "Couldn't save that: " + error.Message;
+                    status.ForeColor = Rose;
+                    return;
+                }
+                status.Text = !watch.Checked ? "She's not watching your inbox." : hands.Checked ? "She's watching your inbox and deals with phishing she's sure of." : "She's watching your inbox and tells you when mail lands.";
+                status.ForeColor = watch.Checked ? Cyan : Faint;
+            };
+            watch.CheckedChanged += saveSwitches;
+            hands.CheckedChanged += saveSwitches;
             forget.Click += delegate
             {
                 MailTools.Forget();
                 forget.Visible = false;
+                filling = true;
+                watch.Checked = hands.Checked = false;
+                hands.Dimmed = true;
+                filling = false;
                 status.Text = "She forgot that account. Its app password is gone from this PC.";
                 status.ForeColor = Faint;
             };
-            panel.Controls.AddRange(new Control[] { intro, addressName, address, passwordName, password, help, incomingName, incoming, outgoingName, outgoing, status, connect, forget });
-            panel.Height = 296;
+            panel.Controls.AddRange(new Control[] { intro, addressName, address, passwordName, password, help, incomingName, incoming, outgoingName, outgoing, status, connect, forget, watch, watchNote, hands, handsNote });
+            panel.Height = 436;
             return panel;
+        }
+
+        internal void CheckMailPanel(List<string> checks, string output)
+        {
+            string savedFolder = MailTools.Folder;
+            MailAccount savedAccount = MailTools.Account;
+            string dir = Path.Combine(output, "mail-panel");
+            try
+            {
+                Directory.CreateDirectory(dir);
+                MailTools.Folder = dir;
+                MailTools.Forget();
+                MailAccount demo = MailAccount.ForAddress("capri.demo@gmail.com");
+                demo.Password = "demo-panel-pass-1";
+                demo.Save(dir);
+                MailTools.Account = demo;
+                string account = File.ReadAllText(MailAccount.FilePath(dir));
+                using (Control made = MailPanel(null))
+                {
+                    Toggle watch = null, hands = null;
+                    foreach (Control c in made.Controls)
+                    {
+                        Toggle t = c as Toggle;
+                        if (t != null && t.Text == "Watch for new mail") watch = t;
+                        else if (t != null && t.Text == "Deal with phishing on her own") hands = t;
+                    }
+                    if (watch == null || hands == null || watch.Checked || hands.Checked || !hands.Dimmed || MailTools.Watch || MailTools.OwnHands)
+                        throw new Exception("Email's settings didn't open with both new switches off, and dealing with phishing waiting on watching.");
+                    MailPicture(Path.Combine(output, "mail-setup.png"));
+                    InvokeOnClick(watch, EventArgs.Empty);
+                    if (!watch.Checked || !MailTools.Watch || MailTools.OwnHands || hands.Dimmed) throw new Exception("Turning on Watch for new mail didn't save it, or let her deal with phishing on her own.");
+                    InvokeOnClick(hands, EventArgs.Empty);
+                    string saved = File.ReadAllText(Path.Combine(dir, MailTools.WatchName));
+                    if (!MailTools.OwnHands || !saved.Contains("\"watch\":true") || !saved.Contains("\"own_hands\":true") || saved.Contains("demo-panel-pass-1") || File.ReadAllText(MailAccount.FilePath(dir)) != account)
+                        throw new Exception("Email's switches weren't saved on their own, apart from the account and its password: " + saved);
+                    MailPicture(Path.Combine(output, "mail-setup-on.png"));
+                    InvokeOnClick(watch, EventArgs.Empty);
+                    if (MailTools.Watch || MailTools.OwnHands || !MailTools.HandsSet || !hands.Dimmed) throw new Exception("Turning watching off didn't stop her dealing with phishing on her own.");
+                    MailTools.Forget();
+                    if (MailTools.Watch || MailTools.HandsSet || File.Exists(Path.Combine(dir, MailTools.WatchName))) throw new Exception("Forgetting the account kept its mail switches.");
+                }
+            }
+            finally
+            {
+                MailTools.Folder = savedFolder;
+                MailTools.Account = savedAccount;
+            }
+            checks.Add("PASS mail: Email's settings show Watch for new mail and Deal with phishing on her own, both off, saved apart from the password, and dealing with phishing only counts while she watches");
+        }
+
+        private void MailPicture(string path)
+        {
+            Control made = MailPanel(null);
+            using (ModOptionsSheet sheet = new ModOptionsSheet(this, SheetZoom(620, made.Height + 84), "email", "Set up Email", made, 620, made.Height + 84))
+            {
+                sheet.Show(this);
+                sheet.Picture(path);
+                sheet.Close();
+            }
         }
 
         private void Started(Mod mod)
