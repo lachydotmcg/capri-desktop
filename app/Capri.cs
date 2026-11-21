@@ -35791,6 +35791,106 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeKeepsAppsOpen(System.Collections.Generic.List<string> checks)
+        {
+            Func<Sight> lookWas = Computer.Look, glimpseWas = Computer.Glimpse;
+            Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<Target> focusWas = Computer.Focus;
+            Func<Point, Target> underWas = Computer.Under;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<string> gameWas = Computer.GameOpen;
+            Picture shownWas = Computer.Shown;
+            bool streamWas = Computer.Streaming, sendsWas = Security.On(Security.Sends);
+            string logWas = Brain.LogPath, log = Path.Combine(Path.GetTempPath(), "capri-kept-open-" + Guid.NewGuid().ToString("N") + ".txt");
+            try
+            {
+                Computer.Streaming = false;
+                Security.Set(Security.Sends, true);
+                Rectangle bounds = new Rectangle(0, 0, 1280, 800);
+                Sight discord = new Sight { Window = new IntPtr(7), Title = "#general | Capri Fans - Discord", Program = "Discord", Bounds = bounds };
+                discord.Words.Add("Get 30% off Nitro this week");
+                discord.Targets.Add(new Target { Number = 1, Role = "button", Name = "Minimize", Box = new Rectangle(1148, 0, 44, 30) });
+                discord.Targets.Add(new Target { Number = 2, Role = "button", Name = "Maximize", Box = new Rectangle(1192, 0, 44, 30) });
+                discord.Targets.Add(new Target { Number = 3, Role = "button", Name = "Close", Box = new Rectangle(1236, 0, 44, 30) });
+                discord.Targets.Add(new Target { Number = 4, Role = "box", Name = "Message #general", Line = true, Box = new Rectangle(330, 740, 900, 44) });
+                discord.Targets.Add(new Target { Number = 5, Role = "box", Name = "#general | Capri Fans - Discord", Page = true, Box = bounds });
+                const string job = "Type \"hi\" into Discord";
+                Target hint = Computer.PopupWayOut(discord, job);
+                string brief = Computer.Brief(job, new System.Collections.Generic.List<string>(), discord);
+                if (hint != null || brief.IndexOf("A popup is open", StringComparison.Ordinal) >= 0)
+                    throw new Exception("The popup hint pointed at Discord's own Close button: " + (hint == null ? brief : hint.Label));
+                Target nitroClose = new Target { Number = 6, Role = "button", Name = "Close", Box = new Rectangle(860, 180, 32, 32) };
+                discord.Targets.Add(nitroClose);
+                Target popupHint = Computer.PopupWayOut(discord, job);
+                discord.Targets.Remove(nitroClose);
+                if (popupHint != nitroClose || !Computer.WindowButton(discord, discord.Targets[2]) || !Computer.WindowButton(discord, discord.Targets[1]) || Computer.WindowButton(discord, nitroClose) || Computer.WindowButton(discord, discord.Targets[3])
+                    || !Computer.OwnClose(new Sight { Bounds = bounds }, new Target { Role = "button", Name = "Close", Box = new Rectangle(1236, 0, 44, 30) }) || Computer.OwnClose(new Sight { Bounds = bounds }, nitroClose))
+                    throw new Exception("A popup's own Close and the window's Close were mixed up: " + (popupHint == null ? "no hint" : popupHint.Label));
+                if (Computer.ClosingKey(job, "alt+F4", false) != "alt+f4" || Computer.ClosingKey(job, "shift+ctrl+w", false) == null || Computer.ClosingKey(job, "ctrl+a", false) != null || Computer.ClosingKey(job, "enter", false) != null
+                    || Computer.ClosingKey("close discord", "alt+f4", false) != null || Computer.ClosingKey("play minecraft", "ctrl+w", true) != null || Computer.ClosingKey("play minecraft", "alt+f4", true) != "alt+f4")
+                    throw new Exception("Keys that close a window were read wrong.");
+                Brain.LogPath = log;
+                System.Collections.Generic.List<string> acted = new System.Collections.Generic.List<string>();
+                Computer.Look = delegate { return discord; };
+                Computer.Front = delegate { return new IntPtr(7); };
+                Computer.Act = delegate(string name, ToolArguments a, Sight s) { lock (acted) acted.Add(name + " " + (a.Target ?? a.Keys ?? "")); return name == "type" ? "Typed it." : name == "press" ? "Pressed " + a.Keys + "." : "Clicked."; };
+                string[] script = { "click{\"target\": \"3\"}", "press{\"keys\": \"alt+f4\"}", "press{\"keys\": \"ctrl+w\"}", "type{\"target\": \"4\", \"text\": \"hi\"}", "done{\"text\": \"Typed hi in Discord.\"}" };
+                int line = 0;
+                Job typing = new Job(job);
+                typing.Think = delegate(string system, string user, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                string typed = typing.Run();
+                int refused = typing.Steps.FindAll(step => step.IndexOf("Won't close Discord", StringComparison.Ordinal) >= 0).Count;
+                if (typed != "Typed hi in Discord." || typing.Outcome != "done" || refused != 3 || string.Join(" | ", acted.ToArray()) != "type 4")
+                    throw new Exception("Typing into Discord closed it or pressed its closing keys: " + typed + " / " + string.Join(" | ", acted.ToArray()) + " / " + string.Join(" | ", typing.Steps.ToArray()));
+                acted.Clear();
+                line = 0;
+                string[] closeScript = { "click{\"target\": \"3\"}", "done{\"text\": \"Closed Discord.\"}" };
+                Job closing = new Job("close discord");
+                closing.Think = delegate(string system, string user, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls) { return closeScript[Math.Min(line++, closeScript.Length - 1)]; };
+                string closed = closing.Run();
+                if (closed != "Closed Discord." || string.Join(" | ", acted.ToArray()) != "click 3")
+                    throw new Exception("A job that asked to close Discord couldn't: " + closed + " / " + string.Join(" | ", acted.ToArray()));
+                System.Collections.Generic.List<string> used = new System.Collections.Generic.List<string>();
+                Sight front = new Sight { Window = new IntPtr(7), Title = discord.Title, Program = "Discord", Bounds = bounds };
+                Computer.Look = Computer.Glimpse = delegate { return front; };
+                Computer.Shoot = delegate { return new Picture { Jpeg = new byte[] { 1, 2, 3 }, Size = bounds.Size, Area = bounds }; };
+                Computer.Focus = delegate { return null; };
+                Computer.GameOpen = delegate { return null; };
+                Computer.Under = delegate(Point at) { return at.X >= 1236 && at.Y < 30 ? new Target { Role = "button", Name = "Close", Box = new Rectangle(1236, 0, 44, 30) } : null; };
+                Computer.Use = delegate(string name, ToolArguments a, Picture p) { lock (used) used.Add(name + " " + (a.Text ?? "")); return name == "type" ? "Typed." : "Done."; };
+                string[] seen = { "click{\"x\":99,\"y\":1}", "press{\"keys\":\"alt+f4\"}", "type{\"text\":\"hi\"}", "done{\"text\":\"Typed hi.\"}" };
+                int turn = 0;
+                Job looking = new Job(job);
+                looking.Seer = delegate(byte[] picture, string system, string user) { return seen[Math.Min(turn++, seen.Length - 1)]; };
+                string looked = looking.Run();
+                int seenRefused = looking.Steps.FindAll(step => step.IndexOf("Won't close Discord", StringComparison.Ordinal) >= 0).Count;
+                if (looked != "Typed hi." || seenRefused != 2 || string.Join(" | ", used.ToArray()) != "type hi")
+                    throw new Exception("A job working from screenshots closed Discord: " + looked + " / " + string.Join(" | ", used.ToArray()) + " / " + string.Join(" | ", looking.Steps.ToArray()));
+                string logged = File.Exists(log) ? File.ReadAllText(log) : "";
+                if (Regex.Matches(logged, "Left Discord open").Count != 5) throw new Exception("Leaving Discord open wasn't written down: " + logged);
+                checks.Add("PASS apps stay open: typing into Discord never clicks its own Close or presses Alt+F4 or Ctrl+W, the popup hint skips a window's own buttons drawn inside its page, a real popup's Close still gets the hint, a job that asks to close Discord still can, and each refusal is logged");
+            }
+            finally
+            {
+                Computer.Look = lookWas;
+                Computer.Glimpse = glimpseWas;
+                Computer.Act = actWas;
+                Computer.Shoot = shootWas;
+                Computer.Front = frontWas;
+                Computer.Focus = focusWas;
+                Computer.Under = underWas;
+                Computer.Use = useWas;
+                Computer.GameOpen = gameWas;
+                Computer.Shown = shownWas;
+                Computer.Streaming = streamWas;
+                Security.Set(Security.Sends, sendsWas);
+                Brain.LogPath = logWas;
+                try { File.Delete(log); } catch (IOException) { }
+            }
+        }
+
         private static void SmokeSighted(System.Collections.Generic.List<string> checks)
         {
             System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> written = Computer.Moves("Sure!\nlook{\"x\": 75, \"y\": 50}\nwalk{\"keys\": \"w\", \"seconds\": 1}\nclick{x: 50, y: 48}\n<think>click{\"x\": 1, \"y\": 1}</think>");
@@ -45938,6 +46038,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
             Section(checks, "SmokeClickStops", delegate { SmokeClickStops(checks); });
+            Section(checks, "SmokeKeepsAppsOpen", delegate { SmokeKeepsAppsOpen(checks); });
             Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
             Section(checks, "SmokeLongJob", delegate { SmokeLongJob(checks); });
             Section(checks, "SmokePanelTeleport", delegate { SmokePanelTeleport(checks); });
