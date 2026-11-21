@@ -1064,6 +1064,7 @@ namespace CapriDesktop
         [DataMember] public int Sounds = 60;
         [DataMember] public int SleepAfter = 120;
         [DataMember] public bool NoIntro;
+        [DataMember] public string IntroPick;
         [DataMember] public bool NoDiscord;
         [DataMember] public int Typing;
         [DataMember] public int BubbleTime = 1;
