@@ -30,6 +30,7 @@ Ask Capri for more	ჰკითხე Capri-ს მეტი
 Asking your server...	ვეკითხები შენს სერვერს...
 Asks before closing only the apps you choose.	დახურვამდე ჰკითხავს მხოლოდ შენს მიერ არჩეულ აპებს.
 Auto	ავტო
+Auto (match what I say)	ავტო (როგორც ვამბობ)
 Automatic: VB-CABLE, else Steam's	ავტომატური: VB-CABLE, სხვა შემთხვევაში Steam-ის
 BAD RELAY HOST	ცუდი RELAY ჰოსტი
 BIG Z open notepad	BIG Z გახსენი notepad
@@ -290,6 +291,7 @@ Huge	უზარმაზარი
 I can hear you.	მესმის შენი.
 I glance at your screen and comment. Costs a little on a paid brain.	ვუყურებ შენს ეკრანს და ვაკომენტარებ. ფასიან ტვინზე ცოტას უჯდება.
 I keep listening. Say my name, then just talk.	მუდამ ვუსმენ. თქვი ჩემი სახელი და უბრალოდ ისაუბრე.
+I speak	ვლაპარაკობ
 I talk about your game as you play. Costs a little on a paid brain.	შენი თამაშის მიმდინარეობისას მასზე ვსაუბრობ. ფასიან ტვინზე ცოტას უჯდება.
 I type my replies and stay quiet.	პასუხებს ვწერ და ვდუმვარ.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	პასუხს არ გავცემ ხმით და არაფერი არსად იგზავნება. მაინც დავრჩები, შენს მუსიკაზე ვიცეკვებ და ისეთ სწრაფ საქმეებს შევასრულებ, რასაც სთხოვ, მაგალითად ხმას.
@@ -598,6 +600,7 @@ SKILL.	უნარი.
 SKIN.	გარეგნობა.
 SORT BY	დახარისხება
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ხმები ჩვევები ტვინი ყურება CAPRI DOOMSCROLL ამინდი კლიპები თამაშები გასაღებები მოძრაობები ხმა შენ
+Same as I speak	ჩემი ენის მსგავსად
 Same as her ears (VOICE > Mic)	იგივე, რაც მისი ყურები (ხმა > მიკროფონი)
 Same code on the phone?	იგივე კოდი ტელეფონზე?
 Save	შენახვა
@@ -633,6 +636,7 @@ Settings had nothing to watch.	პარამეტრებს არაფე
 Settings lost keyboard focus during the Tab walk	პარამეტრებმა კლავიატურის ფოკუსი დაკარგა Tab-ით სვლისას
 Setup guide	დაყენების სახელმძღვანელო
 Setup stopped	დაყენება შეჩერდა
+She answers in	პასუხობს
 She can read it when it fits.	შეუძლია წაიკითხოს, როცა ეტევა.
 She glances at your screen and comments. Costs a little on a paid brain.	ის შენს ეკრანს დახედავს და კომენტარს გააკეთებს. ფასიან ტვინზე ცოტას უჯდება.
 She keeps listening. Say her name, then just talk until you go quiet.	ის მუდამ უსმენს. თქვი მისი სახელი და უბრალოდ ისაუბრე, სანამ არ გაჩუმდები.

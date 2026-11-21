@@ -30,6 +30,7 @@ Ask Capri for more	Demana més a Capri
 Asking your server...	Preguntant al teu servidor...
 Asks before closing only the apps you choose.	Pregunta abans de tancar només les aplicacions que triïs.
 Auto	Automàtic
+Auto (match what I say)	Automàtic (segons el que dic)
 Automatic: VB-CABLE, else Steam's	Automàtic: VB-CABLE, si no, el de Steam
 BAD RELAY HOST	SERVIDOR DE RELLEU NO VÀLID
 BIG Z open notepad	BIG Z obre el bloc de notes
@@ -290,6 +291,7 @@ Huge	Enorme
 I can hear you.	Et sento.
 I glance at your screen and comment. Costs a little on a paid brain.	Miro la teva pantalla i faig comentaris. Costa una mica amb un cervell de pagament.
 I keep listening. Say my name, then just talk.	Continuo escoltant. Digues el meu nom i parla.
+I speak	Parlo
 I talk about your game as you play. Costs a little on a paid brain.	Parlo del teu joc mentre jugues. Costa una mica amb un cervell de pagament.
 I type my replies and stay quiet.	Escric les meves respostes i em quedo callada.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	No et contesto, i no s'envia res enlloc. Igualment em quedaré, ballaré amb la teva música i faré les coses ràpides que em demanis, com el volum.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ORDENA PER
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONS HÀBITS CERVELL MIRAR CAPRI DOOMSCROLL TEMPS CLIPS JOCS CLAUS MOVIMENTS VEU TU
+Same as I speak	Igual que el meu
 Same as her ears (VOICE > Mic)	Igual que les seves orelles (VEU > Micro)
 Same code on the phone?	El mateix codi al mòbil?
 Save	Desa
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Configuració no tenia res per mirar.
 Settings lost keyboard focus during the Tab walk	Configuració va perdre el focus del teclat durant el recorregut amb Tab
 Setup guide	Guia de configuració
 Setup stopped	La configuració s'ha aturat
+She answers in	Respon en
 She can read it when it fits.	Ho pot llegir quan càpiga.
 She glances at your screen and comments. Costs a little on a paid brain.	Mira la teva pantalla i fa comentaris. Costa una mica amb un cervell de pagament.
 She keeps listening. Say her name, then just talk until you go quiet.	Continua escoltant. Digues el seu nom i parla fins que callis.

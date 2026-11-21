@@ -30,6 +30,7 @@ Ask Capri for more	Hingin pa kay Capri
 Asking your server...	Tinatanong ang server mo...
 Asks before closing only the apps you choose.	Nagtatanong bago isara ang mga app na pipiliin mo lang.
 Auto	Auto
+Auto (match what I say)	Auto (sundan ang sinasabi ko)
 Automatic: VB-CABLE, else Steam's	Automatic: VB-CABLE, kung wala ay sa Steam
 BAD RELAY HOST	MALI ANG RELAY HOST
 BIG Z open notepad	BIG Z buksan ang notepad
@@ -290,6 +291,7 @@ Huge	Napakalaki
 I can hear you.	Naririnig kita.
 I glance at your screen and comment. Costs a little on a paid brain.	Sinisilip ko ang screen mo at nagko-comment. May kaunting gastos sa bayad na brain.
 I keep listening. Say my name, then just talk.	Patuloy akong nakikinig. Sabihin ang pangalan ko, tapos magsalita ka lang.
+I speak	Nagsasalita ako ng
 I talk about your game as you play. Costs a little on a paid brain.	Nagsasalita ako tungkol sa laro mo habang naglalaro ka. May kaunting gastos sa bayad na brain.
 I type my replies and stay quiet.	Tina-type ko ang mga sagot ko at tahimik lang ako.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Hindi ako sasagot, at walang ipinapadala kahit saan. Makikisama pa rin ako, sasayaw sa musika mo at gagawin ang mabilisang hiling mo, gaya ng volume.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	SORT BY
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as I speak	Pareho sa wika ko
 Same as her ears (VOICE > Mic)	Kapareho ng tainga niya (VOICE > Mic)
 Same code on the phone?	Pareho ba ang code sa phone?
 Save	Save
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Walang mapanood ang Settings.
 Settings lost keyboard focus during the Tab walk	Nawala ang keyboard focus ng Settings habang nasa Tab walk
 Setup guide	Setup guide
 Setup stopped	Huminto ang setup
+She answers in	Sumasagot siya sa
 She can read it when it fits.	Mababasa niya ito kapag bagay.
 She glances at your screen and comments. Costs a little on a paid brain.	Sumisilip siya sa screen mo at nagko-comment. May kaunting gastos sa bayad na brain.
 She keeps listening. Say her name, then just talk until you go quiet.	Patuloy siyang nakikinig. Sabihin ang pangalan niya, tapos magsalita ka lang hanggang tumahimik ka.
