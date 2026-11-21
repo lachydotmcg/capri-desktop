@@ -30,6 +30,7 @@ Ask Capri for more	Pyydä Capria lisää
 Asking your server...	Kysytään palvelimeltasi...
 Asks before closing only the apps you choose.	Kysyy ennen sulkemista vain valitsemiasi sovelluksia.
 Auto	Auto
+Auto (match what I say)	Auto (seuraa mitä sanon)
 Automatic: VB-CABLE, else Steam's	Automaattinen: VB-CABLE, muuten Steamin
 BAD RELAY HOST	VIRHEELLINEN RELAY-PALVELIN
 BIG Z open notepad	BIG Z avaa muistion
@@ -290,6 +291,7 @@ Huge	Valtava
 I can hear you.	Kuulen sinut.
 I glance at your screen and comment. Costs a little on a paid brain.	Vilkaisen näyttöäsi ja kommentoin. Maksaa vähän maksullisilla aivoilla.
 I keep listening. Say my name, then just talk.	Kuuntelen edelleen. Sano nimeni ja puhu sitten vain.
+I speak	Puhun
 I talk about your game as you play. Costs a little on a paid brain.	Puhun pelistäsi pelatessasi. Maksaa vähän maksullisilla aivoilla.
 I type my replies and stay quiet.	Kirjoitan vastaukseni ja pysyn hiljaa.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	En vastaa ääneen, eikä mitään lähetetä minnekään. Istun silti mukana, tanssin musiikkisi tahtiin ja teen pikkujutut, joita pyydät, kuten äänenvoimakkuuden.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	LAJITTELE
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ÄÄNET TAVAT AIVOT KATSO CAPRI DOOMSCROLL SÄÄ KLIPIT PELIT NÄPPÄIMET LIIKKEET ÄÄNI SINÄ
+Same as I speak	Sama kuin puhumani
 Same as her ears (VOICE > Mic)	Sama kuin hänen korvansa (ÄÄNI > Mikki)
 Same code on the phone?	Sama koodi puhelimella?
 Save	Tallenna
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Asetuksissa ei ollut mitään katsottavaa.
 Settings lost keyboard focus during the Tab walk	Asetukset menetti näppäimistön fokuksen Tab-kierroksen aikana
 Setup guide	Asennusopas
 Setup stopped	Asennus keskeytyi
+She answers in	Hän vastaa kielellä
 She can read it when it fits.	Hän voi lukea sen, kun se mahtuu.
 She glances at your screen and comments. Costs a little on a paid brain.	Hän vilkaisee näyttöäsi ja kommentoi. Maksaa vähän maksullisilla aivoilla.
 She keeps listening. Say her name, then just talk until you go quiet.	Hän kuuntelee edelleen. Sano hänen nimensä ja puhu, kunnes hiljenet.

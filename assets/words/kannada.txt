@@ -30,6 +30,7 @@ Ask Capri for more	Capri ಇನ್ನಷ್ಟು ಕೇಳಿ
 Asking your server...	ನಿಮ್ಮ ಸರ್ವರ್ ಅನ್ನು ಕೇಳುತ್ತಿದ್ದೇನೆ...
 Asks before closing only the apps you choose.	ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ಮಾತ್ರ ಮುಚ್ಚುವ ಮೊದಲು ಕೇಳುತ್ತದೆ.
 Auto	ಸ್ವಯಂ
+Auto (match what I say)	ಸ್ವಯಂ (ನಾನು ಹೇಳಿದಂತೆ)
 Automatic: VB-CABLE, else Steam's	ಸ್ವಯಂಚಾಲಿತ: VB-CABLE, ಇಲ್ಲದಿದ್ದರೆ Steam ನದು
 BAD RELAY HOST	ಕೆಟ್ಟ RELAY ಹೋಸ್ಟ್
 BIG Z open notepad	BIG Z notepad ತೆರೆ
@@ -290,6 +291,7 @@ Huge	ಅಪಾರ
 I can hear you.	ನಾನು ನಿನ್ನನ್ನು ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ.
 I glance at your screen and comment. Costs a little on a paid brain.	ನಿನ್ನ ಪರದೆಯನ್ನು ಒಮ್ಮೆ ನೋಡಿ ಕಾಮೆಂಟ್ ಮಾಡುತ್ತೇನೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
 I keep listening. Say my name, then just talk.	ನಾನು ಕೇಳುತ್ತಲೇ ಇದ್ದೇನೆ. ನನ್ನ ಹೆಸರು ಹೇಳು, ನಂತರ ಮಾತನಾಡು.
+I speak	ನಾನು ಮಾತನಾಡುವ ಭಾಷೆ
 I talk about your game as you play. Costs a little on a paid brain.	ನೀನು ಆಡುವಾಗ ನಿನ್ನ ಆಟದ ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತೇನೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
 I type my replies and stay quiet.	ನನ್ನ ಉತ್ತರಗಳನ್ನು ಟೈಪ್ ಮಾಡಿ ಮೌನವಾಗಿರುತ್ತೇನೆ.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ಮಾತಿನಲ್ಲಿ ಉತ್ತರಿಸುವುದಿಲ್ಲ, ಮತ್ತು ಏನೂ ಎಲ್ಲಿಗೂ ಕಳುಹಿಸಲ್ಪಡುವುದಿಲ್ಲ. ಆದರೂ ನಿನ್ನ ಜೊತೆ ಇರುತ್ತೇನೆ, ನಿನ್ನ ಸಂಗೀತಕ್ಕೆ ನೃತ್ಯ ಮಾಡುತ್ತೇನೆ ಮತ್ತು ವಾಲ್ಯೂಮ್‌ನಂತಹ ನೀನು ಕೇಳುವ ಸಣ್ಣ ಕೆಲಸಗಳನ್ನು ಮಾಡುತ್ತೇನೆ.
@@ -598,6 +600,7 @@ SKILL.	ಕೌಶಲ್ಯ.
 SKIN.	ಸ್ಕಿನ್.
 SORT BY	ವಿಂಗಡಿಸಿ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ಶಬ್ದಗಳು ಅಭ್ಯಾಸಗಳು ಮೆದುಳು ವೀಕ್ಷಿಸು CAPRI DOOMSCROLL ಹವಾಮಾನ ಕ್ಲಿಪ್‌ಗಳು ಆಟಗಳು ಕೀಗಳು ಚಲನೆಗಳು ಧ್ವನಿ ನೀನು
+Same as I speak	ನನ್ನ ಭಾಷೆಯಂತೆಯೇ
 Same as her ears (VOICE > Mic)	ಅವಳ ಕಿವಿಗಳಂತೆಯೇ (VOICE > Mic)
 Same code on the phone?	ಫೋನ್‌ನಲ್ಲಿ ಅದೇ ಕೋಡ್?
 Save	ಉಳಿಸಿ
@@ -633,6 +636,7 @@ Settings had nothing to watch.	ಸೆಟ್ಟಿಂಗ್‌ಗಳಿಗೆ ನ
 Settings lost keyboard focus during the Tab walk	Tab ನಡಿಗೆಯ ಸಮಯದಲ್ಲಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಕೀಬೋರ್ಡ್ ಫೋಕಸ್ ಕಳೆದುಕೊಂಡವು
 Setup guide	ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ
 Setup stopped	ಸೆಟಪ್ ನಿಲ್ಲಿಸಲಾಗಿದೆ
+She answers in	ಅವಳು ಉತ್ತರಿಸುವ ಭಾಷೆ
 She can read it when it fits.	ಸರಿಹೊಂದಿದಾಗ ಅವಳು ಅದನ್ನು ಓದಬಹುದು.
 She glances at your screen and comments. Costs a little on a paid brain.	ಅವಳು ನಿನ್ನ ಪರದೆಯನ್ನು ಒಮ್ಮೆ ನೋಡಿ ಕಾಮೆಂಟ್ ಮಾಡುತ್ತಾಳೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
 She keeps listening. Say her name, then just talk until you go quiet.	ಅವಳು ಕೇಳುತ್ತಲೇ ಇರುತ್ತಾಳೆ. ಅವಳ ಹೆಸರು ಹೇಳು, ನಂತರ ನೀನು ಸುಮ್ಮನಾಗುವವರೆಗೆ ಮಾತನಾಡು.
