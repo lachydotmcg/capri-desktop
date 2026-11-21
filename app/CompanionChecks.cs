@@ -230,6 +230,9 @@ namespace CapriDesktop
                 }
                 if (CompanionPack.Name != "Nyx") throw new Exception("A refused companion pack changed who was on.");
                 checks.Add("PASS companions: packs with no personality, a program, a folder, art the wrong size, a bad name, voice or greetings, a link in a greeting, a bad or stereo clip, or only override lines are refused and leave nothing behind");
+                CheckRudeWords(checks);
+                CheckRudePacks(mods, output);
+                checks.Add("PASS companions: a pack whose name, a wake name or a greeting swears, uses a slur or says anything sexual, even as sh1t, f u c k or fuuuuck, is refused on import and as an update and leaves nothing behind, one already in the mods folder doesn't load, and one named Dickens that greets you from Scunthorpe still reads");
             }
             finally
             {
@@ -237,6 +240,128 @@ namespace CapriDesktop
             }
             if (CompanionPack.On || Brain.Persona != capriPersona || Directory.Exists(Path.Combine(mods.Folder, "smoke-nyx-companion"))) throw new Exception("Removing the companion packs left one behind.");
             checks.Add("PASS companions: removing a pack takes its files and brings Capri back");
+        }
+
+        private static readonly string[] Disguises = { "as it is", "in capitals", "with an s", "spaced out", "with dots", "with dashes", "with underscores", "stretched", "in numbers", "starred", "in numbers with dots" };
+
+        private static string Spread(string word, string gap)
+        {
+            StringBuilder spread = new StringBuilder();
+            foreach (char letter in word) spread.Append(spread.Length == 0 ? "" : gap).Append(letter);
+            return spread.ToString();
+        }
+
+        private static string InNumbers(string word)
+        {
+            StringBuilder numbers = new StringBuilder();
+            foreach (char letter in word) numbers.Append("abegilost".IndexOf(letter) < 0 ? letter : "483911057"["abegilost".IndexOf(letter)]);
+            return numbers.ToString();
+        }
+
+        private static string Disguised(string word, int how)
+        {
+            string letters = word.Replace(" ", "");
+            switch (how)
+            {
+                case 0: return word;
+                case 1: return word.ToUpperInvariant();
+                case 2: return word + "s";
+                case 3: return Spread(letters, " ");
+                case 4: return Spread(letters, ".");
+                case 5: return Spread(letters, "-");
+                case 6: return Spread(letters, "_");
+                case 7:
+                    StringBuilder stretched = new StringBuilder();
+                    foreach (char letter in letters) stretched.Append(letter, 3);
+                    return stretched.ToString();
+                case 8: return InNumbers(letters);
+                case 9:
+                    int vowel = letters.IndexOfAny("aeiou".ToCharArray());
+                    return vowel < 0 ? null : letters.Substring(0, vowel) + "*" + letters.Substring(vowel + 1);
+                default: return Spread(InNumbers(letters), ".");
+            }
+        }
+
+        private static void CheckRudeWords(List<string> checks)
+        {
+            string[][] lists = { RudeWords.Swearing, RudeWords.Slurs, RudeWords.Sexual };
+            string[] called = { "swearing", "slurs", "sexual words" };
+            for (int list = 0; list < lists.Length; list++)
+                for (int i = 0; i < lists[list].Length; i++)
+                    for (int how = 0; how < Disguises.Length; how++)
+                    {
+                        string said = Disguised(lists[list][i].Trim('*'), how);
+                        if (said != null && !RudeWords.In("Morning, " + said + "!")) throw new Exception("Word " + (i + 1) + " in the " + called[list] + " got through " + Disguises[how] + ".");
+                    }
+            string hidden = ((char)0x200B).ToString(), struck = ((char)0x336).ToString();
+            StringBuilder wide = new StringBuilder();
+            foreach (char letter in "fuck") wide.Append((char)(letter - 'a' + 0xFF41));
+            string[] disguised = { "sh1t", "SH!T", "$hit", "sh*t", "Shiiiit", "f.u.c.k", "F-U-C-K", "f_u_c_k", "f u c k", "fuuuuck", "f" + hidden + "uck", "f" + struck + "u" + struck + "c" + struck + "k" + struck, wide.ToString() };
+            foreach (string said in disguised) if (!RudeWords.In("Oh " + said + ", you're up.")) throw new Exception("A disguised swear got through: " + said);
+            string[] ordinary =
+            {
+                "Scunthorpe", "assess", "class", "classic", "cocktail", "Dickens", "Sussex", "analysis", "therapist", "grape", "button", "shitake", "shiitake", "Cockburn", "Essex", "Hancock", "Matsushita",
+                "Penistone", "Clitheroe", "Middlesex", "peacock", "cockatoo", "Cock-a-doodle-doo", "Maine Coon", "raccoon", "cocoon", "spices", "spick and span", "snigger", "Niger", "Nigel", "niggle", "Pakistan",
+                "Wogan", "Fagin", "Wankel", "Pissarro", "Parikshit", "Shiite", "Shih Tzu", "Slutsk", "Pornic", "Milford", "Georgy", "rapeseed", "flame retardant", "Fukushima", "sextant", "Dickinson", "Hitchcock",
+                "My pen is blue"
+            };
+            foreach (string word in ordinary) if (RudeWords.In(word) || RudeWords.In("Morning from " + word + ".")) throw new Exception("An ordinary word was taken for a rude one: " + word);
+            if (RudeWords.In(string.Join(", ", ordinary) + ".")) throw new Exception("Ordinary words were taken for a rude one together.");
+            checks.Add("PASS companions: every word on her rude list is caught as it is, in capitals, with an s, spaced out, dotted, dashed, underscored, stretched, in numbers or starred, a swear still is with invisible, struck-through or wide letters, and ordinary words like Scunthorpe, Dickens, Sussex, Matsushita and shiitake aren't");
+        }
+
+        private static void CheckRudePacks(Mods mods, string output)
+        {
+            const string greetingLine = "A greeting can't swear, use a slur or say anything sexual.", nameLine = "A name can't swear, use a slur or say anything sexual.";
+            CompanionFile clean = ReadCompanion(Details("smoke-words", "Dickens", ",\"wake_names\":[\"Hancock\",\"Cockburn\"],\"greetings\":[\"Morning from Scunthorpe.\",\"Still up in Sussex? Classic.\",\"Miss me? I brought shiitake.\"]"));
+            if (clean.Name != "Dickens" || clean.WakeNames.Length != 2 || clean.Greetings[0] != "Morning from Scunthorpe.") throw new Exception("A companion pack with ordinary words in it wasn't read right.");
+            string[,] rude =
+            {
+                { "Bad", "", "Oh shit, you're up.", greetingLine },
+                { "Bad", "", "Morning, retard.", greetingLine },
+                { "Bad", "", "Morning, sexy.", greetingLine },
+                { "Bad", "", "Sh1t, you're up?", greetingLine },
+                { "Bad", "", "F u c k, it's late.", greetingLine },
+                { "Bad", "", "Fuuuuck, it's late.", greetingLine },
+                { "Dickhead", "", "Hi.", nameLine },
+                { "Bad", "\"Nyxie\",\"Sexy Nyx\"", "Hi.", nameLine }
+            };
+            for (int i = 0; i < rude.GetLength(0); i++)
+            {
+                string id = "smoke-rude-" + i;
+                string[] greetings = { "Morning.", "Still up?", "Hi." };
+                greetings[i % 3] = rude[i, 2];
+                string file = Pack(output, id, new Dictionary<string, byte[]>
+                {
+                    { CompanionDetails, Utf8(Details(id, rude[i, 0], ",\"wake_names\":[" + rude[i, 1] + "],\"greetings\":[\"" + string.Join("\",\"", greetings) + "\"]")) },
+                    { CompanionPersonality, Utf8("You are Bad.") }
+                });
+                for (int way = 0; way < 2; way++)
+                {
+                    string said = null;
+                    try { if (way == 0) mods.Import(file, null); else mods.Update(file, null); }
+                    catch (ModException error) { said = error.Message; }
+                    if (said != rude[i, 3] || mods.All.Exists(mod => mod.File.Id == id) || File.Exists(Path.Combine(mods.Folder, id + CompanionExtension)) || Directory.Exists(Path.Combine(mods.Folder, id + "-companion")))
+                        throw new Exception("Rude companion pack " + (i + 1) + " wasn't refused " + (way == 0 ? "on import" : "as an update") + " for its words, or left something behind: " + (said ?? "it was let in"));
+                }
+            }
+            string old = "smoke-rude-old", home = Path.Combine(mods.Folder, old + "-companion"), kept = Path.Combine(mods.Folder, old + CompanionExtension);
+            try
+            {
+                Directory.CreateDirectory(home);
+                File.WriteAllText(Path.Combine(home, CompanionDetails), Details(old, "Bad", ",\"greetings\":[\"Oh shit, you're up.\",\"Still up?\",\"Hi.\"]"));
+                File.WriteAllText(Path.Combine(home, CompanionPersonality), "You are Bad.");
+                File.WriteAllBytes(kept, new byte[0]);
+                mods.Load();
+                if (mods.All.Exists(mod => mod.File.Id == old) || !mods.Problems.Contains(old + CompanionExtension + ": " + greetingLine) || CompanionPack.Name != "Nyx")
+                    throw new Exception("A rude companion pack already in the mods folder was loaded: " + string.Join(" | ", mods.Problems.ToArray()));
+            }
+            finally
+            {
+                if (File.Exists(kept)) File.Delete(kept);
+                if (Directory.Exists(home)) Directory.Delete(home, true);
+                mods.Load();
+            }
         }
     }
 }

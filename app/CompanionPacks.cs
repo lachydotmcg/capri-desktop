@@ -207,6 +207,7 @@ namespace CapriDesktop
             read.WakeNames = read.WakeNames ?? new string[0];
             if (read.WakeNames.Length > MostNames) throw new ModException("A companion can add up to " + MostNames + " names.");
             CheckNames(read.WakeNames);
+            if (RudeWords.In(read.Name) || Array.Exists(read.WakeNames, RudeWords.In)) throw new ModException("A name can't swear, use a slur or say anything sexual.");
             if (read.Greetings != null)
             {
                 if (read.Greetings.Length != 3) throw new ModException("greetings has to be three lines: morning, late at night, and any other time.");
@@ -214,6 +215,7 @@ namespace CapriDesktop
                 {
                     string line = Regex.Replace(read.Greetings[i] ?? "", @"[\p{Cc}\p{Cf}\s]+", " ").Trim();
                     if (line.Length == 0 || line.Length > 120) throw new ModException("Each greeting has to be 1 to 120 characters.");
+                    if (RudeWords.In(read.Greetings[i])) throw new ModException("A greeting can't swear, use a slur or say anything sexual.");
                     if (GreetingLink.IsMatch(line)) throw new ModException("A greeting can't have a link, an @ handle, an email or a phone number in it.");
                     read.Greetings[i] = line;
                 }
