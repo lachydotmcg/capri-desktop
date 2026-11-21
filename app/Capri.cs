@@ -27598,6 +27598,7 @@ namespace CapriDesktop
             Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
             Func<string, bool> existsWas = Hands.Exists;
             Func<string, string> fetchWas = Hands.Fetch;
+            Func<System.Collections.Generic.List<Tune>> sessionsWas = Hands.Sessions;
             System.Collections.Generic.List<string> jobs = new System.Collections.Generic.List<string>(), ran = new System.Collections.Generic.List<string>(), fetched = new System.Collections.Generic.List<string>();
             InstalledApp spotify = new InstalledApp("Spotify", "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify");
             InstalledApp native = new InstalledApp("Apple Music", "AppleInc.AppleMusicWin_nzyj5cx40ttqa!App");
@@ -27610,6 +27611,11 @@ namespace CapriDesktop
                 Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(installed); };
                 Hands.Exists = delegate { return false; };
                 Hands.Fetch = delegate(string address) { fetched.Add(address); return "\"videoId\":\"abcdefghijk\""; };
+                Hands.Sessions = delegate
+                {
+                    int videos = ran.FindAll(id => id.StartsWith("https://www.youtube.com/watch", StringComparison.Ordinal)).Count;
+                    return videos == 0 ? new System.Collections.Generic.List<Tune>() : new System.Collections.Generic.List<Tune> { new Tune { Title = "Video " + videos, App = "Chrome", Playing = true } };
+                };
                 Security.Pick(Security.Trusted);
                 Preferences older = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}")));
                 if (new Preferences().MusicApp != 0 || Preferences.Fresh().MusicApp != 0 || older.MusicApp != 0) throw new Exception("Music app didn't start on Spotify for new and old settings.");
@@ -27736,6 +27742,7 @@ namespace CapriDesktop
                 Hands.Catalog = catalogWas;
                 Hands.Exists = existsWas;
                 Hands.Fetch = fetchWas;
+                Hands.Sessions = sessionsWas;
                 Hands.Forget();
                 Security.Drop();
                 Security.Pick(Security.Trusted);
@@ -27745,6 +27752,109 @@ namespace CapriDesktop
                 simpleTest = simpleWas;
                 SetMusicApp(musicWas);
                 mainframe.ShowSettings(pageWas);
+            }
+        }
+
+        private static void SmokeHonestMusic(System.Collections.Generic.List<string> checks)
+        {
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> fetchWas = Hands.Fetch;
+            Func<string, bool> existsWas = Hands.Exists;
+            Func<long> nowWas = Hands.MusicNow;
+            Action<int> waitWas = Hands.MusicWait;
+            Func<System.Collections.Generic.List<Tune>> sessionsWas = Hands.Sessions;
+            Func<Tune, string, bool> sendWas = Hands.SessionPress;
+            bool openWas = Security.On(Security.Open), mediaWas = Security.On(Security.Media);
+            System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>(), sent = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<Tune> sessions = new System.Collections.Generic.List<Tune>();
+            System.Collections.Generic.List<InstalledApp> installed = new System.Collections.Generic.List<InstalledApp>();
+            long now = 0;
+            bool unreadable = false;
+            string results = "var ytInitialData = {\"videoRenderer\":{\"videoId\":\"4NRXx6U8ABQ\"}};";
+            Tune appears = null;
+            try
+            {
+                Security.Set(Security.Open, true);
+                Security.Set(Security.Media, true);
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(installed); };
+                Hands.Exists = delegate { return false; };
+                Hands.Fetch = delegate(string address)
+                {
+                    return address.IndexOf("duckduckgo", StringComparison.Ordinal) >= 0 ? "<a rel=\"nofollow\" class=\"result__a\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fopen.spotify.com%2Ftrack%2F0VjIjW4GlUZAMYd2vXMi3b\">Blinding Lights - song and lyrics by The Weeknd | Spotify</a>" : results;
+                };
+                Hands.Run = delegate(string id)
+                {
+                    ran.Add(id);
+                    if (appears != null && id.StartsWith("https://www.youtube.com/watch", StringComparison.Ordinal)) sessions.Add(appears);
+                };
+                Hands.MusicNow = delegate { return now; };
+                Hands.MusicWait = delegate(int milliseconds) { now += milliseconds; };
+                Hands.Sessions = delegate { return unreadable ? null : new System.Collections.Generic.List<Tune>(sessions); };
+                Hands.SessionPress = delegate(Tune tune, string what) { sent.Add(what + " " + tune.Title); if (what == "play") tune.Playing = true; return true; };
+                Hands.Forget();
+                sessions.Add(new Tune { Title = "Old Song", Artist = "Someone", App = "Spotify.exe", Playing = false });
+                sessions.Add(new Tune { Title = "Some other video", App = "Chrome", Playing = true });
+                appears = new Tune { Title = "lofi hip hop radio", App = "Chrome", Playing = true };
+                string playing = Hands.Do("play_music", new ToolArguments { Song = "lofi beats", App = "youtube" });
+                if (playing != "Playing lofi beats on YouTube." || ran.Count != 1 || ran[0] != "https://www.youtube.com/watch?v=4NRXx6U8ABQ" || now >= 1000 || sent.Count != 0)
+                    throw new Exception("A YouTube video Windows shows playing wasn't said as playing: " + playing + " / " + now);
+                sessions.RemoveAt(sessions.Count - 1);
+                appears = null;
+                now = 0;
+                string stuck = Hands.Do("play_music", new ToolArguments { Song = "lofi beats", App = "youtube" });
+                if (stuck != "Opened lofi beats on YouTube, but couldn't get it playing. Press play on the video." || ran.Count != 2 || now < 15000 || now > 16000 || sent.Count != 0 || !Hands.Failed(stuck))
+                    throw new Exception("A YouTube video that never started was said as playing: " + stuck + " / " + now);
+                appears = new Tune { Title = "Blinding Lights (Official Video)", Artist = "TheWeekndVEVO", App = "Chrome", Playing = false };
+                now = 0;
+                string pressed = Hands.Do("play_music", new ToolArguments { Song = "Blinding Lights", App = "spotify" });
+                if (pressed != "Spotify isn't installed, so playing Blinding Lights on YouTube." || sent.Count != 1 || sent[0] != "play Blinding Lights (Official Video)" || now >= 1000)
+                    throw new Exception("A paused YouTube video didn't get one play press: " + pressed + " / " + string.Join(" | ", sent.ToArray()));
+                appears = null;
+                unreadable = true;
+                now = 0;
+                string blind = Hands.Do("play_music", new ToolArguments { Song = "lofi beats", App = "youtube" });
+                unreadable = false;
+                if (blind != "Opened lofi beats on YouTube." || now != 0) throw new Exception("With Windows' media list unreadable she claimed or waited: " + blind);
+                now = 0;
+                string fallback = Hands.Do("play_music", new ToolArguments { Song = "lofi beats", App = "applemusic" });
+                if (fallback != "Apple Music isn't installed, so I opened lofi beats on YouTube, but couldn't get it playing. Press play on the video.") throw new Exception("Apple Music's fallback hid that YouTube didn't start: " + fallback);
+                string search = "https://www.youtube.com/results?search_query=lofi%20beats";
+                foreach (string page in new[] { "", "<html><form action=\"https://consent.youtube.com/save\"><h1>Before you continue to YouTube</h1></form></html>" })
+                {
+                    results = page;
+                    int before = ran.Count;
+                    string unseen = Hands.Do("play_music", new ToolArguments { Song = "lofi beats", App = "youtube" });
+                    if (unseen != "Couldn't get YouTube's results, so it's open on a search for lofi beats. Pick one there." || ran.Count != before + 1 || ran[before] != search || !Hands.Failed(unseen))
+                        throw new Exception("An empty or consent page was said as nothing found: " + unseen);
+                }
+                results = "var ytInitialData = {\"contents\":{\"sectionListRenderer\":{}}};";
+                string none = Hands.Do("play_music", new ToolArguments { Song = "lofi beats", App = "youtube" });
+                if (none != "Couldn't find lofi beats to play, so YouTube is open on a search for it." || ran[ran.Count - 1] != search) throw new Exception("A results page with no videos changed its line: " + none);
+                installed.Add(new InstalledApp("Spotify", "open.spotify.com-A5F611C_7vh1tm7h3g5s0!App"));
+                Hands.Forget();
+                int webFrom = ran.Count;
+                string web = Hands.Do("play_music", new ToolArguments { Song = "Blinding Lights by The Weeknd", App = "spotify" });
+                string liked = Hands.Do("play_music", new ToolArguments { Song = "my liked songs", Kind = "playlist", App = "spotify" });
+                string webRan = string.Join(" | ", ran.GetRange(webFrom, ran.Count - webFrom).ToArray());
+                if (web != "Opened Blinding Lights by The Weeknd in Spotify's web player, but couldn't press play there. Hit its Play button." || liked != "Opened their Liked Songs in Spotify's web player, but couldn't press play there. Hit its Play button."
+                    || webRan != "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b | https://open.spotify.com/collection/tracks" || !Hands.Failed(web))
+                    throw new Exception("Spotify's web app got a spotify link or a playing claim: " + web + " / " + liked + " / " + webRan);
+                checks.Add("PASS honest music: YouTube is only said as playing once Windows shows the video playing, a paused one gets one play press, one that never starts or that Windows can't see says so, an empty or cookie page says YouTube's results didn't come, and Spotify's web app opens the web player instead of a spotify link");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Run = runWas;
+                Hands.Fetch = fetchWas;
+                Hands.Exists = existsWas;
+                Hands.MusicNow = nowWas;
+                Hands.MusicWait = waitWas;
+                Hands.Sessions = sessionsWas;
+                Hands.SessionPress = sendWas;
+                Security.Set(Security.Open, openWas);
+                Security.Set(Security.Media, mediaWas);
+                Hands.Forget();
             }
         }
 
@@ -46184,6 +46294,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
             Section(checks, "SmokePowerSaver", delegate { SmokePowerSaver(checks, output); });
             Section(checks, "SmokeMusicApp", delegate { SmokeMusicApp(checks); });
+            Section(checks, "SmokeHonestMusic", delegate { SmokeHonestMusic(checks); });
             Section(checks, "SmokePerf", delegate { SmokePerf(checks); });
             Section(checks, "SmokePerformance", delegate { SmokePerformance(checks); });
             Section(checks, "SmokeHaul", delegate { SmokeHaul(checks); });
@@ -49388,6 +49499,7 @@ namespace CapriDesktop
             Func<List<OpenWindow>> windowsWas = Hands.Windows;
             Func<string, string> openedWas = Hands.Opened, fetchWas = Hands.Fetch;
             Func<string> gameWas = Hands.GameOpen;
+            Func<List<Tune>> sessionsWas = Hands.Sessions;
             Func<string, string, byte[][], string> headWas = headTest;
             Action<string> asideWas = asideTest;
             MicMix mixWas = MicMix.Current;
@@ -49439,6 +49551,12 @@ namespace CapriDesktop
                 Hands.GameOpen = delegate { return null; };
                 Hands.Fetch = delegate { return "{\"videoId\":\"abcdefghijk\"}"; };
                 Hands.Run = delegate(string target) { lock (opened) opened.Add(target); };
+                Hands.Sessions = delegate
+                {
+                    int videos;
+                    lock (opened) videos = opened.FindAll(target => target.StartsWith("https://www.youtube.com/watch", StringComparison.Ordinal)).Count;
+                    return videos == 0 ? new List<Tune>() : new List<Tune> { new Tune { Title = "Video " + videos, App = "Chrome", Playing = true } };
+                };
                 Hands.Work = delegate(string task, string asked)
                 {
                     lock (jobs) jobs.Add(task);
@@ -49843,6 +49961,7 @@ namespace CapriDesktop
                 callCaptions.Clear();
                 callCaptionRun = false;
                 Hands.Run = runWas; Hands.Work = workFakeWas; Hands.Catalog = catalogWas; Hands.Windows = windowsWas; Hands.Opened = openedWas; Hands.Fetch = fetchWas; Hands.GameOpen = gameWas;
+                Hands.Sessions = sessionsWas;
                 headTest = headWas; asideTest = asideWas;
                 Hands.Forget(); MicMix.Current = mixWas;
                 Security.Drop(); Security.Load(securityWas, wakeWas);
@@ -55759,14 +55878,14 @@ namespace CapriDesktop
                                     string noSpotify = Hands.Do("play_music", new ToolArguments { Song = "Blinding Lights", App = "spotify" });
                                     string[] handledWanted =
                                     {
-                                        "Playing Blinding Lights by The Weeknd on Spotify.", "Playing lofi beats on YouTube.", "Couldn't find nothing at all to play, so Spotify is open on a search for it.",
+                                        "Playing Blinding Lights by The Weeknd on Spotify.", "Opened lofi beats on YouTube.", "Couldn't find nothing at all to play, so Spotify is open on a search for it.",
                                         "What should I play?", "Closed discord.", "Closed the YouTube tab.",
                                         "Asked notepad to close, but it's still open. It might be asking you to save.", "Switched to roblox.", "Minimized word.",
                                         "Closed minecraft.", "Fortnite isn't open.", "There's no window action called explode.",
-                                        "Playing the lofi beats playlist on Spotify.", "Opened their Liked Songs in Spotify, but couldn't press play. Hit the green Play button.", "Playing the lofi beats playlist on YouTube."
+                                        "Playing the lofi beats playlist on Spotify.", "Opened their Liked Songs in Spotify, but couldn't press play. Hit the green Play button.", "Opened the lofi beats playlist on YouTube."
                                     };
                                     for (int i = 0; i < handledWanted.Length; i++) if (handled[i] != handledWanted[i]) throw new Exception("Hands answered '" + handled[i] + "', expected '" + handledWanted[i] + "'.");
-                                    if (noSpotify != "Spotify isn't installed, so playing Blinding Lights on YouTube.") throw new Exception("Without Spotify the song did not go to YouTube: " + noSpotify);
+                                    if (noSpotify != "Spotify isn't installed, so I opened Blinding Lights on YouTube.") throw new Exception("Without Spotify the song did not go to YouTube: " + noSpotify);
                                     string played = string.Join(" | ", ran.GetRange(ranBefore, ran.Count - ranBefore).ToArray());
                                     int missingTries = playPresses.FindAll(name => name == "nothing at all").Count, likedTries = playPresses.FindAll(name => name == "Liked Songs").Count;
                                     if (played != "spotify:track:0VjIjW4GlUZAMYd2vXMi3b | https://www.youtube.com/watch?v=4NRXx6U8ABQ | spotify:search:nothing%20at%20all | spotify:playlist:37i9dQZF1DWWQRwui0ExPn | spotify:collection:tracks | https://www.youtube.com/watch?v=qboQlr7lAAk&list=RDCLAK5uy_kb7EBi6y3GrtJri4_ZH56Ms786DFEimbM | spotify:track:4onvDep8OyHKT85RBO3b4V | https://www.youtube.com/watch?v=4NRXx6U8ABQ" || missingTries == 0 || likedTries == 0 || playPresses.Count != missingTries + likedTries + 1 || playPresses[missingTries] != "lofi beats") throw new Exception("Songs were played wrong: " + played + " / pressed " + string.Join(",", playPresses.ToArray()));

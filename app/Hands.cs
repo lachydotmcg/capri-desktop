@@ -6253,16 +6253,29 @@ namespace CapriDesktop
                 string opened = AppleMusic(kind == "song" ? song : asked, kind == "song" ? "song" : askedKind, look, songOnly, current);
                 if (opened != null) return opened;
                 string played = PlayMusic(asked, "auto", askedKind, current, songOnly);
-                return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1) : played;
+                return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1)
+                    : played.StartsWith("Opened ", StringComparison.Ordinal) ? "Apple Music isn't installed, so I o" + played.Substring(1) : played;
             }
-            bool hasSpotify = false;
+            bool hasSpotify = false, webPlayer = false;
             // A failed look at their apps still lets music go to YouTube, but it never becomes "Spotify isn't installed".
-            if (app != "youtube") try { hasSpotify = FindApps("spotify").Count > 0; } catch (Exception) { if (app == "spotify") throw; }
+            if (app != "youtube")
+                try
+                {
+                    List<InstalledApp> spotifies = FindApps("spotify");
+                    hasSpotify = spotifies.Count > 0;
+                    webPlayer = hasSpotify && spotifies.TrueForAll(WebApp);
+                }
+                catch (Exception) { if (app == "spotify") throw; }
             if (hasSpotify)
             {
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
                 if (current != null && !current()) return "That call errand has ended.";
+                if (webPlayer)
+                {
+                    Run(liked ? "https://open.spotify.com/collection/tracks" : spotted != null ? "https://open.spotify.com/" + (kind == "song" ? "track" : kind) + "/" + spotted : "https://open.spotify.com/search/" + Uri.EscapeDataString(song));
+                    return "Opened " + named + " in Spotify's web player, but couldn't press play there. Hit its Play button.";
+                }
 #if CROSS
                 if (kind == "song" && spotted != null)
                 {
@@ -6284,11 +6297,26 @@ namespace CapriDesktop
             }
             string where = Searches[0, 1] + Uri.EscapeDataString(look);
             System.Text.RegularExpressions.Match list = Regex.Match(kind == "song" ? "" : Fetch(where + "&sp=EgIQAw%253D%253D") ?? "", @"""watchEndpoint"":\{""videoId"":""([A-Za-z0-9_-]{11})"",""playlistId"":""([A-Za-z0-9_-]+)""");
-            string video = list.Success ? null : Find(Fetch(where), "\"videoId\":\"([A-Za-z0-9_-]{11})\"");
+            string page = list.Success ? null : Fetch(where) ?? "";
+            string video = list.Success ? null : Find(page, "\"videoId\":\"([A-Za-z0-9_-]{11})\"");
             if (current != null && !current()) return "That call errand has ended.";
-            if (!list.Success && video == null) { Run(where); return "Couldn't find " + named + " to play, so YouTube is open on a search for it."; }
-            Run(list.Success ? "https://www.youtube.com/watch?v=" + list.Groups[1].Value + "&list=" + list.Groups[2].Value : "https://www.youtube.com/watch?v=" + video);
+            if (!list.Success && video == null)
+            {
+                Run(where);
+                return Unread(page) ? "Couldn't get YouTube's results, so it's open on a search for " + named + ". Pick one there." : "Couldn't find " + named + " to play, so YouTube is open on a search for it.";
+            }
+            string watch = list.Success ? "https://www.youtube.com/watch?v=" + list.Groups[1].Value + "&list=" + list.Groups[2].Value : "https://www.youtube.com/watch?v=" + video;
+#if CROSS
+            Run(watch);
             return (app == "spotify" ? "Spotify isn't installed, so playing " : "Playing ") + named + " on YouTube.";
+#else
+            return TubePlay(named, watch, app == "spotify", current);
+#endif
+        }
+
+        private static bool Unread(string page)
+        {
+            return string.IsNullOrWhiteSpace(page) || page.IndexOf("ytInitialData", StringComparison.Ordinal) < 0 && page.IndexOf("videoRenderer", StringComparison.Ordinal) < 0;
         }
 
         internal static string MusicApp(string app)
@@ -6440,6 +6468,43 @@ namespace CapriDesktop
         }
 
         private static string NoPlay(string name) { return "Opened " + name + " in Spotify, but couldn't press play. Hit the green Play button."; }
+
+        private static string TubePlay(string named, string address, bool instead, Func<bool> current)
+        {
+            List<Tune> before = Sessions();
+            HashSet<string> seen = new HashSet<string>(), playing = new HashSet<string>();
+            if (before != null)
+                foreach (Tune tune in before)
+                {
+                    seen.Add(tune.Key);
+                    if (tune.Playing) playing.Add(tune.Key);
+                }
+            Run(address);
+            string opened = (instead ? "Spotify isn't installed, so I opened " : "Opened ") + named + " on YouTube";
+            if (before == null) return opened + ".";
+            long began = MusicNow();
+            bool pressed = false;
+            while (true)
+            {
+                if (current != null && !current()) return "That call errand has ended.";
+                List<Tune> now = Sessions();
+                if (now != null)
+                    foreach (Tune tune in now)
+                    {
+                        if (tune.Spotify || tune.Title.Length == 0) continue;
+                        if (tune.Playing && !playing.Contains(tune.Key)) return (instead ? "Spotify isn't installed, so playing " : "Playing ") + named + " on YouTube.";
+                        if (!tune.Playing && !pressed && tune.CanPlay && !seen.Contains(tune.Key))
+                        {
+                            pressed = true;
+                            SessionPress(tune, "play");
+                        }
+                    }
+                long left = began + 15000 - MusicNow();
+                if (left <= 0) break;
+                MusicWait((int)Math.Min(250, left));
+            }
+            return opened + ", but couldn't get it playing. Press play on the video.";
+        }
 #endif
 
         internal static bool MusicMissing(string label, string song)
