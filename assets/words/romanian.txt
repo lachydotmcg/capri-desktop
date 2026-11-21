@@ -30,6 +30,7 @@ Ask Capri for more	Cere mai mult de la Capri
 Asking your server...	Se interoghează serverul tău...
 Asks before closing only the apps you choose.	Întreabă înainte de a închide doar aplicațiile alese.
 Auto	Auto
+Auto (match what I say)	Auto (după ce spun)
 Automatic: VB-CABLE, else Steam's	Automat: VB-CABLE, altfel al Steam
 BAD RELAY HOST	HOST DE RELAY GREȘIT
 BIG Z open notepad	BIG Z deschide notepad
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Te aud.
 I glance at your screen and comment. Costs a little on a paid brain.	Arunc o privire pe ecranul tău și comentez. Costă puțin la un creier plătit.
 I keep listening. Say my name, then just talk.	Continui să ascult. Spune-mi numele, apoi doar vorbește.
+I speak	Vorbesc
 I talk about your game as you play. Costs a little on a paid brain.	Vorbesc despre jocul tău cât joci. Costă puțin la un creier plătit.
 I type my replies and stay quiet.	Îmi scriu răspunsurile și stau liniștită.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nu voi vorbi înapoi și nimic nu este trimis nicăieri. Tot voi sta pe aici, voi dansa pe muzica ta și voi face lucrurile rapide pe care le ceri, cum ar fi volumul.
@@ -598,6 +600,7 @@ SKILL.	ABILITATE.
 SKIN.	ASPECT.
 SORT BY	SORTEAZĂ DUPĂ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SUNETE OBICEIURI CREIER UITĂ-TE CAPRI DOOMSCROLL VREME CLIPURI JOCURI TASTE MIȘCĂRI VOCE TU
+Same as I speak	La fel ca limba mea
 Same as her ears (VOICE > Mic)	Același cu urechile ei (VOCE > Microfon)
 Same code on the phone?	Același cod pe telefon?
 Save	Salvează
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Setările nu aveau ce urmări.
 Settings lost keyboard focus during the Tab walk	Setările au pierdut focusul tastaturii în timpul parcurgerii cu Tab
 Setup guide	Ghid de configurare
 Setup stopped	Configurarea s-a oprit
+She answers in	Ea răspunde în
 She can read it when it fits.	Poate citi când încape.
 She glances at your screen and comments. Costs a little on a paid brain.	Aruncă o privire pe ecranul tău și comentează. Costă puțin la un creier plătit.
 She keeps listening. Say her name, then just talk until you go quiet.	Continuă să asculte. Spune-i numele, apoi vorbește până tăci.

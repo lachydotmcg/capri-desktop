@@ -30,6 +30,7 @@ Ask Capri for more	Pajautā Capri vēl
 Asking your server...	Jautāju tavam serverim...
 Asks before closing only the apps you choose.	Pirms aizvēršanas jautā tikai par tavu izvēlēto lietotņu aizvēršanu.
 Auto	Auto
+Auto (match what I say)	Auto (pēc tā, ko saku)
 Automatic: VB-CABLE, else Steam's	Automātiski: VB-CABLE, citādi Steam's
 BAD RELAY HOST	NEPAREIZS RELAY SERVERIS
 BIG Z open notepad	BIG Z atver piezīmju bloku
@@ -290,6 +291,7 @@ Huge	Milzīgs
 I can hear you.	Es tevi dzirdu.
 I glance at your screen and comment. Costs a little on a paid brain.	Es paskatos uz tavu ekrānu un komentēju. Maksā nedaudz ar maksas smadzenēm.
 I keep listening. Say my name, then just talk.	Es turpinu klausīties. Pasaki manu vārdu un tad vienkārši runā.
+I speak	Es runāju
 I talk about your game as you play. Costs a little on a paid brain.	Es runāju par tavu spēli, kamēr spēlē. Maksā nedaudz ar maksas smadzenēm.
 I type my replies and stay quiet.	Es rakstu savas atbildes un klusēju.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Es neatbildēšu, un nekas nekur netiek sūtīts. Es joprojām pabūšu blakus, dejošu pie tavas mūzikas un darīšu ātros uzdevumus, ko lūdz, piemēram, skaļumu.
@@ -598,6 +600,7 @@ SKILL.	PRASME.
 SKIN.	APVALKS.
 SORT BY	KĀRTOT PĒC
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SKAŅAS PARADUMI SMADZENES SKATĪTIES CAPRI DOOMSCROLL LAIKAPSTĀKĻI KLIPI SPĒLES TASTIŅI KUSTĪBAS BALSS TU
+Same as I speak	Tāpat kā mana valoda
 Same as her ears (VOICE > Mic)	Tāpat kā viņas auss (BALSS > Mikrofons)
 Same code on the phone?	Tāds pats kods tālrunī?
 Save	Saglabāt
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Iestatījumiem nebija, ko skatīties.
 Settings lost keyboard focus during the Tab walk	Iestatījumi zaudēja tastatūras fokusu Tab gājiena laikā
 Setup guide	Iestatīšanas ceļvedis
 Setup stopped	Iestatīšana apturēta
+She answers in	Viņa atbild
 She can read it when it fits.	Viņa to var izlasīt, kad tas der.
 She glances at your screen and comments. Costs a little on a paid brain.	Viņa paskatās uz tavu ekrānu un komentē. Maksā nedaudz ar maksas smadzenēm.
 She keeps listening. Say her name, then just talk until you go quiet.	Viņa turpina klausīties. Pasaki viņas vārdu, tad vienkārši runā, līdz apklusti.

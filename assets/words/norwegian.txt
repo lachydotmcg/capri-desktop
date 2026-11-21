@@ -30,6 +30,7 @@ Ask Capri for more	Be Capri om mer
 Asking your server...	Spør serveren din...
 Asks before closing only the apps you choose.	Spør før den lukker bare appene du velger.
 Auto	Auto
+Auto (match what I say)	Auto (følger det jeg sier)
 Automatic: VB-CABLE, else Steam's	Automatisk: VB-CABLE, ellers Steams
 BAD RELAY HOST	DÅRLIG RELÉVERT
 BIG Z open notepad	BIG Z åpne notisblokk
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Jeg kan høre deg.
 I glance at your screen and comment. Costs a little on a paid brain.	Jeg kikker på skjermen din og kommenterer. Koster litt med en betalt hjerne.
 I keep listening. Say my name, then just talk.	Jeg lytter videre. Si navnet mitt, og snakk så bare.
+I speak	Jeg snakker
 I talk about your game as you play. Costs a little on a paid brain.	Jeg snakker om spillet ditt mens du spiller. Koster litt med en betalt hjerne.
 I type my replies and stay quiet.	Jeg skriver svarene mine og holder meg stille.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Jeg svarer ikke tilbake, og ingenting sendes noen steder. Jeg henger fortsatt med, danser til musikken din og gjør de raske tingene du ber om, som volumet.
@@ -598,6 +600,7 @@ SKILL.	FERDIGHET.
 SKIN.	SKIN.
 SORT BY	SORTER ETTER
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	LYDER VANER HJERNE SE CAPRI DOOMSCROLL VÆR KLIPP SPILL NØKLER BEVEGELSER STEMME DU
+Same as I speak	Samme som jeg snakker
 Same as her ears (VOICE > Mic)	Samme som hennes ører (STEMME > Mikrofon)
 Same code on the phone?	Samme kode på telefonen?
 Save	Lagre
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Innstillinger hadde ingenting å se på.
 Settings lost keyboard focus during the Tab walk	Innstillinger mistet tastaturfokus under Tab-gangen
 Setup guide	Oppsettguide
 Setup stopped	Oppsett stoppet
+She answers in	Hun svarer på
 She can read it when it fits.	Hun kan lese den når det passer.
 She glances at your screen and comments. Costs a little on a paid brain.	Hun kikker på skjermen din og kommenterer. Koster litt med en betalt hjerne.
 She keeps listening. Say her name, then just talk until you go quiet.	Hun lytter videre. Si navnet hennes, og snakk så til du blir stille.

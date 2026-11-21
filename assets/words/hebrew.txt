@@ -30,6 +30,7 @@ Ask Capri for more	בקש מ-Capri עוד
 Asking your server...	שואלת את השרת שלך...
 Asks before closing only the apps you choose.	שואלת לפני סגירה רק של האפליקציות שתבחר.
 Auto	אוטומטי
+Auto (match what I say)	אוטומטי (לפי ההודעה)
 Automatic: VB-CABLE, else Steam's	אוטומטי: VB-CABLE, אחרת של Steam
 BAD RELAY HOST	שרת ממסר שגוי
 BIG Z open notepad	BIG Z פתח notepad
@@ -290,6 +291,7 @@ Huge	ענק
 I can hear you.	אני שומעת אותך.
 I glance at your screen and comment. Costs a little on a paid brain.	אני מציצה במסך שלך ומגיבה. עולה קצת במוח בתשלום.
 I keep listening. Say my name, then just talk.	אני ממשיכה להקשיב. אמור את השם שלי ואז פשוט דבר.
+I speak	השפה שלי
 I talk about your game as you play. Costs a little on a paid brain.	אני מדברת על המשחק שלך בזמן שאתה משחק. עולה קצת במוח בתשלום.
 I type my replies and stay quiet.	אני מקלידה את התשובות שלי ושותקת.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	אני לא אענה בחזרה, ושום דבר לא נשלח לשום מקום. אני עדיין אסתובב, ארקוד למוזיקה שלך ואעשה את הדברים המהירים שתבקש, כמו עוצמת הקול.
@@ -598,6 +600,7 @@ SKILL.	כישור.
 SKIN.	עור.
 SORT BY	מיין לפי
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as I speak	כמו השפה שלי
 Same as her ears (VOICE > Mic)	כמו האוזניים שלה (VOICE > Mic)
 Same code on the phone?	אותו קוד בטלפון?
 Save	שמור
@@ -633,6 +636,7 @@ Settings had nothing to watch.	להגדרות לא היה מה לצפות.
 Settings lost keyboard focus during the Tab walk	להגדרות אבד מיקוד המקלדת במהלך מעבר Tab
 Setup guide	מדריך הגדרה
 Setup stopped	ההגדרה נעצרה
+She answers in	היא עונה ב
 She can read it when it fits.	היא יכולה לקרוא את זה כשזה מתאים.
 She glances at your screen and comments. Costs a little on a paid brain.	היא מציצה במסך שלך ומגיבה. עולה קצת במוח בתשלום.
 She keeps listening. Say her name, then just talk until you go quiet.	היא ממשיכה להקשיב. אמור את השם שלה, ואז דבר עד שאתה שותק.

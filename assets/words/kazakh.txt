@@ -30,6 +30,7 @@ Ask Capri for more	Capri-ден көбірек сұраңыз
 Asking your server...	Серверіңізге сұрау жіберілуде...
 Asks before closing only the apps you choose.	Тек таңдаған қолданбаларыңызды жабар алдында сұрайды.
 Auto	Авто
+Auto (match what I say)	Авто (айтқаныма қарай)
 Automatic: VB-CABLE, else Steam's	Автоматты: VB-CABLE, болмаса Steam-нікі
 BAD RELAY HOST	ЖАРАМСЫЗ РЕЛЕ ХОСТЫ
 BIG Z open notepad	BIG Z блокнотты аш
@@ -290,6 +291,7 @@ Huge	Өте үлкен
 I can hear you.	Мен сені естип тұрмын.
 I glance at your screen and comment. Costs a little on a paid brain.	Экраныңызға қараймын және пікір беремін. Ақылы миға аздап шығындайды.
 I keep listening. Say my name, then just talk.	Тыңдауды жалғастырамын. Атымды айтыңыз, содан кейін жай сөйлеңіз.
+I speak	Мен сөйлеймін
 I talk about your game as you play. Costs a little on a paid brain.	Сіз ойнап жатқанда ойыныңыз туралы сөйлеймін. Ақылы миға аздап шығындайды.
 I type my replies and stay quiet.	Жауаптарымды жазамын және тыныш боламын.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Мен кері сөйлемеймін, және ештеңе ешқайда жіберілмейді. Бәрібір араласамын, музыкаңызға билеймін және дыбыс деңгейі сияқты сұрағандарыңызды жасаймын.
@@ -598,6 +600,7 @@ SKILL.	ДАҒДЫ.
 SKIN.	БЕТ-БЕЙНЕ.
 SORT BY	СҰРЫПТАУ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ДАУЫСТАР ӘДЕТТЕР МИ ҚАРАУ CAPRI DOOMSCROLL АУА РАЙЫ КЛИПТЕР ОЙЫНДАР ПЕРНЕЛЕР ҚОЗҒАЛЫСТАР ДАУЫС СІЗ
+Same as I speak	Менің тілім сияқты
 Same as her ears (VOICE > Mic)	Оның құлақтарымен бірдей (ДАУЫС > Микрофон)
 Same code on the phone?	Телефондағы код бірдей ме?
 Save	Сақтау
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Параметрлерде қарайтын еш�
 Settings lost keyboard focus during the Tab walk	Tab жүрісі кезінде Параметрлер пернетақта фокусын жоғалтты
 Setup guide	Орнату нұсқаулығы
 Setup stopped	Орнату тоқтатылды
+She answers in	Ол жауап береді
 She can read it when it fits.	Сыйғанда ол оқи алады.
 She glances at your screen and comments. Costs a little on a paid brain.	Экраныңызға қарап, пікір береді. Ақылы миға аздап шығындайды.
 She keeps listening. Say her name, then just talk until you go quiet.	Тыңдауды жалғастырады. Атын айтыңыз, содан кейін тыныштанғанша сөйлеңіз.
