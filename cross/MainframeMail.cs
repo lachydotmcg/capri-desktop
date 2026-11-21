@@ -28,6 +28,13 @@ namespace CapriDesktop
             return box;
         }
 
+        private static NeonSwitch MailSwitch(string name, bool on)
+        {
+            NeonSwitch toggle = new NeonSwitch { Text = name, Height = 22, Margin = new Thickness(0, 12, 0, 4), Checked = on };
+            AutomationProperties.SetName(toggle, name);
+            return toggle;
+        }
+
         internal void OpenMailSetup(Mod mod)
         {
             if (mailBox != null) mailBox.Close();
@@ -61,6 +68,30 @@ namespace CapriDesktop
             keys.Children.Add(connect);
             keys.Children.Add(forget);
             all.Children.Add(keys);
+            NeonSwitch watch = MailSwitch("Watch for new mail", MailTools.Watch);
+            all.Children.Add(watch);
+            all.Children.Add(MailWords("She keeps an eye on your inbox and speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.", MainframeTheme.Faint));
+            NeonSwitch hands = MailSwitch("Deal with phishing on her own", MailTools.HandsSet);
+            hands.Opacity = MailTools.Watch ? 1 : 0.5;
+            all.Children.Add(hands);
+            all.Children.Add(MailWords("Only while she's watching. Mail she's sure is phishing goes straight to spam. Anything else waits for your yes.", MainframeTheme.Faint));
+            bool filling = false;
+            Action saveSwitches = delegate
+            {
+                if (filling) return;
+                hands.Opacity = watch.Checked ? 1 : 0.5;
+                try { MailTools.SetWatch(watch.Checked, hands.Checked); }
+                catch (Exception error) when (error is System.IO.IOException || error is UnauthorizedAccessException)
+                {
+                    status.Text = "Couldn't save that: " + error.Message;
+                    status.Foreground = MainframeTheme.Rose;
+                    return;
+                }
+                status.Text = !watch.Checked ? "She's not watching your inbox." : hands.Checked ? "She's watching your inbox and deals with phishing she's sure of." : "She's watching your inbox and tells you when mail lands.";
+                status.Foreground = watch.Checked ? MainframeTheme.Cyan : MainframeTheme.Faint;
+            };
+            watch.IsCheckedChanged += (_, _) => saveSwitches();
+            hands.IsCheckedChanged += (_, _) => saveSwitches();
             Action shown = delegate
             {
                 string note = MailAccount.Unsupported(address.Text);
@@ -104,6 +135,10 @@ namespace CapriDesktop
             {
                 MailTools.Forget();
                 forget.IsVisible = false;
+                filling = true;
+                watch.Checked = hands.Checked = false;
+                hands.Opacity = 0.5;
+                filling = false;
                 status.Text = "She forgot that account and its app password.";
                 status.Foreground = MainframeTheme.Faint;
             };

@@ -30,6 +30,7 @@ Ask Capri for more	Nemi Capri ƙarin
 Asking your server...	Ina tambayar sabarka...
 Asks before closing only the apps you choose.	Yana tambaya kafin ya rufe apps ɗin da ka zaɓa kawai.
 Auto	Auto
+Auto (match what I say)	Auto (bisa abin da na faɗa)
 Automatic: VB-CABLE, else Steam's	Atomatik: VB-CABLE, ko na Steam
 BAD RELAY HOST	MUMMUNAN MAI MASAUKIN RELAY
 BIG Z open notepad	BIG Z buɗe notepad
@@ -290,6 +291,7 @@ Huge	Babba ƙwarai
 I can hear you.	Ina jin ka.
 I glance at your screen and comment. Costs a little on a paid brain.	Ina kallon allonka in yi sharhi. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
 I keep listening. Say my name, then just talk.	Ina ci gaba da sauraro. Faɗi sunana, sannan kawai ka yi magana.
+I speak	Ina magana da
 I talk about your game as you play. Costs a little on a paid brain.	Ina magana game da wasanka yayin da kake wasa. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
 I type my replies and stay quiet.	Ina rubuta amsoshina kuma in yi shiru.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ba zan amsa ba, kuma babu abin da ake aikawa ko'ina. Har yanzu zan zauna, in yi rawa ga kiɗanka in yi ayyukan gaggawa da ka nema, kamar ƙara.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	TSARA BISA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SAUTI HALAYE KWAKWALWA KALLO CAPRI DOOMSCROLL YANAYI CLIPS WASANNI MAƁALLAI MOTSI MURYA KAI
+Same as I speak	Kamar harshena
 Same as her ears (VOICE > Mic)	Kamar kunnuwanta (MURYA > Makirifo)
 Same code on the phone?	Lambar iri ɗaya akan waya?
 Save	Ajiye
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Saitunan ba su da abin da za su kalla.
 Settings lost keyboard focus during the Tab walk	Saitunan sun rasa mayar da hankali na maballin yayin tafiyar Tab
 Setup guide	Jagorar saiti
 Setup stopped	Saiti ya tsaya
+She answers in	Tana amsawa da
 She can read it when it fits.	Za ta iya karanta shi idan ya dace.
 She glances at your screen and comments. Costs a little on a paid brain.	Tana kallon allonka tana yin sharhi. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
 She keeps listening. Say her name, then just talk until you go quiet.	Tana ci gaba da sauraro. Faɗi sunanta, sannan ka yi magana har sai ka yi shiru.

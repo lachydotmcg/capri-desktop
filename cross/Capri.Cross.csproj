@@ -31,6 +31,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
+    <Compile Include="../app/LanguagePair.cs" Link="Shared/LanguagePair.cs" />
+    <Compile Include="../app/Spend.cs" Link="Shared/Spend.cs" />
     <Compile Include="../app/BetterModels.cs" Link="Shared/BetterModels.cs" />
     <Compile Include="../app/PersonalSettings.cs" Link="Shared/PersonalSettings.cs" />
     <Compile Include="../app/Doomscroll.cs" Link="Shared/Doomscroll.cs" />
@@ -73,6 +75,8 @@
     <Compile Include="../app/MailBox.cs" Link="Shared/MailBox.cs" />
     <Compile Include="../app/MailSmtp.cs" Link="Shared/MailSmtp.cs" />
     <Compile Include="../app/MailTools.cs" Link="Shared/MailTools.cs" />
+    <Compile Include="../app/MailPhish.cs" Link="Shared/MailPhish.cs" />
+    <Compile Include="../app/MailWatch.cs" Link="Shared/MailWatch.cs" />
     <Compile Include="../app/MailChecks.cs" Link="Shared/MailChecks.cs" />
     <Compile Include="../app/StarterPlugins.cs" Link="Shared/StarterPlugins.cs" />
     <Compile Include="../app/ToolMods.cs" Link="Shared/ToolMods.cs" />

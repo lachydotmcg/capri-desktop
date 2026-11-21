@@ -30,6 +30,7 @@ Ask Capri for more	Capri-র কাছে আরও চাও
 Asking your server...	তোমার সার্ভারকে জিজ্ঞাসা করা হচ্ছে...
 Asks before closing only the apps you choose.	তোমার বেছে নেওয়া অ্যাপগুলো বন্ধ করার আগে শুধু জিজ্ঞাসা করবে।
 Auto	অটো
+Auto (match what I say)	অটো (আমি যা বলি)
 Automatic: VB-CABLE, else Steam's	স্বয়ংক্রিয়: VB-CABLE, না হলে Steam-এরটি
 BAD RELAY HOST	খারাপ রিলে হোস্ট
 BIG Z open notepad	BIG Z notepad খোলো
@@ -290,6 +291,7 @@ Huge	বিশাল
 I can hear you.	আমি তোমার কথা শুনতে পাচ্ছি।
 I glance at your screen and comment. Costs a little on a paid brain.	আমি তোমার স্ক্রিনে এক নজর দিয়ে মন্তব্য করি। পেইড ব্রেনে একটু খরচ হয়।
 I keep listening. Say my name, then just talk.	আমি শুনতে থাকি। আমার নাম বলো, তারপর শুধু কথা বলো।
+I speak	আমি বলি
 I talk about your game as you play. Costs a little on a paid brain.	তুমি খেলার সময় আমি তোমার গেম নিয়ে কথা বলি। পেইড ব্রেনে একটু খরচ হয়।
 I type my replies and stay quiet.	আমি আমার উত্তর টাইপ করি এবং চুপ থাকি।
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	আমি মুখে উত্তর দেব না, আর কোথাও কিছু পাঠানো হবে না। তবু আমি আশেপাশে থাকব, তোমার গানের সঙ্গে নাচব, আর তুমি যে দ্রুত কাজগুলো চাও, যেমন ভলিউম, সেগুলো করব।
@@ -598,6 +600,7 @@ SKILL.	স্কিল।
 SKIN.	স্কিন।
 SORT BY	সাজাও
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	শব্দ অভ্যাস ব্রেন দেখো CAPRI DOOMSCROLL আবহাওয়া ক্লিপ গেম কী মুভ ভয়েস তুমি
+Same as I speak	আমার ভাষার মতোই
 Same as her ears (VOICE > Mic)	তার কানের মতোই (VOICE > Mic)
 Same code on the phone?	ফোনে একই কোড?
 Save	সেভ করো
@@ -633,6 +636,7 @@ Settings had nothing to watch.	সেটিংসে দেখার কিছ�
 Settings lost keyboard focus during the Tab walk	Tab চলাকালীন সেটিংস কীবোর্ড ফোকাস হারিয়েছে
 Setup guide	সেটআপ গাইড
 Setup stopped	সেটআপ বন্ধ হয়েছে
+She answers in	সে উত্তর দেয়
 She can read it when it fits.	জায়গা হলে সে এটি পড়তে পারে।
 She glances at your screen and comments. Costs a little on a paid brain.	সে তোমার স্ক্রিনে এক নজর দিয়ে মন্তব্য করে। পেইড ব্রেনে একটু খরচ হয়।
 She keeps listening. Say her name, then just talk until you go quiet.	সে শুনতে থাকে। তার নাম বলো, তারপর চুপ না হওয়া পর্যন্ত কথা বলো।

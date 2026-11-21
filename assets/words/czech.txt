@@ -30,6 +30,7 @@ Ask Capri for more	Zeptej se Capri na víc
 Asking your server...	Dotazuji se tvého serveru...
 Asks before closing only the apps you choose.	Před zavřením se zeptá jen u aplikací, které vybereš.
 Auto	Auto
+Auto (match what I say)	Auto (podle toho, co říkám)
 Automatic: VB-CABLE, else Steam's	Automaticky: VB-CABLE, jinak Steam
 BAD RELAY HOST	ŠPATNÝ HOSTITEL RELÉE
 BIG Z open notepad	BIG Z otevři poznámkový blok
@@ -290,6 +291,7 @@ Huge	Obrovské
 I can hear you.	Slyším tě.
 I glance at your screen and comment. Costs a little on a paid brain.	Podívám se na tvou obrazovku a okomentuji. Na placeném mozku něco stojí.
 I keep listening. Say my name, then just talk.	Pořád poslouchám. Řekni mé jméno a pak jen mluv.
+I speak	Mluvím
 I talk about your game as you play. Costs a little on a paid brain.	Mluvím o tvé hře, zatímco hraješ. Na placeném mozku něco stojí.
 I type my replies and stay quiet.	Odpovědi píšu a zůstávám zticha.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nebudu odpovídat a nikam se nic neposílá. Pořád se budu povalovat, tancovat na tvou hudbu a dělat rychlé věci, které chceš, třeba hlasitost.
@@ -598,6 +600,7 @@ SKILL.	DOVEDNOST.
 SKIN.	KŮŽE.
 SORT BY	ŘADIT PODLE
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVUKY NÁVYKY MOZEK SLEDOVAT CAPRI DOOMSCROLL POČASÍ KLIPY HRY KLÁVESY POHYBY HLAS TY
+Same as I speak	Stejně jako mluvím
 Same as her ears (VOICE > Mic)	Stejné jako její uši (HLAS > Mikrofon)
 Same code on the phone?	Stejný kód na telefonu?
 Save	Uložit
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Nastavení nemělo co sledovat.
 Settings lost keyboard focus during the Tab walk	Nastavení ztratilo focus klávesnice během procházení klávesou Tab
 Setup guide	Průvodce nastavením
 Setup stopped	Nastavení zastaveno
+She answers in	Odpovídá v
 She can read it when it fits.	Zobrazí to, až se to hodí.
 She glances at your screen and comments. Costs a little on a paid brain.	Podívá se na tvou obrazovku a okomentuje. Na placeném mozku něco stojí.
 She keeps listening. Say her name, then just talk until you go quiet.	Pořád poslouchá. Řekni její jméno a pak mluv, dokud neztichneš.
