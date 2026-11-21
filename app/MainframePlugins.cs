@@ -69,7 +69,7 @@ namespace CapriDesktop
             int y = 46;
             if (Mods.Builtin(mod, "mail"))
             {
-                Key setup = new Key { Bounds = new Rectangle(0, y, 200, 26), Font = Type(9f), Text = MailTools.Ready ? "Change email account" : "Set up email", Accent = Cyan };
+                Key setup = new Key { Bounds = new Rectangle(0, y, 200, 26), Font = Type(9f), Text = MailTools.Ready ? "Email settings" : "Set up email", Accent = Cyan };
                 setup.AccessibleName = setup.Text;
                 setup.Click += delegate { OpenMailSetup(mod); };
                 panel.Controls.Add(setup);

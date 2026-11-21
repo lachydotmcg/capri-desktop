@@ -30,6 +30,7 @@ Ask Capri for more	Capri నుండి మరింత అడగండి
 Asking your server...	మీ సర్వర్‌ను అడుగుతోంది...
 Asks before closing only the apps you choose.	మీరు ఎంచుకున్న యాప్‌లను మాత్రమే మూసివేసే ముందు అడుగుతుంది.
 Auto	ఆటో
+Auto (match what I say)	ఆటో (నేను చెప్పినట్లు)
 Automatic: VB-CABLE, else Steam's	ఆటోమేటిక్: VB-CABLE, లేకపోతే Steam దే
 BAD RELAY HOST	చెడ్డ రిలే హోస్ట్
 BIG Z open notepad	BIG Z నోట్‌ప్యాడ్ తెరువు
@@ -290,6 +291,7 @@ Huge	భారీ
 I can hear you.	నేను నీ మాట వినగలను.
 I glance at your screen and comment. Costs a little on a paid brain.	నేను మీ స్క్రీన్‌ను చూసి వ్యాఖ్యానిస్తాను. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
 I keep listening. Say my name, then just talk.	నేను వింటూనే ఉంటాను. నా పేరు చెప్పి, మాట్లాడు.
+I speak	నేను మాట్లాడేది
 I talk about your game as you play. Costs a little on a paid brain.	మీరు ఆడుతున్నప్పుడు మీ ఆట గురించి మాట్లాడతాను. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
 I type my replies and stay quiet.	నేను నా సమాధానాలు టైప్ చేసి మౌనంగా ఉంటాను.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	నేను తిరిగి మాట్లాడను, ఏమీ ఎక్కడికీ పంపబడదు. అయినా నేను నీతో ఉంటాను, నీ సంగీతానికి డాన్స్ చేస్తాను, నీవు అడిగే త్వరిత పనులు చేస్తాను, వాల్యూమ్ లాంటివి.
@@ -598,6 +600,7 @@ SKILL.	స్కిల్.
 SKIN.	స్కిన్.
 SORT BY	దీని ప్రకారం క్రమబద్ధీకరించు
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	శబ్దాలు అలవాట్లు బ్రెయిన్ చూడు CAPRI DOOMSCROLL వాతావరణం క్లిప్‌లు ఆటలు కీలు కదలికలు వాయిస్ నువ్వు
+Same as I speak	నా భాష లాగే
 Same as her ears (VOICE > Mic)	ఆమె చెవులతో సమానం (VOICE > Mic)
 Same code on the phone?	ఫోన్‌లో అదే కోడ్?
 Save	సేవ్ చేయి
@@ -633,6 +636,7 @@ Settings had nothing to watch.	సెట్టింగ్‌లలో చూడ
 Settings lost keyboard focus during the Tab walk	Tab నడక సమయంలో సెట్టింగ్‌లు కీబోర్డ్ ఫోకస్ కోల్పోయాయి
 Setup guide	సెటప్ గైడ్
 Setup stopped	సెటప్ ఆగిపోయింది
+She answers in	ఆమె జవాబిచ్చేది
 She can read it when it fits.	సరిపోయినప్పుడు ఆమె దాన్ని చదవగలదు.
 She glances at your screen and comments. Costs a little on a paid brain.	ఆమె మీ స్క్రీన్‌ను చూసి వ్యాఖ్యానిస్తుంది. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
 She keeps listening. Say her name, then just talk until you go quiet.	ఆమె వింటూనే ఉంటుంది. ఆమె పేరు చెప్పి, మీరు మౌనంగా అయ్యే వరకు మాట్లాడండి.

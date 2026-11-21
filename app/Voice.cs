@@ -2669,6 +2669,19 @@ namespace CapriDesktop
 
         internal static string Lang(string code) { int row = Row(code); return row < 0 ? null : Spoken[row, 1]; }
 
+        internal static int Native(string code)
+        {
+            switch (code)
+            {
+                case "es": return 28;
+                case "fr": return 30;
+                case "hi": return 31;
+                case "it": return 35;
+                case "pt": return 42;
+                default: return -1;
+            }
+        }
+
         private static string Dict(string folder, string code) { return Path.Combine(Path.Combine(folder, "espeak-ng-data"), code + "_dict"); }
 
         internal static bool Ready(string folder, string code)
@@ -2837,11 +2850,15 @@ namespace CapriDesktop
 
         internal bool Speaks(string code) { return VoiceTongues.Ready(folder, code); }
 
+        internal int Native(string code) { int row = VoiceTongues.Native(code); return VoicePack.Has(folder, row) ? row : -1; }
+
         internal void AddTongues(Action<string, long, long> progress, Func<bool> stopped) { VoiceTongues.Fetch(folder, progress, stopped); }
 
         internal byte[] Speak(string text) { return Speak(text, null); }
 
-        internal byte[] Speak(string text, string code)
+        internal byte[] Speak(string text, string code) { return Speak(text, code, -1); }
+
+        internal byte[] Speak(string text, string code, int voice)
         {
             if (code != null && !Speaks(code)) throw new VoiceException("Her free voice doesn't have that language yet.");
             if (!VoiceLanguage.Reads(text, code ?? "en")) throw new VoiceException(VoiceLanguage.Missing(VoiceLanguage.Tongue(text, Brain.Language), Brain.Language));
@@ -2856,7 +2873,7 @@ namespace CapriDesktop
                 IntPtr audio = IntPtr.Zero;
                 try
                 {
-                    int speaker = style.Speaker, speakers = SherpaOnnxOfflineTtsNumSpeakers(tts);
+                    int speaker = voice >= 0 ? voice : style.Speaker, speakers = SherpaOnnxOfflineTtsNumSpeakers(tts);
                     if (speaker < 0 || speaker >= speakers) speaker = 0;
                     audio = SherpaOnnxOfflineTtsGenerate(tts, words, speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
                     if (audio == IntPtr.Zero) throw new VoiceException("Her free voice glitched.");
