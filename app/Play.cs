@@ -75,7 +75,7 @@ namespace CapriDesktop
 
         internal static bool KeyAction(string name)
         {
-            return name == "key" || name == "hold_key" || name == "type" || name == "press" || name == "walk" || name == "look" || name == "look_around" || name == "mouse_hold" || name == "hold_and_press";
+            return name == "key" || name == "hold_key" || name == "type" || name == "press" || name == "walk" || name == "look" || name == "look_around" || name == "mouse_hold" || name == "hold_and_press" || name == "combo";
         }
 
         // Keys that need no spot on the screen can still go after the window in front changes, as her keys bring back the window
@@ -512,6 +512,7 @@ namespace CapriDesktop
             "walk{\"keys\": \"w\", \"seconds\": \"3\"} walks by holding keys, jumps small things, and stops by itself when it's stuck.\n" +
             "mouse_hold{\"button\": \"left\", \"seconds\": \"2\", \"stop\": \"yes\"} holds a mouse button, and stop yes lets go when what's under the crosshair changes.\n" +
             "hold_and_press{\"hold\": \"w\", \"press\": \"space\"} holds keys while pressing another.\n" +
+            "combo{\"steps\": \"shift+w 0.8, space, click, wait 0.2\"} does quick moves in a game back to back, for when timing matters: a key taps it, a number of seconds after it holds it, click and right_click click where the crosshair is, wait waits. Up to 12 steps and 8 seconds.\n" +
             "say{\"text\": \"...\", \"now\": true} says one short line out loud as Capri while you play; use now only for a sudden scare or death.\n" +
             "learn{\"text\": \"...\"} saves one short thing about a game for every time you play it after this.\n" +
             "ask{\"text\": \"...\"} asks them something only they know. done{\"text\": \"...\"} finishes and says what you did in one plain sentence, or what went wrong.\n" +
@@ -521,7 +522,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first. They already asked, and asking again annoys them. Capri stops you herself before any step that needs their OK.\n" +
             "If a cookie banner or popup covers the page, deal with it first, then carry on. If a move didn't work, try something else rather than the same thing again.";
 
-        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|read_skill|read_page|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|combo|open_app|open_website|find_file|read_skill|read_page|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex PlainClick = new Regex(@"\b(click|double_click|right_click)\W+(\d{1,3}(?:\.\d+)?)\W+(\d{1,3}(?:\.\d+)?)\b", RegexOptions.IgnoreCase);
 
         // The moves written in a brain's reply, in order.

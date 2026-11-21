@@ -449,7 +449,8 @@ Size, Check in on me, Always on top and Watch my screen are on the Settings page
 Settings opens beside the main page. Left column:
 
 YOU
-- Language: the language she replies in. 80 to pick from: English, Español, Français, Deutsch, Italiano, Português, Català, Galego, Euskara, Nederlands, Afrikaans, Svenska, Dansk, Norsk, Íslenska, Suomi, Eesti, Latviešu, Lietuvių, Polski, Čeština, Slovenčina, Magyar, Slovenščina, Hrvatski, Bosanski, Srpski, Shqip, Română, Gaeilge, Cymraeg, Malti, Türkçe, Azərbaycanca, ქართული (Georgian), Հայերեն (Armenian), Oʻzbekcha, Русский, Українська, Беларуская, Български, Македонски, Қазақша, Монгол, Ελληνικά, Tiếng Việt, Bahasa Indonesia, Bahasa Melayu, Basa Jawa, Filipino, Kiswahili, Hausa, Yorùbá, Igbo, isiZulu, isiXhosa, Soomaali, አማርኛ (Amharic), ไทย (Thai), ລາວ (Lao), ខ្មែរ (Khmer), မြန်မာ (Burmese), 简体中文 (Simplified Chinese), 繁體中文 (Traditional Chinese), 日本語 (Japanese), 한국어 (Korean), हिन्दी (Hindi), नेपाली (Nepali), বাংলা (Bengali), मराठी (Marathi), ગુજરાતી (Gujarati), ਪੰਜਾਬੀ (Punjabi), தமிழ் (Tamil), తెలుగు (Telugu), ಕನ್ನಡ (Kannada), മലയാളം (Malayalam), العربية (Arabic), اردو (Urdu), فارسی (Persian) and עברית (Hebrew). Her own ears hear 25 of them in free voice chat: English, Español, Français, Deutsch, Italiano, Português, Nederlands, Svenska, Dansk, Suomi, Eesti, Latviešu, Lietuvių, Polski, Čeština, Slovenčina, Magyar, Slovenščina, Hrvatski, Română, Malti, Русский, Українська, Български and Ελληνικά. The rest use Windows speech when Windows has it for that language. Indian scripts, Amharic, Georgian, Armenian, Lao, Khmer and Burmese are measured as they're drawn, so their lines fit her bubble too. Arabic, Urdu, Persian and Hebrew lines sit against the right of her bubble. Her HD voice and ElevenLabs speak Chinese, Japanese and Korean, and ElevenLabs speaks Hindi and Arabic; her free voice only has English pronunciation for now. Thai, Lao, Khmer and Burmese have no spaces between words, so her bubble breaks their lines between words (on Mac and Linux, between letters). Her own font has no Burmese, so Burmese draws in Windows' Myanmar Text font.
+- I speak: the language you speak. Her ears listen for it, her Mainframe, setup and tips show in it, and she answers in it too unless She answers in says otherwise. 80 to pick from: English, Español, Français, Deutsch, Italiano, Português, Català, Galego, Euskara, Nederlands, Afrikaans, Svenska, Dansk, Norsk, Íslenska, Suomi, Eesti, Latviešu, Lietuvių, Polski, Čeština, Slovenčina, Magyar, Slovenščina, Hrvatski, Bosanski, Srpski, Shqip, Română, Gaeilge, Cymraeg, Malti, Türkçe, Azərbaycanca, ქართული (Georgian), Հայերեն (Armenian), Oʻzbekcha, Русский, Українська, Беларуская, Български, Македонски, Қазақша, Монгол, Ελληνικά, Tiếng Việt, Bahasa Indonesia, Bahasa Melayu, Basa Jawa, Filipino, Kiswahili, Hausa, Yorùbá, Igbo, isiZulu, isiXhosa, Soomaali, አማርኛ (Amharic), ไทย (Thai), ລາວ (Lao), ខ្មែរ (Khmer), မြန်မာ (Burmese), 简体中文 (Simplified Chinese), 繁體中文 (Traditional Chinese), 日本語 (Japanese), 한국어 (Korean), हिन्दी (Hindi), नेपाली (Nepali), বাংলা (Bengali), मराठी (Marathi), ગુજરાતી (Gujarati), ਪੰਜਾਬੀ (Punjabi), தமிழ் (Tamil), తెలుగు (Telugu), ಕನ್ನಡ (Kannada), മലയാളം (Malayalam), العربية (Arabic), اردو (Urdu), فارسی (Persian) and עברית (Hebrew). Her own ears hear 25 of them in free voice chat: English, Español, Français, Deutsch, Italiano, Português, Nederlands, Svenska, Dansk, Suomi, Eesti, Latviešu, Lietuvių, Polski, Čeština, Slovenčina, Magyar, Slovenščina, Hrvatski, Română, Malti, Русский, Українська, Български and Ελληνικά. The rest use Windows speech when Windows has it for that language. Indian scripts, Amharic, Georgian, Armenian, Lao, Khmer and Burmese are measured as they're drawn, so their lines fit her bubble too. Arabic, Urdu, Persian and Hebrew lines sit against the right of her bubble. Her HD voice and ElevenLabs speak Chinese, Japanese and Korean, and ElevenLabs speaks Hindi and Arabic. Her free voice speaks Spanish, French, Italian, Portuguese and Hindi; see "Her free voice in other languages" in section 13. Thai, Lao, Khmer and Burmese have no spaces between words, so her bubble breaks their lines between words (on Mac and Linux, between letters). Her own font has no Burmese, so Burmese draws in Windows' Myanmar Text font.
+- She answers in: the language she replies in. Same as I speak, the default, follows I speak. Auto (match what I say) answers each message in the language you wrote or said it in, worked out on your PC, so nothing extra is sent anywhere. Or pick one of her 80 languages, like English replies while you speak Spanish. Changing it starts a fresh chat.
 - "What should she call you?": type a nickname, press Save.
 - Get to know me: she asks what to call you, your pronouns and what you're into in chat, and keeps the answers in me.md. See "Getting to know you" in section 13.
 - Open her notes (at the right of YOU's heading): edits me.md inside Mainframe, or her note in your Obsidian vault. Save writes your changes.
@@ -513,6 +514,8 @@ HABITS
 - Remember our chats (under Use her cursor): on by default. She writes every chat into a daily transcript and folds older chats into memories.md. Both stay on your PC (section 13).
 - Open her memories (at the right of HABITS' heading): edits memories.md inside Mainframe. Save writes your changes. Daily transcripts stay in the transcripts folder.
 - Music app (0.9.0): where she plays music when you don't name an app: Spotify, YouTube or Apple Music. On Apple Music she plays your playlists and Favourite Songs; if Apple Music is missing she uses Spotify, and if it asks you to sign in or subscribe she stops and tells you. On Linux the choices are Spotify and YouTube.
+- Lite mode (0.9.7, under Music app): for weak or older PCs, off by default. On, her brain on your PC stays off (llama-server stops and any Ollama model she loaded is unloaded, so that memory comes back) and she offers to open the free key page so she can think in the cloud instead. She runs like Power saver on Always all the time, draws herself slower still (10 frames a second) after a minute with no mouse or keys, lets go of art she isn't drawing after a minute, and hands HD voice to her free voice. Watch my screen, game comments and Clip my games turn off, and turning Lite mode off puts them back the way they were. Her own ears and Listen for Capri still use memory while they're on. Turning Lite mode off, or pressing Set up her brain, wakes her brain on your PC again. Simple Settings shows it. Windows only for now.
+- Why slow? (0.9.7, beside Lite mode): she checks your PC right now and tells you what's slowing her down and what would help: her brain running on the processor (Brain VRAM on RAM only, a graphics card that failed to load it, or one with under 1 GB of its own memory), part of her brain not fitting in graphics card memory, a nearly full graphics card, her brain resting and loading again, a processor with 4 threads or fewer, little free RAM, a busy processor and the app using most of it, two or more of Watch my screen, game comments and Clip my games on, or HD voice loaded. Asking her "why are you so slow?" does the same check. It only reads; it changes nothing.
 
 SOUNDS (0.9.0, under HABITS)
 - Sounds and Typing sound sit at the top of SOUNDS. Message sent, Heard you and Listening are on by default: soft sounds when your typed message is sent, when she's heard you finish talking, and when Listen for Capri opens her ears. There's no master Chimes switch; all three off means no chimes.
@@ -608,17 +611,18 @@ Right-click her > Open Capri Mainframe > Settings > CAPRI > Pop-in times. Set Sh
 Use preset returns to the Pop-ins slider's pace. Moving that slider also clears your custom times. CAPRI > Check in on me still decides whether she visits.
 
 ### How do I get mods? (0.8.3)
-Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins and Skills filter the list.
+Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins, Skills and Plug-ins filter the list.
 
 Press Install on the mod you want. View lets you read about it first. Once installed, click its stars to rate it from 1 to 5.
 
 View on a mod (0.9.0) shows the first few lines of its README, with Learn more for the whole page. A mod with no description takes one from its README.
 
-Already have a mod file? Press Import mod on the Mods page and pick it. The file types are:
+Already have a mod file? Press Import mod on the Mods page and pick it, or drop it on her. Dropped on their own, mod and plug-in files make her ask first, and your yes opens Mods and imports them the same way, with the same boxes. The file types are:
 - .capri-mod: settings mods, including colour sets.
-- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
+- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is. A skin can also add new moves for her, like a wave (0.9.7).
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
 - .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings, plus what her quick read of its code found, like network use and the addresses it contacts. Minified or packed code is said in the box and asked about twice, with a laid-out copy saved to read, and a mod that both unpacks hidden text and loads code while it runs is refused. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
+- .capri-plugin (0.9.6): plug-ins that give her tools from MCP servers, like Claude's plug-ins. See What are plug-ins? below.
 - .capri-tool: tool mods, a JSON recipe that gives her one look-up tool: one to three HTTPS reads from the sites it lists, the values to keep, and what to tell her. They can't run code, send, post or log in. She asks before one goes on, naming the sites it reads, and again if it's edited. A site that finds nothing doesn't count against a tool, but three broken answers in a row switch it off. She can write one herself with make_tool when you ask for a look-up she doesn't have; it's saved off until you check it in Mods and turn it on. If a code mod was starting when she stopped, it's off on her next start, and starting her with --no-mods keeps every mod off for that run.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
@@ -637,6 +641,48 @@ From 0.9.0 she knows the names of every skill that's on, in chat and in jobs, an
 A skill's game also counts when it runs in a browser tab, like Five Nights at Freddy's in Chrome, when you ask her to play it or name it (Windows). A real game window still comes first.
 
 To make one: a .capri-skill file starts with a header between two --- lines (capri-skill: 1, then id, name, author, description and games, the game names separated by commas), then the know-how in plain words. Publish it like any other mod.
+
+### Email: new mail and phishing (0.9.7)
+Turn on the Email plug-in in Mods and set it up with your address and an app password. In Mods, Options on Email opens its tools, and Email settings (Set up email before it's connected) opens the window with your account and two switches below Connect, both off until you turn them on:
+- Watch for new mail: she watches your inbox in the background and speaks up when something lands, like "Oop, something just came through." Mail that was already there isn't announced. Nothing gets marked read, and she never opens links or attachments. Gmail usually tells her about new mail within seconds; servers without IMAP IDLE are checked about once a minute. You can also ask her to start or stop watching.
+- Deal with phishing on her own: it only counts while she's watching. Mail she's sure is phishing goes straight to your spam folder without asking. On Gmail she says "That's phishing, choom, I reported it as spam and binned it." because moving mail into Gmail's Spam reports it. On other servers she says "That's phishing, choom, I moved it to your junk folder." If the move fails, she says so and why. Mail she isn't sure of stays where it is.
+
+Ask "is this email legit?" or "check that email for phishing" and she checks it with check_mail, using her own rules rather than a brain's guess. She compares who it says it's from with where it really came from, and looks for replies that go somewhere else, look-alike addresses (letters from another alphabet, rn for m, 0 for o, 1 for l, vv for w, extra words around a brand's name, endings like .zip or .top), links that show one address but go to another, bare number addresses, link shorteners and @ tricks, pushy asks (a suspended account, a 24 hour deadline, your password, gift cards, a wire transfer, crypto, an overdue invoice), risky attachments (.exe, .scr, .js, .vbs, .lnk, .iso, .img, .hta, .html, two endings, macro documents, a zip with its password in the email) and failed sender checks (SPF, DKIM and DMARC). She answers fine, suspicious or phishing with plain reasons.
+
+Ask her to bin an email, or move it to spam, the trash, the archive or a folder, and she moves just that one with move_mail. She asks first by SECURITY > Send, post and delete what you asked for, and always asks when she's just read an email, so an email's own words can't spend your yes. She uses MOVE when your mail server has it. Otherwise she copies the email, marks it deleted and clears only that one (UIDPLUS); a server with neither is told plainly and nothing moves. She never deletes mail for good herself.
+### What are plug-ins? (0.9.6)
+A plug-in gives her tools from MCP servers, the same kind Claude's plug-ins use, and can bring skills she reads when they fit. Plug-ins sit on the Mods page with your other mods, marked PLUG-IN. She uses a plug-in's tools by herself when you ask for what they do, up to 32 from each plug-in.
+
+Before a plug-in with tools goes on, her "Turn on this plug-in?" box shows what it starts or connects to, what it says its tools do, its skills and its file fingerprint (SHA-256). If the file changes later, it stays off until you approve it again. Programs it starts run outside Capri with your account's access to your PC. They get none of her keys, and none of your PC's other key, token and password settings unless the box names them. She refuses any call that would send one of her keys. After she reads a plug-in's answer or a skill, anything that would use your mouse and keyboard, send, post, delete or pay asks first until your next message.
+
+Starters: Email, Notion and Linear come with her, switched off on the Mods page. An off starter's row says STARTER and what it needs. Turn one on and her plug-in box shows first.
+- Email checks, searches and reads your mail and writes mail for you. Turning it on opens Set up Email: your email address and an app password, never your normal password. Gmail, iCloud, Yahoo, AOL, Fastmail, GMX and Zoho fill in their own servers. For another address, type its incoming (IMAP) and outgoing (SMTP) servers. Connect signs in to check it works before she keeps it. She always asks before she sends an email. Forget account removes the account and its app password.
+- Notion searches, reads and edits your pages and databases. Linear finds, makes and updates your issues and projects. Turning either on opens your browser, so you sign in on their own page.
+
+Outlook.com, Hotmail and Live addresses don't work with Email yet. Set up Email says "Outlook and Hotmail don't take app passwords any more, so Capri can't sign in to them yet." as soon as you type one. Her Email signs in only with a password, over IMAP and SMTP, and has no Microsoft sign-in.
+
+Your own plug-ins: Mods > Import mod takes a .capri-plugin, or a Claude plug-in's plugin.json or a .mcp.json. On Windows, pick "Claude plug-ins and MCP servers" in the file box to see those.
+- A plugin.json brings its whole folder, without .git or node_modules. A .mcp.json brings only that file, and the plug-in is named after its folder.
+- Servers she starts: a command with args, env and cwd. ${NAME} comes from your PC's environment, and ${CLAUDE_PLUGIN_ROOT} is the plug-in's own folder.
+- Online servers: http, streamable-http or sse, over https or on this PC.
+- Up to 4 servers. A server of another kind is left out, and the box says so.
+- Skills in skills/<name>/SKILL.md, up to 20. Commands, agents and hooks from a Claude plug-in aren't used.
+- Up to 1 MB zipped, 400 files and 8 MB unpacked.
+- The box warns when an npx or uvx server isn't pinned to a version, since what runs can change after you say yes. A server that hides the code it would run, like an encoded PowerShell block or a download piped into a shell, is refused.
+
+In the mods directory: Browse mods can list plug-ins, under Plug-ins. Install shows the same box, with a line saying the Capri team reviewed that exact file. A listed plug-in has every npx and uvx server pinned to a version.
+
+Signing in: an online plug-in like Notion or Linear opens your browser to sign in when you switch it on. If it still needs you, its row says "Needs you to sign in" on Windows, where Sign in under its Options opens your browser again, or "Turn it off and on to sign in" on Mac and Linux. On Windows the sign-in stays on this PC, protected by Windows, until you remove the plug-in, and importing it again means signing in again. On Mac and Linux she keeps sign-ins and the Email app password only until she closes.
+
+Options (Windows): on a plug-in that's on, Options lists its tools. Each has a key that goes round Like SECURITY, Always run, Ask first and Off.
+- Like SECURITY asks first the way SECURITY > HER MODS > Use tools your mods added says, and for tools that change things, Send, post and delete too.
+- Always run uses the tool without asking. Ask first always asks. Off takes it away from her.
+- A plug-in that says it can pay, buy or book, or names a tool to ask about, asks first unless you pick Always run.
+- Email's Send mail always asks, and its key only turns it off. Email's Options also has Set up email, or Change email account once it's connected.
+
+On Mac and Linux there's no Options for plug-ins yet: their tools follow your SECURITY settings, and Send mail always asks.
+
+Remove stops a plug-in's programs and forgets its sign-in and its Options choices.
 
 ### Workspace (beta) (0.9.0, Windows)
 Workspace is her window for chats with Claude Code. Open it from Mainframe > BRAIN > WORKSPACE (beta), or ask her to "open workspace".
@@ -867,6 +913,10 @@ Her brain goes on your C: drive. Free up that much space on C:, then try again. 
 ### My games lag while she's running
 Her built-in brain uses your graphics card and memory, and so do games. Use the free NVIDIA key while you play. Her brain then runs on NVIDIA's servers, not your PC.
 Keep Power saver (Settings > HABITS) on In games, the default, or Always. Over a game she then draws herself less often while she sits still, runs her background checks less often and listens at a gentler pace. Watch my screen, Listen for Capri and Clip my games keep working. In games and Always also hand full-screen games and videos her free voice instead of HD.
+On a weak PC, turn on Lite mode (Settings > HABITS) too, and press Why slow? beside it to see what's slowing her down right now.
+
+### "Lite mode keeps my brain on your PC switched off, so I can't think right now. A free key lets me think in the cloud instead. Want me to open the free key page?"
+Lite mode (Settings > HABITS) is on and her brain runs on your PC, so she can't think. Say yes and she opens NVIDIA's free key page; make a key, paste it under BRAIN and press Connect. Or turn Lite mode off and her brain on your PC wakes up again. In the Mainframe this shows as "Lite mode is on. Press Free key for a cloud brain."
 
 ---
 
@@ -1048,6 +1098,8 @@ Call mode hears your mic and the selected call app separately, so she knows whic
 
 Right-click her > Open Capri Mainframe > Settings > VOICE > Call mode (beta) turns it on. On her call panel, click the call app's name to choose what she hears. Turning call mode on doesn't join a call for you.
 
+If call mode is still on when she starts, she opens her ears for the call by herself (0.9.7), so your friends who hear her are heard too. Shut her ears with TALK and they stay shut until you open them again.
+
 Without her own ears, call mode hears offline to keep each speaker separate, so the hearing line under VOICE says "Hearing offline for call mode" in grey. Nothing is wrong. Her own ears hear better: set Hearing under VOICE to Her own ears to get them.
 
 ### Does call mode work with Zoom? (0.8.3)
@@ -1116,14 +1168,15 @@ Say "Hey Capri" and she starts voice chat, the same as Ctrl + Alt + V. If she's 
 Voice chat follows your pick under VOICE. PREBUILT LOCAL, CUSTOM LOCAL, Fish Audio and OpenAI voices use free voice chat with your picked brain. With OFF selected, she types her answers. CLOUD VOICE > ElevenLabs uses ElevenLabs voice chat when connected. A cloud brain or voice still uses its own service when selected.
 - She listens with her own offline ears, a download the first time: "My ears are still downloading, so type to me for now. I'll say when I can hear you."
 - Her ears hear English and 24 other European languages, Spanish, French, German, Italian, Portuguese, Dutch, Polish, Russian and Ukrainian among them. English and the rest are separate downloads, so switching between them downloads the other pack once. From 0.8.5 her 24 other languages use Parakeet Ultra: if you already used her ears in one of them, she downloads the new pack once, 487 MB. The old pack stays in her ears folder, about 670 MB, and you can delete it.
-- She listens for her language from Settings. If she's on English because nobody changed it and Windows isn't, she listens for your Windows language, for people who speak their own language to her.
-- She hears English as another language, like Japanese? Mainframe > Settings > Language, pick English (even if it already says English). From 0.7.6 a picked English means she listens in English whatever language Windows is in.
+- She listens for the language under Mainframe > Settings > YOU > I speak. If she's on English because nobody changed it and Windows isn't, she listens for your Windows language, for people who speak their own language to her.
+- With She answers in on Auto, her European pack hears all 25 of her ears' languages without switching. If you speak English and that pack is already on your PC, Auto uses it too; otherwise she keeps her English pack and downloads nothing new.
+- She hears English as another language, like Japanese? Mainframe > Settings > I speak, pick English (even if it already says English). From 0.7.6 a picked English means she listens in English whatever language Windows is in.
 - Her other languages (Turkish, Norwegian, Chinese, Hindi, Arabic and the rest) use Windows speech instead. From 0.7.6 Windows speech listens in the language you picked when Windows has it, not just in Windows' own speech language.
 - If her ears don't download, she says so and tries again by herself after 30 seconds, then 1, 2 and 4 minutes, then every 5.
 - "Free voice chat on" appears the first time only. After that, check the status under Mainframe > VOICE to see that it's on.
 
 ### "The download of her ears came out the wrong size" or "keeps stopping"
-This hit every copy of Capri up to 0.8.5 from 7 November 2026: the files her ears download changed at the source, so the download can't finish, and trying again doesn't help. 0.8.5.1 fixes it. Update (right-click her > Check for updates), then start free voice chat again. She gets the same ears from Capri's own copy, and a download left half done starts over by itself. For a language other than English, pick it under Mainframe > Settings > YOU > Language and she downloads the ears that hear it. Typing to her works meanwhile.
+This hit every copy of Capri up to 0.8.5 from 7 November 2026: the files her ears download changed at the source, so the download can't finish, and trying again doesn't help. 0.8.5.1 fixes it. Update (right-click her > Check for updates), then start free voice chat again. She gets the same ears from Capri's own copy, and a download left half done starts over by itself. For a language other than English, pick it under Mainframe > Settings > YOU > I speak and she downloads the ears that hear it. Typing to her works meanwhile.
 
 ### "Couldn't unpack her ears: tar.exe: Error opening archive: Can't initialize filter"
 This happened on Windows 10 with 0.7.0 and 0.7.1: Windows 10's built-in tar can't unpack the ears download. 0.7.2 fixes it. Update (right-click her > Check for updates), then start free voice chat again. Typing to her works meanwhile.
@@ -1146,6 +1199,8 @@ Since 0.7.1, muting pauses ElevenLabs voice chat once she stops talking: "Mic mu
 ### She went quiet: "Voice chat resting. Talk and she'll pick up."
 If you go quiet, she stays quiet too: she doesn't ask if you're still there. After a bit the call rests, which saves your ElevenLabs credits. Just talk and she picks up again.
 
+From 0.9.7 she listens for your voice over your room's own sound, like free voice chat does, so a quiet mic works without shouting, in ElevenLabs voice chat and when you talk over her. A steady fan or hum still doesn't wake her.
+
 ### Can she do things in voice chat?
 Yes. Ask her to open apps, play music and so on, the same as in text. A job with her cursor (playing a song, searching YouTube, anything with clicks) can take a minute, so in ElevenLabs voice chat she says she's on it straight away and tells you how it went when it's done. Asking again while it runs doesn't start it twice. With no brain set up, she plays music and changes the volume with her quick tools instead.
 
@@ -1158,7 +1213,12 @@ Only while your mic is muted. Watch my screen pauses while your mic is on, so sh
 Capri makes a voice agent called "Capri" in your own ElevenLabs account and talks through it. Your voice goes to ElevenLabs while it's on. Free voice chat with her own ears stays on your PC (Windows speech, used for languages her ears don't know, goes through Microsoft).
 
 ### Voice chat in other languages
-If you pick another language in Settings, voice chat uses it too. Free voice chat hears 25 languages with her own ears (see Free voice chat above). ElevenLabs voice chat in other languages is new and not well tested yet.
+Free voice chat listens for the language under I speak and answers in the one under She answers in. It hears 25 languages with her own ears (see Free voice chat above). ElevenLabs voice chat uses She answers in for both, and in other languages it's new and not well tested yet.
+
+### Why did her voice change to a Windows voice? (0.9.7)
+Her free voice speaks English, and French, Spanish, Italian, Portuguese and Hindi once their small download is in. A line in another language, like Russian or Japanese, is read by a Windows voice for that language when Windows has one, and VOICE says so once per language each run. A voice for that language under CUSTOM LOCAL takes over from it.
+
+If you run out of ElevenLabs credits, her free voice fills in, and she tries ElevenLabs again every 15 minutes. Once your credits are back, VOICE says "ElevenLabs has credits again, so she's back to her ElevenLabs voice."
 
 ### How do I set up push to talk?
 Mainframe > Settings > KEYS > Push to talk. Click it, press a key or a middle or side mouse button, then click Confirm. It starts unbound. Left and right mouse clicks aren't available for this binding.
@@ -1242,13 +1302,24 @@ She writes the answers to her notes, me.md, as "Name: ...", "Pronouns: ..." and 
 - She only asks by herself the first time. Mainframe > Settings > Get to know me (next to "What should she call you?") asks again any time. On Mac and Linux it's right-click her > Settings > Get to know me, and a new install asks once she's said hello.
 
 ### Language
-Mainframe > Settings > Language. She replies in that language. Changing it starts a fresh chat.
+Mainframe > Settings > YOU has two rows:
+- I speak: the language you speak. Her ears listen for it, and her Mainframe, setup and tips show in it.
+- She answers in: the language she replies in. Same as I speak is the default. Auto (match what I say) answers each message in the language you wrote or said it in. Or pick a language, like Spanish replies while you speak English to practise.
+
+Changing either starts a fresh chat. Settings from before these two rows carry over as they were, so nothing changes until you pick. You can ask her too: "talk to me in Spanish", "answer in whatever I use", "I'll speak French". On Mac and Linux both are in right-click her > Settings.
+
+Auto works out the language on your PC from what you wrote or said, so nothing extra is sent anywhere. Short lines like "ok" or "lol" keep the last language. Her rules hold in every language.
 
 On a new install she starts in your PC's own display language when it's one she speaks, and in English otherwise. Change it any time.
 
 Her own fixed lines follow your language too (0.8.5). That covers her hello at startup, pat lines, yelps when she's thrown, check-ins, settings lines and the labels after "sys:" in her bubble. Her brain translates them once for each language, a few calls in the background, and she keeps them in lines-<language>.txt in her data folder (%LOCALAPPDATA%\Capri). Until then a line can still come out in English, so the first pat or two after you switch might be English. Delete that file to have them translated again. Her recorded hello is English, so in another language she says her hello with her normal voice.
 
 Ask her to do things in any of her languages: "öffne Spotify", "abre Discord" and "打开Spotify" all work. Volume, mute, pause and skip ("mach lauter", "wycisz", "下一首") work instantly, even before she has a brain, in English, Spanish, French, German, Portuguese, Italian, Polish, Dutch, Russian, Ukrainian, Turkish, Indonesian, Japanese, Chinese and Korean. In her other languages her brain handles them.
+
+### Her free voice in other languages
+Her free voice speaks Spanish, French, Italian, Portuguese and Hindi with her own voice, and fetches what it needs for them the first time, about 7 MB. When her voice pack has a native voice for one of them, she uses it, and VOICE > Free voice > Her English accent in Spanish (or that language) keeps her own voice instead. Today's pack has no native voices, so she speaks them with her own.
+
+Other languages written in Latin letters, like Polish or German, get her English voice, and she says so once each time Capri starts: "My free voice can't speak Polish yet, so you'll hear my English voice." VOICE > Free voice > Text only in Polish keeps her quiet in that language instead ("My free voice can't speak Polish yet, so I'll stick to text."), and Windows voice for Polish (robotic) uses a Windows voice when Windows has one. Languages in other letters, like Russian or Japanese, use a voice you add under CUSTOM LOCAL or a Windows voice, and otherwise stay quiet.
 
 ### Does she remember what she learns in a game?
 She keeps a separate notes file for each game in %LOCALAPPDATA%\Capri\games. She can save a control she worked out, what finally worked, what went wrong or a useful place. After a game job, she also looks back over its moves for things worth keeping.
@@ -1299,6 +1370,16 @@ After two to five quiet minutes sitting on a window or the taskbar with room, sh
 
 ### Her animations (0.7.6 and newer)
 Ask for one by name: "do your glitch", "smile" or "grin", "blink", "play your idle animation", or "dance". Her dance goes on, with or without music, until you say "stop dancing" or untick Move > Dance. Telling her to stop while a song plays keeps her still until the song ends.
+
+### New moves from skins (0.9.7 and newer)
+A skin can add moves of her own, like a wave or a spin, on Windows, Mac and Linux.
+- Make one: Mainframe > CAPRI > Mods > Animations > New move... Name it, pick its frames (Pictures..., Strip... or Folder...), set its speed, pick Loops or Once, then Add move. Wear it puts it on her, and Save skin... saves it to share.
+- Frames are 116 x 384 each, like her standing frames, up to 240 of them.
+- Ask for it by name: "do the wave" or "show me your happy spin". Her brain also picks one when you hint at it.
+- Once plays it and she's back to her idle. A loop goes on until you tell her to stop, like "stop the spin" or "stop dancing".
+- Names are 2 to 24 lowercase letters or numbers, with _ between words, and can't be one of hers, like dance or grin.
+- Code mods play one with capri.Her.Animate and its name.
+- Taking the skin off takes its moves away. If she says "I don't have an animation called ...", the skin with that move isn't on.
 
 ### Size
 - Mainframe > Settings > CAPRI > Size: Tiny to Giant.
@@ -1378,6 +1459,9 @@ If her reply says she can't open, play or access something she can do (like "I d
 - Name the artist for the best match.
 - "Opened X in Spotify, but couldn't press play. Hit the green Play button." Press Play yourself.
 - "Couldn't find X to play, so Spotify is open on a search for it." Pick the song from the search.
+- "Opened X on YouTube, but couldn't get it playing. Press play on the video." Your browser held it back from starting on its own. Press play, or let YouTube play sound by itself in your browser's site settings.
+- "Couldn't get YouTube's results, so it's open on a search for X. Pick one there." YouTube asked about cookies first, or your connection dropped.
+- "Opened X in Spotify's web player, but couldn't press play there. Hit its Play button." Spotify is only installed as a web app on this PC, and a web player can't start a song by itself. With the Spotify app she presses play for you.
 
 ### How your PC is doing (0.8.0)
 With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how much RAM is Chrome using?" or "how much space is left?". She checks how busy the processor and memory are, which apps use the most, each drive's free space and a laptop's battery, then answers. Ask "is my internet down?" or "what's my ping?" and she checks your connection too: Ethernet or Wi-Fi, a few pings, and whether sites look up. She only reads them. Windows only.
@@ -1496,7 +1580,10 @@ Say "play" and the game, like "play Bloons TD 6", by voice or text. She opens it
 
 Ask her what you want done in the game. She works from the screen with mouse and keyboard input: turning the camera, walking, jumping, holding buttons and using menus. She checks what changed and tries another way when a click keeps doing nothing.
 
-She acts in turns, so fast driving and other moves that need instant reactions are difficult. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
+She acts in turns, so fast driving and other moves that need instant reactions are still hard. When timing matters, like sprinting into a jump, she can send a quick run of key presses, holds and clicks in one go and then look once. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
+
+### What about games with anti-cheat?
+Her quick moves never run while kernel anti-cheat is running, like Riot Vanguard, Easy Anti-Cheat, BattlEye, FACEIT or ACE, because games that use it can ban accounts for input that isn't yours. She says so instead. Riot Vanguard usually loads when Windows starts on a PC with Valorant or League of Legends installed, and while it's loaded she doesn't use quick moves in any game.
 
 ### What are Fast hands in games and the advisor?
 Mainframe > Settings > BRAIN > Fast hands in games is on by default. With a Claude key, her game jobs use Claude Haiku 5.5. Chat stays on the model you picked under BRAIN. Turn the switch off to use your picked model for the game too. Other brain services aren't changed by this switch.
@@ -1593,7 +1680,7 @@ Rock paper scissors is first to three points. The boards keep your scores for th
 Right-click her > Open Capri Mainframe > Settings > GAMES > Play... opens the menu. From 0.8.9, right-click her > Play opens it too. Pick Chess, Connect four, Tic-tac-toe or Rock, paper, scissors. You can also ask her to play one, even without a brain connected.
 
 ### Can I give her a file to read?
-Drag a file onto her, or ask her to read its full path. Put paths with spaces in quotes, such as `read "C:\Notes\project plan.txt"`. Then ask about its contents.
+Drag a file onto her, or ask her to read its full path. Put paths with spaces in quotes, such as `read "C:\Notes\project plan.txt"`. Then ask about its contents. Mod and plug-in files dropped on their own are for importing instead: she asks, then imports them on your yes.
 
 She reads text and code, Word .docx, Excel .xlsx, PDFs, and PNG, JPG, JPEG, GIF, BMP and WebP pictures. Pictures use your selected brain if it can see, otherwise Windows reads their text. PDFs use Windows to read text from the pages, so mistakes are possible. Spreadsheets use their saved cell values.
 
@@ -2082,7 +2169,7 @@ On Apple Silicon Macs, Mainframe > Settings > VOICE > Listen for Hey Capri works
 - Move: Stay put, Wander: Rarely, Wander: Sometimes, Wander: Often, Wander: Restless, Dance to music, Dance (on until you untick it or say "stop dancing"), Go to the next screen (only with more than one screen), Fall asleep after (Never, 1 min, 2 min, 5 min, 10 min, 30 min), Glitch in at startup
 - Size: Tiny, Small, Medium, Large, Huge, Giant
 - Brain: your Ollama models. With Ollama open but no models yet: "Download gemma4:e4b, her brain (a few GB)". With Ollama closed or not installed: "Ollama isn't running. Install it from ollama.com and open it." Below them: Get a free NVIDIA key, and Use an API key... On a key it shows "NVIDIA key ending XXXX" (or ChatGPT, Claude, DeepSeek), that key's models to pick from, Stay on my model (NVIDIA keys only), and Forget the key and use Ollama.
-- Settings: What should she call you?, Get to know me, Language, Reply length, Chat memory, Bubble (Quick, Normal, Long), Sounds (Off, Quiet, Normal, Loud, Typing sound), Voice, Volume (10% to 100%, 125%, 150%), Voice style (Pitch, Speed, Robot, Glitch, Layers, Layer 1 pitch, Layer 1 delay, Layer 2 pitch, Layer 2 delay), Check in on me, Pop-ins (Rarely, Sometimes, Often), Always on top, Watch my screen, Glance every (10 s to 10 min), Keep her caught up, Start at login, Show on Discord, Security (Lockdown, Guarded, Trusted, Blackwall, Custom, then the five toggles), Open her notes (me.md), Remember our chats, Open her memories (memories.md)
+- Settings: What should she call you?, Get to know me, I speak, She answers in, Reply length, Chat memory, Bubble (Quick, Normal, Long), Sounds (Off, Quiet, Normal, Loud, Typing sound), Voice, Volume (10% to 100%, 125%, 150%), Voice style (Pitch, Speed, Robot, Glitch, Layers, Layer 1 pitch, Layer 1 delay, Layer 2 pitch, Layer 2 delay), Check in on me, Pop-ins (Rarely, Sometimes, Often), Always on top, Watch my screen, Glance every (10 s to 10 min), Keep her caught up, Start at login, Show on Discord, Security (Lockdown, Guarded, Trusted, Blackwall, Custom, then the five toggles), Open her notes (me.md), Remember our chats, Open her memories (memories.md)
 - Help: Help page, Copy error details
 - Join the Discord
 - Get Capri X, only when a new version is out

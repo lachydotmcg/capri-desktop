@@ -30,6 +30,7 @@ Ask Capri for more	از Capri بیشتر بخواه
 Asking your server...	از سرور شما پرسیده می‌شود...
 Asks before closing only the apps you choose.	فقط قبل از بستن برنامه‌هایی که انتخاب می‌کنی می‌پرسد.
 Auto	خودکار
+Auto (match what I say)	خودکار (مطابق حرفم)
 Automatic: VB-CABLE, else Steam's	خودکار: VB-CABLE، وگرنه Steam
 BAD RELAY HOST	میزبان رله‌ی نامعتبر
 BIG Z open notepad	BIG Z باز کردن notepad
@@ -290,6 +291,7 @@ Huge	خیلی بزرگ
 I can hear you.	صدایت را می‌شنوم.
 I glance at your screen and comment. Costs a little on a paid brain.	نگاهی به صفحه‌ات می‌اندازم و نظر می‌دهم. روی مغز پولی کمی هزینه دارد.
 I keep listening. Say my name, then just talk.	به گوش دادن ادامه می‌دهم. اسمم را بگو، بعد فقط حرف بزن.
+I speak	من صحبت می‌کنم
 I talk about your game as you play. Costs a little on a paid brain.	همان‌طور که بازی می‌کنی درباره‌ی بازی‌ات حرف می‌زنم. روی مغز پولی کمی هزینه دارد.
 I type my replies and stay quiet.	پاسخ‌هایم را تایپ می‌کنم و ساکت می‌مانم.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	جواب صوتی نمی‌دهم و چیزی به جایی ارسال نمی‌شود. با این حال کنارت می‌مانم، با موسیقی‌ات می‌رقصم و کارهای سریعی را که می‌خواهی انجام می‌دهم، مثل بلندی صدا.
@@ -598,6 +600,7 @@ SKILL.	مهارت.
 SKIN.	پوسته.
 SORT BY	مرتب‌سازی بر اساس
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	صداها عادت‌ها مغز تماشا Capri Doomscroll آب‌وهوا کلیپ‌ها بازی‌ها کلیدها حرکات صدا تو
+Same as I speak	مثل زبان من
 Same as her ears (VOICE > Mic)	مثل گوش‌های او (صدا > میکروفون)
 Same code on the phone?	همان کد روی گوشی؟
 Save	ذخیره
@@ -633,6 +636,7 @@ Settings had nothing to watch.	تنظیمات چیزی برای تماشا ند�
 Settings lost keyboard focus during the Tab walk	تنظیمات در حین گشت Tab، فوکوس صفحه‌کلید را از دست داد
 Setup guide	راهنمای راه‌اندازی
 Setup stopped	راه‌اندازی متوقف شد
+She answers in	او پاسخ می‌دهد به
 She can read it when it fits.	وقتی جا شود می‌تواند آن را بخواند.
 She glances at your screen and comments. Costs a little on a paid brain.	نگاهی به صفحه‌ات می‌اندازد و نظر می‌دهد. روی مغز پولی کمی هزینه دارد.
 She keeps listening. Say her name, then just talk until you go quiet.	به گوش دادن ادامه می‌دهد. اسمش را بگو، بعد تا وقتی ساکت شوی حرف بزن.

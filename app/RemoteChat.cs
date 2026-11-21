@@ -1523,7 +1523,7 @@ namespace CapriDesktop
                     switch (tool)
                     {
                         case "type": case "paste": case "insert_text": return "typing some text";
-                        case "press": case "key": case "hold_key": case "hold_and_press": return "pressing these keys";
+                        case "press": case "key": case "hold_key": case "hold_and_press": case "combo": return "pressing these keys";
                         default: return null;
                     }
             }
@@ -1538,7 +1538,7 @@ namespace CapriDesktop
         {
             tool = tool ?? "tool";
             if (tool == "type" || tool == "paste" || tool == "insert_text") return finished ? "Typed some text" : "Typing some text";
-            if (tool == "press" || tool == "key" || tool == "hold_key" || tool == "hold_and_press") return finished ? "Pressed some keys" : "Pressing some keys";
+            if (tool == "press" || tool == "key" || tool == "hold_key" || tool == "hold_and_press" || tool == "combo") return finished ? "Pressed some keys" : "Pressing some keys";
             if (failed) return "That step failed";
             if (tool == "click" || tool.EndsWith("_click", StringComparison.Ordinal) || tool == "open_app")
                 return RemoteMessages.CleanText(RemoteOut(Mask(label)), 120);

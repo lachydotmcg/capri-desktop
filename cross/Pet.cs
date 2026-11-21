@@ -27,6 +27,7 @@ namespace CapriDesktop
         [DataMember] internal double Size = 240;
         [DataMember] internal string Model;
         [DataMember] internal string Language;
+        [DataMember] internal string ReplyLanguage;
         [DataMember] internal string Ears;
         [DataMember] internal string Nickname;
         [DataMember] internal int Replies;
@@ -298,8 +299,11 @@ namespace CapriDesktop
         private readonly object artGate = new object();
         private int artGeneration;
         private bool loadingLeft, triedLeft;
-        internal Bitmap Strip { get { if (strip == null) strip = Pet.ReadArt(name); return strip; } }
+        internal Bitmap Strip { get { if (strip == null) strip = file != null ? Pet.ReadMoveArt(file, count) : Pet.ReadArt(name); return strip; } }
         private readonly string name;
+        private readonly string file, move;
+        internal readonly bool Loops;
+        internal bool IsMove { get { return file != null; } }
         private readonly int count;
         private readonly double fps;
         private readonly double shiftX, shiftY;
@@ -335,7 +339,22 @@ namespace CapriDesktop
         internal double ShiftY { get { return Old ? 0 : shiftY; } }
 
         // The strip's own name, like "idle" or "perch", the way mods and Windows name it.
-        internal string Title { get { return name.Substring("Capri.Sprite.".Length, name.Length - "Capri.Sprite.".Length - ".png".Length); } }
+        internal string Title { get { return move ?? name.Substring("Capri.Sprite.".Length, name.Length - "Capri.Sprite.".Length - ".png".Length); } }
+
+        private Clip(string move, string file, int count, double fps, bool loops, Clip like)
+        {
+            name = "Capri.Move." + move + ".png";
+            this.move = move;
+            this.file = file;
+            this.count = count;
+            this.fps = fps;
+            Loops = loops;
+            Height = like.Height;
+            shiftX = like.shiftX;
+            shiftY = like.shiftY;
+        }
+
+        internal static Clip Move(string move, string file, int count, double fps, bool loops, Clip like) { return new Clip(move, file, count, fps, loops, like); }
 
         internal Clip(string name, int count, double fps, double height, double shiftX = 0, double shiftY = 0)
         {
@@ -629,6 +648,7 @@ namespace CapriDesktop
         private readonly Body body = new Body();
         private readonly List<MenuItem> wanderPicks = new List<MenuItem>();
         private readonly List<MenuItem> languagePicks = new List<MenuItem>();
+        private readonly List<MenuItem> answerPicks = new List<MenuItem>();
         private readonly List<MenuItem> replyPicks = new List<MenuItem>();
         private readonly List<MenuItem> recallPicks = new List<MenuItem>();
         private readonly List<MenuItem> soundPicks = new List<MenuItem>();
@@ -875,7 +895,7 @@ namespace CapriDesktop
         {
             this.desktop = desktop;
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
-            if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears).Listen;
+            if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears, () => TheirLanguage).Listen;
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
@@ -913,9 +933,9 @@ namespace CapriDesktop
             Brain.FoldsGlances = false;
             Brain.Keeping = !Saved.NoMemories;
             if (Program.Smoke == null) Brain.Keeper = Brain;
-            Brain.Language = Brain.LanguageCode(Saved.Language) == "en" ? null : Saved.Language;
+            PointReplies();
             Lingo.Bundled = WordTable;
-            Lingo.Use(Program.Smoke == null ? Brain.Language : null);
+            Lingo.Use(Program.Smoke == null && TheirLanguage != "English" ? TheirLanguage : null);
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
             if (Saved.ReplyLength == 1) { Saved.Replies = 0; Saved.ReplyLength = 0; }
             else if (Saved.ReplyLength >= 2) { Saved.Replies = 2; Saved.ReplyLength = 3; }
@@ -951,6 +971,7 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Mainframe = MainframeTool;
+            Hands.ImportMod = ImportModTool;
             AttachSelfTools();
             StartMiniPlayer();
             Hands.Animate = AnimateTool;
@@ -1060,7 +1081,7 @@ namespace CapriDesktop
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
-            MacFiles.Drops(body, words => Hear(words));
+            MacFiles.Drops(body, words => Hear(words), HandMods);
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
@@ -1081,14 +1102,14 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { StopRemote(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
                 StopRemote();
                 Dispatcher.UIThread.Post(delegate { if (on && !quitting && !MacQuit.Quitting && (e.Cancel || frames.IsEnabled)) SetRemote(true); });
             };
-            desktop.Exit += delegate { StopRemote(); };
+            desktop.Exit += delegate { StopRemote(); StopMailWatch(); };
             Deactivated += delegate { if (!(Desk is HyprlandDesk) && !desktopDrag) Program.Guard(Unhold); };
             Opened += delegate
             {
@@ -1356,7 +1377,7 @@ namespace CapriDesktop
             watching.Deliver();
             CheckStyle();
             CheckSelfTools();
-            if (Program.Smoke == null && !CheckReminders()) CheckWeather();
+            if (Program.Smoke == null && !CheckReminders() && !CheckWeather()) CheckMail();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
@@ -1777,7 +1798,7 @@ namespace CapriDesktop
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
             int index = (int)((now - clipStart) * clip.Fps);
             if (clip == leave || clip == perchLeave) index = Math.Min(index, clip.Count - 1);
-            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
+            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2) || (clip.IsMove && !clip.Loops && index >= clip.Count)) { Play(idle); index = 0; }
             // Like on Windows, she's awake as soon as she has something to say or they open her typing box.
             if (Asleep && !Talk.Quiet) { sleptAt = null; Play(clip == perchSleep ? perch : idle); index = 0; }
             if (clip == arrive && index >= arrive.Count)
@@ -2622,7 +2643,7 @@ namespace CapriDesktop
             brainMenu = new MenuItem { Header = "Brain" };
             brainMenu.Items.Add(new MenuItem { Header = "Looking for models...", IsEnabled = false });
             MenuItem settings = new MenuItem { Header = "Settings" };
-            MenuItem language = new MenuItem { Header = "Language" };
+            MenuItem language = new MenuItem { Header = "I speak" };
             for (int i = 0; i < Brain.Languages.GetLength(0); i++)
             {
                 string name = Brain.Languages[i, 1];
@@ -2630,6 +2651,16 @@ namespace CapriDesktop
                 pick.Click += Guarded(delegate { SetLanguage(name); });
                 languagePicks.Add(pick);
                 language.Items.Add(pick);
+            }
+            MenuItem answering = new MenuItem { Header = "She answers in" };
+            string[] answerSteps = Hands.StepsOf("reply_language");
+            for (int i = 0; i < answerSteps.Length; i++)
+            {
+                string picked = answerSteps[i];
+                MenuItem pick = new MenuItem { Header = i == 0 ? LanguagePair.SameName : i == 1 ? LanguagePair.AutoName : Brain.Languages[i - 2, 0], ToggleType = MenuItemToggleType.Radio, GroupName = "answers", Tag = picked };
+                pick.Click += Guarded(delegate { SetReplyLanguage(picked); });
+                answerPicks.Add(pick);
+                answering.Items.Add(pick);
             }
             MenuItem replies = new MenuItem { Header = "Reply length" };
             MenuItem recall = new MenuItem { Header = "Chat memory" };
@@ -2679,6 +2710,7 @@ namespace CapriDesktop
             meet.Click += Guarded(delegate { GetToKnow(); });
             settings.Items.Add(meet);
             settings.Items.Add(language);
+            settings.Items.Add(answering);
             settings.Items.Add(replies);
             settings.Items.Add(recall);
             MenuItem bubble = new MenuItem { Header = "Bubble" };
@@ -2914,8 +2946,9 @@ namespace CapriDesktop
             musicItem.IsChecked = !Saved.NoDance;
             introItem.IsChecked = !Saved.NoIntro;
             onTopItem.IsChecked = OnTop;
-            string language = Brain.Language ?? "English";
+            string language = TheirLanguage, answering = Saved.ReplyLanguage ?? LanguagePair.SameName;
             foreach (MenuItem pick in languagePicks) pick.IsChecked = (string)pick.Tag == language;
+            foreach (MenuItem pick in answerPicks) pick.IsChecked = (string)pick.Tag == answering;
             for (int i = 0; i < replyPicks.Count; i++) replyPicks[i].IsChecked = i == Replies;
             for (int i = 0; i < recallPicks.Count; i++) recallPicks[i].IsChecked = Recalls[i] == Brain.Recall;
             for (int i = 0; i < soundPicks.Count; i++) soundPicks[i].IsChecked = SoundLevels[i] == Sfx.Level;
@@ -3360,16 +3393,20 @@ namespace CapriDesktop
             StopMoves();
             if (name == "stop_dancing")
             {
-                bool was = dancing || clip == dance || clip == perchDance;
+                string moving = clip != null && clip.IsMove ? clip.Title : null;
+                bool was = dancing || clip == dance || clip == perchDance || moving != null;
                 danceHeld = musicOn;
                 Dancing = false;
                 if (clip == dance || clip == perchDance) Play(clip == perchDance ? perch : idle);
-                return was ? "Stopped dancing." : "I wasn't dancing.";
+                else if (moving != null) Play(seat != null ? perch : idle);
+                return moving != null ? "Stopped my " + moving.Replace('_', ' ') + "." : was ? "Stopped dancing." : "I wasn't dancing.";
             }
             napAsked = false;
             napping = false;
             ComeBack();
             if (hanging) LetGo();
+            Clip move = MoveClip(name);
+            if (move != null) return PlayMove(move);
             if (name == "dance")
             {
                 danceHeld = false;
@@ -3406,6 +3443,7 @@ namespace CapriDesktop
         {
             get
             {
+                if (clip != null && clip.IsMove) return clip.Title;
                 Clip[] named = { idle, glitch, grin, dance, perchDance, dangle, perch, perchGlitch, arrive, leave, sleep, wake };
                 string[] names = { "idle", "glitch", "grin", "dance", "perch_music", "dangle", "perch", "perch_glitch", "arrive", "leave", "sleep", "wake" };
                 int at = Array.IndexOf(named, clip);
@@ -3517,7 +3555,8 @@ namespace CapriDesktop
                 case "layer_1_delay": return Nearest(LayerDelays, VoiceFx.Layers.Delay1);
                 case "layer_2_delay": return Nearest(LayerDelays, VoiceFx.Layers.Delay2);
                 case "sounds": return Nearest(SoundLevels, Sfx.Level);
-                case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Brain.Language ?? "English"));
+                case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), TheirLanguage));
+                case "reply_language": return Saved.ReplyLanguage == null ? 0 : Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Saved.ReplyLanguage));
                 case "typing_sound": return Math.Max(0, Math.Min(2, Saved.Typing));
                 default: return -1;
             }
@@ -3562,6 +3601,7 @@ namespace CapriDesktop
                 case "voice_glitch": SetGlitch(Amounts[step]); break;
                 case "sounds": SetSounds(SoundLevels[step]); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
+                case "reply_language": SetReplyLanguage(Hands.StepsOf(name)[step]); break;
                 case "typing_sound": SetTypingMode(step); break;
             }
             Sync();
@@ -3772,12 +3812,38 @@ namespace CapriDesktop
 
         internal void SetLanguage(string language)
         {
-            Brain.Language = Brain.LanguageCode(language) == "en" ? null : language;
-            Saved.Language = Brain.Language;
+            Saved.Language = Brain.LanguageCode(language) == "en" ? null : language;
+            Brain.Language = LanguagePair.Reply(Saved.ReplyLanguage, Saved.Language);
             Brain.Forget();
             Save();
-            if (Program.Smoke == null) { Lingo.Use(Brain.Language); MainframeTheme.Reword(); }
+            if (Program.Smoke == null) { Lingo.Use(Saved.Language); MainframeTheme.Reword(); }
             Sync();
+        }
+
+        internal string TheirLanguage { get { return Saved.ReplyLanguage == null ? Brain.Language ?? "English" : Brain.LanguageCode(Saved.Language) == "en" ? "English" : Saved.Language; } }
+
+        internal void SetReplyLanguage(string answers)
+        {
+            Saved.ReplyLanguage = LanguagePair.Answers(answers);
+            PointReplies();
+            Brain.Forget();
+            Save();
+            Sync();
+        }
+
+        private void PointReplies()
+        {
+            string answers = LanguagePair.Answers(Saved.ReplyLanguage);
+            Saved.ReplyLanguage = answers;
+            Brain.Matching = answers == LanguagePair.Auto;
+            Brain.Firm = answers != null && !Brain.Matching;
+            Brain.Language = LanguagePair.Reply(answers, Saved.Language);
+        }
+
+        private void Match(string said)
+        {
+            string heard = LanguagePair.Detect(said, Brain.Language ?? "English");
+            if (heard != null) Brain.Language = Brain.LanguageCode(heard) == "en" ? null : heard;
         }
 
         internal static string WordTable(string name)
@@ -5901,10 +5967,24 @@ namespace CapriDesktop
 
         internal void Hear(string text, bool fromVoice = false) { Hear(text, fromVoice, null); }
 
-        private void Hear(string text, bool fromVoice, RemoteTurn phone)
+        internal void HandMods(string[] paths)
+        {
+            Hear(Mods.Dropped, false, null, delegate(string line)
+            {
+                int turn = asking;
+                Security.Drop();
+                List<string> results = new List<string>();
+                foreach (string path in paths) results.Add(Brain.Act("import_mod", new ToolArguments { Path = path }));
+                string said = Hands.Shown(Security.Reply(results) ?? string.Join(" ", results));
+                if (turn == asking) Brain.Remember(line, said);
+                return said;
+            });
+        }
+
+        private void Hear(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
         {
             RemoteTurn previous = RemoteTurn.Working;
-            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone); }
+            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone, handed); }
             catch { RemoteEnd(phone, true); throw; }
             finally
             {
@@ -5920,7 +6000,7 @@ namespace CapriDesktop
             finally { RemoteTurn.Working = previous; }
         }
 
-        private void HearLine(string text, bool fromVoice, RemoteTurn phone)
+        private void HearLine(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -5936,6 +6016,18 @@ namespace CapriDesktop
                 if (RemoteEarly(phone, text)) return;
             }
             StopListening();
+            if (handed != null)
+            {
+                Typed();
+                int handing = ++asking;
+                if (!SelfJobs.Active) { ComputerJobs.Stop(); Brain.Cancel(); }
+                ownedVoice?.Cancel();
+                StopNativeListening(!fromVoice);
+                voice.Stop();
+                Talk.Thinking(text);
+                Ask(handing, text, 0, 0, null, handed);
+                return;
+            }
             if (modSendDepth == 0 && !(phone != null && phone.Hold != null && Security.Declines(input)) && System.Text.RegularExpressions.Regex.IsMatch(input, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
             bool fromMod = false;
             if (!meeting.Asking || phone != null)
@@ -5954,6 +6046,7 @@ namespace CapriDesktop
             Typed();
             if (meeting.Asking && phone == null) { Met(input); return; }
             lastHeard = input;
+            if (Brain.Matching) Match(input);
             if (ModList.Heard(input)) return;
             if (phone != null)
             {
@@ -6027,7 +6120,8 @@ namespace CapriDesktop
             if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
             bool fileRequest = tool == "find_file" || tool == "read_file" || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
             bool websiteHeld = phone == null ? Security.Holding == "open_website" : phone.Hold != null && phone.Hold.Calls.Count == 1 && phone.Hold.Calls[0].Key == "open_website";
-            if (Think == null && Brain.Model == null && (fileRequest || websiteHeld && (Security.Agrees(input) || Security.Declines(input))))
+            bool modHeld = phone == null && Security.Holding == "import_mod";
+            if (Think == null && Brain.Model == null && (fileRequest || (websiteHeld || modHeld) && (Security.Agrees(input) || Security.Declines(input))))
             {
                 Talk.Thinking(text);
                 Ask(ticket, text, 0, 0, phone, delegate(string line)

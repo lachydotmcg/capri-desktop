@@ -1036,11 +1036,12 @@ namespace CapriDesktop
             Answer(++asking, line, TalkState.Talking);
         }
 
-        // A job that's playing a game brings Gaming Mode up by itself once the game's in front. It goes the same way as any other
-        // Gaming Mode, when the game closes or they turn it off. Once a job, so turning it off holds until her next one.
+        // A job that's playing a game brings Gaming Mode up by itself once the game's in front, unless Comments is Off. It goes the
+        // same way as any other Gaming Mode, when the game closes or they turn it off. Once a job, so turning it off holds until her
+        // next one.
         private void DockForJob(Job running)
         {
-            if (running == null || running == jobDock) return;
+            if (running == null || running == jobDock || CommentPace == Commentary.Off) return;
             if (GamingOn) { jobDock = running; return; }
             if (gaming.Find() == null) return;
             jobDock = running;
@@ -1199,6 +1200,7 @@ namespace CapriDesktop
         {
             if (name == "grin" || name == "dance") { GameHud.Mood(HudMood.Happy); return "Grinning."; }
             if (name == "glitch") { GameHud.Mood(HudMood.Surprise); return "Glitched."; }
+            if (Mods.MoveNamed(name) != null) { GameHud.Mood(HudMood.Happy); return "I can't do my " + name.Replace('_', ' ') + " from your game's HUD."; }
             return name == "blink" ? "Blinked." : name == "idle" ? "Back to my idle." : name == "stop_dancing" ? "I wasn't dancing." : "I don't have an animation called " + name + ".";
         }
     }
