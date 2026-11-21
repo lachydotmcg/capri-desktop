@@ -738,7 +738,7 @@ namespace CapriDesktop
         internal const string NoCredits = "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.";
         internal const string PlusRejected = "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com.";
         // OpenAI sends 429 for walls as well as for going too fast: no credits, a spend or usage limit, one request bigger than
-        // the key's per-minute limit, or a day's requests used up. Waiting gets past none of them, and ChatGPT Plus pays for none.
+        // the key's per-minute limit, or a day's requests used up. Waiting gets past none of them.
         internal const string OpenAiNoCredits = "No credits on your OpenAI key. ChatGPT Plus doesn't include API use, so add a payment method and credits under Billing at platform.openai.com, or press Free key for a free NVIDIA key.";
         internal const string OpenAiCapped = "Your OpenAI key hit a monthly spend or usage limit. Raise it under Limits at platform.openai.com, or wait for it to reset next month.";
         internal const string TooLargeStart = "My requests are too big for your OpenAI key's per-minute limit";
