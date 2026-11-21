@@ -737,6 +737,28 @@ namespace CapriDesktop
         internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
         internal const string NoCredits = "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.";
         internal const string PlusRejected = "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com.";
+        // OpenAI sends 429 for walls as well as for going too fast: no credits, a spend or usage limit, one request bigger than
+        // the key's per-minute limit, or a day's requests used up. Waiting gets past none of them.
+        internal const string OpenAiNoCredits = "No credits on your OpenAI key. ChatGPT Plus doesn't include API use, so add a payment method and credits under Billing at platform.openai.com, or press Free key for a free NVIDIA key.";
+        internal const string OpenAiCapped = "Your OpenAI key hit a monthly spend or usage limit. Raise it under Limits at platform.openai.com, or wait for it to reset next month.";
+        internal const string TooLargeStart = "My requests are too big for your OpenAI key's per-minute limit";
+        internal const string DailyLimitStart = "Your OpenAI key hit its daily limit";
+        private const string PlusNote = "ChatGPT Plus doesn't include API use";
+
+        internal static string TooLarge(string model, bool unpaid)
+        {
+            return TooLargeStart + (string.IsNullOrEmpty(model) ? "" : " on " + model) + ", so waiting won't help. " + (unpaid
+                ? PlusNote + ". Add a payment method and credits under Billing at platform.openai.com, or pick a smaller model."
+                : "Pick a smaller model, or add credits under Billing at platform.openai.com to move the key up a tier.");
+        }
+
+        internal static string DailyLimit(string model, bool unpaid)
+        {
+            return DailyLimitStart + (string.IsNullOrEmpty(model) ? "" : " on " + model) + ". It resets within a day, or add " + (unpaid
+                ? "a payment method and credits under Billing at platform.openai.com to raise it. " + PlusNote + "."
+                : "credits under Billing at platform.openai.com to raise it.");
+        }
+
         // No AI (Lachy, 12 Nov): with it on, nothing at all is asked of a model, a provider, Ollama, her own engine, Claude Code
         // or Codex. Every request to one is made in Create or PlanBrain's Start, and both turn it away here.
         internal static volatile bool Off;
@@ -2482,7 +2504,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null) return web.Status == WebExceptionStatus.Timeout;
-            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message == TooBig || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
+            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message == TooBig || error.Message.StartsWith(DailyStart, StringComparison.Ordinal) || error.Message.StartsWith(DailyLimitStart, StringComparison.Ordinal));
         }
 
         internal static string Next(string current, List<string> models, ICollection<string> skip)
@@ -4956,6 +4978,10 @@ namespace CapriDesktop
             // Key and credit lines keep their fix inside the note's 60 characters.
             if (error.StartsWith("No credits on this key.", StringComparison.Ordinal)) return "No credits on this key. Add credits, or press Free key.";
             if (error == PlusRejected) return "Key rejected. Make one with credits at platform.openai.com.";
+            if (error == OpenAiNoCredits) return "No API credits. Add them in Billing at platform.openai.com.";
+            if (error == OpenAiCapped) return "OpenAI's monthly limit hit. Raise it at platform.openai.com.";
+            if (error.StartsWith(TooLargeStart, StringComparison.Ordinal)) return "Too big for the key's per-minute limit. Try a smaller model.";
+            if (error.StartsWith(DailyLimitStart, StringComparison.Ordinal)) return "OpenAI's daily limit is used. Try later or add credits.";
             if (error.EndsWith(". Press Forget " + BrainMenu + ", then paste it again.", StringComparison.Ordinal)) return "Key rejected. Press Forget, then paste it again.";
             if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
@@ -5444,13 +5470,23 @@ namespace CapriDesktop
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
             bool code = Cloud.IsCode(secret) && (status == 401 || status == 403) && Regex.IsMatch(said, @"\AThat Capri code (isn't right|was switched off|has expired|has used up its budget)\.\z");
             string meaning = code ? said : remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai", Cloud.CompanyOf(kind)) : null;
+            // Only a limit that passes gets a wait. Gemini's used-up day, or a request bigger than OpenAI's whole per-minute
+            // limit, would fail again after it.
+            string limit = meaning ?? Meaning(status, text);
             if (meaning == Busy && Watching()) meaning = BusyWatching;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
-            string limit = Meaning(status, text);
-            if ((status == 429 && limit == Busy) || (status == 413 && limit == TooBig)) problem.RetryAt = RetryTime(retry, DateTime.UtcNow);
+            if ((status == 429 && limit == Busy) || (status == 413 && limit == TooBig)) problem.RetryAt = RetryTime(string.IsNullOrEmpty(retry) ? AskedWait(text) : retry, DateTime.UtcNow);
             return problem;
+        }
+
+        // The wait a limit names in its words when there's no Retry-After, like OpenAI's "Please try again in 8.259s", "in 1m26.4s"
+        // or "in 20s", or Gemini's "Please retry in 36.4s", in the form RetryTime reads.
+        internal static string AskedWait(string body)
+        {
+            Match asked = Regex.Match(body ?? "", @"\b(?:try again|retry) in (?:(?<span>(?:\d+(?:\.\d+)?(?:ms|h|m|s))+)(?![a-z])|(?<seconds>\d+(?:\.\d+)?) ?seconds?\b)", RegexOptions.IgnoreCase);
+            return !asked.Success ? null : asked.Groups["span"].Success ? asked.Groups["span"].Value.ToLowerInvariant() : asked.Groups["seconds"].Value;
         }
 
         internal static DateTime RetryTime(string header, DateTime now)
@@ -5531,7 +5567,11 @@ namespace CapriDesktop
         internal static string ScreenProblem(Exception error, string provider)
         {
             BrainException problem = error as BrainException;
-            if (problem != null && problem.RetryAt != default(DateTime)) return provider + " is rate-limited. I'll try the screen again in " + Math.Max(1, Math.Ceiling((problem.RetryAt - DateTime.UtcNow).TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture) + " seconds.";
+            if (problem != null && problem.RetryAt != default(DateTime))
+            {
+                double seconds = Math.Max(1, Math.Ceiling((problem.RetryAt - DateTime.UtcNow).TotalSeconds));
+                return provider + " is rate-limited. I'll try the screen again in " + (seconds < 120 ? seconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " seconds." : Math.Ceiling(seconds / 60).ToString(System.Globalization.CultureInfo.InvariantCulture) + " minutes.");
+            }
             WebException web = error as WebException;
             if (web != null && web.Status == WebExceptionStatus.Timeout) return provider + " took too long to answer. I'll try the screen again.";
             if (problem != null) return Redacted(problem.Message);
@@ -5562,6 +5602,8 @@ namespace CapriDesktop
             // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
             if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
             string words = Regex.Replace(body ?? "", @"https?:\\?/\\?/(?:[^\s""'<>\\]|\\/)+", "");
+            string walled = openai && status == 429 ? OpenAiWall(words) : null;
+            if (walled != null) return walled;
             if (status == 429 && Regex.IsMatch(words, @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests|tokens per minute", RegexOptions.IgnoreCase)) return Busy;
             if (status == 413 && Regex.IsMatch(words, @"rate[_ -]?limit|tokens per minute", RegexOptions.IgnoreCase)) return TooBig;
             // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
@@ -5576,6 +5618,19 @@ namespace CapriDesktop
             if (status == 404) return Gone;
             if (status >= 500) return Down;
             return null;
+        }
+
+        // OpenAI's spend and usage limits come with the type insufficient_quota as well as their own codes, so they're read
+        // before credits. Of its "Rate limit reached" lines, only a minute's passes with a wait.
+        private static string OpenAiWall(string words)
+        {
+            if (Regex.IsMatch(words, @"\b(?:organization|project|api_key)_spend_limit_exceeded\b|\borganization_usage_limit_exceeded\b")) return OpenAiCapped;
+            if (Regex.IsMatch(words, @"\bcredit_balance_exhausted\b|insufficient[_ ]quota", RegexOptions.IgnoreCase)) return OpenAiNoCredits;
+            bool unpaid = Regex.IsMatch(words, @"\badd(?:ing)? a payment method\b", RegexOptions.IgnoreCase);
+            Match large = Regex.Match(words, @"\bRequest too large for (?<model>(?=[\w.:]*[\d-])[\w.:-]{1,64})[^""]*?\bper min", RegexOptions.IgnoreCase);
+            if (large.Success) return TooLarge(large.Groups["model"].Value, unpaid);
+            Match day = Regex.Match(words, @"\bRate limit reached for (?<model>(?=[\w.:]*[\d-])[\w.:-]{1,64})[^""]*?\bper day\b", RegexOptions.IgnoreCase);
+            return day.Success ? DailyLimit(day.Groups["model"].Value, unpaid) : null;
         }
 
         // A crash closes her without a word, so errors.txt keeps what it was for the copied details.
