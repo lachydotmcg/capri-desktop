@@ -2687,6 +2687,9 @@ namespace CapriDesktop
         internal Func<string, byte[]> FreeSpeak;
         internal Func<string, string, byte[]> FreeTongue;
         private int voiceLanguageNoted;
+        private int tongueNoted;
+        private System.Collections.Generic.List<string> tongueNotesTest;
+        private Func<string, int> nativeTest;
         private int tonguesFetched;
         private volatile bool voiceBroke;
         private readonly Voice voice;
@@ -13517,6 +13520,30 @@ namespace CapriDesktop
             ShowVoice(false);
         }
 
+        internal bool OwnAccent { get { return preferences.OwnAccent; } }
+
+        internal bool TextOnlyTongues { get { return preferences.TextOnlyTongues; } }
+
+        internal int NativeVoice(string code) { return nativeTest != null ? nativeTest(code) : kokoro.Native(code); }
+
+        private int TongueSpeaker(string code) { return preferences.OwnAccent ? -1 : NativeVoice(code); }
+
+        internal void ToggleOwnAccent()
+        {
+            if (AfterLine(ToggleOwnAccent)) return;
+            preferences.OwnAccent = !preferences.OwnAccent;
+            SavePreferences();
+            ShowVoice(false);
+        }
+
+        internal void ToggleTextOnlyTongues()
+        {
+            if (AfterLine(ToggleTextOnlyTongues)) return;
+            preferences.TextOnlyTongues = !preferences.TextOnlyTongues;
+            SavePreferences();
+            ShowVoice(false);
+        }
+
         internal void ToggleHdCpu()
         {
             if (AfterLine(ToggleHdCpu)) return;
@@ -16281,7 +16308,7 @@ namespace CapriDesktop
             string[] folders = { preferences.ServerApi == VoiceServer.Files ? preferences.ServerUrl : null, preferences.AsideApi == VoiceServer.Files ? preferences.AsideUrl : null };
             string[] languages = { preferences.ServerModel, preferences.AsideModel };
             string[] speakers = { preferences.ServerSpeaker, preferences.AsideSpeaker };
-            bool robotic = preferences.WindowsTongue;
+            bool robotic = preferences.WindowsTongue, quietly = preferences.TextOnlyTongues;
             return delegate(string words)
             {
                 string code = VoiceLanguage.Tongue(words, language);
@@ -16312,10 +16339,10 @@ namespace CapriDesktop
                     }
                     catch (Exception) { }
                 }
-                if (latin && !robotic) return own(words);
+                if (latin && !robotic) return InEnglish(own, words, code, language, quietly);
                 byte[] windows = WindowsVoice.Speak(code, words);
                 if (windows != null) return windows;
-                if (latin) return own(words);
+                if (latin) return InEnglish(own, words, code, language, quietly);
                 if (Interlocked.CompareExchange(ref voiceLanguageNoted, 1, 0) == 0)
                 {
                     string note = VoiceLanguage.Missing(code.Length == 0 ? Brain.LanguageCode(language) : code, language);
@@ -16325,10 +16352,31 @@ namespace CapriDesktop
             };
         }
 
+        private byte[] InEnglish(Func<string, byte[]> own, string words, string code, string language, bool quietly)
+        {
+            if (VoiceTongues.Knows(code)) return own(words);
+            if (Interlocked.CompareExchange(ref tongueNoted, 1, 0) == 0) TongueNote(Unspoken(language, quietly));
+            return quietly ? null : own(words);
+        }
+
+        internal static string Unspoken(string language, bool quietly)
+        {
+            return "My free voice can't speak " + (LanguagePair.Known(language) ?? "that language") + " yet, so " + (quietly ? "I'll stick to text." : "you'll hear my English voice.");
+        }
+
+        private void TongueNote(string note)
+        {
+            System.Collections.Generic.List<string> heard = tongueNotesTest;
+            if (heard != null) { lock (heard) heard.Add(note); return; }
+            if (testing) return;
+            Lingo.Learn(note);
+            Post(delegate { mainframe.VoiceNote(note, false); });
+        }
+
         private byte[] Tongue(string code, string words)
         {
             if (!VoiceTongues.Knows(code)) return null;
-            if (kokoro.Speaks(code)) return kokoro.Speak(words, code);
+            if (kokoro.Speaks(code)) return kokoro.Speak(words, code, TongueSpeaker(code));
             if (Interlocked.CompareExchange(ref tonguesFetched, 1, 0) == 0) ThreadPool.QueueUserWorkItem(delegate { GetTongues(delegate { }); });
             return null;
         }
@@ -45838,6 +45886,11 @@ namespace CapriDesktop
             // The Mainframe's Language row and its menu, which the setup card opens too. The full run reaches it from the settings
             // page checks as well; whichever comes first runs it.
             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
+            Section(checks, "SmokeLanguagePair", delegate { SmokeLanguagePair(checks, output); });
+            Section(checks, "SmokeAutoReply", delegate { SmokeAutoReply(checks); });
+            Section(checks, "SmokeReplyLine", delegate { SmokeReplyLine(checks); });
+            Section(checks, "SmokeTongueVoices", delegate { SmokeTongueVoices(checks, output); });
+            Section(checks, "SmokeLanguageTool", delegate { SmokeLanguageTool(checks); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });

@@ -74,5 +74,39 @@ namespace CapriDesktop
             }
             return freed;
         }
+
+        internal const int RowBytes = 510 * 256 * 4;
+        private static readonly Dictionary<string, bool> rows = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
+        internal static bool Has(string where, int row)
+        {
+            if (row < 0 || string.IsNullOrEmpty(where)) return false;
+            try
+            {
+                FileInfo file = new FileInfo(Path.Combine(where, "voices.bin"));
+                if (!file.Exists || file.Length < (long)(row + 1) * RowBytes) return false;
+                string key = file.FullName + "|" + row + "|" + file.Length + "|" + file.LastWriteTimeUtc.Ticks;
+                bool known;
+                lock (rows) if (rows.TryGetValue(key, out known)) return known;
+                bool real = false;
+                byte[] bytes = new byte[RowBytes];
+                using (FileStream stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    stream.Position = (long)row * RowBytes;
+                    int read = 0;
+                    while (read < bytes.Length)
+                    {
+                        int got = stream.Read(bytes, read, bytes.Length - read);
+                        if (got <= 0) break;
+                        read += got;
+                    }
+                    for (int i = 0; i < read && !real; i++) real = bytes[i] != 0;
+                }
+                lock (rows) rows[key] = real;
+                return real;
+            }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
     }
 }

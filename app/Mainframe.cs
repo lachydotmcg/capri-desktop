@@ -4530,7 +4530,12 @@ namespace CapriDesktop
             }
             string tongue = Brain.LanguageCode(Brain.Language);
             if (tongue != "en" && VoiceLanguage.LatinScript(tongue) && !VoiceTongues.Knows(tongue))
+            {
                 freeMenu.Items.Add(Choice(WindowsTongueChoice, capri.WindowsTongue, delegate { capri.ToggleWindowsTongue(); }));
+                freeMenu.Items.Add(Choice(TextOnlyChoice, capri.TextOnlyTongues, delegate { capri.ToggleTextOnlyTongues(); }));
+            }
+            if (VoiceTongues.Knows(tongue) && capri.NativeVoice(tongue) >= 0)
+                freeMenu.Items.Add(Choice(AccentChoice, capri.OwnAccent, delegate { capri.ToggleOwnAccent(); }));
             freeMenu.Items.Add(new ToolStripSeparator());
             // Capri ships no voice clip, so HD copies only a clip they pick: before there is one, HD asks for it.
             if (!yours && !kept)
@@ -4602,6 +4607,10 @@ namespace CapriDesktop
         }
 
         internal static string WindowsTongueChoice { get { return "Windows voice for " + Brain.Language + " (robotic)"; } }
+
+        internal static string TextOnlyChoice { get { return "Text only in " + Brain.Language; } }
+
+        internal static string AccentChoice { get { return "Her English accent in " + Brain.Language; } }
 
         internal static string RemoveFreeChoice { get { return "Remove free voice \u00b7 frees about " + Engine.Amount(LocalVoice.PackSize); } }
 
