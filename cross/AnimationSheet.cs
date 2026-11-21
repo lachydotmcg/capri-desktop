@@ -25,9 +25,11 @@ namespace CapriDesktop
             internal List<SKBitmap> Frames;
             internal bool Changed, Retimed;
             internal string From;
+            internal bool Move, Loop, OwnLoop;
+            internal string MoveStrip;
 
-            internal string File { get { return Title + (Left ? "_flipped" : "") + ".png"; } }
-            internal string Shown { get { return Title + (Left ? " (facing left)" : ""); } }
+            internal string File { get { return Move && MoveStrip != null ? MoveStrip : Title + (Left ? "_flipped" : "") + ".png"; } }
+            internal string Shown { get { return Move ? Title + " (move)" : Title + (Left ? " (facing left)" : ""); } }
             internal int Count { get { return Frames == null ? OwnCount : Frames.Count; } }
             internal int Most { get { return Fixed ? OwnCount : Math.Min(Mods.MostFrames, Mods.WidestStrip / Math.Max(1, Wide)); } }
         }
@@ -65,6 +67,62 @@ namespace CapriDesktop
                 int order = string.CompareOrdinal(one.Title, other.Title);
                 return order != 0 ? order : one.Left.CompareTo(other.Left);
             });
+            if (outfit == null || outfit.File.Moves == null) return;
+            PixelSize cell = Mods.MoveCell;
+            foreach (ModMove move in outfit.File.Moves)
+            {
+                int wide = 0, high = 0;
+                try
+                {
+                    using (FileStream reading = new FileStream(Path.Combine(BaseFolder, move.Strip), FileMode.Open, FileAccess.Read))
+                        if (!Mods.PngSize(reading, out wide, out high)) continue;
+                }
+                catch (IOException) { continue; }
+                catch (UnauthorizedAccessException) { continue; }
+                int frames = Mods.MoveFrames(wide, high);
+                if (frames > 0) Strips.Add(new Strip { Title = move.Name, Move = true, Loop = move.Loop, OwnLoop = move.Loop, MoveStrip = move.Strip, OwnCount = frames, OwnFps = move.Fps, Fps = move.Fps, Wide = cell.Width, High = cell.Height });
+            }
+        }
+
+        private bool movesDropped;
+
+        internal List<Strip> Moves { get { return Strips.FindAll(strip => strip.Move); } }
+
+        internal string MoveTrouble(string name)
+        {
+            string trouble = Mods.MoveNameTrouble(name);
+            if (trouble != null) return trouble;
+            if (Strips.Exists(strip => strip.Title == name)) return "There's already a move called " + name + ". Pick another name.";
+            if (Moves.Count >= Mods.MostMoves) return "A skin can add up to " + Mods.MostMoves + " moves.";
+            return null;
+        }
+
+        internal Strip AddMove(string name, List<SKBitmap> frames, int fps, bool loop)
+        {
+            PixelSize cell = Mods.MoveCell;
+            Strip made = new Strip { Title = name, Move = true, Loop = loop, OwnLoop = loop, OwnCount = frames.Count, OwnFps = fps, Fps = fps, Wide = cell.Width, High = cell.Height, Frames = frames, Changed = true, From = "your pictures" };
+            Strips.Add(made);
+            return made;
+        }
+
+        internal void RemoveMove(Strip strip)
+        {
+            Drop(strip);
+            Strips.Remove(strip);
+            if (strip.MoveStrip != null) movesDropped = true;
+        }
+
+        internal static List<SKBitmap> ReadMove(string file)
+        {
+            PixelSize cell = Mods.MoveCell;
+            SKBitmap read;
+            try { read = Plain(System.IO.File.ReadAllBytes(file)); }
+            catch (ArgumentException) { throw new ModException(Path.GetFileName(file) + " isn't a picture Capri can read."); }
+            using (read)
+            {
+                if (read.Height != cell.Height || read.Width % cell.Width != 0) throw new ModException(Mods.MoveMisfit(Path.GetFileName(file), read.Width, read.Height));
+                return Frames(read, cell.Width);
+            }
         }
 
         private int RateIn(string title, int own)
@@ -73,7 +131,7 @@ namespace CapriDesktop
             return own;
         }
 
-        internal bool Dirty { get { return Strips.Exists(strip => strip.Changed || strip.Retimed); } }
+        internal bool Dirty { get { return movesDropped || Strips.Exists(strip => strip.Changed || strip.Retimed); } }
 
         internal void Load(Strip strip)
         {
@@ -207,6 +265,7 @@ namespace CapriDesktop
             strip.Changed = own && BaseFolder != null && System.IO.File.Exists(Path.Combine(BaseFolder, strip.File));
             strip.Retimed = false;
             strip.Fps = own ? strip.OwnFps : RateIn(strip.Title, strip.OwnFps);
+            strip.Loop = strip.OwnLoop;
             if (!own) return;
             using (SKBitmap plain = Own(strip)) strip.Frames = Frames(plain, strip.Wide);
             strip.From = "her own art";
@@ -220,6 +279,13 @@ namespace CapriDesktop
 
         internal Dictionary<string, byte[]> Pack(out ModFrames[] rates)
         {
+            ModMove[] moves;
+            return Pack(out rates, out moves);
+        }
+
+        internal Dictionary<string, byte[]> Pack(out ModFrames[] rates, out ModMove[] moves)
+        {
+            List<ModMove> moving = new List<ModMove>();
             Dictionary<string, byte[]> files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             if (BaseFolder != null && Directory.Exists(BaseFolder))
                 foreach (string file in Directory.GetFiles(BaseFolder, "*.png")) files[Path.GetFileName(file)] = System.IO.File.ReadAllBytes(file);
@@ -229,6 +295,11 @@ namespace CapriDesktop
             {
                 if (strip.Changed && strip.Frames != null)
                     using (SKBitmap joined = Joined(strip.Frames, strip.Wide, strip.High)) files[strip.File] = Png(joined);
+                if (strip.Move)
+                {
+                    moving.Add(new ModMove { Name = strip.Title, Strip = strip.File, Fps = strip.Fps, Loop = strip.Loop });
+                    continue;
+                }
                 if (strip.Retimed && !strip.Left)
                 {
                     if (strip.Fps == strip.OwnFps) speeds.Remove(strip.Title);
@@ -238,6 +309,10 @@ namespace CapriDesktop
             List<ModFrames> made = new List<ModFrames>();
             foreach (KeyValuePair<string, int> speed in speeds) made.Add(new ModFrames { Strip = speed.Key, Fps = speed.Value });
             rates = made.Count == 0 ? null : made.ToArray();
+            HashSet<string> kept = new HashSet<string>(moving.ConvertAll(move => move.Strip));
+            foreach (string name in new List<string>(files.Keys))
+                if (!kept.Contains(name) && !Pet.HasArt("Capri.Sprite." + name)) files.Remove(name);
+            moves = moving.Count == 0 ? null : moving.ToArray();
             return files;
         }
 
@@ -293,7 +368,7 @@ namespace CapriDesktop
         private readonly AnimationDraft draft;
         private readonly AnimationPreview preview = new AnimationPreview();
         private readonly NeonCaption name, about, at, status;
-        private readonly NeonButton play, duplicate, remove, add, earlier, later, slower, faster;
+        private readonly NeonButton play, duplicate, remove, add, earlier, later, slower, faster, own, loops;
         private readonly NeonEntry skinName;
         private readonly DispatcherTimer clock = new DispatcherTimer();
         private int shown, number;
@@ -329,7 +404,9 @@ namespace CapriDesktop
             name = Label("", 66, 79, 508, 22, MainframeTheme.White, 44.0 / 3, true);
             Button(">", 580, 76, 32, 26, delegate { Pick(shown + 1); }, "Next animation");
             about = Label("", 28, 106, 584, 18, MainframeTheme.Faint, 34.0 / 3);
-            Put(Page, preview, 28, 132, 300, 362, "Animation preview");
+            Put(Page, preview, 28, 132, 300, 330, "Animation preview");
+            Button("New move...", 28, 470, 146, 26, NewMove, "Make a new move of her own from your frames");
+            loops = Button("Loops", 182, 470, 146, 26, delegate { Strip.Loop = !Strip.Loop; Strip.Retimed = true; ShowFrame(); }, "This move loops until you tell her to stop");
             at = Label("", 344, 132, 268, 20, MainframeTheme.White);
             play = Button("Pause", 344, 158, 84, 26, delegate { Play(!clock.IsEnabled); });
             Button("Prev", 434, 158, 86, 26, delegate { Play(false); Step(-1); }, "Previous frame");
@@ -351,7 +428,7 @@ namespace CapriDesktop
             Button("Save frames...", 344, 444, 130, 26, SaveFrames, "Save each frame as its own PNG");
             Button("Load frames...", 482, 444, 130, 26, LoadFrames, "Load frames from a folder of PNGs");
             Button("Undo changes", 344, 476, 130, 26, delegate { Revert(false); });
-            Button("Her own", 482, 476, 130, 26, delegate { Revert(true); }, "Go back to her own art for this strip");
+            own = Button("Her own", 482, 476, 130, 26, delegate { Revert(true); }, "Go back to her own art for this strip");
             Label("SKIN NAME", 28, 512, 120, 18, MainframeTheme.Rose, 34.0 / 3);
             skinName = Put(Page, new NeonEntry("Name your skin"), 28, 532, 300, 28, "Skin name");
             skinName.Box.Text = draft.BaseName == null ? "My animations" : Clamp(draft.BaseName.EndsWith(" (edited)", StringComparison.Ordinal) ? draft.BaseName : draft.BaseName + " (edited)");
@@ -421,7 +498,16 @@ namespace CapriDesktop
             int count = strip.Count;
             number = count == 0 ? 0 : Math.Max(0, Math.Min(number, count - 1));
             name.Text = strip.Shown + (strip.Changed || strip.Retimed ? "  *" : "");
-            about.Text = count + " frames at " + strip.Fps + " fps, " + strip.Wide + " x " + strip.High + " each, from " + (strip.From ?? "her own art") + (strip.Fixed ? ". Her mouth shapes and drawings keep their cells." : strip.Left ? ". Leave it out and she mirrors facing right." : ".");
+            about.Text = strip.Move ? count + " frames at " + strip.Fps + " fps, " + strip.Wide + " x " + strip.High + " each. " + (strip.Loop ? "It loops until you tell her to stop." : "It plays once, then she's back to her idle.")
+                : count + " frames at " + strip.Fps + " fps, " + strip.Wide + " x " + strip.High + " each, from " + (strip.From ?? "her own art") + (strip.Fixed ? ". Her mouth shapes and drawings keep their cells." : strip.Left ? ". Leave it out and she mirrors facing right." : ".");
+            loops.IsVisible = strip.Move;
+            if (loops.Picked != (strip.Move && strip.Loop)) { loops.Picked = strip.Move && strip.Loop; loops.InvalidateVisual(); }
+            string ownText = strip.Move ? "Remove move" : "Her own";
+            if (own.Text != ownText)
+            {
+                own.Text = ownText;
+                AutomationProperties.SetName(own, strip.Move ? "Take this move out of the skin" : "Go back to her own art for this strip");
+            }
             at.Text = "Frame " + (number + 1) + " of " + count;
             preview.Keep(strip.Frames);
             preview.Mirror = strip.Left;
@@ -646,7 +732,7 @@ namespace CapriDesktop
             });
         }
 
-        private static int Natural(string one, string other)
+        internal static int Natural(string one, string other)
         {
             string a = Path.GetFileNameWithoutExtension(one), b = Path.GetFileNameWithoutExtension(other);
             int i = 0, j = 0;
@@ -879,6 +965,20 @@ namespace CapriDesktop
 
         private void Revert(bool own)
         {
+            AnimationDraft.Strip move = Strip;
+            if (move.Move && own)
+            {
+                preview.Frame = null;
+                draft.RemoveMove(move);
+                Pick(Math.Min(shown, draft.Strips.Count - 1));
+                Say("Took " + move.Title + " out. Wear it or save it to keep that.", false);
+                return;
+            }
+            if (move.Move && move.MoveStrip == null)
+            {
+                Say("Your new move has nothing to undo yet. Remove move takes it out.", false);
+                return;
+            }
             try
             {
                 preview.Frame = null;
@@ -895,6 +995,19 @@ namespace CapriDesktop
         }
 
         private void Save(bool wear) { Wear((skinName.Box.Text ?? "").Trim(), wear); }
+
+        private void NewMove()
+        {
+            MoveSheet sheet = new MoveSheet(pet, draft) { Added = Moved };
+            sheet.ShowDialog(this);
+        }
+
+        internal void Moved(AnimationDraft.Strip made)
+        {
+            if (closed) return;
+            Pick(draft.Strips.IndexOf(made));
+            Say("Your move " + made.Title + " is in. Wear it, then ask her to do the " + made.Title.Replace('_', ' ') + ".", false);
+        }
 
         private void Wear(string title, bool wear)
         {
@@ -914,8 +1027,9 @@ namespace CapriDesktop
             try
             {
                 ModFrames[] rates;
-                Dictionary<string, byte[]> strips = draft.Pack(out rates);
-                ModFile details = new ModFile { Id = id, Name = Clamp(title), Version = "1", Description = draft.BaseName == null ? "Her animations, changed in her animation editor." : Clamp("Made from " + draft.BaseName) + " in her animation editor.", Frames = rates };
+                ModMove[] moves;
+                Dictionary<string, byte[]> strips = draft.Pack(out rates, out moves);
+                ModFile details = new ModFile { Id = id, Name = Clamp(title), Version = "1", Description = draft.BaseName == null ? "Her animations, changed in her animation editor." : Clamp("Made from " + draft.BaseName) + " in her animation editor.", Frames = rates, Moves = moves };
                 Mods.PackSkin(wear ? temporary : file, details, strips);
                 if (!wear) { Say("Saved " + Path.GetFileName(file) + ". Import it on any Capri, or share it in the mods directory.", false); return; }
                 Mod worn = pet.ModList.WearOutfit(temporary);

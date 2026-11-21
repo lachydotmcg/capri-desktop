@@ -1674,6 +1674,8 @@ namespace CapriDesktop
         private readonly bool lazy;
         private readonly bool flippable;
         private readonly Clip source;
+        private readonly string file;
+        internal readonly bool Loops;
         private readonly object gate = new object();
         private Bitmap strip;
         // her artist's facing-left frames, for the clips that have them (her perches): her red arm and leg swap sides, so a
@@ -1756,7 +1758,42 @@ namespace CapriDesktop
             lock (all) all.Add(this);
         }
 
-        internal static Clip[] Every() { lock (all) return all.ToArray(); }
+        internal static Clip[] Every() { lock (all) return all.FindAll(clip => clip.file == null).ToArray(); }
+
+        private Clip(string name, string file, int count, double fps, bool loops, Clip like)
+        {
+            this.name = name;
+            this.file = file;
+            this.count = count;
+            this.fps = fps;
+            Loops = loops;
+            lazy = true;
+            Height = like.Height;
+            shiftX = like.shiftX;
+            shiftY = like.shiftY;
+            lock (all) all.Add(this);
+        }
+
+        internal static Clip Move(string name, string file, int count, double fps, bool loops, Clip like) { return new Clip(name, file, count, fps, loops, like); }
+
+        internal bool IsMove { get { return file != null; } }
+
+        internal void Drop()
+        {
+            lock (all) all.Remove(this);
+            lock (gate)
+            {
+                disposed = true;
+                if (strip != null) strip.Dispose();
+                strip = null;
+            }
+        }
+
+        private Bitmap Art()
+        {
+            if (file == null) return Companion.LoadArt(Resource(false));
+            return Companion.MoveArt(file, name) ?? new Bitmap(Math.Max(1, count * Mods.MoveCell.Width), Mods.MoveCell.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+        }
 
         internal static void WarmAll()
         {
@@ -1813,7 +1850,7 @@ namespace CapriDesktop
                 if (art != null) return art;
                 lock (gate)
                 {
-                    if (strip == null) strip = Companion.LoadArt(Resource(false));
+                    if (strip == null) strip = Art();
                     return strip;
                 }
             }
@@ -1862,7 +1899,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (wantLeft && flipped == null) { flipped = Companion.LoadLeftArt(Resource(true)); if (flipped == null) leftUnfit = true; }
-                else if (!wantLeft && strip == null) strip = Companion.LoadArt(Resource(false));
+                else if (!wantLeft && strip == null) strip = Art();
             }
         }
 
@@ -1894,7 +1931,7 @@ namespace CapriDesktop
         {
             Bitmap art = null;
             // A load that fails, out of memory say, leaves her drawn as she was, and the next ask tries again.
-            try { art = wantLeft ? Companion.LoadLeftArt(Resource(true)) : Companion.LoadArt(Resource(false)); }
+            try { art = wantLeft ? Companion.LoadLeftArt(Resource(true)) : Art(); }
             catch (Exception) { }
             lock (gate)
             {
@@ -1940,7 +1977,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 Bitmap wasStrip = strip, wasFlipped = flipped;
-                strip = lazy ? null : Companion.LoadArt(Resource(false));
+                strip = lazy ? null : Art();
                 stripUsed = Environment.TickCount;
                 flipped = null;
                 countedFor = fitFor = null;
@@ -3271,6 +3308,7 @@ namespace CapriDesktop
             Hands.MakeTool = ModList.MakeTool;
             ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
+            RebuildMoves();
             ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, ShownVersion(Packaged.Is, false));
@@ -3333,6 +3371,7 @@ namespace CapriDesktop
             Hands.JobControl = JobTool;
             Hands.Quit = QuitTool;
             Hands.Mainframe = MainframeTool;
+            Hands.ImportMod = ImportModTool;
             Hands.Workspace = WorkspaceTool;
             Hands.Updates = UpdateTool;
             Hands.MiniPlayer = MiniPlayerTool;
@@ -3891,7 +3930,7 @@ namespace CapriDesktop
             if (clip == idle && Resting(now)) index = (int)((long)((now - clipStart) * SaverFps) * clip.Fps / SaverFps);
             if (clip == perchSleep) return Math.Min(PerchSleepCell, perchSleep.Count - 1);
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
-            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = Math.Max(0, (int)((now - clipStart) * clip.Fps)); }
+            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2) || (clip.IsMove && !clip.Loops && index >= clip.Count)) { Play(idle); index = Math.Max(0, (int)((now - clipStart) * clip.Fps)); }
             if (clip == arrive && index >= arrive.Count)
             {
                 Play(idle);
@@ -4650,15 +4689,18 @@ namespace CapriDesktop
             if (docked) return DockAnimate(name);
             if (name == "stop_dancing")
             {
-                bool was = danceAsked || clip == dance || clip == perchDance;
+                string moving = clip.IsMove ? clip.Title : null;
+                bool was = danceAsked || clip == dance || clip == perchDance || moving != null;
                 danceAsked = false;
                 danceHeld = musicOn;
-                if (clip == dance || clip == perchDance) { Play(seat != null || onPanel ? perch : idle); UpdateAnimation(); }
-                return was ? "Stopped dancing." : "I wasn't dancing.";
+                if (clip == dance || clip == perchDance || moving != null) { Play(seat != null || onPanel ? perch : idle); UpdateAnimation(); }
+                return moving != null ? "Stopped my " + moving.Replace('_', ' ') + "." : was ? "Stopped dancing." : "I wasn't dancing.";
             }
             WakeRest(true);
             if (hidden) ShowHidden(false);
             if (EmoteName(name)) return PlayEmote(name);
+            Clip move = MoveClip(name);
+            if (move != null) return PlayMove(move);
             if (name == "dance")
             {
                 StopRide();
@@ -6785,6 +6827,15 @@ namespace CapriDesktop
             if (InvokeRequired) return (string)Invoke(new Func<string, string>(MainframeTool), page);
             if (page == "workspace") return WorkspaceTool(new ToolArguments());
             return mainframe.OpenTool(page) ? "Opened Capri Mainframe." : "Couldn't find that Mainframe page.";
+        }
+
+        private string ImportModTool(string path)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string>(ImportModTool), path);
+            if (!File.Exists(path)) return "Couldn't import " + Mods.FileName(path) + ": it isn't there any more.";
+            mainframe.OpenTool("mods");
+            mainframe.ImportMod(path);
+            return mainframe.ModStatusText;
         }
 
         // updates: check and status never install. install runs once this reply is over, through her usual checked installer,
@@ -12935,7 +12986,7 @@ namespace CapriDesktop
             // every reminder waits behind it until the game closes (#168).
             if (hidden && !docked && talkState != TalkState.Off) { MouthCell(clock.Elapsed.TotalSeconds, clip); UpdateTalk(clock.Elapsed.TotalSeconds); }
             while (voiceChanges.Count > 0 && !Voicing) voiceChanges.Dequeue()();
-            if (timers && (CheckReminders(reminders.Now()) || CheckWeather())) return;
+            if (timers && (CheckReminders(reminders.Now()) || CheckWeather() || CheckMail())) return;
             if (hidden && !docked) return;
             if (voicePreview != null && !PreviewBusy)
             {
@@ -15258,7 +15309,7 @@ namespace CapriDesktop
             string voiceId = voice.VoiceId;
             string agentId = preferences.AgentId;
             bool stale = Agent.Stale(preferences.AgentVersion, preferences.AgentPersonality);
-            string stamp = Brain.PersonalityStamp;
+            string stamp = Agent.Stamp;
             string language = Brain.LanguageCode(Brain.Language);
             string polyglot = preferences.AgentPolyglot;
             ThreadPool.QueueUserWorkItem(delegate
@@ -15868,8 +15919,24 @@ namespace CapriDesktop
             base.OnDragDrop(e);
             string[] paths = e.Data == null ? null : e.Data.GetData(DataFormats.FileDrop) as string[];
             if (paths == null) return;
+            if (paths.Length > 0 && Array.TrueForAll(paths, Mods.Importable)) { HandMods(paths); return; }
             string names = brain.Attachments.Give(paths);
             if (names.Length > 0) Hear(Files.Dropped, names, "> file: ");
+        }
+
+        private void HandMods(string[] paths)
+        {
+            string[] names = Array.ConvertAll(paths, Mods.FileName);
+            Hear(Mods.Dropped, string.Join(", ", names), "> file: ", handed: delegate
+            {
+                int turn = asking;
+                Security.Drop();
+                System.Collections.Generic.List<string> results = new System.Collections.Generic.List<string>();
+                foreach (string path in paths) results.Add(DoTool("import_mod", new ToolArguments { Path = path }));
+                string said = Hands.Shown(Security.Reply(results) ?? string.Join(" ", results.ToArray()));
+                if (turn == asking) brain.Remember(Mods.Dropped, said);
+                return said;
+            });
         }
 
         private bool StopListening(string text)
@@ -15884,7 +15951,7 @@ namespace CapriDesktop
 
         private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
-        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null)
+        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null, Func<string, string> handed = null)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -15992,6 +16059,7 @@ namespace CapriDesktop
             Func<string, string> think = callReply == null ? Think : delegate { return callReply(ticket); };
             if (callReply == null && planned.Key != null) think = delegate { return Security.Said(DoTool(planned.Key, planned.Value, ticket)); };
             Func<string, string> firstThink = think;
+            if (handed != null) { think = handed; followAllowed = false; }
             string quick;
             ToolArguments quickArgs;
             bool plain = false;
@@ -17168,6 +17236,7 @@ namespace CapriDesktop
         {
             try { Favourites.Save(); } catch (Exception) { }
             StopRemote();
+            StopMailWatch();
             Security.HeldChanged = null;
             if (husk != null) husk.Dispose();
             HuskClonesOff();
@@ -23849,6 +23918,112 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeModDrop(System.Collections.Generic.List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "mod-drop-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            Directory.CreateDirectory(folder);
+            string names = Path.Combine(folder, "drop-names" + Mods.Extension), plugin = Path.Combine(folder, "drop-tools" + Mods.PluginExtension), notes = Path.Combine(folder, "notes.txt");
+            File.WriteAllText(names, "{\"format\":1,\"id\":\"drop-names\",\"name\":\"Drop Names\",\"version\":\"1.0.0\",\"wake_names\":[\"Dropsy\"]}");
+            File.WriteAllText(notes, "MOD-DROP-NOTES");
+            using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(plugin, System.IO.Compression.ZipArchiveMode.Create))
+                FilePart(zip, ".claude-plugin/plugin.json", "{\"name\":\"drop-tools\",\"displayName\":\"Drop Tools\",\"version\":\"1.0.0\",\"mcpServers\":{\"none\":{\"type\":\"capri\",\"builtin\":\"smoke-none\"}}}");
+            Func<string, string> thinkWas = Think;
+            Func<ModFile, string, bool> askWas = mainframe.ModAsk;
+            string heardWas = heard, replyWas = reply, promptWas = box.Prompt, saved = Security.Saved;
+            TalkState stateWas = talkState;
+            FormWindowState frameWas = mainframe.WindowState;
+            bool wakeWas = Security.On(Security.Wake), shownWas = mainframe.Visible, settingsWas = mainframe.SettingsShown;
+            System.Collections.Generic.List<string> boxes = new System.Collections.Generic.List<string>();
+            try
+            {
+                Security.Load("1111111111");
+                Think = delegate { return "A mod drop reached her brain."; };
+                mainframe.ModAsk = delegate(ModFile mod, string hash) { boxes.Add(mod.Id); return false; };
+                Func<string[], bool> drop = delegate(string[] files)
+                {
+                    DragEventArgs dropEvent = new DragEventArgs(new DataObject(DataFormats.FileDrop, files), 0, 0, 0, DragDropEffects.Copy, DragDropEffects.None);
+                    OnDragEnter(dropEvent);
+                    OnDragDrop(dropEvent);
+                    return dropEvent.Effect == DragDropEffects.Copy;
+                };
+                Func<string, bool> offered = delegate(string question)
+                {
+                    Stopwatch waited = Stopwatch.StartNew();
+                    while ((reply != question || Security.Holding != "import_mod") && waited.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                    return reply == question && Security.Holding == "import_mod";
+                };
+                if (!drop(new[] { names }) || !offered("Import drop-names.capri-mod into your mods? Say yes and I will.") || heard != "drop-names.capri-mod" || box.Prompt != "> file: " || brain.Attachments.Waiting || ModList.All.Exists(mod => mod.File.Id == "drop-names"))
+                    throw new Exception("A dropped mod wasn't offered for import in her bubble: " + reply + " / " + heard + " / " + Security.Holding);
+                System.Collections.Generic.List<ChatMessage> told = brain.History;
+                if (told.Count < 2 || told[told.Count - 2].Content != Mods.Dropped || told[told.Count - 1].Content != reply) throw new Exception("Her ask about a dropped mod didn't join her chat.");
+                string title;
+                string[] card = HeldCard(out title);
+                if (title != "Allow this" || card == null || card.Length != 1 || card[0] != "Import drop-names.capri-mod into your mods") throw new Exception("Her ask card didn't name the dropped mod: " + title);
+                using (SpeechBox look = new SpeechBox())
+                {
+                    look.State = TalkState.Online;
+                    look.Prompt = box.Prompt;
+                    look.Heard = heard;
+                    look.Reply = reply;
+                    look.Revealed = reply.Length;
+                    look.Choose(delegate { }, title, card);
+                    Point at;
+                    using (Bitmap image = look.Render(2f, new Point(1000, 1400), new Point(1000, 1600), new Rectangle(0, 0, 2560, 1800), false, out at))
+                    {
+                        if (look.YesButton.IsEmpty || look.NoButton.IsEmpty) throw new Exception("Her mod drop ask lost its Allow and No keys.");
+                        image.Save(Path.Combine(output, "mod-drop-ask.png"), ImageFormat.Png);
+                    }
+                    look.Choose(null);
+                }
+                string yes = ResumeJob("yes");
+                Mod got = ModList.All.Find(mod => mod.File.Id == "drop-names");
+                if (got == null || !got.On || Security.Holding != null || yes != "Drop Names is on. She now answers to Dropsy too." || !mainframe.ModsShown || boxes.Count != 0)
+                    throw new Exception("Their yes didn't import the dropped mod the way Mods > Import mod does: " + yes);
+                checks.Add("PASS a dropped mod file is offered for import in her bubble with her Allow and No card, even on Blackwall, and their yes runs Mods > Import mod on her Mods page (mod-drop-ask.png)");
+                if (!drop(new[] { plugin }) || !offered("Import drop-tools.capri-plugin into your mods? Say yes and I will.")) throw new Exception("A dropped plug-in wasn't offered for import: " + reply);
+                string refused = ResumeJob("yes");
+                if (boxes.Count != 1 || boxes[0] != "drop-tools" || refused != "Not imported. Nothing ran." || ModList.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A dropped plug-in skipped its own box: " + refused);
+                if (!drop(new[] { plugin }) || !offered("Import drop-tools.capri-plugin into your mods? Say yes and I will.")) throw new Exception("A dropped plug-in wasn't offered again: " + reply);
+                string no = ResumeJob("no");
+                if (no != Security.Left || Security.Holding != null || boxes.Count != 1 || ModList.All.Exists(mod => mod.File.Id == "drop-tools")) throw new Exception("A no to a dropped plug-in still imported or asked: " + no);
+                checks.Add("PASS a dropped plug-in still shows its own Turn on this plug-in? box after their yes, and their no leaves it alone");
+                string mixedMessage = null;
+                using (ManualResetEvent mixedRead = new ManualResetEvent(false))
+                {
+                    Think = delegate(string words)
+                    {
+                        brain.Attachments.Next(words, null);
+                        mixedMessage = brain.Attachments.Message(words);
+                        mixedRead.Set();
+                        return "Two files.";
+                    };
+                    drop(new[] { names, notes });
+                    if (!mixedRead.WaitOne(5000) || mixedMessage == null || !mixedMessage.Contains("MOD-DROP-NOTES") || Security.Holding != null) throw new Exception("A mod dropped with another file didn't go the usual file way.");
+                }
+                if (Hands.Valid("import_mod", new ToolArguments { Path = notes }) || !Hands.Valid("import_mod", new ToolArguments { Path = plugin }) || !Security.IsHold(Security.Gate("import_mod", new ToolArguments { Path = names })) || !Hands.Tools.Contains("\"name\":\"import_mod\""))
+                    throw new Exception("import_mod took a plain file, skipped asking first or isn't in her tools.");
+                Security.Drop();
+                checks.Add("PASS a mod dropped with other files goes the usual file way, and her import_mod tool always asks first and only takes mod and plug-in files");
+            }
+            finally
+            {
+                Security.Drop();
+                Mod left = ModList.All.Find(mod => mod.File.Id == "drop-names");
+                if (left != null) ModList.Remove(left);
+                ++asking;
+                Think = thinkWas;
+                mainframe.ModAsk = askWas;
+                brain.Attachments.Clear();
+                heard = heardWas; reply = replyWas; box.Prompt = promptWas; talkState = stateWas;
+                Security.Load(saved, wakeWas);
+                mainframe.ShowMods(false);
+                mainframe.ShowSettings(settingsWas);
+                if (mainframe.WindowState != frameWas) mainframe.WindowState = frameWas;
+                if (!shownWas) mainframe.Hide();
+                try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        }
+
         private static void SmokeFileChat(System.Collections.Generic.List<string> checks, string folder, string docPath)
         {
             string handedPath = Path.Combine(folder, "handed words.txt");
@@ -24043,6 +24218,17 @@ namespace CapriDesktop
                 { "how do friend requests work?", "Friends on a call can ask, you confirm" },
                 { "what is the Screens to watch setting?", "Screens to watch" },
                 { "how do I put your voice in my mic?", "Her voice in your mic" },
+                { "what are plug-ins?", "Plug-ins" },
+                { "how do I import a plug-in?", "Import a plug-in" },
+                { "can I drop a mod file on you?", "Import mod" },
+                { "can I drag a plug-in onto you?", "Import mod" },
+                { "can I add an MCP server?", "Import a plug-in" },
+                { "can you use Notion?", "Starter plug-ins" },
+                { "how do I set up email?", "Email plug-in" },
+                { "why doesn't Outlook work with email?", "Outlook and Hotmail" },
+                { "can I use my Hotmail?", "Outlook and Hotmail" },
+                { "how do I sign in to Linear?", "Plug-in sign-in" },
+                { "how do I make a plug-in tool always run?", "Plug-in tools" },
                 { "do you do quick moves when anti-cheat is running?", "Quick moves in games" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
@@ -24051,7 +24237,7 @@ namespace CapriDesktop
                 if (selfFound == null || !selfFound.StartsWith(selfSamples[selfSample, 1] + ":", StringComparison.Ordinal))
                     throw new Exception("Self knowledge missed the best topic for: " + selfSamples[selfSample, 0]);
             }
-            string[] selfOrdinary = { null, "", "you", "your", "hey Capri", "what's your favourite song", "how do I bake bread", "how was your day", "what do you think of my drawing", "your voice is lovely", "is your voice pretty", "can you remind me what I said yesterday", "what is on my screen", "what's the Blackwall in Cyberpunk 2077", "what is Blackwall in Night City", "give me a Minecraft tutorial", "how do I use you in a game", "how do I change your voice in Skyrim", "how do I change your voice in a videogame", "what's the Bubble setting in Stardew Valley", "what can you do in Elden Ring", "how do I beat this boss", "give me a tutorial for chess", "how do I use you to play chess", "how do I change my game's settings" };
+            string[] selfOrdinary = { null, "", "you", "your", "hey Capri", "what's your favourite song", "how do I bake bread", "how was your day", "what do you think of my drawing", "your voice is lovely", "is your voice pretty", "can you remind me what I said yesterday", "what is on my screen", "what's the Blackwall in Cyberpunk 2077", "what is Blackwall in Night City", "give me a Minecraft tutorial", "how do I use you in a game", "how do I change your voice in Skyrim", "how do I change your voice in a videogame", "what's the Bubble setting in Stardew Valley", "what can you do in Elden Ring", "how do I beat this boss", "give me a tutorial for chess", "how do I use you to play chess", "how do I change my game's settings", "can you open Outlook?", "can you check my email?", "can you send an email to Sam?" };
             foreach (string selfChat in selfOrdinary)
                 if (SelfKnow.Matching(selfChat) != null) throw new Exception("Self knowledge matched ordinary chat or a game: " + selfChat);
             foreach (string selfGameChat in new[] { "how do I play mini games in Minecraft?", "what is the Game break setting in Cyberpunk 2077?", "why do you laugh when I say hello?" })
@@ -24218,6 +24404,8 @@ namespace CapriDesktop
                 { "mainframe", "{}", "Your controls would be handy right now" },
                 { "mainframe", "{\"name\":\"clips\"}", "We could have a look at your clips settings" },
                 { "mainframe", "{\"name\":\"workspace\"}", "Your coding window would be handy" },
+                { "mainframe", "{\"name\":\"mods\"}", "Show me my plug-ins" },
+                { "mainframe", "{\"name\":\"mods\"}", "Open your mods" },
                 { "workspace", "{}", "We could bring up your coding window" },
                 { "workspace", "{\"action\":\"open\"}", "Can you open the workspace" },
                 { "workspace", "{\"action\":\"start\",\"task\":\"Build a snake game\"}", "Build me a snake game in the workspace" },
@@ -24259,7 +24447,7 @@ namespace CapriDesktop
                 { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
                 { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" },
                 { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }, { "read_skill", "{\"name\":\"BTD6 strategy\"}" },
-                { "make_tool", "{\"text\":\"{}\"}" }, { "send_gif", "{\"name\":\"party\"}" }
+                { "make_tool", "{\"text\":\"{}\"}" }, { "send_gif", "{\"name\":\"party\"}" }, { "import_mod", "{\"path\":\"C:\\\\Mods\\\\drop-tools.capri-plugin\"}" }
             };
             for (int i = 0; i < Hands.Count; i++)
             {
@@ -24512,6 +24700,13 @@ namespace CapriDesktop
                 if (!mainframe.Visible || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open its main page.");
                 MainframeTool("clips");
                 if (!mainframe.SettingsShown || !mainframe.ClipsSectionShown) throw new Exception("The Mainframe tool did not open clips.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "mods" }) != "Opened Capri Mainframe." || !mainframe.Visible || !mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open her Mods page.");
+                MainframeTool("main");
+                if (mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool left her Mods page over the main page.");
+                if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened Capri Mainframe." || !mainframe.ModsShown) throw new Exception("The Mainframe tool did not open her plug-ins on the Mods page.");
+                MainframeTool("brain");
+                if (mainframe.ModsShown || mainframe.SettingsShown) throw new Exception("The Mainframe tool left her Mods page over BRAIN.");
+                if (!Hands.Tools.Contains("\"mods\"") || !Hands.Tools.Contains("plug-ins like Email, Notion and Linear")) throw new Exception("Her mainframe tool doesn't tell her brain about the Mods page.");
                 FullScreen = delegate { return false; };
                 hidden = docked = false;
                 preferences.NoPlayer = false;
@@ -25028,7 +25223,7 @@ namespace CapriDesktop
                 if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
                     throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
             }
-            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 3800 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
+            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 4000 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
                 || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
                 throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
             // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
@@ -45833,8 +46028,9 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
-            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); ModFloor.Fresh(); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); mainframe.CheckMailPanel(checks, modsOut); ModFloor.Fresh(); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
+            Section(checks, "SmokeMoves", delegate { string movesOut = Path.Combine(output, "moves"); Directory.CreateDirectory(movesOut); SmokeMoves(checks, movesOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
             Section(checks, "SmokeGlitchUnder", delegate { SmokeGlitchUnder(checks, Path.Combine(output, "glitch-under")); });
@@ -45976,6 +46172,7 @@ namespace CapriDesktop
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
             Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
+            Section(checks, "SmokeModDrop", delegate { SmokeModDrop(checks, output); });
             Section(checks, "SmokeRequests", delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
             Section(checks, "SmokeCare", delegate { SmokeCare(checks); });
             Section(checks, "SmokeClips", delegate { SmokeClips(checks); });
@@ -65734,6 +65931,142 @@ namespace CapriDesktop
                 ModDirectory.Post = wasPost;
                 ModDirectory.PreviewFolder = wasFolder;
                 ModAsk = wasAsk;
+                WindowState = wasState;
+                ModInline = false;
+                ModDirectory.Forget(modUpdates);
+                modUpdates = null;
+            }
+        }
+
+        private static byte[] DirectoryPlugin(string top, string version)
+        {
+            using (MemoryStream held = new MemoryStream())
+            {
+                using (System.IO.Compression.ZipArchive zip = new System.IO.Compression.ZipArchive(held, System.IO.Compression.ZipArchiveMode.Create, true))
+                {
+                    System.IO.Compression.ZipArchiveEntry entry = zip.CreateEntry(top + ".claude-plugin/plugin.json");
+                    using (StreamWriter write = new StreamWriter(entry.Open(), new UTF8Encoding(false)))
+                        write.Write("{\"name\":\"far-tools\",\"displayName\":\"Far Tools\",\"version\":\"" + version + "\",\"author\":{\"name\":\"Vocyn\"},\"capri\":{\"permissions\":[\"accounts\"]},\"mcpServers\":{\"inside\":{\"type\":\"capri\",\"builtin\":\"smoke-directory\"}}}");
+                }
+                return held.ToArray();
+            }
+        }
+
+        private void CheckDirectoryPlugins(List<string> checks, string output)
+        {
+            FormWindowState wasState = WindowState;
+            Restore();
+            Mods mods = capri.ModList;
+            Func<string, long, byte[]> wasGet = ModDirectory.Get;
+            Func<string, string, byte[]> wasPost = ModDirectory.Post;
+            string wasFolder = ModDirectory.PreviewFolder;
+            Func<ModFile, string, bool> wasAsk = ModAsk;
+            string under = Path.Combine(output, "directory-plugin-downloads");
+            ModDirectory.PreviewFolder = Path.Combine(output, "directory-plugin-previews");
+            ModsSheet sheet = null;
+            Plugins.BuiltIns["smoke-directory"] = delegate { return new McpBuiltIn("inside", delegate { return new List<Dictionary<string, object>>(); }, delegate(string tool, Dictionary<string, object> args) { return ""; }); };
+            try
+            {
+                byte[] settings = Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"wake_names\":[\"Nova\"]}");
+                byte[] plugin = DirectoryPlugin("", "1.2.0");
+                string pluginSha = ModDirectory.BlobSha(plugin), settingsSha = ModDirectory.BlobSha(settings);
+                Func<byte[], string> treeOf = delegate(byte[] listed)
+                {
+                    return "{\"tree\":[{\"path\":\"mods/far-tools/far-tools.capri-plugin\",\"type\":\"blob\",\"size\":" + listed.Length + ",\"sha\":\"" + ModDirectory.BlobSha(listed) + "\"}"
+                        + ",{\"path\":\"mods/far-names/far-names.capri-mod\",\"type\":\"blob\",\"size\":" + settings.Length + ",\"sha\":\"" + settingsSha + "\"}"
+                        + ",{\"path\":\"mods/far-tools/far-tools.capri-tool\",\"type\":\"blob\",\"size\":10,\"sha\":\"" + settingsSha + "\"}]}";
+                };
+                byte[] served = plugin;
+                string tree = treeOf(plugin);
+                byte[] index = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"far-tools\",\"file\":\"far-tools.capri-plugin\",\"name\":\"Far Tools\",\"author\":\"Vocyn\",\"about\":\"Gives her a tool from a server she runs inside herself.\",\"kind\":\"plugin\"}]}");
+                List<string> posts = new List<string>();
+                ModDirectory.Get = delegate(string url, long most)
+                {
+                    if (url == ModDirectory.TreePage || url == ModDirectory.TreeApi) return Encoding.UTF8.GetBytes(tree);
+                    if (url == ModDirectory.IndexPage) return index;
+                    if (url.EndsWith("/far-tools.capri-plugin", StringComparison.Ordinal) || url.EndsWith(ModDirectory.BlobSha(served), StringComparison.Ordinal)) return served;
+                    if (url.EndsWith("/far-names.capri-mod", StringComparison.Ordinal) || url.EndsWith(settingsSha, StringComparison.Ordinal)) return settings;
+                    throw new WebException("stand-in", WebExceptionStatus.ConnectFailure);
+                };
+                ModDirectory.Post = delegate(string url, string body)
+                {
+                    posts.Add(url + " " + body);
+                    return Encoding.UTF8.GetBytes("{\"folder\":\"far-tools\",\"downloads\":1,\"rating\":0,\"votes\":0}");
+                };
+                List<ModListing> found = ModDirectory.Browse();
+                ModListing tools = found.Find(delegate(ModListing listing) { return listing.FileName == "far-tools.capri-plugin"; });
+                if (found.Count != 2 || tools == null || tools.Kind != "PLUG-IN." || tools.KindIndex != 5 || tools.Title != "Far Tools" || tools.Author != "Vocyn" || ModDirectory.Kinds.Length != 6 || ModDirectory.Kinds[5] != "Plug-ins"
+                    || ModDirectory.Filter(found, "", 5).Count != 1 || ModDirectory.Filter(found, "", 5)[0] != tools || ModDirectory.Filter(found, "", 1).Count != 1 || ModDirectory.Filter(found, "inside herself", 0).Count != 1)
+                    throw new Exception("The mods directory didn't list a plug-in under Plug-ins: " + found.Count + " / " + (tools == null ? "none" : tools.Kind + " " + tools.KindIndex));
+                checks.Add("PASS mods directory: a .capri-plugin is listed as PLUG-IN. with its index name and author, under its own Plug-ins filter, and other files beside it stay out");
+                ShowMods(true);
+                sheet = new ModsSheet(this, 1f);
+                sheet.Inline = true;
+                ModInline = true;
+                sheet.Show(this);
+                sheet.LoadMods();
+                sheet.PressFilter(5);
+                if (sheet.ShownCount != 1 || !sheet.Filtered(5) || sheet.Filtered(0) || sheet.TitleOf(0) != "Far Tools" || !sheet.MetaOf(0).StartsWith("PLUG-IN. ", StringComparison.Ordinal)) throw new Exception("The Plug-ins filter didn't show the plug-in card: " + sheet.ShownCount + " / " + sheet.MetaOf(0));
+                string crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("The mods window with six filters doesn't fit: " + crowded);
+                sheet.Picture(Path.Combine(output, "mods-window-plugins.png"));
+                foreach (float size in new[] { 1.5f, 2f })
+                    using (ModsSheet sized = new ModsSheet(this, size))
+                    {
+                        sized.Inline = true;
+                        sized.Show(this);
+                        sized.LoadMods();
+                        sized.PressFilter(5);
+                        string problem = sized.Crowded();
+                        sized.Picture(Path.Combine(output, "mods-window-plugins-" + (int)(size * 100) + ".png"));
+                        sized.Close();
+                        if (problem != null) throw new Exception("The mods window with six filters doesn't fit at " + size + ": " + problem);
+                    }
+                string consent = null;
+                ModAsk = delegate(ModFile mod, string hash) { consent = Mods.Consent(mod, hash); return false; };
+                sheet.PressInstall(0);
+                if (consent == null || !consent.Contains(Mods.Reviewed) || !consent.EndsWith("Turn this plug-in on?", StringComparison.Ordinal) || consent.Contains("Only turn it on if you trust who made it.") || !consent.Contains("uses Capri's own smoke-directory tools")
+                    || mods.All.Exists(delegate(Mod mod) { return mod.File.Id == "far-tools"; }) || posts.Count != 0 || sheet.StatusShown != "Not imported. Nothing ran.")
+                    throw new Exception("A plug-in from the directory didn't ask with the directory's line, or a no left something: " + sheet.StatusShown + " / " + consent);
+                ModAsk = delegate(ModFile mod, string hash) { consent = Mods.Consent(mod, hash); return true; };
+                sheet.PressInstall(0);
+                Mod got = mods.All.Find(delegate(Mod mod) { return mod.File.Id == "far-tools"; });
+                if (got == null || !got.Plugin || !got.On || got.File.Version != "1.2.0" || posts.Count != 1 || !posts[0].EndsWith("/mods/download {\"folder\":\"far-tools\"}", StringComparison.Ordinal) || !sheet.MetaOf(0).EndsWith("Installed.", StringComparison.Ordinal) || sheet.InstallTextOf(0) != "Reinstall")
+                    throw new Exception("A plug-in from the directory didn't install through its box: " + sheet.StatusShown);
+                checks.Add("PASS mods directory: installing a plug-in shows the same Turn on this plug-in? box as Import mod, with the line saying the Capri team reviewed that exact file; a no leaves nothing and isn't counted, and a yes installs and counts it (mods-window-plugins.png)");
+                if (ModDirectory.Updates(found, mods.All).Count != 0) throw new Exception("An installed plug-in that matches its listing looked out of date.");
+                served = DirectoryPlugin("", "1.3.0");
+                tree = treeOf(served);
+                List<ModListing> later = ModDirectory.Browse();
+                List<ModListing> newer = ModDirectory.Newer(ModDirectory.Updates(later, mods.All), mods.All, under);
+                bool fetched = newer.Count == 1 && newer[0].Fetched != null && File.Exists(newer[0].Fetched);
+                ModDirectory.Forget(newer);
+                Mod starter = new Mod { File = got.File, Path = got.Path, Plugin = true, Starter = true };
+                if (!fetched || ModDirectory.Updates(later, new List<Mod> { starter }).Count != 0) throw new Exception("A newer plug-in wasn't found as an update, or a starter was offered one.");
+                served = DirectoryPlugin("", "1.1.0");
+                tree = treeOf(served);
+                later = ModDirectory.Browse();
+                newer = ModDirectory.Newer(ModDirectory.Updates(later, mods.All), mods.All, under);
+                ModDirectory.Forget(newer);
+                if (newer.Count != 0) throw new Exception("An older plug-in in the directory was offered as an update.");
+                string folded = Path.Combine(output, "folded" + Mods.PluginExtension), loose = Path.Combine(output, "loose" + Mods.PluginExtension);
+                File.WriteAllBytes(folded, DirectoryPlugin("far-tools/", "2.0.1"));
+                File.WriteAllBytes(loose, DirectoryPlugin("far-tools/", "2.0.2"));
+                using (System.IO.Compression.ZipArchive extra = System.IO.Compression.ZipFile.Open(loose, System.IO.Compression.ZipArchiveMode.Update)) extra.CreateEntry("notes.txt");
+                if (Mods.VersionIn(folded) != "2.0.1" || Mods.VersionIn(loose) != null) throw new Exception("A plug-in's version wasn't read from where she reads its plugin.json: " + Mods.VersionIn(folded) + " / " + Mods.VersionIn(loose));
+                checks.Add("PASS mods directory: a newer plug-in shows as an update by its plugin.json version, an older one doesn't, an installed one that matches doesn't, and her starters are never offered one");
+            }
+            finally
+            {
+                if (sheet != null && !sheet.IsDisposed) sheet.Close();
+                Mod left = mods.All.Find(delegate(Mod mod) { return mod.File.Id == "far-tools"; });
+                if (left != null) mods.Remove(left);
+                Plugins.BuiltIns.Remove("smoke-directory");
+                ModDirectory.Get = wasGet;
+                ModDirectory.Post = wasPost;
+                ModDirectory.PreviewFolder = wasFolder;
+                ModAsk = wasAsk;
+                ShowMods(false);
                 WindowState = wasState;
                 ModInline = false;
                 ModDirectory.Forget(modUpdates);

@@ -298,8 +298,11 @@ namespace CapriDesktop
         private readonly object artGate = new object();
         private int artGeneration;
         private bool loadingLeft, triedLeft;
-        internal Bitmap Strip { get { if (strip == null) strip = Pet.ReadArt(name); return strip; } }
+        internal Bitmap Strip { get { if (strip == null) strip = file != null ? Pet.ReadMoveArt(file, count) : Pet.ReadArt(name); return strip; } }
         private readonly string name;
+        private readonly string file, move;
+        internal readonly bool Loops;
+        internal bool IsMove { get { return file != null; } }
         private readonly int count;
         private readonly double fps;
         private readonly double shiftX, shiftY;
@@ -335,7 +338,22 @@ namespace CapriDesktop
         internal double ShiftY { get { return Old ? 0 : shiftY; } }
 
         // The strip's own name, like "idle" or "perch", the way mods and Windows name it.
-        internal string Title { get { return name.Substring("Capri.Sprite.".Length, name.Length - "Capri.Sprite.".Length - ".png".Length); } }
+        internal string Title { get { return move ?? name.Substring("Capri.Sprite.".Length, name.Length - "Capri.Sprite.".Length - ".png".Length); } }
+
+        private Clip(string move, string file, int count, double fps, bool loops, Clip like)
+        {
+            name = "Capri.Move." + move + ".png";
+            this.move = move;
+            this.file = file;
+            this.count = count;
+            this.fps = fps;
+            Loops = loops;
+            Height = like.Height;
+            shiftX = like.shiftX;
+            shiftY = like.shiftY;
+        }
+
+        internal static Clip Move(string move, string file, int count, double fps, bool loops, Clip like) { return new Clip(move, file, count, fps, loops, like); }
 
         internal Clip(string name, int count, double fps, double height, double shiftX = 0, double shiftY = 0)
         {
@@ -951,6 +969,7 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Mainframe = MainframeTool;
+            Hands.ImportMod = ImportModTool;
             AttachSelfTools();
             StartMiniPlayer();
             Hands.Animate = AnimateTool;
@@ -1060,7 +1079,7 @@ namespace CapriDesktop
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
-            MacFiles.Drops(body, words => Hear(words));
+            MacFiles.Drops(body, words => Hear(words), HandMods);
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
@@ -1081,14 +1100,14 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { StopRemote(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
                 StopRemote();
                 Dispatcher.UIThread.Post(delegate { if (on && !quitting && !MacQuit.Quitting && (e.Cancel || frames.IsEnabled)) SetRemote(true); });
             };
-            desktop.Exit += delegate { StopRemote(); };
+            desktop.Exit += delegate { StopRemote(); StopMailWatch(); };
             Deactivated += delegate { if (!(Desk is HyprlandDesk) && !desktopDrag) Program.Guard(Unhold); };
             Opened += delegate
             {
@@ -1356,7 +1375,7 @@ namespace CapriDesktop
             watching.Deliver();
             CheckStyle();
             CheckSelfTools();
-            if (Program.Smoke == null && !CheckReminders()) CheckWeather();
+            if (Program.Smoke == null && !CheckReminders() && !CheckWeather()) CheckMail();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
@@ -1777,7 +1796,7 @@ namespace CapriDesktop
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
             int index = (int)((now - clipStart) * clip.Fps);
             if (clip == leave || clip == perchLeave) index = Math.Min(index, clip.Count - 1);
-            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
+            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2) || (clip.IsMove && !clip.Loops && index >= clip.Count)) { Play(idle); index = 0; }
             // Like on Windows, she's awake as soon as she has something to say or they open her typing box.
             if (Asleep && !Talk.Quiet) { sleptAt = null; Play(clip == perchSleep ? perch : idle); index = 0; }
             if (clip == arrive && index >= arrive.Count)
@@ -3360,16 +3379,20 @@ namespace CapriDesktop
             StopMoves();
             if (name == "stop_dancing")
             {
-                bool was = dancing || clip == dance || clip == perchDance;
+                string moving = clip != null && clip.IsMove ? clip.Title : null;
+                bool was = dancing || clip == dance || clip == perchDance || moving != null;
                 danceHeld = musicOn;
                 Dancing = false;
                 if (clip == dance || clip == perchDance) Play(clip == perchDance ? perch : idle);
-                return was ? "Stopped dancing." : "I wasn't dancing.";
+                else if (moving != null) Play(seat != null ? perch : idle);
+                return moving != null ? "Stopped my " + moving.Replace('_', ' ') + "." : was ? "Stopped dancing." : "I wasn't dancing.";
             }
             napAsked = false;
             napping = false;
             ComeBack();
             if (hanging) LetGo();
+            Clip move = MoveClip(name);
+            if (move != null) return PlayMove(move);
             if (name == "dance")
             {
                 danceHeld = false;
@@ -3406,6 +3429,7 @@ namespace CapriDesktop
         {
             get
             {
+                if (clip != null && clip.IsMove) return clip.Title;
                 Clip[] named = { idle, glitch, grin, dance, perchDance, dangle, perch, perchGlitch, arrive, leave, sleep, wake };
                 string[] names = { "idle", "glitch", "grin", "dance", "perch_music", "dangle", "perch", "perch_glitch", "arrive", "leave", "sleep", "wake" };
                 int at = Array.IndexOf(named, clip);
@@ -5901,10 +5925,24 @@ namespace CapriDesktop
 
         internal void Hear(string text, bool fromVoice = false) { Hear(text, fromVoice, null); }
 
-        private void Hear(string text, bool fromVoice, RemoteTurn phone)
+        internal void HandMods(string[] paths)
+        {
+            Hear(Mods.Dropped, false, null, delegate(string line)
+            {
+                int turn = asking;
+                Security.Drop();
+                List<string> results = new List<string>();
+                foreach (string path in paths) results.Add(Brain.Act("import_mod", new ToolArguments { Path = path }));
+                string said = Hands.Shown(Security.Reply(results) ?? string.Join(" ", results));
+                if (turn == asking) Brain.Remember(line, said);
+                return said;
+            });
+        }
+
+        private void Hear(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
         {
             RemoteTurn previous = RemoteTurn.Working;
-            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone); }
+            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone, handed); }
             catch { RemoteEnd(phone, true); throw; }
             finally
             {
@@ -5920,7 +5958,7 @@ namespace CapriDesktop
             finally { RemoteTurn.Working = previous; }
         }
 
-        private void HearLine(string text, bool fromVoice, RemoteTurn phone)
+        private void HearLine(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -5936,6 +5974,18 @@ namespace CapriDesktop
                 if (RemoteEarly(phone, text)) return;
             }
             StopListening();
+            if (handed != null)
+            {
+                Typed();
+                int handing = ++asking;
+                if (!SelfJobs.Active) { ComputerJobs.Stop(); Brain.Cancel(); }
+                ownedVoice?.Cancel();
+                StopNativeListening(!fromVoice);
+                voice.Stop();
+                Talk.Thinking(text);
+                Ask(handing, text, 0, 0, null, handed);
+                return;
+            }
             if (modSendDepth == 0 && !(phone != null && phone.Hold != null && Security.Declines(input)) && System.Text.RegularExpressions.Regex.IsMatch(input, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
             bool fromMod = false;
             if (!meeting.Asking || phone != null)
@@ -6027,7 +6077,8 @@ namespace CapriDesktop
             if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
             bool fileRequest = tool == "find_file" || tool == "read_file" || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
             bool websiteHeld = phone == null ? Security.Holding == "open_website" : phone.Hold != null && phone.Hold.Calls.Count == 1 && phone.Hold.Calls[0].Key == "open_website";
-            if (Think == null && Brain.Model == null && (fileRequest || websiteHeld && (Security.Agrees(input) || Security.Declines(input))))
+            bool modHeld = phone == null && Security.Holding == "import_mod";
+            if (Think == null && Brain.Model == null && (fileRequest || (websiteHeld || modHeld) && (Security.Agrees(input) || Security.Declines(input))))
             {
                 Talk.Thinking(text);
                 Ask(ticket, text, 0, 0, phone, delegate(string line)
