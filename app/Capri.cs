@@ -3177,7 +3177,7 @@ namespace CapriDesktop
             preferences.WanderPace = Math.Max(0, Math.Min(3, preferences.WanderPace));
             preferences.PopPace = Math.Max(0, Math.Min(2, preferences.PopPace));
             preferences.PowerSaver = Math.Max(0, Math.Min(2, preferences.PowerSaver));
-            preferences.MusicApp = Math.Max(0, Math.Min(2, preferences.MusicApp));
+            preferences.MusicApp = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, preferences.MusicApp));
             Brain.Lite = preferences.Lite;
             clip = idle;
             nextGlitch = 30 + random.NextDouble() * 30;
@@ -6949,6 +6949,7 @@ namespace CapriDesktop
                     if (apple != null) return Hands.AppleMusicJob(song, args.Kind, apple.Name, args.SongOnly);
                     app = null;
                 }
+                if (app == "deezer" || app == "youtubemusic") return Hands.ServiceJob(app, song, args.Kind, args.SongOnly);
                 bool spotify = app == "spotify" || (app != "youtube" && Hands.Installed("spotify"));
                 if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
                 return null;
@@ -8613,7 +8614,7 @@ namespace CapriDesktop
 
         internal void SetMusicApp(int level)
         {
-            preferences.MusicApp = Math.Max(0, Math.Min(2, level));
+            preferences.MusicApp = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, level));
             SavePreferences();
             mainframe.Sync();
         }
@@ -8863,7 +8864,7 @@ namespace CapriDesktop
             catch (Exception) { return false; }
         }
 
-        internal static bool IsMusicApp(string id) { return id != null && Regex.IsMatch(id, @"spotify|zunemusic|applemusic|itunes|amazonmusic|tidal|deezer|foobar|musicbee|winamp|aimp|soundcloud|pandora", RegexOptions.IgnoreCase); }
+        internal static bool IsMusicApp(string id) { return id != null && Regex.IsMatch(id, @"spotify|zunemusic|applemusic|itunes|amazonmusic|tidal|deezer|^music\.youtube\.com-|foobar|musicbee|winamp|aimp|soundcloud|pandora", RegexOptions.IgnoreCase); }
 
         internal static bool IsSong(string title, string artist, TimeSpan length)
         {
@@ -12033,7 +12034,7 @@ namespace CapriDesktop
         // Which step one of her sliders is on, read the way her Mainframe shows it.
         private int LevelOf(string name)
         {
-            if (name == "music_app") return Math.Max(0, Math.Min(2, MusicApp));
+            if (name == "music_app") return Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, MusicApp));
             if (InvokeRequired) return (int)Invoke(new Func<string, int>(LevelOf), name);
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), CareTime((CareKind)careKind)));
@@ -12064,7 +12065,7 @@ namespace CapriDesktop
                 case "mainframe_colours": return MainframeColours;
                 case "perch_fps": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), PerchFps));
                 case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
-                case "music_app": return Math.Max(0, Math.Min(2, MusicApp));
+                case "music_app": return Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, MusicApp));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
                 case "reply_language": return ReplyLanguage == null ? 0 : Math.Max(0, Array.IndexOf(Hands.StepsOf(name), ReplyLanguage));
                 case "reply_limit": return ReplyLength;
@@ -28242,13 +28243,14 @@ namespace CapriDesktop
                 checks.Add("PASS Music app: Apple Music's job says song, playlist, album or artist, and opens Favourite Songs and their own playlists from Library");
 
                 string[,] named = { { "play Never Fade Away on apple music", "applemusic" }, { "play Never Fade Away on Apple  Music", "applemusic" }, { "open apple music and play Never Fade Away", "applemusic" },
-                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" } };
+                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" }, { "play Never Fade Away on deezer", "deezer" },
+                    { "play Never Fade Away on YouTube Music", "youtubemusic" }, { "open youtube music and play Never Fade Away", "youtubemusic" }, { "open deezer and play Never Fade Away", "deezer" } };
                 for (int i = 0; i < named.GetLength(0); i++)
                     if (!Hands.Direct(named[i, 0], out tool, out heard) || tool != "play_music" || heard.App != named[i, 1] || heard.Song != "Never Fade Away" || !Hands.Valid(tool, heard))
                         throw new Exception("A named music app wasn't caught: " + named[i, 0] + " / " + tool + " / " + (heard == null ? "" : heard.App));
                 if (!Hands.Valid("play_music", new ToolArguments { Song = "Never Fade Away", App = "applemusic" }) || Hands.Valid("play_music", new ToolArguments { Song = "Never Fade Away", App = "tidal" }))
                     throw new Exception("play_music took the wrong apps.");
-                checks.Add("PASS Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
+                checks.Add("PASS Music app: play X on Apple Music, Spotify, YouTube, Deezer or YouTube Music is caught and play_music takes each");
 
                 bool spotifyWins = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away", App = "spotify" }) == null;
                 string youtubeWins = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away", App = "youtube" }) ?? "";
@@ -28278,6 +28280,54 @@ namespace CapriDesktop
                     throw new Exception("Apple Music Preview wasn't found over the web app, or Apple Devices was taken for it: " + previewJob);
                 checks.Add("PASS Music app: an app named Apple Music Preview counts as Apple Music, before its web app, and Apple Devices doesn't");
 
+                InstalledApp deezer = new InstalledApp("Deezer Music", "Deezer.62021768415AF_q7m17pa7q8kj0!Deezer.Music");
+                InstalledApp youTubeMusic = new InstalledApp("YouTube Music", "music.youtube.com-1A2B3C4D_abcdefghijk12!App");
+                InstalledApp youTubeMusicClient = new InstalledApp("YouTube Music Desktop App", "th-ch.YouTubeMusic");
+                preferences.QuickHands = false;
+                SetMusicApp(3);
+                installed.Clear(); installed.Add(spotify); installed.Add(deezer); Hands.Forget();
+                jobs.Clear(); ran.Clear(); fetched.Clear();
+                string deezerDone = DoTool("play_music", new ToolArguments { Song = "Midnight Drive" });
+                string deezerJob = jobs.Count == 1 ? jobs[0] : "";
+                string deezerLoved = CursorJob("play_music", new ToolArguments { Song = "Liked Songs", Kind = "playlist" }) ?? "";
+                string deezerOpened = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                string deezerOwn = Hands.Do("play_music", new ToolArguments { Song = "my Chill", Kind = "playlist" });
+                bool deezerApp = ran.Count == 2 && ran[0] == deezer.Id && ran[1] == deezer.Id;
+                installed.Clear(); installed.Add(spotify); Hands.Forget();
+                ran.Clear();
+                string deezerWebJob = CursorJob("play_music", new ToolArguments { Song = "Midnight Drive" }) ?? "";
+                string deezerWeb = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                if (deezerDone != "Did it." || !deezerJob.StartsWith("Play \"Midnight Drive\" on Deezer: open the Deezer Music app, click its search box, type \"Midnight Drive\" and press Enter, then click the song that fits best and press play.", StringComparison.Ordinal)
+                    || !deezerLoved.StartsWith("Play their Favourite tracks on Deezer: open the Deezer Music app, go to Favourites, open Favourite tracks", StringComparison.Ordinal)
+                    || !deezerApp || !deezerOpened.StartsWith("Opened Deezer Music. Search for Midnight Drive there", StringComparison.Ordinal) || deezerOwn != "Opened Deezer Music. Your Chill playlist is under Favourites, then Playlists."
+                    || !deezerWebJob.StartsWith("Play \"Midnight Drive\" on Deezer: open https://www.deezer.com/search/Midnight%20Drive with open_website, refuse any cookie notice, then click the song", StringComparison.Ordinal)
+                    || ran.Count != 1 || ran[0] != "https://www.deezer.com/search/Midnight%20Drive" || !deezerWeb.StartsWith("Opened a Deezer search for Midnight Drive.", StringComparison.Ordinal) || fetched.Count != 0)
+                    throw new Exception("Deezer didn't play in its app, or on deezer.com without it: " + deezerDone + " / " + deezerJob + " / " + deezerLoved + " / " + deezerOpened + " / " + deezerOwn + " / " + deezerWebJob + " / " + deezerWeb + " / " + string.Join(" / ", ran.ToArray()) + " / fetched " + fetched.Count);
+                checks.Add("PASS Music app: Deezer plays in the Deezer app with her cursor, or on deezer.com without the app, and without her cursor she opens it, fetching nothing");
+
+                SetMusicApp(4);
+                installed.Clear(); installed.Add(youTubeMusicClient); Hands.Forget();
+                ran.Clear();
+                string clientOpened = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                bool clientSkipped = ran.Count == 1 && ran[0] == "https://music.youtube.com/search?q=Midnight%20Drive" && clientOpened.StartsWith("Opened a YouTube Music search", StringComparison.Ordinal);
+                string favouriteTracks = Hands.ServiceJob("deezer", "my favourite tracks", null), likedMusic = Hands.ServiceJob("youtubemusic", "liked music", null);
+                installed.Clear(); installed.Add(youTubeMusic); Hands.Forget();
+                ran.Clear(); fetched.Clear();
+                string youTubeMusicJob = CursorJob("play_music", new ToolArguments { Song = "Midnight Drive" }) ?? "";
+                string youTubeMusicOpened = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                installed.Clear(); Hands.Forget();
+                string youTubeMusicWebJob = CursorJob("play_music", new ToolArguments { Song = "Midnight Drive", Kind = "album" }) ?? "";
+                string youTubeMusicLoved = Hands.Do("play_music", new ToolArguments { Song = "Liked Songs", Kind = "playlist" });
+                if (!youTubeMusicJob.StartsWith("Play \"Midnight Drive\" on YouTube Music: open the YouTube Music app, click its search box", StringComparison.Ordinal)
+                    || !youTubeMusicWebJob.StartsWith("Play the album \"Midnight Drive\" on YouTube Music: open https://music.youtube.com/search?q=Midnight%20Drive with open_website", StringComparison.Ordinal)
+                    || ran.Count != 2 || ran[0] != "https://music.youtube.com/search?q=Midnight%20Drive" || ran[1] != "https://music.youtube.com" || !youTubeMusicOpened.StartsWith("Opened a YouTube Music search for Midnight Drive.", StringComparison.Ordinal)
+                    || youTubeMusicLoved != "Opened YouTube Music. Your Liked music is under Library." || fetched.Count != 0 || !clientSkipped
+                    || !favouriteTracks.StartsWith("Play their Favourite tracks on Deezer:", StringComparison.Ordinal) || !likedMusic.StartsWith("Play their Liked music on YouTube Music:", StringComparison.Ordinal))
+                    throw new Exception("YouTube Music didn't play in its web app or on music.youtube.com: " + youTubeMusicJob + " / " + youTubeMusicWebJob + " / " + youTubeMusicOpened + " / " + youTubeMusicLoved + " / " + clientOpened + " / " + favouriteTracks + " / " + likedMusic + " / " + string.Join(" / ", ran.ToArray()) + " / fetched " + fetched.Count);
+                if (Tunes.AppName(youTubeMusic.Id) != "YouTube Music" || Tunes.AppName(deezer.Id) != "Deezer" || !IsMusicApp(youTubeMusic.Id) || !IsMusicApp(deezer.Id) || IsMusicApp("Chrome") || Tunes.AppName("Chrome") != "Chrome")
+                    throw new Exception("Her player didn't name YouTube Music's web app or Deezer: " + Tunes.AppName(youTubeMusic.Id) + " / " + Tunes.AppName(deezer.Id));
+                checks.Add("PASS Music app: YouTube Music plays in its installed web app with her cursor, or on music.youtube.com, and her player names it and Deezer");
+
                 string[] steps = Hands.StepsOf("music_app");
                 for (int level = 0; level < steps.Length; level++)
                 {
@@ -28286,7 +28336,10 @@ namespace CapriDesktop
                         throw new Exception("Music app " + steps[level] + " didn't save, load and show: " + preferences.MusicApp + " / " + mainframe.MusicAppShown + " / " + told);
                 }
                 string facts = SelfKnow.Matching("What is the Music app setting in Capri?") ?? "";
-                if (string.Join("|", steps) != "Spotify|YouTube|Apple Music" || !facts.StartsWith("Music app: Mainframe > Settings > HABITS > Music app", StringComparison.Ordinal)) throw new Exception("Music app's steps or self knowledge are wrong: " + facts);
+                SetMusicApp(0);
+                SetMusicApp(9);
+                int clamped = preferences.MusicApp;
+                if (clamped != 4 || string.Join("|", steps) != "Spotify|YouTube|Apple Music|Deezer|YouTube Music" || !facts.StartsWith("Music app: Mainframe > Settings > HABITS > Music app", StringComparison.Ordinal)) throw new Exception("Music app's steps or self knowledge are wrong: " + facts);
                 simpleTest = true;
                 preferences.AdvancedSettings = false;
                 mainframe.ShowSettings(true);
@@ -28297,7 +28350,7 @@ namespace CapriDesktop
                 string advancedRow = mainframe.MusicAppRow, advancedOverlap = mainframe.Overlap();
                 if (simpleRow != "shown" || advancedRow != "shown" || simpleOverlap != null || advancedOverlap != null)
                     throw new Exception("Music app's row didn't fit Simple and Advanced Settings: " + simpleRow + " / " + advancedRow + ", overlap " + simpleOverlap + " / " + advancedOverlap);
-                checks.Add("PASS Music app: HABITS' row and her settings tool save, load and show Spotify, YouTube and Apple Music, in Simple and Advanced Settings");
+                checks.Add("PASS Music app: HABITS' row and her settings tool save, load and show Spotify, YouTube, Apple Music, Deezer and YouTube Music, in Simple and Advanced Settings");
             }
             finally
             {

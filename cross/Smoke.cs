@@ -3445,9 +3445,10 @@ namespace CapriDesktop
             Func<string, bool> existsWas = Hands.Exists;
             Func<string, string> fetchWas = Hands.Fetch;
             Func<string, bool> pressWas = Hands.PressPlay;
-            List<string> ran = new List<string>(), jobs = new List<string>();
+            List<string> ran = new List<string>(), jobs = new List<string>(), fetched = new List<string>();
             List<InstalledApp> installed = new List<InstalledApp>();
             InstalledApp spotify = new InstalledApp("Spotify", Hands.OnMac ? "/Applications/Spotify.app" : "exec:spotify");
+            InstalledApp deezer = new InstalledApp("Deezer", Hands.OnMac ? "/Applications/Deezer.app" : "exec:deezer");
             int presetWas = Security.Preset;
             try
             {
@@ -3455,7 +3456,7 @@ namespace CapriDesktop
                 Hands.Run = ran.Add;
                 Hands.Catalog = delegate { return new List<InstalledApp>(installed); };
                 Hands.Exists = delegate { return false; };
-                Hands.Fetch = delegate { return "\"videoId\":\"abcdefghijk\""; };
+                Hands.Fetch = delegate(string address) { fetched.Add(address); return "\"videoId\":\"abcdefghijk\""; };
                 Hands.PressPlay = delegate { return true; };
                 if (new Settings().MusicApp != 0) throw new Exception("Music app didn't start on Spotify.");
                 pet.SetMusicApp(0);
@@ -3472,11 +3473,12 @@ namespace CapriDesktop
                 string tool;
                 ToolArguments heard;
                 string[,] named = { { "play Never Fade Away on apple music", "applemusic" }, { "open apple music and play Never Fade Away", "applemusic" },
-                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" } };
+                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" }, { "play Never Fade Away on deezer", "deezer" },
+                    { "play Never Fade Away on youtube music", "youtubemusic" }, { "open youtube music and play Never Fade Away", "youtubemusic" }, { "open deezer and play Never Fade Away", "deezer" } };
                 for (int i = 0; i < named.GetLength(0); i++)
                     if (!Hands.Direct(named[i, 0], out tool, out heard) || tool != "play_music" || heard.App != named[i, 1] || heard.Song != "Never Fade Away" || !Hands.Valid(tool, heard))
                         throw new Exception("A named music app wasn't caught on Mac or Linux: " + named[i, 0] + " / " + tool);
-                checks.Add("PASS cross Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
+                checks.Add("PASS cross Music app: play X on Apple Music, Spotify, YouTube, Deezer or YouTube Music is caught and play_music takes each");
                 pet.SetMusicApp(2);
                 if (Hands.MusicApp(null) != "applemusic" || Hands.MusicApp("youtube") != "youtube") throw new Exception("Music app's Apple Music didn't reach her hands.");
                 string loved = Hands.AppleMusicJob("Liked Songs", "playlist"), own = Hands.AppleMusicJob("my Chill", "playlist"), album = Hands.AppleMusicJob("Random Access Memories", "album");
@@ -3504,17 +3506,49 @@ namespace CapriDesktop
                     if (!worked) throw new Exception("Apple Music didn't play on a Mac: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran));
                     checks.Add("PASS cross Music app: on a Mac, play X goes to Apple Music, " + (cursor ? "a job with her mouse and keyboard" : "the Music app on a search"));
                 }
+                Hands.NativeWork = args => { jobs.Add(args.Task); return "Did it."; };
+                bool hands = Hands.KitFor().Has("use_computer") && Security.On(Security.Mouse);
+                string[,] services =
+                {
+                    { "3", "", "https://www.deezer.com/search/Midnight%20Drive", "Opened a Deezer search for Midnight Drive." },
+                    { "3", "app", "/", "Opened Deezer. Search for Midnight Drive there" },
+                    { "4", "", "https://music.youtube.com/search?q=Midnight%20Drive", "Opened a YouTube Music search for Midnight Drive." }
+                };
+                for (int i = 0; i < services.GetLength(0); i++)
+                {
+                    pet.SetMusicApp(int.Parse(services[i, 0]));
+                    string app = Hands.MusicApp(null);
+                    installed.Clear(); if (services[i, 1] == "app") installed.Add(deezer); Hands.Forget();
+                    ran.Clear(); jobs.Clear(); fetched.Clear();
+                    string done = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                    string job = Hands.ServiceJob(app, "Midnight Drive", "song");
+                    bool viaApp = services[i, 1] == "app";
+                    bool worked = fetched.Count == 0 && (hands
+                        ? jobs.Count == 1 && jobs[0] == job && done == "Did it." && ran.Count == 0 && (viaApp ? job.Contains("open the Deezer app, click its search box") : job.Contains(services[i, 2]))
+                        : jobs.Count == 0 && ran.Count == 1 && (viaApp ? ran[0] == deezer.Id : ran[0] == services[i, 2]) && done.StartsWith(services[i, 3], StringComparison.Ordinal));
+                    if (!worked) throw new Exception("Music app " + app + (viaApp ? " with its app" : "") + " didn't play: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran) + " / fetched " + fetched.Count);
+                }
+                installed.Clear(); Hands.Forget();
+                string lovedDeezer = Hands.ServiceJob("deezer", "Liked Songs", "playlist"), ownYouTube = Hands.ServiceJob("youtubemusic", "my Chill", "playlist");
+                if (!lovedDeezer.StartsWith("Play their Favourite tracks on Deezer: open https://www.deezer.com with open_website", StringComparison.Ordinal) || !ownYouTube.StartsWith("Play their playlist \"Chill\" on YouTube Music: open https://music.youtube.com with open_website", StringComparison.Ordinal))
+                    throw new Exception("Deezer or YouTube Music's job lost what to play: " + lovedDeezer + " / " + ownYouTube);
+                checks.Add("PASS cross Music app: Deezer plays in its app or on deezer.com, and YouTube Music on music.youtube.com, " + (hands ? "as a job with her mouse and keyboard" : "by opening the search") + ", with nothing fetched");
                 string[] steps = Hands.StepsOf("music_app");
+                string[] shown = OperatingSystem.IsLinux() ? Pet.LinuxMusicSteps : steps;
                 pet.SetAdvancedSettings(false);
                 frame.ShowSettings(true);
-                for (int choice = 0; choice < (OperatingSystem.IsLinux() ? 2 : steps.Length); choice++)
+                for (int choice = 0; choice < shown.Length; choice++)
                 {
+                    int picked = OperatingSystem.IsLinux() ? Pet.LinuxMusicApp(choice) : choice;
                     frame.Change("Music app", choice);
-                    if (pet.MusicApp != choice || Hands.LevelOf("music_app") != choice || frame.Value("Music app") != steps[choice] || SettingsCopy().MusicApp != choice || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).MusicApp != choice)
-                        throw new Exception("The cross Music app picker did not save, load or show: " + steps[choice]);
+                    if (pet.MusicApp != picked || Hands.LevelOf("music_app") != picked || frame.Value("Music app") != shown[choice] || SettingsCopy().MusicApp != picked || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).MusicApp != picked)
+                        throw new Exception("The cross Music app picker did not save, load or show: " + shown[choice]);
                 }
+                pet.SetMusicApp(0);
+                pet.SetMusicApp(9);
+                if (pet.Saved.MusicApp != steps.Length - 1 || pet.MusicApp != steps.Length - 1 || steps[steps.Length - 1] != "YouTube Music") throw new Exception("Music app didn't clamp at YouTube Music: " + pet.MusicApp);
                 if (!frame.Row("Music app").IsVisible || frame.Overlap() != null) throw new Exception("The cross Music app row didn't show in Simple Settings or overlapped: " + frame.Overlap());
-                checks.Add("PASS cross Music app: HABITS' picker saves, loads and shows Spotify, YouTube and Apple Music in Simple Settings");
+                checks.Add("PASS cross Music app: HABITS' picker saves, loads and shows each music app in Simple Settings, Apple Music left out on Linux");
             }
             finally
             {

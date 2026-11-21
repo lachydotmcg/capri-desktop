@@ -5045,7 +5045,7 @@ namespace CapriDesktop
         internal bool CheckIns { get { return !Saved.NoCheckIns; } }
         internal bool CheckInsShown { get { return checkInsItem.IsChecked; } }
         internal int PopPace { get { return Math.Max(0, Math.Min(2, Saved.PopPace ?? 1)); } }
-        internal int MusicApp { get { return Math.Max(0, Math.Min(2, Saved.MusicApp)); } }
+        internal int MusicApp { get { return Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, Saved.MusicApp)); } }
         internal double PopGap() { return PopPaces[PopPace, 0] + random.NextDouble() * PopPaces[PopPace, 1]; }
 
         internal string PopsPicked
@@ -5074,9 +5074,13 @@ namespace CapriDesktop
             Sync();
         }
 
+        internal static readonly string[] LinuxMusicSteps = { "Spotify", "YouTube", "Deezer", "YouTube Music" };
+        internal static int LinuxMusicPick(int app) { return app == 2 ? 0 : app < 2 ? app : app - 1; }
+        internal static int LinuxMusicApp(int pick) { return pick < 2 ? pick : pick + 1; }
+
         internal void SetMusicApp(int app)
         {
-            Saved.MusicApp = Math.Max(0, Math.Min(2, app));
+            Saved.MusicApp = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, app));
             Save();
             Sync();
         }

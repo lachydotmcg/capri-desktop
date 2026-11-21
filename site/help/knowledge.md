@@ -2227,7 +2227,7 @@ From 0.9.0 on a Mac and Linux:
 - She reads PDF pages: PDFKit on a Mac, pdftotext on Linux. If pdftotext is missing she says which package to install (poppler-utils, or poppler on Arch).
 - On a Mac she sits on a window you name, and focus goes back to your app when her mini player closes.
 - On Linux she moves on niri, and stays put when the desktop answers late or a few pixels off.
-- Settings > HABITS > Music app: Spotify, YouTube, or Apple Music on a Mac.
+- Settings > HABITS > Music app: Spotify, YouTube, Deezer, YouTube Music, or Apple Music on a Mac.
 
 ### The Linux AppImage updates itself (0.9.0)
 Started from Capri-linux-x64.AppImage, she downloads a newer release by herself when she checks for updates (after she starts, every 6 hours, or when you pick Check for updates). She takes only a finished release and checks its size and SHA-256 against the release's SHA256SUMS.txt. Her right-click menu then shows "Restart Capri to update to X". Picking it, or asking her clearly to update, copies the new AppImage next to yours, then she closes, swaps the two and starts the new one. If the new one closes within 4 seconds, the old one is put back and she says so once.
