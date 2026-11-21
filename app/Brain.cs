@@ -1489,6 +1489,30 @@ namespace CapriDesktop
             return all ? "Wiped my notes about you." : "Forgot " + (dropped == 1 ? "my note" : dropped + " notes") + " about " + text + ".";
         }
 
+        internal static string Unsave(string saved)
+        {
+            string text = Regex.Replace((saved ?? "").Trim(), @"\s+", " ").Trim(' ', '-', '.', ',', '"');
+            string path = MemoryPath;
+            if (text.Length == 0 || path == null || !File.Exists(path)) return "That note isn't in my notes any more.";
+            bool dropped = false;
+            lock (noting)
+            {
+                try
+                {
+                    List<string> kept = new List<string>();
+                    foreach (string line in File.ReadAllLines(path))
+                    {
+                        if (!dropped && Regex.IsMatch(line, @"^\s*- " + Regex.Escape(text) + @"\.?\s*$", RegexOptions.IgnoreCase)) dropped = true;
+                        else kept.Add(line);
+                    }
+                    if (dropped) File.WriteAllText(path, string.Join("\n", kept.ToArray()).TrimEnd('\n') + "\n");
+                }
+                catch (IOException) { return "Couldn't change my notes."; }
+                catch (UnauthorizedAccessException) { return "Couldn't change my notes."; }
+            }
+            return dropped ? "Took it out of my notes: " + text + "." : "That note isn't in my notes any more.";
+        }
+
         // One line per label in me.md, like "- Pronouns: she/her", put back in its place when they answer again. Getting to know
         // you writes these. Null once it's saved, otherwise what went wrong.
         internal static string Jot(string label, string value)

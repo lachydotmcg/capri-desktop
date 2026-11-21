@@ -2328,7 +2328,8 @@ namespace CapriDesktop
                 return item.Kind == "approval" && item.Decision.Length == 0 && item.Ask != null
                     || item.Kind == "trust" && item.Decision.Length == 0
                     || item.Kind == "undo-ask" && item.Undo != null
-                    || item.Kind == "files" && item.Decision.Length == 0;
+                    || item.Kind == "files" && item.Decision.Length == 0
+                    || item.Kind == "deed" && item.Decision.Length == 0;
             }
 
             // The keys a card needs right now: Allow, Always allow and Deny with a reason box while an approval waits, Trust and
@@ -2355,6 +2356,7 @@ namespace CapriDesktop
                     Key(block, "Not now", Neon.Rose, delegate { window.Try(delegate { window.workspace.Trust(chat, false); window.RefreshChat(); }); });
                 }
                 else if (item.Kind == "files") Key(block, "Undo", Neon.Cyan, delegate { window.Try(delegate { window.workspace.UndoFile(chat, item); window.RefreshChat(); }); });
+                else if (item.Kind == "deed") Key(block, "Undo", Neon.Cyan, delegate { window.Try(delegate { window.workspace.UndoDeed(chat, item); window.RefreshChat(); }); });
                 else
                 {
                     Key(block, "Undo all", Neon.Cyan, delegate { window.Try(delegate { window.workspace.AnswerUndo(chat, item.Undo, true); window.RefreshChat(); }); });
@@ -3657,8 +3659,8 @@ namespace CapriDesktop
                     return;
                 }
                 int inner = width - pad * 2, at = y + pad;
-                string label = kind == "approval" ? "NEEDS YOUR OK" : kind == "trust" ? "TRUST" : kind == "error" ? "ERROR" : kind == "undo" || kind == "undo-ask" ? "UNDO" : kind.ToUpperInvariant();
-                Color tone = kind == "approval" || kind == "error" ? Neon.Hot : kind == "trust" ? Neon.Cyan : Neon.Amber;
+                string label = kind == "approval" ? "NEEDS YOUR OK" : kind == "trust" ? "TRUST" : kind == "error" ? "ERROR" : kind == "undo" || kind == "undo-ask" ? "UNDO" : kind == "deed" ? "TIMELINE" : kind.ToUpperInvariant();
+                Color tone = kind == "approval" || kind == "error" ? Neon.Hot : kind == "trust" || kind == "deed" ? Neon.Cyan : Neon.Amber;
                 Add(block, label, window.caption, tone, new Rectangle(left + pad, at, inner, Z(14))).Line = true;
                 at += Z(20);
                 if (kind == "approval")
