@@ -24228,7 +24228,8 @@ namespace CapriDesktop
                 { "why doesn't Outlook work with email?", "Outlook and Hotmail" },
                 { "can I use my Hotmail?", "Outlook and Hotmail" },
                 { "how do I sign in to Linear?", "Plug-in sign-in" },
-                { "how do I make a plug-in tool always run?", "Plug-in tools" }
+                { "how do I make a plug-in tool always run?", "Plug-in tools" },
+                { "do you do quick moves when anti-cheat is running?", "Quick moves in games" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
             {
@@ -46140,6 +46141,11 @@ namespace CapriDesktop
             Section(checks, "SmokeLooseCalls", delegate { SmokeLooseCalls(checks); });
             Section(checks, "SmokeFrames", delegate { SmokeFrames(checks); });
             Section(checks, "SmokeGameKeys", delegate { SmokeGameKeys(checks); });
+            Section(checks, "SmokeGameSpeed", delegate { SmokeGameSpeed(checks, output); });
+            Section(checks, "SmokeScanKeys", delegate { SmokeScanKeys(checks); });
+            Section(checks, "SmokeGameCombo", delegate { SmokeGameCombo(checks); });
+            Section(checks, "SmokeAntiCheat", delegate { SmokeAntiCheat(checks); });
+            Section(checks, "SmokeSameFrames", delegate { SmokeSameFrames(checks); });
             Section(checks, "SmokeReminders", delegate { SmokeReminders(checks); });
             Section(checks, "SmokeSavedLists", delegate { SmokeSavedLists(checks, output); });
             Section(checks, "SmokeNoteEditor", delegate { SmokeNoteEditor(checks); });
@@ -55357,9 +55363,9 @@ namespace CapriDesktop
                                         || driven[1].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"w2\",\"toolset_name\":\"computer\",\"is_error\":true,\"content\":[{\"type\":\"text\",\"text\":\"Not executed: the window in front changed before this ran. A fresh screenshot follows.\"}]},{\"type\":\"text\",\"text\":\"The screen now:\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
                                         || driven[2].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"w3\",\"toolset_name\":\"computer\",\"content\":[{\"type\":\"text\",\"text\":\"This is the screen now.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0)
                                         throw new Exception("Claude's hands clicked after the window in front changed, or left it without a fresh look: " + string.Join("|", driveMoves.ToArray()));
-                                    if (Computer.Combo("Return") != "enter" || Computer.Combo("ctrl+Page_Down") != "ctrl+pagedown" || Computer.Combo("super+e") != "win+e" || Computer.Combo("KP_Enter") != "enter" || Computer.Combo("alt+F4") != "alt+f4" || Computer.Combo("ctrl+shift+Escape") != "ctrl+shift+esc" || Computer.Combo("ctrl+minus") != "ctrl+minus" || Computer.Combo("hyper") != null || Computer.Combo("") != null)
+                                    if (Computer.Combo("Return") != "enter" || Computer.Combo("ctrl+Page_Down") != "ctrl+pagedown" || Computer.Combo("super+e") != "win+e" || Computer.Combo("KP_Enter") != "numpadenter" || Computer.Combo("alt+F4") != "alt+f4" || Computer.Combo("ctrl+shift+Escape") != "ctrl+shift+esc" || Computer.Combo("ctrl+minus") != "ctrl+minus" || Computer.Combo("hyper") != null || Computer.Combo("") != null)
                                         throw new Exception("Claude's key names were read wrong.");
-                                    if (!Computer.Entering("type", new ToolArguments { Text = "hi\n" }) || !Computer.Entering("key", new ToolArguments { Text = "Return" }) || !Computer.Entering("key", new ToolArguments { Text = "ctrl+a Return" }) || Computer.Entering("key", new ToolArguments { Text = "shift+Return" }) || Computer.Entering("type", new ToolArguments { Text = "hi" }) || Computer.Entering("left_click", new ToolArguments()))
+                                    if (!Computer.Entering("type", new ToolArguments { Text = "hi\n" }) || !Computer.Entering("key", new ToolArguments { Text = "Return" }) || !Computer.Entering("key", new ToolArguments { Text = "ctrl+a Return" }) || !Computer.Entering("key", new ToolArguments { Text = "KP_Enter" }) || !Computer.Entering("key", new ToolArguments { Text = "Control_R+Return" }) || Computer.Entering("key", new ToolArguments { Text = "shift+Return" }) || Computer.Entering("type", new ToolArguments { Text = "hi" }) || Computer.Entering("left_click", new ToolArguments()))
                                         throw new Exception("Sending with Enter was read wrong.");
                                     Picture driveFrame = new Picture { Size = new Size(1280, 720), Area = new Rectangle(0, 0, 2560, 1440) };
                                     string[] driveRefusals =

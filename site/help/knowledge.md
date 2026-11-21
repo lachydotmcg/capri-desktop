@@ -1549,7 +1549,10 @@ Say "play" and the game, like "play Bloons TD 6", by voice or text. She opens it
 
 Ask her what you want done in the game. She works from the screen with mouse and keyboard input: turning the camera, walking, jumping, holding buttons and using menus. She checks what changed and tries another way when a click keeps doing nothing.
 
-She acts in turns, so fast driving and other moves that need instant reactions are difficult. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
+She acts in turns, so fast driving and other moves that need instant reactions are still hard. When timing matters, like sprinting into a jump, she can send a quick run of key presses, holds and clicks in one go and then look once. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
+
+### What about games with anti-cheat?
+Her quick moves never run while kernel anti-cheat is running, like Riot Vanguard, Easy Anti-Cheat, BattlEye, FACEIT or ACE, because games that use it can ban accounts for input that isn't yours. She says so instead. Riot Vanguard usually loads when Windows starts on a PC with Valorant or League of Legends installed, and while it's loaded she doesn't use quick moves in any game.
 
 ### What are Fast hands in games and the advisor?
 Mainframe > Settings > BRAIN > Fast hands in games is on by default. With a Claude key, her game jobs use Claude Haiku 5.5. Chat stays on the model you picked under BRAIN. Turn the switch off to use your picked model for the game too. Other brain services aren't changed by this switch.
