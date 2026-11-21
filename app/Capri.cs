@@ -1044,6 +1044,9 @@ namespace CapriDesktop
         // Off until they turn it on (Lachy, 7 Nov: "Maybe add a legacy stand"): her stand from 0.8.5, for mods her new one broke.
         [DataMember] public bool LegacyStand;
         [DataMember] public string Language;
+        [DataMember] public string ReplyLanguage;
+        [DataMember] public bool OwnAccent;
+        [DataMember] public bool TextOnlyTongues;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
         [DataMember] public int Recall = 8;
@@ -2722,6 +2725,9 @@ namespace CapriDesktop
         internal Func<string, byte[]> FreeSpeak;
         internal Func<string, string, byte[]> FreeTongue;
         private int voiceLanguageNoted;
+        private int tongueNoted;
+        private System.Collections.Generic.List<string> tongueNotesTest;
+        private Func<string, int> nativeTest;
         private int tonguesFetched;
         private volatile bool voiceBroke;
         private readonly Voice voice;
@@ -3124,7 +3130,7 @@ namespace CapriDesktop
             ears.Chosen = preferences.Mic;
             if (!smoke) MixVoice();
             kokoro.Style = LocalVoice.Find(preferences.VoiceStyle);
-            Brain.Language = Brain.LanguageCode(preferences.Language) == "en" ? null : preferences.Language;
+            PointReplies();
             KnowLines(data);
             PointEars();
             Brain.Nickname = Brain.Nick(preferences.Nickname).Length == 0 ? null : Brain.Nick(preferences.Nickname);
@@ -8072,19 +8078,54 @@ namespace CapriDesktop
             }
         }
 
-        internal string Language { get { return Brain.Language ?? "English"; } }
+        internal string Language { get { return preferences.ReplyLanguage == null ? Brain.Language ?? "English" : Speaks; } }
+
+        private string Speaks { get { return Brain.LanguageCode(preferences.Language) == "en" ? "English" : preferences.Language; } }
+
+        internal string ReplyLanguage { get { return LanguagePair.Answers(preferences.ReplyLanguage); } }
 
         // A picked English is saved as English, so she listens in English. Never picked, it stays empty (agir's Japanese PC).
         internal void SetLanguage(string language)
         {
             string code = Brain.LanguageCode(language);
-            Brain.Language = code == "en" ? null : language;
             preferences.Language = code == "en" ? "English" : language;
+            Brain.Language = LanguagePair.Reply(preferences.ReplyLanguage, preferences.Language);
             brain.Forget();
             SavePreferences();
             PointEars();
             Said.Warm();
-            if (!testing) Lingo.Use(Brain.Language);
+            if (!testing) Lingo.Use(code == "en" ? null : language);
+        }
+
+        internal void SetReplyLanguage(string answers)
+        {
+            preferences.ReplyLanguage = LanguagePair.Answers(answers);
+            PointReplies();
+            brain.Forget();
+            SavePreferences();
+            PointEars();
+            Said.Warm();
+        }
+
+        private void PointReplies()
+        {
+            string answers = LanguagePair.Answers(preferences.ReplyLanguage);
+            preferences.ReplyLanguage = answers;
+            Brain.Matching = answers == LanguagePair.Auto;
+            Brain.Firm = answers != null && !Brain.Matching;
+            Brain.Language = LanguagePair.Reply(answers, preferences.Language);
+        }
+
+        private void Match(string said)
+        {
+            if (!Brain.Matching) return;
+            string was = Brain.Language;
+            string heard = LanguagePair.Detect(said, was ?? "English");
+            if (heard == null) return;
+            string now = Brain.LanguageCode(heard) == "en" ? null : heard;
+            if (now == was) return;
+            Brain.Language = now;
+            Said.Warm();
         }
 
         private void Reword()
@@ -8114,7 +8155,7 @@ namespace CapriDesktop
             Lingo.Changed -= Reword;
             Lingo.Changed += Reword;
             Lingo.Reload();
-            Lingo.Use(testing ? null : Brain.Language);
+            Lingo.Use(testing || Language == "English" ? null : Language);
             Said.Know(Brain.Greetings, Brain.HalloweenLines, PetLines, PatPeaceLines, PatNoLines, ThrowLines, WarnLines, DizzyLines, SulkLines, DodgeLines, SorryLines, AloneLines,
                 PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
@@ -11997,6 +12038,7 @@ namespace CapriDesktop
                 case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
                 case "music_app": return Math.Max(0, Math.Min(2, MusicApp));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
+                case "reply_language": return ReplyLanguage == null ? 0 : Math.Max(0, Array.IndexOf(Hands.StepsOf(name), ReplyLanguage));
                 case "reply_limit": return ReplyLength;
                 case "game_comments": return CommentPaceShown;
                 case "clip_length": return Array.IndexOf(ClipSettings.Lengths, ClipOptions.Seconds);
@@ -12050,6 +12092,7 @@ namespace CapriDesktop
                 case "power_saver": SetPowerSaver(step); break;
                 case "music_app": SetMusicApp(step); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
+                case "reply_language": SetReplyLanguage(Hands.StepsOf(name)[step]); break;
                 case "reply_limit": SetReplyLength(step); break;
                 case "game_comments": SetCommentPace(step); break;
                 case "clip_length": SetClipOptions(ClipSettings.Lengths[step], ClipOptions.Fps, ClipOptions.Resolution, ClipOptions.Mbps); break;
@@ -13084,6 +13127,7 @@ namespace CapriDesktop
         private void PointEars()
         {
             string was = parakeet.Model;
+            parakeet.Multi = Brain.Matching;
             parakeet.Language = Listening(preferences.Language, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
             UpdateHearing();
             if (parakeet.Model == was || !chatting || !local) return;
@@ -13525,6 +13569,30 @@ namespace CapriDesktop
         {
             if (AfterLine(ToggleWindowsTongue)) return;
             preferences.WindowsTongue = !preferences.WindowsTongue;
+            SavePreferences();
+            ShowVoice(false);
+        }
+
+        internal bool OwnAccent { get { return preferences.OwnAccent; } }
+
+        internal bool TextOnlyTongues { get { return preferences.TextOnlyTongues; } }
+
+        internal int NativeVoice(string code) { return nativeTest != null ? nativeTest(code) : kokoro.Native(code); }
+
+        private int TongueSpeaker(string code) { return preferences.OwnAccent ? -1 : NativeVoice(code); }
+
+        internal void ToggleOwnAccent()
+        {
+            if (AfterLine(ToggleOwnAccent)) return;
+            preferences.OwnAccent = !preferences.OwnAccent;
+            SavePreferences();
+            ShowVoice(false);
+        }
+
+        internal void ToggleTextOnlyTongues()
+        {
+            if (AfterLine(ToggleTextOnlyTongues)) return;
+            preferences.TextOnlyTongues = !preferences.TextOnlyTongues;
             SavePreferences();
             ShowVoice(false);
         }
@@ -15970,6 +16038,7 @@ namespace CapriDesktop
             }
             pictureShown = shown; pictureText = text; pictureTyped = typed;
             if (typed == "") Security.Drop();
+            if (prompt == "> you: ") Match(input);
             Func<int, string> callReply = prompt == "> you: " && !Security.FromMod(input) && (typed == null || input.Length > 0) ? FriendAnswer(input) : null;
             int callVersion = (callInput || prompt == "> you: ") && CallModeOn ? callSession.Generation : -1;
             string callContext = callVersion < 0 ? null : callSession.Rules(callVersion);
@@ -16309,7 +16378,7 @@ namespace CapriDesktop
             string[] folders = { preferences.ServerApi == VoiceServer.Files ? preferences.ServerUrl : null, preferences.AsideApi == VoiceServer.Files ? preferences.AsideUrl : null };
             string[] languages = { preferences.ServerModel, preferences.AsideModel };
             string[] speakers = { preferences.ServerSpeaker, preferences.AsideSpeaker };
-            bool robotic = preferences.WindowsTongue;
+            bool robotic = preferences.WindowsTongue, quietly = preferences.TextOnlyTongues;
             return delegate(string words)
             {
                 string code = VoiceLanguage.Tongue(words, language);
@@ -16340,10 +16409,10 @@ namespace CapriDesktop
                     }
                     catch (Exception) { }
                 }
-                if (latin && !robotic) return own(words);
+                if (latin && !robotic) return InEnglish(own, words, code, language, quietly);
                 byte[] windows = WindowsVoice.Speak(code, words);
                 if (windows != null) return windows;
-                if (latin) return own(words);
+                if (latin) return InEnglish(own, words, code, language, quietly);
                 if (Interlocked.CompareExchange(ref voiceLanguageNoted, 1, 0) == 0)
                 {
                     string note = VoiceLanguage.Missing(code.Length == 0 ? Brain.LanguageCode(language) : code, language);
@@ -16353,10 +16422,31 @@ namespace CapriDesktop
             };
         }
 
+        private byte[] InEnglish(Func<string, byte[]> own, string words, string code, string language, bool quietly)
+        {
+            if (VoiceTongues.Knows(code)) return own(words);
+            if (Interlocked.CompareExchange(ref tongueNoted, 1, 0) == 0) TongueNote(Unspoken(language, quietly));
+            return quietly ? null : own(words);
+        }
+
+        internal static string Unspoken(string language, bool quietly)
+        {
+            return "My free voice can't speak " + (LanguagePair.Known(language) ?? "that language") + " yet, so " + (quietly ? "I'll stick to text." : "you'll hear my English voice.");
+        }
+
+        private void TongueNote(string note)
+        {
+            System.Collections.Generic.List<string> heard = tongueNotesTest;
+            if (heard != null) { lock (heard) heard.Add(note); return; }
+            if (testing) return;
+            Lingo.Learn(note);
+            Post(delegate { mainframe.VoiceNote(note, false); });
+        }
+
         private byte[] Tongue(string code, string words)
         {
             if (!VoiceTongues.Knows(code)) return null;
-            if (kokoro.Speaks(code)) return kokoro.Speak(words, code);
+            if (kokoro.Speaks(code)) return kokoro.Speak(words, code, TongueSpeaker(code));
             if (Interlocked.CompareExchange(ref tonguesFetched, 1, 0) == 0) ThreadPool.QueueUserWorkItem(delegate { GetTongues(delegate { }); });
             return null;
         }
@@ -46046,6 +46136,11 @@ namespace CapriDesktop
             // The Mainframe's Language row and its menu, which the setup card opens too. The full run reaches it from the settings
             // page checks as well; whichever comes first runs it.
             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
+            Section(checks, "SmokeLanguagePair", delegate { SmokeLanguagePair(checks, output); });
+            Section(checks, "SmokeAutoReply", delegate { SmokeAutoReply(checks); });
+            Section(checks, "SmokeReplyLine", delegate { SmokeReplyLine(checks); });
+            Section(checks, "SmokeTongueVoices", delegate { SmokeTongueVoices(checks, output); });
+            Section(checks, "SmokeLanguageTool", delegate { SmokeLanguageTool(checks); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });

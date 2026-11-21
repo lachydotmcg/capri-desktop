@@ -30,6 +30,7 @@ Ask Capri for more	Biddu Capri um meira
 Asking your server...	Spyr þjóninn þinn...
 Asks before closing only the apps you choose.	Spyr áður en lokað er aðeins forritunum sem þú velur.
 Auto	Sjálfvirkt
+Auto (match what I say)	Sjálfvirkt (fylgir mér)
 Automatic: VB-CABLE, else Steam's	Sjálfvirkt: VB-CABLE, annars Steam
 BAD RELAY HOST	ÓGILD RELAY-VEFSLÓÐ
 BIG Z open notepad	BIG Z opna glósublokk
@@ -290,6 +291,7 @@ Huge	Gríðarstór
 I can hear you.	Ég heyri í þér.
 I glance at your screen and comment. Costs a little on a paid brain.	Ég lít á skjáinn þinn og kommenta. Kostar smá með greiddum heila.
 I keep listening. Say my name, then just talk.	Ég held áfram að hlusta. Segðu nafnið mitt og talaðu svo bara.
+I speak	Ég tala
 I talk about your game as you play. Costs a little on a paid brain.	Ég tala um leikinn þinn meðan þú spilar. Kostar smá með greiddum heila.
 I type my replies and stay quiet.	Ég skrifa svörin mín og held mig hljóðri.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ég svara ekki upphátt og ekkert er sent neitt. Ég held mig samt til hlés, dansa við tónlistina þína og geri fljótu hlutina sem þú biður um, eins og hljóðstyrkinn.
@@ -598,6 +600,7 @@ SKILL.	HÆFNI.
 SKIN.	ÚTLIT.
 SORT BY	RAÐA EFTIR
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	HLJÓÐ VENJUR HEILI HORFA CAPRI DOOMSCROLL VEÐUR KLIPP LEIKIR LYKLAR HREYFINGAR RÖDD ÞÚ
+Same as I speak	Sama og ég tala
 Same as her ears (VOICE > Mic)	Sama og eyru hennar (RÖDD > Hljóðnemi)
 Same code on the phone?	Sami kóði í símanum?
 Save	Vista
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Stillingar höfðu ekkert til að horfa á.
 Settings lost keyboard focus during the Tab walk	Stillingar misstu lyklaborðsfókus í Tab-göngunni
 Setup guide	Uppsetningarleiðbeiningar
 Setup stopped	Uppsetningu hætt
+She answers in	Hún svarar á
 She can read it when it fits.	Hún getur lesið það þegar það passar.
 She glances at your screen and comments. Costs a little on a paid brain.	Hún lítur á skjáinn þinn og kommentar. Kostar smá með greiddum heila.
 She keeps listening. Say her name, then just talk until you go quiet.	Hún heldur áfram að hlusta. Segðu nafnið hennar, og talaðu svo þangað til þú þagnar.

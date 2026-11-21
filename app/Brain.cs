@@ -1031,6 +1031,8 @@ namespace CapriDesktop
             { "العربية", "Arabic", "ar" }, { "اردو", "Urdu", "ur" }, { "فارسی", "Persian", "fa" }, { "עברית", "Hebrew", "he" }
         };
         internal static volatile string Language;
+        internal static volatile bool Matching;
+        internal static volatile bool Firm;
         internal static volatile string Nickname;
         internal static volatile int Wordiness;
         internal static volatile int Recall = 8;
@@ -1082,7 +1084,9 @@ namespace CapriDesktop
         internal static string Speech()
         {
             string language = Language;
-            return string.IsNullOrEmpty(language) || language == "English" ? "" : "\nAlways reply in " + language + ", whatever language they use. Keep your Night City slang words as they are.";
+            if (Matching) return LanguagePair.Line(language);
+            if (Firm && string.IsNullOrEmpty(language)) language = "English";
+            return string.IsNullOrEmpty(language) || (language == "English" && !Firm) ? "" : "\nAlways reply in " + language + ", whatever language they use. Keep your Night City slang words as they are.";
         }
 
         // The part of a labelled reply she says out loud, in their language, with the labels and words her code reads back left as written.
