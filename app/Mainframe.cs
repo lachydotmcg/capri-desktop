@@ -294,7 +294,7 @@ namespace CapriDesktop
         private static readonly int[][] FoldedLeft = { new[] { 260, 372 }, new[] { 672, 1177 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at In full screen.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
-        private static readonly int[][] FoldedRight = { new[] { 138, 418 }, new[] { 446, 474 }, new[] { 848, 1286 }, new[] { 1510, 1566 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 418 }, new[] { 446, 474 }, new[] { 848, 1286 }, new[] { 1538, 1594 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -389,6 +389,8 @@ namespace CapriDesktop
         private readonly Readout powerSaverName;
         private readonly Slider musicApp;
         private readonly Readout musicAppName;
+        private readonly Toggle liteMode;
+        private readonly Key whySlow;
         // Her Mainframe size: Auto, or 100% to 200% of the screen's own scale.
         private static readonly int[] FrameSizes = { 0, 100, 125, 150, 175, 200 };
         private static readonly string[] FrameSizeNames = { "Auto", "100%", "125%", "150%", "175%", "200%" };
@@ -1019,6 +1021,12 @@ namespace CapriDesktop
             musicApp = Setting("Music app", Hands.MusicSteps(), c, 840, "Music app: where she plays music when you don't name an app");
             musicAppName = new Readout(musicApp);
             musicApp.Changed += delegate { if (syncing) return; musicAppName.Text = Hands.MusicSteps()[musicApp.Value]; capri.SetMusicApp(musicApp.Value); };
+            liteMode = Switch("Lite mode", c, 868, delegate { if (!syncing) capri.SetLite(liteMode.Checked, true); });
+            liteMode.Width = 224;
+            liteMode.Switch = 68;
+            liteMode.AccessibleName = "Lite mode. For weak PCs: her brain on this PC stays off, she draws lighter and uses her free voice, and Watch my screen, game comments and Clip my games stay off until you turn it off";
+            whySlow = Make("Why slow?", 260 + c, 871, 96, 22, delegate { capri.CheckWhySlow(); });
+            whySlow.AccessibleName = "Why slow? She checks what's slowing her down on this PC and tells you what would help";
             int afterSaver = Controls.Count;
             fullScreen = Setting("In full screen", FullScreenNames, c, 812, "In full screen: whether she stays or hides, and whether her mini player stays over borderless full screen. Gaming Mode takes priority; a manual hide stays hidden");
             fullScreenName = new Readout(fullScreen);
@@ -1029,6 +1037,8 @@ namespace CapriDesktop
             // Power saver's and Music app's rows move the rest of HABITS down two.
             for (int belowSaver = afterSaver; belowSaver < Controls.Count; belowSaver++)
                 if (Controls[belowSaver].Left >= c) Controls[belowSaver].Top += Row * 2;
+            for (int belowLite = afterSaver; belowLite < Controls.Count; belowLite++)
+                if (Controls[belowLite].Left >= c) Controls[belowLite].Top += Row;
             BuildSounds(c, exploreAfter.Top - 3);
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
@@ -3410,6 +3420,7 @@ namespace CapriDesktop
             powerSaverName.Text = SaverNames[powerSaver.Value];
             musicApp.Value = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, capri.MusicApp));
             musicAppName.Text = Hands.MusicSteps()[musicApp.Value];
+            liteMode.Checked = capri.LiteOn;
             SyncSounds();
             SyncWeather();
             SyncDoomscroll();
@@ -3886,7 +3897,7 @@ namespace CapriDesktop
         internal void ShowOllama(string[] installed, string chosen)
         {
             brainName.Text = "Ollama · " + chosen;
-            brainNote.Text = "Running on this PC";
+            brainNote.Text = capri.LiteOn ? LiteResting : "Running on this PC";
             models.Text = chosen;
             models.Visible = true;
             hint.Visible = false;
@@ -4322,7 +4333,7 @@ namespace CapriDesktop
         internal void ShowLocal(Pick pick)
         {
             brainName.Text = "Built-in · " + pick.Name;
-            brainNote.Text = "Running on this PC";
+            brainNote.Text = capri.LiteOn ? LiteResting : "Running on this PC";
             models.Text = pick.Name;
             models.Visible = lastServers.Count > 0 || (lastInstalled != null && lastInstalled.Length > 0);
             LocalMenu(pick.Name, null);

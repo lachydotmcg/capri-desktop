@@ -1114,6 +1114,8 @@ namespace CapriDesktop
         // runs her background checks less often and listens at a gentler pace (issue #111, 6 Nov).
         [DataMember] public int PowerSaver = 1;
         [DataMember] public int MusicApp;
+        [DataMember] public bool Lite;
+        [DataMember] public string[] LiteKept;
         // Her Mainframe's size: 0 for Auto, which grows it on a screen whose desktop is bigger than its panel (Virtual Super
         // Resolution, DSR), or 100 to 200 for that percent of the screen's own scale.
         [DataMember] public int MainframeSize;
@@ -3168,6 +3170,7 @@ namespace CapriDesktop
             preferences.PopPace = Math.Max(0, Math.Min(2, preferences.PopPace));
             preferences.PowerSaver = Math.Max(0, Math.Min(2, preferences.PowerSaver));
             preferences.MusicApp = Math.Max(0, Math.Min(2, preferences.MusicApp));
+            Brain.Lite = preferences.Lite;
             clip = idle;
             nextGlitch = 30 + random.NextDouble() * 30;
             Text = "Capri";
@@ -3466,6 +3469,7 @@ namespace CapriDesktop
                 if (husk != null) husk.Tick();
                 CheckHuskFront(signalNow);
                 long signalIdle = Native.IdleMilliseconds();
+                liteIdle = preferences.Lite && (FakedIdle == null ? signalIdle : FakedIdle()) >= LiteIdleMs;
                 if (!testing) CheckForeground(signalNow);
                 if (!testing) CheckKeyAccess();
                 if (!testing) CheckExplore(signalNow);
@@ -3733,7 +3737,7 @@ namespace CapriDesktop
             if (clip == perchSleep) return 66;
             if (HoldsStill(now)) return HoldMs;
             // Power saver: resting, she ticks on whole ticks of Windows' clock at her rest rate, like a slow perch.
-            if (Resting(now)) return Math.Max(1, 64 / Math.Max(1, (int)Math.Min(clip.Fps, Math.Min(preferences.PerchFps, SaverFps)))) * 1000 / 64 - 1;
+            if (Resting(now)) return Math.Max(1, 64 / Math.Max(1, (int)Math.Min(clip.Fps, Math.Min(preferences.PerchFps, RestFps)))) * 1000 / 64 - 1;
             if (frontBusy)
             {
                 if (docked) return 66;
@@ -3767,7 +3771,7 @@ namespace CapriDesktop
         private bool StandingStill { get { return clip == idle && clip.Fps > SaverFps && seat == null && !riding && !dragging && !walking && !falling && !Sulking && outro == null; } }
 
         // Her perch's frames a second right now: the rate they picked, or Power saver's while she rests.
-        private int PerchRateNow(double now) { return Resting(now) ? Math.Min(preferences.PerchFps, SaverFps) : preferences.PerchFps; }
+        private int PerchRateNow(double now) { return Resting(now) ? Math.Min(preferences.PerchFps, RestFps) : preferences.PerchFps; }
 
         // A tick off 30 fps with nothing new to show: she's only sitting, still where she was drawn, and her perch frame hasn't changed.
         private bool Steady(double now)
@@ -8597,7 +8601,7 @@ namespace CapriDesktop
         }
 
         // Power saver is working now: Always, or In games while a game or anything full screen is in front.
-        internal bool Saving { get { return preferences.PowerSaver == 2 || preferences.PowerSaver == 1 && frontBusy; } }
+        internal bool Saving { get { return preferences.Lite || preferences.PowerSaver == 2 || preferences.PowerSaver == 1 && frontBusy; } }
 
         // Her quarter-second signals' ticks: while Power saver works, her background checks run on every 4th, once a second.
         internal const int SaverEvery = 4;
@@ -8616,7 +8620,7 @@ namespace CapriDesktop
         private void RestArt(double now, int tick)
         {
             if (!CanRest) return;
-            Clip.RestAll(tick, docked ? DockedArtRest : 600000);
+            Clip.RestAll(tick, docked || preferences.Lite ? DockedArtRest : 600000);
             bodyCells.Rest(tick);
             shatter.Rest(tick);
             if (inBetween != null && perchMix == 0 && now - tweenUsed >= 600)
@@ -10558,7 +10562,7 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
-            if (remote == null && local != null && pick != null)
+            if (remote == null && local != null && pick != null && !preferences.Lite)
             {
                 if (pick.EyesFile == null) mainframe.ShowProblem("This brain can't see. Press Free key to fix.");
                 else if (!local.HasEyes(pick)) FetchEyes(local, pick);
@@ -11934,6 +11938,7 @@ namespace CapriDesktop
                 case "show_advanced": return preferences.AdvancedSettings;
                 case "listen_for_capri": return ListenCapriOn;
                 case "voice_in_mic": return VoiceInMic;
+                case "lite_mode": return preferences.Lite;
                 default: return ChimeSettingOn(name);
             }
         }
@@ -11985,6 +11990,7 @@ namespace CapriDesktop
                 case "show_advanced": ToggleAdvancedSettings(); if (mainframe.SettingsShown) mainframe.ShowSettings(true); return null;
                 case "listen_for_capri": ToggleListenCapri(true, fromAgent); return null;
                 case "voice_in_mic": ToggleVoiceInMic(); return on && !VoiceInMic ? "Open Mainframe > VOICE > Her voice in your mic > Get VB-CABLE, install it, then restart your PC." : null;
+                case "lite_mode": return SetLite(on, false);
                 default: SetChimeSetting(name); return null;
             }
         }
@@ -12126,6 +12132,7 @@ namespace CapriDesktop
         // voice as it's set now once the reply it came with is over, without touching her voice service.
         private string SettingAction(string action, bool fromAgent)
         {
+            if (action == "why_slow") return SlowFound();
             if (InvokeRequired) return (string)Invoke(new Func<string, bool, string>(SettingAction), action, fromAgent);
             if (action == "edit_check_in_lines") { OpenCare(); return "Opened your check-in lines."; }
             if (action == "preview_voice")
@@ -12264,6 +12271,7 @@ namespace CapriDesktop
         {
             ++brainLook;
             if (preferences.NoAi) SetNoAi(false);
+            if (preferences.Lite) SetLite(false, false);
             if (SettingUp || machine == null) return;
             SettingUp = true;
             engine.Cancel = false;
@@ -13791,6 +13799,7 @@ namespace CapriDesktop
         {
             if (now - brainChecked < 5 || restingBrain) return;
             brainChecked = now;
+            if (preferences.Lite) { RestForLite(); return; }
             if (!engine.Running || SettingUp) return;
             double after = BrainRestAfter;
             if (after == BrainRest && !CanRest) return;
@@ -13804,7 +13813,7 @@ namespace CapriDesktop
         }
 
         // Only with Power saver In games or Always does a full-screen game or video send her back to her free voice.
-        private bool HdStepsAside() { return preferences.PowerSaver != 0 && Native.Gaming(); }
+        private bool HdStepsAside() { return preferences.Lite || preferences.PowerSaver != 0 && Native.Gaming(); }
 
         internal void ChooseVoiceStyle(string name)
         {
@@ -16105,6 +16114,8 @@ namespace CapriDesktop
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
             string herLine = callReply == null && prompt == "> you: " ? HerComputerAsk(input) : null;
             if (herLine != null) { Answer(ticket, herLine, TalkState.Talking); return; }
+            string liteLine = callReply == null && prompt == "> you: " ? LiteAnswer(input) : null;
+            if (liteLine != null) { Answer(ticket, liteLine, TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
             if (callReply == null && probe.Pending && !meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
@@ -16147,6 +16158,7 @@ namespace CapriDesktop
                 // Plain commands run before her brain words the result, with no tools to run again (YunoTheAlien, 13 Nov).
                 else if (think == null && planned.Key == null && !callInput && !preferences.NoAi && brain.Model != null && Hands.Plain(quick, quickArgs)) { plain = true; followAllowed = false; think = delegate { return PlainReply(text, quick, quickArgs, ticket, typed); }; }
             }
+            if (think == null && callReply == null && planned.Key == null && prompt == "> you: " && AsksWhySlow(input)) { followAllowed = false; think = delegate { return SlowLine(ReadSlowSigns()); }; }
             // No AI: what her hands do by phrase ran above, and the news needs no brain; anything else gets her short line now and then.
             if (preferences.NoAi && (think == null || think == firstThink && planned.Key == null))
             {
@@ -16205,6 +16217,7 @@ namespace CapriDesktop
                         if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput, callHeard, typed: typed, photo: photo); return; }
                         if (problem != null && ticket == asking) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem));
                         else if (ticket == asking && remote != null && remote.Code && brain.Remote == remote) mainframe.ShowCloud(remote, cloudModels);
+                        if (problem == Brain.LiteLine && ticket == asking) liteOffer = clock.Elapsed.TotalSeconds;
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
                         said = CallLine(ticket, said);
                         if (typed == null && CallHands(ticket) && !brain.PictureReply) callSession.Keep(callUserVersion, callRecord, said, Brain.Recall, delegate { return ticket == asking; });
@@ -46360,6 +46373,9 @@ namespace CapriDesktop
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
             Section(checks, "SmokePowerSaver", delegate { SmokePowerSaver(checks, output); });
+            Section(checks, "SmokeLiteUse", delegate { SmokeLiteUse(checks, Path.Combine(output, "lite")); });
+            Section(checks, "SmokeLite", delegate { SmokeLite(checks, Path.Combine(output, "lite")); });
+            Section(checks, "SmokeWhySlow", delegate { SmokeWhySlow(checks); });
             Section(checks, "SmokeMusicApp", delegate { SmokeMusicApp(checks); });
             Section(checks, "SmokePerf", delegate { SmokePerf(checks); });
             Section(checks, "SmokePerformance", delegate { SmokePerformance(checks); });
