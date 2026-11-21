@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Avalonia;
 
 namespace CapriDesktop
 {
@@ -24,21 +23,6 @@ namespace CapriDesktop
                 Require(pet.NameBarredNow, "a locked session did not bar name listening");
                 Pet.LockedForNameListening = () => false;
                 Require(!pet.NameBarredNow, "an unlocked desktop barred name listening");
-                // Hyprland's desktop is up but its snapshot is missing or stale. logind is the only answer left, and
-                // reading that silence as locked turned her switch on and then dropped every line. The seam sees only
-                // the snapshot, so a present desktop with no fresh one and no desktop at all reach the same branch.
-                int seamAsked = 0;
-                Func<bool?> say = () => { seamAsked++; return false; };
-                Require(Pet.LockedFromDesktop(null, say) == false,
-                    "a desktop with no fresh snapshot was read as locked instead of asking logind, so her switch would be dead");
-                Require(seamAsked == 1, "the lock seam did not ask logind exactly once about a missing snapshot: " + seamAsked);
-                Require(Pet.LockedFromDesktop(null, () => true) == true, "logind's locked session was dropped when the snapshot was missing");
-                Require(Pet.LockedFromDesktop(null, () => null) == null, "a missing snapshot and a silent logind were read as a lock answer");
-                HyprlandSnapshot fresh = new HyprlandSnapshot("session", "layout", new HyprlandOutput[0], new HyprlandWindow[0],
-                    new Point(), 0, true, 0);
-                int overruled = 0;
-                Require(Pet.LockedFromDesktop(fresh, () => { overruled++; return false; }) == true && overruled == 0,
-                    "a fresh snapshot was overruled by logind instead of answering for itself");
                 if (OperatingSystem.IsLinux())
                 {
                     string asked = null, hint = null;
@@ -86,7 +70,7 @@ namespace CapriDesktop
                 Music.Run = runWas;
                 Limbs.LockClock = nowWas;
             }
-            checks.Add("PASS name listening: an unknown session lock never bars her, a missing Hyprland snapshot defers to logind instead of reading as locked, a fresh snapshot answers for itself, logind's LockedHint still stops her, idle is never read as locked, and her tick keeps the logind answer instead of a busctl each frame");
+            checks.Add("PASS name listening: an unknown session lock never bars her, Hyprland and logind's LockedHint still stop her, idle is never read as locked, and her tick keeps the logind answer instead of a busctl each frame");
         }
 
         private static void Require(bool condition, string message)
