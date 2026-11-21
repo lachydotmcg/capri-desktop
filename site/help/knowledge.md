@@ -513,6 +513,8 @@ HABITS
 - Remember our chats (under Use her cursor): on by default. She writes every chat into a daily transcript and folds older chats into memories.md. Both stay on your PC (section 13).
 - Open her memories (at the right of HABITS' heading): edits memories.md inside Mainframe. Save writes your changes. Daily transcripts stay in the transcripts folder.
 - Music app (0.9.0): where she plays music when you don't name an app: Spotify, YouTube or Apple Music. On Apple Music she plays your playlists and Favourite Songs; if Apple Music is missing she uses Spotify, and if it asks you to sign in or subscribe she stops and tells you. On Linux the choices are Spotify and YouTube.
+- Lite mode (0.9.7, under Music app): for weak or older PCs, off by default. On, her brain on your PC stays off (llama-server stops and any Ollama model she loaded is unloaded, so that memory comes back) and she offers to open the free key page so she can think in the cloud instead. She runs like Power saver on Always all the time, draws herself slower still (10 frames a second) after a minute with no mouse or keys, lets go of art she isn't drawing after a minute, and hands HD voice to her free voice. Watch my screen, game comments and Clip my games turn off, and turning Lite mode off puts them back the way they were. Her own ears and Listen for Capri still use memory while they're on. Turning Lite mode off, or pressing Set up her brain, wakes her brain on your PC again. Simple Settings shows it. Windows only for now.
+- Why slow? (0.9.7, beside Lite mode): she checks your PC right now and tells you what's slowing her down and what would help: her brain running on the processor (Brain VRAM on RAM only, a graphics card that failed to load it, or one with under 1 GB of its own memory), part of her brain not fitting in graphics card memory, a nearly full graphics card, her brain resting and loading again, a processor with 4 threads or fewer, little free RAM, a busy processor and the app using most of it, two or more of Watch my screen, game comments and Clip my games on, or HD voice loaded. Asking her "why are you so slow?" does the same check. It only reads; it changes nothing.
 
 SOUNDS (0.9.0, under HABITS)
 - Sounds and Typing sound sit at the top of SOUNDS. Message sent, Heard you and Listening are on by default: soft sounds when your typed message is sent, when she's heard you finish talking, and when Listen for Capri opens her ears. There's no master Chimes switch; all three off means no chimes.
@@ -867,6 +869,10 @@ Her brain goes on your C: drive. Free up that much space on C:, then try again. 
 ### My games lag while she's running
 Her built-in brain uses your graphics card and memory, and so do games. Use the free NVIDIA key while you play. Her brain then runs on NVIDIA's servers, not your PC.
 Keep Power saver (Settings > HABITS) on In games, the default, or Always. Over a game she then draws herself less often while she sits still, runs her background checks less often and listens at a gentler pace. Watch my screen, Listen for Capri and Clip my games keep working. In games and Always also hand full-screen games and videos her free voice instead of HD.
+On a weak PC, turn on Lite mode (Settings > HABITS) too, and press Why slow? beside it to see what's slowing her down right now.
+
+### "Lite mode keeps my brain on your PC switched off, so I can't think right now. A free key lets me think in the cloud instead. Want me to open the free key page?"
+Lite mode (Settings > HABITS) is on and her brain runs on your PC, so she can't think. Say yes and she opens NVIDIA's free key page; make a key, paste it under BRAIN and press Connect. Or turn Lite mode off and her brain on your PC wakes up again. In the Mainframe this shows as "Lite mode is on. Press Free key for a cloud brain."
 
 ---
 
