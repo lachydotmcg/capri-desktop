@@ -30,6 +30,7 @@ Ask Capri for more	Capri سے مزید مانگیں
 Asking your server...	آپ کے سرور سے پوچھا جا رہا ہے...
 Asks before closing only the apps you choose.	صرف وہی ایپس بند کرنے سے پہلے پوچھتا ہے جو آپ منتخب کریں۔
 Auto	خودکار
+Auto (match what I say)	خودکار (جو میں کہوں)
 Automatic: VB-CABLE, else Steam's	خودکار: VB-CABLE، ورنہ Steam کا
 BAD RELAY HOST	غلط RELAY ہوسٹ
 BIG Z open notepad	BIG Z notepad کھولو
@@ -290,6 +291,7 @@ Huge	بہت بڑا
 I can hear you.	میں آپ کو سن سکتی ہوں۔
 I glance at your screen and comment. Costs a little on a paid brain.	میں آپ کی اسکرین پر نظر ڈالتی ہوں اور تبصرہ کرتی ہوں۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
 I keep listening. Say my name, then just talk.	میں سنتی رہتی ہوں۔ میرا نام کہیں، پھر بس بولیں۔
+I speak	میری زبان
 I talk about your game as you play. Costs a little on a paid brain.	جب آپ کھیلتے ہیں تو میں آپ کے گیم کے بارے میں بات کرتی ہوں۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
 I type my replies and stay quiet.	میں اپنے جواب ٹائپ کرتی ہوں اور خاموش رہتی ہوں۔
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	میں جواب نہیں دوں گی، اور کچھ بھی کہیں نہیں بھیجا جائے گا۔ میں پھر بھی آس پاس رہوں گی، آپ کے میوزک پر ناچوں گی اور وہ فوری کام کروں گی جو آپ کہیں، جیسے حجم۔
@@ -598,6 +600,7 @@ SKILL.	ہنر۔
 SKIN.	جلد۔
 SORT BY	ترتیب بذریعہ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	آوازیں عادات دماغ دیکھو CAPRI DOOMSCROLL موسم کلپس گیمز کلیدیں حرکات آواز آپ
+Same as I speak	میری زبان جیسی
 Same as her ears (VOICE > Mic)	اس کے کانوں جیسا (VOICE > Mic)
 Same code on the phone?	فون پر وہی کوڈ؟
 Save	محفوظ کریں
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Settings کے پاس دیکھنے کو کچھ ن�
 Settings lost keyboard focus during the Tab walk	Tab سفر کے دوران Settings نے کی بورڈ فوکس کھو دیا
 Setup guide	سیٹ اپ گائیڈ
 Setup stopped	سیٹ اپ رک گیا
+She answers in	وہ جواب دیتی ہے
 She can read it when it fits.	وہ اسے پڑھ سکتی ہے جب موزوں ہو۔
 She glances at your screen and comments. Costs a little on a paid brain.	وہ آپ کی اسکرین پر نظر ڈالتی ہے اور تبصرہ کرتی ہے۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
 She keeps listening. Say her name, then just talk until you go quiet.	وہ سنتی رہتی ہے۔ اس کا نام کہیں، پھر خاموش ہونے تک بولیں۔

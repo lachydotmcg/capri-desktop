@@ -30,6 +30,7 @@ Ask Capri for more	Capri-യോട് കൂടുതൽ ചോദിക്ക�
 Asking your server...	നിങ്ങളുടെ സർവറിനോട് ചോദിക്കുന്നു...
 Asks before closing only the apps you choose.	നിങ്ങൾ തിരഞ്ഞെടുത്ത ആപ്പുകൾ മാത്രം അടയ്ക്കുന്നതിന് മുമ്പ് ചോദിക്കും.
 Auto	ഓട്ടോ
+Auto (match what I say)	ഓട്ടോ (ഞാൻ പറയുന്നതുപോലെ)
 Automatic: VB-CABLE, else Steam's	സ്വയം: VB-CABLE, അല്ലെങ്കിൽ Steam-ന്റേത്
 BAD RELAY HOST	തെറ്റായ RELAY ഹോസ്റ്റ്
 BIG Z open notepad	BIG Z നോട്ട്പാഡ് തുറക്കുക
@@ -290,6 +291,7 @@ Huge	വലിയ
 I can hear you.	ഞാൻ നിന്നെ കേൾക്കുന്നുണ്ട്.
 I glance at your screen and comment. Costs a little on a paid brain.	ഞാൻ നിങ്ങളുടെ സ്ക്രീൻ ഒന്ന് നോക്കി അഭിപ്രായം പറയും. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
 I keep listening. Say my name, then just talk.	ഞാൻ കേൾക്കുന്നത് തുടരും. എന്റെ പേര് പറയൂ, പിന്നെ സംസാരിക്കൂ.
+I speak	ഞാൻ സംസാരിക്കുന്നത്
 I talk about your game as you play. Costs a little on a paid brain.	നിങ്ങൾ കളിക്കുമ്പോൾ ഞാൻ നിങ്ങളുടെ ഗെയിമിനെക്കുറിച്ച് സംസാരിക്കും. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
 I type my replies and stay quiet.	ഞാൻ എന്റെ മറുപടികൾ ടൈപ്പ് ചെയ്ത് നിശബ്ദയായിരിക്കും.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ഞാൻ ശബ്ദത്തിൽ തിരിച്ചു സംസാരിക്കില്ല, ഒന്നും എവിടേക്കും അയയ്ക്കില്ല. ഞാൻ ഇപ്പോഴും കൂടെയുണ്ടാകും, നിങ്ങളുടെ സംഗീതത്തിന് നൃത്തം ചെയ്യും, വോളിയം പോലെ നിങ്ങൾ ആവശ്യപ്പെടുന്ന ചെറിയ കാര്യങ്ങൾ ചെയ്യും.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ഇതനുസരിച്ച് ക്രമീകരിക്കുക
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ശബ്ദങ്ങൾ ശീലങ്ങൾ തലച്ചോർ കാണുക CAPRI DOOMSCROLL കാലാവസ്ഥ ക്ലിപ്പുകൾ ഗെയിമുകൾ കീകൾ നീക്കങ്ങൾ ശബ്ദം നീ
+Same as I speak	എന്റെ ഭാഷ പോലെ
 Same as her ears (VOICE > Mic)	അവളുടെ ചെവികൾ പോലെ തന്നെ (ശബ്ദം > മൈക്ക്)
 Same code on the phone?	ഫോണിൽ അതേ കോഡോ?
 Save	സേവ് ചെയ്യുക
@@ -633,6 +636,7 @@ Settings had nothing to watch.	ക്രമീകരണങ്ങളിൽ കാ
 Settings lost keyboard focus during the Tab walk	Tab യാത്രയ്ക്കിടെ ക്രമീകരണങ്ങൾക്ക് കീബോർഡ് ഫോക്കസ് നഷ്ടപ്പെട്ടു
 Setup guide	സജ്ജീകരണ ഗൈഡ്
 Setup stopped	സജ്ജീകരണം നിർത്തി
+She answers in	അവൾ മറുപടി നൽകുന്നത്
 She can read it when it fits.	യോജിക്കുമ്പോൾ അവൾക്ക് അത് വായിക്കാം.
 She glances at your screen and comments. Costs a little on a paid brain.	അവൾ നിങ്ങളുടെ സ്ക്രീനിലേക്ക് ഒന്ന് നോക്കി അഭിപ്രായം പറയുന്നു. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
 She keeps listening. Say her name, then just talk until you go quiet.	അവൾ കേൾക്കുന്നത് തുടരുന്നു. അവളുടെ പേര് പറയൂ, പിന്നെ നിങ്ങൾ ശാന്തമാകും വരെ സംസാരിക്കൂ.

@@ -30,6 +30,7 @@ Ask Capri for more	Pitaj Capri za više
 Asking your server...	Pitam tvoj poslužitelj...
 Asks before closing only the apps you choose.	Pita prije zatvaranja samo aplikacija koje odabereš.
 Auto	Auto
+Auto (match what I say)	Auto (kako ja kažem)
 Automatic: VB-CABLE, else Steam's	Automatski: VB-CABLE, inače Steamov
 BAD RELAY HOST	LOŠ RELAY HOST
 BIG Z open notepad	BIG Z otvori notepad
@@ -290,6 +291,7 @@ Huge	Golem
 I can hear you.	Čujem te.
 I glance at your screen and comment. Costs a little on a paid brain.	Pogledam tvoj ekran i komentiram. Košta malo uz plaćeni mozak.
 I keep listening. Say my name, then just talk.	Ja i dalje slušam. Reci moje ime pa samo govori.
+I speak	Ja govorim
 I talk about your game as you play. Costs a little on a paid brain.	Komentiram tvoju igru dok igraš. Košta malo uz plaćeni mozak.
 I type my replies and stay quiet.	Pišem odgovore i šutim.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Neću odgovarati govorom i ništa se ne šalje nigdje. I dalje ću se družiti, plesati uz tvoju glazbu i raditi brze stvari koje tražiš, poput glasnoće.
@@ -598,6 +600,7 @@ SKILL.	VJEŠTINA.
 SKIN.	IZGLED.
 SORT BY	SORTIRAJ PO
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVUKOVI NAVIKE MOZAK GLEDAJ CAPRI DOOMSCROLL VREMENSKA ISJEČCI IGRE TIPKE POTEZI GLAS TI
+Same as I speak	Isto kao moj jezik
 Same as her ears (VOICE > Mic)	Isto kao njezine uši (GLAS > Mikrofon)
 Same code on the phone?	Isti kod na telefonu?
 Save	Spremi
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Postavke nisu imale ništa za gledati.
 Settings lost keyboard focus during the Tab walk	Postavke su izgubile fokus tipkovnice tijekom Tab šetnje
 Setup guide	Vodič za postavljanje
 Setup stopped	Postavljanje zaustavljeno
+She answers in	Ona odgovara na
 She can read it when it fits.	Može je pročitati kad stane.
 She glances at your screen and comments. Costs a little on a paid brain.	Ona pogleda tvoj ekran i komentira. Košta malo uz plaćeni mozak.
 She keeps listening. Say her name, then just talk until you go quiet.	Ona i dalje sluša. Reci njezino ime, pa samo govori dok ne utihneš.

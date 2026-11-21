@@ -30,6 +30,7 @@ Ask Capri for more	Capri लाई अझ माग्नुहोस्
 Asking your server...	तपाईंको सर्भरलाई सोध्दै...
 Asks before closing only the apps you choose.	तपाईंले छानेका एपहरू मात्र बन्द गर्नुअघि सोध्छ।
 Auto	स्वतः
+Auto (match what I say)	स्वतः (मैले भनेअनुसार)
 Automatic: VB-CABLE, else Steam's	स्वतः: VB-CABLE, नत्र Steam को
 BAD RELAY HOST	गलत RELAY होस्ट
 BIG Z open notepad	BIG Z notepad खोल्छ
@@ -290,6 +291,7 @@ Huge	विशाल
 I can hear you.	मैले तपाईंलाई सुन्न सक्छु।
 I glance at your screen and comment. Costs a little on a paid brain.	म तपाईंको स्क्रिन हेर्छु र टिप्पणी गर्छु। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
 I keep listening. Say my name, then just talk.	म सुनिरहन्छु। मेरो नाम भन्नुहोस्, त्यसपछि बोल्नुहोस्।
+I speak	म बोल्छु
 I talk about your game as you play. Costs a little on a paid brain.	तपाईं खेल्दा म तपाईंको खेलबारे कुरा गर्छु। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
 I type my replies and stay quiet.	म मेरा जवाफ टाइप गर्छु र चुप बस्छु।
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	म जवाफ दिने छैन, र केही पनि कतै पठाइँदैन। म अझै बस्छु, तपाईंको सङ्गीतमा नाच्छु र तपाईंले माग्ने छिटा कामहरू गर्छु, जस्तै भोल्युम।
@@ -598,6 +600,7 @@ SKILL.	सीप।
 SKIN.	छाला।
 SORT BY	यसद्वारा क्रमबद्ध
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ध्वनिहरू बानी दिमाग हेर्नुहोस् CAPRI DOOMSCROLL मौसम क्लिपहरू खेलहरू कुञ्जीहरू चाल आवाज तपाईं
+Same as I speak	मेरो भाषा जस्तै
 Same as her ears (VOICE > Mic)	उसको कानजस्तै (VOICE > Mic)
 Same code on the phone?	फोनमा उही कोड?
 Save	बचत गर्नुहोस्
@@ -633,6 +636,7 @@ Settings had nothing to watch.	सेटिङमा हेर्ने के�
 Settings lost keyboard focus during the Tab walk	Tab यात्राका बेला सेटिङले किबोर्ड फोकस गुमायो
 Setup guide	सेटअप गाइड
 Setup stopped	सेटअप रोकियो
+She answers in	उनी जवाफ दिन्छिन्
 She can read it when it fits.	मिल्दा उसले पढ्न सक्छे।
 She glances at your screen and comments. Costs a little on a paid brain.	उसले तपाईंको स्क्रिन हेर्छे र टिप्पणी गर्छे। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
 She keeps listening. Say her name, then just talk until you go quiet.	उसले सुनिरहन्छे। उसको नाम भन्नुहोस्, त्यसपछि चुप नलागेसम्म बोल्नुहोस्।
