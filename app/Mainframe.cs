@@ -791,7 +791,7 @@ namespace CapriDesktop
             sitOnWindows.AccessibleName = "Sit on windows. She lands on the top edges of your windows";
             dance = Switch("Dance to music", 0, 578, delegate { if (!syncing) capri.ToggleDance(); });
             intro = Switch("Glitch in at startup", 0, 606, delegate { if (!syncing) capri.ToggleIntro(); });
-            intro.Width = 224;
+            intro.Width = 226;
             introPick = Make(Intros.NameOf(Intros.Classic), 260, 609, 96, 22, delegate { OpenIntroPicker(); }, "Startup animation");
             introPick.Chevron = true;
             introPick.Ellipsis = true;
