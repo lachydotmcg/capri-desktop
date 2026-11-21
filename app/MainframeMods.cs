@@ -564,6 +564,7 @@ namespace CapriDesktop
             if (File.Exists(mods.LogPath)) throw new Exception("Removing the hearing log mod left its list behind.");
             checks.Add("PASS mods: the hearing log only runs while its mod is on, and goes with it");
             CheckDirectory(checks, output);
+            CheckDirectoryPlugins(checks, output);
         }
     }
 }

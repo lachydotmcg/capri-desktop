@@ -418,7 +418,7 @@ namespace CapriDesktop
             return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
         }
 
-        internal static bool Careful(string tool, ToolArguments args) { return tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
+        internal static bool Careful(string tool, ToolArguments args) { return tool == "import_mod" || tool == "files" && FileChange(args) && (Mask & 0x3FF) != 0x3FF; }
 
         private static bool FileChange(ToolArguments args) { string action = args == null ? null : args.Action; return action == "move" || action == "rename" || action == "organise" || action == "organize" || action == "write" || action == "edit"; }
 
@@ -661,6 +661,7 @@ namespace CapriDesktop
                 case "internet_status": return "check your internet";
                 case "mod": return Plugins.Asking(a.Name, a.Text) ?? "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 case "make_tool": return "write a new tool for you to check in Mods";
+                case "import_mod": return "import " + Plain(Regex.Match(a.Path ?? "", @"[^\\/]*$").Value, "that file") + " into your mods";
                 default: return "do that";
             }
         }
@@ -1389,6 +1390,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
             { "read_skill", SkillDescription, SkillSchema, "read the skills you turned on in Mods", "read one of your skills in full" },
             { "make_tool", MakeToolDescription, MakeToolSchema, "write new look-up tools for yourself, which they turn on in Mods", "make look-up tools" },
+            { "import_mod", "Import a mod or plug-in file into your Mods, the same as Mods > Import mod, when they hand you or name a .capri-plugin, .capri-mod, .capri-code, .capri-skin, .capri-skill or .capri-tool file and ask, suggest or hint that you add, install or import it. path is the file's full path. You always ask them first, and code mods, tool mods and plug-ins with tools still show their own box before they go on.",
+              "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"The mod or plug-in file's full path\"}},\"required\":[\"path\"]}", "import mod and plug-in files you hand her into her Mods", "import mod and plug-in files they hand you" },
             { "game_notes",
 #if CROSS
               "Keep controls or instructions the user teaches you for a game, or read them back. Keep their actual controls in text.",
@@ -1411,8 +1414,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The GIF's name, one of the names they saved; leave it out for a random one\"}}}", "send one of the GIFs you saved for her", "send one of the GIFs they saved for you" },
 #endif
 #if CROSS
-            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. This only opens it; they change settings there.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. mods is your Mods page, with their mods and plug-ins like Email, Notion and Linear. This only opens it; they change settings there.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\",\"mods\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "draw", Ink.Description, Ink.Schema, "draw and write on your screen", "draw on their screen" },
 #if CROSS
@@ -1453,8 +1456,8 @@ namespace CapriDesktop
 #if !CROSS
             { "workspace", "Open your Workspace window, start a new Claude Code chat there, or check recent chats when they ask. open is the default; a task with no action means start. start needs task in their words; folder is optional and must exist, otherwise it uses your own Workspace folder. New chats use the window's usual mode: Blackwall Mode under the Blackwall preset, Ask me otherwise. Folder trust and tool approvals stay in the window for them to answer. status gives up to three recent chats, whether they are working, waiting for an OK or finished, and their last answer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"open by default, start a chat, or check status\",\"enum\":[\"open\",\"start\",\"status\"]},\"task\":{\"type\":\"string\",\"description\":\"Required for start: their first message in their words\"},\"folder\":{\"type\":\"string\",\"description\":\"For start: an existing folder; omit for your own Workspace folder\"}}}", "open Workspace, start a chat or check recent chats", "open Workspace, start a chat or check recent chats" },
-            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY and memories are changed there by them.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you, and mods is your Mods page, with their mods and plug-ins like Email, Notion and Linear. This only opens it; keys, brains, voice services, SECURITY and memories are changed there by them.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\",\"mods\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "updates", "Check for a Capri update or read its status when they ask, suggest or hint at it. Install only when they clearly ask to install or update Capri, through the usual update checks. A status question or hint alone never authorizes installation.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"check, status or install; install needs a clear request\",\"enum\":[\"check\",\"status\",\"install\"]}},\"required\":[\"action\"]}", "check Capri updates or install when asked", "check Capri updates or install when asked" },
@@ -1764,6 +1767,7 @@ namespace CapriDesktop
         private const string SecretMovesNote = " Two are secret: never list, name, offer or explain them. chair sits you on a white plastic chair when they ask you to sit on one. heart is a little finger heart, yours to send whenever you feel it, asked or not: when they thank or compliment you, share good news, say goodnight, or just because. Send it with your reply, as often as you like, without asking.";
 #endif
         internal static Func<string, string> Mainframe = delegate { return "Couldn't open Mainframe."; };
+        internal static Func<string, string> ImportMod = delegate { return "Couldn't import mods here."; };
 #if CROSS
         internal const string CrashKind = "fake crash screen";
 #else
@@ -2044,6 +2048,7 @@ namespace CapriDesktop
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
                 if (tool == "read_skill") return Valid(tool, args) ? ReadSkill(args.Name) : "Couldn't read a skill: name one by its title or id.";
+                if (tool == "import_mod") return Valid(tool, args) ? ImportMod(args.Path.Trim()) : "Couldn't import that: it needs to be a .capri-plugin, .capri-mod, .capri-code, .capri-skin, .capri-skill or .capri-tool file.";
                 if (tool == "remind") return Remind(args);
                 if (tool == "weather") return Valid(tool, args) ? Forecast(args) : "Couldn't find that weather question.";
                 if (tool == "stopwatch") return Valid(tool, args) ? Stopwatches.Do(args) : "Couldn't find that stopwatch action.";
@@ -2194,11 +2199,11 @@ namespace CapriDesktop
 
         internal static string Name(int i) { return Specs[i, 0]; }
 
-        internal static string Description(int i) { return Specs[i, 1]; }
+        internal static string Description(int i) { return Specs[i, 0] == "animate" ? AnimateDescription(Specs[i, 1], MoveNames()) : Specs[i, 1]; }
 
-        internal static string Schema(int i) { return Specs[i, 2]; }
+        internal static string Schema(int i) { return Specs[i, 0] == "animate" ? AnimateSchema(Specs[i, 2], MoveNames()) : Specs[i, 2]; }
 
-        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Specs[i, 1]) + ",\"parameters\":" + Specs[i, 2] + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "workspace" || Specs[i, 0] == "stream" || Specs[i, 0] == "listen" || Specs[i, 0] == "play_music" ? 60 : 20) + "}}"; }
+        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Description(i)) + ",\"parameters\":" + Schema(i) + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "workspace" || Specs[i, 0] == "stream" || Specs[i, 0] == "listen" || Specs[i, 0] == "play_music" ? 60 : 20) + "}}"; }
 
         private static string Render(List<string[]> specs, bool claude)
         {
@@ -2269,14 +2274,16 @@ namespace CapriDesktop
             bool skilled = Skilled, gifted = Gifted;
             if (skilled) key.Append("|skills");
             if (gifted) key.Append("|gifs");
+            string[] moves = MoveNames();
+            if (moves.Length > 0) key.Append("|moves ").Append(string.Join(",", moves));
             lock (kits)
             {
                 Kit kit;
                 if (!kits.TryGetValue(key.ToString(), out kit))
                 {
                     // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
-                    if (modTools.Length > 0 && kits.Count > 200) kits.Clear();
-                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted));
+                    if ((modTools.Length > 0 || moves.Length > 0) && kits.Count > 200) kits.Clear();
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted, moves));
                 }
                 return kit;
             }
@@ -2328,6 +2335,51 @@ namespace CapriDesktop
             foreach (string[] tool in tools) plain.Add(tool[0].Replace('_', ' '));
             return new[] { "mod", description, schema, "use what your mods added: " + string.Join(", ", plain.ToArray()), "use what their mods added: " + string.Join(", ", plain.ToArray()) };
         }
+
+        private const string MovesLead = " Moves their skins added are in name's list too: ", MovesTail = ". Do one when they ask for it by name or hint at it, and stop_dancing ends one that loops.";
+        private const int MovesNamed = 8, LongestDescription = 1000;
+
+        private static string[] MoveNames()
+        {
+            Mods.SkinMove[] moves = Mods.MovesNow;
+            string[] names = new string[moves.Length];
+            for (int i = 0; i < moves.Length; i++) names[i] = moves[i].Name;
+            return names;
+        }
+
+        private static string AnimateDescription(string own, string[] moves)
+        {
+            if (moves.Length == 0) return own;
+            List<string> said = new List<string>();
+            int room = LongestDescription - own.Length - MovesLead.Length - MovesTail.Length - 16;
+            foreach (string name in moves)
+            {
+                if (room < name.Length + 2) { said.Add("and " + (moves.Length - said.Count) + " more"); break; }
+                said.Add(name);
+                room -= name.Length + 2;
+            }
+            return own + MovesLead + string.Join(", ", said.ToArray()) + MovesTail;
+        }
+
+        private static string AnimateSchema(string own, string[] moves)
+        {
+            int at = own.IndexOf("]}}", StringComparison.Ordinal);
+            if (moves.Length == 0 || at < 0) return own;
+            StringBuilder added = new StringBuilder();
+            foreach (string name in moves) added.Append(',').Append(Voice.Quote(name));
+            return own.Insert(at, added.ToString());
+        }
+
+        private static string AnimateAbility(string own, string[] moves, string whose)
+        {
+            if (moves.Length == 0) return own;
+            List<string> said = new List<string>();
+            for (int i = 0; i < moves.Length && i < MovesNamed; i++) said.Add(moves[i].Replace('_', ' '));
+            if (moves.Length > MovesNamed) said.Add((moves.Length - MovesNamed) + " more");
+            return own + ", including the moves " + whose + " skins added: " + Joined(said, "and");
+        }
+
+        internal static string MovesStamp { get { return string.Join(",", MoveNames()); } }
 
         // A kit for what's missing on another computer, so her checks on Windows see what a Mac or a Linux PC gets.
         internal static Kit KitWithout(List<string[]> missing) { return Made(missing, new List<string[]>()); }
@@ -2630,9 +2682,9 @@ namespace CapriDesktop
         // with what she'd say about them taken out and her lines about what isn't here and what's off put in, and the short list
         // of what she can do right now that the brain she chats with always gets, so even a small local model knows (Lachy, 2 Nov:
         // "For 0.8.0 I especially want them to be aware of their tools").
-        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled, Gifted); }
+        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled, Gifted, MoveNames()); }
 
-        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted)
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted, string[] moves)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -2656,10 +2708,12 @@ namespace CapriDesktop
                 if (tool == "capri_settings") { description = Unsaying(kit, SettingsDescription(kit)); schema = SettingsSchema(kit); }
                 foreach (string gap in kit.Missing.Keys)
                     if (gap.StartsWith(tool + ":", StringComparison.Ordinal)) schema = Without(schema, gap.Substring(tool.Length + 1));
+                bool moving = tool == "animate" && moves.Length > 0;
+                if (moving) { description = AnimateDescription(description, moves); schema = AnimateSchema(schema, moves); }
                 specs.Add(new[] { tool, description, schema });
-                abilities.Add(tool == "shortcut" && someKeys ? "press shortcuts: " + Joined(named, "and") : Unsaying(kit, Specs[i, 3]));
+                abilities.Add(tool == "shortcut" && someKeys ? "press shortcuts: " + Joined(named, "and") : moving ? AnimateAbility(Unsaying(kit, Specs[i, 3]), moves, "your") : Unsaying(kit, Specs[i, 3]));
                 bool switchedOff = kit.Off.TryGetValue(tool, out how);
-                brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : Unsaying(kit, Specs[i, 4])) + (switchedOff ? " (off right now: " + how + ")" : ""));
+                brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : moving ? AnimateAbility(Unsaying(kit, Specs[i, 4]), moves, "their") : Unsaying(kit, Specs[i, 4])) + (switchedOff ? " (off right now: " + how + ")" : ""));
                 if (switchedOff) switched.Add(Gap(tool, 1) + " (" + how + ")");
             }
             if (modTools.Length > 0)
@@ -3638,6 +3692,8 @@ namespace CapriDesktop
 
         internal static string AnimationFor(string text)
         {
+            string added = AddedMoveFor(text);
+            if (added != null) return added;
             for (int i = 0; i < AnimationWords.Length; i += 2)
             {
                 Match found = Regex.Match(text ?? "", AnimationWords[i], RegexOptions.IgnoreCase);
@@ -3645,6 +3701,19 @@ namespace CapriDesktop
                 if (AnimationWords[i + 1].Length > 0) return AnimationWords[i + 1];
                 string name = found.Groups["n"].Value.ToLowerInvariant();
                 return name == "smile" ? "grin" : name == "dancing" ? "dance" : name;
+            }
+            return null;
+        }
+
+        private static string AddedMoveFor(string text)
+        {
+            Mods.SkinMove[] moves = Mods.MovesNow;
+            if (moves.Length == 0 || string.IsNullOrEmpty(text)) return null;
+            foreach (Mods.SkinMove move in moves)
+            {
+                string spoken = move.Name.Replace("_", @"[\s_-]?");
+                if (Regex.IsMatch(text, @"^(?:(?:do|show me|show us|show|perform|bust out|pull off|give (?:me|us))(?: (?:your|ur|the|a|an|that|some))? " + spoken + @"(?: (?:animation|anim|move|thing|again))?|(?:your |ur |the )?" + spoken + @" (?:animation|anim|move))" + Hers, RegexOptions.IgnoreCase)) return move.Name;
+                if (move.Loop && Regex.IsMatch(text, @"^(?:stop|quit|enough|no more)(?: (?:the|your|ur|that))? " + spoken + @"(?:ing)?" + Hers, RegexOptions.IgnoreCase)) return "stop_dancing";
             }
             return null;
         }
@@ -4550,9 +4619,9 @@ namespace CapriDesktop
             if (tool == "terminal_job") return args != null && !string.IsNullOrEmpty(args.JobId) && (args.Offset == null || args.Offset >= 0) && (args.Action == "status" || args.Action == "read" || args.Action == "stop");
 #endif
 #if CROSS
-            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|files|notes)\z"));
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|files|notes|mods|plugins)\z"));
 #else
-            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|workspace)\z"));
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|workspace|mods|plugins)\z"));
             if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
             if (tool == "call_say") return args != null && Named(args.Text);
 #endif
@@ -4597,6 +4666,7 @@ namespace CapriDesktop
             if (tool == "read_skill") return Named(args.Name);
             if (tool == "mod") return Named(args.Name);
             if (tool == "make_tool") return !string.IsNullOrWhiteSpace(args.Text);
+            if (tool == "import_mod") return !string.IsNullOrWhiteSpace(args.Path) && args.Path.Length <= 4096 && args.Path.IndexOf('\0') < 0 && Mods.Importable(args.Path.Trim());
             if (tool == "mini_game")
             {
                 bool chess = args.Name == "chess";
@@ -4658,7 +4728,7 @@ namespace CapriDesktop
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
             if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|sit_on|lie_down|sit_up|stand_up|walk_around|wander|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z") && (args.Action != "sit_on" || Named(args.Window));
-            if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing" + SecretMoves + @")\z");
+            if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing" + SecretMoves + @")\z") || Mods.MoveNamed(args.Name) != null;
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube" || args.App == "applemusic");
         }
 

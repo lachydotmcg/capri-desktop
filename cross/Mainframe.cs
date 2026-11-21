@@ -849,7 +849,7 @@ namespace CapriDesktop
         internal void OpenPage(string name)
         {
             name = (name ?? "main").Trim().ToLowerInvariant();
-            if (name == "mods") { ShowMods(true); return; }
+            if (name == "mods" || name == "plugins") { ShowMods(true); return; }
             if (name == "remote") { OpenRemote(); return; }
             modded = false;
             ShowSettings(!string.IsNullOrEmpty(name) && name != "main" && name != "brain" && name != "voice");
