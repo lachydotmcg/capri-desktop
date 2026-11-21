@@ -15119,7 +15119,15 @@ namespace CapriDesktop
             }
         }
 
-        private double RoomWake() { return Math.Max(QuietWake, Math.Min(room * RoomMargin, Math.Max(WakeLevel, room * 1.6))); }
+        private double RoomWake() { return Woken(room); }
+
+        private static double Woken(double quietest) { return Math.Max(QuietWake, Math.Min(quietest * RoomMargin, Math.Max(WakeLevel, quietest * 1.6))); }
+
+        private static double OverWake(TalkOver over)
+        {
+            double quietest = over.Room;
+            return quietest < 0 ? WakeLevel : Math.Min(WakeLevel, Woken(quietest));
+        }
 
         // A finished line goes to her ears if it sounds like speech at the wake level. Within a minute of a line that came through, one under the old fixed level and over 10 dB quieter than it is someone else or the TV, not them.
         // On a call the quieter voice is the call, so a line with the call's sound in it counts and leaves their own level as it was.
@@ -15876,7 +15884,7 @@ namespace CapriDesktop
                     restRoom = restRoom < 0 ? Math.Max(0.0003, level) : Math.Max(0.0003, Math.Min(level, restRoom * 1.02));
                     restLevels[restSlot] = speaker.Busy ? 0 : level;
                     restSlot = (restSlot + 1) % restLevels.Length;
-                    double wake = Math.Max(WakeLevel, restRoom * 1.6), low = double.MaxValue, high = 0;
+                    double wake = Woken(restRoom), low = double.MaxValue, high = 0;
                     int speech = 0;
                     foreach (double recent in restLevels)
                         if (recent >= wake) { speech++; low = Math.Min(low, recent); high = Math.Max(high, recent); }
@@ -46051,6 +46059,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVoiceCuts", delegate { SmokeVoiceCuts(checks, output); });
             Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
             Section(checks, "SmokeVoiceBack", delegate { SmokeVoiceBack(checks, output); });
+            Section(checks, "SmokeQuietMic", delegate { SmokeQuietMic(checks); });
             // The Mainframe's Language row and its menu, which the setup card opens too. The full run reaches it from the settings
             // page checks as well; whichever comes first runs it.
             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
@@ -47511,6 +47520,100 @@ namespace CapriDesktop
             {
                 mainframe.ShowSettings(settings);
                 if (minimized) mainframe.WindowState = FormWindowState.Minimized;
+            }
+        }
+
+        private void SmokeQuietMic(System.Collections.Generic.List<string> checks)
+        {
+            Agent agentWas = agent;
+            bool chattingWas = chatting, localWas = local, mutedWas = ears.Muted, restingWas = resting;
+            Func<double> clockWas = speaker.Clock;
+            Action<short[]> micWas = sendMicTest;
+            System.Reflection.BindingFlags inside = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            System.Reflection.FieldInfo roomsField = typeof(TalkOver).GetField("rooms", inside), slotField = typeof(TalkOver).GetField("roomSlot", inside), heardField = typeof(TalkOver).GetField("roomsHeard", inside);
+            double[] roomsWas = (double[])((double[])roomsField.GetValue(talkOver)).Clone();
+            int slotWas = (int)slotField.GetValue(talkOver), heardWas = (int)heardField.GetValue(talkOver);
+            double now = 300;
+            Func<double, short[]> tone = delegate(double rms)
+            {
+                short[] chunk = new short[Ears.Chunk];
+                for (int i = 0; i < chunk.Length; i++) chunk[i] = (short)(rms * 32768 * Math.Sqrt(2) * Math.Sin(i * 0.09));
+                return chunk;
+            };
+            Random hiss = new Random(11);
+            short[] hush = new short[Ears.Chunk];
+            for (int i = 0; i < hush.Length; i++) hush[i] = (short)hiss.Next(-40, 41);
+            short[] first = tone(0.0105), second = tone(0.0135), third = tone(0.0115), fan = tone(0.009), din = tone(0.03), faint = tone(0.0015);
+            short[] sentence = new short[Ears.Rate * 4];
+            for (int i = 0; i < sentence.Length; i++) sentence[i] = (short)(9000 * Math.Sin(i * 0.07));
+            Agent link = new Agent();
+            Action asleep = delegate
+            {
+                lock (waking) { restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length); restSlot = 0; preroll.Clear(); backlog = null; resting = true; }
+            };
+            try
+            {
+                if (VoiceLevel(first) >= WakeLevel || VoiceLevel(second) >= WakeLevel || VoiceLevel(third) >= WakeLevel || VoiceLevel(first) < QuietWake) throw new Exception("The quiet mic check's voice wasn't between her floor and the old fixed level.");
+                local = false; chatting = true; agent = null;
+                ears.Muted = false;
+                Hush("smoke reset");
+                asleep();
+                for (int i = 0; i < 20; i++) Listen(hush);
+                Listen(first); Listen(second);
+                if (!resting) throw new Exception("Two soft chunks woke resting voice chat.");
+                Listen(third);
+                if (resting || backlog == null) throw new Exception("Talking at a normal level into a quiet mic didn't wake resting voice chat.");
+                asleep();
+                for (int i = 0; i < 20; i++) Listen(hush);
+                for (int i = 0; i < 40; i++) Listen(fan);
+                if (!resting) throw new Exception("A steady fan in a quiet room woke resting voice chat.");
+                asleep();
+                for (int i = 0; i < 20; i++) Listen(din);
+                Listen(first); Listen(second); Listen(third); Listen(second);
+                if (!resting) throw new Exception("A soft voice under a loud room woke resting voice chat.");
+                chatting = false;
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "The quiet mic wake check did not drain.");
+                chatting = true;
+                asleep();
+                checks.Add("PASS resting ElevenLabs voice chat wakes for a normal voice into a quiet mic in a quiet room, and still sleeps through a steady fan, a lone blip and a soft voice under a loud room");
+                TalkOver fresh = new TalkOver(), still = new TalkOver(), humming = new TalkOver(), loudRoom = new TalkOver();
+                for (int i = 0; i < 10; i++) { still.Quiet(0.0003); humming.Quiet(0.004); loudRoom.Quiet(0.03); }
+                if (OverWake(fresh) != WakeLevel || Math.Abs(OverWake(still) - QuietWake) > 1e-9 || Math.Abs(OverWake(humming) - 0.012) > 1e-9 || OverWake(loudRoom) != WakeLevel)
+                    throw new Exception("Talking over her doesn't follow the room: " + OverWake(fresh) + " " + OverWake(still) + " " + OverWake(humming) + " " + OverWake(loudRoom));
+                sendMicTest = delegate(short[] chunk) { };
+                speaker.Clock = delegate { return now; };
+                Hush("smoke reset");
+                barging = tailOpen = false;
+                talkOver.Reset(); heldBack.Clear();
+                for (int i = 0; i < 10; i++) { now = 300 + i * 0.1; OverHer(hush, link); }
+                if (Math.Abs(OverWake(talkOver) - QuietWake) > 1e-9) throw new Exception("Voice chat didn't learn the quiet room before her line.");
+                now = 301;
+                speaker.Open(Ears.Rate); speaker.Play(sentence);
+                for (int i = 0; i < 20; i++)
+                {
+                    now = 301 + i * 0.1;
+                    if (Array.Exists(OverHer(i < 2 ? hush : faint, link), sample => sample != 0)) throw new Exception("Her faint echo in a quiet mic reached voice chat.");
+                }
+                int barges = bargeIns;
+                short[] passed = null;
+                for (int i = 0; i < 3; i++) { now = 303 + i * 0.1; passed = OverHer(i == 1 ? second : first, link); }
+                if (passed == null || !Array.Exists(passed, sample => sample != 0)) throw new Exception("Talking over her at a normal level into a quiet mic didn't reach voice chat.");
+                WaitVoice(delegate { return bargeIns == barges + 1; }, "Talking over her at a normal level into a quiet mic didn't stop her.");
+                checks.Add("PASS talking over her in ElevenLabs voice chat and after Hey Capri follows the room: a normal voice into a quiet mic stops her, and a loud room never needs more than before");
+            }
+            finally
+            {
+                Hush("smoke reset");
+                speaker.Clock = clockWas; sendMicTest = micWas;
+                agent = agentWas; chatting = chattingWas; local = localWas; ears.Muted = mutedWas;
+                barging = tailOpen = false;
+                talkOver.Reset(); heldBack.Clear();
+                Array.Copy(roomsWas, (double[])roomsField.GetValue(talkOver), roomsWas.Length);
+                slotField.SetValue(talkOver, slotWas); heardField.SetValue(talkOver, heardWas);
+                lock (waking) { restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length); restSlot = 0; preroll.Clear(); backlog = null; resting = restingWas; }
+                link.Dispose();
             }
         }
 

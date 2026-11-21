@@ -275,6 +275,17 @@ namespace CapriDesktop
 
         internal bool Above(double mic, double mine, double wake) { return mic >= wake && (mine <= Pause || mic >= share * mine * Margin); }
 
+        internal double Room
+        {
+            get
+            {
+                if (roomsHeard == 0) return -1;
+                double low = double.MaxValue;
+                for (int i = 0; i < roomsHeard; i++) low = Math.Min(low, rooms[i]);
+                return low;
+            }
+        }
+
         // How loud a clip of her voice is, ten times a second.
         internal static double[] Levels(byte[] wav)
         {
@@ -707,8 +718,8 @@ namespace CapriDesktop
         private short[] OverHer(short[] chunk, Agent open)
         {
             int ticket = asking, audio = audioTurn;
-            double level = VoiceLevel(chunk);
-            if (level >= WakeLevel) micTalked = Environment.TickCount;
+            double level = VoiceLevel(chunk), wake = OverWake(talkOver);
+            if (level >= wake) micTalked = Environment.TickCount;
             if (barging && bargingTicket == ticket && bargingAudio == audio) return chunk;
             if (speaker.Ago >= 1)
             {
@@ -725,7 +736,7 @@ namespace CapriDesktop
             if (heldBack.Count > TalkOver.Held + 2) heldBack.RemoveAt(0);
             // Her loudest of the last 600 ms, like free voice chat's and Hey Capri's: against 300 ms, with speakers 900 ms late it
             // took over 400 ms to hear them over her (#158). In the second after her sound it's her loudest of that second.
-            if (!talkOver.Heard(level, speaker.Level(playing ? 0.6 : 1), WakeLevel)) return new short[chunk.Length];
+            if (!talkOver.Heard(level, speaker.Level(playing ? 0.6 : 1), wake)) return new short[chunk.Length];
             if (playing)
             {
                 bargingTicket = ticket;
@@ -745,7 +756,7 @@ namespace CapriDesktop
         {
             int ticket = asking, audio = audioTurn;
             double now = clock.Elapsed.TotalSeconds;
-            if (level >= WakeLevel && !echo) micTalked = Environment.TickCount;
+            if (level >= (room < 0 ? WakeLevel : Math.Min(WakeLevel, RoomWake())) && !echo) micTalked = Environment.TickCount;
             if (nameOver && local && earsReady && !ears.Muted && !transcribing) return false;
             if (!local || !earsReady || ears.Muted || transcribing || now >= voiceUntil)
             {
@@ -782,10 +793,10 @@ namespace CapriDesktop
         private void OverHeard(short[] chunk)
         {
             int ticket = asking, audio = audioTurn;
-            double now = clock.Elapsed.TotalSeconds, level = VoiceLevel(chunk);
+            double now = clock.Elapsed.TotalSeconds, level = VoiceLevel(chunk), wake = OverWake(wakeOver);
             if (!wakeGate.Voice(level, WakeLevel)) return;
             if (now >= voiceUntil) { wakeOver.Quiet(level); return; }
-            if (!wakeOver.Heard(level, SpokenLevel(now), WakeLevel)) return;
+            if (!wakeOver.Heard(level, SpokenLevel(now), wake)) return;
             wakeOver.Reset();
             QueueBargeIn(ticket, audio, "wake mic talk-over");
         }

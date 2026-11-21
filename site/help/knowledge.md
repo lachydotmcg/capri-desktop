@@ -1189,6 +1189,8 @@ Since 0.7.1, muting pauses ElevenLabs voice chat once she stops talking: "Mic mu
 ### She went quiet: "Voice chat resting. Talk and she'll pick up."
 If you go quiet, she stays quiet too: she doesn't ask if you're still there. After a bit the call rests, which saves your ElevenLabs credits. Just talk and she picks up again.
 
+From 0.9.7 she listens for your voice over your room's own sound, like free voice chat does, so a quiet mic works without shouting, in ElevenLabs voice chat and when you talk over her. A steady fan or hum still doesn't wake her.
+
 ### Can she do things in voice chat?
 Yes. Ask her to open apps, play music and so on, the same as in text. A job with her cursor (playing a song, searching YouTube, anything with clicks) can take a minute, so in ElevenLabs voice chat she says she's on it straight away and tells you how it went when it's done. Asking again while it runs doesn't start it twice. With no brain set up, she plays music and changes the volume with her quick tools instead.
 
