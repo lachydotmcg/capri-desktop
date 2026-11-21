@@ -1109,7 +1109,7 @@ namespace CapriDesktop
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
             { "typing_sound", "Typing sound mode", "Sounds" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }, { "music_app", "Music app", "Habits" },
             { "pat_stroke", "Pat stroke", "Capri" }, { "chime_volume", "Chime volume", "Sounds" }, { "chime_set", "Chime sound set", "Sounds" },
-            { "in_full_screen", "In full screen", "Habits" }
+            { "in_full_screen", "In full screen", "Habits" }, { "reply_language", "my reply language", "Brain" }
         };
         internal static readonly string[][] OwnSteps =
         {
@@ -1134,7 +1134,7 @@ namespace CapriDesktop
             new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" },
             new[] { "Off", "In games", "Always" }, MusicSteps(), new[] { "Short", "Medium", "Long" },
             new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }, new[] { "Glass", "Shard", "Burst", "Crush", "Pulse", "Air" },
-            new[] { "Stay", "Keep player", "Hide her", "Player only" }
+            new[] { "Stay", "Keep player", "Hide her", "Player only" }, ReplySteps()
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -1198,6 +1198,12 @@ namespace CapriDesktop
             for (int i = 0; i < steps.Length; i++) steps[i] = Brain.Languages[i, 1];
             return steps;
         }
+        private static string[] ReplySteps()
+        {
+            List<string> steps = new List<string> { LanguagePair.SameName, LanguagePair.Auto };
+            steps.AddRange(LanguageSteps());
+            return steps.ToArray();
+        }
 
         // A few words for the settings whose names don't say what they do, for her brain.
         private static readonly Dictionary<string, string> SettingMeanings = new Dictionary<string, string>
@@ -1228,7 +1234,9 @@ namespace CapriDesktop
             { "chime_sent", "the chime when their typed message is sent" }, { "chime_heard", "the chime when you've heard them finish talking" },
             { "chime_listening", "the chime when Listen for Capri opens your ears" }, { "chime_volume", "how loud your chimes are, apart from your voice and sound effects" },
             { "chime_set", "which set of chimes you play: Glass, Shard, Burst, Crush, Pulse or Air; set it by name" },
-            { "lite_mode", "for weak PCs: your brain on their PC stays off, you draw lighter, use your free voice and keep Watch my screen, game comments and Clip my games off, and they come back as they were when it goes off; suggest it with a free key when you or their PC are slow" }
+            { "lite_mode", "for weak PCs: your brain on their PC stays off, you draw lighter, use your free voice and keep Watch my screen, game comments and Clip my games off, and they come back as they were when it goes off; suggest it with a free key when you or their PC are slow" },
+            { "language", "the language they speak, which your ears listen for, like \"I'll speak French\"; you answer in it too unless reply_language says otherwise" },
+            { "reply_language", "the language you answer in, like \"talk to me in Spanish\": Same as I speak, Auto for whatever language each message is in, or a language" }
         };
 
         private static string Meant(string name)
@@ -1296,7 +1304,7 @@ namespace CapriDesktop
             if (name == "mini_player") return true;
             if (name == "hologram") return OnMac;
 #endif
-            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "music_app", "preview_voice", "edit_check_in_lines" }, name) >= 0;
+            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "reply_language", "music_app", "preview_voice", "edit_check_in_lines" }, name) >= 0;
         }
 
         private static bool HasSetting(Kit kit, string name) { return kit == null || kit.Has("capri_settings:" + name); }
@@ -1330,6 +1338,7 @@ namespace CapriDesktop
             if (name.StartsWith("layer_", StringComparison.Ordinal)) return name.EndsWith("pitch", StringComparison.Ordinal) ? "-12 to +12 in 0.5 semitones; Same is 0" : "0 to 250 ms in 5 ms steps";
 #endif
             if (name == "language") return "a language's name in English, like Spanish or Japanese";
+            if (name == "reply_language") return "Same as I speak, Auto, or a language's name in English";
             return string.Join("|", steps);
         }
         private static string Quoted(List<string> names) { return string.Join(",", names.ConvertAll(delegate(string name) { return Voice.Quote(name); }).ToArray()); }
@@ -7192,6 +7201,14 @@ namespace CapriDesktop
             {
                 for (int i = 0; i < Brain.Languages.GetLength(0); i++)
                     if (string.Equals(said.Trim(), Brain.Languages[i, 0], StringComparison.OrdinalIgnoreCase) || string.Equals(said.Trim(), Brain.Languages[i, 2], StringComparison.OrdinalIgnoreCase)) return i;
+                return -1;
+            }
+            if (name == "reply_language")
+            {
+                if (Regex.IsMatch(plain, @"^(?:same|sameaslanguage|sameasmylanguage|mylanguage|default|followme)$")) return 0;
+                if (Regex.IsMatch(plain, @"^(?:automatic|auto\W*matchwhatisay\W*|match|matchme|matching|matchwhatisay|whateverispeak|whateveriuse|whateverisay)$")) return 1;
+                for (int i = 0; i < Brain.Languages.GetLength(0); i++)
+                    if (string.Equals(said.Trim(), Brain.Languages[i, 0], StringComparison.OrdinalIgnoreCase) || string.Equals(said.Trim(), Brain.Languages[i, 2], StringComparison.OrdinalIgnoreCase)) return i + 2;
                 return -1;
             }
             if (name == "sleep" && Regex.IsMatch(plain, @"^(?:off|no|none|0)$")) return 0;

@@ -29,6 +29,14 @@ namespace CapriDesktop
 
         internal int Running { get { return running.Count; } }
         internal bool WantsIntro { get { return All.Exists(mod => mod.Code && mod.On && mod.File.Intro); } }
+        internal string IntroName
+        {
+            get
+            {
+                Mod found = All.Find(mod => mod.Code && mod.On && mod.File.Intro);
+                return found == null ? null : found.File.Name ?? found.File.Id;
+            }
+        }
         internal bool CodeSettled { get; private set; }
 
         // Mac and Linux refuse a mod that needs Windows-only parts before asking to run it, and let go of a stopped mod's code.
@@ -562,9 +570,64 @@ namespace CapriDesktop
             return new DoorIntro(sleep, wake, idle, herFolder == null ? null : Path.Combine(herFolder, "sounds", "intro"), popups);
         }
 
+        internal string IntroPick
+        {
+            get
+            {
+                string picked = preferences.IntroPick;
+                if (picked == null || picked == Intros.FromMods) return ModList.WantsIntro ? Intros.FromMods : Intros.Classic;
+                return Intros.Known(picked) && (!Intros.IsArt(picked) || ArtIntro.Frames(picked) > 0) ? picked : Intros.Classic;
+            }
+        }
+
+        internal string IntroModName { get { return ModList.IntroName; } }
+
+        internal void SetIntroPick(string id)
+        {
+            if (!Intros.Known(id)) return;
+            preferences.IntroPick = id;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        private ICapriIntro PickedIntro(bool live)
+        {
+            string pick = IntroPick;
+            if (pick == Intros.Door) return NewDoor(live);
+            if (pick == Intros.FromMods) return ModList.Intro;
+            return Intros.IsArt(pick) ? ArtIntro.Make(pick) : null;
+        }
+
+        internal ICapriIntro IntroPreview(string id)
+        {
+            if (id == Intros.Classic) return new ArrivalIntro(arrive, idle);
+            if (id == Intros.Door) return new DoorIntro(sleep, wake, idle, null, false);
+            return Intros.IsArt(id) ? ArtIntro.Make(id) : null;
+        }
+
+        internal bool IntroRunning { get { return introScreen != null; } }
+
+        internal void PlayIntroNow(string id)
+        {
+            if (introScreen != null || !Intros.Known(id)) return;
+            ICapriIntro intro = id == Intros.Door ? NewDoor(true) : id == Intros.FromMods ? ModList.Intro : Intros.IsArt(id) ? ArtIntro.Make(id) : null;
+            if (id != Intros.Classic && intro == null) return;
+            bool back = !hidden && !docked && IsHandleCreated;
+            Action after = delegate { if (back && hidden && !IsDisposed) SetHidden(false); };
+            Action play = delegate
+            {
+                if (IsDisposed) return;
+                if (intro == null || introScreen != null) after();
+                else RunIntro(intro, after);
+            };
+            if (!back) { play(); return; }
+            manualHidden = true;
+            GlitchOut(delegate { ShowHidden(true); play(); });
+        }
+
         private bool HoldForIntro(Action arrival, bool spawn)
         {
-            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || !(doorPending || ModList.WantsIntro) || FullScreenDisplay) return false;
+            if (testing || instant || !preferences.Motion || preferences.NoIntro || hidden || !(doorPending || IntroPick != Intros.Classic) || FullScreenDisplay) return false;
             if (spawn) SpawnInMiddle();
             WaitForIntro(arrival, IntroWait);
             return true;
@@ -586,7 +649,7 @@ namespace CapriDesktop
             wait.Tick += delegate
             {
                 if (IsDisposed) { wait.Dispose(); return; }
-                ICapriIntro intro = doorPending ? NewDoor(true) : ModList.Intro;
+                ICapriIntro intro = doorPending ? NewDoor(true) : PickedIntro(true);
                 if (doorPending)
                 {
                     doorPending = false;
@@ -594,7 +657,7 @@ namespace CapriDesktop
                     SavePreferences();
                 }
                 bool out_ = clock.Elapsed.TotalSeconds >= gaveUpAt;
-                if (intro == null && !ModList.CodeSettled && !out_) return;
+                if (intro == null && IntroPick == Intros.FromMods && !ModList.CodeSettled && !out_) return;
                 wait.Dispose();
                 if (intro == null) release();
                 else RunIntro(intro, release);
@@ -602,11 +665,19 @@ namespace CapriDesktop
             wait.Start();
         }
 
-        private void RunIntro(ICapriIntro intro, Action done)
+        internal Rectangle IntroStage(out Rectangle her)
         {
             Rectangle body = BodyOnScreen(anchor, Body);
             Rectangle screen = Screen.FromRectangle(body).Bounds;
             body.Offset(-screen.X, -screen.Y);
+            her = body;
+            return screen;
+        }
+
+        private void RunIntro(ICapriIntro intro, Action done)
+        {
+            Rectangle body;
+            Rectangle screen = IntroStage(out body);
             double length = LongestIntro;
             try { length = Math.Max(0, Math.Min(LongestIntro, intro.Seconds)); }
             catch (Exception error) { Brain.Log("mod intro", -1, error.ToString()); length = 0; }
@@ -615,6 +686,8 @@ namespace CapriDesktop
                 introScreen = null;
                 DoorIntro door = intro as DoorIntro;
                 if (door != null) door.Stop();
+                ArtIntro art = intro as ArtIntro;
+                if (art != null) art.Dispose();
                 if (done != null) done();
             };
             if (length <= 0) { finished(); return; }
@@ -630,13 +703,15 @@ namespace CapriDesktop
             private readonly Action finished;
             private readonly System.Diagnostics.Stopwatch ran = new System.Diagnostics.Stopwatch();
             private readonly System.Windows.Forms.Timer beat = new System.Windows.Forms.Timer { Interval = 15 };
+            private readonly ArtIntro art;
             private Native.Surface surface;
             private Bitmap desktop;
-            private bool over;
+            private bool over, drawn;
 
             internal IntroScreen(ICapriIntro mod, Rectangle screen, Rectangle body, double seconds, Action done)
             {
                 intro = mod;
+                art = mod as ArtIntro;
                 her = body;
                 length = seconds;
                 finished = done;
@@ -686,6 +761,7 @@ namespace CapriDesktop
                 if (over) return;
                 double at = ran.Elapsed.TotalSeconds;
                 if (at >= length) { End(); return; }
+                if (drawn && art != null && !art.Changes(at)) return;
                 try
                 {
                     using (Graphics graphics = Graphics.FromImage(surface.Image))
@@ -694,6 +770,7 @@ namespace CapriDesktop
                         intro.Draw(graphics, new Rectangle(0, 0, Width, Height), her, at);
                     }
                     surface.Show(Handle, Location);
+                    drawn = true;
                 }
                 catch (Exception error)
                 {
@@ -752,11 +829,14 @@ namespace CapriDesktop
             Play(clipWas);
             checks.Add("PASS mod intros: if no intro turns up she's held off screen, then still arrives");
             CheckDoor(checks, output);
+            CheckArtIntros(checks, output);
+            CheckIntroPicker(checks, output);
             string real = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "..", "..", "mods", "startup-intros" + Mods.CodeExtension));
             if (!File.Exists(real)) { checks.Add("LIMIT mod intros: the Startup Intros file isn't beside this build, so its frames weren't drawn"); return; }
             Mod mod = ModList.Import(real, delegate { return true; });
             ICapriIntro intros = ModList.Intro;
             if (mod == null || intros == null || !ModList.WantsIntro) throw new Exception("Startup Intros did not start as an intro.");
+            if (preferences.IntroPick == null && (IntroPick != Intros.FromMods || IntroModName != "Startup Intros")) throw new Exception("With Startup Intros on and nothing picked, her startup animation is " + IntroPick + " from " + IntroModName + ".");
             Size size = new Size(1920, 1080);
             Rectangle spot = new Rectangle(860, 420, 200, 300);
             string[] picks = { "hijack", "shatter", "wake" };
@@ -880,11 +960,269 @@ namespace CapriDesktop
                             close.Save(Path.Combine(output, "intro-door-" + at.ToString("0.0").Replace('.', '_') + ".png"), System.Drawing.Imaging.ImageFormat.Png);
                         }
                     }
+                    Clip woken = StandsIn(wake) ? idle : wake;
+                    foreach (double at in new[] { 11.5, 11.9, 12.2 })
+                    {
+                        pen.Clear(Color.Transparent);
+                        door.Draw(pen, new Rectangle(Point.Empty, size), spot, at);
+                        if (door.WakeShown != woken) throw new Exception("Her door woke her in " + (door.WakeShown == null ? "nothing" : door.WakeShown.Title) + " at " + at.ToString("0.0") + " s, not " + woken.Title + ".");
+                    }
                 }
             }
             finally { door.Stop(); }
             if (worst > 60) throw new Exception("A door intro frame is too slow: " + worst.ToString("0") + " ms at " + worstAt.ToString("0.0") + " s.");
-            checks.Add("PASS door intro: due once after an update and not on a new install, " + DoorIntro.Length.ToString("0.0") + " s, slowest frame " + worst.ToString("0") + " ms at 1920x1080");
+            checks.Add("PASS door intro: due once after an update and not on a new install, she wakes in her " + (StandsIn(wake) ? "standing loop" : "wake strip") + ", " + DoorIntro.Length.ToString("0.0") + " s, slowest frame " + worst.ToString("0") + " ms at 1920x1080");
+        }
+
+        private void CheckArtIntros(List<string> checks, string output)
+        {
+            List<string> timing = new List<string>();
+            foreach (string id in new[] { "peek", "up-close" })
+            {
+                int frames = ArtIntro.Frames(id), wanted = id == "peek" ? 16 : 22;
+                if (frames != wanted) throw new Exception(Intros.NameOf(id) + " has " + frames + " frames inside her, not " + wanted + ".");
+                for (int i = 0; i < frames; i++)
+                {
+                    string name = ArtIntro.Resource(id, i);
+                    int wide, high;
+                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+                        if (!Mods.PngSize(stream, out wide, out high) || wide != ArtIntro.ArtWide || high != ArtIntro.ArtHigh) throw new Exception(name + " isn't a " + ArtIntro.ArtWide + " x " + ArtIntro.ArtHigh + " picture.");
+                    foreach (string kind in Chunks(name))
+                        if (kind != "IHDR" && kind != "PLTE" && kind != "tRNS" && kind != "IDAT" && kind != "IEND") throw new Exception(name + " carries more than its picture: " + kind);
+                }
+                Size size = new Size(1920, 1080);
+                Rectangle screen = new Rectangle(Point.Empty, size), spot = new Rectangle(860, 420, 200, 300);
+                const int across = 6, cellW = 320, cellH = 180;
+                int down = (frames + across - 1) / across, skipped = 0, draws = 0, slow = 0;
+                double worst = 0, worstAt = 0;
+                using (Bitmap fake = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+                using (Bitmap frame = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+                using (Graphics pen = Graphics.FromImage(frame))
+                {
+                    using (ArtIntro intro = ArtIntro.Make(id))
+                    {
+                        if (Math.Abs(intro.Seconds - frames / ArtIntro.Fps) > 0.001) throw new Exception(Intros.NameOf(id) + " runs " + intro.Seconds + " s.");
+                        intro.Begin(fake, screen, spot);
+                        if (intro.Shown != 0) throw new Exception(Intros.NameOf(id) + " hadn't got its first frame ready when it began.");
+                        bool[] seen = new bool[frames];
+                        System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+                        while (clock.Elapsed.TotalSeconds < intro.Seconds + 0.25)
+                        {
+                            double at = clock.Elapsed.TotalSeconds;
+                            if (draws == 0 || intro.Changes(at))
+                            {
+                                pen.Clear(Color.Transparent);
+                                System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
+                                intro.Draw(pen, screen, spot, at);
+                                double ms = took.Elapsed.TotalMilliseconds;
+                                draws++;
+                                if (ms > 60) slow++;
+                                if (ms > worst) { worst = ms; worstAt = at; }
+                                if (intro.Shown >= 0) seen[intro.Shown] = true;
+                            }
+                            Thread.Sleep(15);
+                        }
+                        foreach (bool one in seen) if (!one) skipped++;
+                        if (intro.Shown != frames - 1) throw new Exception(Intros.NameOf(id) + " stopped on frame " + intro.Shown + " playing in real time, not its last.");
+                    }
+                    using (ArtIntro intro = ArtIntro.Make(id))
+                    using (Bitmap sheet = new Bitmap(across * cellW, down * cellH))
+                    using (Graphics paper = Graphics.FromImage(sheet))
+                    {
+                        intro.Begin(fake, screen, spot);
+                        for (int i = 0; i < frames; i++)
+                        {
+                            double at = (i + 0.5) / ArtIntro.Fps;
+                            System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
+                            while (true)
+                            {
+                                pen.Clear(Color.Transparent);
+                                intro.Draw(pen, screen, spot, at);
+                                if (intro.Shown == i || waited.ElapsedMilliseconds > 3000) break;
+                                Thread.Sleep(5);
+                            }
+                            if (intro.Shown != i) throw new Exception(Intros.NameOf(id) + " showed frame " + intro.Shown + " at " + at.ToString("0.00") + " s, not " + i + ".");
+                            Rectangle cell = new Rectangle(i % across * cellW, i / across * cellH, cellW, cellH);
+                            using (Brush desktop = new SolidBrush(Color.FromArgb(46, 58, 74))) paper.FillRectangle(desktop, cell);
+                            paper.DrawImage(frame, cell);
+                            using (Font label = new Font("Consolas", 10f)) paper.DrawString((i + 1).ToString(), label, Brushes.Yellow, cell.X + 3, cell.Y + 3);
+                        }
+                        pen.Clear(Color.Transparent);
+                        intro.Draw(pen, screen, spot, intro.Seconds + 1);
+                        if (intro.Shown != frames - 1) throw new Exception(Intros.NameOf(id) + " didn't hold its last frame past its end.");
+                        sheet.Save(Path.Combine(output, "intro-" + id + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                        using (Bitmap wide = new Bitmap(2560, 1080, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+                        using (Graphics ultra = Graphics.FromImage(wide))
+                        {
+                            intro.Draw(ultra, new Rectangle(0, 0, 2560, 1080), spot, 0.4);
+                            if (wide.GetPixel(100, 540).A != 0 || wide.GetPixel(2459, 540).A != 0) throw new Exception(Intros.NameOf(id) + " spilt past its art on an ultrawide screen.");
+                        }
+                    }
+                }
+                foreach (Size other in new[] { new Size(2560, 1080), new Size(1280, 1024), new Size(3840, 2160), new Size(1080, 1920) })
+                {
+                    Rectangle fit = ArtIntro.Fit(new Rectangle(Point.Empty, other));
+                    bool bottom = fit.Bottom == other.Height, middle = Math.Abs(fit.Left - (other.Width - fit.Right)) <= 1;
+                    bool inside = fit.Width <= other.Width && fit.Height <= other.Height && (fit.Width == other.Width || fit.Height == other.Height);
+                    bool shaped = Math.Abs(fit.Width * (double)ArtIntro.ArtHigh / ArtIntro.ArtWide - fit.Height) <= 1;
+                    if (!bottom || !middle || !inside || !shaped) throw new Exception(Intros.NameOf(id) + " doesn't sit on the bottom of a " + other.Width + " x " + other.Height + " screen: " + fit);
+                }
+                using (Bitmap exact = ArtIntro.Render(id, 5, size))
+                {
+                    double[] truth = Looks(exact);
+                    foreach (Size scaled in new[] { new Size(1366, 768), new Size(2560, 1440), new Size(3840, 2160), new Size(480, 270) })
+                        using (Bitmap made = ArtIntro.Render(id, 5, scaled))
+                        {
+                            if (made == null || made.Size != scaled) throw new Exception(Intros.NameOf(id) + " didn't make a " + scaled.Width + " x " + scaled.Height + " frame.");
+                            double[] looks = Looks(made);
+                            for (int i = 0; i < truth.Length; i++)
+                                if (Math.Abs(looks[i] - truth[i]) > 3) throw new Exception(Intros.NameOf(id) + " scaled to " + scaled.Width + " x " + scaled.Height + " doesn't look like itself in part " + i / 2 + ": " + looks[i].ToString("0.0") + " against " + truth[i].ToString("0.0") + ".");
+                        }
+                }
+                if (slow > 2) throw new Exception(Intros.NameOf(id) + " drew " + slow + " of its " + draws + " frames slowly, the slowest " + worst.ToString("0") + " ms at " + worstAt.ToString("0.00") + " s.");
+                if (skipped > 2) throw new Exception(Intros.NameOf(id) + " skipped " + skipped + " of its " + frames + " frames playing in real time.");
+                timing.Add(Intros.NameOf(id) + " " + frames + " frames in " + draws + " draws, " + (frames / ArtIntro.Fps).ToString("0.0") + " s, slowest " + worst.ToString("0") + " ms, " + slow + " over 60 ms, " + skipped + " skipped");
+            }
+            checks.Add("PASS hand-drawn intros play in real time at 1920x1080, drawn only when a new frame is ready, with frames made ahead off the drawing thread; they scale cleanly from 768p to 4K and sit on the bottom of wide, tall and 4K screens (" + string.Join("; ", timing) + ")");
+        }
+
+        private static double[] Looks(Bitmap picture)
+        {
+            const int parts = 4;
+            double[] looks = new double[parts * parts * 2];
+            long[] counted = new long[parts * parts];
+            System.Drawing.Imaging.BitmapData data = picture.LockBits(new Rectangle(Point.Empty, picture.Size), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            try
+            {
+                int[] row = new int[picture.Width];
+                for (int y = 0; y < picture.Height; y++)
+                {
+                    System.Runtime.InteropServices.Marshal.Copy(data.Scan0 + y * data.Stride, row, 0, row.Length);
+                    int band = y * parts / picture.Height * parts;
+                    for (int x = 0; x < row.Length; x++)
+                    {
+                        int pixel = row[x], part = band + x * parts / row.Length;
+                        looks[part * 2] += (pixel >> 24) & 255;
+                        looks[part * 2 + 1] += ((pixel >> 16) & 255) + ((pixel >> 8) & 255) + (pixel & 255);
+                        counted[part]++;
+                    }
+                }
+            }
+            finally { picture.UnlockBits(data); }
+            for (int part = 0; part < counted.Length; part++)
+            {
+                looks[part * 2] /= Math.Max(1, counted[part]);
+                looks[part * 2 + 1] /= Math.Max(1, counted[part]) * 3.0;
+            }
+            return looks;
+        }
+
+        private void CheckIntroPicker(List<string> checks, string output)
+        {
+            Func<Func<bool>, bool> until = delegate(Func<bool> done)
+            {
+                for (int i = 0; i < 280 && !done(); i++) { Application.DoEvents(); Thread.Sleep(25); }
+                return done();
+            };
+            string pickWas = preferences.IntroPick;
+            bool noIntroWas = preferences.NoIntro;
+            try
+            {
+                preferences.IntroPick = null;
+                string first = ModList.WantsIntro ? Intros.FromMods : Intros.Classic;
+                if (IntroPick != first) throw new Exception("With nothing picked her startup animation is " + IntroPick + ", not " + first + ".");
+                preferences.IntroPick = "nonsense";
+                if (IntroPick != Intros.Classic) throw new Exception("An unknown pick wasn't Classic.");
+                preferences.IntroPick = Intros.Classic;
+                if (PickedIntro(false) != null) throw new Exception("Classic picked a full-screen intro.");
+                foreach (string id in new[] { "peek", "up-close", Intros.Door })
+                {
+                    preferences.IntroPick = id;
+                    ICapriIntro picked = PickedIntro(false);
+                    ArtIntro art = picked as ArtIntro;
+                    DoorIntro door = picked as DoorIntro;
+                    bool right = id == Intros.Door ? door != null : art != null && art.Id == id;
+                    if (art != null) art.Dispose();
+                    if (door != null) door.Stop();
+                    if (!right || IntroPick != id) throw new Exception("Picking " + id + " didn't pick its intro.");
+                }
+                preferences.IntroPick = Intros.Classic;
+                mainframe.Sync();
+                if (mainframe.IntroPickShown != "Classic") throw new Exception("Her startup animation button shows " + mainframe.IntroPickShown + ".");
+                Rectangle row = mainframe.IntroSwitchBounds, button = mainframe.IntroPickBounds;
+                if (row.IntersectsWith(button) || Math.Abs(row.Top - button.Top) > 2 || button.Left < row.Right) throw new Exception("Her startup animation button isn't beside Glitch in at startup: " + row + " and " + button);
+                mainframe.OpenIntroPicker();
+                if (!mainframe.IntroPickerOpen) throw new Exception("Her startup animation picker didn't open.");
+                if (!until(() => mainframe.IntroPreviewsReady)) throw new Exception("Her startup animation picker's hand-drawn previews weren't all made within 7 s.");
+                List<string> wanted = new List<string>(Intros.Built);
+                if (IntroModName != null) wanted.Add(Intros.FromMods);
+                string[] cards = mainframe.IntroCards;
+                if (string.Join(",", cards) != string.Join(",", wanted.ToArray())) throw new Exception("Her picker shows " + string.Join(", ", cards) + ".");
+                if (mainframe.IntroCardPicked != Intros.Classic) throw new Exception("Her picker didn't mark Classic as picked.");
+                string crowded = mainframe.IntroPickerCrowded;
+                if (crowded != null) throw new Exception("Her startup animation picker: " + crowded);
+                mainframe.TickIntroPicker(0);
+                using (Bitmap early = mainframe.IntroCardPicture("peek"))
+                {
+                    for (double t = 0; t <= 2.4; t += 0.1) mainframe.TickIntroPicker(t);
+                    foreach (string id in Intros.Built)
+                        if (mainframe.IntroCardDrawn(id) == 0) throw new Exception("Her picker's " + Intros.NameOf(id) + " preview never drew.");
+                    mainframe.TickIntroPicker(0.5);
+                    using (Bitmap later = mainframe.IntroCardPicture("peek"))
+                    {
+                        int changed = 0;
+                        for (int y = 0; y < later.Height; y += 9)
+                            for (int x = 0; x < later.Width; x += 9)
+                                if (later.GetPixel(x, y) != early.GetPixel(x, y)) changed++;
+                        if (changed < 40) throw new Exception("Her picker's Peek preview didn't move: " + changed + " samples changed.");
+                    }
+                }
+                const int cellW = 480, cellH = 270;
+                using (Bitmap sheet = new Bitmap(cellW * 2, cellH * 2))
+                using (Graphics paper = Graphics.FromImage(sheet))
+                {
+                    double[] moments = { 1.2, 0.7, 1.2, 11.6 };
+                    for (int i = 0; i < Intros.Built.Length; i++)
+                    {
+                        mainframe.TickIntroPicker(moments[i]);
+                        using (Bitmap card = mainframe.IntroCardPicture(Intros.Built[i])) paper.DrawImage(card, new Rectangle(i % 2 * cellW, i / 2 * cellH, cellW, cellH));
+                    }
+                    sheet.Save(Path.Combine(output, "intro-picker.png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+                mainframe.TickIntroPicker(1.1);
+                mainframe.IntroPickerShot(Path.Combine(output, "intro-sheet.png"));
+                if (!File.Exists(Path.Combine(output, "intro-sheet.png"))) throw new Exception("Her startup animation picker couldn't be pictured.");
+                mainframe.PickIntroCard("up-close");
+                if (IntroPick != "up-close" || preferences.IntroPick != "up-close" || mainframe.IntroCardPicked != "up-close" || mainframe.IntroPickShown != "Up close") throw new Exception("Picking Up close in her picker didn't stick: " + IntroPick + ", " + mainframe.IntroPickShown + ".");
+                preferences.NoIntro = true;
+                mainframe.Sync();
+                mainframe.OpenIntroPicker();
+                if (!mainframe.IntroPickerNote.Contains("off")) throw new Exception("Her picker didn't say Glitch in at startup is off: " + mainframe.IntroPickerNote);
+                preferences.NoIntro = noIntroWas;
+                mainframe.Sync();
+                bool shownWas = !hidden;
+                mainframe.PickIntroCard("peek");
+                mainframe.PlayIntroCard();
+                if (shownWas && outro != null)
+                {
+                    outroAt = clock.Elapsed.TotalSeconds - 1;
+                    Tick();
+                }
+                bool played = until(() => introScreen != null);
+                bool back = until(() => introScreen == null && (!shownWas || !hidden));
+                if (!played || !back) throw new Exception("Play on screen " + (played ? "didn't bring her back" : "didn't play Peek") + ".");
+                mainframe.CloseIntroPicker();
+                if (mainframe.IntroPickerOpen) throw new Exception("Her startup animation picker didn't close.");
+            }
+            finally
+            {
+                mainframe.CloseIntroPicker();
+                preferences.IntroPick = pickWas;
+                preferences.NoIntro = noIntroWas;
+                SavePreferences();
+                mainframe.Sync();
+            }
+            checks.Add("PASS startup animation picker: Classic, Peek, Up close and Door each preview live beside Glitch in at startup, a pick sticks and shows on the button, and Play on screen plays it and brings her back");
         }
 
         private void CheckModReading(List<string> checks, Func<string, string, string> sample, Func<string, string, string> code)

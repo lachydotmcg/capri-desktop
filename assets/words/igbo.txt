@@ -30,6 +30,7 @@ Ask Capri for more	Jụọ Capri ọzọ
 Asking your server...	Ana m ajụ sava gị...
 Asks before closing only the apps you choose.	Na-ajụ naanị tupu imechi ngwa ndị ị họrọ.
 Auto	Akpaaka
+Auto (match what I say)	Akpaaka (dịka ihe m kwuru)
 Automatic: VB-CABLE, else Steam's	Akpaaka: VB-CABLE, ma ọ bụghị Steam
 BAD RELAY HOST	ỌJỌ RELAY ỌJỌ
 BIG Z open notepad	BIG Z mepee notepad
@@ -290,6 +291,7 @@ Huge	Nnukwu
 I can hear you.	Enwere m ike ịnụ gị.
 I glance at your screen and comment. Costs a little on a paid brain.	Ana m ele ihuenyo gị anya ma kwuo nkọwa. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
 I keep listening. Say my name, then just talk.	Ana m ka na-ege ntị. Kwuo aha m, wee kwuo okwu.
+I speak	Ana m asụ
 I talk about your game as you play. Costs a little on a paid brain.	Ana m ekwu maka egwuregwu gị mgbe ị na-egwu. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
 I type my replies and stay quiet.	Ana m ede azịza m ma nọrọ jụụ.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Agaghị m azaghachi, ihe ọ bụla adịghị ezipụ ebe ọ bụla. Ka m ga-anọ ọnụ, gba egwu na egwu gị, me ihe ngwa ngwa ị jụrụ, dị ka olu.
@@ -598,6 +600,7 @@ SKILL.	NKA.
 SKIN.	AKPỤKỌ.
 SORT BY	HAZIE SITE NA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	OLU ỤZỤ ỤBỤRỤ LEE CAPRI DOOMSCROLL ỌNWA KLIP EGWUREGWU IGODO NYOCHAPỤ OLU GỊ
+Same as I speak	Dịka asụsụ m
 Same as her ears (VOICE > Mic)	Otu ihe ahụ dị ka ntị ya (OLU > Mic)
 Same code on the phone?	Otu koodu na ekwentị?
 Save	Chekwaa
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Ntọala enweghị ihe ọ bụla iji lee anya.
 Settings lost keyboard focus during the Tab walk	Ntọala tụfuru lekọ igodo mgbe njem Tab
 Setup guide	Akwụkwọ ntuziaka nhazi
 Setup stopped	Nhazi kwụsịrị
+She answers in	Ọ na-aza na
 She can read it when it fits.	Ọ nwere ike ịgụ ya mgbe ọ dabara.
 She glances at your screen and comments. Costs a little on a paid brain.	Ọ na-ele ihuenyo gị anya ma kwuo nkọwa. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
 She keeps listening. Say her name, then just talk until you go quiet.	Ọ ka na-ege ntị. Kwuo aha ya, wee kwuo okwu ruo mgbe ị dara jụụ.
