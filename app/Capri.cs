@@ -8158,7 +8158,7 @@ namespace CapriDesktop
         private void KnowLines(string data)
         {
             Said.Folder = data;
-            Said.Ask = delegate(string system, string user) { return brain.Aside(system, user, 3000); };
+            Said.Ask = delegate(string system, string user) { return brain.SmallJob(system, user, 3000); };
             Said.Ready = delegate { return !testing && brain.Model != null; };
             Lingo.Bundled = WordTable;
             Lingo.Changed -= Reword;
@@ -13735,6 +13735,17 @@ namespace CapriDesktop
         internal const double BrainRest = 300, SpareBrainRest = 30;
 
         internal int BrainServerId { get { return engine.ServerId; } }
+
+        internal string SmallJobs { get { return brain.SmallJobs; } }
+
+        internal string BrainModelShown
+        {
+            get
+            {
+                Cloud remote = brain.Remote;
+                return remote == null || remote.Code || remote.Plan || remote.Kind == "local" ? null : remote.Model;
+            }
+        }
 
         private void DropLocalBrain(bool asked)
         {
@@ -46573,6 +46584,7 @@ namespace CapriDesktop
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
             Section(checks, "SmokeResources", delegate { SmokeResources(checks, Path.Combine(output, "resources")); });
+            Section(checks, "SmokeSpend", delegate { SmokeSpend(checks, Path.Combine(output, "spend")); });
             Section(checks, "SmokeRemotePictures", delegate { SmokeRemotePictures(checks); });
             Section(checks, "SmokeRemoteJobs", delegate { SmokeRemoteJobs(checks); });
             Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });
