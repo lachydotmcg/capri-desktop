@@ -1067,6 +1067,7 @@ namespace CapriDesktop
         [DataMember] public int Sounds = 60;
         [DataMember] public int SleepAfter = 120;
         [DataMember] public bool NoIntro;
+        [DataMember] public string IntroPick;
         [DataMember] public bool NoDiscord;
         [DataMember] public int Typing;
         [DataMember] public int BubbleTime = 1;
@@ -8366,6 +8367,7 @@ namespace CapriDesktop
             preferences.NoComments = preferences.CommentPace == Commentary.Off;
             if (preferences.CommentPace > 0) preferences.CommentPaceWas = preferences.CommentPace;
             Commentary.Pace = GamePace;
+            if (preferences.CommentPace == Commentary.Off && GamingOn) gaming.Off();
             SavePreferences();
         }
 
@@ -10247,7 +10249,7 @@ namespace CapriDesktop
             // Fullscreen does not take her controls away (Lachy, 2 Nov: keep her draggable and clickable).
             bool through = full && !docked;
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
-            bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
+            bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked && !PlayingGame;
             if (fullScreenHidden == shouldHide) return;
             // Hiding closes her bubble and her voice with it, so she finishes her line first.
             if (shouldHide && Voicing) return;
@@ -36628,8 +36630,8 @@ namespace CapriDesktop
                 string commentsOff = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
                 bool commentsSavedOff = LoadPreferences().NoComments;
                 mainframe.Sync();
-                if (commentsOff != "Turned Game comments off." || GamePace != Commentary.Off || Commentary.Pace != Commentary.Off || Reactions.Running || !preferences.NoComments || !commentsSavedOff || mainframe.CommentsShown != "Off")
-                    throw new Exception("Comments Off from her settings tool went wrong in Gaming Mode: reply " + commentsOff + ", game pace " + GamePace + ", pace " + Commentary.Pace + ", reactions " + Reactions.Running + ", picked off " + preferences.NoComments + ", saved off " + commentsSavedOff + ", shown " + mainframe.CommentsShown);
+                if (commentsOff != "Turned Game comments off." || GamePace != Commentary.Off || Commentary.Pace != Commentary.Off || Reactions.Running || !preferences.NoComments || !commentsSavedOff || mainframe.CommentsShown != "Off" || GamingOn || said.Count != 0)
+                    throw new Exception("Comments Off from her settings tool went wrong in Gaming Mode: reply " + commentsOff + ", game pace " + GamePace + ", pace " + Commentary.Pace + ", reactions " + Reactions.Running + ", picked off " + preferences.NoComments + ", saved off " + commentsSavedOff + ", shown " + mainframe.CommentsShown + ", gaming " + GamingOn + ", said " + string.Join(" / ", said.ToArray()));
                 mainframe.SlideComments(1);
                 bool commentsSavedOn = !LoadPreferences().NoComments;
                 if (GamePace != Commentary.Events || Commentary.Pace != Commentary.Events || preferences.NoComments || !commentsSavedOn || mainframe.CommentsShown != "Events only")
@@ -36654,6 +36656,58 @@ namespace CapriDesktop
                 SetCommentPace(Commentary.Events);
                 mainframe.Sync();
                 checks.Add("PASS Comments Off stops her game comments and live reactions in Gaming Mode, from her settings tool and the slider; settings from before Gaming Mode's switch went keep how she behaved, an Off that only Gaming Mode lifted becoming Events only, and new installs start on Events only");
+                said.Clear();
+                front = null;
+                string slidArmed = GamingMode("on");
+                mainframe.SlideComments(0);
+                bool slidArmedOff = slidArmed == "Gaming Mode's armed. I'll watch as soon as a game's up." && !GamingOn && !GamingWanted && !mainframe.GamingShown;
+                running = true;
+                front = game;
+                gaming.Check(9150);
+                bool openedQuietly = !GamingOn && said.Count == 0;
+                string slidDocked = GamingMode("on");
+                bool dockedFirst = gaming.State == GameDock.Stage.Docked && gaming.Asked;
+                mainframe.SlideComments(0);
+                bool slidDockedOff = !GamingOn && !GamingWanted;
+                running = false;
+                front = null;
+                gaming.Check(9160);
+                gaming.Check(9190);
+                bool closedSilent = !GamingOn && said.Count == 0;
+                running = true;
+                front = game;
+                Job quietJob = new Job("play Minecraft");
+                DockForJob(quietJob);
+                bool jobLeftOff = !GamingOn && jobDock != quietJob;
+                bool hideWas = preferences.HideFullScreen, playedInView, hidOtherwise;
+                Job jobWas = job;
+                string workingWas = working;
+                try
+                {
+                    preferences.HideFullScreen = true;
+                    job = quietJob;
+                    working = "On it. Esc stops me.";
+                    CheckFullScreen(true);
+                    playedInView = !fullScreenHidden && !hidden;
+                    job = null;
+                    working = null;
+                    CheckFullScreen(true);
+                    hidOtherwise = fullScreenHidden;
+                }
+                finally
+                {
+                    job = jobWas;
+                    working = workingWas;
+                    CheckFullScreen(false);
+                    preferences.HideFullScreen = hideWas;
+                }
+                string quietSaid = string.Join(" / ", said.ToArray());
+                SetCommentPace(Commentary.Events);
+                mainframe.Sync();
+                said.Clear();
+                if (!slidArmedOff || !openedQuietly || !dockedFirst || !slidDockedOff || !closedSilent || !jobLeftOff || !playedInView || !hidOtherwise || hidden)
+                    throw new Exception("Comments Off left Gaming Mode talking: armed off " + slidArmedOff + " (" + slidArmed + "), opened quietly " + openedQuietly + ", docked " + dockedFirst + " (" + slidDocked + "), docked off " + slidDockedOff + ", closed silently " + closedSilent + ", job " + jobLeftOff + ", in view " + playedInView + "/" + hidOtherwise + "/" + hidden + ", said " + quietSaid);
+                checks.Add("PASS Comments Off is Gaming Mode off: sliding Comments to Off turns an armed or docked Gaming Mode off without a word, so a game opening or closing after it gets nothing said; a job playing a game doesn't bring Gaming Mode up while Comments is Off, and she stays in view over a full-screen game she's playing");
                 string askedWhenOn = GamingMode("on");
                 bool askedRight = askedWhenOn == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game." && gaming.Asked && GamingMode("on") == "Gaming Mode's already on.";
                 running = false;

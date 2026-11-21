@@ -348,6 +348,7 @@ namespace CapriDesktop
         private readonly Readout gameSoundLevelName;
         internal static readonly string[] SensitivityNames = { "Off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly Toggle intro;
+        private readonly Key introPick;
         private readonly Toggle listenCapri;
         // Her voice in your mic (F66): the switch, the line saying to pick CABLE Output, and a line under it that says when it
         // needs VB-CABLE, beside a button to VB-CABLE's page, or what's wrong while it's on. They sit under Listen for Capri.
@@ -803,6 +804,11 @@ namespace CapriDesktop
             sitOnWindows.AccessibleName = "Sit on windows. She lands on the top edges of your windows";
             dance = Switch("Dance to music", 0, 578, delegate { if (!syncing) capri.ToggleDance(); });
             intro = Switch("Glitch in at startup", 0, 606, delegate { if (!syncing) capri.ToggleIntro(); });
+            intro.Width = 226;
+            introPick = Make(Intros.NameOf(Intros.Classic), 260, 609, 96, 22, delegate { OpenIntroPicker(); }, "Startup animation");
+            introPick.Chevron = true;
+            introPick.Ellipsis = true;
+            introPick.AccessibleName = "Startup animation: pick which one plays, with a live preview of each";
             Section("KEYS >", 0, 648);
             talkKeys = Make("Talk: Ctrl + Alt + V", 28, 675, 328, 22, delegate { PickKeys(0); });
             talkKeys.AccessibleName = "Her talk key. Click, press new keys, then Confirm";
@@ -3122,7 +3128,8 @@ namespace CapriDesktop
             ServerSheet server = form as ServerSheet;
             ExtrasSheet extras = form as ExtrasSheet;
             ModSheet mods = form as ModSheet;
-            float zoom = provider != null ? provider.Zoom : guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : server != null ? server.Zoom : extras != null ? extras.Zoom : mods != null ? mods.Zoom : 1f;
+            IntroSheet intros = form as IntroSheet;
+            float zoom = provider != null ? provider.Zoom : guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : server != null ? server.Zoom : extras != null ? extras.Zoom : mods != null ? mods.Zoom : intros != null ? intros.Zoom : 1f;
             Rescaler scaler = form.Tag as Rescaler;
             return (scaler != null ? scaler.Unit : 1f) * zoom;
         }
@@ -3385,6 +3392,10 @@ namespace CapriDesktop
             comments.Value = capri.CommentPaceShown;
             commentsName.Text = Commentary.PaceNames[comments.Value];
             intro.Checked = capri.Intro;
+            string introNow = Intros.NameOf(capri.IntroPick);
+            if (introPick.Text != introNow) introPick.Text = introNow;
+            introPick.Status = introNow;
+            if (IntroSheetUp) introSheet.Fill();
             typing.Checked = capri.TypingSound;
             listenCapri.Checked = capri.ListenCapriOn;
             ShowCallApp();
