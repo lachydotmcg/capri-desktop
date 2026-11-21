@@ -2731,7 +2731,12 @@ namespace CapriDesktop
         private System.Collections.Generic.List<string> tongueNotesTest;
         private Func<string, int> nativeTest;
         private int tonguesFetched;
-        private volatile bool voiceBroke;
+        private double tonguesRetryAt = -1;
+        private volatile bool voiceBroke, voiceRetry;
+        private double voiceRetryAt = -1;
+        private const double VoiceRetry = 900, TonguesRetry = 600;
+        [ThreadStatic] private static string windowsRead;
+        private readonly System.Collections.Generic.HashSet<string> windowsTongues = new System.Collections.Generic.HashSet<string>();
         private readonly Voice voice;
         private readonly LocalVoice kokoro;
         private readonly QwenVoice qwen;
@@ -2743,7 +2748,7 @@ namespace CapriDesktop
         // The Bluetooth headset mic she'd listen with, which she leaves shut.
         private string wakeHandsFree;
         // True only inside her smoke test's own wake checks.
-        private bool wakeChecks;
+        private bool wakeChecks, callEarsChecks;
         private double wakeRetryAt = -1, wakeMuteAt = -1;
         private int wakeTries, wakeOpens, wakeFetches, wakeHeard;
         private bool? wakeReadyTest, wakeVoiceTest;
@@ -14480,7 +14485,7 @@ namespace CapriDesktop
 
         private void ToggleChat()
         {
-            if (chatting) { earsClosed = preferences.ListenCapri; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
+            if (chatting) { earsClosed = preferences.ListenCapri || CallModeOn; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
             earsClosed = false;
             WakeRest(true);
             if (!testing) brain.Preconnect();
@@ -14864,8 +14869,10 @@ namespace CapriDesktop
             }
             // Quiet only turns ElevenLabs off, so Fish Audio and her own voices listen too (Lachy, 31 Oct: "hey capri is basically unusable").
             // A job holds her talk state for as long as it runs and a stream runs for hours, and Gaming Mode hides her window, so neither keeps her ears shut (Lachy, 1 Nov).
-            if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || (hidden && !docked) || quitting || (talkState != TalkState.Off && working == null) || speech != null) return;
+            bool call = CallModeOn && (!testing || callEarsChecks);
+            if ((!preferences.ListenCapri && !call) || earsClosed || chatting || now < listenAt || (hidden && !docked) || quitting || (talkState != TalkState.Off && working == null) || speech != null) return;
             listenAt = now + 60;
+            if (!preferences.ListenCapri && !testing) Brain.Log("ears", -1, "Opened for call mode, which was on while they were shut.");
             ToggleChat();
         }
 
@@ -15193,7 +15200,15 @@ namespace CapriDesktop
             }
         }
 
-        private double RoomWake() { return Math.Max(QuietWake, Math.Min(room * RoomMargin, Math.Max(WakeLevel, room * 1.6))); }
+        private double RoomWake() { return Woken(room); }
+
+        private static double Woken(double quietest) { return Math.Max(QuietWake, Math.Min(quietest * RoomMargin, Math.Max(WakeLevel, quietest * 1.6))); }
+
+        private static double OverWake(TalkOver over)
+        {
+            double quietest = over.Room;
+            return quietest < 0 ? WakeLevel : Math.Min(WakeLevel, Woken(quietest));
+        }
 
         // A finished line goes to her ears if it sounds like speech at the wake level. Within a minute of a line that came through, one under the old fixed level and over 10 dB quieter than it is someone else or the TV, not them.
         // On a call the quieter voice is the call, so a line with the call's sound in it counts and leaves their own level as it was.
@@ -15950,7 +15965,7 @@ namespace CapriDesktop
                     restRoom = restRoom < 0 ? Math.Max(0.0003, level) : Math.Max(0.0003, Math.Min(level, restRoom * 1.02));
                     restLevels[restSlot] = speaker.Busy ? 0 : level;
                     restSlot = (restSlot + 1) % restLevels.Length;
-                    double wake = Math.Max(WakeLevel, restRoom * 1.6), low = double.MaxValue, high = 0;
+                    double wake = Woken(restRoom), low = double.MaxValue, high = 0;
                     int speech = 0;
                     foreach (double recent in restLevels)
                         if (recent >= wake) { speech++; low = Math.Min(low, recent); high = Math.Max(high, recent); }
@@ -16194,7 +16209,7 @@ namespace CapriDesktop
             if (!testing && (voice.Key == null || quiet || voiceBroke) && kokoro.Installed && !preferences.Quiet && !preferences.Silent) ThreadPool.QueueUserWorkItem(delegate
             {
                 string code = Brain.LanguageCode(Brain.Language);
-                if (VoiceTongues.Knows(code) && !kokoro.Speaks(code) && Interlocked.CompareExchange(ref tonguesFetched, 1, 0) == 0) GetTongues(delegate { });
+                if (VoiceTongues.Knows(code) && !kokoro.Speaks(code) && FetchTongues()) GetTongues(delegate { });
                 try { kokoro.Warm(); } catch (Exception) { }
             });
             if (!testing && preferences.HdVoice && (voice.Key == null || quiet || voiceBroke || preferences.Quiet) && !preferences.Silent && qwen.Installed && !qwen.Awake && clock.Elapsed.TotalSeconds >= hdRest && !HdStepsAside()) WakeHd();
@@ -16325,11 +16340,16 @@ namespace CapriDesktop
             // being voiced (RemoteLive.cs).
             List<string> pieces = RemotePieces(ticket, words);
             if (pieces != null) { VoicePieces(ticket, turn, audio, said, state, speak, free, pieces); return; }
+            bool retrying = voiceRetry && speak != free;
+            if (retrying) voiceRetry = false;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem;
                 Stopwatch took = Stopwatch.StartNew();
+                windowsRead = null;
                 byte[] wav = Voiced(speak, free, words, out problem);
+                string tongue = windowsRead;
+                bool back = retrying && problem == null && wav != null;
                 if (!testing && (problem != null || (speak == free && took.ElapsedMilliseconds > 5000))) Brain.Log(speak == free ? "free voice" : "ElevenLabs voice", took.ElapsedMilliseconds, problem ?? "slow, " + (wav == null ? 0 : Voice.Seconds(wav)).ToString("0.0") + " s of speech");
                 Post(delegate
                 {
@@ -16344,6 +16364,8 @@ namespace CapriDesktop
                         hdSpeaking = -1;
                         voiceBroken = problem != null;
                         if (problem != null) mainframe.VoiceNote(problem, wav == null);
+                        else if (back) VoiceBack();
+                        else if (tongue != null) ReadByWindows(tongue);
                     }
                     if (reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, audible ? wav : null);
                     else if (audible && FollowDelivery(ticket) && talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
@@ -16366,6 +16388,12 @@ namespace CapriDesktop
 
         private Func<string, byte[]> PickVoice(bool quiet, out Func<string, byte[]> free, bool fallback = true)
         {
+            if (fallback && voiceBroke && voiceRetryAt >= 0 && clock.Elapsed.TotalSeconds >= voiceRetryAt)
+            {
+                voiceRetryAt = -1;
+                voiceBroke = false;
+                voiceRetry = true;
+            }
             Func<string, byte[]> own = FreeSpeak ?? (testing || !kokoro.Installed ? null : new Func<string, byte[]>(kokoro.Speak));
             Func<string, string, byte[]> tongue = FreeTongue ?? (testing || !kokoro.Installed ? null : new Func<string, string, byte[]>(Tongue));
             own = Readable(own, tongue);
@@ -16424,7 +16452,7 @@ namespace CapriDesktop
                 }
                 if (latin && !robotic) return InEnglish(own, words, code, language, quietly);
                 byte[] windows = WindowsVoice.Speak(code, words);
-                if (windows != null) return windows;
+                if (windows != null) { windowsRead = code; return windows; }
                 if (latin) return InEnglish(own, words, code, language, quietly);
                 if (Interlocked.CompareExchange(ref voiceLanguageNoted, 1, 0) == 0)
                 {
@@ -16460,8 +16488,19 @@ namespace CapriDesktop
         {
             if (!VoiceTongues.Knows(code)) return null;
             if (kokoro.Speaks(code)) return kokoro.Speak(words, code, TongueSpeaker(code));
-            if (Interlocked.CompareExchange(ref tonguesFetched, 1, 0) == 0) ThreadPool.QueueUserWorkItem(delegate { GetTongues(delegate { }); });
+            if (FetchTongues()) ThreadPool.QueueUserWorkItem(delegate { GetTongues(delegate { }); });
             return null;
+        }
+
+        private bool FetchTongues()
+        {
+            double retryAt = tonguesRetryAt;
+            if (retryAt >= 0 && clock.Elapsed.TotalSeconds >= retryAt)
+            {
+                tonguesRetryAt = -1;
+                Interlocked.Exchange(ref tonguesFetched, 0);
+            }
+            return Interlocked.CompareExchange(ref tonguesFetched, 1, 0) == 0;
         }
 
         private void GetTongues(Action<string, long, long> progress)
@@ -16469,7 +16508,37 @@ namespace CapriDesktop
             Interlocked.Exchange(ref tonguesFetched, 1);
             try { kokoro.AddTongues(progress, delegate { return IsDisposed || kokoro.Cancel; }); }
             catch (OperationCanceledException) { }
-            catch (Exception error) { if (!testing) Brain.Log("free voice languages", -1, Voice.Short(error.Message)); }
+            catch (Exception error)
+            {
+                tonguesRetryAt = clock.Elapsed.TotalSeconds + TonguesRetry;
+                if (!testing) Brain.Log("free voice languages", -1, Voice.Short(error.Message));
+            }
+        }
+
+        internal const string VoiceBackNote = "ElevenLabs has credits again, so she's back to her ElevenLabs voice.";
+
+        private void VoiceBack()
+        {
+            if (!testing) Brain.Log("ElevenLabs voice", -1, "back after running out of credits");
+            mainframe.VoiceNote(VoiceBackNote, false);
+        }
+
+        internal static string WindowsTongueNote(string name) { return "Her own voice can't speak " + name + ", so a Windows voice reads it. Add a voice for it under CUSTOM LOCAL."; }
+
+        private void ReadByWindows(string code)
+        {
+            if (!windowsTongues.Add(code)) return;
+            bool picked = preferences.WindowsTongue && VoiceLanguage.LatinScript(code);
+            string name = TongueName(code);
+            if (!testing) Brain.Log("free voice", -1, "a Windows voice read a line in " + name + (picked ? ", as picked" : ", since her own voice can't speak it"));
+            if (!picked) mainframe.VoiceNote(WindowsTongueNote(name), false);
+        }
+
+        private static string TongueName(string code)
+        {
+            if (code == "zh") return "Chinese";
+            for (int i = 0; i < Brain.Languages.GetLength(0); i++) if (Brain.Languages[i, 2] == code) return Brain.Languages[i, 1];
+            return code;
         }
 
         private byte[] Voiced(Func<string, byte[]> speak, Func<string, byte[]> free, string words, out string problem, bool fallback = true)
@@ -16481,6 +16550,8 @@ namespace CapriDesktop
             {
                 problem = error.Message;
                 if (!fallback || speak == free || !Broke(error.Message)) return null;
+                voiceRetryAt = clock.Elapsed.TotalSeconds + VoiceRetry;
+                voiceRetry = false;
                 voiceBroke = true;
                 if (free == null && FreeChatOn && !testing) { Post(delegate { GetFreeVoice(); }); problem = "Out of ElevenLabs credits, so she's getting her free voice."; return null; }
                 if (free == null) { problem = "Out of ElevenLabs credits. Pick PREBUILT LOCAL in Capri Mainframe and get her free voice."; return null; }
@@ -46488,6 +46559,8 @@ namespace CapriDesktop
             Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
             Section(checks, "SmokeVoiceCuts", delegate { SmokeVoiceCuts(checks, output); });
             Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
+            Section(checks, "SmokeVoiceBack", delegate { SmokeVoiceBack(checks, output); });
+            Section(checks, "SmokeQuietMic", delegate { SmokeQuietMic(checks); });
             // The Mainframe's Language row and its menu, which the setup card opens too. The full run reaches it from the settings
             // page checks as well; whichever comes first runs it.
             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
@@ -46714,6 +46787,7 @@ namespace CapriDesktop
             Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeCallJob", delegate { SmokeCallJob(checks); });
+            Section(checks, "SmokeCallRestart", delegate { SmokeCallRestart(checks); });
             Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
@@ -47799,6 +47873,261 @@ namespace CapriDesktop
                 VoiceFx.ServerRobot = serverRobotWas; VoiceFx.ServerGlitch = serverGlitchWas; VoiceFx.Layers = layersWas;
                 LoadServer();
                 mainframe.VoiceNote(noteWas, false);
+            }
+        }
+
+        private void SmokeVoiceBack(System.Collections.Generic.List<string> checks, string output)
+        {
+            Preferences preferencesWas = preferences;
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            Func<System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>> catalogWas = WindowsVoice.Catalog;
+            Func<string, string, byte[]> windowsWas = WindowsVoice.Run;
+            string languageWas = Brain.Language, shelfWas = ModelFile.Shelf, keyWas = voice.Key, noteWas = mainframe.VoiceNoteText;
+            bool localWas = local, chattingWas = chatting, brokeWas = voiceBroke, brokenWas = voiceBroken, retryWas = voiceRetry;
+            double retryAtWas = voiceRetryAt, tonguesRetryWas = tonguesRetryAt;
+            int fetchedWas = tonguesFetched;
+            string[] tonguesWas = new string[windowsTongues.Count];
+            windowsTongues.CopyTo(tonguesWas);
+            try
+            {
+                CloseTalk();
+                preferences = new Preferences();
+                local = chatting = voiceBroke = voiceRetry = false;
+                voiceRetryAt = -1;
+                voice.Key = null;
+                Brain.Language = "English";
+                windowsTongues.Clear();
+                string empty = Path.Combine(output, "voice-back-models");
+                Directory.CreateDirectory(empty);
+                ModelFile.Shelf = empty;
+                short[] samples = new short[2400];
+                for (int i = 0; i < samples.Length; i++) samples[i] = (short)(4000 * Math.Sin(i * 0.1));
+                byte[] wav = Voice.Wave(samples, 24000);
+                int paid = 0, own = 0;
+                bool credits = false;
+                Speak = delegate(string words) { paid++; if (!credits) throw new VoiceException("You have run out of credits (quota_exceeded)."); return wav; };
+                FreeSpeak = delegate(string words) { own++; return wav; };
+                Func<string, byte[]> free;
+                string problem;
+                byte[] made = Voiced(PickVoice(false, out free), free, "Hello.", out problem);
+                if (made == null || !voiceBroke || voiceRetryAt < clock.Elapsed.TotalSeconds + VoiceRetry - 60 || paid != 1 || own != 1 || problem != "Out of ElevenLabs credits, so she's using her free voice.") throw new Exception("Running out of ElevenLabs credits didn't hand her line to her free voice.");
+                made = Voiced(PickVoice(false, out free), free, "Still me.", out problem);
+                if (made == null || paid != 1 || own != 2) throw new Exception("She called ElevenLabs again right after it ran out of credits.");
+                voiceRetryAt = clock.Elapsed.TotalSeconds;
+                made = Voiced(PickVoice(false, out free), free, "Still out?", out problem);
+                if (made == null || !voiceBroke || voiceRetry || paid != 2 || own != 3 || voiceRetryAt < clock.Elapsed.TotalSeconds + VoiceRetry - 60) throw new Exception("A later try with no credits yet didn't go back to her free voice and wait again.");
+                credits = true;
+                made = Voiced(PickVoice(false, out free), free, "Not yet.", out problem);
+                if (made == null || paid != 2 || own != 4) throw new Exception("She tried ElevenLabs again before the wait was over.");
+                voiceRetryAt = clock.Elapsed.TotalSeconds;
+                mainframe.VoiceNote("Waiting.", false);
+                Answer(++asking, "I'm back.", TalkState.Talking);
+                WaitVoice(delegate { return reply == "I'm back." && answerVoice < 0; }, "Her line after ElevenLabs had credits again didn't finish.");
+                if (paid != 3 || own != 4 || voiceBroke || voiceRetry || mainframe.VoiceNoteText != VoiceBackNote) throw new Exception("She didn't go back to her ElevenLabs voice once it had credits again, or didn't say so: " + mainframe.VoiceNoteText);
+                VoiceNotePicture(Path.Combine(output, "voice-back"), "elevenlabs-back");
+                checks.Add("PASS out of ElevenLabs credits, her free voice fills in and she tries ElevenLabs again every 15 minutes; once it has credits she's back to her ElevenLabs voice and VOICE says so");
+                Speak = null;
+                int windowsCalls = 0;
+                string windowsName = null;
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> installed = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>();
+                installed.Add(new System.Collections.Generic.KeyValuePair<string, string>("Russian", "ru-RU"));
+                installed.Add(new System.Collections.Generic.KeyValuePair<string, string>("German", "de-DE"));
+                installed.Add(new System.Collections.Generic.KeyValuePair<string, string>("Japanese", "ja-JP"));
+                WindowsVoice.Catalog = delegate { return installed; };
+                WindowsVoice.Run = delegate(string name, string words) { windowsCalls++; windowsName = name; return wav; };
+                Brain.Language = "Russian";
+                string line = "Привет, мир.", russianNote = WindowsTongueNote("Russian");
+                mainframe.VoiceNote("Waiting.", false);
+                Answer(++asking, line, TalkState.Talking);
+                WaitVoice(delegate { return reply == line && answerVoice < 0 && mainframe.VoiceNoteText == russianNote; }, "A Russian line read by a Windows voice didn't say why.");
+                if (windowsCalls != 1 || windowsName != "Russian" || own != 4) throw new Exception("A Russian line didn't go to the Russian Windows voice.");
+                VoiceNotePicture(Path.Combine(output, "voice-back"), "windows-voice");
+                mainframe.VoiceNote("Waiting.", false);
+                Control noteBox = null;
+                foreach (Control top in mainframe.Controls) if (top.Text == "Waiting.") noteBox = top;
+                if (noteBox == null) throw new Exception("VOICE's note wasn't found.");
+                int oneLine = noteBox.Height;
+                mainframe.VoiceNote(WindowsTongueNote("Russian") + " " + WindowsTongueNote("Russian"), false);
+                if (noteBox.Height <= oneLine * 2) throw new Exception("VOICE's note didn't grow past two lines for a note twice as long, so its height can't be checked.");
+                foreach (string longest in new[] { "Russian", "Macedonian", "Belarusian", "Malayalam" })
+                {
+                    mainframe.VoiceNote(WindowsTongueNote(longest), false);
+                    if (noteBox.Height <= oneLine || noteBox.Height > oneLine * 2) throw new Exception("The Windows voice note for " + longest + " isn't two lines under VOICE, so it runs into CAPRI: " + noteBox.Height + " against " + oneLine + " for one line.");
+                }
+                mainframe.VoiceNote("Keep this note.", false);
+                Answer(++asking, "Ещё одна строка.", TalkState.Talking);
+                WaitVoice(delegate { return reply == "Ещё одна строка." && answerVoice < 0; }, "The second Russian line didn't finish.");
+                if (windowsCalls != 2 || mainframe.VoiceNoteText != "Keep this note.") throw new Exception("The Windows voice note came back for the same language in one run.");
+                Brain.Language = "German";
+                preferences.WindowsTongue = true;
+                string hallo = "Hallo! Willst du heute Abend spielen?";
+                Answer(++asking, hallo, TalkState.Talking);
+                WaitVoice(delegate { return reply == hallo && answerVoice < 0; }, "A German line in its picked Windows voice didn't finish.");
+                if (windowsCalls != 3 || windowsName != "German" || mainframe.VoiceNoteText != "Keep this note.") throw new Exception("A Windows voice they picked themselves got a note anyway.");
+                preferences.WindowsTongue = false;
+                Brain.Language = "English";
+                string japanese = "こんにちは。", japaneseNote = WindowsTongueNote("Japanese");
+                Answer(++asking, japanese, TalkState.Talking);
+                WaitVoice(delegate { return reply == japanese && answerVoice < 0 && mainframe.VoiceNoteText == japaneseNote; }, "A Japanese reply read by a Windows voice didn't say why.");
+                if (windowsCalls != 4 || windowsName != "Japanese" || own != 4) throw new Exception("A Japanese reply didn't go to the Japanese Windows voice.");
+                checks.Add("PASS a line her own voice can't speak says once per language in VOICE why a Windows voice reads it, fitting above CAPRI even for the longest language names, and never for a Windows voice they picked");
+                tonguesFetched = 1;
+                tonguesRetryAt = -1;
+                if (FetchTongues()) throw new Exception("Her languages download started twice.");
+                tonguesRetryAt = clock.Elapsed.TotalSeconds + TonguesRetry;
+                if (FetchTongues()) throw new Exception("A failed languages download was tried again straight away.");
+                tonguesRetryAt = clock.Elapsed.TotalSeconds;
+                if (!FetchTongues() || tonguesFetched != 1 || tonguesRetryAt >= 0 || FetchTongues()) throw new Exception("A failed languages download was never tried again.");
+                checks.Add("PASS a failed download of her voice's languages is tried again after 10 minutes, once");
+            }
+            finally
+            {
+                asking++;
+                CloseTalk();
+                preferences = preferencesWas;
+                Speak = speakWas; FreeSpeak = freeWas;
+                WindowsVoice.Catalog = catalogWas; WindowsVoice.Run = windowsWas;
+                Brain.Language = languageWas; ModelFile.Shelf = shelfWas; voice.Key = keyWas;
+                local = localWas; chatting = chattingWas; voiceBroke = brokeWas; voiceBroken = brokenWas; voiceRetry = retryWas;
+                voiceRetryAt = retryAtWas; tonguesRetryAt = tonguesRetryWas; tonguesFetched = fetchedWas;
+                windowsTongues.Clear();
+                foreach (string code in tonguesWas) windowsTongues.Add(code);
+                mainframe.VoiceNote(noteWas, false);
+            }
+        }
+
+        private void VoiceNotePicture(string folder, string name)
+        {
+            bool minimized = mainframe.WindowState == FormWindowState.Minimized, settings = mainframe.SettingsShown;
+            string note = mainframe.VoiceNoteText;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                if (minimized) mainframe.WindowState = FormWindowState.Normal;
+                mainframe.ShowSettings(false);
+                mainframe.Settle();
+                mainframe.Update();
+                using (Bitmap page = new Bitmap(Math.Max(1, mainframe.ClientSize.Width), Math.Max(1, mainframe.ClientSize.Height)))
+                {
+                    mainframe.DrawToBitmap(page, new Rectangle(Point.Empty, page.Size));
+                    page.Save(Path.Combine(folder, name + "-page.png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+                System.Collections.Generic.List<Control> left = new System.Collections.Generic.List<Control>();
+                foreach (Control top in mainframe.Controls) left.Add(top);
+                for (int i = 0; i < left.Count; i++)
+                {
+                    Control seen = left[i];
+                    if (seen.Text == note && seen.Width > 0 && seen.Height > 0)
+                    {
+                        using (Bitmap shot = new Bitmap(seen.Width, seen.Height))
+                        {
+                            seen.DrawToBitmap(shot, new Rectangle(Point.Empty, shot.Size));
+                            shot.Save(Path.Combine(folder, name + "-note.png"), System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                        break;
+                    }
+                    foreach (Control inner in seen.Controls) left.Add(inner);
+                }
+            }
+            catch (System.Runtime.InteropServices.ExternalException) { }
+            finally
+            {
+                mainframe.ShowSettings(settings);
+                if (minimized) mainframe.WindowState = FormWindowState.Minimized;
+            }
+        }
+
+        private void SmokeQuietMic(System.Collections.Generic.List<string> checks)
+        {
+            Agent agentWas = agent;
+            bool chattingWas = chatting, localWas = local, mutedWas = ears.Muted, restingWas = resting;
+            Func<double> clockWas = speaker.Clock;
+            Action<short[]> micWas = sendMicTest;
+            System.Reflection.BindingFlags inside = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            System.Reflection.FieldInfo roomsField = typeof(TalkOver).GetField("rooms", inside), slotField = typeof(TalkOver).GetField("roomSlot", inside), heardField = typeof(TalkOver).GetField("roomsHeard", inside);
+            double[] roomsWas = (double[])((double[])roomsField.GetValue(talkOver)).Clone();
+            int slotWas = (int)slotField.GetValue(talkOver), heardWas = (int)heardField.GetValue(talkOver);
+            double now = 300;
+            Func<double, short[]> tone = delegate(double rms)
+            {
+                short[] chunk = new short[Ears.Chunk];
+                for (int i = 0; i < chunk.Length; i++) chunk[i] = (short)(rms * 32768 * Math.Sqrt(2) * Math.Sin(i * 0.09));
+                return chunk;
+            };
+            Random hiss = new Random(11);
+            short[] hush = new short[Ears.Chunk];
+            for (int i = 0; i < hush.Length; i++) hush[i] = (short)hiss.Next(-40, 41);
+            short[] first = tone(0.0105), second = tone(0.0135), third = tone(0.0115), fan = tone(0.009), din = tone(0.03), faint = tone(0.0015);
+            short[] sentence = new short[Ears.Rate * 4];
+            for (int i = 0; i < sentence.Length; i++) sentence[i] = (short)(9000 * Math.Sin(i * 0.07));
+            Agent link = new Agent();
+            Action asleep = delegate
+            {
+                lock (waking) { restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length); restSlot = 0; preroll.Clear(); backlog = null; resting = true; }
+            };
+            try
+            {
+                if (VoiceLevel(first) >= WakeLevel || VoiceLevel(second) >= WakeLevel || VoiceLevel(third) >= WakeLevel || VoiceLevel(first) < QuietWake) throw new Exception("The quiet mic check's voice wasn't between her floor and the old fixed level.");
+                local = false; chatting = true; agent = null;
+                ears.Muted = false;
+                Hush("smoke reset");
+                asleep();
+                for (int i = 0; i < 20; i++) Listen(hush);
+                Listen(first); Listen(second);
+                if (!resting) throw new Exception("Two soft chunks woke resting voice chat.");
+                Listen(third);
+                if (resting || backlog == null) throw new Exception("Talking at a normal level into a quiet mic didn't wake resting voice chat.");
+                asleep();
+                for (int i = 0; i < 20; i++) Listen(hush);
+                for (int i = 0; i < 40; i++) Listen(fan);
+                if (!resting) throw new Exception("A steady fan in a quiet room woke resting voice chat.");
+                asleep();
+                for (int i = 0; i < 20; i++) Listen(din);
+                Listen(first); Listen(second); Listen(third); Listen(second);
+                if (!resting) throw new Exception("A soft voice under a loud room woke resting voice chat.");
+                chatting = false;
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "The quiet mic wake check did not drain.");
+                chatting = true;
+                asleep();
+                checks.Add("PASS resting ElevenLabs voice chat wakes for a normal voice into a quiet mic in a quiet room, and still sleeps through a steady fan, a lone blip and a soft voice under a loud room");
+                TalkOver fresh = new TalkOver(), still = new TalkOver(), humming = new TalkOver(), loudRoom = new TalkOver();
+                for (int i = 0; i < 10; i++) { still.Quiet(0.0003); humming.Quiet(0.004); loudRoom.Quiet(0.03); }
+                if (OverWake(fresh) != WakeLevel || Math.Abs(OverWake(still) - QuietWake) > 1e-9 || Math.Abs(OverWake(humming) - 0.012) > 1e-9 || OverWake(loudRoom) != WakeLevel)
+                    throw new Exception("Talking over her doesn't follow the room: " + OverWake(fresh) + " " + OverWake(still) + " " + OverWake(humming) + " " + OverWake(loudRoom));
+                sendMicTest = delegate(short[] chunk) { };
+                speaker.Clock = delegate { return now; };
+                Hush("smoke reset");
+                barging = tailOpen = false;
+                talkOver.Reset(); heldBack.Clear();
+                for (int i = 0; i < 10; i++) { now = 300 + i * 0.1; OverHer(hush, link); }
+                if (Math.Abs(OverWake(talkOver) - QuietWake) > 1e-9) throw new Exception("Voice chat didn't learn the quiet room before her line.");
+                now = 301;
+                speaker.Open(Ears.Rate); speaker.Play(sentence);
+                for (int i = 0; i < 20; i++)
+                {
+                    now = 301 + i * 0.1;
+                    if (Array.Exists(OverHer(i < 2 ? hush : faint, link), sample => sample != 0)) throw new Exception("Her faint echo in a quiet mic reached voice chat.");
+                }
+                int barges = bargeIns;
+                short[] passed = null;
+                for (int i = 0; i < 3; i++) { now = 303 + i * 0.1; passed = OverHer(i == 1 ? second : first, link); }
+                if (passed == null || !Array.Exists(passed, sample => sample != 0)) throw new Exception("Talking over her at a normal level into a quiet mic didn't reach voice chat.");
+                WaitVoice(delegate { return bargeIns == barges + 1; }, "Talking over her at a normal level into a quiet mic didn't stop her.");
+                checks.Add("PASS talking over her in ElevenLabs voice chat and after Hey Capri follows the room: a normal voice into a quiet mic stops her, and a loud room never needs more than before");
+            }
+            finally
+            {
+                Hush("smoke reset");
+                speaker.Clock = clockWas; sendMicTest = micWas;
+                agent = agentWas; chatting = chattingWas; local = localWas; ears.Muted = mutedWas;
+                barging = tailOpen = false;
+                talkOver.Reset(); heldBack.Clear();
+                Array.Copy(roomsWas, (double[])roomsField.GetValue(talkOver), roomsWas.Length);
+                slotField.SetValue(talkOver, slotWas); heardField.SetValue(talkOver, heardWas);
+                lock (waking) { restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length); restSlot = 0; preroll.Clear(); backlog = null; resting = restingWas; }
+                link.Dispose();
             }
         }
 

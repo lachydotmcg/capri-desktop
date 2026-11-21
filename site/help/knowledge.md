@@ -1098,6 +1098,8 @@ Call mode hears your mic and the selected call app separately, so she knows whic
 
 Right-click her > Open Capri Mainframe > Settings > VOICE > Call mode (beta) turns it on. On her call panel, click the call app's name to choose what she hears. Turning call mode on doesn't join a call for you.
 
+If call mode is still on when she starts, she opens her ears for the call by herself (0.9.7), so your friends who hear her are heard too. Shut her ears with TALK and they stay shut until you open them again.
+
 Without her own ears, call mode hears offline to keep each speaker separate, so the hearing line under VOICE says "Hearing offline for call mode" in grey. Nothing is wrong. Her own ears hear better: set Hearing under VOICE to Her own ears to get them.
 
 ### Does call mode work with Zoom? (0.8.3)
@@ -1197,6 +1199,8 @@ Since 0.7.1, muting pauses ElevenLabs voice chat once she stops talking: "Mic mu
 ### She went quiet: "Voice chat resting. Talk and she'll pick up."
 If you go quiet, she stays quiet too: she doesn't ask if you're still there. After a bit the call rests, which saves your ElevenLabs credits. Just talk and she picks up again.
 
+From 0.9.7 she listens for your voice over your room's own sound, like free voice chat does, so a quiet mic works without shouting, in ElevenLabs voice chat and when you talk over her. A steady fan or hum still doesn't wake her.
+
 ### Can she do things in voice chat?
 Yes. Ask her to open apps, play music and so on, the same as in text. A job with her cursor (playing a song, searching YouTube, anything with clicks) can take a minute, so in ElevenLabs voice chat she says she's on it straight away and tells you how it went when it's done. Asking again while it runs doesn't start it twice. With no brain set up, she plays music and changes the volume with her quick tools instead.
 
@@ -1210,6 +1214,11 @@ Capri makes a voice agent called "Capri" in your own ElevenLabs account and talk
 
 ### Voice chat in other languages
 Free voice chat listens for the language under I speak and answers in the one under She answers in. It hears 25 languages with her own ears (see Free voice chat above). ElevenLabs voice chat uses She answers in for both, and in other languages it's new and not well tested yet.
+
+### Why did her voice change to a Windows voice? (0.9.7)
+Her free voice speaks English, and French, Spanish, Italian, Portuguese and Hindi once their small download is in. A line in another language, like Russian or Japanese, is read by a Windows voice for that language when Windows has one, and VOICE says so once per language each run. A voice for that language under CUSTOM LOCAL takes over from it.
+
+If you run out of ElevenLabs credits, her free voice fills in, and she tries ElevenLabs again every 15 minutes. Once your credits are back, VOICE says "ElevenLabs has credits again, so she's back to her ElevenLabs voice."
 
 ### How do I set up push to talk?
 Mainframe > Settings > KEYS > Push to talk. Click it, press a key or a middle or side mouse button, then click Confirm. It starts unbound. Left and right mouse clicks aren't available for this binding.
