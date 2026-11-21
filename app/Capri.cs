@@ -2739,7 +2739,7 @@ namespace CapriDesktop
         // The Bluetooth headset mic she'd listen with, which she leaves shut.
         private string wakeHandsFree;
         // True only inside her smoke test's own wake checks.
-        private bool wakeChecks;
+        private bool wakeChecks, callEarsChecks;
         private double wakeRetryAt = -1, wakeMuteAt = -1;
         private int wakeTries, wakeOpens, wakeFetches, wakeHeard;
         private bool? wakeReadyTest, wakeVoiceTest;
@@ -14406,7 +14406,7 @@ namespace CapriDesktop
 
         private void ToggleChat()
         {
-            if (chatting) { earsClosed = preferences.ListenCapri; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
+            if (chatting) { earsClosed = preferences.ListenCapri || CallModeOn; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
             earsClosed = false;
             WakeRest(true);
             if (!testing) brain.Preconnect();
@@ -14790,8 +14790,10 @@ namespace CapriDesktop
             }
             // Quiet only turns ElevenLabs off, so Fish Audio and her own voices listen too (Lachy, 31 Oct: "hey capri is basically unusable").
             // A job holds her talk state for as long as it runs and a stream runs for hours, and Gaming Mode hides her window, so neither keeps her ears shut (Lachy, 1 Nov).
-            if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || (hidden && !docked) || quitting || (talkState != TalkState.Off && working == null) || speech != null) return;
+            bool call = CallModeOn && (!testing || callEarsChecks);
+            if ((!preferences.ListenCapri && !call) || earsClosed || chatting || now < listenAt || (hidden && !docked) || quitting || (talkState != TalkState.Off && working == null) || speech != null) return;
             listenAt = now + 60;
+            if (!preferences.ListenCapri && !testing) Brain.Log("ears", -1, "Opened for call mode, which was on while they were shut.");
             ToggleChat();
         }
 
@@ -46278,6 +46280,7 @@ namespace CapriDesktop
             Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeCallJob", delegate { SmokeCallJob(checks); });
+            Section(checks, "SmokeCallRestart", delegate { SmokeCallRestart(checks); });
             Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });

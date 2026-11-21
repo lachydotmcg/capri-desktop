@@ -1091,6 +1091,8 @@ Call mode hears your mic and the selected call app separately, so she knows whic
 
 Right-click her > Open Capri Mainframe > Settings > VOICE > Call mode (beta) turns it on. On her call panel, click the call app's name to choose what she hears. Turning call mode on doesn't join a call for you.
 
+If call mode is still on when she starts, she opens her ears for the call by herself (0.9.7), so your friends who hear her are heard too. Shut her ears with TALK and they stay shut until you open them again.
+
 Without her own ears, call mode hears offline to keep each speaker separate, so the hearing line under VOICE says "Hearing offline for call mode" in grey. Nothing is wrong. Her own ears hear better: set Hearing under VOICE to Her own ears to get them.
 
 ### Does call mode work with Zoom? (0.8.3)
