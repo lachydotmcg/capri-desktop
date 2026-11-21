@@ -30,6 +30,7 @@ Ask Capri for more
 Asking your server...
 Asks before closing only the apps you choose.
 Auto
+Auto (match what I say)
 Automatic: VB-CABLE, else Steam's
 BAD RELAY HOST
 BIG Z open notepad
@@ -290,6 +291,7 @@ Huge
 I can hear you.
 I glance at your screen and comment. Costs a little on a paid brain.
 I keep listening. Say my name, then just talk.
+I speak
 I talk about your game as you play. Costs a little on a paid brain.
 I type my replies and stay quiet.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.
@@ -598,6 +600,7 @@ SKILL.
 SKIN.
 SORT BY
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as I speak
 Same as her ears (VOICE > Mic)
 Same code on the phone?
 Save
@@ -633,6 +636,7 @@ Settings had nothing to watch.
 Settings lost keyboard focus during the Tab walk
 Setup guide
 Setup stopped
+She answers in
 She can read it when it fits.
 She glances at your screen and comments. Costs a little on a paid brain.
 She keeps listening. Say her name, then just talk until you go quiet.

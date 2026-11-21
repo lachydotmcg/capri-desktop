@@ -30,6 +30,7 @@ Ask Capri for more	Muulize Capri zaidi
 Asking your server...	Inauliza seva yako...
 Asks before closing only the apps you choose.	Huuliza kabla ya kufunga programu ulizochagua pekee.
 Auto	Otomatiki
+Auto (match what I say)	Otomatiki (kulingana na ninachosema)
 Automatic: VB-CABLE, else Steam's	Otomatiki: VB-CABLE, vinginevyo ya Steam
 BAD RELAY HOST	SERVA YA RELAY SI SAHIHI
 BIG Z open notepad	BIG Z fungua notepad
@@ -290,6 +291,7 @@ Huge	Kubwa sana
 I can hear you.	Nakusikia.
 I glance at your screen and comment. Costs a little on a paid brain.	Natazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
 I keep listening. Say my name, then just talk.	Naendelea kusikiliza. Sema jina langu, kisha zungumza tu.
+I speak	Ninazungumza
 I talk about your game as you play. Costs a little on a paid brain.	Nazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.
 I type my replies and stay quiet.	Naandika majibu yangu na kubaki kimya.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Sitajibu, na hakuna kinachotumwa popote. Bado nitakaa nawe, nitacheza kwa muziki wako na kufanya mambo ya haraka unayoomba, kama sauti.
@@ -598,6 +600,7 @@ SKILL.	UJUZI.
 SKIN.	NGOZI.
 SORT BY	PANGA KWA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SAUTI TABIA UBONGO TAZAMA CAPRI DOOMSCROLL HALI YA HEWA KLIPU MICHEZO VITUFE MIENDO SAUTI YAKO
+Same as I speak	Sawa na lugha yangu
 Same as her ears (VOICE > Mic)	Sawa na masikio yake (SAUTI > Maikrofoni)
 Same code on the phone?	Msimbo huo huo kwenye simu?
 Save	Hifadhi
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Mipangilio haikuwa na cha kutazama.
 Settings lost keyboard focus during the Tab walk	Mipangilio ilipoteza umakini wa kibodi wakati wa kupitia Tab
 Setup guide	Mwongozo wa usanidi
 Setup stopped	Usanidi umesimama
+She answers in	Anajibu kwa
 She can read it when it fits.	Anaweza kuisoma inapofaa.
 She glances at your screen and comments. Costs a little on a paid brain.	Anatazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
 She keeps listening. Say her name, then just talk until you go quiet.	Anaendelea kusikiliza. Sema jina lake, kisha zungumza hadi unyamaze.

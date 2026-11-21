@@ -1044,6 +1044,9 @@ namespace CapriDesktop
         // Off until they turn it on (Lachy, 7 Nov: "Maybe add a legacy stand"): her stand from 0.8.5, for mods her new one broke.
         [DataMember] public bool LegacyStand;
         [DataMember] public string Language;
+        [DataMember] public string ReplyLanguage;
+        [DataMember] public bool OwnAccent;
+        [DataMember] public bool TextOnlyTongues;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
         [DataMember] public int Recall = 8;
@@ -1064,6 +1067,7 @@ namespace CapriDesktop
         [DataMember] public int Sounds = 60;
         [DataMember] public int SleepAfter = 120;
         [DataMember] public bool NoIntro;
+        [DataMember] public string IntroPick;
         [DataMember] public bool NoDiscord;
         [DataMember] public int Typing;
         [DataMember] public int BubbleTime = 1;
@@ -1110,6 +1114,8 @@ namespace CapriDesktop
         // runs her background checks less often and listens at a gentler pace (issue #111, 6 Nov).
         [DataMember] public int PowerSaver = 1;
         [DataMember] public int MusicApp;
+        [DataMember] public bool Lite;
+        [DataMember] public string[] LiteKept;
         // Her Mainframe's size: 0 for Auto, which grows it on a screen whose desktop is bigger than its panel (Virtual Super
         // Resolution, DSR), or 100 to 200 for that percent of the screen's own scale.
         [DataMember] public int MainframeSize;
@@ -2721,6 +2727,9 @@ namespace CapriDesktop
         internal Func<string, byte[]> FreeSpeak;
         internal Func<string, string, byte[]> FreeTongue;
         private int voiceLanguageNoted;
+        private int tongueNoted;
+        private System.Collections.Generic.List<string> tongueNotesTest;
+        private Func<string, int> nativeTest;
         private int tonguesFetched;
         private volatile bool voiceBroke;
         private readonly Voice voice;
@@ -3123,7 +3132,7 @@ namespace CapriDesktop
             ears.Chosen = preferences.Mic;
             if (!smoke) MixVoice();
             kokoro.Style = LocalVoice.Find(preferences.VoiceStyle);
-            Brain.Language = Brain.LanguageCode(preferences.Language) == "en" ? null : preferences.Language;
+            PointReplies();
             KnowLines(data);
             PointEars();
             Brain.Nickname = Brain.Nick(preferences.Nickname).Length == 0 ? null : Brain.Nick(preferences.Nickname);
@@ -3161,6 +3170,7 @@ namespace CapriDesktop
             preferences.PopPace = Math.Max(0, Math.Min(2, preferences.PopPace));
             preferences.PowerSaver = Math.Max(0, Math.Min(2, preferences.PowerSaver));
             preferences.MusicApp = Math.Max(0, Math.Min(2, preferences.MusicApp));
+            Brain.Lite = preferences.Lite;
             clip = idle;
             nextGlitch = 30 + random.NextDouble() * 30;
             Text = "Capri";
@@ -3459,6 +3469,7 @@ namespace CapriDesktop
                 if (husk != null) husk.Tick();
                 CheckHuskFront(signalNow);
                 long signalIdle = Native.IdleMilliseconds();
+                liteIdle = preferences.Lite && (FakedIdle == null ? signalIdle : FakedIdle()) >= LiteIdleMs;
                 if (!testing) CheckForeground(signalNow);
                 if (!testing) CheckKeyAccess();
                 if (!testing) CheckExplore(signalNow);
@@ -3726,7 +3737,7 @@ namespace CapriDesktop
             if (clip == perchSleep) return 66;
             if (HoldsStill(now)) return HoldMs;
             // Power saver: resting, she ticks on whole ticks of Windows' clock at her rest rate, like a slow perch.
-            if (Resting(now)) return Math.Max(1, 64 / Math.Max(1, (int)Math.Min(clip.Fps, Math.Min(preferences.PerchFps, SaverFps)))) * 1000 / 64 - 1;
+            if (Resting(now)) return Math.Max(1, 64 / Math.Max(1, (int)Math.Min(clip.Fps, Math.Min(preferences.PerchFps, RestFps)))) * 1000 / 64 - 1;
             if (frontBusy)
             {
                 if (docked) return 66;
@@ -3760,7 +3771,7 @@ namespace CapriDesktop
         private bool StandingStill { get { return clip == idle && clip.Fps > SaverFps && seat == null && !riding && !dragging && !walking && !falling && !Sulking && outro == null; } }
 
         // Her perch's frames a second right now: the rate they picked, or Power saver's while she rests.
-        private int PerchRateNow(double now) { return Resting(now) ? Math.Min(preferences.PerchFps, SaverFps) : preferences.PerchFps; }
+        private int PerchRateNow(double now) { return Resting(now) ? Math.Min(preferences.PerchFps, RestFps) : preferences.PerchFps; }
 
         // A tick off 30 fps with nothing new to show: she's only sitting, still where she was drawn, and her perch frame hasn't changed.
         private bool Steady(double now)
@@ -8071,19 +8082,54 @@ namespace CapriDesktop
             }
         }
 
-        internal string Language { get { return Brain.Language ?? "English"; } }
+        internal string Language { get { return preferences.ReplyLanguage == null ? Brain.Language ?? "English" : Speaks; } }
+
+        private string Speaks { get { return Brain.LanguageCode(preferences.Language) == "en" ? "English" : preferences.Language; } }
+
+        internal string ReplyLanguage { get { return LanguagePair.Answers(preferences.ReplyLanguage); } }
 
         // A picked English is saved as English, so she listens in English. Never picked, it stays empty (agir's Japanese PC).
         internal void SetLanguage(string language)
         {
             string code = Brain.LanguageCode(language);
-            Brain.Language = code == "en" ? null : language;
             preferences.Language = code == "en" ? "English" : language;
+            Brain.Language = LanguagePair.Reply(preferences.ReplyLanguage, preferences.Language);
             brain.Forget();
             SavePreferences();
             PointEars();
             Said.Warm();
-            if (!testing) Lingo.Use(Brain.Language);
+            if (!testing) Lingo.Use(code == "en" ? null : language);
+        }
+
+        internal void SetReplyLanguage(string answers)
+        {
+            preferences.ReplyLanguage = LanguagePair.Answers(answers);
+            PointReplies();
+            brain.Forget();
+            SavePreferences();
+            PointEars();
+            Said.Warm();
+        }
+
+        private void PointReplies()
+        {
+            string answers = LanguagePair.Answers(preferences.ReplyLanguage);
+            preferences.ReplyLanguage = answers;
+            Brain.Matching = answers == LanguagePair.Auto;
+            Brain.Firm = answers != null && !Brain.Matching;
+            Brain.Language = LanguagePair.Reply(answers, preferences.Language);
+        }
+
+        private void Match(string said)
+        {
+            if (!Brain.Matching) return;
+            string was = Brain.Language;
+            string heard = LanguagePair.Detect(said, was ?? "English");
+            if (heard == null) return;
+            string now = Brain.LanguageCode(heard) == "en" ? null : heard;
+            if (now == was) return;
+            Brain.Language = now;
+            Said.Warm();
         }
 
         private void Reword()
@@ -8113,7 +8159,7 @@ namespace CapriDesktop
             Lingo.Changed -= Reword;
             Lingo.Changed += Reword;
             Lingo.Reload();
-            Lingo.Use(testing ? null : Brain.Language);
+            Lingo.Use(testing || Language == "English" ? null : Language);
             Said.Know(Brain.Greetings, Brain.HalloweenLines, PetLines, PatPeaceLines, PatNoLines, ThrowLines, WarnLines, DizzyLines, SulkLines, DodgeLines, SorryLines, AloneLines,
                 PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
@@ -8325,6 +8371,7 @@ namespace CapriDesktop
             preferences.NoComments = preferences.CommentPace == Commentary.Off;
             if (preferences.CommentPace > 0) preferences.CommentPaceWas = preferences.CommentPace;
             Commentary.Pace = GamePace;
+            if (preferences.CommentPace == Commentary.Off && GamingOn) gaming.Off();
             SavePreferences();
         }
 
@@ -8554,7 +8601,7 @@ namespace CapriDesktop
         }
 
         // Power saver is working now: Always, or In games while a game or anything full screen is in front.
-        internal bool Saving { get { return preferences.PowerSaver == 2 || preferences.PowerSaver == 1 && frontBusy; } }
+        internal bool Saving { get { return preferences.Lite || preferences.PowerSaver == 2 || preferences.PowerSaver == 1 && frontBusy; } }
 
         // Her quarter-second signals' ticks: while Power saver works, her background checks run on every 4th, once a second.
         internal const int SaverEvery = 4;
@@ -8573,7 +8620,7 @@ namespace CapriDesktop
         private void RestArt(double now, int tick)
         {
             if (!CanRest) return;
-            Clip.RestAll(tick, docked ? DockedArtRest : 600000);
+            Clip.RestAll(tick, docked || preferences.Lite ? DockedArtRest : 600000);
             bodyCells.Rest(tick);
             shatter.Rest(tick);
             if (inBetween != null && perchMix == 0 && now - tweenUsed >= 600)
@@ -10206,7 +10253,7 @@ namespace CapriDesktop
             // Fullscreen does not take her controls away (Lachy, 2 Nov: keep her draggable and clickable).
             bool through = full && !docked;
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
-            bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
+            bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked && !PlayingGame;
             if (fullScreenHidden == shouldHide) return;
             // Hiding closes her bubble and her voice with it, so she finishes her line first.
             if (shouldHide && Voicing) return;
@@ -10515,7 +10562,7 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
-            if (remote == null && local != null && pick != null)
+            if (remote == null && local != null && pick != null && !preferences.Lite)
             {
                 if (pick.EyesFile == null) mainframe.ShowProblem("This brain can't see. Press Free key to fix.");
                 else if (!local.HasEyes(pick)) FetchEyes(local, pick);
@@ -11891,6 +11938,7 @@ namespace CapriDesktop
                 case "show_advanced": return preferences.AdvancedSettings;
                 case "listen_for_capri": return ListenCapriOn;
                 case "voice_in_mic": return VoiceInMic;
+                case "lite_mode": return preferences.Lite;
                 default: return ChimeSettingOn(name);
             }
         }
@@ -11942,6 +11990,7 @@ namespace CapriDesktop
                 case "show_advanced": ToggleAdvancedSettings(); if (mainframe.SettingsShown) mainframe.ShowSettings(true); return null;
                 case "listen_for_capri": ToggleListenCapri(true, fromAgent); return null;
                 case "voice_in_mic": ToggleVoiceInMic(); return on && !VoiceInMic ? "Open Mainframe > VOICE > Her voice in your mic > Get VB-CABLE, install it, then restart your PC." : null;
+                case "lite_mode": return SetLite(on, false);
                 default: SetChimeSetting(name); return null;
             }
         }
@@ -11995,6 +12044,7 @@ namespace CapriDesktop
                 case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
                 case "music_app": return Math.Max(0, Math.Min(2, MusicApp));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
+                case "reply_language": return ReplyLanguage == null ? 0 : Math.Max(0, Array.IndexOf(Hands.StepsOf(name), ReplyLanguage));
                 case "reply_limit": return ReplyLength;
                 case "game_comments": return CommentPaceShown;
                 case "clip_length": return Array.IndexOf(ClipSettings.Lengths, ClipOptions.Seconds);
@@ -12048,6 +12098,7 @@ namespace CapriDesktop
                 case "power_saver": SetPowerSaver(step); break;
                 case "music_app": SetMusicApp(step); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
+                case "reply_language": SetReplyLanguage(Hands.StepsOf(name)[step]); break;
                 case "reply_limit": SetReplyLength(step); break;
                 case "game_comments": SetCommentPace(step); break;
                 case "clip_length": SetClipOptions(ClipSettings.Lengths[step], ClipOptions.Fps, ClipOptions.Resolution, ClipOptions.Mbps); break;
@@ -12081,6 +12132,7 @@ namespace CapriDesktop
         // voice as it's set now once the reply it came with is over, without touching her voice service.
         private string SettingAction(string action, bool fromAgent)
         {
+            if (action == "why_slow") return SlowFound();
             if (InvokeRequired) return (string)Invoke(new Func<string, bool, string>(SettingAction), action, fromAgent);
             if (action == "edit_check_in_lines") { OpenCare(); return "Opened your check-in lines."; }
             if (action == "preview_voice")
@@ -12219,6 +12271,7 @@ namespace CapriDesktop
         {
             ++brainLook;
             if (preferences.NoAi) SetNoAi(false);
+            if (preferences.Lite) SetLite(false, false);
             if (SettingUp || machine == null) return;
             SettingUp = true;
             engine.Cancel = false;
@@ -13082,6 +13135,7 @@ namespace CapriDesktop
         private void PointEars()
         {
             string was = parakeet.Model;
+            parakeet.Multi = Brain.Matching;
             parakeet.Language = Listening(preferences.Language, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
             UpdateHearing();
             if (parakeet.Model == was || !chatting || !local) return;
@@ -13527,6 +13581,30 @@ namespace CapriDesktop
             ShowVoice(false);
         }
 
+        internal bool OwnAccent { get { return preferences.OwnAccent; } }
+
+        internal bool TextOnlyTongues { get { return preferences.TextOnlyTongues; } }
+
+        internal int NativeVoice(string code) { return nativeTest != null ? nativeTest(code) : kokoro.Native(code); }
+
+        private int TongueSpeaker(string code) { return preferences.OwnAccent ? -1 : NativeVoice(code); }
+
+        internal void ToggleOwnAccent()
+        {
+            if (AfterLine(ToggleOwnAccent)) return;
+            preferences.OwnAccent = !preferences.OwnAccent;
+            SavePreferences();
+            ShowVoice(false);
+        }
+
+        internal void ToggleTextOnlyTongues()
+        {
+            if (AfterLine(ToggleTextOnlyTongues)) return;
+            preferences.TextOnlyTongues = !preferences.TextOnlyTongues;
+            SavePreferences();
+            ShowVoice(false);
+        }
+
         internal void ToggleHdCpu()
         {
             if (AfterLine(ToggleHdCpu)) return;
@@ -13721,6 +13799,7 @@ namespace CapriDesktop
         {
             if (now - brainChecked < 5 || restingBrain) return;
             brainChecked = now;
+            if (preferences.Lite) { RestForLite(); return; }
             if (!engine.Running || SettingUp) return;
             double after = BrainRestAfter;
             if (after == BrainRest && !CanRest) return;
@@ -13734,7 +13813,7 @@ namespace CapriDesktop
         }
 
         // Only with Power saver In games or Always does a full-screen game or video send her back to her free voice.
-        private bool HdStepsAside() { return preferences.PowerSaver != 0 && Native.Gaming(); }
+        private bool HdStepsAside() { return preferences.Lite || preferences.PowerSaver != 0 && Native.Gaming(); }
 
         internal void ChooseVoiceStyle(string name)
         {
@@ -15968,6 +16047,7 @@ namespace CapriDesktop
             }
             pictureShown = shown; pictureText = text; pictureTyped = typed;
             if (typed == "") Security.Drop();
+            if (prompt == "> you: ") Match(input);
             Func<int, string> callReply = prompt == "> you: " && !Security.FromMod(input) && (typed == null || input.Length > 0) ? FriendAnswer(input) : null;
             int callVersion = (callInput || prompt == "> you: ") && CallModeOn ? callSession.Generation : -1;
             string callContext = callVersion < 0 ? null : callSession.Rules(callVersion);
@@ -16034,6 +16114,8 @@ namespace CapriDesktop
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
             string herLine = callReply == null && prompt == "> you: " ? HerComputerAsk(input) : null;
             if (herLine != null) { Answer(ticket, herLine, TalkState.Talking); return; }
+            string liteLine = callReply == null && prompt == "> you: " ? LiteAnswer(input) : null;
+            if (liteLine != null) { Answer(ticket, liteLine, TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (prompt == "> you: ") chattedAt = DateTime.UtcNow;
             if (callReply == null && probe.Pending && !meeting.Asking && prompt == "> you: " && (typed == null || input.Length > 0))
@@ -16076,6 +16158,7 @@ namespace CapriDesktop
                 // Plain commands run before her brain words the result, with no tools to run again (YunoTheAlien, 13 Nov).
                 else if (think == null && planned.Key == null && !callInput && !preferences.NoAi && brain.Model != null && Hands.Plain(quick, quickArgs)) { plain = true; followAllowed = false; think = delegate { return PlainReply(text, quick, quickArgs, ticket, typed); }; }
             }
+            if (think == null && callReply == null && planned.Key == null && prompt == "> you: " && AsksWhySlow(input)) { followAllowed = false; think = delegate { return SlowLine(ReadSlowSigns()); }; }
             // No AI: what her hands do by phrase ran above, and the news needs no brain; anything else gets her short line now and then.
             if (preferences.NoAi && (think == null || think == firstThink && planned.Key == null))
             {
@@ -16134,6 +16217,7 @@ namespace CapriDesktop
                         if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput, callHeard, typed: typed, photo: photo); return; }
                         if (problem != null && ticket == asking) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem));
                         else if (ticket == asking && remote != null && remote.Code && brain.Remote == remote) mainframe.ShowCloud(remote, cloudModels);
+                        if (problem == Brain.LiteLine && ticket == asking) liteOffer = clock.Elapsed.TotalSeconds;
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
                         said = CallLine(ticket, said);
                         if (typed == null && CallHands(ticket) && !brain.PictureReply) callSession.Keep(callUserVersion, callRecord, said, Brain.Recall, delegate { return ticket == asking; });
@@ -16307,7 +16391,7 @@ namespace CapriDesktop
             string[] folders = { preferences.ServerApi == VoiceServer.Files ? preferences.ServerUrl : null, preferences.AsideApi == VoiceServer.Files ? preferences.AsideUrl : null };
             string[] languages = { preferences.ServerModel, preferences.AsideModel };
             string[] speakers = { preferences.ServerSpeaker, preferences.AsideSpeaker };
-            bool robotic = preferences.WindowsTongue;
+            bool robotic = preferences.WindowsTongue, quietly = preferences.TextOnlyTongues;
             return delegate(string words)
             {
                 string code = VoiceLanguage.Tongue(words, language);
@@ -16338,10 +16422,10 @@ namespace CapriDesktop
                     }
                     catch (Exception) { }
                 }
-                if (latin && !robotic) return own(words);
+                if (latin && !robotic) return InEnglish(own, words, code, language, quietly);
                 byte[] windows = WindowsVoice.Speak(code, words);
                 if (windows != null) return windows;
-                if (latin) return own(words);
+                if (latin) return InEnglish(own, words, code, language, quietly);
                 if (Interlocked.CompareExchange(ref voiceLanguageNoted, 1, 0) == 0)
                 {
                     string note = VoiceLanguage.Missing(code.Length == 0 ? Brain.LanguageCode(language) : code, language);
@@ -16351,10 +16435,31 @@ namespace CapriDesktop
             };
         }
 
+        private byte[] InEnglish(Func<string, byte[]> own, string words, string code, string language, bool quietly)
+        {
+            if (VoiceTongues.Knows(code)) return own(words);
+            if (Interlocked.CompareExchange(ref tongueNoted, 1, 0) == 0) TongueNote(Unspoken(language, quietly));
+            return quietly ? null : own(words);
+        }
+
+        internal static string Unspoken(string language, bool quietly)
+        {
+            return "My free voice can't speak " + (LanguagePair.Known(language) ?? "that language") + " yet, so " + (quietly ? "I'll stick to text." : "you'll hear my English voice.");
+        }
+
+        private void TongueNote(string note)
+        {
+            System.Collections.Generic.List<string> heard = tongueNotesTest;
+            if (heard != null) { lock (heard) heard.Add(note); return; }
+            if (testing) return;
+            Lingo.Learn(note);
+            Post(delegate { mainframe.VoiceNote(note, false); });
+        }
+
         private byte[] Tongue(string code, string words)
         {
             if (!VoiceTongues.Knows(code)) return null;
-            if (kokoro.Speaks(code)) return kokoro.Speak(words, code);
+            if (kokoro.Speaks(code)) return kokoro.Speak(words, code, TongueSpeaker(code));
             if (Interlocked.CompareExchange(ref tonguesFetched, 1, 0) == 0) ThreadPool.QueueUserWorkItem(delegate { GetTongues(delegate { }); });
             return null;
         }
@@ -36880,8 +36985,8 @@ namespace CapriDesktop
                 string commentsOff = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
                 bool commentsSavedOff = LoadPreferences().NoComments;
                 mainframe.Sync();
-                if (commentsOff != "Turned Game comments off." || GamePace != Commentary.Off || Commentary.Pace != Commentary.Off || Reactions.Running || !preferences.NoComments || !commentsSavedOff || mainframe.CommentsShown != "Off")
-                    throw new Exception("Comments Off from her settings tool went wrong in Gaming Mode: reply " + commentsOff + ", game pace " + GamePace + ", pace " + Commentary.Pace + ", reactions " + Reactions.Running + ", picked off " + preferences.NoComments + ", saved off " + commentsSavedOff + ", shown " + mainframe.CommentsShown);
+                if (commentsOff != "Turned Game comments off." || GamePace != Commentary.Off || Commentary.Pace != Commentary.Off || Reactions.Running || !preferences.NoComments || !commentsSavedOff || mainframe.CommentsShown != "Off" || GamingOn || said.Count != 0)
+                    throw new Exception("Comments Off from her settings tool went wrong in Gaming Mode: reply " + commentsOff + ", game pace " + GamePace + ", pace " + Commentary.Pace + ", reactions " + Reactions.Running + ", picked off " + preferences.NoComments + ", saved off " + commentsSavedOff + ", shown " + mainframe.CommentsShown + ", gaming " + GamingOn + ", said " + string.Join(" / ", said.ToArray()));
                 mainframe.SlideComments(1);
                 bool commentsSavedOn = !LoadPreferences().NoComments;
                 if (GamePace != Commentary.Events || Commentary.Pace != Commentary.Events || preferences.NoComments || !commentsSavedOn || mainframe.CommentsShown != "Events only")
@@ -36906,6 +37011,58 @@ namespace CapriDesktop
                 SetCommentPace(Commentary.Events);
                 mainframe.Sync();
                 checks.Add("PASS Comments Off stops her game comments and live reactions in Gaming Mode, from her settings tool and the slider; settings from before Gaming Mode's switch went keep how she behaved, an Off that only Gaming Mode lifted becoming Events only, and new installs start on Events only");
+                said.Clear();
+                front = null;
+                string slidArmed = GamingMode("on");
+                mainframe.SlideComments(0);
+                bool slidArmedOff = slidArmed == "Gaming Mode's armed. I'll watch as soon as a game's up." && !GamingOn && !GamingWanted && !mainframe.GamingShown;
+                running = true;
+                front = game;
+                gaming.Check(9150);
+                bool openedQuietly = !GamingOn && said.Count == 0;
+                string slidDocked = GamingMode("on");
+                bool dockedFirst = gaming.State == GameDock.Stage.Docked && gaming.Asked;
+                mainframe.SlideComments(0);
+                bool slidDockedOff = !GamingOn && !GamingWanted;
+                running = false;
+                front = null;
+                gaming.Check(9160);
+                gaming.Check(9190);
+                bool closedSilent = !GamingOn && said.Count == 0;
+                running = true;
+                front = game;
+                Job quietJob = new Job("play Minecraft");
+                DockForJob(quietJob);
+                bool jobLeftOff = !GamingOn && jobDock != quietJob;
+                bool hideWas = preferences.HideFullScreen, playedInView, hidOtherwise;
+                Job jobWas = job;
+                string workingWas = working;
+                try
+                {
+                    preferences.HideFullScreen = true;
+                    job = quietJob;
+                    working = "On it. Esc stops me.";
+                    CheckFullScreen(true);
+                    playedInView = !fullScreenHidden && !hidden;
+                    job = null;
+                    working = null;
+                    CheckFullScreen(true);
+                    hidOtherwise = fullScreenHidden;
+                }
+                finally
+                {
+                    job = jobWas;
+                    working = workingWas;
+                    CheckFullScreen(false);
+                    preferences.HideFullScreen = hideWas;
+                }
+                string quietSaid = string.Join(" / ", said.ToArray());
+                SetCommentPace(Commentary.Events);
+                mainframe.Sync();
+                said.Clear();
+                if (!slidArmedOff || !openedQuietly || !dockedFirst || !slidDockedOff || !closedSilent || !jobLeftOff || !playedInView || !hidOtherwise || hidden)
+                    throw new Exception("Comments Off left Gaming Mode talking: armed off " + slidArmedOff + " (" + slidArmed + "), opened quietly " + openedQuietly + ", docked " + dockedFirst + " (" + slidDocked + "), docked off " + slidDockedOff + ", closed silently " + closedSilent + ", job " + jobLeftOff + ", in view " + playedInView + "/" + hidOtherwise + "/" + hidden + ", said " + quietSaid);
+                checks.Add("PASS Comments Off is Gaming Mode off: sliding Comments to Off turns an armed or docked Gaming Mode off without a word, so a game opening or closing after it gets nothing said; a job playing a game doesn't bring Gaming Mode up while Comments is Off, and she stays in view over a full-screen game she's playing");
                 string askedWhenOn = GamingMode("on");
                 bool askedRight = askedWhenOn == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game." && gaming.Asked && GamingMode("on") == "Gaming Mode's already on.";
                 running = false;
@@ -46334,6 +46491,11 @@ namespace CapriDesktop
             // The Mainframe's Language row and its menu, which the setup card opens too. The full run reaches it from the settings
             // page checks as well; whichever comes first runs it.
             Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
+            Section(checks, "SmokeLanguagePair", delegate { SmokeLanguagePair(checks, output); });
+            Section(checks, "SmokeAutoReply", delegate { SmokeAutoReply(checks); });
+            Section(checks, "SmokeReplyLine", delegate { SmokeReplyLine(checks); });
+            Section(checks, "SmokeTongueVoices", delegate { SmokeTongueVoices(checks, output); });
+            Section(checks, "SmokeLanguageTool", delegate { SmokeLanguageTool(checks); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
@@ -46556,6 +46718,9 @@ namespace CapriDesktop
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
             Section(checks, "SmokePowerSaver", delegate { SmokePowerSaver(checks, output); });
+            Section(checks, "SmokeLiteUse", delegate { SmokeLiteUse(checks, Path.Combine(output, "lite")); });
+            Section(checks, "SmokeLite", delegate { SmokeLite(checks, Path.Combine(output, "lite")); });
+            Section(checks, "SmokeWhySlow", delegate { SmokeWhySlow(checks); });
             Section(checks, "SmokeMusicApp", delegate { SmokeMusicApp(checks); });
             Section(checks, "SmokeHonestMusic", delegate { SmokeHonestMusic(checks); });
             Section(checks, "SmokePerf", delegate { SmokePerf(checks); });

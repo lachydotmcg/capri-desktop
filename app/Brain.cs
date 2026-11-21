@@ -699,6 +699,10 @@ namespace CapriDesktop
         // or Codex. Every request to one is made in Create or PlanBrain's Start, and both turn it away here.
         internal static volatile bool Off;
         internal const string OffLine = "My brain's switched off, so that one's beyond me. Turn one on under BRAIN in Capri Mainframe.";
+        internal static volatile bool Lite;
+        internal const string LiteLine = "Lite mode keeps my brain on your PC switched off, so I can't think right now. A free key lets me think in the cloud instead. Want me to open the free key page?";
+        internal const string LiteNote = "Lite mode is on. Press Free key for a cloud brain.";
+        private static readonly List<string> ollamaLoaded = new List<string>();
         // The smoke test's stand-in: told about anything No AI turned away, which means something still tried to ask.
         internal static Action<string> TurnedAway;
 
@@ -1031,6 +1035,8 @@ namespace CapriDesktop
             { "العربية", "Arabic", "ar" }, { "اردو", "Urdu", "ur" }, { "فارسی", "Persian", "fa" }, { "עברית", "Hebrew", "he" }
         };
         internal static volatile string Language;
+        internal static volatile bool Matching;
+        internal static volatile bool Firm;
         internal static volatile string Nickname;
         internal static volatile int Wordiness;
         internal static volatile int Recall = 8;
@@ -1082,7 +1088,9 @@ namespace CapriDesktop
         internal static string Speech()
         {
             string language = Language;
-            return string.IsNullOrEmpty(language) || language == "English" ? "" : "\nAlways reply in " + language + ", whatever language they use. Keep your Night City slang words as they are.";
+            if (Matching) return LanguagePair.Line(language);
+            if (Firm && string.IsNullOrEmpty(language)) language = "English";
+            return string.IsNullOrEmpty(language) || (language == "English" && !Firm) ? "" : "\nAlways reply in " + language + ", whatever language they use. Keep your Night City slang words as they are.";
         }
 
         // The part of a labelled reply she says out loud, in their language, with the labels and words her code reads back left as written.
@@ -1188,6 +1196,7 @@ namespace CapriDesktop
         {
             int before, grown;
             asking.Options.Context = OllamaRoom(asking.Messages, tools, asking.Options.Limit, out before, out grown);
+            Loaded(asking.Model);
             try
             {
                 ChatReply chat = Send<ChatReply>(Ollama + "/api/chat", asking, timeout, tools, null, null, ticket);
@@ -1201,6 +1210,36 @@ namespace CapriDesktop
                     lock (ollamaMemoryGate) System.Threading.Interlocked.CompareExchange(ref OllamaGrown, before, grown);
                 throw;
             }
+        }
+
+        private static void Loaded(string model)
+        {
+            if (string.IsNullOrEmpty(model)) return;
+            lock (ollamaLoaded) if (!ollamaLoaded.Contains(model)) ollamaLoaded.Add(model);
+        }
+
+        internal static string[] OllamaLoaded { get { lock (ollamaLoaded) return ollamaLoaded.ToArray(); } }
+
+        internal static int UnloadOllama()
+        {
+            string[] models;
+            lock (ollamaLoaded) { models = ollamaLoaded.ToArray(); ollamaLoaded.Clear(); }
+            int unloaded = 0;
+            Brain sender = new Brain();
+            foreach (string model in models)
+            {
+                try
+                {
+                    sender.Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0], KeepAlive = "0" }, 10000);
+                    unloaded++;
+                    Log(Ollama, -1, model + " unloaded for Lite mode, giving its memory back");
+                }
+                catch (WebException) { }
+                catch (BrainException) { }
+                catch (IOException) { }
+                catch (SerializationException) { }
+            }
+            return unloaded;
         }
 
         private ChatOptions OllamaOptions(string model, int reply)
@@ -3795,7 +3834,7 @@ namespace CapriDesktop
             Engine spare = Spare;
             Pick sparePick = SparePick;
             string spareModel = sparePick != null ? sparePick.Name : SpareModel;
-            if (!spared && (spare != null && sparePick != null || spare == null && spareModel != null) && parts == null && (Remote != null && Remote.Kind != "local" || Server != null) && !messages.Exists(delegate(ChatMessage message) { return message.Images != null && message.Images.Length > 0; }))
+            if (!spared && !Lite && (spare != null && sparePick != null || spare == null && spareModel != null) && parts == null && (Remote != null && Remote.Kind != "local" || Server != null) && !messages.Exists(delegate(ChatMessage message) { return message.Images != null && message.Images.Length > 0; }))
             {
                 spared = true;
                 try
@@ -3911,6 +3950,7 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
+                if (Lite) throw new BrainException(LiteLine, true);
                 local.Begin();
                 try
                 {
@@ -3962,6 +4002,7 @@ namespace CapriDesktop
                 }
                 finally { local.End(); }
             }
+            if (Lite) throw new BrainException(LiteLine, true);
             string thinking = Ollama + "|" + model;
             ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = OllamaOptions(model, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };
             ChatReply chat = OllamaAsk(asking, listed, 180000, ticket);
@@ -4477,13 +4518,13 @@ namespace CapriDesktop
             if (Provider != null) return;
 #endif
             string model = Model;
-            if (model == null) return;
+            if (model == null || Lite) return;
             try
             {
                 Engine local = Local;
                 if (local != null) local.Ensure(LocalPick);
                 else if (Server != null) return;
-                else Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0], Options = OllamaOptions(model, 90) }, 180000);
+                else { Loaded(model); Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0], Options = OllamaOptions(model, 90) }, 180000); }
             }
             catch (WebException) { } catch (BrainException) { } catch (IOException) { } catch (SerializationException) { }
         }
@@ -4714,6 +4755,7 @@ namespace CapriDesktop
             if (needs.Success) return "Not enough free RAM: it needs " + needs.Groups["need"].Value + " GB, only " + needs.Groups["free"].Value + " GB is free.";
             if (NoMemory.IsMatch(error) || error.StartsWith("Your PC ran out of free RAM", StringComparison.Ordinal)) return "Not enough free RAM. Close some apps, then try again.";
             if (error == Blocked) return "Blocked where you are. Try another service or Built-in.";
+            if (error == LiteLine) return LiteNote;
             // Key and credit lines keep their fix inside the note's 60 characters.
             if (error.StartsWith("No credits on this key.", StringComparison.Ordinal)) return "No credits on this key. Add credits, or press Free key.";
             if (error == PlusRejected) return "Key rejected. Make one with credits at platform.openai.com.";

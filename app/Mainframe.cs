@@ -291,10 +291,10 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Call mode and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 344 }, new[] { 644, 1149 } };
+        private static readonly int[][] FoldedLeft = { new[] { 260, 372 }, new[] { 672, 1177 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at In full screen.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
-        private static readonly int[][] FoldedRight = { new[] { 138, 418 }, new[] { 446, 474 }, new[] { 848, 1286 }, new[] { 1510, 1566 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 418 }, new[] { 446, 474 }, new[] { 848, 1286 }, new[] { 1538, 1594 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -326,6 +326,9 @@ namespace CapriDesktop
         private readonly ContextMenuStrip languageMenu;
         private ToolStripMenuItem languageCurrent;
         private Font languageFont;
+        private readonly Key answers;
+        private readonly ContextMenuStrip answerMenu;
+        private Font answerFont;
         private readonly Slider volume;
         private readonly Readout volumeName;
         private readonly Slider pitchSlider;
@@ -345,6 +348,7 @@ namespace CapriDesktop
         private readonly Readout gameSoundLevelName;
         internal static readonly string[] SensitivityNames = { "Off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly Toggle intro;
+        private readonly Key introPick;
         private readonly Toggle listenCapri;
         // Her voice in your mic (F66): the switch, the line saying to pick CABLE Output, and a line under it that says when it
         // needs VB-CABLE, beside a button to VB-CABLE's page, or what's wrong while it's on. They sit under Listen for Capri.
@@ -385,6 +389,8 @@ namespace CapriDesktop
         private readonly Readout powerSaverName;
         private readonly Slider musicApp;
         private readonly Readout musicAppName;
+        private readonly Toggle liteMode;
+        private readonly Key whySlow;
         // Her Mainframe size: Auto, or 100% to 200% of the screen's own scale.
         private static readonly int[] FrameSizes = { 0, 100, 125, 150, 175, 200 };
         private static readonly string[] FrameSizeNames = { "Auto", "100%", "125%", "150%", "175%", "200%" };
@@ -676,7 +682,7 @@ namespace CapriDesktop
             personalityKey.AccessibleName = "Her personality: edit personality.md, or put her default back";
             // Her own font fits all three on this row. Windows' fallback font is wider, so there they end in dots rather than spill.
             personalityKey.Ellipsis = notesKey.Ellipsis = filesKey.Ellipsis = true;
-            Named("Language", 0, 82);
+            Named("I speak", 0, 82);
             languageMenu = Dropdown();
             languageMenu.AccessibleName = "Her language";
             languageMenu.Opened += delegate { KeepLanguageMenu(languageMenu); };
@@ -684,6 +690,16 @@ namespace CapriDesktop
             languages.Chevron = true;
             languages.AccessibleName = "Her language";
             FillLanguages(Screen.FromRectangle(Bounds).WorkingArea);
+            Named("She answers in", 0, 110);
+            answerMenu = Dropdown();
+            answerMenu.AccessibleName = "The language she answers in";
+            answerMenu.Opened += delegate { KeepMenu(answerMenu, answerMenu); };
+            answers = Make(LanguagePair.SameName, ValueAt, 113, ValueWide, 22, delegate { ShowAnswers(); });
+            answers.Chevron = true;
+            answers.Ellipsis = true;
+            answers.AccessibleName = "The language she answers in";
+            FillAnswers(Screen.FromRectangle(Bounds).WorkingArea);
+            int afterAnswers = Controls.Count;
             // A label of its own, so the question still shows once a name is saved in the box.
             Named("What should she call you?", 0, 110);
             Make("Get to know me", 236, 113, 120, 22, delegate { capri.GetToKnow(); }).AccessibleName = "Get to know me: she asks what to call you, your pronouns and what you're into, and keeps them in me.md";
@@ -790,6 +806,11 @@ namespace CapriDesktop
             sitOnWindows.AccessibleName = "Sit on windows. She lands on the top edges of your windows";
             dance = Switch("Dance to music", 0, 578, delegate { if (!syncing) capri.ToggleDance(); });
             intro = Switch("Glitch in at startup", 0, 606, delegate { if (!syncing) capri.ToggleIntro(); });
+            intro.Width = 226;
+            introPick = Make(Intros.NameOf(Intros.Classic), 260, 609, 96, 22, delegate { OpenIntroPicker(); }, "Startup animation");
+            introPick.Chevron = true;
+            introPick.Ellipsis = true;
+            introPick.AccessibleName = "Startup animation: pick which one plays, with a live preview of each";
             Section("KEYS >", 0, 648);
             talkKeys = Make("Talk: Ctrl + Alt + V", 28, 675, 328, 22, delegate { PickKeys(0); });
             talkKeys.AccessibleName = "Her talk key. Click, press new keys, then Confirm";
@@ -1000,6 +1021,12 @@ namespace CapriDesktop
             musicApp = Setting("Music app", Hands.MusicSteps(), c, 840, "Music app: where she plays music when you don't name an app");
             musicAppName = new Readout(musicApp);
             musicApp.Changed += delegate { if (syncing) return; musicAppName.Text = Hands.MusicSteps()[musicApp.Value]; capri.SetMusicApp(musicApp.Value); };
+            liteMode = Switch("Lite mode", c, 868, delegate { if (!syncing) capri.SetLite(liteMode.Checked, true); });
+            liteMode.Width = 224;
+            liteMode.Switch = 68;
+            liteMode.AccessibleName = "Lite mode. For weak PCs: her brain on this PC stays off, she draws lighter and uses her free voice, and Watch my screen, game comments and Clip my games stay off until you turn it off";
+            whySlow = Make("Why slow?", 260 + c, 871, 96, 22, delegate { capri.CheckWhySlow(); });
+            whySlow.AccessibleName = "Why slow? She checks what's slowing her down on this PC and tells you what would help";
             int afterSaver = Controls.Count;
             fullScreen = Setting("In full screen", FullScreenNames, c, 812, "In full screen: whether she stays or hides, and whether her mini player stays over borderless full screen. Gaming Mode takes priority; a manual hide stays hidden");
             fullScreenName = new Readout(fullScreen);
@@ -1010,6 +1037,8 @@ namespace CapriDesktop
             // Power saver's and Music app's rows move the rest of HABITS down two.
             for (int belowSaver = afterSaver; belowSaver < Controls.Count; belowSaver++)
                 if (Controls[belowSaver].Left >= c) Controls[belowSaver].Top += Row * 2;
+            for (int belowLite = afterSaver; belowLite < Controls.Count; belowLite++)
+                if (Controls[belowLite].Left >= c) Controls[belowLite].Top += Row;
             BuildSounds(c, exploreAfter.Top - 3);
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
@@ -1076,6 +1105,11 @@ namespace CapriDesktop
             }
             for (int belowStay = 0; belowStay < Controls.Count; belowStay++)
                 if (Controls[belowStay].Left >= c && Controls[belowStay].Top > stayOnModel.Top) underStay.Add(new KeyValuePair<Control, int>(Controls[belowStay], Controls[belowStay].Top));
+            for (int belowAnswers = afterAnswers; belowAnswers < Controls.Count; belowAnswers++)
+                if (Controls[belowAnswers].Left < c) Controls[belowAnswers].Top += Row;
+            for (int moved = 0; moved < underVoice.Count; moved++)
+                if (underVoice[moved].Key.Left < c && Controls.IndexOf(underVoice[moved].Key) >= afterAnswers)
+                    underVoice[moved] = new KeyValuePair<Control, int>(underVoice[moved].Key, underVoice[moved].Value + Row);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -1439,11 +1473,13 @@ namespace CapriDesktop
             languageCurrent.Available = current;
         }
 
-        private void LanguageRows(ToolStripDropDown menu, List<int> rows, Rectangle area, bool root)
+        private void LanguageRows(ToolStripDropDown menu, List<int> rows, Rectangle area, bool root) { LanguageRows(menu, rows, area, root, LanguageItem, languageMenu); }
+
+        private void LanguageRows(ToolStripDropDown menu, List<int> rows, Rectangle area, bool root, Func<int, ToolStripMenuItem> make, ContextMenuStrip top)
         {
             if (!root)
             {
-                foreach (int row in rows) menu.Items.Add(LanguageItem(row));
+                foreach (int row in rows) menu.Items.Add(make(row));
                 if (menu.GetPreferredSize(Size.Empty).Height <= area.Height - 4 || rows.Count == 1) return;
                 while (menu.Items.Count > 0) menu.Items[0].Dispose();
             }
@@ -1451,34 +1487,36 @@ namespace CapriDesktop
             for (int start = 0; start < rows.Count; start += count)
             {
                 List<int> part = rows.GetRange(start, Math.Min(count, rows.Count - start));
-                if (part.Count == 1) { menu.Items.Add(LanguageItem(part[0])); continue; }
+                if (part.Count == 1) { menu.Items.Add(make(part[0])); continue; }
                 ToolStripMenuItem group = Choice(Brain.Languages[part[0], 1] + " - " + Brain.Languages[part[part.Count - 1], 1], false, null);
                 ContextMenuStrip drop = Dropdown();
-                drop.Opened += delegate { KeepLanguageMenu(drop); };
+                drop.Opened += delegate { KeepMenu(drop, top); };
                 group.DropDown = drop;
                 menu.Items.Add(group);
-                LanguageRows(drop, part, area, false);
+                LanguageRows(drop, part, area, false, make, top);
             }
         }
 
-        private void FitLanguages(Rectangle area)
+        private void FitLanguages(Rectangle area) { FitMenu(languageMenu, area, ref languageFont); }
+
+        private void FitMenu(ContextMenuStrip menu, Rectangle area, ref Font kept)
         {
             for (;;)
             {
-                Size size = languageMenu.GetPreferredSize(Size.Empty);
-                foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items))
+                Size size = menu.GetPreferredSize(Size.Empty);
+                foreach (ToolStripMenuItem item in LanguageItems(menu.Items))
                     if (item.HasDropDownItems)
                     {
                         Size child = item.DropDown.GetPreferredSize(Size.Empty);
                         size = new Size(Math.Max(size.Width, child.Width), Math.Max(size.Height, child.Height));
                     }
-                if (size.Width <= area.Width - 4 && size.Height <= area.Height - 4 || languageMenu.Font.SizeInPoints <= 1f) return;
+                if (size.Width <= area.Width - 4 && size.Height <= area.Height - 4 || menu.Font.SizeInPoints <= 1f) return;
                 float ratio = Math.Min((area.Width - 4f) / size.Width, (area.Height - 4f) / size.Height);
-                Font font = new Font(Font.FontFamily, Math.Max(1f, languageMenu.Font.SizeInPoints * ratio * 0.9f), Font.Style, GraphicsUnit.Point);
-                languageMenu.Font = font;
-                foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = font;
-                if (languageFont != null) languageFont.Dispose();
-                languageFont = font;
+                Font font = new Font(Font.FontFamily, Math.Max(1f, menu.Font.SizeInPoints * ratio * 0.9f), Font.Style, GraphicsUnit.Point);
+                menu.Font = font;
+                foreach (ToolStripMenuItem item in LanguageItems(menu.Items)) if (item.HasDropDownItems) item.DropDown.Font = font;
+                if (kept != null) kept.Dispose();
+                kept = font;
             }
         }
 
@@ -1487,10 +1525,12 @@ namespace CapriDesktop
             return new Point(Math.Max(area.Left, Math.Min(at.X, area.Right - size.Width)), Math.Max(area.Top, Math.Min(at.Y, area.Bottom - size.Height)));
         }
 
-        private void KeepLanguageMenu(ToolStripDropDown menu)
+        private void KeepLanguageMenu(ToolStripDropDown menu) { KeepMenu(menu, languageMenu); }
+
+        private void KeepMenu(ToolStripDropDown menu, ContextMenuStrip top)
         {
             // On the screen of whatever opened it: the Language row, or the setup card while the Mainframe is hidden or elsewhere.
-            Control under = languageMenu.SourceControl;
+            Control under = top.SourceControl;
             menu.Location = LanguageAt(menu.Location, menu.Size, Screen.FromControl(under == null ? this : under.FindForm() ?? this).WorkingArea);
         }
 
@@ -1529,6 +1569,72 @@ namespace CapriDesktop
             languages.Invalidate();
             if (languageMenu.Visible) KeepLanguageMenu(languageMenu);
         }
+
+        private ToolStripMenuItem AnswerItem(string text, string picked)
+        {
+            ToolStripMenuItem item = Choice(text, false, delegate { capri.SetReplyLanguage(picked); capri.ShowFreeVoices(); Sync(); });
+            item.Tag = picked ?? LanguagePair.Same;
+            return item;
+        }
+
+        private ToolStripMenuItem AnswerItem(int row) { return AnswerItem(LanguageName(row), Brain.Languages[row, 1]); }
+
+        private void FillAnswers(Rectangle area)
+        {
+            List<ToolStripDropDown> groups = new List<ToolStripDropDown>();
+            foreach (ToolStripMenuItem item in LanguageItems(answerMenu.Items)) if (item.HasDropDownItems) groups.Add(item.DropDown);
+            while (answerMenu.Items.Count > 0) answerMenu.Items[0].Dispose();
+            foreach (ToolStripDropDown group in groups) group.Dispose();
+            answerMenu.Font = Font;
+            if (answerFont != null) { answerFont.Dispose(); answerFont = null; }
+            answerMenu.Items.Add(AnswerItem(LanguagePair.SameName, null));
+            answerMenu.Items.Add(AnswerItem(LanguagePair.AutoName, LanguagePair.Auto));
+            answerMenu.Items.Add(new ToolStripSeparator());
+            answerMenu.Items.Add(AnswerItem(0));
+            List<int> rows = new List<int>();
+            for (int i = 1; i < Brain.Languages.GetLength(0); i++) rows.Add(i);
+            rows.Sort(delegate(int a, int b) { return StringComparer.OrdinalIgnoreCase.Compare(Brain.Languages[a, 1], Brain.Languages[b, 1]); });
+            LanguageRows(answerMenu, rows, area, true, AnswerItem, answerMenu);
+            SyncAnswers();
+            FitMenu(answerMenu, area, ref answerFont);
+        }
+
+        internal ContextMenuStrip ShowAnswers() { return ShowAnswers(answers, Screen.FromControl(this).WorkingArea); }
+
+        internal ContextMenuStrip ShowAnswers(Control under, Rectangle area)
+        {
+            DismissHint();
+            answerMenu.Close();
+            FillAnswers(area);
+            Point at = LanguageAt(under.PointToScreen(new Point(0, under.Height)), answerMenu.GetPreferredSize(Size.Empty), area);
+            answerMenu.Show(under, under.PointToClient(at));
+            return answerMenu;
+        }
+
+        private void SyncAnswers()
+        {
+            string picked = capri.ReplyLanguage, tag = picked ?? LanguagePair.Same;
+            int row = -1;
+            for (int i = 0; i < Brain.Languages.GetLength(0); i++) if (Brain.Languages[i, 1] == picked) { row = i; break; }
+            answers.Text = picked == null ? LanguagePair.SameName : picked == LanguagePair.Auto ? LanguagePair.Auto : row < 0 ? picked : Brain.Languages[row, 0];
+            foreach (ToolStripMenuItem item in LanguageItems(answerMenu.Items)) item.Checked = (string)item.Tag == tag;
+            answers.Invalidate();
+            if (answerMenu.Visible) KeepMenu(answerMenu, answerMenu);
+        }
+
+        internal bool AnswerIs(string picked)
+        {
+            bool found = false;
+            foreach (ToolStripMenuItem item in LanguageItems(answerMenu.Items))
+                if ((string)item.Tag == (picked ?? LanguagePair.Same)) { if (!item.Checked) return false; found = true; }
+            return found;
+        }
+
+        internal string AnswerShown { get { return answers.Text; } }
+
+        internal int[] YouTops { get { return new[] { languages.Top, answers.Top, nickname.Top }; } }
+
+        internal string LanguageShown { get { return languages.Text; } }
 
         internal bool SettingsShown { get { return paged; } }
 
@@ -2499,6 +2605,7 @@ namespace CapriDesktop
             if (!loaded || sizing || (Math.Abs(nextUnit - unit) < 0.005f && Math.Abs(next - zoom) < 0.005f && shownFallback == layoutFallback)) return;
             DismissHint();
             languageMenu.Close();
+            answerMenu.Close();
             sizing = true;
             SuspendLayout();
             try
@@ -2508,9 +2615,11 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, answerMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
+                foreach (ToolStripMenuItem item in LanguageItems(answerMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 if (languageFont != null) { languageFont.Dispose(); languageFont = null; }
+                if (answerFont != null) { answerFont.Dispose(); answerFont = null; }
                 foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value);
                 CloseGaps();
                 freeVoices.Width = Scaled(freeReady && !yoursShown ? 328 : 196);
@@ -3029,7 +3138,8 @@ namespace CapriDesktop
             ServerSheet server = form as ServerSheet;
             ExtrasSheet extras = form as ExtrasSheet;
             ModSheet mods = form as ModSheet;
-            float zoom = provider != null ? provider.Zoom : guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : server != null ? server.Zoom : extras != null ? extras.Zoom : mods != null ? mods.Zoom : 1f;
+            IntroSheet intros = form as IntroSheet;
+            float zoom = provider != null ? provider.Zoom : guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : server != null ? server.Zoom : extras != null ? extras.Zoom : mods != null ? mods.Zoom : intros != null ? intros.Zoom : 1f;
             Rescaler scaler = form.Tag as Rescaler;
             return (scaler != null ? scaler.Unit : 1f) * zoom;
         }
@@ -3258,6 +3368,7 @@ namespace CapriDesktop
             gapName.Text = GapNames[gap.Value];
             if (!nickname.Box.Focused) nickname.Box.Text = capri.Nickname;
             SyncLanguages();
+            SyncAnswers();
             int loud = 0;
             for (int i = 0; i < Volumes.Length; i++) if (Math.Abs(Volumes[i] - capri.Volume) < Math.Abs(Volumes[loud] - capri.Volume)) loud = i;
             volume.Value = loud;
@@ -3291,6 +3402,10 @@ namespace CapriDesktop
             comments.Value = capri.CommentPaceShown;
             commentsName.Text = Commentary.PaceNames[comments.Value];
             intro.Checked = capri.Intro;
+            string introNow = Intros.NameOf(capri.IntroPick);
+            if (introPick.Text != introNow) introPick.Text = introNow;
+            introPick.Status = introNow;
+            if (IntroSheetUp) introSheet.Fill();
             typing.Checked = capri.TypingSound;
             listenCapri.Checked = capri.ListenCapriOn;
             ShowCallApp();
@@ -3305,6 +3420,7 @@ namespace CapriDesktop
             powerSaverName.Text = SaverNames[powerSaver.Value];
             musicApp.Value = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, capri.MusicApp));
             musicAppName.Text = Hands.MusicSteps()[musicApp.Value];
+            liteMode.Checked = capri.LiteOn;
             SyncSounds();
             SyncWeather();
             SyncDoomscroll();
@@ -3781,7 +3897,7 @@ namespace CapriDesktop
         internal void ShowOllama(string[] installed, string chosen)
         {
             brainName.Text = "Ollama · " + chosen;
-            brainNote.Text = "Running on this PC";
+            brainNote.Text = capri.LiteOn ? LiteResting : "Running on this PC";
             models.Text = chosen;
             models.Visible = true;
             hint.Visible = false;
@@ -4217,7 +4333,7 @@ namespace CapriDesktop
         internal void ShowLocal(Pick pick)
         {
             brainName.Text = "Built-in · " + pick.Name;
-            brainNote.Text = "Running on this PC";
+            brainNote.Text = capri.LiteOn ? LiteResting : "Running on this PC";
             models.Text = pick.Name;
             models.Visible = lastServers.Count > 0 || (lastInstalled != null && lastInstalled.Length > 0);
             LocalMenu(pick.Name, null);
@@ -4443,7 +4559,12 @@ namespace CapriDesktop
             }
             string tongue = Brain.LanguageCode(Brain.Language);
             if (tongue != "en" && VoiceLanguage.LatinScript(tongue) && !VoiceTongues.Knows(tongue))
+            {
                 freeMenu.Items.Add(Choice(WindowsTongueChoice, capri.WindowsTongue, delegate { capri.ToggleWindowsTongue(); }));
+                freeMenu.Items.Add(Choice(TextOnlyChoice, capri.TextOnlyTongues, delegate { capri.ToggleTextOnlyTongues(); }));
+            }
+            if (VoiceTongues.Knows(tongue) && capri.NativeVoice(tongue) >= 0)
+                freeMenu.Items.Add(Choice(AccentChoice, capri.OwnAccent, delegate { capri.ToggleOwnAccent(); }));
             freeMenu.Items.Add(new ToolStripSeparator());
             // Capri ships no voice clip, so HD copies only a clip they pick: before there is one, HD asks for it.
             if (!yours && !kept)
@@ -4515,6 +4636,10 @@ namespace CapriDesktop
         }
 
         internal static string WindowsTongueChoice { get { return "Windows voice for " + Brain.Language + " (robotic)"; } }
+
+        internal static string TextOnlyChoice { get { return "Text only in " + Brain.Language; } }
+
+        internal static string AccentChoice { get { return "Her English accent in " + Brain.Language; } }
 
         internal static string RemoveFreeChoice { get { return "Remove free voice \u00b7 frees about " + Engine.Amount(LocalVoice.PackSize); } }
 

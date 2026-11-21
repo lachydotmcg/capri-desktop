@@ -1036,11 +1036,12 @@ namespace CapriDesktop
             Answer(++asking, line, TalkState.Talking);
         }
 
-        // A job that's playing a game brings Gaming Mode up by itself once the game's in front. It goes the same way as any other
-        // Gaming Mode, when the game closes or they turn it off. Once a job, so turning it off holds until her next one.
+        // A job that's playing a game brings Gaming Mode up by itself once the game's in front, unless Comments is Off. It goes the
+        // same way as any other Gaming Mode, when the game closes or they turn it off. Once a job, so turning it off holds until her
+        // next one.
         private void DockForJob(Job running)
         {
-            if (running == null || running == jobDock) return;
+            if (running == null || running == jobDock || CommentPace == Commentary.Off) return;
             if (GamingOn) { jobDock = running; return; }
             if (gaming.Find() == null) return;
             jobDock = running;
