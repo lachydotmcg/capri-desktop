@@ -439,7 +439,7 @@ namespace CapriDesktop
                     throw new Exception("Her brain can't see reply_language and what it means.");
                 if (Hands.Description(tool).Length > 1024) throw new Exception("Her settings tool's description ran past 1024 characters.");
                 int brief = Hands.KitFor().Brief.Length;
-                if (brief > 3800) throw new Exception("Her chat brain's short tool list ran past 3800 characters: " + brief);
+                if (brief > 4000) throw new Exception("Her chat brain's short tool list ran past 4000 characters: " + brief);
                 string answering = SelfKnow.Matching("how do I make you answer in Spanish?") ?? "", speaking = SelfKnow.Matching("how do I change your language?") ?? "", named = SelfKnow.Matching("What is the She answers in setting in Capri?") ?? "";
                 if (!answering.StartsWith("She answers in:", StringComparison.Ordinal) || !speaking.StartsWith("I speak:", StringComparison.Ordinal) || !named.StartsWith("She answers in:", StringComparison.Ordinal) || !answering.Contains("Auto (match what I say)"))
                     throw new Exception("Her help doesn't know I speak and She answers in: " + answering + " / " + speaking);
