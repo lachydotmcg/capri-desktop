@@ -26,9 +26,9 @@ namespace CapriDesktop
         private static readonly string[] European = { "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el", "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es", "sv", "ru", "uk" };
         private static readonly string[] SenseVoice = { "zh", "en", "ja", "ko", "yue" };
         private readonly string folder;
-        private readonly Func<string> chosen;
+        private readonly Func<string> chosen, spoken;
 
-        internal Ears(string data, Func<string> chosen) { folder = Path.Combine(data, "ears"); this.chosen = chosen; }
+        internal Ears(string data, Func<string> chosen, Func<string> spoken = null) { folder = Path.Combine(data, "ears"); this.chosen = chosen; this.spoken = spoken; }
 
         internal async Task<string> Listen(Action decoding, CancellationToken stop)
         {
@@ -38,11 +38,12 @@ namespace CapriDesktop
             if (mic == null) throw new IOException(mac ? "My mic helper is missing from this build. Reinstall Capri so I can hear you." : "Install parec (PulseAudio tools) so I can hear your mic.");
             string place = mac ? folder : "Capri/ears under your config folder";
             if (engine == null) throw new IOException("Extract sherpa-onnx into " + place + ", or put sherpa-onnx-offline on PATH, so I can hear your words.");
-            string language = Brain.LanguageCode(Brain.Language ?? "English");
+            string speaks = (spoken == null ? Brain.Language : spoken()) ?? "English";
+            string language = Brain.LanguageCode(speaks);
             Hearing model = Pick(Models(folder), language, chosen == null ? null : chosen());
             if (model == null)
                 throw new IOException("Put my English Parakeet model in " + (mac ? Path.Combine(folder, English) : "Capri/ears/" + English + " under your config folder")
-                    + (language == "en" ? "." : ", or a sherpa-onnx model that hears " + (Brain.Language ?? "English") + ", like SenseVoice for Chinese, Japanese and Korean."));
+                    + (language == "en" ? "." : ", or a sherpa-onnx model that hears " + speaks + ", like SenseVoice for Chinese, Japanese and Korean."));
 
             short[] samples = await Record(mic, mac, stop).ConfigureAwait(false);
             if (samples.Length == 0) return "";
@@ -72,7 +73,7 @@ namespace CapriDesktop
                 using var held = wave;
                 wave.Write(Voice.Wave(samples, Rate));
                 wave.Flush();
-                using Process run = Start(engine, Arguments(model, language, audio));
+                using Process run = Start(engine, Arguments(model, Brain.Matching ? "auto" : language, audio));
                 using var kill = limit.Token.Register(() => Stop(run));
                 Task<string> reply = run.StandardOutput.ReadToEndAsync(limit.Token);
                 Task errors = run.StandardError.BaseStream.CopyToAsync(Stream.Null, limit.Token);

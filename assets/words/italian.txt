@@ -30,6 +30,7 @@ Ask Capri for more	Chiedi altro a Capri
 Asking your server...	Interrogo il tuo server...
 Asks before closing only the apps you choose.	Chiede conferma prima di chiudere solo le app che scegli.
 Auto	Auto
+Auto (match what I say)	Auto (segue ciò che dico)
 Automatic: VB-CABLE, else Steam's	Automatico: VB-CABLE, altrimenti quello di Steam
 BAD RELAY HOST	HOST RELAY NON VALIDO
 BIG Z open notepad	BIG Z apri blocco note
@@ -290,6 +291,7 @@ Huge	Enorme
 I can hear you.	Ti sento.
 I glance at your screen and comment. Costs a little on a paid brain.	Do un'occhiata al tuo schermo e commento. Costa un po' con un cervello a pagamento.
 I keep listening. Say my name, then just talk.	Continuo ad ascoltare. Dì il mio nome, poi parla e basta.
+I speak	Parlo
 I talk about your game as you play. Costs a little on a paid brain.	Parlo del tuo gioco mentre giochi. Costa un po' con un cervello a pagamento.
 I type my replies and stay quiet.	Scrivo le mie risposte e resto zitta.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Non risponderò a voce, e non viene inviato niente da nessuna parte. Resterò comunque in giro, ballerò sulla tua musica e farò le cose veloci che chiedi, come il volume.
@@ -598,6 +600,7 @@ SKILL.	ABILITÀ.
 SKIN.	ASPETTO.
 SORT BY	ORDINA PER
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SUONI ABITUDINI CERVELLO GUARDA CAPRI DOOMSCROLL METEO CLIP GIOCHI TASTI MOSSE VOCE TU
+Same as I speak	Come parlo io
 Same as her ears (VOICE > Mic)	Uguale alle sue orecchie (VOCE > Microfono)
 Same code on the phone?	Stesso codice sul telefono?
 Save	Salva
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Impostazioni non aveva niente da guardare.
 Settings lost keyboard focus during the Tab walk	Impostazioni ha perso il focus da tastiera durante lo scorrimento con Tab
 Setup guide	Guida alla configurazione
 Setup stopped	Configurazione interrotta
+She answers in	Risponde in
 She can read it when it fits.	Può leggerlo quando ci sta.
 She glances at your screen and comments. Costs a little on a paid brain.	Dà un'occhiata al tuo schermo e commenta. Costa un po' con un cervello a pagamento.
 She keeps listening. Say her name, then just talk until you go quiet.	Continua ad ascoltare. Dì il suo nome, poi parla finché non stai zitto.

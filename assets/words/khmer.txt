@@ -30,6 +30,7 @@ Ask Capri for more	សួរ Capri បន្ថែម
 Asking your server...	កំពុងសួរម៉ាស៊ីនមេរបស់អ្នក...
 Asks before closing only the apps you choose.	សួរមុនបិទតែកម្មវិធីដែលអ្នកជ្រើសរើសប៉ុណ្ណោះ។
 Auto	ស្វ័យប្រវត្តិ
+Auto (match what I say)	ស្វ័យប្រវត្តិ (តាមអ្វីដែលខ្ញុំនិយាយ)
 Automatic: VB-CABLE, else Steam's	ស្វ័យប្រវត្តិ៖ VB-CABLE បើមិនដូច្នេះ Steam
 BAD RELAY HOST	ម៉ាស៊ីនបញ្ជូនបន្តមិនត្រឹមត្រូវ
 BIG Z open notepad	BIG Z បើក notepad
@@ -290,6 +291,7 @@ Huge	ធំ
 I can hear you.	ខ្ញុំអាចឮអ្នក។
 I glance at your screen and comment. Costs a little on a paid brain.	ខ្ញុំក្រឡេកមើលអេក្រង់របស់អ្នក ហើយផ្ដល់មតិ។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
 I keep listening. Say my name, then just talk.	ខ្ញុំនៅតែស្ដាប់។ ហៅឈ្មោះខ្ញុំ បន្ទាប់មកនិយាយតែប៉ុណ្ណោះ។
+I speak	ខ្ញុំនិយាយ
 I talk about your game as you play. Costs a little on a paid brain.	ខ្ញុំនិយាយអំពីហ្គេមរបស់អ្នកពេលអ្នកលេង។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
 I type my replies and stay quiet.	ខ្ញុំវាយចម្លើយរបស់ខ្ញុំ ហើយនៅស្ងៀម។
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ខ្ញុំនឹងមិននិយាយឆ្លើយទេ ហើយគ្មានអ្វីត្រូវបានផ្ញើទៅកន្លែងណាទេ។ ខ្ញុំនៅតែឡើងចុះ រាំតាមតន្ត្រីរបស់អ្នក ហើយធ្វើការងារលឿនដែលអ្នកស្នើសុំ ដូចជាកម្រិតសំឡេង។
@@ -598,6 +600,7 @@ SKILL.	ជំនាញ។
 SKIN.	ស្បែក។
 SORT BY	តម្រៀបតាម
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	សំឡេង និស្ស័យ ខួរក្បាល មើល CAPRI DOOMSCROLL អាកាសធាតុ ក្លីប ហ្គេម គ្រាប់ចុច ចលនា សំឡេង របស់អ្នក
+Same as I speak	ដូចភាសាខ្ញុំ
 Same as her ears (VOICE > Mic)	ដូចត្រចៀករបស់នាង (សំឡេង > មីក្រូហ្វូន)
 Same code on the phone?	កូដដូចគ្នានៅលើទូរស័ព្ទឬ?
 Save	រក្សាទុក
@@ -633,6 +636,7 @@ Settings had nothing to watch.	ការកំណត់មិនមានអ្�
 Settings lost keyboard focus during the Tab walk	ការកំណត់បាត់បង់ការផ្តោតលើក្តារចុចកំឡុងពេលរំកិល Tab
 Setup guide	មគ្គុទ្ទេសក៍រៀបចំ
 Setup stopped	ការរៀបចំបានបញ្ឈប់
+She answers in	នាងឆ្លើយជា
 She can read it when it fits.	នាងអាចអានវាបានពេលសមស្រប។
 She glances at your screen and comments. Costs a little on a paid brain.	នាងក្រឡេកមើលអេក្រង់របស់អ្នក ហើយផ្ដល់មតិ។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
 She keeps listening. Say her name, then just talk until you go quiet.	នាងនៅតែស្ដាប់។ ហៅឈ្មោះនាង បន្ទាប់មកនិយាយរហូតដល់អ្នកស្ងៀម។

@@ -13,7 +13,7 @@ namespace CapriDesktop
     internal sealed class Sheet : Control
     {
         internal const int Columns = 34;
-        internal const string Speaker = "CAPRI: ";
+        internal static string Speaker => CompanionPack.Name.ToUpperInvariant() + ": ";
         internal const double Type = 14;
         internal const double Line = 19;
         internal string Heard;

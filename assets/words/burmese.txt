@@ -30,6 +30,7 @@ Ask Capri for more	Capri ထံ ပိုတောင်းပါ
 Asking your server...	သင့်ဆာဗာကို မေးနေသည်...
 Asks before closing only the apps you choose.	သင်ရွေးထားသော app များကိုသာ ပိတ်ခင် မေးပါမည်။
 Auto	Auto
+Auto (match what I say)	Auto (ကျွန်ုပ်ပြောသည့်အတိုင်း)
 Automatic: VB-CABLE, else Steam's	အလိုအလျောက်: VB-CABLE၊ မဟုတ်ရင် Steam
 BAD RELAY HOST	RELAY host မှားနေသည်
 BIG Z open notepad	BIG Z notepad ဖွင့်
@@ -290,6 +291,7 @@ Huge	ကြီးလွန်း
 I can hear you.	ကျွန်မ ကြားနေတယ်။
 I glance at your screen and comment. Costs a little on a paid brain.	သင့်ဖန်သားပြင်ကို ကြည့်ပြီး မှတ်ချက်ပေးမည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
 I keep listening. Say my name, then just talk.	ဆက်နားထောင်နေမည်။ ကျွန်မနာမည် ခေါ်ပြီးနောက် စကားပြောပါ။
+I speak	ကျွန်ုပ်ပြောသည်
 I talk about your game as you play. Costs a little on a paid brain.	ဂိမ်းကစားနေစဉ် သင့်ဂိမ်းအကြောင်း ပြောမည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
 I type my replies and stay quiet.	ကျွန်မ၏ အဖြေများကို ရိုက်ပြီး တိတ်ဆိတ်နေမည်။
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ပြန်မပြောပါ၊ မည်သည့်နေရာသို့မျှ ဘာမျှ မပို့ပါ။ သင့်သီချင်းကို ကခုန်ပြီး အမြန်အလုပ်များကို လုပ်ဆောင်ပေးမည်၊ volume ကဲ့သို့။
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ခွဲခြားမှု
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	အသံ အလေ့အထ ဦးနှောက် ကြည့်ရှု Capri doomscroll ရာသီဥတု clips ဂိမ်း keys ရွေ့လျားမှု အသံ သင်
+Same as I speak	ကျွန်ုပ်ဘာသာစကားအတိုင်း
 Same as her ears (VOICE > Mic)	သူမ၏ နား (VOICE > Mic) နှင့် တူသည်
 Same code on the phone?	ဖုန်းပေါ်ရှိ code တူပါသလား?
 Save	သိမ်း
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Settings တွင် ကြည့်ရန်ဘ
 Settings lost keyboard focus during the Tab walk	Tab လမ်းလျှောက်စဉ် Settings သည် keyboard focus ဆုံးရှုံးသည်
 Setup guide	Setup guide
 Setup stopped	Setup ရပ်သွားသည်
+She answers in	သူမ ဖြေသည်
 She can read it when it fits.	သူမ သင့်လျော်သောအခါ ဖတ်နိုင်သည်။
 She glances at your screen and comments. Costs a little on a paid brain.	သူမ သင့်ဖန်သားပြင်ကို ကြည့်ပြီး မှတ်ချက်ပေးသည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
 She keeps listening. Say her name, then just talk until you go quiet.	သူမ နားထောင်ဆဲ ဖြစ်သည်။ နာမည်ခေါ်ပြီး တိတ်သွားသည်အထိ ပြောပါ။

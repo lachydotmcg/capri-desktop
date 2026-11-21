@@ -150,12 +150,14 @@ namespace CapriDesktop
             Explain(popTimes, "Pop-ins", "Mainframe.cs", null, "Pop-in times");
             Explain(gameNotes, "game_notes", "Hands.cs", null, "Game controls");
             Explain(miniGames, "mini_game", "Hands.cs", null, "Mini-games");
-            Explain(languages, "Language", "Mainframe.cs", FindHintLabel("Language"), "Language");
+            Explain(languages, "I speak", "Mainframe.cs", FindHintLabel("I speak"), "I speak");
+            Explain(answers, "She answers in", "Mainframe.cs", FindHintLabel("She answers in"), "She answers in");
             Explain(nickname, "What should she call you?", "Mainframe.cs", FindHintLabel("What should she call you?"), "What should she call you?");
             Explain(layersKey, "Voice layers", "Mainframe.cs", null, "Layers");
             layersKey.StateValue = true;
             Explain(remoteKey, "Remote", "MainframeRemote.cs", null, "Capri Remote");
             Explain(resourcesKey, "Resources", "MainframeSystem.cs", null, "Resources");
+            Explain(spendKey, "Spend", "MainframeSpend.cs", null, "Spend");
             Explain(personalityKey, "Edit personality.md", "Mainframe.cs", null, "Her personality");
             Explain(huskMode, "Code/Husk Mode", "Mainframe.cs", FindHintLabel("Code/Husk Mode"), "Code/Husk Mode");
             Explain(thinkingLevel, "Thinking", "Mainframe.cs", FindHintLabel("Thinking"), "Thinking");

@@ -31,6 +31,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
+    <Compile Include="../app/LanguagePair.cs" Link="Shared/LanguagePair.cs" />
+    <Compile Include="../app/Spend.cs" Link="Shared/Spend.cs" />
     <Compile Include="../app/BetterModels.cs" Link="Shared/BetterModels.cs" />
     <Compile Include="../app/PersonalSettings.cs" Link="Shared/PersonalSettings.cs" />
     <Compile Include="../app/Doomscroll.cs" Link="Shared/Doomscroll.cs" />
@@ -41,6 +43,8 @@
     <Compile Include="../app/FileFinder.cs" Link="Shared/FileFinder.cs" />
     <Compile Include="../app/FileKeeper.cs" Link="Shared/FileKeeper.cs" />
     <Compile Include="../app/FileKeeperChecks.cs" Link="Shared/FileKeeperChecks.cs" />
+    <Compile Include="../app/Timeline.cs" Link="Shared/Timeline.cs" />
+    <Compile Include="../app/TimelineChecks.cs" Link="Shared/TimelineChecks.cs" />
     <Compile Include="../app/Files.cs" Link="Shared/Files.cs" />
     <Compile Include="../app/SelfKnow.cs" Link="Shared/SelfKnow.cs" />
     <Compile Include="../app/Network.cs" Link="Shared/Network.cs" />
@@ -59,6 +63,8 @@
     <Compile Include="../app/Onboarding.cs" Link="Shared/Onboarding.cs" />
     <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
     <Compile Include="../app/SkillMods.cs" Link="Shared/SkillMods.cs" />
+    <Compile Include="../app/CompanionPacks.cs" Link="Shared/CompanionPacks.cs" />
+    <Compile Include="../app/CompanionChecks.cs" Link="Shared/CompanionChecks.cs" />
     <Compile Include="../app/PluginMods.cs" Link="Shared/PluginMods.cs" />
     <Compile Include="../app/Plugins.cs" Link="Shared/Plugins.cs" />
     <Compile Include="../app/PluginJson.cs" Link="Shared/PluginJson.cs" />
