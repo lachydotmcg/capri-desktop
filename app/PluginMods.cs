@@ -224,6 +224,55 @@ namespace CapriDesktop
             catch (InvalidDataException) { throw new ModException("That file isn't a valid plug-in zip."); }
         }
 
+        internal static string PluginVersionIn(string file)
+        {
+            if (new FileInfo(file).Length > LargestPlugin) return null;
+            using (ZipArchive zip = ZipFile.OpenRead(file))
+            {
+                List<string> names = new List<string>();
+                foreach (ZipArchiveEntry entry in zip.Entries) names.Add(entry.FullName.Replace('\\', '/'));
+                string root = "";
+                if (!HasParts(names, root))
+                {
+                    HashSet<string> folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    bool loose = false;
+                    foreach (string name in names)
+                    {
+                        int slash = name.IndexOf('/');
+                        if (slash < 0) { if (name.Length > 0) loose = true; }
+                        else folders.Add(name.Substring(0, slash));
+                    }
+                    if (!loose && folders.Count == 1)
+                        foreach (string folder in folders)
+                            if (HasParts(names, folder + "/")) root = folder + "/";
+                }
+                foreach (string one in Manifests)
+                {
+                    ZipArchiveEntry found = null;
+                    foreach (ZipArchiveEntry entry in zip.Entries)
+                        if (string.Equals(entry.FullName.Replace('\\', '/'), root + one, StringComparison.OrdinalIgnoreCase)) { found = entry; break; }
+                    if (found == null) continue;
+                    if (found.Length > 256 * 1024) return null;
+                    object manifest;
+                    using (StreamReader reading = new StreamReader(found.Open(), Encoding.UTF8)) if (!PluginJson.TryParse(reading.ReadToEnd(), out manifest)) return null;
+                    return PluginJson.Str(manifest, "version");
+                }
+            }
+            return null;
+        }
+
+        private static bool HasParts(List<string> names, string root)
+        {
+            foreach (string name in names)
+            {
+                if (!name.StartsWith(root, StringComparison.OrdinalIgnoreCase)) continue;
+                string inner = name.Substring(root.Length);
+                if (Array.Exists(Manifests, one => string.Equals(one, inner, StringComparison.OrdinalIgnoreCase)) || Array.Exists(ServerFiles, one => string.Equals(one, inner, StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(inner, "SKILL.md", StringComparison.OrdinalIgnoreCase) || inner.StartsWith("skills/", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
         private static bool HasParts(string place)
         {
             foreach (string one in Manifests) if (File.Exists(Path.Combine(place, one))) return true;
