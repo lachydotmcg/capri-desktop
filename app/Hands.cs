@@ -117,6 +117,12 @@ namespace CapriDesktop
         internal InstalledApp(string name, string id) { Name = name; Id = id; }
     }
 
+    internal sealed class PartialApps : Exception
+    {
+        internal readonly List<InstalledApp> Apps;
+        internal PartialApps(Exception missed, List<InstalledApp> apps) : base(missed.Message, missed) { Apps = apps; }
+    }
+
     // Her SECURITY window (Lachy, 29 Oct): a toggle for each kind of thing she does on their PC, set by a slider of four presets.
     // A toggle that's off means she asks first in chat ("Open Spotify? Say yes and I will.") and does it on their yes, never a
     // silent no. Typing passwords and card numbers is the one exception: with it off they type those themselves. Trusted, the
@@ -4282,6 +4288,8 @@ namespace CapriDesktop
                 if (Regex.IsMatch(target, @"\s(and|then|&)\s|,\s*\S", RegexOptions.IgnoreCase)) return false;
                 if (Regex.IsMatch(target, @"^(your|ur|capri'?s|the capri)( own)? (web ?site|site|page|download page)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = Home; return true; }
                 if (Installed(target)) { tool = "open_app"; args.Name = target; return true; }
+                string known = KnownAs(target);
+                if (known != null && Installed(known)) { tool = "open_app"; args.Name = known; return true; }
 #if CROSS
                 // "Open minecraft from my modrinth launcher": her hands can't reach inside it here, so the launcher opens (Mako, 1 Nov).
                 Match launcher = Regex.Match(target, @"\s(?:from|in|on|with|through|using|via)\s+(?:(?:my|the)\s+)?(.+?)(?:\s+launcher)?$", RegexOptions.IgnoreCase);
@@ -4844,6 +4852,17 @@ namespace CapriDesktop
             return null;
         }
 
+        private static readonly string[,] SoundAlikes = { { "fortnight", "fortnite" }, { "fort night", "fortnite" } };
+
+        internal static string KnownAs(string wanted)
+        {
+            string nicknamed = Nickname(wanted);
+            if (nicknamed != null) return nicknamed;
+            string said = Regex.Replace(Plain(wanted), @"^the | (app|game)$", "");
+            for (int i = 0; i < SoundAlikes.GetLength(0); i++) if (said == SoundAlikes[i, 0]) return SoundAlikes[i, 1];
+            return null;
+        }
+
         // The installed game a job is in, like cs in "start matchmaking in cs", when it isn't open yet: a brain that goes straight
         // to use_computer gets it opened first (F57). Null when the job names none, or it's open already.
         internal static string Unopened(string job)
@@ -4977,7 +4996,7 @@ namespace CapriDesktop
         private static List<InstalledApp> FindApps(List<InstalledApp> apps, string wanted)
         {
             List<InstalledApp> found = Match(apps, wanted);
-            string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
+            string nicknamed = found.Count == 0 ? KnownAs(wanted) : null;
             return nicknamed == null ? found : Match(apps, nicknamed);
         }
 
@@ -5167,6 +5186,7 @@ namespace CapriDesktop
                 List<InstalledApp> apps;
                 Exception failed = null;
                 try { apps = new List<InstalledApp>(Catalog()); }
+                catch (PartialApps partial) { apps = new List<InstalledApp>(partial.Apps ?? new List<InstalledApp>()); failed = partial.InnerException ?? partial; }
                 catch (Exception error) { apps = new List<InstalledApp>(); failed = error; }
                 string folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 string path = folder.Length == 0 ? "" : Path.Combine(folder, @"Spotify\Spotify.exe");
@@ -5184,7 +5204,21 @@ namespace CapriDesktop
             }
         }
 
-        private static List<InstalledApp> ReadCatalog()
+        internal static Func<List<InstalledApp>> StartMenu = ReadStartMenu;
+        internal static Func<List<InstalledApp>> Launchers = ReadLaunchers;
+
+        internal static List<InstalledApp> ReadCatalog()
+        {
+            List<InstalledApp> listed;
+            Exception missed = null;
+            try { listed = StartMenu(); }
+            catch (Exception error) { listed = new List<InstalledApp>(); missed = error; }
+            listed = WithSteam(listed, Launchers());
+            if (missed != null) throw new PartialApps(missed, listed);
+            return listed;
+        }
+
+        private static List<InstalledApp> ReadStartMenu()
         {
             List<InstalledApp> apps = new List<InstalledApp>();
             Exception failed = null;
@@ -5210,7 +5244,12 @@ namespace CapriDesktop
             reader.Start();
             if (!reader.Join(10000)) throw new TimeoutException("The app list took too long.");
             if (failed != null) throw failed;
-            List<InstalledApp> listed = WithSteam(apps, SteamApps(SteamFolder()));
+            return apps;
+        }
+
+        private static List<InstalledApp> ReadLaunchers()
+        {
+            List<InstalledApp> listed = SteamApps(SteamFolder());
 #if !CROSS
             listed = WithSteam(listed, StoreApps());
 #endif
@@ -6296,16 +6335,29 @@ namespace CapriDesktop
                 string opened = AppleMusic(kind == "song" ? song : asked, kind == "song" ? "song" : askedKind, look, songOnly, current);
                 if (opened != null) return opened;
                 string played = PlayMusic(asked, "auto", askedKind, current, songOnly);
-                return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1) : played;
+                return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1)
+                    : played.StartsWith("Opened ", StringComparison.Ordinal) ? "Apple Music isn't installed, so I o" + played.Substring(1) : played;
             }
-            bool hasSpotify = false;
+            bool hasSpotify = false, webPlayer = false;
             // A failed look at their apps still lets music go to YouTube, but it never becomes "Spotify isn't installed".
-            if (app != "youtube") try { hasSpotify = FindApps("spotify").Count > 0; } catch (Exception) { if (app == "spotify") throw; }
+            if (app != "youtube")
+                try
+                {
+                    List<InstalledApp> spotifies = FindApps("spotify");
+                    hasSpotify = spotifies.Count > 0;
+                    webPlayer = hasSpotify && spotifies.TrueForAll(WebApp);
+                }
+                catch (Exception) { if (app == "spotify") throw; }
             if (hasSpotify)
             {
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
                 if (current != null && !current()) return "That call errand has ended.";
+                if (webPlayer)
+                {
+                    Run(liked ? "https://open.spotify.com/collection/tracks" : spotted != null ? "https://open.spotify.com/" + (kind == "song" ? "track" : kind) + "/" + spotted : "https://open.spotify.com/search/" + Uri.EscapeDataString(song));
+                    return "Opened " + named + " in Spotify's web player, but couldn't press play there. Hit its Play button.";
+                }
 #if CROSS
                 if (kind == "song" && spotted != null)
                 {
@@ -6327,11 +6379,26 @@ namespace CapriDesktop
             }
             string where = Searches[0, 1] + Uri.EscapeDataString(look);
             System.Text.RegularExpressions.Match list = Regex.Match(kind == "song" ? "" : Fetch(where + "&sp=EgIQAw%253D%253D") ?? "", @"""watchEndpoint"":\{""videoId"":""([A-Za-z0-9_-]{11})"",""playlistId"":""([A-Za-z0-9_-]+)""");
-            string video = list.Success ? null : Find(Fetch(where), "\"videoId\":\"([A-Za-z0-9_-]{11})\"");
+            string page = list.Success ? null : Fetch(where) ?? "";
+            string video = list.Success ? null : Find(page, "\"videoId\":\"([A-Za-z0-9_-]{11})\"");
             if (current != null && !current()) return "That call errand has ended.";
-            if (!list.Success && video == null) { Run(where); return "Couldn't find " + named + " to play, so YouTube is open on a search for it."; }
-            Run(list.Success ? "https://www.youtube.com/watch?v=" + list.Groups[1].Value + "&list=" + list.Groups[2].Value : "https://www.youtube.com/watch?v=" + video);
+            if (!list.Success && video == null)
+            {
+                Run(where);
+                return Unread(page) ? "Couldn't get YouTube's results, so it's open on a search for " + named + ". Pick one there." : "Couldn't find " + named + " to play, so YouTube is open on a search for it.";
+            }
+            string watch = list.Success ? "https://www.youtube.com/watch?v=" + list.Groups[1].Value + "&list=" + list.Groups[2].Value : "https://www.youtube.com/watch?v=" + video;
+#if CROSS
+            Run(watch);
             return (app == "spotify" ? "Spotify isn't installed, so playing " : "Playing ") + named + " on YouTube.";
+#else
+            return TubePlay(named, watch, app == "spotify", current);
+#endif
+        }
+
+        private static bool Unread(string page)
+        {
+            return string.IsNullOrWhiteSpace(page) || page.IndexOf("ytInitialData", StringComparison.Ordinal) < 0 && page.IndexOf("videoRenderer", StringComparison.Ordinal) < 0;
         }
 
         internal static string MusicApp(string app)
@@ -6483,6 +6550,43 @@ namespace CapriDesktop
         }
 
         private static string NoPlay(string name) { return "Opened " + name + " in Spotify, but couldn't press play. Hit the green Play button."; }
+
+        private static string TubePlay(string named, string address, bool instead, Func<bool> current)
+        {
+            List<Tune> before = Sessions();
+            HashSet<string> seen = new HashSet<string>(), playing = new HashSet<string>();
+            if (before != null)
+                foreach (Tune tune in before)
+                {
+                    seen.Add(tune.Key);
+                    if (tune.Playing) playing.Add(tune.Key);
+                }
+            Run(address);
+            string opened = (instead ? "Spotify isn't installed, so I opened " : "Opened ") + named + " on YouTube";
+            if (before == null) return opened + ".";
+            long began = MusicNow();
+            bool pressed = false;
+            while (true)
+            {
+                if (current != null && !current()) return "That call errand has ended.";
+                List<Tune> now = Sessions();
+                if (now != null)
+                    foreach (Tune tune in now)
+                    {
+                        if (tune.Spotify || tune.Title.Length == 0) continue;
+                        if (tune.Playing && !playing.Contains(tune.Key)) return (instead ? "Spotify isn't installed, so playing " : "Playing ") + named + " on YouTube.";
+                        if (!tune.Playing && !pressed && tune.CanPlay && !seen.Contains(tune.Key))
+                        {
+                            pressed = true;
+                            SessionPress(tune, "play");
+                        }
+                    }
+                long left = began + 15000 - MusicNow();
+                if (left <= 0) break;
+                MusicWait((int)Math.Min(250, left));
+            }
+            return opened + ", but couldn't get it playing. Press play on the video.";
+        }
 #endif
 
         internal static bool MusicMissing(string label, string song)

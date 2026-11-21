@@ -225,6 +225,44 @@ namespace CapriDesktop
         // The zip passed its checksum, so a missing server means antivirus took it (owner flag A14). Fits the BRAIN note.
         internal const string ServerGone = "Your antivirus likely took llama-server.exe. Allow it, then try again.";
 
+        internal static string Refused { get { return "Windows won't let my brain's engine, llama-server.exe, run on this PC. To talk to me, " + Brain.FreeKeyHow + "."; } }
+
+        internal static bool Barred(int code)
+        {
+            uint status = (uint)code;
+            return code == 577 || code == 1260 || code >= 4550 && code < 4600 || status == 0xC0000428 || status >= 0xC0000361 && status <= 0xC0000364 || status == 0xC0000372;
+        }
+
+        internal static Func<string> Guards = ReadGuards;
+
+        private static string ReadGuards()
+        {
+            System.Collections.Generic.List<string> found = new System.Collections.Generic.List<string>();
+#if !CROSS
+            if (Packaged.Is) found.Add("packaged");
+            try
+            {
+                using (RegistryKey policy = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\CI\Policy"))
+                {
+                    object state = policy == null ? null : policy.GetValue("VerifiedAndReputablePolicyState");
+                    if (state is int) found.Add("Smart App Control " + ((int)state == 1 ? "on" : (int)state == 2 ? "evaluating" : "off"));
+                }
+            }
+            catch (Exception) { }
+            try
+            {
+                int mode;
+                if (WldpQueryWindowsLockdownMode(out mode) == 0 && mode == 2) found.Add("S mode");
+            }
+            catch (Exception) { }
+#endif
+            return found.Count == 0 ? "" : " (" + string.Join(", ", found.ToArray()) + ")";
+        }
+
+#if !CROSS
+        [DllImport("wldp.dll")] private static extern int WldpQueryWindowsLockdownMode(out int mode);
+#endif
+
         internal void Install(Pick pick, Action<string, long, long> progress)
         {
             Directory.CreateDirectory(root);
@@ -441,7 +479,18 @@ namespace CapriDesktop
                 // The try is marked before it starts, so a load that takes Capri or the PC down with it leaves her on the CPU for
                 // this version.
                 if (retryGpu && !serverCpu) KeepCpu("trying the graphics card again");
+#if CROSS
                 server = Spawn(StartInfo(pick, eyes, serverCpu, port, window, limit));
+#else
+                try { server = Spawn(StartInfo(pick, eyes, serverCpu, port, window, limit)); }
+                catch (System.ComponentModel.Win32Exception error)
+                {
+                    Brain.Log("brain", -1, "llama-server couldn't start: Windows error " + error.NativeErrorCode + Guards());
+                    if (Barred(error.NativeErrorCode)) throw new BrainException(Refused, true);
+                    if (error.NativeErrorCode == 225 || error.NativeErrorCode == 226) throw new BrainException(ServerGone, true);
+                    throw new BrainException("Couldn't start my brain: " + Brain.Plainly("brain", error));
+                }
+#endif
                 Lower(server);
                 Bind(server);
             }
@@ -460,8 +509,11 @@ namespace CapriDesktop
                 {
                     // Its own log is off, so the exit code is the only clue Copy error details can carry. A graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
                     bool retry = running != null && onGpu;
-                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? careful ? ", keeping its previous memory size" : ", restarting it on the CPU" : "");
+                    int code = running == null ? 0 : ExitCode(running);
+                    bool barred = running != null && Barred(code);
+                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)code).ToString("X8")) + (barred ? Guards() : retry ? careful ? ", keeping its previous memory size" : ", restarting it on the CPU" : "");
                     Brain.Log("brain", -1, reason);
+                    if (barred) throw new BrainException(Refused, true);
                     if (!retry || careful) throw new BrainException("Brain crashed loading. Close games, press Refresh.") { Careful = careful };
                     lock (gate) { KeepCpu(reason); retryGpu = false; CpuOnly = true; }
                     Ensure(pick);

@@ -1450,6 +1450,9 @@ If her reply says she can't open, play or access something she can do (like "I d
 - Name the artist for the best match.
 - "Opened X in Spotify, but couldn't press play. Hit the green Play button." Press Play yourself.
 - "Couldn't find X to play, so Spotify is open on a search for it." Pick the song from the search.
+- "Opened X on YouTube, but couldn't get it playing. Press play on the video." Your browser held it back from starting on its own. Press play, or let YouTube play sound by itself in your browser's site settings.
+- "Couldn't get YouTube's results, so it's open on a search for X. Pick one there." YouTube asked about cookies first, or your connection dropped.
+- "Opened X in Spotify's web player, but couldn't press play there. Hit its Play button." Spotify is only installed as a web app on this PC, and a web player can't start a song by itself. With the Spotify app she presses play for you.
 
 ### How your PC is doing (0.8.0)
 With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how much RAM is Chrome using?" or "how much space is left?". She checks how busy the processor and memory are, which apps use the most, each drive's free space and a laptop's battery, then answers. Ask "is my internet down?" or "what's my ping?" and she checks your connection too: Ethernet or Wi-Fi, a few pings, and whether sites look up. She only reads them. Windows only.

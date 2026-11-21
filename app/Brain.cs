@@ -4768,6 +4768,7 @@ namespace CapriDesktop
             if (error.StartsWith(DailyStart, StringComparison.Ordinal)) return "Gemini's daily limit is used. Try tomorrow or another key.";
             if (error == Wordless) return "Empty reply. Try again or pick another model.";
             if (error.StartsWith("The download of ", StringComparison.Ordinal) && error.EndsWith(" keeps stopping. Check your connection and try again.", StringComparison.Ordinal)) return "Download keeps stopping. Check your connection and retry.";
+            if (error == Engine.Refused) return "Windows blocked llama-server.exe. Press Free key.";
             return null;
         }
 
