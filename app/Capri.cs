@@ -6669,6 +6669,7 @@ namespace CapriDesktop
             {
                 tool = "play_music";
                 if (args.FromFriend) { musicArgs.Asked = args.Asked; musicArgs.FromFriend = true; musicArgs.Current = args.Current; }
+                Hands.AimMusic(musicArgs, args.Asked);
                 args = musicArgs;
             }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
@@ -6951,11 +6952,11 @@ namespace CapriDesktop
                 }
                 if (app == "deezer" || app == "youtubemusic") return Hands.ServiceJob(app, song, args.Kind, args.SongOnly);
                 bool spotify = app == "spotify" || (app != "youtube" && Hands.Installed("spotify"));
-                if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
+                if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar on the page, not the browser's address bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
                 return null;
             }
             if (tool == "open_website" && !string.IsNullOrWhiteSpace(args.Search) && Regex.IsMatch((args.Site ?? "").Trim(), @"^(https?://)?(www\.|m\.)?youtube(\.com)?/?$", RegexOptions.IgnoreCase))
-                return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser + " using open_website with browser " + Voice.Quote(args.Browser)) + ": open YouTube, click its search bar, type it and press Enter, then scroll down through the results.";
+                return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser + " using open_website with browser " + Voice.Quote(args.Browser)) + ": open YouTube, click its search bar on the page, not the browser's address bar, type it and press Enter, then scroll down through the results.";
             // Volume is the PC's volume. Spotify's own slider only when they said Spotify.
             if (tool == "media" && (args.Action == "volume_up" || args.Action == "volume_down") && args.App == "spotify" && SpotifyOpen())
             {
@@ -28153,6 +28154,13 @@ namespace CapriDesktop
         // Power saver (issue #111): HABITS' row saves, syncs and stays in Simple Settings. Only while it works, over a faked game
         // for In games or all the time for Always, she rests at 15 fps, runs her background checks once a second and her ears go
         // at a gentler pace; Off, or In games with nothing in front, leaves every interval as it was.
+        private static bool MusicAppKept(string said)
+        {
+            ToolArguments music = new ToolArguments { Song = "Spring by Flume", App = "youtube" };
+            Hands.AimMusic(music, said);
+            return music.App == "youtube";
+        }
+
         private void SmokeMusicApp(System.Collections.Generic.List<string> checks)
         {
             int musicWas = preferences.MusicApp;
@@ -28327,6 +28335,23 @@ namespace CapriDesktop
                 if (Tunes.AppName(youTubeMusic.Id) != "YouTube Music" || Tunes.AppName(deezer.Id) != "Deezer" || !IsMusicApp(youTubeMusic.Id) || !IsMusicApp(deezer.Id) || IsMusicApp("Chrome") || Tunes.AppName("Chrome") != "Chrome")
                     throw new Exception("Her player didn't name YouTube Music's web app or Deezer: " + Tunes.AppName(youTubeMusic.Id) + " / " + Tunes.AppName(deezer.Id));
                 checks.Add("PASS Music app: YouTube Music plays in its installed web app with her cursor, or on music.youtube.com, and her player names it and Deezer");
+
+                installed.Clear(); Hands.Forget();
+                ToolArguments guessed = new ToolArguments { Song = "Spring by Flume", App = "youtube" }, saidYouTube = new ToolArguments { Song = "Spring by Flume", App = "youtube" }, spoken = new ToolArguments { Song = "Spring by Flume", App = "youtubemusic" };
+                Hands.AimMusic(guessed, "play spring by flume");
+                Hands.AimMusic(saidYouTube, "play spring by flume on youtube");
+                Hands.AimMusic(spoken, "play spring by flume on yt music");
+                string guessedJob = CursorJob("play_music", guessed) ?? "";
+                jobs.Clear();
+                string jobDone = DoTool("use_computer", new ToolArguments { Task = "Play Spring by Flume on YouTube", Asked = "play spring by flume" });
+                string musicJob = jobs.Count == 1 ? jobs[0] : string.Join(" | ", jobs.ToArray());
+                string musicSearch = Hands.Address("music.youtube.com", "Midnight Drive"), deezerSearch = Hands.Address("www.deezer.com", "Midnight Drive"), youtubeSearch = Hands.Address("youtube", "Midnight Drive"), musicPage = Hands.Address("https://music.youtube.com/search?q=Midnight%20Drive", null);
+                if (guessed.App != null || saidYouTube.App != "youtube" || spoken.App != "youtubemusic" || !guessedJob.StartsWith("Play \"Spring by Flume\" on YouTube Music: open https://music.youtube.com/search?q=Spring%20by%20Flume with open_website", StringComparison.Ordinal)
+                    || guessedJob.IndexOf("never by typing in the browser's address bar", StringComparison.Ordinal) < 0 || jobDone != "Did it." || !musicJob.StartsWith("Play \"Spring by Flume\" on YouTube Music:", StringComparison.Ordinal)
+                    || musicSearch != "https://music.youtube.com/search?q=Midnight%20Drive" || deezerSearch != "https://www.deezer.com/search/Midnight%20Drive" || youtubeSearch != "https://www.youtube.com/results?search_query=Midnight%20Drive" || !string.Equals(musicPage, "https://music.youtube.com/search?q=Midnight%20Drive", StringComparison.OrdinalIgnoreCase)
+                    || !MusicAppKept("again") || !MusicAppKept("play it again on the same app") || !MusicAppKept("play the music video for spring by flume") || !MusicAppKept("включи spring на ютубе") || !MusicAppKept("do it"))
+                    throw new Exception("YouTube Music went to YouTube: " + guessed.App + " / " + saidYouTube.App + " / " + spoken.App + " / " + guessedJob + " / " + jobDone + " / " + musicJob + " / " + musicSearch + " / " + deezerSearch + " / " + youtubeSearch + " / " + musicPage);
+                checks.Add("PASS Music app: a brain's guess of YouTube, or a job that says YouTube, still plays on YouTube Music when they didn't say YouTube, and music.youtube.com and deezer.com searches stay on their sites");
 
                 string[] steps = Hands.StepsOf("music_app");
                 for (int level = 0; level < steps.Length; level++)

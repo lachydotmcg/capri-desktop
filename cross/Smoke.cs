@@ -3529,6 +3529,11 @@ namespace CapriDesktop
                     if (!worked) throw new Exception("Music app " + app + (viaApp ? " with its app" : "") + " didn't play: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran) + " / fetched " + fetched.Count);
                 }
                 installed.Clear(); Hands.Forget();
+                ToolArguments guessed = new ToolArguments { Song = "Spring by Flume", App = "youtube" }, saidDeezer = new ToolArguments { Song = "Spring by Flume", App = "deezer" };
+                Hands.AimMusic(guessed, "play spring by flume");
+                Hands.AimMusic(saidDeezer, "play spring by flume on deezer");
+                if (guessed.App != null || saidDeezer.App != "deezer" || Hands.Address("music.youtube.com", "Midnight Drive") != "https://music.youtube.com/search?q=Midnight%20Drive" || Hands.Address("deezer.com", "Midnight Drive") != "https://www.deezer.com/search/Midnight%20Drive")
+                    throw new Exception("A music app they didn't say was kept, or a music site's search left it: " + guessed.App + " / " + saidDeezer.App);
                 string lovedDeezer = Hands.ServiceJob("deezer", "Liked Songs", "playlist"), ownYouTube = Hands.ServiceJob("youtubemusic", "my Chill", "playlist");
                 if (!lovedDeezer.StartsWith("Play their Favourite tracks on Deezer: open https://www.deezer.com with open_website", StringComparison.Ordinal) || !ownYouTube.StartsWith("Play their playlist \"Chill\" on YouTube Music: open https://music.youtube.com with open_website", StringComparison.Ordinal))
                     throw new Exception("Deezer or YouTube Music's job lost what to play: " + lovedDeezer + " / " + ownYouTube);

@@ -1895,6 +1895,11 @@ namespace CapriDesktop
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
         [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
         private static readonly Regex Junk =new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
+        private static readonly string[,] SiteSearches =
+        {
+            { "music.youtube.com", "https://music.youtube.com/search?q=" },
+            { "deezer.com", "https://www.deezer.com/search/" }
+        };
         private static readonly string[,] Searches =
         {
             { "youtube", "https://www.youtube.com/results?search_query=" },
@@ -2177,7 +2182,7 @@ namespace CapriDesktop
                     }
 #endif
                     ToolArguments musicArgs;
-                    if (MusicJob(args.Task, out musicArgs)) return Do("play_music", musicArgs);
+                    if (MusicJob(args.Task, out musicArgs)) { AimMusic(musicArgs, args.Asked); return Do("play_music", musicArgs); }
 #if CROSS
                     if (NativeWork != null) return NativeWork(args);
 #endif
@@ -4124,6 +4129,21 @@ namespace CapriDesktop
 
         // A model's media call squared with what they said: unmute isn't mute, only saying Spotify means Spotify's own volume, and
         // play_pause for "pause it" or "unpause it" only pauses or only plays, so it can't flip the music the wrong way.
+        private static readonly string[,] MusicApps =
+        {
+            { "spotify", @"\bspotify\b" }, { "youtube", @"\b(you ?tube|yt)\b" }, { "applemusic", @"\bapple\s+music\b|\bitunes\b" },
+            { "deezer", @"\bdeezer\b" }, { "youtubemusic", @"\b(you ?tube|yt)\s*music\b" }
+        };
+
+        internal static void AimMusic(ToolArguments args, string said)
+        {
+            if (args == null || string.IsNullOrEmpty(args.App) || string.IsNullOrWhiteSpace(said)) return;
+            if (Regex.IsMatch(said, @"[^\u0000-\u024F\u1E00-\u1EFF]") || !Regex.IsMatch(said, @"\b(play|put on|shuffle|blast|queue|listen to)\b", RegexOptions.IgnoreCase)) return;
+            if (Regex.IsMatch(said, @"\b(again|same|instead|video|videos|mv)\b", RegexOptions.IgnoreCase)) return;
+            for (int i = 0; i < MusicApps.GetLength(0); i++)
+                if (MusicApps[i, 0] == args.App && !Regex.IsMatch(said, MusicApps[i, 1], RegexOptions.IgnoreCase)) args.App = null;
+        }
+
         internal static void Aim(ToolArguments args, string said)
         {
             if (args == null) return;
@@ -5983,6 +6003,8 @@ namespace CapriDesktop
             if (searching)
             {
                 if (host.Length == 0) return Searches[1, 1] + Uri.EscapeDataString(search.Trim());
+                for (int i = 0; i < SiteSearches.GetLength(0); i++)
+                    if (host == SiteSearches[i, 0] || host.StartsWith(SiteSearches[i, 0] + "/", StringComparison.Ordinal)) return SiteSearches[i, 1] + Uri.EscapeDataString(search.Trim());
                 for (int i = 0; i < Searches.GetLength(0); i++)
                 {
                     string key = Searches[i, 0];
@@ -6671,7 +6693,7 @@ namespace CapriDesktop
         {
             bool own;
             string what = MusicKind(ref song, kind, songOnly, out own);
-            string on = " on " + service.Name + ": ", stop = " If " + (app ?? service.Name) + " asks them to sign in, subscribe or start a trial, stop there and tell them.";
+            string on = " on " + service.Name + ": ", stop = " If " + (app ?? service.Name) + " asks them to sign in, subscribe or start a trial, stop there and tell them." + (app == null ? " Open pages only with open_website, never by typing in the browser's address bar." : "");
             string open = app != null ? "open the " + app + " app, " : "open " + service.Home + " with open_website, refuse any cookie notice, ";
             if (what == "loved") return "Play their " + service.Loved + on + open + service.LovedSteps + stop;
             if (own) return "Play their playlist " + Voice.Quote(song) + on + open + service.Playlists + "open " + Voice.Quote(song) + " and press play." + stop;
