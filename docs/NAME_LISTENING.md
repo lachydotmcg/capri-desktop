@@ -82,8 +82,11 @@ follow-ups as Linux, with these Mac differences:
 - **Her own voice.** Mac playback goes through the native helper, not PipeWire, so
   every line, typing sound and hush closes capture first and keeps it closed for
   the clip plus 700 ms.
-- **Screen lock.** Linux pauses on a locked Hyprland session. Mac has no lock check
-  yet; mute or quiet her before stepping away.
+- **Screen lock.** On Linux she pauses on a real lock report: Hyprland's own session
+  snapshot, or logind's `LockedHint` anywhere else. A desktop that answers nothing
+  keeps her listening, and she may keep listening while the screen is locked, since
+  the hint depends on the desktop updating it. Mac has no lock check yet; mute or
+  quiet her before stepping away.
 
 Mac setup, Apple Silicon, Python 3.11 (Homebrew `python@3.11` or python.org):
 

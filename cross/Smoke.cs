@@ -156,6 +156,7 @@ namespace CapriDesktop
                 MoveReports.Checks(checks);
                 NiriDesktop.Checks(checks);
                 Labwc.Checks(checks);
+                NameListeningChecks.Checks(pet, checks);
                 MacQuit.Checks(checks);
                 NewsChecks();
                 GuardChecks();

@@ -40,8 +40,19 @@ namespace CapriDesktop
 
         internal bool NameListeningEnabled => Saved.ListenCapri && !nameStopped;
         internal string NameListeningStatus => nameStatus;
+        internal bool NameBarredNow { get { return NameBarred; } }
+        // Hyprland answers at once. Elsewhere logind's lock is the only thing that must stop her, and an answer she can't
+        // read never bars her, so the switch keeps working on desktops that can't report a lock at all.
+        internal static Func<bool?> LockedForNameListening = delegate
+        {
+            if (!OperatingSystem.IsLinux()) return false;
+            HyprlandDesktop desktop = HyprlandDesktop.Current;
+            if (desktop != null) return desktop.VisualSnapshot?.Locked != false;
+            return Limbs.SessionLocked();
+        };
+        internal static bool NameBarredByLock() => LockedForNameListening() == true;
         private bool NameBarred => nameClosed || quitting || away || Hushed || Asleep || Listening ||
-            Talk?.Typer.Secret == true || (OperatingSystem.IsLinux() && HyprlandDesktop.Current?.VisualSnapshot?.Locked != false);
+            Talk?.Typer.Secret == true || NameBarredByLock();
 
         private NameContext CaptureNameContext() => new NameContext(Brain.Provider, Brain.Model, Brain.Remote,
             Brain.Remote?.Model, Brain.Local, HyprlandDesktop.Current?.SessionId, Saved.MicrophoneNode,
@@ -295,7 +306,7 @@ namespace CapriDesktop
         private void TickNameListening()
         {
             if (!(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) || Program.Smoke != null || nameClosed) return;
-            if (nameStartup && opened && (!OperatingSystem.IsLinux() || HyprlandDesktop.Current?.VisualSnapshot?.Locked == false))
+            if (nameStartup && opened && !NameBarredByLock())
             { nameStartup = false; StartNameListening(); }
             if (nameStopped) return;
             if (NameBarred || nameContext != null && !SameNameContext(nameContext))
