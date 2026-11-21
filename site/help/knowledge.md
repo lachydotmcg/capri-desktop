@@ -1203,6 +1203,11 @@ Capri makes a voice agent called "Capri" in your own ElevenLabs account and talk
 ### Voice chat in other languages
 If you pick another language in Settings, voice chat uses it too. Free voice chat hears 25 languages with her own ears (see Free voice chat above). ElevenLabs voice chat in other languages is new and not well tested yet.
 
+### Why did her voice change to a Windows voice? (0.9.7)
+Her free voice speaks English, and French, Spanish, Italian, Portuguese and Hindi once their small download is in. A line in another language, like Russian or Japanese, is read by a Windows voice for that language when Windows has one, and VOICE says so once per language each run. A voice for that language under CUSTOM LOCAL takes over from it.
+
+If you run out of ElevenLabs credits, her free voice fills in, and she tries ElevenLabs again every 15 minutes. Once your credits are back, VOICE says "ElevenLabs has credits again, so she's back to her ElevenLabs voice."
+
 ### How do I set up push to talk?
 Mainframe > Settings > KEYS > Push to talk. Click it, press a key or a middle or side mouse button, then click Confirm. It starts unbound. Left and right mouse clicks aren't available for this binding.
 
