@@ -210,8 +210,30 @@ namespace CapriDesktop
             double awake = Clamp((at - Wakes) / 0.15);
             double settled = Clamp((at - Settles) / 0.35);
             Frame(g, sleep, (int)(Math.Max(0, at - Asleep) * sleep.Fps) % sleep.Count, size, midX, midY, asleep * (1 - awake));
-            Frame(g, wake, (int)(Math.Max(0, at - Wakes) * wake.Fps), size, midX, midY, awake * (1 - settled));
+            int woke = (int)(Math.Max(0, at - Wakes) * wake.Fps);
+            if (Companion.StandsIn(wake, idle))
+            {
+                int step = (int)(Math.Max(0, at - Wakes) * idle.Fps) % idle.Count;
+                if (awake > 0 && woke < wake.Count) Under(g, idle, step, size, midX, midY, Companion.UnderLevel(wake, woke), 7 * 16 + woke);
+                Frame(g, idle, step, size, midX, midY, awake);
+                WakeShown = awake > 0 ? idle : null;
+                return;
+            }
+            Frame(g, wake, woke, size, midX, midY, awake * (1 - settled));
             Frame(g, idle, (int)(Math.Max(0, at - Settles) * idle.Fps) % idle.Count, size, midX, midY, settled);
+            WakeShown = awake > 0 && settled < 1 ? wake : settled > 0 ? idle : null;
+        }
+
+        internal Clip WakeShown { get; private set; }
+
+        internal static void Under(Graphics g, Clip stand, int index, float size, float midX, float midY, double level, int seed)
+        {
+            Bitmap strip = stand.Strip;
+            if (strip == null || level <= 0 || stand.Count <= 0) return;
+            int width = strip.Width / stand.Count;
+            float tall = size * stand.Height, wide = tall * width / strip.Height;
+            RectangleF spot = new RectangleF(midX - wide / 2 + stand.ShiftX * size, midY - tall / 2, wide, tall);
+            Shatter.Under(g, strip, new Rectangle(Math.Max(0, Math.Min(stand.Count - 1, index)) * width, 0, width, strip.Height), spot, level, seed);
         }
 
         // A hard one snaps between on and nearly off, a soft one swells, a steady one sits at full.
@@ -232,7 +254,7 @@ namespace CapriDesktop
         }
 
         // One frame of one of her strips, its own height times her size tall, centred on her middle with its own nudge.
-        private static void Frame(Graphics g, Clip clip, int index, float size, float midX, float midY, double shown)
+        internal static void Frame(Graphics g, Clip clip, int index, float size, float midX, float midY, double shown)
         {
             if (shown <= 0.01 || clip.Count <= 0) return;
             Bitmap strip = clip.Strip;
