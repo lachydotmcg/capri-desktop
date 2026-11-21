@@ -80,7 +80,9 @@ namespace CapriDesktop
                 { Brain.NoCredits, "Free key" }, { Brain.Meaning(402, ""), "Free key" },
                 { Brain.PlusRejected, "platform.openai.com" }, { Brain.Meaning(401, "{\"error\":\"bad key\"}", false, true), "platform.openai.com" },
                 { Brain.NotAKey, "Copy the whole key" }, { Brain.Unserved, "Free key" }, { Brain.NoFreeModels, "Refresh" },
-                { Brain.Blocked, "Built-in" }, { Brain.Rejected("NVIDIA"), "Forget" }, { Brain.Rejected(null), "Forget" }
+                { Brain.Blocked, "Built-in" }, { Brain.Rejected("NVIDIA"), "Forget" }, { Brain.Rejected(null), "Forget" },
+                { Brain.OpenAiNoCredits, "platform.openai.com" }, { Brain.OpenAiCapped, "platform.openai.com" },
+                { Brain.TooLarge("gpt-5.4", true), "smaller model" }, { Brain.DailyLimit("gpt-5.6-luna", true), "add credits" }
             };
             for (int i = 0; i < lines.GetLength(0); i++)
             {
@@ -101,7 +103,7 @@ namespace CapriDesktop
                 if (!shown.EndsWith(Brain.Brief(Brain.NotAKey), StringComparison.Ordinal) || shown.Contains("...")) throw new Exception("Pasting a key she doesn't know showed " + shown);
             }
             finally { mainframe.ShowProblem(noteWas); }
-            checks.Add("PASS BRAIN note short forms: no credits, an OpenAI key without API credit, a pasted key she doesn't know, Gemini not offered where you are and OpenRouter with no free models each fit the note's 60 characters and keep their fix (Free key, platform.openai.com, copy the whole key, Refresh), lines that already fit are left alone, and pasting a non-key shows the whole short form");
+            checks.Add("PASS BRAIN note short forms: no credits, an OpenAI key without API credit, a pasted key she doesn't know, Gemini not offered where you are, OpenRouter with no free models, and an OpenAI key with no credits, at a spend limit, too big for its per-minute limit or at its daily limit each fit the note's 60 characters and keep their fix (Free key, platform.openai.com, copy the whole key, Refresh, a smaller model, add credits), lines that already fit are left alone, and pasting a non-key shows the whole short form");
         }
 
         // Hearing problems: Windows' step names and codes stay in errors.txt, the hearing line gives a plain reason that fits
@@ -477,22 +479,25 @@ namespace CapriDesktop
             }
             if (!Brain.Brief(Brain.DailyGone).Contains("tomorrow") || !Brain.Brief(Brain.BusyWatching).Contains("glance")) throw new Exception("A rate limit's BRAIN line lost its fix.");
             bool watchWas = preferences.Watch;
-            string googleWas = Brain.Google;
-            System.Net.Sockets.TcpListener fake = null, tooBigFake = null, busyFake = null;
+            string googleWas = Brain.Google, openAiWas = Brain.OpenAi;
+            System.Net.Sockets.TcpListener fake = null, tooBigFake = null, busyFake = null, openAiFake = null;
             try
             {
                 List<string> asked = new List<string>();
                 Brain.Google = FakeServer(new[] { "!429 " + minute, "!429 " + minute, "!429 " + day }, asked, out fake);
                 string[] said = new string[3];
+                BrainException[] geminiErrors = new BrainException[3];
                 for (int i = 0; i < 3; i++)
                 {
                     preferences.Watch = i == 1;
                     try { Brain.CloudModels("AIza-test"); }
-                    catch (BrainException error) { if (error.Told) said[i] = error.Message; }
+                    catch (BrainException error) { geminiErrors[i] = error; if (error.Told) said[i] = error.Message; }
                 }
                 if (said[0] != Brain.Busy || said[1] != Brain.BusyWatching || said[2] != Brain.DailyGone || asked.Count != 3)
                     throw new Exception("Gemini's limits were told wrong: " + string.Join(" | ", said) + " / " + asked.Count + " asks");
-                checks.Add("PASS too many requests says to wait a minute, and to glance less often only while Watch my screen is on; Gemini's used-up day says it resets tomorrow or to add another key; each has a BRAIN line that fits with its fix, and all still count as a stall");
+                if (geminiErrors[0].RetryAt == default(DateTime) || geminiErrors[2].RetryAt != default(DateTime) || Brain.ScreenProblem(geminiErrors[2], "Gemini") != Brain.DailyGone)
+                    throw new Exception("Gemini's used-up day still waits to try the screen again, or its minute stopped waiting: " + Brain.ScreenProblem(geminiErrors[2], "Gemini"));
+                checks.Add("PASS too many requests says to wait a minute, and to glance less often only while Watch my screen is on; Gemini's used-up day says it resets tomorrow or to add another key, with no wait to try the screen again; each has a BRAIN line that fits with its fix, and all still count as a stall");
                 const string groqTooBig = "{\"error\":{\"message\":\"Request too large for model `openai/gpt-oss-20b` in organization `org_test` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 9120, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}";
                 const string groqBusy = "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_test` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6200, Requested 4100. Please try again in 17.5s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}";
                 const string openAiQuota = "{\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\",\"type\":\"insufficient_quota\",\"param\":null,\"code\":\"insufficient_quota\"}}";
@@ -500,7 +505,7 @@ namespace CapriDesktop
                 if (Brain.Meaning(413, groqTooBig) != Brain.TooBig || Brain.Meaning(413, groqTooBig.Replace("/", "\\/")) != Brain.TooBig
                     || Brain.Meaning(413, "{\"error\":{\"message\":\"Upgrade at https://console.groq.com/settings/billing\"}}") != null || Brain.Meaning(413, "{\"error\":{\"message\":\"Request body too large\"}}") != null
                     || Brain.Meaning(429, groqBusy) != Brain.Busy || Brain.Meaning(402, openRouterBroke) != Brain.NoCredits || Brain.Meaning(402, "") != Brain.NoCredits
-                    || Brain.Meaning(429, openAiQuota, false, true) != Brain.NoCredits || Brain.Meaning(429, openAiQuota) != Brain.NoCredits
+                    || Brain.Meaning(429, openAiQuota, false, true) != Brain.OpenAiNoCredits || Brain.Meaning(429, openAiQuota) != Brain.NoCredits
                     || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.NoCredits)
                     throw new Exception("A rate limit and no credits read wrong: " + Brain.Meaning(413, groqTooBig) + " / " + Brain.Meaning(429, groqBusy) + " / " + Brain.Meaning(429, openAiQuota, false, true) + " / " + Brain.Meaning(402, openRouterBroke));
                 DateTime now = new DateTime(2026, 11, 16, 12, 0, 0, DateTimeKind.Utc);
@@ -521,15 +526,71 @@ namespace CapriDesktop
                     || busy == null || busy.Message != Brain.Busy || !busy.Told || busy.Status != 429 || busyWait < 27 || busyWait > 31)
                     throw new Exception("A provider's rate limit was told or timed wrong: " + (tooBig == null ? "none" : tooBig.Message + " in " + tooBigWait) + " / " + (busy == null ? "none" : busy.Message + " in " + busyWait));
                 checks.Add("PASS a 413 rate limit with a billing link reads as too big for the key's per-minute limit and waits out x-ratelimit-reset-tokens, a 429 still reads as too many requests and waits out its Retry-After, and a 402, OpenAI's insufficient_quota and Gemini's disabled billing still read as no credits");
+
+                // OpenAI's 429s as it words them: a used-up balance, a request bigger than the key's whole per-minute limit and a
+                // day's requests used up name their fix and never wait, and a minute's limit waits out the seconds it names.
+                const string openAiBroke = "{\"error\":{\"message\":\"You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.\",\"type\":\"insufficient_quota\",\"param\":null,\"code\":\"credit_balance_exhausted\"}}";
+                const string openAiTooLarge = "{\"error\":{\"message\":\"Request too large for gpt-5.4 in organization org-test on tokens per min (TPM): Limit 10000, Requested 13862. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.\",\"type\":\"tokens\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}";
+                const string openAiPaidTooLarge = "{\"error\":{\"message\":\"Request too large for gpt-5.6-luna in organization org-test on tokens per min (TPM): Limit 200000, Requested 208334. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more.\",\"type\":\"tokens\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}";
+                const string openAiDay = "{\"error\":{\"message\":\"Rate limit reached for gpt-4o-mini in organization org-test on requests per day (RPD): Limit 10000, Used 10000, Requested 1. Please try again in 8.64s. Visit https://platform.openai.com/account/rate-limits to learn more.\",\"type\":\"requests\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}";
+                const string openAiFreeDay = "{\"error\":{\"message\":\"Rate limit reached for gpt-5.6-luna in organization org-test on requests per day (RPD): Limit 50, Used 50, Requested 1. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.\",\"type\":\"requests\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}";
+                const string openAiMinute = "{\"message\":\"Rate limit reached for gpt-6.2-sol in organization org-test on tokens per min (TPM): Limit 1000000, Used 736214, Requested 401420. Please try again in 8.259s. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.\",\"type\":\"tokens\",\"param\":null,\"code\":\"rate_limit_exceeded\"}";
+                const string openAiRequests = "{\"error\":{\"message\":\"Rate limit reached for gpt-5.4-pro in organization org-test on requests per min (RPM): Limit 3, Used 3, Requested 1. Please try again in 20s. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.\",\"type\":\"requests\",\"param\":null,\"code\":\"rate_limit_exceeded\"}}";
+                const string openAiSlowDown = "{\"error\":{\"message\":\"Your request rate increased too quickly.\",\"type\":\"rate_limit_error\",\"param\":null,\"code\":\"slow_down\"}}";
+                string freeTooLarge = Brain.TooLarge("gpt-5.4", true), paidTooLarge = Brain.TooLarge("gpt-5.6-luna", false), freeDay = Brain.DailyLimit("gpt-5.6-luna", true), paidDay = Brain.DailyLimit("gpt-4o-mini", false);
+                if (Brain.Meaning(429, openAiBroke, false, true) != Brain.OpenAiNoCredits || Brain.Meaning(429, openAiBroke) != Brain.NoCredits
+                    || Brain.Meaning(429, openAiTooLarge, false, true) != freeTooLarge || Brain.Meaning(429, openAiPaidTooLarge, false, true) != paidTooLarge || Brain.Meaning(429, openAiTooLarge) != Brain.Busy
+                    || Brain.Meaning(429, openAiDay, false, true) != paidDay || Brain.Meaning(429, openAiFreeDay, false, true) != freeDay
+                    || Brain.Meaning(429, openAiMinute, false, true) != Brain.Busy || Brain.Meaning(429, openAiRequests, false, true) != Brain.Busy || Brain.Meaning(429, openAiSlowDown, false, true) != Brain.Busy)
+                    throw new Exception("An OpenAI 429 read wrong: " + Brain.Meaning(429, openAiTooLarge, false, true) + " / " + Brain.Meaning(429, openAiFreeDay, false, true) + " / " + Brain.Meaning(429, openAiMinute, false, true) + " / " + Brain.Meaning(429, openAiBroke, false, true));
+                foreach (string capCode in new[] { "project_spend_limit_exceeded", "organization_spend_limit_exceeded", "api_key_spend_limit_exceeded", "organization_usage_limit_exceeded" })
+                {
+                    string capped = "{\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details.\",\"type\":\"insufficient_quota\",\"param\":null,\"code\":\"" + capCode + "\"}}";
+                    if (Brain.Meaning(429, capped, false, true) != Brain.OpenAiCapped) throw new Exception("OpenAI's " + capCode + " read as " + Brain.Meaning(429, capped, false, true));
+                }
+                if (!freeTooLarge.StartsWith(Brain.TooLargeStart + " on gpt-5.4, so waiting won't help.", StringComparison.Ordinal) || !freeTooLarge.Contains("ChatGPT Plus doesn't include API use") || !freeTooLarge.Contains("payment method") || !freeTooLarge.Contains("smaller model")
+                    || paidTooLarge.Contains("ChatGPT Plus") || !paidTooLarge.Contains("add credits") || !paidTooLarge.Contains("smaller model") || !freeDay.StartsWith(Brain.DailyLimitStart + " on gpt-5.6-luna. It resets within a day", StringComparison.Ordinal)
+                    || !freeDay.Contains("ChatGPT Plus doesn't include API use") || paidDay.Contains("ChatGPT Plus") || !Brain.OpenAiNoCredits.Contains("ChatGPT Plus doesn't include API use") || !Brain.OpenAiNoCredits.Contains("payment method and credits under Billing at platform.openai.com"))
+                    throw new Exception("An OpenAI limit line lost its model, its fix or the ChatGPT Plus note: " + freeTooLarge + " / " + freeDay);
+                foreach (string line in new[] { Brain.OpenAiNoCredits, Brain.OpenAiCapped, freeTooLarge, paidTooLarge, freeDay, paidDay })
+                {
+                    string brief = Brain.Brief(line);
+                    if (brief == null || brief.Length > 60 || brief.EndsWith("...", StringComparison.Ordinal) || Brain.Stalled(new BrainException(line, true))) throw new Exception("An OpenAI limit's BRAIN line didn't fit, or a wall counts as a stall: " + (brief ?? line));
+                }
+                if (Brain.AskedWait(openAiMinute) != "8.259s" || Brain.AskedWait(openAiRequests) != "20s" || Brain.AskedWait("Please try again in 1m26.4s. Visit the page.") != "1m26.4s" || Brain.AskedWait("Please retry in 36.354975399s.") != "36.354975399s"
+                    || Brain.AskedWait("Try again in 35 seconds.") != "35" || Brain.AskedWait(openAiTooLarge) != null || Brain.RetryTime(Brain.AskedWait("Please try again in 1m26.4s."), now) != now.AddSeconds(86.4) || Brain.RetryTime(Brain.AskedWait(openAiTooLarge), now) != now.AddSeconds(60))
+                    throw new Exception("The wait a limit names was read wrong: " + Brain.AskedWait(openAiMinute) + " / " + Brain.AskedWait("Please try again in 1m26.4s."));
+                string longWait = Brain.ScreenProblem(new BrainException(Brain.Busy, true) { RetryAt = DateTime.UtcNow.AddSeconds(1296) }, "ChatGPT"), shortWait = Brain.ScreenProblem(new BrainException(Brain.Busy, true) { RetryAt = DateTime.UtcNow.AddSeconds(30) }, "ChatGPT");
+                if (longWait != "ChatGPT is rate-limited. I'll try the screen again in 22 minutes." || shortWait != "ChatGPT is rate-limited. I'll try the screen again in 30 seconds.")
+                    throw new Exception("A screen wait read wrong: " + longWait + " / " + shortWait);
+                List<string> openAiAsked = new List<string>();
+                Brain.OpenAi = FakeServer(new[] { "!429 " + openAiTooLarge, "!429 " + openAiFreeDay, "!429 " + openAiBroke, "!429 " + openAiMinute, "!429 " + openAiRequests }, openAiAsked, out openAiFake);
+                BrainException[] walls = new BrainException[5];
+                for (int i = 0; i < walls.Length; i++)
+                {
+                    try { Brain.CloudModels("sk-proj-test"); }
+                    catch (BrainException error) { walls[i] = error; }
+                }
+                string[] wallLines = { freeTooLarge, freeDay, Brain.OpenAiNoCredits, Brain.Busy, Brain.Busy };
+                for (int i = 0; i < 3; i++)
+                    if (walls[i] == null || walls[i].Message != wallLines[i] || !walls[i].Told || walls[i].Status != 429 || walls[i].RetryAt != default(DateTime) || Brain.ScreenProblem(walls[i], "ChatGPT") != wallLines[i] || Brain.Brief(Brain.ScreenProblem(walls[i], "ChatGPT")).Length > 60)
+                        throw new Exception("An OpenAI wall waited to try the screen again or was told wrong: " + (walls[i] == null ? "none" : walls[i].Message + " / " + Brain.ScreenProblem(walls[i], "ChatGPT")));
+                double minuteWait = walls[3] == null ? -1 : (walls[3].RetryAt - DateTime.UtcNow).TotalSeconds, requestsWait = walls[4] == null ? -1 : (walls[4].RetryAt - DateTime.UtcNow).TotalSeconds;
+                if (walls[3] == null || walls[3].Message != Brain.Busy || minuteWait < 6 || minuteWait > 9 || walls[4] == null || walls[4].Message != Brain.Busy || requestsWait < 17 || requestsWait > 21
+                    || !Brain.ScreenProblem(walls[3], "ChatGPT").StartsWith("ChatGPT is rate-limited. I'll try the screen again in ", StringComparison.Ordinal) || openAiAsked.Count != 5)
+                    throw new Exception("OpenAI's minute limit didn't wait out the seconds it named: " + minuteWait + " / " + requestsWait + " / " + openAiAsked.Count + " asks");
+                checks.Add("PASS OpenAI's 429s say what fixes them: no credits says ChatGPT Plus doesn't include API use and to add a payment method and credits under Billing at platform.openai.com, a request bigger than the key's whole per-minute limit names the model and says a smaller model or credits, a day's requests used up says it resets within a day, and a spend or usage limit says to raise it under Limits; none waits to try the screen again or counts as a stall, each BRAIN line fits with its fix, and a minute's limit waits out the seconds it names, even with OpenAI's payment-method advice in it");
             }
             catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT rate limit lines: loopback sockets unavailable"); }
             finally
             {
                 preferences.Watch = watchWas;
                 Brain.Google = googleWas;
+                Brain.OpenAi = openAiWas;
                 if (fake != null) fake.Stop();
                 if (tooBigFake != null) tooBigFake.Stop();
                 if (busyFake != null) busyFake.Stop();
+                if (openAiFake != null) openAiFake.Stop();
             }
         }
 
@@ -812,13 +873,13 @@ namespace CapriDesktop
             }
             if (root == null) { checks.Add("LIMIT help quotes: the source tree isn't beside this executable or working directory"); return; }
             string help = File.ReadAllText(Path.Combine(root, "site", "help", "knowledge.md"));
-            string[] current = {MailWatch.GmailBinned, MailWatch.JunkMoved, Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.TooBig, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size.", MailAccount.OutlookNote};
+            string[] current = {MailWatch.GmailBinned, MailWatch.JunkMoved, Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.TooBig, Brain.Down, Brain.DailyStart, Brain.NoCredits, Brain.OpenAiNoCredits, Brain.OpenAiCapped, Brain.TooLargeStart, Brain.DailyLimitStart, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size.", MailAccount.OutlookNote};
             string[] old = { "or watch slower", "Their servers failed", "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.", "Can't open your mic. Pick another under VOICE.", "Pick FREE VOICE or ELEVENLABS to turn it back on", "came down the wrong size", "failed its checksum", "Add credits on their site,", "Pick another row under VOICE" };
             List<string> missing = new List<string>(Array.FindAll(current, line => help.IndexOf(line, StringComparison.Ordinal) < 0));
             List<string> stale = new List<string>(Array.FindAll(old, line => help.IndexOf(line, StringComparison.Ordinal) >= 0));
             if (missing.Count > 0 || stale.Count > 0 || help.IndexOf('—') >= 0)
                 throw new Exception("Her help page quotes old wording: missing " + string.Join(" | ", missing.ToArray()) + "; still has " + string.Join(" | ", stale.ToArray()));
-            checks.Add("PASS her help page quotes her lines as she says them now: keys, rate limits, Gemini's daily limit, the service's servers, her mic and Windows speech, cloud voice credit, the special-letters folder, call mode hearing, unreadable settings and Outlook in Email, with none of the old wording");
+            checks.Add("PASS her help page quotes her lines as she says them now: keys, rate limits, Gemini's daily limit, OpenAI's credits, spend, per-minute and daily limits, the service's servers, her mic and Windows speech, cloud voice credit, the special-letters folder, call mode hearing, unreadable settings and Outlook in Email, with none of the old wording");
             int pluginsAt = help.IndexOf("### What are plug-ins? (0.9.6)", StringComparison.Ordinal);
             int pluginsEnd = pluginsAt < 0 ? -1 : help.IndexOf("\n### ", pluginsAt + 4, StringComparison.Ordinal);
             string pluginHelp = pluginsAt < 0 ? "" : help.Substring(pluginsAt, (pluginsEnd < 0 ? help.Length : pluginsEnd) - pluginsAt);

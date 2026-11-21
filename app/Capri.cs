@@ -10702,7 +10702,7 @@ namespace CapriDesktop
             if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, finished + took * 2);
             if (wait > 0) nextGlance = Math.Max(nextGlance, finished + wait);
             string unseen = Unseeing();
-            if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? problem; mainframe.ShowProblem(glanceProblem); return; }
+            if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? Brain.Brief(problem) ?? problem; mainframe.ShowProblem(glanceProblem); return; }
             if (glanceProblem != null && said != null)
             {
                 if (mainframe.Status.EndsWith(" | " + glanceProblem, StringComparison.Ordinal)) mainframe.ShowProblem("Watching your screen.");
