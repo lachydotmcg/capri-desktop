@@ -25439,6 +25439,65 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeBlockedEngine(System.Collections.Generic.List<string> checks, string output)
+        {
+            string data = Path.Combine(output, "engine-blocked-" + Guid.NewGuid().ToString("N"));
+            Func<ProcessStartInfo, Process> spawnWas = Engine.Spawn;
+            Func<string> guardsWas = Engine.Guards;
+            string logWas = Brain.LogPath, log = Path.Combine(data, "errors.txt");
+            Engine local = null;
+            try
+            {
+                local = new Engine(data);
+                ProcessStartInfo files = local.StartInfo(Engine.Picks[2], false, false, 1);
+                string modelFile = Regex.Match(files.Arguments, "-m \"([^\"]+)\"").Groups[1].Value;
+                Directory.CreateDirectory(Path.GetDirectoryName(files.FileName));
+                Directory.CreateDirectory(Path.GetDirectoryName(modelFile));
+                File.WriteAllText(files.FileName, "");
+                File.WriteAllText(modelFile, "");
+                Brain.LogPath = log;
+                string real = guardsWas();
+                if (!Regex.IsMatch(real, @"^(| \((packaged|Smart App Control (on|off|evaluating)|S mode)(, (packaged|Smart App Control (on|off|evaluating)|S mode))*\))$")) throw new Exception("Windows' app guards read in an odd shape.");
+                Engine.Guards = delegate { return " (packaged, Smart App Control on)"; };
+                int code = 0, spawns = 0;
+                Engine.Spawn = delegate { spawns++; throw new System.ComponentModel.Win32Exception(code); };
+                int[] codes = { 4551, 1260, 225, 5 };
+                string[] said = new string[codes.Length];
+                bool[] told = new bool[codes.Length];
+                for (int i = 0; i < codes.Length; i++)
+                {
+                    code = codes[i];
+                    try { local.Ensure(Engine.Picks[2]); said[i] = "started"; }
+                    catch (BrainException error) { said[i] = error.Message; told[i] = error.Told; }
+                }
+                if (said[0] != Engine.Refused || !told[0] || said[1] != Engine.Refused || said[2] != Engine.ServerGone || !told[2]
+                    || said[3] != "Couldn't start my brain: Windows didn't allow it. If your antivirus blocked it, allow Capri there." || told[3] || spawns != 4)
+                    throw new Exception("A brain engine Windows wouldn't start didn't say why: " + string.Join(" / ", said));
+                spawns = 0;
+                Engine.Spawn = delegate { spawns++; return Process.Start(new ProcessStartInfo("cmd.exe", "/c exit -1073740760") { UseShellExecute = false, CreateNoWindow = true }); };
+                string exited;
+                try { local.Ensure(Engine.Picks[2]); exited = "started"; }
+                catch (BrainException error) { exited = error.Message; }
+                if (exited != Engine.Refused || spawns != 1 || local.CpuOnly) throw new Exception("A blocked engine file was taken for a graphics card crash: " + exited + " / " + spawns + " / " + local.CpuOnly);
+                string logged = File.Exists(log) ? File.ReadAllText(log) : "";
+                if (!logged.Contains("llama-server couldn't start: Windows error 4551 (packaged, Smart App Control on)") || !logged.Contains("with exit code 0xC0000428 (packaged, Smart App Control on)"))
+                    throw new Exception("A blocked engine's log line lost its Windows error or Windows' app guards.");
+                string brief = Brain.Brief(Engine.Refused);
+                if (brief == null || brief.Length > 60 || brief.IndexOf("Free key", StringComparison.Ordinal) < 0 || Engine.Refused.IndexOf(Brain.FreeKeyHow, StringComparison.Ordinal) < 0
+                    || Engine.Barred(unchecked((int)0xC0000005)) || Engine.Barred(unchecked((int)0xC0000135)) || Engine.Barred(2) || !Engine.Barred(unchecked((int)0xC0000361)))
+                    throw new Exception("A blocked engine's BRAIN note lost its fix, or a crash or missing file read as blocked: " + brief);
+                checks.Add("PASS blocked engine: when Windows won't run llama-server.exe, at start or as it loads its files, she says so with the Free key fix instead of a spark or a graphics card crash, logs the Windows error with whether she's packaged and Windows' app guards, and an antivirus block says to allow it");
+            }
+            finally
+            {
+                if (local != null) local.Stop();
+                Engine.Spawn = spawnWas;
+                Engine.Guards = guardsWas;
+                Brain.LogPath = logWas;
+                try { Directory.Delete(data, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        }
+
         private void SmokeCare(System.Collections.Generic.List<string> checks)
         {
             double careNow = 0;
@@ -46252,6 +46311,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
             Section(checks, "SmokeLauncherGames", delegate { SmokeLauncherGames(checks, output); });
+            Section(checks, "SmokeBlockedEngine", delegate { SmokeBlockedEngine(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
             Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
