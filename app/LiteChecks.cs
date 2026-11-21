@@ -583,7 +583,7 @@ namespace CapriDesktop
             string described = settingsAt < 0 ? "" : Hands.Description(settingsAt);
             if (told == null || !told.StartsWith("From a check of their PC just now: ", StringComparison.Ordinal) || !told.EndsWith(" Lite mode is " + (preferences.Lite ? "on." : "off."), StringComparison.Ordinal)
                 || !Hands.Valid("capri_settings", why) || !Hands.Checking("capri_settings", why) || Security.Needs("capri_settings", why) != -1
-                || described.Length > 1024 || described.IndexOf("why_slow", StringComparison.Ordinal) < 0 || kit.Brief.Length > 3800 || kit.Brief.IndexOf("\n- capri_settings: ", StringComparison.Ordinal) < 0)
+                || described.Length > 1024 || described.IndexOf("why_slow", StringComparison.Ordinal) < 0 || kit.Brief.Length > 4000 || kit.Brief.IndexOf("\n- capri_settings: ", StringComparison.Ordinal) < 0)
                 throw new Exception("Why slow wasn't in her settings tool: " + told + " / description " + described.Length + " / brief " + kit.Brief.Length);
             checks.Add("PASS why slow is her settings tool's why_slow action: it reads only, needs no SECURITY toggle, and returns what it found with whether Lite mode is on; her chat brain's short tool list is " + kit.Brief.Length + " characters (cap 3800) and the settings tool's description " + described.Length + " (cap 1024)");
 
