@@ -555,7 +555,7 @@ namespace CapriDesktop
                 foreach (string line in new[] { Brain.OpenAiNoCredits, Brain.OpenAiCapped, freeTooLarge, paidTooLarge, freeDay, paidDay })
                 {
                     string brief = Brain.Brief(line);
-                    if (brief == null || brief.Length > 60 || brief.EndsWith("...", StringComparison.Ordinal) || Brain.Stalled(new BrainException(line, true))) throw new Exception("An OpenAI limit's BRAIN line didn't fit, or a wall counts as a stall: " + (brief ?? line));
+                    if (brief == null || brief.Length > 60 || brief.EndsWith("...", StringComparison.Ordinal) || Brain.Stalled(new BrainException(line, true)) != (line == freeDay || line == paidDay)) throw new Exception("An OpenAI limit's BRAIN line didn't fit, a wall counts as a stall, or a day's limit doesn't: " + (brief ?? line));
                 }
                 if (Brain.AskedWait(openAiMinute) != "8.259s" || Brain.AskedWait(openAiRequests) != "20s" || Brain.AskedWait("Please try again in 1m26.4s. Visit the page.") != "1m26.4s" || Brain.AskedWait("Please retry in 36.354975399s.") != "36.354975399s"
                     || Brain.AskedWait("Try again in 35 seconds.") != "35" || Brain.AskedWait(openAiTooLarge) != null || Brain.RetryTime(Brain.AskedWait("Please try again in 1m26.4s."), now) != now.AddSeconds(86.4) || Brain.RetryTime(Brain.AskedWait(openAiTooLarge), now) != now.AddSeconds(60))
@@ -579,7 +579,7 @@ namespace CapriDesktop
                 if (walls[3] == null || walls[3].Message != Brain.Busy || minuteWait < 6 || minuteWait > 9 || walls[4] == null || walls[4].Message != Brain.Busy || requestsWait < 17 || requestsWait > 21
                     || !Brain.ScreenProblem(walls[3], "ChatGPT").StartsWith("ChatGPT is rate-limited. I'll try the screen again in ", StringComparison.Ordinal) || openAiAsked.Count != 5)
                     throw new Exception("OpenAI's minute limit didn't wait out the seconds it named: " + minuteWait + " / " + requestsWait + " / " + openAiAsked.Count + " asks");
-                checks.Add("PASS OpenAI's 429s say what fixes them: no credits says ChatGPT Plus doesn't include API use and to add a payment method and credits under Billing at platform.openai.com, a request bigger than the key's whole per-minute limit names the model and says a smaller model or credits, a day's requests used up says it resets within a day, and a spend or usage limit says to raise it under Limits; none waits to try the screen again or counts as a stall, each BRAIN line fits with its fix, and a minute's limit waits out the seconds it names, even with OpenAI's payment-method advice in it");
+                checks.Add("PASS OpenAI's 429s say what fixes them: no credits says ChatGPT Plus doesn't include API use and to add a payment method and credits under Billing at platform.openai.com, a request bigger than the key's whole per-minute limit names the model and says a smaller model or credits, a day's requests used up says it resets within a day, and a spend or usage limit says to raise it under Limits; none waits to try the screen again, only a day's limit counts as a stall like Gemini's, each BRAIN line fits with its fix, and a minute's limit waits out the seconds it names, even with OpenAI's payment-method advice in it");
             }
             catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT rate limit lines: loopback sockets unavailable"); }
             finally

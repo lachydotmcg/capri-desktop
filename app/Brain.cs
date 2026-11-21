@@ -2397,7 +2397,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null) return web.Status == WebExceptionStatus.Timeout;
-            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message == TooBig || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
+            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message == TooBig || error.Message.StartsWith(DailyStart, StringComparison.Ordinal) || error.Message.StartsWith(DailyLimitStart, StringComparison.Ordinal));
         }
 
         internal static string Next(string current, List<string> models, ICollection<string> skip)
