@@ -18,12 +18,71 @@ namespace CapriDesktop
             internal TcpListener Listener = new TcpListener(IPAddress.Loopback, 0);
             internal Dictionary<int, string> Messages = new Dictionary<int, string>();
             internal HashSet<int> Seen = new HashSet<int>();
+            internal HashSet<int> Deleted = new HashSet<int>();
+            internal Dictionary<int, DateTime> Arrived = new Dictionary<int, DateTime>();
+            internal Dictionary<string, Dictionary<int, string>> Boxes = new Dictionary<string, Dictionary<int, string>>();
+            internal Dictionary<string, string> Uses = new Dictionary<string, string>();
+            internal List<string> Log = new List<string>();
             internal bool SetSeenByFetch;
             internal string Password = "good";
+            internal string Caps;
+            internal bool CapsOnLogin;
+            internal long Validity = 7;
+            internal readonly object Lock = new object();
+            private readonly List<Stream> idlers = new List<Stream>();
+            private int inboxNext, boxNext = 100;
             internal int Port { get { return ((IPEndPoint)Listener.LocalEndpoint).Port; } }
+
+            internal bool Can(string capability) { return Caps != null && Array.IndexOf(Caps.Split(' '), capability) >= 0; }
+
+            internal int Arrive(string raw, DateTime at)
+            {
+                lock (Lock)
+                {
+                    int uid = inboxNext++;
+                    Messages[uid] = raw;
+                    Arrived[uid] = at;
+                    foreach (Stream s in idlers) { try { Put(s, "* " + Messages.Count + " EXISTS\r\n"); } catch (Exception) { } }
+                    return uid;
+                }
+            }
+
+            internal bool Holds(string box, string text)
+            {
+                lock (Lock)
+                {
+                    Dictionary<int, string> found = Box(box);
+                    if (found == null) return false;
+                    foreach (string raw in found.Values) if (raw.Contains(text)) return true;
+                    return false;
+                }
+            }
+
+            internal bool Logged(string command) { lock (Lock) return Log.Exists(one => one.StartsWith(command, StringComparison.OrdinalIgnoreCase)); }
+
+            private Dictionary<int, string> Box(string name)
+            {
+                if (string.Equals(name, "INBOX", StringComparison.OrdinalIgnoreCase)) return Messages;
+                Dictionary<int, string> box;
+                return name != null && Boxes.TryGetValue(name, out box) ? box : null;
+            }
+
+            private static bool InSet(int uid, string set, int top)
+            {
+                foreach (string part in set.Split(','))
+                {
+                    string[] ends = part.Split(':');
+                    int a = ends[0] == "*" ? top : int.Parse(ends[0]);
+                    int b = ends.Length < 2 ? a : ends[1] == "*" ? top : int.Parse(ends[1]);
+                    if (uid >= Math.Min(a, b) && uid <= Math.Max(a, b)) return true;
+                }
+                return false;
+            }
 
             internal void Start()
             {
+                foreach (int uid in Messages.Keys) inboxNext = Math.Max(inboxNext, uid);
+                inboxNext++;
                 Listener.Start();
                 Thread t = new Thread(delegate()
                 {
@@ -64,9 +123,8 @@ namespace CapriDesktop
             {
                 Stream s = c.GetStream();
                 Put(s, "* OK fake ready\r\n");
-                bool login = false;
-                List<int> order = new List<int>(Messages.Keys);
-                order.Sort();
+                bool login = false, readOnly = true;
+                string selected = null;
                 while (true)
                 {
                     string line = Line(s);
@@ -90,67 +148,173 @@ namespace CapriDesktop
                     string tag = cmd.Substring(0, sp);
                     string rest = cmd.Substring(sp + 1);
                     string upper = rest.ToUpperInvariant();
-                    if (upper.StartsWith("LOGIN "))
+                    if (login && upper == "IDLE")
                     {
-                        List<string> args = Quoted(rest.Substring(6));
-                        if (args.Count == 2 && args[0] == "me@example.com" && args[1] == Password) { login = true; Put(s, tag + " OK LOGIN completed\r\n"); }
-                        else Put(s, tag + " NO [AUTHENTICATIONFAILED] Invalid credentials\r\n");
-                    }
-                    else if (!login) Put(s, tag + " BAD log in first\r\n");
-                    else if (upper.StartsWith("LOGOUT")) { Put(s, "* BYE\r\n" + tag + " OK done\r\n"); return; }
-                    else if (upper.StartsWith("LIST "))
-                        Put(s, "* LIST (\\HasNoChildren) \"/\" \"INBOX\"\r\n* LIST (\\Noselect) \"/\" \"[Gmail]\"\r\n* LIST (\\HasNoChildren) \"/\" \"Sent\"\r\n* LIST (\\HasNoChildren) \"/\" \"Caf&AOk-\"\r\n" + tag + " OK done\r\n");
-                    else if (upper.StartsWith("EXAMINE ") || upper.StartsWith("SELECT "))
-                    {
-                        if (rest.Contains("\"INBOX\"")) Put(s, "* 3 EXISTS\r\n" + tag + " OK [READ-ONLY] selected\r\n");
-                        else Put(s, tag + " NO no such mailbox\r\n");
-                    }
-                    else if (upper.StartsWith("UID SEARCH"))
-                    {
-                        List<string> args = Quoted(rest.Substring(10));
-                        StringBuilder found = new StringBuilder("* SEARCH");
-                        foreach (int uid in order)
+                        if (!Can("IDLE")) { Put(s, tag + " BAD no idling here\r\n"); continue; }
+                        lock (Lock) { Log.Add("IDLE"); idlers.Add(s); Put(s, "+ idling\r\n"); }
+                        string done = Line(s);
+                        lock (Lock)
                         {
-                            string raw = Messages[uid];
-                            bool ok = true;
-                            for (int i = 0; i < args.Count; i++)
+                            idlers.Remove(s);
+                            if (done == null) return;
+                            Log.Add(done);
+                            Put(s, tag + " OK IDLE terminated\r\n");
+                        }
+                        continue;
+                    }
+                    lock (Lock)
+                    {
+                        if (login) Log.Add(Regex.Replace(rest, "^LOGIN .*", "LOGIN", RegexOptions.IgnoreCase));
+                        Dictionary<int, string> box = Box(selected);
+                        List<int> order = box == null ? new List<int>() : new List<int>(box.Keys);
+                        order.Sort();
+                        int top = order.Count == 0 ? 0 : order[order.Count - 1];
+                        if (upper.StartsWith("LOGIN "))
+                        {
+                            List<string> args = Quoted(rest.Substring(6));
+                            if (args.Count == 2 && args[0] == "me@example.com" && args[1] == Password)
                             {
-                                string a = args[i].ToUpperInvariant();
-                                if (a == "UNSEEN" && Seen.Contains(uid)) ok = false;
-                                if ((a == "TEXT" || a == "FROM") && i + 1 < args.Count)
+                                login = true;
+                                Put(s, (CapsOnLogin && Caps != null ? "* CAPABILITY IMAP4rev1 " + Caps + "\r\n" : "") + tag + " OK LOGIN completed\r\n");
+                            }
+                            else Put(s, tag + " NO [AUTHENTICATIONFAILED] Invalid credentials\r\n");
+                        }
+                        else if (!login) Put(s, tag + " BAD log in first\r\n");
+                        else if (upper.StartsWith("LOGOUT")) { Put(s, "* BYE\r\n" + tag + " OK done\r\n"); return; }
+                        else if (upper == "CAPABILITY") Put(s, Caps == null ? tag + " BAD unknown\r\n" : "* CAPABILITY IMAP4rev1 " + Caps + "\r\n" + tag + " OK done\r\n");
+                        else if (upper == "NOOP") Put(s, tag + " OK done\r\n");
+                        else if (upper.StartsWith("LIST "))
+                        {
+                            StringBuilder list = new StringBuilder("* LIST (\\HasNoChildren) \"/\" \"INBOX\"\r\n* LIST (\\Noselect) \"/\" \"[Gmail]\"\r\n");
+                            bool uses = upper.Contains("RETURN (SPECIAL-USE)") || Can("SPECIAL-USE");
+                            foreach (string name in Boxes.Keys)
+                            {
+                                string use;
+                                list.Append("* LIST (\\HasNoChildren" + (uses && Uses.TryGetValue(name, out use) ? " " + use : "") + ") \"/\" \"" + name + "\"\r\n");
+                            }
+                            list.Append("* LIST (\\HasNoChildren) \"/\" \"Sent\"\r\n* LIST (\\HasNoChildren) \"/\" \"Caf&AOk-\"\r\n");
+                            Put(s, list + tag + " OK done\r\n");
+                        }
+                        else if (upper.StartsWith("EXAMINE ") || upper.StartsWith("SELECT "))
+                        {
+                            List<string> args = Quoted(rest.Substring(rest.IndexOf(' ') + 1));
+                            Dictionary<int, string> want = args.Count == 0 ? null : Box(args[0]);
+                            if (want == null) Put(s, tag + " NO no such mailbox\r\n");
+                            else
+                            {
+                                selected = args[0];
+                                readOnly = upper.StartsWith("EXAMINE ");
+                                int next = string.Equals(selected, "INBOX", StringComparison.OrdinalIgnoreCase) ? inboxNext : boxNext;
+                                Put(s, "* " + want.Count + " EXISTS\r\n* OK [UIDVALIDITY " + Validity + "] ok\r\n* OK [UIDNEXT " + next + "] ok\r\n" + tag + " OK [" + (readOnly ? "READ-ONLY" : "READ-WRITE") + "] selected\r\n");
+                            }
+                        }
+                        else if (box == null) Put(s, tag + " BAD select first\r\n");
+                        else if (upper.StartsWith("UID SEARCH"))
+                        {
+                            List<string> args = Quoted(rest.Substring(10));
+                            StringBuilder found = new StringBuilder("* SEARCH");
+                            foreach (int uid in order)
+                            {
+                                string raw = box[uid];
+                                bool ok = true;
+                                for (int i = 0; i < args.Count; i++)
                                 {
-                                    string want = args[i + 1].ToLowerInvariant();
-                                    string hay = a == "FROM" ? Regex.Match(raw, @"(?m)^From:.*$").Value : raw;
-                                    if (hay.ToLowerInvariant().IndexOf(want, StringComparison.Ordinal) < 0) ok = false;
+                                    string a = args[i].ToUpperInvariant();
+                                    if (a == "UNSEEN" && Seen.Contains(uid)) ok = false;
+                                    if (a == "UID" && i + 1 < args.Count && !InSet(uid, args[i + 1], top)) ok = false;
+                                    if ((a == "TEXT" || a == "FROM") && i + 1 < args.Count)
+                                    {
+                                        string want = args[i + 1].ToLowerInvariant();
+                                        string hay = a == "FROM" ? Regex.Match(raw, @"(?m)^From:.*$").Value : raw;
+                                        if (hay.ToLowerInvariant().IndexOf(want, StringComparison.Ordinal) < 0) ok = false;
+                                    }
                                 }
+                                if (ok) found.Append(' ').Append(uid);
                             }
-                            if (ok) found.Append(' ').Append(uid);
+                            Put(s, found + "\r\n" + tag + " OK done\r\n");
                         }
-                        Put(s, found + "\r\n" + tag + " OK done\r\n");
-                    }
-                    else if (upper.StartsWith("UID FETCH "))
-                    {
-                        Match m = Regex.Match(rest, @"^UID FETCH ([\d,]+) \((.*)\)$", RegexOptions.IgnoreCase);
-                        bool peek = upper.Contains("BODY.PEEK");
-                        if (!peek) SetSeenByFetch = true;
-                        foreach (string idText in m.Groups[1].Value.Split(','))
+                        else if (upper.StartsWith("UID FETCH "))
                         {
-                            int uid = int.Parse(idText);
-                            string raw;
-                            if (!Messages.TryGetValue(uid, out raw)) continue;
-                            string flags = Seen.Contains(uid) ? "(\\Seen)" : "()";
-                            string key, payload;
-                            if (upper.Contains("HEADER.FIELDS"))
+                            Match m = Regex.Match(rest, @"^UID FETCH ([\d,]+) \((.*)\)$", RegexOptions.IgnoreCase);
+                            bool peek = upper.Contains("BODY.PEEK");
+                            if (!peek) SetSeenByFetch = true;
+                            foreach (string idText in m.Groups[1].Value.Split(','))
                             {
-                                key = "BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID REFERENCES REPLY-TO)]";
-                                payload = raw.Substring(0, raw.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4);
+                                int uid = int.Parse(idText);
+                                string raw;
+                                if (!box.TryGetValue(uid, out raw)) continue;
+                                string flags = Seen.Contains(uid) && box == Messages ? "(\\Seen)" : "()";
+                                string key, payload;
+                                if (upper.Contains("HEADER.FIELDS"))
+                                {
+                                    key = "BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID REFERENCES REPLY-TO)]";
+                                    payload = raw.Substring(0, raw.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4);
+                                }
+                                else { key = upper.Contains("<0.") ? "BODY[]<0>" : "BODY[]"; payload = raw; }
+                                DateTime at;
+                                string when = upper.Contains("INTERNALDATE") ? " INTERNALDATE \"" + (Arrived.TryGetValue(uid, out at) ? at : DateTime.UtcNow).ToString("dd-MMM-yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " +0000\"" : "";
+                                Put(s, "* " + (order.IndexOf(uid) + 1) + " FETCH (UID " + uid + " FLAGS " + flags + when + " " + key + " {" + Encoding.GetEncoding(28591).GetByteCount(payload) + "}\r\n" + payload + ")\r\n");
                             }
-                            else { key = upper.Contains("<0.") ? "BODY[]<0>" : "BODY[]"; payload = raw; }
-                            Put(s, "* " + (order.IndexOf(uid) + 1) + " FETCH (UID " + uid + " FLAGS " + flags + " " + key + " {" + Encoding.GetEncoding(28591).GetByteCount(payload) + "}\r\n" + payload + ")\r\n");
+                            Put(s, tag + " OK done\r\n");
                         }
-                        Put(s, tag + " OK done\r\n");
+                        else if (upper.StartsWith("UID MOVE ") || upper.StartsWith("UID COPY "))
+                        {
+                            bool move = upper.StartsWith("UID MOVE ");
+                            List<string> args = Quoted(rest.Substring(9));
+                            Dictionary<int, string> target = args.Count < 2 ? null : Box(args[1]);
+                            if (move && !Can("MOVE")) Put(s, tag + " BAD no MOVE here\r\n");
+                            else if (readOnly) Put(s, tag + " NO [READ-ONLY] mailbox is read-only\r\n");
+                            else if (target == null) Put(s, tag + " NO [TRYCREATE] no such mailbox\r\n");
+                            else
+                            {
+                                StringBuilder said = new StringBuilder();
+                                foreach (int uid in new List<int>(order))
+                                {
+                                    if (!InSet(uid, args[0], top)) continue;
+                                    int copy = boxNext++;
+                                    target[copy] = box[uid];
+                                    if (!move) continue;
+                                    said.Append("* OK [COPYUID " + Validity + " " + uid + " " + copy + "] moved\r\n* " + (order.IndexOf(uid) + 1) + " EXPUNGE\r\n");
+                                    box.Remove(uid);
+                                    order.Remove(uid);
+                                }
+                                Put(s, said + tag + " OK done\r\n");
+                            }
+                        }
+                        else if (upper.StartsWith("UID STORE "))
+                        {
+                            List<string> args = Quoted(rest.Substring(10));
+                            if (readOnly) Put(s, tag + " NO [READ-ONLY] mailbox is read-only\r\n");
+                            else
+                            {
+                                foreach (int uid in order) if (InSet(uid, args[0], top) && upper.Contains("\\DELETED")) Deleted.Add(uid);
+                                Put(s, tag + " OK done\r\n");
+                            }
+                        }
+                        else if (upper.StartsWith("UID EXPUNGE "))
+                        {
+                            List<string> args = Quoted(rest.Substring(12));
+                            if (!Can("UIDPLUS")) Put(s, tag + " BAD no UIDPLUS here\r\n");
+                            else
+                            {
+                                StringBuilder said = new StringBuilder();
+                                foreach (int uid in new List<int>(order))
+                                {
+                                    if (!InSet(uid, args[0], top) || !Deleted.Contains(uid)) continue;
+                                    said.Append("* " + (order.IndexOf(uid) + 1) + " EXPUNGE\r\n");
+                                    box.Remove(uid);
+                                    order.Remove(uid);
+                                }
+                                Put(s, said + tag + " OK done\r\n");
+                            }
+                        }
+                        else if (upper == "EXPUNGE" || upper == "CLOSE")
+                        {
+                            foreach (int uid in order) if (Deleted.Contains(uid)) box.Remove(uid);
+                            Put(s, tag + " OK done\r\n");
+                        }
+                        else Put(s, tag + " BAD unknown\r\n");
                     }
-                    else Put(s, tag + " BAD unknown\r\n");
                 }
             }
 
@@ -421,6 +585,10 @@ namespace CapriDesktop
 #endif
                 MailAccount.Delete(dir);
                 checks.Add("PASS mail: no account asks for setup, Outlook is refused plainly, and the saved file never holds the password");
+
+                CheckPhish(checks);
+                CheckWatch(checks);
+                CheckMoves(checks, folder);
             }
             finally
             {
@@ -429,6 +597,352 @@ namespace CapriDesktop
                 imap.Listener.Stop();
                 smtp.Listener.Stop();
             }
+        }
+
+        private static bool Until(Func<bool> done, int seconds)
+        {
+            DateTime end = DateTime.UtcNow.AddSeconds(seconds);
+            while (DateTime.UtcNow < end)
+            {
+                if (done()) return true;
+                Thread.Sleep(50);
+            }
+            return done();
+        }
+
+        private static MailAccount Fake(int port)
+        {
+            MailAccount a = new MailAccount();
+            a.Address = "me@example.com"; a.Login = "me@example.com"; a.Name = "Me";
+            a.ImapHost = "127.0.0.1"; a.ImapPort = port; a.SmtpHost = "127.0.0.1"; a.SmtpPort = 1; a.SmtpImplicitTls = false; a.Plain = true;
+            a.Password = "good";
+            return a;
+        }
+
+        private static FakeImap Gmail()
+        {
+            FakeImap imap = new FakeImap();
+            imap.Caps = "IDLE MOVE UIDPLUS SPECIAL-USE LIST-EXTENDED X-GM-EXT-1";
+            imap.CapsOnLogin = true;
+            foreach (string[] box in new[] { new[] { "[Gmail]/All Mail", "\\All" }, new[] { "[Gmail]/Spam", "\\Junk" }, new[] { "[Gmail]/Trash", "\\Trash" }, new[] { "Receipts", "" } })
+            {
+                imap.Boxes[box[0]] = new Dictionary<int, string>();
+                if (box[1].Length > 0) imap.Uses[box[0]] = box[1];
+            }
+            return imap;
+        }
+
+        internal static string Staged(string id, string link)
+        {
+            return Raw("From: Arasaka Account Support <arasaka.alerts.desk@gmail.com>", "To: me@example.com", "Subject: Action required: your Arasaka account will be suspended", "Date: Fri, 20 Nov 2026 21:04:00 +0000", "Message-ID: <" + id + "@mail.gmail.com>", "MIME-Version: 1.0", "Content-Type: multipart/alternative; boundary=\"b1\"", "",
+                "--b1", "Content-Type: text/plain; charset=UTF-8", "", "We noticed an unusual sign-in to your Arasaka account. Verify your account within 24 hours or it will be suspended.", "", "https://account.arasaka.example/security <" + link + ">", "", "Arasaka Account Support",
+                "--b1", "Content-Type: text/html; charset=UTF-8", "", "<div>We noticed an unusual sign-in to your Arasaka account. Verify your account within 24 hours or it will be suspended.</div><div><a href=\"" + link + "\">https://account.arasaka.example/security</a></div><div>Arasaka Account Support</div>", "--b1--", "");
+        }
+
+        private static string Newsletter(string id)
+        {
+            return Raw("From: The Weekly Byte <news@weeklybyte.com>", "To: me@example.com", "Subject: This week: three tools we love", "Date: Fri, 20 Nov 2026 07:00:00 +0000", "Message-ID: <" + id + "@weeklybyte.com>", "List-Unsubscribe: <https://weeklybyte.us12.list-manage.com/unsubscribe?u=1>",
+                "Authentication-Results: mx.google.com; dkim=pass header.i=@weeklybyte.com; spf=pass smtp.mailfrom=bounce@weeklybyte.com; dmarc=pass (p=NONE) header.from=weeklybyte.com", "MIME-Version: 1.0", "Content-Type: multipart/alternative; boundary=\"nl\"", "",
+                "--nl", "Content-Type: text/plain; charset=UTF-8", "", "This week in tech: three tools we love, a deep dive on keyboards and your letters.", "Read the full story: https://weeklybyte.us12.list-manage.com/track/click?u=1&id=2", "Unsubscribe: https://weeklybyte.us12.list-manage.com/unsubscribe?u=1",
+                "--nl", "Content-Type: text/html; charset=UTF-8", "", "<h1>This week in tech</h1><p>Three tools we love, a deep dive on keyboards and your letters.</p><a href=\"https://weeklybyte.us12.list-manage.com/track/click?u=1&amp;id=2\">Read the full story</a> <a href=\"https://weeklybyte.com/issues/48\">weeklybyte.com/issues/48</a> <img src=\"https://weeklybyte.com/logo.png\"> <a href=\"https://weeklybyte.us12.list-manage.com/unsubscribe?u=1\">Unsubscribe</a>", "--nl--", "");
+        }
+
+        private static string Personal(string id)
+        {
+            return Raw("From: Mum <jan.walker@gmail.com>", "To: me@example.com", "Subject: Sunday", "Date: Fri, 20 Nov 2026 18:30:00 +0000", "Message-ID: <" + id + "@mail.gmail.com>", "Content-Type: text/plain; charset=UTF-8", "", "Hey love, are you still coming for dinner on Sunday? Dad's doing a roast. Let me know by Friday x");
+        }
+
+        private static string Letter(string from, string subject, string body, bool html, string[] headers, params string[] files)
+        {
+            List<string> lines = new List<string> { "From: " + from, "To: me@example.com", "Subject: " + subject, "Date: Fri, 20 Nov 2026 09:00:00 +0000", "Message-ID: <" + Guid.NewGuid().ToString("N") + "@example.com>", "MIME-Version: 1.0" };
+            if (headers != null) lines.AddRange(headers);
+            string type = "Content-Type: " + (html ? "text/html" : "text/plain") + "; charset=utf-8";
+            if (files.Length == 0) { lines.Add(type); lines.Add(""); lines.Add(body); return Raw(lines.ToArray()); }
+            lines.AddRange(new[] { "Content-Type: multipart/mixed; boundary=\"mix\"", "", "--mix", type, "", body });
+            foreach (string file in files)
+            {
+                if (file.StartsWith("*", StringComparison.Ordinal)) lines.AddRange(new[] { "--mix", "Content-Type: application/octet-stream", "Content-Disposition: attachment; filename*=" + file.Substring(1), "Content-Transfer-Encoding: base64", "", "AAAA" });
+                else lines.AddRange(new[] { "--mix", "Content-Type: application/octet-stream; name=\"" + file + "\"", "Content-Disposition: attachment; filename=\"" + file + "\"", "Content-Transfer-Encoding: base64", "", "AAAA" });
+            }
+            lines.Add("--mix--");
+            lines.Add("");
+            return Raw(lines.ToArray());
+        }
+
+        private static void Flags(string what, MailVerdict v, string reason)
+        {
+            Need(v.Level != MailVerdict.Fine || v.Reasons.Count > 0, what + " came out fine with nothing to say");
+            Need(v.Reasons.Exists(r => r.IndexOf(reason, StringComparison.Ordinal) >= 0), what + " wasn't flagged with \"" + reason + "\": " + v.Level + " " + v.Score + " | " + string.Join(" | ", v.Reasons.ToArray()));
+        }
+
+        private static MailVerdict Link(string href, string text)
+        {
+            return MailPhish.Check(Letter("Team <team@northwind.com>", "Hello", "<p>Hi there.</p><a href=\"" + href + "\">" + text + "</a>", true, null), null);
+        }
+
+        private static void CheckPhish(List<string> checks)
+        {
+            MailVerdict staged = MailPhish.Check(Staged("stage", "https://arasaka-acc0unt-verify.invalid/login"), null);
+            Need(staged.Level == MailVerdict.Phishing && staged.Sure, "the staged phishing mail wasn't sure phishing: " + staged.Level + " " + staged.Score + " | " + string.Join(" | ", staged.Reasons.ToArray()));
+            Flags("staged", staged, "It says it's from Arasaka Account Support, but it came from a personal gmail.com address.");
+            Flags("staged", staged, "A link shows account.arasaka.example but really goes to arasaka-acc0unt-verify.invalid.");
+            Flags("staged", staged, "arasaka-acc0unt-verify.invalid wraps Arasaka in extra words to look official.");
+            Flags("staged", staged, "spells account as acc0unt");
+            Flags("staged", staged, "It points at made-up addresses (.example, .invalid)");
+            Flags("staged", staged, "\"suspended\"");
+            Flags("brand name", MailPhish.Check(Letter("PayPal Service <service@paypal-billing.xyz>", "Your receipt", "Thanks for your payment.", false, null), null), "It says it's from PayPal, but it came from paypal-billing.xyz");
+            Flags("brand from webmail", MailPhish.Check(Letter("Netflix Billing <netflix.billing.team@outlook.com>", "Payment", "Hi.", false, null), null), "It says it's from Netflix, but it came from a personal outlook.com address.");
+            Flags("reply-to", MailPhish.Check(Letter("Northwind Billing <billing@northwind.com>", "Invoice", "See you soon.", false, new[] { "Reply-To: <northwind.payments@gmail.com>" }), null), "Replies would go to a personal gmail.com address, not to northwind.com.");
+            Flags("punycode", Link("https://" + new System.Globalization.IdnMapping().GetAscii("p" + (char)0x0430 + "ypal.com") + "/signin", "Sign in"), "spells PayPal with letters from another alphabet");
+            Flags("rn for m", Link("https://rnicrosoft.com/login", "Sign in"), "rnicrosoft.com looks like Microsoft's address");
+            Flags("0 for o", Link("https://g00gle.com/", "Open"), "g00gle.com looks like Google's address");
+            Flags("1 for l", Link("https://paypa1.com/", "Open"), "paypa1.com looks like PayPal's address");
+            Flags("vv for w", Link("https://tvvitter.com/", "Open"), "tvvitter.com looks like X's address");
+            Flags("extra words", Link("https://paypal-secure-login.com/", "Open"), "paypal-secure-login.com wraps PayPal's name in extra words");
+            Flags("brand in front", Link("https://paypal.com.account-check.info/", "Open"), "puts PayPal's name in front of someone else's address (account-check.info)");
+            Flags("odd ending", Link("https://login-portal.top/x", "Open"), "ending in .top");
+            Flags("link text", Link("https://evil-site.com/", "https://www.netflix.com/account"), "A link shows www.netflix.com but really goes to evil-site.com.");
+            Flags("raw ip", Link("http://192.168.10.5/login", "Log in"), "bare number address (192.168.10.5)");
+            Flags("shortener", Link("https://bit.ly/3xYzAbc", "Open"), "link shortener (bit.ly)");
+            Flags("@ trick", Link("https://paypal.com@evil-host.ru/login", "Open"), "A link pretends to go to paypal.com but really goes to evil-host.ru.");
+            foreach (string[] ask in new[] { new[] { "Please buy three gift cards for a client today and send me the codes.", "\"gift cards\"" }, new[] { "Please arrange a wire transfer before noon.", "\"wire transfer\"" }, new[] { "Pay the fee in bitcoin to release it.", "\"bitcoin\"" }, new[] { "Your overdue invoice is attached below.", "\"overdue invoice\"" }, new[] { "Confirm your password to keep your mailbox.", "\"confirm your password\"" }, new[] { "Your account will be suspended.", "\"suspended\"" }, new[] { "Do it within 24 hours.", "\"within 24 hours\"" } })
+                Flags("urgent ask", MailPhish.Check(Letter("Office <office@northwind.com>", "Hi", ask[0], false, null), null), ask[1]);
+            foreach (string ending in new[] { "exe", "scr", "js", "vbs", "lnk", "iso", "img", "hta", "html" })
+                Flags("." + ending + " attachment", MailPhish.Check(Letter("Office <office@northwind.com>", "Files", "Here you go.", false, null, "invoice." + ending), null), "of a kind that can run code");
+            Flags("double ending", MailPhish.Check(Letter("Office <office@northwind.com>", "Files", "Here you go.", false, null, "invoice.pdf.exe"), null), "wears two endings");
+            Flags("macro document", MailPhish.Check(Letter("Office <office@northwind.com>", "Files", "Here you go.", false, null, "budget.xlsm"), null), "macro document");
+            Flags("macro letter", MailPhish.Check(Letter("Office <office@northwind.com>", "Files", "Here you go.", false, null, "letter.docm"), null), "macro document");
+            Flags("zip password", MailPhish.Check(Letter("Office <office@northwind.com>", "Scan", "The password for the zip is 4471.", false, null, "scan.zip"), null), "locked archive");
+            Flags("encoded name", MailPhish.Check(Letter("Office <office@northwind.com>", "Files", "Here you go.", false, null, "*utf-8''update%2Escr"), null), "update.scr");
+            List<string> named = new List<string>();
+            int at = 0;
+            MailPhish.StructureNames(ImapParse.Value("((\"TEXT\" \"PLAIN\" (\"CHARSET\" \"UTF-8\") NIL NIL \"7BIT\" 10 1 NIL NIL NIL)(\"APPLICATION\" \"OCTET-STREAM\" (\"NAME\" \"setup.iso\") NIL NIL \"BASE64\" 100 NIL (\"ATTACHMENT\" (\"FILENAME\" \"setup.iso\")) NIL) \"MIXED\" (\"BOUNDARY\" \"x\") NIL NIL)", ref at), named);
+            Need(named.Count == 1 && named[0] == "setup.iso", "attachment names from the server's outline: " + string.Join(", ", named.ToArray()));
+            Flags("outline name", MailPhish.Check(Letter("Office <office@northwind.com>", "Files", "Here you go.", false, null), named), "setup.iso");
+            MailVerdict auth = MailPhish.Check(Letter("PayPal <service@paypal.com>", "Notice", "Hello.", false, new[] { "Authentication-Results: mx.google.com; dkim=fail header.i=@paypal.com; spf=fail (google.com: domain of service@paypal.com does not designate 192.0.2.7 as permitted sender) smtp.mailfrom=service@paypal.com; dmarc=fail (p=REJECT sp=REJECT dis=QUARANTINE) header.from=paypal.com" }), null);
+            Flags("dmarc", auth, "Gmail's own sender check failed: it didn't really come from paypal.com (DMARC).");
+            Flags("spf", auth, "SPF failed");
+            Flags("dkim", auth, "DKIM failed");
+            checks.Add("PASS mail: her phishing check flags a fake sender name, replies sent elsewhere, look-alike and foreign-letter addresses, links that hide where they go, pushy asks, risky attachments and failed sender checks, each with a plain reason");
+
+            MailVerdict news = MailPhish.Check(Newsletter("n1"), null), mum = MailPhish.Check(Personal("m1"), null);
+            MailVerdict google = MailPhish.Check(Letter("Google <no-reply@accounts.google.com>", "Security alert", "A new sign-in on Windows. If this was you, you don't need to do anything. If not, we'll help you secure your account. Check activity: https://accounts.google.com/AccountChooser?continue=https://myaccount.google.com/notifications", false, null), null);
+            Need(news.Level == MailVerdict.Fine && news.Reasons.Count == 0, "a newsletter wasn't fine: " + string.Join(" | ", news.Reasons.ToArray()));
+            Need(mum.Level == MailVerdict.Fine && mum.Reasons.Count == 0, "a personal email wasn't fine: " + string.Join(" | ", mum.Reasons.ToArray()));
+            Need(google.Level == MailVerdict.Fine, "a real security alert from Google wasn't fine: " + string.Join(" | ", google.Reasons.ToArray()));
+            string said = MailPhish.Said(staged, false);
+            Need(said.StartsWith("Verdict: phishing (almost certainly a scam).\nFrom: Arasaka Account Support <arasaka.alerts.desk@gmail.com>\n", StringComparison.Ordinal) && said.Contains("\nWhy:\n- ") && said.EndsWith("Its links and attachments weren't opened, and it's still unread.", StringComparison.Ordinal), "her phishing answer: " + said);
+            checks.Add("PASS mail: a newsletter, a personal email and a real security alert pass her phishing check with nothing to say");
+        }
+
+        private static void CheckWatch(List<string> checks)
+        {
+            TcpListener bait = new TcpListener(IPAddress.Loopback, 0);
+            bait.Start();
+            string trap = "http://127.0.0.1:" + ((IPEndPoint)bait.LocalEndpoint).Port + "/verify";
+            FakeImap imap = Gmail();
+            imap.Messages[1] = Personal("old1");
+            imap.Messages[2] = Newsletter("old2");
+            imap.Messages[3] = Staged("old3", "https://arasaka-acc0unt-verify.invalid/login");
+            imap.Start();
+            MailWatch watch = new MailWatch(Fake(imap.Port)) { IdleMilliseconds = 1500, FirstWait = 1 };
+            try
+            {
+                watch.Start();
+                Need(Until(delegate { return watch.State == "watching"; }, 15), "she never started watching: " + watch.State);
+                Thread.Sleep(600);
+                Need(!watch.Waiting, "she announced mail that was already in the inbox");
+                int fresh = imap.Arrive(Newsletter("new1"), DateTime.UtcNow);
+                Need(Until(delegate { return watch.Waiting; }, 15), "she didn't notice new mail");
+                List<MailNews> news = watch.Take();
+                Need(news.Count == 1 && news[0].Uid == fresh && news[0].Verdict.Level == MailVerdict.Fine && news[0].Moved == null, "new mail wasn't noticed once and fine: " + news.Count);
+                string line = MailWatch.Line(news);
+                Need(line.Length > 0 && line.Length < 60 && !line.Contains("phishing"), "her new mail line: " + line);
+                Thread.Sleep(2200);
+                Need(!watch.Waiting && imap.Logged("IDLE") && imap.Logged("DONE"), "she announced the same mail twice, or didn't idle and come back");
+                imap.Arrive(Staged("p1", trap), DateTime.UtcNow);
+                Need(Until(delegate { return watch.Waiting; }, 15), "she didn't notice the phishing mail");
+                news = watch.Take();
+                line = MailWatch.Line(news);
+                Need(news.Count == 1 && news[0].Phishing && news[0].Moved == null && imap.Holds("INBOX", "<p1@") && line.Contains("phishing") && line.EndsWith("Don't click anything in it.", StringComparison.Ordinal), "phishing without her own hands: " + line);
+                watch.OwnHands = delegate { return true; };
+                imap.Arrive(Staged("p2", trap), DateTime.UtcNow);
+                Need(Until(delegate { return watch.Waiting; }, 15), "she didn't notice the second phishing mail");
+                news = watch.Take();
+                line = MailWatch.Line(news);
+                Need(news.Count == 1 && news[0].Moved == "[Gmail]/Spam" && news[0].Spam && news[0].Gmail && line.EndsWith(" That's phishing, choom, I reported it as spam and binned it.", StringComparison.Ordinal), "dealing with phishing on Gmail: " + line + " | " + news[0].Trouble);
+                Need(imap.Holds("[Gmail]/Spam", "<p2@") && !imap.Holds("INBOX", "<p2@") && imap.Holds("INBOX", "<p1@") && imap.Holds("INBOX", "<old1@") && imap.Holds("INBOX", "<new1@"), "her own move took the wrong mail");
+                Need(imap.Logged("UID MOVE") && !imap.Logged("UID COPY") && !imap.Logged("EXPUNGE") && !imap.Logged("CLOSE"), "she didn't use MOVE on Gmail, or expunged");
+                imap.Arrive(Letter("Northwind Billing <billing@northwind.com>", "Invoice", "See you soon.", false, new[] { "Reply-To: <northwind.payments@gmail.com>" }), DateTime.UtcNow);
+                imap.Arrive(Letter("Accounts Team <accounts@northwind.com>", "Notice", "Your account has been suspended. Confirm your password and pay the overdue invoice to restore access.", false, null), DateTime.UtcNow);
+                news = new List<MailNews>();
+                Need(Until(delegate { news.AddRange(watch.Take()); return news.Count >= 2; }, 15), "she didn't notice the doubtful mail");
+                Need(news.Count == 2 && news.TrueForAll(one => one.Moved == null) && news.Exists(one => one.Odd) && news.Exists(one => one.Phishing && !one.Verdict.Sure) && imap.Holds("INBOX", "Your account has been suspended"), "her own hands moved mail she wasn't sure of: " + news.Count);
+                imap.Arrive(Staged("p3", trap), DateTime.UtcNow.AddDays(-3));
+                Thread.Sleep(2500);
+                Need(!watch.Waiting && imap.Holds("INBOX", "<p3@"), "old mail moved back into the inbox was taken as new");
+                Need(!imap.SetSeenByFetch && imap.Seen.Count == 0 && !imap.Log.Exists(one => one.IndexOf("\\Seen", StringComparison.OrdinalIgnoreCase) >= 0), "watching marked mail read");
+                Need(!bait.Pending(), "a link in the mail was fetched");
+                int logouts = imap.Log.FindAll(one => one == "LOGOUT").Count;
+                watch.Stop();
+                Need(watch.Join(8000) && watch.State == "stopped" && Until(delegate { return imap.Log.FindAll(one => one == "LOGOUT").Count > logouts; }, 5), "she didn't stop watching cleanly");
+            }
+            finally
+            {
+                watch.Stop();
+                imap.Listener.Stop();
+                bait.Stop();
+            }
+            checks.Add("PASS mail: watching with IDLE she says new mail once, never old mail or mail moved back in, never marks anything read or opens links, and on her own moves only phishing she's sure of, with the Gmail line");
+
+            FakeImap plain = new FakeImap();
+            plain.Caps = "UIDPLUS";
+            plain.Boxes["Junk"] = new Dictionary<int, string>();
+            plain.Messages[1] = Personal("keep1");
+            plain.Messages[2] = Personal("keep2");
+            plain.Deleted.Add(2);
+            plain.Start();
+            MailWatch polling = new MailWatch(Fake(plain.Port)) { PollMilliseconds = 300, FirstWait = 1 };
+            polling.OwnHands = delegate { return true; };
+            try
+            {
+                polling.Start();
+                Need(Until(delegate { return polling.State == "watching"; }, 15), "she never started polling: " + polling.State);
+                plain.Arrive(Staged("p4", "https://arasaka-acc0unt-verify.invalid/login"), DateTime.UtcNow);
+                Need(Until(delegate { return polling.Waiting; }, 15), "polling didn't notice new mail");
+                List<MailNews> news = polling.Take();
+                string line = MailWatch.Line(news);
+                Need(news.Count == 1 && news[0].Moved == "Junk" && news[0].Spam && !news[0].Gmail && line.EndsWith(" That's phishing, choom, I moved it to your junk folder.", StringComparison.Ordinal), "dealing with phishing off Gmail: " + line + " | " + news[0].Trouble);
+                Need(plain.Logged("NOOP") && !plain.Logged("IDLE") && plain.Logged("UID COPY") && plain.Logged("UID STORE") && plain.Logged("UID EXPUNGE") && !plain.Logged("EXPUNGE") && !plain.Logged("CLOSE"), "without MOVE she didn't copy, flag and expunge just that one");
+                Need(plain.Holds("Junk", "<p4@") && !plain.Holds("INBOX", "<p4@") && plain.Holds("INBOX", "<keep1@") && plain.Holds("INBOX", "<keep2@"), "expunging took other mail with it");
+            }
+            finally
+            {
+                polling.Stop();
+                plain.Listener.Stop();
+            }
+
+            FakeImap stuck = new FakeImap();
+            stuck.Caps = "IDLE";
+            stuck.Boxes["Junk"] = new Dictionary<int, string>();
+            stuck.Start();
+            MailWatch failing = new MailWatch(Fake(stuck.Port)) { IdleMilliseconds = 1500, FirstWait = 1 };
+            failing.OwnHands = delegate { return true; };
+            try
+            {
+                failing.Start();
+                Need(Until(delegate { return failing.State == "watching"; }, 15), "she never started watching the old server: " + failing.State);
+                stuck.Arrive(Staged("p5", "https://arasaka-acc0unt-verify.invalid/login"), DateTime.UtcNow);
+                Need(Until(delegate { return failing.Waiting; }, 15), "she didn't notice mail on the old server");
+                List<MailNews> news = failing.Take();
+                string line = MailWatch.Line(news);
+                Need(news.Count == 1 && news[0].Moved == null && news[0].Trouble != null && line.Contains("I tried to move it to junk, but this mail server can't move one email on its own safely") && line.EndsWith("Don't click anything in it.", StringComparison.Ordinal), "a failed move wasn't said plainly: " + line);
+                Need(stuck.Holds("INBOX", "<p5@") && !stuck.Logged("UID COPY") && !stuck.Logged("EXPUNGE"), "a server without MOVE or UIDPLUS lost the mail");
+            }
+            finally
+            {
+                failing.Stop();
+                stuck.Listener.Stop();
+            }
+            checks.Add("PASS mail: without IDLE she polls, without MOVE she copies, flags and expunges only that email with UIDPLUS, says her junk folder line, and says plainly when a server can't move it");
+        }
+
+        private static void CheckMoves(List<string> checks, string folder)
+        {
+            FakeImap imap = Gmail();
+            imap.Messages[1] = Staged("m1", "https://arasaka-acc0unt-verify.invalid/login");
+            imap.Messages[2] = Personal("m2");
+            imap.Messages[3] = Newsletter("m3");
+            imap.Start();
+            string dir = Path.Combine(folder, "mail-watch-check");
+            Directory.CreateDirectory(dir);
+            MailTools.Folder = dir;
+            MailTools.Account = Fake(imap.Port);
+            try
+            {
+                bool err;
+                string text = Reply(MailTools.Call("check_mail", Args("uid", 1)), out err);
+                Need(!err && text.StartsWith("Email 1 in INBOX.\nVerdict: phishing", StringComparison.Ordinal) && text.Contains("A link shows account.arasaka.example but really goes to arasaka-acc0unt-verify.invalid.") && text.EndsWith("it's still unread.", StringComparison.Ordinal), "check_mail: " + text);
+                text = Reply(MailTools.Call("check_mail", Args("uid", 2)), out err);
+                Need(!err && text.Contains("Verdict: fine"), "check_mail on a personal email: " + text);
+                Need(!imap.SetSeenByFetch, "check_mail marked mail read");
+                Need(MailTools.MoveAsked(Args("uid", 1, "to", "spam")) == "move the email from Arasaka Account Support ('Action required: your Arasaka account will be suspended') to your spam folder", "what she asks before moving: " + MailTools.MoveAsked(Args("uid", 1, "to", "spam")));
+                text = Reply(MailTools.Call("move_mail", Args("uid", 99, "to", "spam")), out err);
+                Need(err && text.Contains("There's no message with uid 99 in INBOX."), "moving a missing uid: " + text);
+                text = Reply(MailTools.Call("move_mail", Args("uid", 2, "to", "Nowhere")), out err);
+                Need(err && text.Contains("There's no mail folder called \"Nowhere\""), "moving to a missing folder: " + text);
+                string kind;
+                bool gmail;
+                try { MailTools.MoveOne(MailTools.Account, "INBOX", 2, "trash", "<someone-else@example.com>", out kind, out gmail); Need(false, "she moved an email whose uid now points at a different one"); }
+                catch (MailException ex) { Need(ex.Message.Contains("is a different email now"), "a changed uid: " + ex.Message); }
+                Need(!imap.Logged("UID MOVE"), "a refused move still moved something");
+                text = Reply(MailTools.Call("move_mail", Args("uid", 1, "to", "spam")), out err);
+                Need(!err && text == "Moved it to Gmail's Spam folder ([Gmail]/Spam), which reports it to Gmail as spam. Gmail deletes spam for good after 30 days.", "move_mail to spam: " + text);
+                text = Reply(MailTools.Call("move_mail", Args("uid", 3, "to", "Receipts")), out err);
+                Need(!err && text == "Moved it to Receipts.", "move_mail to a folder: " + text);
+                Need(imap.Holds("[Gmail]/Spam", "<m1@") && imap.Holds("Receipts", "<m3@") && imap.Holds("INBOX", "<m2@") && !imap.Logged("EXPUNGE") && !imap.Logged("CLOSE"), "moves landed in the wrong place or expunged");
+                text = Reply(MailTools.Call("watch_mail", Args("on", true)), out err);
+                Need(!err && MailTools.Watch && !MailTools.OwnHands && text.StartsWith("Watching their inbox for new mail now.", StringComparison.Ordinal) && File.Exists(Path.Combine(dir, MailTools.WatchName)), "watch_mail on: " + text);
+                text = Reply(MailTools.Call("watch_mail", Args("on", false)), out err);
+                Need(!err && !MailTools.Watch && text == "Stopped watching their inbox for new mail.", "watch_mail off: " + text);
+                Need(MailTools.WatchAsked(Args("on", true)) == "watch your inbox for new mail" && MailTools.WatchAsked(Args("on", false)) == "stop watching your inbox for new mail", "what she asks before watching");
+            }
+            finally
+            {
+                MailTools.Forget();
+                imap.Listener.Stop();
+            }
+            checks.Add("PASS mail: check_mail gives a verdict without marking it read, and move_mail moves just the one email it names to spam or a folder, refusing a missing uid, a missing folder or a uid that changed");
+        }
+
+        internal static void CheckStarter(List<string> checks)
+        {
+            FakeImap imap = Gmail();
+            imap.Messages[1] = Staged("s1", "https://arasaka-acc0unt-verify.invalid/login");
+            imap.Messages[2] = Personal("s2");
+            imap.Start();
+            MailAccount was = MailTools.Account;
+            bool wake = Security.On(Security.Wake);
+            string saved = Security.Saved;
+            MailTools.Account = Fake(imap.Port);
+            ToolArguments move = new ToolArguments { Name = "email_move_mail", Text = "{\"uid\":1,\"to\":\"spam\"}" }, bin = new ToolArguments { Name = "email_move_mail", Text = "{\"uid\":2,\"to\":\"trash\"}" };
+            Func<string, ToolArguments, string> run = delegate(string tool, ToolArguments args) { return Hands.Do(tool, args); };
+            try
+            {
+                Need(Plugins.Needs("email_check_mail") == Security.ModTools && Plugins.Granted("email_move_mail") < 0, "checking mail asked like a change, or moving it always asked");
+                ModFloor.Fresh();
+                string checkedMail = Plugins.Run("email_check_mail", "{\"uid\":1}");
+                Need(checkedMail.Contains("<plugin_result>") && checkedMail.Contains("Verdict: phishing") && Array.IndexOf(ModFloor.HeardFrom, "mail:email") >= 0, "check_mail through her plug-in gate: " + checkedMail);
+                if (Security.Has(Security.Sends))
+                {
+                    Security.Pick(Security.Trusted);
+                    Need(Security.IsHold(Security.Gate("mod", move)), "after reading an email, moving mail didn't ask first, so a mail's words could spend their yes");
+                    Security.Drop();
+                    ModFloor.Fresh();
+                    Need(Security.Gate("mod", move) == null, "Trusted with Send, post and delete on asked before moving mail they asked for");
+                    Security.Set(Security.Sends, false);
+                    string held = Security.Gate("mod", move);
+                    Need(Security.IsHold(held) && held.Contains("Move the email from Arasaka Account Support ('Action required: your Arasaka account will be suspended') to your spam folder?"), "moving mail didn't ask first by Send, post and delete: " + held);
+                    string done = Security.Resume("yes", run);
+                    Need(done != null && done.Contains("Moved it to Gmail's Spam folder") && imap.Holds("[Gmail]/Spam", "<s1@") && !imap.Holds("INBOX", "<s1@"), "their yes didn't move it: " + done);
+                }
+                Security.Pick(Security.Guarded);
+                ModFloor.Fresh();
+                Need(Security.IsHold(Security.Gate("mod", bin)), "Guarded didn't ask before moving mail");
+                Security.Resume("no", run);
+                Need(imap.Holds("INBOX", "<s2@") && !imap.Holds("[Gmail]/Trash", "<s2@"), "their no still moved it");
+            }
+            finally
+            {
+                Security.Drop();
+                Security.Load(saved, wake);
+                Action securityChanged = Security.Changed;
+                if (securityChanged != null) securityChanged();
+                ModFloor.Fresh();
+                MailTools.Account = was;
+                imap.Listener.Stop();
+            }
+            checks.Add("PASS plug-ins: moving mail asks first by Send, post and delete, always asks after she's read an email, moves on their yes and stays put on their no");
         }
     }
 }

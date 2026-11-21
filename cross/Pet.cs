@@ -1100,14 +1100,14 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { StopRemote(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
                 StopRemote();
                 Dispatcher.UIThread.Post(delegate { if (on && !quitting && !MacQuit.Quitting && (e.Cancel || frames.IsEnabled)) SetRemote(true); });
             };
-            desktop.Exit += delegate { StopRemote(); };
+            desktop.Exit += delegate { StopRemote(); StopMailWatch(); };
             Deactivated += delegate { if (!(Desk is HyprlandDesk) && !desktopDrag) Program.Guard(Unhold); };
             Opened += delegate
             {
@@ -1375,7 +1375,7 @@ namespace CapriDesktop
             watching.Deliver();
             CheckStyle();
             CheckSelfTools();
-            if (Program.Smoke == null && !CheckReminders()) CheckWeather();
+            if (Program.Smoke == null && !CheckReminders() && !CheckWeather()) CheckMail();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
