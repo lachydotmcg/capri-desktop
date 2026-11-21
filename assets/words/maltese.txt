@@ -30,6 +30,7 @@ Ask Capri for more	Staqsi lil Capri għal aktar
 Asking your server...	Qed nistaqsi s-server tiegħek...
 Asks before closing only the apps you choose.	Jistaqsi qabel jagħlaq biss l-applikazzjonijiet li tagħżel.
 Auto	Awtomatiku
+Auto (match what I say)	Awtomatiku (skont dak li ngħid)
 Automatic: VB-CABLE, else Steam's	Awtomatiku: VB-CABLE, inkella dak ta' Steam
 BAD RELAY HOST	HOST TAR-RELAY ħażin
 BIG Z open notepad	BIG Z iftaħ notepad
@@ -290,6 +291,7 @@ Huge	Kbir ħafna
 I can hear you.	Nisimgħek.
 I glance at your screen and comment. Costs a little on a paid brain.	Nara l-iskrin tiegħek u nikkummenta. Jiswa ftit b'moħħ bi ħlas.
 I keep listening. Say my name, then just talk.	Nibqa' nisma'. Għid ismi, imbagħad tkellem biss.
+I speak	Nitkellem
 I talk about your game as you play. Costs a little on a paid brain.	Nitkellem dwar il-logħba tiegħek waqt li tilgħab. Jiswa ftit b'moħħ bi ħlas.
 I type my replies and stay quiet.	Nikteb it-tweġibiet tiegħi u nibqa' ħadt.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ma nweġibx lura, u xejn ma jintbagħat x'imkien. Xorta nibqa' hawn, nispiċċa mal-mużika tiegħek u nagħmel l-affarijiet mgħaġġla li titlob, bħall-volum.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ISSORTJA SKOND
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ĦSEJJES ABITUDNIJIET MOĦĦ ARA CAPRI DOOMSCROLL TIEMP KLIPS LOGĦOB ĊWIEVET MOVIMENTI LEĦEN INTI
+Same as I speak	L-istess bħal-lingwa tiegħi
 Same as her ears (VOICE > Mic)	L-istess bħas-smigħ tagħha (LEĦEN > Mikrofon)
 Same code on the phone?	L-istess kodiċi fuq it-telefon?
 Save	Salva
@@ -633,6 +636,7 @@ Settings had nothing to watch.	L-Impostazzjonijiet ma kellhom xejn biex jaraw.
 Settings lost keyboard focus during the Tab walk	L-Impostazzjonijiet tilfu l-fokus tat-tastiera waqt il-mixja tat-Tab
 Setup guide	Gwida għall-installazzjoni
 Setup stopped	Installazzjoni mwaqqfa
+She answers in	Hi twieġeb
 She can read it when it fits.	Tista' taqrah meta jkun xieraq.
 She glances at your screen and comments. Costs a little on a paid brain.	Tara l-iskrin tiegħek u tikkummenta. Jiswa ftit b'moħħ bi ħlas.
 She keeps listening. Say her name, then just talk until you go quiet.	Tibqa' tisma'. Għid ismha, imbagħad tkellem sakemm tieqaf.

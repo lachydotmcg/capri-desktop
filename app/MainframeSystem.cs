@@ -54,6 +54,7 @@ namespace CapriDesktop
         internal void ToggleResources()
         {
             if (ResourcesOpen) { resourcesSheet.Close(); return; }
+            if (SpendOpen) spendSheet.Close();
             float fit = SheetZoom(ResourcesSheet.Wide, ResourcesSheet.Tall);
             if (resourcesSheet != null && !resourcesSheet.IsDisposed && resourcesSheet.Zoom != fit) resourcesSheet.Close();
             if (resourcesSheet == null || resourcesSheet.IsDisposed)

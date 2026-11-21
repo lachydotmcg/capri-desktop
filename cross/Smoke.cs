@@ -6850,6 +6850,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross reading: spreadsheet scratch files are private to their user and leave the temp folder at once");
                 Hands.OnMac = OperatingSystem.IsMacOS();
                 checks.AddRange(FileKeeperChecks.Run());
+                checks.AddRange(TimelineChecks.Run());
             }
             finally
             {

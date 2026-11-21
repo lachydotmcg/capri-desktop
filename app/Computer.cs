@@ -358,8 +358,64 @@ namespace CapriDesktop
             foreach (Target found in sight.Targets) if (found.Page && (page == null || found.Box.Width * found.Box.Height > page.Box.Width * page.Box.Height)) page = found;
             if (page == null) return null;
             return sight.Targets.Find(target => (target.Role == "button" || target.Role == "link") && Dismissing.IsMatch(target.Name) && page.Box.Contains(target.Box)
-                && !sight.Targets.Exists(tab => tab.Role == "tab" && tab.Box.Contains(target.Box)));
+                && !sight.Targets.Exists(tab => tab.Role == "tab" && tab.Box.Contains(target.Box)) && !WindowButton(sight, target));
         }
+
+        private static readonly Regex CaptionName = new Regex(@"^\W*(close|minimi[sz]e|maximi[sz]e|restore(\s+down)?)\b", RegexOptions.IgnoreCase);
+        private static readonly Regex CloseName = new Regex(@"^\W*close\b", RegexOptions.IgnoreCase);
+        private static readonly Regex MinimizeName = new Regex(@"^\W*minimi[sz]e\b", RegexOptions.IgnoreCase);
+        private static readonly Regex ClosingJob = new Regex(@"\b(close|closing|quit|exit|kill|shut)\b|\bend\s+(the\s+)?task\b|\balt\s*\+\s*f4\b", RegexOptions.IgnoreCase);
+        private static readonly string[] ClosingKeys = { "alt+f4", "ctrl+f4", "ctrl+w", "ctrl+q", "ctrl+shift+w", "ctrl+q+shift" };
+
+        internal static bool WindowButton(Sight sight, Target target)
+        {
+            if (sight == null || target == null || target.Role != "button" || !CaptionName.IsMatch(target.Name ?? "")) return false;
+            Rectangle edge = sight.Bounds;
+            if (edge.Width > 0 && (target.Box.Top - edge.Top > 64 || edge.Right - target.Box.Right > 200)) return false;
+            Predicate<Target> row = other => other.Role == "button" && Math.Abs(other.Box.Top - target.Box.Top) <= 12;
+            return sight.Targets.Exists(other => row(other) && MinimizeName.IsMatch(other.Name ?? "") && other.Box.Left <= target.Box.Left)
+                && sight.Targets.Exists(other => row(other) && CloseName.IsMatch(other.Name ?? "") && other.Box.Left >= target.Box.Left);
+        }
+
+        internal static bool OwnClose(Sight sight, Target target)
+        {
+            if (sight == null || target == null || target.Role != "button" || !CloseName.IsMatch(target.Name ?? "")) return false;
+            if (WindowButton(sight, target)) return true;
+            Rectangle edge = sight.Bounds;
+            return edge.Width > 0 && target.Box.Top - edge.Top <= 48 && target.Box.Top >= edge.Top - 4 && edge.Right - target.Box.Right <= 24 && target.Box.Right <= edge.Right + 4;
+        }
+
+        internal static bool ClosesUnasked(string job, Sight sight, Target target)
+        {
+            return OwnClose(sight, target) && !ClosingJob.IsMatch(job ?? "");
+        }
+
+        internal static string ClosingKey(string job, string keys, bool playing)
+        {
+            if (ClosingJob.IsMatch(job ?? "")) return null;
+            foreach (string piece in Regex.Split((keys ?? "").Trim(), @"\s+"))
+            {
+                string mapped = piece.Length == 0 ? null : Combo(piece);
+                if (mapped == null) continue;
+                List<string> parts = new List<string>(mapped.Split('+'));
+                parts.Sort(StringComparer.Ordinal);
+                string sorted = string.Join("+", parts.ToArray());
+                if (Array.IndexOf(ClosingKeys, sorted) >= 0 && (!playing || sorted == "alt+f4")) return mapped;
+            }
+            return null;
+        }
+
+        internal static string AppOf(Sight sight)
+        {
+            string program = sight == null ? "" : (sight.Program ?? "").Trim();
+            if (program.Length == 0) return "this window";
+            string named = Tunes.AppName(program);
+            return named.Length == 0 ? "this window" : char.ToUpperInvariant(named[0]) + named.Substring(1);
+        }
+
+        internal static string KeptOpen(Sight sight) { return "Won't close " + AppOf(sight) + ": their job doesn't ask to close anything. Carry on with the job in this window."; }
+
+        internal static string KeptOpenShown(Sight sight) { return "I left " + AppOf(sight) + " open, since your job didn't ask me to close it"; }
 
         internal static bool AgreesToCookies(string job, Target target, Sight sight)
         {
@@ -2927,6 +2983,7 @@ namespace CapriDesktop
                 if (step.Finished) { ledgered.Add(step); underway = null; }
                 else underway = step.Label;
             }
+            if (step.Finished) Timeline.Step(this, Task, step.Label, step.Failed);
             Action<JobStep> stepped = Stepped;
             if (stepped != null) stepped(step);
         }
@@ -2936,9 +2993,10 @@ namespace CapriDesktop
         internal string Run()
         {
             InControl.Begin();
+            Timeline.Hush(true);
             try { return Running(); }
             catch { Computer.Finish(); Show(null); throw; }
-            finally { InControl.End(); }
+            finally { Timeline.Hush(false); Timeline.Ended(this, Outcome); InControl.End(); }
         }
 
         private string Running()
@@ -3688,6 +3746,16 @@ namespace CapriDesktop
                 if (Computer.Streaming && spoken == "Said." && !string.IsNullOrWhiteSpace(args.Text)) Mark(new JobStep { Tool = name, Label = "Said " + Voice.Quote(args.Text.Trim()) });
                 return spoken;
             }
+            string closer = name == "key" || name == "hold_key" ? Computer.ClosingKey(Task, args.Text, Playing) : null;
+            if (closer != null || (member && (name == "left_click" || name == "double_click" || name == "triple_click") && Computer.ClosesUnasked(Task, sight, target)))
+            {
+                string kept = Computer.KeptOpen(sight);
+                Brain.Log("job", -1, "Left " + Computer.AppOf(sight) + " open: " + (closer ?? "its own Close button") + " wasn't part of the job.");
+                Steps.Add(name + ": " + kept);
+                Mark(new JobStep { Tool = name, Label = Computer.KeptOpenShown(sight), Finished = true, Failed = true });
+                Track(name, args, true);
+                return kept;
+            }
             Computer.KeysOk = approved.Contains("keys");
             bool secret = name == "type" && Computer.SecretFocus();
             if (secret) Computer.Keep(args.Text);
@@ -3836,6 +3904,12 @@ namespace CapriDesktop
             {
                 result = "That didn't work: there's no note called " + unknown.Value + ". Call note first, then write it.";
                 shown = "I had no note called " + unknown.Groups[1].Value;
+            }
+            else if ((tool == "click" && Computer.ClosesUnasked(Task, sight, sight == null ? null : sight.Find(args.Target))) || (tool == "press" && Computer.ClosingKey(Task, args.Keys, Playing) != null))
+            {
+                result = Computer.KeptOpen(sight);
+                shown = Computer.KeptOpenShown(sight);
+                Brain.Log("job", -1, "Left " + Computer.AppOf(sight) + " open: " + (tool == "press" ? Computer.Chorded(args.Keys) : "its own Close button") + " wasn't part of the job.");
             }
             else
             {

@@ -30,6 +30,7 @@ Ask Capri for more	Побарај повеќе од Capri
 Asking your server...	Го прашувам твојот сервер...
 Asks before closing only the apps you choose.	Прашува пред да затвори само апликациите што ќе ги избереш.
 Auto	Автоматски
+Auto (match what I say)	Автоматски (како што зборувам)
 Automatic: VB-CABLE, else Steam's	Автоматски: VB-CABLE, инаку Steam
 BAD RELAY HOST	ЛОШ РЕЛЕ ХОСТ
 BIG Z open notepad	BIG Z отвори notepad
@@ -290,6 +291,7 @@ Huge	Огромно
 I can hear you.	Те слушам.
 I glance at your screen and comment. Costs a little on a paid brain.	Ја гледам твојата екран и коментирам. Чини малку со платен мозок.
 I keep listening. Say my name, then just talk.	Продолжувам да слушам. Кажи го моето име, па само зборувај.
+I speak	Зборувам
 I talk about your game as you play. Costs a little on a paid brain.	Зборувам за твојата игра додека играш. Чини малку со платен мозок.
 I type my replies and stay quiet.	Ги пишувам моите одговори и молчам.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Нема да одговарам, и ништо не се испраќа никаде. Сепак ќе се дружам, ќе танцувам на твојата музика и ќе ги правам брзите работи што ќе ги побараш, како гласноста.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	СОРТИРАЈ ПО
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ЗВУЦИ НАВИКИ МОЗОК СЛЕДИ CAPRI DOOMSCROLL ВРЕМЕ КЛИПОВИ ИГРИ КЛУЧЕВИ ДВИЖЕЊА ГЛАС ТИ
+Same as I speak	Како мојот јазик
 Same as her ears (VOICE > Mic)	Исто како нејзините уши (ГЛАС > Микрофон)
 Same code on the phone?	Истиот код на телефонот?
 Save	Зачувај
@@ -633,6 +636,7 @@ Settings had nothing to watch.	Поставките немаа што да сл�
 Settings lost keyboard focus during the Tab walk	Поставките го загубија фокусот на тастатурата за време на Tab одењето
 Setup guide	Водич за поставување
 Setup stopped	Поставувањето запре
+She answers in	Таа одговара на
 She can read it when it fits.	Може да го прочита кога ќе одговара.
 She glances at your screen and comments. Costs a little on a paid brain.	Ја гледа твојот екран и коментира. Чини малку со платен мозок.
 She keeps listening. Say her name, then just talk until you go quiet.	Продолжува да слуша. Кажи нејзино име, па зборувај додека не утивнеш.

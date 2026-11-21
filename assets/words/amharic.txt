@@ -30,6 +30,7 @@ Ask Capri for more	ከCapri ተጨማሪ ጠይቅ
 Asking your server...	ሰርቨርዎን በመጠየቅ ላይ...
 Asks before closing only the apps you choose.	የመረጧቸውን መተግበሪያዎች ብቻ ከመዝጋቱ በፊት ይጠይቃል።
 Auto	ራስ-ሰር
+Auto (match what I say)	ራስ-ሰር (እንደምለው)
 Automatic: VB-CABLE, else Steam's	ራስ-ሰር፡ VB-CABLE፣ ያለበለዚያ የSteam
 BAD RELAY HOST	የተሳሳተ የሬሌይ አስተናጋጅ
 BIG Z open notepad	BIG Z notepad ክፈት
@@ -290,6 +291,7 @@ Huge	ግዙፍ
 I can hear you.	ልሰማህ እችላለሁ።
 I glance at your screen and comment. Costs a little on a paid brain.	ማያህን ተመልክቼ አስተያየት እሰጣለሁ። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
 I keep listening. Say my name, then just talk.	ማዳመጡን እቀጥላለሁ። ስሜን ተናገር፣ ከዚያ ብቻ ተናገር።
+I speak	የምናገረው
 I talk about your game as you play. Costs a little on a paid brain.	ስትጫወት ስለ ጨዋታህ አወራለሁ። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
 I type my replies and stay quiet.	መልሶቼን እተይባለሁ እና ዝም እላለሁ።
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	አልመልስም፣ ምንም ወደየትም አይላክም። አሁንም እቆያለሁ፣ ለሙዚቃህ እጨፍራለሁ እና እንደ ድምጽ ያሉ የጠየቅካቸውን ፈጣን ነገሮች አደርጋለሁ።
@@ -598,6 +600,7 @@ SKILL.	ችሎታ።
 SKIN.	ቆዳ።
 SORT BY	በዚህ መሰረት ደርድር
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ድምፆች ልማዶች አእምሮ ተመልከት CAPRI DOOMSCROLL የአየር ሁኔታ ክሊፖች ጨዋታዎች ቁልፎች እንቅስቃሴዎች ድምፅ አንተ
+Same as I speak	እንደ እኔ ቋንቋ
 Same as her ears (VOICE > Mic)	እንደ ጆሮዎቿ (ድምፅ > ማይክ)
 Same code on the phone?	በስልኩ ላይ ተመሳሳይ ኮድ?
 Save	አስቀምጥ
@@ -633,6 +636,7 @@ Settings had nothing to watch.	ቅንብሮች የሚመለከቱት ነገር �
 Settings lost keyboard focus during the Tab walk	በTab ጉዞ ጊዜ ቅንብሮች የቁልፍ ሰሌዳ ትኩረቱን አጡ
 Setup guide	የማዋቀር መመሪያ
 Setup stopped	ማዋቀር ቆሟል
+She answers in	የምትመልስበት
 She can read it when it fits.	ሲስማማ ማንበብ ትችላለች።
 She glances at your screen and comments. Costs a little on a paid brain.	ማያዎን ተመልክታ አስተያየት ትሰጣለች። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
 She keeps listening. Say her name, then just talk until you go quiet.	ማዳመጧን ትቀጥላለች። ስሟን ተናገር፣ ከዚያ ዝም እስክትል ድረስ ብቻ ተናገር።
