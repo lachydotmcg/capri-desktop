@@ -2849,8 +2849,10 @@ namespace CapriDesktop
             settings.Items.Add(discordItem);
             // Security, like Windows' SECURITY window (Lachy, 29 Oct): Lockdown, Guarded, Trusted and Blackwall set the toggles
             // under them, and flipping one makes it Custom. Each toggle has its plain line. Off means she asks first and does it
-            // on your yes. Mac and Linux have the first five and Keep personal details out of her memories, and Linux her mouse and
-            // keyboard jobs once uinput is set up; "Hey Capri" is Windows-only so far.
+            // on your yes. Mac and Linux have the first five, Keep personal details out of her memories, Use tools your mods added
+            // and Run terminal commands, plus Use your mouse and keyboard for jobs once her hands are ready (MacFingers on a Mac,
+            // uinput or capri-input on Linux). There's no "Hey Capri" row here: Listen for Capri sits under VOICE and works on
+            // Mac and Linux once her local ears are set up.
             securityMenu = new MenuItem { Header = "Security: " + Security.PresetName };
             for (int i = 0; i <= Security.Custom; i++)
             {
@@ -3261,7 +3263,7 @@ namespace CapriDesktop
 
         // Her own moves, like on Windows: "teleport here" glitches her over to their mouse, "go to my other monitor" to the same
         // spot on another screen, and she sits, stands, hangs, hides and comes back. Lying down, walking or wandering off when
-        // asked and riding the cursor are in Moves.cs. Sitting on a window they name is still Windows-only on Mac, and her hands
+        // asked and riding the cursor are in Moves.cs. Lying down on a window they name isn't on a Mac yet, and her hands
         // say so before they get here.
         internal string MoveSelf(string action, string screen)
         {
@@ -3499,7 +3501,7 @@ namespace CapriDesktop
             if (careKind >= 0) { SetCare((CareKind)careKind, on); return null; }
             switch (name)
             {
-                case "hologram": return OperatingSystem.IsMacOS() ? Hologram(on ? "on" : "off") : "That Capri setting is only on Windows for now.";
+                case "hologram": return OperatingSystem.IsMacOS() ? Hologram(on ? "on" : "off") : "Hologram mode is on Windows and Mac, not Linux yet.";
                 case "head_pats": SetHeadPats(on); break;
                 case "legacy_stand": SetLegacyStand(on); break;
                 case "follow_ups": SetFollowUps(on); break;
@@ -6159,7 +6161,7 @@ namespace CapriDesktop
                 return;
             }
             if (TimingTool(ticket, text, tool, args)) return;
-            // Something that can't work here, like clones and chaos mode, which are Windows-only: she says so herself and why,
+            // Something that can't work here, like clones on Linux or chaos mode outside Windows: she says so herself and why,
             // brain or no brain, instead of her brain joking about it. Asked for that and something she can do too, like "open
             // Spotify. Chaos mode", the rest goes ahead and she says why after it (a Codex review, 2 Nov).
             string doable;
@@ -6170,7 +6172,7 @@ namespace CapriDesktop
                 Reply(ticket, text, done, null, false, phone);
                 return;
             }
-            // Asked in other words for something only Windows has, like "can you draw on my screen?", she says so too (F69).
+            // Asked in other words for something only Windows has, like "clip that", she says so too (F69).
             string lacking = Hands.KitFor().Lacking(input);
             if (lacking != null)
             {

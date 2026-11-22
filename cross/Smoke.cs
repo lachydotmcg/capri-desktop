@@ -791,7 +791,7 @@ namespace CapriDesktop
                     Hands.Catalog = catalogWas;
                     Hands.Forget();
                 }
-                checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, each one in \"open spotify and then youtube.com\", skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, and key-press shortcuts say they're Windows-only");
+                checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, each one in \"open spotify and then youtube.com\", skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, her other Mac shortcuts are key presses, and on Linux the rest say they're Windows-only");
                 // An app only opens when its name has the whole word they said (a Bazzite user).
                 List<InstalledApp> lookalikes = new List<InstalledApp> { new InstalledApp("Minecraftle", "exec:minecraftle"), new InstalledApp("Kate", "exec:kate") };
                 if (Hands.Match(lookalikes, "minecraft").Count != 0 || Hands.Match(lookalikes, "minecraftle").Count != 1 || Hands.Match(lookalikes, "kate").Count != 1 || Hands.Match(lookalikes, "Kate text editor").Count != 1)
@@ -1236,7 +1236,7 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 if (!brainlessDance || !brainlessStop) throw new Exception("Her dance needed a brain: " + brainlessDance + ", " + brainlessStop + ", " + pet.Talk.Reply);
                 checks.Add("PASS her own moves without a brain: \"dance for me\" and \"stop dancing\" work with no brain set up, like her nap and \"teleport here\"");
-                // Clones and chaos mode are Windows-only, which she says straight away whether or not she has a brain, and her hands
+                // On Linux, clones and chaos mode are refused straight away whether or not she has a brain, and her hands
                 // aren't told this is a Windows PC.
                 bool cloneMac = Hands.OnMac;
                 Hands.OnMac = false;
@@ -1255,15 +1255,15 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 pet.Think = null;
                 string computer = OperatingSystem.IsMacOS() ? "Mac" : "PC", handsPrompt = Hands.Prompt, toolsNote = Hands.Note;
-                // What isn't here is named as Windows-only on purpose (34db044). What matters is that nothing calls this a Windows PC,
-                // and that settings jobs are offered only where her hands work.
+                // What isn't here is named Windows-only on purpose (34db044), even for clones and hologram, which a Mac has. What
+                // matters is that nothing calls this a Windows PC, and that settings jobs are offered only where her hands work.
                 bool handsHere = Hands.KitFor().Has("use_computer");
                 bool notWindows = handsPrompt.IndexOf("Windows PC", StringComparison.Ordinal) < 0 && handsPrompt.IndexOf("a desktop companion on the user's " + computer + ".", StringComparison.Ordinal) > 0
                     && toolsNote.IndexOf("Windows PC", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("Windows settings", StringComparison.Ordinal) < 0
                     && (toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0) == handsHere;
                 Func<string, string> nearWindows = delegate(string text) { int at = text.IndexOf("Windows", StringComparison.Ordinal); return at < 0 ? "-" : text.Substring(Math.Max(0, at - 60), Math.Min(140, text.Length - Math.Max(0, at - 60))); };
-                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows + " (hands " + handsHere + ") | " + nearWindows(handsPrompt) + " | " + nearWindows(toolsNote));
-                checks.Add("PASS Windows-only: asking for clones or chaos mode, or to get rid of clones, gets \"" + Hands.NoClones + "\" straight away, with or without a brain, and her hands' prompts call this computer their " + computer + ", not a Windows PC");
+                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("The Linux clone gaps went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows + " (hands " + handsHere + ") | " + nearWindows(handsPrompt) + " | " + nearWindows(toolsNote));
+                checks.Add("PASS Linux gaps: asking for clones or chaos mode, or to get rid of clones, gets \"" + Hands.NoClones + "\" straight away, with or without a brain, and her hands' prompts call this computer their " + computer + ", not a Windows PC");
                 foreach (bool withBrain in new[] { false, true })
                 {
                     bool hologramAsked = false;
@@ -6614,7 +6614,9 @@ namespace CapriDesktop
 
         // Security on Mac and Linux, like Windows' SECURITY window: each preset ticks its toggles, a flip makes it Custom and is
         // saved, settings from before it get Trusted, and a toggle that's off holds her tool call so she asks first and does it
-        // on their yes. Mac and Linux have the first five toggles; her mouse and keyboard jobs and "Hey Capri" are Windows-only.
+        // on their yes. Mac and Linux have the first five toggles, Keep personal details out of her memories, Use tools your mods
+        // added, Run terminal commands and Use your mouse and keyboard for jobs once her hands are ready; the "Hey Capri" toggle
+        // has no row on any platform, since Listen for Capri sits under VOICE.
         private void SecurityChecks()
         {
             Func<string> bits = delegate { StringBuilder all = new StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
@@ -6678,7 +6680,7 @@ namespace CapriDesktop
             Security.Load(pet.Saved.Permissions);
             if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !olderBits || !unreadable || !personal)
                 throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + olderBits + " " + unreadable + " " + personal);
-            checks.Add("PASS Security menu: Settings > Security starts on Trusted; Lockdown, Guarded, Trusted and Blackwall tick the toggles under them (the five Mac and Linux have and Keep personal details out of her memories, each with its plain line), a toggle click makes it Custom and is saved for next time, ticking it again is Trusted, and settings from before it, or unreadable ones, get Trusted; a save from before Keep personal details out of her memories gets it off for Blackwall's ten and on otherwise, and only turning it the other way adds a 12th mark");
+            checks.Add("PASS Security menu: Settings > Security starts on Trusted; Lockdown, Guarded, Trusted and Blackwall tick the toggles under them (the five Mac and Linux have, Keep personal details out of her memories, Use tools your mods added and Run terminal commands when she has them, each with its plain line), a toggle click makes it Custom and is saved for next time, ticking it again is Trusted, and settings from before it, or unreadable ones, get Trusted; a save from before Keep personal details out of her memories gets it off for Blackwall's ten and on otherwise, and only turning it the other way adds a 12th mark");
 
             // A toggle that's off holds the call and she asks first; a yes runs it once, a no leaves it and anything else drops it.
             List<string> did = new List<string>();
@@ -6742,7 +6744,7 @@ namespace CapriDesktop
                 talker.Act = pet.Brain.Act;
                 string talkAsked = talker.Ask("turn the volume up"), talkEarly = string.Join(",", did);
                 textChat = talkAsked + " / " + talkEarly + " / " + talker.Ask("yes") + " [" + string.Join(",", did) + "]";
-                // Mac and Linux don't have her mouse and keyboard jobs yet, so even Lockdown never holds one, what's playing never
+                // The smoke's computer has no hands, so even Lockdown never holds a mouse and keyboard job, what's playing never
                 // asks, and her prompt names only the toggles this computer has.
                 Security.Pick(Security.Lockdown);
                 ToolArguments job = new ToolArguments { Task = "message Sam hi on Discord" };
@@ -6773,7 +6775,7 @@ namespace CapriDesktop
             if (mouseFree != "free / False / free" || lockdownNote.IndexOf("switch to or close apps and tabs or shut down, restart, sleep, lock or sign out of their PC. Still call the tool as soon as they ask", StringComparison.Ordinal) < 0 || lockdownNote.IndexOf("mouse and keyboard", StringComparison.Ordinal) >= 0
                 || trustedPrompt.IndexOf("SECURITY", StringComparison.Ordinal) >= 0 || openPrompt.IndexOf("Call the tool.\nThey've set her SECURITY settings to ask first before you open apps, games or sites. Still call the tool as soon as they ask", StringComparison.Ordinal) < 0)
                 throw new Exception("Security asked about something Mac and Linux don't have, or her prompt didn't follow it: " + mouseFree + " / " + lockdownNote);
-            checks.Add("PASS Security gates: with each of the five toggles off she holds the call and asks (\"Open spotify? Say yes and I will.\", \"Lock your PC? Say yes and I will.\"), nothing runs until a yes, a yes runs it once through her own hands, a no leaves it alone and a new message drops it; two held calls are one question and one yes; in text chat her question goes out word for word and the next message's yes does it; mouse and keyboard jobs, which Mac and Linux don't have yet, never ask; and her brain is told to still call a tool that's off and let her ask");
+            checks.Add("PASS Security gates: with each of the five toggles off she holds the call and asks (\"Open spotify? Say yes and I will.\", \"Lock your PC? Say yes and I will.\"), nothing runs until a yes, a yes runs it once through her own hands, a no leaves it alone and a new message drops it; two held calls are one question and one yes; in text chat her question goes out word for word and the next message's yes does it; mouse and keyboard jobs, which this test's computer has no hands for, never ask; and her brain is told to still call a tool that's off and let her ask");
         }
 
         private sealed class FileToolBrain : IBrainProvider
@@ -9981,7 +9983,7 @@ namespace CapriDesktop
                     new[] { "sit", "Couldn't sit down.", "failed", null },
                     new[] { "lie_down", "That window isn't open.", "failed", null },
                     new[] { "sit", "throw", "failed", null },
-                    new[] { "lie_down", "Lying down on a window you name is only on Windows so far.", "failed", null },
+                    new[] { "lie_down", "Lying down on a window you name isn't on a Mac yet.", "failed", null },
                     new[] { "sit_on", "Which window?", "failed", null },
                     new[] { "sit_on", "I can't see Bridge App open.", "failed", null },
                     new[] { "sit_on", "I couldn't find an open window with that name.", "failed", null },
