@@ -9,6 +9,18 @@ internal sealed class Row
     internal int Line;
 }
 
+internal sealed class AliasGroup
+{
+    internal string Target;
+    internal readonly List<string> Words = new List<string>();
+    internal int Line;
+}
+
+internal sealed class Contract
+{
+    internal string App, Setting, Cross;
+}
+
 internal static class SettingsSearch
 {
     private const string MainframeStart = "internal Mainframe(Pet owner)";
@@ -31,11 +43,33 @@ internal static class SettingsSearch
         new[] { "Start at login", "startup", "start up", "start with windows", "login" },
         new[] { "Brain API key", "api key", "key" },
         new[] { "Free key", "api key", "key" },
+        new[] { "ChatGPT plan", "api key", "key" },
         new[] { "Plug-ins", "email", "plug-ins", "plugins", "plug-in", "plugin" }
+    };
+
+    // The cross-file contract: each setting Windows gives keys must reach the same setting on the
+    // cross side with the same words. Cross is null when the cross Mainframe has no such setting;
+    // if one appears, the pin fails and asks for it here rather than letting the two drift apart.
+    private static readonly Contract[] Contracts =
+    {
+        new Contract { App = "mics", Setting = "Mic: default", Cross = null },
+        new Contract { App = "textEntry", Setting = "Brain API key", Cross = "Brain API key" },
+        new Contract { App = "freeKey", Setting = "Free key", Cross = "Free key" },
+        new Contract { App = "planKey", Setting = "API key, Claude plan or ChatGPT plan", Cross = "ChatGPT plan" },
+        new Contract { App = "comments", Setting = "Comments", Cross = null },
+        new Contract { App = "listenCapri", Setting = "Listen for Capri", Cross = "Listen for Hey Capri" },
+        new Contract { App = "volume", Setting = "Volume", Cross = "Volume" },
+        new Contract { App = "startup", Setting = "Start with Windows", Cross = "Start at login" },
+        new Contract { App = "languages", Setting = "I speak", Cross = "Language" },
+        new Contract { App = "liteMode", Setting = "Lite mode", Cross = null },
+        new Contract { App = "PlugTile", Setting = "Plug-ins", Cross = "Plug-ins" }
     };
 
     internal static void Check(string root, Action<string> pass)
     {
+        string appPath = Path.Combine(root, "app/MainframeSearch.cs");
+        Require(File.Exists(appPath), "app/MainframeSearch.cs is not at the checkout root, so the cross-file pin has nothing to compare");
+        string app = File.ReadAllText(appPath);
         string mainframe = File.ReadAllText(Path.Combine(root, "cross/Mainframe.cs"));
         string search = File.ReadAllText(Path.Combine(root, "cross/MainframeSearch.cs"));
         string theme = File.ReadAllText(Path.Combine(root, "cross/MainframeTheme.cs"));
@@ -81,10 +115,14 @@ internal static class SettingsSearch
             Require(key.Value.Length > 0 && word.Length > 0, "the search alias '" + key.Key + "' in MainframeSearch.cs has an empty word, so it can never be typed");
             Require(pairs.Add(key.Key + "|" + word), "the search alias word '" + key.Value + "' is listed twice for '" + key.Key + "' in MainframeSearch.cs");
         }
+        int shared, sharedWords, absent, absentWords;
+        CrossContract(app, search, known, keys, out shared, out sharedWords, out absent, out absentWords);
         ShippedKeys(pairs);
 
         pass("settings search: all " + rows.Count + " hand-labelled rows of her Mainframe are kinds her search index takes, all "
-            + targets.Count + " aliases over " + keys.Count + " keys name a row by its exact label, and the shipped keys are intact");
+            + targets.Count + " aliases over " + keys.Count + " keys name a row by its exact label, the shipped keys are intact, and the cross-file contract holds: "
+            + shared + " shared settings carry " + sharedWords + " keys word for word from Windows, and " + absent + " Windows-only settings with " + absentWords
+            + " keys stay absent cross-side");
     }
 
     private static List<Row> Rows(string region, string mainframe, int from)
@@ -155,6 +193,97 @@ internal static class SettingsSearch
         Require(plug.Success, "MainframeSearch.cs no longer gives her PlugTile row its words, so the pin has nothing to read");
         foreach (Match word in Regex.Matches(plug.Groups[1].Value, @"""([^""]*)"""))
             keys.Add(new KeyValuePair<string, string>(PlugName(search), word.Groups[1].Value));
+    }
+
+    private static List<AliasGroup> AppAliases(string search)
+    {
+        List<AliasGroup> groups = new List<AliasGroup>();
+        Regex also = new Regex(@"Also\(\s*index\s*,\s*([^,]+?)\s*,\s*(-?\d+)\s*((?:,\s*""[^""]*""\s*)*)\)");
+        foreach (Match match in also.Matches(search))
+        {
+            AliasGroup group = new AliasGroup { Target = match.Groups[1].Value, Line = LineAt(search, match.Index) };
+            foreach (Match word in Regex.Matches(match.Groups[3].Value, @"""([^""]*)"""))
+                group.Words.Add(word.Groups[1].Value);
+            groups.Add(group);
+        }
+        Match plug = Regex.Match(search, @"if \(control is PlugTile[^)]*\)\s*foreach \(string word in new\[\]\s*\{([^}]*)\}\)");
+        Require(plug.Success, "app/MainframeSearch.cs no longer gives her PlugTile row its words, so the cross-file pin has nothing to compare");
+        AliasGroup tile = new AliasGroup { Target = "PlugTile", Line = LineAt(search, plug.Index) };
+        foreach (Match word in Regex.Matches(plug.Groups[1].Value, @"""([^""]*)"""))
+            tile.Words.Add(word.Groups[1].Value);
+        groups.Add(tile);
+        return groups;
+    }
+
+    private static void CrossContract(string app, string cross, HashSet<string> known, List<KeyValuePair<string, string>> crossKeys,
+        out int shared, out int sharedWords, out int absent, out int absentWords)
+    {
+        List<AliasGroup> appGroups = AppAliases(app);
+        Dictionary<string, AliasGroup> byTarget = new Dictionary<string, AliasGroup>(StringComparer.Ordinal);
+        foreach (AliasGroup group in appGroups)
+        {
+            Require(group.Words.Count > 0,
+                "app/MainframeSearch.cs gives '" + group.Target + "' no keys at line " + group.Line + ", so the cross-file pin has nothing to compare");
+            AliasGroup first;
+            Require(!byTarget.TryGetValue(group.Target, out first),
+                "app/MainframeSearch.cs gives '" + group.Target + "' its keys at lines " + (first == null ? 0 : first.Line) + " and " + group.Line
+                + ", so the cross-file pin cannot tell which keys it means");
+            byTarget[group.Target] = group;
+        }
+        Dictionary<string, List<string>> theirGroups = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, string> key in crossKeys)
+        {
+            List<string> words;
+            if (!theirGroups.TryGetValue(key.Key, out words)) { words = new List<string>(); theirGroups[key.Key] = words; }
+            words.Add(key.Value);
+        }
+        shared = 0;
+        sharedWords = 0;
+        absent = 0;
+        absentWords = 0;
+        HashSet<string> classified = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Contract one in Contracts)
+        {
+            Require(classified.Add(one.App), "the cross-file pin classifies '" + one.App + "' twice, so it cannot tell which setting that is");
+            AliasGroup group;
+            Require(byTarget.TryGetValue(one.App, out group),
+                "app/MainframeSearch.cs no longer gives '" + one.Setting + "' the keys this pin records for '" + one.App + "', so the cross-file table must name the setting's new control");
+            if (one.Cross == null)
+            {
+                foreach (string other in known)
+                    Require(Plain(other) != Plain(one.Setting),
+                        "cross/Mainframe.cs now has the row '" + other + "', so the cross Mainframe has the setting app/MainframeSearch.cs gives '" + one.Setting
+                        + "' its keys for; classify '" + one.App + "' SHARED and carry its keys in cross/MainframeSearch.cs");
+                foreach (string other in theirGroups.Keys)
+                    Require(Plain(other) != Plain(one.Setting),
+                        "cross/MainframeSearch.cs now gives '" + other + "' keys, so the cross Mainframe has the setting app/MainframeSearch.cs gives '" + one.Setting
+                        + "' its keys for; classify '" + one.App + "' SHARED and carry its keys");
+                absent++;
+                absentWords += group.Words.Count;
+                continue;
+            }
+            Require(known.Contains(one.Cross),
+                "app/MainframeSearch.cs gives '" + one.Setting + "' its keys, but cross/Mainframe.cs has no row named '" + one.Cross
+                + "', so the setting cross/MainframeSearch.cs names there has gone or been renamed");
+            List<string> words;
+            Require(theirGroups.TryGetValue(one.Cross, out words),
+                "app/MainframeSearch.cs gives '" + one.Setting + "' its keys, but cross/MainframeSearch.cs no longer gives '" + one.Cross
+                + "' any keys, so those words reach nothing there");
+            foreach (string word in group.Words)
+            {
+                bool found = false;
+                foreach (string other in words) if (other == word) { found = true; break; }
+                Require(found,
+                    "app/MainframeSearch.cs gives '" + one.Setting + "' the key '" + word + "' at line " + group.Line
+                    + ", but cross/MainframeSearch.cs has no such key on '" + one.Cross + "'; both searches must answer the same words");
+                sharedWords++;
+            }
+            shared++;
+        }
+        foreach (AliasGroup group in appGroups)
+            Require(classified.Contains(group.Target),
+                "app/MainframeSearch.cs gives '" + group.Target + "' keys at line " + group.Line
+                + " that this pin does not classify; add it to the cross-file table as SHARED, naming the cross row it reaches, or ABSENT when the cross Mainframe has no such setting");
     }
 
     private static void ShippedKeys(HashSet<string> found)
