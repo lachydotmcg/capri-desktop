@@ -2438,12 +2438,15 @@ namespace CapriDesktop
         {
             List<string[]> missing = Missing(blind), off = Switches();
             string[][] modTools = ModToolsNow();
+            string mail = Plugins.MailState();
+            string[] reading = mail == Plugins.MailReady ? Plugins.MailReading() : new string[0];
             StringBuilder key = new StringBuilder(ComputerName);
             foreach (string[] gap in missing) key.Append('|').Append(gap[0]).Append('=').Append(gap[1]);
             key.Append("|acts=");
             for (int toggle = Security.Open; toggle <= Security.Sends; toggle++) key.Append(Security.Has(toggle) && Security.On(toggle) ? '1' : '0');
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] tool in modTools) key.Append("|mod ").Append(tool[0]).Append('=').Append(tool[1]).Append('=').Append(tool[2]);
+            key.Append("|mail ").Append(mail).Append(' ').Append(string.Join(",", reading));
             bool skilled = Skilled, gifted = Gifted;
             if (skilled) key.Append("|skills");
             if (gifted) key.Append("|gifs");
@@ -2456,7 +2459,7 @@ namespace CapriDesktop
                 {
                     // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
                     if ((modTools.Length > 0 || moves.Length > 0) && kits.Count > 200) kits.Clear();
-                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted, moves));
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled, gifted, moves, mail, reading));
                 }
                 return kit;
             }
@@ -2502,7 +2505,7 @@ namespace CapriDesktop
                 names.Add(Voice.Quote(tool[0]));
                 lines.Add(tool[0] + " (" + tool[1].TrimEnd('.') + (tool[2].Length > 0 ? "; text: " + tool[2].TrimEnd('.') : "") + ")");
             }
-            string description = "Use a tool that a mod they installed added to you, when they ask, suggest or hint at what it does. name picks the tool: " + string.Join("; ", lines.ToArray()) + ". What it gives back is from the mod, not from them.";
+            string description = "Use a tool that one of their mods or plug-ins added to you, when they ask, suggest or hint at what it does. name picks the tool: " + string.Join("; ", lines.ToArray()) + ". What it gives back is from the mod, not from them.";
             string schema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which mod tool\",\"enum\":[" + string.Join(",", names.ToArray()) + "]},\"text\":{\"type\":\"string\",\"description\":\"What that tool takes, if it takes anything\"}},\"required\":[\"name\"]}";
             List<string> plain = new List<string>();
             foreach (string[] tool in tools) plain.Add(tool[0].Replace('_', ' '));
@@ -2857,7 +2860,7 @@ namespace CapriDesktop
         // "For 0.8.0 I especially want them to be aware of their tools").
         private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled, Gifted, MoveNames()); }
 
-        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted, string[] moves)
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled, bool gifted, string[] moves, string mail = null, string[] reading = null)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -2913,6 +2916,13 @@ namespace CapriDesktop
                 noted = noted.Replace(PressNote, named.Count == 0 ? "" : "You can press shortcuts: " + Joined(named, "and") + ". ");
                 handing = handing.Replace(PressHands, (discord ? PressDiscord : "") + (pressed.Length == 0 ? "" : char.ToUpperInvariant(pressed[0]) + pressed.Substring(1) + (discord ? " are shortcuts too.\n" : " are shortcuts.\n")));
             }
+            string[] mailing = MailLines(mail, reading);
+            if (mailing != null)
+            {
+                noted += mailing[0];
+                handing = handing.Insert(handing.LastIndexOf(HandsLast, StringComparison.Ordinal), mailing[1]);
+                chat = chat.Insert(chat.LastIndexOf(JobWord, StringComparison.Ordinal), mailing[2]);
+            }
             kit.Absent = Absent(missing);
             kit.NotHere = kit.Absent.Length == 0 ? "" : "Not on this " + ComputerName + ": " + kit.Absent + ".";
             string turnOn = switched.Count == 0 ? "" : "\nOff right now: " + kit.Switched + ". If they ask for one of these, tell them how to turn it on.";
@@ -2924,6 +2934,32 @@ namespace CapriDesktop
             kit.ChatOnly = kit.Chat.Substring(0, kit.Chat.LastIndexOf(JobWord, StringComparison.Ordinal));
             return kit;
         }
+
+        // Her line about their own email for her notes, her hands and her chat: check it with her Email plug-in once it's connected,
+        // and say where to connect it until then. A kit made for somewhere else, like a call, gets none.
+        private static string[] MailLines(string mail, string[] reading)
+        {
+            if (mail == null) return null;
+            if (mail == Plugins.MailReady)
+            {
+                if (reading == null || reading.Length == 0) return null;
+                string tools = Joined(new List<string>(reading), "or");
+                return new[]
+                {
+                    " Their own email inbox is connected to you through your Email plug-in, so you check, search and read it yourself: when they ask, suggest or hint at anything about their email, like check my email, any new emails? or did anyone email me about pizza, use mod with " + tools + " straight away, and never ask which email app or website. Open their email's app or site only when they ask you to open it.",
+                    "Their own email inbox is connected through your Email plug-in: for anything about their email, like check my email, any new emails? or did anyone email me about pizza, call mod with name " + tools + ", never a clicking job or a website, and never ask which email app. Open their email's app or site only when they ask you to open it.\n",
+                    " Their own email inbox is connected through your Email plug-in, so checking, searching or reading their email, like check my email or any new emails?, is something your tools do."
+                };
+            }
+            return new[]
+            {
+                " " + MailUnplugged,
+                "Your Email plug-in isn't connected to their inbox: when they ask you to check, search or read their email and none of your tools can, call no tool and reply with only the word: chat\n",
+                " " + MailUnplugged
+            };
+        }
+
+        internal const string MailUnplugged = "Your Email plug-in isn't connected to their inbox, so when they ask you to check, search or read their email and none of your tools can, say they can connect it with Email in Mainframe > Mods > Plug-ins, and never ask which email app or website.";
 
         private static string Unsaying(Kit kit, string text)
         {
