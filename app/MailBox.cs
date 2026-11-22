@@ -557,6 +557,19 @@ namespace CapriDesktop
             return Search("UID", uid.ToString(CultureInfo.InvariantCulture)).Contains(uid);
         }
 
+        // Some servers match part of a header, so every hit's own Message-ID has to be the one asked for.
+        internal List<int> WithId(string messageId)
+        {
+            List<int> found = new List<int>();
+            string want = (messageId ?? "").Trim();
+            if (want.Length == 0) return found;
+            List<int> hits = Search("HEADER Message-ID", Arg(want));
+            if (hits.Count > 10) hits = hits.GetRange(hits.Count - 10, 10);
+            foreach (MailHead head in Headers(hits))
+                if (string.Equals(head.MessageId.Trim(), want, StringComparison.Ordinal)) found.Add(head.Uid);
+            return found;
+        }
+
         internal List<int> After(long uid)
         {
             List<int> found = Search("UID", (uid + 1).ToString(CultureInfo.InvariantCulture) + ":*");

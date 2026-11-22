@@ -60,6 +60,17 @@ namespace CapriDesktop
 
             internal bool Logged(string command) { lock (Lock) return Log.Exists(one => one.StartsWith(command, StringComparison.OrdinalIgnoreCase)); }
 
+            internal int Count(string command) { lock (Lock) return Log.FindAll(one => one.StartsWith(command, StringComparison.OrdinalIgnoreCase)).Count; }
+
+            internal void Shift(int uid, string box)
+            {
+                lock (Lock)
+                {
+                    Boxes[box][boxNext++] = Messages[uid];
+                    Messages.Remove(uid);
+                }
+            }
+
             private Dictionary<int, string> Box(string name)
             {
                 if (string.Equals(name, "INBOX", StringComparison.OrdinalIgnoreCase)) return Messages;
@@ -227,6 +238,12 @@ namespace CapriDesktop
                                         string want = args[i + 1].ToLowerInvariant();
                                         string hay = a == "FROM" ? Regex.Match(raw, @"(?m)^From:.*$").Value : raw;
                                         if (hay.ToLowerInvariant().IndexOf(want, StringComparison.Ordinal) < 0) ok = false;
+                                    }
+                                    if (a == "HEADER" && i + 2 < args.Count)
+                                    {
+                                        Match field = Regex.Match(raw, "(?im)^" + Regex.Escape(args[i + 1]) + @":[ \t]*([^\r\n]*)");
+                                        if (!field.Success || field.Groups[1].Value.IndexOf(args[i + 2], StringComparison.OrdinalIgnoreCase) < 0) ok = false;
+                                        i += 2;
                                     }
                                 }
                                 if (ok) found.Append(' ').Append(uid);
@@ -889,6 +906,9 @@ namespace CapriDesktop
             imap.Messages[1] = Staged("m1", "https://arasaka-acc0unt-verify.invalid/login");
             imap.Messages[2] = Personal("m2");
             imap.Messages[3] = Newsletter("m3");
+            imap.Messages[4] = Personal("m4");
+            imap.Messages[5] = Newsletter("m5");
+            imap.Messages[6] = Personal("m6");
             imap.Start();
             string dir = Path.Combine(folder, "mail-watch-check");
             Directory.CreateDirectory(dir);
@@ -907,9 +927,7 @@ namespace CapriDesktop
                 Need(err && text.Contains("There's no message with uid 99 in INBOX."), "moving a missing uid: " + text);
                 text = Reply(MailTools.Call("move_mail", Args("uid", 2, "to", "Nowhere")), out err);
                 Need(err && text.Contains("There's no mail folder called \"Nowhere\""), "moving to a missing folder: " + text);
-                string kind;
-                bool gmail;
-                try { MailTools.MoveOne(MailTools.Account, "INBOX", 2, "trash", "<someone-else@example.com>", out kind, out gmail); Need(false, "she moved an email whose uid now points at a different one"); }
+                try { MailTools.MoveOne(MailTools.Account, "INBOX", 2, "trash", "<someone-else@example.com>"); Need(false, "she moved an email whose uid now points at a different one"); }
                 catch (MailException ex) { Need(ex.Message.Contains("is a different email now"), "a changed uid: " + ex.Message); }
                 Need(!imap.Logged("UID MOVE"), "a refused move still moved something");
                 text = Reply(MailTools.Call("move_mail", Args("uid", 1, "to", "spam")), out err);
@@ -917,6 +935,39 @@ namespace CapriDesktop
                 text = Reply(MailTools.Call("move_mail", Args("uid", 3, "to", "Receipts")), out err);
                 Need(!err && text == "Moved it to Receipts.", "move_mail to a folder: " + text);
                 Need(imap.Holds("[Gmail]/Spam", "<m1@") && imap.Holds("Receipts", "<m3@") && imap.Holds("INBOX", "<m2@") && !imap.Logged("EXPUNGE") && !imap.Logged("CLOSE"), "moves landed in the wrong place or expunged");
+
+                text = Reply(MailTools.Call("move_mail", Args("uid", 1, "to", "spam")), out err);
+                Need(!err && text == "It's already in Gmail's Spam folder ([Gmail]/Spam). I moved it a moment ago." && imap.Count("UID MOVE 1 ") == 1, "moving the same email twice: " + text);
+                text = Reply(MailTools.Call("move_mail", Args("uid", 1, "to", "trash")), out err);
+                Need(!err && text == "It's already in Gmail's Spam folder ([Gmail]/Spam). I moved it a moment ago." && imap.Count("UID MOVE 1 ") == 1 && !imap.Holds("[Gmail]/Trash", "<m1@"), "moving it again to somewhere else: " + text);
+                text = Reply(MailTools.Call("move_mail", Args("uid", 3, "to", "Receipts")), out err);
+                Need(!err && text == "It's already in Receipts. I moved it a moment ago." && imap.Count("UID MOVE 3 ") == 1, "moving it to a folder twice: " + text);
+                string[] both = new string[2];
+                bool[] failed = new bool[2];
+                List<Thread> pair = new List<Thread>();
+                for (int i = 0; i < 2; i++)
+                {
+                    int n = i;
+                    pair.Add(new Thread(delegate() { bool e; both[n] = Reply(MailTools.Call("move_mail", Args("uid", 4, "to", "trash")), out e); failed[n] = e; }) { IsBackground = true });
+                }
+                foreach (Thread t in pair) t.Start();
+                foreach (Thread t in pair) Need(t.Join(60000), "two moves of one email at once never finished");
+                Need(!failed[0] && !failed[1] && imap.Count("UID MOVE 4 ") == 1 && imap.Holds("[Gmail]/Trash", "<m4@") && !imap.Holds("INBOX", "<m4@"), "two moves of one email at once: " + both[0] + " | " + both[1]);
+                Need(Array.Exists(both, one => one.StartsWith("Moved it to Gmail's Trash ([Gmail]/Trash).", StringComparison.Ordinal)) && Array.Exists(both, one => one == "It's already in Gmail's Trash ([Gmail]/Trash). I moved it a moment ago."), "two moves at once didn't say one moved it and one found it moved: " + both[0] + " | " + both[1]);
+
+                text = Reply(MailTools.Call("recent_mail", Args()), out err);
+                Need(!err && text.Contains("5 | ") && text.Contains("6 | "), "listing before someone else moves them: " + text);
+                imap.Shift(5, "[Gmail]/Spam");
+                imap.Shift(6, "[Gmail]/Trash");
+                text = Reply(MailTools.Call("move_mail", Args("uid", 6, "to", "trash")), out err);
+                Need(!err && text == "It's already in Gmail's Trash ([Gmail]/Trash)." && imap.Count("UID MOVE 6 ") == 0, "an email someone else moved where it was going: " + text);
+                text = Reply(MailTools.Call("move_mail", Args("uid", 5, "to", "trash")), out err);
+                Need(!err && text == "It's already in Gmail's Spam folder ([Gmail]/Spam)." && imap.Count("UID MOVE 5 ") == 0 && !imap.Holds("[Gmail]/Trash", "<m5@") && imap.Logged("UID SEARCH HEADER Message-ID"), "an email someone else moved to spam: " + text);
+                MailTools.Remember("INBOX", 98, "Nobody <nobody@example.com>", "Gone", "<nowhere@example.com>");
+                text = Reply(MailTools.Call("move_mail", Args("uid", 98, "to", "trash")), out err);
+                Need(err && text == "There's no message with uid 98 in INBOX.", "an email that's nowhere it could have gone: " + text);
+                text = Reply(MailTools.Call("move_mail", Args("uid", 99, "to", "trash")), out err);
+                Need(err && text == "There's no message with uid 99 in INBOX." && imap.Count("UID MOVE 98 ") == 0 && imap.Count("UID MOVE 99 ") == 0 && !imap.Logged("EXPUNGE") && !imap.Logged("CLOSE"), "a uid that was never there: " + text);
                 text = Reply(MailTools.Call("watch_mail", Args("on", true)), out err);
                 Need(!err && MailTools.Watch && !MailTools.OwnHands && text.StartsWith("Watching their inbox for new mail now.", StringComparison.Ordinal) && File.Exists(Path.Combine(dir, MailTools.WatchName)), "watch_mail on: " + text);
                 text = Reply(MailTools.Call("watch_mail", Args("on", false)), out err);
@@ -929,6 +980,57 @@ namespace CapriDesktop
                 imap.Listener.Stop();
             }
             checks.Add("PASS mail: check_mail gives a verdict without marking it read, and move_mail moves just the one email it names to spam or a folder, refusing a missing uid, a missing folder or a uid that changed");
+            checks.Add("PASS mail: moving the same email twice, one after the other or at the same moment, is one real move and two successes that say where it is; one someone else moved is found by its Message-ID where it went; a uid that was never there, or an email that's nowhere it could have gone, still fails plainly");
+            CheckWatchAndAsk(checks, folder);
+        }
+
+        private static void CheckWatchAndAsk(List<string> checks, string folder)
+        {
+            FakeImap imap = Gmail();
+            imap.Messages[1] = Personal("t1");
+            imap.Start();
+            string dir = Path.Combine(folder, "mail-twice-check");
+            Directory.CreateDirectory(dir);
+            MailTools.Folder = dir;
+            MailTools.Account = Fake(imap.Port);
+            MailWatch watch = new MailWatch(Fake(imap.Port)) { IdleMilliseconds = 1500, FirstWait = 1 };
+            bool theyAsk = false;
+            int landing = 0;
+            string theySaid = null;
+            watch.OwnHands = delegate
+            {
+                if (!theyAsk || !Until(delegate { return landing > 0; }, 5)) return true;
+                bool e;
+                theySaid = Reply(MailTools.Call("move_mail", Args("uid", landing, "to", "trash")), out e);
+                return true;
+            };
+            try
+            {
+                watch.Start();
+                Need(Until(delegate { return watch.State == "watching"; }, 15), "she never started watching: " + watch.State);
+                int first = imap.Arrive(Staged("t2", "https://arasaka-acc0unt-verify.invalid/login"), DateTime.UtcNow);
+                Need(Until(delegate { return watch.Waiting; }, 15), "she didn't notice the phishing mail");
+                List<MailNews> news = watch.Take();
+                Need(news.Count == 1 && news[0].Uid == first && news[0].Moved == "[Gmail]/Spam" && !news[0].Already, "she didn't move phishing on her own first: " + news.Count + " | " + (news.Count > 0 ? news[0].Trouble : ""));
+                bool err;
+                string text = Reply(MailTools.Call("move_mail", Args("uid", first, "to", "trash")), out err);
+                Need(!err && text == "It's already in Gmail's Spam folder ([Gmail]/Spam). I moved it a moment ago." && imap.Count("UID MOVE " + first + " ") == 1 && imap.Holds("[Gmail]/Spam", "<t2@") && !imap.Holds("[Gmail]/Trash", "<t2@"), "their ask to bin what she'd already moved: " + text);
+
+                theyAsk = true;
+                landing = imap.Arrive(Staged("t3", "https://arasaka-acc0unt-verify.invalid/login"), DateTime.UtcNow);
+                Need(Until(delegate { return watch.Waiting; }, 15), "she didn't notice the second phishing mail");
+                news = watch.Take();
+                string line = MailWatch.Line(news);
+                Need(news.Count == 1 && news[0].Already && news[0].Moved == "[Gmail]/Trash" && news[0].Trouble == null && line.EndsWith(" " + MailWatch.AlreadyOut, StringComparison.Ordinal) && MailWatch.Note(news).Contains("It was already out of the inbox, in [Gmail]/Trash, so you didn't move it again."), "they moved it while she was on it: " + line + " | " + (news.Count > 0 ? news[0].Trouble : ""));
+                Need(theySaid != null && theySaid.StartsWith("Moved it to Gmail's Trash ([Gmail]/Trash).", StringComparison.Ordinal) && imap.Count("UID MOVE " + landing + " ") == 1 && imap.Holds("[Gmail]/Trash", "<t3@") && !imap.Holds("[Gmail]/Spam", "<t3@") && !imap.Holds("INBOX", "<t3@"), "their move and hers stepped on each other: " + theySaid);
+            }
+            finally
+            {
+                watch.Stop();
+                MailTools.Forget();
+                imap.Listener.Stop();
+            }
+            checks.Add("PASS mail: when she's already moved phishing on her own, their ask to bin it says where it went, and when they move one while she's on it she doesn't move it again or say it failed; it's one move either way");
         }
 
         internal static void CheckStarter(List<string> checks)
@@ -936,6 +1038,8 @@ namespace CapriDesktop
             FakeImap imap = Gmail();
             imap.Messages[1] = Staged("s1", "https://arasaka-acc0unt-verify.invalid/login");
             imap.Messages[2] = Personal("s2");
+            imap.Messages[3] = Newsletter("s3");
+            imap.Messages[4] = Personal("s4");
             imap.Start();
             MailAccount was = MailTools.Account;
             bool wake = Security.On(Security.Wake);
@@ -967,6 +1071,31 @@ namespace CapriDesktop
                 Need(Security.IsHold(Security.Gate("mod", bin)), "Guarded didn't ask before moving mail");
                 Security.Resume("no", run);
                 Need(imap.Holds("INBOX", "<s2@") && !imap.Holds("[Gmail]/Trash", "<s2@"), "their no still moved it");
+
+                ToolArguments three = new ToolArguments { Name = "email_move_mail", Text = "{\"uid\":3,\"to\":\"trash\"}" };
+                string once = run("mod", three);
+                int selects = imap.Count("SELECT ");
+                string twice = run("mod", new ToolArguments { Name = "email_move_mail", Text = "{\"to\":\"trash\",\"uid\":3}" });
+                Need(once.Contains("Moved it to Gmail's Trash ([Gmail]/Trash).") && twice.StartsWith(Plugins.Repeated, StringComparison.Ordinal) && twice.EndsWith(once, StringComparison.Ordinal) && imap.Count("SELECT ") == selects && imap.Count("UID MOVE 3 ") == 1, "the same move called twice went to the mail server twice: " + once + " | " + twice);
+                ModFloor.Fresh();
+                string heldAgain = Security.Gate("mod", three);
+                string yesAgain = Security.Resume("yes", run);
+                Need(Security.IsHold(heldAgain) && yesAgain != null && !yesAgain.StartsWith(Plugins.Repeated, StringComparison.Ordinal) && yesAgain.Contains("It's already in Gmail's Trash ([Gmail]/Trash). I moved it a moment ago.") && imap.Count("UID MOVE 3 ") == 1, "their yes to the same move again didn't run it, or moved it twice: " + yesAgain);
+                ToolArguments four = new ToolArguments { Name = "email_move_mail", Text = "{\"uid\":4,\"to\":\"spam\"}" };
+                string[] both = new string[2];
+                Thread[] pair = { new Thread(delegate() { both[0] = run("mod", four); }), new Thread(delegate() { both[1] = run("mod", four.Copy()); }) };
+                foreach (Thread t in pair) { t.IsBackground = true; t.Start(); }
+                foreach (Thread t in pair) Need(t.Join(60000), "the same move twice at once never finished");
+                Need(imap.Count("UID MOVE 4 ") == 1 && Array.Exists(both, one => one.StartsWith(Plugins.Repeated, StringComparison.Ordinal)) && Array.Exists(both, one => one.StartsWith("From Move mail", StringComparison.Ordinal) && one.Contains("Moved it to Gmail's Spam folder ([Gmail]/Spam)")), "the same move twice at once: " + both[0] + " | " + both[1]);
+                string afterOther = run("mod", three.Copy());
+                Need(!afterOther.StartsWith(Plugins.Repeated, StringComparison.Ordinal) && afterOther.Contains("It's already in Gmail's Trash ([Gmail]/Trash). I moved it a moment ago.") && imap.Count("UID MOVE 3 ") == 1, "a move after another change on the same plug-in was taken for a repeat: " + afterOther);
+                ToolArguments nowhere = new ToolArguments { Name = "email_move_mail", Text = "{\"uid\":2,\"to\":\"Nowhere\"}" };
+                string missed = run("mod", nowhere), missedAgain = run("mod", nowhere.Copy());
+                Need(missed.StartsWith("Couldn't finish Move mail.", StringComparison.Ordinal) && missedAgain.StartsWith("Couldn't finish Move mail.", StringComparison.Ordinal), "a move that failed kept the next one from trying: " + missedAgain);
+                int fetches = imap.Count("UID FETCH");
+                Plugins.Run("email_check_mail", "{\"uid\":2}");
+                Plugins.Run("email_check_mail", "{\"uid\":2}");
+                Need(imap.Count("UID FETCH") >= fetches + 2, "reading the same email twice only read it once");
             }
             finally
             {
@@ -979,6 +1108,7 @@ namespace CapriDesktop
                 imap.Listener.Stop();
             }
             checks.Add("PASS plug-ins: moving mail asks first by Send, post and delete, always asks after she's read an email, moves on their yes and stays put on their no");
+            checks.Add("PASS plug-ins: the same mail move called twice close together, one after the other or at once, reaches the mail server once and the second call gets what the first did; their yes to it again, or the same call after a different change, still runs it, a failed call doesn't stop the next try, and reading an email twice reads it twice");
         }
     }
 }

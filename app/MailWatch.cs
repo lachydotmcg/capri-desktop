@@ -11,7 +11,7 @@ namespace CapriDesktop
         internal string From = "", Subject = "", Key = "";
         internal MailVerdict Verdict;
         internal string Moved;
-        internal bool Spam, Gmail;
+        internal bool Spam, Gmail, Already;
         internal string Trouble;
         internal DateTime At = DateTime.UtcNow;
 
@@ -172,11 +172,11 @@ namespace CapriDesktop
                 {
                     try
                     {
-                        string kind;
-                        bool gmail;
-                        news.Moved = MailTools.MoveOne(Account, "INBOX", uid, "spam", verdict.MessageId, out kind, out gmail);
-                        news.Spam = kind == "spam";
-                        news.Gmail = gmail;
+                        MailMove done = MailTools.MoveOne(Account, "INBOX", uid, "spam", verdict.MessageId);
+                        news.Moved = done.Target;
+                        news.Spam = done.Kind == "spam";
+                        news.Gmail = done.Gmail;
+                        news.Already = done.Already;
                     }
                     catch (MailException error) { news.Trouble = error.Message; }
                     catch (Exception error) { news.Trouble = "Moving it didn't work: " + error.Message; }
@@ -188,6 +188,7 @@ namespace CapriDesktop
 
         internal const string GmailBinned = "That's phishing, choom, I reported it as spam and binned it.";
         internal const string JunkMoved = "That's phishing, choom, I moved it to your junk folder.";
+        internal const string AlreadyOut = "That's phishing, choom, and it's already out of your inbox.";
         private static readonly string[] OneLines = { "Oop, something just came through.", "Ooh, new mail just landed.", "Psst. You've got a new email.", "New mail just came in, choom." };
         private static readonly string[] ManyLines = { "Oop, {0} new emails just came through.", "Ooh, {0} new emails just landed." };
         private static readonly string[] OddLines = { " Something about it looks a bit off, so go easy on the links. Want me to check it?", " It looks a bit off to me. Want me to check it before you click anything?" };
@@ -206,8 +207,8 @@ namespace CapriDesktop
             string start = late ? (news.Count == 1 ? "Some mail came in while you were busy." : news.Count + " emails came in while you were busy.") : news.Count == 1 ? Lines.Pick(OneLines) : string.Format(Lines.Pick(ManyLines), news.Count);
             if (moved != null)
             {
-                string done = moved.Spam && moved.Gmail ? GmailBinned : moved.Spam ? JunkMoved : "That's phishing, choom, I moved it to " + moved.Moved + ".";
-                if (news.Count > 1) done = "One of them was phishing, choom, so I " + (moved.Spam && moved.Gmail ? "reported it as spam and binned it." : moved.Spam ? "moved it to your junk folder." : "moved it to " + moved.Moved + ".");
+                string done = moved.Already ? AlreadyOut : moved.Spam && moved.Gmail ? GmailBinned : moved.Spam ? JunkMoved : "That's phishing, choom, I moved it to " + moved.Moved + ".";
+                if (news.Count > 1) done = "One of them was phishing, choom, " + (moved.Already ? "and it's already out of your inbox." : "so I " + (moved.Spam && moved.Gmail ? "reported it as spam and binned it." : moved.Spam ? "moved it to your junk folder." : "moved it to " + moved.Moved + "."));
                 return start + " " + done + (phish != null && phish != moved ? " Another looks like phishing too, so don't click anything in it." : "");
             }
             if (failed != null) return start + (news.Count > 1 ? " One of them is phishing, choom." : " That's phishing, choom.") + " I tried to move it to junk, but " + Lower(failed.Trouble) + " Don't click anything in it.";
@@ -237,7 +238,8 @@ namespace CapriDesktop
             {
                 sb.Append("uid " + one.Uid + " in INBOX | from " + Plugins.Line(one.From, 120) + " | subject " + Plugins.Line(one.Subject.Length == 0 ? "(no subject)" : one.Subject, 140) + " | verdict: " + (one.Verdict == null ? "not checked" : one.Verdict.Level) + "\n");
                 if (one.Verdict != null) for (int i = 0; i < one.Verdict.Reasons.Count && i < 5; i++) sb.Append("- " + one.Verdict.Reasons[i] + "\n");
-                if (one.Moved != null) sb.Append("You moved it to " + one.Moved + " on your own, since they let you deal with phishing." + (one.Spam && one.Gmail ? " On Gmail that reports it as spam." : "") + "\n");
+                if (one.Moved != null && one.Already) sb.Append("It was already out of the inbox, in " + one.Moved + ", so you didn't move it again.\n");
+                else if (one.Moved != null) sb.Append("You moved it to " + one.Moved + " on your own, since they let you deal with phishing." + (one.Spam && one.Gmail ? " On Gmail that reports it as spam." : "") + "\n");
                 if (one.Trouble != null) sb.Append("You tried to move it to junk on your own, but: " + one.Trouble + "\n");
             }
             return "(New mail came into their inbox while you watched it, and you told them about it.)\n" + Plugins.Fence("Watch for new mail", "Email", sb.ToString().TrimEnd());

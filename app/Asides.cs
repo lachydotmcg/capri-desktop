@@ -1043,6 +1043,7 @@ namespace CapriDesktop
                     string done = AgentAct(told, call.Key, call.Value ?? new ToolArguments());
                     if (done == StartedLater || done == AlreadyLater || done == FoldedLater) { if (told != null && told.Ready) { told.Tell(done); ToolSent(told); } }
                     else if (Security.IsHold(done)) { if (told != null && told.Ready) { told.Say(done); ToolSent(told); } return; }
+                    else if (done.StartsWith(Plugins.Repeated, StringComparison.Ordinal)) continue;
                     else Finished(told, call.Key, done, ticket);
                 }
             }, null, Timeout.Infinite, Timeout.Infinite);

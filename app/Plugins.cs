@@ -592,15 +592,28 @@ namespace CapriDesktop
                     string refused = check(call);
                     if (refused != null) return Done(call, watch, "refused", refused, "Couldn't use " + tool.Title + ": " + refused);
                 }
-                McpLink server = Server(plugin, tool.Server);
-                ModFloor.Heard("plugin:" + plugin.Id);
-                object answer = server.Call(tool.Tool, call.Arguments, CallWait);
-                if (server.Stale) Relist(plugin);
-                bool? failed = PluginJson.Flag(answer, "isError");
-                string said = Said(answer);
-                bool bad = failed.HasValue && failed.Value;
-                if (!bad && MailTool(plugin, tool) && Array.IndexOf(MailReads, tool.Tool) >= 0) ModFloor.Heard("mail:" + plugin.Id);
-                return Done(call, watch, bad ? "failed" : "ran", null, (bad ? "Couldn't finish " + tool.Title + ". " : "") + Fenced(plugin, tool, said));
+                SameCall mine = null;
+                string repeat = tool.ReadOnly ? null : Claim(plugin.Id, tool.Tool + " " + PluginJson.Write(Sorted(call.Arguments)), Security.Resuming, out mine);
+                if (repeat != null)
+                {
+                    if (repeat != StillRunning) ModFloor.Heard("plugin:" + plugin.Id);
+                    return Done(call, watch, "repeated", null, repeat);
+                }
+                try
+                {
+                    McpLink server = Server(plugin, tool.Server);
+                    ModFloor.Heard("plugin:" + plugin.Id);
+                    object answer = server.Call(tool.Tool, call.Arguments, CallWait);
+                    if (server.Stale) Relist(plugin);
+                    bool? failed = PluginJson.Flag(answer, "isError");
+                    string said = Said(answer);
+                    bool bad = failed.HasValue && failed.Value;
+                    if (!bad && MailTool(plugin, tool) && Array.IndexOf(MailReads, tool.Tool) >= 0) ModFloor.Heard("mail:" + plugin.Id);
+                    string result = (bad ? "Couldn't finish " + tool.Title + ". " : "") + Fenced(plugin, tool, said);
+                    if (mine != null && !bad) Settle(mine, result);
+                    return Done(call, watch, bad ? "failed" : "ran", null, result);
+                }
+                finally { if (mine != null) Settle(mine, null); }
             }
             catch (McpSignInNeeded)
             {
@@ -665,6 +678,75 @@ namespace CapriDesktop
             lock (gate) if (!listing.Add(plugin.Id)) return;
             Thread work = new Thread(delegate() { ListNow(plugin); }) { IsBackground = true, Name = "Capri plug-in tools " + plugin.Id };
             work.Start();
+        }
+
+        private sealed class SameCall
+        {
+            internal string Plugin, Key, Result;
+            internal bool Ended;
+            internal DateTime At = DateTime.UtcNow;
+        }
+
+        // A tool that changes things, called again with the same arguments soon after it worked, gets what the first call did
+        // instead of doing it twice: in voice chat her own second look and the agent can both call it for one ask, and a brain
+        // can call it twice in one reply. One still running is waited for. It only counts while nothing else that changes things
+        // ran on that plug-in in between, so on, off and on again still ends up on.
+        private static readonly TimeSpan RepeatWindow = TimeSpan.FromSeconds(60);
+        internal const string Repeated = "Already done a moment ago, so it didn't run again. This is what it did: ";
+        private const string StillRunning = "The same call is still running, so it didn't start again. Don't call it again; it finishes on its own.";
+        private static readonly List<SameCall> sameCalls = new List<SameCall>();
+
+        private static string Claim(string plugin, string key, bool approved, out SameCall mine)
+        {
+            mine = null;
+            DateTime giveUp = DateTime.UtcNow.AddSeconds(30);
+            lock (sameCalls)
+            {
+                while (true)
+                {
+                    DateTime now = DateTime.UtcNow;
+                    sameCalls.RemoveAll(one => one.Ended && now - one.At > RepeatWindow);
+                    SameCall last = sameCalls.FindLast(one => one.Plugin == plugin);
+                    if (approved || last == null || last.Key != key)
+                    {
+                        sameCalls.RemoveAll(one => one.Plugin == plugin && one.Ended);
+                        foreach (SameCall going in sameCalls) if (going.Plugin == plugin) going.Key = null;
+                        mine = new SameCall { Plugin = plugin, Key = key };
+                        sameCalls.Add(mine);
+                        return null;
+                    }
+                    if (last.Ended) return Repeated + last.Result;
+                    if (now >= giveUp) return StillRunning;
+                    Monitor.Wait(sameCalls, giveUp - now);
+                }
+            }
+        }
+
+        // Only a call that worked is kept: a failed one leaves the next one free to try again.
+        private static void Settle(SameCall call, string result)
+        {
+            lock (sameCalls)
+            {
+                if (call.Ended) return;
+                call.Ended = true;
+                call.Result = result;
+                call.At = DateTime.UtcNow;
+                if (result == null) sameCalls.Remove(call);
+                Monitor.PulseAll(sameCalls);
+            }
+        }
+
+        private static object Sorted(object value)
+        {
+            Dictionary<string, object> map = value as Dictionary<string, object>;
+            if (map != null)
+            {
+                SortedDictionary<string, object> sorted = new SortedDictionary<string, object>(StringComparer.Ordinal);
+                foreach (KeyValuePair<string, object> pair in map) sorted[pair.Key] = Sorted(pair.Value);
+                return sorted;
+            }
+            List<object> list = value as List<object>;
+            return list == null ? value : list.ConvertAll<object>(Sorted);
         }
 
         private static string Done(PluginCall call, Stopwatch watch, string outcome, string reason, string result)
