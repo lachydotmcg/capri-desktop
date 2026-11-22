@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	სხვა აპ
 · HD	· HD
 · on this PC	· ამ კომპიუტერზე
 · server	· სერვერი
+Edit as text	ტექსტად რედაქტირება
+What Capri remembers about you. It stays on this computer.	რასაც Capri შენზე იმახსოვრებს. ამ კომპიუტერზე რჩება.
+Tell her something to remember	უთხარი რამე დასამახსოვრებლად
+Search her memory	ძებნა მის მეხსიერებაში
+That day isn't there any more.	ის დღე აღარ არის.
+Undo	გაუქმება
+Remember our chats is off, so she isn't keeping new chat memories.	ჩვენი საუბრების დამახსოვრება გამორთულია, ამიტომ ახალ საუბრის მოგონებებს არ ინახავს.
+ABOUT YOU	შენზე
+FROM YOUR CHATS	შენი საუბრებიდან
+GAMES	თამაშები
+CHAT LOGS	საუბრის ჟურნალები
+CHAT LOG	საუბრის ჟურნალი
+Nothing matches.	ვერაფერი დაემთხვა.
+Nothing yet.	ჯერ არაფერი.
+Reading her notes.	კითხულობს მის ჩანაწერებს.
+Click again to forget game notes	კიდევ დააწკაპუნე თამაშის ჩანაწერების დასავიწყებლად
+Forget game notes	თამაშის ჩანაწერების დავიწყება
+Click again to forget everything about me	კიდევ დააწკაპუნე შენზე ყველაფრის დასავიწყებლად
+Forget everything about me	შენზე ყველაფრის დავიწყება
+Click again to forget	დასავიწყებლად კიდევ დააწკაპუნე
+Forget this day	ამ დღის დავიწყება
+Only the start of this day is shown.	ნაჩვენებია მხოლოდ ამ დღის დასაწყისი.
+Nothing in this day.	ამ დღეს არაფერია.
+No chats kept yet.	ჯერ არც ერთი საუბარი არ არის შენახული.
+You	შენ
+{0} line	{0} ხაზი
+SET UP EMAIL >	ელფოსტის დაყენება >
+SET UP EMAIL	ელფოსტის დაყენება
+Or type your address	ან ჩაწერე შენი მისამართი
+Email address	ელფოსტის მისამართი
+Open the page	გვერდის გახსნა
+App password	აპის პაროლი
+IMAP server	IMAP სერვერი
+Incoming mail server	შემავალი ფოსტის სერვერი
+SMTP server	SMTP სერვერი
+Outgoing mail server	გამავალი ფოსტის სერვერი
+An app password is a separate password just for Capri. Your normal password stays yours.	აპის პაროლი ცალკე პაროლია მხოლოდ Capri-სთვის. შენი ჩვეულებრივი პაროლი შენი რჩება.
+She keeps it only until she closes.	ის ინახავს მას მხოლოდ დახურვამდე.
+She checks, searches and reads your mail. She asks before she sends any.	ის ამოწმებს, ეძებს და კითხულობს შენს ფოსტას. კითხულობს სანამ რამეს გაგზავნის.
+Watch for new mail	თვალი ადევნე ახალ ფოსტას
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ის ლაპარაკობს, როცა ფოსტა მოდის, გაფრთხილებით თუ ფიშინგს ჰგავს. არაფერი აღინიშნება წაკითხულად.
+Deal with phishing on her own	თავად გაუმკლავდი ფიშინგს
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	მხოლოდ სანამ თვალს ადევნებს. ფოსტა, რომელშიც ის დარწმუნებულია, რომ ფიშინგია, სპამში მიდის. დანარჩენი შენს კარგს ელოდება.
+Forget account	ანგარიშის დავიწყება
+Use another email	სხვა ელფოსტის გამოყენება
+Which email?	რომელი ელფოსტა?
+Make an app password	აპის პაროლის შექმნა
+Paste it	ჩასვი ის
+Connecting...	მიმდინარეობს დაკავშირება...
+She can use your email now.	ის ახლა შეძლებს შენი ელფოსტის გამოყენებას.
+She's not watching your inbox.	ის არ ადევნებს თვალს შენს შემოსულებს.
+She's watching your inbox and deals with phishing she's sure of.	ის ადევნებს თვალს შენს შემოსულებს და უმკლავდება ფიშინგს, რომელშიც დარწმუნებულია.
+She's watching your inbox and tells you when mail lands.	ის ადევნებს თვალს შენს შემოსულებს და გეუბნება, როცა ფოსტა მოდის.
+She forgot that account and its app password.	მან დაივიწყა ის ანგარიში და მისი აპის პაროლი.
+She forgot that account. Its app password is gone from this PC.	მან დაივიწყა ის ანგარიში. მისი აპის პაროლი გაქრა ამ კომპიუტერიდან.

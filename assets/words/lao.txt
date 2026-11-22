@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ຈະບໍ່ພ�
 · HD	· HD
 · on this PC	· ເທິງ PC ນີ້
 · server	· server
+Edit as text	ແກ້ໄຂເປັນຂໍ້ຄວາມ
+What Capri remembers about you. It stays on this computer.	ສິ່ງທີ່ Capri ຈື່ກ່ຽວກັບເຈົ້າ. ມັນຢູ່ໃນຄອມພິວເຕີນີ້.
+Tell her something to remember	ບອກນາງສິ່ງທີ່ຈະຈື່
+Search her memory	ຄົ້ນຫາໃນຄວາມຈຳຂອງນາງ
+That day isn't there any more.	ມື້ນັ້ນບໍ່ມີແລ້ວ.
+Undo	ຍົກເລີກ
+Remember our chats is off, so she isn't keeping new chat memories.	ການຈື່ການສົນທະນາຂອງພວກເຮົາປິດຢູ່ ດັ່ງນັ້ນນາງບໍ່ເກັບຄວາມຈຳການສົນທະນາໃໝ່.
+ABOUT YOU	ກ່ຽວກັບເຈົ້າ
+FROM YOUR CHATS	ຈາກການສົນທະນາຂອງເຈົ້າ
+GAMES	ເກມ
+CHAT LOGS	ບັນທຶກການສົນທະນາ
+CHAT LOG	ບັນທຶກການສົນທະນາ
+Nothing matches.	ບໍ່ມີອັນໃດກົງກັນ.
+Nothing yet.	ຍັງບໍ່ມີຫຍັງ.
+Reading her notes.	ກຳລັງອ່ານບັນທຶກຂອງນາງ.
+Click again to forget game notes	ກົດອີກຄັ້ງເພື່ອລືມບັນທຶກເກມ
+Forget game notes	ລືມບັນທຶກເກມ
+Click again to forget everything about me	ກົດອີກຄັ້ງເພື່ອລືມທຸກຢ່າງກ່ຽວກັບເຈົ້າ
+Forget everything about me	ລືມທຸກຢ່າງກ່ຽວກັບເຈົ້າ
+Click again to forget	ກົດອີກຄັ້ງເພື່ອລືມ
+Forget this day	ລືມມື້ນີ້
+Only the start of this day is shown.	ສະແດງພຽງເລີ່ມຕົ້ນຂອງມື້ນີ້.
+Nothing in this day.	ບໍ່ມີຫຍັງໃນມື້ນີ້.
+No chats kept yet.	ຍັງບໍ່ມີການສົນທະນາທີ່ເກັບໄວ້.
+You	ເຈົ້າ
+{0} line	{0} ແຖວ
+SET UP EMAIL >	ຕັ້ງຄ່າອີເມວ >
+SET UP EMAIL	ຕັ້ງຄ່າອີເມວ
+Or type your address	ຫຼືພິມທີ່ຢູ່ຂອງເຈົ້າ
+Email address	ທີ່ຢູ່ອີເມວ
+Open the page	ເປີດໜ້າ
+App password	ລະຫັດແອັບ
+IMAP server	ເຊີບເວີ IMAP
+Incoming mail server	ເຊີບເວີອີເມວຂາເຂົ້າ
+SMTP server	ເຊີບເວີ SMTP
+Outgoing mail server	ເຊີບເວີອີເມວຂາອອກ
+An app password is a separate password just for Capri. Your normal password stays yours.	ລະຫັດແອັບແມ່ນລະຫັດແຍກສຳລັບ Capri ເທົ່ານັ້ນ. ລະຫັດປົກກະຕິຂອງເຈົ້າຍັງເປັນຂອງເຈົ້າ.
+She keeps it only until she closes.	ນາງເກັບມັນໄວ້ຈົນກວ່າຈະປິດ.
+She checks, searches and reads your mail. She asks before she sends any.	ນາງກວດ ຄົ້ນຫາ ແລະອ່ານອີເມວຂອງເຈົ້າ. ນາງຖາມກ່ອນຈະສົ່ງຫຍັງ.
+Watch for new mail	ເຝົ້າອີເມວໃໝ່
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ນາງເວົ້າເມື່ອມີອີເມວມາ ພ້ອມຄຳເຕືອນຖ້າເບິ່ງຄື phishing. ບໍ່ມີຫຍັງຖືກໝາຍວ່າອ່ານແລ້ວ.
+Deal with phishing on her own	ຈັດການ phishing ເອງ
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	ພຽງເວລານາງເຝົ້າ. ອີເມວທີ່ນາງແນ່ໃຈວ່າ phishing ຈະໄປ spam. ສ່ວນທີ່ເຫຼືອລໍຖ້າຄຳຕົກລົງຂອງເຈົ້າ.
+Forget account	ລືມບັນຊີ
+Use another email	ໃຊ້ອີເມວອື່ນ
+Which email?	ອີເມວໃດ?
+Make an app password	ສ້າງລະຫັດແອັບ
+Paste it	ວາງມັນ
+Connecting...	ກຳລັງເຊື່ອມຕໍ່...
+She can use your email now.	ຕອນນີ້ນາງສາມາດໃຊ້ອີເມວຂອງເຈົ້າໄດ້.
+She's not watching your inbox.	ນາງບໍ່ໄດ້ເຝົ້າກ່ອງຈົດໝາຍຂອງເຈົ້າ.
+She's watching your inbox and deals with phishing she's sure of.	ນາງເຝົ້າກ່ອງຈົດໝາຍຂອງເຈົ້າ ແລະຈັດການ phishing ທີ່ນາງແນ່ໃຈ.
+She's watching your inbox and tells you when mail lands.	ນາງເຝົ້າກ່ອງຈົດໝາຍຂອງເຈົ້າ ແລະບອກເຈົ້າເມື່ອມີອີເມວມາ.
+She forgot that account and its app password.	ນາງລືມບັນຊີນັ້ນ ແລະລະຫັດແອັບຂອງມັນ.
+She forgot that account. Its app password is gone from this PC.	ນາງລືມບັນຊີນັ້ນ. ລະຫັດແອັບຂອງມັນຫາຍໄປຈາກຄອມພິວເຕີນີ້.

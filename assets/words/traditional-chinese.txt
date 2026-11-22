@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	她執行時不會�
 · HD	· HD
 · on this PC	· 在這台電腦上
 · server	· 伺服器
+Edit as text	以文字編輯
+What Capri remembers about you. It stays on this computer.	Capri 記得關於你的事情。它留在這台電腦上。
+Tell her something to remember	告訴她一件要記住的事
+Search her memory	在她的記憶中搜尋
+That day isn't there any more.	那一天已經不在了。
+Undo	復原
+Remember our chats is off, so she isn't keeping new chat memories.	記住我們的聊天已關閉，因此她不會保存新的聊天記憶。
+ABOUT YOU	關於你
+FROM YOUR CHATS	來自你的聊天
+GAMES	遊戲
+CHAT LOGS	聊天記錄
+CHAT LOG	聊天記錄
+Nothing matches.	沒有符合的項目。
+Nothing yet.	暫時沒有。
+Reading her notes.	正在讀取她的筆記。
+Click again to forget game notes	再次點擊以忘記遊戲筆記
+Forget game notes	忘記遊戲筆記
+Click again to forget everything about me	再次點擊以忘記關於你的一切
+Forget everything about me	忘記關於你的一切
+Click again to forget	再次點擊以忘記
+Forget this day	忘記這一天
+Only the start of this day is shown.	只顯示這一天的開始。
+Nothing in this day.	這一天沒有內容。
+No chats kept yet.	還沒有保存聊天。
+You	你
+{0} line	{0} 行
+SET UP EMAIL >	設定電子郵件 >
+SET UP EMAIL	設定電子郵件
+Or type your address	或輸入你的地址
+Email address	電子郵件地址
+Open the page	開啟頁面
+App password	應用程式密碼
+IMAP server	IMAP 伺服器
+Incoming mail server	接收郵件伺服器
+SMTP server	SMTP 伺服器
+Outgoing mail server	傳送郵件伺服器
+An app password is a separate password just for Capri. Your normal password stays yours.	應用程式密碼是只為 Capri 準備的獨立密碼。你的普通密碼仍然屬於你。
+She keeps it only until she closes.	她只保留到關閉為止。
+She checks, searches and reads your mail. She asks before she sends any.	她會檢查、搜尋和閱讀你的郵件。傳送前會先問你。
+Watch for new mail	留意新郵件
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	郵件到達時她會說，如果看起來像網路釣魚會警告。什麼都不會被標為已讀。
+Deal with phishing on her own	自己處理網路釣魚
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	只在她留意時。她確定是網路釣魚的郵件會進入垃圾郵件。其餘等待你的同意。
+Forget account	忘記帳戶
+Use another email	使用其他電子郵件
+Which email?	哪個電子郵件？
+Make an app password	建立應用程式密碼
+Paste it	貼上它
+Connecting...	正在連線...
+She can use your email now.	她現在可以使用你的電子郵件了。
+She's not watching your inbox.	她沒有在留意你的收件匣。
+She's watching your inbox and deals with phishing she's sure of.	她在留意你的收件匣，並處理她確定的網路釣魚。
+She's watching your inbox and tells you when mail lands.	她在留意你的收件匣，並在郵件到達時告訴你。
+She forgot that account and its app password.	她忘記了那個帳戶及其應用程式密碼。
+She forgot that account. Its app password is gone from this PC.	她忘記了那個帳戶。它的應用程式密碼已從這台電腦上消失。

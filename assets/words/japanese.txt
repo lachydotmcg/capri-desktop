@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	彼女が動いて�
 · HD	· HD
 · on this PC	· この PC 上
 · server	· サーバー
+Edit as text	テキストとして編集
+What Capri remembers about you. It stays on this computer.	Capriがあなたについて覚えていること。このコンピューターに残ります。
+Tell her something to remember	覚えておいてほしいことを伝える
+Search her memory	彼女の記憶を検索
+That day isn't there any more.	その日はもうありません。
+Undo	元に戻す
+Remember our chats is off, so she isn't keeping new chat memories.	会話を覚えるはオフなので、新しい会話の記憶は保存しません。
+ABOUT YOU	あなたについて
+FROM YOUR CHATS	あなたの会話から
+GAMES	ゲーム
+CHAT LOGS	チャットログ
+CHAT LOG	チャットログ
+Nothing matches.	一致するものがありません。
+Nothing yet.	まだ何もありません。
+Reading her notes.	彼女のメモを読んでいます。
+Click again to forget game notes	ゲームのメモを忘れるにはもう一度クリック
+Forget game notes	ゲームのメモを忘れる
+Click again to forget everything about me	あなたについてすべて忘れるにはもう一度クリック
+Forget everything about me	あなたについてすべて忘れる
+Click again to forget	忘れるにはもう一度クリック
+Forget this day	この日を忘れる
+Only the start of this day is shown.	この日の始まりだけが表示されます。
+Nothing in this day.	この日には何もありません。
+No chats kept yet.	まだ保存されたチャットはありません。
+You	あなた
+{0} line	{0}行
+SET UP EMAIL >	メールを設定 >
+SET UP EMAIL	メールを設定
+Or type your address	またはアドレスを入力
+Email address	メールアドレス
+Open the page	ページを開く
+App password	アプリパスワード
+IMAP server	IMAPサーバー
+Incoming mail server	受信メールサーバー
+SMTP server	SMTPサーバー
+Outgoing mail server	送信メールサーバー
+An app password is a separate password just for Capri. Your normal password stays yours.	アプリパスワードはCapri専用の別のパスワードです。通常のパスワードはあなたのままです。
+She keeps it only until she closes.	彼女は閉じるまでそれだけ保持します。
+She checks, searches and reads your mail. She asks before she sends any.	彼女はメールを確認、検索、読取りします。送信する前に尋ねます。
+Watch for new mail	新着メールを見張る
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	メールが届くと知らせ、フィッシングらしければ警告します。既読にはなりません。
+Deal with phishing on her own	フィッシングを自分で処理
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	彼女が見張っている間だけ。フィッシングだと確信したメールはスパムへ送られます。残りはあなたの許可を待ちます。
+Forget account	アカウントを忘れる
+Use another email	別のメールを使う
+Which email?	どのメール？
+Make an app password	アプリパスワードを作成
+Paste it	貼り付ける
+Connecting...	接続中...
+She can use your email now.	彼女はもうあなたのメールを使えます。
+She's not watching your inbox.	彼女は受信トレイを見張っていません。
+She's watching your inbox and deals with phishing she's sure of.	彼女は受信トレイを見張り、確信のあるフィッシングを処理します。
+She's watching your inbox and tells you when mail lands.	彼女は受信トレイを見張り、メールが届くと知らせます。
+She forgot that account and its app password.	彼女はそのアカウントとアプリパスワードを忘れました。
+She forgot that account. Its app password is gone from this PC.	彼女はそのアカウントを忘れました。アプリパスワードはこのコンピューターから消えました。

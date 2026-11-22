@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	wnaiff hi ddim teip
 · HD	· HD
 · on this PC	· ar y PC hwn
 · server	· gweinydd
+Edit as text	Golygu fel testun
+What Capri remembers about you. It stays on this computer.	Yr hyn y mae Capri yn ei gofio amdanoch. Mae'n aros ar y cyfrifiadur hwn.
+Tell her something to remember	Dywedwch rywbeth iddi ei gofio
+Search her memory	Chwilio yn ei chof
+That day isn't there any more.	Nid yw'r diwrnod hwnnw yma mwyach.
+Undo	Dadwneud
+Remember our chats is off, so she isn't keeping new chat memories.	Mae Cofio ein sgyrsiau yn ymlaen i ffwrdd, felly nid yw'n cadw atgofion sgwrs newydd.
+ABOUT YOU	AMDANOCH CHI
+FROM YOUR CHATS	O'EICH SGYRSIAU
+GAMES	GEMAU
+CHAT LOGS	LOGIAU SGWRS
+CHAT LOG	LOG SGWRS
+Nothing matches.	Dim yn cyfateb.
+Nothing yet.	Dim byd eto.
+Reading her notes.	Wrthi'n darllen ei nodiadau.
+Click again to forget game notes	Cliciwch eto i anghofio nodiadau gemau
+Forget game notes	Anghofio nodiadau gemau
+Click again to forget everything about me	Cliciwch eto i anghofio popeth amdanoch
+Forget everything about me	Anghofio popeth amdanoch
+Click again to forget	Cliciwch eto i anghofio
+Forget this day	Anghofio'r diwrnod hwn
+Only the start of this day is shown.	Dim ond dechrau'r diwrnod hwn sy'n cael ei ddangos.
+Nothing in this day.	Dim byd ar y diwrnod hwn.
+No chats kept yet.	Nid oes sgyrsiau wedi'u cadw eto.
+You	Chi
+{0} line	{0} llinell
+SET UP EMAIL >	GOSOD E-BOST >
+SET UP EMAIL	GOSOD E-BOST
+Or type your address	Neu teipiwch eich cyfeiriad
+Email address	Cyfeiriad e-bost
+Open the page	Agor y dudalen
+App password	Cyfrinair ap
+IMAP server	Gweinydd IMAP
+Incoming mail server	Gweinydd post sy'n dod i mewn
+SMTP server	Gweinydd SMTP
+Outgoing mail server	Gweinydd post sy'n mynd allan
+An app password is a separate password just for Capri. Your normal password stays yours.	Mae cyfrinair ap yn gyfrinair ar wahân ar gyfer Capri yn unig. Mae eich cyfrinair arferol yn parhau'n eich un chi.
+She keeps it only until she closes.	Mae'n ei gadw nes iddi gau.
+She checks, searches and reads your mail. She asks before she sends any.	Mae'n gwirio, yn chwilio ac yn darllen eich post. Mae'n gofyn cyn anfon unrhyw beth.
+Watch for new mail	Gwylio am bost newydd
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Mae'n siarad pan fo post yn cyrraedd, gyda rhybudd os yw'n edrych fel phishing. Nid oes unrhyw beth yn cael ei nodi fel wedi'i ddarllen.
+Deal with phishing on her own	Trafod phishing ei hun
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Dim ond tra mae'n gwylio. Mae post y mae'n siŵr ohono ei fod yn phishing yn mynd i sbam. Mae'r gweddill yn aros am eich ie.
+Forget account	Anghofio cyfrif
+Use another email	Defnyddio e-bost arall
+Which email?	Pa e-bost?
+Make an app password	Creu cyfrinair ap
+Paste it	Gludwch ef
+Connecting...	Wrthi'n cysylltu...
+She can use your email now.	Gall ddefnyddio eich e-bost nawr.
+She's not watching your inbox.	Nid yw'n gwylio eich blwch derbyn.
+She's watching your inbox and deals with phishing she's sure of.	Mae'n gwylio eich blwch derbyn ac yn trafod phishing y mae'n siŵr ohono.
+She's watching your inbox and tells you when mail lands.	Mae'n gwylio eich blwch derbyn ac yn dweud wrthych pan fo post yn cyrraedd.
+She forgot that account and its app password.	Mae hi wedi anghofio'r cyfrif hwnnw a'i gyfrinair ap.
+She forgot that account. Its app password is gone from this PC.	Mae hi wedi anghofio'r cyfrif hwnnw. Mae ei gyfrinair ap wedi diflannu o'r cyfrifiadur hwn.

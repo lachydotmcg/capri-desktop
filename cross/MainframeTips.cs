@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Avalonia;
 using Avalonia.Controls;
 
 namespace CapriDesktop
@@ -126,24 +127,32 @@ namespace CapriDesktop
         };
         internal static void Explain(Control control, string name)
         {
+            string facts = Facts(name);
+            if (facts == null) return;
+            ToolTip.SetTip(control, new TipText(facts));
+            ToolTip.SetShowDelay(control, 400);
+        }
+        internal static string Facts(string name)
+        {
             if (name == "Brain API key") name = "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key";
             else if (name == "Layers") name = "Voice layers";
             else if (name == "Set up") name = "CUSTOM LOCAL";
             else if (name == "Her personality") name = "Edit personality.md";
             else if (name == "Speech model") name = "Default model";
             string text;
-            if (!Text.TryGetValue(name, out text)) return;
-            text = Brief(text);
-            ToolTip.SetTip(control, new TextBlock { Text = text, MaxWidth = 332, TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size, Foreground = MainframeTheme.White });
-            ToolTip.SetShowDelay(control, 400);
+            return Text.TryGetValue(name, out text) ? text : null;
+        }
+        internal static string Unpathed(string facts)
+        {
+            string text = Regex.Replace(facts ?? "", @"^Mainframe(?: > (?:Settings|Simple Settings|Advanced Settings|[A-Z][A-Z &-]+))* > ", "");
+            return text.Length > 0 ? char.ToUpperInvariant(text[0]) + text.Substring(1) : text;
         }
         internal static string Brief(string facts)
         {
-            string text = Regex.Replace(facts ?? "", @"^Mainframe(?: > (?:Settings|Simple Settings|Advanced Settings|[A-Z][A-Z &-]+))* > ", "");
-            if (text.Length > 0) text = char.ToUpperInvariant(text[0]) + text.Substring(1);
+            string text = Unpathed(facts);
             double height = MainframeTheme.Words("Ag").Height * 6;
             if (Height(text) <= height) return text;
-            const string more = " Ask Capri for more";
+            string more = " " + Lingo.Of("Ask Capri for more");
             string kept = "";
             foreach (Match sentence in Regex.Matches(text, @".+?(?:[.!?](?=\s+[A-Z]|$)|$)"))
             {
@@ -164,5 +173,28 @@ namespace CapriDesktop
             return kept.Length > 0 ? kept + more : more.TrimStart();
         }
         private static double Height(string text) { var words = MainframeTheme.Words(text); words.MaxTextWidth = 332; return words.Height; }
+    }
+
+    internal sealed class TipText : TextBlock
+    {
+        private readonly string facts;
+        private string shown;
+        internal TipText(string facts)
+        {
+            this.facts = facts;
+            shown = MainframeTips.Brief(facts);
+            Text = shown;
+            MaxWidth = 332;
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+            FontFamily = MainframeTheme.Text;
+            FontSize = MainframeTheme.Size;
+            Foreground = MainframeTheme.White;
+        }
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            string now = MainframeTips.Brief(Lingo.Tongue == null ? facts : Lingo.Learn(MainframeTips.Unpathed(facts)));
+            if (now != shown) { shown = now; Text = now; }
+            return base.MeasureOverride(availableSize);
+        }
     }
 }

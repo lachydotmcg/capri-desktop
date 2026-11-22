@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	neće kucati u drug
 · HD	· HD
 · on this PC	· na ovom PC-ju
 · server	· server
+Edit as text	Уреди као текст
+What Capri remembers about you. It stays on this computer.	Шта Capri памти о теби. Остаје на овом рачунару.
+Tell her something to remember	Реци јој нешто да запамти
+Search her memory	Тражи у њеном памћењу
+That day isn't there any more.	Тог дана више нема.
+Undo	Поништи
+Remember our chats is off, so she isn't keeping new chat memories.	Сећање наших разговора је искључено, па не чува нова сећања разговора.
+ABOUT YOU	О ТЕБИ
+FROM YOUR CHATS	ИЗ ТВОЈИХ РАЗГОВОРА
+GAMES	ИГРЕ
+CHAT LOGS	ДНЕВНИЦИ РАЗГОВОРА
+CHAT LOG	ДНЕВНИК РАЗГОВОРА
+Nothing matches.	Нема подударања.
+Nothing yet.	Још ништа.
+Reading her notes.	Чита њене белешке.
+Click again to forget game notes	Кликни поново да заборавиш белешке игара
+Forget game notes	Заборави белешке игара
+Click again to forget everything about me	Кликни поново да заборавиш све о теби
+Forget everything about me	Заборави све о теби
+Click again to forget	Кликни поново да заборавиш
+Forget this day	Заборави овај дан
+Only the start of this day is shown.	Приказује се само почетак овог дана.
+Nothing in this day.	Ништа на овај дан.
+No chats kept yet.	Још нема сачуваних разговора.
+You	Ти
+{0} line	{0} ред
+SET UP EMAIL >	ПОДЕСИ Е-ПОШТУ >
+SET UP EMAIL	ПОДЕСИ Е-ПОШТУ
+Or type your address	Или упиши своју адресу
+Email address	Е-поштанска адреса
+Open the page	Отвори страницу
+App password	Лозинка апликације
+IMAP server	IMAP сервер
+Incoming mail server	Сервер долазне поште
+SMTP server	SMTP сервер
+Outgoing mail server	Сервер одлазне поште
+An app password is a separate password just for Capri. Your normal password stays yours.	Лозинка апликације је посебна лозинка само за Capri. Твоја уобичајена лозинка остаје твоја.
+She keeps it only until she closes.	Чува је само док се не затвори.
+She checks, searches and reads your mail. She asks before she sends any.	Она проверава, тражи и чита твоју пошту. Пита пре него што ишта пошаље.
+Watch for new mail	Прати нову пошту
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Она се јави кад пошта стигне, са упозорењем ако изгледа као phishing. Ништа се не означава као прочитано.
+Deal with phishing on her own	Сама се носи са phishing-ом
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Само док она прати. Пошта за коју је сигурна да је phishing иде у спам. Остало чека твоје да.
+Forget account	Заборави налог
+Use another email	Користи други е-маил
+Which email?	Који е-маил?
+Make an app password	Направи лозинку апликације
+Paste it	Залијепи је
+Connecting...	Повезивање...
+She can use your email now.	Сада може користити твој е-маил.
+She's not watching your inbox.	Не прати твој пријемно сандуче.
+She's watching your inbox and deals with phishing she's sure of.	Прати твоје пријемно сандуче и носи се са phishing-ом у који је сигурна.
+She's watching your inbox and tells you when mail lands.	Прати твоје пријемно сандуче и каже ти кад пошта стигне.
+She forgot that account and its app password.	Заборавила је тај налог и његову лозинку апликације.
+She forgot that account. Its app password is gone from this PC.	Заборавила је тај налог. Његова лозинка апликације нестала је са овог рачунара.

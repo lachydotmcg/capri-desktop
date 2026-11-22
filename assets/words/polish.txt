@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	nie będzie pisać 
 · HD	· HD
 · on this PC	· na tym komputerze
 · server	· serwer
+Edit as text	Edytuj jako tekst
+What Capri remembers about you. It stays on this computer.	Co Capri pamięta o tobie. Zostaje na tym komputerze.
+Tell her something to remember	Powiedz jej coś do zapamiętania
+Search her memory	Szukaj w jej pamięci
+That day isn't there any more.	Ten dzień już nie istnieje.
+Undo	Cofnij
+Remember our chats is off, so she isn't keeping new chat memories.	Pamiętanie naszych czatów jest wyłączone, więc nie zapisuje nowych wspomnień z czatów.
+ABOUT YOU	O TOBIE
+FROM YOUR CHATS	Z TWOICH CZATÓW
+GAMES	GRY
+CHAT LOGS	DZIENNIKI CZATÓW
+CHAT LOG	DZIENNIK CZATU
+Nothing matches.	Brak dopasowań.
+Nothing yet.	Jeszcze nic.
+Reading her notes.	Czytanie jej notatek.
+Click again to forget game notes	Kliknij ponownie, aby zapomnieć notatki z gier
+Forget game notes	Zapomnij notatki z gier
+Click again to forget everything about me	Kliknij ponownie, aby zapomnieć wszystko o tobie
+Forget everything about me	Zapomnij wszystko o tobie
+Click again to forget	Kliknij ponownie, aby zapomnieć
+Forget this day	Zapomnij ten dzień
+Only the start of this day is shown.	Pokazywany jest tylko początek tego dnia.
+Nothing in this day.	Nic w tym dniu.
+No chats kept yet.	Nie zapisano jeszcze żadnych czatów.
+You	Ty
+{0} line	{0} wiersz
+SET UP EMAIL >	SKONFIGURUJ E-MAIL >
+SET UP EMAIL	SKONFIGURUJ E-MAIL
+Or type your address	Albo wpisz swój adres
+Email address	Adres e-mail
+Open the page	Otwórz stronę
+App password	Hasło aplikacji
+IMAP server	Serwer IMAP
+Incoming mail server	Serwer poczty przychodzącej
+SMTP server	Serwer SMTP
+Outgoing mail server	Serwer poczty wychodzącej
+An app password is a separate password just for Capri. Your normal password stays yours.	Hasło aplikacji to osobne hasło tylko dla Capri. Twoje zwykłe hasło pozostaje twoje.
+She keeps it only until she closes.	Trzyma je tylko do zamknięcia.
+She checks, searches and reads your mail. She asks before she sends any.	Sprawdza, szuka i czyta twoją pocztę. Pyta, zanim coś wyśle.
+Watch for new mail	Obserwuj nową pocztę
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Odezwie się, gdy przyjdzie poczta, z ostrzeżeniem, jeśli wygląda na phishing. Nic nie jest oznaczane jako przeczytane.
+Deal with phishing on her own	Sama zajmij się phishingiem
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Tylko gdy obserwuje. Poczta, co do której jest pewna, że to phishing, trafia do spamu. Reszta czeka na twoje tak.
+Forget account	Zapomnij konto
+Use another email	Użyj innego e-maila
+Which email?	Który e-mail?
+Make an app password	Utwórz hasło aplikacji
+Paste it	Wklej je
+Connecting...	Łączenie...
+She can use your email now.	Może już używać twojego e-maila.
+She's not watching your inbox.	Nie obserwuje twojej skrzynki odbiorczej.
+She's watching your inbox and deals with phishing she's sure of.	Obserwuje twoją skrzynkę i zajmuje się phishingiem, którego jest pewna.
+She's watching your inbox and tells you when mail lands.	Obserwuje twoją skrzynkę i mówi, gdy przyjdzie poczta.
+She forgot that account and its app password.	Zapomniała to konto i jego hasło aplikacji.
+She forgot that account. Its app password is gone from this PC.	Zapomniała to konto. Jego hasło aplikacji zniknęło z tego komputera.

@@ -383,13 +383,63 @@ namespace CapriDesktop
                 pet.SetSounds(60);
                 pet.Dancing = false;
                 if (Brain.Language != null || pet.Saved.Language != null || pet.Picked != "Stay put | English | Short | Short | Normal | Dance to music") throw new Exception("Menu settings didn't go back: " + pet.Picked);
-                for (int i = 0; i < Brain.Languages.GetLength(0); i++)
-                    if (Pet.WordTable(Lingo.Slug(Brain.Languages[i, 1])) == null) throw new Exception("No settings words for " + Brain.Languages[i, 1] + ".");
+                string englishWords = Pet.WordTable("english");
+                if (englishWords == null) throw new Exception("Her settings' English words weren't inside her.");
+                List<string> wordKeys = new List<string>();
+                foreach (string row in englishWords.Replace("\r\n", "\n").Split('\n')) if (row.Trim().Length > 0) wordKeys.Add(row.Trim());
+                if (wordKeys.Count < 500) throw new Exception("Her settings' English words are short: " + wordKeys.Count);
+                for (int i = 1; i < Brain.Languages.GetLength(0); i++)
+                {
+                    string name = Brain.Languages[i, 1], table = Pet.WordTable(Lingo.Slug(name));
+                    if (table == null) throw new Exception("No settings words for " + name + ".");
+                    HashSet<string> rows = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (string row in table.Replace("\r\n", "\n").Split('\n'))
+                    {
+                        int tab = row.IndexOf('\t');
+                        if (tab > 0 && row.Substring(tab + 1).Trim().Length > 0) rows.Add(row.Substring(0, tab));
+                    }
+                    foreach (string key in wordKeys) if (!rows.Contains(key)) throw new Exception(name + "'s settings words leave out " + key);
+                }
                 Lingo.Use("German");
                 string germanWords = MainframeTheme.Fitted("Advanced Settings", 100000), germanFive = Lingo.Of("5 min");
+                string germanEmpty = MainframeTheme.Fitted("Nothing matches.", 100000), germanMail = MainframeTheme.Fitted("Email address", 100000), germanWhich = MainframeTheme.Fitted("Which email?", 100000);
+                string hideWas = Lingo.Of(pet.Away ? "Show Capri" : "Hide Capri");
+                bool trayGerman = false;
+                NativeMenu trayWords = pet.TrayMenu();
+                foreach (NativeMenuItem row in trayWords.Items) if (row.Header == hideWas) trayGerman = true;
+                string folderWas = Said.Folder;
+                Func<string, string, string> askWas = Said.Ask;
+                Func<bool> readyWas = Said.Ready;
+                Said.Folder = null;
+                Said.Ready = delegate { return false; };
+                Said.Ask = delegate(string system, string user)
+                {
+                    StringBuilder back = new StringBuilder();
+                    foreach (string row in user.Replace("\r\n", "\n").Split('\n'))
+                    {
+                        Match numbered = Regex.Match(row, @"^([0-9]+)\. (.+)$");
+                        if (numbered.Success) back.Append(numbered.Groups[1].Value).Append(". [de] ").Append(numbered.Groups[2].Value).Append('\n');
+                    }
+                    return back.ToString();
+                };
+                Border probe = new Border();
+                MainframeTips.Explain(probe, "Volume");
+                TextBlock tipText = ToolTip.GetTip(probe) as TextBlock;
+                if (tipText == null) throw new Exception("The Mainframe lost its Volume tip.");
+                tipText.Measure(new Size(1000, 1000));
+                Lingo.Work();
+                tipText.InvalidateMeasure();
+                tipText.Measure(new Size(1000, 1000));
+                bool tipGerman = tipText.Text != null && tipText.Text.StartsWith("[de] ", StringComparison.Ordinal);
+                Said.Folder = folderWas;
+                Said.Ask = askWas;
+                Said.Ready = readyWas;
                 Lingo.Use(null);
-                if (germanWords == "Advanced Settings" || germanFive.IndexOf('5') < 0 || MainframeTheme.Fitted("Advanced Settings", 100000) != "Advanced Settings") throw new Exception("Her Mainframe's words didn't follow German, or English changed: " + germanWords + " / " + germanFive);
-                checks.Add("PASS her settings in their language: her Mainframe's words ship for all " + Brain.Languages.GetLength(0) + " of her languages, German draws them in German with numbers in place, and English is untouched");
+                Lingo.Reload();
+                if (germanWords == "Advanced Settings" || germanFive.IndexOf('5') < 0 || germanEmpty == "Nothing matches." || germanMail == "Email address" || germanWhich == "Which email?"
+                    || !trayGerman || !tipGerman || MainframeTheme.Fitted("Advanced Settings", 100000) != "Advanced Settings" || MainframeTheme.Fitted("Nothing matches.", 100000) != "Nothing matches.")
+                    throw new Exception("Her Mainframe's words didn't follow German, or English changed: " + germanWords + " / " + germanFive + " / " + germanEmpty + " / " + germanMail + " / " + germanWhich + " / tray " + trayGerman + " / tip " + (tipText.Text ?? ""));
+                checks.Add("PASS her settings, memory, email, tips and tray in their language: her Mainframe's " + wordKeys.Count + " words ship for all " + Brain.Languages.GetLength(0) + " of her languages, German draws her settings, Nothing matches., Email address and Which email? in German with numbers in place, a tip's body translates when it's drawn, the tray's hide row follows German, and English is untouched");
                 Func<System.Collections.IEnumerable, string, MenuItem> menuRow = delegate(System.Collections.IEnumerable rows, string header) { foreach (object row in rows) if (row is MenuItem item && item.Header as string == header) return item; return null; };
                 Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
                 MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");

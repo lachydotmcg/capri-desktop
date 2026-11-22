@@ -92,7 +92,7 @@ namespace CapriDesktop
             OpenPage = Key("Open the page", 56, 260, 320, 32, Open);
             OpenPage.Accent = MainframeTheme.Cyan;
             OpenPage.Loud = true;
-            Separate = Label(Mods.AppPasswordLine + (McpSignIn.Keeps ? "" : " She keeps it only until she closes."), 24, 312, 572, 44, MainframeTheme.Faint, MainframeTheme.Size, false, true);
+            Separate = Label(Lingo.Of(Mods.AppPasswordLine) + (McpSignIn.Keeps ? "" : " " + Lingo.Of("She keeps it only until she closes.")), 24, 312, 572, 44, MainframeTheme.Faint, MainframeTheme.Size, false, true);
             PasswordName = Label("App password", 24, 162, 160, 22, MainframeTheme.White, MainframeTheme.Size, true);
             Password = Field("App password", "", 190, 158, 406, true);
             IncomingName = Label("IMAP server", 24, 200, 160, 22, MainframeTheme.White, MainframeTheme.Size, true);
