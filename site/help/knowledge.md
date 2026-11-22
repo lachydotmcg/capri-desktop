@@ -537,8 +537,8 @@ The new settings are here. Scroll down the Settings page to reach HABITS and GAM
 - BRAIN > Replies: Short, Medium, Long or No limit. No limit is Long with an 8K token budget. Memory size and Max reply are gone; the context size is always Auto.
 - BRAIN > Local server address: enter the address, then press Save.
 - KEYS > Push to talk: choose a key or mouse button to hold while talking.
-- KEYS > Gaming Mode: change the default Ctrl + Alt + G. It flips GAMES > Comments between Off and your last pick.
-- GAMES > Comments: Off, Events only or Chatty, Events only by default. It is the one game setting: Gaming Mode is just Comments on, and Off stops game comments and live reactions.
+- KEYS > Gaming Mode: change the default Ctrl + Alt + G. It turns GAMES > Comments off. While they're off, it only tells you where to turn them back on.
+- GAMES > Comments: Off, Events only or Chatty, Events only by default. It is the one game setting: Gaming Mode is just Comments on, and Off stops game comments and live reactions. Off stays off until you pick Events only or Chatty here, or ask her to turn game comments on.
 - GAMES > Clip my games: keeps recent game video and PC sound ready to save. Off by default.
 - GAMES > Save big moments: saves moments her game commentary picks. Off by default; turning it on also turns Clip my games on.
 - BRAIN > Fast hands in games: uses Claude Haiku 5.5 for game jobs on a Claude key. On by default.
@@ -647,7 +647,7 @@ Turn on the Email plug-in in Mods and set it up with your address and an app pas
 - Watch for new mail: she watches your inbox in the background and speaks up when something lands, like "Oop, something just came through." Mail that was already there isn't announced. Nothing gets marked read, and she never opens links or attachments. Gmail usually tells her about new mail within seconds; servers without IMAP IDLE are checked about once a minute. You can also ask her to start or stop watching.
 - Deal with phishing on her own: it only counts while she's watching. Mail she's sure is phishing goes straight to your spam folder without asking. On Gmail she says "That's phishing, choom, I reported it as spam and binned it." because moving mail into Gmail's Spam reports it. On other servers she says "That's phishing, choom, I moved it to your junk folder." If the move fails, she says so and why. Mail she isn't sure of stays where it is.
 
-Ask "is this email legit?" or "check that email for phishing" and she checks it with check_mail, using her own rules rather than a brain's guess. She compares who it says it's from with where it really came from, and looks for replies that go somewhere else, look-alike addresses (letters from another alphabet, rn for m, 0 for o, 1 for l, vv for w, extra words around a brand's name, endings like .zip or .top), links that show one address but go to another, bare number addresses, link shorteners and @ tricks, pushy asks (a suspended account, a 24 hour deadline, your password, gift cards, a wire transfer, crypto, an overdue invoice), risky attachments (.exe, .scr, .js, .vbs, .lnk, .iso, .img, .hta, .html, two endings, macro documents, a zip with its password in the email) and failed sender checks (SPF, DKIM and DMARC). She answers fine, suspicious or phishing with plain reasons.
+Ask "is this email legit?" or "check that email for phishing" and she checks it with check_mail, using her own rules rather than a brain's guess. She compares who it says it's from with where it really came from, in its sender name and in its subject and words, like "Microsoft Account Team" or a "Thanks, Microsoft" sign-off on mail that asks you for something. She looks for an email that asks you to send, reply with or type in your password or card details, since real companies never ask for those by email. She also looks for replies that go somewhere else, look-alike addresses (letters from another alphabet, rn for m, 0 for o, 1 for l, vv for w, extra words around a brand's name, endings like .zip or .top), links that show one address but go to another, bare number addresses, link shorteners and @ tricks, pushy asks (a suspended account, a 24 hour deadline, your password, gift cards, a wire transfer, crypto, an overdue invoice), risky attachments (.exe, .scr, .js, .vbs, .lnk, .iso, .img, .hta, .html, two endings, macro documents, a zip with its password in the email) and failed sender checks (SPF, DKIM and DMARC). She answers fine, suspicious or phishing with plain reasons.
 
 Ask her to bin an email, or move it to spam, the trash, the archive or a folder, and she moves just that one with move_mail. She asks first by SECURITY > Send, post and delete what you asked for, and always asks when she's just read an email, so an email's own words can't spend your yes. She uses MOVE when your mail server has it. Otherwise she copies the email, marks it deleted and clears only that one (UIDPLUS); a server with neither is told plainly and nothing moves. She never deletes mail for good herself.
 ### What are plug-ins? (0.9.6)
@@ -1483,7 +1483,7 @@ With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how mu
 
 ### Her own settings (0.8.0)
 With a cloud brain, ask her to change her own settings and she says how each one is set afterwards: "make yourself bigger", "stop wandering", "talk a bit faster", "turn off head pats", "stop sitting on my windows", "stop commenting on my game".
-- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (which turns Comments off, or back on at your last pick), Hologram, Watch my screen and Comments (on means only when something happens).
+- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (which can turn Comments off, but never back on), Hologram, Watch my screen and Comments (on brings back Events only or Chatty, whichever you picked last).
 - Sliders: Size, Wander, Pop-ins, Sleep, Volume, Speed, Replies, Bubble and In full screen, a step at a time or to the step you name ("set your size to Large").
 - Keys, brains, her voice service, SECURITY, Remember what she sees and Remember our chats stay yours to change in the Mainframe.
 
@@ -1619,7 +1619,7 @@ During a game job, ask what's on screen ("what is that", "what happened") and sh
 ### What is Gaming Mode?
 It's on by default, as GAMES > Comments on Events only: a game in front brings it up with nothing said. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game. Ask separately if you want her to play.
 
-To turn it off, say "Gaming Mode off", press Ctrl + Alt + G, or set Mainframe > Settings > GAMES > Comments to Off. She says Comments went off, and it stays off until you turn it back on, with the key, by voice or by picking Events only or Chatty; the key and voice bring back your last pick. Change the key in Mainframe > Settings > KEYS > Gaming Mode.
+To turn it off, say "Gaming Mode off", press Ctrl + Alt + G, or set Mainframe > Settings > GAMES > Comments to Off. She says Comments went off too, and Off stays off. While Comments is Off, the key, "activate gaming mode" and her own tools leave Gaming Mode off, and she says: "Game comments are off. You can turn them on under GAMES > Comments in my Mainframe." Pick Events only or Chatty there, or ask her to turn game comments on, to bring them back. Change the key in Mainframe > Settings > KEYS > Gaming Mode.
 
 Use borderless or windowed mode if an exclusive full-screen game covers her.
 
@@ -1716,7 +1716,7 @@ Ask for a diagram and she draws it, then talks you through it: "make a diagram a
 "Play chess with me", easy, medium or hard. It's her own engine, so it needs no brain and no key.
 
 ### Gaming Mode by voice
-"Capri, activate gaming mode". It works best on the top brain tier: other tiers can miss things.
+"Capri, activate gaming mode". It works best on the top brain tier: other tiers can miss things. With GAMES > Comments Off, she leaves it off and tells you where to turn game comments on.
 
 ### What's on my screen
 "What's on my screen?" She looks and answers out loud.
@@ -2518,7 +2518,7 @@ Known problem. It's tracked and we're working on it. https://github.com/lachydot
 Her game and screen comments leave on their own after a moment.
 
 ### Gaming Mode when she plays
-When she plays a game for you she goes into Gaming Mode by herself once the game is in front. It stays up until the game closes. "Gaming mode off" sets Comments to Off.
+When she plays a game for you she goes into Gaming Mode by herself once the game is in front, unless GAMES > Comments is Off. It stays up until the game closes. "Gaming mode off" sets Comments to Off.
 
 ### Her chat shows the model's thinking or a written-out tool call
 From 0.9.0 she keeps a brain's thinking and written-out tool calls out of her chat, her voice and the saved chat. A tool call written into a reply is never run. If you still see one, press right-click her > Help > Copy error details and send it with the brain and model you use; her log notes each leak.
