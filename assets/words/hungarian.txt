@@ -639,7 +639,7 @@ Setup stopped	A beállítás leállt
 She answers in	Válasz nyelve
 She can read it when it fits.	Ha belefér, el tudja olvasni.
 She glances at your screen and comments. Costs a little on a paid brain.	Ránéz a képernyődre és kommentál. Fizetős agyon kicsit költ.
-She keeps listening. Say her name, then just talk until you go quiet.	Továbbra is hallgat. Mondd ki a nevét, aztán beszélj, amíg el nem hallgatsz.
+She keeps listening. Say her name, then just talk.	Továbbra is hallgat. Mondd ki a nevét, aztán beszélj.
 She reacts to your game until you close it.	A játékodra reagál, amíg be nem zárod.
 She reads these controls before each game job.	Minden játékfeladat előtt elolvassa ezeket a vezérlőket.
 She talks about your game as you play. Costs a little on a paid brain.	Kommentálja a játékodat, amíg játszol. Fizetős agyon kicsit költ.

@@ -657,7 +657,7 @@ namespace CapriDesktop
 
                 // Listen for Capri: the room's chatter stays quiet, and her name chimes.
                 preferences.ListenCapri = true;
-                CloseNameChat();
+                CloseAfterName();
                 later();
                 was = count();
                 HeardLocally(chatTicket, asking, "i love pasta", null);
@@ -667,7 +667,7 @@ namespace CapriDesktop
                 expect("Listen for Capri, once it hears her name", was, Chime.Heard);
                 wait(delegate { return calls == callsWas + 1; }, "Listen for Capri");
                 CloseTalk();
-                CloseNameChat();
+                CloseAfterName();
                 preferences.ListenCapri = false;
 
                 // Her ears never take a chime for them: in the room, and over her own voice. Each has its control, the same echo
@@ -917,7 +917,7 @@ namespace CapriDesktop
                             if (length == Long && kept < fed.Count) lost.Add((name ? "Listen for Capri" : "free voice chat") + " lost " + ms(kept, fed.Count) + " ms of a line begun " + from * 100 + " ms after the chime");
                             settleOn(delegate { return !transcribing && talkState == TalkState.Off; });
                             CloseTalk();
-                            if (name) CloseNameChat();
+                            if (name) CloseAfterName();
                         }
                         table.Add((name ? "Listen for Capri" : "free voice chat") + ", " + (length == Long ? "1.5 s line" : "300 ms word") + " lost " + string.Join(", ", row.ToArray()));
                     }

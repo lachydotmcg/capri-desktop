@@ -639,7 +639,7 @@ Setup stopped	സജ്ജീകരണം നിർത്തി
 She answers in	അവൾ മറുപടി നൽകുന്നത്
 She can read it when it fits.	യോജിക്കുമ്പോൾ അവൾക്ക് അത് വായിക്കാം.
 She glances at your screen and comments. Costs a little on a paid brain.	അവൾ നിങ്ങളുടെ സ്ക്രീനിലേക്ക് ഒന്ന് നോക്കി അഭിപ്രായം പറയുന്നു. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.
-She keeps listening. Say her name, then just talk until you go quiet.	അവൾ കേൾക്കുന്നത് തുടരുന്നു. അവളുടെ പേര് പറയൂ, പിന്നെ നിങ്ങൾ ശാന്തമാകും വരെ സംസാരിക്കൂ.
+She keeps listening. Say her name, then just talk.	അവൾ കേൾക്കുന്നത് തുടരുന്നു. അവളുടെ പേര് പറയൂ, പിന്നെ സംസാരിക്കൂ.
 She reacts to your game until you close it.	നിങ്ങൾ അത് അടയ്ക്കുന്നതുവരെ അവൾ നിങ്ങളുടെ ഗെയിമിനോട് പ്രതികരിക്കുന്നു.
 She reads these controls before each game job.	ഓരോ ഗെയിം ജോലിക്ക് മുമ്പും അവൾ ഈ നിയന്ത്രണങ്ങൾ വായിക്കുന്നു.
 She talks about your game as you play. Costs a little on a paid brain.	നിങ്ങൾ കളിക്കുമ്പോൾ അവൾ നിങ്ങളുടെ ഗെയിമിനെക്കുറിച്ച് സംസാരിക്കുന്നു. പണം നൽകുന്ന തലച്ചോറിൽ ചെറിയ ചെലവുണ്ട്.

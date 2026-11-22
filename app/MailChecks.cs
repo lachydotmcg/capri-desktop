@@ -733,6 +733,42 @@ namespace CapriDesktop
             string said = MailPhish.Said(staged, false);
             Need(said.StartsWith("Verdict: phishing (almost certainly a scam).\nFrom: Arasaka Account Support <arasaka.alerts.desk@gmail.com>\n", StringComparison.Ordinal) && said.Contains("\nWhy:\n- ") && said.EndsWith("Its links and attachments weren't opened, and it's still unread.", StringComparison.Ordinal), "her phishing answer: " + said);
             checks.Add("PASS mail: a newsletter, a personal email and a real security alert pass her phishing check with nothing to say");
+
+            MailVerdict his = MailPhish.Check(Letter("Daniel Hart <daniel.hart.2026@gmail.com>", "Microsoft account security notice", "Dear customer,\r\n\r\nThis is the Microsoft Account Team. We need to verify your account. Please reply to this email with your full credit card number, the expiry date and the CVV, and your Microsoft account password.\r\n\r\nThanks,\r\nMicrosoft Account Team", false, null), null);
+            Need(his.Level == MailVerdict.Phishing && his.Sure, "an email naming Microsoft from gmail.com and asking for a card and a password wasn't sure phishing: " + his.Level + " " + his.Score + " | " + string.Join(" | ", his.Reasons.ToArray()));
+            Flags("named company", his, "It says it's from Microsoft, but it came from a personal gmail.com address.");
+            Flags("card ask", his, "It asks for your card details. Real companies don't ask for those by email.");
+            Flags("password ask", his, "It asks for your password. Real companies never ask for it by email.");
+            string hisSaid = MailPhish.Said(his, false);
+            Need(hisSaid.StartsWith("Verdict: phishing (almost certainly a scam).", StringComparison.Ordinal) && hisSaid.Contains("\n- It says it's from Microsoft") && hisSaid.Contains("\n- It asks for your card details.") && hisSaid.Contains("\n- It asks for your password."), "asking if it's legit didn't give the new reasons: " + hisSaid);
+            string hisLine = MailWatch.Line(new List<MailNews> { new MailNews { From = his.From, Subject = his.Subject, Verdict = his } });
+            Need(hisLine.Contains("phishing") && hisLine.EndsWith("your card details and password, so don't reply or click anything in it.", StringComparison.Ordinal), "her line for phishing after a card and a password: " + hisLine);
+            MailVerdict cardOnly = MailPhish.Check(Letter("Sam Lee <sam.lee.84@gmail.com>", "Quick favour", "Hey, can you send me your card number and the CVV on the back? I'll pay you back on Friday.", false, null), null);
+            MailVerdict passwordOnly = MailPhish.Check(Letter("Chris Parker <chris.parker.77@yahoo.com>", "Mailbox full", "Your mailbox is almost full. Reply with your email password and we'll add more space today.", false, null), null);
+            Need(cardOnly.Level != MailVerdict.Fine && cardOnly.Wants == "card details", "an email asking for card details wasn't flagged: " + cardOnly.Level + " " + cardOnly.Score + " | " + string.Join(" | ", cardOnly.Reasons.ToArray()));
+            Need(passwordOnly.Level != MailVerdict.Fine && passwordOnly.Wants == "password", "an email asking for a password wasn't flagged: " + passwordOnly.Level + " " + passwordOnly.Score + " | " + string.Join(" | ", passwordOnly.Reasons.ToArray()));
+            Flags("card ask", cardOnly, "It asks for your card details.");
+            Flags("password ask", passwordOnly, "It asks for your password.");
+            string oddLine = MailWatch.Line(new List<MailNews> { new MailNews { From = passwordOnly.From, Subject = passwordOnly.Subject, Verdict = passwordOnly } });
+            Need(oddLine.Contains("your password, so ") && oddLine.EndsWith("Want me to check it?", StringComparison.Ordinal), "her line for an email after a password: " + oddLine);
+            string[] listed = { "List-Unsubscribe: <https://weeklybyte.us12.list-manage.com/unsubscribe?u=1>", "Authentication-Results: mx.google.com; dkim=pass header.i=@weeklybyte.com; spf=pass smtp.mailfrom=bounce@weeklybyte.com; dmarc=pass (p=NONE) header.from=weeklybyte.com" };
+            MailVerdict[] quiet =
+            {
+                MailPhish.Check(Letter("Jake <jake.m.2009@gmail.com>", "tonight", "I forgot my Xbox password lol, so I'm stuck on the login screen. Fixing it after dinner, then we can play.", false, null), null),
+                MailPhish.Check(Letter("The Weekly Byte <news@weeklybyte.com>", "This week: a new Xbox from Microsoft", "Microsoft shipped a new Xbox this week, and the Microsoft Support team says the update rolls out slowly. Read the full story: https://weeklybyte.com/issues/49", false, listed), null),
+                MailPhish.Check(Letter("Microsoft account team <account-security-noreply@accountprotection.microsoft.com>", "Microsoft account unusual sign-in activity", "We detected something unusual about a recent sign-in to the Microsoft account ja**@outlook.com.\r\n\r\nIf this was you, then you can safely ignore this email. If you're not sure this was you, a malicious user might have your password. Please review your recent activity and we'll help you take corrective action.\r\n\r\nReview recent activity: https://account.live.com/Activity\r\n\r\nMicrosoft will never ask you to send your password or card details by email.\r\n\r\nThanks,\r\nThe Microsoft account team", false, new[] { "Authentication-Results: mx.google.com; dkim=pass header.i=@accountprotection.microsoft.com; spf=pass smtp.mailfrom=account-security-noreply@accountprotection.microsoft.com; dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=accountprotection.microsoft.com" }), null)
+            };
+            foreach (MailVerdict one in quiet) Need(one.Level == MailVerdict.Fine && one.Reasons.Count == 0, "a friend's lost Xbox password, a newsletter or a real Microsoft alert wasn't fine: " + one.Subject + " | " + string.Join(" | ", one.Reasons.ToArray()));
+            MailVerdict[] calm =
+            {
+                MailPhish.Check(Letter("The Weekly Byte <news@weeklybyte.com>", "This week in security", "The Microsoft Security Team says thousands of accounts were compromised in a password spraying wave. Turn on two-step sign-in.", false, listed), null),
+                MailPhish.Check(Letter("Sam Lee <sam.lee.84@gmail.com>", "Fwd: Microsoft account unusual sign-in activity", "Is this real?\r\n\r\n---------- Forwarded message ---------\r\nFrom: Microsoft account team <account-security-noreply@accountprotection.microsoft.com>\r\nDate: Fri, 20 Nov 2026 at 08:00\r\nSubject: Microsoft account unusual sign-in activity\r\n\r\nWe detected unusual sign-in activity on your Microsoft account. Please review your recent activity.\r\n\r\nThanks,\r\nThe Microsoft account team", false, null), null),
+                MailPhish.Check(Letter("Northwind Bank <alerts@northwind.com>", "Your statement is ready", "Your November statement is ready in online banking. We'll never ask you to send your password, PIN or card details by email, and if anyone asks you to type your password into a link, it's a scam.", false, null), null),
+                MailPhish.Check(Letter("Northwind <noreply@northwind.com>", "Reset your password", "Someone asked to reset your Northwind password. Enter your email address on the reset page, then type your new password twice. If this wasn't you, ignore this email.", false, null), null)
+            };
+            foreach (MailVerdict one in calm) Need(one.Level == MailVerdict.Fine && one.Wants.Length == 0 && !one.Reasons.Exists(r => r.StartsWith("It says it's from", StringComparison.Ordinal)), "a security newsletter, a forward, a bank's warning or a password reset was flagged: " + one.Subject + " | " + one.Level + " " + one.Score + " | " + string.Join(" | ", one.Reasons.ToArray()));
+            Need(staged.Wants.Length == 0 && !staged.Reasons.Exists(r => r.StartsWith("It asks for your", StringComparison.Ordinal)), "the staged phishing mail picked up an ask it doesn't make: " + string.Join(" | ", staged.Reasons.ToArray()));
+            checks.Add("PASS mail: she flags an email that names a company it didn't come from and asks for your card details or password, warns about either ask on its own, and stays quiet on a friend's lost password, newsletters, a forward, a bank's warning, a password reset and a real Microsoft alert");
         }
 
         private static void CheckWatch(List<string> checks)

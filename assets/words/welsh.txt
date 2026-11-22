@@ -639,7 +639,7 @@ Setup stopped	Gosod wedi stopio
 She answers in	Mae hi'n ateb yn
 She can read it when it fits.	Gall ei ddarllen pan mae'n ffitio.
 She glances at your screen and comments. Costs a little on a paid brain.	Mae hi'n edrych ar dy sgrin ac yn gwneud sylwadau. Mae'n costio ychydig ar ymennydd taledig.
-She keeps listening. Say her name, then just talk until you go quiet.	Mae hi'n dal i wrando. Dywed ei henw, yna siarada nes byddi di'n dawel.
+She keeps listening. Say her name, then just talk.	Mae hi'n dal i wrando. Dywed ei henw, yna siarada.
 She reacts to your game until you close it.	Mae hi'n ymateb i dy gêm nes i ti ei chau.
 She reads these controls before each game job.	Mae hi'n darllen y rheolyddion hyn cyn pob tasg gêm.
 She talks about your game as you play. Costs a little on a paid brain.	Mae hi'n siarad am dy gêm wrth i ti chwarae. Mae'n costio ychydig ar ymennydd taledig.

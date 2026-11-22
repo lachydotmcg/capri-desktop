@@ -639,7 +639,7 @@ Setup stopped	Орнату тоқтатылды
 She answers in	Ол жауап береді
 She can read it when it fits.	Сыйғанда ол оқи алады.
 She glances at your screen and comments. Costs a little on a paid brain.	Экраныңызға қарап, пікір береді. Ақылы миға аздап шығындайды.
-She keeps listening. Say her name, then just talk until you go quiet.	Тыңдауды жалғастырады. Атын айтыңыз, содан кейін тыныштанғанша сөйлеңіз.
+She keeps listening. Say her name, then just talk.	Тыңдауды жалғастырады. Атын айтыңыз, содан кейін сөйлеңіз.
 She reacts to your game until you close it.	Сіз жапқанша сіздің ойыныңызға жауап береді.
 She reads these controls before each game job.	Әр ойын тапсырмасының алдында осы басқару элементтерін оқиды.
 She talks about your game as you play. Costs a little on a paid brain.	Сіз ойнап жатқанда ойыныңыз туралы сөйлейді. Ақылы миға аздап шығындайды.

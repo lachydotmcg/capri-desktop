@@ -639,7 +639,7 @@ Setup stopped	Stop an socrú
 She answers in	Freagraíonn sí i
 She can read it when it fits.	Is féidir léi é a léamh nuair a oireann sé.
 She glances at your screen and comments. Costs a little on a paid brain.	Féachann sí ar do scáileán agus déanann sí tráchtaireacht. Costas beag ar intinn íoctha.
-She keeps listening. Say her name, then just talk until you go quiet.	Leanann sí ag éisteacht. Abair a hainm, ansin labhair go dtí go stopann tú.
+She keeps listening. Say her name, then just talk.	Leanann sí ag éisteacht. Abair a hainm, ansin labhair.
 She reacts to your game until you close it.	Freagraíonn sí do chluiche go dtí go ndúnann tú é.
 She reads these controls before each game job.	Léann sí na rialuithe seo roimh gach jab cluiche.
 She talks about your game as you play. Costs a little on a paid brain.	Labhraíonn sí faoi do chluiche agus tú ag imirt. Costas beag ar intinn íoctha.

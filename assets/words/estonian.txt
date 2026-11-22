@@ -639,7 +639,7 @@ Setup stopped	Seadistus peatati
 She answers in	Ta vastab keeles
 She can read it when it fits.	Ta saab seda lugeda, kui see mahub.
 She glances at your screen and comments. Costs a little on a paid brain.	Ta vaatab su ekraani ja kommenteerib. Tasulisel ajul maksab natuke.
-She keeps listening. Say her name, then just talk until you go quiet.	Ta kuulab edasi. Ütle tema nimi ja räägi, kuni vaikid.
+She keeps listening. Say her name, then just talk.	Ta kuulab edasi. Ütle tema nimi ja räägi.
 She reacts to your game until you close it.	Ta reageerib sinu mängule, kuni selle sulged.
 She reads these controls before each game job.	Ta loeb neid juhtnuppe enne iga mängu toimingut.
 She talks about your game as you play. Costs a little on a paid brain.	Ta räägib sinu mängust, kui mängid. Tasulisel ajul maksab natuke.

@@ -639,7 +639,7 @@ Setup stopped	Konfigurimi u ndal
 She answers in	Ajo përgjigjet në
 She can read it when it fits.	Ajo mund ta lexojë kur përshtatet.
 She glances at your screen and comments. Costs a little on a paid brain.	Hedh një sy në ekranin tënd dhe komenton. Kushton pak me një tru të paguar.
-She keeps listening. Say her name, then just talk until you go quiet.	Vazhdon të dëgjojë. Thuaj emrin e saj, pastaj thjesht fol deri sa të heshtësh.
+She keeps listening. Say her name, then just talk.	Vazhdon të dëgjojë. Thuaj emrin e saj, pastaj thjesht fol.
 She reacts to your game until you close it.	Reagon ndaj lojës sate deri sa ta mbyllësh.
 She reads these controls before each game job.	Lexon këto kontrolle para çdo pune në lojë.
 She talks about your game as you play. Costs a little on a paid brain.	Flet për lojën tënde ndërsa luan. Kushton pak me një tru të paguar.

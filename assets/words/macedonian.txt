@@ -639,7 +639,7 @@ Setup stopped	Поставувањето запре
 She answers in	Таа одговара на
 She can read it when it fits.	Може да го прочита кога ќе одговара.
 She glances at your screen and comments. Costs a little on a paid brain.	Ја гледа твојот екран и коментира. Чини малку со платен мозок.
-She keeps listening. Say her name, then just talk until you go quiet.	Продолжува да слуша. Кажи нејзино име, па зборувај додека не утивнеш.
+She keeps listening. Say her name, then just talk.	Продолжува да слуша. Кажи нејзино име, па зборувај.
 She reacts to your game until you close it.	Реагира на твојата игра додека не ја затвориш.
 She reads these controls before each game job.	Ги чита овие контроли пред секоја игра задача.
 She talks about your game as you play. Costs a little on a paid brain.	Зборува за твојата игра додека играш. Чини малку со платен мозок.

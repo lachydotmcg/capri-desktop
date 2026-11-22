@@ -9,12 +9,14 @@ chooser. No new weights are downloaded when the switch is enabled.
 
 Before the name, decoded partials and unrelated final text stay inside the
 network-isolated microphone worker and are discarded. Hearing Capri accepts that
-utterance and opens a 20-second follow-up window. A line whose acoustic start is
-inside the window still counts if its final arrives after the deadline. An
-accepted follow-up restarts the quiet interval. Thinking and speaking extend an
-already-open conversation; they cannot open an expired one. Jobs can require the
-name again. An ambient unprefixed `stop` is not a global hotword: it must belong
-to a conversation that actually opened, or the owner can say `Capri stop`.
+utterance and opens nothing: the next line needs her name again. Her name on its
+own, like `Hey Capri` or `Capri?`, is accepted and opens a 10-second wait for one
+more line without it. A line whose acoustic start is inside the wait still counts
+if its final arrives after the deadline. The first line accepted in the wait ends
+it. Thinking and speaking extend a wait that's still open; they cannot open an
+expired one. Jobs can require the name again. An ambient unprefixed `stop` is not
+a global hotword: it must be the line after her name on its own, or the owner can
+say `Capri stop`.
 
 The native controller pauses capture and resets decoder history around Capri's
 own playback. Its local authority is revoked before playback starts, so a late
@@ -64,8 +66,8 @@ Capri uses its separate pinned Moonshine setup; the TALK pack does not replace i
 ## Mac
 
 Thanks to Yoplaxs, Listen for Hey Capri also runs on Apple Silicon Macs (Moonshine
-ships no Intel Mac wheel). It uses the same pinned decoder, name gate and 20-second
-follow-ups as Linux, with these Mac differences:
+ships no Intel Mac wheel). It uses the same pinned decoder, name gate and 10-second
+wait after her name on its own as Linux, with these Mac differences:
 
 - **Microphone.** There is no PipeWire node to pick, so turning the switch on asks
   `capri-mic --identity` for the current macOS default input and names it. Typing YES

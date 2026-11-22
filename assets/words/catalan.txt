@@ -639,7 +639,7 @@ Setup stopped	La configuració s'ha aturat
 She answers in	Respon en
 She can read it when it fits.	Ho pot llegir quan càpiga.
 She glances at your screen and comments. Costs a little on a paid brain.	Mira la teva pantalla i fa comentaris. Costa una mica amb un cervell de pagament.
-She keeps listening. Say her name, then just talk until you go quiet.	Continua escoltant. Digues el seu nom i parla fins que callis.
+She keeps listening. Say her name, then just talk.	Continua escoltant. Digues el seu nom i parla.
 She reacts to your game until you close it.	Reacciona al teu joc fins que el tanquis.
 She reads these controls before each game job.	Llegeix aquests controls abans de cada feina de joc.
 She talks about your game as you play. Costs a little on a paid brain.	Parla del teu joc mentre jugues. Costa una mica amb un cervell de pagament.

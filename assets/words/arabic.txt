@@ -639,7 +639,7 @@ Setup stopped	توقف الإعداد
 She answers in	تجيب بـ
 She can read it when it fits.	تستطيع قراءته عندما يتسع.
 She glances at your screen and comments. Costs a little on a paid brain.	تلقي نظرة على شاشتك وتعلّق. يكلّف القليل مع دماغ مدفوع.
-She keeps listening. Say her name, then just talk until you go quiet.	تواصل الاستماع. قل اسمها، ثم تكلّم حتى تصمت.
+She keeps listening. Say her name, then just talk.	تواصل الاستماع. قل اسمها، ثم تكلّم.
 She reacts to your game until you close it.	تتفاعل مع لعبتك حتى تغلقها.
 She reads these controls before each game job.	تقرأ عناصر التحكم هذه قبل كل مهمة لعب.
 She talks about your game as you play. Costs a little on a paid brain.	تتحدث عن لعبتك أثناء لعبك. يكلّف القليل مع دماغ مدفوع.

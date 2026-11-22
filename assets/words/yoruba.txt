@@ -639,7 +639,7 @@ Setup stopped	Ìṣètò dúró
 She answers in	Ó n dáhùn ní
 She can read it when it fits.	Ó lè kà á nígbà tí ó bá yẹ.
 She glances at your screen and comments. Costs a little on a paid brain.	Ó wo ìbòjú rẹ, ó sì ń sọ̀rọ̀. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
-She keeps listening. Say her name, then just talk until you go quiet.	Ó ń tẹ̀síwájú láti gbọ́. Sọ orúkọ rẹ̀, lẹ́yìn náà sọ̀rọ̀ títí o fi dákẹ́.
+She keeps listening. Say her name, then just talk.	Ó ń tẹ̀síwájú láti gbọ́. Sọ orúkọ rẹ̀, lẹ́yìn náà sọ̀rọ̀.
 She reacts to your game until you close it.	Ó ń dáhùn sí eré rẹ títí o fi tì í.
 She reads these controls before each game job.	Ó ń ka àwọn ìṣakoso wọ̀nyí ṣáájú iṣẹ́ eré kọ̀ọ̀kan.
 She talks about your game as you play. Costs a little on a paid brain.	Ó ń sọ̀rọ̀ nípa eré rẹ bí o ṣe ń ṣe é. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.

@@ -639,7 +639,7 @@ Setup stopped	Setelan mandheg
 She answers in	Dheweke mangsuli nganggo
 She can read it when it fits.	Dheweke bisa maca nalika cocok.
 She glances at your screen and comments. Costs a little on a paid brain.	Dheweke nglirik layarmu lan komentar. Biaya sithik ing otak bayar.
-She keeps listening. Say her name, then just talk until you go quiet.	Dheweke terus ngrungokake. Sebut jenenge, banjur ngomong nganti kowe meneng.
+She keeps listening. Say her name, then just talk.	Dheweke terus ngrungokake. Sebut jenenge, banjur ngomong.
 She reacts to your game until you close it.	Dheweke nanggapi game-mu nganti kowe nutup.
 She reads these controls before each game job.	Dheweke maca kontrol iki sadurunge saben tugas game.
 She talks about your game as you play. Costs a little on a paid brain.	Dheweke ngomong babagan game-mu nalika kowe main. Biaya sithik ing otak bayar.

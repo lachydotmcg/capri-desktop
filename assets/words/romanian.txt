@@ -639,7 +639,7 @@ Setup stopped	Configurarea s-a oprit
 She answers in	Ea răspunde în
 She can read it when it fits.	Poate citi când încape.
 She glances at your screen and comments. Costs a little on a paid brain.	Aruncă o privire pe ecranul tău și comentează. Costă puțin la un creier plătit.
-She keeps listening. Say her name, then just talk until you go quiet.	Continuă să asculte. Spune-i numele, apoi vorbește până tăci.
+She keeps listening. Say her name, then just talk.	Continuă să asculte. Spune-i numele, apoi vorbește.
 She reacts to your game until you close it.	Reacționează la jocul tău până îl închizi.
 She reads these controls before each game job.	Citește aceste comenzi înainte de fiecare sarcină de joc.
 She talks about your game as you play. Costs a little on a paid brain.	Vorbește despre jocul tău cât joci. Costă puțin la un creier plătit.

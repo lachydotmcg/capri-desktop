@@ -639,7 +639,7 @@ Setup stopped	ההגדרה נעצרה
 She answers in	היא עונה ב
 She can read it when it fits.	היא יכולה לקרוא את זה כשזה מתאים.
 She glances at your screen and comments. Costs a little on a paid brain.	היא מציצה במסך שלך ומגיבה. עולה קצת במוח בתשלום.
-She keeps listening. Say her name, then just talk until you go quiet.	היא ממשיכה להקשיב. אמור את השם שלה, ואז דבר עד שאתה שותק.
+She keeps listening. Say her name, then just talk.	היא ממשיכה להקשיב. אמור את השם שלה, ואז דבר.
 She reacts to your game until you close it.	היא מגיבה למשחק שלך עד שתסגור אותו.
 She reads these controls before each game job.	היא קוראת את הבקרות האלה לפני כל משימת משחק.
 She talks about your game as you play. Costs a little on a paid brain.	היא מדברת על המשחק שלך בזמן שאתה משחק. עולה קצת במוח בתשלום.

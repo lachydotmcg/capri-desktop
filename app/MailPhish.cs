@@ -14,7 +14,7 @@ namespace CapriDesktop
         internal int Score;
         internal int Strong;
         internal bool Sure;
-        internal string From = "", Subject = "", MessageId = "";
+        internal string From = "", Subject = "", MessageId = "", Wants = "";
         internal List<string> Reasons = new List<string>();
         internal List<int> Weights = new List<int>();
 
@@ -117,6 +117,32 @@ namespace CapriDesktop
         private static readonly Regex Href = new Regex(@"\bhref\s*=\s*(?:""([^""]*)""|'([^']*)'|([^\s>]+))", Loose, Patience);
         private static readonly Regex Bare = new Regex(@"\b(?:https?://|www\.)[^\s<>""'\)\]]+", Loose, Patience);
         private static readonly Regex Shown = new Regex(@"^\s*(?:https?://)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?:[/?#]\S*)?\s*$", Loose, Patience);
+        private const string Filler = @"(?:(?!\b(?:if|when|whether|about|regarding|unless|because|after|before|once|in[ \t]+case|then)\b)[^.!?\n]){0,120}?";
+        private const string Kept = @"(?<!\b(?:reset|change|recover|update|create|choose|set|forgot|forgotten|protect|secure|keep|lose|lost|remember|manage|store|save|check|freeze|lock|cancel|replace|activate|use|using|to|from|on|onto|into|in|at|by|via|through)[ \t]+)(?<!\b(?:digits|numbers)[ \t]+of[ \t]+)";
+        private const string Between = @"(?:(?!(?:to|for|of|if|when|so|that|then|this|it|them|us|me|here|below|above|reset|change|update|recover|create|choose|set|forgot|forgotten|new|temporary|temp|one-time|wi-?fi|wireless|network|router|a|an|who|which|whose|needs?|wants?|has|have|had|is|are|was|were|be|been|will|would|can|could|should|may|might|must|do|does|did)\b)[\p{L}\p{Nd}'\p{Pf}-]+[ \t,/&]+){0,4}?";
+        private const string Giving = @"\b(?:send|e-?mail[ \t]+(?:us|me|back|it)|reply|respond|provide|share|give|submit|tell|type|enter|re-?enter|retype|input|key[ \t]+in|fill[ \t]+in|include)\b";
+        private const string Whose = @"\b(?:your|ur|the|full|complete|valid)[ \t]+";
+        private const string CardWords = @"(?:\b(?:(?:credit|debit|bank|payment|visa|amex|atm)[- ]?|master ?)cards?\b(?![ \t]+(?:applications?|offers?|rewards?|statements?|bills?|balances?|limits?|payments?|accounts?|company|companies|issuers?|providers?|terms|benefits|points|debt|interest|rates?|fees?|transactions?|purchases?|charges?|ending|holders?|scams?|fraud|skimm\w*|machines?|readers?|terminals?|surcharges?|experiences?|journey|needs|usage|spending|habits|security|safety|protection|insurance|perks|features|options|choices|preferences|feedback|reviews?|survey)\b)|\bcards?[ \t]+(?:numbers?|no|num|details|info|information|data|credentials|security[ \t]+code|verification[ \t]+(?:code|value|number)|cvv2?|cvc2?)\b|\b(?:cvv2?|cvc2?|cvn|csc)\b)";
+        private const string CardSecrets = @"(?:\b(?:(?:credit|debit|bank|payment)[- ]?)?cards?[ \t]+(?:numbers?|no|num|security[ \t]+code|verification[ \t]+(?:code|value|number)|cvv2?|cvc2?)\b|\b(?:cvv2?|cvc2?|cvn|csc)\b)";
+        private static readonly Regex CardAsks = new Regex(Giving + Filler + Kept + Whose + Between + CardWords + @"|\b(?:confirm|verify|validate)\b" + Filler + Kept + Whose + Between + CardSecrets + @"|\b(?:need|require|want)s?\b[^.!?\n]{0,15}?\byour[ \t]+" + Between + CardWords, Loose, Patience);
+        private static readonly Regex PasswordAsks = new Regex(Giving + Filler + Kept + @"\b(?:your|ur)[ \t]+" + Between + @"(?:pass(?:word|code|phrase)s?|log[- ]?in(?:[ \t]+(?:details|info|information|credentials|data))?|sign[- ]?in[ \t]+(?:details|info|information|credentials)|credentials)\b(?![ \t]+(?:page|link|screen|button|e-?mail|address|attempts?|alerts?|activity|code|url|form|portal|history|reset|settings|manager|hint|requirements|rules|policy|strength|expir\w*|change|changed|was|has|is|will)\b)", Loose, Patience);
+        private static readonly Regex Warned = new Regex(@"\b(?:never|not|cannot|no[- ]one|nobody|nor|scammers?|fraudsters?|criminals?|crooks?|impersonat\w*|pretend\w*|posing[ \t]+as|claim(?:s|ed|ing)?[ \t]+to[ \t]+be|fake|beware|wary|cautio\w*|careful|warn\w*)\b|n['\p{Pf}]t\b|\bif[ \t]+(?:someone|anyone|anybody|somebody|they|a[ \t]+caller|you[ \t]+(?:get|receive|see|are[ \t]+asked|['\p{Pf}]re[ \t]+asked|were[ \t]+asked))\b|\b(?:e-?mails?|messages?|texts?|calls?|callers?|sites?|websites?|pages?|links?|anyone|someone|people|senders?)[ \t]+(?:that[ \t]+|who[ \t]+)?(?:ask|asks|asking|request|requests|requesting)\b|\b(?:you(?:['\p{Pf}]re|[ \t]+are|[ \t]+get|[ \t]+were|['\p{Pf}]ve[ \t]+been|[ \t]+have[ \t]+been|[ \t]+will[ \t]+be|['\p{Pf}]ll[ \t]+be)|being)[ \t]+(?:ever[ \t]+)?asked\b", Loose, Patience);
+        private static readonly Regex Dared = new Regex(@"\b(?:if|unless)[ \t]+you[ \t]+(?:(?:do|did|have|had|are|were|will|wo|would|ca|can|could|should)[ \t]*)?(?:not|n['\p{Pf}]t|never|fail(?:ed)?[ \t]+to)\b|\b(?:do[ \t]+not|don['\p{Pf}]?t)[ \t]+(?:forget|hesitate|delay|wait)\b|\bnot[ \t]+only\b", Loose, Patience);
+        private static readonly Regex Clause = new Regex(@"[.!?\n:;]|\b(?:unless|until|otherwise|but|however|although|though)\b", Loose, Patience);
+        private static readonly Regex Word = new Regex(@"[\p{L}\p{Nd}]+", Loose, Patience);
+        private static readonly Regex Staff = new Regex(@"^[ \t]+(?:(?:account|accounts|id|online|live|365|cloud|technical|tech|global|official|customer)[ \t]+){0,2}(?:team|support(?![ \t]+(?:for|of|ends?|ended|ending|pages?|articles?|site|website|forums?|docs|documentation|lifecycle|policy|plans?|period|window|apps?|scams?)\b)|security(?=[ \t]*$|[ \t]*[^\s\p{L}\p{Nd}]|[ \t]+(?:team|department|dept|cent(?:er|re)|alerts?|notices?|notifications?|services?|desk)\b)|help[ \t]?desk|help[ \t]?cent(?:er|re)|customer[ \t]+(?:service|services|care|support)|services?[ \t]+team|billing(?=[ \t]*$|[ \t]*[^\s\p{L}\p{Nd}]|[ \t]+(?:team|department|dept|support|services?)\b)|fraud[ \t]+(?:team|department|dept|prevention)|trust[ \t]+(?:and|&)[ \t]+safety|administrator|admin[ \t]+team|department)\b", Loose, Patience);
+        private static readonly Regex Herald = new Regex(@"(?:\b(?:messages?|e-?mails?|mail|notices?|notifications?|alerts?|letters?|reminders?|notes?|warnings?|updates?|greetings|hello|hi|hey|news|information|info|announcements?|communications?|parcels?|packages?|deliver(?:y|ies)|shipments?|invoices?|receipts?|statements?|bills?|refunds?|payments?|orders?|calls?|requests?|calling|writing|contacting[ \t]+you)[ \t]+from|\b(?:i[ \t]+am|i['\p{Pf}]m|this[ \t]+is)[ \t]+(?:\p{L}+[ \t]+){0,2}from|\bon[ \t]+behalf[ \t]+of|\bwe[ \t]+at)[ \t]+(?:the[ \t]+)?$", Loose, Patience);
+        private static readonly Regex Introduced = new Regex(@"\b(?:this[ \t]+is|we[ \t]+are|we['\p{Pf}]re)[ \t]+(?:the[ \t]+)?$", Loose, Patience);
+        private static readonly Regex Disowned = new Regex(@"^[^.!?\n]{0,30}?\b(?:never|not|won['\p{Pf}]t|doesn['\p{Pf}]t|don['\p{Pf}]t|wouldn['\p{Pf}]t)[ \t]+(?:ever[ \t]+)?(?:ask|asks|request|requests|call|calls|e-?mail|e-?mails|contact|contacts|send|sends|need|needs|require|requires|want|wants)\b", Loose, Patience);
+        private static readonly Regex Dear = new Regex(@"\bdear[ \t]+(?:valued[ \t]+)?$", Loose, Patience);
+        private static readonly Regex Customer = new Regex(@"^[ \t]+(?:(?:account|id|prime|online|premium)[ \t]+)?(?:customer|user|member|client|subscriber|account[ \t]?holder|card[ \t]?holder|holder)s?\b", Loose, Patience);
+        private static readonly Regex Mine = new Regex(@"\b(?:your|my|his|her|their|ur)[ \t]+$", Loose, Patience);
+        private static readonly Regex Tagged = new Regex(@"^[ \t]*(?:(?:re|aw|sv)[ \t]*:[ \t]*)*(?:\[[ \t]*)?$", Loose, Patience);
+        private static readonly Regex Tag = new Regex(@"^[ \t]*(?:(?:account|accounts|id|online|live|365|cloud|team|support|security|billing|services?|alerts?|notices?|notifications?|customer[ \t]+service)[ \t]*){0,3}(?:[:|\]]|[ \t]*\p{Pd}+(?:[ \t]|$))", Loose, Patience);
+        private static readonly Regex Farewell = new Regex(@"^(?:[ \t\p{Pd}~_*>|]+|(?:(?:many|kind|best|warm|warmest)[ \t]+)?(?:thanks|thank[ \t]+you|regards|wishes)|(?:yours[ \t]+)?(?:sincerely|truly|faithfully)|yours|respectfully|cheers|best|signed)[ \t]*[,.!:]*[ \t]*", Loose, Patience);
+        private static readonly Regex Quote = new Regex(@"^[ \t]*(?:-{2,}[ \t]*(?:forwarded message|original message)[ \t]*-{2,}|begin forwarded message:|on\b[^\n]{0,200}\bwrote:[ \t]*\r?$|from:[^\n]*\n[ \t]*(?:sent|date):)", Loose | RegexOptions.Multiline, Patience);
+        private static readonly Regex Forward = new Regex(@"^\s*fwd?\s*:", Loose, Patience);
+        private static readonly Dictionary<string, int> Tokens = Index();
 
         private static HashSet<string> Set(string words)
         {
@@ -149,13 +175,21 @@ namespace CapriDesktop
             string words = v.Subject + "\n" + plain + "\n" + htmlText;
             string brand = Claimed(fromName), sender = Webmail.Contains(fromSite) ? null : Official(fromSite);
             Claims(v, fromName, fromAddress, fromSite, brand);
+            string ownSubject = Forward.IsMatch(v.Subject) ? "" : v.Subject, ownPlain = Own(plain.ToString()), ownHtml = Own(htmlText);
+            string own = ownSubject + "\n" + ownPlain + "\n" + ownHtml;
+            if (own.Length > 300000) own = own.Substring(0, 300000);
+            Match card = sender == null ? First(CardAsks, own) : null, password = sender == null ? First(PasswordAsks, own) : null;
+            if (brand == null && sender == null && fromAddress.Length > 0) Mentions(v, root, own, ownSubject, ownPlain, ownHtml, fromSite, card != null || password != null);
+            if (card != null) v.Add(4, "It asks for your card details. Real companies don't ask for those by email.");
+            if (password != null) v.Add(4, "It asks for your password. Real companies never ask for it by email.");
+            v.Wants = card != null && password != null ? "card details and password" : card != null ? "card details" : password != null ? "password" : "";
             Replies(v, fromSite, replyAddress, brand);
             Auth(v, root.Header("authentication-results"), fromDomain);
             string org = brand == null ? Organisation(fromName) : null;
             HashSet<string> looked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (fromDomain.Length > 0) Lookalike(v, fromDomain, org, null, looked);
             if (replyAddress.Length > 0) Lookalike(v, MailAccount.Domain(replyAddress), org, null, looked);
-            bool asked = Urgency(v, words, sender != null);
+            bool asked = Urgency(v, words, Blank(words, card, password), sender != null) || card != null || password != null;
             Links(v, Collect(html.ToString(), plain.ToString()), fromSite, sender, org, asked, looked);
             try { if (html.Length > 0 && Regex.IsMatch(html.ToString(), @"<form\b[^>]*\baction\s*=", Loose, Patience)) v.Add(3, "It has a form inside the email that asks you to type things in."); }
             catch (RegexMatchTimeoutException) { }
@@ -329,6 +363,22 @@ namespace CapriDesktop
             return parts;
         }
 
+        private static Dictionary<string, int> Index()
+        {
+            Dictionary<string, int> index = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int i = 0; i < Brands.Length; i++)
+            {
+                string[] tokens, sites;
+                Brand(i, out tokens, out sites);
+                foreach (string raw in tokens)
+                {
+                    string token = raw.TrimStart('~');
+                    if (!index.ContainsKey(token)) index[token] = raw.StartsWith("~", StringComparison.Ordinal) ? ~i : i;
+                }
+            }
+            return index;
+        }
+
         private static string Official(string site)
         {
             if (string.IsNullOrEmpty(site)) return null;
@@ -391,11 +441,7 @@ namespace CapriDesktop
             if (fromAddress.Length == 0) return;
             bool webmail = Webmail.Contains(fromSite);
             string shownName = Plain(fromName, 60);
-            if (brand != null && Official(fromSite) != brand)
-            {
-                if (webmail) v.Add(4, "It says it's from " + brand + ", but it came from a personal " + fromSite + " address.");
-                else v.Add(3, "It says it's from " + brand + ", but it came from " + fromSite + ", which isn't " + brand + "'s.");
-            }
+            if (brand != null && Official(fromSite) != brand) Claim(v, brand, fromSite);
             else if (brand == null && webmail && Organisation(fromName) != null)
                 v.Add(3, "It says it's from " + shownName + ", but it came from a personal " + fromSite + " address.");
             else if (brand == null && webmail && Words(fromName).Exists(w => w == "support" || w == "security" || w == "billing" || w == "verification" || w == "helpdesk" || w == "administrator" || w == "postmaster"))
@@ -407,6 +453,84 @@ namespace CapriDesktop
                 string namedBrand = Official(named);
                 if (named.Length > 0 && named != fromSite && (namedBrand == null || namedBrand != Official(fromSite))) v.Add(3, "Its name shows " + Plain(shown.Value, 60) + ", but it really came from " + fromAddress + ".");
             }
+        }
+
+        private static void Claim(MailVerdict v, string brand, string fromSite)
+        {
+            if (Webmail.Contains(fromSite)) v.Add(4, "It says it's from " + brand + ", but it came from a personal " + fromSite + " address.");
+            else v.Add(3, "It says it's from " + brand + ", but it came from " + fromSite + ", which isn't " + brand + "'s.");
+        }
+
+        private static void Mentions(MailVerdict v, MailPart root, string own, string subject, string plain, string html, string fromSite, bool strong)
+        {
+            bool listed = (root.Header("list-unsubscribe").Length > 0 || root.Header("list-id").Length > 0) && Regex.IsMatch(root.Header("authentication-results"), @"\bdmarc\s*=\s*pass\b", Loose);
+            if (!strong && (listed || (First(Asks, own) == null && First(Threat, own) == null && First(Money, own) == null))) return;
+            string named = Sender(subject, true) ?? Sender(plain, false) ?? Sender(html, false) ?? Signed(plain) ?? Signed(html);
+            if (named != null && Official(fromSite) != named) Claim(v, named, fromSite);
+        }
+
+        private static string Sender(string text, bool subject)
+        {
+            try
+            {
+                MatchCollection words = Word.Matches(text.Length > 300000 ? text.Substring(0, 300000) : text);
+                for (int i = 0; i < words.Count; i++)
+                {
+                    string joined = "";
+                    for (int n = 0; n < 3 && i + n < words.Count; n++)
+                    {
+                        int value;
+                        joined += words[i + n].Value.ToLowerInvariant();
+                        if (!Tokens.TryGetValue(joined, out value)) continue;
+                        int start = words[i].Index, end = words[i + n].Index + words[i + n].Length;
+                        int line = start == 0 ? 0 : text.LastIndexOf('\n', start - 1) + 1, stop = text.IndexOf('\n', end);
+                        if (stop < 0) stop = text.Length;
+                        int from = Math.Max(line, start - 80);
+                        string before = text.Substring(from, start - from), after = text.Substring(end, Math.Min(stop, end + 60) - end).TrimEnd('\r');
+                        if (Mine.IsMatch(before) || Denied(text, start) || Disowned.IsMatch(after)) continue;
+                        if (Staff.IsMatch(after) || Herald.IsMatch(before) || (value >= 0 && Introduced.IsMatch(before)) || (Dear.IsMatch(before) && Customer.IsMatch(after)) || (subject && Tagged.IsMatch(before) && Tag.IsMatch(after)))
+                            return Brands[value < 0 ? ~value : value].Split('|')[0];
+                    }
+                }
+            }
+            catch (RegexMatchTimeoutException) { }
+            return null;
+        }
+
+        private static string Signed(string text)
+        {
+            List<string> lines = new List<string>();
+            string[] all = text.Split('\n');
+            for (int i = all.Length - 1; i >= 0 && lines.Count < 5; i--) if (all[i].Trim().Length > 0) lines.Insert(0, all[i].Trim());
+            try
+            {
+                for (int i = Math.Max(0, lines.Count - 4); i < lines.Count; i++)
+                {
+                    string line = lines[i];
+                    bool waved = false;
+                    for (int k = 0; k < 4; k++)
+                    {
+                        Match bye = Farewell.Match(line);
+                        if (!bye.Success || bye.Length == 0) break;
+                        line = line.Substring(bye.Length);
+                        waved = true;
+                    }
+                    if (!waved && i > 0) { Match above = Farewell.Match(lines[i - 1]); waved = above.Success && above.Length == lines[i - 1].Length; }
+                    if (line.StartsWith("the ", StringComparison.OrdinalIgnoreCase)) line = line.Substring(4).TrimStart();
+                    MatchCollection words = Word.Matches(line);
+                    if (words.Count == 0 || words.Count > 6 || words[0].Index != 0) continue;
+                    string joined = "";
+                    for (int n = 0; n < 3 && n < words.Count; n++)
+                    {
+                        int value;
+                        joined += words[n].Value.ToLowerInvariant();
+                        if (Tokens.TryGetValue(joined, out value) && ((waved && value >= 0) || Staff.IsMatch(line.Substring(words[n].Index + words[n].Length))))
+                            return Brands[value < 0 ? ~value : value].Split('|')[0];
+                    }
+                }
+            }
+            catch (RegexMatchTimeoutException) { }
+            return null;
         }
 
         private static void Replies(MailVerdict v, string fromSite, string replyAddress, string brand)
@@ -429,7 +553,7 @@ namespace CapriDesktop
             if (Regex.IsMatch(results, @"\bdkim\s*=\s*fail\b", Loose)) v.Add(1, "Its signature didn't check out (DKIM failed).");
         }
 
-        private static bool Urgency(MailVerdict v, string text, bool officialSender)
+        private static bool Urgency(MailVerdict v, string text, string rest, bool officialSender)
         {
             List<string> said = new List<string>();
             int points = 0;
@@ -439,7 +563,8 @@ namespace CapriDesktop
             for (int i = 0; i < kinds.Length; i++)
             {
                 Match m;
-                try { m = kinds[i].Match(text.Length > 300000 ? text.Substring(0, 300000) : text); }
+                string look = i == 1 ? rest : text;
+                try { m = kinds[i].Match(look.Length > 300000 ? look.Substring(0, 300000) : look); }
                 catch (RegexMatchTimeoutException) { continue; }
                 if (!m.Success) continue;
                 points += weights[i];
@@ -448,6 +573,45 @@ namespace CapriDesktop
             }
             if (points > 0 && !officialSender) v.Add(Math.Min(points, 6), "It leans on scary, urgent asks: " + string.Join(", ", said.ToArray()) + ".");
             return asked;
+        }
+
+        private static string Own(string text)
+        {
+            try
+            {
+                Match quote = Quote.Match(text);
+                if (quote.Success) text = text.Substring(0, quote.Index);
+                return Regex.Replace(text, @"^[ \t]*>[^\n]*", "", RegexOptions.Multiline, Patience);
+            }
+            catch (RegexMatchTimeoutException) { return text; }
+        }
+
+        private static Match First(Regex kind, string text)
+        {
+            try
+            {
+                Match m = kind.Match(text);
+                for (int seen = 0; m.Success && seen < 20; seen++, m = m.NextMatch())
+                    if (!Denied(text, m.Index)) return m;
+            }
+            catch (RegexMatchTimeoutException) { }
+            return null;
+        }
+
+        private static bool Denied(string text, int at)
+        {
+            int from = Math.Max(0, at - 160);
+            string before = text.Substring(from, at - from);
+            MatchCollection turns = Clause.Matches(before);
+            if (turns.Count > 0) before = before.Substring(turns[turns.Count - 1].Index + turns[turns.Count - 1].Length);
+            return Warned.IsMatch(Dared.Replace(before, " "));
+        }
+
+        private static string Blank(string text, params Match[] asks)
+        {
+            Array.Sort(asks, delegate(Match a, Match b) { return (b == null ? 0 : b.Length) - (a == null ? 0 : a.Length); });
+            foreach (Match m in asks) if (m != null && m.Length > 0) text = text.Replace(m.Value, new string(' ', m.Length));
+            return text;
         }
 
         private static List<Link> Collect(string html, string plain)

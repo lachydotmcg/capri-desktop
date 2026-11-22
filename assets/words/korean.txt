@@ -639,7 +639,7 @@ Setup stopped	설정 중단됨
 She answers in	답하는 언어
 She can read it when it fits.	맞으면 그녀가 읽을 수 있어.
 She glances at your screen and comments. Costs a little on a paid brain.	화면을 힐끗 보고 댓글을 달아. 유료 뇌에서는 약간 비용이 들어.
-She keeps listening. Say her name, then just talk until you go quiet.	계속 듣고 있어. 그녀의 이름을 부르고 조용해질 때까지 말해.
+She keeps listening. Say her name, then just talk.	계속 듣고 있어. 그녀의 이름을 부르고 말해.
 She reacts to your game until you close it.	네가 게임을 닫을 때까지 게임에 반응해.
 She reads these controls before each game job.	게임 작업을 할 때마다 이 컨트롤을 읽어.
 She talks about your game as you play. Costs a little on a paid brain.	게임을 하는 동안 네 게임에 대해 얘기해. 유료 뇌에서는 약간 비용이 들어.

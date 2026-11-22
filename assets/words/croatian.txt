@@ -639,7 +639,7 @@ Setup stopped	Postavljanje zaustavljeno
 She answers in	Ona odgovara na
 She can read it when it fits.	Može je pročitati kad stane.
 She glances at your screen and comments. Costs a little on a paid brain.	Ona pogleda tvoj ekran i komentira. Košta malo uz plaćeni mozak.
-She keeps listening. Say her name, then just talk until you go quiet.	Ona i dalje sluša. Reci njezino ime, pa samo govori dok ne utihneš.
+She keeps listening. Say her name, then just talk.	Ona i dalje sluša. Reci njezino ime, pa samo govori.
 She reacts to your game until you close it.	Reagira na tvoju igru dok je ne zatvoriš.
 She reads these controls before each game job.	Čita ove kontrole prije svakog zadatka u igri.
 She talks about your game as you play. Costs a little on a paid brain.	Priča o tvojoj igri dok igraš. Košta malo uz plaćeni mozak.

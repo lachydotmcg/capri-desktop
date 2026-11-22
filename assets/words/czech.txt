@@ -639,7 +639,7 @@ Setup stopped	Nastavení zastaveno
 She answers in	Odpovídá v
 She can read it when it fits.	Zobrazí to, až se to hodí.
 She glances at your screen and comments. Costs a little on a paid brain.	Podívá se na tvou obrazovku a okomentuje. Na placeném mozku něco stojí.
-She keeps listening. Say her name, then just talk until you go quiet.	Pořád poslouchá. Řekni její jméno a pak mluv, dokud neztichneš.
+She keeps listening. Say her name, then just talk.	Pořád poslouchá. Řekni její jméno a pak mluv.
 She reacts to your game until you close it.	Reaguje na tvou hru, dokud ji nezavřeš.
 She reads these controls before each game job.	Před každým herním úkolem přečte tato ovládání.
 She talks about your game as you play. Costs a little on a paid brain.	Mluví o tvé hře, zatímco hraješ. Na placeném mozku něco stojí.

@@ -639,7 +639,7 @@ Setup stopped	Sąranka sustabdyta
 She answers in	Ji atsako
 She can read it when it fits.	Ji gali tai perskaityti, kai telpa.
 She glances at your screen and comments. Costs a little on a paid brain.	Ji žvilgteli į jūsų ekraną ir komentuoja. Mokamoms smegenims šiek tiek kainuoja.
-She keeps listening. Say her name, then just talk until you go quiet.	Ji toliau klausosi. Ištarkite jos vardą ir kalbėkite, kol nutilsite.
+She keeps listening. Say her name, then just talk.	Ji toliau klausosi. Ištarkite jos vardą ir kalbėkite.
 She reacts to your game until you close it.	Ji reaguoja į jūsų žaidimą, kol jį uždarysite.
 She reads these controls before each game job.	Ji perskaito šiuos valdymus prieš kiekvieną žaidimo darbą.
 She talks about your game as you play. Costs a little on a paid brain.	Ji kalba apie jūsų žaidimą, kol žaidžiate. Mokamoms smegenims šiek tiek kainuoja.
