@@ -1,0 +1,37 @@
+name: Feature Request
+description: Ask for a capability Capri does not have yet
+labels: ["type:feature"]
+body:
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+  - type: textarea
+    id: capability
+    attributes:
+      label: The capability
+      description: What should Capri do, in one or two sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What exists today
+      description: What she does now on the platforms you use, and the closest existing behavior. If you are not sure, just say what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: The situation where this would help you.
+    validations:
+      required: true
+  - type: textarea
+    id: platform
+    attributes:
+      label: Where
+      description: Windows, macOS or Linux, and which desktop when Linux.
