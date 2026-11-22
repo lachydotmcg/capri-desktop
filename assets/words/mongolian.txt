@@ -30,6 +30,7 @@ Ask Capri for more	Capri-гаас илүү асуух
 Asking your server...	Таны серверээс асууж байна...
 Asks before closing only the apps you choose.	Зөвхөн таны сонгосон апп-уудыг хаахаас өмнө асууна.
 Auto	Автомат
+Auto (match what I say)	Автомат (миний хэлснээр)
 Automatic: VB-CABLE, else Steam's	Автомат: VB-CABLE, эсвэл Steam-ийнх
 BAD RELAY HOST	БУРУУ RELAY ХОСТ
 BIG Z open notepad	BIG Z notepad нээ
@@ -290,6 +291,7 @@ Huge	Асар том
 I can hear you.	Би чамайг сонсож байна.
 I glance at your screen and comment. Costs a little on a paid brain.	Би таны дэлгэцийг хараад сэтгэгдэл бичнэ. Төлбөртэй тархинд бага зардал гарна.
 I keep listening. Say my name, then just talk.	Би сонсож байна. Миний нэрийг хэлээд зүгээр л яриарай.
+I speak	Би ярьдаг
 I talk about your game as you play. Costs a little on a paid brain.	Таны тоглоомын тухай тоглож байхад нь ярина. Төлбөртэй тархинд бага зардал гарна.
 I type my replies and stay quiet.	Би хариултаа бичээд чимээгүй байна.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Би хариулахгүй, юу ч хаашаа ч илгээгдэхгүй. Би хэвээр хамт байж, таны хөгжимд бүжиглэж, хурдан асуусан зүйлсийг хийнэ, жишээ нь дууны түвшин.
@@ -598,6 +600,7 @@ SKILL.	ЧАДВАР.
 SKIN.	АРХИ.
 SORT BY	ЭРЭМБЭЛЭХ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ДУУНУУД ЗАН ТААЛАЛ ТАРХИ ХАРАХ CAPRI DOOMSCROLL ЦАГ АГААР КЛИПҮҮД ТОГЛООМ ТҮЛХҮҮРҮҮД ХӨДӨЛГӨӨН ДУУ ТА
+Same as I speak	Миний хэлтэй адил
 Same as her ears (VOICE > Mic)	Түүний чихтэй адил (ДУУ > Микрофон)
 Same code on the phone?	Утсан дээрх ижил код үү?
 Save	Хадгалах
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Тохиргоонд харах зүйл байс
 Settings lost keyboard focus during the Tab walk	Tab алхалтын үед Тохиргоо гар дээрх фокусаа алдсан
 Setup guide	Тохируулгын заавар
 Setup stopped	Тохируулга зогсло
+She answers in	Тэр хариулдаг
 She can read it when it fits.	Тохирох үед тэр уншиж чадна.
 She glances at your screen and comments. Costs a little on a paid brain.	Тэр таны дэлгэцийг харж сэтгэгдэл бичнэ. Төлбөртэй тархинд бага зардал гарна.
-She keeps listening. Say her name, then just talk until you go quiet.	Тэр сонсож байна. Түүний нэрийг хэл, дараа нь чимээгүй болтол яриарай.
+She keeps listening. Say her name, then just talk.	Тэр сонсож байна. Түүний нэрийг хэл, дараа нь яриарай.
 She reacts to your game until you close it.	Таны тоглоомыг хаах хүртэл тэр хариу үйлдэл үзүүлнэ.
 She reads these controls before each game job.	Тэр тоглоомын ажил бүрийн өмнө эдгээр удирдлагыг уншина.
 She talks about your game as you play. Costs a little on a paid brain.	Таны тоглож байх үед тэр таны тоглоомын тухай ярина. Төлбөртэй тархинд бага зардал гарна.

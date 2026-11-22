@@ -26,6 +26,7 @@ namespace CapriDesktop
         // What accessories were called before they had a name of their own.
         [DataMember(Name = "overlay")] public bool Overlay;
         [DataMember(Name = "frames")] public ModFrames[] Frames;
+        [DataMember(Name = "moves", EmitDefaultValue = false)] public ModMove[] Moves;
         internal bool Intro;
         internal string[] Permissions = new string[0];
         // A code mod's // requires: line: the mod API it needs, and other mods that must be installed and on.
@@ -53,6 +54,15 @@ namespace CapriDesktop
     }
 
     [DataContract]
+    internal sealed class ModMove
+    {
+        [DataMember(Name = "name")] public string Name;
+        [DataMember(Name = "strip")] public string Strip;
+        [DataMember(Name = "fps")] public int Fps;
+        [DataMember(Name = "loop")] public bool Loop;
+    }
+
+    [DataContract]
     internal sealed class ModColors
     {
         [DataMember(Name = "hair")] public string Hair;
@@ -70,6 +80,7 @@ namespace CapriDesktop
         internal bool On;
         internal bool Code, Changed, Skin, Skill, Own, Tool, Plugin, Starter;
         internal string Hash;
+        internal CompanionInfo Pack;
         internal string Folder;
         internal string From;
         internal string Owner;
@@ -103,6 +114,19 @@ namespace CapriDesktop
         internal Func<string> ModContext;
         private volatile SoundsLike sounds;
         private volatile bool logging;
+
+        internal static readonly string[] Handed = { PluginExtension, Extension, CodeExtension, SkinExtension, SkillExtension, ToolExtension };
+        internal const string Dropped = "I handed you these mod files.";
+
+        internal static string FileName(string path) { return Regex.Match(path ?? "", @"[^\\/]*$").Value; }
+
+        internal static bool Importable(string path)
+        {
+            string name = FileName(path);
+            foreach (string ending in Handed)
+                if (name.Length > ending.Length && name.EndsWith(ending, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
 
         internal Mods(string data)
         {
@@ -161,6 +185,7 @@ namespace CapriDesktop
                     found.AddRange(Directory.GetFiles(folder, "*" + CodeExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + SkinExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + SkillExtension));
+                    found.AddRange(Directory.GetFiles(folder, "*" + CompanionExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + PluginExtension));
                     found.AddRange(Directory.GetFiles(folder, "*" + ToolExtension));
                     found.Sort(StringComparer.OrdinalIgnoreCase);
@@ -185,6 +210,7 @@ namespace CapriDesktop
                         if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadCode(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadSkin(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadSkill(file, off)); continue; }
+                        if (IsCompanionFile(file)) { All.Add(LoadCompanion(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), PluginExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadPlugin(file, off)); continue; }
                         if (string.Equals(Path.GetExtension(file), ToolExtension, StringComparison.OrdinalIgnoreCase)) { All.Add(LoadTool(file, off)); continue; }
                         ModFile read = Read(File.ReadAllText(file));
@@ -217,6 +243,7 @@ namespace CapriDesktop
             }
             foreach (string id in stoppedStarts) Problems.Add(id + " was starting when Capri last stopped, so it's off. Turn it on again if it wasn't the cause.");
             OffThisRun();
+            OneCompanion();
             Apply();
         }
 
@@ -226,11 +253,12 @@ namespace CapriDesktop
             if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file, keepOff == null);
             if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkill(file);
             if (string.Equals(Path.GetExtension(file), ToolExtension, StringComparison.OrdinalIgnoreCase)) return ImportTool(file, ask, keepOff);
+            if (IsCompanionFile(file)) return ImportCompanion(file, keepOff == null);
             if (IsPluginFile(file)) return ImportPlugin(file, ask, keepOff);
             string text;
             try
             {
-                if (!string.Equals(Path.GetExtension(file), Extension, StringComparison.OrdinalIgnoreCase)) throw new ModException("That isn't a " + Extension + ", " + CodeExtension + ", " + SkinExtension + ", " + SkillExtension + ", " + ToolExtension + " or " + PluginExtension + " file.");
+                if (!string.Equals(Path.GetExtension(file), Extension, StringComparison.OrdinalIgnoreCase)) throw new ModException("That isn't a " + Extension + ", " + CodeExtension + ", " + SkinExtension + ", " + SkillExtension + ", " + ToolExtension + ", " + PluginExtension + " or " + CompanionExtension + " file.");
                 if (new FileInfo(file).Length > Largest) throw new ModException("That mod is too big. A mod is a small settings file.");
                 text = File.ReadAllText(file);
             }
@@ -284,6 +312,7 @@ namespace CapriDesktop
             if (mod.Plugin) return SetPlugin(mod, on, ask);
             if (mod.Tool) return SetTool(mod, on, ask);
             if (mod.Skin) { SetSkin(mod, on); return true; }
+            if (mod.Pack != null) { SetCompanion(mod, on); return true; }
             HashSet<string> off = Off();
             if (on)
             {
@@ -306,6 +335,7 @@ namespace CapriDesktop
             if (mod.Code || mod.Tool) RemoveCode(mod);
             if (mod.Plugin) RemovePlugin(mod);
             if (mod.Skin) RemoveSkin(mod);
+            if (mod.Pack != null) RemoveCompanion(mod);
             File.Delete(mod.Path);
             HashSet<string> off = Off();
             if (off.Remove(mod.File.Id)) WriteOff(off);
@@ -385,6 +415,7 @@ namespace CapriDesktop
             sounds = wantSounds ? new SoundsLike(soundsLike) : null;
             logging = wantLog;
             if (!wantLog) DeleteLog();
+            ApplyCompanion();
             ApplySkin();
             List<Mod> on = All.FindAll(mod => mod.Skill && mod.On), known = All.FindAll(mod => mod.Skill);
             foreach (Mod plugin in All)
@@ -399,6 +430,7 @@ namespace CapriDesktop
             knownSkills = known.ToArray();
             UsePlugins();
             skillNote = Standing(skills);
+            names = CompanionNames(names);
             note = names.Length == 0 ? "" : "\nThey can also call you " + Listed(names) + ". Those are nicknames for you, so answer to them like your own name.";
         }
 

@@ -30,6 +30,7 @@ Ask Capri for more	Paprašykite Capri daugiau
 Asking your server...	Klausiama jūsų serverio...
 Asks before closing only the apps you choose.	Klausia prieš uždarant tik jūsų pasirinktas programas.
 Auto	Auto
+Auto (match what I say)	Auto (pagal tai, ką sakau)
 Automatic: VB-CABLE, else Steam's	Automatiškai: VB-CABLE, kitaip Steam
 BAD RELAY HOST	BLOGAS RELAY SERVERIS
 BIG Z open notepad	BIG Z atidaryti notepad
@@ -290,6 +291,7 @@ Huge	Didžiulis
 I can hear you.	Aš tave girdžiu.
 I glance at your screen and comment. Costs a little on a paid brain.	Žvilgteliu į jūsų ekraną ir komentuoju. Mokamoms smegenims šiek tiek kainuoja.
 I keep listening. Say my name, then just talk.	Toliau klausausi. Ištarkite mano vardą ir tiesiog kalbėkite.
+I speak	Kalbu
 I talk about your game as you play. Costs a little on a paid brain.	Kalbu apie jūsų žaidimą, kol žaidžiate. Mokamoms smegenims šiek tiek kainuoja.
 I type my replies and stay quiet.	Rašau savo atsakymus ir tyliu.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Neatsakinėsiu balsu, ir niekas nesiunčiama. Vis tiek būsiu šalia, šokinėsiu pagal jūsų muziką ir darysiu greitus dalykus, kuriuos paprašysite, pavyzdžiui, garsumą.
@@ -598,6 +600,7 @@ SKILL.	ĮGŪDIS.
 SKIN.	ODA.
 SORT BY	RŪŠIUOTI PAGAL
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	GARSAI ĮPROČIAI SMEGENYS ŽIŪRĖTI CAPRI DOOMSCROLL ORAS KLIPAI ŽAIDIMAI KLAVIŠAI JUDESIAI BALSAS JŪS
+Same as I speak	Kaip mano kalba
 Same as her ears (VOICE > Mic)	Tas pats kaip jos ausys (BALSAS > Mikrofonas)
 Same code on the phone?	Tas pats kodas telefone?
 Save	Išsaugoti
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Nustatymams nebuvo ką stebėti.
 Settings lost keyboard focus during the Tab walk	Nustatymai prarado klaviatūros fokusą per Tab eigą
 Setup guide	Sąrankos vadovas
 Setup stopped	Sąranka sustabdyta
+She answers in	Ji atsako
 She can read it when it fits.	Ji gali tai perskaityti, kai telpa.
 She glances at your screen and comments. Costs a little on a paid brain.	Ji žvilgteli į jūsų ekraną ir komentuoja. Mokamoms smegenims šiek tiek kainuoja.
-She keeps listening. Say her name, then just talk until you go quiet.	Ji toliau klausosi. Ištarkite jos vardą ir kalbėkite, kol nutilsite.
+She keeps listening. Say her name, then just talk.	Ji toliau klausosi. Ištarkite jos vardą ir kalbėkite.
 She reacts to your game until you close it.	Ji reaguoja į jūsų žaidimą, kol jį uždarysite.
 She reads these controls before each game job.	Ji perskaito šiuos valdymus prieš kiekvieną žaidimo darbą.
 She talks about your game as you play. Costs a little on a paid brain.	Ji kalba apie jūsų žaidimą, kol žaidžiate. Mokamoms smegenims šiek tiek kainuoja.

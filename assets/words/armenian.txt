@@ -30,6 +30,7 @@ Ask Capri for more	Խնդրեք Capri-ից ավելին
 Asking your server...	Հարցնում եմ ձեր սերվերից...
 Asks before closing only the apps you choose.	Փակելուց առաջ հարցնում է միայն ձեր ընտրած հավելվածների մասին։
 Auto	Ավտո
+Auto (match what I say)	Ավտո (ըստ իմ ասածի)
 Automatic: VB-CABLE, else Steam's	Ավտոմատ՝ VB-CABLE, հակառակ դեպքում՝ Steam-ի
 BAD RELAY HOST	ՍԽԱԼ RELAY ՀՈՍՏ
 BIG Z open notepad	BIG Z բացել նոթատետր
@@ -290,6 +291,7 @@ Huge	Հսկայական
 I can hear you.	Ես քեզ լսում եմ։
 I glance at your screen and comment. Costs a little on a paid brain.	Նայում եմ ձեր էկրանին և մեկնաբանում։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
 I keep listening. Say my name, then just talk.	Ես շարունակում եմ լսել։ Ասեք իմ անունը, հետո պարզապես խոսեք։
+I speak	Ես խոսում եմ
 I talk about your game as you play. Costs a little on a paid brain.	Խաղի ընթացքում ես խոսում եմ ձեր խաղի մասին։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
 I type my replies and stay quiet.	Ես գրում եմ իմ պատասխանները և լռում եմ։
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ես չեմ պատասխանում ձայնով, և ոչինչ ոչուր չի ուղարկվում։ Ես դեռ կմնամ, կպարեմ ձեր երաժշտությանը և կանեմ արագ բաները, որ խնդրում եք, օրինակ՝ ծավալը։
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ԴԱՍԱՎՈՐԵԼ ԸՍՏ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ՁԱՅՆԵՐ ՍՈՎՈՐՈՒԹՅՈՒՆՆԵՐ ՈՒՂԵՂ ԴԻՏԵԼ CAPRI DOOMSCROLL ԵՂԱՆԱԿ ՏԵՍԱՀԱՏՎԱԾՆԵՐ ԽԱՂԵՐ ԲԱՆԱԼԻՆԵՐ ՇԱՐԺՈՒՄՆԵՐ ՁԱՅՆ ԴՈՒ
+Same as I speak	Ինչպես իմ լեզուն
 Same as her ears (VOICE > Mic)	Նույնը, ինչ նրա ականջները (ՁԱՅՆ > Խոսափող)
 Same code on the phone?	Նույն կոդը հեռախոսի՞ վրա։
 Save	Պահել
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Կարգավորումները դիտելու ո�
 Settings lost keyboard focus during the Tab walk	Կարգավորումները կորցրեց ստեղնաշարի ֆոկուսը Tab-ի անցման ժամանակ
 Setup guide	Տեղադրման ուղեցույց
 Setup stopped	Տեղադրումը կանգ առավ
+She answers in	Նա պատասխանում է
 She can read it when it fits.	Նա կարող է կարդալ, երբ տեղավորվի։
 She glances at your screen and comments. Costs a little on a paid brain.	Նա նայում է ձեր էկրանին և մեկնաբանում։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
-She keeps listening. Say her name, then just talk until you go quiet.	Նա շարունակում է լսել։ Ասեք նրա անունը, հետո խոսեք, մինչև լռեք։
+She keeps listening. Say her name, then just talk.	Նա շարունակում է լսել։ Ասեք նրա անունը, հետո խոսեք։
 She reacts to your game until you close it.	Նա արձագանքում է ձեր խաղին, մինչև փակեք այն։
 She reads these controls before each game job.	Նա կարդում է այս կառավարումները յուրաքանչյուր խաղային աշխատանքից առաջ։
 She talks about your game as you play. Costs a little on a paid brain.	Նա խոսում է ձեր խաղի մասին, մինչ դուք խաղում եք։ Վճարովի ուղեղի դեպքում մի փոքր արժե։

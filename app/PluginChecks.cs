@@ -235,6 +235,39 @@ while True:
             }
         }
 
+        private static string LogoTrouble()
+        {
+            ServiceLogo[] logos = { ServiceLogo.Gmail, ServiceLogo.ICloud, ServiceLogo.Notion, ServiceLogo.Linear };
+            double[][] wanted = { new[] { 1, 17, 0, 3.493, 24, 21.003 }, new[] { 1, 11, 0, 4.289, 24, 19.71 }, new[] { 4, 47, 0.489, 0.055, 23.511, 23.992 }, new[] { 4, 14, 0, 0, 24, 24.0 } };
+            for (int i = 0; i < logos.Length; i++)
+            {
+                ServiceLogo logo = logos[i];
+                int steps = 0;
+                bool open = false;
+                double left = double.MaxValue, top = double.MaxValue, right = double.MinValue, bottom = double.MinValue;
+                foreach (ServiceLogo.Figure figure in logo.Figures)
+                {
+                    if (!figure.Closed) open = true;
+                    List<double[]> ends = new List<double[]> { new[] { figure.X, figure.Y } };
+                    foreach (double[] step in figure.Steps) ends.Add(new[] { step[step.Length - 2], step[step.Length - 1] });
+                    steps += figure.Steps.Count;
+                    foreach (double[] end in ends)
+                    {
+                        left = Math.Min(left, end[0]);
+                        right = Math.Max(right, end[0]);
+                        top = Math.Min(top, end[1]);
+                        bottom = Math.Max(bottom, end[1]);
+                    }
+                }
+                double[] got = { logo.Figures.Count, steps, left, top, right, bottom };
+                for (int j = 0; j < got.Length; j++)
+                    if (Math.Abs(got[j] - wanted[i][j]) > 0.002) return logo.Name + " came out as " + string.Join(" ", Array.ConvertAll(got, one => one.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)));
+                if (open) return logo.Name + " left a shape open.";
+            }
+            if (ServiceLogo.Notion.Ink != "#FFFFFF" || ServiceLogo.Gmail.Ink != ServiceLogo.Gmail.Hex || ServiceLogo.Linear.Ink != "#5E6AD2") return "Notion's mark isn't drawn white, or another logo lost its colour.";
+            return null;
+        }
+
         internal static void CheckPlugins(Mods mods, List<string> checks, string output, Action<Mod> shown = null)
         {
             ModFloor.Fresh();
@@ -247,6 +280,9 @@ while True:
                 throw new Exception("A package runner's version pin was read wrong.");
             if (McpServer.Quoted("a b") != "\"a b\"" || McpServer.Quoted("say \"hi\"") != "\"say \\\"hi\\\"\"" || McpServer.Quoted("C:\\x y\\") != "\"C:\\x y\\\\\"" || McpServer.Quoted("") != "\"\"" || McpServer.Quoted("plain") != "plain") throw new Exception("A plug-in server's arguments were quoted wrong.");
             checks.Add("PASS plug-ins: her JSON reads and writes back the same, a package runner without a version is caught, and server arguments are quoted safely");
+            string logo = LogoTrouble();
+            if (logo != null) throw new Exception("A service logo didn't read into its outline: " + logo);
+            checks.Add("PASS plug-ins: Gmail's, iCloud's, Notion's and Linear's logos read into the outlines they draw, and Notion's black mark is drawn white");
 
             foreach (Mod old in mods.All.ToArray()) if (old.Plugin) mods.Remove(old);
             string place = Path.Combine(output, "smoke-plugin");
@@ -713,10 +749,11 @@ while True:
                 Mod email = made.Find(one => one.File.Id == MailStarter), notion = made.Find(one => one.File.Id == "notion");
                 if (made.Count != 3 || email == null || notion == null || made.Exists(one => one.On || one.Changed || StarterAbout(one) == null || !StarterAbout(one).StartsWith("STARTER.", StringComparison.Ordinal)) || !Builtin(email, "mail") || !Online(notion) || Builtin(notion, "mail"))
                     throw new Exception("Her starter plug-ins didn't come in off and waiting to be set up: " + made.Count);
+                Hands.Kit unplugged = Hands.KitFor();
                 string consent = null;
                 if (!mods.Set(email, true, delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; }) || !email.On || consent == null || !consent.Contains("uses Capri's own mail tools") || consent.Contains("starts "))
                     throw new Exception("Turning on her Email starter didn't ask with what it uses: " + consent);
-                if (Wait(delegate { return Plugins.ToolsOf(MailStarter).Count == 5; }, 30) != null) throw new Exception("Her Email starter's tools weren't listed: " + Plugins.Trouble(MailStarter));
+                if (Wait(delegate { return Plugins.ToolsOf(MailStarter).Count == 8; }, 30) != null) throw new Exception("Her Email starter's tools weren't listed: " + Plugins.Trouble(MailStarter));
                 string unset = Plugins.Run("email_recent_mail", "");
                 if (!unset.Contains(MailTools.NotSetUp) || Plugins.Granted("email_send_mail") != 1 || Plugins.Needs("email_recent_mail") != Security.ModTools)
                     throw new Exception("Her Email starter didn't say it needs setting up, or sending mail didn't always ask first: " + unset);
@@ -727,6 +764,8 @@ while True:
                 Plugins.Grant(MailStarter, "send_mail", Plugins.Usual);
                 if (!asks || asking != "send an email to pat@example.com, lee@example.com with the subject 'Lunch'" || !unaddressed.StartsWith("email_send_mail needs to.", StringComparison.Ordinal))
                     throw new Exception("Sending mail set to always run didn't still ask with who it goes to and the subject, or went without a to: " + asking + " | " + unaddressed);
+                MailChecks.CheckStarter(checks);
+                MailChecks.CheckPlainAsk(checks, unplugged);
                 foreach (Mod one in made) mods.Remove(one);
                 mods.AddStarters();
                 mods.Load();

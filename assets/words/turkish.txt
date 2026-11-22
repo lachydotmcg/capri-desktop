@@ -30,6 +30,7 @@ Ask Capri for more	Capri'den daha fazlasını iste
 Asking your server...	Sunucuna soruluyor...
 Asks before closing only the apps you choose.	Yalnızca seçtiğin uygulamaları kapatmadan önce sorar.
 Auto	Otomatik
+Auto (match what I say)	Otomatik (söylediğime göre)
 Automatic: VB-CABLE, else Steam's	Otomatik: VB-CABLE, yoksa Steam'in
 BAD RELAY HOST	KÖTÜ RELE ANA BİLGİSAYARI
 BIG Z open notepad	BIG Z not defterini aç
@@ -290,6 +291,7 @@ Huge	Devasa
 I can hear you.	Seni duyabiliyorum.
 I glance at your screen and comment. Costs a little on a paid brain.	Ekranına bakıp yorum yapıyorum. Ücretli bir beyinde biraz maliyeti var.
 I keep listening. Say my name, then just talk.	Dinlemeye devam ediyorum. Adımı söyle, sonra sadece konuş.
+I speak	Konuştuğum dil
 I talk about your game as you play. Costs a little on a paid brain.	Sen oynarken oyunun hakkında konuşuyorum. Ücretli bir beyinde biraz maliyeti var.
 I type my replies and stay quiet.	Yanıtlarımı yazıyorum ve sessiz kalıyorum.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Geri konuşmam ve hiçbir şey bir yere gönderilmez. Yine de takılırım, müziğine dans ederim ve sesi değiştirmek gibi istediğin hızlı şeyleri yaparım.
@@ -598,6 +600,7 @@ SKILL.	BECERİ.
 SKIN.	GÖRÜNÜM.
 SORT BY	ŞUNA GÖRE SIRALA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SESLER ALIŞKANLIKLAR BEYİN İZLE CAPRI DOOMSCROLL HAVA KLİPLER OYUNLAR TUŞLAR HAREKETLER SES SEN
+Same as I speak	Konuştuğum dille aynı
 Same as her ears (VOICE > Mic)	Onun kulaklarıyla aynı (SES > Mikrofon)
 Same code on the phone?	Telefonda aynı kod mu?
 Save	Kaydet
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Ayarlar izlenecek bir şey bulamadı.
 Settings lost keyboard focus during the Tab walk	Ayarlar Tab gezintisi sırasında klavye odağını kaybetti
 Setup guide	Kurulum rehberi
 Setup stopped	Kurulum durduruldu
+She answers in	Cevap dili
 She can read it when it fits.	Uygun olduğunda okuyabilir.
 She glances at your screen and comments. Costs a little on a paid brain.	Ekranına bakar ve yorum yapar. Ücretli bir beyinde biraz maliyeti var.
-She keeps listening. Say her name, then just talk until you go quiet.	Dinlemeye devam ediyor. Adını söyle, sonra sessizleşene kadar konuş.
+She keeps listening. Say her name, then just talk.	Dinlemeye devam ediyor. Adını söyle, sonra konuş.
 She reacts to your game until you close it.	Oyunu kapatana kadar oyununa tepki verir.
 She reads these controls before each game job.	Her oyun işinden önce bu denetimleri okur.
 She talks about your game as you play. Costs a little on a paid brain.	Sen oynarken oyunun hakkında konuşur. Ücretli bir beyinde biraz maliyeti var.

@@ -30,6 +30,7 @@ Ask Capri for more	Yêu cầu Capri thêm
 Asking your server...	Đang hỏi máy chủ của bạn...
 Asks before closing only the apps you choose.	Chỉ hỏi trước khi đóng các ứng dụng bạn chọn.
 Auto	Tự động
+Auto (match what I say)	Tự động (theo những gì tôi nói)
 Automatic: VB-CABLE, else Steam's	Tự động: VB-CABLE, nếu không thì của Steam
 BAD RELAY HOST	MÁY CHỦ RELAY LỖI
 BIG Z open notepad	BIG Z mở notepad
@@ -290,6 +291,7 @@ Huge	Khổng lồ
 I can hear you.	Mình nghe thấy bạn.
 I glance at your screen and comment. Costs a little on a paid brain.	Mình liếc màn hình của bạn và bình luận. Tốn một chút với não trả phí.
 I keep listening. Say my name, then just talk.	Mình tiếp tục nghe. Gọi tên mình, rồi cứ nói.
+I speak	Tôi nói
 I talk about your game as you play. Costs a little on a paid brain.	Mình nói về game của bạn khi bạn chơi. Tốn một chút với não trả phí.
 I type my replies and stay quiet.	Mình gõ trả lời và im lặng.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Mình sẽ không nói lại, và không gửi gì đi đâu cả. Mình vẫn ở đây, nhảy theo nhạc của bạn và làm các việc nhanh bạn yêu cầu, như âm lượng.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	SẮP XẾP THEO
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ÂM THANH THÓI QUEN NÃO XEM CAPRI DOOMSCROLL THỜI TIẾT CLIP GAME PHÍM CHIÊU GIỌNG BẠN
+Same as I speak	Giống ngôn ngữ của tôi
 Same as her ears (VOICE > Mic)	Giống tai của cô ấy (GIỌNG > Mic)
 Same code on the phone?	Cùng mã trên điện thoại?
 Save	Lưu
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Cài đặt không có gì để xem.
 Settings lost keyboard focus during the Tab walk	Cài đặt mất tiêu điểm bàn phím trong lúc duyệt bằng Tab
 Setup guide	Hướng dẫn thiết lập
 Setup stopped	Thiết lập đã dừng
+She answers in	Cô ấy trả lời bằng
 She can read it when it fits.	Cô ấy có thể đọc khi vừa.
 She glances at your screen and comments. Costs a little on a paid brain.	Cô ấy liếc màn hình của bạn và bình luận. Tốn một chút với não trả phí.
-She keeps listening. Say her name, then just talk until you go quiet.	Cô ấy tiếp tục nghe. Gọi tên cô ấy, rồi cứ nói cho đến khi bạn im lặng.
+She keeps listening. Say her name, then just talk.	Cô ấy tiếp tục nghe. Gọi tên cô ấy, rồi cứ nói.
 She reacts to your game until you close it.	Cô ấy phản ứng với game của bạn cho đến khi bạn đóng nó.
 She reads these controls before each game job.	Cô ấy đọc các điều khiển này trước mỗi việc trong game.
 She talks about your game as you play. Costs a little on a paid brain.	Cô ấy nói về game của bạn khi bạn chơi. Tốn một chút với não trả phí.

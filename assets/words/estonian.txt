@@ -30,6 +30,7 @@ Ask Capri for more	Küsi Capri'lt rohkem
 Asking your server...	Küsin sinu serverilt...
 Asks before closing only the apps you choose.	Küsib enne sulgemist ainult sinu valitud rakendusi.
 Auto	Automaatne
+Auto (match what I say)	Automaatne (nagu ma räägin)
 Automatic: VB-CABLE, else Steam's	Automaatne: VB-CABLE, muidu Steami oma
 BAD RELAY HOST	VIGANE RELEEHOST
 BIG Z open notepad	BIG Z ava märkmik
@@ -290,6 +291,7 @@ Huge	Hiiglaslik
 I can hear you.	Ma kuulen sind.
 I glance at your screen and comment. Costs a little on a paid brain.	Vaatan su ekraani ja kommenteerin. Tasulisel ajul maksab natuke.
 I keep listening. Say my name, then just talk.	Kuulan edasi. Ütle mu nimi ja räägi lihtsalt.
+I speak	Ma räägin
 I talk about your game as you play. Costs a little on a paid brain.	Räägin su mängust, kui mängid. Tasulisel ajul maksab natuke.
 I type my replies and stay quiet.	Kirjutan vastused ja jään vait.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ma ei vasta, ega midagi ei saadeta kuhugi. Ikka istun siin, tantsin su muusika järgi ja teen kiired asjad, mida palud, nagu helitugevus.
@@ -598,6 +600,7 @@ SKILL.	OSKUS.
 SKIN.	NAHK.
 SORT BY	SORTEERI
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	HELID HARJUMUSED AJU VAATA CAPRI DOOMSCROLL ILM KLIPID MÄNGUD VÕTMED LIIKUMISED HÄÄL SINA
+Same as I speak	Sama mis minu keel
 Same as her ears (VOICE > Mic)	Sama mis tema kõrvad (HÄÄL > Mikrofon)
 Same code on the phone?	Sama kood telefonis?
 Save	Salvesta
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Seadetel polnud vaadata midagi.
 Settings lost keyboard focus during the Tab walk	Seaded kaotas klaviatuurifookuse Tab-läbimise ajal
 Setup guide	Seadistusjuhend
 Setup stopped	Seadistus peatati
+She answers in	Ta vastab keeles
 She can read it when it fits.	Ta saab seda lugeda, kui see mahub.
 She glances at your screen and comments. Costs a little on a paid brain.	Ta vaatab su ekraani ja kommenteerib. Tasulisel ajul maksab natuke.
-She keeps listening. Say her name, then just talk until you go quiet.	Ta kuulab edasi. Ütle tema nimi ja räägi, kuni vaikid.
+She keeps listening. Say her name, then just talk.	Ta kuulab edasi. Ütle tema nimi ja räägi.
 She reacts to your game until you close it.	Ta reageerib sinu mängule, kuni selle sulged.
 She reads these controls before each game job.	Ta loeb neid juhtnuppe enne iga mängu toimingut.
 She talks about your game as you play. Costs a little on a paid brain.	Ta räägib sinu mängust, kui mängid. Tasulisel ajul maksab natuke.

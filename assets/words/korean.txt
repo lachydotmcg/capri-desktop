@@ -30,6 +30,7 @@ Ask Capri for more	Capri에게 더 요청하기
 Asking your server...	서버에 묻는 중...
 Asks before closing only the apps you choose.	선택한 앱만 닫기 전에 물어봐.
 Auto	자동
+Auto (match what I say)	자동 (내 말에 맞춤)
 Automatic: VB-CABLE, else Steam's	자동: VB-CABLE, 없으면 Steam 것
 BAD RELAY HOST	잘못된 RELAY 호스트
 BIG Z open notepad	BIG Z 메모장 열어
@@ -290,6 +291,7 @@ Huge	거대
 I can hear you.	들려요.
 I glance at your screen and comment. Costs a little on a paid brain.	화면을 힐끗 보고 댓글을 달아. 유료 뇌에서는 약간 비용이 들어.
 I keep listening. Say my name, then just talk.	계속 듣고 있어. 내 이름을 부르고 그냥 말해.
+I speak	내가 쓰는 언어
 I talk about your game as you play. Costs a little on a paid brain.	게임을 하는 동안 게임에 대해 얘기해. 유료 뇌에서는 약간 비용이 들어.
 I type my replies and stay quiet.	답은 직접 입력하고 조용히 있을게.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	말로 대답하지 않고, 어디에도 아무것도 보내지 않아. 그래도 곁에 있으면서 음악에 맞춰 춤추고 음량 같은 빠른 일을 해줄게.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	정렬 기준
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	소리 습관 뇌 지켜보기 CAPRI 둠스크롤 날씨 클립 게임 키 움직임 음성 당신
+Same as I speak	내 언어와 같게
 Same as her ears (VOICE > Mic)	그녀의 귀와 같음 (음성 > 마이크)
 Same code on the phone?	휴대폰에도 같은 코드?
 Save	저장
@@ -633,9 +636,10 @@ Settings had nothing to watch.	설정에 지켜볼 것이 없었어.
 Settings lost keyboard focus during the Tab walk	Tab 이동 중 설정이 키보드 포커스를 잃음
 Setup guide	설정 가이드
 Setup stopped	설정 중단됨
+She answers in	답하는 언어
 She can read it when it fits.	맞으면 그녀가 읽을 수 있어.
 She glances at your screen and comments. Costs a little on a paid brain.	화면을 힐끗 보고 댓글을 달아. 유료 뇌에서는 약간 비용이 들어.
-She keeps listening. Say her name, then just talk until you go quiet.	계속 듣고 있어. 그녀의 이름을 부르고 조용해질 때까지 말해.
+She keeps listening. Say her name, then just talk.	계속 듣고 있어. 그녀의 이름을 부르고 말해.
 She reacts to your game until you close it.	네가 게임을 닫을 때까지 게임에 반응해.
 She reads these controls before each game job.	게임 작업을 할 때마다 이 컨트롤을 읽어.
 She talks about your game as you play. Costs a little on a paid brain.	게임을 하는 동안 네 게임에 대해 얘기해. 유료 뇌에서는 약간 비용이 들어.

@@ -30,6 +30,7 @@ Ask Capri for more	向 Capri 要更多
 Asking your server...	正在詢問你的伺服器...
 Asks before closing only the apps you choose.	只在關閉你選擇的應用程式前詢問。
 Auto	自動
+Auto (match what I say)	自動（跟隨我說的話）
 Automatic: VB-CABLE, else Steam's	自動：VB-CABLE，否則用 Steam 的
 BAD RELAY HOST	無效的中繼主機
 BIG Z open notepad	BIG Z 開啟記事本
@@ -290,6 +291,7 @@ Huge	超大
 I can hear you.	我聽得到你。
 I glance at your screen and comment. Costs a little on a paid brain.	我會瞄一眼你的螢幕並加以評論。使用付費大腦會稍微花費。
 I keep listening. Say my name, then just talk.	我會持續聆聽。叫我的名字，然後直接說話。
+I speak	我說的語言
 I talk about your game as you play. Costs a little on a paid brain.	我會在你遊玩時談論你的遊戲。使用付費大腦會稍微花費。
 I type my replies and stay quiet.	我用打字回覆，保持安靜。
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	我不會回話，也不會傳送任何東西到任何地方。我還是會陪著你、隨你的音樂跳舞，並做你要求的快速事項，例如調整音量。
@@ -598,6 +600,7 @@ SKILL.	技能。
 SKIN.	外觀。
 SORT BY	排序依據
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	音效 習慣 大腦 觀看 CAPRI DOOMSCROLL 天氣 剪輯 遊戲 按鍵 動作 語音 你
+Same as I speak	和我說的一樣
 Same as her ears (VOICE > Mic)	與她的耳朵相同（語音 > 麥克風）
 Same code on the phone?	手機上的代碼相同嗎？
 Save	儲存
@@ -633,9 +636,10 @@ Settings had nothing to watch.	設定沒有可觀看的內容。
 Settings lost keyboard focus during the Tab walk	在 Tab 走訪期間，設定失去了鍵盤焦點
 Setup guide	設定指南
 Setup stopped	設定已停止
+She answers in	她回覆的語言
 She can read it when it fits.	合適時她就能讀取它。
 She glances at your screen and comments. Costs a little on a paid brain.	她會瞄一眼你的螢幕並加以評論。使用付費大腦會稍微花費。
-She keeps listening. Say her name, then just talk until you go quiet.	她會持續聆聽。說出她的名字，然後說到你安靜下來為止。
+She keeps listening. Say her name, then just talk.	她會持續聆聽。說出她的名字，然後直接說話。
 She reacts to your game until you close it.	在你關閉遊戲前，她會對遊戲做出反應。
 She reads these controls before each game job.	她在每項遊戲任務前都會讀取這些控制項。
 She talks about your game as you play. Costs a little on a paid brain.	她會在你遊玩時談論你的遊戲。使用付費大腦會稍微花費。

@@ -30,6 +30,7 @@ Ask Capri for more	ขอเพิ่มจาก Capri
 Asking your server...	กำลังถามเซิร์ฟเวอร์ของคุณ...
 Asks before closing only the apps you choose.	จะถามก่อนปิดเฉพาะแอปที่คุณเลือกเท่านั้น
 Auto	อัตโนมัติ
+Auto (match what I say)	อัตโนมัติ (ตามที่ฉันพูด)
 Automatic: VB-CABLE, else Steam's	อัตโนมัติ: VB-CABLE ไม่งั้นใช้ของ Steam
 BAD RELAY HOST	โฮสต์รีเลย์ไม่ถูกต้อง
 BIG Z open notepad	BIG Z เปิด notepad
@@ -290,6 +291,7 @@ Huge	ใหญ่มาก
 I can hear you.	ฉันได้ยินคุณ
 I glance at your screen and comment. Costs a little on a paid brain.	ฉันชำเลืองดูหน้าจอคุณแล้วแสดงความคิดเห็น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
 I keep listening. Say my name, then just talk.	ฉันจะฟังต่อ พูดชื่อฉันแล้วคุยได้เลย
+I speak	ภาษาที่ฉันพูด
 I talk about your game as you play. Costs a little on a paid brain.	ฉันพูดถึงเกมของคุณขณะที่คุณเล่น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
 I type my replies and stay quiet.	ฉันพิมพ์คำตอบและเงียบไว้
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ฉันจะไม่ตอบด้วยเสียง และไม่มีอะไรถูกส่งไปที่ไหนเลย ฉันยังคงอยู่ด้วย เต้นตามเพลงของคุณ และทำสิ่งเล็ก ๆ ที่คุณขอ เช่นระดับเสียง
@@ -598,6 +600,7 @@ SKILL.	ทักษะ
 SKIN.	สกิน
 SORT BY	เรียงตาม
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	เสียง นิสัย สมอง ดู CAPRI DOOMSCROLL อากาศ คลิป เกม คีย์ ท่าทาง เสียง คุณ
+Same as I speak	เหมือนภาษาที่ฉันพูด
 Same as her ears (VOICE > Mic)	เหมือนหูของเธอ (เสียง > ไมค์)
 Same code on the phone?	โค้ดเดียวกันบนโทรศัพท์ไหม?
 Save	บันทึก
@@ -633,9 +636,10 @@ Settings had nothing to watch.	การตั้งค่าไม่มีอ�
 Settings lost keyboard focus during the Tab walk	การตั้งค่าเสียโฟกัสคีย์บอร์ดระหว่างการกด Tab
 Setup guide	คู่มือการตั้งค่า
 Setup stopped	การตั้งค่าหยุดแล้ว
+She answers in	ภาษาที่เธอตอบ
 She can read it when it fits.	เธออ่านได้เมื่อพอดี
 She glances at your screen and comments. Costs a little on a paid brain.	เธอชำเลืองดูหน้าจอคุณแล้วแสดงความคิดเห็น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
-She keeps listening. Say her name, then just talk until you go quiet.	เธอจะฟังต่อ พูดชื่อเธอแล้วคุยไปเรื่อย ๆ จนคุณเงียบ
+She keeps listening. Say her name, then just talk.	เธอจะฟังต่อ พูดชื่อเธอแล้วพูดได้เลย
 She reacts to your game until you close it.	เธอจะตอบสนองต่อเกมของคุณจนกว่าคุณจะปิด
 She reads these controls before each game job.	เธออ่านการควบคุมเหล่านี้ก่อนทุกงานในเกม
 She talks about your game as you play. Costs a little on a paid brain.	เธอพูดถึงเกมของคุณขณะที่คุณเล่น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน

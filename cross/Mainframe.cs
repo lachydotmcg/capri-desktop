@@ -110,6 +110,7 @@ namespace CapriDesktop
 
         protected virtual void Back() { Close(); }
         protected virtual bool PageKey(Key key) { return false; }
+        protected virtual bool Finds(KeyEventArgs e) { return false; }
         private static bool Steerable(Control control) { return control is NeonButton || control is NeonSwitch || control is NeonSlider || control is NeonEntry; }
         private List<Stop> Stops()
         {
@@ -211,6 +212,7 @@ namespace CapriDesktop
         {
             if (e.Source is NeonChoice) return;
             if (HeldKey(e) || !Steered) return;
+            if (Finds(e)) { e.Handled = true; return; }
             Key key = e.Key;
             KeyModifiers mods = e.KeyModifiers;
             TextBox box = e.Source as TextBox ?? FocusManager?.GetFocusedElement() as TextBox;
@@ -400,6 +402,8 @@ namespace CapriDesktop
         private readonly NeonCaption thinkingLabel, extraLabel;
         private readonly NeonButton thinkingExtra;
         private readonly NeonSwitch stayRow;
+        private readonly NeonPicker answers;
+        private readonly Control answersLabel;
         private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress, weatherCity;
         private bool paged, syncing, closed, finishing;
         private string layout;
@@ -531,6 +535,7 @@ namespace CapriDesktop
             updateNote = Caption("", 28, 644, 328, 18, MainframeTheme.Faint, 34.0 / 3); updateNote.Ellipsis = true;
             building = 1;
             advanced = Key("Advanced Settings", 238, 20, 136, 22, () => { pet.SetAdvancedSettings(!pet.Saved.AdvancedSettings); ShowSettings(true); }); advanced.Accent = MainframeTheme.Cyan; advanced.Loud = true;
+            BuildSearch();
             Section("YOU", 0, 58);
             var personality = Add(new NeonPicker(), 72, 55, 106, 20, "Her personality");
             personality.Check = false;
@@ -545,7 +550,14 @@ namespace CapriDesktop
             var languages = new string[Brain.Languages.GetLength(0)];
             for (int i = 0; i < languages.Length; i++) languages[i] = Brain.Languages[i, 0];
             language.Options(languages); language.Ellipsis = true;
-            Named("Language", 0, 82);
+            Named("I speak", 0, 82);
+            answers = Picker("She answers in", 184, 113, 172, () => AnswerIndex(), i => pet.SetReplyLanguage(Hands.StepsOf("reply_language")[i]));
+            answers.Height = 22;
+            var replies = new string[Brain.Languages.GetLength(0) + 2];
+            replies[0] = LanguagePair.SameName; replies[1] = LanguagePair.AutoName;
+            for (int i = 0; i < languages.Length; i++) replies[i + 2] = languages[i];
+            answers.Options(replies); answers.Ellipsis = true;
+            answersLabel = Named("She answers in", 0, 110);
             Caption("What should she call you?", 28, 116, 200, 18);
             Key("Get to know me", 236, 113, 120, 22, pet.GetToKnow);
             nickname = Entry("What should she call you?", "Your name or a nickname", 28, 141, 244, 22, () => pet.SetNickname(nickname.Box.Text));
@@ -707,10 +719,11 @@ namespace CapriDesktop
             return Add(new NeonCaption { Text = text, Ink = ink ?? MainframeTheme.Rose, Size = size, Bold = bold, Display = display }, x, y, width, height);
         }
         private NeonHead Section(string title, int x, int y) { return Add(new NeonHead { Text = title }, 14 + x, y - 5, 352, 24); }
-        private void Named(string text, int x, int y)
+        private NeonCaption Named(string text, int x, int y)
         {
             var label = Caption(text, x + 28, y + 6, 146, 16);
             MainframeTips.Explain(label, text);
+            return label;
         }
         private void Heartbeat()
         {
@@ -772,10 +785,11 @@ namespace CapriDesktop
         }
         private int LanguageIndex()
         {
-            string language = Brain.Language ?? "English";
+            string language = pet.TheirLanguage;
             for (int i = 0; i < Brain.Languages.GetLength(0); i++) if (Brain.Languages[i, 1] == language) return i;
             return 0;
         }
+        private int AnswerIndex() { return Hands.LevelOf("reply_language"); }
         private static int Nearest(int[] values, int value) { int at = 0; for (int i = 1; i < values.Length; i++) if (Math.Abs(values[i] - value) < Math.Abs(values[at] - value)) at = i; return at; }
         internal static string CareTimeName(CareKind kind, int time) { return kind == CareKind.Late ? (time % 12 == 0 ? 12 : time % 12) + (time < 12 ? " am" : " pm") : time >= 60 && time % 60 == 0 ? time / 60 + " h" : time + " min"; }
         private static int Nearest(double[] values, double value) { int at = 0; for (int i = 1; i < values.Length; i++) if (Math.Abs(values[i] - value) < Math.Abs(values[at] - value)) at = i; return at; }
@@ -849,7 +863,7 @@ namespace CapriDesktop
         internal void OpenPage(string name)
         {
             name = (name ?? "main").Trim().ToLowerInvariant();
-            if (name == "mods") { ShowMods(true); return; }
+            if (name == "mods" || name == "plugins") { ShowMods(true); return; }
             if (name == "remote") { OpenRemote(); return; }
             modded = false;
             ShowSettings(!string.IsNullOrEmpty(name) && name != "main" && name != "brain" && name != "voice");
@@ -907,6 +921,7 @@ namespace CapriDesktop
                     // Her ears rows sit at the top of the left gap, so on Mac and Linux the gap starts below them.
                     if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { EarsBand[1], band[1] } : band);
                     y = Lift(anchor, missing, folded, simple) - (control is NeonHead ? 5 : 0);
+                    if (!right && anchor >= 110 && control != answers && control != answersLabel) y += 28;
                     if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel && control != thinkingLevel && control != thinkingLabel && control != thinkingExtra && control != extraLabel) y += control == stayRow ? 84 : pet.NvidiaBrain ? 112 : 84;
                 }
                 if (item.Page == 0)
@@ -945,7 +960,7 @@ namespace CapriDesktop
             }
             Fit(paged ? 760 : 380, bottom + 28, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0);
         }
-        private void CloseMenus() { voicePicker?.CloseMenu(); foreach (Item item in items) if (item.Control is NeonPicker picker) picker.CloseMenu(); }
+        private void CloseMenus() { voicePicker?.CloseMenu(); foreach (Item item in items) if (item.Control is NeonPicker picker) picker.CloseMenu(); CloseSearch(); }
         private void ConnectBrain()
         {
             string key = (textKey.Box.Text ?? "").Trim(); textKey.Box.Text = "";

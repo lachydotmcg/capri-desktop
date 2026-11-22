@@ -30,6 +30,7 @@ Ask Capri for more	Kérj még Caprit
 Asking your server...	Megkérdezem a szervered...
 Asks before closing only the apps you choose.	Csak a kiválasztott alkalmazásoknál kérdez bezárás előtt.
 Auto	Auto
+Auto (match what I say)	Auto (amit mondok)
 Automatic: VB-CABLE, else Steam's	Automatikus: VB-CABLE, különben a Steamé
 BAD RELAY HOST	ROSSZ RELÉCSOMÓPONT
 BIG Z open notepad	BIG Z nyisd meg a jegyzettömböt
@@ -290,6 +291,7 @@ Huge	Hatalmas
 I can hear you.	Hallak.
 I glance at your screen and comment. Costs a little on a paid brain.	Ránézek a képernyődre és kommentálok. Fizetős agyon kicsit költ.
 I keep listening. Say my name, then just talk.	Továbbra is hallgatok. Mondd ki a nevem, aztán csak beszélj.
+I speak	Az én nyelvem
 I talk about your game as you play. Costs a little on a paid brain.	Kommentálom a játékodat, amíg játszol. Fizetős agyon kicsit költ.
 I type my replies and stay quiet.	Beírom a válaszaimat, és csendben maradok.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nem szólok vissza, és semmi nem megy sehova. Azért lógok, zenére táncolok és megcsinálom a gyors dolgokat, amiket kérsz, például a hangerőt.
@@ -598,6 +600,7 @@ SKILL.	KÉPESSÉG.
 SKIN.	BŐR.
 SORT BY	RENDEZÉS
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	HANGOK SZOKÁSOK AGY NÉZÉS CAPRI DOOMSCROLL IDŐJÁRÁS KLIPEK JÁTÉKOK BILLENTYŰK MOZGÁSOK HANG TE
+Same as I speak	Mint az én nyelvem
 Same as her ears (VOICE > Mic)	Ugyanaz, mint a fülei (HANG > Mikrofon)
 Same code on the phone?	Ugyanaz a kód a telefonon?
 Save	Mentés
@@ -633,9 +636,10 @@ Settings had nothing to watch.	A Beállításoknak nem volt mit figyelnie.
 Settings lost keyboard focus during the Tab walk	A Beállítások elvesztette a billentyűzetfókuszt a Tab-bejárás közben
 Setup guide	Beállítási útmutató
 Setup stopped	A beállítás leállt
+She answers in	Válasz nyelve
 She can read it when it fits.	Ha belefér, el tudja olvasni.
 She glances at your screen and comments. Costs a little on a paid brain.	Ránéz a képernyődre és kommentál. Fizetős agyon kicsit költ.
-She keeps listening. Say her name, then just talk until you go quiet.	Továbbra is hallgat. Mondd ki a nevét, aztán beszélj, amíg el nem hallgatsz.
+She keeps listening. Say her name, then just talk.	Továbbra is hallgat. Mondd ki a nevét, aztán beszélj.
 She reacts to your game until you close it.	A játékodra reagál, amíg be nem zárod.
 She reads these controls before each game job.	Minden játékfeladat előtt elolvassa ezeket a vezérlőket.
 She talks about your game as you play. Costs a little on a paid brain.	Kommentálja a játékodat, amíg játszol. Fizetős agyon kicsit költ.

@@ -918,7 +918,7 @@ namespace CapriDesktop
 
         internal void SetLevel(double value)
         {
-            int step = chatting && !muted ? Math.Min(6, (int)(Math.Sqrt(value) * 24)) : 0;
+            int step = chatting && !muted && !listenForName ? Math.Min(6, (int)(Math.Sqrt(value) * 24)) : 0;
             if (step == level) return;
             level = step;
             if (Visible) Redraw();
@@ -987,7 +987,11 @@ namespace CapriDesktop
 
         internal static int EdgeWidth(float s) { return Math.Max(1, (int)Math.Round(1.5 * s)); }
 
-        internal static string Label(int part, bool chatting, bool muted, bool listenForName = false) { return part == 1 ? "TYPE" : chatting && muted ? "MUTED" : chatting && listenForName ? "CAPRI" : "TALK"; }
+        // Her ears open only for her name leave TALK as it is out of voice chat, so it never looks on. Muting them still shows.
+        internal static string Label(int part, bool chatting, bool muted, bool listenForName = false) { return part == 1 ? "TYPE" : chatting && muted ? "MUTED" : "TALK"; }
+
+        // Voice chat on, or a muted mic: the wave and TALK light up. Ears open only for her name aren't voice chat.
+        internal static bool TalkLit(bool chatting, bool muted, bool listenForName) { return chatting && (!listenForName || muted); }
 
         // How many of a bar's segments the mic level lights, for a level from 0 to 6.
         internal static int Lit(int bar, int level)
@@ -1063,12 +1067,13 @@ namespace CapriDesktop
                 using (Brush pink = new SolidBrush(Color.FromArgb(220, Look.Pink))) graphics.FillRectangle(pink, body.Left + (int)Math.Round(12 * s), body.Bottom + (int)Math.Round(2 * s) - sliver, (int)Math.Round(11 * s), sliver);
                 Color wash = Mix(Fill, Look.Cyan, WashAlpha);
                 string talk = Label(2, chatting, muted, listenForName);
+                bool on = TalkLit(chatting, muted, listenForName);
                 Rectangle[] pencil = Layout(s, 1, Ink(font, "TYPE"));
                 Rectangle[] wave = Layout(s, 2, Ink(font, talk));
                 DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? Look.Cyan : Look.Ink, hover == 1 ? wash : Fill);
                 DrawLabel(graphics, "TYPE", font, pencil[1], hover == 1 ? Look.Cyan : Caption);
-                DrawMeter(graphics, wave[0], s, chatting, muted, level, hover == 2 || chatting ? Look.Cyan : Look.Ink);
-                DrawLabel(graphics, talk, font, wave[1], chatting && muted ? Look.Red : hover == 2 || chatting ? Look.Cyan : Caption);
+                DrawMeter(graphics, wave[0], s, on, muted, level, hover == 2 || on ? Look.Cyan : Look.Ink);
+                DrawLabel(graphics, talk, font, wave[1], chatting && muted ? Look.Red : hover == 2 || on ? Look.Cyan : Caption);
                 if (chatting)
                 {
                     Rectangle mic = MicBody(s);
@@ -2977,7 +2982,7 @@ namespace CapriDesktop
         internal const int Columns = 36;
         private const int MostRows = 7;
         internal const int EndingRows = 5, SnagRows = 5;
-        private const string Speaker = "CAPRI: ";
+        private static string Speaker { get { return CompanionPack.Name.ToUpperInvariant() + ": "; } }
         private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly List<JobStep> steps = new List<JobStep>();
@@ -3351,7 +3356,7 @@ namespace CapriDesktop
         }
         internal Action<string> Copying = delegate(string reply) { Clipboard.SetText(reply); };
         private const int Columns = 34;
-        private const string Speaker = "CAPRI: ";
+        private static string Speaker { get { return CompanionPack.Name.ToUpperInvariant() + ": "; } }
 
         internal SpeechBox() : base("Capri says") { Cursor = Look.Pointer; }
 

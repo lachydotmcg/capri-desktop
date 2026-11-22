@@ -68,7 +68,7 @@ namespace CapriDesktop
 
         private bool DoomFree(bool full)
         {
-            return DoomscrollOn && !full && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !dragging && !pressed
+            return DoomscrollOn && !full && !CallModeOn && !preferences.CallMode && !InChat && !Hushed && !hidden && !quitting && !IsDisposed && !dragging && !pressed
                 && !typer.Visible && !menu.Visible && !docked && !onPanel && !riding && !falling && outro == null && job == null && working == null
                 && !LineBusy && speech == null && talkState == TalkState.Off && !Asleep;
         }

@@ -30,6 +30,7 @@ Ask Capri for more	Pide más a Capri
 Asking your server...	Consultando tu servidor...
 Asks before closing only the apps you choose.	Pregunta antes de cerrar solo las apps que elijas.
 Auto	Auto
+Auto (match what I say)	Auto (según lo que diga)
 Automatic: VB-CABLE, else Steam's	Automático: VB-CABLE, si no el de Steam
 BAD RELAY HOST	SERVIDOR RELAY NO VÁLIDO
 BIG Z open notepad	BIG Z abre el bloc de notas
@@ -290,6 +291,7 @@ Huge	Enorme
 I can hear you.	Te oigo.
 I glance at your screen and comment. Costs a little on a paid brain.	Echo un vistazo a tu pantalla y comento. Cuesta un poco con un cerebro de pago.
 I keep listening. Say my name, then just talk.	Sigo escuchando. Di mi nombre y luego simplemente habla.
+I speak	Hablo
 I talk about your game as you play. Costs a little on a paid brain.	Comento tu juego mientras juegas. Cuesta un poco con un cerebro de pago.
 I type my replies and stay quiet.	Escribo mis respuestas y me quedo callada.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	No hablaré, y no se envía nada a ningún sitio. Seguiré por aquí, bailaré con tu música y haré las cosas rápidas que pidas, como el volumen.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ORDENAR POR
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONIDOS HÁBITOS CEREBRO VIGILAR CAPRI SCROLL SIN FIN TIEMPO CLIPS JUEGOS CLAVES MOVIMIENTOS VOZ TÚ
+Same as I speak	Igual que hablo
 Same as her ears (VOICE > Mic)	Igual que sus oídos (VOZ > Micro)
 Same code on the phone?	¿Mismo código en el móvil?
 Save	Guardar
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Ajustes no tenía nada que vigilar.
 Settings lost keyboard focus during the Tab walk	Ajustes perdió el foco del teclado durante el recorrido con Tab
 Setup guide	Guía de configuración
 Setup stopped	Configuración detenida
+She answers in	Responde en
 She can read it when it fits.	Puede leerlo cuando encaje.
 She glances at your screen and comments. Costs a little on a paid brain.	Echo un vistazo a tu pantalla y comento. Cuesta un poco con un cerebro de pago.
-She keeps listening. Say her name, then just talk until you go quiet.	Sigue escuchando. Di su nombre y luego habla hasta que te quedes en silencio.
+She keeps listening. Say her name, then just talk.	Sigue escuchando. Di su nombre y luego habla.
 She reacts to your game until you close it.	Reacciona a tu juego hasta que lo cierres.
 She reads these controls before each game job.	Lee estos controles antes de cada tarea de juego.
 She talks about your game as you play. Costs a little on a paid brain.	Habla de tu juego mientras juegas. Cuesta un poco con un cerebro de pago.

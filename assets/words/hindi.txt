@@ -30,6 +30,7 @@ Ask Capri for more	Capri से और माँगो
 Asking your server...	तुम्हारे सर्वर से पूछ रही हूँ...
 Asks before closing only the apps you choose.	सिर्फ़ तुम्हारे चुने हुए ऐप्स बंद करने से पहले पूछेगी।
 Auto	ऑटो
+Auto (match what I say)	ऑटो (जो मैं कहूँ)
 Automatic: VB-CABLE, else Steam's	अपने-आप: VB-CABLE, नहीं तो Steam का
 BAD RELAY HOST	गलत RELAY HOST
 BIG Z open notepad	BIG Z नोटपैड खोलो
@@ -290,6 +291,7 @@ Huge	बहुत बड़ा
 I can hear you.	मैं तुम्हें सुन सकती हूँ।
 I glance at your screen and comment. Costs a little on a paid brain.	मैं तुम्हारी स्क्रीन पर एक नज़र डालती हूँ और कमेंट करती हूँ। पेड दिमाग पर थोड़ा खर्च होता है।
 I keep listening. Say my name, then just talk.	मैं सुनती रहती हूँ। मेरा नाम लो, फिर बस बोलो।
+I speak	मेरी भाषा
 I talk about your game as you play. Costs a little on a paid brain.	तुम खेलते समय मैं तुम्हारे गेम की बात करती हूँ। पेड दिमाग पर थोड़ा खर्च होता है।
 I type my replies and stay quiet.	मैं अपने जवाब टाइप करती हूँ और चुप रहती हूँ।
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	मैं जवाब नहीं दूँगी, और कुछ भी कहीं नहीं भेजा जाएगा। फिर भी मैं साथ रहूँगी, तुम्हारे म्यूज़िक पर नाचूँगी, और तुम्हारे माँगे हुए छोटे काम करूँगी, जैसे वॉल्यूम।
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	इसके अनुसार सॉर्ट करो
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as I speak	मेरी भाषा जैसी
 Same as her ears (VOICE > Mic)	उसके कानों जैसा (VOICE > Mic)
 Same code on the phone?	फ़ोन पर वही कोड?
 Save	सेव करो
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Settings में देखने को कु�
 Settings lost keyboard focus during the Tab walk	Tab वॉक के दौरान Settings का कीबोर्ड फ़ोकस चला गया
 Setup guide	सेटअप गाइड
 Setup stopped	सेटअप रुक गया
+She answers in	वह जवाब देती है
 She can read it when it fits.	जब फ़िट हो तब वह पढ़ सकती है।
 She glances at your screen and comments. Costs a little on a paid brain.	वह तुम्हारी स्क्रीन पर नज़र डालती है और कमेंट करती है। पेड दिमाग पर थोड़ा खर्च होता है।
-She keeps listening. Say her name, then just talk until you go quiet.	वह सुनती रहती है। उसका नाम लो, फिर चुप होने तक बोलते रहो।
+She keeps listening. Say her name, then just talk.	वह सुनती रहती है। उसका नाम लो, फिर बस बोलो।
 She reacts to your game until you close it.	वह तुम्हारा गेम बंद करने तक उस पर रिएक्ट करती है।
 She reads these controls before each game job.	वह हर गेम काम से पहले ये कंट्रोल पढ़ती है।
 She talks about your game as you play. Costs a little on a paid brain.	वह खेलते समय तुम्हारे गेम की बात करती है। पेड दिमाग पर थोड़ा खर्च होता है।

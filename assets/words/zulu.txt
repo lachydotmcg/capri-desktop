@@ -30,6 +30,7 @@ Ask Capri for more	Cela uCapri okuningi
 Asking your server...	Ibuza iseva yakho...
 Asks before closing only the apps you choose.	Ibuza ngaphambi kokuvala izinhlelo ozikhethile kuphela.
 Auto	Ngokuzenzakalela
+Auto (match what I say)	Ngokuzenzakalela (ngokwalokho engikushoyo)
 Automatic: VB-CABLE, else Steam's	Ngokuzenzakalela: VB-CABLE, noma ye-Steam
 BAD RELAY HOST	IKHEZO LE-RELAY ELINGALUNGILE
 BIG Z open notepad	BIG Z vula i-notepad
@@ -290,6 +291,7 @@ Huge	Omkhulu kakhulu
 I can hear you.	Ngiyakuzwa.
 I glance at your screen and comment. Costs a little on a paid brain.	Ngibheka isikrini sakho ngiphinde ngikhombise umbono. Kubiza kancane ngengqondo ekhokhelwayo.
 I keep listening. Say my name, then just talk.	Ngiqhubeka nokulalela. Sho igama lami, bese ukhuluma nje.
+I speak	Ngikhuluma
 I talk about your game as you play. Costs a little on a paid brain.	Ngikhuluma ngomdlalo wakho ngesikhathi udlala. Kubiza kancane ngengqondo ekhokhelwayo.
 I type my replies and stay quiet.	Ngibhala izimpendulo zami futhi ngithule.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Angiyikukhuluma emuva, futhi akukho okuthunyelwa noma kuphi. Ngisahlala nje, ngidanse emculweni wakho futhi ngenze izinto ezisheshayo ozicelayo, njengevolumu.
@@ -598,6 +600,7 @@ SKILL.	ISIKHONO.
 SKIN.	ISIMO.
 SORT BY	HLELA NGOKU
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	IMISINDO IZINKAMBISO INGQONDO UKUBUKA CAPRI DOOMSCROLL ISIMO SEZULU AMAKLIPU AMAGEYIMU AMAKHIYE IMIHAMBO IZWI WENA
+Same as I speak	Okufanayo nolimi lwami
 Same as her ears (VOICE > Mic)	Okufanayo nezindlebe zakhe (IZWI > Imic)
 Same code on the phone?	Ikhodi efanayo efonini?
 Save	Gcina
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Izilungiselelo zazingenalutho lokubuka.
 Settings lost keyboard focus during the Tab walk	Izilungiselelo zilahlekelwe ukugxila kokhibhodi phakathi kohambo lwe-Tab
 Setup guide	Umhlahlandlela wokusetha
 Setup stopped	Ukusetha kumisiwe
+She answers in	Uphendula ngolimi
 She can read it when it fits.	Angakufunda uma kulingana.
 She glances at your screen and comments. Costs a little on a paid brain.	Ubheka isikrini sakho aphinde akhombise umbono. Kubiza kancane ngengqondo ekhokhelwayo.
-She keeps listening. Say her name, then just talk until you go quiet.	Uqhubeka nokulalela. Sho igama lakhe, bese ukhuluma nje kuze uthule.
+She keeps listening. Say her name, then just talk.	Uqhubeka nokulalela. Sho igama lakhe, bese ukhuluma nje.
 She reacts to your game until you close it.	Uphendula emdlalweni wakho uze uwuvale.
 She reads these controls before each game job.	Ufunda lezi zilawuli ngaphambi komsebenzi ngamunye womdlalo.
 She talks about your game as you play. Costs a little on a paid brain.	Ukhuluma ngomdlalo wakho ngesikhathi udlala. Kubiza kancane ngengqondo ekhokhelwayo.

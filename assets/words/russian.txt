@@ -30,6 +30,7 @@ Ask Capri for more	Попроси Capri ещё
 Asking your server...	Спрашиваю твой сервер...
 Asks before closing only the apps you choose.	Спрашивает перед закрытием только выбранные тобой приложения.
 Auto	Авто
+Auto (match what I say)	Авто (по моему сообщению)
 Automatic: VB-CABLE, else Steam's	Автоматически: VB-CABLE, иначе Steam
 BAD RELAY HOST	НЕВЕРНЫЙ ХОСТ РЕЛЕ
 BIG Z open notepad	BIG Z открыть блокнот
@@ -290,6 +291,7 @@ Huge	Гигантский
 I can hear you.	Я тебя слышу.
 I glance at your screen and comment. Costs a little on a paid brain.	Я поглядываю на твой экран и комментирую. Немного стоит с платным мозгом.
 I keep listening. Say my name, then just talk.	Я продолжаю слушать. Скажи моё имя и говори.
+I speak	Я говорю
 I talk about your game as you play. Costs a little on a paid brain.	Я говорю о твоей игре, пока ты играешь. Немного стоит с платным мозгом.
 I type my replies and stay quiet.	Я печатаю ответы и молчу.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Я не буду отвечать, и никуда ничего не отправляется. Я всё равно буду рядом, танцевать под твою музыку и делать быстрые вещи, которые ты попросишь, например громкость.
@@ -598,6 +600,7 @@ SKILL.	НАВЫК.
 SKIN.	ОБЛИК.
 SORT BY	СОРТИРОВАТЬ ПО
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ЗВУКИ ПРИВЫЧКИ МОЗГ СМОТРЕТЬ CAPRI DOOMSCROLL ПОГОДА КЛИПЫ ИГРЫ КЛАВИШИ ДВИЖЕНИЯ ГОЛОС ТЫ
+Same as I speak	Как я говорю
 Same as her ears (VOICE > Mic)	Как её уши (ГОЛОС > Микрофон)
 Same code on the phone?	Тот же код на телефоне?
 Save	Сохранить
@@ -633,9 +636,10 @@ Settings had nothing to watch.	В настройках нечего смотре
 Settings lost keyboard focus during the Tab walk	Настройки потеряли фокус клавиатуры во время обхода Tab
 Setup guide	Руководство по настройке
 Setup stopped	Настройка остановлена
+She answers in	Она отвечает
 She can read it when it fits.	Она может прочитать, когда подойдёт.
 She glances at your screen and comments. Costs a little on a paid brain.	Она поглядывает на твой экран и комментирует. Немного стоит с платным мозгом.
-She keeps listening. Say her name, then just talk until you go quiet.	Она продолжает слушать. Скажи её имя и говори, пока не замолчишь.
+She keeps listening. Say her name, then just talk.	Она продолжает слушать. Скажи её имя и говори.
 She reacts to your game until you close it.	Она реагирует на твою игру, пока ты её не закроешь.
 She reads these controls before each game job.	Она читает эти элементы управления перед каждой игровой задачей.
 She talks about your game as you play. Costs a little on a paid brain.	Она говорит о твоей игре, пока ты играешь. Немного стоит с платным мозгом.

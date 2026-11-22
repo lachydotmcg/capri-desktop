@@ -30,6 +30,7 @@ Ask Capri for more	Capri-யிடம் மேலும் கேள்
 Asking your server...	உங்கள் சேவையகத்திடம் கேட்கிறது...
 Asks before closing only the apps you choose.	நீங்கள் தேர்ந்தெடுத்த செயலிகளை மட்டும் மூடும் முன் கேட்கும்.
 Auto	தானியங்கி
+Auto (match what I say)	தானியங்கி (நான் சொல்வதைப் பொறுத்து)
 Automatic: VB-CABLE, else Steam's	தானியங்கி: VB-CABLE, இல்லையெனில் Steam-உடையது
 BAD RELAY HOST	தவறான ரிலே ஹோஸ்ட்
 BIG Z open notepad	BIG Z நோட்பேடைத் திற
@@ -290,6 +291,7 @@ Huge	மிகப் பெரிய
 I can hear you.	நான் உன்னைக் கேட்கிறேன்.
 I glance at your screen and comment. Costs a little on a paid brain.	உங்கள் திரையைப் பார்த்து கருத்து சொல்கிறேன். கட்டண மூளையில் சிறிது செலவாகும்.
 I keep listening. Say my name, then just talk.	நான் தொடர்ந்து கேட்கிறேன். என் பெயரைச் சொல்லுங்கள், பின்னர் பேசுங்கள்.
+I speak	நான் பேசுவது
 I talk about your game as you play. Costs a little on a paid brain.	நீங்கள் விளையாடும்போது உங்கள் விளையாட்டைப் பற்றிப் பேசுகிறேன். கட்டண மூளையில் சிறிது செலவாகும்.
 I type my replies and stay quiet.	நான் என் பதில்களை தட்டச்சு செய்துவிட்டு அமைதியாக இருக்கிறேன்.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	நான் திருப்பிப் பேச மாட்டேன், எதுவும் எங்கும் அனுப்பப்படாது. நான் இன்னும் உங்களுடன் இருப்பேன், உங்கள் இசைக்கு நடனமாடுவேன், ஒலியளவு போன்ற விரைவான வேலைகளைச் செய்வேன்.
@@ -598,6 +600,7 @@ SKILL.	திறன்.
 SKIN.	தோல்.
 SORT BY	வரிசைப்படுத்து
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ஒலிகள் பழக்கங்கள் மூளை பார் CAPRI DOOMSCROLL வானிலை கிளிப்புகள் விளையாட்டுகள் விசைகள் அசைவுகள் குரல் நீ
+Same as I speak	என் மொழியைப் போலவே
 Same as her ears (VOICE > Mic)	அவளுடைய காதுகளைப் போலவே (குரல் > மைக்)
 Same code on the phone?	ஃபோனில் அதே குறியீடா?
 Save	சேமி
@@ -633,9 +636,10 @@ Settings had nothing to watch.	அமைப்புகளில் பார்
 Settings lost keyboard focus during the Tab walk	Tab வழிசெலுத்தலின்போது அமைப்புகள் விசைப்பலகை கவனத்தை இழந்தது
 Setup guide	அமைவு வழிகாட்டி
 Setup stopped	அமைவு நிறுத்தப்பட்டது
+She answers in	அவள் பதிலளிப்பது
 She can read it when it fits.	பொருந்தும்போது அவளால் அதைப் படிக்க முடியும்.
 She glances at your screen and comments. Costs a little on a paid brain.	அவள் உங்கள் திரையைப் பார்த்து கருத்து சொல்கிறாள். கட்டண மூளையில் சிறிது செலவாகும்.
-She keeps listening. Say her name, then just talk until you go quiet.	அவள் தொடர்ந்து கேட்கிறாள். அவளுடைய பெயரைச் சொல்லுங்கள், பிறகு நீங்கள் அமைதியாகும் வரை பேசுங்கள்.
+She keeps listening. Say her name, then just talk.	அவள் தொடர்ந்து கேட்கிறாள். அவளுடைய பெயரைச் சொல்லுங்கள், பிறகு பேசுங்கள்.
 She reacts to your game until you close it.	நீங்கள் மூடும் வரை உங்கள் விளையாட்டுக்கு அவள் எதிர்வினையாற்றுகிறாள்.
 She reads these controls before each game job.	ஒவ்வொரு விளையாட்டு வேலைக்கு முன்பும் அவள் இந்தக் கட்டுப்பாடுகளைப் படிக்கிறாள்.
 She talks about your game as you play. Costs a little on a paid brain.	நீங்கள் விளையாடும்போது உங்கள் விளையாட்டைப் பற்றி அவள் பேசுகிறாள். கட்டண மூளையில் சிறிது செலவாகும்.

@@ -30,6 +30,7 @@ Ask Capri for more	Pýtaj si od Capri viac
 Asking your server...	Pýtam sa tvojho servera...
 Asks before closing only the apps you choose.	Pred zatvorením sa spýta iba na aplikácie, ktoré vyberieš.
 Auto	Automaticky
+Auto (match what I say)	Automaticky (podľa mňa)
 Automatic: VB-CABLE, else Steam's	Automaticky: VB-CABLE, inak Steam
 BAD RELAY HOST	ZLÝ HOSTITEĽ RELAY
 BIG Z open notepad	BIG Z otvor poznámkový blok
@@ -290,6 +291,7 @@ Huge	Obrovské
 I can hear you.	Počujem ťa.
 I glance at your screen and comment. Costs a little on a paid brain.	Pozriem sa na tvoju obrazovku a okomentujem. Pri platenom mozgu to niečo stojí.
 I keep listening. Say my name, then just talk.	Stále počúvam. Povedz moje meno a potom len hovor.
+I speak	Hovorím
 I talk about your game as you play. Costs a little on a paid brain.	Komentujem tvoju hru počas hrania. Pri platenom mozgu to niečo stojí.
 I type my replies and stay quiet.	Píšem svoje odpovede a mlčím.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Neodpoviem a nikam sa nič neposiela. Stále budem vysedávať, tancovať na tvoju hudbu a robiť rýchle veci, o ktoré požiadaš, napríklad hlasitosť.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ZORADIŤ PODĽA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVUKY ZVYKY MOZOG SLEDOVAŤ CAPRI DOOMSCROLL POČASIE STRIHY HRY KLÁVESY POHYBY HLAS TY
+Same as I speak	Rovnako ako hovorím
 Same as her ears (VOICE > Mic)	Rovnako ako jej uši (HLAS > Mikrofón)
 Same code on the phone?	Rovnaký kód v telefóne?
 Save	Uložiť
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Nastavenia nemali nič na sledovanie.
 Settings lost keyboard focus during the Tab walk	Nastavenia stratili fokus klávesnice počas prechodu Tab
 Setup guide	Sprievodca nastavením
 Setup stopped	Nastavenie zastavené
+She answers in	Odpovedá v
 She can read it when it fits.	Môže si to prečítať, keď sa to hodí.
 She glances at your screen and comments. Costs a little on a paid brain.	Pozrie sa na tvoju obrazovku a okomentuje. Pri platenom mozgu to niečo stojí.
-She keeps listening. Say her name, then just talk until you go quiet.	Stále počúva. Povedz jej meno a potom hovor, kým nebudeš ticho.
+She keeps listening. Say her name, then just talk.	Stále počúva. Povedz jej meno a potom hovor.
 She reacts to your game until you close it.	Reaguje na tvoju hru, kým ju nezavrieš.
 She reads these controls before each game job.	Pred každou hernou úlohou si prečíta tieto ovládacie prvky.
 She talks about your game as you play. Costs a little on a paid brain.	Počas hrania hovorí o tvojej hre. Pri platenom mozgu to niečo stojí.

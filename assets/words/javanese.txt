@@ -30,6 +30,7 @@ Ask Capri for more	Takon Capri luwih akeh
 Asking your server...	Lagi takon server mu...
 Asks before closing only the apps you choose.	Takon dhisik sadurunge nutup mung aplikasi sing kowe pilih.
 Auto	Otomatis
+Auto (match what I say)	Otomatis (manut omonganku)
 Automatic: VB-CABLE, else Steam's	Otomatis: VB-CABLE, utawa Steam
 BAD RELAY HOST	HOST RELAY ORA BENER
 BIG Z open notepad	BIG Z bukak notepad
@@ -290,6 +291,7 @@ Huge	Gedhe banget
 I can hear you.	Aku bisa krungu kowe.
 I glance at your screen and comment. Costs a little on a paid brain.	Aku nglirik layarmu lan komentar. Biaya sithik ing otak bayar.
 I keep listening. Say my name, then just talk.	Aku terus ngrungokake. Sebut jenengku, banjur ngomong wae.
+I speak	Aku ngomong
 I talk about your game as you play. Costs a little on a paid brain.	Aku ngomong babagan game-mu nalika kowe main. Biaya sithik ing otak bayar.
 I type my replies and stay quiet.	Aku ngetik balesanku lan meneng.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Aku ora bakal mangsuli lisan, lan ora ana sing dikirim menyang endi-endi. Aku isih bakal ngaso ing kene, joget karo musikmu lan nindakake perkara cepet sing kowe jaluk, kaya volume.
@@ -598,6 +600,7 @@ SKILL.	KEMAMPUAN.
 SKIN.	KULIT.
 SORT BY	URUTKAKE LABEH
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SWARA KEBIASAAN OTAK DELENG CAPRI DOOMSCROLL CUACA KLIP GAME KUNCI GERAKAN SWARA KOWE
+Same as I speak	Padha karo basaku
 Same as her ears (VOICE > Mic)	Padha karo kuping dheweke (SWARA > Mikropon)
 Same code on the phone?	Kode sing padha ing HP?
 Save	Simpen
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Setelan ora ana sing ditonton.
 Settings lost keyboard focus during the Tab walk	Setelan ilang fokus keyboard nalika lelungan Tab
 Setup guide	Pandhuan setelan
 Setup stopped	Setelan mandheg
+She answers in	Dheweke mangsuli nganggo
 She can read it when it fits.	Dheweke bisa maca nalika cocok.
 She glances at your screen and comments. Costs a little on a paid brain.	Dheweke nglirik layarmu lan komentar. Biaya sithik ing otak bayar.
-She keeps listening. Say her name, then just talk until you go quiet.	Dheweke terus ngrungokake. Sebut jenenge, banjur ngomong nganti kowe meneng.
+She keeps listening. Say her name, then just talk.	Dheweke terus ngrungokake. Sebut jenenge, banjur ngomong.
 She reacts to your game until you close it.	Dheweke nanggapi game-mu nganti kowe nutup.
 She reads these controls before each game job.	Dheweke maca kontrol iki sadurunge saben tugas game.
 She talks about your game as you play. Costs a little on a paid brain.	Dheweke ngomong babagan game-mu nalika kowe main. Biaya sithik ing otak bayar.

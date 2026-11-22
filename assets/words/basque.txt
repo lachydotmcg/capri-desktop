@@ -30,6 +30,7 @@ Ask Capri for more	Eskatu Capri-ri gehiago
 Asking your server...	Zure zerbitzaria galdetzen...
 Asks before closing only the apps you choose.	Zuk aukeratutako aplikazioak bakarrik itxi aurretik galdetuko du.
 Auto	Automatikoa
+Auto (match what I say)	Automatikoa (esaten dudana)
 Automatic: VB-CABLE, else Steam's	Automatikoa: VB-CABLE, bestela Steam-ena
 BAD RELAY HOST	RELAY OSTALARI OKERRA
 BIG Z open notepad	BIG Z ireki notepad
@@ -290,6 +291,7 @@ Huge	Erraldoia
 I can hear you.	Entzuten zaitut.
 I glance at your screen and comment. Costs a little on a paid brain.	Zure pantaila begiratu eta iruzkintzen dut. Ordaindutako burua bada, apur bat kostatzen da.
 I keep listening. Say my name, then just talk.	Entzuten jarraitzen dut. Esan nire izena, eta gero hitz egin besterik gabe.
+I speak	Nik hitz egiten dut
 I talk about your game as you play. Costs a little on a paid brain.	Zure jokoaz hitz egiten dut jokatzen duzun bitartean. Ordaindutako burua bada, apur bat kostatzen da.
 I type my replies and stay quiet.	Nire erantzunak idazten ditut eta isilik egoten naiz.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ez dut ahoz erantzungo, eta ez da ezer inora bidaltzen. Hala ere, inguruan egongo naiz, zure musikara dantzatuko dut eta eskatzen dituzun gauza azkarrak egingo ditut, esaterako bolumena.
@@ -598,6 +600,7 @@ SKILL.	TRESNA.
 SKIN.	AZALA.
 SORT BY	ORDENATU HAUEN ARABERA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOINUAK OHITURAK BURUA BEGIRATU CAPRI DOOMSCROLL EGURALDIA KLIPAK JOKOAK GAKOAK MUGIMENDUAK AHOTSA ZU
+Same as I speak	Nire hizkuntza bera
 Same as her ears (VOICE > Mic)	Bere belarriak bezala (AHOTSA > Mikrofonoa)
 Same code on the phone?	Kode bera telefonoan?
 Save	Gorde
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Ezarpenek ez zuten ikusteko ezer.
 Settings lost keyboard focus during the Tab walk	Ezarpenek teklatuaren fokua galdu zuten Tab ibilbidean
 Setup guide	Konfigurazio gida
 Setup stopped	Konfigurazioa gelditu da
+She answers in	Berak erantzuten du
 She can read it when it fits.	Ondo ateratzen denean irakur dezake.
 She glances at your screen and comments. Costs a little on a paid brain.	Zure pantaila begiratzen du eta iruzkintzen du. Ordaindutako burua bada, apur bat kostatzen da.
-She keeps listening. Say her name, then just talk until you go quiet.	Entzuten jarraitzen du. Esan bere izena, eta gero hitz egin isildu arte.
+She keeps listening. Say her name, then just talk.	Entzuten jarraitzen du. Esan bere izena, eta gero hitz egin.
 She reacts to your game until you close it.	Zure jokoari erreakzionatzen dio itxi arte.
 She reads these controls before each game job.	Kontrol hauek irakurtzen ditu jokoko lan bakoitza baino lehen.
 She talks about your game as you play. Costs a little on a paid brain.	Zure jokoaz hitz egiten du jokatzen duzun bitartean. Ordaindutako burua bada, apur bat kostatzen da.

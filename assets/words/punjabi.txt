@@ -30,6 +30,7 @@ Ask Capri for more	Capri ਤੋਂ ਹੋਰ ਮੰਗੋ
 Asking your server...	ਤੁਹਾਡੇ ਸਰਵਰ ਤੋਂ ਪੁੱਛ ਰਹੀ ਹਾਂ...
 Asks before closing only the apps you choose.	ਸਿਰਫ਼ ਚੁਣੀਆਂ ਐਪਾਂ ਬੰਦ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਪੁੱਛਦੀ ਹੈ।
 Auto	ਆਟੋ
+Auto (match what I say)	ਆਟੋ (ਜੋ ਮੈਂ ਕਹਾਂ)
 Automatic: VB-CABLE, else Steam's	ਆਪਣੇ ਆਪ: VB-CABLE, ਨਹੀਂ ਤਾਂ Steam ਦਾ
 BAD RELAY HOST	BAD RELAY HOST
 BIG Z open notepad	BIG Z notepad ਖੋਲ੍ਹੋ
@@ -290,6 +291,7 @@ Huge	ਬਹੁਤ ਵੱਡਾ
 I can hear you.	ਮੈਂ ਤੁਹਾਨੂੰ ਸੁਣ ਸਕਦੀ ਹਾਂ।
 I glance at your screen and comment. Costs a little on a paid brain.	ਮੈਂ ਤੁਹਾਡੀ ਸਕ੍ਰੀਨ ਵੱਲ ਝਾਤ ਮਾਰਦੀ ਹਾਂ ਅਤੇ ਟਿੱਪਣੀ ਕਰਦੀ ਹਾਂ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
 I keep listening. Say my name, then just talk.	ਮੈਂ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹਾਂ। ਮੇਰਾ ਨਾਮ ਲਓ, ਫਿਰ ਬੱਸ ਗੱਲ ਕਰੋ।
+I speak	ਮੇਰੀ ਭਾਸ਼ਾ
 I talk about your game as you play. Costs a little on a paid brain.	ਤੁਸੀਂ ਖੇਡਦੇ ਸਮੇਂ ਮੈਂ ਤੁਹਾਡੀ ਖੇਡ ਬਾਰੇ ਗੱਲ ਕਰਦੀ ਹਾਂ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
 I type my replies and stay quiet.	ਮੈਂ ਆਪਣੇ ਜਵਾਬ ਟਾਈਪ ਕਰਦੀ ਹਾਂ ਅਤੇ ਚੁੱਪ ਰਹਿੰਦੀ ਹਾਂ।
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ਮੈਂ ਜਵਾਬ ਨਹੀਂ ਦਿਆਂਗੀ, ਅਤੇ ਕਿਤੇ ਵੀ ਕੁਝ ਨਹੀਂ ਭੇਜਿਆ ਜਾਂਦਾ। ਫਿਰ ਵੀ ਮੈਂ ਤੁਹਾਡੇ ਨਾਲ ਰਹਾਂਗੀ, ਤੁਹਾਡੇ ਸੰਗੀਤ 'ਤੇ ਨੱਚਾਂਗੀ ਅਤੇ ਤੁਹਾਡੇ ਮੰਗੇ ਤੇਜ਼ ਕੰਮ ਕਰਾਂਗੀ, ਜਿਵੇਂ ਵੌਲਿਊਮ।
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ਇਸ ਅਨੁਸਾਰ ਕ੍ਰਮ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ਆਵਾਜ਼ ਆਦਤਾਂ ਦਿਮਾਗ ਵਾਚ Capri DOOMSCROLL ਮੌਸਮ clips ਖੇਡਾਂ ਕੁੰਜੀਆਂ ਮੂਵਜ਼ ਆਵਾਜ਼ ਤੁਸੀਂ
+Same as I speak	ਮੇਰੀ ਭਾਸ਼ਾ ਵਾਂਗ
 Same as her ears (VOICE > Mic)	ਉਸਦੇ ਕੰਨਾਂ ਵਾਂਗ (VOICE > Mic)
 Same code on the phone?	ਫ਼ੋਨ 'ਤੇ ਉਹੀ ਕੋਡ?
 Save	ਸੰਭਾਲੋ
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Settings ਕੋਲ ਦੇਖਣ ਲਈ ਕੁਝ 
 Settings lost keyboard focus during the Tab walk	Tab ਵਾਕ ਦੌਰਾਨ Settings ਨੇ keyboard focus ਗੁਆ ਦਿੱਤਾ
 Setup guide	ਸੈੱਟਅੱਪ ਗਾਈਡ
 Setup stopped	ਸੈੱਟਅੱਪ ਰੁਕ ਗਿਆ
+She answers in	ਉਹ ਜਵਾਬ ਦਿੰਦੀ ਹੈ
 She can read it when it fits.	ਜਦੋਂ ਠੀਕ ਹੋਵੇ ਤਾਂ ਉਹ ਇਸਨੂੰ ਪੜ੍ਹ ਸਕਦੀ ਹੈ।
 She glances at your screen and comments. Costs a little on a paid brain.	ਉਹ ਤੁਹਾਡੀ ਸਕ੍ਰੀਨ ਵੱਲ ਝਾਤ ਮਾਰਦੀ ਹੈ ਅਤੇ ਟਿੱਪਣੀ ਕਰਦੀ ਹੈ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
-She keeps listening. Say her name, then just talk until you go quiet.	ਉਹ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹੈ। ਉਸਦਾ ਨਾਮ ਲਓ, ਫਿਰ ਚੁੱਪ ਹੋਣ ਤੱਕ ਗੱਲ ਕਰੋ।
+She keeps listening. Say her name, then just talk.	ਉਹ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹੈ। ਉਸਦਾ ਨਾਮ ਲਓ, ਫਿਰ ਗੱਲ ਕਰੋ।
 She reacts to your game until you close it.	ਤੁਹਾਡੇ ਗੇਮ ਬੰਦ ਕਰਨ ਤੱਕ ਉਹ ਤੁਹਾਡੀ ਖੇਡ 'ਤੇ ਪ੍ਰਤੀਕਿਰਿਆ ਦਿੰਦੀ ਹੈ।
 She reads these controls before each game job.	ਉਹ ਹਰ ਖੇਡ ਕੰਮ ਤੋਂ ਪਹਿਲਾਂ ਇਹ ਕੰਟਰੋਲ ਪੜ੍ਹਦੀ ਹੈ।
 She talks about your game as you play. Costs a little on a paid brain.	ਉਹ ਤੁਹਾਡੀ ਖੇਡ ਖੇਡਦੇ ਸਮੇਂ ਉਸ ਬਾਰੇ ਗੱਲ ਕਰਦੀ ਹੈ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।

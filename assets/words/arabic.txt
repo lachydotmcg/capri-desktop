@@ -30,6 +30,7 @@ Ask Capri for more	اطلب من Capri المزيد
 Asking your server...	جارٍ السؤال عن خادمك...
 Asks before closing only the apps you choose.	يسأل قبل إغلاق التطبيقات التي تختارها فقط.
 Auto	تلقائي
+Auto (match what I say)	تلقائي (حسب ما أقول)
 Automatic: VB-CABLE, else Steam's	تلقائي: VB-CABLE، وإلا فجهاز Steam
 BAD RELAY HOST	عنوان مضيف الترحيل غير صالح
 BIG Z open notepad	BIG Z افتح المفكرة
@@ -290,6 +291,7 @@ Huge	ضخم
 I can hear you.	أسمعك.
 I glance at your screen and comment. Costs a little on a paid brain.	ألقي نظرة على شاشتك وأعلّق. يكلّف القليل مع دماغ مدفوع.
 I keep listening. Say my name, then just talk.	أواصل الاستماع. قل اسمي، ثم تكلّم فقط.
+I speak	أتحدث
 I talk about your game as you play. Costs a little on a paid brain.	أتحدث عن لعبتك أثناء لعبك. يكلّف القليل مع دماغ مدفوع.
 I type my replies and stay quiet.	أكتب ردودي وأبقى صامتة.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	لن أرد، ولن يُرسل شيء إلى أي مكان. ما زلت سأتسكع وأرقص على موسيقاك وأنفذ الأشياء السريعة التي تطلبها، مثل مستوى الصوت.
@@ -598,6 +600,7 @@ SKILL.	مهارة.
 SKIN.	مظهر.
 SORT BY	فرز حسب
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	الأصوات العادات الدماغ مراقبة Capri DOOMSCROLL الطقس المقاطع الألعاب المفاتيح الحركات الصوت أنت
+Same as I speak	مثل لغتي
 Same as her ears (VOICE > Mic)	كما أذنيها (الصوت > الميكروفون)
 Same code on the phone?	نفس الكود على الهاتف؟
 Save	حفظ
@@ -633,9 +636,10 @@ Settings had nothing to watch.	لم يكن لدى الإعدادات ما تشا
 Settings lost keyboard focus during the Tab walk	فقدت الإعدادات تركيز لوحة المفاتيح أثناء جولة Tab
 Setup guide	دليل الإعداد
 Setup stopped	توقف الإعداد
+She answers in	تجيب بـ
 She can read it when it fits.	تستطيع قراءته عندما يتسع.
 She glances at your screen and comments. Costs a little on a paid brain.	تلقي نظرة على شاشتك وتعلّق. يكلّف القليل مع دماغ مدفوع.
-She keeps listening. Say her name, then just talk until you go quiet.	تواصل الاستماع. قل اسمها، ثم تكلّم حتى تصمت.
+She keeps listening. Say her name, then just talk.	تواصل الاستماع. قل اسمها، ثم تكلّم.
 She reacts to your game until you close it.	تتفاعل مع لعبتك حتى تغلقها.
 She reads these controls before each game job.	تقرأ عناصر التحكم هذه قبل كل مهمة لعب.
 She talks about your game as you play. Costs a little on a paid brain.	تتحدث عن لعبتك أثناء لعبك. يكلّف القليل مع دماغ مدفوع.

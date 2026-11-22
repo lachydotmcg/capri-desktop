@@ -30,6 +30,7 @@ Ask Capri for more	Capri પાસે વધુ માગો
 Asking your server...	તમારા સર્વરને પૂછું છું...
 Asks before closing only the apps you choose.	ફક્ત તમે પસંદ કરેલી એપ્સ બંધ કરતાં પહેલાં પૂછે છે.
 Auto	ઑટો
+Auto (match what I say)	ઑટો (હું જે બોલું)
 Automatic: VB-CABLE, else Steam's	આપમેળે: VB-CABLE, નહીંતર Steam નું
 BAD RELAY HOST	ખરાબ રિલે હોસ્ટ
 BIG Z open notepad	BIG Z નોટપેડ ખોલ
@@ -290,6 +291,7 @@ Huge	વિશાળ
 I can hear you.	હું તને સાંભળી શકું છું.
 I glance at your screen and comment. Costs a little on a paid brain.	હું તમારી સ્ક્રીન જોઉં છું અને ટિપ્પણી કરું છું. પેઇડ બ્રેન પર થોડો ખર્ચ થાય છે.
 I keep listening. Say my name, then just talk.	હું સાંભળતી રહું છું. મારું નામ કહો, પછી બસ વાત કરો.
+I speak	હું બોલું છું
 I talk about your game as you play. Costs a little on a paid brain.	તમે રમતા હો ત્યારે હું તમારી ગેમ વિશે વાત કરું છું. પેઇડ બ્રેન પર થોડો ખર્ચ થાય છે.
 I type my replies and stay quiet.	હું મારા જવાબો ટાઇપ કરું છું અને શાંત રહું છું.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	હું જવાબ નહીં આપું, અને કંઈ ક્યાંય મોકલાતું નથી. હું હજી પણ આસપાસ રહીશ, તમારા સંગીત પર નાચીશ અને તમે પૂછો તે ઝડપી કામો કરીશ, જેમ કે વૉલ્યૂમ.
@@ -598,6 +600,7 @@ SKILL.	કૌશલ્ય.
 SKIN.	ત્વચા.
 SORT BY	આ પ્રમાણે સૉર્ટ કરો
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	અવાજ ટેવો બ્રેન જુઓ CAPRI DOOMSCROLL હવામાન ક્લિપ્સ ગેમ્સ કીઓ મૂવ્સ અવાજ તમે
+Same as I speak	મારી ભાષા જેવી જ
 Same as her ears (VOICE > Mic)	તેના કાન જેવું (VOICE > Mic)
 Same code on the phone?	ફોન પર એ જ કોડ?
 Save	સાચવો
@@ -633,9 +636,10 @@ Settings had nothing to watch.	સેટિંગ્સ પાસે જોવ�
 Settings lost keyboard focus during the Tab walk	Tab વૉક દરમિયાન સેટિંગ્સે કીબોર્ડ ફોકસ ગુમાવ્યો
 Setup guide	સેટઅપ ગાઇડ
 Setup stopped	સેટઅપ બંધ થયું
+She answers in	તે જવાબ આપે છે
 She can read it when it fits.	બંધબેસે ત્યારે તે વાંચી શકે છે.
 She glances at your screen and comments. Costs a little on a paid brain.	તે તમારી સ્ક્રીન પર નજર નાખે છે અને ટિપ્પણી કરે છે. પેઇડ બ્રેન પર થોડો ખર્ચ થાય છે.
-She keeps listening. Say her name, then just talk until you go quiet.	તે સાંભળતી રહે છે. તેનું નામ કહો, પછી તમે શાંત થાઓ ત્યાં સુધી બસ વાત કરો.
+She keeps listening. Say her name, then just talk.	તે સાંભળતી રહે છે. તેનું નામ કહો, પછી બસ વાત કરો.
 She reacts to your game until you close it.	તમે બંધ ન કરો ત્યાં સુધી તે તમારી ગેમ પર પ્રતિક્રિયા આપે છે.
 She reads these controls before each game job.	દરેક ગેમ કાર્ય પહેલાં તે આ નિયંત્રણો વાંચે છે.
 She talks about your game as you play. Costs a little on a paid brain.	તમે રમતા હો ત્યારે તે તમારી ગેમ વિશે વાત કરે છે. પેઇડ બ્રેન પર થોડો ખર્ચ થાય છે.

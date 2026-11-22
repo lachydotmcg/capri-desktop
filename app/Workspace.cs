@@ -813,6 +813,62 @@ namespace CapriDesktop
             return told;
         }
 
+        internal const string DeedsTitle = "What she did";
+        internal Func<string, string> UndoDeeds = delegate(string id) { return Timeline.Undo(id); };
+
+        internal WorkspaceChat DeedsChat()
+        {
+            foreach (WorkspaceChat one in Chats())
+                lock (one.Gate) if (!one.Deleted && one.Title == DeedsTitle) return one;
+            WorkspaceChat chat = HomeChat(false);
+            Change(chat, DeedsTitle, null, null);
+            return chat;
+        }
+
+        internal static string DeedText(Deed deed)
+        {
+            StringBuilder text = new StringBuilder(deed.At.ToString("ddd h:mm tt", CultureInfo.InvariantCulture)).Append("  ");
+            if (deed.Job)
+            {
+                text.Append("Job: ").Append(deed.What);
+                int shown = Math.Min(deed.Steps.Count, 12), hidden = deed.StepCount - shown;
+                if (hidden > 0) text.Append('\n').Append(hidden).Append(hidden == 1 ? " step before" : " steps before");
+                for (int i = deed.Steps.Count - shown; i < deed.Steps.Count; i++) text.Append('\n').Append(deed.Steps[i]);
+                if (deed.Ended != null && deed.Ended != "done") text.Append('\n').Append(deed.Ended == "asked" ? "Stopped to ask you something." : deed.Ended == "failed" ? "Didn't finish." : "Stopped.");
+            }
+            else text.Append(deed.What);
+            if (deed.Undone) text.Append("\nPut back").Append(string.IsNullOrEmpty(deed.Back) ? "." : ": " + deed.Back);
+            else if (!deed.Failed && !deed.Undoable && !string.IsNullOrEmpty(deed.Kept)) text.Append('\n').Append(deed.Kept);
+            return text.ToString();
+        }
+
+        internal void LogDeed(Deed deed)
+        {
+            if (deed == null || string.IsNullOrEmpty(deed.Id)) return;
+            WorkspaceChat chat = DeedsChat();
+            WorkspaceItem logged;
+            lock (chat.Gate) logged = chat.Items.Find(delegate(WorkspaceItem item) { return item.Kind == "deed" && item.Id == deed.Id; });
+            if (logged == null) { Add(chat, new WorkspaceItem { Kind = "deed", Id = deed.Id, Text = DeedText(deed), Decision = deed.Undone ? "undone" : deed.Undoable ? "" : "kept" }); return; }
+            if (!deed.Undone) return;
+            lock (chat.Gate) { if (logged.Decision == "undone" || logged.Decision == "undoing") return; logged.Decision = "undone"; }
+            Add(chat, new WorkspaceItem { Kind = "note", Text = "Put back: " + deed.What.TrimEnd('.') + "." + (string.IsNullOrEmpty(deed.Back) ? "" : " " + deed.Back) });
+        }
+
+        internal bool UndoDeed(WorkspaceChat chat, WorkspaceItem item)
+        {
+            lock (chat.Gate) { if (item.Decision.Length > 0) return false; item.Decision = "undoing"; }
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string told;
+                try { told = UndoDeeds(item.Id) ?? ""; }
+                catch (Exception error) { told = Hands.Problem(error); }
+                bool back = told.StartsWith("Undid it", StringComparison.Ordinal) || told.StartsWith("Already put back", StringComparison.Ordinal);
+                lock (chat.Gate) item.Decision = back ? "undone" : told.StartsWith("I can't undo", StringComparison.Ordinal) ? "kept" : "";
+                Add(chat, new WorkspaceItem { Kind = "note", Text = back ? "Put back: " + told.Substring(told.IndexOf(':') + 1).Trim() : told });
+            });
+            return true;
+        }
+
         internal void Add(WorkspaceChat chat, WorkspaceItem item)
         {
             lock (chat.Gate)

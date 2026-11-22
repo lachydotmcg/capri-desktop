@@ -960,11 +960,12 @@ namespace CapriDesktop
         // On while GAMES > Comments isn't Off. With no game up there's nothing for it to do, so it only runs while one is.
         internal bool GamingWanted { get { return GamingOn || CommentPace != Commentary.Off; } }
 
-        // Comments Off is Gaming Mode off, and any other Comments is Gaming Mode on, at the pick they had before it went Off.
-        private bool WantGaming(bool on)
+        // Comments Off is Gaming Mode off, and any other Comments is Gaming Mode on. Turning Gaming Mode off turns Comments Off too,
+        // but nothing turns it back on except Comments itself: its slider, or asking her to turn game comments on.
+        private bool DropComments()
         {
-            if ((CommentPace != Commentary.Off) == on) return false;
-            SetCommentPace(on ? CommentPaceBack : Commentary.Off);
+            if (CommentPace == Commentary.Off) return false;
+            SetCommentPace(Commentary.Off);
             mainframe.Sync();
             return true;
         }
@@ -1003,13 +1004,13 @@ namespace CapriDesktop
             if (action == "on")
             {
                 WakeRest(true);
-                bool lifted = WantGaming(true);
-                return gaming.On(clock.Elapsed.TotalSeconds) + (lifted ? " Game comments are on at " + Commentary.PaceNames[CommentPace] + "." : "");
+                if (CommentPace == Commentary.Off) return Hands.GamingNeedsComments;
+                return gaming.On(clock.Elapsed.TotalSeconds);
             }
             if (action == "off")
             {
                 bool wanted = GamingWanted;
-                bool dropped = WantGaming(false);
+                bool dropped = DropComments();
                 string left = gaming.Off();
                 return wanted ? "Gaming Mode off." + (dropped ? " Game comments are off too." : "") : left;
             }
@@ -1036,11 +1037,12 @@ namespace CapriDesktop
             Answer(++asking, line, TalkState.Talking);
         }
 
-        // A job that's playing a game brings Gaming Mode up by itself once the game's in front. It goes the same way as any other
-        // Gaming Mode, when the game closes or they turn it off. Once a job, so turning it off holds until her next one.
+        // A job that's playing a game brings Gaming Mode up by itself once the game's in front, unless Comments is Off. It goes the
+        // same way as any other Gaming Mode, when the game closes or they turn it off. Once a job, so turning it off holds until her
+        // next one.
         private void DockForJob(Job running)
         {
-            if (running == null || running == jobDock) return;
+            if (running == null || running == jobDock || CommentPace == Commentary.Off) return;
             if (GamingOn) { jobDock = running; return; }
             if (gaming.Find() == null) return;
             jobDock = running;
@@ -1180,7 +1182,7 @@ namespace CapriDesktop
         // Their mic while voice chat is on: the bars, and LISTENING once they speak, unless it's her own line coming through.
         private void DockLevel(double value)
         {
-            if (local && preferences.ListenCapri && !pushing) return;
+            if (local && NameOnly && !pushing) return;
             GameHud.Level(value);
             if (value >= HeardSpeech && talkState == TalkState.Off && speech == null) GameHud.Hear(dockWords, false);
         }
@@ -1188,7 +1190,7 @@ namespace CapriDesktop
         // What they've said so far, from Windows' speech recognition, which shows words as they come.
         private void DockWords(string words)
         {
-            if (local && preferences.ListenCapri && !pushing) return;
+            if (local && NameOnly && !pushing) return;
             if (!docked || talkState != TalkState.Off) return;
             dockWords = words ?? "";
             GameHud.Hear(dockWords, false);
@@ -1199,6 +1201,7 @@ namespace CapriDesktop
         {
             if (name == "grin" || name == "dance") { GameHud.Mood(HudMood.Happy); return "Grinning."; }
             if (name == "glitch") { GameHud.Mood(HudMood.Surprise); return "Glitched."; }
+            if (Mods.MoveNamed(name) != null) { GameHud.Mood(HudMood.Happy); return "I can't do my " + name.Replace('_', ' ') + " from your game's HUD."; }
             return name == "blink" ? "Blinked." : name == "idle" ? "Back to my idle." : name == "stop_dancing" ? "I wasn't dancing." : "I don't have an animation called " + name + ".";
         }
     }

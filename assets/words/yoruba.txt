@@ -30,6 +30,7 @@ Ask Capri for more	Béèrè fún Capri ní ìdàgbàsókè
 Asking your server...	Ń béèrè lọ́wọ́ olùpèsè rẹ...
 Asks before closing only the apps you choose.	Ó máa bèèrè kí o tó pa àwọn ohun èlò tí o yàn nìkan.
 Auto	Aládàáṣe
+Auto (match what I say)	Aládàáṣe (bí mo ṣe sọ)
 Automatic: VB-CABLE, else Steam's	Aládàáṣe: VB-CABLE, bí kò bá sí, ti Steam
 BAD RELAY HOST	ÌSỌPỌ̀ RELAY BURÚ
 BIG Z open notepad	BIG Z ṣí notepad
@@ -290,6 +291,7 @@ Huge	Tó tóbi gan-an
 I can hear you.	Mo gbọ́ ọ.
 I glance at your screen and comment. Costs a little on a paid brain.	Mo ń wo ìbòjú rẹ, mo sì ń sọ̀rọ̀. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
 I keep listening. Say my name, then just talk.	Mo ń tẹ̀síwájú láti gbọ́. Sọ orúkọ mi, lẹ́yìn náà kàn sọ̀rọ̀.
+I speak	Mo n sọ
 I talk about your game as you play. Costs a little on a paid brain.	Mo ń sọ̀rọ̀ nípa eré rẹ bí o ṣe ń ṣe é. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
 I type my replies and stay quiet.	Mo ń tẹ àwọn ìdáhùn mi, mo sì dákẹ́.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Èmi kò ní sọ̀rọ̀ padà, ohunkóhun kò sì ní lọ sí ibikíbi. Mo ṣì máa wà ní ìdákẹ́jẹ́ẹ́, jó sí orin rẹ, kí n sì ṣe àwọn nǹkan kíákíá tí o bá béèrè, bí ìró.
@@ -598,6 +600,7 @@ SKILL.	ÌMỌ̀.
 SKIN.	ÌRÍSÍ.
 SORT BY	TÒ BÍ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	OHÙN ÌWÀ ỌPỌLỌ WO CAPRI DOOMSCROLL ÒJÒ ÀWỌN AJẸKÙ ÀWỌN ERE BỌ́TÌNÌ ÌṢÍPÒ OHÙN ÌWỌ
+Same as I speak	Bí èdè mi
 Same as her ears (VOICE > Mic)	Bákan náà pẹ̀lú etí rẹ̀ (OHÙN > Maikirofónù)
 Same code on the phone?	Kóòdù kan náà lórí fóònù?
 Save	Fipamọ́
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Ètò kò ní nǹkan láti wò.
 Settings lost keyboard focus during the Tab walk	Ètò pàdánù ìfojúsí kíláàvù nígbà ìrìn Tab
 Setup guide	Ìtọ́sọ́nà ìṣètò
 Setup stopped	Ìṣètò dúró
+She answers in	Ó n dáhùn ní
 She can read it when it fits.	Ó lè kà á nígbà tí ó bá yẹ.
 She glances at your screen and comments. Costs a little on a paid brain.	Ó wo ìbòjú rẹ, ó sì ń sọ̀rọ̀. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
-She keeps listening. Say her name, then just talk until you go quiet.	Ó ń tẹ̀síwájú láti gbọ́. Sọ orúkọ rẹ̀, lẹ́yìn náà sọ̀rọ̀ títí o fi dákẹ́.
+She keeps listening. Say her name, then just talk.	Ó ń tẹ̀síwájú láti gbọ́. Sọ orúkọ rẹ̀, lẹ́yìn náà sọ̀rọ̀.
 She reacts to your game until you close it.	Ó ń dáhùn sí eré rẹ títí o fi tì í.
 She reads these controls before each game job.	Ó ń ka àwọn ìṣakoso wọ̀nyí ṣáájú iṣẹ́ eré kọ̀ọ̀kan.
 She talks about your game as you play. Costs a little on a paid brain.	Ó ń sọ̀rọ̀ nípa eré rẹ bí o ṣe ń ṣe é. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.

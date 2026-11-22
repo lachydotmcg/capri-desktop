@@ -30,6 +30,7 @@ Ask Capri for more	Capri ka codso wax dheeraad ah
 Asking your server...	Server-kaaga ayaa la weydiinayaa...
 Asks before closing only the apps you choose.	Wuxuu weydiiyaa ka hor inta uusan xidhin oo keliya apps-ka aad doorato.
 Auto	Si toos ah
+Auto (match what I say)	Si toos ah (sida aan dhaho)
 Automatic: VB-CABLE, else Steam's	Toos ah: VB-CABLE, haddii kale kan Steam
 BAD RELAY HOST	HOST RELAY KHALADKA AH
 BIG Z open notepad	BIG Z ku fur notepad
@@ -290,6 +291,7 @@ Huge	Aad u weyn
 I can hear you.	Waan ku maqlayaa.
 I glance at your screen and comment. Costs a little on a paid brain.	Shaashaddaada ayaan eegaa oo faallo bixiyaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
 I keep listening. Say my name, then just talk.	Dhegaysanayaa. Magacayga odhan, kadibna wax hadal.
+I speak	Waxaan ku hadlaa
 I talk about your game as you play. Costs a little on a paid brain.	Ciyaarahaaga ayaan ka hadlaa markaad ciyaarayso. Qiimo yar ayuu ku kaca maskax lacag bixin.
 I type my replies and stay quiet.	Jawaabahayga qoraa oo aan aamusnaado.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ma jawaabi doono, wax kasta ma loo dirayo meel kasta. Weli waan ku dhex jiri doonaa, muusikadaada ku ciyaari doonaa, oo waxyaabaha degdegga ah ee aad codsato ayaan samayn doonaa, sida cod-sareynta.
@@ -598,6 +600,7 @@ SKILL.	XIRFAD.
 SKIN.	MAQAAR.
 SORT BY	KALA-SOOC SIDA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	CODADKA DABEECADAHA MASKAXDA EEG CAPRI DOOMSCROLL CIMILO CLIPS CIYAARAHA FURAHA DHAQDHAQAAQYADA CODKA ADIGU
+Same as I speak	Sida luqaddayda
 Same as her ears (VOICE > Mic)	Isla sida dhegihiisa (CODKA > Makarafoon)
 Same code on the phone?	Koodka isku mid ma yahay telefoonka?
 Save	Kaydi
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Dejintu waxba looma hayn in la eego.
 Settings lost keyboard focus during the Tab walk	Dejintu waxay lumisay xagga furaha inta lagu jiro socodka Tab
 Setup guide	Hagaha diyaarinta
 Setup stopped	Diyaarinta waa la joojiyey
+She answers in	Waxay ku jawaabtaa
 She can read it when it fits.	Way akhrisan kartaa markii ay ku habboonaato.
 She glances at your screen and comments. Costs a little on a paid brain.	Shaashaddaada ayay eegtaa oo faallo bixisaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
-She keeps listening. Say her name, then just talk until you go quiet.	Way dhegaysanaysaa. Magaceeda odhan, kadibna wax hadal ilaa aad aamusto.
+She keeps listening. Say her name, then just talk.	Way dhegaysanaysaa. Magaceeda odhan, kadibna wax hadal.
 She reacts to your game until you close it.	Ciyaarahaaga ayay ka jawaabtaa ilaa aad xirto.
 She reads these controls before each game job.	Xakamayntan waxay akhrisaa shaqo kasta oo ciyaar ka hor.
 She talks about your game as you play. Costs a little on a paid brain.	Markaad ciyaarayso ciyaarahaaga ayay ka hadlaysaa. Qiimo yar ayuu ku kaca maskax lacag bixin.

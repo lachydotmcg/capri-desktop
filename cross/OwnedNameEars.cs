@@ -189,7 +189,7 @@ namespace CapriDesktop
                         if (kind == "state")
                         {
                             string mode = value.GetProperty("mode").GetString();
-                            string status = mode == "name_only" ? "Listening for Capri." : mode == "chatting" ? "Chatting. No need to say Capri." : mode == "paused" ? "Name listening paused." : throw new InvalidOperationException("Unexpected name-listener state.");
+                            string status = mode == "name_only" ? "Listening for Capri." : mode == "waiting" ? "Go ahead. No need to say Capri." : mode == "paused" ? "Name listening paused." : throw new InvalidOperationException("Unexpected name-listener state.");
                             if (status != lastStatus) { lastStatus = status; changed?.Invoke(status); }
                         }
                         else if (kind == "final")

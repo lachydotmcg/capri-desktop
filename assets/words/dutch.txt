@@ -30,6 +30,7 @@ Ask Capri for more	Vraag Capri om meer
 Asking your server...	Je server wordt gevraagd...
 Asks before closing only the apps you choose.	Vraagt alleen voor het sluiten van de apps die je kiest.
 Auto	Auto
+Auto (match what I say)	Auto (volgt wat ik zeg)
 Automatic: VB-CABLE, else Steam's	Automatisch: VB-CABLE, anders die van Steam
 BAD RELAY HOST	SLECHTE RELAISHOST
 BIG Z open notepad	BIG Z open kladblok
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Ik kan je horen.
 I glance at your screen and comment. Costs a little on a paid brain.	Ik kijk even naar je scherm en reageer. Kost wat bij een betaald brein.
 I keep listening. Say my name, then just talk.	Ik blijf luisteren. Zeg mijn naam en praat gewoon.
+I speak	Ik spreek
 I talk about your game as you play. Costs a little on a paid brain.	Ik praat over je game terwijl je speelt. Kost wat bij een betaald brein.
 I type my replies and stay quiet.	Ik typ mijn antwoorden en blijf stil.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ik praat niet terug, en er wordt niets ergens naartoe gestuurd. Ik hang nog steeds rond, dans op je muziek en doe de snelle dingen die je vraagt, zoals het volume.
@@ -598,6 +600,7 @@ SKILL.	VAARDIGHEID.
 SKIN.	SKIN.
 SORT BY	SORTEER OP
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	GELUIDEN GEWOONTEN BREIN KIJKEN CAPRI DOOMSCROLLEN WEER CLIPS GAMES TOETSEN BEWEGINGEN STEM JIJ
+Same as I speak	Zelfde als ik spreek
 Same as her ears (VOICE > Mic)	Zelfde als haar oren (STEM > Microfoon)
 Same code on the phone?	Dezelfde code op de telefoon?
 Save	Opslaan
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Instellingen had niets om te bekijken.
 Settings lost keyboard focus during the Tab walk	Instellingen verloor de toetsenbordfocus tijdens de Tab-wandeling
 Setup guide	Installatiegids
 Setup stopped	Installatie gestopt
+She answers in	Ze antwoordt in
 She can read it when it fits.	Ze kan het lezen wanneer het past.
 She glances at your screen and comments. Costs a little on a paid brain.	Ze kijkt even naar je scherm en reageert. Kost wat bij een betaald brein.
-She keeps listening. Say her name, then just talk until you go quiet.	Ze blijft luisteren. Zeg haar naam en praat gewoon tot je stil wordt.
+She keeps listening. Say her name, then just talk.	Ze blijft luisteren. Zeg haar naam en praat gewoon.
 She reacts to your game until you close it.	Ze reageert op je game tot je hem sluit.
 She reads these controls before each game job.	Ze leest deze bediening voor elke gameklus.
 She talks about your game as you play. Costs a little on a paid brain.	Ze praat over je game terwijl je speelt. Kost wat bij een betaald brein.

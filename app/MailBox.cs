@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -7,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace CapriDesktop
 {
@@ -153,9 +155,12 @@ namespace CapriDesktop
         private readonly Stream stream;
         private readonly byte[] buf = new byte[8192];
         private int pos, len;
+        private readonly TcpClient tcp;
         internal readonly string Host;
 
-        internal MailWire(Stream s, string host) { stream = s; Host = host; }
+        internal MailWire(Stream s, string host) : this(s, host, null) { }
+
+        private MailWire(Stream s, string host, TcpClient client) { stream = s; Host = host; tcp = client; }
 
         internal static bool Loopback(string host)
         {
@@ -180,7 +185,7 @@ namespace CapriDesktop
                     ssl.AuthenticateAsClient(host, null, (System.Security.Authentication.SslProtocols)3072, false);
                     s = ssl;
                 }
-                return new MailWire(s, host);
+                return new MailWire(s, host, tcp);
             }
             catch (MailException) { throw; }
             catch (Exception ex)
@@ -196,7 +201,14 @@ namespace CapriDesktop
             SslStream ssl = new SslStream(stream);
             try { ssl.AuthenticateAsClient(Host, null, (System.Security.Authentication.SslProtocols)3072, false); }
             catch (Exception) { throw new MailException("The secure connection to " + Host + " failed."); }
-            return new MailWire(ssl, Host);
+            return new MailWire(ssl, Host, tcp);
+        }
+
+        internal void Patience(int milliseconds)
+        {
+            if (tcp == null) return;
+            try { tcp.ReceiveTimeout = milliseconds; }
+            catch (Exception) { }
         }
 
         private int Next()
@@ -271,12 +283,32 @@ namespace CapriDesktop
         internal string From = "", To = "", Subject = "", Date = "", MessageId = "", References = "", ReplyTo = "";
     }
 
+    internal sealed class MailMark
+    {
+        internal long Validity;
+        internal long Next;
+        internal int Count;
+    }
+
+    internal sealed class MailPeek
+    {
+        internal int Uid;
+        internal bool Seen;
+        internal DateTime Arrived = DateTime.MinValue;
+        internal string Raw = "";
+        internal List<string> Names = new List<string>();
+    }
+
     internal sealed class MailBox : IDisposable
     {
         internal const int MaxMessage = 2 * 1024 * 1024;
         private MailWire wire;
         private int tagCounter;
         private readonly MailAccount account;
+        private HashSet<string> caps;
+        private readonly object idling = new object();
+        private string idleTag;
+        private bool idleDone;
 
         private MailBox(MailAccount a) { account = a; }
 
@@ -292,6 +324,8 @@ namespace CapriDesktop
                     throw new MailException("The mail server at " + a.ImapHost + " didn't say hello properly.");
                 ImapReply r = box.Command("LOGIN", Arg(a.LoginName), " ", Arg(a.Password));
                 if (!r.Ok) throw new MailException(box.LoginFailure(r));
+                foreach (string u in r.Untagged) box.Learn(u);
+                box.Learn(r.Text);
                 return box;
             }
             catch (Exception)
@@ -325,10 +359,33 @@ namespace CapriDesktop
             return Encoding.UTF8.GetBytes(value);
         }
 
+        private static readonly Regex CapsIn = new Regex(@"(?:^\* |\[)CAPABILITY ([^\]\r\n]*)", RegexOptions.IgnoreCase);
+
+        private void Learn(string text)
+        {
+            Match m = CapsIn.Match(text ?? "");
+            if (!m.Success) return;
+            if (caps == null) caps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string one in m.Groups[1].Value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) caps.Add(one);
+        }
+
+        internal bool Can(string capability)
+        {
+            if (caps == null)
+            {
+                ImapReply r = Command("CAPABILITY");
+                if (r.Ok) foreach (string u in r.Untagged) Learn(u);
+                if (caps == null) caps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+            return caps.Contains(capability);
+        }
+
+        internal bool Gmail { get { return Can("X-GM-EXT-1"); } }
+
         private ImapReply Command(string verb, params object[] parts)
         {
             string tag = "A" + (++tagCounter);
-            StringBuilder line = new StringBuilder(tag + " " + verb + " ");
+            StringBuilder line = new StringBuilder(tag + " " + verb + (parts.Length > 0 ? " " : ""));
             foreach (object p in parts)
             {
                 byte[] lit = p as byte[];
@@ -347,26 +404,31 @@ namespace CapriDesktop
 
         private static readonly Regex LiteralEnd = new Regex(@"\{(\d+)\+?\}$");
 
+        private string Response()
+        {
+            string line = wire.ReadLine();
+            if (line == null) throw new MailException("The mail server closed the connection.");
+            StringBuilder sb = new StringBuilder();
+            while (true)
+            {
+                Match m = LiteralEnd.Match(line);
+                if (!m.Success) { sb.Append(line); break; }
+                int n = int.Parse(m.Groups[1].Value);
+                int keep = Math.Min(n, MaxMessage + 4096);
+                sb.Append(line.Substring(0, m.Index)).Append('{').Append(keep).Append("}\r\n");
+                sb.Append(wire.ReadBytes(n, keep));
+                line = wire.ReadLine();
+                if (line == null) throw new MailException("The mail server closed the connection.");
+            }
+            return sb.ToString();
+        }
+
         private ImapReply Read(string tag)
         {
             ImapReply reply = new ImapReply();
             while (true)
             {
-                string line = wire.ReadLine();
-                if (line == null) throw new MailException("The mail server closed the connection.");
-                StringBuilder sb = new StringBuilder();
-                while (true)
-                {
-                    Match m = LiteralEnd.Match(line);
-                    if (!m.Success) { sb.Append(line); break; }
-                    int n = int.Parse(m.Groups[1].Value);
-                    int keep = Math.Min(n, MaxMessage + 4096);
-                    sb.Append(line.Substring(0, m.Index)).Append('{').Append(keep).Append("}\r\n");
-                    sb.Append(wire.ReadBytes(n, keep));
-                    line = wire.ReadLine();
-                    if (line == null) throw new MailException("The mail server closed the connection.");
-                }
-                string full = sb.ToString();
+                string full = Response();
                 if (tag == null) { reply.Untagged.Add(full); return reply; }
                 if (full.StartsWith(tag + " "))
                 {
@@ -419,10 +481,11 @@ namespace CapriDesktop
             });
         }
 
-        internal List<string> Folders()
+        private Dictionary<string, List<string>> Listed(bool uses)
         {
-            ImapReply r = Need(Command("LIST", "\"\" \"*\""));
-            List<string> names = new List<string>();
+            ImapReply r = uses ? Command("LIST", "\"\" \"*\" RETURN (SPECIAL-USE)") : null;
+            if (r == null || !r.Ok) r = Need(Command("LIST", "\"\" \"*\""));
+            Dictionary<string, List<string>> found = new Dictionary<string, List<string>>();
             foreach (string u in r.Untagged)
             {
                 if (!u.StartsWith("* LIST ", StringComparison.OrdinalIgnoreCase)) continue;
@@ -432,20 +495,173 @@ namespace CapriDesktop
                     List<object> flags = ImapParse.Value(u, ref i) as List<object>;
                     ImapParse.Value(u, ref i);
                     string name = ImapParse.Value(u, ref i) as string;
-                    bool skip = false;
-                    if (flags != null) foreach (object f in flags) if (string.Equals(f as string, "\\Noselect", StringComparison.OrdinalIgnoreCase) || string.Equals(f as string, "\\NonExistent", StringComparison.OrdinalIgnoreCase)) skip = true;
-                    if (name != null && !skip) names.Add(Mutf7Decode(name));
+                    if (name == null) continue;
+                    List<string> marks = new List<string>();
+                    if (flags != null) foreach (object f in flags) if (f is string) marks.Add((string)f);
+                    if (marks.Exists(f => string.Equals(f, "\\Noselect", StringComparison.OrdinalIgnoreCase) || string.Equals(f, "\\NonExistent", StringComparison.OrdinalIgnoreCase))) continue;
+                    found[Mutf7Decode(name)] = marks;
                 }
                 catch (FormatException) { }
             }
-            return names;
+            return found;
         }
 
-        internal void Select(string folder, bool readOnly)
+        internal List<string> Folders()
+        {
+            return new List<string>(Listed(false).Keys);
+        }
+
+        internal string Special(string use, params string[] fallbacks)
+        {
+            Dictionary<string, List<string>> all = Listed(Can("SPECIAL-USE") && Can("LIST-EXTENDED"));
+            foreach (KeyValuePair<string, List<string>> one in all)
+                if (one.Value.Exists(f => string.Equals(f, use, StringComparison.OrdinalIgnoreCase))) return one.Key;
+            foreach (string name in fallbacks)
+                foreach (string have in all.Keys)
+                    if (string.Equals(have, name, StringComparison.OrdinalIgnoreCase)) return have;
+            return null;
+        }
+
+        internal string Named(string folder)
+        {
+            foreach (string have in Listed(false).Keys)
+                if (string.Equals(have, folder, StringComparison.OrdinalIgnoreCase)) return have;
+            return null;
+        }
+
+        internal MailMark Select(string folder, bool readOnly)
         {
             if (string.IsNullOrEmpty(folder)) folder = "INBOX";
             ImapReply r = Command(readOnly ? "EXAMINE" : "SELECT", Arg(Mutf7Encode(folder)));
             if (!r.Ok) throw new MailException("There's no mail folder called \"" + folder + "\". Ask for the folder list to see the names.");
+            MailMark mark = new MailMark();
+            foreach (string u in r.Untagged)
+            {
+                Match m = Regex.Match(u, @"^\* OK \[(UIDVALIDITY|UIDNEXT) (\d+)\]", RegexOptions.IgnoreCase);
+                long n;
+                if (m.Success && long.TryParse(m.Groups[2].Value, out n))
+                {
+                    if (string.Equals(m.Groups[1].Value, "UIDVALIDITY", StringComparison.OrdinalIgnoreCase)) mark.Validity = n;
+                    else mark.Next = n;
+                    continue;
+                }
+                m = Regex.Match(u, @"^\* (\d+) EXISTS", RegexOptions.IgnoreCase);
+                int c;
+                if (m.Success && int.TryParse(m.Groups[1].Value, out c)) mark.Count = c;
+            }
+            return mark;
+        }
+
+        internal bool Has(int uid)
+        {
+            return Search("UID", uid.ToString(CultureInfo.InvariantCulture)).Contains(uid);
+        }
+
+        // Some servers match part of a header, so every hit's own Message-ID has to be the one asked for.
+        internal List<int> WithId(string messageId)
+        {
+            List<int> found = new List<int>();
+            string want = (messageId ?? "").Trim();
+            if (want.Length == 0) return found;
+            List<int> hits = Search("HEADER Message-ID", Arg(want));
+            if (hits.Count > 10) hits = hits.GetRange(hits.Count - 10, 10);
+            foreach (MailHead head in Headers(hits))
+                if (string.Equals(head.MessageId.Trim(), want, StringComparison.Ordinal)) found.Add(head.Uid);
+            return found;
+        }
+
+        internal List<int> After(long uid)
+        {
+            List<int> found = Search("UID", (uid + 1).ToString(CultureInfo.InvariantCulture) + ":*");
+            found.RemoveAll(one => one <= uid);
+            return found;
+        }
+
+        internal long Top()
+        {
+            List<int> last = Search("UID", "*");
+            return last.Count == 0 ? 0 : last[last.Count - 1];
+        }
+
+        internal void Move(int uid, string folder)
+        {
+            string id = uid.ToString(CultureInfo.InvariantCulture);
+            object target = Arg(Mutf7Encode(folder));
+            ImapReply r;
+            if (Can("MOVE"))
+            {
+                r = Command("UID MOVE", id, " ", target);
+                if (!r.Ok) throw new MailException("The mail server wouldn't move it: " + Scrub(r.Text));
+            }
+            else if (Can("UIDPLUS"))
+            {
+                r = Command("UID COPY", id, " ", target);
+                if (!r.Ok) throw new MailException("The mail server wouldn't copy it to " + folder + ": " + Scrub(r.Text));
+                r = Command("UID STORE", id, " +FLAGS.SILENT (\\Deleted)");
+                if (!r.Ok) throw new MailException("It's copied to " + folder + ", but the mail server wouldn't take it out of here: " + Scrub(r.Text));
+                r = Command("UID EXPUNGE", id);
+                if (!r.Ok) throw new MailException("It's copied to " + folder + " and marked deleted here, but the mail server wouldn't clear it: " + Scrub(r.Text));
+            }
+            else throw new MailException("This mail server can't move one email on its own safely, so I left it where it is.");
+            if (Has(uid)) throw new MailException("The mail server said it moved it, but it's still here.");
+        }
+
+        internal void Noop() { Need(Command("NOOP")); }
+
+        internal bool Idle(int milliseconds)
+        {
+            string tag = "A" + (++tagCounter);
+            lock (idling) { idleTag = tag; idleDone = false; }
+            Timer refresh = null;
+            bool going = false, early = false;
+            wire.Patience(milliseconds + 60000);
+            try
+            {
+                wire.Write(tag + " IDLE\r\n");
+                while (true)
+                {
+                    string line = Response();
+                    if (line.StartsWith(tag + " ", StringComparison.Ordinal)) return going;
+                    if (line.StartsWith("+", StringComparison.Ordinal))
+                    {
+                        going = true;
+                        if (early) Wake();
+                        else refresh = new Timer(delegate { Wake(); }, null, milliseconds, Timeout.Infinite);
+                        continue;
+                    }
+                    if (line.StartsWith("* BYE", StringComparison.OrdinalIgnoreCase)) throw new MailException("The mail server said goodbye.");
+                    if (Regex.IsMatch(line, @"^\* \d+ (EXISTS|RECENT)\b", RegexOptions.IgnoreCase))
+                    {
+                        if (going) Wake();
+                        else early = true;
+                    }
+                }
+            }
+            finally
+            {
+                if (refresh != null) refresh.Dispose();
+                lock (idling) idleTag = null;
+                if (wire != null) wire.Patience(20000);
+            }
+        }
+
+        internal void Wake()
+        {
+            lock (idling)
+            {
+                if (idleTag == null || idleDone) return;
+                idleDone = true;
+                try { wire.Write("DONE\r\n"); }
+                catch (Exception) { }
+            }
+        }
+
+        internal void Abort()
+        {
+            MailWire w = wire;
+            if (w == null) return;
+            try { w.Dispose(); }
+            catch (Exception) { }
         }
 
         internal List<int> Search(params object[] criteria)
@@ -548,6 +764,43 @@ namespace CapriDesktop
                 return raw as string;
             }
             return null;
+        }
+
+        internal MailPeek Peek(int uid, int most)
+        {
+            List<int> one = new List<int>();
+            one.Add(uid);
+            foreach (Dictionary<string, object> d in Fetch(one, "UID FLAGS INTERNALDATE BODYSTRUCTURE BODY.PEEK[]<0." + most + ">"))
+            {
+                if (UidOf(d) != uid) continue;
+                MailPeek p = new MailPeek();
+                p.Uid = uid;
+                object v;
+                if (d.TryGetValue("BODY", out v)) p.Raw = (v as string) ?? "";
+                if (d.TryGetValue("FLAGS", out v)) p.Seen = HasSeen(v);
+                if (d.TryGetValue("INTERNALDATE", out v)) p.Arrived = Arrival(v as string);
+                if (d.TryGetValue("BODYSTRUCTURE", out v)) MailPhish.StructureNames(v, p.Names);
+                return p;
+            }
+            return null;
+        }
+
+        private static readonly string[] Months = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" };
+
+        internal static DateTime Arrival(string text)
+        {
+            Match m = Regex.Match(text ?? "", @"(\d{1,2})-([A-Za-z]{3})-(\d{4}) (\d{2}):(\d{2}):(\d{2}) ([+-])(\d{2})(\d{2})");
+            if (!m.Success) return DateTime.MinValue;
+            int month = Array.IndexOf(Months, m.Groups[2].Value.ToLowerInvariant()) + 1;
+            if (month < 1) return DateTime.MinValue;
+            try
+            {
+                DateTime at = new DateTime(int.Parse(m.Groups[3].Value), month, int.Parse(m.Groups[1].Value), int.Parse(m.Groups[4].Value), int.Parse(m.Groups[5].Value), int.Parse(m.Groups[6].Value), DateTimeKind.Unspecified);
+                TimeSpan offset = new TimeSpan(int.Parse(m.Groups[8].Value), int.Parse(m.Groups[9].Value), 0);
+                if (m.Groups[7].Value == "-") offset = offset.Negate();
+                return new DateTimeOffset(at, offset).UtcDateTime;
+            }
+            catch (ArgumentException) { return DateTime.MinValue; }
         }
 
         public void Dispose()

@@ -1581,7 +1581,7 @@ namespace CapriDesktop
         // replaces the last one. While they're typing to her or in a voice chat she keeps quiet.
         internal void FirstRunSay(string line)
         {
-            if (typer.Visible || chatting || quitting) return;
+            if (typer.Visible || InChat || quitting) return;
             if (hidden) SetHidden(false);
             heard = "first run";
             box.Prompt = "";

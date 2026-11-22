@@ -1150,6 +1150,52 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeCallRestart(List<string> checks)
+        {
+            bool callWas = CallModeOn, savedCallWas = preferences.CallMode, listenWas = preferences.ListenCapri, chatWas = chatting, localWas = local;
+            bool closedWas = earsClosed, hiddenWas = hidden, mutedWas = ears.Muted, checksWas = callEarsChecks;
+            double listenAtWas = listenAt;
+            try
+            {
+                StopChat();
+                CloseTalk();
+                preferences.ListenCapri = false;
+                callSession.Change(true);
+                preferences.CallMode = true;
+                typer.CallMode = true;
+                hidden = false;
+                earsClosed = false;
+                ears.Muted = false;
+                callEarsChecks = true;
+                listenAt = 0;
+                KeepListening(1);
+                if (!chatting || !local) throw new Exception("Call mode that was on when she started kept her ears shut, so friends heard her but she couldn't hear them.");
+                ToggleChat();
+                if (chatting || !earsClosed) throw new Exception("Shutting her ears on a call didn't count as shut.");
+                listenAt = 0;
+                KeepListening(2);
+                if (chatting) throw new Exception("She opened ears they'd shut on a call.");
+                callSession.Change(false);
+                preferences.CallMode = false;
+                typer.CallMode = false;
+                earsClosed = false;
+                listenAt = 0;
+                KeepListening(3);
+                if (chatting) throw new Exception("She opened her ears with call mode and Listen for Capri both off.");
+                checks.Add("PASS call mode still on from before she started opens her ears for the call, so friends who hear her are heard too; ears they shut on a call stay shut, and with call mode off nothing opens them");
+            }
+            finally
+            {
+                callEarsChecks = checksWas;
+                StopChat();
+                CloseTalk();
+                callSession.Change(callWas); preferences.CallMode = savedCallWas; typer.CallMode = callWas;
+                preferences.ListenCapri = listenWas;
+                chatting = chatWas; local = localWas;
+                earsClosed = closedWas; hidden = hiddenWas; ears.Muted = mutedWas; listenAt = listenAtWas;
+            }
+        }
+
         private void SmokeCallDisplay(List<string> checks)
         {
             CallPanel panelWas = callPanel;

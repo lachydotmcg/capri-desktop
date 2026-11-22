@@ -30,6 +30,7 @@ Ask Capri for more	Minta Capri lagi
 Asking your server...	Menanyakan ke servermu...
 Asks before closing only the apps you choose.	Hanya bertanya sebelum menutup aplikasi yang kamu pilih.
 Auto	Otomatis
+Auto (match what I say)	Otomatis (ikuti ucapan saya)
 Automatic: VB-CABLE, else Steam's	Otomatis: VB-CABLE, lainnya milik Steam
 BAD RELAY HOST	HOST RELAY SALAH
 BIG Z open notepad	BIG Z buka notepad
@@ -290,6 +291,7 @@ Huge	Sangat besar
 I can hear you.	Aku bisa mendengarmu.
 I glance at your screen and comment. Costs a little on a paid brain.	Aku melirik layarmu dan berkomentar. Memakan sedikit biaya di otak berbayar.
 I keep listening. Say my name, then just talk.	Aku terus mendengarkan. Sebut namaku, lalu bicara saja.
+I speak	Saya bicara
 I talk about your game as you play. Costs a little on a paid brain.	Aku bicara tentang game-mu saat kamu bermain. Memakan sedikit biaya di otak berbayar.
 I type my replies and stay quiet.	Aku mengetik balasanku dan diam.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Aku tidak akan membalas, dan tidak ada yang dikirim ke mana pun. Aku tetap nongkrong, menari mengikuti musikmu, dan melakukan hal cepat yang kamu minta, seperti volume.
@@ -598,6 +600,7 @@ SKILL.	KEMAMPUAN.
 SKIN.	KULIT.
 SORT BY	URUTKAN BERDASARKAN
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SUARA KEBIASAAN OTAK TONTON CAPRI DOOMSCROLL CUACA KLIP GAME TOMBOL GERAKAN SUARA KAMU
+Same as I speak	Sama dengan bahasa saya
 Same as her ears (VOICE > Mic)	Sama seperti telinganya (SUARA > Mik)
 Same code on the phone?	Kode sama di ponsel?
 Save	Simpan
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Pengaturan tidak punya apa-apa untuk ditonton.
 Settings lost keyboard focus during the Tab walk	Pengaturan kehilangan fokus keyboard saat jalur Tab
 Setup guide	Panduan pengaturan
 Setup stopped	Pengaturan dihentikan
+She answers in	Dia menjawab dalam
 She can read it when it fits.	Dia bisa membacanya saat muat.
 She glances at your screen and comments. Costs a little on a paid brain.	Dia melirik layarmu dan berkomentar. Memakan sedikit biaya di otak berbayar.
-She keeps listening. Say her name, then just talk until you go quiet.	Dia terus mendengarkan. Sebut namanya, lalu bicara terus sampai kamu diam.
+She keeps listening. Say her name, then just talk.	Dia terus mendengarkan. Sebut namanya, lalu bicara saja.
 She reacts to your game until you close it.	Dia bereaksi terhadap game-mu sampai kamu menutupnya.
 She reads these controls before each game job.	Dia membaca kontrol ini sebelum setiap tugas game.
 She talks about your game as you play. Costs a little on a paid brain.	Dia bicara tentang game-mu saat kamu bermain. Memakan sedikit biaya di otak berbayar.
