@@ -2,9 +2,12 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 unset WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE DISPLAY DBUS_SESSION_BUS_ADDRESS
-for project in tests/native-surface/NativeSurface.Tests.csproj tests/desktop/Capri.Desktop.Tests.csproj tests/computer/ComputerChecks.csproj tests/stream-guard/Probe.csproj tests/smoke-gate/SmokeGateChecks.csproj tests/brain-provider/BrainProviderChecks.csproj tests/game-session/GameSessionChecks.csproj tests/input-cancel/InputCancelChecks.csproj tests/native-bridge/NativeBridgeChecks.csproj tests/cross-voice/CrossVoiceChecks.csproj tests/cross-voice-integration/VoiceVerifier.csproj; do
+for project in tests/native-surface/NativeSurface.Tests.csproj tests/desktop/Capri.Desktop.Tests.csproj tests/computer/ComputerChecks.csproj tests/stream-guard/Probe.csproj tests/smoke-gate/SmokeGateChecks.csproj tests/brain-provider/BrainProviderChecks.csproj tests/game-session/GameSessionChecks.csproj tests/input-cancel/InputCancelChecks.csproj tests/native-bridge/NativeBridgeChecks.csproj tests/cross-voice/CrossVoiceChecks.csproj; do
     dotnet run --project "$root/$project" -c Release
 done
+dotnet build "$root/cross/Capri.Cross.csproj" -c Release --nologo
+rm -rf "${root:?}/out/voice-verifier"
+dotnet run --project "$root/tests/cross-voice-integration/VoiceVerifier.csproj" -c Release -- "$root/cross/bin/Release/net10.0/Capri.dll" "$root/out/voice-verifier" fresh
 dotnet run --project "$root/tests/everyday-jobs/EverydayJobs.csproj" -c Release -- --brain "Scripted=scripted" --floor 100
 make -C "$root/cross/native"
 python3 "$root/tests/computer/native_input_checks.py" "$root/cross/native/capri-input"
