@@ -231,7 +231,7 @@ namespace CapriDesktop
             {
                 int left = (int)(until - DateTime.UtcNow).TotalMilliseconds;
                 if (left <= 0) throw new McpException(spec.Name + " took longer than " + timeout / 1000 + " seconds to answer.");
-                string token = McpSignIn.Token(pluginId, spec.Name, spec.Url);
+                string token = McpSignIn.Token(pluginId, spec);
                 bool again = false;
                 object result = null;
                 using (HttpWebResponse response = McpHttp.Send("POST", spec.Url, Headers(token), "application/json", "application/json, text/event-stream", body, left))
@@ -239,7 +239,7 @@ namespace CapriDesktop
                     int status = (int)response.StatusCode;
                     if (status == 401)
                     {
-                        if (attempt == 0 && token != null && McpSignIn.Refreshed(pluginId, spec.Name, spec.Url, token) != null) again = true;
+                        if (attempt == 0 && token != null && McpSignIn.Refreshed(pluginId, spec, token) != null) again = true;
                         else throw new McpSignInNeeded();
                     }
                     else result = Answered(response, status, id, method, until);
@@ -376,7 +376,7 @@ namespace CapriDesktop
             if (was == null || !wasAlive) return;
             try
             {
-                Dictionary<string, string> headers = Headers(McpSignIn.Cached(pluginId, spec.Name, spec.Url));
+                Dictionary<string, string> headers = Headers(McpSignIn.Cached(pluginId, spec));
                 headers[Session] = was;
                 using (HttpWebResponse response = McpHttp.Send("DELETE", spec.Url, headers, null, null, null, 2000)) { }
             }

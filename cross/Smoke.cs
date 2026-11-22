@@ -5797,14 +5797,14 @@ namespace CapriDesktop
                 mods.Load();
                 pet.SetMainframeSize(100); frame.ShowMods(true); frame.SearchInstalled(""); frame.Sync(); frame.UpdateLayout();
                 PlugTile[] tiles = frame.PlugTileRow;
-                string[] names = { "Email", "Notion", "Linear" };
-                int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear };
-                for (int i = 0; i < 3; i++)
+                string[] names = { "Email", "Notion", "Linear", "Todoist" };
+                int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                for (int i = 0; i < 4; i++)
                     if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
-                if (tiles[3].IsVisible || frame.PlugEmptyShown || frame.PlugBack.IsVisible || frame.PlugNext.IsVisible || frame.InstalledHasPlugins)
-                    throw new Exception("The starters showed under INSTALLED too, or PLUG-INS showed pages for three.");
+                if (frame.PlugEmptyShown || !frame.PlugBack.IsVisible || !frame.PlugNext.IsVisible || frame.PlugBack.IsEnabled || !frame.PlugNext.IsEnabled || frame.InstalledHasPlugins)
+                    throw new Exception("The eight starters did not page separately from INSTALLED.");
                 frame.ModStatusText = "";
                 foreach (int scale in new[] { 100, 150, 200 })
                 {
@@ -5827,6 +5827,15 @@ namespace CapriDesktop
                 notion.SavePicture(Path.Combine(folder, "plugin-sheet-notion.png"));
                 notion.Close();
                 MainframeWait(delegate { return frame.PluginSheet == null; }, "closing Notion's window");
+
+                frame.OpenPluginToken(mods.All.Find(one => one.File.Id == "github"));
+                PluginTokenWindow tokenSetup = frame.PluginTokenSheet;
+                tokenSetup.UpdateLayout();
+                string tokenFit = tokenSetup.Crowded();
+                if (tokenFit != null || !string.IsNullOrEmpty(tokenSetup.Token.Box.Text)) throw new Exception("GitHub token setup is not empty or doesn't fit: " + tokenFit);
+                tokenSetup.SavePicture(Path.Combine(folder, "plugin-token-github.png"));
+                tokenSetup.Close();
+                MainframeWait(delegate { return frame.PluginTokenSheet == null; }, "closing personal-token setup");
 
                 string consent = null;
                 frame.ModAsk = delegate(ModFile file, string hash) { consent = Mods.Consent(file, hash); return false; };
@@ -5867,11 +5876,14 @@ namespace CapriDesktop
                 mods.Load();
                 frame.Sync();
                 if (!frame.PlugBack.IsVisible || !frame.PlugNext.IsVisible || frame.PlugBack.IsEnabled || !frame.PlugNext.IsEnabled || !tiles[3].IsVisible || tiles[3].Picture != Mods.Plug)
-                    throw new Exception("Five plug-ins didn't page under PLUG-INS.");
+                    throw new Exception("Ten plug-ins didn't page under PLUG-INS.");
                 string paged = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                 if (paged != null) throw new Exception("PLUG-INS with Back and Next overlaps " + paged);
                 frame.PlugNext.Press();
-                if (frame.PlugFirst != 4 || !tiles[0].IsVisible || tiles[1].IsVisible || frame.PlugNext.IsEnabled || !frame.PlugBack.IsEnabled) throw new Exception("Next didn't show the last plug-in on its own.");
+                if (frame.PlugFirst != 4 || tiles[0].Text != "GitHub" || tiles[3].Text != "Miro" || !frame.PlugNext.IsEnabled || !frame.PlugBack.IsEnabled) throw new Exception("Next didn't show the second starter page.");
+                frame.PlugNext.Press();
+                if (frame.PlugFirst != 8 || !tiles[0].IsVisible || !tiles[1].IsVisible || tiles[2].IsVisible || frame.PlugNext.IsEnabled || !frame.PlugBack.IsEnabled) throw new Exception("Next didn't show the final two imported plug-ins.");
+                frame.PlugBack.Press();
                 frame.PlugBack.Press();
                 if (frame.PlugFirst != 0 || tiles[0].Text != "Email") throw new Exception("Back didn't go back to the first plug-ins.");
                 checks.Add("PASS plug-ins on Mac and Linux: more than four plug-ins page with Back and Next in the PLUG-INS band");

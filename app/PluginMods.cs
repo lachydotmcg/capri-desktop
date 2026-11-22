@@ -342,7 +342,7 @@ namespace CapriDesktop
             {
                 if (server.Online)
                 {
-                    reaches.Add("connects to " + McpHttp.Shown(server.Url) + " online, and you sign in to it in your browser");
+                    reaches.Add("connects to " + McpHttp.Shown(server.Url) + " online, and " + (server.TokenEntry ? "you add a personal access token in Capri" : "you sign in to it in your browser"));
                     string[] sent = ModFloor.Pulled(server);
                     if (sent.Length > 0) reaches.Add("sends " + ModFloor.And(sent) + " from your PC's settings to " + new Uri(server.Url).Host + ", which " + (sent.Length == 1 ? "looks" : "look") + " like a key or password");
                 }
@@ -443,6 +443,20 @@ namespace CapriDesktop
                         continue;
                     }
                     PluginServer web = new PluginServer { Name = pair.Key, Url = address, Legacy = type == "sse" };
+                    object authentication = PluginJson.Get(pair.Value, "auth");
+                    if (authentication != null)
+                    {
+                        Dictionary<string, object> auth = PluginJson.Map(authentication);
+                        if (auth == null) throw new ModException(pair.Key + "'s auth must be an object.");
+                        if (auth.ContainsKey("clientSecret") || auth.ContainsKey("client_secret")) throw new ModException("A distributed plug-in cannot keep a shared OAuth client secret. Use a public client with PKCE, or a personal token.");
+                        string mode = PluginJson.Str(auth, "type") ?? "oauth";
+                        if (mode != "oauth" && mode != "token") throw new ModException(pair.Key + " supports OAuth public clients or personal tokens.");
+                        foreach (string key in auth.Keys) if (key != "type" && key != "clientId" && key != "scope") throw new ModException(pair.Key + "'s auth option " + Plugins.Line(key, 40) + " isn't supported.");
+                        web.TokenEntry = mode == "token";
+                        web.ClientId = AuthText(auth, "clientId", 1024);
+                        web.Scope = AuthText(auth, "scope", 2048);
+                        if (web.TokenEntry && (web.ClientId != null || web.Scope != null)) throw new ModException(pair.Key + "'s personal-token setup cannot also configure OAuth.");
+                    }
                     Dictionary<string, object> sent = PluginJson.Map(PluginJson.Get(pair.Value, "headers"));
                     if (sent != null)
                     {
@@ -453,6 +467,7 @@ namespace CapriDesktop
                             web.Headers[value.Key] = (string)value.Value;
                         }
                     }
+                    if (web.TokenEntry && web.Headers.ContainsKey("Authorization")) throw new ModException(pair.Key + " must use either personal-token setup or an Authorization header, not both.");
                     servers.Add(web);
                     continue;
                 }
@@ -483,7 +498,17 @@ namespace CapriDesktop
                     }
                 servers.Add(server);
             }
+            if (servers.Exists(one => one.TokenEntry) && servers.Count != 1) throw new ModException("Personal-token setup needs a plug-in with exactly one server.");
             return servers;
+        }
+
+        private static string AuthText(Dictionary<string, object> auth, string key, int limit)
+        {
+            object value;
+            if (!auth.TryGetValue(key, out value)) return null;
+            string text = value as string;
+            if (text == null || text.Trim().Length == 0 || text.Length > limit || Regex.IsMatch(text, @"[\p{Cc}\p{Cf}]")) throw new ModException("The OAuth " + key + " must be ordinary, nonempty text.");
+            return text.Trim();
         }
 
         private static List<Mod> ReadSkills(string root, object manifest, ModFile plugin)
@@ -697,7 +722,7 @@ namespace CapriDesktop
             }
             string run = (inside && !local && !online ? "Its tools run inside Capri, and they reach only the accounts you set up for them in Capri. " : "")
                 + (local || !online && !inside ? "Those programs run outside Capri with your account's access to your PC, your files and your accounts. They get none of her keys, and none of your PC's other key, token and password settings unless it names them above. " : "")
-                + (online ? (local ? "The online ones run on their makers' computers, not this PC: " : "It runs on its maker's computers, not this PC: ") + "you sign in to them in your browser, and " + (McpSignIn.Keeps ? "Capri keeps that sign-in on this PC, protected by Windows, until you remove the plug-in" : "Capri keeps that sign-in only until she closes") + ". While you're signed in her tools there can do whatever that account lets them, and what she sends them leaves this PC. " : "")
+                + (online ? (local ? "The online ones run on their makers' computers, not this PC: " : "It runs on its maker's computers, not this PC: ") + "you sign in in your browser or add a personal token as described above, and " + (McpSignIn.Keeps ? "Capri keeps that sign-in on this PC, protected by Windows, until you remove the plug-in" : "Capri keeps that sign-in only until she closes") + ". While you're signed in her tools there can do whatever that account lets them, and what she sends them leaves this PC. " : "")
                 + "She refuses any call that would send one of her keys. Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + "." + (inside && !local && !online ? "" : " She can't see or limit what " + (online ? "they do by themselves" : "the program does by itself") + ".") + "\n\n";
             return mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a plug-in that gives her tools.\n\n"
                 + (reviewed ? Reviewed : "")
