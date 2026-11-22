@@ -979,7 +979,7 @@ namespace CapriDesktop
             List<string> timing = new List<string>();
             foreach (string id in new[] { "peek", "up-close" })
             {
-                int frames = ArtIntro.Frames(id), wanted = id == "peek" ? 16 : 22;
+                int frames = ArtIntro.Frames(id), wanted = id == "peek" ? 20 : 22;
                 if (frames != wanted) throw new Exception(Intros.NameOf(id) + " has " + frames + " frames inside her, not " + wanted + ".");
                 for (int i = 0; i < frames; i++)
                 {
