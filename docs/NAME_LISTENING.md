@@ -86,13 +86,16 @@ wait after her name on its own as Linux, with these Mac differences:
   the clip plus 700 ms.
 - **Screen lock.** On Linux she pauses on a real lock report: a Hyprland session
   snapshot that says the session is locked, or logind's `LockedHint` anywhere else. A
-  missing or stale snapshot is treated as unknown, never as a lock, so a desktop that
-  isn't answering can't pause her or write a false hold. A locked screen pauses her, and
-  a detected unlock brings her back when the switch is still on and nothing else bars
-  her. A desktop that answers nothing keeps her listening, and she may keep listening
-  while the screen is locked, since the hint depends on the desktop updating it. Once
-  she has seen a lock she remembers it in `cross.json`, so a desktop that stops
-  answering afterward keeps her paused even across restarting Capri. An explicit Stop
+  live snapshot answers for itself; when Hyprland has no snapshot she asks logind
+  instead, so a present desktop that stops answering can't hide an available lock.
+  Only when neither answers is the state unknown, which never pauses her and never
+  writes a hold. A locked screen pauses her, and a detected unlock brings her back
+  when the switch is still on and nothing else bars her; if the screen relocks during
+  that resume she stays paused with the hold kept for the next real unlock. A desktop
+  that answers nothing keeps her listening, and she may keep listening while the screen
+  is locked, since the hint depends on the desktop updating it. Once she has seen a lock
+  she remembers it in `cross.json`, so a desktop that stops answering afterward keeps
+  her paused even across restarting Capri. An explicit Stop
   always wins: a lock only pauses her while she is actually listening, so a later
   unlock can't restart her after you stopped her. A change to the account, model or
   selected microphone clears a saved lock pause instead of resuming the microphone

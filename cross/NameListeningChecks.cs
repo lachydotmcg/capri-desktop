@@ -77,6 +77,206 @@ namespace CapriDesktop
             if (OperatingSystem.IsLinux()) HoldChecks(pet, checks);
             if (OperatingSystem.IsLinux()) CorrectionChecks(pet, checks);
             if (OperatingSystem.IsLinux()) ReviewChecks(pet, checks);
+            if (OperatingSystem.IsLinux()) LensChecks(pet, checks);
+        }
+
+        // The last lens captures found that a present Hyprland desktop with no snapshot skipped logind entirely, that a relock
+        // between the resume's eligibility check and its start left no hold behind, that the tick could read the lock twice and
+        // lose it in between, and that recovery messages still said "turn on" under an already-on switch.
+        private static void LensChecks(Pet pet, List<string> checks)
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            Func<bool?> lockedWas = Pet.LockedForNameListening;
+            Func<string, string[], string> runWas = Music.Run;
+            Func<long> nowWas = Limbs.LockClock;
+            Settings saved = pet.Saved;
+            bool capriWas = saved.ListenCapri, holdWas = saved.ListenCapriHold;
+            string nodeWas = saved.MicrophoneNode, fingerprintWas = saved.MicrophoneFingerprint;
+            int xWas = saved.X, yWas = saved.Y;
+            bool placedWas = saved.Placed;
+            var stoppedField = typeof(Pet).GetField("nameStopped", fields);
+            var startingField = typeof(Pet).GetField("nameStarting", fields);
+            var statusField = typeof(Pet).GetField("nameStatus", fields);
+            var epochField = typeof(Pet).GetField("nameEpoch", fields);
+            var contextField = typeof(Pet).GetField("nameContext", fields);
+            var lockPausedField = typeof(Pet).GetField("nameLockPaused", fields);
+            var captureContext = typeof(Pet).GetMethod("CaptureNameContext", fields, null, Type.EmptyTypes, null);
+            var startListening = typeof(Pet).GetMethod("StartNameListening", fields, null, Type.EmptyTypes, null);
+            var writeBlockedField = typeof(Pet).GetField("settingsWriteBlocked", fields);
+            var tick = typeof(Pet).GetMethod("TickNameListening", fields, null, Type.EmptyTypes, null);
+            var enable = typeof(Pet).GetMethod("EnableNameListening", fields, null, new[] { typeof(bool) }, null);
+            var stop = typeof(Pet).GetMethod("StopNameListening", fields, null, new[] { typeof(string) }, null);
+            bool stoppedWas = (bool)stoppedField.GetValue(pet), startingWas = (bool)startingField.GetValue(pet);
+            bool lockPausedWas = (bool)lockPausedField.GetValue(pet), writeBlockedWas = (bool)writeBlockedField.GetValue(pet);
+            string statusWas = (string)statusField.GetValue(pet), smokeWas = Program.Smoke;
+            object contextWas = contextField.GetValue(pet);
+            Func<bool> started = () => !(bool)stoppedField.GetValue(pet);
+            Func<bool> starting = () => (bool)startingField.GetValue(pet);
+            Func<bool> lockPaused = () => (bool)lockPausedField.GetValue(pet);
+            Func<long> epoch = () => (long)epochField.GetValue(pet);
+            Func<bool> holdSaved = () =>
+            {
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, saved);
+                    stream.Position = 0;
+                    return ((Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(stream)).ListenCapriHold;
+                }
+            };
+            long now = 0;
+            try
+            {
+                pet.Talk.Dismiss();
+                Limbs.LockClock = () => now;
+                saved.MicrophoneNode = "check-node";
+                saved.MicrophoneFingerprint = "check-fp";
+
+                // Finding 1: no snapshot must defer to logind, never stand in for a missing answer. Smoke has no Hyprland
+                // session, so the branch runs through LockedFromDesktop with real HyprlandSnapshot values and a logind seam.
+                Func<bool?> logind = () => true;
+                Require(Pet.LockedFromDesktop(null, logind) == true, "a missing Hyprland snapshot stopped before asking logind for a lock");
+                logind = () => false;
+                Require(Pet.LockedFromDesktop(null, logind) == false, "a missing snapshot ignored logind's unlocked answer");
+                logind = () => null;
+                Require(Pet.LockedFromDesktop(null, logind) == null, "a missing snapshot with no logind answer invented a lock answer");
+                logind = () => true;
+                Require(Pet.LockedFromDesktop(Hyprland(false), logind) == false, "a live snapshot deferred to logind instead of answering");
+                Require(Pet.LockedFromDesktop(Hyprland(true), () => false) == true, "a locked live snapshot was overridden by logind");
+
+                // And the production seam itself defers. Smoke has no Hyprland session, so its snapshot is absent and this
+                // exercises the fallback: whatever logind says must come through instead of the old silent null.
+                if (HyprlandDesktop.Current == null)
+                {
+                    Music.Run = (file, args) => "b true\n";
+                    now += 100000;
+                    Require(Pet.LockedForNameListening() == true, "the production lock seam dropped logind's locked answer when Hyprland had no snapshot");
+                    Music.Run = (file, args) => "b false\n";
+                    now += 100000;
+                    Require(Pet.LockedForNameListening() == false, "the production lock seam dropped logind's unlocked answer when Hyprland had no snapshot");
+                    Music.Run = (file, args) => null;
+                    now += 100000;
+                    Require(Pet.LockedForNameListening() == null, "the production lock seam invented a lock answer when neither Hyprland nor logind answered");
+                }
+
+                // Finding 2: a relock landing between the resume's eligibility check and the start's own bar check leaves no
+                // hold behind, so a later unlock can never resume her. The seam answers unlocked to that eligibility read and
+                // locked from then on, which is exactly a screen locking inside StartNameListening.
+                saved.ListenCapri = true;
+                saved.ListenCapriHold = true;
+                saved.MicrophoneNode = "check-node";
+                saved.MicrophoneFingerprint = "check-fp";
+                lockPausedField.SetValue(pet, true);
+                stoppedField.SetValue(pet, true);
+                contextField.SetValue(pet, null);
+                pet.Talk.Dismiss();
+                int reads = 0;
+                Pet.LockedForNameListening = delegate { reads++; return reads == 1 ? (bool?)false : true; };
+                long relockEpoch = epoch();
+                pet.ObserveNameLock(false);
+                Require(reads > 1, "the resume never re-read the lock, so this check tested nothing");
+                Require(saved.ListenCapriHold && holdSaved(), "a relock during the resume left no hold, so a later unlock could never resume her");
+                Require(lockPaused(), "a relock during the resume left her not resumable");
+                Require(!started(), "a relock during the resume started her");
+                Require(pet.NameListeningStatus == "Paused while the screen is locked.",
+                    "a relock during the resume reported the wrong state: " + pet.NameListeningStatus);
+                Require(epoch() == relockEpoch + 1, "a relock during the resume stopped her more than once");
+                Pet.LockedForNameListening = () => false;
+                pet.ObserveNameLock(false);
+                Require(started() && starting(), "the hold re-established after a relock never resumed her");
+                contextField.SetValue(pet, null);
+                stop.Invoke(pet, new object[] { "Local name listening is off." });
+
+                // Finding 3: the tick reads the lock twice, so a change between the reads must still pause her as a lock.
+                writeBlockedField.SetValue(pet, true);
+                Program.Smoke = null;
+                try
+                {
+                    saved.ListenCapri = true;
+                    saved.ListenCapriHold = false;
+                    saved.MicrophoneNode = "check-node";
+                    saved.MicrophoneFingerprint = "check-fp";
+                    lockPausedField.SetValue(pet, false);
+                    stoppedField.SetValue(pet, false);
+                    // No context change here: only the lock differs between the tick's two reads.
+                    contextField.SetValue(pet, null);
+                    Pet.LockedForNameListening = SplitLock();
+                    tick.Invoke(pet, null);
+                    Require(saved.ListenCapriHold && holdSaved(), "a tick that lost the lock between two reads recorded no hold");
+                    Require(lockPaused(), "a tick that lost the lock between two reads left her not resumable");
+                    Require(!started(), "a tick that lost the lock between two reads left her running");
+                    Require(pet.NameListeningStatus == "Paused while the screen is locked.",
+                        "a tick that lost the lock between two reads reported the wrong stop: " + pet.NameListeningStatus);
+                    stop.Invoke(pet, new object[] { "Local name listening is off." });
+                }
+                finally
+                {
+                    Program.Smoke = smokeWas;
+                    writeBlockedField.SetValue(pet, writeBlockedWas);
+                }
+                contextField.SetValue(pet, null);
+
+                // Finding 4: every message sent while the switch stays on must say off and on, never "turn on".
+                saved.ListenCapri = true;
+                saved.ListenCapriHold = false;
+                lockPausedField.SetValue(pet, false);
+                stoppedField.SetValue(pet, true);
+                contextField.SetValue(pet, null);
+                typeof(Pet).GetField("shushed", fields).SetValue(pet, true);
+                startListening.Invoke(pet, null);
+                Require(pet.NameListeningStatus == "Name listening paused. Unmute and wake Capri, then turn Listen for Capri off and on.",
+                    "the barred refusal still told the user to turn on an already-on switch: " + pet.NameListeningStatus);
+                typeof(Pet).GetField("shushed", fields).SetValue(pet, false);
+                stop.Invoke(pet, new object[] { "Local name listening is off." });
+                Require(pet.NameListeningStatus == "Local name listening is off.",
+                    "the user's own off switch stopped saying to turn it on: " + pet.NameListeningStatus);
+                saved.ListenCapri = true;
+                lockPausedField.SetValue(pet, false);
+                contextField.SetValue(pet, captureContext.Invoke(pet, null));
+                Require(contextField.GetValue(pet) != null, "the check could not record a listening context to change");
+                saved.MicrophoneNode = "other-node";
+                Pet.LockedForNameListening = () => false;
+                stoppedField.SetValue(pet, false);
+                statusField.SetValue(pet, "Starting local name listening…");
+                // The real tick returns at once in smoke, so this one drive swaps smoke out and restores it in finally.
+                writeBlockedField.SetValue(pet, true);
+                Program.Smoke = null;
+                try { tick.Invoke(pet, null); }
+                finally { Program.Smoke = smokeWas; writeBlockedField.SetValue(pet, writeBlockedWas); }
+                Require(pet.NameListeningStatus == "Name listening stopped after a state change. Turn Listen for Capri off and on to resume.",
+                    "the tick's state-change message still said turn on: " + pet.NameListeningStatus);
+                contextField.SetValue(pet, null);
+                stop.Invoke(pet, new object[] { "Local name listening is off." });
+            }
+            finally
+            {
+                stop.Invoke(pet, new object[] { "Local name listening is off." });
+                Program.Smoke = smokeWas;
+                writeBlockedField.SetValue(pet, writeBlockedWas);
+                typeof(Pet).GetField("shushed", fields).SetValue(pet, false);
+                Pet.LockedForNameListening = lockedWas;
+                Music.Run = runWas;
+                Limbs.LockClock = nowWas;
+                saved.X = xWas; saved.Y = yWas; saved.Placed = placedWas;
+                saved.ListenCapri = capriWas;
+                saved.ListenCapriHold = holdWas;
+                saved.MicrophoneNode = nodeWas;
+                saved.MicrophoneFingerprint = fingerprintWas;
+                stoppedField.SetValue(pet, stoppedWas);
+                startingField.SetValue(pet, startingWas);
+                statusField.SetValue(pet, statusWas);
+                contextField.SetValue(pet, contextWas);
+                lockPausedField.SetValue(pet, lockPausedWas);
+                pet.Talk.Dismiss();
+            }
+            checks.Add("PASS name listening lenses: a present Hyprland desktop with no snapshot defers to logind instead of dropping the signal, a relock during the resume keeps a hold that a later unlock can use, a tick that loses the lock between its two reads still pauses her as a lock, and every message sent while the switch stays on says off and on");
+        }
+
+        // A seam that answers unlocked on its first read and locked on its second, standing in for a lock that lands between
+        // the two reads the tick makes: ObserveNameLock's observation first, then NameBarred's own.
+        private static Func<bool?> SplitLock()
+        {
+            bool read = false;
+            return delegate { bool answer = read; read = true; return answer; };
         }
 
         // A late review found three gaps in the lock work: a hold recorded after the listening context changed, a recovery
@@ -150,7 +350,7 @@ namespace CapriDesktop
                 Require(!saved.ListenCapriHold && !holdSaved(), "a lock recorded a resumable pause after the listening context changed");
                 Require(!lockPaused(), "a lock kept a resumable pause after the listening context changed");
                 Require(!started(), "a lock after a context change left her running");
-                Require(pet.NameListeningStatus == "Name listening stopped after a state change. Turn Listen for Capri on to resume.",
+                Require(pet.NameListeningStatus == "Name listening stopped after a state change. Turn Listen for Capri off and on to resume.",
                     "a lock after a context change reported the wrong stop: " + pet.NameListeningStatus);
                 Require(epoch() == changedEpoch + 1, "a lock after a context change did not stop her exactly once");
                 Pet.LockedForNameListening = () => false;
@@ -202,6 +402,9 @@ namespace CapriDesktop
                 Pet.LockedForNameListening = () => false;
                 pet.ObserveNameLock(false);
                 Require(started() && starting(), "the hold kept by answering YES never resumed her on a detected unlock");
+                // The saved projection too, so a lost write can't leave her paused after a restart.
+                Require(!Pet.Newest(pet.Saved).ListenCapriHold, "the resumed hold was not cleared in the saved copy, so a restart would pause her");
+                Require(!holdSaved(), "the resumed hold was still written to cross.json");
                 stop.Invoke(pet, new object[] { "Local name listening is off." });
 
                 // Finding 3: the limitation note belongs only to an activation that really begins capture, never a refused one.
@@ -429,8 +632,11 @@ namespace CapriDesktop
                 Require(saved.ListenCapri, "the switch with no microphone did not save the opt-in");
                 Require(answers() == answeredBefore + 1,
                     "the limitation note was emitted before the microphone chooser took over: " + (answers() - answeredBefore));
-                Require(pet.Talk.Reply != null && pet.Talk.Reply != "She can't always tell when the screen is locked, so on some desktops she may keep listening while it is.",
-                    "the microphone chooser's own line was replaced by the limitation note: " + pet.Talk.Reply);
+                // The chooser's own first line, so a generic error can't stand in for it. Its numbered choices arrive from the
+                // detached pw-dump inventory, which smoke can't run here, so they are not asserted; the first line is the part
+                // that proves the chooser took over the reply.
+                Require(pet.Talk.Reply == "Checking available physical microphones…",
+                    "the microphone chooser's own line was replaced or lost: " + pet.Talk.Reply);
                 stop.Invoke(pet, new object[] { "Local name listening is off." });
 
                 // And it still shows, as one line, when a microphone is picked so she really starts listening.
