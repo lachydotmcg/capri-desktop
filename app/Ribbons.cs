@@ -453,7 +453,7 @@ namespace CapriDesktop
         // Her hair's colour and her accent colour as she's wearing them now, which a color mod can change.
         private Color RibbonColour(int slot)
         {
-            string[] now = ModList != null ? ModList.ColoursNow : null;
+            string[] now = ModList != null ? ModList.ColoursWorn : null;
             return ArtColour(now != null && now[slot] != null && now[slot].Length == 7 ? now[slot] : ArtColors.Usual[slot]);
         }
 
