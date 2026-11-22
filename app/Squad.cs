@@ -136,11 +136,16 @@ namespace CapriDesktop
             return !stopped;
         }
 
+        // The squad saves one note at the end, so her copies get her computer's steps without Notes.
+        private static string MateSteps { get { return HerComputer.StepSystem.Replace(", plus Notes", "").Replace("\nNOTE <title> | <text>", ""); } }
+
+        internal static string ChatSystem { get { return Brain.Character; } }
+
         internal string MateSystem(SquadMate mate)
         {
             string lines = string.Format(MateLines, Mates.Count, HerComputer.Short(Job, 300), mate.Name, mate.Part);
-            if (mate.Persona == null) return HerComputer.StepSystem + lines;
-            return mate.Persona + "\n\nRight now you're helping Capri with a job on her own little computer, which has a real web browser on its own profile, plus Notes." + HerComputer.StepSystem.Substring(HerComputer.StepSystem.IndexOf(" You do jobs", StringComparison.Ordinal)) + lines.Replace("one of " + Mates.Count + " copies of Capri", "in Capri's squad of " + Mates.Count);
+            if (mate.Persona == null) return MateSteps + lines + "\n" + Brain.Safety;
+            return mate.Persona + "\n\nRight now you're helping Capri with a job on her own little computer, which has a real web browser on its own profile." + MateSteps.Substring(MateSteps.IndexOf(" You do jobs", StringComparison.Ordinal)) + lines.Replace("one of " + Mates.Count + " copies of Capri", "in Capri's squad of " + Mates.Count) + "\n" + Brain.Holds + "\n" + Brain.Safety;
         }
 
         internal string Board(SquadMate asking)
@@ -341,6 +346,8 @@ namespace CapriDesktop
             squad.Mates[1].Persona = "You are Mochi, a sleepy cat girl.";
             system = squad.MateSystem(squad.Mates[1]);
             if (!system.StartsWith("You are Mochi", StringComparison.Ordinal) || system.IndexOf("You are Capri", StringComparison.Ordinal) >= 0 || system.IndexOf("Never type passwords", StringComparison.Ordinal) < 0) return "A friend in her squad lost her own personality or the browser rules.";
+            if (system.IndexOf(Brain.Safety, StringComparison.Ordinal) < 0 || squad.MateSystem(squad.Mates[0]).IndexOf(Brain.Safety, StringComparison.Ordinal) < 0 || ChatSystem.IndexOf(Brain.Safety, StringComparison.Ordinal) < 0) return "Her squad's copies or their chatter worked without her safety lines.";
+            if (system.IndexOf("NOTE <", StringComparison.Ordinal) >= 0 || squad.MateSystem(squad.Mates[0]).IndexOf("NOTE <", StringComparison.Ordinal) >= 0) return "Her squad's copies were told to save notes of their own.";
             string chat = squad.ChatPrompt();
             if (chat.IndexOf("Logitech G305", StringComparison.Ordinal) < 0 || chat.IndexOf("Searching for mouse reviews", StringComparison.Ordinal) < 0 || chat.IndexOf("numbers 0 to 2", StringComparison.Ordinal) < 0) return "Her squad's chatter wasn't about what they're really doing.";
             List<PointF> spots = Stations(3, 0, 1000, 700, 140);
@@ -364,12 +371,18 @@ namespace CapriDesktop
             List<string> boards = new List<string>();
             Func<string, string, string> cheap = delegate(string system, string user)
             {
+                if (system.IndexOf(Brain.Safety, StringComparison.Ordinal) < 0) Interlocked.Increment(ref unguarded);
                 Interlocked.Increment(ref started);
                 DateTime until = DateTime.UtcNow.AddSeconds(5);
                 while (Volatile.Read(ref started) < 3 && DateTime.UtcNow < until) Thread.Sleep(10);
                 lock (boards) boards.Add(user);
                 if (system.IndexOf("find a mouse", StringComparison.Ordinal) >= 0) return "DONE the Logitech G305";
-                if (system.IndexOf("find a keyboard", StringComparison.Ordinal) >= 0) { Thread.Sleep(200); return "DONE the Logitech K380"; }
+                if (system.IndexOf("find a keyboard", StringComparison.Ordinal) >= 0)
+                {
+                    if (user.IndexOf("NOTE", StringComparison.Ordinal) < 0) return "NOTE keyboards | the Logitech K380 is the one";
+                    Thread.Sleep(200);
+                    return "DONE the Logitech K380";
+                }
                 return "hmm";
             };
             int done = 0;
@@ -378,7 +391,7 @@ namespace CapriDesktop
             string answer = squad.Work(computer, cheap, lead, delegate { return null; }, delegate { return quiet; }, delegate { Interlocked.Increment(ref done); }, out note);
             if (Volatile.Read(ref started) < 3 || boards.Count < 3) return "Her squad's copies didn't work at the same time.";
             if (answer != "Got you a mouse, a keyboard and a bundle. G305 and K380." || done != 3) return "Her squad didn't put its finds together: " + answer;
-            if (Volatile.Read(ref unguarded) != 0) return "Her squad planned or answered without her safety lines.";
+            if (Volatile.Read(ref unguarded) != 0) return "Her squad planned, worked or answered without her safety lines.";
             if (squad.Mates[2].Asked != 3 || squad.Mates[2].State != "done") return "A copy in her squad kept going past bad replies.";
             if (note == null || !File.Exists(note) || HerComputer.Read(note, 4000).IndexOf("keyboard scout", StringComparison.Ordinal) < 0) return "Her squad didn't save its note.";
             if (computer.Notes().Count != 1) return "Her squad's copies each saved a note of their own.";

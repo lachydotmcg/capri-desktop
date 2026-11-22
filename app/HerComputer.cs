@@ -356,6 +356,7 @@ namespace CapriDesktop
                         log.Add(step + ". BACK -> " + Short(web.Title, 80));
                         break;
                     case "NOTE":
+                        if (!keep) { log.Add(step + ". NOTE: not saved, your answer is saved at the end, so finish with DONE"); break; }
                         hands.Status("Writing a note");
                         hands.Show("notes");
                         hands.Typing("note", next.Extra);

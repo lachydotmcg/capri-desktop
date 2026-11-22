@@ -22016,7 +22016,7 @@ namespace CapriDesktop
                 if (squadResult != null) throw new Exception(squadResult);
             }
             finally { try { if (Directory.Exists(squadFolder)) Directory.Delete(squadFolder, true); } catch (IOException) { } }
-            checks.Add("PASS her squad: starts only when asked for one straight out and stops only when told to, never on game or team chat, takes its size only from how many copies you ask for, splits a job two or three ways from any brain, runs her copies at the same time each in a browser of her own with a shared board, stops them all at once, and puts their finds into one answer and one note");
+            checks.Add("PASS her squad: starts only when asked for one straight out and stops only when told to, never on game or team chat, takes its size only from how many copies you ask for, splits a job two or three ways from any brain under her safety lines, runs her copies at the same time each in a browser of her own with a shared board, stops them all at once, and puts their finds into one answer and one note");
             string herFolder = Path.Combine(Path.GetTempPath(), "capri-her-computer-" + Guid.NewGuid().ToString("N"));
             try
             {
@@ -50606,7 +50606,7 @@ namespace CapriDesktop
             if (copies.Bodies.Count != 0) throw new Exception("A husk subagent clone did not snap back.");
             string squadShown = SquadCheck();
             if (squadShown != null) throw new Exception(squadShown);
-            checks.Add("PASS her squad on screen: copies step out of her to spots of their own with their names and laptops showing their pages, stay put while they work, carry their find back and merge into her, leave chat about your own squad alone, and go when called back");
+            checks.Add("PASS her squad on screen: copies step out of her to spots of their own with their names and laptops showing their pages, stay put while they work, carry their find back, close their browser and merge into her, leave chat about your own squad alone, and go when called back");
             HuskClone("husk-ui", true);
             if (huskClones == null || !huskClones.Swarm.Watching || huskClones.Swarm.Bodies.Count != 1) throw new Exception("Husk did not open its passive clone overlay.");
             HuskClone("husk-ui", false);

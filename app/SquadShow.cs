@@ -65,7 +65,7 @@ namespace CapriDesktop
                 if (!started.Make(lead, count)) return;
                 Post(delegate { if (turn == squadTurn) SquadSpread(started); });
                 string answer = null, note;
-                try { answer = started.Work(new HerComputer(folder), cheap, lead, delegate(SquadMate mate) { return SquadBrowser(started, mate); }, delegate(SquadMate mate) { return new SquadHands(this, started, mate); }, delegate(SquadMate mate) { Post(delegate { SquadMateDone(started, mate); }); }, out note); }
+                try { answer = started.Work(new HerComputer(folder), cheap, lead, delegate(SquadMate mate) { return SquadBrowser(started, mate); }, delegate(SquadMate mate) { return new SquadHands(this, started, mate); }, delegate(SquadMate mate) { SquadBrowserDone(started, mate); Post(delegate { SquadMateDone(started, mate); }); }, out note); }
                 catch (Exception error) { Brain.Log("squad", -1, "failed: " + error.Message); }
                 Post(delegate { SquadFinished(started, answer, turn); });
             });
@@ -98,6 +98,18 @@ namespace CapriDesktop
             if (kept) return web;
             web.Dispose();
             return null;
+        }
+
+        // A copy who's finished doesn't need her browser while the others keep going.
+        private void SquadBrowserDone(Squad owner, SquadMate mate)
+        {
+            HerBrowser web;
+            lock (squadWebs)
+            {
+                if (owner.Stopped || !squadWebs.TryGetValue(mate.Number, out web)) return;
+                squadWebs.Remove(mate.Number);
+            }
+            ThreadPool.QueueUserWorkItem(delegate { try { web.Dispose(); } catch (Exception) { } });
         }
 
         private HerBrowser SquadWeb(int number)
@@ -281,7 +293,7 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string said = null;
-                try { said = cheap(Brain.Character, ask); }
+                try { said = cheap(Squad.ChatSystem, ask); }
                 catch (Exception problem) { Brain.Log("squad", -1, problem.Message); }
                 Post(delegate
                 {
@@ -427,6 +439,9 @@ namespace CapriDesktop
                 shown.Mates[0].Answer = "The Logitech G305 is $29 and great.";
                 SquadMateDone(shown, shown.Mates[0]);
                 if (!first.Returning || first.Carrying == null || squadWindow.Swarm.Notes.Count != 1) return "A copy in her squad didn't bring her find back.";
+                lock (squadWebs) squadWebs[1] = new HerBrowser(Path.Combine(Path.GetTempPath(), "capri-squad-check"), 100, 100);
+                SquadBrowserDone(shown, shown.Mates[0]);
+                if (SquadWeb(1) != null) return "A copy in her squad kept her browser open after she'd finished.";
                 for (int i = 0; i < 80; i++) squadWindow.Advance(now += 0.1);
                 if (squadWindow.Swarm.Bodies.Contains(first) || squadWindow.Swarm.Notes.Count != 0 || first.Screen != null) return "A copy in her squad didn't merge back into her, or left her note behind.";
                 if (SquadAsk("stop the squad") != "Called my squad back." || squadWindow != null || squad != null || !shown.Stopped) return "Her squad didn't stop when called back.";
