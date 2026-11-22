@@ -41,15 +41,20 @@ namespace CapriDesktop
         internal bool NameListeningEnabled => Saved.ListenCapri && !nameStopped;
         internal string NameListeningStatus => nameStatus;
         internal bool NameBarredNow { get { return NameBarred; } }
-        // Hyprland answers at once. Elsewhere logind's lock is the only thing that must stop her, and an answer she can't
+        // Hyprland answers at once. A missing snapshot is not an answer, so it defers to logind; an answer nobody can
         // read never bars her, so the switch keeps working on desktops that can't report a lock at all.
         internal static Func<bool?> LockedForNameListening = delegate
         {
             if (!OperatingSystem.IsLinux()) return false;
-            HyprlandDesktop desktop = HyprlandDesktop.Current;
-            if (desktop != null) return desktop.VisualSnapshot?.Locked != false;
-            return Limbs.SessionLocked();
+            return LockedFromDesktop(HyprlandDesktop.Current?.VisualSnapshot, Limbs.SessionLocked);
         };
+        // A live snapshot speaks for itself; a missing one defers to logind, the explicit signal the design accepts. Both
+        // missing is unknown, which never bars her.
+        internal static bool? LockedFromDesktop(HyprlandSnapshot snapshot, Func<bool?> logind)
+        {
+            if (snapshot != null) return snapshot.Locked;
+            return logind == null ? null : logind();
+        }
         internal static bool NameBarredByLock() => LockedForNameListening() == true;
         private bool NameBarred => nameClosed || quitting || away || Hushed || Asleep || Listening ||
             Talk?.Typer.Secret == true || NameBarredByLock();
