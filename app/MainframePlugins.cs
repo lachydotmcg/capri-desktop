@@ -86,6 +86,7 @@ namespace CapriDesktop
                 tile.Mod = mod;
                 tile.Text = mod.File.Name;
                 tile.Picture = Mods.PluginPicture(mod);
+                tile.Logo = Mods.PluginLogo(mod);
                 tile.State = state;
                 tile.StateColour = state == "Off" ? Faint : state == "Set up" || state == "Sign in" ? Rose : Cyan;
                 tile.Lit = mod.On;
@@ -216,7 +217,7 @@ namespace CapriDesktop
                 bool mail = Mods.Builtin(mod, "mail"), online = Mods.Online(mod);
                 string state = Mods.PluginState(mod), trouble = Plugins.Trouble(mod.File.Id);
                 List<PluginTool> tools = Plugins.ToolsOf(mod.File.Id);
-                Art = new PlugTile { Picture = Mods.PluginPicture(mod), Lit = mod.On, Still = true, PlateTall = 104 };
+                Art = new PlugTile { Picture = Mods.PluginPicture(mod), Logo = Mods.PluginLogo(mod), Lit = mod.On, Still = true, PlateTall = 104 };
                 Art.Bounds = Box(24, 60, 128, 104);
                 Art.TabStop = false;
                 Art.Cursor = Cursors.Default;
@@ -308,12 +309,13 @@ namespace CapriDesktop
             }
         }
 
-        // A plug-in on the Mods page: its picture on a plate cut at every corner, its name, and one word for where it's at.
-        // The email window's picks are these too, each envelope in its own colour.
+        // A plug-in on the Mods page: its logo or picture on a plate cut at every corner, its name, and one word for where it's
+        // at. The email window's picks are these too, each in its own colour.
         private sealed class PlugTile : Button
         {
             internal Mod Mod;
             internal int Picture;
+            internal ServiceLogo Logo;
             internal string State = "";
             internal Color StateColour = Color.Empty;
             internal Color Tint = Color.Empty;
@@ -369,7 +371,13 @@ namespace CapriDesktop
                 Color accent = !Tint.IsEmpty ? Tint : Lit ? Rose : Faint;
                 Color fill = !Tint.IsEmpty ? Color.FromArgb(Tint.R / 6, Tint.G / 6, Tint.B / 6) : Lit ? Deep : Field;
                 float inset = Math.Max(8 * s, plate.Height * 0.16f);
-                PluginArt.Draw(graphics, Picture, RectangleF.Inflate(plate, -inset, -inset), ink, accent, fill);
+                RectangleF art = RectangleF.Inflate(plate, -inset, -inset);
+                if (Logo == null) PluginArt.Draw(graphics, Picture, art, ink, accent, fill);
+                else
+                {
+                    Color brand = ColorTranslator.FromHtml(Logo.Ink);
+                    PluginArt.Logo(graphics, Logo, art, Neon.Tone(brand.R, brand.G, brand.B));
+                }
                 if (Marked) using (GraphicsPath mark = PluginArt.Around(plate, cut, 2 * s)) FocusMark(graphics, mark, s);
                 TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 if (Text.Length > 0) TextRenderer.DrawText(graphics, Lingo.Of(Text), Font, NameArea(s), Lit || !Tint.IsEmpty ? White : Faint, flags);
@@ -438,11 +446,14 @@ namespace CapriDesktop
                 ShowMods(true);
                 string[] names = { "Email", "Notion", "Linear" };
                 int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear };
                 for (int i = 0; i < 3; i++)
-                    if (!plugTiles[i].Visible || plugTiles[i].Text != names[i] || plugTiles[i].Picture != pictures[i] || plugTiles[i].State != "Off" || plugTiles[i].Lit)
-                        throw new Exception("PLUG-INS didn't show " + names[i] + " with its picture, off: " + plugTiles[i].Text + " " + plugTiles[i].State);
+                    if (!plugTiles[i].Visible || plugTiles[i].Text != names[i] || plugTiles[i].Picture != pictures[i] || plugTiles[i].Logo != logos[i] || plugTiles[i].State != "Off" || plugTiles[i].Lit)
+                        throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + plugTiles[i].Text + " " + plugTiles[i].State);
                 if (plugTiles[3].Visible || plugEmpty.Visible || plugBack.Visible || plugNext.Visible || modShown.Exists(one => one.Plugin) || modNames[0].Visible || !modEmpty.Visible)
                     throw new Exception("The starters showed under INSTALLED too, or PLUG-INS showed pages for three.");
+                modStatusTimer.Stop();
+                modStatus.Text = "";
                 using (Bitmap page = new Bitmap(Width, Height))
                 {
                     DrawToBitmap(page, new Rectangle(Point.Empty, Size));
@@ -450,11 +461,11 @@ namespace CapriDesktop
                 }
                 string crowded = PlugsCrowded();
                 if (crowded != null) throw new Exception("The Mods page with PLUG-INS overlaps " + crowded);
-                checks.Add("PASS plug-ins: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles with an envelope, a page and a checklist, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100% or 150% in her font or the fallback");
+                checks.Add("PASS plug-ins: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100% or 150% in her font or the fallback");
 
                 InvokeOnClick(plugTiles[1], EventArgs.Empty);
                 PluginSheet notion = pluginSheet;
-                if (notion == null || notion.IsDisposed || notion.ModId != "notion" || notion.Text != "Notion" || notion.Art.Picture != Mods.Page || notion.Main.Text != "Connect" || notion.TurnOff.Visible || notion.Remove.Visible
+                if (notion == null || notion.IsDisposed || notion.ModId != "notion" || notion.Text != "Notion" || notion.Art.Logo != ServiceLogo.Notion || notion.Main.Text != "Connect" || notion.TurnOff.Visible || notion.Remove.Visible
                     || notion.About.Text != "Searches, reads and edits your Notion pages." || notion.State.Text != "Off. Connect, then sign in on its page.")
                     throw new Exception("Notion's tile didn't open Notion's window with Connect: " + (notion == null ? "none" : notion.Text + " / " + notion.Main.Text + " / " + notion.State.Text));
                 crowded = notion.Crowded();
@@ -481,7 +492,13 @@ namespace CapriDesktop
                 InvokeOnClick(pluginSheet.TurnOff, EventArgs.Empty);
                 if (PluginNamed(Mods.MailStarter).On || plugTiles[0].State != "Off" || pluginSheet.Main.Text != "Connect") throw new Exception("Turn off on Email's window didn't turn it off.");
                 pluginSheet.Close();
-                checks.Add("PASS plug-ins: a tile opens that plug-in's own window, Notion's with its page, Connect and no Remove, and Connect on Email asks with her plug-in box, stays off on a no, and on a yes turns it on and opens Set up Email");
+                MailTools.Account = new MailAccount { Address = "capri.demo@gmail.com", Password = "demo-tile-pass" };
+                FillMods();
+                if (plugTiles[0].Logo != ServiceLogo.Gmail || plugTiles[0].Picture != Mods.Envelope) throw new Exception("Email's tile didn't show Gmail's logo once a Gmail account was connected.");
+                MailTools.Account = null;
+                FillMods();
+                if (plugTiles[0].Logo != null) throw new Exception("Email's tile kept a logo with no account connected.");
+                checks.Add("PASS plug-ins: a tile opens that plug-in's own window, Notion's with its page, Connect and no Remove, and Connect on Email asks with her plug-in box, stays off on a no, and on a yes turns it on and opens Set up Email, and Email's tile shows Gmail's logo once a Gmail account is connected");
 
                 for (int i = 0; i < 2; i++)
                 {

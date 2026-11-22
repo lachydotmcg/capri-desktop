@@ -77,7 +77,7 @@ namespace CapriDesktop
             for (int i = 0; i < Tiles.Length; i++)
             {
                 Mods.MailProvider provider = Mods.MailProviders[i];
-                PlugTile tile = Put(Page, new PlugTile { Picture = Mods.Envelope, Tint = provider.Tint, PlateTall = 64, Text = provider.Name }, 24 + i % 4 * 146, 120 + i / 4 * 100, 134, 90, provider.Name);
+                PlugTile tile = Put(Page, new PlugTile { Picture = Mods.Envelope, Logo = provider.Logo, Tint = provider.Tint, PlateTall = 64, Text = provider.Name }, 24 + i % 4 * 146, 120 + i / 4 * 100, 134, 90, provider.Name);
                 tile.Click += delegate { Pick(provider, true); };
                 Tiles[i] = tile;
             }

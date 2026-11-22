@@ -66,6 +66,7 @@ namespace CapriDesktop
                 tile.Mod = mod;
                 tile.Text = mod.File.Name;
                 tile.Picture = Mods.PluginPicture(mod);
+                tile.Logo = Mods.PluginLogo(mod);
                 tile.State = state;
                 tile.StateInk = state == "Off" ? MainframeTheme.Faint : state == "Set up" || state == "Sign in" ? MainframeTheme.Rose : MainframeTheme.Cyan;
                 tile.Lit = mod.On;
@@ -195,6 +196,7 @@ namespace CapriDesktop
             string state = Mods.PluginState(mod), trouble = Plugins.Trouble(mod.File.Id), name = mod.File.Name;
             List<PluginTool> tools = Plugins.ToolsOf(mod.File.Id);
             Art.Picture = Mods.PluginPicture(mod);
+            Art.Logo = Mods.PluginLogo(mod);
             Art.Lit = mod.On;
             NameLine.Text = name;
             About.Text = Mods.PluginLine(mod);
@@ -245,12 +247,13 @@ namespace CapriDesktop
         internal string Crowded() { return ModsWindow.Crowded(Page, Wide, tall); }
     }
 
-    // A plug-in on her Mods page, like Windows': its picture on a plate cut at every corner, its name, and one word for where it's
-    // at. Set up Email's picks are these too, each envelope in its own colour.
+    // A plug-in on her Mods page, like Windows': its logo or picture on a plate cut at every corner, its name, and one word for
+    // where it's at. Set up Email's picks are these too, each in its own colour.
     internal sealed class PlugTile : NeonButton
     {
         internal Mod Mod;
         internal int Picture;
+        internal ServiceLogo Logo;
         internal string State = "";
         internal IBrush StateInk;
         internal string Tint;
@@ -273,7 +276,9 @@ namespace CapriDesktop
             if (Tint != null) { ink = accent = MainframeTheme.Tint(Tint); fill = PlugArt.Toward(PlugArt.Sheet, ink, 1 / 6.0); }
             else if (Lit) { ink = cyan; accent = Of(MainframeTheme.Rose); fill = Of(MainframeTheme.Deep); }
             else { ink = accent = Of(MainframeTheme.Faint); fill = Of(MainframeTheme.Field); }
-            PlugArt.Draw(context, Picture, plate.Deflate(Math.Max(8, plate.Height * 0.16)), ink, accent, fill);
+            Rect art = plate.Deflate(Math.Max(8, plate.Height * 0.16));
+            if (Logo == null) PlugArt.Draw(context, Picture, art, ink, accent, fill);
+            else PlugArt.Logo(context, Logo, art, MainframeTheme.Tint(Logo.Ink));
             if (MainframeTheme.Marked(this)) context.DrawGeometry(null, new Pen(MainframeTheme.White, 2), PlugArt.Around(plate, cut, 2));
             if (Text.Length > 0) MainframeTheme.Write(context, Shown, NameArea, Lit || Tint != null ? MainframeTheme.White : MainframeTheme.Faint, TextSize, true, TextAlignment.Center);
             if (State.Length > 0) MainframeTheme.Write(context, State, StateArea, StateInk ?? MainframeTheme.Faint, StateSize, false, TextAlignment.Center);
@@ -288,8 +293,8 @@ namespace CapriDesktop
         }
     }
 
-    // Her plug-in pictures, drawn like Windows' (app/PluginArt.cs) rather than loaded: an envelope for Email, a page for Notion, a
-    // checklist for Linear and a plug for the rest, each on a plate cut at every corner like her speech box.
+    // Her plug-in pictures, like Windows' (app/PluginArt.cs), on a plate cut at every corner like her speech box: a service's own
+    // logo where it has one, and otherwise her drawings, an envelope for email, a page, a checklist, or a plug for the rest.
     internal static class PlugArt
     {
         internal static Color Sheet { get { return MainframeTheme.Tint("#090B0F"); } }
@@ -336,6 +341,35 @@ namespace CapriDesktop
                 else if (picture == Mods.Checklist) Checklist(context, ink, pen, bright, body);
                 else Plug(context, pen, body, spot);
             }
+        }
+
+        // A service's own logo, filled in its colour and centred a little inside the area so it sits like her drawings do.
+        internal static void Logo(DrawingContext context, ServiceLogo logo, Rect area, Color ink)
+        {
+            double size = Math.Min(area.Width, area.Height) * 0.86;
+            if (size <= 0) return;
+            using (context.PushTransform(Matrix.CreateScale(size / 24, size / 24) * Matrix.CreateTranslation(area.X + (area.Width - size) / 2, area.Y + (area.Height - size) / 2)))
+                context.DrawGeometry(new SolidColorBrush(ink), null, Outline(logo));
+        }
+
+        internal static Geometry Outline(ServiceLogo logo)
+        {
+            StreamGeometry shape = new StreamGeometry();
+            using (StreamGeometryContext c = shape.Open())
+            {
+                c.SetFillRule(FillRule.NonZero);
+                foreach (ServiceLogo.Figure figure in logo.Figures)
+                {
+                    c.BeginFigure(new Point(figure.X, figure.Y), true);
+                    foreach (double[] step in figure.Steps)
+                    {
+                        if (step.Length == 2) c.LineTo(new Point(step[0], step[1]));
+                        else c.CubicBezierTo(new Point(step[0], step[1]), new Point(step[2], step[3]), new Point(step[4], step[5]));
+                    }
+                    c.EndFigure(figure.Closed);
+                }
+            }
+            return shape;
         }
 
         private static Geometry Lines(bool closed, params Point[] points)

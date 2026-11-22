@@ -55,7 +55,7 @@ namespace CapriDesktop
                 {
                     Mods.MailProvider provider = Mods.MailProviders[i];
                     Color tint = ColorTranslator.FromHtml(provider.Tint);
-                    PlugTile tile = new PlugTile { Picture = Mods.Envelope, Tint = Neon.Tone(tint.R, tint.G, tint.B), PlateTall = 64, Text = provider.Name };
+                    PlugTile tile = new PlugTile { Picture = Mods.Envelope, Logo = provider.Logo, Tint = Neon.Tone(tint.R, tint.G, tint.B), PlateTall = 64, Text = provider.Name };
                     tile.Font = Type(9.5f * Zoom, true);
                     tile.Bounds = Box(24 + i % 4 * 146, 120 + i / 4 * 100, 134, 90);
                     tile.AccessibleName = provider.Name;
@@ -310,6 +310,8 @@ namespace CapriDesktop
                 if (sheet.Step != 1 || sheet.Title.Text != "Which email?" || string.Join(",", Array.ConvertAll(sheet.Tiles, tile => tile.Text)) != "Gmail,iCloud,Yahoo,AOL,Fastmail,Outlook / Hotmail,Other"
                     || Array.Exists(sheet.Tiles, tile => tile.Lit || tile.Picture != Mods.Envelope || !tile.Visible) || sheet.NextKey.Enabled || sheet.BackKey.Visible || sheet.Password.Visible)
                     throw new Exception("Set up Email didn't open on Which email? with its seven envelopes and nothing picked: " + string.Join(",", names));
+                if (sheet.Tiles[0].Logo != ServiceLogo.Gmail || sheet.Tiles[1].Logo != ServiceLogo.ICloud || Array.FindAll(sheet.Tiles, tile => tile.Logo != null).Length != 2)
+                    throw new Exception("Set up Email's Gmail and iCloud picks didn't show their own logos, or another pick did.");
                 string crowded = sheet.Crowded();
                 if (crowded != null) throw new Exception("Set up Email's first step doesn't fit: " + crowded);
                 sheet.Picture(Path.Combine(output, "mail-step1.png"));
@@ -352,7 +354,7 @@ namespace CapriDesktop
                 crowded = sheet.Crowded();
                 if (crowded != null) throw new Exception("Set up Email's third step for Other doesn't fit: " + crowded);
                 sheet.Picture(Path.Combine(output, "mail-step3-other.png"));
-                checks.Add("PASS mail: Set up Email goes Which email?, Make an app password, Paste it; Gmail shows its own steps and opens its app password page, Other asks for its servers, and Outlook / Hotmail stops at its note");
+                checks.Add("PASS mail: Set up Email goes Which email?, Make an app password, Paste it; Gmail and iCloud show their own logos, Gmail shows its own steps and opens its app password page, Other asks for its servers, and Outlook / Hotmail stops at its note");
 
                 MailAccount tested = null;
                 mailTest = delegate(MailAccount account) { tested = account; return null; };

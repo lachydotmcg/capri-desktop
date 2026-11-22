@@ -82,6 +82,7 @@
     <Compile Include="../app/MailWatch.cs" Link="Shared/MailWatch.cs" />
     <Compile Include="../app/MailChecks.cs" Link="Shared/MailChecks.cs" />
     <Compile Include="../app/StarterPlugins.cs" Link="Shared/StarterPlugins.cs" />
+    <Compile Include="../app/ServiceLogos.cs" Link="Shared/ServiceLogos.cs" />
     <Compile Include="../app/ToolMods.cs" Link="Shared/ToolMods.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />

@@ -4,8 +4,8 @@ using System.Drawing.Drawing2D;
 
 namespace CapriDesktop
 {
-    // Her plug-in pictures, drawn rather than loaded: an envelope for Email, a page for Notion, a checklist for Linear and a
-    // plug for the rest, each on a plate cut at every corner like her speech box.
+    // Her plug-in pictures on a plate cut at every corner like her speech box: a service's own logo where it has one, and
+    // otherwise her drawings, an envelope for email, a page, a checklist, or a plug for the rest.
     internal static class PluginArt
     {
         internal static void Plate(Graphics graphics, RectangleF box, float s, float cut, Color edge, Color fill, bool glow, int wash)
@@ -54,6 +54,40 @@ namespace CapriDesktop
                 else Plug(graphics, pen, bright, body, spot);
             }
             graphics.Restore(state);
+        }
+
+        // A service's own logo, filled in its colour and centred a little inside the area so it sits like her drawings do.
+        internal static void Logo(Graphics graphics, ServiceLogo logo, RectangleF area, Color ink)
+        {
+            float size = Math.Min(area.Width, area.Height) * 0.86f;
+            if (size <= 0) return;
+            GraphicsState state = graphics.Save();
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.TranslateTransform(area.Left + (area.Width - size) / 2, area.Top + (area.Height - size) / 2);
+            graphics.ScaleTransform(size / 24f, size / 24f);
+            using (GraphicsPath shape = Outline(logo))
+            using (Brush brush = new SolidBrush(ink))
+                graphics.FillPath(brush, shape);
+            graphics.Restore(state);
+        }
+
+        internal static GraphicsPath Outline(ServiceLogo logo)
+        {
+            GraphicsPath shape = new GraphicsPath(FillMode.Winding);
+            foreach (ServiceLogo.Figure figure in logo.Figures)
+            {
+                shape.StartFigure();
+                PointF at = new PointF((float)figure.X, (float)figure.Y);
+                foreach (double[] step in figure.Steps)
+                {
+                    PointF to = new PointF((float)step[step.Length - 2], (float)step[step.Length - 1]);
+                    if (step.Length == 2) shape.AddLine(at, to);
+                    else shape.AddBezier(at, new PointF((float)step[0], (float)step[1]), new PointF((float)step[2], (float)step[3]), to);
+                    at = to;
+                }
+                if (figure.Closed) shape.CloseFigure();
+            }
+            return shape;
         }
 
         private static void Envelope(Graphics graphics, Pen pen, Pen bright, Brush body)

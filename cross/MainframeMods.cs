@@ -38,7 +38,7 @@ namespace CapriDesktop
         internal bool ModsBusy { get { return modUpdating || modInstalling || modAsking; } }
         internal bool ModsAsking { get { return modAsking; } }
         internal bool ModsInstalling { get { return modInstalling; } set { if (modInstalling == value) return; modInstalling = value; ModsChanged(); } }
-        internal string ModStatusText { get { return modStatus.Text; } }
+        internal string ModStatusText { get { return modStatus.Text; } set { ModSays(value); } }
         internal string UpdateText { get { return modUpdate.Text; } }
         internal string InstalledPageText { get { return modPage.IsVisible ? modPage.Text : null; } }
 

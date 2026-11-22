@@ -5759,11 +5759,13 @@ namespace CapriDesktop
                 PlugTile[] tiles = frame.PlugTileRow;
                 string[] names = { "Email", "Notion", "Linear" };
                 int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear };
                 for (int i = 0; i < 3; i++)
-                    if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].State != "Off" || tiles[i].Lit)
-                        throw new Exception("PLUG-INS didn't show " + names[i] + " with its picture, off: " + tiles[i].Text + " " + tiles[i].State);
+                    if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
+                        throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
                 if (tiles[3].IsVisible || frame.PlugEmptyShown || frame.PlugBack.IsVisible || frame.PlugNext.IsVisible || frame.InstalledHasPlugins)
                     throw new Exception("The starters showed under INSTALLED too, or PLUG-INS showed pages for three.");
+                frame.ModStatusText = "";
                 foreach (int scale in new[] { 100, 150, 200 })
                 {
                     pet.SetMainframeSize(scale); frame.Sync(); frame.UpdateLayout();
@@ -5772,11 +5774,11 @@ namespace CapriDesktop
                 }
                 pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
                 frame.SavePicture(Path.Combine(folder, "mods-plugins.png"));
-                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles with an envelope, a page and a checklist, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
+                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
 
                 tiles[1].Press();
                 PluginWindow notion = frame.PluginSheet;
-                if (notion == null || notion.ModId != "notion" || notion.Art.Picture != Mods.Page || notion.Main.Text != "Connect" || notion.TurnOff.IsVisible || notion.Remove.IsVisible
+                if (notion == null || notion.ModId != "notion" || notion.Art.Logo != ServiceLogo.Notion || notion.Main.Text != "Connect" || notion.TurnOff.IsVisible || notion.Remove.IsVisible
                     || notion.About.Text != "Searches, reads and edits your Notion pages." || notion.State.Text != "Off. Connect, then sign in on its page.")
                     throw new Exception("Notion's tile didn't open Notion's window with Connect: " + (notion == null ? "none" : notion.Main.Text + " / " + notion.State.Text));
                 notion.UpdateLayout();
@@ -5808,7 +5810,13 @@ namespace CapriDesktop
                 if (mods.All.Find(one => one.File.Id == Mods.MailStarter).On || tiles[0].State != "Off" || email.Main.Text != "Connect") throw new Exception("Turn off in Email's window didn't turn it off.");
                 email.Close();
                 MainframeWait(delegate { return frame.PluginSheet == null; }, "closing Email's window");
-                checks.Add("PASS plug-ins on Mac and Linux: a tile opens that plug-in's own window, Notion's with its page and Connect and no Remove, and Connect on Email asks with her plug-in box, stays off on a no, and on a yes turns it on and asks for its setup; plugin-sheet-notion.png");
+                MailTools.Account = new MailAccount { Address = "capri.demo@gmail.com", Password = "demo-tile-pass" };
+                frame.Sync();
+                if (tiles[0].Logo != ServiceLogo.Gmail || tiles[0].Picture != Mods.Envelope) throw new Exception("Email's tile didn't show Gmail's logo once a Gmail account was connected.");
+                MailTools.Account = null;
+                frame.Sync();
+                if (tiles[0].Logo != null) throw new Exception("Email's tile kept a logo with no account connected.");
+                checks.Add("PASS plug-ins on Mac and Linux: a tile opens that plug-in's own window, Notion's with its page and Connect and no Remove, and Connect on Email asks with her plug-in box, stays off on a no, and on a yes turns it on and asks for its setup, and Email's tile shows Gmail's logo once a Gmail account is connected; plugin-sheet-notion.png");
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -5834,6 +5842,8 @@ namespace CapriDesktop
                 if (sheet.Step != 1 || sheet.Question.Text != "Which email?" || string.Join(",", Array.ConvertAll(sheet.Tiles, tile => tile.Text)) != "Gmail,iCloud,Yahoo,AOL,Fastmail,Outlook / Hotmail,Other"
                     || Array.Exists(sheet.Tiles, tile => tile.Lit || tile.Picture != Mods.Envelope || !tile.IsVisible) || sheet.NextKey.IsEnabled || sheet.BackKey.IsVisible || sheet.Password.IsVisible)
                     throw new Exception("Set up Email didn't open on Which email? with its seven envelopes and nothing picked.");
+                if (sheet.Tiles[0].Logo != ServiceLogo.Gmail || sheet.Tiles[1].Logo != ServiceLogo.ICloud || Array.FindAll(sheet.Tiles, tile => tile.Logo != null).Length != 2)
+                    throw new Exception("Set up Email's Gmail and iCloud picks didn't show their own logos, or another pick did.");
                 sheet.UpdateLayout();
                 tight = sheet.Crowded();
                 if (tight != null) throw new Exception("Set up Email's first step doesn't fit: " + tight);
@@ -5880,7 +5890,7 @@ namespace CapriDesktop
                 tight = sheet.Crowded();
                 if (tight != null) throw new Exception("Set up Email's third step for Other doesn't fit: " + tight);
                 sheet.SavePicture(Path.Combine(folder, "mail-step3-other.png"));
-                checks.Add("PASS mail on Mac and Linux: Set up Email goes Which email?, Make an app password, Paste it; Gmail shows its own steps and opens its app password page, Other asks for its servers, and Outlook / Hotmail stops at its note; mail-step1.png, mail-step2.png and mail-step3.png");
+                checks.Add("PASS mail on Mac and Linux: Set up Email goes Which email?, Make an app password, Paste it; Gmail and iCloud show their own logos, Gmail shows its own steps and opens its app password page, Other asks for its servers, and Outlook / Hotmail stops at its note; mail-step1.png, mail-step2.png and mail-step3.png");
 
                 MailAccount tested = null;
                 Mainframe.MailTest = delegate(MailAccount account) { tested = account; return null; };

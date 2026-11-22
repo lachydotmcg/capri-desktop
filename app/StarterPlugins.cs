@@ -23,23 +23,24 @@ namespace CapriDesktop
         internal sealed class MailProvider
         {
             internal string Name, Tint, Page, PageKey, Note;
+            internal ServiceLogo Logo;
             internal string[] Domains = new string[0], Steps = new string[0];
             internal bool Closed, Other;
         }
 
         internal static readonly MailProvider[] MailProviders =
         {
-            new MailProvider { Name = "Gmail", Tint = "#FF5D66", Domains = new[] { "gmail.com", "googlemail.com" }, Page = "https://myaccount.google.com/apppasswords", PageKey = "Open Gmail's app password page",
+            new MailProvider { Name = "Gmail", Tint = ServiceLogo.Gmail.Hex, Logo = ServiceLogo.Gmail, Domains = new[] { "gmail.com", "googlemail.com" }, Page = "https://myaccount.google.com/apppasswords", PageKey = "Open Gmail's app password page",
                 Steps = new[] { "Turn on 2-Step Verification in your Google Account.", "Open the page below and make an app password called Capri.", "Copy the 16 letters it shows you." } },
-            new MailProvider { Name = "iCloud", Tint = "#5EF0F6", Domains = new[] { "icloud.com", "me.com", "mac.com" }, Page = "https://account.apple.com", PageKey = "Open Apple's account page",
+            new MailProvider { Name = "iCloud", Tint = ServiceLogo.ICloud.Hex, Logo = ServiceLogo.ICloud, Domains = new[] { "icloud.com", "me.com", "mac.com" }, Page = "https://account.apple.com", PageKey = "Open Apple's account page",
                 Steps = new[] { "Two-factor authentication needs to be on.", "Open the page below, then Sign-In and Security.", "Pick App-Specific Passwords, make one called Capri and copy it." } },
-            new MailProvider { Name = "Yahoo", Tint = "#7854F0", Domains = new[] { "yahoo.com", "yahoo.", "ymail.com", "rocketmail.com" }, Page = "https://login.yahoo.com/account/security", PageKey = "Open Yahoo's security page",
+            new MailProvider { Name = "Yahoo", Tint = "#6001D2", Domains = new[] { "yahoo.com", "yahoo.", "ymail.com", "rocketmail.com" }, Page = "https://login.yahoo.com/account/security", PageKey = "Open Yahoo's security page",
                 Steps = new[] { "Open the page below and sign in.", "Under External connections, press Create app password.", "Type Capri, press Generate password and copy it." } },
-            new MailProvider { Name = "AOL", Tint = "#38B0FF", Domains = new[] { "aol.com" }, Page = "https://login.aol.com/myaccount/security", PageKey = "Open AOL's security page",
+            new MailProvider { Name = "AOL", Tint = "#3399FF", Domains = new[] { "aol.com" }, Page = "https://login.aol.com/myaccount/security", PageKey = "Open AOL's security page",
                 Steps = new[] { "Open the page below and sign in.", "Press Generate app password, then Get Started.", "Type Capri, press Generate password and copy it." } },
-            new MailProvider { Name = "Fastmail", Tint = "#F4D646", Domains = new[] { "fastmail.com", "fastmail.fm" }, Page = "https://app.fastmail.com/settings/security", PageKey = "Open Fastmail's security page",
+            new MailProvider { Name = "Fastmail", Tint = "#0067B9", Domains = new[] { "fastmail.com", "fastmail.fm" }, Page = "https://app.fastmail.com/settings/security", PageKey = "Open Fastmail's security page",
                 Steps = new[] { "App passwords need a paid Fastmail plan.", "On the page below, press Manage app passwords, then New app password.", "Keep Mail, Contacts & Calendars, press Generate password and copy it." } },
-            new MailProvider { Name = "Outlook / Hotmail", Tint = "#92828C", Domains = new[] { "outlook.com", "hotmail.com", "live.com", "msn.com", "outlook.", "hotmail." }, Closed = true, Note = MailAccount.OutlookNote },
+            new MailProvider { Name = "Outlook / Hotmail", Tint = "#0078D4", Domains = new[] { "outlook.com", "hotmail.com", "live.com", "msn.com", "outlook.", "hotmail." }, Closed = true, Note = MailAccount.OutlookNote },
             new MailProvider { Name = "Other", Tint = "#00E86E", Other = true,
                 Steps = new[] { "Open your email's security settings.", "Make an app password called Capri.", "Copy it. Your email's help pages name its IMAP and SMTP servers." } }
         };
@@ -78,6 +79,17 @@ namespace CapriDesktop
             if (mod.Starter && mod.File.Id == "notion") return Page;
             if (mod.Starter && mod.File.Id == "linear") return Checklist;
             return Plug;
+        }
+
+        // Notion and Linear show their own logos, and Email shows its provider's once one is connected. The rest keep her drawings.
+        internal static ServiceLogo PluginLogo(Mod mod)
+        {
+            if (mod == null || !mod.Starter) return null;
+            if (mod.File.Id == "notion") return ServiceLogo.Notion;
+            if (mod.File.Id == "linear") return ServiceLogo.Linear;
+            if (!Builtin(mod, "mail") || !MailTools.Ready) return null;
+            MailProvider provider = ProviderFor(MailTools.Account.Address);
+            return provider == null ? null : provider.Logo;
         }
 
         internal static string PluginState(Mod mod)
