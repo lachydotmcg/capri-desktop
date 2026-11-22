@@ -402,6 +402,11 @@ namespace CapriDesktop
         }
         // Calls their yes let through, each once.
         private static readonly List<string> cleared = new List<string>();
+        [ThreadStatic] private static bool resuming;
+
+        // True while their yes runs what she held, on this thread. A call they said yes to always runs, even straight after
+        // the same one, so "send it again" sends it again.
+        internal static bool Resuming { get { return resuming; } }
 
         private static int Granted(string tool, ToolArguments args) { return tool == "mod" && args != null ? Plugins.Granted(args.Name) : -1; }
 
@@ -495,8 +500,10 @@ namespace CapriDesktop
                 {
                     lock (gate) cleared.Add(call.Asked);
                     string result;
+                    bool was = resuming;
+                    resuming = true;
                     try { result = run(call.Tool, call.Args); }
-                    finally { lock (gate) cleared.Remove(call.Asked); }
+                    finally { resuming = was; lock (gate) cleared.Remove(call.Asked); }
                     if (!string.IsNullOrEmpty(result)) done.Add(Said(result));
                 }
                 string finished = done.Count == 0 ? "Done." : string.Join(" ", done.ToArray());
