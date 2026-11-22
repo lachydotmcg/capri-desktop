@@ -238,6 +238,29 @@ internal static class Program
         Outcome accepted = Gate(dir, "smoke-test.txt", 20, 0);
         Check("finished-producer-promotes-the-final-line", accepted.Summary, ended && accepted.Exit == 0
             && File.ReadAllLines(path)[^1] == Completion && !accepted.Output.Contains(QuitFailure));
+
+        string newline = Environment.NewLine;
+        string prefix = string.Join(newline, ProducerLines()) + newline;
+        foreach (string mode in new[] { "refused", "throws", "prior-failure" })
+        {
+            Write(path, Report(20, true, null));
+            bool prior = mode == "prior-failure";
+            bool called = false, provisional = false;
+            bool quit = SmokeReport.Write(path, ProducerLines(), prior ? "Earlier check failed." : null, () =>
+            {
+                called = true;
+                provisional = File.ReadAllText(path) == prefix + QuitFailure + newline;
+                if (mode == "throws") throw new IOException("quit boundary error");
+                return false;
+            });
+            string expectedText = prefix + (prior ? "FAIL Earlier check failed." : QuitFailure) + newline;
+            if (mode == "throws") expectedText += "INFO quit boundary error" + newline;
+            byte[] saved = File.ReadAllBytes(path);
+            Outcome result = Gate(dir, "smoke-test.txt", 20, 0);
+            Check("producer-" + mode, result.Summary, !quit && (prior ? !called : called && provisional)
+                && result.Exit == 1 && result.Output == expectedText + "smoke gate: the report has a FAIL line\n"
+                && File.ReadAllText(path) == expectedText && saved.AsSpan().SequenceEqual(File.ReadAllBytes(path)));
+        }
     }
 
     private static string Root()

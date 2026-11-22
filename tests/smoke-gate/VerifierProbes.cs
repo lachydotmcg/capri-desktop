@@ -153,6 +153,16 @@ internal static class VerifierProbes
         Check("grep-count-output-before-error-keeps-report", partial.Exit == 1 && partial.Output == good
             && partial.Error == "smoke gate: could not count PASS lines\n"
             && before.SequenceEqual(File.ReadAllBytes(exact)));
+
+        foreach (var (text, status) in new[] { ("not-a-count", 0), ("9223372036854775808", 0), ("0", 1) })
+        {
+            string countShim = Shim(dir, "count-" + text, "grep",
+                "if [ \"$1\" = '-q' ]; then exit 1; fi\nprintf '%s\\n' '" + text + "'\nexit " + status);
+            Result counted = Gate(root, dir, "exact", status == 1 ? "0" : "20", "0", countShim);
+            Check("invalid-count-" + text, counted.Exit == 1 && counted.Output == good
+                && counted.Error == "smoke gate: could not count PASS lines\n"
+                && before.SequenceEqual(File.ReadAllBytes(exact)));
+        }
         return failures;
     }
 }
