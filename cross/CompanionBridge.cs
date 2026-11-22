@@ -137,7 +137,6 @@ namespace CapriDesktop
                     {
                         if (TimedOut(Environment.TickCount, windowStart, 60000)) { windowStart = Environment.TickCount; events = 0; }
                         if (events >= EventLimit) { Reply(stream, 429, Refused("rate_limited")); return; }
-                        events++;
                     }
                     byte[] body = new byte[size];
                     for (int at = 0; at < size;)
@@ -152,6 +151,8 @@ namespace CapriDesktop
                     if (request == null || HuskJson.Text(request, "kind").Length == 0) { Reply(stream, 400, Refused("bad_kind")); return; }
                     Func<Dictionary<string, object>, Dictionary<string, object>> received = Received;
                     Dictionary<string, object> answer = received != null ? received(request) : Refused("no_handler");
+                    object accepted = HuskJson.Get(answer, "ok");
+                    if (accepted is bool && (bool)accepted) lock (gate) events++;
                     Reply(stream, 200, answer ?? Refused("no_answer"));
                 }
             }
