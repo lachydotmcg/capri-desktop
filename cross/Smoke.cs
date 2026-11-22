@@ -19,6 +19,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 
 namespace CapriDesktop
 {
@@ -12283,6 +12284,45 @@ namespace CapriDesktop
                 bridge.Dispose();
                 try { Directory.Delete(root, true); } catch (Exception) { }
             }
+        }
+
+        private void CompanionAllowlistCheck()
+        {
+            if (Dispatcher.UIThread.CheckAccess()) RunCompanionAllowlist();
+            else Dispatcher.UIThread.InvokeAsync(RunCompanionAllowlist).GetAwaiter().GetResult();
+            checks.Add("PASS companion allowlists: react, guard, ambient, show, quiet and say refuse unknown names, missing or wrong-typed values and bad text, while state answers with a set guard and an ambient event is accepted");
+        }
+
+        private void RunCompanionAllowlist()
+        {
+            pet.SetCompanionGuard("fullscreen", true);
+            Dictionary<string, object> answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"react\",\"name\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_react") throw new Exception("The companion bridge accepted an unknown react name.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"guard\",\"name\":\"nope\",\"on\":true}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_guard") throw new Exception("The companion bridge accepted an unknown guard name.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"guard\",\"name\":\"call\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_guard") throw new Exception("The companion bridge accepted a guard without a value.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"ambient\",\"event\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_event") throw new Exception("The companion bridge accepted an unknown ambient event.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"show\",\"target\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_target") throw new Exception("The companion bridge accepted an unknown show target.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"quiet\",\"on\":\"yes\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_quiet") throw new Exception("The companion bridge accepted a non-boolean quiet.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"say\",\"text\":\"\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_text") throw new Exception("The companion bridge accepted empty speech.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"say\",\"text\":\"" + new string('x', 281) + "\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_text") throw new Exception("The companion bridge accepted overly long speech.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_kind") throw new Exception("The companion bridge accepted an unknown kind.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"state\"}") as Dictionary<string, object>);
+            object ok = HuskJson.Get(answer, "ok");
+            List<object> guards = HuskJson.Get(answer, "guards") as List<object>;
+            if (!(ok is bool && (bool)ok)) throw new Exception("The companion bridge refused a state request.");
+            if (guards == null || !guards.Contains("fullscreen")) throw new Exception("The companion state lost an active guard.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"ambient\",\"event\":\"idle\"}") as Dictionary<string, object>);
+            ok = HuskJson.Get(answer, "ok");
+            if (!(ok is bool && (bool)ok)) throw new Exception("The companion bridge refused an ambient event.");
+            pet.SetCompanionGuard("fullscreen", false);
         }
 
         private static int CompanionPost(int port, string token, string body, string header, string value)
