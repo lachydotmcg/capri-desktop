@@ -7,9 +7,9 @@
   <meta name="description" content="Capri help: install, the Mainframe, her brain, her voice, voice chat, settings and fixes.">
   <title>Capri help</title>
   <link rel="icon" type="image/x-icon" href="../assets/chip.ico">
-  <link rel="stylesheet" href="../style.css?v=0.9.6">
+  <link rel="stylesheet" href="../style.css?v=0.9.7">
   <script src="../guide.js" defer></script>
-  <script src="../helper.js?v=0.9.6" defer></script>
+  <script src="../helper.js?v=0.9.7" defer></script>
 </head>
 <body>
   <div class="page">
@@ -87,16 +87,9 @@
 
       <section id="install" class="step">
         <h2>Install</h2>
-        <h3 id="store">Windows <small>Microsoft Store, signed</small></h3>
+        <h3 id="latest">Windows <small>10 or 11, 64-bit</small></h3>
         <ol class="moves">
-          <li><a class="download inline" href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Microsoft Store</span></a></li>
-          <li><b>Get</b> in the Store, then <b>Open</b></li>
-        </ol>
-        <p class="note">She's on the Microsoft Store as CapriAI, version 0.8.9. That copy is signed and checked by Microsoft, so Windows doesn't warn you. It's the same app from the same code, Capri Remote included. Every download is on the <a href="../#download">home page</a>.</p>
-
-        <h3 id="latest">Windows, latest release <small>10 or 11, 64-bit</small></h3>
-        <ol class="moves">
-          <li><a class="download inline" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.9.6/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a></li>
+          <li><a class="download inline" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.9.7/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a></li>
           <li>Open <code>Capri-Setup.exe</code></li>
           <li>“Windows protected your PC”? <b>More info</b> → <b>Run anyway</b></li>
           <li><b>Install Capri</b></li>
@@ -109,12 +102,11 @@
           <dt>Startup</dt><dd>she waits until you open her; turn on <b>Start with Windows</b> in Settings to have her start when you sign in</dd>
           <dt>Needs</dt><dd>nothing else, not Ollama, not Claude Code</dd>
         </dl>
-        <p class="note">Windows warns because the latest release is new and not signed yet. Got Capri from this site or GitHub? Then antivirus alerts like Wacatac, Zusy or MachineLearning/Anomalous are false alarms on a new app. Restore the file and allow it. The code is open on <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">GitHub</a>. Rather skip the warning? Get the <a href="#store">Microsoft Store</a> copy.</p>
+        <p class="note">Windows warns because the latest release is new and not signed yet. Got Capri from this site or GitHub? Then antivirus alerts like Wacatac, Zusy or MachineLearning/Anomalous are false alarms on a new app. Restore the file and allow it. The code is open on <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">GitHub</a>. Every download is on the <a href="../#download">home page</a>.</p>
 
-        <h3 id="which">Store or latest release? <small>what you trade</small></h3>
+        <h3 id="store">Already have the Store copy? <small>CapriAI</small></h3>
         <dl class="keys">
-          <dt>Store copy</dt><dd>0.8.9, signed, no warning, Capri Remote included</dd>
-          <dt>Latest release</dt><dd>she updates herself. Not signed yet, so Windows or your antivirus may warn you as if it were a virus</dd>
+          <dt>Download</dt><dd>the Store copy isn't available to download right now, so new installs use the download above</dd>
           <dt>Updates</dt><dd>the Store copy updates through the Store, when a new version is sent there</dd>
           <dt>Calls</dt><dd>the Store copy can't install VB-CABLE for you; get it from VB-Audio's site yourself</dd>
         </dl>
@@ -404,15 +396,15 @@
         <h2>Voice chat</h2>
         <dl class="keys">
           <dt>Start, stop</dt><dd>the wave, or <b>Ctrl + Alt + V</b></dd>
-          <dt>“Hey Capri”</dt><dd>say it and voice chat starts. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
-          <dt>Listen for Capri</dt><dd>her mic stays open, and her name anywhere in a sentence starts a chat. Keep talking without it until 20 seconds of quiet. On a job, or talking over her, she still needs her name. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
+          <dt>“Hey Capri”</dt><dd>say it and she answers, then takes your next line without her name. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
+          <dt>Listen for Capri</dt><dd>her mic stays open, and she answers any line with her name anywhere in it. The next line needs her name too. Start voice chat to talk without it. Windows, off by default: Settings → VOICE → <b>Listen for Capri</b></dd>
           <dt>Mute mic</dt><dd><b>Ctrl + Alt + N</b>, or the mic button</dd>
           <dt>Free</dt><dd>anything but ElevenLabs picked, or no key: you talk, she answers. Her ears download the first time</dd>
           <dt>ElevenLabs</dt><dd><b>CLOUD VOICE</b> → <b>ElevenLabs</b> picked, a Voice ID, a mic</dd>
           <dt>Resting</dt><dd>quiet for a while? Just talk and she picks up</dd>
         </dl>
         <p class="note">ElevenLabs voice chat makes a voice agent called “Capri” in your ElevenLabs account, and your voice goes to ElevenLabs while it's on. Free voice chat hears English, Spanish and 23 other European languages on your PC. She doesn't comment on your screen during voice chat. Other languages are new and not well tested.</p>
-        <p class="note">“Hey Capri” listens for just those two words, in English, on your PC. Nothing leaves your PC until you say them. Windows shows its mic icon while it's on. It pauses in voice chat, while your mic is muted and in Quiet, and doesn't hear her own voice. The first turn-on downloads an 18 MB pack, and her free voice if it isn't in.</p>
+        <p class="note">“Hey Capri” listens for her name on your PC. Nothing leaves your PC until it hears it. Windows shows its mic icon while it's on. In voice chat every line counts. It pauses while your mic is muted and in Quiet, and doesn't hear her own voice. The first turn-on downloads an 18 MB pack, and her free voice if it isn't in.</p>
       </section>
 
       <section id="call-mode" class="step">
