@@ -110,6 +110,7 @@ namespace CapriDesktop
 
         protected virtual void Back() { Close(); }
         protected virtual bool PageKey(Key key) { return false; }
+        protected virtual bool Finds(KeyEventArgs e) { return false; }
         private static bool Steerable(Control control) { return control is NeonButton || control is NeonSwitch || control is NeonSlider || control is NeonEntry; }
         private List<Stop> Stops()
         {
@@ -211,6 +212,7 @@ namespace CapriDesktop
         {
             if (e.Source is NeonChoice) return;
             if (HeldKey(e) || !Steered) return;
+            if (Finds(e)) { e.Handled = true; return; }
             Key key = e.Key;
             KeyModifiers mods = e.KeyModifiers;
             TextBox box = e.Source as TextBox ?? FocusManager?.GetFocusedElement() as TextBox;
@@ -533,6 +535,7 @@ namespace CapriDesktop
             updateNote = Caption("", 28, 644, 328, 18, MainframeTheme.Faint, 34.0 / 3); updateNote.Ellipsis = true;
             building = 1;
             advanced = Key("Advanced Settings", 238, 20, 136, 22, () => { pet.SetAdvancedSettings(!pet.Saved.AdvancedSettings); ShowSettings(true); }); advanced.Accent = MainframeTheme.Cyan; advanced.Loud = true;
+            BuildSearch();
             Section("YOU", 0, 58);
             var personality = Add(new NeonPicker(), 72, 55, 106, 20, "Her personality");
             personality.Check = false;
@@ -957,7 +960,7 @@ namespace CapriDesktop
             }
             Fit(paged ? 760 : 380, bottom + 28, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0);
         }
-        private void CloseMenus() { voicePicker?.CloseMenu(); foreach (Item item in items) if (item.Control is NeonPicker picker) picker.CloseMenu(); }
+        private void CloseMenus() { voicePicker?.CloseMenu(); foreach (Item item in items) if (item.Control is NeonPicker picker) picker.CloseMenu(); CloseSearch(); }
         private void ConnectBrain()
         {
             string key = (textKey.Box.Text ?? "").Trim(); textKey.Box.Text = "";

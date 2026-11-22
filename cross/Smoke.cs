@@ -3235,6 +3235,7 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
                 KeyChecks(frame);
+                SearchChecks(frame);
             }
             finally
             {
@@ -3630,6 +3631,40 @@ namespace CapriDesktop
             var scroll = (ScrollViewer)border.Child;
             var rows = (StackPanel)scroll.Content;
             return (NeonChoice)rows.Children[picker.Selected];
+        }
+
+        private void SearchChecks(Mainframe frame)
+        {
+            bool advancedWas = pet.Saved.AdvancedSettings, pagedWas = frame.SettingsShown;
+            try
+            {
+                pet.SetAdvancedSettings(true); frame.ShowSettings(false);
+                frame.HoldRow(frame.Button("Settings"));
+                frame.Strike(Avalonia.Input.Key.F, KeyModifiers.Control);
+                bool opened = frame.SettingsShown && frame.HeldNow == frame.SearchBox && frame.SearchBox.IsVisible;
+                frame.SearchBox.Box.Text = "volume";
+                bool listed = frame.SearchOpen && frame.SearchListed.Count > 0 && frame.SearchListed[0] == "Volume · VOICE";
+                frame.Strike(Avalonia.Input.Key.Enter);
+                Control volume = frame.Row("Volume");
+                bool landed = frame.SettingsShown && !frame.SearchOpen && frame.HeldNow == volume && frame.Spotted == volume;
+                frame.Unspot();
+                frame.Strike(Avalonia.Input.Key.F, KeyModifiers.Control);
+                frame.SearchBox.Box.Text = "zqxv wobbleflump";
+                bool none = frame.SearchOpen && frame.SearchListed.Count == 0 && frame.HeldNow == frame.SearchBox;
+                frame.Strike(Avalonia.Input.Key.Escape);
+                bool cleared = string.IsNullOrEmpty(frame.SearchBox.Box.Text) && !frame.SearchOpen && frame.SettingsShown;
+                string crowded = frame.Overlap() ?? frame.TextFits() ?? frame.SearchFits();
+                if (!opened || !listed || !landed || !none || !cleared || crowded != null)
+                    throw new Exception("Her settings search went wrong on Mac and Linux: Ctrl + F " + opened + ", volume listed " + listed + " (" + string.Join(", ", frame.SearchListed) + "), landed " + landed + ", nothing " + none + ", Esc cleared " + cleared + ", crowded " + crowded);
+                checks.Add("PASS Mainframe search on Mac and Linux: Ctrl + F opens Settings in the search box, \"volume\" lists Volume · VOICE first and Enter lands on it with her cyan outline, a nonsense word lists nothing, Esc clears the box, and the box and its rows fit");
+            }
+            finally
+            {
+                frame.SearchBox.Box.Text = "";
+                frame.Unspot();
+                pet.SetAdvancedSettings(advancedWas);
+                frame.ShowSettings(pagedWas);
+            }
         }
 
         private void HeldKeyChecks(Mainframe frame)
