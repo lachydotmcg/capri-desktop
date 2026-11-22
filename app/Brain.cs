@@ -15,47 +15,46 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.6";
+        internal const string Version = "0.9.7";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
-            + "Plug-ins: she takes plug-ins like Claude's, .capri-plugin files with MCP tools and SKILL.md skills, and online ones sign in through your browser. Email, Notion and Linear starters wait switched off in Mods. Each tool asks first by your SECURITY settings, and she always asks before sending mail.\n"
-            + "Safety floor: plug-ins start without her saved keys, words from a plug-in or a skill can't spend your yes on another plug-in's tools, sending, paying or the terminal, and a plug-in whose start line downloads and runs hidden code is refused.\n"
-            + "Memories: her Mainframe shows everything she remembers, and you can edit, forget or undo any of it.\n"
-            + "Setup: a new install sets her up with you in about two minutes: your name, her vibe and look, then a real first job.\n"
-            + "Uninstall: her Mainframe can uninstall her, and you choose whether her memories, chats and keys go too.\n"
-            + "Animations: modders can change her animation panels, with any frame count and their own speed, in a new animations editor in Mods.\n"
-            + "Tool mods: she learns look-up tools from .capri-tool recipes and can write one herself, which waits switched off in Mods until you check it. From nathanZW.\n"
-            + "Honest and safe: she tells you she's an AI when you sincerely ask, and shows a crisis card with real help if you're really not okay.\n"
-            + "Pats: she says her pat lines in her own voice. From Zak6571.\n"
-            + "Everyday jobs: more brains get everyday jobs right, because her hands step in when a brain only says it's doing it.\n"
+            + "Plug-ins: they have their own PLUG-INS section in Mods now, with a picture for each and a word for where it's at, and Gmail, iCloud, Notion and Linear show their real logos. Drop a mod or plug-in file on her and she asks before importing it.\n"
+            + "Email: Set up Email takes three steps: pick your email, make an app password there, then paste it. Once it's connected, a plain check my email goes straight to your inbox.\n"
+            + "Phishing: Watch for new mail, in Email's settings and off until you turn it on, has her tell you when mail lands and warn you when one looks like phishing. She moves an email to the bin or spam after asking, and never marks mail read or opens its links.\n"
+            + "Languages: Settings > YOU has I speak and She answers in, so she can answer in your language, a different one, or Auto to match each message.\n"
+            + "What she did: she keeps a timeline of what she did on your computer, up to 30 days. Ask what did you just do, or say undo that, and she puts back what can go back, like apps and sites she opened, her settings, notes and file changes.\n"
+            + "Companion packs: a .capri-companion file brings a whole companion of your own, with its name, personality, greetings and art, and takes her place while it's on. Turn it off and she's back as she was.\n"
+            + "New moves: skins can add moves she does when you ask, like do the wave, and Mods > Animations > New move... makes one from your frames.\n"
+            + "Listen for Capri: a line with her name gets answered without opening voice chat, and Hey Capri on its own takes your next line.\n"
+            + "Wander: she never wanders onto a monitor a full-screen window covers, and keeps to her own screen on a job.\n"
+            + "Brains: she tells you when an OpenAI key needs billing or a smaller model instead of waiting, and small jobs like comments and glances go to a cheaper model from the same provider.\n"
             + (OperatingSystem.IsLinux()
-                ? "Files: she finds, reads, writes and sorts your files with any brain, asks before she moves, renames or changes anything, never deletes, and can undo.\n"
-                    + "Check-ins: she checks in by the clock where your desktop can't say how long you've been idle. From Zak6571.\n"
-                    + "Desktops: she stays on top on labwc, keeps her full colour on Hyprland, speaks through pw-cat, and her Mods page fits a small screen. From nathanZW."
-                : "Files: she finds, reads, writes and sorts your files with any brain, asks before she moves, renames or changes anything, never deletes, can undo, and shows any of them in Finder.");
-        internal static readonly string Line = "I just updated to " + Version + ": you can give me plug-ins now, like email, Notion and Linear, and my memories are all in one place. Ask me what's new.";
+                ? "Settings search: type in the search box at the top of Settings, or press Ctrl + F, and pick a match to jump to it.\n"
+                    + "Desktops: Listen for Capri listens on desktops that can't report a screen lock, not just Hyprland, and still pauses when the desktop says the screen is locked. Where nothing reports a lock, she can keep listening while it's locked. From danielxxomg."
+                : "Settings search: type in the search box at the top of Settings, or press Cmd + F, and pick a match to jump to it.");
+        internal static readonly string Line = "I just updated to " + Version + ": plug-ins have their own section now, I can warn you about phishing, and you can search my settings. Ask me what's new.";
 #else
-        internal const string Version = "0.9.6";
+        internal const string Version = "0.9.7";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Plug-ins: she takes plug-ins like Claude's, .capri-plugin files with MCP tools and SKILL.md skills, and online ones sign in through your browser. Email, Notion and Linear starters wait switched off in Mods. Each tool asks first by your SECURITY settings, Mods > Options sets each one to always run, ask first or off, and she always asks before sending mail.\n"
-            + "Safety floor: plug-ins start without her saved keys, words from a plug-in or a skill can't spend your yes on another plug-in's tools, her mouse, sending, paying or the terminal, and a plug-in whose start line downloads and runs hidden code is refused.\n"
-            + "GIFs: Her GIFs in her Mainframe, under HABITS, holds GIFs you save for her, each named after its file. She sends one in a card beside her when you ask, by name or at random, and with a cloud brain or in voice chat she sends one on her own now and then.\n"
-            + "Memories: Open her memories in her Mainframe shows everything she remembers about you in one place, and you can edit, forget or undo any of it, or forget everything about you in two taps, on your PC or in Capri Remote on your phone.\n"
-            + "Files: she finds, reads, writes and sorts your files with any brain. She asks on her bubble before she moves, renames or changes anything, never deletes, and can undo.\n"
-            + "Video calls: tap Video during a Capri Remote call to see her talking face, lip-synced to her voice. Turn your camera on and she sees you too.\n"
-            + "Uninstall: her Mainframe can uninstall her, and you choose whether her memories, chats and keys go too.\n"
-            + "Setup: a new install sets her up with you in about two minutes: your name, her vibe and look, then a real first job.\n"
-            + "Her browser: her own browser now runs over a private pipe with no debugging port, so no website or other program can take it over. She also closes a browser of hers left running from before, and you can borrow it with one click.\n"
-            + "PC brain: when you pick another brain she lets go of her PC brain and never falls back to it unasked. You can still make it her backup or her first pick.\n"
-            + "Grok: MAX INTELLIGENCE takes xAI keys for Grok, and its picker lists the models your Claude Code and Codex really offer. From Sharaj00.\n"
-            + "Tool mods: she learns look-up tools from .capri-tool recipes and can write one herself, which waits switched off in Mods until you check it. A code mod that stopped her starting stays off. From nathanZW.\n"
-            + "Animations: modders can change her animation panels, with any frame count and their own speed, in a new animations editor in Mods.\n"
-            + "Honest and safe: she tells you she's an AI when you sincerely ask, and shows a crisis card with real help if you're really not okay.\n"
-            + "Crash reports: right-click her > Help > Send crash reports, off until you turn it on. Only her crash, close and freeze lines go, with keys and user folders taken out.\n"
-            + "Job replays: every job on her own computer keeps a replay you can watch.\n"
-            + "Update door: on her first start after each update she comes through a door of alert hexagons. From YunoTheAlien.\n"
-            + "Everyday jobs: more brains get everyday jobs right, like pausing music, reminders, notes and reading an error on screen, because her hands step in when a brain only says it's doing it.\n"
-            + "Fixes: her Mainframe fits at 200% scaling and scrolls on short screens (from nathanZW), one broken Epic manifest no longer empties her app list (from nikitchxd), her free voice falls back to a safe speaker (from nikitchxd), she stays in front of her mini player while you drag it, and her mods page loads from her own copy when GitHub is blocked.";
-        internal const string Line = "I just updated to " + Version + ": you can give me plug-ins now, like email, Notion and Linear, and GIFs for me to send. Ask me what's new.";
+            + "Plug-ins: they have their own PLUG-INS section in Mods, with a picture for each, real logos for Gmail, iCloud, Notion and Linear, and a window with Connect and its tools. Drop a mod or plug-in file on her and she asks before importing it.\n"
+            + "Email: Set up Email takes three steps: pick your email, make an app password there, then paste it. Once it's connected, a plain check my email goes straight to your inbox.\n"
+            + "Phishing: turn on Watch for new mail in Email's settings and she tells you when mail lands and warns you when one looks like phishing, like a fake sender, a lying link or an ask for your card details or password. She moves an email to the bin or spam after asking, Deal with phishing on her own sends what she's sure of to spam, and she never opens its links.\n"
+            + "Settings search: the search box at the top of Settings, or Ctrl + F anywhere in her Mainframe, finds a setting from everyday words like mic or quiet and jumps to it.\n"
+            + "Languages: Settings > YOU has I speak and She answers in, so she can answer in your language, another one, or Auto to match each message. You can also ask her, like talk to me in Spanish.\n"
+            + "Startup animations: the button beside Glitch in at startup, under MOVES, opens a picker with live previews of Classic, Door and two new hand-drawn ones, Peek and Up close. The door intro no longer flashes her old standing pose.\n"
+            + "Lite mode: under HABITS, for weak PCs. Her brain on your PC switches off and she offers a free key, she draws less, HD voice hands over to her free voice, and Watch my screen, game comments and Clip my games pause until you turn it off. Why slow? beside it tells you what's slowing her down.\n"
+            + "Games: she does quick runs of keys and clicks with her own timing, sends real key codes for right Ctrl, right Alt, the arrows and the numpad, and skips repeat screenshots. Her combos never run beside kernel anti-cheat. While a game hides your cursor, clicks go through her.\n"
+            + "What she did: Workspace's What she did chat keeps up to 30 days of what she did on your computer, with Undo on what can go back, like apps and sites she opened, music, her settings, notes and file changes. Or ask what did you just do, or say undo that.\n"
+            + "Companion packs: a .capri-companion file brings a whole companion of your own, with its name, personality, greetings, voice and art, and takes her place until you turn it off. Her safety lines always come after its personality.\n"
+            + "Spend: Mainframe > Spend, under Resources, shows what her brain cost on your API keys today and this month from list prices, and small jobs go to a cheaper model from the same provider.\n"
+            + "Wander: she wanders and perches across all your monitors, never onto one with a full-screen game or video, and keeps to her own screen on a job, in a call or in Gaming Mode.\n"
+            + "New moves: skins can add moves she does when you ask, like do the wave, and Mods > Animations > New move... makes one from your frames.\n"
+            + "Listen for Capri: a line with her name gets answered without opening voice chat, Hey Capri on its own takes your next line, and her voice chat button turns normal voice chat on.\n"
+            + "Comments Off: with GAMES > Comments on Off, nothing turns Gaming Mode or game comments back on.\n"
+            + "OpenAI keys: she says when your key needs billing or a smaller model instead of waiting.\n"
+            + "Voice: she says when a Windows voice reads a language her own voice can't, goes back to ElevenLabs after you top up, hears a quiet mic, and her ears open by themselves in call mode.\n"
+            + "Fixes: typing into Discord no longer closes it, open Fortnite works when she hears fortnight, she only says music is playing once it is, she says when Windows blocks her brain, and an email moved twice no longer says the move failed.\n"
+            + "Squad: ask for a squad, like squad up and a job, and she splits into two or three copies that each search part of it, then brings back one answer and one note. Hold Esc to call them back.";
+        internal const string Line = "I just updated to " + Version + ": plug-ins have their own section now, I can warn you about phishing, and Ctrl + F searches my settings. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
