@@ -68,7 +68,8 @@ namespace CapriDesktop
                 Check(Invoke("Cached", plugin) == null, "A legacy truncated cache was accepted.");
                 Dictionary<string, string> grants = (Dictionary<string, string>)Field("grants").GetValue(null);
                 grants[id + " " + tail.Permission] = Plugins.Off;
-                Check(!Plugins.Catalog("{\"query\":\"tool_47\"}").Contains(tail.Exposed) && Plugins.Run(tail.Exposed, "{}").Contains("turned off") && pages.Calls == 1, "Off tool was discoverable or ran.");
+                string disabledCatalog = Plugins.Catalog("{\"query\":\"tool_47\"}"), disabledCall = Plugins.Run(tail.Exposed, "{}");
+                Check(!disabledCatalog.Contains(tail.Exposed) && disabledCall.Contains("turned it off") && pages.Calls == 1, "Off tool was discoverable or ran: " + disabledCall + "; calls=" + pages.Calls);
                 grants.Clear();
                 string offer = PluginJson.Write(Plugins.CatalogOffer());
                 Check(offer.Contains(Plugins.CatalogName) && !offer.Contains(tail.Exposed), "Plugin schemas leaked into the compact offer.");
