@@ -23,6 +23,8 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
         [DllImport("user32.dll")] private static extern int SendInput(int count, Input[] inputs, int size);
         [DllImport("user32.dll")] private static extern bool ScreenToClient(IntPtr window, ref Native.Point point);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, System.Text.StringBuilder name, int size);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, System.Text.StringBuilder text, int size);
         private readonly string ready;
         private readonly Process parent;
         private readonly System.Windows.Forms.Timer watch = new System.Windows.Forms.Timer { Interval = 250 };
@@ -116,6 +118,19 @@ namespace CapriDesktop
 
         internal static void Front(IntPtr window) { SetForegroundWindow(window); }
 
+        // The window a click at a spot would go to, by title, class and program, for a check that finds the wrong one there.
+        internal static string Describe(Point at)
+        {
+            IntPtr window = Native.GetAncestor(Native.WindowFromPoint(new Native.Point(at.X, at.Y)), 2);
+            if (window == IntPtr.Zero) return "nothing at " + at.X + "," + at.Y;
+            System.Text.StringBuilder kind = new System.Text.StringBuilder(128), title = new System.Text.StringBuilder(128);
+            GetClassName(window, kind, kind.Capacity);
+            GetWindowText(window, title, title.Capacity);
+            int process;
+            Native.GetWindowThreadProcessId(window, out process);
+            return "\"" + title + "\" (" + kind + ", process " + process + ") at " + at.X + "," + at.Y;
+        }
+
         // A click sent straight to the window Windows would hand a real one at that spot, for a desktop with no mouse of its own.
         internal static void SendClick(Point at, bool right)
         {
@@ -148,7 +163,7 @@ namespace CapriDesktop
             else checks.Add("LIMIT game clicks with the real mouse: only GitHub's runner moves and clicks it" + (readable ? "" : ", and this desktop has no cursor to read"));
         }
 
-        // A spot well inside her body, where any click lands on her.
+        // A spot well inside her body and on top of everything, where any click lands on her.
         private Point SolidSpot()
         {
             if (frame == null) return Point.Empty;
@@ -163,9 +178,28 @@ namespace CapriDesktop
                                 int px = x + dx, py = y + dy;
                                 solid = px >= 0 && py >= 0 && px < frame.Width && py < frame.Height && frame.GetPixel(px, py).A >= 250;
                             }
-                        if (solid) return PointToScreen(new Point(x, y));
+                        Point spot = PointToScreen(new Point(x, y));
+                        if (solid && Uncovered(spot) && Uncovered(new Point(spot.X + 2, spot.Y + 2))) return spot;
                     }
             return Point.Empty;
+        }
+
+        // Why nothing of hers takes a click, for the line that says so.
+        private string Untouchable(IntPtr game)
+        {
+            bool above = false;
+            IntPtr next = Handle;
+            for (int i = 0; i < 5000 && next != IntPtr.Zero && !above; i++) { next = Native.GetWindow(next, 2); above = next == game; }
+            int style = Native.GetWindowLong(Handle, -16), extended = Native.GetWindowLong(Handle, -20);
+            int solid = 0, open = 0;
+            if (frame != null)
+                for (int y = 0; y < frame.Height; y += 4)
+                    for (int x = 0; x < frame.Width; x += 4)
+                        if (frame.GetPixel(x, y).A >= 250) { solid++; if (Uncovered(PointToScreen(new Point(x, y)))) open++; }
+            return "her window " + (Native.IsWindowVisible(Handle) ? "shown" : "not shown") + (Enabled ? "" : " and disabled") + " at " + Bounds + ", styles 0x" + style.ToString("X8", CultureInfo.InvariantCulture)
+                + " and 0x" + extended.ToString("X8", CultureInfo.InvariantCulture) + (above ? ", above" : ", not above") + " the game" + ((Native.GetWindowLong(game, -20) & 8) != 0 ? ", which is topmost" : "")
+                + ", " + solid + " solid samples in her picture and " + open + " of them clickable, drawn in " + drawnBounds + ", last sent " + (bodySurface == null ? "nothing" : bodySurface.LastDirty.ToString())
+                + ", clip " + (clip == null ? "none" : clip.Title) + ", veiled " + veiled + ", lent " + lentOut + ", pointing " + pointing;
         }
 
         private void GameClickRun(List<string> checks, string output, bool real)
@@ -177,6 +211,9 @@ namespace CapriDesktop
             bool? fakedWas = Native.FakedGaming;
             bool patsWas = preferences.NoHeadPats;
             int clicksWas = clicks;
+            Clip clipWas = clip;
+            bool veiledWas = veiled;
+            double veilWas = veilUntil;
             Point cursorWas = real ? Cursor.Position : Point.Empty;
             IntPtr frontWas = real ? Native.GetForegroundWindow() : IntPtr.Zero;
             string ready = Path.Combine(output, "game-clicks-" + (real ? "mouse" : "hit-test") + ".txt");
@@ -189,6 +226,16 @@ namespace CapriDesktop
                 if (File.Exists(ready)) File.Delete(ready);
                 preferences.NoHeadPats = true;
                 if (pill.Visible) pill.Hide();
+                // Stood in her idle with no ribbons still due to form her, so there's all of her to click, whatever the section
+                // before left playing.
+                ribbons.Stop();
+                veiled = false;
+                veilUntil = -1;
+                Play(idle);
+                bodyCells.Clear();
+                drawnClip = null;
+                if (bodySurface != null) bodySurface.Forget();
+                RenderFrame();
                 foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) { IntPtr handle = form.Handle; }
                 Rectangle area = Screen.FromControl(this).Bounds;
                 string arguments = "--smoke-child game " + SmokeRun.Quote(ready);
@@ -203,8 +250,7 @@ namespace CapriDesktop
                 }
                 if (window == IntPtr.Zero) throw new Exception("The pretend game never opened its window" + (game.HasExited ? ", it quit with " + game.ExitCode : "") + ".");
                 int gameProcess = game.Id;
-                Point away = new Point(area.Left + 60, area.Top + 60), spot = SolidSpot(), pointer = away;
-                if (spot.IsEmpty) throw new Exception("She had no solid spot to click.");
+                Point away = Point.Empty, spot = Point.Empty, pointer = Point.Empty;
                 Func<int, int> ask = delegate(int message) { return Native.SendMessage(window, message, IntPtr.Zero, IntPtr.Zero).ToInt32(); };
                 Action<int> cursorMode = delegate(int mode) { Native.SendMessage(window, FakeGame.SetCursorMode, new IntPtr(mode), IntPtr.Zero); };
                 Action<Point> move;
@@ -258,19 +304,36 @@ namespace CapriDesktop
                     return null;
                 };
 
+                Point corner = new Point(area.Left + 60, area.Top + 60);
+                foreach (Point place in new[] { corner, new Point(area.Right - 60, area.Top + 60), new Point(area.Left + area.Width / 2, area.Top + 60), new Point(area.Left + 60, area.Top + area.Height / 2), new Point(area.Left + area.Width / 3, area.Top + area.Height / 3) })
+                    if (away.IsEmpty && GameCursor.ProcessAt(place) == gameProcess) away = place;
+                Stopwatch drawn = Stopwatch.StartNew();
+                while ((spot = SolidSpot()).IsEmpty && drawn.Elapsed.TotalSeconds < 2) PumpFor(0.1);
+                string how = real ? "with the real mouse" : "by hit test";
+                if (away.IsEmpty || spot.IsEmpty)
+                {
+                    checks.Add("LIMIT game clicks " + how + ": " + (away.IsEmpty ? "the pretend game was covered by " + FakeGame.Describe(corner) : "nothing of hers was on top to click, " + FakeGame.Describe(Hip()) + " (" + Untouchable(window) + ")"));
+                    return;
+                }
+
                 aimFront = IntPtr.Zero;
                 aimLooked = double.NegativeInfinity;
                 aimGame = 0;
                 aimHidden = false;
                 cursorMode(0);
                 move(away);
+                if (real && GameCursor.Read().Hidden)
+                {
+                    checks.Add("LIMIT game clicks with the real mouse: this runner shows no cursor even over the pretend game with its cursor showing, " + GameCursor.Read());
+                    return;
+                }
                 CheckGameCursor(clock.Elapsed.TotalSeconds);
                 if (GameAt(window, clock.Elapsed.TotalSeconds) != gameProcess || gameAim) throw new Exception("The pretend game wasn't taken for a game in front, or its showing cursor made her let clicks through.");
                 pillUntil = -1;
                 if (pill.Visible) pill.Hide();
-                if (GameCursor.ProcessAt(away) != gameProcess || Native.GetAncestor(Native.WindowFromPoint(new Native.Point(spot.X, spot.Y)), 2) != Handle)
+                if (GameCursor.ProcessAt(away) != gameProcess || !Uncovered(spot))
                 {
-                    checks.Add("LIMIT game clicks " + (real ? "with the real mouse" : "by hit test") + ": something else covered the pretend game or her");
+                    checks.Add("LIMIT game clicks " + how + ": " + (Uncovered(spot) ? "the pretend game was covered by " + FakeGame.Describe(away) : "she was covered by " + FakeGame.Describe(spot)));
                     return;
                 }
 
@@ -282,11 +345,11 @@ namespace CapriDesktop
                     while (!gameAim && heard.Elapsed.TotalSeconds < 1.5) PumpFor(0.05);
                     told = gameAim;
                 }
-                if (!aims(true)) throw new Exception("With a game in front and its cursor hidden, her windows still took clicks.");
+                if (!aims(true)) throw new Exception("With a game in front and its cursor hidden, her windows still took clicks: " + GameCursor.Read() + " over " + FakeGame.Describe(away) + ".");
                 move(spot);
                 for (int i = 0; i < 6; i++) { CheckGameCursor(clock.Elapsed.TotalSeconds); PumpFor(0.05); }
                 if (!gameAim) throw new Exception("The game's hidden cursor moving onto her gave her clicks back.");
-                if (real && !GameCursor.Read().Hidden) throw new Exception("Over her, the cursor wasn't the game's hidden one.");
+                if (real && !GameCursor.Read().Hidden) throw new Exception("Over her, the cursor wasn't the game's hidden one: " + GameCursor.Read() + ".");
                 PumpFor(0.3);
                 if (real && pill.Visible) throw new Exception("The game's hidden cursor over her brought up her pill.");
                 int lefts = ask(FakeGame.Lefts), rights = ask(FakeGame.Rights);
@@ -303,17 +366,17 @@ namespace CapriDesktop
                 if (!gameAim || wrong(true) != null) throw new Exception("Her hands handing the cursor back made her clickable over the aiming game.");
 
                 cursorMode(0);
-                if (!aims(false)) throw new Exception("The game showing its cursor again didn't give her clicks back.");
+                if (!aims(false)) throw new Exception("The game showing its cursor again didn't give her clicks back: " + GameCursor.Read() + ".");
                 move(away);
                 cursorMode(2);
-                if (!aims(true)) throw new Exception("A game that set no cursor at all left her clickable.");
+                if (!aims(true)) throw new Exception("A game that set no cursor at all left her clickable: " + GameCursor.Read() + " over " + FakeGame.Describe(away) + ".");
                 move(spot);
                 lefts = ask(FakeGame.Lefts);
                 click(false);
                 if (ask(FakeGame.Lefts) != lefts + 1 || pressed || pendingClick) throw new Exception("With the game setting no cursor, a click on her didn't reach the game.");
 
                 cursorMode(0);
-                if (!aims(false)) throw new Exception("The game showing its cursor didn't give her clicks back.");
+                if (!aims(false)) throw new Exception("The game showing its cursor didn't give her clicks back: " + GameCursor.Read() + ".");
                 string shut = wrong(false);
                 if (shut != null) throw new Exception("Her " + shut + " still let clicks through with the game's cursor showing.");
                 move(new Point(spot.X + 2, spot.Y + 2));
@@ -347,6 +410,10 @@ namespace CapriDesktop
                 Aim(false);
                 pendingClick = false;
                 clickDelay.Stop();
+                veiled = veiledWas;
+                veilUntil = veilWas;
+                if (clip != clipWas) Play(clipWas);
+                RenderFrame();
                 if (real && window != IntPtr.Zero)
                 {
                     Native.SendMessage(window, FakeGame.LetFront, IntPtr.Zero, IntPtr.Zero);

@@ -22,6 +22,10 @@ namespace CapriDesktop
         {
             internal bool Read, Hidden;
             internal Point At;
+            internal int Flags;
+            internal IntPtr Shape;
+
+            public override string ToString() { return (Read ? "flags " + Flags + ", cursor 0x" + Shape.ToInt64().ToString("X") : "no cursor to read") + " at " + At.X + "," + At.Y; }
         }
 
         // A game can hide its cursor or set none at all, and both count as hidden. Touch and pen hiding it don't.
@@ -30,6 +34,8 @@ namespace CapriDesktop
             Info info = new Info { Size = Marshal.SizeOf(typeof(Info)) };
             Reading seen = new Reading { Read = GetCursorInfo(ref info) };
             seen.At = new Point(info.X, info.Y);
+            seen.Flags = info.Flags;
+            seen.Shape = info.Handle;
             seen.Hidden = seen.Read && ((info.Flags & 3) == 0 || ((info.Flags & 1) != 0 && info.Handle == IntPtr.Zero));
             return seen;
         };
