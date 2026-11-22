@@ -16,11 +16,27 @@ namespace CapriDesktop
         [DataMember(Name = "own_hands")] public bool OwnHands;
     }
 
+    internal sealed class MailMove
+    {
+        internal string Target = "", Kind = "folder";
+        internal bool Gmail, Already, Ours;
+    }
+
     internal static class MailTools
     {
+        private sealed class Moved
+        {
+            internal string Account = "", Folder = "", MessageId = "", Target = "", Kind = "";
+            internal int Uid;
+            internal DateTime At = DateTime.UtcNow;
+        }
+
         internal static string Folder;
         private static MailAccount account;
         private static bool loaded;
+        private static readonly TimeSpan MovedLately = TimeSpan.FromMinutes(5);
+        private static readonly object moving = new object();
+        private static readonly List<Moved> moves = new List<Moved>();
         internal const string NotSetUp = "Email isn't set up yet. Turn on Email under Mods to set it up.";
         internal const string NeedsPassword = "Email needs its app password again. Turn Email off and on under Mods to give it.";
         internal const string WatchName = "mail-watch.json";
@@ -126,6 +142,7 @@ namespace CapriDesktop
         private static void Unremember()
         {
             lock (remembered) { remembered.Clear(); rememberedOrder.Clear(); }
+            lock (moves) moves.Clear();
         }
 
         private static Dictionary<string, object> Prop(string type, string description)
@@ -429,34 +446,130 @@ namespace CapriDesktop
             if (to.Length == 0) throw new MailException("Say where it goes: spam, trash, archive or a folder's name.");
             string folder = FolderOf(args);
             MailHead known = Known(folder, uid);
-            string kind;
-            bool gmail;
-            string target = MoveOne(a, folder, uid, to, known == null ? "" : known.MessageId, out kind, out gmail);
+            MailMove done = MoveOne(a, folder, uid, to, known == null ? "" : known.MessageId);
+            string kind = done.Kind, target = done.Target;
+            bool gmail = done.Gmail;
+            if (done.Already) return "It's already in " + Where(done) + "." + (done.Ours ? " I moved it a moment ago." : "");
             if (kind == "spam") return gmail ? "Moved it to Gmail's Spam folder (" + target + "), which reports it to Gmail as spam. Gmail deletes spam for good after 30 days." : "Moved it to their junk folder (" + target + "). It's still there if they want it back.";
             if (kind == "trash") return gmail ? "Moved it to Gmail's Trash (" + target + "). Gmail deletes it for good after 30 days." : "Moved it to their trash (" + target + "). It's still there if they want it back.";
             if (kind == "archive") return gmail && target.IndexOf("All Mail", StringComparison.OrdinalIgnoreCase) >= 0 ? "Archived it: it left the inbox and stays in All Mail." : "Moved it to the archive (" + target + ").";
             return "Moved it to " + target + ".";
         }
 
-        internal static string MoveOne(MailAccount a, string from, int uid, string to, string messageId, out string kind, out bool gmail)
+        private static string Where(MailMove done)
         {
+            if (done.Kind == "spam") return done.Gmail ? "Gmail's Spam folder (" + done.Target + ")" : "their junk folder (" + done.Target + ")";
+            if (done.Kind == "trash") return done.Gmail ? "Gmail's Trash (" + done.Target + ")" : "their trash (" + done.Target + ")";
+            if (done.Kind == "archive") return AllMail(done.Target) ? "All Mail (" + done.Target + "), so it's archived" : "the archive (" + done.Target + ")";
+            return done.Target;
+        }
+
+        private static bool AllMail(string folder) { return folder.IndexOf("All Mail", StringComparison.OrdinalIgnoreCase) >= 0; }
+
+        // Moving one email twice, from two of her tool calls or from her watching and their asking, is one move and two
+        // successes: the second finds it gone and says where it went instead of saying the move failed.
+        internal static MailMove MoveOne(MailAccount a, string from, int uid, string to, string messageId)
+        {
+            MailMove done = new MailMove();
             using (MailBox box = MailBox.Open(a))
             {
-                gmail = box.Gmail;
-                string target = Destination(box, to, out kind);
-                if (string.Equals(target, from, StringComparison.OrdinalIgnoreCase)) throw new MailException("It's already in " + target + ".");
-                box.Select(from, false);
-                if (!box.Has(uid)) throw new MailException("There's no message with uid " + uid + " in " + from + ".");
-                if (!string.IsNullOrEmpty(messageId))
+                done.Gmail = box.Gmail;
+                done.Target = Destination(box, to, out done.Kind);
+                if (string.Equals(done.Target, from, StringComparison.OrdinalIgnoreCase)) throw new MailException("It's already in " + done.Target + ".");
+                lock (moving)
                 {
+                    box.Select(from, false);
+                    if (!box.Has(uid))
+                    {
+                        if (!Gone(box, a, from, uid, messageId, done)) throw new MailException("There's no message with uid " + uid + " in " + from + ".");
+                        return done;
+                    }
                     List<int> one = new List<int>();
                     one.Add(uid);
                     List<MailHead> heads = box.Headers(one);
-                    if (heads.Count > 0 && heads[0].MessageId.Length > 0 && heads[0].MessageId != messageId) throw new MailException("Message " + uid + " in " + from + " is a different email now, so it was left alone. List the mail again first.");
+                    MailHead head = heads.Count > 0 ? heads[0] : null;
+                    if (head != null && !string.IsNullOrEmpty(messageId) && head.MessageId.Length > 0 && head.MessageId != messageId) throw new MailException("Message " + uid + " in " + from + " is a different email now, so it was left alone. List the mail again first.");
+                    box.Move(uid, done.Target);
+                    if (head != null) Remember(from, uid, head.From, head.Subject, head.MessageId);
+                    Keep(a, from, uid, head != null && head.MessageId.Length > 0 ? head.MessageId : messageId, done);
+                    return done;
                 }
-                box.Move(uid, target);
-                return target;
             }
+        }
+
+        private static string Owner(MailAccount a)
+        {
+            return (a.LoginName + " " + a.ImapHost + ":" + a.ImapPort.ToString(CultureInfo.InvariantCulture)).ToLowerInvariant();
+        }
+
+        private static void Keep(MailAccount a, string from, int uid, string messageId, MailMove done)
+        {
+            lock (moves)
+            {
+                moves.Add(new Moved { Account = Owner(a), Folder = from, Uid = uid, MessageId = messageId ?? "", Target = done.Target, Kind = done.Kind });
+                if (moves.Count > 100) moves.RemoveAt(0);
+            }
+        }
+
+        private static Moved Lately(MailAccount a, string from, int uid, string messageId)
+        {
+            string owner = Owner(a);
+            DateTime now = DateTime.UtcNow;
+            lock (moves)
+            {
+                moves.RemoveAll(one => now - one.At > MovedLately);
+                for (int i = moves.Count - 1; i >= 0; i--)
+                {
+                    Moved one = moves[i];
+                    if (one.Account != owner || !string.Equals(one.Folder, from, StringComparison.OrdinalIgnoreCase)) continue;
+                    if ((!string.IsNullOrEmpty(messageId) && one.MessageId.Length > 0) ? one.MessageId == messageId : one.Uid == uid) return one;
+                }
+            }
+            return null;
+        }
+
+        private static bool Gone(MailBox box, MailAccount a, string from, int uid, string messageId, MailMove done)
+        {
+            Moved mine = Lately(a, from, uid, messageId);
+            if (mine != null)
+            {
+                done.Target = mine.Target;
+                done.Kind = mine.Kind;
+                done.Already = done.Ours = true;
+                return true;
+            }
+            if (string.IsNullOrEmpty(messageId)) return false;
+            foreach (KeyValuePair<string, string> place in Places(box, from, done))
+            {
+                try
+                {
+                    box.Select(place.Key, true);
+                    if (box.WithId(messageId).Count == 0) continue;
+                }
+                catch (MailException) { continue; }
+                done.Target = place.Key;
+                done.Kind = place.Value;
+                done.Already = true;
+                return true;
+            }
+            return false;
+        }
+
+        // Where it could have gone: where it was going, then the trash, spam and archive. Gmail's All Mail holds the inbox too,
+        // so it only counts when it was where this move was going.
+        private static List<KeyValuePair<string, string>> Places(MailBox box, string from, MailMove done)
+        {
+            List<KeyValuePair<string, string>> places = new List<KeyValuePair<string, string>>();
+            places.Add(new KeyValuePair<string, string>(done.Target, done.Kind));
+            foreach (string word in new[] { "trash", "spam", "archive" })
+            {
+                string found, kind;
+                try { found = Destination(box, word, out kind); }
+                catch (MailException) { continue; }
+                if ((done.Gmail && AllMail(found)) || string.Equals(found, from, StringComparison.OrdinalIgnoreCase) || places.Exists(one => string.Equals(one.Key, found, StringComparison.OrdinalIgnoreCase))) continue;
+                places.Add(new KeyValuePair<string, string>(found, kind));
+            }
+            return places;
         }
 
         private static readonly string[] SpamWords = { "spam", "junk", "junk mail", "junk email", "junk e-mail", "bulk", "bulk mail", "spam folder", "junk folder" };
