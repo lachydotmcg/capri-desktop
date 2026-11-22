@@ -152,6 +152,7 @@ namespace CapriDesktop
         internal void ShowMods(bool on)
         {
             DismissHint();
+            CloseSearchList();
             if (on && paged) ShowSettings(false);
             modded = on;
             more.Text = on ? "Back" : "Settings";

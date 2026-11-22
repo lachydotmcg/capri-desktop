@@ -138,9 +138,9 @@ namespace CapriDesktop
             internal float Middle;
         }
 
-        private static void FocusMark(Graphics graphics, RectangleF around, float s, float topRight, float bottomRight, float bottomLeft)
+        private static void FocusMark(Graphics graphics, RectangleF around, float s, float topRight, float bottomRight, float bottomLeft, bool spot = false)
         {
-            using (GraphicsPath path = FocusPath(around, s, topRight, bottomRight, bottomLeft)) FocusMark(graphics, path, s);
+            using (GraphicsPath path = FocusPath(around, s, topRight, bottomRight, bottomLeft)) FocusMark(graphics, path, s, spot);
         }
 
         private static GraphicsPath FocusPath(RectangleF around, float s, float topRight, float bottomRight, float bottomLeft)
@@ -151,9 +151,9 @@ namespace CapriDesktop
             return Cut(box, 0, topRight > 0 ? topRight - trim : 0, bottomRight > 0 ? bottomRight - trim : 0, bottomLeft > 0 ? bottomLeft - trim : 0);
         }
 
-        private static void FocusMark(Graphics graphics, GraphicsPath path, float s)
+        private static void FocusMark(Graphics graphics, GraphicsPath path, float s, bool spot = false)
         {
-            using (Pen pen = new Pen(White, 2 * Math.Max(1f, s))) graphics.DrawPath(pen, path);
+            using (Pen pen = new Pen(spot ? Cyan : White, 2 * Math.Max(1f, s))) graphics.DrawPath(pen, path);
         }
 
         private static bool Steerable(Control control) { return control is Key || control is Toggle || control is Slider || control is Rung || control is Entry || control is PlugTile; }

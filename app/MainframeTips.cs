@@ -246,7 +246,7 @@ namespace CapriDesktop
         {
             hintDelay.Stop();
             SettingHint hint = waitingHint;
-            if (hint == null || !HintShows(hint) || Control.MouseButtons != MouseButtons.None || (mouseHint ? overHint != hint : !hint.Control.ContainsFocus)) { DismissHint(); return; }
+            if (hint == null || !HintShows(hint) || Control.MouseButtons != MouseButtons.None || (mouseHint ? overHint != hint : !hint.Control.ContainsFocus) || hint.Control == searchBox && SearchOpen) { DismissHint(); return; }
             if (hintCard == null) hintCard = new HintCard();
             Rectangle area = Screen.FromRectangle(hint.Bounds).WorkingArea;
             if (!hintCard.Place(hint.Title, HintFacts(hint), Unit(), hint.Bounds, area)) { DismissHint(); return; }

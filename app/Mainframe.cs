@@ -672,6 +672,7 @@ namespace CapriDesktop
             advancedKey = Make("Advanced Settings", 238, 20, 136, 22, delegate { capri.ToggleAdvancedSettings(); ShowSettings(true); });
             advancedKey.Accent = Cyan;
             advancedKey.Loud = true;
+            BuildSearch();
             Section("YOU >", 0, 58);
             notesKey = Make("Open her notes", 184, 55, 96, 20, delegate { EditNotes(false); });
             notesKey.AccessibleName = "Open her notes: edit me.md here, or her note in your Obsidian vault";
@@ -2032,6 +2033,7 @@ namespace CapriDesktop
         internal void ShowSettings(bool on)
         {
             DismissHint();
+            CloseSearchList();
             if (!on) CancelKeys();
             if (on && modded) ShowMods(false);
             ScrollPage(0);
@@ -2132,6 +2134,7 @@ namespace CapriDesktop
         private void MovePage(int to)
         {
             DismissHint();
+            CloseSearchList();
             int next = Math.Max(0, Math.Min(ScrollTall - pageView, to));
             if (next == pageScroll) return;
             MoveControls(next);
@@ -2605,6 +2608,7 @@ namespace CapriDesktop
             float nextUnit = DeviceScale() * TextScale() * next;
             if (!loaded || sizing || (Math.Abs(nextUnit - unit) < 0.005f && Math.Abs(next - zoom) < 0.005f && shownFallback == layoutFallback)) return;
             DismissHint();
+            CloseSearchList();
             languageMenu.Close();
             answerMenu.Close();
             sizing = true;
@@ -2659,6 +2663,11 @@ namespace CapriDesktop
             private readonly Font hint;
             private readonly Font flag;
             private Font scaledFont, scaledHint, scaledFlag;
+
+            internal Control Control { get { return control; } }
+
+            // Where it was built, at 100%, before anything moved it.
+            internal Rectangle Built { get { return bounds; } }
 
             internal LayoutItem(Control control)
             {
@@ -5040,7 +5049,7 @@ namespace CapriDesktop
         {
             bool repeated = (msg.LParam.ToInt64() & 0x40000000) != 0, hinted = HintUp;
             if ((keyData & Keys.KeyCode) == Keys.Escape) DismissHint();
-            if (capturing == 0) return (hinted && keyData == Keys.Escape) || Steer(keyData, repeated) || base.ProcessCmdKey(ref msg, keyData);
+            if (capturing == 0) return (hinted && keyData == Keys.Escape) || SearchKeys(keyData) || Steer(keyData, repeated) || base.ProcessCmdKey(ref msg, keyData);
             if (EndsPicking(keyData, repeated)) return true;
             TakeKeys(keyData, WinHeld());
             return true;
@@ -5667,7 +5676,7 @@ namespace CapriDesktop
                             graphics.DrawLine(pen, x - 4.5f * s, y + 4.5f * s, x + 4.5f * s, y - 4.5f * s);
                         }
                     }
-                    if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 4 * s, 0);
+                    if (Marked || Spotted(this)) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 4 * s, 0, Spotted(this));
                     return;
                 }
                 bool lit = hot || (Focused && ShowFocusCues);
@@ -5706,7 +5715,7 @@ namespace CapriDesktop
                 }
                 TextRenderer.DrawText(graphics, words, Font, area, ink, flags);
                 if (Meter >= 0) using (Brush meter = new SolidBrush(Cyan)) graphics.FillRectangle(meter, 3 * s, Height - 4 * s, (float)((Width - 6 * s) * Math.Max(0, Math.Min(1, Meter))), 2 * s);
-                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
+                if (Marked || Spotted(this)) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0, Spotted(this));
             }
 
             private static Color Toward(Color from, Color to, float amount)
@@ -5846,7 +5855,7 @@ namespace CapriDesktop
                     using (Brush fill = new SolidBrush(Well)) graphics.FillPath(fill, plate);
                     using (Pen pen = new Pen(Box.Focused ? Cyan : WellEdge, line)) graphics.DrawPath(pen, plate);
                 }
-                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
+                if (Marked || Spotted(this)) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0, Spotted(this));
                 if (Chevron) Mainframe.Drop(graphics, Width - 19 * s, Height / 2f, s, Cyan, hot);
             }
         }
@@ -8342,7 +8351,7 @@ namespace CapriDesktop
                     using (Brush on = new SolidBrush(live ? Lit : Dash))
                         for (int i = 0; i < labels.Length; i++) graphics.FillRectangle(i == value ? on : off, left + i * (dash + gap), Height - 5.5f * s, dash, Math.Max(1, 1.5f * s));
                     if (Torn) Tear(graphics, s, flags, reach);
-                    if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 5 * s, 5 * s, 0);
+                    if (Marked || Spotted(this)) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 5 * s, 5 * s, 0, Spotted(this));
                     return;
                 }
                 float travel = Width - 2 * s - Grip;
@@ -8370,7 +8379,7 @@ namespace CapriDesktop
                 graphics.SetClip(handle);
                 TextRenderer.DrawText(graphics, Lingo.Of(Shown), Font, area, Neon.Tone(40, 6, 12), flags);
                 graphics.ResetClip();
-                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
+                if (Marked || Spotted(this)) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0, Spotted(this));
             }
 
             protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e); Invalidate(); }
@@ -8447,7 +8456,7 @@ namespace CapriDesktop
                         using (Pen pen = new Pen(Color.FromArgb(190, Cyan), line)) graphics.DrawPath(pen, plate);
                     }
                 }
-                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
+                if (Marked || Spotted(this)) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0, Spotted(this));
                 float x = 12 * s, y = Height / 2f, size = 4.5f * s;
                 PointF[] diamond = { new PointF(x, y - size), new PointF(x + size, y), new PointF(x, y + size), new PointF(x - size, y) };
                 if (Checked) using (Brush mark = new SolidBrush(Cyan)) graphics.FillPolygon(mark, diamond);
@@ -8593,7 +8602,7 @@ namespace CapriDesktop
                 }
                 TextRenderer.DrawText(graphics, Lingo.Of("OFF"), small, Rectangle.Round(off), offInk, centre);
                 TextRenderer.DrawText(graphics, Lingo.Of("ON"), small, Rectangle.Round(on), onInk, centre);
-                if (Marked) using (GraphicsPath mark = MarkPath(s)) FocusMark(graphics, mark, s);
+                if (Marked || Spotted(this)) using (GraphicsPath mark = MarkPath(s)) FocusMark(graphics, mark, s, Spotted(this));
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 int room = NameRoom;
                 string words = Lingo.Of(Text), hinted = Lingo.Of(Hint);
