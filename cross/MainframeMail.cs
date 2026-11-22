@@ -35,7 +35,7 @@ namespace CapriDesktop
         {
             if (mod == null || !mod.On || Program.Smoke != null) return;
             if (Mods.Builtin(mod, "mail") && !MailTools.Ready) { OpenMailSetup(mod); ModSays(mod.File.Name + " is on. Set it up in the window that opened."); return; }
-            if (!Mods.Online(mod) || Plugins.SignedIn(mod.File.Id)) return;
+            if (Mods.PublicStarter(mod) || !Mods.Online(mod) || Plugins.SignedIn(mod.File.Id)) return;
             if (Mods.TokenServer(mod) != null) { OpenPluginToken(mod); return; }
             ModSays(mod.File.Name + " is on. Sign in to it in your browser.");
             Plugins.SignIn(mod.File.Id, delegate(string problem)

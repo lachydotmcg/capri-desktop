@@ -20,7 +20,9 @@ namespace CapriDesktop
             new[] { "github", "GitHub", "Reads and works on repositories, issues and pull requests. Connect with a personal access token limited to the repositories and permissions you choose.", "\"github\":{\"type\":\"http\",\"url\":\"https://api.githubcopilot.com/mcp/\",\"auth\":{\"type\":\"token\"}}", "\"accounts\",\"network\"", "", "Works with your repositories, issues and pull requests." },
             new[] { "atlassian", "Atlassian", "Searches and works with your Jira issues and Confluence pages through Atlassian's hosted service. Your organization may need to approve the connection.", "\"atlassian\":{\"type\":\"http\",\"url\":\"https://mcp.atlassian.com/v2/mcp\"}", "\"accounts\",\"network\"", "", "Works with your Jira issues and Confluence pages." },
             new[] { "monday", "monday.com", "Reads and updates your monday.com boards and items. Sign in in your browser; your account admin may need to approve Capri and its redirect address.", "\"monday\":{\"type\":\"http\",\"url\":\"https://mcp.monday.com/mcp\"}", "\"accounts\",\"network\"", "", "Reads and updates your boards and items." },
-            new[] { "miro", "Miro", "Reads and updates your Miro boards. Sign in and choose the team your boards belong to. Enterprise organizations may need an admin to enable MCP first.", "\"miro\":{\"type\":\"http\",\"url\":\"https://mcp.miro.com/\"}", "\"accounts\",\"network\"", "", "Reads and updates boards in your selected Miro team." }
+            new[] { "miro", "Miro", "Reads and updates your Miro boards. Sign in and choose the team your boards belong to. Enterprise organizations may need an admin to enable MCP first.", "\"miro\":{\"type\":\"http\",\"url\":\"https://mcp.miro.com/\"}", "\"accounts\",\"network\"", "", "Reads and updates boards in your selected Miro team." },
+            new[] { "cloudflare-docs", "Cloudflare Docs", "Searches public Cloudflare developer documentation. No account or sign-in is required.", "\"cloudflare-docs\":{\"type\":\"http\",\"url\":\"https://docs.mcp.cloudflare.com/mcp\"}", "\"network\"", "", "Searches public Cloudflare developer documentation. No account required." },
+            new[] { "context7", "Context7", "Finds current library documentation and code examples. Add a Context7 API key from your dashboard; account limits and available libraries apply.", "\"context7\":{\"type\":\"http\",\"url\":\"https://mcp.context7.com/mcp\",\"auth\":{\"type\":\"token\"}}", "\"accounts\",\"network\"", "", "Finds current library documentation and code examples with your Context7 API key." }
         };
 
         internal const int Envelope = 0, Page = 1, Checklist = 2, Plug = 3;
@@ -101,7 +103,7 @@ namespace CapriDesktop
         {
             if (!mod.On) return "Off";
             if (Builtin(mod, "mail")) return MailTools.Ready ? "Connected" : "Set up";
-            if (!Online(mod)) return "On";
+            if (PublicStarter(mod) || !Online(mod)) return "On";
             if (Plugins.Trouble(mod.File.Id) == McpSignInNeeded.Said) return "Sign in";
             return Plugins.SignedIn(mod.File.Id) ? "Connected" : "On";
         }
@@ -165,9 +167,19 @@ namespace CapriDesktop
             return mod != null && mod.Plugin && mod.Info != null && mod.Info.Servers.Length == 1 && mod.Info.Servers[0].Online && mod.Info.Servers[0].TokenEntry ? mod.Info.Servers[0] : null;
         }
 
+        internal static bool PublicStarter(Mod mod)
+        {
+            return mod != null && mod.Starter && mod.File.Id == "cloudflare-docs" && mod.Info != null && mod.Info.Servers.Length == 1 && mod.Info.Servers[0].Url == "https://docs.mcp.cloudflare.com/mcp" && !mod.Info.Servers[0].TokenEntry;
+        }
+
+        internal static string TokenLabel(Mod mod) { return mod.Starter && mod.File.Id == "context7" ? "API key" : "Personal access token"; }
+        internal static string TokenPage(Mod mod) { return !mod.Starter ? null : mod.File.Id == "context7" ? "https://context7.com/dashboard" : mod.File.Id == "github" ? "https://github.com/settings/personal-access-tokens" : null; }
+        internal static string TokenPageLabel(Mod mod) { return mod.File.Id == "context7" ? "Open Context7's dashboard" : "Open GitHub's token settings"; }
+
         internal static string TokenSetupNote(Mod mod)
         {
-            return mod.File.Id == "github" && mod.Starter ? "Make a fine-grained GitHub personal access token. Choose only the repositories and permissions you want Capri to use, then paste the token below. Your organization may need to approve it."
+            return mod.File.Id == "context7" && mod.Starter ? "Open your Context7 dashboard, create an API key and paste it below. Your plan limits and available documentation apply. Capri uses it only with Context7."
+                : mod.File.Id == "github" && mod.Starter ? "Make a fine-grained GitHub personal access token. Choose only the repositories and permissions you want Capri to use, then paste the token below. Your organization may need to approve it."
                 : "Make a personal access token in this service's account settings, with only the access you want Capri to have, then paste it below.";
         }
 
@@ -221,7 +233,8 @@ namespace CapriDesktop
         {
             if (!mod.Starter || mod.On) return null;
             if (Builtin(mod, "mail")) return "STARTER. Turn it on and give her an app password. ";
-            if (TokenServer(mod) != null) return "STARTER. Turn it on and add a personal access token. ";
+            if (PublicStarter(mod)) return "STARTER. Turn it on. No account or sign-in required. ";
+            if (TokenServer(mod) != null) return "STARTER. Turn it on and add your " + TokenLabel(mod).ToLowerInvariant() + ". ";
             if (Online(mod)) return "STARTER. Turn it on and sign in, in your browser. ";
             return "STARTER. ";
         }
