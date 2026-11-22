@@ -77,7 +77,10 @@ namespace CapriDesktop
                 PluginTool docsSearch = (PluginTool)Invoke("Made", multiple, "Docs Server", shared, new List<PluginTool>());
                 PluginTool otherSearch = (PluginTool)Invoke("Made", multiple, "Other Server", shared, new List<PluginTool>());
                 ((List<PluginInfo>)Field("loaded").GetValue(null)).Add(multiple);
-                tools.Add(multiple.Id, new List<PluginTool> { docsSearch, otherSearch });
+                PluginTool docsInspect = (PluginTool)Invoke("Made", multiple, "Docs Server", PluginJson.Make("name", "inspect", "inputSchema", PluginJson.Make("type", "object")), new List<PluginTool>());
+                PluginTool otherInspect = (PluginTool)Invoke("Made", multiple, "Other Server", PluginJson.Make("name", "inspect", "inputSchema", PluginJson.Make("type", "object")), new List<PluginTool>());
+                PluginTool onlyAlways = (PluginTool)Invoke("Made", multiple, "Docs Server", PluginJson.Make("name", "only-always", "inputSchema", PluginJson.Make("type", "object")), new List<PluginTool>());
+                tools.Add(multiple.Id, new List<PluginTool> { docsSearch, otherSearch, docsInspect, otherInspect, onlyAlways });
                 List<Dictionary<string, object>> unsafeCatalog = new Pages { SpecialName = "read docs\nnext" }.Tools(30000);
                 Check(PluginJson.Str(unsafeCatalog[0], "name") == "read docs\nnext", "The unsafe-name persistence fixture did not pass real catalog discovery.");
                 PluginTool spaced = (PluginTool)Invoke("Made", plugin, "server", unsafeCatalog[0], new List<PluginTool>());
@@ -87,13 +90,13 @@ namespace CapriDesktop
                 tools[id] = found;
                 string upgradedGrants = Path.Combine(folder, "grants-v2.json");
                 if (File.Exists(upgradedGrants)) File.Delete(upgradedGrants);
-                File.WriteAllText(Path.Combine(folder, "grants.txt"), id + " tool:reserved off\n" + id + " " + tail.Tool + " ask\n" + multiple.Id + " " + docsSearch.Permission + " always\ncatalog-later tool:later ask\n");
+                File.WriteAllText(Path.Combine(folder, "grants.txt"), id + " tool:reserved off\n" + id + " " + tail.Tool + " ask\n" + multiple.Id + " " + docsSearch.Permission + " always\n" + multiple.Id + " search off\n" + multiple.Id + " inspect ask\n" + multiple.Id + " only-always always\ncatalog-later tool:later ask\n");
                 Field("grants").SetValue(null, null);
-                Check(Plugins.GrantOf(id, reserved.Permission) == Plugins.Off && Plugins.GrantOf(id, tail.Permission) == Plugins.Ask && Plugins.GrantOf(multiple.Id, docsSearch.Permission) == Plugins.Usual, "Legacy raw grants were lost or a legacy Always authorized a generated identity.");
+                Check(Plugins.GrantOf(id, reserved.Permission) == Plugins.Off && Plugins.GrantOf(id, tail.Permission) == Plugins.Ask && Plugins.GrantOf(multiple.Id, docsSearch.Permission) == Plugins.Off, "Legacy raw grants were lost or a legacy Always authorized a generated identity.");
                 Plugins.Grant(plugin.Id, tail.Permission, Plugins.Ask);
                 Check(File.Exists(upgradedGrants) && File.ReadAllText(Path.Combine(folder, "grants.txt")).Contains("tool:reserved off"), "The grant upgrade overwrote the original permissions file.");
                 Field("grants").SetValue(null, null);
-                Check(Plugins.GrantOf(id, reserved.Permission) == Plugins.Off && Plugins.GrantOf(multiple.Id, docsSearch.Permission) == Plugins.Usual, "Reserved legacy restrictions or generated-key isolation did not survive the version upgrade.");
+                Check(Plugins.GrantOf(id, reserved.Permission) == Plugins.Off && Plugins.GrantOf(multiple.Id, docsSearch.Permission) == Plugins.Off, "Reserved legacy restrictions or generated-key isolation did not survive the version upgrade.");
                 PluginInfo later = new PluginInfo { Id = "catalog-later", Servers = new[] { new PluginServer { Name = "Later Server" } } };
                 PluginTool laterTool = (PluginTool)Invoke("Made", later, "Later Server", PluginJson.Make("name", "tool:later", "inputSchema", PluginJson.Make("type", "object")), new List<PluginTool>());
                 ((List<PluginInfo>)Field("loaded").GetValue(null)).Add(later);
@@ -102,8 +105,18 @@ namespace CapriDesktop
                 tools.Remove(later.Id);
                 Plugins.Forget(later.Id);
                 Check(!File.ReadAllText(Path.Combine(folder, "grants.txt")).Contains("catalog-later"), "Removing a plugin left its old-version grants behind.");
+                Check(Plugins.GrantOf(multiple.Id, otherSearch.Permission) == Plugins.Off && Plugins.GrantOf(multiple.Id, docsInspect.Permission) == Plugins.Ask && Plugins.GrantOf(multiple.Id, otherInspect.Permission) == Plugins.Ask && Plugins.GrantOf(multiple.Id, onlyAlways.Permission) == Plugins.Usual, "Loaded server tools lost legacy Off/Ask restrictions or inherited raw Always.");
+                Check(Plugins.Run(docsSearch.Exposed, "{}").Contains("turned it off") && Plugins.Granted(docsInspect.Exposed) == 1, "Inherited legacy restrictions did not govern the actual loaded tools.");
+                Plugins.Grant(multiple.Id, docsSearch.Permission, Plugins.Usual);
+                Plugins.Grant(multiple.Id, docsInspect.Permission, Plugins.Usual);
+                Field("grants").SetValue(null, null);
+                Check(Plugins.GrantOf(multiple.Id, docsSearch.Permission) == Plugins.Usual && Plugins.GrantOf(multiple.Id, docsInspect.Permission) == Plugins.Usual && Plugins.GrantOf(multiple.Id, otherSearch.Permission) == Plugins.Off && Plugins.GrantOf(multiple.Id, otherInspect.Permission) == Plugins.Ask && Plugins.GrantOf(multiple.Id, onlyAlways.Permission) == Plugins.Usual, "Scoped Usual did not survive reload or erased another server's inherited restriction.");
+#if !CROSS
+                Check(Mainframe.NextPluginGrant(otherInspect) == Plugins.Off && Plugins.GrantOf(multiple.Id, otherInspect.Permission) == Plugins.Off && Plugins.GrantOf(multiple.Id, docsInspect.Permission) == Plugins.Usual, "The tool-sheet action changed a raw name instead of the selected server permission.");
+                Plugins.Grant(multiple.Id, otherInspect.Permission, Plugins.Ask);
+#endif
                 Plugins.Grant(multiple.Id, "search", Plugins.Always);
-                Check(Plugins.GrantOf(multiple.Id, docsSearch.Permission) == Plugins.Usual && Plugins.GrantOf(multiple.Id, otherSearch.Permission) == Plugins.Usual, "A raw grant migrated across servers.");
+                Check(Plugins.GrantOf(multiple.Id, docsSearch.Permission) == Plugins.Usual && Plugins.GrantOf(multiple.Id, otherSearch.Permission) == Plugins.Off, "A raw grant migrated across servers or removed an inherited restriction.");
                 Plugins.Grant(multiple.Id, docsSearch.Permission, Plugins.Off);
                 Plugins.Grant(multiple.Id, otherSearch.Permission, Plugins.Ask);
                 Plugins.Grant(plugin.Id, spaced.Permission, Plugins.Off);

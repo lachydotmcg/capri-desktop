@@ -308,7 +308,9 @@ namespace CapriDesktop
             for (int i = 0; i < tools.Count; i++)
             {
                 int y = ToolsTop + i * Row;
-                toolRows.Add(Label(tools[i].Title ?? tools[i].Tool, 24, y, 572, 20, MainframeTheme.White, MainframeTheme.Size, true));
+                string title = tools[i].Title ?? tools[i].Tool;
+                if (mod.Info.Servers.Length > 1) title = tools[i].Server + ": " + title;
+                toolRows.Add(Label(title, 24, y, 572, 20, MainframeTheme.White, MainframeTheme.Size, true));
                 NeonCaption about = Label(tools[i].Description ?? "", 24, y + 20, 572, 28, MainframeTheme.Faint, 34.0 / 3);
                 about.Top = true;
                 toolRows.Add(about);

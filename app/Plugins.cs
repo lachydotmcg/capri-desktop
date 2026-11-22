@@ -608,7 +608,7 @@ namespace CapriDesktop
             if (ordinary) return permission;
             PluginInfo plugin = loaded.Find(one => one.Id == id);
             List<PluginTool> found;
-            if (plugin == null || plugin.Servers.Length != 1 || !tools.TryGetValue(id, out found)) return null;
+            if (plugin == null || !tools.TryGetValue(id, out found)) return null;
             PluginTool exact = found.Find(one => one.Permission == permission);
             return exact == null ? null : exact.Tool;
         }
@@ -634,8 +634,12 @@ namespace CapriDesktop
                 Dictionary<string, string> all = Grants();
                 bool ordinary;
                 string legacy = LegacyPermission(id, tool, out ordinary);
-                if (legacy != null) all.Remove(LegacyGrantPrefix + id + " " + legacy);
-                if (grant == Usual) all.Remove(id + " " + tool);
+                PluginInfo plugin = loaded.Find(one => one.Id == id);
+                bool shared = plugin != null && plugin.Servers.Length > 1;
+                string inherited;
+                bool restricted = legacy != null && all.TryGetValue(LegacyGrantPrefix + id + " " + legacy, out inherited) && (inherited == Off || inherited == Ask);
+                if (!shared && legacy != null) all.Remove(LegacyGrantPrefix + id + " " + legacy);
+                if (grant == Usual && !(shared && restricted)) all.Remove(id + " " + tool);
                 else all[id + " " + tool] = grant;
                 WriteGrants(all);
             }
@@ -660,7 +664,7 @@ namespace CapriDesktop
                         foreach (object entry in PluginJson.List(PluginJson.Get(saved, "grants")) ?? new List<object>())
                         {
                             string id = PluginJson.Str(entry, "id"), tool = PluginJson.Str(entry, "tool"), grant = PluginJson.Str(entry, "grant");
-                            if (id == null || tool == null || grant != Always && grant != Ask && grant != Off) continue;
+                            if (id == null || tool == null || grant != Always && grant != Ask && grant != Off && !(grant == Usual && PluginJson.Flag(entry, "legacy") != true)) continue;
                             grants[(PluginJson.Flag(entry, "legacy") == true ? LegacyGrantPrefix : "") + id + " " + tool] = grant;
                         }
                     }
