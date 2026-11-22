@@ -60,21 +60,19 @@ internal static class SettingsSearch
         Require(targets.Count >= 1, "the pin found no search aliases, so it stopped seeing her hand-written keys");
         Require(keys.Count >= 1, "the pin found no search alias keys, so it stopped seeing her hand-written keys");
 
-        Dictionary<string, string> names = new Dictionary<string, string>();
+        HashSet<string> known = new HashSet<string>(StringComparer.Ordinal);
         foreach (Row row in rows)
         {
-            string plain = Plain(row.Name);
-            Require(plain.Length > 0, "the " + row.Type + " row at Mainframe.cs:" + row.Line + " has no name she can search");
-            if (!names.ContainsKey(plain)) names[plain] = row.Type;
+            Require(Plain(row.Name).Length > 0, "the " + row.Type + " row at Mainframe.cs:" + row.Line + " has no name she can search");
             Require(Covered(row.Type, findable, bases),
                 "the " + row.Type + " row '" + row.Label + "' at Mainframe.cs:" + row.Line + " is not a kind her search index takes, so its key finds nothing");
+            known.Add(row.Name);
         }
 
         Require(Covered("PlugTile", findable, bases), "her PlugTile row is no longer a kind her search index takes, so the plug-in key finds nothing");
-        HashSet<string> known = new HashSet<string>(names.Keys);
-        known.Add(Plain(plugName));
+        known.Add(plugName);
         foreach (string target in targets)
-            Require(known.Contains(Plain(target)), "the search alias '" + target + "' in MainframeSearch.cs names a setting that isn't in her Mainframe, so it can never be found");
+            Require(known.Contains(target), "the search alias '" + target + "' in MainframeSearch.cs is not the exact label of a row her search index takes, and her search attaches aliases by exact text, so its words never reach that setting");
 
         HashSet<string> pairs = new HashSet<string>();
         foreach (KeyValuePair<string, string> key in keys)
@@ -86,7 +84,7 @@ internal static class SettingsSearch
         ShippedKeys(pairs);
 
         pass("settings search: all " + rows.Count + " hand-labelled rows of her Mainframe are kinds her search index takes, all "
-            + targets.Count + " aliases over " + keys.Count + " keys name settings that are really there, and the shipped keys are intact");
+            + targets.Count + " aliases over " + keys.Count + " keys name a row by its exact label, and the shipped keys are intact");
     }
 
     private static List<Row> Rows(string region, string mainframe, int from)

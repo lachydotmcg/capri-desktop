@@ -1,18 +1,18 @@
 # Coverage pins
 
-Two shipped cross behaviours that had no test, pinned so they cannot drift silently.
+Two shipped cross behaviours, pinned so they cannot drift silently. Her settings search had no test of its own; her mail moves already run in the full cross smoke, and this pin runs the same real code without a display or the smoke harness.
 
-Run `dotnet run --project tests/coverage-pins/CoveragePins.csproj -c Release` from the repository root. It prints one `PASS` line per pin, `failures=0` and exits 0 when both hold. `--root <dir>` reads another checkout's sources, which is how the discrimination proofs run against a scratch copy.
+Run `dotnet run --project tests/coverage-pins/CoveragePins.csproj -c Release` from the repository root. It prints one `PASS` line per pin, `failures=0` and exits 0 when both hold. Without `--root` it reads the checkout the project lives in. `--root <dir>` reads another checkout's sources; a `--root` with no value, or one that names something that is not a directory, fails with a message naming it instead of falling back to this checkout, so a broken proof cannot look green. `tests/coverage-pins/discrimination.sh` uses it against a scratch copy.
 
 ## Settings search
 
-`cross/MainframeSearch.cs` builds her Settings search from the controls on her Mainframe: every row it takes is found by its own label, and the hand-written `Also` calls add the words people type for it. The pin reads the rows her `Mainframe` constructor builds before `BuildMods()` and the index's rules, then checks:
+`cross/MainframeSearch.cs` builds her Settings search from the controls on her Mainframe: it takes each control whose `Findable` kind and name qualify, and the hand-written `Also` calls attach the words people type to a row whose name is exactly the string they name. The pin reads the rows her `Mainframe` constructor builds before `BuildMods()` and the index's rules, then checks:
 
 - every hand-labelled row's control kind is one `Findable` takes, directly or through a base class;
-- every `Also` target is a setting that really exists, so a renamed row cannot leave a key that finds nothing;
-- every alias word is non-empty and listed once per target.
+- every `Also` target is the exact label of a row the index takes. The runtime attaches aliases with `found.Name == name`, so the comparison is case- and space-sensitive: renaming `Volume` to `VOLUME` leaves the shipped `Also(index, "Volume", ...)` attached to nothing, and the pin rejects it;
+- every alias word is non-empty, listed once per target, and still in the shipped list, so deleting one of her words, or adding an unlisted one, fails.
 
-This is a source contract, not a running window: the tests run with no display, and constructing her Avalonia Mainframe needs one. It catches a row that appears in a kind the index ignores and an alias that outlived its setting. Deleting one alias word alone is not observable here, because the row's own label still finds it; the discrimination proof removes a row's index entry and renames an alias target instead.
+This is a source contract, not a running window: the tests run with no display, and constructing her Avalonia Mainframe needs one. It catches a row in a kind the index ignores, an alias that outlived its setting, a label whose exact text no longer meets its alias, and a shipped alias word that vanished. `discrimination.sh` proves each reject on a scratch copy: it deletes the `quiet` alias word, renames the `Volume` row to `VOLUME`, and requires a bare `--root` to exit nonzero.
 
 ## Mail moves
 
