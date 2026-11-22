@@ -639,7 +639,7 @@ Setup stopped	Asennus keskeytyi
 She answers in	Hän vastaa kielellä
 She can read it when it fits.	Hän voi lukea sen, kun se mahtuu.
 She glances at your screen and comments. Costs a little on a paid brain.	Hän vilkaisee näyttöäsi ja kommentoi. Maksaa vähän maksullisilla aivoilla.
-She keeps listening. Say her name, then just talk until you go quiet.	Hän kuuntelee edelleen. Sano hänen nimensä ja puhu, kunnes hiljenet.
+She keeps listening. Say her name, then just talk.	Hän kuuntelee edelleen. Sano hänen nimensä ja puhu.
 She reacts to your game until you close it.	Hän reagoi peliisi, kunnes suljet sen.
 She reads these controls before each game job.	Hän lukee nämä ohjaimet ennen jokaista pelityötä.
 She talks about your game as you play. Costs a little on a paid brain.	Hän puhuu pelistäsi pelatessasi. Maksaa vähän maksullisilla aivoilla.

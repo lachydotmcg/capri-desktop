@@ -639,7 +639,7 @@ Setup stopped	سیٹ اپ رک گیا
 She answers in	وہ جواب دیتی ہے
 She can read it when it fits.	وہ اسے پڑھ سکتی ہے جب موزوں ہو۔
 She glances at your screen and comments. Costs a little on a paid brain.	وہ آپ کی اسکرین پر نظر ڈالتی ہے اور تبصرہ کرتی ہے۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
-She keeps listening. Say her name, then just talk until you go quiet.	وہ سنتی رہتی ہے۔ اس کا نام کہیں، پھر خاموش ہونے تک بولیں۔
+She keeps listening. Say her name, then just talk.	وہ سنتی رہتی ہے۔ اس کا نام کہیں، پھر بولیں۔
 She reacts to your game until you close it.	وہ آپ کے گیم پر ردِعمل دیتی ہے جب تک آپ اسے بند نہ کریں۔
 She reads these controls before each game job.	وہ ہر گیم کام سے پہلے یہ کنٹرولز پڑھتی ہے۔
 She talks about your game as you play. Costs a little on a paid brain.	آپ کے کھیلنے کے دوران وہ آپ کے گیم کے بارے میں بات کرتی ہے۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔

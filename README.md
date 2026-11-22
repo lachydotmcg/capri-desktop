@@ -266,7 +266,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 | Shift + drop | sit her right where you drop her |
 | Ctrl + drop | she hangs on; click her to let go |
 | Mic button | mute your mic in voice chat |
-| "Hey Capri" | she glitches in and opens voice chat. Turn on Listen for Capri under Settings > VOICE (Windows and English for now) |
+| "Hey Capri" | she answers, and your next line needs no name. Turn on Listen for Capri under Settings > VOICE (Windows and English for now) |
 | Ctrl + Alt + V | start or stop voice chat (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + N | mute your mic (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + T | open her typing box from anywhere |

@@ -639,7 +639,7 @@ Setup stopped	Ukuseta kuyimisile
 She answers in	Uphendula ngolwimi
 She can read it when it fits.	Inokuyifunda xa ilingana.
 She glances at your screen and comments. Costs a little on a paid brain.	Ijonga isikrini sakho ize igxeke. Iyabiza kancinci kwingqondo ekhokelelwa ngemali.
-She keeps listening. Say her name, then just talk until you go quiet.	Iqhubeka ukuphulaphula. Thetha igama lakhe, emva koko thetha nje de uthule.
+She keeps listening. Say her name, then just talk.	Iqhubeka ukuphulaphula. Thetha igama lakhe, emva koko thetha nje.
 She reacts to your game until you close it.	Iphendula kumdlalo wakho de uyivale.
 She reads these controls before each game job.	Ifunda ezi zilawuli ngaphambi komsebenzi ngamnye womdlalo.
 She talks about your game as you play. Costs a little on a paid brain.	Ithetha ngomdlalo wakho xa udlala. Iyabiza kancinci kwingqondo ekhokelelwa ngemali.

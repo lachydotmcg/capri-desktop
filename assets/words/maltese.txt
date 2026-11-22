@@ -639,7 +639,7 @@ Setup stopped	Installazzjoni mwaqqfa
 She answers in	Hi twieġeb
 She can read it when it fits.	Tista' taqrah meta jkun xieraq.
 She glances at your screen and comments. Costs a little on a paid brain.	Tara l-iskrin tiegħek u tikkummenta. Jiswa ftit b'moħħ bi ħlas.
-She keeps listening. Say her name, then just talk until you go quiet.	Tibqa' tisma'. Għid ismha, imbagħad tkellem sakemm tieqaf.
+She keeps listening. Say her name, then just talk.	Tibqa' tisma'. Għid ismha, imbagħad tkellem.
 She reacts to your game until you close it.	Tirreaġixxi għal-logħba tiegħek sakemm tagħlaqha.
 She reads these controls before each game job.	Taqra dawn il-kontrolli qabel kull xogħol tal-logħba.
 She talks about your game as you play. Costs a little on a paid brain.	Titkellem dwar il-logħba tiegħek waqt li tilgħab. Jiswa ftit b'moħħ bi ħlas.

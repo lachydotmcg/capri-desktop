@@ -639,7 +639,7 @@ Setup stopped	Sozlash to'xtatildi
 She answers in	U javob beradi
 She can read it when it fits.	Mos kelganda o'qiy oladi.
 She glances at your screen and comments. Costs a little on a paid brain.	Ekraningizga qarab izoh beradi. Pullik miyada biroz sarflanadi.
-She keeps listening. Say her name, then just talk until you go quiet.	U tinglashda davom etadi. Ismini ayting, so'ng jim bo'lguncha gapiring.
+She keeps listening. Say her name, then just talk.	U tinglashda davom etadi. Ismini ayting, so'ng gapiring.
 She reacts to your game until you close it.	U o'yiningizni yopguningizcha unga reaksiya bildiradi.
 She reads these controls before each game job.	U har bir o'yin ishidan oldin bu boshqaruvlarni o'qiydi.
 She talks about your game as you play. Costs a little on a paid brain.	O'ynayotganingizda o'yiningiz haqida gapiradi. Pullik miyada biroz sarflanadi.

@@ -169,7 +169,7 @@ namespace CapriDesktop
 
         private bool JealousMayClose(JealousWindow target)
         {
-            return JealousAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
+            return JealousAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !InChat && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
         }
 
         private void DropJealous()
@@ -196,7 +196,7 @@ namespace CapriDesktop
                 if (heldOpen && (now - heldShown > 60 || !box.Visible || box.Leaving >= 0)) DropHeldChoice();
                 return;
             }
-            if (held == null || jealousOffer != null || box.Choosing || CallModeOn || chatting || hidden || !box.Visible || box.Leaving >= 0 || replyDone < 0) return;
+            if (held == null || jealousOffer != null || box.Choosing || CallModeOn || InChat || hidden || !box.Visible || box.Leaving >= 0 || replyDone < 0) return;
             string title;
             string[] lines = HeldCard(out title);
             if (lines == null) return;
@@ -280,7 +280,7 @@ namespace CapriDesktop
                     PassThrough();
                 }
             }
-            bool free = Jealous.Free(JealousAIs, CallModeOn || preferences.CallMode || chatting, LineBusy || speech != null || talkState != TalkState.Off, full)
+            bool free = Jealous.Free(JealousAIs, CallModeOn || preferences.CallMode || InChat, LineBusy || speech != null || talkState != TalkState.Off, full)
                 && !Hushed && !hidden && !quitting && !dragging && !pressed && !typer.Visible && !menu.Visible && !docked && !onPanel && !riding && !falling && !hanging && job == null && working == null && jealousOffer == null;
             JealousWindow found = jealous.Notice(ahead, free, now);
             if (found == null) return;
@@ -324,7 +324,7 @@ namespace CapriDesktop
                 catch (Exception) { line = "Couldn't close it. I'll leave it."; }
                 Post(delegate
                 {
-                    if (turn != jealousTurn || ticket != asking || string.IsNullOrEmpty(line) || CallModeOn || chatting || FullScreen()) return;
+                    if (turn != jealousTurn || ticket != asking || string.IsNullOrEmpty(line) || CallModeOn || InChat || FullScreen()) return;
                     SayOwn("Other AI", line);
                 });
             });

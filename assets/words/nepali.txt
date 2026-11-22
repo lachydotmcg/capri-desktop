@@ -639,7 +639,7 @@ Setup stopped	सेटअप रोकियो
 She answers in	उनी जवाफ दिन्छिन्
 She can read it when it fits.	मिल्दा उसले पढ्न सक्छे।
 She glances at your screen and comments. Costs a little on a paid brain.	उसले तपाईंको स्क्रिन हेर्छे र टिप्पणी गर्छे। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
-She keeps listening. Say her name, then just talk until you go quiet.	उसले सुनिरहन्छे। उसको नाम भन्नुहोस्, त्यसपछि चुप नलागेसम्म बोल्नुहोस्।
+She keeps listening. Say her name, then just talk.	उसले सुनिरहन्छे। उसको नाम भन्नुहोस्, त्यसपछि बोल्नुहोस्।
 She reacts to your game until you close it.	तपाईंले बन्द नगरेसम्म उसले तपाईंको खेलमा प्रतिक्रिया दिन्छे।
 She reads these controls before each game job.	हरेक खेल कार्यअघि उसले यी नियन्त्रणहरू पढ्छे।
 She talks about your game as you play. Costs a little on a paid brain.	तपाईं खेल्दा उसले तपाईंको खेलबारे कुरा गर्छे। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।

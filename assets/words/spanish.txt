@@ -639,7 +639,7 @@ Setup stopped	Configuración detenida
 She answers in	Responde en
 She can read it when it fits.	Puede leerlo cuando encaje.
 She glances at your screen and comments. Costs a little on a paid brain.	Echo un vistazo a tu pantalla y comento. Cuesta un poco con un cerebro de pago.
-She keeps listening. Say her name, then just talk until you go quiet.	Sigue escuchando. Di su nombre y luego habla hasta que te quedes en silencio.
+She keeps listening. Say her name, then just talk.	Sigue escuchando. Di su nombre y luego habla.
 She reacts to your game until you close it.	Reacciona a tu juego hasta que lo cierres.
 She reads these controls before each game job.	Lee estos controles antes de cada tarea de juego.
 She talks about your game as you play. Costs a little on a paid brain.	Habla de tu juego mientras juegas. Cuesta un poco con un cerebro de pago.

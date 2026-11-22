@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2] / 'cross' / 'bridge' / 'speech'
 sys.path.insert(0, str(ROOT))
-from name_chat import NameChat
+from name_chat import NameChat, name_alone
 from name_listen import NameListener, context, revision
 
 
@@ -28,32 +28,43 @@ class GateTests(unittest.TestCase):
     def wake(self):
         self.assertIsNotNone(self.say('Hey Capri', 'wake'))
         self.assertTrue(self.gate.open)
-        self.assertEqual(self.gate.until - self.clock(), 20)
+        self.assertEqual(self.gate.until - self.clock(), 10)
     def test_no_ambient_request_or_stop_leaves_gate(self):
         for i,text in enumerate(['what is next', 'stop', 'cancel please', 'Hey Jarvis', 'caprice', 'Capricorn', 'scapri']):
             self.assertIsNone(self.say(text,str(i)))
         self.assertFalse(self.gate.open)
-    def test_actual_name_not_jarvis_opens_twenty_seconds(self):
-        for name in ['Capri','hey CAPRI!','Ｃａｐｒｉ, open a terminal','can you help, Capri?']:
+    def test_name_alone_waits_ten_seconds_and_a_named_line_opens_nothing(self):
+        for name,alone in [('Capri',True),('hey CAPRI!',True),('Ｃａｐｒｉ?',True),('Ｃａｐｒｉ, open a terminal',False),('can you help, Capri?',False)]:
             gate=NameChat(self.clock);gate.speech_started(name,self.clock());line=gate.final(name,name)
-            self.assertIsNotNone(line);self.assertTrue(line.named);self.assertEqual(gate.mode,'chatting')
-            self.assertEqual(gate.until-self.clock(),20)
-    def test_followup_at_nineteen_seconds_and_timer_restart(self):
-        self.wake();self.clock.advance(19);line=self.say('what about tomorrow','next')
-        self.assertEqual(line.text,'what about tomorrow');self.assertEqual(self.gate.until-self.clock(),20)
+            self.assertIsNotNone(line);self.assertTrue(line.named);self.assertEqual(gate.mode,'waiting' if alone else 'name_only',name)
+            self.assertEqual(gate.until,self.clock()+10 if alone else -1,name)
+            gate.speech_started('after',self.clock());after=gate.final('after','what about tomorrow')
+            self.assertEqual(after is not None,alone,name);self.assertEqual(gate.mode,'name_only',name)
+    def test_name_alone_forms(self):
+        for text in ['Capri','hey capri','Hey, Capri!','hi capri','Capri?','hey hey capri','okay capri','capri capri']:
+            self.assertTrue(name_alone(text),text)
+        for text in ['hey capri what is the weather','capri what time is it','what is for dinner','capricorn','capri sun',"capri's here",'hey','']:
+            self.assertFalse(name_alone(text),text)
+    def test_followup_at_nine_seconds_is_taken_once(self):
+        self.wake();self.clock.advance(9);line=self.say('what about tomorrow','next')
+        self.assertEqual(line.text,'what about tomorrow');self.assertFalse(self.gate.open);self.assertEqual(self.gate.mode,'name_only')
+        self.assertIsNone(self.say('and the day after','again'))
+        self.assertIsNotNone(self.say('Capri','again-wake'));self.assertTrue(self.gate.open)
+        self.assertEqual(self.say('Capri, what time is it','named').text,'Capri, what time is it');self.assertFalse(self.gate.open)
+        self.assertIsNone(self.say('and the day after','after-named'))
     def test_quiet_timeout_returns_name_only_without_unprefixed_stop(self):
-        self.wake();self.clock.advance(20);self.gate.tick();self.assertEqual(self.gate.mode,'name_only')
+        self.wake();self.clock.advance(10);self.gate.tick();self.assertEqual(self.gate.mode,'name_only')
         self.assertIsNone(self.say('stop','stop'));self.assertIsNone(self.say('what now','after'))
     def test_real_speech_start_before_deadline_survives_late_completion(self):
-        self.wake();self.clock.advance(19.9);self.gate.speech_started('slow',self.clock());self.clock.advance(4)
+        self.wake();self.clock.advance(9.9);self.gate.speech_started('slow',self.clock());self.clock.advance(4)
         self.gate.tick();self.assertFalse(self.gate.open)
         self.assertEqual(self.gate.final('slow','this line began before expiry').text,'this line began before expiry')
-        self.assertTrue(self.gate.open)
+        self.assertFalse(self.gate.open)
     def test_delayed_vad_start_uses_acoustic_boundary_not_callback_time(self):
-        self.wake();self.clock.advance(20.3);self.gate.speech_started('vad',119.9)
+        self.wake();self.clock.advance(10.3);self.gate.speech_started('vad',109.9)
         self.assertIsNotNone(self.gate.final('vad','started in time'))
     def test_utterance_started_at_or_after_deadline_does_not_count(self):
-        self.wake();self.clock.advance(20)
+        self.wake();self.clock.advance(10)
         self.assertIsNone(self.say('too late','exact'));self.clock.advance(.1)
         self.assertIsNone(self.say('still late','late'))
     def test_pre_name_started_line_cannot_leak_after_wake(self):
@@ -62,9 +73,9 @@ class GateTests(unittest.TestCase):
     def test_missing_boundary_cannot_admit_old_nameless_final(self):
         self.wake();self.assertIsNone(self.say('a late decoder final','unknown',False))
     def test_thinking_holds_open_window_but_does_not_reopen_expired(self):
-        self.wake();self.clock.advance(19);self.gate.control(barred=False,speaking=False,busy=True)
-        self.clock.advance(10);self.gate.tick();self.assertEqual(self.gate.until-self.clock(),20)
-        self.gate.control(barred=False,speaking=False,busy=False);self.clock.advance(21);self.gate.tick()
+        self.wake();self.clock.advance(9);self.gate.control(barred=False,speaking=False,busy=True)
+        self.clock.advance(10);self.gate.tick();self.assertEqual(self.gate.until-self.clock(),10)
+        self.gate.control(barred=False,speaking=False,busy=False);self.clock.advance(11);self.gate.tick()
         self.assertFalse(self.gate.open);self.gate.control(barred=False,speaking=False,busy=True)
         self.assertFalse(self.gate.open)
     def test_self_voice_gate_discards_inflight_and_waits_for_clean_capture(self):

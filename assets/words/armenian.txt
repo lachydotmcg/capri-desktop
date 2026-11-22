@@ -639,7 +639,7 @@ Setup stopped	Տեղադրումը կանգ առավ
 She answers in	Նա պատասխանում է
 She can read it when it fits.	Նա կարող է կարդալ, երբ տեղավորվի։
 She glances at your screen and comments. Costs a little on a paid brain.	Նա նայում է ձեր էկրանին և մեկնաբանում։ Վճարովի ուղեղի դեպքում մի փոքր արժե։
-She keeps listening. Say her name, then just talk until you go quiet.	Նա շարունակում է լսել։ Ասեք նրա անունը, հետո խոսեք, մինչև լռեք։
+She keeps listening. Say her name, then just talk.	Նա շարունակում է լսել։ Ասեք նրա անունը, հետո խոսեք։
 She reacts to your game until you close it.	Նա արձագանքում է ձեր խաղին, մինչև փակեք այն։
 She reads these controls before each game job.	Նա կարդում է այս կառավարումները յուրաքանչյուր խաղային աշխատանքից առաջ։
 She talks about your game as you play. Costs a little on a paid brain.	Նա խոսում է ձեր խաղի մասին, մինչ դուք խաղում եք։ Վճարովի ուղեղի դեպքում մի փոքր արժե։

@@ -639,7 +639,7 @@ Setup stopped	Konfiguracja zatrzymana
 She answers in	Ona odpowiada
 She can read it when it fits.	Może to przeczytać, gdy pasuje.
 She glances at your screen and comments. Costs a little on a paid brain.	Zerka na twój ekran i komentuje. Kosztuje trochę przy płatnym mózgu.
-She keeps listening. Say her name, then just talk until you go quiet.	Dalej słucha. Powiedz jej imię, a potem po prostu mów, aż zamilkniesz.
+She keeps listening. Say her name, then just talk.	Dalej słucha. Powiedz jej imię, a potem po prostu mów.
 She reacts to your game until you close it.	Reaguje na twoją grę, dopóki jej nie zamkniesz.
 She reads these controls before each game job.	Czyta te ustawienia przed każdym zadaniem gry.
 She talks about your game as you play. Costs a little on a paid brain.	Mówi o twojej grze, gdy grasz. Kosztuje trochę przy płatnym mózgu.

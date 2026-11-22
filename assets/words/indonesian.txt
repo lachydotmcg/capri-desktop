@@ -639,7 +639,7 @@ Setup stopped	Pengaturan dihentikan
 She answers in	Dia menjawab dalam
 She can read it when it fits.	Dia bisa membacanya saat muat.
 She glances at your screen and comments. Costs a little on a paid brain.	Dia melirik layarmu dan berkomentar. Memakan sedikit biaya di otak berbayar.
-She keeps listening. Say her name, then just talk until you go quiet.	Dia terus mendengarkan. Sebut namanya, lalu bicara terus sampai kamu diam.
+She keeps listening. Say her name, then just talk.	Dia terus mendengarkan. Sebut namanya, lalu bicara saja.
 She reacts to your game until you close it.	Dia bereaksi terhadap game-mu sampai kamu menutupnya.
 She reads these controls before each game job.	Dia membaca kontrol ini sebelum setiap tugas game.
 She talks about your game as you play. Costs a little on a paid brain.	Dia bicara tentang game-mu saat kamu bermain. Memakan sedikit biaya di otak berbayar.

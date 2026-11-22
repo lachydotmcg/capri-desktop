@@ -639,7 +639,7 @@ Setup stopped	Kurulum durduruldu
 She answers in	Cevap dili
 She can read it when it fits.	Uygun olduğunda okuyabilir.
 She glances at your screen and comments. Costs a little on a paid brain.	Ekranına bakar ve yorum yapar. Ücretli bir beyinde biraz maliyeti var.
-She keeps listening. Say her name, then just talk until you go quiet.	Dinlemeye devam ediyor. Adını söyle, sonra sessizleşene kadar konuş.
+She keeps listening. Say her name, then just talk.	Dinlemeye devam ediyor. Adını söyle, sonra konuş.
 She reacts to your game until you close it.	Oyunu kapatana kadar oyununa tepki verir.
 She reads these controls before each game job.	Her oyun işinden önce bu denetimleri okur.
 She talks about your game as you play. Costs a little on a paid brain.	Sen oynarken oyunun hakkında konuşur. Ücretli bir beyinde biraz maliyeti var.

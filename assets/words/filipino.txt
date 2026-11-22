@@ -639,7 +639,7 @@ Setup stopped	Huminto ang setup
 She answers in	Sumasagot siya sa
 She can read it when it fits.	Mababasa niya ito kapag bagay.
 She glances at your screen and comments. Costs a little on a paid brain.	Sumisilip siya sa screen mo at nagko-comment. May kaunting gastos sa bayad na brain.
-She keeps listening. Say her name, then just talk until you go quiet.	Patuloy siyang nakikinig. Sabihin ang pangalan niya, tapos magsalita ka lang hanggang tumahimik ka.
+She keeps listening. Say her name, then just talk.	Patuloy siyang nakikinig. Sabihin ang pangalan niya, tapos magsalita ka lang.
 She reacts to your game until you close it.	Tumutugon siya sa laro mo hanggang isara mo ito.
 She reads these controls before each game job.	Binabasa niya ang mga control na ito bago ang bawat game job.
 She talks about your game as you play. Costs a little on a paid brain.	Nagsasalita siya tungkol sa laro mo habang naglalaro ka. May kaunting gastos sa bayad na brain.
