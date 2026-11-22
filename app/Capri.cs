@@ -4435,7 +4435,7 @@ namespace CapriDesktop
             if (action == "walk_around") return WalkAround();
             if (action == "wander")
             {
-                if (Spots().Count == 0) return "There's nowhere else to go right now.";
+                if (!CanWander()) return "There's nowhere else to go right now.";
                 StopRide();
                 LeavePanel(false);
                 hanging = false;
@@ -4595,7 +4595,7 @@ namespace CapriDesktop
             if (clip == perchDance) Play(perch);
             else if (clip == dance) Play(idle);
             if (Stroll()) return "Going for a little walk.";
-            if (Spots().Count == 0) return "There's no room to walk around here.";
+            if (!CanWander()) return "There's no room to walk around here.";
             Wander();
             return "Wandering off somewhere.";
         }
@@ -6978,8 +6978,9 @@ namespace CapriDesktop
             if (now < nextWander) return;
             nextWander = now + (45 + random.NextDouble() * 75) * pace;
             if (talkState != TalkState.Off) CloseTalk();
-            if (WanderArea().IsEmpty && random.NextDouble() < 0.5 && Blink()) return;
-            Wander();
+            Roam roam = Roaming();
+            if (roam.Here >= 0 && !roam.Full[roam.Here] && random.NextDouble() < 0.5 && Blink()) return;
+            Wander(roam);
         }
 
         private bool Stroll()
@@ -9355,36 +9356,40 @@ namespace CapriDesktop
             SavePreferences();
         }
 
-        private System.Collections.Generic.List<Ledge> Spots()
+        private System.Collections.Generic.List<Ledge> Spots(Roam roam = null)
         {
-            System.Collections.Generic.List<Ledge> spots = new System.Collections.Generic.List<Ledge>();
-            int room = Headroom();
-            foreach (Ledge ledge in Around())
-            {
-                if (!ledge.Icon.IsEmpty || ledge.Right - ledge.Left < preferences.Size / 2) continue;
-                if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor) continue;
-                if (ledge.Y - room < Screen.FromPoint(new Point(ledge.Left, ledge.Y)).Bounds.Top) continue;
-                spots.Add(ledge);
-            }
-            return spots;
+            return (roam ?? Roaming()).Spots(Around(), seat, preferences.Size, Headroom());
         }
 
-        private bool Wander()
+        // Whether a wander has anywhere to take her right now.
+        private bool CanWander()
         {
-            Rectangle area = WanderArea();
-            if (!area.IsEmpty)
+            Roam roam = Roaming();
+            return Spots(roam).Count > 0 || (roam.Here >= 0 && roam.Fronted == roam.Here);
+        }
+
+        private bool Wander(Roam roam = null)
+        {
+            roam = roam ?? Roaming();
+            System.Collections.Generic.List<Ledge> spots = Spots(roam);
+            // With nowhere clear to go and something full screen in front on her own screen, she gets out of its way beside it.
+            if (spots.Count == 0 && roam.Here >= 0 && roam.Fronted == roam.Here)
             {
-                Point beside = WanderPoint(area, preferences.Size, random.NextDouble(), random.NextDouble());
+                Point beside = WanderPoint(roam.Front, preferences.Size, random.NextDouble(), random.NextDouble());
                 Ledge perch = new Ledge { Left = beside.X - 8, Right = beside.X + 8, Y = beside.Y, Floor = true, Free = true, Aside = true };
                 GlitchOut(delegate { Hop(perch, beside.X); }, false);
                 return true;
             }
-            System.Collections.Generic.List<Ledge> spots = Spots();
             if (spots.Count == 0) return false;
             Ledge spot = WanderSpot(spots, preferences.Size, random.NextDouble());
             int margin = preferences.Size / 4;
             int x = spot.Left + margin + random.Next(Math.Max(1, spot.Right - spot.Left - 2 * margin));
-            GlitchOut(delegate { Hop(spot, x); }, false);
+            GlitchOut(delegate
+            {
+                // A monitor unplugged while she's on her way takes its taskbar with it, so she lands on the nearest one left.
+                Ledge landing = Roam.Now().Floored(spot, x);
+                Hop(landing, Math.Max(landing.Left + margin, Math.Min(x, landing.Right - margin)));
+            }, false);
             return seat == spot;
         }
 
@@ -46633,6 +46638,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClickEffect", delegate { SmokeClickEffect(checks, output); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
+            Section(checks, "SmokeRoam", delegate { SmokeRoam(checks, Path.Combine(output, "roam")); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
             Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
@@ -52335,7 +52341,7 @@ namespace CapriDesktop
                                 for (int i = 0; i < 5; i++)
                                 {
                                     Ledge was = seat;
-                                    if (!Wander() || seat == null || falling || Hip().Y != seat.Y || (seat.Window == was.Window && seat.Floor == was.Floor)) throw new Exception("Wander did not land her on another window or the taskbar.");
+                                    if (!Wander() || seat == null || falling || Hip().Y != seat.Y || Roam.Same(seat, was)) throw new Exception("Wander did not land her on another window or the taskbar.");
                                 }
                                 Native.FakedGaming = wanderGamingWas;
                                 StandUp();
@@ -52639,7 +52645,7 @@ namespace CapriDesktop
                                 RenderFrame();
                                 outroAt = clock.Elapsed.TotalSeconds - 1;
                                 Tick();
-                                if (outro != null || seat == null || falling || Hip().Y != seat.Y || clip != perchArrive || (seat.Window == hopFrom.Window && seat.Floor == hopFrom.Floor)) throw new Exception("After glitching out she did not glitch in on another window.");
+                                if (outro != null || seat == null || falling || Hip().Y != seat.Y || clip != perchArrive || Roam.Same(seat, hopFrom)) throw new Exception("After glitching out she did not glitch in on another window.");
                                 clipStart -= 2;
                                 RenderFrame();
                                 if (clip != perch) throw new Exception("Glitching in did not settle into the seated loop.");

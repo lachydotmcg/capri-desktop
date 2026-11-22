@@ -1346,9 +1346,10 @@ Settings can keep her memories as notes in an Obsidian vault.
 - To get her off: Ctrl + Alt + C. Or right-click her tray icon > Move > Hop off.
 
 ### Wander
-Right-click her > Move > Wander around, or Mainframe > Settings > Wander (Off, Rarely, Sometimes, Often, Restless). Every minute or two she hops along her window or to another window or the taskbar.
+Right-click her > Move > Wander around, or Mainframe > Settings > Wander (Off, Rarely, Sometimes, Often, Restless). Every minute or two she hops along her window or to another window or a taskbar, on any of your screens.
 
 ### More than one screen
+- On her own she wanders across all your screens, never onto one with a full-screen game or video in front. With Watch my screen on and a monitor picked under WATCH > Screens she wanders only there, and in a call she keeps to the screen she's on.
 - Move > Bring to this screen, or Bring here in the Mainframe: she comes to your mouse pointer.
 - Double-click her tray icon: same.
 - Move > Go to the next screen: she glitches to the same spot on your next screen. It only shows with more than one screen.
@@ -2531,7 +2532,7 @@ Things in this file the team should confirm before the support chat relies on th
 3. How many credits ElevenLabs voice chat uses (ElevenLabs bills agent minutes differently from text to speech). The free plan's credit amount isn't stated on purpose.
 4. Voice chat in other languages hasn't been tested with a real key.
 5. Whether a browser playing YouTube or Spotify Web counts as music for dancing.
-6. Wander across more than one monitor (one tester with 3 monitors said she never wandered).
+6. Wander across more than one monitor on a real PC with several. One tester with 3 monitors said she never wandered: sitting on a taskbar she used to skip every taskbar, so with full-size windows on the other screens she had nowhere to go. She now picks spots on every screen, but no tester with more than one monitor has confirmed it yet.
 7. "Mute my mic" hasn't been tested live with Discord open. It won't work if the user changed Discord's keybinds.
 8. Mac and Linux haven't been launched on a real Mac or Linux desktop by the team: music detection, the "Capri wants to control Spotify" prompt and ElevenLabs playback are untested there.
 9. Linux blank replies (Mint, Ollama 0.31.1) and whole-PC freezes: no known cause or fix yet.
