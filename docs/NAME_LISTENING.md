@@ -100,9 +100,12 @@ wait after her name on its own as Linux, with these Mac differences:
   answering afterward keeps her paused even across restarting Capri. A change to any of
   those clears that saved hold and the pause, even when the change was made while Capri
   was closed, whether the lock reads locked, unlocked or nothing at all, so the microphone
-  is never resumed under a changed microphone, decoder, provider, server, model, remote
-  key, session, voice or speech model. A change to the account behind a plan is caught
-  while she listens, at her next account check, not at startup. An explicit Stop always
+  is never resumed under a changed microphone, decoder, provider, server, remote model,
+  remote key or Hyprland session. The plan account behind her brain is not in that list:
+  account changes are caught only after listening starts — each account check compares
+  against the account she started listening with — so an account change made while Capri
+  is closed or while she is paused by the lock is not caught at startup, and a detected
+  unlock can start her under the new account. An explicit Stop always
   wins: a lock only pauses her while she is actually listening, so a later unlock can't
   restart her after you stopped her. The recovery prompt keeps the epoch it opened under,
   so an answer typed after a Stop changes nothing. Turning the switch off and on brings
