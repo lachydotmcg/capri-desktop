@@ -163,8 +163,10 @@ namespace CapriDesktop
                 MacQuit.Checks(checks);
                 NewsChecks();
                 GuardChecks();
+                CompanionGuardExpiryCheck();
                 Ink.Check(checks);
                 MainframeGuardChecks();
+                CompanionAllowlistCheck();
                 FirstRunChecks();
                 Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
@@ -12239,6 +12241,23 @@ namespace CapriDesktop
                 if (bridge != null) bridge.Dispose();
                 try { Directory.Delete(root, true); } catch (Exception) { }
             }
+        }
+
+        private void CompanionGuardExpiryCheck()
+        {
+            if (Dispatcher.UIThread.CheckAccess()) RunCompanionGuardExpiry();
+            else Dispatcher.UIThread.InvokeAsync(RunCompanionGuardExpiry).GetAwaiter().GetResult();
+            checks.Add("PASS companion guard expiry: a guard the plugin set is dropped when no companion event arrives for 30 s");
+        }
+
+        private void RunCompanionGuardExpiry()
+        {
+            pet.SetCompanionGuard("call", true);
+            pet.companionSeen = Environment.TickCount - 60000;
+            pet.ExpireCompanionGuards();
+            Dictionary<string, object> state = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"state\"}") as Dictionary<string, object>);
+            List<object> guards = HuskJson.Get(state, "guards") as List<object>;
+            if (guards == null || guards.Count != 0) throw new Exception("The companion guard did not expire once the plugin went quiet.");
         }
 
         private void CompanionRateCheck()

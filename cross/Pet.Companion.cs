@@ -9,7 +9,10 @@ namespace CapriDesktop
         private CompanionBridge companion;
         private readonly HashSet<string> companionGuards = new HashSet<string>();
         private bool companionGuard;
+        private DispatcherTimer companionSweep;
+        internal int companionSeen;
 
+        internal const int CompanionGuardTtl = 30000;
         private static readonly string[] ReactNames = { "glitch", "flinch", "dance", "sleep", "wake", "perch", "come" };
         private static readonly string[] GuardNames = { "fullscreen", "recording", "call" };
         private static readonly string[] AmbientNames = { "idle", "returned", "game_started", "game_ended", "late_night", "battery_low" };
@@ -23,6 +26,10 @@ namespace CapriDesktop
                 opened.Received = HandleCompanion;
                 opened.Start();
                 companion = opened;
+                companionSeen = Environment.TickCount;
+                companionSweep = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+                companionSweep.Tick += delegate { ExpireCompanionGuards(); };
+                companionSweep.Start();
                 AppDomain.CurrentDomain.ProcessExit += delegate { StopCompanion(); };
                 desktop.Exit += delegate { StopCompanion(); };
                 Closed += delegate { StopCompanion(); };
@@ -36,13 +43,17 @@ namespace CapriDesktop
 
         private void StopCompanion()
         {
+            DispatcherTimer sweep = companionSweep;
+            companionSweep = null;
+            if (sweep != null) sweep.Stop();
             CompanionBridge closing = companion;
             companion = null;
             if (closing != null) closing.Dispose();
         }
 
-        private Dictionary<string, object> HandleCompanion(Dictionary<string, object> request)
+        internal Dictionary<string, object> HandleCompanion(Dictionary<string, object> request)
         {
+            companionSeen = Environment.TickCount;
             string kind = HuskJson.Text(request, "kind");
             if (kind == "state") return CompanionState();
             if (kind == "say")
@@ -116,7 +127,7 @@ namespace CapriDesktop
                 "capabilities", capabilities);
         }
 
-        private void SetCompanionGuard(string name, bool on)
+        internal void SetCompanionGuard(string name, bool on)
         {
             if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(delegate { SetCompanionGuard(name, on); }); return; }
             bool changed = on ? companionGuards.Add(name) : companionGuards.Remove(name);
@@ -124,6 +135,15 @@ namespace CapriDesktop
             if (next && !companionGuard) voice.Stop();
             companionGuard = next;
             if (changed) Sync();
+        }
+
+        internal void ExpireCompanionGuards()
+        {
+            if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(delegate { ExpireCompanionGuards(); }); return; }
+            if (companionGuards.Count == 0 || unchecked(Environment.TickCount - companionSeen) < CompanionGuardTtl) return;
+            companionGuards.Clear();
+            companionGuard = false;
+            Sync();
         }
 
         private void SayCompanion(string text, string source)
