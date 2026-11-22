@@ -3925,6 +3925,19 @@ namespace CapriDesktop
             return best;
         }
 
+        // The screens she may wander onto by herself, as indexes: every one, or only the one they watch when one is picked, but
+        // never one with something full screen in front. While stay holds her she keeps to the one she's on, and with nowhere
+        // else left she still has her own screen if it's clear.
+        internal static List<int> RoamScreens(bool[] full, int here, int watched, bool stay)
+        {
+            List<int> open = new List<int>();
+            bool known = here >= 0 && here < full.Length, picked = watched >= 0 && watched < full.Length;
+            for (int i = 0; i < full.Length; i++)
+                if (!full[i] && (stay && known ? i == here : !picked || i == watched)) open.Add(i);
+            if (open.Count == 0 && known && !full[here]) open.Add(here);
+            return open;
+        }
+
         internal static string Asked(string said)
         {
             said = Dots(Regex.Replace(said ?? "", @"^[\s¿¡]+", ""));
