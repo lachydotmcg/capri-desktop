@@ -423,6 +423,7 @@ namespace CapriDesktop
         {
             callPanel = new CallPanel(Takeover.Face, read);
             callPill = new CallPill(Takeover.Face, read, callPanel.UnitScale);
+            callPill.HandleCreated += delegate { PassThrough(); };
             callPanel.MicPressed += CallMic;
             callPill.MicPressed += CallMic;
             callPanel.DiscordPressed += ToggleCallDiscord;

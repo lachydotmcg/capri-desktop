@@ -532,9 +532,10 @@ namespace CapriDesktop
 
         // The game in front, by its window's title: a game she knows by name, her own game job, or anything full screen that isn't
         // a browser, a video or an editor.
-        private string GameAhead()
+        private string GameAhead() { return GameAhead(Computer.Glimpse()); }
+
+        private string GameAhead(Sight front)
         {
-            Sight front = Computer.Glimpse();
             if (front == null || front.Window == IntPtr.Zero) return null;
             Job running = job;
             bool fills = FullScreen() && !Native.Titled(front.Window) && !Regex.IsMatch((front.Program ?? "") + " " + (front.Title ?? ""), @"\b(chrome|firefox|msedge|edge|brave|opera|vivaldi|arc|vlc|mpv|netflix|youtube|twitch|plex|powerpnt)\b", RegexOptions.IgnoreCase);
