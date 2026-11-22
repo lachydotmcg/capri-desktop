@@ -2977,7 +2977,7 @@ namespace CapriDesktop
         internal const int Columns = 36;
         private const int MostRows = 7;
         internal const int EndingRows = 5, SnagRows = 5;
-        private const string Speaker = "CAPRI: ";
+        private static string Speaker { get { return CompanionPack.Name.ToUpperInvariant() + ": "; } }
         private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly List<JobStep> steps = new List<JobStep>();
@@ -3351,7 +3351,7 @@ namespace CapriDesktop
         }
         internal Action<string> Copying = delegate(string reply) { Clipboard.SetText(reply); };
         private const int Columns = 34;
-        private const string Speaker = "CAPRI: ";
+        private static string Speaker { get { return CompanionPack.Name.ToUpperInvariant() + ": "; } }
 
         internal SpeechBox() : base("Capri says") { Cursor = Look.Pointer; }
 

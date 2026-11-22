@@ -3325,6 +3325,8 @@ namespace CapriDesktop
             Hands.MakeTool = ModList.MakeTool;
             ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
+            if (CompanionPack.Style != null) kokoro.Style = CompanionPack.Style;
+            CompanionPack.Changed = delegate { OnWindow(CompanionSwitched); };
             RebuildMoves();
             ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
@@ -5120,6 +5122,7 @@ namespace CapriDesktop
 
         internal static byte[] Hello(string name)
         {
+            if (CompanionPack.On) return CompanionPack.Hello(name);
             using (Stream clip = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Voice.hello-" + name + ".wav"))
             {
                 if (clip == null) return null;
@@ -10759,7 +10762,7 @@ namespace CapriDesktop
             if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, finished + took * 2);
             if (wait > 0) nextGlance = Math.Max(nextGlance, finished + wait);
             string unseen = Unseeing();
-            if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? problem; mainframe.ShowProblem(glanceProblem); return; }
+            if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? Brain.Brief(problem) ?? problem; mainframe.ShowProblem(glanceProblem); return; }
             if (glanceProblem != null && said != null)
             {
                 if (mainframe.Status.EndsWith(" | " + glanceProblem, StringComparison.Ordinal)) mainframe.ShowProblem("Watching your screen.");
@@ -46625,7 +46628,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
             Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
-            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); mainframe.CheckMailPanel(checks, modsOut); ModFloor.Fresh(); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); ModList.CheckTools(checks, modsOut); CheckSkins(checks, modsOut); mainframe.CheckAnimations(checks, modsOut); CheckSkills(checks, modsOut); CheckOwnSkills(checks); CheckColours(checks, modsOut); Mods.CheckCompanions(ModList, checks, Path.Combine(modsOut, "companions")); Mods.CheckPlugins(ModList, checks, modsOut, delegate(Mod plugin) { mainframe.CheckPluginPanel(checks, plugin); }); mainframe.CheckMailPanel(checks, modsOut); ModFloor.Fresh(); });
             Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeMoves", delegate { string movesOut = Path.Combine(output, "moves"); Directory.CreateDirectory(movesOut); SmokeMoves(checks, movesOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });

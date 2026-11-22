@@ -6002,6 +6002,7 @@ namespace CapriDesktop
                 if (found == null || found.On || !found.Changed || pet.ModRunningNow("dropped")) throw new Exception("A code mod dropped into the folder ran without their OK.");
                 mods.Remove(found);
                 checks.Add("PASS mods code: off stops a code mod and on starts it again without asking, removing takes everything it added, and one dropped into the folder waits for their OK");
+                Mods.CheckCompanions(mods, checks, Path.Combine(input, "companions-test"));
                 string pluginsOut = Path.Combine(input, "plugins-test");
                 Directory.CreateDirectory(pluginsOut);
                 Mods.CheckPlugins(mods, checks, pluginsOut);
