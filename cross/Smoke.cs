@@ -12229,13 +12229,13 @@ namespace CapriDesktop
                 if (CompanionPost(port, token, "{\"kind\":\"state\"}", null, null) != 200 || !seen.ContainsKey("state")) throw new Exception("The companion state request failed.");
                 if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
                 if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
-                if (CompanionPost(port, token, "{\"kind\":\"nope\"}", null, null) != 200 || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
+                if (CompanionPostBody(port, token, "{\"kind\":\"nope\"}") != "{\"ok\":false,\"error\":\"unknown_kind\"}" || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
                 if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
                 if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
                 bridge.Dispose();
                 bridge = null;
                 if (File.Exists(file)) throw new Exception("The companion bridge left its discovery file behind.");
-                checks.Add("PASS companion: the local bridge keeps its discovery file private, refuses bad tokens and browser origins, caps the body, answers POST /event, ignores GETs and unknown kinds, and removes its file when it stops");
+                checks.Add("PASS companion: the local bridge keeps its discovery file private, refuses bad tokens and browser origins, caps the body, answers POST /event, ignores GETs and refuses unknown kinds, and removes its file when it stops");
             }
             finally
             {
@@ -12325,6 +12325,18 @@ namespace CapriDesktop
             ok = HuskJson.Get(answer, "ok");
             if (!(ok is bool && (bool)ok)) throw new Exception("The companion bridge refused an ambient event.");
             pet.SetCompanionGuard("fullscreen", false);
+        }
+
+        private static string CompanionPostBody(int port, string token, string body)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            }
         }
 
         private static int CompanionPost(int port, string token, string body, string header, string value)
