@@ -27,7 +27,8 @@ move the Windows implementation across.
 - **Add a smoke check** for anything new she does. New feature classes register
   their own static `Checks(List<string> checks)` section (see `NiriDesktop.Checks`,
   `MacFingers`) instead of inline blocks.
-- **No new network calls, tracking or endpoints.** Keys stay on the user's PC.
+- **No new network calls, tracking or endpoints without asking.** Keys stay
+  on the user's PC.
 - **Her look is strict.** Art, faces and animations need the maintainer's OK
   first, always in their own slice.
 - **Commits say what she now does:** lowercase, no prefix, no period - usually
@@ -60,7 +61,8 @@ Do not schedule these as parity work; document them instead.
 - **Test projects live at `tests/<name>/`** with source-linked files and a local
   `Stubs.cs`; some stay C# 5 and package-free on purpose.
 - **Tests reach internals through access-bridge files** (like
-  `cross/BrainProviderAccess.cs`), not `InternalsVisibleTo`.
+  `cross/BrainProviderAccess.cs`), which hold the `InternalsVisibleTo` grants;
+  no other `InternalsVisibleTo` lines get added.
 - **Off-Hyprland desktops answer logind:** `Limbs.SessionLocked()` reads
   `LockedHint` (never `IdleHint` - an idle user keeps her microphone), and an
   answer she cannot read never bars her.
@@ -76,8 +78,8 @@ Do not schedule these as parity work; document them instead.
   so justify size instead of hiding it.
 - PR body: What / Testing / Reviewers should know. `Refs #N` per slice,
   `Closes #N` only on the last one.
-- CI is flaky and has merged red before. Quote PASS lines and name red jobs;
-  never claim green.
+- CI is flaky and has merged red before. Quote PASS lines; name any red job
+  and whether a rerun passed.
 
 ## Public reference boundary
 
