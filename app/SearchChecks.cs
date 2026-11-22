@@ -262,8 +262,12 @@ namespace CapriDesktop
         private void SearchFits(List<string> checks)
         {
             int[][] scales = { new[] { 96, 0 }, new[] { 96, 1 }, new[] { 144, 0 } };
+            Point fitWas = Location;
             try
             {
+                // The list is measured on the screen it shows on, and an earlier check can leave her restored off its edge.
+                Rectangle desk = Screen.PrimaryScreen.WorkingArea;
+                Location = new Point(desk.Left + 40, desk.Top + 40);
                 foreach (int[] scale in scales)
                 {
                     LayoutScale(scale[0], 100, scale[1] == 1);
@@ -273,8 +277,12 @@ namespace CapriDesktop
                     if (crowded != null) throw new Exception("The search doesn't fit at " + scale[0] * 100 / 96 + "%" + (scale[1] == 1 ? " on the fallback font: " : ": ") + crowded);
                 }
             }
-            finally { LayoutScale(96, 100); }
-            checks.Add("PASS settings search fit: the box and its cue fit the Settings title row without touching Advanced Settings or minimize, and the list sits under the box inside the Mainframe with every name and section fitting its row, and the no-match lines too, at 100% and 150% and on the fallback font");
+            finally
+            {
+                LayoutScale(96, 100);
+                Location = fitWas;
+            }
+            checks.Add("PASS settings search fit: the box and its cue fit the Settings title row without touching Advanced Settings or minimize, and the list sits right under the box, on screen, with every name and section fitting its row, and the no-match lines too, at 100% and 150% and on the fallback font");
         }
 
         private string SearchCrowded()
