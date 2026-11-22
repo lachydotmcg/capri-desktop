@@ -184,7 +184,7 @@ namespace CapriDesktop
             p = new Dictionary<string, object>();
             p["uid"] = Prop("integer", "The uid of the message, from a mail list or the new mail you told them about.");
             p["folder"] = Prop("string", "Mail folder, INBOX by default.");
-            tools.Add(Tool("check_mail", "Check for phishing", "Check one email for phishing or a scam when they ask, suggest or hint at it, like is this legit or is it safe: who it says it's from against where it really came from, look-alike addresses, links that hide where they go, pushy asks for passwords or money, risky attachments and failed sender checks. Gives fine, suspicious or phishing with plain reasons. It never opens links or attachments and doesn't mark it read.", true, p, "uid"));
+            tools.Add(Tool("check_mail", "Check for phishing", "Check one email for phishing or a scam when they ask, suggest or hint at it, like is this legit or is it safe: who it says it's from, in its name, subject or words, against where it really came from, look-alike addresses, links that hide where they go, asks for your password, card details or money, risky attachments and failed sender checks. Gives fine, suspicious or phishing with plain reasons. It never opens links or attachments and doesn't mark it read.", true, p, "uid"));
             p = new Dictionary<string, object>();
             p["uid"] = Prop("integer", "The uid of the message to move.");
             p["to"] = Prop("string", "Where it goes: spam (their spam or junk folder), trash, archive, or a folder's name.");
