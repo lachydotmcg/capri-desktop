@@ -84,7 +84,7 @@ const noteTitles = [
   ['Install on Windows', 'Is Capri on the Microsoft Store? Which download should I get for antivirus or SmartScreen warnings?'],
   ['Install on Windows', 'How do I check my download is the real one? Is Capri safe?'],
   ['Updates', "Is my version the latest? I'm on an old version (like 0.8.5) and it won't update"],
-  ['Install on Windows', 'Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?'],
+  ['Install on Windows', 'Is Capri on the Microsoft Store?'],
   ['Install on Windows', 'Is Capri safe, and how do I check my download is the real one?'],
   ['Updates', "Is my version the latest, or an old version (like 0.8.5) that won't update?"],
   ['Capri Remote', 'How do I pair a phone?'],
@@ -142,9 +142,9 @@ console.log('PASS Needs checking and Fan work and voices stay hidden on both rou
 // Other unnumbered chapters and their child notes use the plain Help page, including titles with special links elsewhere.
 const knowledgeUrl = env.KNOWLEDGE_URL;
 env.KNOWLEDGE_URL = 'https://notes.test/unnumbered.md';
-sources.set(env.KNOWLEDGE_URL, '## Extra guide\n### Free NVIDIA key\nFixture reference about NVIDIA keys.\n\n### Microsoft Store\nFixture reference about the store.\n\n## 24. Needs checking\n### Draft\nHidden draft marker.\n\n## Fan work and voices\n### Cast\nHidden cast marker.');
+sources.set(env.KNOWLEDGE_URL, '## Extra guide\n### Free NVIDIA key\nFixture reference about NVIDIA keys.\n\n### Settings page (Mainframe > Settings)\nFixture reference about settings.\n\n## 24. Needs checking\n### Draft\nHidden draft marker.\n\n## Fan work and voices\n### Cast\nHidden cast marker.');
 says = 'Read the guide. LINK: Extra guide';
-for (const ask of [discord, help]) for (const question of ['Free NVIDIA key', 'Microsoft Store']) {
+for (const ask of [discord, help]) for (const question of ['Free NVIDIA key', 'Settings page (Mainframe > Settings)']) {
   got = await ask({ question });
   assert.ok(system.includes('[Extra guide > ' + question + ']'));
   assert.doesNotMatch(system, /Hidden draft marker|Hidden cast marker/);
@@ -218,11 +218,11 @@ assert.match(system, /you're just here for Capri help/);
 assert.doesNotMatch(system, /PING/);
 console.log('PASS the website helper keeps its voice and links');
 
-// A website LINK keeps the two ranked links, while the Store tail alone replaces them and Discord keeps its named link.
+// A website LINK keeps the two ranked links and Discord keeps its named link. A Microsoft Store tail adds no link on either.
 env.KNOWLEDGE_URL = 'https://notes.test/two-links';
 sources.set(env.KNOWLEDGE_URL, '## 11. Her voice\n### Voice choice\nPick a voice.\n\n## 12. Voice chat\n### Voice talk\nPick a voice.');
 const rankedLinks = [{ title: 'Her voice', href: 'https://capriai.app/help/#voice' }, { title: 'Voice chat', href: 'https://capriai.app/help/#voice-chat' }];
-for (const tail of ['', ' LINK: Her voice', ' LINK: Voice chat > Voice talk']) {
+for (const tail of ['', ' LINK: Her voice', ' LINK: Voice chat > Voice talk', ' LINK: Microsoft Store']) {
   says = 'Pick a voice.' + tail;
   got = await help({ question: 'voice' });
   assert.equal(got.reply, 'Pick a voice.');
@@ -231,27 +231,27 @@ for (const tail of ['', ' LINK: Her voice', ' LINK: Voice chat > Voice talk']) {
 says = 'Pick a voice. LINK: Voice chat';
 got = await discord({ question: 'voice' });
 assert.deepEqual(got.links, [rankedLinks[1]]);
-says = 'Get the Store copy. LINK: Microsoft Store';
-got = await help({ question: 'voice' });
-assert.deepEqual(got.links, [{ title: 'Microsoft Store', href: 'https://apps.microsoft.com/detail/9P0KFRB76X0G' }]);
+says = 'Pick a voice. LINK: Microsoft Store';
+got = await discord({ question: 'voice' });
+assert.equal(got.reply, 'Pick a voice.');
+assert.deepEqual(got.links, []);
 env.KNOWLEDGE_URL = notesUrl;
-console.log('PASS the website keeps both ranked links except for a Store tail and Discord keeps one named link');
+console.log('PASS the website keeps both ranked links, Discord keeps one named link, and a Store tail adds no link');
 
-// Multiple LINK tails keep text before the first tail, prefer the Store and otherwise use the last shown label.
+// Multiple LINK tails keep text before the first tail and use the last shown label.
 env.KNOWLEDGE_URL = 'https://notes.test/link-tails';
-const storeTitle = 'Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?';
+const storeTitle = 'Is Capri on the Microsoft Store?';
 sources.set(env.KNOWLEDGE_URL, "## 2. Install on Windows\n### My antivirus says it's a virus or Trojan\nLink fixture.\n\n## 7. The Capri Mainframe\n### Settings page (Mainframe > Settings)\nLink fixture.\n\n## 2. Install on Windows\n### " + storeTitle + '\nLink fixture.\n\n## 11. Her voice\nLink fixture.');
 const installLink = { title: 'Install on Windows', href: 'https://capriai.app/help/#install' };
 const settingsLink = { title: 'Settings', href: 'https://capriai.app/help/#settings' };
 const voiceLink = { title: 'Her voice', href: 'https://capriai.app/help/#voice' };
-const storeTailLink = { title: 'Microsoft Store', href: 'https://apps.microsoft.com/detail/9P0KFRB76X0G' };
 for (const ask of [discord, help]) {
   says = 'Read this note.';
   const ranked = (await ask({ question: 'link fixture' })).links;
   if (ask === help) assert.deepEqual(ranked, [installLink, settingsLink]);
   for (const [tail, expected] of [
-    ['Microsoft Store. LINK: Install on Windows', storeTailLink],
-    ['Install on Windows LINK: Microsoft Store', storeTailLink],
+    ['Microsoft Store. LINK: Install on Windows', installLink],
+    ['Install on Windows LINK: Microsoft Store', installLink],
     ['Install on Windows. LINK: The Capri Mainframe > Settings page (Mainframe > Settings)', settingsLink],
     ['The Capri Mainframe > Settings page (Mainframe > Settings). LINK: Install on Windows', installLink],
     ["Install on Windows > My antivirus says it’s a virus or Trojan", installLink],
@@ -263,22 +263,22 @@ for (const ask of [discord, help]) {
     ['Her voice > Her voice', voiceLink],
     ['[Her voice]', voiceLink],
     ['Install on Windows LINK: Pizza', installLink],
-    ['Microsoft Store PING: helper', storeTailLink]
+    ['Microsoft Store PING: helper', null]
   ]) {
     says = 'Read this note. LINK: ' + tail;
     got = await ask({ question: 'link fixture' });
     assert.equal(got.reply, 'Read this note.', says);
     assert.doesNotMatch(got.reply, /LINK/i);
-    assert.deepEqual(got.links, ask === discord || expected === storeTailLink ? [expected] : ranked, says);
+    assert.deepEqual(got.links, ask === discord ? (expected ? [expected] : []) : ranked, says);
   }
   says = 'Check Microsoft Store';
   got = await ask({ question: 'link fixture' });
   assert.equal(got.reply, says);
   assert.deepEqual(got.links, ask === discord ? [] : ranked);
-  says = 'LINK: Microsoft Store';
+  says = 'LINK: Install on Windows';
   got = await ask({ question: 'link fixture' });
   assert.equal(got.reply, "Here's the page for that.");
-  assert.deepEqual(got.links, [storeTailLink]);
+  assert.deepEqual(got.links, ask === discord ? [installLink] : ranked);
 }
 env.KNOWLEDGE_URL = notesUrl;
 console.log('PASS both routes strip every LINK tail and normalize apostrophes, separators and spaces with the expected links');
@@ -379,17 +379,17 @@ assert.match(pcBody, /If she opens when you sign in to Windows, check Mainframe 
 assert.doesNotMatch(pcBody, /Start with Windows is off unless you turned it on|Once she is removed through Settings > Apps she cannot come back/);
 assert.ok(pcBody.indexOf('first check') < pcBody.indexOf('Start with Windows'));
 assert.doesNotMatch(notes, /It's the same app from the same code/);
-assert.equal((notes.match(/can be a version behind while Microsoft checks it/g) || []).length, 4);
-assert.match(notes, /Microsoft Store copy \(version 0\.8\.9\)/);
-console.log('PASS the full PC note covers uninstall and older startup entries and all four Store notes allow version lag');
+assert.doesNotMatch(notes, /apps\.microsoft\.com|Get CapriAI from the Microsoft Store/);
+assert.match(notes, /The Microsoft Store copy \(CapriAI\) isn't available to download/);
+console.log('PASS the full PC note covers uninstall and older startup entries, and no note sends people to the Store listing');
 
 // Ordinary voice, install and antivirus questions keep their notes without pulling in the PC activity note.
 for (const ask of [discord, help]) {
   for (const [question, titles] of [
-    ['how do I change her voice?', ['Her voice > Voice layers (0.7.6 and newer)', 'Her voice > Your own voice model: Fish Audio, OpenAI, a model file or your own server (from 0.7.6)', 'The Capri Mainframe > VOICE section']],
+    ['how do I change her voice?', ['Voice chat > Why did her voice change to a Windows voice? (0.9.7)', 'Her voice > Voice layers (0.7.6 and newer)', 'Her voice > Your own voice model: Fish Audio, OpenAI, a model file or your own server (from 0.7.6)', 'The Capri Mainframe > VOICE section']],
     ['how do I install Capri?', ['Install on Windows > Steps', 'Install on Windows > "Quit Capri from her tray menu, then install again."', 'Troubleshooting > Install and antivirus', 'Quick facts > How do I install Capri VR? (0.8.3)']],
-    ['why does Windows warn me?', ['Install on Windows > Why does Windows warn me?', 'Install on Windows > Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?', 'What she can do on your PC (Windows) > Move, snap and resize windows (0.8.0)', 'Install on Windows > Does Capri start with Windows?']],
-    ['my antivirus says it is a virus', ["Troubleshooting > Install and antivirus", 'Install on Windows > Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?', "Install on Windows > My antivirus says it's a virus or Trojan", 'Install on Windows > "Item Not Found" or the installer disappeared']]
+    ['why does Windows warn me?', ['Install on Windows > Why does Windows warn me?', 'What she can do on your PC (Windows) > Move, snap and resize windows (0.8.0)', 'Install on Windows > Does Capri start with Windows?', 'Install on Windows > Is Capri on the Microsoft Store?']],
+    ['my antivirus says it is a virus', ["Troubleshooting > Install and antivirus", "Install on Windows > My antivirus says it's a virus or Trojan", 'Install on Windows > "Item Not Found" or the installer disappeared', 'Install on Windows > "Unable to save shortcut" or "Windows wouldn\'t let the installer save her shortcut"']]
   ]) {
     await ask({ question });
     assert.ok(!system.includes(odd), question);
@@ -473,7 +473,7 @@ says = "I'm not sure this note fits. PING: helper";
 got = await discord({ question: 'her voice gives a zargle error' });
 assert.equal(got.reply, "I'm not sure this note fits.");
 assert.equal(got.ping, 'helper');
-assert.match(system, /\[Her voice > /);
+assert.match(system, /\[(?:Her voice|Voice chat) > /);
 assert.match(system, /or you are not sure the note fits/);
 says = "I don't have a fix for that in these notes. Ask in the Discord. PING: helper";
 got = await help({ question: 'invalid byte encoding' });
@@ -495,25 +495,28 @@ assert.ok(sent.at(-1).content.includes(ticket));
 assert.equal(sent[0].content, 'Sam: Typing works. My version is 0.8.5.');
 console.log('PASS tickets keep the help and missing details in place');
 
-// Antivirus answers on both routes show the Store note; only a Store tail overrides the website's ranked links.
-const storeLink = { title: 'Microsoft Store', href: 'https://apps.microsoft.com/detail/9P0KFRB76X0G' };
+// Antivirus answers on both routes call the official copy's alert a false alarm, and nothing links the Store listing.
+const fixesLink = { title: 'Troubleshooting', href: 'https://capriai.app/help/#fixes' };
 for (const ask of [discord, help]) {
   for (const question of ['my antivirus deleted capri', 'virustotal says trojan', 'defender blocked the download', 'SmartScreen blocked Capri', "Defender says it's a trojan, is it fake?"]) {
-    says = "Get CapriAI from the Microsoft Store. The official website copy's alert is a false alarm on an unsigned app. LINK: Microsoft Store";
+    says = "The official copy's alert is a false alarm on an unsigned app. LINK: Troubleshooting";
     got = await ask({ question });
-    assert.deepEqual(got.links, [storeLink]);
-    assert.doesNotMatch(got.reply, /LINK|https:/);
-    assert.match(system, /On Windows, if antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, give the Microsoft Store copy as CapriAI first/);
-    assert.match(system, /Add that the official website copy's alert is a false alarm on an unsigned app/);
+    assert.equal(got.reply, "The official copy's alert is a false alarm on an unsigned app.");
+    if (ask === discord) assert.deepEqual(got.links, [fixesLink], question);
+    else assert.deepEqual(got.links[0], fixesLink, question);
+    assert.ok(got.links.every(found => found.href.startsWith('https://capriai.app/help/')), question);
+    assert.equal(system.split('\n\nHelp notes:\n')[1].split('\n')[0], '[Troubleshooting > Install and antivirus]', question);
+    assert.match(system, /On Windows, if antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, say that the alert on the official copy from the website or GitHub is a false alarm on an unsigned app/);
+    assert.doesNotMatch(system, /give the Microsoft Store copy|LINK: Microsoft Store|apps\.microsoft\.com/);
     assert.match(system, /Never argue about their antivirus or tell them to turn it off/);
-    assert.ok(system.includes('[Install on Windows > Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?]'));
     assert.match(system, /An antivirus, SmartScreen or VirusTotal alert alone follows the antivirus rule/);
   }
   for (const tail of ['Microsoft Store.', '[Microsoft Store]', '[Microsoft Store].']) {
     says = 'Get CapriAI from the Store. LINK: ' + tail;
     got = await ask({ question: 'my antivirus deleted capri' });
     assert.equal(got.reply, 'Get CapriAI from the Store.');
-    assert.deepEqual(got.links, [storeLink]);
+    assert.ok(got.links.every(found => !found.href.includes('apps.microsoft.com')));
+    if (ask === discord) assert.deepEqual(got.links, []);
   }
   says = 'The Windows install notes cover this. LINK: Install on Windows';
   got = await ask({ question: 'my antivirus deleted capri' });
@@ -526,7 +529,7 @@ for (const ask of [discord, help]) {
     assert.deepEqual(got.links, withTail);
   }
 }
-console.log('PASS antivirus replies get the Store first and exactly one link');
+console.log('PASS antivirus replies call the official copy a false alarm and never link the Store listing');
 
 // The latest line uses tag_name from release.json and does not invent a date missing from the feed.
 says = 'Check for updates first.';
