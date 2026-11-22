@@ -305,6 +305,7 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 pet.ForgetPets();
                 pet.Forgive();
+                SaidChecks();
                 double flungAt = pet.Now;
                 pet.LastYelp = null;
                 pet.Flung(Pet.FlingFrom, flungAt);
@@ -2242,6 +2243,85 @@ namespace CapriDesktop
         {
             if (Pet.Offline.Contains(Pet.Starter) || Pet.Offline.Contains("gemma") || Pet.Offline.Contains("e4b") || !Pet.Offline.Contains("open Capri Mainframe and press Set up her brain") || !Pet.Offline.Contains("press Free key")) throw new Exception("The offline line missed Mainframe's buttons or named a model.");
             checks.Add("PASS offline help: she names Set up her brain and Free key in Capri Mainframe without a model name");
+        }
+
+        // Her own lines in their language, like Windows: her fixed lines and labels are registered, English stays exactly as it was,
+        // her brain gets them once and she keeps them in lines-<language>.txt, a pat says one in Spanish under a Spanish label, and
+        // a check-in line made in code is learnt as she says it while her brain's own replies stay as they came.
+        private void SaidChecks()
+        {
+            string languageWas = Brain.Language, folderWas = Said.Folder;
+            Func<string, string, string> askWas = Said.Ask;
+            Func<bool> readyWas = Said.Ready;
+            string folder = Path.Combine(Path.GetTempPath(), "capri-said-" + Guid.NewGuid().ToString("N"));
+            int asks = 0;
+            string rules = null;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                Said.Folder = folder;
+                Said.Reload();
+                Said.Ready = delegate { return false; };
+                if (!Said.Knows(Pet.PetLines[0]) || !Said.Knows(Pet.PopLines[0]) || !Said.Knows(Pet.HomeGameLines[0]) || !Said.Knows(Pet.HomeSongLines[0]) || !Said.Knows(Pet.NudgeLines[0]) || !Said.Knows(Brain.Greetings[0]) || !Said.Knows(Sulks.PatPeaceLines[0]))
+                    throw new Exception("Her own lines weren't registered with Said.");
+                Brain.Language = null;
+                foreach (string line in Pet.PetLines) if (Said.In(line) != line) throw new Exception("English changed her pat line: " + line);
+                if (Said.In(Pet.PopLines[0]) != Pet.PopLines[0] || Said.Label("pets you") != "pets you" || Said.Label("(pops in)") != "(pops in)") throw new Exception("English changed her own lines or labels.");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                pet.PetLine(pet.Pets);
+                string english = pet.Talk.Bubble.Sheet.Reply;
+                if (Array.IndexOf(Pet.PetLines, english) < 0 || pet.Talk.Bubble.Sheet.Heard != "pets you") throw new Exception("English pat came out as " + english + " under " + pet.Talk.Bubble.Sheet.Heard + ".");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                Said.Ask = delegate(string system, string user)
+                {
+                    asks++;
+                    rules = system;
+                    StringBuilder back = new StringBuilder("Here you go:\n");
+                    foreach (string row in user.Split('\n'))
+                    {
+                        Match numbered = Regex.Match(row, @"^([0-9]+)\. (\(label\) )?(.+)$");
+                        if (numbered.Success) back.Append(numbered.Groups[1].Value).Append(". ").Append(numbered.Groups[2].Value).Append("[es] ").Append(numbered.Groups[3].Value).Append('\n');
+                    }
+                    return back.ToString();
+                };
+                Brain.Language = "Spanish";
+                if (Said.In(Pet.PetLines[0]) != Pet.PetLines[0]) throw new Exception("A line she hasn't translated yet wasn't left in English.");
+                Said.Work();
+                if (asks < 1) throw new Exception("Her own lines weren't sent to her brain: " + asks + " asks.");
+                if (rules == null || !rules.Contains("into Spanish") || !rules.Contains("choom")) throw new Exception("Her translation rules lost the language or her slang.");
+                if (Said.In(Pet.PetLines[0]) != "[es] " + Pet.PetLines[0] || Said.In(Pet.PopLines[0]) != "[es] " + Pet.PopLines[0] || Said.In(Pet.HomeSongLines[0]) != "[es] " + Pet.HomeSongLines[0])
+                    throw new Exception("Her lines weren't in their language: " + Said.In(Pet.PetLines[0]));
+                if (Said.Label("pets you") != "[es] pets you" || Said.Label("(pops in)") != "[es] (pops in)") throw new Exception("Her labels weren't in their language: " + Said.Label("pets you"));
+                string[] rows = File.ReadAllLines(Said.PathFor("Spanish"), Encoding.UTF8);
+                if (Array.IndexOf(rows, Pet.PetLines[0] + "\t[es] " + Pet.PetLines[0]) < 0 || Array.IndexOf(rows, "pets you\t[es] pets you") < 0) throw new Exception("Her translations weren't kept in " + Said.PathFor("Spanish") + ".");
+                Said.Reload();
+                if (Said.In(Pet.PetLines[1]) != "[es] " + Pet.PetLines[1]) throw new Exception("Her kept translations weren't read back.");
+                pet.PetLine(pet.Pets);
+                string spanish = pet.Talk.Bubble.Sheet.Reply;
+                if (spanish == null || !spanish.StartsWith("[es] ", StringComparison.Ordinal) || Array.IndexOf(Pet.PetLines, spanish.Substring(5)) < 0 || pet.Talk.Bubble.Sheet.Heard != "[es] pets you")
+                    throw new Exception("Her pat came out as " + spanish + " under " + pet.Talk.Bubble.Sheet.Heard + " in Spanish.");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                string care = "Her check-ins file line, choom.";
+                if (Said.Learn(care) != care || !Said.Knows(care)) throw new Exception("A check-in line wasn't learnt.");
+                Said.Work();
+                if (Said.In(care) != "[es] " + care) throw new Exception("A learnt check-in line wasn't translated.");
+                if (Said.In("Some reply her brain wrote.") != "Some reply her brain wrote." || Said.Knows("Some reply her brain wrote.")) throw new Exception("A line she doesn't know was learnt or changed.");
+                checks.Add("PASS her own lines: her pat lines, check-ins, pop-ins, cheers, nudges and their labels follow their language through Said, English is byte for byte as it was, her brain translates them in batches into lines-<language>.txt, and a pat comes out in Spanish under a Spanish label");
+            }
+            finally
+            {
+                Brain.Language = languageWas;
+                Said.Folder = folderWas;
+                Said.Ask = askWas;
+                Said.Ready = readyWas;
+                Said.Reload();
+                try { Directory.Delete(folder, true); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
 
         private void ProviderErrorChecks()

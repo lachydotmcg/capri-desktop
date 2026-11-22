@@ -937,6 +937,7 @@ namespace CapriDesktop
             PointReplies();
             Lingo.Bundled = WordTable;
             Lingo.Use(Program.Smoke == null && TheirLanguage != "English" ? TheirLanguage : null);
+            StartSaid();
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
             if (Saved.ReplyLength == 1) { Saved.Replies = 0; Saved.ReplyLength = 0; }
             else if (Saved.ReplyLength >= 2) { Saved.Replies = 2; Saved.ReplyLength = 3; }
@@ -2370,10 +2371,12 @@ namespace CapriDesktop
             string line = Brain.Greeting(hour);
             // A user already interacting with the menu should not be covered by an unsolicited greeting.
             if (line == null || ticket != asking || outro != null || !Talk.Quiet || ContextMenu.IsOpen) return;
-            byte[] hello = Hello(Brain.GreetingClip(hour));
-            if (hello == null) { Reply(++asking, "startup", line); return; }
+            // Her recorded hello is English, so once her greeting is in their language she says that one herself.
+            string shown = Said.Learn(line);
+            byte[] hello = shown == line ? Hello(Brain.GreetingClip(hour)) : null;
+            if (hello == null) { SayOwn(++asking, "startup", line); return; }
             ++asking;
-            Talk.Answer("startup", line, Voice.Seconds(hello));
+            Talk.Answer(Said.Label("startup"), shown, Voice.Seconds(hello));
             voice.Play(hello);
         }
 
@@ -2458,7 +2461,7 @@ namespace CapriDesktop
             petSaid.Add(line);
             if (petSaid.Count > 8) petSaid.RemoveAt(0);
             if (!fresh) MakePetLine();
-            Reply(asking, "pets you", line);
+            SayOwn(asking, "pets you", line);
         }
 
         private void MakePetLine()
@@ -3821,6 +3824,7 @@ namespace CapriDesktop
             Brain.Language = LanguagePair.Reply(Saved.ReplyLanguage, Saved.Language);
             Brain.Forget();
             Save();
+            Said.Warm();
             if (Program.Smoke == null) { Lingo.Use(Saved.Language); MainframeTheme.Reword(); }
             Sync();
         }
@@ -3833,6 +3837,7 @@ namespace CapriDesktop
             PointReplies();
             Brain.Forget();
             Save();
+            Said.Warm();
             Sync();
         }
 
@@ -3848,7 +3853,11 @@ namespace CapriDesktop
         private void Match(string said)
         {
             string heard = LanguagePair.Detect(said, Brain.Language ?? "English");
-            if (heard != null) Brain.Language = Brain.LanguageCode(heard) == "en" ? null : heard;
+            if (heard == null) return;
+            string now = Brain.LanguageCode(heard) == "en" ? null : heard;
+            if (now == Brain.Language) return;
+            Brain.Language = now;
+            Said.Warm();
         }
 
         internal static string WordTable(string name)
@@ -3858,6 +3867,18 @@ namespace CapriDesktop
                 if (stream == null) return null;
                 using (StreamReader reader = new StreamReader(stream, System.Text.Encoding.UTF8)) return reader.ReadToEnd();
             }
+        }
+
+        // Her own lines and the labels in her bubble, in their language: her brain translates them once and she keeps them in
+        // lines-<language>.txt, like Windows. English needs nothing, and a line not translated yet stays English.
+        private void StartSaid()
+        {
+            Said.Folder = Program.Smoke ?? folder;
+            Said.Ask = delegate(string system, string user) { return Brain.SmallJob(system, user, 3000); };
+            Said.Ready = delegate { return Program.Smoke == null && Brain.Model != null; };
+            Said.Reload();
+            Said.Know(CapriDesktop.Brain.Greetings, PetLines, Sulks.PatPeaceLines, PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines);
+            Said.Labels("startup", "pets you", "(check-in)", "(pops in)", "(wants attention)", "(you noticed)", "(ignored)", "(Cyberpunk 2077)", "(Night City song)", "(CPU near 100%)", "(watch my screen)");
         }
 
         internal int Replies { get { return Brain.ReplyLength >= 2 ? 3 : Brain.Wordiness; } }
@@ -4602,7 +4623,13 @@ namespace CapriDesktop
         // A line she says by herself, typed out like her replies. It leaves asking alone, so it never counts as them asking her something.
         private void Blurt(string heard, string line)
         {
-            Reply(asking, heard, line);
+            SayOwn(asking, heard, line);
+        }
+
+        // A line of her own in their language, under its label in theirs too, like Windows' lines after "> sys: ".
+        private void SayOwn(int ticket, string heard, string line)
+        {
+            Reply(ticket, heard, Said.Learn(line), null, false, null, Said.Label(heard));
         }
 
         // Free for a line of her own: Check in on me on, showing, and not busy with them.
@@ -4699,7 +4726,7 @@ namespace CapriDesktop
                     if (!Talk.Typing && asking == nudgeAsked)
                     {
                         string line = careNudge ? careLines.Pick("Bored noticed") : NoticedLines[random.Next(NoticedLines.Length)];
-                        if (line != null) { if (careNudge) Reply(asking, "(you noticed)", line); else Blurt("(you noticed)", line); }
+                        if (line != null) { if (careNudge) SayOwn(asking, "(you noticed)", line); else Blurt("(you noticed)", line); }
                     }
                 }
                 else if (now >= nudgeOut && Talk.Quiet)
@@ -4746,7 +4773,7 @@ namespace CapriDesktop
         {
             nudgeOut = now + 20;
             nudgeAsked = asking;
-            if (careNudge) Reply(asking, NudgeHeard, line); else Blurt(NudgeHeard, line);
+            if (careNudge) SayOwn(asking, NudgeHeard, line); else Blurt(NudgeHeard, line);
             Raise(now + 20);
         }
 
@@ -4764,7 +4791,7 @@ namespace CapriDesktop
                 {
                     if (idle < 0 || idle >= 20 || away || outro != null || !Talk.Quiet) return;
                     string line = caring ? careLines.Pick("Bored ignored") : SnubbedLines[random.Next(SnubbedLines.Length)];
-                    if (line != null) { if (caring) Reply(asking, "(ignored)", line); else Blurt("(ignored)", line); }
+                    if (line != null) { if (caring) SayOwn(asking, "(ignored)", line); else Blurt("(ignored)", line); }
                 });
             });
         }
@@ -6320,7 +6347,7 @@ namespace CapriDesktop
             }
         }
 
-        private void Reply(int ticket, string heard, string said, string after = null, bool following = false, RemoteTurn phone = null)
+        private void Reply(int ticket, string heard, string said, string after = null, bool following = false, RemoteTurn phone = null, string label = null)
         {
             try
             {
@@ -6336,17 +6363,17 @@ namespace CapriDesktop
                 if (!RemoteReply(ticket, heard, said, following, phone)) return;
                 if (phone != null && phone.Shown != null) heard = phone.Shown;
                 string spoken = Speaks ? Brain.Masked(ModsSpeaking(said)) : said;
-                if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
+                if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer, null, label)) TypeAlong(said, ticket); return; }
                 ISpeaker speaker = Speaker;
                 int speechTicket = speechGeneration;
-                if (!following) Talk.Thinking(heard);
+                if (!following) Talk.Thinking(label ?? heard);
                 answer = answerTurn;
                 bool[] shown = { false };
                 DispatcherTimer.RunOnce(delegate
                 {
                     if (ticket != asking || shown[0]) return;
                     shown[0] = true;
-                    PresentReply(ticket, heard, said, 0, after, following, input, answer, () => TypeAlong(said, ticket));
+                    PresentReply(ticket, heard, said, 0, after, following, input, answer, () => TypeAlong(said, ticket), null, label);
                 }, TimeSpan.FromMilliseconds(speaker is OwnedSpeaker ? 95000 : VoiceWait));
                 ThreadPool.QueueUserWorkItem(delegate
                 {
@@ -6367,7 +6394,7 @@ namespace CapriDesktop
                         {
                             if (seconds >= 0.2 && SpeechCurrent(speaker, speechTicket)) { voice.Play(wav); ModsSpoke(spoken); }
                             else TypeAlong(said, ticket);
-                        });
+                        }, null, label);
                     });
                 });
             }
