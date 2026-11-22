@@ -58,7 +58,8 @@ namespace CapriDesktop
             {
                 if (searchFound.Count > 0 && (searchBox.Box.Text ?? "").Trim().Length > 0) GoTo(searchFound[Math.Min(searchPicked, searchFound.Count - 1)]);
             });
-            searchBox.Box.TextChanged += (_, _) => Program.Guard(FindSettings);
+            // TextChanged comes late in this Avalonia, after the new text renders; TextChanging lets the list keep up with each key.
+            searchBox.Box.TextChanging += (_, _) => Program.Guard(FindSettings);
             searchBox.Box.GotFocus += (_, _) => Program.Guard(delegate { if (!string.IsNullOrEmpty(searchBox.Box.Text)) FindSettings(); });
             searchBox.Box.LostFocus += (_, _) => Program.Guard(CloseSearch);
             searchBox.Box.AddHandler(KeyDownEvent, (_, e) =>

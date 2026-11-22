@@ -18,8 +18,8 @@ namespace CapriDesktop
             Point atWas = Location;
             Control heldWas = Held();
             Mods mods = capri.ModList;
-            string startersFile = Path.Combine(mods.PluginFolder, "starters.txt");
-            bool startersWere = File.Exists(startersFile);
+            string startersFile = Path.Combine(mods.PluginFolder, "starters.txt"), startersAside = startersFile + ".aside";
+            bool startersWere = File.Exists(startersFile), aside = false;
             List<string> pluginsWere = Mods.PluginsOf(mods.All).ConvertAll(one => one.File.Id);
             try
             {
@@ -32,7 +32,13 @@ namespace CapriDesktop
                 SearchCtrlF(checks);
                 SearchComments(checks, output);
                 SearchMic(checks, output);
-                if (pluginsWere.Count == 0) { mods.AddStarters(); mods.Load(); }
+                if (!pluginsWere.Contains(Mods.MailStarter))
+                {
+                    // Her list of starters already made keeps a removed Email from coming back, so it waits aside meanwhile.
+                    if (startersWere) { File.Move(startersFile, startersAside); aside = true; }
+                    mods.AddStarters();
+                    mods.Load();
+                }
                 SearchEmail(checks);
                 SearchNothing(checks);
                 SearchFits(checks);
@@ -53,7 +59,12 @@ namespace CapriDesktop
                 DismissHint();
                 dismissedHint = overHint = null;
                 foreach (Mod one in mods.All.ToArray()) if (one.Plugin && !pluginsWere.Contains(one.File.Id)) mods.Remove(one);
-                if (!startersWere) try { if (File.Exists(startersFile)) File.Delete(startersFile); } catch (IOException) { }
+                try
+                {
+                    if ((!startersWere || aside) && File.Exists(startersFile)) File.Delete(startersFile);
+                    if (aside) File.Move(startersAside, startersFile);
+                }
+                catch (IOException) { }
                 mods.Load();
                 FillMods();
                 if (capri.AdvancedSaved != advancedWas) capri.ToggleAdvancedSettings();

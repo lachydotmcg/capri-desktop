@@ -3235,7 +3235,7 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
                 KeyChecks(frame);
-                SearchChecks(frame);
+                SearchChecks();
             }
             finally
             {
@@ -3633,8 +3633,12 @@ namespace CapriDesktop
             return (NeonChoice)rows.Children[picker.Selected];
         }
 
-        private void SearchChecks(Mainframe frame)
+        private void SearchChecks()
         {
+            // The key checks close her Mainframe with their last Esc, so the search gets it opened again.
+            Hands.Do("mainframe", new ToolArguments { Name = "main" });
+            if (pet.Frame == null || !pet.Frame.IsVisible) throw new Exception("Her Mainframe didn't open again for its search.");
+            Mainframe frame = pet.Frame;
             bool advancedWas = pet.Saved.AdvancedSettings, pagedWas = frame.SettingsShown;
             try
             {
