@@ -7866,6 +7866,16 @@ namespace CapriDesktop
             pet.SetSpeak(true);
             pet.SetVoiceProvider(Speakers.Off);
             fail("Off", !pet.Speaks && pet.VoiceStatus == "off | no voice | quiet" && pet.VoiceMenu == "Provider: Off | - | No voice provider. She types her replies. (off)" && pet.Speaker.Name == "none");
+            foreach (string cloud in new[] { Speakers.Fish, Speakers.OpenAi })
+            {
+                pet.SetVoiceProvider(cloud);
+                pet.SetSpeak(true);
+                pet.MainframeVoiceModePick(0);
+                bool keptWhileMuted = pet.Saved.Silent && pet.Saved.VoiceProvider == cloud;
+                pet.MainframeVoiceModePick(3);
+                fail("Mainframe mute and resume keep " + cloud,
+                    keptWhileMuted && !pet.Saved.Silent && pet.Saved.VoiceProvider == cloud);
+            }
             pet.SetVoiceProvider(Speakers.ElevenLabs);
             fail("back to ElevenLabs", pet.VoiceStatus == "no key | no voice | quiet" && pet.VoiceMenu == "Provider: ElevenLabs | - | Add ElevenLabs key...");
             pet.SetLocalVoice("url", "");

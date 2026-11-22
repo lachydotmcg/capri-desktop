@@ -372,10 +372,11 @@ namespace CapriDesktop
             else if (Brain.Server != null) PickServerModel(model.Trim());
             else PickBrain(model.Trim());
         }
+        private string CloudProviderPick() { string picked = Speakers.Known(Saved.VoiceProvider); return picked == Speakers.Fish || picked == Speakers.OpenAi ? picked : Speakers.ElevenLabs; }
         internal void MainframeVoiceModePick(int mode)
         {
             if (mode == 0) SetSpeak(false);
-            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : Speakers.ElevenLabs); SetSpeak(true); }
+            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : CloudProviderPick()); SetSpeak(true); }
         }
         internal void MainframeForgetVoice() { ForgetVoice(); Save(); }
         internal void MainframeLoadVoices() { if (voices == null && Program.Smoke == null) ListVoices(); }

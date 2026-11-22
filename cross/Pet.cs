@@ -70,13 +70,16 @@ namespace CapriDesktop
         [DataMember] internal bool NotOnTop;
         // Security's toggles 1 to 10 as 1s and 0s, like Windows. Missing in settings from before it, which get Trusted.
         [DataMember] internal string Permissions;
-        // Which provider makes her voice: elevenlabs, local or off. Missing in settings from before it, which were ElevenLabs.
+        // Which provider makes her voice: elevenlabs, fish, openai, local or off. Missing in settings from before it, which were ElevenLabs.
         // Silent stays apart: it quiets the provider they picked without forgetting it.
         [DataMember] internal string VoiceProvider;
         [DataMember] internal string LocalVoiceUrl;
         [DataMember] internal string LocalVoiceModel;
         [DataMember] internal string LocalVoiceName;
         [DataMember] internal string LocalVoiceFormat;
+        // Her Fish Audio and OpenAI cloud voices, when she speaks through one of them.
+        [DataMember] internal string FishVoiceId;
+        [DataMember] internal string OpenAiVoiceId;
         // A server of their own that thinks for her instead of Ollama (llama-server, LM Studio, vLLM, TGI), and its model.
         [DataMember] internal string BrainServer;
         [DataMember] internal string ServerModel;
@@ -671,6 +674,8 @@ namespace CapriDesktop
         private bool opened;
         private readonly Voice voice = new Voice();
         private readonly LocalSpeaker localVoice = new LocalSpeaker();
+        private readonly FishSpeaker fishVoice = new FishSpeaker();
+        private readonly OpenAiSpeaker openAiVoice = new OpenAiSpeaker();
         private readonly QuietSpeaker noVoice = new QuietSpeaker();
         private ISpeaker elevenLabs;
         private VoiceListing voices;
@@ -1035,7 +1040,7 @@ namespace CapriDesktop
             KeepAdoptedProvider();
             voice.Key = ReadVoiceKey();
             // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
-            Brain.Secrets = delegate { Cloud remote = Brain.Remote; return new[] { remote == null ? null : remote.Key, Brain.ServerKey, voice.Key }; };
+            Brain.Secrets = delegate { Cloud remote = Brain.Remote; return new[] { remote == null ? null : remote.Key, Brain.ServerKey, voice.Key, fishVoice.Key, openAiVoice.Key }; };
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
             voice.Model = Saved.SpeechModel;
             elevenLabs = new ElevenLabsSpeaker(voice);
@@ -1044,6 +1049,10 @@ namespace CapriDesktop
             localVoice.Model = Saved.LocalVoiceModel;
             localVoice.Speaker = Saved.LocalVoiceName;
             localVoice.Format = LocalSpeaker.Known(Saved.LocalVoiceFormat);
+            fishVoice.Key = FishSpeaker.ReadKey(Program.Smoke ?? folder);
+            fishVoice.Reference = Saved.FishVoiceId;
+            openAiVoice.Key = OpenAiSpeaker.ReadKey(Program.Smoke ?? folder);
+            openAiVoice.VoiceName = Saved.OpenAiVoiceId;
             if (Program.Smoke == null) { Voice.Playback = Limbs.Speak; Voice.Silence = Limbs.Hush; }
             InitializeNativeAdapters();
             if (Program.Smoke == null)
@@ -3080,7 +3089,7 @@ namespace CapriDesktop
             voice.Stop();
             ISpeaker speaker = Speaker;
             int speechTicket = speechGeneration;
-            string id = speaker == elevenLabs ? voice.VoiceId : Saved.VoiceProvider + "\n" + localVoice.Url + "\n" + localVoice.Model + "\n" + localVoice.Speaker + "\n" + localVoice.Format;
+            string id = speaker == elevenLabs ? voice.VoiceId : speaker is FishSpeaker ? Speakers.Fish + "\n" + fishVoice.Reference : speaker is OpenAiSpeaker ? Speakers.OpenAi + "\n" + openAiVoice.VoiceName : Saved.VoiceProvider + "\n" + localVoice.Url + "\n" + localVoice.Model + "\n" + localVoice.Speaker + "\n" + localVoice.Format;
             byte[] said = styleVoice == id ? styleSaid : null;
             Talk.Thinking("(voice check)");
             ThreadPool.QueueUserWorkItem(delegate
@@ -6300,8 +6309,7 @@ namespace CapriDesktop
         {
             get
             {
-                string picked = Speakers.Known(Saved.VoiceProvider);
-                return picked == Speakers.Owned ? ownedVoice : picked == Speakers.Local ? localVoice : picked == Speakers.Off ? (ISpeaker)noVoice : elevenLabs;
+                return Speakers.Pick(Saved.VoiceProvider, elevenLabs, fishVoice, openAiVoice, localVoice, ownedVoice, noVoice);
             }
         }
 
@@ -6316,6 +6324,8 @@ namespace CapriDesktop
                 if (picked == Speakers.Owned) return ownedVoice.Ready ? "My retained local voice is muted." : "Configure the retained local voice runtime and profile.";
                 if (picked == Speakers.Off) return "My voice is off. Pick a voice under VOICE in Capri Mainframe.";
                 if (picked == Speakers.Local) return localVoice.Ready ? "My voice is off. Pick CUSTOM LOCAL under VOICE in Capri Mainframe." : "Set up CUSTOM LOCAL under VOICE in Capri Mainframe.";
+                if (picked == Speakers.Fish) return fishVoice.Ready ? "My voice is off. Turn my Fish Audio voice back on in my right-click menu under VOICE." : "Add your Fish Audio key in my right-click menu under VOICE.";
+                if (picked == Speakers.OpenAi) return openAiVoice.Ready ? "My voice is off. Turn my OpenAI voice back on in my right-click menu under VOICE." : "Add your OpenAI key in my right-click menu under VOICE.";
                 return voice.Ready ? "My voice is off. Pick CLOUD VOICE under VOICE in Capri Mainframe." : "Add your ElevenLabs key under VOICE in Capri Mainframe.";
             }
         }
@@ -6335,8 +6345,9 @@ namespace CapriDesktop
                 ModsReplied(said, source);
                 if (!RemoteReply(ticket, heard, said, following, phone)) return;
                 if (phone != null && phone.Shown != null) heard = phone.Shown;
-                string spoken = Speaks ? Brain.Masked(ModsSpeaking(said)) : said;
-                if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
+                string spoken = Speaks ? Brain.Masked(ModsSpeaking(Speakers.Words(Saved.VoiceProvider, said, Brain.Cued(said)))) : said;
+                if (Speaks && Speakers.FishCues(Saved.VoiceProvider)) spoken = Voice.Spoken(spoken, true);
+                if (!Speaks || Voice.Spoken(spoken, Speakers.FishCues(Saved.VoiceProvider)).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
                 ISpeaker speaker = Speaker;
                 int speechTicket = speechGeneration;
                 if (!following) Talk.Thinking(heard);
@@ -6438,42 +6449,9 @@ namespace CapriDesktop
 
         private void WriteVoiceKey(string key) { WriteSecret(KeyFile, key, "voice key"); }
 
-        private static string ReadSecret(string path)
-        {
-            try
-            {
-                string key = File.ReadAllText(path).Trim();
-                return key.Length == 0 ? null : key;
-            }
-            catch (Exception) { return null; }
-        }
+        private static string ReadSecret(string path) { return SecretFile.Read(path); }
 
-        // Keys are kept in a file only they can read, or deleted with null.
-        private static bool WriteSecret(string path, string key, string what)
-        {
-            string temp = path + ".new";
-            try
-            {
-                if (key == null) { File.Delete(path); return !File.Exists(path); }
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-                if (File.Exists(path)) using (FileStream check = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None)) { }
-                FileStreamOptions options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
-                if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-                using (FileStream stream = new FileStream(temp, options))
-                {
-                    if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(stream.SafeFileHandle, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-                    using (StreamWriter writer = new StreamWriter(stream)) writer.Write(key);
-                }
-                File.Move(temp, path, true);
-                return true;
-            }
-            catch (Exception error)
-            {
-                try { File.Delete(temp); } catch (Exception) { }
-                Brain.Log(path, -1, "Couldn't save the " + what + ": " + error.Message);
-                return false;
-            }
-        }
+        private static bool WriteSecret(string path, string key, string what) { return SecretFile.Write(path, key, what); }
 
         // NVIDIA's page takes the focus, which would close her key box, so she says where to paste the key instead.
         internal void GetFreeKey()
@@ -6692,6 +6670,8 @@ namespace CapriDesktop
                 if (picked == Speakers.Owned) return "retained local voice | " + quiet;
                 if (picked == Speakers.Off) return "off | no voice | " + quiet;
                 if (picked == Speakers.Local) return "local " + LocalWhere + " | " + (string.IsNullOrEmpty(localVoice.Speaker) ? "server's voice" : localVoice.Speaker) + " | " + quiet;
+                if (picked == Speakers.Fish) return "fish audio | " + (fishVoice.Key == null ? "no key" : "key " + Voice.Tail(fishVoice.Key)) + " | " + FishName() + " | " + quiet;
+                if (picked == Speakers.OpenAi) return "openai | " + (openAiVoice.Key == null ? "no key" : "key " + Voice.Tail(openAiVoice.Key)) + " | " + openAiVoice.Speaker + " | " + quiet;
                 return (voice.Key == null ? "no key" : "key " + Voice.Tail(voice.Key)) + " | " + (VoiceName() ?? "no voice") + " | " + quiet;
             }
         }
@@ -6748,6 +6728,94 @@ namespace CapriDesktop
             voiceProblem = null;
             Save();
             return true;
+        }
+
+        internal void AskFishKey()
+        {
+            ComeBack();
+            Talk.AskKey("(fish audio key)", "Paste your Fish Audio key and press Enter. It stays on this computer.", SaveFishKey);
+        }
+
+        internal void SaveFishKey(string key)
+        {
+            key = (key ?? "").Trim();
+            if (key.Length == 0) return;
+            if (!fishVoice.SaveKey(Program.Smoke ?? folder, key)) { Talk.Answer("(fish audio key)", "I couldn't save your Fish Audio key."); return; }
+            Saved.Silent = false;
+            voiceProblem = null;
+            Save();
+            Talk.Answer("(fish audio key)", "Key saved. I'll speak with " + FishName() + ".");
+        }
+
+        internal void AskFishVoice()
+        {
+            ComeBack();
+            Talk.AskFor("(fish audio voice)", "Type your Fish Audio voice's ID or its fish.audio link and press Enter. A dash leaves it to Fish Audio.", delegate(string typed)
+            {
+                if (SetFishVoice(typed)) Talk.Answer("(fish audio voice)", "Saved. Press Test voice in my right-click menu to hear it.");
+            });
+        }
+
+        internal bool SetFishVoice(string typed)
+        {
+            string value = (typed ?? "").Trim();
+            if (value == "-" || string.Equals(value, FishSpeaker.OldDefault, StringComparison.OrdinalIgnoreCase)) value = "";
+            fishVoice.Reference = Saved.FishVoiceId = value.Length == 0 ? null : value;
+            voiceProblem = null;
+            Save();
+            return true;
+        }
+
+        internal void ForgetFishKey()
+        {
+            fishVoice.ForgetKey(Program.Smoke ?? folder);
+            voiceProblem = null;
+            RefreshVoice();
+        }
+
+        private string FishName() { string voice = FishSpeaker.VoiceId(fishVoice.Reference); return voice.Length == 0 ? "Fish Audio's own voice" : voice; }
+
+        internal void AskOpenAiKey()
+        {
+            ComeBack();
+            Talk.AskKey("(openai key)", "Paste your OpenAI key and press Enter. It stays on this computer.", SaveOpenAiKey);
+        }
+
+        internal void SaveOpenAiKey(string key)
+        {
+            key = (key ?? "").Trim();
+            if (key.Length == 0) return;
+            if (!openAiVoice.SaveKey(Program.Smoke ?? folder, key)) { Talk.Answer("(openai key)", "I couldn't save your OpenAI key."); return; }
+            Saved.Silent = false;
+            voiceProblem = null;
+            Save();
+            Talk.Answer("(openai key)", "Key saved. I'll speak with OpenAI's " + openAiVoice.Speaker + " voice.");
+        }
+
+        internal void AskOpenAiVoice()
+        {
+            ComeBack();
+            Talk.AskFor("(openai voice)", "Type an OpenAI voice like marin, cedar, coral or alloy and press Enter. A dash goes back to marin.", delegate(string typed)
+            {
+                if (SetOpenAiVoice(typed)) Talk.Answer("(openai voice)", "Saved. Press Test voice in my right-click menu to hear it.");
+            });
+        }
+
+        internal bool SetOpenAiVoice(string typed)
+        {
+            string value = (typed ?? "").Trim();
+            if (value == "-") value = "";
+            openAiVoice.VoiceName = Saved.OpenAiVoiceId = value.Length == 0 ? null : value;
+            voiceProblem = null;
+            Save();
+            return true;
+        }
+
+        internal void ForgetOpenAiKey()
+        {
+            openAiVoice.ForgetKey(Program.Smoke ?? folder);
+            voiceProblem = null;
+            RefreshVoice();
         }
 
         internal bool VoiceWorking { get { return Speaks && voiceProblem == null; } }
@@ -6867,13 +6935,12 @@ namespace CapriDesktop
             if (voiceMenu == null) return;
             voiceMenu.Items.Clear();
             string picked = Speakers.Known(Saved.VoiceProvider);
-            MenuItem provider = new MenuItem { Header = "Provider: " + (picked == Speakers.Owned ? ownedVoice.Name : picked == Speakers.Local ? localVoice.Name : picked == Speakers.Off ? "Off" : "ElevenLabs") };
-            string[] pickable = { Speakers.ElevenLabs, Speakers.Local, Speakers.Owned, Speakers.Off };
-            string[] pickNames = { "ElevenLabs", localVoice.Name + " (OpenAI speech API)", ownedVoice.Name, "Off" };
+            MenuItem provider = new MenuItem { Header = "Provider: " + Speakers.ShortName(Saved.VoiceProvider, localVoice.Name, ownedVoice.Name) };
+            string[] pickable = Speakers.Pickable;
             for (int i = 0; i < pickable.Length; i++)
             {
                 string one = pickable[i];
-                MenuItem pick = new MenuItem { Header = pickNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "voice provider", IsChecked = one == picked };
+                MenuItem pick = new MenuItem { Header = Speakers.PickName(one, localVoice.Name, ownedVoice.Name), ToggleType = MenuItemToggleType.Radio, GroupName = "voice provider", IsChecked = one == picked };
                 pick.Click += Guarded(delegate { SetVoiceProvider(one); });
                 provider.Items.Add(pick);
             }
@@ -6896,6 +6963,16 @@ namespace CapriDesktop
             if (picked == Speakers.Local)
             {
                 RefreshLocalVoice();
+                return;
+            }
+            if (picked == Speakers.Fish)
+            {
+                RefreshFishVoice();
+                return;
+            }
+            if (picked == Speakers.OpenAi)
+            {
+                RefreshOpenAiVoice();
                 return;
             }
             if (voice.Key == null)
@@ -6968,6 +7045,58 @@ namespace CapriDesktop
             if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
         }
 
+        private void RefreshFishVoice()
+        {
+            MenuItem speak = new MenuItem { Header = "Speak replies", ToggleType = MenuItemToggleType.CheckBox, IsChecked = Speaks, IsEnabled = fishVoice.Ready };
+            speak.Click += Guarded(delegate { SetSpeak(Saved.Silent); });
+            voiceMenu.Items.Add(speak);
+            voiceMenu.Items.Add(new Separator());
+            MenuItem key = new MenuItem { Header = fishVoice.Key == null ? "Add Fish Audio key..." : "Change Fish Audio key..." };
+            key.Click += Guarded(delegate { AskFishKey(); });
+            MenuItem voice = new MenuItem { Header = "Voice: " + (string.IsNullOrEmpty(fishVoice.Reference) ? "Fish Audio's default" : fishVoice.Reference) + "..." };
+            voice.Click += Guarded(delegate { AskFishVoice(); });
+            voiceMenu.Items.Add(key);
+            voiceMenu.Items.Add(voice);
+            voiceMenu.Items.Add(new MenuItem { Header = "Model: " + FishSpeaker.Free, IsEnabled = false });
+            if (fishVoice.Key != null)
+            {
+                MenuItem remove = new MenuItem { Header = "Remove key ending " + Voice.Tail(fishVoice.Key) };
+                remove.Click += Guarded(delegate { ForgetFishKey(); });
+                voiceMenu.Items.Add(remove);
+            }
+            voiceMenu.Items.Add(new Separator());
+            MenuItem test = new MenuItem { Header = "Test voice", IsEnabled = Speaks };
+            test.Click += Guarded(delegate { HearStyle(); });
+            voiceMenu.Items.Add(test);
+            if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
+        }
+
+        private void RefreshOpenAiVoice()
+        {
+            MenuItem speak = new MenuItem { Header = "Speak replies", ToggleType = MenuItemToggleType.CheckBox, IsChecked = Speaks, IsEnabled = openAiVoice.Ready };
+            speak.Click += Guarded(delegate { SetSpeak(Saved.Silent); });
+            voiceMenu.Items.Add(speak);
+            voiceMenu.Items.Add(new Separator());
+            MenuItem key = new MenuItem { Header = openAiVoice.Key == null ? "Add OpenAI key..." : "Change OpenAI key..." };
+            key.Click += Guarded(delegate { AskOpenAiKey(); });
+            MenuItem voice = new MenuItem { Header = "Voice: " + openAiVoice.Speaker + "..." };
+            voice.Click += Guarded(delegate { AskOpenAiVoice(); });
+            voiceMenu.Items.Add(key);
+            voiceMenu.Items.Add(voice);
+            voiceMenu.Items.Add(new MenuItem { Header = "Model: " + OpenAiSpeaker.Model, IsEnabled = false });
+            if (openAiVoice.Key != null)
+            {
+                MenuItem remove = new MenuItem { Header = "Remove key ending " + Voice.Tail(openAiVoice.Key) };
+                remove.Click += Guarded(delegate { ForgetOpenAiKey(); });
+                voiceMenu.Items.Add(remove);
+            }
+            voiceMenu.Items.Add(new Separator());
+            MenuItem test = new MenuItem { Header = "Test voice", IsEnabled = Speaks };
+            test.Click += Guarded(delegate { HearStyle(); });
+            voiceMenu.Items.Add(test);
+            if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
+        }
+
         // The settings 0.7.8 added, kept again in cross-new.json, which 0.7.6 and 0.7.7 never touch: an older copy rewrites
         // cross.json without them, so coming back from one finds them here instead of starting over on ElevenLabs.
         [DataContract]
@@ -6980,6 +7109,8 @@ namespace CapriDesktop
             [DataMember] internal string LocalVoiceModel;
             [DataMember] internal string LocalVoiceName;
             [DataMember] internal string LocalVoiceFormat;
+            [DataMember] internal string FishVoiceId;
+            [DataMember] internal string OpenAiVoiceId;
             [DataMember] internal string BrainServer;
             [DataMember] internal string ServerModel;
             [DataMember] internal int MainframeSize;
@@ -7052,6 +7183,8 @@ namespace CapriDesktop
             saved.LocalVoiceModel = newer.LocalVoiceModel;
             saved.LocalVoiceName = newer.LocalVoiceName;
             saved.LocalVoiceFormat = newer.LocalVoiceFormat;
+            saved.FishVoiceId = newer.FishVoiceId;
+            saved.OpenAiVoiceId = newer.OpenAiVoiceId;
             saved.BrainServer = newer.BrainServer;
             saved.ServerModel = newer.ServerModel;
             saved.MainframeSize = FrameSize(newer.MainframeSize);
@@ -7080,7 +7213,7 @@ namespace CapriDesktop
 
         internal static NewSettings Newest(Settings saved)
         {
-            return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
+            return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
