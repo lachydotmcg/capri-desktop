@@ -362,7 +362,7 @@ namespace CapriDesktop
                 if (tested == null || tested.Address != "capri.demo@gmail.com" || tested.ImapHost != "imap.gmail.com" || MailTools.Account == null || MailTools.Account.Password != "demo-panel-pass-1" || !File.Exists(MailAccount.FilePath(dir))
                     || sheet.Step != 4 || sheet.Title.Text != "Connected as capri.demo@gmail.com" || sheet.Password.Box.Text.Length != 0 || !sheet.Forget.Visible || !sheet.WatchSwitch.Visible)
                     throw new Exception("Connect didn't sign in with the pasted address and app password, save them and show who it's connected as: " + sheet.Title.Text + " / " + sheet.Status.Text);
-                string account = File.ReadAllText(MailAccount.FilePath(dir));
+                string kept = File.ReadAllText(MailAccount.FilePath(dir));
                 Toggle watch = sheet.WatchSwitch, hands = sheet.HandsSwitch;
                 if (watch.Checked || hands.Checked || !hands.Dimmed || MailTools.Watch || MailTools.OwnHands)
                     throw new Exception("Email's settings didn't open with both new switches off, and dealing with phishing waiting on watching.");
@@ -373,7 +373,7 @@ namespace CapriDesktop
                 if (!watch.Checked || !MailTools.Watch || MailTools.OwnHands || hands.Dimmed) throw new Exception("Turning on Watch for new mail didn't save it, or let her deal with phishing on her own.");
                 InvokeOnClick(hands, EventArgs.Empty);
                 string saved = File.ReadAllText(Path.Combine(dir, MailTools.WatchName));
-                if (!MailTools.OwnHands || !saved.Contains("\"watch\":true") || !saved.Contains("\"own_hands\":true") || saved.Contains("demo-panel-pass-1") || File.ReadAllText(MailAccount.FilePath(dir)) != account)
+                if (!MailTools.OwnHands || !saved.Contains("\"watch\":true") || !saved.Contains("\"own_hands\":true") || saved.Contains("demo-panel-pass-1") || File.ReadAllText(MailAccount.FilePath(dir)) != kept)
                     throw new Exception("Email's switches weren't saved on their own, apart from the account and its password: " + saved);
                 sheet.Picture(Path.Combine(output, "mail-connected-on.png"));
                 InvokeOnClick(watch, EventArgs.Empty);
