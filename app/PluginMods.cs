@@ -711,7 +711,7 @@ namespace CapriDesktop
 #if CROSS
         private const string PerTool = "";
 #else
-        private const string PerTool = ", and you can set each tool to ask, always run or stay off under its Options";
+        private const string PerTool = ", and you can set each tool to ask, always run or stay off in its window under PLUG-INS";
 #endif
 
         private static string PluginPermission(string name)

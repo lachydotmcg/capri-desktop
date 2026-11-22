@@ -3701,6 +3701,7 @@ namespace CapriDesktop
             Key key = control as Key;
             Label label = control as Label;
             TextBox box = control as TextBox;
+            PlugTile tile = control as PlugTile;
             if (entry != null)
             {
                 problem = FitsText(graphics, entry.Cue, entry.Box.Font, entry.Box.Bounds, flags, at, name + " cue", visible);
@@ -3751,6 +3752,12 @@ namespace CapriDesktop
                 if (key.Ellipsis) flags |= TextFormatFlags.EndEllipsis;
                 if (key.Chevron) area = new Rectangle((int)(10 * scale), 0, key.Width - (int)(32 * scale), key.Height);
                 problem = FitsText(graphics, key.Text, key.Font, area, flags | (key.Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter), at, name, visible);
+            }
+            else if (tile != null)
+            {
+                TextFormatFlags centred = flags | TextFormatFlags.HorizontalCenter | (tile.Mod != null && tile.Mod.Starter ? TextFormatFlags.SingleLine : TextFormatFlags.EndEllipsis);
+                problem = FitsText(graphics, tile.Text, tile.Font, tile.NameArea(scale), centred, at, name + " name", visible);
+                if (problem == null) using (Font small = tile.SmallFont()) problem = FitsText(graphics, tile.State, small, tile.StateArea(scale), flags | TextFormatFlags.HorizontalCenter, at, name + " state", visible);
             }
             else if (label != null)
             {

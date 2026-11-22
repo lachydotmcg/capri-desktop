@@ -883,11 +883,12 @@ namespace CapriDesktop
             int pluginsAt = help.IndexOf("### What are plug-ins? (0.9.6)", StringComparison.Ordinal);
             int pluginsEnd = pluginsAt < 0 ? -1 : help.IndexOf("\n### ", pluginsAt + 4, StringComparison.Ordinal);
             string pluginHelp = pluginsAt < 0 ? "" : help.Substring(pluginsAt, (pluginsEnd < 0 ? help.Length : pluginsEnd) - pluginsAt);
-            foreach (string part in new[] { ".capri-plugin", "plugin.json", ".mcp.json", "Email, Notion and Linear", "Set up Email", "app password", MailAccount.OutlookNote, "no Microsoft sign-in", "Needs you to sign in", "Like SECURITY, Always run, Ask first and Off", "Send mail always asks", "up to 32", "Up to 4 servers" })
+            foreach (string part in new[] { ".capri-plugin", "plugin.json", ".mcp.json", "Email, Notion and Linear", "Set up Email", "app password", MailAccount.OutlookNote, "no Microsoft sign-in", "Needs you to sign in", "Like SECURITY, Always run, Ask first and Off", "Send mail always asks", "up to 32", "Up to 4 servers", "Mainframe > Mods > PLUG-INS", "Which email?", "Make an app password", "Paste it" })
                 if (pluginHelp.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page's plug-ins section is missing: " + part);
-            if (SelfKnow.Setting("MainframePlugins.cs", "Like SECURITY") == null || SelfKnow.Setting("MainframePlugins.cs", "Sign in") == null || SelfKnow.Setting("MainframeMail.cs", "Set up Email") == null || !(SelfKnow.Matching("why doesn't Outlook work with email?") ?? "").Contains(MailAccount.OutlookNote))
-                throw new Exception("Her plug-in help lost a topic or the Outlook line.");
-            checks.Add("PASS her help page and her self knowledge explain plug-ins: what they are, the Email, Notion and Linear starters, importing, signing in, each tool's Options and why Outlook doesn't work with Email");
+            if (SelfKnow.Setting("MainframePlugins.cs", "Like SECURITY") == null || SelfKnow.Setting("MainframePlugins.cs", "Sign in") == null || SelfKnow.Setting("MainframePlugins.cs", "PLUG-INS >") == null || SelfKnow.Setting("MainframeMail.cs", "Set up Email") == null
+                || !(SelfKnow.Matching("why doesn't Outlook work with email?") ?? "").Contains(MailAccount.OutlookNote) || !(SelfKnow.Matching("where are your plug ins?") ?? "").Contains("Mainframe > Mods > PLUG-INS"))
+                throw new Exception("Her plug-in help lost a topic, where plug-ins are or the Outlook line: " + SelfKnow.Matching("where are your plug ins?"));
+            checks.Add("PASS her help page and her self knowledge explain plug-ins: what they are and that they're under Mainframe > Mods > PLUG-INS, the Email, Notion and Linear starters, Set up Email's three steps, importing, signing in, each tool's key in its window and why Outlook doesn't work with Email");
         }
 
         // The owner's smaller wording flags: each line keeps its cause and its fix inside the note that shows it.

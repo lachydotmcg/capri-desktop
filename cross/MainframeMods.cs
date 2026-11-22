@@ -11,11 +11,11 @@ using Avalonia.Threading;
 
 namespace CapriDesktop
 {
-    // Her Mods page, like Windows' (app/MainframeMods.cs): installed mods, Import mod, Browse mods, the mods folder, Update mods and
-    // her colors, opened from Mods beside Settings in her title bar. Browse mods opens the mods directory in its own window.
+    // Her Mods page, like Windows' (app/MainframeMods.cs): her plug-ins, installed mods, Import mod, Browse mods, the mods folder,
+    // Update mods and her colors, opened from Mods beside Settings in her title bar. Browse mods opens the mods directory in its own window.
     internal sealed partial class Mainframe
     {
-        private const int ModRows = 4, ModRowTop = 238, ModRowHeight = 62;
+        private const int ModRows = 3, ModRowTop = 370, ModRowHeight = 62, ModListHead = 312;
         private static readonly string ModDownloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri", "mod-downloads");
         private NeonButton modsKey, modUpdate, modBack, modNext;
         private NeonCaption modStatus, modEmpty, modNoMatch, modPage;
@@ -53,11 +53,12 @@ namespace CapriDesktop
             Key("Browse mods", 134, 104, 100, 28, BrowseMods);
             Key("Mods folder", 240, 104, 116, 28, OpenModsFolder);
             modStatus = Caption("", 28, 138, 328, 36, MainframeTheme.Faint, 34.0 / 3); modStatus.Ellipsis = true;
-            Section("INSTALLED", 0, 180);
-            modSearch = Entry("Search your installed mods", "Search by name or author", 28, 204, 222, 26, delegate { });
+            BuildPlugs();
+            Section("INSTALLED", 0, ModListHead);
+            modSearch = Entry("Search your installed mods", "Search by name or author", 28, ModListHead + 24, 222, 26, delegate { });
             // Typing goes through Program.Guard like the buttons, so a bug behind the box is written down instead of ending her.
             modSearch.Box.TextChanged += delegate { Program.Guard(delegate { modFirst = 0; FillMods(); }); };
-            modUpdate = Key("Update mods", 256, 204, 100, 26, UpdateMods);
+            modUpdate = Key("Update mods", 256, ModListHead + 24, 100, 26, UpdateMods);
             modEmpty = Caption("No mods yet. Import a " + Mods.Extension + " file.", 28, ModRowTop, 328, 20, MainframeTheme.Faint);
             modNoMatch = Caption("No mods match.", 28, ModRowTop, 328, 20, MainframeTheme.Faint);
             for (int i = 0; i < ModRows; i++)
@@ -80,9 +81,9 @@ namespace CapriDesktop
                 colourEntries[i] = Entry(ArtColors.Names[i] + " color", ArtColors.Usual[i], 184, colours + 27 + i * 28, 172, 22, SaveColours);
             }
             int keys = colours + 26 + ArtColors.Slots * 28 + 6;
-            Key("Save colors", 28, keys, 160, 24, SaveColours).Accent = MainframeTheme.Cyan;
-            Key("Reset colors", 196, keys, 160, 24, ResetColours);
-            Key("Animations", 28, keys + 32, 160, 24, EditAnimations);
+            Key("Save colors", 28, keys, 104, 24, SaveColours).Accent = MainframeTheme.Cyan;
+            Key("Reset colors", 140, keys, 104, 24, ResetColours);
+            Key("Animations", 252, keys, 104, 24, EditAnimations);
             if (pet.ModList.Problems.Count > 0) modStatus.Text = "Skipped " + pet.ModList.Problems[0];
             building = was;
         }
@@ -101,7 +102,8 @@ namespace CapriDesktop
         private void FillMods()
         {
             if (modFilling || modSearch == null) return;
-            List<Mod> mods = ShownMods(pet.ModList.All, modSearch.Box.Text);
+            FillPlugs();
+            List<Mod> mods = ShownMods(pet.ModList.All.FindAll(one => !one.Plugin), modSearch.Box.Text);
             modShown = mods;
             int total = mods.Count;
             modFirst = Math.Max(0, Math.Min(modFirst, (Math.Max(0, total - 1) / ModRows) * ModRows));
@@ -111,7 +113,7 @@ namespace CapriDesktop
             modFilling = true;
             try
             {
-                modEmpty.IsVisible = pet.ModList.All.Count == 0;
+                modEmpty.IsVisible = !pet.ModList.All.Exists(one => !one.Plugin);
                 modNoMatch.IsVisible = total == 0 && !modEmpty.IsVisible;
                 for (int i = 0; i < ModRows; i++)
                 {
@@ -121,7 +123,7 @@ namespace CapriDesktop
                     List<Mod> stack = pet.ModList.SkinStack;
                     modNames[i].Text = mod.File.Name + (string.IsNullOrEmpty(mod.File.Version) ? "" : " v" + mod.File.Version);
                     modNames[i].Ink = mod.On ? MainframeTheme.White : MainframeTheme.Faint;
-                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Plugin ? (Mods.StarterAbout(mod) ?? "PLUG-IN. " + (!mod.On ? "" : Plugins.Trouble(mod.File.Id) == McpSignInNeeded.Said ? "Turn it off and on to sign in. " : Plugins.ToolsOf(mod.File.Id).Count + " tools. ")) : mod.Code ? "RUNS CODE. " : mod.Tool ? "TOOL, reads from " + string.Join(", ", mod.File.Recipe.Domains) + ". " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : Mods.CompanionLabel(mod))
+                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Tool ? "TOOL, reads from " + string.Join(", ", mod.File.Recipe.Domains) + ". " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : Mods.CompanionLabel(mod))
                         + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "")
                         + (mod.Code || mod.File.WakeNames == null || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames))
                         + (mod.Skill && mod.File.Games != null && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : "")).Trim();
@@ -254,10 +256,12 @@ namespace CapriDesktop
         {
             Func<ModFile, string, bool> ask = ModAsk;
             ModsWindow browser = ModsBrowser;
-            bool frameWas = IsEnabled, browserWas = browser != null && browser.IsEnabled;
+            PluginWindow plug = PluginSheet;
+            bool frameWas = IsEnabled, browserWas = browser != null && browser.IsEnabled, plugWas = plug != null && plug.IsEnabled;
             modAsking = true;
             IsEnabled = false;
             if (browser != null) browser.IsEnabled = false;
+            if (plug != null) plug.IsEnabled = false;
             ModsChanged();
             try { return ask != null ? ask(mod, hash) : AskToRun(mod, hash); }
             finally
@@ -265,6 +269,7 @@ namespace CapriDesktop
                 modAsking = false;
                 IsEnabled = frameWas;
                 if (browser != null) browser.IsEnabled = browserWas;
+                if (plug != null) plug.IsEnabled = plugWas;
                 ModsChanged();
             }
         }
@@ -306,7 +311,7 @@ namespace CapriDesktop
             using (CancellationTokenSource done = new CancellationTokenSource())
             {
                 box.Closed += delegate { done.Cancel(); };
-                box.ShowDialog(ModsBrowser != null && ModsBrowser.IsActive ? ModsBrowser : this);
+                box.ShowDialog(PluginSheet != null && PluginSheet.IsActive ? PluginSheet : ModsBrowser != null && ModsBrowser.IsActive ? ModsBrowser : (Window)this);
                 no.Focus();
                 Dispatcher.UIThread.MainLoop(done.Token);
             }
@@ -321,6 +326,7 @@ namespace CapriDesktop
                 Mod mod = pet.ModList.Import(file, Ask);
                 // A file removed during import can be missing from the reloaded mod list.
                 if (mod == null) throw new ModException("Not imported. Nothing ran.");
+                if (mod.Plugin) ShowPlug(mod);
                 ModSays(mod.Pack != null ? Mods.CompanionSays(mod) : mod.File.Name + " is on."); ModsChanged(); return true;
             }
             catch (Exception error)
@@ -349,15 +355,23 @@ namespace CapriDesktop
         {
             if (Refused(true)) return;
             Mod mod = ShownMod(row);
-            if (mod == null) return;
+            if (mod != null) Switch(mod);
+        }
+
+        // On or off, the same way from her list or a plug-in's window: a plug-in turning on asks with its box first.
+        private bool Switch(Mod mod)
+        {
+            if (Refused(true) || mod == null) return false;
+            bool done = false;
             try
             {
-                pet.ModList.Set(mod, !mod.On, Ask);
-                ModSays(mod.Pack != null ? Mods.CompanionSays(mod) : mod.File.Name + (mod.On ? " is on." : " is off."));
-                if (mod.On) Started(mod);
+                done = pet.ModList.Set(mod, !mod.On, Ask);
+                ModSays(!done ? mod.File.Name + " stays off. Nothing ran." : mod.Pack != null ? Mods.CompanionSays(mod) : mod.File.Name + (mod.On ? " is on." : " is off."));
+                if (done && mod.On) Started(mod);
             }
             catch (Exception error) { ModSays(error.Message); }
             ModsChanged();
+            return done;
         }
 
         internal void RemoveMod(int row)
@@ -399,8 +413,8 @@ namespace CapriDesktop
             ModsChanged();
         }
 
-        // Her list and the directory's cards follow what changed.
-        private void ModsChanged() { FillMods(); RefillBrowser(); }
+        // Her list, her plug-ins, a plug-in's window and the directory's cards follow what changed.
+        private void ModsChanged() { FillMods(); RefillBrowser(); RefreshPluginSheet(); }
 
         // An update from a directory card: like an import, but every mod stays on or off as it was.
         internal bool UpdateMod(string file, string id)

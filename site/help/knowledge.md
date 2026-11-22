@@ -643,7 +643,7 @@ A skill's game also counts when it runs in a browser tab, like Five Nights at Fr
 To make one: a .capri-skill file starts with a header between two --- lines (capri-skill: 1, then id, name, author, description and games, the game names separated by commas), then the know-how in plain words. Publish it like any other mod.
 
 ### Email: new mail and phishing (0.9.7)
-Turn on the Email plug-in in Mods and set it up with your address and an app password. In Mods, Options on Email opens its tools, and Email settings (Set up email before it's connected) opens the window with your account and two switches below Connect, both off until you turn them on:
+Connect Email under Mods > PLUG-INS and set it up with your address and an app password. Once it's connected, Email settings in Email's window opens Set up Email on who it's connected as, with two switches, both off until you turn them on:
 - Watch for new mail: she watches your inbox in the background and speaks up when something lands, like "Oop, something just came through." Mail that was already there isn't announced. Nothing gets marked read, and she never opens links or attachments. Gmail usually tells her about new mail within seconds; servers without IMAP IDLE are checked about once a minute. You can also ask her to start or stop watching.
 - Deal with phishing on her own: it only counts while she's watching. Mail she's sure is phishing goes straight to your spam folder without asking. On Gmail she says "That's phishing, choom, I reported it as spam and binned it." because moving mail into Gmail's Spam reports it. On other servers she says "That's phishing, choom, I moved it to your junk folder." If the move fails, she says so and why. Mail she isn't sure of stays where it is.
 
@@ -651,15 +651,21 @@ Ask "is this email legit?" or "check that email for phishing" and she checks it 
 
 Ask her to bin an email, or move it to spam, the trash, the archive or a folder, and she moves just that one with move_mail. She asks first by SECURITY > Send, post and delete what you asked for, and always asks when she's just read an email, so an email's own words can't spend your yes. She uses MOVE when your mail server has it. Otherwise she copies the email, marks it deleted and clears only that one (UIDPLUS); a server with neither is told plainly and nothing moves. She never deletes mail for good herself.
 ### What are plug-ins? (0.9.6)
-A plug-in gives her tools from MCP servers, the same kind Claude's plug-ins use, and can bring skills she reads when they fit. Plug-ins sit on the Mods page with your other mods, marked PLUG-IN. She uses a plug-in's tools by herself when you ask for what they do, up to 32 from each plug-in.
+A plug-in gives her tools from MCP servers, the same kind Claude's plug-ins use, and can bring skills she reads when they fit. She uses a plug-in's tools by herself when you ask for what they do, up to 32 from each plug-in.
+
+PLUG-INS (0.9.7): plug-ins have their own section on the Mods page, Mainframe > Mods > PLUG-INS, above INSTALLED. Each one has a picture, its name and one word for where it's at: Connected, Set up, Sign in, On or Off. Press one to open its window: its picture, what it does, the one thing to do next (Connect, Set up email, Sign in or Turn off), its tools, and Remove for a plug-in you imported. With more than four, Back and Next in the PLUG-INS band show the rest. INSTALLED lists your other mods, three at a time.
 
 Before a plug-in with tools goes on, her "Turn on this plug-in?" box shows what it starts or connects to, what it says its tools do, its skills and its file fingerprint (SHA-256). If the file changes later, it stays off until you approve it again. Programs it starts run outside Capri with your account's access to your PC. They get none of her keys, and none of your PC's other key, token and password settings unless the box names them. She refuses any call that would send one of her keys. After she reads a plug-in's answer or a skill, anything that would use your mouse and keyboard, send, post, delete or pay asks first until your next message.
 
-Starters: Email, Notion and Linear come with her, switched off on the Mods page. An off starter's row says STARTER and what it needs. Turn one on and her plug-in box shows first.
-- Email checks, searches and reads your mail and writes mail for you. Turning it on opens Set up Email: your email address and an app password, never your normal password. Gmail, iCloud, Yahoo, AOL, Fastmail, GMX and Zoho fill in their own servers. For another address, type its incoming (IMAP) and outgoing (SMTP) servers. Connect signs in to check it works before she keeps it. She always asks before she sends an email. Forget account removes the account and its app password.
-- Notion searches, reads and edits your pages and databases. Linear finds, makes and updates your issues and projects. Turning either on opens your browser, so you sign in on their own page.
+Starters: Email, Notion and Linear come with her, switched off under PLUG-INS. Press one, then Connect, and her plug-in box shows first.
+- Email checks, searches and reads your mail and writes mail for you. Connect opens Set up Email, in three steps (0.9.7).
+- Step 1, Which email?: pick Gmail, iCloud, Yahoo, AOL, Fastmail, Outlook / Hotmail or Other, or type your address and she picks it for you.
+- Step 2, Make an app password: two or three short steps for that email, and a key that opens its app password page. An app password is a separate password just for Capri. Your normal password stays yours.
+- Step 3, Paste it: your email address and the app password, then Connect, which signs in to check it works before she keeps it. Other also asks for its incoming (IMAP) and outgoing (SMTP) servers. GMX and Zoho fill in their own servers, like the ones with tiles.
+- Once it's connected, Set up Email says who it's connected as, with Watch for new mail, Deal with phishing on her own, Forget account and Use another email. She always asks before she sends an email. Forget account removes the account and its app password.
+- Notion searches, reads and edits your pages and databases. Linear finds, makes and updates your issues and projects. Connect on either opens your browser, so you sign in on their own page.
 
-Outlook.com, Hotmail and Live addresses don't work with Email yet. Set up Email says "Outlook and Hotmail don't take app passwords any more, so Capri can't sign in to them yet." as soon as you type one. Her Email signs in only with a password, over IMAP and SMTP, and has no Microsoft sign-in.
+Outlook.com, Hotmail and Live addresses don't work with Email yet. Set up Email says "Outlook and Hotmail don't take app passwords any more, so Capri can't sign in to them yet." as soon as you pick Outlook / Hotmail or type one of their addresses, and stops there. Her Email signs in only with a password, over IMAP and SMTP, and has no Microsoft sign-in.
 
 Your own plug-ins: Mods > Import mod takes a .capri-plugin, or a Claude plug-in's plugin.json or a .mcp.json. On Windows, pick "Claude plug-ins and MCP servers" in the file box to see those.
 - A plugin.json brings its whole folder, without .git or node_modules. A .mcp.json brings only that file, and the plug-in is named after its folder.
@@ -672,17 +678,17 @@ Your own plug-ins: Mods > Import mod takes a .capri-plugin, or a Claude plug-in'
 
 In the mods directory: Browse mods can list plug-ins, under Plug-ins. Install shows the same box, with a line saying the Capri team reviewed that exact file. A listed plug-in has every npx and uvx server pinned to a version.
 
-Signing in: an online plug-in like Notion or Linear opens your browser to sign in when you switch it on. If it still needs you, its row says "Needs you to sign in" on Windows, where Sign in under its Options opens your browser again, or "Turn it off and on to sign in" on Mac and Linux. On Windows the sign-in stays on this PC, protected by Windows, until you remove the plug-in, and importing it again means signing in again. On Mac and Linux she keeps sign-ins and the Email app password only until she closes.
+Signing in: an online plug-in like Notion or Linear opens your browser to sign in when you connect it. If it still needs you, its tile says Sign in and its window says "Needs you to sign in" on Windows, with a Sign in key that opens your browser again, or "Turn it off and on to sign in" on Mac and Linux. On Windows the sign-in stays on this PC, protected by Windows, until you remove the plug-in, and importing it again means signing in again. On Mac and Linux she keeps sign-ins and the Email app password only until she closes.
 
-Options (Windows): on a plug-in that's on, Options lists its tools. Each has a key that goes round Like SECURITY, Always run, Ask first and Off.
+Its tools (Windows): a plug-in's window lists its tools once it's on. Each has a key that goes round Like SECURITY, Always run, Ask first and Off.
 - Like SECURITY asks first the way SECURITY > HER MODS > Use tools your mods added says, and for tools that change things, Send, post and delete too.
 - Always run uses the tool without asking. Ask first always asks. Off takes it away from her.
 - A plug-in that says it can pay, buy or book, or names a tool to ask about, asks first unless you pick Always run.
-- Email's Send mail always asks, and its key only turns it off. Email's Options also has Set up email, or Change email account once it's connected.
+- Email's Send mail always asks, and its key only turns it off. Email's window also has Set up email, or Email settings once it's connected.
 
-On Mac and Linux there's no Options for plug-ins yet: their tools follow your SECURITY settings, and Send mail always asks.
+On Mac and Linux a plug-in's window has no tool keys yet: their tools follow your SECURITY settings, and Send mail always asks.
 
-Remove stops a plug-in's programs and forgets its sign-in and its Options choices.
+Remove, in the window of a plug-in you imported, stops its programs and forgets its sign-in and its tool choices. Email, Notion and Linear can only be turned off.
 
 ### Workspace (beta) (0.9.0, Windows)
 Workspace is her window for chats with Claude Code. Open it from Mainframe > BRAIN > WORKSPACE (beta), or ask her to "open workspace".
