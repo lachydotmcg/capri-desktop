@@ -116,6 +116,13 @@ namespace CapriDesktop
             SendInput(1, inputs, Marshal.SizeOf(typeof(Input)));
         }
 
+        // A real mouse move by a pixel and back. Windows stops drawing the cursor after touch or pen input, until the mouse moves.
+        internal static void Nudge()
+        {
+            Input[] inputs = { new Input { Type = 0, Mouse = new MouseInput { X = 1, Flags = 0x0001 } }, new Input { Type = 0, Mouse = new MouseInput { X = -1, Flags = 0x0001 } } };
+            SendInput(2, inputs, Marshal.SizeOf(typeof(Input)));
+        }
+
         internal static void Front(IntPtr window) { SetForegroundWindow(window); }
 
         // The window a click at a spot would go to, by title, class and program, for a check that finds the wrong one there.
@@ -268,6 +275,7 @@ namespace CapriDesktop
                         return;
                     }
                     if (smokeInput != null) { Application.RemoveMessageFilter(smokeInput); unfiltered = true; }
+                    FakeGame.Nudge();
                     WatchGameCursor(true);
                     move = delegate(Point at) { FakeGame.Put(at); PumpFor(0.15); };
                     click = delegate(bool right) { FakeGame.Press(right ? 0x0008 : 0x0002); System.Threading.Thread.Sleep(40); FakeGame.Press(right ? 0x0010 : 0x0004); PumpFor(0.35); };
@@ -322,9 +330,11 @@ namespace CapriDesktop
                 aimHidden = false;
                 cursorMode(0);
                 move(away);
-                if (real && GameCursor.Read().Hidden)
+                GameCursor.Reading first = GameCursor.Read();
+                if (real && (first.Hidden || (first.Flags & 2) != 0))
                 {
-                    checks.Add("LIMIT game clicks with the real mouse: this runner shows no cursor even over the pretend game with its cursor showing, " + GameCursor.Read());
+                    checks.Add("LIMIT game clicks with the real mouse: this runner " + ((first.Flags & 2) != 0 ? "doesn't draw the mouse cursor at all, the way Windows doesn't after touch input," : "shows no cursor")
+                        + " even over the pretend game with its cursor showing and the mouse just moved, " + first);
                     return;
                 }
                 CheckGameCursor(clock.Elapsed.TotalSeconds);
