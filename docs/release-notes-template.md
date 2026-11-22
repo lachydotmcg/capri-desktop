@@ -20,4 +20,4 @@ Everyone credited above.
 
 ---
 
-Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Check your file against `SHA256SUMS.txt` on this release ([how](https://github.com/lachydotmcg/capri-desktop/blob/main/SECURITY.md#windows-or-your-antivirus-warned-me)).
+Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases) or [capriai.app](https://capriai.app/). Check your file against `SHA256SUMS.txt` on this release ([how](https://github.com/lachydotmcg/capri-desktop/blob/main/SECURITY.md#windows-or-your-antivirus-warned-me)).
