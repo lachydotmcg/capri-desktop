@@ -84,11 +84,19 @@ wait after her name on its own as Linux, with these Mac differences:
 - **Her own voice.** Mac playback goes through the native helper, not PipeWire, so
   every line, typing sound and hush closes capture first and keeps it closed for
   the clip plus 700 ms.
-- **Screen lock.** On Linux she pauses on a real lock report: Hyprland's own session
-  snapshot, or logind's `LockedHint` anywhere else. A desktop that answers nothing
-  keeps her listening, and she may keep listening while the screen is locked, since
-  the hint depends on the desktop updating it. Mac has no lock check yet; mute or
-  quiet her before stepping away.
+- **Screen lock.** On Linux she pauses on a real lock report: a Hyprland session
+  snapshot that says the session is locked, or logind's `LockedHint` anywhere else. A
+  missing or stale snapshot is treated as unknown, never as a lock, so a desktop that
+  isn't answering can't pause her or write a false hold. A locked screen pauses her, and
+  a detected unlock brings her back when the switch is still on and nothing else bars
+  her. A desktop that answers nothing keeps her listening, and she may keep listening
+  while the screen is locked, since the hint depends on the desktop updating it. Once
+  she has seen a lock she remembers it in `cross.json`, so a desktop that stops
+  answering afterward keeps her paused even across restarting Capri. An explicit Stop
+  always wins: a lock only pauses her while she is actually listening, so a later
+  unlock can't restart her after you stopped her. Turning the switch off and on brings
+  her back; when the lock state can't be read she warns you first and waits for a
+  typed YES. Mac has no lock check yet; mute or quiet her before stepping away.
 
 Mac setup, Apple Silicon, Python 3.11 (Homebrew `python@3.11` or python.org):
 

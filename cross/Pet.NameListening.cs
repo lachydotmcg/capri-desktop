@@ -13,6 +13,7 @@ namespace CapriDesktop
     {
         // A new opt-in: older dormant microphone flags do not grant consent.
         [DataMember] internal bool ListenCapri;
+        [DataMember] internal bool ListenCapriHold;
     }
 
     internal static class NameListeningText
@@ -35,6 +36,8 @@ namespace CapriDesktop
         private Task nameLifetime = Task.CompletedTask;
         private long nameEpoch;
         private bool nameStopped = true, nameStartup, nameClosed, nameChecking, nameStarting;
+        // Her current stopped state was caused by the lock, so only a detected unlock may bring her back.
+        private bool nameLockPaused;
         private string nameIdentity, nameStatus = "Local name listening is off.";
         private double nextNameIdentityCheck, macSpeechUntil;
 
@@ -47,9 +50,11 @@ namespace CapriDesktop
         {
             if (!OperatingSystem.IsLinux()) return false;
             HyprlandDesktop desktop = HyprlandDesktop.Current;
-            if (desktop != null) return desktop.VisualSnapshot?.Locked != false;
+            if (desktop != null) return LockedFromSnapshot(desktop.VisualSnapshot);
             return Limbs.SessionLocked();
         };
+        // Only a snapshot that exists can report a lock; an absent one is unknown, which never bars her and never holds her.
+        internal static bool? LockedFromSnapshot(HyprlandSnapshot snapshot) => snapshot == null ? null : (bool?)snapshot.Locked;
         internal static bool NameBarredByLock() => LockedForNameListening() == true;
         private bool NameBarred => nameClosed || quitting || away || Hushed || Asleep || Listening ||
             Talk?.Typer.Secret == true || NameBarredByLock();
@@ -100,7 +105,13 @@ namespace CapriDesktop
                 };
                 Voice.Silence = () => { Limbs.Hush(); macSpeechUntil = Now + 0.7; };
             }
-            nameStartup = Saved.ListenCapri;
+            nameStartup = Saved.ListenCapri && !(OperatingSystem.IsLinux() && Saved.ListenCapriHold);
+            if (Saved.ListenCapri && !nameStartup)
+            {
+                nameStatus = "Paused after a locked screen. Turn Listen for Capri off and on, or unlock, to bring her back.";
+                // A hold that survived a restart is a lock pause, so a detected unlock still brings her back.
+                nameLockPaused = true;
+            }
             Closed += (_, _) =>
             {
                 nameClosed = true;
@@ -111,9 +122,73 @@ namespace CapriDesktop
 
         private void GateNamePlayback() => nameEars.GateForPlayback();
 
+        internal void ObserveNameLock(bool? locked)
+        {
+            if (locked == true)
+            {
+                // Only a lock that actually stops her is a lock pause. A user stop, TALK bar or an off switch writes nothing,
+                // so a later unlock can't restart her against that.
+                if (!nameStopped)
+                {
+                    Saved.ListenCapriHold = true;
+                    Save();
+                    StopNameListening("Paused while the screen is locked.");
+                    nameLockPaused = true;
+                }
+                return;
+            }
+            // A lost signal after a lock never counts as an unlock, and any other control keeps her held until it lifts.
+            if (locked == false && nameLockPaused && Saved.ListenCapriHold && Saved.ListenCapri && !NameBarred && !nameClosed)
+            {
+                Saved.ListenCapriHold = false;
+                Save();
+                StartNameListening();
+            }
+        }
+
         internal void SetNameListening(bool on)
         {
             if (!(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) || Program.Smoke != null) return;
+            EnableNameListening(on);
+        }
+
+        private void EnableNameListening(bool on)
+        {
+            if (on && OperatingSystem.IsLinux() && Saved.ListenCapriHold)
+            {
+                bool? locked = LockedForNameListening();
+                if (locked == true)
+                {
+                    Saved.ListenCapri = true;
+                    Save();
+                    StopNameListening("Paused while the screen is locked.");
+                    // She is lock-paused again, so a detected unlock may bring her back without another yes.
+                    nameLockPaused = true;
+                    return;
+                }
+                if (locked == null)
+                {
+                    if (Talk == null) return;
+                    Talk.AskFor("(name listening)", "Capri can't reliably detect whether your screen is locked. Her microphone may keep listening while your screen is locked. Type YES to resume listening, or NO to keep her paused.", answer =>
+                    {
+                        if (!string.Equals(answer?.Trim(), "yes", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Saved.ListenCapri = false;
+                            Save();
+                            StopNameListening("Local name listening is off.");
+                            return;
+                        }
+                        Saved.ListenCapriHold = false;
+                        Save();
+                        Saved.ListenCapri = true;
+                        Save();
+                        StartNameListening();
+                    });
+                    return;
+                }
+                Saved.ListenCapriHold = false;
+                Save();
+            }
             Saved.ListenCapri = on;
             if (on && OperatingSystem.IsMacOS())
             {
@@ -122,7 +197,16 @@ namespace CapriDesktop
             }
             Save();
             if (!on) { StopNameListening("Local name listening is off."); return; }
+            // The note only lands when she proceeds to listen; a microphone chooser would talk over it.
+            if (Talk != null && NameMicrophoneSet(Saved.MicrophoneNode, Saved.MicrophoneFingerprint))
+                Talk.Answer("(name listening)", "She can't always tell when the screen is locked, so on some desktops she may keep listening while it is.");
             StartNameListening();
+        }
+
+        private static bool NameMicrophoneSet(string source, string fingerprint)
+        {
+            return !string.IsNullOrWhiteSpace(source) && !string.IsNullOrWhiteSpace(fingerprint) &&
+                (!OperatingSystem.IsMacOS() || (source == "mac-default" && fingerprint.Length == 64));
         }
 
         private void SetNameStatus(string status)
@@ -138,6 +222,7 @@ namespace CapriDesktop
             nameStopped = true;
             nameStarting = false;
             nameStartup = false;
+            nameLockPaused = false;
             nameEars.Stop();
             SetNameStatus(status);
         }
@@ -147,8 +232,7 @@ namespace CapriDesktop
             StopNameListening();
             if (NameBarred) { SetNameStatus(Listening ? "Finish TALK, then turn Listen for Capri on." : "Name listening paused. Unmute and wake Capri, then turn it on."); return; }
             NameContext captured = CaptureNameContext();
-            if (string.IsNullOrWhiteSpace(captured.Source) || string.IsNullOrWhiteSpace(captured.Fingerprint) ||
-                (OperatingSystem.IsMacOS() && (captured.Source != "mac-default" || captured.Fingerprint.Length != 64)))
+            if (!NameMicrophoneSet(captured.Source, captured.Fingerprint))
             { ChooseNameMicrophone(); return; }
             long ticket = nameEpoch;
             nameContext = captured;
@@ -308,6 +392,8 @@ namespace CapriDesktop
             if (!(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) || Program.Smoke != null || nameClosed) return;
             if (nameStartup && opened && !NameBarredByLock())
             { nameStartup = false; StartNameListening(); }
+            // A held state must keep reading the lock, or an unlock could never be seen.
+            if (OperatingSystem.IsLinux() && Saved.ListenCapri) ObserveNameLock(Pet.LockedForNameListening());
             if (nameStopped) return;
             if (NameBarred || nameContext != null && !SameNameContext(nameContext))
             { StopNameListening("Name listening stopped after a state change. Turn Listen for Capri on to resume."); return; }
