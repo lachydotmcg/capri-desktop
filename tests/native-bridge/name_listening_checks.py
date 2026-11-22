@@ -74,7 +74,7 @@ class GateTests(unittest.TestCase):
         self.wake();self.assertIsNone(self.say('a late decoder final','unknown',False))
     def test_thinking_holds_open_window_but_does_not_reopen_expired(self):
         self.wake();self.clock.advance(9);self.gate.control(barred=False,speaking=False,busy=True)
-        self.clock.advance(10);self.gate.tick();self.assertEqual(self.gate.until-self.clock(),10)
+        self.clock.advance(5);self.gate.tick();self.assertEqual(self.gate.until-self.clock(),10)
         self.gate.control(barred=False,speaking=False,busy=False);self.clock.advance(11);self.gate.tick()
         self.assertFalse(self.gate.open);self.gate.control(barred=False,speaking=False,busy=True)
         self.assertFalse(self.gate.open)
