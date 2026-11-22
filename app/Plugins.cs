@@ -452,6 +452,34 @@ namespace CapriDesktop
             return null;
         }
 
+        internal const string MailOff = "off", MailUnset = "unset", MailReady = "ready";
+
+        // Her Email plug-in and their own inbox: off, on but not connected to it yet, or connected.
+        internal static string MailState()
+        {
+            if (BuiltInOn("mail") == null) return MailOff;
+            return MailTools.Ready ? MailReady : MailUnset;
+        }
+
+        private static readonly string[] ReadingTools = { "recent_mail", "search_mail", "read_mail" };
+
+        // What her brain calls her Email plug-in's tools for checking, searching and reading their mail, like email_recent_mail,
+        // leaving out any that aren't listed yet or that they turned off in its window.
+        internal static string[] MailReading()
+        {
+            List<string> names = new List<string>();
+            lock (gate)
+                foreach (PluginInfo plugin in loaded)
+                {
+                    List<PluginTool> found;
+                    if (!plugin.On || !tools.TryGetValue(plugin.Id, out found)) continue;
+                    foreach (string reading in ReadingTools)
+                        foreach (PluginTool tool in found)
+                            if (tool.Tool == reading && MailTool(plugin, tool) && GrantOf(plugin.Id, tool.Tool) != Off && !names.Contains(tool.Exposed)) names.Add(tool.Exposed);
+                }
+            return names.ToArray();
+        }
+
         internal static bool AlwaysAsks(PluginTool tool)
         {
             PluginInfo plugin;

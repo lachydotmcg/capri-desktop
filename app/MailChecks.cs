@@ -428,6 +428,54 @@ namespace CapriDesktop
             }
         }
 
+        // A pretend OpenAI brain: it gives these answers in turn, then keeps giving the last one, and keeps what each ask sent.
+        private sealed class FakeBrain
+        {
+            internal TcpListener Listener = new TcpListener(IPAddress.Loopback, 0);
+            internal List<string> Asked = new List<string>();
+            internal string Address { get { return "http://127.0.0.1:" + ((IPEndPoint)Listener.LocalEndpoint).Port; } }
+
+            internal void Start(params string[] replies)
+            {
+                Listener.Start();
+                Thread t = new Thread(delegate()
+                {
+                    for (int i = 0; ; i++)
+                    {
+                        try
+                        {
+                            using (TcpClient c = Listener.AcceptTcpClient())
+                            using (NetworkStream s = c.GetStream())
+                            {
+                                MemoryStream got = new MemoryStream();
+                                byte[] buffer = new byte[8192];
+                                string text = "";
+                                while (true)
+                                {
+                                    int read = s.Read(buffer, 0, buffer.Length);
+                                    if (read <= 0) break;
+                                    got.Write(buffer, 0, read);
+                                    text = Encoding.UTF8.GetString(got.ToArray());
+                                    int end = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                                    if (end < 0) continue;
+                                    Match length = Regex.Match(text, @"Content-Length:\s*(\d+)", RegexOptions.IgnoreCase);
+                                    if (got.Length >= end + 4 + (length.Success ? int.Parse(length.Groups[1].Value) : 0)) break;
+                                }
+                                lock (Asked) Asked.Add(text);
+                                byte[] body = Encoding.UTF8.GetBytes(replies[Math.Min(i, replies.Length - 1)]);
+                                byte[] head = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + body.Length + "\r\nConnection: close\r\n\r\n");
+                                s.Write(head, 0, head.Length);
+                                s.Write(body, 0, body.Length);
+                            }
+                        }
+                        catch (Exception) { return; }
+                    }
+                });
+                t.IsBackground = true;
+                t.Start();
+            }
+        }
+
         private static void Need(bool ok, string what)
         {
             if (!ok) throw new Exception("Email check failed: " + what);
@@ -571,7 +619,7 @@ namespace CapriDesktop
                 MailTools.Account = null;
                 text = Reply(MailTools.Call("recent_mail", Args()), out err);
                 Need(err && text == MailTools.NotSetUp, "no account says to set it up");
-                Need(MailTools.NotSetUp == "Email isn't set up yet. Turn on Email under Mods to set it up.", "setup message");
+                Need(MailTools.NotSetUp == "Email isn't connected yet. They can connect it with Email in Mainframe's Mods page, under Plug-ins.", "setup message");
                 a.Password = "Sup3r-secret-pw";
                 a.Save(dir);
                 string file = File.ReadAllText(MailAccount.FilePath(dir));
@@ -979,6 +1027,75 @@ namespace CapriDesktop
                 imap.Listener.Stop();
             }
             checks.Add("PASS plug-ins: moving mail asks first by Send, post and delete, always asks after she's read an email, moves on their yes and stays put on their no");
+        }
+
+        // A plain ask about their email goes to her Email plug-in on the first try once it's connected, and until then every brain
+        // is told where to connect it. unplugged is her kit from before Email was turned on.
+        internal static void CheckPlainAsk(List<string> checks, Hands.Kit unplugged)
+        {
+            Func<Hands.Kit, bool> saysConnect = delegate(Hands.Kit kit)
+            {
+                return Hands.NoteFor(kit).Contains(Hands.MailUnplugged) && kit.ChatOnly.Contains(Hands.MailUnplugged) && Hands.PromptFor(kit).Contains("Your Email plug-in isn't connected to their inbox")
+                    && !Hands.NoteFor(kit).Contains("Their own email inbox is connected") && !kit.Chat.Contains("Their own email inbox is connected");
+            };
+            Need(saysConnect(unplugged), "with Email off, her prompts didn't say where to connect it");
+            FakeImap imap = Gmail();
+            imap.Messages[1] = Personal("p1");
+            imap.Start();
+            FakeBrain fake = new FakeBrain();
+            MailAccount was = MailTools.Account;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            try
+            {
+                MailTools.Account = Fake(imap.Port);
+                ModFloor.Fresh();
+                const string Reading = "email_recent_mail, email_search_mail or email_read_mail";
+                Hands.Kit kit = Hands.KitFor();
+                string note = Hands.NoteFor(kit), hands = Hands.PromptFor(kit);
+                Need(note.Contains("Their own email inbox is connected to you through your Email plug-in") && note.Contains("use mod with " + Reading + " straight away") && !note.Contains(Hands.MailUnplugged), "her notes didn't say their inbox is connected: " + note);
+                Need(hands.Contains("call mod with name " + Reading) && hands.IndexOf("call mod with name", StringComparison.Ordinal) < hands.LastIndexOf("Questions about their current", StringComparison.Ordinal), "her hands weren't told to check their inbox with the plug-in");
+                Need(kit.ChatOnly.Contains("Their own email inbox is connected through your Email plug-in") && kit.Chat.IndexOf("Their own email inbox", StringComparison.Ordinal) < kit.Chat.LastIndexOf(" If they want anything done", StringComparison.Ordinal), "her chat didn't count their email as a job for her tools");
+                Need(kit.WorkTools.Contains("\"email_recent_mail\"") && kit.WorkTools.Contains("like check my email or any new emails"), "Check mail wasn't in her tools as their own inbox");
+                Plugins.Grant(Mods.MailStarter, "recent_mail", Plugins.Off);
+                string narrowed = Hands.NoteFor(Hands.KitFor());
+                Plugins.Grant(Mods.MailStarter, "recent_mail", Plugins.Usual);
+                Need(narrowed.Contains("use mod with email_search_mail or email_read_mail straight away"), "a mail tool they turned off was still named");
+
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                const string Answer = "Just one, from your mum about dinner on Sunday.";
+                fake.Start(calls("mod", "{\"name\":\"email_recent_mail\"}"), says(Answer));
+                Brain.OpenAi = fake.Address;
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                List<string> did = new List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + " " + args.Name); return Hands.Do(name, args); };
+                string reply = planner.Ask("Hey Capri, can you check my email?");
+                string[] heard;
+                lock (fake.Asked) heard = fake.Asked.ToArray();
+                Need(reply == Answer && string.Join(",", did.ToArray()) == "mod email_recent_mail" && heard.Length == 2, "a plain ask didn't check their inbox first: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + heard.Length + " asks");
+                Need(heard[0].Contains("can you check my email") && heard[0].Contains("Their own email inbox is connected to you through your Email plug-in") && heard[0].Contains("\"name\":\"mod\"") && heard[0].Contains("email_recent_mail"), "her brain wasn't told about their inbox on the first ask");
+                Need(heard[1].Contains("Sunday") && heard[1].Contains("Mum") && !imap.Seen.Contains(1), "her brain didn't get their mail back, or it was marked read");
+
+                MailTools.Account = null;
+                Need(saysConnect(Hands.KitFor()) && Plugins.Run("email_recent_mail", "").Contains(MailTools.NotSetUp), "before Email's connected, her prompts didn't say where to connect it");
+            }
+            finally
+            {
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                MailTools.Account = was;
+                ModFloor.Fresh();
+                fake.Listener.Stop();
+                imap.Listener.Stop();
+            }
+            checks.Add("PASS plug-ins: with Email connected, a plain \"Hey Capri, can you check my email?\" checks their inbox with her Email plug-in on the first ask, since her notes, hands and chat say their own inbox is connected and name its mail tools; before it's connected, or with it off, they say to connect it in Mainframe > Mods > Plug-ins instead of asking which email app");
         }
     }
 }

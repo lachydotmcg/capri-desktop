@@ -749,6 +749,7 @@ while True:
                 Mod email = made.Find(one => one.File.Id == MailStarter), notion = made.Find(one => one.File.Id == "notion");
                 if (made.Count != 3 || email == null || notion == null || made.Exists(one => one.On || one.Changed || StarterAbout(one) == null || !StarterAbout(one).StartsWith("STARTER.", StringComparison.Ordinal)) || !Builtin(email, "mail") || !Online(notion) || Builtin(notion, "mail"))
                     throw new Exception("Her starter plug-ins didn't come in off and waiting to be set up: " + made.Count);
+                Hands.Kit unplugged = Hands.KitFor();
                 string consent = null;
                 if (!mods.Set(email, true, delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; }) || !email.On || consent == null || !consent.Contains("uses Capri's own mail tools") || consent.Contains("starts "))
                     throw new Exception("Turning on her Email starter didn't ask with what it uses: " + consent);
@@ -764,6 +765,7 @@ while True:
                 if (!asks || asking != "send an email to pat@example.com, lee@example.com with the subject 'Lunch'" || !unaddressed.StartsWith("email_send_mail needs to.", StringComparison.Ordinal))
                     throw new Exception("Sending mail set to always run didn't still ask with who it goes to and the subject, or went without a to: " + asking + " | " + unaddressed);
                 MailChecks.CheckStarter(checks);
+                MailChecks.CheckPlainAsk(checks, unplugged);
                 foreach (Mod one in made) mods.Remove(one);
                 mods.AddStarters();
                 mods.Load();
