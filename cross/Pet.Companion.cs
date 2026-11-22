@@ -140,7 +140,7 @@ namespace CapriDesktop
         internal void ExpireCompanionGuards()
         {
             if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(delegate { ExpireCompanionGuards(); }); return; }
-            if (companionGuards.Count == 0 || unchecked(Environment.TickCount - companionSeen) < CompanionGuardTtl) return;
+            if (companionGuards.Count == 0 || !CompanionBridge.TimedOut(Environment.TickCount, companionSeen, CompanionGuardTtl)) return;
             companionGuards.Clear();
             companionGuard = false;
             Sync();

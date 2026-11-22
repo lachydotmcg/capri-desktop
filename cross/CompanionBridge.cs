@@ -18,6 +18,11 @@ namespace CapriDesktop
         internal const int BodyLimit = 8 * 1024;
         internal const int EventLimit = 60;
         internal const string Discovery = "companion-listener.json";
+
+        internal static bool TimedOut(int now, int start, int limit)
+        {
+            return unchecked((uint)(now - start)) >= (uint)limit;
+        }
         private readonly TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
         private readonly object gate = new object();
         private readonly List<TcpClient> clients = new List<TcpClient>();
@@ -130,7 +135,7 @@ namespace CapriDesktop
                     if (size > BodyLimit) { Reply(stream, 413, Refused("too_large")); return; }
                     lock (gate)
                     {
-                        if (unchecked(Environment.TickCount - windowStart) >= 60000) { windowStart = Environment.TickCount; events = 0; }
+                        if (TimedOut(Environment.TickCount, windowStart, 60000)) { windowStart = Environment.TickCount; events = 0; }
                         if (events >= EventLimit) { Reply(stream, 429, Refused("rate_limited")); return; }
                         events++;
                     }

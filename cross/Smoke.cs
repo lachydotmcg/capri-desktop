@@ -12277,6 +12277,8 @@ namespace CapriDesktop
                 string token = HuskJson.Text(route, "token");
                 for (int i = 0; i < CompanionBridge.EventLimit; i++) if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 200) throw new Exception("The companion bridge rate limit turned away event " + (i + 1) + ".");
                 if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 429) throw new Exception("The companion bridge has no rate limit.");
+                if (!CompanionBridge.TimedOut(-1701967296, 1000000, 60000)) throw new Exception("The companion rate window did not expire across 30 days of tick wrap.");
+                if (CompanionBridge.TimedOut(int.MinValue + 5, int.MaxValue - 10, 60000)) throw new Exception("The companion rate window expired across a tick wrap after only 16 ticks.");
                 checks.Add("PASS companion rate: 60 events in a minute pass and the next one is refused with 429");
             }
             finally
