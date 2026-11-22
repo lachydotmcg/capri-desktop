@@ -30,12 +30,7 @@ namespace CapriDesktop
         private string SquadAsk(string input)
         {
             if (input != null && herHandOffAsk != null && input.Trim() == herHandOffAsk) return null;
-            if (Squad.StopAsked(input))
-            {
-                if (squad == null && squadWindow == null) return null;
-                SquadOff();
-                return "Called my squad back.";
-            }
+            if (SquadCalledBack(input)) return "Called my squad back.";
             int count;
             string job = Squad.JobIn(input, out count);
             if (job == null) return null;
@@ -44,6 +39,14 @@ namespace CapriDesktop
             if (SquadBrain == null && (brain.Model == null || Brain.Off)) return "I need a brain to run a squad. Pick one in Mainframe under BRAIN.";
             StartSquad(job, count);
             return "Splitting up for that. Hold Esc to call them back.";
+        }
+
+        // Also heard while she's on a job on your PC, so "stop the squad" stops the squad and not that job.
+        private bool SquadCalledBack(string input)
+        {
+            if ((squad == null && squadWindow == null) || !Squad.StopAsked(input)) return false;
+            SquadOff();
+            return true;
         }
 
         private void StartSquad(string job, int count)
@@ -412,6 +415,8 @@ namespace CapriDesktop
                 }
                 if (squadBodies[1].Caption != "Searching for gaming mice") return "A copy's laptop didn't say what she's doing.";
                 if (SquadAsk("squad up and find a monitor").IndexOf("still on", StringComparison.Ordinal) < 0) return "Her squad took a second job while the first was out.";
+                foreach (string chat in new[] { "my squad won't stop dying", "I'm playing valorant with the squad", "squad, let's go", "squad, come back", "let's split up and find the ghost room" })
+                    if (SquadAsk(chat) != null || squad != shown || shown.Stopped || squadWindow == null) return "Her squad answered or was called back by a line that wasn't for it: " + chat;
                 double now = clock.Elapsed.TotalSeconds;
                 for (int i = 0; i < 160; i++) squadWindow.Advance(now += 0.1);
                 CloneBody first = squadBodies[1];

@@ -47,42 +47,47 @@ namespace CapriDesktop
 
         internal bool Working { get { lock (gate) return Mates.Exists(mate => mate.State == "working"); } }
 
+        // She only splits up when she's asked to straight out: the line starts with squad up, make or send a squad, get your
+        // squad to, or split into a squad or into 3, or it ends with as a squad or with your squad. Even then it has to be a job
+        // she can look up, so "squad up and win this" stays chat. A number is her squad's size only inside those words ("a
+        // squad of 3", "split into 3"); any other number stays part of the job.
+        private const string Count = @"(?<size>two|three|four|five|six|seven|eight|nine|ten|[2-9]|10)";
+        private static readonly Regex Front = new Regex(@"^(?:squad up(?: with " + Count + @" of (?:you|yourselves|u)| into " + Count + @")?|(?:make|form|start|assemble|send(?: out)?|use|get) (?:a|your|ur) squad(?: of " + Count + @")?(?: together)?|(?:tell|ask) (?:your|ur) squad|split (?:up |yourself |urself )?into (?:a squad(?: of " + Count + @")?|" + Count + @"(?: of you| squads?)?))(?:\s*$|\s*[:,.!\-]\s*(?<job>.+)$|\s+(?:and|to|then|for)\s+(?<job>.+)$)", RegexOptions.IgnoreCase);
+        private static readonly Regex Have = new Regex(@"^(?:have|let) (?:your|ur) squad (?<job>.+)$", RegexOptions.IgnoreCase);
+        private static readonly Regex Back = new Regex(@"^(?<job>.+?)[\s,]+(?:as a squad(?: of " + Count + @")?|in a squad of " + Count + @"|(?:with|using) (?:your|ur) squad|(?:with|using) a squad of " + Count + @")$", RegexOptions.IgnoreCase);
+        private static readonly Regex Lookup = new Regex(@"^(?:help (?:me|us) (?:to )?(?:pick|choose|decide|shop)\b|(?:help (?:me|us) (?:to )?)?(?:find|search|research|compare|check|plan|hunt|track|dig (?:up|into|through)|scout|browse|read|gather|collect|list|shortlist|work out|figure out|suss out|put together|pull together|round up|make (?:me |us )?(?:a |an )?(?:list|plan|shortlist|guide|itinerary|summary|comparison)|write|draft|summari[sz]e|sum up|explain|tell (?:me|us)|show (?:me|us)|see (?:what|if|whether|which|how|who|where|when|why)|learn|explore|investigate|review|rate|rank|price|shop around|look (?:for|up|into|at|around|through|over|out for)|get (?:me|us)|grab (?:me|us)|fetch|source|map out|go (?:through|over)|recommend|suggest|come up with|brainstorm|think up|scope out|weigh up|sort through|line up|estimate)\b)", RegexOptions.IgnoreCase);
+        private static readonly Regex Recall = new Regex(@"^(?:(?:stop|cancel|end|disband|recall|call off|call back|pull back|bring back) (?:the|your|ur) squad|(?:call|bring|pull) (?:the|your|ur) squad (?:back|off|home|in)|send (?:the|your|ur) squad home)(?: (?:now|right now|already|for now|back|home|off))*$", RegexOptions.IgnoreCase);
+
+        private static string Asked(string said)
+        {
+            string text = Regex.Replace((said ?? "").Trim(), @"\s+", " ");
+            text = Regex.Replace(text, @"^(?:(?:hey|ok|okay|yo)\s+)?capri\b[,!.:]?\s*", "", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"^(?:(?:ok|okay|alright)[,!.]?\s+|(?:can|could|would|will) you\s+|please\s+|pls\s+|go\s+|i (?:want|need) you to\s+)+", "", RegexOptions.IgnoreCase);
+            return Regex.Replace(text, @"[\s,]*(?:\b(?:please|pls))?[\s.!?]*$", "", RegexOptions.IgnoreCase).Trim();
+        }
+
         internal static string JobIn(string said, out int count)
         {
             count = 0;
-            string text = Regex.Replace((said ?? "").Trim(), @"\s+", " ");
-            text = Regex.Replace(text, @"^(?:hey\s+)?capri[,!.]?\s*", "", RegexOptions.IgnoreCase).Trim();
-            text = Regex.Replace(text, @"^(?:(?:can|could|would|will) you\s+|please\s+|go\s+)+", "", RegexOptions.IgnoreCase).Trim();
-            Match sized = Regex.Match(text, @"\s*,?\s*\b(?:(?:in )?a (?:squad|team) of|(?:with|using) (?:just )?)\s*(two|three|2|3|four|4|five|5)(?: of (?:you|yourself|yourselves|u))?\b|\b(?:split|clone yourself) into (two|three|2|3|four|4|five|5)\b|\b(two|three|2|3|four|4|five|5) of (?:you|u)\b", RegexOptions.IgnoreCase);
-            if (sized.Success)
+            string text = Asked(said);
+            Match asked = Front.Match(text);
+            if (!asked.Success) asked = Have.Match(text);
+            if (!asked.Success) asked = Back.Match(text);
+            if (!asked.Success) return null;
+            string job = Regex.Replace(asked.Groups["job"].Value.Trim(), @"^(?:(?:and|to|then|please|go|also|can you|could you)\s+)+", "", RegexOptions.IgnoreCase);
+            job = job.Trim().TrimEnd(',', ';', ':', '-').Trim();
+            if (job.Length > 0 && !Lookup.IsMatch(job)) return null;
+            switch (asked.Groups["size"].Value.ToLowerInvariant())
             {
-                string word = (sized.Groups[1].Value + sized.Groups[2].Value + sized.Groups[3].Value).ToLowerInvariant();
-                count = word == "two" || word == "2" ? 2 : word == "three" || word == "3" ? 3 : Most;
-                text = Regex.Replace(text.Remove(sized.Index, sized.Length).Insert(sized.Index, " "), @"\s+", " ").Trim();
+                case "": count = 0; break;
+                case "two": case "2": count = 2; break;
+                case "three": case "3": count = 3; break;
+                default: count = Most; break;
             }
-            string job = null;
-            Match front = Regex.Match(text, @"^(?:let'?s\s+)?(?:squad up|team up|split up|get (?:the|your|ur) squad(?: together)?|send (?:out )?(?:the|your|ur) squad|have (?:the|your|ur) squad|make a squad|form a squad|squad)(?:\s+of\s+\S+)?(?:\s*[:,\-]\s*|\s+(?:and|to|on|for|after)\s+|\s*$)(.*)$", RegexOptions.IgnoreCase);
-            if (front.Success)
-            {
-                job = front.Groups[1].Value;
-                if (Regex.IsMatch(text, @"^squad\b(?!\s*[:,\-])", RegexOptions.IgnoreCase) && !Regex.IsMatch(text, @"^squad\s*$", RegexOptions.IgnoreCase) && !Regex.IsMatch(text, @"^squad\s+(?:up|of)\b", RegexOptions.IgnoreCase)) job = null;
-            }
-            if (job == null)
-            {
-                Match back = Regex.Match(text, @"^(.+?)[\s,]*\b(?:as a (?:squad|team)|with (?:your|ur|the) squad|squad style|in a squad(?: of \S+)?|(?:(?:with|using) )?(?:a squad|your squad) of \S+(?: of (?:you|u|yourself))?)\b(?:\s*please)?[.!?]*$", RegexOptions.IgnoreCase);
-                if (!back.Success) return null;
-                job = back.Groups[1].Value;
-            }
-            job = Regex.Replace(job, @"\s+", " ").Trim().TrimStart(',', ':', ';', '-').Trim();
-            job = Regex.Replace(job, @"^(?:(?:and|to|then|please|go)\s+)+", "", RegexOptions.IgnoreCase).Trim();
-            job = Regex.Replace(job, @"[\s,]*(?:please)?[.!?\s]*$", "", RegexOptions.IgnoreCase).Trim();
             return job;
         }
 
-        internal static bool StopAsked(string said)
-        {
-            return Regex.IsMatch((said ?? "").Trim(), @"\b(?:stop|cancel|call off|end|disband|recall|call back)\b.{0,24}\bsquad\b|\bsquad\b.{0,12}\b(?:stop|come back|go home|disband|you can stop)\b", RegexOptions.IgnoreCase);
-        }
+        internal static bool StopAsked(string said) { return Recall.IsMatch(Asked(said)); }
 
         internal static string PlanPrompt(int count)
         {
@@ -280,15 +285,43 @@ namespace CapriDesktop
                 { "research the best pizza places near Bondi as a squad", "research the best pizza places near Bondi", "0" },
                 { "find cheap flights to Bali with your squad please", "find cheap flights to Bali", "0" },
                 { "squad up with three of you and look up the new Zelda reviews", "look up the new Zelda reviews", "3" },
-                { "squad: find a good laptop under 1000 dollars", "find a good laptop under 1000 dollars", "0" },
-                { "split up and find two recipes for dinner", "find two recipes for dinner", "0" },
+                { "split into a squad and find me a cheap flight to Bali", "find me a cheap flight to Bali", "0" },
+                { "make a squad to find the best ramen in Sydney", "find the best ramen in Sydney", "0" },
+                { "send a squad to look for a hotel with 4 stars in Rome", "look for a hotel with 4 stars in Rome", "0" },
+                { "squad up and find a hotel with 4 stars", "find a hotel with 4 stars", "0" },
+                { "squad up and look for 3 tickets to the footy", "look for 3 tickets to the footy", "0" },
+                { "split up into 3 and find a hotel with 4 stars", "find a hotel with 4 stars", "3" },
+                { "split into 2, compare the new iPads", "compare the new iPads", "2" },
+                { "hey capri, could you split into a squad of 2 and research electric cars", "research electric cars", "2" },
+                { "make a squad of three to plan a road trip from Sydney to Melbourne", "plan a road trip from Sydney to Melbourne", "3" },
+                { "send out a squad of 6 to compare phone plans", "compare phone plans", "3" },
+                { "have your squad find me a birthday present for my mum", "find me a birthday present for my mum", "0" },
+                { "tell your squad to check the reviews for the Sony headphones", "check the reviews for the Sony headphones", "0" },
+                { "find a hotel with 4 stars in Paris as a squad of 2", "find a hotel with 4 stars in Paris", "2" },
+                { "Squad up! Help me pick a laptop for uni.", "Help me pick a laptop for uni", "0" },
+                { "split into a squad", "", "0" },
+                { "send a squad", "", "0" },
+                { "split into 3", "", "3" },
                 { "squad up", "", "0" }
             };
             for (int i = 0; i < heard.GetLength(0); i++)
                 if (JobIn(heard[i, 0], out count) != heard[i, 1] || count.ToString() != heard[i, 2]) return "Her squad heard \"" + heard[i, 0] + "\" as \"" + JobIn(heard[i, 0], out count) + "\" (" + count + ").";
-            foreach (string not in new[] { "my squad is so good at fortnite", "squad goals", "what's a squad", "let's team up in fortnite", "find me the best mouse", "split up the bill for me", "use your computer to find a recipe" })
-                if (JobIn(not, out count) != null) return "Her squad took a line that wasn't a squad job: " + not;
-            if (!StopAsked("stop the squad") || !StopAsked("call off your squad") || !StopAsked("squad, come back") || StopAsked("squad up and find a mouse") || StopAsked("stop it")) return "Her squad misheard being called back.";
+            string[] chatter =
+            {
+                "I'm playing valorant with the squad", "squad, let's go", "let's split up and find the ghost room", "my squad won't stop dying", "find a hotel with 4 stars",
+                "split up and find two recipes for dinner", "squad, find the ghost room", "squad up in fortnite", "squad up and win this one", "squad up, fortnite time",
+                "let's squad up and find the ghost room", "send a squad to B site", "send the squad in", "get a squad together for ranked", "start a squad in fortnite",
+                "I need a squad for ranked", "join my squad", "we got squad wiped again", "the squad wants to play apex", "good luck with your squad",
+                "play valorant with your squad", "my team won't stop feeding", "my team is carrying me", "my team needs to find the ghost room", "let's team up in fortnite",
+                "let's split the bill", "can we split the bill 3 ways", "split up the bill for me", "split the pizza into 4", "split into two teams",
+                "buy 3 tickets for the concert", "my squad is so good at fortnite", "squad goals", "what's a squad", "find me the best mouse", "use your computer to find a recipe"
+            };
+            foreach (string not in chatter)
+                if (JobIn(not, out count) != null || count != 0) return "Her squad took a line that wasn't a squad job: " + not;
+            foreach (string stop in new[] { "stop the squad", "call the squad back", "call off your squad", "call back the squad", "Capri, stop the squad please", "cancel the squad now", "send your squad home" })
+                if (!StopAsked(stop)) return "Her squad didn't hear being called back: " + stop;
+            foreach (string not in new[] { "my squad won't stop dying", "stop it", "squad up and find a mouse", "stop the squad from dying", "squad, come back", "I can't stop playing with the squad", "the squad needs to stop", "my team won't stop feeding" })
+                if (StopAsked(not)) return "Her squad was called back by a line that wasn't for it: " + not;
             List<SquadMate> plan = Plan("Sure!\n1. deal hunter | find mice under $50\n2) **review nerd** | read reviews of the top picks\n- 3: spec checker|compare weights and sensors\n4. extra | too many", 0);
             if (plan.Count != 3 || plan[0].Name != "deal hunter" || plan[1].Name != "review nerd" || plan[2].Part != "compare weights and sensors" || plan[2].Number != 3) return "Her squad misread its plan.";
             plan = Plan("1. find mice\n2. read reviews\n3. compare", 2);
