@@ -112,6 +112,13 @@ namespace CapriDesktop
                 };
                 Voice.Silence = () => { Limbs.Hush(); macSpeechUntil = Now + 0.7; };
             }
+            // A hold belongs to the listening context it was taken under, so a startup with a different account, model,
+            // remote or microphone starts from a fresh decision instead of resuming the old pause.
+            if (Saved.ListenCapri && Saved.ListenCapriHold && !SameNameContext(CaptureNameContext()))
+            {
+                Saved.ListenCapriHold = false;
+                Save();
+            }
             nameStartup = Saved.ListenCapri && !(OperatingSystem.IsLinux() && Saved.ListenCapriHold);
             if (Saved.ListenCapri && !nameStartup)
             {
@@ -129,22 +136,32 @@ namespace CapriDesktop
 
         private void GateNamePlayback() => nameEars.GateForPlayback();
 
+        // A listening context is the account, model, remote, session and microphone she agreed to listen under. A hold belongs
+        // to it, so a different context drops the hold whether the lock reads true, false or nothing at all.
+        private void DropNameHoldForChangedContext()
+        {
+            if (nameContext == null || SameNameContext(nameContext)) return;
+            if (!Saved.ListenCapriHold && !nameLockPaused) return;
+            Saved.ListenCapriHold = false;
+            Save();
+            nameLockPaused = false;
+        }
+
         internal void ObserveNameLock(bool? locked)
         {
+            DropNameHoldForChangedContext();
             if (locked == true)
             {
                 // A context change outranks the lock: a pause must never be carried into a session under settings she never
                 // agreed to, so it clears the hold and never records resumability, whether she listens or is already paused.
-                // Once nothing is left to clear, this stays quiet instead of saving on every tick.
-                if (nameContext != null && !SameNameContext(nameContext) && (!nameStopped || Saved.ListenCapriHold || nameLockPaused))
+                if (nameContext != null && !SameNameContext(nameContext))
                 {
-                    Saved.ListenCapriHold = false;
-                    Save();
-                    StopNameListening("Name listening stopped after a state change. Turn Listen for Capri off and on to resume.");
+                    if (!nameStopped) StopNameListening("Name listening stopped after a state change. Turn Listen for Capri off and on to resume.");
                     return;
                 }
-                // Only a lock that actually stops her is a lock pause. A user stop, TALK bar or an off switch writes nothing,
-                // so a later unlock can't restart her against that.
+                // R1: every observed lock persists immediately, so a later unlock always has a hold to use. Only a lock that
+                // actually stops her is a lock pause: a user's Stop, TALK bar or off switch already stopped her, and neither
+                // the hold nor the pause may be revived against that.
                 if (!nameStopped)
                 {
                     Saved.ListenCapriHold = true;
@@ -154,9 +171,11 @@ namespace CapriDesktop
                 }
                 return;
             }
-            // A lost signal after a lock never counts as an unlock, any other control keeps her held until it lifts, and a
-            // context that changed under the pause is never resumed implicitly.
-            if (locked == false && nameLockPaused && Saved.ListenCapriHold && Saved.ListenCapri && !NameBarred && !nameClosed &&
+            // R2: a lost signal never changes the hold.
+            if (locked != false) return;
+            // R3: a false read clears the hold only with the start it allows, and the resume's own guard re-marks it if that
+            // start was refused by a lock rather than by a real bar.
+            if (nameLockPaused && Saved.ListenCapriHold && Saved.ListenCapri && !NameBarred && !nameClosed &&
                 (nameContext == null || SameNameContext(nameContext)))
             {
                 Saved.ListenCapriHold = false;
@@ -197,8 +216,11 @@ namespace CapriDesktop
                 if (locked == null)
                 {
                     if (Talk == null) return;
+                    // An explicit Stop (or any other stop) advances the epoch, so its stale answer changes nothing.
+                    long promptTicket = nameEpoch;
                     Talk.AskFor("(name listening)", "Capri can't reliably detect whether your screen is locked. Her microphone may keep listening while your screen is locked. Type YES to resume listening, or NO to keep her paused.", answer =>
                     {
+                        if (promptTicket != nameEpoch) return;
                         if (!string.Equals(answer?.Trim(), "yes", StringComparison.OrdinalIgnoreCase))
                         {
                             Saved.ListenCapri = false;
@@ -206,18 +228,20 @@ namespace CapriDesktop
                             StopNameListening("Local name listening is off.");
                             return;
                         }
-                        // The lock can turn true while the warning is up, so probe again instead of spending the hold.
-                        if (LockedForNameListening() == true)
+                        // R1: an observed lock is persisted here. R3: a false read clears the hold only with the start, so the
+                        // start's own guard below decides whether the stop it caused was lock-caused.
+                        bool? answerLock = LockedForNameListening();
+                        if (answerLock == true)
                         {
                             Saved.ListenCapri = true;
+                            Saved.ListenCapriHold = true;
                             Save();
                             StopNameListening("Paused while the screen is locked.");
                             nameLockPaused = true;
                             return;
                         }
-                        Saved.ListenCapriHold = false;
-                        Save();
                         Saved.ListenCapri = true;
+                        Saved.ListenCapriHold = false;
                         Save();
                         StartNameListening();
                     });
@@ -267,7 +291,23 @@ namespace CapriDesktop
         private async void StartNameListening()
         {
             StopNameListening();
-            if (NameBarred) { nameActivationNote = false; SetNameStatus(Listening ? "Finish TALK, then turn Listen for Capri off and on." : "Name listening paused. Unmute and wake Capri, then turn Listen for Capri off and on."); return; }
+            if (NameBarred)
+            {
+                // The bar may be this start's own lock observation, and R1 says an observed lock is persisted immediately, so
+                // a later unlock can resume her. Another bar (TALK, mute, sleep) leaves nothing to resume.
+                if (LockedForNameListening() == true && Saved.ListenCapri)
+                {
+                    Saved.ListenCapriHold = true;
+                    Save();
+                    nameLockPaused = true;
+                    nameActivationNote = false;
+                    SetNameStatus("Paused while the screen is locked.");
+                    return;
+                }
+                nameActivationNote = false;
+                SetNameStatus(Listening ? "Finish TALK, then turn Listen for Capri off and on." : "Name listening paused. Unmute and wake Capri, then turn Listen for Capri off and on.");
+                return;
+            }
             NameContext captured = CaptureNameContext();
             if (!NameMicrophoneSet(captured.Source, captured.Fingerprint))
             { nameActivationNote = false; ChooseNameMicrophone(); return; }
@@ -293,7 +333,20 @@ namespace CapriDesktop
                 });
                 if (ticket != nameEpoch || nameStopped) return;
                 if (NameBarred || !SameNameContext(captured))
-                { StopNameListening("The listening context changed during startup. Re-enable Listen for Capri."); return; }
+                {
+                    // A lock seen at this last gate is still an observed lock: persist it before the stop, so the next unlock
+                    // can resume her. A real context change is not lock-caused and keeps its own message.
+                    if (LockedForNameListening() == true && !(NameBarred && !SameNameContext(captured)))
+                    {
+                        Saved.ListenCapriHold = true;
+                        Save();
+                        StopNameListening("Paused while the screen is locked.");
+                        nameLockPaused = true;
+                        return;
+                    }
+                    StopNameListening("The listening context changed during startup. Re-enable Listen for Capri.");
+                    return;
+                }
                 nameContext = captured;
                 nameIdentity = identity;
                 nextNameIdentityCheck = Now + 1;
@@ -432,19 +485,22 @@ namespace CapriDesktop
         private void TickNameListening()
         {
             if (!(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) || Program.Smoke != null || nameClosed) return;
-            if (nameStartup && opened && !NameBarredByLock())
+            // A changed context drops any hold before the lock is even read, so a lost signal can't carry it forward.
+            DropNameHoldForChangedContext();
+            bool? locked = OperatingSystem.IsLinux() ? Pet.LockedForNameListening() : null;
+            if (nameStartup && opened && locked != true)
             { nameStartup = false; StartNameListening(); }
             // A held state must keep reading the lock, or an unlock could never be seen.
-            if (OperatingSystem.IsLinux() && Saved.ListenCapri) ObserveNameLock(Pet.LockedForNameListening());
+            if (OperatingSystem.IsLinux() && Saved.ListenCapri) ObserveNameLock(locked);
             if (nameStopped) return;
             if (NameBarred || nameContext != null && !SameNameContext(nameContext))
             {
-                // The lock can change between ObserveNameLock's read and NameBarred's own, so a lock found here is still a
-                // lock pause that a later unlock may resume. A changed context still outranks the lock.
-                if (LockedForNameListening() == true && !(nameContext != null && !SameNameContext(nameContext)))
+                // A changed context outranks the lock: it was already dropped above, so this is never a lock pause.
+                bool contextChanged = nameContext != null && !SameNameContext(nameContext);
+                // This tick's own read is the lock evidence here, so a lock found with a final unknown read still counts.
+                if (!contextChanged && locked == true)
                 {
-                    Saved.ListenCapriHold = true;
-                    Save();
+                    if (!Saved.ListenCapriHold && Saved.ListenCapri) { Saved.ListenCapriHold = true; Save(); }
                     StopNameListening("Paused while the screen is locked.");
                     nameLockPaused = true;
                     return;

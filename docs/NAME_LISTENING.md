@@ -97,9 +97,11 @@ wait after her name on its own as Linux, with these Mac differences:
   she remembers it in `cross.json`, so a desktop that stops answering afterward keeps
   her paused even across restarting Capri. An explicit Stop
   always wins: a lock only pauses her while she is actually listening, so a later
-  unlock can't restart her after you stopped her. A change to the account, model or
-  selected microphone clears a saved lock pause instead of resuming the microphone
-  under settings she never agreed to. Turning the switch off and on brings
+  unlock can't restart her after you stopped her. A change to the account, model, remote,
+  session or selected microphone clears the saved hold and the pause, whether the lock
+  reads locked, unlocked or nothing at all, so the microphone is never resumed under
+  settings she never agreed to. The recovery prompt keeps the epoch it opened under, so
+  an answer typed after a Stop changes nothing. Turning the switch off and on brings
   her back; when the lock state can't be read she warns you first and waits for a
   typed YES. Mac has no lock check yet; mute or quiet her before stepping away.
 

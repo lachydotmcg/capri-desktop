@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 
 namespace CapriDesktop
 {
@@ -78,6 +79,321 @@ namespace CapriDesktop
             if (OperatingSystem.IsLinux()) CorrectionChecks(pet, checks);
             if (OperatingSystem.IsLinux()) ReviewChecks(pet, checks);
             if (OperatingSystem.IsLinux()) LensChecks(pet, checks);
+            if (OperatingSystem.IsLinux()) VerifierChecks(pet, checks);
+            if (OperatingSystem.IsLinux()) HygieneCheck(pet, checks);
+        }
+
+        // The verifier reproduced these against the fix branches. They drive the real tick, the real Talk recovery prompt and
+        // the real settings files (a scratch profile through the production Save/ReadSettings), with a gated nameLifetime so a
+        // start attempt is observable without ever opening a microphone.
+        private static void VerifierChecks(Pet pet, List<string> checks)
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            Func<bool?> lockedWas = Pet.LockedForNameListening;
+            Func<string, string[], string> runWas = Music.Run;
+            Func<long> nowWas = Limbs.LockClock;
+            Settings saved = pet.Saved;
+            bool capriWas = saved.ListenCapri, holdWas = saved.ListenCapriHold;
+            string nodeWas = saved.MicrophoneNode, fingerprintWas = saved.MicrophoneFingerprint;
+            string pythonWas = saved.OwnedAsrPython, manifestWas = saved.OwnedAsrManifest;
+            string serverWas = saved.BrainServer, modelWas = saved.ServerModel;
+            int xWas = saved.X, yWas = saved.Y;
+            bool placedWas = saved.Placed;
+            string brainModelWas = pet.Brain.Model, brainServerWas = pet.Brain.Server;
+            var stoppedField = typeof(Pet).GetField("nameStopped", fields);
+            var startingField = typeof(Pet).GetField("nameStarting", fields);
+            var statusField = typeof(Pet).GetField("nameStatus", fields);
+            var epochField = typeof(Pet).GetField("nameEpoch", fields);
+            var contextField = typeof(Pet).GetField("nameContext", fields);
+            var lifetimeField = typeof(Pet).GetField("nameLifetime", fields);
+            var lockPausedField = typeof(Pet).GetField("nameLockPaused", fields);
+            var answersField = typeof(Pet).GetField("answerTurn", fields);
+            var shushedField = typeof(Pet).GetField("shushed", fields);
+            var openedField = typeof(Pet).GetField("opened", fields);
+            var writeBlockedField = typeof(Pet).GetField("settingsWriteBlocked", fields);
+            var folderField = typeof(Pet).GetField("folder", fields);
+            var tick = typeof(Pet).GetMethod("TickNameListening", fields, null, Type.EmptyTypes, null);
+            var stop = typeof(Pet).GetMethod("StopNameListening", fields, null, new[] { typeof(string) }, null);
+            var captureContext = typeof(Pet).GetMethod("CaptureNameContext", fields, null, Type.EmptyTypes, null);
+            var initialize = typeof(Pet).GetMethod("InitializeNameListening", fields, null, Type.EmptyTypes, null);
+            bool stoppedWas = (bool)stoppedField.GetValue(pet), startingWas = (bool)startingField.GetValue(pet);
+            bool lockPausedWas = (bool)lockPausedField.GetValue(pet), shushedWas = (bool)shushedField.GetValue(pet);
+            bool openedWas = (bool)openedField.GetValue(pet), writeBlockedWas = (bool)writeBlockedField.GetValue(pet);
+            string statusWas = (string)statusField.GetValue(pet), smokeWas = Program.Smoke;
+            string folderWas = (string)folderField.GetValue(pet);
+            object contextWas = contextField.GetValue(pet);
+            Task lifetimeWas = (Task)lifetimeField.GetValue(pet);
+            Func<bool> started = () => !(bool)stoppedField.GetValue(pet);
+            Func<bool> starting = () => (bool)startingField.GetValue(pet);
+            Func<bool> lockPaused = () => (bool)lockPausedField.GetValue(pet);
+            Func<long> epoch = () => (long)epochField.GetValue(pet);
+            Func<int> answers = () => (int)answersField.GetValue(pet);
+            string profile = Path.Combine(Path.GetTempPath(), "capri-name-verifier-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(profile);
+            bool filesHold() => JsonFlag(Path.Combine(profile, "cross.json"), "ListenCapriHold");
+            bool mirrorHold() => JsonFlag(Path.Combine(profile, "cross-new.json"), "ListenCapriHold");
+            bool filesOpted() => JsonFlag(Path.Combine(profile, "cross.json"), "ListenCapri");
+            string hashes() => Hash(Path.Combine(profile, "cross.json")) + "/" + Hash(Path.Combine(profile, "cross-new.json"));
+            try
+            {
+                pet.Talk.Dismiss();
+                // A scratch profile: the real Save and ReadSettings run against it, never the user's own files.
+                folderField.SetValue(pet, profile);
+                // A start attempt parks on this forever, so no decoder process opens and no async error can race the check.
+                lifetimeField.SetValue(pet, new TaskCompletionSource().Task);
+                shushedField.SetValue(pet, false);
+                openedField.SetValue(pet, true);
+                saved.MicrophoneNode = "test-mic";
+                saved.MicrophoneFingerprint = "test-fingerprint";
+                string manifest = Path.Combine(profile, "manifest.json");
+                File.WriteAllText(manifest, "{}");
+                saved.OwnedAsrPython = "/usr/bin/python3";
+                saved.OwnedAsrManifest = manifest;
+
+                // Blocker 1: a stale YES after an explicit Stop must not revive the switch, the hold or a later resume.
+                ResetName(pet, fields, saved, opted: false, hold: false, active: false);
+                saved.ListenCapriHold = true;
+                DiskWrite(pet);
+                Pet.LockedForNameListening = () => null;
+                pet.Talk.Dismiss();
+                typeof(Pet).GetMethod("EnableNameListening", fields).Invoke(pet, new object[] { true });
+                Require(pet.Talk.Typing, "the recovery prompt never opened");
+                stop.Invoke(pet, new object[] { "Local name listening is off." });
+                // The Stop is what must win, so the state just after it is the baseline the stale answer may not change.
+                long stoppedEpoch = epoch();
+                string stoppedFiles = hashes();
+                bool stoppedOpted = saved.ListenCapri, stoppedHeld = saved.ListenCapriHold, stoppedPaused = lockPaused();
+                bool leftTyping = pet.Talk.Typing;
+                Pet.LockedForNameListening = () => true;
+                pet.Talk.Submit("YES");
+                string afterStale = "typing after Stop=" + leftTyping + ", opted=" + saved.ListenCapri + ", hold=" + saved.ListenCapriHold + ", paused=" + lockPaused() + ", status=" + pet.NameListeningStatus;
+                Require(saved.ListenCapri == stoppedOpted, "a stale YES changed the opt-in after an explicit Stop: " + afterStale);
+                Require(saved.ListenCapriHold == stoppedHeld, "a stale YES changed the lock hold after an explicit Stop: " + afterStale);
+                Require(lockPaused() == stoppedPaused, "a stale YES changed her resumability after an explicit Stop: " + afterStale);
+                Require(epoch() == stoppedEpoch && hashes() == stoppedFiles, "a stale YES changed her epoch or her files after an explicit Stop: " + afterStale);
+                Pet.LockedForNameListening = () => null;
+                TickNow(pet, fields, tick);
+                Pet.LockedForNameListening = () => false;
+                TickNow(pet, fields, tick);
+                Require(!started(), "an unlock started her after a stale YES behind an explicit Stop");
+                pet.Talk.Dismiss();
+
+                // Blocker 2: a context change under a lost signal must drop the old hold, and it must not come back after a restart.
+                ResetName(pet, fields, saved, opted: true, hold: false, active: true);
+                Pet.LockedForNameListening = () => true;
+                TickNow(pet, fields, tick);
+                Require(saved.ListenCapriHold && filesHold() && mirrorHold(), "a real lock seen by the tick did not persist its hold");
+                Pet.LockedForNameListening = () => null;
+                saved.MicrophoneNode = "changed-mic";
+                TickNow(pet, fields, tick);
+                Require(!saved.ListenCapriHold && !filesHold() && !mirrorHold(),
+                    "a context change under a lost lock signal kept the old hold: files hold=" + filesHold() + "/" + mirrorHold());
+                Pet.LockedForNameListening = () => false;
+                TickNow(pet, fields, tick);
+                Require(!started() && !lockPaused(), "an unlock resumed her after the context changed under a lost signal");
+                long contextEpoch = epoch();
+                TickNow(pet, fields, tick);
+                Require(epoch() == contextEpoch, "a further tick restarted her after the context changed");
+
+                // Blocker 3a: a real lock seen by the generic tick must persist even though the tick's *own* answer is the only
+                // read now, so a later tick (or NameBarred's internal read) turning unknown can't erase it.
+                ResetName(pet, fields, saved, opted: true, hold: false, active: true);
+                SequenceLock(pet, true, null, null);
+                TickNow(pet, fields, tick);
+                Require(!started() && lockPaused() && saved.ListenCapriHold && filesHold() && mirrorHold(),
+                    "a lock seen in the tick with an unknown later read was dropped: hold=" + saved.ListenCapriHold + "/" + filesHold() + "/" + mirrorHold());
+                // The next tick reads unknown, and R2 says that changes nothing.
+                TickNow(pet, fields, tick);
+                Require(saved.ListenCapriHold && filesHold() && mirrorHold() && lockPaused(),
+                    "a lost signal after the tick's observed lock dropped the hold");
+
+                // Blocker 3b: a relock after the resume's eligibility read but before the start's own probe is re-marked, so
+                // the hold survives even when the start refuses and its leading stop cleared the pause.
+                ResetName(pet, fields, saved, opted: true, hold: true, active: false);
+                SequenceLock(pet, false, true);
+                ObserveNow(pet, false);
+                Require(saved.ListenCapriHold && filesHold() && lockPaused(),
+                    "a relock during the resume was dropped: hold=" + saved.ListenCapriHold + "/" + filesHold());
+
+                // Blocker 3c: a relock observed at the final async startup gate must persist its hold before the stop, so the
+                // next unlock can resume her. A real gate parks startup exactly where production waits for it.
+                ResetName(pet, fields, saved, opted: true, hold: true, active: false);
+                var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                lifetimeField.SetValue(pet, gate.Task);
+                Pet.LockedForNameListening = () => false;
+                ObserveNow(pet, false);
+                Require(started() && starting(), "the checked start did not reach its async gate");
+                Pet.LockedForNameListening = () => true;
+                string gateSmoke = Program.Smoke;
+                Program.Smoke = null;
+                try
+                {
+                    gate.SetResult();
+                    Require(System.Threading.SpinWait.SpinUntil(() =>
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                        return !starting();
+                    }, TimeSpan.FromSeconds(5)), "startup never reached its final lock guard");
+                }
+                finally { Program.Smoke = gateSmoke; }
+                Require(!started() && lockPaused() && saved.ListenCapriHold && filesHold() && mirrorHold(),
+                    "a relock at the final startup gate lost its hold: hold=" + saved.ListenCapriHold + "/" + filesHold() + "/" + mirrorHold());
+
+                // S2: the settings tip must still show the lock limitation after truncation.
+                Mainframe frame = new Mainframe(pet);
+                frame.ShowSettings(true);
+                var note = (Avalonia.Controls.Control)typeof(Mainframe).GetField("nameListeningNote", fields).GetValue(frame);
+                var tip = ToolTip.GetTip(note) as Avalonia.Controls.TextBlock;
+                string tipText = tip?.Text ?? "(none)";
+                frame.Close();
+                Require(tipText.IndexOf("locked", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                    (tipText.IndexOf("can't", StringComparison.OrdinalIgnoreCase) >= 0 || tipText.IndexOf("may keep", StringComparison.OrdinalIgnoreCase) >= 0),
+                    "the settings tip lost the lock limitation after truncation: " + tipText);
+            }
+            finally
+            {
+                pet.Talk.Dismiss();
+                stop.Invoke(pet, new object[] { "Local name listening is off." });
+                folderField.SetValue(pet, folderWas);
+                Program.Smoke = smokeWas;
+                writeBlockedField.SetValue(pet, writeBlockedWas);
+                Pet.LockedForNameListening = lockedWas;
+                Music.Run = runWas;
+                Limbs.LockClock = nowWas;
+                saved.X = xWas; saved.Y = yWas; saved.Placed = placedWas;
+                saved.ListenCapri = capriWas;
+                saved.ListenCapriHold = holdWas;
+                saved.MicrophoneNode = nodeWas;
+                saved.MicrophoneFingerprint = fingerprintWas;
+                saved.OwnedAsrPython = pythonWas;
+                saved.OwnedAsrManifest = manifestWas;
+                saved.BrainServer = serverWas;
+                saved.ServerModel = modelWas;
+                pet.Brain.Model = brainModelWas;
+                pet.Brain.Server = brainServerWas;
+                stoppedField.SetValue(pet, stoppedWas);
+                startingField.SetValue(pet, startingWas);
+                statusField.SetValue(pet, statusWas);
+                contextField.SetValue(pet, contextWas);
+                lifetimeField.SetValue(pet, lifetimeWas);
+                lockPausedField.SetValue(pet, lockPausedWas);
+                shushedField.SetValue(pet, shushedWas);
+                openedField.SetValue(pet, openedWas);
+                try { Directory.Delete(profile, true); } catch (Exception) { }
+            }
+            checks.Add("PASS name listening verifier: a stale answer after an explicit Stop changes nothing, a context change under a lost signal drops the old hold for good, and every observed lock persists even when the final read is unknown or a relock lands at the start gate; the settings tip still shows the lock limitation after truncation");
+        }
+
+        // The verifier's leak probe: run each group and compare every field, delegate and cache it may touch.
+        private static void HygieneCheck(Pet pet, List<string> checks)
+        {
+            var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var instance = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            string[] groups = { "HoldChecks", "CorrectionChecks", "ReviewChecks", "LensChecks" };
+            List<string> leaks = new List<string>();
+            foreach (string group in groups)
+            {
+                var writer = typeof(NameListeningChecks).GetMethod(group, fields);
+                if (writer == null) { leaks.Add(group + ": missing"); continue; }
+                Func<bool?> lockedWas = Pet.LockedForNameListening;
+                Func<string, string[], string> runWas = Music.Run;
+                Func<long> nowWas = Limbs.LockClock;
+                long atWas = (long)typeof(Limbs).GetField("lockedAt", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null);
+                object hintWas = typeof(Limbs).GetField("lockedHint", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null);
+                object playbackWas = typeof(SpeechAudio).GetField("BeforePlayback", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)?.GetValue(null);
+                object contextWas = typeof(Pet).GetField("nameContext", instance).GetValue(pet);
+                object lifetimeWas = typeof(Pet).GetField("nameLifetime", instance).GetValue(pet);
+                object changedWas = typeof(Pet).GetField("SettingsChanged", instance).GetValue(pet);
+                bool placedWas = pet.Saved.Placed, pausedWas = (bool)typeof(Pet).GetField("nameLockPaused", instance).GetValue(pet);
+                writer.Invoke(null, new object[] { pet, new List<string>() });
+                if (placedWas != pet.Saved.Placed) leaks.Add(group + ": Placed");
+                if (pausedWas != (bool)typeof(Pet).GetField("nameLockPaused", instance).GetValue(pet)) leaks.Add(group + ": nameLockPaused");
+                if (!ReferenceEquals(contextWas, typeof(Pet).GetField("nameContext", instance).GetValue(pet))) leaks.Add(group + ": nameContext");
+                if (!ReferenceEquals(lifetimeWas, typeof(Pet).GetField("nameLifetime", instance).GetValue(pet))) leaks.Add(group + ": nameLifetime");
+                if (!ReferenceEquals(changedWas, typeof(Pet).GetField("SettingsChanged", instance).GetValue(pet))) leaks.Add(group + ": SettingsChanged");
+                if (!ReferenceEquals(lockedWas, Pet.LockedForNameListening)) leaks.Add(group + ": LockedForNameListening");
+                if (!ReferenceEquals(runWas, Music.Run)) leaks.Add(group + ": Music.Run");
+                if (!ReferenceEquals(nowWas, Limbs.LockClock)) leaks.Add(group + ": LockClock");
+                if (atWas != (long)typeof(Limbs).GetField("lockedAt", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null)) leaks.Add(group + ": logind lockedAt");
+                if (!Equals(hintWas, typeof(Limbs).GetField("lockedHint", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null))) leaks.Add(group + ": logind lockedHint");
+                if (!ReferenceEquals(playbackWas, typeof(SpeechAudio).GetField("BeforePlayback", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)?.GetValue(null))) leaks.Add(group + ": BeforePlayback");
+            }
+            Require(leaks.Count == 0, "a name-listening check group leaked " + string.Join(", ", leaks.ToArray()));
+            checks.Add("PASS name listening hygiene: every check group restores the fields, delegates, the speech handler and logind's cache it touches");
+        }
+
+        private static void ResetName(Pet pet, System.Reflection.BindingFlags fields, Settings saved, bool opted, bool hold, bool active)
+        {
+            var stop = typeof(Pet).GetMethod("StopNameListening", fields, null, new[] { typeof(string) }, null);
+            typeof(Pet).GetField("nameContext", fields).SetValue(pet, null);
+            pet.Talk.Dismiss();
+            stop.Invoke(pet, new object[] { "Local name listening is off." });
+            saved.ListenCapri = opted;
+            saved.ListenCapriHold = hold;
+            saved.MicrophoneNode = "test-mic";
+            saved.MicrophoneFingerprint = "test-fingerprint";
+            typeof(Pet).GetField("nameStopped", fields).SetValue(pet, !active);
+            typeof(Pet).GetField("nameStarting", fields).SetValue(pet, active);
+            typeof(Pet).GetField("nameLockPaused", fields).SetValue(pet, hold && opted);
+            if (active || hold) typeof(Pet).GetField("nameContext", fields).SetValue(pet, typeof(Pet).GetMethod("CaptureNameContext", fields, null, Type.EmptyTypes, null).Invoke(pet, null));
+            DiskWrite(pet);
+        }
+
+        private static void DiskWrite(Pet pet)
+        {
+            string smoke = Program.Smoke;
+            Program.Smoke = null;
+            try { pet.Save(); }
+            finally { Program.Smoke = smoke; }
+        }
+
+        private static void TickNow(Pet pet, System.Reflection.BindingFlags fields, System.Reflection.MethodInfo tick)
+        {
+            string smoke = Program.Smoke;
+            Program.Smoke = null;
+            try { tick.Invoke(pet, null); }
+            finally { Program.Smoke = smoke; }
+        }
+
+        private static void ObserveNow(Pet pet, bool? answer)
+        {
+            string smoke = Program.Smoke;
+            Program.Smoke = null;
+            try { pet.ObserveNameLock(answer); }
+            finally { Program.Smoke = smoke; }
+        }
+
+        private static void SequenceLock(Pet pet, params bool?[] values)
+        {
+            int next = 0;
+            Pet.LockedForNameListening = () => values[Math.Min(next++, values.Length - 1)];
+        }
+
+        private static bool JsonFlag(string path, string key)
+        {
+            if (!File.Exists(path)) return false;
+            using (System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(path)))
+                return document.RootElement.TryGetProperty(key, out System.Text.Json.JsonElement flag) && flag.GetBoolean();
+        }
+
+        private static System.Reflection.FieldInfo LockedAtField()
+        {
+            return typeof(Limbs).GetField("lockedAt", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        }
+
+        private static System.Reflection.FieldInfo LockedHintField()
+        {
+            return typeof(Limbs).GetField("lockedHint", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        }
+
+        private static System.Reflection.FieldInfo BeforePlaybackField()
+        {
+            return typeof(SpeechAudio).GetField("BeforePlayback", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        }
+
+        private static string Hash(string path)
+        {
+            return File.Exists(path) ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))) : "missing";
         }
 
         // The last lens captures found that a present Hyprland desktop with no snapshot skipped logind entirely, that a relock
@@ -89,6 +405,8 @@ namespace CapriDesktop
             Func<bool?> lockedWas = Pet.LockedForNameListening;
             Func<string, string[], string> runWas = Music.Run;
             Func<long> nowWas = Limbs.LockClock;
+            long lockedAtWas = (long)LockedAtField().GetValue(null);
+            object lockedHintWas = LockedHintField().GetValue(null);
             Settings saved = pet.Saved;
             bool capriWas = saved.ListenCapri, holdWas = saved.ListenCapriHold;
             string nodeWas = saved.MicrophoneNode, fingerprintWas = saved.MicrophoneFingerprint;
@@ -197,15 +515,16 @@ namespace CapriDesktop
                     saved.MicrophoneFingerprint = "check-fp";
                     lockPausedField.SetValue(pet, false);
                     stoppedField.SetValue(pet, false);
-                    // No context change here: only the lock differs between the tick's two reads.
+                    // A single read per tick now feeds both the observation and the stop branch, so one locked answer is all
+                    // it takes; there is no second read that could disagree.
                     contextField.SetValue(pet, null);
-                    Pet.LockedForNameListening = SplitLock();
+                    Pet.LockedForNameListening = () => true;
                     tick.Invoke(pet, null);
-                    Require(saved.ListenCapriHold && holdSaved(), "a tick that lost the lock between two reads recorded no hold");
-                    Require(lockPaused(), "a tick that lost the lock between two reads left her not resumable");
-                    Require(!started(), "a tick that lost the lock between two reads left her running");
+                    Require(saved.ListenCapriHold && holdSaved(), "a tick that read a lock recorded no hold");
+                    Require(lockPaused(), "a tick that read a lock left her not resumable");
+                    Require(!started(), "a tick that read a lock left her running");
                     Require(pet.NameListeningStatus == "Paused while the screen is locked.",
-                        "a tick that lost the lock between two reads reported the wrong stop: " + pet.NameListeningStatus);
+                        "a tick that read a lock reported the wrong stop: " + pet.NameListeningStatus);
                     stop.Invoke(pet, new object[] { "Local name listening is off." });
                 }
                 finally
@@ -221,6 +540,8 @@ namespace CapriDesktop
                 lockPausedField.SetValue(pet, false);
                 stoppedField.SetValue(pet, true);
                 contextField.SetValue(pet, null);
+                // Quiet is the bar here, and the lock must read unlocked or its own pause would win the status.
+                Pet.LockedForNameListening = () => false;
                 typeof(Pet).GetField("shushed", fields).SetValue(pet, true);
                 startListening.Invoke(pet, null);
                 Require(pet.NameListeningStatus == "Name listening paused. Unmute and wake Capri, then turn Listen for Capri off and on.",
@@ -266,17 +587,11 @@ namespace CapriDesktop
                 statusField.SetValue(pet, statusWas);
                 contextField.SetValue(pet, contextWas);
                 lockPausedField.SetValue(pet, lockPausedWas);
+                LockedAtField().SetValue(null, lockedAtWas);
+                LockedHintField().SetValue(null, lockedHintWas);
                 pet.Talk.Dismiss();
             }
             checks.Add("PASS name listening lenses: a present Hyprland desktop with no snapshot defers to logind instead of dropping the signal, a relock during the resume keeps a hold that a later unlock can use, a tick that loses the lock between its two reads still pauses her as a lock, and every message sent while the switch stays on says off and on");
-        }
-
-        // A seam that answers unlocked on its first read and locked on its second, standing in for a lock that lands between
-        // the two reads the tick makes: ObserveNameLock's observation first, then NameBarred's own.
-        private static Func<bool?> SplitLock()
-        {
-            bool read = false;
-            return delegate { bool answer = read; read = true; return answer; };
         }
 
         // A late review found three gaps in the lock work: a hold recorded after the listening context changed, a recovery
@@ -313,6 +628,7 @@ namespace CapriDesktop
             string statusWas = (string)statusField.GetValue(pet), smokeWas = Program.Smoke;
             object contextWas = contextField.GetValue(pet);
             Task lifetimeWas = (Task)lifetimeField.GetValue(pet);
+            object changedWas = typeof(Pet).GetField("SettingsChanged", fields).GetValue(pet);
             Func<bool> started = () => !(bool)stoppedField.GetValue(pet);
             Func<bool> starting = () => (bool)startingField.GetValue(pet);
             Func<bool> lockPaused = () => (bool)lockPausedField.GetValue(pet);
@@ -369,11 +685,12 @@ namespace CapriDesktop
                 pet.ObserveNameLock(true);
                 Require(!saved.ListenCapriHold && !holdSaved(), "a held pause survived a changed listening context");
                 Require(!lockPaused(), "a held pause stayed resumable after a changed listening context");
-                Require(epoch() == pausedEpoch + 1, "a changed context did not stop her paused state exactly once");
+                // She was already stopped, so dropping the hold is the whole job: no extra stop, no extra save churn.
+                Require(epoch() == pausedEpoch, "a changed context moved her epoch while she was already stopped");
                 Pet.LockedForNameListening = () => false;
                 pet.ObserveNameLock(false);
                 Require(!started(), "an unlock resumed the microphone under a changed context");
-                Require(epoch() == pausedEpoch + 1, "an unlock moved her epoch under a changed context");
+                Require(epoch() == pausedEpoch, "an unlock moved her epoch under a changed context");
                 int churn = 0;
                 pet.SettingsChanged += () => churn++;
                 pet.ObserveNameLock(true);
@@ -483,6 +800,7 @@ namespace CapriDesktop
                 contextField.SetValue(pet, contextWas);
                 lifetimeField.SetValue(pet, lifetimeWas);
                 lockPausedField.SetValue(pet, lockPausedWas);
+                typeof(Pet).GetField("SettingsChanged", fields).SetValue(pet, changedWas);
                 pet.Talk.Dismiss();
             }
             checks.Add("PASS name listening review: a context change while the screen is locked drops the hold and never resumes on unlock, the recovery answer re-checks the lock and keeps the hold for a later unlock, the limitation note shows only for an activation that really starts and never for a refused one, and the real tick keeps polling while held so a detected unlock resumes her exactly once");
@@ -513,6 +831,8 @@ namespace CapriDesktop
             string statusWas = (string)statusField.GetValue(pet);
             int saves = 0;
             Action counted = () => saves++;
+            object contextWas = typeof(Pet).GetField("nameContext", fields).GetValue(pet);
+            object playbackWas = BeforePlaybackField()?.GetValue(null);
             Func<bool> started = () => !(bool)stoppedField.GetValue(pet);
             Func<long> epoch = () => (long)epochField.GetValue(pet);
             Func<bool> holdSaved = () =>
@@ -669,6 +989,8 @@ namespace CapriDesktop
                 statusField.SetValue(pet, statusWas);
                 // After the Stop above, which clears it: a paused state left over from before this check is put back too.
                 typeof(Pet).GetField("nameLockPaused", fields).SetValue(pet, lockPausedWas);
+                typeof(Pet).GetField("nameContext", fields).SetValue(pet, contextWas);
+                if (BeforePlaybackField() != null) BeforePlaybackField().SetValue(null, playbackWas);
                 pet.Talk.Dismiss();
             }
             checks.Add("PASS name listening corrections: a desktop with no Hyprland snapshot is unknown rather than locked and never writes a false hold nor saves, an explicit Stop outranks a later lock and its unlock with her epoch untouched, a real lock while listening pauses her exactly once and its unlock resumes her once without the activation warning, a hold saved across a restart still resumes exactly once on a detected unlock, and the limitation note shows only when she really starts listening and never over the microphone chooser's line");
@@ -706,6 +1028,8 @@ namespace CapriDesktop
             string statusWas = (string)statusField.GetValue(pet);
             int saves = 0;
             Action counted = () => saves++;
+            object contextWas = typeof(Pet).GetField("nameContext", fields).GetValue(pet);
+            object playbackWas = BeforePlaybackField()?.GetValue(null);
             Func<bool> started = () => !(bool)stoppedField.GetValue(pet);
             Func<bool> starting = () => (bool)startingField.GetValue(pet);
             try
@@ -835,6 +1159,8 @@ namespace CapriDesktop
                 shushedField.SetValue(pet, shushedWas);
                 // After the Stop above, which clears it: a paused state left over from before this check is put back too.
                 typeof(Pet).GetField("nameLockPaused", fields).SetValue(pet, lockPausedWas);
+                typeof(Pet).GetField("nameContext", fields).SetValue(pet, contextWas);
+                if (BeforePlaybackField() != null) BeforePlaybackField().SetValue(null, playbackWas);
                 pet.Talk.Dismiss();
             }
             checks.Add("PASS name listening holds: a real lock pauses her without re-saving each tick and a lost answer after it never resumes her, a detected unlock asks her back without the activation warning unless another control bars her, a saved hold skips the startup start and says why, and turning the switch on re-probes the lock with the agreed warning before YES or NO");
