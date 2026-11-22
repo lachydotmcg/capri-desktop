@@ -12216,7 +12216,7 @@ namespace CapriDesktop
             {
                 string file = Path.Combine(root, CompanionBridge.Discovery);
                 File.WriteAllText(file, "{}");
-                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
+                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.OtherRead);
                 bridge.Start();
                 if (!File.Exists(file)) throw new Exception("The companion discovery file is missing.");
                 if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(file) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("The companion discovery file is not private.");
