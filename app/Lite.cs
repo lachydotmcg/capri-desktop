@@ -79,9 +79,10 @@ namespace CapriDesktop
                 {
                     List<string> kept = new List<string>();
                     foreach (string name in LiteWatchers) if (SettingOn(name) == true) kept.Add(name);
-                    preferences.LiteKept = kept.ToArray();
+                    preferences.LiteKept = null;
                     preferences.Lite = Brain.Lite = true;
                     foreach (string name in LiteWatchers) SetSetting(name, false);
+                    preferences.LiteKept = kept.ToArray();
                     foreach (string name in kept) if (name != "save_big_moments") changed.Add(WatcherName(name));
                     RestForLite();
                 }

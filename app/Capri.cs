@@ -8380,6 +8380,8 @@ namespace CapriDesktop
             preferences.CommentPace = Math.Max(0, Math.Min(2, pace));
             preferences.NoComments = preferences.CommentPace == Commentary.Off;
             if (preferences.CommentPace > 0) preferences.CommentPaceWas = preferences.CommentPace;
+            // A pick they make while Lite mode is on is theirs, so turning Lite mode off leaves Comments where they put it.
+            if (preferences.Lite && preferences.LiteKept != null) preferences.LiteKept = Array.FindAll(preferences.LiteKept, name => name != "game_comments");
             Commentary.Pace = GamePace;
             if (preferences.CommentPace == Commentary.Off && GamingOn) gaming.Off();
             SavePreferences();
@@ -16099,8 +16101,7 @@ namespace CapriDesktop
             string afterGaming = Hands.AfterGaming(input);
             if (afterGaming != null)
             {
-                WantGaming(true);
-                gaming.On(clock.Elapsed.TotalSeconds);
+                if (CommentPace != Commentary.Off) gaming.On(clock.Elapsed.TotalSeconds);
                 // "Play Minecraft" alone only opens it; said with Gaming Mode it means her hands on the game.
                 input = afterGaming.StartsWith("play ", StringComparison.OrdinalIgnoreCase) ? afterGaming.TrimEnd('.', '!', ' ') + " yourself" : afterGaming;
                 text = RemotePictures.Sent(text, typed, input);
@@ -19119,6 +19120,7 @@ namespace CapriDesktop
                 if (!Asleep) throw new Exception("Her pending nap was lost when the job stopped.");
                 checks.Add("PASS a sleep request leaves the job running, says it will finish first, and sleeps after completion or an explicit stop");
                 napReset();
+                int napPaceWas = preferences.CommentPace;
                 for (int napBlock = 0; napBlock < 10; napBlock++)
                 {
                     napReset();
@@ -19134,6 +19136,7 @@ namespace CapriDesktop
                     if (napBlock == 8)
                     {
                         gaming.Find = delegate { return new GameSeen(); }; gaming.Dock = delegate { }; gaming.Undock = delegate { }; gaming.Changed = delegate { };
+                        preferences.CommentPace = Commentary.Events;
                         Play(sleep);
                         napping = true;
                         GamingMode("on");
@@ -19142,7 +19145,7 @@ namespace CapriDesktop
                     if (napBlock == 9) typer.Show();
                     CheckIdle(napNow, 3600000);
                     if (Asleep || ownRest || ownNap || falling) throw new Exception("Her own rest started in blocked state " + napBlock);
-                    if (napBlock == 8) gaming.Off();
+                    if (napBlock == 8) { gaming.Off(); preferences.CommentPace = napPaceWas; }
                 }
                 napReset();
                 nextLie = napNow - 1;
@@ -24452,9 +24455,9 @@ namespace CapriDesktop
                 if (!selfSteps[selfStep].StartsWith((selfStep + 1) + ". ", StringComparison.Ordinal)) throw new Exception("Her tutorial lost its step order.");
             checks.Add("PASS self knowledge: sample asks find the right topic, every named topic is reachable, a tutorial has six steps, only the three best topics fit, and ordinary chat and game questions find nothing");
             string selfGamingHelp = SelfKnow.Matching("how do I activate game mode?");
-            foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Settings > GAMES", "no switch of its own", "default key is Ctrl + Alt + G", "MAX INTELLIGENCE", "weaker on other brains" })
+            foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Settings > GAMES", "no switch of its own", "default key is Ctrl + Alt + G", "Off stays off", "asking her to turn game comments on brings them back", "MAX INTELLIGENCE", "weaker on other brains" })
                 if (selfGamingHelp == null || !selfGamingHelp.Contains(selfGamingFact)) throw new Exception("Gaming Mode help missed: " + selfGamingFact);
-            checks.Add("PASS self knowledge: Gaming Mode explains asking her, that Comments in Settings is its only setting, the default key and the difference between MAX INTELLIGENCE and other brains");
+            checks.Add("PASS self knowledge: Gaming Mode explains asking her, that Comments in Settings is its only setting, the default key, that Comments Off stays off until Comments itself turns it back on, and the difference between MAX INTELLIGENCE and other brains");
 
             string selfFreeKeyHelp = SelfKnow.Matching("how do I get a free key");
             foreach (string provider in new[] { "NVIDIA", "Google AI Studio (Gemini)", "OpenRouter", "free models", "rate limited" })
@@ -25989,12 +25992,12 @@ namespace CapriDesktop
             foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
             {
                 string facts = SelfKnow.Matching(question) ?? "";
-                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Every set to Off stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("flip Comments between Off and your last pick") && facts.Contains("Quiet stops her speaking on her own") && facts.Contains("she only talks when you talk to her"), "settings help missed the real switches for: " + question);
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Every set to Off stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("and live reactions") && facts.Contains("only Comments itself or asking her to turn game comments on brings them back") && facts.Contains("Quiet stops her speaking on her own") && facts.Contains("she only talks when you talk to her"), "settings help missed the real switches for: " + question);
             }
             for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
                 careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
             careMust(SelfKnow.Setting("Mainframe.cs", "Edit check-in lines").Facts.Contains("CAPRI > Check in on me > Edit check-in lines"), "Edit check-in lines kept its HABITS path.");
-            careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("Off stops game comments and live reactions") && SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("flips Comments between Off and your last pick"), "Comments help didn't say Off stops everything and Gaming Mode flips it.");
+            careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("Off stops game comments and live reactions") && SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("can turn Comments off, but never back on"), "Comments help didn't say Off stops everything and only Comments turns it back on.");
             foreach (string[,] rows in new[] { Hands.OwnSwitches, Hands.OwnLevels })
                 for (int row = 0; row < rows.GetLength(0); row++)
                     if (Array.IndexOf(Hands.CareSettings, rows[row, 0]) >= 0) careMust(rows[row, 2] == "Capri", "the settings tool kept a care control under Habits.");
@@ -36929,8 +36932,11 @@ namespace CapriDesktop
                 string off = GamingMode("off");
                 bool offRight = off == "Gaming Mode off. Game comments are off too." && CommentPace == Commentary.Off && !GamingOn && !docked && !GameHud.Showing && !hidden && Visible == wasShown && anchor == home && !mainframe.GamingShown && Doing != "Gaming";
                 string again = GamingMode("off");
+                string refused = GamingMode("on");
+                bool refusedRight = refused == Hands.GamingNeedsComments && CommentPace == Commentary.Off && !GamingOn && !docked && !GameHud.Showing && !mainframe.GamingShown;
+                mainframe.SlideComments(1);
                 string landed = GamingMode("on");
-                bool onAtOnce = landed == "Gaming Mode on, " + name + ". Docking top-left until you close the game. Game comments are on at Events only." && CommentPace == Commentary.Events && docked && GameHud.Showing;
+                bool onAtOnce = refusedRight && landed == "Gaming Mode on, " + name + ". Docking top-left until you close the game." && CommentPace == Commentary.Events && docked && GameHud.Showing;
                 string twice = GamingMode("on");
                 running = false;
                 front = null;
@@ -36970,7 +36976,7 @@ namespace CapriDesktop
                 bool stayedHidden = !docked && hidden && !Visible;
                 ShowHidden(false);
                 front = null;
-                // On by default, so her key's first press turns it off, and that holds until the next.
+                // On by default, so her key's first press turns it off, and that holds until Comments itself turns it back on.
                 if (Hands.AfterGaming("Capri, activate gaming mode and play Minecraft") != "play Minecraft" || Hands.AfterGaming("Hey Capri, enter gaming mode and craft me a pickaxe") != "craft me a pickaxe" || Hands.AfterGaming("don't enter gaming mode and play Minecraft") != null || Hands.AfterGaming("activate gaming mode") != null) throw new Exception("Gaming Mode with a job after it was read wrong.");
                 string gmodTool;
                 ToolArguments gmodArgs;
@@ -37000,11 +37006,17 @@ namespace CapriDesktop
                 if (!quietDropped || Computer.PlayingNow.IndexOf("keep playing quietly", StringComparison.Ordinal) < 0) throw new Exception("Her stream kept the game prompt's keep playing quietly, or a normal game lost it.");
                 SetCommentPace(Commentary.Events);
                 ToggleGaming();
-                bool keyOff = !GamingOn && !GamingWanted;
+                bool keyOff = !GamingOn && !GamingWanted && CommentPace == Commentary.Off;
+                CloseTalk();
+                heard = null;
                 ToggleGaming();
-                bool keyOn = gaming.State == GameDock.Stage.Armed && GamingWanted && heard == "gaming mode";
+                bool keyHeld = !GamingOn && !GamingWanted && CommentPace == Commentary.Off && heard == "gaming mode";
+                CloseTalk();
+                talkState = TalkState.Thinking;
                 ToggleGaming();
-                keyOff = keyOff && !GamingOn && !GamingWanted;
+                keyHeld = keyHeld && speech == Hands.GamingNeedsComments && !GamingOn && !GamingWanted && LoadPreferences().CommentPace == Commentary.Off;
+                Say(null);
+                talkState = TalkState.Off;
                 SetCommentPace(Commentary.Events);
                 Job gameJob = new Job("play Minecraft");
                 DockForJob(gameJob);
@@ -37026,13 +37038,13 @@ namespace CapriDesktop
                 CloseTalk();
                 anchor = home;
                 Location = anchor;
-                if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden || !keyOn || !keyOff || !jobNoGame || !jobIn || !jobStayedOff || !jobKept)
-                    throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + "/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden + ", key " + keyOn + "/" + keyOff + ", game job " + jobNoGame + "/" + jobIn + "/" + jobStayedOff + "/" + jobKept);
+                if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden || !keyHeld || !keyOff || !jobNoGame || !jobIn || !jobStayedOff || !jobKept)
+                    throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + " (" + refused + ")/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden + ", key " + keyHeld + "/" + keyOff + ", game job " + jobNoGame + "/" + jobIn + "/" + jobStayedOff + "/" + jobKept);
                 // The path everyone's on for now (Lachy, 31 Oct): no HUD, her body stays, and she still reacts to the game.
                 gaming.Hud = delegate { return false; };
                 int plainPaceWas = preferences.CommentPace;
                 bool plainCommentsWas = preferences.NoComments;
-                preferences.CommentPace = 0;
+                preferences.CommentPace = Commentary.Events;
                 preferences.NoComments = false;
                 running = true;
                 exclusive = false;
@@ -37040,7 +37052,7 @@ namespace CapriDesktop
                 string plainArmed = GamingMode("on");
                 front = game;
                 gaming.Check(9000);
-                bool plainStayed = plainArmed == "Gaming Mode's armed. I'll watch as soon as a game's up. Game comments are on at Events only." && GamingOn && !docked && !hidden && !GameHud.Showing && GamePace == Commentary.Events && Doing == "Gaming" && said.Count == 1 && said[0] == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game.";
+                bool plainStayed = plainArmed == "Gaming Mode's armed. I'll watch as soon as a game's up." && GamingOn && !docked && !hidden && !GameHud.Showing && GamePace == Commentary.Events && Doing == "Gaming" && said.Count == 1 && said[0] == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game.";
                 Func<Sight> aheadWas = Computer.Glimpse;
                 Func<bool> aheadFullWas = FullScreen;
                 Job aheadJobWas = job;
@@ -37108,6 +37120,7 @@ namespace CapriDesktop
                 front = game;
                 gaming.Check(9150);
                 bool openedQuietly = !GamingOn && said.Count == 0;
+                mainframe.SlideComments(1);
                 string slidDocked = GamingMode("on");
                 bool dockedFirst = gaming.State == GameDock.Stage.Docked && gaming.Asked;
                 mainframe.SlideComments(0);
@@ -37172,11 +37185,114 @@ namespace CapriDesktop
                 gaming.Stays = staysWas;
                 if (!wantedAtRest || !noticed || !askedRight || !closedAsked || !closedQuietly || !stayedOff) throw new Exception("Gaming Mode on by default went wrong: rest " + wantedAtRest + ", noticed " + noticed + ", asked " + askedRight + " (" + askedWhenOn + "), closed " + closedAsked + "/" + closedQuietly + ", off " + stayedOff + " (" + turnedOffNoGame + "), said " + string.Join(" / ", said.ToArray()));
                 checks.Add("PASS Gaming Mode is on by default: a game in front takes her in with nothing said, asking for it still gets its answer, closing the game leaves it on for the next one, and turning it off stays off");
+                // Off stays off: with Comments Off, her tools and the phrase only get her line about where Comments is, a game job
+                // stays out of Gaming Mode, and only Comments itself, by its slider or by asking her, turns game comments back on.
+                Func<string, string> offThinkWas = Think;
+                string offWorkingWas = working;
+                bool offSilentWas = preferences.Silent, offNoAiWas = preferences.NoAi;
+                Job offJobWas = job;
+                Func<bool> staysAfter = gaming.Stays;
+                bool comboGaming = false;
+                Func<string, string> comboHear = delegate(string comboRequest)
+                {
+                    string comboGot = null;
+                    Think = delegate(string comboAsk) { comboGot = comboAsk; return "Sounds good, choom."; };
+                    Hear(comboRequest);
+                    comboGaming = GamingOn;
+                    Stopwatch comboWait = Stopwatch.StartNew();
+                    while (comboGot == null && comboWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                    asking++;
+                    CloseTalk();
+                    return comboGot;
+                };
+                try
+                {
+                    preferences.Silent = true;
+                    preferences.NoAi = false;
+                    job = null;
+                    working = null;
+                    said.Clear();
+                    running = true;
+                    front = game;
+                    string toolLine = Hands.Do("gaming_mode", new ToolArguments { Action = "on" });
+                    System.Collections.Generic.List<Deed> deedsNow = Timeline.Recent();
+                    Deed toolDeed = deedsNow.Count == 0 ? null : deedsNow[deedsNow.Count - 1];
+                    bool toolHeld = toolLine == Hands.GamingNeedsComments && Hands.Pulled(toolLine) == toolLine && (!Timeline.Keeps("gaming_mode", new ToolArguments { Action = "on" }) || toolDeed != null && toolDeed.Tool == "gaming_mode" && toolDeed.Failed);
+                    string phraseTool;
+                    ToolArguments phraseArgs;
+                    bool phraseHeld = Hands.Heard("Hey Capri, activate gaming mode", out phraseTool, out phraseArgs) && phraseTool == "gaming_mode" && Hands.Do(phraseTool, phraseArgs) == Hands.GamingNeedsComments;
+                    string settingAsked = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "gaming_mode" });
+                    Job offJob = new Job("play Minecraft");
+                    DockForJob(offJob);
+                    bool jobHeld = jobDock != offJob && !GamingOn;
+                    string comboReached = comboHear("Capri, activate gaming mode and tell me about your day");
+                    bool comboHeld = !comboGaming && comboReached == "tell me about your day";
+                    gaming.Check(9700);
+                    running = false;
+                    front = null;
+                    gaming.Check(9710);
+                    gaming.Check(9810);
+                    Preferences offPrefs = LoadPreferences();
+                    mainframe.Sync();
+                    bool offHeld = CommentPace == Commentary.Off && offPrefs.CommentPace == Commentary.Off && offPrefs.NoComments && !GamingOn && !GamingWanted && said.Count == 0
+                        && GamingMode("off") == "Gaming Mode's already off." && CommentPace == Commentary.Off && mainframe.CommentsShown == "Off" && !mainframe.GamingShown;
+                    if (!toolHeld || !phraseHeld || settingAsked != Hands.GamingNeedsComments || !jobHeld || !comboHeld || !offHeld)
+                        throw new Exception("Something turned Gaming Mode or game comments back on while Comments was Off: tool " + toolHeld + " (" + toolLine + "), phrase " + phraseHeld + ", settings tool " + settingAsked + ", job " + jobHeld + ", with more after it " + comboHeld + " (" + comboReached + "), stayed off " + offHeld + ", comments " + Commentary.PaceNames[CommentPace] + ", said " + string.Join(" / ", said.ToArray()));
+                    checks.Add("PASS Off stays off: with Comments Off, her key, her gaming_mode tool, \"activate gaming mode\" and her settings tool's Gaming Mode switch leave Gaming Mode and game comments off and get one plain line that game comments are off and turn back on under GAMES > Comments, which her timeline keeps as not done; a game job stays out of Gaming Mode, \"activate gaming mode and ...\" still does the rest, a game opening and closing gets nothing said, and Comments stays Off, saved and shown");
+                    string commentsOn = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "game_comments" });
+                    bool askedBack = commentsOn == "Turned Game comments on." && CommentPace == Commentary.Events && LoadPreferences().CommentPace == Commentary.Events && GamingWanted && !GamingOn;
+                    Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "game_comments", Level = "Chatty" });
+                    bool chattyPicked = CommentPace == Commentary.Chatty && LoadPreferences().CommentPace == Commentary.Chatty;
+                    gaming.Stays = delegate { return true; };
+                    said.Clear();
+                    running = true;
+                    front = game;
+                    gaming.Notice(9900);
+                    bool chattyDocked = gaming.State == GameDock.Stage.Docked && !gaming.Asked && said.Count == 0 && GamePace == Commentary.Chatty;
+                    running = false;
+                    front = null;
+                    gaming.Check(9910);
+                    gaming.Check(10010);
+                    bool chattyStayed = !GamingOn && GamingWanted && CommentPace == Commentary.Chatty && LoadPreferences().CommentPace == Commentary.Chatty && said.Count == 0;
+                    running = true;
+                    front = game;
+                    string chattyCombo = comboHear("Capri, activate gaming mode and tell me about your day");
+                    bool chattyComboOn = comboGaming && GamingOn && chattyCombo == "tell me about your day";
+                    ToggleGaming();
+                    bool chattyKeyOff = !GamingOn && !GamingWanted && CommentPace == Commentary.Off;
+                    CloseTalk();
+                    ToggleGaming();
+                    bool chattyKeyHeld = !GamingOn && !GamingWanted && CommentPace == Commentary.Off;
+                    CloseTalk();
+                    Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "game_comments" });
+                    bool chattyBack = CommentPace == Commentary.Chatty && GamingWanted && !GamingOn;
+                    front = null;
+                    if (!askedBack || !chattyPicked || !chattyDocked || !chattyStayed || !chattyComboOn || !chattyKeyOff || !chattyKeyHeld || !chattyBack)
+                        throw new Exception("Gaming Mode with Comments on went wrong: asked back " + askedBack + " (" + commentsOn + "), Chatty picked " + chattyPicked + ", docked " + chattyDocked + ", stayed " + chattyStayed + ", with more after it " + chattyComboOn + " (" + chattyCombo + "), key off " + chattyKeyOff + "/" + chattyKeyHeld + ", asked back to Chatty " + chattyBack + ", said " + string.Join(" / ", said.ToArray()));
+                    checks.Add("PASS game comments come back only when asked: turning them on by her settings tool brings back the last pick, and with Comments on Chatty a game loading takes her in quietly and leaves Chatty when it closes, \"activate gaming mode and ...\" turns Gaming Mode on and does the rest, her key turns Gaming Mode and Comments off, and asking her to turn game comments on brings back Chatty");
+                    string gamingSpec = null;
+                    for (int spec = 0; spec < Hands.Count; spec++) if (Hands.Name(spec) == "gaming_mode") gamingSpec = Hands.Description(spec);
+                    if (gamingSpec == null || gamingSpec.IndexOf("hint", StringComparison.OrdinalIgnoreCase) >= 0 || gamingSpec.IndexOf("suggest", StringComparison.OrdinalIgnoreCase) >= 0 || gamingSpec.IndexOf("only when they ask for Gaming Mode or your game reactions", StringComparison.Ordinal) < 0 || gamingSpec.IndexOf("stays off while their game comments are Off", StringComparison.Ordinal) < 0)
+                        throw new Exception("Her gaming_mode tool still reads as hints or suggestions: " + gamingSpec);
+                    checks.Add("PASS her gaming_mode tool is for when they ask for Gaming Mode or her game reactions, not hints or suggestions, and says it stays off while their game comments are Off");
+                }
+                finally
+                {
+                    Think = offThinkWas;
+                    working = offWorkingWas;
+                    job = offJobWas;
+                    preferences.Silent = offSilentWas;
+                    preferences.NoAi = offNoAiWas;
+                    gaming.Stays = staysAfter;
+                    running = false;
+                    front = null;
+                    CloseTalk();
+                }
                 gaming.Hud = delegate { return testing; };
                 preferences.CommentPace = plainPaceWas;
                 preferences.NoComments = plainCommentsWas;
                 if (!plainStayed || !plainOff || plainMove != "My HUD isn't up right now.") throw new Exception("Gaming Mode without the HUD went wrong: stayed " + plainStayed + ", off " + plainOff + ", move " + plainMove + ", armed " + plainArmed + ", said " + string.Join(" / ", said.ToArray()) + ", doing " + Doing);
-                checks.Add("PASS Gaming Mode without the HUD, as it is for now: her body stays, no HUD window opens, she reacts at least when something happens with Comments off, her status says Gaming, and turning it off puts comments back to their setting");
+                checks.Add("PASS Gaming Mode without the HUD, as it is for now: her body stays, no HUD window opens, she reacts when something happens at Events only, her status says Gaming, and turning it off turns game comments off");
                 checks.Add("PASS Gaming Mode: her words reach it and chat about it doesn't; with no game she stays armed and docks when one comes up; docked her body and bubble are gone, the HUD is click-through and never active, and it shows what she says, THINKING, a job's status, LISTENING with live words and her quiet key; the HUD moves per game and starts under Cyberpunk's health bar; turning it off, or the game exiting, puts her back where she was; a launcher's game takes over; exclusive full screen is mentioned once; the hide key and her tray icon end it; and a game job docks her once the game's in front, moves its panel to the HUD, and stays off when it's turned off");
             }
             finally
@@ -46559,6 +46675,8 @@ namespace CapriDesktop
             // The Mainframe's layout at every simulated DPI, text and size runs in step 1 through her local brain picker. Named
             // with -Only it runs here too, first, on a Mainframe no other section has changed, with pictures of Brain and Voice.
             if (SmokeRun.Named("SmokeBrainLayout")) Section(checks, "SmokeBrainLayout", delegate { SmokeBrainLayout(checks, Path.Combine(output, "brain-layout")); });
+            // Gaming Mode's checks run near the end of step 22. Named with -Only they run here too.
+            if (SmokeRun.Named("GamingChecks")) Section(checks, "GamingChecks", delegate { GamingChecks(output, checks); });
             Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); PlainChecks(checks); });
             Section(checks, "SmokeReportedLogic", delegate { SmokeReportedLogic(checks); });
             Section(checks, "SmokeRepeats", delegate { SmokeRepeats(checks); });

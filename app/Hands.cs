@@ -1230,8 +1230,8 @@ namespace CapriDesktop
             { "pat_stroke", "how long a stroke over you a head pat needs: Short is a quick rub, Long a slow, deliberate one" },
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
-            { "game_comments", "game comments run on their own; Off stops them and her live reactions, and Gaming Mode is this setting: it flips it between Off and the last pick" },
-            { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
+            { "game_comments", "game comments run on their own; Off stops them and your live reactions and keeps Gaming Mode off. Turn it on only when they clearly ask for game comments, never to get Gaming Mode on" },
+            { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens; off turns game_comments off too, and it stays off while game_comments is off" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
             { "listen_for_capri", "your mic stays open and a sentence with your name, or Hey Capri, starts voice chat" },
@@ -1458,7 +1458,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back, rampage throws drawn copies\",\"enum\":[\"mess\",\"hide\",\"back\",\"rampage\"]}},\"required\":[\"action\"]}", "scatter, hide or throw your desktop icons and put them back", "scatter, hide or throw their desktop icons, then put them back" },
             { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action scroll when they ask you to scroll TikTok or Shorts for them or doomscroll for them: you press the down arrow on their feed for the next video and react to each one. Use action stop to finish watching or scrolling; watch_for is for a particular event.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"scroll\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
-            { "gaming_mode", "Turn Gaming Mode on or off: you watch their game and react when something happens, until it closes. Use it when they ask, suggest or hint at your game overlay or reactions, however they word it. Playing the game yourself uses use_computer.",
+            { "gaming_mode", "Turn Gaming Mode on or off: you watch their game and react when something happens, until it closes. Use it only when they ask for Gaming Mode or your game reactions, however they word it; chat about their game isn't asking. It stays off while their game comments are Off; don't turn those on for it. Playing the game yourself uses use_computer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}", "react to your games in Gaming Mode", "turn Gaming Mode on or off" },
             { "clip", "Save recent game video, open their clips folder or open the last saved clip when they ask, suggest or hint at it. save is the default and needs Clip my games on. Omit seconds for their default length. Opening saved clips works with recording off.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"save by default, open_folder or open_last\",\"enum\":[\"save\",\"open_folder\",\"open_last\"]},\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}", "clip games or open your clips", "save game clips or open saved clips" },
@@ -1845,6 +1845,8 @@ namespace CapriDesktop
         private static readonly Regex CloneEnough = new Regex(@"^(?:ok(?:ay)? )?(?:stop|enough|that'?s enough)$", RegexOptions.IgnoreCase);
         // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
         internal static Func<string, string> GamingMode = delegate { return "Gaming Mode isn't on this PC yet."; };
+        // What she says when Gaming Mode is asked for while GAMES > Comments is Off, which only Comments itself turns back on.
+        internal const string GamingNeedsComments = "Game comments are off. You can turn them on under GAMES > Comments in my Mainframe.";
         internal static Func<int, string> SaveClip = delegate { return "Turn on Clip my games in Settings > CLIPS, then I can clip that."; };
         private static readonly string[] Browsers = { "chrome", "msedge", "firefox", "brave", "opera", "vivaldi" };
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd" };
@@ -2076,7 +2078,7 @@ namespace CapriDesktop
             Match first = Regex.Match(shown.Trim(), @"^.+?[.!?](?=\s|$)");
             deed.What = first.Success && first.Value.Length >= 12 ? first.Value : shown.Trim();
             if (deed.What.Length == 0) deed.What = tool.Replace('_', ' ');
-            deed.Failed = Failed(result) || Regex.IsMatch(result ?? "", @"^(?:Nothing|I'm not|I can't|I couldn't|No mod has|No running mod|There's no)\b");
+            deed.Failed = Failed(result) || result == GamingNeedsComments || Regex.IsMatch(result ?? "", @"^(?:Nothing|I'm not|I can't|I couldn't|No mod has|No running mod|There's no)\b");
             bool kept = true;
             switch (tool)
             {
@@ -3265,7 +3267,7 @@ namespace CapriDesktop
 
         internal static string Pulled(string result)
         {
-            if ((result ?? "").StartsWith("Hologram mode ", StringComparison.Ordinal)) return result;
+            if ((result ?? "").StartsWith("Hologram mode ", StringComparison.Ordinal) || result == GamingNeedsComments) return result;
 #if CROSS
             if (OnMac && (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.")) return result;
 #else
@@ -7536,6 +7538,8 @@ namespace CapriDesktop
             if (was == null) return args.Name == "mic" ? "Couldn't change my voice chat mic: voice chat isn't on." : "Couldn't read " + label + " just now.";
             if (was.Value == want) return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
             string note = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want);
+            // Gaming Mode stays off while game comments are Off, and she answers the same as her gaming_mode tool does.
+            if (note == GamingNeedsComments) return note;
             bool? now = SettingOn(args.Name);
             note = string.IsNullOrEmpty(note) ? "" : " " + note;
             return now == want ? "Turned " + label + " " + way + "." + note + SettingsNote(args.Name, true) : "Couldn't turn " + label + " " + way + ": it's still " + (now == true ? "on" : now == false ? "off" : "unreadable") + "." + note;
