@@ -379,15 +379,44 @@ namespace CapriDesktop
                 if (!aims(false)) throw new Exception("The game showing its cursor didn't give her clicks back: " + GameCursor.Read() + ".");
                 string shut = wrong(false);
                 if (shut != null) throw new Exception("Her " + shut + " still let clicks through with the game's cursor showing.");
-                move(new Point(spot.X + 2, spot.Y + 2));
+                Point back = new Point(spot.X + 2, spot.Y + 2);
+                if (!Uncovered(back)) back = SolidSpot();
+                if (back.IsEmpty)
+                {
+                    checks.Add("LIMIT game clicks " + how + ": by the last click something covered her, " + FakeGame.Describe(new Point(spot.X + 2, spot.Y + 2)));
+                    return;
+                }
+                move(back);
+                string target = FakeGame.Describe(back);
                 rights = ask(FakeGame.Rights);
-                click(true);
-                PumpFor(0.2);
-                bool opened = menu.Visible;
-                if (opened) menu.Close();
-                PumpFor(0.1);
+                // Her menu counts as opened once it's up, even if it shuts by itself straight after.
+                bool asked = false, opened = false;
+                string shutBy = null;
+                System.ComponentModel.CancelEventHandler asking = delegate { asked = true; };
+                EventHandler up = delegate { opened = true; };
+                ToolStripDropDownClosedEventHandler down = delegate(object sender, ToolStripDropDownClosedEventArgs e) { if (shutBy == null) shutBy = e.CloseReason.ToString(); };
+                menu.Opening += asking;
+                menu.Opened += up;
+                menu.Closed += down;
+                bool stayed;
+                try
+                {
+                    click(true);
+                    PumpFor(0.2);
+                    stayed = menu.Visible;
+                    if (stayed) menu.Close();
+                    PumpFor(0.1);
+                }
+                finally
+                {
+                    menu.Opening -= asking;
+                    menu.Opened -= up;
+                    menu.Closed -= down;
+                }
                 rightGot = ask(FakeGame.Rights) - rights;
-                if (!opened || rightGot != 0) throw new Exception("With the game's cursor showing, a right click on her didn't open her menu: menu " + opened + ", game right clicks " + rightGot + ".");
+                if (!opened || rightGot != 0) throw new Exception("With the game's cursor showing, a right click on her didn't open her menu: " + (asked ? "it began opening" : "it never began opening") + ", shut by " + (shutBy ?? "nothing")
+                    + ", game right clicks " + rightGot + ", the click went to " + target + ", her window 0x" + Handle.ToInt64().ToString("X") + ", in front 0x" + Native.GetForegroundWindow().ToInt64().ToString("X") + ".");
+                if (!stayed) checks.Add("LIMIT game clicks " + how + ": her menu opened for the right click but shut by itself (" + shutBy + ") before it could be looked at");
                 checks.Add("PASS a pretend full-screen game that hides its cursor, or sets none, gets every click aimed at her " + (real ? "with the real mouse" : "by Windows' hit test")
                     + ": her menu, pill and glitch stay away, " + (real ? "the game keeps focus" : "her windows can't take focus") + " and her hands' cursor loans don't undo it; once the game shows its cursor, a right click on her opens her menu again");
                 if (real && !told) checks.Add("LIMIT game clicks: Windows' cursor events didn't arrive here, so only her quarter-second check switched her");
