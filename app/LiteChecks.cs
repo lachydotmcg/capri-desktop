@@ -118,11 +118,12 @@ namespace CapriDesktop
             Ledge seatWas = seat;
             Clip clipWas = clip;
             string speechWas = speech;
-            double movedWas = seatMovedAt;
+            double movedWas = seatMovedAt, glitchWas = nextGlitch;
             List<UseWindow> windows = new List<UseWindow>();
             StringBuilder table = new StringBuilder();
             try
             {
+                nextGlitch = double.MaxValue;
                 seat = new Ledge { Floor = true, Left = anchor.X - 400, Right = anchor.X + Width + 400, Y = Hip().Y };
                 riding = false;
                 speech = null;
@@ -146,12 +147,13 @@ namespace CapriDesktop
                 FakedIdle = delegate { return LiteIdleMs + 1000; };
                 windows.Add(MeasureUse("Resting, Lite mode, PC idle a minute", UseSeconds));
                 string idlePace = RestPace();
+                string idleState = " (clip " + (clip == null ? "none" : clip.Title) + ", resting " + Resting(clock.Elapsed.TotalSeconds) + ", Lite idle " + liteIdle + ")";
                 preferences.Lite = liteWas;
                 FakedIdle = idleWas;
                 preferences.PowerSaver = saverWas;
                 SaverTick();
                 if (offPace != "33 ms at 30 fps" || usedPace != "61 ms at 15 fps" || idlePace != "92 ms at 10 fps")
-                    throw new Exception("Lite mode's rest pace was wrong: Power saver Off " + offPace + ", Lite with the PC in use " + usedPace + ", idle " + idlePace);
+                    throw new Exception("Lite mode's rest pace was wrong: Power saver Off " + offPace + ", Lite with the PC in use " + usedPace + ", idle " + idlePace + idleState);
                 if (windows[2].TickRate >= windows[0].TickRate || windows[3].TickRate >= windows[2].TickRate)
                     throw new Exception(string.Format(CultureInfo.InvariantCulture, "Lite mode didn't tick less: Off {0:0.0}, Lite in use {1:0.0}, Lite idle {2:0.0} ticks a second", windows[0].TickRate, windows[2].TickRate, windows[3].TickRate));
 
@@ -212,6 +214,7 @@ namespace CapriDesktop
                 seat = seatWas;
                 speech = speechWas;
                 seatMovedAt = movedWas;
+                nextGlitch = glitchWas;
                 Play(clipWas);
                 if (!framesWere) frames.Stop();
                 if (!signalsWere) signals.Stop();

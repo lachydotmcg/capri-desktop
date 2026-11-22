@@ -40,6 +40,7 @@ namespace CapriDesktop
             ServicePointManager.UseNagleAlgorithm = false;
             ServicePointManager.Expect100Continue = false;
             Started = Stopwatch.GetTimestamp();
+            if (args.Length > 1 && args[0] == "--smoke-child" && args[1] == "game") return FakeGame.Run(args);
             if (args.Length > 0 && args[0] == "--smoke-child") return SmokeRun.Child(args);
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
             if (args.Length > 0 && args[0] == "--workspace-hook") return WorkspaceHook.Run(args);
@@ -3537,6 +3538,7 @@ namespace CapriDesktop
                 CheckWake(clock.Elapsed.TotalSeconds);
                 if (background) CheckSlow(clock.Elapsed.TotalSeconds);
                 CheckVoiceInMic(signalNow);
+                if (!testing) CheckGameCursor(signalNow);
                 UpdatePill(clock.Elapsed.TotalSeconds);
                 if (!testing && background) CheckCrashReports(clock.Elapsed.TotalSeconds);
                 if (!testing && background && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
@@ -3558,7 +3560,7 @@ namespace CapriDesktop
             get
             {
                 CreateParams value = base.CreateParams;
-                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000 | (preferences != null && (preferences.Hologram || riding || lentOut) ? 0x20 : 0);
+                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000 | (gameAim || preferences != null && (preferences.Hologram || riding || lentOut) ? 0x20 : 0);
                 return value;
             }
         }
@@ -3580,6 +3582,7 @@ namespace CapriDesktop
             signals.Start();
             Ledges.Enabled = !testing;
             if (!testing) Native.WatchScreen(Handle);
+            if (!testing) WatchGameCursor(true);
             bool spawn = !instant && preferences.Motion && !preferences.NoIntro && !preferences.NoSitting;
             Action arrival = delegate
             {
@@ -4873,7 +4876,7 @@ namespace CapriDesktop
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            if (preferences.Hologram || e.Button != MouseButtons.Left || outro != null) return;
+            if (preferences.Hologram || gameAim || e.Button != MouseButtons.Left || outro != null) return;
             if (Asleep || ownRest) { WakeRest(!SleepBusy); RenderFrame(); }
             double now = clock.Elapsed.TotalSeconds;
             if ((ModifierKeys & Keys.Control) == Keys.Control && !Sulking && !Flying && !onPanel && working == null && job == null) { HighFive(now); return; }
@@ -5218,7 +5221,7 @@ namespace CapriDesktop
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
-            if (preferences.Hologram) return;
+            if (preferences.Hologram || gameAim) return;
             if (e.Button == MouseButtons.Right) { menu.Show(Cursor.Position); return; }
             if (e.Button != MouseButtons.Left || !pressed) return;
             Released(PointToScreen(e.Location), clock.Elapsed.TotalSeconds);
@@ -7239,6 +7242,7 @@ namespace CapriDesktop
             {
                 clipToast = new ClipToast();
                 clipToast.Open += delegate(string chosen) { OpenClips(chosen); };
+                clipToast.HandleCreated += delegate { PassThrough(); };
             }
             clipToast.Motion = preferences.Motion;
             clipToast.Pop(saved, seconds, game, ClipArea(monitor));
@@ -12194,18 +12198,20 @@ namespace CapriDesktop
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
         // for one of her presses, so between presses they can drag her and the panel out of the way, including over full screen.
+        // Over a game that's hidden its cursor to aim they all do, her clip popup and call pill too, and none of them takes focus.
         private void PassThrough()
         {
-            foreach (Form form in new Form[] { this, pill, box, taskPanel, player, gifCard })
+            foreach (Form form in new Form[] { this, pill, box, taskPanel, player, gifCard, clipToast, callPill })
             {
-                bool through = lentOut || (preferences.Hologram && (form == this || form == pill || form == box || form == gifCard)) || (form == this ? riding : form != taskPanel && pointing);
-                if (form == box && box.Choosing) through = false;
+                if (form == null || form.IsDisposed) continue;
+                bool through = gameAim || form != clipToast && form != callPill && (lentOut || (preferences.Hologram && (form == this || form == pill || form == box || form == gifCard)) || (form == this ? riding : form != taskPanel && pointing));
+                if (form == box && box.Choosing && !gameAim) through = false;
                 Overlay overlay = form as Overlay;
                 if (overlay != null) overlay.ClickThrough = through;
                 if (!form.IsHandleCreated) continue;
                 int style = Native.GetWindowLong(form.Handle, -20);
                 if ((style & 0x80000) == 0) continue;
-                int wanted = through ? style | 0x20 : style & ~0x20;
+                int wanted = (through ? style | 0x20 : style & ~0x20) | (gameAim ? 0x08000000 : 0);
                 if (wanted != style) Native.SetWindowLong(form.Handle, -20, wanted);
             }
         }
@@ -14484,7 +14490,7 @@ namespace CapriDesktop
             Point cursor = Cursor.Position;
             Point inside = PointToClient(cursor);
             bool near = frame != null && inside.X >= 0 && inside.Y >= 0 && inside.X < Width && inside.Y < Height && Solid(inside, true);
-            if (allowed && PillHeld(near || (pill.Visible && pill.Bounds.Contains(cursor)))) pillUntil = Math.Max(pillUntil, now + 1.5);
+            if (allowed && PillHeld(!gameAim && (near || (pill.Visible && pill.Bounds.Contains(cursor))))) pillUntil = Math.Max(pillUntil, now + 1.5);
             if (!allowed || now > pillUntil) { if (pill.Visible) pill.Hide(); return; }
             float s = TalkScale();
             Point feet = Feet();
@@ -17523,6 +17529,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            WatchGameCursor(false);
             try { Favourites.Save(); } catch (Exception) { }
             StopRemote();
             StopMailWatch();
@@ -29951,6 +29958,8 @@ namespace CapriDesktop
             }
             checks.Add("PASS disposing game ears wakes and joins its background thread");
         }
+
+        private IMessageFilter smokeInput;
 
         // Smoke checks call the handlers themselves. Input arriving while they pump messages belongs to whoever is using the PC.
         private sealed class SmokeInput : IMessageFilter
@@ -47074,6 +47083,7 @@ namespace CapriDesktop
             Section(checks, "SmokeStreamChat", delegate { SmokeStreamChat(checks); });
             Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
             Section(checks, "SmokeGameFocus", delegate { SmokeGameFocus(checks); });
+            Section(checks, "SmokeGameClicks", delegate { SmokeGameClicks(checks, output); });
             Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
             Section(checks, "SmokeGameEnter", delegate { SmokeGameEnter(checks); });
             Section(checks, "SmokeJobEars", delegate { SmokeJobEars(checks, output); });
@@ -51851,7 +51861,7 @@ namespace CapriDesktop
             SmokeRun.Start(output, options);
             Action<string> smokeStep = delegate(string name) { TestStep = name; File.WriteAllText(Path.Combine(output, "smoke-step.txt"), name); };
             smokeStep("startup");
-            SmokeInput smokeInput = new SmokeInput();
+            smokeInput = new SmokeInput();
             Application.AddMessageFilter(smokeInput);
             FormClosed += delegate { Application.RemoveMessageFilter(smokeInput); };
             Hands.Opened = delegate { return ""; };
