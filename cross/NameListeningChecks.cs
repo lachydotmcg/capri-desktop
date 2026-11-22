@@ -117,6 +117,10 @@ namespace CapriDesktop
             var stop = typeof(Pet).GetMethod("StopNameListening", fields, null, new[] { typeof(string) }, null);
             var captureContext = typeof(Pet).GetMethod("CaptureNameContext", fields, null, Type.EmptyTypes, null);
             var initialize = typeof(Pet).GetMethod("InitializeNameListening", fields, null, Type.EmptyTypes, null);
+            var earsField = typeof(Pet).GetField("nameEars", fields);
+            var identityField = typeof(Pet).GetField("nameIdentity", fields);
+            var nextIdentityField = typeof(Pet).GetField("nextNameIdentityCheck", fields);
+            var earsStateField = typeof(OwnedNameEars).GetField("state", fields);
             bool stoppedWas = (bool)stoppedField.GetValue(pet), startingWas = (bool)startingField.GetValue(pet);
             bool lockPausedWas = (bool)lockPausedField.GetValue(pet), shushedWas = (bool)shushedField.GetValue(pet);
             bool openedWas = (bool)openedField.GetValue(pet), writeBlockedWas = (bool)writeBlockedField.GetValue(pet);
@@ -124,6 +128,9 @@ namespace CapriDesktop
             string folderWas = (string)folderField.GetValue(pet);
             object contextWas = contextField.GetValue(pet);
             Task lifetimeWas = (Task)lifetimeField.GetValue(pet);
+            OwnedNameEars earsWas = (OwnedNameEars)earsField.GetValue(pet);
+            string identityWas = (string)identityField.GetValue(pet);
+            double nextIdentityWas = (double)nextIdentityField.GetValue(pet);
             Func<bool> started = () => !(bool)stoppedField.GetValue(pet);
             Func<bool> starting = () => (bool)startingField.GetValue(pet);
             Func<bool> lockPaused = () => (bool)lockPausedField.GetValue(pet);
@@ -302,23 +309,51 @@ namespace CapriDesktop
                 Require(pet.NameListeningStatus == "Paused while the screen is locked.",
                     "a relock that turned unknown during the resume reported the wrong status: " + pet.NameListeningStatus);
 
-                // Round 3, B3 TransientTick: the tick reads the lock exactly once, and that one answer drives both the
-                // observation and the stop branch, so a second read can never disagree with it.
+                // Round 4, B3 TransientTick: the tick's ONE read must also drive the live decoder's barred flag, not just
+                // the observation and the stop branch. Only a real OwnedNameEars with an inert child (never a microphone)
+                // reaches the steady Update path; the old check parked on nameStarting=true and never ran it, so the second
+                // read inside NameState hid there. The child is /usr/bin/sleep and is stopped in the finally.
                 ResetName(pet, fields, saved, opted: true, hold: false, active: true);
-                int tickReads = 0;
-                bool?[] tickAnswers = { false, true, null };
-                Pet.LockedForNameListening = () => tickAnswers[Math.Min(tickReads++, tickAnswers.Length - 1)];
-                string tickFiles = hashes();
-                TickNow(pet, fields, tick);
-                Require(tickReads == 1 && started() && !saved.ListenCapriHold && hashes() == tickFiles,
-                    "the tick read the lock " + tickReads + " times instead of once: hold=" + saved.ListenCapriHold);
-                TickNow(pet, fields, tick);
-                Require(tickReads == 2 && !started() && lockPaused() && saved.ListenCapriHold && filesHold() && mirrorHold(),
-                    "a lock on the tick's only read was dropped: reads=" + tickReads + ", hold=" + saved.ListenCapriHold);
-                string pausedFiles = hashes();
-                TickNow(pet, fields, tick);
-                Require(tickReads == 3 && saved.ListenCapriHold && hashes() == pausedFiles,
-                    "an unknown tick rewrote the held data: reads=" + tickReads);
+                var liveEars = new OwnedNameEars((_, _) => System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo("/usr/bin/sleep", "20")
+                    { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true }));
+                earsField.SetValue(pet, liveEars);
+                startingField.SetValue(pet, false);
+                identityField.SetValue(pet, "probe-identity");
+                nextIdentityField.SetValue(pet, double.PositiveInfinity);
+                Task liveTask = null;
+                try
+                {
+                    liveTask = liveEars.Start("unused", "unused", new NameListeningState("probe-identity", saved.MicrophoneNode,
+                        saved.MicrophoneFingerprint, false, false, false), null, null, null);
+                    Require(liveEars.Active && !starting(), "the live-tick fixture never reached the steady active-ear path");
+                    int tickReads = 0;
+                    bool?[] tickAnswers = { false, true, null };
+                    Pet.LockedForNameListening = () => tickAnswers[Math.Min(tickReads++, tickAnswers.Length - 1)];
+                    string tickFiles = hashes();
+                    TickNow(pet, fields, tick);
+                    int first = tickReads;
+                    bool barredAtFirst = ((NameListeningState)earsStateField.GetValue(liveEars)).Barred;
+                    bool firstOk = first == 1 && started() && !barredAtFirst && !saved.ListenCapriHold && hashes() == tickFiles;
+                    TickNow(pet, fields, tick);
+                    int second = tickReads;
+                    bool secondOk = second == 2 && !started() && lockPaused() && saved.ListenCapriHold && filesHold() && mirrorHold() &&
+                        pet.NameListeningStatus == "Paused while the screen is locked.";
+                    string atSecond = "active=" + started() + ", hold=" + saved.ListenCapriHold + "/" + filesHold() + "/" + mirrorHold() +
+                        ", paused=" + lockPaused() + ", status=" + pet.NameListeningStatus;
+                    string pauseFiles = hashes();
+                    TickNow(pet, fields, tick);
+                    Require(firstOk && secondOk && tickReads == 3 && !started() && saved.ListenCapriHold && hashes() == pauseFiles,
+                        "expected one read per live tick and the hold persisted on the read that saw the lock: cumulative reads " +
+                        first + "/" + second + "/" + tickReads + ", decoder barred after the false tick=" + barredAtFirst +
+                        ", hold=" + saved.ListenCapriHold + "/" + filesHold() + "/" + mirrorHold() + ", paused=" + lockPaused() +
+                        ", tick #2: " + atSecond + ", files unchanged=" + (hashes() == tickFiles));
+                }
+                finally
+                {
+                    liveEars.Stop();
+                    Require(liveTask != null && liveTask.Wait(TimeSpan.FromSeconds(3)), "the inert live-tick worker did not stop");
+                }
 
                 // Round 3, B3 RelockAtAsyncGate (true then null): one gate read is the whole decision, so a lock there is
                 // persisted even if the next answer would have been lost. The steady relock already passes; this pins the split.
@@ -382,12 +417,15 @@ namespace CapriDesktop
                 statusField.SetValue(pet, statusWas);
                 contextField.SetValue(pet, contextWas);
                 lifetimeField.SetValue(pet, lifetimeWas);
+                earsField.SetValue(pet, earsWas);
+                identityField.SetValue(pet, identityWas);
+                nextIdentityField.SetValue(pet, nextIdentityWas);
                 lockPausedField.SetValue(pet, lockPausedWas);
                 shushedField.SetValue(pet, shushedWas);
                 openedField.SetValue(pet, openedWas);
                 try { Directory.Delete(profile, true); } catch (Exception) { }
             }
-            checks.Add("PASS name listening verifier: a stale answer after an explicit Stop changes nothing, a context change under a lost signal drops the old hold for good and a hold remembers the context it was taken under so a change made while Capri was closed is caught at startup, every observed lock persists even when a relock lands at the start gate or turns unknown there, and the tick reads the lock exactly once; the settings tip still shows the lock limitation after truncation");
+            checks.Add("PASS name listening verifier: a stale answer after an explicit Stop changes nothing, a context change under a lost signal drops the old hold for good and a hold remembers the context it was taken under so a change made while Capri was closed is caught at startup, every observed lock persists even when a relock lands at the start gate or turns unknown there, and the live tick reads the lock exactly once, decoder update included; the settings tip still shows the lock limitation after truncation");
         }
 
         // The verifier's leak probe: run each group and compare every field, delegate and cache it may touch.

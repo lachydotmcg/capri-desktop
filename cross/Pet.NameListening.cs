@@ -95,8 +95,10 @@ namespace CapriDesktop
                 value.RemoteModel + "|" + value.Session + "|" + value.Source + "|" + value.Fingerprint)));
         }
 
-        private NameListeningState NameState() => new NameListeningState(nameIdentity, Saved.MicrophoneNode,
-            Saved.MicrophoneFingerprint, NameBarred, SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil),
+        // The start path takes its own lock read; the tick passes the one it already took, so a tick never reads twice.
+        private NameListeningState NameState() => NameState(LockedForNameListening());
+        private NameListeningState NameState(bool? observedLock) => new NameListeningState(nameIdentity, Saved.MicrophoneNode,
+            Saved.MicrophoneFingerprint, NameBarredAt(observedLock), SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil),
             Talk?.ThinkingNow == true || ComputerJobs.Active, ComputerJobs.GameRunning);
 
         private void InitializeNameListening()
@@ -549,7 +551,8 @@ namespace CapriDesktop
                 return;
             }
             if (nameStarting || !nameEars.Active) return;
-            nameEars.Update(NameState());
+            // The decoder's barred flag must be the same lock answer this tick already acted on, never a second read.
+            nameEars.Update(NameState(locked));
             if (nameChecking || Now < nextNameIdentityCheck) return;
             nameChecking = true;
             nextNameIdentityCheck = Now + 1;

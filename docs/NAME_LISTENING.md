@@ -94,15 +94,18 @@ wait after her name on its own as Linux, with these Mac differences:
   that resume she stays paused with the hold kept for the next real unlock. A desktop
   that answers nothing keeps her listening, and she may keep listening while the screen
   is locked, since the hint depends on the desktop updating it. Once she has seen a lock
-  she remembers it in `cross.json` together with the settings it belongs to, so a desktop
-  that stops answering afterward keeps her paused even across restarting Capri. An
-  explicit Stop always wins: a lock only pauses her while she is actually listening, so
-  a later unlock can't restart her after you stopped her. A change to the account, model,
-  remote, session or selected microphone clears that saved hold and the pause, even when
-  the change was made while Capri was closed, whether the lock reads locked, unlocked or
-  nothing at all, so the microphone is never resumed under settings she never agreed to.
-  The recovery prompt keeps the epoch it opened under, so
-  an answer typed after a Stop changes nothing. Turning the switch off and on brings
+  she remembers it in `cross.json` together with the settings she could answer at
+  startup: the selected microphone and decoder, the provider, server and model, the
+  remote key, the session, the voice and the speech model. A desktop that stops
+  answering afterward keeps her paused even across restarting Capri. A change to any of
+  those clears that saved hold and the pause, even when the change was made while Capri
+  was closed, whether the lock reads locked, unlocked or nothing at all, so the microphone
+  is never resumed under a changed microphone, decoder, provider, server, model, remote
+  key, session, voice or speech model. A change to the account behind a plan is caught
+  while she listens, at her next account check, not at startup. An explicit Stop always
+  wins: a lock only pauses her while she is actually listening, so a later unlock can't
+  restart her after you stopped her. The recovery prompt keeps the epoch it opened under,
+  so an answer typed after a Stop changes nothing. Turning the switch off and on brings
   her back; when the lock state can't be read she warns you first and waits for a
   typed YES. Mac has no lock check yet; mute or quiet her before stepping away.
 
