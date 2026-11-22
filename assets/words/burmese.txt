@@ -639,7 +639,7 @@ Setup stopped	Setup ရပ်သွားသည်
 She answers in	သူမ ဖြေသည်
 She can read it when it fits.	သူမ သင့်လျော်သောအခါ ဖတ်နိုင်သည်။
 She glances at your screen and comments. Costs a little on a paid brain.	သူမ သင့်ဖန်သားပြင်ကို ကြည့်ပြီး မှတ်ချက်ပေးသည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
-She keeps listening. Say her name, then just talk until you go quiet.	သူမ နားထောင်ဆဲ ဖြစ်သည်။ နာမည်ခေါ်ပြီး တိတ်သွားသည်အထိ ပြောပါ။
+She keeps listening. Say her name, then just talk.	သူမ နားထောင်ဆဲ ဖြစ်သည်။ နာမည်ခေါ်ပြီး ပြောပါ။
 She reacts to your game until you close it.	သင်ဂိမ်းကို ပိတ်သည်အထိ သူမ တုံ့ပြန်သည်။
 She reads these controls before each game job.	ဂိမ်းလုပ်ငန်းတစ်ခုစီ မတိုင်မီ သူမ ဤထိန်းချုပ်မှုများကို ဖတ်သည်။
 She talks about your game as you play. Costs a little on a paid brain.	သင်ဂိမ်းကစားနေစဉ် သင့်ဂိမ်းအကြောင်း ပြောသည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။

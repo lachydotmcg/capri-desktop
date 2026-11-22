@@ -639,7 +639,7 @@ Setup stopped	Installatie gestopt
 She answers in	Ze antwoordt in
 She can read it when it fits.	Ze kan het lezen wanneer het past.
 She glances at your screen and comments. Costs a little on a paid brain.	Ze kijkt even naar je scherm en reageert. Kost wat bij een betaald brein.
-She keeps listening. Say her name, then just talk until you go quiet.	Ze blijft luisteren. Zeg haar naam en praat gewoon tot je stil wordt.
+She keeps listening. Say her name, then just talk.	Ze blijft luisteren. Zeg haar naam en praat gewoon.
 She reacts to your game until you close it.	Ze reageert op je game tot je hem sluit.
 She reads these controls before each game job.	Ze leest deze bediening voor elke gameklus.
 She talks about your game as you play. Costs a little on a paid brain.	Ze praat over je game terwijl je speelt. Kost wat bij een betaald brein.

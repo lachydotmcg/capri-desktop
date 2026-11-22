@@ -4454,13 +4454,16 @@ namespace CapriDesktop
         {
             if (MoveStuck) return false;
             if (outro != null || quitting) return false;
+            List<PixelRect> open = RoamScreens();
             List<Ledge> spots = new List<Ledge>();
             foreach (Ledge ledge in Ledges())
             {
                 if (ledge.Right - ledge.Left < Px(body.Size / 2)) continue;
-                if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor && ledge.Y == seat.Y) continue;
+                if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor && ledge.Y == seat.Y && (!ledge.Floor || ledge.Left == seat.Left)) continue;
                 if (ledge.Y - Headroom < ScreenAt(new PixelPoint(ledge.Left, ledge.Y)).Y) continue;
                 if (asked && !MoveRoom(ledge)) continue;
+                PixelPoint middle = new PixelPoint(ledge.Left + (ledge.Right - ledge.Left) / 2, ledge.Y - 1);
+                if (open != null && !open.Exists(screen => screen.Contains(middle))) continue;
                 spots.Add(ledge);
             }
             if (spots.Count == 0) return false;
@@ -4469,6 +4472,27 @@ namespace CapriDesktop
             int x = spot.Left + margin + random.Next(Math.Max(1, spot.Right - spot.Left - 2 * margin));
             GlitchOut(delegate { Hop(spot, x); }, true);
             return true;
+        }
+
+        // The screens she may wander onto by herself, or null for anywhere: never one a full-screen window covers, like a game
+        // or a video, and only her own while she's on a job.
+        private List<PixelRect> RoamScreens()
+        {
+            if (MoveArea != null) return null;
+            IReadOnlyList<Screen> all = Screens.All;
+            List<Spot> windows = Windows();
+            bool[] full = new bool[all.Count];
+            int here = -1;
+            PixelPoint hip = Hip;
+            for (int i = 0; i < all.Count; i++)
+            {
+                PixelRect bounds = all[i].Bounds;
+                full[i] = windows.Exists(window => window.Solid && window.Bounds.Contains(bounds));
+                if (bounds.Contains(new PixelPoint(hip.X, hip.Y - 1))) here = i;
+            }
+            List<PixelRect> open = new List<PixelRect>();
+            foreach (int i in Hands.RoamScreens(full, here, -1, JobActive)) open.Add(all[i].Bounds);
+            return open;
         }
 
         private void Hop(Ledge spot, int x)

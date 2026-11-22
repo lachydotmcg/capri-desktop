@@ -639,7 +639,7 @@ Setup stopped	ការរៀបចំបានបញ្ឈប់
 She answers in	នាងឆ្លើយជា
 She can read it when it fits.	នាងអាចអានវាបានពេលសមស្រប។
 She glances at your screen and comments. Costs a little on a paid brain.	នាងក្រឡេកមើលអេក្រង់របស់អ្នក ហើយផ្ដល់មតិ។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
-She keeps listening. Say her name, then just talk until you go quiet.	នាងនៅតែស្ដាប់។ ហៅឈ្មោះនាង បន្ទាប់មកនិយាយរហូតដល់អ្នកស្ងៀម។
+She keeps listening. Say her name, then just talk.	នាងនៅតែស្ដាប់។ ហៅឈ្មោះនាង បន្ទាប់មកនិយាយ។
 She reacts to your game until you close it.	នាងឆ្លើយតបនឹងហ្គេមរបស់អ្នករហូតដល់អ្នកបិទវា។
 She reads these controls before each game job.	នាងអានការគ្រប់គ្រងទាំងនេះមុនការងារហ្គេមនីមួយៗ។
 She talks about your game as you play. Costs a little on a paid brain.	នាងនិយាយអំពីហ្គេមរបស់អ្នកពេលអ្នកលេង។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។

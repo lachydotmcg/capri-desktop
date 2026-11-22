@@ -639,7 +639,7 @@ Setup stopped	Thiết lập đã dừng
 She answers in	Cô ấy trả lời bằng
 She can read it when it fits.	Cô ấy có thể đọc khi vừa.
 She glances at your screen and comments. Costs a little on a paid brain.	Cô ấy liếc màn hình của bạn và bình luận. Tốn một chút với não trả phí.
-She keeps listening. Say her name, then just talk until you go quiet.	Cô ấy tiếp tục nghe. Gọi tên cô ấy, rồi cứ nói cho đến khi bạn im lặng.
+She keeps listening. Say her name, then just talk.	Cô ấy tiếp tục nghe. Gọi tên cô ấy, rồi cứ nói.
 She reacts to your game until you close it.	Cô ấy phản ứng với game của bạn cho đến khi bạn đóng nó.
 She reads these controls before each game job.	Cô ấy đọc các điều khiển này trước mỗi việc trong game.
 She talks about your game as you play. Costs a little on a paid brain.	Cô ấy nói về game của bạn khi bạn chơi. Tốn một chút với não trả phí.

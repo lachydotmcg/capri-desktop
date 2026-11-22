@@ -639,7 +639,7 @@ Setup stopped	Quraşdırma dayandırıldı
 She answers in	Cavab dili
 She can read it when it fits.	Yerinə düşəndə oxuya bilər.
 She glances at your screen and comments. Costs a little on a paid brain.	Ekranına baxır və şərh yazır. Ödənişli beyində bir az xərc tələb edir.
-She keeps listening. Say her name, then just talk until you go quiet.	Dinləməyə davam edir. Adını de, sonra susana qədər sadəcə danış.
+She keeps listening. Say her name, then just talk.	Dinləməyə davam edir. Adını de, sonra sadəcə danış.
 She reacts to your game until you close it.	Bağlayana qədər oyununa reaksiya verir.
 She reads these controls before each game job.	Hər oyun tapşırığından əvvəl bu idarəetmələri oxuyur.
 She talks about your game as you play. Costs a little on a paid brain.	Oynayarkən oyununuz haqqında danışır. Ödənişli beyində bir az xərc tələb edir.

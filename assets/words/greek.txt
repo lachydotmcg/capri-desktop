@@ -639,7 +639,7 @@ Setup stopped	Η ρύθμιση σταμάτησε
 She answers in	Απαντά σε
 She can read it when it fits.	Μπορεί να το διαβάσει όταν χωράει.
 She glances at your screen and comments. Costs a little on a paid brain.	Ρίχνει μια ματιά στην οθόνη σου και σχολιάζει. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
-She keeps listening. Say her name, then just talk until you go quiet.	Συνεχίζει να ακούει. Πες το όνομά της και μίλα μέχρι να σιωπήσεις.
+She keeps listening. Say her name, then just talk.	Συνεχίζει να ακούει. Πες το όνομά της και μίλα.
 She reacts to your game until you close it.	Αντιδρά στο παιχνίδι σου μέχρι να το κλείσεις.
 She reads these controls before each game job.	Διαβάζει αυτά τα στοιχεία ελέγχου πριν από κάθε δουλειά παιχνιδιού.
 She talks about your game as you play. Costs a little on a paid brain.	Μιλάει για το παιχνίδι σου καθώς παίζεις. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.

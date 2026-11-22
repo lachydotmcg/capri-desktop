@@ -639,7 +639,7 @@ Setup stopped	સેટઅપ બંધ થયું
 She answers in	તે જવાબ આપે છે
 She can read it when it fits.	બંધબેસે ત્યારે તે વાંચી શકે છે.
 She glances at your screen and comments. Costs a little on a paid brain.	તે તમારી સ્ક્રીન પર નજર નાખે છે અને ટિપ્પણી કરે છે. પેઇડ બ્રેન પર થોડો ખર્ચ થાય છે.
-She keeps listening. Say her name, then just talk until you go quiet.	તે સાંભળતી રહે છે. તેનું નામ કહો, પછી તમે શાંત થાઓ ત્યાં સુધી બસ વાત કરો.
+She keeps listening. Say her name, then just talk.	તે સાંભળતી રહે છે. તેનું નામ કહો, પછી બસ વાત કરો.
 She reacts to your game until you close it.	તમે બંધ ન કરો ત્યાં સુધી તે તમારી ગેમ પર પ્રતિક્રિયા આપે છે.
 She reads these controls before each game job.	દરેક ગેમ કાર્ય પહેલાં તે આ નિયંત્રણો વાંચે છે.
 She talks about your game as you play. Costs a little on a paid brain.	તમે રમતા હો ત્યારે તે તમારી ગેમ વિશે વાત કરે છે. પેઇડ બ્રેન પર થોડો ખર્ચ થાય છે.

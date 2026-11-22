@@ -639,7 +639,7 @@ Setup stopped	დაყენება შეჩერდა
 She answers in	პასუხობს
 She can read it when it fits.	შეუძლია წაიკითხოს, როცა ეტევა.
 She glances at your screen and comments. Costs a little on a paid brain.	ის შენს ეკრანს დახედავს და კომენტარს გააკეთებს. ფასიან ტვინზე ცოტას უჯდება.
-She keeps listening. Say her name, then just talk until you go quiet.	ის მუდამ უსმენს. თქვი მისი სახელი და უბრალოდ ისაუბრე, სანამ არ გაჩუმდები.
+She keeps listening. Say her name, then just talk.	ის მუდამ უსმენს. თქვი მისი სახელი და უბრალოდ ისაუბრე.
 She reacts to your game until you close it.	ის შენს თამაშზე რეაგირებს, სანამ არ დახურავ.
 She reads these controls before each game job.	ის ამ კონტროლს კითხულობს ყოველი თამაშის სამუშაოს წინ.
 She talks about your game as you play. Costs a little on a paid brain.	ის შენს თამაშზე საუბრობს, როცა თამაშობ. ფასიან ტვინზე ცოტას უჯდება.

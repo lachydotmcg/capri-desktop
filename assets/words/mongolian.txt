@@ -639,7 +639,7 @@ Setup stopped	Тохируулга зогсло
 She answers in	Тэр хариулдаг
 She can read it when it fits.	Тохирох үед тэр уншиж чадна.
 She glances at your screen and comments. Costs a little on a paid brain.	Тэр таны дэлгэцийг харж сэтгэгдэл бичнэ. Төлбөртэй тархинд бага зардал гарна.
-She keeps listening. Say her name, then just talk until you go quiet.	Тэр сонсож байна. Түүний нэрийг хэл, дараа нь чимээгүй болтол яриарай.
+She keeps listening. Say her name, then just talk.	Тэр сонсож байна. Түүний нэрийг хэл, дараа нь яриарай.
 She reacts to your game until you close it.	Таны тоглоомыг хаах хүртэл тэр хариу үйлдэл үзүүлнэ.
 She reads these controls before each game job.	Тэр тоглоомын ажил бүрийн өмнө эдгээр удирдлагыг уншина.
 She talks about your game as you play. Costs a little on a paid brain.	Таны тоглож байх үед тэр таны тоглоомын тухай ярина. Төлбөртэй тархинд бага зардал гарна.

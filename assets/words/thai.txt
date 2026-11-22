@@ -639,7 +639,7 @@ Setup stopped	การตั้งค่าหยุดแล้ว
 She answers in	ภาษาที่เธอตอบ
 She can read it when it fits.	เธออ่านได้เมื่อพอดี
 She glances at your screen and comments. Costs a little on a paid brain.	เธอชำเลืองดูหน้าจอคุณแล้วแสดงความคิดเห็น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน
-She keeps listening. Say her name, then just talk until you go quiet.	เธอจะฟังต่อ พูดชื่อเธอแล้วคุยไปเรื่อย ๆ จนคุณเงียบ
+She keeps listening. Say her name, then just talk.	เธอจะฟังต่อ พูดชื่อเธอแล้วพูดได้เลย
 She reacts to your game until you close it.	เธอจะตอบสนองต่อเกมของคุณจนกว่าคุณจะปิด
 She reads these controls before each game job.	เธออ่านการควบคุมเหล่านี้ก่อนทุกงานในเกม
 She talks about your game as you play. Costs a little on a paid brain.	เธอพูดถึงเกมของคุณขณะที่คุณเล่น มีค่าใช้จ่ายเล็กน้อยกับสมองแบบเสียเงิน

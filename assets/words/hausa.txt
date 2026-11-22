@@ -639,7 +639,7 @@ Setup stopped	Saiti ya tsaya
 She answers in	Tana amsawa da
 She can read it when it fits.	Za ta iya karanta shi idan ya dace.
 She glances at your screen and comments. Costs a little on a paid brain.	Tana kallon allonka tana yin sharhi. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.
-She keeps listening. Say her name, then just talk until you go quiet.	Tana ci gaba da sauraro. Faɗi sunanta, sannan ka yi magana har sai ka yi shiru.
+She keeps listening. Say her name, then just talk.	Tana ci gaba da sauraro. Faɗi sunanta, sannan ka yi magana.
 She reacts to your game until you close it.	Tana amsawa ga wasanka har sai ka rufe shi.
 She reads these controls before each game job.	Tana karanta waɗannan sarrafawa kafin kowane aikin wasa.
 She talks about your game as you play. Costs a little on a paid brain.	Tana magana game da wasanka yayin da kake wasa. Yana kashe kuɗi kaɗan da kwakwalwar da aka biya.

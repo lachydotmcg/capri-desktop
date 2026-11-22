@@ -639,7 +639,7 @@ Setup stopped	Opsætning stoppet
 She answers in	Hun svarer på
 She can read it when it fits.	Hun kan læse den, når det passer.
 She glances at your screen and comments. Costs a little on a paid brain.	Hun kigger på din skærm og kommenterer. Koster lidt med en betalt hjerne.
-She keeps listening. Say her name, then just talk until you go quiet.	Hun lytter fortsat. Sig hendes navn, og tal så bare, indtil du bliver stille.
+She keeps listening. Say her name, then just talk.	Hun lytter fortsat. Sig hendes navn, og tal så bare.
 She reacts to your game until you close it.	Hun reagerer på dit spil, indtil du lukker det.
 She reads these controls before each game job.	Hun læser disse kontroller før hvert spiljob.
 She talks about your game as you play. Costs a little on a paid brain.	Hun taler om dit spil, mens du spiller. Koster lidt med en betalt hjerne.

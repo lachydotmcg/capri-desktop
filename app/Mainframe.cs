@@ -740,7 +740,7 @@ namespace CapriDesktop
             glitchSlider.Released += delegate { if (!syncing) capri.HearVoiceStyle(); };
             listenCapri = Switch("Listen for Capri", 0, 344, delegate { if (!syncing) capri.ToggleListenCapri(); });
             Caption("Say her name anywhere to chat", 28, 372, small, Faint);
-            listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence, then just talk until you go quiet. Stop and push to talk still work";
+            listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence and she answers. Voice chat stays off until you turn it on. Stop and push to talk still work";
             Caption("Hearing", 28, 398, Type(9.5f), Rose).AccessibleName = "Hearing";
             hearingMenu = Dropdown();
             hearingMenu.AccessibleName = "Hearing engine choices";
@@ -827,7 +827,7 @@ namespace CapriDesktop
             pushKeys = Make("Push to talk: not set", 28, 815, 328, 22, delegate { PickKeys(Companion.PushSlot); });
             pushKeys.AccessibleName = "Her push-to-talk key: hold it to talk to her, with a game in front too. Click, press a key or a mouse button, then Confirm";
             gameKeys = Make("Gaming Mode: Ctrl + Alt + G", 28, 843, 328, 22, delegate { PickKeys(5); });
-            gameKeys.AccessibleName = "Her Gaming Mode key: turns game comments off, or back on at your last pick. Click, press new keys, then Confirm";
+            gameKeys.AccessibleName = "Her Gaming Mode key: turns game comments off. Only GAMES > Comments turns them back on. Click, press new keys, then Confirm";
             frameKeys = Make("Mainframe: Ctrl + Alt + M", 28, 871, 328, 22, delegate { PickKeys(Companion.FrameSlot); });
             frameKeys.AccessibleName = "Her Mainframe key: it opens her Mainframe from anywhere, and closes it when it's in front. Click, press new keys, then Confirm";
             // The first key pressed while picking is always taken, so Enter, Esc and Tab can be her keys too. After that Enter
@@ -7400,7 +7400,7 @@ namespace CapriDesktop
                 Extra(0, "Watch my screen", "She glances at your screen and comments. Costs a little on a paid brain.", small, delegate { owner.capri.ToggleWatch(); });
                 Extra(1, "Comment on my games", "She talks about your game as you play. Costs a little on a paid brain.", small, delegate { owner.capri.SetCommentPace(toggles[1].Checked ? 2 : 0); owner.Sync(); });
                 Extra(2, "Clip my games", "Keeps the last two minutes of your game in memory. Say clip that to save it.", small, delegate { owner.capri.ToggleClips(); });
-                Extra(3, "Listen for Capri", "She keeps listening. Say her name, then just talk until you go quiet.", small, delegate { owner.capri.ToggleListenCapri(); });
+                Extra(3, "Listen for Capri", "She keeps listening. Say her name, then just talk.", small, delegate { owner.capri.ToggleListenCapri(); });
                 Key done = new Key();
                 done.Text = "Done";
                 done.Font = Type(9f * zoom, true);

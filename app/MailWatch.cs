@@ -192,6 +192,8 @@ namespace CapriDesktop
         private static readonly string[] ManyLines = { "Oop, {0} new emails just came through.", "Ooh, {0} new emails just landed." };
         private static readonly string[] OddLines = { " Something about it looks a bit off, so go easy on the links. Want me to check it?", " It looks a bit off to me. Want me to check it before you click anything?" };
         private static readonly string[] PhishLines = { " And that one's phishing, choom. Don't click anything in it.", " Careful, that one's phishing. Don't click anything in it." };
+        private static readonly string[] OddAsks = { " It wants your {0}, so don't send {1}. Want me to check it?", " It's asking for your {0}, so hold off on sending {1}. Want me to check it?" };
+        private static readonly string[] PhishAsks = { " And that one's phishing, choom. It wants your {0}, so don't reply or click anything in it.", " Careful, that one's phishing. It's after your {0}, so don't reply or click anything in it." };
 
         internal static string Line(List<MailNews> news)
         {
@@ -209,9 +211,15 @@ namespace CapriDesktop
                 return start + " " + done + (phish != null && phish != moved ? " Another looks like phishing too, so don't click anything in it." : "");
             }
             if (failed != null) return start + (news.Count > 1 ? " One of them is phishing, choom." : " That's phishing, choom.") + " I tried to move it to junk, but " + Lower(failed.Trouble) + " Don't click anything in it.";
-            if (phish != null) return start + (news.Count > 1 ? " One of them is phishing, choom. Don't click anything in it." : Lines.Pick(PhishLines));
-            if (odd != null) return start + (news.Count > 1 ? " One of them looks a bit off. Want me to check it?" : Lines.Pick(OddLines));
+            if (phish != null) return start + (news.Count > 1 ? " One of them is phishing, choom. Don't click anything in it." : Wanted(phish, PhishLines, PhishAsks));
+            if (odd != null) return start + (news.Count > 1 ? " One of them looks a bit off. Want me to check it?" : Wanted(odd, OddLines, OddAsks));
             return start;
+        }
+
+        private static string Wanted(MailNews one, string[] usual, string[] asks)
+        {
+            string wants = one.Verdict == null ? "" : one.Verdict.Wants;
+            return wants.Length == 0 ? Lines.Pick(usual) : string.Format(Lines.Pick(asks), wants, wants == "password" ? "it" : "them");
         }
 
         private static string Lower(string text)

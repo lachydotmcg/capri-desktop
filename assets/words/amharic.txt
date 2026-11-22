@@ -639,7 +639,7 @@ Setup stopped	ማዋቀር ቆሟል
 She answers in	የምትመልስበት
 She can read it when it fits.	ሲስማማ ማንበብ ትችላለች።
 She glances at your screen and comments. Costs a little on a paid brain.	ማያዎን ተመልክታ አስተያየት ትሰጣለች። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
-She keeps listening. Say her name, then just talk until you go quiet.	ማዳመጧን ትቀጥላለች። ስሟን ተናገር፣ ከዚያ ዝም እስክትል ድረስ ብቻ ተናገር።
+She keeps listening. Say her name, then just talk.	ማዳመጧን ትቀጥላለች። ስሟን ተናገር፣ ከዚያ ብቻ ተናገር።
 She reacts to your game until you close it.	ጨዋታዎን እስክትዘጉት ድረስ ለጨዋታዎ ምላሽ ትሰጣለች።
 She reads these controls before each game job.	ከእያንዳንዱ የጨዋታ ስራ በፊት እነዚህን መቆጣጠሪያዎች ታነባለች።
 She talks about your game as you play. Costs a little on a paid brain.	ስትጫወት ስለ ጨዋታዎ ትናገራለች። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።

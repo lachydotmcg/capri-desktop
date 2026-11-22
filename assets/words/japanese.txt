@@ -639,7 +639,7 @@ Setup stopped	セットアップが中止されました
 She answers in	返事の言語
 She can read it when it fits.	収まるときに読めます。
 She glances at your screen and comments. Costs a little on a paid brain.	あなたの画面をちらっと見て、コメントします。有料の頭だと少し費用がかかります。
-She keeps listening. Say her name, then just talk until you go quiet.	聞き続けます。名前を呼んで、静かになるまで話してね。
+She keeps listening. Say her name, then just talk.	聞き続けます。名前を呼んで、話してね。
 She reacts to your game until you close it.	ゲームを閉じるまで、ゲームに反応します。
 She reads these controls before each game job.	ゲームの各作業の前に、これらの操作を読みます。
 She talks about your game as you play. Costs a little on a paid brain.	ゲームをプレイ中、そのことを話します。有料の頭だと少し費用がかかります。

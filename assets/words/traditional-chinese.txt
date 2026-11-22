@@ -639,7 +639,7 @@ Setup stopped	設定已停止
 She answers in	她回覆的語言
 She can read it when it fits.	合適時她就能讀取它。
 She glances at your screen and comments. Costs a little on a paid brain.	她會瞄一眼你的螢幕並加以評論。使用付費大腦會稍微花費。
-She keeps listening. Say her name, then just talk until you go quiet.	她會持續聆聽。說出她的名字，然後說到你安靜下來為止。
+She keeps listening. Say her name, then just talk.	她會持續聆聽。說出她的名字，然後直接說話。
 She reacts to your game until you close it.	在你關閉遊戲前，她會對遊戲做出反應。
 She reads these controls before each game job.	她在每項遊戲任務前都會讀取這些控制項。
 She talks about your game as you play. Costs a little on a paid brain.	她會在你遊玩時談論你的遊戲。使用付費大腦會稍微花費。
