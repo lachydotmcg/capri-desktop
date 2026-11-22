@@ -186,7 +186,7 @@ namespace CapriDesktop
             NeonButton shut = Put(Page, new NeonButton { Glyph = 2 }, 566, 20, 26, 22, "Close");
             shut.Click += delegate { Close(); };
             Put(Page, new NeonCaption { Text = "CONNECT " + mod.File.Name.ToUpperInvariant(), Ink = MainframeTheme.Rose, Size = 20, Bold = true, Display = true }, 24, 15, 540, 29);
-            Put(Page, new NeonCaption { Text = Mods.TokenSetupNote(mod), Ink = MainframeTheme.White, Size = MainframeTheme.Size, Top = true }, 24, 65, 572, 82);
+            Put(Page, new NeonCaption { Text = Mods.TokenSetupNote(mod), Ink = MainframeTheme.White, Size = MainframeTheme.Size, Top = true, Wrap = true }, 24, 65, 572, 82);
             Put(Page, new NeonCaption { Text = "Sent only to " + new Uri(Mods.TokenServer(mod).Url).Host, Ink = MainframeTheme.Faint }, 24, 155, 572, 22);
             if (mod.Starter && mod.File.Id == "github")
             {
@@ -196,8 +196,8 @@ namespace CapriDesktop
             Put(Page, new NeonCaption { Text = "Personal access token", Ink = MainframeTheme.White, Bold = true }, 24, 244, 180, 22);
             Token = Put(Page, new NeonEntry("", true), 210, 240, 386, 28, "Personal access token for " + mod.File.Name);
             AutomationProperties.SetName(Token.Box, "Personal access token for " + mod.File.Name);
-            Put(Page, new NeonCaption { Text = "Kept only until Capri closes. Forget token turns this plug-in off.", Ink = MainframeTheme.Faint, Top = true }, 24, 282, 572, 42);
-            Status = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Top = true }, 24, 332, 572, 44);
+            Put(Page, new NeonCaption { Text = "Kept only until Capri closes. Forget token turns this plug-in off.", Ink = MainframeTheme.Faint, Top = true, Wrap = true }, 24, 282, 572, 42);
+            Status = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Top = true, Wrap = true }, 24, 332, 572, 44);
             Connect = Put(Page, new NeonButton { Text = "Connect", Loud = true, Accent = MainframeTheme.Cyan }, 426, 390, 170, 30);
             Connect.Click += delegate
             {
