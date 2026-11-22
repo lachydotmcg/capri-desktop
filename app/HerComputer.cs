@@ -57,7 +57,7 @@ namespace CapriDesktop
         internal static readonly Rectangle Page = new Rectangle(96, 154, 1088, 512);
         internal const int MaxSteps = 14, MostStickers = 18, PageChars = 2600, MostLinks = 30;
 
-        private const string StepSystem = "You are Capri, using your own little computer that lives inside the user's PC. It has a real web browser on your own profile, plus Notes. You do jobs for the user on it one action at a time, then hand back the answer. Rules: answer with exactly one action line and nothing else. Never type passwords or payment details, and never sign in, buy, post, message or send anything. If the job needs no web, like a poem, a list or an idea, finish straight away with DONE. Keep DONE short, warm and in your own voice, with the key facts and a link when it helps. Actions:\nSEARCH <words>\nOPEN <web address>\nCLICK <link number or its words>\nSCROLL down|up\nBACK\nNOTE <title> | <text>\nDONE <your answer for them>";
+        internal const string StepSystem = "You are Capri, using your own little computer that lives inside the user's PC. It has a real web browser on your own profile, plus Notes. You do jobs for the user on it one action at a time, then hand back the answer. Rules: answer with exactly one action line and nothing else. Never type passwords or payment details, and never sign in, buy, post, message or send anything. If the job needs no web, like a poem, a list or an idea, finish straight away with DONE. Keep DONE short, warm and in your own voice, with the key facts and a link when it helps. Actions:\nSEARCH <words>\nOPEN <web address>\nCLICK <link number or its words>\nSCROLL down|up\nBACK\nNOTE <title> | <text>\nDONE <your answer for them>";
 
         internal readonly string Folder;
         internal readonly HerJobs Jobs;
@@ -253,10 +253,10 @@ namespace CapriDesktop
             return flat.Length > limit ? flat.Substring(0, limit - 1).TrimEnd() + "\u2026" : flat;
         }
 
-        internal static string StepPrompt(string task, List<string> log, int step, string title, string address, string text, List<HerLink> links)
+        internal static string StepPrompt(string task, List<string> log, int step, string title, string address, string text, List<HerLink> links, int most = MaxSteps)
         {
             StringBuilder prompt = new StringBuilder();
-            prompt.Append("The job from the user: ").Append(task.Trim()).Append("\nStep ").Append(step).Append(" of ").Append(MaxSteps).Append(".\n");
+            prompt.Append("The job from the user: ").Append(task.Trim()).Append("\nStep ").Append(step).Append(" of ").Append(most).Append(".\n");
             if (log.Count > 0) { prompt.Append("What you did so far:\n"); foreach (string line in log) prompt.Append(line).Append('\n'); }
             if (address == null) prompt.Append("Your browser isn't open yet.\n");
             else
@@ -269,12 +269,12 @@ namespace CapriDesktop
                     for (int i = 0; i < links.Count; i++) prompt.Append(i + 1).Append(". ").Append(Short(links[i].Text, 80)).Append('\n');
                 }
             }
-            if (step >= MaxSteps - 1) prompt.Append("You're nearly out of steps, so finish with DONE now using what you found.\n");
+            if (step >= most - 1) prompt.Append("You're nearly out of steps, so finish with DONE now using what you found.\n");
             prompt.Append("Reply with one action line.");
             return prompt.ToString();
         }
 
-        internal string Run(string task, HerHands hands, Func<string, string, string> ask, Func<HerBrowser> browser, Func<bool> stop, out string notePath)
+        internal string Run(string task, HerHands hands, Func<string, string, string> ask, Func<HerBrowser> browser, Func<bool> stop, out string notePath, int most = MaxSteps, bool keep = true, List<string> sites = null)
         {
             notePath = null;
             List<string> log = new List<string>();
@@ -284,7 +284,7 @@ namespace CapriDesktop
             string answer = null;
             int misses = 0;
             hands.Status("Thinking about: " + Short(task, 60));
-            for (int step = 1; step <= MaxSteps && answer == null; step++)
+            for (int step = 1; step <= most && answer == null; step++)
             {
                 if (stop()) return null;
                 string title = null, address = null, text = null;
@@ -296,7 +296,7 @@ namespace CapriDesktop
                     links = web.Links(MostLinks) ?? new List<HerLink>();
                     links.RemoveAll(link => link == null || string.IsNullOrWhiteSpace(link.Text));
                 }
-                string reply = ask(StepSystem, StepPrompt(task, log, step, title ?? "", address, text ?? "", links));
+                string reply = ask(StepSystem, StepPrompt(task, log, step, title ?? "", address, text ?? "", links, most));
                 if (stop()) return null;
                 HerStep next = Parse(reply);
                 if (next == null)
@@ -356,6 +356,7 @@ namespace CapriDesktop
                         log.Add(step + ". BACK -> " + Short(web.Title, 80));
                         break;
                     case "NOTE":
+                        if (!keep) { log.Add(step + ". NOTE: not saved, your answer is saved at the end, so finish with DONE"); break; }
                         hands.Status("Writing a note");
                         hands.Show("notes");
                         hands.Typing("note", next.Extra);
@@ -372,6 +373,8 @@ namespace CapriDesktop
             }
             if (stop()) return null;
             if (answer == null) answer = log.Count == 0 ? "I couldn't get that one done on my computer." : "I ran out of steps on that one. The last thing I had open was " + (web != null && web.Running ? Short(web.Title, 80) : "nothing") + ".";
+            if (sites != null) lock (sites) foreach (string site in visited) if (!sites.Contains(site)) sites.Add(site);
+            if (!keep) return answer.Trim();
             StringBuilder note = new StringBuilder(answer.Trim());
             if (visited.Count > 0)
             {

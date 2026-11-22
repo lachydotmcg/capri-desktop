@@ -3706,7 +3706,7 @@ namespace CapriDesktop
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
             // or clear her running marker: WM_ENDSESSION clears it once the shutdown is certain.
-            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
+            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); SquadOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
         }
 
         private void Tick()
@@ -16213,6 +16213,7 @@ namespace CapriDesktop
             Job running = job;
             if (callReply == null && MidJob(running) && prompt == "> you: ")
             {
+                if (SquadCalledBack(input)) { AsideSay("Called my squad back.", running, text, typed: typed); return; }
                 if (Hands.Insulted(input)) Upset(0, "job");
                 if (planned.Key != null) AsideTool(text, planned.Key, planned.Value, running, typed);
                 else HeardMidJob(text, running, typed);
@@ -16237,6 +16238,8 @@ namespace CapriDesktop
             if (sorry && OnlyApology(input)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             string doomLine = callReply == null && prompt == "> you: " ? DoomSnooze(input) : null;
             if (doomLine != null) { Answer(ticket, doomLine, TalkState.Talking); return; }
+            string squadLine = callReply == null && prompt == "> you: " && !crisis ? SquadAsk(input) : null;
+            if (squadLine != null) { Answer(ticket, squadLine, TalkState.Talking); return; }
             string herLine = callReply == null && prompt == "> you: " ? HerComputerAsk(input) : null;
             if (herLine != null) { Answer(ticket, herLine, TalkState.Talking); return; }
             string liteLine = callReply == null && prompt == "> you: " ? LiteAnswer(input) : null;
@@ -22004,6 +22007,16 @@ namespace CapriDesktop
             checks.Add("PASS crash reports: off until turned on, then only her crash, close and freeze lines since the last report go, at most 30, with keys, user folders and her PC and user names taken out");
             string herResult = HerComputer.Check();
             if (herResult != null) throw new Exception(herResult);
+            string squadResult = Squad.Check();
+            if (squadResult != null) throw new Exception(squadResult);
+            string squadFolder = Path.Combine(Path.GetTempPath(), "capri-squad-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                squadResult = Squad.CheckRun(squadFolder);
+                if (squadResult != null) throw new Exception(squadResult);
+            }
+            finally { try { if (Directory.Exists(squadFolder)) Directory.Delete(squadFolder, true); } catch (IOException) { } }
+            checks.Add("PASS her squad: starts only when asked for one straight out and stops only when told to, never on game or team chat, takes its size only from how many copies you ask for, splits a job two or three ways from any brain under her safety lines, runs her copies at the same time each in a browser of her own with a shared board, stops them all at once, and puts their finds into one answer and one note");
             string herFolder = Path.Combine(Path.GetTempPath(), "capri-her-computer-" + Guid.NewGuid().ToString("N"));
             try
             {
@@ -50591,6 +50604,9 @@ namespace CapriDesktop
             copies.Agent("explorer", false, 500, 400, 21);
             for (int i = 1; i <= 80; i++) copies.Tick(21 + i * 0.25, 0.25, true, true, new Point(600, 400), true);
             if (copies.Bodies.Count != 0) throw new Exception("A husk subagent clone did not snap back.");
+            string squadShown = SquadCheck();
+            if (squadShown != null) throw new Exception(squadShown);
+            checks.Add("PASS her squad on screen: copies step out of her to spots of their own with their names and laptops showing their pages, stay put while they work, carry their find back, close their browser and merge into her, leave chat about your own squad alone, and go when called back");
             HuskClone("husk-ui", true);
             if (huskClones == null || !huskClones.Swarm.Watching || huskClones.Swarm.Bodies.Count != 1) throw new Exception("Husk did not open its passive clone overlay.");
             HuskClone("husk-ui", false);
