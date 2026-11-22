@@ -8,7 +8,8 @@ namespace CapriDesktop
     {
         private static readonly Dictionary<string, string> Text = new Dictionary<string, string>
         {
-            { "Settings", "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them." },
+            { "Settings", "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them. To find one, " + Mainframe.SearchHow + "." },
+            { "Search settings", "Search settings is the box at the top of the Mainframe's Settings page, beside Advanced Settings. To find a setting, " + Mainframe.SearchHow + " anywhere in the Mainframe; on a Mac, Cmd + F works too. A short list drops down as you type, each with its section. Up and Down pick one, and Enter or a click opens its page, scrolls to it and outlines it in cyan for a moment. Esc clears the box. When nothing fits it says " + Mainframe.NoSettingsMatch + "." },
             { "Minimize", "Minimize puts Capri Mainframe on your taskbar or Dock. Capri keeps running, and clicking it there brings the window back." },
             { "Close", "Close puts Capri Mainframe away too. On Hyprland, Super+C does the same while Mainframe is focused. Capri keeps running. Open it again from her right-click or tray menu, and use Quit Capri on the main page when you want to close her completely." },
             { "Support", "Mainframe > CAPRI > Support opens Lachy's Ko-fi page in your browser. Opening the page does not make a payment." },

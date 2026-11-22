@@ -279,7 +279,8 @@ namespace CapriDesktop
             Rect art = plate.Deflate(Math.Max(8, plate.Height * 0.16));
             if (Logo == null) PlugArt.Draw(context, Picture, art, ink, accent, fill);
             else PlugArt.Logo(context, Logo, art, MainframeTheme.Tint(Logo.Ink));
-            if (MainframeTheme.Marked(this)) context.DrawGeometry(null, new Pen(MainframeTheme.White, 2), PlugArt.Around(plate, cut, 2));
+            bool spot = MainframeTheme.Spotted(this);
+            if (spot || MainframeTheme.Marked(this)) context.DrawGeometry(null, new Pen(spot ? MainframeTheme.Cyan : MainframeTheme.White, 2), PlugArt.Around(plate, cut, 2));
             if (Text.Length > 0) MainframeTheme.Write(context, Shown, NameArea, Lit || Tint != null ? MainframeTheme.White : MainframeTheme.Faint, TextSize, true, TextAlignment.Center);
             if (State.Length > 0) MainframeTheme.Write(context, State, StateArea, StateInk ?? MainframeTheme.Faint, StateSize, false, TextAlignment.Center);
         }

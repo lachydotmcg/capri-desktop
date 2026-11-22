@@ -47172,6 +47172,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLauncherGames", delegate { SmokeLauncherGames(checks, output); });
             Section(checks, "SmokeBlockedEngine", delegate { SmokeBlockedEngine(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
+            Section(checks, "SmokeSettingsSearch", delegate { mainframe.CheckSearch(checks, output); });
             Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
             Section(checks, "SmokeModDrop", delegate { SmokeModDrop(checks, output); });
