@@ -121,7 +121,7 @@ namespace CapriDesktop
                     List<Mod> stack = pet.ModList.SkinStack;
                     modNames[i].Text = mod.File.Name + (string.IsNullOrEmpty(mod.File.Version) ? "" : " v" + mod.File.Version);
                     modNames[i].Ink = mod.On ? MainframeTheme.White : MainframeTheme.Faint;
-                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Plugin ? (Mods.StarterAbout(mod) ?? "PLUG-IN. " + (!mod.On ? "" : Plugins.Trouble(mod.File.Id) == McpSignInNeeded.Said ? "Turn it off and on to sign in. " : Plugins.ToolsOf(mod.File.Id).Count + " tools. ")) : mod.Code ? "RUNS CODE. " : mod.Tool ? "TOOL, reads from " + string.Join(", ", mod.File.Recipe.Domains) + ". " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : "")
+                    modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Plugin ? (Mods.StarterAbout(mod) ?? "PLUG-IN. " + (!mod.On ? "" : Plugins.Trouble(mod.File.Id) == McpSignInNeeded.Said ? "Turn it off and on to sign in. " : Plugins.ToolsOf(mod.File.Id).Count + " tools. ")) : mod.Code ? "RUNS CODE. " : mod.Tool ? "TOOL, reads from " + string.Join(", ", mod.File.Recipe.Domains) + ". " : mod.Skin ? (mod.On && stack.Count > 1 ? "SKIN, LAYER " + (stack.IndexOf(mod) + 1) + " OF " + stack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : Mods.CompanionLabel(mod))
                         + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "")
                         + (mod.Code || mod.File.WakeNames == null || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames))
                         + (mod.Skill && mod.File.Games != null && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : "")).Trim();
@@ -225,7 +225,7 @@ namespace CapriDesktop
                 IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                 {
                     Title = "Import mod", AllowMultiple = false,
-                    FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*" + Mods.Extension, "*" + Mods.SkinExtension, "*" + Mods.SkillExtension, "*" + Mods.CodeExtension, "*" + Mods.ToolExtension, "*" + Mods.PluginExtension, "plugin.json", "capri-plugin.json", ".mcp.json", "mcp.json" } } }
+                    FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*" + Mods.Extension, "*" + Mods.SkinExtension, "*" + Mods.SkillExtension, "*" + Mods.CodeExtension, "*" + Mods.ToolExtension, "*" + Mods.PluginExtension, "*" + Mods.CompanionExtension, "plugin.json", "capri-plugin.json", ".mcp.json", "mcp.json" } } }
                 });
                 if (!closed && files.Count > 0)
                 {
@@ -321,7 +321,7 @@ namespace CapriDesktop
                 Mod mod = pet.ModList.Import(file, Ask);
                 // A file removed during import can be missing from the reloaded mod list.
                 if (mod == null) throw new ModException("Not imported. Nothing ran.");
-                ModSays(mod.File.Name + " is on."); ModsChanged(); return true;
+                ModSays(mod.Pack != null ? Mods.CompanionSays(mod) : mod.File.Name + " is on."); ModsChanged(); return true;
             }
             catch (Exception error)
             {
@@ -353,7 +353,7 @@ namespace CapriDesktop
             try
             {
                 pet.ModList.Set(mod, !mod.On, Ask);
-                ModSays(mod.File.Name + (mod.On ? " is on." : " is off."));
+                ModSays(mod.Pack != null ? Mods.CompanionSays(mod) : mod.File.Name + (mod.On ? " is on." : " is off."));
                 if (mod.On) Started(mod);
             }
             catch (Exception error) { ModSays(error.Message); }
