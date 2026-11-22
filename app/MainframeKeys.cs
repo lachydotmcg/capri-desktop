@@ -156,7 +156,7 @@ namespace CapriDesktop
             using (Pen pen = new Pen(White, 2 * Math.Max(1f, s))) graphics.DrawPath(pen, path);
         }
 
-        private static bool Steerable(Control control) { return control is Key || control is Toggle || control is Slider || control is Rung || control is Entry; }
+        private static bool Steerable(Control control) { return control is Key || control is Toggle || control is Slider || control is Rung || control is Entry || control is PlugTile; }
 
         private int ColumnOf(Control control) { return paged && control.Left >= Scaled(Column) ? 1 : 0; }
 
@@ -279,6 +279,8 @@ namespace CapriDesktop
             Rung rung = held as Rung;
             Key key = held as Key;
             if (toggle != null || rung != null) { ShowCues(); InvokeOnClick(held, EventArgs.Empty); return true; }
+            PlugTile tile = held as PlugTile;
+            if (tile != null) { ShowCues(); tile.PerformClick(); return true; }
             if (key == null) return false;
             ShowCues();
             key.PerformClick();
@@ -401,7 +403,8 @@ namespace CapriDesktop
             Slider slider = held as Slider;
             Rung rung = held as Rung;
             Entry entry = held as Entry;
-            return key != null ? key.Marked : toggle != null ? toggle.Marked : slider != null ? slider.Marked : rung != null ? rung.Marked : entry != null && entry.Marked;
+            PlugTile tile = held as PlugTile;
+            return key != null ? key.Marked : toggle != null ? toggle.Marked : slider != null ? slider.Marked : rung != null ? rung.Marked : tile != null ? tile.Marked : entry != null && entry.Marked;
         }
 
         private string TabWalk(int by, int most)
@@ -584,11 +587,12 @@ namespace CapriDesktop
             Strike(Keys.M);
             more.Focus();
             string modPage = TabWalk(1, 12);
+            string modWalk = plugShown.Count > 0 ? "MODS PLUG-INS INSTALLED COLORS" : "MODS INSTALLED COLORS";
             Strike(Keys.H);
             if (main != "BRAIN VOICE CAPRI" || mainBack != "CAPRI VOICE BRAIN" || fromTitle != "CAPRI" || page != "YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL HER COMPUTER UNINSTALL CAPRI WATCH BRAIN HABITS SOUNDS"
-                || pageBack != "SOUNDS HABITS BRAIN WATCH CAPRI UNINSTALL HER COMPUTER DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU" || fromMiddle != "KEYS" || !first || modPage != "MODS INSTALLED COLORS")
+                || pageBack != "SOUNDS HABITS BRAIN WATCH CAPRI UNINSTALL HER COMPUTER DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU" || fromMiddle != "KEYS" || !first || modPage != modWalk)
                 throw new Exception("Tab between her Mainframe's sections went wrong: main " + main + " / back " + mainBack + " / from the title " + fromTitle + " / Settings " + page + " / back " + pageBack + " / from Dance to music " + fromMiddle + ", first " + first + " / Mods " + modPage);
-            checks.Add("PASS Mainframe Tab and Shift+Tab: Tab jumps to the first option of the next section and Shift+Tab to the one before, BRAIN, VOICE, CAPRI on her main page, YOU, VOICE, MOVES, KEYS and on through both columns of Settings, and MODS, INSTALLED, COLORS on Mods, wrapping at either end");
+            checks.Add("PASS Mainframe Tab and Shift+Tab: Tab jumps to the first option of the next section and Shift+Tab to the one before, BRAIN, VOICE, CAPRI on her main page, YOU, VOICE, MOVES, KEYS and on through both columns of Settings, and MODS, PLUG-INS once there are some, INSTALLED, COLORS on Mods, wrapping at either end");
         }
 
         private void CheckArrowKeys(List<string> checks)

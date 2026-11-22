@@ -3209,7 +3209,7 @@ namespace CapriDesktop
                 if (Hands.Do("mainframe", new ToolArguments { Name = "plugins" }) != "Opened Capri Mainframe." || !frame.ModsShown) throw new Exception("Her Mainframe tool did not open her plug-ins on the Mods page.");
                 if (!Hands.KitFor().Tools.Contains("\"mods\"") || !Hands.KitFor().Tools.Contains("plug-ins like Email, Notion and Linear") || !Hands.Valid("mainframe", new ToolArguments { Name = "mods" })) throw new Exception("Her mainframe tool doesn't tell her brain about the Mods page.");
                 string pluginHelp = SelfKnow.Matching("what are plug-ins?") ?? "";
-                if (!pluginHelp.StartsWith("Plug-ins:", StringComparison.Ordinal) || !pluginHelp.Contains(MailAccount.OutlookNote) || !pluginHelp.Contains("Turn it off and on to sign in") || SelfKnow.Matching("can you open Outlook?") != null || SelfKnow.Matching("can you check my email?") != null)
+                if (!pluginHelp.StartsWith("Plug-ins:", StringComparison.Ordinal) || !pluginHelp.Contains(MailAccount.OutlookNote) || !pluginHelp.Contains("Turn it off and on to sign in") || !pluginHelp.Contains("Mainframe > Mods > PLUG-INS") || SelfKnow.Matching("can you open Outlook?") != null || SelfKnow.Matching("can you check my email?") != null)
                     throw new Exception("Her Mac and Linux help lost plug-ins or took over an ordinary ask: " + pluginHelp);
                 Hands.Do("mainframe", new ToolArguments { Name = "moves" });
                 pet.Talk.Dismiss();
@@ -3736,7 +3736,7 @@ namespace CapriDesktop
                 string removed = mods.All[0].Path, kept = mods.All[1].Path;
                 NeonButton remove = null;
                 foreach (Control control in sheet.Page.Children)
-                    if (control is NeonButton button && button.Text == "Remove" && button.IsVisible && Canvas.GetTop(button) == 238) { remove = button; break; }
+                    if (control is NeonButton button && button.Text == "Remove" && button.IsVisible && Canvas.GetTop(button) == 370) { remove = button; break; }
                 if (remove == null) throw new Exception("The Mods page has no first Remove button.");
                 sheet.StrikeDown(Avalonia.Input.Key.Enter, control: remove);
                 sheet.StrikeDown(Avalonia.Input.Key.Enter, control: remove);
@@ -5520,13 +5520,12 @@ namespace CapriDesktop
                 if (!pet.ModList.All.Exists(m => m.Skin && m.On)) throw new Exception("A directory skin did not install.");
                 frame.ImportMod(names);
                 frame.ImportMod(ModSample(input, "smoke-extra-a", "\"wake_names\":[\"Ari\"]"));
-                frame.ImportMod(ModSample(input, "smoke-extra-b", "\"wake_names\":[\"Bea\"]"));
                 frame.NextInstalledPage();
                 if (frame.InstalledPageText != "Page 2 of 2") throw new Exception("Installed mods did not reach their second page.");
                 frame.SwitchMod(0);
                 if (pet.ModList.All.Find(m => m.File.Id == "smoke-skin").On) throw new Exception("The second installed page switched the wrong mod.");
                 frame.RemoveMod(0);
-                if (pet.ModList.All.Count != 4 || frame.InstalledPageText != null) throw new Exception("Removing the last installed page did not bring the list back to one page.");
+                if (pet.ModList.All.Count != 3 || frame.InstalledPageText != null) throw new Exception("Removing the last installed page did not bring the list back to one page.");
                 foreach (Mod extra in pet.ModList.All.ToArray()) if (extra.File.Id.StartsWith("smoke-extra-", StringComparison.Ordinal)) pet.ModList.Remove(extra);
                 string older = Path.Combine(input, "older"); Directory.CreateDirectory(older);
                 if (!frame.ImportMod(ModSample(older, "smoke-directory-names", "\"version\":\"0.1\",\"wake_names\":[\"Vee\"]"))) throw new Exception("An older copy of a directory mod didn't import: " + frame.ModStatusText);
@@ -5571,6 +5570,7 @@ namespace CapriDesktop
                     sheet.SavePicture(Path.Combine(folder, "mainframe-mods-" + scale + ".png"));
                 }
                 ModsPageChecks(frame);
+                PlugSectionChecks(frame);
                 double small = MainframeWindow.FittedZoom(1, ModsWindow.Wide, ModsWindow.Tall, new PixelRect(0, 36, 1280, 684), 1);
                 double roomy = MainframeWindow.FittedZoom(1.5, ModsWindow.Wide, ModsWindow.Tall, new PixelRect(0, 0, 3840, 2160), 1);
                 double tiny = MainframeWindow.FittedZoom(1, ModsWindow.Wide, ModsWindow.Tall, new PixelRect(0, 0, 800, 480), 1);
@@ -5734,13 +5734,238 @@ namespace CapriDesktop
             }
         }
 
+        // Her plug-ins on the Mods page like Windows': Email, Notion and Linear as tiles with their pictures under PLUG-INS and none
+        // under INSTALLED, a tile opening that plug-in's window, Connect asking first, pages past four, and Set up Email's three steps.
+        private void PlugSectionChecks(Mainframe frame)
+        {
+            Mods mods = pet.ModList;
+            string startersFile = Path.Combine(mods.PluginFolder, "starters.txt"), mailDir = Path.Combine(folder, "plug-section-mail");
+            Func<ModFile, string, bool> askWas = frame.ModAsk;
+            Action<string> openWas = Plugins.OpenBrowser;
+            Func<MailAccount, string> testWas = Mainframe.MailTest;
+            string mailWas = MailTools.Folder;
+            MailAccount accountWas = MailTools.Account;
+            List<string> extra = new List<string>();
+            try
+            {
+                Directory.CreateDirectory(mailDir);
+                MailTools.Folder = mailDir;
+                MailTools.Reload();
+                string opened = null;
+                Plugins.OpenBrowser = delegate(string url) { opened = url; };
+                mods.AddStarters();
+                mods.Load();
+                pet.SetMainframeSize(100); frame.ShowMods(true); frame.SearchInstalled(""); frame.Sync(); frame.UpdateLayout();
+                PlugTile[] tiles = frame.PlugTileRow;
+                string[] names = { "Email", "Notion", "Linear" };
+                int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear };
+                for (int i = 0; i < 3; i++)
+                    if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
+                        throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
+                if (tiles[3].IsVisible || frame.PlugEmptyShown || frame.PlugBack.IsVisible || frame.PlugNext.IsVisible || frame.InstalledHasPlugins)
+                    throw new Exception("The starters showed under INSTALLED too, or PLUG-INS showed pages for three.");
+                frame.ModStatusText = "";
+                foreach (int scale in new[] { 100, 150, 200 })
+                {
+                    pet.SetMainframeSize(scale); frame.Sync(); frame.UpdateLayout();
+                    string crowded = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                    if (crowded != null) throw new Exception("The Mods page with PLUG-INS at " + scale + "%: " + crowded);
+                }
+                pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
+                frame.SavePicture(Path.Combine(folder, "mods-plugins.png"));
+                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
+
+                tiles[1].Press();
+                PluginWindow notion = frame.PluginSheet;
+                if (notion == null || notion.ModId != "notion" || notion.Art.Logo != ServiceLogo.Notion || notion.Main.Text != "Connect" || notion.TurnOff.IsVisible || notion.Remove.IsVisible
+                    || notion.About.Text != "Searches, reads and edits your Notion pages." || notion.State.Text != "Off. Connect, then sign in on its page.")
+                    throw new Exception("Notion's tile didn't open Notion's window with Connect: " + (notion == null ? "none" : notion.Main.Text + " / " + notion.State.Text));
+                notion.UpdateLayout();
+                string tight = notion.Crowded();
+                if (tight != null) throw new Exception("Notion's window doesn't fit: " + tight);
+                notion.SavePicture(Path.Combine(folder, "plugin-sheet-notion.png"));
+                notion.Close();
+                MainframeWait(delegate { return frame.PluginSheet == null; }, "closing Notion's window");
+
+                string consent = null;
+                frame.ModAsk = delegate(ModFile file, string hash) { consent = Mods.Consent(file, hash); return false; };
+                tiles[0].Press();
+                PluginWindow email = frame.PluginSheet;
+                if (email == null || email.ModId != Mods.MailStarter || email.Main.Text != "Connect") throw new Exception("Email's tile didn't open Email's window with Connect.");
+                email.Main.Press();
+                Mod mail = mods.All.Find(one => one.File.Id == Mods.MailStarter);
+                if (consent == null || !consent.EndsWith("Turn this plug-in on?", StringComparison.Ordinal) || mail.On || frame.ModStatusText != "Email stays off. Nothing ran." || email.Main.Text != "Connect")
+                    throw new Exception("Connect on Email didn't ask with her plug-in box first, or a no still turned it on: " + frame.ModStatusText);
+                frame.ModAsk = delegate(ModFile file, string hash) { return true; };
+                email.Main.Press();
+                mail = mods.All.Find(one => one.File.Id == Mods.MailStarter);
+                if (!mail.On || tiles[0].State != "Set up" || !tiles[0].Lit || email.Main.Text != "Set up email" || !email.TurnOff.IsVisible || email.State.Text != "On. Set up your email next.")
+                    throw new Exception("Connect on Email didn't turn it on and ask for its setup: " + tiles[0].State + " / " + email.Main.Text + " / " + email.State.Text);
+                email.Main.Press();
+                if (frame.MailSetupWindow == null || frame.MailSetupWindow.Step != 1) throw new Exception("Set up email in Email's window didn't open Set up Email at its first step.");
+                frame.MailSetupWindow.Close();
+                MainframeWait(delegate { return frame.MailSetupWindow == null; }, "closing Set up Email");
+                email.TurnOff.Press();
+                if (mods.All.Find(one => one.File.Id == Mods.MailStarter).On || tiles[0].State != "Off" || email.Main.Text != "Connect") throw new Exception("Turn off in Email's window didn't turn it off.");
+                email.Close();
+                MainframeWait(delegate { return frame.PluginSheet == null; }, "closing Email's window");
+                MailTools.Account = new MailAccount { Address = "capri.demo@gmail.com", Password = "demo-tile-pass" };
+                frame.Sync();
+                if (tiles[0].Logo != ServiceLogo.Gmail || tiles[0].Picture != Mods.Envelope) throw new Exception("Email's tile didn't show Gmail's logo once a Gmail account was connected.");
+                MailTools.Account = null;
+                frame.Sync();
+                if (tiles[0].Logo != null) throw new Exception("Email's tile kept a logo with no account connected.");
+                checks.Add("PASS plug-ins on Mac and Linux: a tile opens that plug-in's own window, Notion's with its page and Connect and no Remove, and Connect on Email asks with her plug-in box, stays off on a no, and on a yes turns it on and asks for its setup, and Email's tile shows Gmail's logo once a Gmail account is connected; plugin-sheet-notion.png");
+
+                for (int i = 0; i < 2; i++)
+                {
+                    string id = "smoke-plug-" + (char)('a' + i), file = Path.Combine(mods.Folder, id + Mods.PluginExtension);
+                    WritePlugin(file, id, "Smoke Plug " + (char)('A' + i));
+                    extra.Add(file);
+                }
+                mods.Load();
+                frame.Sync();
+                if (!frame.PlugBack.IsVisible || !frame.PlugNext.IsVisible || frame.PlugBack.IsEnabled || !frame.PlugNext.IsEnabled || !tiles[3].IsVisible || tiles[3].Picture != Mods.Plug)
+                    throw new Exception("Five plug-ins didn't page under PLUG-INS.");
+                string paged = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                if (paged != null) throw new Exception("PLUG-INS with Back and Next overlaps " + paged);
+                frame.PlugNext.Press();
+                if (frame.PlugFirst != 4 || !tiles[0].IsVisible || tiles[1].IsVisible || frame.PlugNext.IsEnabled || !frame.PlugBack.IsEnabled) throw new Exception("Next didn't show the last plug-in on its own.");
+                frame.PlugBack.Press();
+                if (frame.PlugFirst != 0 || tiles[0].Text != "Email") throw new Exception("Back didn't go back to the first plug-ins.");
+                checks.Add("PASS plug-ins on Mac and Linux: more than four plug-ins page with Back and Next in the PLUG-INS band");
+
+                frame.OpenMailSetup(null);
+                MailWindow sheet = frame.MailSetupWindow;
+                sheet.Inline = true;
+                if (sheet.Step != 1 || sheet.Question.Text != "Which email?" || string.Join(",", Array.ConvertAll(sheet.Tiles, tile => tile.Text)) != "Gmail,iCloud,Yahoo,AOL,Fastmail,Outlook / Hotmail,Other"
+                    || Array.Exists(sheet.Tiles, tile => tile.Lit || tile.Picture != Mods.Envelope || !tile.IsVisible) || sheet.NextKey.IsEnabled || sheet.BackKey.IsVisible || sheet.Password.IsVisible)
+                    throw new Exception("Set up Email didn't open on Which email? with its seven envelopes and nothing picked.");
+                if (sheet.Tiles[0].Logo != ServiceLogo.Gmail || sheet.Tiles[1].Logo != ServiceLogo.ICloud || Array.FindAll(sheet.Tiles, tile => tile.Logo != null).Length != 2)
+                    throw new Exception("Set up Email's Gmail and iCloud picks didn't show their own logos, or another pick did.");
+                sheet.UpdateLayout();
+                tight = sheet.Crowded();
+                if (tight != null) throw new Exception("Set up Email's first step doesn't fit: " + tight);
+                sheet.SavePicture(Path.Combine(folder, "mail-step1.png"));
+                sheet.Tiles[5].Press();
+                if (sheet.Picked == null || !sheet.Picked.Closed || sheet.PickNote.Text != MailAccount.OutlookNote || sheet.NextKey.IsEnabled || !sheet.Tiles[5].Lit) throw new Exception("Outlook didn't stop at its note.");
+                sheet.NextKey.Press();
+                if (sheet.Step != 1) throw new Exception("Outlook went on past its note.");
+                sheet.Address.Box.Text = "sam@hotmail.co.uk";
+                if (!sheet.Picked.Closed || sheet.NextKey.IsEnabled) throw new Exception("A Hotmail address didn't pick Outlook / Hotmail.");
+                sheet.Address.Box.Text = "sam@icloud.com";
+                if (sheet.Picked.Name != "iCloud" || !sheet.Tiles[1].Lit || sheet.Tiles[5].Lit || !sheet.NextKey.IsEnabled) throw new Exception("Typing an iCloud address didn't pick iCloud.");
+                sheet.Tiles[0].Press();
+                if (sheet.Picked.Name != "Gmail" || !string.IsNullOrEmpty(sheet.Address.Box.Text) || !sheet.NextKey.IsEnabled) throw new Exception("Picking Gmail kept an iCloud address, or left Next off.");
+                sheet.NextKey.Press();
+                Mods.MailProvider gmail = Mods.MailProviders[0];
+                if (sheet.Step != 2 || sheet.Question.Text != "Make an app password" || sheet.StepLine.Text != "STEP 2 OF 3: GMAIL" || sheet.Lines[0].Text != gmail.Steps[0] || sheet.Lines[2].Text != gmail.Steps[2]
+                    || !sheet.OpenPage.IsVisible || sheet.OpenPage.Text != "Open Gmail's app password page" || !sheet.Separate.Text.StartsWith(Mods.AppPasswordLine, StringComparison.Ordinal) || !sheet.Separate.IsVisible || sheet.Tiles[0].IsVisible)
+                    throw new Exception("Gmail's app password step didn't show its own lines and page key: " + sheet.Lines[0].Text);
+                sheet.OpenPage.Press();
+                if (opened != "https://myaccount.google.com/apppasswords") throw new Exception("Open Gmail's app password page opened " + opened);
+                sheet.UpdateLayout();
+                tight = sheet.Crowded();
+                if (tight != null) throw new Exception("Set up Email's second step doesn't fit: " + tight);
+                sheet.SavePicture(Path.Combine(folder, "mail-step2.png"));
+                sheet.NextKey.Press();
+                if (sheet.Step != 3 || sheet.Question.Text != "Paste it" || !sheet.Address.IsVisible || !sheet.Password.IsVisible || sheet.Incoming.IsVisible || sheet.Outgoing.IsVisible || !sheet.Connect.IsVisible || sheet.NextKey.IsVisible)
+                    throw new Exception("Gmail's paste step didn't ask for just the address and app password.");
+                sheet.Address.Box.Text = "capri.demo@gmail.com";
+                sheet.UpdateLayout();
+                tight = sheet.Crowded();
+                if (tight != null) throw new Exception("Set up Email's third step doesn't fit: " + tight);
+                sheet.SavePicture(Path.Combine(folder, "mail-step3.png"));
+                sheet.BackKey.Press();
+                sheet.BackKey.Press();
+                sheet.Tiles[6].Press();
+                sheet.NextKey.Press();
+                if (sheet.Step != 2 || sheet.OpenPage.IsVisible || sheet.Lines[0].Text != Mods.OtherMail.Steps[0]) throw new Exception("Other's app password step showed a page key or another email's lines.");
+                sheet.NextKey.Press();
+                if (sheet.Step != 3 || !sheet.Incoming.IsVisible || !sheet.Outgoing.IsVisible || !sheet.IncomingName.IsVisible) throw new Exception("Other didn't ask for its IMAP and SMTP servers.");
+                sheet.Address.Box.Text = "sam@example.org";
+                if (sheet.Picked != Mods.OtherMail || !sheet.Incoming.IsVisible) throw new Exception("An address Capri doesn't know didn't keep its server fields.");
+                sheet.UpdateLayout();
+                tight = sheet.Crowded();
+                if (tight != null) throw new Exception("Set up Email's third step for Other doesn't fit: " + tight);
+                sheet.SavePicture(Path.Combine(folder, "mail-step3-other.png"));
+                checks.Add("PASS mail on Mac and Linux: Set up Email goes Which email?, Make an app password, Paste it; Gmail and iCloud show their own logos, Gmail shows its own steps and opens its app password page, Other asks for its servers, and Outlook / Hotmail stops at its note; mail-step1.png, mail-step2.png and mail-step3.png");
+
+                MailAccount tested = null;
+                Mainframe.MailTest = delegate(MailAccount account) { tested = account; return null; };
+                sheet.Address.Box.Text = "capri.demo@gmail.com";
+                sheet.Password.Box.Text = "demo-panel-pass-1";
+                sheet.Connect.Press();
+                if (tested == null || tested.Address != "capri.demo@gmail.com" || tested.ImapHost != "imap.gmail.com" || MailTools.Account == null || MailTools.Account.Password != "demo-panel-pass-1" || !File.Exists(MailAccount.FilePath(mailDir))
+                    || sheet.Step != 4 || sheet.Question.Text != "Connected as capri.demo@gmail.com" || !string.IsNullOrEmpty(sheet.Password.Box.Text) || !sheet.Forget.IsVisible || !sheet.WatchSwitch.IsVisible)
+                    throw new Exception("Connect didn't sign in with the pasted address and app password, save them and show who it's connected as: " + sheet.Question.Text + " / " + sheet.Status.Text);
+                if (sheet.WatchSwitch.Checked || sheet.HandsSwitch.Checked || sheet.HandsSwitch.Opacity >= 1 || MailTools.Watch || MailTools.OwnHands)
+                    throw new Exception("Email's settings didn't open with both new switches off, and dealing with phishing waiting on watching.");
+                sheet.UpdateLayout();
+                tight = sheet.Crowded();
+                if (tight != null) throw new Exception("Email's connected window doesn't fit: " + tight);
+                sheet.SavePicture(Path.Combine(folder, "mail-connected.png"));
+                sheet.WatchSwitch.Flip();
+                if (!sheet.WatchSwitch.Checked || !MailTools.Watch || MailTools.OwnHands || sheet.HandsSwitch.Opacity < 1) throw new Exception("Turning on Watch for new mail didn't save it, or let her deal with phishing on her own.");
+                sheet.HandsSwitch.Flip();
+                string watching = File.ReadAllText(Path.Combine(mailDir, MailTools.WatchName));
+                if (!MailTools.OwnHands || !watching.Contains("\"watch\":true") || !watching.Contains("\"own_hands\":true") || watching.Contains("demo-panel-pass-1"))
+                    throw new Exception("Email's switches weren't saved on their own, apart from the account and its password: " + watching);
+                sheet.WatchSwitch.Flip();
+                if (MailTools.Watch || MailTools.OwnHands || !MailTools.HandsSet || sheet.HandsSwitch.Opacity >= 1) throw new Exception("Turning watching off didn't stop her dealing with phishing on her own.");
+                sheet.Close();
+                MainframeWait(delegate { return frame.MailSetupWindow == null; }, "closing Set up Email");
+                frame.OpenMailSetup(null);
+                sheet = frame.MailSetupWindow;
+                if (sheet.Step != 4 || sheet.Question.Text != "Connected as capri.demo@gmail.com" || sheet.WatchSwitch.Checked || !sheet.HandsSwitch.Checked) throw new Exception("Set up Email didn't open on who it's connected as once it was.");
+                sheet.Forget.Press();
+                if (MailTools.Account != null || MailTools.Watch || MailTools.HandsSet || File.Exists(Path.Combine(mailDir, MailTools.WatchName)) || File.Exists(MailAccount.FilePath(mailDir)) || sheet.Step != 1 || sheet.WatchSwitch.Checked)
+                    throw new Exception("Forget account kept the account or its mail switches.");
+                sheet.Close();
+                checks.Add("PASS mail on Mac and Linux: Connect signs in with the pasted address and app password, then shows who it's connected as with Watch for new mail and Deal with phishing on her own, both off and saved apart from the password, and Forget account takes all of it away; mail-connected.png");
+            }
+            finally
+            {
+                frame.ModAsk = askWas;
+                Plugins.OpenBrowser = openWas;
+                Mainframe.MailTest = testWas;
+                if (frame.MailSetupWindow != null) frame.MailSetupWindow.Close();
+                if (frame.PluginSheet != null) frame.PluginSheet.Close();
+                foreach (Mod one in mods.All.ToArray()) if (one.Plugin) mods.Remove(one);
+                foreach (string file in extra) try { if (File.Exists(file)) File.Delete(file); } catch (IOException) { }
+                try { if (File.Exists(startersFile)) File.Delete(startersFile); } catch (IOException) { }
+                mods.Load();
+                MailTools.Folder = mailWas;
+                MailTools.Account = accountWas;
+                pet.SetMainframeSize(100);
+                frame.Sync();
+            }
+        }
+
+        // A plug-in file dropped straight into her mods folder, so PLUG-INS has more than four.
+        private static void WritePlugin(string file, string id, string name)
+        {
+            string manifest = "{\"name\":\"" + id + "\",\"displayName\":\"" + name + "\",\"version\":\"1.0.0\",\"author\":{\"name\":\"Smoke\"},\"description\":\"A plug-in for the Mods page.\",\"mcpServers\":{\"web\":{\"type\":\"http\",\"url\":\"https://example.com/mcp\"}},\"capri\":{\"permissions\":[\"network\"]}}";
+            using (MemoryStream bytes = new MemoryStream())
+            {
+                using (System.IO.Compression.ZipArchive zip = new System.IO.Compression.ZipArchive(bytes, System.IO.Compression.ZipArchiveMode.Create, true))
+                using (Stream into = zip.CreateEntry(".claude-plugin/plugin.json").Open())
+                {
+                    byte[] text = new UTF8Encoding(false).GetBytes(manifest);
+                    into.Write(text, 0, text.Length);
+                }
+                File.WriteAllBytes(file, bytes.ToArray());
+            }
+        }
+
         private void ModsPageChecks(Mainframe frame)
         {
             frame.ShowMods(true); frame.SearchInstalled("");
             pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
             string wrong = null;
             string[] names = { "Import mod", "Browse mods", "Mods folder", "Update mods", "Save colors", "Reset colors", "Animations", "Mods", "Back" };
-            Rect[] boxes = { new Rect(28, 104, 100, 28), new Rect(134, 104, 100, 28), new Rect(240, 104, 116, 28), new Rect(256, 204, 100, 26), new Rect(28, 688, 160, 24), new Rect(196, 688, 160, 24), new Rect(28, 720, 160, 24), new Rect(234, 20, 56, 22), new Rect(146, 20, 84, 22) };
+            Rect[] boxes = { new Rect(28, 104, 100, 28), new Rect(134, 104, 100, 28), new Rect(240, 104, 116, 28), new Rect(256, 336, 100, 26), new Rect(28, 758, 104, 24), new Rect(140, 758, 104, 24), new Rect(252, 758, 104, 24), new Rect(234, 20, 56, 22), new Rect(146, 20, 84, 22) };
             for (int i = 0; wrong == null && i < names.Length; i++)
             {
                 NeonButton key = frame.Button(names[i]);
@@ -5748,9 +5973,9 @@ namespace CapriDesktop
                 if (box != boxes[i]) wrong = names[i] + " is at " + box;
             }
             Control search = frame.Row("Search your installed mods"), hair = frame.Row("Hair color");
-            NeonButton remove = frame.Button("Remove"), on = frame.Button(pet.ModList.All[0].On ? "On" : "Off");
-            if (wrong == null && (Canvas.GetLeft(search) != 28 || Canvas.GetTop(search) != 204 || search.Width != 222 || Canvas.GetLeft(hair) != 184 || Canvas.GetTop(hair) != 543)) wrong = "the search or colors are out of place";
-            if (wrong == null && (remove == null || on == null || Canvas.GetLeft(remove) != 290 || Canvas.GetTop(remove) != 238 || Canvas.GetLeft(on) != 230 || Canvas.GetTop(on) != 238)) wrong = "the first installed row is out of place";
+            NeonButton remove = frame.Button("Remove"), on = frame.Button(pet.ModList.All.Find(mod => !mod.Plugin).On ? "On" : "Off");
+            if (wrong == null && (Canvas.GetLeft(search) != 28 || Canvas.GetTop(search) != 336 || search.Width != 222 || Canvas.GetLeft(hair) != 184 || Canvas.GetTop(hair) != 613)) wrong = "the search or colors are out of place";
+            if (wrong == null && (remove == null || on == null || Canvas.GetLeft(remove) != 290 || Canvas.GetTop(remove) != 370 || Canvas.GetLeft(on) != 230 || Canvas.GetTop(on) != 370)) wrong = "the first installed row is out of place";
             if (wrong == null && (frame.Page.Width != 380 || frame.Button("Import mod").Accent != MainframeTheme.Cyan)) wrong = "the page is " + frame.Page.Width + " wide";
             foreach (int scale in new[] { 100, 150, 200 })
             {
@@ -5764,7 +5989,7 @@ namespace CapriDesktop
             if (wrong == null && (frame.Button("Remove") != null || frame.Button("Import mod") == null)) wrong = "a search with no match still showed a row";
             frame.SearchInstalled("");
             if (wrong != null) throw new Exception("Her Mods page isn't like Windows': " + wrong);
-            checks.Add("PASS Mods page: her Mainframe's Mods page has Import mod, Browse mods and Mods folder under MODS, search and Update mods over four installed rows under INSTALLED, and her colors under COLORS, where Windows has them, and fits at 100%, 150% and 200%; mainframe-mods-page-100.png and mainframe-mods-page-150.png");
+            checks.Add("PASS Mods page: her Mainframe's Mods page has Import mod, Browse mods and Mods folder under MODS, then PLUG-INS, search and Update mods over three installed rows under INSTALLED, and her colors under COLORS, where Windows has them, and fits at 100%, 150% and 200%; mainframe-mods-page-100.png and mainframe-mods-page-150.png");
         }
 
         private void MainframePictures(Mainframe frame, Voice voice)
