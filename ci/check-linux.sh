@@ -7,6 +7,7 @@ for project in tests/native-surface/NativeSurface.Tests.csproj tests/desktop/Cap
 done
 dotnet build "$root/cross/Capri.Cross.csproj" -c Release -o "$root/out/voice-bin" --nologo
 voice_scratch=$(mktemp -d)
+trap 'if [ -n "${voice_scratch:-}" ]; then rm -rf -- "$voice_scratch"; fi' EXIT
 dotnet run --project "$root/tests/cross-voice-integration/VoiceVerifier.csproj" -c Release -- "$root/out/voice-bin/Capri.dll" "$voice_scratch" fresh
 dotnet run --project "$root/tests/everyday-jobs/EverydayJobs.csproj" -c Release -- --brain "Scripted=scripted" --floor 100
 make -C "$root/cross/native"
