@@ -238,7 +238,7 @@ namespace CapriDesktop
             }
             Mic chosen = Ears.Find(preferences.Mic, hearingMics);
             mainframe.ShowMic(chosen == null ? null : chosen.Name);
-            if (speechChanged && chatting && local && (hearingOffline || earsAwaited)) { StopChat(); StartLocal(); return; }
+            if (speechChanged && chatting && local && (hearingOffline || earsAwaited)) { bool talking = voiceChat; StopChat(); voiceChat = talking; StartLocal(); return; }
             UpdateHearing();
         }
 
@@ -459,7 +459,7 @@ namespace CapriDesktop
                     hearingDownloadNotice("Get her own ears: " + Engine.Amount(size) + ", one time. This includes the free speech engine if needed. Then she hears the picked mic offline.");
                 }
             }
-            bool restart = chatting && local;
+            bool restart = chatting && local, talking = voiceChat;
             if (restart) StopChat();
             StopMicTest(false);
             preferences.Hearing = choice;
@@ -469,7 +469,7 @@ namespace CapriDesktop
             SavePreferences();
             mainframe.Sync();
             if (choice == 1 && !OwnEars) hearingDownload();
-            if (restart) StartLocal();
+            if (restart) { voiceChat = talking; StartLocal(); }
             UpdateHearing();
         }
 

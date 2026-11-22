@@ -19,7 +19,7 @@ if cfg['manifest']=='wrong-session':
  print(json.dumps({'event':'final','session':'wrong','generation':generation,'utterance':'wrong','text':'Capri wrong session'}),flush=True)
 else:
  if not context['barred'] and not context['speaking']:final('first','Capri public first')
- emit('state',mode='paused' if context['barred'] or context['speaking'] else 'chatting')
+ emit('state',mode='paused' if context['barred'] or context['speaking'] else 'waiting')
  for line in sys.stdin:
   update=json.loads(line);old=generation;generation=update['generation'];context=update['context'];serial+=1
   final('stale-'+str(serial),'Capri stale generation',old)
@@ -29,7 +29,7 @@ else:
   else:
    final('fresh-'+str(serial),'Capri public fresh')
    final('fresh-'+str(serial),'Capri duplicate')
-   emit('state',mode='chatting')
+   emit('state',mode='waiting')
 """;
 
     internal static void Run() { Task.Run(RunAsync).GetAwaiter().GetResult(); }
@@ -54,7 +54,7 @@ else:
         var ears=new OwnedNameEars(Launch);
         Check(!ears.Active && processes.Count==0,"name-listener construction opens no microphone or child");
         Task running=ears.Start("unused", "fixture", initial,
-            status=>{if(status=="Name listening paused.")paused.TrySetResult(true);if(status=="Chatting. No need to say Capri." && finals.Count>1)resumed.TrySetResult(true);},
+            status=>{if(status=="Name listening paused.")paused.TrySetResult(true);if(status=="Go ahead. No need to say Capri." && finals.Count>1)resumed.TrySetResult(true);},
             line=>{lock(finals){finals.Add(line);if(finals.Count==1)first.TrySetResult(line);else fresh.TrySetResult(line);}},
             error=>{lock(errors)errors.Add(error);});
         NameTranscript before=await first.Task.WaitAsync(TimeSpan.FromSeconds(5));

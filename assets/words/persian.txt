@@ -639,7 +639,7 @@ Setup stopped	راه‌اندازی متوقف شد
 She answers in	او پاسخ می‌دهد به
 She can read it when it fits.	وقتی جا شود می‌تواند آن را بخواند.
 She glances at your screen and comments. Costs a little on a paid brain.	نگاهی به صفحه‌ات می‌اندازد و نظر می‌دهد. روی مغز پولی کمی هزینه دارد.
-She keeps listening. Say her name, then just talk until you go quiet.	به گوش دادن ادامه می‌دهد. اسمش را بگو، بعد تا وقتی ساکت شوی حرف بزن.
+She keeps listening. Say her name, then just talk.	به گوش دادن ادامه می‌دهد. اسمش را بگو، بعد حرف بزن.
 She reacts to your game until you close it.	تا وقتی بازی را ببندی به آن واکنش نشان می‌دهد.
 She reads these controls before each game job.	قبل از هر کار بازی این کنترل‌ها را می‌خواند.
 She talks about your game as you play. Costs a little on a paid brain.	همان‌طور که بازی می‌کنی درباره‌ی بازی‌ات حرف می‌زند. روی مغز پولی کمی هزینه دارد.

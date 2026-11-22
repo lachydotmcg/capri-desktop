@@ -778,8 +778,8 @@ namespace CapriDesktop
             }
             overHeld = false;
             // Listen for Capri waits to hear whether the line was for her. On a call every line is, so talking over her stops
-            // her there and then (Lachy, 3 Nov).
-            if (preferences.ListenCapri && !CallModeOn)
+            // her there and then (Lachy, 3 Nov), and so does her voice chat.
+            if (NameMode && !CallModeOn)
             {
                 nameOver = true;
                 return true;
@@ -916,9 +916,12 @@ namespace CapriDesktop
             if (CallModeOn) { if (problem != null) mainframe.VoiceNote(problem, true); else if (line != null) HearCall(line, true); return; }
             if (problem != null) { mainframe.VoiceNote(problem, true); return; }
             if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote(NoWords, false); return; }
-            mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);
+            mainframe.VoiceNote(chatting && local && NameMode ? LocalListening : "Heard you.", false);
             Commentary.Stage.Hear(text, true);
             Hear(text, text, "> you: ", 0, false, null, true);
+            // Her name on its own through push to talk waits for the line after it too, and a line pushed while she waits is that line.
+            if (Hands.NameAlone(text)) WaitAfterName();
+            else if (afterNameUntil >= 0) CloseAfterName();
         }
 
         internal string PushKeyName { get { return preferences.PushVk == 0 ? "not set" : KeyName(preferences.PushMods, preferences.PushVk); } }

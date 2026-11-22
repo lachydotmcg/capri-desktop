@@ -819,6 +819,15 @@ namespace CapriDesktop
     {
         internal const string SpokenName = @"(?:\b[ck]app?r(?:i|ee|ie|y)\b|\b(?:kopri|recovery|капри|كابري)\b|(?<![\p{L}\p{M}\p{N}_])कैप्री(?![\p{L}\p{M}\p{N}_])|カプリ|卡普里|카프리)";
         internal static bool HeardName(string words) { return Regex.IsMatch(words ?? "", SpokenName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) || AlsoHeard(words); }
+
+        // Just her name, maybe after a hey or a hi: "Hey Capri", "Capri?", "hi, capri".
+        internal static bool NameAlone(string words)
+        {
+            if (!HeardName(words)) return false;
+            string left = Regex.Replace(words ?? "", SpokenName, " ", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            left = Regex.Replace(left, @"[\p{P}\p{S}\s]+", " ").Trim();
+            return Regex.IsMatch(left, @"\A(?:(?:hey|hi|hiya|hello|yo|ok|okay|oi|um|uh)(?: |\z))*\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
         internal static Func<string, bool> AlsoHeard = delegate { return false; };
         internal static Func<string> AlsoCalled = delegate { return ""; };
 
@@ -1221,7 +1230,7 @@ namespace CapriDesktop
         // A few words for the settings whose names don't say what they do, for her brain.
         private static readonly Dictionary<string, string> SettingMeanings = new Dictionary<string, string>
         {
-            { "voice", "you talking out loud; off, you type" }, { "quiet", "no pop-ins, comments or check-ins" }, { "mic", "your ears in voice chat, while it's on" },
+            { "voice", "you talking out loud; off, you type" }, { "quiet", "no pop-ins, comments or check-ins" }, { "mic", "your ears' mic, while voice chat or Listen for Capri has them open" },
             { "check_ins", "every check-in, including water, stretch, look away, sleep, meals, game breaks and boredom; off keeps their switches and times saved" },
             { "hologram", "clicks pass through you" }, { "head_pats", "they pat your head with their cursor" }, { "chaos_when_upset", "an insult sets your clones off" },
             { "legacy_stand", "your old stand, for mods your new one broke" },
@@ -1234,7 +1243,7 @@ namespace CapriDesktop
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens; off turns game_comments off too, and it stays off while game_comments is off" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
-            { "listen_for_capri", "your mic stays open and a sentence with your name, or Hey Capri, starts voice chat" },
+            { "listen_for_capri", "your mic stays open and you answer any sentence with your name in it, without turning voice chat on or off; after just your name, like Hey Capri, their next line needs no name" },
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
             { "discord_presence", "what you're doing on their Discord profile" }, { "startup", "Capri starts when they log in; off until they ask for it" }, { "show_advanced", "Mainframe's advanced settings" },
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
@@ -1470,7 +1479,7 @@ namespace CapriDesktop
             { "fake_crash", "Show your five-second " + CrashKind + " or stop it when they ask, suggest or hint at the prank. It never crashes their PC and won't start over full screen, a stream or a mouse job.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or stop the prank\",\"enum\":[\"show\",\"stop\"]}},\"required\":[\"action\"]}", "show or stop her " + CrashKind, "show or stop your " + CrashKind },
 #if !CROSS
-            { "voice_chat", "Turn your voice chat on or off, or read its status when they ask, suggest or hint at talking with you. The switch waits for this tool turn to finish.",
+            { "voice_chat", "Turn your voice chat on or off, or read its status when they ask, suggest or hint at talking with you. The switch waits for this tool turn to finish. In voice chat every line they say counts, with no name needed. Listen for Capri isn't voice chat: it keeps your ears open for lines with your name whether voice chat is on or off, so turning voice chat off takes you back to answering only those.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"on, off or status\",\"enum\":[\"on\",\"off\",\"status\"]}},\"required\":[\"action\"]}", "turn voice chat on or off and check it", "turn voice chat on or off and check it" },
 #endif
             { "speech", "Stop your current spoken reply when they ask, suggest or hint that you stop talking. Your voice stays enabled for later replies.",

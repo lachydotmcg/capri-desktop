@@ -639,7 +639,7 @@ Setup stopped	Налаштування зупинено
 She answers in	Вона відповідає
 She can read it when it fits.	Вона може прочитати, коли поміщається.
 She glances at your screen and comments. Costs a little on a paid brain.	Вона поглядає на твій екран і коментує. Трохи коштує на платному мозку.
-She keeps listening. Say her name, then just talk until you go quiet.	Вона продовжує слухати. Назви її ім'я, а потім говори, доки не замовкнеш.
+She keeps listening. Say her name, then just talk.	Вона продовжує слухати. Назви її ім'я, а потім говори.
 She reacts to your game until you close it.	Вона реагує на твою гру, доки ти її не закриєш.
 She reads these controls before each game job.	Вона читає ці елементи керування перед кожним ігровим завданням.
 She talks about your game as you play. Costs a little on a paid brain.	Вона розповідає про твою гру, поки ти граєш. Трохи коштує на платному мозку.

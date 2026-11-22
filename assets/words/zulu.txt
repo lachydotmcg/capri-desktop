@@ -639,7 +639,7 @@ Setup stopped	Ukusetha kumisiwe
 She answers in	Uphendula ngolimi
 She can read it when it fits.	Angakufunda uma kulingana.
 She glances at your screen and comments. Costs a little on a paid brain.	Ubheka isikrini sakho aphinde akhombise umbono. Kubiza kancane ngengqondo ekhokhelwayo.
-She keeps listening. Say her name, then just talk until you go quiet.	Uqhubeka nokulalela. Sho igama lakhe, bese ukhuluma nje kuze uthule.
+She keeps listening. Say her name, then just talk.	Uqhubeka nokulalela. Sho igama lakhe, bese ukhuluma nje.
 She reacts to your game until you close it.	Uphendula emdlalweni wakho uze uwuvale.
 She reads these controls before each game job.	Ufunda lezi zilawuli ngaphambi komsebenzi ngamunye womdlalo.
 She talks about your game as you play. Costs a little on a paid brain.	Ukhuluma ngomdlalo wakho ngesikhathi udlala. Kubiza kancane ngengqondo ekhokhelwayo.

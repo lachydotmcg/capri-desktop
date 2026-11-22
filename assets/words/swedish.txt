@@ -639,7 +639,7 @@ Setup stopped	Installationen stoppades
 She answers in	Hon svarar på
 She can read it when it fits.	Hon kan läsa den när det passar.
 She glances at your screen and comments. Costs a little on a paid brain.	Hon tittar på din skärm och kommenterar. Kostar lite med en betald hjärna.
-She keeps listening. Say her name, then just talk until you go quiet.	Hon fortsätter lyssna. Säg hennes namn och prata sedan tills du blir tyst.
+She keeps listening. Say her name, then just talk.	Hon fortsätter lyssna. Säg hennes namn och prata sedan.
 She reacts to your game until you close it.	Hon reagerar på ditt spel tills du stänger det.
 She reads these controls before each game job.	Hon läser dessa kontroller före varje speluppdrag.
 She talks about your game as you play. Costs a little on a paid brain.	Hon pratar om ditt spel medan du spelar. Kostar lite med en betald hjärna.

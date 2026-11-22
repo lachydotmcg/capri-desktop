@@ -639,7 +639,7 @@ Setup stopped	ಸೆಟಪ್ ನಿಲ್ಲಿಸಲಾಗಿದೆ
 She answers in	ಅವಳು ಉತ್ತರಿಸುವ ಭಾಷೆ
 She can read it when it fits.	ಸರಿಹೊಂದಿದಾಗ ಅವಳು ಅದನ್ನು ಓದಬಹುದು.
 She glances at your screen and comments. Costs a little on a paid brain.	ಅವಳು ನಿನ್ನ ಪರದೆಯನ್ನು ಒಮ್ಮೆ ನೋಡಿ ಕಾಮೆಂಟ್ ಮಾಡುತ್ತಾಳೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
-She keeps listening. Say her name, then just talk until you go quiet.	ಅವಳು ಕೇಳುತ್ತಲೇ ಇರುತ್ತಾಳೆ. ಅವಳ ಹೆಸರು ಹೇಳು, ನಂತರ ನೀನು ಸುಮ್ಮನಾಗುವವರೆಗೆ ಮಾತನಾಡು.
+She keeps listening. Say her name, then just talk.	ಅವಳು ಕೇಳುತ್ತಲೇ ಇರುತ್ತಾಳೆ. ಅವಳ ಹೆಸರು ಹೇಳು, ನಂತರ ಮಾತನಾಡು.
 She reacts to your game until you close it.	ನೀನು ಮುಚ್ಚುವವರೆಗೂ ಅವಳು ನಿನ್ನ ಆಟಕ್ಕೆ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತಾಳೆ.
 She reads these controls before each game job.	ಪ್ರತಿ ಆಟದ ಕೆಲಸದ ಮೊದಲು ಅವಳು ಈ ನಿಯಂತ್ರಣಗಳನ್ನು ಓದುತ್ತಾಳೆ.
 She talks about your game as you play. Costs a little on a paid brain.	ನೀನು ಆಡುವಾಗ ಅವಳು ನಿನ್ನ ಆಟದ ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತಾಳೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.

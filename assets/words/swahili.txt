@@ -639,7 +639,7 @@ Setup stopped	Usanidi umesimama
 She answers in	Anajibu kwa
 She can read it when it fits.	Anaweza kuisoma inapofaa.
 She glances at your screen and comments. Costs a little on a paid brain.	Anatazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
-She keeps listening. Say her name, then just talk until you go quiet.	Anaendelea kusikiliza. Sema jina lake, kisha zungumza hadi unyamaze.
+She keeps listening. Say her name, then just talk.	Anaendelea kusikiliza. Sema jina lake, kisha zungumza.
 She reacts to your game until you close it.	Anaitikia mchezo wako hadi uufunge.
 She reads these controls before each game job.	Anasoma vidhibiti hivi kabla ya kila kazi ya mchezo.
 She talks about your game as you play. Costs a little on a paid brain.	Anazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.

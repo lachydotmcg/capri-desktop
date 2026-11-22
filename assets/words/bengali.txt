@@ -639,7 +639,7 @@ Setup stopped	সেটআপ বন্ধ হয়েছে
 She answers in	সে উত্তর দেয়
 She can read it when it fits.	জায়গা হলে সে এটি পড়তে পারে।
 She glances at your screen and comments. Costs a little on a paid brain.	সে তোমার স্ক্রিনে এক নজর দিয়ে মন্তব্য করে। পেইড ব্রেনে একটু খরচ হয়।
-She keeps listening. Say her name, then just talk until you go quiet.	সে শুনতে থাকে। তার নাম বলো, তারপর চুপ না হওয়া পর্যন্ত কথা বলো।
+She keeps listening. Say her name, then just talk.	সে শুনতে থাকে। তার নাম বলো, তারপর কথা বলো।
 She reacts to your game until you close it.	তুমি বন্ধ না করা পর্যন্ত সে তোমার গেমে সাড়া দেয়।
 She reads these controls before each game job.	প্রতিটি গেম কাজের আগে সে এই নিয়ন্ত্রণগুলো পড়ে।
 She talks about your game as you play. Costs a little on a paid brain.	তুমি খেলার সময় সে তোমার গেম নিয়ে কথা বলে। পেইড ব্রেনে একটু খরচ হয়।

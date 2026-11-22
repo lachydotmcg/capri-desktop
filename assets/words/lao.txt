@@ -639,7 +639,7 @@ Setup stopped	ການຕັ້ງຄ່າຢຸດລົງ
 She answers in	ນາງຕອບເປັນ
 She can read it when it fits.	ນາງອ່ານໄດ້ເມື່ອເໝາະສົມ.
 She glances at your screen and comments. Costs a little on a paid brain.	ນາງແອບເບິ່ງໜ້າຈໍຂອງເຈົ້າ ແລະໃຫ້ຄຳເຫັນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
-She keeps listening. Say her name, then just talk until you go quiet.	ນາງຍັງຟັງຢູ່. ເວົ້າຊື່ນາງ, ແລ້ວເວົ້າໄປຈົນເຈົ້າງຽບ.
+She keeps listening. Say her name, then just talk.	ນາງຍັງຟັງຢູ່. ເວົ້າຊື່ນາງ, ແລ້ວເວົ້າໄປ.
 She reacts to your game until you close it.	ນາງຕອບສະໜອງຕໍ່ເກມຂອງເຈົ້າຈົນກວ່າເຈົ້າຈະປິດມັນ.
 She reads these controls before each game job.	ນາງອ່ານການຄວບຄຸມເຫຼົ່ານີ້ກ່ອນທຸກວຽກເກມ.
 She talks about your game as you play. Costs a little on a paid brain.	ນາງເວົ້າກ່ຽວກັບເກມຂອງເຈົ້າຕອນທີ່ເຈົ້າຫຼິ້ນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.

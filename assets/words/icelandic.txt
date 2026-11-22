@@ -639,7 +639,7 @@ Setup stopped	Uppsetningu hætt
 She answers in	Hún svarar á
 She can read it when it fits.	Hún getur lesið það þegar það passar.
 She glances at your screen and comments. Costs a little on a paid brain.	Hún lítur á skjáinn þinn og kommentar. Kostar smá með greiddum heila.
-She keeps listening. Say her name, then just talk until you go quiet.	Hún heldur áfram að hlusta. Segðu nafnið hennar, og talaðu svo þangað til þú þagnar.
+She keeps listening. Say her name, then just talk.	Hún heldur áfram að hlusta. Segðu nafnið hennar, og talaðu svo.
 She reacts to your game until you close it.	Hún bregst við leiknum þínum þangað til þú lokar honum.
 She reads these controls before each game job.	Hún les þessar stýringar fyrir hvert leikjaverkefni.
 She talks about your game as you play. Costs a little on a paid brain.	Hún talar um leikinn þinn meðan þú spilar. Kostar smá með greiddum heila.

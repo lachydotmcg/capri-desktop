@@ -639,7 +639,7 @@ Setup stopped	அமைவு நிறுத்தப்பட்டது
 She answers in	அவள் பதிலளிப்பது
 She can read it when it fits.	பொருந்தும்போது அவளால் அதைப் படிக்க முடியும்.
 She glances at your screen and comments. Costs a little on a paid brain.	அவள் உங்கள் திரையைப் பார்த்து கருத்து சொல்கிறாள். கட்டண மூளையில் சிறிது செலவாகும்.
-She keeps listening. Say her name, then just talk until you go quiet.	அவள் தொடர்ந்து கேட்கிறாள். அவளுடைய பெயரைச் சொல்லுங்கள், பிறகு நீங்கள் அமைதியாகும் வரை பேசுங்கள்.
+She keeps listening. Say her name, then just talk.	அவள் தொடர்ந்து கேட்கிறாள். அவளுடைய பெயரைச் சொல்லுங்கள், பிறகு பேசுங்கள்.
 She reacts to your game until you close it.	நீங்கள் மூடும் வரை உங்கள் விளையாட்டுக்கு அவள் எதிர்வினையாற்றுகிறாள்.
 She reads these controls before each game job.	ஒவ்வொரு விளையாட்டு வேலைக்கு முன்பும் அவள் இந்தக் கட்டுப்பாடுகளைப் படிக்கிறாள்.
 She talks about your game as you play. Costs a little on a paid brain.	நீங்கள் விளையாடும்போது உங்கள் விளையாட்டைப் பற்றி அவள் பேசுகிறாள். கட்டண மூளையில் சிறிது செலவாகும்.

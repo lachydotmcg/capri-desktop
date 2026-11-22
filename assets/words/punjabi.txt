@@ -639,7 +639,7 @@ Setup stopped	ਸੈੱਟਅੱਪ ਰੁਕ ਗਿਆ
 She answers in	ਉਹ ਜਵਾਬ ਦਿੰਦੀ ਹੈ
 She can read it when it fits.	ਜਦੋਂ ਠੀਕ ਹੋਵੇ ਤਾਂ ਉਹ ਇਸਨੂੰ ਪੜ੍ਹ ਸਕਦੀ ਹੈ।
 She glances at your screen and comments. Costs a little on a paid brain.	ਉਹ ਤੁਹਾਡੀ ਸਕ੍ਰੀਨ ਵੱਲ ਝਾਤ ਮਾਰਦੀ ਹੈ ਅਤੇ ਟਿੱਪਣੀ ਕਰਦੀ ਹੈ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
-She keeps listening. Say her name, then just talk until you go quiet.	ਉਹ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹੈ। ਉਸਦਾ ਨਾਮ ਲਓ, ਫਿਰ ਚੁੱਪ ਹੋਣ ਤੱਕ ਗੱਲ ਕਰੋ।
+She keeps listening. Say her name, then just talk.	ਉਹ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹੈ। ਉਸਦਾ ਨਾਮ ਲਓ, ਫਿਰ ਗੱਲ ਕਰੋ।
 She reacts to your game until you close it.	ਤੁਹਾਡੇ ਗੇਮ ਬੰਦ ਕਰਨ ਤੱਕ ਉਹ ਤੁਹਾਡੀ ਖੇਡ 'ਤੇ ਪ੍ਰਤੀਕਿਰਿਆ ਦਿੰਦੀ ਹੈ।
 She reads these controls before each game job.	ਉਹ ਹਰ ਖੇਡ ਕੰਮ ਤੋਂ ਪਹਿਲਾਂ ਇਹ ਕੰਟਰੋਲ ਪੜ੍ਹਦੀ ਹੈ।
 She talks about your game as you play. Costs a little on a paid brain.	ਉਹ ਤੁਹਾਡੀ ਖੇਡ ਖੇਡਦੇ ਸਮੇਂ ਉਸ ਬਾਰੇ ਗੱਲ ਕਰਦੀ ਹੈ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।

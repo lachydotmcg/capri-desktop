@@ -639,7 +639,7 @@ Setup stopped	Nhazi kwụsịrị
 She answers in	Ọ na-aza na
 She can read it when it fits.	Ọ nwere ike ịgụ ya mgbe ọ dabara.
 She glances at your screen and comments. Costs a little on a paid brain.	Ọ na-ele ihuenyo gị anya ma kwuo nkọwa. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.
-She keeps listening. Say her name, then just talk until you go quiet.	Ọ ka na-ege ntị. Kwuo aha ya, wee kwuo okwu ruo mgbe ị dara jụụ.
+She keeps listening. Say her name, then just talk.	Ọ ka na-ege ntị. Kwuo aha ya, wee kwuo okwu.
 She reacts to your game until you close it.	Ọ na-aza egwuregwu gị ruo mgbe ị mechiri ya.
 She reads these controls before each game job.	Ọ na-agụ njikwa ndị a tupu ọrụ egwuregwu ọ bụla.
 She talks about your game as you play. Costs a little on a paid brain.	Ọ na-ekwu maka egwuregwu gị mgbe ị na-egwu. Na-enwe ọnụ ahịa nta na ụbụrụ akwụrụ ụgwọ.

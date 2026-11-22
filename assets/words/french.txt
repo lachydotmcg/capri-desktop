@@ -639,7 +639,7 @@ Setup stopped	Installation arrêtée
 She answers in	Elle répond en
 She can read it when it fits.	Elle peut le lire quand ça tient.
 She glances at your screen and comments. Costs a little on a paid brain.	Elle jette un œil à ton écran et commente. Coûte un peu avec un cerveau payant.
-She keeps listening. Say her name, then just talk until you go quiet.	Elle continue à écouter. Dis son nom, puis parle jusqu'à ce que tu te taises.
+She keeps listening. Say her name, then just talk.	Elle continue à écouter. Dis son nom, puis parle.
 She reacts to your game until you close it.	Elle réagit à ton jeu jusqu'à ce que tu le fermes.
 She reads these controls before each game job.	Elle lit ces contrôles avant chaque job de jeu.
 She talks about your game as you play. Costs a little on a paid brain.	Elle parle de ton jeu pendant que tu joues. Coûte un peu avec un cerveau payant.

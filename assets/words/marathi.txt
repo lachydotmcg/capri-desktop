@@ -639,7 +639,7 @@ Setup stopped	सेटअप थांबला
 She answers in	ती उत्तर देते
 She can read it when it fits.	योग्य वाटेल तेव्हा ती ते वाचू शकते.
 She glances at your screen and comments. Costs a little on a paid brain.	ती तुमची स्क्रीन पाहते आणि कमेंट करते. पैसे भरलेल्या मेंदूवर थोडा खर्च येतो.
-She keeps listening. Say her name, then just talk until you go quiet.	ती ऐकत राहते. तिचे नाव म्हणा, मग तुम्ही शांत होईपर्यंत बोला.
+She keeps listening. Say her name, then just talk.	ती ऐकत राहते. तिचे नाव म्हणा, मग बोला.
 She reacts to your game until you close it.	तुम्ही बंद करेपर्यंत ती तुमच्या गेमवर प्रतिक्रिया देते.
 She reads these controls before each game job.	ती प्रत्येक गेम कामापूर्वी ही नियंत्रणे वाचते.
 She talks about your game as you play. Costs a little on a paid brain.	तुम्ही खेळताना ती तुमच्या गेमबद्दल बोलते. पैसे भरलेल्या मेंदूवर थोडा खर्च येतो.
