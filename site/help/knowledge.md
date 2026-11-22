@@ -1006,7 +1006,7 @@ If a clip doesn't work, the note under VOICE says why, in red:
 Her other free voice styles (Her own, Bright, Sly and Sharp) are set voices and can't copy yours. With one of them picked, the note under VOICE says "Your voice only works with HD."
 
 ### Your own voice model: Fish Audio, OpenAI, a model file or your own server (from 0.7.6)
-Her voice can come from Fish Audio's cloud, OpenAI, a voice model file she runs herself, or any speech model you run behind a server. Windows only for now.
+Her voice can come from Fish Audio's cloud, OpenAI, a voice model file she runs herself, or any speech model you run behind a server. On Mac and Linux, CUSTOM LOCAL points her at a speech server you run yourself; Fish Audio, OpenAI and picking a voice model file are Windows only for now.
 1. Mainframe > VOICE:
    - On your PC (a voice model file, Fish Speech, Kokoro or any OpenAI-style server): press Set up on the CUSTOM LOCAL row.
    - In the cloud (Fish Audio or OpenAI): click CLOUD VOICE. Fish Audio is first in the menu under it and its panel opens; pick OpenAI in that menu instead if you want it. The setup guide has Fish Audio's steps: https://capriai.app/setup/#fish
@@ -2159,11 +2159,10 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 
 ### Not yet
 - Code mods that use Windows-only parts, like drawing on her, an options page, screenshots or global hotkeys. Other code mods, settings mods, colour sets and skins work in the Mods window.
-- No voice input on Mac. Call mode and wake words are Windows only.
+- Call mode is Windows only. TALK works on Mac and Linux, and Hey Capri works on Apple Silicon Macs and Linux once her local ears are set up.
 - No built-in brain. Use Ollama or an API key.
 - No system-wide keyboard shortcuts. The Mainframe and the Mods window work from the keyboard (0.9.1): see KEYS under Settings.
-- No mouse and keyboard jobs on Mac.
-- No automatic updates on a Mac, or on Linux from the tarball. She says when a new version is out, and right-click her > Get Capri X opens its download page. Started from the Linux AppImage she updates herself (0.9.0).
+- No automatic updates on Linux from the tarball. She says when a new version is out, and right-click her > Get Capri X opens its download page. Started from the Linux AppImage she updates herself (0.9.0), and her Mac app updates itself too (0.9.3).
 
 ### TALK on Linux
 Follow the [Linux TALK setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup) to install `parec`, extract sherpa-onnx into her ears folder (or put `sherpa-onnx-offline` on PATH) and add her English Parakeet pack, or her European pack when her language is one of its 24 other languages. Pick your default mic in your sound settings. Hover over her, click TALK, say one line in her language and pause. Click TALK again to cancel. She transcribes the audio on your PC and uses the same brain and reply voice as TYPE.
@@ -2186,7 +2185,7 @@ On Apple Silicon Macs, Mainframe > Settings > VOICE > Listen for Hey Capri works
 - Get Capri X, only when a new version is out
 - Quit Capri
 
-Tray or menu bar icon: Talk to her, Quiet, Hide her / Show her, Bring her back, Quit Capri.
+Tray or menu bar icon: Open Capri Mainframe, File editor, Hide Capri / Show Capri, Size, Move, Help, Check for updates, Quit Capri.
 
 ### Her voice on Mac and Linux
 1. Right-click her > Settings > Voice > Add ElevenLabs key...

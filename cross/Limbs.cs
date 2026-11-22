@@ -465,6 +465,25 @@ namespace CapriDesktop
             return x11 != null && long.TryParse(x11.Trim(), out milliseconds) ? milliseconds / 1000.0 : -1;
         }
 
+        // Name listening asks on every tick, so logind's answer is kept for a few seconds instead of a busctl spawn every frame.
+        // Null still means this desktop can't say, and callers must keep listening rather than invent a lock.
+        private const int LockedKeep = 3000;
+        private static bool? lockedHint;
+        private static long lockedAt = -LockedKeep;
+        internal static Func<long> LockClock = () => Environment.TickCount64;
+
+        internal static bool? SessionLocked()
+        {
+            if (OnMac || !OperatingSystem.IsLinux()) return null;
+            long now = LockClock();
+            if (now - lockedAt < LockedKeep) return lockedHint;
+            lockedAt = now;
+            string hint = Music.Run("busctl", new[] { "get-property", "org.freedesktop.login1", "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session", "LockedHint" });
+            Match found = hint == null ? Match.Empty : Regex.Match(hint, @"^b (true|false)\s*$", RegexOptions.Multiline);
+            lockedHint = found.Success ? found.Groups[1].Value == "true" : (bool?)null;
+            return lockedHint;
+        }
+
         internal static bool? SessionAway()
         {
             if (OnMac || !OperatingSystem.IsLinux()) return null;
