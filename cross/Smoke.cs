@@ -2316,7 +2316,7 @@ namespace CapriDesktop
                     throw new Exception("Her own lines weren't registered with Said.");
                 Brain.Language = null;
                 foreach (string line in Pet.PetLines) if (Said.In(line) != line) throw new Exception("English changed her pat line: " + line);
-                if (Said.In(Pet.PopLines[0]) != Pet.PopLines[0] || Said.Label("pets you") != "pets you" || Said.Label("(pops in)") != "(pops in)") throw new Exception("English changed her own lines or labels.");
+                if (Said.In(Pet.PopLines[0]) != Pet.PopLines[0] || Said.Label("pets you") != "pets you" || Said.Label("pops in") != "pops in") throw new Exception("English changed her own lines or labels.");
                 pet.Talk.Dismiss();
                 pet.ForgetPets();
                 pet.PetLine(pet.Pets);
@@ -2343,11 +2343,36 @@ namespace CapriDesktop
                 if (rules == null || !rules.Contains("into Spanish") || !rules.Contains("choom")) throw new Exception("Her translation rules lost the language or her slang.");
                 if (Said.In(Pet.PetLines[0]) != "[es] " + Pet.PetLines[0] || Said.In(Pet.PopLines[0]) != "[es] " + Pet.PopLines[0] || Said.In(Pet.HomeSongLines[0]) != "[es] " + Pet.HomeSongLines[0])
                     throw new Exception("Her lines weren't in their language: " + Said.In(Pet.PetLines[0]));
-                if (Said.Label("pets you") != "[es] pets you" || Said.Label("(pops in)") != "[es] (pops in)") throw new Exception("Her labels weren't in their language: " + Said.Label("pets you"));
+                if (Said.Label("pets you") != "[es] pets you" || Said.Label("pops in") != "[es] pops in") throw new Exception("Her labels weren't in their language: " + Said.Label("pets you"));
+                if (Pet.SaidLabel("(pops in)") != "([es] pops in)") throw new Exception("A bracketed label didn't come back translated and bracketed: " + Pet.SaidLabel("(pops in)"));
+                string cleaned = Pet.SaidReply("1. Good morning, choom.\n2. (label) pops in", "1. \n2. (se asoma)");
+                if (cleaned.IndexOf("se asoma", StringComparison.Ordinal) < 0 || cleaned.IndexOf("(se asoma)", StringComparison.Ordinal) >= 0)
+                    throw new Exception("Her brain's rebracketed label wasn't cleaned: " + cleaned.Replace("\n", " | "));
+                string blanked = Pet.SaidReply("1. Good morning, choom.\n2. (label) pops in", "1. \n2. ( )");
+                if (blanked.Length != 0 || Pet.SaidReply("1. Good morning, choom.", "1.").Length != 0)
+                    throw new Exception("Her brain's blank wrapped label or bare marker wasn't cleaned: " + blanked.Replace("\n", " | "));
+                string modelWas = pet.Brain.Model;
+                IBrainProvider providerWas = pet.Brain.Provider;
+                pet.Brain.Model = "smoke-said";
+                pet.Brain.Provider = new RemotePictureBrain { Chat = "1. \n2. (se asoma)" };
+                try
+                {
+                    string wired = askWas("Translate her lines.", "1. Good morning, choom.\n2. (label) pops in");
+                    if (wired.IndexOf("se asoma", StringComparison.Ordinal) < 0 || wired.IndexOf("(se asoma)", StringComparison.Ordinal) >= 0 || Regex.IsMatch(wired, @"(?m)^\s*\**\d{1,3}\**\s*[.):]\**\s*$"))
+                        throw new Exception("The translation call she installs didn't clean its reply: " + wired.Replace("\n", " | "));
+                }
+                finally { pet.Brain.Model = modelWas; pet.Brain.Provider = providerWas; };
                 string[] rows = File.ReadAllLines(Said.PathFor("Spanish"), Encoding.UTF8);
                 if (Array.IndexOf(rows, Pet.PetLines[0] + "\t[es] " + Pet.PetLines[0]) < 0 || Array.IndexOf(rows, "pets you\t[es] pets you") < 0) throw new Exception("Her translations weren't kept in " + Said.PathFor("Spanish") + ".");
                 Said.Reload();
                 if (Said.In(Pet.PetLines[1]) != "[es] " + Pet.PetLines[1]) throw new Exception("Her kept translations weren't read back.");
+                // A cache written before the bare-label ask kept its row under the bracketed spelling, with no bare row.
+                List<string> legacyRows = new List<string>(File.ReadAllLines(Said.PathFor("Spanish"), Encoding.UTF8));
+                legacyRows.RemoveAll(row => row.StartsWith("you noticed\t", StringComparison.Ordinal));
+                legacyRows.Add("(you noticed)\tte notó");
+                File.WriteAllLines(Said.PathFor("Spanish"), legacyRows.ToArray(), new UTF8Encoding(false));
+                Said.Reload();
+                if (Pet.SaidLabel("(you noticed)") != "(te notó)") throw new Exception("A cache seeded under the old bracketed label stopped resolving: " + Pet.SaidLabel("(you noticed)"));
                 pet.PetLine(pet.Pets);
                 string spanish = pet.Talk.Bubble.Sheet.Reply;
                 if (spanish == null || !spanish.StartsWith("[es] ", StringComparison.Ordinal) || Array.IndexOf(Pet.PetLines, spanish.Substring(5)) < 0 || pet.Talk.Bubble.Sheet.Heard != "[es] pets you")

@@ -3874,11 +3874,64 @@ namespace CapriDesktop
         private void StartSaid()
         {
             Said.Folder = Program.Smoke ?? folder;
-            Said.Ask = delegate(string system, string user) { return Brain.SmallJob(system, user, 3000); };
+            Said.Ask = delegate(string system, string user) { return SaidReply(user, Brain.SmallJob(system, user, 3000)); };
             Said.Ready = delegate { return Program.Smoke == null && Brain.Model != null; };
             Said.Reload();
             Said.Know(CapriDesktop.Brain.Greetings, PetLines, Sulks.PatPeaceLines, PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines);
-            Said.Labels("startup", "pets you", "(check-in)", "(pops in)", "(wants attention)", "(you noticed)", "(ignored)", "(Cyberpunk 2077)", "(Night City song)", "(CPU near 100%)", "(watch my screen)");
+            Said.Labels("startup", "pets you", "check-in", "pops in", "wants attention", "you noticed", "ignored", "Cyberpunk 2077", "Night City song", "CPU near 100%", "watch my screen");
+        }
+
+        // Her brain's numbered reply, cleaned before Said keeps it: a blank row would be saved as the whole line it
+        // answers, and a label it wraps in brackets again would lose them to Said's label reader. A bracketed label is
+        // unwrapped first, then a row with nothing left is dropped; the bubble puts its brackets back when it shows it.
+        // Said's own label reader strips at most 20 characters inside brackets (app/Brain.cs:6491), so a longer
+        // translated label keeps its brackets and is shown as it came.
+        internal static string SaidReply(string asked, string reply)
+        {
+            if (string.IsNullOrEmpty(reply)) return reply;
+            HashSet<string> labels = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string row in asked.Split('\n'))
+            {
+                System.Text.RegularExpressions.Match label = System.Text.RegularExpressions.Regex.Match(row, @"^\s*([0-9]{1,3})\s*[.):]\s*\(label\)\s");
+                if (label.Success) labels.Add(label.Groups[1].Value);
+            }
+            System.Text.StringBuilder kept = new System.Text.StringBuilder(reply.Length);
+            foreach (string row in reply.Split('\n'))
+            {
+                System.Text.RegularExpressions.Match numbered = System.Text.RegularExpressions.Regex.Match(row, @"^(\s*\**([0-9]{1,3})\s*[.):]\**\s*)(.+?)\s*$");
+                if (!numbered.Success)
+                {
+                    // A bare marker answers nothing, and its leftover space would read as the line itself.
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(row, @"^\s*\**([0-9]{1,3})\s*[.):]\**\s*$")) kept.Append(row).Append('\n');
+                    continue;
+                }
+                string text = numbered.Groups[3].Value;
+                if (labels.Contains(numbered.Groups[2].Value))
+                {
+                    System.Text.RegularExpressions.Match wrapped = System.Text.RegularExpressions.Regex.Match(text, @"^\(([^()]{0,20})\)$");
+                    if (wrapped.Success) text = wrapped.Groups[1].Value;
+                }
+                if (text.Trim().Length == 0) continue;
+                kept.Append(numbered.Groups[1].Value).Append(text).Append('\n');
+            }
+            return kept.ToString();
+        }
+
+        // A label like (pops in) is translated as its bare words and put back in brackets for her bubble, so Said's
+        // label reader never eats its own translation. Bare labels and English keep exactly what they had. A cache
+        // written before the bare-label ask kept its row under the bracketed spelling, so that spelling is tried too.
+        internal static string SaidLabel(string heard)
+        {
+            if (heard == null || heard.Length < 3 || heard[0] != '(' || heard[heard.Length - 1] != ')') return Said.Label(heard);
+            string bare = heard.Substring(1, heard.Length - 2);
+            string translated = Said.Label(bare);
+            if (translated != bare && translated.Trim().Length > 0)
+                return translated.Length > 1 && translated[0] == '(' && translated[translated.Length - 1] == ')' ? translated : "(" + translated + ")";
+            // Read with Said.In, which neither learns nor warms: a miss still leaves the line English and the bare
+            // key to be filled on her brain's next pass.
+            string legacy = Said.In(heard);
+            if (legacy == heard || legacy.Trim().Length == 0) return heard;
+            return legacy[0] == '(' && legacy[legacy.Length - 1] == ')' ? legacy : "(" + legacy + ")";
         }
 
         internal int Replies { get { return Brain.ReplyLength >= 2 ? 3 : Brain.Wordiness; } }
@@ -4629,7 +4682,7 @@ namespace CapriDesktop
         // A line of her own in their language, under its label in theirs too, like Windows' lines after "> sys: ".
         private void SayOwn(int ticket, string heard, string line)
         {
-            Reply(ticket, heard, Said.Learn(line), null, false, null, Said.Label(heard));
+            Reply(ticket, heard, Said.Learn(line), null, false, null, SaidLabel(heard));
         }
 
         // Free for a line of her own: Check in on me on, showing, and not busy with them.

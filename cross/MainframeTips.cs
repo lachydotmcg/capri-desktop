@@ -152,6 +152,8 @@ namespace CapriDesktop
             string text = Unpathed(facts);
             double height = MainframeTheme.Words("Ag").Height * 6;
             if (Height(text) <= height) return text;
+            // A body written without spaces, like Japanese, has no sentence or word break to shorten at, so it keeps all of itself.
+            if (!Regex.IsMatch(text, @"\s")) return text;
             string more = " " + Lingo.Of("Ask Capri for more");
             string kept = "";
             foreach (Match sentence in Regex.Matches(text, @".+?(?:[.!?](?=\s+[A-Z]|$)|$)"))
