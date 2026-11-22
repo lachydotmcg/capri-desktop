@@ -76,6 +76,18 @@ an old readable alias works only when unambiguous. Multi-server grants use a
 server-qualified permission key, so an old raw-name grant is not silently shared
 between servers.
 
+Permission storage uses versioned records. Ordinary single-server choices remain
+compatible with old saves; exact legacy Off/Ask restrictions for unusual names
+are retained, including plug-ins loaded later. Ambiguous legacy Always entries
+cannot authorize a newly generated identity. Server names containing spaces and
+tool names with whitespace survive saving and reloading without losing Off/Ask.
+The upgrade writes `grants-v2.json` and leaves the original `grants.txt` intact;
+rolling back to an older app uses the older choices, not subsequent v2 edits.
+
+The HTTP transport conceals its authorization token in JSON and event-stream
+replies and error bodies before shortening messages, including URL-escaped forms.
+A connection closed while a reply is arriving does not deliver that reply.
+
 ## Verification and sources
 
 Runner smoke checks cover 12 pages/48 tools, last-tool invocation, complete cache

@@ -167,7 +167,7 @@ namespace CapriDesktop
             made.Alias = exposed;
             using (SHA256 hash = SHA256.Create())
                 made.Exposed = exposed.Substring(0, Math.Min(35, exposed.Length)) + "_" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(plugin.Id + "\0" + server + "\0" + name))).Replace("-", "").Substring(0, 24).ToLowerInvariant();
-            made.Permission = plugin.Servers.Length == 1 ? name : "server:" + server.Length + ":" + server + ":" + name;
+            made.Permission = plugin.Servers.Length == 1 && !Regex.IsMatch(name, @"[\s\p{Cc}\p{Cf}]") && !name.StartsWith("tool:", StringComparison.Ordinal) ? name : "tool:" + made.Exposed;
             object annotations = PluginJson.Get(tool, "annotations");
             made.Title = Line(PluginJson.Str(annotations, "title") ?? PluginJson.Str(tool, "title") ?? name, 80);
             made.Description = Line(PluginJson.Str(tool, "description") ?? made.Title, MostAbout);
@@ -279,9 +279,23 @@ namespace CapriDesktop
             lock (gate)
             {
                 Dictionary<string, string> all = Grants();
-                foreach (string key in new List<string>(all.Keys)) if (key.StartsWith(id + " ", StringComparison.Ordinal)) all.Remove(key);
+                foreach (string key in new List<string>(all.Keys)) if (key.StartsWith(id + " ", StringComparison.Ordinal) || key.StartsWith(LegacyGrantPrefix + id + " ", StringComparison.Ordinal)) all.Remove(key);
                 WriteGrants(all);
             }
+            try
+            {
+                lock (gate)
+                {
+                    string oldFile = folder == null ? null : Path.Combine(folder, "grants.txt");
+                    if (oldFile != null && File.Exists(oldFile))
+                    {
+                        List<string> oldLines = new List<string>(File.ReadAllLines(oldFile));
+                        if (oldLines.RemoveAll(line => line.StartsWith(id + " ", StringComparison.Ordinal)) > 0) File.WriteAllLines(oldFile, oldLines.ToArray(), new UTF8Encoding(false));
+                    }
+                }
+            }
+            catch (IOException error) { Brain.Log("plugins", -1, error.Message); }
+            catch (UnauthorizedAccessException error) { Brain.Log("plugins", -1, error.Message); }
         }
 
         internal static void Stop(string id)
@@ -586,12 +600,29 @@ namespace CapriDesktop
             return "send an email to " + who + (!string.IsNullOrWhiteSpace(subject) ? " with the subject '" + Line(subject, 100) + "'" : reply ? " as a reply, keeping its subject" : "");
         }
 
+        private const string LegacyGrantPrefix = "\0legacy ";
+
+        private static string LegacyPermission(string id, string permission, out bool ordinary)
+        {
+            ordinary = !permission.StartsWith("tool:", StringComparison.Ordinal) && !Regex.IsMatch(permission, @"[\s\p{Cc}\p{Cf}]");
+            if (ordinary) return permission;
+            PluginInfo plugin = loaded.Find(one => one.Id == id);
+            List<PluginTool> found;
+            if (plugin == null || plugin.Servers.Length != 1 || !tools.TryGetValue(id, out found)) return null;
+            PluginTool exact = found.Find(one => one.Permission == permission);
+            return exact == null ? null : exact.Tool;
+        }
+
         internal static string GrantOf(string id, string tool)
         {
             lock (gate)
             {
                 string grant;
-                return Grants().TryGetValue(id + " " + tool, out grant) ? grant : Usual;
+                Dictionary<string, string> all = Grants();
+                if (all.TryGetValue(id + " " + tool, out grant)) return grant;
+                bool ordinary;
+                string legacy = LegacyPermission(id, tool, out ordinary);
+                return legacy != null && all.TryGetValue(LegacyGrantPrefix + id + " " + legacy, out grant) && (ordinary || grant == Off || grant == Ask) ? grant : Usual;
             }
         }
 
@@ -601,6 +632,9 @@ namespace CapriDesktop
             lock (gate)
             {
                 Dictionary<string, string> all = Grants();
+                bool ordinary;
+                string legacy = LegacyPermission(id, tool, out ordinary);
+                if (legacy != null) all.Remove(LegacyGrantPrefix + id + " " + legacy);
                 if (grant == Usual) all.Remove(id + " " + tool);
                 else all[id + " " + tool] = grant;
                 WriteGrants(all);
@@ -614,14 +648,33 @@ namespace CapriDesktop
             grants = new Dictionary<string, string>(StringComparer.Ordinal);
             try
             {
-                string file = folder == null ? null : Path.Combine(folder, "grants.txt");
+                string file = folder == null ? null : Path.Combine(folder, "grants-v2.json");
+                if (file != null && !File.Exists(file)) file = Path.Combine(folder, "grants.txt");
                 if (file != null && File.Exists(file))
-                    foreach (string line in File.ReadAllLines(file))
+                {
+                    string text = File.ReadAllText(file);
+                    if (text.TrimStart().StartsWith("{", StringComparison.Ordinal))
                     {
-                        string[] parts = line.Split(' ');
-                        if (parts.Length == 3 && (parts[2] == Always || parts[2] == Ask || parts[2] == Off)) grants[parts[0] + " " + parts[1]] = parts[2];
+                        object saved = PluginJson.Parse(text);
+                        if (PluginJson.Str(saved, "version") != "2") return grants;
+                        foreach (object entry in PluginJson.List(PluginJson.Get(saved, "grants")) ?? new List<object>())
+                        {
+                            string id = PluginJson.Str(entry, "id"), tool = PluginJson.Str(entry, "tool"), grant = PluginJson.Str(entry, "grant");
+                            if (id == null || tool == null || grant != Always && grant != Ask && grant != Off) continue;
+                            grants[(PluginJson.Flag(entry, "legacy") == true ? LegacyGrantPrefix : "") + id + " " + tool] = grant;
+                        }
                     }
+                    else foreach (string line in text.Split('\n'))
+                    {
+                        string clean = line.TrimEnd('\r');
+                        int first = clean.IndexOf(' '), last = clean.LastIndexOf(' ');
+                        if (first < 1 || last <= first) continue;
+                        string grant = clean.Substring(last + 1);
+                        if (grant == Always || grant == Ask || grant == Off) grants[LegacyGrantPrefix + clean.Substring(0, last)] = grant;
+                    }
+                }
             }
+            catch (FormatException error) { Brain.Log("plugins", -1, error.Message); }
             catch (IOException error) { Brain.Log("plugins", -1, error.Message); }
             catch (UnauthorizedAccessException error) { Brain.Log("plugins", -1, error.Message); }
             return grants;
@@ -630,13 +683,21 @@ namespace CapriDesktop
         private static void WriteGrants(Dictionary<string, string> all)
         {
             if (folder == null) return;
-            List<string> lines = new List<string>();
-            foreach (KeyValuePair<string, string> pair in all) lines.Add(pair.Key + " " + pair.Value);
-            lines.Sort(StringComparer.Ordinal);
+            List<object> entries = new List<object>();
+            List<string> keys = new List<string>(all.Keys);
+            keys.Sort(StringComparer.Ordinal);
+            foreach (string key in keys)
+            {
+                bool legacy = key.StartsWith(LegacyGrantPrefix, StringComparison.Ordinal);
+                string raw = legacy ? key.Substring(LegacyGrantPrefix.Length) : key;
+                int split = raw.IndexOf(' ');
+                if (split < 1) continue;
+                entries.Add(PluginJson.Make("id", raw.Substring(0, split), "tool", raw.Substring(split + 1), "grant", all[key], "legacy", legacy));
+            }
             try
             {
                 Directory.CreateDirectory(folder);
-                File.WriteAllLines(Path.Combine(folder, "grants.txt"), lines.ToArray());
+                File.WriteAllText(Path.Combine(folder, "grants-v2.json"), PluginJson.Write(PluginJson.Make("version", "2", "grants", entries)), new UTF8Encoding(false));
             }
             catch (IOException error) { Brain.Log("plugins", -1, error.Message); }
             catch (UnauthorizedAccessException error) { Brain.Log("plugins", -1, error.Message); }
@@ -766,7 +827,8 @@ namespace CapriDesktop
             lock (gate)
             {
                 plugin = loaded.Find(one => one.Id == id);
-                if (plugin == null || !plugin.On || plugin.Hash != expectedHash || plugin.Servers.Length != 1 || !plugin.Servers[0].Online || !plugin.Servers[0].TokenEntry)
+                if (plugin != null && plugin.Hash != expectedHash) problem = "That plug-in changed. Close this window and open its setup again.";
+                else if (plugin == null || !plugin.On || plugin.Servers.Length != 1 || !plugin.Servers[0].Online || !plugin.Servers[0].TokenEntry)
                     problem = "Personal token setup requires an enabled plug-in with exactly one online token server.";
                 else if (!signing.Add(id)) problem = "Already signing in.";
                 else generation = McpSignIn.Generation(id);
