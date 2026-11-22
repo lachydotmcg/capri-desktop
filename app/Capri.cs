@@ -8377,6 +8377,8 @@ namespace CapriDesktop
             preferences.CommentPace = Math.Max(0, Math.Min(2, pace));
             preferences.NoComments = preferences.CommentPace == Commentary.Off;
             if (preferences.CommentPace > 0) preferences.CommentPaceWas = preferences.CommentPace;
+            // A pick they make while Lite mode is on is theirs, so turning Lite mode off leaves Comments where they put it.
+            if (preferences.Lite && preferences.LiteKept != null) preferences.LiteKept = Array.FindAll(preferences.LiteKept, name => name != "game_comments");
             Commentary.Pace = GamePace;
             if (preferences.CommentPace == Commentary.Off && GamingOn) gaming.Off();
             SavePreferences();

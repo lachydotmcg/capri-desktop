@@ -275,6 +275,16 @@ namespace CapriDesktop
                     throw new Exception("Lite mode didn't pause and give back her watchers: kept " + kept + ", paused " + paused + ", saved " + savedLite + ", lighter " + lighter + ", back " + back + ", notes " + onNote + " / " + offNote);
                 checks.Add("PASS Lite mode: on, it saves that Watch my screen, game comments (Chatty), Clip my games and Save big moments were on and turns each off, rests her drawing like Power saver even with Power saver Off, and hands HD voice to her free voice; off, it puts each back as it was, Chatty included, and both save");
 
+                // Comments they pick while Lite mode is on are theirs, so an Off they chose then stays Off when it goes off.
+                SetLite(true, false);
+                SetCommentPace(Commentary.Events);
+                SetCommentPace(Commentary.Off);
+                string pickedNote = SetLite(false, false);
+                bool pickedKept = CommentPace == Commentary.Off && LoadPreferences().CommentPace == Commentary.Off && preferences.Watch && preferences.ClipGames && !preferences.Lite && preferences.LiteKept == null;
+                if (!pickedKept || pickedNote != "Back on as before: Watch my screen and Clip my games.")
+                    throw new Exception("Lite mode turned game comments back on after they picked Off while it was on: " + Commentary.PaceNames[CommentPace] + " / " + pickedNote);
+                checks.Add("PASS Lite mode leaves GAMES > Comments where they put it while it was on, so an Off they picked then stays Off when Lite mode goes off, and the rest come back as before");
+
                 preferences.Watch = false;
                 SetCommentPace(Commentary.Off);
                 preferences.ClipGames = preferences.ClipMoments = false;
