@@ -98,8 +98,10 @@ The model receives compact plug-in summaries. It calls `mod` with
 Calls then use the existing `mod` execution path. Disabled plug-ins and tools
 remain unavailable. Names are stable across ordering and distinct across servers;
 an old readable alias works only when unambiguous. Multi-server grants use a
-server-qualified permission key, so an old raw-name grant is not silently shared
-between servers.
+server-qualified permission key. An old raw-name Always choice is not silently
+shared between servers. Existing Off/Ask restrictions still apply to each exact
+matching tool until the user changes that server's choice; changing one server
+does not remove another server's restriction.
 
 Permission storage uses versioned records. Ordinary single-server choices remain
 compatible with old saves; exact legacy Off/Ask restrictions for unusual names

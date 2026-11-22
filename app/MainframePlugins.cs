@@ -38,6 +38,14 @@ namespace CapriDesktop
             return asks && grant != Plugins.Off ? "Always asks" : GrantWords(grant);
         }
 
+        internal static string NextPluginGrant(PluginTool tool)
+        {
+            string had = Plugins.GrantOf(tool.Plugin, tool.Permission);
+            string next = Plugins.AlwaysAsks(tool) ? (had == Plugins.Off ? Plugins.Usual : Plugins.Off) : GrantOrder[(Array.IndexOf(GrantOrder, had) + 1) % GrantOrder.Length];
+            Plugins.Grant(tool.Plugin, tool.Permission, next);
+            return next;
+        }
+
         private static string PluginOn(Mod mod)
         {
             if (!mod.On) return mod.File.Name + " is in, and off.";
@@ -339,16 +347,15 @@ namespace CapriDesktop
                     {
                         PluginTool one = tool;
                         bool asks = Plugins.AlwaysAsks(tool);
-                        Label name = new Note { Text = tool.Title, Font = Type(10f * Zoom, true), ForeColor = White, AutoSize = false, AutoEllipsis = true, Bounds = Box(0, y, 400, 20), UseMnemonic = false };
+                        string title = mod.Info.Servers.Length > 1 ? tool.Server + ": " + tool.Title : tool.Title;
+                        Label name = new Note { Text = title, Font = Type(10f * Zoom, true), ForeColor = White, AutoSize = false, AutoEllipsis = true, Bounds = Box(0, y, 400, 20), UseMnemonic = false };
                         Label about = new Note { Text = tool.Description, Font = Look.Mono(8.5f * Zoom, FontStyle.Regular, GraphicsUnit.Point), ForeColor = Faint, AutoSize = false, AutoEllipsis = true, Bounds = Box(0, y + 20, 400, 30), UseMnemonic = false };
                         Key grant = new Key { Bounds = Box(412, y + 6, 140, 26), Font = Type(9f * Zoom, true), Text = KeyWords(Plugins.GrantOf(mod.File.Id, tool.Permission), asks) };
-                        grant.AccessibleName = "When she uses " + tool.Title;
+                        grant.AccessibleName = "When she uses " + title;
                         grant.Accent = Plugins.GrantOf(mod.File.Id, tool.Permission) == Plugins.Off ? Rose : Cyan;
                         grant.Click += delegate
                         {
-                            string had = Plugins.GrantOf(ModId, one.Permission);
-                            string next = asks ? (had == Plugins.Off ? Plugins.Usual : Plugins.Off) : GrantOrder[(Array.IndexOf(GrantOrder, had) + 1) % GrantOrder.Length];
-                            Plugins.Grant(ModId, one.Tool, next);
+                            string next = NextPluginGrant(one);
                             grant.Text = KeyWords(next, asks);
                             grant.Accent = next == Plugins.Off ? Rose : Cyan;
                             grant.Invalidate();
