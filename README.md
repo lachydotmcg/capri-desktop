@@ -127,7 +127,7 @@ Beware that Capri may try to take over your human CPU. We take no responsibility
 
 0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
 
-Mac and Linux can hear one line at a time through **TALK** once you set up her offline ears below, in English or any language you put a model in for. Calls and wake words are Windows only for now.
+Mac and Linux can hear one line at a time through **TALK** once you set up her offline ears below, in English or any language you put a model in for. Calls are Windows only for now. Wake words work on Apple Silicon Macs and on Linux too, once her offline ears are set up.
 
 On Linux, streaming computer-use jobs are unavailable when Capri has to use her fallback desktop controls. Other computer-use jobs are unchanged.
 
@@ -455,7 +455,7 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 - [x] Mods: the Mods window, settings mods, colour sets and skins (0.8.3)
 - [ ] Voice chat and her free voice
 - [ ] Jobs with her own cursor
-- [ ] Updates that install themselves
+- [x] Updates that install themselves
 - [ ] Apple approving (notarizing) her, so macOS stops blocking her
 - [ ] Everything else Windows has, so they stop being an early preview
 
