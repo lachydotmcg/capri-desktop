@@ -12210,8 +12210,10 @@ namespace CapriDesktop
             };
             try
             {
-                bridge.Start();
                 string file = Path.Combine(root, CompanionBridge.Discovery);
+                File.WriteAllText(file, "{}");
+                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
+                bridge.Start();
                 if (!File.Exists(file)) throw new Exception("The companion discovery file is missing.");
                 if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(file) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("The companion discovery file is not private.");
                 Dictionary<string, object> route = HuskJson.Read(File.ReadAllText(file)) as Dictionary<string, object>;

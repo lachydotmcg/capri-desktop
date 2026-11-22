@@ -64,7 +64,10 @@ namespace CapriDesktop
                     UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite
                 };
                 using (FileStream stream = new FileStream(file, options))
-                using (StreamWriter writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(json);
+                {
+                    File.SetUnixFileMode(stream.SafeFileHandle, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                    using (StreamWriter writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(json);
+                }
                 return;
             }
             File.WriteAllText(file, json, new UTF8Encoding(false));
