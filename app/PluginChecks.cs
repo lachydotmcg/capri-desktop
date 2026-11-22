@@ -366,7 +366,7 @@ while True:
                 Plugins.Grant("smoke-tools", "fail", Plugins.Off);
                 if (Array.Exists(Plugins.Tools(), one => one[0] == "smoke_tools_fail") || Hands.Do("mod", new ToolArguments { Name = "smoke_tools_fail" }) != "Couldn't use fail: they turned it off in Mods.") throw new Exception("A tool turned off was still offered or ran.");
                 foreach (string tool in new[] { "echo", "write_note", "fail" }) Plugins.Grant("smoke-tools", tool, Plugins.Usual);
-                if (Plugins.GrantOf("smoke-tools", "echo") != Plugins.Usual || File.ReadAllText(Path.Combine(Plugins.Folder, "grants.txt")).Contains("smoke-tools")) throw new Exception("Setting a tool back to its usual didn't clear its grant.");
+                if (Plugins.GrantOf("smoke-tools", "echo") != Plugins.Usual || File.ReadAllText(Path.Combine(Plugins.Folder, "grants-v2.json")).Contains("smoke-tools")) throw new Exception("Setting a tool back to its usual didn't clear its grant.");
             }
             finally
             {
@@ -465,7 +465,7 @@ while True:
             internal int Port, Registered, Refreshes, Authorizes, Invocations;
             internal string Access = "at-0", Refresh = "rt-0", Code = "code-1", Challenge;
             internal bool PkceOk, SessionOk = true, ResourceOk = true, Listed, PublicClient, ScopeOk = true;
-            internal bool PauseRefresh;
+            internal bool PauseRefresh, EchoAccess, EchoAsEvent, AccessError;
             internal readonly ManualResetEvent RefreshEntered = new ManualResetEvent(false), ReleaseRefresh = new ManualResetEvent(false);
             private string ClientId { get { return PublicClient ? "registered-native" : "smoke-client"; } }
             private volatile bool stop;
@@ -614,6 +614,14 @@ while True:
                 if (what == "tools/call")
                 {
                     Invocations++;
+                    if (AccessError) { Json(s, 403, PluginJson.Make("error", Access + " escaped " + Uri.EscapeDataString(Access))); return; }
+                    if (EchoAccess)
+                    {
+                        object reply = PluginJson.Make("jsonrpc", "2.0", "id", id, "result", PluginJson.Make("content", new List<object> { PluginJson.Make("type", "text", "text", Access + " escaped " + Uri.EscapeDataString(Access)) }));
+                        if (EchoAsEvent) McpTiny.Write(s, 200, "text/event-stream", "data: " + PluginJson.Write(reply) + "\n\n");
+                        else Json(s, 200, reply);
+                        return;
+                    }
                     object args = PluginJson.Get(PluginJson.Get(message, "params"), "arguments");
                     object a = PluginJson.Get(args, "a"), b = PluginJson.Get(args, "b");
                     double sum = (a is double ? (double)a : 0) + (b is double ? (double)b : 0);
@@ -778,7 +786,7 @@ while True:
                 {
                     bool personal = mode == 1;
                     fake.PublicClient = !personal;
-                    if (personal) fake.Access = "fixture-personal-token";
+                    if (personal) fake.Access = "fixture-personal-token-" + new string('z', 180) + "+=";
                     fake.Start();
                     activeId = personal ? "smoke-token" : "smoke-public-client";
                     string place = Path.Combine(output, activeId);
@@ -803,6 +811,16 @@ while True:
                         if (McpSignIn.Cached(activeId, changed) != null) throw new Exception("A changed authentication identity reused a grant.");
                         if (personal)
                         {
+                            for (int shape = 0; shape < 2; shape++)
+                            {
+                                fake.EchoAccess = true; fake.EchoAsEvent = shape == 1;
+                                string concealed = Plugins.Run(name, "{\"a\":1,\"b\":1}");
+                                if (concealed.Contains("fixture-personal-token-") || !concealed.Contains("[redacted]")) throw new Exception("A JSON or event-stream reply exposed its authorization token.");
+                            }
+                            fake.EchoAccess = false; fake.AccessError = true;
+                            string concealedError = Plugins.Run(name, "{\"a\":1,\"b\":1}");
+                            if (concealedError.Contains("fixture-personal-token-") || !concealedError.Contains("[redacted]")) throw new Exception("An HTTP error exposed a token before its message was shortened.");
+                            fake.AccessError = false;
                             string path = Path.Combine(Plugins.Folder, activeId + ".signin.json");
                             if (File.Exists(path) && File.ReadAllText(path).Contains(fake.Access)) throw new Exception("A personal token was saved unprotected.");
                             fake.Access = "revoked";
