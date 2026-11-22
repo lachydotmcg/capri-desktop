@@ -699,7 +699,7 @@ while True:
                     else if (File.Exists(saved)) throw new Exception("A sign-in was written to disk where it can't be protected.");
                     if (opened != 1) throw new Exception("Refreshing a sign-in opened a browser.");
                     PluginInfo moved = new PluginInfo { Id = "smoke-online", Servers = new[] { new PluginServer { Name = "web", Url = fake.Base + "/moved" } } };
-                    if (McpSignIn.Has(moved) || McpSignIn.Cached("smoke-online", "web", fake.Base + "/moved") != null || McpSignIn.Token("smoke-online", "web", fake.Base + "/moved") != null || McpSignIn.Cached("smoke-online", "web", fake.Base + "/mcp") == null)
+                    if (McpSignIn.Has(moved) || McpSignIn.Cached("smoke-online", moved.Servers[0]) != null || McpSignIn.Token("smoke-online", moved.Servers[0]) != null || McpSignIn.Cached("smoke-online", online.Info.Servers[0]) == null)
                         throw new Exception("A sign-in would go to a server address it wasn't made for.");
                     Plugins.Forget("smoke-online");
                     if (File.Exists(saved) || Plugins.SignedIn("smoke-online")) throw new Exception("Forgetting a plug-in kept its sign-in.");
