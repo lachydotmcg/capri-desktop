@@ -145,6 +145,7 @@ namespace CapriDesktop
                 if (stand.Old || stand.Count != 60 || stand.Fps != 24 || stand.Wide != 116) throw new Exception("Her standing loop isn't 60 cells of 116 px at 24 fps: " + stand.Count + " at " + stand.Fps + ", " + stand.Wide + " px.");
                 checks.Add("PASS sprites: all " + pet.Clips.Count + " clips, standing and perched, load from the app and split into even cells");
                 CompanionBridgeCheck();
+                CompanionRateCheck();
                 foreach (string clipName in new[] { "morning", "late", "miss" })
                 {
                     byte[] hello = Pet.Hello(clipName);
@@ -12236,6 +12237,31 @@ namespace CapriDesktop
             finally
             {
                 if (bridge != null) bridge.Dispose();
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
+        private void CompanionRateCheck()
+        {
+            string root = Path.Combine(folder, "companion-rate");
+            Directory.CreateDirectory(root);
+            CompanionBridge bridge = new CompanionBridge(root);
+            bridge.Received = delegate(Dictionary<string, object> request) { return HuskJson.Map("ok", true); };
+            try
+            {
+                bridge.Start();
+                Dictionary<string, object> route = HuskJson.Read(File.ReadAllText(Path.Combine(root, CompanionBridge.Discovery))) as Dictionary<string, object>;
+                HuskNumber number = HuskJson.Get(route, "port") as HuskNumber;
+                int port;
+                if (number == null || !int.TryParse(number.Text, out port)) throw new Exception("The companion rate bridge has no port.");
+                string token = HuskJson.Text(route, "token");
+                for (int i = 0; i < CompanionBridge.EventLimit; i++) if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 200) throw new Exception("The companion bridge rate limit turned away event " + (i + 1) + ".");
+                if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 429) throw new Exception("The companion bridge has no rate limit.");
+                checks.Add("PASS companion rate: 60 events in a minute pass and the next one is refused with 429");
+            }
+            finally
+            {
+                bridge.Dispose();
                 try { Directory.Delete(root, true); } catch (Exception) { }
             }
         }

@@ -16,11 +16,14 @@ namespace CapriDesktop
     internal sealed class CompanionBridge : IDisposable
     {
         internal const int BodyLimit = 8 * 1024;
+        internal const int EventLimit = 60;
         internal const string Discovery = "companion-listener.json";
         private readonly TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
         private readonly object gate = new object();
         private readonly List<TcpClient> clients = new List<TcpClient>();
         private readonly string file;
+        private int events;
+        private int windowStart = Environment.TickCount;
         private volatile bool stopped;
         internal string Token { get; private set; }
         internal int Port { get; private set; }
@@ -125,6 +128,12 @@ namespace CapriDesktop
                     int size;
                     if (headers.ContainsKey("Transfer-Encoding") || !headers.TryGetValue("Content-Length", out length) || !int.TryParse(length, NumberStyles.None, CultureInfo.InvariantCulture, out size) || size < 0) { Reply(stream, 400, Refused("length")); return; }
                     if (size > BodyLimit) { Reply(stream, 413, Refused("too_large")); return; }
+                    lock (gate)
+                    {
+                        if (unchecked(Environment.TickCount - windowStart) >= 60000) { windowStart = Environment.TickCount; events = 0; }
+                        if (events >= EventLimit) { Reply(stream, 429, Refused("rate_limited")); return; }
+                        events++;
+                    }
                     byte[] body = new byte[size];
                     for (int at = 0; at < size;)
                     {
@@ -158,7 +167,7 @@ namespace CapriDesktop
         private static void Reply(NetworkStream stream, int status, Dictionary<string, object> body)
         {
             byte[] json = Encoding.UTF8.GetBytes(HuskJson.Write(body));
-            string reason = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 403 ? "Forbidden" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : "Refused";
+            string reason = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 403 ? "Forbidden" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : status == 429 ? "Too Many Requests" : "Refused";
             byte[] head = Encoding.ASCII.GetBytes("HTTP/1.1 " + status + " " + reason + "\r\nContent-Type: application/json\r\nContent-Length: " + json.Length + "\r\nConnection: close\r\n\r\n");
             stream.Write(head, 0, head.Length);
             stream.Write(json, 0, json.Length);
