@@ -378,7 +378,7 @@ namespace CapriDesktop
                     Color brand = ColorTranslator.FromHtml(Logo.Ink);
                     PluginArt.Logo(graphics, Logo, art, Neon.Tone(brand.R, brand.G, brand.B));
                 }
-                if (Marked) using (GraphicsPath mark = PluginArt.Around(plate, cut, 2 * s)) FocusMark(graphics, mark, s);
+                if (Marked || Spotted(this)) using (GraphicsPath mark = PluginArt.Around(plate, cut, 2 * s)) FocusMark(graphics, mark, s, Spotted(this));
                 TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 if (Text.Length > 0) TextRenderer.DrawText(graphics, Lingo.Of(Text), Font, NameArea(s), Lit || !Tint.IsEmpty ? White : Faint, flags);
                 if (State.Length > 0) using (Font small = SmallFont()) TextRenderer.DrawText(graphics, Lingo.Of(State), small, StateArea(s), StateColour.IsEmpty ? Faint : StateColour, flags);
