@@ -1,6 +1,6 @@
 name: Feature Request
 description: Ask for a capability Capri does not have yet
-labels: ["type:feature"]
+labels: ["enhancement"]
 body:
   - type: checkboxes
     id: preflight

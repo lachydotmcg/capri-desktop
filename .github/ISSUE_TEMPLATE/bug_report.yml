@@ -1,6 +1,6 @@
 name: Bug Report
 description: Report something Capri does wrong
-labels: ["type:bug"]
+labels: ["bug"]
 body:
   - type: checkboxes
     id: preflight
