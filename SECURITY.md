@@ -76,7 +76,7 @@ A local brain, her own ears and her local voices stay on your PC. A custom brain
 
 ## Omarchy integration (Linux)
 
-On Linux, when Capri is started with `--companion-bridge`, she starts a small listener on a random loopback port. It writes `companion-listener.json` in her data folder with mode 0600 and a random token. An Omarchy shell plugin can then ask her to speak a line, play a fixed gesture, change her quiet state, receive a coarse ambient event, report state, or show her pet or Mainframe. The listener is loopback only, rejects browser origins, caps request size and time, and has no way to run commands, open apps or bypass her safety rules. It is off unless she is started with that flag. The plugin and its event list live in their own repository.
+On Linux, when Capri is started with `--companion-bridge`, she starts a small listener on a random loopback port. It writes `companion-listener.json` in her data folder with mode 0600 and a random token. An Omarchy shell plugin can then ask her to speak a line, play a fixed gesture, change her quiet state, receive a coarse ambient event, report state, or show her pet or Mainframe. Guards she accepts expire about thirty seconds after her last companion request, and every companion request keeps them alive, so a plugin holds a guard only while it keeps talking to her. The listener is loopback only, rejects browser origins, caps request size and time, and has no way to run commands, open apps or bypass her safety rules. It is off unless she is started with that flag. The plugin and its event list live in their own repository.
 
 ## Windows or your antivirus warned me
 
