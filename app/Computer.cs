@@ -3565,6 +3565,8 @@ namespace CapriDesktop
             }
         }
 
+        private const string EditSkipped = "Not executed: the user is editing this job.";
+
         // Runs Claude's calls in order. Returns why the job stopped, or null once every call has its answer in the talk.
         private string Batch(bool resumed)
         {
@@ -3581,7 +3583,7 @@ namespace CapriDesktop
                 ToolArguments args = call.Input;
                 if (Edited(batchRevision))
                 {
-                    answers.Add(new Answered { Call = call, Text = "Not executed: the user is editing this job.", Error = true });
+                    answers.Add(new Answered { Call = call, Text = EditSkipped, Error = true });
                     continue;
                 }
                 if (moved && call.Name != "read_skill" && call.Name != TreeEyes.Tool && call.Name != TreeEyes.PageTool)
@@ -3629,10 +3631,15 @@ namespace CapriDesktop
                         }
                         if (!HoldStep(batchRevision, call.Name, args, danger))
                         {
-                            answers.Add(new Answered { Call = call, Text = "Not executed: the user is editing this job.", Error = true });
+                            answers.Add(new Answered { Call = call, Text = EditSkipped, Error = true });
                             continue;
                         }
                         return End("waiting", question);
+                    }
+                    if (Edited(batchRevision))
+                    {
+                        answers.Add(new Answered { Call = call, Text = EditSkipped, Error = true });
+                        continue;
                     }
                     answer.Text = Step(call.Name, args, member, target);
                     byte[] around = Computer.TakeAround();

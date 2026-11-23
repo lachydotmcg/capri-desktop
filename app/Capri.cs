@@ -56678,26 +56678,25 @@ namespace CapriDesktop
                                     Job editBatch = new Job("click general and type hello");
                                     int batchTurns = 0, batchEdits = 0;
                                     driveMoves.Clear();
-                                    Func<string, ToolArguments, Picture, string> fakeUse = Computer.Use;
-                                    Computer.Use = delegate(string move, ToolArguments args, Picture screen)
+                                    Func<Point, Target> fakeUnder = Computer.Under;
+                                    Computer.Under = delegate(Point at)
                                     {
-                                        string action = fakeUse(move, args, screen);
-                                        if (move == "left_click" && !editBatch.RequestEdit(delegate { batchEdits++; editBatch.FinishEdit("leave the chat alone"); }))
-                                            throw new Exception("Couldn't edit a job between steps.");
-                                        return action;
+                                        if (at.X == 400 && !editBatch.RequestEdit(delegate { batchEdits++; editBatch.FinishEdit("leave the chat alone"); }))
+                                            throw new Exception("Couldn't edit a job while it checked where to click.");
+                                        return fakeUnder(at);
                                     };
                                     try
                                     {
                                         editBatch.Drive = delegate(string system, string tools, string messages)
                                         {
-                                            if (++batchTurns == 1) return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"click\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[100,200]}},{\"type\":\"tool_use\",\"id\":\"type\",\"name\":\"type\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"hello\"}}],\"stop_reason\":\"tool_use\"}");
+                                            if (++batchTurns == 1) return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"click\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[100,200]}},{\"type\":\"tool_use\",\"id\":\"old-click\",\"name\":\"right_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[200,200]}}],\"stop_reason\":\"tool_use\"}");
                                             if (!messages.Contains("leave the chat alone") || !messages.Contains("Recent steps")) throw new Exception("Editing between steps lost finished work or the new instruction.");
                                             return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Left it alone.\"}],\"stop_reason\":\"end_turn\"}");
                                         };
                                         if (editBatch.Run() != "Left it alone." || batchEdits != 1 || batchTurns != 2 || driveMoves.Count != 1 || driveMoves[0] != "left_click 200,400")
                                             throw new Exception("Editing between steps let a stale action run.");
                                     }
-                                    finally { Computer.Use = fakeUse; }
+                                    finally { Computer.Under = fakeUnder; }
                                     checks.Add("PASS job edits replace the current instructions, keep finished work, and discard obsolete model replies and clicks");
                                     driven.Clear();
                                     driveMoves.Clear();
