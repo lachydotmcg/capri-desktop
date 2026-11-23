@@ -47299,6 +47299,9 @@ namespace CapriDesktop
             Section(checks, "SmokePcStatus", delegate { SmokePcStatus(checks); });
             Section(checks, "SmokeInternetStatus", delegate { SmokeInternetStatus(checks); });
             Section(checks, "SmokeOpensOnce", delegate { SmokeOpensOnce(checks); });
+            Section(checks, "SmokeBrowserNamed", delegate { SmokeDefaultBrowser(checks, "named"); });
+            Section(checks, "SmokeBrowserJob", delegate { SmokeDefaultBrowser(checks, "job"); });
+            Section(checks, "SmokeBrowserDefault", delegate { SmokeDefaultBrowser(checks, "default"); });
             Section(checks, "SmokeStoreLaunch", delegate
             {
                 SmokeStoreLaunch(checks);

@@ -2145,6 +2145,7 @@ namespace CapriDesktop
                     return make == null ? "Making tools isn't set up here." : make(args.Text);
                 }
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
+                if (tool == "open_website") AimBrowser(args, args.Asked);
 #if CROSS
                 if (tool == "open_website" && NativeWebsite != null)
                 {
@@ -5159,8 +5160,46 @@ namespace CapriDesktop
         }
 
 #if !CROSS
-        private static string OpenBrowserKind(Func<bool> current)
+        internal static Func<string> DefaultBrowser = FindDefaultBrowser;
+
+        // The program Windows opens https links with, from their own choice in Default apps.
+        private static string FindDefaultBrowser()
         {
+            try
+            {
+                using (Microsoft.Win32.RegistryKey choice = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"))
+                {
+                    string progId = choice == null ? null : choice.GetValue("ProgId") as string;
+                    if (string.IsNullOrWhiteSpace(progId)) return null;
+                    using (Microsoft.Win32.RegistryKey command = Microsoft.Win32.Registry.ClassesRoot.OpenSubKey(progId + @"\shell\open\command"))
+                    {
+                        string program = BrowserCommand(command == null ? null : command.GetValue(null) as string);
+                        return program != null && Exists(program) ? program : null;
+                    }
+                }
+            }
+            catch (System.Security.SecurityException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (IOException) { }
+            return null;
+        }
+
+        internal static string OpenBrowserKind(Func<bool> current)
+        {
+            string theirs = DefaultBrowser();
+            if (theirs != null)
+            {
+                if (current != null && !current()) return "That call errand has ended.";
+                string program = Path.GetFileNameWithoutExtension(theirs);
+                string named = BrowserName(string.Equals(program, "msedge", StringComparison.OrdinalIgnoreCase) ? "edge" : program) ?? program;
+                try
+                {
+                    Run(theirs);
+                    return "Opened " + named + (current == null ? Opened(named) : "") + ".";
+                }
+                catch (InvalidOperationException) { }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
             foreach (string known in new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "zen" })
             {
                 List<InstalledApp> found;
@@ -5803,6 +5842,26 @@ namespace CapriDesktop
             if (args == null || Named(args.Site)) return;
             if (Named(args.Name) && Site(args.Name)) args.Site = args.Name.Trim();
             else if (Named(args.Search) && Site(args.Search)) { args.Site = args.Search.Trim(); args.Search = null; }
+        }
+
+        // A browser a model picked that they never named, like Chrome for a song when Edge is their default, opens in their default instead.
+        private static readonly string[,] BrowserSaid =
+        {
+            { "Chrome", @"\bchrome\b" }, { "Edge", @"\b(ms)?edge\b" }, { "Firefox", @"\bfire ?fox\b" }, { "Opera GX", @"\bopera\b" },
+            { "Opera", @"\bopera\b" }, { "Brave", @"\bbrave\b" }, { "Vivaldi", @"\bvivaldi\b" }
+        };
+
+        internal static void AimBrowser(ToolArguments args, string said)
+        {
+            string named = args == null ? null : BrowserName(args.Browser);
+            if (named == null || string.IsNullOrWhiteSpace(said) || Regex.IsMatch(said, @"[\p{L}-[\u0000-ɏḀ-ỿ]]")) return;
+#if !CROSS
+            string picked = null;
+            try { picked = BrowserName(Regex.Replace(Favourites.Picked("browser") ?? "", @"^msedge$", "edge", RegexOptions.IgnoreCase)); } catch (Exception) { }
+            if (picked == named) return;
+#endif
+            for (int i = 0; i < BrowserSaid.GetLength(0); i++)
+                if (BrowserSaid[i, 0] == named && !Regex.IsMatch(said, BrowserSaid[i, 1], RegexOptions.IgnoreCase)) args.Browser = null;
         }
 
         private static string OpenSite(string site, string search, string browser = null)

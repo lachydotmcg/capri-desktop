@@ -3029,7 +3029,7 @@ namespace CapriDesktop
                     if (call.Key == "look_at_screen" && call.Value != null) { call.Value.Asked = request; call.Value.Current = () => { lock (gate) return ticket == cancelled; }; }
                     if (call.Key == "use_computer" && call.Value != null) call.Value.Current = () => { lock (gate) return ticket == cancelled; };
 #else
-                    if (call.Key == "app_window" && call.Value != null) call.Value.Asked = request;
+                    if ((call.Key == "app_window" || call.Key == "open_website") && call.Value != null) call.Value.Asked = request;
 #endif
                     if (call.Key == "media") Hands.Aim(call.Value, request);
                     if (call.Key == "play_music") Hands.AimMusic(call.Value, request);
@@ -3240,7 +3240,7 @@ namespace CapriDesktop
                     if (call.Key == "look_at_screen") { args.Asked = request; args.Current = () => { lock (gate) return ticket == cancelled; }; }
                     if (call.Key == "use_computer") args.Current = () => { lock (gate) return ticket == cancelled; };
 #else
-                    if (call.Key == "app_window") args.Asked = request;
+                    if (call.Key == "app_window" || call.Key == "open_website") args.Asked = request;
 #endif
                     if (call.Key == "media") Hands.Aim(args, request);
                     if (call.Key == "play_music") Hands.AimMusic(args, request);
