@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -17,6 +19,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 
 namespace CapriDesktop
 {
@@ -142,6 +145,8 @@ namespace CapriDesktop
                 Clip stand = pet.Clips[0];
                 if (stand.Old || stand.Count != 60 || stand.Fps != 24 || stand.Wide != 116) throw new Exception("Her standing loop isn't 60 cells of 116 px at 24 fps: " + stand.Count + " at " + stand.Fps + ", " + stand.Wide + " px.");
                 checks.Add("PASS sprites: all " + pet.Clips.Count + " clips, standing and perched, load from the app and split into even cells");
+                CompanionBridgeCheck();
+                CompanionRateCheck();
                 foreach (string clipName in new[] { "morning", "late", "miss" })
                 {
                     byte[] hello = Pet.Hello(clipName);
@@ -160,8 +165,10 @@ namespace CapriDesktop
                 MacQuit.Checks(checks);
                 NewsChecks();
                 GuardChecks();
+                CompanionGuardExpiryCheck();
                 Ink.Check(checks);
                 MainframeGuardChecks();
+                CompanionAllowlistCheck();
                 FirstRunChecks();
                 Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
@@ -12476,6 +12483,171 @@ namespace CapriDesktop
             public void Reply(string device, string id, string re, string text, bool done) { wire.Reply(device, id, re, text, done); record.Reply(device, id, re, text, done); }
             public void Tool(string device, string id, string name, string summary, string state, string re, string move = null) { wire.Tool(device, id, name, summary, state, re, move); record.Tool(device, id, name, summary, state, re, move); }
             public void Error(string device, string code, string re) { wire.Error(device, code, re); record.Error(device, code, re); }
+        }
+
+        private void CompanionBridgeCheck()
+        {
+            string root = Path.Combine(folder, "companion");
+            Directory.CreateDirectory(root);
+            ConcurrentDictionary<string, bool> seen = new ConcurrentDictionary<string, bool>();
+            CompanionBridge bridge = new CompanionBridge(root);
+            bridge.Received = delegate(Dictionary<string, object> request)
+            {
+                string kind = HuskJson.Text(request, "kind");
+                seen[kind] = true;
+                if (kind == "state") return HuskJson.Map("ok", true, "version", 1, "quiet", false, "visible", true, "guards", new List<object>(), "capabilities", new List<object>());
+                if (kind == "nope") return HuskJson.Map("ok", false, "error", "unknown_kind");
+                return HuskJson.Map("ok", true);
+            };
+            try
+            {
+                string file = Path.Combine(root, CompanionBridge.Discovery);
+                File.WriteAllText(file, "{}");
+                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.OtherRead);
+                bridge.Start();
+                if (!File.Exists(file)) throw new Exception("The companion discovery file is missing.");
+                if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(file) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("The companion discovery file is not private.");
+                Dictionary<string, object> route = HuskJson.Read(File.ReadAllText(file)) as Dictionary<string, object>;
+                HuskNumber number = HuskJson.Get(route, "port") as HuskNumber;
+                int port;
+                if (number == null || !int.TryParse(number.Text, out port) || port < 1) throw new Exception("The companion port is unreadable.");
+                string token = HuskJson.Text(route, "token");
+                if (token.Length < 32) throw new Exception("The companion token is too short.");
+                if (CompanionPost(port, token, "{\"kind\":\"state\"}", null, null) != 200 || !seen.ContainsKey("state")) throw new Exception("The companion state request failed.");
+                if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
+                if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
+                if (CompanionPostBody(port, token, "{\"kind\":\"nope\"}") != "{\"ok\":false,\"error\":\"unknown_kind\"}" || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
+                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
+                if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
+                bridge.Dispose();
+                bridge = null;
+                if (File.Exists(file)) throw new Exception("The companion bridge left its discovery file behind.");
+                checks.Add("PASS companion: the local bridge keeps its discovery file private, refuses bad tokens and browser origins, caps the body, answers POST /event, ignores GETs and refuses unknown kinds, and removes its file when it stops");
+            }
+            finally
+            {
+                if (bridge != null) bridge.Dispose();
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
+        private void CompanionGuardExpiryCheck()
+        {
+            if (Dispatcher.UIThread.CheckAccess()) RunCompanionGuardExpiry();
+            else Dispatcher.UIThread.InvokeAsync(RunCompanionGuardExpiry).GetAwaiter().GetResult();
+            checks.Add("PASS companion guard expiry: a guard the plugin set is dropped when no companion event arrives for 30 s");
+        }
+
+        private void RunCompanionGuardExpiry()
+        {
+            pet.SetCompanionGuard("call", true);
+            pet.companionSeen = Environment.TickCount - 60000;
+            pet.ExpireCompanionGuards();
+            Dictionary<string, object> state = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"state\"}") as Dictionary<string, object>);
+            List<object> guards = HuskJson.Get(state, "guards") as List<object>;
+            if (guards == null || guards.Count != 0) throw new Exception("The companion guard did not expire once the plugin went quiet.");
+        }
+
+        private void CompanionRateCheck()
+        {
+            string root = Path.Combine(folder, "companion-rate");
+            Directory.CreateDirectory(root);
+            CompanionBridge bridge = new CompanionBridge(root);
+            bridge.Received = delegate(Dictionary<string, object> request) { return HuskJson.Map("ok", true); };
+            try
+            {
+                bridge.Start();
+                Dictionary<string, object> route = HuskJson.Read(File.ReadAllText(Path.Combine(root, CompanionBridge.Discovery))) as Dictionary<string, object>;
+                HuskNumber number = HuskJson.Get(route, "port") as HuskNumber;
+                int port;
+                if (number == null || !int.TryParse(number.Text, out port)) throw new Exception("The companion rate bridge has no port.");
+                string token = HuskJson.Text(route, "token");
+                for (int i = 0; i < CompanionBridge.EventLimit; i++) if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 200) throw new Exception("The companion bridge rate limit turned away event " + (i + 1) + ".");
+                if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 429) throw new Exception("The companion bridge has no rate limit.");
+                if (!CompanionBridge.TimedOut(-1701967296, 1000000, 60000)) throw new Exception("The companion rate window did not expire across 30 days of tick wrap.");
+                if (CompanionBridge.TimedOut(int.MinValue + 5, int.MaxValue - 10, 60000)) throw new Exception("The companion rate window expired across a tick wrap after only 16 ticks.");
+                checks.Add("PASS companion rate: 60 events in a minute pass and the next one is refused with 429");
+            }
+            finally
+            {
+                bridge.Dispose();
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
+        private void CompanionAllowlistCheck()
+        {
+            if (Dispatcher.UIThread.CheckAccess()) RunCompanionAllowlist();
+            else Dispatcher.UIThread.InvokeAsync(RunCompanionAllowlist).GetAwaiter().GetResult();
+            checks.Add("PASS companion allowlists: react, guard, ambient, show, quiet and say refuse unknown names, missing or wrong-typed values and bad text, while state answers with a set guard and an ambient event is accepted");
+        }
+
+        private void RunCompanionAllowlist()
+        {
+            pet.SetCompanionGuard("fullscreen", true);
+            Dictionary<string, object> answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"react\",\"name\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_react") throw new Exception("The companion bridge accepted an unknown react name.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"guard\",\"name\":\"nope\",\"on\":true}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_guard") throw new Exception("The companion bridge accepted an unknown guard name.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"guard\",\"name\":\"call\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_guard") throw new Exception("The companion bridge accepted a guard without a value.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"ambient\",\"event\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_event") throw new Exception("The companion bridge accepted an unknown ambient event.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"show\",\"target\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_target") throw new Exception("The companion bridge accepted an unknown show target.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"quiet\",\"on\":\"yes\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_quiet") throw new Exception("The companion bridge accepted a non-boolean quiet.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"say\",\"text\":\"\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_text") throw new Exception("The companion bridge accepted empty speech.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"say\",\"text\":\"" + new string('x', 281) + "\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_text") throw new Exception("The companion bridge accepted overly long speech.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_kind") throw new Exception("The companion bridge accepted an unknown kind.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"state\"}") as Dictionary<string, object>);
+            object ok = HuskJson.Get(answer, "ok");
+            List<object> guards = HuskJson.Get(answer, "guards") as List<object>;
+            if (!(ok is bool && (bool)ok)) throw new Exception("The companion bridge refused a state request.");
+            if (guards == null || !guards.Contains("fullscreen")) throw new Exception("The companion state lost an active guard.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"ambient\",\"event\":\"idle\"}") as Dictionary<string, object>);
+            ok = HuskJson.Get(answer, "ok");
+            if (!(ok is bool && (bool)ok)) throw new Exception("The companion bridge refused an ambient event.");
+            pet.SetCompanionGuard("fullscreen", false);
+        }
+
+        private static string CompanionPostBody(int port, string token, string body)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            }
+        }
+
+        private static int CompanionPost(int port, string token, string body, string header, string value)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                if (header != null) request.Headers.TryAddWithoutValidation(header, value);
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return (int)response.StatusCode;
+            }
+        }
+
+        private static int CompanionGet(int port, string token)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return (int)response.StatusCode;
+            }
         }
 
         private void Finish(string failure)
