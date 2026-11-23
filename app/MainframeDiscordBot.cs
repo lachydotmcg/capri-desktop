@@ -39,7 +39,7 @@ namespace CapriDesktop
                 : base(frame, zoom, "Discord Bot", "DISCORD BOT >", Wide, Tall)
             {
                 this.bot = bot;
-                Controls.Add(new DiscordArtwork { Bounds = Box(24, 62, 182, 143) });
+                Controls.Add(new DiscordArtwork { Bounds = Box(24, 62, 182, 155) });
                 Words("Bring Capri into your server", 224, 70, 370, 32, Display(15f * Zoom), White);
                 Words("She joins as your own bot and uses the model and voice selected in Mainframe.", 224, 111, 372, 46, Type(10f * Zoom), White);
                 Words("The bot runs while Capri is open on this PC.", 224, 164, 370, 21, Small(), Faint);
@@ -49,8 +49,8 @@ namespace CapriDesktop
                 Make("Discord Developer Portal", 24, 300, 230, 27, delegate { OpenPage(DiscordCompanion.Portal); });
 
                 Words("TALK IN DISCORD", 322, 223, 274, 22, Type(10f * Zoom, true), Cyan);
-                Words("Add the bot to your server. The bot’s owner runs /capri join and /capri leave. Say “Capri” to get a voice reply.", 322, 250, 274, 49, Type(9.5f * Zoom), White);
-                Words("/capri ask sends a private text reply.", 322, 303, 274, 22, Small(), Faint);
+                Words("Add the bot and run /capri join. She chimes in when it fits. /capri leave ends the call.", 322, 250, 274, 44, Type(9.5f * Zoom), White);
+                Words("Ask her to wait for her name. Say “Capri, join in again” to bring her back into the conversation.", 322, 298, 274, 42, Type(9.5f * Zoom), Faint);
 
                 Words("BOT TOKEN", 24, 345, 124, 20, Type(9.5f * Zoom, true), White);
                 token = new Entry { Font = Type(10f * Zoom), Bounds = Box(24, 369, 370, 28) };
@@ -117,9 +117,11 @@ namespace CapriDesktop
             {
                 DoubleBuffered = true;
                 TabStop = false;
-                AccessibleName = "Capri beside the Discord logo";
+                AccessibleName = "Capri sitting on the Discord logo";
                 AccessibleRole = AccessibleRole.Graphic;
             }
+
+            protected override void OnPaintBackground(PaintEventArgs e) { Backdrop(e.Graphics, this, ScaleOf(this)); }
 
             protected override void OnPaint(PaintEventArgs e)
             {
@@ -128,9 +130,8 @@ namespace CapriDesktop
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 Color purple = ColorTranslator.FromHtml(ServiceLogo.Discord.Hex);
-                PluginArt.Plate(e.Graphics, new RectangleF(1, 1, Width - 2, Height - 2), scale, 12 * scale, purple, Well, false, 13);
-                if (capri != null) e.Graphics.DrawImage(capri, new RectangleF(4 * scale, 8 * scale, 135 * scale, 135 * scale));
-                PluginArt.Logo(e.Graphics, ServiceLogo.Discord, new RectangleF(121 * scale, 16 * scale, 44 * scale, 44 * scale), purple);
+                PluginArt.Logo(e.Graphics, ServiceLogo.Discord, new RectangleF(38 * scale, 86 * scale, 108 * scale, 81 * scale), purple);
+                if (capri != null) e.Graphics.DrawImage(capri, new RectangleF(15 * scale, 1 * scale, 139 * scale, 139 * scale));
             }
 
             protected override void Dispose(bool disposing)

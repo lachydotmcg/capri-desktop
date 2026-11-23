@@ -12,6 +12,8 @@ import {
 import Opus from 'opusscript';
 
 const maxSamples = 16_000 * 12;
+const maxQueuedTurns = 3;
+const maxTurnAge = 12_000;
 const noMentions = { parse: [] };
 const required = [
   PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect,
@@ -63,12 +65,15 @@ function run() {
     pending = undefined;
     clearTimeout(turn.timeout);
     turn.resolve(answer);
+    void drain(call);
   }
 
   function leave(room) {
     if (!room || call !== room) return;
     call = undefined;
     if (pending?.room === room) finishTurn(null);
+    room.turns.length = 0;
+    room.nextAudio = null;
     for (const stream of room.streams.values()) stream.destroy();
     room.player.stop(true);
     if (room.connection.state.status !== VoiceConnectionStatus.Destroyed) room.connection.destroy();
@@ -123,11 +128,11 @@ function run() {
       return;
     }
 
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     if (pending) {
-      await interaction.reply({ content: 'Capri is in the middle of another reply.', flags: MessageFlags.Ephemeral });
+      await interaction.editReply('Capri is in the middle of another reply.');
       return;
     }
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const result = await turn(undefined, { name: interaction.user.displayName, speaker: 1 },
       { text: interaction.options.getString('message', true) });
     await interaction.editReply({ content: result?.text?.slice(0, 1900) || 'Capri did not get a reply from her selected model.' });
@@ -154,17 +159,21 @@ function run() {
       selfDeaf: false, selfMute: false,
     });
     const player = createAudioPlayer();
-    const room = { id: randomUUID(), voice, connection, player, streams: new Map(), speakers: new Map() };
+    const room = {
+      id: randomUUID(), voice, connection, player, streams: new Map(), speakers: new Map(),
+      turns: [], nextAudio: null, draining: false,
+    };
     call = room;
     connection.on('error', () => leave(room));
     connection.on(VoiceConnectionStatus.Disconnected, () => leave(room));
     connection.on(VoiceConnectionStatus.Destroyed, () => leave(room));
     player.on('error', () => tell({ type: 'notice', text: 'Discord could not play the voice reply.' }));
+    player.on(AudioPlayerStatus.Idle, () => play(room));
     connection.subscribe(player);
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
       if (call !== room) return;
-      await voice.send('Capri is here. Say “Capri” to get a reply. This PC transcribes the call audio and its selected AI provider may process lines addressed to Capri. The bot leaves when its owner leaves the channel or runs /capri leave.');
+      await voice.send('Capri is here and can chime in as you talk. The host PC transcribes call audio, and its selected AI provider may process this conversation. The bot owner can ask Capri to wait for her name. Capri leaves when her owner leaves or runs /capri leave.');
       if (call !== room) return;
       tell({ type: 'joined', session: room.id, channel: voice.name });
       connection.receiver.speaking.on('start', userId => listen(room, userId));
@@ -175,11 +184,50 @@ function run() {
     }
   }
 
+  function play(room) {
+    if (call !== room || !room.nextAudio || room.player.state.status !== AudioPlayerStatus.Idle) return;
+    const audio = room.nextAudio;
+    room.nextAudio = null;
+    room.player.play(audio);
+  }
+
+  async function drain(room) {
+    if (!room || call !== room || pending || room.draining) return;
+    room.draining = true;
+    try {
+      while (call === room && !pending && room.turns.length > 0) {
+        const heard = room.turns.shift();
+        if (Date.now() - heard.at > maxTurnAge) continue;
+        const result = await turn(room, heard.speaker, { audio: heard.audio, duringPlayback: heard.duringPlayback });
+        if (call !== room || !result) continue;
+        if (result.quiet) {
+          room.turns.length = 0;
+          room.nextAudio = null;
+          room.player.stop(true);
+          continue;
+        }
+        if (!result.text) continue;
+        if (result.audio) {
+          const samples = Buffer.from(result.audio, 'base64');
+          room.nextAudio = createAudioResource(Readable.from([samples]), { inputType: StreamType.Raw });
+          play(room);
+        } else {
+          await room.voice.send({ content: result.text.slice(0, 1900), allowedMentions: noMentions });
+        }
+      }
+    } catch {
+      if (call === room) tell({ type: 'notice', text: 'There was a problem replying in the voice channel.' });
+    } finally {
+      room.draining = false;
+      if (room.turns.length > 0 && call === room && !pending) void drain(room);
+    }
+  }
+
   function listen(room, userId) {
-    if (call !== room || pending || room.player.state.status !== AudioPlayerStatus.Idle
-        || userId === client.user.id || room.streams.has(userId) || room.streams.size >= 4) return;
+    if (call !== room || userId === client.user.id || room.streams.has(userId) || room.streams.size >= 4) return;
     const cached = room.voice.guild.members.cache.get(userId);
     if (cached?.user.bot) return;
+    const duringPlayback = room.player.state.status === AudioPlayerStatus.Playing;
 
     const opus = room.connection.receiver.subscribe(userId, {
       end: { behavior: EndBehaviorType.AfterSilence, duration: 750 },
@@ -223,22 +271,27 @@ function run() {
     });
     opus.once('end', async () => {
       dispose();
-      if (bytes < 8000 || call !== room || pending) return;
+      if (bytes < 8000 || call !== room) return;
       try {
+        const at = Date.now();
         const member = cached ?? await room.voice.guild.members.fetch(userId);
-        if (member.user.bot || member.voice.channelId !== room.voice.id || call !== room || pending) return;
+        if (member.user.bot || member.voice.channelId !== room.voice.id || call !== room) return;
         if (!room.speakers.has(userId)) room.speakers.set(userId, room.speakers.size + 1);
-        const result = await turn(room, { name: member.displayName, speaker: room.speakers.get(userId) },
-          { audio: pcm.subarray(0, bytes).toString('base64') });
-        if (!result?.text || call !== room) return;
-        if (result.audio) {
-          const samples = Buffer.from(result.audio, 'base64');
-          room.player.play(createAudioResource(Readable.from([samples]), { inputType: StreamType.Raw }));
+        const owner = userId === ownerId;
+        const heard = {
+          at, duringPlayback, speaker: { name: member.displayName, speaker: room.speakers.get(userId), owner },
+          audio: pcm.subarray(0, bytes).toString('base64'),
+        };
+        if (owner && duringPlayback) {
+          room.turns.unshift(heard);
+          if (room.turns.length > maxQueuedTurns) room.turns.pop();
         } else {
-          await room.voice.send({ content: result.text.slice(0, 1900), allowedMentions: noMentions });
+          room.turns.push(heard);
+          if (room.turns.length > maxQueuedTurns) room.turns.shift();
         }
+        void drain(room);
       } catch {
-        if (call === room) tell({ type: 'notice', text: 'There was a problem replying in the voice channel.' });
+        if (call === room) tell({ type: 'notice', text: 'There was a problem identifying a voice channel speaker.' });
       }
     });
   }
