@@ -3003,6 +3003,9 @@ namespace CapriDesktop
 
         // It moved: it grew a row, or they dragged it.
         internal event Action Moved;
+        internal event Action EditRequested;
+        internal event Action MicRequested;
+        internal Func<string> JobMic;
 
         // Space it leaves above itself on screen, so she fits sitting on it.
         internal int Room;
@@ -3032,7 +3035,13 @@ namespace CapriDesktop
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            if (e.Button == MouseButtons.Left) Grab(PointToScreen(e.Location));
+            if (e.Button != MouseButtons.Left) return;
+            if (owner != null && outcome == null)
+            {
+                if (EditRequested != null && Footer(ClientSize, scale, 0, 134).Contains(e.Location)) { EditRequested(); return; }
+                if (MicRequested != null && JobMic != null && JobMic() != "" && Footer(ClientSize, scale, 144, 86).Contains(e.Location)) { MicRequested(); return; }
+            }
+            Grab(PointToScreen(e.Location));
         }
 
         protected override void OnMouseMove(MouseEventArgs e) { base.OnMouseMove(e); Haul(PointToScreen(e.Location)); }
@@ -3130,6 +3139,14 @@ namespace CapriDesktop
             Step();
         }
 
+        internal void JobWords(object job, string text)
+        {
+            if (job != owner || outcome != null) return;
+            words = text;
+            drawn = null;
+            Step();
+        }
+
         internal void Add(object job, JobStep step)
         {
             if (job != owner || step == null) return;
@@ -3166,10 +3183,11 @@ namespace CapriDesktop
             if (gone >= 1) { Stop(); return; }
             bool caret = outcome == null && (int)(Now * 2.5) % 2 == 0;
             double fade = 1 - Math.Max(0, gone);
-            string shown = outcome + "|" + busy + "|" + steps.Count + "|" + (steps.Count > 0 ? steps[steps.Count - 1].Label + steps[steps.Count - 1].Finished : "") + "|" + caret + "|" + fade.ToString("0.00") + "|" + area + "|" + Room;
+            string mic = JobMic == null ? "" : JobMic();
+            string shown = outcome + "|" + busy + "|" + steps.Count + "|" + (steps.Count > 0 ? steps[steps.Count - 1].Label + steps[steps.Count - 1].Finished : "") + "|" + caret + "|" + fade.ToString("0.00") + "|" + area + "|" + Room + "|" + mic;
             if (shown == drawn && Visible) return;
             drawn = shown;
-            Bitmap image = Frame(words, steps, busy, outcome, ending, caret, fade, scale);
+            Bitmap image = Frame(words, steps, busy, outcome, ending, caret, fade, scale, EditRequested != null, mic);
             Point was = Location;
             Present(image, Spot(image.Size));
             if (Location != was && Moved != null) Moved();
@@ -3199,7 +3217,12 @@ namespace CapriDesktop
             return lines;
         }
 
-        internal static Bitmap Frame(string task, IList<JobStep> steps, string busy, string outcome, string ending, bool caret, double fade, float s)
+        private static RectangleF Footer(Size size, float scale, int left, int width)
+        {
+            return new RectangleF((27 + left) * scale, size.Height - 39 * scale, width * scale, 19 * scale);
+        }
+
+        internal static Bitmap Frame(string task, IList<JobStep> steps, string busy, string outcome, string ending, bool caret, double fade, float s, bool editor = false, string mic = "")
         {
             string told = outcome == null ? "working on your task." : ending.Length > 0 ? ending : outcome == "done" ? "done." : "stopped.";
             string status = Speaker + told;
@@ -3279,7 +3302,20 @@ namespace CapriDesktop
                     if (running)
                         using (Font small = Look.Mono(12 * s, FontStyle.Regular, GraphicsUnit.Pixel))
                         using (Brush dim = new SolidBrush(Color.FromArgb(a, Look.Dim)))
+                        using (Brush action = new SolidBrush(Color.FromArgb(a, Look.Cyan)))
+                        {
+                            if (editor)
+                            {
+                                PointF editAt = Footer(image.Size, s, 0, 134).Location;
+                                graphics.DrawString("EDIT INSTRUCTIONS", small, action, editAt.X, y + 2 * s, StringFormat.GenericTypographic);
+                            }
+                            if (mic.Length > 0)
+                            {
+                                PointF micAt = Footer(image.Size, s, 144, 86).Location;
+                                graphics.DrawString(mic, small, action, micAt.X, y + 2 * s, StringFormat.GenericTypographic);
+                            }
                             graphics.DrawString("ESC STOPS ME", small, dim, panel.Right - 15 * s - graphics.MeasureString("ESC STOPS ME", small, PointF.Empty, StringFormat.GenericTypographic).Width, y + 2 * s, StringFormat.GenericTypographic);
+                        }
                 }
                 return image;
             }
@@ -3663,14 +3699,16 @@ namespace CapriDesktop
         private readonly Label prompt;
         private readonly Button callMode;
         private readonly Label callNote;
+        private readonly bool jobEdit;
         private bool calling;
         private float scale = 1;
         private Font typed;
         private Font label;
 
-        internal TypeBox()
+        internal TypeBox(bool editJob = false)
         {
-            Text = "Talk to Capri";
+            jobEdit = editJob;
+            Text = jobEdit ? "Edit Capri's current instructions" : "Talk to Capri";
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.Manual;
@@ -3679,7 +3717,7 @@ namespace CapriDesktop
             BackColor = Neon.Well;
             DoubleBuffered = true;
             prompt = new Label();
-            prompt.Text = "YOU";
+            prompt.Text = jobEdit ? "EDIT JOB" : "YOU";
             prompt.ForeColor = Neon.Rose;
             prompt.BackColor = Neon.Well;
             prompt.AutoSize = true;
@@ -3691,7 +3729,7 @@ namespace CapriDesktop
             // No limit, so her brain reads a long request whole.
             input.MaxLength = 0;
             input.AccessibleName = Text;
-            input.HandleCreated += delegate { Native.SendMessage(input.Handle, 0x1501, new IntPtr(1), "Say something to Capri"); };
+            input.HandleCreated += delegate { Native.SendMessage(input.Handle, 0x1501, new IntPtr(1), jobEdit ? "Edit and press Enter" : "Say something to Capri"); };
             input.KeyDown += delegate(object sender, KeyEventArgs key)
             {
                 if (key.KeyCode == Keys.Enter) { key.SuppressKeyPress = true; Submit(); }
@@ -3702,8 +3740,9 @@ namespace CapriDesktop
             callMode = new Button { FlatStyle = FlatStyle.Flat, BackColor = Neon.Well, ForeColor = Neon.Cyan, Text = "Call mode (beta): off", AccessibleName = "Call mode beta; say Capri to ask. Friend asks need your confirmation when enabled", TabIndex = 1 };
             callMode.FlatAppearance.BorderColor = Neon.Edge;
             callMode.Click += delegate { if (CallModeChanged != null) CallModeChanged(); };
-            callNote = new Label { Text = CallSession.Reminder, ForeColor = Neon.White, BackColor = Neon.Well, UseMnemonic = false, Visible = false };
+            callNote = new Label { Text = jobEdit ? "Enter applies. Click away to cancel." : CallSession.Reminder, ForeColor = Neon.White, BackColor = Neon.Well, UseMnemonic = false, Visible = jobEdit };
             Controls.Add(callMode);
+            callMode.Visible = !jobEdit;
             Controls.Add(callNote);
             Deactivate += delegate { Hide(); };
         }
@@ -3735,7 +3774,7 @@ namespace CapriDesktop
             input.Location = new Point(prompt.Right + (int)(10 * s), ((int)(44 * s) - input.PreferredHeight) / 2 + (int)s);
             input.Width = Width - input.Left - (int)(16 * s);
             callMode.SetBounds((int)(24 * s), (int)(44 * s), Width - (int)(48 * s), (int)(26 * s));
-            callNote.SetBounds((int)(24 * s), (int)(76 * s), Width - (int)(48 * s), (int)(38 * s));
+            callNote.SetBounds((int)(24 * s), (int)((jobEdit ? 48 : 76) * s), Width - (int)(48 * s), (int)((jobEdit ? 20 : 38) * s));
             callMode.Font = label;
             callNote.Font = label;
             Neon.Clip(this, 10 * s, 4 * s);
@@ -3766,7 +3805,8 @@ namespace CapriDesktop
             Show();
             Activate();
             input.Focus();
-            input.SelectionStart = input.Text.Length;
+            if (jobEdit) input.SelectAll();
+            else input.SelectionStart = input.Text.Length;
         }
 
         internal void Follow(Rectangle above, Rectangle area)
