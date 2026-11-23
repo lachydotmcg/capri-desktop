@@ -858,6 +858,8 @@ namespace CapriDesktop
         internal static Color Fill { get { return Color.FromArgb(246, BubbleLook.Panel); } }
         internal static Color Unlit { get { return Neon.Tone(46, 52, 64); } }
         internal static Color Caption { get { return Neon.Mono ? BubbleLook.Dim : Color.FromArgb(168, 174, 184); } }
+        // Its icons when not lit. Black, White and Grey have no hue to tell lit from not, so theirs sit dimmer than the lit grey.
+        internal static Color Idle { get { return Neon.Mono ? BubbleLook.Dim : BubbleLook.Ink; } }
         private const int WashAlpha = 40;
         private static readonly Random random = new Random();
         private readonly Beat ticks = new Beat();
@@ -1073,16 +1075,16 @@ namespace CapriDesktop
                 bool on = TalkLit(chatting, muted, listenForName);
                 Rectangle[] pencil = Layout(s, 1, Ink(font, "TYPE"));
                 Rectangle[] wave = Layout(s, 2, Ink(font, talk));
-                DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? BubbleLook.Cyan : BubbleLook.Ink, hover == 1 ? wash : Fill);
+                DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? BubbleLook.Cyan : Idle, hover == 1 ? wash : Fill);
                 DrawLabel(graphics, "TYPE", font, pencil[1], hover == 1 ? BubbleLook.Cyan : Caption);
-                DrawMeter(graphics, wave[0], s, on, muted, level, hover == 2 || on ? BubbleLook.Cyan : BubbleLook.Ink);
+                DrawMeter(graphics, wave[0], s, on, muted, level, hover == 2 || on ? BubbleLook.Cyan : Idle);
                 DrawLabel(graphics, talk, font, wave[1], chatting && muted ? BubbleLook.Red : hover == 2 || on ? BubbleLook.Cyan : Caption);
                 if (chatting)
                 {
                     Rectangle mic = MicBody(s);
                     Color edge = muted ? BubbleLook.Red : BubbleLook.Cyan;
                     Plate(graphics, mic, s, hover == 3 ? mic : Rectangle.Empty, edge, edge);
-                    DrawMic(graphics, new PointF(mic.X + mic.Width / 2f, mic.Y + mic.Height / 2f), s, hover == 3 ? BubbleLook.Cyan : muted ? BubbleLook.Dim : BubbleLook.Ink, muted, hover == 3 ? wash : Fill);
+                    DrawMic(graphics, new PointF(mic.X + mic.Width / 2f, mic.Y + mic.Height / 2f), s, hover == 3 ? BubbleLook.Cyan : muted ? BubbleLook.Dim : Idle, muted, hover == 3 ? wash : Fill);
                 }
             }
             if (tear > 0) Tear(image, s, Math.Min(1, (float)tear / TearFrames), seed + tear);

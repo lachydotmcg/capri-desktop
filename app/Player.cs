@@ -632,6 +632,9 @@ namespace CapriDesktop
         // Her Mainframe colours changed, so she redraws in the new ones.
         internal void Restyle() { if (Visible) Redraw(); }
 
+        // Black, White and Grey have no hue to tell a hovered button by, so its glow takes the look's lit grey and shows more.
+        private static Color HoverGlow { get { return Neon.Mono ? Color.FromArgb(70, BubbleLook.Cyan) : Color.FromArgb(30, 255, 255, 255); } }
+
         private void Redraw()
         {
             if (tune == null) return;
@@ -1071,7 +1074,7 @@ namespace CapriDesktop
                 {
                     if (hover != part || (part == PlayerPart.Heart && !tune.Heartable)) continue;
                     PointF lit = Middle(part, s);
-                    using (Brush glowing = new SolidBrush(Color.FromArgb(30, 255, 255, 255))) graphics.FillEllipse(glowing, lit.X - 15 * s, lit.Y - 15 * s, 30 * s, 30 * s);
+                    using (Brush glowing = new SolidBrush(HoverGlow)) graphics.FillEllipse(glowing, lit.X - 15 * s, lit.Y - 15 * s, 30 * s, 30 * s);
                 }
                 DrawMenu(graphics, Middle(PlayerPart.Menu, s), s, hover == PlayerPart.Menu ? BubbleLook.Cyan : BubbleLook.Ink);
                 DrawSkip(graphics, Middle(PlayerPart.Previous, s), s, hover == PlayerPart.Previous ? BubbleLook.Cyan : BubbleLook.Ink, false);

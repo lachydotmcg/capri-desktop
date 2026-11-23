@@ -325,6 +325,8 @@ namespace CapriDesktop
         internal static Color Fill { get { return Color.FromArgb(246, BubbleLook.Panel.R, BubbleLook.Panel.G, BubbleLook.Panel.B); } }
         internal static Color Unlit { get { return MainframeTheme.Tint("#2E3440"); } }
         internal static Color Caption { get { return MainframeTheme.Mono ? BubbleLook.Dim : Color.FromRgb(168, 174, 184); } }
+        // Its icons when not lit. Black, White and Grey have no hue to tell lit from not, so theirs sit dimmer than the lit grey.
+        internal static Color Idle { get { return MainframeTheme.Mono ? BubbleLook.Dim : BubbleLook.Ink; } }
         private const byte WashAlpha = 40;
         internal int Hover;
         internal bool Chatting;
@@ -479,15 +481,15 @@ namespace CapriDesktop
             Color wash = Mix(Fill, BubbleLook.Cyan, WashAlpha);
             string talk = Label(2, chatting, muted);
             Rect[] pencil = Layout(s, 1, "TYPE"), wave = Layout(s, 2, talk);
-            Pencil(context, pencil[0].Center, 0.9 * s, hover == 1 ? BubbleLook.Cyan : BubbleLook.Ink, hover == 1 ? wash : Fill);
+            Pencil(context, pencil[0].Center, 0.9 * s, hover == 1 ? BubbleLook.Cyan : Idle, hover == 1 ? wash : Fill);
             Words(context, "TYPE", s, pencil[1], hover == 1 ? BubbleLook.Cyan : Caption);
-            Meter(context, wave[0], s, chatting, muted, level, hover == 2 || chatting ? BubbleLook.Cyan : BubbleLook.Ink);
+            Meter(context, wave[0], s, chatting, muted, level, hover == 2 || chatting ? BubbleLook.Cyan : Idle);
             Words(context, talk, s, wave[1], chatting && muted ? BubbleLook.Red : hover == 2 || chatting ? BubbleLook.Cyan : Caption);
             if (!chatting) return;
             Rect mic = MicBody(s);
             Color edge = muted ? BubbleLook.Red : BubbleLook.Cyan;
             Plate(context, mic, s, hover == 3 ? mic : new Rect(), edge, edge);
-            Mic(context, mic.Center, s, hover == 3 ? BubbleLook.Cyan : muted ? BubbleLook.Dim : BubbleLook.Ink, muted, hover == 3 ? wash : Fill);
+            Mic(context, mic.Center, s, hover == 3 ? BubbleLook.Cyan : muted ? BubbleLook.Dim : Idle, muted, hover == 3 ? wash : Fill);
         }
 
         // A plate with cut corners: a soft glow, the black fill with faint scan lines, a cyan wash where it's hovered, and a neon

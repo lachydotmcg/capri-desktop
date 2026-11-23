@@ -7567,6 +7567,13 @@ namespace CapriDesktop
             foreach (Color accent in new[] { BubbleLook.Cyan, BubbleLook.Red, BubbleLook.Pink, BubbleLook.Dim })
                 if (LookContrast(accent, BubbleLook.Panel) < 3) throw new Exception(name + "'s bubble accents are hard to see.");
             if (Neon.Mono && Math.Abs(BubbleLook.Pink.R - BubbleLook.Dim.R) < 30) throw new Exception(name + "'s music player shows shuffle and repeat on too close to off.");
+            if (Neon.Mono && Math.Abs(BubbleLook.Cyan.R - TalkPill.Idle.R) < 30) throw new Exception(name + "'s TYPE | TALK pill shows lit too close to not lit.");
+            using (Bitmap still = MiniPlayer.Render(1, SmokeColourTune(), Tunes.Now, 0, false, -1, -1, -1, 0))
+            using (Bitmap hovered = MiniPlayer.Render(1, SmokeColourTune(), Tunes.Now, PlayerPart.Menu, false, -1, -1, -1, 0))
+                if (PixelsApart(still, hovered) < 150) throw new Exception(name + "'s music player barely shows a hovered button.");
+            using (Bitmap talkOn = TalkPill.Render(1, 0, true, false, 0, 0, 0, false))
+            using (Bitmap talkWaiting = TalkPill.Render(1, 0, true, false, 0, 0, 0, true))
+                if (BubbleLeftover(talkOn, BubbleLook.Cyan) <= BubbleLeftover(talkWaiting, BubbleLook.Cyan)) throw new Exception(name + "'s TYPE | TALK pill doesn't light TALK in voice chat.");
             Point head = new Point(600, 400), feet = new Point(600, 650);
             Rectangle area = new Rectangle(0, 0, 1200, 800);
             liveBubble.Update(30, 1, head, feet, area);
@@ -7609,6 +7616,18 @@ namespace CapriDesktop
                 for (int x = 0; x < one.Width; x++)
                     if (one.GetPixel(x, y) != two.GetPixel(x, y)) return false;
             return true;
+        }
+
+        private static int PixelsApart(Bitmap one, Bitmap two)
+        {
+            int changed = 0;
+            for (int y = 0; y < Math.Min(one.Height, two.Height); y++)
+                for (int x = 0; x < Math.Min(one.Width, two.Width); x++)
+                {
+                    Color a = one.GetPixel(x, y), b = two.GetPixel(x, y);
+                    if (Math.Abs(a.R - b.R) + Math.Abs(a.G - b.G) + Math.Abs(a.B - b.B) > 24) changed++;
+                }
+            return changed;
         }
 
         private static int Colourful(Bitmap image)
