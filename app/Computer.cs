@@ -180,7 +180,7 @@ namespace CapriDesktop
             "A video you open starts playing by itself, so once it's open don't click it again or press space or k, which pause it: check its time is moving, and press k only if it still hasn't started a few seconds later.\n" +
             "To remember a code, number or name for later, call note, then write $name in later type text and it's filled in. To wait for something to show up, like an emailed code or a slow page, call wait_for.\n" +
             "If a cookie banner or popup covers the page, deal with it first: pick Reject all or Only necessary (never Accept all), or close the popup, then carry on.\n" +
-            "To download a file, press the browser's own Save, Save as or Keep button; an OK or Got it on the page only closes the page's notice. The download is done when the browser shows it finished, so open it from there or with ctrl+j. If Windows says \"Windows protected your PC\" about something their job asked you to install, press More info, then Run anyway.\n" +
+            "For a requested download, use the browser's own Save or Save as prompt. Wait until the browser shows the file is downloaded before opening it.\n" +
             "When the job is done, call done and say what you did in one plain sentence. Don't open anything the job didn't ask for, like the first result after a search. If you're stuck, call done and say what went wrong.";
 
         // For Claude's own computer tools, which look at screenshots and say where to click.
@@ -198,7 +198,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first: send the message, join, leave or end the call, post, delete, close or install it. They already asked, and asking again annoys them. Never ask whether to send, post or do something their job says. Capri stops you herself before any step that needs their OK.\n" +
             "To send a message, click the message box, type it and press Return.\n" +
             "If a cookie banner or popup covers the page, deal with it first: pick Reject all or Only necessary (never Accept all), or close the popup, then carry on.\n" +
-            "To download a file, press the browser's own Save, Save as or Keep button; an OK or Got it on the page only closes the page's notice. The download is done when the browser shows it finished, so open it from there or with ctrl+j. If Windows says \"Windows protected your PC\" about something their job asked you to install, press More info, then Run anyway.\n" +
+            "For a requested download, use the browser's own Save or Save as prompt. Wait until the browser shows the file is downloaded before opening it.\n" +
             "If the job is clear enough, do it without asking which option they meant: mute means their mic, not deafen. Use shortcuts you know, like ctrl+shift+m to mute and ctrl+shift+d to deafen in Discord.\n" +
             "When they leave a choice to you, like which video or song, pick one yourself. On YouTube, type searches into its search bar yourself, then scroll down through the results and look at several before you click one.\n" +
             "A video you open starts playing by itself, so once it's open don't click it again or press space or k, which pause it: check its time is moving, and press k only if it still hasn't started a few seconds later.\n" +
@@ -2903,7 +2903,8 @@ namespace CapriDesktop
         {
             string skills = Hands.SkillNote(), read;
             lock (readSkills) read = hands == Computer.Seeing || readSkills.Count == 0 ? "" : "\nSkills you read for this job:\n" + string.Join("\n", readSkills.ToArray());
-            return Computer.Allowing(hands) + skills + (skills.Length > 0 && hands == Computer.Sees ? Computer.SkillMove : "") + (Computer.Streaming ? Computer.StreamNote : "") + Briefed() + AppBrief() + read;
+            return Computer.Allowing(hands) + skills + (skills.Length > 0 && hands == Computer.Sees ? Computer.SkillMove : "") + (Computer.Streaming ? Computer.StreamNote : "") + Briefed() + AppBrief() + read
+                + "\nIf a browser download warning, SmartScreen or antivirus blocks a file, leave it alone and report the exact warning to the user. Finish the job at that point. This still applies if they requested installation or if their SECURITY settings approve other steps.";
         }
 
         private string AppBrief()

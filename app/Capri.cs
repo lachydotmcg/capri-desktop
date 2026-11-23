@@ -54629,7 +54629,16 @@ namespace CapriDesktop
                                 && bypassTools.IndexOf("buys or pays", StringComparison.Ordinal) < 0 && bypassTools.Split(new[] { "never ask before buying" }, StringSplitOptions.None).Length == 4
                                 && !payJob.Needs("buy") && !payJob.Needs("delete") && !Computer.Barred("ctrl+shift+esc") && !Computer.Barred("win+r");
                             string bypassPrompt = Computer.Allowing(Computer.Prompt), bypassSeeing = Computer.Allowing(Computer.Seeing);
+                            Job downloadJob = new Job("Download and install the app I asked for");
+                            bool reportsDownloadWarning = true;
+                            foreach (string modePrompt in new[] { Computer.Prompt, Computer.Seeing, Computer.Sees })
+                            {
+                                string full = downloadJob.Prompted(modePrompt);
+                                if (!full.Contains("SmartScreen or antivirus blocks a file, leave it alone and report the exact warning") || full.Contains("then Run anyway"))
+                                    reportsDownloadWarning = false;
+                            }
                             Computer.Bypass = bypassWas;
+                            if (!reportsDownloadWarning) throw new Exception("A computer job lost its download warning instructions in Blackwall mode.");
                             if (!checksPay || !paysAhead || bypassPrompt.IndexOf("call ask before you buy", StringComparison.Ordinal) >= 0 || bypassPrompt.IndexOf("Bypass all permissions", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("stop and ask", StringComparison.Ordinal) >= 0
                                 || bypassSeeing.IndexOf("Bypass all permissions", StringComparison.Ordinal) < 0 || bypassPrompt.IndexOf("Never type passwords", StringComparison.Ordinal) >= 0 || bypassSeeing.IndexOf("Never type passwords", StringComparison.Ordinal) >= 0
                                 || bypassPrompt.IndexOf("Type passwords, card numbers", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("Type passwords, card numbers", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("needs their OK", StringComparison.Ordinal) >= 0
