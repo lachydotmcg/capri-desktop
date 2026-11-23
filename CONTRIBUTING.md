@@ -17,6 +17,7 @@ Thanks for helping her out, choom.
 | `assets/sprites/` | Her animation strips |
 | `site/` | The website |
 | `ci/` | Build scripts the CI uses |
+| `skills/` | Contributor guides agents load, like the parity skill |
 
 ## Build and test
 
