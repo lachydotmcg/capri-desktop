@@ -7869,6 +7869,11 @@ namespace CapriDesktop
             foreach (string cloud in new[] { Speakers.Fish, Speakers.OpenAi })
             {
                 pet.SetVoiceProvider(cloud);
+                string disclosure = pet.VoiceMenu;
+                fail("cloud voice lifetime disclosed for " + cloud,
+                    disclosure.Contains("If voice fails, I type; no automatic paid fallback") &&
+                    (cloud == Speakers.Fish ? disclosure.Contains("Free window advertised through 30 November 2026") && disclosure.Contains("Availability after that is unconfirmed")
+                        : disclosure.Contains("Speech model shuts down 6 January 2027") && disclosure.Contains("Needs a separate Realtime migration") && disclosure.Contains("Changing the model here cannot migrate it")));
                 pet.SetSpeak(true);
                 pet.MainframeVoiceModePick(0);
                 bool keptWhileMuted = pet.Saved.Silent && pet.Saved.VoiceProvider == cloud;

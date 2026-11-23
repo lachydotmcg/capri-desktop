@@ -99,9 +99,12 @@ internal static class Program
         Check("Fish rows before key", Row(fish, "Add Fish Audio key...", true) && Row(fish, "Voice: Fish Audio's default...", true) && Row(fish, "Model: s2.1-pro-free", false) && Row(fish, "Test voice", false) && Equals(Prop(Prop(pet, "Speaker"), "Name"), "Fish Audio"));
         object[] open = With("openai");
         Check("OpenAI rows before key", Row(open, "Add OpenAI key...", true) && Row(open, "Voice: marin...", true) && Row(open, "Model: gpt-4o-mini-tts", false) && Row(open, "Test voice", false) && Equals(Prop(Prop(pet, "Speaker"), "Name"), "OpenAI"));
+        Check("Fish lifetime and text fallback disclosed before key", Row(fish, "Free window advertised through 30 November 2026", false) && Row(fish, "Availability after that is unconfirmed", false) && Row(fish, "If voice fails, I type; no automatic paid fallback", false));
+        Check("OpenAI sunset and separate migration disclosed before key", Row(open, "Speech model shuts down 6 January 2027", false) && Row(open, "Needs a separate Realtime migration", false) && Row(open, "Changing the model here cannot migrate it", false) && Row(open, "If voice fails, I type; no automatic paid fallback", false));
         Set(Get(pet, "fishVoice"), "Key", "fixture-f123"); Set(Get(pet, "fishVoice"), "Reference", Fish);
         Set(Get(pet, "openAiVoice"), "Key", "fixture-o123"); Set(Get(pet, "openAiVoice"), "VoiceName", "cedar");
         fish = With("fish"); open = With("openai");
+        Check("configured providers retain their lifetime notices", Row(fish, "Free window advertised through 30 November 2026", false) && Row(fish, "Availability after that is unconfirmed", false) && Row(open, "Speech model shuts down 6 January 2027", false) && Row(open, "Needs a separate Realtime migration", false));
         Check("configured providers enable Test and show their independently chosen voices", Row(fish, "Change Fish Audio key...", true) && Row(fish, "Voice: " + Fish + "...", true) && Row(fish, "Test voice", true) && Row(open, "Change OpenAI key...", true) && Row(open, "Voice: cedar...", true) && Row(open, "Test voice", true));
     }
 

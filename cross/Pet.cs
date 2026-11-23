@@ -6730,10 +6730,17 @@ namespace CapriDesktop
             return true;
         }
 
+        internal const string FishVoiceWindow = "Free window advertised through 30 November 2026";
+        internal const string FishVoiceFuture = "Availability after that is unconfirmed";
+        internal const string OpenAiVoiceSunset = "Speech model shuts down 6 January 2027";
+        internal const string OpenAiVoiceMigration = "Needs a separate Realtime migration";
+        internal const string OpenAiVoiceSwap = "Changing the model here cannot migrate it";
+        internal const string CloudVoiceFailure = "If voice fails, I type; no automatic paid fallback";
+
         internal void AskFishKey()
         {
             ComeBack();
-            Talk.AskKey("(fish audio key)", "Paste your Fish Audio key and press Enter. It stays on this computer.", SaveFishKey);
+            Talk.AskKey("(fish audio key)", "Paste your Fish Audio key and press Enter. It stays on this computer. " + FishVoiceWindow + ". " + FishVoiceFuture + ". " + CloudVoiceFailure + ".", SaveFishKey);
         }
 
         internal void SaveFishKey(string key)
@@ -6778,7 +6785,7 @@ namespace CapriDesktop
         internal void AskOpenAiKey()
         {
             ComeBack();
-            Talk.AskKey("(openai key)", "Paste your OpenAI key and press Enter. It stays on this computer.", SaveOpenAiKey);
+            Talk.AskKey("(openai key)", "Paste your OpenAI key and press Enter. It stays on this computer. " + OpenAiVoiceSunset + ". " + OpenAiVoiceMigration + ". " + OpenAiVoiceSwap + ". " + CloudVoiceFailure + ".", SaveOpenAiKey);
         }
 
         internal void SaveOpenAiKey(string key)
@@ -7058,6 +7065,9 @@ namespace CapriDesktop
             voiceMenu.Items.Add(key);
             voiceMenu.Items.Add(voice);
             voiceMenu.Items.Add(new MenuItem { Header = "Model: " + FishSpeaker.Free, IsEnabled = false });
+            voiceMenu.Items.Add(new MenuItem { Header = FishVoiceWindow, IsEnabled = false });
+            voiceMenu.Items.Add(new MenuItem { Header = FishVoiceFuture, IsEnabled = false });
+            voiceMenu.Items.Add(new MenuItem { Header = CloudVoiceFailure, IsEnabled = false });
             if (fishVoice.Key != null)
             {
                 MenuItem remove = new MenuItem { Header = "Remove key ending " + Voice.Tail(fishVoice.Key) };
@@ -7084,6 +7094,10 @@ namespace CapriDesktop
             voiceMenu.Items.Add(key);
             voiceMenu.Items.Add(voice);
             voiceMenu.Items.Add(new MenuItem { Header = "Model: " + OpenAiSpeaker.Model, IsEnabled = false });
+            voiceMenu.Items.Add(new MenuItem { Header = OpenAiVoiceSunset, IsEnabled = false });
+            voiceMenu.Items.Add(new MenuItem { Header = OpenAiVoiceMigration, IsEnabled = false });
+            voiceMenu.Items.Add(new MenuItem { Header = OpenAiVoiceSwap, IsEnabled = false });
+            voiceMenu.Items.Add(new MenuItem { Header = CloudVoiceFailure, IsEnabled = false });
             if (openAiVoice.Key != null)
             {
                 MenuItem remove = new MenuItem { Header = "Remove key ending " + Voice.Tail(openAiVoice.Key) };
