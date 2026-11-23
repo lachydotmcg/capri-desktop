@@ -18,12 +18,85 @@ namespace CapriDesktop
     internal static class Speakers
     {
         internal const string ElevenLabs = "elevenlabs";
+        internal const string Fish = "fish";
+        internal const string OpenAi = "openai";
         internal const string Local = "local";
         internal const string Off = "off";
         internal const string Owned = "retained-local";
 
+        // The order her provider menu shows them in.
+        internal static readonly string[] Pickable = { ElevenLabs, Fish, OpenAi, Local, Owned, Off };
+
         // Settings from before providers have none saved, and they were ElevenLabs.
-        internal static string Known(string saved) { return saved == Local || saved == Off || saved == Owned ? saved : ElevenLabs; }
+        internal static string Known(string saved)
+        {
+            return saved == Fish || saved == OpenAi || saved == Local || saved == Off || saved == Owned ? saved : ElevenLabs;
+        }
+
+        // Where a saved provider sends her words, so Pet.Speaker and her provider menu always agree.
+        internal static ISpeaker Pick(string saved, ISpeaker elevenLabs, ISpeaker fish, ISpeaker openAi, ISpeaker local, ISpeaker owned, ISpeaker none)
+        {
+            string picked = Known(saved);
+            return picked == Fish ? fish : picked == OpenAi ? openAi : picked == Local ? local : picked == Owned ? owned : picked == Off ? none : elevenLabs;
+        }
+
+        internal static string ShortName(string saved, string localName, string ownedName)
+        {
+            string picked = Known(saved);
+            return picked == Fish ? "Fish Audio" : picked == OpenAi ? "OpenAI" : picked == Local ? localName : picked == Owned ? ownedName : picked == Off ? "Off" : "ElevenLabs";
+        }
+
+        internal static string PickName(string saved, string localName, string ownedName)
+        {
+            string picked = Known(saved);
+            return picked == Fish ? "Fish Audio (cloud)" : picked == OpenAi ? "OpenAI (cloud)" : picked == Local ? localName + " (OpenAI speech API)" : picked == Owned ? ownedName : picked == Off ? "Off" : "ElevenLabs";
+        }
+
+        // Fish Audio says her emotion cues; every other provider hears only her words.
+        internal static bool FishCues(string saved) { return Known(saved) == Fish; }
+
+        // What her voice says: Fish Audio gets her reply's cues back from Brain.Cued, every other voice the plain words.
+        internal static string Words(string saved, string plain, string cued) { return FishCues(saved) ? cued : plain; }
+    }
+
+    internal static class SecretFile
+    {
+        internal static string Read(string path)
+        {
+            try
+            {
+                string key = File.ReadAllText(path).Trim();
+                return key.Length == 0 ? null : key;
+            }
+            catch (Exception) { return null; }
+        }
+
+        // Keys are kept in a file only they can read, or deleted with null.
+        internal static bool Write(string path, string key, string what)
+        {
+            string temp = path + ".new";
+            try
+            {
+                if (key == null) { File.Delete(path); return !File.Exists(path); }
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                if (File.Exists(path)) using (FileStream check = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.None)) { }
+                FileStreamOptions options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+                if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                using (FileStream stream = new FileStream(temp, options))
+                {
+                    if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(stream.SafeFileHandle, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                    using (StreamWriter writer = new StreamWriter(stream)) writer.Write(key);
+                }
+                File.Move(temp, path, true);
+                return true;
+            }
+            catch (Exception error)
+            {
+                try { File.Delete(temp); } catch (Exception) { }
+                Brain.Log(path, -1, "Couldn't save the " + what + ": " + error.Message);
+                return false;
+            }
+        }
     }
 
     internal sealed class ElevenLabsSpeaker : ISpeaker
