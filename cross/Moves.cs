@@ -253,7 +253,7 @@ namespace CapriDesktop
 
         private string SitOn(string wanted, bool lie)
         {
-            if (Hands.OnMac && lie) return "Lying down on a window you name is only on Windows so far.";
+            if (Hands.OnMac && lie) return "Lying down on a window you name isn't on a Mac yet.";
             string name = Regex.Replace((wanted ?? "").Trim(), @"^(?:the|my|your|ur|our|that|this) | (?:window|app|application|game|tab)$", "", RegexOptions.IgnoreCase).Trim();
             if (name.Length == 0) return "Which window?";
             List<Ledge> ledges = Ledges();
@@ -416,7 +416,7 @@ namespace CapriDesktop
                     Hands.OnMac = platform;
                     foreach (string action in new[] { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" })
                         if (!Hands.KitFor().Has("move_yourself:" + action)) throw new Exception("The moves list was wrong for " + action + ".");
-                    if (platform && tool("lie_down", "Roblox") != "Lying down on a window you name is only on Windows so far.") throw new Exception("Mac named lying answered about sitting.");
+                    if (platform && tool("lie_down", "Roblox") != "Lying down on a window you name isn't on a Mac yet.") throw new Exception("Mac named lying answered about sitting.");
                     if (tool("walk_around", null) != "Going for a little walk." || !pet.walking || pet.clip != pet.walk) throw new Exception("Walk did not start from her tool.");
                     settle();
                     pet.Move(pet.Seated(Math.Min(pet.seat.Right, area.Right) - pet.Px(pet.body.Size * 0.41) - pet.Px(8) - 1, pet.seat.Y));
@@ -467,7 +467,7 @@ namespace CapriDesktop
                         settle();
                     }
                 }
-                if (!Limbs.MoveFailed("Lying down on a window you name is only on Windows so far.") || Array.Exists(new[] { "Lying down.", "Sitting up.", "Sitting on your Roblox window.", "Going for a little walk.", "Off somewhere else.", "Hopped off your cursor." }, Limbs.MoveFailed))
+                if (!Limbs.MoveFailed("Lying down on a window you name isn't on a Mac yet.") || Array.Exists(new[] { "Lying down.", "Sitting up.", "Sitting on your Roblox window.", "Going for a little walk.", "Off somewhere else.", "Hopped off your cursor." }, Limbs.MoveFailed))
                     throw new Exception("The phone's pose result check misread her real pose answers.");
                 Hands.OnMac = false;
                 if (tool("sit_on", "my Roblox window") != "Sitting on your Roblox window." || !pet.askedHop) throw new Exception("Named seating did not use the tool.");
