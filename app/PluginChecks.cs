@@ -677,7 +677,7 @@ while True:
                     Write(place, ".mcp.json", "{\"mcpServers\":{\"web\":{\"type\":\"http\",\"url\":\"" + fake.Base + "/mcp\",\"headers\":{\"X-Smoke\":\"${SMOKE_NOT_SET:-yes}\"}}}}");
                     online = mods.Import(Path.Combine(place, ".claude-plugin", "plugin.json"), look);
                     if (online == null || !online.On || online.Info.Servers.Length != 1 || !online.Info.Servers[0].Online) throw new Exception("An online plug-in didn't import.");
-                    if (consent == null || !consent.Contains("- connects to " + fake.Base + "/mcp online, and you sign in to it in your browser") || consent.Contains("starts ") || !consent.Contains("runs on its maker's computers, not this PC") || !consent.Contains(McpSignIn.Keeps ? "protected by Windows" : "only until she closes"))
+                    if (consent == null || !consent.Contains("- connects to " + fake.Base + "/mcp online; its service may ask you to sign in") || consent.Contains("starts ") || !consent.Contains("runs on its maker's computers, not this PC") || !consent.Contains(McpSignIn.Keeps ? "protected by Windows" : "only until she closes"))
                         throw new Exception("The approve box for an online plug-in wasn't true about where it runs and how you sign in: " + consent);
                     string trouble = null;
                     string waited = Wait(delegate { trouble = Plugins.Trouble("smoke-online"); return trouble == "sign in"; }, 30);
@@ -868,15 +868,17 @@ while True:
                 mods.Load();
                 made = mods.All.FindAll(one => one.Starter);
                 Mod email = made.Find(one => one.File.Id == MailStarter), notion = made.Find(one => one.File.Id == "notion");
-                if (made.Count != 8 || email == null || notion == null || made.Exists(one => one.On || one.Changed || StarterAbout(one) == null || !StarterAbout(one).StartsWith("STARTER.", StringComparison.Ordinal)) || !Builtin(email, "mail") || !Online(notion) || Builtin(notion, "mail"))
+                if (made.Count != Starters.Length || email == null || notion == null || made.Exists(one => one.On || one.Changed || StarterAbout(one) == null || !StarterAbout(one).StartsWith("STARTER.", StringComparison.Ordinal)) || !Builtin(email, "mail") || !Online(notion) || Builtin(notion, "mail"))
                     throw new Exception("Her starter plug-ins didn't come in off and waiting to be set up: " + made.Count);
-                string[] ids = { "todoist", "github", "atlassian", "monday", "miro" };
-                string[] urls = { "https://ai.todoist.net/mcp", "https://api.githubcopilot.com/mcp/", "https://mcp.atlassian.com/v2/mcp", "https://mcp.monday.com/mcp", "https://mcp.miro.com/" };
+                string[] ids = { "todoist", "github", "atlassian", "monday", "miro", "cloudflare-docs", "context7" };
+                string[] urls = { "https://ai.todoist.net/mcp", "https://api.githubcopilot.com/mcp/", "https://mcp.atlassian.com/v2/mcp", "https://mcp.monday.com/mcp", "https://mcp.miro.com/", "https://docs.mcp.cloudflare.com/mcp", "https://mcp.context7.com/mcp" };
                 for (int i = 0; i < ids.Length; i++)
                 {
                     Mod starter = made.Find(one => one.File.Id == ids[i]);
-                    if (starter == null || starter.Info.Servers.Length != 1 || starter.Info.Servers[0].Url != urls[i] || starter.Info.Servers[0].Legacy || (TokenServer(starter) != null) != (ids[i] == "github")) throw new Exception("A new starter lost its official endpoint, transport or sign-in mode: " + ids[i]);
+                    if (starter == null || starter.Info.Servers.Length != 1 || starter.Info.Servers[0].Url != urls[i] || starter.Info.Servers[0].Legacy || (TokenServer(starter) != null) != (ids[i] == "github" || ids[i] == "context7") || starter.On || starter.Info.Servers[0].ClientId != null || starter.Info.Servers[0].Scope != null || PublicStarter(starter) != (ids[i] == "cloudflare-docs")) throw new Exception("A new starter lost its official endpoint, transport or sign-in mode: " + ids[i]);
                 }
+                Mod publicDocs = made.Find(one => one.File.Id == "cloudflare-docs"), context7 = made.Find(one => one.File.Id == "context7");
+                if (!StarterAbout(publicDocs).Contains("No account or sign-in required") || TokenLabel(context7) != "API key" || TokenPage(context7) != "https://context7.com/dashboard" || TokenPage(made.Find(one => one.File.Id == "github")) != "https://github.com/settings/personal-access-tokens" || TokenLabel(made.Find(one => one.File.Id == "github")) != "Personal access token") throw new Exception("Public documentation or provider-specific credential setup lost its instructions.");
                 Hands.Kit unplugged = Hands.KitFor();
                 string consent = null;
                 if (!mods.Set(email, true, delegate(ModFile file, string hash) { consent = Consent(file, hash); return true; }) || !email.On || consent == null || !consent.Contains("uses Capri's own mail tools") || consent.Contains("starts "))
@@ -899,7 +901,7 @@ while True:
                 mods.AddStarters();
                 mods.Load();
                 if (mods.All.Exists(one => one.Starter) || File.Exists(Path.Combine(mods.PluginFolder, MailStarter + ".signin.json"))) throw new Exception("A starter plug-in they removed came back.");
-                checks.Add("PASS plug-ins: eight starters come in off, with the official Todoist, GitHub, Atlassian v2, monday.com and Miro endpoints and GitHub personal-token setup; Email always asks before sending, and removed starters stay gone");
+                checks.Add("PASS plug-ins: ten starters come in off, with the official Todoist, GitHub, Atlassian v2, monday.com and Miro endpoints and Cloudflare public documentation and Context7 API-key setup; Email always asks before sending, and removed starters stay gone");
             }
             finally
             {

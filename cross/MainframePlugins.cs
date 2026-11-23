@@ -188,14 +188,14 @@ namespace CapriDesktop
             Put(Page, new NeonCaption { Text = "CONNECT " + mod.File.Name.ToUpperInvariant(), Ink = MainframeTheme.Rose, Size = 20, Bold = true, Display = true }, 24, 15, 540, 29);
             Put(Page, new NeonCaption { Text = Mods.TokenSetupNote(mod), Ink = MainframeTheme.White, Size = MainframeTheme.Size, Top = true, Wrap = true }, 24, 65, 572, 82);
             Put(Page, new NeonCaption { Text = "Sent only to " + new Uri(Mods.TokenServer(mod).Url).Host, Ink = MainframeTheme.Faint }, 24, 155, 572, 22);
-            if (mod.Starter && mod.File.Id == "github")
+            if (Mods.TokenPage(mod) != null)
             {
-                NeonButton page = Put(Page, new NeonButton { Text = "Open GitHub's token settings" }, 24, 190, 310, 30);
-                page.Click += delegate { McpSignIn.Open("https://github.com/settings/personal-access-tokens"); };
+                NeonButton page = Put(Page, new NeonButton { Text = Mods.TokenPageLabel(mod) }, 24, 190, 310, 30);
+                page.Click += delegate { McpSignIn.Open(Mods.TokenPage(mod)); };
             }
-            Put(Page, new NeonCaption { Text = "Personal access token", Ink = MainframeTheme.White, Bold = true }, 24, 244, 180, 22);
-            Token = Put(Page, new NeonEntry("", true), 210, 240, 386, 28, "Personal access token for " + mod.File.Name);
-            AutomationProperties.SetName(Token.Box, "Personal access token for " + mod.File.Name);
+            Put(Page, new NeonCaption { Text = Mods.TokenLabel(mod), Ink = MainframeTheme.White, Bold = true }, 24, 244, 180, 22);
+            Token = Put(Page, new NeonEntry("", true), 210, 240, 386, 28, Mods.TokenLabel(mod) + " for " + mod.File.Name);
+            AutomationProperties.SetName(Token.Box, Mods.TokenLabel(mod) + " for " + mod.File.Name);
             Put(Page, new NeonCaption { Text = "Kept only until Capri closes. Forget token turns this plug-in off.", Ink = MainframeTheme.Faint, Top = true, Wrap = true }, 24, 282, 572, 42);
             Status = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Top = true, Wrap = true }, 24, 332, 572, 44);
             Connect = Put(Page, new NeonButton { Text = "Connect", Loud = true, Accent = MainframeTheme.Cyan }, 426, 390, 170, 30);
@@ -277,9 +277,10 @@ namespace CapriDesktop
             string said;
             IBrush tone = MainframeTheme.Cyan;
             if (mod.Changed) { said = "Changed. Connect asks you to approve it again."; tone = MainframeTheme.Rose; }
-            else if (!mod.On) { said = mail ? "Off. Connect, then add your email." : Mods.TokenServer(mod) != null ? "Off. Connect, then add your personal token." : online ? "Off. Connect, then sign in on its page." : "Off."; tone = MainframeTheme.Faint; }
+            else if (!mod.On) { said = mail ? "Off. Connect, then add your email." : Mods.TokenServer(mod) != null ? "Off. Connect, then add your " + Mods.TokenLabel(mod).ToLowerInvariant() + "." : Mods.PublicStarter(mod) ? "Off. No account or sign-in required." : online ? "Off. Connect, then sign in on its page." : "Off."; tone = MainframeTheme.Faint; }
             else if (mail) { said = MailTools.Ready ? "Connected as " + MailTools.Account.Address : "On. Set up your email next."; if (!MailTools.Ready) tone = MainframeTheme.Rose; }
-            else if (state == "Sign in") { said = Mods.TokenServer(mod) != null ? "Needs a personal access token." : "Needs you to sign in."; tone = MainframeTheme.Rose; }
+            else if (state == "Sign in") { said = Mods.TokenServer(mod) != null ? "Needs your " + Mods.TokenLabel(mod).ToLowerInvariant() + "." : "Needs you to sign in."; tone = MainframeTheme.Rose; }
+            else if (Mods.PublicStarter(mod) && (trouble == null || trouble == "starting")) said = "On. No account or sign-in required.";
             else if (state == "Connected") said = "Signed in";
             else if (trouble != null && trouble != "starting") { said = "On. Its tools didn't start."; tone = MainframeTheme.Rose; }
             else said = "On";
@@ -299,7 +300,7 @@ namespace CapriDesktop
                 : !mod.On ? "Turn it on to see its tools."
                 : mod.Info == null || mod.Info.Servers.Length == 0 ? "No tools. " + (mod.Skills.Length == 1 ? "It brings a skill she reads when it fits." : "It brings skills she reads when they fit.")
                 : trouble == "starting" ? "Her tools from it are starting."
-                : trouble == McpSignInNeeded.Said ? (Mods.TokenServer(mod) != null ? "Add your token to see its tools." : "Its tools show once you're signed in.")
+                : trouble == McpSignInNeeded.Said ? (Mods.PublicStarter(mod) ? "This public service could not be reached." : Mods.TokenServer(mod) != null ? "Add your token to see its tools." : "Its tools show once you're signed in.")
                 : trouble != null ? "Its tools didn't start: " + trouble
                 : "Her tools from it show here once it has started.";
             ToolsNote.Ink = tools.Count == 0 && mod.On && trouble != null && trouble != "starting" && trouble != McpSignInNeeded.Said ? MainframeTheme.Rose : MainframeTheme.Faint;

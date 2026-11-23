@@ -342,7 +342,7 @@ namespace CapriDesktop
             {
                 if (server.Online)
                 {
-                    reaches.Add("connects to " + McpHttp.Shown(server.Url) + " online, and " + (server.TokenEntry ? "you add a personal access token in Capri" : "you sign in to it in your browser"));
+                    reaches.Add("connects to " + McpHttp.Shown(server.Url) + " online" + (server.TokenEntry ? ", and you add a personal token or API key in Capri" : "; its service may ask you to sign in"));
                     string[] sent = ModFloor.Pulled(server);
                     if (sent.Length > 0) reaches.Add("sends " + ModFloor.And(sent) + " from your PC's settings to " + new Uri(server.Url).Host + ", which " + (sent.Length == 1 ? "looks" : "look") + " like a key or password");
                 }
@@ -722,7 +722,7 @@ namespace CapriDesktop
             }
             string run = (inside && !local && !online ? "Its tools run inside Capri, and they reach only the accounts you set up for them in Capri. " : "")
                 + (local || !online && !inside ? "Those programs run outside Capri with your account's access to your PC, your files and your accounts. They get none of her keys, and none of your PC's other key, token and password settings unless it names them above. " : "")
-                + (online ? (local ? "The online ones run on their makers' computers, not this PC: " : "It runs on its maker's computers, not this PC: ") + "you sign in in your browser or add a personal token as described above, and " + (McpSignIn.Keeps ? "Capri keeps that sign-in on this PC, protected by Windows, until you remove the plug-in" : "Capri keeps that sign-in only until she closes") + ". While you're signed in her tools there can do whatever that account lets them, and what she sends them leaves this PC. " : "")
+                + (online ? (local ? "The online ones run on their makers' computers, not this PC: " : "It runs on its maker's computers, not this PC: ") + "depending on the service, you sign in in your browser, add a personal token or API key, or use public tools without an account. If you sign in, " + (McpSignIn.Keeps ? "Capri keeps that sign-in on this PC, protected by Windows, until you remove the plug-in" : "Capri keeps that sign-in only until she closes") + ". While you're signed in her tools there can do whatever that account lets them, and what she sends them leaves this PC. " : "")
                 + "She refuses any call that would send one of her keys. Capri asks first before using a tool whenever your SECURITY settings say to" + PerTool + "." + (inside && !local && !online ? "" : " She can't see or limit what " + (online ? "they do by themselves" : "the program does by itself") + ".") + "\n\n";
             return mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a plug-in that gives her tools.\n\n"
                 + (reviewed ? Reviewed : "")
