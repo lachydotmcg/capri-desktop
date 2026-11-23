@@ -81,8 +81,9 @@ namespace CapriDesktop
         internal static DemonstrationView ObserveDemonstration(Sight sight, bool pictures)
         {
             if (!DemonstrationAllowed(sight) || !Demonstration.SameView(sight, DemonstrationFront())) return null;
-            Target focus = Focus();
-            if (focus != null && (focus.Secret || PersonalBox(focus) || CardBox(focus))) return null;
+            OpenWindow window = new OpenWindow(sight.Window, sight.Title, sight.Program);
+            Sight read = See(window, true);
+            if (!DemonstrationReadable(read) || !Demonstration.SameView(sight, DemonstrationFront())) return null;
             if (pictures)
             {
                 Box client;
@@ -95,15 +96,13 @@ namespace CapriDesktop
                 if (!DemonstrationCover(sight.Window, area, covered)) return null;
                 using (Bitmap image = Copy(area))
                 {
-                    if (!Demonstration.SameView(sight, DemonstrationFront()) || !DemonstrationCover(sight.Window, area, covered)) return null;
+                    if (!Demonstration.SameView(sight, DemonstrationFront()) || !DemonstrationCover(sight.Window, area, covered)
+                        || !DemonstrationReadable(See(window, true)) || !Demonstration.SameView(sight, DemonstrationFront())) return null;
                     using (Graphics graphics = Graphics.FromImage(image))
                         foreach (Rectangle spot in covered) graphics.FillRectangle(Brushes.Black, spot.X - area.X, spot.Y - area.Y, spot.Width, spot.Height);
                     return new DemonstrationView { Image = Companion.Jpeg(image, Longest) };
                 }
             }
-            Sight read = See(new OpenWindow(sight.Window, sight.Title, sight.Program));
-            if (read.Problem != null || !Demonstration.SameView(sight, DemonstrationFront())
-                || SigningIn(read, null) || PaymentPage(read) || read.Targets.Exists(PersonalBox)) return null;
             List<string> controls = new List<string>();
             foreach (Target target in read.Targets)
             {
@@ -112,6 +111,11 @@ namespace CapriDesktop
                 controls.Add(Demonstration.Line(target.Role + " " + target.Name + (target.Focused ? " (focused)" : ""), 100));
             }
             return controls.Count == 0 ? null : new DemonstrationView { Controls = string.Join("\n", controls.ToArray()) };
+        }
+
+        internal static bool DemonstrationReadable(Sight read)
+        {
+            return read.Problem == null && !SigningIn(read, null) && !PaymentPage(read) && !read.Targets.Exists(PersonalBox);
         }
 
         private static bool DemonstrationCover(IntPtr window, Rectangle area, List<Rectangle> covered)
@@ -384,6 +388,9 @@ namespace CapriDesktop
                     after.Targets.Add(new Target { Number = 1, Name = "Theme", Role = "combo box", Box = new Rectangle(100, 100, 80, 22) });
                     Sight other = new Sight { Window = new IntPtr(402), Process = original.Process + 1, Program = "other", Title = "Other app", Bounds = original.Bounds };
                     Sight front = original;
+                    Sight privatePage = new Sight { Window = original.Window, Process = original.Process, Title = "Settings" };
+                    privatePage.Targets.Add(new Target { Line = true, Name = "Card number", Focused = false });
+                    if (Computer.DemonstrationReadable(privatePage)) throw new Exception("An unfocused private field was readable for a demonstration.");
                     string offer = path == 0 ? "It'd be easier if you watched how I get to the settings panel." : "Could I show you the menu I normally use?";
                     string done = path == 0 ? "You've seen where the menu is. Carry on with the setup." : "That's the whole trick. You can finish the job.";
                     string method = "Use the View menu to reach Settings. Look for the Theme selector.";

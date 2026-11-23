@@ -1128,7 +1128,7 @@ namespace CapriDesktop
             return picked == null ? new Sight() : See(picked);
         }
 
-        internal static Sight See(OpenWindow picked)
+        internal static Sight See(OpenWindow picked, bool teaching = false)
         {
             Sight sight = Framed(picked);
             List<Target> found = null;
@@ -1136,15 +1136,15 @@ namespace CapriDesktop
             Exception failed = null;
             Thread reader = new Thread(delegate()
             {
-                try { found = Read(sight.Window, sight.Bounds, words); }
+                try { found = Read(sight.Window, sight.Bounds, words, teaching); }
                 catch (Exception error) { failed = error; }
             });
             reader.IsBackground = true;
             reader.Start();
-            if (!reader.Join(6000)) sight.Problem = "This window took too long to read. Try press, wait, or open something else.";
+            if (!reader.Join(teaching ? 1500 : 6000)) sight.Problem = "This window took too long to read. Try press, wait, or open something else.";
             else if (failed != null || found == null) sight.Problem = "Couldn't read this window's buttons. Try press, or open something else.";
             else { sight.Targets.AddRange(found); sight.Words.AddRange(words); }
-            if (GameWindow(sight)) NoteGame(sight);
+            if (!teaching && GameWindow(sight)) NoteGame(sight);
             return sight;
         }
 
@@ -1785,7 +1785,7 @@ namespace CapriDesktop
             Mouse(0x0004, 0);
         }
 
-        private static List<Target> Read(IntPtr window, Rectangle bounds, List<string> words)
+        private static List<Target> Read(IntPtr window, Rectangle bounds, List<string> words, bool teaching = false)
         {
             AutomationElement root = AutomationElement.FromHandle(window);
             CacheRequest cache = new CacheRequest();
@@ -1796,7 +1796,7 @@ namespace CapriDesktop
             cache.Add(AutomationElement.IsPasswordProperty);
             cache.Add(AutomationElement.HasKeyboardFocusProperty);
             cache.Add(AutomationElement.IsKeyboardFocusableProperty);
-            cache.Add(ValuePattern.ValueProperty);
+            if (!teaching) cache.Add(ValuePattern.ValueProperty);
             List<Condition> kinds = new List<Condition>();
             foreach (ControlType kind in Kinds) kinds.Add(new PropertyCondition(AutomationElement.ControlTypeProperty, kind));
             kinds.Add(new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
@@ -1809,7 +1809,7 @@ namespace CapriDesktop
             foreach (AutomationElement element in all)
             {
                 AutomationElement.AutomationElementInformation info = element.Cached;
-                if (!info.IsEnabled) continue;
+                if (!info.IsEnabled && !teaching) continue;
                 System.Windows.Rect rect = info.BoundingRectangle;
                 if (rect.IsEmpty || rect.Width < 2 || rect.Height < 2) continue;
                 Rectangle place = Rectangle.FromLTRB((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom);
@@ -1817,6 +1817,9 @@ namespace CapriDesktop
                 if (shown.Width < 2 || shown.Height < 2) continue;
                 string name = Regex.Replace(info.Name ?? "", @"\s+", " ").Trim();
                 ControlType kind = info.ControlType;
+                if (teaching && (info.IsPassword || (kind == ControlType.Edit || kind == ControlType.ComboBox)
+                    && (PersonalField.IsMatch(name) || CardField.IsMatch(name))))
+                    return new List<Target> { new Target { Secret = true } };
                 if (kind == ControlType.Text)
                 {
                     if (name.Length >= 2 && words.Count < 25 && !words.Contains(name)) words.Add(name.Length > 60 ? name.Substring(0, 57) + "..." : name);
@@ -1828,13 +1831,13 @@ namespace CapriDesktop
                 string key = kind.ProgrammaticName + "|" + name + "|" + shown.X / 4 + "|" + shown.Y / 4;
                 if (!seen.Add(key)) continue;
                 string value = null, text = null;
-                if (typable && !info.IsPassword)
+                if (typable && !info.IsPassword && !teaching)
                 {
                     object read = element.GetCachedPropertyValue(ValuePattern.ValueProperty, true);
                     if (read is string) { text = (string)read; value = Regex.Replace(text, @"\s+", " ").Trim(); }
                     if (value != null && value.Length > 60) value = value.Substring(0, 57) + "...";
                 }
-                targets.Add(new Target { Id = FieldId(element), Role = Role(kind), Name = name, Value = value, Text = info.HasKeyboardFocus ? text : null, Box = shown, Secret = info.IsPassword, Focused = info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Page = kind == ControlType.Document });
+                targets.Add(new Target { Id = teaching ? null : FieldId(element), Role = Role(kind), Name = name, Value = value, Text = info.HasKeyboardFocus ? text : null, Box = shown, Secret = info.IsPassword, Focused = info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Page = kind == ControlType.Document });
             }
             Comparison<Target> reading = delegate(Target a, Target b) { int row = (a.Box.Top / 12).CompareTo(b.Box.Top / 12); return row != 0 ? row : a.Box.Left.CompareTo(b.Box.Left); };
             targets.Sort(reading);
