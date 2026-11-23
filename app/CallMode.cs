@@ -59,6 +59,7 @@ namespace CapriDesktop
             }
         }
         private readonly List<ChatMessage> history = new List<ChatMessage>();
+        private readonly string conversationRules;
         private int generation;
         private bool enabled;
         private CallErrand errand;
@@ -69,6 +70,9 @@ namespace CapriDesktop
         private DateTime askedUntil;
         private int friendTurn, friendSetting;
         internal Func<DateTime> Now = delegate { return DateTime.UtcNow; };
+
+        internal CallSession(string conversationRules = null) { this.conversationRules = conversationRules; }
+        internal bool Shared { get { return conversationRules != null; } }
 
         internal int Generation { get { lock (gate) return generation; } }
         internal bool Enabled { get { lock (gate) return enabled; } }
@@ -254,7 +258,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (!enabled || generation != version) return null;
-                List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", character + Instruction) };
+                List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", character + (conversationRules ?? Instruction)) };
                 foreach (ChatMessage message in history) messages.Add(new ChatMessage(message.Role, message.Content));
                 messages.Add(new ChatMessage("user", text));
                 return messages;

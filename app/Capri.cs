@@ -3705,6 +3705,7 @@ namespace CapriDesktop
         {
             base.OnFormClosing(e);
             bool shutdown = e.CloseReason == CloseReason.WindowsShutDown;
+            if (!e.Cancel && discordCompanion != null) discordCompanion.Stop();
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
