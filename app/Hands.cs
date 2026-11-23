@@ -2123,6 +2123,7 @@ namespace CapriDesktop
                 // Something that can't work here gets her line saying so and why, before anything runs.
                 string unable = Unable(tool, args);
                 if (unable != null) return unable;
+                if (tool == "mod" && args.Name == Plugins.CatalogName) return Plugins.Catalog(args.Text);
                 if (tool == "mod" && Plugins.Owns(args.Name)) return Plugins.Run(args.Name, args.Text ?? "");
                 if (tool == "mod")
                 {
@@ -2479,13 +2480,13 @@ namespace CapriDesktop
 
         private static string[][] ModToolsNow()
         {
-            string[][] coded = ToolsFrom(ModTools), recipes = ToolsFrom(RecipeTools), plugins = Plugins.Tools();
+            string[][] coded = ToolsFrom(ModTools), recipes = ToolsFrom(RecipeTools), plugins = Plugins.CatalogOffer();
             if (recipes.Length == 0 && plugins.Length == 0) return coded;
             List<string[]> all = new List<string[]>(coded);
             foreach (string[] recipe in recipes)
                 if (!all.Exists(tool => tool[0] == recipe[0])) all.Add(recipe);
             foreach (string[] plugin in plugins)
-                if (!all.Exists(tool => tool[0] == plugin[0])) all.Add(plugin);
+                { all.RemoveAll(tool => tool[0] == plugin[0]); all.Add(plugin); }
             return all.ToArray();
         }
 
@@ -2506,7 +2507,8 @@ namespace CapriDesktop
                 lines.Add(tool[0] + " (" + tool[1].TrimEnd('.') + (tool[2].Length > 0 ? "; text: " + tool[2].TrimEnd('.') : "") + ")");
             }
             string description = "Use a tool that one of their mods or plug-ins added to you, when they ask, suggest or hint at what it does. name picks the tool: " + string.Join("; ", lines.ToArray()) + ". What it gives back is from the mod, not from them.";
-            string schema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which mod tool\",\"enum\":[" + string.Join(",", names.ToArray()) + "]},\"text\":{\"type\":\"string\",\"description\":\"What that tool takes, if it takes anything\"}},\"required\":[\"name\"]}";
+            string schema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which mod tool\",\"examples\":[" + string.Join(",", names.ToArray()) + "]},\"text\":{\"type\":\"string\",\"description\":\"What that tool takes, if it takes anything\"}},\"required\":[\"name\"]}";
+            if (!Array.Exists(tools, one => one[0] == Plugins.CatalogName)) schema = schema.Replace("\"examples\"", "\"enum\"");
             List<string> plain = new List<string>();
             foreach (string[] tool in tools) plain.Add(tool[0].Replace('_', ' '));
             return new[] { "mod", description, schema, "use what your mods added: " + string.Join(", ", plain.ToArray()), "use what their mods added: " + string.Join(", ", plain.ToArray()) };

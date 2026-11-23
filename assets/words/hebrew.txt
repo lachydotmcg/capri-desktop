@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	לא יקליד ב�
 · HD	· HD
 · on this PC	· במחשב הזה
 · server	· שרת
+Edit as text	עריכה כטקסט
+What Capri remembers about you. It stays on this computer.	מה Capri זוכרת עליך. זה נשאר במחשב הזה.
+Tell her something to remember	תגיד לה משהו לזכור
+Search her memory	חפש בזיכרון שלה
+That day isn't there any more.	היום ההוא כבר לא כאן.
+Undo	בטל
+Remember our chats is off, so she isn't keeping new chat memories.	לזכור את השיחות שלנו כבוי, אז היא לא שומרת זכרונות שיחה חדשים.
+ABOUT YOU	עליך
+FROM YOUR CHATS	מהשיחות שלך
+GAMES	משחקים
+CHAT LOGS	יומני שיחה
+CHAT LOG	יומן שיחה
+Nothing matches.	אין התאמות.
+Nothing yet.	עוד כלום.
+Reading her notes.	קוראת את ההערות שלה.
+Click again to forget game notes	לחץ שוב כדי לשכוח הערות משחקים
+Forget game notes	שכח הערות משחקים
+Click again to forget everything about me	לחץ שוב כדי לשכוח הכול עליך
+Forget everything about me	שכח הכול עליך
+Click again to forget	לחץ שוב כדי לשכוח
+Forget this day	שכח את היום הזה
+Only the start of this day is shown.	מוצג רק תחילת היום הזה.
+Nothing in this day.	שום דבר ביום הזה.
+No chats kept yet.	עדיין לא נשמרו שיחות.
+You	אתה
+{0} line	{0} שורה
+SET UP EMAIL >	הגדר דוא״ל >
+SET UP EMAIL	הגדר דוא״ל
+Or type your address	או הקלד את הכתובת שלך
+Email address	כתובת דוא״ל
+Open the page	פתח את הדף
+App password	סיסמת אפליקציה
+IMAP server	שרת IMAP
+Incoming mail server	שרת דואר נכנס
+SMTP server	שרת SMTP
+Outgoing mail server	שרת דואר יוצא
+An app password is a separate password just for Capri. Your normal password stays yours.	סיסמת אפליקציה היא סיסמה נפרדת רק ל-Capri. הסיסמה הרגילה שלך נשארת שלך.
+She keeps it only until she closes.	היא שומרת אותה רק עד שהיא נסגרת.
+She checks, searches and reads your mail. She asks before she sends any.	היא בודקת, מחפשת וקוראת את הדואר שלך. היא שואלת לפני שהיא שולחת משהו.
+Watch for new mail	עקוב אחרי דואר חדש
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	היא מדברת כשמגיע דואר, עם אזהרה אם זה נראה כמו פישינג. שום דבר לא מסומן כנקרא.
+Deal with phishing on her own	התמודד עם פישינג לבד
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	רק בזמן שהיא עוקבת. דואר שהיא בטוחה שהוא פישינג הולך לספאם. השאר מחכה ל'כן' שלך.
+Forget account	שכח חשבון
+Use another email	השתמש בדוא״ל אחר
+Which email?	איזה דוא״ל?
+Make an app password	צור סיסמת אפליקציה
+Paste it	הדבק אותה
+Connecting...	מתחבר...
+She can use your email now.	היא יכולה להשתמש בדוא״ל שלך עכשיו.
+She's not watching your inbox.	היא לא עוקבת אחרי תיבת הדואר הנכנס שלך.
+She's watching your inbox and deals with phishing she's sure of.	היא עוקבת אחרי התיבה שלך ומתמודדת עם פישינג שהיא בטוחה בו.
+She's watching your inbox and tells you when mail lands.	היא עוקבת אחרי התיבה שלך ואומרת לך כשמגיע דואר.
+She forgot that account and its app password.	היא שכחה את החשבון הזה ואת סיסמת האפליקציה שלו.
+She forgot that account. Its app password is gone from this PC.	היא שכחה את החשבון הזה. סיסמת האפליקציה שלו נעלמה מהמחשב הזה.

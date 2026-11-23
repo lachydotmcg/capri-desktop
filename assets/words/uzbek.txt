@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	u ishlayotganda bos
 · HD	· HD
 · on this PC	· bu PC'da
 · server	· server
+Edit as text	Matn sifatida tahrirlash
+What Capri remembers about you. It stays on this computer.	Capri sen haqingda nimalarni eslaydi. Bu kompyuterda qoladi.
+Tell her something to remember	Unga eslab qolish uchun bir narsa ayt
+Search her memory	Uning xotirasidan qidir
+That day isn't there any more.	O'sha kun endi yo'q.
+Undo	Bekor qilish
+Remember our chats is off, so she isn't keeping new chat memories.	Suhbatlarimizni eslash o'chirilgan, shuning uchun yangi suhbat xotiralarini saqlamaydi.
+ABOUT YOU	SEN HAQINGDA
+FROM YOUR CHATS	SUHBATLARINGDAN
+GAMES	O'YINLAR
+CHAT LOGS	SUHBAT JURNALLARI
+CHAT LOG	SUHBAT JURNALI
+Nothing matches.	Hech narsa mos kelmadi.
+Nothing yet.	Hozircha hech narsa yo'q.
+Reading her notes.	Uning yozuvlari o'qilmoqda.
+Click again to forget game notes	O'yin yozuvlarini unutish uchun yana bos
+Forget game notes	O'yin yozuvlarini unut
+Click again to forget everything about me	Sen haqingda hammasini unutish uchun yana bos
+Forget everything about me	Sen haqingda hammasini unut
+Click again to forget	Unutish uchun yana bos
+Forget this day	Bu kunni unut
+Only the start of this day is shown.	Bu kunning faqat boshlanishi ko'rsatiladi.
+Nothing in this day.	Bu kunda hech narsa yo'q.
+No chats kept yet.	Hozircha suhbatlar saqlanmagan.
+You	Sen
+{0} line	{0} qator
+SET UP EMAIL >	ELEKTRON POCHTANI SOZLASH >
+SET UP EMAIL	ELEKTRON POCHTANI SOZLASH
+Or type your address	Yoki manzilingni yoz
+Email address	Elektron pochta manzili
+Open the page	Sahifani och
+App password	Ilova paroli
+IMAP server	IMAP serveri
+Incoming mail server	Kiruvchi pochta serveri
+SMTP server	SMTP serveri
+Outgoing mail server	Chiquvchi pochta serveri
+An app password is a separate password just for Capri. Your normal password stays yours.	Ilova paroli faqat Capri uchun alohida parol. Oddiy paroling o'zingda qoladi.
+She keeps it only until she closes.	U uni yopilguncha saqlaydi.
+She checks, searches and reads your mail. She asks before she sends any.	U pochtangni tekshiradi, qidiradi va o'qiydi. Biror narsa yuborishdan oldin so'raydi.
+Watch for new mail	Yangi pochtani kuzat
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Pochta kelganda u aytadi, fishingga o'xshasa ogohlantiradi. Hech narsa o'qilgan deb belgilanmaydi.
+Deal with phishing on her own	Fishing bilan o'zing shug'ullan
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Faqat u kuzatayotganda. Fishing ekaniga ishonchi komil pochta spamga ketadi. Qolgani sening ha dedishingni kutadi.
+Forget account	Hisobni unut
+Use another email	Boshqa elektron pochtadan foydalan
+Which email?	Qaysi pochta?
+Make an app password	Ilova parolini yarat
+Paste it	Uni qo'y
+Connecting...	Ulanmoqda...
+She can use your email now.	U endi pochtangdan foydalana oladi.
+She's not watching your inbox.	U kiruvchi qutingni kuzatmayapti.
+She's watching your inbox and deals with phishing she's sure of.	U kiruvchi qutingni kuzatadi va ishonchi komil fishing bilan shug'ullanadi.
+She's watching your inbox and tells you when mail lands.	U kiruvchi qutingni kuzatadi va pochta kelganda aytadi.
+She forgot that account and its app password.	U o'sha hisobni va uning ilova parolini unutdi.
+She forgot that account. Its app password is gone from this PC.	U o'sha hisobni unutdi. Uning ilova paroli bu kompyuterdan yo'qoldi.

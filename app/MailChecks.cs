@@ -1186,7 +1186,7 @@ namespace CapriDesktop
                 Need(note.Contains("Their own email inbox is connected to you through your Email plug-in") && note.Contains("use mod with " + Reading + " straight away") && !note.Contains(Hands.MailUnplugged), "her notes didn't say their inbox is connected: " + note);
                 Need(hands.Contains("call mod with name " + Reading) && hands.IndexOf("call mod with name", StringComparison.Ordinal) < hands.LastIndexOf("Questions about their current", StringComparison.Ordinal), "her hands weren't told to check their inbox with the plug-in");
                 Need(kit.ChatOnly.Contains("Their own email inbox is connected through your Email plug-in") && kit.Chat.IndexOf("Their own email inbox", StringComparison.Ordinal) < kit.Chat.LastIndexOf(" If they want anything done", StringComparison.Ordinal), "her chat didn't count their email as a job for her tools");
-                Need(kit.WorkTools.Contains("\"email_recent_mail\"") && kit.WorkTools.Contains("like check my email or any new emails"), "Check mail wasn't in her tools as their own inbox");
+                Need(kit.WorkTools.Contains(Plugins.CatalogName) && Plugins.Catalog("{\"plugin\":\"email\",\"query\":\"recent_mail\"}").Contains("recent_mail"), "Check mail wasn't discoverable through her plug-in tools");
                 Plugins.Grant(Mods.MailStarter, "recent_mail", Plugins.Off);
                 string narrowed = Hands.NoteFor(Hands.KitFor());
                 Plugins.Grant(Mods.MailStarter, "recent_mail", Plugins.Usual);

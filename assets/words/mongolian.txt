@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	тэр ажилла
 · HD	· HD
 · on this PC	· энэ компьютер дээр
 · server	· сервер
+Edit as text	Текстээр засах
+What Capri remembers about you. It stays on this computer.	Capri чамайг хэрхэн санаж байна. Энэ компьютер дээр үлдэнэ.
+Tell her something to remember	Түүнд санах нэг зүйл хэл
+Search her memory	Түүний ой санамжаас хайх
+That day isn't there any more.	Тэр өдөр байхгүй болсон.
+Undo	Буцаах
+Remember our chats is off, so she isn't keeping new chat memories.	Бидний яриаг санах нь унтарсан тул шинэ ярианы дурсамж хадгалахгүй.
+ABOUT YOU	ЧАМАЙН ТУХАЙ
+FROM YOUR CHATS	ЧИНИЙ ЯРИАНААС
+GAMES	ТОГЛООМ
+CHAT LOGS	ЯРИАНЫ БҮРТГЭЛ
+CHAT LOG	ЯРИАНЫ БҮРТГЭЛ
+Nothing matches.	Юу ч тохирохгүй байна.
+Nothing yet.	Одоохондоо юу ч байхгүй.
+Reading her notes.	Түүний тэмдэглэлийг уншиж байна.
+Click again to forget game notes	Тоглоомын тэмдэглэлийг мартахын тулд дахин дар
+Forget game notes	Тоглоомын тэмдэглэлийг март
+Click again to forget everything about me	Чамайг бүгдийг мартахын тулд дахин дар
+Forget everything about me	Чамайг бүгдийг март
+Click again to forget	Мартахын тулд дахин дар
+Forget this day	Энэ өдрийг март
+Only the start of this day is shown.	Зөвхөн энэ өдрийн эхлэл харагдана.
+Nothing in this day.	Энэ өдөр юу ч байхгүй.
+No chats kept yet.	Одоохондоо яриа хадгалагдаагүй.
+You	Чи
+{0} line	{0} мөр
+SET UP EMAIL >	ИМЭЙЛ ТОХИРУУЛАХ >
+SET UP EMAIL	ИМЭЙЛ ТОХИРУУЛАХ
+Or type your address	Эсвэл хаягаа бич
+Email address	Имэйл хаяг
+Open the page	Хуудсыг нээх
+App password	Аппын нууц үг
+IMAP server	IMAP сервер
+Incoming mail server	Ирж буй имэйлийн сервер
+SMTP server	SMTP сервер
+Outgoing mail server	Явж буй имэйлийн сервер
+An app password is a separate password just for Capri. Your normal password stays yours.	Аппын нууц үг нь зөвхөн Capri-д зориулсан тусдаа нууц үг. Энгийн нууц үг чинь чинийх хэвээр.
+She keeps it only until she closes.	Тэр үүнийг хаагдах хүртэл л хадгална.
+She checks, searches and reads your mail. She asks before she sends any.	Тэр имэйлийг чинь шалгаж, хайж, уншдаг. Ямар нэг юм илгээхээс өмнө асуудаг.
+Watch for new mail	Шинэ имэйлийг ажигла
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Имэйл ирэхэд тэр хэлдэг, фишинг мэт санагдвал анхааруулдаг. Юу ч уншсан гэж тэмдэглэгдэхгүй.
+Deal with phishing on her own	Фишингээ өөрөө шийд
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Зөвхөн тэр ажиглаж байх үед. Фишинг гэдэгт итгэлтэй имэйл спам руу явна. Бусад нь чиний тийм гэсэн хариуг хүлээнэ.
+Forget account	Бүртгэлийг март
+Use another email	Өөр имэйл ашигла
+Which email?	Аль имэйл?
+Make an app password	Аппын нууц үг үүсгэ
+Paste it	Үүнийг буулга
+Connecting...	Холбогдож байна...
+She can use your email now.	Тэр одоо имэйлийг чинь ашиглаж чадна.
+She's not watching your inbox.	Тэр ирсэн имэйлийн хайрцгийг чинь ажиглахгүй байна.
+She's watching your inbox and deals with phishing she's sure of.	Тэр хайрцгийг чинь ажиглаж, итгэлтэй фишингээ шийддэг.
+She's watching your inbox and tells you when mail lands.	Тэр хайрцгийг чинь ажиглаж, имэйл ирэхэд хэлдэг.
+She forgot that account and its app password.	Тэр тэр бүртгэл болон аппын нууц үгийг мартсан.
+She forgot that account. Its app password is gone from this PC.	Тэр тэр бүртгэлийг мартсан. Аппын нууц үг нь энэ компьютероос алга болсон.

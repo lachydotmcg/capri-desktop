@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	չի մուտքագ
 · HD	· HD
 · on this PC	· այս PC-ում
 · server	· սերվեր
+Edit as text	Խմբագրել որպես տեքստ
+What Capri remembers about you. It stays on this computer.	Ինչ է Capri-ն հիշում քո մասին։ Մնում է այս համակարգչում։
+Tell her something to remember	Ասա նրան մի բան, որ հիշի
+Search her memory	Փնտրել նրա հիշողության մեջ
+That day isn't there any more.	Այդ օրն այլևս չկա։
+Undo	Հետարկել
+Remember our chats is off, so she isn't keeping new chat memories.	Մեր զրույցները հիշելը անջատված է, ուստի նա նոր զրույցի հիշողություններ չի պահում։
+ABOUT YOU	ՔՈ ՄԱՍԻՆ
+FROM YOUR CHATS	ՔՈ ԶՐՈՒՅՑՆԵՐԻՑ
+GAMES	ԽԱՂԵՐ
+CHAT LOGS	ԶՐՈՒՅՑԻ ՄԱՏՅԱՆՆԵՐ
+CHAT LOG	ԶՐՈՒՅՑԻ ՄԱՏՅԱՆ
+Nothing matches.	Ոչինչ չի համապատասխանում։
+Nothing yet.	Դեռ ոչինչ։
+Reading her notes.	Կարդում է նրա նշումները։
+Click again to forget game notes	Կտտացրու կրկին՝ խաղերի նշումները մոռանալու համար
+Forget game notes	Մոռացիր խաղերի նշումները
+Click again to forget everything about me	Կտտացրու կրկին՝ քո մասին ամեն ինչ մոռանալու համար
+Forget everything about me	Մոռացիր քո մասին ամեն ինչ
+Click again to forget	Կտտացրու կրկին՝ մոռանալու համար
+Forget this day	Մոռացիր այս օրը
+Only the start of this day is shown.	Ցուցադրվում է միայն այս օրվա սկիզբը։
+Nothing in this day.	Այս օրը ոչինչ չկա։
+No chats kept yet.	Դեռ ոչ մի զրույց պահված չէ։
+You	Դու
+{0} line	{0} տող
+SET UP EMAIL >	ԿԱՐԳԱՎՈՐԵԼ ԷԼ. ՓՈՍՏԸ >
+SET UP EMAIL	ԿԱՐԳԱՎՈՐԵԼ ԷԼ. ՓՈՍՏԸ
+Or type your address	Կամ գրիր քո հասցեն
+Email address	Էլ. փոստի հասցե
+Open the page	Բացել էջը
+App password	Հավելվածի գաղտնաբառ
+IMAP server	IMAP սերվեր
+Incoming mail server	Մուտքային փոստի սերվեր
+SMTP server	SMTP սերվեր
+Outgoing mail server	Ելքային փոստի սերվեր
+An app password is a separate password just for Capri. Your normal password stays yours.	Հավելվածի գաղտնաբառը առանձին գաղտնաբառ է միայն Capri-ի համար։ Քո սովորական գաղտնաբառը մնում է քոնը։
+She keeps it only until she closes.	Նա պահում է այն միայն մինչև փակվելը։
+She checks, searches and reads your mail. She asks before she sends any.	Նա ստուգում, փնտրում և կարդում է քո փոստը։ Հարցնում է նախքան որևէ բան ուղարկելը։
+Watch for new mail	Հետևել նոր փոստին
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Նա խոսում է, երբ փոստ է գալիս, զգուշացումով, եթե դա նման է ֆիշինգի։ Ոչինչ չի նշվում որպես կարդացված։
+Deal with phishing on her own	Ինքը զբաղվի ֆիշինգով
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Միայն մինչ նա հետևում է։ Փոստը, որում նա համոզված է որպես ֆիշինգ, գնում է սպամ։ Մնացածը սպասում է քո այոյին։
+Forget account	Մոռացիր հաշիվը
+Use another email	Օգտագործիր այլ էլ. փոստ
+Which email?	Ո՞ր էլ. փոստը։
+Make an app password	Ստեղծիր հավելվածի գաղտնաբառ
+Paste it	Տեղադրիր այն
+Connecting...	Միանում է...
+She can use your email now.	Նա այժմ կարող է օգտագործել քո էլ. փոստը։
+She's not watching your inbox.	Նա չի հետևում քո մուտքային արկղին։
+She's watching your inbox and deals with phishing she's sure of.	Նա հետևում է քո մուտքային արկղին և զբաղվում է ֆիշինգով, որում համոզված է։
+She's watching your inbox and tells you when mail lands.	Նա հետևում է քո մուտքային արկղին և ասում է, երբ փոստ է գալիս։
+She forgot that account and its app password.	Նա մոռացավ այդ հաշիվը և դրա հավելվածի գաղտնաբառը։
+She forgot that account. Its app password is gone from this PC.	Նա մոռացավ այդ հաշիվը։ Դրա հավելվածի գաղտնաբառը անհետացավ այս համակարգչից։

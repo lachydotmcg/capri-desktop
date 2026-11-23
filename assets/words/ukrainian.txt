@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	не друкува
 · HD	· HD
 · on this PC	· на цьому ПК
 · server	· сервер
+Edit as text	Редагувати як текст
+What Capri remembers about you. It stays on this computer.	Що Capri пам'ятає про тебе. Залишається на цьому комп'ютері.
+Tell her something to remember	Скажи їй щось, щоб запам'ятати
+Search her memory	Шукати в її пам'яті
+That day isn't there any more.	Того дня вже немає.
+Undo	Скасувати
+Remember our chats is off, so she isn't keeping new chat memories.	Пам'ятати наші чати вимкнено, тому вона не зберігає нових спогадів із чатів.
+ABOUT YOU	ПРО ТЕБЕ
+FROM YOUR CHATS	З ТВОЇХ ЧАТІВ
+GAMES	ІГРИ
+CHAT LOGS	ЖУРНАЛИ ЧАТІВ
+CHAT LOG	ЖУРНАЛ ЧАТУ
+Nothing matches.	Нічого не знайдено.
+Nothing yet.	Поки нічого.
+Reading her notes.	Читає її нотатки.
+Click again to forget game notes	Натисни ще раз, щоб забути нотатки про ігри
+Forget game notes	Забути нотатки про ігри
+Click again to forget everything about me	Натисни ще раз, щоб забути все про тебе
+Forget everything about me	Забути все про тебе
+Click again to forget	Натисни ще раз, щоб забути
+Forget this day	Забути цей день
+Only the start of this day is shown.	Показано лише початок цього дня.
+Nothing in this day.	Нічого в цей день.
+No chats kept yet.	Чати ще не збережено.
+You	Ти
+{0} line	{0} рядок
+SET UP EMAIL >	НАЛАШТУВАТИ ПОШТУ >
+SET UP EMAIL	НАЛАШТУВАТИ ПОШТУ
+Or type your address	Або введи свою адресу
+Email address	Адреса електронної пошти
+Open the page	Відкрити сторінку
+App password	Пароль застосунку
+IMAP server	Сервер IMAP
+Incoming mail server	Сервер вхідної пошти
+SMTP server	Сервер SMTP
+Outgoing mail server	Сервер вихідної пошти
+An app password is a separate password just for Capri. Your normal password stays yours.	Пароль застосунку — це окремий пароль лише для Capri. Твій звичайний пароль залишається твоїм.
+She keeps it only until she closes.	Вона зберігає його лише до закриття.
+She checks, searches and reads your mail. She asks before she sends any.	Вона перевіряє, шукає й читає твою пошту. Питає, перш ніж щось надіслати.
+Watch for new mail	Стежити за новою поштою
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Вона повідомляє, коли надходить пошта, із попередженням, якщо це схоже на фішинг. Нічого не позначається як прочитане.
+Deal with phishing on her own	Самій давати раду фішингу
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Лише поки вона стежить. Пошта, у якій вона певна, що це фішинг, іде до спаму. Решта чекає на твоє так.
+Forget account	Забути акаунт
+Use another email	Використати іншу пошту
+Which email?	Яка пошта?
+Make an app password	Створити пароль застосунку
+Paste it	Встав його
+Connecting...	Підключення...
+She can use your email now.	Тепер вона може користуватися твоєю поштою.
+She's not watching your inbox.	Вона не стежить за твоєю вхідною скринькою.
+She's watching your inbox and deals with phishing she's sure of.	Вона стежить за твоєю скринькою й дає раду фішингу, у якому певна.
+She's watching your inbox and tells you when mail lands.	Вона стежить за твоєю скринькою й каже, коли надходить пошта.
+She forgot that account and its app password.	Вона забула той акаунт і його пароль застосунку.
+She forgot that account. Its app password is gone from this PC.	Вона забула той акаунт. Його пароль застосунку зник із цього комп'ютера.

@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	tik nie in ander pr
 · HD	· HD
 · on this PC	· op hierdie rekenaar
 · server	· bediener
+Edit as text	Wysig as teks
+What Capri remembers about you. It stays on this computer.	Wat Capri van jou onthou. Dit bly op hierdie rekenaar.
+Tell her something to remember	Vertel haar iets om te onthou
+Search her memory	Soek in haar geheue
+That day isn't there any more.	Daardie dag is nie meer daar nie.
+Undo	Ontdoen
+Remember our chats is off, so she isn't keeping new chat memories.	Onthou ons gesprekke is af, so sy hou nie nuwe gesprekherinneringe nie.
+ABOUT YOU	OOR JOU
+FROM YOUR CHATS	UIT JOU GESPREKKE
+GAMES	SPELE
+CHAT LOGS	GESPREKLOGS
+CHAT LOG	GESPREKLOG
+Nothing matches.	Niks pas nie.
+Nothing yet.	Nog niks.
+Reading her notes.	Lees haar notas.
+Click again to forget game notes	Klik weer om speletjie-notas te vergeet
+Forget game notes	Vergeet speletjie-notas
+Click again to forget everything about me	Klik weer om alles oor jou te vergeet
+Forget everything about me	Vergeet alles oor jou
+Click again to forget	Klik weer om te vergeet
+Forget this day	Vergeet hierdie dag
+Only the start of this day is shown.	Net die begin van hierdie dag word gewys.
+Nothing in this day.	Niks op hierdie dag nie.
+No chats kept yet.	Nog geen gesprekke gehou nie.
+You	Jy
+{0} line	{0} reël
+SET UP EMAIL >	STEL E-POS OP >
+SET UP EMAIL	STEL E-POS OP
+Or type your address	Of tik jou adres
+Email address	E-posadres
+Open the page	Maak die bladsy oop
+App password	Toepassingwagwoord
+IMAP server	IMAP-bediener
+Incoming mail server	Inkomende e-posbediener
+SMTP server	SMTP-bediener
+Outgoing mail server	Uitgaande e-posbediener
+An app password is a separate password just for Capri. Your normal password stays yours.	'n Toepassingwagwoord is 'n aparte wagwoord net vir Capri. Jou gewone wagwoord bly joune.
+She keeps it only until she closes.	Sy hou dit net totdat sy sluit.
+She checks, searches and reads your mail. She asks before she sends any.	Sy kyk, soek en lees jou e-pos. Sy vra voor sy enigiets stuur.
+Watch for new mail	Let op nuwe e-pos
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Sy praat wanneer e-pos aankom, met 'n waarskuwing as dit na phishing lyk. Niks word as gelees gemerk nie.
+Deal with phishing on her own	Hanteer phishing self
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Net terwyl sy oplet. E-pos wat sy seker is phishing is, gaan na spam. Die res wag vir jou ja.
+Forget account	Vergeet rekening
+Use another email	Gebruik ander e-pos
+Which email?	Watter e-pos?
+Make an app password	Maak 'n toepassingwagwoord
+Paste it	Plak dit
+Connecting...	Koppel...
+She can use your email now.	Sy kan nou jou e-pos gebruik.
+She's not watching your inbox.	Sy let nie op jou inkassie nie.
+She's watching your inbox and deals with phishing she's sure of.	Sy let op jou inkassie en hanteer phishing wat sy seker is.
+She's watching your inbox and tells you when mail lands.	Sy let op jou inkassie en sê wanneer e-pos aankom.
+She forgot that account and its app password.	Sy het daardie rekening en sy toepassingwagwoord vergeet.
+She forgot that account. Its app password is gone from this PC.	Sy het daardie rekening vergeet. Sy toepassingwagwoord is van hierdie rekenaar weg.

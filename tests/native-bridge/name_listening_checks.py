@@ -118,6 +118,30 @@ class GateTests(unittest.TestCase):
             with self.assertRaises(ValueError):context(value)
         for value in [False,0,-1,1.5,2**54]:
             with self.assertRaises(ValueError):revision(value)
+    def test_relock_cannot_leak_previous_name_wait_into_fresh_wake(self):
+        self.assertIsNotNone(self.say('Capri', 'old-wake'))
+        self.assertEqual(self.gate.mode, 'waiting')
+        self.clock.advance(1)
+        before_lock = self.clock()
+        self.gate.speech_started('pending', before_lock)
+        self.gate.control(barred=True, speaking=False, busy=False)
+        self.assertEqual(self.gate.mode, 'paused')
+        self.clock.advance(1)
+        self.gate.control(barred=False, speaking=False, busy=False)
+        self.assertEqual(self.gate.mode, 'name_only')
+        self.assertIsNotNone(self.say('What time is it, Capri?', 'addressed'))
+        self.assertEqual(self.gate.mode, 'name_only')
+        self.assertIsNone(self.say('stop', 'after-addressed'))
+        self.assertIsNotNone(self.say('Capri?', 'fresh-wake'))
+        self.gate.speech_started('pending', before_lock)
+        self.assertIsNone(self.gate.final('pending', 'stop'))
+        self.clock.advance(9.9)
+        self.assertIsNotNone(self.say('what about tomorrow', 'fresh'))
+        self.assertEqual(self.gate.mode, 'name_only')
+        self.assertIsNone(self.say('stop', 'after-fresh'))
+        self.assertIsNotNone(self.say('Capri', 'edge-wake'))
+        self.clock.advance(10)
+        self.assertIsNone(self.say('stop', 'deadline'))
 
 
 class WorkerControlTests(unittest.IsolatedAsyncioTestCase):

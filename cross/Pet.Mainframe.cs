@@ -383,7 +383,7 @@ namespace CapriDesktop
         internal NativeMenu TrayMenu()
         {
             var menu = new NativeMenu();
-            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; FillMenu(menu, ContextMenu.Items); };
+            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? Lingo.Of("Show Capri") : Lingo.Of("Hide Capri"); FillMenu(menu, ContextMenu.Items); };
             fill(); menu.NeedsUpdate += (_, _) => fill(); return menu;
         }
         private void FillMenu(NativeMenu menu, System.Collections.IEnumerable source)
@@ -394,7 +394,7 @@ namespace CapriDesktop
                 if (OperatingSystem.IsLinux() && ReferenceEquals(source, securityMenu.Items) && value is Control && !((Control)value).IsVisible) continue;
                 var row = value as MenuItem;
                 if (row == null) { menu.Items.Add(new NativeMenuItemSeparator()); continue; }
-                var item = new NativeMenuItem(row.Header as string ?? "") { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
+                var item = new NativeMenuItem(Lingo.Of(row.Header as string ?? "")) { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
                     ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None };
                 if (row.Items.Count > 0) { item.Menu = new NativeMenu(); FillMenu(item.Menu, row.Items); }
                 item.Click += (_, _) => row.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));

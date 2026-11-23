@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -17,6 +19,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 
 namespace CapriDesktop
 {
@@ -142,6 +145,8 @@ namespace CapriDesktop
                 Clip stand = pet.Clips[0];
                 if (stand.Old || stand.Count != 60 || stand.Fps != 24 || stand.Wide != 116) throw new Exception("Her standing loop isn't 60 cells of 116 px at 24 fps: " + stand.Count + " at " + stand.Fps + ", " + stand.Wide + " px.");
                 checks.Add("PASS sprites: all " + pet.Clips.Count + " clips, standing and perched, load from the app and split into even cells");
+                CompanionBridgeCheck();
+                CompanionRateCheck();
                 foreach (string clipName in new[] { "morning", "late", "miss" })
                 {
                     byte[] hello = Pet.Hello(clipName);
@@ -160,8 +165,10 @@ namespace CapriDesktop
                 MacQuit.Checks(checks);
                 NewsChecks();
                 GuardChecks();
+                CompanionGuardExpiryCheck();
                 Ink.Check(checks);
                 MainframeGuardChecks();
+                CompanionAllowlistCheck();
                 FirstRunChecks();
                 Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
@@ -305,6 +312,7 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 pet.ForgetPets();
                 pet.Forgive();
+                SaidChecks();
                 double flungAt = pet.Now;
                 pet.LastYelp = null;
                 pet.Flung(Pet.FlingFrom, flungAt);
@@ -382,13 +390,63 @@ namespace CapriDesktop
                 pet.SetSounds(60);
                 pet.Dancing = false;
                 if (Brain.Language != null || pet.Saved.Language != null || pet.Picked != "Stay put | English | Short | Short | Normal | Dance to music") throw new Exception("Menu settings didn't go back: " + pet.Picked);
-                for (int i = 0; i < Brain.Languages.GetLength(0); i++)
-                    if (Pet.WordTable(Lingo.Slug(Brain.Languages[i, 1])) == null) throw new Exception("No settings words for " + Brain.Languages[i, 1] + ".");
+                string englishWords = Pet.WordTable("english");
+                if (englishWords == null) throw new Exception("Her settings' English words weren't inside her.");
+                List<string> wordKeys = new List<string>();
+                foreach (string row in englishWords.Replace("\r\n", "\n").Split('\n')) if (row.Trim().Length > 0) wordKeys.Add(row.Trim());
+                if (wordKeys.Count < 500) throw new Exception("Her settings' English words are short: " + wordKeys.Count);
+                for (int i = 1; i < Brain.Languages.GetLength(0); i++)
+                {
+                    string name = Brain.Languages[i, 1], table = Pet.WordTable(Lingo.Slug(name));
+                    if (table == null) throw new Exception("No settings words for " + name + ".");
+                    HashSet<string> rows = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (string row in table.Replace("\r\n", "\n").Split('\n'))
+                    {
+                        int tab = row.IndexOf('\t');
+                        if (tab > 0 && row.Substring(tab + 1).Trim().Length > 0) rows.Add(row.Substring(0, tab));
+                    }
+                    foreach (string key in wordKeys) if (!rows.Contains(key)) throw new Exception(name + "'s settings words leave out " + key);
+                }
                 Lingo.Use("German");
                 string germanWords = MainframeTheme.Fitted("Advanced Settings", 100000), germanFive = Lingo.Of("5 min");
+                string germanEmpty = MainframeTheme.Fitted("Nothing matches.", 100000), germanMail = MainframeTheme.Fitted("Email address", 100000), germanWhich = MainframeTheme.Fitted("Which email?", 100000);
+                string hideWas = Lingo.Of(pet.Away ? "Show Capri" : "Hide Capri");
+                bool trayGerman = false;
+                NativeMenu trayWords = pet.TrayMenu();
+                foreach (NativeMenuItem row in trayWords.Items) if (row.Header == hideWas) trayGerman = true;
+                string folderWas = Said.Folder;
+                Func<string, string, string> askWas = Said.Ask;
+                Func<bool> readyWas = Said.Ready;
+                Said.Folder = null;
+                Said.Ready = delegate { return false; };
+                Said.Ask = delegate(string system, string user)
+                {
+                    StringBuilder back = new StringBuilder();
+                    foreach (string row in user.Replace("\r\n", "\n").Split('\n'))
+                    {
+                        Match numbered = Regex.Match(row, @"^([0-9]+)\. (.+)$");
+                        if (numbered.Success) back.Append(numbered.Groups[1].Value).Append(". [de] ").Append(numbered.Groups[2].Value).Append('\n');
+                    }
+                    return back.ToString();
+                };
+                Border probe = new Border();
+                MainframeTips.Explain(probe, "Volume");
+                TextBlock tipText = ToolTip.GetTip(probe) as TextBlock;
+                if (tipText == null) throw new Exception("The Mainframe lost its Volume tip.");
+                tipText.Measure(new Size(1000, 1000));
+                Lingo.Work();
+                tipText.InvalidateMeasure();
+                tipText.Measure(new Size(1000, 1000));
+                bool tipGerman = tipText.Text != null && tipText.Text.StartsWith("[de] ", StringComparison.Ordinal);
+                Said.Folder = folderWas;
+                Said.Ask = askWas;
+                Said.Ready = readyWas;
                 Lingo.Use(null);
-                if (germanWords == "Advanced Settings" || germanFive.IndexOf('5') < 0 || MainframeTheme.Fitted("Advanced Settings", 100000) != "Advanced Settings") throw new Exception("Her Mainframe's words didn't follow German, or English changed: " + germanWords + " / " + germanFive);
-                checks.Add("PASS her settings in their language: her Mainframe's words ship for all " + Brain.Languages.GetLength(0) + " of her languages, German draws them in German with numbers in place, and English is untouched");
+                Lingo.Reload();
+                if (germanWords == "Advanced Settings" || germanFive.IndexOf('5') < 0 || germanEmpty == "Nothing matches." || germanMail == "Email address" || germanWhich == "Which email?"
+                    || !trayGerman || !tipGerman || MainframeTheme.Fitted("Advanced Settings", 100000) != "Advanced Settings" || MainframeTheme.Fitted("Nothing matches.", 100000) != "Nothing matches.")
+                    throw new Exception("Her Mainframe's words didn't follow German, or English changed: " + germanWords + " / " + germanFive + " / " + germanEmpty + " / " + germanMail + " / " + germanWhich + " / tray " + trayGerman + " / tip " + (tipText.Text ?? ""));
+                checks.Add("PASS her settings, memory, email, tips and tray in their language: her Mainframe's " + wordKeys.Count + " words ship for all " + Brain.Languages.GetLength(0) + " of her languages, German draws her settings, Nothing matches., Email address and Which email? in German with numbers in place, a tip's body translates when it's drawn, the tray's hide row follows German, and English is untouched");
                 Func<System.Collections.IEnumerable, string, MenuItem> menuRow = delegate(System.Collections.IEnumerable rows, string header) { foreach (object row in rows) if (row is MenuItem item && item.Header as string == header) return item; return null; };
                 Func<MenuItem, string> menuHeaders = delegate(MenuItem parent) { List<string> headers = new List<string>(); foreach (object row in parent.Items) if (row is MenuItem item) headers.Add(item.Header as string); return string.Join(" | ", headers); };
                 MenuItem moveMenu = menuRow(pet.ContextMenu.Items, "Move"), helpMenu = menuRow(pet.ContextMenu.Items, "Help"), sizeMenu = menuRow(pet.ContextMenu.Items, "Size");
@@ -2242,6 +2300,110 @@ namespace CapriDesktop
         {
             if (Pet.Offline.Contains(Pet.Starter) || Pet.Offline.Contains("gemma") || Pet.Offline.Contains("e4b") || !Pet.Offline.Contains("open Capri Mainframe and press Set up her brain") || !Pet.Offline.Contains("press Free key")) throw new Exception("The offline line missed Mainframe's buttons or named a model.");
             checks.Add("PASS offline help: she names Set up her brain and Free key in Capri Mainframe without a model name");
+        }
+
+        // Her own lines in their language, like Windows: her fixed lines and labels are registered, English stays exactly as it was,
+        // her brain gets them once and she keeps them in lines-<language>.txt, a pat says one in Spanish under a Spanish label, and
+        // a check-in line made in code is learnt as she says it while her brain's own replies stay as they came.
+        private void SaidChecks()
+        {
+            string languageWas = Brain.Language, folderWas = Said.Folder;
+            Func<string, string, string> askWas = Said.Ask;
+            Func<bool> readyWas = Said.Ready;
+            string folder = Path.Combine(Path.GetTempPath(), "capri-said-" + Guid.NewGuid().ToString("N"));
+            int asks = 0;
+            string rules = null;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                Said.Folder = folder;
+                Said.Reload();
+                Said.Ready = delegate { return false; };
+                if (!Said.Knows(Pet.PetLines[0]) || !Said.Knows(Pet.PopLines[0]) || !Said.Knows(Pet.HomeGameLines[0]) || !Said.Knows(Pet.HomeSongLines[0]) || !Said.Knows(Pet.NudgeLines[0]) || !Said.Knows(Brain.Greetings[0]) || !Said.Knows(Sulks.PatPeaceLines[0]))
+                    throw new Exception("Her own lines weren't registered with Said.");
+                Brain.Language = null;
+                foreach (string line in Pet.PetLines) if (Said.In(line) != line) throw new Exception("English changed her pat line: " + line);
+                if (Said.In(Pet.PopLines[0]) != Pet.PopLines[0] || Said.Label("pets you") != "pets you" || Said.Label("pops in") != "pops in") throw new Exception("English changed her own lines or labels.");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                pet.PetLine(pet.Pets);
+                string english = pet.Talk.Bubble.Sheet.Reply;
+                if (Array.IndexOf(Pet.PetLines, english) < 0 || pet.Talk.Bubble.Sheet.Heard != "pets you") throw new Exception("English pat came out as " + english + " under " + pet.Talk.Bubble.Sheet.Heard + ".");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                Said.Ask = delegate(string system, string user)
+                {
+                    asks++;
+                    rules = system;
+                    StringBuilder back = new StringBuilder("Here you go:\n");
+                    foreach (string row in user.Split('\n'))
+                    {
+                        Match numbered = Regex.Match(row, @"^([0-9]+)\. (\(label\) )?(.+)$");
+                        if (numbered.Success) back.Append(numbered.Groups[1].Value).Append(". ").Append(numbered.Groups[2].Value).Append("[es] ").Append(numbered.Groups[3].Value).Append('\n');
+                    }
+                    return back.ToString();
+                };
+                Brain.Language = "Spanish";
+                if (Said.In(Pet.PetLines[0]) != Pet.PetLines[0]) throw new Exception("A line she hasn't translated yet wasn't left in English.");
+                Said.Work();
+                if (asks < 1) throw new Exception("Her own lines weren't sent to her brain: " + asks + " asks.");
+                if (rules == null || !rules.Contains("into Spanish") || !rules.Contains("choom")) throw new Exception("Her translation rules lost the language or her slang.");
+                if (Said.In(Pet.PetLines[0]) != "[es] " + Pet.PetLines[0] || Said.In(Pet.PopLines[0]) != "[es] " + Pet.PopLines[0] || Said.In(Pet.HomeSongLines[0]) != "[es] " + Pet.HomeSongLines[0])
+                    throw new Exception("Her lines weren't in their language: " + Said.In(Pet.PetLines[0]));
+                if (Said.Label("pets you") != "[es] pets you" || Said.Label("pops in") != "[es] pops in") throw new Exception("Her labels weren't in their language: " + Said.Label("pets you"));
+                if (Pet.SaidLabel("(pops in)") != "([es] pops in)") throw new Exception("A bracketed label didn't come back translated and bracketed: " + Pet.SaidLabel("(pops in)"));
+                string cleaned = Pet.SaidReply("1. Good morning, choom.\n2. (label) pops in", "1. \n2. (se asoma)");
+                if (cleaned.IndexOf("se asoma", StringComparison.Ordinal) < 0 || cleaned.IndexOf("(se asoma)", StringComparison.Ordinal) >= 0)
+                    throw new Exception("Her brain's rebracketed label wasn't cleaned: " + cleaned.Replace("\n", " | "));
+                string blanked = Pet.SaidReply("1. Good morning, choom.\n2. (label) pops in", "1. \n2. ( )");
+                if (blanked.Length != 0 || Pet.SaidReply("1. Good morning, choom.", "1.").Length != 0)
+                    throw new Exception("Her brain's blank wrapped label or bare marker wasn't cleaned: " + blanked.Replace("\n", " | "));
+                string modelWas = pet.Brain.Model;
+                IBrainProvider providerWas = pet.Brain.Provider;
+                pet.Brain.Model = "smoke-said";
+                pet.Brain.Provider = new RemotePictureBrain { Chat = "1. \n2. (se asoma)" };
+                try
+                {
+                    string wired = askWas("Translate her lines.", "1. Good morning, choom.\n2. (label) pops in");
+                    if (wired.IndexOf("se asoma", StringComparison.Ordinal) < 0 || wired.IndexOf("(se asoma)", StringComparison.Ordinal) >= 0 || Regex.IsMatch(wired, @"(?m)^\s*\**\d{1,3}\**\s*[.):]\**\s*$"))
+                        throw new Exception("The translation call she installs didn't clean its reply: " + wired.Replace("\n", " | "));
+                }
+                finally { pet.Brain.Model = modelWas; pet.Brain.Provider = providerWas; };
+                string[] rows = File.ReadAllLines(Said.PathFor("Spanish"), Encoding.UTF8);
+                if (Array.IndexOf(rows, Pet.PetLines[0] + "\t[es] " + Pet.PetLines[0]) < 0 || Array.IndexOf(rows, "pets you\t[es] pets you") < 0) throw new Exception("Her translations weren't kept in " + Said.PathFor("Spanish") + ".");
+                Said.Reload();
+                if (Said.In(Pet.PetLines[1]) != "[es] " + Pet.PetLines[1]) throw new Exception("Her kept translations weren't read back.");
+                // A cache written before the bare-label ask kept its row under the bracketed spelling, with no bare row.
+                List<string> legacyRows = new List<string>(File.ReadAllLines(Said.PathFor("Spanish"), Encoding.UTF8));
+                legacyRows.RemoveAll(row => row.StartsWith("you noticed\t", StringComparison.Ordinal));
+                legacyRows.Add("(you noticed)\tte notó");
+                File.WriteAllLines(Said.PathFor("Spanish"), legacyRows.ToArray(), new UTF8Encoding(false));
+                Said.Reload();
+                if (Pet.SaidLabel("(you noticed)") != "(te notó)") throw new Exception("A cache seeded under the old bracketed label stopped resolving: " + Pet.SaidLabel("(you noticed)"));
+                pet.PetLine(pet.Pets);
+                string spanish = pet.Talk.Bubble.Sheet.Reply;
+                if (spanish == null || !spanish.StartsWith("[es] ", StringComparison.Ordinal) || Array.IndexOf(Pet.PetLines, spanish.Substring(5)) < 0 || pet.Talk.Bubble.Sheet.Heard != "[es] pets you")
+                    throw new Exception("Her pat came out as " + spanish + " under " + pet.Talk.Bubble.Sheet.Heard + " in Spanish.");
+                pet.Talk.Dismiss();
+                pet.ForgetPets();
+                string care = "Her check-ins file line, choom.";
+                if (Said.Learn(care) != care || !Said.Knows(care)) throw new Exception("A check-in line wasn't learnt.");
+                Said.Work();
+                if (Said.In(care) != "[es] " + care) throw new Exception("A learnt check-in line wasn't translated.");
+                if (Said.In("Some reply her brain wrote.") != "Some reply her brain wrote." || Said.Knows("Some reply her brain wrote.")) throw new Exception("A line she doesn't know was learnt or changed.");
+                checks.Add("PASS her own lines: her pat lines, check-ins, pop-ins, cheers, nudges and their labels follow their language through Said, English is byte for byte as it was, her brain translates them in batches into lines-<language>.txt, and a pat comes out in Spanish under a Spanish label");
+            }
+            finally
+            {
+                Brain.Language = languageWas;
+                Said.Folder = folderWas;
+                Said.Ask = askWas;
+                Said.Ready = readyWas;
+                Said.Reload();
+                try { Directory.Delete(folder, true); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
 
         private void ProviderErrorChecks()
@@ -5797,14 +5959,14 @@ namespace CapriDesktop
                 mods.Load();
                 pet.SetMainframeSize(100); frame.ShowMods(true); frame.SearchInstalled(""); frame.Sync(); frame.UpdateLayout();
                 PlugTile[] tiles = frame.PlugTileRow;
-                string[] names = { "Email", "Notion", "Linear" };
-                int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear };
-                for (int i = 0; i < 3; i++)
+                string[] names = { "Email", "Notion", "Linear", "Todoist" };
+                int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                for (int i = 0; i < 4; i++)
                     if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
-                if (tiles[3].IsVisible || frame.PlugEmptyShown || frame.PlugBack.IsVisible || frame.PlugNext.IsVisible || frame.InstalledHasPlugins)
-                    throw new Exception("The starters showed under INSTALLED too, or PLUG-INS showed pages for three.");
+                if (frame.PlugEmptyShown || !frame.PlugBack.IsVisible || !frame.PlugNext.IsVisible || frame.PlugBack.IsEnabled || !frame.PlugNext.IsEnabled || frame.InstalledHasPlugins)
+                    throw new Exception("The starters did not page separately from INSTALLED.");
                 frame.ModStatusText = "";
                 foreach (int scale in new[] { 100, 150, 200 })
                 {
@@ -5827,6 +5989,19 @@ namespace CapriDesktop
                 notion.SavePicture(Path.Combine(folder, "plugin-sheet-notion.png"));
                 notion.Close();
                 MainframeWait(delegate { return frame.PluginSheet == null; }, "closing Notion's window");
+
+                foreach (string tokenId in new[] { "github", "context7" })
+                {
+                    Mod tokenMod = mods.All.Find(one => one.File.Id == tokenId);
+                    frame.OpenPluginToken(tokenMod);
+                    PluginTokenWindow tokenSetup = frame.PluginTokenSheet;
+                    tokenSetup.UpdateLayout();
+                    string tokenFit = tokenSetup.Crowded();
+                    if (tokenFit != null || !string.IsNullOrEmpty(tokenSetup.Token.Box.Text) || tokenSetup.Token.Box.PasswordChar == '\0' || Avalonia.Automation.AutomationProperties.GetName(tokenSetup.Token.Box) != Mods.TokenLabel(tokenMod) + " for " + tokenMod.File.Name) throw new Exception("API-key or personal-token setup is not empty, masked, labelled or doesn't fit: " + tokenFit);
+                    tokenSetup.SavePicture(Path.Combine(folder, "plugin-token-" + tokenId + ".png"));
+                    tokenSetup.Close();
+                    MainframeWait(delegate { return frame.PluginTokenSheet == null; }, "closing credential setup");
+                }
 
                 string consent = null;
                 frame.ModAsk = delegate(ModFile file, string hash) { consent = Mods.Consent(file, hash); return false; };
@@ -5867,12 +6042,21 @@ namespace CapriDesktop
                 mods.Load();
                 frame.Sync();
                 if (!frame.PlugBack.IsVisible || !frame.PlugNext.IsVisible || frame.PlugBack.IsEnabled || !frame.PlugNext.IsEnabled || !tiles[3].IsVisible || tiles[3].Picture != Mods.Plug)
-                    throw new Exception("Five plug-ins didn't page under PLUG-INS.");
+                    throw new Exception("The starters and imported plug-ins didn't page under PLUG-INS.");
                 string paged = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                 if (paged != null) throw new Exception("PLUG-INS with Back and Next overlaps " + paged);
-                frame.PlugNext.Press();
-                if (frame.PlugFirst != 4 || !tiles[0].IsVisible || tiles[1].IsVisible || frame.PlugNext.IsEnabled || !frame.PlugBack.IsEnabled) throw new Exception("Next didn't show the last plug-in on its own.");
-                frame.PlugBack.Press();
+                List<Mod> expectedPlugs = Mods.PluginsOf(mods.All);
+                for (int first = 0; first < expectedPlugs.Count; first += tiles.Length)
+                {
+                    if (frame.PlugFirst != first || frame.PlugBack.IsEnabled != (first > 0) || frame.PlugNext.IsEnabled != (first + tiles.Length < expectedPlugs.Count)) throw new Exception("Plug-in paging controls did not match the current page.");
+                    for (int slot = 0; slot < tiles.Length; slot++)
+                    {
+                        int at = first + slot;
+                        if (tiles[slot].IsVisible != (at < expectedPlugs.Count) || at < expectedPlugs.Count && tiles[slot].Text != expectedPlugs[at].File.Name) throw new Exception("Plug-in paging skipped or repeated an expected starter or import.");
+                    }
+                    if (frame.PlugNext.IsEnabled) frame.PlugNext.Press();
+                }
+                while (frame.PlugBack.IsEnabled) frame.PlugBack.Press();
                 if (frame.PlugFirst != 0 || tiles[0].Text != "Email") throw new Exception("Back didn't go back to the first plug-ins.");
                 checks.Add("PASS plug-ins on Mac and Linux: more than four plug-ins page with Back and Next in the PLUG-INS band");
 
@@ -12454,6 +12638,171 @@ namespace CapriDesktop
             public void Reply(string device, string id, string re, string text, bool done) { wire.Reply(device, id, re, text, done); record.Reply(device, id, re, text, done); }
             public void Tool(string device, string id, string name, string summary, string state, string re, string move = null) { wire.Tool(device, id, name, summary, state, re, move); record.Tool(device, id, name, summary, state, re, move); }
             public void Error(string device, string code, string re) { wire.Error(device, code, re); record.Error(device, code, re); }
+        }
+
+        private void CompanionBridgeCheck()
+        {
+            string root = Path.Combine(folder, "companion");
+            Directory.CreateDirectory(root);
+            ConcurrentDictionary<string, bool> seen = new ConcurrentDictionary<string, bool>();
+            CompanionBridge bridge = new CompanionBridge(root);
+            bridge.Received = delegate(Dictionary<string, object> request)
+            {
+                string kind = HuskJson.Text(request, "kind");
+                seen[kind] = true;
+                if (kind == "state") return HuskJson.Map("ok", true, "version", 1, "quiet", false, "visible", true, "guards", new List<object>(), "capabilities", new List<object>());
+                if (kind == "nope") return HuskJson.Map("ok", false, "error", "unknown_kind");
+                return HuskJson.Map("ok", true);
+            };
+            try
+            {
+                string file = Path.Combine(root, CompanionBridge.Discovery);
+                File.WriteAllText(file, "{}");
+                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.OtherRead);
+                bridge.Start();
+                if (!File.Exists(file)) throw new Exception("The companion discovery file is missing.");
+                if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(file) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("The companion discovery file is not private.");
+                Dictionary<string, object> route = HuskJson.Read(File.ReadAllText(file)) as Dictionary<string, object>;
+                HuskNumber number = HuskJson.Get(route, "port") as HuskNumber;
+                int port;
+                if (number == null || !int.TryParse(number.Text, out port) || port < 1) throw new Exception("The companion port is unreadable.");
+                string token = HuskJson.Text(route, "token");
+                if (token.Length < 32) throw new Exception("The companion token is too short.");
+                if (CompanionPost(port, token, "{\"kind\":\"state\"}", null, null) != 200 || !seen.ContainsKey("state")) throw new Exception("The companion state request failed.");
+                if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
+                if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
+                if (CompanionPostBody(port, token, "{\"kind\":\"nope\"}") != "{\"ok\":false,\"error\":\"unknown_kind\"}" || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
+                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
+                if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
+                bridge.Dispose();
+                bridge = null;
+                if (File.Exists(file)) throw new Exception("The companion bridge left its discovery file behind.");
+                checks.Add("PASS companion: the local bridge keeps its discovery file private, refuses bad tokens and browser origins, caps the body, answers POST /event, ignores GETs and refuses unknown kinds, and removes its file when it stops");
+            }
+            finally
+            {
+                if (bridge != null) bridge.Dispose();
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
+        private void CompanionGuardExpiryCheck()
+        {
+            if (Dispatcher.UIThread.CheckAccess()) RunCompanionGuardExpiry();
+            else Dispatcher.UIThread.InvokeAsync(RunCompanionGuardExpiry).GetAwaiter().GetResult();
+            checks.Add("PASS companion guard expiry: a guard the plugin set is dropped when no companion event arrives for 30 s");
+        }
+
+        private void RunCompanionGuardExpiry()
+        {
+            pet.SetCompanionGuard("call", true);
+            pet.companionSeen = Environment.TickCount - 60000;
+            pet.ExpireCompanionGuards();
+            Dictionary<string, object> state = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"state\"}") as Dictionary<string, object>);
+            List<object> guards = HuskJson.Get(state, "guards") as List<object>;
+            if (guards == null || guards.Count != 0) throw new Exception("The companion guard did not expire once the plugin went quiet.");
+        }
+
+        private void CompanionRateCheck()
+        {
+            string root = Path.Combine(folder, "companion-rate");
+            Directory.CreateDirectory(root);
+            CompanionBridge bridge = new CompanionBridge(root);
+            bridge.Received = delegate(Dictionary<string, object> request) { return HuskJson.Map("ok", true); };
+            try
+            {
+                bridge.Start();
+                Dictionary<string, object> route = HuskJson.Read(File.ReadAllText(Path.Combine(root, CompanionBridge.Discovery))) as Dictionary<string, object>;
+                HuskNumber number = HuskJson.Get(route, "port") as HuskNumber;
+                int port;
+                if (number == null || !int.TryParse(number.Text, out port)) throw new Exception("The companion rate bridge has no port.");
+                string token = HuskJson.Text(route, "token");
+                for (int i = 0; i < CompanionBridge.EventLimit; i++) if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 200) throw new Exception("The companion bridge rate limit turned away event " + (i + 1) + ".");
+                if (CompanionPost(port, token, "{\"kind\":\"say\",\"text\":\"hi\"}", null, null) != 429) throw new Exception("The companion bridge has no rate limit.");
+                if (!CompanionBridge.TimedOut(-1701967296, 1000000, 60000)) throw new Exception("The companion rate window did not expire across 30 days of tick wrap.");
+                if (CompanionBridge.TimedOut(int.MinValue + 5, int.MaxValue - 10, 60000)) throw new Exception("The companion rate window expired across a tick wrap after only 16 ticks.");
+                checks.Add("PASS companion rate: 60 events in a minute pass and the next one is refused with 429");
+            }
+            finally
+            {
+                bridge.Dispose();
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
+        private void CompanionAllowlistCheck()
+        {
+            if (Dispatcher.UIThread.CheckAccess()) RunCompanionAllowlist();
+            else Dispatcher.UIThread.InvokeAsync(RunCompanionAllowlist).GetAwaiter().GetResult();
+            checks.Add("PASS companion allowlists: react, guard, ambient, show, quiet and say refuse unknown names, missing or wrong-typed values and bad text, while state answers with a set guard and an ambient event is accepted");
+        }
+
+        private void RunCompanionAllowlist()
+        {
+            pet.SetCompanionGuard("fullscreen", true);
+            Dictionary<string, object> answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"react\",\"name\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_react") throw new Exception("The companion bridge accepted an unknown react name.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"guard\",\"name\":\"nope\",\"on\":true}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_guard") throw new Exception("The companion bridge accepted an unknown guard name.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"guard\",\"name\":\"call\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_guard") throw new Exception("The companion bridge accepted a guard without a value.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"ambient\",\"event\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_event") throw new Exception("The companion bridge accepted an unknown ambient event.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"show\",\"target\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_target") throw new Exception("The companion bridge accepted an unknown show target.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"quiet\",\"on\":\"yes\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_quiet") throw new Exception("The companion bridge accepted a non-boolean quiet.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"say\",\"text\":\"\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_text") throw new Exception("The companion bridge accepted empty speech.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"say\",\"text\":\"" + new string('x', 281) + "\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "bad_text") throw new Exception("The companion bridge accepted overly long speech.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"nope\"}") as Dictionary<string, object>);
+            if ((string)HuskJson.Get(answer, "error") != "unknown_kind") throw new Exception("The companion bridge accepted an unknown kind.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"state\"}") as Dictionary<string, object>);
+            object ok = HuskJson.Get(answer, "ok");
+            List<object> guards = HuskJson.Get(answer, "guards") as List<object>;
+            if (!(ok is bool && (bool)ok)) throw new Exception("The companion bridge refused a state request.");
+            if (guards == null || !guards.Contains("fullscreen")) throw new Exception("The companion state lost an active guard.");
+            answer = pet.HandleCompanion(HuskJson.Read("{\"kind\":\"ambient\",\"event\":\"idle\"}") as Dictionary<string, object>);
+            ok = HuskJson.Get(answer, "ok");
+            if (!(ok is bool && (bool)ok)) throw new Exception("The companion bridge refused an ambient event.");
+            pet.SetCompanionGuard("fullscreen", false);
+        }
+
+        private static string CompanionPostBody(int port, string token, string body)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            }
+        }
+
+        private static int CompanionPost(int port, string token, string body, string header, string value)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                if (header != null) request.Headers.TryAddWithoutValidation(header, value);
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return (int)response.StatusCode;
+            }
+        }
+
+        private static int CompanionGet(int port, string token)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return (int)response.StatusCode;
+            }
         }
 
         private void Finish(string failure)

@@ -95,13 +95,21 @@ namespace CapriDesktop
 
         private sealed class Grant
         {
-            internal string Client, Auth, Token, Resource, Url, Access, Refresh;
+            internal string Client, Auth, Token, Resource, Url, Access, Refresh, Binding;
             internal long Expires;
         }
 
         private static readonly object gate = new object(), renewing = new object();
         private static readonly Dictionary<string, Grant> grants = new Dictionary<string, Grant>(StringComparer.Ordinal);
         private static readonly HashSet<string> read = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, long> generations = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        internal static long Generation(string id)
+        {
+            lock (gate) { long value; return generations.TryGetValue(id, out value) ? value : 0; }
+        }
+
+        internal static void Cancel(string id) { lock (gate) generations[id] = Generation(id) + 1; }
 
         private static bool Persists
         {
@@ -127,10 +135,10 @@ namespace CapriDesktop
 
         private static void Load(string id)
         {
+            string path = FileFor(id);
             lock (gate)
             {
                 if (!read.Add(id) || !Persists) return;
-                string path = FileFor(id);
                 try
                 {
                     if (path == null || !File.Exists(path)) return;
@@ -138,7 +146,7 @@ namespace CapriDesktop
                     if (servers == null) return;
                     foreach (KeyValuePair<string, object> pair in servers)
                     {
-                        Grant one = new Grant { Client = PluginJson.Str(pair.Value, "client"), Auth = PluginJson.Str(pair.Value, "auth"), Token = PluginJson.Str(pair.Value, "token"), Resource = PluginJson.Str(pair.Value, "resource"), Url = PluginJson.Str(pair.Value, "url") };
+                        Grant one = new Grant { Client = PluginJson.Str(pair.Value, "client"), Auth = PluginJson.Str(pair.Value, "auth"), Token = PluginJson.Str(pair.Value, "token"), Resource = PluginJson.Str(pair.Value, "resource"), Url = PluginJson.Str(pair.Value, "url"), Binding = PluginJson.Str(pair.Value, "binding") };
                         object expires = PluginJson.Get(pair.Value, "expires");
                         if (expires is double) one.Expires = (long)(double)expires;
                         one.Access = Voice.Unprotect(PluginJson.Str(pair.Value, "access"));
@@ -157,13 +165,14 @@ namespace CapriDesktop
             if (!Persists) return;
             string path = FileFor(id);
             if (path == null) return;
-            Dictionary<string, object> servers = PluginJson.Make();
             lock (gate)
+            {
+                Dictionary<string, object> servers = PluginJson.Make();
                 foreach (KeyValuePair<string, Grant> pair in grants)
                 {
                     if (!pair.Key.StartsWith(id + "/", StringComparison.Ordinal)) continue;
                     Grant one = pair.Value;
-                    Dictionary<string, object> saved = PluginJson.Make("client", one.Client, "auth", one.Auth, "token", one.Token, "resource", one.Resource, "url", one.Url, "expires", (double)one.Expires);
+                    Dictionary<string, object> saved = PluginJson.Make("client", one.Client, "auth", one.Auth, "token", one.Token, "resource", one.Resource, "url", one.Url, "expires", (double)one.Expires, "binding", one.Binding);
                     try
                     {
                         if (one.Access != null) saved["access"] = Voice.Protect(one.Access);
@@ -172,22 +181,30 @@ namespace CapriDesktop
                     catch (CryptographicException) { continue; }
                     servers[pair.Key.Substring(id.Length + 1)] = saved;
                 }
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-                File.WriteAllText(path, PluginJson.Write(PluginJson.Make("servers", servers)), new UTF8Encoding(false));
+                try
+                {
+                    if (servers.Count == 0) { if (File.Exists(path)) File.Delete(path); return; }
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    File.WriteAllText(path, PluginJson.Write(PluginJson.Make("servers", servers)), new UTF8Encoding(false));
+                }
+                catch (IOException error) { Brain.Log("plugins", -1, error.Message); }
+                catch (UnauthorizedAccessException error) { Brain.Log("plugins", -1, error.Message); }
             }
-            catch (IOException error) { Brain.Log("plugins", -1, error.Message); }
-            catch (UnauthorizedAccessException error) { Brain.Log("plugins", -1, error.Message); }
         }
 
-        private static Grant Find(string id, string server, string url)
+        private static string Binding(PluginServer spec)
+        {
+            if (!spec.TokenEntry && spec.ClientId == null && spec.Scope == null) return null;
+            return PluginJson.Write(PluginJson.Make("token", spec.TokenEntry, "client", spec.ClientId, "scope", spec.Scope));
+        }
+
+        private static Grant Find(string id, PluginServer spec)
         {
             Load(id);
             lock (gate)
             {
                 Grant one;
-                return grants.TryGetValue(id + "/" + server, out one) && one.Url != null && string.Equals(one.Url, url, StringComparison.Ordinal) ? one : null;
+                return grants.TryGetValue(id + "/" + spec.Name, out one) && one.Url != null && string.Equals(one.Url, spec.Url, StringComparison.Ordinal) && one.Binding == Binding(spec) ? one : null;
             }
         }
 
@@ -197,7 +214,7 @@ namespace CapriDesktop
             foreach (PluginServer spec in plugin.Servers)
             {
                 if (!spec.Online) continue;
-                Grant one = Find(plugin.Id, spec.Name, spec.Url);
+                Grant one = Find(plugin.Id, spec);
                 if (one == null) continue;
                 lock (gate) if (one.Access != null || one.Refresh != null) return true;
             }
@@ -206,26 +223,27 @@ namespace CapriDesktop
 
         internal static void Forget(string id)
         {
+            string path = FileFor(id);
             lock (gate)
             {
+                generations[id] = Generation(id) + 1;
                 foreach (string key in new List<string>(grants.Keys)) if (key.StartsWith(id + "/", StringComparison.Ordinal)) grants.Remove(key);
                 read.Add(id);
+                try { if (path != null && File.Exists(path)) File.Delete(path); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
             }
-            string path = FileFor(id);
-            try { if (path != null && File.Exists(path)) File.Delete(path); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
         }
 
-        internal static string Cached(string id, string server, string url)
+        internal static string Cached(string id, PluginServer spec)
         {
-            Grant one = Find(id, server, url);
+            Grant one = Find(id, spec);
             lock (gate) return one == null ? null : one.Access;
         }
 
-        internal static string Token(string id, string server, string url)
+        internal static string Token(string id, PluginServer spec)
         {
-            Grant one = Find(id, server, url);
+            Grant one = Find(id, spec);
             if (one == null) return null;
             lock (gate)
             {
@@ -235,27 +253,32 @@ namespace CapriDesktop
             lock (renewing)
             {
                 lock (gate) if (one.Access != null && one.Expires - Now() > Skew) return one.Access;
-                return Renew(id, server, one);
+                return Renew(id, spec.Name, one);
             }
         }
 
-        internal static string Refreshed(string id, string server, string url, string stale)
+        internal static string Refreshed(string id, PluginServer spec, string stale)
         {
-            Grant one = Find(id, server, url);
+            Grant one = Find(id, spec);
             if (one == null) return null;
             lock (renewing)
             {
                 lock (gate)
                 {
-                    if (one.Refresh == null) return null;
+                    if (one.Refresh == null)
+                    {
+                        if (spec.TokenEntry && one.Access == stale) one.Access = null;
+                    }
                     if (one.Access != null && one.Access != stale && one.Expires - Now() > Skew) return one.Access;
                 }
-                return Renew(id, server, one);
+                if (one.Refresh == null) { Save(id); return null; }
+                return Renew(id, spec.Name, one);
             }
         }
 
         private static string Renew(string id, string server, Grant one)
         {
+            long generation = Generation(id);
             string refresh, client, token, resource;
             lock (gate) { refresh = one.Refresh; client = one.Client; token = one.Token; resource = one.Resource; }
             if (refresh == null || client == null || token == null) return null;
@@ -266,7 +289,12 @@ namespace CapriDesktop
                 string access = PluginJson.Str(answer, "access_token");
                 if (status >= 200 && status <= 299 && access != null)
                 {
-                    Keep(one, answer, access);
+                    lock (gate)
+                    {
+                        Grant current;
+                        if (Generation(id) != generation || !grants.TryGetValue(id + "/" + server, out current) || !object.ReferenceEquals(current, one)) return null;
+                        Keep(one, answer, access);
+                    }
                     Save(id);
                     return access;
                 }
@@ -324,8 +352,25 @@ namespace CapriDesktop
             catch (McpException) { return null; }
         }
 
-        internal static bool Run(PluginInfo plugin, PluginServer spec)
+        internal static void SetToken(PluginInfo plugin, PluginServer spec, string token, long generation)
         {
+            if (!spec.Online || !spec.TokenEntry) throw new McpException("That server does not use personal-token setup.");
+            string value = (token ?? "").Trim();
+            if (value.Length == 0 || value.Length > 8192 || Regex.IsMatch(value, @"[^\x21-\x7E]")) throw new McpException("Paste just the personal access token, without spaces or a Bearer prefix.");
+            Grant made = new Grant { Url = spec.Url, Binding = Binding(spec), Access = value, Expires = long.MaxValue / 2 };
+            Load(plugin.Id);
+            lock (gate)
+            {
+                if (Generation(plugin.Id) != generation) throw new McpException("That connection was forgotten. Open its setup again.");
+                grants[plugin.Id + "/" + spec.Name] = made;
+            }
+            Save(plugin.Id);
+        }
+
+        internal static bool Run(PluginInfo plugin, PluginServer spec, long generation)
+        {
+            if (Generation(plugin.Id) != generation) throw new McpException("That connection changed. Start its sign-in again.");
+            if (spec.TokenEntry) throw new McpException("Add a personal access token from this plug-in's window in Mods.");
             string host = new Uri(spec.Url).Host;
             Dictionary<string, string> sent = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, string> pair in spec.Headers) sent[pair.Key] = McpServer.Expand(pair.Value, plugin.Root);
@@ -382,7 +427,9 @@ namespace CapriDesktop
             }
             if (meta == null) throw new McpException("Capri couldn't find how to sign in to " + host + ".");
             string registration = PluginJson.Str(meta, "registration_endpoint");
-            if (registration == null || !McpHttp.Allowed(registration)) throw new McpException(host + " doesn't let apps like Capri sign in by themselves yet.");
+            if (spec.ClientId == null && (registration == null || !McpHttp.Allowed(registration))) throw new McpException(host + " needs a registered public-client ID in its plug-in, or another supported sign-in method.");
+            List<object> tokenMethods = PluginJson.List(PluginJson.Get(meta, "token_endpoint_auth_methods_supported"));
+            if (spec.ClientId != null && tokenMethods != null && !tokenMethods.Contains("none")) throw new McpException(host + " does not advertise a public-client token exchange. Capri cannot keep a shared client secret.");
             string authorizeUrl = PluginJson.Str(meta, "authorization_endpoint"), tokenUrl = PluginJson.Str(meta, "token_endpoint");
 
             TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
@@ -391,13 +438,17 @@ namespace CapriDesktop
             {
                 int port = ((IPEndPoint)listener.LocalEndpoint).Port;
                 string redirect = "http://127.0.0.1:" + port + "/callback";
-                int regStatus;
-                object client = McpHttp.Post(registration, "application/json", PluginJson.Write(PluginJson.Make("client_name", "Capri", "redirect_uris", new List<object> { redirect }, "grant_types", new List<object> { "authorization_code", "refresh_token" }, "response_types", new List<object> { "code" }, "token_endpoint_auth_method", "none")), Quick, out regStatus);
-                string clientId = PluginJson.Str(client, "client_id");
-                if (regStatus < 200 || regStatus > 299 || clientId == null) throw new McpException(host + " wouldn't register Capri to sign in.");
+                string clientId = spec.ClientId;
+                if (clientId == null)
+                {
+                    int regStatus;
+                    object client = McpHttp.Post(registration, "application/json", PluginJson.Write(PluginJson.Make("client_name", "Capri", "redirect_uris", new List<object> { redirect }, "grant_types", new List<object> { "authorization_code", "refresh_token" }, "response_types", new List<object> { "code" }, "token_endpoint_auth_method", "none")), Quick, out regStatus);
+                    clientId = PluginJson.Str(client, "client_id");
+                    if (regStatus < 200 || regStatus > 299 || clientId == null) throw new McpException(host + " wouldn't register Capri to sign in.");
+                }
 
                 string verifier = Secret(48), state = Secret(18);
-                string scope = scopeAt.Success ? scopeAt.Groups[1].Value : null;
+                string scope = spec.Scope ?? (scopeAt.Success ? scopeAt.Groups[1].Value : null);
                 string url = authorizeUrl + (authorizeUrl.IndexOf('?') >= 0 ? "&" : "?") + Form("response_type", "code", "client_id", clientId, "redirect_uri", redirect, "code_challenge", Challenge(verifier), "code_challenge_method", "S256", "state", state, "resource", resource, "scope", scope);
                 Action<string> open = Plugins.OpenBrowser;
                 if (open == null) throw new McpException("Capri can't open your browser here.");
@@ -409,10 +460,14 @@ namespace CapriDesktop
                 object tokens = McpHttp.Post(tokenUrl, "application/x-www-form-urlencoded", Form("grant_type", "authorization_code", "code", code, "redirect_uri", redirect, "client_id", clientId, "code_verifier", verifier, "resource", resource), Quick, out status);
                 string access = PluginJson.Str(tokens, "access_token");
                 if (status < 200 || status > 299 || access == null) throw new McpException(host + " didn't let Capri in" + (PluginJson.Str(tokens, "error") == null ? "." : " (" + Plugins.Line(PluginJson.Str(tokens, "error"), 60) + ")."));
-                Grant made = new Grant { Client = clientId, Auth = authorizeUrl, Token = tokenUrl, Resource = resource, Url = spec.Url };
+                Grant made = new Grant { Client = clientId, Auth = authorizeUrl, Token = tokenUrl, Resource = resource, Url = spec.Url, Binding = Binding(spec) };
                 Load(plugin.Id);
                 Keep(made, tokens, access);
-                lock (gate) grants[plugin.Id + "/" + spec.Name] = made;
+                lock (gate)
+                {
+                    if (Generation(plugin.Id) != generation) throw new McpException("That sign-in was cancelled because the connection was forgotten.");
+                    grants[plugin.Id + "/" + spec.Name] = made;
+                }
                 Save(plugin.Id);
                 return true;
             }

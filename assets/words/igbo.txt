@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	agaghị ede n'ngwa
 · HD	· HD
 · on this PC	· n'ọnụ kọmputa a
 · server	· sava
+Edit as text	Dezie dị ka ederede
+What Capri remembers about you. It stays on this computer.	Ihe Capri na-echeta gbasara gị. Ọ na-anọ na kọmputa a.
+Tell her something to remember	Gwa ya ihe ọ ga-echeta
+Search her memory	Chọọ na ncheta ya
+That day isn't there any more.	Ụbọchị ahụ adịkwaghị.
+Undo	Weghachi
+Remember our chats is off, so she isn't keeping new chat memories.	Icheta mkparịta ụka anyị agbanyụla, yabụ ọ naghị echekwa ncheta mkparịta ụka ọhụrụ.
+ABOUT YOU	GBASARA GỊ
+FROM YOUR CHATS	SITE NA MKPARỊTA ỤKA GỊ
+GAMES	EGWUREGWU
+CHAT LOGS	NDEKỌ MKPARỊTA ỤKA
+CHAT LOG	NDEKỌ MKPARỊTA ỤKA
+Nothing matches.	Ọnweghị ihe dabara.
+Nothing yet.	Ọnweghị ihe ka dị.
+Reading her notes.	Na-agụ ndetu ya.
+Click again to forget game notes	Pịa ọzọ ka ichefuo ndetu egwuregwu
+Forget game notes	Chefuo ndetu egwuregwu
+Click again to forget everything about me	Pịa ọzọ ka ichefuo ihe niile gbasara gị
+Forget everything about me	Chefuo ihe niile gbasara gị
+Click again to forget	Pịa ọzọ ka ichefuo
+Forget this day	Chefuo ụbọchị a
+Only the start of this day is shown.	A na-egosi naanị mmalite ụbọchị a.
+Nothing in this day.	Ọnweghị ihe n'ụbọchị a.
+No chats kept yet.	Enweghị mkparịta ụka echekwara.
+You	Gị
+{0} line	Ahịrị {0}
+SET UP EMAIL >	HAZIE OZI ỊNTANETỊ >
+SET UP EMAIL	HAZIE OZI ỊNTANETỊ
+Or type your address	Ma ọ bụ dee adreesị gị
+Email address	Adreesị ozi ịntanetị
+Open the page	Mepee ibe ahụ
+App password	Paswọọdụ ngwa
+IMAP server	Sava IMAP
+Incoming mail server	Sava ozi ịntanetị na-abata
+SMTP server	Sava SMTP
+Outgoing mail server	Sava ozi ịntanetị na-apụ
+An app password is a separate password just for Capri. Your normal password stays yours.	Paswọọdụ ngwa bụ paswọọdụ dị iche naanị maka Capri. Paswọọdụ gị nkịtị ka bụ nke gị.
+She keeps it only until she closes.	Ọ na-edebe ya naanị ruo mgbe ọ mechiri.
+She checks, searches and reads your mail. She asks before she sends any.	Ọ na-enyocha, na-achọ ma na-agụ ozi gị. Ọ na-ajụ tupu o ziga ihe ọ bụla.
+Watch for new mail	Lelee ozi ọhụrụ
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ọ na-ekwu mgbe ozi batara, na ịdọ aka ná ntị ma ọ dị ka phishing. Ọnweghị ihe a na-akanye dị ka agụọla.
+Deal with phishing on her own	Nụsịa phishing n'onwe gị
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Naanị mgbe ọ na-ele. Ozi ọ kwenyesiri ike na ọ bụ phishing na-aga spam. Nke fọdụrụ na-eche nkwenye gị.
+Forget account	Chefuo akaụntụ
+Use another email	Jiri ozi ịntanetị ọzọ
+Which email?	Kedu ozi ịntanetị?
+Make an app password	Mepụta paswọọdụ ngwa
+Paste it	Tapịa ya
+Connecting...	Na-ejikọta...
+She can use your email now.	Ugbu a ọ nwere ike iji ozi ịntanetị gị.
+She's not watching your inbox.	Ọ naghị ele igbe mbata gị.
+She's watching your inbox and deals with phishing she's sure of.	Ọ na-ele igbe mbata gị ma na-ejizi phishing ọ kwenyesiri ike.
+She's watching your inbox and tells you when mail lands.	Ọ na-ele igbe mbata gị ma na-agwa gị mgbe ozi batara.
+She forgot that account and its app password.	Ọ chefuru akaụntụ ahụ na paswọọdụ ngwa ya.
+She forgot that account. Its app password is gone from this PC.	Ọ chefuru akaụntụ ahụ. Paswọọdụ ngwa ya furu efu na kọmputa a.

@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	no escriurà en alt
 · HD	· HD
 · on this PC	· en aquest PC
 · server	· servidor
+Edit as text	Edita com a text
+What Capri remembers about you. It stays on this computer.	El que la Capri recorda de tu. Es queda en aquest ordinador.
+Tell her something to remember	Digues-li alguna cosa per recordar
+Search her memory	Cerca a la seva memòria
+That day isn't there any more.	Aquell dia ja no hi és.
+Undo	Desfés
+Remember our chats is off, so she isn't keeping new chat memories.	Recorda les nostres converses està desactivat, així que no guarda nous records de xat.
+ABOUT YOU	SOBRE TU
+FROM YOUR CHATS	DE LES TEVES CONVERSES
+GAMES	JOCS
+CHAT LOGS	REGISTRES DE XAT
+CHAT LOG	REGISTRE DE XAT
+Nothing matches.	No hi ha cap coincidència.
+Nothing yet.	Encara res.
+Reading her notes.	Llegint les seves notes.
+Click again to forget game notes	Torna a fer clic per oblidar les notes dels jocs
+Forget game notes	Oblida les notes dels jocs
+Click again to forget everything about me	Torna a fer clic per oblidar-ho tot sobre tu
+Forget everything about me	Oblida-ho tot sobre tu
+Click again to forget	Torna a fer clic per oblidar
+Forget this day	Oblida aquest dia
+Only the start of this day is shown.	Només es mostra el començament d'aquest dia.
+Nothing in this day.	Res en aquest dia.
+No chats kept yet.	Encara no hi ha converses guardades.
+You	Tu
+{0} line	{0} línia
+SET UP EMAIL >	CONFIGURA EL CORREU >
+SET UP EMAIL	CONFIGURA EL CORREU
+Or type your address	O escriu la teva adreça
+Email address	Adreça de correu
+Open the page	Obre la pàgina
+App password	Contrasenya d'aplicació
+IMAP server	Servidor IMAP
+Incoming mail server	Servidor de correu entrant
+SMTP server	Servidor SMTP
+Outgoing mail server	Servidor de correu sortint
+An app password is a separate password just for Capri. Your normal password stays yours.	Una contrasenya d'aplicació és una contrasenya a part només per a la Capri. La teva contrasenya normal segueix sent teva.
+She keeps it only until she closes.	Només la guarda fins que es tanca.
+She checks, searches and reads your mail. She asks before she sends any.	Ella revisa, busca i llegeix el teu correu. Pregunta abans d'enviar-ne.
+Watch for new mail	Vigila el correu nou
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ella parla quan arriba correu, amb un avís si sembla phishing. Res es marca com a llegit.
+Deal with phishing on her own	Encarna's del phishing tu sola
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Només mentre vigila. El correu que segur que és phishing va a spam. La resta espera el teu sí.
+Forget account	Oblida el compte
+Use another email	Fes servir un altre correu
+Which email?	Quin correu?
+Make an app password	Crea una contrasenya d'aplicació
+Paste it	Enganxa-la
+Connecting...	S'està connectant...
+She can use your email now.	Ja pot fer servir el teu correu.
+She's not watching your inbox.	No està vigilant la teva safata d'entrada.
+She's watching your inbox and deals with phishing she's sure of.	Està vigilant la teva safata i s'encarrega del phishing que té clar.
+She's watching your inbox and tells you when mail lands.	Està vigilant la teva safata i t'avisa quan arriba correu.
+She forgot that account and its app password.	Ha oblidat aquest compte i la seva contrasenya d'aplicació.
+She forgot that account. Its app password is gone from this PC.	Ha oblidat aquest compte. La seva contrasenya d'aplicació ja no és en aquest PC.

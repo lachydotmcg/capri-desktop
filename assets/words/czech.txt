@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	neposílá text do 
 · HD	· HD
 · on this PC	· na tomto PC
 · server	· server
+Edit as text	Upravit jako text
+What Capri remembers about you. It stays on this computer.	Co si Capri o tobě pamatuje. Zůstává na tomto počítači.
+Tell her something to remember	Řekni jí něco k zapamatování
+Search her memory	Hledat v její paměti
+That day isn't there any more.	Ten den už tam není.
+Undo	Vrátit zpět
+Remember our chats is off, so she isn't keeping new chat memories.	Pamatovat si naše chaty je vypnuté, takže si neukládá nové vzpomínky z chatů.
+ABOUT YOU	O TOBĚ
+FROM YOUR CHATS	Z TVÝCH CHATŮ
+GAMES	HRY
+CHAT LOGS	ZÁZNAMY CHATŮ
+CHAT LOG	ZÁZNAM CHATU
+Nothing matches.	Nic neodpovídá.
+Nothing yet.	Zatím nic.
+Reading her notes.	Čte její poznámky.
+Click again to forget game notes	Klikni znovu pro zapomenutí poznámek ke hrám
+Forget game notes	Zapomenout poznámky ke hrám
+Click again to forget everything about me	Klikni znovu pro zapomenutí všeho o tobě
+Forget everything about me	Zapomenout vše o tobě
+Click again to forget	Klikni znovu pro zapomenutí
+Forget this day	Zapomenout tento den
+Only the start of this day is shown.	Zobrazuje se jen začátek tohoto dne.
+Nothing in this day.	Nic v tento den.
+No chats kept yet.	Zatím žádné uložené chaty.
+You	Ty
+{0} line	{0} řádek
+SET UP EMAIL >	NASTAVIT E-MAIL >
+SET UP EMAIL	NASTAVIT E-MAIL
+Or type your address	Nebo napiš svou adresu
+Email address	E-mailová adresa
+Open the page	Otevřít stránku
+App password	Heslo aplikace
+IMAP server	Server IMAP
+Incoming mail server	Server příchozí pošty
+SMTP server	Server SMTP
+Outgoing mail server	Server odchozí pošty
+An app password is a separate password just for Capri. Your normal password stays yours.	Heslo aplikace je samostatné heslo jen pro Capri. Tvoje běžné heslo zůstává tvoje.
+She keeps it only until she closes.	Uchovává ho jen do zavření.
+She checks, searches and reads your mail. She asks before she sends any.	Kontroluje, hledá a čte tvou poštu. Před odesláním se ptá.
+Watch for new mail	Sledovat novou poštu
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Oznámí se, když přijde pošta, s upozorněním, pokud to vypadá jako phishing. Nic se neoznačí jako přečtené.
+Deal with phishing on her own	Vyřídit phishing sama
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Jen dokud sleduje. Pošta, u které si je jistá, že jde o phishing, jde do spamu. Zbytek čeká na tvoje ano.
+Forget account	Zapomenout účet
+Use another email	Použít jiný e-mail
+Which email?	Který e-mail?
+Make an app password	Vytvořit heslo aplikace
+Paste it	Vlož ho
+Connecting...	Připojování...
+She can use your email now.	Teď může používat tvůj e-mail.
+She's not watching your inbox.	Nesleduje tvou doručenou poštu.
+She's watching your inbox and deals with phishing she's sure of.	Sleduje tvou doručenou poštu a vyřizuje phishing, kterým si je jistá.
+She's watching your inbox and tells you when mail lands.	Sleduje tvou doručenou poštu a oznámí, když přijde pošta.
+She forgot that account and its app password.	Zapomněla ten účet i jeho heslo aplikace.
+She forgot that account. Its app password is gone from this PC.	Zapomněla ten účet. Jeho heslo aplikace zmizelo z tohoto počítače.
