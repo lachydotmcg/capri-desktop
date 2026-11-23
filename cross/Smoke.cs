@@ -557,7 +557,7 @@ namespace CapriDesktop
                 LocalVoiceChecks();
                 BrainServerChecks();
                 ProviderRegression.Run(pet, folder);
-                checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
+                checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, the unkeyed server message is unchanged, and OpenCode Go models and chats carry one stable session header");
                 ChoresChecks();
                 LinuxInputChecks();
                 PlasmaHandsChecks();

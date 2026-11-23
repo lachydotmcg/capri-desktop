@@ -80,6 +80,7 @@ namespace CapriDesktop
                 { Brain.NoCredits, "Free key" }, { Brain.Meaning(402, ""), "Free key" },
                 { Brain.PlusRejected, "platform.openai.com" }, { Brain.Meaning(401, "{\"error\":\"bad key\"}", false, true), "platform.openai.com" },
                 { Brain.NotAKey, "Copy the whole key" }, { Brain.Unserved, "Free key" }, { Brain.NoFreeModels, "Refresh" },
+                { Brain.NoGoPlan, "opencode.ai/console/go" }, { Brain.MissingSession, "Update" },
                 { Brain.Blocked, "Built-in" }, { Brain.Rejected("NVIDIA"), "Forget" }, { Brain.Rejected(null), "Forget" },
                 { Brain.OpenAiNoCredits, "platform.openai.com" }, { Brain.OpenAiCapped, "platform.openai.com" },
                 { Brain.TooLarge("gpt-5.4", true), "smaller model" }, { Brain.DailyLimit("gpt-5.6-luna", true), "add credits" }
@@ -103,7 +104,7 @@ namespace CapriDesktop
                 if (!shown.EndsWith(Brain.Brief(Brain.NotAKey), StringComparison.Ordinal) || shown.Contains("...")) throw new Exception("Pasting a key she doesn't know showed " + shown);
             }
             finally { mainframe.ShowProblem(noteWas); }
-            checks.Add("PASS BRAIN note short forms: no credits, an OpenAI key without API credit, a pasted key she doesn't know, Gemini not offered where you are, OpenRouter with no free models, and an OpenAI key with no credits, at a spend limit, too big for its per-minute limit or at its daily limit each fit the note's 60 characters and keep their fix (Free key, platform.openai.com, copy the whole key, Refresh, a smaller model, add credits), lines that already fit are left alone, and pasting a non-key shows the whole short form");
+            checks.Add("PASS BRAIN note short forms: no credits, an OpenAI key without API credit, a pasted key she doesn't know, Gemini not offered where you are, OpenRouter with no free models, an OpenCode key without a Go plan or a newer Capri, and an OpenAI key with no credits, at a spend limit, too big for its per-minute limit or at its daily limit each fit the note's 60 characters and keep their fix (Free key, platform.openai.com, copy the whole key, Refresh, subscribe, update, a smaller model, add credits), lines that already fit are left alone, and pasting a non-key shows the whole short form");
         }
 
         // Hearing problems: Windows' step names and codes stay in errors.txt, the hearing line gives a plain reason that fits

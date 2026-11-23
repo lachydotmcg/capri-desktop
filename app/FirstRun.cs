@@ -366,7 +366,7 @@ namespace CapriDesktop
                 picks = new Pickable[4];
                 int[] order = { FirstRun.Local, FirstRun.Free, FirstRun.Own, FirstRun.NoAi };
                 string[] names = { "ON THIS PC", "FREE KEY", "MY PLAN OR KEY", "NO AI" };
-                string[] bodies = { local, "A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.", "Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.", "Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe." };
+                string[] bodies = { local, "A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.", "Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek, OpenCode Go), or Ollama.", "Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe." };
                 string[] asides = { capri.FitMinutes, "about 1 min", "about 1 min", null };
                 for (int i = 0; i < 4; i++)
                 {
@@ -565,7 +565,7 @@ namespace CapriDesktop
                 Caption("Runs Claude Code or Codex on this PC, signed in.", 28, 184, Wide - 56, 20, Mono(14), Faint);
                 Caption("OLLAMA", 28, 222, 200, 20, Mono(15), Faint);
                 MakeKey("Open Ollama, I'll find it", 28, 246, 262, 40, Body(18, true), Rose, delegate { Ollama(); });
-                return KeyRow(306, "OR A KEY", "OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.", false);
+                return KeyRow(306, "OR A KEY", "OpenAI, Claude, DeepSeek, OpenCode Go or Gemini.", false);
             }
 
             internal void Plan(string kind)

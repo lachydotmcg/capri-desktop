@@ -24,7 +24,7 @@ A desktop companion. She sits on your windows and taskbar, chats with you, talks
 - Her free voice: free, runs on your PC.
 - MEDIUM INTELLIGENCE: free with NVIDIA, Google AI Studio (Gemini) or OpenRouter keys. Free keys can be rate limited and slow.
 - ElevenLabs (her best voice): has a free plan with monthly credits. Paid plans give more credits and voice cloning.
-- OpenAI, Claude or DeepSeek keys: these need paid credits on their sites.
+- OpenAI, Claude or DeepSeek keys: these need paid credits on their sites. OpenCode Go needs a Go subscription from opencode.ai/console/go.
 
 ### How can I support Capri?
 Capri is free. To support the people who make her, tip them on Ko-fi. The links are also at the bottom of every page of the website.
@@ -371,13 +371,13 @@ To find a setting, type what you want to change in the search box at the top of 
   - OFF (0.9.0): "No AI · no brain at all". She stays on your desktop with no brain: nothing is downloaded for it and nothing is sent to any model or service. She still walks, sits on windows, dances to your music, reacts to clicks, naps and does what she knows by phrase, like volume, music and her moves. A question gets one short line saying her brain is off, and not again for a while. Picking any other row switches a brain back on; your keys and downloaded brain stay. Her first launch card offers it as NO AI.
   - NORMAL: "Free · local model", marked "Start with this!". Use her built-in brain, Ollama, LM Studio, Jan, KoboldCpp or llama.cpp on your PC. New installs start here.
   - MEDIUM INTELLIGENCE: "Free". Accepts NVIDIA, Google AI Studio (Gemini) or OpenRouter keys. OpenRouter only lists models ending :free.
-  - MAX INTELLIGENCE: "Key or plan". Accepts Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek keys, or your own Claude or ChatGPT plan through My plan. Full model list, including paid models.
+  - MAX INTELLIGENCE: "Key or plan". Accepts Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or OpenCode Go keys, or your own Claude or ChatGPT plan through My plan. Full model list, including paid models.
 - The key box shows when MEDIUM INTELLIGENCE or MAX INTELLIGENCE is picked. Paste a key and press Connect. Once saved it shows "Key saved, ends XXXX".
   - MEDIUM INTELLIGENCE: "NVIDIA / Google AI Studio / OpenRouter".
   - MAX INTELLIGENCE: "Paste a brain API key".
 - MEDIUM INTELLIGENCE warning (yellow): "Free keys can be rate limited and slow."
 - Each row keeps its own key. Picking another row doesn't delete a key.
-- Move to MAX: an OpenAI, Claude or DeepSeek key pasted under MEDIUM INTELLIGENCE shows "That's a paid key: it goes under MAX INTELLIGENCE." Press Move to MAX to connect it there. Your current key keeps running until the new key connects successfully.
+- Move to MAX: an OpenAI, Claude, DeepSeek or OpenCode Go key pasted under MEDIUM INTELLIGENCE shows "That's a paid key: it goes under MAX INTELLIGENCE." Press Move to MAX to connect it there. Your current key keeps running until the new key connects successfully.
 - A row with no key yet runs her NORMAL brain until you connect one.
 - Forget: shows in red when the box is empty and a key is saved. It removes that row's key and moves her back to NORMAL.
 - Used HIGHER? It's now MEDIUM INTELLIGENCE; your key and model are kept. Existing MAX INTELLIGENCE setups stay on MAX.
@@ -759,13 +759,13 @@ Pick one of the three rows under BRAIN:
 - Most PCs: NORMAL ("Start with this!"). Press Set up her brain. Free, private, works offline once downloaded.
 - Slow or older PC, low RAM, or replies take ages while you game: MEDIUM INTELLIGENCE, free with NVIDIA, Google AI Studio (Gemini) or OpenRouter keys. Nothing to download. Needs internet. Free keys can be rate limited and slow.
 - Already use Ollama: NORMAL. Open Ollama, then press Refresh.
-- Want her smartest: MAX INTELLIGENCE, with Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek keys. Full model list, including paid models.
+- Want her smartest: MAX INTELLIGENCE, with Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or OpenCode Go keys. Full model list, including paid models.
 
 ### Which brain does she use if I have more than one?
 The row you picked under BRAIN. Only one runs at a time.
 - NORMAL: the local brain you picked. This can be Ollama, her built-in brain or a local server. Start the server, press Refresh and use the model menu to choose it.
 - MEDIUM INTELLIGENCE: your NVIDIA, Google AI Studio (Gemini) or OpenRouter key. OpenRouter is limited to :free models here.
-- MAX INTELLIGENCE: your Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key, or your own Claude or ChatGPT plan through My plan, with the full model list including paid models.
+- MAX INTELLIGENCE: your Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or OpenCode Go key, or your own Claude or ChatGPT plan through My plan, with the full model list including paid models.
 
 If the row you picked has no key yet, she uses her NORMAL brain until you connect one. To go back to Ollama or the built-in brain, pick NORMAL. Your keys stay saved.
 
@@ -812,17 +812,18 @@ From 0.7.6 the Model menu marks two NVIDIA models "· recommended" and lists the
 ### Why did she switch NVIDIA models by herself?
 If a model doesn't answer in time or NVIDIA's servers fail, she tries the next one so you still get a reply. She says "<old> wasn't answering, so she switched to <new>." This switch is only for that moment. Your saved pick stays the same, and she keeps your chat going on the new model. If it keeps happening, pick another model like nvidia/nemotron-3.5-bolt-e4b in the Model menu. It can't see your screen. To never switch, turn on Stay on my model in Capri Mainframe > Settings, next to the BRAIN heading: then she tells you the model is stuck and stays on it.
 
-### OpenAI, Claude or DeepSeek keys
+### OpenAI, Claude, DeepSeek or OpenCode Go keys
 Pick MAX INTELLIGENCE under BRAIN, paste the key in its box and press Connect. She can tell which company it's for:
 - Claude keys start with sk-ant-
 - NVIDIA keys start with nvapi-
-- DeepSeek and OpenAI keys start with sk-
+- DeepSeek and OpenAI keys start with sk- (DeepSeek's are 32 letters and numbers)
+- OpenCode Go keys start with oc_sk_, or are an older Go key that is sk- followed by 64 letters and numbers
 
-These keys need paid credits on their sites. A new key with no credits won't work. From 0.7.9 deepseek-flash can see your screen.
+These keys need paid credits on their sites, except OpenCode Go, which needs a Go subscription from opencode.ai/console/go. A new key with no credits won't work. From 0.7.9 deepseek-flash can see your screen. Every OpenCode Go chat carries a session id of its own, so the service can route the conversation and keep its prompt cache warm.
 
-- Move to MAX: paste an OpenAI, Claude or DeepSeek key under MEDIUM INTELLIGENCE and she offers Move to MAX. Press it to connect there; your current key keeps running until the new key connects successfully.
+- Move to MAX: paste an OpenAI, Claude, DeepSeek or OpenCode Go key under MEDIUM INTELLIGENCE and she offers Move to MAX. Press it to connect there; your current key keeps running until the new key connects successfully.
 
-A new Claude key starts on Haiku 5.5. You can choose another model from the menu under BRAIN.
+A new Claude key starts on Haiku 5.5. An OpenCode Go key starts on the first chat model the service lists. You can choose another model from the menu under BRAIN.
 
 ### How do I remove a key?
 Clear the key box. The button turns into a red Forget. Press it.
@@ -2113,7 +2114,7 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 ### Works
 - Sitting on windows (X11 and Mac) or the bottom of the screen (Wayland)
 - Chatting by typing: hover her and press the pencil, or right-click her > Talk to her
-- Her brain through Ollama, or through a free NVIDIA key (or an OpenAI, Claude or DeepSeek key) with no Ollama needed
+- Her brain through Ollama, or through a free NVIDIA key (or an OpenAI, Claude, DeepSeek or OpenCode Go key) with no Ollama needed
 - Her ElevenLabs voice for spoken replies, or a voice server on your own computer (0.7.8 and newer): right-click her > Settings > Voice > Provider picks ElevenLabs, a local server or Off
 - Any local model (0.7.8 and newer): right-click her > Brain > Download a model (Ollama or Hugging Face)... takes an Ollama name or a Hugging Face GGUF link, and Use my own server (OpenAI API)... uses LM Studio, llama-server or another server like them. Use my own provider with a key (OpenAI API)... points her at any OpenAI-compatible provider elsewhere; its key stays in a file only your account can read
 - Mouse and keyboard jobs on Linux (0.7.8 and newer): right-click her > Settings > Security > Set up mouse and keyboard... copies the one command they need. Run it in a terminal. Grab the mouse to stop her
@@ -2200,8 +2201,8 @@ No Ollama needed, and nothing to download. 0.7.4 and older only think with Ollam
 
 If an NVIDIA model gets stuck, she switches to another one and answers. She goes back to your pick the next time she starts. To keep her on your model, tick Brain > Stay on my model; she then says what went wrong instead.
 
-An OpenAI, Claude or DeepSeek key works the same way: right-click her > Brain > Use an API key...
-- "That doesn't look like an NVIDIA, OpenAI, Claude or DeepSeek key. NVIDIA's start with nvapi-." You pasted something else.
+An OpenAI, Claude, DeepSeek or OpenCode Go key works the same way: right-click her > Brain > Use an API key...
+- "That doesn't look like an NVIDIA, OpenAI, Claude, DeepSeek or OpenCode Go key. NVIDIA's start with nvapi-." You pasted something else.
 - "Couldn't reach NVIDIA. Check your internet, then paste the key again." (or another company)
 - "That key can't use any chat models."
 
@@ -2315,8 +2316,10 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "NVIDIA didn't answer in time.": try again or pick another model.
 - She changed NVIDIA models by herself: the model she was using didn't answer, so she used another one for that reply. Your pick stays.
 - "NVIDIA rejected the key for my brain. Press Forget under BRAIN in Capri Mainframe, then paste it again." (or OpenRouter, Anthropic or DeepSeek; the BRAIN note says "Key rejected. Press Forget, then paste it again."): her brain's key is wrong or was deleted. Copy it again from that company's site. Her voice keys (Fish Audio, ElevenLabs) are separate and name themselves in their own errors, so a new voice key won't fix this one.
-- "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or xAI key.": you pasted something else, or only part of the key. NVIDIA keys start with nvapi-. The BRAIN note says "Not a key she knows. Copy the whole key again and paste it."
-- "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.": OpenAI, Claude and DeepSeek need paid credits. Add credits, or press Free key for a free NVIDIA key.
+- "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek, xAI or OpenCode Go key.": you pasted something else, or only part of the key. NVIDIA keys start with nvapi-. The BRAIN note says "Not a key she knows. Copy the whole key again and paste it."
+- "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.": OpenAI, Claude and DeepSeek need paid credits, and OpenCode Go needs a Go subscription. Add credits or subscribe, or press Free key for a free NVIDIA key.
+- "This key isn't on an OpenCode Go plan. Subscribe at opencode.ai/console/go, or pick another brain key.": the OpenCode key works, but its workspace has no Go subscription. Subscribe on the Go page, or paste another provider's key under BRAIN. The BRAIN note says "No OpenCode Go plan. Subscribe at opencode.ai/console/go."
+- "OpenCode Go needs a newer Capri for each chat. Update Capri, or pick another brain key.": update Capri, then connect the key again. The BRAIN note says "OpenCode Go needs a newer Capri. Update it."
 - "No credits on your OpenAI key. ChatGPT Plus doesn't include API use, so add a payment method and credits under Billing at platform.openai.com, or press Free key for a free NVIDIA key.": OpenAI bills its API apart from ChatGPT, so a Plus subscription doesn't pay for her brain. Add a payment method and buy credits under Billing at platform.openai.com, or press Free key for a free NVIDIA key. The BRAIN note says "No API credits. Add them in Billing at platform.openai.com."
 - "My requests are too big for your OpenAI key's per-minute limit on <model>, so waiting won't help.": each request carries her tools, and a key with no payment method or credits is on OpenAI's free tier, where one request can be bigger than a model's whole per-minute limit. Pick a smaller model, or add a payment method and credits under Billing at platform.openai.com, which moves the key up a tier. ChatGPT Plus doesn't include API use. The Limits page at platform.openai.com shows the key's tier. The BRAIN note says "Too big for the key's per-minute limit. Try a smaller model."
 - "Your OpenAI key hit its daily limit on <model>.": the key's tier allows only so many requests a day on that model, and Watch my screen uses some too. It resets within a day, or add a payment method and credits under Billing at platform.openai.com to raise it. The BRAIN note says "OpenAI's daily limit is used. Try later or add credits."

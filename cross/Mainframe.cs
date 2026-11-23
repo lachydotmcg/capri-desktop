@@ -465,7 +465,7 @@ namespace CapriDesktop
             Caption("2. Download her brain.", 28, 160, 328, 18, MainframeTheme.Faint);
             Caption("3. Pick a model.", 28, 182, 328, 18, MainframeTheme.Faint);
             Caption("Have Ollama? Open it, then press Refresh.", 28, 264, 328, 18, MainframeTheme.Faint, 12);
-            tierNote = Caption("", 28, 168, 328, 16, MainframeTheme.Faint, 34.0 / 3);
+            tierNote = Caption("", 28, 168, 350, 16, MainframeTheme.Faint, 34.0 / 3);
             string[] brainNames = { "NORMAL", "MEDIUM INTELLIGENCE", "MAX INTELLIGENCE" };
             string[] brainHints = { "Free · local model", "Free", "Cloud API keys" };
             for (int i = 0; i < 3; i++)
@@ -860,7 +860,7 @@ namespace CapriDesktop
                 for (int i = 0; i < voices.Length; i++) if (voices[i] != null) { voices[i].Checked = i == pet.MainframeVoiceMode; voices[i].InvalidateVisual(); }
                 brainName.Text = pet.MainframeBrainName;
                 brainNote.Text = pet.MainframeBrainNote;
-                tierNote.Text = pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
+                tierNote.Text = pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, OpenAI, Claude, DeepSeek, OpenCode" : "Pick one. Only one brain runs at a time.";
                 textKey.Cue = pet.MainframeBrainKey != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
                 textConnect.Text = pet.MainframeBrainKey == null || !string.IsNullOrWhiteSpace(textKey.Box.Text) ? "Connect" : "Forget";
                 voiceKey.Cue = pet.MainframeVoiceKey == null ? "ElevenLabs key" : "Key saved, ends " + Voice.Tail(pet.MainframeVoiceKey);

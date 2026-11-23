@@ -439,11 +439,11 @@ namespace CapriDesktop
         internal bool Claude { get { return Kind == "anthropic"; } }
         // Their own Claude or ChatGPT plan, through Claude Code or Codex on their PC.
         internal bool Plan { get { return Plans.Is(Kind); } }
-        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Kind == "xai" ? "Grok" : Plan ? Plans.App(Kind) : Company; } }
+        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Kind == "xai" ? "Grok" : Kind == "opencode" ? "OpenCode Go" : Plan ? Plans.App(Kind) : Company; } }
         internal string Company { get { return Kind == "local" ? Name : CompanyOf(Kind); } }
-        internal static string CompanyOf(string kind) { return kind == "anthropic" || kind == "claudecode" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "xai" ? "xAI" : kind == "openai" || kind == "codex" ? "OpenAI" : "That provider"; }
+        internal static string CompanyOf(string kind) { return kind == "anthropic" || kind == "claudecode" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "xai" ? "xAI" : kind == "opencode" ? "OpenCode" : kind == "openai" || kind == "codex" ? "OpenAI" : "That provider"; }
         internal string Source { get { return Kind + (Kind == "local" ? "|" + Host : "") + "|" + Model; } }
-        internal string Sight { get { return Kind == "local" || Kind == "google" || Kind == "openrouter" ? Source : Model; } }
+        internal string Sight { get { return Kind == "local" || Kind == "google" || Kind == "openrouter" || Kind == "opencode" ? Source : Model; } }
 
         internal static bool IsCode(string key) { return Regex.IsMatch((key ?? "").Trim().ToUpperInvariant(), @"\ACAPRI(?:-[A-Z0-9]{2,12})?(-[0-9A-HJKMNP-TV-Z]{4}){4}\z"); }
 
@@ -464,6 +464,7 @@ namespace CapriDesktop
             if (Plans.KindOf(key) != null) return Plans.KindOf(key);
             // Google AI Studio gives out keys that start AQ. now (Senshy, Echo, ALASTOR and lluvia.flac, 1 Nov).
             if (key.StartsWith("AIza", StringComparison.Ordinal) || key.StartsWith("AQ.", StringComparison.Ordinal)) return "google";
+            if (BetterModels.OpenCodeKey(key)) return "opencode";
             if (BetterModels.XaiKey(key)) return "xai";
             if (key.StartsWith("sk-or-", StringComparison.Ordinal)) return "openrouter";
             if (key.StartsWith("sk-nous-", StringComparison.Ordinal)) return null;
@@ -538,7 +539,7 @@ namespace CapriDesktop
         {
             if (code) return "Capri codes stay on Low";
             if (Plans.Is(kind)) return "its app sets this";
-            return kind == "openai" || kind == "anthropic" || kind == "google" || kind == "deepseek" || kind == "nvidia" || kind == "openrouter" || kind == "kimi" ? null : "not for local brains";
+            return kind == "openai" || kind == "anthropic" || kind == "google" || kind == "deepseek" || kind == "nvidia" || kind == "openrouter" || kind == "kimi" || kind == "opencode" ? null : "not for local brains";
         }
 
         // Why a model can't take a level, in a few words for its menu row, or null when it can.
@@ -716,6 +717,7 @@ namespace CapriDesktop
         internal static string Nvidia = "https://integrate.api.nvidia.com";
         internal static string Google = "https://generativelanguage.googleapis.com/v1beta/openai";
         internal static string OpenRouter = "https://openrouter.ai/api/v1";
+        internal static string OpenCode = "https://opencode.ai/inference/go";
         private static readonly string[] NvidiaPicks = { "nvidia/nemotron-3.5-super-vl-120b-a12b", "nvidia/nemotron-3.5-bolt-e4b", "openai/gpt-oss-20b", "meta/llama-3.2-11b-vision-instruct" };
         // Marked recommended at the top of an NVIDIA key's models: Nemotron Super, which sees screens, and Nemotron's reasoning model.
         private static readonly string[] NvidiaRecommended = { "nvidia/nemotron-3.5-super-vl-120b-a12b", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" };
@@ -776,7 +778,9 @@ namespace CapriDesktop
             if (told != null) told(what);
         }
 
-        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek or xAI key.";
+        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek, xAI or OpenCode Go key.";
+        internal const string NoGoPlan = "This key isn't on an OpenCode Go plan. Subscribe at opencode.ai/console/go, or pick another brain key.";
+        internal const string MissingSession = "OpenCode Go needs a newer Capri for each chat. Update Capri, or pick another brain key.";
         internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
@@ -795,6 +799,8 @@ namespace CapriDesktop
         private readonly object gate = new object();
         private readonly List<HttpWebRequest> active = new List<HttpWebRequest>();
         private int cancelled;
+        private static readonly string openCodeListSession = "ses_" + Guid.NewGuid().ToString("N");
+        private readonly string openCodeSession = "ses_" + Guid.NewGuid().ToString("N");
         internal static string LogPath;
         // The keys she has saved, so a line in errors.txt never keeps one whole, whatever its shape (Scrubbed).
         internal static Func<string[]> Secrets = delegate { return new string[0]; };
@@ -2204,12 +2210,12 @@ namespace CapriDesktop
         private static bool Images(CloudModel model) { return model != null && model.Architecture != null && model.Architecture.Input != null && Array.IndexOf(model.Architecture.Input, "image") >= 0; }
         private static bool Tools(CloudModel model) { return model != null && model.Parameters != null && Array.IndexOf(model.Parameters, "tools") >= 0; }
         // Claude Code and Codex get her tools written out, since they run with none of their own.
-        internal static bool HasTools(Cloud remote) { return remote == null || !remote.Plan && (remote.Kind != "openrouter" || Tools(Listed(remote.Kind, remote.Model))); }
+        internal static bool HasTools(Cloud remote) { return remote == null || !remote.Plan && ((remote.Kind != "openrouter" && remote.Kind != "opencode") || Tools(Listed(remote.Kind, remote.Model))); }
 
         internal bool Sighted(Cloud remote)
         {
             if (Unsighted == remote.Sight) return false;
-            if (remote.Kind == "openrouter" || remote.Kind == "xai") return Images(Listed(remote.Kind, remote.Model));
+            if (remote.Kind == "openrouter" || remote.Kind == "xai" || remote.Kind == "opencode") return Images(Listed(remote.Kind, remote.Model));
             bool sees;
             lock (serverEyes) return remote.Kind != "local" || !serverEyes.TryGetValue(remote.Source, out sees) || sees;
         }
@@ -2388,6 +2394,11 @@ namespace CapriDesktop
                 try { json = BetterModels.XaiCatalog(json); }
                 catch (FormatException) { throw new BrainException(BetterModels.CatalogError, true); }
             }
+            if (kind == "opencode")
+            {
+                try { json = BetterModels.OpenCodeCatalog(json); }
+                catch (FormatException) { throw new BrainException(BetterModels.OpenCodeCatalogError, true); }
+            }
             CloudModelPage page;
             try
             {
@@ -2407,14 +2418,15 @@ namespace CapriDesktop
                 if (kind == "openrouter" && model.Architecture != null && model.Architecture.Output != null && Array.IndexOf(model.Architecture.Output, "text") < 0) continue;
                 found.Add(model);
             }
-            found.Sort(delegate(CloudModel a, CloudModel b)
-            {
-                int order = kind == "nvidia" ? Pick(a.Id).CompareTo(Pick(b.Id)) : kind == "openrouter" ? RouterPick(a).CompareTo(RouterPick(b)) : kind == "google" ? FlashPick(a.Id).CompareTo(FlashPick(b.Id)) : 0;
-                if (order == 0 && kind == "google") order = GeminiVersion(b.Id).CompareTo(GeminiVersion(a.Id));
-                if (order == 0) order = string.CompareOrdinal(b.CreatedAt ?? "", a.CreatedAt ?? "");
-                if (order == 0) order = b.Created.CompareTo(a.Created);
-                return order != 0 ? order : string.CompareOrdinal(a.Id, b.Id);
-            });
+            if (kind != "opencode")
+                found.Sort(delegate(CloudModel a, CloudModel b)
+                {
+                    int order = kind == "nvidia" ? Pick(a.Id).CompareTo(Pick(b.Id)) : kind == "openrouter" ? RouterPick(a).CompareTo(RouterPick(b)) : kind == "google" ? FlashPick(a.Id).CompareTo(FlashPick(b.Id)) : 0;
+                    if (order == 0 && kind == "google") order = GeminiVersion(b.Id).CompareTo(GeminiVersion(a.Id));
+                    if (order == 0) order = string.CompareOrdinal(b.CreatedAt ?? "", a.CreatedAt ?? "");
+                    if (order == 0) order = b.Created.CompareTo(a.Created);
+                    return order != 0 ? order : string.CompareOrdinal(a.Id, b.Id);
+                });
             if (found.Count == 0) throw new BrainException(Cloud.CompanyOf(kind) + " has no chat models on this key.", true);
             lock (cloudModels)
             {
@@ -2492,6 +2504,7 @@ namespace CapriDesktop
             if (kind == "nvidia") return Nvidia + "/v1" + path;
             if (kind == "google") return Google + path;
             if (kind == "openrouter") return OpenRouter + path;
+            if (kind == "opencode") return OpenCode + (path == "/models" ? "/v1" : "/openai/v1") + path;
             if (kind == "openai") return OpenAi + "/v1" + path;
             if (kind == "xai") return BetterModels.XaiAddress(path);
             throw new BrainException("That key's provider isn't supported.", true);
@@ -2519,6 +2532,11 @@ namespace CapriDesktop
             if (kind == "deepseek") return models.Contains("deepseek-flash") ? "deepseek-flash" : models[0];
             if (kind == "xai") return models.Contains("grok-4.7") ? "grok-4.7" : models[0];
             if (kind == "nvidia") { foreach (string id in NvidiaPicks) if (models.Contains(id)) return id; return models[0]; }
+            if (kind == "opencode")
+            {
+                foreach (string id in models) if (Images(Listed(kind, id)) && Tools(Listed(kind, id))) return id;
+                return models[0];
+            }
             if (kind == "google")
             {
                 string flash = models[0];
@@ -2552,10 +2570,12 @@ namespace CapriDesktop
 
         private static void ShutDoor(string key, string address) { lock (headerKeys) headerKeys.Remove(Door(key, address)); }
 
-        private static void Sign(HttpWebRequest request, string key, bool claude)
+        private static void Sign(HttpWebRequest request, string key, bool claude, string session = null)
         {
             request.AllowAutoRedirect = false;
-            if (Cloud.KindOf(key) == "openrouter") request.Headers["X-Title"] = "Capri";
+            string kind = Cloud.KindOf(key);
+            if (kind == "openrouter") request.Headers["X-Title"] = "Capri";
+            if (kind == "opencode") request.Headers["x-opencode-session"] = session ?? openCodeListSession;
             bool headerKey;
             lock (headerKeys) headerKey = headerKeys.Contains(Door(key, request.RequestUri.AbsoluteUri));
             if (headerKey) { request.Headers["x-goog-api-key"] = key; return; }
@@ -2564,10 +2584,13 @@ namespace CapriDesktop
             request.Headers["anthropic-version"] = "2026-10-21";
         }
 
-        private static void SignServer(HttpWebRequest request, string key)
+        private static void SignServer(HttpWebRequest request, string key, string session = null)
         {
             request.AllowAutoRedirect = false;
             request.Headers["Authorization"] = "Bearer " + key;
+            string host = request.RequestUri.Host;
+            if (host.Equals("opencode.ai", StringComparison.OrdinalIgnoreCase) || host.EndsWith(".opencode.ai", StringComparison.OrdinalIgnoreCase))
+                request.Headers["x-opencode-session"] = session ?? openCodeListSession;
         }
 
 #if !CROSS
@@ -4034,9 +4057,9 @@ namespace CapriDesktop
 
         // plain: a call outside her chat, which keeps today's settings whatever's picked.
 #if CROSS
-        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool computerAction = false, bool rounds = false)
+        internal string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool computerAction = false, bool rounds = false)
 #else
-        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool rounds = false)
+        internal string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool rounds = false)
 #endif
         {
             Check(ticket);
@@ -4115,7 +4138,7 @@ namespace CapriDesktop
                 if (level != ThinkingLevels.Default) ThinkingLevels.Apply(body, remote.Kind, level, tools);
                 if (pick != null) body.Extra = pick.Extra;
                 string address = remote.Kind == "local" ? remote.Host + "/v1/chat/completions" : Address(remote.Kind, "/chat/completions");
-                Action<HttpWebRequest> sign = remote.Kind == "local" ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, remote.Key, false); });
+                Action<HttpWebRequest> sign = remote.Kind == "local" ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, remote.Key, false, openCodeSession); });
                 int wait = ThinkingLevels.Wait(level, remote.Kind == "local" || screen ? Math.Max(180000, CloudWait) : CloudWait);
                 CompletionReply reply;
                 try { reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket); }
@@ -4325,7 +4348,7 @@ namespace CapriDesktop
             if (named != null) asking.Model = named;
             if (level != ThinkingLevels.Default) ThinkingLevels.Apply(asking, model, level);
             if (pick != null) asking.Extra = pick.Extra;
-            Action<HttpWebRequest> sign = string.IsNullOrEmpty(key) ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { SignServer(request, key); });
+            Action<HttpWebRequest> sign = string.IsNullOrEmpty(key) ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { SignServer(request, key, openCodeSession); });
             CompletionReply reply;
             try { reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key); }
             catch (BrainException error)
@@ -4985,6 +5008,8 @@ namespace CapriDesktop
             if (error.StartsWith(DailyLimitStart, StringComparison.Ordinal)) return "OpenAI's daily limit is used. Try later or add credits.";
             if (error.EndsWith(". Press Forget " + BrainMenu + ", then paste it again.", StringComparison.Ordinal)) return "Key rejected. Press Forget, then paste it again.";
             if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
+            if (error == NoGoPlan) return "No OpenCode Go plan. Subscribe at opencode.ai/console/go.";
+            if (error == MissingSession) return "OpenCode Go needs a newer Capri. Update it.";
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
             if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
             if (error == BusyWatching) return "Too many requests. Wait, or glance less often.";
@@ -5294,6 +5319,7 @@ namespace CapriDesktop
             if (url.StartsWith(Anthropic, StringComparison.OrdinalIgnoreCase)) return "anthropic";
             if (url.StartsWith(OpenRouter, StringComparison.OrdinalIgnoreCase)) return "openrouter";
             if (url.StartsWith(Google, StringComparison.OrdinalIgnoreCase)) return "google";
+            if (url.StartsWith(OpenCode, StringComparison.OrdinalIgnoreCase)) return "opencode";
             if (url.StartsWith(OpenAi, StringComparison.OrdinalIgnoreCase)) return "openai";
             if (url.StartsWith(DeepSeek, StringComparison.OrdinalIgnoreCase)) return "deepseek";
             if (url.StartsWith(Nvidia, StringComparison.OrdinalIgnoreCase)) return "nvidia";
@@ -5539,7 +5565,7 @@ namespace CapriDesktop
 #if CROSS
             if (CleanSecret != null) text = CleanSecret(text);
 #endif
-            string clean = Regex.Replace(BetterModels.RedactXai(text) ?? "", @"CAPR[I\u0131\u0130](?:-[A-Z0-9\u0131\u0130\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|(?:sk-(?:ant|proj|or-v1|svcacct|adm[i\u0131\u0130]n)-|nvap[i\u0131\u0130]-|gsk_|xa[i\u0131\u0130]-|g[i\u0131\u0130]thub_pat_|glpat-)(?=[A-Za-z0-9_\u0131\u0130\u017F-]{0,200}?[0-9])[A-Za-z0-9_\u0131\u0130\u017F-]{16,}|(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))(?:nvap[i\u0131\u0130]-|sk-|A[I\u0131\u0130]za|gh[pousr]_|g[i\u0131\u0130]thub_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:l[i\u0131\u0130]ve|test)_|sk_(?=[A-Za-z0-9\u0131\u0130\u017F]{32}))[A-Za-z0-9_\u0131\u0130\u017F-]+|\b(?:hf|npm)_[A-Za-z0-9\u0131\u0130\u017F]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.\u0131\u0130\u017F-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            string clean = Regex.Replace(BetterModels.RedactOpenCode(BetterModels.RedactXai(text)) ?? "", @"CAPR[I\u0131\u0130](?:-[A-Z0-9\u0131\u0130\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|(?:sk-(?:ant|proj|or-v1|svcacct|adm[i\u0131\u0130]n)-|nvap[i\u0131\u0130]-|gsk_|xa[i\u0131\u0130]-|g[i\u0131\u0130]thub_pat_|glpat-)(?=[A-Za-z0-9_\u0131\u0130\u017F-]{0,200}?[0-9])[A-Za-z0-9_\u0131\u0130\u017F-]{16,}|(?:\b|(?<=\\[nrtfb])|(?<=%[0-9A-Fa-f]{2}))(?:nvap[i\u0131\u0130]-|sk-|A[I\u0131\u0130]za|gh[pousr]_|g[i\u0131\u0130]thub_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:l[i\u0131\u0130]ve|test)_|sk_(?=[A-Za-z0-9\u0131\u0130\u017F]{32}))[A-Za-z0-9_\u0131\u0130\u017F-]+|\b(?:hf|npm)_[A-Za-z0-9\u0131\u0130\u017F]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.\u0131\u0130\u017F-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             clean = Regex.Replace(clean, @"(""data""\s*:\s*"")[A-Za-z0-9+/_=-]{32,}("")", "$1[redacted]$2", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
@@ -5600,6 +5626,8 @@ namespace CapriDesktop
 
         internal static string Meaning(int status, string body, bool google = false, bool openai = false, string company = null)
         {
+            if (Regex.IsMatch(body ?? "", @"EntitlementError|OpenCode Go subscription required", RegexOptions.IgnoreCase)) return NoGoPlan;
+            if (Regex.IsMatch(body ?? "", @"MissingSessionID|missing x-opencode-session", RegexOptions.IgnoreCase)) return MissingSession;
             // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
             if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
             string words = Regex.Replace(body ?? "", @"https?:\\?/\\?/(?:[^\s""'<>\\]|\\/)+", "");

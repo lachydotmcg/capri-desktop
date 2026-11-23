@@ -579,7 +579,7 @@ namespace CapriDesktop
         internal const string NoOllama = "Ollama isn't running. Install it from ollama.com and open it.";
         private const string FreeKeyPage = "https://build.nvidia.com/settings/api-keys";
         internal const string KeyChoice = "Use an API key...";
-        internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude, DeepSeek or xAI.";
+        internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude, DeepSeek, xAI or OpenCode Go.";
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
@@ -6664,7 +6664,7 @@ namespace CapriDesktop
         internal void AskBrainKey()
         {
             ComeBack();
-            Talk.AskKey(BrainKeyHeard, "Paste your NVIDIA, OpenAI, Claude or DeepSeek API key and press Enter. It stays on this computer. A free NVIDIA key works.", SaveBrainKey);
+            Talk.AskKey(BrainKeyHeard, "Paste your NVIDIA, OpenAI, Claude, DeepSeek or OpenCode Go API key and press Enter. It stays on this computer. A free NVIDIA key works.", SaveBrainKey);
         }
 
         // A key she checks by reading its models, then thinks with on its best chat model until they pick another under Brain.
