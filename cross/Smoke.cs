@@ -8052,6 +8052,21 @@ namespace CapriDesktop
             pet.SetSpeak(true);
             pet.SetVoiceProvider(Speakers.Off);
             fail("Off", !pet.Speaks && pet.VoiceStatus == "off | no voice | quiet" && pet.VoiceMenu == "Provider: Off | - | No voice provider. She types her replies. (off)" && pet.Speaker.Name == "none");
+            foreach (string cloud in new[] { Speakers.Fish, Speakers.OpenAi })
+            {
+                pet.SetVoiceProvider(cloud);
+                string disclosure = pet.VoiceMenu;
+                fail("cloud voice lifetime disclosed for " + cloud,
+                    disclosure.Contains("If voice fails, I type; no automatic paid fallback") &&
+                    (cloud == Speakers.Fish ? disclosure.Contains("Free window advertised through 30 November 2026") && disclosure.Contains("Availability after that is unconfirmed")
+                        : disclosure.Contains("Speech model shuts down 6 January 2027") && disclosure.Contains("Needs a separate Realtime migration") && disclosure.Contains("Changing the model here cannot migrate it")));
+                pet.SetSpeak(true);
+                pet.MainframeVoiceModePick(0);
+                bool keptWhileMuted = pet.Saved.Silent && pet.Saved.VoiceProvider == cloud;
+                pet.MainframeVoiceModePick(3);
+                fail("Mainframe mute and resume keep " + cloud,
+                    keptWhileMuted && !pet.Saved.Silent && pet.Saved.VoiceProvider == cloud);
+            }
             pet.SetVoiceProvider(Speakers.ElevenLabs);
             fail("back to ElevenLabs", pet.VoiceStatus == "no key | no voice | quiet" && pet.VoiceMenu == "Provider: ElevenLabs | - | Add ElevenLabs key...");
             pet.SetLocalVoice("url", "");

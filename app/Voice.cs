@@ -4032,7 +4032,7 @@ namespace CapriDesktop
         internal static readonly Service[] Services =
         {
             new Service("Fish Audio · cloud", Fish, FishCloud, FishFree, "", "Voice ID or fish.audio link", "Paste your Fish Audio key",
-                "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization. " + FishFree + " is its free tier."),
+                FishFree + " has a free window advertised through 30 November 2026; availability after that is unconfirmed. Capri does not automatically switch to a paid model if it fails. Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization."),
             new Service("Voice model file · on your PC", Files, "", "", "", "Number or clip, optional", "Optional",
                 "A Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx, run with no server. Browse to its .tar.bz2 or .onnx. Pocket TTS copies a voice clip you pick."),
             new Service("Fish Speech · on your PC", Fish, "http://127.0.0.1:8080", "", "", "Reference ID, optional", "Optional",
@@ -4040,7 +4040,7 @@ namespace CapriDesktop
             new Service("Kokoro · on your PC", OpenAi, Address, "kokoro", "af_heart", "Optional", "Optional",
                 "Kokoro-FastAPI running on your PC, with voices like af_heart, af_bella and am_adam."),
             new Service("OpenAI · cloud", OpenAi, OpenAiCloud, "gpt-4o-mini-tts", "marin", "Optional", "Paste your OpenAI key",
-                "OpenAI's voices with your OpenAI key: marin, cedar, coral, alloy and more."),
+                "This Speech model shuts down 6 January 2027. Continuing with OpenAI needs a separate Realtime migration; changing the model here cannot migrate it. Capri does not automatically switch to a paid alternative if it fails. OpenAI's voices with your OpenAI key: marin, cedar, coral, alloy and more."),
             new Service("Any OpenAI-style server", OpenAi, null, null, null, "Optional", "Optional",
                 "Any speech model you run whose server speaks OpenAI's speech API, like Qwen3-TTS through vLLM-Omni, AllTalk or LocalAI.")
         };
