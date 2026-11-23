@@ -80,9 +80,9 @@ On Linux, when Capri is started with `--companion-bridge`, she starts a small li
 
 ## Windows or your antivirus warned me
 
-Her Windows builds on GitHub and the website aren't code signed, and each new release starts with no reputation, so you may see **Windows protected your PC**. Press **More info**, then **Run anyway**.
+Her Windows builds on GitHub and the website aren't code signed, and each new release starts with no reputation, so you may see **Windows protected your PC**. An unrecognized-app or unknown-publisher warning is a reputation warning, distinct from a named malware detection. Verify the source and checksum below before deciding whether to run the file.
 
-Antivirus apps can flag her too. Taking screenshots, moving the mouse, pressing keys, listening to the mic and starting apps are her job, and they look a lot like what malware does. That usually means a false alarm, but an alert alone can't tell you a file is safe, so check it:
+If Defender, another antivirus or VirusTotal reports malware, including a named Trojan detection, do not run, restore or allow the file. Keep it quarantined and send the antivirus product, exact detection text, file path, download source and Capri version to the maintainers in your support ticket or the Discord. Being unsigned or downloaded from an official source does not establish a false alarm.
 
 1. Only download her from the [official release page](https://github.com/lachydotmcg/capri-desktop/releases/latest) or the [official website](https://capriai.app/).
 2. In PowerShell, from your download folder, run:
@@ -91,13 +91,13 @@ Antivirus apps can flag her too. Taking screenshots, moving the mouse, pressing 
    Get-FileHash -LiteralPath .\Capri-Setup.exe -Algorithm SHA256
    ```
 
-3. Compare the `Hash` with the `Capri-Setup.exe` line in `SHA256SUMS.txt` on the same release. A match means you have the file we published.
+3. Compare the `Hash` with the `Capri-Setup.exe` line in [`SHA256SUMS.txt`](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/SHA256SUMS.txt) on the same release. A match means you have the file we published; it does not prove the file is safe or resolve a malware detection.
 
 On a Mac, run `shasum -a 256 Capri-mac-apple-silicon.zip` (or `Capri-mac-intel.zip`). On Linux, put `SHA256SUMS.txt` next to your download and run `sha256sum -c --ignore-missing SHA256SUMS.txt`. Every file on a release, Windows, Mac, Linux and Quest, has its line there.
 
 Real releases are only at [github.com/lachydotmcg/capri-desktop/releases](https://github.com/lachydotmcg/capri-desktop/releases). A repo under any other GitHub account that copies this README isn't ours, even if it looks the same.
 
-Keep your antivirus on. If it quarantined her and the hash matches, restore that one file.
+Keep your antivirus on. A matching hash is not a reason to restore a quarantined file before the detection has been reviewed.
 
 You can also build her yourself from the public code. [CONTRIBUTING.md](CONTRIBUTING.md) has what you need.
 

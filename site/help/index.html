@@ -91,7 +91,7 @@
         <ol class="moves">
           <li><a class="download inline" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.9.7/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a></li>
           <li>Open <code>Capri-Setup.exe</code></li>
-          <li>“Windows protected your PC”? <b>More info</b> → <b>Run anyway</b></li>
+          <li>“Windows protected your PC”? Check the official release and checksum using the warning guidance below before deciding whether to run it. A named malware detection needs human review first.</li>
           <li><b>Install Capri</b></li>
           <li>“Installing the local speech model”: her free voice, about 316 MB. <b>Skip</b> gets it later</li>
         </ol>
@@ -102,7 +102,7 @@
           <dt>Startup</dt><dd>she waits until you open her; turn on <b>Start with Windows</b> in Settings to have her start when you sign in</dd>
           <dt>Needs</dt><dd>nothing else, not Ollama, not Claude Code</dd>
         </dl>
-        <p class="note">Windows warns because the latest release is new and not signed yet. Got Capri from this site or GitHub? Then antivirus alerts like Wacatac, Zusy or MachineLearning/Anomalous are false alarms on a new app. Restore the file and allow it. The code is open on <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">GitHub</a>. Every download is on the <a href="../#download">home page</a>.</p>
+        <p class="note">A SmartScreen unrecognized-app or unknown-publisher warning can appear because Capri is unsigned. Check the <a href="https://github.com/lachydotmcg/capri-desktop/releases/latest">official release</a> and its <a href="https://github.com/lachydotmcg/capri-desktop/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a> before deciding whether to run it. A named malware detection is different: do not run, restore or allow the file. Keep it quarantined and send the antivirus product, exact detection, file path, source and Capri version in your support ticket or the Discord. A matching checksum confirms the published file, not that it is safe.</p>
 
         <h3 id="store">Already have the Store copy? <small>CapriAI</small></h3>
         <dl class="keys">
@@ -112,7 +112,7 @@
         </dl>
 
         <h3 id="av-reports">Antivirus behaviour reports <small>VirusTotal</small></h3>
-        <p class="note">VirusTotal's behaviour tab lists what a sandbox saw <code>Capri-Setup.exe</code> or <code>Capri.exe</code> do. Each flag below is most likely from the thing listed, not from a virus.</p>
+        <p class="note">VirusTotal's behaviour tab lists what a sandbox saw <code>Capri-Setup.exe</code> or <code>Capri.exe</code> do. The explanations below are possible sources of observations, not a verdict that a file or malware detection is safe.</p>
         <dl class="keys">
           <dt>Memory, CFG, DEP, unhooking</dt><dd>“unbacked” memory, <code>mscoree.dll</code> loads, a vectored exception handler, CFG or DEP policy and “unhooking” are most likely the .NET runtime. Capri is a .NET app, so the runtime compiles her code into memory as she runs, and compiles any code mods you add, and sets up its own handlers. Sandboxes read that as these behaviours. Capri has no code that changes CFG or DEP or unhooks anything</dd>
           <dt>Starts at logon</dt><dd>most likely her Start with Windows entry, if you turned it on or had it on from an earlier version. The switch is in Settings → HABITS</dd>
@@ -642,9 +642,9 @@
 
         <h3>Install</h3>
         <dl class="stuck">
-          <dt>“Item Not Found”, or the installer vanished</dt><dd>Chrome or Edge: <b>Ctrl + J</b> → <b>Keep</b>. Antivirus: restore it from quarantine. Open it from Downloads.</dd>
-          <dt>Antivirus flags it</dt><dd>From this site or GitHub? A false alarm on a new, unsigned app. Restore and allow it, <a href="#av-reports">see what behaviour reports mean</a>, or <a href="#checksum">check the download</a>.</dd>
-          <dt>Capri vanished after installing</dt><dd>Your antivirus removed Capri.exe. Restore it, allow it, run the installer again.</dd>
+          <dt>“Item Not Found”, or the installer vanished</dt><dd>Check your browser downloads and antivirus history for the exact reason. Verify the official source and <a href="#checksum">checksum</a>. If antivirus quarantined it, keep it quarantined and report the detection.</dd>
+          <dt>Antivirus flags it</dt><dd>Do not run, restore or allow it. Keep protection on and send the product, exact detection, file path, source and version for human review. A matching checksum does not resolve a malware detection.</dd>
+          <dt>Capri vanished after installing</dt><dd>Check antivirus history. If it quarantined Capri.exe, leave it quarantined and report the exact detection before reinstalling or restoring it.</dd>
           <dt>Opera: “Insufficient permissions”</dt><dd>Use Chrome or Edge, or download from <a href="https://github.com/lachydotmcg/capri-desktop/releases/latest" target="_blank" rel="noopener noreferrer">GitHub</a>.</dd>
           <dt>“Quit Capri from her tray menu, then install again.”</dt><dd>Right-click her → <b>Quit Capri</b>, then install.</dd>
           <dt>Mac: “damaged” or “can't be opened”</dt><dd>Run the <a href="#mac">xattr line</a>, then open her again. Needs macOS 15+.</dd>

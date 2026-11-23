@@ -388,7 +388,7 @@ for (const ask of [discord, help]) {
   for (const [question, titles] of [
     ['how do I change her voice?', ['Voice chat > Why did her voice change to a Windows voice? (0.9.7)', 'Her voice > Voice layers (0.7.6 and newer)', 'Her voice > Your own voice model: Fish Audio, OpenAI, a model file or your own server (from 0.7.6)', 'The Capri Mainframe > VOICE section']],
     ['how do I install Capri?', ['Install on Windows > Steps', 'Install on Windows > "Quit Capri from her tray menu, then install again."', 'Troubleshooting > Install and antivirus', 'Quick facts > How do I install Capri VR? (0.8.3)']],
-    ['why does Windows warn me?', ['Install on Windows > Why does Windows warn me?', 'What she can do on your PC (Windows) > Move, snap and resize windows (0.8.0)', 'Install on Windows > Does Capri start with Windows?', 'Install on Windows > Is Capri on the Microsoft Store?']],
+    ['why does Windows warn me?', ['Install on Windows > Why does Windows warn me?', 'What she can do on your PC (Windows) > Move, snap and resize windows (0.8.0)', 'Troubleshooting > Install and antivirus', 'Install on Windows > Steps']],
     ['my antivirus says it is a virus', ["Troubleshooting > Install and antivirus", "Install on Windows > My antivirus says it's a virus or Trojan", 'Install on Windows > "Item Not Found" or the installer disappeared', 'Install on Windows > "Unable to save shortcut" or "Windows wouldn\'t let the installer save her shortcut"']]
   ]) {
     await ask({ question });
@@ -495,18 +495,22 @@ assert.ok(sent.at(-1).content.includes(ticket));
 assert.equal(sent[0].content, 'Sam: Typing works. My version is 0.8.5.');
 console.log('PASS tickets keep the help and missing details in place');
 
-// Antivirus answers on both routes call the official copy's alert a false alarm, and nothing links the Store listing.
 const fixesLink = { title: 'Troubleshooting', href: 'https://capriai.app/help/#fixes' };
 for (const ask of [discord, help]) {
   for (const question of ['my antivirus deleted capri', 'virustotal says trojan', 'defender blocked the download', 'SmartScreen blocked Capri', "Defender says it's a trojan, is it fake?"]) {
-    says = "The official copy's alert is a false alarm on an unsigned app. LINK: Troubleshooting";
+    says = "Check the exact warning and keep a quarantined file quarantined for human review. LINK: Troubleshooting";
     got = await ask({ question });
-    assert.equal(got.reply, "The official copy's alert is a false alarm on an unsigned app.");
+    assert.equal(got.reply, "Check the exact warning and keep a quarantined file quarantined for human review.");
     if (ask === discord) assert.deepEqual(got.links, [fixesLink], question);
     else assert.deepEqual(got.links[0], fixesLink, question);
     assert.ok(got.links.every(found => found.href.startsWith('https://capriai.app/help/')), question);
     assert.equal(system.split('\n\nHelp notes:\n')[1].split('\n')[0], '[Troubleshooting > Install and antivirus]', question);
-    assert.match(system, /On Windows, if antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, say that the alert on the official copy from the website or GitHub is a false alarm on an unsigned app/);
+    assert.match(system, /Distinguish a SmartScreen unrecognized-app or unknown-publisher warning from a named malware detection/);
+    assert.match(system, /For only an unrecognized-app or unknown-publisher warning, link https:\/\/github.com\/lachydotmcg\/capri-desktop\/releases\/latest and its SHA256SUMS.txt/);
+    assert.match(system, /For a named malware detection, quarantine or antivirus deletion, tell them not to run, restore or allow the file/);
+    assert.match(system, /Ask for the antivirus product, exact detection text, file path, download source and Capri version/);
+    assert.match(system, /If the warning is unclear, ask for its exact words/);
+    assert.doesNotMatch(system, /the alert (?:on that official copy )?is a false alarm|Restore and allow it|restore it from (?:your antivirus )?quarantine/i);
     assert.doesNotMatch(system, /give the Microsoft Store copy|LINK: Microsoft Store|apps\.microsoft\.com/);
     assert.match(system, /Never argue about their antivirus or tell them to turn it off/);
     assert.match(system, /An antivirus, SmartScreen or VirusTotal alert alone follows the antivirus rule/);
@@ -529,7 +533,7 @@ for (const ask of [discord, help]) {
     assert.deepEqual(got.links, withTail);
   }
 }
-console.log('PASS antivirus replies call the official copy a false alarm and never link the Store listing');
+console.log('PASS warning guidance distinguishes reputation from malware and never links the Store listing');
 
 // The latest line uses tag_name from release.json and does not invent a date missing from the feed.
 says = 'Check for updates first.';
