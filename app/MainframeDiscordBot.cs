@@ -131,7 +131,7 @@ namespace CapriDesktop
                 e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 Color purple = ColorTranslator.FromHtml(ServiceLogo.Discord.Hex);
                 PluginArt.Logo(e.Graphics, ServiceLogo.Discord, new RectangleF(38 * scale, 86 * scale, 108 * scale, 81 * scale), purple);
-                if (capri != null) e.Graphics.DrawImage(capri, new RectangleF(15 * scale, 1 * scale, 139 * scale, 139 * scale));
+                if (capri != null) e.Graphics.DrawImage(capri, new RectangleF(29 * scale, 1 * scale, 139 * scale, 139 * scale));
             }
 
             protected override void Dispose(bool disposing)
