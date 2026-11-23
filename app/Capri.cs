@@ -56579,7 +56579,7 @@ namespace CapriDesktop
                                     if (driveSent != "Sent blah in #general." || driveSend.Outcome != "done" || driveShots != 4 || driven.Count != 4 || driveImages != 3 || !driveWellFormed
                                         || string.Join("|", driveOpened.ToArray()) != "open_app:Discord" || string.Join("|", driveMoves.ToArray()) != "left_click 200,400|type blah\\n|scroll 1280,720"
                                         || string.Join("|", driveRows.ToArray()) != "Opened Discord|Clicked general|Typed \"blah\" and pressed Enter|Scrolled down"
-                                        || driveSystem != Computer.Seeing || !driveTools.StartsWith("[{\"type\":\"computer_toolset_20260801\"},{\"name\":\"open_app\"", StringComparison.Ordinal)
+                                        || driveSystem != Computer.Seeing + Computer.DownloadWarning || !driveTools.StartsWith("[{\"type\":\"computer_toolset_20260801\"},{\"name\":\"open_app\"", StringComparison.Ordinal)
                                         || !driven[0].StartsWith("[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Job: ", StringComparison.Ordinal) || driven[0].IndexOf("Window in front:", StringComparison.Ordinal) < 0 || driven[0].IndexOf("The screen now, 1280x720:\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
                                         || driven[1].IndexOf("{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"Open Discord first.\",\"signature\":\"c2ln\"}", StringComparison.Ordinal) < 0
                                         || driven[1].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t1\",\"content\":[{\"type\":\"text\",\"text\":\"Opened Discord.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
@@ -56761,7 +56761,8 @@ namespace CapriDesktop
                                     string funRun = driveFun.Run();
                                     string funSystem = driveSystem;
                                     Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" }; };
-                                    if (drivePlayed != "Played a round." || !drivePlay.Playing || playSystem != Computer.Seeing + Computer.Playing || funRun != "Played a round." || funBefore || !driveFun.Playing || funSystem != Computer.Seeing + Computer.Playing || new Job("send hi in #general on discord").Playing)
+                                    string expectedGamePrompt = Computer.Seeing + Computer.Playing + Computer.DownloadWarning;
+                                    if (drivePlayed != "Played a round." || !drivePlay.Playing || playSystem != expectedGamePrompt || funRun != "Played a round." || funBefore || !driveFun.Playing || funSystem != expectedGamePrompt || new Job("send hi in #general on discord").Playing)
                                         throw new Exception("A game job didn't get her game lines: " + drivePlayed + " / " + drivePlay.Playing + " / " + funRun + " / " + driveFun.Playing);
                                     // Whether a game job is really over is a brain's call, in any language.
                                     driveTurn = 0;

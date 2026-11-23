@@ -162,6 +162,8 @@ namespace CapriDesktop
 
         internal const string MusicNote = "On Spotify, pick one best match of the requested kind, using its artist or owner when shown. Don't switch back and forth between songs, playlists and albums with the same name. Once the requested music is playing, finish the job. Play is a toggle: pressing it again pauses the music. A changed window title alone doesn't prove playback; check the Pause button and advancing playback time, or Windows' playing media session. If it is paused, press Play once and wait for playback before doing anything else.\n";
 
+        internal const string DownloadWarning = "\nIf a browser download warning, SmartScreen or antivirus blocks a file, leave it alone and report the exact warning to the user. Finish the job at that point. This still applies if they requested installation or if their SECURITY settings approve other steps.";
+
         internal const string Prompt =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You do their job with the mouse and keyboard, one step at a time, like a person would.\n" +
             MusicNote +
@@ -2904,7 +2906,7 @@ namespace CapriDesktop
             string skills = Hands.SkillNote(), read;
             lock (readSkills) read = hands == Computer.Seeing || readSkills.Count == 0 ? "" : "\nSkills you read for this job:\n" + string.Join("\n", readSkills.ToArray());
             return Computer.Allowing(hands) + skills + (skills.Length > 0 && hands == Computer.Sees ? Computer.SkillMove : "") + (Computer.Streaming ? Computer.StreamNote : "") + Briefed() + AppBrief() + read
-                + "\nIf a browser download warning, SmartScreen or antivirus blocks a file, leave it alone and report the exact warning to the user. Finish the job at that point. This still applies if they requested installation or if their SECURITY settings approve other steps.";
+                + Computer.DownloadWarning;
         }
 
         private string AppBrief()
