@@ -171,7 +171,7 @@ namespace CapriDesktop
             {
                 if (turn != teachingTurn) return "That turn has ended.";
                 if (demonstration != null) return "I've already paused for you to show me.";
-                if (editing || pendingEdit != null || Asking || Outcome != null || Computer.Interrupted)
+                if (editing || pendingEdit != null || Asking || Outcome != null && Outcome != "waiting" || Computer.Interrupted)
                     return "I can't hand over this job while it's waiting on another decision.";
                 if (Computer.Streaming || Ink.ScreenRequest(Task) || ExplainTeaching == null)
                     return "I can watch a demonstration during a job in one app window.";
@@ -394,7 +394,7 @@ namespace CapriDesktop
                     string offer = path == 0 ? "It'd be easier if you watched how I get to the settings panel." : "Could I show you the menu I normally use?";
                     string done = path == 0 ? "You've seen where the menu is. Carry on with the setup." : "That's the whole trick. You can finish the job.";
                     string method = "Use the View menu to reach Settings. Look for the Theme selector.";
-                    string reply = "job_control{\"action\":\"teach\"}";
+                    string reply = "SORT: CHAT\nSAY: Do you want me to watch you do this part?";
                     string spoken = null, continued = null, explained = null, kept = null, returned = null;
                     int turns = 0, moves = 0, samples = 0;
                     Exception failure = null;
@@ -449,6 +449,12 @@ namespace CapriDesktop
                     WaitForTeachingCheck(delegate { return planned.WaitOne(0); });
                     if (JobTool(new ToolArguments { Job = running, Action = "teach" }) != "Demonstrations need the person at this PC to take part.")
                         throw new Exception("An unbound tool was allowed to start a demonstration.");
+                    typer.Send("Hang on, I have an idea.");
+                    WaitForTeachingCheck(delegate { return spoken != null; });
+                    if (running.TeachingStatus != null || spoken != "Do you want me to watch you do this part?")
+                        throw new Exception("An ambiguous remark changed who had control: " + spoken);
+                    spoken = null;
+                    reply = "job_control{\"action\":\"teach\"}";
                     typer.Send(offer);
                     WaitForTeachingCheck(delegate { return spoken != null; });
                     if (running.TeachingStatus != Demonstration.Pausing || samples != 0 || moves != 1)
