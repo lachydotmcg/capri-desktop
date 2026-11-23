@@ -34,6 +34,7 @@ namespace CapriDesktop
         internal string[] Requires = new string[0];
         internal string[] Games;
         internal string[] Apps = new string[0];
+        internal string LearnedIn;
         internal string Know;
         internal string[] Reaches = new string[0];
         internal string Unreadable;
@@ -429,7 +430,7 @@ namespace CapriDesktop
             recipes = All.FindAll(mod => mod.Tool && mod.On).ToArray();
             knownSkills = known.ToArray();
             UsePlugins();
-            skillNote = Standing(skills);
+            skillNote = Standing(Array.FindAll(skills, skill => skill.File.LearnedIn == null));
             names = CompanionNames(names);
             note = names.Length == 0 ? "" : "\nThey can also call you " + Listed(names) + ". Those are nicknames for you, so answer to them like your own name.";
         }

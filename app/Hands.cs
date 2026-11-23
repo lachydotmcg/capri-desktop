@@ -52,6 +52,10 @@ namespace CapriDesktop
         internal int Reply;
         internal int? Ticket;
         internal long? Sequence;
+#if !CROSS
+        internal long TeachingTurn;
+        internal bool FromTyper;
+#endif
         [DataMember(Name = "target")] public string Target;
         [DataMember(Name = "text")] public string Text;
         [DataMember(Name = "now")] public bool? Now;
@@ -1504,8 +1508,13 @@ namespace CapriDesktop
 #endif
             { "speech", "Stop your current spoken reply when they ask, suggest or hint that you stop talking. Your voice stays enabled for later replies.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"stop talking now\",\"enum\":[\"stop\"]}},\"required\":[\"action\"]}", "stop her current spoken reply", "stop your current spoken reply" },
+#if !CROSS
+            { "job_control", "Stop, check or change the running mouse job. For change, task is their new instruction in their words. In a conversation with the person at the PC, teach yields the controls when they offer to show you a step of the current job. Resume hands this same job back to you when they indicate they are done showing you.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"stop, status, change, teach or resume\",\"enum\":[\"stop\",\"status\",\"change\",\"teach\",\"resume\"]},\"task\":{\"type\":\"string\",\"description\":\"For change, the new instruction in their words\"}},\"required\":[\"action\"]}", "stop, check, change or hand over a running job", "stop, check, change or hand over your running job" },
+#else
             { "job_control", "Stop the running mouse job, read its status or change what it does when they ask, suggest or hint at it. For change, task is their new instruction in their words.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"stop, status or change\",\"enum\":[\"stop\",\"status\",\"change\"]},\"task\":{\"type\":\"string\",\"description\":\"For change, the new instruction in their words\"}},\"required\":[\"action\"]}", "stop, check or change a running job", "stop, check or change your running job" },
+#endif
             { "quit", "Quit Capri after your reply is said when they ask, suggest or hint that you close yourself. This leaves their PC running.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"quit Capri\",\"enum\":[\"quit\"]}},\"required\":[\"action\"]}", "quit Capri after her reply", "quit Capri after your reply" },
 #if !CROSS
@@ -4878,7 +4887,11 @@ namespace CapriDesktop
             if (tool == "workspace") return args != null && (string.IsNullOrEmpty(args.Action) || args.Action == "open" || args.Action == "status" || args.Action == "start" && Named(args.Task));
 #endif
             if (tool == "speech") return args != null && args.Action == "stop";
-            if (tool == "job_control") return args != null && (args.Action == "stop" || args.Action == "status" || args.Action == "change" && Named(args.Task));
+            if (tool == "job_control") return args != null && (args.Action == "stop" || args.Action == "status" || args.Action == "change" && Named(args.Task)
+#if !CROSS
+                || args.Action == "teach" || args.Action == "resume"
+#endif
+            );
             if (tool == "quit") return args != null && args.Action == "quit";
             if (tool == "updates") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(check|status|install)\z");
             if (tool == "mini_player") return args != null && (args.Action == "show" || args.Action == "hide");

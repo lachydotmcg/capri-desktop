@@ -3262,7 +3262,7 @@ namespace CapriDesktop
             {
                 bool activeJob = MidJob(job);
                 editJobItem.Visible = activeJob;
-                editJobItem.Enabled = activeJob && editingJob == null && !OwnCallQuestion();
+                editJobItem.Enabled = activeJob && job.TeachingStatus == null && editingJob == null && !OwnCallQuestion();
                 jobMicItem.Visible = activeJob && chatting;
                 jobMicItem.Text = ears.Muted ? "Unmute Capri's mic" : "Mute Capri's mic";
             };
@@ -3471,7 +3471,7 @@ namespace CapriDesktop
             getWakePack = FetchWake;
             box.Dismissed += delegate { if (box.Leaving < 0) box.Leaving = clock.Elapsed.TotalSeconds; };
             typer.Submitted += SentChime;
-            typer.Submitted += Hear;
+            typer.Submitted += delegate(string text) { Hear(text, text, "> you: ", fromTyper: true); };
             callSession.Change(preferences.CallMode);
             mainframe.ShowCallApp();
             if (micMix != null) micMix.Call = CallModeOn;
@@ -6847,6 +6847,7 @@ namespace CapriDesktop
         // job_control: the running job's status, stopping it, or a change in their words, in the order they made them.
         private string JobTool(ToolArguments args)
         {
+            if (args.Action == "teach" || args.Action == "resume") return TeachingTool(args);
             Job running = args.Job ?? job;
             if (args.Job != null && args.Job != job) return "That job has ended.";
             if (!MidJob(running)) return "I'm not on a job right now.";
@@ -6859,6 +6860,23 @@ namespace CapriDesktop
 
         // What job_control tells her brain it did. Beside a job she says these in her own words instead (AsideRun).
         private const string JobChanged = "Changed what my job should do.", JobStopped = "Stopped my job.";
+
+        private string TeachingTool(ToolArguments args)
+        {
+            if (args.TeachingTurn == 0 || args.Job == null || args.FromFriend || args.FromAgent)
+                return "Demonstrations need the person at this PC to take part.";
+            if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(TeachingTool), args);
+            Job running = args.Job;
+            if (quitting || CallModeOn || !MidJob(running) || job != running || args.Ticket != asking || args.Ticket == escAsk)
+                return "That job turn has ended.";
+            if (OwnCallQuestion() || Computer.Interrupted) return "The job is waiting for another decision.";
+            string before = running.TeachingStatus;
+            string result = args.Action == "teach" ? running.Teach(args.TeachingTurn, args.Asked) : running.ContinueTeaching(args.TeachingTurn, args.Asked);
+            if (args.FromTyper && typer.Visible && (before == null && running.TeachingStatus != null || args.Action == "resume" && result == Job.TeachingHandback))
+                typer.Hide();
+            if (before == null && running.TeachingStatus != null) taskPanel.Busy(running, running.TeachingStatus);
+            return result;
+        }
 
         // quit: closes Capri once this reply is over.
         private string QuitTool(ToolArguments args)
@@ -11583,6 +11601,28 @@ namespace CapriDesktop
             // Anything else that can see plays from pictures.
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
+            running.ExplainTeaching = delegate(string system, string user, byte[][] images) { return brain.Quick(system, user, 320, images); };
+            running.KeepTeaching = delegate(Sight window, string method)
+            {
+                Post(delegate
+                {
+                    if (job != running || quitting || Computer.Interrupted) return;
+                    if (ModList.KeepDemonstration(window.Program, window.Title, method)) SkillsChanged();
+                });
+            };
+            running.TeachingNotice = delegate(string status)
+            {
+                if (status == Demonstration.Watching)
+                    Post(delegate
+                    {
+                        if (job != running || running.TeachingStatus != status) return;
+                        string line = "Your turn. I'll watch this window. Tell me when you'd like me to carry on.";
+                        asideShown = line;
+                        asideUntil = clock.Elapsed.TotalSeconds + BubbleHold(line.Length);
+                        UpdateTalk(clock.Elapsed.TotalSeconds);
+                        SayAside(line, running);
+                    });
+            };
             running.Reader = testing ? null : new Action<Sight>(delegate(Sight read) { if (Ink.ScreenRequest(running.Task)) Computer.ReadWords(read, Computer.Shoot(null)); else Computer.ReadWords(read); });
             // The job waits the moment it takes her to take the line, so her brain hears whether it went out.
             running.Says = delegate(string line, bool now)
@@ -16227,7 +16267,7 @@ namespace CapriDesktop
 
         private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
-        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null, Func<string, string> handed = null)
+        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false, string typed = null, RemotePicture photo = null, Func<string, string> handed = null, bool fromTyper = false)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -16286,8 +16326,11 @@ namespace CapriDesktop
             {
                 if (SquadCalledBack(input)) { AsideSay("Called my squad back.", running, text, typed: typed); return; }
                 if (Hands.Insulted(input)) Upset(0, "job");
+                bool canTeach = (fromTyper || spoken) && switches == 0 && !callInput && !CallModeOn && remoteHearing == null && photo == null
+                    && !Security.FromMod(input) && !OwnCallQuestion();
+                long teachingTurn = canTeach ? running.TeachingTurn(input) : 0;
                 if (planned.Key != null) AsideTool(text, planned.Key, planned.Value, running, typed);
-                else HeardMidJob(text, running, typed);
+                else HeardMidJob(text, running, typed, teachingTurn, fromTyper);
                 return;
             }
             if (local) { talkState = TalkState.Thinking; CheckEars(clock.Elapsed.TotalSeconds); }
@@ -47242,6 +47285,7 @@ namespace CapriDesktop
             Section(checks, "SmokeActionEnds", delegate { SmokeActionEnds(checks, output); });
             Section(checks, "SmokeChoiceGates", delegate { SmokeChoiceGates(checks); });
             Section(checks, "SmokeAsideTools", delegate { SmokeAsideTools(checks); });
+            Section(checks, "SmokeTeaching", delegate { SmokeTeaching(checks); });
             Section(checks, "SmokeAsideGame", delegate { SmokeAsideGame(checks, output); });
             Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });

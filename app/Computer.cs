@@ -78,12 +78,14 @@ namespace CapriDesktop
         internal int Failed;
         internal double Seconds;
         internal bool Playing;
+        internal string Teaching;
         internal readonly List<string> Recent = new List<string>();
     }
 
     internal sealed class Sight
     {
         internal IntPtr Window;
+        internal int Process;
         internal string Title = "";
         internal string Program = "";
         internal Rectangle Bounds;
@@ -1126,7 +1128,7 @@ namespace CapriDesktop
             return picked == null ? new Sight() : See(picked);
         }
 
-        internal static Sight See(OpenWindow picked)
+        internal static Sight See(OpenWindow picked, bool teaching = false)
         {
             Sight sight = Framed(picked);
             List<Target> found = null;
@@ -1134,15 +1136,15 @@ namespace CapriDesktop
             Exception failed = null;
             Thread reader = new Thread(delegate()
             {
-                try { found = Read(sight.Window, sight.Bounds, words); }
+                try { found = Read(sight.Window, sight.Bounds, words, teaching); }
                 catch (Exception error) { failed = error; }
             });
             reader.IsBackground = true;
             reader.Start();
-            if (!reader.Join(6000)) sight.Problem = "This window took too long to read. Try press, wait, or open something else.";
+            if (!reader.Join(teaching ? 1500 : 6000)) sight.Problem = "This window took too long to read. Try press, wait, or open something else.";
             else if (failed != null || found == null) sight.Problem = "Couldn't read this window's buttons. Try press, or open something else.";
             else { sight.Targets.AddRange(found); sight.Words.AddRange(words); }
-            if (GameWindow(sight)) NoteGame(sight);
+            if (!teaching && GameWindow(sight)) NoteGame(sight);
             return sight;
         }
 
@@ -1185,6 +1187,7 @@ namespace CapriDesktop
         {
             Sight sight = new Sight();
             sight.Window = picked.Handle;
+            GetWindowThreadProcessId(sight.Window, out sight.Process);
             sight.Title = picked.Title;
             sight.Program = picked.Program;
             Box box;
@@ -1782,7 +1785,7 @@ namespace CapriDesktop
             Mouse(0x0004, 0);
         }
 
-        private static List<Target> Read(IntPtr window, Rectangle bounds, List<string> words)
+        private static List<Target> Read(IntPtr window, Rectangle bounds, List<string> words, bool teaching = false)
         {
             AutomationElement root = AutomationElement.FromHandle(window);
             CacheRequest cache = new CacheRequest();
@@ -1793,7 +1796,7 @@ namespace CapriDesktop
             cache.Add(AutomationElement.IsPasswordProperty);
             cache.Add(AutomationElement.HasKeyboardFocusProperty);
             cache.Add(AutomationElement.IsKeyboardFocusableProperty);
-            cache.Add(ValuePattern.ValueProperty);
+            if (!teaching) cache.Add(ValuePattern.ValueProperty);
             List<Condition> kinds = new List<Condition>();
             foreach (ControlType kind in Kinds) kinds.Add(new PropertyCondition(AutomationElement.ControlTypeProperty, kind));
             kinds.Add(new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
@@ -1806,7 +1809,7 @@ namespace CapriDesktop
             foreach (AutomationElement element in all)
             {
                 AutomationElement.AutomationElementInformation info = element.Cached;
-                if (!info.IsEnabled) continue;
+                if (!info.IsEnabled && !teaching) continue;
                 System.Windows.Rect rect = info.BoundingRectangle;
                 if (rect.IsEmpty || rect.Width < 2 || rect.Height < 2) continue;
                 Rectangle place = Rectangle.FromLTRB((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom);
@@ -1814,6 +1817,9 @@ namespace CapriDesktop
                 if (shown.Width < 2 || shown.Height < 2) continue;
                 string name = Regex.Replace(info.Name ?? "", @"\s+", " ").Trim();
                 ControlType kind = info.ControlType;
+                if (teaching && (info.IsPassword || (kind == ControlType.Edit || kind == ControlType.ComboBox)
+                    && (PersonalField.IsMatch(name) || CardField.IsMatch(name))))
+                    return new List<Target> { new Target { Secret = true } };
                 if (kind == ControlType.Text)
                 {
                     if (name.Length >= 2 && words.Count < 25 && !words.Contains(name)) words.Add(name.Length > 60 ? name.Substring(0, 57) + "..." : name);
@@ -1825,13 +1831,13 @@ namespace CapriDesktop
                 string key = kind.ProgrammaticName + "|" + name + "|" + shown.X / 4 + "|" + shown.Y / 4;
                 if (!seen.Add(key)) continue;
                 string value = null, text = null;
-                if (typable && !info.IsPassword)
+                if (typable && !info.IsPassword && !teaching)
                 {
                     object read = element.GetCachedPropertyValue(ValuePattern.ValueProperty, true);
                     if (read is string) { text = (string)read; value = Regex.Replace(text, @"\s+", " ").Trim(); }
                     if (value != null && value.Length > 60) value = value.Substring(0, 57) + "...";
                 }
-                targets.Add(new Target { Id = FieldId(element), Role = Role(kind), Name = name, Value = value, Text = info.HasKeyboardFocus ? text : null, Box = shown, Secret = info.IsPassword, Focused = info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Page = kind == ControlType.Document });
+                targets.Add(new Target { Id = teaching ? null : FieldId(element), Role = Role(kind), Name = name, Value = value, Text = info.HasKeyboardFocus ? text : null, Box = shown, Secret = info.IsPassword, Focused = info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Page = kind == ControlType.Document });
             }
             Comparison<Target> reading = delegate(Target a, Target b) { int row = (a.Box.Top / 12).CompareTo(b.Box.Top / 12); return row != 0 ? row : a.Box.Left.CompareTo(b.Box.Left); };
             targets.Sort(reading);
@@ -2601,7 +2607,7 @@ namespace CapriDesktop
         internal void Own(uint at) { ownAt = at; owned = true; }
     }
 
-    internal sealed class Job
+    internal sealed partial class Job
     {
         internal Func<string, string, List<KeyValuePair<string, ToolArguments>>, string> Think;
         internal Action<string> Progress;
@@ -2860,7 +2866,7 @@ namespace CapriDesktop
         {
             lock (heard)
             {
-                if (editing || pendingEdit != null || Asking || Outcome != null && Outcome != "waiting") return false;
+                if (editing || pendingEdit != null || demonstration != null || Asking || Outcome != null && Outcome != "waiting") return false;
                 editing = true;
                 openEditor = open;
                 editRevision++;
@@ -2887,11 +2893,12 @@ namespace CapriDesktop
             }
         }
 
-        private long WaitForEdit()
+        private long WaitForOwner()
         {
             while (true)
             {
-                Action open;
+                Action open = null;
+                Demonstration watch = null;
                 lock (heard)
                 {
                     if (!editing || Computer.Interrupted)
@@ -2911,13 +2918,18 @@ namespace CapriDesktop
                             asides = "";
                             carried = null;
                         }
-                        return editRevision;
+                        watch = demonstration;
+                        if (watch == null || Computer.Interrupted) return editRevision;
                     }
-                    open = openEditor;
-                    openEditor = null;
-                    if (open == null) { Monitor.Wait(heard, 50); continue; }
+                    else
+                    {
+                        open = openEditor;
+                        openEditor = null;
+                        if (open == null) { Monitor.Wait(heard, 50); continue; }
+                    }
                 }
-                open();
+                if (watch != null) WatchDemonstration(watch);
+                else open();
             }
         }
 
@@ -2993,7 +3005,7 @@ namespace CapriDesktop
             string skills = Hands.SkillNote(), read;
             lock (readSkills) read = hands == Computer.Seeing || readSkills.Count == 0 ? "" : "\nSkills you read for this job:\n" + string.Join("\n", readSkills.ToArray());
             return Computer.Allowing(hands) + skills + (skills.Length > 0 && hands == Computer.Sees ? Computer.SkillMove : "") + (Computer.Streaming ? Computer.StreamNote : "") + Briefed() + AppBrief() + read
-                + Computer.DownloadWarning;
+                + Computer.DownloadWarning + lesson;
         }
 
         private string AppBrief()
@@ -3048,7 +3060,7 @@ namespace CapriDesktop
         // What it's done so far, safe to read while it runs.
         internal JobReport Report()
         {
-            JobReport report = new JobReport { Words = Words, Playing = Playing, Seconds = clock.Elapsed.TotalSeconds };
+            JobReport report = new JobReport { Words = Words, Playing = Playing, Seconds = clock.Elapsed.TotalSeconds, Teaching = TeachingStatus };
             lock (ledger)
             {
                 report.Doing = underway ?? busied;
@@ -3086,7 +3098,7 @@ namespace CapriDesktop
             Timeline.Hush(true);
             try { return Running(); }
             catch { Computer.Finish(); Show(null); throw; }
-            finally { FinishEdit(null); Timeline.Hush(false); Timeline.Ended(this, Outcome); InControl.End(); }
+            finally { FinishEdit(null); demonstration = null; Timeline.Hush(false); Timeline.Ended(this, Outcome); InControl.End(); }
         }
 
         private string Running()
@@ -3115,10 +3127,11 @@ namespace CapriDesktop
             // No step limit: bigger brains can work for hours, and Esc stops her.
             while (true)
             {
-                long revision = WaitForEdit();
+                long revision = WaitForOwner();
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 Show("Looking at the screen");
                 Sight sight = Computer.Look();
+                teachingWindow = sight;
                 if (sight == null && Ink.ScreenRequest(Task)) sight = new Sight();
                 Action<Sight> reader = Reader;
                 if (reader != null && Seer == null && sight != null && (Ink.ScreenRequest(Task) || sight.Window != IntPtr.Zero && sight.Targets.Count < Computer.FewTargets)) reader(sight);
@@ -3243,7 +3256,7 @@ namespace CapriDesktop
             bool resuming = false;
             while (true)
             {
-                long current = WaitForEdit();
+                long current = WaitForOwner();
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 if (talk.Count == 0 || current != revision)
                 {
@@ -3439,7 +3452,7 @@ namespace CapriDesktop
             bool sentBack = false;
             while (true)
             {
-                long revision = WaitForEdit();
+                long revision = WaitForOwner();
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 turns++;
                 byte[] lastLook = shown == null ? null : shown.Jpeg;
@@ -3727,6 +3740,7 @@ namespace CapriDesktop
             }
             // This picture shows whatever hit her, so there's nothing left to stop for.
             Computer.Flinched = false;
+            teachingWindow = target != null && target.Window == looked ? target : null;
             Show(null);
             Action<Sight> seen = Seen;
             if (seen != null) seen(target ?? Computer.Glimpse());

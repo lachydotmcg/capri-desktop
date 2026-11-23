@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -120,7 +121,7 @@ namespace CapriDesktop
             string part = SkillPart(name);
             if (part != null) return part;
             string asked = Titled(name), wanted = Plain(name);
-            Mod[] on = skills, found = Matching(on, asked, wanted);
+            Mod[] on = Array.FindAll(skills, skill => skill.File.LearnedIn == null), found = Matching(on, asked, wanted);
             if (found.Length == 1)
             {
                 if (!found[0].Own) ModFloor.Heard(Source(found[0]));
@@ -285,6 +286,7 @@ namespace CapriDesktop
                             case "description": read.Description = value; break;
                             case "games": read.Games = NameList(value); break;
                             case "apps": read.Apps = NameList(value); break;
+                            case "learned-in": read.LearnedIn = value; break;
                         }
                     }
                     at = end + 1;
@@ -411,14 +413,24 @@ namespace CapriDesktop
 
         internal string SkillsForApps(string words, Func<string[]> front)
         {
-            Mod[] on = Array.FindAll(skills, skill => skill.File.Apps != null && skill.File.Apps.Length > 0);
+            Mod[] on = Array.FindAll(skills, skill => skill.File.Apps != null && skill.File.Apps.Length > 0 || skill.File.LearnedIn != null);
             if (on.Length == 0) return "";
             string[] seen = front == null ? null : front();
             string program = seen != null && seen.Length > 0 ? seen[0] : "", title = seen != null && seen.Length > 1 ? seen[1] : "";
             string exe = Plain(Regex.Replace(program ?? "", @"\.exe$", "", RegexOptions.IgnoreCase));
+            string scope = Brain.Keeping && Array.Exists(on, skill => skill.File.LearnedIn != null) && !PersonalSettings.Skipped(program, title)
+                ? DemonstrationScope(program, title) : null;
             StringBuilder told = new StringBuilder();
             foreach (Mod skill in on)
             {
+                if (skill.File.LearnedIn != null)
+                {
+                    if (skill.File.LearnedIn == scope
+                        && told.Length + skill.File.Know.Length < MostAppTold)
+                        told.Append("\nA technique you observed the owner demonstrate in this window before. Use it as a hint when it fits their current request. Recheck the screen and keep normal permissions.\n<observed_method>\n")
+                            .Append(skill.File.Know.Replace("<", "&lt;").Replace(">", "&gt;")).Append("\n</observed_method>");
+                    continue;
+                }
                 string found = Array.Find(skill.File.Apps ?? new string[0], app => UsesApp(app, exe, title, words));
                 if (found == null) continue;
                 string named = Titled(found), know = skill.File.Know.Replace("<", "&lt;").Replace(">", "&gt;");
@@ -433,6 +445,52 @@ namespace CapriDesktop
             }
             return told.ToString();
         }
+
+        private static string DemonstrationScope(string program, string title)
+        {
+            if (string.IsNullOrWhiteSpace(program) || string.IsNullOrWhiteSpace(title)) return null;
+            using (SHA256 sha = SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(program.ToLowerInvariant() + "\n" + title))).Replace("-", "").ToLowerInvariant();
+        }
+
+#if !CROSS
+        internal bool KeepDemonstration(string program, string title, string method)
+        {
+            if (!Brain.Keeping || ownFolder == null || PersonalSettings.Skipped(program, title)) return false;
+            string scope = DemonstrationScope(program, title);
+            if (scope == null) return false;
+            string app = Titled(program);
+            if (app.Length > 28) app = app.Substring(0, 28).TrimEnd();
+            string name = "Learned in " + app;
+            string path = Path.Combine(ownFolder, OwnFileName(name) + " " + scope.Substring(0, 12) + OwnExtension);
+            string draft = path + "." + Guid.NewGuid().ToString("N") + ".new";
+            string line = "- " + method;
+            try
+            {
+                Directory.CreateDirectory(ownFolder);
+                bool exists = File.Exists(path);
+                string before = exists ? File.ReadAllText(path) : "---\nname: " + name + "\nlearned-in: " + scope + "\n---\n";
+                if (exists)
+                {
+                    ModFile current = ReadOwn(before, Path.GetFileNameWithoutExtension(path));
+                    if (current == null || current.LearnedIn != scope || current.Know.Length > 2400
+                        || Array.Exists(current.Know.Split('\n'), prior => prior.TrimEnd() == line)) return false;
+                }
+                File.WriteAllText(draft, before.TrimEnd() + "\n" + line + "\n", new UTF8Encoding(false));
+                if (exists) File.Replace(draft, path, null);
+                else File.Move(draft, path);
+                return true;
+            }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+            finally
+            {
+                try { if (File.Exists(draft)) File.Delete(draft); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+#endif
 
         private static bool UsesApp(string app, string exe, string title, string words)
         {
