@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ba zai rubuta a sau
 · HD	· HD
 · on this PC	· a wannan PC
 · server	· sabar
+Edit as text	Gyara a matsayin rubutu
+What Capri remembers about you. It stays on this computer.	Abin da Capri ke tunawa game da kai. Yana kasancewa a wannan kwamfutar.
+Tell her something to remember	Faɗa mata wani abu da za ta tuna
+Search her memory	Bincika cikin ƙwaƙwalwarta
+That day isn't there any more.	Wannan ranar ba ta nan kuma.
+Undo	Mayar da baya
+Remember our chats is off, so she isn't keeping new chat memories.	Tuna da tattaunawarmu a kashe yake, don haka ba ta adana sabbin tunanin tattaunawa.
+ABOUT YOU	GAME DA KAI
+FROM YOUR CHATS	DAGA TATTAUNAWARKA
+GAMES	WASANNI
+CHAT LOGS	LITATTUN TATTAUNAWA
+CHAT LOG	LITAFIN TATTAUNAWA
+Nothing matches.	Babu abin da ya dace.
+Nothing yet.	Babu komai tukuna.
+Reading her notes.	Ana karanta bayananta.
+Click again to forget game notes	Danna kuma don manta bayanan wasanni
+Forget game notes	Manta bayanan wasanni
+Click again to forget everything about me	Danna kuma don manta komai game da kai
+Forget everything about me	Manta komai game da kai
+Click again to forget	Danna kuma don mantawa
+Forget this day	Manta wannan ranar
+Only the start of this day is shown.	Ana nuna farkon wannan ranar kawai.
+Nothing in this day.	Babu komai a wannan ranar.
+No chats kept yet.	Ba a adana tattaunawa ba tukuna.
+You	Kai
+{0} line	{0} layi
+SET UP EMAIL >	SAITA IMIYAIL >
+SET UP EMAIL	SAITA IMIYAIL
+Or type your address	Ko rubuta adireshinka
+Email address	Adireshin imiyail
+Open the page	Buɗe shafin
+App password	Kalmar sirrin manhaja
+IMAP server	Sabar IMAP
+Incoming mail server	Sabar imiyail mai shigowa
+SMTP server	Sabar SMTP
+Outgoing mail server	Sabar imiyail mai fita
+An app password is a separate password just for Capri. Your normal password stays yours.	Kalmar sirrin manhaja kalmar sirri ce dabam don Capri kawai. Kalmar sirrinka ta yau da kullum taka ce.
+She keeps it only until she closes.	Ta kan ajiye ta har sai ta rufe.
+She checks, searches and reads your mail. She asks before she sends any.	Ta kan duba, bincika kuma karanta imiyailinka. Ta kan tambaya kafin ta aika wani abu.
+Watch for new mail	Kula da sabon imiyail
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ta kan faɗa idan imiyail ya zo, tare da gargaɗi idan ya yi kama da phishing. Ba a yiwa komai alama a matsayin an karanta ba.
+Deal with phishing on her own	Yi maganin phishing da kanta
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Sai dai lokacin da take kallo. Imiyail ɗin da ta tabbatar phishing ne yana zuwa spam. Sauran suna jiran amincewarka.
+Forget account	Manta asusun
+Use another email	Yi amfani da wani imiyail
+Which email?	Wane imiyail?
+Make an app password	Ƙirƙiri kalmar sirrin manhaja
+Paste it	Manna ta
+Connecting...	Ana haɗawa...
+She can use your email now.	Yanzu za ta iya amfani da imiyailinka.
+She's not watching your inbox.	Ba ta kula da akwatin shigowarka.
+She's watching your inbox and deals with phishing she's sure of.	Ta na kula da akwatin shigowarka kuma tana maganin phishing ɗin da ta tabbatar.
+She's watching your inbox and tells you when mail lands.	Ta na kula da akwatin shigowarka kuma tana gaya maka idan imiyail ya zo.
+She forgot that account and its app password.	Ta manta da wannan asusu da kalmar sirrin manhajarsa.
+She forgot that account. Its app password is gone from this PC.	Ta manta da wannan asusu. Kalmar sirrin manhajarsa ya ɓace daga wannan kwamfutar.

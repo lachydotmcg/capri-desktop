@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	จะไม่พ�
 · HD	· HD
 · on this PC	· บนพีซีนี้
 · server	· เซิร์ฟเวอร์
+Edit as text	แก้ไขเป็นข้อความ
+What Capri remembers about you. It stays on this computer.	สิ่งที่ Capri จำเกี่ยวกับคุณ มันอยู่ในคอมพิวเตอร์เครื่องนี้
+Tell her something to remember	บอกสิ่งที่อยากให้เธอจำ
+Search her memory	ค้นหาในความจำของเธอ
+That day isn't there any more.	วันนั้นไม่มีแล้ว
+Undo	เลิกทำ
+Remember our chats is off, so she isn't keeping new chat memories.	การจำบทสนทนาของเราปิดอยู่ เธอจึงไม่เก็บความจำบทสนทนาใหม่
+ABOUT YOU	เกี่ยวกับคุณ
+FROM YOUR CHATS	จากบทสนทนาของคุณ
+GAMES	เกม
+CHAT LOGS	บันทึกบทสนทนา
+CHAT LOG	บันทึกบทสนทนา
+Nothing matches.	ไม่พบสิ่งที่ตรงกัน
+Nothing yet.	ยังไม่มีอะไร
+Reading her notes.	กำลังอ่านบันทึกของเธอ
+Click again to forget game notes	คลิกอีกครั้งเพื่อลืมบันทึกเกม
+Forget game notes	ลืมบันทึกเกม
+Click again to forget everything about me	คลิกอีกครั้งเพื่อลืมทุกอย่างเกี่ยวกับคุณ
+Forget everything about me	ลืมทุกอย่างเกี่ยวกับคุณ
+Click again to forget	คลิกอีกครั้งเพื่อลืม
+Forget this day	ลืมวันนี้
+Only the start of this day is shown.	แสดงเฉพาะช่วงเริ่มต้นของวันนี้
+Nothing in this day.	ไม่มีอะไรในวันนี้
+No chats kept yet.	ยังไม่มีบทสนทนาที่เก็บไว้
+You	คุณ
+{0} line	{0} บรรทัด
+SET UP EMAIL >	ตั้งค่าอีเมล >
+SET UP EMAIL	ตั้งค่าอีเมล
+Or type your address	หรือพิมพ์ที่อยู่ของคุณ
+Email address	ที่อยู่อีเมล
+Open the page	เปิดหน้า
+App password	รหัสผ่านแอป
+IMAP server	เซิร์ฟเวอร์ IMAP
+Incoming mail server	เซิร์ฟเวอร์อีเมลขาเข้า
+SMTP server	เซิร์ฟเวอร์ SMTP
+Outgoing mail server	เซิร์ฟเวอร์อีเมลขาออก
+An app password is a separate password just for Capri. Your normal password stays yours.	รหัสผ่านแอปเป็นรหัสผ่านแยกต่างหากสำหรับ Capri เท่านั้น รหัสผ่านปกติของคุณยังเป็นของคุณ
+She keeps it only until she closes.	เธอเก็บไว้เพียงจนกว่าจะปิด
+She checks, searches and reads your mail. She asks before she sends any.	เธอตรวจ ค้นหา และอ่านอีเมลของคุณ เธอถามก่อนส่งอะไร
+Watch for new mail	เฝ้าดูอีเมลใหม่
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	เธอจะพูดเมื่อมีอีเมลมา พร้อมคำเตือนถ้าดูเหมือนฟิชชิง ไม่มีอะไรถูกทำเครื่องหมายว่าอ่านแล้ว
+Deal with phishing on her own	จัดการฟิชชิงเอง
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	เฉพาะตอนที่เธอเฝ้าดู อีเมลที่เธอแน่ใจว่าเป็นฟิชชิงจะไปที่สแปม ที่เหลือรอคำตอบของคุณ
+Forget account	ลืมบัญชี
+Use another email	ใช้อีเมลอื่น
+Which email?	อีเมลไหน?
+Make an app password	สร้างรหัสผ่านแอป
+Paste it	วางมัน
+Connecting...	กำลังเชื่อมต่อ...
+She can use your email now.	ตอนนี้เธอใช้อีเมลของคุณได้แล้ว
+She's not watching your inbox.	เธอไม่ได้เฝ้าดูกล่องจดหมายของคุณ
+She's watching your inbox and deals with phishing she's sure of.	เธอกำลังเฝ้าดูกล่องจดหมายและจัดการฟิชชิงที่เธอแน่ใจ
+She's watching your inbox and tells you when mail lands.	เธอเฝ้าดูกล่องจดหมายและบอกคุณเมื่อมีอีเมลมา
+She forgot that account and its app password.	เธอลืมบัญชีนั้นและรหัสผ่านแอปของมัน
+She forgot that account. Its app password is gone from this PC.	เธอลืมบัญชีนั้น รหัสผ่านแอปของมันหายไปจากคอมพิวเตอร์เครื่องนี้

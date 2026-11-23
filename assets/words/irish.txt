@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ní chlóscríobhfa
 · HD	· HD
 · on this PC	· ar an PC seo
 · server	· freastalaí
+Edit as text	Cuir in eagar mar théacs
+What Capri remembers about you. It stays on this computer.	An rud a chuimhníonn Capri ort. Fanann sé ar an ríomhaire seo.
+Tell her something to remember	Abair rud éigin léi le cuimhneamh air
+Search her memory	Cuardaigh ina cuimhne
+That day isn't there any more.	Níl an lá sin ann a thuilleadh.
+Undo	Cealaigh
+Remember our chats is off, so she isn't keeping new chat memories.	Tá Cuimhnigh ar ár gcuid comhrá as, mar sin ní choinníonn sí cuimhní comhrá nua.
+ABOUT YOU	FAOI THUSA
+FROM YOUR CHATS	Ó DO CHUID COMHRÁ
+GAMES	CLUICHÍ
+CHAT LOGS	LÓGAIR CHOMHRÁ
+CHAT LOG	LÓG COMHRÁ
+Nothing matches.	Níl aon rud ag teacht.
+Nothing yet.	Níl aon rud fós.
+Reading her notes.	Ag léamh a cuid nótaí.
+Click again to forget game notes	Cliceáil arís chun nótaí cluichí a dhearmad
+Forget game notes	Déan dearmad ar nótaí cluichí
+Click again to forget everything about me	Cliceáil arís chun dearmad a dhéanamh de gach rud fút
+Forget everything about me	Déan dearmad de gach rud fút
+Click again to forget	Cliceáil arís chun dearmad a dhéanamh
+Forget this day	Déan dearmad den lá seo
+Only the start of this day is shown.	Ní thaispeántar ach tús an lae seo.
+Nothing in this day.	Níl aon rud ar an lá seo.
+No chats kept yet.	Níl aon chomhrá coinnithe fós.
+You	Tusa
+{0} line	{0} líne
+SET UP EMAIL >	SOCRAIGH RÍOMHPHOST >
+SET UP EMAIL	SOCRAIGH RÍOMHPHOST
+Or type your address	Nó clóscríobh do sheoladh
+Email address	Seoladh ríomhphoist
+Open the page	Oscail an leathanach
+App password	Focal faire an aipe
+IMAP server	Freastalaí IMAP
+Incoming mail server	Freastalaí ríomhphoist isteach
+SMTP server	Freastalaí SMTP
+Outgoing mail server	Freastalaí ríomhphoist amach
+An app password is a separate password just for Capri. Your normal password stays yours.	Is focal faire ar leith é focal faire an aipe do Capri amháin. Fanann do ghnáthfhocal faire leatsa.
+She keeps it only until she closes.	Ní choinníonn sí é ach go dtí go ndúnann sí.
+She checks, searches and reads your mail. She asks before she sends any.	Seiceálann, cuardaíonn agus léann sí do phost. Fiafraíonn sí sula seolann sí aon rud.
+Watch for new mail	Faire ar phost nua
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Labhraíonn sí nuair a thagann post, le rabhadh má fhéachann sé cosúil le phishing. Ní mharcáiltear aon rud mar léite.
+Deal with phishing on her own	Déileáil le phishing léi féin
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Ach amháin agus í ag faire. Téann post a bhfuil sí cinnte gur phishing é go dtí an turscar. Fanann an chuid eile le do chead.
+Forget account	Déan dearmad den chuntas
+Use another email	Úsáid ríomhphost eile
+Which email?	Cén ríomhphost?
+Make an app password	Cruthaigh focal faire aipe
+Paste it	Greamaigh é
+Connecting...	Ag nascadh...
+She can use your email now.	Is féidir léi do ríomhphost a úsáid anois.
+She's not watching your inbox.	Níl sí ag faire ar do bhosca isteach.
+She's watching your inbox and deals with phishing she's sure of.	Tá sí ag faire ar do bhosca isteach agus ag déileáil le phishing a bhfuil sí cinnte de.
+She's watching your inbox and tells you when mail lands.	Tá sí ag faire ar do bhosca isteach agus insíonn sí duit nuair a thagann post.
+She forgot that account and its app password.	Rinne sí dearmad den chuntas sin agus dá fhocal faire aipe.
+She forgot that account. Its app password is gone from this PC.	Rinne sí dearmad den chuntas sin. Tá a fhocal faire aipe imithe ón ríomhaire seo.

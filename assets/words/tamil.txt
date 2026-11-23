@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	அவள் இய
 · HD	· HD
 · on this PC	· இந்த PC-யில்
 · server	· சேவையகம்
+Edit as text	உரையாகத் திருத்து
+What Capri remembers about you. It stays on this computer.	Capri உன்னைப் பற்றி நினைவில் வைத்திருப்பது. இது இந்தக் கணினியில் இருக்கும்.
+Tell her something to remember	நினைவில் வைக்க ஒன்றைச் சொல்
+Search her memory	அவளது நினைவில் தேடு
+That day isn't there any more.	அந்த நாள் இனி இல்லை.
+Undo	செயல்நீக்கு
+Remember our chats is off, so she isn't keeping new chat memories.	நமது உரையாடல்களை நினைவில் வைப்பது அணைந்துள்ளது, எனவே புதிய உரையாடல் நினைவுகளைச் சேமிக்காது.
+ABOUT YOU	உன்னைப் பற்றி
+FROM YOUR CHATS	உனது உரையாடல்களில் இருந்து
+GAMES	விளையாட்டுகள்
+CHAT LOGS	உரையாடல் பதிவுகள்
+CHAT LOG	உரையாடல் பதிவு
+Nothing matches.	எதுவும் பொருந்தவில்லை.
+Nothing yet.	இன்னும் ஒன்றுமில்லை.
+Reading her notes.	அவளது குறிப்புகளைப் படிக்கிறது.
+Click again to forget game notes	விளையாட்டுக் குறிப்புகளை மறக்க மீண்டும் கிளிக் செய்
+Forget game notes	விளையாட்டுக் குறிப்புகளை மற
+Click again to forget everything about me	உன்னைப் பற்றிய எல்லாவற்றையும் மறக்க மீண்டும் கிளிக் செய்
+Forget everything about me	உன்னைப் பற்றிய எல்லாவற்றையும் மற
+Click again to forget	மறக்க மீண்டும் கிளிக் செய்
+Forget this day	இந்த நாளை மற
+Only the start of this day is shown.	இந்த நாளின் தொடக்கம் மட்டுமே காட்டப்படுகிறது.
+Nothing in this day.	இந்த நாளில் ஒன்றுமில்லை.
+No chats kept yet.	இன்னும் உரையாடல்கள் சேமிக்கப்படவில்லை.
+You	நீ
+{0} line	{0} வரி
+SET UP EMAIL >	மின்னஞ்சலை அமை >
+SET UP EMAIL	மின்னஞ்சலை அமை
+Or type your address	அல்லது உனது முகவரியைத் தட்டச்சு செய்
+Email address	மின்னஞ்சல் முகவரி
+Open the page	பக்கத்தைத் திற
+App password	செயலி கடவுச்சொல்
+IMAP server	IMAP சேவையகம்
+Incoming mail server	உள்வரும் மின்னஞ்சல் சேவையகம்
+SMTP server	SMTP சேவையகம்
+Outgoing mail server	வெளிச்செல்லும் மின்னஞ்சல் சேவையகம்
+An app password is a separate password just for Capri. Your normal password stays yours.	செயலி கடவுச்சொல் Capri-க்கு மட்டும் தனிக் கடவுச்சொல். உனது சாதாரண கடவுச்சொல் உன்னுடையதே.
+She keeps it only until she closes.	அது மூடும் வரை மட்டுமே அவள் அதை வைத்திருக்கிறாள்.
+She checks, searches and reads your mail. She asks before she sends any.	அவள் உனது மின்னஞ்சலைச் சரிபார்த்து, தேடி, படிக்கிறாள். எதையும் அனுப்பும் முன் கேட்கிறாள்.
+Watch for new mail	புதிய மின்னஞ்சலைக் கவனி
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	மின்னஞ்சல் வரும்போது அவள் சொல்வாள், ஃபிஷிங் போலத் தோன்றினால் எச்சரிக்கை தருவாள். எதுவும் படித்ததாகக் குறிக்கப்படாது.
+Deal with phishing on her own	ஃபிஷிங்கை நீயே கையாளு
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	அவள் கவனிக்கும்போது மட்டும். ஃபிஷிங் என்று உறுதியான மின்னஞ்சல் ஸ்பேமுக்குச் செல்லும். மீதம் உனது சம்மதத்திற்காகக் காத்திருக்கும்.
+Forget account	கணக்கை மற
+Use another email	வேறு மின்னஞ்சலைப் பயன்படுத்து
+Which email?	எந்த மின்னஞ்சல்?
+Make an app password	செயலி கடவுச்சொல்லை உருவாக்கு
+Paste it	அதை ஒட்டு
+Connecting...	இணைக்கிறது...
+She can use your email now.	இப்போது அவள் உனது மின்னஞ்சலைப் பயன்படுத்தலாம்.
+She's not watching your inbox.	அவள் உனது இன்பாக்ஸைக் கவனிக்கவில்லை.
+She's watching your inbox and deals with phishing she's sure of.	அவள் உனது இன்பாக்ஸைக் கவனித்து உறுதியான ஃபிஷிங்கைக் கையாள்கிறாள்.
+She's watching your inbox and tells you when mail lands.	அவள் உனது இன்பாக்ஸைக் கவனித்து மின்னஞ்சல் வரும்போது சொல்கிறாள்.
+She forgot that account and its app password.	அவள் அந்தக் கணக்கையும் அதன் செயலி கடவுச்சொல்லையும் மறந்துவிட்டாள்.
+She forgot that account. Its app password is gone from this PC.	அவள் அந்தக் கணக்கை மறந்துவிட்டாள். அதன் செயலி கடவுச்சொல் இந்தக் கணினியிலிருந்து போய்விட்டது.

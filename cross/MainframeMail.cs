@@ -93,7 +93,8 @@ namespace CapriDesktop
             OpenPage = Key("Open the page", 56, 260, 320, 32, Open);
             OpenPage.Accent = MainframeTheme.Cyan;
             OpenPage.Loud = true;
-            Separate = Label(Mods.AppPasswordLine + (McpSignIn.Keeps ? "" : " She keeps it only until she closes."), 24, 312, 572, 44, MainframeTheme.Faint, MainframeTheme.Size, false, true);
+            Separate = Label(Note(), 24, 312, 572, 44, MainframeTheme.Faint, MainframeTheme.Size, false, true);
+            Lingo.Changed += RewordNote;
             PasswordName = Label("App password", 24, 162, 160, 22, MainframeTheme.White, MainframeTheme.Size, true);
             Password = Field("App password", "", 190, 158, 406, true);
             IncomingName = Label("IMAP server", 24, 200, 160, 22, MainframeTheme.White, MainframeTheme.Size, true);
@@ -120,7 +121,7 @@ namespace CapriDesktop
             Address.Box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Program.Guard(Typed); };
             WatchSwitch.IsCheckedChanged += (_, _) => Program.Guard(Switches);
             HandsSwitch.IsCheckedChanged += (_, _) => Program.Guard(Switches);
-            Closed += delegate { shut = true; };
+            Closed += delegate { Lingo.Changed -= RewordNote; shut = true; };
             if (saved != null)
             {
                 Address.Box.Text = saved.Address;
@@ -129,6 +130,18 @@ namespace CapriDesktop
             }
             Fit(Wide, Tall, Pet.FrameSize(owner.Saved.MainframeSize) == 0 ? 1 : owner.Saved.MainframeSize / 100.0);
             Go(MailTools.Ready ? 4 : 1);
+        }
+
+        // The app-password note is put together in her language when the sheet is built, so a language change rebuilds it
+        // while the sheet is open, like the tray refills on its next update. One composer keeps both paths the same.
+        private string Note()
+        {
+            return Lingo.Of(Mods.AppPasswordLine) + (McpSignIn.Keeps ? "" : " " + Lingo.Of("She keeps it only until she closes."));
+        }
+
+        private void RewordNote()
+        {
+            Separate.Text = Note();
         }
 
         private NeonCaption Label(string text, int x, int y, int width, int height, IBrush ink = null, double size = MainframeTheme.Size, bool bold = false, bool top = false)

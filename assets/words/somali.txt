@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	uusan qori doonin a
 · HD	· HD
 · on this PC	· kan PC-kan
 · server	· server
+Edit as text	Tafatir sida qoraal
+What Capri remembers about you. It stays on this computer.	Waxa Capri kaa xasuusato. Wuxuu ku sii jiraa kombuyuutarkan.
+Tell her something to remember	U sheeg wax la xasuusto
+Search her memory	Ka raadi xusuusteeda
+That day isn't there any more.	Maalintaas ma jirto.
+Undo	Ka noqo
+Remember our chats is off, so she isn't keeping new chat memories.	Xusuusinta wada-hadalladeenna waa dammaan, marka ma kaydsato xusuus wada-hadal cusub.
+ABOUT YOU	KU SAABSAN ADIGA
+FROM YOUR CHATS	WADA-HADALLADAADA
+GAMES	CYAARAHAA
+CHAT LOGS	DIWAANNADA WADA-HADALKA
+CHAT LOG	DIWAANKA WADA-HADALKA
+Nothing matches.	Waxba ma aadan.
+Nothing yet.	Weli waxba ma jiraan.
+Reading her notes.	Waxay akhrineysaa qoraalladeeda.
+Click again to forget game notes	Riix mar kale si aad u ilowdo qoraallada ciyaaraha
+Forget game notes	Ilow qoraallada ciyaaraha
+Click again to forget everything about me	Riix mar kale si aad u ilowdo wax walba oo adiga ku saabsan
+Forget everything about me	Ilow wax walba oo adiga ku saabsan
+Click again to forget	Riix mar kale si aad u ilowdo
+Forget this day	Ilow maalintan
+Only the start of this day is shown.	Waxaa la muujinayaa oo kaliya bilowga maalintan.
+Nothing in this day.	Waxba kama jiraan maalintan.
+No chats kept yet.	Weli lama kaydsan wada-hadal.
+You	Adiga
+{0} line	Sadar {0}
+SET UP EMAIL >	DIIYAARI EMAYL >
+SET UP EMAIL	DIIYAARI EMAYL
+Or type your address	Ama qor cinwaankaaga
+Email address	Cinwaanka emaylka
+Open the page	Fur bogga
+App password	Furaha sirta ah ee abka
+IMAP server	Server-ka IMAP
+Incoming mail server	Server-ka emaylka soo gala
+SMTP server	Server-ka SMTP
+Outgoing mail server	Server-ka emaylka baxa
+An app password is a separate password just for Capri. Your normal password stays yours.	Furaha sirta ah ee abka waa furaha sir ah oo gaar u ah Capri oo keliya. Furahaaga caadiga ah waa kaaga.
+She keeps it only until she closes.	Waxay hayaanaysaa ilaa ay xiranto oo keliya.
+She checks, searches and reads your mail. She asks before she sends any.	Waxay hubisaa, raadisaa oo akhridaa emaylkaaga. Waxay weydiisaa ka hor inta aanay wax dirin.
+Watch for new mail	La soco emayl cusub
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Waxay hadashaa marka emayl yimaado, iyada oo digniin ah haddii ay u ekaato phishing. Waxba lama calaamadeeyo in la akhriyay.
+Deal with phishing on her own	Kalsooni phishing-ka
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Kaliya inta ay ilaalinayso. Emaylka ay hubiso inuu phishing yahay wuxuu aadaa spam. Inta kalena waxay sugtaa oggolaanshahaaga.
+Forget account	Ilow akoonka
+Use another email	Isticmaal emayl kale
+Which email?	Emaylkee?
+Make an app password	Abuur furaha sirta ah ee abka
+Paste it	Ku dheji
+Connecting...	Waa la xidhiidhinayaa...
+She can use your email now.	Hadda waxay isticmaali kartaa emaylkaaga.
+She's not watching your inbox.	Ma ilaalinayso sanduuqaaga soo-galka.
+She's watching your inbox and deals with phishing she's sure of.	Waxay ilaalinaysaa sanduuqaaga oo waxay wax ka qabataa phishing-ka ay hubiso.
+She's watching your inbox and tells you when mail lands.	Waxay ilaalinaysaa sanduuqaaga oo waxay kuu sheegtaa marka emayl yimaado.
+She forgot that account and its app password.	Waxay ilowday akoonkaas iyo furaha sirta ah ee abkiisa.
+She forgot that account. Its app password is gone from this PC.	Waxay ilowday akoonkaas. Furaha sirta ah ee abkiisa wuu ka lumay kombuyuutarkan.

@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	non escribirá nout
 · HD	· HD
 · on this PC	· neste PC
 · server	· servidor
+Edit as text	Editar como texto
+What Capri remembers about you. It stays on this computer.	O que a Capri recorda de ti. Fica neste ordenador.
+Tell her something to remember	Dille algo que recordar
+Search her memory	Buscar na súa memoria
+That day isn't there any more.	Ese día xa non está.
+Undo	Desfacer
+Remember our chats is off, so she isn't keeping new chat memories.	Lembrar as nosas conversas está desactivado, así que non garda novos recordos de chat.
+ABOUT YOU	SOBRE TI
+FROM YOUR CHATS	DAS TÚAS CONVERSAS
+GAMES	XOGOS
+CHAT LOGS	REXISTROS DE CHAT
+CHAT LOG	REXISTRO DE CHAT
+Nothing matches.	Nada coincide.
+Nothing yet.	Aínda nada.
+Reading her notes.	Lendo as súas notas.
+Click again to forget game notes	Fai clic outra vez para esquecer as notas dos xogos
+Forget game notes	Esquecer notas dos xogos
+Click again to forget everything about me	Fai clic outra vez para esquecelo todo sobre ti
+Forget everything about me	Esquecelo todo sobre ti
+Click again to forget	Fai clic outra vez para esquecer
+Forget this day	Esquecer este día
+Only the start of this day is shown.	Só se mostra o comezo deste día.
+Nothing in this day.	Nada neste día.
+No chats kept yet.	Aínda non hai conversas gardadas.
+You	Ti
+{0} line	{0} liña
+SET UP EMAIL >	CONFIGURAR O CORREO >
+SET UP EMAIL	CONFIGURAR O CORREO
+Or type your address	Ou escribe o teu enderezo
+Email address	Enderezo de correo
+Open the page	Abrir a páxina
+App password	Contrasinal da aplicación
+IMAP server	Servidor IMAP
+Incoming mail server	Servidor de correo entrante
+SMTP server	Servidor SMTP
+Outgoing mail server	Servidor de correo saínte
+An app password is a separate password just for Capri. Your normal password stays yours.	Un contrasinal da aplicación é un contrasinal aparte só para a Capri. O teu contrasinal normal segue sendo teu.
+She keeps it only until she closes.	Ela só o garda ata que se pecha.
+She checks, searches and reads your mail. She asks before she sends any.	Ela revisa, busca e le o teu correo. Pregunta antes de enviar nada.
+Watch for new mail	Vixiar correo novo
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ela fala cando chega correo, cun aviso se parece phishing. Nada se marca como lido.
+Deal with phishing on her own	Encargarse do phishing por si mesma
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Só mentres vixía. O correo que ten claro que é phishing vai a spam. O resto espera polo teu si.
+Forget account	Esquecer conta
+Use another email	Usar outro correo
+Which email?	Que correo?
+Make an app password	Crear un contrasinal da aplicación
+Paste it	Pégalo
+Connecting...	Conectando...
+She can use your email now.	Xa pode usar o teu correo.
+She's not watching your inbox.	Non está vixiando a túa caixa de entrada.
+She's watching your inbox and deals with phishing she's sure of.	Está vixiando a túa caixa e encárgase do phishing que ten claro.
+She's watching your inbox and tells you when mail lands.	Está vixiando a túa caixa e avísate cando chega correo.
+She forgot that account and its app password.	Esqueceu esa conta e o seu contrasinal da aplicación.
+She forgot that account. Its app password is gone from this PC.	Esqueceu esa conta. O seu contrasinal da aplicación xa non está neste PC.

@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ma jiktibx f'applik
 · HD	· HD
 · on this PC	· f'dan il-PC
 · server	· server
+Edit as text	Editja bħala test
+What Capri remembers about you. It stays on this computer.	X'iftakar Capri dwarek. Jibqa' fuq dan il-kompjuter.
+Tell her something to remember	Għidilha xi ħaġa x'tiftakar
+Search her memory	Fittex fil-memorja tagħha
+That day isn't there any more.	Dak il-jum m'għadux hemm.
+Undo	Iddawwar lura
+Remember our chats is off, so she isn't keeping new chat memories.	Ftakar fil-konversazzjonijiet tagħna mitfi, allura ma żżommx memorji ġodda tal-chat.
+ABOUT YOU	DWAREK
+FROM YOUR CHATS	MILL-KONVERSAZZJONIJIET TIEGĦEK
+GAMES	LOGĦOB
+CHAT LOGS	REĠISTRI TAL-CHAT
+CHAT LOG	REĠISTRU TAL-CHAT
+Nothing matches.	Xejn ma jaqbel.
+Nothing yet.	Xejn s'issa.
+Reading her notes.	Qed taqra n-noti tagħha.
+Click again to forget game notes	Ikklikkja mill-ġdid biex tinsa n-noti tal-logħob
+Forget game notes	Insie n-noti tal-logħob
+Click again to forget everything about me	Ikklikkja mill-ġdid biex tinsa kollox dwarek
+Forget everything about me	Insie kollox dwarek
+Click again to forget	Ikklikkja mill-ġdid biex tinsa
+Forget this day	Insie dan il-jum
+Only the start of this day is shown.	Qed jintwera biss il-bidu ta' dan il-jum.
+Nothing in this day.	Xejn f'dan il-jum.
+No chats kept yet.	Għadhom ma nżammew l-ebda chats.
+You	Int
+{0} line	{0} linja
+SET UP EMAIL >	ISSAKKAR L-EMAIL >
+SET UP EMAIL	ISSAKKAR L-EMAIL
+Or type your address	Jew ikteb l-indirizz tiegħek
+Email address	Indirizz tal-email
+Open the page	Iftaħ il-paġna
+App password	Password tal-app
+IMAP server	Server IMAP
+Incoming mail server	Server tal-posta dieħla
+SMTP server	Server SMTP
+Outgoing mail server	Server tal-posta ħierġa
+An app password is a separate password just for Capri. Your normal password stays yours.	Password tal-app hija password separat biss għal Capri. Il-password normali tiegħek tibqa' tiegħek.
+She keeps it only until she closes.	Hija żżommha biss sakemm tagħlaq.
+She checks, searches and reads your mail. She asks before she sends any.	Hija tiċċekkja, tfittex u taqra l-posta tiegħek. Hija tistaqsi qabel ma tibgħat xi ħaġa.
+Watch for new mail	Oqgħod attent għal posta ġdida
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Hija titkellem meta tasal posta, b'avviż jekk tidher qisha phishing. Xejn ma jiġi mmarkat bħala moqri.
+Deal with phishing on her own	Tittratta l-phishing waħedha
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Biss waqt li tkun qed tosserva. Posta li hija żgura li hija phishing tmur fl-ispam. Il-bqija tistenna it-tajjeb tiegħek.
+Forget account	Insie l-kont
+Use another email	Uża email oħra
+Which email?	Liema email?
+Make an app password	Agħmel password tal-app
+Paste it	Ippejstjaha
+Connecting...	Qed jgħaqqad...
+She can use your email now.	Issa tista' tuża l-email tiegħek.
+She's not watching your inbox.	Mhijiex qed tosserva l-inbox tiegħek.
+She's watching your inbox and deals with phishing she's sure of.	Qed tosserva l-inbox tiegħek u tittratta l-phishing li hija żgura minnu.
+She's watching your inbox and tells you when mail lands.	Qed tosserva l-inbox tiegħek u tgħidlek meta tasal posta.
+She forgot that account and its app password.	Hija ninsiet dak il-kont u l-password tal-app tiegħu.
+She forgot that account. Its app password is gone from this PC.	Hija ninsiet dak il-kont. Il-password tal-app tiegħu sparixxet minn dan il-kompjuter.

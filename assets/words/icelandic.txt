@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	skrifar ekki í ö�
 · HD	· HD
 · on this PC	· á þessari tölvu
 · server	· þjónn
+Edit as text	Breyta sem texta
+What Capri remembers about you. It stays on this computer.	Það sem Capri man um þig. Það verður á þessari tölvu.
+Tell her something to remember	Segðu henni eitthvað til að muna
+Search her memory	Leita í minni hennar
+That day isn't there any more.	Sá dagur er ekki lengur til.
+Undo	Afturkalla
+Remember our chats is off, so she isn't keeping new chat memories.	Muna spjall okkar er slökkt, svo hún geymir engar nýjar spjallminningar.
+ABOUT YOU	UM ÞIG
+FROM YOUR CHATS	ÚR SPJALLUNUM ÞÍNUM
+GAMES	LEIKIR
+CHAT LOGS	SPJALLSKRÁR
+CHAT LOG	SPJALLSKRÁ
+Nothing matches.	Ekkert passar.
+Nothing yet.	Ekkert ennþá.
+Reading her notes.	Les athugasemdir hennar.
+Click again to forget game notes	Smelltu aftur til að gleyma leikjum
+Forget game notes	Gleyma leikjaskýrslum
+Click again to forget everything about me	Smelltu aftur til að gleyma öllu um þig
+Forget everything about me	Gleyma öllu um þig
+Click again to forget	Smelltu aftur til að gleyma
+Forget this day	Gleyma þessum degi
+Only the start of this day is shown.	Aðeins byrjun þessa dags er sýnd.
+Nothing in this day.	Ekkert á þessum degi.
+No chats kept yet.	Engin spjöll geymd ennþá.
+You	Þú
+{0} line	{0} lína
+SET UP EMAIL >	SETJA UPP TÖLVPÓST >
+SET UP EMAIL	SETJA UPP TÖLVPÓST
+Or type your address	Eða skrifaðu netfangið þitt
+Email address	Netfang
+Open the page	Opna síðuna
+App password	Forritalykilorð
+IMAP server	IMAP-þjónn
+Incoming mail server	Þjónn fyrir innkomandi póst
+SMTP server	SMTP-þjónn
+Outgoing mail server	Þjónn fyrir útgangandi póst
+An app password is a separate password just for Capri. Your normal password stays yours.	Forritalykilorð er sérstakt lykilorð bara fyrir Capri. Venjulega lykilorðið þitt verður áfram þitt.
+She keeps it only until she closes.	Hún geymir það aðeins þar til hún lokast.
+She checks, searches and reads your mail. She asks before she sends any.	Hún athugar, leitar í og les póstinn þinn. Hún spyr áður en hún sendir eitthvað.
+Watch for new mail	Fylgjast með nýjum pósti
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Hún segir til þegar póstur berst, með viðvörun ef það lítur út eins og phishing. Ekkert er merkt sem lesið.
+Deal with phishing on her own	Takast á við phishing sjálf
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Aðeins meðan hún fylgist með. Póstur sem hún er viss um að sé phishing fer í ruslpóst. Restin bíður samþykkis þíns.
+Forget account	Gleyma reikningi
+Use another email	Nota annan tölvupóst
+Which email?	Hvaða tölvupóstur?
+Make an app password	Búa til forritalykilorð
+Paste it	Líma það
+Connecting...	Tengist...
+She can use your email now.	Hún getur notað tölvupóstinn þinn núna.
+She's not watching your inbox.	Hún er ekki að fylgjast með innhólfinu þínu.
+She's watching your inbox and deals with phishing she's sure of.	Hún fylgist með innhólfinu þínu og tekur á phishing sem hún er viss um.
+She's watching your inbox and tells you when mail lands.	Hún fylgist með innhólfinu þínu og segir til þegar póstur berst.
+She forgot that account and its app password.	Hún gleymdi þeim reikningi og forritalykilorðinu hans.
+She forgot that account. Its app password is gone from this PC.	Hún gleymdi þeim reikningi. Forritalykilorðið hans er horfið af þessari tölvu.

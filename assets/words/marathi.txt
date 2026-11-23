@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ती चालू
 · HD	· HD
 · on this PC	· या PC वर
 · server	· सर्व्हर
+Edit as text	मजकूर म्हणून संपादित करा
+What Capri remembers about you. It stays on this computer.	Capri तुमच्याबद्दल काय लक्षात ठेवते. ते या संगणकावर राहते.
+Tell her something to remember	तिला लक्षात ठेवण्यासाठी काही सांगा
+Search her memory	तिच्या स्मरणात शोधा
+That day isn't there any more.	तो दिवस आता नाही.
+Undo	पूर्वपदावर आणा
+Remember our chats is off, so she isn't keeping new chat memories.	आपल्या गप्पा लक्षात ठेवणे बंद आहे, म्हणून ती नवीन गप्पांच्या आठवणी साठवत नाही.
+ABOUT YOU	तुमच्याबद्दल
+FROM YOUR CHATS	तुमच्या गप्पांमधून
+GAMES	खेळ
+CHAT LOGS	गप्पांचे लॉग
+CHAT LOG	गप्पांचा लॉग
+Nothing matches.	काहीही जुळत नाही.
+Nothing yet.	अजून काही नाही.
+Reading her notes.	तिच्या नोट्स वाचत आहे.
+Click again to forget game notes	खेळाच्या नोट्स विसरण्यासाठी पुन्हा क्लिक करा
+Forget game notes	खेळाच्या नोट्स विसरा
+Click again to forget everything about me	तुमच्याबद्दल सर्व विसरण्यासाठी पुन्हा क्लिक करा
+Forget everything about me	तुमच्याबद्दल सर्व विसरा
+Click again to forget	विसरण्यासाठी पुन्हा क्लिक करा
+Forget this day	हा दिवस विसरा
+Only the start of this day is shown.	या दिवसाची फक्त सुरुवात दाखवली जाते.
+Nothing in this day.	या दिवशी काही नाही.
+No chats kept yet.	अजून कोणत्याही गप्पा साठवलेल्या नाहीत.
+You	तुम्ही
+{0} line	{0} ओळ
+SET UP EMAIL >	ईमेल सेट करा >
+SET UP EMAIL	ईमेल सेट करा
+Or type your address	किंवा तुमचा पत्ता लिहा
+Email address	ईमेल पत्ता
+Open the page	पृष्ठ उघडा
+App password	अॅप पासवर्ड
+IMAP server	IMAP सर्व्हर
+Incoming mail server	येणाऱ्या मेलचा सर्व्हर
+SMTP server	SMTP सर्व्हर
+Outgoing mail server	जाणाऱ्या मेलचा सर्व्हर
+An app password is a separate password just for Capri. Your normal password stays yours.	अॅप पासवर्ड हा फक्त Capri साठी वेगळा पासवर्ड आहे. तुमचा नेहमीचा पासवर्ड तुमचाच राहतो.
+She keeps it only until she closes.	ती तो बंद होईपर्यंतच ठेवते.
+She checks, searches and reads your mail. She asks before she sends any.	ती तुमचा मेल तपासते, शोधते आणि वाचते. काही पाठवण्यापूर्वी विचारते.
+Watch for new mail	नवीन मेलवर लक्ष ठेवा
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	मेल आल्यावर ती सांगते, फिशिंगसारखे वाटल्यास इशारा देते. काहीही वाचलेले म्हणून चिन्हांकित होत नाही.
+Deal with phishing on her own	फिशिंग स्वतः हाताळा
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	ती लक्ष ठेवत असतानाच. जो मेल तिला नक्की फिशिंग वाटतो तो स्पॅममध्ये जातो. बाकी तुमच्या होकाराची वाट पाहते.
+Forget account	खाते विसरा
+Use another email	दुसरा ईमेल वापरा
+Which email?	कोणता ईमेल?
+Make an app password	अॅप पासवर्ड तयार करा
+Paste it	तो पेस्ट करा
+Connecting...	कनेक्ट होत आहे...
+She can use your email now.	आता ती तुमचा ईमेल वापरू शकते.
+She's not watching your inbox.	ती तुमच्या इनबॉक्सवर लक्ष ठेवत नाही.
+She's watching your inbox and deals with phishing she's sure of.	ती तुमच्या इनबॉक्सवर लक्ष ठेवते आणि नक्की फिशिंग हाताळते.
+She's watching your inbox and tells you when mail lands.	ती तुमच्या इनबॉक्सवर लक्ष ठेवते आणि मेल आल्यावर सांगते.
+She forgot that account and its app password.	ती ते खाते आणि त्याचा अॅप पासवर्ड विसरली.
+She forgot that account. Its app password is gone from this PC.	ती ते खाते विसरली. त्याचा अॅप पासवर्ड या संगणकावरून गेला.

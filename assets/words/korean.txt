@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	그녀가 실행 �
 · HD	· HD
 · on this PC	· 이 PC에서
 · server	· 서버
+Edit as text	텍스트로 편집
+What Capri remembers about you. It stays on this computer.	Capri가 너에 대해 기억하는 것. 이 컴퓨터에 남습니다.
+Tell her something to remember	기억할 것을 그녀에게 말하기
+Search her memory	그녀의 기억에서 검색
+That day isn't there any more.	그날은 이제 없습니다.
+Undo	실행 취소
+Remember our chats is off, so she isn't keeping new chat memories.	대화 기억하기가 꺼져 있어 새 대화 기억을 저장하지 않습니다.
+ABOUT YOU	너에 대해
+FROM YOUR CHATS	너의 대화에서
+GAMES	게임
+CHAT LOGS	대화 기록
+CHAT LOG	대화 기록
+Nothing matches.	일치하는 것이 없습니다.
+Nothing yet.	아직 아무것도 없습니다.
+Reading her notes.	그녀의 메모를 읽는 중.
+Click again to forget game notes	게임 메모를 잊으려면 다시 클릭
+Forget game notes	게임 메모 잊기
+Click again to forget everything about me	너에 대한 모든 것을 잊으려면 다시 클릭
+Forget everything about me	너에 대한 모든 것을 잊기
+Click again to forget	잊으려면 다시 클릭
+Forget this day	이 날 잊기
+Only the start of this day is shown.	이 날의 시작만 표시됩니다.
+Nothing in this day.	이 날에는 아무것도 없습니다.
+No chats kept yet.	아직 저장된 대화가 없습니다.
+You	너
+{0} line	{0}줄
+SET UP EMAIL >	이메일 설정 >
+SET UP EMAIL	이메일 설정
+Or type your address	또는 주소를 입력하세요
+Email address	이메일 주소
+Open the page	페이지 열기
+App password	앱 비밀번호
+IMAP server	IMAP 서버
+Incoming mail server	받는 메일 서버
+SMTP server	SMTP 서버
+Outgoing mail server	보내는 메일 서버
+An app password is a separate password just for Capri. Your normal password stays yours.	앱 비밀번호는 Capri만을 위한 별도 비밀번호입니다. 평소 비밀번호는 그대로 네 것입니다.
+She keeps it only until she closes.	그녀는 닫을 때까지만 보관합니다.
+She checks, searches and reads your mail. She asks before she sends any.	그녀는 메일을 확인하고 검색하고 읽습니다. 보내기 전에 물어봅니다.
+Watch for new mail	새 메일 지켜보기
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	메일이 오면 알리고 피싱처럼 보이면 경고합니다. 아무것도 읽음으로 표시되지 않습니다.
+Deal with phishing on her own	피싱을 직접 처리
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	그녀가 지켜보는 동안만. 피싱이 확실한 메일은 스팸으로 갑니다. 나머지는 너의 승인을 기다립니다.
+Forget account	계정 잊기
+Use another email	다른 이메일 사용
+Which email?	어떤 이메일?
+Make an app password	앱 비밀번호 만들기
+Paste it	붙여넣기
+Connecting...	연결 중...
+She can use your email now.	이제 그녀가 너의 이메일을 사용할 수 있습니다.
+She's not watching your inbox.	그녀는 받은편지함을 지켜보지 않습니다.
+She's watching your inbox and deals with phishing she's sure of.	그녀는 받은편지함을 지켜보고 확실한 피싱을 처리합니다.
+She's watching your inbox and tells you when mail lands.	그녀는 받은편지함을 지켜보고 메일이 오면 알려줍니다.
+She forgot that account and its app password.	그녀는 그 계정과 앱 비밀번호를 잊었습니다.
+She forgot that account. Its app password is gone from this PC.	그녀는 그 계정을 잊었습니다. 앱 비밀번호가 이 컴퓨터에서 사라졌습니다.

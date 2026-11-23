@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	netaipīs citās li
 · HD	· HD
 · on this PC	· šajā PC
 · server	· serveris
+Edit as text	Rediģēt kā tekstu
+What Capri remembers about you. It stays on this computer.	Ko Capri atceras par tevi. Paliek šajā datorā.
+Tell her something to remember	Pasaki viņai kaut ko, ko atcerēties
+Search her memory	Meklēt viņas atmiņā
+That day isn't there any more.	Tā diena vairs nav.
+Undo	Atsaukt
+Remember our chats is off, so she isn't keeping new chat memories.	Atcerēties mūsu sarunas ir izslēgts, tāpēc viņa neglabā jaunas sarunu atmiņas.
+ABOUT YOU	PAR TEVI
+FROM YOUR CHATS	NO TAVĀM SARUNĀM
+GAMES	SPĒLES
+CHAT LOGS	SARUNU ŽURNĀLI
+CHAT LOG	SARUNAS ŽURNĀLS
+Nothing matches.	Nekas neatbilst.
+Nothing yet.	Vēl nekā.
+Reading her notes.	Lasa viņas piezīmes.
+Click again to forget game notes	Noklikšķini vēlreiz, lai aizmirstu spēļu piezīmes
+Forget game notes	Aizmirst spēļu piezīmes
+Click again to forget everything about me	Noklikšķini vēlreiz, lai aizmirstu visu par tevi
+Forget everything about me	Aizmirst visu par tevi
+Click again to forget	Noklikšķini vēlreiz, lai aizmirstu
+Forget this day	Aizmirst šo dienu
+Only the start of this day is shown.	Tiek rādīts tikai šīs dienas sākums.
+Nothing in this day.	Nekā šajā dienā.
+No chats kept yet.	Sarunas vēl nav saglabātas.
+You	Tu
+{0} line	{0} rinda
+SET UP EMAIL >	IESTATĪT E-PASTU >
+SET UP EMAIL	IESTATĪT E-PASTU
+Or type your address	Vai ieraksti savu adresi
+Email address	E-pasta adrese
+Open the page	Atvērt lapu
+App password	Lietotnes parole
+IMAP server	IMAP serveris
+Incoming mail server	Ienākošā pasta serveris
+SMTP server	SMTP serveris
+Outgoing mail server	Izejošā pasta serveris
+An app password is a separate password just for Capri. Your normal password stays yours.	Lietotnes parole ir atsevišķa parole tikai Capri. Tava parastā parole paliek tava.
+She keeps it only until she closes.	Viņa to glabā tikai līdz aizvēršanai.
+She checks, searches and reads your mail. She asks before she sends any.	Viņa pārbauda, meklē un lasa tavu pastu. Viņa jautā pirms kaut ko sūta.
+Watch for new mail	Sekot jaunam pastam
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Viņa pasaka, kad pienāk pasts, ar brīdinājumu, ja tas izskatās pēc pikšķerēšanas. Nekas netiek atzīmēts kā lasīts.
+Deal with phishing on her own	Tikt galā ar pikšķerēšanu pašai
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Tikai kamēr viņa seko. Pasts, par ko viņa ir pārliecināta, ka tas ir pikšķerēšana, aiziet uz surogātpastu. Pārējais gaida tavu jā.
+Forget account	Aizmirst kontu
+Use another email	Izmantot citu e-pastu
+Which email?	Kuru e-pastu?
+Make an app password	Izveidot lietotnes paroli
+Paste it	Ielīmē to
+Connecting...	Savieno...
+She can use your email now.	Viņa tagad var izmantot tavu e-pastu.
+She's not watching your inbox.	Viņa neseko tavai iesūtnei.
+She's watching your inbox and deals with phishing she's sure of.	Viņa seko tavai iesūtnei un tiek galā ar pikšķerēšanu, par ko ir pārliecināta.
+She's watching your inbox and tells you when mail lands.	Viņa seko tavai iesūtnei un pasaka, kad pienāk pasts.
+She forgot that account and its app password.	Viņa aizmirsa to kontu un tā lietotnes paroli.
+She forgot that account. Its app password is gone from this PC.	Viņa aizmirsa to kontu. Tā lietotnes parole ir pazudusi no šī datora.

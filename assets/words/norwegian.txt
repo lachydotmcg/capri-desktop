@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	skriver ikke i andr
 · HD	· HD
 · on this PC	· på denne PC-en
 · server	· server
+Edit as text	Rediger som tekst
+What Capri remembers about you. It stays on this computer.	Hva Capri husker om deg. Det blir på denne datamaskinen.
+Tell her something to remember	Fortell henne noe å huske
+Search her memory	Søk i minnet hennes
+That day isn't there any more.	Den dagen er ikke der lenger.
+Undo	Angre
+Remember our chats is off, so she isn't keeping new chat memories.	Husk samtalene våre er av, så hun lagrer ikke nye samtaleminne.
+ABOUT YOU	OM DEG
+FROM YOUR CHATS	FRA SAMTALENE DINE
+GAMES	SPILL
+CHAT LOGS	SAMTALELOGGER
+CHAT LOG	SAMTALELOGG
+Nothing matches.	Ingenting passer.
+Nothing yet.	Ingenting ennå.
+Reading her notes.	Leser notatene hennes.
+Click again to forget game notes	Klikk igjen for å glemme spillnotater
+Forget game notes	Glem spillnotater
+Click again to forget everything about me	Klikk igjen for å glemme alt om deg
+Forget everything about me	Glem alt om deg
+Click again to forget	Klikk igjen for å glemme
+Forget this day	Glem denne dagen
+Only the start of this day is shown.	Bare starten av denne dagen vises.
+Nothing in this day.	Ingenting på denne dagen.
+No chats kept yet.	Ingen samtaler er lagret ennå.
+You	Du
+{0} line	{0} linje
+SET UP EMAIL >	SETT OPP E-POST >
+SET UP EMAIL	SETT OPP E-POST
+Or type your address	Eller skriv inn adressen din
+Email address	E-postadresse
+Open the page	Åpne siden
+App password	App-passord
+IMAP server	IMAP-server
+Incoming mail server	Innkommende e-postserver
+SMTP server	SMTP-server
+Outgoing mail server	Utgående e-postserver
+An app password is a separate password just for Capri. Your normal password stays yours.	Et app-passord er et eget passord bare for Capri. Det vanlige passordet ditt forblir ditt.
+She keeps it only until she closes.	Hun beholder det bare til hun lukker.
+She checks, searches and reads your mail. She asks before she sends any.	Hun sjekker, søker i og leser e-posten din. Hun spør før hun sender noe.
+Watch for new mail	Følg med på ny e-post
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Hun sier fra når e-post kommer, med en advarsel hvis det ser ut som phishing. Ingenting merkes som lest.
+Deal with phishing on her own	Håndter phishing selv
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Bare mens hun følger med. E-post hun er sikker på er phishing, går til spam. Resten venter på ja-et ditt.
+Forget account	Glem kontoen
+Use another email	Bruk en annen e-post
+Which email?	Hvilken e-post?
+Make an app password	Lag et app-passord
+Paste it	Lim det inn
+Connecting...	Kobler til...
+She can use your email now.	Hun kan bruke e-posten din nå.
+She's not watching your inbox.	Hun følger ikke med på innboksen din.
+She's watching your inbox and deals with phishing she's sure of.	Hun følger med på innboksen din og håndterer phishing hun er sikker på.
+She's watching your inbox and tells you when mail lands.	Hun følger med på innboksen din og sier fra når e-post kommer.
+She forgot that account and its app password.	Hun glemte den kontoen og app-passordet.
+She forgot that account. Its app password is gone from this PC.	Hun glemte den kontoen. App-passordet er borte fra denne datamaskinen.

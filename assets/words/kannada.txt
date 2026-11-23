@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ಅವಳು ಓಡ
 · HD	· HD
 · on this PC	· ಈ PC ಯಲ್ಲಿ
 · server	· ಸರ್ವರ್
+Edit as text	ಪಠ್ಯವಾಗಿ ಸಂಪಾದಿಸು
+What Capri remembers about you. It stays on this computer.	Capri ನಿನ್ನ ಬಗ್ಗೆ ನೆನಪಿಟ್ಟುಕೊಳ್ಳುವುದು. ಇದು ಈ ಕಂಪ್ಯೂಟರ್‌ನಲ್ಲಿ ಉಳಿಯುತ್ತದೆ.
+Tell her something to remember	ನೆನಪಿಟ್ಟುಕೊಳ್ಳಲು ಏನಾದರೂ ಹೇಳು
+Search her memory	ಅವಳ ನೆನಪಿನಲ್ಲಿ ಹುಡುಕು
+That day isn't there any more.	ಆ ದಿನ ಇನ್ನು ಇಲ್ಲ.
+Undo	ಹಿಂತಿರುಗಿಸು
+Remember our chats is off, so she isn't keeping new chat memories.	ನಮ್ಮ ಸಂಭಾಷಣೆಗಳನ್ನು ನೆನಪಿಟ್ಟುಕೊಳ್ಳುವುದು ಆಫ್ ಆಗಿದೆ, ಆದ್ದರಿಂದ ಹೊಸ ಸಂಭಾಷಣೆ ನೆನಪುಗಳನ್ನು ಉಳಿಸುವುದಿಲ್ಲ.
+ABOUT YOU	ನಿನ್ನ ಬಗ್ಗೆ
+FROM YOUR CHATS	ನಿನ್ನ ಸಂಭಾಷಣೆಗಳಿಂದ
+GAMES	ಆಟಗಳು
+CHAT LOGS	ಸಂಭಾಷಣೆ ಲಾಗ್‌ಗಳು
+CHAT LOG	ಸಂಭಾಷಣೆ ಲಾಗ್
+Nothing matches.	ಏನೂ ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ.
+Nothing yet.	ಇನ್ನೂ ಏನೂ ಇಲ್ಲ.
+Reading her notes.	ಅವಳ ಟಿಪ್ಪಣಿಗಳನ್ನು ಓದುತ್ತಿದೆ.
+Click again to forget game notes	ಆಟದ ಟಿಪ್ಪಣಿಗಳನ್ನು ಮರೆಯಲು ಮತ್ತೆ ಕ್ಲಿಕ್ ಮಾಡು
+Forget game notes	ಆಟದ ಟಿಪ್ಪಣಿಗಳನ್ನು ಮರೆ
+Click again to forget everything about me	ನಿನ್ನ ಬಗ್ಗೆ ಎಲ್ಲವನ್ನೂ ಮರೆಯಲು ಮತ್ತೆ ಕ್ಲಿಕ್ ಮಾಡು
+Forget everything about me	ನಿನ್ನ ಬಗ್ಗೆ ಎಲ್ಲವನ್ನೂ ಮರೆ
+Click again to forget	ಮರೆಯಲು ಮತ್ತೆ ಕ್ಲಿಕ್ ಮಾಡು
+Forget this day	ಈ ದಿನವನ್ನು ಮರೆ
+Only the start of this day is shown.	ಈ ದಿನದ ಆರಂಭ ಮಾತ್ರ ತೋರಿಸಲಾಗುತ್ತದೆ.
+Nothing in this day.	ಈ ದಿನದಲ್ಲಿ ಏನೂ ಇಲ್ಲ.
+No chats kept yet.	ಇನ್ನೂ ಸಂಭಾಷಣೆಗಳನ್ನು ಉಳಿಸಿಲ್ಲ.
+You	ನೀನು
+{0} line	{0} ಸಾಲು
+SET UP EMAIL >	ಇಮೇಲ್ ಸೆಟಪ್ ಮಾಡು >
+SET UP EMAIL	ಇಮೇಲ್ ಸೆಟಪ್ ಮಾಡು
+Or type your address	ಅಥವಾ ನಿನ್ನ ವಿಳಾಸವನ್ನು ಟೈಪ್ ಮಾಡು
+Email address	ಇಮೇಲ್ ವಿಳಾಸ
+Open the page	ಪುಟ ತೆರೆ
+App password	ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್
+IMAP server	IMAP ಸರ್ವರ್
+Incoming mail server	ಒಳಬರುವ ಮೇಲ್ ಸರ್ವರ್
+SMTP server	SMTP ಸರ್ವರ್
+Outgoing mail server	ಹೊರಹೋಗುವ ಮೇಲ್ ಸರ್ವರ್
+An app password is a separate password just for Capri. Your normal password stays yours.	ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ Capri ಗಾಗಿ ಮಾತ್ರ ಪ್ರತ್ಯೇಕ ಪಾಸ್‌ವರ್ಡ್. ನಿನ್ನ ಸಾಮಾನ್ಯ ಪಾಸ್‌ವರ್ಡ್ ನಿನ್ನದೇ.
+She keeps it only until she closes.	ಅವಳು ಮುಚ್ಚುವವರೆಗೆ ಮಾತ್ರ ಅದನ್ನು ಇಟ್ಟುಕೊಳ್ಳುತ್ತಾಳೆ.
+She checks, searches and reads your mail. She asks before she sends any.	ಅವಳು ನಿನ್ನ ಮೇಲ್ ಪರಿಶೀಲಿಸಿ, ಹುಡುಕಿ, ಓದುತ್ತಾಳೆ. ಏನನ್ನಾದರೂ ಕಳುಹಿಸುವ ಮೊದಲು ಕೇಳುತ್ತಾಳೆ.
+Watch for new mail	ಹೊಸ ಮೇಲ್ ಗಮನಿಸು
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ಮೇಲ್ ಬಂದಾಗ ಅವಳು ಹೇಳುತ್ತಾಳೆ, ಫಿಶಿಂಗ್‌ನಂತೆ ಕಂಡರೆ ಎಚ್ಚರಿಕೆ ನೀಡುತ್ತಾಳೆ. ಯಾವುದನ್ನೂ ಓದಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗುವುದಿಲ್ಲ.
+Deal with phishing on her own	ಫಿಶಿಂಗ್ ಅನ್ನು ನೀನೇ ನಿಭಾಯಿಸು
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	ಅವಳು ಗಮನಿಸುವಾಗ ಮಾತ್ರ. ಫಿಶಿಂಗ್ ಎಂದು ಖಚಿತವಾದ ಮೇಲ್ ಸ್ಪ್ಯಾಮ್‌ಗೆ ಹೋಗುತ್ತದೆ. ಉಳಿದದ್ದು ನಿನ್ನ ಒಪ್ಪಿಗೆಗಾಗಿ ಕಾಯುತ್ತದೆ.
+Forget account	ಖಾತೆ ಮರೆ
+Use another email	ಬೇರೆ ಇಮೇಲ್ ಬಳಸು
+Which email?	ಯಾವ ಇಮೇಲ್?
+Make an app password	ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ ರಚಿಸು
+Paste it	ಅದನ್ನು ಅಂಟಿಸು
+Connecting...	ಸಂಪರ್ಕಿಸುತ್ತಿದೆ...
+She can use your email now.	ಈಗ ಅವಳು ನಿನ್ನ ಇಮೇಲ್ ಬಳಸಬಹುದು.
+She's not watching your inbox.	ಅವಳು ನಿನ್ನ ಇನ್‌ಬಾಕ್ಸ್ ಗಮನಿಸುತ್ತಿಲ್ಲ.
+She's watching your inbox and deals with phishing she's sure of.	ಅವಳು ನಿನ್ನ ಇನ್‌ಬಾಕ್ಸ್ ಗಮನಿಸುತ್ತಾ ಖಚಿತವಾದ ಫಿಶಿಂಗ್ ನಿಭಾಯಿಸುತ್ತಾಳೆ.
+She's watching your inbox and tells you when mail lands.	ಅವಳು ನಿನ್ನ ಇನ್‌ಬಾಕ್ಸ್ ಗಮನಿಸುತ್ತಾ ಮೇಲ್ ಬಂದಾಗ ಹೇಳುತ್ತಾಳೆ.
+She forgot that account and its app password.	ಅವಳು ಆ ಖಾತೆ ಮತ್ತು ಅದರ ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಳು.
+She forgot that account. Its app password is gone from this PC.	ಅವಳು ಆ ಖಾತೆ ಮರೆತಳು. ಅದರ ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ ಈ ಕಂಪ್ಯೂಟರ್‌ನಿಂದ ಹೋಯಿತು.

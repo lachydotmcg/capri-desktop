@@ -39,13 +39,13 @@ namespace CapriDesktop
             NeonButton shut = Put(Page, new NeonButton { Glyph = 2 }, Wide - 50, 20, 26, 22, "Close");
             shut.Click += (_, _) => Close();
             Put(Page, new NeonCaption { Text = "What Capri remembers about you. It stays on this computer.", Ink = MainframeTheme.Faint, Size = 34.0 / 3, Ellipsis = true }, Left, 52, Room, 18);
-            add = Put(Page, new NeonEntry("Tell her something to remember"), Left, 82, 372, 28, "Tell her something to remember");
+            add = Put(Page, new NeonEntry(Lingo.Of("Tell her something to remember")), Left, 82, 372, 28, "Tell her something to remember");
             Rows["Tell her something to remember"] = add;
             NeonButton addKey = Put(Page, new NeonButton { Text = "Add", Accent = MainframeTheme.Cyan, Loud = true }, 408, 82, 84, 28, "Add");
             addKey.Click += (_, _) => AddNow();
             Rows["Add"] = addKey;
             add.Box.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) { e.Handled = true; Program.Guard(AddNow); } };
-            search = Put(Page, new NeonEntry("Search her memory"), Left, 118, Room, 28, "Search her memory");
+            search = Put(Page, new NeonEntry(Lingo.Of("Search her memory")), Left, 118, Room, 28, "Search her memory");
             Rows["Search her memory"] = search;
             search.Box.TextChanged += (_, _) => Program.Guard(() => { armed = null; Build(); });
             fixedCount = Page.Children.Count;
