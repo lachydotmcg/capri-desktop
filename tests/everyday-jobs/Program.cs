@@ -42,6 +42,7 @@ namespace CapriEverydayJobs
                 else if (arg == "--trace") ClaudePlan.Trace = true;
                 else if (arg == "--merge") merging = new List<string>();
                 else if (arg == "--list") { foreach (Job job in Jobs.All) Console.WriteLine(job.Id.PadRight(15) + job.Area.PadRight(11) + job.Ask + "  ->  " + job.Goal); return 0; }
+                else if (arg == "--routing-checks") return RoutingChecks.Run();
                 else if (merging != null && !arg.StartsWith("--", StringComparison.Ordinal)) merging.Add(arg);
                 else { Console.Error.WriteLine(Usage); return 2; }
             }
@@ -147,7 +148,7 @@ namespace CapriEverydayJobs
             return Hands.KitWithout(missing);
         }
 
-        private static Outcome Run(Job job, string spec, string folder, string claude)
+        internal static Outcome Run(Job job, string spec, string folder, string claude)
         {
             Directory.CreateDirectory(folder);
             File.WriteAllText(Path.Combine(folder, "shopping-list.txt"), Jobs.ShoppingList);
@@ -196,9 +197,12 @@ namespace CapriEverydayJobs
             }
             else throw new ArgumentException("Unknown brain " + spec);
             Stopwatch clock = Stopwatch.StartNew();
+            Func<List<OpenWindow>> windows = Hands.Windows;
+            Hands.Windows = FakePc.Windows;
             try { run.Reply = brain.Ask(job.AskFor(folder)) ?? ""; }
             catch (BrainException error) { run.Error = error.Message; }
             catch (Exception error) { run.Error = error.GetType().Name + ": " + error.Message; }
+            finally { Hands.Windows = windows; }
             run.Seconds = clock.Elapsed.TotalSeconds;
             run.Why = run.Error != null ? "error: " + run.Error : job.Check(run);
             return run;

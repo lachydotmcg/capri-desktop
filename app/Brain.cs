@@ -2844,7 +2844,7 @@ namespace CapriDesktop
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && (typed == null || input.Length > 0) && recent.Count == 2 && !previousPicture && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(input.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = input }));
-            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && !(picture && direct == "look_at_screen") && (!planning || Hands.Instant(direct, directArgs)) && (rest == null || kit.Unable(direct, directArgs) == null))
+            else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && !(picture && direct == "look_at_screen") && (!planning || Hands.Instant(direct, directArgs, request)) && (rest == null || kit.Unable(direct, directArgs) == null))
             {
                 // "Remember that" saves what they said just before, unless that was a question or one of her own glances.
                 if (direct == "remember" && directArgs.Action != "forget" && Hands.Back(request))
