@@ -280,12 +280,13 @@ namespace CapriDesktop
         internal string Text { get { return text; } set { value = value ?? ""; if (text == value) return; text = value; InvalidateVisual(); } }
         internal IBrush Ink = MainframeTheme.Rose;
         internal double Size = MainframeTheme.Size;
-        internal bool Bold, Display, Ellipsis, Top;
+        internal bool Bold, Display, Ellipsis, Top, Wrap;
         internal TextAlignment Align;
         public override void Render(DrawingContext context) { MainframeTheme.Write(context, Text, new Rect(Bounds.Size), Ink, Size, Bold, Align, Display, Top); }
         internal string TextFits()
         {
             var text = MainframeTheme.Words(Ellipsis ? MainframeTheme.Fitted(Text, Width, Size, Bold, Display) : Text, Size, Bold, Ink, Display);
+            if (Wrap) text.MaxTextWidth = Width;
             return text.Width > Width + 0.5 || text.Height > Height + 0.5 ? Text : null;
         }
     }

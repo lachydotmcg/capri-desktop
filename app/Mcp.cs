@@ -16,6 +16,8 @@ namespace CapriDesktop
         internal string Cwd;
         internal Dictionary<string, string> Env = new Dictionary<string, string>(StringComparer.Ordinal);
         internal string Url, BuiltIn;
+        internal string ClientId, Scope;
+        internal bool TokenEntry;
         internal bool Legacy;
         internal Dictionary<string, string> Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -63,13 +65,32 @@ namespace CapriDesktop
         {
             List<Dictionary<string, object>> found = new List<Dictionary<string, object>>();
             string cursor = null;
-            for (int page = 0; page < 10; page++)
+            HashSet<string> cursors = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+            Stopwatch clock = Stopwatch.StartNew();
+            int bytes = 0;
+            for (int page = 0; ; page++)
             {
-                object answer = Request("tools/list", cursor == null ? PluginJson.Make() : PluginJson.Make("cursor", cursor), timeout);
-                List<object> tools = PluginJson.List(PluginJson.Get(answer, "tools"));
-                if (tools != null) foreach (object tool in tools) { Dictionary<string, object> one = PluginJson.Map(tool); if (one != null && PluginJson.Str(one, "name") != null) found.Add(one); }
+                int left = timeout - (int)clock.ElapsedMilliseconds;
+                if (left <= 0 || page >= 256) throw new McpException("The tool catalog exceeded its time or page limit; no partial catalog was saved.");
+                object answer = Request("tools/list", cursor == null ? PluginJson.Make() : PluginJson.Make("cursor", cursor), left);
+                bytes += Encoding.UTF8.GetByteCount(PluginJson.Write(answer));
+                if (bytes > 8 * 1024 * 1024) throw new McpException("The tool catalog exceeded 8 MB; no partial catalog was saved.");
+                List<object> listed = PluginJson.List(PluginJson.Get(answer, "tools"));
+                if (listed == null) throw new McpException("The server returned an invalid tool catalog.");
+                foreach (object entry in listed)
+                {
+                    Dictionary<string, object> tool = PluginJson.Map(entry);
+                    string name = PluginJson.Str(tool, "name");
+                    if (string.IsNullOrWhiteSpace(name) || name.Length > 256 || !names.Add(name) || PluginJson.Map(PluginJson.Get(tool, "inputSchema")) == null)
+                        throw new McpException("The server returned an invalid or duplicate tool in its catalog.");
+                    if (Encoding.UTF8.GetByteCount(PluginJson.Write(tool)) > 256 * 1024) throw new McpException("One tool definition exceeded 256 KB; no partial catalog was saved.");
+                    if (found.Count >= 2048) throw new McpException("The tool catalog exceeded 2048 tools; no partial catalog was saved.");
+                    found.Add(tool);
+                }
                 cursor = PluginJson.Str(answer, "nextCursor");
                 if (string.IsNullOrEmpty(cursor)) break;
+                if (!cursors.Add(cursor)) throw new McpException("The server repeated a tool catalog cursor; no partial catalog was saved.");
             }
             Stale = false;
             return found;

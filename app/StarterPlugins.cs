@@ -15,7 +15,12 @@ namespace CapriDesktop
         {
             new[] { MailStarter, "Email", "Checks, searches and reads your email, and writes mail for you. Works with Gmail, iCloud, Yahoo, Fastmail and others through an app password.", "\"mail\":{\"type\":\"capri\",\"builtin\":\"mail\"}", "\"accounts\",\"send\",\"network\"", "\"send_mail\"", "Checks, reads and writes your email." },
             new[] { "notion", "Notion", "Searches, reads and edits your Notion pages and databases. You sign in to Notion in your browser.", "\"notion\":{\"type\":\"http\",\"url\":\"https://mcp.notion.com/mcp\"}", "\"accounts\",\"network\"", "", "Searches, reads and edits your Notion pages." },
-            new[] { "linear", "Linear", "Finds, makes and updates your Linear issues and projects. You sign in to Linear in your browser.", "\"linear\":{\"type\":\"http\",\"url\":\"https://mcp.linear.app/mcp\"}", "\"accounts\",\"network\"", "", "Finds, makes and updates your Linear issues." }
+            new[] { "linear", "Linear", "Finds, makes and updates your Linear issues and projects. You sign in to Linear in your browser.", "\"linear\":{\"type\":\"http\",\"url\":\"https://mcp.linear.app/mcp\"}", "\"accounts\",\"network\"", "", "Finds, makes and updates your Linear issues." },
+            new[] { "todoist", "Todoist", "Finds, adds and updates your Todoist tasks and projects. You sign in to Todoist in your browser.", "\"todoist\":{\"type\":\"http\",\"url\":\"https://ai.todoist.net/mcp\"}", "\"accounts\",\"network\"", "", "Finds, adds and updates your tasks and projects." },
+            new[] { "github", "GitHub", "Reads and works on repositories, issues and pull requests. Connect with a personal access token limited to the repositories and permissions you choose.", "\"github\":{\"type\":\"http\",\"url\":\"https://api.githubcopilot.com/mcp/\",\"auth\":{\"type\":\"token\"}}", "\"accounts\",\"network\"", "", "Works with your repositories, issues and pull requests." },
+            new[] { "atlassian", "Atlassian", "Searches and works with your Jira issues and Confluence pages through Atlassian's hosted service. Your organization may need to approve the connection.", "\"atlassian\":{\"type\":\"http\",\"url\":\"https://mcp.atlassian.com/v2/mcp\"}", "\"accounts\",\"network\"", "", "Works with your Jira issues and Confluence pages." },
+            new[] { "monday", "monday.com", "Reads and updates your monday.com boards and items. Sign in in your browser; your account admin may need to approve Capri and its redirect address.", "\"monday\":{\"type\":\"http\",\"url\":\"https://mcp.monday.com/mcp\"}", "\"accounts\",\"network\"", "", "Reads and updates your boards and items." },
+            new[] { "miro", "Miro", "Reads and updates your Miro boards. Sign in and choose the team your boards belong to. Enterprise organizations may need an admin to enable MCP first.", "\"miro\":{\"type\":\"http\",\"url\":\"https://mcp.miro.com/\"}", "\"accounts\",\"network\"", "", "Reads and updates boards in your selected Miro team." }
         };
 
         internal const int Envelope = 0, Page = 1, Checklist = 2, Plug = 3;
@@ -155,6 +160,17 @@ namespace CapriDesktop
             return false;
         }
 
+        internal static PluginServer TokenServer(Mod mod)
+        {
+            return mod != null && mod.Plugin && mod.Info != null && mod.Info.Servers.Length == 1 && mod.Info.Servers[0].Online && mod.Info.Servers[0].TokenEntry ? mod.Info.Servers[0] : null;
+        }
+
+        internal static string TokenSetupNote(Mod mod)
+        {
+            return mod.File.Id == "github" && mod.Starter ? "Make a fine-grained GitHub personal access token. Choose only the repositories and permissions you want Capri to use, then paste the token below. Your organization may need to approve it."
+                : "Make a personal access token in this service's account settings, with only the access you want Capri to have, then paste it below.";
+        }
+
         internal void AddStarters()
         {
             Dictionary<string, string> made = StartersMade();
@@ -205,6 +221,7 @@ namespace CapriDesktop
         {
             if (!mod.Starter || mod.On) return null;
             if (Builtin(mod, "mail")) return "STARTER. Turn it on and give her an app password. ";
+            if (TokenServer(mod) != null) return "STARTER. Turn it on and add a personal access token. ";
             if (Online(mod)) return "STARTER. Turn it on and sign in, in your browser. ";
             return "STARTER. ";
         }

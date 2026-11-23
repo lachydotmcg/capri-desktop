@@ -19,6 +19,7 @@ namespace CapriDesktop
         private int plugFirst;
         private List<Mod> plugShown = new List<Mod>();
         internal PluginWindow PluginSheet { get; private set; }
+        internal PluginTokenWindow PluginTokenSheet { get; private set; }
         internal PlugTile[] PlugTileRow { get { return plugTiles; } }
         internal NeonButton PlugBack { get { return plugBack; } }
         internal NeonButton PlugNext { get { return plugNext; } }
@@ -125,6 +126,31 @@ namespace CapriDesktop
             if (mod == null) { RefreshPluginSheet(); return; }
             if (!mod.On || sheet.Main.Text == "Turn off") Switch(mod);
             else if (Mods.Builtin(mod, "mail")) OpenMailSetup(mod);
+            else if (Mods.TokenServer(mod) != null) OpenPluginToken(mod);
+            else if (sheet.Main.Text == "Sign in")
+            {
+                Plugins.SignIn(mod.File.Id, delegate(string problem) { Dispatcher.UIThread.Post(delegate { ModSays(problem == null ? "Signed in to " + mod.File.Name + "." : "Couldn't sign in: " + problem); ModsChanged(); }); });
+            }
+        }
+
+        internal void OpenPluginToken(Mod mod)
+        {
+            if (PluginTokenSheet != null) PluginTokenSheet.Close();
+            PluginTokenWindow sheet = new PluginTokenWindow(pet, this, mod);
+            PluginTokenSheet = sheet;
+            sheet.Closed += delegate { if (PluginTokenSheet == sheet) PluginTokenSheet = null; };
+            ShowSheet(sheet);
+        }
+
+        internal void PluginTokenChanged(string id, bool forget)
+        {
+            Mod mod = PluginNamed(id);
+            if (forget)
+            {
+                if (mod != null && mod.On) Switch(mod);
+                McpSignIn.Forget(id);
+            }
+            ModsChanged();
         }
 
         internal void PluginTurnOff(PluginWindow sheet)
@@ -144,6 +170,54 @@ namespace CapriDesktop
                 catch (Exception error) { ModSays(error.Message); }
             }
             ModsChanged();
+        }
+    }
+
+    internal sealed class PluginTokenWindow : MainframeWindow
+    {
+        internal string Crowded() { return ModsWindow.Crowded(Page, 620, 450); }
+        internal readonly NeonEntry Token;
+        internal readonly NeonCaption Status;
+        internal readonly NeonButton Connect;
+
+        internal PluginTokenWindow(Pet owner, Mainframe frame, Mod mod) : base("Connect " + mod.File.Name)
+        {
+            Steered = true; FitsScreen = true; ShowInTaskbar = false;
+            NeonButton shut = Put(Page, new NeonButton { Glyph = 2 }, 566, 20, 26, 22, "Close");
+            shut.Click += delegate { Close(); };
+            Put(Page, new NeonCaption { Text = "CONNECT " + mod.File.Name.ToUpperInvariant(), Ink = MainframeTheme.Rose, Size = 20, Bold = true, Display = true }, 24, 15, 540, 29);
+            Put(Page, new NeonCaption { Text = Mods.TokenSetupNote(mod), Ink = MainframeTheme.White, Size = MainframeTheme.Size, Top = true, Wrap = true }, 24, 65, 572, 82);
+            Put(Page, new NeonCaption { Text = "Sent only to " + new Uri(Mods.TokenServer(mod).Url).Host, Ink = MainframeTheme.Faint }, 24, 155, 572, 22);
+            if (mod.Starter && mod.File.Id == "github")
+            {
+                NeonButton page = Put(Page, new NeonButton { Text = "Open GitHub's token settings" }, 24, 190, 310, 30);
+                page.Click += delegate { McpSignIn.Open("https://github.com/settings/personal-access-tokens"); };
+            }
+            Put(Page, new NeonCaption { Text = "Personal access token", Ink = MainframeTheme.White, Bold = true }, 24, 244, 180, 22);
+            Token = Put(Page, new NeonEntry("", true), 210, 240, 386, 28, "Personal access token for " + mod.File.Name);
+            AutomationProperties.SetName(Token.Box, "Personal access token for " + mod.File.Name);
+            Put(Page, new NeonCaption { Text = "Kept only until Capri closes. Forget token turns this plug-in off.", Ink = MainframeTheme.Faint, Top = true, Wrap = true }, 24, 282, 572, 42);
+            Status = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Top = true, Wrap = true }, 24, 332, 572, 44);
+            Connect = Put(Page, new NeonButton { Text = "Connect", Loud = true, Accent = MainframeTheme.Cyan }, 426, 390, 170, 30);
+            Connect.Click += delegate
+            {
+                string value = Token.Box.Text;
+                Token.Box.Text = "";
+                Connect.IsEnabled = false;
+                Status.Text = "Connecting...";
+                Plugins.ConnectToken(mod.File.Id, mod.Hash, value, delegate(string problem) { Dispatcher.UIThread.Post(delegate
+                {
+                    frame.PluginTokenChanged(mod.File.Id, false);
+                    Connect.IsEnabled = true;
+                    Status.Ink = problem == null ? MainframeTheme.Cyan : MainframeTheme.Rose;
+                    Status.Text = problem == null ? "Connected. You can close this window." : "Couldn't connect: " + problem;
+                }); });
+            };
+            NeonButton forget = Put(Page, new NeonButton { Text = "Forget token" }, 24, 390, 170, 30);
+            forget.Click += delegate { frame.PluginTokenChanged(mod.File.Id, true); Token.Box.Text = ""; Close(); };
+            Closed += delegate { Token.Box.Text = ""; };
+            double zoom = Pet.FrameSize(owner.Saved.MainframeSize) == 0 ? 1 : owner.Saved.MainframeSize / 100.0;
+            Fit(620, 450, zoom);
         }
     }
 
@@ -203,15 +277,15 @@ namespace CapriDesktop
             string said;
             IBrush tone = MainframeTheme.Cyan;
             if (mod.Changed) { said = "Changed. Connect asks you to approve it again."; tone = MainframeTheme.Rose; }
-            else if (!mod.On) { said = mail ? "Off. Connect, then add your email." : online ? "Off. Connect, then sign in on its page." : "Off."; tone = MainframeTheme.Faint; }
+            else if (!mod.On) { said = mail ? "Off. Connect, then add your email." : Mods.TokenServer(mod) != null ? "Off. Connect, then add your personal token." : online ? "Off. Connect, then sign in on its page." : "Off."; tone = MainframeTheme.Faint; }
             else if (mail) { said = MailTools.Ready ? "Connected as " + MailTools.Account.Address : "On. Set up your email next."; if (!MailTools.Ready) tone = MainframeTheme.Rose; }
-            else if (state == "Sign in") { said = "Turn it off and on to sign in."; tone = MainframeTheme.Rose; }
+            else if (state == "Sign in") { said = Mods.TokenServer(mod) != null ? "Needs a personal access token." : "Needs you to sign in."; tone = MainframeTheme.Rose; }
             else if (state == "Connected") said = "Signed in";
             else if (trouble != null && trouble != "starting") { said = "On. Its tools didn't start."; tone = MainframeTheme.Rose; }
             else said = "On";
             State.Text = said;
             State.Ink = tone;
-            Main.Text = !mod.On ? (mail || online ? "Connect" : "Turn on") : mail ? (MailTools.Ready ? "Email settings" : "Set up email") : "Turn off";
+            Main.Text = !mod.On ? (mail || online ? "Connect" : "Turn on") : mail ? (MailTools.Ready ? "Email settings" : "Set up email") : Mods.TokenServer(mod) != null ? (state == "Connected" ? "Token settings" : "Set up token") : state == "Sign in" ? "Sign in" : "Turn off";
             bool action = Main.Text != "Turn off";
             Main.Accent = action ? MainframeTheme.Cyan : MainframeTheme.Rose;
             Main.Loud = action && (!mod.On || Main.Text != "Email settings");
@@ -225,7 +299,7 @@ namespace CapriDesktop
                 : !mod.On ? "Turn it on to see its tools."
                 : mod.Info == null || mod.Info.Servers.Length == 0 ? "No tools. " + (mod.Skills.Length == 1 ? "It brings a skill she reads when it fits." : "It brings skills she reads when they fit.")
                 : trouble == "starting" ? "Her tools from it are starting."
-                : trouble == McpSignInNeeded.Said ? "Its tools show once you're signed in."
+                : trouble == McpSignInNeeded.Said ? (Mods.TokenServer(mod) != null ? "Add your token to see its tools." : "Its tools show once you're signed in.")
                 : trouble != null ? "Its tools didn't start: " + trouble
                 : "Her tools from it show here once it has started.";
             ToolsNote.Ink = tools.Count == 0 && mod.On && trouble != null && trouble != "starting" && trouble != McpSignInNeeded.Said ? MainframeTheme.Rose : MainframeTheme.Faint;
@@ -234,7 +308,9 @@ namespace CapriDesktop
             for (int i = 0; i < tools.Count; i++)
             {
                 int y = ToolsTop + i * Row;
-                toolRows.Add(Label(tools[i].Title ?? tools[i].Tool, 24, y, 572, 20, MainframeTheme.White, MainframeTheme.Size, true));
+                string title = tools[i].Title ?? tools[i].Tool;
+                if (mod.Info.Servers.Length > 1) title = tools[i].Server + ": " + title;
+                toolRows.Add(Label(title, 24, y, 572, 20, MainframeTheme.White, MainframeTheme.Size, true));
                 NeonCaption about = Label(tools[i].Description ?? "", 24, y + 20, 572, 28, MainframeTheme.Faint, 34.0 / 3);
                 about.Top = true;
                 toolRows.Add(about);

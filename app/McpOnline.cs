@@ -231,7 +231,7 @@ namespace CapriDesktop
             {
                 int left = (int)(until - DateTime.UtcNow).TotalMilliseconds;
                 if (left <= 0) throw new McpException(spec.Name + " took longer than " + timeout / 1000 + " seconds to answer.");
-                string token = McpSignIn.Token(pluginId, spec.Name, spec.Url);
+                string token = McpSignIn.Token(pluginId, spec);
                 bool again = false;
                 object result = null;
                 using (HttpWebResponse response = McpHttp.Send("POST", spec.Url, Headers(token), "application/json", "application/json, text/event-stream", body, left))
@@ -239,16 +239,46 @@ namespace CapriDesktop
                     int status = (int)response.StatusCode;
                     if (status == 401)
                     {
-                        if (attempt == 0 && token != null && McpSignIn.Refreshed(pluginId, spec.Name, spec.Url, token) != null) again = true;
+                        if (attempt == 0 && token != null && McpSignIn.Refreshed(pluginId, spec, token) != null) again = true;
                         else throw new McpSignInNeeded();
                     }
-                    else result = Answered(response, status, id, method, until);
+                    else result = Answered(response, status, id, method, until, token);
                 }
+                lock (gate) if (ended) throw new McpException("The connection was closed before its reply arrived.");
                 if (!again) return result;
             }
         }
 
-        private object Answered(HttpWebResponse response, int status, long id, string method, DateTime until)
+        private static string HideToken(string text, string token)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(token)) return text;
+            text = Regex.Replace(text, Regex.Escape(token), "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            string escaped = Uri.EscapeDataString(token);
+            return escaped == token ? text : Regex.Replace(text, Regex.Escape(escaped), "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        private static object Concealed(object value, string token)
+        {
+            if (string.IsNullOrEmpty(token)) return value;
+            string text = value as string;
+            if (text != null) return HideToken(text, token);
+            Dictionary<string, object> map = PluginJson.Map(value);
+            if (map != null)
+            {
+                Dictionary<string, object> made = PluginJson.Make();
+                foreach (KeyValuePair<string, object> pair in map)
+                {
+                    if (HideToken(pair.Key, token) != pair.Key) throw new McpException("The service returned a credential as a field name.");
+                    made[pair.Key] = Concealed(pair.Value, token);
+                }
+                return made;
+            }
+            List<object> list = PluginJson.List(value);
+            if (list == null) return value;
+            return list.ConvertAll(one => Concealed(one, token));
+        }
+
+        private object Answered(HttpWebResponse response, int status, long id, string method, DateTime until, string token)
         {
             if (status == 404 && session != null)
             {
@@ -260,7 +290,12 @@ namespace CapriDesktop
                 if (spec.Legacy && method == "initialize" && (status == 400 || status == 404 || status == 405))
                     throw new McpException(spec.Name + " uses the older SSE connection, which Capri can't use yet. Ask its maker for its streamable HTTP address.");
                 string said = "";
-                try { said = Plugins.Line(McpHttp.Text(response), 140); }
+                try
+                {
+                    string text = McpHttp.Text(response);
+                    object parsed;
+                    said = Plugins.Line(PluginJson.TryParse(text, out parsed) ? PluginJson.Write(Concealed(parsed, token)) : HideToken(text, token), 140);
+                }
                 catch (McpException) { }
                 throw new McpException(spec.Name + " answered HTTP " + status + (said.Length == 0 ? "." : ": " + said));
             }
@@ -273,19 +308,19 @@ namespace CapriDesktop
             string type = (response.ContentType ?? "").ToLowerInvariant();
             bool found;
             object answer;
-            if (type.Contains("text/event-stream")) answer = Streamed(response, id, until, out found);
+            if (type.Contains("text/event-stream")) answer = Streamed(response, id, until, token, out found);
             else
             {
                 string text = McpHttp.Text(response);
                 object parsed;
                 if (!PluginJson.TryParse(text, out parsed)) throw new McpException(spec.Name + " didn't answer in a way Capri could read.");
-                answer = Take(parsed, id, out found);
+                answer = Take(Concealed(parsed, token), id, out found);
             }
             if (!found) throw new McpException(spec.Name + " ended its answer without replying.");
             return answer;
         }
 
-        private object Streamed(HttpWebResponse response, long id, DateTime until, out bool found)
+        private object Streamed(HttpWebResponse response, long id, DateTime until, string token, out bool found)
         {
             found = false;
             StringBuilder data = new StringBuilder();
@@ -301,7 +336,7 @@ namespace CapriDesktop
                         if (line.Length == 0)
                         {
                             if (data.Length == 0) continue;
-                            object hit = Event(data.ToString(), id, out found);
+                            object hit = Event(data.ToString(), id, token, out found);
                             data.Length = 0;
                             if (found) return hit;
                             continue;
@@ -320,15 +355,15 @@ namespace CapriDesktop
                 throw new McpException("The connection to " + spec.Name + " broke: " + Plugins.Line(error.Message, 120));
             }
             catch (IOException error) { throw new McpException("The connection to " + spec.Name + " broke: " + Plugins.Line(error.Message, 120)); }
-            return data.Length == 0 ? null : Event(data.ToString(), id, out found);
+            return data.Length == 0 ? null : Event(data.ToString(), id, token, out found);
         }
 
-        private object Event(string text, long id, out bool found)
+        private object Event(string text, long id, string token, out bool found)
         {
             found = false;
             object parsed;
             if (!PluginJson.TryParse(text, out parsed)) return null;
-            return Take(parsed, id, out found);
+            return Take(Concealed(parsed, token), id, out found);
         }
 
         private object Take(object parsed, long id, out bool found)
@@ -376,7 +411,7 @@ namespace CapriDesktop
             if (was == null || !wasAlive) return;
             try
             {
-                Dictionary<string, string> headers = Headers(McpSignIn.Cached(pluginId, spec.Name, spec.Url));
+                Dictionary<string, string> headers = Headers(McpSignIn.Cached(pluginId, spec));
                 headers[Session] = was;
                 using (HttpWebResponse response = McpHttp.Send("DELETE", spec.Url, headers, null, null, null, 2000)) { }
             }
