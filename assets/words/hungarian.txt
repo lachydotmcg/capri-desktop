@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	nem ír más alkalm
 · HD	· HD
 · on this PC	· ezen a PC-n
 · server	· szerver
+Edit as text	Szerkesztés szövegként
+What Capri remembers about you. It stays on this computer.	Amit Capri emlékszik rólad. Ezen a számítógépen marad.
+Tell her something to remember	Mondj neki valamit, amire emlékezzen
+Search her memory	Keresés az emlékezetében
+That day isn't there any more.	Az a nap már nincs itt.
+Undo	Visszavonás
+Remember our chats is off, so she isn't keeping new chat memories.	A beszélgetéseink emlékezése ki van kapcsolva, ezért nem ment új csevegésemlékeket.
+ABOUT YOU	RÓLAD
+FROM YOUR CHATS	A BESZÉLGETÉSEIDBŐL
+GAMES	JÁTÉKOK
+CHAT LOGS	CSEVEGÉSNAPLÓK
+CHAT LOG	CSEVEGÉSNAPLÓ
+Nothing matches.	Nincs találat.
+Nothing yet.	Még semmi.
+Reading her notes.	A jegyzeteit olvassa.
+Click again to forget game notes	Kattints újra a játékjegyzetek elfelejtéséhez
+Forget game notes	Játékjegyzetek elfelejtése
+Click again to forget everything about me	Kattints újra, hogy mindent elfelejtsen rólad
+Forget everything about me	Minden elfelejtése rólad
+Click again to forget	Kattints újra az elfelejtéshez
+Forget this day	Ennek a napnak az elfelejtése
+Only the start of this day is shown.	Csak a nap eleje látható.
+Nothing in this day.	Semmi ezen a napon.
+No chats kept yet.	Még nincs mentett csevegés.
+You	Te
+{0} line	{0} sor
+SET UP EMAIL >	E-MAIL BEÁLLÍTÁSA >
+SET UP EMAIL	E-MAIL BEÁLLÍTÁSA
+Or type your address	Vagy írd be a címed
+Email address	E-mail-cím
+Open the page	Oldal megnyitása
+App password	Alkalmazásjelszó
+IMAP server	IMAP-kiszolgáló
+Incoming mail server	Bejövő posta kiszolgálója
+SMTP server	SMTP-kiszolgáló
+Outgoing mail server	Kimenő posta kiszolgálója
+An app password is a separate password just for Capri. Your normal password stays yours.	Az alkalmazásjelszó külön jelszó, csak Capri számára. A szokásos jelszavad a tiéd marad.
+She keeps it only until she closes.	Csak bezárásáig őrzi meg.
+She checks, searches and reads your mail. She asks before she sends any.	Ellenőrzi, keresi és olvassa a postádat. Küldés előtt kérdez.
+Watch for new mail	Új posta figyelése
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Szól, ha posta érkezik, figyelmeztetéssel, ha adathalászatnak tűnik. Semmi nem lesz olvasottként megjelölve.
+Deal with phishing on her own	Az adathalászatot maga intézi
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Csak amíg figyel. A posta, amiről biztos, hogy adathalászat, a spambe kerül. A többi a beleegyezésedre vár.
+Forget account	Fiók elfelejtése
+Use another email	Másik e-mail használata
+Which email?	Melyik e-mail?
+Make an app password	Alkalmazásjelszó létrehozása
+Paste it	Illeszd be
+Connecting...	Kapcsolódás...
+She can use your email now.	Most már használhatja az e-mailjeidet.
+She's not watching your inbox.	Nem figyeli a beérkező postádat.
+She's watching your inbox and deals with phishing she's sure of.	Figyeli a beérkező postádat, és intézi az adathalászatot, amiről biztos.
+She's watching your inbox and tells you when mail lands.	Figyeli a beérkező postádat, és szól, ha posta érkezik.
+She forgot that account and its app password.	Elfelejtette azt a fiókot és az alkalmazásjelszavát.
+She forgot that account. Its app password is gone from this PC.	Elfelejtette azt a fiókot. Az alkalmazásjelszava eltűnt erről a számítógépről.

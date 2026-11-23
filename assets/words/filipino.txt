@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	hindi magta-type sa
 · HD	· HD
 · on this PC	· sa PC na ito
 · server	· server
+Edit as text	I-edit bilang teksto
+What Capri remembers about you. It stays on this computer.	Ang naaalala ni Capri tungkol sa iyo. Nananatili ito sa computer na ito.
+Tell her something to remember	Sabihin sa kanya ang isang bagay na dapat tandaan
+Search her memory	Maghanap sa kanyang memorya
+That day isn't there any more.	Wala na ang araw na iyon.
+Undo	I-undo
+Remember our chats is off, so she isn't keeping new chat memories.	Naka-off ang Alalahanin ang ating mga chat, kaya hindi siya nag-iimbak ng mga bagong alaala ng chat.
+ABOUT YOU	TUNGKOL SA IYO
+FROM YOUR CHATS	MULA SA IYONG MGA CHAT
+GAMES	MGA LARO
+CHAT LOGS	MGA LOG NG CHAT
+CHAT LOG	LOG NG CHAT
+Nothing matches.	Walang tugma.
+Nothing yet.	Wala pa.
+Reading her notes.	Binabasa ang kanyang mga tala.
+Click again to forget game notes	I-click muli para kalimutan ang mga tala ng laro
+Forget game notes	Kalimutan ang mga tala ng laro
+Click again to forget everything about me	I-click muli para kalimutan ang lahat tungkol sa iyo
+Forget everything about me	Kalimutan ang lahat tungkol sa iyo
+Click again to forget	I-click muli para kalimutan
+Forget this day	Kalimutan ang araw na ito
+Only the start of this day is shown.	Simula lang ng araw na ito ang ipinapakita.
+Nothing in this day.	Walang laman ang araw na ito.
+No chats kept yet.	Wala pang naitatagong chat.
+You	Ikaw
+{0} line	{0} linya
+SET UP EMAIL >	I-SET UP ANG EMAIL >
+SET UP EMAIL	I-SET UP ANG EMAIL
+Or type your address	O i-type ang iyong address
+Email address	Email address
+Open the page	Buksan ang pahina
+App password	App password
+IMAP server	IMAP server
+Incoming mail server	Incoming mail server
+SMTP server	SMTP server
+Outgoing mail server	Outgoing mail server
+An app password is a separate password just for Capri. Your normal password stays yours.	Ang app password ay hiwalay na password para lang kay Capri. Nananatiling sa iyo ang iyong normal na password.
+She keeps it only until she closes.	Itinatago niya ito hanggang sa magsara siya.
+She checks, searches and reads your mail. She asks before she sends any.	Sinusuri, hinahanap at binabasa niya ang iyong mail. Nagtatanong siya bago magpadala ng kahit ano.
+Watch for new mail	Magbantay ng bagong mail
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Nagsasalita siya kapag may dumating na mail, may babala kung mukhang phishing. Walang minamarkang nabasa.
+Deal with phishing on her own	Harapin ang phishing nang mag-isa
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Habang nagbabantay lang siya. Ang mail na sigurado siyang phishing ay napupunta sa spam. Ang iba ay naghihintay ng iyong oo.
+Forget account	Kalimutan ang account
+Use another email	Gumamit ng ibang email
+Which email?	Aling email?
+Make an app password	Gumawa ng app password
+Paste it	I-paste ito
+Connecting...	Kumokonekta...
+She can use your email now.	Magagamit na niya ang iyong email.
+She's not watching your inbox.	Hindi siya nagbabantay sa iyong inbox.
+She's watching your inbox and deals with phishing she's sure of.	Nagbabantay siya sa iyong inbox at hinaharap ang phishing na sigurado siya.
+She's watching your inbox and tells you when mail lands.	Nagbabantay siya sa iyong inbox at sinasabi niya kapag may dumating na mail.
+She forgot that account and its app password.	Nakalimutan niya ang account na iyon at ang app password nito.
+She forgot that account. Its app password is gone from this PC.	Nakalimutan niya ang account na iyon. Wala na ang app password nito sa computer na ito.

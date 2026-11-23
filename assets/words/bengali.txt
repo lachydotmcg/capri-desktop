@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	সে চলাক
 · HD	· HD
 · on this PC	· এই PC-তে
 · server	· সার্ভার
+Edit as text	টেক্সট হিসেবে সম্পাদনা করুন
+What Capri remembers about you. It stays on this computer.	Capri আপনার সম্পর্কে যা মনে রাখে। এটি এই কম্পিউটারে থাকে।
+Tell her something to remember	তাকে মনে রাখার মতো কিছু বলুন
+Search her memory	তার স্মৃতিতে খুঁজুন
+That day isn't there any more.	সেই দিন আর নেই।
+Undo	ফিরিয়ে আনুন
+Remember our chats is off, so she isn't keeping new chat memories.	আমাদের চ্যাট মনে রাখা বন্ধ, তাই সে নতুন চ্যাট স্মৃতি রাখে না।
+ABOUT YOU	আপনার সম্পর্কে
+FROM YOUR CHATS	আপনার চ্যাট থেকে
+GAMES	গেম
+CHAT LOGS	চ্যাট লগ
+CHAT LOG	চ্যাট লগ
+Nothing matches.	কিছু মিলছে না।
+Nothing yet.	এখনও কিছু নেই।
+Reading her notes.	তার নোট পড়া হচ্ছে।
+Click again to forget game notes	গেমের নোট ভুলতে আবার ক্লিক করুন
+Forget game notes	গেমের নোট ভুলে যান
+Click again to forget everything about me	আপনার সম্পর্কে সব ভুলতে আবার ক্লিক করুন
+Forget everything about me	আপনার সম্পর্কে সব ভুলে যান
+Click again to forget	ভুলতে আবার ক্লিক করুন
+Forget this day	এই দিনটি ভুলে যান
+Only the start of this day is shown.	এই দিনের শুধু শুরুটা দেখানো হয়।
+Nothing in this day.	এই দিনে কিছু নেই।
+No chats kept yet.	এখনও কোনো চ্যাট রাখা হয়নি।
+You	আপনি
+{0} line	{0} লাইন
+SET UP EMAIL >	ইমেইল সেট আপ করুন >
+SET UP EMAIL	ইমেইল সেট আপ করুন
+Or type your address	অথবা আপনার ঠিকানা লিখুন
+Email address	ইমেইল ঠিকানা
+Open the page	পৃষ্ঠাটি খুলুন
+App password	অ্যাপ পাসওয়ার্ড
+IMAP server	IMAP সার্ভার
+Incoming mail server	ইনকামিং মেইল সার্ভার
+SMTP server	SMTP সার্ভার
+Outgoing mail server	আউটগোয়িং মেইল সার্ভার
+An app password is a separate password just for Capri. Your normal password stays yours.	অ্যাপ পাসওয়ার্ড শুধু Capri-র জন্য আলাদা পাসওয়ার্ড। আপনার সাধারণ পাসওয়ার্ড আপনারই থাকে।
+She keeps it only until she closes.	সে এটি শুধু বন্ধ হওয়ার আগ পর্যন্ত রাখে।
+She checks, searches and reads your mail. She asks before she sends any.	সে আপনার মেইল দেখে, খোঁজে ও পড়ে। কিছু পাঠানোর আগে জিজ্ঞেস করে।
+Watch for new mail	নতুন মেইল দেখুন
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	মেইল এলে সে বলে, ফিশিং মনে হলে সতর্ক করে। কিছুই পড়া হিসেবে চিহ্নিত হয় না।
+Deal with phishing on her own	ফিশিং নিজে সামলান
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	শুধু যখন সে নজর রাখে। যে মেইল সে নিশ্চিত ফিশিং, তা স্প্যামে যায়। বাকিটা আপনার হ্যাঁ-র অপেক্ষায় থাকে।
+Forget account	অ্যাকাউন্ট ভুলে যান
+Use another email	অন্য ইমেইল ব্যবহার করুন
+Which email?	কোন ইমেইল?
+Make an app password	একটি অ্যাপ পাসওয়ার্ড তৈরি করুন
+Paste it	এটি পেস্ট করুন
+Connecting...	সংযোগ হচ্ছে...
+She can use your email now.	এখন সে আপনার ইমেইল ব্যবহার করতে পারে।
+She's not watching your inbox.	সে আপনার ইনবক্স দেখছে না।
+She's watching your inbox and deals with phishing she's sure of.	সে আপনার ইনবক্স দেখছে এবং যে ফিশিং নিয়ে সে নিশ্চিত তা সামলাচ্ছে।
+She's watching your inbox and tells you when mail lands.	সে আপনার ইনবক্স দেখে এবং মেইল এলে আপনাকে বলে।
+She forgot that account and its app password.	সে সেই অ্যাকাউন্ট এবং তার অ্যাপ পাসওয়ার্ড ভুলে গেছে।
+She forgot that account. Its app password is gone from this PC.	সে সেই অ্যাকাউন্ট ভুলে গেছে। এর অ্যাপ পাসওয়ার্ড এই কম্পিউটার থেকে চলে গেছে।

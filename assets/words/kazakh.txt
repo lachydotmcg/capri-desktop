@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ол жұмыс і�
 · HD	· HD
 · on this PC	· осы PC-де
 · server	· сервер
+Edit as text	Мәтін ретінде өңдеу
+What Capri remembers about you. It stays on this computer.	Capri сен туралы нені есте сақтайды. Ол осы компьютерде қалады.
+Tell her something to remember	Оған есте қалатын бірдеңе айт
+Search her memory	Оның жадынан іздеу
+That day isn't there any more.	Ол күн енді жоқ.
+Undo	Болдырмау
+Remember our chats is off, so she isn't keeping new chat memories.	Әңгімелерімізді есте сақтау өшірулі, сондықтан ол жаңа әңгіме естеліктерін сақтамайды.
+ABOUT YOU	СЕН ТУРАЛЫ
+FROM YOUR CHATS	СЕНІҢ ӘҢГІМЕЛЕРІҢНЕН
+GAMES	ОЙЫНДАР
+CHAT LOGS	ӘҢГІМЕ ЖУРНАЛДАРЫ
+CHAT LOG	ӘҢГІМЕ ЖУРНАЛЫ
+Nothing matches.	Ештеңе сәйкес келмейді.
+Nothing yet.	Әзірге ештеңе жоқ.
+Reading her notes.	Оның жазбаларын оқып жатыр.
+Click again to forget game notes	Ойын жазбаларын ұмыту үшін қайта бас
+Forget game notes	Ойын жазбаларын ұмыт
+Click again to forget everything about me	Сен туралы бәрін ұмыту үшін қайта бас
+Forget everything about me	Сен туралы бәрін ұмыт
+Click again to forget	Ұмыту үшін қайта бас
+Forget this day	Осы күнді ұмыт
+Only the start of this day is shown.	Осы күннің тек басы көрсетіледі.
+Nothing in this day.	Бұл күні ештеңе жоқ.
+No chats kept yet.	Әзірге әңгіме сақталмаған.
+You	Сен
+{0} line	{0} жол
+SET UP EMAIL >	ЭЛЕКТРОНДЫҚ ПОШТАНЫ ОРНАТУ >
+SET UP EMAIL	ЭЛЕКТРОНДЫҚ ПОШТАНЫ ОРНАТУ
+Or type your address	Немесе мекенжайыңды жаз
+Email address	Электрондық пошта мекенжайы
+Open the page	Бетті ашу
+App password	Қолданба құпиясөзі
+IMAP server	IMAP сервері
+Incoming mail server	Кіріс пошта сервері
+SMTP server	SMTP сервері
+Outgoing mail server	Шығыс пошта сервері
+An app password is a separate password just for Capri. Your normal password stays yours.	Қолданба құпиясөзі тек Capri үшін бөлек құпиясөз. Қарапайым құпиясөзің өзінде қалады.
+She keeps it only until she closes.	Ол оны тек жабылғанша сақтайды.
+She checks, searches and reads your mail. She asks before she sends any.	Ол поштаңды тексереді, іздейді және оқиды. Бірдеңе жібермес бұрын сұрайды.
+Watch for new mail	Жаңа поштаны бақыла
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Пошта келгенде ол айтады, фишингке ұқсаса ескертеді. Ештеңе оқылған деп белгіленбейді.
+Deal with phishing on her own	Фишингті өзі шеш
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Тек ол бақылап тұрғанда. Фишинг екеніне сенімді пошта спамға кетеді. Қалғаны сенің иәңды күтеді.
+Forget account	Аккаунтты ұмыт
+Use another email	Басқа электрондық поштаны қолдан
+Which email?	Қай пошта?
+Make an app password	Қолданба құпиясөзін жаса
+Paste it	Оны қой
+Connecting...	Қосылуда...
+She can use your email now.	Ол енді поштаңды қолдана алады.
+She's not watching your inbox.	Ол кіріс жәшігіңді бақыламайды.
+She's watching your inbox and deals with phishing she's sure of.	Ол кіріс жәшігіңді бақылап, сенімді фишингті шешеді.
+She's watching your inbox and tells you when mail lands.	Ол кіріс жәшігіңді бақылайды және пошта келгенде айтады.
+She forgot that account and its app password.	Ол сол аккаунтты және оның қолданба құпиясөзін ұмытты.
+She forgot that account. Its app password is gone from this PC.	Ол сол аккаунтты ұмытты. Оның қолданба құпиясөзі осы компьютерден жоғалды.

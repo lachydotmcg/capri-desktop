@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	nu va scrie în alt
 · HD	· HD
 · on this PC	· pe acest PC
 · server	· server
+Edit as text	Editează ca text
+What Capri remembers about you. It stays on this computer.	Ce își amintește Capri despre tine. Rămâne pe acest calculator.
+Tell her something to remember	Spune-i ceva de ținut minte
+Search her memory	Caută în memoria ei
+That day isn't there any more.	Ziua aceea nu mai este.
+Undo	Anulează
+Remember our chats is off, so she isn't keeping new chat memories.	Amintește-ți conversațiile noastre este oprit, așa că nu păstrează amintiri noi din conversații.
+ABOUT YOU	DESPRE TINE
+FROM YOUR CHATS	DIN CONVERSAȚIILE TALE
+GAMES	JOCURI
+CHAT LOGS	JURNALE DE CONVERSAȚII
+CHAT LOG	JURNAL DE CONVERSAȚIE
+Nothing matches.	Nicio potrivire.
+Nothing yet.	Încă nimic.
+Reading her notes.	Citește notițele ei.
+Click again to forget game notes	Click din nou pentru a uita notițele jocurilor
+Forget game notes	Uită notițele jocurilor
+Click again to forget everything about me	Click din nou pentru a uita tot despre tine
+Forget everything about me	Uită tot despre tine
+Click again to forget	Click din nou pentru a uita
+Forget this day	Uită această zi
+Only the start of this day is shown.	Se arată doar începutul acestei zile.
+Nothing in this day.	Nimic în această zi.
+No chats kept yet.	Încă nu sunt conversații păstrate.
+You	Tu
+{0} line	{0} linie
+SET UP EMAIL >	CONFIGUREAZĂ E-MAILUL >
+SET UP EMAIL	CONFIGUREAZĂ E-MAILUL
+Or type your address	Sau scrie adresa ta
+Email address	Adresă de e-mail
+Open the page	Deschide pagina
+App password	Parolă de aplicație
+IMAP server	Server IMAP
+Incoming mail server	Server de e-mail primit
+SMTP server	Server SMTP
+Outgoing mail server	Server de e-mail trimis
+An app password is a separate password just for Capri. Your normal password stays yours.	O parolă de aplicație este o parolă separată doar pentru Capri. Parola ta obișnuită rămâne a ta.
+She keeps it only until she closes.	O păstrează doar până se închide.
+She checks, searches and reads your mail. She asks before she sends any.	Ea verifică, caută și citește e-mailul tău. Întreabă înainte să trimită ceva.
+Watch for new mail	Urmărește e-mailurile noi
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ea vorbește când sosește e-mail, cu un avertisment dacă pare phishing. Nimic nu este marcat ca citit.
+Deal with phishing on her own	Ocupă-te singură de phishing
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Doar cât timp urmărește. E-mailul despre care este sigură că e phishing merge la spam. Restul așteaptă da-ul tău.
+Forget account	Uită contul
+Use another email	Folosește alt e-mail
+Which email?	Care e-mail?
+Make an app password	Creează o parolă de aplicație
+Paste it	Lipește-o
+Connecting...	Se conectează...
+She can use your email now.	Acum poate folosi e-mailul tău.
+She's not watching your inbox.	Nu îți urmărește căsuța de intrare.
+She's watching your inbox and deals with phishing she's sure of.	Îți urmărește căsuța și se ocupă de phishingul de care este sigură.
+She's watching your inbox and tells you when mail lands.	Îți urmărește căsuța și îți spune când sosește e-mail.
+She forgot that account and its app password.	A uitat acel cont și parola lui de aplicație.
+She forgot that account. Its app password is gone from this PC.	A uitat acel cont. Parola lui de aplicație a dispărut de pe acest calculator.

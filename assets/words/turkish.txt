@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	o çalışırken di
 · HD	· HD
 · on this PC	· bu PC'de
 · server	· sunucu
+Edit as text	Metin olarak düzenle
+What Capri remembers about you. It stays on this computer.	Capri senin hakkında ne hatırlıyor. Bu bilgisayarda kalır.
+Tell her something to remember	Ona hatırlaması için bir şey söyle
+Search her memory	Onun hafızasında ara
+That day isn't there any more.	O gün artık yok.
+Undo	Geri al
+Remember our chats is off, so she isn't keeping new chat memories.	Sohbetlerimizi hatırla kapalı, bu yüzden yeni sohbet anıları saklamıyor.
+ABOUT YOU	SENİN HAKKINDA
+FROM YOUR CHATS	SOHBETLERİNDEN
+GAMES	OYUNLAR
+CHAT LOGS	SOHBET GÜNLÜKLERİ
+CHAT LOG	SOHBET GÜNLÜĞÜ
+Nothing matches.	Eşleşen yok.
+Nothing yet.	Henüz bir şey yok.
+Reading her notes.	Notlarını okuyor.
+Click again to forget game notes	Oyun notlarını unutmak için tekrar tıkla
+Forget game notes	Oyun notlarını unut
+Click again to forget everything about me	Seninle ilgili her şeyi unutmak için tekrar tıkla
+Forget everything about me	Seninle ilgili her şeyi unut
+Click again to forget	Unutmak için tekrar tıkla
+Forget this day	Bu günü unut
+Only the start of this day is shown.	Bu günün yalnızca başlangıcı gösteriliyor.
+Nothing in this day.	Bu günde bir şey yok.
+No chats kept yet.	Henüz sohbet kaydedilmedi.
+You	Sen
+{0} line	{0} satır
+SET UP EMAIL >	E-POSTAYI AYARLA >
+SET UP EMAIL	E-POSTAYI AYARLA
+Or type your address	Veya adresini yaz
+Email address	E-posta adresi
+Open the page	Sayfayı aç
+App password	Uygulama parolası
+IMAP server	IMAP sunucusu
+Incoming mail server	Gelen posta sunucusu
+SMTP server	SMTP sunucusu
+Outgoing mail server	Giden posta sunucusu
+An app password is a separate password just for Capri. Your normal password stays yours.	Uygulama parolası yalnızca Capri için ayrı bir paroladır. Normal parolan senin kalır.
+She keeps it only until she closes.	Onu yalnızca kapanana kadar saklar.
+She checks, searches and reads your mail. She asks before she sends any.	Postanı kontrol eder, arar ve okur. Bir şey göndermeden önce sorar.
+Watch for new mail	Yeni postayı izle
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Posta geldiğinde konuşur, kimlik avı gibi görünüyorsa uyarır. Hiçbir şey okundu olarak işaretlenmez.
+Deal with phishing on her own	Kimlik avıyla kendisi ilgilen
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Yalnızca o izlerken. Kimlik avı olduğundan emin olduğu posta spam'e gider. Geri kalanı senin evetini bekler.
+Forget account	Hesabı unut
+Use another email	Başka e-posta kullan
+Which email?	Hangi e-posta?
+Make an app password	Uygulama parolası oluştur
+Paste it	Yapıştır
+Connecting...	Bağlanıyor...
+She can use your email now.	Artık e-postanı kullanabilir.
+She's not watching your inbox.	Gelen kutunu izlemiyor.
+She's watching your inbox and deals with phishing she's sure of.	Gelen kutunu izliyor ve emin olduğu kimlik avıyla ilgileniyor.
+She's watching your inbox and tells you when mail lands.	Gelen kutunu izliyor ve posta geldiğinde sana söylüyor.
+She forgot that account and its app password.	O hesabı ve uygulama parolasını unuttu.
+She forgot that account. Its app password is gone from this PC.	O hesabı unuttu. Uygulama parolası bu bilgisayardan gitti.

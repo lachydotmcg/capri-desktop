@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	δεν θα πλη�
 · HD	· HD
 · on this PC	· σε αυτόν τον υπολογιστή
 · server	· διακομιστής
+Edit as text	Επεξεργασία ως κείμενο
+What Capri remembers about you. It stays on this computer.	Τι θυμάται η Capri για σένα. Μένει σε αυτόν τον υπολογιστή.
+Tell her something to remember	Πες της κάτι να θυμάται
+Search her memory	Αναζήτηση στη μνήμη της
+That day isn't there any more.	Εκείνη η μέρα δεν υπάρχει πια.
+Undo	Αναίρεση
+Remember our chats is off, so she isn't keeping new chat memories.	Η υπενθύμιση των συνομιλιών μας είναι απενεργοποιημένη, οπότε δεν κρατά νέες αναμνήσεις συνομιλιών.
+ABOUT YOU	ΓΙΑ ΣΕΝΑ
+FROM YOUR CHATS	ΑΠΟ ΤΙΣ ΣΥΝΟΜΙΛΙΕΣ ΣΟΥ
+GAMES	ΠΑΙΧΝΙΔΙΑ
+CHAT LOGS	ΑΡΧΕΙΑ ΣΥΝΟΜΙΛΙΩΝ
+CHAT LOG	ΑΡΧΕΙΟ ΣΥΝΟΜΙΛΙΑΣ
+Nothing matches.	Δεν βρέθηκε τίποτα.
+Nothing yet.	Τίποτα ακόμα.
+Reading her notes.	Διαβάζει τις σημειώσεις της.
+Click again to forget game notes	Κάνε κλικ ξανά για να ξεχάσεις τις σημειώσεις παιχνιδιών
+Forget game notes	Ξέχνα τις σημειώσεις παιχνιδιών
+Click again to forget everything about me	Κάνε κλικ ξανά για να ξεχάσεις τα πάντα για σένα
+Forget everything about me	Ξέχνα τα πάντα για σένα
+Click again to forget	Κάνε κλικ ξανά για να ξεχάσεις
+Forget this day	Ξέχνα αυτή τη μέρα
+Only the start of this day is shown.	Εμφανίζεται μόνο η αρχή αυτής της μέρας.
+Nothing in this day.	Τίποτα σε αυτή τη μέρα.
+No chats kept yet.	Δεν έχουν κρατηθεί συνομιλίες ακόμα.
+You	Εσύ
+{0} line	{0} γραμμή
+SET UP EMAIL >	ΡΥΘΜΙΣΗ EMAIL >
+SET UP EMAIL	ΡΥΘΜΙΣΗ EMAIL
+Or type your address	Ή γράψε τη διεύθυνσή σου
+Email address	Διεύθυνση email
+Open the page	Άνοιξε τη σελίδα
+App password	Κωδικός εφαρμογής
+IMAP server	Διακομιστής IMAP
+Incoming mail server	Διακομιστής εισερχόμενης αλληλογραφίας
+SMTP server	Διακομιστής SMTP
+Outgoing mail server	Διακομιστής εξερχόμενης αλληλογραφίας
+An app password is a separate password just for Capri. Your normal password stays yours.	Ο κωδικός εφαρμογής είναι ξεχωριστός κωδικός μόνο για τη Capri. Ο κανονικός σου κωδικός παραμένει δικός σου.
+She keeps it only until she closes.	Τον κρατά μόνο μέχρι να κλείσει.
+She checks, searches and reads your mail. She asks before she sends any.	Ελέγχει, αναζητά και διαβάζει την αλληλογραφία σου. Ρωτά πριν στείλει οτιδήποτε.
+Watch for new mail	Παρακολούθηση νέων email
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Μιλά όταν φτάνει αλληλογραφία, με προειδοποίηση αν μοιάζει με phishing. Τίποτα δεν σημειώνεται ως αναγνωσμένο.
+Deal with phishing on her own	Αντιμετώπισε το phishing μόνη της
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Μόνο όσο παρακολουθεί. Η αλληλογραφία που είναι σίγουρη ότι είναι phishing πηγαίνει στα ανεπιθύμητα. Τα υπόλοιπα περιμένουν το ναι σου.
+Forget account	Ξέχνα τον λογαριασμό
+Use another email	Χρήση άλλου email
+Which email?	Ποιο email;
+Make an app password	Δημιούργησε κωδικό εφαρμογής
+Paste it	Επικόλλησέ τον
+Connecting...	Σύνδεση...
+She can use your email now.	Μπορεί να χρησιμοποιήσει το email σου τώρα.
+She's not watching your inbox.	Δεν παρακολουθεί τα εισερχόμενά σου.
+She's watching your inbox and deals with phishing she's sure of.	Παρακολουθεί τα εισερχόμενά σου και αντιμετωπίζει το phishing που είναι σίγουρη.
+She's watching your inbox and tells you when mail lands.	Παρακολουθεί τα εισερχόμενά σου και σου λέει όταν φτάνει αλληλογραφία.
+She forgot that account and its app password.	Ξέχασε αυτόν τον λογαριασμό και τον κωδικό εφαρμογής του.
+She forgot that account. Its app password is gone from this PC.	Ξέχασε αυτόν τον λογαριασμό. Ο κωδικός εφαρμογής του εξαφανίστηκε από αυτόν τον υπολογιστή.

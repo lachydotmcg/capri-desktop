@@ -510,7 +510,7 @@ namespace CapriDesktop
             nameListeningNote = null;
             if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
             {
-                var nameToggle = Toggle("Listen for Hey Capri", 0, 524, () => pet.NameListeningEnabled, pet.SetNameListening);
+                var nameToggle = Toggle("Listen for Hey Capri", 0, 524, () => pet.Saved.ListenCapri, pet.SetNameListening);
                 nameToggle.Switch = 138;
                 var nameTip = new TextBlock { MaxWidth = 332, TextWrapping = TextWrapping.Wrap };
                 ToolTip.SetTip(nameToggle, nameTip);

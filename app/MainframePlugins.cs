@@ -20,6 +20,7 @@ namespace CapriDesktop
         private int plugFirst;
         private List<Mod> plugShown = new List<Mod>();
         private PluginSheet pluginSheet;
+        private PluginTokenSheet pluginTokenSheet;
 
         internal static string GrantWords(string grant)
         {
@@ -35,6 +36,14 @@ namespace CapriDesktop
         private static string KeyWords(string grant, bool asks)
         {
             return asks && grant != Plugins.Off ? "Always asks" : GrantWords(grant);
+        }
+
+        internal static string NextPluginGrant(PluginTool tool)
+        {
+            string had = Plugins.GrantOf(tool.Plugin, tool.Permission);
+            string next = Plugins.AlwaysAsks(tool) ? (had == Plugins.Off ? Plugins.Usual : Plugins.Off) : GrantOrder[(Array.IndexOf(GrantOrder, had) + 1) % GrantOrder.Length];
+            Plugins.Grant(tool.Plugin, tool.Permission, next);
+            return next;
         }
 
         private static string PluginOn(Mod mod)
@@ -168,6 +177,7 @@ namespace CapriDesktop
 
         private void SignInFrom(PluginSheet sheet, Mod mod)
         {
+            if (Mods.TokenServer(mod) != null) { OpenPluginToken(mod); return; }
             sheet.Main.Text = "Signing in...";
             sheet.Main.Enabled = false;
             Plugins.SignIn(mod.File.Id, delegate(string problem)
@@ -188,6 +198,67 @@ namespace CapriDesktop
                 }
                 catch (InvalidOperationException) { }
             });
+        }
+
+        private void OpenPluginToken(Mod mod)
+        {
+            if (pluginTokenSheet != null && !pluginTokenSheet.IsDisposed) pluginTokenSheet.Close();
+            pluginTokenSheet = new PluginTokenSheet(this, SheetZoom(620, 450), mod);
+            pluginTokenSheet.Show(this);
+            pluginTokenSheet.Activate();
+        }
+
+        private sealed class PluginTokenSheet : ModSheet
+        {
+            private static Label Wrapped(Label label) { label.AutoEllipsis = false; return label; }
+            internal readonly Entry Token;
+            internal readonly Label Status;
+            internal readonly Key Connect;
+
+            internal PluginTokenSheet(Mainframe owner, float zoom, Mod mod) : base(owner, zoom, "Connect " + mod.File.Name, "CONNECT " + mod.File.Name.ToUpperInvariant() + " >", 620, 450)
+            {
+                Wrapped(Words(Mods.TokenSetupNote(mod), 24, 65, 572, 82, Type(10f * Zoom), White));
+                Words("Sent only to " + new Uri(Mods.TokenServer(mod).Url).Host, 24, 155, 572, 22, Small(), Faint);
+                if (Mods.TokenPage(mod) != null) Make(Mods.TokenPageLabel(mod), 24, 190, 310, 30, delegate { McpSignIn.Open(Mods.TokenPage(mod)); });
+                Words(Mods.TokenLabel(mod), 24, 244, 180, 22, Type(9.5f * Zoom, true), White);
+                Token = new Entry { Font = Type(10f * Zoom) };
+                Token.Bounds = Box(210, 240, 386, 28);
+                Token.Box.UseSystemPasswordChar = true;
+                Token.Box.AccessibleName = Mods.TokenLabel(mod) + " for " + mod.File.Name;
+                Controls.Add(Token);
+                Wrapped(Words(McpSignIn.Keeps ? "Kept on this PC, protected by Windows. Forget token turns this plug-in off and removes its saved sign-in." : "Kept only until Capri closes. Forget token turns this plug-in off.", 24, 282, 572, 42, Small(), Faint));
+                Status = Wrapped(Words("", 24, 332, 572, 44, Small(), Faint));
+                Connect = Make("Connect", 426, 390, 170, 30, delegate
+                {
+                    Mod current = Frame.PluginNamed(mod.File.Id);
+                    if (current == null || !current.On) { Status.Text = "That plug-in is off or removed."; return; }
+                    string value = Token.Box.Text;
+                    Token.Box.Clear();
+                    Connect.Enabled = false;
+                    Status.Text = "Connecting...";
+                    Plugins.ConnectToken(mod.File.Id, mod.Hash, value, delegate(string problem)
+                    {
+                        try { Frame.BeginInvoke(new Action(delegate
+                        {
+                            Frame.FillMods(); Frame.RefreshPluginSheet(false);
+                            if (IsDisposed) return;
+                            Connect.Enabled = true;
+                            Status.ForeColor = problem == null ? Cyan : Rose;
+                            Status.Text = problem == null ? "Connected. You can close this window." : "Couldn't connect: " + problem;
+                        })); } catch (InvalidOperationException) { }
+                    });
+                });
+                Connect.Accent = Cyan; Connect.Loud = true;
+                Make("Forget token", 24, 390, 170, 30, delegate
+                {
+                    Mod current = Frame.PluginNamed(mod.File.Id);
+                    if (current != null && current.On) Frame.Switch(current);
+                    McpSignIn.Forget(mod.File.Id);
+                    Token.Box.Clear(); Close();
+                });
+                FormClosed += delegate { Token.Box.Clear(); };
+                Frame.Fit(this);
+            }
         }
 
         // A plug-in's own window: its picture and what it does, the one thing to do next, and when she uses each of its tools.
@@ -228,9 +299,10 @@ namespace CapriDesktop
                 string said;
                 Color tone = Cyan;
                 if (mod.Changed) { said = "Changed. Connect asks you to approve it again."; tone = Rose; }
-                else if (!mod.On) { said = mail ? "Off. Connect, then add your email." : online ? "Off. Connect, then sign in on its page." : "Off."; tone = Faint; }
+                else if (!mod.On) { said = mail ? "Off. Connect, then add your email." : Mods.TokenServer(mod) != null ? "Off. Connect, then add your " + Mods.TokenLabel(mod).ToLowerInvariant() + "." : Mods.PublicStarter(mod) ? "Off. No account or sign-in required." : online ? "Off. Connect, then sign in on its page." : "Off."; tone = Faint; }
                 else if (mail) { MailAccount account = MailTools.Account; said = MailTools.Ready ? "Connected as " + account.Address : "On. Set up your email next."; if (!MailTools.Ready) tone = Rose; }
-                else if (state == "Sign in") { said = "Needs you to sign in."; tone = Rose; }
+                else if (state == "Sign in") { said = Mods.TokenServer(mod) != null ? "Needs your " + Mods.TokenLabel(mod).ToLowerInvariant() + "." : "Needs you to sign in."; tone = Rose; }
+                else if (Mods.PublicStarter(mod) && (trouble == null || trouble == "starting")) said = "On. No account or sign-in required.";
                 else if (state == "Connected") said = "Signed in";
                 else if (trouble != null && trouble != "starting") { said = "On. Its tools didn't start."; tone = Rose; }
                 else said = "On";
@@ -245,10 +317,11 @@ namespace CapriDesktop
                     if (now == null) { Close(); return; }
                     if (!now.On || Main.Text == "Turn off") Frame.Switch(now);
                     else if (Mods.Builtin(now, "mail")) Frame.OpenMailSetup(now);
-                    else if (Main.Text == "Sign in") Frame.SignInFrom(this, now);
+                    else if (Main.Text == "Sign in" || Main.Text == "Set up token" || Main.Text == "Token settings") Frame.SignInFrom(this, now);
                 };
                 if (!mod.On) Main.Text = mail || online ? "Connect" : "Turn on";
                 else if (mail) Main.Text = MailTools.Ready ? "Email settings" : "Set up email";
+                else if (Mods.TokenServer(mod) != null) Main.Text = state == "Connected" ? "Token settings" : "Set up token";
                 else if (state == "Sign in") Main.Text = "Sign in";
                 bool action = Main.Text != "Turn off";
                 if (action) { Main.Accent = Cyan; Main.Loud = !mod.On || Main.Text != "Email settings"; }
@@ -262,7 +335,7 @@ namespace CapriDesktop
                     : !mod.On ? "Turn it on to see its tools."
                     : mod.Info == null || mod.Info.Servers.Length == 0 ? "No tools. " + (mod.Skills.Length == 1 ? "It brings a skill she reads when it fits." : "It brings skills she reads when they fit.")
                     : trouble == "starting" ? "Her tools from it are starting."
-                    : trouble == McpSignInNeeded.Said ? "Sign in to see its tools."
+                    : trouble == McpSignInNeeded.Said ? (Mods.PublicStarter(mod) ? "This public service could not be reached." : Mods.TokenServer(mod) != null ? "Add your token to see its tools." : "Sign in to see its tools.")
                     : trouble != null ? "Its tools didn't start: " + trouble
                     : "Her tools from it show here once it has started.";
                 ToolsNote = Words(note, 24, 258, 572, 22, Small(), tools.Count == 0 && trouble != null && trouble != "starting" && trouble != McpSignInNeeded.Said && mod.On ? Rose : Faint);
@@ -274,16 +347,15 @@ namespace CapriDesktop
                     {
                         PluginTool one = tool;
                         bool asks = Plugins.AlwaysAsks(tool);
-                        Label name = new Note { Text = tool.Title, Font = Type(10f * Zoom, true), ForeColor = White, AutoSize = false, AutoEllipsis = true, Bounds = Box(0, y, 400, 20), UseMnemonic = false };
+                        string title = mod.Info.Servers.Length > 1 ? tool.Server + ": " + tool.Title : tool.Title;
+                        Label name = new Note { Text = title, Font = Type(10f * Zoom, true), ForeColor = White, AutoSize = false, AutoEllipsis = true, Bounds = Box(0, y, 400, 20), UseMnemonic = false };
                         Label about = new Note { Text = tool.Description, Font = Look.Mono(8.5f * Zoom, FontStyle.Regular, GraphicsUnit.Point), ForeColor = Faint, AutoSize = false, AutoEllipsis = true, Bounds = Box(0, y + 20, 400, 30), UseMnemonic = false };
-                        Key grant = new Key { Bounds = Box(412, y + 6, 140, 26), Font = Type(9f * Zoom, true), Text = KeyWords(Plugins.GrantOf(mod.File.Id, tool.Tool), asks) };
-                        grant.AccessibleName = "When she uses " + tool.Title;
-                        grant.Accent = Plugins.GrantOf(mod.File.Id, tool.Tool) == Plugins.Off ? Rose : Cyan;
+                        Key grant = new Key { Bounds = Box(412, y + 6, 140, 26), Font = Type(9f * Zoom, true), Text = KeyWords(Plugins.GrantOf(mod.File.Id, tool.Permission), asks) };
+                        grant.AccessibleName = "When she uses " + title;
+                        grant.Accent = Plugins.GrantOf(mod.File.Id, tool.Permission) == Plugins.Off ? Rose : Cyan;
                         grant.Click += delegate
                         {
-                            string had = Plugins.GrantOf(ModId, one.Tool);
-                            string next = asks ? (had == Plugins.Off ? Plugins.Usual : Plugins.Off) : GrantOrder[(Array.IndexOf(GrantOrder, had) + 1) % GrantOrder.Length];
-                            Plugins.Grant(ModId, one.Tool, next);
+                            string next = NextPluginGrant(one);
                             grant.Text = KeyWords(next, asks);
                             grant.Accent = next == Plugins.Off ? Rose : Cyan;
                             grant.Invalidate();
@@ -444,14 +516,14 @@ namespace CapriDesktop
                 mods.AddStarters();
                 mods.Load();
                 ShowMods(true);
-                string[] names = { "Email", "Notion", "Linear" };
-                int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear };
-                for (int i = 0; i < 3; i++)
+                string[] names = { "Email", "Notion", "Linear", "Todoist" };
+                int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                for (int i = 0; i < 4; i++)
                     if (!plugTiles[i].Visible || plugTiles[i].Text != names[i] || plugTiles[i].Picture != pictures[i] || plugTiles[i].Logo != logos[i] || plugTiles[i].State != "Off" || plugTiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + plugTiles[i].Text + " " + plugTiles[i].State);
-                if (plugTiles[3].Visible || plugEmpty.Visible || plugBack.Visible || plugNext.Visible || modShown.Exists(one => one.Plugin) || modNames[0].Visible || !modEmpty.Visible)
-                    throw new Exception("The starters showed under INSTALLED too, or PLUG-INS showed pages for three.");
+                if (plugEmpty.Visible || !plugBack.Visible || !plugNext.Visible || plugBack.Enabled || !plugNext.Enabled || modShown.Exists(one => one.Plugin) || modNames[0].Visible || !modEmpty.Visible)
+                    throw new Exception("The starters did not page separately from INSTALLED.");
                 modStatusTimer.Stop();
                 modStatus.Text = "";
                 using (Bitmap page = new Bitmap(Width, Height))
@@ -472,6 +544,17 @@ namespace CapriDesktop
                 if (crowded != null) throw new Exception("Notion's window doesn't fit: " + crowded);
                 notion.Picture(Path.Combine(output, "plugin-sheet-notion.png"));
                 notion.Close();
+
+                foreach (string tokenId in new[] { "github", "context7" })
+                {
+                    Mod tokenMod = PluginNamed(tokenId);
+                    OpenPluginToken(tokenMod);
+                    if (pluginTokenSheet == null || !pluginTokenSheet.Token.Box.UseSystemPasswordChar || pluginTokenSheet.Token.Box.Text.Length != 0 || pluginTokenSheet.Token.Box.AccessibleName != Mods.TokenLabel(tokenMod) + " for " + tokenMod.File.Name) throw new Exception("The API-key or personal-token entry was not empty, masked and labelled.");
+                    crowded = pluginTokenSheet.Crowded();
+                    if (crowded != null) throw new Exception("Credential setup doesn't fit: " + crowded);
+                    pluginTokenSheet.Picture(Path.Combine(output, "plugin-token-" + tokenId + ".png"));
+                    pluginTokenSheet.Close();
+                }
 
                 string consent = null;
                 ModAsk = delegate(ModFile file, string hash) { consent = Mods.Consent(file, hash); return false; };
@@ -510,12 +593,21 @@ namespace CapriDesktop
                 mods.Load();
                 FillMods();
                 if (!plugBack.Visible || !plugNext.Visible || plugBack.Enabled || !plugNext.Enabled || !plugTiles[3].Visible || plugTiles[3].Picture != Mods.Plug)
-                    throw new Exception("Five plug-ins didn't page under PLUG-INS.");
+                    throw new Exception("The starters and imported plug-ins didn't page under PLUG-INS.");
                 crowded = PlugsCrowded();
                 if (crowded != null) throw new Exception("PLUG-INS with Back and Next overlaps " + crowded);
-                InvokeOnClick(plugNext, EventArgs.Empty);
-                if (plugFirst != PlugTiles || !plugTiles[0].Visible || plugTiles[1].Visible || plugNext.Enabled || !plugBack.Enabled) throw new Exception("Next didn't show the last plug-in on its own.");
-                InvokeOnClick(plugBack, EventArgs.Empty);
+                List<Mod> expectedPlugs = Mods.PluginsOf(mods.All);
+                for (int first = 0; first < expectedPlugs.Count; first += PlugTiles)
+                {
+                    if (plugFirst != first || plugBack.Enabled != (first > 0) || plugNext.Enabled != (first + PlugTiles < expectedPlugs.Count)) throw new Exception("Plug-in paging controls did not match the current page.");
+                    for (int slot = 0; slot < PlugTiles; slot++)
+                    {
+                        int at = first + slot;
+                        if (plugTiles[slot].Visible != (at < expectedPlugs.Count) || at < expectedPlugs.Count && plugTiles[slot].Text != expectedPlugs[at].File.Name) throw new Exception("Plug-in paging skipped or repeated an expected starter or import.");
+                    }
+                    if (plugNext.Enabled) InvokeOnClick(plugNext, EventArgs.Empty);
+                }
+                while (plugBack.Enabled) InvokeOnClick(plugBack, EventArgs.Empty);
                 if (plugFirst != 0 || plugTiles[0].Text != "Email") throw new Exception("Back didn't go back to the first plug-ins.");
                 checks.Add("PASS plug-ins: more than four plug-ins page with Back and Next in the PLUG-INS band");
             }
@@ -525,6 +617,7 @@ namespace CapriDesktop
                 Plugins.OpenBrowser = wasOpen;
                 if (pluginSheet != null && !pluginSheet.IsDisposed) pluginSheet.Close();
                 if (mailSheet != null && !mailSheet.IsDisposed) mailSheet.Close();
+                if (pluginTokenSheet != null && !pluginTokenSheet.IsDisposed) pluginTokenSheet.Close();
                 foreach (Mod one in mods.All.ToArray()) if (one.Plugin) mods.Remove(one);
                 foreach (string file in extra) try { if (File.Exists(file)) File.Delete(file); } catch (IOException) { }
                 try { if (File.Exists(startersFile)) File.Delete(startersFile); }

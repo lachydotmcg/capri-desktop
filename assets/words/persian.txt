@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	وقتی اجرا �
 · HD	· HD
 · on this PC	· روی این رایانه
 · server	· سرور
+Edit as text	ویرایش به‌صورت متن
+What Capri remembers about you. It stays on this computer.	چیزی که Capri درباره تو به یاد دارد. روی همین کامپیوتر می‌ماند.
+Tell her something to remember	چیزی به او بگو که به یاد بسپارد
+Search her memory	در حافظه‌اش جست‌وجو کن
+That day isn't there any more.	آن روز دیگر نیست.
+Undo	واگردانی
+Remember our chats is off, so she isn't keeping new chat memories.	به یاد داشتن گفت‌وگوهای ما خاموش است، پس خاطره گفت‌وگوی تازه‌ای نگه نمی‌دارد.
+ABOUT YOU	درباره تو
+FROM YOUR CHATS	از گفت‌وگوهای تو
+GAMES	بازی‌ها
+CHAT LOGS	گزارش‌های گفت‌وگو
+CHAT LOG	گزارش گفت‌وگو
+Nothing matches.	چیزی مطابقت ندارد.
+Nothing yet.	هنوز چیزی نیست.
+Reading her notes.	یادداشت‌هایش را می‌خواند.
+Click again to forget game notes	برای فراموش کردن یادداشت‌های بازی دوباره کلیک کن
+Forget game notes	یادداشت‌های بازی را فراموش کن
+Click again to forget everything about me	برای فراموش کردن همه چیز درباره خودت دوباره کلیک کن
+Forget everything about me	همه چیز درباره خودت را فراموش کن
+Click again to forget	برای فراموش کردن دوباره کلیک کن
+Forget this day	این روز را فراموش کن
+Only the start of this day is shown.	فقط ابتدای این روز نمایش داده می‌شود.
+Nothing in this day.	هیچ چیزی در این روز نیست.
+No chats kept yet.	هنوز گفت‌وگویی نگه داشته نشده.
+You	تو
+{0} line	{0} خط
+SET UP EMAIL >	راه‌اندازی ایمیل >
+SET UP EMAIL	راه‌اندازی ایمیل
+Or type your address	یا نشانی خود را بنویس
+Email address	نشانی ایمیل
+Open the page	صفحه را باز کن
+App password	رمز برنامه
+IMAP server	سرور IMAP
+Incoming mail server	سرور ایمیل ورودی
+SMTP server	سرور SMTP
+Outgoing mail server	سرور ایمیل خروجی
+An app password is a separate password just for Capri. Your normal password stays yours.	رمز برنامه یک رمز جداگانه فقط برای Capri است. رمز معمولی تو مال خودت می‌ماند.
+She keeps it only until she closes.	آن را فقط تا بسته شدنش نگه می‌دارد.
+She checks, searches and reads your mail. She asks before she sends any.	ایمیل تو را بررسی، جست‌وجو و خواندن می‌کند. پیش از فرستادن چیزی می‌پرسد.
+Watch for new mail	ایمیل تازه را زیر نظر بگیر
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	وقتی ایمیل می‌رسد می‌گوید، و اگر شبیه فیشینگ باشد هشدار می‌دهد. هیچ چیز خوانده‌شده علامت نمی‌خورد.
+Deal with phishing on her own	خودش با فیشینگ مقابله کند
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	فقط تا وقتی زیر نظر دارد. ایمیلی که مطمئن است فیشینگ است به اسپم می‌رود. بقیه منتظر بله تو می‌ماند.
+Forget account	حساب را فراموش کن
+Use another email	ایمیل دیگری استفاده کن
+Which email?	کدام ایمیل؟
+Make an app password	یک رمز برنامه بساز
+Paste it	آن را بچسبان
+Connecting...	در حال اتصال...
+She can use your email now.	او اکنون می‌تواند از ایمیل تو استفاده کند.
+She's not watching your inbox.	او صندوق ورودی تو را زیر نظر ندارد.
+She's watching your inbox and deals with phishing she's sure of.	او صندوق ورودی‌ات را زیر نظر دارد و با فیشینگی که مطمئن است مقابله می‌کند.
+She's watching your inbox and tells you when mail lands.	او صندوق ورودی‌ات را زیر نظر دارد و وقتی ایمیل می‌رسد به تو می‌گوید.
+She forgot that account and its app password.	آن حساب و رمز برنامه‌اش را فراموش کرد.
+She forgot that account. Its app password is gone from this PC.	آن حساب را فراموش کرد. رمز برنامه‌اش از این کامپیوتر ناپدید شد.

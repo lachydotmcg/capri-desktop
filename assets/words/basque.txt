@@ -893,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ez du beste aplikaz
 · HD	· HD
 · on this PC	· PC honetan
 · server	· zerbitzaria
+Edit as text	Editatu testu gisa
+What Capri remembers about you. It stays on this computer.	Capsik zugatik gogoratzen duena. Ordenagailu honetan geratzen da.
+Tell her something to remember	Esan zerbait gogoratzeko
+Search her memory	Bilatu bere memorian
+That day isn't there any more.	Egun hori ez dago jada.
+Undo	Desegin
+Remember our chats is off, so she isn't keeping new chat memories.	Gure elkarrizketak gogoratu itzalita dago, beraz ez du elkarrizketa-oroitzapen berririk gordetzen.
+ABOUT YOU	ZUTAZ
+FROM YOUR CHATS	ZURE ELKARRIZKETETATIK
+GAMES	JOKOAK
+CHAT LOGS	TXAT-ERREGISTROAK
+CHAT LOG	TXAT-ERREGISTROA
+Nothing matches.	Ez dator bat ezer.
+Nothing yet.	Oraindik ezer ez.
+Reading her notes.	Bere oharrak irakurtzen.
+Click again to forget game notes	Egin klik berriro jokoen oharrak ahazteko
+Forget game notes	Ahaztu jokoen oharrak
+Click again to forget everything about me	Egin klik berriro zutaz dena ahazteko
+Forget everything about me	Ahaztu zutaz dena
+Click again to forget	Egin klik berriro ahazteko
+Forget this day	Ahaztu egun hau
+Only the start of this day is shown.	Egun honen hasiera baino ez da erakusten.
+Nothing in this day.	Ez dago ezer egun honetan.
+No chats kept yet.	Oraindik ez dago txatik gordeta.
+You	Zu
+{0} line	{0} lerro
+SET UP EMAIL >	KONFIGURATU POSTA >
+SET UP EMAIL	KONFIGURATU POSTA
+Or type your address	Edo idatzi zure helbidea
+Email address	Helbide elektronikoa
+Open the page	Ireki orria
+App password	Aplikazioaren pasahitza
+IMAP server	IMAP zerbitzaria
+Incoming mail server	Sarrerako posta zerbitzaria
+SMTP server	SMTP zerbitzaria
+Outgoing mail server	Irteerako posta zerbitzaria
+An app password is a separate password just for Capri. Your normal password stays yours.	Aplikazioaren pasahitza Caprirentzako pasahitz bereizia da. Zure pasahitz arrunta zurea da oraindik.
+She keeps it only until she closes.	Ixten denean arte baino ez du gordetzen.
+She checks, searches and reads your mail. She asks before she sends any.	Zure posta egiaztatzen, bilatzen eta irakurtzen du. Zerbait bidali aurretik galdetzen du.
+Watch for new mail	Begiratu posta berria
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Posta heltzen denean hitz egiten du, phishing dirudienez abisuekin. Ezer ez da irakurri gisa markatzen.
+Deal with phishing on her own	Ardu phishingaz bere kabuz
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Begiratzen duen bitartean baino ez. Phishing dela ziur dagoen posta spam-era doa. Gainerakoak zure baiaren zain dago.
+Forget account	Ahaztu kontua
+Use another email	Erabili beste posta bat
+Which email?	Zein posta?
+Make an app password	Sortu aplikazioaren pasahitza
+Paste it	Itsatsi
+Connecting...	Konektatzen...
+She can use your email now.	Orain zure posta erabil dezake.
+She's not watching your inbox.	Ez dago zure sarrera-ontzia begiratzen.
+She's watching your inbox and deals with phishing she's sure of.	Zure sarrera-ontzia begiratzen ari da eta ziur dakien phishingaz arduratzen da.
+She's watching your inbox and tells you when mail lands.	Zure sarrera-ontzia begiratzen ari da eta posta heltzen denean esaten dizu.
+She forgot that account and its app password.	Kontu hori eta aplikazioaren pasahitza ahaztu ditu.
+She forgot that account. Its app password is gone from this PC.	Kontu hori ahaztu du. Aplikazioaren pasahitza ordenagailu honetatik kendu da.
