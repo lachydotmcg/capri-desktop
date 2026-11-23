@@ -32,6 +32,7 @@ namespace CapriEverydayJobs
                     };
                     Outcome outcome = Program.Run(close, "scripted", folder.FullName, null);
                     Require(outcome.Pass && outcome.Calls.Count == 1, "planning runtime must close rather than use the erroneous open: " + outcome.Why);
+                    Require(outcome.Reply == "Closed chrome.", "exact close must use its real tool result: " + outcome.Reply);
                 }
                 finally { folder.Delete(true); }
                 Console.WriteLine("PASS offline routing checks");

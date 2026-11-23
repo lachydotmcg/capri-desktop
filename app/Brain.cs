@@ -2798,6 +2798,7 @@ namespace CapriDesktop
             // once it says a message is a job: the whole tool list on every message would slow each reply by seconds on a graphics
             // card and by minutes without one.
             bool planning = act != null && !fileChat && WorksOut(), planned = false;
+            bool exactClose = false;
             bool chatFirst = planning && OnThisPc;
             string planText = null;
             List<string> results = new List<string>();
@@ -2846,6 +2847,7 @@ namespace CapriDesktop
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = input }));
             else if (act != null && Hands.Heard(request, out direct, out directArgs, true) && !(picture && direct == "look_at_screen") && (!planning || Hands.Instant(direct, directArgs, request)) && (rest == null || kit.Unable(direct, directArgs) == null))
             {
+                exactClose = planning && direct == "app_window" && directArgs.Action == "close";
                 // "Remember that" saves what they said just before, unless that was a question or one of her own glances.
                 if (direct == "remember" && directArgs.Action != "forget" && Hands.Back(request))
                 {
@@ -3036,7 +3038,7 @@ namespace CapriDesktop
                 done = held ?? Hands.Shown(string.Join(" ", deeds.ToArray()));
                 namedWebsite = calls.Count == 1 && calls[0].Key == "open_website" && calls[0].Value != null && string.IsNullOrWhiteSpace(calls[0].Value.Search) && Hands.Websites != null && Hands.Websites.Nickname(calls[0].Value.Site) != null;
                 Cloud remote = Remote;
-                string pulled = held ?? (namedWebsite ? done : results.Count == 1 ? Hands.Pulled(results[0]) : null);
+                string pulled = held ?? (namedWebsite || exactClose ? done : results.Count == 1 ? Hands.Pulled(results[0]) : null);
                 bool teaching = results.Exists(Hands.Diagrammed);
                 bool stopped = false;
 #if !CROSS
