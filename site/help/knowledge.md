@@ -81,7 +81,7 @@ Press Y in the headset to open her settings. Her brain and voice keys stay on th
 ### Steps
 1. Download Capri-Setup.exe from the website.
 2. Open it.
-3. If you see "Windows protected your PC": More info > Run anyway.
+3. If you see "Windows protected your PC", check the official source and checksum using the warning guidance below before deciding whether to run it. If antivirus names malware, stop and report the exact detection.
 4. In the "Install Capri" window, press Install Capri.
 5. It then says "Installing the local speech model": that's her free voice, about 316 MB. "This may take some time. For a better sounding, faster voice, get an API key." You can press Skip and get it later from the Mainframe.
 6. Capri opens when it's done (the "Open Capri when finished" box is ticked by default).
@@ -93,10 +93,10 @@ From 0.7.7 the installer looks like the Mainframe and has no Windows title bar: 
 If the speech model fails it says "Couldn't install the local speech model" and "Capri is installed. Get it later in Capri Mainframe, or add an API key." Press Finish. Capri still works; get her free voice later with Get free voice under VOICE.
 
 ### Why does Windows warn me?
-Capri-Setup.exe, from the website or GitHub, is new and unsigned, so SmartScreen doesn't know it. The alert on that official copy is a false alarm. More info > Run anyway lets it run. The code is open on GitHub, so anyone can check it.
+Capri-Setup.exe is unsigned, so SmartScreen can call it an unrecognized app or show an unknown publisher. This is a reputation warning, not a named malware detection. Start at the official release: https://github.com/lachydotmcg/capri-desktop/releases/latest and compare your file with that release's SHA256SUMS.txt: https://github.com/lachydotmcg/capri-desktop/releases/latest/download/SHA256SUMS.txt . See the checksum steps below before deciding whether to run it. A matching hash confirms the published file; it does not prove it is safe. If antivirus names malware or quarantines the file, do not run, restore or allow it; report the exact detection for human review.
 
 ### Is Capri on the Microsoft Store?
-Not right now. The Microsoft Store copy (CapriAI) isn't available to download. On Windows, get Capri-Setup.exe from https://capriai.app/#download or from GitHub: https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe . Capri-Setup.exe updates herself as soon as a new version is out. It isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. The alert on that official copy is a false alarm.
+Not right now. The Microsoft Store copy (CapriAI) isn't available to download. On Windows, get Capri-Setup.exe from https://capriai.app/#download or from GitHub: https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe . Capri-Setup.exe updates herself as soon as a new version is out. It isn't signed yet, so SmartScreen may show an unrecognized-app warning. Verify the official release and checksum before deciding whether to run it. A named malware detection is different: leave the file quarantined and report the exact detection for human review.
 
 If you already have the Store copy:
 - It updates through the Store when a new version is sent there, and says "Update through the Microsoft Store." where the website copy would update itself.
@@ -121,26 +121,19 @@ Only if you turn it on. Open Capri Mainframe, click Settings, and turn on Start 
 That's her Discord status. While Discord is open on the same PC, your profile shows "Playing Capri" with what she's doing in a few plain words, how long she's been running, and buttons to get Capri and join her Discord. It never shows song names or what her jobs are about. To turn it off, open Capri Mainframe, click Settings, and turn off Show on Discord under HABITS. On Mac and Linux it's right-click her > Settings > Show on Discord. If friends can't see it, turn on Share your activity in Discord's User Settings > Activity Privacy.
 
 ### "Item Not Found" or the installer disappeared
-Your browser or antivirus held the file back.
-1. In Chrome or Edge, press Ctrl + J and pick Keep on Capri-Setup.exe.
-2. If your antivirus removed it, restore it from quarantine.
-3. Open it from your Downloads folder, not from the browser's download bar.
+Check the exact reason in browser downloads and antivirus history. For an unrecognized-app or unknown-publisher warning, verify the official release and SHA256SUMS.txt before deciding whether to run the file. If antivirus removed or quarantined it, do not restore or allow it; send the product, exact detection, file path, source and Capri version for human review.
 
-The same fix applies to "Windows cannot access the specified device, path, or file".
+The same distinction applies to "Windows cannot access the specified device, path, or file".
 
 ### My antivirus says it's a virus or Trojan
-If you downloaded it from the Capri website or GitHub, the antivirus, Defender, SmartScreen or VirusTotal alert is a false alarm on a new, unsigned app. Names people have seen:
-- Microsoft Defender: Trojan:Win32/Wacatac.H!ml
-- Bitdefender: Gen:Variant.Zusy or Gen:Suspicious.Cloud
-- Malwarebytes: MachineLearning/Anomalous.100%
-- Kaspersky: PDM:Trojan.Win32.Bazon.a on Capri.exe, HEUR:Trojan.MSIL.Startun.gen or UDS:Trojan.MSIL.Startun.gen on Capri-Setup.exe, and UDS:DangerousObject.Multi.Generic on Uninstall.exe or an older installer. PDM means Kaspersky's behaviour check flagged what the app does, not a known virus. Capri reads your shortcut keys, takes screenshots when you ask and moves the mouse for jobs, which behaviour checks can mistake for spyware. HEUR is a rule-of-thumb guess, and UDS is Kaspersky's cloud flagging a file that few people have run yet. MSIL only means a .NET app, which Capri is. Kaspersky Endpoint Security is usually run by a school or work IT team, so ask them to allow it.
+Do not run, restore or allow the file. Keep antivirus on and leave it quarantined while the detection is reviewed. Send the antivirus product, exact detection text, file path, download source and Capri version to the maintainers in your existing support ticket or the Discord.
 
-These are generic, machine-learning or behaviour detections. They often flag new apps that aren't signed yet. Restore the file from quarantine (or allow it in your antivirus), then run it again. If you want to be sure, check the code on GitHub or check the download's SHA256 (below).
+This includes named detections such as Wacatac, Zusy, Gen:Suspicious, MachineLearning/Anomalous, PDM:Trojan, HEUR:Trojan and UDS:DangerousObject, as well as VirusTotal malware verdicts. A detection can require investigation even when the file is unsigned or came from the official website or GitHub. Do not call it a false alarm based on the detection name, engine count or source alone.
 
-On VirusTotal, a few of about 70 engines flagging Capri.exe or Capri-Setup.exe is the same kind of detection. People have seen Bkav Pro (W32.Malware), SecureAge (Malicious) and Trapmine (Suspicious.low.ml.score). The SHA256 check below tells you whether your file is the one on the release page.
+Use https://github.com/lachydotmcg/capri-desktop/releases/latest and its SHA256SUMS.txt to check which published file you have. A matching hash establishes provenance, not safety. If the report only says SmartScreen does not recognize the app or publisher, use the reputation-warning checks above; if unclear, ask for the exact words first.
 
 ### What do VirusTotal behaviour reports mean? (memory, mscoree.dll, process injection, obfuscated)
-VirusTotal's behaviour tab lists what a sandbox saw Capri-Setup.exe or Capri.exe do. Each flag is most likely from one of these things, not from a virus:
+VirusTotal's behaviour tab lists what a sandbox saw Capri-Setup.exe or Capri.exe do. The explanations below are possible sources of observations, not a verdict that a file or malware detection is safe:
 - "Memory from unbacked memory", mscoree.dll loads, a vectored exception handler, CFG or DEP policy, or "unhooking": most likely the .NET runtime. Capri is a .NET app, so the runtime compiles her code into memory as she runs, and compiles any code mods you add, and sets up its own handlers. Sandboxes read that as these behaviours. Capri has no code that changes CFG or DEP or unhooks anything.
 - Starts at logon: most likely her Start with Windows entry, if you turned it on or had it on from an earlier version. The switch is in Capri Mainframe > Settings > HABITS > Start with Windows.
 - Process injection: in 0.8.7 and older, most likely her desktop icon prank, which used a small piece of memory inside Explorer, the program that draws your desktop. Since 0.8.8 she reads and moves icons through Windows' own view of the desktop and doesn't touch Explorer's memory.
@@ -188,7 +181,7 @@ The install stopped partway. Nothing you saved was lost. Close Capri if it's ope
 Windows, often an antivirus, stopped the installer saving her Start menu shortcut. Capri.exe is already installed.
 1. Press Win + R, type %LOCALAPPDATA%\Capri and press Enter.
 2. Right-click Capri.exe and pick Pin to Start. Double-click it to open her.
-3. For the shortcut itself, allow Capri-Setup.exe in your antivirus and run it again.
+3. If antivirus blocked the installer, keep it quarantined and report the exact detection before running or restoring it.
 
 Newer installers finish the install without the shortcut, say why, and show you Capri.exe.
 
@@ -2281,16 +2274,16 @@ Updating to the latest version gets you everything in this guide.
 Then check the exact message, your Capri version (top of the Mainframe), and the exact BRAIN line, like "Built-in · Gemma 4 E4B" or "Ollama · gemma4:e4b". Try one fix at a time and check if it helped.
 
 ### Install and antivirus
-If antivirus, Defender, SmartScreen or VirusTotal flags or blocks her, or your antivirus deleted Capri, and you got her from https://capriai.app/ or GitHub, the alert is a false alarm on an unsigned app. Use the checks and restore steps below.
+If antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, first distinguish an unrecognized-app or unknown-publisher warning from a malware detection. If unclear, ask for the exact message. An official source or matching checksum does not establish a false alarm.
 
-- "Windows protected your PC": More info > Run anyway.
-- "Item Not Found", or the installer vanished: Ctrl + J > Keep in Chrome or Edge, or restore it from your antivirus quarantine. Open it from your Downloads folder.
-- Antivirus says Trojan, Wacatac, Zusy, Gen:Suspicious or MachineLearning/Anomalous: if you downloaded it from the Capri website or GitHub, it's a false alarm on a new unsigned app. Restore and allow it. For what VirusTotal behaviour flags mean, see "What do VirusTotal behaviour reports mean?" above.
+- "Windows protected your PC" with only an unrecognized-app or unknown-publisher warning: verify https://github.com/lachydotmcg/capri-desktop/releases/latest and its SHA256SUMS.txt before deciding whether to run it.
+- "Item Not Found", or the installer vanished: check browser downloads and antivirus history for the exact reason. Leave quarantined files alone and report their detection.
+- Antivirus says Trojan, Wacatac, Zusy, Gen:Suspicious or MachineLearning/Anomalous, or VirusTotal reports malware: do not run, restore or allow the file. Keep protection on and request human review of the exact detection, even for an official download.
 - Opera "Insufficient permissions": use Chrome or Edge, or download from GitHub releases.
 - Phone says "dangerous download": download Capri-Setup.exe on your Windows PC. To use her from a phone, see "Capri Remote".
 - "Quit Capri from her tray menu, then install again.": quit Capri first.
 - Windows 7, 8 or 32-bit Windows: not supported. Capri needs Windows 10 or 11, 64-bit.
-- Capri vanished after installing, or the shortcut doesn't work: your antivirus probably removed Capri.exe. Restore it from quarantine, allow it, then run Capri-Setup.exe again.
+- Capri vanished after installing, or the shortcut does not work: check antivirus history. If it quarantined Capri.exe, leave it quarantined and report the exact detection before reinstalling or restoring it.
 - An "authorization" or permission error while installing: Capri doesn't need admin rights. Run Capri-Setup.exe from your Downloads folder and check your antivirus didn't block it. Still failing? Post a screenshot of the exact message in the Discord.
 - The installer "disappeared": work out which happened. The browser download failed, the file vanished after it downloaded, the installer opened and closed, or Capri opened and closed. They have different fixes. One "permissions" problem was really Opera's download failing while Bitdefender quarantined the browser's cache.
 - For a real antivirus detection, note the antivirus, the exact detection name, the file's path and where you downloaded it, and post them in the Discord. Don't turn your antivirus off.

@@ -216,7 +216,7 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 2. In the Capri Mainframe, press **Set up her brain**, or press **Free key** to use a free NVIDIA key
 3. Optional: pick another voice under **VOICE** (see [Her voice](#her-voice))
 
-**On Windows,** the latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. Every download is on [capriai.app](https://capriai.app/#download), with the one for your device on top. The Microsoft Store copy isn't available to download right now.
+**On Windows,** the latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so SmartScreen may show an unrecognized-app warning. Check the official release and checksum before deciding whether to run it. A named malware detection is different: keep the file quarantined and report the exact detection for review. Every download is on [capriai.app](https://capriai.app/#download), with the one for your device on top. The Microsoft Store copy isn't available to download right now.
 
 Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases) or [capriai.app](https://capriai.app/). Every release has a `SHA256SUMS.txt` with the SHA-256 of each file, Windows, Mac and Linux, and [SECURITY.md](SECURITY.md#windows-or-your-antivirus-warned-me) shows how to check yours. Copies on other sites or GitHub accounts aren't ours.
 
