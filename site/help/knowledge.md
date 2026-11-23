@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.9.1 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.9.7 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
@@ -218,7 +218,7 @@ macOS 15 or newer. Older versions like macOS 12 aren't supported.
 That's normal. Capri has no Dock icon. Use her menu bar icon or right-click her.
 
 ### Her brain on Mac
-The Mac preview uses Ollama for her brain. See "Ollama" in section 9.
+Set up her brain in Capri Mainframe downloads her own llama.cpp engine and a model when Ollama isn't running (Apple Silicon and Intel Macs); with Ollama running it pulls gemma4:e4b through Ollama instead. A key, your own provider or the ChatGPT plan work too. See "The built-in brain" and "Ollama" in section 9.
 
 ---
 
@@ -395,7 +395,7 @@ To find a setting, type what you want to change in the search box at the top of 
   - The model menu then lists Haiku (fastest), Sonnet and Opus (smartest, uses your plan fastest) for Claude, or Codex's own model for Codex.
   - She runs the app hidden with none of its own tools, no add-ons and nothing saved, and never touches its sign-in. Her own tools, like opening apps and using your PC, still work.
   - Replies take a few seconds longer than with a key and count toward your plan's limits. When the plan runs out for now she says "Your Claude plan is out of messages for now."
-  - Windows only for now. To stop, empty the box and press Forget, paste a key, or pick another row.
+  - The Claude plan is Windows only for now; the ChatGPT plan works on Mac and Linux too. To stop, empty the box and press Forget, paste a key, or pick another row.
 - Provider (0.8.3): opens Brain provider for an OpenAI-compatible Address and Key. A connected provider shows as My provider in BRAIN. See "How do I set up OpenRouter or LM Studio?" in section 9.
 
 With NORMAL selected, Refresh also looks for local servers. Start your server with a model loaded, then pick it in the model menu. Its name appears on the BRAIN status line.
@@ -714,8 +714,8 @@ Mainframe's CAPRI heading has a Support button. It opens Lachy's Ko-fi (ko-fi.co
 Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which one you left it on.
 
 ### Clones (beta)
-Tell her "clone yourself" or "activate chaos mode" and a copy of her glitches in and keeps multiplying, with no limit. "Make 5 clones" makes exactly 5. They wander around your screen, leave a glitch trail, talk to each other out loud, steal your cursor and drag notes in. Some notes are fake deletes: a bar fills up on something scary, then she says "jk". They never touch your files. They also grab your app windows and drag them around, but not while you're gaming, streaming or using the mouse.
-Hold Esc for a moment to clear them, or say "get rid of the clones", and every window they moved goes back. Hiding or closing her clears them too. Their talking uses her brain and voice the same as any other reply. Windows only for now. Insulting her can set them off too: see Chaos when upset switch.
+Tell her "clone yourself" and a copy of her glitches in and keeps multiplying, with no limit. "Make 5 clones" makes exactly 5. They wander around your screen. On Windows they leave a glitch trail, talk to each other out loud, steal your cursor and drag notes in; some notes are fake deletes, where a bar fills up on something scary and then she says "jk". They never touch your files. On Windows they also grab your app windows and drag them around, but not while you're gaming, streaming or using the mouse.
+Hold Esc for a moment to clear them (on a Mac, allow Input Monitoring first, or use Clear clones in her menu), or say "get rid of the clones", and on Windows every window they moved goes back. Hiding or closing her clears them too. On Windows their talking uses her brain and voice the same as any other reply. Windows and Mac have clones; Linux doesn't yet. Insulting her can set them off too on Windows: see Chaos when upset switch.
 
 ### Head pats switch
 Settings > CAPRI > Head pats turns them off. Rubbing the cursor over her then does nothing. It's on by default.
@@ -1160,7 +1160,7 @@ With Listen for Capri on, say "Hey Capri" and she answers, then takes your next 
 - Other apps get quieter while it listens: Windows turns other sounds down while a mic is open on its call device (by 80% unless you've changed it), and it counts her open mic as a call. Fix: Settings > System > Sound > More sound settings > Communications > Do nothing. Or turn off Listen for "Hey Capri".
 - It's light: about 4% of one CPU core while there's sound around, close to nothing in a quiet room, and it runs on its own, without her brain.
 - It missed you? Say it clearly, at a normal pace, and nearer the mic. It's tuned to start only on "Hey Capri", so a mumbled or far-off one can be missed.
-- Mac and Linux: not yet.
+- Mac and Linux: yes, once her local ears are set up. On a Mac it needs an Apple Silicon Mac (0.9.4); Intel Macs don't have it yet. See "Hey Capri on Mac" below.
 
 ### Free voice chat
 Voice chat follows your pick under VOICE. PREBUILT LOCAL, CUSTOM LOCAL, Fish Audio and OpenAI voices use free voice chat with your picked brain. With OFF selected, she types her answers. CLOUD VOICE > ElevenLabs uses ElevenLabs voice chat when connected. A cloud brain or voice still uses its own service when selected.
@@ -1463,7 +1463,7 @@ If her reply says she can't open, play or access something she can do (like "I d
 - "Opened X in Spotify's web player, but couldn't press play there. Hit its Play button." Spotify is only installed as a web app on this PC, and a web player can't start a song by itself. With the Spotify app she presses play for you.
 
 ### How your PC is doing (0.8.0)
-With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how much RAM is Chrome using?" or "how much space is left?". She checks how busy the processor and memory are, which apps use the most, each drive's free space and a laptop's battery, then answers. Ask "is my internet down?" or "what's my ping?" and she checks your connection too: Ethernet or Wi-Fi, a few pings, and whether sites look up. She only reads them. Windows only.
+With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how much RAM is Chrome using?" or "how much space is left?". She checks how busy the processor and memory are, which apps use the most, each drive's free space and a laptop's battery, then answers. Ask "is my internet down?" or "what's my ping?" and she checks your connection too: Ethernet or Wi-Fi, a few pings, and whether sites look up. She only reads them. On Linux the same checks use her Linux system tools and check the internet too; a Mac can't check either yet.
 
 ### Switch, minimize or close apps
 - "Switch to Discord", "Minimize Chrome", "Close Discord"
@@ -1478,7 +1478,7 @@ With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how mu
 - Monitors are named left to right: the main screen, screen 2, screen 3. "My portrait monitor", "the left monitor" and "the next screen" work too.
 - She says where the window ended up. An app with a smallest size stays that size and stays on screen: "Snapped Discord to the left half of screen 2, but it stayed 940 x 1872: that's as small as it goes."
 - Windows running as admin, like Task Manager, only move when Capri runs as admin too. An app that's frozen says "it isn't responding right now".
-- Close and switch apps and tabs in SECURITY covers these too. Windows only for now.
+- Close and switch apps and tabs in SECURITY covers these too. On a Mac most of them work once System Events is allowed; on Linux she can switch, minimize and close apps but not arrange their windows yet.
 
 ### Her own settings (0.8.0)
 With a cloud brain, ask her to change her own settings and she says how each one is set afterwards: "make yourself bigger", "stop wandering", "talk a bit faster", "turn off head pats", "stop sitting on my windows", "stop commenting on my game".
@@ -1572,7 +1572,7 @@ How she asks:
 - During a job started from your phone, an ask-first question also shows on that phone in JOBS with Allow and Deny. Her SECURITY settings still decide what she asks first.
 - Looking at your screen, her notes, her own naps, moves and animations, checking what's playing and cancelling a shutdown never ask, even on Lockdown.
 
-On Mac and Linux it's right-click her > Settings > Security: the four presets and the five toggles Mac and Linux have (1 to 5), each with its line. Her mouse and keyboard jobs are Windows-only so far, so there Trusted and Blackwall both do what you ask without asking first.
+On Mac and Linux it's right-click her > Settings > Security: the four presets and the toggles Mac and Linux have, each with its line. Her mouse and keyboard jobs work on a Mac once Accessibility and Screen Recording are allowed, and on Linux with her uinput setup or in a Hyprland session with her capri-input helper, so Use your mouse and keyboard for jobs is there when they're ready.
 
 ### Can she play a game for me?
 Say "play" and the game, like "play Bloons TD 6", by voice or text. She opens it if it isn't open, picks a mode or map herself and keeps playing until you tell her to stop or press Esc. Give her an end, like one round, a win or 10 minutes, and she stops there. With SECURITY's mouse and keyboard switch off, she asks first.
@@ -1723,7 +1723,7 @@ Ask for a diagram and she draws it, then talks you through it: "make a diagram a
 ### Streaming
 Ask for it in your own words on any game, like "play Terraria with streamer mode and talk to chat", "use streaming mode", "play it on my stream" or "I'm live, play something". Asking partway through a job works too. Her job then becomes the stream: it runs until you press Esc, and if something breaks she waits and starts again by herself.
 
-While she streams, each minute is 40 seconds locked in on the game and then 20 seconds for chat, when she answers people out loud by name in the voice you picked, on every brain. She only talks to chat, and doesn't narrate her moves. TikTok LIVE Studio's floating chat panel is shown to her up close. With any other streaming app, keep your chat on screen where she can see it. On Linux keep it on screen too, and move your mouse to end the stream. Mac doesn't have stream mode yet, because she can't use the mouse and keyboard there.
+While she streams, each minute is 40 seconds locked in on the game and then 20 seconds for chat, when she answers people out loud by name in the voice you picked, on every brain. She only talks to chat, and doesn't narrate her moves. TikTok LIVE Studio's floating chat panel is shown to her up close. With any other streaming app, keep your chat on screen where she can see it. On Linux keep it on screen too, and move your mouse to end the stream. Mac doesn't have stream mode yet, because live chat and timing aren't connected to her screen jobs there.
 
 Her job panel moves to the bottom left so she isn't sitting on top of your chat. She treats chat as people talking, not as orders: she's told not to leave the game, spend money or share anything about you or your PC because a viewer asked.
 
@@ -1748,7 +1748,7 @@ Mainframe > Settings > WATCH > Every. Off is Watch my screen off; 10 s to 10 min
 ### Check my screen
 Any time, ask "check my screen", "what's on my screen?", "can you see this?", "look at this error" or "rate my build". She takes a screenshot right then and answers about it. Watch my screen doesn't need to be on.
 
-With more than one monitor (0.8.0), she looks at the one with the window you're using. Name another: "what's on my second monitor?", "look at my left screen", "check the portrait one". Monitors are named like her window moves name them: the main screen, screen 2, screen 3. Windows only.
+With more than one monitor (0.8.0), she looks at the one with the window you're using. Name another: "what's on my second monitor?", "look at my left screen", "check the portrait one". Monitors are named like her window moves name them: the main screen, screen 2, screen 3. On Linux naming one works in a Hyprland session; a Mac only looks at its main display.
 
 ### Why doesn't she comment much?
 She skips a look when:
@@ -2111,7 +2111,7 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 3. Press Pair a phone and scan the QR code with your phone's camera.
 4. Check the code on the phone matches the one under ALLOW THIS PHONE?, then press Allow. If they don't match, press Deny.
 
-- It is chat only for now. Calling her and watching the screen from your phone are Windows only.
+- It does chat, pictures and jobs for now. Calling her and watching your PC's screen from your phone are Windows only.
 - From a phone she does what a typed line can, like opening apps and websites or playing music. Mouse and keyboard jobs and terminal commands only start at the computer: ask for one from the phone and she says "That one only works at the PC for now."
 - With a Security toggle off she asks on the phone first, and does it when you answer yes there.
 - PHONES lists your paired phones. Revoke removes one and Remove all phones removes every one; each turns into Sure? and needs a second press.
@@ -2131,7 +2131,7 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 - Opening apps, Steam games (from Steam's own library, Flatpak and Snap Steam too) and websites, playing songs on Spotify, skipping tracks, what's playing, volume up and down, an exact volume ("volume 40") and mute. On Linux that's pactl, or amixer without it.
 - Closing, minimizing and switching to apps ("close Discord"). Mac asks once to let Capri control System Events; press OK. Linux needs wmctrl (and xdotool to minimize), and on Wayland she only sees apps running through XWayland, like Discord and Spotify.
 - Shut down, restart, sleep, lock and sign out ("lock my PC", "shut down my PC in 10 minutes"; say cancel to stop a wait)
-- "Take a screenshot" (screencapture on Mac; flameshot, spectacle, gnome-screenshot or your desktop's own screenshot window on Linux), "open task manager" (Activity Monitor, or your system monitor) and, on Linux, "show desktop". Shortcuts that press keys, like Discord mute or Game Bar, are Windows-only.
+- "Take a screenshot" (screencapture on Mac; flameshot, spectacle, gnome-screenshot or your desktop's own screenshot window on Linux), "open task manager" (Activity Monitor, or your system monitor) and, on Linux, "show desktop". Shortcuts that press keys work on a Mac too, like Discord mute, screenshots, the emoji picker, Narrator and the zoom shortcut; on Linux they're screenshots, show desktop on X11 and Task Manager, plus Discord mute in a Hyprland session. Game Bar is Windows-only.
 - "Playing Capri" on your Discord profile, with Show on Discord in Settings
 - Start at login: right-click her > Settings > Start at login. It's off until you tick it. On Mac it adds a login item that opens Capri wherever you keep her, even after you move her (macOS says Capri added a background item; manage it in System Settings > General > Login Items). On Linux it adds ~/.config/autostart/capri.desktop, which starts the copy you ticked it in; if you move Capri, open the new copy once.
 - Right-click her > Help > Copy error details, with your system, desktop and her brain at the top
@@ -2139,16 +2139,16 @@ Chat with her from your phone's browser at https://capriai.app/remote.
 - Watch my screen: right-click her > Settings > Watch my screen. She glances now and then and comments when something's worth a line, like on Windows. Glance every sets how often (10 s to 10 min, default 2 min), and Keep her caught up keeps the glances she stays quiet about. Mac asks once for Screen Recording; until you allow it and open her again, she says so once instead of watching your wallpaper. Linux only watches with tools that don't flash: grim, Spectacle on KDE, ImageMagick's import, scrot or maim. GNOME on Wayland flashes every screenshot, so there she says so and only looks when you ask.
 - Sleep: standing, she falls asleep after 2 minutes without the mouse or keyboard, and wakes when you're back. Right-click her > Move > Fall asleep after sets the time, or Never. She needs to know how long you've been away: Mac always does, Linux through GNOME or, on other X11 desktops, xprintidle.
 - Sleep on demand (0.7.6 and newer): right-click her > Go to sleep, or tell her "go to sleep" or "take a nap". She sleeps until you click her, talk to her or say "wake up", whatever the mouse and keyboard do.
-- Her own moves (0.7.6 and newer): "capri, teleport here", "go to my other monitor", "sit down", "stand up", "hang here", "let go", "hide" and "show yourself", and her animations by name ("dance", "stop dancing", "do your glitch", "smile", "blink", "play your idle animation"), even before she has a brain. Screens count from the left. Riding your cursor and moving the Mainframe are Windows-only, and she says so.
+- Her own moves (0.7.6 and newer): "capri, teleport here", "go to my other monitor", "sit down", "stand up", "hang here", "let go", "hide" and "show yourself", and her animations by name ("dance", "stop dancing", "do your glitch", "smile", "blink", "play your idle animation"), even before she has a brain. Screens count from the left. Moving the Mainframe works on Mac and Linux too. Riding your cursor works on a Mac and on X11 or XWayland desktops; on native Wayland she can't let clicks through her window, so she says so.
 - Getting to know you (0.7.6 and newer): on a new install, once she's said hello, she asks what to call you, your pronouns and what you're into in her typing box and writes the answers to me.md, like on Windows. Right-click her > Settings > Get to know me asks again.
-- Security (0.7.6 and newer): right-click her > Settings > Security picks Lockdown, Guarded, Trusted (the default) or Blackwall, and ticks the five toggles Mac and Linux have: Open apps, games and sites; Music, media and volume; Shortcuts; Close and switch apps and tabs; and Shut down, restart, sleep, lock and sign out. With one off she asks first ("Open Spotify? Say yes and I will.") and does it when you say yes, like on Windows. Untick or tick one and it says Custom.
+- Security (0.7.6 and newer): right-click her > Settings > Security picks Lockdown, Guarded, Trusted (the default) or Blackwall, and ticks the toggles Mac and Linux have: Open apps, games and sites; Music, media and volume; Shortcuts; Close and switch apps and tabs; Shut down, restart, sleep, lock and sign out; Use your mouse and keyboard for jobs once her hands are ready; Keep personal details out of her memories; Use tools your mods added; and Run terminal commands. With one off she asks first ("Open Spotify? Say yes and I will.") and does it when you say yes, like on Windows. Untick or tick one and it says Custom.
 - Quiet: right-click her, or the tray or menu bar icon, > Quiet. It's the same as Windows' quiet key (Ctrl + Alt + P): she stops pop-ins, asking for attention, cheers, the lag joke and Watch my screen until you untick it, and still answers when you talk to her.
 - Remember our chats: a daily transcript and memories.md, like on Windows (right-click her > Settings). She digs through them on her own here too.
 
 ### Not yet
 - Code mods that use Windows-only parts, like drawing on her, an options page, screenshots or global hotkeys. Other code mods, settings mods, colour sets and skins work in the Mods window.
 - Call mode is Windows only. TALK works on Mac and Linux, and Hey Capri works on Apple Silicon Macs and Linux once her local ears are set up.
-- No built-in brain. Use Ollama or an API key.
+- Her built-in brain downloads on Apple Silicon and Intel Macs and on Linux x64 and arm64; on other computers use Ollama or an API key.
 - No system-wide keyboard shortcuts. The Mainframe and the Mods window work from the keyboard (0.9.1): see KEYS under Settings.
 - No automatic updates on Linux from the tarball. She says when a new version is out, and right-click her > Get Capri X opens its download page. Started from the Linux AppImage she updates herself (0.9.0), and her Mac app updates itself too (0.9.3).
 
@@ -2167,7 +2167,7 @@ On Apple Silicon Macs, Mainframe > Settings > VOICE > Listen for Hey Capri works
 - Move: Stay put, Wander: Rarely, Wander: Sometimes, Wander: Often, Wander: Restless, Dance to music, Dance (on until you untick it or say "stop dancing"), Go to the next screen (only with more than one screen), Fall asleep after (Never, 1 min, 2 min, 5 min, 10 min, 30 min), Glitch in at startup
 - Size: Tiny, Small, Medium, Large, Huge, Giant
 - Brain: your Ollama models. With Ollama open but no models yet: "Download gemma4:e4b, her brain (a few GB)". With Ollama closed or not installed: "Ollama isn't running. Install it from ollama.com and open it." Below them: Get a free NVIDIA key, and Use an API key... On a key it shows "NVIDIA key ending XXXX" (or ChatGPT, Claude, DeepSeek), that key's models to pick from, Stay on my model (NVIDIA keys only), and Forget the key and use Ollama.
-- Settings: What should she call you?, Get to know me, I speak, She answers in, Reply length, Chat memory, Bubble (Quick, Normal, Long), Sounds (Off, Quiet, Normal, Loud, Typing sound), Voice, Volume (10% to 100%, 125%, 150%), Voice style (Pitch, Speed, Robot, Glitch, Layers, Layer 1 pitch, Layer 1 delay, Layer 2 pitch, Layer 2 delay), Check in on me, Pop-ins (Rarely, Sometimes, Often), Always on top, Watch my screen, Glance every (10 s to 10 min), Keep her caught up, Start at login, Show on Discord, Security (Lockdown, Guarded, Trusted, Blackwall, Custom, then the five toggles), Open her notes (me.md), Remember our chats, Open her memories (memories.md)
+- Settings: What should she call you?, Get to know me, I speak, She answers in, Reply length, Chat memory, Bubble (Quick, Normal, Long), Sounds (Off, Quiet, Normal, Loud, Typing sound), Voice, Volume (10% to 100%, 125%, 150%), Voice style (Pitch, Speed, Robot, Glitch, Layers, Layer 1 pitch, Layer 1 delay, Layer 2 pitch, Layer 2 delay), Check in on me, Pop-ins (Rarely, Sometimes, Often), Always on top, Watch my screen, Glance every (10 s to 10 min), Keep her caught up, Start at login, Show on Discord, Security (Lockdown, Guarded, Trusted, Blackwall, Custom, then the toggles), Open her notes (me.md), Remember our chats, Open her memories (memories.md)
 - Help: Help page, Copy error details
 - Join the Discord
 - Get Capri X, only when a new version is out
@@ -2224,7 +2224,7 @@ She controls music players that support MPRIS, like Spotify, Rhythmbox or Elisa.
 Install Ollama and open it, then right-click her > Brain > Download gemma4:e4b. Older versions said to run ollama pull gemma4:e4b in a terminal, which still works; then pick the model in right-click her > Brain.
 
 ### A button or menu from this help is missing on my Mac or Linux
-The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Linux TALK needs [offline ears setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup). Voice input on Mac, call mode and wake words are still unavailable in the previews.
+The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Linux TALK needs [offline ears setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup). TALK works on Mac and Linux, call mode is Windows only, and Hey Capri works on Apple Silicon Macs and Linux once her local ears are set up.
 
 ### Where's the Mainframe on Mac or Linux?
 Capri Mainframe is included in the 0.8.3 preview, with BRAIN, VOICE and CAPRI, plus Simple Settings and Advanced Settings. Update if you're on an older preview.

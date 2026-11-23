@@ -453,9 +453,9 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 - [x] The Mainframe, laid out like Windows (0.8.3)
 - [x] Mods: the Mods window, settings mods, colour sets and skins (0.8.3)
 - [ ] Voice chat and her free voice
-- [ ] Jobs with her own cursor
-- [x] Updates that install themselves
-- [ ] Apple approving (notarizing) her, so macOS stops blocking her
+- [x] Jobs that click and type for you, with her own pointer on screen, once her hands are ready: Accessibility and Screen Recording on a Mac, uinput or her capri-input helper on Linux
+- [x] Updates that install themselves from the Mac app and the Linux AppImage; a tarball or package opens the download page instead
+- [ ] Apple approving (notarizing) her, so macOS stops blocking her; until then the Mac zip carries "If Capri won't open.txt" with the one-time steps
 - [ ] Everything else Windows has, so they stop being an early preview
 
 **Setup and updates**
