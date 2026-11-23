@@ -30,6 +30,7 @@ Ask Capri for more	Capri నుండి మరింత అడగండి
 Asking your server...	మీ సర్వర్‌ను అడుగుతోంది...
 Asks before closing only the apps you choose.	మీరు ఎంచుకున్న యాప్‌లను మాత్రమే మూసివేసే ముందు అడుగుతుంది.
 Auto	ఆటో
+Auto (match what I say)	ఆటో (నేను చెప్పినట్లు)
 Automatic: VB-CABLE, else Steam's	ఆటోమేటిక్: VB-CABLE, లేకపోతే Steam దే
 BAD RELAY HOST	చెడ్డ రిలే హోస్ట్
 BIG Z open notepad	BIG Z నోట్‌ప్యాడ్ తెరువు
@@ -290,6 +291,7 @@ Huge	భారీ
 I can hear you.	నేను నీ మాట వినగలను.
 I glance at your screen and comment. Costs a little on a paid brain.	నేను మీ స్క్రీన్‌ను చూసి వ్యాఖ్యానిస్తాను. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
 I keep listening. Say my name, then just talk.	నేను వింటూనే ఉంటాను. నా పేరు చెప్పి, మాట్లాడు.
+I speak	నేను మాట్లాడేది
 I talk about your game as you play. Costs a little on a paid brain.	మీరు ఆడుతున్నప్పుడు మీ ఆట గురించి మాట్లాడతాను. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
 I type my replies and stay quiet.	నేను నా సమాధానాలు టైప్ చేసి మౌనంగా ఉంటాను.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	నేను తిరిగి మాట్లాడను, ఏమీ ఎక్కడికీ పంపబడదు. అయినా నేను నీతో ఉంటాను, నీ సంగీతానికి డాన్స్ చేస్తాను, నీవు అడిగే త్వరిత పనులు చేస్తాను, వాల్యూమ్ లాంటివి.
@@ -598,6 +600,7 @@ SKILL.	స్కిల్.
 SKIN.	స్కిన్.
 SORT BY	దీని ప్రకారం క్రమబద్ధీకరించు
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	శబ్దాలు అలవాట్లు బ్రెయిన్ చూడు CAPRI DOOMSCROLL వాతావరణం క్లిప్‌లు ఆటలు కీలు కదలికలు వాయిస్ నువ్వు
+Same as I speak	నా భాష లాగే
 Same as her ears (VOICE > Mic)	ఆమె చెవులతో సమానం (VOICE > Mic)
 Same code on the phone?	ఫోన్‌లో అదే కోడ్?
 Save	సేవ్ చేయి
@@ -633,9 +636,10 @@ Settings had nothing to watch.	సెట్టింగ్‌లలో చూడ
 Settings lost keyboard focus during the Tab walk	Tab నడక సమయంలో సెట్టింగ్‌లు కీబోర్డ్ ఫోకస్ కోల్పోయాయి
 Setup guide	సెటప్ గైడ్
 Setup stopped	సెటప్ ఆగిపోయింది
+She answers in	ఆమె జవాబిచ్చేది
 She can read it when it fits.	సరిపోయినప్పుడు ఆమె దాన్ని చదవగలదు.
 She glances at your screen and comments. Costs a little on a paid brain.	ఆమె మీ స్క్రీన్‌ను చూసి వ్యాఖ్యానిస్తుంది. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
-She keeps listening. Say her name, then just talk until you go quiet.	ఆమె వింటూనే ఉంటుంది. ఆమె పేరు చెప్పి, మీరు మౌనంగా అయ్యే వరకు మాట్లాడండి.
+She keeps listening. Say her name, then just talk.	ఆమె వింటూనే ఉంటుంది. ఆమె పేరు చెప్పి, మాట్లాడండి.
 She reacts to your game until you close it.	మీరు మూసే వరకు ఆమె మీ ఆటకు స్పందిస్తుంది.
 She reads these controls before each game job.	ప్రతి ఆట పనికి ముందు ఆమె ఈ నియంత్రణలను చదువుతుంది.
 She talks about your game as you play. Costs a little on a paid brain.	మీరు ఆడుతున్నప్పుడు ఆమె మీ ఆట గురించి మాట్లాడుతుంది. చెల్లింపు బ్రెయిన్‌లో కొంత ఖర్చు అవుతుంది.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ఆమె నడు
 · HD	· HD
 · on this PC	· ఈ PCలో
 · server	· సర్వర్
+Edit as text	వచనంగా సవరించు
+What Capri remembers about you. It stays on this computer.	Capri నీ గురించి గుర్తుంచుకున్నది. ఇది ఈ కంప్యూటర్‌లో ఉంటుంది.
+Tell her something to remember	గుర్తుంచుకోవలసినది చెప్పు
+Search her memory	ఆమె జ్ఞాపకంలో వెతుకు
+That day isn't there any more.	ఆ రోజు ఇక లేదు.
+Undo	వెనక్కి తీసుకో
+Remember our chats is off, so she isn't keeping new chat memories.	మన సంభాషణలను గుర్తుంచుకోవడం ఆఫ్‌లో ఉంది, కాబట్టి కొత్త సంభాషణ జ్ఞాపకాలను దాచదు.
+ABOUT YOU	నీ గురించి
+FROM YOUR CHATS	నీ సంభాషణల నుండి
+GAMES	ఆటలు
+CHAT LOGS	సంభాషణ లాగ్‌లు
+CHAT LOG	సంభాషణ లాగ్
+Nothing matches.	ఏదీ సరిపోలలేదు.
+Nothing yet.	ఇంకా ఏమీ లేదు.
+Reading her notes.	ఆమె నోట్స్ చదువుతోంది.
+Click again to forget game notes	ఆట నోట్స్ మరచిపోవడానికి మళ్లీ క్లిక్ చేయి
+Forget game notes	ఆట నోట్స్ మరచిపో
+Click again to forget everything about me	నీ గురించి అన్నీ మరచిపోవడానికి మళ్లీ క్లిక్ చేయి
+Forget everything about me	నీ గురించి అన్నీ మరచిపో
+Click again to forget	మరచిపోవడానికి మళ్లీ క్లిక్ చేయి
+Forget this day	ఈ రోజును మరచిపో
+Only the start of this day is shown.	ఈ రోజు ప్రారంభం మాత్రమే చూపబడుతుంది.
+Nothing in this day.	ఈ రోజు ఏమీ లేదు.
+No chats kept yet.	ఇంకా సంభాషణలు దాచబడలేదు.
+You	నువ్వు
+{0} line	{0} పంక్తి
+SET UP EMAIL >	ఇమెయిల్ సెటప్ చేయి >
+SET UP EMAIL	ఇమెయిల్ సెటప్ చేయి
+Or type your address	లేదా నీ చిరునామా టైప్ చేయి
+Email address	ఇమెయిల్ చిరునామా
+Open the page	పేజీ తెరువు
+App password	యాప్ పాస్‌వర్డ్
+IMAP server	IMAP సర్వర్
+Incoming mail server	ఇన్‌కమింగ్ మెయిల్ సర్వర్
+SMTP server	SMTP సర్వర్
+Outgoing mail server	అవుట్‌గోయింగ్ మెయిల్ సర్వర్
+An app password is a separate password just for Capri. Your normal password stays yours.	యాప్ పాస్‌వర్డ్ Capri కోసం మాత్రమే ప్రత్యేక పాస్‌వర్డ్. నీ సాధారణ పాస్‌వర్డ్ నీదే.
+She keeps it only until she closes.	ఆమె మూసే వరకు మాత్రమే దాన్ని ఉంచుతుంది.
+She checks, searches and reads your mail. She asks before she sends any.	ఆమె నీ మెయిల్‌ను తనిఖీ చేస్తుంది, వెతుకుతుంది, చదువుతుంది. ఏదైనా పంపే ముందు అడుగుతుంది.
+Watch for new mail	కొత్త మెయిల్‌ను గమనించు
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	మెయిల్ వచ్చినప్పుడు ఆమె చెబుతుంది, ఫిషింగ్‌లా అనిపిస్తే హెచ్చరిస్తుంది. ఏదీ చదివినట్లు గుర్తించబడదు.
+Deal with phishing on her own	ఫిషింగ్‌ను నువ్వే నిర్వహించు
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	ఆమె గమనిస్తున్నప్పుడు మాత్రమే. ఫిషింగ్ అని ఖచ్చితంగా తెలిసిన మెయిల్ స్పామ్‌కు వెళ్తుంది. మిగిలినది నీ అంగీకారం కోసం వేచి ఉంటుంది.
+Forget account	ఖాతాను మరచిపో
+Use another email	మరో ఇమెయిల్ ఉపయోగించు
+Which email?	ఏ ఇమెయిల్?
+Make an app password	యాప్ పాస్‌వర్డ్ సృష్టించు
+Paste it	దాన్ని పేస్ట్ చేయి
+Connecting...	కనెక్ట్ అవుతోంది...
+She can use your email now.	ఇప్పుడు ఆమె నీ ఇమెయిల్ ఉపయోగించగలదు.
+She's not watching your inbox.	ఆమె నీ ఇన్‌బాక్స్‌ను గమనించడం లేదు.
+She's watching your inbox and deals with phishing she's sure of.	ఆమె నీ ఇన్‌బాక్స్‌ను గమనిస్తూ ఖచ్చితమైన ఫిషింగ్‌ను నిర్వహిస్తుంది.
+She's watching your inbox and tells you when mail lands.	ఆమె నీ ఇన్‌బాక్స్‌ను గమనిస్తూ మెయిల్ వచ్చినప్పుడు చెబుతుంది.
+She forgot that account and its app password.	ఆమె ఆ ఖాతాను, దాని యాప్ పాస్‌వర్డ్‌ను మరచిపోయింది.
+She forgot that account. Its app password is gone from this PC.	ఆమె ఆ ఖాతాను మరచిపోయింది. దాని యాప్ పాస్‌వర్డ్ ఈ కంప్యూటర్ నుండి పోయింది.

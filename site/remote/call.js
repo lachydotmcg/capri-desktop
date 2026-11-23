@@ -45,7 +45,7 @@
     'use_computer', 'look_at_screen', 'play_music', 'open_app', 'open_website', 'app_window', 'shortcut', 'media',
     'draw', 'desktop_icons', 'clip', 'mini_game', 'fake_crash', 'power', 'look', 'screenshot', 'zoom',
     'left_click', 'right_click', 'middle_click', 'double_click', 'triple_click', 'left_click_drag', 'mouse_move',
-    'left_mouse_down', 'left_mouse_up', 'mouse_hold', 'cursor_position', 'scroll', 'type', 'key', 'hold_key', 'hold_and_press',
+    'left_mouse_down', 'left_mouse_up', 'mouse_hold', 'cursor_position', 'scroll', 'type', 'key', 'hold_key', 'hold_and_press', 'combo',
     'click', 'press', 'walk', 'wait_for'
   ]);
   const SCREEN_LINGER = 4000;

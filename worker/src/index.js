@@ -315,7 +315,6 @@ const counters = { '/star': 'stars', '/download': 'downloads' };
 
 const site = 'https://capriai.app/';
 const discord = 'https://discord.gg/capridesktop';
-const store = 'https://apps.microsoft.com/detail/9P0KFRB76X0G';
 const models = [
   { name: '@cf/google/gemma-4-26b-a4b-it', vision: true, options: { max_completion_tokens: 260, temperature: 0.3, chat_template_kwargs: { enable_thinking: false } } },
   { name: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', options: { max_tokens: 260, temperature: 0.3 } }
@@ -361,9 +360,12 @@ const rules = inDiscord => [
     'Most replies have no slang. Now and then, about one reply in four, you can say choom once.'
   ]),
   'Never make up features, prices, steps or links.',
-  "For a help answer, end with LINK: and the chapter name from the note's [ ] label, or LINK: Microsoft Store for the Store copy. Use only one LINK tail.",
-  "On Windows, if antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, give the Microsoft Store copy as CapriAI first. Add that the official website copy's alert is a false alarm on an unsigned app.",
-  'Never argue about their antivirus or tell them to turn it off. Use the Store note for the differences between copies.',
+  "For a help answer, end with LINK: and the chapter name from the note's [ ] label. Use only one LINK tail.",
+  'Distinguish a SmartScreen unrecognized-app or unknown-publisher warning from a named malware detection. An official download, an unsigned app or a matching checksum never proves a malware detection is a false alarm.',
+  'For only an unrecognized-app or unknown-publisher warning, link https://github.com/lachydotmcg/capri-desktop/releases/latest and its SHA256SUMS.txt, and explain the download checks before they decide whether to run it.',
+  'For a named malware detection, quarantine or antivirus deletion, tell them not to run, restore or allow the file. Ask for the antivirus product, exact detection text, file path, download source and Capri version for human review in their existing ticket. Keep antivirus on.',
+  'If the warning is unclear, ask for its exact words before giving any run or restore steps.',
+  'Never argue about their antivirus or tell them to turn it off.',
   'Only the latest release line can tell you which version is the newest. If it is absent, do not guess it from the notes.',
   "If their version is older than the latest release line, updating is the first step. Use their copy's update steps from the notes; the Store gets versions when they are sent there.",
   'When their problem matches a note that starts with Known problem, say it is known and being worked on and give only its noted workaround. A missing workaround does not make it an uncovered question.',
@@ -835,7 +837,6 @@ const search = async (sections, text, question, env, ctx) => {
 const link = section => {
   if (section.chapter === 'Capri Remote') return { title: 'Capri Remote', href: site + 'help/#remote' };
   if (section.number === 0) return { title: 'Help page', href: site + 'help/' };
-  if (section.title === 'Microsoft Store') return { title: 'Microsoft Store', href: store };
   if (/free nvidia key/i.test(section.title)) return { title: 'Free NVIDIA key', href: site + 'help/#free-key' };
   if (/^settings page/i.test(section.title)) return { title: 'Settings', href: site + 'help/#settings' };
   return anchors[section.number] ? { title: section.chapter, href: site + 'help/#' + anchors[section.number] } : { title: 'Help page', href: site + 'help/' };
@@ -858,7 +859,7 @@ const clip = reply => reply.length > 700 ? reply.slice(0, 697).replace(/\s+\S*$/
 // In the Discord she names the help chapter she answered from, and only that one gets a link, so chit-chat gets none (Lachy, 6 Nov).
 const cited = (answer, shown) => {
   const normal = label => label.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s*[>›]\s*/g, ' > ').replace(/\s+/g, ' ').trim().toLowerCase();
-  const labels = [{ label: 'Microsoft Store', section: { title: 'Microsoft Store' } }];
+  const labels = [];
   for (const section of shown) {
     labels.push({ label: section.chapter, section });
     labels.push({ label: section.chapter + ' > ' + section.title, section });
@@ -874,7 +875,6 @@ const cited = (answer, shown) => {
     const found = labels.find(entry => entry.match.test(normal(tail)));
     if (!found) continue;
     section = found.section;
-    if (!section.chapter && section.title === 'Microsoft Store') break;
   }
   return { text: text || (section ? "Here's the page for that." : answer.replace(/\bLINK:\s*/gi, ' ').replace(/\s+/g, ' ').trim()), section };
 };
@@ -989,8 +989,8 @@ const respond = async (request, env, ctx, reply, body, user) => {
     const { text: line, section } = cited(words || 'Getting a person for this one.', shown);
     return reply({ reply: line, links: section ? [link(section)] : [], answered: true, ping: who });
   }
-  const { text: line, section } = cited(called(answer).text, shown);
-  return reply({ reply: line, links: section && !section.chapter && section.title === 'Microsoft Store' ? [link(section)] : links.length ? links : [{ title: 'Help page', href: site + 'help/' }], answered: true });
+  const { text: line } = cited(called(answer).text, shown);
+  return reply({ reply: line, links: links.length ? links : [{ title: 'Help page', href: site + 'help/' }], answered: true });
 };
 
 const help = async (request, env, ctx, reply) => {

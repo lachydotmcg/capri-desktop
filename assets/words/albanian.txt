@@ -30,6 +30,7 @@ Ask Capri for more	Kërko më shumë nga Capri
 Asking your server...	Po pyes serverin tënd...
 Asks before closing only the apps you choose.	Pyet përpara se të mbyllë vetëm aplikacionet që zgjedh ti.
 Auto	Auto
+Auto (match what I say)	Auto (sipas asaj që them)
 Automatic: VB-CABLE, else Steam's	Automatik: VB-CABLE, përndryshe atë të Steam
 BAD RELAY HOST	HOST RELEJI I GABUAR
 BIG Z open notepad	BIG Z hap notepad
@@ -290,6 +291,7 @@ Huge	Shumë i madh
 I can hear you.	Të dëgjoj.
 I glance at your screen and comment. Costs a little on a paid brain.	Hedh një sy në ekranin tënd dhe komentoj. Kushton pak me një tru të paguar.
 I keep listening. Say my name, then just talk.	Vazhdoj të dëgjoj. Thuaj emrin tim, pastaj thjesht fol.
+I speak	Unë flas
 I talk about your game as you play. Costs a little on a paid brain.	Flas për lojën tënde ndërsa luan. Kushton pak me një tru të paguar.
 I type my replies and stay quiet.	I shkruaj përgjigjet e mia dhe rri i qetë.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nuk do të përgjigjem, dhe asgjë nuk dërgohet askund. Do të rri ende këtu, do të vallëzoj me muzikën tënde dhe do të bëj gjërat e shpejta që kërkon, si volumin.
@@ -598,6 +600,7 @@ SKILL.	AFTËSI.
 SKIN.	LËKURË.
 SORT BY	RENDIT SIPAS
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	TINGUJ ZAKONE TRURI SHIKO CAPRI DOOMSCROLL MOTI KLIPE LOJËRA TASTE LËVIZJE ZË TI
+Same as I speak	Njësoj si gjuha ime
 Same as her ears (VOICE > Mic)	Njëlloj si veshët e saj (ZËRI > Mikrofoni)
 Same code on the phone?	E njëjta kod në telefon?
 Save	Ruaj
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Cilësimet nuk kishin asgjë për të parë.
 Settings lost keyboard focus during the Tab walk	Cilësimet humbën fokusin e tastierës gjatë shëtitjes me Tab
 Setup guide	Udhëzuesi i konfigurimit
 Setup stopped	Konfigurimi u ndal
+She answers in	Ajo përgjigjet në
 She can read it when it fits.	Ajo mund ta lexojë kur përshtatet.
 She glances at your screen and comments. Costs a little on a paid brain.	Hedh një sy në ekranin tënd dhe komenton. Kushton pak me një tru të paguar.
-She keeps listening. Say her name, then just talk until you go quiet.	Vazhdon të dëgjojë. Thuaj emrin e saj, pastaj thjesht fol deri sa të heshtësh.
+She keeps listening. Say her name, then just talk.	Vazhdon të dëgjojë. Thuaj emrin e saj, pastaj thjesht fol.
 She reacts to your game until you close it.	Reagon ndaj lojës sate deri sa ta mbyllësh.
 She reads these controls before each game job.	Lexon këto kontrolle para çdo pune në lojë.
 She talks about your game as you play. Costs a little on a paid brain.	Flet për lojën tënde ndërsa luan. Kushton pak me një tru të paguar.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	nuk do të shkruaj�
 · HD	· HD
 · on this PC	· në këtë PC
 · server	· server
+Edit as text	Redakto si tekst
+What Capri remembers about you. It stays on this computer.	Çfarë Capri kujton për ty. Qëndron në këtë kompjuter.
+Tell her something to remember	Tregoji diçka për të mbajtur mend
+Search her memory	Kërko në kujtesën e saj
+That day isn't there any more.	Ai ditë nuk është më aty.
+Undo	Zhbëj
+Remember our chats is off, so she isn't keeping new chat memories.	Kujto bisedat tona është i fikur, prandaj ajo nuk ruan kujtime të reja bisede.
+ABOUT YOU	RRETH TEJE
+FROM YOUR CHATS	NGA BISEDAT E TUA
+GAMES	LOJËRA
+CHAT LOGS	REGJISTRAT E BISEDAVE
+CHAT LOG	REGJISTRI I BISEDËS
+Nothing matches.	Asgjë nuk përputhet.
+Nothing yet.	Asgjë ende.
+Reading her notes.	Po lexon shënimet e saj.
+Click again to forget game notes	Kliko përsëri për të harruar shënimet e lojërave
+Forget game notes	Harro shënimet e lojërave
+Click again to forget everything about me	Kliko përsëri për të harruar gjithçka për ty
+Forget everything about me	Harro gjithçka për ty
+Click again to forget	Kliko përsëri për të harruar
+Forget this day	Harro këtë ditë
+Only the start of this day is shown.	Shfaqet vetëm fillimi i kësaj dite.
+Nothing in this day.	Asgjë në këtë ditë.
+No chats kept yet.	Nuk ka biseda të ruajtura ende.
+You	Ti
+{0} line	{0} rresht
+SET UP EMAIL >	KONFIGURO EMAILIN >
+SET UP EMAIL	KONFIGURO EMAILIN
+Or type your address	Ose shkruaj adresën tënde
+Email address	Adresa e emailit
+Open the page	Hap faqen
+App password	Fjalëkalimi i aplikacionit
+IMAP server	Serveri IMAP
+Incoming mail server	Serveri i emailit hyrës
+SMTP server	Serveri SMTP
+Outgoing mail server	Serveri i emailit dalës
+An app password is a separate password just for Capri. Your normal password stays yours.	Fjalëkalimi i aplikacionit është një fjalëkalim i veçantë vetëm për Capri. Fjalëkalimi yt normal mbetet i yti.
+She keeps it only until she closes.	Ajo e mban vetëm derisa të mbyllet.
+She checks, searches and reads your mail. She asks before she sends any.	Ajo kontrollon, kërkon dhe lexon emailin tënd. Pyet përpara se të dërgojë ndonjë.
+Watch for new mail	Vëzhgo emailin e ri
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ajo flet kur vjen email, me një paralajmërim nëse duket si phishing. Asgjë nuk shënohet si e lexuar.
+Deal with phishing on her own	Merre phishing-un vetë
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Vetëm sa kohë që ajo vëzhgon. Emaili për të cilin është e sigurt se është phishing shkon në spam. Pjesa tjetër pret po-në tënde.
+Forget account	Harro llogarinë
+Use another email	Përdor një email tjetër
+Which email?	Cili email?
+Make an app password	Krijo një fjalëkalim aplikacioni
+Paste it	Ngjite
+Connecting...	Po lidhet...
+She can use your email now.	Ajo tani mund të përdorë emailin tënd.
+She's not watching your inbox.	Ajo nuk po vëzhgon kutinë tënde të hyrjes.
+She's watching your inbox and deals with phishing she's sure of.	Ajo po vëzhgon kutinë tënde dhe merret me phishing-un për të cilin është e sigurt.
+She's watching your inbox and tells you when mail lands.	Ajo po vëzhgon kutinë tënde dhe të njofton kur vjen email.
+She forgot that account and its app password.	Ajo harroi atë llogari dhe fjalëkalimin e aplikacionit.
+She forgot that account. Its app password is gone from this PC.	Ajo harroi atë llogari. Fjalëkalimi i aplikacionit u hoq nga ky kompjuter.

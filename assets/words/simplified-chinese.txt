@@ -30,6 +30,7 @@ Ask Capri for more	向 Capri 要更多
 Asking your server...	正在询问你的服务器...
 Asks before closing only the apps you choose.	只在关闭你所选应用之前询问。
 Auto	自动
+Auto (match what I say)	自动（跟随我说的话）
 Automatic: VB-CABLE, else Steam's	自动：VB-CABLE，否则使用 Steam 的
 BAD RELAY HOST	中继主机错误
 BIG Z open notepad	BIG Z 打开记事本
@@ -290,6 +291,7 @@ Huge	超大
 I can hear you.	我能听到你。
 I glance at your screen and comment. Costs a little on a paid brain.	我会看你的屏幕并发表评论。使用付费大脑会产生一点费用。
 I keep listening. Say my name, then just talk.	我会继续听。叫我的名字，然后直接说话。
+I speak	我说的语言
 I talk about your game as you play. Costs a little on a paid brain.	你玩游戏时我会评论你的游戏。使用付费大脑会产生一点费用。
 I type my replies and stay quiet.	我打字回复，保持安静。
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	我不会回嘴，也不会把任何东西发送到别处。我还是会陪着你，为你的音乐跳舞，并完成你要求的小事，比如调音量。
@@ -598,6 +600,7 @@ SKILL.	技能。
 SKIN.	皮肤。
 SORT BY	排序方式
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	声音 习惯 大脑 观看 CAPRI 刷屏 天气 片段 游戏 按键 动作 语音 你
+Same as I speak	和我说的一样
 Same as her ears (VOICE > Mic)	与她的耳朵相同（语音 > 麦克风）
 Same code on the phone?	手机上是同一个代码？
 Save	保存
@@ -633,9 +636,10 @@ Settings had nothing to watch.	设置中没有可观看的内容。
 Settings lost keyboard focus during the Tab walk	Tab 导航期间设置失去了键盘焦点
 Setup guide	设置指南
 Setup stopped	设置已停止
+She answers in	她回复的语言
 She can read it when it fits.	合适时她会阅读它。
 She glances at your screen and comments. Costs a little on a paid brain.	她会看你的屏幕并发表评论。使用付费大脑会产生一点费用。
-She keeps listening. Say her name, then just talk until you go quiet.	她会继续听。叫她的名字，然后直接说话，直到你安静下来。
+She keeps listening. Say her name, then just talk.	她会继续听。叫她的名字，然后直接说话。
 She reacts to your game until you close it.	她会一直对你的游戏做出反应，直到你关闭它。
 She reads these controls before each game job.	每次游戏任务前她都会阅读这些控件。
 She talks about your game as you play. Costs a little on a paid brain.	你玩游戏时她会谈论你的游戏。使用付费大脑会产生一点费用。
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	她运行时不会�
 · HD	· 高清
 · on this PC	· 在此电脑上
 · server	· 服务器
+Edit as text	以文本编辑
+What Capri remembers about you. It stays on this computer.	Capri 记得关于你的事情。它留在这台电脑上。
+Tell her something to remember	告诉她一件要记住的事
+Search her memory	在她的记忆中搜索
+That day isn't there any more.	那一天已经不在了。
+Undo	撤销
+Remember our chats is off, so she isn't keeping new chat memories.	记住我们的聊天已关闭，因此她不会保存新的聊天记忆。
+ABOUT YOU	关于你
+FROM YOUR CHATS	来自你的聊天
+GAMES	游戏
+CHAT LOGS	聊天记录
+CHAT LOG	聊天记录
+Nothing matches.	没有匹配项。
+Nothing yet.	暂时没有。
+Reading her notes.	正在读取她的笔记。
+Click again to forget game notes	再次点击以忘记游戏笔记
+Forget game notes	忘记游戏笔记
+Click again to forget everything about me	再次点击以忘记关于你的一切
+Forget everything about me	忘记关于你的一切
+Click again to forget	再次点击以忘记
+Forget this day	忘记这一天
+Only the start of this day is shown.	只显示这一天的开始。
+Nothing in this day.	这一天没有内容。
+No chats kept yet.	还没有保存聊天。
+You	你
+{0} line	{0} 行
+SET UP EMAIL >	设置电子邮件 >
+SET UP EMAIL	设置电子邮件
+Or type your address	或输入你的地址
+Email address	电子邮件地址
+Open the page	打开页面
+App password	应用密码
+IMAP server	IMAP 服务器
+Incoming mail server	接收邮件服务器
+SMTP server	SMTP 服务器
+Outgoing mail server	发送邮件服务器
+An app password is a separate password just for Capri. Your normal password stays yours.	应用密码是只为 Capri 准备的单独密码。你的普通密码仍然属于你。
+She keeps it only until she closes.	她只保留到关闭为止。
+She checks, searches and reads your mail. She asks before she sends any.	她会检查、搜索和阅读你的邮件。发送前会先问你。
+Watch for new mail	留意新邮件
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	邮件到达时她会说，如果看起来像网络钓鱼会提醒。什么都不会被标为已读。
+Deal with phishing on her own	自己处理网络钓鱼
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	只在她留意时。她确定是网络钓鱼的邮件会进入垃圾邮件。其余等待你的同意。
+Forget account	忘记账户
+Use another email	使用其他电子邮件
+Which email?	哪个电子邮件？
+Make an app password	创建应用密码
+Paste it	粘贴它
+Connecting...	正在连接...
+She can use your email now.	她现在可以使用你的电子邮件了。
+She's not watching your inbox.	她没有在留意你的收件箱。
+She's watching your inbox and deals with phishing she's sure of.	她在留意你的收件箱，并处理她确定的网络钓鱼。
+She's watching your inbox and tells you when mail lands.	她在留意你的收件箱，并在邮件到达时告诉你。
+She forgot that account and its app password.	她忘记了那个账户及其应用密码。
+She forgot that account. Its app password is gone from this PC.	她忘记了那个账户。它的应用密码已从这台电脑上消失。

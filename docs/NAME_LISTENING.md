@@ -9,12 +9,14 @@ chooser. No new weights are downloaded when the switch is enabled.
 
 Before the name, decoded partials and unrelated final text stay inside the
 network-isolated microphone worker and are discarded. Hearing Capri accepts that
-utterance and opens a 20-second follow-up window. A line whose acoustic start is
-inside the window still counts if its final arrives after the deadline. An
-accepted follow-up restarts the quiet interval. Thinking and speaking extend an
-already-open conversation; they cannot open an expired one. Jobs can require the
-name again. An ambient unprefixed `stop` is not a global hotword: it must belong
-to a conversation that actually opened, or the owner can say `Capri stop`.
+utterance and opens nothing: the next line needs her name again. Her name on its
+own, like `Hey Capri` or `Capri?`, is accepted and opens a 10-second wait for one
+more line without it. A line whose acoustic start is inside the wait still counts
+if its final arrives after the deadline. The first line accepted in the wait ends
+it. Thinking and speaking extend a wait that's still open; they cannot open an
+expired one. Jobs can require the name again. An ambient unprefixed `stop` is not
+a global hotword: it must be the line after her name on its own, or the owner can
+say `Capri stop`.
 
 The native controller pauses capture and resets decoder history around Capri's
 own playback. Its local authority is revoked before playback starts, so a late
@@ -64,8 +66,8 @@ Capri uses its separate pinned Moonshine setup; the TALK pack does not replace i
 ## Mac
 
 Thanks to Yoplaxs, Listen for Hey Capri also runs on Apple Silicon Macs (Moonshine
-ships no Intel Mac wheel). It uses the same pinned decoder, name gate and 20-second
-follow-ups as Linux, with these Mac differences:
+ships no Intel Mac wheel). It uses the same pinned decoder, name gate and 10-second
+wait after her name on its own as Linux, with these Mac differences:
 
 - **Microphone.** There is no PipeWire node to pick, so turning the switch on asks
   `capri-mic --identity` for the current macOS default input and names it. Typing YES
@@ -82,8 +84,33 @@ follow-ups as Linux, with these Mac differences:
 - **Her own voice.** Mac playback goes through the native helper, not PipeWire, so
   every line, typing sound and hush closes capture first and keeps it closed for
   the clip plus 700 ms.
-- **Screen lock.** Linux pauses on a locked Hyprland session. Mac has no lock check
-  yet; mute or quiet her before stepping away.
+- **Screen lock.** On Linux she pauses on a real lock report: a Hyprland session
+  snapshot that says the session is locked, or logind's `LockedHint` anywhere else. A
+  live snapshot answers for itself; when Hyprland has no snapshot she asks logind
+  instead, so a present desktop that stops answering can't hide an available lock.
+  Only when neither answers is the state unknown, which never pauses her and never
+  writes a hold. A locked screen pauses her, and a detected unlock brings her back
+  when the switch is still on and nothing else bars her; if the screen relocks during
+  that resume she stays paused with the hold kept for the next real unlock. A desktop
+  that answers nothing keeps her listening, and she may keep listening while the screen
+  is locked, since the hint depends on the desktop updating it. Once she has seen a lock
+  she remembers it in `cross.json` together with the settings she could answer at
+  startup: the selected microphone and decoder, the provider, server and model, the
+  remote key, the session, the voice and the speech model. A desktop that stops
+  answering afterward keeps her paused even across restarting Capri. A change to any of
+  those clears that saved hold and the pause, even when the change was made while Capri
+  was closed, whether the lock reads locked, unlocked or nothing at all, so the microphone
+  is never resumed under a changed microphone, decoder, provider, server, remote model,
+  remote key or Hyprland session. The plan account behind her brain is not in that list:
+  account changes are caught only after listening starts — each account check compares
+  against the account she started listening with — so an account change made while Capri
+  is closed or while she is paused by the lock is not caught at startup, and a detected
+  unlock can start her under the new account. An explicit Stop always
+  wins: a lock only pauses her while she is actually listening, so a later unlock can't
+  restart her after you stopped her. The recovery prompt keeps the epoch it opened under,
+  so an answer typed after a Stop changes nothing. Turning the switch off and on brings
+  her back; when the lock state can't be read she warns you first and waits for a
+  typed YES. Mac has no lock check yet; mute or quiet her before stepping away.
 
 Mac setup, Apple Silicon, Python 3.11 (Homebrew `python@3.11` or python.org):
 

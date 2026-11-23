@@ -30,6 +30,7 @@ Ask Capri for more	Vraag Capri om meer
 Asking your server...	Je server wordt gevraagd...
 Asks before closing only the apps you choose.	Vraagt alleen voor het sluiten van de apps die je kiest.
 Auto	Auto
+Auto (match what I say)	Auto (volgt wat ik zeg)
 Automatic: VB-CABLE, else Steam's	Automatisch: VB-CABLE, anders die van Steam
 BAD RELAY HOST	SLECHTE RELAISHOST
 BIG Z open notepad	BIG Z open kladblok
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Ik kan je horen.
 I glance at your screen and comment. Costs a little on a paid brain.	Ik kijk even naar je scherm en reageer. Kost wat bij een betaald brein.
 I keep listening. Say my name, then just talk.	Ik blijf luisteren. Zeg mijn naam en praat gewoon.
+I speak	Ik spreek
 I talk about your game as you play. Costs a little on a paid brain.	Ik praat over je game terwijl je speelt. Kost wat bij een betaald brein.
 I type my replies and stay quiet.	Ik typ mijn antwoorden en blijf stil.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ik praat niet terug, en er wordt niets ergens naartoe gestuurd. Ik hang nog steeds rond, dans op je muziek en doe de snelle dingen die je vraagt, zoals het volume.
@@ -598,6 +600,7 @@ SKILL.	VAARDIGHEID.
 SKIN.	SKIN.
 SORT BY	SORTEER OP
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	GELUIDEN GEWOONTEN BREIN KIJKEN CAPRI DOOMSCROLLEN WEER CLIPS GAMES TOETSEN BEWEGINGEN STEM JIJ
+Same as I speak	Zelfde als ik spreek
 Same as her ears (VOICE > Mic)	Zelfde als haar oren (STEM > Microfoon)
 Same code on the phone?	Dezelfde code op de telefoon?
 Save	Opslaan
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Instellingen had niets om te bekijken.
 Settings lost keyboard focus during the Tab walk	Instellingen verloor de toetsenbordfocus tijdens de Tab-wandeling
 Setup guide	Installatiegids
 Setup stopped	Installatie gestopt
+She answers in	Ze antwoordt in
 She can read it when it fits.	Ze kan het lezen wanneer het past.
 She glances at your screen and comments. Costs a little on a paid brain.	Ze kijkt even naar je scherm en reageert. Kost wat bij een betaald brein.
-She keeps listening. Say her name, then just talk until you go quiet.	Ze blijft luisteren. Zeg haar naam en praat gewoon tot je stil wordt.
+She keeps listening. Say her name, then just talk.	Ze blijft luisteren. Zeg haar naam en praat gewoon.
 She reacts to your game until you close it.	Ze reageert op je game tot je hem sluit.
 She reads these controls before each game job.	Ze leest deze bediening voor elke gameklus.
 She talks about your game as you play. Costs a little on a paid brain.	Ze praat over je game terwijl je speelt. Kost wat bij een betaald brein.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	typt niet in andere
 · HD	· HD
 · on this PC	· op deze pc
 · server	· server
+Edit as text	Als tekst bewerken
+What Capri remembers about you. It stays on this computer.	Wat Capri over je onthoudt. Het blijft op deze computer.
+Tell her something to remember	Vertel haar iets om te onthouden
+Search her memory	In haar geheugen zoeken
+That day isn't there any more.	Die dag is er niet meer.
+Undo	Ongedaan maken
+Remember our chats is off, so she isn't keeping new chat memories.	Herinner onze gesprekken staat uit, dus ze bewaart geen nieuwe chatherinneringen.
+ABOUT YOU	OVER JOU
+FROM YOUR CHATS	UIT JE GESPREKKEN
+GAMES	SPELLEN
+CHAT LOGS	CHATLOGS
+CHAT LOG	CHATLOG
+Nothing matches.	Niets gevonden.
+Nothing yet.	Nog niets.
+Reading her notes.	Haar notities worden gelezen.
+Click again to forget game notes	Klik nog eens om spelnotities te vergeten
+Forget game notes	Spelnotities vergeten
+Click again to forget everything about me	Klik nog eens om alles over jou te vergeten
+Forget everything about me	Alles over jou vergeten
+Click again to forget	Klik nog eens om te vergeten
+Forget this day	Deze dag vergeten
+Only the start of this day is shown.	Alleen het begin van deze dag wordt getoond.
+Nothing in this day.	Niets op deze dag.
+No chats kept yet.	Nog geen chats bewaard.
+You	Jij
+{0} line	{0} regel
+SET UP EMAIL >	E-MAIL INSTELLEN >
+SET UP EMAIL	E-MAIL INSTELLEN
+Or type your address	Of typ je adres
+Email address	E-mailadres
+Open the page	De pagina openen
+App password	App-wachtwoord
+IMAP server	IMAP-server
+Incoming mail server	Inkomende mailserver
+SMTP server	SMTP-server
+Outgoing mail server	Uitgaande mailserver
+An app password is a separate password just for Capri. Your normal password stays yours.	Een app-wachtwoord is een apart wachtwoord alleen voor Capri. Je normale wachtwoord blijft van jou.
+She keeps it only until she closes.	Ze bewaart het alleen tot ze sluit.
+She checks, searches and reads your mail. She asks before she sends any.	Ze controleert, zoekt en leest je mail. Ze vraagt voor ze iets verstuurt.
+Watch for new mail	Op nieuwe mail letten
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ze zegt het als er mail binnenkomt, met een waarschuwing als het op phishing lijkt. Niets wordt als gelezen gemarkeerd.
+Deal with phishing on her own	Phishing zelf afhandelen
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Alleen terwijl ze oplet. Mail waarvan ze zeker weet dat het phishing is, gaat naar spam. De rest wacht op jouw ja.
+Forget account	Account vergeten
+Use another email	Ander e-mailadres gebruiken
+Which email?	Welke e-mail?
+Make an app password	Een app-wachtwoord maken
+Paste it	Plak het
+Connecting...	Verbinden...
+She can use your email now.	Ze kan je e-mail nu gebruiken.
+She's not watching your inbox.	Ze let niet op je inbox.
+She's watching your inbox and deals with phishing she's sure of.	Ze let op je inbox en handelt phishing af die ze zeker weet.
+She's watching your inbox and tells you when mail lands.	Ze let op je inbox en zegt het als er mail binnenkomt.
+She forgot that account and its app password.	Ze is dat account en het app-wachtwoord vergeten.
+She forgot that account. Its app password is gone from this PC.	Ze is dat account vergeten. Het app-wachtwoord is van deze pc verdwenen.

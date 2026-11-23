@@ -167,6 +167,13 @@ namespace CapriDesktop
         }
 
         internal static bool Marked(Control control) { return TopLevel.GetTopLevel(control) is MainframeWindow window && window.Marks(control); }
+        internal static bool Spotted(Control control) { return TopLevel.GetTopLevel(control) is Mainframe frame && frame.Spots(control); }
+        // Her keyboard mark in white, or in cyan on a setting a search just landed on.
+        internal static void MarkRing(DrawingContext context, Control control, Rect around, double tr = 0, double br = 5, double bl = 0)
+        {
+            bool spot = Spotted(control);
+            if (spot || Marked(control)) Ring(context, RingPoints(around, tr, br, bl), spot ? Cyan : null);
+        }
         internal static void Ring(DrawingContext context, Rect around, double tr = 0, double br = 5, double bl = 0)
         {
             Ring(context, RingPoints(around, tr, br, bl));
@@ -179,9 +186,9 @@ namespace CapriDesktop
             return new[] { b.TopLeft, new Point(b.Right - tr, b.Top), new Point(b.Right, b.Top + tr),
                 new Point(b.Right, b.Bottom - br), new Point(b.Right - br, b.Bottom), new Point(b.Left + bl, b.Bottom), new Point(b.Left, b.Bottom - bl), b.TopLeft };
         }
-        internal static void Ring(DrawingContext context, Point[] points)
+        internal static void Ring(DrawingContext context, Point[] points, IBrush ink = null)
         {
-            context.DrawGeometry(null, new Pen(White, 2), Mark(points));
+            context.DrawGeometry(null, new Pen(ink ?? White, 2), Mark(points));
         }
         internal static Geometry Mark(params Point[] points)
         {
@@ -273,12 +280,13 @@ namespace CapriDesktop
         internal string Text { get { return text; } set { value = value ?? ""; if (text == value) return; text = value; InvalidateVisual(); } }
         internal IBrush Ink = MainframeTheme.Rose;
         internal double Size = MainframeTheme.Size;
-        internal bool Bold, Display, Ellipsis, Top;
+        internal bool Bold, Display, Ellipsis, Top, Wrap;
         internal TextAlignment Align;
         public override void Render(DrawingContext context) { MainframeTheme.Write(context, Text, new Rect(Bounds.Size), Ink, Size, Bold, Align, Display, Top); }
         internal string TextFits()
         {
             var text = MainframeTheme.Words(Ellipsis ? MainframeTheme.Fitted(Text, Width, Size, Bold, Display) : Text, Size, Bold, Ink, Display);
+            if (Wrap) text.MaxTextWidth = Width;
             return text.Width > Width + 0.5 || text.Height > Height + 0.5 ? Text : null;
         }
     }
@@ -329,7 +337,7 @@ namespace CapriDesktop
                 var pen = new Pen(hot ? Glyph == 2 ? MainframeTheme.Hot : MainframeTheme.Cyan : MainframeTheme.Faint, 1.5);
                 if (Glyph == 1) context.DrawLine(pen, new Point(x - 5, y), new Point(x + 5, y));
                 else { context.DrawLine(pen, new Point(x - 4.5, y - 4.5), new Point(x + 4.5, y + 4.5)); context.DrawLine(pen, new Point(x - 4.5, y + 4.5), new Point(x + 4.5, y - 4.5)); }
-                if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(Bounds.Size), br: 4);
+                MainframeTheme.MarkRing(context, this, new Rect(Bounds.Size), br: 4);
                 return;
             }
             IBrush face, rim, ink;
@@ -348,11 +356,11 @@ namespace CapriDesktop
                 using (context.PushTransform(Matrix.CreateTranslation(-6, -5.6) * Matrix.CreateScale(Swell, Swell) * Matrix.CreateTranslation(left + 6, y)))
                     context.DrawGeometry(MainframeTheme.Rose, null, HeartShape);
                 MainframeTheme.Write(context, Text, new Rect(left + 17, 0, wide + 2, h), ink, TextSize);
-                if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(Bounds.Size));
+                MainframeTheme.MarkRing(context, this, new Rect(Bounds.Size));
                 return;
             }
             MainframeTheme.Write(context, Text, Chevron ? new Rect(10, 0, Math.Max(0, w - 32), h) : new Rect(Bounds.Size), ink, TextSize, false, Chevron ? TextAlignment.Left : TextAlignment.Center);
-            if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(Bounds.Size));
+            MainframeTheme.MarkRing(context, this, new Rect(Bounds.Size));
         }
         private static IBrush Toward(Color from, Color to, double amount)
         {
@@ -428,7 +436,7 @@ namespace CapriDesktop
             MainframeTheme.Write(context, "ON", on, onInk, 35.0 / 3, true, TextAlignment.Center);
             bool marked = MainframeTheme.Marked(this);
             if (FocusLine(IsKeyboardFocusWithin, marked)) context.DrawGeometry(null, new Pen(MainframeTheme.Cyan, 1), MainframeTheme.Cut(new Rect(start - 2, 0.5, Switch + 1.5, h - 1)));
-            if (marked) MainframeTheme.Ring(context, MarkPoints);
+            if (marked || MainframeTheme.Spotted(this)) MainframeTheme.Ring(context, MarkPoints, MainframeTheme.Spotted(this) ? MainframeTheme.Cyan : null);
             double room = start - 10;
             MainframeTheme.Write(context, Text, new Rect(0, 0, room, h), MainframeTheme.Rose);
             double after = MainframeTheme.Words(Text).Width + 10;
@@ -453,7 +461,7 @@ namespace CapriDesktop
             double after = 32 + MainframeTheme.Words(Text, bold: true).Width;
             if (Hint != null) MainframeTheme.Write(context, Hint, new Rect(after, 0, Math.Max(0, w - after), h), MainframeTheme.Faint, 12);
             if (Flag != null) MainframeTheme.Write(context, Flag, new Rect(0, 0, w - 6, h), MainframeTheme.Yellow, 12, align: TextAlignment.Right);
-            if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(Bounds.Size));
+            MainframeTheme.MarkRing(context, this, new Rect(Bounds.Size));
         }
         internal override string TextFits()
         {
@@ -567,7 +575,7 @@ namespace CapriDesktop
                 MainframeTheme.Write(context, Shown, new Rect(26, 0, w - 52, h - 4), MainframeTheme.Cyan, align: TextAlignment.Center);
                 double dash = Choices.Length <= 4 ? 11 : 8, left = w / 2 - (Choices.Length * dash + (Choices.Length - 1) * 3) / 2;
                 for (int i = 0; i < Choices.Length; i++) context.DrawRectangle(i == value ? MainframeTheme.Lit : MainframeTheme.Dash, null, new Rect(left + i * (dash + 3), h - 5.5, dash, 1.5));
-                if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(Bounds.Size), tr: 5);
+                MainframeTheme.MarkRing(context, this, new Rect(Bounds.Size), tr: 5);
                 return;
             }
             double travel = w - 12, knob = 1 + travel * value / Math.Max(1, Choices.Length - 1);
@@ -582,7 +590,7 @@ namespace CapriDesktop
                 using (context.PushClip(new Rect(knob, 0, 10, h))) MainframeTheme.Write(context, Shown, new Rect(Bounds.Size), MainframeTheme.Brush("#28060C"), align: TextAlignment.Center);
             }
             context.DrawGeometry(null, new Pen(rim, 1), shape);
-            if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(Bounds.Size));
+            MainframeTheme.MarkRing(context, this, new Rect(Bounds.Size));
         }
         internal string TextFits()
         {
@@ -621,7 +629,7 @@ namespace CapriDesktop
         {
             context.DrawGeometry(MainframeTheme.Well, new Pen(Box.IsKeyboardFocusWithin ? MainframeTheme.Cyan : MainframeTheme.WellEdge, 1), MainframeTheme.Cut(new Rect(0.5, 0.5, Bounds.Width - 1, Bounds.Height - 1)));
             if (Chevron) MainframeTheme.Drop(context, Bounds.Width - 19, Bounds.Height / 2, IsPointerOver);
-            if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(Bounds.Size));
+            MainframeTheme.MarkRing(context, this, new Rect(Bounds.Size));
         }
         internal string TextFits() { return MainframeTheme.Words(Cue).Width > Width - (Chevron ? 38 : 20) + 0.5 ? Cue : null; }
     }

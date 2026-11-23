@@ -30,6 +30,7 @@ Ask Capri for more	Capri にもっと頼む
 Asking your server...	サーバーに問い合わせ中...
 Asks before closing only the apps you choose.	選んだアプリだけ、閉じる前に確認します。
 Auto	自動
+Auto (match what I say)	自動（話した言葉に合わせる）
 Automatic: VB-CABLE, else Steam's	自動: VB-CABLE、なければ Steam のもの
 BAD RELAY HOST	リレーホストが不正です
 BIG Z open notepad	BIG Z でメモ帳を開く
@@ -290,6 +291,7 @@ Huge	巨大
 I can hear you.	聞こえてるよ。
 I glance at your screen and comment. Costs a little on a paid brain.	あなたの画面をちらっと見てコメントします。有料の頭だと少し費用がかかります。
 I keep listening. Say my name, then just talk.	聞き続けるね。名前を呼んでから話しかけてね。
+I speak	話す言語
 I talk about your game as you play. Costs a little on a paid brain.	ゲームをプレイ中に話しかけます。有料の頭だと少し費用がかかります。
 I type my replies and stay quiet.	返答は入力して、静かにしています。
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	声では返事をしないし、何も外に送られません。それでもそばにいて、音楽に合わせて踊ったり、音量など頼まれた簡単なことはやります。
@@ -598,6 +600,7 @@ SKILL.	スキル。
 SKIN.	スキン。
 SORT BY	並べ替え
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	サウンド 習慣 ブレイン 見る CAPRI DOOMSCROLL 天気 クリップ ゲーム キー 動き 音声 あなた
+Same as I speak	話す言語と同じ
 Same as her ears (VOICE > Mic)	彼女の耳と同じ（音声 > マイク）
 Same code on the phone?	スマホでも同じコード？
 Save	保存
@@ -633,9 +636,10 @@ Settings had nothing to watch.	設定には見るものがありませんでし�
 Settings lost keyboard focus during the Tab walk	Tab の移動中に設定がキーボードフォーカスを失いました
 Setup guide	セットアップガイド
 Setup stopped	セットアップが中止されました
+She answers in	返事の言語
 She can read it when it fits.	収まるときに読めます。
 She glances at your screen and comments. Costs a little on a paid brain.	あなたの画面をちらっと見て、コメントします。有料の頭だと少し費用がかかります。
-She keeps listening. Say her name, then just talk until you go quiet.	聞き続けます。名前を呼んで、静かになるまで話してね。
+She keeps listening. Say her name, then just talk.	聞き続けます。名前を呼んで、話してね。
 She reacts to your game until you close it.	ゲームを閉じるまで、ゲームに反応します。
 She reads these controls before each game job.	ゲームの各作業の前に、これらの操作を読みます。
 She talks about your game as you play. Costs a little on a paid brain.	ゲームをプレイ中、そのことを話します。有料の頭だと少し費用がかかります。
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	彼女が動いて�
 · HD	· HD
 · on this PC	· この PC 上
 · server	· サーバー
+Edit as text	テキストとして編集
+What Capri remembers about you. It stays on this computer.	Capriがあなたについて覚えていること。このコンピューターに残ります。
+Tell her something to remember	覚えておいてほしいことを伝える
+Search her memory	彼女の記憶を検索
+That day isn't there any more.	その日はもうありません。
+Undo	元に戻す
+Remember our chats is off, so she isn't keeping new chat memories.	会話を覚えるはオフなので、新しい会話の記憶は保存しません。
+ABOUT YOU	あなたについて
+FROM YOUR CHATS	あなたの会話から
+GAMES	ゲーム
+CHAT LOGS	チャットログ
+CHAT LOG	チャットログ
+Nothing matches.	一致するものがありません。
+Nothing yet.	まだ何もありません。
+Reading her notes.	彼女のメモを読んでいます。
+Click again to forget game notes	ゲームのメモを忘れるにはもう一度クリック
+Forget game notes	ゲームのメモを忘れる
+Click again to forget everything about me	あなたについてすべて忘れるにはもう一度クリック
+Forget everything about me	あなたについてすべて忘れる
+Click again to forget	忘れるにはもう一度クリック
+Forget this day	この日を忘れる
+Only the start of this day is shown.	この日の始まりだけが表示されます。
+Nothing in this day.	この日には何もありません。
+No chats kept yet.	まだ保存されたチャットはありません。
+You	あなた
+{0} line	{0}行
+SET UP EMAIL >	メールを設定 >
+SET UP EMAIL	メールを設定
+Or type your address	またはアドレスを入力
+Email address	メールアドレス
+Open the page	ページを開く
+App password	アプリパスワード
+IMAP server	IMAPサーバー
+Incoming mail server	受信メールサーバー
+SMTP server	SMTPサーバー
+Outgoing mail server	送信メールサーバー
+An app password is a separate password just for Capri. Your normal password stays yours.	アプリパスワードはCapri専用の別のパスワードです。通常のパスワードはあなたのままです。
+She keeps it only until she closes.	彼女は閉じるまでそれだけ保持します。
+She checks, searches and reads your mail. She asks before she sends any.	彼女はメールを確認、検索、読取りします。送信する前に尋ねます。
+Watch for new mail	新着メールを見張る
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	メールが届くと知らせ、フィッシングらしければ警告します。既読にはなりません。
+Deal with phishing on her own	フィッシングを自分で処理
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	彼女が見張っている間だけ。フィッシングだと確信したメールはスパムへ送られます。残りはあなたの許可を待ちます。
+Forget account	アカウントを忘れる
+Use another email	別のメールを使う
+Which email?	どのメール？
+Make an app password	アプリパスワードを作成
+Paste it	貼り付ける
+Connecting...	接続中...
+She can use your email now.	彼女はもうあなたのメールを使えます。
+She's not watching your inbox.	彼女は受信トレイを見張っていません。
+She's watching your inbox and deals with phishing she's sure of.	彼女は受信トレイを見張り、確信のあるフィッシングを処理します。
+She's watching your inbox and tells you when mail lands.	彼女は受信トレイを見張り、メールが届くと知らせます。
+She forgot that account and its app password.	彼女はそのアカウントとアプリパスワードを忘れました。
+She forgot that account. Its app password is gone from this PC.	彼女はそのアカウントを忘れました。アプリパスワードはこのコンピューターから消えました。

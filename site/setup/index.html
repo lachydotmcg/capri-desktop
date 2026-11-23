@@ -7,9 +7,9 @@
   <meta name="description" content="Set up Capri on your desktop: install, her brain, her voice.">
   <title>Set up Capri</title>
   <link rel="icon" type="image/x-icon" href="../assets/chip.ico">
-  <link rel="stylesheet" href="../style.css?v=0.9.6">
+  <link rel="stylesheet" href="../style.css?v=0.9.7">
   <script src="../guide.js" defer></script>
-  <script src="../helper.js?v=0.9.6" defer></script>
+  <script src="../helper.js?v=0.9.7" defer></script>
 </head>
 <body>
   <div class="page">
@@ -29,16 +29,9 @@
       <section id="install" class="step">
         <h2><span class="step-number">1</span>Install <small>Windows only</small></h2>
         <ol class="moves">
-          <li><a class="download inline" href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Microsoft Store</span></a></li>
-          <li><b>Get</b> in the Store, then <b>Open</b></li>
-        </ol>
-        <p class="note">The Store copy is signed and checked by Microsoft, so Windows won't warn you. Capri Remote is included, and it updates through the Store.</p>
-
-        <h3 id="latest">Or the latest release <small>updates herself, not signed yet</small></h3>
-        <ol class="moves">
-          <li><a class="download inline" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.9.6/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a></li>
+          <li><a class="download inline" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.9.7/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a></li>
           <li>Open <code>Capri-Setup.exe</code></li>
-          <li>“Windows protected your PC”? <b>More info</b> → <b>Run anyway</b></li>
+          <li>“Windows protected your PC”? Check the official release and checksum using the warning guidance below before deciding whether to run it. A named malware detection needs human review first.</li>
           <li><b>Install</b></li>
         </ol>
         <p class="note">The latest release updates herself. Windows warns because it's new and not signed yet. The code is open on <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">GitHub</a>. Every download is on the <a href="../#download">home page</a>.</p>
@@ -171,8 +164,8 @@
           <dt>“Out of ElevenLabs credits”</dt><dd>Credits refill each month. She uses about one per letter she says.</dd>
           <dt>“Free tier usage disabled”</dt><dd>Turn off your VPN and try again.</dd>
           <dt>She can't hear you</dt><dd>Pick your mic in the Mainframe. Still nothing? Windows Settings → Privacy &amp; security → Microphone → let desktop apps use it.</dd>
-          <dt>“Item Not Found” when you open the installer</dt><dd>Your browser or antivirus held it back. In Chrome or Edge, press <b>Ctrl + J</b> and pick <b>Keep</b>. Antivirus? Restore it from quarantine. Then open it from your Downloads folder.</dd>
-          <dt>Antivirus flags it</dt><dd>A false alarm on a new, unsigned app. Check the code on <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">GitHub</a>.</dd>
+          <dt>“Item Not Found” when you open the installer</dt><dd>Check the exact reason in browser downloads and antivirus history. Verify the <a href="https://github.com/lachydotmcg/capri-desktop/releases/latest">official release</a> and its <a href="https://github.com/lachydotmcg/capri-desktop/releases/latest/download/SHA256SUMS.txt">checksum</a>. Leave a quarantined file alone while its detection is reviewed.</dd>
+          <dt>Antivirus flags it</dt><dd>Do not run, restore or allow it. Keep antivirus on and send the product, exact detection, file path, download source and Capri version in your support ticket or the Discord. An unsigned-app warning is different from a malware detection.</dd>
           <dt>Still stuck?</dt><dd>Check the <a href="../help/">Help page</a>, or ask in the Discord.</dd>
         </dl>
         <a class="discord-join" href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#discord-mark"/></svg>Join the Discord</a>

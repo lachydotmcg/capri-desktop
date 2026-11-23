@@ -30,6 +30,7 @@ Ask Capri for more	Capri ಇನ್ನಷ್ಟು ಕೇಳಿ
 Asking your server...	ನಿಮ್ಮ ಸರ್ವರ್ ಅನ್ನು ಕೇಳುತ್ತಿದ್ದೇನೆ...
 Asks before closing only the apps you choose.	ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಆ್ಯಪ್‌ಗಳನ್ನು ಮಾತ್ರ ಮುಚ್ಚುವ ಮೊದಲು ಕೇಳುತ್ತದೆ.
 Auto	ಸ್ವಯಂ
+Auto (match what I say)	ಸ್ವಯಂ (ನಾನು ಹೇಳಿದಂತೆ)
 Automatic: VB-CABLE, else Steam's	ಸ್ವಯಂಚಾಲಿತ: VB-CABLE, ಇಲ್ಲದಿದ್ದರೆ Steam ನದು
 BAD RELAY HOST	ಕೆಟ್ಟ RELAY ಹೋಸ್ಟ್
 BIG Z open notepad	BIG Z notepad ತೆರೆ
@@ -290,6 +291,7 @@ Huge	ಅಪಾರ
 I can hear you.	ನಾನು ನಿನ್ನನ್ನು ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ.
 I glance at your screen and comment. Costs a little on a paid brain.	ನಿನ್ನ ಪರದೆಯನ್ನು ಒಮ್ಮೆ ನೋಡಿ ಕಾಮೆಂಟ್ ಮಾಡುತ್ತೇನೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
 I keep listening. Say my name, then just talk.	ನಾನು ಕೇಳುತ್ತಲೇ ಇದ್ದೇನೆ. ನನ್ನ ಹೆಸರು ಹೇಳು, ನಂತರ ಮಾತನಾಡು.
+I speak	ನಾನು ಮಾತನಾಡುವ ಭಾಷೆ
 I talk about your game as you play. Costs a little on a paid brain.	ನೀನು ಆಡುವಾಗ ನಿನ್ನ ಆಟದ ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತೇನೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
 I type my replies and stay quiet.	ನನ್ನ ಉತ್ತರಗಳನ್ನು ಟೈಪ್ ಮಾಡಿ ಮೌನವಾಗಿರುತ್ತೇನೆ.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ಮಾತಿನಲ್ಲಿ ಉತ್ತರಿಸುವುದಿಲ್ಲ, ಮತ್ತು ಏನೂ ಎಲ್ಲಿಗೂ ಕಳುಹಿಸಲ್ಪಡುವುದಿಲ್ಲ. ಆದರೂ ನಿನ್ನ ಜೊತೆ ಇರುತ್ತೇನೆ, ನಿನ್ನ ಸಂಗೀತಕ್ಕೆ ನೃತ್ಯ ಮಾಡುತ್ತೇನೆ ಮತ್ತು ವಾಲ್ಯೂಮ್‌ನಂತಹ ನೀನು ಕೇಳುವ ಸಣ್ಣ ಕೆಲಸಗಳನ್ನು ಮಾಡುತ್ತೇನೆ.
@@ -598,6 +600,7 @@ SKILL.	ಕೌಶಲ್ಯ.
 SKIN.	ಸ್ಕಿನ್.
 SORT BY	ವಿಂಗಡಿಸಿ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ಶಬ್ದಗಳು ಅಭ್ಯಾಸಗಳು ಮೆದುಳು ವೀಕ್ಷಿಸು CAPRI DOOMSCROLL ಹವಾಮಾನ ಕ್ಲಿಪ್‌ಗಳು ಆಟಗಳು ಕೀಗಳು ಚಲನೆಗಳು ಧ್ವನಿ ನೀನು
+Same as I speak	ನನ್ನ ಭಾಷೆಯಂತೆಯೇ
 Same as her ears (VOICE > Mic)	ಅವಳ ಕಿವಿಗಳಂತೆಯೇ (VOICE > Mic)
 Same code on the phone?	ಫೋನ್‌ನಲ್ಲಿ ಅದೇ ಕೋಡ್?
 Save	ಉಳಿಸಿ
@@ -633,9 +636,10 @@ Settings had nothing to watch.	ಸೆಟ್ಟಿಂಗ್‌ಗಳಿಗೆ ನ
 Settings lost keyboard focus during the Tab walk	Tab ನಡಿಗೆಯ ಸಮಯದಲ್ಲಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಕೀಬೋರ್ಡ್ ಫೋಕಸ್ ಕಳೆದುಕೊಂಡವು
 Setup guide	ಸೆಟಪ್ ಮಾರ್ಗದರ್ಶಿ
 Setup stopped	ಸೆಟಪ್ ನಿಲ್ಲಿಸಲಾಗಿದೆ
+She answers in	ಅವಳು ಉತ್ತರಿಸುವ ಭಾಷೆ
 She can read it when it fits.	ಸರಿಹೊಂದಿದಾಗ ಅವಳು ಅದನ್ನು ಓದಬಹುದು.
 She glances at your screen and comments. Costs a little on a paid brain.	ಅವಳು ನಿನ್ನ ಪರದೆಯನ್ನು ಒಮ್ಮೆ ನೋಡಿ ಕಾಮೆಂಟ್ ಮಾಡುತ್ತಾಳೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
-She keeps listening. Say her name, then just talk until you go quiet.	ಅವಳು ಕೇಳುತ್ತಲೇ ಇರುತ್ತಾಳೆ. ಅವಳ ಹೆಸರು ಹೇಳು, ನಂತರ ನೀನು ಸುಮ್ಮನಾಗುವವರೆಗೆ ಮಾತನಾಡು.
+She keeps listening. Say her name, then just talk.	ಅವಳು ಕೇಳುತ್ತಲೇ ಇರುತ್ತಾಳೆ. ಅವಳ ಹೆಸರು ಹೇಳು, ನಂತರ ಮಾತನಾಡು.
 She reacts to your game until you close it.	ನೀನು ಮುಚ್ಚುವವರೆಗೂ ಅವಳು ನಿನ್ನ ಆಟಕ್ಕೆ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತಾಳೆ.
 She reads these controls before each game job.	ಪ್ರತಿ ಆಟದ ಕೆಲಸದ ಮೊದಲು ಅವಳು ಈ ನಿಯಂತ್ರಣಗಳನ್ನು ಓದುತ್ತಾಳೆ.
 She talks about your game as you play. Costs a little on a paid brain.	ನೀನು ಆಡುವಾಗ ಅವಳು ನಿನ್ನ ಆಟದ ಬಗ್ಗೆ ಮಾತನಾಡುತ್ತಾಳೆ. ಪಾವತಿಸಿದ ಮೆದುಳಿನಲ್ಲಿ ಸ್ವಲ್ಪ ವೆಚ್ಚವಾಗುತ್ತದೆ.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ಅವಳು ಓಡ
 · HD	· HD
 · on this PC	· ಈ PC ಯಲ್ಲಿ
 · server	· ಸರ್ವರ್
+Edit as text	ಪಠ್ಯವಾಗಿ ಸಂಪಾದಿಸು
+What Capri remembers about you. It stays on this computer.	Capri ನಿನ್ನ ಬಗ್ಗೆ ನೆನಪಿಟ್ಟುಕೊಳ್ಳುವುದು. ಇದು ಈ ಕಂಪ್ಯೂಟರ್‌ನಲ್ಲಿ ಉಳಿಯುತ್ತದೆ.
+Tell her something to remember	ನೆನಪಿಟ್ಟುಕೊಳ್ಳಲು ಏನಾದರೂ ಹೇಳು
+Search her memory	ಅವಳ ನೆನಪಿನಲ್ಲಿ ಹುಡುಕು
+That day isn't there any more.	ಆ ದಿನ ಇನ್ನು ಇಲ್ಲ.
+Undo	ಹಿಂತಿರುಗಿಸು
+Remember our chats is off, so she isn't keeping new chat memories.	ನಮ್ಮ ಸಂಭಾಷಣೆಗಳನ್ನು ನೆನಪಿಟ್ಟುಕೊಳ್ಳುವುದು ಆಫ್ ಆಗಿದೆ, ಆದ್ದರಿಂದ ಹೊಸ ಸಂಭಾಷಣೆ ನೆನಪುಗಳನ್ನು ಉಳಿಸುವುದಿಲ್ಲ.
+ABOUT YOU	ನಿನ್ನ ಬಗ್ಗೆ
+FROM YOUR CHATS	ನಿನ್ನ ಸಂಭಾಷಣೆಗಳಿಂದ
+GAMES	ಆಟಗಳು
+CHAT LOGS	ಸಂಭಾಷಣೆ ಲಾಗ್‌ಗಳು
+CHAT LOG	ಸಂಭಾಷಣೆ ಲಾಗ್
+Nothing matches.	ಏನೂ ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ.
+Nothing yet.	ಇನ್ನೂ ಏನೂ ಇಲ್ಲ.
+Reading her notes.	ಅವಳ ಟಿಪ್ಪಣಿಗಳನ್ನು ಓದುತ್ತಿದೆ.
+Click again to forget game notes	ಆಟದ ಟಿಪ್ಪಣಿಗಳನ್ನು ಮರೆಯಲು ಮತ್ತೆ ಕ್ಲಿಕ್ ಮಾಡು
+Forget game notes	ಆಟದ ಟಿಪ್ಪಣಿಗಳನ್ನು ಮರೆ
+Click again to forget everything about me	ನಿನ್ನ ಬಗ್ಗೆ ಎಲ್ಲವನ್ನೂ ಮರೆಯಲು ಮತ್ತೆ ಕ್ಲಿಕ್ ಮಾಡು
+Forget everything about me	ನಿನ್ನ ಬಗ್ಗೆ ಎಲ್ಲವನ್ನೂ ಮರೆ
+Click again to forget	ಮರೆಯಲು ಮತ್ತೆ ಕ್ಲಿಕ್ ಮಾಡು
+Forget this day	ಈ ದಿನವನ್ನು ಮರೆ
+Only the start of this day is shown.	ಈ ದಿನದ ಆರಂಭ ಮಾತ್ರ ತೋರಿಸಲಾಗುತ್ತದೆ.
+Nothing in this day.	ಈ ದಿನದಲ್ಲಿ ಏನೂ ಇಲ್ಲ.
+No chats kept yet.	ಇನ್ನೂ ಸಂಭಾಷಣೆಗಳನ್ನು ಉಳಿಸಿಲ್ಲ.
+You	ನೀನು
+{0} line	{0} ಸಾಲು
+SET UP EMAIL >	ಇಮೇಲ್ ಸೆಟಪ್ ಮಾಡು >
+SET UP EMAIL	ಇಮೇಲ್ ಸೆಟಪ್ ಮಾಡು
+Or type your address	ಅಥವಾ ನಿನ್ನ ವಿಳಾಸವನ್ನು ಟೈಪ್ ಮಾಡು
+Email address	ಇಮೇಲ್ ವಿಳಾಸ
+Open the page	ಪುಟ ತೆರೆ
+App password	ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್
+IMAP server	IMAP ಸರ್ವರ್
+Incoming mail server	ಒಳಬರುವ ಮೇಲ್ ಸರ್ವರ್
+SMTP server	SMTP ಸರ್ವರ್
+Outgoing mail server	ಹೊರಹೋಗುವ ಮೇಲ್ ಸರ್ವರ್
+An app password is a separate password just for Capri. Your normal password stays yours.	ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ Capri ಗಾಗಿ ಮಾತ್ರ ಪ್ರತ್ಯೇಕ ಪಾಸ್‌ವರ್ಡ್. ನಿನ್ನ ಸಾಮಾನ್ಯ ಪಾಸ್‌ವರ್ಡ್ ನಿನ್ನದೇ.
+She keeps it only until she closes.	ಅವಳು ಮುಚ್ಚುವವರೆಗೆ ಮಾತ್ರ ಅದನ್ನು ಇಟ್ಟುಕೊಳ್ಳುತ್ತಾಳೆ.
+She checks, searches and reads your mail. She asks before she sends any.	ಅವಳು ನಿನ್ನ ಮೇಲ್ ಪರಿಶೀಲಿಸಿ, ಹುಡುಕಿ, ಓದುತ್ತಾಳೆ. ಏನನ್ನಾದರೂ ಕಳುಹಿಸುವ ಮೊದಲು ಕೇಳುತ್ತಾಳೆ.
+Watch for new mail	ಹೊಸ ಮೇಲ್ ಗಮನಿಸು
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ಮೇಲ್ ಬಂದಾಗ ಅವಳು ಹೇಳುತ್ತಾಳೆ, ಫಿಶಿಂಗ್‌ನಂತೆ ಕಂಡರೆ ಎಚ್ಚರಿಕೆ ನೀಡುತ್ತಾಳೆ. ಯಾವುದನ್ನೂ ಓದಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗುವುದಿಲ್ಲ.
+Deal with phishing on her own	ಫಿಶಿಂಗ್ ಅನ್ನು ನೀನೇ ನಿಭಾಯಿಸು
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	ಅವಳು ಗಮನಿಸುವಾಗ ಮಾತ್ರ. ಫಿಶಿಂಗ್ ಎಂದು ಖಚಿತವಾದ ಮೇಲ್ ಸ್ಪ್ಯಾಮ್‌ಗೆ ಹೋಗುತ್ತದೆ. ಉಳಿದದ್ದು ನಿನ್ನ ಒಪ್ಪಿಗೆಗಾಗಿ ಕಾಯುತ್ತದೆ.
+Forget account	ಖಾತೆ ಮರೆ
+Use another email	ಬೇರೆ ಇಮೇಲ್ ಬಳಸು
+Which email?	ಯಾವ ಇಮೇಲ್?
+Make an app password	ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ ರಚಿಸು
+Paste it	ಅದನ್ನು ಅಂಟಿಸು
+Connecting...	ಸಂಪರ್ಕಿಸುತ್ತಿದೆ...
+She can use your email now.	ಈಗ ಅವಳು ನಿನ್ನ ಇಮೇಲ್ ಬಳಸಬಹುದು.
+She's not watching your inbox.	ಅವಳು ನಿನ್ನ ಇನ್‌ಬಾಕ್ಸ್ ಗಮನಿಸುತ್ತಿಲ್ಲ.
+She's watching your inbox and deals with phishing she's sure of.	ಅವಳು ನಿನ್ನ ಇನ್‌ಬಾಕ್ಸ್ ಗಮನಿಸುತ್ತಾ ಖಚಿತವಾದ ಫಿಶಿಂಗ್ ನಿಭಾಯಿಸುತ್ತಾಳೆ.
+She's watching your inbox and tells you when mail lands.	ಅವಳು ನಿನ್ನ ಇನ್‌ಬಾಕ್ಸ್ ಗಮನಿಸುತ್ತಾ ಮೇಲ್ ಬಂದಾಗ ಹೇಳುತ್ತಾಳೆ.
+She forgot that account and its app password.	ಅವಳು ಆ ಖಾತೆ ಮತ್ತು ಅದರ ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಳು.
+She forgot that account. Its app password is gone from this PC.	ಅವಳು ಆ ಖಾತೆ ಮರೆತಳು. ಅದರ ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್ ಈ ಕಂಪ್ಯೂಟರ್‌ನಿಂದ ಹೋಯಿತು.

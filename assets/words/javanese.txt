@@ -30,6 +30,7 @@ Ask Capri for more	Takon Capri luwih akeh
 Asking your server...	Lagi takon server mu...
 Asks before closing only the apps you choose.	Takon dhisik sadurunge nutup mung aplikasi sing kowe pilih.
 Auto	Otomatis
+Auto (match what I say)	Otomatis (manut omonganku)
 Automatic: VB-CABLE, else Steam's	Otomatis: VB-CABLE, utawa Steam
 BAD RELAY HOST	HOST RELAY ORA BENER
 BIG Z open notepad	BIG Z bukak notepad
@@ -290,6 +291,7 @@ Huge	Gedhe banget
 I can hear you.	Aku bisa krungu kowe.
 I glance at your screen and comment. Costs a little on a paid brain.	Aku nglirik layarmu lan komentar. Biaya sithik ing otak bayar.
 I keep listening. Say my name, then just talk.	Aku terus ngrungokake. Sebut jenengku, banjur ngomong wae.
+I speak	Aku ngomong
 I talk about your game as you play. Costs a little on a paid brain.	Aku ngomong babagan game-mu nalika kowe main. Biaya sithik ing otak bayar.
 I type my replies and stay quiet.	Aku ngetik balesanku lan meneng.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Aku ora bakal mangsuli lisan, lan ora ana sing dikirim menyang endi-endi. Aku isih bakal ngaso ing kene, joget karo musikmu lan nindakake perkara cepet sing kowe jaluk, kaya volume.
@@ -598,6 +600,7 @@ SKILL.	KEMAMPUAN.
 SKIN.	KULIT.
 SORT BY	URUTKAKE LABEH
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SWARA KEBIASAAN OTAK DELENG CAPRI DOOMSCROLL CUACA KLIP GAME KUNCI GERAKAN SWARA KOWE
+Same as I speak	Padha karo basaku
 Same as her ears (VOICE > Mic)	Padha karo kuping dheweke (SWARA > Mikropon)
 Same code on the phone?	Kode sing padha ing HP?
 Save	Simpen
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Setelan ora ana sing ditonton.
 Settings lost keyboard focus during the Tab walk	Setelan ilang fokus keyboard nalika lelungan Tab
 Setup guide	Pandhuan setelan
 Setup stopped	Setelan mandheg
+She answers in	Dheweke mangsuli nganggo
 She can read it when it fits.	Dheweke bisa maca nalika cocok.
 She glances at your screen and comments. Costs a little on a paid brain.	Dheweke nglirik layarmu lan komentar. Biaya sithik ing otak bayar.
-She keeps listening. Say her name, then just talk until you go quiet.	Dheweke terus ngrungokake. Sebut jenenge, banjur ngomong nganti kowe meneng.
+She keeps listening. Say her name, then just talk.	Dheweke terus ngrungokake. Sebut jenenge, banjur ngomong.
 She reacts to your game until you close it.	Dheweke nanggapi game-mu nganti kowe nutup.
 She reads these controls before each game job.	Dheweke maca kontrol iki sadurunge saben tugas game.
 She talks about your game as you play. Costs a little on a paid brain.	Dheweke ngomong babagan game-mu nalika kowe main. Biaya sithik ing otak bayar.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ora bakal ngetik in
 · HD	· HD
 · on this PC	· ing PC iki
 · server	· server
+Edit as text	Sunting minangka teks
+What Capri remembers about you. It stays on this computer.	Apa sing dielingi Capri babagan kowe. Tetep ana ing komputer iki.
+Tell her something to remember	Kandhani dheweke bab sing kudu dieling
+Search her memory	Golek ing pangeling-elinge
+That day isn't there any more.	Dina kuwi wis ora ana.
+Undo	Batalake
+Remember our chats is off, so she isn't keeping new chat memories.	Ngelingi obrolan kita dipateni, mula dheweke ora nyimpen pangeling-eling obrolan anyar.
+ABOUT YOU	BAB KOWE
+FROM YOUR CHATS	Saka OBROLANMU
+GAMES	GAME
+CHAT LOGS	LOG OBROLAN
+CHAT LOG	LOG OBROLAN
+Nothing matches.	Ora ana sing cocog.
+Nothing yet.	Durung ana.
+Reading her notes.	Lagi maca cathetane.
+Click again to forget game notes	Klik maneh kanggo lali cathetan game
+Forget game notes	Lali cathetan game
+Click again to forget everything about me	Klik maneh kanggo lali kabeh babagan kowe
+Forget everything about me	Lali kabeh babagan kowe
+Click again to forget	Klik maneh kanggo lali
+Forget this day	Lali dina iki
+Only the start of this day is shown.	Mung wiwitan dina iki sing dituduhake.
+Nothing in this day.	Ora ana apa-apa ing dina iki.
+No chats kept yet.	Durung ana obrolan sing disimpen.
+You	Kowe
+{0} line	{0} baris
+SET UP EMAIL >	SETEL EMAIL >
+SET UP EMAIL	SETEL EMAIL
+Or type your address	Utawa ketik alamatmu
+Email address	Alamat email
+Open the page	Bukak kaca
+App password	Sandi aplikasi
+IMAP server	Server IMAP
+Incoming mail server	Server email mlebu
+SMTP server	Server SMTP
+Outgoing mail server	Server email metu
+An app password is a separate password just for Capri. Your normal password stays yours.	Sandi aplikasi iku sandi kapisah mung kanggo Capri. Sandi biasamu tetep duweke kowe.
+She keeps it only until she closes.	Dheweke nyimpen mung nganti ditutup.
+She checks, searches and reads your mail. She asks before she sends any.	Dheweke mriksa, nggolek, lan maca emailmu. Dheweke takon sadurunge ngirim apa-apa.
+Watch for new mail	Ngawasi email anyar
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Dheweke ngomong yen email teka, karo peringatan yen katon kaya phishing. Ora ana sing ditandhani wis diwaca.
+Deal with phishing on her own	Ngatasi phishing dhewe
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Mung nalika dheweke ngawasi. Email sing dheweke yakin phishing mlebu spam. Liyane ngenteni idinmu.
+Forget account	Lali akun
+Use another email	Gunakake email liya
+Which email?	Email endi?
+Make an app password	Gawe sandi aplikasi
+Paste it	Tempelake
+Connecting...	Nyambungake...
+She can use your email now.	Saiki dheweke bisa nggunakake emailmu.
+She's not watching your inbox.	Dheweke ora ngawasi kothak mlebu.
+She's watching your inbox and deals with phishing she's sure of.	Dheweke ngawasi kothak mlebu lan ngatasi phishing sing dheweke yakin.
+She's watching your inbox and tells you when mail lands.	Dheweke ngawasi kothak mlebu lan ngandhani yen email teka.
+She forgot that account and its app password.	Dheweke lali akun kasebut lan sandi aplikasine.
+She forgot that account. Its app password is gone from this PC.	Dheweke lali akun kasebut. Sandi aplikasine ilang saka komputer iki.

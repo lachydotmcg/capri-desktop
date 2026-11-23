@@ -30,6 +30,7 @@ Ask Capri for more	Muulize Capri zaidi
 Asking your server...	Inauliza seva yako...
 Asks before closing only the apps you choose.	Huuliza kabla ya kufunga programu ulizochagua pekee.
 Auto	Otomatiki
+Auto (match what I say)	Otomatiki (kulingana na ninachosema)
 Automatic: VB-CABLE, else Steam's	Otomatiki: VB-CABLE, vinginevyo ya Steam
 BAD RELAY HOST	SERVA YA RELAY SI SAHIHI
 BIG Z open notepad	BIG Z fungua notepad
@@ -290,6 +291,7 @@ Huge	Kubwa sana
 I can hear you.	Nakusikia.
 I glance at your screen and comment. Costs a little on a paid brain.	Natazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
 I keep listening. Say my name, then just talk.	Naendelea kusikiliza. Sema jina langu, kisha zungumza tu.
+I speak	Ninazungumza
 I talk about your game as you play. Costs a little on a paid brain.	Nazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.
 I type my replies and stay quiet.	Naandika majibu yangu na kubaki kimya.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Sitajibu, na hakuna kinachotumwa popote. Bado nitakaa nawe, nitacheza kwa muziki wako na kufanya mambo ya haraka unayoomba, kama sauti.
@@ -598,6 +600,7 @@ SKILL.	UJUZI.
 SKIN.	NGOZI.
 SORT BY	PANGA KWA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SAUTI TABIA UBONGO TAZAMA CAPRI DOOMSCROLL HALI YA HEWA KLIPU MICHEZO VITUFE MIENDO SAUTI YAKO
+Same as I speak	Sawa na lugha yangu
 Same as her ears (VOICE > Mic)	Sawa na masikio yake (SAUTI > Maikrofoni)
 Same code on the phone?	Msimbo huo huo kwenye simu?
 Save	Hifadhi
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Mipangilio haikuwa na cha kutazama.
 Settings lost keyboard focus during the Tab walk	Mipangilio ilipoteza umakini wa kibodi wakati wa kupitia Tab
 Setup guide	Mwongozo wa usanidi
 Setup stopped	Usanidi umesimama
+She answers in	Anajibu kwa
 She can read it when it fits.	Anaweza kuisoma inapofaa.
 She glances at your screen and comments. Costs a little on a paid brain.	Anatazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
-She keeps listening. Say her name, then just talk until you go quiet.	Anaendelea kusikiliza. Sema jina lake, kisha zungumza hadi unyamaze.
+She keeps listening. Say her name, then just talk.	Anaendelea kusikiliza. Sema jina lake, kisha zungumza.
 She reacts to your game until you close it.	Anaitikia mchezo wako hadi uufunge.
 She reads these controls before each game job.	Anasoma vidhibiti hivi kabla ya kila kazi ya mchezo.
 She talks about your game as you play. Costs a little on a paid brain.	Anazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	haitaandika katika 
 · HD	· HD
 · on this PC	· kwenye Kompyuta hii
 · server	· seva
+Edit as text	Hariri kama maandishi
+What Capri remembers about you. It stays on this computer.	Kile Capri anachokumbuka kukuhusu. Kinabaki kwenye kompyuta hii.
+Tell her something to remember	Mwambie kitu cha kukumbuka
+Search her memory	Tafuta katika kumbukumbu yake
+That day isn't there any more.	Siku hiyo haipo tena.
+Undo	Tendua
+Remember our chats is off, so she isn't keeping new chat memories.	Kukumbuka gumzo letu kumezimwa, kwa hivyo hahifadhi kumbukumbu mpya za gumzo.
+ABOUT YOU	KUKUHUSU
+FROM YOUR CHATS	KUTOKA KWENYE GUMZO ZAKO
+GAMES	MICHEZO
+CHAT LOGS	KUMBUKUMBU ZA GUMZO
+CHAT LOG	KUMBUKUMBU YA GUMZO
+Nothing matches.	Hakuna kinacholingana.
+Nothing yet.	Bado hakuna.
+Reading her notes.	Inasoma maelezo yake.
+Click again to forget game notes	Bofya tena ili usahau maelezo ya michezo
+Forget game notes	Sahau maelezo ya michezo
+Click again to forget everything about me	Bofya tena ili usahau kila kitu kukuhusu
+Forget everything about me	Sahau kila kitu kukuhusu
+Click again to forget	Bofya tena ili usahau
+Forget this day	Sahau siku hii
+Only the start of this day is shown.	Mwanzo wa siku hii pekee unaonyeshwa.
+Nothing in this day.	Hakuna kitu siku hii.
+No chats kept yet.	Bado hakuna gumzo lililohifadhiwa.
+You	Wewe
+{0} line	{0} mstari
+SET UP EMAIL >	SANIDUA BARUA PEPE >
+SET UP EMAIL	SANIDUA BARUA PEPE
+Or type your address	Au andika anwani yako
+Email address	Anwani ya barua pepe
+Open the page	Fungua ukurasa
+App password	Nenosiri la programu
+IMAP server	Seva ya IMAP
+Incoming mail server	Seva ya barua pepe zinazoingia
+SMTP server	Seva ya SMTP
+Outgoing mail server	Seva ya barua pepe zinazotoka
+An app password is a separate password just for Capri. Your normal password stays yours.	Nenosiri la programu ni nenosiri tofauti la Capri pekee. Nenosiri lako la kawaida linabaki lako.
+She keeps it only until she closes.	Analihifadhi hadi afunge tu.
+She checks, searches and reads your mail. She asks before she sends any.	Hukagua, hutafuta na kusoma barua pepe zako. Hanauliza kabla ya kutuma chochote.
+Watch for new mail	Fuatilia barua pepe mpya
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Husema barua pepe inapofika, na onyo ikiwa inaonekana kama utapeli. Hakuna kinachowekwa alama kuwa kimesomwa.
+Deal with phishing on her own	Shughulikia utapeli mwenyewe
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Ni wakati anafuatilia tu. Barua pepe anayo uhakika ni utapeli huenda kwenye taka. Zilizobaki zinasubiri idhini yako.
+Forget account	Sahau akaunti
+Use another email	Tumia barua pepe nyingine
+Which email?	Barua pepe ipi?
+Make an app password	Unda nenosiri la programu
+Paste it	Bandika
+Connecting...	Inaunganisha...
+She can use your email now.	Sasa anaweza kutumia barua pepe yako.
+She's not watching your inbox.	Hafuatilii kikasha chako.
+She's watching your inbox and deals with phishing she's sure of.	Anafuatilia kikasha chako na kushughulikia utapeli anaouhakika.
+She's watching your inbox and tells you when mail lands.	Anafuatilia kikasha chako na kukujulisha barua pepe inapofika.
+She forgot that account and its app password.	Alisahau akaunti hiyo na nenosiri lake la programu.
+She forgot that account. Its app password is gone from this PC.	Alisahau akaunti hiyo. Nenosiri lake la programu limetoweka kutoka kwenye kompyuta hii.

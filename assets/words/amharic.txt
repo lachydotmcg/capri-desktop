@@ -30,6 +30,7 @@ Ask Capri for more	ከCapri ተጨማሪ ጠይቅ
 Asking your server...	ሰርቨርዎን በመጠየቅ ላይ...
 Asks before closing only the apps you choose.	የመረጧቸውን መተግበሪያዎች ብቻ ከመዝጋቱ በፊት ይጠይቃል።
 Auto	ራስ-ሰር
+Auto (match what I say)	ራስ-ሰር (እንደምለው)
 Automatic: VB-CABLE, else Steam's	ራስ-ሰር፡ VB-CABLE፣ ያለበለዚያ የSteam
 BAD RELAY HOST	የተሳሳተ የሬሌይ አስተናጋጅ
 BIG Z open notepad	BIG Z notepad ክፈት
@@ -290,6 +291,7 @@ Huge	ግዙፍ
 I can hear you.	ልሰማህ እችላለሁ።
 I glance at your screen and comment. Costs a little on a paid brain.	ማያህን ተመልክቼ አስተያየት እሰጣለሁ። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
 I keep listening. Say my name, then just talk.	ማዳመጡን እቀጥላለሁ። ስሜን ተናገር፣ ከዚያ ብቻ ተናገር።
+I speak	የምናገረው
 I talk about your game as you play. Costs a little on a paid brain.	ስትጫወት ስለ ጨዋታህ አወራለሁ። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
 I type my replies and stay quiet.	መልሶቼን እተይባለሁ እና ዝም እላለሁ።
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	አልመልስም፣ ምንም ወደየትም አይላክም። አሁንም እቆያለሁ፣ ለሙዚቃህ እጨፍራለሁ እና እንደ ድምጽ ያሉ የጠየቅካቸውን ፈጣን ነገሮች አደርጋለሁ።
@@ -598,6 +600,7 @@ SKILL.	ችሎታ።
 SKIN.	ቆዳ።
 SORT BY	በዚህ መሰረት ደርድር
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ድምፆች ልማዶች አእምሮ ተመልከት CAPRI DOOMSCROLL የአየር ሁኔታ ክሊፖች ጨዋታዎች ቁልፎች እንቅስቃሴዎች ድምፅ አንተ
+Same as I speak	እንደ እኔ ቋንቋ
 Same as her ears (VOICE > Mic)	እንደ ጆሮዎቿ (ድምፅ > ማይክ)
 Same code on the phone?	በስልኩ ላይ ተመሳሳይ ኮድ?
 Save	አስቀምጥ
@@ -633,9 +636,10 @@ Settings had nothing to watch.	ቅንብሮች የሚመለከቱት ነገር �
 Settings lost keyboard focus during the Tab walk	በTab ጉዞ ጊዜ ቅንብሮች የቁልፍ ሰሌዳ ትኩረቱን አጡ
 Setup guide	የማዋቀር መመሪያ
 Setup stopped	ማዋቀር ቆሟል
+She answers in	የምትመልስበት
 She can read it when it fits.	ሲስማማ ማንበብ ትችላለች።
 She glances at your screen and comments. Costs a little on a paid brain.	ማያዎን ተመልክታ አስተያየት ትሰጣለች። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
-She keeps listening. Say her name, then just talk until you go quiet.	ማዳመጧን ትቀጥላለች። ስሟን ተናገር፣ ከዚያ ዝም እስክትል ድረስ ብቻ ተናገር።
+She keeps listening. Say her name, then just talk.	ማዳመጧን ትቀጥላለች። ስሟን ተናገር፣ ከዚያ ብቻ ተናገር።
 She reacts to your game until you close it.	ጨዋታዎን እስክትዘጉት ድረስ ለጨዋታዎ ምላሽ ትሰጣለች።
 She reads these controls before each game job.	ከእያንዳንዱ የጨዋታ ስራ በፊት እነዚህን መቆጣጠሪያዎች ታነባለች።
 She talks about your game as you play. Costs a little on a paid brain.	ስትጫወት ስለ ጨዋታዎ ትናገራለች። በሚከፈል አእምሮ ላይ ትንሽ ወጪ አለው።
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	በምትሰራበ�
 · HD	· HD
 · on this PC	· በዚህ ፒሲ ላይ
 · server	· ሰርቨር
+Edit as text	በጽሑፍ አርትዕ
+What Capri remembers about you. It stays on this computer.	Capri ስለ አንተ የምታስበው። በዚህ ኮምፒውተር ላይ ይቆያል።
+Tell her something to remember	የምትዘክረውን ነገር ንገራት
+Search her memory	በትውስታዋ ውስጥ ፈልግ
+That day isn't there any more.	ያ ቀን ከእንግዲህ የለም።
+Undo	ቀልብስ
+Remember our chats is off, so she isn't keeping new chat memories.	ውይይቶቻችንን ማስታወስ ጠፍቷል፣ ስለዚህ አዲስ የውይይት ትውስታዎችን አትጠብቅም።
+ABOUT YOU	ስለ አንተ
+FROM YOUR CHATS	ከውይይቶችህ
+GAMES	ጨዋታዎች
+CHAT LOGS	የውይይት መዝገቦች
+CHAT LOG	የውይይት መዝገብ
+Nothing matches.	ምንም አይመሳሰልም።
+Nothing yet.	እስካሁን ምንም።
+Reading her notes.	ማስታወሻዎቿን በማንበብ ላይ።
+Click again to forget game notes	የጨዋታ ማስታወሻዎችን ለመርሳት እንደገና ጠቅ አድርግ
+Forget game notes	የጨዋታ ማስታወሻዎችን ርሳ
+Click again to forget everything about me	ስለ አንተ ሁሉንም ለመርሳት እንደገና ጠቅ አድርግ
+Forget everything about me	ስለ አንተ ሁሉንም ርሳ
+Click again to forget	ለመርሳት እንደገና ጠቅ አድርግ
+Forget this day	ይህን ቀን ርሳ
+Only the start of this day is shown.	የዚህ ቀን መጀመሪያ ብቻ ይታያል።
+Nothing in this day.	በዚህ ቀን ምንም የለም።
+No chats kept yet.	እስካሁን ምንም ውይይት አልተቀመጠም።
+You	አንተ
+{0} line	{0} መስመር
+SET UP EMAIL >	ኢሜይል አዘጋጅ >
+SET UP EMAIL	ኢሜይል አዘጋጅ
+Or type your address	ወይም አድራሻህን ጻፍ
+Email address	የኢሜይል አድራሻ
+Open the page	ገጹን ክፈት
+App password	የመተግበሪያ የይለፍ ቃል
+IMAP server	የIMAP አገልጋይ
+Incoming mail server	የገቢ መልዕክት አገልጋይ
+SMTP server	የSMTP አገልጋይ
+Outgoing mail server	የወጪ መልዕክት አገልጋይ
+An app password is a separate password just for Capri. Your normal password stays yours.	የመተግበሪያ የይለፍ ቃል ለCapri ብቻ የተለየ የይለፍ ቃል ነው። የተለመደው የይለፍ ቃልህ የአንተ ነው።
+She keeps it only until she closes.	እስክትዘጋ ድረስ ብቻ ትጠብቀዋለች።
+She checks, searches and reads your mail. She asks before she sends any.	ኢሜይልህን ትመረምራለች፣ ትፈልጋለች እና ታነባለች። ማንኛውንም ነገር ከመላኳ በፊት ትጠይቃለች።
+Watch for new mail	አዲስ ኢሜይል ተከታተል
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ኢሜይል ሲመጣ ትናገራለች፣ ፊሽንግ የሚመስል ከሆነ ማስጠንቀቂያ ትሰጣለች። ምንም እንደተነበበ አይምልክም።
+Deal with phishing on her own	ፊሽንግን ራሷ ተንከባከብ
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	እሷ በምትከታተልበት ጊዜ ብቻ። ፊሽንግ እንደሆነ የምትረጋገጠው ኢሜይል ወደ ስፓም ይሄዳል። ቀሪው ለአንተ ስምምነት ይጠብቃል።
+Forget account	መለያ ርሳ
+Use another email	ሌላ ኢሜይል ተጠቀም
+Which email?	የትኛው ኢሜይል?
+Make an app password	የመተግበሪያ የይለፍ ቃል ፍጠር
+Paste it	ለጥፈው
+Connecting...	በመገናኘት ላይ...
+She can use your email now.	አሁን ኢሜይልህን መጠቀም ትችላለች።
+She's not watching your inbox.	የገቢ ሳጥንህን አትከታተልም።
+She's watching your inbox and deals with phishing she's sure of.	የገቢ ሳጥንህን ትከታተላለች እና እርግጠኛ የሆነችበትን ፊሽንግ ትንከባከባለች።
+She's watching your inbox and tells you when mail lands.	የገቢ ሳጥንህን ትከታተላለች እና ኢሜይል ሲመጣ ትነግርሃለች።
+She forgot that account and its app password.	ያን መለያ እና የመተግበሪያ የይለፍ ቃሉን ረሳች።
+She forgot that account. Its app password is gone from this PC.	ያን መለያ ረሳች። የመተግበሪያ የይለፍ ቃሉ ከዚህ ኮምፒውተር ጠፋ።

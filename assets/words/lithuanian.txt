@@ -30,6 +30,7 @@ Ask Capri for more	Paprašykite Capri daugiau
 Asking your server...	Klausiama jūsų serverio...
 Asks before closing only the apps you choose.	Klausia prieš uždarant tik jūsų pasirinktas programas.
 Auto	Auto
+Auto (match what I say)	Auto (pagal tai, ką sakau)
 Automatic: VB-CABLE, else Steam's	Automatiškai: VB-CABLE, kitaip Steam
 BAD RELAY HOST	BLOGAS RELAY SERVERIS
 BIG Z open notepad	BIG Z atidaryti notepad
@@ -290,6 +291,7 @@ Huge	Didžiulis
 I can hear you.	Aš tave girdžiu.
 I glance at your screen and comment. Costs a little on a paid brain.	Žvilgteliu į jūsų ekraną ir komentuoju. Mokamoms smegenims šiek tiek kainuoja.
 I keep listening. Say my name, then just talk.	Toliau klausausi. Ištarkite mano vardą ir tiesiog kalbėkite.
+I speak	Kalbu
 I talk about your game as you play. Costs a little on a paid brain.	Kalbu apie jūsų žaidimą, kol žaidžiate. Mokamoms smegenims šiek tiek kainuoja.
 I type my replies and stay quiet.	Rašau savo atsakymus ir tyliu.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Neatsakinėsiu balsu, ir niekas nesiunčiama. Vis tiek būsiu šalia, šokinėsiu pagal jūsų muziką ir darysiu greitus dalykus, kuriuos paprašysite, pavyzdžiui, garsumą.
@@ -598,6 +600,7 @@ SKILL.	ĮGŪDIS.
 SKIN.	ODA.
 SORT BY	RŪŠIUOTI PAGAL
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	GARSAI ĮPROČIAI SMEGENYS ŽIŪRĖTI CAPRI DOOMSCROLL ORAS KLIPAI ŽAIDIMAI KLAVIŠAI JUDESIAI BALSAS JŪS
+Same as I speak	Kaip mano kalba
 Same as her ears (VOICE > Mic)	Tas pats kaip jos ausys (BALSAS > Mikrofonas)
 Same code on the phone?	Tas pats kodas telefone?
 Save	Išsaugoti
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Nustatymams nebuvo ką stebėti.
 Settings lost keyboard focus during the Tab walk	Nustatymai prarado klaviatūros fokusą per Tab eigą
 Setup guide	Sąrankos vadovas
 Setup stopped	Sąranka sustabdyta
+She answers in	Ji atsako
 She can read it when it fits.	Ji gali tai perskaityti, kai telpa.
 She glances at your screen and comments. Costs a little on a paid brain.	Ji žvilgteli į jūsų ekraną ir komentuoja. Mokamoms smegenims šiek tiek kainuoja.
-She keeps listening. Say her name, then just talk until you go quiet.	Ji toliau klausosi. Ištarkite jos vardą ir kalbėkite, kol nutilsite.
+She keeps listening. Say her name, then just talk.	Ji toliau klausosi. Ištarkite jos vardą ir kalbėkite.
 She reacts to your game until you close it.	Ji reaguoja į jūsų žaidimą, kol jį uždarysite.
 She reads these controls before each game job.	Ji perskaito šiuos valdymus prieš kiekvieną žaidimo darbą.
 She talks about your game as you play. Costs a little on a paid brain.	Ji kalba apie jūsų žaidimą, kol žaidžiate. Mokamoms smegenims šiek tiek kainuoja.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	nerašys kitose pro
 · HD	· HD
 · on this PC	· šiame PC
 · server	· serveris
+Edit as text	Redaguoti kaip tekstą
+What Capri remembers about you. It stays on this computer.	Ką Capri atsimena apie tave. Lieka šiame kompiuteryje.
+Tell her something to remember	Pasakyk jai ką nors įsimintino
+Search her memory	Ieškoti jos atmintyje
+That day isn't there any more.	Tos dienos nebėra.
+Undo	Atšaukti
+Remember our chats is off, so she isn't keeping new chat memories.	Atsiminti mūsų pokalbius išjungta, todėl ji nesaugo naujų pokalbių atsiminimų.
+ABOUT YOU	APIE TAVE
+FROM YOUR CHATS	IŠ TAVO POKALBIŲ
+GAMES	ŽAIDIMAI
+CHAT LOGS	POKALBIŲ ŽURNALAI
+CHAT LOG	POKALBIO ŽURNALAS
+Nothing matches.	Nieko nerasta.
+Nothing yet.	Dar nieko.
+Reading her notes.	Skaito jos užrašus.
+Click again to forget game notes	Spustelėk dar kartą, kad pamirštum žaidimų užrašus
+Forget game notes	Pamiršti žaidimų užrašus
+Click again to forget everything about me	Spustelėk dar kartą, kad pamirštum viską apie tave
+Forget everything about me	Pamiršti viską apie tave
+Click again to forget	Spustelėk dar kartą, kad pamirštum
+Forget this day	Pamiršti šią dieną
+Only the start of this day is shown.	Rodoma tik šios dienos pradžia.
+Nothing in this day.	Nieko šią dieną.
+No chats kept yet.	Pokalbiai dar neišsaugoti.
+You	Tu
+{0} line	{0} eilutė
+SET UP EMAIL >	NUSTATYTI EL. PAŠTĄ >
+SET UP EMAIL	NUSTATYTI EL. PAŠTĄ
+Or type your address	Arba įvesk savo adresą
+Email address	El. pašto adresas
+Open the page	Atidaryti puslapį
+App password	Programėlės slaptažodis
+IMAP server	IMAP serveris
+Incoming mail server	Gaunamojo pašto serveris
+SMTP server	SMTP serveris
+Outgoing mail server	Siunčiamojo pašto serveris
+An app password is a separate password just for Capri. Your normal password stays yours.	Programėlės slaptažodis yra atskiras slaptažodis tik Capri. Tavo įprastas slaptažodis lieka tavo.
+She keeps it only until she closes.	Ji saugo jį tik iki užsidarymo.
+She checks, searches and reads your mail. She asks before she sends any.	Ji tikrina, ieško ir skaito tavo paštą. Prieš ką nors siųsdama paklausia.
+Watch for new mail	Stebėti naują paštą
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ji pasako, kai ateina paštas, įspėdama, jei tai atrodo kaip sukčiavimas. Niekas nepažymima kaip perskaityta.
+Deal with phishing on her own	Susitvarkyti su sukčiavimu pačiai
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Tik kol ji stebi. Paštas, dėl kurio ji tikra, kad tai sukčiavimas, keliauja į šlamštą. Likusi dalis laukia tavo taip.
+Forget account	Pamiršti paskyrą
+Use another email	Naudoti kitą el. paštą
+Which email?	Kuris el. paštas?
+Make an app password	Sukurti programėlės slaptažodį
+Paste it	Įklijuok jį
+Connecting...	Jungiamasi...
+She can use your email now.	Ji dabar gali naudoti tavo el. paštą.
+She's not watching your inbox.	Ji nestebi tavo gautųjų.
+She's watching your inbox and deals with phishing she's sure of.	Ji stebi tavo gautuosius ir tvarkosi su sukčiavimu, dėl kurio yra tikra.
+She's watching your inbox and tells you when mail lands.	Ji stebi tavo gautuosius ir pasako, kai ateina paštas.
+She forgot that account and its app password.	Ji pamiršo tą paskyrą ir jos programėlės slaptažodį.
+She forgot that account. Its app password is gone from this PC.	Ji pamiršo tą paskyrą. Jos programėlės slaptažodis dingo iš šio kompiuterio.

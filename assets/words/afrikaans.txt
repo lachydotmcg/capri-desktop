@@ -30,6 +30,7 @@ Ask Capri for more	Vra Capri vir meer
 Asking your server...	Vra tans jou bediener...
 Asks before closing only the apps you choose.	Vra eers voordat net die programme wat jy kies, gesluit word.
 Auto	Outo
+Auto (match what I say)	Outo (volg wat ek sê)
 Automatic: VB-CABLE, else Steam's	Outomaties: VB-CABLE, anders Steam s'n
 BAD RELAY HOST	SLEGTE RELAISBEDIENER
 BIG Z open notepad	BIG Z maak kladblok oop
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Ek kan jou hoor.
 I glance at your screen and comment. Costs a little on a paid brain.	Ek kyk na jou skerm en kommentarieer. Kos 'n bietjie op 'n betaalde brein.
 I keep listening. Say my name, then just talk.	Ek luister aanhoudend. Sê my naam en praat dan net.
+I speak	Ek praat
 I talk about your game as you play. Costs a little on a paid brain.	Ek praat oor jou speletjie terwyl jy speel. Kos 'n bietjie op 'n betaalde brein.
 I type my replies and stay quiet.	Ek tik my antwoorde en bly stil.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ek sal nie terugpraat nie, en niks word êrens gestuur nie. Ek hang steeds rond, dans na jou musiek en doen die vinnige dinge wat jy vra, soos die volume.
@@ -598,6 +600,7 @@ SKILL.	VAARDIGHEID.
 SKIN.	VEL.
 SORT BY	SORTEER VOLGENS
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	KLANKE GEWOONTES BREIN KYK CAPRI DOOMSCROLL WEER KLIPPE SPELETJIES SLEUTELS BEWEGINGS STEM JOU
+Same as I speak	Dieselfde as ek praat
 Same as her ears (VOICE > Mic)	Dieselfde as haar ore (STEM > Mikrofoon)
 Same code on the phone?	Dieselfde kode op die foon?
 Save	Stoor
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Instellings het niks om te kyk nie.
 Settings lost keyboard focus during the Tab walk	Instellings het sleutelbordfokus verloor tydens die Tab-stap
 Setup guide	Opstelgids
 Setup stopped	Opstelling gestop
+She answers in	Sy antwoord in
 She can read it when it fits.	Sy kan dit lees wanneer dit pas.
 She glances at your screen and comments. Costs a little on a paid brain.	Sy kyk na jou skerm en kommentarieer. Kos 'n bietjie op 'n betaalde brein.
-She keeps listening. Say her name, then just talk until you go quiet.	Sy luister aanhoudend. Sê haar naam en praat dan net totdat jy stil raak.
+She keeps listening. Say her name, then just talk.	Sy luister aanhoudend. Sê haar naam en praat dan net.
 She reacts to your game until you close it.	Sy reageer op jou speletjie totdat jy dit toemaak.
 She reads these controls before each game job.	Sy lees hierdie beheerelemente voor elke speletjietaak.
 She talks about your game as you play. Costs a little on a paid brain.	Sy praat oor jou speletjie terwyl jy speel. Kos 'n bietjie op 'n betaalde brein.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	tik nie in ander pr
 · HD	· HD
 · on this PC	· op hierdie rekenaar
 · server	· bediener
+Edit as text	Wysig as teks
+What Capri remembers about you. It stays on this computer.	Wat Capri van jou onthou. Dit bly op hierdie rekenaar.
+Tell her something to remember	Vertel haar iets om te onthou
+Search her memory	Soek in haar geheue
+That day isn't there any more.	Daardie dag is nie meer daar nie.
+Undo	Ontdoen
+Remember our chats is off, so she isn't keeping new chat memories.	Onthou ons gesprekke is af, so sy hou nie nuwe gesprekherinneringe nie.
+ABOUT YOU	OOR JOU
+FROM YOUR CHATS	UIT JOU GESPREKKE
+GAMES	SPELE
+CHAT LOGS	GESPREKLOGS
+CHAT LOG	GESPREKLOG
+Nothing matches.	Niks pas nie.
+Nothing yet.	Nog niks.
+Reading her notes.	Lees haar notas.
+Click again to forget game notes	Klik weer om speletjie-notas te vergeet
+Forget game notes	Vergeet speletjie-notas
+Click again to forget everything about me	Klik weer om alles oor jou te vergeet
+Forget everything about me	Vergeet alles oor jou
+Click again to forget	Klik weer om te vergeet
+Forget this day	Vergeet hierdie dag
+Only the start of this day is shown.	Net die begin van hierdie dag word gewys.
+Nothing in this day.	Niks op hierdie dag nie.
+No chats kept yet.	Nog geen gesprekke gehou nie.
+You	Jy
+{0} line	{0} reël
+SET UP EMAIL >	STEL E-POS OP >
+SET UP EMAIL	STEL E-POS OP
+Or type your address	Of tik jou adres
+Email address	E-posadres
+Open the page	Maak die bladsy oop
+App password	Toepassingwagwoord
+IMAP server	IMAP-bediener
+Incoming mail server	Inkomende e-posbediener
+SMTP server	SMTP-bediener
+Outgoing mail server	Uitgaande e-posbediener
+An app password is a separate password just for Capri. Your normal password stays yours.	'n Toepassingwagwoord is 'n aparte wagwoord net vir Capri. Jou gewone wagwoord bly joune.
+She keeps it only until she closes.	Sy hou dit net totdat sy sluit.
+She checks, searches and reads your mail. She asks before she sends any.	Sy kyk, soek en lees jou e-pos. Sy vra voor sy enigiets stuur.
+Watch for new mail	Let op nuwe e-pos
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Sy praat wanneer e-pos aankom, met 'n waarskuwing as dit na phishing lyk. Niks word as gelees gemerk nie.
+Deal with phishing on her own	Hanteer phishing self
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Net terwyl sy oplet. E-pos wat sy seker is phishing is, gaan na spam. Die res wag vir jou ja.
+Forget account	Vergeet rekening
+Use another email	Gebruik ander e-pos
+Which email?	Watter e-pos?
+Make an app password	Maak 'n toepassingwagwoord
+Paste it	Plak dit
+Connecting...	Koppel...
+She can use your email now.	Sy kan nou jou e-pos gebruik.
+She's not watching your inbox.	Sy let nie op jou inkassie nie.
+She's watching your inbox and deals with phishing she's sure of.	Sy let op jou inkassie en hanteer phishing wat sy seker is.
+She's watching your inbox and tells you when mail lands.	Sy let op jou inkassie en sê wanneer e-pos aankom.
+She forgot that account and its app password.	Sy het daardie rekening en sy toepassingwagwoord vergeet.
+She forgot that account. Its app password is gone from this PC.	Sy het daardie rekening vergeet. Sy toepassingwagwoord is van hierdie rekenaar weg.

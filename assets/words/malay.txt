@@ -30,6 +30,7 @@ Ask Capri for more	Minta Capri lagi
 Asking your server...	Bertanya pelayan kau...
 Asks before closing only the apps you choose.	Bertanya sebelum menutup hanya aplikasi yang kau pilih.
 Auto	Auto
+Auto (match what I say)	Auto (ikut apa yang saya cakap)
 Automatic: VB-CABLE, else Steam's	Automatik: VB-CABLE, jika tidak Steam
 BAD RELAY HOST	HOS RELAY TIDAK SAH
 BIG Z open notepad	BIG Z buka notepad
@@ -290,6 +291,7 @@ Huge	Sangat besar
 I can hear you.	Aku boleh dengar kau.
 I glance at your screen and comment. Costs a little on a paid brain.	Aku menjeling skrin kau dan memberi komen. Menelan kos sedikit dengan otak berbayar.
 I keep listening. Say my name, then just talk.	Aku terus mendengar. Sebut nama aku, kemudian bercakap sahaja.
+I speak	Saya bercakap
 I talk about your game as you play. Costs a little on a paid brain.	Aku bercakap tentang permainan kau semasa kau bermain. Menelan kos sedikit dengan otak berbayar.
 I type my replies and stay quiet.	Aku menaip balasan aku dan kekal senyap.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Aku takkan membalas, dan tiada apa dihantar ke mana-mana. Aku tetap akan melepak, menari mengikut muzik kau dan melakukan perkara pantas yang kau minta, seperti kelantangan.
@@ -598,6 +600,7 @@ SKILL.	KEMAHIRAN.
 SKIN.	KULIT.
 SORT BY	SUSUN MENGIKUT
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	BUNYI KEBIASAAN OTAK TONTON CAPRI DOOMSCROLL CUACA KLIP PERMAINAN KEKUNCI GERAKAN SUARA KAU
+Same as I speak	Sama dengan bahasa saya
 Same as her ears (VOICE > Mic)	Sama seperti telinganya (SUARA > Mikrofon)
 Same code on the phone?	Kod sama pada telefon?
 Save	Simpan
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Tetapan tiada apa untuk ditonton.
 Settings lost keyboard focus during the Tab walk	Tetapan hilang fokus papan kekunci semasa laluan Tab
 Setup guide	Panduan persediaan
 Setup stopped	Persediaan dihentikan
+She answers in	Dia menjawab dalam
 She can read it when it fits.	Dia boleh membacanya apabila sesuai.
 She glances at your screen and comments. Costs a little on a paid brain.	Dia menjeling skrin kau dan memberi komen. Menelan kos sedikit dengan otak berbayar.
-She keeps listening. Say her name, then just talk until you go quiet.	Dia terus mendengar. Sebut namanya, kemudian bercakap sehingga kau senyap.
+She keeps listening. Say her name, then just talk.	Dia terus mendengar. Sebut namanya, kemudian bercakap.
 She reacts to your game until you close it.	Dia bertindak balas kepada permainan kau sehingga kau menutupnya.
 She reads these controls before each game job.	Dia membaca kawalan ini sebelum setiap tugas permainan.
 She talks about your game as you play. Costs a little on a paid brain.	Dia bercakap tentang permainan kau semasa kau bermain. Menelan kos sedikit dengan otak berbayar.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	tidak akan menaip d
 · HD	· HD
 · on this PC	· di PC ini
 · server	· pelayan
+Edit as text	Edit sebagai teks
+What Capri remembers about you. It stays on this computer.	Apa yang Capri ingat tentang anda. Ia kekal pada komputer ini.
+Tell her something to remember	Beritahu sesuatu untuk dia ingat
+Search her memory	Cari dalam ingatannya
+That day isn't there any more.	Hari itu tiada lagi.
+Undo	Buat asal
+Remember our chats is off, so she isn't keeping new chat memories.	Mengingati perbualan kita dimatikan, jadi dia tidak menyimpan memori perbualan baharu.
+ABOUT YOU	TENTANG ANDA
+FROM YOUR CHATS	DARIPADA PERBUALAN ANDA
+GAMES	PERMAINAN
+CHAT LOGS	LOG PERBUALAN
+CHAT LOG	LOG PERBUALAN
+Nothing matches.	Tiada yang sepadan.
+Nothing yet.	Belum ada.
+Reading her notes.	Membaca nota dia.
+Click again to forget game notes	Klik lagi untuk lupa nota permainan
+Forget game notes	Lupakan nota permainan
+Click again to forget everything about me	Klik lagi untuk lupa segala tentang anda
+Forget everything about me	Lupakan segala tentang anda
+Click again to forget	Klik lagi untuk lupa
+Forget this day	Lupakan hari ini
+Only the start of this day is shown.	Hanya permulaan hari ini dipaparkan.
+Nothing in this day.	Tiada apa-apa pada hari ini.
+No chats kept yet.	Belum ada perbualan disimpan.
+You	Anda
+{0} line	{0} baris
+SET UP EMAIL >	SEDIAKAN E-MEL >
+SET UP EMAIL	SEDIAKAN E-MEL
+Or type your address	Atau taip alamat anda
+Email address	Alamat e-mel
+Open the page	Buka halaman
+App password	Kata laluan aplikasi
+IMAP server	Pelayan IMAP
+Incoming mail server	Pelayan e-mel masuk
+SMTP server	Pelayan SMTP
+Outgoing mail server	Pelayan e-mel keluar
+An app password is a separate password just for Capri. Your normal password stays yours.	Kata laluan aplikasi ialah kata laluan berasingan khusus untuk Capri. Kata laluan biasa anda kekal milik anda.
+She keeps it only until she closes.	Dia menyimpannya hanya sehingga ditutup.
+She checks, searches and reads your mail. She asks before she sends any.	Dia menyemak, mencari dan membaca e-mel anda. Dia bertanya sebelum menghantar apa-apa.
+Watch for new mail	Pantau e-mel baharu
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Dia bercakap apabila e-mel tiba, dengan amaran jika ia kelihatan seperti phishing. Tiada apa-apa ditanda sebagai dibaca.
+Deal with phishing on her own	Uruskan phishing sendiri
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Hanya semasa dia memantau. E-mel yang dia pasti phishing pergi ke spam. Selebihnya menunggu persetujuan anda.
+Forget account	Lupakan akaun
+Use another email	Gunakan e-mel lain
+Which email?	E-mel yang mana?
+Make an app password	Buat kata laluan aplikasi
+Paste it	Tampal ia
+Connecting...	Menyambung...
+She can use your email now.	Dia kini boleh menggunakan e-mel anda.
+She's not watching your inbox.	Dia tidak memantau peti masuk anda.
+She's watching your inbox and deals with phishing she's sure of.	Dia memantau peti masuk anda dan menguruskan phishing yang dia pasti.
+She's watching your inbox and tells you when mail lands.	Dia memantau peti masuk anda dan memberitahu anda apabila e-mel tiba.
+She forgot that account and its app password.	Dia melupakan akaun itu dan kata laluan aplikasinya.
+She forgot that account. Its app password is gone from this PC.	Dia melupakan akaun itu. Kata laluan aplikasinya hilang dari komputer ini.

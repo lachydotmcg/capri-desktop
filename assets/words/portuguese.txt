@@ -30,6 +30,7 @@ Ask Capri for more	Peça mais à Capri
 Asking your server...	Consultando seu servidor...
 Asks before closing only the apps you choose.	Pergunta antes de fechar só os apps que você escolher.
 Auto	Auto
+Auto (match what I say)	Auto (segue o que eu digo)
 Automatic: VB-CABLE, else Steam's	Automático: VB-CABLE, senão o da Steam
 BAD RELAY HOST	HOST DE RELAY INVÁLIDO
 BIG Z open notepad	BIG Z abrir bloco de notas
@@ -290,6 +291,7 @@ Huge	Enorme
 I can hear you.	Eu consigo ouvir você.
 I glance at your screen and comment. Costs a little on a paid brain.	Eu dou uma olhada na sua tela e comento. Custa um pouco com um cérebro pago.
 I keep listening. Say my name, then just talk.	Continuo ouvindo. Diga meu nome e depois fale.
+I speak	Eu falo
 I talk about your game as you play. Costs a little on a paid brain.	Eu comento sobre seu jogo enquanto você joga. Custa um pouco com um cérebro pago.
 I type my replies and stay quiet.	Eu digito minhas respostas e fico quieta.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Eu não respondo em voz alta, e nada é enviado para lugar nenhum. Eu continuo por aqui, danço ao som da sua música e faço as coisas rápidas que você pedir, como o volume.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ORDENAR POR
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONS HÁBITOS CÉREBRO VIGIAR CAPRI SCROLLAR SEM FIM CLIMA CLIPES JOGOS TECLAS MOVIMENTOS VOZ VOCÊ
+Same as I speak	Igual ao que falo
 Same as her ears (VOICE > Mic)	Igual aos ouvidos dela (VOZ > Mic)
 Same code on the phone?	Mesmo código no celular?
 Save	Salvar
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Configurações não tinha nada para vigiar.
 Settings lost keyboard focus during the Tab walk	Configurações perdeu o foco do teclado durante a passagem pelo Tab
 Setup guide	Guia de configuração
 Setup stopped	Configuração interrompida
+She answers in	Ela responde em
 She can read it when it fits.	Ela pode ler quando couber.
 She glances at your screen and comments. Costs a little on a paid brain.	Ela dá uma olhada na sua tela e comenta. Custa um pouco com um cérebro pago.
-She keeps listening. Say her name, then just talk until you go quiet.	Ela continua ouvindo. Diga o nome dela e depois fale até você ficar quieto.
+She keeps listening. Say her name, then just talk.	Ela continua ouvindo. Diga o nome dela e depois fale.
 She reacts to your game until you close it.	Ela reage ao seu jogo até você fechá-lo.
 She reads these controls before each game job.	Ela lê estes controles antes de cada trabalho de jogo.
 She talks about your game as you play. Costs a little on a paid brain.	Ela comenta sobre seu jogo enquanto você joga. Custa um pouco com um cérebro pago.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	não digita em outr
 · HD	· HD
 · on this PC	· neste PC
 · server	· servidor
+Edit as text	Editar como texto
+What Capri remembers about you. It stays on this computer.	O que a Capri se lembra de ti. Fica neste computador.
+Tell her something to remember	Diz-lhe algo para lembrar
+Search her memory	Pesquisar na memória dela
+That day isn't there any more.	Esse dia já não está aqui.
+Undo	Anular
+Remember our chats is off, so she isn't keeping new chat memories.	Lembrar as nossas conversas está desligado, por isso ela não guarda novas memórias de chat.
+ABOUT YOU	SOBRE TI
+FROM YOUR CHATS	DAS TUAS CONVERSAS
+GAMES	JOGOS
+CHAT LOGS	REGISTOS DE CHAT
+CHAT LOG	REGISTO DE CHAT
+Nothing matches.	Nada corresponde.
+Nothing yet.	Ainda nada.
+Reading her notes.	A ler as notas dela.
+Click again to forget game notes	Clica outra vez para esquecer as notas dos jogos
+Forget game notes	Esquecer notas dos jogos
+Click again to forget everything about me	Clica outra vez para esquecer tudo sobre ti
+Forget everything about me	Esquecer tudo sobre ti
+Click again to forget	Clica outra vez para esquecer
+Forget this day	Esquecer este dia
+Only the start of this day is shown.	Só o início deste dia é mostrado.
+Nothing in this day.	Nada neste dia.
+No chats kept yet.	Ainda não há conversas guardadas.
+You	Tu
+{0} line	{0} linha
+SET UP EMAIL >	CONFIGURAR E-MAIL >
+SET UP EMAIL	CONFIGURAR E-MAIL
+Or type your address	Ou escreve o teu endereço
+Email address	Endereço de e-mail
+Open the page	Abrir a página
+App password	Palavra-passe da aplicação
+IMAP server	Servidor IMAP
+Incoming mail server	Servidor de correio recebido
+SMTP server	Servidor SMTP
+Outgoing mail server	Servidor de correio enviado
+An app password is a separate password just for Capri. Your normal password stays yours.	Uma palavra-passe da aplicação é uma palavra-passe separada só para a Capri. A tua palavra-passe normal continua a ser tua.
+She keeps it only until she closes.	Ela só a guarda até fechar.
+She checks, searches and reads your mail. She asks before she sends any.	Ela verifica, pesquisa e lê o teu correio. Pergunta antes de enviar.
+Watch for new mail	Vigiar correio novo
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ela fala quando chega correio, com um aviso se parecer phishing. Nada fica marcado como lido.
+Deal with phishing on her own	Tratar do phishing sozinha
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Só enquanto vigia. O correio que ela tem a certeza ser phishing vai para spam. O resto espera pelo teu sim.
+Forget account	Esquecer conta
+Use another email	Usar outro e-mail
+Which email?	Qual e-mail?
+Make an app password	Criar uma palavra-passe da aplicação
+Paste it	Cola-a
+Connecting...	A ligar...
+She can use your email now.	Ela já pode usar o teu e-mail.
+She's not watching your inbox.	Ela não está a vigiar a tua caixa de entrada.
+She's watching your inbox and deals with phishing she's sure of.	Ela está a vigiar a tua caixa e trata do phishing que reconhece.
+She's watching your inbox and tells you when mail lands.	Ela está a vigiar a tua caixa e avisa quando chega correio.
+She forgot that account and its app password.	Ela esqueceu essa conta e a palavra-passe da aplicação.
+She forgot that account. Its app password is gone from this PC.	Ela esqueceu essa conta. A palavra-passe da aplicação desapareceu deste PC.

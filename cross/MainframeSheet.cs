@@ -74,14 +74,14 @@ namespace CapriDesktop
             Button("View on GitHub", 470, 20, 128, 22, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
             refresh = Button("Refresh", 604, 20, 80, 22, LoadMods);
             Button("", Wide - 54, 20, 26, 22, Close).Glyph = 2;
-            Label("Every mod is checked for malware before it goes up. Code mods still ask before they run.", 28, 52, 688, 16, MainframeTheme.Faint, 34.0 / 3);
+            Label("Every mod is checked for malware before it goes up. Code mods and plug-ins still ask before they run.", 28, 52, 688, 16, MainframeTheme.Faint, 34.0 / 3);
             search = Put(Page, new NeonEntry("Search name, author or description"), 28, 74, 270, 26, "Search the mods directory");
             // Typing and Enter go through Program.Guard like the buttons, so a bug behind a box is written down instead of ending her.
             search.Box.TextChanged += delegate { Program.Guard(delegate { first = 0; FillDirectory(); }); };
             for (int i = 0; i < kinds.Length; i++)
             {
                 int choice = i;
-                kinds[i] = Button(ModDirectory.Kinds[i], 306 + i * 82, 76, 76, 22, delegate { PickKind(choice); });
+                kinds[i] = Button(ModDirectory.Kinds[i], 306 + i * 68, 76, 64, 22, delegate { PickKind(choice); });
                 AutomationProperties.SetName(kinds[i], "Show " + ModDirectory.Kinds[i].ToLowerInvariant() + " in the mods directory");
             }
             Label("SORT BY", 28, 109, 70, 16, MainframeTheme.Faint, 34.0 / 3);

@@ -30,6 +30,7 @@ Ask Capri for more	Capri سے مزید مانگیں
 Asking your server...	آپ کے سرور سے پوچھا جا رہا ہے...
 Asks before closing only the apps you choose.	صرف وہی ایپس بند کرنے سے پہلے پوچھتا ہے جو آپ منتخب کریں۔
 Auto	خودکار
+Auto (match what I say)	خودکار (جو میں کہوں)
 Automatic: VB-CABLE, else Steam's	خودکار: VB-CABLE، ورنہ Steam کا
 BAD RELAY HOST	غلط RELAY ہوسٹ
 BIG Z open notepad	BIG Z notepad کھولو
@@ -290,6 +291,7 @@ Huge	بہت بڑا
 I can hear you.	میں آپ کو سن سکتی ہوں۔
 I glance at your screen and comment. Costs a little on a paid brain.	میں آپ کی اسکرین پر نظر ڈالتی ہوں اور تبصرہ کرتی ہوں۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
 I keep listening. Say my name, then just talk.	میں سنتی رہتی ہوں۔ میرا نام کہیں، پھر بس بولیں۔
+I speak	میری زبان
 I talk about your game as you play. Costs a little on a paid brain.	جب آپ کھیلتے ہیں تو میں آپ کے گیم کے بارے میں بات کرتی ہوں۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
 I type my replies and stay quiet.	میں اپنے جواب ٹائپ کرتی ہوں اور خاموش رہتی ہوں۔
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	میں جواب نہیں دوں گی، اور کچھ بھی کہیں نہیں بھیجا جائے گا۔ میں پھر بھی آس پاس رہوں گی، آپ کے میوزک پر ناچوں گی اور وہ فوری کام کروں گی جو آپ کہیں، جیسے حجم۔
@@ -598,6 +600,7 @@ SKILL.	ہنر۔
 SKIN.	جلد۔
 SORT BY	ترتیب بذریعہ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	آوازیں عادات دماغ دیکھو CAPRI DOOMSCROLL موسم کلپس گیمز کلیدیں حرکات آواز آپ
+Same as I speak	میری زبان جیسی
 Same as her ears (VOICE > Mic)	اس کے کانوں جیسا (VOICE > Mic)
 Same code on the phone?	فون پر وہی کوڈ؟
 Save	محفوظ کریں
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Settings کے پاس دیکھنے کو کچھ ن�
 Settings lost keyboard focus during the Tab walk	Tab سفر کے دوران Settings نے کی بورڈ فوکس کھو دیا
 Setup guide	سیٹ اپ گائیڈ
 Setup stopped	سیٹ اپ رک گیا
+She answers in	وہ جواب دیتی ہے
 She can read it when it fits.	وہ اسے پڑھ سکتی ہے جب موزوں ہو۔
 She glances at your screen and comments. Costs a little on a paid brain.	وہ آپ کی اسکرین پر نظر ڈالتی ہے اور تبصرہ کرتی ہے۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
-She keeps listening. Say her name, then just talk until you go quiet.	وہ سنتی رہتی ہے۔ اس کا نام کہیں، پھر خاموش ہونے تک بولیں۔
+She keeps listening. Say her name, then just talk.	وہ سنتی رہتی ہے۔ اس کا نام کہیں، پھر بولیں۔
 She reacts to your game until you close it.	وہ آپ کے گیم پر ردِعمل دیتی ہے جب تک آپ اسے بند نہ کریں۔
 She reads these controls before each game job.	وہ ہر گیم کام سے پہلے یہ کنٹرولز پڑھتی ہے۔
 She talks about your game as you play. Costs a little on a paid brain.	آپ کے کھیلنے کے دوران وہ آپ کے گیم کے بارے میں بات کرتی ہے۔ ادائیگی والے دماغ پر تھوڑا خرچ آتا ہے۔
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	یہ اس کے چل
 · HD	· HD
 · on this PC	· اس PC پر
 · server	· سرور
+Edit as text	متن کے طور پر ترمیم کریں
+What Capri remembers about you. It stays on this computer.	Capri آپ کے بارے میں کیا یاد رکھتی ہے۔ یہ اسی کمپیوٹر پر رہتا ہے۔
+Tell her something to remember	اسے یاد رکھنے کے لیے کچھ بتائیں
+Search her memory	اس کی یاد میں تلاش کریں
+That day isn't there any more.	وہ دن اب نہیں ہے۔
+Undo	واپس کریں
+Remember our chats is off, so she isn't keeping new chat memories.	ہماری چیٹس یاد رکھنا بند ہے، اس لیے وہ نئی چیٹ یادیں نہیں رکھتی۔
+ABOUT YOU	آپ کے بارے میں
+FROM YOUR CHATS	آپ کی چیٹس سے
+GAMES	گیمز
+CHAT LOGS	چیٹ لاگز
+CHAT LOG	چیٹ لاگ
+Nothing matches.	کچھ نہیں ملتا۔
+Nothing yet.	ابھی کچھ نہیں۔
+Reading her notes.	اس کے نوٹس پڑھے جا رہے ہیں۔
+Click again to forget game notes	گیم نوٹس بھولنے کے لیے دوبارہ کلک کریں
+Forget game notes	گیم نوٹس بھولیں
+Click again to forget everything about me	اپنے بارے میں سب بھولنے کے لیے دوبارہ کلک کریں
+Forget everything about me	اپنے بارے میں سب بھولیں
+Click again to forget	بھولنے کے لیے دوبارہ کلک کریں
+Forget this day	یہ دن بھولیں
+Only the start of this day is shown.	اس دن کا صرف آغاز دکھایا جاتا ہے۔
+Nothing in this day.	اس دن کچھ نہیں۔
+No chats kept yet.	ابھی کوئی چیٹ محفوظ نہیں۔
+You	آپ
+{0} line	{0} سطر
+SET UP EMAIL >	ای میل سیٹ کریں >
+SET UP EMAIL	ای میل سیٹ کریں
+Or type your address	یا اپنا پتہ لکھیں
+Email address	ای میل پتہ
+Open the page	صفحہ کھولیں
+App password	ایپ پاس ورڈ
+IMAP server	IMAP سرور
+Incoming mail server	آنے والی میل کا سرور
+SMTP server	SMTP سرور
+Outgoing mail server	جانے والی میل کا سرور
+An app password is a separate password just for Capri. Your normal password stays yours.	ایپ پاس ورڈ صرف Capri کے لیے الگ پاس ورڈ ہے۔ آپ کا عام پاس ورڈ آپ ہی کا رہتا ہے۔
+She keeps it only until she closes.	وہ اسے صرف بند ہونے تک رکھتی ہے۔
+She checks, searches and reads your mail. She asks before she sends any.	وہ آپ کی میل چیک، تلاش اور پڑھتی ہے۔ کچھ بھیجنے سے پہلے پوچھتی ہے۔
+Watch for new mail	نئی میل پر نظر رکھیں
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	میل آنے پر وہ بولتی ہے، فشنگ لگے تو خبردار کرتی ہے۔ کچھ بھی پڑھا ہوا نشان زد نہیں ہوتا۔
+Deal with phishing on her own	فشنگ خود سنبھالیں
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	صرف جب وہ نظر رکھتی ہے۔ جس میل کو وہ یقینی فشنگ سمجھتی ہے وہ اسپام میں جاتا ہے۔ باقی آپ کی ہاں کا انتظار کرتا ہے۔
+Forget account	اکاؤنٹ بھولیں
+Use another email	دوسرا ای میل استعمال کریں
+Which email?	کون سا ای میل؟
+Make an app password	ایپ پاس ورڈ بنائیں
+Paste it	اسے پیسٹ کریں
+Connecting...	منسلک ہو رہا ہے...
+She can use your email now.	اب وہ آپ کا ای میل استعمال کر سکتی ہے۔
+She's not watching your inbox.	وہ آپ کے ان باکس پر نظر نہیں رکھ رہی۔
+She's watching your inbox and deals with phishing she's sure of.	وہ آپ کے ان باکس پر نظر رکھ رہی ہے اور جس فشنگ پر اسے یقین ہے اسے سنبھالتی ہے۔
+She's watching your inbox and tells you when mail lands.	وہ آپ کے ان باکس پر نظر رکھتی ہے اور میل آنے پر بتاتی ہے۔
+She forgot that account and its app password.	وہ وہ اکاؤنٹ اور اس کا ایپ پاس ورڈ بھول گئی۔
+She forgot that account. Its app password is gone from this PC.	وہ وہ اکاؤنٹ بھول گئی۔ اس کا ایپ پاس ورڈ اس کمپیوٹر سے غائب ہو گیا۔

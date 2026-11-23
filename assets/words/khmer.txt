@@ -30,6 +30,7 @@ Ask Capri for more	សួរ Capri បន្ថែម
 Asking your server...	កំពុងសួរម៉ាស៊ីនមេរបស់អ្នក...
 Asks before closing only the apps you choose.	សួរមុនបិទតែកម្មវិធីដែលអ្នកជ្រើសរើសប៉ុណ្ណោះ។
 Auto	ស្វ័យប្រវត្តិ
+Auto (match what I say)	ស្វ័យប្រវត្តិ (តាមអ្វីដែលខ្ញុំនិយាយ)
 Automatic: VB-CABLE, else Steam's	ស្វ័យប្រវត្តិ៖ VB-CABLE បើមិនដូច្នេះ Steam
 BAD RELAY HOST	ម៉ាស៊ីនបញ្ជូនបន្តមិនត្រឹមត្រូវ
 BIG Z open notepad	BIG Z បើក notepad
@@ -290,6 +291,7 @@ Huge	ធំ
 I can hear you.	ខ្ញុំអាចឮអ្នក។
 I glance at your screen and comment. Costs a little on a paid brain.	ខ្ញុំក្រឡេកមើលអេក្រង់របស់អ្នក ហើយផ្ដល់មតិ។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
 I keep listening. Say my name, then just talk.	ខ្ញុំនៅតែស្ដាប់។ ហៅឈ្មោះខ្ញុំ បន្ទាប់មកនិយាយតែប៉ុណ្ណោះ។
+I speak	ខ្ញុំនិយាយ
 I talk about your game as you play. Costs a little on a paid brain.	ខ្ញុំនិយាយអំពីហ្គេមរបស់អ្នកពេលអ្នកលេង។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
 I type my replies and stay quiet.	ខ្ញុំវាយចម្លើយរបស់ខ្ញុំ ហើយនៅស្ងៀម។
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ខ្ញុំនឹងមិននិយាយឆ្លើយទេ ហើយគ្មានអ្វីត្រូវបានផ្ញើទៅកន្លែងណាទេ។ ខ្ញុំនៅតែឡើងចុះ រាំតាមតន្ត្រីរបស់អ្នក ហើយធ្វើការងារលឿនដែលអ្នកស្នើសុំ ដូចជាកម្រិតសំឡេង។
@@ -598,6 +600,7 @@ SKILL.	ជំនាញ។
 SKIN.	ស្បែក។
 SORT BY	តម្រៀបតាម
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	សំឡេង និស្ស័យ ខួរក្បាល មើល CAPRI DOOMSCROLL អាកាសធាតុ ក្លីប ហ្គេម គ្រាប់ចុច ចលនា សំឡេង របស់អ្នក
+Same as I speak	ដូចភាសាខ្ញុំ
 Same as her ears (VOICE > Mic)	ដូចត្រចៀករបស់នាង (សំឡេង > មីក្រូហ្វូន)
 Same code on the phone?	កូដដូចគ្នានៅលើទូរស័ព្ទឬ?
 Save	រក្សាទុក
@@ -633,9 +636,10 @@ Settings had nothing to watch.	ការកំណត់មិនមានអ្�
 Settings lost keyboard focus during the Tab walk	ការកំណត់បាត់បង់ការផ្តោតលើក្តារចុចកំឡុងពេលរំកិល Tab
 Setup guide	មគ្គុទ្ទេសក៍រៀបចំ
 Setup stopped	ការរៀបចំបានបញ្ឈប់
+She answers in	នាងឆ្លើយជា
 She can read it when it fits.	នាងអាចអានវាបានពេលសមស្រប។
 She glances at your screen and comments. Costs a little on a paid brain.	នាងក្រឡេកមើលអេក្រង់របស់អ្នក ហើយផ្ដល់មតិ។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
-She keeps listening. Say her name, then just talk until you go quiet.	នាងនៅតែស្ដាប់។ ហៅឈ្មោះនាង បន្ទាប់មកនិយាយរហូតដល់អ្នកស្ងៀម។
+She keeps listening. Say her name, then just talk.	នាងនៅតែស្ដាប់។ ហៅឈ្មោះនាង បន្ទាប់មកនិយាយ។
 She reacts to your game until you close it.	នាងឆ្លើយតបនឹងហ្គេមរបស់អ្នករហូតដល់អ្នកបិទវា។
 She reads these controls before each game job.	នាងអានការគ្រប់គ្រងទាំងនេះមុនការងារហ្គេមនីមួយៗ។
 She talks about your game as you play. Costs a little on a paid brain.	នាងនិយាយអំពីហ្គេមរបស់អ្នកពេលអ្នកលេង។ មានថ្លៃបន្តិចលើខួរក្បាលដែលបង់ប្រាក់។
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	នឹងមិន�
 · HD	· HD
 · on this PC	· នៅលើកុំព្យូទ័រនេះ
 · server	· ម៉ាស៊ីនមេ
+Edit as text	កែសម្រួលជាអត្ថបទ
+What Capri remembers about you. It stays on this computer.	អ្វីដែល Capri ចងចាំអំពីអ្នក។ វានៅលើកុំព្យូទ័រនេះ។
+Tell her something to remember	ប្រាប់នាងពីអ្វីដែលត្រូវចងចាំ
+Search her memory	ស្វែងរកក្នុងការចងចាំរបស់នាង
+That day isn't there any more.	ថ្ងៃនោះលែងមានហើយ។
+Undo	ត្រឡប់វិញ
+Remember our chats is off, so she isn't keeping new chat memories.	ការចងចាំការសន្ទនារបស់យើងបិទ ដូច្នេះនាងមិនរក្សាទុកការចងចាំការសន្ទនាថ្មីទេ។
+ABOUT YOU	អំពីអ្នក
+FROM YOUR CHATS	ពីការសន្ទនារបស់អ្នក
+GAMES	ហ្គេម
+CHAT LOGS	កំណត់ហេតុការសន្ទនា
+CHAT LOG	កំណត់ហេតុការសន្ទនា
+Nothing matches.	គ្មានអ្វីត្រូវគ្នាទេ។
+Nothing yet.	មិនមានអ្វីនៅឡើយទេ។
+Reading her notes.	កំពុងអានកំណត់ត្រារបស់នាង។
+Click again to forget game notes	ចុចម្តងទៀតដើម្បីបំភ្លេចកំណត់ត្រាហ្គេម
+Forget game notes	បំភ្លេចកំណត់ត្រាហ្គេម
+Click again to forget everything about me	ចុចម្តងទៀតដើម្បីបំភ្លេចអ្វីៗអំពីអ្នក
+Forget everything about me	បំភ្លេចអ្វីៗអំពីអ្នក
+Click again to forget	ចុចម្តងទៀតដើម្បីបំភ្លេច
+Forget this day	បំភ្លេចថ្ងៃនេះ
+Only the start of this day is shown.	មានតែការចាប់ផ្តើមនៃថ្ងៃនេះប៉ុណ្ណោះដែលត្រូវបានបង្ហាញ។
+Nothing in this day.	គ្មានអ្វីនៅថ្ងៃនេះទេ។
+No chats kept yet.	មិនទាន់មានការសន្ទនាត្រូវបានរក្សាទុកនៅឡើយទេ។
+You	អ្នក
+{0} line	{0} បន្ទាត់
+SET UP EMAIL >	រៀបចំអ៊ីមែល >
+SET UP EMAIL	រៀបចំអ៊ីមែល
+Or type your address	ឬវាយអាសយដ្ឋានរបស់អ្នក
+Email address	អាសយដ្ឋានអ៊ីមែល
+Open the page	បើកទំព័រ
+App password	ពាក្យសម្ងាត់កម្មវិធី
+IMAP server	ម៉ាស៊ីនមេ IMAP
+Incoming mail server	ម៉ាស៊ីនមេអ៊ីមែលចូល
+SMTP server	ម៉ាស៊ីនមេ SMTP
+Outgoing mail server	ម៉ាស៊ីនមេអ៊ីមែលចេញ
+An app password is a separate password just for Capri. Your normal password stays yours.	ពាក្យសម្ងាត់កម្មវិធីគឺជាពាក្យសម្ងាត់ដាច់ដោយឡែកសម្រាប់តែ Capri។ ពាក្យសម្ងាត់ធម្មតារបស់អ្នកនៅតែជារបស់អ្នក។
+She keeps it only until she closes.	នាងរក្សាវាតែរហូតដល់បិទ។
+She checks, searches and reads your mail. She asks before she sends any.	នាងពិនិត្យ ស្វែងរក និងអានអ៊ីមែលរបស់អ្នក។ នាងសួរមុននឹងផ្ញើអ្វីមួយ។
+Watch for new mail	តាមដានអ៊ីមែលថ្មី
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	នាងនិយាយពេលអ៊ីមែលមកដល់ ជាមួយការព្រមានប្រសិនបើវាមើលទៅដូច phishing។ គ្មានអ្វីត្រូវបានសម្គាល់ថាបានអានទេ។
+Deal with phishing on her own	ដោះស្រាយ phishing ដោយខ្លួនឯង
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	តែពេលនាងតាមដាន។ អ៊ីមែលដែលនាងប្រាកដថា phishing នឹងទៅ spam។ នៅសល់រង់ចាំការយល់ព្រមរបស់អ្នក។
+Forget account	បំភ្លេចគណនី
+Use another email	ប្រើអ៊ីមែលផ្សេង
+Which email?	អ៊ីមែលណា?
+Make an app password	បង្កើតពាក្យសម្ងាត់កម្មវិធី
+Paste it	បិទភ្ជាប់វា
+Connecting...	កំពុងភ្ជាប់...
+She can use your email now.	ឥឡូវនាងអាចប្រើអ៊ីមែលរបស់អ្នកបានហើយ។
+She's not watching your inbox.	នាងមិនតាមដានប្រអប់សំបុត្ររបស់អ្នកទេ។
+She's watching your inbox and deals with phishing she's sure of.	នាងតាមដានប្រអប់សំបុត្ររបស់អ្នក និងដោះស្រាយ phishing ដែលនាងប្រាកដ។
+She's watching your inbox and tells you when mail lands.	នាងតាមដានប្រអប់សំបុត្ររបស់អ្នក ហើយប្រាប់អ្នកពេលអ៊ីមែលមកដល់។
+She forgot that account and its app password.	នាងបំភ្លេចគណនីនោះ និងពាក្យសម្ងាត់កម្មវិធីរបស់វា។
+She forgot that account. Its app password is gone from this PC.	នាងបំភ្លេចគណនីនោះ។ ពាក្យសម្ងាត់កម្មវិធីរបស់វាបាត់ពីកុំព្យូទ័រនេះ។

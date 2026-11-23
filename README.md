@@ -7,8 +7,7 @@
 **Bring Capri (back lol) to life as a desktop companion!**<br>
 She sits on your windows, talks back, joins your calls, plays your games and gets into everything.
 
-<a href="https://apps.microsoft.com/detail/9P0KFRB76X0G"><img src="https://img.shields.io/badge/Get%20it%20from%20Microsoft%20Store-ff2a6d?style=for-the-badge" alt="Get it from the Microsoft Store"></a>
-<a href="https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe"><img src="https://img.shields.io/badge/Latest%20release%20for%20Windows-05d9e8?style=for-the-badge" alt="Download the latest release for Windows"></a>
+<a href="https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe"><img src="https://img.shields.io/badge/Download%20for%20Windows-ff2a6d?style=for-the-badge" alt="Download for Windows"></a>
 <a href="#mac-and-linux-preview"><img src="https://img.shields.io/badge/Mac%20and%20Linux-1b1d21?style=for-the-badge" alt="Mac and Linux"></a>
 <a href="#capri-vr"><img src="https://img.shields.io/badge/Capri%20VR%20for%20Quest-7854f0?style=for-the-badge" alt="Capri VR for Meta Quest"></a>
 
@@ -18,7 +17,7 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 
 [Every download](https://capriai.app/#download) · [Setup guide](https://capriai.app/setup/) · [Website](https://capriai.app/) · [Help](https://capriai.app/help/) · [Support](#support)
 
-<sub>Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G), and check it against the release's `SHA256SUMS.txt` ([how](SECURITY.md#windows-or-your-antivirus-warned-me)). Copies on other sites or GitHub accounts aren't ours. Zero telemetry.</sub>
+<sub>Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases) or [capriai.app](https://capriai.app/), and check it against the release's `SHA256SUMS.txt` ([how](SECURITY.md#windows-or-your-antivirus-warned-me)). Copies on other sites or GitHub accounts aren't ours. Zero telemetry.</sub>
 
 <sub>Inspired by jpartnma_'s TikTok video.</sub>
 
@@ -127,7 +126,7 @@ Beware that Capri may try to take over your human CPU. We take no responsibility
 
 0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
 
-Mac and Linux can hear one line at a time through **TALK** once you set up her offline ears below, in English or any language you put a model in for. Calls and wake words are Windows only for now.
+Mac and Linux can hear one line at a time through **TALK** once you set up her offline ears below, in English or any language you put a model in for. Calls are Windows only for now. Wake words work on Apple Silicon Macs and on Linux too, once her offline ears are set up.
 
 On Linux, streaming computer-use jobs are unavailable when Capri has to use her fallback desktop controls. Other computer-use jobs are unchanged.
 
@@ -213,13 +212,13 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 <details>
 <summary><a name="getting-started-1"><img src="site/assets/presence/plugged.gif" alt="Capri glitching as she powers up" width="96" align="left"></a><h2><a name="getting-started"></a>Getting started</h2><br>Three steps, and what your PC needs<br clear="left"></summary>
 
-1. Get her from the **[Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G)** and open her, or download the latest release, **[Capri-Setup.exe](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe)**, and run it
+1. Download **[Capri-Setup.exe](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe)** and run it
 2. In the Capri Mainframe, press **Set up her brain**, or press **Free key** to use a free NVIDIA key
 3. Optional: pick another voice under **VOICE** (see [Her voice](#her-voice))
 
-**Two ways to get her on Windows.** The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI, 0.8.9) is signed and checked by Microsoft, so there's no warning. It has Capri Remote and updates through the Store. The latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. Both are on [capriai.app](https://capriai.app/#download), with the one for your device on top.
+**On Windows,** the latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so SmartScreen may show an unrecognized-app warning. Check the official release and checksum before deciding whether to run it. A named malware detection is different: keep the file quarantined and report the exact detection for review. Every download is on [capriai.app](https://capriai.app/#download), with the one for your device on top. The Microsoft Store copy isn't available to download right now.
 
-Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases), [capriai.app](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Every release has a `SHA256SUMS.txt` with the SHA-256 of each file, Windows, Mac and Linux, and [SECURITY.md](SECURITY.md#windows-or-your-antivirus-warned-me) shows how to check yours. Copies on other sites or GitHub accounts aren't ours.
+Only download Capri from [github.com/lachydotmcg/capri-desktop releases](https://github.com/lachydotmcg/capri-desktop/releases) or [capriai.app](https://capriai.app/). Every release has a `SHA256SUMS.txt` with the SHA-256 of each file, Windows, Mac and Linux, and [SECURITY.md](SECURITY.md#windows-or-your-antivirus-warned-me) shows how to check yours. Copies on other sites or GitHub accounts aren't ours.
 
 **Zero telemetry.** No analytics, crash reports or usage pings. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
 
@@ -266,7 +265,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 | Shift + drop | sit her right where you drop her |
 | Ctrl + drop | she hangs on; click her to let go |
 | Mic button | mute your mic in voice chat |
-| "Hey Capri" | she glitches in and opens voice chat. Turn on Listen for Capri under Settings > VOICE (Windows and English for now) |
+| "Hey Capri" | she answers, and your next line needs no name. Turn on Listen for Capri under Settings > VOICE (Windows and English for now) |
 | Ctrl + Alt + V | start or stop voice chat (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + N | mute your mic (click its hint in the Mainframe to change it) |
 | Ctrl + Alt + T | open her typing box from anywhere |
@@ -454,9 +453,9 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 - [x] The Mainframe, laid out like Windows (0.8.3)
 - [x] Mods: the Mods window, settings mods, colour sets and skins (0.8.3)
 - [ ] Voice chat and her free voice
-- [ ] Jobs with her own cursor
-- [ ] Updates that install themselves
-- [ ] Apple approving (notarizing) her, so macOS stops blocking her
+- [x] Jobs that click and type for you, with her own pointer on screen, once her hands are ready: Accessibility and Screen Recording on a Mac, uinput or her capri-input helper on Linux
+- [x] Updates that install themselves from the Mac app and the Linux AppImage; a tarball or package opens the download page instead
+- [ ] Apple approving (notarizing) her, so macOS stops blocking her; until then the Mac zip carries "If Capri won't open.txt" with the one-time steps
 - [ ] Everything else Windows has, so they stop being an early preview
 
 **Setup and updates**
@@ -499,7 +498,7 @@ Free for anything non-commercial: use her, share her, change her. No selling her
 
 Have fun and more updates to come!
 
-<sub>Window perch and music perch animations: her artist, who prefers to stay private. Click effect: mixmix312352. Transformation animation she forms from when she teleports, and her two secret emotes: Qewiw (mix_qewiw1412_86144). Starter mods: Vocyn. Capri VR (Capri Room): fadievr. Mac and Linux Mainframe theme: Denoax. Setup guide based on Dancer's guide in the Discord. Font: Share Tech Mono (OFL). Free voice: Kokoro-82M (Apache-2.0). Her own ears: [NVIDIA Parakeet TDT 0.6B v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) for English and Ultra for 25 European languages (weights by Moondream, trained from [nvidia/parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3); both [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)), int8 exports by sherpa-onnx. Both run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache-2.0). HD voice: [Qwen3-TTS 1.7B](https://github.com/QwenLM/Qwen3-TTS) (Apache-2.0), run with [qwentts.cpp](https://github.com/ServeurpersoCom/qwentts.cpp) (MIT). Her voice in your mic: [VB-CABLE](https://vb-cable.com) by VB-Audio, donationware, carried unchanged and installed only by its own setup. Other notices: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).</sub>
+<sub>Window perch and music perch animations: her artist, who prefers to stay private. Click effect: mixmix312352. Transformation animation she forms from when she teleports, and her two secret emotes: Qewiw (mix_qewiw1412_86144). Starter mods: Vocyn. Capri VR (Capri Room): fadievr. Mac and Linux Mainframe theme: Denoax. Setup guide based on Dancer's guide in the Discord. Font: Share Tech Mono (OFL). Free voice: Kokoro-82M (Apache-2.0). Her own ears: [NVIDIA Parakeet TDT 0.6B v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) for English and Ultra for 25 European languages (weights by Moondream, trained from [nvidia/parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3); both [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)), int8 exports by sherpa-onnx. Both run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache-2.0). HD voice: [Qwen3-TTS 1.7B](https://github.com/QwenLM/Qwen3-TTS) (Apache-2.0), run with [qwentts.cpp](https://github.com/ServeurpersoCom/qwentts.cpp) (MIT). Her voice in your mic: [VB-CABLE](https://vb-cable.com) by VB-Audio, donationware, carried unchanged and installed only by its own setup. Service logos on the plug-in and email tiles: [Simple Icons](https://simpleicons.org) (CC0); each logo is its owner's trademark. Other notices: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).</sub>
 
 ## Star history
 

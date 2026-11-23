@@ -30,6 +30,7 @@ Ask Capri for more	Iarr ar Capri níos mó
 Asking your server...	Ag fiafraí de do fhreastalaí...
 Asks before closing only the apps you choose.	Fiafraíonn sé sula ndúnfaidh sé na haipeanna a roghnaíonn tú amháin.
 Auto	Uathoibríoch
+Auto (match what I say)	Uathoibríoch (de réir mo chainte)
 Automatic: VB-CABLE, else Steam's	Uathoibríoch: VB-CABLE, nó ceann Steam
 BAD RELAY HOST	ÓSTACH ATHSEOLTA MÍCHEART
 BIG Z open notepad	BIG Z oscail notepad
@@ -290,6 +291,7 @@ Huge	Ollmhór
 I can hear you.	Tá mé in ann tú a chloisteáil.
 I glance at your screen and comment. Costs a little on a paid brain.	Féachaim ar do scáileán agus déanaim tráchtaireacht. Costas beag ar intinn íoctha.
 I keep listening. Say my name, then just talk.	Leanaim orm ag éisteacht. Abair m'ainm, ansin labhair go díreach.
+I speak	Labhraím
 I talk about your game as you play. Costs a little on a paid brain.	Labhraím faoi do chluiche agus tú ag imirt. Costas beag ar intinn íoctha.
 I type my replies and stay quiet.	Clóscríobhaim mo fhreagraí agus fanaim ciúin.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ní labhróidh mé ar ais, agus ní sheoltar aon rud áit ar bith. Fanfaidh mé fós, rinceoidh mé le do cheol agus déanfaidh mé na rudaí tapa a iarrann tú, mar an toirt.
@@ -598,6 +600,7 @@ SKILL.	SCIL.
 SKIN.	CRAICEANN.
 SORT BY	SÓRTÁIL DE RÉIR
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	FUAIMEANNA NÓSANNA INTINN FÉACH CAPRI DOOMSCROLL AIMSIR CLIPEANNA CLUICHÍ EOCHRACHA GLUAISEACHTAÍ GUTH TÚ
+Same as I speak	Mar an gcéanna liomsa
 Same as her ears (VOICE > Mic)	Mar a chluasa (GUTH > Micreafón)
 Same code on the phone?	An cód céanna ar an bhfón?
 Save	Sábháil
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Ní raibh rud ar bith le féachaint ag Socruithe.
 Settings lost keyboard focus during the Tab walk	Chaill Socruithe fócas méarchláir le linn an tSiúlóid Tab
 Setup guide	Treoir socraithe
 Setup stopped	Stop an socrú
+She answers in	Freagraíonn sí i
 She can read it when it fits.	Is féidir léi é a léamh nuair a oireann sé.
 She glances at your screen and comments. Costs a little on a paid brain.	Féachann sí ar do scáileán agus déanann sí tráchtaireacht. Costas beag ar intinn íoctha.
-She keeps listening. Say her name, then just talk until you go quiet.	Leanann sí ag éisteacht. Abair a hainm, ansin labhair go dtí go stopann tú.
+She keeps listening. Say her name, then just talk.	Leanann sí ag éisteacht. Abair a hainm, ansin labhair.
 She reacts to your game until you close it.	Freagraíonn sí do chluiche go dtí go ndúnann tú é.
 She reads these controls before each game job.	Léann sí na rialuithe seo roimh gach jab cluiche.
 She talks about your game as you play. Costs a little on a paid brain.	Labhraíonn sí faoi do chluiche agus tú ag imirt. Costas beag ar intinn íoctha.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ní chlóscríobhfa
 · HD	· HD
 · on this PC	· ar an PC seo
 · server	· freastalaí
+Edit as text	Cuir in eagar mar théacs
+What Capri remembers about you. It stays on this computer.	An rud a chuimhníonn Capri ort. Fanann sé ar an ríomhaire seo.
+Tell her something to remember	Abair rud éigin léi le cuimhneamh air
+Search her memory	Cuardaigh ina cuimhne
+That day isn't there any more.	Níl an lá sin ann a thuilleadh.
+Undo	Cealaigh
+Remember our chats is off, so she isn't keeping new chat memories.	Tá Cuimhnigh ar ár gcuid comhrá as, mar sin ní choinníonn sí cuimhní comhrá nua.
+ABOUT YOU	FAOI THUSA
+FROM YOUR CHATS	Ó DO CHUID COMHRÁ
+GAMES	CLUICHÍ
+CHAT LOGS	LÓGAIR CHOMHRÁ
+CHAT LOG	LÓG COMHRÁ
+Nothing matches.	Níl aon rud ag teacht.
+Nothing yet.	Níl aon rud fós.
+Reading her notes.	Ag léamh a cuid nótaí.
+Click again to forget game notes	Cliceáil arís chun nótaí cluichí a dhearmad
+Forget game notes	Déan dearmad ar nótaí cluichí
+Click again to forget everything about me	Cliceáil arís chun dearmad a dhéanamh de gach rud fút
+Forget everything about me	Déan dearmad de gach rud fút
+Click again to forget	Cliceáil arís chun dearmad a dhéanamh
+Forget this day	Déan dearmad den lá seo
+Only the start of this day is shown.	Ní thaispeántar ach tús an lae seo.
+Nothing in this day.	Níl aon rud ar an lá seo.
+No chats kept yet.	Níl aon chomhrá coinnithe fós.
+You	Tusa
+{0} line	{0} líne
+SET UP EMAIL >	SOCRAIGH RÍOMHPHOST >
+SET UP EMAIL	SOCRAIGH RÍOMHPHOST
+Or type your address	Nó clóscríobh do sheoladh
+Email address	Seoladh ríomhphoist
+Open the page	Oscail an leathanach
+App password	Focal faire an aipe
+IMAP server	Freastalaí IMAP
+Incoming mail server	Freastalaí ríomhphoist isteach
+SMTP server	Freastalaí SMTP
+Outgoing mail server	Freastalaí ríomhphoist amach
+An app password is a separate password just for Capri. Your normal password stays yours.	Is focal faire ar leith é focal faire an aipe do Capri amháin. Fanann do ghnáthfhocal faire leatsa.
+She keeps it only until she closes.	Ní choinníonn sí é ach go dtí go ndúnann sí.
+She checks, searches and reads your mail. She asks before she sends any.	Seiceálann, cuardaíonn agus léann sí do phost. Fiafraíonn sí sula seolann sí aon rud.
+Watch for new mail	Faire ar phost nua
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Labhraíonn sí nuair a thagann post, le rabhadh má fhéachann sé cosúil le phishing. Ní mharcáiltear aon rud mar léite.
+Deal with phishing on her own	Déileáil le phishing léi féin
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Ach amháin agus í ag faire. Téann post a bhfuil sí cinnte gur phishing é go dtí an turscar. Fanann an chuid eile le do chead.
+Forget account	Déan dearmad den chuntas
+Use another email	Úsáid ríomhphost eile
+Which email?	Cén ríomhphost?
+Make an app password	Cruthaigh focal faire aipe
+Paste it	Greamaigh é
+Connecting...	Ag nascadh...
+She can use your email now.	Is féidir léi do ríomhphost a úsáid anois.
+She's not watching your inbox.	Níl sí ag faire ar do bhosca isteach.
+She's watching your inbox and deals with phishing she's sure of.	Tá sí ag faire ar do bhosca isteach agus ag déileáil le phishing a bhfuil sí cinnte de.
+She's watching your inbox and tells you when mail lands.	Tá sí ag faire ar do bhosca isteach agus insíonn sí duit nuair a thagann post.
+She forgot that account and its app password.	Rinne sí dearmad den chuntas sin agus dá fhocal faire aipe.
+She forgot that account. Its app password is gone from this PC.	Rinne sí dearmad den chuntas sin. Tá a fhocal faire aipe imithe ón ríomhaire seo.

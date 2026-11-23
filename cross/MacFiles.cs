@@ -69,12 +69,14 @@ namespace CapriDesktop
             return names.Length == 0 ? null : names;
         }
 
-        internal static void Drop(IEnumerable<string> files, Action<string> hear)
+        internal static void Drop(IEnumerable<string> files, Action<string> hear, Action<string[]> mods = null)
         {
-            if (Give(files) != null) hear(Files.Dropped);
+            string[] all = new List<string>(files).ToArray();
+            if (mods != null && all.Length > 0 && Array.TrueForAll(all, Mods.Importable)) { mods(all); return; }
+            if (Give(all) != null) hear(Files.Dropped);
         }
 
-        internal static void Drops(Control target, Action<string> hear)
+        internal static void Drops(Control target, Action<string> hear, Action<string[]> mods = null)
         {
             DragDrop.SetAllowDrop(target, true);
             target.AddHandler(DragDrop.DragOverEvent, (sender, e) =>
@@ -93,7 +95,7 @@ namespace CapriDesktop
                     if (path != null) paths.Add(path);
                 }
                 e.Handled = true;
-                Drop(paths, hear);
+                Drop(paths, hear, mods);
             });
         }
 

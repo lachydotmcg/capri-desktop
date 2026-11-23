@@ -30,6 +30,7 @@ Ask Capri for more	Capri'dan ko'proq so'rang
 Asking your server...	Serveringizdan so'ralmoqda...
 Asks before closing only the apps you choose.	Faqat tanlagan ilovalaringizni yopishdan oldin so'raydi.
 Auto	Avto
+Auto (match what I say)	Avto (aytganimga qarab)
 Automatic: VB-CABLE, else Steam's	Avtomatik: VB-CABLE, aks holda Steam'niki
 BAD RELAY HOST	NOTO'G'RI RELAY HOST
 BIG Z open notepad	BIG Z notepad'ni ochsin
@@ -290,6 +291,7 @@ Huge	Juda katta
 I can hear you.	Sizni eshityapman.
 I glance at your screen and comment. Costs a little on a paid brain.	Ekraningizga qarab izoh beraman. Pullik miyada biroz sarflanadi.
 I keep listening. Say my name, then just talk.	Tinglashda davom etaman. Ismimni ayting, so'ng shunchaki gapiring.
+I speak	Men gapiraman
 I talk about your game as you play. Costs a little on a paid brain.	O'ynayotganingizda o'yiningiz haqida gapiraman. Pullik miyada biroz sarflanadi.
 I type my replies and stay quiet.	Javoblarimni yozaman va jim turaman.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Javob bermayman va hech narsa hech qayerga yuborilmaydi. Baribir yonimda bo'laman, musiqangizga raqs tushaman va so'ragan tez ishlarni bajaraman, masalan ovoz balandligi.
@@ -598,6 +600,7 @@ SKILL.	KO'NIKMA.
 SKIN.	TERI.
 SORT BY	SARALASH
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	TOVUSHLAR ODATLAR MIYA KUZATISH CAPRI DOOMSCROLL OB-HAVO KLIPLAR O'YINLAR TUGMALAR HARAKATLAR OVOZ SIZ
+Same as I speak	Mening tilim kabi
 Same as her ears (VOICE > Mic)	Uning quloqlari bilan bir xil (OVOZ > Mikrofon)
 Same code on the phone?	Telefondagi kod bir xilmi?
 Save	Saqlash
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Sozlamalarda ko'radigan hech narsa yo'q edi.
 Settings lost keyboard focus during the Tab walk	Tab yurishi paytida Sozlamalar klaviatura fokusini yo'qotdi
 Setup guide	Sozlash qo'llanmasi
 Setup stopped	Sozlash to'xtatildi
+She answers in	U javob beradi
 She can read it when it fits.	Mos kelganda o'qiy oladi.
 She glances at your screen and comments. Costs a little on a paid brain.	Ekraningizga qarab izoh beradi. Pullik miyada biroz sarflanadi.
-She keeps listening. Say her name, then just talk until you go quiet.	U tinglashda davom etadi. Ismini ayting, so'ng jim bo'lguncha gapiring.
+She keeps listening. Say her name, then just talk.	U tinglashda davom etadi. Ismini ayting, so'ng gapiring.
 She reacts to your game until you close it.	U o'yiningizni yopguningizcha unga reaksiya bildiradi.
 She reads these controls before each game job.	U har bir o'yin ishidan oldin bu boshqaruvlarni o'qiydi.
 She talks about your game as you play. Costs a little on a paid brain.	O'ynayotganingizda o'yiningiz haqida gapiradi. Pullik miyada biroz sarflanadi.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	u ishlayotganda bos
 · HD	· HD
 · on this PC	· bu PC'da
 · server	· server
+Edit as text	Matn sifatida tahrirlash
+What Capri remembers about you. It stays on this computer.	Capri sen haqingda nimalarni eslaydi. Bu kompyuterda qoladi.
+Tell her something to remember	Unga eslab qolish uchun bir narsa ayt
+Search her memory	Uning xotirasidan qidir
+That day isn't there any more.	O'sha kun endi yo'q.
+Undo	Bekor qilish
+Remember our chats is off, so she isn't keeping new chat memories.	Suhbatlarimizni eslash o'chirilgan, shuning uchun yangi suhbat xotiralarini saqlamaydi.
+ABOUT YOU	SEN HAQINGDA
+FROM YOUR CHATS	SUHBATLARINGDAN
+GAMES	O'YINLAR
+CHAT LOGS	SUHBAT JURNALLARI
+CHAT LOG	SUHBAT JURNALI
+Nothing matches.	Hech narsa mos kelmadi.
+Nothing yet.	Hozircha hech narsa yo'q.
+Reading her notes.	Uning yozuvlari o'qilmoqda.
+Click again to forget game notes	O'yin yozuvlarini unutish uchun yana bos
+Forget game notes	O'yin yozuvlarini unut
+Click again to forget everything about me	Sen haqingda hammasini unutish uchun yana bos
+Forget everything about me	Sen haqingda hammasini unut
+Click again to forget	Unutish uchun yana bos
+Forget this day	Bu kunni unut
+Only the start of this day is shown.	Bu kunning faqat boshlanishi ko'rsatiladi.
+Nothing in this day.	Bu kunda hech narsa yo'q.
+No chats kept yet.	Hozircha suhbatlar saqlanmagan.
+You	Sen
+{0} line	{0} qator
+SET UP EMAIL >	ELEKTRON POCHTANI SOZLASH >
+SET UP EMAIL	ELEKTRON POCHTANI SOZLASH
+Or type your address	Yoki manzilingni yoz
+Email address	Elektron pochta manzili
+Open the page	Sahifani och
+App password	Ilova paroli
+IMAP server	IMAP serveri
+Incoming mail server	Kiruvchi pochta serveri
+SMTP server	SMTP serveri
+Outgoing mail server	Chiquvchi pochta serveri
+An app password is a separate password just for Capri. Your normal password stays yours.	Ilova paroli faqat Capri uchun alohida parol. Oddiy paroling o'zingda qoladi.
+She keeps it only until she closes.	U uni yopilguncha saqlaydi.
+She checks, searches and reads your mail. She asks before she sends any.	U pochtangni tekshiradi, qidiradi va o'qiydi. Biror narsa yuborishdan oldin so'raydi.
+Watch for new mail	Yangi pochtani kuzat
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Pochta kelganda u aytadi, fishingga o'xshasa ogohlantiradi. Hech narsa o'qilgan deb belgilanmaydi.
+Deal with phishing on her own	Fishing bilan o'zing shug'ullan
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Faqat u kuzatayotganda. Fishing ekaniga ishonchi komil pochta spamga ketadi. Qolgani sening ha dedishingni kutadi.
+Forget account	Hisobni unut
+Use another email	Boshqa elektron pochtadan foydalan
+Which email?	Qaysi pochta?
+Make an app password	Ilova parolini yarat
+Paste it	Uni qo'y
+Connecting...	Ulanmoqda...
+She can use your email now.	U endi pochtangdan foydalana oladi.
+She's not watching your inbox.	U kiruvchi qutingni kuzatmayapti.
+She's watching your inbox and deals with phishing she's sure of.	U kiruvchi qutingni kuzatadi va ishonchi komil fishing bilan shug'ullanadi.
+She's watching your inbox and tells you when mail lands.	U kiruvchi qutingni kuzatadi va pochta kelganda aytadi.
+She forgot that account and its app password.	U o'sha hisobni va uning ilova parolini unutdi.
+She forgot that account. Its app password is gone from this PC.	U o'sha hisobni unutdi. Uning ilova paroli bu kompyuterdan yo'qoldi.

@@ -30,6 +30,7 @@ Ask Capri for more	Bed Capri om mere
 Asking your server...	Spørger din server...
 Asks before closing only the apps you choose.	Spørger kun, før du lukker de apps, du vælger.
 Auto	Auto
+Auto (match what I say)	Auto (følger hvad jeg siger)
 Automatic: VB-CABLE, else Steam's	Automatisk: VB-CABLE, ellers Steams
 BAD RELAY HOST	DÅRLIG RELÆVÆRT
 BIG Z open notepad	BIG Z åbn notesblok
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Jeg kan høre dig.
 I glance at your screen and comment. Costs a little on a paid brain.	Jeg kigger på din skærm og kommenterer. Koster lidt med en betalt hjerne.
 I keep listening. Say my name, then just talk.	Jeg lytter fortsat. Sig mit navn, og tal så bare.
+I speak	Jeg taler
 I talk about your game as you play. Costs a little on a paid brain.	Jeg taler om dit spil, mens du spiller. Koster lidt med en betalt hjerne.
 I type my replies and stay quiet.	Jeg skriver mine svar og holder mig stille.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Jeg svarer ikke, og intet sendes nogen steder. Jeg hænger stadig ud, danser til din musik og laver de hurtige ting du beder om, som lydstyrken.
@@ -598,6 +600,7 @@ SKILL.	FÆRDIGHED.
 SKIN.	SKIN.
 SORT BY	SORTER EFTER
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	LYDE VANER HJERNE SE CAPRI DOOMSCROLL VEJR KLIP SPIL TASTER BEVÆGELSER STEMME DIG
+Same as I speak	Samme som jeg taler
 Same as her ears (VOICE > Mic)	Samme som hendes ører (STEMME > Mikrofon)
 Same code on the phone?	Samme kode på telefonen?
 Save	Gem
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Indstillinger havde intet at se.
 Settings lost keyboard focus during the Tab walk	Indstillinger mistede tastaturfokus under Tab-gennemgangen
 Setup guide	Opsætningsguide
 Setup stopped	Opsætning stoppet
+She answers in	Hun svarer på
 She can read it when it fits.	Hun kan læse den, når det passer.
 She glances at your screen and comments. Costs a little on a paid brain.	Hun kigger på din skærm og kommenterer. Koster lidt med en betalt hjerne.
-She keeps listening. Say her name, then just talk until you go quiet.	Hun lytter fortsat. Sig hendes navn, og tal så bare, indtil du bliver stille.
+She keeps listening. Say her name, then just talk.	Hun lytter fortsat. Sig hendes navn, og tal så bare.
 She reacts to your game until you close it.	Hun reagerer på dit spil, indtil du lukker det.
 She reads these controls before each game job.	Hun læser disse kontroller før hvert spiljob.
 She talks about your game as you play. Costs a little on a paid brain.	Hun taler om dit spil, mens du spiller. Koster lidt med en betalt hjerne.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	skriver ikke i andr
 · HD	· HD
 · on this PC	· på denne pc
 · server	· server
+Edit as text	Rediger som tekst
+What Capri remembers about you. It stays on this computer.	Hvad Capri husker om dig. Det bliver på denne computer.
+Tell her something to remember	Fortæl hende noget at huske
+Search her memory	Søg i hendes hukommelse
+That day isn't there any more.	Den dag er der ikke mere.
+Undo	Fortryd
+Remember our chats is off, so she isn't keeping new chat memories.	Husk vores chats er slået fra, så hun gemmer ikke nye chaterindringer.
+ABOUT YOU	OM DIG
+FROM YOUR CHATS	FRA DINE CHATS
+GAMES	SPIL
+CHAT LOGS	CHATLOGGER
+CHAT LOG	CHATLOG
+Nothing matches.	Intet matcher.
+Nothing yet.	Intet endnu.
+Reading her notes.	Læser hendes noter.
+Click again to forget game notes	Klik igen for at glemme spillenoter
+Forget game notes	Glem spillenoter
+Click again to forget everything about me	Klik igen for at glemme alt om dig
+Forget everything about me	Glem alt om dig
+Click again to forget	Klik igen for at glemme
+Forget this day	Glem denne dag
+Only the start of this day is shown.	Kun begyndelsen af denne dag vises.
+Nothing in this day.	Intet på denne dag.
+No chats kept yet.	Ingen chats gemt endnu.
+You	Dig
+{0} line	{0} linje
+SET UP EMAIL >	OPSÆT E-MAIL >
+SET UP EMAIL	OPSÆT E-MAIL
+Or type your address	Eller skriv din adresse
+Email address	E-mailadresse
+Open the page	Åbn siden
+App password	Appadgangskode
+IMAP server	IMAP-server
+Incoming mail server	Indgående mailserver
+SMTP server	SMTP-server
+Outgoing mail server	Udgående mailserver
+An app password is a separate password just for Capri. Your normal password stays yours.	En appadgangskode er en særskilt adgangskode kun til Capri. Din normale adgangskode forbliver din.
+She keeps it only until she closes.	Hun gemmer den kun, til hun lukker.
+She checks, searches and reads your mail. She asks before she sends any.	Hun tjekker, søger og læser din mail. Hun spørger, før hun sender noget.
+Watch for new mail	Hold øje med ny mail
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Hun siger til, når der kommer mail, med en advarsel hvis det ligner phishing. Intet markeres som læst.
+Deal with phishing on her own	Klar phishing selv
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Kun mens hun holder øje. Mail, som hun er sikker på er phishing, går i spam. Resten venter på dit ja.
+Forget account	Glem konto
+Use another email	Brug en anden e-mail
+Which email?	Hvilken e-mail?
+Make an app password	Lav en appadgangskode
+Paste it	Sæt den ind
+Connecting...	Forbinder...
+She can use your email now.	Hun kan bruge din e-mail nu.
+She's not watching your inbox.	Hun holder ikke øje med din indbakke.
+She's watching your inbox and deals with phishing she's sure of.	Hun holder øje med din indbakke og klarer phishing, som hun er sikker på.
+She's watching your inbox and tells you when mail lands.	Hun holder øje med din indbakke og siger til, når der kommer mail.
+She forgot that account and its app password.	Hun glemte den konto og dens appadgangskode.
+She forgot that account. Its app password is gone from this PC.	Hun glemte den konto. Dens appadgangskode er væk fra denne computer.

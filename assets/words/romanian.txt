@@ -30,6 +30,7 @@ Ask Capri for more	Cere mai mult de la Capri
 Asking your server...	Se interoghează serverul tău...
 Asks before closing only the apps you choose.	Întreabă înainte de a închide doar aplicațiile alese.
 Auto	Auto
+Auto (match what I say)	Auto (după ce spun)
 Automatic: VB-CABLE, else Steam's	Automat: VB-CABLE, altfel al Steam
 BAD RELAY HOST	HOST DE RELAY GREȘIT
 BIG Z open notepad	BIG Z deschide notepad
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Te aud.
 I glance at your screen and comment. Costs a little on a paid brain.	Arunc o privire pe ecranul tău și comentez. Costă puțin la un creier plătit.
 I keep listening. Say my name, then just talk.	Continui să ascult. Spune-mi numele, apoi doar vorbește.
+I speak	Vorbesc
 I talk about your game as you play. Costs a little on a paid brain.	Vorbesc despre jocul tău cât joci. Costă puțin la un creier plătit.
 I type my replies and stay quiet.	Îmi scriu răspunsurile și stau liniștită.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nu voi vorbi înapoi și nimic nu este trimis nicăieri. Tot voi sta pe aici, voi dansa pe muzica ta și voi face lucrurile rapide pe care le ceri, cum ar fi volumul.
@@ -598,6 +600,7 @@ SKILL.	ABILITATE.
 SKIN.	ASPECT.
 SORT BY	SORTEAZĂ DUPĂ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SUNETE OBICEIURI CREIER UITĂ-TE CAPRI DOOMSCROLL VREME CLIPURI JOCURI TASTE MIȘCĂRI VOCE TU
+Same as I speak	La fel ca limba mea
 Same as her ears (VOICE > Mic)	Același cu urechile ei (VOCE > Microfon)
 Same code on the phone?	Același cod pe telefon?
 Save	Salvează
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Setările nu aveau ce urmări.
 Settings lost keyboard focus during the Tab walk	Setările au pierdut focusul tastaturii în timpul parcurgerii cu Tab
 Setup guide	Ghid de configurare
 Setup stopped	Configurarea s-a oprit
+She answers in	Ea răspunde în
 She can read it when it fits.	Poate citi când încape.
 She glances at your screen and comments. Costs a little on a paid brain.	Aruncă o privire pe ecranul tău și comentează. Costă puțin la un creier plătit.
-She keeps listening. Say her name, then just talk until you go quiet.	Continuă să asculte. Spune-i numele, apoi vorbește până tăci.
+She keeps listening. Say her name, then just talk.	Continuă să asculte. Spune-i numele, apoi vorbește.
 She reacts to your game until you close it.	Reacționează la jocul tău până îl închizi.
 She reads these controls before each game job.	Citește aceste comenzi înainte de fiecare sarcină de joc.
 She talks about your game as you play. Costs a little on a paid brain.	Vorbește despre jocul tău cât joci. Costă puțin la un creier plătit.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	nu va scrie în alt
 · HD	· HD
 · on this PC	· pe acest PC
 · server	· server
+Edit as text	Editează ca text
+What Capri remembers about you. It stays on this computer.	Ce își amintește Capri despre tine. Rămâne pe acest calculator.
+Tell her something to remember	Spune-i ceva de ținut minte
+Search her memory	Caută în memoria ei
+That day isn't there any more.	Ziua aceea nu mai este.
+Undo	Anulează
+Remember our chats is off, so she isn't keeping new chat memories.	Amintește-ți conversațiile noastre este oprit, așa că nu păstrează amintiri noi din conversații.
+ABOUT YOU	DESPRE TINE
+FROM YOUR CHATS	DIN CONVERSAȚIILE TALE
+GAMES	JOCURI
+CHAT LOGS	JURNALE DE CONVERSAȚII
+CHAT LOG	JURNAL DE CONVERSAȚIE
+Nothing matches.	Nicio potrivire.
+Nothing yet.	Încă nimic.
+Reading her notes.	Citește notițele ei.
+Click again to forget game notes	Click din nou pentru a uita notițele jocurilor
+Forget game notes	Uită notițele jocurilor
+Click again to forget everything about me	Click din nou pentru a uita tot despre tine
+Forget everything about me	Uită tot despre tine
+Click again to forget	Click din nou pentru a uita
+Forget this day	Uită această zi
+Only the start of this day is shown.	Se arată doar începutul acestei zile.
+Nothing in this day.	Nimic în această zi.
+No chats kept yet.	Încă nu sunt conversații păstrate.
+You	Tu
+{0} line	{0} linie
+SET UP EMAIL >	CONFIGUREAZĂ E-MAILUL >
+SET UP EMAIL	CONFIGUREAZĂ E-MAILUL
+Or type your address	Sau scrie adresa ta
+Email address	Adresă de e-mail
+Open the page	Deschide pagina
+App password	Parolă de aplicație
+IMAP server	Server IMAP
+Incoming mail server	Server de e-mail primit
+SMTP server	Server SMTP
+Outgoing mail server	Server de e-mail trimis
+An app password is a separate password just for Capri. Your normal password stays yours.	O parolă de aplicație este o parolă separată doar pentru Capri. Parola ta obișnuită rămâne a ta.
+She keeps it only until she closes.	O păstrează doar până se închide.
+She checks, searches and reads your mail. She asks before she sends any.	Ea verifică, caută și citește e-mailul tău. Întreabă înainte să trimită ceva.
+Watch for new mail	Urmărește e-mailurile noi
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ea vorbește când sosește e-mail, cu un avertisment dacă pare phishing. Nimic nu este marcat ca citit.
+Deal with phishing on her own	Ocupă-te singură de phishing
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Doar cât timp urmărește. E-mailul despre care este sigură că e phishing merge la spam. Restul așteaptă da-ul tău.
+Forget account	Uită contul
+Use another email	Folosește alt e-mail
+Which email?	Care e-mail?
+Make an app password	Creează o parolă de aplicație
+Paste it	Lipește-o
+Connecting...	Se conectează...
+She can use your email now.	Acum poate folosi e-mailul tău.
+She's not watching your inbox.	Nu îți urmărește căsuța de intrare.
+She's watching your inbox and deals with phishing she's sure of.	Îți urmărește căsuța și se ocupă de phishingul de care este sigură.
+She's watching your inbox and tells you when mail lands.	Îți urmărește căsuța și îți spune când sosește e-mail.
+She forgot that account and its app password.	A uitat acel cont și parola lui de aplicație.
+She forgot that account. Its app password is gone from this PC.	A uitat acel cont. Parola lui de aplicație a dispărut de pe acest calculator.

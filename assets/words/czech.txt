@@ -30,6 +30,7 @@ Ask Capri for more	Zeptej se Capri na víc
 Asking your server...	Dotazuji se tvého serveru...
 Asks before closing only the apps you choose.	Před zavřením se zeptá jen u aplikací, které vybereš.
 Auto	Auto
+Auto (match what I say)	Auto (podle toho, co říkám)
 Automatic: VB-CABLE, else Steam's	Automaticky: VB-CABLE, jinak Steam
 BAD RELAY HOST	ŠPATNÝ HOSTITEL RELÉE
 BIG Z open notepad	BIG Z otevři poznámkový blok
@@ -290,6 +291,7 @@ Huge	Obrovské
 I can hear you.	Slyším tě.
 I glance at your screen and comment. Costs a little on a paid brain.	Podívám se na tvou obrazovku a okomentuji. Na placeném mozku něco stojí.
 I keep listening. Say my name, then just talk.	Pořád poslouchám. Řekni mé jméno a pak jen mluv.
+I speak	Mluvím
 I talk about your game as you play. Costs a little on a paid brain.	Mluvím o tvé hře, zatímco hraješ. Na placeném mozku něco stojí.
 I type my replies and stay quiet.	Odpovědi píšu a zůstávám zticha.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nebudu odpovídat a nikam se nic neposílá. Pořád se budu povalovat, tancovat na tvou hudbu a dělat rychlé věci, které chceš, třeba hlasitost.
@@ -598,6 +600,7 @@ SKILL.	DOVEDNOST.
 SKIN.	KŮŽE.
 SORT BY	ŘADIT PODLE
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVUKY NÁVYKY MOZEK SLEDOVAT CAPRI DOOMSCROLL POČASÍ KLIPY HRY KLÁVESY POHYBY HLAS TY
+Same as I speak	Stejně jako mluvím
 Same as her ears (VOICE > Mic)	Stejné jako její uši (HLAS > Mikrofon)
 Same code on the phone?	Stejný kód na telefonu?
 Save	Uložit
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Nastavení nemělo co sledovat.
 Settings lost keyboard focus during the Tab walk	Nastavení ztratilo focus klávesnice během procházení klávesou Tab
 Setup guide	Průvodce nastavením
 Setup stopped	Nastavení zastaveno
+She answers in	Odpovídá v
 She can read it when it fits.	Zobrazí to, až se to hodí.
 She glances at your screen and comments. Costs a little on a paid brain.	Podívá se na tvou obrazovku a okomentuje. Na placeném mozku něco stojí.
-She keeps listening. Say her name, then just talk until you go quiet.	Pořád poslouchá. Řekni její jméno a pak mluv, dokud neztichneš.
+She keeps listening. Say her name, then just talk.	Pořád poslouchá. Řekni její jméno a pak mluv.
 She reacts to your game until you close it.	Reaguje na tvou hru, dokud ji nezavřeš.
 She reads these controls before each game job.	Před každým herním úkolem přečte tato ovládání.
 She talks about your game as you play. Costs a little on a paid brain.	Mluví o tvé hře, zatímco hraješ. Na placeném mozku něco stojí.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	neposílá text do 
 · HD	· HD
 · on this PC	· na tomto PC
 · server	· server
+Edit as text	Upravit jako text
+What Capri remembers about you. It stays on this computer.	Co si Capri o tobě pamatuje. Zůstává na tomto počítači.
+Tell her something to remember	Řekni jí něco k zapamatování
+Search her memory	Hledat v její paměti
+That day isn't there any more.	Ten den už tam není.
+Undo	Vrátit zpět
+Remember our chats is off, so she isn't keeping new chat memories.	Pamatovat si naše chaty je vypnuté, takže si neukládá nové vzpomínky z chatů.
+ABOUT YOU	O TOBĚ
+FROM YOUR CHATS	Z TVÝCH CHATŮ
+GAMES	HRY
+CHAT LOGS	ZÁZNAMY CHATŮ
+CHAT LOG	ZÁZNAM CHATU
+Nothing matches.	Nic neodpovídá.
+Nothing yet.	Zatím nic.
+Reading her notes.	Čte její poznámky.
+Click again to forget game notes	Klikni znovu pro zapomenutí poznámek ke hrám
+Forget game notes	Zapomenout poznámky ke hrám
+Click again to forget everything about me	Klikni znovu pro zapomenutí všeho o tobě
+Forget everything about me	Zapomenout vše o tobě
+Click again to forget	Klikni znovu pro zapomenutí
+Forget this day	Zapomenout tento den
+Only the start of this day is shown.	Zobrazuje se jen začátek tohoto dne.
+Nothing in this day.	Nic v tento den.
+No chats kept yet.	Zatím žádné uložené chaty.
+You	Ty
+{0} line	{0} řádek
+SET UP EMAIL >	NASTAVIT E-MAIL >
+SET UP EMAIL	NASTAVIT E-MAIL
+Or type your address	Nebo napiš svou adresu
+Email address	E-mailová adresa
+Open the page	Otevřít stránku
+App password	Heslo aplikace
+IMAP server	Server IMAP
+Incoming mail server	Server příchozí pošty
+SMTP server	Server SMTP
+Outgoing mail server	Server odchozí pošty
+An app password is a separate password just for Capri. Your normal password stays yours.	Heslo aplikace je samostatné heslo jen pro Capri. Tvoje běžné heslo zůstává tvoje.
+She keeps it only until she closes.	Uchovává ho jen do zavření.
+She checks, searches and reads your mail. She asks before she sends any.	Kontroluje, hledá a čte tvou poštu. Před odesláním se ptá.
+Watch for new mail	Sledovat novou poštu
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Oznámí se, když přijde pošta, s upozorněním, pokud to vypadá jako phishing. Nic se neoznačí jako přečtené.
+Deal with phishing on her own	Vyřídit phishing sama
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Jen dokud sleduje. Pošta, u které si je jistá, že jde o phishing, jde do spamu. Zbytek čeká na tvoje ano.
+Forget account	Zapomenout účet
+Use another email	Použít jiný e-mail
+Which email?	Který e-mail?
+Make an app password	Vytvořit heslo aplikace
+Paste it	Vlož ho
+Connecting...	Připojování...
+She can use your email now.	Teď může používat tvůj e-mail.
+She's not watching your inbox.	Nesleduje tvou doručenou poštu.
+She's watching your inbox and deals with phishing she's sure of.	Sleduje tvou doručenou poštu a vyřizuje phishing, kterým si je jistá.
+She's watching your inbox and tells you when mail lands.	Sleduje tvou doručenou poštu a oznámí, když přijde pošta.
+She forgot that account and its app password.	Zapomněla ten účet i jeho heslo aplikace.
+She forgot that account. Its app password is gone from this PC.	Zapomněla ten účet. Jeho heslo aplikace zmizelo z tohoto počítače.

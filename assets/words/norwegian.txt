@@ -30,6 +30,7 @@ Ask Capri for more	Be Capri om mer
 Asking your server...	Spør serveren din...
 Asks before closing only the apps you choose.	Spør før den lukker bare appene du velger.
 Auto	Auto
+Auto (match what I say)	Auto (følger det jeg sier)
 Automatic: VB-CABLE, else Steam's	Automatisk: VB-CABLE, ellers Steams
 BAD RELAY HOST	DÅRLIG RELÉVERT
 BIG Z open notepad	BIG Z åpne notisblokk
@@ -290,6 +291,7 @@ Huge	Enorm
 I can hear you.	Jeg kan høre deg.
 I glance at your screen and comment. Costs a little on a paid brain.	Jeg kikker på skjermen din og kommenterer. Koster litt med en betalt hjerne.
 I keep listening. Say my name, then just talk.	Jeg lytter videre. Si navnet mitt, og snakk så bare.
+I speak	Jeg snakker
 I talk about your game as you play. Costs a little on a paid brain.	Jeg snakker om spillet ditt mens du spiller. Koster litt med en betalt hjerne.
 I type my replies and stay quiet.	Jeg skriver svarene mine og holder meg stille.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Jeg svarer ikke tilbake, og ingenting sendes noen steder. Jeg henger fortsatt med, danser til musikken din og gjør de raske tingene du ber om, som volumet.
@@ -598,6 +600,7 @@ SKILL.	FERDIGHET.
 SKIN.	SKIN.
 SORT BY	SORTER ETTER
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	LYDER VANER HJERNE SE CAPRI DOOMSCROLL VÆR KLIPP SPILL NØKLER BEVEGELSER STEMME DU
+Same as I speak	Samme som jeg snakker
 Same as her ears (VOICE > Mic)	Samme som hennes ører (STEMME > Mikrofon)
 Same code on the phone?	Samme kode på telefonen?
 Save	Lagre
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Innstillinger hadde ingenting å se på.
 Settings lost keyboard focus during the Tab walk	Innstillinger mistet tastaturfokus under Tab-gangen
 Setup guide	Oppsettguide
 Setup stopped	Oppsett stoppet
+She answers in	Hun svarer på
 She can read it when it fits.	Hun kan lese den når det passer.
 She glances at your screen and comments. Costs a little on a paid brain.	Hun kikker på skjermen din og kommenterer. Koster litt med en betalt hjerne.
-She keeps listening. Say her name, then just talk until you go quiet.	Hun lytter videre. Si navnet hennes, og snakk så til du blir stille.
+She keeps listening. Say her name, then just talk.	Hun lytter videre. Si navnet hennes, og snakk så.
 She reacts to your game until you close it.	Hun reagerer på spillet ditt til du lukker det.
 She reads these controls before each game job.	Hun leser disse kontrollene før hver spilljobb.
 She talks about your game as you play. Costs a little on a paid brain.	Hun snakker om spillet ditt mens du spiller. Koster litt med en betalt hjerne.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	skriver ikke i andr
 · HD	· HD
 · on this PC	· på denne PC-en
 · server	· server
+Edit as text	Rediger som tekst
+What Capri remembers about you. It stays on this computer.	Hva Capri husker om deg. Det blir på denne datamaskinen.
+Tell her something to remember	Fortell henne noe å huske
+Search her memory	Søk i minnet hennes
+That day isn't there any more.	Den dagen er ikke der lenger.
+Undo	Angre
+Remember our chats is off, so she isn't keeping new chat memories.	Husk samtalene våre er av, så hun lagrer ikke nye samtaleminne.
+ABOUT YOU	OM DEG
+FROM YOUR CHATS	FRA SAMTALENE DINE
+GAMES	SPILL
+CHAT LOGS	SAMTALELOGGER
+CHAT LOG	SAMTALELOGG
+Nothing matches.	Ingenting passer.
+Nothing yet.	Ingenting ennå.
+Reading her notes.	Leser notatene hennes.
+Click again to forget game notes	Klikk igjen for å glemme spillnotater
+Forget game notes	Glem spillnotater
+Click again to forget everything about me	Klikk igjen for å glemme alt om deg
+Forget everything about me	Glem alt om deg
+Click again to forget	Klikk igjen for å glemme
+Forget this day	Glem denne dagen
+Only the start of this day is shown.	Bare starten av denne dagen vises.
+Nothing in this day.	Ingenting på denne dagen.
+No chats kept yet.	Ingen samtaler er lagret ennå.
+You	Du
+{0} line	{0} linje
+SET UP EMAIL >	SETT OPP E-POST >
+SET UP EMAIL	SETT OPP E-POST
+Or type your address	Eller skriv inn adressen din
+Email address	E-postadresse
+Open the page	Åpne siden
+App password	App-passord
+IMAP server	IMAP-server
+Incoming mail server	Innkommende e-postserver
+SMTP server	SMTP-server
+Outgoing mail server	Utgående e-postserver
+An app password is a separate password just for Capri. Your normal password stays yours.	Et app-passord er et eget passord bare for Capri. Det vanlige passordet ditt forblir ditt.
+She keeps it only until she closes.	Hun beholder det bare til hun lukker.
+She checks, searches and reads your mail. She asks before she sends any.	Hun sjekker, søker i og leser e-posten din. Hun spør før hun sender noe.
+Watch for new mail	Følg med på ny e-post
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Hun sier fra når e-post kommer, med en advarsel hvis det ser ut som phishing. Ingenting merkes som lest.
+Deal with phishing on her own	Håndter phishing selv
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Bare mens hun følger med. E-post hun er sikker på er phishing, går til spam. Resten venter på ja-et ditt.
+Forget account	Glem kontoen
+Use another email	Bruk en annen e-post
+Which email?	Hvilken e-post?
+Make an app password	Lag et app-passord
+Paste it	Lim det inn
+Connecting...	Kobler til...
+She can use your email now.	Hun kan bruke e-posten din nå.
+She's not watching your inbox.	Hun følger ikke med på innboksen din.
+She's watching your inbox and deals with phishing she's sure of.	Hun følger med på innboksen din og håndterer phishing hun er sikker på.
+She's watching your inbox and tells you when mail lands.	Hun følger med på innboksen din og sier fra når e-post kommer.
+She forgot that account and its app password.	Hun glemte den kontoen og app-passordet.
+She forgot that account. Its app password is gone from this PC.	Hun glemte den kontoen. App-passordet er borte fra denne datamaskinen.

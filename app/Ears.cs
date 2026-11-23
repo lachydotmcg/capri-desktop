@@ -2054,7 +2054,9 @@ namespace CapriDesktop
         internal bool Fits { get { return IntPtr.Size == 8 && Array.IndexOf(European, language) >= 0; } }
 
         // The pack that hears their language: v2 for English, Ultra for its other languages, none for the rest, which keep Windows speech.
-        internal string Model { get { return !Fits ? null : language == "en" ? Pack : EuropeanPack; } }
+        internal string Model { get { return !Fits ? null : language == "en" && !(Multi && Complete(Path.Combine(root, EuropeanPack))) ? Pack : EuropeanPack; } }
+
+        internal volatile bool Multi;
 
         internal long Size { get { return Model == EuropeanPack ? EuropeanSize : PackSize; } }
 

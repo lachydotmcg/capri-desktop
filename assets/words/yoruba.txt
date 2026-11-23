@@ -30,6 +30,7 @@ Ask Capri for more	Béèrè fún Capri ní ìdàgbàsókè
 Asking your server...	Ń béèrè lọ́wọ́ olùpèsè rẹ...
 Asks before closing only the apps you choose.	Ó máa bèèrè kí o tó pa àwọn ohun èlò tí o yàn nìkan.
 Auto	Aládàáṣe
+Auto (match what I say)	Aládàáṣe (bí mo ṣe sọ)
 Automatic: VB-CABLE, else Steam's	Aládàáṣe: VB-CABLE, bí kò bá sí, ti Steam
 BAD RELAY HOST	ÌSỌPỌ̀ RELAY BURÚ
 BIG Z open notepad	BIG Z ṣí notepad
@@ -290,6 +291,7 @@ Huge	Tó tóbi gan-an
 I can hear you.	Mo gbọ́ ọ.
 I glance at your screen and comment. Costs a little on a paid brain.	Mo ń wo ìbòjú rẹ, mo sì ń sọ̀rọ̀. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
 I keep listening. Say my name, then just talk.	Mo ń tẹ̀síwájú láti gbọ́. Sọ orúkọ mi, lẹ́yìn náà kàn sọ̀rọ̀.
+I speak	Mo n sọ
 I talk about your game as you play. Costs a little on a paid brain.	Mo ń sọ̀rọ̀ nípa eré rẹ bí o ṣe ń ṣe é. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
 I type my replies and stay quiet.	Mo ń tẹ àwọn ìdáhùn mi, mo sì dákẹ́.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Èmi kò ní sọ̀rọ̀ padà, ohunkóhun kò sì ní lọ sí ibikíbi. Mo ṣì máa wà ní ìdákẹ́jẹ́ẹ́, jó sí orin rẹ, kí n sì ṣe àwọn nǹkan kíákíá tí o bá béèrè, bí ìró.
@@ -598,6 +600,7 @@ SKILL.	ÌMỌ̀.
 SKIN.	ÌRÍSÍ.
 SORT BY	TÒ BÍ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	OHÙN ÌWÀ ỌPỌLỌ WO CAPRI DOOMSCROLL ÒJÒ ÀWỌN AJẸKÙ ÀWỌN ERE BỌ́TÌNÌ ÌṢÍPÒ OHÙN ÌWỌ
+Same as I speak	Bí èdè mi
 Same as her ears (VOICE > Mic)	Bákan náà pẹ̀lú etí rẹ̀ (OHÙN > Maikirofónù)
 Same code on the phone?	Kóòdù kan náà lórí fóònù?
 Save	Fipamọ́
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Ètò kò ní nǹkan láti wò.
 Settings lost keyboard focus during the Tab walk	Ètò pàdánù ìfojúsí kíláàvù nígbà ìrìn Tab
 Setup guide	Ìtọ́sọ́nà ìṣètò
 Setup stopped	Ìṣètò dúró
+She answers in	Ó n dáhùn ní
 She can read it when it fits.	Ó lè kà á nígbà tí ó bá yẹ.
 She glances at your screen and comments. Costs a little on a paid brain.	Ó wo ìbòjú rẹ, ó sì ń sọ̀rọ̀. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
-She keeps listening. Say her name, then just talk until you go quiet.	Ó ń tẹ̀síwájú láti gbọ́. Sọ orúkọ rẹ̀, lẹ́yìn náà sọ̀rọ̀ títí o fi dákẹ́.
+She keeps listening. Say her name, then just talk.	Ó ń tẹ̀síwájú láti gbọ́. Sọ orúkọ rẹ̀, lẹ́yìn náà sọ̀rọ̀.
 She reacts to your game until you close it.	Ó ń dáhùn sí eré rẹ títí o fi tì í.
 She reads these controls before each game job.	Ó ń ka àwọn ìṣakoso wọ̀nyí ṣáájú iṣẹ́ eré kọ̀ọ̀kan.
 She talks about your game as you play. Costs a little on a paid brain.	Ó ń sọ̀rọ̀ nípa eré rẹ bí o ṣe ń ṣe é. Ó ná díẹ̀ lórí ọpọlọ tí a san owó fún.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	kò ní kọ nínú
 · HD	· HD
 · on this PC	· lórí PC yìí
 · server	· olupin
+Edit as text	Ṣàtúnṣe gẹ́gẹ́ bí ọ̀rọ̀
+What Capri remembers about you. It stays on this computer.	Ohun tí Capri rántí nípa rẹ. Ó dúró lórí kọ̀mpútà yìí.
+Tell her something to remember	Sọ ohun kan fún un láti rántí
+Search her memory	Wá nínú ìrántí rẹ̀
+That day isn't there any more.	Ọjọ́ yẹn kò sí mọ́.
+Undo	Fagilé
+Remember our chats is off, so she isn't keeping new chat memories.	Rántí àwọn ìjíròrò wa ti pa, nítorí náà kò tọ́jú ìrántí ìjíròrò tuntun.
+ABOUT YOU	NÍPA RẸ
+FROM YOUR CHATS	LÁTI INÚ ÌJÍRÒRÒ RẸ
+GAMES	ÀWỌN ERÉ
+CHAT LOGS	ÀWỌN ÀKỌSÍLẸ̀ ÌJÍRÒRÒ
+CHAT LOG	ÀKỌSÍLẸ̀ ÌJÍRÒRÒ
+Nothing matches.	Kò sí ohun tí ó bá mu.
+Nothing yet.	Kò sí nǹkan kan síbẹ̀.
+Reading her notes.	Ń ka àwọn àkọsílẹ̀ rẹ̀.
+Click again to forget game notes	Tẹ lẹ́ẹ̀kan sí i láti gbàgbé àwọn àkọsílẹ̀ eré
+Forget game notes	Gbàgbé àwọn àkọsílẹ̀ eré
+Click again to forget everything about me	Tẹ lẹ́ẹ̀kan sí i láti gbàgbé gbogbo nǹkan nípa rẹ
+Forget everything about me	Gbàgbé gbogbo nǹkan nípa rẹ
+Click again to forget	Tẹ lẹ́ẹ̀kan sí i láti gbàgbé
+Forget this day	Gbàgbé ọjọ́ yìí
+Only the start of this day is shown.	Ìbẹ̀rẹ̀ ọjọ́ yìí nìkan ni a ń fi hàn.
+Nothing in this day.	Kò sí nǹkan kan ní ọjọ́ yìí.
+No chats kept yet.	Kò sí ìjíròrò tí a tọ́jú síbẹ̀.
+You	Ìwọ
+{0} line	Ìlà {0}
+SET UP EMAIL >	ṢÈTÒ ÍMÉÈLÌ >
+SET UP EMAIL	ṢÈTÒ ÍMÉÈLÌ
+Or type your address	Tàbí kọ àdírẹ́sì rẹ
+Email address	Àdírẹ́sì íméèlì
+Open the page	Ṣí ojú-ìwé
+App password	Ọ̀rọ̀ ìkọ̀kọ̀ app
+IMAP server	Sérúfà IMAP
+Incoming mail server	Sérúfà íméèlì tí ń wọlé
+SMTP server	Sérúfà SMTP
+Outgoing mail server	Sérúfà íméèlì tí ń jáde
+An app password is a separate password just for Capri. Your normal password stays yours.	Ọ̀rọ̀ ìkọ̀kọ̀ app jẹ́ ọ̀rọ̀ ìkọ̀kọ̀ ọ̀tọ̀ fún Capri nìkan. Ọ̀rọ̀ ìkọ̀kọ̀ rẹ ti ojoojúmọ́ ṣì jẹ́ tirẹ.
+She keeps it only until she closes.	Ó ń tọ́jú rẹ̀ títí yóò fi pa.
+She checks, searches and reads your mail. She asks before she sends any.	Ó ń yẹ íméèlì rẹ wò, ń wá a, ó sì ń kà á. Ó ń béèrè kí ó tó fi ohunkóhun ránṣẹ́.
+Watch for new mail	Máa wo íméèlì tuntun
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ó ń sọ̀rọ̀ nígbà tí íméèlì bá dé, pẹ̀lú ìkìlọ̀ bí ó bá dà bí phishing. Kò sí nǹkan tí a ń fi àmì sí bí a ti kà á.
+Deal with phishing on her own	Dójú ìjà kọ phishing fúnra rẹ
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Nìkan nígbà tí ó ń wo. Íméèlì tí ó dá ọ́ lójú pé phishing ni yóò lọ sí spam. Ìyókù ń dúró de ìfọwọ́sí rẹ.
+Forget account	Gbàgbé àkọọ́lẹ̀
+Use another email	Lo íméèlì mìíràn
+Which email?	Íméèlì wo?
+Make an app password	Ṣe ọ̀rọ̀ ìkọ̀kọ̀ app
+Paste it	Lẹ̀ ẹ́
+Connecting...	Ń so pọ̀...
+She can use your email now.	Nísinsìnyí ó lè lo íméèlì rẹ.
+She's not watching your inbox.	Kò ń wo àpótí tí ń wọlé rẹ.
+She's watching your inbox and deals with phishing she's sure of.	Ó ń wo àpótí rẹ, ó sì ń dójú ìjà kọ phishing tí ó dá ọ́ lójú.
+She's watching your inbox and tells you when mail lands.	Ó ń wo àpótí rẹ, ó sì ń sọ fún ọ nígbà tí íméèlì bá dé.
+She forgot that account and its app password.	Ó gbàgbé àkọọ́lẹ̀ yẹn àti ọ̀rọ̀ ìkọ̀kọ̀ app rẹ̀.
+She forgot that account. Its app password is gone from this PC.	Ó gbàgbé àkọọ́lẹ̀ yẹn. Ọ̀rọ̀ ìkọ̀kọ̀ app rẹ̀ ti sọnù kúrò lórí kọ̀mpútà yìí.

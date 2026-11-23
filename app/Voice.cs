@@ -389,8 +389,29 @@ namespace CapriDesktop
 
         internal byte[] Speak(string text)
         {
+            string own = VoiceId, pack = CompanionPack.ElevenLabs;
+            if (pack == null || pack == own || own != null && pack == packFailed) return Speak(text, own);
+            try { return Speak(text, pack); }
+            catch (VoiceException error)
+            {
+                if (own == null || !PackVoiceOnly(error)) throw;
+                if (error.Status != 400 && error.Status != 422) packFailed = pack;
+                Brain.Log("voice", -1, "The companion pack's ElevenLabs voice didn't work with this key, so their own voice said it: " + error.Message);
+                return Speak(text, own);
+            }
+        }
+
+        private volatile string packFailed;
+
+        internal static bool PackVoiceOnly(VoiceException error)
+        {
+            string said = error.Message ?? "";
+            return error.Status == 400 || error.Status == 404 || error.Status == 422 || said == LibraryVoice || said.StartsWith("Voice not found", StringComparison.Ordinal) || said.StartsWith("That voice is still training", StringComparison.Ordinal);
+        }
+
+        private byte[] Speak(string text, string id)
+        {
             string key = Key;
-            string id = VoiceId;
             string model = Model;
             if (key == null || id == null) throw new VoiceException("No voice picked.");
             string said = Sayable(text);
@@ -2648,6 +2669,19 @@ namespace CapriDesktop
 
         internal static string Lang(string code) { int row = Row(code); return row < 0 ? null : Spoken[row, 1]; }
 
+        internal static int Native(string code)
+        {
+            switch (code)
+            {
+                case "es": return 28;
+                case "fr": return 30;
+                case "hi": return 31;
+                case "it": return 35;
+                case "pt": return 42;
+                default: return -1;
+            }
+        }
+
         private static string Dict(string folder, string code) { return Path.Combine(Path.Combine(folder, "espeak-ng-data"), code + "_dict"); }
 
         internal static bool Ready(string folder, string code)
@@ -2816,11 +2850,15 @@ namespace CapriDesktop
 
         internal bool Speaks(string code) { return VoiceTongues.Ready(folder, code); }
 
+        internal int Native(string code) { int row = VoiceTongues.Native(code); return VoicePack.Has(folder, row) ? row : -1; }
+
         internal void AddTongues(Action<string, long, long> progress, Func<bool> stopped) { VoiceTongues.Fetch(folder, progress, stopped); }
 
         internal byte[] Speak(string text) { return Speak(text, null); }
 
-        internal byte[] Speak(string text, string code)
+        internal byte[] Speak(string text, string code) { return Speak(text, code, -1); }
+
+        internal byte[] Speak(string text, string code, int voice)
         {
             if (code != null && !Speaks(code)) throw new VoiceException("Her free voice doesn't have that language yet.");
             if (!VoiceLanguage.Reads(text, code ?? "en")) throw new VoiceException(VoiceLanguage.Missing(VoiceLanguage.Tongue(text, Brain.Language), Brain.Language));
@@ -2835,7 +2873,7 @@ namespace CapriDesktop
                 IntPtr audio = IntPtr.Zero;
                 try
                 {
-                    int speaker = style.Speaker, speakers = SherpaOnnxOfflineTtsNumSpeakers(tts);
+                    int speaker = voice >= 0 ? voice : style.Speaker, speakers = SherpaOnnxOfflineTtsNumSpeakers(tts);
                     if (speaker < 0 || speaker >= speakers) speaker = 0;
                     audio = SherpaOnnxOfflineTtsGenerate(tts, words, speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
                     if (audio == IntPtr.Zero) throw new VoiceException("Her free voice glitched.");
@@ -3994,7 +4032,7 @@ namespace CapriDesktop
         internal static readonly Service[] Services =
         {
             new Service("Fish Audio · cloud", Fish, FishCloud, FishFree, "", "Voice ID or fish.audio link", "Paste your Fish Audio key",
-                "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization. " + FishFree + " is its free tier."),
+                FishFree + " has a free window advertised through 30 November 2026; availability after that is unconfirmed. Capri does not automatically switch to a paid model if it fails. Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization."),
             new Service("Voice model file · on your PC", Files, "", "", "", "Number or clip, optional", "Optional",
                 "A Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx, run with no server. Browse to its .tar.bz2 or .onnx. Pocket TTS copies a voice clip you pick."),
             new Service("Fish Speech · on your PC", Fish, "http://127.0.0.1:8080", "", "", "Reference ID, optional", "Optional",
@@ -4002,7 +4040,7 @@ namespace CapriDesktop
             new Service("Kokoro · on your PC", OpenAi, Address, "kokoro", "af_heart", "Optional", "Optional",
                 "Kokoro-FastAPI running on your PC, with voices like af_heart, af_bella and am_adam."),
             new Service("OpenAI · cloud", OpenAi, OpenAiCloud, "gpt-4o-mini-tts", "marin", "Optional", "Paste your OpenAI key",
-                "OpenAI's voices with your OpenAI key: marin, cedar, coral, alloy and more."),
+                "This Speech model shuts down 6 January 2027. Continuing with OpenAI needs a separate Realtime migration; changing the model here cannot migrate it. Capri does not automatically switch to a paid alternative if it fails. OpenAI's voices with your OpenAI key: marin, cedar, coral, alloy and more."),
             new Service("Any OpenAI-style server", OpenAi, null, null, null, "Optional", "Optional",
                 "Any speech model you run whose server speaks OpenAI's speech API, like Qwen3-TTS through vLLM-Omni, AllTalk or LocalAI.")
         };

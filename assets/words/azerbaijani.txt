@@ -30,6 +30,7 @@ Ask Capri for more	Capri-dən daha çox istə
 Asking your server...	Serverindən soruşuram...
 Asks before closing only the apps you choose.	Yalnız seçdiyin tətbiqləri bağlamazdan əvvəl soruşur.
 Auto	Avtomatik
+Auto (match what I say)	Avtomatik (dediyimə görə)
 Automatic: VB-CABLE, else Steam's	Avtomatik: VB-CABLE, yoxdursa Steam-inki
 BAD RELAY HOST	PİS RELE HOSTU
 BIG Z open notepad	BIG Z notepad aç
@@ -290,6 +291,7 @@ Huge	Nəhəng
 I can hear you.	Səni eşidirəm.
 I glance at your screen and comment. Costs a little on a paid brain.	Ekranına baxıb şərh yazıram. Ödənişli beyində bir az xərc tələb edir.
 I keep listening. Say my name, then just talk.	Dinləməyə davam edirəm. Adımı de, sonra sadəcə danış.
+I speak	Danışdığım dil
 I talk about your game as you play. Costs a little on a paid brain.	Oynayarkən oyununuz haqqında danışıram. Ödənişli beyində bir az xərc tələb edir.
 I type my replies and stay quiet.	Cavablarımı yazıram və sakit qalıram.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Cavab verməyəcəyəm və heç nə heç yerə göndərilmir. Yenə də yanında olacağam, musiqinə rəqs edəcəyəm və istədiyin sürətli işləri görəcəyəm, məsələn səsi.
@@ -598,6 +600,7 @@ SKILL.	BACARIQ.
 SKIN.	SKİN.
 SORT BY	SIRALA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SƏSLƏR ADƏTLƏR BEYİN BAX CAPRI DOOMSCROLL HAVA KLİPLƏR OYUNLAR AÇARLAR HƏRƏKƏTLƏR SƏS SƏN
+Same as I speak	Mənim dilim kimi
 Same as her ears (VOICE > Mic)	Onun qulaqları ilə eynidir (SƏS > Mikrofon)
 Same code on the phone?	Telefonda eyni kod?
 Save	Yadda saxla
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Parametrlərdə izləyəcək heç nə yox idi.
 Settings lost keyboard focus during the Tab walk	Tab gəzintisi zamanı Parametrlər klaviatura fokusunu itirdi
 Setup guide	Quraşdırma təlimatı
 Setup stopped	Quraşdırma dayandırıldı
+She answers in	Cavab dili
 She can read it when it fits.	Yerinə düşəndə oxuya bilər.
 She glances at your screen and comments. Costs a little on a paid brain.	Ekranına baxır və şərh yazır. Ödənişli beyində bir az xərc tələb edir.
-She keeps listening. Say her name, then just talk until you go quiet.	Dinləməyə davam edir. Adını de, sonra susana qədər sadəcə danış.
+She keeps listening. Say her name, then just talk.	Dinləməyə davam edir. Adını de, sonra sadəcə danış.
 She reacts to your game until you close it.	Bağlayana qədər oyununa reaksiya verir.
 She reads these controls before each game job.	Hər oyun tapşırığından əvvəl bu idarəetmələri oxuyur.
 She talks about your game as you play. Costs a little on a paid brain.	Oynayarkən oyununuz haqqında danışır. Ödənişli beyində bir az xərc tələb edir.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	O işləyərkən di
 · HD	· HD
 · on this PC	· bu kompüterdə
 · server	· server
+Edit as text	Mətn kimi redaktə et
+What Capri remembers about you. It stays on this computer.	Capri sənin haqqında nə xatırlayır. Bu kompüterdə qalır.
+Tell her something to remember	Ona xatırlamaq üçün bir şey de
+Search her memory	Onun yaddaşında axtar
+That day isn't there any more.	O gün artıq yoxdur.
+Undo	Geri al
+Remember our chats is off, so she isn't keeping new chat memories.	Söhbətlərimizi xatırla söndürülüb, ona görə yeni söhbət xatirələri saxlamır.
+ABOUT YOU	SƏNİN HAQQINDA
+FROM YOUR CHATS	SÖHBƏTLƏRİNDƏN
+GAMES	OYUNLAR
+CHAT LOGS	SÖHBƏT QEYDLƏRİ
+CHAT LOG	SÖHBƏT QEYDİ
+Nothing matches.	Uyğun heç nə yoxdur.
+Nothing yet.	Hələ heç nə.
+Reading her notes.	Onun qeydləri oxunur.
+Click again to forget game notes	Oyun qeydlərini unutmaq üçün yenidən kliklə
+Forget game notes	Oyun qeydlərini unut
+Click again to forget everything about me	Sənin haqqında hər şeyi unutmaq üçün yenidən kliklə
+Forget everything about me	Sənin haqqında hər şeyi unut
+Click again to forget	Unutmaq üçün yenidən kliklə
+Forget this day	Bu günü unut
+Only the start of this day is shown.	Bu günün yalnız başlanğıcı göstərilir.
+Nothing in this day.	Bu gündə heç nə yoxdur.
+No chats kept yet.	Hələ heç bir söhbət saxlanmayıb.
+You	Sən
+{0} line	{0} sətir
+SET UP EMAIL >	E-POÇTU QUR >
+SET UP EMAIL	E-POÇTU QUR
+Or type your address	Və ya ünvanını yaz
+Email address	E-poçt ünvanı
+Open the page	Səhifəni aç
+App password	Tətbiq parolu
+IMAP server	IMAP serveri
+Incoming mail server	Gələn poçt serveri
+SMTP server	SMTP serveri
+Outgoing mail server	Gedən poçt serveri
+An app password is a separate password just for Capri. Your normal password stays yours.	Tətbiq parolu yalnız Capri üçün ayrı bir paroldur. Adi parolun sənin olaraq qalır.
+She keeps it only until she closes.	Onu yalnız bağlanana qədər saxlayır.
+She checks, searches and reads your mail. She asks before she sends any.	O, poçtunu yoxlayır, axtarır və oxuyur. Bir şey göndərməzdən əvvəl soruşur.
+Watch for new mail	Yeni poçta bax
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Poçt gələndə danışır, phishing kimi görünürsə xəbərdarlıq edir. Heç nə oxunmuş kimi işarələnmir.
+Deal with phishing on her own	Phishing-lə özü məşğul ol
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Yalnız o baxarkən. Phishing olduğuna əmin olduğu poçt spam-a gedir. Qalanı sənin hə deyəcəyinə gözləyir.
+Forget account	Hesabı unut
+Use another email	Başqa e-poçt istifadə et
+Which email?	Hansı e-poçt?
+Make an app password	Tətbiq parolu yarat
+Paste it	Yapışdır
+Connecting...	Qoşulur...
+She can use your email now.	O artıq e-poçtunu istifadə edə bilər.
+She's not watching your inbox.	O, gələn qutuna baxmır.
+She's watching your inbox and deals with phishing she's sure of.	O, gələn qutuna baxır və əmin olduğu phishing-lə məşğul olur.
+She's watching your inbox and tells you when mail lands.	O, gələn qutuna baxır və poçt gələndə sənə deyir.
+She forgot that account and its app password.	O, həmin hesabı və tətbiq parolunu unutdu.
+She forgot that account. Its app password is gone from this PC.	O, həmin hesabı unutdu. Tətbiq parolu bu kompüterdən silindi.

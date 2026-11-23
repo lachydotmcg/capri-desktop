@@ -34,6 +34,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             foreach (Clip shown in Clips) shown.Reload();
+            RebuildMoves();
             blinkWith = null;
             herPointer?.ReloadArt();
             if (body == null) return;
@@ -322,6 +323,15 @@ namespace CapriDesktop
             mainframe.OpenPage(page);
             return "Opened Capri Mainframe.";
         }
+        private string ImportModTool(string path)
+        {
+            if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.Invoke(() => ImportModTool(path));
+            if (!File.Exists(path)) return "Couldn't import " + Mods.FileName(path) + ": it isn't there any more.";
+            OpenMainframe();
+            mainframe.OpenPage("mods");
+            mainframe.ImportMod(path);
+            return mainframe.ModStatusText;
+        }
         private string MoveMainframe(string which)
         {
             OpenMainframe();
@@ -362,10 +372,11 @@ namespace CapriDesktop
             else if (Brain.Server != null) PickServerModel(model.Trim());
             else PickBrain(model.Trim());
         }
+        private string CloudProviderPick() { string picked = Speakers.Known(Saved.VoiceProvider); return picked == Speakers.Fish || picked == Speakers.OpenAi ? picked : Speakers.ElevenLabs; }
         internal void MainframeVoiceModePick(int mode)
         {
             if (mode == 0) SetSpeak(false);
-            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : Speakers.ElevenLabs); SetSpeak(true); }
+            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : CloudProviderPick()); SetSpeak(true); }
         }
         internal void MainframeForgetVoice() { ForgetVoice(); Save(); }
         internal void MainframeLoadVoices() { if (voices == null && Program.Smoke == null) ListVoices(); }
@@ -373,7 +384,7 @@ namespace CapriDesktop
         internal NativeMenu TrayMenu()
         {
             var menu = new NativeMenu();
-            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; FillMenu(menu, ContextMenu.Items); };
+            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? Lingo.Of("Show Capri") : Lingo.Of("Hide Capri"); FillMenu(menu, ContextMenu.Items); };
             fill(); menu.NeedsUpdate += (_, _) => fill(); return menu;
         }
         private void FillMenu(NativeMenu menu, System.Collections.IEnumerable source)
@@ -384,7 +395,7 @@ namespace CapriDesktop
                 if (OperatingSystem.IsLinux() && ReferenceEquals(source, securityMenu.Items) && value is Control && !((Control)value).IsVisible) continue;
                 var row = value as MenuItem;
                 if (row == null) { menu.Items.Add(new NativeMenuItemSeparator()); continue; }
-                var item = new NativeMenuItem(row.Header as string ?? "") { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
+                var item = new NativeMenuItem(Lingo.Of(row.Header as string ?? "")) { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
                     ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None };
                 if (row.Items.Count > 0) { item.Menu = new NativeMenu(); FillMenu(item.Menu, row.Items); }
                 item.Click += (_, _) => row.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));

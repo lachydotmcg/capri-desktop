@@ -30,6 +30,7 @@ Ask Capri for more	Capri लाई अझ माग्नुहोस्
 Asking your server...	तपाईंको सर्भरलाई सोध्दै...
 Asks before closing only the apps you choose.	तपाईंले छानेका एपहरू मात्र बन्द गर्नुअघि सोध्छ।
 Auto	स्वतः
+Auto (match what I say)	स्वतः (मैले भनेअनुसार)
 Automatic: VB-CABLE, else Steam's	स्वतः: VB-CABLE, नत्र Steam को
 BAD RELAY HOST	गलत RELAY होस्ट
 BIG Z open notepad	BIG Z notepad खोल्छ
@@ -290,6 +291,7 @@ Huge	विशाल
 I can hear you.	मैले तपाईंलाई सुन्न सक्छु।
 I glance at your screen and comment. Costs a little on a paid brain.	म तपाईंको स्क्रिन हेर्छु र टिप्पणी गर्छु। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
 I keep listening. Say my name, then just talk.	म सुनिरहन्छु। मेरो नाम भन्नुहोस्, त्यसपछि बोल्नुहोस्।
+I speak	म बोल्छु
 I talk about your game as you play. Costs a little on a paid brain.	तपाईं खेल्दा म तपाईंको खेलबारे कुरा गर्छु। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
 I type my replies and stay quiet.	म मेरा जवाफ टाइप गर्छु र चुप बस्छु।
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	म जवाफ दिने छैन, र केही पनि कतै पठाइँदैन। म अझै बस्छु, तपाईंको सङ्गीतमा नाच्छु र तपाईंले माग्ने छिटा कामहरू गर्छु, जस्तै भोल्युम।
@@ -598,6 +600,7 @@ SKILL.	सीप।
 SKIN.	छाला।
 SORT BY	यसद्वारा क्रमबद्ध
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ध्वनिहरू बानी दिमाग हेर्नुहोस् CAPRI DOOMSCROLL मौसम क्लिपहरू खेलहरू कुञ्जीहरू चाल आवाज तपाईं
+Same as I speak	मेरो भाषा जस्तै
 Same as her ears (VOICE > Mic)	उसको कानजस्तै (VOICE > Mic)
 Same code on the phone?	फोनमा उही कोड?
 Save	बचत गर्नुहोस्
@@ -633,9 +636,10 @@ Settings had nothing to watch.	सेटिङमा हेर्ने के�
 Settings lost keyboard focus during the Tab walk	Tab यात्राका बेला सेटिङले किबोर्ड फोकस गुमायो
 Setup guide	सेटअप गाइड
 Setup stopped	सेटअप रोकियो
+She answers in	उनी जवाफ दिन्छिन्
 She can read it when it fits.	मिल्दा उसले पढ्न सक्छे।
 She glances at your screen and comments. Costs a little on a paid brain.	उसले तपाईंको स्क्रिन हेर्छे र टिप्पणी गर्छे। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
-She keeps listening. Say her name, then just talk until you go quiet.	उसले सुनिरहन्छे। उसको नाम भन्नुहोस्, त्यसपछि चुप नलागेसम्म बोल्नुहोस्।
+She keeps listening. Say her name, then just talk.	उसले सुनिरहन्छे। उसको नाम भन्नुहोस्, त्यसपछि बोल्नुहोस्।
 She reacts to your game until you close it.	तपाईंले बन्द नगरेसम्म उसले तपाईंको खेलमा प्रतिक्रिया दिन्छे।
 She reads these controls before each game job.	हरेक खेल कार्यअघि उसले यी नियन्त्रणहरू पढ्छे।
 She talks about your game as you play. Costs a little on a paid brain.	तपाईं खेल्दा उसले तपाईंको खेलबारे कुरा गर्छे। भुक्तानी दिमागमा अलिकति खर्च लाग्छ।
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	उसले चल
 · HD	· HD
 · on this PC	· यो PC मा
 · server	· सर्भर
+Edit as text	पाठको रूपमा सम्पादन गर्नुहोस्
+What Capri remembers about you. It stays on this computer.	Capri तपाईंको बारेमा के सम्झन्छ। यो यही कम्प्युटरमा रहन्छ।
+Tell her something to remember	उसलाई सम्झन केही भन्नुहोस्
+Search her memory	उसको सम्झनामा खोज्नुहोस्
+That day isn't there any more.	त्यो दिन अब छैन।
+Undo	पूर्ववत गर्नुहोस्
+Remember our chats is off, so she isn't keeping new chat memories.	हाम्रा कुराकानी सम्झना बन्द छ, त्यसैले उसले नयाँ कुराकानी सम्झना राख्दैन।
+ABOUT YOU	तपाईंको बारेमा
+FROM YOUR CHATS	तपाईंका कुराकानीबाट
+GAMES	खेलहरू
+CHAT LOGS	कुराकानी लग
+CHAT LOG	कुराकानी लग
+Nothing matches.	केही मिल्दैन।
+Nothing yet.	अझै केही छैन।
+Reading her notes.	उसका नोटहरू पढ्दै छ।
+Click again to forget game notes	खेल नोट भुल्न फेरि क्लिक गर्नुहोस्
+Forget game notes	खेल नोट भुल्नुहोस्
+Click again to forget everything about me	आफ्नो बारेमा सबै भुल्न फेरि क्लिक गर्नुहोस्
+Forget everything about me	आफ्नो बारेमा सबै भुल्नुहोस्
+Click again to forget	भुल्न फेरि क्लिक गर्नुहोस्
+Forget this day	यो दिन भुल्नुहोस्
+Only the start of this day is shown.	यो दिनको सुरु मात्र देखाइन्छ।
+Nothing in this day.	यो दिनमा केही छैन।
+No chats kept yet.	अझै कुनै कुराकानी राखिएको छैन।
+You	तपाईं
+{0} line	{0} हरफ
+SET UP EMAIL >	इमेल सेटअप गर्नुहोस् >
+SET UP EMAIL	इमेल सेटअप गर्नुहोस्
+Or type your address	वा आफ्नो ठेगाना लेख्नुहोस्
+Email address	इमेल ठेगाना
+Open the page	पृष्ठ खोल्नुहोस्
+App password	एप पासवर्ड
+IMAP server	IMAP सर्भर
+Incoming mail server	आउने मेल सर्भर
+SMTP server	SMTP सर्भर
+Outgoing mail server	जाने मेल सर्भर
+An app password is a separate password just for Capri. Your normal password stays yours.	एप पासवर्ड Capri का लागि मात्र छुट्टै पासवर्ड हो। तपाईंको सामान्य पासवर्ड तपाईंकै रहन्छ।
+She keeps it only until she closes.	उसले यसलाई बन्द नहुन्जेल मात्र राख्छ।
+She checks, searches and reads your mail. She asks before she sends any.	उसले तपाईंको मेल जाँच्छ, खोज्छ र पढ्छ। केही पठाउनु अघि सोध्छ।
+Watch for new mail	नयाँ मेल हेर्नुहोस्
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	मेल आएपछि उसले भन्छ, फिशिङ जस्तो लागे चेतावनी दिन्छ। केही पनि पढिएको भनी चिन्ह लगाइँदैन।
+Deal with phishing on her own	फिशिङ आफैं सम्हाल्नुहोस्
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	उसले हेर्दा मात्र। उसलाई पक्का फिशिङ लाग्ने मेल स्पाममा जान्छ। बाँकी तपाईंको हुन्छ कुर्छ।
+Forget account	खाता भुल्नुहोस्
+Use another email	अर्को इमेल प्रयोग गर्नुहोस्
+Which email?	कुन इमेल?
+Make an app password	एप पासवर्ड बनाउनुहोस्
+Paste it	यसलाई टाँस्नुहोस्
+Connecting...	जोडिँदै छ...
+She can use your email now.	अब उसले तपाईंको इमेल प्रयोग गर्न सक्छ।
+She's not watching your inbox.	उसले तपाईंको इनबक्स हेर्दै छैन।
+She's watching your inbox and deals with phishing she's sure of.	उसले तपाईंको इनबक्स हेर्छ र पक्का फिशिङ सम्हाल्छ।
+She's watching your inbox and tells you when mail lands.	उसले तपाईंको इनबक्स हेर्छ र मेल आएपछि भन्छ।
+She forgot that account and its app password.	उसले त्यो खाता र त्यसको एप पासवर्ड बिर्सी।
+She forgot that account. Its app password is gone from this PC.	उसले त्यो खाता बिर्सी। त्यसको एप पासवर्ड यो कम्प्युटरबाट गयो।

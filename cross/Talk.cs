@@ -13,7 +13,7 @@ namespace CapriDesktop
     internal sealed class Sheet : Control
     {
         internal const int Columns = 34;
-        internal const string Speaker = "CAPRI: ";
+        internal static string Speaker => CompanionPack.Name.ToUpperInvariant() + ": ";
         internal const double Type = 14;
         internal const double Line = 19;
         internal string Heard;
@@ -300,7 +300,8 @@ namespace CapriDesktop
     // The pencil and wave under her when you hover her, the same as on Windows: black plates with cut corners and a
     // pink-to-cyan neon edge, TYPE and TALK in her mono font, the wave as bars of square segments, and a few frames of her
     // glitch when it shows. It draws in whole screen pixels at her scale, so it stays crisp at 100%, 150% and 200%. Voice
-    // chat is Windows-only, so the mic button, the mic level and MUTED only show in the smoke test's checks here.
+    // chat in that continuous form is Windows-only; cross records one line per TALK press, so the mic button, the mic level and
+    // MUTED only show in the smoke test's checks here.
     internal sealed class PillFace : Control
     {
         // Frames of the glitch it shows with, 45 ms each.
@@ -765,7 +766,7 @@ namespace CapriDesktop
         internal bool Tearing { get { return face.Tear > 0; } }
 
         // Which part is under x, in her window's units: 1 the pencil, 2 the wave, 3 the mic button right of it in voice chat
-        // (Windows-only for now), like Windows.
+        // (the continuous voice chat is Windows-only; cross records one line per TALK press), like Windows.
         internal static int PartAt(double x, bool chatting)
         {
             if (chatting && x >= Wide) return 3;

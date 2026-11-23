@@ -200,7 +200,7 @@ namespace CapriDesktop
 
         internal static bool MoveFailed(string result)
         {
-            return result != null && result == Blind || Regex.IsMatch(result ?? "", @"\A(Which window\?|I can't see |I couldn't |I can see that app, but |That (?:app won't|window )|Those windows |Take that window |Window arranging |Turn Capri on in System Settings|Allow Capri to control System Events|System Events didn't answer|Lying down on a window you name is only on Windows so far\.)");
+            return result != null && result == Blind || Regex.IsMatch(result ?? "", @"\A(Which window\?|I can't see |I couldn't |I can see that app, but |That (?:app won't|window )|Those windows |Take that window |Window arranging |Turn Capri on in System Settings|Allow Capri to control System Events|System Events didn't answer|Lying down on a window you name isn't on a Mac yet\.)");
         }
 
         internal static Func<ToolArguments, string> RemoteWork(Func<ToolArguments, string> work)
@@ -465,6 +465,25 @@ namespace CapriDesktop
             return x11 != null && long.TryParse(x11.Trim(), out milliseconds) ? milliseconds / 1000.0 : -1;
         }
 
+        // Name listening asks on every tick, so logind's answer is kept for a few seconds instead of a busctl spawn every frame.
+        // Null still means this desktop can't say, and callers must keep listening rather than invent a lock.
+        private const int LockedKeep = 3000;
+        private static bool? lockedHint;
+        private static long lockedAt = -LockedKeep;
+        internal static Func<long> LockClock = () => Environment.TickCount64;
+
+        internal static bool? SessionLocked()
+        {
+            if (OnMac || !OperatingSystem.IsLinux()) return null;
+            long now = LockClock();
+            if (now - lockedAt < LockedKeep) return lockedHint;
+            lockedAt = now;
+            string hint = Music.Run("busctl", new[] { "get-property", "org.freedesktop.login1", "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session", "LockedHint" });
+            Match found = hint == null ? Match.Empty : Regex.Match(hint, @"^b (true|false)\s*$", RegexOptions.Multiline);
+            lockedHint = found.Success ? found.Groups[1].Value == "true" : (bool?)null;
+            return lockedHint;
+        }
+
         internal static bool? SessionAway()
         {
             if (OnMac || !OperatingSystem.IsLinux()) return null;
@@ -631,7 +650,8 @@ namespace CapriDesktop
                 && Regex.IsMatch(window.Title ?? "", @"^Minecraft\b", RegexOptions.IgnoreCase) && !Regex.IsMatch(window.Title, @"^Minecraft\s+Launcher\b", RegexOptions.IgnoreCase);
         }
 
-        // Shortcuts with a tool of their own on Mac and Linux. The rest need key presses, which only Windows has so far.
+        // Shortcuts Mac and Linux handle without Windows' keys: a tool of their own, like the screenshot picker or the system
+        // monitor, or MacFingers' key presses on a Mac. The rest still need Windows.
         internal static string Shortcut(string name, bool mac)
         {
             if (mac)

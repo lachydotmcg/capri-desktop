@@ -30,6 +30,7 @@ Ask Capri for more	Capri ka codso wax dheeraad ah
 Asking your server...	Server-kaaga ayaa la weydiinayaa...
 Asks before closing only the apps you choose.	Wuxuu weydiiyaa ka hor inta uusan xidhin oo keliya apps-ka aad doorato.
 Auto	Si toos ah
+Auto (match what I say)	Si toos ah (sida aan dhaho)
 Automatic: VB-CABLE, else Steam's	Toos ah: VB-CABLE, haddii kale kan Steam
 BAD RELAY HOST	HOST RELAY KHALADKA AH
 BIG Z open notepad	BIG Z ku fur notepad
@@ -290,6 +291,7 @@ Huge	Aad u weyn
 I can hear you.	Waan ku maqlayaa.
 I glance at your screen and comment. Costs a little on a paid brain.	Shaashaddaada ayaan eegaa oo faallo bixiyaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
 I keep listening. Say my name, then just talk.	Dhegaysanayaa. Magacayga odhan, kadibna wax hadal.
+I speak	Waxaan ku hadlaa
 I talk about your game as you play. Costs a little on a paid brain.	Ciyaarahaaga ayaan ka hadlaa markaad ciyaarayso. Qiimo yar ayuu ku kaca maskax lacag bixin.
 I type my replies and stay quiet.	Jawaabahayga qoraa oo aan aamusnaado.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ma jawaabi doono, wax kasta ma loo dirayo meel kasta. Weli waan ku dhex jiri doonaa, muusikadaada ku ciyaari doonaa, oo waxyaabaha degdegga ah ee aad codsato ayaan samayn doonaa, sida cod-sareynta.
@@ -598,6 +600,7 @@ SKILL.	XIRFAD.
 SKIN.	MAQAAR.
 SORT BY	KALA-SOOC SIDA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	CODADKA DABEECADAHA MASKAXDA EEG CAPRI DOOMSCROLL CIMILO CLIPS CIYAARAHA FURAHA DHAQDHAQAAQYADA CODKA ADIGU
+Same as I speak	Sida luqaddayda
 Same as her ears (VOICE > Mic)	Isla sida dhegihiisa (CODKA > Makarafoon)
 Same code on the phone?	Koodka isku mid ma yahay telefoonka?
 Save	Kaydi
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Dejintu waxba looma hayn in la eego.
 Settings lost keyboard focus during the Tab walk	Dejintu waxay lumisay xagga furaha inta lagu jiro socodka Tab
 Setup guide	Hagaha diyaarinta
 Setup stopped	Diyaarinta waa la joojiyey
+She answers in	Waxay ku jawaabtaa
 She can read it when it fits.	Way akhrisan kartaa markii ay ku habboonaato.
 She glances at your screen and comments. Costs a little on a paid brain.	Shaashaddaada ayay eegtaa oo faallo bixisaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
-She keeps listening. Say her name, then just talk until you go quiet.	Way dhegaysanaysaa. Magaceeda odhan, kadibna wax hadal ilaa aad aamusto.
+She keeps listening. Say her name, then just talk.	Way dhegaysanaysaa. Magaceeda odhan, kadibna wax hadal.
 She reacts to your game until you close it.	Ciyaarahaaga ayay ka jawaabtaa ilaa aad xirto.
 She reads these controls before each game job.	Xakamayntan waxay akhrisaa shaqo kasta oo ciyaar ka hor.
 She talks about your game as you play. Costs a little on a paid brain.	Markaad ciyaarayso ciyaarahaaga ayay ka hadlaysaa. Qiimo yar ayuu ku kaca maskax lacag bixin.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	uusan qori doonin a
 · HD	· HD
 · on this PC	· kan PC-kan
 · server	· server
+Edit as text	Tafatir sida qoraal
+What Capri remembers about you. It stays on this computer.	Waxa Capri kaa xasuusato. Wuxuu ku sii jiraa kombuyuutarkan.
+Tell her something to remember	U sheeg wax la xasuusto
+Search her memory	Ka raadi xusuusteeda
+That day isn't there any more.	Maalintaas ma jirto.
+Undo	Ka noqo
+Remember our chats is off, so she isn't keeping new chat memories.	Xusuusinta wada-hadalladeenna waa dammaan, marka ma kaydsato xusuus wada-hadal cusub.
+ABOUT YOU	KU SAABSAN ADIGA
+FROM YOUR CHATS	WADA-HADALLADAADA
+GAMES	CYAARAHAA
+CHAT LOGS	DIWAANNADA WADA-HADALKA
+CHAT LOG	DIWAANKA WADA-HADALKA
+Nothing matches.	Waxba ma aadan.
+Nothing yet.	Weli waxba ma jiraan.
+Reading her notes.	Waxay akhrineysaa qoraalladeeda.
+Click again to forget game notes	Riix mar kale si aad u ilowdo qoraallada ciyaaraha
+Forget game notes	Ilow qoraallada ciyaaraha
+Click again to forget everything about me	Riix mar kale si aad u ilowdo wax walba oo adiga ku saabsan
+Forget everything about me	Ilow wax walba oo adiga ku saabsan
+Click again to forget	Riix mar kale si aad u ilowdo
+Forget this day	Ilow maalintan
+Only the start of this day is shown.	Waxaa la muujinayaa oo kaliya bilowga maalintan.
+Nothing in this day.	Waxba kama jiraan maalintan.
+No chats kept yet.	Weli lama kaydsan wada-hadal.
+You	Adiga
+{0} line	Sadar {0}
+SET UP EMAIL >	DIIYAARI EMAYL >
+SET UP EMAIL	DIIYAARI EMAYL
+Or type your address	Ama qor cinwaankaaga
+Email address	Cinwaanka emaylka
+Open the page	Fur bogga
+App password	Furaha sirta ah ee abka
+IMAP server	Server-ka IMAP
+Incoming mail server	Server-ka emaylka soo gala
+SMTP server	Server-ka SMTP
+Outgoing mail server	Server-ka emaylka baxa
+An app password is a separate password just for Capri. Your normal password stays yours.	Furaha sirta ah ee abka waa furaha sir ah oo gaar u ah Capri oo keliya. Furahaaga caadiga ah waa kaaga.
+She keeps it only until she closes.	Waxay hayaanaysaa ilaa ay xiranto oo keliya.
+She checks, searches and reads your mail. She asks before she sends any.	Waxay hubisaa, raadisaa oo akhridaa emaylkaaga. Waxay weydiisaa ka hor inta aanay wax dirin.
+Watch for new mail	La soco emayl cusub
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Waxay hadashaa marka emayl yimaado, iyada oo digniin ah haddii ay u ekaato phishing. Waxba lama calaamadeeyo in la akhriyay.
+Deal with phishing on her own	Kalsooni phishing-ka
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Kaliya inta ay ilaalinayso. Emaylka ay hubiso inuu phishing yahay wuxuu aadaa spam. Inta kalena waxay sugtaa oggolaanshahaaga.
+Forget account	Ilow akoonka
+Use another email	Isticmaal emayl kale
+Which email?	Emaylkee?
+Make an app password	Abuur furaha sirta ah ee abka
+Paste it	Ku dheji
+Connecting...	Waa la xidhiidhinayaa...
+She can use your email now.	Hadda waxay isticmaali kartaa emaylkaaga.
+She's not watching your inbox.	Ma ilaalinayso sanduuqaaga soo-galka.
+She's watching your inbox and deals with phishing she's sure of.	Waxay ilaalinaysaa sanduuqaaga oo waxay wax ka qabataa phishing-ka ay hubiso.
+She's watching your inbox and tells you when mail lands.	Waxay ilaalinaysaa sanduuqaaga oo waxay kuu sheegtaa marka emayl yimaado.
+She forgot that account and its app password.	Waxay ilowday akoonkaas iyo furaha sirta ah ee abkiisa.
+She forgot that account. Its app password is gone from this PC.	Waxay ilowday akoonkaas. Furaha sirta ah ee abkiisa wuu ka lumay kombuyuutarkan.

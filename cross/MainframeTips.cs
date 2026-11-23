@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Avalonia;
 using Avalonia.Controls;
 
 namespace CapriDesktop
@@ -8,7 +9,8 @@ namespace CapriDesktop
     {
         private static readonly Dictionary<string, string> Text = new Dictionary<string, string>
         {
-            { "Settings", "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them." },
+            { "Settings", "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them. To find one, " + Mainframe.SearchHow + "." },
+            { "Search settings", "Search settings is the box at the top of the Mainframe's Settings page, beside Advanced Settings. To find a setting, " + Mainframe.SearchHow + " anywhere in the Mainframe; on a Mac, Cmd + F works too. A short list drops down as you type, each with its section. Up and Down pick one, and Enter or a click opens its page, scrolls to it and outlines it in cyan for a moment. Esc clears the box. When nothing fits it says " + Mainframe.NoSettingsMatch + "." },
             { "Minimize", "Minimize puts Capri Mainframe on your taskbar or Dock. Capri keeps running, and clicking it there brings the window back." },
             { "Close", "Close puts Capri Mainframe away too. On Hyprland, Super+C does the same while Mainframe is focused. Capri keeps running. Open it again from her right-click or tray menu, and use Quit Capri on the main page when you want to close her completely." },
             { "Support", "Mainframe > CAPRI > Support opens Lachy's Ko-fi page in your browser. Opening the page does not make a payment." },
@@ -38,7 +40,7 @@ namespace CapriDesktop
             { "Mic: default", "Hover over Capri and press TALK, or use the default Ctrl + Alt + V, to start or stop voice chat; choose the input under Mainframe > VOICE > Mic. The mic button or default Ctrl + Alt + N mutes it, and Settings > KEYS can bind Push to talk to a key or mouse button. ElevenLabs uses its voice link when selected and connected unless Listen for Capri is on; the other voice choices use free voice chat, and OFF types her answers." },
             { "Hearing status", "Look under Mainframe > VOICE > Mic. The hearing line says which engine and mic she uses, or what failed. No mic found offers Open Sound settings and Type instead. Windows is blocking the mic offers Open mic privacy. Turn on Microphone access and Let desktop apps access your microphone there. Silent or too quiet offers Test mic and Pick another mic. Test runs for up to ten seconds and shows the input level. If it stays quiet, pick the right input or raise its volume in Windows Sound settings. If sound reaches her but words keep failing, use the offered other engine." },
             { "Hearing engine", "Mainframe > Settings > VOICE > Hearing saves Auto, Her own ears or Windows speech. Auto uses her own ears when ready, otherwise Windows speech, with Windows offline speech as the fallback when her own ears are not coming. Her own ears hear the picked mic offline and support English and 24 other European languages on 64-bit Windows. Use her own ears shows the download size before getting the ears and free speech engine if needed. Windows speech starts with the Windows default mic. Its offline fallback hears the picked mic. If the default differs from the picker, use her own ears or Open Sound settings to change it. Online speech recognition is off offers Open speech settings and, for a supported language, Use her own ears. ElevenLabs voice chat sends the picked mic audio itself, so the Hearing choice applies to free voice chat." },
-            { "Listen for Capri", "On Linux and Apple Silicon Macs, Mainframe > Settings > VOICE > Listen for Hey Capri is off by default and uses the pinned local decoder. On Linux, turning it on offers a physical microphone chooser if needed; on Mac it names your current default mic and you type YES to use it, so pick the mic in System Settings > Sound > Input first. Say Capri to start a chat; follow-ups work without her name for 20 seconds of quiet. Her speech pauses capture. Mute, sleep, Stop and account, session or device changes stop name listening. TALK stops it before recording one line with the default mic; turn Listen for Capri on again afterward. For TALK setup, see README: Linux TALK setup or help: TALK on Linux." },
+            { "Listen for Capri", "On Linux and Apple Silicon Macs, Listen for Hey Capri uses the pinned local decoder and is off by default. On Linux she pauses while your screen is locked and comes back when it unlocks, unless she can't tell, and then she warns you when you turn her on. A lock only pauses her while she's listening, so Stop still wins, and the switch stays on through any of it, so turning it off and on is how you bring her back. On Linux, turning it on offers a physical microphone chooser if needed; on Mac it names your current default mic and you type YES to use it, so pick the mic in System Settings > Sound > Input first. Say Capri anywhere in a line and she answers it; the next line needs her name too. Say just her name, like Hey Capri, and your next line needs no name for 10 seconds. Her speech pauses capture. Mute, sleep, Stop and account, session or device changes stop name listening. TALK stops it before recording one line with the default mic; turn Listen for Capri on again afterward. For TALK setup, see README: Linux TALK setup or help: TALK on Linux." },
             { "Weather", "Mainframe > Settings > WEATHER is off by default. On, she answers weather, forecast and rain questions from Open-Meteo for the city you type, says one warning a day for extreme weather and reminds you about an umbrella on rainy days. No key, and she never looks you up by IP." },
             { "Weather city", "Type your city, with its country if the name is common, like Paris, France, then press Save or Enter. Only that name and its map spot go to Open-Meteo." },
             { "Follow-up messages", "Follow-up messages is on by default. A second thought waits until her answer finishes and another two seconds pass; typing or a new answer drops it." },
@@ -49,7 +51,9 @@ namespace CapriDesktop
             { "Chaos when upset", "Mainframe > Settings > CAPRI > Chaos when upset is off by default. Turned on, insulting her can set her clones off: 1 chance in 3 the first time, 2 in 3 the next, and the third insult always does it. They keep multiplying until you hold Esc. It never happens during a job, a game, a stream or voice chat. Turned off, an insult only gets a reply. It's Windows only for now." },
             { "Advanced Settings", "Mainframe > Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which you left it on." },
             { "EXTRAS >", "On a new install's first launch she opens EXTRAS over the Mainframe with four switches, all off: Watch my screen, Comment on my games, Clip my games and Listen for Capri. Each costs something or uses the mic, so they're your pick, and Done closes it. All four are in Settings as well: WATCH, GAMES, CLIPS and VOICE. Comment on my games is GAMES > Comments set to Chatty." },
-            { "Language", "Mainframe > Settings > YOU > Language chooses the language she replies in, and her Mainframe shows in it too. Changing it starts a fresh recent chat." },
+            { "Language", "Mainframe > Settings > YOU > I speak is the language you speak. Her ears listen for it, her Mainframe shows in it, and she answers in it too unless She answers in says otherwise. Changing it starts a fresh recent chat." },
+            { "I speak", "Mainframe > Settings > YOU > I speak is the language you speak. Her ears listen for it, her Mainframe shows in it, and she answers in it too unless She answers in says otherwise. Changing it starts a fresh recent chat." },
+            { "She answers in", "Mainframe > Settings > YOU > She answers in is the language she replies in. Same as I speak follows I speak. Auto (match what I say) answers each message in the language you used, worked out on your computer. Or pick any of her 80 languages. Changing it starts a fresh recent chat." },
             { "What should she call you?", "In Mainframe > Settings > YOU, enter a nickname under What should she call you? and press Save. Clear it or enter choom to go back to choom; Get to know me asks about your name, pronouns and interests and keeps the answers in me.md." },
             { "Get to know me", "Mainframe > Settings > YOU > Get to know me starts her questions about what to call you, your pronouns and what you're into. The answers go into me.md; say skip to pass a question or stop to end it." },
             { "Volume", "Mainframe > Settings > VOICE > Volume changes how loud her voice plays, from 10% to 150%; VOICE > OFF is her mute. It changes Capri's voice, not the volume of other apps. With a cloud brain, talk louder or quieter works too." },
@@ -62,7 +66,7 @@ namespace CapriDesktop
             { "Typing sound", "Mainframe > Settings > VOICE > Typing sound turns the soft typing noise during her text replies on or off. Sounds in the same section controls the sound effects level." },
             { "Her voice in your mic", "Mainframe > Settings > VOICE > Her voice in your mic is off by default. Turned on, she plays your mic, the one picked under VOICE > Mic, and everything she says into a virtual mic, and you pick its other end as your mic in Discord or Roblox so friends hear you both: Steam Streaming Microphone when Steam's virtual mic is on the PC, or CABLE Output once VB-CABLE is installed. She uses VB-CABLE when both are there, and the note under the switch names the one to pick. If the line under it says to turn that mic on, Windows has it turned off in its sound settings. With neither, the switch stays off and Set up opens VB-Audio's own VB-CABLE setup from the copy she carries: Windows asks to let it run, you click Install Driver, then restart your PC. VB-CABLE is donationware from vb-cable.com; clicking that credit opens its page, where you can donate. Her voice still plays on your speakers, her sound effects stay out, and she never listens to that mic herself. Headphones stop your mic hearing her a second time." },
             { "Mini player", "Mainframe > Settings > MOVES > Mini player shows the song Windows reports, with playback controls and a place for her to sit. It hides during full-screen games and videos unless Mini player over full screen is on under HABITS; Spotify also gets a heart for liking the song." },
-            { "Wander", "Mainframe > Settings > MOVES > Wander sets Off, Rarely, Sometimes, Often or Restless; right-click > Move > Wander also toggles it, and with a cloud brain so does stop wandering or wander more. She wanders while idle and you're active at the PC." },
+            { "Wander", "Mainframe > Settings > MOVES > Wander sets Off, Rarely, Sometimes, Often or Restless; right-click > Move > Wander also toggles it, and with a cloud brain so does stop wandering or wander more. She wanders while idle and you're active at the PC, across all your monitors but never onto one a full-screen window covers, and only on her own screen while she's on a job." },
             { "Sleep", "Mainframe > Settings > MOVES > Sleep chooses how long the PC is quiet before she dozes off, or Never. She sleeps until you're back. She also lies down awake for 2 to 4 minutes now and then, even on Never. Jobs, calls, voice chat and typing to her keep her awake. Moving the mouse wakes her own nap; a click, a pet, talking to her or asking for a job or call wakes an asked-for nap too. Asked to sleep during a job, she finishes it first; say stop to stop the job, or wake up to cancel the nap." },
             { "Pop-ins", "Mainframe > Settings > Advanced Settings > CAPRI > Pop-ins sets Check in on me's pace: Rarely is 20 to 40 minutes, Sometimes 8 to 20, and Often 3 to 8. It sits with the check-in rows; Check in on me, at the top of CAPRI, turns the check-ins on or off." },
             { "Dance to music", "Mainframe > Settings > MOVES > Dance to music turns dancing with detected music on or off. Your music player needs to report what's playing; Move > Dance asks for a dance directly." },
@@ -102,7 +106,7 @@ namespace CapriDesktop
             { "Mini player over full screen", "Mainframe > Settings > HABITS > Mini player over full screen is off by default. When on, her enabled mini player can stay over borderless full-screen windows. Windows cannot show it over exclusive full screen. A manual hide and Gaming Mode still put the player away; Hide in full screen can hide her body while the player stays up." },
             { "Explore while I'm away", "Mainframe > Settings > HABITS > Explore while I'm away is off by default. After Explore after, five minutes by default, she moves only her own pointer and scrolls a browser or reader page under your mouse. She never clicks, types, opens or closes anything while exploring. Games, full-screen windows, password fields and blocked windows are excluded. Your mouse or keyboard input stops her; her own scrolling does not reset your away time. She stops after half an hour so your screen can turn off and your PC can sleep, and she never wakes a screen that has already gone off. With a brain that can see she sometimes makes one short comment using WATCH's pace." },
             { "Explore after", "Mainframe > Settings > HABITS > Explore after sets the idle time before Explore while I'm away starts: one, two, five, ten, fifteen or thirty minutes. Five minutes is the default. Her own scrolling does not count as you coming back." },
-            { "Gaming Mode", "Say \"Hey Capri, activate gaming mode\" and she enters Gaming Mode. Gaming Mode has no switch of its own: it is Mainframe > Settings > GAMES > Comments. Anything but Off means Gaming Mode is on, so a game in front brings it up with nothing said. The default key is Ctrl + Alt + G; it, the phrase and her settings tool flip Comments between Off and your last pick (Events only if you've never picked), and she says so. Turning it off means Comments Off, which stays off until you turn it back on. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game until it closes. Her HUD is switched off for now, so there's nothing to move. It works best on MAX INTELLIGENCE and is weaker on other brains. Settings > KEYS changes that key; press it again to turn the mode off, or ask turn off gaming mode. Gaming Mode does not by itself ask her to play. When she plays a game herself as a job, she goes into Gaming Mode by herself once the game is in front; it stays up until the game closes, and turning it off keeps it off for that job." },
+            { "Gaming Mode", "Say \"Hey Capri, activate gaming mode\" and she enters Gaming Mode. Gaming Mode has no switch of its own: it is Mainframe > Settings > GAMES > Comments. Anything but Off means Gaming Mode is on, so a game in front brings it up with nothing said. The default key is Ctrl + Alt + G; it, \"gaming mode off\" and her settings tool turn Gaming Mode off, which sets Comments to Off, and she says so. Off stays off: while Comments is Off, asking for Gaming Mode or pressing its key only gets her line that game comments are off and that you can turn them on under GAMES > Comments, and only that slider or asking her to turn game comments on brings them back. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game until it closes. Her HUD is switched off for now, so there's nothing to move. It works best on MAX INTELLIGENCE and is weaker on other brains. Settings > KEYS changes that key. Gaming Mode does not by itself ask her to play. When she plays a game herself as a job, she goes into Gaming Mode by herself once the game is in front, unless Comments is Off; it stays up until the game closes, and turning it off keeps it off for that job." },
             { "Clip my games", "Mainframe > Settings > CLIPS > Clip my games is off by default. When on, it keeps up to the last two minutes of a detected game's video and PC playback sound in memory while the game is in front. Say clip that or scroll that BD to use your default length, or name a length such as clip the last two minutes. CLIPS has a save-folder picker, default length from 15 seconds to 2 minutes, target frame rate from 15 to 60 fps, maximum resolution Auto/480p/720p/1080p and video bitrate Auto/2/4/8/12/20Mbps. Clips are MP4 files in your chosen folder, Videos\\Capri Clips by default. Folder changes affect future clips and do not move old files. FPS may drop under load or the 240 MB memory budget, especially in longer clips; Auto resolution may lower detail to stay smooth. Matching repeated requests within 8 seconds share one save and one notification. Each save chimes and pops up CLIP SAVED at the top right of the game's screen; click it to see the clip. Open clips folder in Settings > CLIPS opens them all." },
             { "Save big moments", "Mainframe > Settings > CLIPS > Save big moments is directly under Clip my games and off by default. Turning it on also turns Clip my games on; turning Clip my games off turns both off. With both on, her game commentary decides whether a moment is worth keeping and saves your chosen default length of buffered video and PC sound. Comments must be running: games run them unless you set Comments to Off, and with them Off she judges and saves nothing automatically. She reacts as usual, then saves it with no spoken notice; failures stay in her log. Moments under 30 seconds apart do not extend a clip or save another. Clips go to your chosen CLIPS folder (Videos\\Capri Clips by default) like any other clip and take up space the same way; there is no limit on how many she saves and she does not delete old clips." },
             { "Default length", "Mainframe > Settings > CLIPS > Default length chooses 15, 30, 45, 60, 90 or 120 seconds for clip that and Save big moments. The default is 30 seconds. An explicit request such as clip the last two minutes overrides it, using only video already buffered." },
@@ -118,8 +122,17 @@ namespace CapriDesktop
             { "Edit personality.md", "Mainframe > Settings > YOU > Her personality > Edit personality.md opens personality.md in your text editor, starting from her default. Rewrite how she acts and talks, save, and her next reply uses it. Her safety lines stay in her code and always come after it, so it can't change them. Reset to default puts her back and keeps yours as personality.backup.md." },
             { "Check for updates", "Mainframe > CAPRI > Check for updates checks for a newer version. She also checks after startup. When there is one, Get Capri shows in her right-click menu and opens its download page. Started from the Linux AppImage, she downloads it first, and Restart Capri to update swaps the AppImage and opens her again. Settings and notes stay in her data folder across updates." },
             { "SECURITY >", "Mainframe > Settings > HABITS > Security opens SECURITY: Lockdown turns every action toggle off, Guarded turns the first three on, and Trusted, the default, turns the first seven on. Blackwall turns all ten on, including passwords; a different mix shows Custom, and choosing a preset resets its toggles. Keep personal details out of her memories is on in every preset but Blackwall. With an action toggle off she asks first, except passwords and card numbers are yours to type and she asks first for the rest." },
+            { "PLUG-INS", "Mainframe > Mods > PLUG-INS shows each plug-in with its picture, its name and a word for where it's at: Off, On, Set up, Sign in or Connected. Press one to open its window, with Connect or Turn off, what it does and its tools. Email, Notion and Linear come with her, off until you connect one." },
+            { "Plug-in pages", "Back and Next in the PLUG-INS band show four plug-ins at a time when you have more than four." },
         };
         internal static void Explain(Control control, string name)
+        {
+            string facts = Facts(name);
+            if (facts == null) return;
+            ToolTip.SetTip(control, new TipText(facts));
+            ToolTip.SetShowDelay(control, 400);
+        }
+        internal static string Facts(string name)
         {
             if (name == "Brain API key") name = "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key";
             else if (name == "Layers") name = "Voice layers";
@@ -127,18 +140,21 @@ namespace CapriDesktop
             else if (name == "Her personality") name = "Edit personality.md";
             else if (name == "Speech model") name = "Default model";
             string text;
-            if (!Text.TryGetValue(name, out text)) return;
-            text = Brief(text);
-            ToolTip.SetTip(control, new TextBlock { Text = text, MaxWidth = 332, TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size, Foreground = MainframeTheme.White });
-            ToolTip.SetShowDelay(control, 400);
+            return Text.TryGetValue(name, out text) ? text : null;
+        }
+        internal static string Unpathed(string facts)
+        {
+            string text = Regex.Replace(facts ?? "", @"^Mainframe(?: > (?:Settings|Simple Settings|Advanced Settings|[A-Z][A-Z &-]+))* > ", "");
+            return text.Length > 0 ? char.ToUpperInvariant(text[0]) + text.Substring(1) : text;
         }
         internal static string Brief(string facts)
         {
-            string text = Regex.Replace(facts ?? "", @"^Mainframe(?: > (?:Settings|Simple Settings|Advanced Settings|[A-Z][A-Z &-]+))* > ", "");
-            if (text.Length > 0) text = char.ToUpperInvariant(text[0]) + text.Substring(1);
+            string text = Unpathed(facts);
             double height = MainframeTheme.Words("Ag").Height * 6;
             if (Height(text) <= height) return text;
-            const string more = " Ask Capri for more";
+            // A body written without spaces, like Japanese, has no sentence or word break to shorten at, so it keeps all of itself.
+            if (!Regex.IsMatch(text, @"\s")) return text;
+            string more = " " + Lingo.Of("Ask Capri for more");
             string kept = "";
             foreach (Match sentence in Regex.Matches(text, @".+?(?:[.!?](?=\s+[A-Z]|$)|$)"))
             {
@@ -159,5 +175,28 @@ namespace CapriDesktop
             return kept.Length > 0 ? kept + more : more.TrimStart();
         }
         private static double Height(string text) { var words = MainframeTheme.Words(text); words.MaxTextWidth = 332; return words.Height; }
+    }
+
+    internal sealed class TipText : TextBlock
+    {
+        private readonly string facts;
+        private string shown;
+        internal TipText(string facts)
+        {
+            this.facts = facts;
+            shown = MainframeTips.Brief(facts);
+            Text = shown;
+            MaxWidth = 332;
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+            FontFamily = MainframeTheme.Text;
+            FontSize = MainframeTheme.Size;
+            Foreground = MainframeTheme.White;
+        }
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            string now = MainframeTips.Brief(Lingo.Tongue == null ? facts : Lingo.Learn(MainframeTips.Unpathed(facts)));
+            if (now != shown) { shown = now; Text = now; }
+            return base.MeasureOverride(availableSize);
+        }
     }
 }

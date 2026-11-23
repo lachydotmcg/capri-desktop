@@ -30,6 +30,7 @@ Ask Capri for more	Pyydä Capria lisää
 Asking your server...	Kysytään palvelimeltasi...
 Asks before closing only the apps you choose.	Kysyy ennen sulkemista vain valitsemiasi sovelluksia.
 Auto	Auto
+Auto (match what I say)	Auto (seuraa mitä sanon)
 Automatic: VB-CABLE, else Steam's	Automaattinen: VB-CABLE, muuten Steamin
 BAD RELAY HOST	VIRHEELLINEN RELAY-PALVELIN
 BIG Z open notepad	BIG Z avaa muistion
@@ -290,6 +291,7 @@ Huge	Valtava
 I can hear you.	Kuulen sinut.
 I glance at your screen and comment. Costs a little on a paid brain.	Vilkaisen näyttöäsi ja kommentoin. Maksaa vähän maksullisilla aivoilla.
 I keep listening. Say my name, then just talk.	Kuuntelen edelleen. Sano nimeni ja puhu sitten vain.
+I speak	Puhun
 I talk about your game as you play. Costs a little on a paid brain.	Puhun pelistäsi pelatessasi. Maksaa vähän maksullisilla aivoilla.
 I type my replies and stay quiet.	Kirjoitan vastaukseni ja pysyn hiljaa.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	En vastaa ääneen, eikä mitään lähetetä minnekään. Istun silti mukana, tanssin musiikkisi tahtiin ja teen pikkujutut, joita pyydät, kuten äänenvoimakkuuden.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	LAJITTELE
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ÄÄNET TAVAT AIVOT KATSO CAPRI DOOMSCROLL SÄÄ KLIPIT PELIT NÄPPÄIMET LIIKKEET ÄÄNI SINÄ
+Same as I speak	Sama kuin puhumani
 Same as her ears (VOICE > Mic)	Sama kuin hänen korvansa (ÄÄNI > Mikki)
 Same code on the phone?	Sama koodi puhelimella?
 Save	Tallenna
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Asetuksissa ei ollut mitään katsottavaa.
 Settings lost keyboard focus during the Tab walk	Asetukset menetti näppäimistön fokuksen Tab-kierroksen aikana
 Setup guide	Asennusopas
 Setup stopped	Asennus keskeytyi
+She answers in	Hän vastaa kielellä
 She can read it when it fits.	Hän voi lukea sen, kun se mahtuu.
 She glances at your screen and comments. Costs a little on a paid brain.	Hän vilkaisee näyttöäsi ja kommentoi. Maksaa vähän maksullisilla aivoilla.
-She keeps listening. Say her name, then just talk until you go quiet.	Hän kuuntelee edelleen. Sano hänen nimensä ja puhu, kunnes hiljenet.
+She keeps listening. Say her name, then just talk.	Hän kuuntelee edelleen. Sano hänen nimensä ja puhu.
 She reacts to your game until you close it.	Hän reagoi peliisi, kunnes suljet sen.
 She reads these controls before each game job.	Hän lukee nämä ohjaimet ennen jokaista pelityötä.
 She talks about your game as you play. Costs a little on a paid brain.	Hän puhuu pelistäsi pelatessasi. Maksaa vähän maksullisilla aivoilla.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ei kirjoita muihin 
 · HD	· HD
 · on this PC	· tässä PC:ssä
 · server	· palvelin
+Edit as text	Muokkaa tekstinä
+What Capri remembers about you. It stays on this computer.	Mitä Capri muistaa sinusta. Se pysyy tällä tietokoneella.
+Tell her something to remember	Kerro hänelle jotain muistettavaa
+Search her memory	Etsi hänen muististaan
+That day isn't there any more.	Se päivä ei ole enää täällä.
+Undo	Kumoa
+Remember our chats is off, so she isn't keeping new chat memories.	Muista keskustelumme on pois päältä, joten hän ei tallenna uusia keskustelumuistoja.
+ABOUT YOU	SINUSTA
+FROM YOUR CHATS	KESKUSTELUISTASI
+GAMES	PELIT
+CHAT LOGS	KESKUSTELULOKIT
+CHAT LOG	KESKUSTELULOKI
+Nothing matches.	Ei osumia.
+Nothing yet.	Ei vielä mitään.
+Reading her notes.	Lukee hänen muistiinpanojaan.
+Click again to forget game notes	Napsauta uudelleen unohtaaksesi pelimuistiinpanot
+Forget game notes	Unohda pelimuistiinpanot
+Click again to forget everything about me	Napsauta uudelleen unohtaaksesi kaiken sinusta
+Forget everything about me	Unohda kaikki sinusta
+Click again to forget	Napsauta uudelleen unohtaaksesi
+Forget this day	Unohda tämä päivä
+Only the start of this day is shown.	Vain tämän päivän alku näytetään.
+Nothing in this day.	Ei mitään tänä päivänä.
+No chats kept yet.	Keskusteluja ei ole vielä tallennettu.
+You	Sinä
+{0} line	{0} rivi
+SET UP EMAIL >	MÄÄRITÄ SÄHKÖPOSTI >
+SET UP EMAIL	MÄÄRITÄ SÄHKÖPOSTI
+Or type your address	Tai kirjoita osoitteesi
+Email address	Sähköpostiosoite
+Open the page	Avaa sivu
+App password	Sovelluksen salasana
+IMAP server	IMAP-palvelin
+Incoming mail server	Saapuvan postin palvelin
+SMTP server	SMTP-palvelin
+Outgoing mail server	Lähtevän postin palvelin
+An app password is a separate password just for Capri. Your normal password stays yours.	Sovelluksen salasana on erillinen salasana vain Caprille. Tavallinen salasanasi pysyy sinun.
+She keeps it only until she closes.	Hän säilyttää sitä vain sulkemiseensa asti.
+She checks, searches and reads your mail. She asks before she sends any.	Hän tarkistaa, etsii ja lukee postisi. Hän kysyy ennen kuin lähettää mitään.
+Watch for new mail	Tarkkaile uutta postia
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Hän kertoo, kun postia saapuu, ja varoittaa, jos se näyttää phishingiltä. Mitään ei merkitä luetuksi.
+Deal with phishing on her own	Hoida phishing itse
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Vain kun hän tarkkailee. Posti, jonka hän on varma phishingiksi, menee roskapostiin. Loput odottavat sinun kyllääsi.
+Forget account	Unohda tili
+Use another email	Käytä toista sähköpostia
+Which email?	Mikä sähköposti?
+Make an app password	Luo sovelluksen salasana
+Paste it	Liitä se
+Connecting...	Yhdistetään...
+She can use your email now.	Hän voi nyt käyttää sähköpostiasi.
+She's not watching your inbox.	Hän ei tarkkaile saapuneita viestejäsi.
+She's watching your inbox and deals with phishing she's sure of.	Hän tarkkailee saapuneitasi ja hoitaa phishingin, josta on varma.
+She's watching your inbox and tells you when mail lands.	Hän tarkkailee saapuneitasi ja kertoo, kun postia saapuu.
+She forgot that account and its app password.	Hän unohti sen tilin ja sen sovelluksen salasanan.
+She forgot that account. Its app password is gone from this PC.	Hän unohti sen tilin. Sen sovelluksen salasana on kadonnut tältä tietokoneelta.

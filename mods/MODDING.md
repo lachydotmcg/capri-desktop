@@ -1,6 +1,6 @@
 # Making Capri mods
 
-Capri reads six kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
+Capri reads seven kinds of mod. Import any of them from **Mainframe > CAPRI > Mods > Import mod**.
 
 | File | What it does |
 |---|---|
@@ -10,6 +10,7 @@ Capri reads six kinds of mod. Import any of them from **Mainframe > CAPRI > Mods
 | `.capri-tool` | A look-up tool she can use: one to three reads from sites it lists. It can't run code or send anything |
 | `.capri-code` | C# that runs inside Capri, on Windows, Mac and Linux |
 | `.capri-plugin` | Tools and skills in the same layout as a Claude plugin: MCP servers she starts, and `SKILL.md` skills |
+| `.capri-companion` | A whole companion of your own: name, personality, voice and art. Capri stays the default |
 
 Share finished mods in [capri-mods](https://github.com/lachydotmcg/capri-mods).
 
@@ -66,6 +67,38 @@ Set how fast a strip plays in `skin.json`, from 1 to 60 frames a second. It work
 - **Slower** and **Faster** set its speed.
 - **Wear it** saves every change as a skin and puts it on as her outfit, starting from the outfit she has on. **Save skin...**
   saves the `.capri-skin` to share.
+
+## New moves
+
+A skin can add moves of her own, like a wave or a spin. Once it's on, she does one when you ask for it by name ("do the
+wave"), when her brain picks it from a hint, or when a code mod calls `capri.Her.Animate("wave")`. Every move she has is in her
+animate tool for every brain, on Windows, Mac and Linux, and taking the skin off takes its moves away again.
+
+List them in `skin.json` under `moves`, and put each strip at the top of the zip:
+
+```json
+{ "format": 1, "id": "wave-pack", "name": "Wave Pack", "accessory": true,
+  "moves": [ { "name": "wave", "fps": 12 }, { "name": "happy_spin", "strip": "spin.png", "fps": 24, "loop": true } ] }
+```
+
+- **name**: 2 to 24 lowercase letters or numbers, with `_` between words. It can't be one of hers, like `dance`, `grin`,
+  `idle` or the name of any of her strips, so a move never takes over one of her own animations. A `dance.png` in a skin
+  still just replaces her dance.
+- **strip**: the PNG with its frames, `name.png` if you leave it out. Each frame is 116 x 384, like her standing frames, side
+  by side, from 1 to 240 of them.
+- **fps**: 1 to 60 frames a second, 12 if you leave it out.
+- **loop**: `true` and it goes on until you say stop (stop dancing stops it too). Leave it out and it plays once, then she's
+  back to her idle.
+- Up to 16 moves a skin. If two skins on at once have a move with the same name, the one higher in the stack wins.
+- She stands up for a move, like her grin. Her colours go on it, and facing left she's mirrored.
+
+### Making one in her editor
+
+In **Mainframe > CAPRI > Mods > Animations**, press **New move...**, name it, then pick its frames: **Pictures...** (one PNG
+a frame, in name order), **Strip...** (one PNG of frames side by side) or **Folder...** (a folder of PNG frames, in name
+order). Set its speed and **Loops** or **Once**, then **Add move**. It shows in the editor like her strips, so you can edit
+its frames, change its speed, switch **Loops** on or off, or **Remove move**. **Wear it** puts it on her, and **Save skin...**
+saves it to share.
 
 ## Tool mods
 
@@ -232,6 +265,48 @@ Whatever mods are on, Capri keeps these:
   [If a mod stops her starting](#if-a-mod-stops-her-starting)).
 
 Refused calls are in `plugins\calls.txt` with the reason.
+
+## Companion packs
+
+A `.capri-companion` is a zip that swaps Capri for a companion of your own while it's on. Turn it off and Capri is back,
+exactly as she was. Only one companion is on at a time: turning one on turns the other off. Everything at the top of the zip:
+
+| File | Needed | What it is |
+|---|---|---|
+| `companion.json` | yes | Who they are (below) |
+| `personality.md` | yes | Who they are and how they talk, like her own `personality.md` |
+| `idle.png`, `walk.png`, ... | no | Their art, named and sized like her sprite strips, the same as a skin |
+| `hello-morning.wav`, `hello-late.wav`, `hello-miss.wav` | no | Their recorded hello, as a 16-bit mono PCM WAV at 8 to 48 kHz. Without one they say their greeting in their voice |
+
+```json
+{
+  "format": 1,
+  "id": "nyx",
+  "name": "Nyx",
+  "version": "1.0.0",
+  "author": "You",
+  "description": "A sleepy moth spirit who lives in your taskbar.",
+  "wake_names": ["Nyxie"],
+  "greetings": ["Morning, lamp friend.", "Still up? Same.", "There you are."],
+  "voice": { "free_speaker": 3, "free_speed": 1.05, "british": false, "elevenlabs": "YOUR_VOICE_ID" }
+}
+```
+
+- `name` is what they're called, and they answer to it and to `wake_names`. "Hey Capri" still works too.
+- `greetings` are their three hellos: morning, late at night, and any other time. Without them they say plain ones, not Capri's.
+  A greeting with a link, an @ handle, an email or a phone number in it is refused.
+  So is a `name`, wake name or greeting that swears, uses a slur or says anything sexual.
+- `voice` is optional. `free_speaker` (0 to 199) and `free_speed` (0.5 to 2) pick their free voice on Windows. `elevenlabs` is a
+  voice ID they use with your own ElevenLabs key. If the key can't use that voice, your own ElevenLabs voice says it instead.
+  Voice chat calls keep your own voice for now.
+- With art, they're drawn with only their own art: your skins, accessories and colours wait until Capri is back. Without
+  art they wear Capri's look and your skins.
+- The pack can't hold anything else: no programs, scripts, folders or other files. It has no tools or code, so it can't do
+  anything on your PC that Capri can't.
+
+**Safety stays.** Her safety lines are in her code, not in `personality.md`, and always come after a pack's personality, the
+same as with your own. A line that tries to talk them out of those lines is dropped, and the Mods list says how many were.
+Every companion is also told its name and to say it's an AI if someone sincerely asks.
 
 ## Code mods
 
@@ -403,7 +478,7 @@ These are the same switches and sliders her own settings tool uses. API keys and
 |---|---|
 | `Bounds`, `Head`, `Size` | Where she is on screen |
 | `State`, `StateChanged` | `idle`, `thinking`, `talking`, `dancing`, `asleep` or `hidden` |
-| `Animation`, `Animate(name)` | The strip she's showing, and play one: `dance`, `stop_dancing`, `idle`, `grin`, `glitch` or `blink` |
+| `Animation`, `Animate(name)` | The strip she's showing, and play one: `dance`, `stop_dancing`, `idle`, `grin`, `glitch`, `blink`, or a move a skin added, by its name. A name she doesn't have gets "I don't have an animation called ..." back |
 | `Clicked`, `Patted` | They clicked her, or gave her a head pat |
 | `Dragged`, `Dropped(hip)`, `Dragging` | They picked her up, or let go of her and where |
 | `Screen` | The working area of the monitor she's on |

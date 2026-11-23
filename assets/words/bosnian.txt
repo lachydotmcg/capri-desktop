@@ -30,6 +30,7 @@ Ask Capri for more	Traži više od Capri
 Asking your server...	Pitam tvoj server...
 Asks before closing only the apps you choose.	Pita prije zatvaranja samo aplikacija koje izabereš.
 Auto	Auto
+Auto (match what I say)	Auto (kako ja kažem)
 Automatic: VB-CABLE, else Steam's	Automatski: VB-CABLE, inače Steam
 BAD RELAY HOST	LOŠ RELAY HOST
 BIG Z open notepad	BIG Z otvori notepad
@@ -290,6 +291,7 @@ Huge	Ogroman
 I can hear you.	Čujem te.
 I glance at your screen and comment. Costs a little on a paid brain.	Pogledam tvoj ekran i komentiram. Košta malo na plaćenom mozgu.
 I keep listening. Say my name, then just talk.	Nastavljam slušati. Reci moje ime, pa samo pričaj.
+I speak	Ja govorim
 I talk about your game as you play. Costs a little on a paid brain.	Pričam o tvojoj igri dok igraš. Košta malo na plaćenom mozgu.
 I type my replies and stay quiet.	Pišem odgovore i ćutim.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Neću odgovarati glasom, i ništa se ne šalje nikuda. I dalje ću biti tu, plesati uz tvoju muziku i raditi brze stvari koje tražiš, poput glasnoće.
@@ -598,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	SORTIRAJ PO
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVUKOVI NAVIKE MOZAK GLEDAJ CAPRI DOOMSCROLL VRIJEME ISJEČCI IGRE KLJUČEVI POTEZI GLAS TI
+Same as I speak	Isto kao moj jezik
 Same as her ears (VOICE > Mic)	Isto kao njene uši (GLAS > Mikrofon)
 Same code on the phone?	Isti kod na telefonu?
 Save	Sačuvaj
@@ -633,9 +636,10 @@ Settings had nothing to watch.	Postavke nisu imale ništa za gledanje.
 Settings lost keyboard focus during the Tab walk	Postavke su izgubile fokus tastature tokom Tab prolaza
 Setup guide	Vodič za postavljanje
 Setup stopped	Postavljanje zaustavljeno
+She answers in	Ona odgovara na
 She can read it when it fits.	Može pročitati kad stane.
 She glances at your screen and comments. Costs a little on a paid brain.	Pogleda tvoj ekran i komentira. Košta malo na plaćenom mozgu.
-She keeps listening. Say her name, then just talk until you go quiet.	Nastavlja slušati. Reci joj ime, pa samo pričaj dok ne utihneš.
+She keeps listening. Say her name, then just talk.	Nastavlja slušati. Reci joj ime, pa samo pričaj.
 She reacts to your game until you close it.	Reagira na tvoju igru dok je ne zatvoriš.
 She reads these controls before each game job.	Čita ove kontrole prije svakog zadatka u igri.
 She talks about your game as you play. Costs a little on a paid brain.	Priča o tvojoj igri dok igraš. Košta malo na plaćenom mozgu.
@@ -889,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	neće tipkati u dru
 · HD	· HD
 · on this PC	· na ovom PC-u
 · server	· server
+Edit as text	Uredi kao tekst
+What Capri remembers about you. It stays on this computer.	Šta Capri pamti o tebi. Ostaje na ovom računaru.
+Tell her something to remember	Reci joj nešto da zapamti
+Search her memory	Traži u njenom pamćenju
+That day isn't there any more.	Taj dan više nije tu.
+Undo	Poništi
+Remember our chats is off, so she isn't keeping new chat memories.	Sjećanje naših razgovora je isključeno, pa ne čuva nova sjećanja razgovora.
+ABOUT YOU	O TEBI
+FROM YOUR CHATS	IZ TVOJIH RAZGOVORA
+GAMES	IGRE
+CHAT LOGS	DNEVNICI RAZGOVORA
+CHAT LOG	DNEVNIK RAZGOVORA
+Nothing matches.	Nema podudaranja.
+Nothing yet.	Još ništa.
+Reading her notes.	Čita njene bilješke.
+Click again to forget game notes	Klikni ponovo da zaboraviš bilješke igara
+Forget game notes	Zaboravi bilješke igara
+Click again to forget everything about me	Klikni ponovo da zaboraviš sve o tebi
+Forget everything about me	Zaboravi sve o tebi
+Click again to forget	Klikni ponovo da zaboraviš
+Forget this day	Zaboravi ovaj dan
+Only the start of this day is shown.	Prikazuje se samo početak ovog dana.
+Nothing in this day.	Ništa na ovaj dan.
+No chats kept yet.	Još nema sačuvanih razgovora.
+You	Ti
+{0} line	{0} red
+SET UP EMAIL >	PODESI E-MAIL >
+SET UP EMAIL	PODESI E-MAIL
+Or type your address	Ili upiši svoju adresu
+Email address	E-mail adresa
+Open the page	Otvori stranicu
+App password	Lozinka aplikacije
+IMAP server	IMAP server
+Incoming mail server	Server dolazne pošte
+SMTP server	SMTP server
+Outgoing mail server	Server odlazne pošte
+An app password is a separate password just for Capri. Your normal password stays yours.	Lozinka aplikacije je posebna lozinka samo za Capri. Tvoja uobičajena lozinka ostaje tvoja.
+She keeps it only until she closes.	Čuva je samo dok se ne zatvori.
+She checks, searches and reads your mail. She asks before she sends any.	Ona provjerava, traži i čita tvoju poštu. Pita prije nego što išta pošalje.
+Watch for new mail	Prati novu poštu
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ona se javi kad pošta stigne, s upozorenjem ako izgleda kao phishing. Ništa se ne označava kao pročitano.
+Deal with phishing on her own	Sama se nosi s phishingom
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Samo dok ona prati. Pošta za koju je sigurna da je phishing ide u spam. Ostalo čeka tvoje da.
+Forget account	Zaboravi račun
+Use another email	Koristi drugi e-mail
+Which email?	Koji e-mail?
+Make an app password	Napravi lozinku aplikacije
+Paste it	Zalijepi je
+Connecting...	Povezivanje...
+She can use your email now.	Sada može koristiti tvoj e-mail.
+She's not watching your inbox.	Ne prati tvoj inbox.
+She's watching your inbox and deals with phishing she's sure of.	Prati tvoj inbox i nosi se s phishingom u koji je sigurna.
+She's watching your inbox and tells you when mail lands.	Prati tvoj inbox i kaže ti kad pošta stigne.
+She forgot that account and its app password.	Zaboravila je taj račun i njegovu lozinku aplikacije.
+She forgot that account. Its app password is gone from this PC.	Zaboravila je taj račun. Njegova lozinka aplikacije je nestala s ovog računara.
