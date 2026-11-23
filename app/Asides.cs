@@ -45,6 +45,7 @@ namespace CapriDesktop
 
         // A question during a game job gets the game's skill, as someone else's know-how, with room to say she doesn't know.
         internal const string Knowing = "\nWhen they ask about the game itself, answer from the game know-how below and what you really know, and if you don't know, say so in your own voice instead of guessing.";
+        internal const string Teaching = "\nUse the conversation and job state to work out whose turn it is. When the person at the PC offers to show you how to do a step of this job, call job_control with action teach, even if they put the offer indirectly. While the handoff is active, let them demonstrate. Ordinary remarks and narration aren't new instructions for your hands. Call job_control with action resume when they clearly give the job back to you. If it's unclear whether they're showing you or whether they're done, ask a short question and leave control as it is. Use the tool's actual result when you speak.";
 
         private static readonly string[] Doing = { "{0}. {1} in.", "Right now? {0}.", "{0}, one sec.", "{0}. Going fine so far.", "Still at it. {0}." };
         private static readonly string[] Starting = { "Just getting going. {0}.", "Only just started. {0}.", "Barely warmed up. {0}." };
@@ -120,6 +121,7 @@ namespace CapriDesktop
         // A plain answer from the job's own steps, for brains on this PC, or when her fast head is slow.
         internal static string Status(JobReport report, string said)
         {
+            if (report.Teaching != null) return report.Teaching + ".";
             string text = Hands.Asked(said);
             string now = report.Doing ?? report.Last ?? "Getting set up";
             string ago = Ago(report.Seconds);
@@ -146,6 +148,7 @@ namespace CapriDesktop
             else facts.Append("\nNo steps finished yet.");
             facts.Append("\nSteps finished: " + report.Done + (report.Failed > 0 ? ", " + report.Failed + " failed" : ""));
             if (!string.IsNullOrEmpty(report.Doing)) facts.Append("\nDoing now: " + report.Doing);
+            if (report.Teaching != null) facts.Append("\nJob handoff: " + report.Teaching + ". The owner has control once Capri says Your turn.");
             facts.Append("\nOn it for: " + Ago(report.Seconds));
             if (recent != null && recent.Count > 0)
             {
@@ -164,6 +167,7 @@ namespace CapriDesktop
         // The same report in a line for ElevenLabs' agent, which has only what it's told.
         internal static string Brief(JobReport report)
         {
+            if (report.Teaching != null) return "Capri's hands, right now: " + report.Teaching + ". The same job is on hold while the owner demonstrates.";
             return "Capri's hands, right now: " + (string.IsNullOrEmpty(report.Doing) ? "between steps" : report.Doing) + ". Steps finished so far: " + report.Done + (string.IsNullOrEmpty(report.Last) ? "" : ", the latest was " + Voice.Quote(report.Last)) + ". On it for " + Ago(report.Seconds) + ". If they ask how it's going, answer from this. Don't bring it up otherwise, and don't say it's done yet.";
         }
     }
@@ -321,12 +325,12 @@ namespace CapriDesktop
 
         // Two heads: the job keeps running on its own thread while this one sorts what they said and answers. Their "yes" or "no" to
         // something SECURITY held mid-job goes there first.
-        private void HeardMidJob(string text, Job running, string typed = null)
+        private void HeardMidJob(string text, Job running, string typed = null, long teachingTurn = 0, bool fromTyper = false)
         {
             string input = typed ?? text;
             BargeIn();
             heard = text;
-            if (typed == null && chatting && !local && agent != null && agent.Ready) { AgentMidJob(input, running); agent.Say(input); return; }
+            if (teachingTurn == 0 && typed == null && chatting && !local && agent != null && agent.Ready) { AgentMidJob(input, running); agent.Say(input); return; }
             string held = Security.Holding;
             if (held != null && (Security.Agrees(input) || Security.Declines(input)))
             {
@@ -346,11 +350,16 @@ namespace CapriDesktop
             string tool;
             ToolArguments args;
             AsideKind? plain = Asides.Plain(input, out tool, out args, brain.Model != null);
+            if (running.TeachingStatus != null && teachingTurn != 0 && plain != AsideKind.Tool)
+            {
+                AsideHead(text, running, typed, teachingTurn, fromTyper);
+                return;
+            }
             if (plain == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(Lines.Pick(Lines.Stopped)); return; }
             if (plain == AsideKind.Status) { AsideStatus(text, running, typed); return; }
             if (plain == AsideKind.Screen && typed == null) { AsideScreen(text, args, running, typed); return; }
             if (plain == AsideKind.Tool) { AsideTool(text, tool, args, running, typed); return; }
-            AsideHead(text, running, typed);
+            AsideHead(text, running, typed, teachingTurn, fromTyper);
         }
 
         // Their "stop" ends the job like Esc does, and her line is the job's own last word.
@@ -393,6 +402,7 @@ namespace CapriDesktop
         // picture from a turn or more ago. Their picture and their turn are left alone, and the capture runs off her window's thread.
         private void AsideScreen(string text, ToolArguments args, Job running, string typed = null)
         {
+            if (running.TeachingStatus != null) { AsideSay("I'm staying with the demonstration you started.", running, text, typed: typed); return; }
             string unseen = Unseeing();
             if (unseen != null) { AsideSay(unseen, running, text, typed: typed); return; }
             string asked = string.IsNullOrWhiteSpace(args.Focus) ? typed ?? text : args.Focus;
@@ -424,7 +434,7 @@ namespace CapriDesktop
 
         // The tools her fast head or her shortcuts picked beside the job, in order, on her ask's turn. One SECURITY holds stops
         // the rest, and its result is the line she says.
-        private void AsideTools(string text, List<KeyValuePair<string, ToolArguments>> calls, Job running, long sequence = 0, int ticket = -1, string typed = null)
+        private void AsideTools(string text, List<KeyValuePair<string, ToolArguments>> calls, Job running, long sequence = 0, int ticket = -1, string typed = null, long teachingTurn = 0, bool fromTyper = false)
         {
             if (ticket < 0) ticket = asking;
             int replyId = Interlocked.Increment(ref toolAside);
@@ -440,6 +450,8 @@ namespace CapriDesktop
                     args.Reply = replyId;
                     args.Sequence = sequence;
                     args.Job = running;
+                    args.TeachingTurn = teachingTurn;
+                    args.FromTyper = fromTyper;
                     try
                     {
                         string result = AsideRun(call.Key, args, running, ticket);
@@ -462,6 +474,9 @@ namespace CapriDesktop
         {
             if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return "That turn has ended.";
             if (!Hands.Valid(tool, args)) return "Couldn't read that tool call. Try again.";
+            if (running.TeachingStatus != null && (tool == "look_at_screen" || Security.Needs(tool, args) == Security.Mouse && tool != "use_computer" && tool != "job_control"
+                || Array.IndexOf(Fronting, tool) >= 0 || tool == "routine" && args.Action == "run"))
+                return "The job is paused for your demonstration. I'll leave the screen and controls with you.";
             if (MidJob(running) && job == running && (tool == "use_computer" || tool == "stream" && args.Action != "stop"))
             {
                 string held = Security.Gate(tool, args);
@@ -501,7 +516,7 @@ namespace CapriDesktop
             return Asides.Facts(report, text, actionOnly ? Brain.ActionHistory(brain.History) : brain.History, know);
         }
 
-        private void AsideHead(string text, Job running, string typed = null)
+        private void AsideHead(string text, Job running, string typed = null, long teachingTurn = 0, bool fromTyper = false)
         {
             int ticket = asking;
             long sequence = running.Sequence();
@@ -510,6 +525,7 @@ namespace CapriDesktop
             // turn, but a dance, a clone or a setting in any words runs as a tool instead of becoming a mouse step (Lachy, 3 Nov).
             Hands.Kit kit = Hands.KitFor(brain.Blind);
             string system = Brain.Character + Brain.Remembered() + Asides.Head + "\nYou have the same tools beside the job. Use them whenever they ask, suggest or hint at an ability, including your own moves, animations, clones and settings. Use job_control for stopping, checking or changing the job. ADD and CHANGE are only for instructions that belong to its mouse work. Call tools without claiming they ran; their results will be said.";
+            if (teachingTurn != 0) system += Asides.Teaching;
             if (CallHands(ticket)) system += CallSession.Tools + callSession.Context(callUserVersion);
             JobReport report = running.Report();
             bool question = Asides.Question(typed ?? text);
@@ -527,7 +543,7 @@ namespace CapriDesktop
                         if (headTest != null) { raw = AskHead(system + Hands.NoteFor(kit) + kit.Listing, facts, 300); calls.AddRange(Hands.Written(raw)); }
                         else raw = brain.QuickTools(system, facts, 300, calls, kit);
                         if (typed != null) calls.RemoveAll(call => call.Key == "look_at_screen");
-                        if (calls.Count > 0) { AsideTools(text, calls, running, sequence, ticket, typed); return; }
+                        if (calls.Count > 0) { AsideTools(text, calls, running, sequence, ticket, typed, teachingTurn, fromTyper); return; }
                         kind = Asides.Read(raw, out line);
                     }
                     if (typed != null && (typed.Length == 0 || kind == AsideKind.Chat))
@@ -544,6 +560,11 @@ namespace CapriDesktop
 
         private void Sorted(string text, Job running, AsideKind kind, string line, long sequence, string typed = null)
         {
+            if (running.TeachingStatus != null && (kind == AsideKind.Add || kind == AsideKind.Change))
+            {
+                AsideSay("I'm listening while you show me.", running, text, typed: typed);
+                return;
+            }
             bool empty = string.IsNullOrEmpty(line);
             // The job ended while she was thinking: more for it is a new ask, and chat still gets its answer.
             if (!MidJob(running) || job != running)
