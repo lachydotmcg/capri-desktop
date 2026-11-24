@@ -12735,7 +12735,8 @@ namespace CapriDesktop
                 if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
                 if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
                 if (CompanionPostBody(port, token, "{\"kind\":\"nope\"}") != "{\"ok\":false,\"error\":\"unknown_kind\"}" || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
-                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
+                // Let the bridge reject the declared length before the test client starts sending the body.
+                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), "Expect", "100-continue") != 413) throw new Exception("The companion bridge accepted an oversized body.");
                 if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
                 bridge.Dispose();
                 bridge = null;
