@@ -3,8 +3,8 @@ import { once } from 'node:events';
 import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import {
-  ApplicationIntegrationType, ChannelType, Client, Events, GatewayIntentBits, InteractionContextType,
-  MessageFlags, PermissionFlagsBits, SlashCommandBuilder,
+  ActionRowBuilder, ApplicationIntegrationType, ButtonBuilder, ButtonStyle, ChannelType, Client, Events,
+  GatewayIntentBits, InteractionContextType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder,
 } from 'discord.js';
 import {
   AudioPlayerStatus, EndBehaviorType, StreamType, VoiceConnectionStatus, createAudioPlayer,
@@ -19,6 +19,7 @@ const speechEndPause = 900;
 const maxQueuedTurns = 3;
 const maxTurnAge = 12_000;
 const noMentions = { parse: [] };
+const voiceButton = /^capri:voice:([a-f0-9-]{36}):(enable|stop)$/;
 const avatarImage = { extension: 'png', forceStatic: true, size: 128 };
 const required = [
   PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect,
@@ -33,6 +34,27 @@ const command = new SlashCommandBuilder()
   .addSubcommand(option => option.setName('leave').setDescription('End Capri’s voice session'))
   .addSubcommand(option => option.setName('ask').setDescription('Ask Capri a question in private')
     .addStringOption(words => words.setName('message').setDescription('What to say to Capri').setRequired(true).setMaxLength(1000)));
+
+function privacyLink(value) {
+  if (typeof value !== 'string' || value.length > 512) return;
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:' && !url.username && !url.password && url.href.length <= 512) return url.href;
+  } catch {}
+}
+
+function listeningNotice(room, privacy) {
+  const buttons = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('capri:voice:' + room.id + ':enable').setLabel('Enable my audio').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('capri:voice:' + room.id + ':stop').setLabel('Stop my audio').setStyle(ButtonStyle.Secondary),
+  );
+  if (privacy) buttons.addComponents(new ButtonBuilder().setLabel('Privacy policy').setStyle(ButtonStyle.Link).setURL(privacy));
+  return {
+    content: 'Capri is here and can chime in as you talk. The person who invited Capri has enabled their audio. Everyone else can choose Enable my audio to take part. The host PC transcribes enabled audio locally, and the host’s selected AI provider may process those transcripts and recent call context. Use Stop my audio at any time. Leaving the channel also stops your audio and clears your choice. Capri leaves when her owner leaves or runs /capri leave.',
+    allowedMentions: noMentions,
+    components: [buttons],
+  };
+}
 
 if (process.argv.includes('--check')) {
   const encoder = new Opus(48_000, 2, Opus.Application.VOIP);
@@ -56,6 +78,7 @@ function run() {
   });
   const input = createInterface({ input: process.stdin, terminal: false });
   let ownerId;
+  let privacy;
   let call;
   let pending;
   let starting = false;
@@ -80,6 +103,7 @@ function run() {
     call = undefined;
     if (pending?.room === room) finishTurn(null);
     room.turns.length = 0;
+    room.participation.clear();
     room.greet = false;
     room.nextAudio = null;
     for (const stream of room.streams.values()) stream.destroy();
@@ -180,6 +204,39 @@ function run() {
     if (room.visible.has(id)) tell({ type: 'speaker', session: room.id, id, active });
   }
 
+  function participating(room, userId, permission) {
+    return call === room && room.connected && permission && room.participation.get(userId) === permission
+      && room.voice.guild.voiceStates.cache.get(userId)?.channelId === room.voice.id;
+  }
+
+  function revoke(room, userId) {
+    if (!room.participation.delete(userId)) return;
+    room.streams.get(userId)?.destroy();
+    room.turns = room.turns.filter(heard => heard.userId !== userId);
+    if (room.nextAudio?.metadata === userId) room.nextAudio = null;
+    if (room.player.state.resource?.metadata === userId) room.player.stop(true);
+    tell({ type: 'voice-context-reset', session: room.id });
+    if (pending?.room === room) finishTurn(null);
+  }
+
+  async function changeParticipation(interaction, session, action) {
+    const room = call;
+    const userId = interaction.user.id;
+    let content = 'This control is for members of Capri’s current voice session.';
+    if (room?.connected && room.id === session && interaction.guildId === room.voice.guild.id
+      && interaction.channelId === room.voice.id && !interaction.user.bot
+      && room.voice.guild.voiceStates.cache.get(userId)?.channelId === room.voice.id) {
+      if (action === 'enable') {
+        if (!room.participation.has(userId)) room.participation.set(userId, Symbol());
+        content = 'Your audio is enabled for this voice session.';
+      } else {
+        revoke(room, userId);
+        content = 'Your audio is off for this voice session.';
+      }
+    }
+    await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+  }
+
   async function join(voice) {
     if (voice?.type !== ChannelType.GuildVoice) {
       return { ok: false, text: 'Join a server voice channel where your bot is installed, then ask me again.' };
@@ -200,6 +257,7 @@ function run() {
     const player = createAudioPlayer();
     const room = {
       id: randomUUID(), voice, connection, player, streams: new Map(), speakers: new Map(),
+      participation: new Map(),
       turns: [], nextAudio: null, draining: false, connected: false, greet: false, speaking: new Set(), visible: new Set(),
     };
     call = room;
@@ -221,8 +279,13 @@ function run() {
         leave(room);
         return { ok: false, text: 'The Discord call changed while I was joining. Ask me again from the call.' };
       }
-      await voice.send('Capri is here and can chime in as you talk. The host PC transcribes call audio, and its selected AI provider may process this conversation. The bot owner can ask Capri to wait for her name. Capri leaves when her owner leaves or runs /capri leave.');
+      await voice.send(listeningNotice(room, privacy));
       if (call !== room) return { ok: false, text: 'The Discord call ended while I was joining.' };
+      if (voice.guild.voiceStates.cache.get(ownerId)?.channelId !== voice.id) {
+        leave(room);
+        return { ok: false, text: 'The Discord call changed while I was joining. Ask me again from the call.' };
+      }
+      room.participation.set(ownerId, Symbol());
       room.connected = true;
       tell({ type: 'joined', ...roomInfo(room) });
       connection.receiver.speaking.on('start', userId => { speaking(room, userId, true); listen(room, userId); });
@@ -278,20 +341,22 @@ function run() {
     try {
       while (call === room && !pending && (room.greet || room.turns.length > 0)) {
         let result;
+        let heard;
         if (room.greet) {
           room.greet = false;
           result = await turn(room, {}, { greet: true });
         } else {
-          const heard = room.turns.shift();
-          if (Date.now() - heard.at > maxTurnAge) continue;
+          heard = room.turns.shift();
+          if (!participating(room, heard.userId, heard.permission) || Date.now() - heard.at > maxTurnAge) continue;
           result = await turn(room, heard.speaker, { audio: heard.audio, duringPlayback: heard.duringPlayback });
         }
         if (call !== room || !result) continue;
+        if (heard && !participating(room, heard.userId, heard.permission)) continue;
         if (result.quiet) { quiet(room); continue; }
         if (!result.text) continue;
         if (result.audio) {
           const samples = Buffer.from(result.audio, 'base64');
-          room.nextAudio = createAudioResource(Readable.from([samples]), { inputType: StreamType.Raw });
+          room.nextAudio = createAudioResource(Readable.from([samples]), { inputType: StreamType.Raw, metadata: heard?.userId });
           play(room);
         } else {
           await room.voice.send({ content: result.text.slice(0, 1900), allowedMentions: noMentions });
@@ -306,7 +371,8 @@ function run() {
   }
 
   function listen(room, userId) {
-    if (call !== room || userId === client.user.id || room.streams.has(userId) || room.streams.size >= 4) return;
+    const permission = room.participation.get(userId);
+    if (!participating(room, userId, permission) || userId === client.user.id || room.streams.has(userId) || room.streams.size >= 4) return;
     const cached = room.voice.guild.members.cache.get(userId);
     if (cached?.user.bot) return;
     let duringPlayback = room.player.state.status === AudioPlayerStatus.Playing;
@@ -325,8 +391,8 @@ function run() {
     const initialPacketTimeout = setTimeout(() => opus.destroy(), 1500);
 
     function submit(continuing) {
-      if (packetBytes >= 8000 && call === room) {
-        void enqueueSpeech(room, userId, cached, pcm.subarray(0, bytes).toString('base64'), duringPlayback);
+      if (packetBytes >= 8000 && participating(room, userId, permission)) {
+        void enqueueSpeech(room, userId, permission, cached, pcm.subarray(0, bytes).toString('base64'), duringPlayback);
       }
       // Keep the last 180 ms across a forced boundary so recognition has the start of a split word.
       const overlap = continuing ? Math.min(bytes, 180 * speechBytesPerMs) : 0;
@@ -346,7 +412,7 @@ function run() {
     opus.on('error', dispose);
     opus.once('close', dispose);
     opus.on('data', packet => {
-      if (disposed) return;
+      if (disposed || !participating(room, userId, permission)) return;
       clearTimeout(initialPacketTimeout);
       const arrived = performance.now();
       let decoded;
@@ -372,14 +438,14 @@ function run() {
     });
   }
 
-  async function enqueueSpeech(room, userId, cached, audio, duringPlayback) {
+  async function enqueueSpeech(room, userId, permission, cached, audio, duringPlayback) {
     try {
       const at = Date.now();
       const member = cached ?? await room.voice.guild.members.fetch(userId);
-      if (member.user.bot || member.voice.channelId !== room.voice.id || call !== room) return;
+      if (member.user.bot || !participating(room, userId, permission)) return;
       if (!room.speakers.has(userId)) room.speakers.set(userId, room.speakers.size + 1);
       const owner = userId === ownerId;
-      const heard = { at, duringPlayback, speaker: { name: member.displayName, speaker: room.speakers.get(userId), owner }, audio };
+      const heard = { userId, permission, at, duringPlayback, speaker: { name: member.displayName, speaker: room.speakers.get(userId), owner }, audio };
       if (owner && duringPlayback) {
         room.turns.unshift(heard);
         if (room.turns.length > maxQueuedTurns) room.turns.pop();
@@ -389,7 +455,7 @@ function run() {
       }
       void drain(room);
     } catch {
-      if (call === room) tell({ type: 'notice', text: 'There was a problem identifying a voice channel speaker.' });
+      if (participating(room, userId, permission)) tell({ type: 'notice', text: 'There was a problem identifying a voice channel speaker.' });
     }
   }
 
@@ -397,14 +463,19 @@ function run() {
     const room = call;
     if (!room || before.guild.id !== room.voice.guild.id) return;
     const moved = before.channelId !== after.channelId;
-    if (moved && before.channelId === room.voice.id && (before.id === ownerId || before.id === client.user.id)) leave(room);
-    else if (room.connected && (moved || before.mute !== after.mute) && (before.channelId === room.voice.id || after.channelId === room.voice.id))
+    if (moved && before.channelId === room.voice.id) {
+      if (before.id === ownerId || before.id === client.user.id) { leave(room); return; }
+      revoke(room, before.id);
+    }
+    if (room.connected && (moved || before.mute !== after.mute) && (before.channelId === room.voice.id || after.channelId === room.voice.id))
       tell({ type: 'participants', ...roomInfo(room) });
   });
 
   client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand() || interaction.commandName !== 'capri') return;
+    const controls = interaction.isButton() ? voiceButton.exec(interaction.customId) : null;
+    if (!controls && (!interaction.isChatInputCommand() || interaction.commandName !== 'capri')) return;
     try {
+      if (controls) { await changeParticipation(interaction, controls[1], controls[2]); return; }
       if (!available || !interaction.inGuild() || interaction.user.id !== ownerId) {
         await interaction.reply({ content: 'The bot’s owner can use these commands.', flags: MessageFlags.Ephemeral });
         return;
@@ -436,6 +507,7 @@ function run() {
     }
     if (message?.type !== 'start' || starting) return;
     starting = true;
+    privacy = privacyLink(message.privacy);
     const readiness = new AbortController();
     const timeout = setTimeout(() => {
       tell({ type: 'error', text: 'Discord did not finish connecting. Check your connection and try again.' });

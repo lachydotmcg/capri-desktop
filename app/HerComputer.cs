@@ -46,7 +46,9 @@ namespace CapriDesktop
 
     internal sealed class HerComputer
     {
-        internal static readonly string[] Apps = { "browser", "jobs", "notes", "files", "stickers", "capricord" };
+        internal static readonly string[] Apps = DiscordCompanion.Included
+            ? new[] { "browser", "jobs", "notes", "files", "stickers", "capricord" }
+            : new[] { "browser", "jobs", "notes", "files", "stickers" };
         internal static readonly string[] AppNames = { "Browser", "Jobs", "Notes", "Files", "Stickers", "Capricord" };
         internal static readonly string[] StickerKinds = { "heart", "star", "moon", "mushroom", "sparkles", "ribbon", "blossom", "strawberry" };
         internal static readonly string[] Sites = { "youtube", "spotify", "discord", "roblox", "pinterest", "twitch", "netflix", "reddit", "tiktok", "instagram", "wikipedia", "google" };

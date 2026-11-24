@@ -13,6 +13,7 @@ namespace CapriDesktop
     {
         internal const string Portal = "https://discord.com/developers/applications";
         internal const string NodeDownload = "https://nodejs.org/en/download";
+        internal const string PrivacyPage = "https://github.com/lachydotmcg/capri-desktop/blob/v" + News.Version + "/discord-companion/README.md#privacy";
         private const string Rules = "\nYou're speaking as a bot in a Discord server. Each turn names a speaker and has a speaker number unique within the call. Address them by their displayed name when useful. Keep replies to one or two short sentences.\n";
         private const string VoiceRules = Rules
             + "You're part of a group voice call. You can reply without hearing your name during open conversation. Chime in when someone talks to you, follows up on your reply, or leaves a natural opening for something you can add. Let the humans talk to each other. Don't fill every pause, repeat their words, or answer side conversations as if they were addressed to you.\n"
@@ -301,6 +302,8 @@ namespace CapriDesktop
                     ShowRoom(run, packet);
                 else if (type == "speaker" && run.SessionId != null && run.SessionId == PluginJson.Str(packet, "session"))
                     UpdateSpeaker(run, PluginJson.Str(packet, "id"), PluginJson.Flag(packet, "active") == true);
+                else if (type == "voice-context-reset" && run.SessionId != null && run.SessionId == PluginJson.Str(packet, "session"))
+                    run.Voice.Change(true);
                 else if (type == "left" && (run.SessionId != null || run.JoiningSession != null))
                 {
                     string ending = PluginJson.Str(packet, "session");

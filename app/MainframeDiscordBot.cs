@@ -19,6 +19,7 @@ namespace CapriDesktop
 
         internal void OpenDiscordBot()
         {
+            if (!DiscordCompanion.Included) return;
             float zoom = SheetZoom(DiscordBotSheet.Wide, DiscordBotSheet.Tall);
             if (discordBotSheet != null && !discordBotSheet.IsDisposed && discordBotSheet.Zoom != zoom) discordBotSheet.Close();
             if (discordBotSheet == null || discordBotSheet.IsDisposed) discordBotSheet = new DiscordBotSheet(this, zoom, capri.DiscordBot);
@@ -46,7 +47,8 @@ namespace CapriDesktop
 
                 Words("CREATE A BOT", 24, 223, 272, 22, Type(10f * Zoom, true), Cyan);
                 Words("Create an application, enable Server Install, and copy the token from its Bot tab.", 24, 250, 274, 43, Type(9.5f * Zoom), White);
-                Make("Discord Developer Portal", 24, 300, 230, 27, delegate { OpenPage(DiscordCompanion.Portal); });
+                Make("Discord Developer Portal", 24, 300, 174, 27, delegate { OpenPage(DiscordCompanion.Portal); });
+                Make("Privacy", 206, 300, 90, 27, delegate { OpenPage(DiscordCompanion.PrivacyPage); });
 
                 Words("TALK IN DISCORD", 322, 223, 274, 22, Type(10f * Zoom, true), Cyan);
                 Words("Add the bot, join a server voice channel, and say “Join my Discord call” to Capri.", 322, 250, 274, 44, Type(9.5f * Zoom), White);

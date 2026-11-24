@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -29,24 +30,41 @@ namespace CapriDesktop
             return start;
         }
 
-        private static string FindNode()
+        private string FindNode(Run run)
         {
             string program = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             string locations = Path.Combine(program, "nodejs") + ";" + Path.Combine(local, "Programs", "nodejs")
                 + ";" + (Environment.GetEnvironmentVariable("PATH") ?? "");
+            HashSet<string> checkedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string portable = null;
             foreach (string entry in locations.Split(';'))
             {
+                if (active != run) return null;
                 string path = Environment.ExpandEnvironmentVariables(entry.Trim().Trim('"'));
                 if (path.Length < 3 || path[1] != ':' || (path[2] != '\\' && path[2] != '/')) continue;
                 try
                 {
                     string node = Path.Combine(path, "node.exe");
-                    if (File.Exists(node)) return node;
+                    if (!checkedPaths.Add(node) || !File.Exists(node)) continue;
+                    string versionLine = null;
+                    Version version;
+                    if (!Tool(run, Command(node, "--version", path), 6000, delegate(object sender, DataReceivedEventArgs e)
+                        { if (e.Data != null) versionLine = e.Data; })
+                        || !Version.TryParse((versionLine ?? "").TrimStart('v'), out version) || version < new Version(22, 12))
+                        continue;
+                    if (File.Exists(NpmPath(node))) return node;
+                    if (portable == null) portable = node;
                 }
                 catch (ArgumentException) { }
+                catch (System.ComponentModel.Win32Exception) { }
             }
-            return null;
+            return portable;
+        }
+
+        private static string NpmPath(string node)
+        {
+            return Path.Combine(Path.GetDirectoryName(node), "node_modules", "npm", "bin", "npm-cli.js");
         }
 
         private static byte[] Resource(string name)
@@ -128,13 +146,6 @@ namespace CapriDesktop
 
         private string Prepare(Run run, string node)
         {
-            string versionLine = null;
-            Version version;
-            if (!Tool(run, Command(node, "--version", Path.GetDirectoryName(node)), 6000, delegate(object sender, DataReceivedEventArgs e)
-                { if (e.Data != null) versionLine = e.Data; })
-                || !Version.TryParse((versionLine ?? "").TrimStart('v'), out version) || version < new Version(22, 12))
-                throw new IOException("Install Node.js 22.12 or newer, then reconnect.");
-
             byte[] package = Resource("package-lock.json");
             string hash;
             using (SHA256 sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(package)).Replace("-", "").ToLowerInvariant();
@@ -153,7 +164,7 @@ namespace CapriDesktop
                 if (active != run) return null;
                 Set("Installing the local Discord voice helper…", false);
             }
-            string npm = Path.Combine(Path.GetDirectoryName(node), "node_modules", "npm", "bin", "npm-cli.js");
+            string npm = NpmPath(node);
             if (!File.Exists(npm)) throw new IOException("Install Node.js with npm included, then reconnect.");
             if (!Tool(run, Command(node, PlanBrain.Quoted(npm) + " ci --ignore-scripts --no-audit --no-fund", where), 240000, delegate { }) ||
                 !Tool(run, Command(node, "companion.mjs --check", where), 12000, delegate { }))
@@ -170,7 +181,8 @@ namespace CapriDesktop
                 lock (preparing)
                 {
                     if (active != run) return;
-                    string node = FindNode();
+                    string node = FindNode(run);
+                    if (active != run) return;
                     if (node == null) throw new IOException("Install Node.js 22.12 or newer, then reconnect.");
                     string where = Prepare(run, node);
                     if (where == null) return;
@@ -187,7 +199,8 @@ namespace CapriDesktop
                         {
                             string token;
                             lock (gate) token = run.Token;
-                            if (token != null) Send(run, "{\"type\":\"start\",\"token\":" + PluginJson.Quote(token) + "}");
+                            if (token != null) Send(run, "{\"type\":\"start\",\"token\":" + PluginJson.Quote(token)
+                                + ",\"privacy\":" + PluginJson.Quote(PrivacyPage) + "}");
                             else End(run);
                             child.WaitForExit();
                         }

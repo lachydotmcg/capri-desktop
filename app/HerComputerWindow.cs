@@ -18,7 +18,7 @@ namespace CapriDesktop
         internal const int TabTall = 42, ToolTall = 46;
         internal static readonly Rectangle PageBox = HerComputer.Page;
         internal static readonly Rectangle AddressBox = new Rectangle(AppBox.Left + 112, AppBox.Top + TabTall + 8, AppBox.Width - 172, 30);
-        internal const int DockWide = 44 + 46 * 6 + 22 * 5;
+        private static readonly int DockWide = 44 + 46 * HerComputer.Apps.Length + 22 * (HerComputer.Apps.Length - 1);
         internal static readonly Rectangle DockBox = new Rectangle(HerComputer.Width / 2 - DockWide / 2, 684, DockWide, 70);
         internal static readonly Rectangle CardBox = new Rectangle(280, 96, 720, 540);
         private static readonly Rectangle CapricordBox = new Rectangle(246, 116, 788, 518);
@@ -43,6 +43,7 @@ namespace CapriDesktop
 
         internal void ShowCapricord()
         {
+            if (!DiscordCompanion.Included) return;
             if (!capricordShown && !Busy && !inControl)
             {
                 Rectangle icon = DockSlot(Array.IndexOf(HerComputer.Apps, "capricord"));
@@ -140,7 +141,7 @@ namespace CapriDesktop
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            if (keyData == (Keys.Control | Keys.Shift | Keys.D)) { ShowCapricord(); return true; }
+            if (DiscordCompanion.Included && keyData == (Keys.Control | Keys.Shift | Keys.D)) { ShowCapricord(); return true; }
             if (capricordShown)
             {
                 if (keyData == Keys.Escape) { HideCapricord(); return true; }
@@ -204,7 +205,8 @@ namespace CapriDesktop
         {
             Computer = computer;
             Text = "Capri's computer";
-            AccessibleDescription = "Press Control Shift D to open Capricord. Use Tab and Enter for call controls. Press Escape to close the panel.";
+            if (DiscordCompanion.Included)
+                AccessibleDescription = "Press Control Shift D to open Capricord. Use Tab and Enter for call controls. Press Escape to close the panel.";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(HerComputer.Width * 3 / 4, HerComputer.Height * 3 / 4);
             MinimumSize = new Size(560, 400);
@@ -714,7 +716,8 @@ namespace CapriDesktop
             RectangleF button;
             string app;
             lock (gate) { app = openApp; button = controlButton; }
-            if (DockSlot(Array.IndexOf(HerComputer.Apps, "capricord")).Contains(System.Drawing.Point.Round(at)))
+            int capricord = Array.IndexOf(HerComputer.Apps, "capricord");
+            if (capricord >= 0 && DockSlot(capricord).Contains(System.Drawing.Point.Round(at)))
             {
                 if (capricordShown) HideCapricord();
                 else ShowCapricord();

@@ -33,6 +33,8 @@ namespace CapriDesktop
 #else
         internal const string Version = "0.9.8";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
+            + "Discord Bot: link your own bot from Mainframe. Join a server voice channel and tell me “Join my Discord call.” Friends choose whether I can hear them in the call notice.\n"
+            + "Capricord: with Her own computer on, watch the call with avatars, speaking rings and controls to ask me to wait for my name or leave.\n"
             + "Plug-ins: Mods adds Todoist, GitHub, Atlassian, monday.com, Miro, Cloudflare Docs and Context7. Turn one on from PLUG-INS when you want it.\n"
             + "Tools: she searches each connected plug-in's tool list for the tools she needs. Off and Ask first choices stay in place across restarts and are set separately per server.\n"
             + "Connect: GitHub uses a personal access token, Context7 an API key, and Cloudflare Docs needs no account. Custom plug-ins can use a provider's registered public OAuth client.\n"
@@ -41,7 +43,7 @@ namespace CapriDesktop
             + "Job controls: use Edit instructions to redirect a running computer job and use the mic while she works.\n"
             + "Colours: her chat bubble, TYPE and TALK controls, and mini player follow your Mainframe colours.\n"
             + "Music: choose Deezer or YouTube Music in Habits, or name one when asking for a song.";
-        internal const string Line = "I just updated to " + Version + ": seven new plug-ins are in Mods. Ask me what's new.";
+        internal const string Line = "I just updated to " + Version + ": I can join your Discord server’s calls as my own bot. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
