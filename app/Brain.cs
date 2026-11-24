@@ -3019,6 +3019,7 @@ namespace CapriDesktop
                     if (call.Key == "app_window" && call.Value != null) call.Value.Asked = request;
 #endif
                     if (call.Key == "media") Hands.Aim(call.Value, request);
+                    if (call.Key == "play_music") Hands.AimMusic(call.Value, request);
                     string result;
                     if (call.Key == "read_file") result = ReadFile(call.Value.Path, call.Value.Page, call.Value.Offset);
                     else
@@ -3229,6 +3230,7 @@ namespace CapriDesktop
                     if (call.Key == "app_window") args.Asked = request;
 #endif
                     if (call.Key == "media") Hands.Aim(args, request);
+                    if (call.Key == "play_music") Hands.AimMusic(args, request);
                     // The same job, app, site or song twice runs once: a small brain can call a job again that it thinks is still
                     // going, or write the same call over and over. Media can go twice, like skipping two songs.
                     int again = OpensOnce(call.Key) ? calls.FindIndex(done => done.Key == call.Key && OnceKey(done.Key, done.Value) == OnceKey(call.Key, args)) : -1;

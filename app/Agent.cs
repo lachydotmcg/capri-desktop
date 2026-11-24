@@ -317,6 +317,7 @@ namespace CapriDesktop
             {
                 AgentToolCall call = item.Call;
                 if ((call.Name == "app_window" || call.Name == "open_app") && call.Arguments != null) call.Arguments.Asked = lastHeard ?? "";
+                if (call.Name == "play_music") Hands.AimMusic(call.Arguments, lastHeard);
                 Func<string, ToolArguments, string> act = Act;
                 Interlocked.Increment(ref toolBusy);
                 ThreadPool.QueueUserWorkItem(delegate
