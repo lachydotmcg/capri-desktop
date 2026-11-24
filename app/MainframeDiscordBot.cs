@@ -17,7 +17,7 @@ namespace CapriDesktop
             key.AccessibleName = "Discord Bot. Set up Capri’s own Discord bot for your server.";
         }
 
-        private void OpenDiscordBot()
+        internal void OpenDiscordBot()
         {
             float zoom = SheetZoom(DiscordBotSheet.Wide, DiscordBotSheet.Tall);
             if (discordBotSheet != null && !discordBotSheet.IsDisposed && discordBotSheet.Zoom != zoom) discordBotSheet.Close();

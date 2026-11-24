@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace CapriDesktop
 {
-    // The local child owns Discord. Only conversation and audio cross the redirected pipes.
+    // The local child owns Discord. Conversation, audio and current call state cross the redirected pipes.
     internal sealed partial class DiscordCompanion
     {
         internal const string Portal = "https://discord.com/developers/applications";
@@ -27,14 +27,28 @@ namespace CapriDesktop
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
         private const string DataFolder = "discord-companion", TokenFile = "token.dat";
+        private static readonly Participant[] EmptyRoom = new Participant[0];
+
+        internal sealed class Participant
+        {
+            internal readonly string Id, Name;
+            internal readonly Uri Avatar;
+            internal readonly bool Bot, Muted;
+
+            internal Participant(string id, string name, Uri avatar, bool bot, bool muted)
+            { Id = id; Name = name; Avatar = avatar; Bot = bot; Muted = muted; }
+        }
 
         internal sealed class View
         {
             internal string Status, Invite;
-            internal bool Running, Saved, Problem;
-            internal bool InVoice, Joining, NameOnly;
-            internal string BotName, ServerName, ChannelName;
-            internal string[] Participants;
+            internal bool Running, Saved, Problem, InVoice, Joining, Leaving, NameOnly;
+            internal string BotName, ServerName, ChannelName, Session;
+            internal Uri BotAvatar;
+            internal DateTime JoinedAt;
+            internal int ParticipantCount;
+            internal Participant[] Participants = EmptyRoom;
+            internal string[] Speakers;
         }
 
         private sealed class Run
@@ -42,12 +56,16 @@ namespace CapriDesktop
             internal readonly CallSession Voice = new CallSession(VoiceRules);
             internal readonly object Output = new object();
             internal volatile Process Child;
-            internal bool IsBot, Ready, NameOnly;
+            internal bool IsBot, Ready, NameOnly, Leaving;
             internal string Token, AppId, Name, SessionId, JoiningSession, Server, Channel;
-            internal string[] Participants = new string[0];
+            internal Uri BotAvatar;
+            internal DateTime JoinedAt;
+            internal int ParticipantCount;
+            internal Participant[] Participants = EmptyRoom;
+            internal string[] Speakers = new string[0];
             internal string JoinId;
             internal Action<string, bool> JoinAnswer;
-            internal int Replying;
+            internal int Replying, VoiceControlVersion;
         }
 
         private readonly object gate = new object(), preparing = new object();
@@ -91,11 +109,17 @@ namespace CapriDesktop
                     Status = status, Problem = problem, Running = run != null, Saved = File.Exists(saved),
                     InVoice = run != null && run.SessionId != null,
                     Joining = run != null && (run.JoiningSession != null || run.JoinId != null),
+                    Leaving = run != null && run.Leaving,
                     NameOnly = run != null && run.NameOnly,
+                    Session = run == null ? null : run.SessionId,
                     BotName = run == null ? null : run.Name,
+                    BotAvatar = run == null ? null : run.BotAvatar,
                     ServerName = run == null ? null : run.Server,
                     ChannelName = run == null ? null : run.Channel,
-                    Participants = run == null ? new string[0] : run.Participants,
+                    Participants = run == null ? EmptyRoom : run.Participants,
+                    ParticipantCount = run == null ? 0 : run.ParticipantCount,
+                    Speakers = run == null ? null : run.Speakers,
+                    JoinedAt = run == null ? DateTime.MinValue : run.JoinedAt,
                     Invite = run != null && run.Ready
                         ? "https://discord.com/oauth2/authorize?client_id=" + run.AppId + "&integration_type=0&scope=bot%20applications.commands&permissions=" + InvitePermissions
                         : null
@@ -168,6 +192,33 @@ namespace CapriDesktop
             return answer;
         }
 
+        internal void CapricordControl(string session, bool leave)
+        {
+            lock (gate)
+            {
+                Run run = active;
+                if (run == null || session == null || run.SessionId != session || run.Leaving) return;
+                int version = Interlocked.Increment(ref run.VoiceControlVersion);
+                if (leave)
+                {
+                    run.Leaving = true;
+                    Set("Leaving the call…", false);
+                }
+                else
+                {
+                    run.NameOnly = !run.NameOnly;
+                    ListeningStatus(run);
+                    if (!run.NameOnly) return;
+                }
+                string command = leave ? "leave-voice" : "quiet-voice";
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    lock (gate) if (active != run || run.SessionId != session || run.VoiceControlVersion != version) return;
+                    Send(run, "{\"type\":" + PluginJson.Quote(command) + ",\"session\":" + PluginJson.Quote(session) + "}");
+                });
+            }
+        }
+
         internal void Stop(bool forget = false)
         {
             Run run;
@@ -212,7 +263,8 @@ namespace CapriDesktop
                 {
                     string id = PluginJson.Str(packet, "clientId") ?? "";
                     if (!Regex.IsMatch(id, @"\A[0-9]{17,20}\z") || run.Ready) return;
-                    run.Name = PluginJson.Str(packet, "name") ?? "Capri";
+                    run.Name = RoomLabel(PluginJson.Str(packet, "name")) ?? "Capri";
+                    run.BotAvatar = AvatarUrl(PluginJson.Str(packet, "avatar"));
                     run.AppId = id;
                     run.Ready = true;
                     try
@@ -238,13 +290,17 @@ namespace CapriDesktop
                     run.Voice.Change(true);
                     run.SessionId = PluginJson.Str(packet, "session");
                     run.JoiningSession = null;
+                    run.JoinedAt = DateTime.UtcNow;
                     ShowRoom(run, packet);
                     run.NameOnly = false;
+                    run.Leaving = false;
                     ListeningStatus(run);
                     voiceChanged = true;
                 }
                 else if (type == "participants" && run.SessionId != null && run.SessionId == PluginJson.Str(packet, "session"))
                     ShowRoom(run, packet);
+                else if (type == "speaker" && run.SessionId != null && run.SessionId == PluginJson.Str(packet, "session"))
+                    UpdateSpeaker(run, PluginJson.Str(packet, "id"), PluginJson.Flag(packet, "active") == true);
                 else if (type == "left" && (run.SessionId != null || run.JoiningSession != null))
                 {
                     string ending = PluginJson.Str(packet, "session");
@@ -253,8 +309,11 @@ namespace CapriDesktop
                         voiceChanged = run.SessionId != null;
                         run.Voice.Change(false);
                         run.SessionId = run.JoiningSession = run.Server = run.Channel = null;
-                        run.Participants = new string[0];
-                        run.NameOnly = false;
+                        run.Participants = EmptyRoom;
+                        run.Speakers = new string[0];
+                        run.ParticipantCount = 0;
+                        run.JoinedAt = DateTime.MinValue;
+                        run.NameOnly = run.Leaving = false;
                         Set(run.Name + " is online. Say “join my Discord call” to join again.", false);
                     }
                 }
@@ -277,15 +336,40 @@ namespace CapriDesktop
             run.Server = RoomLabel(PluginJson.Str(packet, "server"));
             run.Channel = RoomLabel(PluginJson.Str(packet, "channel"));
             List<object> shown = PluginJson.List(PluginJson.Get(packet, "participants"));
-            List<string> people = new List<string>();
+            List<Participant> people = new List<Participant>();
+            List<string> speakers = new List<string>();
             if (shown != null)
                 foreach (object member in shown)
                 {
-                    string label = RoomLabel(member as string);
-                    if (label != null) people.Add(label);
+                    string id = PluginJson.Str(member, "id");
+                    if (string.IsNullOrEmpty(id) || id.Length > 32) continue;
+                    people.Add(new Participant(id, RoomLabel(PluginJson.Str(member, "name")) ?? "Discord member",
+                        AvatarUrl(PluginJson.Str(member, "avatar")), PluginJson.Flag(member, "bot") == true,
+                        PluginJson.Flag(member, "muted") == true));
+                    if (PluginJson.Flag(member, "speaking") == true) speakers.Add(id);
                     if (people.Count >= 12) break;
                 }
             run.Participants = people.ToArray();
+            run.Speakers = speakers.ToArray();
+            double total = PluginJson.Get(packet, "total") as double? ?? 0;
+            run.ParticipantCount = Math.Max(people.Count, (int)Math.Max(0, Math.Min(total, 1000000)));
+        }
+
+        private static void UpdateSpeaker(Run run, string id, bool active)
+        {
+            if (!Array.Exists(run.Participants, member => member.Id == id) || (Array.IndexOf(run.Speakers, id) >= 0) == active) return;
+            List<string> speakers = new List<string>(run.Speakers);
+            if (active) speakers.Add(id);
+            else speakers.Remove(id);
+            run.Speakers = speakers.ToArray();
+        }
+
+        private static Uri AvatarUrl(string value)
+        {
+            Uri url;
+            if (value == null || value.Length > 256 || !Uri.TryCreate(value, UriKind.Absolute, out url)
+                || url.Scheme != Uri.UriSchemeHttps || url.Host != "cdn.discordapp.com" || !url.IsDefaultPort || url.UserInfo.Length != 0) return null;
+            return Regex.IsMatch(url.AbsolutePath, @"\A/(?:avatars/\d{17,20}/(?:a_)?[a-f0-9]{32}|guilds/\d{17,20}/users/\d{17,20}/avatars/(?:a_)?[a-f0-9]{32}|embed/avatars/[0-5])\.png\z") ? url : null;
         }
 
         private static string RoomLabel(string value)
@@ -300,11 +384,11 @@ namespace CapriDesktop
             Set(run.NameOnly ? "Waiting for “Capri” in " + run.Channel + "." : "Joining the conversation in " + run.Channel + ".", false);
         }
 
-        private bool ListeningMode(Run run, int version, bool nameOnly)
+        private bool ListeningMode(Run run, Func<bool> current, bool nameOnly)
         {
             lock (gate)
             {
-                if (active != run || !run.Voice.Current(version)) return false;
+                if (!current()) return false;
                 run.NameOnly = nameOnly;
                 ListeningStatus(run);
                 return true;
@@ -319,7 +403,7 @@ namespace CapriDesktop
             // Honor a directly addressed stop over her own playback without waiting for the model. Rephrased requests go through the conversation.
             if (owner && (named || duringPlayback) && DirectQuiet.IsMatch(words))
             {
-                quiet = ListeningMode(run, version, true);
+                quiet = ListeningMode(run, current, true);
                 return null;
             }
             if (nameOnly && !named) return null;
@@ -332,10 +416,10 @@ namespace CapriDesktop
             switch (decision.TrimEnd('.', '!').ToUpperInvariant())
             {
                 case "NAME_ONLY":
-                    if (owner) quiet = ListeningMode(run, version, true);
+                    if (owner) quiet = ListeningMode(run, current, true);
                     return null;
                 case "OPEN":
-                    if (owner && named && nameOnly) ListeningMode(run, version, false);
+                    if (owner && named && nameOnly) ListeningMode(run, current, false);
                     return null;
                 case "LISTEN":
                 case "SAY":
@@ -356,14 +440,15 @@ namespace CapriDesktop
             bool greeting = voice && PluginJson.Flag(packet, "greet") == true;
             if (voice && !greeting && audio == null) return;
             CallSession session;
-            int version;
+            int version, voiceControlVersion;
             bool nameOnly;
             lock (gate)
             {
-                if (active != run || !run.Ready || (voice && room != run.SessionId)) return;
+                if (active != run || !run.Ready || (voice && (room != run.SessionId || run.Leaving))) return;
                 session = voice ? run.Voice : new CallSession(Rules);
                 if (!voice) session.Change(true);
                 version = session.Generation;
+                voiceControlVersion = run.VoiceControlVersion;
                 nameOnly = run.NameOnly;
             }
             if (Interlocked.CompareExchange(ref run.Replying, 1, 0) != 0)
@@ -375,7 +460,8 @@ namespace CapriDesktop
             {
                 string text = null, voiced = null;
                 bool quiet = false;
-                Func<bool> current = delegate { return active == run && session.Current(version); };
+                Func<bool> current = delegate { return active == run && session.Current(version)
+                    && (!voice || Volatile.Read(ref run.VoiceControlVersion) == voiceControlVersion); };
                 try
                 {
                     if (voice && !greeting)
@@ -424,6 +510,7 @@ namespace CapriDesktop
                 {
                     Interlocked.Exchange(ref run.Replying, 0);
                     if (current()) SendReply(run, id, text, voiced, quiet);
+                    else if (active == run && session.Current(version)) SendReply(run, id, null, null, false);
                 }
             });
         }

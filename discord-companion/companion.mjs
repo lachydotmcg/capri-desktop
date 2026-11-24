@@ -19,6 +19,7 @@ const speechEndPause = 900;
 const maxQueuedTurns = 3;
 const maxTurnAge = 12_000;
 const noMentions = { parse: [] };
+const avatarImage = { extension: 'png', forceStatic: true, size: 128 };
 const required = [
   PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect,
   PermissionFlagsBits.Speak, PermissionFlagsBits.SendMessages,
@@ -114,7 +115,7 @@ function run() {
     if (!ownerId) throw new Error('Discord application has no owner');
     if (closed) return;
     await application.commands.create(command);
-    tell({ type: 'ready', clientId: application.id, name: client.user.username });
+    tell({ type: 'ready', clientId: application.id, name: client.user.username, avatar: client.user.displayAvatarURL(avatarImage) });
     available = true;
   }
 
@@ -148,15 +149,35 @@ function run() {
 
   function roomInfo(room) {
     const voice = room.voice;
+    const members = room.connected ? voice.members : null;
     const participants = [];
-    if (room.connected && voice.members) {
-      for (const member of voice.members.values()) {
-        if (member.user.id === client.user.id) continue;
-        participants.push(member.displayName);
+    function person(member, bot = false) {
+      const user = member?.user ?? client.user;
+      participants.push({
+        id: user.id, name: member?.displayName ?? user.username, bot,
+        avatar: (member ?? user).displayAvatarURL(avatarImage), muted: !!member?.voice.mute,
+        speaking: bot ? room.player.state.status === AudioPlayerStatus.Playing : room.speaking.has(user.id),
+      });
+    }
+    if (room.connected) {
+      person(members?.get(client.user.id), true);
+      const owner = members?.get(ownerId);
+      if (owner) person(owner);
+      for (const member of members?.values() ?? []) {
         if (participants.length >= 12) break;
+        if (member.user.id !== client.user.id && member.user.id !== ownerId) person(member);
       }
     }
-    return { session: room.id, server: voice.guild.name, channel: voice.name, participants };
+    room.visible = new Set(participants.map(member => member.id));
+    const total = room.connected ? (members?.size ?? 0) + (members?.has(client.user.id) ? 0 : 1) : 0;
+    return { session: room.id, server: voice.guild.name, channel: voice.name, participants, total };
+  }
+
+  function speaking(room, id, active) {
+    if (call !== room || !room.connected) return;
+    if (active) room.speaking.add(id);
+    else room.speaking.delete(id);
+    if (room.visible.has(id)) tell({ type: 'speaker', session: room.id, id, active });
   }
 
   async function join(voice) {
@@ -179,7 +200,7 @@ function run() {
     const player = createAudioPlayer();
     const room = {
       id: randomUUID(), voice, connection, player, streams: new Map(), speakers: new Map(),
-      turns: [], nextAudio: null, draining: false, connected: false, greet: false,
+      turns: [], nextAudio: null, draining: false, connected: false, greet: false, speaking: new Set(), visible: new Set(),
     };
     call = room;
     tell({ type: 'joining', ...roomInfo(room) });
@@ -188,6 +209,11 @@ function run() {
     connection.on(VoiceConnectionStatus.Destroyed, () => leave(room));
     player.on('error', () => tell({ type: 'notice', text: 'Discord could not play the voice reply.' }));
     player.on(AudioPlayerStatus.Idle, () => play(room));
+    player.on('stateChange', (before, after) => {
+      const was = before.status === AudioPlayerStatus.Playing;
+      const now = after.status === AudioPlayerStatus.Playing;
+      if (was !== now) speaking(room, client.user.id, now);
+    });
     connection.subscribe(player);
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
@@ -199,7 +225,8 @@ function run() {
       if (call !== room) return { ok: false, text: 'The Discord call ended while I was joining.' };
       room.connected = true;
       tell({ type: 'joined', ...roomInfo(room) });
-      connection.receiver.speaking.on('start', userId => listen(room, userId));
+      connection.receiver.speaking.on('start', userId => { speaking(room, userId, true); listen(room, userId); });
+      connection.receiver.speaking.on('end', userId => speaking(room, userId, false));
       return { ok: true, text: 'I joined ' + voice.name + ' on my bot account.', room };
     } catch {
       leave(room);
@@ -238,6 +265,13 @@ function run() {
     room.player.play(audio);
   }
 
+  function quiet(room) {
+    room.turns.length = 0;
+    room.greet = false;
+    room.nextAudio = null;
+    room.player.stop(true);
+  }
+
   async function drain(room) {
     if (!room || call !== room || pending || room.draining) return;
     room.draining = true;
@@ -253,12 +287,7 @@ function run() {
           result = await turn(room, heard.speaker, { audio: heard.audio, duringPlayback: heard.duringPlayback });
         }
         if (call !== room || !result) continue;
-        if (result.quiet) {
-          room.turns.length = 0;
-          room.nextAudio = null;
-          room.player.stop(true);
-          continue;
-        }
+        if (result.quiet) { quiet(room); continue; }
         if (!result.text) continue;
         if (result.audio) {
           const samples = Buffer.from(result.audio, 'base64');
@@ -366,9 +395,10 @@ function run() {
 
   client.on(Events.VoiceStateUpdate, (before, after) => {
     const room = call;
-    if (!room || before.guild.id !== room.voice.guild.id || before.channelId === after.channelId) return;
-    if (before.channelId === room.voice.id && (before.id === ownerId || before.id === client.user.id)) leave(room);
-    else if (room.connected && (before.channelId === room.voice.id || after.channelId === room.voice.id))
+    if (!room || before.guild.id !== room.voice.guild.id) return;
+    const moved = before.channelId !== after.channelId;
+    if (moved && before.channelId === room.voice.id && (before.id === ownerId || before.id === client.user.id)) leave(room);
+    else if (room.connected && (moved || before.mute !== after.mute) && (before.channelId === room.voice.id || after.channelId === room.voice.id))
       tell({ type: 'participants', ...roomInfo(room) });
   });
 
@@ -395,6 +425,15 @@ function run() {
     if (message?.type === 'stop') { stop(); return; }
     if (message?.type === 'reply' && pending?.id === message.id) { finishTurn(message); return; }
     if (message?.type === 'join-owner' && typeof message.id === 'string' && message.id.length === 36) { await joinOwner(message.id); return; }
+    if (call?.connected && message?.session === call.id) {
+      if (message.type === 'leave-voice') { leave(call); return; }
+      if (message.type === 'quiet-voice') {
+        const room = call;
+        quiet(room);
+        if (pending?.room === room) finishTurn(null);
+        return;
+      }
+    }
     if (message?.type !== 'start' || starting) return;
     starting = true;
     const readiness = new AbortController();
