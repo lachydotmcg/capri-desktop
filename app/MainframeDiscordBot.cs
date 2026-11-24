@@ -7,14 +7,15 @@ namespace CapriDesktop
 {
     internal sealed partial class Mainframe
     {
+        private Key discordBotKey;
         private DiscordBotSheet discordBotSheet;
 
         private void MakeDiscordBotKey(int y)
         {
             if (!DiscordCompanion.Included) return;
-            Key key = Lower(Make("Discord Bot", 28, y, 128, 22, delegate { OpenDiscordBot(); }));
-            key.Chevron = true;
-            key.AccessibleName = "Discord Bot. Set up Capri’s own Discord bot for your server.";
+            discordBotKey = Lower(Make("Discord Bot", 28, y, 128, 22, delegate { OpenDiscordBot(); }));
+            discordBotKey.Chevron = true;
+            discordBotKey.AccessibleName = "Discord Bot. Set up Capri’s own Discord bot for your server.";
         }
 
         internal void OpenDiscordBot()
