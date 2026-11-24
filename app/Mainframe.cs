@@ -7217,7 +7217,7 @@ namespace CapriDesktop
                 cursorRow.Font = Font;
                 cursorRow.Switch = 96;
                 cursorRow.Bounds = Box(28, 444, Column, 22);
-                cursorRow.AccessibleName = "Use her cursor. She uses her visible pointer for YouTube searches, Apple Music and Spotify's volume slider; off, she uses quick tools instead";
+                cursorRow.AccessibleName = "Use her cursor. She uses her visible pointer for YouTube searches, Apple Music, Deezer, YouTube Music and Spotify's volume slider; off, she uses quick tools instead";
                 cursorRow.CheckedChanged += delegate { if (!syncing) owner.capri.ToggleCursor(); };
                 Controls.Add(cursorRow);
                 owner.Fit(this);

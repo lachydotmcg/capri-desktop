@@ -100,6 +100,7 @@ namespace CapriDesktop
         {
             // What Windows calls the app, the name she shows, and its program.
             { "spotify", "Spotify", "Spotify" },
+            { @"^music\.youtube\.com-", "YouTube Music", "msedge" },
             { "^chrome", "Chrome", "chrome" },
             { "msedge", "Edge", "msedge" },
             { "firefox|^308046B0AF4A39CB$", "Firefox", "firefox" },
