@@ -23,6 +23,7 @@ namespace CapriDesktop
             + "Languages: her greetings, reactions, check-ins, settings tips and more of the memory and mail screens follow the language you chose.\n"
             + "Settings search: more of the same everyday words find the same settings across platforms.\n"
             + "Cloud voice: Fish Audio and OpenAI voices can be set up from her voice menu with your own key. The menu shows the provider deadlines and she types when cloud voice fails.\n"
+            + "Colours: her chat bubble and TYPE and TALK controls follow your Mainframe colours.\n"
             + (OperatingSystem.IsLinux()
                 ? "Listen for Capri: with a supported screen-lock signal, she pauses when the screen locks and resumes on unlock. If she loses that signal while paused, she waits for you to confirm.\n"
                     + "Omarchy: an opt-in local bridge lets a compatible shell plug-in share desktop state with her."
@@ -35,7 +36,9 @@ namespace CapriDesktop
             + "Tools: she searches each connected plug-in's tool list for the tools she needs. Off and Ask first choices stay in place across restarts and are set separately per server.\n"
             + "Connect: GitHub uses a personal access token, Context7 an API key, and Cloudflare Docs needs no account. Custom plug-ins can use a provider's registered public OAuth client.\n"
             + "Cloud voice: Fish Audio advertises its free model through 30 November 2026. OpenAI's current Speech model shuts down 6 January 2027. The setup help shows both dates.\n"
-            + "Download warnings: during a computer job, she is told to report a blocked download or security warning and leave the file for you to review.";
+            + "Download warnings: during a computer job, she is told to report a blocked download or security warning and leave the file for you to review.\n"
+            + "Job controls: use Edit instructions to redirect a running computer job and use the mic while she works.\n"
+            + "Colours: her chat bubble, TYPE and TALK controls, and mini player follow your Mainframe colours.";
         internal const string Line = "I just updated to " + Version + ": seven new plug-ins are in Mods. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
