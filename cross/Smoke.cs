@@ -558,6 +558,7 @@ namespace CapriDesktop
                 checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
                 ChoresChecks();
                 LinuxInputChecks();
+                PlasmaHandsChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
@@ -8353,6 +8354,45 @@ namespace CapriDesktop
                 pet.Desk = desk; pet.MouseAt = mouse;
                 Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", display);
                 pet.Talk.Dismiss();
+            }
+        }
+
+        // Issue #421: Plasma 6.8 Wayland with a writable /dev/uinput. The compositor helper is Hyprland-only, so her
+        // use_computer tool must reach her uinput chores path instead of answering with the Hyprland-only line.
+        private void PlasmaHandsChecks()
+        {
+            if (!OperatingSystem.IsLinux() || HyprlandDesktop.Current != null) return;
+            Func<bool> present = Fingers.Present, writable = Fingers.Writable;
+            Func<ToolArguments, string> native = Hands.NativeWork;
+            Func<string, string, string> work = Hands.Work;
+            Func<string, string> resume = Hands.Resume;
+            Action<string, System.Text.Json.JsonElement> doing = Chores.Doing;
+            bool own = Hands.OwnHands;
+            System.Reflection.FieldInfo field = typeof(ComputerJobs).GetField("brain", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Brain brain = (Brain)field.GetValue(null);
+            try
+            {
+                Fingers.Present = delegate { return true; };
+                Fingers.Writable = delegate { return true; };
+                Hands.OwnHands = true;
+                Hands.NativeWork = null;
+                Hands.Work = null;
+                Chores.Doing = null;
+                ComputerJobs.Attach(new Brain());
+                string workLine = Hands.Work("write something in Claude", "write something in Claude");
+                string nativeLine = ComputerJobs.Run("write something in Claude", "write something in Claude");
+                const string offline = "Couldn't do that: your brain is offline.";
+                const string nativeOnly = "Native screen jobs need Hyprland and Capri's native/capri-input helper. Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
+                if (Hands.NativeWork != null || workLine != offline || nativeLine != nativeOnly)
+                    throw new Exception("A writable /dev/uinput without Hyprland didn't reach her uinput hands: native " + (Hands.NativeWork != null) + ", work " + workLine + ", native line " + nativeLine);
+                checks.Add("PASS Plasma Wayland with a writable /dev/uinput leaves the Hyprland-only runner unclaimed, so use_computer reaches her uinput hands, and a native refusal names Hyprland's helper as its own requirement instead of telling every desktop to reopen Capri in a Hyprland session");
+            }
+            finally
+            {
+                Fingers.Present = present; Fingers.Writable = writable;
+                Hands.OwnHands = own; Hands.NativeWork = native; Hands.Work = work; Hands.Resume = resume;
+                Chores.Doing = doing;
+                field.SetValue(null, brain);
             }
         }
 

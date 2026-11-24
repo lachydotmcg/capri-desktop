@@ -308,8 +308,8 @@ namespace CapriDesktop
         private static long revocation;
         private static Task<bool> protocols;
         private static string protocolSession;
-        private static readonly Lazy<bool> supported = new Lazy<bool>(() => HyprlandDesktop.Current != null && ArchInput.Available);
-        internal static bool Supported { get { return OperatingSystem.IsMacOS() ? MacFingers.Available : supported.Value; } }
+        // The compositor's own input on Linux: Hyprland's protocol helper, never /dev/uinput. Mac has its own hands.
+        internal static bool Supported { get { return OperatingSystem.IsMacOS() ? MacFingers.Available : HyprlandDesktop.Current != null && ArchInput.Available; } }
         internal static bool Available
         {
             get
@@ -332,10 +332,18 @@ namespace CapriDesktop
         internal static void Attach(Brain attached)
         {
             brain = attached;
-            Hands.Work = Limbs.RemoteWork(new Func<string, string, string>(Run));
-            Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(args => Run(args.Task, args.Asked, args.Current)));
             InControl.NativeStopHint = () => EscapeListening ? "Capri's using your mouse. Press Esc in the game or say stop to stop her." : "Capri's using your mouse. Say stop to stop her.";
             Hands.Resume = text => Resume(text) ?? Security.Resume(text, attached.Act);
+            // Her compositor hands only exist on Hyprland. Other Linux desktops run use_computer through her
+            // /dev/uinput hands, so this must not leave the native runner holding her tool.
+            if (OperatingSystem.IsLinux() && !Supported)
+            {
+                Hands.NativeWork = null;
+                Hands.Work = new Func<string, string, string>((task, asked) => Chores.Run(attached, task, asked));
+                return;
+            }
+            Hands.Work = Limbs.RemoteWork(new Func<string, string, string>(Run));
+            Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(args => Run(args.Task, args.Asked, args.Current)));
             _ = Available;
         }
 
@@ -437,9 +445,9 @@ namespace CapriDesktop
                 if (problem != null) return problem;
                 if (Hands.Streaming || Hands.StreamAsked(job.Task) || Hands.StreamAsked(job.Asked)) return "Live stream chat and timing aren't connected to Mac screen jobs yet.";
             }
-            if (!test && !mac && !Supported) return "Native screen jobs were unavailable when Capri opened. Install the helper in a supported Hyprland session, then reopen Capri.";
+            if (!test && !mac && !Supported) return "Native screen jobs need Hyprland and Capri's native/capri-input helper. Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
             HyprlandDesktop desktop = test ? null : HyprlandDesktop.Current;
-            if (!test && !mac && desktop == null) return "Native screen jobs need a supported Hyprland session. This desktop doesn't expose that capability.";
+            if (!test && !mac && desktop == null) return "Native screen jobs need a Hyprland session. Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
             if (!test && !mac && !ArchInput.Available) return "Native screen jobs need Capri's native/capri-input helper installed beside the app.";
             if (job.Current != null && !job.Current()) return "That screen request has ended; no job started.";
             job.Game ??= ComputerGameSession.FromRequest(job.Task, job.Asked);
@@ -472,7 +480,7 @@ namespace CapriDesktop
                 }
                 vision = brain.ForkVision();
                 using CancellationTokenRegistration abortModel = cancel.Token.Register(() => vision.Cancel());
-                if (!mac && !ArchInput.Probe(cancel.Token)) return "This compositor doesn't provide both native virtual pointer and keyboard protocols.";
+                if (!mac && !ArchInput.Probe(cancel.Token)) return "This Hyprland session doesn't provide both native virtual pointer and keyboard protocols.";
                 ComputerRunner runner = new ComputerRunner { Desktop = mac ? new MacFingers.Desktop(cancel.Token) : new ArchComputer(desktop, cancel.Token), Input = mac ? new MacFingers.Input() : new ArchInput(), Account = Account, CancelInference = () => vision.Cancel(), Think = (jpeg, system, instruction) => vision.See(jpeg, Brain.Persona + (mac ? system.Replace("user's Linux desktop", "user's Mac desktop") + " Key names use Windows notation: CTRL letter shortcuts map to Command on Mac; ALT+F4 closes the window with Command+W." : system), instruction, 900, true, preserveWhitespace: true, computerAction: true) };
                 job.Account ??= Account(); job.Permissions ??= Security.Saved;
                 runner.CheckAccount(job);
