@@ -844,6 +844,8 @@ namespace CapriDesktop
             {
                 pet.Talk.Dismiss();
                 Pet.LockedForNameListening = () => false;
+                // Check that an unlock starts listening while the decoder remains parked, as in the other lock checks.
+                lifetimeField.SetValue(pet, new TaskCompletionSource().Task);
                 saved.MicrophoneNode = "check-node";
                 saved.MicrophoneFingerprint = "check-fp";
 
