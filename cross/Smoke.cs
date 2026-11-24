@@ -4919,6 +4919,55 @@ namespace CapriDesktop
             }
             finally { security.Close(); }
             checks.Add("PASS Mainframe panels: local voice address, model, voice and format, layer controls and every available Security choice save through their existing setters");
+            string spendWas = Spend.Folder;
+            bool pagedWas = frame.SettingsShown;
+            MainframeSheet spend = null;
+            try
+            {
+                Spend.Folder = Path.Combine(folder, "spend-sheet");
+                Directory.CreateDirectory(Spend.Folder);
+                Spend.Forget();
+                if (File.Exists(Path.Combine(Spend.Folder, Spend.File))) File.Delete(Path.Combine(Spend.Folder, Spend.File));
+                Spend.Add("anthropic", "claude-sonnet-5-5", 1000000, 0, 0, 1000000);
+                Spend.Add("openai", "gpt-6.1-terra", 1000000, 0, 0, 0);
+                Spend.Add("nvidia", "meta/llama", 10, 0, 0, 0);
+                Spend.Add("other:api.example.com", "mystery-1", 10, 0, 0, 0);
+                spend = new MainframeSheet(pet, "SPEND", "spend");
+                spend.Sync();
+                Func<string, string> said = name =>
+                {
+                    Control row;
+                    if (!spend.Rows.TryGetValue(name, out row) || !(row is NeonCaption caption)) throw new Exception("The Spend panel has no " + name + " row.");
+                    return caption.Text;
+                };
+                if (said("Today") != "$12.50") throw new Exception("The Spend panel's today total says " + said("Today"));
+                if (said("This month") != "$12.50") throw new Exception("The Spend panel's month total says " + said("This month"));
+                if (said("This month total") != "4 asks · 3M tokens") throw new Exception("The Spend panel's month line says " + said("This month total"));
+                if (said("Model 1") != "claude-sonnet-5-5" || said("Asks 1") != "1" || said("Tokens 1") != "2M" || said("Cost 1") != "$12.00") throw new Exception("The Spend panel's first model row reads " + said("Model 1") + " " + said("Asks 1") + " " + said("Tokens 1") + " " + said("Cost 1"));
+                if (said("Model 2") != "gpt-6.1-terra" || said("Cost 2") != "$0.50") throw new Exception("The Spend panel's second model row reads " + said("Model 2") + " " + said("Cost 2"));
+                if (said("Model 3") != "meta/llama" || said("Cost 3") != "free") throw new Exception("A free model isn't marked free: " + said("Model 3") + " " + said("Cost 3"));
+                if (said("Model 4") != "api.example.com · mystery-1" || said("Cost 4") != "?") throw new Exception("An unpriced model isn't marked ?: " + said("Model 4") + " " + said("Cost 4"));
+                if (said("Small jobs") != "Pick a brain with an API key and she'll count what it costs here.") throw new Exception("The Spend panel's small jobs note says " + said("Small jobs"));
+                if (said("Prices note") != "List prices from each provider. Free tiers, credits and discounts aren't taken off.") throw new Exception("The Spend panel's prices note says " + said("Prices note"));
+                if (!(spend.Rows["Models"] is NeonHead models) || models.Text != "MODELS >") throw new Exception("The Spend panel has no models heading.");
+                frame.ShowSettings(false);
+                var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                NeonCaption note = (NeonCaption)typeof(Mainframe).GetField("updateNote", fields).GetValue(frame);
+                NeonButton opener = frame.Button("Spend");
+                if (opener == null || !opener.IsVisible) throw new Exception("The Mainframe's main page has no Spend key.");
+                if (Avalonia.Automation.AutomationProperties.GetName(opener) != "Spend: what her brain cost on your API keys today and this month, model by model") throw new Exception("The Spend key's accessible name says " + Avalonia.Automation.AutomationProperties.GetName(opener));
+                if (!opener.Chevron) throw new Exception("The Spend key lost its chevron.");
+                if (Math.Abs(Canvas.GetTop(opener) - Canvas.GetTop(note) - 30) > 0.5) throw new Exception("The Spend key isn't 30 below her update note: " + Canvas.GetTop(opener) + " / " + Canvas.GetTop(note));
+                if (frame.SpendLine != "$12.50 today · $12.50 this month") throw new Exception("The Mainframe's Spend line says " + frame.SpendLine);
+                checks.Add("PASS spend sheet: today and this month's totals, each model's asks, tokens and cost, free models marked free and unpriced ones marked ?, the small jobs explanation and list prices note, and the Mainframe's Spend key by her update note showing \"$12.50 today · $12.50 this month\"");
+            }
+            finally
+            {
+                if (spend != null) spend.Close();
+                frame.ShowSettings(pagedWas);
+                Spend.Folder = spendWas;
+                Spend.Forget();
+            }
         }
 
         private void PlainChecks(Mainframe frame, System.Reflection.BindingFlags fields)
