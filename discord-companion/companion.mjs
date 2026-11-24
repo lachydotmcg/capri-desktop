@@ -19,7 +19,7 @@ const speechEndPause = 900;
 const maxQueuedTurns = 3;
 const maxTurnAge = 12_000;
 const noMentions = { parse: [] };
-const voiceButton = /^capri:voice:([a-f0-9-]{36}):(enable|stop)$/;
+const voiceButton = /^capri:voice:([a-f0-9-]{36}):stop$/;
 const avatarImage = { extension: 'png', forceStatic: true, size: 128 };
 const required = [
   PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect,
@@ -45,12 +45,11 @@ function privacyLink(value) {
 
 function listeningNotice(room, privacy) {
   const buttons = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('capri:voice:' + room.id + ':enable').setLabel('Enable my audio').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('capri:voice:' + room.id + ':stop').setLabel('Stop my audio').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('capri:voice:' + room.id + ':stop').setLabel('Disable my voice').setStyle(ButtonStyle.Secondary),
   );
   if (privacy) buttons.addComponents(new ButtonBuilder().setLabel('Privacy policy').setStyle(ButtonStyle.Link).setURL(privacy));
   return {
-    content: 'Capri is here and can chime in as you talk. The person who invited Capri has enabled their audio. Everyone else can choose Enable my audio to take part. The host PC transcribes enabled audio locally, and the host’s selected AI provider may process those transcripts and recent call context. Use Stop my audio at any time. Leaving the channel also stops your audio and clears your choice. Capri leaves when her owner leaves or runs /capri leave.',
+    content: 'Capri is here and can chime in as you talk. The host PC transcribes voice locally, and the host’s selected AI provider may process those transcripts and recent call context. Choose Disable my voice to stop Capri from listening to you for the rest of this call. Capri leaves when her owner leaves or runs /capri leave.',
     allowedMentions: noMentions,
     components: [buttons],
   };
@@ -219,20 +218,16 @@ function run() {
     if (pending?.room === room) finishTurn(null);
   }
 
-  async function changeParticipation(interaction, session, action) {
+  async function disableVoice(interaction, session) {
     const room = call;
     const userId = interaction.user.id;
     let content = 'This control is for members of Capri’s current voice session.';
     if (room?.connected && room.id === session && interaction.guildId === room.voice.guild.id
       && interaction.channelId === room.voice.id && !interaction.user.bot
       && room.voice.guild.voiceStates.cache.get(userId)?.channelId === room.voice.id) {
-      if (action === 'enable') {
-        if (!room.participation.has(userId)) room.participation.set(userId, Symbol());
-        content = 'Your audio is enabled for this voice session.';
-      } else {
-        revoke(room, userId);
-        content = 'Your audio is off for this voice session.';
-      }
+      room.disabledVoices.add(userId);
+      revoke(room, userId);
+      content = 'Capri will skip your voice for the rest of this call.';
     }
     await interaction.reply({ content, flags: MessageFlags.Ephemeral });
   }
@@ -257,7 +252,7 @@ function run() {
     const player = createAudioPlayer();
     const room = {
       id: randomUUID(), voice, connection, player, streams: new Map(), speakers: new Map(),
-      participation: new Map(),
+      participation: new Map(), disabledVoices: new Set(),
       turns: [], nextAudio: null, draining: false, connected: false, greet: false, speaking: new Set(), visible: new Set(),
     };
     call = room;
@@ -285,7 +280,6 @@ function run() {
         leave(room);
         return { ok: false, text: 'The Discord call changed while I was joining. Ask me again from the call.' };
       }
-      room.participation.set(ownerId, Symbol());
       room.connected = true;
       tell({ type: 'joined', ...roomInfo(room) });
       connection.receiver.speaking.on('start', userId => { speaking(room, userId, true); listen(room, userId); });
@@ -371,10 +365,16 @@ function run() {
   }
 
   function listen(room, userId) {
-    const permission = room.participation.get(userId);
-    if (!participating(room, userId, permission) || userId === client.user.id || room.streams.has(userId) || room.streams.size >= 4) return;
+    if (call !== room || !room.connected || userId === client.user.id || room.disabledVoices.has(userId)
+      || room.voice.guild.voiceStates.cache.get(userId)?.channelId !== room.voice.id
+      || room.streams.has(userId) || room.streams.size >= 4) return;
     const cached = room.voice.guild.members.cache.get(userId);
     if (cached?.user.bot) return;
+    let permission = room.participation.get(userId);
+    if (!permission) {
+      permission = Symbol();
+      room.participation.set(userId, permission);
+    }
     let duringPlayback = room.player.state.status === AudioPlayerStatus.Playing;
 
     const opus = room.connection.receiver.subscribe(userId, {
@@ -472,10 +472,10 @@ function run() {
   });
 
   client.on(Events.InteractionCreate, async interaction => {
-    const controls = interaction.isButton() ? voiceButton.exec(interaction.customId) : null;
-    if (!controls && (!interaction.isChatInputCommand() || interaction.commandName !== 'capri')) return;
+    const control = interaction.isButton() ? voiceButton.exec(interaction.customId) : null;
+    if (!control && (!interaction.isChatInputCommand() || interaction.commandName !== 'capri')) return;
     try {
-      if (controls) { await changeParticipation(interaction, controls[1], controls[2]); return; }
+      if (control) { await disableVoice(interaction, control[1]); return; }
       if (!available || !interaction.inGuild() || interaction.user.id !== ownerId) {
         await interaction.reply({ content: 'The bot’s owner can use these commands.', flags: MessageFlags.Ephemeral });
         return;
