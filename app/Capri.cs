@@ -43638,7 +43638,8 @@ namespace CapriDesktop
                     "Cloud voice:",
                     "Download warnings:",
                     "Job controls:",
-                    "Colours:"
+                    "Colours:",
+                    "Music:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;

@@ -24,6 +24,7 @@ namespace CapriDesktop
             + "Settings search: more of the same everyday words find the same settings across platforms.\n"
             + "Cloud voice: Fish Audio and OpenAI voices can be set up from her voice menu with your own key. The menu shows the provider deadlines and she types when cloud voice fails.\n"
             + "Colours: her chat bubble and TYPE and TALK controls follow your Mainframe colours.\n"
+            + "Music: choose Deezer or YouTube Music in Habits, or name one when asking for a song.\n"
             + (OperatingSystem.IsLinux()
                 ? "Listen for Capri: with a supported screen-lock signal, she pauses when the screen locks and resumes on unlock. If she loses that signal while paused, she waits for you to confirm.\n"
                     + "Omarchy: an opt-in local bridge lets a compatible shell plug-in share desktop state with her."
@@ -38,7 +39,8 @@ namespace CapriDesktop
             + "Cloud voice: Fish Audio advertises its free model through 30 November 2026. OpenAI's current Speech model shuts down 6 January 2027. The setup help shows both dates.\n"
             + "Download warnings: during a computer job, she is told to report a blocked download or security warning and leave the file for you to review.\n"
             + "Job controls: use Edit instructions to redirect a running computer job and use the mic while she works.\n"
-            + "Colours: her chat bubble, TYPE and TALK controls, and mini player follow your Mainframe colours.";
+            + "Colours: her chat bubble, TYPE and TALK controls, and mini player follow your Mainframe colours.\n"
+            + "Music: choose Deezer or YouTube Music in Habits, or name one when asking for a song.";
         internal const string Line = "I just updated to " + Version + ": seven new plug-ins are in Mods. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
