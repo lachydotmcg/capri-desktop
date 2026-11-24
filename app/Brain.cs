@@ -2572,7 +2572,7 @@ namespace CapriDesktop
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             string job = doing == null ? "" : "\nRight now your hands are on a job for the user: " + Voice.Quote(doing) + ". It carries on while you talk, and only the user can change it.";
-            List<ChatMessage> messages = session.Request(version, Persona + Speech() + (Cues ? Cueing : "") + "\nThis turn is conversation only. You have no tools or private context here. Never claim to have taken an action." + job, text);
+            List<ChatMessage> messages = session.Request(version, Persona + Speech() + (Cues && !session.Shared ? Cueing : "") + "\nThis turn is conversation only. You have no tools or private context here. Never claim to have taken an action." + job, text);
             if (messages == null) return null;
             int ticket;
             lock (gate) ticket = cancelled;
@@ -2581,7 +2581,7 @@ namespace CapriDesktop
             Check(ticket);
             string said = calls.Count == 0 ? Clean(raw) : CallSession.Conversation;
             if (!session.Keep(version, text, said, Recall, current)) return null;
-            Cue(raw, said);
+            if (!session.Shared) Cue(raw, said);
             return said;
         }
 

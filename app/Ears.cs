@@ -1457,6 +1457,9 @@ namespace CapriDesktop
 
         internal static string Text(short[] samples) { return Clean(Run(samples)); }
 
+        // A captured audio source can use the local recognizer without opening the desktop mic.
+        internal static string Text(short[] samples, LocalEars own) { return Clean(Recognize(samples, own)); }
+
         internal static string Clean(string text)
         {
             string plain = Regex.Replace(text ?? "", @"\s+", " ").Trim();
@@ -1483,9 +1486,10 @@ namespace CapriDesktop
             return made;
         }
 
-        private static string Recognize(short[] samples)
+        private static string Recognize(short[] samples) { return Recognize(samples, Own); }
+
+        private static string Recognize(short[] samples, LocalEars own)
         {
-            LocalEars own = Own;
             if (own != null && own.Ready) return own.Hear(samples);
             lock (gate)
             {
