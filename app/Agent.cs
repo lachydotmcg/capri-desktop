@@ -111,7 +111,8 @@ namespace CapriDesktop
         private ClientWebSocket socket;
         private Thread worker;
         private volatile bool ready;
-        private string lastHeard;
+        private volatile string lastHeard;
+        internal string LastHeard { get { return lastHeard; } }
         internal Func<string, ToolArguments, string> Act;
 
         // Her voice chat's prompt. With a brain that can't see, she's told she can't look at their screen, the same as in text chat.

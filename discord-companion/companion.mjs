@@ -1,4 +1,5 @@
 import { createInterface } from 'node:readline';
+import { once } from 'node:events';
 import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import {
@@ -11,7 +12,10 @@ import {
 } from '@discordjs/voice';
 import Opus from 'opusscript';
 
-const maxSamples = 16_000 * 12;
+const speechRate = 16_000;
+const speechBytesPerMs = speechRate * 2 / 1000;
+const maxSpeechBytes = speechRate * 2 * 12;
+const speechEndPause = 900;
 const maxQueuedTurns = 3;
 const maxTurnAge = 12_000;
 const noMentions = { parse: [] };
@@ -30,12 +34,14 @@ const command = new SlashCommandBuilder()
     .addStringOption(words => words.setName('message').setDescription('What to say to Capri').setRequired(true).setMaxLength(1000)));
 
 if (process.argv.includes('--check')) {
-  const codec = new Opus(48_000, 2, Opus.Application.VOIP);
+  const encoder = new Opus(48_000, 2, Opus.Application.VOIP);
+  const decoder = new Opus(speechRate, 1, Opus.Application.VOIP);
   try {
-    const packet = codec.encode(Buffer.alloc(960 * 4), 960);
-    if (codec.decode(packet).length !== 960 * 4) throw new Error('Opus round trip failed');
+    const packet = encoder.encode(Buffer.alloc(960 * 4), 960);
+    if (decoder.decode(packet).length !== 20 * speechBytesPerMs) throw new Error('Opus speech decoding failed');
   } finally {
-    codec.delete();
+    decoder.delete();
+    encoder.delete();
   }
 } else {
   run();
@@ -73,6 +79,7 @@ function run() {
     call = undefined;
     if (pending?.room === room) finishTurn(null);
     room.turns.length = 0;
+    room.greet = false;
     room.nextAudio = null;
     for (const stream of room.streams.values()) stream.destroy();
     room.player.stop(true);
@@ -124,7 +131,8 @@ function run() {
     }
     if (action === 'join') {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      await join(interaction);
+      const result = await join(interaction.guild?.voiceStates.cache.get(ownerId)?.channel);
+      await interaction.editReply(result.text);
       return;
     }
 
@@ -138,20 +146,30 @@ function run() {
     await interaction.editReply({ content: result?.text?.slice(0, 1900) || 'Capri did not get a reply from her selected model.' });
   }
 
-  async function join(interaction) {
-    const voice = interaction.guild?.voiceStates.cache.get(ownerId)?.channel;
+  function roomInfo(room) {
+    const voice = room.voice;
+    const participants = [];
+    if (room.connected && voice.members) {
+      for (const member of voice.members.values()) {
+        if (member.user.id === client.user.id) continue;
+        participants.push(member.displayName);
+        if (participants.length >= 12) break;
+      }
+    }
+    return { session: room.id, server: voice.guild.name, channel: voice.name, participants };
+  }
+
+  async function join(voice) {
     if (voice?.type !== ChannelType.GuildVoice) {
-      await interaction.editReply('Join a server voice channel, then run /capri join again.');
-      return;
+      return { ok: false, text: 'Join a server voice channel where your bot is installed, then ask me again.' };
     }
     if (call) {
-      await interaction.editReply('Capri already has a voice session. Use /capri leave in that server first.');
-      return;
+      if (call.connected && call.voice.id === voice.id) return { ok: true, text: 'I’m already in ' + voice.name + '.' };
+      return { ok: false, text: 'I already have a voice session. Use /capri leave in that server first.' };
     }
     const permissions = voice.permissionsFor(client.user);
     if (!permissions?.has(required)) {
-      await interaction.editReply('Give the bot View Channel, Connect, Speak and Send Messages in this voice channel.');
-      return;
+      return { ok: false, text: 'Give the bot View Channel, Connect, Speak and Send Messages in this voice channel.' };
     }
 
     const connection = joinVoiceChannel({
@@ -161,9 +179,10 @@ function run() {
     const player = createAudioPlayer();
     const room = {
       id: randomUUID(), voice, connection, player, streams: new Map(), speakers: new Map(),
-      turns: [], nextAudio: null, draining: false,
+      turns: [], nextAudio: null, draining: false, connected: false, greet: false,
     };
     call = room;
+    tell({ type: 'joining', ...roomInfo(room) });
     connection.on('error', () => leave(room));
     connection.on(VoiceConnectionStatus.Disconnected, () => leave(room));
     connection.on(VoiceConnectionStatus.Destroyed, () => leave(room));
@@ -172,15 +191,43 @@ function run() {
     connection.subscribe(player);
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
-      if (call !== room) return;
+      if (call !== room || voice.guild.voiceStates.cache.get(ownerId)?.channel?.id !== voice.id) {
+        leave(room);
+        return { ok: false, text: 'The Discord call changed while I was joining. Ask me again from the call.' };
+      }
       await voice.send('Capri is here and can chime in as you talk. The host PC transcribes call audio, and its selected AI provider may process this conversation. The bot owner can ask Capri to wait for her name. Capri leaves when her owner leaves or runs /capri leave.');
-      if (call !== room) return;
-      tell({ type: 'joined', session: room.id, channel: voice.name });
+      if (call !== room) return { ok: false, text: 'The Discord call ended while I was joining.' };
+      room.connected = true;
+      tell({ type: 'joined', ...roomInfo(room) });
       connection.receiver.speaking.on('start', userId => listen(room, userId));
-      await interaction.editReply('Capri is listening in ' + voice.name + '.');
+      return { ok: true, text: 'I joined ' + voice.name + ' on my bot account.', room };
     } catch {
       leave(room);
-      await interaction.editReply('Capri could not open voice and post the listening notice. Check channel permissions and whether it has space.');
+      return { ok: false, text: 'I couldn’t join and post the listening notice. Check the channel permissions and whether it has room.' };
+    }
+  }
+
+  async function joinOwner(id) {
+    let result = { ok: false, text: 'The bot is still connecting to Discord. Try again in a moment.' };
+    try {
+      if (available && !closed && client.isReady()) {
+        const rooms = [];
+        for (const guild of client.guilds.cache.values()) {
+          if (guild.available === false) continue;
+          const voice = guild.voiceStates.cache.get(ownerId)?.channel;
+          if (voice?.type === ChannelType.GuildVoice) rooms.push(voice);
+        }
+        result = rooms.length > 1
+          ? { ok: false, text: 'I can see more than one call. Run /capri join in the server you want me in.' }
+          : await join(rooms[0]);
+      }
+    } catch {
+      result = { ok: false, text: 'I couldn’t open the Discord voice connection.' };
+    }
+    tell({ type: 'owner-join-result', id, ok: result.ok, text: result.text });
+    if (result.room && call === result.room) {
+      result.room.greet = true;
+      void drain(result.room);
     }
   }
 
@@ -195,10 +242,16 @@ function run() {
     if (!room || call !== room || pending || room.draining) return;
     room.draining = true;
     try {
-      while (call === room && !pending && room.turns.length > 0) {
-        const heard = room.turns.shift();
-        if (Date.now() - heard.at > maxTurnAge) continue;
-        const result = await turn(room, heard.speaker, { audio: heard.audio, duringPlayback: heard.duringPlayback });
+      while (call === room && !pending && (room.greet || room.turns.length > 0)) {
+        let result;
+        if (room.greet) {
+          room.greet = false;
+          result = await turn(room, {}, { greet: true });
+        } else {
+          const heard = room.turns.shift();
+          if (Date.now() - heard.at > maxTurnAge) continue;
+          result = await turn(room, heard.speaker, { audio: heard.audio, duringPlayback: heard.duringPlayback });
+        }
         if (call !== room || !result) continue;
         if (result.quiet) {
           room.turns.length = 0;
@@ -219,7 +272,7 @@ function run() {
       if (call === room) tell({ type: 'notice', text: 'There was a problem replying in the voice channel.' });
     } finally {
       room.draining = false;
-      if (room.turns.length > 0 && call === room && !pending) void drain(room);
+      if ((room.greet || room.turns.length > 0) && call === room && !pending) void drain(room);
     }
   }
 
@@ -227,79 +280,96 @@ function run() {
     if (call !== room || userId === client.user.id || room.streams.has(userId) || room.streams.size >= 4) return;
     const cached = room.voice.guild.members.cache.get(userId);
     if (cached?.user.bot) return;
-    const duringPlayback = room.player.state.status === AudioPlayerStatus.Playing;
+    let duringPlayback = room.player.state.status === AudioPlayerStatus.Playing;
 
     const opus = room.connection.receiver.subscribe(userId, {
-      end: { behavior: EndBehaviorType.AfterSilence, duration: 750 },
+      end: { behavior: EndBehaviorType.AfterSilence, duration: speechEndPause },
     });
     room.streams.set(userId, opus);
-    const codec = new Opus(48_000, 2, Opus.Application.VOIP);
-    const pcm = Buffer.allocUnsafe(maxSamples * 2);
-    let bytes = 0;
+    // Decode straight to the recognizer's sampling rate and use Opus's downmix.
+    const codec = new Opus(speechRate, 1, Opus.Application.VOIP);
+    const pcm = Buffer.allocUnsafe(maxSpeechBytes);
+    let bytes = 0, packetBytes = 0;
+    let packetEnd = 0;
     let disposed = false;
-    let ending = false;
-    function endCapture() {
-      if (ending || opus.destroyed || opus.readableEnded) return;
-      ending = true;
-      opus.push(null);
+    // A speaking event can arrive before any decryptable audio. Release an empty subscription.
+    const initialPacketTimeout = setTimeout(() => opus.destroy(), 1500);
+
+    function submit(continuing) {
+      if (packetBytes >= 8000 && call === room) {
+        void enqueueSpeech(room, userId, cached, pcm.subarray(0, bytes).toString('base64'), duringPlayback);
+      }
+      // Keep the last 180 ms across a forced boundary so recognition has the start of a split word.
+      const overlap = continuing ? Math.min(bytes, 180 * speechBytesPerMs) : 0;
+      if (overlap) pcm.copy(pcm, 0, bytes - overlap, bytes);
+      bytes = overlap;
+      packetBytes = 0;
+      duringPlayback = room.player.state.status === AudioPlayerStatus.Playing;
     }
-    const cutoff = setTimeout(endCapture, 12_500);
+
     function dispose() {
       if (disposed) return;
       disposed = true;
-      clearTimeout(cutoff);
+      clearTimeout(initialPacketTimeout);
       room.streams.delete(userId);
       codec.delete();
     }
     opus.on('error', dispose);
     opus.once('close', dispose);
     opus.on('data', packet => {
+      if (disposed) return;
+      clearTimeout(initialPacketTimeout);
+      const arrived = performance.now();
+      let decoded;
       try {
-        const decoded = codec.decode(packet);
-        // 48 kHz stereo Opus to 16 kHz mono for Capri's existing recognizer.
-        for (let i = 0; i + 11 < decoded.length && bytes < pcm.length; i += 12) {
-          const mean = (decoded.readInt16LE(i) + decoded.readInt16LE(i + 2)
-            + decoded.readInt16LE(i + 4) + decoded.readInt16LE(i + 6)
-            + decoded.readInt16LE(i + 8) + decoded.readInt16LE(i + 10)) / 6;
-          pcm.writeInt16LE(Math.round(mean), bytes);
-          bytes += 2;
-        }
-        if (bytes === pcm.length) endCapture();
+        decoded = codec.decode(packet);
       } catch {
-        opus.destroy();
+        return;
       }
+      // Discord can suppress quiet packets. Preserve a real pause between words while leaving ordinary jitter alone.
+      const gap = packetEnd > 0 ? arrived - packetEnd : 0;
+      const pause = gap >= 75 ? Math.round(Math.min(gap, 500) * speechRate / 1000) * 2 : 0;
+      packetEnd = arrived + decoded.length / speechBytesPerMs;
+      if (bytes + pause + decoded.length > pcm.length) submit(true);
+      if (pause) pcm.fill(0, bytes, bytes + pause);
+      bytes += pause;
+      decoded.copy(pcm, bytes);
+      bytes += decoded.length;
+      packetBytes += decoded.length;
     });
-    opus.once('end', async () => {
+    opus.once('end', () => {
       dispose();
-      if (bytes < 8000 || call !== room) return;
-      try {
-        const at = Date.now();
-        const member = cached ?? await room.voice.guild.members.fetch(userId);
-        if (member.user.bot || member.voice.channelId !== room.voice.id || call !== room) return;
-        if (!room.speakers.has(userId)) room.speakers.set(userId, room.speakers.size + 1);
-        const owner = userId === ownerId;
-        const heard = {
-          at, duringPlayback, speaker: { name: member.displayName, speaker: room.speakers.get(userId), owner },
-          audio: pcm.subarray(0, bytes).toString('base64'),
-        };
-        if (owner && duringPlayback) {
-          room.turns.unshift(heard);
-          if (room.turns.length > maxQueuedTurns) room.turns.pop();
-        } else {
-          room.turns.push(heard);
-          if (room.turns.length > maxQueuedTurns) room.turns.shift();
-        }
-        void drain(room);
-      } catch {
-        if (call === room) tell({ type: 'notice', text: 'There was a problem identifying a voice channel speaker.' });
-      }
+      submit(false);
     });
+  }
+
+  async function enqueueSpeech(room, userId, cached, audio, duringPlayback) {
+    try {
+      const at = Date.now();
+      const member = cached ?? await room.voice.guild.members.fetch(userId);
+      if (member.user.bot || member.voice.channelId !== room.voice.id || call !== room) return;
+      if (!room.speakers.has(userId)) room.speakers.set(userId, room.speakers.size + 1);
+      const owner = userId === ownerId;
+      const heard = { at, duringPlayback, speaker: { name: member.displayName, speaker: room.speakers.get(userId), owner }, audio };
+      if (owner && duringPlayback) {
+        room.turns.unshift(heard);
+        if (room.turns.length > maxQueuedTurns) room.turns.pop();
+      } else {
+        room.turns.push(heard);
+        if (room.turns.length > maxQueuedTurns) room.turns.shift();
+      }
+      void drain(room);
+    } catch {
+      if (call === room) tell({ type: 'notice', text: 'There was a problem identifying a voice channel speaker.' });
+    }
   }
 
   client.on(Events.VoiceStateUpdate, (before, after) => {
     const room = call;
-    if (room && before.guild.id === room.voice.guild.id && before.channelId === room.voice.id
-        && after.channelId !== room.voice.id && (before.id === ownerId || before.id === client.user.id)) leave(room);
+    if (!room || before.guild.id !== room.voice.guild.id || before.channelId === after.channelId) return;
+    if (before.channelId === room.voice.id && (before.id === ownerId || before.id === client.user.id)) leave(room);
+    else if (room.connected && (before.channelId === room.voice.id || after.channelId === room.voice.id))
+      tell({ type: 'participants', ...roomInfo(room) });
   });
 
   client.on(Events.InteractionCreate, async interaction => {
@@ -324,14 +394,18 @@ function run() {
     try { message = JSON.parse(line.replace(/^\uFEFF/, '')); } catch { return; }
     if (message?.type === 'stop') { stop(); return; }
     if (message?.type === 'reply' && pending?.id === message.id) { finishTurn(message); return; }
+    if (message?.type === 'join-owner' && typeof message.id === 'string' && message.id.length === 36) { await joinOwner(message.id); return; }
     if (message?.type !== 'start' || starting) return;
     starting = true;
+    const readiness = new AbortController();
     const timeout = setTimeout(() => {
       tell({ type: 'error', text: 'Discord did not finish connecting. Check your connection and try again.' });
       stop(1);
+      readiness.abort();
     }, 45_000);
     try {
       await client.login(message.token);
+      if (!closed && !client.isReady()) await once(client, Events.ClientReady, { signal: readiness.signal });
       if (!closed) await ready();
     } catch {
       tell({ type: 'error', text: client.isReady()

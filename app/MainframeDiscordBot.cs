@@ -49,7 +49,7 @@ namespace CapriDesktop
                 Make("Discord Developer Portal", 24, 300, 230, 27, delegate { OpenPage(DiscordCompanion.Portal); });
 
                 Words("TALK IN DISCORD", 322, 223, 274, 22, Type(10f * Zoom, true), Cyan);
-                Words("Add the bot and run /capri join. She chimes in when it fits. /capri leave ends the call.", 322, 250, 274, 44, Type(9.5f * Zoom), White);
+                Words("Add the bot, join a server voice channel, and say “Join my Discord call” to Capri.", 322, 250, 274, 44, Type(9.5f * Zoom), White);
                 Words("Ask her to wait for her name. Say “Capri, join in again” to bring her back into the conversation.", 322, 298, 274, 42, Type(9.5f * Zoom), Faint);
 
                 Words("BOT TOKEN", 24, 345, 124, 20, Type(9.5f * Zoom, true), White);

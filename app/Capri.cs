@@ -14790,11 +14790,18 @@ namespace CapriDesktop
         // behind open ears, and costs no reload.
         private void EarsModel(bool open)
         {
+            lock (earsModelGate) earsModelDesktop = open;
+            RefreshEarsModel();
+        }
+
+        private void RefreshEarsModel()
+        {
+            bool discord = discordCompanion != null && discordCompanion.InVoice && parakeet.Ready;
             lock (earsModelGate)
             {
-                earsModelWanted = open;
+                earsModelWanted = earsModelDesktop || discord;
                 // Watch Along can load it too, so closing always unloads.
-                if (!open) earsModelUnload = true;
+                if (!earsModelWanted) earsModelUnload = true;
                 if (earsModelBusy) return;
                 earsModelBusy = true;
             }
@@ -14912,7 +14919,7 @@ namespace CapriDesktop
         // They open once her hello's out of the way and come back after whatever closed them (hiding her, Quiet, a lost mic), unless they closed them on purpose.
         private bool earsClosed;
         private readonly object earsModelGate = new object();
-        private bool earsModelWanted, earsModelLoaded, earsModelBusy, earsModelUnload;
+        private bool earsModelDesktop, earsModelWanted, earsModelLoaded, earsModelBusy, earsModelUnload;
         private double listenAt;
 
         private void AgentVoice()
@@ -15790,6 +15797,8 @@ namespace CapriDesktop
         private string AgentAct(Agent opened, string tool, ToolArguments args)
         {
             if (CallModeOn) return CallSession.Conversation;
+            if (opened != null && DiscordCompanion.OwnerJoinAsked(opened.LastHeard) && LinkedDiscord)
+                return "The linked Discord bot is handling this request.";
             if (args == null) args = new ToolArguments();
             // What the agent picked runs as it picked it (Lachy, 8 Nov): its tools say a game to play is one use_computer job.
             args.FromAgent = opened != null;
@@ -15851,6 +15860,12 @@ namespace CapriDesktop
             WakeRest(!SleepBusy);
             agentComment = false;
             if (StopListening(text)) return;
+            if (JoinLinkedDiscord(text))
+            {
+                dropping = true;
+                Hush("Discord bot joining");
+                return;
+            }
             Chimes.Play(Chime.Heard);
             // A sorry in voice chat makes up with her too, and the agent hears so before it answers (Zr4, F44).
             if (Sulking && Apology(text)) Forgive();
@@ -16193,6 +16208,7 @@ namespace CapriDesktop
             followUp.Drop();
             if (StopWatchAlong(text, typed)) return;
             if (StopListening(input)) return;
+            if (callReply == null && prompt == "> you: " && switches == 0 && !Security.FromMod(input) && JoinLinkedDiscord(input)) return;
             if (callReply == null && prompt == "> you: " && WorkspaceAsked(input)) { OpenWorkspace(); return; }
             // Sorry, typed or said while she sulks over being thrown, makes up with her, and a plain sorry gets her forgiving line
             // back. Mid-job it still goes to the job (Zr4, F44).

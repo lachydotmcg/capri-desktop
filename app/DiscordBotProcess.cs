@@ -203,16 +203,24 @@ namespace CapriDesktop
             catch (Exception) { failure = "The local Discord helper could not start. Try reconnecting."; }
             finally
             {
+                bool voiceChanged = false;
+                string joinFailure = null;
+                Action<string, bool> answer = null;
                 lock (gate)
                 {
                     if (active == run)
                     {
                         active = null;
+                        voiceChanged = run.SessionId != null;
                         run.Token = null;
                         run.Voice.Change(false);
                         if (!problem) Set(failure ?? "The Discord helper went offline. Reconnect to start it again.", true);
+                        answer = TakeJoinAnswer(run);
+                        joinFailure = status;
                     }
                 }
+                if (voiceChanged) VoiceChanged();
+                if (answer != null) answer(joinFailure, false);
             }
         }
 

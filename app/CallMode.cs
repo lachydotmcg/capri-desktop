@@ -1029,7 +1029,8 @@ namespace CapriDesktop
             string sure = line.Sure;
             CallSaid(line);
             bool answer = sure.Length > 0 && (CallSession.Agrees(sure) || CallSession.Refuses(sure));
-            if (Hands.HeardName(sure) || answer && (callSession.FriendAsked || OwnCallQuestion())) { Hear(sure, text, "> you: ", 0, true, text); return; }
+            if (Hands.HeardName(sure) || answer && (callSession.FriendAsked || OwnCallQuestion())
+                || DiscordCompanion.OwnerJoinAsked(sure) && LinkedDiscord) { Hear(sure, text, "> you: ", 0, true, text); return; }
             if (sure.Length > 0) callSession.DropFriend();
             // Mid-job the call gets her answer beside the job, so someone talking on it can't end the job or take its turn (F-6nov-18).
             Job running = job;

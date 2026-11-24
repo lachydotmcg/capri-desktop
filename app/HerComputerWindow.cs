@@ -17,7 +17,7 @@ namespace CapriDesktop
         internal const int TabTall = 42, ToolTall = 46;
         internal static readonly Rectangle PageBox = HerComputer.Page;
         internal static readonly Rectangle AddressBox = new Rectangle(AppBox.Left + 112, AppBox.Top + TabTall + 8, AppBox.Width - 172, 30);
-        internal const int DockWide = 44 + 46 * 5 + 22 * 4;
+        internal const int DockWide = 44 + 46 * 6 + 22 * 5;
         internal static readonly Rectangle DockBox = new Rectangle(HerComputer.Width / 2 - DockWide / 2, 684, DockWide, 70);
         internal static readonly Rectangle CardBox = new Rectangle(280, 96, 720, 540);
         internal const int CardHead = 52;
@@ -28,6 +28,40 @@ namespace CapriDesktop
         internal Action<string> Tell;
         internal Func<bool> CanThink = delegate { return false; };
         internal Action<HerJob> HandOff;
+        internal Func<DiscordCompanion.View> CapricordSnapshot;
+        private DiscordCompanion.View capricordView;
+        private bool capricordShown;
+        private DateTime capricordReadAt = DateTime.MinValue;
+
+        internal void ShowCapricord()
+        {
+            capricordShown = true;
+            capricordReadAt = DateTime.MinValue;
+            RefreshCapricord();
+            Invalidate();
+        }
+
+        private void RefreshCapricord()
+        {
+            if (!capricordShown || !Visible) { capricordView = null; return; }
+            if ((DateTime.UtcNow - capricordReadAt).TotalMilliseconds < 500) return;
+            capricordReadAt = DateTime.UtcNow;
+            capricordView = CapricordSnapshot == null ? null : CapricordSnapshot();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == (Keys.Control | Keys.Shift | Keys.D)) { ShowCapricord(); return true; }
+            if (keyData == Keys.Escape && capricordShown) { capricordShown = false; capricordView = null; Invalidate(); return true; }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            capricordView = null;
+            capricordReadAt = DateTime.MinValue;
+            base.OnVisibleChanged(e);
+        }
         internal static bool Quiet;
 
         private readonly object gate = new object();
@@ -69,6 +103,7 @@ namespace CapriDesktop
         {
             Computer = computer;
             Text = "Capri's computer";
+            AccessibleDescription = "Press Control Shift D to open Capricord. Press Escape to close it.";
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(HerComputer.Width * 3 / 4, HerComputer.Height * 3 / 4);
             MinimumSize = new Size(560, 400);
@@ -199,6 +234,8 @@ namespace CapriDesktop
             closing = true;
             stopTask = true;
             ticker.Stop();
+            capricordView = null;
+            CapricordSnapshot = null;
             HerBrowser closingWeb;
             lock (gate) { closingWeb = web; web = null; }
             if (closingWeb != null) new Thread(delegate() { closingWeb.Dispose(); }) { IsBackground = false, Name = "her browser closing" }.Start();
@@ -244,6 +281,7 @@ namespace CapriDesktop
             }
             if (inControl && (DateTime.UtcNow - handActiveAt).TotalSeconds > HandBackSeconds) HandBack();
             if (!Busy && (DateTime.UtcNow - pumpedAt).TotalSeconds > 15) { pumpedAt = DateTime.UtcNow; Pump(); }
+            RefreshCapricord();
             if (!Visible) return;
             Invalidate();
         }
@@ -572,6 +610,17 @@ namespace CapriDesktop
             RectangleF button;
             string app;
             lock (gate) { app = openApp; button = controlButton; }
+            if (DockSlot(Array.IndexOf(HerComputer.Apps, "capricord")).Contains(System.Drawing.Point.Round(at)))
+            {
+                if (capricordShown) { capricordShown = false; capricordView = null; }
+                else ShowCapricord();
+                Invalidate(); return;
+            }
+            if (capricordShown)
+            {
+                if (new RectangleF(CardBox.Right - 48, CardBox.Top, 48, CardHead).Contains(at)) { capricordShown = false; capricordView = null; Invalidate(); }
+                return;
+            }
             if (button.Contains(at)) { ToggleControl(); return; }
             if (app == "jobs")
             {
@@ -649,6 +698,7 @@ namespace CapriDesktop
 
         private void OpenApp(string app)
         {
+            if (app == "capricord") { ShowCapricord(); return; }
             lock (gate) openApp = app;
             if (app == "notes")
             {
@@ -704,6 +754,7 @@ namespace CapriDesktop
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
+            if (capricordShown) return;
             HerBrowser current;
             string app;
             lock (gate) { current = web; app = openApp; }
@@ -713,6 +764,7 @@ namespace CapriDesktop
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
             base.OnKeyPress(e);
+            if (capricordShown) { e.Handled = true; return; }
             string draft;
             lock (gate) draft = jobTyped;
             if (draft != null)
@@ -971,7 +1023,8 @@ namespace CapriDesktop
                 DrawCard(g, app, field, text, note);
                 if (perch != null) g.DrawImage(perch, new RectangleF(CardBox.Right + 2, CardBox.Bottom - 196, 180, 180));
             }
-            DrawDock(g, app);
+            if (capricordShown) DrawCapricord(g);
+            DrawDock(g, capricordShown ? "capricord" : app);
             DrawControl(g, now);
             if (said != null) DrawBubble(g, said, at, app == null ? 0 : card ? 1 : 2);
             if (held != null) DrawPicture(g, Art("sticker-" + held), new RectangleF(at.X + 14, at.Y + 18, 40, 40), 0, 1f);
@@ -1347,6 +1400,59 @@ namespace CapriDesktop
             }
         }
 
+        private static void DrawCapricordIcon(Graphics g, Rectangle box)
+        {
+            using (GraphicsPath shape = Round(box, 13))
+            using (SolidBrush rose = new SolidBrush(Rose))
+            using (Pen ink = new Pen(Ink, 3))
+            {
+                g.FillPath(rose, shape);
+                g.DrawArc(ink, box.Left + 10, box.Top + 9, box.Width - 20, box.Height - 20, 185, 170);
+                g.DrawLine(ink, box.Left + 10, box.Top + 23, box.Left + 10, box.Top + 33);
+                g.DrawLine(ink, box.Right - 10, box.Top + 23, box.Right - 10, box.Top + 33);
+            }
+        }
+
+        private void DrawCapricord(Graphics g)
+        {
+            DiscordCompanion.View v = capricordView;
+            using (GraphicsPath dim = Round(AppBox, 16))
+            using (SolidBrush shade = new SolidBrush(Color.FromArgb(175, Ground))) g.FillPath(shade, dim);
+            using (GraphicsPath card = Round(CardBox, 22))
+            using (SolidBrush paper = new SolidBrush(Paper)) g.FillPath(paper, card);
+            DrawCapricordIcon(g, new Rectangle(CardBox.Left + 22, CardBox.Top + 16, 40, 40));
+            using (SolidBrush ink = new SolidBrush(Ink))
+            using (SolidBrush soft = new SolidBrush(SoftInk))
+            using (SolidBrush hot = new SolidBrush(Hot))
+            using (StringFormat trim = new StringFormat(StringFormatFlags.NoWrap) { Trimming = StringTrimming.EllipsisCharacter })
+            {
+                int x = CardBox.Left + 26, y = CardBox.Top;
+                g.DrawString("Capricord", labelFont, ink, x + 50, y + 16);
+                g.DrawString("Capri's bot / Discord voice", smallFont, soft, x + 50, y + 43);
+                g.DrawString("\u00d7", labelFont, soft, CardBox.Right - 34, y + 14);
+                string stage = v == null ? "Not connected" : v.Problem ? "Needs attention" : v.InVoice ? "In voice" : v.Joining ? "Joining voice..." : v.Running ? "Bot online" : v.Saved ? "Bot stopped" : "Set up your bot";
+                g.DrawString(stage, bigFont, v != null && v.Problem ? hot : ink, new RectangleF(x, y + 88, 660, 40), trim);
+                g.DrawString(HerComputer.Short(v == null ? "Connect your bot in Mainframe > Discord bot." : v.Status ?? "", 240), textFont, ink, new RectangleF(x, y + 137, 660, 64));
+                g.DrawString("BOT ACCOUNT", smallFont, soft, x, y + 217);
+                g.DrawString(v == null || string.IsNullOrWhiteSpace(v.BotName) ? "Not available" : v.BotName, boldFont, ink, new RectangleF(x, y + 240, 310, 25), trim);
+                g.DrawString("SERVER / VOICE CHANNEL", smallFont, soft, x + 340, y + 217);
+                string place = v == null ? "No call selected" : (string.IsNullOrWhiteSpace(v.ServerName) ? "Server unavailable" : HerComputer.Short(v.ServerName, 40)) + " / " + (string.IsNullOrWhiteSpace(v.ChannelName) ? "No voice channel" : HerComputer.Short(v.ChannelName, 40));
+                g.DrawString(place, textFont, ink, new RectangleF(x + 340, y + 240, 320, 48));
+                g.DrawString("CURRENT CALL", smallFont, soft, x, y + 302);
+                string[] people = v != null && v.InVoice ? v.Participants : null;
+                if (people == null || people.Length == 0) g.DrawString(v != null && v.InVoice ? "Participant names unavailable" : "Not in a voice call", textFont, ink, x, y + 330);
+                else
+                {
+                    int count = Math.Min(6, people.Length);
+                    for (int i = 0; i < count; i++) g.DrawString("- " + people[i], textFont, ink, new RectangleF(x + (i % 2) * 340, y + 330 + (i / 2) * 30, 314, 26), trim);
+                    if (people.Length > count) g.DrawString("+ " + (people.Length - count) + " more in this call", smallFont, soft, x, y + 424);
+                }
+                string mode = v != null && v.InVoice ? (v.NameOnly ? "Waiting for her name" : "Listening to the conversation") : "Call details appear when the bot joins.";
+                g.DrawString(mode, smallFont, hot, new RectangleF(x, y + 466, 660, 24), trim);
+                g.DrawString("Ctrl + Shift + D to open / Esc to close", smallFont, soft, x, y + 501);
+            }
+        }
+
         private void DrawDock(Graphics g, string app)
         {
             using (GraphicsPath dock = Round(DockBox, 22))
@@ -1359,7 +1465,8 @@ namespace CapriDesktop
             for (int i = 0; i < HerComputer.Apps.Length; i++)
             {
                 Rectangle slot = DockSlot(i);
-                DrawPicture(g, Art("app-" + HerComputer.Apps[i]), slot, 0, 1f);
+                if (HerComputer.Apps[i] == "capricord") DrawCapricordIcon(g, slot);
+                else DrawPicture(g, Art("app-" + HerComputer.Apps[i]), slot, 0, 1f);
                 if (HerComputer.Apps[i] == app) using (SolidBrush dot = new SolidBrush(Color.White)) g.FillEllipse(dot, slot.Left + slot.Width / 2 - 2.5f, slot.Bottom + 4, 5, 5);
             }
         }

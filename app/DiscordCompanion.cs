@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -21,12 +22,19 @@ namespace CapriDesktop
         private static readonly Regex NameCall = new Regex(@"\bcapri\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         private static readonly Regex DirectQuiet = new Regex(
             @"\A(?:(?:hey[\s,]+)?capri[\s,]+)?(?:please[\s,]+)?shut up(?:[\s,]+(?:please|capri))?[.!]*\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex OwnerJoin = new Regex(
+            @"\A(?:join(?: me (?:in|on))?|(?:hop|jump|get) (?:in(?:to)?|on(?:to)?)) (?:the |my |our |this |that )?discord (?:voice )?(?:call|channel|vc)(?: (?:with me|with my friends(?: in it)?|i(?:'m| am) in|on your bot(?: account)?))?\z",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
+        private const string DataFolder = "discord-companion", TokenFile = "token.dat";
 
         internal sealed class View
         {
             internal string Status, Invite;
             internal bool Running, Saved, Problem;
+            internal bool InVoice, Joining, NameOnly;
+            internal string BotName, ServerName, ChannelName;
+            internal string[] Participants;
         }
 
         private sealed class Run
@@ -35,7 +43,10 @@ namespace CapriDesktop
             internal readonly object Output = new object();
             internal volatile Process Child;
             internal bool IsBot, Ready, NameOnly;
-            internal string Token, AppId, Name, SessionId, Channel;
+            internal string Token, AppId, Name, SessionId, JoiningSession, Server, Channel;
+            internal string[] Participants = new string[0];
+            internal string JoinId;
+            internal Action<string, bool> JoinAnswer;
             internal int Replying;
         }
 
@@ -43,16 +54,31 @@ namespace CapriDesktop
         private readonly string home, saved;
         private readonly Func<string, CallSession, int, Func<bool>, string> ask;
         private readonly Func<string, byte[]> speak;
+        private readonly Func<short[], string> transcribe;
         private volatile Run active;
         private string status = "Offline. Connect a bot to get its server invite.";
         private bool problem;
+        internal event Action VoiceStateChanged;
 
-        internal DiscordCompanion(string data, Func<string, CallSession, int, Func<bool>, string> ask, Func<string, byte[]> speak)
+        internal DiscordCompanion(string data, Func<string, CallSession, int, Func<bool>, string> ask,
+            Func<string, byte[]> speak, Func<short[], string> transcribe)
         {
-            home = Path.Combine(data, "discord-companion");
-            saved = Path.Combine(home, "token.dat");
+            home = Path.Combine(data, DataFolder);
+            saved = Path.Combine(home, TokenFile);
             this.ask = ask;
             this.speak = speak;
+            this.transcribe = transcribe;
+        }
+
+        internal bool InVoice { get { lock (gate) return active != null && active.SessionId != null; } }
+        internal bool Linked { get { lock (gate) return active != null || File.Exists(saved); } }
+
+        internal static bool SavedToken(string data) { return File.Exists(Path.Combine(data, DataFolder, TokenFile)); }
+
+        private void VoiceChanged()
+        {
+            Action changed = VoiceStateChanged;
+            if (changed != null) changed();
         }
 
         internal View Snapshot()
@@ -63,6 +89,13 @@ namespace CapriDesktop
                 return new View
                 {
                     Status = status, Problem = problem, Running = run != null, Saved = File.Exists(saved),
+                    InVoice = run != null && run.SessionId != null,
+                    Joining = run != null && (run.JoiningSession != null || run.JoinId != null),
+                    NameOnly = run != null && run.NameOnly,
+                    BotName = run == null ? null : run.Name,
+                    ServerName = run == null ? null : run.Server,
+                    ChannelName = run == null ? null : run.Channel,
+                    Participants = run == null ? new string[0] : run.Participants,
                     Invite = run != null && run.Ready
                         ? "https://discord.com/oauth2/authorize?client_id=" + run.AppId + "&integration_type=0&scope=bot%20applications.commands&permissions=" + InvitePermissions
                         : null
@@ -91,6 +124,50 @@ namespace CapriDesktop
             }
         }
 
+        internal static bool OwnerJoinAsked(string words) { return OwnerJoin.IsMatch(Hands.Asked(words)); }
+
+        internal bool JoinOwner(Action<string, bool> answer)
+        {
+            string failure = null;
+            lock (gate)
+            {
+                if (active == null)
+                {
+                    if (!File.Exists(saved)) return false;
+                    Connect(null);
+                }
+                Run run = active;
+                if (run == null) failure = status;
+                else if (run.JoinId == null)
+                {
+                    run.JoinId = Guid.NewGuid().ToString("D");
+                    run.JoinAnswer = answer;
+                    if (run.Ready) SendOwnerJoin(run);
+                }
+            }
+            if (failure != null) answer(failure, false);
+            return true;
+        }
+
+        private void SendOwnerJoin(Run run)
+        {
+            string id = run.JoinId;
+            Set("Finding the voice channel you're in…", false);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                lock (gate) if (active != run || run.JoinId != id) return;
+                Send(run, "{\"type\":\"join-owner\",\"id\":" + PluginJson.Quote(id) + "}");
+            });
+        }
+
+        private static Action<string, bool> TakeJoinAnswer(Run run)
+        {
+            Action<string, bool> answer = run.JoinAnswer;
+            run.JoinId = null;
+            run.JoinAnswer = null;
+            return answer;
+        }
+
         internal void Stop(bool forget = false)
         {
             Run run;
@@ -98,7 +175,7 @@ namespace CapriDesktop
             {
                 run = active;
                 active = null;
-                if (run != null) { run.Token = null; run.Voice.Change(false); }
+                if (run != null) { run.Token = null; run.Voice.Change(false); TakeJoinAnswer(run); }
                 Set(forget ? "Bot token removed from this PC." : "Offline. The local helper is stopped.", false);
                 if (forget)
                 {
@@ -108,6 +185,7 @@ namespace CapriDesktop
                     catch (UnauthorizedAccessException) { Set("The bot stopped. Windows could not remove its saved token.", true); }
                 }
             }
+            if (run != null && run.SessionId != null) VoiceChanged();
             if (run != null) ThreadPool.QueueUserWorkItem(delegate { End(run); });
         }
 
@@ -124,6 +202,9 @@ namespace CapriDesktop
             if (!PluginJson.TryParse(line, out packet)) return;
             string type = PluginJson.Str(packet, "type");
             if (type == "turn") { Reply(run, packet); return; }
+            bool voiceChanged = false, joined = false;
+            string joinedText = null;
+            Action<string, bool> answer = null;
             lock (gate)
             {
                 if (active != run) return;
@@ -140,29 +221,78 @@ namespace CapriDesktop
                         File.WriteAllText(temp, Voice.Protect(run.Token), Utf8);
                         if (File.Exists(saved)) File.Replace(temp, saved, null);
                         else File.Move(temp, saved);
-                        Set(run.Name + " is online. Run /capri join in your server.", false);
+                        Set(run.Name + " is online. Say “join my Discord call” or use /capri join.", false);
                     }
                     catch (Exception) { Set(run.Name + " is online. Windows could not save the token.", true); }
                     finally { run.Token = null; }
+                    if (run.JoinId != null) SendOwnerJoin(run);
+                }
+                else if (type == "joining" && run.Ready)
+                {
+                    run.JoiningSession = PluginJson.Str(packet, "session");
+                    ShowRoom(run, packet);
+                    Set("Joining " + run.Channel + "…", false);
                 }
                 else if (type == "joined" && run.Ready)
                 {
                     run.Voice.Change(true);
                     run.SessionId = PluginJson.Str(packet, "session");
-                    run.Channel = PluginJson.Str(packet, "channel");
+                    run.JoiningSession = null;
+                    ShowRoom(run, packet);
                     run.NameOnly = false;
                     ListeningStatus(run);
+                    voiceChanged = true;
                 }
-                else if (type == "left" && run.SessionId == PluginJson.Str(packet, "session"))
+                else if (type == "participants" && run.SessionId != null && run.SessionId == PluginJson.Str(packet, "session"))
+                    ShowRoom(run, packet);
+                else if (type == "left" && (run.SessionId != null || run.JoiningSession != null))
                 {
-                    run.Voice.Change(false);
-                    run.SessionId = run.Channel = null;
-                    run.NameOnly = false;
-                    Set(run.Name + " is online. Run /capri join in Discord.", false);
+                    string ending = PluginJson.Str(packet, "session");
+                    if (ending != null && (ending == run.SessionId || ending == run.JoiningSession))
+                    {
+                        voiceChanged = run.SessionId != null;
+                        run.Voice.Change(false);
+                        run.SessionId = run.JoiningSession = run.Server = run.Channel = null;
+                        run.Participants = new string[0];
+                        run.NameOnly = false;
+                        Set(run.Name + " is online. Say “join my Discord call” to join again.", false);
+                    }
+                }
+                else if (type == "owner-join-result" && run.JoinId != null && run.JoinId == PluginJson.Str(packet, "id"))
+                {
+                    answer = TakeJoinAnswer(run);
+                    joined = PluginJson.Flag(packet, "ok") == true && run.SessionId != null;
+                    joinedText = PluginJson.Str(packet, "text") ?? "Capri couldn't join the call.";
+                    if (!joined) Set(joinedText, true);
                 }
                 else if (type == "notice" || type == "error")
                     Set(PluginJson.Str(packet, "text") ?? "The bot needs to reconnect.", type == "error");
             }
+            if (voiceChanged) VoiceChanged();
+            if (answer != null) answer(joinedText, joined);
+        }
+
+        private static void ShowRoom(Run run, object packet)
+        {
+            run.Server = RoomLabel(PluginJson.Str(packet, "server"));
+            run.Channel = RoomLabel(PluginJson.Str(packet, "channel"));
+            List<object> shown = PluginJson.List(PluginJson.Get(packet, "participants"));
+            List<string> people = new List<string>();
+            if (shown != null)
+                foreach (object member in shown)
+                {
+                    string label = RoomLabel(member as string);
+                    if (label != null) people.Add(label);
+                    if (people.Count >= 12) break;
+                }
+            run.Participants = people.ToArray();
+        }
+
+        private static string RoomLabel(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return null;
+            string label = Regex.Replace(value, @"[\p{C}]+", " ").Trim();
+            return label.Length == 0 ? null : label.Length <= 100 ? label : label.Substring(0, 100);
         }
 
         private void ListeningStatus(Run run)
@@ -222,7 +352,9 @@ namespace CapriDesktop
             string audio = PluginJson.Str(packet, "audio"), words = PluginJson.Str(packet, "text");
             Guid turn;
             if (!Guid.TryParse(id, out turn)) return;
-            bool voice = !string.IsNullOrEmpty(room) && audio != null;
+            bool voice = !string.IsNullOrEmpty(room);
+            bool greeting = voice && PluginJson.Flag(packet, "greet") == true;
+            if (voice && !greeting && audio == null) return;
             CallSession session;
             int version;
             bool nameOnly;
@@ -246,24 +378,36 @@ namespace CapriDesktop
                 Func<bool> current = delegate { return active == run && session.Current(version); };
                 try
                 {
-                    if (voice)
+                    if (voice && !greeting)
                     {
                         byte[] raw = Convert.FromBase64String(audio);
                         if (raw.Length < 8000 || raw.Length > Ears.Rate * 24 || raw.Length % 2 != 0 || !current()) return;
                         short[] samples = new short[raw.Length / 2];
                         Buffer.BlockCopy(raw, 0, samples, 0, raw.Length);
-                        words = Hearing.Text(samples);
+                        try { words = transcribe(samples); }
+                        catch (Exception)
+                        {
+                            lock (gate) if (current()) Set("Discord speech recognition failed. Check Her own ears in Mainframe settings.", true);
+                            return;
+                        }
                     }
-                    if (string.IsNullOrWhiteSpace(words) || words.Length > 1500 || !current()) return;
-                    string name = Regex.Replace(PluginJson.Str(packet, "name") ?? "Discord member", @"[\p{C}]+", " ").Trim();
-                    if (name.Length > 80) name = name.Substring(0, 80);
-                    object number = PluginJson.Get(packet, "speaker");
-                    double speaker = number is double ? (double)number : 1;
-                    string label = "Speaker " + speaker + " (" + Voice.Quote(name) + "): ";
-                    text = voice
-                        ? VoiceReply(run, version, label, words, nameOnly, PluginJson.Flag(packet, "owner") == true,
-                            PluginJson.Flag(packet, "duringPlayback") == true, current, out quiet)
-                        : Brain.Visible(ask(label + words, session, version, current));
+                    if (!current()) return;
+                    if (greeting)
+                    {
+                        if (!nameOnly) text = "Hey, I'm here.";
+                    }
+                    else
+                    {
+                        if (string.IsNullOrWhiteSpace(words) || words.Length > 1500) return;
+                        string name = RoomLabel(PluginJson.Str(packet, "name")) ?? "Discord member";
+                        object number = PluginJson.Get(packet, "speaker");
+                        double speaker = number is double ? (double)number : 1;
+                        string label = "Speaker " + speaker + " (" + Voice.Quote(name) + "): ";
+                        text = voice
+                            ? VoiceReply(run, version, label, words, nameOnly, PluginJson.Flag(packet, "owner") == true,
+                                PluginJson.Flag(packet, "duringPlayback") == true, current, out quiet)
+                            : Brain.Visible(ask(label + words, session, version, current));
+                    }
                     if (text != null && text.Length > 1500) text = text.Substring(0, 1500);
                     if (voice && !string.IsNullOrEmpty(text) && current())
                     {
@@ -273,7 +417,7 @@ namespace CapriDesktop
                 }
                 catch (Exception)
                 {
-                    lock (gate) if (active == run) Set("Check the selected model and speech recognition in Mainframe.", true);
+                    lock (gate) if (current()) Set("Check the selected model in Mainframe.", true);
                     if (!voice) text = "Capri couldn’t get a reply from her selected model.";
                 }
                 finally
@@ -318,10 +462,40 @@ namespace CapriDesktop
         {
             get
             {
-                if (discordCompanion == null) discordCompanion = new DiscordCompanion(Path.GetDirectoryName(settingsPath),
-                    delegate(string words, CallSession session, int version, Func<bool> current)
-                    { return brain.AskCall(words, session, version, current); }, DiscordVoice);
+                if (discordCompanion == null)
+                {
+                    discordCompanion = new DiscordCompanion(Path.GetDirectoryName(settingsPath),
+                        delegate(string words, CallSession session, int version, Func<bool> current)
+                        { return brain.AskCall(words, session, version, current); }, DiscordVoice,
+                        delegate(short[] samples) { return Hearing.Text(samples, parakeet); });
+                    discordCompanion.VoiceStateChanged += delegate { Post(RefreshEarsModel); };
+                }
                 return discordCompanion;
+            }
+        }
+
+        private bool JoinLinkedDiscord(string words)
+        {
+            if (!DiscordCompanion.OwnerJoinAsked(words) || !DiscordCompanion.Included) return false;
+            if (!DiscordBot.JoinOwner(delegate(string result, bool joined)
+            {
+                Post(delegate
+                {
+                    if (quitting) return;
+                    mainframe.VoiceNote(result, !joined);
+                    if (!joined) SayOwn("Discord", result);
+                });
+            })) return false;
+            ShowCapricordForJoin();
+            return true;
+        }
+
+        private bool LinkedDiscord
+        {
+            get
+            {
+                return DiscordCompanion.Included && (discordCompanion != null
+                    ? discordCompanion.Linked : DiscordCompanion.SavedToken(Path.GetDirectoryName(settingsPath)));
             }
         }
 
