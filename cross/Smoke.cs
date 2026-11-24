@@ -6007,7 +6007,7 @@ namespace CapriDesktop
                 PlugTile[] tiles = frame.PlugTileRow;
                 string[] names = { "Email", "Notion", "Linear", "Todoist" };
                 int[] pictures = { Mods.Envelope, Mods.Page, Mods.Checklist, Mods.Plug };
-                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, null };
+                ServiceLogo[] logos = { null, ServiceLogo.Notion, ServiceLogo.Linear, ServiceLogo.Todoist };
                 for (int i = 0; i < 4; i++)
                     if (!tiles[i].IsVisible || tiles[i].Text != names[i] || tiles[i].Picture != pictures[i] || tiles[i].Logo != logos[i] || tiles[i].State != "Off" || tiles[i].Lit)
                         throw new Exception("PLUG-INS didn't show " + names[i] + " with its logo or picture, off: " + tiles[i].Text + " " + tiles[i].State);
@@ -6022,7 +6022,7 @@ namespace CapriDesktop
                 }
                 pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
                 frame.SavePicture(Path.Combine(folder, "mods-plugins.png"));
-                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion and Linear as tiles, Email with an envelope and Notion and Linear with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
+                checks.Add("PASS plug-ins on Mac and Linux: PLUG-INS on the Mods page shows Email, Notion, Linear and Todoist as tiles, Email with an envelope and the others with their own logos, each saying Off, INSTALLED lists none of them, and nothing overlaps at 100%, 150% and 200%; mods-plugins.png");
 
                 tiles[1].Press();
                 PluginWindow notion = frame.PluginSheet;
@@ -6092,6 +6092,12 @@ namespace CapriDesktop
                 string paged = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                 if (paged != null) throw new Exception("PLUG-INS with Back and Next overlaps " + paged);
                 List<Mod> expectedPlugs = Mods.PluginsOf(mods.All);
+                Dictionary<string, ServiceLogo> logosOnLaterPages = new Dictionary<string, ServiceLogo>
+                {
+                    { "github", ServiceLogo.GitHub }, { "atlassian", ServiceLogo.Atlassian },
+                    { "monday", ServiceLogo.Monday }, { "miro", ServiceLogo.Miro },
+                    { "cloudflare-docs", ServiceLogo.Cloudflare }, { "context7", ServiceLogo.Context7 }
+                };
                 for (int first = 0; first < expectedPlugs.Count; first += tiles.Length)
                 {
                     if (frame.PlugFirst != first || frame.PlugBack.IsEnabled != (first > 0) || frame.PlugNext.IsEnabled != (first + tiles.Length < expectedPlugs.Count)) throw new Exception("Plug-in paging controls did not match the current page.");
@@ -6099,6 +6105,8 @@ namespace CapriDesktop
                     {
                         int at = first + slot;
                         if (tiles[slot].IsVisible != (at < expectedPlugs.Count) || at < expectedPlugs.Count && tiles[slot].Text != expectedPlugs[at].File.Name) throw new Exception("Plug-in paging skipped or repeated an expected starter or import.");
+                        if (at < expectedPlugs.Count && logosOnLaterPages.TryGetValue(expectedPlugs[at].File.Id, out ServiceLogo logo) && tiles[slot].Logo != logo)
+                            throw new Exception("PLUG-INS didn't show the service logo for " + tiles[slot].Text);
                     }
                     if (frame.PlugNext.IsEnabled) frame.PlugNext.Press();
                 }
