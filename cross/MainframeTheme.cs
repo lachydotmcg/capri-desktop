@@ -20,10 +20,10 @@ namespace CapriDesktop
         internal static readonly string[] LookNames = { "Night City", "Black", "White", "Grey" };
         private static readonly string[][] Looks =
         {
-            new[] { "#0A0A10", "#360E1A", "#100C14", "#2C7A86", "#FF5D66", "#ECECF1", "#92828C", "#11101C", "#1E1424", "#2E1626", "#5C1824", "#E84246", "#5EF0F6", "#091E21", "#287884", "#060E12", "#4E1C28", "#F55A56", "#781E2C", "#0C0B14", "#481C28", "#F7DF70", "#100D16" },
-            new[] { "#000000", "#181818", "#080808", "#6E6E6E", "#FFFFFF", "#EEEEEE", "#969696", "#101010", "#222222", "#343434", "#545454", "#F5F5F5", "#CDCDCD", "#161616", "#787878", "#010101", "#464646", "#FAFAFA", "#606060", "#060606", "#4C4C4C", "#E6E6E6", "#0E0E0E" },
-            new[] { "#FFFFFF", "#ECECEC", "#F8F8F8", "#787878", "#000000", "#141414", "#606060", "#F4F4F4", "#E6E6E6", "#D6D6D6", "#AAAAAA", "#1E1E1E", "#404040", "#EEEEEE", "#6E6E6E", "#FEFEFE", "#BEBEBE", "#0A0A0A", "#969696", "#FAFAFA", "#B4B4B4", "#3C3C3C", "#F3F3F3" },
-            new[] { "#5C5C5C", "#6C6C6C", "#545454", "#AAAAAA", "#FFFFFF", "#FAFAFA", "#DEDEDE", "#4E4E4E", "#686868", "#767676", "#8C8C8C", "#F6F6F6", "#ECECEC", "#484848", "#BEBEBE", "#1E1E1E", "#828282", "#FCFCFC", "#A0A0A0", "#282828", "#969696", "#F4F4F4", "#505050" }
+            new[] { "#0A0A10", "#360E1A", "#100C14", "#2C7A86", "#FF5D66", "#ECECF1", "#92828C", "#11101C", "#1E1424", "#2E1626", "#5C1824", "#E84246", "#5EF0F6", "#091E21", "#287884", "#060E12", "#4E1C28", "#F55A56", "#781E2C", "#0C0B14", "#481C28", "#F7DF70", "#100D16", "#090B0F", "#E8ECF0", "#7A808A", "#3AD6EB", "#E82440", "#38B0FF", "#FF2E88" },
+            new[] { "#000000", "#181818", "#080808", "#6E6E6E", "#FFFFFF", "#EEEEEE", "#969696", "#101010", "#222222", "#343434", "#545454", "#F5F5F5", "#CDCDCD", "#161616", "#787878", "#010101", "#464646", "#FAFAFA", "#606060", "#060606", "#4C4C4C", "#E6E6E6", "#0E0E0E", "#040404", "#E8E8E8", "#8C8C8C", "#D2D2D2", "#A0A0A0", "#E1E1E1", "#F8F8F8" },
+            new[] { "#FFFFFF", "#ECECEC", "#F8F8F8", "#787878", "#000000", "#141414", "#606060", "#F4F4F4", "#E6E6E6", "#D6D6D6", "#AAAAAA", "#1E1E1E", "#404040", "#EEEEEE", "#6E6E6E", "#FEFEFE", "#BEBEBE", "#0A0A0A", "#969696", "#FAFAFA", "#B4B4B4", "#3C3C3C", "#F3F3F3", "#FCFCFC", "#1A1A1A", "#686868", "#060606", "#646464", "#282828", "#101010" },
+            new[] { "#5C5C5C", "#6C6C6C", "#545454", "#AAAAAA", "#FFFFFF", "#FAFAFA", "#DEDEDE", "#4E4E4E", "#686868", "#767676", "#8C8C8C", "#F6F6F6", "#ECECEC", "#484848", "#BEBEBE", "#1E1E1E", "#828282", "#FCFCFC", "#A0A0A0", "#282828", "#969696", "#F4F4F4", "#505050", "#585858", "#F8F8F8", "#D8D8D8", "#FEFEFE", "#D2D2D2", "#F0F0F0", "#FDFDFD" }
         };
         private static readonly List<SolidColorBrush> Slots = new List<SolidColorBrush>();
         private static int shade;
@@ -50,6 +50,14 @@ namespace CapriDesktop
         internal static readonly IBrush WellEdge = Slot();
         internal static readonly IBrush Yellow = Slot();
         internal static readonly IBrush MenuBack = Slot();
+        // Her bubble and Type box: Night City keeps the colours they had before they followed the look.
+        internal static readonly IBrush SpeechPanel = Slot();
+        internal static readonly IBrush SpeechInk = Slot();
+        internal static readonly IBrush SpeechDim = Slot();
+        internal static readonly IBrush SpeechCyan = Slot();
+        internal static readonly IBrush SpeechRed = Slot();
+        internal static readonly IBrush SpeechBlue = Slot();
+        internal static readonly IBrush SpeechPink = Slot();
 
         private static IBrush Slot() { var brush = new SolidColorBrush(Color.Parse(Looks[0][Slots.Count])); Slots.Add(brush); return brush; }
         internal static int ClampLook(int look) { return look < 0 || look >= Looks.Length ? 0 : look; }

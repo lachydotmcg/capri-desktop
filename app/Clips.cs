@@ -1640,15 +1640,15 @@ namespace CapriDesktop
                 trim.FormatFlags |= StringFormatFlags.NoWrap;
                 int margin = (int)Math.Round(3 * s);
                 Rectangle body = new Rectangle(margin, margin, size.Width - margin * 2, size.Height - margin * 2);
-                TalkPill.Plate(graphics, body, s, hovered ? body : Rectangle.Empty, Look.Pink, Look.Cyan);
+                TalkPill.Plate(graphics, body, s, hovered ? body : Rectangle.Empty, BubbleLook.Pink, BubbleLook.Cyan);
                 float left = body.Left + 14 * s, right = body.Right - 14 * s, top = body.Top + 10 * s;
-                using (Brush red = new SolidBrush(Look.Red)) graphics.FillEllipse(red, left, top + 2.5f * s, 7 * s, 7 * s);
-                using (Brush pink = new SolidBrush(Look.Pink)) graphics.DrawString("CLIP SAVED", title, pink, left + 13 * s, top, StringFormat.GenericTypographic);
+                using (Brush red = new SolidBrush(BubbleLook.Red)) graphics.FillEllipse(red, left, top + 2.5f * s, 7 * s, 7 * s);
+                using (Brush pink = new SolidBrush(BubbleLook.Pink)) graphics.DrawString("CLIP SAVED", title, pink, left + 13 * s, top, StringFormat.GenericTypographic);
                 string length = Length(seconds);
                 float wide = graphics.MeasureString(length, title, PointF.Empty, StringFormat.GenericTypographic).Width;
-                using (Brush dim = new SolidBrush(Look.Dim)) graphics.DrawString(length, title, dim, right - wide, top, StringFormat.GenericTypographic);
-                using (Brush ink = new SolidBrush(Look.Ink)) graphics.DrawString(game, name, ink, new RectangleF(left, top + 19 * s, right - left, 18 * s), trim);
-                using (Brush caption = new SolidBrush(hovered ? Look.Cyan : TalkPill.Caption))
+                using (Brush dim = new SolidBrush(BubbleLook.Dim)) graphics.DrawString(length, title, dim, right - wide, top, StringFormat.GenericTypographic);
+                using (Brush ink = new SolidBrush(BubbleLook.Ink)) graphics.DrawString(game, name, ink, new RectangleF(left, top + 19 * s, right - left, 18 * s), trim);
+                using (Brush caption = new SolidBrush(hovered ? BubbleLook.Cyan : TalkPill.Caption))
                     graphics.DrawString(Caption(graphics, small, clip, hovered, right - left), small, caption, new RectangleF(left, top + 42 * s, right - left, 18 * s), trim);
             }
             return image;
