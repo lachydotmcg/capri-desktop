@@ -883,14 +883,15 @@ namespace CapriDesktop
         private readonly double wide;
         internal readonly Dictionary<string, Control> Rows = new Dictionary<string, Control>();
 
-        internal MainframeSheet(Pet owner, string title, string kind) : base(title)
+        // Windows names a sheet's window and its neon heading separately ("Capri spend" / "SPEND >"); most cross sheets pass one, Spend both.
+        internal MainframeSheet(Pet owner, string title, string kind, string caption = null) : base(title)
         {
             pet = owner;
             wide = kind == "layers" ? 760 : kind == "vault" ? 520 : 380;
             ShowInTaskbar = false;
-            Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
+            Put(Page, new NeonCaption { Text = caption ?? title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : kind == "spend" ? Spent() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Program.Guard(Sync);
@@ -1087,7 +1088,69 @@ namespace CapriDesktop
             Button("Close", 388, 164, 104, 26, Close);
             return 214;
         }
-        private void Sync()
+        private double Spent()
+        {
+            Caption("What her brain cost on your API keys", 28, 52, 328, 16, MainframeTheme.Faint, 34.0 / 3);
+            Put(Page, new NeonCaption { Text = "TODAY", Ink = MainframeTheme.Rose, Bold = true, Size = 34.0 / 3 }, 28, 82, 120, 22);
+            var today = Put(Page, new NeonCaption { Text = "$0", Ink = MainframeTheme.White, Bold = true, Size = 20, Align = TextAlignment.Right }, 196, 78, 160, 26, "Today"); Rows["Today"] = today;
+            Put(Page, new NeonCaption { Text = "THIS MONTH", Ink = MainframeTheme.Rose, Bold = true, Size = 34.0 / 3 }, 28, 112, 120, 22);
+            var month = Put(Page, new NeonCaption { Text = "$0", Ink = MainframeTheme.Cyan, Bold = true, Size = 20, Align = TextAlignment.Right }, 196, 108, 160, 26, "This month"); Rows["This month"] = month;
+            Rows["Models"] = Put(Page, new NeonHead { Text = "MODELS >" }, 14, 145, 352, 24, "Models");
+            var monthTotal = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Size = 34.0 / 3, Align = TextAlignment.Right }, 150, 149, 206, 18, "This month total"); Rows["This month total"] = monthTotal;
+            string[] heads = { "Asks", "Tokens", "Cost" };
+            for (int c = 0; c < heads.Length; c++)
+                Put(Page, new NeonCaption { Text = heads[c], Ink = MainframeTheme.Faint, Size = 34.0 / 3, Align = TextAlignment.Right }, c == 0 ? 182 : c == 1 ? 230 : 286, 174, c == 0 ? 44 : c == 1 ? 52 : 70, 14);
+            var modelNames = new NeonCaption[8]; var modelAsks = new NeonCaption[8]; var modelTokens = new NeonCaption[8]; var modelCosts = new NeonCaption[8];
+            for (int i = 0; i < modelNames.Length; i++)
+            {
+                int y = 192 + 20 * i;
+                modelNames[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.White }, 28, y, 150, 18, "Model " + (i + 1)); Rows["Model " + (i + 1)] = modelNames[i];
+                modelAsks[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Align = TextAlignment.Right }, 182, y, 44, 18, "Asks " + (i + 1)); Rows["Asks " + (i + 1)] = modelAsks[i];
+                modelTokens[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Align = TextAlignment.Right }, 230, y, 52, 18, "Tokens " + (i + 1)); Rows["Tokens " + (i + 1)] = modelTokens[i];
+                modelCosts[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Cyan, Align = TextAlignment.Right }, 286, y, 70, 18, "Cost " + (i + 1)); Rows["Cost " + (i + 1)] = modelCosts[i];
+            }
+            Put(Page, new NeonHead { Text = "SMALL JOBS >" }, 14, 355, 352, 24);
+            var smallJobs = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Cyan }, 28, 386, 328, 52, "Small jobs"); Rows["Small jobs"] = smallJobs;
+            Rows["Prices note"] = Put(Page, new NeonCaption { Text = "List prices from each provider. Free tiers, credits and discounts aren't taken off.", Ink = MainframeTheme.Faint, Size = 34.0 / 3 }, 28, 446, 328, 30, "Prices note");
+            readers.Add(delegate
+            {
+                List<SpendRow> months = Spend.Month();
+                today.Text = Spend.Money(Spend.Total(Spend.Today()));
+                month.Text = Spend.Money(Spend.Total(months));
+                int asked = 0; long tokens = 0;
+                foreach (SpendRow row in months) { asked += row.Asks; tokens += row.Tokens; }
+                monthTotal.Text = months.Count == 0 ? "nothing yet this month" : asked + (asked == 1 ? " ask · " : " asks · ") + Spend.Tokens(tokens) + " tokens";
+                for (int i = 0; i < modelNames.Length; i++)
+                {
+                    SpendRow row = i < months.Count ? months[i] : null;
+                    modelNames[i].Text = row == null ? "" : ModelName(row);
+                    modelAsks[i].Text = row == null ? "" : row.Asks.ToString(CultureInfo.InvariantCulture);
+                    modelTokens[i].Text = row == null ? "" : Spend.Tokens(row.Tokens);
+                    modelCosts[i].Text = row == null ? "" : Cost(row);
+                }
+                Cloud remote = pet.Brain.Remote;
+                smallJobs.Text = SpendWords(remote == null || remote.Code || remote.Plan || remote.Kind == "local" ? null : remote.Model, pet.Brain.SmallJobs);
+            });
+            return 490;
+        }
+        private static string ModelName(SpendRow row)
+        {
+            string model = row.Model ?? "";
+            return row.Kind != null && row.Kind.StartsWith("other:", StringComparison.Ordinal) ? Spend.Company(row.Kind) + " · " + model : model;
+        }
+        private static string Cost(SpendRow row)
+        {
+            if (Spend.Free(row.Kind, row.Model)) return "free";
+            if (row.Cost == 0 && row.Unpriced > 0) return "?";
+            return Spend.Money(row.Cost);
+        }
+        private static string SpendWords(string main, string small)
+        {
+            if (string.IsNullOrEmpty(main)) return "Pick a brain with an API key and she'll count what it costs here.";
+            if (string.IsNullOrEmpty(small)) return "Small jobs stay on " + main + ": no cheaper model from the same provider is on your key.";
+            return "Comments, glances, quick tool picks, translations and Code Mode summaries go to " + small + " instead of " + main + ".";
+        }
+        internal void Sync()
         {
             if (syncing || closed) return;
             syncing = true;

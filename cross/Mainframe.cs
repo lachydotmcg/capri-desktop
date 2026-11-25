@@ -389,7 +389,7 @@ namespace CapriDesktop
         private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         private readonly Stopwatch beatClock = Stopwatch.StartNew();
         private readonly NeonButton support, remoteKey;
-        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote;
+        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote, spendLine;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
         private readonly Dictionary<NeonEntry, string> entries = new Dictionary<NeonEntry, string>();
@@ -419,14 +419,14 @@ namespace CapriDesktop
         private static readonly string[] ReplyNames = { "Short", "Medium", "Long", "No limit" };
         private static readonly int[] Recalls = { 8, 16, 32 };
         private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 488 }, new[] { 644, 940 }, new[] { 1040, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 1006, 2028 } };
         // Her ears and Open ears folder, under Typing mode on Mac and Linux. Simple Settings folds them with the rest of VOICE.
         private static readonly int[] EarsBand = { 428, 488 };
         private static readonly int[] ChimeBand = { 488, 630 };
         private static bool HearsHere => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
         private static int[][] With(int[][] bands, int[] band) { var all = new int[bands.Length + 1][]; bands.CopyTo(all, 0); all[bands.Length] = band; return all; }
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 756, 784 }, new[] { 854, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 316, 344 }, new[] { 400, 428 }, new[] { 581, 665 }, new[] { 978, 1180 }, new[] { 1408, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 316, 344 }, new[] { 400, 428 }, new[] { 581, 665 }, new[] { 1006, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -538,6 +538,11 @@ namespace CapriDesktop
             Key("Help", 186, 606, 62, 28, () => { if (Program.Smoke == null) Pet.Browse(Pet.HelpPage); });
             Key("Quit Capri", 256, 606, 100, 28, pet.Quit).Accent = MainframeTheme.Hot;
             updateNote = Caption("", 28, 644, 328, 18, MainframeTheme.Faint, 34.0 / 3); updateNote.Ellipsis = true;
+            // Spend sits under her update note as on Windows' main page; Windows' Resources key above it has no cross-side panel yet.
+            var spendKey = Key("Spend", 28, 674, 112, 20, OpenSpend); spendKey.Chevron = true;
+            AutomationProperties.SetName(spendKey, "Spend: what her brain cost on your API keys today and this month, model by model");
+            spendLine = Caption("", 148, 674, 208, 18, MainframeTheme.Faint, 34.0 / 3); spendLine.Align = TextAlignment.Right; spendLine.Ellipsis = true;
+            readers.Add(() => spendLine.Text = Spend.Line());
             building = 1;
             advanced = Key("Advanced Settings", 238, 20, 136, 22, () => { pet.SetAdvancedSettings(!pet.Saved.AdvancedSettings); ShowSettings(true); }); advanced.Accent = MainframeTheme.Cyan; advanced.Loud = true;
             BuildSearch();
@@ -700,8 +705,11 @@ namespace CapriDesktop
             Named("Music app", 380, 876);
             var musicApp = Picker("Music app", 564, 879, 172, () => OperatingSystem.IsLinux() ? Pet.LinuxMusicPick(pet.MusicApp) : pet.MusicApp, pick => pet.SetMusicApp(OperatingSystem.IsLinux() ? Pet.LinuxMusicApp(pick) : pick)); musicApp.Height = 22; musicApp.Options(OperatingSystem.IsLinux() ? Pet.LinuxMusicSteps : Hands.MusicSteps());
             Toggle("Remember our chats", 380, 904, () => !pet.Saved.NoMemories, pet.SetRemembering);
-            var security = Key("Security: " + Security.PresetName, 408, 935, 328, 22, OpenSecurity);
-            var securityNote = Caption(Security.Short, 408, 959, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
+            var lite = Toggle("Lite mode", 380, 932, () => pet.LiteOn, pet.SetLite);
+            lite.Width = 224; lite.Switch = 68;
+            Key("Why slow?", 640, 935, 96, 22, pet.CheckWhySlow);
+            var security = Key("Security: " + Security.PresetName, 408, 963, 328, 22, OpenSecurity);
+            var securityNote = Caption(Security.Short, 408, 987, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
             readers.Add(() => { security.Text = "Security: " + Security.PresetName; securityNote.Text = Security.Short; securityNote.InvalidateVisual(); });
             for (int i = 0; i < Care.Names.Length; i++)
             {
@@ -864,6 +872,7 @@ namespace CapriDesktop
         }
         private bool Expanded { get { return pet.MainframeTier == 0 && (pet.Brain.Model == null || pet.MainframePulling); } }
         internal bool SettingsShown { get { return paged; } }
+        internal string SpendLine { get { return spendLine == null ? null : spendLine.Text; } }
         internal void Shut() { finishing = true; Close(); }
         internal void ShowSettings(bool on) { paged = on; if (on) modded = false; layout = null; CloseMenus(); Top(); Sync(); }
         protected override void Back()
@@ -1089,6 +1098,7 @@ namespace CapriDesktop
             else { Memory.WindowState = WindowState.Normal; Memory.Activate(); }
         }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
+        internal void OpenSpend() { ShowSheet(new MainframeSheet(pet, "spend", "spend", "SPEND >")); }
         internal void OpenUninstall() { ShowSheet(new MainframeSheet(pet, "UNINSTALL CAPRI", "uninstall")); }
         internal void OpenRemote()
         {
