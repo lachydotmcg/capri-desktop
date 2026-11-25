@@ -3221,8 +3221,8 @@ namespace CapriDesktop
             AddSize(sizes, "Large", 320);
             AddSize(sizes, "Huge", 440);
             AddSize(sizes, "Giant", 560);
+            AddHoloModes(sizes);
             menu.Items.Add(sizes);
-            AddHoloModes(menu);
             ToolStripMenuItem moves = new ToolStripMenuItem("Move");
             wanderItem = new ToolStripMenuItem("Wander around", null, delegate { ToggleWander(); });
             wanderItem.Checked = preferences.Wander;
@@ -4821,7 +4821,7 @@ namespace CapriDesktop
             {
                 ToolStripMenuItem group = entry as ToolStripMenuItem;
                 if (group == null || group.Text != "Size") continue;
-                foreach (ToolStripMenuItem option in group.DropDownItems) option.Checked = (int)option.Tag == size;
+                foreach (ToolStripItem option in group.DropDownItems) if (option.Tag is int) ((ToolStripMenuItem)option).Checked = (int)option.Tag == size;
             }
             RenderFrame();
             SavePreferences();

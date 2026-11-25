@@ -40,24 +40,21 @@ namespace CapriDesktop
             return HoloCallSource.None;
         }
 
-        private void AddHoloModes(ContextMenuStrip menu)
+        private void AddHoloModes(ToolStripMenuItem sizes)
         {
-            ToolStripMenuItem full = new ToolStripMenuItem("Full size", null, delegate { ToggleHoloFullSize(); });
             ToolStripMenuItem compact = new ToolStripMenuItem("Holocall", null, delegate
             {
                 if (HoloCompactSelected) LeaveHolo();
                 else ShowHolo(false, holoWindow == null ? ActiveHoloCall() : holoCallSource, false);
             });
-            menu.Items.Add(full);
-            menu.Items.Add(compact);
-            ToolStripMenuItem camera = new ToolStripMenuItem("Capri Camera", null, delegate { ToggleHoloCamera(); });
-            if (CapriCamera.Bundled) menu.Items.Add(camera);
-            menu.Opening += delegate
+            ToolStripMenuItem full = new ToolStripMenuItem("Full size", null, delegate { ToggleHoloFullSize(); });
+            sizes.DropDownItems.Add(new ToolStripSeparator());
+            sizes.DropDownItems.Add(compact);
+            sizes.DropDownItems.Add(full);
+            sizes.DropDownOpening += delegate
             {
                 full.Checked = holoWindow != null && holoWindow.FullSize;
                 compact.Checked = HoloCompactSelected;
-                camera.Text = holoCameraTurn != 0 ? "Stop Capri Camera feed" : "Start Capri Camera feed";
-                camera.Checked = holoCameraTurn != 0;
             };
         }
 
