@@ -908,13 +908,19 @@ namespace CapriDesktop
         private int asking;
         private Smoke smoke;
         private CancellationTokenSource listening;
+        private readonly HearingLine hearing = new HearingLine();
+        private CancellationTokenSource hearingTapStop;
         internal Func<Action, CancellationToken, Task<string>> Listen;
+        internal Func<bool> HearingInstalled;
+        internal Func<Action<double>, CancellationToken, Task> HearingTapRun;
 
         internal Pet(IClassicDesktopStyleApplicationLifetime desktop)
         {
             this.desktop = desktop;
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
             if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears, () => TheirLanguage).Listen;
+            HearingInstalled = delegate { return Ears.Models(EarsFolder).Count > 0; };
+            HearingTapRun = Program.Smoke == null && (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) ? HearingTap.Run : delegate(Action<double> level, CancellationToken stop) { return Task.CompletedTask; };
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
@@ -1405,6 +1411,7 @@ namespace CapriDesktop
             TickClones();
             Desk.BindScreens(Screens.All);
             TickNameListening();
+            TickHearing();
             if (ContextMenu.IsOpen && Desk is HyprlandDesk menuDesk && (menuDesk.Desktop.VisualSnapshot == null || menuDesk.Desktop.VisualSnapshot.Locked)) ContextMenu.Close();
             if (releaseSettling && Desk is HyprlandDesk settlingDesk && (settlingDesk.Desktop.VisualSnapshot == null || settlingDesk.Desktop.VisualSnapshot.Locked)) CancelNativeRelease();
             DragFrame();
@@ -2567,20 +2574,99 @@ namespace CapriDesktop
             string text = null, problem = null;
             try
             {
-                await nameLifetime;
-                if (listening != turn) return;
-                text = await Task.Run(() => listen(() => Dispatcher.UIThread.Post(delegate
+                hearing.Listening(true);
+                StartHearingTap(turn.Token);
+                NotifySettings();
+                try
                 {
-                    if (listening == turn) Talk.Thinking("(hearing your words · TALK to cancel)");
-                }), turn.Token));
+                    await nameLifetime;
+                    if (listening != turn) return;
+                    text = await Task.Run(() => listen(() => Dispatcher.UIThread.Post(delegate
+                    {
+                        if (listening == turn) Talk.Thinking("(hearing your words · TALK to cancel)");
+                    }), turn.Token));
+                }
+                catch (IOException error) { problem = error.Message; }
+                catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
+                if (listening != turn) return;
+                listening = null;
+                Chimes.Play(Chime.Heard);
+                StopHearingTap();
+                hearing.Listening(false);
+                if (!string.IsNullOrWhiteSpace(text)) { hearing.Heard(); Hear(text, true); }
+                else
+                {
+                    if (problem != null) hearing.Failed(problem); else hearing.Missed();
+                    Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
+                }
             }
-            catch (IOException error) { problem = error.Message; }
-            catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
-            if (listening != turn) return;
-            listening = null;
-            Chimes.Play(Chime.Heard);
-            if (!string.IsNullOrWhiteSpace(text)) Hear(text, true);
-            else Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
+            finally
+            {
+                StopHearingTap();
+                hearing.Listening(false);
+                NotifySettings();
+            }
+        }
+
+        internal HearingStatus HearingNow { get { return hearing.Read(HearingInstalled()); } }
+
+        internal bool HearingTesting { get { return hearing.Testing; } }
+
+        internal void HearingReset() { hearing.Reset(); }
+
+        internal void HearingFixAt(int index)
+        {
+            HearingStatus status = HearingNow;
+            if (index < 0 || index >= status.Actions.Length) return;
+            HearingAction action = status.Actions[index];
+            if (action == HearingAction.Test || action == HearingAction.Stop)
+            {
+                if (hearing.Testing) StopHearingTest(); else StartHearingTest();
+            }
+            else if (action == HearingAction.Type) Talk.Open();
+            else OpenEars();
+        }
+
+        private void StartHearingTest()
+        {
+            if (hearing.Testing) return;
+            if (Listening) StopListening();
+            hearing.StartTest(Now);
+            StartHearingTap(CancellationToken.None);
+            NotifySettings();
+        }
+
+        internal void StopHearingTest()
+        {
+            if (!hearing.Testing) return;
+            StopHearingTap();
+            hearing.TestDone();
+            NotifySettings();
+        }
+
+        private void TickHearing()
+        {
+            if (hearing.Testing && hearing.TestDue(Now)) StopHearingTest();
+        }
+
+        private void StartHearingTap(CancellationToken outer)
+        {
+            StopHearingTap();
+            var stop = CancellationTokenSource.CreateLinkedTokenSource(outer);
+            hearingTapStop = stop;
+            Action<double> level = delegate(double value) { if (hearing.Level(value)) NotifySettings(); };
+            try
+            {
+                HearingTapRun(level, stop.Token);
+            }
+            catch (Exception error) { Brain.Log("ears", -1, "Hearing level tap: " + error.Message); }
+        }
+
+        private void StopHearingTap()
+        {
+            CancellationTokenSource stop = hearingTapStop;
+            hearingTapStop = null;
+            if (stop != null) stop.Cancel();
         }
 
         internal void Grab()
