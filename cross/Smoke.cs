@@ -3381,6 +3381,7 @@ namespace CapriDesktop
                 PlainChecks(frame, fields);
                 ModsChecks(frame);
                 MainframeRows(frame, fields);
+                Chimes.Checks(pet, frame, checks);
                 HuskChecks(frame);
                 MusicAppChecks(frame);
                 CareChecks(frame);
@@ -4507,6 +4508,7 @@ namespace CapriDesktop
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" },
                 { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" },
+                { "Message sent", "", "NoChimeSent" }, { "Heard you", "", "NoChimeHeard" }, { "Listening", "", "NoChimeListening" },
                 { "Weather", "", "Weather" }
             };
             for (int i = 0; i < toggles.GetLength(0); i++)
@@ -4522,13 +4524,13 @@ namespace CapriDesktop
                 }
             var values = new Dictionary<string, Func<int, object>> {
                 { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
-                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
+                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Chime volume", i => (i + 1) * 10 }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
                 { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Replies", i => Math.Min(2, i) }, { "Memory", i => new[] { 8, 16, 32 }[i] },
                 { "Bubble", i => i }
             };
             string[,] sliders = {
                 { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
-                { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
+                { "Sounds", "Sounds", "sounds" }, { "Chime volume", "ChimeVolume", "" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
                 { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Mainframe colours", "MainframeColours", "mainframe_colours" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
                 { "Bubble", "Bubble", "bubble" }
             };

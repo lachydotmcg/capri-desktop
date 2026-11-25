@@ -19,6 +19,11 @@ namespace CapriDesktop
 
     internal static class NameListeningText
     {
+        internal static bool Named(string text)
+        {
+            return Regex.IsMatch(text ?? "", @"(?<!\w)capri(?!\w)", RegexOptions.IgnoreCase);
+        }
+
         internal static string Request(string text)
         {
             text = (text ?? "").Trim();
@@ -98,12 +103,13 @@ namespace CapriDesktop
         // The start path takes its own lock read; the tick passes the one it already took, so a tick never reads twice.
         private NameListeningState NameState() => NameState(LockedForNameListening());
         private NameListeningState NameState(bool? observedLock) => new NameListeningState(nameIdentity, Saved.MicrophoneNode,
-            Saved.MicrophoneFingerprint, NameBarredAt(observedLock), SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil),
+            Saved.MicrophoneFingerprint, NameBarredAt(observedLock), SpeechAudio.MicrophoneHeld || Chimes.Masking || (OperatingSystem.IsMacOS() && Now < macSpeechUntil),
             Talk?.ThinkingNow == true || ComputerJobs.Active, ComputerJobs.GameRunning);
 
         private void InitializeNameListening()
         {
             SpeechAudio.BeforePlayback += GateNamePlayback;
+            Chimes.BeforePlay = delegate { if (Saved.ListenCapri) nameEars.GateForPlayback(); };
             if (OperatingSystem.IsMacOS())
             {
                 Voice.Playback = wav =>
@@ -516,11 +522,19 @@ namespace CapriDesktop
                     // An ordinary new Hear cancels the provider generation too. Drop
                     // that stale queued line without ending the valid name window.
                     if (providerGeneration != (captured.Provider?.Generation ?? 0)) return;
-                    if (NameBarred || SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil) || !nameEars.IsCurrent(transcript)) return;
-                    string request = NameListeningText.Request(transcript.Text);
-                    if (request.Length != 0) Hear(request, true);
+                    if (NameBarred || Chimes.Masking || SpeechAudio.MicrophoneHeld || (OperatingSystem.IsMacOS() && Now < macSpeechUntil) || !nameEars.IsCurrent(transcript)) return;
+                    NameLineAccepted(transcript.Text);
                 });
             });
+        }
+
+        internal void NameLineAccepted(string text)
+        {
+            if (NameListeningText.Named(text)) Chimes.Play(Chime.Listening);
+            string request = NameListeningText.Request(text);
+            if (request.Length == 0) return;
+            Chimes.Play(Chime.Heard);
+            Hear(request, true);
         }
 
         private void TickNameListening()

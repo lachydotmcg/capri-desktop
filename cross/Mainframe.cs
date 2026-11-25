@@ -402,6 +402,10 @@ namespace CapriDesktop
         private readonly NeonCaption thinkingLabel, extraLabel;
         private readonly NeonButton thinkingExtra;
         private readonly NeonSwitch stayRow;
+        private NeonPicker chimeSet;
+        private NeonSlider chimeVolume;
+        private NeonSwitch chimeSent, chimeHeard, chimeListening;
+        private static readonly string[] ChimeVolumeNames = { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private readonly NeonPicker answers;
         private readonly Control answersLabel;
         private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress, weatherCity;
@@ -414,10 +418,11 @@ namespace CapriDesktop
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
         private static readonly string[] ReplyNames = { "Short", "Medium", "Long", "No limit" };
         private static readonly int[] Recalls = { 8, 16, 32 };
-        private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 940 }, new[] { 1040, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 488 }, new[] { 644, 940 }, new[] { 1040, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         // Her ears and Open ears folder, under Typing mode on Mac and Linux. Simple Settings folds them with the rest of VOICE.
         private static readonly int[] EarsBand = { 428, 488 };
+        private static readonly int[] ChimeBand = { 488, 630 };
         private static bool HearsHere => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
         private static int[][] With(int[][] bands, int[] band) { var all = new int[bands.Length + 1][]; bands.CopyTo(all, 0); all[bands.Length] = band; return all; }
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 756, 784 }, new[] { 854, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
@@ -590,6 +595,21 @@ namespace CapriDesktop
                 ears.Height = 22; ears.Ellipsis = true; ears.Options(pet.EarsChoices());
                 Key("Open ears folder", 28, 459, 328, 22, pet.OpenEars);
             }
+            Named("Sound set", 0, 488);
+            chimeSet = Picker("Sound set", 184, 491, 172, () => pet.ChimeSetStep, i => pet.SetChimeSet(Chimes.Picked[i]));
+            chimeSet.Height = 22; chimeSet.Options(ChimeSetNames());
+            ToolTip.SetTip(chimeSet, "Which set of chimes she plays");
+            AutomationProperties.SetName(chimeSet, "Sound set. Which set of chimes she plays");
+            chimeVolume = Slider("Chime volume", ChimeVolumeNames, 0, 518, () => pet.ChimeVolumeStep, i => pet.SetChimeVolume((i + 1) * 10), false, () => pet.PreviewChime());
+            ToolTip.SetTip(chimeVolume, "How loud her chimes are");
+            AutomationProperties.SetName(chimeVolume, "Chime volume. How loud her chimes are");
+            chimeSent = Toggle("Message sent", 0, 546, () => pet.ChimeOn(Chime.Sent), on => pet.SetChime(Chime.Sent, on));
+            AutomationProperties.SetName(chimeSent, "Message sent. A soft rising tick when your typed message goes to her");
+            chimeHeard = Toggle("Heard you", 0, 574, () => pet.ChimeOn(Chime.Heard), on => pet.SetChime(Chime.Heard, on));
+            AutomationProperties.SetName(chimeHeard, "Heard you. A soft falling tick when she's heard you finish talking");
+            chimeListening = Toggle("Listening", 0, 602, () => pet.ChimeOn(Chime.Listening), on => pet.SetChime(Chime.Listening, on));
+            AutomationProperties.SetName(chimeListening, "Listening. Three soft rising ticks when Listen for Capri hears her name and opens her ears");
+            readers.Add(() => { bool on = pet.ChimesOn; chimeSet.IsEnabled = chimeVolume.IsEnabled = on; });
             Section("MOVES", 0, 648);
             Slider("Wander", Pet.WanderNames, 0, 700, () => pet.Saved.Wander, pet.SetWander);
             Slider("Sleep", Pet.SleepNames, 0, 728, () => Array.IndexOf(Pet.Sleeps, pet.SleepAfter), i => pet.SetSleepAfter(Pet.Sleeps[i]));
@@ -765,13 +785,14 @@ namespace CapriDesktop
             readers.Add(() => picker.Selected = read()); changes[name] = i => picker.Pick(i);
             return picker;
         }
-        private NeonSlider Slider(string name, string[] labels, int x, int y, Func<int> read, Action<int> change, bool sample = false)
+        private NeonSlider Slider(string name, string[] labels, int x, int y, Func<int> read, Action<int> change, bool sample = false, Action released = null)
         {
             Named(name, x, y);
             var slider = Add(new NeonSlider(name, labels), x + 184, y + 3, 172, 22, name);
             slider.Changed += i => { if (!syncing) change(i); };
             if (sample) readers.Add(() => slider.IsEnabled = !pet.RetainedVoice);
             if (sample) slider.Released += () => { if (!syncing && Program.Smoke == null) pet.HearStyle(); };
+            if (released != null) slider.Released += () => { if (!syncing) released(); };
             readers.Add(() => { if (!slider.Deferred || !slider.Editing) slider.Value = read(); });
             changes[name] = i => slider.Slide(i);
             return slider;
@@ -919,7 +940,7 @@ namespace CapriDesktop
                     if (!right && inputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 756, 784 }, new[] { 910, 940 }, new[] { 1040, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
                     if (!right && !inputSetup && anchor >= 854 && anchor < 910) show = false;
                     // Her ears rows sit at the top of the left gap, so on Mac and Linux the gap starts below them.
-                    if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { EarsBand[1], band[1] } : band);
+                    if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { ChimeBand[1], band[1] } : band);
                     y = Lift(anchor, missing, folded, simple) - (control is NeonHead ? 5 : 0);
                     if (!right && anchor >= 110 && control != answers && control != answersLabel) y += 28;
                     if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel && control != thinkingLevel && control != thinkingLabel && control != thinkingExtra && control != extraLabel) y += control == stayRow ? 84 : pet.NvidiaBrain ? 112 : 84;
@@ -991,6 +1012,24 @@ namespace CapriDesktop
             if (row is NeonSwitch toggle) return toggle.Checked ? "On" : "Off";
             if (row is NeonButton key) return key.Text;
             return (row as NeonEntry)?.Box.Text;
+        }
+        internal static string[] ChimeSetNames()
+        {
+            string[] names = new string[Chimes.Picked.Length];
+            for (int i = 0; i < names.Length; i++) names[i] = Chimes.Titles[Chimes.Picked[i]];
+            return names;
+        }
+        internal string ChimesStatus
+        {
+            get
+            {
+                List<string> each = new List<string>();
+                if (chimeSent.Checked) each.Add("sent");
+                if (chimeHeard.Checked) each.Add("heard");
+                if (chimeListening.Checked) each.Add("listening");
+                bool enabled = chimeVolume.IsEnabled && chimeSet.IsEnabled;
+                return (chimeSent.Checked || chimeHeard.Checked || chimeListening.Checked ? "on" : "off") + " | " + chimeVolume.Shown + " | " + string.Join(" ", each.ToArray()) + " | " + (enabled ? "enabled" : "disabled");
+            }
         }
         internal string Outside()
         {

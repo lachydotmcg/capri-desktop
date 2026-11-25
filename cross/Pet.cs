@@ -36,6 +36,12 @@ namespace CapriDesktop
         [DataMember] internal int Wander;
         [DataMember] internal bool NoDance;
         [DataMember] internal int? Sounds;
+        [DataMember] internal bool NoChimes;
+        [DataMember] internal bool NoChimeSent;
+        [DataMember] internal bool NoChimeHeard;
+        [DataMember] internal bool NoChimeListening;
+        [DataMember] internal int ChimeVolume;
+        [DataMember] internal string ChimeSet;
         [DataMember] internal string VoiceId;
         [DataMember] internal bool Silent;
         [DataMember] internal int Typing;
@@ -957,6 +963,10 @@ namespace CapriDesktop
             Brain.ThinkingChanged = NotifySettings;
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
             Sfx.Level = Math.Max(0, Math.Min(100, Saved.Sounds ?? 60));
+            MigrateChimes(Saved);
+            Chimes.Testing = Program.Smoke != null;
+            ShowChimes();
+            ThreadPool.QueueUserWorkItem(delegate { Chimes.Warm(); });
             if (Saved.Volume <= 0) { Saved.Silent = true; Saved.Volume = 100; }
             Voice.Loudness = Math.Max(10, Math.Min(150, Saved.Volume ?? 100));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, Saved.Pitch));
@@ -2557,6 +2567,7 @@ namespace CapriDesktop
             catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
             if (listening != turn) return;
             listening = null;
+            Chimes.Play(Chime.Heard);
             if (!string.IsNullOrWhiteSpace(text)) Hear(text, true);
             else Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
         }
@@ -3977,6 +3988,72 @@ namespace CapriDesktop
             Sync();
             Sfx.Play(Cue.Hop);
         }
+
+        internal bool ChimesOn { get { return !(Saved.NoChimeSent && Saved.NoChimeHeard && Saved.NoChimeListening); } }
+
+        internal int ChimeVolume { get { int volume = Saved.ChimeVolume; return volume <= 0 ? Chimes.DefaultVolume : Math.Max(10, Math.Min(100, volume / 10 * 10)); } }
+
+        internal int ChimeVolumeStep { get { return Math.Max(0, Math.Min(9, ChimeVolume / 10 - 1)); } }
+
+        internal int ChimeSet { get { int set = Array.IndexOf(Chimes.Sets, Saved.ChimeSet ?? ""); return set < 0 ? Chimes.DefaultSet : set; } }
+
+        internal int ChimeSetStep { get { return Math.Max(0, Array.IndexOf(Chimes.Picked, ChimeSet)); } }
+
+        internal bool ChimeOn(Chime chime) { return chime == Chime.Sent ? !Saved.NoChimeSent : chime == Chime.Heard ? !Saved.NoChimeHeard : !Saved.NoChimeListening; }
+
+        internal static void MigrateChimes(Settings saved)
+        {
+            if (!saved.NoChimes) return;
+            saved.NoChimeSent = saved.NoChimeHeard = saved.NoChimeListening = true;
+            saved.NoChimes = false;
+        }
+
+        internal void ShowChimes()
+        {
+            Chimes.On = ChimesOn;
+            Chimes.Volume = ChimeVolume;
+            Chimes.Set = ChimeSet;
+            Chimes.Want(Chime.Sent, !Saved.NoChimeSent);
+            Chimes.Want(Chime.Heard, !Saved.NoChimeHeard);
+            Chimes.Want(Chime.Listening, !Saved.NoChimeListening);
+        }
+
+        internal void SetChime(Chime chime, bool on)
+        {
+            if (ChimeOn(chime) == on) return;
+            ToggleChime(chime);
+        }
+
+        internal void ToggleChime(Chime chime)
+        {
+            if (chime == Chime.Sent) Saved.NoChimeSent = !Saved.NoChimeSent;
+            else if (chime == Chime.Heard) Saved.NoChimeHeard = !Saved.NoChimeHeard;
+            else Saved.NoChimeListening = !Saved.NoChimeListening;
+            ShowChimes();
+            if (!ChimesOn) Chimes.Hush();
+            Save();
+            Sync();
+        }
+
+        internal void SetChimeVolume(int percent)
+        {
+            Saved.ChimeVolume = Math.Max(10, Math.Min(100, percent / 10 * 10));
+            ShowChimes();
+            Save();
+            Sync();
+        }
+
+        internal void SetChimeSet(int set)
+        {
+            set = Math.Max(0, Math.Min(Chimes.Sets.Length - 1, set));
+            Saved.ChimeSet = set == Chimes.DefaultSet ? null : Chimes.Sets[set];
+            ShowChimes();
+            Save();
+            Sync();
+            Chimes.Play(Chime.Heard, true);
+        }
+
+        internal void PreviewChime() { Chimes.Play(Chime.Heard, true); }
 
         private void RefreshBrains()
         {
@@ -6162,6 +6239,7 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            if (!fromVoice && phone == null && handed == null && modSendDepth == 0) Chimes.Play(Chime.Sent);
             string typed = phone == null ? null : phone.Typed;
             string input = typed ?? text;
             if (phone == null && modSendDepth > 0 && RemoteJobReply(input, true)) return;
@@ -7203,6 +7281,12 @@ namespace CapriDesktop
         [DataContract]
         internal sealed class NewSettings
         {
+            [DataMember] internal bool NoChimes;
+            [DataMember] internal bool NoChimeSent;
+            [DataMember] internal bool NoChimeHeard;
+            [DataMember] internal bool NoChimeListening;
+            [DataMember] internal int ChimeVolume;
+            [DataMember] internal string ChimeSet;
             [DataMember] internal int HuskMode;
             [DataMember] internal bool NoHuskVerbosity;
             [DataMember] internal string VoiceProvider;
@@ -7280,6 +7364,15 @@ namespace CapriDesktop
                 if (saved.ProviderModels == null) saved.ProviderModels = RecoveredProviderModels(saved, newer.ProviderModels, folder);
                 if (saved.ProviderEndpoints == null) saved.ProviderEndpoints = newer.ProviderEndpoints;
             }
+            if (saved != null && newer != null && !saved.NoChimes && !saved.NoChimeSent && !saved.NoChimeHeard && !saved.NoChimeListening && saved.ChimeVolume <= 0 && saved.ChimeSet == null)
+            {
+                saved.NoChimes = newer.NoChimes;
+                saved.NoChimeSent = newer.NoChimeSent;
+                saved.NoChimeHeard = newer.NoChimeHeard;
+                saved.NoChimeListening = newer.NoChimeListening;
+                saved.ChimeVolume = newer.ChimeVolume;
+                saved.ChimeSet = newer.ChimeSet;
+            }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
             saved.LocalVoiceUrl = newer.LocalVoiceUrl;
@@ -7318,7 +7411,7 @@ namespace CapriDesktop
 
         internal static NewSettings Newest(Settings saved)
         {
-            return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
+            return new NewSettings { NoChimes = saved.NoChimes, NoChimeSent = saved.NoChimeSent, NoChimeHeard = saved.NoChimeHeard, NoChimeListening = saved.NoChimeListening, ChimeVolume = saved.ChimeVolume, ChimeSet = saved.ChimeSet, VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
