@@ -389,7 +389,7 @@ namespace CapriDesktop
         private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         private readonly Stopwatch beatClock = Stopwatch.StartNew();
         private readonly NeonButton support, remoteKey;
-        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote;
+        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote, spendLine;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
         private readonly Dictionary<NeonEntry, string> entries = new Dictionary<NeonEntry, string>();
@@ -533,6 +533,11 @@ namespace CapriDesktop
             Key("Help", 186, 606, 62, 28, () => { if (Program.Smoke == null) Pet.Browse(Pet.HelpPage); });
             Key("Quit Capri", 256, 606, 100, 28, pet.Quit).Accent = MainframeTheme.Hot;
             updateNote = Caption("", 28, 644, 328, 18, MainframeTheme.Faint, 34.0 / 3); updateNote.Ellipsis = true;
+            // Spend sits under her update note as on Windows' main page; Windows' Resources key above it has no cross-side panel yet.
+            var spendKey = Key("Spend", 28, 674, 112, 20, OpenSpend); spendKey.Chevron = true;
+            AutomationProperties.SetName(spendKey, "Spend: what her brain cost on your API keys today and this month, model by model");
+            spendLine = Caption("", 148, 674, 208, 18, MainframeTheme.Faint, 34.0 / 3); spendLine.Align = TextAlignment.Right; spendLine.Ellipsis = true;
+            readers.Add(() => spendLine.Text = Spend.Line());
             building = 1;
             advanced = Key("Advanced Settings", 238, 20, 136, 22, () => { pet.SetAdvancedSettings(!pet.Saved.AdvancedSettings); ShowSettings(true); }); advanced.Accent = MainframeTheme.Cyan; advanced.Loud = true;
             BuildSearch();
@@ -843,6 +848,7 @@ namespace CapriDesktop
         }
         private bool Expanded { get { return pet.MainframeTier == 0 && (pet.Brain.Model == null || pet.MainframePulling); } }
         internal bool SettingsShown { get { return paged; } }
+        internal string SpendLine { get { return spendLine == null ? null : spendLine.Text; } }
         internal void Shut() { finishing = true; Close(); }
         internal void ShowSettings(bool on) { paged = on; if (on) modded = false; layout = null; CloseMenus(); Top(); Sync(); }
         protected override void Back()
@@ -1050,6 +1056,7 @@ namespace CapriDesktop
             else { Memory.WindowState = WindowState.Normal; Memory.Activate(); }
         }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
+        internal void OpenSpend() { ShowSheet(new MainframeSheet(pet, "spend", "spend", "SPEND >")); }
         internal void OpenUninstall() { ShowSheet(new MainframeSheet(pet, "UNINSTALL CAPRI", "uninstall")); }
         internal void OpenRemote()
         {
