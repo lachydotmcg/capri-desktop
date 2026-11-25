@@ -135,7 +135,6 @@ namespace CapriDesktop
         private void InitializeNameListening()
         {
             SpeechAudio.BeforePlayback += GateNamePlayback;
-            Chimes.BeforePlay = delegate { if (Saved.ListenCapri) nameEars.GateForPlayback(); };
             if (OperatingSystem.IsMacOS())
             {
                 Voice.Playback = wav =>

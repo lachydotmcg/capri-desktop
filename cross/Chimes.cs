@@ -791,14 +791,53 @@ namespace CapriDesktop
                 checks.Add("PASS chimes play on their events: a typed message plays Message sent, a dropped file and a canned onboarding choice play none, a TALK line plays Heard you as it ends, Listen for Capri hearing her name on its own plays Listening, and an accepted request line plays Heard you");
 
                 now += 10000; played.Clear(); Reset(); ringing = 0;
-                if (!Play(Chime.Listening)) throw new Exception("The listening chime didn't play for the mask.");
                 MethodInfo stateMethod = typeof(Pet).GetMethod("NameState", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(bool?) }, null);
-                if (stateMethod == null || BeforePlay == null) throw new Exception("Her name listening isn't wired to her chimes.");
-                var masked = (NameListeningState)stateMethod.Invoke(pet, new object[] { (bool?)false });
-                if (!masked.Speaking) throw new Exception("A chime didn't pause her name listening: " + masked);
-                now += played[played.Count - 1].Length * 1000L / Rate + Echo + 1;
-                var clear = (NameListeningState)stateMethod.Invoke(pet, new object[] { (bool?)false });
-                if (Masking || clear.Speaking && !SpeechAudio.MicrophoneHeld) throw new Exception("A chime kept her name listening paused after its mask: " + clear);
+                FieldInfo earsField = typeof(Pet).GetField("nameEars", BindingFlags.Instance | BindingFlags.NonPublic);
+                object earsWas = earsField.GetValue(pet);
+                Func<short[], bool> collected = Out;
+                var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var ears = new OwnedNameEars((_, _) =>
+                {
+                    release.Task.GetAwaiter().GetResult();
+                    throw new OperationCanceledException();
+                });
+                var initial = new NameListeningState("chime-check", "check-node", "check-fingerprint", false, false, false);
+                var pending = new NameTranscript("hey capri", 1, 1, null, "check-line");
+                Task listener = null;
+                try
+                {
+                    earsField.SetValue(pet, ears);
+                    listener = ears.Start("unused", "unused", initial, null, null, null);
+                    bool currentAtOutput = false;
+                    Out = sound =>
+                    {
+                        currentAtOutput = ears.IsCurrent(pending);
+                        return collected(sound);
+                    };
+                    if (!Play(Chime.Listening) || !currentAtOutput)
+                        throw new Exception("A chime gated the name listener with Listen for Capri off.");
+                    now += 10000; played.Clear(); Reset();
+                    pet.Saved.ListenCapri = true;
+                    if (!Play(Chime.Listening) || currentAtOutput)
+                        throw new Exception("A chime didn't revoke the pending name transcript before output.");
+                    var masked = (NameListeningState)stateMethod.Invoke(pet, new object[] { (bool?)false });
+                    if (!masked.Speaking) throw new Exception("A chime didn't pause her name listening: " + masked);
+                    now += played[played.Count - 1].Length * 1000L / Rate + Echo + 1;
+                    var clear = (NameListeningState)stateMethod.Invoke(pet, new object[] { (bool?)false });
+                    if (Masking || clear.Speaking && !SpeechAudio.MicrophoneHeld) throw new Exception("A chime kept her name listening paused after its mask: " + clear);
+                    ears.Update(initial);
+                    if (ears.IsCurrent(pending)) throw new Exception("A pending name transcript became current again after a chime.");
+                }
+                finally
+                {
+                    Out = collected;
+                    pet.Saved.ListenCapri = false;
+                    earsField.SetValue(pet, earsWas);
+                    ears.Stop();
+                    release.SetResult();
+                    if (listener != null && !listener.Wait(TimeSpan.FromSeconds(3)))
+                        throw new Exception("The chime check's idle listener didn't stop.");
+                }
                 checks.Add("PASS chimes stay out of her ears: before a chime plays she revokes the name listener's in-flight transcript, her name listening reports Speaking for the chime and 700 ms after, then comes back, so the chime is never transcribed");
 
                 string help = SelfKnow.Matching("how do I turn off the chimes?") ?? "";
