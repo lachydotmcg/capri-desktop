@@ -380,11 +380,11 @@ namespace CapriDesktop
                 Application.DoEvents();
                 SaveScreen(holoWindow.Bounds, Path.Combine(output, "holocall-full-size.png"));
                 ToggleHoloFullSize();
-                if (holoWindow != null) throw new Exception("Leaving full size opened from her menu didn't bring her back.");
+                if (holoWindow == null || holoWindow.FullSize) throw new Exception("Leaving full size opened from Holocall didn't go back to Holocall.");
             }
             finally { LeaveHolo(); }
             if (holoWindow != null || shownBefore && !hidden && !docked && !Visible) throw new Exception("Leaving Holocall didn't bring her normal self back.");
-            checks.Add("PASS Holocall and full size: Holocall takes her place in a lean framed window, full size covers her whole screen, and leaving either brings her back");
+            checks.Add("PASS Holocall and full size: Holocall takes her place in a lean framed window, full size covers her whole screen and goes back to Holocall, and leaving brings her normal self back");
         }
     }
 }
