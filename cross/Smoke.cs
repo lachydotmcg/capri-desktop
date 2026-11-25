@@ -163,6 +163,7 @@ namespace CapriDesktop
                 NiriDesktop.Checks(checks);
                 Labwc.Checks(checks);
                 Resources.Checks(checks);
+                ModHookContractChecks.Checks(checks);
                 NameListeningChecks.Checks(pet, checks);
                 MacQuit.Checks(checks);
                 NewsChecks();

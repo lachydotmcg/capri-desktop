@@ -61,26 +61,26 @@ namespace CapriDesktop
         private string ModsSending(string text)
         {
             if (!ModsListen(host => host.sending != null)) return text;
-            return ModsShared.Sending(text, modSendDepth, LiveHosts());
+            return ModsShared.Sending(text, modSendDepth, LiveHosts);
         }
 
         private string ModsReplying(string said, string source)
         {
             if (!ModsListen(host => host.replying != null)) return said;
-            return ModsShared.Replying(said, source, LiveHosts());
+            return ModsShared.Replying(said, source, LiveHosts);
         }
 
         private void ModsReplied(string said, string source)
         {
             if (!ModsListen(host => host.replied != null)) return;
-            ModsShared.Replied(said, source, LiveHosts());
+            ModsShared.Replied(said, source, LiveHosts);
         }
 
         // Her words before her voice says them: changed, or "" to keep that line in her bubble only.
         private string ModsSpeaking(string words)
         {
             if (words.Length == 0 || !ModsListen(host => host.speaking != null)) return words;
-            return ModsShared.Speaking(words, LiveHosts());
+            return ModsShared.Speaking(words, LiveHosts);
         }
 
         private void ModsSpoke(string said)

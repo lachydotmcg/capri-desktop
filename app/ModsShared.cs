@@ -63,10 +63,10 @@ namespace CapriDesktop
             return new CapriMessage { Text = text, Original = text, Source = source, At = DateTime.Now };
         }
 
-        internal static string Sending(string text, int depth, IModHookHost[] hosts)
+        internal static string Sending(string text, int depth, Func<IModHookHost[]> hosts)
         {
             CapriMessage message = ModMessage(text, depth > 0 ? "mod" : "you");
-            foreach (IModHookHost host in hosts)
+            foreach (IModHookHost host in hosts())
             {
                 if (host.sending == null) continue;
                 try { host.sending(message); }
@@ -77,10 +77,10 @@ namespace CapriDesktop
             return changed.Length == 0 ? text : changed.Length > 4000 ? changed.Substring(0, 4000) : changed;
         }
 
-        internal static string Replying(string said, string source, IModHookHost[] hosts)
+        internal static string Replying(string said, string source, Func<IModHookHost[]> hosts)
         {
             CapriMessage message = ModMessage(said, source);
-            foreach (IModHookHost host in hosts)
+            foreach (IModHookHost host in hosts())
             {
                 try { if (host.replying != null) host.replying(message); }
                 catch (Exception error) { host.Failed(error); }
@@ -89,20 +89,20 @@ namespace CapriDesktop
             return changed.Length == 0 ? said : changed;
         }
 
-        internal static void Replied(string said, string source, IModHookHost[] hosts)
+        internal static void Replied(string said, string source, Func<IModHookHost[]> hosts)
         {
             CapriMessage message = ModMessage(said, source);
-            foreach (IModHookHost host in hosts)
+            foreach (IModHookHost host in hosts())
             {
                 try { if (host.replied != null) host.replied(message); }
                 catch (Exception error) { host.Failed(error); }
             }
         }
 
-        internal static string Speaking(string words, IModHookHost[] hosts)
+        internal static string Speaking(string words, Func<IModHookHost[]> hosts)
         {
             CapriMessage message = ModMessage(words, "speech");
-            foreach (IModHookHost host in hosts)
+            foreach (IModHookHost host in hosts())
             {
                 try { if (host.speaking != null) host.speaking(message); }
                 catch (Exception error) { host.Failed(error); }
