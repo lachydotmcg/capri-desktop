@@ -99,6 +99,83 @@ static class Recheck
         Put(pet,"ownEngine",e); Put(b,"Local",e); Put(b,"LocalPick",((Array)Get(T("Engine"),"Picks")).GetValue(0));
         return e;
     }
+    static void WatchContract(string state)
+    {
+        object pet = Pet();
+        const string onReply = "Couldn't turn Watch my screen on: it's still off. Watch my screen stays paused until Lite mode goes off.";
+        const string offReply = "Watch my screen was already off.";
+
+        void Use(string dir, object saved)
+        {
+            Directory.CreateDirectory(dir);
+            Put(pet, "folder", dir);
+            Put(pet, "Saved", saved);
+            Put(Get(pet, "Brain"), "Lite", Get(saved, "Lite"));
+        }
+
+        string Tool(string action, bool agent)
+        {
+            object args = New("ToolArguments");
+            Put(args, "Name", "watch_my_screen");
+            Put(args, "Action", action);
+            Put(args, "FromAgent", agent);
+            return (string)Call(T("Hands"), "Do", "capri_settings", args);
+        }
+
+        string[] Files(string dir) => new[] { Path.Combine(dir, "cross.json"), Path.Combine(dir, "cross-new.json") };
+        string Stored(string dir, string key) => string.Join("/", Files(dir).Select(path =>
+        {
+            using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(path));
+            return json.RootElement.GetProperty(key).GetBoolean();
+        }));
+
+        Put(T("Program"), "Smoke", null);
+        try
+        {
+            foreach (bool prior in new[] { false, true })
+            {
+                string dir = Path.Combine(state, "prior-" + prior);
+                object saved = New("Settings");
+                Use(dir, saved);
+                Call(pet, "SetWatch", prior, false);
+                Call(pet, "SetLite", true);
+                Check($"prior={prior}: ON reply", onReply, Tool("on", prior));
+                Check($"prior={prior}: deferred on disk", "True/True", Stored(dir, "LiteWatch"));
+                foreach (string action in new[] { "", "invalid" })
+                {
+                    string before = string.Join("/", Files(dir).Select(Hash));
+                    Check($"prior={prior}: rejected action '{action}'", "Choose list, on, off or set.", Tool(action, prior));
+                    Check($"prior={prior}: rejected action '{action}' preserves both files", before, string.Join("/", Files(dir).Select(Hash)));
+                }
+                Check($"prior={prior}: OFF reply", offReply, Tool("off", prior));
+                Check($"prior={prior}: OFF clears intent immediately", false, Get(saved, "LiteWatch"));
+                Check($"prior={prior}: OFF clears intent on disk", "False/False", Stored(dir, "LiteWatch"));
+                Check($"prior={prior}: duplicate OFF reply", offReply, Tool("off", prior));
+                Check($"prior={prior}: Watch still paused", false, Get(saved, "Watch"));
+                Call(pet, "SetLite", false);
+                Check($"prior={prior}: latest OFF ask wins", false, Get(saved, "Watch"));
+            }
+
+            string legacy = Path.Combine(state, "legacy");
+            Use(legacy, New("Settings"));
+            Call(pet, "SetWatch", true, false);
+            Call(pet, "SetLite", true);
+            Check("prior ON saved in both contracts", "True/True", Stored(legacy, "LiteWatchWas"));
+            foreach (string path in Files(legacy))
+            {
+                var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path)).AsObject();
+                json.Remove("LiteWatchWas");
+                File.WriteAllText(path, json.ToJsonString());
+            }
+            object[] read = { Files(legacy)[0], null };
+            object resumed = Call(T("Pet"), "ReadSettings", read);
+            Check("legacy profile read without error", null, read[1]);
+            Use(legacy, resumed);
+            Call(pet, "SetLite", false);
+            Check("legacy profile with prior ON and no later ask restores ON", true, Get(resumed, "Watch"));
+        }
+        finally { Put(T("Program"), "Smoke", state); }
+    }
     static void Retry(string dir) {
         object pet=Pet(); double t=1000;
         Put(pet,"MoveClock",(Func<double>)(()=>t));
@@ -168,7 +245,7 @@ static class Recheck
         AssemblyLoadContext.Default.Resolving+=(context,name)=>r.ResolveAssemblyToPath(name) is string p ? context.LoadFromAssemblyPath(p) : null;
         AssemblyLoadContext.Default.ResolvingUnmanagedDll+=(a,n)=>r.ResolveUnmanagedDllToPath(n) is string p ? System.Runtime.InteropServices.NativeLibrary.Load(p) : 0;
         app=AssemblyLoadContext.Default.LoadFromAssemblyPath(source); var state=Path.GetFullPath(args[2]); Directory.CreateDirectory(state); Put(T("Program"),"Smoke",state);
-        if(args[0]=="watch") Watch(state); else if(args[0]=="retry-base") PriorRetry(state); else Retry(state);
+        if(args[0]=="watch") Watch(state); else if(args[0]=="watch-contract") WatchContract(state); else if(args[0]=="retry-base") PriorRetry(state); else Retry(state);
         Console.WriteLine($"passes={passes} failures={fails}"); return fails==0?0:1;
     }
 }

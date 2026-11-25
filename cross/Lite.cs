@@ -72,7 +72,7 @@ namespace CapriDesktop
                     liteRestGaveUp = false;
                     liteRestAt = -1;
                 }
-                if (Saved.LiteWatch && Saved.LiteWatchWas && !Saved.Watch) SetWatch(true, false);
+                if (Saved.LiteWatch && (Saved.LiteWatchWas ?? Saved.LiteWatch) && !Saved.Watch) SetWatch(true, false);
                 Saved.LiteWatch = false;
                 Saved.LiteWatchWas = false;
                 RestoreOwnBrain();

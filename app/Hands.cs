@@ -7548,6 +7548,7 @@ namespace CapriDesktop
         // Flips one of her switches the way its own switch does, without her announcing it, since her brain tells them, and returns
         // anything worth knowing, like Gaming Mode's line. Her window sets it.
         internal static Func<string, bool, string> SetSetting = delegate { return null; };
+        internal static Func<bool> LiteActive = delegate { return false; };
         // The same from voice chat, which holds back what would end the call until her reply is out. Her window sets it.
         internal static Func<string, bool, string> SetAgentSetting = delegate(string name, bool on) { return SetSetting(name, on); };
         // Which step one of her sliders is on, counted from the bottom, or -1 when it can't be read. Her window sets it.
@@ -7694,7 +7695,13 @@ namespace CapriDesktop
             bool want = way == "on";
             bool? was = SettingOn(args.Name);
             if (was == null) return args.Name == "mic" ? "Couldn't change my voice chat mic: voice chat isn't on." : "Couldn't read " + label + " just now.";
-            if (was.Value == want) return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
+            if (was.Value == want)
+            {
+#if CROSS
+                if (args.Name == "watch_my_screen" && LiteActive()) { string cleared = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want); if (cleared == GamingNeedsComments) return cleared; }
+#endif
+                return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
+            }
             string note = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want);
             // Gaming Mode stays off while game comments are Off, and she answers the same as her gaming_mode tool does.
             if (note == GamingNeedsComments) return note;

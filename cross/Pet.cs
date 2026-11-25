@@ -58,10 +58,11 @@ namespace CapriDesktop
         [DataMember] internal int MusicApp;
         [DataMember] internal bool Watch;
         // Lite mode stops her brain on this PC and pauses Watch my screen. LiteWatch is the ask to have Watch back when it goes
-        // off, and LiteWatchWas is what Watch was when Lite mode went on, so Off puts back exactly that.
+        // off, and LiteWatchWas is what Watch was when Lite mode went on, so Off puts back exactly that; a settings file from
+        // before LiteWatchWas existed has none, and Lite off then follows the ask alone, like it always did.
         [DataMember] internal bool Lite;
         [DataMember] internal bool LiteWatch;
-        [DataMember] internal bool LiteWatchWas;
+        [DataMember] internal bool? LiteWatchWas;
         [DataMember] internal int GlanceGap;
         [DataMember] internal bool NoCaughtUp;
         [DataMember] internal int? SleepAfter;
@@ -1007,6 +1008,7 @@ namespace CapriDesktop
             // Her settings tool reads and changes what her menus show.
             Hands.SettingOn = SettingOn;
             Hands.SetSetting = SetSetting;
+            Hands.LiteActive = delegate { return Saved.Lite; };
             Hands.LevelOf = LevelOf;
             Hands.SetLevel = SetLevel;
             Hands.SettingAction = delegate(ToolArguments args) { return SettingAction(args.Action); };
@@ -7371,7 +7373,7 @@ namespace CapriDesktop
             [DataMember] internal int MusicApp;
             [DataMember] internal bool Lite;
             [DataMember] internal bool LiteWatch;
-            [DataMember] internal bool LiteWatchWas;
+            [DataMember] internal bool? LiteWatchWas;
             [DataMember] internal bool RemoteOn;
             [DataMember] internal string RemoteHost;
         }
