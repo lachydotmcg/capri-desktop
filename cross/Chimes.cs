@@ -768,6 +768,17 @@ namespace CapriDesktop
                 pet.NameLineAccepted("Hi, Capri!");
                 if (played.Count != 1 || !Same(played[0], Render(Glass, Chime.Listening, 40)))
                     throw new Exception("A name-only greeting did not play Listening.");
+                var originalCulture = CultureInfo.CurrentCulture;
+                try
+                {
+                    foreach (var (locale, line) in new[] { ("tr-TR", "CAPRI"), ("en-US", "Capr\u0131!") })
+                    {
+                        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(locale);
+                        if (!NameListeningText.NameAlone(line))
+                            throw new Exception("Name-only classification differs from Python: " + locale + " / " + line);
+                    }
+                }
+                finally { CultureInfo.CurrentCulture = originalCulture; }
                 now += 10000; played.Clear(); Reset();
                 typeof(Pet).GetMethod("SendFirstJob", BindingFlags.Instance | BindingFlags.NonPublic)
                     .Invoke(pet, new object[] { "stop" });

@@ -35,6 +35,10 @@ namespace CapriDesktop
         // bridge/speech/name_chat.py's name_alone decides it: her name, then nothing but the greetings she answers to.
         // Python's word characters are letters, numbers and underscore; .NET's \w also counts combining marks, so the
         // name boundary is spelled out instead of \w to find the same name the Python gate finds.
+        // Python's re.IGNORECASE puts the Turkish I pair on i (I, i, İ and ı all match i); .NET's culture-sensitive
+        // IgnoreCase instead follows the current culture, so under tr-TR an ASCII I folds to ı, while invariant casing
+        // leaves İ and ı alone. Lowercase with the invariant rules, fold those two onto i by hand, and match the
+        // lowercase patterns with CultureInvariant so the answer can never depend on the machine's locale.
         internal static bool NameAlone(string text)
         {
             if (text == null) return false;
@@ -42,12 +46,13 @@ namespace CapriDesktop
             string normalized;
             try { normalized = text.Normalize(NormalizationForm.FormKC); }
             catch (ArgumentException) { normalized = text; }
+            normalized = normalized.ToLowerInvariant().Replace('\u0130', 'i').Replace('\u0131', 'i');
             const string word = @"[\p{L}\p{N}_]";
             string name = @"(?<!" + word + @")capri(?!" + word + @")";
-            if (!Regex.IsMatch(normalized, name, RegexOptions.IgnoreCase)) return false;
-            string left = Regex.Replace(normalized, name, " ", RegexOptions.IgnoreCase);
+            if (!Regex.IsMatch(normalized, name, RegexOptions.CultureInvariant)) return false;
+            string left = Regex.Replace(normalized, name, " ", RegexOptions.CultureInvariant);
             foreach (string part in Regex.Split(left, @"[^\p{L}\p{N}]+"))
-                if (part.Length > 0 && !Regex.IsMatch(part, @"\A(?:hey|hi|hiya|hello|yo|ok|okay|oi|um|uh)\z", RegexOptions.IgnoreCase))
+                if (part.Length > 0 && !Regex.IsMatch(part, @"\A(?:hey|hi|hiya|hello|yo|ok|okay|oi|um|uh)\z", RegexOptions.CultureInvariant))
                     return false;
             return true;
         }
