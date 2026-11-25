@@ -47,7 +47,8 @@ namespace CapriDesktop
         private Care care;
         private CareLines careLines;
         private bool careChecking, careNudge;
-        private double careAt, careGameAt;
+        private double careAt, careGameAt, careAbsentAt;
+        private bool? careAbsent;
         private string careGame;
         private double inputFrom, inputUntil;
         private double inputHandled = double.NegativeInfinity;
@@ -87,29 +88,44 @@ namespace CapriDesktop
             careChecking = true;
             bool games = CareOn(CareKind.Game) && now >= careGameAt;
             if (games) careGameAt = now + 15;
+            bool sessions = now >= careAbsentAt;
+            if (sessions) careAbsentAt = now + 5;
             Func<double> read = Idle;
+            Func<bool?> absent = Absent;
+            bool? gone = careAbsent;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 double quiet = -1;
                 double from = Now, until = from;
                 string playing = careGame;
-                try { quiet = read(); until = Now; if (games) playing = Hands.GameOpen(); }
+                try { quiet = read(); until = Now; }
+                catch (Exception) { }
+                try { if (sessions && !IdleKnown(quiet)) gone = absent(); if (games) playing = Hands.GameOpen(); }
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
                     careChecking = false;
                     if (quitting) return;
                     if (games) careGame = playing;
-                    if (quiet >= 0 && !double.IsInfinity(quiet))
+                    careAbsent = gone;
+                    if (IdleKnown(quiet))
                     {
                         ObserveInput(from, until, quiet);
                         CheckCare(Now, (long)((quiet + Now - until) * 1000));
                         CheckNews((long)((quiet + Now - until) * 1000));
                     }
+                    else
+                    {
+                        CheckCare(Now, CareQuiet(quiet, gone));
+                        CheckNews(CareQuiet(quiet, gone));
+                    }
                     CheckFollowUp(Now);
                 });
             });
         }
+
+        internal static bool IdleKnown(double quiet) { return quiet >= 0 && !double.IsInfinity(quiet); }
+        internal static long CareQuiet(double quiet, bool? absent) { return IdleKnown(quiet) ? (long)(quiet * 1000) : absent == true ? Care.Away + 1 : 0; }
 
         internal void CheckCare(double now, long quiet)
         {
@@ -118,7 +134,7 @@ namespace CapriDesktop
             if (line == null) return;
             if (care.Said == CareKind.Late) Save();
             if (care.Said == CareKind.Bored) Nudge(now, Mouse(), line);
-            else Reply(asking, "(check-in)", line);
+            else SayOwn(asking, "(check-in)", line);
         }
 
         internal void ObserveInput(double from, double until, double quiet)
@@ -145,7 +161,7 @@ namespace CapriDesktop
             if (line != null) Reply(asking, "(follow-up)", line, null, true);
         }
 
-        internal bool ShowReply(int ticket, string heard, string said, double seconds, string after, bool following, int input, int answer, RemoteTurn phone = null)
+        internal bool ShowReply(int ticket, string heard, string said, double seconds, string after, bool following, int input, int answer, RemoteTurn phone = null, string label = null)
         {
             try
             {
@@ -153,7 +169,7 @@ namespace CapriDesktop
                 if (HoldNews(ticket)) return false;
                 if (!RemoteReply(ticket, heard, said, following, phone)) return false;
                 bool current = answer == answerTurn;
-                Talk.Answer(heard, said, seconds);
+                Talk.Answer(label ?? heard, said, seconds);
                 selfTools.Replied(ticket);
                 if (ticket == newsTicket) KeepNews();
                 if (following) Brain.Followed(said);
@@ -163,9 +179,9 @@ namespace CapriDesktop
             finally { if (!following) RemoteEnd(phone); }
         }
 
-        internal void PresentReply(int ticket, string heard, string said, double seconds, string after, bool following, int input, int answer, Action shown, RemoteTurn phone = null)
+        internal void PresentReply(int ticket, string heard, string said, double seconds, string after, bool following, int input, int answer, Action shown, RemoteTurn phone = null, string label = null)
         {
-            if (!following) { if (ShowReply(ticket, heard, said, seconds, after, false, input, answer, phone)) shown(); return; }
+            if (!following) { if (ShowReply(ticket, heard, said, seconds, after, false, input, answer, phone, label)) shown(); return; }
             Func<double> read = Idle;
             FollowQueue(delegate
             {
@@ -177,7 +193,7 @@ namespace CapriDesktop
                 {
                     if (quiet < 0 || double.IsNaN(quiet) || double.IsInfinity(quiet)) return;
                     ObserveInput(from, until, quiet);
-                    if (ShowReply(ticket, heard, said, seconds, after, true, input, answer, phone)) shown();
+                    if (ShowReply(ticket, heard, said, seconds, after, true, input, answer, phone, label)) shown();
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });

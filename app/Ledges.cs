@@ -80,6 +80,17 @@ namespace CapriDesktop
             internal Rectangle Bounds;
             internal bool Seat;
             internal bool Solid;
+            internal bool Bare;
+            internal bool Floats;
+        }
+
+        // A window as the full-screen check sees it. Bare is no title bar and not maximized, and not an overlay or one of Windows'
+        // own pop-ups; Floats is always on top.
+        internal sealed class Pane
+        {
+            internal Rectangle Bounds;
+            internal bool Bare;
+            internal bool Floats;
         }
 
         private static string Kind(IntPtr window)
@@ -232,7 +243,10 @@ namespace CapriDesktop
                     Visit visit = delegate(IntPtr window, IntPtr data)
                     {
                         Rectangle bounds;
-                        if (Showing(window, out bounds)) found.Add(new Shown { Window = window, Bounds = bounds, Seat = Seatable(window, bounds), Solid = Solid(window, bounds) });
+                        if (!Showing(window, out bounds)) return true;
+                        int extended = Native.GetWindowLong(window, -20);
+                        bool bare = !IsZoomed(window) && !Native.Titled(window) && !Native.Overlay(extended) && Array.IndexOf(Flyouts, Kind(window)) < 0;
+                        found.Add(new Shown { Window = window, Bounds = bounds, Seat = Seatable(window, bounds), Solid = Solid(window, bounds), Bare = bare, Floats = (extended & 0x08) != 0 });
                         return true;
                     };
                     EnumWindows(visit, IntPtr.Zero);
@@ -279,6 +293,31 @@ namespace CapriDesktop
             foreach (Screen screen in Screen.AllScreens)
                 found.Add(new Ledge { Floor = true, Left = screen.WorkingArea.Left, Right = screen.WorkingArea.Right, Y = screen.WorkingArea.Bottom });
             return found;
+        }
+
+        // Which monitors have something full screen in front, like a game or a video, from the windows on them now.
+        internal static bool[] FullFronts(Rectangle[] monitors, ICollection<IntPtr> skip)
+        {
+            List<Pane> panes = new List<Pane>();
+            foreach (Shown window in Windows(skip)) panes.Add(new Pane { Bounds = window.Bounds, Bare = window.Bare, Floats = window.Floats });
+            return FullFronts(monitors, panes);
+        }
+
+        // Front to back, the first window on a monitor decides it: full when it covers all of it with no title bar, the way the
+        // check for the window in front goes. One floating above the rest without covering it, like a picture-in-picture
+        // video over a game, is passed over.
+        internal static bool[] FullFronts(Rectangle[] monitors, IList<Pane> panes)
+        {
+            bool[] full = new bool[monitors.Length];
+            for (int i = 0; i < monitors.Length; i++)
+                foreach (Pane pane in panes)
+                {
+                    if (!pane.Bounds.IntersectsWith(monitors[i])) continue;
+                    bool covers = pane.Bounds.Contains(monitors[i]);
+                    if (pane.Bare && covers) { full[i] = true; break; }
+                    if (!pane.Floats || covers) break;
+                }
+            return full;
         }
 
         internal static Ledge Below(IEnumerable<Ledge> ledges, Point hip, int over, int reach, int slack, int room)

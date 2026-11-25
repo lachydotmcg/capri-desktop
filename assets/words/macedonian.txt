@@ -30,6 +30,7 @@ Ask Capri for more	Побарај повеќе од Capri
 Asking your server...	Го прашувам твојот сервер...
 Asks before closing only the apps you choose.	Прашува пред да затвори само апликациите што ќе ги избереш.
 Auto	Автоматски
+Auto (match what I say)	Автоматски (како што зборувам)
 Automatic: VB-CABLE, else Steam's	Автоматски: VB-CABLE, инаку Steam
 BAD RELAY HOST	ЛОШ РЕЛЕ ХОСТ
 BIG Z open notepad	BIG Z отвори notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	Скриј / Прикажи Capri
 Hide / Show key	Клуч за скриј / прикажи
 Hide Capri	Скриј Capri
 Hide for now	Скриј за сега
+Hide her	Скриј ја
 Hide in full screen	Скриј во цел екран
 Hide this	Скриј го ова
+Hide, keep player	Скриј, задржи го плеерот
 Hide/show:	Скриј/прикажи:
 Hide/show: Ctrl + Alt + H	Скриј/прикажи: Ctrl + Alt + H
 Hologram	Холограм
@@ -288,6 +291,7 @@ Huge	Огромно
 I can hear you.	Те слушам.
 I glance at your screen and comment. Costs a little on a paid brain.	Ја гледам твојата екран и коментирам. Чини малку со платен мозок.
 I keep listening. Say my name, then just talk.	Продолжувам да слушам. Кажи го моето име, па само зборувај.
+I speak	Зборувам
 I talk about your game as you play. Costs a little on a paid brain.	Зборувам за твојата игра додека играш. Чини малку со платен мозок.
 I type my replies and stay quiet.	Ги пишувам моите одговори и молчам.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Нема да одговарам, и ништо не се испраќа никаде. Сепак ќе се дружам, ќе танцувам на твојата музика и ќе ги правам брзите работи што ќе ги побараш, како гласноста.
@@ -296,6 +300,7 @@ IN DISCORD >	ВО DISCORD >
 INSTALLED >	ИНСТАЛИРАНО >
 Import a Capri mod	Увези Capri мод
 Import mod	Увези мод
+In full screen	На цел екран
 In games	Во игри
 Input	Влез
 Input, Output or How to overlaps a row	Влез, излез или Како се преклопува редот
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	КЛУЧЕВИ
 KEYS >	КЛУЧЕВИ >
 Keep PC awake for jobs	Држи го PC будно за задачи
+Keep player	Задржи го плеерот
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Ги чува последните две минути од твојата игра во меморија. Кажи clip that за да ги зачуваш.
 Key	Клуч
 Key cleared: a model file needs none.	Клучот е исчистен: модел-датотеката не треба ниеден.
@@ -439,6 +445,7 @@ No AI · no brain at all	БЕЗ AI · без никаков мозок
 No brain runs, and nothing is sent anywhere.	Ниеден мозок не работи, и ништо не се испраќа никаде.
 No brain yet	Уште нема мозок
 No code open	Нема отворен код
+No limit	Без ограничување
 No mic found	Не е пронајден микрофон
 No mods in the directory yet.	Нема модови во папката уште.
 No mods match that.	Ниеден мод не одговара на тоа.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Висина
 Play	Пушти
 Play...	Пушти...
+Player only	Само плеерот
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Моделите Pocket TTS го копираат гласот од овој клип. Притисни Тест за да го слушнеш.
 Pop-in times	Времиња на појавување
 Pop-ins	Појавувања
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	СОРТИРАЈ ПО
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ЗВУЦИ НАВИКИ МОЗОК СЛЕДИ CAPRI DOOMSCROLL ВРЕМЕ КЛИПОВИ ИГРИ КЛУЧЕВИ ДВИЖЕЊА ГЛАС ТИ
+Same as I speak	Како мојот јазик
 Same as her ears (VOICE > Mic)	Исто како нејзините уши (ГЛАС > Микрофон)
 Same code on the phone?	Истиот код на телефонот?
 Save	Зачувај
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Поставките немаа што да сл�
 Settings lost keyboard focus during the Tab walk	Поставките го загубија фокусот на тастатурата за време на Tab одењето
 Setup guide	Водич за поставување
 Setup stopped	Поставувањето запре
+She answers in	Таа одговара на
 She can read it when it fits.	Може да го прочита кога ќе одговара.
 She glances at your screen and comments. Costs a little on a paid brain.	Ја гледа твојот екран и коментира. Чини малку со платен мозок.
-She keeps listening. Say her name, then just talk until you go quiet.	Продолжува да слуша. Кажи нејзино име, па зборувај додека не утивнеш.
+She keeps listening. Say her name, then just talk.	Продолжува да слуша. Кажи нејзино име, па зборувај.
 She reacts to your game until you close it.	Реагира на твојата игра додека не ја затвориш.
 She reads these controls before each game job.	Ги чита овие контроли пред секоја игра задача.
 She talks about your game as you play. Costs a little on a paid brain.	Зборува за твојата игра додека играш. Чини малку со платен мозок.
@@ -666,6 +676,7 @@ Speed	Брзина
 Start with Windows	Стартувај со Windows
 Start with this!	Почни со ова!
 Starting...	Се стартува...
+Stay	Остани
 Stay on my model	Остани на мојот модел
 Still checking your mics...	Уште ги проверувам твоите микрофони...
 Still checking your speakers...	Уште ги проверувам твоите звучници...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	нема да пи�
 · HD	· HD
 · on this PC	· на овој PC
 · server	· сервер
+Edit as text	Уреди како текст
+What Capri remembers about you. It stays on this computer.	Што памети Capri за тебе. Останува на овој компјутер.
+Tell her something to remember	Кажи ѝ нешто за паметење
+Search her memory	Барај во нејзината меморија
+That day isn't there any more.	Тој ден веќе го нема.
+Undo	Врати
+Remember our chats is off, so she isn't keeping new chat memories.	Паметењето на нашите разговори е исклучено, па не чува нови спомени од разговори.
+ABOUT YOU	ЗА ТЕБЕ
+FROM YOUR CHATS	ОД ТВОИТЕ РАЗГОВОРИ
+GAMES	ИГРИ
+CHAT LOGS	ДНЕВНИЦИ НА РАЗГОВОРИ
+CHAT LOG	ДНЕВНИК НА РАЗГОВОР
+Nothing matches.	Нема совпаѓања.
+Nothing yet.	Сè уште ништо.
+Reading her notes.	Ги чита нејзините белешки.
+Click again to forget game notes	Кликни повторно за да ги заборавиш белешките за игри
+Forget game notes	Заборави белешки за игри
+Click again to forget everything about me	Кликни повторно за да заборавиш сè за тебе
+Forget everything about me	Заборави сè за тебе
+Click again to forget	Кликни повторно за да заборавиш
+Forget this day	Заборави го овој ден
+Only the start of this day is shown.	Се прикажува само почетокот на овој ден.
+Nothing in this day.	Ништо на овој ден.
+No chats kept yet.	Сè уште нема зачувани разговори.
+You	Ти
+{0} line	{0} ред
+SET UP EMAIL >	ПОСТАВИ Е-ПОШТА >
+SET UP EMAIL	ПОСТАВИ Е-ПОШТА
+Or type your address	Или напиши ја твојата адреса
+Email address	Адреса на е-пошта
+Open the page	Отвори ја страницата
+App password	Лозинка на апликацијата
+IMAP server	IMAP сервер
+Incoming mail server	Сервер за дојдовна пошта
+SMTP server	SMTP сервер
+Outgoing mail server	Сервер за излезна пошта
+An app password is a separate password just for Capri. Your normal password stays yours.	Лозинката на апликацијата е посебна лозинка само за Capri. Твојата обична лозинка останува твоја.
+She keeps it only until she closes.	Ја чува само додека не се затвори.
+She checks, searches and reads your mail. She asks before she sends any.	Таа ја проверува, бара и чита твојата пошта. Прашува пред да испрати нешто.
+Watch for new mail	Следи нова пошта
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Таа се јавува кога ќе пристигне пошта, со предупредување ако изгледа како фишинг. Ништо не се означува како прочитано.
+Deal with phishing on her own	Справувај се сама со фишинг
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Само додека таа следи. Поштата за која е сигурна дека е фишинг оди во спам. Останатото го чека твоето да.
+Forget account	Заборави сметка
+Use another email	Користи друга е-пошта
+Which email?	Која е-пошта?
+Make an app password	Направи лозинка на апликацијата
+Paste it	Залепи ја
+Connecting...	Поврзување...
+She can use your email now.	Таа сега може да ја користи твојата е-пошта.
+She's not watching your inbox.	Таа не го следи твоето сандаче.
+She's watching your inbox and deals with phishing she's sure of.	Таа го следи твоето сандаче и се справува со фишингот за кој е сигурна.
+She's watching your inbox and tells you when mail lands.	Таа го следи твоето сандаче и ти кажува кога ќе пристигне пошта.
+She forgot that account and its app password.	Ја заборави таа сметка и нејзината лозинка на апликацијата.
+She forgot that account. Its app password is gone from this PC.	Ја заборави таа сметка. Нејзината лозинка на апликацијата исчезна од овој компјутер.

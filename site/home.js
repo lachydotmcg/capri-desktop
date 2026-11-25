@@ -1353,7 +1353,7 @@
     [/\b(mac|macos|apple|silicon|intel)\b/i, 'Mac needs macOS 15 or newer, choom. Grab the Apple Silicon or Intel zip. The Help page has the first-open steps.'],
     [/\b(linux|wayland|x11|appimage)\b/i, 'Linux is an early preview, choom. AppImage or tarball, with Ollama for my brain. On Wayland I sit at the bottom of your screen.'],
     [/\b(ram|memory requirements|requirements|specs|graphics|disk space)\b/i, 'Local brain: 8 GB RAM, 16 is better, and 3 to 5 GB space. With a brain key: 4 GB RAM and under 100 MB, choom.'],
-    [/\b(install|download|windows|setup|microsoft store)\b/i, "On Windows 10 or 11, get me from the Microsoft Store, choom. It's signed, so Windows won't warn you. Want the newest stuff first? Grab Capri-Setup.exe instead."],
+    [/\b(install|download|windows|setup|microsoft store)\b/i, 'On Windows 10 or 11, 64-bit, grab Capri-Setup.exe and open it, choom. The installer has everything.'],
     [/\b(cost|price|free|pay|subscription)\b/i, "I'm free, choom. My built-in brain and free voice run on your PC. Some optional cloud keys need paid credits."],
     [/\b(offline|internet|connection)\b/i, 'My built-in brain and free voice run on your PC, choom. A brain from a key needs internet.'],
     [/\b(brain|model|ollama|nvidia)\b/i, 'Open Capri Mainframe, then BRAIN > Set up her brain, choom. On Mac and Linux my brain uses Ollama.'],
@@ -1786,12 +1786,8 @@
   let system = /Android|iPhone|iPad|CrOS/.test(agent) ? 'windows' : /mac/i.test(platform) && navigator.maxTouchPoints < 2 ? 'mac' : /linux|x11/i.test(platform) ? 'linux' : 'windows';
   const urls = {};
   for (const link of $$('a[data-os]')) urls[link.dataset.os] = link.href;
-  // Windows gets the signed copy on the Microsoft Store first; the latest release is a link beside it.
-  const pick = () => system === 'windows' ? 'store' : system;
   const point = () => {
-    const to = pick();
-    install.href = urls[to] || urls.windows;
-    if (to === 'store') { install.target = '_blank'; install.rel = 'noopener noreferrer'; } else install.removeAttribute('target');
+    install.href = urls[system] || urls.windows;
     for (const link of $$('a[data-os]')) if (urls[link.dataset.os]) link.href = urls[link.dataset.os];
     const yours = $('[data-panel="' + (system === 'intel' ? 'mac' : system) + '"] .yours');
     if (yours) yours.hidden = false;
@@ -1810,7 +1806,6 @@
   } else if (system === 'mac' && intelGraphics()) { system = 'intel'; point(); }
   const headsUp = $('#heads-up');
   const warn = os => {
-    if (os === 'store') return;                                                  // the Store copy is signed: no heads-up
     const showing = os === 'intel' ? 'mac' : os;
     for (const note of $$('p[data-os]', headsUp)) note.hidden = note.dataset.os !== showing;
     if (headsUp.showModal && !headsUp.open) headsUp.showModal();
@@ -1818,7 +1813,7 @@
   document.addEventListener('click', event => {
     const link = event.target.closest('a[data-os], #install');
     if (!link) return;
-    warn(link.dataset.os || pick());
+    warn(link.dataset.os || system);
     if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) readCount({ method: 'POST', keepalive: true }).catch(() => {});
   });
   headsUp.addEventListener('click', event => { if (event.target === headsUp) headsUp.close(); });
@@ -1836,7 +1831,7 @@
       : /mac/i.test(platform) ? (system === 'intel' ? 'intel' : 'mac')
       : /CrOS/.test(agent) ? 'linux'                                                     // a Chromebook runs her Linux build, as a folder
       : /linux|x11/i.test(platform) ? 'appimage'
-      : 'store';                                                                         // Windows: the signed copy first
+      : 'windows';
     let picked = false;
     const choose = way => {
       const option = options.find(item => item.dataset.way === way);

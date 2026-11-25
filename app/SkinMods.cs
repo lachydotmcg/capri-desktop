@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Text.RegularExpressions;
 #if CROSS
 using Companion = CapriDesktop.Pet;
 using Size = Avalonia.PixelSize;
@@ -32,6 +33,77 @@ namespace CapriDesktop
         // 3840 by 384 cells against her 0.8.5 strip, anything else against her current one, whichever stand she's on.
         internal static string BaseArt(string name, int width, int height) { return StandArt(name, width == OldIdleWide && height == OldIdleHigh); }
         internal Action SkinChanged;
+        internal const int MostFrames = 240, WidestStrip = 32767, FastestFps = 60;
+        internal static readonly string[] FixedFrames = { "mouth", "idle_mouth", "form", "click" };
+        private static readonly Dictionary<string, int> ownFrames = new Dictionary<string, int>();
+        private static volatile Dictionary<string, int> rates = new Dictionary<string, int>();
+
+        internal static string StripOf(string name)
+        {
+            string strip = name ?? "";
+            if (strip.StartsWith("Capri.Sprite.", StringComparison.Ordinal)) strip = strip.Substring("Capri.Sprite.".Length);
+            if (strip.EndsWith(".png", StringComparison.Ordinal)) strip = strip.Substring(0, strip.Length - 4);
+            if (strip.EndsWith("_flipped", StringComparison.Ordinal)) strip = strip.Substring(0, strip.Length - "_flipped".Length);
+            return strip;
+        }
+
+        internal static void OwnFrames(string name, int count)
+        {
+            lock (ownFrames) ownFrames[StripOf(name)] = count;
+        }
+
+        internal static int OwnFramesOf(string name)
+        {
+            int count;
+            lock (ownFrames) return ownFrames.TryGetValue(StripOf(name), out count) ? count : 0;
+        }
+
+        internal static bool Reframes(string name)
+        {
+            string strip = StripOf(name);
+            return OwnFramesOf(strip) > 0 && Array.IndexOf(FixedFrames, strip) < 0;
+        }
+
+        internal static int FramesIn(string name, int width, int height, int ownWidth, int ownHeight)
+        {
+            int own = OwnFramesOf(name);
+            if (width == ownWidth && height == ownHeight) return Math.Max(1, own);
+            if (!Reframes(name) || height != ownHeight || width > WidestStrip) return 0;
+            int cell = ownWidth / own;
+            if (cell <= 0 || width % cell != 0) return 0;
+            int frames = width / cell;
+            return frames >= 1 && frames <= MostFrames ? frames : 0;
+        }
+
+        internal static int RateOf(string name)
+        {
+            int rate;
+            return rates.TryGetValue(StripOf(name), out rate) ? rate : 0;
+        }
+
+        private void Retime(List<Mod> stack)
+        {
+            Dictionary<string, int> found = new Dictionary<string, int>();
+            foreach (Mod mod in stack)
+                if (mod.File.Frames != null)
+                    foreach (ModFrames frames in mod.File.Frames) found[StripOf(frames.Strip)] = frames.Fps;
+            rates = found;
+        }
+
+        internal static bool PngSize(Stream stream, out int width, out int height)
+        {
+            width = height = 0;
+            if (stream == null) return false;
+            byte[] head = new byte[24];
+            int read = 0, got;
+            while (read < 24 && (got = stream.Read(head, read, 24 - read)) > 0) read += got;
+            byte[] mark = { 137, 80, 78, 71, 13, 10, 26, 10 };
+            if (read != 24) return false;
+            for (int i = 0; i < mark.Length; i++) if (head[i] != mark[i]) return false;
+            width = head[16] << 24 | head[17] << 16 | head[18] << 8 | head[19];
+            height = head[20] << 24 | head[21] << 16 | head[22] << 8 | head[23];
+            return width > 0 && height > 0;
+        }
 
         private string SkinHome(string id) { return Path.Combine(folder, id + "-skin"); }
 
@@ -51,6 +123,7 @@ namespace CapriDesktop
             try
             {
                 string extension = Path.GetExtension(file);
+                if (string.Equals(extension, CompanionExtension, StringComparison.OrdinalIgnoreCase)) return CompanionVersionIn(file);
                 if (string.Equals(extension, SkinExtension, StringComparison.OrdinalIgnoreCase))
                     using (ZipArchive zip = ZipFile.OpenRead(file))
                     {
@@ -58,6 +131,7 @@ namespace CapriDesktop
                         if (details == null || details.Length > Largest) return null;
                         using (StreamReader reading = new StreamReader(details.Open(), Encoding.UTF8)) return ReadJson(reading.ReadToEnd()).Version;
                     }
+                if (string.Equals(extension, PluginExtension, StringComparison.OrdinalIgnoreCase)) return PluginVersionIn(file);
                 if (new FileInfo(file).Length > 4 * 1024 * 1024) return null;
                 string text = File.ReadAllText(file, Encoding.UTF8);
                 if (string.Equals(extension, CodeExtension, StringComparison.OrdinalIgnoreCase)) return ReadCode(text).Version;
@@ -75,6 +149,19 @@ namespace CapriDesktop
         {
             ModFile read = ReadJson(text);
             CheckDetails(read);
+            if (read.Frames != null)
+            {
+                if (read.Frames.Length > MostEntries) throw new ModException("A skin can set the speed of up to " + MostEntries + " strips.");
+                foreach (ModFrames frames in read.Frames)
+                {
+                    string strip = frames == null ? null : frames.Strip;
+                    if (string.IsNullOrEmpty(strip) || strip.IndexOfAny(new[] { '/', '\\', ':', '.' }) >= 0 || !Companion.HasArt("Capri.Sprite." + strip + ".png")) throw new ModException("\"" + strip + "\" in frames isn't one of her sprite strips.");
+                    if (Array.IndexOf(FixedFrames, StripOf(strip)) >= 0) throw new ModException("\"" + strip + "\" keeps her own speed.");
+                    if (frames.Fps < 1 || frames.Fps > FastestFps) throw new ModException("\"" + strip + "\" needs a speed from 1 to " + FastestFps + " frames a second.");
+                    frames.Strip = StripOf(strip);
+                }
+            }
+            CheckMoves(read);
             read.WakeNames = new string[0];
             read.HeardAs = new string[0];
             read.Accessory |= read.Overlay;
@@ -124,12 +211,17 @@ namespace CapriDesktop
                 using (ZipArchive zip = ZipFile.OpenRead(file))
                 {
                     if (zip.Entries.Count > MostEntries) throw new ModException("That skin has too many files. It should only hold skin.json and her sprite strips.");
+                    List<ZipArchiveEntry> moving = new List<ZipArchiveEntry>();
                     foreach (ZipArchiveEntry entry in zip.Entries)
                     {
                         string name = entry.FullName;
                         if (name.Length == 0 || name.IndexOfAny(new[] { '/', '\\', ':' }) >= 0 || name.Contains("..")) throw new ModException("\"" + name + "\" can't be in a skin. Keep every file at the top of the zip.");
                         bool isDetails = name == SkinDetails;
-                        if (!isDetails && !(name.EndsWith(".png", StringComparison.Ordinal) && Companion.HasArt("Capri.Sprite." + name))) throw new ModException("\"" + name + "\" isn't one of her sprite strips.");
+                        if (!isDetails && !(name.EndsWith(".png", StringComparison.Ordinal) && Companion.HasArt("Capri.Sprite." + name)))
+                        {
+                            if (MoveFile.IsMatch(name)) { moving.Add(entry); continue; }
+                            throw new ModException("\"" + name + "\" isn't one of her sprite strips.");
+                        }
                         string target = Path.Combine(into, name);
                         long size = Copy(entry, target, isDetails ? Largest : LargestPicture);
                         total += size;
@@ -141,12 +233,31 @@ namespace CapriDesktop
                             pictures++;
                         }
                     }
+                    if (read == null) throw new ModException("A skin needs a " + SkinDetails + " file.");
+                    foreach (ZipArchiveEntry entry in moving)
+                    {
+                        ModMove move = read.Moves == null ? null : Array.Find(read.Moves, each => each.Strip == entry.FullName);
+                        if (move == null) throw new ModException("\"" + entry.FullName + "\" isn't one of her sprite strips, or a move's strip in skin.json.");
+                        string target = Path.Combine(into, entry.FullName);
+                        total += Copy(entry, target, LargestPicture);
+                        if (total > LargestUnpacked) throw new ModException("That skin unpacks too big.");
+                        CheckMove(target, move);
+                        pictures++;
+                    }
+                    if (read.Moves != null)
+                        foreach (ModMove move in read.Moves)
+                            if (!File.Exists(Path.Combine(into, move.Strip))) throw new ModException("The move " + move.Name + " needs " + move.Strip + " in the skin.");
                 }
             }
             catch (InvalidDataException) { throw new ModException("That file isn't a valid skin zip."); }
             if (read == null) throw new ModException("A skin needs a " + SkinDetails + " file.");
             if (pictures == 0) throw new ModException("That skin has no pictures in it.");
             return read;
+        }
+
+        private static void Put(ZipArchive zip, string name, byte[] bytes)
+        {
+            using (Stream into = zip.CreateEntry(name).Open()) into.Write(bytes, 0, bytes.Length);
         }
 
         private static long Copy(ZipArchiveEntry entry, string target, long limit)
@@ -175,8 +286,14 @@ namespace CapriDesktop
             byte[] mark = { 137, 80, 78, 71, 13, 10, 26, 10 };
             for (int i = 0; i < mark.Length; i++) if (head[i] != mark[i]) throw new ModException("\"" + name + "\" isn't a PNG.");
             int width = head[16] << 24 | head[17] << 16 | head[18] << 8 | head[19], height = head[20] << 24 | head[21] << 16 | head[22] << 8 | head[23];
-            Size wanted = name == "idle.png" && width == OldIdleWide && height == OldIdleHigh ? new Size(width, height) : Companion.ArtSize("Capri.Sprite." + name);
-            if (width != wanted.Width || height != wanted.Height) throw new ModException("\"" + name + "\" is " + width + " x " + height + ". It has to match hers, " + wanted.Width + " x " + wanted.Height + ".");
+            Size own = Companion.ArtSize("Capri.Sprite." + name), wanted = new Size(width, height);
+            bool old = name == "idle.png" && width == OldIdleWide && height == OldIdleHigh;
+            if (!old && FramesIn(name, width, height, own.Width, own.Height) == 0) throw new ModException(Misfit(name, width, height, own));
+            Decodes(file, name, wanted);
+        }
+
+        private static void Decodes(string file, string name, Size wanted)
+        {
 #if CROSS
             try { using (Avalonia.Media.Imaging.Bitmap decoded = new Avalonia.Media.Imaging.Bitmap(file)) if (decoded.PixelSize != wanted) throw new ModException("\"" + name + "\" is the wrong size."); }
 #else
@@ -194,6 +311,131 @@ namespace CapriDesktop
 #endif
         }
 
+        internal static string Misfit(string name, int width, int height, Size own)
+        {
+            string said = "\"" + name + "\" is " + width + " x " + height + ". ";
+            int count = OwnFramesOf(name);
+            if (!Reframes(name) || count <= 0) return said + "It has to match hers, " + own.Width + " x " + own.Height + ".";
+            return said + "It has to match hers: " + own.Height + " px tall, and " + own.Width / count + " px wide for each frame, up to " + Math.Min(MostFrames, WidestStrip / Math.Max(1, own.Width / count)) + " frames (she has " + count + ").";
+        }
+
+        internal const int MostMoves = 16, MostShownMoves = 32, MoveFps = 12;
+        private static readonly Regex MoveWords = new Regex(@"\A[a-z][a-z0-9]*(?:_[a-z0-9]+)*\z");
+        private static readonly Regex MoveFile = new Regex(@"\A[a-z0-9][a-z0-9_-]{0,47}\.png\z");
+        private static readonly string[] OwnMoveNames = { "idle", "glitch", "grin", "smile", "blink", "dance", "dancing", "stop", "stop_dancing", "chair", "heart", "hearts" };
+        private static Size moveCell;
+
+        internal static Size MoveCell
+        {
+            get
+            {
+                if (moveCell.Width > 0) return moveCell;
+                Size own = Companion.ArtSize("Capri.Sprite.idle.png");
+                int frames = OwnFramesOf("idle");
+                moveCell = new Size(own.Width / (frames > 0 ? frames : 60), own.Height);
+                return moveCell;
+            }
+        }
+
+        internal static bool OwnMove(string name)
+        {
+            return Array.IndexOf(OwnMoveNames, name) >= 0 || Companion.HasArt("Capri.Sprite." + name + ".png") || Companion.HasArt("Capri.Sprite." + name);
+        }
+
+        internal static string MoveNameTrouble(string name)
+        {
+            if (string.IsNullOrEmpty(name) || name.Length < 2 || name.Length > 24 || !MoveWords.IsMatch(name)) return "\"" + name + "\" can't be a move's name. Use 2 to 24 lowercase letters or numbers, with _ between words, like happy_wave.";
+            if (OwnMove(name)) return "\"" + name + "\" is one of her own animations. Give your move a name of its own.";
+            return null;
+        }
+
+        private static void CheckMoves(ModFile read)
+        {
+            if (read.Moves == null) return;
+            if (read.Moves.Length > MostMoves) throw new ModException("A skin can add up to " + MostMoves + " moves.");
+            HashSet<string> names = new HashSet<string>(), strips = new HashSet<string>();
+            foreach (ModMove move in read.Moves)
+            {
+                if (move == null) throw new ModException("A move in skin.json is empty.");
+                string trouble = MoveNameTrouble(move.Name);
+                if (trouble != null) throw new ModException(trouble);
+                if (!names.Add(move.Name)) throw new ModException("The skin has two moves called " + move.Name + ".");
+                string strip = string.IsNullOrEmpty(move.Strip) ? move.Name + ".png" : move.Strip;
+                if (!MoveFile.IsMatch(strip) || OwnMove(strip)) throw new ModException("\"" + strip + "\" can't be the strip for " + move.Name + ". Call it " + move.Name + ".png and keep it at the top of the zip.");
+                if (!strips.Add(strip)) throw new ModException("Two moves can't share " + strip + ".");
+                if (move.Fps == 0) move.Fps = MoveFps;
+                if (move.Fps < 1 || move.Fps > FastestFps) throw new ModException("\"" + move.Name + "\" needs a speed from 1 to " + FastestFps + " frames a second.");
+                move.Strip = strip;
+            }
+        }
+
+        private static void CheckMove(string file, ModMove move)
+        {
+            int width, height;
+            using (FileStream reading = new FileStream(file, FileMode.Open, FileAccess.Read))
+                if (!PngSize(reading, out width, out height)) throw new ModException("\"" + move.Strip + "\" isn't a PNG.");
+            if (MoveFrames(width, height) == 0) throw new ModException(MoveMisfit(move.Strip, width, height));
+            Decodes(file, move.Strip, new Size(width, height));
+        }
+
+        internal static int MoveFrames(int width, int height)
+        {
+            Size cell = MoveCell;
+            if (cell.Width <= 0 || height != cell.Height || width > WidestStrip || width % cell.Width != 0) return 0;
+            int frames = width / cell.Width;
+            return frames >= 1 && frames <= MostFrames ? frames : 0;
+        }
+
+        internal static string MoveMisfit(string strip, int width, int height)
+        {
+            Size cell = MoveCell;
+            return "\"" + strip + "\" is " + width + " x " + height + ". A move's frames are " + cell.Width + " x " + cell.Height + " each, like her standing frames, side by side, up to " + Math.Min(MostFrames, WidestStrip / Math.Max(1, cell.Width)) + " of them.";
+        }
+
+        internal sealed class SkinMove
+        {
+            internal string Name, File, Skin;
+            internal int Fps, Frames;
+            internal bool Loop;
+        }
+
+        private static volatile SkinMove[] movesNow = new SkinMove[0];
+
+        internal static SkinMove[] MovesNow { get { return movesNow; } }
+
+        internal static SkinMove MoveNamed(string name)
+        {
+            foreach (SkinMove move in movesNow) if (move.Name == name) return move;
+            return null;
+        }
+
+        private void GatherMoves(List<Mod> stack)
+        {
+            List<SkinMove> found = new List<SkinMove>();
+            for (int i = stack.Count - 1; i >= 0 && found.Count < MostShownMoves; i--)
+            {
+                ModFile skin = stack[i].File;
+                if (skin.Moves == null) continue;
+                foreach (ModMove move in skin.Moves)
+                {
+                    if (found.Count >= MostShownMoves || found.Exists(had => had.Name == move.Name)) continue;
+                    string file = Path.Combine(SkinHome(skin.Id), move.Strip);
+                    int width = 0, height = 0;
+                    try
+                    {
+                        using (FileStream reading = new FileStream(file, FileMode.Open, FileAccess.Read))
+                            if (!PngSize(reading, out width, out height)) continue;
+                    }
+                    catch (IOException) { continue; }
+                    catch (UnauthorizedAccessException) { continue; }
+                    int frames = MoveFrames(width, height);
+                    if (frames > 0) found.Add(new SkinMove { Name = move.Name, File = file, Skin = skin.Id, Fps = move.Fps > 0 ? move.Fps : MoveFps, Frames = frames, Loop = move.Loop });
+                }
+            }
+            found.Sort((one, other) => string.CompareOrdinal(one.Name, other.Name));
+            movesNow = found.ToArray();
+        }
+
         // Skins stack: turning one on puts it on top of the others, and off takes it out of the stack.
         private void SetSkin(Mod mod, bool on)
         {
@@ -206,6 +448,69 @@ namespace CapriDesktop
         }
 
         private const string StackFile = "stack.txt";
+
+        internal Mod Outfit
+        {
+            get
+            {
+                List<Mod> stack = SkinStack;
+                return stack.Count == 0 || stack[0].File.Accessory ? null : stack[0];
+            }
+        }
+
+        internal string OutfitFolder { get { Mod outfit = Outfit; return outfit == null ? null : SkinHome(outfit.File.Id); } }
+
+        internal static string IdFor(string name)
+        {
+            StringBuilder id = new StringBuilder();
+            foreach (char letter in (name ?? "").ToLowerInvariant())
+            {
+                if ((letter >= 'a' && letter <= 'z') || (letter >= '0' && letter <= '9')) id.Append(letter);
+                else if (id.Length > 0 && id[id.Length - 1] != '-') id.Append('-');
+                if (id.Length >= 48) break;
+            }
+            string made = id.ToString().Trim('-');
+            return made.Length == 0 ? "my-animations" : made;
+        }
+
+        internal static void PackSkin(string file, ModFile details, IDictionary<string, byte[]> strips)
+        {
+            details.Format = Format;
+            CheckDetails(details);
+            string writing = file + ".new";
+            if (File.Exists(writing)) File.Delete(writing);
+            using (ZipArchive zip = ZipFile.Open(writing, ZipArchiveMode.Create))
+            {
+                using (MemoryStream json = new MemoryStream())
+                {
+                    new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(ModFile)).WriteObject(json, details);
+                    Put(zip, SkinDetails, json.ToArray());
+                }
+                foreach (KeyValuePair<string, byte[]> strip in strips) Put(zip, strip.Key, strip.Value);
+            }
+            if (File.Exists(file)) File.Delete(file);
+            File.Move(writing, file);
+        }
+
+        internal Mod WearOutfit(string file)
+        {
+            Mod was = Outfit;
+            Mod made = ImportSkin(file, false);
+            if (made == null) return null;
+            HashSet<string> off = Off();
+            if (was != null && was.File.Id != made.File.Id) off.Add(was.File.Id);
+            off.Remove(made.File.Id);
+            WriteOff(off);
+            List<string> order = StackOrder();
+            order.Remove(made.File.Id);
+            order.Insert(0, made.File.Id);
+            try { File.WriteAllLines(Path.Combine(folder, StackFile), order.ToArray()); }
+            catch (IOException error) { Brain.Log("mods", -1, error.Message); }
+            catch (UnauthorizedAccessException error) { Brain.Log("mods", -1, error.Message); }
+            Load();
+            Reskin();
+            return All.Find(mod => mod.File.Id == made.File.Id);
+        }
 
         // Her skins that are on, bottom first, in the order they were put on.
         internal List<Mod> SkinStack
@@ -260,7 +565,7 @@ namespace CapriDesktop
         private void ApplySkin()
         {
             string wanted = WantedSkin();
-            string colours = string.Join(",", ColoursNow), layers = string.Join("|", WantedAccessories());
+            string colours = string.Join(",", ColoursWorn), layers = string.Join("|", WantedAccessories());
             if (wanted != Companion.SkinFolder || lastSkin != wanted || colours != lastColours || layers != string.Join("|", Companion.SkinAccessories) || layers != lastAccessories) Reskin(wanted);
         }
 
@@ -269,6 +574,8 @@ namespace CapriDesktop
         // The bottom of her stack is her outfit, drawn whole, unless it's an accessory, which goes over her own look.
         private string WantedSkin()
         {
+            Mod companion = CompanionOn;
+            if (companion != null && companion.Pack.Art) return companion.Pack.Folder;
             List<Mod> stack = SkinStack;
             return stack.Count == 0 || stack[0].File.Accessory ? null : SkinHome(stack[0].File.Id);
         }
@@ -279,6 +586,8 @@ namespace CapriDesktop
         {
             List<Mod> stack = SkinStack;
             List<string> layers = new List<string>();
+            Mod companion = CompanionOn;
+            if (companion != null && companion.Pack.Art) return layers.ToArray();
             for (int i = 0; i < stack.Count; i++)
             {
                 if (i == 0 && !stack[0].File.Accessory) continue;
@@ -291,11 +600,14 @@ namespace CapriDesktop
 
         private void Reskin(string wanted)
         {
+            List<Mod> stack = SkinStack;
+            Retime(stack);
+            GatherMoves(stack);
             Companion.SkinFolder = wanted;
             Companion.SkinAccessories = WantedAccessories();
             lastSkin = wanted;
             lastAccessories = string.Join("|", Companion.SkinAccessories);
-            string[] now = ColoursNow;
+            string[] now = ColoursWorn;
             lastColours = string.Join(",", now);
             ArtColors.Set(now);
             if (SkinChanged != null) SkinChanged();
@@ -407,6 +719,17 @@ namespace CapriDesktop
         private static readonly System.Reflection.Assembly Assembly2 = System.Reflection.Assembly.GetExecutingAssembly();
 
         private const string SpriteLead = "Capri.Sprite.";
+
+        internal static bool SkinLacksLeft(string name)
+        {
+            string skin = SkinFolder;
+            if (skin == null || !name.StartsWith(SpriteLead, StringComparison.Ordinal) || !name.EndsWith("_flipped.png", StringComparison.Ordinal)) return false;
+            string right = name.Substring(0, name.Length - "_flipped.png".Length) + ".png", stand = Mods.StandArt(right, LegacyArt);
+            Func<string, bool> has = delegate(string art) { return File.Exists(Path.Combine(skin, art.Substring(SpriteLead.Length))); };
+            return (has(right) || (stand != right && has(stand))) && !has(name);
+        }
+
+        internal static Bitmap LoadLeftArt(string name) { return SkinLacksLeft(name) ? null : LoadArt(name); }
 
         // Her skin's picture for name, or null to use her own, not yet coloured.
         private static Bitmap SkinArt(string name)
@@ -565,6 +888,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             Clip.ReloadAll();
+            RebuildMoves();
             drawnClip = null;
             blinkWith = null;
             if (IsHandleCreated && !IsDisposed) RenderFrame();
@@ -709,6 +1033,7 @@ namespace CapriDesktop
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 if (shown() != original || Directory.GetDirectories(mods.Folder, "skin-*").Length != 0) throw new Exception("Removing skins left them behind.");
                 checks.Add("PASS skins: removing a skin deletes it and restores her art");
+                CheckFrames(checks, output);
                 string real = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "..", "..", "mods", "maid-suit" + Mods.SkinExtension));
                 if (!File.Exists(real)) { checks.Add("LIMIT skins: the Maid Suit file isn't beside this build, so it wasn't imported"); return; }
                 Mod maid = mods.Import(real, null);
@@ -732,6 +1057,59 @@ namespace CapriDesktop
         private static void Put(ZipArchive zip, string name, byte[] bytes)
         {
             using (Stream into = zip.CreateEntry(name).Open()) into.Write(bytes, 0, bytes.Length);
+        }
+
+        private void CheckFrames(List<string> checks, string output)
+        {
+            Mods mods = ModList;
+            Func<string, string, int, string> pack = delegate(string id, string frames, int wide)
+            {
+                string file = Path.Combine(output, id + Mods.SkinExtension);
+                if (File.Exists(file)) File.Delete(file);
+                using (Stream own = Assembly2.GetManifestResourceStream("Capri.Sprite.idle.png"))
+                using (Bitmap art = new Bitmap(own))
+                using (Bitmap cut = new Bitmap(wide, art.Height, PixelFormat.Format32bppArgb))
+                using (MemoryStream made = new MemoryStream())
+                using (ZipArchive zip = ZipFile.Open(file, ZipArchiveMode.Create))
+                {
+                    using (Graphics paper = Graphics.FromImage(cut)) paper.DrawImage(art, new Rectangle(0, 0, Math.Min(wide, art.Width), art.Height), new Rectangle(0, 0, Math.Min(wide, art.Width), art.Height), GraphicsUnit.Pixel);
+                    cut.Save(made, ImageFormat.Png);
+                    Put(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"" + (frames == null ? "" : ",\"frames\":" + frames) + "}"));
+                    Put(zip, "idle.png", made.ToArray());
+                }
+                return file;
+            };
+            int cell = idle.Strip.Width / idle.Count;
+            Mod framed = mods.Import(pack("skin-frames", "[{\"strip\":\"idle\",\"fps\":12},{\"strip\":\"perch\",\"fps\":20}]", cell * 30), null);
+            try
+            {
+                if (framed == null || idle.Count != 30 || idle.Fps != 12 || !idle.Reframed || idle.HasFlipped || perch.Fps != 20 || perch.Count != 60 || perch.Reframed)
+                    throw new Exception("A skin's 30-frame idle at 12 fps didn't play as that: " + idle.Count + " at " + idle.Fps + ", perch at " + perch.Fps);
+                foreach (bool left in new[] { false, true })
+                {
+                    facingLeft = left;
+                    int floor;
+                    double middle;
+                    using (Bitmap drawn = Stood(idle, 29)) Footing(drawn, out floor, out middle);
+                    if (floor <= 0) throw new Exception("Her last frame of a shorter idle didn't draw" + (left ? " facing left." : "."));
+                }
+                facingLeft = false;
+                if (Along(59, perch, idle) != 29 || Along(75, idle, idle) != 15) throw new Exception("Frames from a loop of another length weren't mapped onto it.");
+            }
+            finally
+            {
+                facingLeft = false;
+                if (framed != null) mods.Remove(framed);
+            }
+            if (idle.Count != 60 || idle.Fps != 24 || idle.Reframed || !idle.HasFlipped || perch.Fps != 30) throw new Exception("Taking a re-framed skin off didn't bring her own frames back: " + idle.Count + " at " + idle.Fps);
+            checks.Add("PASS skins: a strip with fewer frames than hers plays them at the speed its skin.json gives, faces left as a mirror, and her own frames come back when it's off");
+            string[,] refused = { { "frames-odd", null, (cell * 30 + 5).ToString(), "match hers" }, { "frames-slow", "[{\"strip\":\"idle\",\"fps\":0}]", (cell * 60).ToString(), "speed from 1" }, { "frames-mouth", "[{\"strip\":\"mouth\",\"fps\":30}]", (cell * 60).ToString(), "own speed" }, { "frames-many", null, (cell * (Mods.MostFrames + 1)).ToString(), "match hers" } };
+            for (int i = 0; i < refused.GetLength(0); i++)
+            {
+                try { mods.Import(pack(refused[i, 0], refused[i, 1], int.Parse(refused[i, 2])), null); throw new Exception("A skin with bad frames got in: " + refused[i, 0]); }
+                catch (ModException refusal) { if (refusal.Message.IndexOf(refused[i, 3], StringComparison.Ordinal) < 0) throw new Exception("Bad frames gave the wrong reason: " + refusal.Message); }
+            }
+            checks.Add("PASS skins: frames that aren't her frame width, more than " + Mods.MostFrames + " frames, a speed of 0 and a speed for her mouth shapes are refused");
         }
 
         // Her drawn body at one cell, in the real renderer, standing still.

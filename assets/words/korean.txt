@@ -30,6 +30,7 @@ Ask Capri for more	Capri에게 더 요청하기
 Asking your server...	서버에 묻는 중...
 Asks before closing only the apps you choose.	선택한 앱만 닫기 전에 물어봐.
 Auto	자동
+Auto (match what I say)	자동 (내 말에 맞춤)
 Automatic: VB-CABLE, else Steam's	자동: VB-CABLE, 없으면 Steam 것
 BAD RELAY HOST	잘못된 RELAY 호스트
 BIG Z open notepad	BIG Z 메모장 열어
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri 숨기기 / 보이기
 Hide / Show key	숨기기 / 보이기 키
 Hide Capri	Capri 숨기기
 Hide for now	잠시 숨기기
+Hide her	숨기기
 Hide in full screen	전체 화면에서 숨기기
 Hide this	이거 숨기기
+Hide, keep player	숨기고 플레이어 유지
 Hide/show:	숨기기/보이기:
 Hide/show: Ctrl + Alt + H	숨기기/보이기: Ctrl + Alt + H
 Hologram	홀로그램
@@ -288,6 +291,7 @@ Huge	거대
 I can hear you.	들려요.
 I glance at your screen and comment. Costs a little on a paid brain.	화면을 힐끗 보고 댓글을 달아. 유료 뇌에서는 약간 비용이 들어.
 I keep listening. Say my name, then just talk.	계속 듣고 있어. 내 이름을 부르고 그냥 말해.
+I speak	내가 쓰는 언어
 I talk about your game as you play. Costs a little on a paid brain.	게임을 하는 동안 게임에 대해 얘기해. 유료 뇌에서는 약간 비용이 들어.
 I type my replies and stay quiet.	답은 직접 입력하고 조용히 있을게.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	말로 대답하지 않고, 어디에도 아무것도 보내지 않아. 그래도 곁에 있으면서 음악에 맞춰 춤추고 음량 같은 빠른 일을 해줄게.
@@ -296,6 +300,7 @@ IN DISCORD >	DISCORD에서 >
 INSTALLED >	설치됨 >
 Import a Capri mod	Capri 모드 가져오기
 Import mod	모드 가져오기
+In full screen	전체 화면에서
 In games	게임 중
 Input	입력
 Input, Output or How to overlaps a row	입력, 출력 또는 사용 방법이 한 줄과 겹침
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	키
 KEYS >	키 >
 Keep PC awake for jobs	작업을 위해 PC 깨워두기
+Keep player	플레이어 유지
 Keeps the last two minutes of your game in memory. Say clip that to save it.	게임의 마지막 2분을 메모리에 보관. clip that 이라고 말하면 저장.
 Key	키
 Key cleared: a model file needs none.	키 삭제됨: 모델 파일은 키가 필요 없음.
@@ -439,6 +445,7 @@ No AI · no brain at all	AI 없음 · 뇌 전혀 없음
 No brain runs, and nothing is sent anywhere.	뇌가 실행되지 않으며 어디에도 아무것도 전송되지 않아.
 No brain yet	아직 뇌 없음
 No code open	열린 코드 없음
+No limit	제한 없음
 No mic found	마이크를 찾을 수 없음
 No mods in the directory yet.	모드 디렉터리에 아직 모드가 없어.
 No mods match that.	그것과 일치하는 모드가 없어.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	피치
 Play	재생
 Play...	재생...
+Player only	플레이어만
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS 모델이 이 클립의 목소리를 복사해. 테스트를 눌러 들어봐.
 Pop-in times	방문 시간
 Pop-ins	방문
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	정렬 기준
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	소리 습관 뇌 지켜보기 CAPRI 둠스크롤 날씨 클립 게임 키 움직임 음성 당신
+Same as I speak	내 언어와 같게
 Same as her ears (VOICE > Mic)	그녀의 귀와 같음 (음성 > 마이크)
 Same code on the phone?	휴대폰에도 같은 코드?
 Save	저장
@@ -627,9 +636,10 @@ Settings had nothing to watch.	설정에 지켜볼 것이 없었어.
 Settings lost keyboard focus during the Tab walk	Tab 이동 중 설정이 키보드 포커스를 잃음
 Setup guide	설정 가이드
 Setup stopped	설정 중단됨
+She answers in	답하는 언어
 She can read it when it fits.	맞으면 그녀가 읽을 수 있어.
 She glances at your screen and comments. Costs a little on a paid brain.	화면을 힐끗 보고 댓글을 달아. 유료 뇌에서는 약간 비용이 들어.
-She keeps listening. Say her name, then just talk until you go quiet.	계속 듣고 있어. 그녀의 이름을 부르고 조용해질 때까지 말해.
+She keeps listening. Say her name, then just talk.	계속 듣고 있어. 그녀의 이름을 부르고 말해.
 She reacts to your game until you close it.	네가 게임을 닫을 때까지 게임에 반응해.
 She reads these controls before each game job.	게임 작업을 할 때마다 이 컨트롤을 읽어.
 She talks about your game as you play. Costs a little on a paid brain.	게임을 하는 동안 네 게임에 대해 얘기해. 유료 뇌에서는 약간 비용이 들어.
@@ -666,6 +676,7 @@ Speed	속도
 Start with Windows	Windows와 함께 시작
 Start with this!	이걸로 시작!
 Starting...	시작 중...
+Stay	그대로 두기
 Stay on my model	내 모델 유지
 Still checking your mics...	아직 마이크 확인 중...
 Still checking your speakers...	아직 스피커 확인 중...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	그녀가 실행 �
 · HD	· HD
 · on this PC	· 이 PC에서
 · server	· 서버
+Edit as text	텍스트로 편집
+What Capri remembers about you. It stays on this computer.	Capri가 너에 대해 기억하는 것. 이 컴퓨터에 남습니다.
+Tell her something to remember	기억할 것을 그녀에게 말하기
+Search her memory	그녀의 기억에서 검색
+That day isn't there any more.	그날은 이제 없습니다.
+Undo	실행 취소
+Remember our chats is off, so she isn't keeping new chat memories.	대화 기억하기가 꺼져 있어 새 대화 기억을 저장하지 않습니다.
+ABOUT YOU	너에 대해
+FROM YOUR CHATS	너의 대화에서
+GAMES	게임
+CHAT LOGS	대화 기록
+CHAT LOG	대화 기록
+Nothing matches.	일치하는 것이 없습니다.
+Nothing yet.	아직 아무것도 없습니다.
+Reading her notes.	그녀의 메모를 읽는 중.
+Click again to forget game notes	게임 메모를 잊으려면 다시 클릭
+Forget game notes	게임 메모 잊기
+Click again to forget everything about me	너에 대한 모든 것을 잊으려면 다시 클릭
+Forget everything about me	너에 대한 모든 것을 잊기
+Click again to forget	잊으려면 다시 클릭
+Forget this day	이 날 잊기
+Only the start of this day is shown.	이 날의 시작만 표시됩니다.
+Nothing in this day.	이 날에는 아무것도 없습니다.
+No chats kept yet.	아직 저장된 대화가 없습니다.
+You	너
+{0} line	{0}줄
+SET UP EMAIL >	이메일 설정 >
+SET UP EMAIL	이메일 설정
+Or type your address	또는 주소를 입력하세요
+Email address	이메일 주소
+Open the page	페이지 열기
+App password	앱 비밀번호
+IMAP server	IMAP 서버
+Incoming mail server	받는 메일 서버
+SMTP server	SMTP 서버
+Outgoing mail server	보내는 메일 서버
+An app password is a separate password just for Capri. Your normal password stays yours.	앱 비밀번호는 Capri만을 위한 별도 비밀번호입니다. 평소 비밀번호는 그대로 네 것입니다.
+She keeps it only until she closes.	그녀는 닫을 때까지만 보관합니다.
+She checks, searches and reads your mail. She asks before she sends any.	그녀는 메일을 확인하고 검색하고 읽습니다. 보내기 전에 물어봅니다.
+Watch for new mail	새 메일 지켜보기
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	메일이 오면 알리고 피싱처럼 보이면 경고합니다. 아무것도 읽음으로 표시되지 않습니다.
+Deal with phishing on her own	피싱을 직접 처리
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	그녀가 지켜보는 동안만. 피싱이 확실한 메일은 스팸으로 갑니다. 나머지는 너의 승인을 기다립니다.
+Forget account	계정 잊기
+Use another email	다른 이메일 사용
+Which email?	어떤 이메일?
+Make an app password	앱 비밀번호 만들기
+Paste it	붙여넣기
+Connecting...	연결 중...
+She can use your email now.	이제 그녀가 너의 이메일을 사용할 수 있습니다.
+She's not watching your inbox.	그녀는 받은편지함을 지켜보지 않습니다.
+She's watching your inbox and deals with phishing she's sure of.	그녀는 받은편지함을 지켜보고 확실한 피싱을 처리합니다.
+She's watching your inbox and tells you when mail lands.	그녀는 받은편지함을 지켜보고 메일이 오면 알려줍니다.
+She forgot that account and its app password.	그녀는 그 계정과 앱 비밀번호를 잊었습니다.
+She forgot that account. Its app password is gone from this PC.	그녀는 그 계정을 잊었습니다. 앱 비밀번호가 이 컴퓨터에서 사라졌습니다.

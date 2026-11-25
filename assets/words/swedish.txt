@@ -30,6 +30,7 @@ Ask Capri for more	Be Capri om mer
 Asking your server...	Frågar din server...
 Asks before closing only the apps you choose.	Frågar innan den stänger bara de appar du väljer.
 Auto	Auto
+Auto (match what I say)	Auto (följer det jag säger)
 Automatic: VB-CABLE, else Steam's	Automatiskt: VB-CABLE, annars Steams
 BAD RELAY HOST	DÅLIG RELÄVÄRD
 BIG Z open notepad	BIG Z öppna anteckningsblock
@@ -268,8 +269,10 @@ Hide / Show Capri	Dölj / visa Capri
 Hide / Show key	Dölj / visa-tangent
 Hide Capri	Dölj Capri
 Hide for now	Dölj tills vidare
+Hide her	Dölj henne
 Hide in full screen	Dölj i helskärm
 Hide this	Dölj detta
+Hide, keep player	Dölj, behåll spelaren
 Hide/show:	Dölj/visa:
 Hide/show: Ctrl + Alt + H	Dölj/visa: Ctrl + Alt + H
 Hologram	Hologram
@@ -288,6 +291,7 @@ Huge	Enorm
 I can hear you.	Jag hör dig.
 I glance at your screen and comment. Costs a little on a paid brain.	Jag tittar på din skärm och kommenterar. Kostar lite med en betald hjärna.
 I keep listening. Say my name, then just talk.	Jag fortsätter lyssna. Säg mitt namn och prata sedan bara.
+I speak	Jag pratar
 I talk about your game as you play. Costs a little on a paid brain.	Jag pratar om ditt spel medan du spelar. Kostar lite med en betald hjärna.
 I type my replies and stay quiet.	Jag skriver mina svar och håller tyst.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Jag pratar inte tillbaka, och inget skickas någonstans. Jag hänger ändå med, dansar till din musik och gör de snabba saker du ber om, som volymen.
@@ -296,6 +300,7 @@ IN DISCORD >	I DISCORD >
 INSTALLED >	INSTALLERAT >
 Import a Capri mod	Importera en Capri-mod
 Import mod	Importera mod
+In full screen	I helskärm
 In games	I spel
 Input	Indata
 Input, Output or How to overlaps a row	Indata, utdata eller Hur man överlappar en rad
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	NYCKLAR
 KEYS >	NYCKLAR >
 Keep PC awake for jobs	Håll datorn vaken för uppdrag
+Keep player	Behåll spelaren
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Behåller de senaste två minuterna av ditt spel i minnet. Säg klipp det för att spara det.
 Key	Nyckel
 Key cleared: a model file needs none.	Nyckel rensad: en modellfil behöver ingen.
@@ -439,6 +445,7 @@ No AI · no brain at all	Ingen AI · ingen hjärna alls
 No brain runs, and nothing is sent anywhere.	Ingen hjärna körs, och inget skickas någonstans.
 No brain yet	Ingen hjärna än
 No code open	Ingen kod öppen
+No limit	Ingen gräns
 No mic found	Ingen mikrofon hittades
 No mods in the directory yet.	Inga mods i katalogen än.
 No mods match that.	Inga mods matchar det.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tonhöjd
 Play	Spela
 Play...	Spela...
+Player only	Bara spelaren
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS-modeller kopierar klippets röst. Tryck på Testa för att höra den.
 Pop-in times	Inslagstider
 Pop-ins	Inslag
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	SORTERA EFTER
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	LJUD VANOR HJÄRNA BEVAKA CAPRI DOOMSCROLL VÄDER KLIPP SPEL NYCKLAR RÖRELSER RÖST DU
+Same as I speak	Samma som jag pratar
 Same as her ears (VOICE > Mic)	Samma som hennes öron (RÖST > Mikrofon)
 Same code on the phone?	Samma kod i telefonen?
 Save	Spara
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Inställningar hade inget att bevaka.
 Settings lost keyboard focus during the Tab walk	Inställningar tappade tangentbordsfokus under Tab-genomgången
 Setup guide	Installationsguide
 Setup stopped	Installationen stoppades
+She answers in	Hon svarar på
 She can read it when it fits.	Hon kan läsa den när det passar.
 She glances at your screen and comments. Costs a little on a paid brain.	Hon tittar på din skärm och kommenterar. Kostar lite med en betald hjärna.
-She keeps listening. Say her name, then just talk until you go quiet.	Hon fortsätter lyssna. Säg hennes namn och prata sedan tills du blir tyst.
+She keeps listening. Say her name, then just talk.	Hon fortsätter lyssna. Säg hennes namn och prata sedan.
 She reacts to your game until you close it.	Hon reagerar på ditt spel tills du stänger det.
 She reads these controls before each game job.	Hon läser dessa kontroller före varje speluppdrag.
 She talks about your game as you play. Costs a little on a paid brain.	Hon pratar om ditt spel medan du spelar. Kostar lite med en betald hjärna.
@@ -666,6 +676,7 @@ Speed	Hastighet
 Start with Windows	Starta med Windows
 Start with this!	Börja med det här!
 Starting...	Startar...
+Stay	Stanna
 Stay on my model	Behåll min modell
 Still checking your mics...	Kontrollerar fortfarande dina mikrofoner...
 Still checking your speakers...	Kontrollerar fortfarande dina högtalare...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	skriver inte i andr
 · HD	· HD
 · on this PC	· på den här datorn
 · server	· server
+Edit as text	Redigera som text
+What Capri remembers about you. It stays on this computer.	Vad Capri minns om dig. Det stannar på den här datorn.
+Tell her something to remember	Berätta något för henne att minnas
+Search her memory	Sök i hennes minne
+That day isn't there any more.	Den dagen finns inte längre.
+Undo	Ångra
+Remember our chats is off, so she isn't keeping new chat memories.	Kom ihåg våra chattar är av, så hon sparar inga nya chattminnen.
+ABOUT YOU	OM DIG
+FROM YOUR CHATS	FRÅN DINA CHATTAR
+GAMES	SPEL
+CHAT LOGS	CHATTLOGGAR
+CHAT LOG	CHATTLOGG
+Nothing matches.	Inget matchar.
+Nothing yet.	Inget ännu.
+Reading her notes.	Läser hennes anteckningar.
+Click again to forget game notes	Klicka igen för att glömma spelanteckningar
+Forget game notes	Glöm spelanteckningar
+Click again to forget everything about me	Klicka igen för att glömma allt om dig
+Forget everything about me	Glöm allt om dig
+Click again to forget	Klicka igen för att glömma
+Forget this day	Glöm den här dagen
+Only the start of this day is shown.	Bara början av den här dagen visas.
+Nothing in this day.	Inget den här dagen.
+No chats kept yet.	Inga chattar sparade ännu.
+You	Du
+{0} line	{0} rad
+SET UP EMAIL >	STÄLL IN E-POST >
+SET UP EMAIL	STÄLL IN E-POST
+Or type your address	Eller skriv din adress
+Email address	E-postadress
+Open the page	Öppna sidan
+App password	App-lösenord
+IMAP server	IMAP-server
+Incoming mail server	Server för inkommande post
+SMTP server	SMTP-server
+Outgoing mail server	Server för utgående post
+An app password is a separate password just for Capri. Your normal password stays yours.	Ett app-lösenord är ett separat lösenord bara för Capri. Ditt vanliga lösenord förblir ditt.
+She keeps it only until she closes.	Hon behåller det bara tills hon stängs.
+She checks, searches and reads your mail. She asks before she sends any.	Hon kontrollerar, söker och läser din post. Hon frågar innan hon skickar något.
+Watch for new mail	Håll koll på ny post
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Hon säger till när post kommer, med en varning om det ser ut som phishing. Inget markeras som läst.
+Deal with phishing on her own	Sköt phishing själv
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Bara medan hon håller koll. Post som hon är säker på är phishing går till skräppost. Resten väntar på ditt ja.
+Forget account	Glöm kontot
+Use another email	Använd en annan e-post
+Which email?	Vilken e-post?
+Make an app password	Skapa ett app-lösenord
+Paste it	Klistra in det
+Connecting...	Ansluter...
+She can use your email now.	Hon kan använda din e-post nu.
+She's not watching your inbox.	Hon håller inte koll på din inkorg.
+She's watching your inbox and deals with phishing she's sure of.	Hon håller koll på din inkorg och hanterar phishing hon är säker på.
+She's watching your inbox and tells you when mail lands.	Hon håller koll på din inkorg och säger till när post kommer.
+She forgot that account and its app password.	Hon glömde det kontot och dess app-lösenord.
+She forgot that account. Its app password is gone from this PC.	Hon glömde det kontot. Dess app-lösenord är borta från den här datorn.

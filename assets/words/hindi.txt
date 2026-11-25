@@ -30,6 +30,7 @@ Ask Capri for more	Capri से और माँगो
 Asking your server...	तुम्हारे सर्वर से पूछ रही हूँ...
 Asks before closing only the apps you choose.	सिर्फ़ तुम्हारे चुने हुए ऐप्स बंद करने से पहले पूछेगी।
 Auto	ऑटो
+Auto (match what I say)	ऑटो (जो मैं कहूँ)
 Automatic: VB-CABLE, else Steam's	अपने-आप: VB-CABLE, नहीं तो Steam का
 BAD RELAY HOST	गलत RELAY HOST
 BIG Z open notepad	BIG Z नोटपैड खोलो
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri छिपाओ / दिखाओ
 Hide / Show key	छिपाओ / दिखाओ कुंजी
 Hide Capri	Capri छिपाओ
 Hide for now	अभी के लिए छिपाओ
+Hide her	उसे छिपाओ
 Hide in full screen	फ़ुल स्क्रीन में छिपाओ
 Hide this	इसे छिपाओ
+Hide, keep player	छिपाओ, प्लेयर रखो
 Hide/show:	छिपाओ/दिखाओ:
 Hide/show: Ctrl + Alt + H	छिपाओ/दिखाओ: Ctrl + Alt + H
 Hologram	होलोग्राम
@@ -288,6 +291,7 @@ Huge	बहुत बड़ा
 I can hear you.	मैं तुम्हें सुन सकती हूँ।
 I glance at your screen and comment. Costs a little on a paid brain.	मैं तुम्हारी स्क्रीन पर एक नज़र डालती हूँ और कमेंट करती हूँ। पेड दिमाग पर थोड़ा खर्च होता है।
 I keep listening. Say my name, then just talk.	मैं सुनती रहती हूँ। मेरा नाम लो, फिर बस बोलो।
+I speak	मेरी भाषा
 I talk about your game as you play. Costs a little on a paid brain.	तुम खेलते समय मैं तुम्हारे गेम की बात करती हूँ। पेड दिमाग पर थोड़ा खर्च होता है।
 I type my replies and stay quiet.	मैं अपने जवाब टाइप करती हूँ और चुप रहती हूँ।
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	मैं जवाब नहीं दूँगी, और कुछ भी कहीं नहीं भेजा जाएगा। फिर भी मैं साथ रहूँगी, तुम्हारे म्यूज़िक पर नाचूँगी, और तुम्हारे माँगे हुए छोटे काम करूँगी, जैसे वॉल्यूम।
@@ -296,6 +300,7 @@ IN DISCORD >	DISCORD में >
 INSTALLED >	इंस्टॉल्ड >
 Import a Capri mod	Capri मॉड इम्पोर्ट करो
 Import mod	मॉड इम्पोर्ट करो
+In full screen	फ़ुल स्क्रीन में
 In games	गेम्स में
 Input	इनपुट
 Input, Output or How to overlaps a row	इनपुट, आउटपुट या कैसे पंक्ति से ओवरलैप करता है
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	कुंजियाँ
 KEYS >	कुंजियाँ >
 Keep PC awake for jobs	काम के लिए PC को जागता रखो
+Keep player	प्लेयर रखो
 Keeps the last two minutes of your game in memory. Say clip that to save it.	तुम्हारे गेम के आखिरी दो मिनट मेमोरी में रखता है। सेव करने के लिए clip that बोलो।
 Key	कुंजी
 Key cleared: a model file needs none.	कुंजी साफ़ हो गई: मॉडल फ़ाइल को कोई कुंजी नहीं चाहिए।
@@ -439,6 +445,7 @@ No AI · no brain at all	कोई AI नहीं · बिल्कुल क�
 No brain runs, and nothing is sent anywhere.	कोई दिमाग नहीं चलता, और कुछ भी कहीं नहीं भेजा जाता।
 No brain yet	अभी कोई दिमाग नहीं
 No code open	कोई कोड खुला नहीं
+No limit	कोई सीमा नहीं
 No mic found	कोई माइक नहीं मिला
 No mods in the directory yet.	डायरेक्टरी में अभी कोई मॉड्स नहीं।
 No mods match that.	उससे कोई मॉड मेल नहीं खाता।
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	पिच
 Play	चलाओ
 Play...	चलाओ...
+Player only	सिर्फ़ प्लेयर
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS मॉडल इस क्लिप की आवाज़ कॉपी करते हैं। सुनने के लिए Test दबाओ।
 Pop-in times	पॉप-इन समय
 Pop-ins	पॉप-इन
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	इसके अनुसार सॉर्ट करो
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as I speak	मेरी भाषा जैसी
 Same as her ears (VOICE > Mic)	उसके कानों जैसा (VOICE > Mic)
 Same code on the phone?	फ़ोन पर वही कोड?
 Save	सेव करो
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Settings में देखने को कु�
 Settings lost keyboard focus during the Tab walk	Tab वॉक के दौरान Settings का कीबोर्ड फ़ोकस चला गया
 Setup guide	सेटअप गाइड
 Setup stopped	सेटअप रुक गया
+She answers in	वह जवाब देती है
 She can read it when it fits.	जब फ़िट हो तब वह पढ़ सकती है।
 She glances at your screen and comments. Costs a little on a paid brain.	वह तुम्हारी स्क्रीन पर नज़र डालती है और कमेंट करती है। पेड दिमाग पर थोड़ा खर्च होता है।
-She keeps listening. Say her name, then just talk until you go quiet.	वह सुनती रहती है। उसका नाम लो, फिर चुप होने तक बोलते रहो।
+She keeps listening. Say her name, then just talk.	वह सुनती रहती है। उसका नाम लो, फिर बस बोलो।
 She reacts to your game until you close it.	वह तुम्हारा गेम बंद करने तक उस पर रिएक्ट करती है।
 She reads these controls before each game job.	वह हर गेम काम से पहले ये कंट्रोल पढ़ती है।
 She talks about your game as you play. Costs a little on a paid brain.	वह खेलते समय तुम्हारे गेम की बात करती है। पेड दिमाग पर थोड़ा खर्च होता है।
@@ -666,6 +676,7 @@ Speed	स्पीड
 Start with Windows	Windows के साथ शुरू करो
 Start with this!	इसी से शुरू करो!
 Starting...	शुरू हो रहा है...
+Stay	वहीं रहो
 Stay on my model	मेरे मॉडल पर रहो
 Still checking your mics...	अभी भी तुम्हारे माइक जाँचे जा रहे हैं...
 Still checking your speakers...	अभी भी तुम्हारे स्पीकर जाँचे जा रहे हैं...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	चलते सम
 · HD	· HD
 · on this PC	· इस PC पर
 · server	· सर्वर
+Edit as text	टेक्स्ट के रूप में संपादित करें
+What Capri remembers about you. It stays on this computer.	Capri तुम्हारे बारे में क्या याद रखती है। यह इस कंप्यूटर पर रहता है।
+Tell her something to remember	उसे याद रखने के लिए कुछ बताओ
+Search her memory	उसकी याद में खोजो
+That day isn't there any more.	वह दिन अब नहीं है।
+Undo	पूर्ववत करें
+Remember our chats is off, so she isn't keeping new chat memories.	हमारी चैट याद रखना बंद है, इसलिए वह नई चैट यादें नहीं रखती।
+ABOUT YOU	तुम्हारे बारे में
+FROM YOUR CHATS	तुम्हारी चैट से
+GAMES	गेम
+CHAT LOGS	चैट लॉग
+CHAT LOG	चैट लॉग
+Nothing matches.	कुछ मेल नहीं खाता।
+Nothing yet.	अभी कुछ नहीं।
+Reading her notes.	उसके नोट्स पढ़े जा रहे हैं।
+Click again to forget game notes	गेम नोट्स भूलने के लिए फिर क्लिक करो
+Forget game notes	गेम नोट्स भूलो
+Click again to forget everything about me	अपने बारे में सब भूलने के लिए फिर क्लिक करो
+Forget everything about me	अपने बारे में सब भूलो
+Click again to forget	भूलने के लिए फिर क्लिक करो
+Forget this day	यह दिन भूलो
+Only the start of this day is shown.	इस दिन की सिर्फ शुरुआत दिखाई जाती है।
+Nothing in this day.	इस दिन कुछ नहीं।
+No chats kept yet.	अभी कोई चैट नहीं रखी गई।
+You	तुम
+{0} line	{0} पंक्ति
+SET UP EMAIL >	ईमेल सेट करें >
+SET UP EMAIL	ईमेल सेट करें
+Or type your address	या अपना पता लिखो
+Email address	ईमेल पता
+Open the page	पेज खोलो
+App password	ऐप पासवर्ड
+IMAP server	IMAP सर्वर
+Incoming mail server	इनकमिंग मेल सर्वर
+SMTP server	SMTP सर्वर
+Outgoing mail server	आउटगोइंग मेल सर्वर
+An app password is a separate password just for Capri. Your normal password stays yours.	ऐप पासवर्ड सिर्फ Capri के लिए अलग पासवर्ड है। तुम्हारा सामान्य पासवर्ड तुम्हारा ही रहता है।
+She keeps it only until she closes.	वह इसे सिर्फ बंद होने तक रखती है।
+She checks, searches and reads your mail. She asks before she sends any.	वह तुम्हारी मेल जाँचती, खोजती और पढ़ती है। कुछ भेजने से पहले पूछती है।
+Watch for new mail	नई मेल पर नज़र रखो
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	मेल आने पर वह बोलती है, अगर फिशिंग जैसा लगे तो चेतावनी देती है। कुछ भी पढ़ा हुआ नहीं चिह्नित होता।
+Deal with phishing on her own	फिशिंग खुद संभालो
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	सिर्फ जब वह नज़र रखती है। जिस मेल को वह फिशिंग मानती है वह स्पैम में जाता है। बाकी तुम्हारी हाँ का इंतज़ार करता है।
+Forget account	खाता भूलो
+Use another email	दूसरा ईमेल इस्तेमाल करो
+Which email?	कौन सा ईमेल?
+Make an app password	ऐप पासवर्ड बनाओ
+Paste it	इसे पेस्ट करो
+Connecting...	कनेक्ट हो रहा है...
+She can use your email now.	अब वह तुम्हारा ईमेल इस्तेमाल कर सकती है।
+She's not watching your inbox.	वह तुम्हारे इनबॉक्स पर नज़र नहीं रख रही।
+She's watching your inbox and deals with phishing she's sure of.	वह तुम्हारे इनबॉक्स पर नज़र रख रही है और जिस फिशिंग के बारे में उसे यकीन है उसे संभालती है।
+She's watching your inbox and tells you when mail lands.	वह तुम्हारे इनबॉक्स पर नज़र रखती है और मेल आने पर बताती है।
+She forgot that account and its app password.	उसने वह खाता और उसका ऐप पासवर्ड भूल दिया।
+She forgot that account. Its app password is gone from this PC.	उसने वह खाता भूल दिया। उसका ऐप पासवर्ड इस कंप्यूटर से चला गया।

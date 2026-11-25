@@ -30,6 +30,7 @@ Ask Capri for more	Demana més a Capri
 Asking your server...	Preguntant al teu servidor...
 Asks before closing only the apps you choose.	Pregunta abans de tancar només les aplicacions que triïs.
 Auto	Automàtic
+Auto (match what I say)	Automàtic (segons el que dic)
 Automatic: VB-CABLE, else Steam's	Automàtic: VB-CABLE, si no, el de Steam
 BAD RELAY HOST	SERVIDOR DE RELLEU NO VÀLID
 BIG Z open notepad	BIG Z obre el bloc de notes
@@ -268,8 +269,10 @@ Hide / Show Capri	Amaga / Mostra Capri
 Hide / Show key	Tecla amaga / mostra
 Hide Capri	Amaga Capri
 Hide for now	Amaga de moment
+Hide her	Amaga-la
 Hide in full screen	Amaga en pantalla completa
 Hide this	Amaga-ho
+Hide, keep player	Amaga-la, deixa el reproductor
 Hide/show:	Amaga/mostra:
 Hide/show: Ctrl + Alt + H	Amaga/mostra: Ctrl + Alt + H
 Hologram	Holograma
@@ -288,6 +291,7 @@ Huge	Enorme
 I can hear you.	Et sento.
 I glance at your screen and comment. Costs a little on a paid brain.	Miro la teva pantalla i faig comentaris. Costa una mica amb un cervell de pagament.
 I keep listening. Say my name, then just talk.	Continuo escoltant. Digues el meu nom i parla.
+I speak	Parlo
 I talk about your game as you play. Costs a little on a paid brain.	Parlo del teu joc mentre jugues. Costa una mica amb un cervell de pagament.
 I type my replies and stay quiet.	Escric les meves respostes i em quedo callada.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	No et contesto, i no s'envia res enlloc. Igualment em quedaré, ballaré amb la teva música i faré les coses ràpides que em demanis, com el volum.
@@ -296,6 +300,7 @@ IN DISCORD >	A DISCORD >
 INSTALLED >	INSTAL·LAT >
 Import a Capri mod	Importa un mod de Capri
 Import mod	Importa un mod
+In full screen	En pantalla completa
 In games	En jocs
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Sortida o Com se sobreposa a una fila
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	TECLES
 KEYS >	TECLES >
 Keep PC awake for jobs	Manté el PC despert per a les feines
+Keep player	Deixa el reproductor
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Guarda els últims dos minuts del teu joc a la memòria. Digues grava això per desar-los.
 Key	Tecla
 Key cleared: a model file needs none.	Tecla esborrada: un fitxer de model no en necessita cap.
@@ -439,6 +445,7 @@ No AI · no brain at all	Sense IA · sense cervell
 No brain runs, and nothing is sent anywhere.	No s'executa cap cervell, i no s'envia res enlloc.
 No brain yet	Encara no hi ha cervell
 No code open	Cap codi obert
+No limit	Sense límit
 No mic found	No s'ha trobat cap micro
 No mods in the directory yet.	Encara no hi ha mods al directori.
 No mods match that.	Cap mod coincideix amb això.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	To
 Play	Reprodueix
 Play...	Reprodueix...
+Player only	Només el reproductor
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Els models Pocket TTS copien la veu d'aquest clip. Prem Prova per escoltar-la.
 Pop-in times	Moments d'aparició
 Pop-ins	Aparicions
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ORDENA PER
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONS HÀBITS CERVELL MIRAR CAPRI DOOMSCROLL TEMPS CLIPS JOCS CLAUS MOVIMENTS VEU TU
+Same as I speak	Igual que el meu
 Same as her ears (VOICE > Mic)	Igual que les seves orelles (VEU > Micro)
 Same code on the phone?	El mateix codi al mòbil?
 Save	Desa
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Configuració no tenia res per mirar.
 Settings lost keyboard focus during the Tab walk	Configuració va perdre el focus del teclat durant el recorregut amb Tab
 Setup guide	Guia de configuració
 Setup stopped	La configuració s'ha aturat
+She answers in	Respon en
 She can read it when it fits.	Ho pot llegir quan càpiga.
 She glances at your screen and comments. Costs a little on a paid brain.	Mira la teva pantalla i fa comentaris. Costa una mica amb un cervell de pagament.
-She keeps listening. Say her name, then just talk until you go quiet.	Continua escoltant. Digues el seu nom i parla fins que callis.
+She keeps listening. Say her name, then just talk.	Continua escoltant. Digues el seu nom i parla.
 She reacts to your game until you close it.	Reacciona al teu joc fins que el tanquis.
 She reads these controls before each game job.	Llegeix aquests controls abans de cada feina de joc.
 She talks about your game as you play. Costs a little on a paid brain.	Parla del teu joc mentre jugues. Costa una mica amb un cervell de pagament.
@@ -666,6 +676,7 @@ Speed	Velocitat
 Start with Windows	Inicia amb Windows
 Start with this!	Comença amb això!
 Starting...	Iniciant...
+Stay	Queda't
 Stay on my model	Queda't amb el meu model
 Still checking your mics...	Encara comprovant els micros...
 Still checking your speakers...	Encara comprovant els altaveus...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	no escriurà en alt
 · HD	· HD
 · on this PC	· en aquest PC
 · server	· servidor
+Edit as text	Edita com a text
+What Capri remembers about you. It stays on this computer.	El que la Capri recorda de tu. Es queda en aquest ordinador.
+Tell her something to remember	Digues-li alguna cosa per recordar
+Search her memory	Cerca a la seva memòria
+That day isn't there any more.	Aquell dia ja no hi és.
+Undo	Desfés
+Remember our chats is off, so she isn't keeping new chat memories.	Recorda les nostres converses està desactivat, així que no guarda nous records de xat.
+ABOUT YOU	SOBRE TU
+FROM YOUR CHATS	DE LES TEVES CONVERSES
+GAMES	JOCS
+CHAT LOGS	REGISTRES DE XAT
+CHAT LOG	REGISTRE DE XAT
+Nothing matches.	No hi ha cap coincidència.
+Nothing yet.	Encara res.
+Reading her notes.	Llegint les seves notes.
+Click again to forget game notes	Torna a fer clic per oblidar les notes dels jocs
+Forget game notes	Oblida les notes dels jocs
+Click again to forget everything about me	Torna a fer clic per oblidar-ho tot sobre tu
+Forget everything about me	Oblida-ho tot sobre tu
+Click again to forget	Torna a fer clic per oblidar
+Forget this day	Oblida aquest dia
+Only the start of this day is shown.	Només es mostra el començament d'aquest dia.
+Nothing in this day.	Res en aquest dia.
+No chats kept yet.	Encara no hi ha converses guardades.
+You	Tu
+{0} line	{0} línia
+SET UP EMAIL >	CONFIGURA EL CORREU >
+SET UP EMAIL	CONFIGURA EL CORREU
+Or type your address	O escriu la teva adreça
+Email address	Adreça de correu
+Open the page	Obre la pàgina
+App password	Contrasenya d'aplicació
+IMAP server	Servidor IMAP
+Incoming mail server	Servidor de correu entrant
+SMTP server	Servidor SMTP
+Outgoing mail server	Servidor de correu sortint
+An app password is a separate password just for Capri. Your normal password stays yours.	Una contrasenya d'aplicació és una contrasenya a part només per a la Capri. La teva contrasenya normal segueix sent teva.
+She keeps it only until she closes.	Només la guarda fins que es tanca.
+She checks, searches and reads your mail. She asks before she sends any.	Ella revisa, busca i llegeix el teu correu. Pregunta abans d'enviar-ne.
+Watch for new mail	Vigila el correu nou
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ella parla quan arriba correu, amb un avís si sembla phishing. Res es marca com a llegit.
+Deal with phishing on her own	Encarna's del phishing tu sola
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Només mentre vigila. El correu que segur que és phishing va a spam. La resta espera el teu sí.
+Forget account	Oblida el compte
+Use another email	Fes servir un altre correu
+Which email?	Quin correu?
+Make an app password	Crea una contrasenya d'aplicació
+Paste it	Enganxa-la
+Connecting...	S'està connectant...
+She can use your email now.	Ja pot fer servir el teu correu.
+She's not watching your inbox.	No està vigilant la teva safata d'entrada.
+She's watching your inbox and deals with phishing she's sure of.	Està vigilant la teva safata i s'encarrega del phishing que té clar.
+She's watching your inbox and tells you when mail lands.	Està vigilant la teva safata i t'avisa quan arriba correu.
+She forgot that account and its app password.	Ha oblidat aquest compte i la seva contrasenya d'aplicació.
+She forgot that account. Its app password is gone from this PC.	Ha oblidat aquest compte. La seva contrasenya d'aplicació ja no és en aquest PC.

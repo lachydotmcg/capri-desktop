@@ -54,6 +54,7 @@ namespace CapriDesktop
         internal void ToggleResources()
         {
             if (ResourcesOpen) { resourcesSheet.Close(); return; }
+            if (SpendOpen) spendSheet.Close();
             float fit = SheetZoom(ResourcesSheet.Wide, ResourcesSheet.Tall);
             if (resourcesSheet != null && !resourcesSheet.IsDisposed && resourcesSheet.Zoom != fit) resourcesSheet.Close();
             if (resourcesSheet == null || resourcesSheet.IsDisposed)
@@ -155,13 +156,14 @@ namespace CapriDesktop
 
         private sealed class ResourcesSheet : ModSheet
         {
-            internal const int Wide = 380, Tall = 540, Mine = 5, Theirs = 6;
+            internal const int Wide = 380, Tall = 600, Mine = 5, Theirs = 6;
             private static readonly string[] Meters = { "CPU", "RAM", "GPU" };
             private readonly bool live;
             private readonly UseBar[] bars = new UseBar[3];
             private readonly Label[] amounts = new Label[3];
             private readonly Label[][] mine = new Label[Mine][], theirs = new Label[Theirs][];
             private readonly Label summary, capriTotal, othersTotal, gpuNote;
+            private readonly Slider brainVram;
             private readonly System.Windows.Forms.Timer clock = new System.Windows.Forms.Timer { Interval = 2000 };
             private readonly SystemUse use = new SystemUse();
             private long vram = -1;
@@ -186,22 +188,31 @@ namespace CapriDesktop
                     amounts[i].TextAlign = ContentAlignment.MiddleRight;
                 }
                 gpuNote = Words("", 28, 158, 328, 16, Small(), Faint);
+                Words("Brain VRAM", 28, 183, 160, 18, name, Rose);
+                brainVram = new Slider(Brain.GpuLimitNames);
+                brainVram.Font = Type(9.5f * zoom);
+                brainVram.Bounds = Box(196, 181, 160, 22);
+                brainVram.AccessibleName = "Brain VRAM: the most graphics card memory her built-in brain or Ollama takes. The rest runs in RAM";
+                brainVram.Value = Math.Max(0, Array.IndexOf(Brain.GpuLimits, Frame.capri.GpuLimit));
+                brainVram.Changed += delegate { Frame.capri.SetGpuLimit(Brain.GpuLimits[brainVram.Value]); };
+                Controls.Add(brainVram);
+                Words("The rest of her brain runs in RAM: slower replies, more room for your games.", 28, 208, 328, 30, Small(), Faint);
                 Font band = Type(10f * zoom, true);
-                Heading(this, "CAPRI >", new Point(Z(28), Z(190)), band, White, 352);
-                capriTotal = Words("", 150, 189, 206, 18, Small(), Cyan);
+                Heading(this, "CAPRI >", new Point(Z(28), Z(250)), band, White, 352);
+                capriTotal = Words("", 150, 249, 206, 18, Small(), Cyan);
                 capriTotal.TextAlign = ContentAlignment.MiddleRight;
                 string[] heads = { "CPU", "RAM", "GPU", "VRAM" };
                 for (int c = 0; c < heads.Length; c++)
                 {
-                    Label head = Words(heads[c], ColumnAt(c), 216, ColumnWide(c), 14, Small(), Faint);
+                    Label head = Words(heads[c], ColumnAt(c), 276, ColumnWide(c), 14, Small(), Faint);
                     head.TextAlign = ContentAlignment.MiddleRight;
                 }
-                for (int i = 0; i < Mine; i++) mine[i] = Row(234 + 20 * i, Cyan);
-                Heading(this, "OTHER PROGRAMS >", new Point(Z(28), Z(348)), band, White, 352);
-                othersTotal = Words("", 150, 347, 206, 18, Small(), Rose);
+                for (int i = 0; i < Mine; i++) mine[i] = Row(294 + 20 * i, Cyan);
+                Heading(this, "OTHER PROGRAMS >", new Point(Z(28), Z(408)), band, White, 352);
+                othersTotal = Words("", 150, 407, 206, 18, Small(), Rose);
                 othersTotal.TextAlign = ContentAlignment.MiddleRight;
-                for (int i = 0; i < Theirs; i++) theirs[i] = Row(374 + 20 * i, White);
-                summary = Words("", 28, 496, 328, 34, Type(9f * zoom), Cyan);
+                for (int i = 0; i < Theirs; i++) theirs[i] = Row(434 + 20 * i, White);
+                summary = Words("", 28, 556, 328, 34, Type(9f * zoom), Cyan);
                 clock.Tick += delegate { Sample(); };
                 Frame.Fit(this);
                 if (!live) return;

@@ -30,6 +30,7 @@ Ask Capri for more	اطلب من Capri المزيد
 Asking your server...	جارٍ السؤال عن خادمك...
 Asks before closing only the apps you choose.	يسأل قبل إغلاق التطبيقات التي تختارها فقط.
 Auto	تلقائي
+Auto (match what I say)	تلقائي (حسب ما أقول)
 Automatic: VB-CABLE, else Steam's	تلقائي: VB-CABLE، وإلا فجهاز Steam
 BAD RELAY HOST	عنوان مضيف الترحيل غير صالح
 BIG Z open notepad	BIG Z افتح المفكرة
@@ -268,8 +269,10 @@ Hide / Show Capri	إخفاء / إظهار Capri
 Hide / Show key	مفتاح إخفاء / إظهار
 Hide Capri	إخفاء Capri
 Hide for now	إخفاء الآن
+Hide her	أخفِها
 Hide in full screen	إخفاء في ملء الشاشة
 Hide this	أخفِ هذا
+Hide, keep player	أخفِها مع إبقاء المشغل
 Hide/show:	إخفاء/إظهار:
 Hide/show: Ctrl + Alt + H	إخفاء/إظهار: Ctrl + Alt + H
 Hologram	هولوغرام
@@ -288,6 +291,7 @@ Huge	ضخم
 I can hear you.	أسمعك.
 I glance at your screen and comment. Costs a little on a paid brain.	ألقي نظرة على شاشتك وأعلّق. يكلّف القليل مع دماغ مدفوع.
 I keep listening. Say my name, then just talk.	أواصل الاستماع. قل اسمي، ثم تكلّم فقط.
+I speak	أتحدث
 I talk about your game as you play. Costs a little on a paid brain.	أتحدث عن لعبتك أثناء لعبك. يكلّف القليل مع دماغ مدفوع.
 I type my replies and stay quiet.	أكتب ردودي وأبقى صامتة.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	لن أرد، ولن يُرسل شيء إلى أي مكان. ما زلت سأتسكع وأرقص على موسيقاك وأنفذ الأشياء السريعة التي تطلبها، مثل مستوى الصوت.
@@ -296,6 +300,7 @@ IN DISCORD >	في DISCORD >
 INSTALLED >	مثبّت >
 Import a Capri mod	استيراد مود Capri
 Import mod	استيراد مود
+In full screen	في ملء الشاشة
 In games	في الألعاب
 Input	الإدخال
 Input, Output or How to overlaps a row	الإدخال أو الإخراج أو كيف يتداخل مع صف
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	المفاتيح
 KEYS >	المفاتيح >
 Keep PC awake for jobs	أبقِ الحاسوب مستيقظاً للمهام
+Keep player	أبقِ المشغل
 Keeps the last two minutes of your game in memory. Say clip that to save it.	يحتفظ بآخر دقيقتين من لعبتك في الذاكرة. قل سجّل ذلك لحفظها.
 Key	المفتاح
 Key cleared: a model file needs none.	تم مسح المفتاح: ملف النموذج لا يحتاج أي مفتاح.
@@ -439,6 +445,7 @@ No AI · no brain at all	بلا AI · بلا دماغ إطلاقاً
 No brain runs, and nothing is sent anywhere.	لا يعمل أي دماغ، ولا يُرسل شيء إلى أي مكان.
 No brain yet	لا يوجد دماغ بعد
 No code open	لا يوجد كود مفتوح
+No limit	بلا حد
 No mic found	لم يُعثر على ميكروفون
 No mods in the directory yet.	لا توجد مودات في الدليل بعد.
 No mods match that.	لا يطابق أي مود ذلك.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	الطبقة
 Play	تشغيل
 Play...	تشغيل...
+Player only	المشغل فقط
 Pocket TTS models copy this clip's voice. Press Test to hear it.	نماذج Pocket TTS تنسخ صوت هذا المقطع. اضغط اختبار للاستماع.
 Pop-in times	أوقات الظهور
 Pop-ins	مرات الظهور
@@ -592,6 +600,7 @@ SKILL.	مهارة.
 SKIN.	مظهر.
 SORT BY	فرز حسب
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	الأصوات العادات الدماغ مراقبة Capri DOOMSCROLL الطقس المقاطع الألعاب المفاتيح الحركات الصوت أنت
+Same as I speak	مثل لغتي
 Same as her ears (VOICE > Mic)	كما أذنيها (الصوت > الميكروفون)
 Same code on the phone?	نفس الكود على الهاتف؟
 Save	حفظ
@@ -627,9 +636,10 @@ Settings had nothing to watch.	لم يكن لدى الإعدادات ما تشا
 Settings lost keyboard focus during the Tab walk	فقدت الإعدادات تركيز لوحة المفاتيح أثناء جولة Tab
 Setup guide	دليل الإعداد
 Setup stopped	توقف الإعداد
+She answers in	تجيب بـ
 She can read it when it fits.	تستطيع قراءته عندما يتسع.
 She glances at your screen and comments. Costs a little on a paid brain.	تلقي نظرة على شاشتك وتعلّق. يكلّف القليل مع دماغ مدفوع.
-She keeps listening. Say her name, then just talk until you go quiet.	تواصل الاستماع. قل اسمها، ثم تكلّم حتى تصمت.
+She keeps listening. Say her name, then just talk.	تواصل الاستماع. قل اسمها، ثم تكلّم.
 She reacts to your game until you close it.	تتفاعل مع لعبتك حتى تغلقها.
 She reads these controls before each game job.	تقرأ عناصر التحكم هذه قبل كل مهمة لعب.
 She talks about your game as you play. Costs a little on a paid brain.	تتحدث عن لعبتك أثناء لعبك. يكلّف القليل مع دماغ مدفوع.
@@ -666,6 +676,7 @@ Speed	السرعة
 Start with Windows	ابدأ مع Windows
 Start with this!	ابدأ بهذا!
 Starting...	جارٍ البدء...
+Stay	ابقَ
 Stay on my model	ابقَ على نموذجي
 Still checking your mics...	جارٍ فحص ميكروفوناتك...
 Still checking your speakers...	جارٍ فحص مكبراتك...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	لن يكتب في 
 · HD	· HD
 · on this PC	· على هذا الحاسوب
 · server	· خادم
+Edit as text	تحرير كنص
+What Capri remembers about you. It stays on this computer.	ما تتذكره Capri عنك. يبقى على هذا الكمبيوتر.
+Tell her something to remember	قل لها شيئًا لتتذكره
+Search her memory	ابحث في ذاكرتها
+That day isn't there any more.	ذلك اليوم لم يعد موجودًا.
+Undo	تراجع
+Remember our chats is off, so she isn't keeping new chat memories.	تذكّر محادثاتنا متوقف، لذلك لا تحفظ ذكريات محادثات جديدة.
+ABOUT YOU	عنك
+FROM YOUR CHATS	من محادثاتك
+GAMES	الألعاب
+CHAT LOGS	سجلات المحادثات
+CHAT LOG	سجل المحادثة
+Nothing matches.	لا شيء يطابق.
+Nothing yet.	لا شيء بعد.
+Reading her notes.	تقرأ ملاحظاتها.
+Click again to forget game notes	انقر مرة أخرى لنسيان ملاحظات الألعاب
+Forget game notes	انسَ ملاحظات الألعاب
+Click again to forget everything about me	انقر مرة أخرى لنسيان كل شيء عنك
+Forget everything about me	انسَ كل شيء عنك
+Click again to forget	انقر مرة أخرى للنسيان
+Forget this day	انسَ هذا اليوم
+Only the start of this day is shown.	يُعرض فقط بداية هذا اليوم.
+Nothing in this day.	لا شيء في هذا اليوم.
+No chats kept yet.	لا توجد محادثات محفوظة بعد.
+You	أنت
+{0} line	{0} سطر
+SET UP EMAIL >	إعداد البريد >
+SET UP EMAIL	إعداد البريد
+Or type your address	أو اكتب عنوانك
+Email address	عنوان البريد الإلكتروني
+Open the page	افتح الصفحة
+App password	كلمة مرور التطبيق
+IMAP server	خادم IMAP
+Incoming mail server	خادم البريد الوارد
+SMTP server	خادم SMTP
+Outgoing mail server	خادم البريد الصادر
+An app password is a separate password just for Capri. Your normal password stays yours.	كلمة مرور التطبيق هي كلمة مرور منفصلة خاصة بـ Capri فقط. كلمة مرورك العادية تبقى لك.
+She keeps it only until she closes.	تحتفظ بها فقط حتى تُغلق.
+She checks, searches and reads your mail. She asks before she sends any.	تتحقق من بريدك وتبحث فيه وتقرأه. تسأل قبل أن ترسل أي شيء.
+Watch for new mail	راقب البريد الجديد
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	تتحدث عندما يصل بريد، مع تحذير إذا بدا أنه تصيّد. لا يُعلَّم أي شيء كمقروء.
+Deal with phishing on her own	تعامل مع التصيّد بنفسها
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	فقط أثناء مراقبتها. البريد الذي تتأكد أنه تصيّد يذهب إلى البريد المزعج. والباقي ينتظر موافقتك.
+Forget account	انسَ الحساب
+Use another email	استخدم بريدًا آخر
+Which email?	أي بريد؟
+Make an app password	أنشئ كلمة مرور للتطبيق
+Paste it	الصقها
+Connecting...	جارٍ الاتصال...
+She can use your email now.	يمكنها استخدام بريدك الآن.
+She's not watching your inbox.	إنها لا تراقب صندوق الوارد لديك.
+She's watching your inbox and deals with phishing she's sure of.	إنها تراقب صندوق الوارد وتتعامل مع التصيّد الذي تتأكد منه.
+She's watching your inbox and tells you when mail lands.	إنها تراقب صندوق الوارد وتخبرك عندما يصل بريد.
+She forgot that account and its app password.	نسيت ذلك الحساب وكلمة مرور التطبيق.
+She forgot that account. Its app password is gone from this PC.	نسيت ذلك الحساب. اختفت كلمة مرور التطبيق من هذا الكمبيوتر.

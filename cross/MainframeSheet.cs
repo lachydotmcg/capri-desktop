@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -67,20 +68,20 @@ namespace CapriDesktop
         {
             pet = owner;
             this.frame = frame;
-            Steered = true;
+            Steered = true; FitsScreen = true;
             ShowInTaskbar = false;
             Label("MODS DIRECTORY", 24, 15, 260, 29, MainframeTheme.Rose, 20, true).Display = true;
             Button("View on GitHub", 470, 20, 128, 22, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
             refresh = Button("Refresh", 604, 20, 80, 22, LoadMods);
             Button("", Wide - 54, 20, 26, 22, Close).Glyph = 2;
-            Label("Every mod is checked for malware before it goes up. Code mods still ask before they run.", 28, 52, 688, 16, MainframeTheme.Faint, 34.0 / 3);
+            Label("Every mod is checked for malware before it goes up. Code mods and plug-ins still ask before they run.", 28, 52, 688, 16, MainframeTheme.Faint, 34.0 / 3);
             search = Put(Page, new NeonEntry("Search name, author or description"), 28, 74, 270, 26, "Search the mods directory");
             // Typing and Enter go through Program.Guard like the buttons, so a bug behind a box is written down instead of ending her.
             search.Box.TextChanged += delegate { Program.Guard(delegate { first = 0; FillDirectory(); }); };
             for (int i = 0; i < kinds.Length; i++)
             {
                 int choice = i;
-                kinds[i] = Button(ModDirectory.Kinds[i], 306 + i * 82, 76, 76, 22, delegate { PickKind(choice); });
+                kinds[i] = Button(ModDirectory.Kinds[i], 306 + i * 68, 76, 64, 22, delegate { PickKind(choice); });
                 AutomationProperties.SetName(kinds[i], "Show " + ModDirectory.Kinds[i].ToLowerInvariant() + " in the mods directory");
             }
             Label("SORT BY", 28, 109, 70, 16, MainframeTheme.Faint, 34.0 / 3);
@@ -419,7 +420,7 @@ namespace CapriDesktop
         internal ReadmeWindow(Pet owner, ModListing listing) : base("View mod")
         {
             this.listing = listing;
-            Steered = true;
+            Steered = true; FitsScreen = true;
             ShowInTaskbar = false;
             Label("VIEW MOD", 24, 15, 320, 29, MainframeTheme.Rose, 20, true).Display = true;
             NeonButton shut = Put(Page, new NeonButton { Glyph = 2 }, Wide - 50, 20, 26, 22, "Close");
@@ -882,14 +883,15 @@ namespace CapriDesktop
         private readonly double wide;
         internal readonly Dictionary<string, Control> Rows = new Dictionary<string, Control>();
 
-        internal MainframeSheet(Pet owner, string title, string kind) : base(title)
+        // Windows names a sheet's window and its neon heading separately ("Capri spend" / "SPEND >"); most cross sheets pass one, Spend both.
+        internal MainframeSheet(Pet owner, string title, string kind, string caption = null) : base(title)
         {
             pet = owner;
             wide = kind == "layers" ? 760 : kind == "vault" ? 520 : 380;
             ShowInTaskbar = false;
-            Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
+            Put(Page, new NeonCaption { Text = caption ?? title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "provider" ? Provider() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "provider" ? Provider() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : kind == "uninstall" ? Uninstalling() : kind == "spend" ? Spent() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Program.Guard(Sync);
@@ -942,32 +944,44 @@ namespace CapriDesktop
             foreach (var entry in new[] { address, model, voice }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => save()); } };
             return 300;
         }
-        // Any OpenAI-compatible chat endpoint, so she isn't limited to providers recognised by a key's prefix. The address
-        // and optional key are saved together by Pet.UseServer, which also checks key safety and lists the models.
         private double Provider()
         {
-            Caption("Use any OpenAI-compatible chat endpoint.", 28, 52, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            Caption("Use an OpenAI-compatible chat endpoint.", 28, 52, 328, 18, MainframeTheme.Faint, 34.0 / 3);
             var address = Input("Address", "https://api.example.com/v1", 28, 84, 328, () => pet.Brain.Server ?? "");
-            var key = Input("API key", "Optional. Blank means no key.", 28, 140, 328, () => null);
-            key.Box.PasswordChar = '\u2022';
-            Caption("Saved encrypted here. Keys go only to this address.", 28, 196, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            var key = Input("API key", "Optional", 28, 140, 328, () => null);
+            key.Box.PasswordChar = '•';
+            Caption("A key needs HTTPS unless the server is on this PC.", 28, 196, 328, 18, MainframeTheme.Faint, 34.0 / 3);
             var note = Put(Page, new NeonCaption { Ink = MainframeTheme.Faint, Ellipsis = true }, 28, 264, 328, 20);
             Rows["Note"] = note;
-            Action<string> say = text => { note.Text = text; note.InvalidateVisual(); };
+            Action<string> say = text => { note.Text = text; ToolTip.SetTip(note, text); note.InvalidateVisual(); };
+            int request = 0;
+            NeonButton connectButton = null;
             Action connect = () =>
             {
-                string typed = (address.Box.Text ?? "").Trim(), secret = (key.Box.Text ?? "").Trim();
-                string url = Brain.ServerAddress(typed);
-                if (url == null) { say("That address doesn't work. Try https://... or http://localhost:1234."); return; }
-                if (secret.Length == 0) secret = null;
-                if (secret != null && !Brain.ServerKeySafe(url)) { say("Use https for a provider elsewhere. A key over plain http isn't safe."); return; }
-                say("Checking the provider...");
+                if (!connectButton.IsEnabled) return;
+                int ticket = ++request;
+                string secret = key.Box.Text;
                 key.Box.Text = "";
-                pet.UseServer(url, secret);
+                connectButton.IsEnabled = false;
+                say("Checking the provider...");
+                pet.UseServer(address.Box.Text, secret, result =>
+                {
+                    if (closed || ticket != request) return;
+                    connectButton.IsEnabled = true;
+                    say(result);
+                });
             };
-            Button("Connect", 28, 224, 104, 28, () => connect()).Accent = MainframeTheme.Cyan;
-            Button("Forget", 140, 224, 104, 28, () => { key.Box.Text = ""; address.Box.Text = ""; pet.LeaveServer(); say("Provider forgotten."); });
-            Button("Cancel", 252, 224, 104, 28, Close);
+            connectButton = Button("Connect", 28, 224, 104, 28, () => connect());
+            connectButton.Accent = MainframeTheme.Cyan;
+            var forget = Button("Forget", 140, 224, 104, 28, () =>
+            {
+                ++request;
+                key.Box.Text = "";
+                connectButton.IsEnabled = true;
+                pet.LeaveServer(say);
+            });
+            readers.Add(() => forget.IsEnabled = pet.Brain.Server != null);
+            Button("Close", 252, 224, 104, 28, Close);
             foreach (var entry in new[] { address, key }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => connect()); } };
             return 300;
         }
@@ -1054,6 +1068,23 @@ namespace CapriDesktop
             if (pet.MainframeInputSetup) { Button("Set up mouse and keyboard", 28, y + 8, 328, 28, pet.MainframeSetupInput); y += 44; }
             return y + 24;
         }
+        private double Uninstalling()
+        {
+            bool wipe = false;
+            string[] said = { Uninstall.Says(pet.MainframeUninstallPlan(false), false), Uninstall.Says(pet.MainframeUninstallPlan(true), true) };
+            int lines = Math.Max(said[0].Split('\n').Sum(line => 1 + line.Length / 44), said[1].Split('\n').Sum(line => 1 + line.Length / 44));
+            double box = 20 + lines * 16;
+            var note = Put(Page, new TextBlock { Foreground = MainframeTheme.Rose, FontSize = 34.0 / 3, TextWrapping = TextWrapping.Wrap }, 28, 60, 328, box, "Uninstall note"); Rows["Uninstall note"] = note;
+            double y = 60 + box + 12;
+            var toggle = Toggle("Also delete everything she knows", (int)y, () => wipe, on => { wipe = on; });
+            toggle.Width = 328; toggle.Switch = 68;
+            readers.Add(() => { string text = said[wipe ? 1 : 0]; if (note.Text != text) note.Text = text; });
+            Put(Page, new TextBlock { Foreground = MainframeTheme.Faint, FontSize = 34.0 / 3, TextWrapping = TextWrapping.Wrap }, 28, y + 28, 328, 64, "Uninstall keeps").Text = "Her memories, notes, chats, keys, settings, mods, and the brain and voice she downloaded. Leave this off to keep them for a reinstall.";
+            double at = y + 100;
+            Button("Cancel", 28, (int)at, 160, 28, Close);
+            Button("Uninstall", 196, (int)at, 160, 28, () => { Close(); pet.MainframeUninstall(wipe); }).Accent = MainframeTheme.Hot;
+            return at + 28 + 28;
+        }
         private double Vault()
         {
             var vaults = pet.VaultList();
@@ -1098,7 +1129,69 @@ namespace CapriDesktop
             Button("Close", 388, 164, 104, 26, Close);
             return 214;
         }
-        private void Sync()
+        private double Spent()
+        {
+            Caption("What her brain cost on your API keys", 28, 52, 328, 16, MainframeTheme.Faint, 34.0 / 3);
+            Put(Page, new NeonCaption { Text = "TODAY", Ink = MainframeTheme.Rose, Bold = true, Size = 34.0 / 3 }, 28, 82, 120, 22);
+            var today = Put(Page, new NeonCaption { Text = "$0", Ink = MainframeTheme.White, Bold = true, Size = 20, Align = TextAlignment.Right }, 196, 78, 160, 26, "Today"); Rows["Today"] = today;
+            Put(Page, new NeonCaption { Text = "THIS MONTH", Ink = MainframeTheme.Rose, Bold = true, Size = 34.0 / 3 }, 28, 112, 120, 22);
+            var month = Put(Page, new NeonCaption { Text = "$0", Ink = MainframeTheme.Cyan, Bold = true, Size = 20, Align = TextAlignment.Right }, 196, 108, 160, 26, "This month"); Rows["This month"] = month;
+            Rows["Models"] = Put(Page, new NeonHead { Text = "MODELS >" }, 14, 145, 352, 24, "Models");
+            var monthTotal = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Size = 34.0 / 3, Align = TextAlignment.Right }, 150, 149, 206, 18, "This month total"); Rows["This month total"] = monthTotal;
+            string[] heads = { "Asks", "Tokens", "Cost" };
+            for (int c = 0; c < heads.Length; c++)
+                Put(Page, new NeonCaption { Text = heads[c], Ink = MainframeTheme.Faint, Size = 34.0 / 3, Align = TextAlignment.Right }, c == 0 ? 182 : c == 1 ? 230 : 286, 174, c == 0 ? 44 : c == 1 ? 52 : 70, 14);
+            var modelNames = new NeonCaption[8]; var modelAsks = new NeonCaption[8]; var modelTokens = new NeonCaption[8]; var modelCosts = new NeonCaption[8];
+            for (int i = 0; i < modelNames.Length; i++)
+            {
+                int y = 192 + 20 * i;
+                modelNames[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.White }, 28, y, 150, 18, "Model " + (i + 1)); Rows["Model " + (i + 1)] = modelNames[i];
+                modelAsks[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Align = TextAlignment.Right }, 182, y, 44, 18, "Asks " + (i + 1)); Rows["Asks " + (i + 1)] = modelAsks[i];
+                modelTokens[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Faint, Align = TextAlignment.Right }, 230, y, 52, 18, "Tokens " + (i + 1)); Rows["Tokens " + (i + 1)] = modelTokens[i];
+                modelCosts[i] = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Cyan, Align = TextAlignment.Right }, 286, y, 70, 18, "Cost " + (i + 1)); Rows["Cost " + (i + 1)] = modelCosts[i];
+            }
+            Put(Page, new NeonHead { Text = "SMALL JOBS >" }, 14, 355, 352, 24);
+            var smallJobs = Put(Page, new NeonCaption { Text = "", Ink = MainframeTheme.Cyan }, 28, 386, 328, 52, "Small jobs"); Rows["Small jobs"] = smallJobs;
+            Rows["Prices note"] = Put(Page, new NeonCaption { Text = "List prices from each provider. Free tiers, credits and discounts aren't taken off.", Ink = MainframeTheme.Faint, Size = 34.0 / 3 }, 28, 446, 328, 30, "Prices note");
+            readers.Add(delegate
+            {
+                List<SpendRow> months = Spend.Month();
+                today.Text = Spend.Money(Spend.Total(Spend.Today()));
+                month.Text = Spend.Money(Spend.Total(months));
+                int asked = 0; long tokens = 0;
+                foreach (SpendRow row in months) { asked += row.Asks; tokens += row.Tokens; }
+                monthTotal.Text = months.Count == 0 ? "nothing yet this month" : asked + (asked == 1 ? " ask · " : " asks · ") + Spend.Tokens(tokens) + " tokens";
+                for (int i = 0; i < modelNames.Length; i++)
+                {
+                    SpendRow row = i < months.Count ? months[i] : null;
+                    modelNames[i].Text = row == null ? "" : ModelName(row);
+                    modelAsks[i].Text = row == null ? "" : row.Asks.ToString(CultureInfo.InvariantCulture);
+                    modelTokens[i].Text = row == null ? "" : Spend.Tokens(row.Tokens);
+                    modelCosts[i].Text = row == null ? "" : Cost(row);
+                }
+                Cloud remote = pet.Brain.Remote;
+                smallJobs.Text = SpendWords(remote == null || remote.Code || remote.Plan || remote.Kind == "local" ? null : remote.Model, pet.Brain.SmallJobs);
+            });
+            return 490;
+        }
+        private static string ModelName(SpendRow row)
+        {
+            string model = row.Model ?? "";
+            return row.Kind != null && row.Kind.StartsWith("other:", StringComparison.Ordinal) ? Spend.Company(row.Kind) + " · " + model : model;
+        }
+        private static string Cost(SpendRow row)
+        {
+            if (Spend.Free(row.Kind, row.Model)) return "free";
+            if (row.Cost == 0 && row.Unpriced > 0) return "?";
+            return Spend.Money(row.Cost);
+        }
+        private static string SpendWords(string main, string small)
+        {
+            if (string.IsNullOrEmpty(main)) return "Pick a brain with an API key and she'll count what it costs here.";
+            if (string.IsNullOrEmpty(small)) return "Small jobs stay on " + main + ": no cheaper model from the same provider is on your key.";
+            return "Comments, glances, quick tool picks, translations and Code Mode summaries go to " + small + " instead of " + main + ".";
+        }
+        internal void Sync()
         {
             if (syncing || closed) return;
             syncing = true;

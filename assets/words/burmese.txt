@@ -30,6 +30,7 @@ Ask Capri for more	Capri ထံ ပိုတောင်းပါ
 Asking your server...	သင့်ဆာဗာကို မေးနေသည်...
 Asks before closing only the apps you choose.	သင်ရွေးထားသော app များကိုသာ ပိတ်ခင် မေးပါမည်။
 Auto	Auto
+Auto (match what I say)	Auto (ကျွန်ုပ်ပြောသည့်အတိုင်း)
 Automatic: VB-CABLE, else Steam's	အလိုအလျောက်: VB-CABLE၊ မဟုတ်ရင် Steam
 BAD RELAY HOST	RELAY host မှားနေသည်
 BIG Z open notepad	BIG Z notepad ဖွင့်
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri ဖျောက် / ပြ
 Hide / Show key	ဖျောက် / ပြ key
 Hide Capri	Capri ဖျောက်
 Hide for now	ယခုအတွက် ဖျောက်
+Hide her	သူမကို ဖျောက်
 Hide in full screen	full screen တွင် ဖျောက်
 Hide this	ဤအရာကို ဖျောက်
+Hide, keep player	ဖျောက်၊ player ထားပါ
 Hide/show:	ဖျောက်/ပြ:
 Hide/show: Ctrl + Alt + H	ဖျောက်/ပြ: Ctrl + Alt + H
 Hologram	Hologram
@@ -288,6 +291,7 @@ Huge	ကြီးလွန်း
 I can hear you.	ကျွန်မ ကြားနေတယ်။
 I glance at your screen and comment. Costs a little on a paid brain.	သင့်ဖန်သားပြင်ကို ကြည့်ပြီး မှတ်ချက်ပေးမည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
 I keep listening. Say my name, then just talk.	ဆက်နားထောင်နေမည်။ ကျွန်မနာမည် ခေါ်ပြီးနောက် စကားပြောပါ။
+I speak	ကျွန်ုပ်ပြောသည်
 I talk about your game as you play. Costs a little on a paid brain.	ဂိမ်းကစားနေစဉ် သင့်ဂိမ်းအကြောင်း ပြောမည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
 I type my replies and stay quiet.	ကျွန်မ၏ အဖြေများကို ရိုက်ပြီး တိတ်ဆိတ်နေမည်။
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ပြန်မပြောပါ၊ မည်သည့်နေရာသို့မျှ ဘာမျှ မပို့ပါ။ သင့်သီချင်းကို ကခုန်ပြီး အမြန်အလုပ်များကို လုပ်ဆောင်ပေးမည်၊ volume ကဲ့သို့။
@@ -296,6 +300,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALLED >
 Import a Capri mod	Capri mod ထည့်သွင်းရန်
 Import mod	mod ထည့်သွင်းရန်
+In full screen	Full screen တွင်
 In games	ဂိမ်းများတွင်
 Input	Input
 Input, Output or How to overlaps a row	Input၊ Output သို့မဟုတ် How to သည် အတန်းတစ်ခုနှင့် ထပ်နေသည်
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	KEYS
 KEYS >	KEYS >
 Keep PC awake for jobs	အလုပ်များအတွက် PC ကို နိုးထားပါ
+Keep player	Player ထားပါ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	သင့်ဂိမ်း၏ နောက်ဆုံး မိနစ်နှစ်ခုကို မှတ်ဉာဏ်တွင် သိမ်းထားသည်။ သိမ်းရန် clip that ဟု ပြောပါ။
 Key	Key
 Key cleared: a model file needs none.	Key ရှင်းပြီး: model ဖိုင်တွင် မလိုပါ။
@@ -439,6 +445,7 @@ No AI · no brain at all	AI မရှိ · ဦးနှောက် လုံ�
 No brain runs, and nothing is sent anywhere.	ဦးနှောက် မလည်ပတ်ပါ၊ မည်သည့်နေရာသို့မျှ ဘာမျှ မပို့ပါ။
 No brain yet	ဦးနှောက် မရှိသေး
 No code open	Code ဖွင့်ထားခြင်း မရှိ
+No limit	ကန့်သတ်ချက်မရှိ
 No mic found	Mic မတွေ့ပါ
 No mods in the directory yet.	directory တွင် mods မရှိသေးပါ။
 No mods match that.	ဤနှင့် ကိုက်ညီသော mod မရှိပါ။
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	Play
 Play...	Play...
+Player only	Player သာ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS models များသည် ဤ clip ၏ အသံကို ကူးယူသည်။ ကြားရန် Test နှိပ်ပါ။
 Pop-in times	Pop-in အချိန်များ
 Pop-ins	Pop-ins
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ခွဲခြားမှု
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	အသံ အလေ့အထ ဦးနှောက် ကြည့်ရှု Capri doomscroll ရာသီဥတု clips ဂိမ်း keys ရွေ့လျားမှု အသံ သင်
+Same as I speak	ကျွန်ုပ်ဘာသာစကားအတိုင်း
 Same as her ears (VOICE > Mic)	သူမ၏ နား (VOICE > Mic) နှင့် တူသည်
 Same code on the phone?	ဖုန်းပေါ်ရှိ code တူပါသလား?
 Save	သိမ်း
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Settings တွင် ကြည့်ရန်ဘ
 Settings lost keyboard focus during the Tab walk	Tab လမ်းလျှောက်စဉ် Settings သည် keyboard focus ဆုံးရှုံးသည်
 Setup guide	Setup guide
 Setup stopped	Setup ရပ်သွားသည်
+She answers in	သူမ ဖြေသည်
 She can read it when it fits.	သူမ သင့်လျော်သောအခါ ဖတ်နိုင်သည်။
 She glances at your screen and comments. Costs a little on a paid brain.	သူမ သင့်ဖန်သားပြင်ကို ကြည့်ပြီး မှတ်ချက်ပေးသည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
-She keeps listening. Say her name, then just talk until you go quiet.	သူမ နားထောင်ဆဲ ဖြစ်သည်။ နာမည်ခေါ်ပြီး တိတ်သွားသည်အထိ ပြောပါ။
+She keeps listening. Say her name, then just talk.	သူမ နားထောင်ဆဲ ဖြစ်သည်။ နာမည်ခေါ်ပြီး ပြောပါ။
 She reacts to your game until you close it.	သင်ဂိမ်းကို ပိတ်သည်အထိ သူမ တုံ့ပြန်သည်။
 She reads these controls before each game job.	ဂိမ်းလုပ်ငန်းတစ်ခုစီ မတိုင်မီ သူမ ဤထိန်းချုပ်မှုများကို ဖတ်သည်။
 She talks about your game as you play. Costs a little on a paid brain.	သင်ဂိမ်းကစားနေစဉ် သင့်ဂိမ်းအကြောင်း ပြောသည်။ ပေးချေထားသော ဦးနှောက်ဖြင့် အနည်းငယ် ကုန်ကျသည်။
@@ -666,6 +676,7 @@ Speed	Speed
 Start with Windows	Windows နှင့် စတင်
 Start with this!	ဒါနဲ့ စတင်!
 Starting...	စတင်နေသည်...
+Stay	နေပါ
 Stay on my model	ကျွန်ုပ်၏ model ကို ဆက်ထား
 Still checking your mics...	သင့် mic များကို ဆက်စစ်ဆေးနေသည်...
 Still checking your speakers...	သင့် speaker များကို ဆက်စစ်ဆေးနေသည်...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	သူမ လည်
 · HD	· HD
 · on this PC	· ဤ PC တွင်
 · server	· server
+Edit as text	စာသားအဖြစ် တည်းဖြတ်ရန်
+What Capri remembers about you. It stays on this computer.	Capri က မင်းအကြောင်း မှတ်ထားတာတွေ။ ဒီကွန်ပျူတာပေါ်မှာ ကျန်နေတယ်။
+Tell her something to remember	မှတ်ထားစရာ တစ်ခုခု ပြောပါ
+Search her memory	သူ့မှတ်ဉာဏ်ထဲမှာ ရှာပါ
+That day isn't there any more.	အဲဒီနေ့ မရှိတော့ဘူး။
+Undo	ပြန်ဖျက်ရန်
+Remember our chats is off, so she isn't keeping new chat memories.	ငါတို့စကားပြောတွေကို မှတ်ထားတာ ပိတ်ထားတယ်၊ ဒါကြောင့် စကားပြောမှတ်ဉာဏ်အသစ် မသိမ်းဘူး။
+ABOUT YOU	မင်းအကြောင်း
+FROM YOUR CHATS	မင်းရဲ့စကားပြောတွေထဲက
+GAMES	ဂိမ်းများ
+CHAT LOGS	စကားပြောမှတ်တမ်းများ
+CHAT LOG	စကားပြောမှတ်တမ်း
+Nothing matches.	ဘာမှ မကိုက်ညီပါ။
+Nothing yet.	ဘာမှ မရှိသေးပါ။
+Reading her notes.	သူ့မှတ်စုတွေ ဖတ်နေတယ်။
+Click again to forget game notes	ဂိမ်းမှတ်စုတွေ မေ့ဖို့ ထပ်နှိပ်ပါ
+Forget game notes	ဂိမ်းမှတ်စုတွေ မေ့ပါ
+Click again to forget everything about me	မင်းအကြောင်း အားလုံး မေ့ဖို့ ထပ်နှိပ်ပါ
+Forget everything about me	မင်းအကြောင်း အားလုံး မေ့ပါ
+Click again to forget	မေ့ဖို့ ထပ်နှိပ်ပါ
+Forget this day	ဒီနေ့ကို မေ့ပါ
+Only the start of this day is shown.	ဒီနေ့ရဲ့ အစပိုင်းကိုပဲ ပြထားတယ်။
+Nothing in this day.	ဒီနေ့မှာ ဘာမှ မရှိဘူး။
+No chats kept yet.	စကားပြောတွေ မသိမ်းရသေးဘူး။
+You	မင်း
+{0} line	စာကြောင်း {0}
+SET UP EMAIL >	အီးမေးလ် သတ်မှတ်ရန် >
+SET UP EMAIL	အီးမေးလ် သတ်မှတ်ရန်
+Or type your address	ဒါမှမဟုတ် မင်းလိပ်စာ ရိုက်ပါ
+Email address	အီးမေးလ်လိပ်စာ
+Open the page	စာမျက်နှာ ဖွင့်ပါ
+App password	အက်ပ်စကားဝှက်
+IMAP server	IMAP ဆာဗာ
+Incoming mail server	အဝင်မေးလ် ဆာဗာ
+SMTP server	SMTP ဆာဗာ
+Outgoing mail server	အထွက်မေးလ် ဆာဗာ
+An app password is a separate password just for Capri. Your normal password stays yours.	အက်ပ်စကားဝှက်က Capri အတွက်ပဲ သီးခြားစကားဝှက်ပါ။ မင်းရဲ့ ပုံမှန်စကားဝှက်က မင်းဆီမှာပဲ။
+She keeps it only until she closes.	သူက ပိတ်တဲ့အထိပဲ သိမ်းထားတယ်။
+She checks, searches and reads your mail. She asks before she sends any.	သူက မင်းမေးလ်ကို စစ်တယ်၊ ရှာတယ်၊ ဖတ်တယ်။ ဘာမှ မပို့ခင် အရင်မေးတယ်။
+Watch for new mail	မေးလ်အသစ် စောင့်ကြည့်ပါ
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	မေးလ်ဝင်လာရင် သူပြောတယ်၊ ဖစ်ရှင်းနဲ့တူရင် သတိပေးတယ်။ ဘာမှ ဖတ်ပြီးအဖြစ် မမှတ်ဘူး။
+Deal with phishing on her own	ဖစ်ရှင်းကို ကိုယ်တိုင်ကိုင်တွယ်ပါ
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	သူစောင့်ကြည့်နေတုန်းပဲ။ ဖစ်ရှင်းသေချာတဲ့မေးလ်က spam ကိုသွားတယ်။ ကျန်တာက မင်းရဲ့ ဟုတ်ကဲ့ကို စောင့်တယ်။
+Forget account	အကောင့်ကို မေ့ပါ
+Use another email	အခြားအီးမေးလ် သုံးပါ
+Which email?	ဘယ်အီးမေးလ်?
+Make an app password	အက်ပ်စကားဝှက် ဖန်တီးပါ
+Paste it	ကူးထည့်ပါ
+Connecting...	ချိတ်ဆက်နေတယ်...
+She can use your email now.	အခု သူက မင်းအီးမေးလ်ကို သုံးနိုင်ပြီ။
+She's not watching your inbox.	သူက မင်းရဲ့ inbox ကို မစောင့်ကြည့်ဘူး။
+She's watching your inbox and deals with phishing she's sure of.	သူက မင်းရဲ့ inbox ကို စောင့်ကြည့်ပြီး သေချာတဲ့ဖစ်ရှင်းကို ကိုင်တွယ်တယ်။
+She's watching your inbox and tells you when mail lands.	သူက မင်းရဲ့ inbox ကို စောင့်ကြည့်ပြီး မေးလ်ဝင်လာရင် ပြောတယ်။
+She forgot that account and its app password.	သူက အဲဒီအကောင့်နဲ့ အက်ပ်စကားဝှက်ကို မေ့သွားတယ်။
+She forgot that account. Its app password is gone from this PC.	သူက အဲဒီအကောင့်ကို မေ့သွားတယ်။ အက်ပ်စကားဝှက်က ဒီကွန်ပျူတာကနေ ပျောက်သွားတယ်။

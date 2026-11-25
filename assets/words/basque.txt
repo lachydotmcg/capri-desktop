@@ -30,6 +30,7 @@ Ask Capri for more	Eskatu Capri-ri gehiago
 Asking your server...	Zure zerbitzaria galdetzen...
 Asks before closing only the apps you choose.	Zuk aukeratutako aplikazioak bakarrik itxi aurretik galdetuko du.
 Auto	Automatikoa
+Auto (match what I say)	Automatikoa (esaten dudana)
 Automatic: VB-CABLE, else Steam's	Automatikoa: VB-CABLE, bestela Steam-ena
 BAD RELAY HOST	RELAY OSTALARI OKERRA
 BIG Z open notepad	BIG Z ireki notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	Ezkutatu / Erakutsi Capri
 Hide / Show key	Ezkutatu / Erakutsi gakoa
 Hide Capri	Ezkutatu Capri
 Hide for now	Ezkutatu oraingoz
+Hide her	Ezkutatu hura
 Hide in full screen	Ezkutatu pantaila osoan
 Hide this	Ezkutatu hau
+Hide, keep player	Ezkutatu, erreproduktorea utzi
 Hide/show:	Ezkutatu/erakutsi:
 Hide/show: Ctrl + Alt + H	Ezkutatu/erakutsi: Ctrl + Alt + H
 Hologram	Hologramak
@@ -288,6 +291,7 @@ Huge	Erraldoia
 I can hear you.	Entzuten zaitut.
 I glance at your screen and comment. Costs a little on a paid brain.	Zure pantaila begiratu eta iruzkintzen dut. Ordaindutako burua bada, apur bat kostatzen da.
 I keep listening. Say my name, then just talk.	Entzuten jarraitzen dut. Esan nire izena, eta gero hitz egin besterik gabe.
+I speak	Nik hitz egiten dut
 I talk about your game as you play. Costs a little on a paid brain.	Zure jokoaz hitz egiten dut jokatzen duzun bitartean. Ordaindutako burua bada, apur bat kostatzen da.
 I type my replies and stay quiet.	Nire erantzunak idazten ditut eta isilik egoten naiz.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ez dut ahoz erantzungo, eta ez da ezer inora bidaltzen. Hala ere, inguruan egongo naiz, zure musikara dantzatuko dut eta eskatzen dituzun gauza azkarrak egingo ditut, esaterako bolumena.
@@ -296,6 +300,7 @@ IN DISCORD >	DISCORD-EAN >
 INSTALLED >	INSTALATUTA >
 Import a Capri mod	Inportatu Capri modu bat
 Import mod	Inportatu modua
+In full screen	Pantaila osoan
 In games	Jokoetan
 Input	Sarrera
 Input, Output or How to overlaps a row	Sarrera, Irteera edo Nola errenkada batekin gainjartzen dira
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	GAKOAK
 KEYS >	GAKOAK >
 Keep PC awake for jobs	Mantendu PC esna lanetarako
+Keep player	Utzi erreproduktorea
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Zure jokoaren azken bi minutuak memorian gordetzen ditu. Esan klip hori gordetzeko.
 Key	Gakoa
 Key cleared: a model file needs none.	Gakoa garbitu da: modelo fitxategiak ez du behar.
@@ -439,6 +445,7 @@ No AI · no brain at all	AI rik ez · buruarik ere ez
 No brain runs, and nothing is sent anywhere.	Buruak ez du exekutatzen, eta ez da ezer inora bidaltzen.
 No brain yet	Burua oraindik ez
 No code open	Kodea irekita ez
+No limit	Mugarik gabe
 No mic found	Mikrofonorik ez da aurkitu
 No mods in the directory yet.	Modak karpetan oraindik modarik ez dago.
 No mods match that.	Ez dago mod hori bat ere.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tonua
 Play	Erreproduzitu
 Play...	Erreproduzitu...
+Player only	Erreproduktorea soilik
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeloek klip honen ahotsa kopiatzen dute. Sakatu Probatu entzuteko.
 Pop-in times	Agerpen orduak
 Pop-ins	Agerpenak
@@ -592,6 +600,7 @@ SKILL.	TRESNA.
 SKIN.	AZALA.
 SORT BY	ORDENATU HAUEN ARABERA
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOINUAK OHITURAK BURUA BEGIRATU CAPRI DOOMSCROLL EGURALDIA KLIPAK JOKOAK GAKOAK MUGIMENDUAK AHOTSA ZU
+Same as I speak	Nire hizkuntza bera
 Same as her ears (VOICE > Mic)	Bere belarriak bezala (AHOTSA > Mikrofonoa)
 Same code on the phone?	Kode bera telefonoan?
 Save	Gorde
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Ezarpenek ez zuten ikusteko ezer.
 Settings lost keyboard focus during the Tab walk	Ezarpenek teklatuaren fokua galdu zuten Tab ibilbidean
 Setup guide	Konfigurazio gida
 Setup stopped	Konfigurazioa gelditu da
+She answers in	Berak erantzuten du
 She can read it when it fits.	Ondo ateratzen denean irakur dezake.
 She glances at your screen and comments. Costs a little on a paid brain.	Zure pantaila begiratzen du eta iruzkintzen du. Ordaindutako burua bada, apur bat kostatzen da.
-She keeps listening. Say her name, then just talk until you go quiet.	Entzuten jarraitzen du. Esan bere izena, eta gero hitz egin isildu arte.
+She keeps listening. Say her name, then just talk.	Entzuten jarraitzen du. Esan bere izena, eta gero hitz egin.
 She reacts to your game until you close it.	Zure jokoari erreakzionatzen dio itxi arte.
 She reads these controls before each game job.	Kontrol hauek irakurtzen ditu jokoko lan bakoitza baino lehen.
 She talks about your game as you play. Costs a little on a paid brain.	Zure jokoaz hitz egiten du jokatzen duzun bitartean. Ordaindutako burua bada, apur bat kostatzen da.
@@ -666,6 +676,7 @@ Speed	Abiadura
 Start with Windows	Hasi Windows-ekin
 Start with this!	Hasi honekin!
 Starting...	Hasten...
+Stay	Geratu
 Stay on my model	Mantendu nire modeloa
 Still checking your mics...	Oraindik zure mikrofonoak aztertzen...
 Still checking your speakers...	Oraindik zure bozgorailuak aztertzen...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ez du beste aplikaz
 · HD	· HD
 · on this PC	· PC honetan
 · server	· zerbitzaria
+Edit as text	Editatu testu gisa
+What Capri remembers about you. It stays on this computer.	Capsik zugatik gogoratzen duena. Ordenagailu honetan geratzen da.
+Tell her something to remember	Esan zerbait gogoratzeko
+Search her memory	Bilatu bere memorian
+That day isn't there any more.	Egun hori ez dago jada.
+Undo	Desegin
+Remember our chats is off, so she isn't keeping new chat memories.	Gure elkarrizketak gogoratu itzalita dago, beraz ez du elkarrizketa-oroitzapen berririk gordetzen.
+ABOUT YOU	ZUTAZ
+FROM YOUR CHATS	ZURE ELKARRIZKETETATIK
+GAMES	JOKOAK
+CHAT LOGS	TXAT-ERREGISTROAK
+CHAT LOG	TXAT-ERREGISTROA
+Nothing matches.	Ez dator bat ezer.
+Nothing yet.	Oraindik ezer ez.
+Reading her notes.	Bere oharrak irakurtzen.
+Click again to forget game notes	Egin klik berriro jokoen oharrak ahazteko
+Forget game notes	Ahaztu jokoen oharrak
+Click again to forget everything about me	Egin klik berriro zutaz dena ahazteko
+Forget everything about me	Ahaztu zutaz dena
+Click again to forget	Egin klik berriro ahazteko
+Forget this day	Ahaztu egun hau
+Only the start of this day is shown.	Egun honen hasiera baino ez da erakusten.
+Nothing in this day.	Ez dago ezer egun honetan.
+No chats kept yet.	Oraindik ez dago txatik gordeta.
+You	Zu
+{0} line	{0} lerro
+SET UP EMAIL >	KONFIGURATU POSTA >
+SET UP EMAIL	KONFIGURATU POSTA
+Or type your address	Edo idatzi zure helbidea
+Email address	Helbide elektronikoa
+Open the page	Ireki orria
+App password	Aplikazioaren pasahitza
+IMAP server	IMAP zerbitzaria
+Incoming mail server	Sarrerako posta zerbitzaria
+SMTP server	SMTP zerbitzaria
+Outgoing mail server	Irteerako posta zerbitzaria
+An app password is a separate password just for Capri. Your normal password stays yours.	Aplikazioaren pasahitza Caprirentzako pasahitz bereizia da. Zure pasahitz arrunta zurea da oraindik.
+She keeps it only until she closes.	Ixten denean arte baino ez du gordetzen.
+She checks, searches and reads your mail. She asks before she sends any.	Zure posta egiaztatzen, bilatzen eta irakurtzen du. Zerbait bidali aurretik galdetzen du.
+Watch for new mail	Begiratu posta berria
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Posta heltzen denean hitz egiten du, phishing dirudienez abisuekin. Ezer ez da irakurri gisa markatzen.
+Deal with phishing on her own	Ardu phishingaz bere kabuz
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Begiratzen duen bitartean baino ez. Phishing dela ziur dagoen posta spam-era doa. Gainerakoak zure baiaren zain dago.
+Forget account	Ahaztu kontua
+Use another email	Erabili beste posta bat
+Which email?	Zein posta?
+Make an app password	Sortu aplikazioaren pasahitza
+Paste it	Itsatsi
+Connecting...	Konektatzen...
+She can use your email now.	Orain zure posta erabil dezake.
+She's not watching your inbox.	Ez dago zure sarrera-ontzia begiratzen.
+She's watching your inbox and deals with phishing she's sure of.	Zure sarrera-ontzia begiratzen ari da eta ziur dakien phishingaz arduratzen da.
+She's watching your inbox and tells you when mail lands.	Zure sarrera-ontzia begiratzen ari da eta posta heltzen denean esaten dizu.
+She forgot that account and its app password.	Kontu hori eta aplikazioaren pasahitza ahaztu ditu.
+She forgot that account. Its app password is gone from this PC.	Kontu hori ahaztu du. Aplikazioaren pasahitza ordenagailu honetatik kendu da.

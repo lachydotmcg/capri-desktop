@@ -1,4 +1,4 @@
-"""Local Capri-name gate and the bounded follow-up window; no audio or network I/O."""
+"""Local Capri-name gate and the one line it waits for after her name on its own; no audio or network I/O."""
 from __future__ import annotations
 
 from collections import OrderedDict
@@ -8,6 +8,14 @@ import re
 import unicodedata
 
 NAME = re.compile(r"(?<!\w)capri(?!\w)", re.IGNORECASE)
+GREETING = re.compile(r"hey|hi|hiya|hello|yo|ok|okay|oi|um|uh", re.IGNORECASE)
+
+
+def name_alone(text):
+    """Just her name, maybe after a hey or a hi: "Hey Capri", "Capri?", "hi, capri"."""
+    if not NAME.search(text):
+        return False
+    return all(GREETING.fullmatch(word) for word in re.split(r'[\W_]+', NAME.sub(' ', text)) if word)
 
 
 @dataclass(frozen=True)
@@ -18,9 +26,10 @@ class AcceptedLine:
 
 
 class NameChat:
-    """Only an actual name opens a chat. A blocked gate cannot reopen itself."""
+    """A line with her name is accepted and opens nothing. Her name on its own waits for one
+    more line without it. A blocked gate cannot reopen itself."""
 
-    seconds = 20.0
+    seconds = 10.0
     max_utterances = 64
 
     def __init__(self, clock):
@@ -46,7 +55,7 @@ class NameChat:
     def mode(self):
         if self.blocked:
             return 'paused'
-        return 'chatting' if self.open else 'name_only'
+        return 'waiting' if self.open else 'name_only'
 
     def control(self, *, barred, speaking, busy, name_only=False):
         if any(type(value) is not bool for value in (barred, speaking, busy, name_only)):
@@ -66,7 +75,7 @@ class NameChat:
 
     def tick(self):
         now = self.clock()
-        # A reply/think that starts after expiry does not open a new chat.
+        # A reply/think that starts after expiry does not open a new wait.
         if not self.barred and not self.name_only and self.until >= 0 and now < self.until and (self.busy or self.speaking):
             self.until = now + self.seconds
         cutoff = now - 45.0
@@ -108,13 +117,16 @@ class NameChat:
         named = bool(NAME.search(normalized))
         eligible = boundary is not None and boundary[1]
         # Never let an ambient unprefixed "stop" act as a global hotword. It is
-        # accepted only in a conversation actually opened by hearing Capri.
+        # accepted only as the one line after hearing Capri's name on its own.
         if not named and not eligible:
             return None
         if not named and self.name_only:
             return None
         if not self.name_only:
-            if named and not self.open:
+            if named and name_alone(normalized):
                 self.opened = self.clock()
-            self.until = self.clock() + self.seconds
+                self.until = self.opened + self.seconds
+            elif eligible:
+                # The line it waited for is taken, and the next one needs her name again.
+                self.close()
         return AcceptedLine(utterance, text, named)

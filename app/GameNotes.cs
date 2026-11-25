@@ -17,6 +17,8 @@ namespace CapriDesktop
         private const int MostTold = 4000;
         private static readonly object writing = new object();
 
+        internal static object Gate { get { return writing; } }
+
         // How good players think in each kind of game. None of this is a walkthrough: it's what a gamer brings to a game they've never played.
         private static readonly string[,] Kinds =
         {
@@ -37,7 +39,7 @@ namespace CapriDesktop
             { @"forza|need for speed|gran turismo|assetto|\bf1\b|mario kart|rocket league|trackmania|beamng|\bfifa\b|ea (sports )?fc|nba 2k|madden|efootball",
               "Racing or sports game. Look ahead, not at your car. Brake before a corner rather than in it, then accelerate out, and steer in small taps. Hold the accelerate key with hold_and_press while you tap to steer. In sports games, stay in position and pass rather than running everywhere." },
             { @"super mario|celeste|ori and|rayman|\bsonic\b|\bcrash\b|\bobby\b|tower of hell|parkour|fall guys|only up|getting over it|geometry dash",
-              "Platformer. Jumps are timing. Stop, line up so the next platform is dead ahead, then run and jump at the very edge. Small moves beat long ones near a drop. If you fall, you've seen what went wrong, so change the run-up." },
+              "Platformer. Jumps are timing. Stop, line up so the next platform is dead ahead, then run and jump at the very edge, as one combo so the jump comes right on time, like w 0.5, w+space 0.3. Small moves beat long ones near a drop. If you fall, you've seen what went wrong, so change the run-up." },
             { @"phasmophobia|lethal company|dead by daylight|outlast|amnesia|resident evil|silent hill|dead space|alien.?isolation|content warning|r\.?e\.?p\.?o\b|among us|\bpeak\b",
               "Horror or co-op survival. Sound tells you where danger is, so go slowly and stop to look. Know your way out before you go in, hide rather than fight, and save your light and items for when you need them." },
             { @"balatro|slay the spire|hearthstone|stardew|the sims|cities.? skylines|planet coaster|animal crossing|portal|the witness|tetris|chess|solitaire|papers.? please|two point|disco elysium|schedule i|supermarket together|people playground",
@@ -172,7 +174,7 @@ namespace CapriDesktop
             if (skills != null) brief.Append(skills(game));
 #if !CROSS
             string keys = GameKeys.Summary(game);
-            if (keys != null) brief.Append("\nIts keys on this PC: " + keys + ".");
+            if (keys != null) brief.Append("\nIts keys on this PC, read from the game's own settings just now. These are their real keys, so use them over the usual ones and over anything you noted before: " + keys + ".");
 #endif
             string notes = Read(game);
             if (notes.Length > MostTold)

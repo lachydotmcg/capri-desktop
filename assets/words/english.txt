@@ -30,6 +30,7 @@ Ask Capri for more
 Asking your server...
 Asks before closing only the apps you choose.
 Auto
+Auto (match what I say)
 Automatic: VB-CABLE, else Steam's
 BAD RELAY HOST
 BIG Z open notepad
@@ -268,8 +269,10 @@ Hide / Show Capri
 Hide / Show key
 Hide Capri
 Hide for now
+Hide her
 Hide in full screen
 Hide this
+Hide, keep player
 Hide/show:
 Hide/show: Ctrl + Alt + H
 Hologram
@@ -288,6 +291,7 @@ Huge
 I can hear you.
 I glance at your screen and comment. Costs a little on a paid brain.
 I keep listening. Say my name, then just talk.
+I speak
 I talk about your game as you play. Costs a little on a paid brain.
 I type my replies and stay quiet.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.
@@ -296,6 +300,7 @@ IN DISCORD >
 INSTALLED >
 Import a Capri mod
 Import mod
+In full screen
 In games
 Input
 Input, Output or How to overlaps a row
@@ -314,6 +319,7 @@ KB.
 KEYS
 KEYS >
 Keep PC awake for jobs
+Keep player
 Keeps the last two minutes of your game in memory. Say clip that to save it.
 Key
 Key cleared: a model file needs none.
@@ -439,6 +445,7 @@ No AI · no brain at all
 No brain runs, and nothing is sent anywhere.
 No brain yet
 No code open
+No limit
 No mic found
 No mods in the directory yet.
 No mods match that.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch
 Play
 Play...
+Player only
 Pocket TTS models copy this clip's voice. Press Test to hear it.
 Pop-in times
 Pop-ins
@@ -592,6 +600,7 @@ SKILL.
 SKIN.
 SORT BY
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as I speak
 Same as her ears (VOICE > Mic)
 Same code on the phone?
 Save
@@ -627,9 +636,10 @@ Settings had nothing to watch.
 Settings lost keyboard focus during the Tab walk
 Setup guide
 Setup stopped
+She answers in
 She can read it when it fits.
 She glances at your screen and comments. Costs a little on a paid brain.
-She keeps listening. Say her name, then just talk until you go quiet.
+She keeps listening. Say her name, then just talk.
 She reacts to your game until you close it.
 She reads these controls before each game job.
 She talks about your game as you play. Costs a little on a paid brain.
@@ -666,6 +676,7 @@ Speed
 Start with Windows
 Start with this!
 Starting...
+Stay
 Stay on my model
 Still checking your mics...
 Still checking your speakers...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.
 · HD
 · on this PC
 · server
+Edit as text
+What Capri remembers about you. It stays on this computer.
+Tell her something to remember
+Search her memory
+That day isn't there any more.
+Undo
+Remember our chats is off, so she isn't keeping new chat memories.
+ABOUT YOU
+FROM YOUR CHATS
+GAMES
+CHAT LOGS
+CHAT LOG
+Nothing matches.
+Nothing yet.
+Reading her notes.
+Click again to forget game notes
+Forget game notes
+Click again to forget everything about me
+Forget everything about me
+Click again to forget
+Forget this day
+Only the start of this day is shown.
+Nothing in this day.
+No chats kept yet.
+You
+{0} line
+SET UP EMAIL >
+SET UP EMAIL
+Or type your address
+Email address
+Open the page
+App password
+IMAP server
+Incoming mail server
+SMTP server
+Outgoing mail server
+An app password is a separate password just for Capri. Your normal password stays yours.
+She keeps it only until she closes.
+She checks, searches and reads your mail. She asks before she sends any.
+Watch for new mail
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.
+Deal with phishing on her own
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.
+Forget account
+Use another email
+Which email?
+Make an app password
+Paste it
+Connecting...
+She can use your email now.
+She's not watching your inbox.
+She's watching your inbox and deals with phishing she's sure of.
+She's watching your inbox and tells you when mail lands.
+She forgot that account and its app password.
+She forgot that account. Its app password is gone from this PC.

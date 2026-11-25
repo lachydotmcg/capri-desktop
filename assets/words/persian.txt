@@ -30,6 +30,7 @@ Ask Capri for more	از Capri بیشتر بخواه
 Asking your server...	از سرور شما پرسیده می‌شود...
 Asks before closing only the apps you choose.	فقط قبل از بستن برنامه‌هایی که انتخاب می‌کنی می‌پرسد.
 Auto	خودکار
+Auto (match what I say)	خودکار (مطابق حرفم)
 Automatic: VB-CABLE, else Steam's	خودکار: VB-CABLE، وگرنه Steam
 BAD RELAY HOST	میزبان رله‌ی نامعتبر
 BIG Z open notepad	BIG Z باز کردن notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	پنهان / نمایش Capri
 Hide / Show key	کلید پنهان / نمایش
 Hide Capri	پنهان کردن Capri
 Hide for now	فعلاً پنهان کن
+Hide her	پنهانش کن
 Hide in full screen	در حالت تمام‌صفحه پنهان کن
 Hide this	این را پنهان کن
+Hide, keep player	پنهان کن، پخش‌کننده بماند
 Hide/show:	پنهان/نمایش:
 Hide/show: Ctrl + Alt + H	پنهان/نمایش: Ctrl + Alt + H
 Hologram	هولوگرام
@@ -288,6 +291,7 @@ Huge	خیلی بزرگ
 I can hear you.	صدایت را می‌شنوم.
 I glance at your screen and comment. Costs a little on a paid brain.	نگاهی به صفحه‌ات می‌اندازم و نظر می‌دهم. روی مغز پولی کمی هزینه دارد.
 I keep listening. Say my name, then just talk.	به گوش دادن ادامه می‌دهم. اسمم را بگو، بعد فقط حرف بزن.
+I speak	من صحبت می‌کنم
 I talk about your game as you play. Costs a little on a paid brain.	همان‌طور که بازی می‌کنی درباره‌ی بازی‌ات حرف می‌زنم. روی مغز پولی کمی هزینه دارد.
 I type my replies and stay quiet.	پاسخ‌هایم را تایپ می‌کنم و ساکت می‌مانم.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	جواب صوتی نمی‌دهم و چیزی به جایی ارسال نمی‌شود. با این حال کنارت می‌مانم، با موسیقی‌ات می‌رقصم و کارهای سریعی را که می‌خواهی انجام می‌دهم، مثل بلندی صدا.
@@ -296,6 +300,7 @@ IN DISCORD >	در DISCORD >
 INSTALLED >	نصب‌شده >
 Import a Capri mod	وارد کردن یک مد Capri
 Import mod	وارد کردن مد
+In full screen	در حالت تمام‌صفحه
 In games	در بازی‌ها
 Input	ورودی
 Input, Output or How to overlaps a row	ورودی، خروجی یا راهنما روی یک ردیف افتاده
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	کلیدها
 KEYS >	کلیدها >
 Keep PC awake for jobs	رایانه را برای کارها بیدار نگه دار
+Keep player	پخش‌کننده بماند
 Keeps the last two minutes of your game in memory. Say clip that to save it.	دو دقیقه‌ی آخر بازی‌ات را در حافظه نگه می‌دارد. برای ذخیره بگو آن را کلیپ کن.
 Key	کلید
 Key cleared: a model file needs none.	کلید پاک شد: فایل مدل به آن نیازی ندارد.
@@ -439,6 +445,7 @@ No AI · no brain at all	بدون AI · اصلاً بدون مغز
 No brain runs, and nothing is sent anywhere.	هیچ مغزی اجرا نمی‌شود و چیزی به جایی ارسال نمی‌شود.
 No brain yet	هنوز مغزی نیست
 No code open	هیچ کدی باز نیست
+No limit	بدون محدودیت
 No mic found	میکروفونی پیدا نشد
 No mods in the directory yet.	هنوز مدی در پوشه نیست.
 No mods match that.	هیچ مدی با این مطابقت ندارد.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	زیر و بمی
 Play	پخش
 Play...	پخش...
+Player only	فقط پخش‌کننده
 Pocket TTS models copy this clip's voice. Press Test to hear it.	مدل‌های Pocket TTS صدای این کلیپ را کپی می‌کنند. برای شنیدنش تست را بزن.
 Pop-in times	زمان‌های سر زدن
 Pop-ins	سر زدن‌ها
@@ -592,6 +600,7 @@ SKILL.	مهارت.
 SKIN.	پوسته.
 SORT BY	مرتب‌سازی بر اساس
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	صداها عادت‌ها مغز تماشا Capri Doomscroll آب‌وهوا کلیپ‌ها بازی‌ها کلیدها حرکات صدا تو
+Same as I speak	مثل زبان من
 Same as her ears (VOICE > Mic)	مثل گوش‌های او (صدا > میکروفون)
 Same code on the phone?	همان کد روی گوشی؟
 Save	ذخیره
@@ -627,9 +636,10 @@ Settings had nothing to watch.	تنظیمات چیزی برای تماشا ند�
 Settings lost keyboard focus during the Tab walk	تنظیمات در حین گشت Tab، فوکوس صفحه‌کلید را از دست داد
 Setup guide	راهنمای راه‌اندازی
 Setup stopped	راه‌اندازی متوقف شد
+She answers in	او پاسخ می‌دهد به
 She can read it when it fits.	وقتی جا شود می‌تواند آن را بخواند.
 She glances at your screen and comments. Costs a little on a paid brain.	نگاهی به صفحه‌ات می‌اندازد و نظر می‌دهد. روی مغز پولی کمی هزینه دارد.
-She keeps listening. Say her name, then just talk until you go quiet.	به گوش دادن ادامه می‌دهد. اسمش را بگو، بعد تا وقتی ساکت شوی حرف بزن.
+She keeps listening. Say her name, then just talk.	به گوش دادن ادامه می‌دهد. اسمش را بگو، بعد حرف بزن.
 She reacts to your game until you close it.	تا وقتی بازی را ببندی به آن واکنش نشان می‌دهد.
 She reads these controls before each game job.	قبل از هر کار بازی این کنترل‌ها را می‌خواند.
 She talks about your game as you play. Costs a little on a paid brain.	همان‌طور که بازی می‌کنی درباره‌ی بازی‌ات حرف می‌زند. روی مغز پولی کمی هزینه دارد.
@@ -666,6 +676,7 @@ Speed	سرعت
 Start with Windows	با Windows اجرا شود
 Start with this!	با این شروع کن!
 Starting...	در حال شروع...
+Stay	بمان
 Stay on my model	روی مدل من بمان
 Still checking your mics...	هنوز میکروفون‌هایت بررسی می‌شوند...
 Still checking your speakers...	هنوز بلندگوهایت بررسی می‌شوند...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	وقتی اجرا �
 · HD	· HD
 · on this PC	· روی این رایانه
 · server	· سرور
+Edit as text	ویرایش به‌صورت متن
+What Capri remembers about you. It stays on this computer.	چیزی که Capri درباره تو به یاد دارد. روی همین کامپیوتر می‌ماند.
+Tell her something to remember	چیزی به او بگو که به یاد بسپارد
+Search her memory	در حافظه‌اش جست‌وجو کن
+That day isn't there any more.	آن روز دیگر نیست.
+Undo	واگردانی
+Remember our chats is off, so she isn't keeping new chat memories.	به یاد داشتن گفت‌وگوهای ما خاموش است، پس خاطره گفت‌وگوی تازه‌ای نگه نمی‌دارد.
+ABOUT YOU	درباره تو
+FROM YOUR CHATS	از گفت‌وگوهای تو
+GAMES	بازی‌ها
+CHAT LOGS	گزارش‌های گفت‌وگو
+CHAT LOG	گزارش گفت‌وگو
+Nothing matches.	چیزی مطابقت ندارد.
+Nothing yet.	هنوز چیزی نیست.
+Reading her notes.	یادداشت‌هایش را می‌خواند.
+Click again to forget game notes	برای فراموش کردن یادداشت‌های بازی دوباره کلیک کن
+Forget game notes	یادداشت‌های بازی را فراموش کن
+Click again to forget everything about me	برای فراموش کردن همه چیز درباره خودت دوباره کلیک کن
+Forget everything about me	همه چیز درباره خودت را فراموش کن
+Click again to forget	برای فراموش کردن دوباره کلیک کن
+Forget this day	این روز را فراموش کن
+Only the start of this day is shown.	فقط ابتدای این روز نمایش داده می‌شود.
+Nothing in this day.	هیچ چیزی در این روز نیست.
+No chats kept yet.	هنوز گفت‌وگویی نگه داشته نشده.
+You	تو
+{0} line	{0} خط
+SET UP EMAIL >	راه‌اندازی ایمیل >
+SET UP EMAIL	راه‌اندازی ایمیل
+Or type your address	یا نشانی خود را بنویس
+Email address	نشانی ایمیل
+Open the page	صفحه را باز کن
+App password	رمز برنامه
+IMAP server	سرور IMAP
+Incoming mail server	سرور ایمیل ورودی
+SMTP server	سرور SMTP
+Outgoing mail server	سرور ایمیل خروجی
+An app password is a separate password just for Capri. Your normal password stays yours.	رمز برنامه یک رمز جداگانه فقط برای Capri است. رمز معمولی تو مال خودت می‌ماند.
+She keeps it only until she closes.	آن را فقط تا بسته شدنش نگه می‌دارد.
+She checks, searches and reads your mail. She asks before she sends any.	ایمیل تو را بررسی، جست‌وجو و خواندن می‌کند. پیش از فرستادن چیزی می‌پرسد.
+Watch for new mail	ایمیل تازه را زیر نظر بگیر
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	وقتی ایمیل می‌رسد می‌گوید، و اگر شبیه فیشینگ باشد هشدار می‌دهد. هیچ چیز خوانده‌شده علامت نمی‌خورد.
+Deal with phishing on her own	خودش با فیشینگ مقابله کند
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	فقط تا وقتی زیر نظر دارد. ایمیلی که مطمئن است فیشینگ است به اسپم می‌رود. بقیه منتظر بله تو می‌ماند.
+Forget account	حساب را فراموش کن
+Use another email	ایمیل دیگری استفاده کن
+Which email?	کدام ایمیل؟
+Make an app password	یک رمز برنامه بساز
+Paste it	آن را بچسبان
+Connecting...	در حال اتصال...
+She can use your email now.	او اکنون می‌تواند از ایمیل تو استفاده کند.
+She's not watching your inbox.	او صندوق ورودی تو را زیر نظر ندارد.
+She's watching your inbox and deals with phishing she's sure of.	او صندوق ورودی‌ات را زیر نظر دارد و با فیشینگی که مطمئن است مقابله می‌کند.
+She's watching your inbox and tells you when mail lands.	او صندوق ورودی‌ات را زیر نظر دارد و وقتی ایمیل می‌رسد به تو می‌گوید.
+She forgot that account and its app password.	آن حساب و رمز برنامه‌اش را فراموش کرد.
+She forgot that account. Its app password is gone from this PC.	آن حساب را فراموش کرد. رمز برنامه‌اش از این کامپیوتر ناپدید شد.

@@ -30,6 +30,7 @@ Ask Capri for more	Ζήτα από την Capri περισσότερα
 Asking your server...	Ρωτάω τον διακομιστή σου...
 Asks before closing only the apps you choose.	Ρωτά πριν κλείσει μόνο τις εφαρμογές που επιλέγεις.
 Auto	Αυτόματο
+Auto (match what I say)	Αυτόματο (ό,τι λέω)
 Automatic: VB-CABLE, else Steam's	Αυτόματο: VB-CABLE, αλλιώς του Steam
 BAD RELAY HOST	ΛΑΝΘΑΣΜΕΝΟΣ HOST ΡΕΛΕ
 BIG Z open notepad	BIG Z άνοιξε το σημειωματάριο
@@ -268,8 +269,10 @@ Hide / Show Capri	Απόκρυψη / Εμφάνιση Capri
 Hide / Show key	Πλήκτρο απόκρυψης / εμφάνισης
 Hide Capri	Απόκρυψη Capri
 Hide for now	Κρύψε για τώρα
+Hide her	Κρύψ' την
 Hide in full screen	Κρύψε σε πλήρη οθόνη
 Hide this	Κρύψε αυτό
+Hide, keep player	Κρύψ' την, κράτα το player
 Hide/show:	Απόκρυψη/εμφάνιση:
 Hide/show: Ctrl + Alt + H	Απόκρυψη/εμφάνιση: Ctrl + Alt + H
 Hologram	Ολόγραμμα
@@ -288,6 +291,7 @@ Huge	Τεράστια
 I can hear you.	Σε ακούω.
 I glance at your screen and comment. Costs a little on a paid brain.	Κοιτάζω την οθόνη σου και σχολιάζω. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
 I keep listening. Say my name, then just talk.	Συνεχίζω να ακούω. Πες το όνομά μου και μίλα απλά.
+I speak	Μιλάω
 I talk about your game as you play. Costs a little on a paid brain.	Μιλάω για το παιχνίδι σου καθώς παίζεις. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
 I type my replies and stay quiet.	Γράφω τις απαντήσεις μου και μένω σιωπηλή.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Δεν θα μιλήσω, και τίποτα δεν στέλνεται πουθενά. Θα συνεχίσω να τριγυρνάω, να χορεύω με τη μουσική σου και να κάνω τα γρήγορα πράγματα που ζητάς, όπως την ένταση.
@@ -296,6 +300,7 @@ IN DISCORD >	ΣΤΟ DISCORD >
 INSTALLED >	ΕΓΚΑΤΕΣΤΗΜΕΝΑ >
 Import a Capri mod	Εισαγωγή mod Capri
 Import mod	Εισαγωγή mod
+In full screen	Σε πλήρη οθόνη
 In games	Στα παιχνίδια
 Input	Είσοδος
 Input, Output or How to overlaps a row	Είσοδος, Έξοδος ή Πώς επικαλύπτει μια γραμμή
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	ΠΛΗΚΤΡΑ
 KEYS >	ΠΛΗΚΤΡΑ >
 Keep PC awake for jobs	Κράτα τον υπολογιστή ξύπνιο για δουλειές
+Keep player	Κράτα το player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Κρατάει τα τελευταία δύο λεπτά του παιχνιδιού σου στη μνήμη. Πες clip that για να τα αποθηκεύσεις.
 Key	Κλειδί
 Key cleared: a model file needs none.	Το κλειδί καθαρίστηκε: ένα αρχείο μοντέλου δεν χρειάζεται.
@@ -439,6 +445,7 @@ No AI · no brain at all	Καμία AI · καθόλου εγκέφαλος
 No brain runs, and nothing is sent anywhere.	Δεν τρέχει κανένας εγκέφαλος, και τίποτα δεν στέλνεται πουθενά.
 No brain yet	Δεν υπάρχει ακόμη εγκέφαλος
 No code open	Δεν είναι ανοιχτός κώδικας
+No limit	Χωρίς όριο
 No mic found	Δεν βρέθηκε μικρόφωνο
 No mods in the directory yet.	Δεν υπάρχουν mods στον φάκελο ακόμα.
 No mods match that.	Κανένα mod δεν ταιριάζει.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ύψος
 Play	Αναπαραγωγή
 Play...	Αναπαραγωγή...
+Player only	Μόνο το player
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Τα μοντέλα Pocket TTS αντιγράφουν τη φωνή αυτού του κλιπ. Πάτα Δοκιμή για να την ακούσεις.
 Pop-in times	Χρόνοι εμφάνισης
 Pop-ins	Εμφανίσεις
@@ -592,6 +600,7 @@ SKILL.	ΙΚΑΝΟΤΗΤΑ.
 SKIN.	ΕΜΦΑΝΙΣΗ.
 SORT BY	ΤΑΞΙΝΟΜΗΣΗ ΚΑΤΑ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ΗΧΟΙ ΣΥΝΗΘΕΙΕΣ ΕΓΚΕΦΑΛΟΣ ΠΑΡΑΚΟΛΟΥΘΗΣΗ CAPRI DOOMSCROLL ΚΑΙΡΟΣ ΚΛΙΠ ΠΑΙΧΝΙΔΙΑ ΠΛΗΚΤΡΑ ΚΙΝΗΣΕΙΣ ΦΩΝΗ ΕΣΥ
+Same as I speak	Ίδια με τη δική μου
 Same as her ears (VOICE > Mic)	Ίδιο με τα αυτιά της (ΦΩΝΗ > Μικρόφωνο)
 Same code on the phone?	Ο ίδιος κωδικός στο τηλέφωνο;
 Save	Αποθήκευση
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Οι Ρυθμίσεις δεν είχαν τίπ�
 Settings lost keyboard focus during the Tab walk	Οι Ρυθμίσεις έχασαν την εστίαση πληκτρολογίου κατά τη διάρκεια της διαδρομής Tab
 Setup guide	Οδηγός ρύθμισης
 Setup stopped	Η ρύθμιση σταμάτησε
+She answers in	Απαντά σε
 She can read it when it fits.	Μπορεί να το διαβάσει όταν χωράει.
 She glances at your screen and comments. Costs a little on a paid brain.	Ρίχνει μια ματιά στην οθόνη σου και σχολιάζει. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
-She keeps listening. Say her name, then just talk until you go quiet.	Συνεχίζει να ακούει. Πες το όνομά της και μίλα μέχρι να σιωπήσεις.
+She keeps listening. Say her name, then just talk.	Συνεχίζει να ακούει. Πες το όνομά της και μίλα.
 She reacts to your game until you close it.	Αντιδρά στο παιχνίδι σου μέχρι να το κλείσεις.
 She reads these controls before each game job.	Διαβάζει αυτά τα στοιχεία ελέγχου πριν από κάθε δουλειά παιχνιδιού.
 She talks about your game as you play. Costs a little on a paid brain.	Μιλάει για το παιχνίδι σου καθώς παίζεις. Κοστίζει λίγο με επί πληρωμή εγκέφαλο.
@@ -666,6 +676,7 @@ Speed	Ταχύτητα
 Start with Windows	Εκκίνηση με τα Windows
 Start with this!	Ξεκίνα με αυτό!
 Starting...	Εκκίνηση...
+Stay	Μείνε
 Stay on my model	Μείνε στο μοντέλο μου
 Still checking your mics...	Ακόμα ελέγχω τα μικρόφωνά σου...
 Still checking your speakers...	Ακόμα ελέγχω τα ηχεία σου...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	δεν θα πλη�
 · HD	· HD
 · on this PC	· σε αυτόν τον υπολογιστή
 · server	· διακομιστής
+Edit as text	Επεξεργασία ως κείμενο
+What Capri remembers about you. It stays on this computer.	Τι θυμάται η Capri για σένα. Μένει σε αυτόν τον υπολογιστή.
+Tell her something to remember	Πες της κάτι να θυμάται
+Search her memory	Αναζήτηση στη μνήμη της
+That day isn't there any more.	Εκείνη η μέρα δεν υπάρχει πια.
+Undo	Αναίρεση
+Remember our chats is off, so she isn't keeping new chat memories.	Η υπενθύμιση των συνομιλιών μας είναι απενεργοποιημένη, οπότε δεν κρατά νέες αναμνήσεις συνομιλιών.
+ABOUT YOU	ΓΙΑ ΣΕΝΑ
+FROM YOUR CHATS	ΑΠΟ ΤΙΣ ΣΥΝΟΜΙΛΙΕΣ ΣΟΥ
+GAMES	ΠΑΙΧΝΙΔΙΑ
+CHAT LOGS	ΑΡΧΕΙΑ ΣΥΝΟΜΙΛΙΩΝ
+CHAT LOG	ΑΡΧΕΙΟ ΣΥΝΟΜΙΛΙΑΣ
+Nothing matches.	Δεν βρέθηκε τίποτα.
+Nothing yet.	Τίποτα ακόμα.
+Reading her notes.	Διαβάζει τις σημειώσεις της.
+Click again to forget game notes	Κάνε κλικ ξανά για να ξεχάσεις τις σημειώσεις παιχνιδιών
+Forget game notes	Ξέχνα τις σημειώσεις παιχνιδιών
+Click again to forget everything about me	Κάνε κλικ ξανά για να ξεχάσεις τα πάντα για σένα
+Forget everything about me	Ξέχνα τα πάντα για σένα
+Click again to forget	Κάνε κλικ ξανά για να ξεχάσεις
+Forget this day	Ξέχνα αυτή τη μέρα
+Only the start of this day is shown.	Εμφανίζεται μόνο η αρχή αυτής της μέρας.
+Nothing in this day.	Τίποτα σε αυτή τη μέρα.
+No chats kept yet.	Δεν έχουν κρατηθεί συνομιλίες ακόμα.
+You	Εσύ
+{0} line	{0} γραμμή
+SET UP EMAIL >	ΡΥΘΜΙΣΗ EMAIL >
+SET UP EMAIL	ΡΥΘΜΙΣΗ EMAIL
+Or type your address	Ή γράψε τη διεύθυνσή σου
+Email address	Διεύθυνση email
+Open the page	Άνοιξε τη σελίδα
+App password	Κωδικός εφαρμογής
+IMAP server	Διακομιστής IMAP
+Incoming mail server	Διακομιστής εισερχόμενης αλληλογραφίας
+SMTP server	Διακομιστής SMTP
+Outgoing mail server	Διακομιστής εξερχόμενης αλληλογραφίας
+An app password is a separate password just for Capri. Your normal password stays yours.	Ο κωδικός εφαρμογής είναι ξεχωριστός κωδικός μόνο για τη Capri. Ο κανονικός σου κωδικός παραμένει δικός σου.
+She keeps it only until she closes.	Τον κρατά μόνο μέχρι να κλείσει.
+She checks, searches and reads your mail. She asks before she sends any.	Ελέγχει, αναζητά και διαβάζει την αλληλογραφία σου. Ρωτά πριν στείλει οτιδήποτε.
+Watch for new mail	Παρακολούθηση νέων email
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Μιλά όταν φτάνει αλληλογραφία, με προειδοποίηση αν μοιάζει με phishing. Τίποτα δεν σημειώνεται ως αναγνωσμένο.
+Deal with phishing on her own	Αντιμετώπισε το phishing μόνη της
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Μόνο όσο παρακολουθεί. Η αλληλογραφία που είναι σίγουρη ότι είναι phishing πηγαίνει στα ανεπιθύμητα. Τα υπόλοιπα περιμένουν το ναι σου.
+Forget account	Ξέχνα τον λογαριασμό
+Use another email	Χρήση άλλου email
+Which email?	Ποιο email;
+Make an app password	Δημιούργησε κωδικό εφαρμογής
+Paste it	Επικόλλησέ τον
+Connecting...	Σύνδεση...
+She can use your email now.	Μπορεί να χρησιμοποιήσει το email σου τώρα.
+She's not watching your inbox.	Δεν παρακολουθεί τα εισερχόμενά σου.
+She's watching your inbox and deals with phishing she's sure of.	Παρακολουθεί τα εισερχόμενά σου και αντιμετωπίζει το phishing που είναι σίγουρη.
+She's watching your inbox and tells you when mail lands.	Παρακολουθεί τα εισερχόμενά σου και σου λέει όταν φτάνει αλληλογραφία.
+She forgot that account and its app password.	Ξέχασε αυτόν τον λογαριασμό και τον κωδικό εφαρμογής του.
+She forgot that account. Its app password is gone from this PC.	Ξέχασε αυτόν τον λογαριασμό. Ο κωδικός εφαρμογής του εξαφανίστηκε από αυτόν τον υπολογιστή.

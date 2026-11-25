@@ -30,6 +30,7 @@ Ask Capri for more	ຂໍ Capri ເພີ່ມເຕີມ
 Asking your server...	ກຳລັງຖາມ server ຂອງເຈົ້າ...
 Asks before closing only the apps you choose.	ຖາມກ່ອນປິດສະເພາະແອັບທີ່ເຈົ້າເລືອກເທົ່ານັ້ນ.
 Auto	ອັດຕະໂນມັດ
+Auto (match what I say)	ອັດຕະໂນມັດ (ຕາມທີ່ຂ້ອຍເວົ້າ)
 Automatic: VB-CABLE, else Steam's	ອັດຕະໂນມັດ: VB-CABLE, ບໍ່ດັ່ງນັ້ນແມ່ນຂອງ Steam
 BAD RELAY HOST	HOST ຂອງ RELAY ບໍ່ຖືກຕ້ອງ
 BIG Z open notepad	BIG Z ເປີດ notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	ເຊື່ອງ / ສະແດງ Capri
 Hide / Show key	ປຸ່ມເຊື່ອງ / ສະແດງ
 Hide Capri	ເຊື່ອງ Capri
 Hide for now	ເຊື່ອງໄວ້ກ່ອນ
+Hide her	ເຊື່ອງນາງ
 Hide in full screen	ເຊື່ອງໃນເຕັມຈໍ
 Hide this	ເຊື່ອງອັນນີ້
+Hide, keep player	ເຊື່ອງ, ຮັກສາເຄື່ອງຫຼິ້ນ
 Hide/show:	ເຊື່ອງ/ສະແດງ:
 Hide/show: Ctrl + Alt + H	ເຊື່ອງ/ສະແດງ: Ctrl + Alt + H
 Hologram	ໂຮໂລແກຣມ
@@ -288,6 +291,7 @@ Huge	ໃຫຍ່ຫຼາຍ
 I can hear you.	ຂ້ອຍໄດ້ຍິນເຈົ້າ.
 I glance at your screen and comment. Costs a little on a paid brain.	ຂ້ອຍແອບເບິ່ງໜ້າຈໍຂອງເຈົ້າແລ້ວໃຫ້ຄຳເຫັນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
 I keep listening. Say my name, then just talk.	ຂ້ອຍຍັງຟັງຢູ່. ເວົ້າຊື່ຂອງຂ້ອຍ ແລ້ວເວົ້າໄດ້ເລີຍ.
+I speak	ຂ້ອຍເວົ້າ
 I talk about your game as you play. Costs a little on a paid brain.	ຂ້ອຍເວົ້າກ່ຽວກັບເກມຂອງເຈົ້າຕອນທີ່ເຈົ້າຫຼິ້ນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
 I type my replies and stay quiet.	ຂ້ອຍພິມຄຳຕອບຂອງຂ້ອຍ ແລະ ເງຽບ.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ຂ້ອຍຈະບໍ່ຕອບກັບ, ແລະບໍ່ມີຫຍັງຖືກສົ່ງໄປບ່ອນໃດ. ຂ້ອຍຍັງຈະມາເລັ່ນຢູ່, ເຕັ້ນຕາມເພງຂອງເຈົ້າ ແລະ ເຮັດສິ່ງດ່ວນທີ່ເຈົ້າຂໍ, ເຊັ່ນລະດັບສຽງ.
@@ -296,6 +300,7 @@ IN DISCORD >	ໃນ DISCORD >
 INSTALLED >	ຕິດຕັ້ງແລ້ວ >
 Import a Capri mod	ນຳເຂົ້າ mod Capri
 Import mod	ນຳເຂົ້າ mod
+In full screen	ໃນເຕັມຈໍ
 In games	ໃນເກມ
 Input	ປ້ອນຂໍ້ມູນ
 Input, Output or How to overlaps a row	ປ້ອນຂໍ້ມູນ, ຜົນອອກ ຫຼື ວິທີ ທັບກັນໃນແຖວ
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	ປຸ່ມ
 KEYS >	ປຸ່ມ >
 Keep PC awake for jobs	ເຮັດໃຫ້ PC ຕື່ນຢູ່ສຳລັບວຽກ
+Keep player	ຮັກສາເຄື່ອງຫຼິ້ນ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ເກັບສອງນາທີສຸດທ້າຍຂອງເກມຂອງເຈົ້າໄວ້ໃນຄວາມຈຳ. ເວົ້າ clip that ເພື່ອບັນທຶກ.
 Key	ກະແຈ
 Key cleared: a model file needs none.	ລ້າງກະແຈແລ້ວ: ໄຟລ໌ໂມເດວບໍ່ຕ້ອງການກະແຈ.
@@ -439,6 +445,7 @@ No AI · no brain at all	ບໍ່ມີ AI · ບໍ່ມີສະໝອງເ
 No brain runs, and nothing is sent anywhere.	ບໍ່ມີສະໝອງເຮັດວຽກ, ແລະບໍ່ມີຫຍັງຖືກສົ່ງໄປບ່ອນໃດ.
 No brain yet	ຍັງບໍ່ມີສະໝອງ
 No code open	ບໍ່ມີ code ເປີດ
+No limit	ບໍ່ຈຳກັດ
 No mic found	ບໍ່ພົບໄມໂຄຣໂຟນ
 No mods in the directory yet.	ຍັງບໍ່ມີ mods ໃນໄດເຣັກທໍຣີ.
 No mods match that.	ບໍ່ມີ mods ທີ່ກົງກັບອັນນັ້ນ.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Pitch
 Play	ຫຼິ້ນ
 Play...	ຫຼິ້ນ...
+Player only	ເຄື່ອງຫຼິ້ນເທົ່ານັ້ນ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	ໂມເດວ Pocket TTS ຄັດລອກສຽງຂອງ clip ນີ້. ກົດ Test ເພື່ອຟັງ.
 Pop-in times	ເວລາ pop-in
 Pop-ins	Pop-ins
@@ -592,6 +600,7 @@ SKILL.	ທັກສະ.
 SKIN.	ຜິວ.
 SORT BY	ຈັດລຽງຕາມ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ສຽງ ນິໄສ ສະໝອງ ເບິ່ງ CAPRI DOOMSCROLL ອາກາດ CLIPS GAMES ປຸ່ມ MOVES ສຽງ YOU
+Same as I speak	ຄືພາສາຂອງຂ້ອຍ
 Same as her ears (VOICE > Mic)	ຄືກັບຫູຂອງນາງ (VOICE > Mic)
 Same code on the phone?	ລະຫັດດຽວກັນຢູ່ໂທລະສັບບໍ?
 Save	ບັນທຶກ
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Settings ບໍ່ມີຫຍັງໃຫ້ເ�
 Settings lost keyboard focus during the Tab walk	Settings ເສຍ keyboard focus ໃນລະຫວ່າງການເດີນ Tab
 Setup guide	ຄູ່ມືການຕັ້ງຄ່າ
 Setup stopped	ການຕັ້ງຄ່າຢຸດລົງ
+She answers in	ນາງຕອບເປັນ
 She can read it when it fits.	ນາງອ່ານໄດ້ເມື່ອເໝາະສົມ.
 She glances at your screen and comments. Costs a little on a paid brain.	ນາງແອບເບິ່ງໜ້າຈໍຂອງເຈົ້າ ແລະໃຫ້ຄຳເຫັນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
-She keeps listening. Say her name, then just talk until you go quiet.	ນາງຍັງຟັງຢູ່. ເວົ້າຊື່ນາງ, ແລ້ວເວົ້າໄປຈົນເຈົ້າງຽບ.
+She keeps listening. Say her name, then just talk.	ນາງຍັງຟັງຢູ່. ເວົ້າຊື່ນາງ, ແລ້ວເວົ້າໄປ.
 She reacts to your game until you close it.	ນາງຕອບສະໜອງຕໍ່ເກມຂອງເຈົ້າຈົນກວ່າເຈົ້າຈະປິດມັນ.
 She reads these controls before each game job.	ນາງອ່ານການຄວບຄຸມເຫຼົ່ານີ້ກ່ອນທຸກວຽກເກມ.
 She talks about your game as you play. Costs a little on a paid brain.	ນາງເວົ້າກ່ຽວກັບເກມຂອງເຈົ້າຕອນທີ່ເຈົ້າຫຼິ້ນ. ມີຄ່າໃຊ້ຈ່າຍນ້ອຍໆກັບສະໝອງທີ່ເສຍເງິນ.
@@ -666,6 +676,7 @@ Speed	ຄວາມໄວ
 Start with Windows	ເລີ່ມພ້ອມ Windows
 Start with this!	ເລີ່ມດ້ວຍອັນນີ້!
 Starting...	ກຳລັງເລີ່ມ...
+Stay	ຢູ່
 Stay on my model	ຢູ່ກັບໂມເດວຂອງຂ້ອຍ
 Still checking your mics...	ກຳລັງກວດໄມໂຄຣໂຟນຂອງເຈົ້າຢູ່...
 Still checking your speakers...	ກຳລັງກວດລຳໂພງຂອງເຈົ້າຢູ່...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ຈະບໍ່ພ�
 · HD	· HD
 · on this PC	· ເທິງ PC ນີ້
 · server	· server
+Edit as text	ແກ້ໄຂເປັນຂໍ້ຄວາມ
+What Capri remembers about you. It stays on this computer.	ສິ່ງທີ່ Capri ຈື່ກ່ຽວກັບເຈົ້າ. ມັນຢູ່ໃນຄອມພິວເຕີນີ້.
+Tell her something to remember	ບອກນາງສິ່ງທີ່ຈະຈື່
+Search her memory	ຄົ້ນຫາໃນຄວາມຈຳຂອງນາງ
+That day isn't there any more.	ມື້ນັ້ນບໍ່ມີແລ້ວ.
+Undo	ຍົກເລີກ
+Remember our chats is off, so she isn't keeping new chat memories.	ການຈື່ການສົນທະນາຂອງພວກເຮົາປິດຢູ່ ດັ່ງນັ້ນນາງບໍ່ເກັບຄວາມຈຳການສົນທະນາໃໝ່.
+ABOUT YOU	ກ່ຽວກັບເຈົ້າ
+FROM YOUR CHATS	ຈາກການສົນທະນາຂອງເຈົ້າ
+GAMES	ເກມ
+CHAT LOGS	ບັນທຶກການສົນທະນາ
+CHAT LOG	ບັນທຶກການສົນທະນາ
+Nothing matches.	ບໍ່ມີອັນໃດກົງກັນ.
+Nothing yet.	ຍັງບໍ່ມີຫຍັງ.
+Reading her notes.	ກຳລັງອ່ານບັນທຶກຂອງນາງ.
+Click again to forget game notes	ກົດອີກຄັ້ງເພື່ອລືມບັນທຶກເກມ
+Forget game notes	ລືມບັນທຶກເກມ
+Click again to forget everything about me	ກົດອີກຄັ້ງເພື່ອລືມທຸກຢ່າງກ່ຽວກັບເຈົ້າ
+Forget everything about me	ລືມທຸກຢ່າງກ່ຽວກັບເຈົ້າ
+Click again to forget	ກົດອີກຄັ້ງເພື່ອລືມ
+Forget this day	ລືມມື້ນີ້
+Only the start of this day is shown.	ສະແດງພຽງເລີ່ມຕົ້ນຂອງມື້ນີ້.
+Nothing in this day.	ບໍ່ມີຫຍັງໃນມື້ນີ້.
+No chats kept yet.	ຍັງບໍ່ມີການສົນທະນາທີ່ເກັບໄວ້.
+You	ເຈົ້າ
+{0} line	{0} ແຖວ
+SET UP EMAIL >	ຕັ້ງຄ່າອີເມວ >
+SET UP EMAIL	ຕັ້ງຄ່າອີເມວ
+Or type your address	ຫຼືພິມທີ່ຢູ່ຂອງເຈົ້າ
+Email address	ທີ່ຢູ່ອີເມວ
+Open the page	ເປີດໜ້າ
+App password	ລະຫັດແອັບ
+IMAP server	ເຊີບເວີ IMAP
+Incoming mail server	ເຊີບເວີອີເມວຂາເຂົ້າ
+SMTP server	ເຊີບເວີ SMTP
+Outgoing mail server	ເຊີບເວີອີເມວຂາອອກ
+An app password is a separate password just for Capri. Your normal password stays yours.	ລະຫັດແອັບແມ່ນລະຫັດແຍກສຳລັບ Capri ເທົ່ານັ້ນ. ລະຫັດປົກກະຕິຂອງເຈົ້າຍັງເປັນຂອງເຈົ້າ.
+She keeps it only until she closes.	ນາງເກັບມັນໄວ້ຈົນກວ່າຈະປິດ.
+She checks, searches and reads your mail. She asks before she sends any.	ນາງກວດ ຄົ້ນຫາ ແລະອ່ານອີເມວຂອງເຈົ້າ. ນາງຖາມກ່ອນຈະສົ່ງຫຍັງ.
+Watch for new mail	ເຝົ້າອີເມວໃໝ່
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ນາງເວົ້າເມື່ອມີອີເມວມາ ພ້ອມຄຳເຕືອນຖ້າເບິ່ງຄື phishing. ບໍ່ມີຫຍັງຖືກໝາຍວ່າອ່ານແລ້ວ.
+Deal with phishing on her own	ຈັດການ phishing ເອງ
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	ພຽງເວລານາງເຝົ້າ. ອີເມວທີ່ນາງແນ່ໃຈວ່າ phishing ຈະໄປ spam. ສ່ວນທີ່ເຫຼືອລໍຖ້າຄຳຕົກລົງຂອງເຈົ້າ.
+Forget account	ລືມບັນຊີ
+Use another email	ໃຊ້ອີເມວອື່ນ
+Which email?	ອີເມວໃດ?
+Make an app password	ສ້າງລະຫັດແອັບ
+Paste it	ວາງມັນ
+Connecting...	ກຳລັງເຊື່ອມຕໍ່...
+She can use your email now.	ຕອນນີ້ນາງສາມາດໃຊ້ອີເມວຂອງເຈົ້າໄດ້.
+She's not watching your inbox.	ນາງບໍ່ໄດ້ເຝົ້າກ່ອງຈົດໝາຍຂອງເຈົ້າ.
+She's watching your inbox and deals with phishing she's sure of.	ນາງເຝົ້າກ່ອງຈົດໝາຍຂອງເຈົ້າ ແລະຈັດການ phishing ທີ່ນາງແນ່ໃຈ.
+She's watching your inbox and tells you when mail lands.	ນາງເຝົ້າກ່ອງຈົດໝາຍຂອງເຈົ້າ ແລະບອກເຈົ້າເມື່ອມີອີເມວມາ.
+She forgot that account and its app password.	ນາງລືມບັນຊີນັ້ນ ແລະລະຫັດແອັບຂອງມັນ.
+She forgot that account. Its app password is gone from this PC.	ນາງລືມບັນຊີນັ້ນ. ລະຫັດແອັບຂອງມັນຫາຍໄປຈາກຄອມພິວເຕີນີ້.

@@ -30,6 +30,7 @@ Ask Capri for more	Cela uCapri okuningi
 Asking your server...	Ibuza iseva yakho...
 Asks before closing only the apps you choose.	Ibuza ngaphambi kokuvala izinhlelo ozikhethile kuphela.
 Auto	Ngokuzenzakalela
+Auto (match what I say)	Ngokuzenzakalela (ngokwalokho engikushoyo)
 Automatic: VB-CABLE, else Steam's	Ngokuzenzakalela: VB-CABLE, noma ye-Steam
 BAD RELAY HOST	IKHEZO LE-RELAY ELINGALUNGILE
 BIG Z open notepad	BIG Z vula i-notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	Fihla / Bonisa uCapri
 Hide / Show key	Ukhiye wokufihla / wokubonisa
 Hide Capri	Fihla uCapri
 Hide for now	Fihla okwamanje
+Hide her	Mfihle
 Hide in full screen	Fihla esikrinini esigcwele
 Hide this	Fihla lokhu
+Hide, keep player	Mfihle, gcina i-player
 Hide/show:	Fihla/bonisa:
 Hide/show: Ctrl + Alt + H	Fihla/bonisa: Ctrl + Alt + H
 Hologram	I-Hologram
@@ -288,6 +291,7 @@ Huge	Omkhulu kakhulu
 I can hear you.	Ngiyakuzwa.
 I glance at your screen and comment. Costs a little on a paid brain.	Ngibheka isikrini sakho ngiphinde ngikhombise umbono. Kubiza kancane ngengqondo ekhokhelwayo.
 I keep listening. Say my name, then just talk.	Ngiqhubeka nokulalela. Sho igama lami, bese ukhuluma nje.
+I speak	Ngikhuluma
 I talk about your game as you play. Costs a little on a paid brain.	Ngikhuluma ngomdlalo wakho ngesikhathi udlala. Kubiza kancane ngengqondo ekhokhelwayo.
 I type my replies and stay quiet.	Ngibhala izimpendulo zami futhi ngithule.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Angiyikukhuluma emuva, futhi akukho okuthunyelwa noma kuphi. Ngisahlala nje, ngidanse emculweni wakho futhi ngenze izinto ezisheshayo ozicelayo, njengevolumu.
@@ -296,6 +300,7 @@ IN DISCORD >	KU-DISCORD >
 INSTALLED >	OKUFAKIWE >
 Import a Capri mod	Ngenisa i-mod ka-Capri
 Import mod	Ngenisa i-mod
+In full screen	Esikrinini esigcwele
 In games	Emidlalweni
 Input	Okokufaka
 Input, Output or How to overlaps a row	Okokufaka, Okokuphuma noma Indlela yokwenza kuhlanganisa umugqa
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	AMAKHIYE
 KEYS >	AMAKHIYE >
 Keep PC awake for jobs	Gcina i-PC ivuka ngemisebenzi
+Keep player	Gcina i-player
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Igcina imizuzu emibili yokugcina yomdlalo wakho enkumbulweni. Sho clip that ukuze uyigcine.
 Key	Ukhiye
 Key cleared: a model file needs none.	Ukhiye usuhlanzekile: ifayela lemodeli alidingi lutho.
@@ -439,6 +445,7 @@ No AI · no brain at all	Akukho AI · akukho ngqondo nhlobo
 No brain runs, and nothing is sent anywhere.	Akukho ngqondo esebenzayo, futhi akukho okuthunyelwa noma kuphi.
 No brain yet	Akukho ngqondo okwamanje
 No code open	Akukho khodi evuliwe
+No limit	Akukho umkhawulo
 No mic found	Akukho mic etholakele
 No mods in the directory yet.	Akukho ama-mod kwifolda okwamanje.
 No mods match that.	Akukho mod ohambisana nalokho.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ipitch
 Play	Dlala
 Play...	Dlala...
+Player only	I-player kuphela
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Amamodeli e-Pocket TTS akopisha izwi laleli klipu. Cindezela Hlola ukuze uliyzwe.
 Pop-in times	Izikhathi zokuvela
 Pop-ins	Ukuvela
@@ -592,6 +600,7 @@ SKILL.	ISIKHONO.
 SKIN.	ISIMO.
 SORT BY	HLELA NGOKU
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	IMISINDO IZINKAMBISO INGQONDO UKUBUKA CAPRI DOOMSCROLL ISIMO SEZULU AMAKLIPU AMAGEYIMU AMAKHIYE IMIHAMBO IZWI WENA
+Same as I speak	Okufanayo nolimi lwami
 Same as her ears (VOICE > Mic)	Okufanayo nezindlebe zakhe (IZWI > Imic)
 Same code on the phone?	Ikhodi efanayo efonini?
 Save	Gcina
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Izilungiselelo zazingenalutho lokubuka.
 Settings lost keyboard focus during the Tab walk	Izilungiselelo zilahlekelwe ukugxila kokhibhodi phakathi kohambo lwe-Tab
 Setup guide	Umhlahlandlela wokusetha
 Setup stopped	Ukusetha kumisiwe
+She answers in	Uphendula ngolimi
 She can read it when it fits.	Angakufunda uma kulingana.
 She glances at your screen and comments. Costs a little on a paid brain.	Ubheka isikrini sakho aphinde akhombise umbono. Kubiza kancane ngengqondo ekhokhelwayo.
-She keeps listening. Say her name, then just talk until you go quiet.	Uqhubeka nokulalela. Sho igama lakhe, bese ukhuluma nje kuze uthule.
+She keeps listening. Say her name, then just talk.	Uqhubeka nokulalela. Sho igama lakhe, bese ukhuluma nje.
 She reacts to your game until you close it.	Uphendula emdlalweni wakho uze uwuvale.
 She reads these controls before each game job.	Ufunda lezi zilawuli ngaphambi komsebenzi ngamunye womdlalo.
 She talks about your game as you play. Costs a little on a paid brain.	Ukhuluma ngomdlalo wakho ngesikhathi udlala. Kubiza kancane ngengqondo ekhokhelwayo.
@@ -666,6 +676,7 @@ Speed	Isivinini
 Start with Windows	Qala ne-Windows
 Start with this!	Qala ngalokhu!
 Starting...	Iyaqala...
+Stay	Hlala
 Stay on my model	Hlala kwimodeli yami
 Still checking your mics...	Ngisahlola ama-mic akho...
 Still checking your speakers...	Ngisahlola izipikha zakho...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ngeke ibhale ezinhl
 · HD	· HD
 · on this PC	· kule PC
 · server	· iseva
+Edit as text	Hlela njengombhalo
+What Capri remembers about you. It stays on this computer.	Lokho uCapri akukhumbulayo ngawe. Kuhlala kule khompyutha.
+Tell her something to remember	Mtshele into azokukhumbula
+Search her memory	Sesha enkumbulweni yakhe
+That day isn't there any more.	Lolo suku alusekho.
+Undo	Buyisela emuva
+Remember our chats is off, so she isn't keeping new chat memories.	Ukukhumbula izingxoxo zethu kucishiwe, ngakho akagcini izinkumbulo zezingxoxo ezintsha.
+ABOUT YOU	NGANWE
+FROM YOUR CHATS	EZHINGXOXWENI ZAKHO
+GAMES	IMIDLALO
+CHAT LOGS	AMAREXHODI EZINGXOXO
+CHAT LOG	IREKHODI YENGXOXO
+Nothing matches.	Akukho okufanayo.
+Nothing yet.	Akukho lutho okwamanje.
+Reading her notes.	Kufundwa amanothi akhe.
+Click again to forget game notes	Chofoza futhi ukuze ukhohlwe amanothi emidlalo
+Forget game notes	Khohlwa amanothi emidlalo
+Click again to forget everything about me	Chofoza futhi ukuze ukhohlwe konke ngawe
+Forget everything about me	Khohlwa konke ngawe
+Click again to forget	Chofoza futhi ukuze ukhohlwe
+Forget this day	Khohlwa lolu suku
+Only the start of this day is shown.	Kukhonjiswa ukuqala kwalolu suku kuphela.
+Nothing in this day.	Akukho lutho ngalolu suku.
+No chats kept yet.	Akukho zingxoxo ezigciniwe okwamanje.
+You	Wena
+{0} line	{0} umugqa
+SET UP EMAIL >	SETHAA I-IMEYILI >
+SET UP EMAIL	SETHAA I-IMEYILI
+Or type your address	Noma bhala ikheli lakho
+Email address	Ikheli le-imeyili
+Open the page	Vula ikhasi
+App password	Iphasiwedi yohlelo
+IMAP server	Iseva ye-IMAP
+Incoming mail server	Iseva ye-imeyili engenayo
+SMTP server	Iseva ye-SMTP
+Outgoing mail server	Iseva ye-imeyili ephumayo
+An app password is a separate password just for Capri. Your normal password stays yours.	Iphasiwedi yohlelo iyiphasiwedi ehlukile yeCapri kuphela. Iphasiwedi yakho evamile ingeyakho.
+She keeps it only until she closes.	Uyigcina kuphela ize ivalwe.
+She checks, searches and reads your mail. She asks before she sends any.	Uhlola, usesha futhi ufunda i-imeyili yakho. Ubuza ngaphambi kokuthumela noma yini.
+Watch for new mail	Bheka i-imeyili entsha
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Uyakhuluma uma i-imeyili ifika, ngesexwayiso uma ibonakala njenge-phishing. Akukho okumakwa njengokufundiwe.
+Deal with phishing on her own	Bhekana ne-phishing ngokwakho
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Kuphela ngenkathi ebhekile. I-imeyili anesiqiniseko sokuthi iyi-phishing iya ku-spam. Okunye kulinda imvume yakho.
+Forget account	Khohlwa i-akhawunti
+Use another email	Sebenzisa enye i-imeyili
+Which email?	Iyiphi i-imeyili?
+Make an app password	Dala iphasiwedi yohlelo
+Paste it	Namathisela
+Connecting...	Ixhumanisa...
+She can use your email now.	Manje usengayisebenzisa i-imeyili yakho.
+She's not watching your inbox.	Akabheki ibhokisi lakho lokungenayo.
+She's watching your inbox and deals with phishing she's sure of.	Ubheka ibhokisi lakho futhi abhekane ne-phishing anesiqiniseko sayo.
+She's watching your inbox and tells you when mail lands.	Ubheka ibhokisi lakho futhi akutshele uma i-imeyili ifika.
+She forgot that account and its app password.	Ukhohlwe leyo akhawunti nephasiwedi yayo yohlelo.
+She forgot that account. Its app password is gone from this PC.	Ukhohlwe leyo akhawunti. Iphasiwedi yayo yohlelo inyamalele kule khompyutha.

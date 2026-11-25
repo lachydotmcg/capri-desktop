@@ -30,6 +30,7 @@ Ask Capri for more	Pídelle máis a Capri
 Asking your server...	Preguntando ao teu servidor...
 Asks before closing only the apps you choose.	Pregunta antes de pechar só as aplicacións que escolles.
 Auto	Auto
+Auto (match what I say)	Auto (segundo o que digo)
 Automatic: VB-CABLE, else Steam's	Automático: VB-CABLE, se non o de Steam
 BAD RELAY HOST	SERVIDOR DE RELÉ NON VÁLIDO
 BIG Z open notepad	BIG Z abre o bloc de notas
@@ -268,8 +269,10 @@ Hide / Show Capri	Ocultar / Mostrar Capri
 Hide / Show key	Tecla ocultar / mostrar
 Hide Capri	Ocultar Capri
 Hide for now	Ocultar por agora
+Hide her	Ocultala
 Hide in full screen	Ocultar en pantalla completa
 Hide this	Ocultar isto
+Hide, keep player	Ocultala, deixar o reprodutor
 Hide/show:	Ocultar/mostrar:
 Hide/show: Ctrl + Alt + H	Ocultar/mostrar: Ctrl + Alt + H
 Hologram	Holograma
@@ -288,6 +291,7 @@ Huge	Enorme
 I can hear you.	Escóitote.
 I glance at your screen and comment. Costs a little on a paid brain.	Miro a túa pantalla e comento. Custa un pouco con cerebro de pago.
 I keep listening. Say my name, then just talk.	Sigo escoitando. Di o meu nome e logo fala.
+I speak	Falo
 I talk about your game as you play. Costs a little on a paid brain.	Falo do teu xogo mentres xogas. Custa un pouco con cerebro de pago.
 I type my replies and stay quiet.	Escribo as miñas respostas e quedo calada.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Non responderei, e non se envía nada a ningún sitio. Seguirei por aquí, bailarei ao son da túa música e farei as cousas rápidas que pidas, como o volume.
@@ -296,6 +300,7 @@ IN DISCORD >	EN DISCORD >
 INSTALLED >	INSTALADAS >
 Import a Capri mod	Importar unha modificación de Capri
 Import mod	Importar modificación
+In full screen	En pantalla completa
 In games	Nos xogos
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Saída ou Como solapa unha fila
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	TECLAS
 KEYS >	TECLAS >
 Keep PC awake for jobs	Manter o PC activo para os traballos
+Keep player	Deixar o reprodutor
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Garda os últimos dous minutos do teu xogo na memoria. Di clip que para gardalo.
 Key	Clave
 Key cleared: a model file needs none.	Clave borrada: un ficheiro de modelo non precisa ningunha.
@@ -439,6 +445,7 @@ No AI · no brain at all	Sen IA · sen cerebro ningún
 No brain runs, and nothing is sent anywhere.	Non funciona ningún cerebro e non se envía nada a ningún sitio.
 No brain yet	Aínda sen cerebro
 No code open	Non hai código aberto
+No limit	Sen límite
 No mic found	Non se atopou micrófono
 No mods in the directory yet.	Aínda non hai modificacións no directorio.
 No mods match that.	Non hai modificacións que coincidan.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Ton
 Play	Reproducir
 Play...	Reproducir...
+Player only	Só o reprodutor
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Os modelos Pocket TTS copian a voz deste clip. Preme Probar para escoitala.
 Pop-in times	Momentos de aparición
 Pop-ins	Apariciones
@@ -592,6 +600,7 @@ SKILL.	HABILIDADE.
 SKIN.	PEL.
 SORT BY	ORDENAR POR
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONS HÁBITOS CEREBRO MIRAR CAPRI DOOMSCROLL TEMPO CLIPS XOGOS TECLAS MOVEMENTOS VOZ TI
+Same as I speak	Igual que o meu
 Same as her ears (VOICE > Mic)	Igual que os seus oídos (VOZ > Micrófono)
 Same code on the phone?	Mesmo código no teléfono?
 Save	Gardar
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Configuración non tiña nada que vixiar.
 Settings lost keyboard focus during the Tab walk	Configuración perdeu o foco do teclado durante o recorrido con Tab
 Setup guide	Guía de configuración
 Setup stopped	Configuración detida
+She answers in	Responde en
 She can read it when it fits.	Pode lelo cando encaixe.
 She glances at your screen and comments. Costs a little on a paid brain.	Bota un ollo á túa pantalla e comenta. Custa un pouco con cerebro de pago.
-She keeps listening. Say her name, then just talk until you go quiet.	Segue escoitando. Di o seu nome e logo fala ata que te calres.
+She keeps listening. Say her name, then just talk.	Segue escoitando. Di o seu nome e logo fala.
 She reacts to your game until you close it.	Reacciona ao teu xogo ata que o peches.
 She reads these controls before each game job.	Le estes controis antes de cada traballo de xogo.
 She talks about your game as you play. Costs a little on a paid brain.	Fala do teu xogo mentres xogas. Custa un pouco con cerebro de pago.
@@ -666,6 +676,7 @@ Speed	Velocidade
 Start with Windows	Iniciar con Windows
 Start with this!	Comezar con isto!
 Starting...	Iniciando...
+Stay	Quedar
 Stay on my model	Quedar no meu modelo
 Still checking your mics...	Aínda comprobando os teus micrófonos...
 Still checking your speakers...	Aínda comprobando os teus altofalantes...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	non escribirá nout
 · HD	· HD
 · on this PC	· neste PC
 · server	· servidor
+Edit as text	Editar como texto
+What Capri remembers about you. It stays on this computer.	O que a Capri recorda de ti. Fica neste ordenador.
+Tell her something to remember	Dille algo que recordar
+Search her memory	Buscar na súa memoria
+That day isn't there any more.	Ese día xa non está.
+Undo	Desfacer
+Remember our chats is off, so she isn't keeping new chat memories.	Lembrar as nosas conversas está desactivado, así que non garda novos recordos de chat.
+ABOUT YOU	SOBRE TI
+FROM YOUR CHATS	DAS TÚAS CONVERSAS
+GAMES	XOGOS
+CHAT LOGS	REXISTROS DE CHAT
+CHAT LOG	REXISTRO DE CHAT
+Nothing matches.	Nada coincide.
+Nothing yet.	Aínda nada.
+Reading her notes.	Lendo as súas notas.
+Click again to forget game notes	Fai clic outra vez para esquecer as notas dos xogos
+Forget game notes	Esquecer notas dos xogos
+Click again to forget everything about me	Fai clic outra vez para esquecelo todo sobre ti
+Forget everything about me	Esquecelo todo sobre ti
+Click again to forget	Fai clic outra vez para esquecer
+Forget this day	Esquecer este día
+Only the start of this day is shown.	Só se mostra o comezo deste día.
+Nothing in this day.	Nada neste día.
+No chats kept yet.	Aínda non hai conversas gardadas.
+You	Ti
+{0} line	{0} liña
+SET UP EMAIL >	CONFIGURAR O CORREO >
+SET UP EMAIL	CONFIGURAR O CORREO
+Or type your address	Ou escribe o teu enderezo
+Email address	Enderezo de correo
+Open the page	Abrir a páxina
+App password	Contrasinal da aplicación
+IMAP server	Servidor IMAP
+Incoming mail server	Servidor de correo entrante
+SMTP server	Servidor SMTP
+Outgoing mail server	Servidor de correo saínte
+An app password is a separate password just for Capri. Your normal password stays yours.	Un contrasinal da aplicación é un contrasinal aparte só para a Capri. O teu contrasinal normal segue sendo teu.
+She keeps it only until she closes.	Ela só o garda ata que se pecha.
+She checks, searches and reads your mail. She asks before she sends any.	Ela revisa, busca e le o teu correo. Pregunta antes de enviar nada.
+Watch for new mail	Vixiar correo novo
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Ela fala cando chega correo, cun aviso se parece phishing. Nada se marca como lido.
+Deal with phishing on her own	Encargarse do phishing por si mesma
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Só mentres vixía. O correo que ten claro que é phishing vai a spam. O resto espera polo teu si.
+Forget account	Esquecer conta
+Use another email	Usar outro correo
+Which email?	Que correo?
+Make an app password	Crear un contrasinal da aplicación
+Paste it	Pégalo
+Connecting...	Conectando...
+She can use your email now.	Xa pode usar o teu correo.
+She's not watching your inbox.	Non está vixiando a túa caixa de entrada.
+She's watching your inbox and deals with phishing she's sure of.	Está vixiando a túa caixa e encárgase do phishing que ten claro.
+She's watching your inbox and tells you when mail lands.	Está vixiando a túa caixa e avísate cando chega correo.
+She forgot that account and its app password.	Esqueceu esa conta e o seu contrasinal da aplicación.
+She forgot that account. Its app password is gone from this PC.	Esqueceu esa conta. O seu contrasinal da aplicación xa non está neste PC.

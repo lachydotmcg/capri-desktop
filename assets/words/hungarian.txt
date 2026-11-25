@@ -30,6 +30,7 @@ Ask Capri for more	Kérj még Caprit
 Asking your server...	Megkérdezem a szervered...
 Asks before closing only the apps you choose.	Csak a kiválasztott alkalmazásoknál kérdez bezárás előtt.
 Auto	Auto
+Auto (match what I say)	Auto (amit mondok)
 Automatic: VB-CABLE, else Steam's	Automatikus: VB-CABLE, különben a Steamé
 BAD RELAY HOST	ROSSZ RELÉCSOMÓPONT
 BIG Z open notepad	BIG Z nyisd meg a jegyzettömböt
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri elrejtése / megjelenítése
 Hide / Show key	Elrejtés / megjelenítés billentyű
 Hide Capri	Capri elrejtése
 Hide for now	Elrejtés egyelőre
+Hide her	Elrejtés
 Hide in full screen	Elrejtés teljes képernyőn
 Hide this	Ezt elrejtem
+Hide, keep player	Elrejtés, lejátszó marad
 Hide/show:	Elrejtés/megjelenítés:
 Hide/show: Ctrl + Alt + H	Elrejtés/megjelenítés: Ctrl + Alt + H
 Hologram	Hologram
@@ -288,6 +291,7 @@ Huge	Hatalmas
 I can hear you.	Hallak.
 I glance at your screen and comment. Costs a little on a paid brain.	Ránézek a képernyődre és kommentálok. Fizetős agyon kicsit költ.
 I keep listening. Say my name, then just talk.	Továbbra is hallgatok. Mondd ki a nevem, aztán csak beszélj.
+I speak	Az én nyelvem
 I talk about your game as you play. Costs a little on a paid brain.	Kommentálom a játékodat, amíg játszol. Fizetős agyon kicsit költ.
 I type my replies and stay quiet.	Beírom a válaszaimat, és csendben maradok.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Nem szólok vissza, és semmi nem megy sehova. Azért lógok, zenére táncolok és megcsinálom a gyors dolgokat, amiket kérsz, például a hangerőt.
@@ -296,6 +300,7 @@ IN DISCORD >	DISCORDBAN >
 INSTALLED >	TELEPÍTVE >
 Import a Capri mod	Capri-mod importálása
 Import mod	Mod importálása
+In full screen	Teljes képernyőn
 In games	Játékokban
 Input	Bemenet
 Input, Output or How to overlaps a row	Bemenet, Kimenet vagy Hogyan átfed egy sort
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	BILLENTYŰK
 KEYS >	BILLENTYŰK >
 Keep PC awake for jobs	PC ébren tartása a feladatokhoz
+Keep player	Lejátszó marad
 Keeps the last two minutes of your game in memory. Say clip that to save it.	A játékod utolsó két percét a memóriában tartja. Mondd: clip that a mentéshez.
 Key	Billentyű
 Key cleared: a model file needs none.	Kulcs törölve: a modellfájlnak nincs szüksége rá.
@@ -439,6 +445,7 @@ No AI · no brain at all	Nincs MI · egyáltalán nincs agy
 No brain runs, and nothing is sent anywhere.	Nem fut agy, és semmi nem megy sehova.
 No brain yet	Még nincs agy
 No code open	Nincs megnyitott kód
+No limit	Korlátlan
 No mic found	Nincs mikrofon
 No mods in the directory yet.	Még nincs mod a mappában.
 No mods match that.	Egyetlen mod sem egyezik ezzel.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Hangmagasság
 Play	Lejátszás
 Play...	Lejátszás...
+Player only	Csak lejátszó
 Pocket TTS models copy this clip's voice. Press Test to hear it.	A Pocket TTS-modellek ennek a klipnek a hangját másolják. Nyomj Tesztet a meghallgatáshoz.
 Pop-in times	Megjelenési idők
 Pop-ins	Megjelenések
@@ -592,6 +600,7 @@ SKILL.	KÉPESSÉG.
 SKIN.	BŐR.
 SORT BY	RENDEZÉS
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	HANGOK SZOKÁSOK AGY NÉZÉS CAPRI DOOMSCROLL IDŐJÁRÁS KLIPEK JÁTÉKOK BILLENTYŰK MOZGÁSOK HANG TE
+Same as I speak	Mint az én nyelvem
 Same as her ears (VOICE > Mic)	Ugyanaz, mint a fülei (HANG > Mikrofon)
 Same code on the phone?	Ugyanaz a kód a telefonon?
 Save	Mentés
@@ -627,9 +636,10 @@ Settings had nothing to watch.	A Beállításoknak nem volt mit figyelnie.
 Settings lost keyboard focus during the Tab walk	A Beállítások elvesztette a billentyűzetfókuszt a Tab-bejárás közben
 Setup guide	Beállítási útmutató
 Setup stopped	A beállítás leállt
+She answers in	Válasz nyelve
 She can read it when it fits.	Ha belefér, el tudja olvasni.
 She glances at your screen and comments. Costs a little on a paid brain.	Ránéz a képernyődre és kommentál. Fizetős agyon kicsit költ.
-She keeps listening. Say her name, then just talk until you go quiet.	Továbbra is hallgat. Mondd ki a nevét, aztán beszélj, amíg el nem hallgatsz.
+She keeps listening. Say her name, then just talk.	Továbbra is hallgat. Mondd ki a nevét, aztán beszélj.
 She reacts to your game until you close it.	A játékodra reagál, amíg be nem zárod.
 She reads these controls before each game job.	Minden játékfeladat előtt elolvassa ezeket a vezérlőket.
 She talks about your game as you play. Costs a little on a paid brain.	Kommentálja a játékodat, amíg játszol. Fizetős agyon kicsit költ.
@@ -666,6 +676,7 @@ Speed	Sebesség
 Start with Windows	Indítás a Windows-szal
 Start with this!	Ezzel kezdjük!
 Starting...	Indítás...
+Stay	Marad
 Stay on my model	Maradjon a modellem
 Still checking your mics...	Még ellenőrzöm a mikrofonjaidat...
 Still checking your speakers...	Még ellenőrzöm a hangszóróidat...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	nem ír más alkalm
 · HD	· HD
 · on this PC	· ezen a PC-n
 · server	· szerver
+Edit as text	Szerkesztés szövegként
+What Capri remembers about you. It stays on this computer.	Amit Capri emlékszik rólad. Ezen a számítógépen marad.
+Tell her something to remember	Mondj neki valamit, amire emlékezzen
+Search her memory	Keresés az emlékezetében
+That day isn't there any more.	Az a nap már nincs itt.
+Undo	Visszavonás
+Remember our chats is off, so she isn't keeping new chat memories.	A beszélgetéseink emlékezése ki van kapcsolva, ezért nem ment új csevegésemlékeket.
+ABOUT YOU	RÓLAD
+FROM YOUR CHATS	A BESZÉLGETÉSEIDBŐL
+GAMES	JÁTÉKOK
+CHAT LOGS	CSEVEGÉSNAPLÓK
+CHAT LOG	CSEVEGÉSNAPLÓ
+Nothing matches.	Nincs találat.
+Nothing yet.	Még semmi.
+Reading her notes.	A jegyzeteit olvassa.
+Click again to forget game notes	Kattints újra a játékjegyzetek elfelejtéséhez
+Forget game notes	Játékjegyzetek elfelejtése
+Click again to forget everything about me	Kattints újra, hogy mindent elfelejtsen rólad
+Forget everything about me	Minden elfelejtése rólad
+Click again to forget	Kattints újra az elfelejtéshez
+Forget this day	Ennek a napnak az elfelejtése
+Only the start of this day is shown.	Csak a nap eleje látható.
+Nothing in this day.	Semmi ezen a napon.
+No chats kept yet.	Még nincs mentett csevegés.
+You	Te
+{0} line	{0} sor
+SET UP EMAIL >	E-MAIL BEÁLLÍTÁSA >
+SET UP EMAIL	E-MAIL BEÁLLÍTÁSA
+Or type your address	Vagy írd be a címed
+Email address	E-mail-cím
+Open the page	Oldal megnyitása
+App password	Alkalmazásjelszó
+IMAP server	IMAP-kiszolgáló
+Incoming mail server	Bejövő posta kiszolgálója
+SMTP server	SMTP-kiszolgáló
+Outgoing mail server	Kimenő posta kiszolgálója
+An app password is a separate password just for Capri. Your normal password stays yours.	Az alkalmazásjelszó külön jelszó, csak Capri számára. A szokásos jelszavad a tiéd marad.
+She keeps it only until she closes.	Csak bezárásáig őrzi meg.
+She checks, searches and reads your mail. She asks before she sends any.	Ellenőrzi, keresi és olvassa a postádat. Küldés előtt kérdez.
+Watch for new mail	Új posta figyelése
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Szól, ha posta érkezik, figyelmeztetéssel, ha adathalászatnak tűnik. Semmi nem lesz olvasottként megjelölve.
+Deal with phishing on her own	Az adathalászatot maga intézi
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Csak amíg figyel. A posta, amiről biztos, hogy adathalászat, a spambe kerül. A többi a beleegyezésedre vár.
+Forget account	Fiók elfelejtése
+Use another email	Másik e-mail használata
+Which email?	Melyik e-mail?
+Make an app password	Alkalmazásjelszó létrehozása
+Paste it	Illeszd be
+Connecting...	Kapcsolódás...
+She can use your email now.	Most már használhatja az e-mailjeidet.
+She's not watching your inbox.	Nem figyeli a beérkező postádat.
+She's watching your inbox and deals with phishing she's sure of.	Figyeli a beérkező postádat, és intézi az adathalászatot, amiről biztos.
+She's watching your inbox and tells you when mail lands.	Figyeli a beérkező postádat, és szól, ha posta érkezik.
+She forgot that account and its app password.	Elfelejtette azt a fiókot és az alkalmazásjelszavát.
+She forgot that account. Its app password is gone from this PC.	Elfelejtette azt a fiókot. Az alkalmazásjelszava eltűnt erről a számítógépről.

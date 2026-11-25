@@ -7,9 +7,9 @@
   <meta name="description" content="Capri mods: install and make settings mods, colour sets, skins, skills, code mods and startup intros.">
   <title>Capri mods</title>
   <link rel="icon" type="image/x-icon" href="../assets/chip.ico">
-  <link rel="stylesheet" href="../style.css?v=0.9.3.1">
+  <link rel="stylesheet" href="../style.css?v=0.9.7">
   <script src="../guide.js" defer></script>
-  <script src="../helper.js?v=0.9.3.1" defer></script>
+  <script src="../helper.js?v=0.9.7" defer></script>
 </head>
 <body>
   <div class="page">
@@ -414,7 +414,7 @@ public interface ICapriIntro
         <h3>What Heard gets</h3>
         <dl class="keys">
           <dt>Typed</dt><dd>every line</dd>
-          <dt>Spoken</dt><dd>every line. With <b>Listen for Capri</b> on, only lines with her name or a mod's name in them, and the lines in the chat that name starts</dd>
+          <dt>Spoken</dt><dd>every line. With <b>Listen for Capri</b> on and voice chat off, only lines with her name or a mod's name in them, and the line after her name on its own</dd>
           <dt>Call mode</dt><dd>only your own words that carry her name, or your answers</dd>
           <dt>Whole line</dt><dd>“Capri, mod check” arrives with her name in it, so search inside the line</dd>
           <dt>All mods</dt><dd>every running mod sees the line, even after one returns <code>true</code></dd>
@@ -599,7 +599,7 @@ She answers to Nova and Big Z.
           <dt>“That code didn't compile, line …”</dt><dd>Hover the message to read it all. Most often it's something newer than C# 5, or a reference she doesn't load.</dd>
           <dt>“That mod failed while starting: … It's saved, and off until you turn it on again.”</dt><dd>Your <code>Start</code> threw an error. The full error is in <code>errors.txt</code>.</dd>
           <dt>“CHANGED, approve it again.”</dt><dd>The file changed since you approved it. Press <b>On</b> to approve the new one.</dd>
-          <dt>“Windows only for now”</dt><dd>Mac and Linux can't run code mods.</dd>
+          <dt>“That mod uses parts of Capri only Windows has (…)”</dt><dd>A code mod that reaches for a part only Windows has, like drawing on her, an options page, screenshots or what she sees. Mac and Linux run code mods; those parts are refused by name, so change the mod to leave them out.</dd>
         </dl>
 
         <h3>The directory</h3>

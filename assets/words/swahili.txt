@@ -1,884 +1,950 @@
-A control that repainted wasn't redrawn in the picture.	1|Kidhibiti kilichopakwa rangi upya hakikuchorwa tena kwenye picha.
-A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	2|Ufunguo wa bure kutoka Google AI Studio, NVIDIA au OpenRouter. Hakuna cha kupakua. Inahitaji intaneti.
-A held trackpad scroll got a flick's long ease:	3|Msogeo wa kidole kwenye trackpad uliopata mwendo mrefu wa kupiga kwa haraka:
-A layout change during a slide put the page at	4|Mabadiliko ya mpangilio wakati wa kuteleza yalipeleka ukurasa kwenye
-A layout change left the picture up.	5|Mabadiliko ya mpangilio yaliacha picha ikionekana.
-A model in Ollama, on your local server or on your key.	6|Modeli katika Ollama, kwenye seva yako ya ndani au kwa ufunguo wako.
-A paid key goes under MAX INTELLIGENCE by itself.	7|Ufunguo wa kulipia unaenda chini ya MAX INTELLIGENCE wenyewe.
-A plan you already pay for, a key of your own, or Ollama.	8|Mpango ambao tayari unalipia, ufunguo wako mwenyewe, au Ollama.
-A voice panel menu doesn't hold its own copy of the panel's font.	9|Menyu ya paneli ya sauti haishikilii nakala yake ya fonti ya paneli.
-A wheel turn right after a slide ended froze the picture.	10|Kuzungusha gurudumu mara tu baada ya kuteleza kulisimamisha picha.
-ALLOW THIS PHONE?	11|JE, RUHUSU SIMU HII?
-ALMOST THERE >	12|KARIBU KUKAMILIKA >
-ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	13|CAPRI NYINGINE IMECHUKUA · ZIMA NA WASHA
-API key	14|Ufunguo wa API
-API key, Claude plan or ChatGPT plan	15|Ufunguo wa API, mpango wa Claude au ChatGPT
-Add	16|Ongeza
-Address	17|Anwani
-Address and key saved. Use saved to reconnect.	18|Anwani na ufunguo vimehifadhiwa. Tumia Imehifadhiwa kuunganisha tena.
-Advanced Settings	19|Mipangilio ya Kina
-All	20|Zote
-All screens	21|Skrini zote
-Allow	22|Ruhusu
-Almost there. I'll say hi the second my brain's in.	23|Karibu kukamilika. Nitakusalimu sekunde ubongo wangu utakapoingia.
-Always	24|Daima
-Always on top	25|Daima juu
-Any Google account works. I opened the page in your browser.	26|Akaunti yoyote ya Google inafanya kazi. Nimefungua ukurasa kwenye kivinjari chako.
-Applies to every voice	27|Inatumika kwa kila sauti
-Apps she may close	28|Programu anazoweza kufunga
-Ask Capri for more	29|Muulize Capri zaidi
-Asking your server...	30|Inauliza seva yako...
-Asks before closing only the apps you choose.	31|Huuliza kabla ya kufunga programu ulizochagua pekee.
-Auto	32|Otomatiki
-Automatic: VB-CABLE, else Steam's	33|Otomatiki: VB-CABLE, vinginevyo ya Steam
-BAD RELAY HOST	34|SERVA YA RELAY SI SAHIHI
-BIG Z open notepad	35|BIG Z fungua notepad
-BRAIN	36|UBONGO
-BRAIN >	37|UBONGO >
-BRAIN ONLINE >	38|UBONGO MTANDAONI >
-BRAIN PROVIDER >	39|MTOAJI WA UBONGO >
-BRAIN VOICE CAPRI	40|SAUTI YA UBONGO CAPRI
-Back	41|Rudi
-Back on your saved API key.	42|Rudi kwenye ufunguo wako wa API uliohifadhiwa.
-Bahnschrift	43|Bahnschrift
-Bahnschrift SemiBold Condensed	44|Bahnschrift SemiBold Condensed
-Bahnschrift SemiBold SemiConden	45|Bahnschrift SemiBold SemiConden
-Bahnschrift SemiCondensed	46|Bahnschrift SemiCondensed
-Best fit for this PC:	47|Inafaa zaidi kwa Kompyuta hii:
-Black	48|Nyeusi
-Blank key means no key.	49|Ufunguo tupu unamaanisha hakuna ufunguo.
-Brain API key	50|Ufunguo wa API wa ubongo
-Brain model	51|Modeli ya ubongo
-Brain provider	52|Mtoaji wa ubongo
-Bring here	53|Leta hapa
-Bring to this screen	54|Leta kwenye skrini hii
-Browse	55|Vinjari
-Browse mods	56|Vinjari moduli
-Browse to a voice model	57|Vinjari modeli ya sauti
-Browse...	58|Vinjari...
-Bubble	59|Kiputo
-CABLE Output (VB-Audio Virtual Cable)	60|Pato la CABLE (VB-Audio Virtual Cable)
-CAH Bree are you there	61|CAH Bree uko hapo?
-CAN'T REACH THE RELAY · RETRYING	62|HAIWEZI KUFIKIA RELAY · INAJARIBU TENA
-CAPRI	63|CAPRI
-CAPRI >	64|CAPRI >
-CAPRI VOICE BRAIN	65|UBONGO WA SAUTI WA CAPRI
-CHANGED, approve it again.	66|IMEBADILIKA, ikubali tena.
-CLIPS >	67|KLIPU >
-CLOUD VOICE	68|SAUTI YA WINGU
-CODE	69|MSIMBO
-COLORS >	70|RANGI >
-CONNECTED	71|IMEUNGANISHWA
-CONNECTING	72|INAUNGANISHWA
-CUSTOM LOCAL	73|MAALUM YA NDANI
-Call mode (beta)	74|Hali ya simu (beta)
-Call mode does not fit.	75|Hali ya simu haitoshi.
-Call mode is outside its space.	76|Hali ya simu iko nje ya nafasi yake.
-Cancel	77|Ghairi
-Cancel keys	78|Ghairi vitufe
-Capri	79|Capri
-Capri Mainframe	80|Capri Mainframe
-Capri Remote	81|Capri ya Mbali
-Capri code:	82|Msimbo wa Capri:
-Capri mods (*	83|Moduli za Capri (*
-Capri, hello	84|Capri, habari
-CapriDesktop.	85|CapriDesktop.
-Chaos when upset	86|Fujo anapokasirika
-Chat with Capri from your phone	87|Piga gumzo na Capri kutoka simu yako
-ChatGPT plan	88|Mpango wa ChatGPT
-Check for updates	89|Angalia masasisho
-Check in on me	90|Niangalie
-Check in on me is hidden	91|Niangalie imefichwa
-Check in on me still decides whether she visits.	92|Niangalie bado huamua kama anakuja kutembelea.
-Check in on me's tip missed	93|Kidokezo cha Niangalie kimekosekana
-Chess	94|Chesi
-Choose apps	95|Chagua programu
-Choose folder...	96|Chagua folda...
-Choose where future Capri clips are saved	97|Chagua mahali pa kuhifadhi klipu za Capri zijazo
-Claude Code	98|Claude Code
-Claude Code + Codex	99|Claude Code + Codex
-Claude Haiku {0}	100|Claude Haiku {0}
-Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	101|Mpango wa Claude au ChatGPT, ufunguo wa kulipia (OpenAI, Claude, DeepSeek), au Ollama.
-Claude plan	102|Mpango wa Claude
-Clear	103|Futa
-Cleared.	104|Imefutwa.
-Click Confirm to keep Down, or press Esc.	105|Bofya Thibitisha ili kuweka Chini, au bonyeza Esc.
-Click to open it.	106|Bofya ili kuifungua.
-Clip my games	107|Nirekodie michezo yangu
-Clips	108|Klipu
-Close	109|Funga
-Close other AIs for me	110|Zifunge AI nyingine kwa ajili yangu
-Cloud voice	111|Sauti ya wingu
-Cloud voice service	112|Huduma ya sauti ya wingu
-Cloud voice setup	113|Usanidi wa sauti ya wingu
-Code mods can reach your whole PC. Only trusted ones.	114|Moduli za msimbo zinaweza kufikia Kompyuta yako yote. Zinazoaminika pekee.
-Code/Husk Mode	115|Hali ya Code/Husk
-Codex	116|Codex
-Commands	117|Amri
-Comment on my games	118|Toa maoni kuhusu michezo yangu
-Comments	119|Maoni
-Confirm	120|Thibitisha
-Confirm keys	121|Thibitisha vitufe
-Connect	122|Unganisha
-Connect / Forget brain key	123|Unganisha / Sahau ufunguo wa ubongo
-Connect / Forget voice key	124|Unganisha / Sahau ufunguo wa sauti
-Connect four	125|Nne mfululizo
-Controls	126|Vidhibiti
-Copri, what time is it	127|Copri, saa ngapi sasa
-Copy error details	128|Nakili maelezo ya hitilafu
-Copy the key	129|Nakili ufunguo
-Copy the key from the page, then press Paste.	130|Nakili ufunguo kutoka ukurasani, kisha bonyeza Bandika.
-Couldn't open that page:	131|Imeshindikana kufungua ukurasa huo:
-Couldn't open that:	132|Imeshindikana kufungua hilo:
-Couldn't open the mods folder:	133|Imeshindikana kufungua folda ya moduli:
-Ctrl + Alt + G	134|Ctrl + Alt + G
-Ctrl + Alt + H	135|Ctrl + Alt + H
-Ctrl + Alt + M	136|Ctrl + Alt + M
-Ctrl + Alt + M is already her Mainframe key.	137|Ctrl + Alt + M tayari ni kitufe chake cha Mainframe.
-Ctrl + Alt + N	138|Ctrl + Alt + N
-Ctrl + Alt + N mutes mic	139|Ctrl + Alt + N inanyamazisha maikrofoni
-Ctrl + Alt + O	140|Ctrl + Alt + O
-Ctrl + Alt + P	141|Ctrl + Alt + P
-Ctrl + Alt + T	142|Ctrl + Alt + T
-Ctrl + Alt + V	143|Ctrl + Alt + V
-Ctrl + Alt + V is already her talk key.	144|Ctrl + Alt + V tayari ni kitufe chake cha kuzungumza.
-Ctrl + Alt + V to talk	145|Ctrl + Alt + V kuzungumza
-Custom local voice	146|Sauti ya ndani maalum
-Custom model name	147|Jina maalum la modeli
-Dance	148|Cheza
-Dance to music	149|Cheza kwa muziki
-Default	150|Chaguo-msingi
-Default (follows Windows)	151|Chaguo-msingi (fuata Windows)
-Default duration for clip that and automatic clips	152|Muda chaguo-msingi wa klipu ya hifadhi hiyo na klipu za kiotomatiki
-Default length	153|Urefu chaguo-msingi
-Default model	154|Modeli chaguo-msingi
-Delay	155|Kuchelewa
-Deny	156|Kataa
-Discard	157|Tupa
-Discard + reload	158|Tupa + pakia upya
-Discord	159|Discord
-Don't want to wait? A free key gets me talking in about a minute.	160|Hutaki kusubiri? Ufunguo wa bure unanifanya nizungumze baada ya dakika moja hivi.
-Done	161|Imekamilika
-EXTRA REQUEST JSON >	162|OMBI LA JSON LA ZIADA >
-EXTRAS >	163|ZIADA >
-Edit	164|Hariri
-Edit check-in lines	165|Hariri mistari ya kuingia
-Edit check-in lines has the wrong view or dimming	166|Kuhariri mistari ya kuingia kuna mwonekano au giza lisilo sahihi
-Edit check-in lines is out of place	167|Kuhariri mistari ya kuingia kumo mahali pabaya
-Edit controls	168|Hariri vidhibiti
-ElevenLabs API key	169|Ufunguo wa API wa ElevenLabs
-ElevenLabs voice ID	170|Kitambulisho cha sauti cha ElevenLabs
-English	171|Kiingereza
-Enter the game's name first.	172|Weka jina la mchezo kwanza.
-Every	173|Kila
-Every mod is checked for malware before it goes up. Code mods still ask before they run.	174|Kila moduli inakaguliwa kwa malware kabla ya kupakiwa. Moduli za msimbo bado zinauliza kabla ya kuendesha.
-Explore after	175|Chunguza baadaye
-Explore while I'm away	176|Chunguza nisipokuwepo
-Extra request JSON	177|Ombi la ziada la JSON
-Extras	178|Ziada
-FREE KEY	179|UFUNGUO WA BURE
-FREE KEY >	180|UFUNGUO WA BURE >
-Fast hands in games	181|Mikono ya haraka kwenye michezo
-File editor	182|Kihariri cha faili
-Fish Audio	183|Fish Audio
-Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	184|Fish Audio, ElevenLabs na zaidi ziko chini ya SAUTI kwenye Mainframe.
-Follow-up messages	185|Ujumbe wa kufuatilia
-Forget	186|Sahau
-Fork capri-mods	187|Gawanya capri-mods
-Frame rate	188|Kasi ya fremu
-Free	189|Bure
-Free and private, works offline. Downloads	190|Bure na binafsi, inafanya kazi bila mtandao. Inapakua
-Free and private, works offline. Downloads the best model for this PC.	191|Bure na binafsi, inafanya kazi bila mtandao. Inapakua modeli bora kwa Kompyuta hii.
-Free key	192|Ufunguo wa bure
-Free key providers	193|Watoaji wa ufunguo wa bure
-Free keys can be rate limited and slow.	194|Funguo za bure zinaweza kuwekewa kikomo cha kasi na kuwa polepole.
-Free voice in games	195|Sauti ya bure kwenye michezo
-Free voice style	196|Mtindo wa sauti wa bure
-Free voice:	197|Sauti ya bure:
-Free voice: Her own	198|Sauti ya bure: Yake mwenyewe
-Free · local model	199|Bure · modeli ya ndani
-GAMES >	200|MICHEZO >
-Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	201|Maoni ya mchezo yanaendeshwa tofauti na Tazama skrini yangu. Kuzima kunayasimamisha, hata katika Hali ya Michezo; Matukio pekee na Mzungumzaji humruhusu kutazama mchezo wako
-Game controls	202|Vidhibiti vya mchezo
-Game name	203|Jina la mchezo
-Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	204|Unyeti wa sauti ya mchezo. Punguza kama vipokea sauti vyako vimepunguzwa lakini Windows iko {0}% na anaitikia kila sauti; Zima hupuuza sauti za mchezo
-Game sounds	205|Sauti za mchezo
-Games	206|Michezo
-Gaming Mode	207|Hali ya Michezo
-Gaming Mode key	208|Kitufe cha Hali ya Michezo
-Gaming Mode:	209|Hali ya Michezo:
-Gaming Mode: Ctrl + Alt + G	210|Hali ya Michezo: Ctrl + Alt + G
-Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	211|Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
-Get VB-CABLE	212|Pata VB-CABLE
-Get VB-CABLE (free)...	213|Pata VB-CABLE (bure)...
-Get free voice	214|Pata sauti ya bure
-Getting your Fish Audio voices...	215|Inapata sauti zako za Fish Audio...
-Giant	216|Kubwa mno
-Glitch	217|Glitch
-Glitch in at startup	218|Glitch wakati wa kuanza
-Go to sleep	219|Nenda kulala
-Go to the next screen	220|Nenda skrini inayofuata
-Google AI Studio	221|Google AI Studio
-Google AI Studio (Gemini) · free tier · rate limited	222|Google AI Studio (Gemini) · kiwango cha bure · kikomo cha kasi
-Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	223|Una mpango wa Claude au ChatGPT, au ufunguo wako mwenyewe? Uchague nami nitaungana.
-Got it, just me. Right-click me any time for Capri Mainframe.	224|Sawa, ni mimi tu. Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe.
-Grey	225|Kijivu
-H.{0} video bitrate target; higher values make larger files	226|Lengo la kasi ya biti ya video H.{0}; thamani kubwa hutengeneza faili kubwa zaidi
-HABITS >	227|TABIA >
-HER HANDS >	228|MIKONO YAKE >
-HER JOBS >	229|KAZI ZAKE >
-HER MEMORY >	230|KUMBUKUMBU YAKE >
-HER MODS >	231|MODULI ZAKE >
-HH:mm	232|HH:mm
-HOW I SOUND >	233|NAVYOSIKIKA >
-Hang here	234|Kaa hapa
-Have Ollama? Open it, then press Refresh.	235|Una Ollama? Ifungue, kisha bonyeza Onyesha upya.
-Head pats	236|Kupapasa kichwa
-Hearing	237|Kusikia
-Hearing engine	238|Injini ya kusikia
-Hearing fix	239|Marekebisho ya kusikia
-Hearing status	240|Hali ya kusikia
-Help	241|Msaada
-Help page	242|Ukurasa wa msaada
-Her colors	243|Rangi zake
-Her folder	244|Folda yake
-Her memories	245|Kumbukumbu zake
-Her own colors are back.	246|Rangi zake mwenyewe zimerudi.
-Her own notes (no vault)	247|Maelezo yake mwenyewe (hakuna hazina)
-Her perch frames per second	248|Fremu zake kwa sekunde kwenye kiti
-Her personality	249|Utu wake
-Her size	250|Ukubwa wake
-Her speaker	251|Spika yake
-Her speaker is hidden or outside VOICE	252|Spika yake imefichwa au iko nje ya SAUTI
-Her speaker overlaps the mic or hearing row	253|Spika yake inaingiliana na safu ya maikrofoni au kusikia
-Her speaker:	254|Spika yake:
-Her speaker: Default	255|Spika yake: Chaguo-msingi
-Her voice in your mic	256|Sauti yake kwenye maikrofoni yako
-Her voice in your mic: loudness	257|Sauti yake kwenye maikrofoni yako: sauti kubwa
-Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	258|Sauti yake yenyewe. Mwinuko wake ni Mipangilio > SAUTI > Mwinuko, na vinasogea pamoja.
-Her voice joins your mic only in call mode.	259|Sauti yake hujiunga na maikrofoni yako katika hali ya simu pekee.
-Her voice volume	260|Kiwango cha sauti yake
-Her voice's pitch	261|Mwinuko wa sauti yake
-Her voice's pitch, the same as Settings > VOICE > Pitch	262|Mwinuko wa sauti yake, sawa na Mipangilio > SAUTI > Mwinuko
-Her voice's speed	263|Kasi ya sauti yake
-Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	264|Sauti yake, na nakala mbili zake zikichanganywa chini yake, kila moja ikiwa na mwinuko na kuchelewa kwake.
-Her voices · free	265|Sauti zake · bure
-Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	266|Habari, choom. Mimi ni Capri. Nahitaji ubongo kabla sijaweza kujibu. Chagua moja.
-Hide / Show Capri	267|Ficha / Onyesha Capri
-Hide / Show key	268|Kitufe cha kuficha / kuonyesha
-Hide Capri	269|Ficha Capri
-Hide for now	270|Ficha kwa sasa
-Hide in full screen	271|Ficha kwenye skrini nzima
-Hide this	272|Ficha hii
-Hide/show:	273|Ficha/onyesha:
-Hide/show: Ctrl + Alt + H	274|Ficha/onyesha: Ctrl + Alt + H
-Hologram	275|Hologramu
-Hop off	276|Shuka
-How long a still PC takes to send her to sleep; five minutes still reads as you being away	277|Muda ambao Kompyuta tulivu huchukua kumtuma alale; dakika tano bado zinaonyesha kuwa umeondoka
-How long a stroke over her a head pat needs	278|Muda ambao mwendo wa kupita juu yake unahitaji kupapasa kichwa
-How long her replies stay up	279|Majibu yake hukaa kwa muda gani
-How long you are away before she scrolls a browser or reader	280|Muda ambao umeondoka kabla hajasogeza kivinjari au msomaji
-How much her voice glitches	281|Sauti yake inavyoharibika kwa kiasi gani
-How much of the chat she keeps	282|Kiasi cha mazungumzo anayohifadhi
-How much she wanders	283|Anazurura kwa kiasi gani
-How often she pops in to say hi	284|Mara ngapi huingia kusalimia
-How robotic her voice sounds	285|Sauti yake inavyosikika kama roboti
-How to	286|Jinsi ya
-Huge	287|Kubwa sana
-I can hear you.	288|Nakusikia.
-I glance at your screen and comment. Costs a little on a paid brain.	289|Natazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
-I keep listening. Say my name, then just talk.	290|Naendelea kusikiliza. Sema jina langu, kisha zungumza tu.
-I talk about your game as you play. Costs a little on a paid brain.	291|Nazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.
-I type my replies and stay quiet.	292|Naandika majibu yangu na kubaki kimya.
-I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	293|Sitajibu, na hakuna kinachotumwa popote. Bado nitakaa nawe, nitacheza kwa muziki wako na kufanya mambo ya haraka unayoomba, kama sauti.
-I'll talk in	294|Nitazungumza katika
-IN DISCORD >	295|KWENYE DISCORD >
-INSTALLED >	296|IMESAKINISHWA >
-Import a Capri mod	297|Ingiza moduli ya Capri
-Import mod	298|Ingiza moduli
-In games	299|Kwenye michezo
-Input	300|Ingizo
-Input, Output or How to overlaps a row	301|Ingizo, Pato au Jinsi ya kuingiliana na safu
-Input:	302|Ingizo:
-Input: default	303|Ingizo: chaguo-msingi
-Install	304|Sakinisha
-Install mod	305|Sakinisha moduli
-Installed.	306|Imesakinishwa.
-It may ask for a phone number. I opened the page in your browser.	307|Inaweza kuomba nambari ya simu. Nimefungua ukurasa kwenye kivinjari chako.
-It still does its own job in other apps too.	308|Bado hufanya kazi yake katika programu zingine pia.
-It won't type in other apps while she runs.	309|Haitaandika katika programu zingine huku anaendesha.
-JUST ME >	310|NI MIMI PEKEE >
-Jealous of other AIs	311|Ana wivu na AI nyingine
-Join the Discord	312|Jiunge na Discord
-KB.	313|KB.
-KEYS	314|VITUFE
-KEYS >	315|VITUFE >
-Keep PC awake for jobs	316|Weka Kompyuta macho kwa kazi
-Keeps the last two minutes of your game in memory. Say clip that to save it.	317|Huhifadhi dakika mbili za mwisho za mchezo wako kwenye kumbukumbu. Sema rekodi hiyo kuihifadhi.
-Key	318|Ufunguo
-Key cleared: a model file needs none.	319|Ufunguo umefutwa: faili la modeli haliuhitaji.
-Key cleared: paste the key for	320|Ufunguo umefutwa: bandika ufunguo wa
-Key forgotten.	321|Ufunguo umesahauliwa.
-Key. It goes only to this server, as a Bearer key	322|Ufunguo. Unaenda kwa seva hii pekee, kama ufunguo wa Bearer
-Kokoro only, like es	323|Kokoro pekee, kama es
-LAST THING >	324|JAMBO LA MWISHO >
-LISTENING >	325|INASIKILIZA >
-Language	326|Lugha
-Large	327|Kubwa
-Last thing. These cost a little or use your mic, so they're your pick.	328|Jambo la mwisho. Haya yanagharimu kidogo au yanatumia maikrofoni yako, kwa hiyo ni uchaguzi wako.
-Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	329|Jambo la mwisho. Haya yanagharimu kidogo au yanatumia maikrofoni yako, kwa hiyo ni uchaguzi wako. Kisha ningependa kujua nikuite nini.
-Layers	330|Tabaka
-Learn more	331|Jifunze zaidi
-Leaving Settings threw its picture away straight away.	332|Kuondoka kwenye Mipangilio kulitupa picha yake mara moja.
-Legacy stand	333|Stendi ya zamani
-Lie down	334|Lala chini
-Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	335|Mistari ya mazungumzo ya Kompyuta iliyohifadhiwa kwenye kumbukumbu wakati wa kutazama pamoja. Nusu ya zamani inakuwa dokezo Kumbuka anachokiona inapowashwa
-Listen for Capri	336|Sikiliza Capri
-Live reactions	337|Miitikio ya moja kwa moja
-Local server address	338|Anwani ya seva ya ndani
-Long	339|Ndefu
-Longest wait (minutes)	340|Muda mrefu zaidi wa kusubiri (dakika)
-Looking at this PC...	341|Ninatazama Kompyuta hii...
-Looking for Ollama. Open it if it isn't running.	342|Natafuta Ollama. Ifungue ikiwa haifanyi kazi.
-Looking for a brain...	343|Natafuta ubongo...
-Looking in the mods directory for updates...	344|Natafuta masasisho kwenye folda ya moduli...
-Looking in the mods directory...	345|Natafuta kwenye folda ya moduli...
-Looking...	346|Natafuta...
-MAIN >	347|KUU >
-MAINFRAME	348|MAINFRAME
-MAX INTELLIGENCE	349|MAX INTELLIGENCE
-MEDIUM INTELLIGENCE	350|MEDIUM INTELLIGENCE
-MEMORY VAULT >	351|HAZINA YA KUMBUKUMBU >
-MODS	352|MODULI
-MODS >	353|MODULI >
-MODS DIRECTORY >	354|FOLDA YA MODULI >
-MODS INSTALLED COLORS	355|RANGI ZA MODULI ZILIZOSAKINISHWA
-MOVES >	356|MIENDO >
-MY BRAIN	357|UBONGO WANGU
-MY FREE VOICE	358|SAUTI YANGU YA BURE
-MY PLAN OR KEY	359|MPANGO WANGU AU UFUNGUO
-MY PLAN OR KEY >	360|MPANGO WANGU AU UFUNGUO >
-Made your Fish Audio voice. Press Test to hear it.	361|Nimetengeneza sauti yako ya Fish Audio. Bonyeza Jaribu uisikie.
-Mainframe colours	362|Rangi za Mainframe
-Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	363|Rangi za Mainframe. Night City ni nyekundu na samawati-kijani; Nyeusi, Nyeupe na Kijivu hubadilisha Mainframe, menyu zake, kisanduku cha Kuandika na maelezo yake
-Mainframe frames	364|Fremu za Mainframe
-Mainframe key	365|Kitufe cha Mainframe
-Mainframe size	366|Ukubwa wa Mainframe
-Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	367|Ukubwa wa Mainframe. Otomatiki huufanya mkubwa zaidi Virtual Super Resolution au DSR inapopunguza eneo-kazi kubwa kuwa skrini ndogo
-Mainframe:	368|Mainframe:
-Mainframe: Ctrl + Alt + M	369|Mainframe: Ctrl + Alt + M
-Mainframe: Ctrl + Alt + O	370|Mainframe: Ctrl + Alt + O
-Mainframe: Down	371|Mainframe: Chini
-Mainframe: Enter	372|Mainframe: Enter
-Making your Fish Audio voice...	373|Natengeneza sauti yako ya Fish Audio...
-Max reply	374|Jibu la juu zaidi
-Maximum clip resolution, keeping the game's shape without upscaling	375|Azimio la juu zaidi la klipu, likidumisha umbo la mchezo bila kuongeza ukubwa
-Medium	376|Wastani
-Memory	377|Kumbukumbu
-Memory size	378|Ukubwa wa kumbukumbu
-Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	379|Ukubwa wa kumbukumbu kwa tokeni za Ollama na ubongo wake wa ndani. Otomatiki huongezeka ombi linapohitaji zaidi
-Mg	380|Mg
-Mic level:	381|Kiwango cha maikrofoni:
-Mic test finished. Sound is reaching Capri.	382|Jaribio la maikrofoni limekamilika. Sauti inafika kwa Capri.
-Mic:	383|Maikrofoni:
-Mic: default	384|Maikrofoni: chaguo-msingi
-Microphone	385|Maikrofoni
-Mini player	386|Kicheza kidogo
-Mini player over full screen	387|Kicheza kidogo juu ya skrini nzima
-Mini-games	388|Michezo midogo
-Minimising the Mainframe left it sliding.	389|Kupunguza Mainframe kulimfanya ateleze.
-Minimize	390|Punguza
-Mod filter	391|Kichujio cha moduli
-Mod options	392|Chaguo za moduli
-Mod pages	393|Kurasa za moduli
-Mod rules	394|Kanuni za moduli
-Mod sort	395|Kupanga moduli
-Mod switch	396|Kubadilisha moduli
-Model	397|Modeli
-Model folder	398|Folda ya modeli
-Model name, optional	399|Jina la modeli, hiari
-Mods	400|Moduli
-Mods directory	401|Saraka ya moduli
-Mods folder	402|Folda ya moduli
-Most NVIDIA models can't see your screen.	403|Modeli nyingi za NVIDIA haziwezi kuona skrini yako.
-Mouse wheel notches got a flick's long ease:	404|Notchi za gurudumu la kipanya zilipata mwendo mrefu wa kupiga kwa haraka:
-Move	405|Sogeza
-Move key to MAX INTELLIGENCE	406|Sogeza kitufe hadi MAX INTELLIGENCE
-Move to MAX	407|Sogeza hadi MAX
-Music	408|Muziki
-Music app	409|Programu ya muziki
-Music app: where she plays music when you don't name an app	410|Programu ya muziki: anapocheza muziki usipotaja programu
-Mute	411|Nyamazisha
-Mute her	412|Nyamazisha yeye
-Mute mic key	413|Kitufe cha kunyamazisha maikrofoni
-Mute mic:	414|Nyamazisha maikrofoni:
-Mute mic: Ctrl + Alt + N	415|Nyamazisha maikrofoni: Ctrl + Alt + N
-My brain	416|Ubongo wangu
-My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	417|Ubongo wangu unashuka. Nitakusalimu mara tu utakapoingia, na unaweza kuzungumza nami hapo.
-My brain's on its way. While it comes down, let's sort out how I sound.	418|Ubongo wangu uko njiani. Wakati unashuka, hebu tupange jinsi ninavyosikika.
-My provider	419|Mtoaji wangu
-NO AI	420|HAKUNA AI
-NO PHONES CONNECTED	421|HAKUNA SIMU ZILIZOUNGANISHWA
-NO PREVIEW	422|HAKUNA ONYESHO KWANZA
-NORMAL	423|KAWAIDA
-NVIDIA	424|NVIDIA
-NVIDIA / Google AI Studio / OpenRouter	425|NVIDIA / Google AI Studio / OpenRouter
-NVIDIA · free · often slow at busy times	426|NVIDIA · bure · mara nyingi polepole nyakati za shughuli nyingi
-NVIDIA's free API is often slow, especially at busy times.	427|API ya bure ya NVIDIA mara nyingi ni polepole, hasa nyakati za shughuli nyingi.
-NVIDIA, Gemini, OpenRouter	428|NVIDIA, Gemini, OpenRouter
-NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	429|Ufunguo wa API wa NVIDIA, Google AI Studio (Gemini) au OpenRouter
-Names:	430|Majina:
-Needs a key	431|Inahitaji ufunguo
-Never	432|Kamwe
-New code	433|Msimbo mpya
-New voice from a clip...	434|Sauti mpya kutoka klipu...
-Next	435|Ijayo
-Night City	436|Night City
-No AI	437|Hakuna AI
-No AI · no brain at all	438|Hakuna AI · hakuna ubongo kabisa
-No brain runs, and nothing is sent anywhere.	439|Hakuna ubongo unaoendeshwa, na hakuna kinachotumwa popote.
-No brain yet	440|Bado hakuna ubongo
-No code open	441|Hakuna msimbo uliofunguliwa
-No mic found	442|Maikrofoni haijapatikana
-No mods in the directory yet.	443|Bado hakuna moduli kwenye saraka.
-No mods match that.	444|Hakuna moduli zinazolingana na hilo.
-No mods match.	445|Hakuna moduli zinazolingana.
-No phones yet	446|Bado hakuna simu
-No virtual mic yet. Pick Output, then Get VB-CABLE (free).	447|Bado hakuna maikrofoni pepe. Chagua Pato, kisha Pata VB-CABLE (bure).
-None yet: pick to get VB-CABLE (free)	448|Bado hakuna: chagua kupata VB-CABLE (bure)
-Normal	449|Kawaida
-Not a relay host	450|Si mwenyeji wa relay
-Not imported. Nothing ran.	451|Haijaingizwa. Hakuna kilichoendeshwa.
-Not updated. The old one is still in.	452|Haijasasishwa. Ile ya zamani bado imo.
-Nothing needed updating.	453|Hakuna kilichohitaji kusasishwa.
-Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	454|Hakuna cha kupakua, hakuna kinachotumwa popote. Sitajibu. Ongeza ubongo wakati wowote kwenye Mainframe.
-Nothing to show from the mods directory.	455|Hakuna cha kuonyesha kutoka saraka ya moduli.
-Nothing? Windows Settings > Privacy & security > Microphone.	456|Hakuna? Mipangilio ya Windows > Faragha na usalama > Maikrofoni.
-Nous Portal keys aren't supported yet.	457|Funguo za Nous Portal bado hazitumiki.
-OBS	458|OBS
-OFF	459|IMEZIMWA
-OLLAMA	460|OLLAMA
-ON	461|IMEWASHWA
-ON THIS PC	462|KWENYE KOMPYUTA HII
-OR A KEY	463|AU UFUNGUO
-Obsidian memory vault	464|Hazina ya maelezo ya Obsidian
-Off	465|Zima
-Off. Turn on Her voice in your mic above.	466|Imezimwa. Washa Sauti yake kwenye maikrofoni yako hapo juu.
-Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	467|Imezimwa: anasikika kama kawaida. Imewashwa: kila sauti aliyonayo, ikiwemo ElevenLabs.
-Often	468|Mara nyingi
-On	469|Washa
-On / Off	470|Washa / Zima
-On: your mic and her voice are going in.	471|Imewashwa: maikrofoni yako na sauti yake zinaingia.
-One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	472|Kitu kimoja cha JSON, kinachoongezwa kwenye kila ombi ambalo ubongo huu hutuma. Kinabadilisha thamani ya Capri kwa jina lolote linalofanana, na hakikaguliwi dhidi ya modeli.
-Online speech recognition	473|Utambuzi wa usemi mtandaoni
-Open Capri Mainframe	474|Fungua Capri Mainframe
-Open Ollama, I'll find it	475|Fungua Ollama, nitaipata
-Open clips folder	476|Fungua folda ya klipu
-Open her memories	477|Fungua kumbukumbu zake
-Open her notes	478|Fungua maelezo yake
-Open mods folder	479|Fungua folda ya moduli
-Open the page again	480|Fungua ukurasa tena
-OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	481|OpenAI, Claude, DeepSeek, Google, NVIDIA au OpenRouter.
-OpenAI-compatible server or provider.	482|Seva au mtoaji anayeendana na OpenAI.
-OpenRouter · free models only	483|OpenRouter · modeli za bure pekee
-Optional	484|Hiari
-Optional. Blank means no key.	485|Hiari. Tupu inamaanisha hakuna ufunguo.
-Options	486|Chaguo
-Out of the box a little higher, just behind her.	487|Kawaida juu kidogo, nyuma yake.
-Out of the box lower, just behind her.	488|Kawaida chini zaidi, nyuma yake.
-Output	489|Pato
-Output:	490|Pato:
-Output: none	491|Pato: hakuna
-PHONE CONNECTED	492|SIMU IMEUNGANISHWA
-PHONES >	493|SIMU >
-PHONES CONNECTED	494|SIMU ZIMEUNGANISHWA
-PREBUILT LOCAL	495|MAANDALIZI YA NDANI
-PUBLISH MOD >	496|CHAPISHA MODULI >
-Pair a phone	497|Oanisha simu
-Paste	498|Bandika
-Paste API key	499|Bandika ufunguo wa API
-Paste a brain API key	500|Bandika ufunguo wa API wa ubongo
-Paste reads your clipboard once, when you press it.	501|Bandika husoma ubao wako wa kunakili mara moja, unapoubonyeza.
-Paste your key here	502|Bandika ufunguo wako hapa
-Pat stroke	503|Mwendo wa kupapasa
-Perch	504|Kiti
-Perch over {0} fps uses more CPU	505|Kiti juu ya {0} fps hutumia CPU zaidi
-Pick Output to get it.	506|Chagua Pato ili kuipata.
-Pick a brain so I can talk back. You can change it any time.	507|Chagua ubongo ili nipate kujibu. Unaweza kubadilisha wakati wowote.
-Pick a clip of a voice you have the rights and consent to use	508|Chagua klipu ya sauti ambayo una haki na ridhaa ya kuitumia
-Pick a free model. I opened the page in your browser.	509|Chagua modeli ya bure. Nimefungua ukurasa kwenye kivinjari chako.
-Pick a new clip of you...	510|Chagua klipu mpya yako...
-Pick a voice model...	511|Chagua modeli ya sauti...
-Pick one. Only one brain runs at a time.	512|Chagua moja. Ubongo mmoja tu unaendeshwa kwa wakati mmoja.
-Pick the note her memories go in	513|Chagua dokezo ambapo kumbukumbu zake zitaenda
-Pick {0} to {1} seconds of a voice you have the rights and consent to use	514|Chagua sekunde {0} hadi {1} za sauti ambayo una haki na ridhaa ya kuitumia
-Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	515|Chagua sekunde {0} hadi {1} za wewe ukizungumza, au za sauti ambayo una haki na ridhaa ya kuitumia
-Pitch	516|Mwinuko
-Play	517|Cheza
-Play...	518|Cheza...
-Pocket TTS models copy this clip's voice. Press Test to hear it.	519|Modeli za Pocket TTS hunakili sauti ya klipu hii. Bonyeza Jaribu uisikie.
-Pop-in times	520|Nyakati za kuingia
-Pop-ins	521|Kuingia
-Power saver	522|Kiokoa nguvu
-Power saver: how lightly she runs in games, or always	523|Kiokoa nguvu: anavyoendesha kwa upole kwenye michezo, au kila wakati
-Preset	524|Mpangilio uliowekwa
-Press Create API key	525|Bonyeza Unda ufunguo wa API
-Press Create Key	526|Bonyeza Unda Ufunguo
-Press Generate API Key	527|Bonyeza Tengeneza Ufunguo wa API
-Press Test and say something, so I know I can hear you.	528|Bonyeza Jaribu na useme kitu, ili nijue nakusikia.
-Press a key, alone or with Ctrl, Alt, Shift or Win.	529|Bonyeza kitufe, peke yake au na Ctrl, Alt, Shift au Win.
-Press new keys, then Confirm	530|Bonyeza funguo mpya, kisha Thibitisha
-Provider	531|Mtoaji
-Provider API key, optional	532|Ufunguo wa API wa mtoaji, hiari
-Provider base URL	533|URL ya msingi ya mtoaji
-Provider forgotten.	534|Mtoaji amesahauliwa.
-Provider overlaps the brain name or note	535|Mtoaji anaingiliana na jina la ubongo au dokezo
-Publish	536|Chapisha
-Publish mod	537|Chapisha moduli
-Push to talk is off.	538|Kusema kwa kubonyeza kumezimwa.
-Push to talk key	539|Kitufe cha kusema kwa kubonyeza
-Push to talk:	540|Kusema kwa kubonyeza:
-Push to talk: not set	541|Kusema kwa kubonyeza: hakijawekwa
-QR CODE >	542|MSIMBO WA QR >
-QR hidden while streaming	543|QR imefichwa wakati wa kutiririsha
-Quick	544|Haraka
-Quiet key	545|Kitufe cha kimya
-Quiet:	546|Kimya:
-Quiet: Ctrl + Alt + P	547|Kimya: Ctrl + Alt + P
-Quit Capri	548|Funga Capri
-RELAY >	549|RELAY >
-REMOTE >	550|MBALI >
-RUNS CODE.	551|INAENDESHA MSIMBO.
-Rarely	552|Mara chache
-Rate mod	553|Kadiria moduli
-Reading its README...	554|Inasoma README yake...
-Refresh	555|Onyesha upya
-Reinstall	556|Sakinisha upya
-Reload	557|Pakia upya
-Reloaded.	558|Imepakiwa upya.
-Remember our chats	559|Kumbuka mazungumzo yetu
-Remember what she sees	560|Kumbuka anachokiona
-Remote	561|Mbali
-Remote off	562|Mbali imezimwa
-Remote on	563|Mbali imewashwa
-Remove	564|Ondoa
-Remove all phones	565|Ondoa simu zote
-Replies	566|Majibu
-Reply length	567|Urefu wa jibu
-Report a problem	568|Ripoti tatizo
-Reset colors	569|Weka upya rangi
-Reset to her default	570|Weka upya kwa chaguo-msingi lake
-Resolution	571|Azimio
-Restart to update	572|Anzisha upya ili usasishe
-Restless	573|Asiyetulia
-Revoke	574|Batilisha
-Revoke also removes the phones its links added	575|Kubatilisha pia kunaondoa simu ambazo viungo vyake viliongeza
-Ride cursor	576|Panda kiashiria
-Ride cursor / Hop off	577|Panda kiashiria / Shuka
-Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	578|Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe. Ubongo huwashwa chini ya UBONGO.
-Right-click me any time for the Mainframe, Help and the Discord.	579|Bonyeza kulia kwangu wakati wowote kwa Mainframe, Msaada na Discord.
-Roblox	580|Roblox
-Roblox or any other app: pick	581|Roblox au programu nyingine yoyote: chagua
-Robot	582|Roboti
-Rock, paper, scissors	583|Jiwe, karatasi, mkasi
-Run this code mod?	584|Endesha moduli hii ya msimbo?
-Running on this PC	585|Inaendeshwa kwenye Kompyuta hii
-Running on this PC · :	586|Inaendeshwa kwenye Kompyuta hii · :
-Runs Claude Code or Codex on this PC, signed in.	587|Huendesha Claude Code au Codex kwenye Kompyuta hii, ukiwa umeingia.
-Runs on your PC. No key, no credits.	588|Huendeshwa kwenye Kompyuta yako. Hakuna ufunguo, hakuna mikopo.
-SCAN WITH YOUR PHONE · EXPIRES	589|CHANGANUA NA SIMU YAKO · INAISHA MUDA
-SECURITY >	590|USALAMA >
-SKILL.	591|UJUZI.
-SKIN.	592|NGOZI.
-SORT BY	593|PANGA KWA
-SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	594|SAUTI TABIA UBONGO TAZAMA CAPRI DOOMSCROLL HALI YA HEWA KLIPU MICHEZO VITUFE MIENDO SAUTI YAKO
-Same as her ears (VOICE > Mic)	595|Sawa na masikio yake (SAUTI > Maikrofoni)
-Same code on the phone?	596|Msimbo huo huo kwenye simu?
-Save	597|Hifadhi
-Save big moments	598|Hifadhi nyakati kubwa
-Save folder	599|Folda ya kuhifadhi
-Save your changes, or press Discard + reload.	600|Hifadhi mabadiliko yako, au bonyeza Tupa + pakia upya.
-Save your changes, or press Discard.	601|Hifadhi mabadiliko yako, au bonyeza Tupa.
-Saved.	602|Imehifadhiwa.
-Saved. Ctrl + Alt + O opens her Mainframe.	603|Imehifadhiwa. Ctrl + Alt + O hufungua Mainframe yake.
-Saving your rating...	604|Inahifadhi tathmini yako...
-Say her name anywhere to chat	605|Sema jina lake popote kupiga gumzo
-Screens	606|Skrini
-Screens is hidden or outside WATCH	607|Skrini imefichwa au iko nje ya TAZAMA
-Screens overlaps a WATCH row	608|Skrini inaingiliana na safu ya TAZAMA
-Screens to watch	609|Skrini za kutazama
-Sealed end to end	610|Imefungwa kuanzia mwanzo hadi mwisho
-Search by name or author	611|Tafuta kwa jina au mwandishi
-Search installed mods	612|Tafuta moduli zilizosakinishwa
-Search mods	613|Tafuta moduli
-Search name, author or description	614|Tafuta jina, mwandishi au maelezo
-Security	615|Usalama
-Security:	616|Usalama:
-Segoe UI	617|Segoe UI
-Segoe UI Semibold	618|Segoe UI Semibold
-Set up	619|Sanidi
-Set up her brain	620|Sanidi ubongo wake
-Set up your voice model	621|Sanidi modeli yako ya sauti
-Setting up her brain	622|Inasanidi ubongo wake
-Settings	623|Mipangilio
-Settings / Back	624|Mipangilio / Rudi
-Settings folds the wrong rows above BRAIN	625|Mipangilio inakunja safu zisizo sahihi juu ya UBONGO
-Settings had nothing to watch.	626|Mipangilio haikuwa na cha kutazama.
-Settings lost keyboard focus during the Tab walk	627|Mipangilio ilipoteza umakini wa kibodi wakati wa kupitia Tab
-Setup guide	628|Mwongozo wa usanidi
-Setup stopped	629|Usanidi umesimama
-She can read it when it fits.	630|Anaweza kuisoma inapofaa.
-She glances at your screen and comments. Costs a little on a paid brain.	631|Anatazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
-She keeps listening. Say her name, then just talk until you go quiet.	632|Anaendelea kusikiliza. Sema jina lake, kisha zungumza hadi unyamaze.
-She reacts to your game until you close it.	633|Anaitikia mchezo wako hadi uufunge.
-She reads these controls before each game job.	634|Anasoma vidhibiti hivi kabla ya kila kazi ya mchezo.
-She talks about your game as you play. Costs a little on a paid brain.	635|Anazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.
-She uses it when she plays	636|Anaitumia anapocheza
-Short	637|Fupi
-Shortest wait (minutes)	638|Muda mfupi zaidi wa kusubiri (dakika)
-Show Capri	639|Onyesha Capri
-Show QR	640|Onyesha QR
-Show my mod file	641|Onyesha faili langu la moduli
-Show on Discord	642|Onyesha kwenye Discord
-Shum, what time is it	643|Shum, saa ngapi sasa
-Sign in	644|Ingia
-Sign in, make a key and copy it. Then press Paste and I'll connect.	645|Ingia, tengeneza ufunguo na uukili. Kisha bonyeza Bandika nami nitaunganisha.
-Sign in, press Create API key and copy it. Then press Paste and I'll connect.	646|Ingia, bonyeza Unda ufunguo wa API na uukili. Kisha bonyeza Bandika nami nitaunganisha.
-Silent · text only	647|Kimya · maandishi pekee
-Simple / Advanced Settings	648|Mipangilio Rahisi / ya Kina
-Simple Settings	649|Mipangilio Rahisi
-Simple Settings left a gap under Check in on me	650|Mipangilio Rahisi iliacha pengo chini ya Niangalie
-Sit here	651|Kaa hapa
-Sit on windows	652|Keti juu ya madirisha
-Size	653|Ukubwa
-Skip	654|Ruka
-Skip all	655|Ruka zote
-Skip for now	656|Ruka kwa sasa
-Sleep	657|Lala
-Small	658|Ndogo
-Sometimes	659|Wakati mwingine
-Sound effects volume	660|Kiwango cha sauti za athari
-Sound sensitivity	661|Unyeti wa sauti
-Sounds	662|Sauti
-Speaker or clip	663|Spika au klipu
-Speech model	664|Modeli ya usemi
-Speed	665|Kasi
-Start with Windows	666|Anza na Windows
-Start with this!	667|Anza na hii!
-Starting...	668|Inaanza...
-Stay on my model	669|Bakia na modeli yangu
-Still checking your mics...	670|Bado naangalia maikrofoni zako...
-Still checking your speakers...	671|Bado naangalia spika zako...
-Still checking your virtual mics...	672|Bado naangalia maikrofoni zako pepe...
-Stop	673|Simamisha
-Stopped using it. Couldn't remove the saved provider.	674|Imeacha kutumika. Imeshindikana kuondoa mtoaji aliyehifadhiwa.
-Support	675|Msaada
-Sure?	676|Una uhakika?
-Sure? moved to a different phone	677|Una uhakika? imehamishiwa kwenye simu nyingine
-TALK TO ME	678|ZUNGUMZA NAMI
-TEXT ONLY	679|MAANDISHI TU
-Tab landed past the first option of	680|Tab ilitua zaidi ya chaguo la kwanza la
-Tab never reached the quiet key	681|Tab haikufika kitufe cha kimya kamwe
-Tab reached nothing	682|Tab haikufika popote
-Tab selected a control without moving keyboard focus	683|Tab ilichagua kidhibiti bila kusogeza umakini wa kibodi
-Talk	684|Zungumza
-Talk key	685|Kitufe cha kuzungumza
-Talk:	686|Zungumza:
-Talk: Ctrl + Alt + V	687|Zungumza: Ctrl + Alt + V
-Target capture frame rate; may drop under load or the memory budget	688|Kasi ya fremu ya kunasa inayolengwa; inaweza kushuka chini ya mzigo au bajeti ya kumbukumbu
-Teases when another AI comes to the front.	689|Hutania AI nyingine inapokuja mbele.
-Test	690|Jaribu
-That address doesn't work. Try https://... or http://localhost:{0}.	691|Anwani hiyo haifanyi kazi. Jaribu https://... au http://localhost:{0}.
-That code expired	692|Msimbo huo umeisha muda
-That mod is no longer installed. The list is updated.	693|Moduli hiyo haijasakinishwa tena. Orodha imesasishwa.
-That's a paid key: it goes under MAX INTELLIGENCE.	694|Huo ni ufunguo wa kulipia: unaenda chini ya MAX INTELLIGENCE.
-The Mainframe stayed composited while sliding.	695|Mainframe ilibaki imeunganishwa wakati wa kuteleza.
-The Mainframe stayed uncomposited after the slide.	696|Mainframe ilibaki bila kuunganishwa baada ya kuteleza.
-The controls moved while the picture was sliding.	697|Vidhibiti vilihama wakati picha ikiteleza.
-The cover stayed visible after the slide ended.	698|Kifuniko kilibaki kinaonekana baada ya kuteleza kumalizika.
-The frame thread kept running after the page settled.	699|Uzi wa fremu uliendelea kukimbia baada ya ukurasa kutulia.
-The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	700|Jibu refu zaidi analoweza kutoa, kwa tokeni. Otomatiki hufuata Majibu hapo juu; {0}K au {1}K humruhusu aendelee. Kazi huhifadhi nafasi zaidi zinapohitaji
-The longest wait must be at least the shortest wait.	701|Muda mrefu zaidi wa kusubiri lazima uwe angalau muda mfupi zaidi.
-The picture doesn't match the scrolled page:	702|Picha hailingani na ukurasa uliosogezwa:
-The picture of Settings doesn't match the page:	703|Picha ya Mipangilio hailingani na ukurasa:
-The picture stayed up after the slide ended.	704|Picha ilibaki inaonekana baada ya kuteleza kumalizika.
-The picture wasn't showing while it slid.	705|Picha haikuwa inaonekana wakati ilipoteleza.
-The provider sheet is crowded:	706|Karatasi ya mtoaji imejaa:
-The voice panel has no screen DPI.	707|Paneli ya sauti haina DPI ya skrini.
-The voice panel's menus share one font.	708|Menyu za paneli ya sauti zinashiriki fonti moja.
-There's no key on your clipboard yet. Copy it from the page, then press Paste.	709|Bado hakuna ufunguo kwenye ubao wako wa kunakili. Nakili kutoka ukurasani, kisha bonyeza Bandika.
-These start off. Each costs a little or uses your mic.	710|Haya huanza yamezimwa. Kila moja inagharimu kidogo au inatumia maikrofoni yako.
-These start off. Turn on what you want. They're all in Settings too.	711|Haya huanza yamezimwa. Washa unachotaka. Yote yako pia kwenye Mipangilio.
-They can also call you Big Z, Capricorn or Nova	712|Wanaweza pia kuniita Big Z, Capricorn au Nova
-They can also call you Nova, Big Z or Capricorn	713|Wanaweza pia kuniita Nova, Big Z au Capricorn
-Thinking	714|Nafikiri
-This is my free voice. Press Test, say something, and I'll show you I can hear you.	715|Hii ndiyo sauti yangu ya bure. Bonyeza Jaribu, sema kitu, nami nitakuonyesha kuwa nakusikia.
-This mod has no description yet.	716|Moduli hii bado haina maelezo.
-Tic-tac-toe	717|Tic-tac-toe
-Time between glances	718|Muda kati ya mitazamo
-Tiny	719|Dogo sana
-Try again	720|Jaribu tena
-Turn Remote on first	721|Washa Mbali kwanza
-Turn off mini player	722|Zima kicheza kidogo
-Turn push to talk off	723|Zima kusema kwa kubonyeza
-Turning the wheel the other way kept the page heading the old way, to	724|Kuzungusha gurudumu upande mwingine kulifanya ukurasa uendelee upande wa zamani, hadi
-Type	725|Andika
-Type key	726|Kitufe cha kuandika
-Type to me	727|Niandikie
-Type:	728|Andika:
-Type: Ctrl + Alt + T	729|Andika: Ctrl + Alt + T
-Typing sound	730|Sauti ya kuandika
-Unpacked. Press Test to hear it.	731|Imefunguliwa. Bonyeza Jaribu uisikie.
-Unsaved changes.	732|Mabadiliko ambayo hayajahifadhiwa.
-Up to {0} fps	733|Hadi {0} fps
-Up to {0}p	734|Hadi {0}p
-Update	735|Sasisha
-Update available.	736|Sasisho linapatikana.
-Update mods	737|Sasisha moduli
-Updating...	738|Inasasisha...
-Use	739|Tumia
-Use her cursor	740|Tumia kiashiria chake
-Use https:// for a provider elsewhere. A key over plain http isn't safe.	741|Tumia https:// kwa mtoaji mwingine. Ufunguo juu ya http wazi si salama.
-Use preset	742|Tumia mpangilio uliowekwa
-Use saved	743|Tumia uliohifadhiwa
-Use this server	744|Tumia seva hii
-Using your provider with a key	745|Kutumia mtoaji wako kwa ufunguo
-Using your server with no key	746|Kutumia seva yako bila ufunguo
-VIEW MOD >	747|ANGALIA MODULI >
-VOICE >	748|SAUTI >
-VOICE IN YOUR MIC >	749|SAUTI KWENYE MAIKROFONI YAKO >
-VOICE LAYERS >	750|TABAKA ZA SAUTI >
-Verbosity	751|Umaridadi wa maneno
-Video bitrate	752|Kasi ya biti ya video
-View	753|Tazama
-View mod	754|Tazama moduli
-Voice	755|Sauti
-Voice ID	756|Kitambulisho cha sauti
-Voice from	757|Sauti kutoka
-Voice layers	758|Tabaka za sauti
-Voice model	759|Modeli ya sauti
-Voice model:	760|Modeli ya sauti:
-Voice name or ID, optional	761|Jina au kitambulisho cha sauti, hiari
-Voice server address, or a voice model's folder	762|Anwani ya seva ya sauti, au folda ya modeli ya sauti
-Voice status	763|Hali ya sauti
-Voice, key and model...	764|Sauti, ufunguo na modeli...
-Volume	765|Sauti kubwa
-WAKE ME UP >	766|NIAMSHE >
-WATCH >	767|TAZAMA >
-Waiting for the relay	768|Inasubiri relay
-Wake her up	769|Mwamshe
-Waking her up	770|Inamwamsha
-Wander	771|Zurura
-Wander around	772|Zurura huku na kule
-Watch my screen	773|Tazama skrini yangu
-Watch-along memory	774|Kumbukumbu ya kutazama pamoja
-Weather	775|Hali ya hewa
-Weather city	776|Mji wa hali ya hewa
-Welcome back, choom. Let's finish setting me up.	777|Karibu tena, choom. Hebu tumalize kunisanidi.
-What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	778|Anachofanya kwenye Kompyuta yako bila kuuliza. Swichi ikiwa imezimwa huuliza kwanza, na hufanya hivyo ukisema ndiyo.
-What should she call you?	779|Anapaswa kukuita nini?
-When she types	780|Anapoandika
-White	781|Nyeupe
-Windows default	782|Chaguo-msingi la Windows
-Windows did not give Settings keyboard focus	783|Windows haikumpa Mipangilio umakini wa kibodi
-Windows did not return keyboard focus to Back	784|Windows haikurudisha umakini wa kibodi kwa Rudi
-With no picture the wheel still tried to slide.	785|Bila picha gurudumu bado lilijaribu kuteleza.
-Works best on MAX INTELLIGENCE.	786|Hufanya kazi vizuri zaidi kwenye MAX INTELLIGENCE.
-YOU	787|WEWE
-YOU >	788|WEWE >
-YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	789|SAUTI YAKO MIENDO VITUFE MICHEZO KLIPU HALI YA HEWA DOOMSCROLL CAPRI TAZAMA UBONGO TABIA SAUTI
-YOUR KEY	790|UFUNGUO WAKO
-YOUR MIC	791|MAIKROFONI YAKO
-YOUR PLAN	792|MPANGO WAKO
-Yokapri what's up	793|Yokapri vipi
-You can hide this. It keeps going, and the Mainframe shows it too.	794|Unaweza kuficha hili. Linaendelea, na Mainframe pia linaonyesha.
-Your mic and her voice go into one virtual mic, and	795|Maikrofoni yako na sauti yake huingia kwenye maikrofoni moja pepe, na
-Your mic is muted. Unmute it to test.	796|Maikrofoni yako imenyamazishwa. Iondolee kimya ili ujaribu.
-Your mods are up to date.	797|Moduli zako ziko za kisasa.
-Your name or a nickname	798|Jina lako au jina la utani
-Your own model	799|Modeli yako mwenyewe
-Your personality	800|Utu wako
-Your voice	801|Sauti yako
-Your voice (HD)	802|Sauti yako (HD)
-Your voice (HD) · pick a clip of you...	803|Sauti yako (HD) · chagua klipu yako...
-Your voice model	804|Modeli yako ya sauti
-as its mic.	805|kama maikrofoni yake.
-changed. Saved as My Colors, so you can share it.	806|imebadilika. Imehifadhiwa kama Rangi Zangu, ili uweze kuishiriki.
-choice	807|chaguo
-clips the input line	808|hukata mstari wa ingizo
-cue	809|kidokezo
-doesn't yet.	810|bado.
-download	811|pakua
-file.	812|faili.
-flag	813|bendera
-fps	814|fps
-hear	815|sikia
-hears	816|anasikia
-hears that.	817|anasikia hilo.
-hides or shows her.	818|huficha au kuonyesha yeye.
-hint	819|kidokezo
-in the Mainframe.	820|kwenye Mainframe.
-in the mods directory with a pull request.	821|kwenye saraka ya moduli kwa ombi la kuvuta.
-in the picture wasn't noticed.	822|kwenye picha hakukuonekana.
-is already her push-to-talk key.	823|tayari ni kitufe chake cha kusema kwa kubonyeza.
-is off.	824|imezimwa.
-is on and running.	825|imewashwa na inaendelea.
-is on, at the bottom, under	826|imewashwa, chini, chini ya
-is on.	827|imewashwa.
-is on. She now answers to	828|imewashwa. Sasa anajibu
-is removed.	829|imeondolewa.
-is taken	830|imechukuliwa
-is taken by another app. Try another.	831|imechukuliwa na programu nyingine. Jaribu nyingine.
-is updated	832|imesasishwa
-isn't hearing it yet: do {0} and {1}, then join a call.	833|bado haisikii: fanya {0} na {1}, kisha jiunge na simu.
-it now.	834|sasa.
-keeps her quiet, and lets her talk again.	835|inamweka kimya, na inamruhusu kuzungumza tena.
-key	836|ufunguo
-key.	837|ufunguo.
-min	838|dak
-more.	839|zaidi.
-ms.	840|ms.
-mutes mic	841|inanyamazisha maikrofoni
-mutes your mic.	842|inanyamazisha maikrofoni yako.
-name	843|jina
-off	844|zima
-on this PC	845|kwenye Kompyuta hii
-opens her Mainframe.	846|inafungua Mainframe yake.
-opens her typing box.	847|inafungua kisanduku chake cha kuandika.
-phone	848|simu
-phone pixels	849|pikseli za simu
-phones	850|simu
-pixels	851|pikseli
-pixels)	852|pikseli)
-star.	853|nyota.
-stars.	854|nyota.
-starts voice chat.	855|inaanzisha gumzo la sauti.
-stays off. Nothing ran.	856|inabaki zimezimwa. Hakuna kilichoendeshwa.
-still does its own job in other apps too. Confirm to keep it.	857|bado hufanya kazi yake katika programu zingine pia. Thibitisha kuihifadhi.
-tall	858|refu
-time	859|muda
-to talk	860|kuzungumza
-to talk to her, with a game in front too.	861|kuzungumza naye, pia ukiwa na mchezo mbele.
-too.	862|pia.
-turns Gaming Mode on and off.	863|huwasha na kuzima Hali ya Michezo.
-with Ollama	864|na Ollama
-won't type in other apps while she runs. Confirm to keep it.	865|haitaandika katika programu zingine huku anaendesha. Thibitisha kuihifadhi.
-{0}   Echo Cancellation: Off	866|{0}   Kughairi Mwangwi: Zima
-{0}   If her voice cuts off, turn off noise filtering	867|{0}   Sauti yake ikikatika, zima kichujio cha kelele
-{0}   Input Device:	868|{0}   Kifaa cha Ingizo:
-{0}   Join the call and check they hear both of you	869|{0}   Jiunge na simu na uhakikishe wanakusikia nyote wawili
-{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	870|{0}   Jaribio la Maikrofoni > Hebu Tuangalie: utajisikia wewe, na yeye anapozungumza
-{0}   Microphone:	871|{0}   Maikrofoni:
-{0}   Noise Suppression: None. Both can cut her voice after the first line.	872|{0}   Kuzuia Kelele: Hakuna. Zote mbili zinaweza kukata sauti yake baada ya mstari wa kwanza.
-{0}   Open the call or meeting's audio settings	873|{0}   Fungua mipangilio ya sauti ya simu au mkutano
-{0}   Output Device: your headphones, like before	874|{0}   Kifaa cha Pato: vipokea sauti vyako, kama hapo awali
-{0}   Speaker: your headphones, like before	875|{0}   Spika: vipokea sauti vyako, kama hapo awali
-{0}   Try a mic test in your call app	876|{0}   Jaribu jaribio la maikrofoni kwenye programu yako ya simu
-{0}   User Settings (the cog by your name) > Voice & Video	877|{0}   Mipangilio ya Mtumiaji (gia kando ya jina lako) > Sauti na Video
-{0} Mbps	878|{0} Mbps
-{0} lines	879|{0} mistari
-{0} min	880|{0} dak
-{0} ms	881|{0} ms
-· HD	882|· HD
-· on this PC	883|· kwenye Kompyuta hii
-· server	884|· seva
+A control that repainted wasn't redrawn in the picture.	Kidhibiti kilichopakwa rangi upya hakikuchorwa tena kwenye picha.
+A free key from Google AI Studio, NVIDIA or OpenRouter. Nothing to download. Needs internet.	Ufunguo wa bure kutoka Google AI Studio, NVIDIA au OpenRouter. Hakuna cha kupakua. Inahitaji intaneti.
+A held trackpad scroll got a flick's long ease:	Msogeo wa kidole kwenye trackpad uliopata mwendo mrefu wa kupiga kwa haraka:
+A layout change during a slide put the page at	Mabadiliko ya mpangilio wakati wa kuteleza yalipeleka ukurasa kwenye
+A layout change left the picture up.	Mabadiliko ya mpangilio yaliacha picha ikionekana.
+A model in Ollama, on your local server or on your key.	Modeli katika Ollama, kwenye seva yako ya ndani au kwa ufunguo wako.
+A paid key goes under MAX INTELLIGENCE by itself.	Ufunguo wa kulipia unaenda chini ya MAX INTELLIGENCE wenyewe.
+A plan you already pay for, a key of your own, or Ollama.	Mpango ambao tayari unalipia, ufunguo wako mwenyewe, au Ollama.
+A voice panel menu doesn't hold its own copy of the panel's font.	Menyu ya paneli ya sauti haishikilii nakala yake ya fonti ya paneli.
+A wheel turn right after a slide ended froze the picture.	Kuzungusha gurudumu mara tu baada ya kuteleza kulisimamisha picha.
+ALLOW THIS PHONE?	JE, RUHUSU SIMU HII?
+ALMOST THERE >	KARIBU KUKAMILIKA >
+ANOTHER CAPRI TOOK OVER · TURN OFF AND ON	CAPRI NYINGINE IMECHUKUA · ZIMA NA WASHA
+API key	Ufunguo wa API
+API key, Claude plan or ChatGPT plan	Ufunguo wa API, mpango wa Claude au ChatGPT
+Add	Ongeza
+Address	Anwani
+Address and key saved. Use saved to reconnect.	Anwani na ufunguo vimehifadhiwa. Tumia Imehifadhiwa kuunganisha tena.
+Advanced Settings	Mipangilio ya Kina
+All	Zote
+All screens	Skrini zote
+Allow	Ruhusu
+Almost there. I'll say hi the second my brain's in.	Karibu kukamilika. Nitakusalimu sekunde ubongo wangu utakapoingia.
+Always	Daima
+Always on top	Daima juu
+Any Google account works. I opened the page in your browser.	Akaunti yoyote ya Google inafanya kazi. Nimefungua ukurasa kwenye kivinjari chako.
+Applies to every voice	Inatumika kwa kila sauti
+Apps she may close	Programu anazoweza kufunga
+Ask Capri for more	Muulize Capri zaidi
+Asking your server...	Inauliza seva yako...
+Asks before closing only the apps you choose.	Huuliza kabla ya kufunga programu ulizochagua pekee.
+Auto	Otomatiki
+Auto (match what I say)	Otomatiki (kulingana na ninachosema)
+Automatic: VB-CABLE, else Steam's	Otomatiki: VB-CABLE, vinginevyo ya Steam
+BAD RELAY HOST	SERVA YA RELAY SI SAHIHI
+BIG Z open notepad	BIG Z fungua notepad
+BRAIN	UBONGO
+BRAIN >	UBONGO >
+BRAIN ONLINE >	UBONGO MTANDAONI >
+BRAIN PROVIDER >	MTOAJI WA UBONGO >
+BRAIN VOICE CAPRI	SAUTI YA UBONGO CAPRI
+Back	Rudi
+Back on your saved API key.	Rudi kwenye ufunguo wako wa API uliohifadhiwa.
+Bahnschrift	Bahnschrift
+Bahnschrift SemiBold Condensed	Bahnschrift SemiBold Condensed
+Bahnschrift SemiBold SemiConden	Bahnschrift SemiBold SemiConden
+Bahnschrift SemiCondensed	Bahnschrift SemiCondensed
+Best fit for this PC:	Inafaa zaidi kwa Kompyuta hii:
+Black	Nyeusi
+Blank key means no key.	Ufunguo tupu unamaanisha hakuna ufunguo.
+Brain API key	Ufunguo wa API wa ubongo
+Brain model	Modeli ya ubongo
+Brain provider	Mtoaji wa ubongo
+Bring here	Leta hapa
+Bring to this screen	Leta kwenye skrini hii
+Browse	Vinjari
+Browse mods	Vinjari moduli
+Browse to a voice model	Vinjari modeli ya sauti
+Browse...	Vinjari...
+Bubble	Kiputo
+CABLE Output (VB-Audio Virtual Cable)	Pato la CABLE (VB-Audio Virtual Cable)
+CAH Bree are you there	CAH Bree uko hapo?
+CAN'T REACH THE RELAY · RETRYING	HAIWEZI KUFIKIA RELAY · INAJARIBU TENA
+CAPRI	CAPRI
+CAPRI >	CAPRI >
+CAPRI VOICE BRAIN	UBONGO WA SAUTI WA CAPRI
+CHANGED, approve it again.	IMEBADILIKA, ikubali tena.
+CLIPS >	KLIPU >
+CLOUD VOICE	SAUTI YA WINGU
+CODE	MSIMBO
+COLORS >	RANGI >
+CONNECTED	IMEUNGANISHWA
+CONNECTING	INAUNGANISHWA
+CUSTOM LOCAL	MAALUM YA NDANI
+Call mode (beta)	Hali ya simu (beta)
+Call mode does not fit.	Hali ya simu haitoshi.
+Call mode is outside its space.	Hali ya simu iko nje ya nafasi yake.
+Cancel	Ghairi
+Cancel keys	Ghairi vitufe
+Capri	Capri
+Capri Mainframe	Capri Mainframe
+Capri Remote	Capri ya Mbali
+Capri code:	Msimbo wa Capri:
+Capri mods (*	Moduli za Capri (*
+Capri, hello	Capri, habari
+CapriDesktop.	CapriDesktop.
+Chaos when upset	Fujo anapokasirika
+Chat with Capri from your phone	Piga gumzo na Capri kutoka simu yako
+ChatGPT plan	Mpango wa ChatGPT
+Check for updates	Angalia masasisho
+Check in on me	Niangalie
+Check in on me is hidden	Niangalie imefichwa
+Check in on me still decides whether she visits.	Niangalie bado huamua kama anakuja kutembelea.
+Check in on me's tip missed	Kidokezo cha Niangalie kimekosekana
+Chess	Chesi
+Choose apps	Chagua programu
+Choose folder...	Chagua folda...
+Choose where future Capri clips are saved	Chagua mahali pa kuhifadhi klipu za Capri zijazo
+Claude Code	Claude Code
+Claude Code + Codex	Claude Code + Codex
+Claude Haiku {0}	Claude Haiku {0}
+Claude or ChatGPT plan, a paid key (OpenAI, Claude, DeepSeek), or Ollama.	Mpango wa Claude au ChatGPT, ufunguo wa kulipia (OpenAI, Claude, DeepSeek), au Ollama.
+Claude plan	Mpango wa Claude
+Clear	Futa
+Cleared.	Imefutwa.
+Click Confirm to keep Down, or press Esc.	Bofya Thibitisha ili kuweka Chini, au bonyeza Esc.
+Click to open it.	Bofya ili kuifungua.
+Clip my games	Nirekodie michezo yangu
+Clips	Klipu
+Close	Funga
+Close other AIs for me	Zifunge AI nyingine kwa ajili yangu
+Cloud voice	Sauti ya wingu
+Cloud voice service	Huduma ya sauti ya wingu
+Cloud voice setup	Usanidi wa sauti ya wingu
+Code mods can reach your whole PC. Only trusted ones.	Moduli za msimbo zinaweza kufikia Kompyuta yako yote. Zinazoaminika pekee.
+Code/Husk Mode	Hali ya Code/Husk
+Codex	Codex
+Commands	Amri
+Comment on my games	Toa maoni kuhusu michezo yangu
+Comments	Maoni
+Confirm	Thibitisha
+Confirm keys	Thibitisha vitufe
+Connect	Unganisha
+Connect / Forget brain key	Unganisha / Sahau ufunguo wa ubongo
+Connect / Forget voice key	Unganisha / Sahau ufunguo wa sauti
+Connect four	Nne mfululizo
+Controls	Vidhibiti
+Copri, what time is it	Copri, saa ngapi sasa
+Copy error details	Nakili maelezo ya hitilafu
+Copy the key	Nakili ufunguo
+Copy the key from the page, then press Paste.	Nakili ufunguo kutoka ukurasani, kisha bonyeza Bandika.
+Couldn't open that page:	Imeshindikana kufungua ukurasa huo:
+Couldn't open that:	Imeshindikana kufungua hilo:
+Couldn't open the mods folder:	Imeshindikana kufungua folda ya moduli:
+Ctrl + Alt + G	Ctrl + Alt + G
+Ctrl + Alt + H	Ctrl + Alt + H
+Ctrl + Alt + M	Ctrl + Alt + M
+Ctrl + Alt + M is already her Mainframe key.	Ctrl + Alt + M tayari ni kitufe chake cha Mainframe.
+Ctrl + Alt + N	Ctrl + Alt + N
+Ctrl + Alt + N mutes mic	Ctrl + Alt + N inanyamazisha maikrofoni
+Ctrl + Alt + O	Ctrl + Alt + O
+Ctrl + Alt + P	Ctrl + Alt + P
+Ctrl + Alt + T	Ctrl + Alt + T
+Ctrl + Alt + V	Ctrl + Alt + V
+Ctrl + Alt + V is already her talk key.	Ctrl + Alt + V tayari ni kitufe chake cha kuzungumza.
+Ctrl + Alt + V to talk	Ctrl + Alt + V kuzungumza
+Custom local voice	Sauti ya ndani maalum
+Custom model name	Jina maalum la modeli
+Dance	Cheza
+Dance to music	Cheza kwa muziki
+Default	Chaguo-msingi
+Default (follows Windows)	Chaguo-msingi (fuata Windows)
+Default duration for clip that and automatic clips	Muda chaguo-msingi wa klipu ya hifadhi hiyo na klipu za kiotomatiki
+Default length	Urefu chaguo-msingi
+Default model	Modeli chaguo-msingi
+Delay	Kuchelewa
+Deny	Kataa
+Discard	Tupa
+Discard + reload	Tupa + pakia upya
+Discord	Discord
+Don't want to wait? A free key gets me talking in about a minute.	Hutaki kusubiri? Ufunguo wa bure unanifanya nizungumze baada ya dakika moja hivi.
+Done	Imekamilika
+EXTRA REQUEST JSON >	OMBI LA JSON LA ZIADA >
+EXTRAS >	ZIADA >
+Edit	Hariri
+Edit check-in lines	Hariri mistari ya kuingia
+Edit check-in lines has the wrong view or dimming	Kuhariri mistari ya kuingia kuna mwonekano au giza lisilo sahihi
+Edit check-in lines is out of place	Kuhariri mistari ya kuingia kumo mahali pabaya
+Edit controls	Hariri vidhibiti
+ElevenLabs API key	Ufunguo wa API wa ElevenLabs
+ElevenLabs voice ID	Kitambulisho cha sauti cha ElevenLabs
+English	Kiingereza
+Enter the game's name first.	Weka jina la mchezo kwanza.
+Every	Kila
+Every mod is checked for malware before it goes up. Code mods still ask before they run.	Kila moduli inakaguliwa kwa malware kabla ya kupakiwa. Moduli za msimbo bado zinauliza kabla ya kuendesha.
+Explore after	Chunguza baadaye
+Explore while I'm away	Chunguza nisipokuwepo
+Extra request JSON	Ombi la ziada la JSON
+Extras	Ziada
+FREE KEY	UFUNGUO WA BURE
+FREE KEY >	UFUNGUO WA BURE >
+Fast hands in games	Mikono ya haraka kwenye michezo
+File editor	Kihariri cha faili
+Fish Audio	Fish Audio
+Fish Audio, ElevenLabs and more are under VOICE in the Mainframe.	Fish Audio, ElevenLabs na zaidi ziko chini ya SAUTI kwenye Mainframe.
+Follow-up messages	Ujumbe wa kufuatilia
+Forget	Sahau
+Fork capri-mods	Gawanya capri-mods
+Frame rate	Kasi ya fremu
+Free	Bure
+Free and private, works offline. Downloads	Bure na binafsi, inafanya kazi bila mtandao. Inapakua
+Free and private, works offline. Downloads the best model for this PC.	Bure na binafsi, inafanya kazi bila mtandao. Inapakua modeli bora kwa Kompyuta hii.
+Free key	Ufunguo wa bure
+Free key providers	Watoaji wa ufunguo wa bure
+Free keys can be rate limited and slow.	Funguo za bure zinaweza kuwekewa kikomo cha kasi na kuwa polepole.
+Free voice in games	Sauti ya bure kwenye michezo
+Free voice style	Mtindo wa sauti wa bure
+Free voice:	Sauti ya bure:
+Free voice: Her own	Sauti ya bure: Yake mwenyewe
+Free · local model	Bure · modeli ya ndani
+GAMES >	MICHEZO >
+Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game	Maoni ya mchezo yanaendeshwa tofauti na Tazama skrini yangu. Kuzima kunayasimamisha, hata katika Hali ya Michezo; Matukio pekee na Mzungumzaji humruhusu kutazama mchezo wako
+Game controls	Vidhibiti vya mchezo
+Game name	Jina la mchezo
+Game sound sensitivity. Lower it if your headset is turned down but Windows is at {0}% and she reacts to every sound; Off ignores game sounds	Unyeti wa sauti ya mchezo. Punguza kama vipokea sauti vyako vimepunguzwa lakini Windows iko {0}% na anaitikia kila sauti; Zima hupuuza sauti za mchezo
+Game sounds	Sauti za mchezo
+Games	Michezo
+Gaming Mode	Hali ya Michezo
+Gaming Mode key	Kitufe cha Hali ya Michezo
+Gaming Mode:	Hali ya Michezo:
+Gaming Mode: Ctrl + Alt + G	Hali ya Michezo: Ctrl + Alt + G
+Gemini, OpenRouter, ChatGPT, Claude, DeepSeek	Gemini, OpenRouter, ChatGPT, Claude, DeepSeek
+Get VB-CABLE	Pata VB-CABLE
+Get VB-CABLE (free)...	Pata VB-CABLE (bure)...
+Get free voice	Pata sauti ya bure
+Getting your Fish Audio voices...	Inapata sauti zako za Fish Audio...
+Giant	Kubwa mno
+Glitch	Glitch
+Glitch in at startup	Glitch wakati wa kuanza
+Go to sleep	Nenda kulala
+Go to the next screen	Nenda skrini inayofuata
+Google AI Studio	Google AI Studio
+Google AI Studio (Gemini) · free tier · rate limited	Google AI Studio (Gemini) · kiwango cha bure · kikomo cha kasi
+Got a Claude or ChatGPT plan, or a key of your own? Pick it and I'll plug in.	Una mpango wa Claude au ChatGPT, au ufunguo wako mwenyewe? Uchague nami nitaungana.
+Got it, just me. Right-click me any time for Capri Mainframe.	Sawa, ni mimi tu. Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe.
+Grey	Kijivu
+H.{0} video bitrate target; higher values make larger files	Lengo la kasi ya biti ya video H.{0}; thamani kubwa hutengeneza faili kubwa zaidi
+HABITS >	TABIA >
+HER HANDS >	MIKONO YAKE >
+HER JOBS >	KAZI ZAKE >
+HER MEMORY >	KUMBUKUMBU YAKE >
+HER MODS >	MODULI ZAKE >
+HH:mm	HH:mm
+HOW I SOUND >	NAVYOSIKIKA >
+Hang here	Kaa hapa
+Have Ollama? Open it, then press Refresh.	Una Ollama? Ifungue, kisha bonyeza Onyesha upya.
+Head pats	Kupapasa kichwa
+Hearing	Kusikia
+Hearing engine	Injini ya kusikia
+Hearing fix	Marekebisho ya kusikia
+Hearing status	Hali ya kusikia
+Help	Msaada
+Help page	Ukurasa wa msaada
+Her colors	Rangi zake
+Her folder	Folda yake
+Her memories	Kumbukumbu zake
+Her own colors are back.	Rangi zake mwenyewe zimerudi.
+Her own notes (no vault)	Maelezo yake mwenyewe (hakuna hazina)
+Her perch frames per second	Fremu zake kwa sekunde kwenye kiti
+Her personality	Utu wake
+Her size	Ukubwa wake
+Her speaker	Spika yake
+Her speaker is hidden or outside VOICE	Spika yake imefichwa au iko nje ya SAUTI
+Her speaker overlaps the mic or hearing row	Spika yake inaingiliana na safu ya maikrofoni au kusikia
+Her speaker:	Spika yake:
+Her speaker: Default	Spika yake: Chaguo-msingi
+Her voice in your mic	Sauti yake kwenye maikrofoni yako
+Her voice in your mic: loudness	Sauti yake kwenye maikrofoni yako: sauti kubwa
+Her voice itself. Its pitch is Settings > VOICE > Pitch, and they move together.	Sauti yake yenyewe. Mwinuko wake ni Mipangilio > SAUTI > Mwinuko, na vinasogea pamoja.
+Her voice joins your mic only in call mode.	Sauti yake hujiunga na maikrofoni yako katika hali ya simu pekee.
+Her voice volume	Kiwango cha sauti yake
+Her voice's pitch	Mwinuko wa sauti yake
+Her voice's pitch, the same as Settings > VOICE > Pitch	Mwinuko wa sauti yake, sawa na Mipangilio > SAUTI > Mwinuko
+Her voice's speed	Kasi ya sauti yake
+Her voice, and two copies of it mixed in under her, each with its own pitch and delay.	Sauti yake, na nakala mbili zake zikichanganywa chini yake, kila moja ikiwa na mwinuko na kuchelewa kwake.
+Her voices · free	Sauti zake · bure
+Hey, choom. I'm Capri. I need a brain before I can talk back. Pick one.	Habari, choom. Mimi ni Capri. Nahitaji ubongo kabla sijaweza kujibu. Chagua moja.
+Hide / Show Capri	Ficha / Onyesha Capri
+Hide / Show key	Kitufe cha kuficha / kuonyesha
+Hide Capri	Ficha Capri
+Hide for now	Ficha kwa sasa
+Hide her	Mficha
+Hide in full screen	Ficha kwenye skrini nzima
+Hide this	Ficha hii
+Hide, keep player	Mficha, weka kicheza
+Hide/show:	Ficha/onyesha:
+Hide/show: Ctrl + Alt + H	Ficha/onyesha: Ctrl + Alt + H
+Hologram	Hologramu
+Hop off	Shuka
+How long a still PC takes to send her to sleep; five minutes still reads as you being away	Muda ambao Kompyuta tulivu huchukua kumtuma alale; dakika tano bado zinaonyesha kuwa umeondoka
+How long a stroke over her a head pat needs	Muda ambao mwendo wa kupita juu yake unahitaji kupapasa kichwa
+How long her replies stay up	Majibu yake hukaa kwa muda gani
+How long you are away before she scrolls a browser or reader	Muda ambao umeondoka kabla hajasogeza kivinjari au msomaji
+How much her voice glitches	Sauti yake inavyoharibika kwa kiasi gani
+How much of the chat she keeps	Kiasi cha mazungumzo anayohifadhi
+How much she wanders	Anazurura kwa kiasi gani
+How often she pops in to say hi	Mara ngapi huingia kusalimia
+How robotic her voice sounds	Sauti yake inavyosikika kama roboti
+How to	Jinsi ya
+Huge	Kubwa sana
+I can hear you.	Nakusikia.
+I glance at your screen and comment. Costs a little on a paid brain.	Natazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
+I keep listening. Say my name, then just talk.	Naendelea kusikiliza. Sema jina langu, kisha zungumza tu.
+I speak	Ninazungumza
+I talk about your game as you play. Costs a little on a paid brain.	Nazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.
+I type my replies and stay quiet.	Naandika majibu yangu na kubaki kimya.
+I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Sitajibu, na hakuna kinachotumwa popote. Bado nitakaa nawe, nitacheza kwa muziki wako na kufanya mambo ya haraka unayoomba, kama sauti.
+I'll talk in	Nitazungumza katika
+IN DISCORD >	KWENYE DISCORD >
+INSTALLED >	IMESAKINISHWA >
+Import a Capri mod	Ingiza moduli ya Capri
+Import mod	Ingiza moduli
+In full screen	Kwenye skrini nzima
+In games	Kwenye michezo
+Input	Ingizo
+Input, Output or How to overlaps a row	Ingizo, Pato au Jinsi ya kuingiliana na safu
+Input:	Ingizo:
+Input: default	Ingizo: chaguo-msingi
+Install	Sakinisha
+Install mod	Sakinisha moduli
+Installed.	Imesakinishwa.
+It may ask for a phone number. I opened the page in your browser.	Inaweza kuomba nambari ya simu. Nimefungua ukurasa kwenye kivinjari chako.
+It still does its own job in other apps too.	Bado hufanya kazi yake katika programu zingine pia.
+It won't type in other apps while she runs.	Haitaandika katika programu zingine huku anaendesha.
+JUST ME >	NI MIMI PEKEE >
+Jealous of other AIs	Ana wivu na AI nyingine
+Join the Discord	Jiunge na Discord
+KB.	KB.
+KEYS	VITUFE
+KEYS >	VITUFE >
+Keep PC awake for jobs	Weka Kompyuta macho kwa kazi
+Keep player	Weka kicheza
+Keeps the last two minutes of your game in memory. Say clip that to save it.	Huhifadhi dakika mbili za mwisho za mchezo wako kwenye kumbukumbu. Sema rekodi hiyo kuihifadhi.
+Key	Ufunguo
+Key cleared: a model file needs none.	Ufunguo umefutwa: faili la modeli haliuhitaji.
+Key cleared: paste the key for	Ufunguo umefutwa: bandika ufunguo wa
+Key forgotten.	Ufunguo umesahauliwa.
+Key. It goes only to this server, as a Bearer key	Ufunguo. Unaenda kwa seva hii pekee, kama ufunguo wa Bearer
+Kokoro only, like es	Kokoro pekee, kama es
+LAST THING >	JAMBO LA MWISHO >
+LISTENING >	INASIKILIZA >
+Language	Lugha
+Large	Kubwa
+Last thing. These cost a little or use your mic, so they're your pick.	Jambo la mwisho. Haya yanagharimu kidogo au yanatumia maikrofoni yako, kwa hiyo ni uchaguzi wako.
+Last thing. These cost a little or use your mic, so they're your pick. Then I want to know what to call you.	Jambo la mwisho. Haya yanagharimu kidogo au yanatumia maikrofoni yako, kwa hiyo ni uchaguzi wako. Kisha ningependa kujua nikuite nini.
+Layers	Tabaka
+Learn more	Jifunze zaidi
+Leaving Settings threw its picture away straight away.	Kuondoka kwenye Mipangilio kulitupa picha yake mara moja.
+Legacy stand	Stendi ya zamani
+Lie down	Lala chini
+Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on	Mistari ya mazungumzo ya Kompyuta iliyohifadhiwa kwenye kumbukumbu wakati wa kutazama pamoja. Nusu ya zamani inakuwa dokezo Kumbuka anachokiona inapowashwa
+Listen for Capri	Sikiliza Capri
+Live reactions	Miitikio ya moja kwa moja
+Local server address	Anwani ya seva ya ndani
+Long	Ndefu
+Longest wait (minutes)	Muda mrefu zaidi wa kusubiri (dakika)
+Looking at this PC...	Ninatazama Kompyuta hii...
+Looking for Ollama. Open it if it isn't running.	Natafuta Ollama. Ifungue ikiwa haifanyi kazi.
+Looking for a brain...	Natafuta ubongo...
+Looking in the mods directory for updates...	Natafuta masasisho kwenye folda ya moduli...
+Looking in the mods directory...	Natafuta kwenye folda ya moduli...
+Looking...	Natafuta...
+MAIN >	KUU >
+MAINFRAME	MAINFRAME
+MAX INTELLIGENCE	MAX INTELLIGENCE
+MEDIUM INTELLIGENCE	MEDIUM INTELLIGENCE
+MEMORY VAULT >	HAZINA YA KUMBUKUMBU >
+MODS	MODULI
+MODS >	MODULI >
+MODS DIRECTORY >	FOLDA YA MODULI >
+MODS INSTALLED COLORS	RANGI ZA MODULI ZILIZOSAKINISHWA
+MOVES >	MIENDO >
+MY BRAIN	UBONGO WANGU
+MY FREE VOICE	SAUTI YANGU YA BURE
+MY PLAN OR KEY	MPANGO WANGU AU UFUNGUO
+MY PLAN OR KEY >	MPANGO WANGU AU UFUNGUO >
+Made your Fish Audio voice. Press Test to hear it.	Nimetengeneza sauti yako ya Fish Audio. Bonyeza Jaribu uisikie.
+Mainframe colours	Rangi za Mainframe
+Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes	Rangi za Mainframe. Night City ni nyekundu na samawati-kijani; Nyeusi, Nyeupe na Kijivu hubadilisha Mainframe, menyu zake, kisanduku cha Kuandika na maelezo yake
+Mainframe frames	Fremu za Mainframe
+Mainframe key	Kitufe cha Mainframe
+Mainframe size	Ukubwa wa Mainframe
+Mainframe size. Auto makes it bigger when Virtual Super Resolution or DSR shrinks a big desktop onto a smaller screen	Ukubwa wa Mainframe. Otomatiki huufanya mkubwa zaidi Virtual Super Resolution au DSR inapopunguza eneo-kazi kubwa kuwa skrini ndogo
+Mainframe:	Mainframe:
+Mainframe: Ctrl + Alt + M	Mainframe: Ctrl + Alt + M
+Mainframe: Ctrl + Alt + O	Mainframe: Ctrl + Alt + O
+Mainframe: Down	Mainframe: Chini
+Mainframe: Enter	Mainframe: Enter
+Making your Fish Audio voice...	Natengeneza sauti yako ya Fish Audio...
+Max reply	Jibu la juu zaidi
+Maximum clip resolution, keeping the game's shape without upscaling	Azimio la juu zaidi la klipu, likidumisha umbo la mchezo bila kuongeza ukubwa
+Medium	Wastani
+Memory	Kumbukumbu
+Memory size	Ukubwa wa kumbukumbu
+Memory size in tokens for Ollama and her built-in brain. Auto grows when an ask needs more	Ukubwa wa kumbukumbu kwa tokeni za Ollama na ubongo wake wa ndani. Otomatiki huongezeka ombi linapohitaji zaidi
+Mg	Mg
+Mic level:	Kiwango cha maikrofoni:
+Mic test finished. Sound is reaching Capri.	Jaribio la maikrofoni limekamilika. Sauti inafika kwa Capri.
+Mic:	Maikrofoni:
+Mic: default	Maikrofoni: chaguo-msingi
+Microphone	Maikrofoni
+Mini player	Kicheza kidogo
+Mini player over full screen	Kicheza kidogo juu ya skrini nzima
+Mini-games	Michezo midogo
+Minimising the Mainframe left it sliding.	Kupunguza Mainframe kulimfanya ateleze.
+Minimize	Punguza
+Mod filter	Kichujio cha moduli
+Mod options	Chaguo za moduli
+Mod pages	Kurasa za moduli
+Mod rules	Kanuni za moduli
+Mod sort	Kupanga moduli
+Mod switch	Kubadilisha moduli
+Model	Modeli
+Model folder	Folda ya modeli
+Model name, optional	Jina la modeli, hiari
+Mods	Moduli
+Mods directory	Saraka ya moduli
+Mods folder	Folda ya moduli
+Most NVIDIA models can't see your screen.	Modeli nyingi za NVIDIA haziwezi kuona skrini yako.
+Mouse wheel notches got a flick's long ease:	Notchi za gurudumu la kipanya zilipata mwendo mrefu wa kupiga kwa haraka:
+Move	Sogeza
+Move key to MAX INTELLIGENCE	Sogeza kitufe hadi MAX INTELLIGENCE
+Move to MAX	Sogeza hadi MAX
+Music	Muziki
+Music app	Programu ya muziki
+Music app: where she plays music when you don't name an app	Programu ya muziki: anapocheza muziki usipotaja programu
+Mute	Nyamazisha
+Mute her	Nyamazisha yeye
+Mute mic key	Kitufe cha kunyamazisha maikrofoni
+Mute mic:	Nyamazisha maikrofoni:
+Mute mic: Ctrl + Alt + N	Nyamazisha maikrofoni: Ctrl + Alt + N
+My brain	Ubongo wangu
+My brain is coming down. I'll say hi the second it's in, and you can talk to me then.	Ubongo wangu unashuka. Nitakusalimu mara tu utakapoingia, na unaweza kuzungumza nami hapo.
+My brain's on its way. While it comes down, let's sort out how I sound.	Ubongo wangu uko njiani. Wakati unashuka, hebu tupange jinsi ninavyosikika.
+My provider	Mtoaji wangu
+NO AI	HAKUNA AI
+NO PHONES CONNECTED	HAKUNA SIMU ZILIZOUNGANISHWA
+NO PREVIEW	HAKUNA ONYESHO KWANZA
+NORMAL	KAWAIDA
+NVIDIA	NVIDIA
+NVIDIA / Google AI Studio / OpenRouter	NVIDIA / Google AI Studio / OpenRouter
+NVIDIA · free · often slow at busy times	NVIDIA · bure · mara nyingi polepole nyakati za shughuli nyingi
+NVIDIA's free API is often slow, especially at busy times.	API ya bure ya NVIDIA mara nyingi ni polepole, hasa nyakati za shughuli nyingi.
+NVIDIA, Gemini, OpenRouter	NVIDIA, Gemini, OpenRouter
+NVIDIA, Google AI Studio (Gemini) or OpenRouter API key	Ufunguo wa API wa NVIDIA, Google AI Studio (Gemini) au OpenRouter
+Names:	Majina:
+Needs a key	Inahitaji ufunguo
+Never	Kamwe
+New code	Msimbo mpya
+New voice from a clip...	Sauti mpya kutoka klipu...
+Next	Ijayo
+Night City	Night City
+No AI	Hakuna AI
+No AI · no brain at all	Hakuna AI · hakuna ubongo kabisa
+No brain runs, and nothing is sent anywhere.	Hakuna ubongo unaoendeshwa, na hakuna kinachotumwa popote.
+No brain yet	Bado hakuna ubongo
+No code open	Hakuna msimbo uliofunguliwa
+No limit	Bila kikomo
+No mic found	Maikrofoni haijapatikana
+No mods in the directory yet.	Bado hakuna moduli kwenye saraka.
+No mods match that.	Hakuna moduli zinazolingana na hilo.
+No mods match.	Hakuna moduli zinazolingana.
+No phones yet	Bado hakuna simu
+No virtual mic yet. Pick Output, then Get VB-CABLE (free).	Bado hakuna maikrofoni pepe. Chagua Pato, kisha Pata VB-CABLE (bure).
+None yet: pick to get VB-CABLE (free)	Bado hakuna: chagua kupata VB-CABLE (bure)
+Normal	Kawaida
+Not a relay host	Si mwenyeji wa relay
+Not imported. Nothing ran.	Haijaingizwa. Hakuna kilichoendeshwa.
+Not updated. The old one is still in.	Haijasasishwa. Ile ya zamani bado imo.
+Nothing needed updating.	Hakuna kilichohitaji kusasishwa.
+Nothing to download, nothing sent anywhere. I won't talk back. Add a brain any time in the Mainframe.	Hakuna cha kupakua, hakuna kinachotumwa popote. Sitajibu. Ongeza ubongo wakati wowote kwenye Mainframe.
+Nothing to show from the mods directory.	Hakuna cha kuonyesha kutoka saraka ya moduli.
+Nothing? Windows Settings > Privacy & security > Microphone.	Hakuna? Mipangilio ya Windows > Faragha na usalama > Maikrofoni.
+Nous Portal keys aren't supported yet.	Funguo za Nous Portal bado hazitumiki.
+OBS	OBS
+OFF	IMEZIMWA
+OLLAMA	OLLAMA
+ON	IMEWASHWA
+ON THIS PC	KWENYE KOMPYUTA HII
+OR A KEY	AU UFUNGUO
+Obsidian memory vault	Hazina ya maelezo ya Obsidian
+Off	Zima
+Off. Turn on Her voice in your mic above.	Imezimwa. Washa Sauti yake kwenye maikrofoni yako hapo juu.
+Off: she sounds as she always has. On: every voice she has, ElevenLabs too.	Imezimwa: anasikika kama kawaida. Imewashwa: kila sauti aliyonayo, ikiwemo ElevenLabs.
+Often	Mara nyingi
+On	Washa
+On / Off	Washa / Zima
+On: your mic and her voice are going in.	Imewashwa: maikrofoni yako na sauti yake zinaingia.
+One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.	Kitu kimoja cha JSON, kinachoongezwa kwenye kila ombi ambalo ubongo huu hutuma. Kinabadilisha thamani ya Capri kwa jina lolote linalofanana, na hakikaguliwi dhidi ya modeli.
+Online speech recognition	Utambuzi wa usemi mtandaoni
+Open Capri Mainframe	Fungua Capri Mainframe
+Open Ollama, I'll find it	Fungua Ollama, nitaipata
+Open clips folder	Fungua folda ya klipu
+Open her memories	Fungua kumbukumbu zake
+Open her notes	Fungua maelezo yake
+Open mods folder	Fungua folda ya moduli
+Open the page again	Fungua ukurasa tena
+OpenAI, Claude, DeepSeek, Google, NVIDIA or OpenRouter.	OpenAI, Claude, DeepSeek, Google, NVIDIA au OpenRouter.
+OpenAI-compatible server or provider.	Seva au mtoaji anayeendana na OpenAI.
+OpenRouter · free models only	OpenRouter · modeli za bure pekee
+Optional	Hiari
+Optional. Blank means no key.	Hiari. Tupu inamaanisha hakuna ufunguo.
+Options	Chaguo
+Out of the box a little higher, just behind her.	Kawaida juu kidogo, nyuma yake.
+Out of the box lower, just behind her.	Kawaida chini zaidi, nyuma yake.
+Output	Pato
+Output:	Pato:
+Output: none	Pato: hakuna
+PHONE CONNECTED	SIMU IMEUNGANISHWA
+PHONES >	SIMU >
+PHONES CONNECTED	SIMU ZIMEUNGANISHWA
+PREBUILT LOCAL	MAANDALIZI YA NDANI
+PUBLISH MOD >	CHAPISHA MODULI >
+Pair a phone	Oanisha simu
+Paste	Bandika
+Paste API key	Bandika ufunguo wa API
+Paste a brain API key	Bandika ufunguo wa API wa ubongo
+Paste reads your clipboard once, when you press it.	Bandika husoma ubao wako wa kunakili mara moja, unapoubonyeza.
+Paste your key here	Bandika ufunguo wako hapa
+Pat stroke	Mwendo wa kupapasa
+Perch	Kiti
+Perch over {0} fps uses more CPU	Kiti juu ya {0} fps hutumia CPU zaidi
+Pick Output to get it.	Chagua Pato ili kuipata.
+Pick a brain so I can talk back. You can change it any time.	Chagua ubongo ili nipate kujibu. Unaweza kubadilisha wakati wowote.
+Pick a clip of a voice you have the rights and consent to use	Chagua klipu ya sauti ambayo una haki na ridhaa ya kuitumia
+Pick a free model. I opened the page in your browser.	Chagua modeli ya bure. Nimefungua ukurasa kwenye kivinjari chako.
+Pick a new clip of you...	Chagua klipu mpya yako...
+Pick a voice model...	Chagua modeli ya sauti...
+Pick one. Only one brain runs at a time.	Chagua moja. Ubongo mmoja tu unaendeshwa kwa wakati mmoja.
+Pick the note her memories go in	Chagua dokezo ambapo kumbukumbu zake zitaenda
+Pick {0} to {1} seconds of a voice you have the rights and consent to use	Chagua sekunde {0} hadi {1} za sauti ambayo una haki na ridhaa ya kuitumia
+Pick {0} to {1} seconds of you talking, or of a voice you have the rights and consent to use	Chagua sekunde {0} hadi {1} za wewe ukizungumza, au za sauti ambayo una haki na ridhaa ya kuitumia
+Pitch	Mwinuko
+Play	Cheza
+Play...	Cheza...
+Player only	Kicheza tu
+Pocket TTS models copy this clip's voice. Press Test to hear it.	Modeli za Pocket TTS hunakili sauti ya klipu hii. Bonyeza Jaribu uisikie.
+Pop-in times	Nyakati za kuingia
+Pop-ins	Kuingia
+Power saver	Kiokoa nguvu
+Power saver: how lightly she runs in games, or always	Kiokoa nguvu: anavyoendesha kwa upole kwenye michezo, au kila wakati
+Preset	Mpangilio uliowekwa
+Press Create API key	Bonyeza Unda ufunguo wa API
+Press Create Key	Bonyeza Unda Ufunguo
+Press Generate API Key	Bonyeza Tengeneza Ufunguo wa API
+Press Test and say something, so I know I can hear you.	Bonyeza Jaribu na useme kitu, ili nijue nakusikia.
+Press a key, alone or with Ctrl, Alt, Shift or Win.	Bonyeza kitufe, peke yake au na Ctrl, Alt, Shift au Win.
+Press new keys, then Confirm	Bonyeza funguo mpya, kisha Thibitisha
+Provider	Mtoaji
+Provider API key, optional	Ufunguo wa API wa mtoaji, hiari
+Provider base URL	URL ya msingi ya mtoaji
+Provider forgotten.	Mtoaji amesahauliwa.
+Provider overlaps the brain name or note	Mtoaji anaingiliana na jina la ubongo au dokezo
+Publish	Chapisha
+Publish mod	Chapisha moduli
+Push to talk is off.	Kusema kwa kubonyeza kumezimwa.
+Push to talk key	Kitufe cha kusema kwa kubonyeza
+Push to talk:	Kusema kwa kubonyeza:
+Push to talk: not set	Kusema kwa kubonyeza: hakijawekwa
+QR CODE >	MSIMBO WA QR >
+QR hidden while streaming	QR imefichwa wakati wa kutiririsha
+Quick	Haraka
+Quiet key	Kitufe cha kimya
+Quiet:	Kimya:
+Quiet: Ctrl + Alt + P	Kimya: Ctrl + Alt + P
+Quit Capri	Funga Capri
+RELAY >	RELAY >
+REMOTE >	MBALI >
+RUNS CODE.	INAENDESHA MSIMBO.
+Rarely	Mara chache
+Rate mod	Kadiria moduli
+Reading its README...	Inasoma README yake...
+Refresh	Onyesha upya
+Reinstall	Sakinisha upya
+Reload	Pakia upya
+Reloaded.	Imepakiwa upya.
+Remember our chats	Kumbuka mazungumzo yetu
+Remember what she sees	Kumbuka anachokiona
+Remote	Mbali
+Remote off	Mbali imezimwa
+Remote on	Mbali imewashwa
+Remove	Ondoa
+Remove all phones	Ondoa simu zote
+Replies	Majibu
+Reply length	Urefu wa jibu
+Report a problem	Ripoti tatizo
+Reset colors	Weka upya rangi
+Reset to her default	Weka upya kwa chaguo-msingi lake
+Resolution	Azimio
+Restart to update	Anzisha upya ili usasishe
+Restless	Asiyetulia
+Revoke	Batilisha
+Revoke also removes the phones its links added	Kubatilisha pia kunaondoa simu ambazo viungo vyake viliongeza
+Ride cursor	Panda kiashiria
+Ride cursor / Hop off	Panda kiashiria / Shuka
+Right-click me any time for Capri Mainframe. A brain switches on under BRAIN.	Bonyeza kulia kwangu wakati wowote kwa Capri Mainframe. Ubongo huwashwa chini ya UBONGO.
+Right-click me any time for the Mainframe, Help and the Discord.	Bonyeza kulia kwangu wakati wowote kwa Mainframe, Msaada na Discord.
+Roblox	Roblox
+Roblox or any other app: pick	Roblox au programu nyingine yoyote: chagua
+Robot	Roboti
+Rock, paper, scissors	Jiwe, karatasi, mkasi
+Run this code mod?	Endesha moduli hii ya msimbo?
+Running on this PC	Inaendeshwa kwenye Kompyuta hii
+Running on this PC · :	Inaendeshwa kwenye Kompyuta hii · :
+Runs Claude Code or Codex on this PC, signed in.	Huendesha Claude Code au Codex kwenye Kompyuta hii, ukiwa umeingia.
+Runs on your PC. No key, no credits.	Huendeshwa kwenye Kompyuta yako. Hakuna ufunguo, hakuna mikopo.
+SCAN WITH YOUR PHONE · EXPIRES	CHANGANUA NA SIMU YAKO · INAISHA MUDA
+SECURITY >	USALAMA >
+SKILL.	UJUZI.
+SKIN.	NGOZI.
+SORT BY	PANGA KWA
+SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SAUTI TABIA UBONGO TAZAMA CAPRI DOOMSCROLL HALI YA HEWA KLIPU MICHEZO VITUFE MIENDO SAUTI YAKO
+Same as I speak	Sawa na lugha yangu
+Same as her ears (VOICE > Mic)	Sawa na masikio yake (SAUTI > Maikrofoni)
+Same code on the phone?	Msimbo huo huo kwenye simu?
+Save	Hifadhi
+Save big moments	Hifadhi nyakati kubwa
+Save folder	Folda ya kuhifadhi
+Save your changes, or press Discard + reload.	Hifadhi mabadiliko yako, au bonyeza Tupa + pakia upya.
+Save your changes, or press Discard.	Hifadhi mabadiliko yako, au bonyeza Tupa.
+Saved.	Imehifadhiwa.
+Saved. Ctrl + Alt + O opens her Mainframe.	Imehifadhiwa. Ctrl + Alt + O hufungua Mainframe yake.
+Saving your rating...	Inahifadhi tathmini yako...
+Say her name anywhere to chat	Sema jina lake popote kupiga gumzo
+Screens	Skrini
+Screens is hidden or outside WATCH	Skrini imefichwa au iko nje ya TAZAMA
+Screens overlaps a WATCH row	Skrini inaingiliana na safu ya TAZAMA
+Screens to watch	Skrini za kutazama
+Sealed end to end	Imefungwa kuanzia mwanzo hadi mwisho
+Search by name or author	Tafuta kwa jina au mwandishi
+Search installed mods	Tafuta moduli zilizosakinishwa
+Search mods	Tafuta moduli
+Search name, author or description	Tafuta jina, mwandishi au maelezo
+Security	Usalama
+Security:	Usalama:
+Segoe UI	Segoe UI
+Segoe UI Semibold	Segoe UI Semibold
+Set up	Sanidi
+Set up her brain	Sanidi ubongo wake
+Set up your voice model	Sanidi modeli yako ya sauti
+Setting up her brain	Inasanidi ubongo wake
+Settings	Mipangilio
+Settings / Back	Mipangilio / Rudi
+Settings folds the wrong rows above BRAIN	Mipangilio inakunja safu zisizo sahihi juu ya UBONGO
+Settings had nothing to watch.	Mipangilio haikuwa na cha kutazama.
+Settings lost keyboard focus during the Tab walk	Mipangilio ilipoteza umakini wa kibodi wakati wa kupitia Tab
+Setup guide	Mwongozo wa usanidi
+Setup stopped	Usanidi umesimama
+She answers in	Anajibu kwa
+She can read it when it fits.	Anaweza kuisoma inapofaa.
+She glances at your screen and comments. Costs a little on a paid brain.	Anatazama skrini yako na kutoa maoni. Inagharimu kidogo kwenye ubongo unaolipiwa.
+She keeps listening. Say her name, then just talk.	Anaendelea kusikiliza. Sema jina lake, kisha zungumza.
+She reacts to your game until you close it.	Anaitikia mchezo wako hadi uufunge.
+She reads these controls before each game job.	Anasoma vidhibiti hivi kabla ya kila kazi ya mchezo.
+She talks about your game as you play. Costs a little on a paid brain.	Anazungumza kuhusu mchezo wako unapocheza. Inagharimu kidogo kwenye ubongo unaolipiwa.
+She uses it when she plays	Anaitumia anapocheza
+Short	Fupi
+Shortest wait (minutes)	Muda mfupi zaidi wa kusubiri (dakika)
+Show Capri	Onyesha Capri
+Show QR	Onyesha QR
+Show my mod file	Onyesha faili langu la moduli
+Show on Discord	Onyesha kwenye Discord
+Shum, what time is it	Shum, saa ngapi sasa
+Sign in	Ingia
+Sign in, make a key and copy it. Then press Paste and I'll connect.	Ingia, tengeneza ufunguo na uukili. Kisha bonyeza Bandika nami nitaunganisha.
+Sign in, press Create API key and copy it. Then press Paste and I'll connect.	Ingia, bonyeza Unda ufunguo wa API na uukili. Kisha bonyeza Bandika nami nitaunganisha.
+Silent · text only	Kimya · maandishi pekee
+Simple / Advanced Settings	Mipangilio Rahisi / ya Kina
+Simple Settings	Mipangilio Rahisi
+Simple Settings left a gap under Check in on me	Mipangilio Rahisi iliacha pengo chini ya Niangalie
+Sit here	Kaa hapa
+Sit on windows	Keti juu ya madirisha
+Size	Ukubwa
+Skip	Ruka
+Skip all	Ruka zote
+Skip for now	Ruka kwa sasa
+Sleep	Lala
+Small	Ndogo
+Sometimes	Wakati mwingine
+Sound effects volume	Kiwango cha sauti za athari
+Sound sensitivity	Unyeti wa sauti
+Sounds	Sauti
+Speaker or clip	Spika au klipu
+Speech model	Modeli ya usemi
+Speed	Kasi
+Start with Windows	Anza na Windows
+Start with this!	Anza na hii!
+Starting...	Inaanza...
+Stay	Kaa
+Stay on my model	Bakia na modeli yangu
+Still checking your mics...	Bado naangalia maikrofoni zako...
+Still checking your speakers...	Bado naangalia spika zako...
+Still checking your virtual mics...	Bado naangalia maikrofoni zako pepe...
+Stop	Simamisha
+Stopped using it. Couldn't remove the saved provider.	Imeacha kutumika. Imeshindikana kuondoa mtoaji aliyehifadhiwa.
+Support	Msaada
+Sure?	Una uhakika?
+Sure? moved to a different phone	Una uhakika? imehamishiwa kwenye simu nyingine
+TALK TO ME	ZUNGUMZA NAMI
+TEXT ONLY	MAANDISHI TU
+Tab landed past the first option of	Tab ilitua zaidi ya chaguo la kwanza la
+Tab never reached the quiet key	Tab haikufika kitufe cha kimya kamwe
+Tab reached nothing	Tab haikufika popote
+Tab selected a control without moving keyboard focus	Tab ilichagua kidhibiti bila kusogeza umakini wa kibodi
+Talk	Zungumza
+Talk key	Kitufe cha kuzungumza
+Talk:	Zungumza:
+Talk: Ctrl + Alt + V	Zungumza: Ctrl + Alt + V
+Target capture frame rate; may drop under load or the memory budget	Kasi ya fremu ya kunasa inayolengwa; inaweza kushuka chini ya mzigo au bajeti ya kumbukumbu
+Teases when another AI comes to the front.	Hutania AI nyingine inapokuja mbele.
+Test	Jaribu
+That address doesn't work. Try https://... or http://localhost:{0}.	Anwani hiyo haifanyi kazi. Jaribu https://... au http://localhost:{0}.
+That code expired	Msimbo huo umeisha muda
+That mod is no longer installed. The list is updated.	Moduli hiyo haijasakinishwa tena. Orodha imesasishwa.
+That's a paid key: it goes under MAX INTELLIGENCE.	Huo ni ufunguo wa kulipia: unaenda chini ya MAX INTELLIGENCE.
+The Mainframe stayed composited while sliding.	Mainframe ilibaki imeunganishwa wakati wa kuteleza.
+The Mainframe stayed uncomposited after the slide.	Mainframe ilibaki bila kuunganishwa baada ya kuteleza.
+The controls moved while the picture was sliding.	Vidhibiti vilihama wakati picha ikiteleza.
+The cover stayed visible after the slide ended.	Kifuniko kilibaki kinaonekana baada ya kuteleza kumalizika.
+The frame thread kept running after the page settled.	Uzi wa fremu uliendelea kukimbia baada ya ukurasa kutulia.
+The longest reply she can give, in tokens. Auto keeps to Replies above; {0}K or {1}K lets her run on. Jobs keep more room when they need it	Jibu refu zaidi analoweza kutoa, kwa tokeni. Otomatiki hufuata Majibu hapo juu; {0}K au {1}K humruhusu aendelee. Kazi huhifadhi nafasi zaidi zinapohitaji
+The longest wait must be at least the shortest wait.	Muda mrefu zaidi wa kusubiri lazima uwe angalau muda mfupi zaidi.
+The picture doesn't match the scrolled page:	Picha hailingani na ukurasa uliosogezwa:
+The picture of Settings doesn't match the page:	Picha ya Mipangilio hailingani na ukurasa:
+The picture stayed up after the slide ended.	Picha ilibaki inaonekana baada ya kuteleza kumalizika.
+The picture wasn't showing while it slid.	Picha haikuwa inaonekana wakati ilipoteleza.
+The provider sheet is crowded:	Karatasi ya mtoaji imejaa:
+The voice panel has no screen DPI.	Paneli ya sauti haina DPI ya skrini.
+The voice panel's menus share one font.	Menyu za paneli ya sauti zinashiriki fonti moja.
+There's no key on your clipboard yet. Copy it from the page, then press Paste.	Bado hakuna ufunguo kwenye ubao wako wa kunakili. Nakili kutoka ukurasani, kisha bonyeza Bandika.
+These start off. Each costs a little or uses your mic.	Haya huanza yamezimwa. Kila moja inagharimu kidogo au inatumia maikrofoni yako.
+These start off. Turn on what you want. They're all in Settings too.	Haya huanza yamezimwa. Washa unachotaka. Yote yako pia kwenye Mipangilio.
+They can also call you Big Z, Capricorn or Nova	Wanaweza pia kuniita Big Z, Capricorn au Nova
+They can also call you Nova, Big Z or Capricorn	Wanaweza pia kuniita Nova, Big Z au Capricorn
+Thinking	Nafikiri
+This is my free voice. Press Test, say something, and I'll show you I can hear you.	Hii ndiyo sauti yangu ya bure. Bonyeza Jaribu, sema kitu, nami nitakuonyesha kuwa nakusikia.
+This mod has no description yet.	Moduli hii bado haina maelezo.
+Tic-tac-toe	Tic-tac-toe
+Time between glances	Muda kati ya mitazamo
+Tiny	Dogo sana
+Try again	Jaribu tena
+Turn Remote on first	Washa Mbali kwanza
+Turn off mini player	Zima kicheza kidogo
+Turn push to talk off	Zima kusema kwa kubonyeza
+Turning the wheel the other way kept the page heading the old way, to	Kuzungusha gurudumu upande mwingine kulifanya ukurasa uendelee upande wa zamani, hadi
+Type	Andika
+Type key	Kitufe cha kuandika
+Type to me	Niandikie
+Type:	Andika:
+Type: Ctrl + Alt + T	Andika: Ctrl + Alt + T
+Typing sound	Sauti ya kuandika
+Unpacked. Press Test to hear it.	Imefunguliwa. Bonyeza Jaribu uisikie.
+Unsaved changes.	Mabadiliko ambayo hayajahifadhiwa.
+Up to {0} fps	Hadi {0} fps
+Up to {0}p	Hadi {0}p
+Update	Sasisha
+Update available.	Sasisho linapatikana.
+Update mods	Sasisha moduli
+Updating...	Inasasisha...
+Use	Tumia
+Use her cursor	Tumia kiashiria chake
+Use https:// for a provider elsewhere. A key over plain http isn't safe.	Tumia https:// kwa mtoaji mwingine. Ufunguo juu ya http wazi si salama.
+Use preset	Tumia mpangilio uliowekwa
+Use saved	Tumia uliohifadhiwa
+Use this server	Tumia seva hii
+Using your provider with a key	Kutumia mtoaji wako kwa ufunguo
+Using your server with no key	Kutumia seva yako bila ufunguo
+VIEW MOD >	ANGALIA MODULI >
+VOICE >	SAUTI >
+VOICE IN YOUR MIC >	SAUTI KWENYE MAIKROFONI YAKO >
+VOICE LAYERS >	TABAKA ZA SAUTI >
+Verbosity	Umaridadi wa maneno
+Video bitrate	Kasi ya biti ya video
+View	Tazama
+View mod	Tazama moduli
+Voice	Sauti
+Voice ID	Kitambulisho cha sauti
+Voice from	Sauti kutoka
+Voice layers	Tabaka za sauti
+Voice model	Modeli ya sauti
+Voice model:	Modeli ya sauti:
+Voice name or ID, optional	Jina au kitambulisho cha sauti, hiari
+Voice server address, or a voice model's folder	Anwani ya seva ya sauti, au folda ya modeli ya sauti
+Voice status	Hali ya sauti
+Voice, key and model...	Sauti, ufunguo na modeli...
+Volume	Sauti kubwa
+WAKE ME UP >	NIAMSHE >
+WATCH >	TAZAMA >
+Waiting for the relay	Inasubiri relay
+Wake her up	Mwamshe
+Waking her up	Inamwamsha
+Wander	Zurura
+Wander around	Zurura huku na kule
+Watch my screen	Tazama skrini yangu
+Watch-along memory	Kumbukumbu ya kutazama pamoja
+Weather	Hali ya hewa
+Weather city	Mji wa hali ya hewa
+Welcome back, choom. Let's finish setting me up.	Karibu tena, choom. Hebu tumalize kunisanidi.
+What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.	Anachofanya kwenye Kompyuta yako bila kuuliza. Swichi ikiwa imezimwa huuliza kwanza, na hufanya hivyo ukisema ndiyo.
+What should she call you?	Anapaswa kukuita nini?
+When she types	Anapoandika
+White	Nyeupe
+Windows default	Chaguo-msingi la Windows
+Windows did not give Settings keyboard focus	Windows haikumpa Mipangilio umakini wa kibodi
+Windows did not return keyboard focus to Back	Windows haikurudisha umakini wa kibodi kwa Rudi
+With no picture the wheel still tried to slide.	Bila picha gurudumu bado lilijaribu kuteleza.
+Works best on MAX INTELLIGENCE.	Hufanya kazi vizuri zaidi kwenye MAX INTELLIGENCE.
+YOU	WEWE
+YOU >	WEWE >
+YOU VOICE MOVES KEYS GAMES CLIPS WEATHER DOOMSCROLL CAPRI WATCH BRAIN HABITS SOUNDS	SAUTI YAKO MIENDO VITUFE MICHEZO KLIPU HALI YA HEWA DOOMSCROLL CAPRI TAZAMA UBONGO TABIA SAUTI
+YOUR KEY	UFUNGUO WAKO
+YOUR MIC	MAIKROFONI YAKO
+YOUR PLAN	MPANGO WAKO
+Yokapri what's up	Yokapri vipi
+You can hide this. It keeps going, and the Mainframe shows it too.	Unaweza kuficha hili. Linaendelea, na Mainframe pia linaonyesha.
+Your mic and her voice go into one virtual mic, and	Maikrofoni yako na sauti yake huingia kwenye maikrofoni moja pepe, na
+Your mic is muted. Unmute it to test.	Maikrofoni yako imenyamazishwa. Iondolee kimya ili ujaribu.
+Your mods are up to date.	Moduli zako ziko za kisasa.
+Your name or a nickname	Jina lako au jina la utani
+Your own model	Modeli yako mwenyewe
+Your personality	Utu wako
+Your voice	Sauti yako
+Your voice (HD)	Sauti yako (HD)
+Your voice (HD) · pick a clip of you...	Sauti yako (HD) · chagua klipu yako...
+Your voice model	Modeli yako ya sauti
+as its mic.	kama maikrofoni yake.
+changed. Saved as My Colors, so you can share it.	imebadilika. Imehifadhiwa kama Rangi Zangu, ili uweze kuishiriki.
+choice	chaguo
+clips the input line	hukata mstari wa ingizo
+cue	kidokezo
+doesn't yet.	bado.
+download	pakua
+file.	faili.
+flag	bendera
+fps	fps
+hear	sikia
+hears	anasikia
+hears that.	anasikia hilo.
+hides or shows her.	huficha au kuonyesha yeye.
+hint	kidokezo
+in the Mainframe.	kwenye Mainframe.
+in the mods directory with a pull request.	kwenye saraka ya moduli kwa ombi la kuvuta.
+in the picture wasn't noticed.	kwenye picha hakukuonekana.
+is already her push-to-talk key.	tayari ni kitufe chake cha kusema kwa kubonyeza.
+is off.	imezimwa.
+is on and running.	imewashwa na inaendelea.
+is on, at the bottom, under	imewashwa, chini, chini ya
+is on.	imewashwa.
+is on. She now answers to	imewashwa. Sasa anajibu
+is removed.	imeondolewa.
+is taken	imechukuliwa
+is taken by another app. Try another.	imechukuliwa na programu nyingine. Jaribu nyingine.
+is updated	imesasishwa
+isn't hearing it yet: do {0} and {1}, then join a call.	bado haisikii: fanya {0} na {1}, kisha jiunge na simu.
+it now.	sasa.
+keeps her quiet, and lets her talk again.	inamweka kimya, na inamruhusu kuzungumza tena.
+key	ufunguo
+key.	ufunguo.
+min	dak
+more.	zaidi.
+ms.	ms.
+mutes mic	inanyamazisha maikrofoni
+mutes your mic.	inanyamazisha maikrofoni yako.
+name	jina
+off	zima
+on this PC	kwenye Kompyuta hii
+opens her Mainframe.	inafungua Mainframe yake.
+opens her typing box.	inafungua kisanduku chake cha kuandika.
+phone	simu
+phone pixels	pikseli za simu
+phones	simu
+pixels	pikseli
+pixels)	pikseli)
+star.	nyota.
+stars.	nyota.
+starts voice chat.	inaanzisha gumzo la sauti.
+stays off. Nothing ran.	inabaki zimezimwa. Hakuna kilichoendeshwa.
+still does its own job in other apps too. Confirm to keep it.	bado hufanya kazi yake katika programu zingine pia. Thibitisha kuihifadhi.
+tall	refu
+time	muda
+to talk	kuzungumza
+to talk to her, with a game in front too.	kuzungumza naye, pia ukiwa na mchezo mbele.
+too.	pia.
+turns Gaming Mode on and off.	huwasha na kuzima Hali ya Michezo.
+with Ollama	na Ollama
+won't type in other apps while she runs. Confirm to keep it.	haitaandika katika programu zingine huku anaendesha. Thibitisha kuihifadhi.
+{0}   Echo Cancellation: Off	{0}   Kughairi Mwangwi: Zima
+{0}   If her voice cuts off, turn off noise filtering	{0}   Sauti yake ikikatika, zima kichujio cha kelele
+{0}   Input Device:	{0}   Kifaa cha Ingizo:
+{0}   Join the call and check they hear both of you	{0}   Jiunge na simu na uhakikishe wanakusikia nyote wawili
+{0}   Mic Test > Let's Check: you'll hear you, and her as she talks	{0}   Jaribio la Maikrofoni > Hebu Tuangalie: utajisikia wewe, na yeye anapozungumza
+{0}   Microphone:	{0}   Maikrofoni:
+{0}   Noise Suppression: None. Both can cut her voice after the first line.	{0}   Kuzuia Kelele: Hakuna. Zote mbili zinaweza kukata sauti yake baada ya mstari wa kwanza.
+{0}   Open the call or meeting's audio settings	{0}   Fungua mipangilio ya sauti ya simu au mkutano
+{0}   Output Device: your headphones, like before	{0}   Kifaa cha Pato: vipokea sauti vyako, kama hapo awali
+{0}   Speaker: your headphones, like before	{0}   Spika: vipokea sauti vyako, kama hapo awali
+{0}   Try a mic test in your call app	{0}   Jaribu jaribio la maikrofoni kwenye programu yako ya simu
+{0}   User Settings (the cog by your name) > Voice & Video	{0}   Mipangilio ya Mtumiaji (gia kando ya jina lako) > Sauti na Video
+{0} Mbps	{0} Mbps
+{0} lines	{0} mistari
+{0} min	{0} dak
+{0} ms	{0} ms
+· HD	· HD
+· on this PC	· kwenye Kompyuta hii
+· server	· seva
+Edit as text	Hariri kama maandishi
+What Capri remembers about you. It stays on this computer.	Kile Capri anachokumbuka kukuhusu. Kinabaki kwenye kompyuta hii.
+Tell her something to remember	Mwambie kitu cha kukumbuka
+Search her memory	Tafuta katika kumbukumbu yake
+That day isn't there any more.	Siku hiyo haipo tena.
+Undo	Tendua
+Remember our chats is off, so she isn't keeping new chat memories.	Kukumbuka gumzo letu kumezimwa, kwa hivyo hahifadhi kumbukumbu mpya za gumzo.
+ABOUT YOU	KUKUHUSU
+FROM YOUR CHATS	KUTOKA KWENYE GUMZO ZAKO
+GAMES	MICHEZO
+CHAT LOGS	KUMBUKUMBU ZA GUMZO
+CHAT LOG	KUMBUKUMBU YA GUMZO
+Nothing matches.	Hakuna kinacholingana.
+Nothing yet.	Bado hakuna.
+Reading her notes.	Inasoma maelezo yake.
+Click again to forget game notes	Bofya tena ili usahau maelezo ya michezo
+Forget game notes	Sahau maelezo ya michezo
+Click again to forget everything about me	Bofya tena ili usahau kila kitu kukuhusu
+Forget everything about me	Sahau kila kitu kukuhusu
+Click again to forget	Bofya tena ili usahau
+Forget this day	Sahau siku hii
+Only the start of this day is shown.	Mwanzo wa siku hii pekee unaonyeshwa.
+Nothing in this day.	Hakuna kitu siku hii.
+No chats kept yet.	Bado hakuna gumzo lililohifadhiwa.
+You	Wewe
+{0} line	{0} mstari
+SET UP EMAIL >	SANIDUA BARUA PEPE >
+SET UP EMAIL	SANIDUA BARUA PEPE
+Or type your address	Au andika anwani yako
+Email address	Anwani ya barua pepe
+Open the page	Fungua ukurasa
+App password	Nenosiri la programu
+IMAP server	Seva ya IMAP
+Incoming mail server	Seva ya barua pepe zinazoingia
+SMTP server	Seva ya SMTP
+Outgoing mail server	Seva ya barua pepe zinazotoka
+An app password is a separate password just for Capri. Your normal password stays yours.	Nenosiri la programu ni nenosiri tofauti la Capri pekee. Nenosiri lako la kawaida linabaki lako.
+She keeps it only until she closes.	Analihifadhi hadi afunge tu.
+She checks, searches and reads your mail. She asks before she sends any.	Hukagua, hutafuta na kusoma barua pepe zako. Hanauliza kabla ya kutuma chochote.
+Watch for new mail	Fuatilia barua pepe mpya
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Husema barua pepe inapofika, na onyo ikiwa inaonekana kama utapeli. Hakuna kinachowekwa alama kuwa kimesomwa.
+Deal with phishing on her own	Shughulikia utapeli mwenyewe
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Ni wakati anafuatilia tu. Barua pepe anayo uhakika ni utapeli huenda kwenye taka. Zilizobaki zinasubiri idhini yako.
+Forget account	Sahau akaunti
+Use another email	Tumia barua pepe nyingine
+Which email?	Barua pepe ipi?
+Make an app password	Unda nenosiri la programu
+Paste it	Bandika
+Connecting...	Inaunganisha...
+She can use your email now.	Sasa anaweza kutumia barua pepe yako.
+She's not watching your inbox.	Hafuatilii kikasha chako.
+She's watching your inbox and deals with phishing she's sure of.	Anafuatilia kikasha chako na kushughulikia utapeli anaouhakika.
+She's watching your inbox and tells you when mail lands.	Anafuatilia kikasha chako na kukujulisha barua pepe inapofika.
+She forgot that account and its app password.	Alisahau akaunti hiyo na nenosiri lake la programu.
+She forgot that account. Its app password is gone from this PC.	Alisahau akaunti hiyo. Nenosiri lake la programu limetoweka kutoka kwenye kompyuta hii.

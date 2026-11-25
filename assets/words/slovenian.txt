@@ -30,6 +30,7 @@ Ask Capri for more	Vprašaj Capri za več
 Asking your server...	Vprašam tvoj strežnik...
 Asks before closing only the apps you choose.	Vpraša pred zapiranjem samo aplikacij, ki jih izbereš.
 Auto	Samodejno
+Auto (match what I say)	Samodejno (po mojem sporočilu)
 Automatic: VB-CABLE, else Steam's	Samodejno: VB-CABLE, sicer Steam
 BAD RELAY HOST	SLAB RELEJSKI GOSTITELJ
 BIG Z open notepad	BIG Z odpri beležnico
@@ -268,8 +269,10 @@ Hide / Show Capri	Skrij / prikaži Capri
 Hide / Show key	Tipka skrij / prikaži
 Hide Capri	Skrij Capri
 Hide for now	Za zdaj skrij
+Hide her	Skrij jo
 Hide in full screen	Skrij v celozaslonskem načinu
 Hide this	Skrij to
+Hide, keep player	Skrij, obdrži predvajalnik
 Hide/show:	Skrij/prikaži:
 Hide/show: Ctrl + Alt + H	Skrij/prikaži: Ctrl + Alt + H
 Hologram	Hologram
@@ -288,6 +291,7 @@ Huge	Ogromna
 I can hear you.	Slišim te.
 I glance at your screen and comment. Costs a little on a paid brain.	Pogledam tvoj zaslon in komentiram. Pri plačljivih možganih nekaj stane.
 I keep listening. Say my name, then just talk.	Poslušam naprej. Reci moje ime, potem samo govori.
+I speak	Govorim
 I talk about your game as you play. Costs a little on a paid brain.	Govorim o tvoji igri, medtem ko igraš. Pri plačljivih možganih nekaj stane.
 I type my replies and stay quiet.	Odgovore tipkam in ostanem tiho.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Ne bom odgovarjala in nič se ne pošilja nikamor. Še vedno bom postopala okoli, plesala ob tvoji glasbi in opravila hitre stvari, ki jih prosiš, na primer glasnost.
@@ -296,6 +300,7 @@ IN DISCORD >	NA DISCORDU >
 INSTALLED >	NAMEŠČENO >
 Import a Capri mod	Uvozi Capri mod
 Import mod	Uvozi mod
+In full screen	V celozaslonskem načinu
 In games	V igrah
 Input	Vhod
 Input, Output or How to overlaps a row	Vhod, izhod ali Kako se prekriva z vrstico
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	KLJUČI
 KEYS >	KLJUČI >
 Keep PC awake for jobs	Računalnik naj ostane buden za opravila
+Keep player	Obdrži predvajalnik
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Hrani zadnji dve minuti tvoje igre v spominu. Reci »posnemi to«, da jih shraniš.
 Key	Ključ
 Key cleared: a model file needs none.	Ključ počiščen: datoteka modela ga ne potrebuje.
@@ -439,6 +445,7 @@ No AI · no brain at all	Brez UI · sploh brez možganov
 No brain runs, and nothing is sent anywhere.	Noben možgan ne teče in nič se ne pošilja nikamor.
 No brain yet	Še brez možganov
 No code open	Ni odprte kode
+No limit	Brez omejitve
 No mic found	Mikrofon ni najden
 No mods in the directory yet.	V imeniku še ni modov.
 No mods match that.	Ni modov, ki bi ustrezali temu.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Višina
 Play	Predvajaj
 Play...	Predvajaj...
+Player only	Samo predvajalnik
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Modeli Pocket TTS kopirajo glas tega posnetka. Pritisni Preizkusi, da ga slišiš.
 Pop-in times	Časi pojavljanja
 Pop-ins	Pojavitve
@@ -592,6 +600,7 @@ SKILL.	VEŠČINA.
 SKIN.	KOŽA.
 SORT BY	RAZVRSTI PO
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ZVOKI NAVADE MOŽGANI GLEDAJ CAPRI DOOMSCROLL VREME POSNETKI IGRE KLJUČI GIBI GLAS TI
+Same as I speak	Enako kot govorim
 Same as her ears (VOICE > Mic)	Enako kot njena ušesa (GLAS > Mikrofon)
 Same code on the phone?	Enaka koda na telefonu?
 Save	Shrani
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Nastavitve nimajo česa gledati.
 Settings lost keyboard focus during the Tab walk	Nastavitve so med sprehodom s Tab izgubile fokus tipkovnice
 Setup guide	Vodnik za nastavitev
 Setup stopped	Nastavitev ustavljena
+She answers in	Odgovarja v
 She can read it when it fits.	Lahko ga prebere, ko se prilega.
 She glances at your screen and comments. Costs a little on a paid brain.	Pogleda tvoj zaslon in komentira. Pri plačljivih možganih nekaj stane.
-She keeps listening. Say her name, then just talk until you go quiet.	Posluša naprej. Reci njeno ime, potem samo govori, dokler ne utihneš.
+She keeps listening. Say her name, then just talk.	Posluša naprej. Reci njeno ime, potem samo govori.
 She reacts to your game until you close it.	Odziva se na tvojo igro, dokler je ne zapreš.
 She reads these controls before each game job.	Pred vsakim opravilom v igri prebere te kontrole.
 She talks about your game as you play. Costs a little on a paid brain.	Med igranjem govori o tvoji igri. Pri plačljivih možganih nekaj stane.
@@ -666,6 +676,7 @@ Speed	Hitrost
 Start with Windows	Zaženi z Windows
 Start with this!	Začni s tem!
 Starting...	Zaganjam...
+Stay	Ostani
 Stay on my model	Ostani pri mojem modelu
 Still checking your mics...	Še vedno preverjam tvoje mikrofone...
 Still checking your speakers...	Še vedno preverjam tvoje zvočnike...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	medtem ko teče, ne
 · HD	· HD
 · on this PC	· na tem računalniku
 · server	· strežnik
+Edit as text	Uredi kot besedilo
+What Capri remembers about you. It stays on this computer.	Kaj si Capri zapomni o tebi. Ostane na tem računalniku.
+Tell her something to remember	Povej ji kaj, da si zapomni
+Search her memory	Išči v njenem spominu
+That day isn't there any more.	Tistega dne ni več.
+Undo	Razveljavi
+Remember our chats is off, so she isn't keeping new chat memories.	Spominjanje najinih klepetov je izklopljeno, zato ne shranjuje novih spominov klepetov.
+ABOUT YOU	O TEBI
+FROM YOUR CHATS	IZ TVOJIH KLEPETOV
+GAMES	IGRE
+CHAT LOGS	DNEVNIKI KLEPETOV
+CHAT LOG	DNEVNIK KLEPETA
+Nothing matches.	Ni zadetkov.
+Nothing yet.	Še nič.
+Reading her notes.	Bere njene zapiske.
+Click again to forget game notes	Klikni znova, da pozabiš zapiske iger
+Forget game notes	Pozabi zapiske iger
+Click again to forget everything about me	Klikni znova, da pozabiš vse o sebi
+Forget everything about me	Pozabi vse o sebi
+Click again to forget	Klikni znova, da pozabiš
+Forget this day	Pozabi ta dan
+Only the start of this day is shown.	Prikazan je samo začetek tega dne.
+Nothing in this day.	Nič na ta dan.
+No chats kept yet.	Še ni shranjenih klepetov.
+You	Ti
+{0} line	{0} vrstica
+SET UP EMAIL >	NASTAVI E-POŠTO >
+SET UP EMAIL	NASTAVI E-POŠTO
+Or type your address	Ali vpiši svoj naslov
+Email address	E-poštni naslov
+Open the page	Odpri stran
+App password	Geslo aplikacije
+IMAP server	Strežnik IMAP
+Incoming mail server	Strežnik dohodne pošte
+SMTP server	Strežnik SMTP
+Outgoing mail server	Strežnik odhodne pošte
+An app password is a separate password just for Capri. Your normal password stays yours.	Geslo aplikacije je ločeno geslo samo za Capri. Tvoje običajno geslo ostane tvoje.
+She keeps it only until she closes.	Hrani ga samo do zaprtja.
+She checks, searches and reads your mail. She asks before she sends any.	Preverja, išče in bere tvojo pošto. Vpraša, preden kaj pošlje.
+Watch for new mail	Opazuj novo pošto
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Oglasi se, ko pride pošta, z opozorilom, če je videti kot phishing. Nič ni označeno kot prebrano.
+Deal with phishing on her own	Sama se ukvarjaj s phishingom
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Samo dokler opazuje. Pošta, za katero je prepričana, da je phishing, gre v vsiljeno pošto. Ostalo čaka na tvoj da.
+Forget account	Pozabi račun
+Use another email	Uporabi drug e-poštni naslov
+Which email?	Kateri e-poštni naslov?
+Make an app password	Ustvari geslo aplikacije
+Paste it	Prilepi ga
+Connecting...	Povezovanje...
+She can use your email now.	Zdaj lahko uporablja tvojo e-pošto.
+She's not watching your inbox.	Ne opazuje tvojega predala.
+She's watching your inbox and deals with phishing she's sure of.	Opazuje tvoj predal in se ukvarja s phishingom, za katerega je prepričana.
+She's watching your inbox and tells you when mail lands.	Opazuje tvoj predal in pove, ko pride pošta.
+She forgot that account and its app password.	Pozabila je ta račun in njegovo geslo aplikacije.
+She forgot that account. Its app password is gone from this PC.	Pozabila je ta račun. Njegovo geslo aplikacije je izginilo s tega računalnika.

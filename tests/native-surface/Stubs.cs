@@ -49,5 +49,7 @@ namespace CapriDesktop {
  public static class HyprlandJson { public static int Int(JsonElement r,string k)=>r.GetProperty(k).GetInt32();public static string String(JsonElement r,string k)=>r.GetProperty(k).GetString();public static bool Bool(JsonElement r,string k)=>r.GetProperty(k).GetBoolean();public static long Address(string a)=>Convert.ToInt64(a[2..],16); }
  public static class LinuxProcess { public static string Identity(int p)=>"fixture-process"; }
  public static class NativeX11 { public static void Configure(Avalonia.Controls.Window w,bool p){} }
+ public static class Labwc { public static bool Current; }
+ public static class LabwcOverlay { public static void Register(Avalonia.Controls.Window w){} public static bool Prepare(Avalonia.Controls.Window w)=>false; }
  public static class NativeMotionTrace { public static void Emit(string a,long b,long c,double d,double e){} }
 }

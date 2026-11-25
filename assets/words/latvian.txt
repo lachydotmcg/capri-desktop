@@ -30,6 +30,7 @@ Ask Capri for more	Pajautā Capri vēl
 Asking your server...	Jautāju tavam serverim...
 Asks before closing only the apps you choose.	Pirms aizvēršanas jautā tikai par tavu izvēlēto lietotņu aizvēršanu.
 Auto	Auto
+Auto (match what I say)	Auto (pēc tā, ko saku)
 Automatic: VB-CABLE, else Steam's	Automātiski: VB-CABLE, citādi Steam's
 BAD RELAY HOST	NEPAREIZS RELAY SERVERIS
 BIG Z open notepad	BIG Z atver piezīmju bloku
@@ -268,8 +269,10 @@ Hide / Show Capri	Paslēpt / rādīt Capri
 Hide / Show key	Paslēpt / rādīt taustiņu
 Hide Capri	Paslēpt Capri
 Hide for now	Pagaidām paslēpt
+Hide her	Paslēpt viņu
 Hide in full screen	Paslēpt pilnekrāna režīmā
 Hide this	Paslēpt to
+Hide, keep player	Paslēpt, atstāt atskaņotāju
 Hide/show:	Paslēpt/rādīt:
 Hide/show: Ctrl + Alt + H	Paslēpt/rādīt: Ctrl + Alt + H
 Hologram	Hologramma
@@ -288,6 +291,7 @@ Huge	Milzīgs
 I can hear you.	Es tevi dzirdu.
 I glance at your screen and comment. Costs a little on a paid brain.	Es paskatos uz tavu ekrānu un komentēju. Maksā nedaudz ar maksas smadzenēm.
 I keep listening. Say my name, then just talk.	Es turpinu klausīties. Pasaki manu vārdu un tad vienkārši runā.
+I speak	Es runāju
 I talk about your game as you play. Costs a little on a paid brain.	Es runāju par tavu spēli, kamēr spēlē. Maksā nedaudz ar maksas smadzenēm.
 I type my replies and stay quiet.	Es rakstu savas atbildes un klusēju.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Es neatbildēšu, un nekas nekur netiek sūtīts. Es joprojām pabūšu blakus, dejošu pie tavas mūzikas un darīšu ātros uzdevumus, ko lūdz, piemēram, skaļumu.
@@ -296,6 +300,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALĒTS >
 Import a Capri mod	Importēt Capri modifikāciju
 Import mod	Importēt modifikāciju
+In full screen	Pilnekrāna režīmā
 In games	Spēlēs
 Input	Ievade
 Input, Output or How to overlaps a row	Ievade, Izvade vai Kā pārklājas ar rindu
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	TASTIŅI
 KEYS >	TASTIŅI >
 Keep PC awake for jobs	Turēt PC modinātu darbiem
+Keep player	Atstāt atskaņotāju
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Saglabā pēdējās divas minūtes tavas spēles atmiņā. Pasaki klipot to, lai to saglabātu.
 Key	Atslēga
 Key cleared: a model file needs none.	Atslēga notīrīta: modeļa failam nav vajadzīga.
@@ -439,6 +445,7 @@ No AI · no brain at all	Nav AI · nav nekādu smadzeņu
 No brain runs, and nothing is sent anywhere.	Nekādas smadzenes nedarbojas, un nekas nekur netiek sūtīts.
 No brain yet	Vēl nav smadzeņu
 No code open	Nav atvērta koda
+No limit	Bez ierobežojuma
 No mic found	Mikrofons nav atrasts
 No mods in the directory yet.	Direktorijā vēl nav modifikāciju.
 No mods match that.	Nav modifikāciju, kas atbilstu.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Augstums
 Play	Atskaņot
 Play...	Atskaņot...
+Player only	Tikai atskaņotājs
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS modeļi kopē šī klipa balsi. Nospied Pārbaudīt, lai to noklausītos.
 Pop-in times	Parādīšanās laiki
 Pop-ins	Parādīšanās
@@ -592,6 +600,7 @@ SKILL.	PRASME.
 SKIN.	APVALKS.
 SORT BY	KĀRTOT PĒC
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SKAŅAS PARADUMI SMADZENES SKATĪTIES CAPRI DOOMSCROLL LAIKAPSTĀKĻI KLIPI SPĒLES TASTIŅI KUSTĪBAS BALSS TU
+Same as I speak	Tāpat kā mana valoda
 Same as her ears (VOICE > Mic)	Tāpat kā viņas auss (BALSS > Mikrofons)
 Same code on the phone?	Tāds pats kods tālrunī?
 Save	Saglabāt
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Iestatījumiem nebija, ko skatīties.
 Settings lost keyboard focus during the Tab walk	Iestatījumi zaudēja tastatūras fokusu Tab gājiena laikā
 Setup guide	Iestatīšanas ceļvedis
 Setup stopped	Iestatīšana apturēta
+She answers in	Viņa atbild
 She can read it when it fits.	Viņa to var izlasīt, kad tas der.
 She glances at your screen and comments. Costs a little on a paid brain.	Viņa paskatās uz tavu ekrānu un komentē. Maksā nedaudz ar maksas smadzenēm.
-She keeps listening. Say her name, then just talk until you go quiet.	Viņa turpina klausīties. Pasaki viņas vārdu, tad vienkārši runā, līdz apklusti.
+She keeps listening. Say her name, then just talk.	Viņa turpina klausīties. Pasaki viņas vārdu, tad vienkārši runā.
 She reacts to your game until you close it.	Viņa reaģē uz tavu spēli, līdz tu to aizver.
 She reads these controls before each game job.	Viņa pirms katra spēles uzdevuma izlasa šo vadību.
 She talks about your game as you play. Costs a little on a paid brain.	Viņa runā par tavu spēli, kamēr spēlē. Maksā nedaudz ar maksas smadzenēm.
@@ -666,6 +676,7 @@ Speed	Ātrums
 Start with Windows	Startēt kopā ar Windows
 Start with this!	Sāc ar šo!
 Starting...	Startē...
+Stay	Palikt
 Stay on my model	Palikt pie mana modeļa
 Still checking your mics...	Vēl pārbaudu tavus mikrofonus...
 Still checking your speakers...	Vēl pārbaudu tavus skaļruņus...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	netaipīs citās li
 · HD	· HD
 · on this PC	· šajā PC
 · server	· serveris
+Edit as text	Rediģēt kā tekstu
+What Capri remembers about you. It stays on this computer.	Ko Capri atceras par tevi. Paliek šajā datorā.
+Tell her something to remember	Pasaki viņai kaut ko, ko atcerēties
+Search her memory	Meklēt viņas atmiņā
+That day isn't there any more.	Tā diena vairs nav.
+Undo	Atsaukt
+Remember our chats is off, so she isn't keeping new chat memories.	Atcerēties mūsu sarunas ir izslēgts, tāpēc viņa neglabā jaunas sarunu atmiņas.
+ABOUT YOU	PAR TEVI
+FROM YOUR CHATS	NO TAVĀM SARUNĀM
+GAMES	SPĒLES
+CHAT LOGS	SARUNU ŽURNĀLI
+CHAT LOG	SARUNAS ŽURNĀLS
+Nothing matches.	Nekas neatbilst.
+Nothing yet.	Vēl nekā.
+Reading her notes.	Lasa viņas piezīmes.
+Click again to forget game notes	Noklikšķini vēlreiz, lai aizmirstu spēļu piezīmes
+Forget game notes	Aizmirst spēļu piezīmes
+Click again to forget everything about me	Noklikšķini vēlreiz, lai aizmirstu visu par tevi
+Forget everything about me	Aizmirst visu par tevi
+Click again to forget	Noklikšķini vēlreiz, lai aizmirstu
+Forget this day	Aizmirst šo dienu
+Only the start of this day is shown.	Tiek rādīts tikai šīs dienas sākums.
+Nothing in this day.	Nekā šajā dienā.
+No chats kept yet.	Sarunas vēl nav saglabātas.
+You	Tu
+{0} line	{0} rinda
+SET UP EMAIL >	IESTATĪT E-PASTU >
+SET UP EMAIL	IESTATĪT E-PASTU
+Or type your address	Vai ieraksti savu adresi
+Email address	E-pasta adrese
+Open the page	Atvērt lapu
+App password	Lietotnes parole
+IMAP server	IMAP serveris
+Incoming mail server	Ienākošā pasta serveris
+SMTP server	SMTP serveris
+Outgoing mail server	Izejošā pasta serveris
+An app password is a separate password just for Capri. Your normal password stays yours.	Lietotnes parole ir atsevišķa parole tikai Capri. Tava parastā parole paliek tava.
+She keeps it only until she closes.	Viņa to glabā tikai līdz aizvēršanai.
+She checks, searches and reads your mail. She asks before she sends any.	Viņa pārbauda, meklē un lasa tavu pastu. Viņa jautā pirms kaut ko sūta.
+Watch for new mail	Sekot jaunam pastam
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Viņa pasaka, kad pienāk pasts, ar brīdinājumu, ja tas izskatās pēc pikšķerēšanas. Nekas netiek atzīmēts kā lasīts.
+Deal with phishing on her own	Tikt galā ar pikšķerēšanu pašai
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Tikai kamēr viņa seko. Pasts, par ko viņa ir pārliecināta, ka tas ir pikšķerēšana, aiziet uz surogātpastu. Pārējais gaida tavu jā.
+Forget account	Aizmirst kontu
+Use another email	Izmantot citu e-pastu
+Which email?	Kuru e-pastu?
+Make an app password	Izveidot lietotnes paroli
+Paste it	Ielīmē to
+Connecting...	Savieno...
+She can use your email now.	Viņa tagad var izmantot tavu e-pastu.
+She's not watching your inbox.	Viņa neseko tavai iesūtnei.
+She's watching your inbox and deals with phishing she's sure of.	Viņa seko tavai iesūtnei un tiek galā ar pikšķerēšanu, par ko ir pārliecināta.
+She's watching your inbox and tells you when mail lands.	Viņa seko tavai iesūtnei un pasaka, kad pienāk pasts.
+She forgot that account and its app password.	Viņa aizmirsa to kontu un tā lietotnes paroli.
+She forgot that account. Its app password is gone from this PC.	Viņa aizmirsa to kontu. Tā lietotnes parole ir pazudusi no šī datora.

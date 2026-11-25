@@ -30,6 +30,7 @@ Ask Capri for more	Capri ਤੋਂ ਹੋਰ ਮੰਗੋ
 Asking your server...	ਤੁਹਾਡੇ ਸਰਵਰ ਤੋਂ ਪੁੱਛ ਰਹੀ ਹਾਂ...
 Asks before closing only the apps you choose.	ਸਿਰਫ਼ ਚੁਣੀਆਂ ਐਪਾਂ ਬੰਦ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਪੁੱਛਦੀ ਹੈ।
 Auto	ਆਟੋ
+Auto (match what I say)	ਆਟੋ (ਜੋ ਮੈਂ ਕਹਾਂ)
 Automatic: VB-CABLE, else Steam's	ਆਪਣੇ ਆਪ: VB-CABLE, ਨਹੀਂ ਤਾਂ Steam ਦਾ
 BAD RELAY HOST	BAD RELAY HOST
 BIG Z open notepad	BIG Z notepad ਖੋਲ੍ਹੋ
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri ਲੁਕਾਓ / ਦਿਖਾਓ
 Hide / Show key	ਲੁਕਾਓ / ਦਿਖਾਓ ਕੁੰਜੀ
 Hide Capri	Capri ਲੁਕਾਓ
 Hide for now	ਹੁਣ ਲਈ ਲੁਕਾਓ
+Hide her	ਉਸਨੂੰ ਲੁਕਾਓ
 Hide in full screen	ਫੁੱਲ ਸਕ੍ਰੀਨ ਵਿੱਚ ਲੁਕਾਓ
 Hide this	ਇਹ ਲੁਕਾਓ
+Hide, keep player	ਲੁਕਾਓ, ਪਲੇਅਰ ਰੱਖੋ
 Hide/show:	ਲੁਕਾਓ/ਦਿਖਾਓ:
 Hide/show: Ctrl + Alt + H	ਲੁਕਾਓ/ਦਿਖਾਓ: Ctrl + Alt + H
 Hologram	ਹੋਲੋਗ੍ਰਾਮ
@@ -288,6 +291,7 @@ Huge	ਬਹੁਤ ਵੱਡਾ
 I can hear you.	ਮੈਂ ਤੁਹਾਨੂੰ ਸੁਣ ਸਕਦੀ ਹਾਂ।
 I glance at your screen and comment. Costs a little on a paid brain.	ਮੈਂ ਤੁਹਾਡੀ ਸਕ੍ਰੀਨ ਵੱਲ ਝਾਤ ਮਾਰਦੀ ਹਾਂ ਅਤੇ ਟਿੱਪਣੀ ਕਰਦੀ ਹਾਂ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
 I keep listening. Say my name, then just talk.	ਮੈਂ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹਾਂ। ਮੇਰਾ ਨਾਮ ਲਓ, ਫਿਰ ਬੱਸ ਗੱਲ ਕਰੋ।
+I speak	ਮੇਰੀ ਭਾਸ਼ਾ
 I talk about your game as you play. Costs a little on a paid brain.	ਤੁਸੀਂ ਖੇਡਦੇ ਸਮੇਂ ਮੈਂ ਤੁਹਾਡੀ ਖੇਡ ਬਾਰੇ ਗੱਲ ਕਰਦੀ ਹਾਂ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
 I type my replies and stay quiet.	ਮੈਂ ਆਪਣੇ ਜਵਾਬ ਟਾਈਪ ਕਰਦੀ ਹਾਂ ਅਤੇ ਚੁੱਪ ਰਹਿੰਦੀ ਹਾਂ।
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	ਮੈਂ ਜਵਾਬ ਨਹੀਂ ਦਿਆਂਗੀ, ਅਤੇ ਕਿਤੇ ਵੀ ਕੁਝ ਨਹੀਂ ਭੇਜਿਆ ਜਾਂਦਾ। ਫਿਰ ਵੀ ਮੈਂ ਤੁਹਾਡੇ ਨਾਲ ਰਹਾਂਗੀ, ਤੁਹਾਡੇ ਸੰਗੀਤ 'ਤੇ ਨੱਚਾਂਗੀ ਅਤੇ ਤੁਹਾਡੇ ਮੰਗੇ ਤੇਜ਼ ਕੰਮ ਕਰਾਂਗੀ, ਜਿਵੇਂ ਵੌਲਿਊਮ।
@@ -296,6 +300,7 @@ IN DISCORD >	IN DISCORD >
 INSTALLED >	INSTALLED >
 Import a Capri mod	Capri mod ਇੰਪੋਰਟ ਕਰੋ
 Import mod	Mod ਇੰਪੋਰਟ ਕਰੋ
+In full screen	ਫੁੱਲ ਸਕ੍ਰੀਨ ਵਿੱਚ
 In games	ਖੇਡਾਂ ਵਿੱਚ
 Input	Input
 Input, Output or How to overlaps a row	Input, Output ਜਾਂ How to ਇੱਕ ਕਤਾਰ ਨਾਲ ਓਵਰਲੈਪ ਕਰਦਾ ਹੈ
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	ਕੁੰਜੀਆਂ
 KEYS >	ਕੁੰਜੀਆਂ >
 Keep PC awake for jobs	ਕੰਮਾਂ ਲਈ PC ਜਾਗਦਾ ਰੱਖੋ
+Keep player	ਪਲੇਅਰ ਰੱਖੋ
 Keeps the last two minutes of your game in memory. Say clip that to save it.	ਤੁਹਾਡੀ ਖੇਡ ਦੇ ਆਖਰੀ ਦੋ ਮਿੰਟ ਯਾਦਦਾਸ਼ਤ ਵਿੱਚ ਰੱਖਦਾ ਹੈ। ਇਸਨੂੰ ਸੰਭਾਲਣ ਲਈ clip that ਕਹੋ।
 Key	ਕੁੰਜੀ
 Key cleared: a model file needs none.	ਕੁੰਜੀ ਸਾਫ਼ ਕੀਤੀ: ਮਾਡਲ ਫਾਈਲ ਨੂੰ ਕਿਸੇ ਦੀ ਲੋੜ ਨਹੀਂ।
@@ -439,6 +445,7 @@ No AI · no brain at all	ਕੋਈ AI ਨਹੀਂ · ਬਿਲਕੁਲ ਕੋ�
 No brain runs, and nothing is sent anywhere.	ਕੋਈ ਦਿਮਾਗ ਨਹੀਂ ਚੱਲਦਾ, ਅਤੇ ਕਿਤੇ ਵੀ ਕੁਝ ਨਹੀਂ ਭੇਜਿਆ ਜਾਂਦਾ।
 No brain yet	ਅਜੇ ਕੋਈ ਦਿਮਾਗ ਨਹੀਂ
 No code open	ਕੋਈ ਕੋਡ ਖੁੱਲ੍ਹਾ ਨਹੀਂ
+No limit	ਕੋਈ ਸੀਮਾ ਨਹੀਂ
 No mic found	ਕੋਈ ਮਾਈਕ ਨਹੀਂ ਮਿਲਿਆ
 No mods in the directory yet.	ਫੋਲਡਰ ਵਿੱਚ ਅਜੇ ਕੋਈ mods ਨਹੀਂ।
 No mods match that.	ਇਸ ਨਾਲ ਕੋਈ mod ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ।
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	ਪਿੱਚ
 Play	ਚਲਾਓ
 Play...	ਚਲਾਓ...
+Player only	ਸਿਰਫ਼ ਪਲੇਅਰ
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS ਮਾਡਲ ਇਸ clip ਦੀ ਆਵਾਜ਼ ਦੀ ਨਕਲ ਕਰਦੇ ਹਨ। ਸੁਣਨ ਲਈ Test ਦਬਾਓ।
 Pop-in times	Pop-in ਸਮੇਂ
 Pop-ins	Pop-ins
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ਇਸ ਅਨੁਸਾਰ ਕ੍ਰਮ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ਆਵਾਜ਼ ਆਦਤਾਂ ਦਿਮਾਗ ਵਾਚ Capri DOOMSCROLL ਮੌਸਮ clips ਖੇਡਾਂ ਕੁੰਜੀਆਂ ਮੂਵਜ਼ ਆਵਾਜ਼ ਤੁਸੀਂ
+Same as I speak	ਮੇਰੀ ਭਾਸ਼ਾ ਵਾਂਗ
 Same as her ears (VOICE > Mic)	ਉਸਦੇ ਕੰਨਾਂ ਵਾਂਗ (VOICE > Mic)
 Same code on the phone?	ਫ਼ੋਨ 'ਤੇ ਉਹੀ ਕੋਡ?
 Save	ਸੰਭਾਲੋ
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Settings ਕੋਲ ਦੇਖਣ ਲਈ ਕੁਝ 
 Settings lost keyboard focus during the Tab walk	Tab ਵਾਕ ਦੌਰਾਨ Settings ਨੇ keyboard focus ਗੁਆ ਦਿੱਤਾ
 Setup guide	ਸੈੱਟਅੱਪ ਗਾਈਡ
 Setup stopped	ਸੈੱਟਅੱਪ ਰੁਕ ਗਿਆ
+She answers in	ਉਹ ਜਵਾਬ ਦਿੰਦੀ ਹੈ
 She can read it when it fits.	ਜਦੋਂ ਠੀਕ ਹੋਵੇ ਤਾਂ ਉਹ ਇਸਨੂੰ ਪੜ੍ਹ ਸਕਦੀ ਹੈ।
 She glances at your screen and comments. Costs a little on a paid brain.	ਉਹ ਤੁਹਾਡੀ ਸਕ੍ਰੀਨ ਵੱਲ ਝਾਤ ਮਾਰਦੀ ਹੈ ਅਤੇ ਟਿੱਪਣੀ ਕਰਦੀ ਹੈ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
-She keeps listening. Say her name, then just talk until you go quiet.	ਉਹ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹੈ। ਉਸਦਾ ਨਾਮ ਲਓ, ਫਿਰ ਚੁੱਪ ਹੋਣ ਤੱਕ ਗੱਲ ਕਰੋ।
+She keeps listening. Say her name, then just talk.	ਉਹ ਸੁਣਦੀ ਰਹਿੰਦੀ ਹੈ। ਉਸਦਾ ਨਾਮ ਲਓ, ਫਿਰ ਗੱਲ ਕਰੋ।
 She reacts to your game until you close it.	ਤੁਹਾਡੇ ਗੇਮ ਬੰਦ ਕਰਨ ਤੱਕ ਉਹ ਤੁਹਾਡੀ ਖੇਡ 'ਤੇ ਪ੍ਰਤੀਕਿਰਿਆ ਦਿੰਦੀ ਹੈ।
 She reads these controls before each game job.	ਉਹ ਹਰ ਖੇਡ ਕੰਮ ਤੋਂ ਪਹਿਲਾਂ ਇਹ ਕੰਟਰੋਲ ਪੜ੍ਹਦੀ ਹੈ।
 She talks about your game as you play. Costs a little on a paid brain.	ਉਹ ਤੁਹਾਡੀ ਖੇਡ ਖੇਡਦੇ ਸਮੇਂ ਉਸ ਬਾਰੇ ਗੱਲ ਕਰਦੀ ਹੈ। ਅਦਾਇਗੀ ਦਿਮਾਗ 'ਤੇ ਥੋੜ੍ਹਾ ਖਰਚ ਆਉਂਦਾ ਹੈ।
@@ -666,6 +676,7 @@ Speed	ਸਪੀਡ
 Start with Windows	Windows ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ
 Start with this!	ਇਸ ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ!
 Starting...	ਸ਼ੁਰੂ ਹੋ ਰਿਹਾ ਹੈ...
+Stay	ਰਹੋ
 Stay on my model	ਮੇਰਾ ਮਾਡਲ ਰੱਖੋ
 Still checking your mics...	ਤੁਹਾਡੇ ਮਾਈਕ ਚੈੱਕ ਕਰ ਰਹੀ ਹਾਂ...
 Still checking your speakers...	ਤੁਹਾਡੇ ਸਪੀਕਰ ਚੈੱਕ ਕਰ ਰਹੀ ਹਾਂ...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ਉਹ ਚੱਲਦ
 · HD	· HD
 · on this PC	· ਇਸ PC 'ਤੇ
 · server	· ਸਰਵਰ
+Edit as text	ਟੈਕਸਟ ਵਜੋਂ ਸੋਧੋ
+What Capri remembers about you. It stays on this computer.	Capri ਤੁਹਾਡੇ ਬਾਰੇ ਕੀ ਯਾਦ ਰੱਖਦੀ ਹੈ। ਇਹ ਇਸ ਕੰਪਿਊਟਰ ਉੱਤੇ ਰਹਿੰਦਾ ਹੈ।
+Tell her something to remember	ਉਸਨੂੰ ਯਾਦ ਰੱਖਣ ਲਈ ਕੁਝ ਦੱਸੋ
+Search her memory	ਉਸਦੀ ਯਾਦ ਵਿੱਚ ਖੋਜੋ
+That day isn't there any more.	ਉਹ ਦਿਨ ਹੁਣ ਨਹੀਂ ਹੈ।
+Undo	ਵਾਪਸ ਲਓ
+Remember our chats is off, so she isn't keeping new chat memories.	ਸਾਡੀਆਂ ਚੈਟਾਂ ਯਾਦ ਰੱਖਣਾ ਬੰਦ ਹੈ, ਇਸ ਲਈ ਉਹ ਨਵੀਆਂ ਚੈਟ ਯਾਦਾਂ ਨਹੀਂ ਰੱਖਦੀ।
+ABOUT YOU	ਤੁਹਾਡੇ ਬਾਰੇ
+FROM YOUR CHATS	ਤੁਹਾਡੀਆਂ ਚੈਟਾਂ ਤੋਂ
+GAMES	ਖੇਡਾਂ
+CHAT LOGS	ਚੈਟ ਲਾਗ
+CHAT LOG	ਚੈਟ ਲਾਗ
+Nothing matches.	ਕੁਝ ਨਹੀਂ ਮਿਲਦਾ।
+Nothing yet.	ਹਾਲੇ ਕੁਝ ਨਹੀਂ।
+Reading her notes.	ਉਸਦੇ ਨੋਟ ਪੜ੍ਹੇ ਜਾ ਰਹੇ ਹਨ।
+Click again to forget game notes	ਖੇਡਾਂ ਦੇ ਨੋਟ ਭੁੱਲਣ ਲਈ ਦੁਬਾਰਾ ਕਲਿੱਕ ਕਰੋ
+Forget game notes	ਖੇਡਾਂ ਦੇ ਨੋਟ ਭੁੱਲੋ
+Click again to forget everything about me	ਆਪਣੇ ਬਾਰੇ ਸਭ ਭੁੱਲਣ ਲਈ ਦੁਬਾਰਾ ਕਲਿੱਕ ਕਰੋ
+Forget everything about me	ਆਪਣੇ ਬਾਰੇ ਸਭ ਭੁੱਲੋ
+Click again to forget	ਭੁੱਲਣ ਲਈ ਦੁਬਾਰਾ ਕਲਿੱਕ ਕਰੋ
+Forget this day	ਇਹ ਦਿਨ ਭੁੱਲੋ
+Only the start of this day is shown.	ਇਸ ਦਿਨ ਦੀ ਸਿਰਫ਼ ਸ਼ੁਰੂਆਤ ਦਿਖਾਈ ਜਾਂਦੀ ਹੈ।
+Nothing in this day.	ਇਸ ਦਿਨ ਕੁਝ ਨਹੀਂ।
+No chats kept yet.	ਹਾਲੇ ਕੋਈ ਚੈਟ ਨਹੀਂ ਰੱਖੀ ਗਈ।
+You	ਤੁਸੀਂ
+{0} line	{0} ਲਾਈਨ
+SET UP EMAIL >	ਈਮੇਲ ਸੈੱਟ ਕਰੋ >
+SET UP EMAIL	ਈਮੇਲ ਸੈੱਟ ਕਰੋ
+Or type your address	ਜਾਂ ਆਪਣਾ ਪਤਾ ਲਿਖੋ
+Email address	ਈਮੇਲ ਪਤਾ
+Open the page	ਪੰਨਾ ਖੋਲ੍ਹੋ
+App password	ਐਪ ਪਾਸਵਰਡ
+IMAP server	IMAP ਸਰਵਰ
+Incoming mail server	ਆਉਣ ਵਾਲੇ ਮੇਲ ਦਾ ਸਰਵਰ
+SMTP server	SMTP ਸਰਵਰ
+Outgoing mail server	ਜਾਣ ਵਾਲੇ ਮੇਲ ਦਾ ਸਰਵਰ
+An app password is a separate password just for Capri. Your normal password stays yours.	ਐਪ ਪਾਸਵਰਡ ਸਿਰਫ਼ Capri ਲਈ ਵੱਖਰਾ ਪਾਸਵਰਡ ਹੈ। ਤੁਹਾਡਾ ਆਮ ਪਾਸਵਰਡ ਤੁਹਾਡਾ ਹੀ ਰਹਿੰਦਾ ਹੈ।
+She keeps it only until she closes.	ਉਹ ਇਸਨੂੰ ਸਿਰਫ਼ ਬੰਦ ਹੋਣ ਤੱਕ ਰੱਖਦੀ ਹੈ।
+She checks, searches and reads your mail. She asks before she sends any.	ਉਹ ਤੁਹਾਡਾ ਮੇਲ ਜਾਂਚਦੀ, ਖੋਜਦੀ ਅਤੇ ਪੜ੍ਹਦੀ ਹੈ। ਕੁਝ ਭੇਜਣ ਤੋਂ ਪਹਿਲਾਂ ਪੁੱਛਦੀ ਹੈ।
+Watch for new mail	ਨਵੇਂ ਮੇਲ ਉੱਤੇ ਨਜ਼ਰ ਰੱਖੋ
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	ਮੇਲ ਆਉਣ ’ਤੇ ਉਹ ਬੋਲਦੀ ਹੈ, ਫਿਸ਼ਿੰਗ ਜਿਹਾ ਲੱਗੇ ਤਾਂ ਚੇਤਾਵਨੀ ਦਿੰਦੀ ਹੈ। ਕੁਝ ਵੀ ਪੜ੍ਹਿਆ ਹੋਇਆ ਨਹੀਂ ਚਿੰਨ੍ਹਿਤ ਹੁੰਦਾ।
+Deal with phishing on her own	ਫਿਸ਼ਿੰਗ ਆਪ ਸੰਭਾਲੋ
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	ਸਿਰਫ਼ ਜਦੋਂ ਉਹ ਨਜ਼ਰ ਰੱਖਦੀ ਹੈ। ਜੋ ਮੇਲ ਉਸਨੂੰ ਪੱਕਾ ਫਿਸ਼ਿੰਗ ਲੱਗਦਾ ਹੈ ਉਹ ਸਪੈਮ ਵਿੱਚ ਜਾਂਦਾ ਹੈ। ਬਾਕੀ ਤੁਹਾਡੀ ਹਾਂ ਦੀ ਉਡੀਕ ਕਰਦਾ ਹੈ।
+Forget account	ਖਾਤਾ ਭੁੱਲੋ
+Use another email	ਹੋਰ ਈਮੇਲ ਵਰਤੋ
+Which email?	ਕਿਹੜਾ ਈਮੇਲ?
+Make an app password	ਐਪ ਪਾਸਵਰਡ ਬਣਾਓ
+Paste it	ਇਸਨੂੰ ਪੇਸਟ ਕਰੋ
+Connecting...	ਕਨੈਕਟ ਹੋ ਰਿਹਾ ਹੈ...
+She can use your email now.	ਹੁਣ ਉਹ ਤੁਹਾਡਾ ਈਮੇਲ ਵਰਤ ਸਕਦੀ ਹੈ।
+She's not watching your inbox.	ਉਹ ਤੁਹਾਡੇ ਇਨਬਾਕਸ ਉੱਤੇ ਨਜ਼ਰ ਨਹੀਂ ਰੱਖ ਰਹੀ।
+She's watching your inbox and deals with phishing she's sure of.	ਉਹ ਤੁਹਾਡੇ ਇਨਬਾਕਸ ਉੱਤੇ ਨਜ਼ਰ ਰੱਖ ਰਹੀ ਹੈ ਅਤੇ ਜੋ ਫਿਸ਼ਿੰਗ ਪੱਕੀ ਹੈ ਉਹ ਸੰਭਾਲਦੀ ਹੈ।
+She's watching your inbox and tells you when mail lands.	ਉਹ ਤੁਹਾਡੇ ਇਨਬਾਕਸ ਉੱਤੇ ਨਜ਼ਰ ਰੱਖਦੀ ਹੈ ਅਤੇ ਮੇਲ ਆਉਣ ’ਤੇ ਦੱਸਦੀ ਹੈ।
+She forgot that account and its app password.	ਉਹ ਉਹ ਖਾਤਾ ਅਤੇ ਉਸਦਾ ਐਪ ਪਾਸਵਰਡ ਭੁੱਲ ਗਈ।
+She forgot that account. Its app password is gone from this PC.	ਉਹ ਉਹ ਖਾਤਾ ਭੁੱਲ ਗਈ। ਉਸਦਾ ਐਪ ਪਾਸਵਰਡ ਇਸ ਕੰਪਿਊਟਰ ਤੋਂ ਚਲਾ ਗਿਆ।

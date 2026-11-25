@@ -9,7 +9,9 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.app.NotificationManager;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
 import android.webkit.ConsoleMessage;
@@ -41,10 +43,12 @@ public final class MainActivity extends Activity {
     private volatile boolean ours;
     private volatile boolean arSupported;
     private volatile boolean visible;
+    private static volatile MainActivity current;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        current = this;
         files = new WebFiles(getAssets());
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             WebView.setWebContentsDebuggingEnabled(true);
@@ -72,12 +76,18 @@ public final class MainActivity extends Activity {
         if (web.getUrl() == null) {
             web.loadUrl(startUrl(getIntent()));
         }
+        if (state == null) {
+            handleNotify(getIntent());
+        }
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (handleNotify(intent)) {
+            return;
+        }
         Uri link = intent.getData();
         if (link == null && intent.getStringExtra("url") == null) {
             return;
@@ -97,6 +107,7 @@ public final class MainActivity extends Activity {
         visible = true;
         web.onResume();
         BubbleService.hide(this);
+        ListenService.stop(this);
     }
 
     @Override
@@ -111,7 +122,7 @@ public final class MainActivity extends Activity {
         visible = false;
         if (bubbleWanted() && Settings.canDrawOverlays(this)) {
             BubbleService.show(this);
-        } else {
+        } else if (!Notify.listening(this) || !ListenService.start(this)) {
             web.onPause();
         }
         super.onStop();
@@ -126,6 +137,10 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         BubbleService.hide(this);
+        ListenService.stop(this);
+        if (current == this) {
+            current = null;
+        }
         web.destroy();
         super.onDestroy();
     }
@@ -151,6 +166,61 @@ public final class MainActivity extends Activity {
             grantMedia(pendingMedia);
             pendingMedia = null;
         }
+        if (code == NOTIFY_REQUEST) {
+            web.evaluateJavascript("window.dispatchEvent(new Event('capri-android'))", null);
+        }
+    }
+
+    static void listenStopped() {
+        MainActivity now = current;
+        if (now != null) {
+            now.runOnUiThread(() -> {
+                if (!now.visible && now.web != null) {
+                    now.web.onPause();
+                }
+            });
+        }
+    }
+
+    private boolean handleNotify(Intent intent) {
+        String action = intent == null ? null : intent.getAction();
+        boolean open = Notify.ACTION_OPEN.equals(action);
+        boolean answer = Notify.ACTION_ANSWER.equals(action);
+        if (!open && !answer) {
+            return false;
+        }
+        intent.setAction(null);
+        try {
+            JSONObject payload = new JSONObject();
+            if (answer) {
+                payload.put("job", intent.getStringExtra(Notify.JOB));
+                payload.put("ask_id", intent.getStringExtra(Notify.ASK));
+                payload.put("yes", intent.getBooleanExtra(Notify.YES, false));
+                int nid = intent.getIntExtra(Notify.NID, 0);
+                if (nid != 0) {
+                    getSystemService(NotificationManager.class).cancel(nid);
+                }
+            } else {
+                payload.put("kind", intent.getStringExtra(Notify.KIND));
+                payload.put("job", intent.getStringExtra(Notify.JOB));
+                payload.put("id", intent.getStringExtra(Notify.ID));
+            }
+            deliver(answer ? "CapriAndroidAnswer" : "CapriAndroidOpen", payload.toString(),
+                    SystemClock.uptimeMillis() + 15000);
+        } catch (Exception e) {
+            Log.w(TAG, "Notification tap not passed on: " + e.getClass().getSimpleName());
+        }
+        return true;
+    }
+
+    private void deliver(String function, String payload, long until) {
+        String script = "(function(){var f=window." + function + ";if(typeof f!=='function')return false;f("
+                + payload + ");return true})()";
+        web.evaluateJavascript(script, value -> {
+            if (!"true".equals(value) && SystemClock.uptimeMillis() < until && web != null) {
+                web.postDelayed(() -> deliver(function, payload, until), 500);
+            }
+        });
     }
 
     @Override
@@ -272,7 +342,7 @@ public final class MainActivity extends Activity {
         @Override
         public void onPermissionRequest(PermissionRequest request) {
             runOnUiThread(() -> {
-                if (!WebFiles.ours(request.getOrigin())) {
+                if (!ours || !WebFiles.ourOrigin(request.getOrigin())) {
                     request.deny();
                     return;
                 }
@@ -348,6 +418,31 @@ public final class MainActivity extends Activity {
                 }
             });
             return MainActivity.this.info();
+        }
+
+        @android.webkit.JavascriptInterface
+        public String notifyInfo() {
+            return ours ? Notify.info(MainActivity.this) : "{\"on\":false,\"allowed\":false}";
+        }
+
+        @android.webkit.JavascriptInterface
+        public String notifySet(boolean on) {
+            if (!ours) {
+                return "{\"on\":false,\"allowed\":false}";
+            }
+            Notify.wish(MainActivity.this, on);
+            runOnUiThread(() -> {
+                if (on && Build.VERSION.SDK_INT >= 33
+                        && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFY_REQUEST);
+                }
+            });
+            return Notify.info(MainActivity.this);
+        }
+
+        @android.webkit.JavascriptInterface
+        public boolean notify(String json) {
+            return ours && Notify.show(MainActivity.this, json);
         }
 
         @android.webkit.JavascriptInterface

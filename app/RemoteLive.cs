@@ -41,6 +41,9 @@ namespace CapriDesktop
             call.EarsOn = delegate { return OwnCallEars() != null || Hearing.Available; };
             call.Interrupted = RemoteInterrupted;
             call.Timed = RemoteTimed;
+#if !CROSS
+            call.Seeing(RemoteLooked);
+#endif
             screen.Changed += RemoteLiveChanged;
             call.Changed += RemoteLiveChanged;
             remoteScreen = screen;
@@ -599,13 +602,18 @@ namespace CapriDesktop
                 return RemoteScreen.Numbered(screens, main == null ? null : main.DeviceName);
             }
 
-            internal override List<RemoteMonitor> Monitors() { return List(); }
+            internal override List<RemoteMonitor> Monitors()
+            {
+                List<RemoteMonitor> monitors = List();
+                her.AddHerScreen(monitors);
+                return monitors;
+            }
 
             internal override string Looking() { return her.remoteLooking; }
 
             internal override Point Mouse() { return Cursor.Position; }
 
-            internal override RemoteCapture Capture() { return new RemoteGrab(); }
+            internal override RemoteCapture Capture() { return new HerOrDesktop(her); }
         }
 
         // One monitor through FrameGrab: Desktop Duplication, which shows her and every other window and says when nothing
@@ -656,7 +664,7 @@ namespace CapriDesktop
             }
 
             // FNV-1a over every pixel, to tell a frame that changed from one that didn't.
-            private static unsafe ulong Print(Bitmap frame)
+            internal static unsafe ulong Print(Bitmap frame)
             {
                 BitmapData data = frame.LockBits(new Rectangle(0, 0, frame.Width, frame.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
                 try

@@ -152,6 +152,15 @@ namespace CapriDesktop
             }
         }
 
+        internal string[] ColoursWorn
+        {
+            get
+            {
+                Mod companion = CompanionOn;
+                return companion != null && companion.Pack.Art ? new string[ArtColors.Slots] : ColoursNow;
+            }
+        }
+
         private static void CheckColours(ModColors colours)
         {
             bool any = false;
@@ -167,6 +176,15 @@ namespace CapriDesktop
         private void OnlyColours(string keep, HashSet<string> off)
         {
             foreach (Mod other in All) if (other.File.Colors != null && other.File.Id != keep) off.Add(other.File.Id);
+        }
+
+        internal void UseColours(string[] slots)
+        {
+            bool any = false;
+            if (slots != null) foreach (string colour in slots) any |= colour != null;
+            if (!any) { if (Array.Exists(ColoursNow, colour => colour != null)) ResetColours(); return; }
+            CheckColours(new ModColors { Hair = slots[0], Accent = slots[1], Eyes = slots[2], Edges = slots[3], Body = slots[4] });
+            StringBuilderJson(slots);
         }
 
         internal void SetColour(int slot, string colour)

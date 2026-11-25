@@ -1507,7 +1507,7 @@ namespace CapriDesktop
                 ThreadPool.QueueUserWorkItem(delegate
                 {
                     string said = null;
-                    try { said = capri.brain.Quick(system.Length == 0 ? "You answer briefly and plainly." : system, asked, 600); }
+                    try { said = capri.brain.Quick((system.Length == 0 ? "You answer briefly and plainly." : system) + "\n" + Brain.Safety, asked, 600); }
                     catch (Exception error) { Brain.Log("mod " + id, -1, "Her brain didn't answer: " + error.Message); }
                     if (answered == null) return;
                     capri.Post(delegate

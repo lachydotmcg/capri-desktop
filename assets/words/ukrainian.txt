@@ -30,6 +30,7 @@ Ask Capri for more	Попроси Capri ще
 Asking your server...	Питаю твій сервер...
 Asks before closing only the apps you choose.	Питатиме перед закриттям лише тих програм, які ти вибереш.
 Auto	Авто
+Auto (match what I say)	Авто (за моїм повідомленням)
 Automatic: VB-CABLE, else Steam's	Автоматично: VB-CABLE, інакше Steam
 BAD RELAY HOST	ПОГАНИЙ ХОСТ RELAY
 BIG Z open notepad	BIG Z відкрити notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	Приховати / показати Capri
 Hide / Show key	Клавіша приховати / показати
 Hide Capri	Приховати Capri
 Hide for now	Поки що приховати
+Hide her	Сховати її
 Hide in full screen	Приховати в повноекранному режимі
 Hide this	Приховати це
+Hide, keep player	Сховати, залишити плеєр
 Hide/show:	Приховати/показати:
 Hide/show: Ctrl + Alt + H	Приховати/показати: Ctrl + Alt + H
 Hologram	Голограма
@@ -288,6 +291,7 @@ Huge	Величезна
 I can hear you.	Я тебе чую.
 I glance at your screen and comment. Costs a little on a paid brain.	Я поглядаю на твій екран і коментую. Трохи коштує на платному мозку.
 I keep listening. Say my name, then just talk.	Я продовжую слухати. Назви моє ім'я, а потім просто говори.
+I speak	Я розмовляю
 I talk about your game as you play. Costs a little on a paid brain.	Я розповідаю про твою гру, поки ти граєш. Трохи коштує на платному мозку.
 I type my replies and stay quiet.	Я пишу відповіді й мовчу.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Я не відповідатиму голосом, і нічого нікуди не надсилається. Я все одно буду поруч, танцюватиму під твою музику й виконувати швидкі прохання, як-от гучність.
@@ -296,6 +300,7 @@ IN DISCORD >	У DISCORD >
 INSTALLED >	ВСТАНОВЛЕНО >
 Import a Capri mod	Імпортувати модифікацію Capri
 Import mod	Імпортувати модифікацію
+In full screen	У повноекранному режимі
 In games	В іграх
 Input	Вхід
 Input, Output or How to overlaps a row	Вхід, Вихід або Як перекриває рядок
@@ -314,6 +319,7 @@ KB.	КБ.
 KEYS	КЛАВІШІ
 KEYS >	КЛАВІШІ >
 Keep PC awake for jobs	Не давати ПК заснути для завдань
+Keep player	Залишити плеєр
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Зберігає в пам'яті останні дві хвилини твоєї гри. Скажи «Збережи це», щоб зберегти.
 Key	Ключ
 Key cleared: a model file needs none.	Ключ очищено: файлу моделі він не потрібен.
@@ -439,6 +445,7 @@ No AI · no brain at all	Без AI · без мозку взагалі
 No brain runs, and nothing is sent anywhere.	Жоден мозок не працює, і нічого нікуди не надсилається.
 No brain yet	Мозку ще немає
 No code open	Жодного коду не відкрито
+No limit	Без обмежень
 No mic found	Мікрофон не знайдено
 No mods in the directory yet.	У каталозі ще немає модифікацій.
 No mods match that.	Жодна модифікація не відповідає цьому.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Висота
 Play	Відтворити
 Play...	Відтворити...
+Player only	Лише плеєр
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Моделі Pocket TTS копіюють голос цього кліпа. Натисни «Тест», щоб його почути.
 Pop-in times	Час появи
 Pop-ins	Появи
@@ -592,6 +600,7 @@ SKILL.	ЗДІБНІСТЬ.
 SKIN.	ШКІРА.
 SORT BY	СОРТУВАТИ ЗА
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ЗВУКИ ЗВИЧКИ МОЗОК ДИВИСЬ CAPRI DOOMSCROLL ПОГОДА КЛІПИ ІГРИ КЛАВІШІ РУХИ ГОЛОС ТИ
+Same as I speak	Як я розмовляю
 Same as her ears (VOICE > Mic)	Як її вуха (ГОЛОС > Мікрофон)
 Same code on the phone?	Той самий код на телефоні?
 Save	Зберегти
@@ -627,9 +636,10 @@ Settings had nothing to watch.	У Налаштуваннях нічого бул
 Settings lost keyboard focus during the Tab walk	Налаштування втратили фокус клавіатури під час проходу Tab
 Setup guide	Посібник з налаштування
 Setup stopped	Налаштування зупинено
+She answers in	Вона відповідає
 She can read it when it fits.	Вона може прочитати, коли поміщається.
 She glances at your screen and comments. Costs a little on a paid brain.	Вона поглядає на твій екран і коментує. Трохи коштує на платному мозку.
-She keeps listening. Say her name, then just talk until you go quiet.	Вона продовжує слухати. Назви її ім'я, а потім говори, доки не замовкнеш.
+She keeps listening. Say her name, then just talk.	Вона продовжує слухати. Назви її ім'я, а потім говори.
 She reacts to your game until you close it.	Вона реагує на твою гру, доки ти її не закриєш.
 She reads these controls before each game job.	Вона читає ці елементи керування перед кожним ігровим завданням.
 She talks about your game as you play. Costs a little on a paid brain.	Вона розповідає про твою гру, поки ти граєш. Трохи коштує на платному мозку.
@@ -666,6 +676,7 @@ Speed	Швидкість
 Start with Windows	Запускати разом із Windows
 Start with this!	Почни з цього!
 Starting...	Запускається...
+Stay	Залишитися
 Stay on my model	Залишитися на моїй моделі
 Still checking your mics...	Ще перевіряю твої мікрофони...
 Still checking your speakers...	Ще перевіряю твої динаміки...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	не друкува
 · HD	· HD
 · on this PC	· на цьому ПК
 · server	· сервер
+Edit as text	Редагувати як текст
+What Capri remembers about you. It stays on this computer.	Що Capri пам'ятає про тебе. Залишається на цьому комп'ютері.
+Tell her something to remember	Скажи їй щось, щоб запам'ятати
+Search her memory	Шукати в її пам'яті
+That day isn't there any more.	Того дня вже немає.
+Undo	Скасувати
+Remember our chats is off, so she isn't keeping new chat memories.	Пам'ятати наші чати вимкнено, тому вона не зберігає нових спогадів із чатів.
+ABOUT YOU	ПРО ТЕБЕ
+FROM YOUR CHATS	З ТВОЇХ ЧАТІВ
+GAMES	ІГРИ
+CHAT LOGS	ЖУРНАЛИ ЧАТІВ
+CHAT LOG	ЖУРНАЛ ЧАТУ
+Nothing matches.	Нічого не знайдено.
+Nothing yet.	Поки нічого.
+Reading her notes.	Читає її нотатки.
+Click again to forget game notes	Натисни ще раз, щоб забути нотатки про ігри
+Forget game notes	Забути нотатки про ігри
+Click again to forget everything about me	Натисни ще раз, щоб забути все про тебе
+Forget everything about me	Забути все про тебе
+Click again to forget	Натисни ще раз, щоб забути
+Forget this day	Забути цей день
+Only the start of this day is shown.	Показано лише початок цього дня.
+Nothing in this day.	Нічого в цей день.
+No chats kept yet.	Чати ще не збережено.
+You	Ти
+{0} line	{0} рядок
+SET UP EMAIL >	НАЛАШТУВАТИ ПОШТУ >
+SET UP EMAIL	НАЛАШТУВАТИ ПОШТУ
+Or type your address	Або введи свою адресу
+Email address	Адреса електронної пошти
+Open the page	Відкрити сторінку
+App password	Пароль застосунку
+IMAP server	Сервер IMAP
+Incoming mail server	Сервер вхідної пошти
+SMTP server	Сервер SMTP
+Outgoing mail server	Сервер вихідної пошти
+An app password is a separate password just for Capri. Your normal password stays yours.	Пароль застосунку — це окремий пароль лише для Capri. Твій звичайний пароль залишається твоїм.
+She keeps it only until she closes.	Вона зберігає його лише до закриття.
+She checks, searches and reads your mail. She asks before she sends any.	Вона перевіряє, шукає й читає твою пошту. Питає, перш ніж щось надіслати.
+Watch for new mail	Стежити за новою поштою
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Вона повідомляє, коли надходить пошта, із попередженням, якщо це схоже на фішинг. Нічого не позначається як прочитане.
+Deal with phishing on her own	Самій давати раду фішингу
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Лише поки вона стежить. Пошта, у якій вона певна, що це фішинг, іде до спаму. Решта чекає на твоє так.
+Forget account	Забути акаунт
+Use another email	Використати іншу пошту
+Which email?	Яка пошта?
+Make an app password	Створити пароль застосунку
+Paste it	Встав його
+Connecting...	Підключення...
+She can use your email now.	Тепер вона може користуватися твоєю поштою.
+She's not watching your inbox.	Вона не стежить за твоєю вхідною скринькою.
+She's watching your inbox and deals with phishing she's sure of.	Вона стежить за твоєю скринькою й дає раду фішингу, у якому певна.
+She's watching your inbox and tells you when mail lands.	Вона стежить за твоєю скринькою й каже, коли надходить пошта.
+She forgot that account and its app password.	Вона забула той акаунт і його пароль застосунку.
+She forgot that account. Its app password is gone from this PC.	Вона забула той акаунт. Його пароль застосунку зник із цього комп'ютера.

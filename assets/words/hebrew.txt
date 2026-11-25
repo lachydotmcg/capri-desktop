@@ -30,6 +30,7 @@ Ask Capri for more	בקש מ-Capri עוד
 Asking your server...	שואלת את השרת שלך...
 Asks before closing only the apps you choose.	שואלת לפני סגירה רק של האפליקציות שתבחר.
 Auto	אוטומטי
+Auto (match what I say)	אוטומטי (לפי ההודעה)
 Automatic: VB-CABLE, else Steam's	אוטומטי: VB-CABLE, אחרת של Steam
 BAD RELAY HOST	שרת ממסר שגוי
 BIG Z open notepad	BIG Z פתח notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	הסתר / הצג Capri
 Hide / Show key	מקש הסתר / הצג
 Hide Capri	הסתר את Capri
 Hide for now	הסתר לעכשיו
+Hide her	להסתיר אותה
 Hide in full screen	הסתר במסך מלא
 Hide this	הסתר את זה
+Hide, keep player	להסתיר, להשאיר נגן
 Hide/show:	הסתר/הצג:
 Hide/show: Ctrl + Alt + H	הסתר/הצג: Ctrl + Alt + H
 Hologram	הולוגרמה
@@ -288,6 +291,7 @@ Huge	ענק
 I can hear you.	אני שומעת אותך.
 I glance at your screen and comment. Costs a little on a paid brain.	אני מציצה במסך שלך ומגיבה. עולה קצת במוח בתשלום.
 I keep listening. Say my name, then just talk.	אני ממשיכה להקשיב. אמור את השם שלי ואז פשוט דבר.
+I speak	השפה שלי
 I talk about your game as you play. Costs a little on a paid brain.	אני מדברת על המשחק שלך בזמן שאתה משחק. עולה קצת במוח בתשלום.
 I type my replies and stay quiet.	אני מקלידה את התשובות שלי ושותקת.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	אני לא אענה בחזרה, ושום דבר לא נשלח לשום מקום. אני עדיין אסתובב, ארקוד למוזיקה שלך ואעשה את הדברים המהירים שתבקש, כמו עוצמת הקול.
@@ -296,6 +300,7 @@ IN DISCORD >	ב-DISCORD >
 INSTALLED >	מותקן >
 Import a Capri mod	ייבא מוד של Capri
 Import mod	ייבא מוד
+In full screen	במסך מלא
 In games	במשחקים
 Input	קלט
 Input, Output or How to overlaps a row	קלט, פלט או How to חופפים בשורה
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	מקשים
 KEYS >	מקשים >
 Keep PC awake for jobs	השאר את המחשב ער למשימות
+Keep player	להשאיר נגן
 Keeps the last two minutes of your game in memory. Say clip that to save it.	שומר את שתי הדקות האחרונות של המשחק שלך בזיכרון. אמור clip that כדי לשמור.
 Key	מפתח
 Key cleared: a model file needs none.	מפתח נוקה: קובץ מודל לא צריך אחד.
@@ -439,6 +445,7 @@ No AI · no brain at all	ללא AI · בלי מוח בכלל
 No brain runs, and nothing is sent anywhere.	שום מוח לא רץ, ושום דבר לא נשלח לשום מקום.
 No brain yet	עדיין אין מוח
 No code open	אין קוד פתוח
+No limit	ללא הגבלה
 No mic found	לא נמצא מיקרופון
 No mods in the directory yet.	אין עדיין מודים בתיקייה.
 No mods match that.	אין מודים שתואמים לזה.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	גובה צליל
 Play	נגן
 Play...	נגן...
+Player only	נגן בלבד
 Pocket TTS models copy this clip's voice. Press Test to hear it.	מודלים של Pocket TTS מעתיקים את הקול של הקליפ הזה. לחץ Test כדי לשמוע אותו.
 Pop-in times	זמני pop-in
 Pop-ins	Pop-ins
@@ -592,6 +600,7 @@ SKILL.	כישור.
 SKIN.	עור.
 SORT BY	מיין לפי
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU
+Same as I speak	כמו השפה שלי
 Same as her ears (VOICE > Mic)	כמו האוזניים שלה (VOICE > Mic)
 Same code on the phone?	אותו קוד בטלפון?
 Save	שמור
@@ -627,9 +636,10 @@ Settings had nothing to watch.	להגדרות לא היה מה לצפות.
 Settings lost keyboard focus during the Tab walk	להגדרות אבד מיקוד המקלדת במהלך מעבר Tab
 Setup guide	מדריך הגדרה
 Setup stopped	ההגדרה נעצרה
+She answers in	היא עונה ב
 She can read it when it fits.	היא יכולה לקרוא את זה כשזה מתאים.
 She glances at your screen and comments. Costs a little on a paid brain.	היא מציצה במסך שלך ומגיבה. עולה קצת במוח בתשלום.
-She keeps listening. Say her name, then just talk until you go quiet.	היא ממשיכה להקשיב. אמור את השם שלה, ואז דבר עד שאתה שותק.
+She keeps listening. Say her name, then just talk.	היא ממשיכה להקשיב. אמור את השם שלה, ואז דבר.
 She reacts to your game until you close it.	היא מגיבה למשחק שלך עד שתסגור אותו.
 She reads these controls before each game job.	היא קוראת את הבקרות האלה לפני כל משימת משחק.
 She talks about your game as you play. Costs a little on a paid brain.	היא מדברת על המשחק שלך בזמן שאתה משחק. עולה קצת במוח בתשלום.
@@ -666,6 +676,7 @@ Speed	מהירות
 Start with Windows	התחל עם Windows
 Start with this!	התחל עם זה!
 Starting...	מתחיל...
+Stay	להישאר
 Stay on my model	הישאר במודל שלי
 Still checking your mics...	עדיין בודק את המיקרופונים שלך...
 Still checking your speakers...	עדיין בודק את הרמקולים שלך...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	לא יקליד ב�
 · HD	· HD
 · on this PC	· במחשב הזה
 · server	· שרת
+Edit as text	עריכה כטקסט
+What Capri remembers about you. It stays on this computer.	מה Capri זוכרת עליך. זה נשאר במחשב הזה.
+Tell her something to remember	תגיד לה משהו לזכור
+Search her memory	חפש בזיכרון שלה
+That day isn't there any more.	היום ההוא כבר לא כאן.
+Undo	בטל
+Remember our chats is off, so she isn't keeping new chat memories.	לזכור את השיחות שלנו כבוי, אז היא לא שומרת זכרונות שיחה חדשים.
+ABOUT YOU	עליך
+FROM YOUR CHATS	מהשיחות שלך
+GAMES	משחקים
+CHAT LOGS	יומני שיחה
+CHAT LOG	יומן שיחה
+Nothing matches.	אין התאמות.
+Nothing yet.	עוד כלום.
+Reading her notes.	קוראת את ההערות שלה.
+Click again to forget game notes	לחץ שוב כדי לשכוח הערות משחקים
+Forget game notes	שכח הערות משחקים
+Click again to forget everything about me	לחץ שוב כדי לשכוח הכול עליך
+Forget everything about me	שכח הכול עליך
+Click again to forget	לחץ שוב כדי לשכוח
+Forget this day	שכח את היום הזה
+Only the start of this day is shown.	מוצג רק תחילת היום הזה.
+Nothing in this day.	שום דבר ביום הזה.
+No chats kept yet.	עדיין לא נשמרו שיחות.
+You	אתה
+{0} line	{0} שורה
+SET UP EMAIL >	הגדר דוא״ל >
+SET UP EMAIL	הגדר דוא״ל
+Or type your address	או הקלד את הכתובת שלך
+Email address	כתובת דוא״ל
+Open the page	פתח את הדף
+App password	סיסמת אפליקציה
+IMAP server	שרת IMAP
+Incoming mail server	שרת דואר נכנס
+SMTP server	שרת SMTP
+Outgoing mail server	שרת דואר יוצא
+An app password is a separate password just for Capri. Your normal password stays yours.	סיסמת אפליקציה היא סיסמה נפרדת רק ל-Capri. הסיסמה הרגילה שלך נשארת שלך.
+She keeps it only until she closes.	היא שומרת אותה רק עד שהיא נסגרת.
+She checks, searches and reads your mail. She asks before she sends any.	היא בודקת, מחפשת וקוראת את הדואר שלך. היא שואלת לפני שהיא שולחת משהו.
+Watch for new mail	עקוב אחרי דואר חדש
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	היא מדברת כשמגיע דואר, עם אזהרה אם זה נראה כמו פישינג. שום דבר לא מסומן כנקרא.
+Deal with phishing on her own	התמודד עם פישינג לבד
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	רק בזמן שהיא עוקבת. דואר שהיא בטוחה שהוא פישינג הולך לספאם. השאר מחכה ל'כן' שלך.
+Forget account	שכח חשבון
+Use another email	השתמש בדוא״ל אחר
+Which email?	איזה דוא״ל?
+Make an app password	צור סיסמת אפליקציה
+Paste it	הדבק אותה
+Connecting...	מתחבר...
+She can use your email now.	היא יכולה להשתמש בדוא״ל שלך עכשיו.
+She's not watching your inbox.	היא לא עוקבת אחרי תיבת הדואר הנכנס שלך.
+She's watching your inbox and deals with phishing she's sure of.	היא עוקבת אחרי התיבה שלך ומתמודדת עם פישינג שהיא בטוחה בו.
+She's watching your inbox and tells you when mail lands.	היא עוקבת אחרי התיבה שלך ואומרת לך כשמגיע דואר.
+She forgot that account and its app password.	היא שכחה את החשבון הזה ואת סיסמת האפליקציה שלו.
+She forgot that account. Its app password is gone from this PC.	היא שכחה את החשבון הזה. סיסמת האפליקציה שלו נעלמה מהמחשב הזה.

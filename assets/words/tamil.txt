@@ -30,6 +30,7 @@ Ask Capri for more	Capri-யிடம் மேலும் கேள்
 Asking your server...	உங்கள் சேவையகத்திடம் கேட்கிறது...
 Asks before closing only the apps you choose.	நீங்கள் தேர்ந்தெடுத்த செயலிகளை மட்டும் மூடும் முன் கேட்கும்.
 Auto	தானியங்கி
+Auto (match what I say)	தானியங்கி (நான் சொல்வதைப் பொறுத்து)
 Automatic: VB-CABLE, else Steam's	தானியங்கி: VB-CABLE, இல்லையெனில் Steam-உடையது
 BAD RELAY HOST	தவறான ரிலே ஹோஸ்ட்
 BIG Z open notepad	BIG Z நோட்பேடைத் திற
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri-ஐ மறை / காட்டு
 Hide / Show key	மறை / காட்டு விசை
 Hide Capri	Capri-ஐ மறை
 Hide for now	இப்போதைக்கு மறை
+Hide her	அவளை மறை
 Hide in full screen	முழுத்திரையில் மறை
 Hide this	இதை மறை
+Hide, keep player	மறை, பிளேயரை வை
 Hide/show:	மறை/காட்டு:
 Hide/show: Ctrl + Alt + H	மறை/காட்டு: Ctrl + Alt + H
 Hologram	ஹோலோகிராம்
@@ -288,6 +291,7 @@ Huge	மிகப் பெரிய
 I can hear you.	நான் உன்னைக் கேட்கிறேன்.
 I glance at your screen and comment. Costs a little on a paid brain.	உங்கள் திரையைப் பார்த்து கருத்து சொல்கிறேன். கட்டண மூளையில் சிறிது செலவாகும்.
 I keep listening. Say my name, then just talk.	நான் தொடர்ந்து கேட்கிறேன். என் பெயரைச் சொல்லுங்கள், பின்னர் பேசுங்கள்.
+I speak	நான் பேசுவது
 I talk about your game as you play. Costs a little on a paid brain.	நீங்கள் விளையாடும்போது உங்கள் விளையாட்டைப் பற்றிப் பேசுகிறேன். கட்டண மூளையில் சிறிது செலவாகும்.
 I type my replies and stay quiet.	நான் என் பதில்களை தட்டச்சு செய்துவிட்டு அமைதியாக இருக்கிறேன்.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	நான் திருப்பிப் பேச மாட்டேன், எதுவும் எங்கும் அனுப்பப்படாது. நான் இன்னும் உங்களுடன் இருப்பேன், உங்கள் இசைக்கு நடனமாடுவேன், ஒலியளவு போன்ற விரைவான வேலைகளைச் செய்வேன்.
@@ -296,6 +300,7 @@ IN DISCORD >	DISCORD-ல் >
 INSTALLED >	நிறுவப்பட்டது >
 Import a Capri mod	Capri மோடை இறக்குமதி செய்
 Import mod	மோடை இறக்குமதி செய்
+In full screen	முழுத்திரையில்
 In games	விளையாட்டுகளில்
 Input	உள்ளீடு
 Input, Output or How to overlaps a row	உள்ளீடு, வெளியீடு அல்லது எப்படி ஒரு வரிசையை மேலெழுதுகிறது
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	விசைகள்
 KEYS >	விசைகள் >
 Keep PC awake for jobs	வேலைகளுக்காக PC விழித்திருக்கட்டும்
+Keep player	பிளேயரை வை
 Keeps the last two minutes of your game in memory. Say clip that to save it.	உங்கள் விளையாட்டின் கடைசி இரண்டு நிமிடங்களை நினைவகத்தில் வைத்திருக்கும். சேமிக்க clip that என்று சொல்லுங்கள்.
 Key	விசை
 Key cleared: a model file needs none.	விசை அழிக்கப்பட்டது: மாதிரி கோப்புக்கு விசை தேவையில்லை.
@@ -439,6 +445,7 @@ No AI · no brain at all	AI இல்லை · மூளையே இல்ல�
 No brain runs, and nothing is sent anywhere.	எந்த மூளையும் இயங்காது, எதுவும் எங்கும் அனுப்பப்படாது.
 No brain yet	இன்னும் மூளை இல்லை
 No code open	திறந்த குறியீடு இல்லை
+No limit	வரம்பு இல்லை
 No mic found	மைக் எதுவும் கண்டறியப்படவில்லை
 No mods in the directory yet.	மோட்கள் கோப்புறையில் இன்னும் மோட்கள் இல்லை.
 No mods match that.	அதற்குப் பொருந்தும் மோட்கள் இல்லை.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	சுருதி
 Play	இயக்கு
 Play...	இயக்கு...
+Player only	பிளேயர் மட்டும்
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS மாதிரிகள் இந்தக் கிளிப்பின் குரலை நகலெடுக்கும். கேட்க சோதனை அழுத்தவும்.
 Pop-in times	தோன்றும் நேரங்கள்
 Pop-ins	தோற்றங்கள்
@@ -592,6 +600,7 @@ SKILL.	திறன்.
 SKIN.	தோல்.
 SORT BY	வரிசைப்படுத்து
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ஒலிகள் பழக்கங்கள் மூளை பார் CAPRI DOOMSCROLL வானிலை கிளிப்புகள் விளையாட்டுகள் விசைகள் அசைவுகள் குரல் நீ
+Same as I speak	என் மொழியைப் போலவே
 Same as her ears (VOICE > Mic)	அவளுடைய காதுகளைப் போலவே (குரல் > மைக்)
 Same code on the phone?	ஃபோனில் அதே குறியீடா?
 Save	சேமி
@@ -627,9 +636,10 @@ Settings had nothing to watch.	அமைப்புகளில் பார்
 Settings lost keyboard focus during the Tab walk	Tab வழிசெலுத்தலின்போது அமைப்புகள் விசைப்பலகை கவனத்தை இழந்தது
 Setup guide	அமைவு வழிகாட்டி
 Setup stopped	அமைவு நிறுத்தப்பட்டது
+She answers in	அவள் பதிலளிப்பது
 She can read it when it fits.	பொருந்தும்போது அவளால் அதைப் படிக்க முடியும்.
 She glances at your screen and comments. Costs a little on a paid brain.	அவள் உங்கள் திரையைப் பார்த்து கருத்து சொல்கிறாள். கட்டண மூளையில் சிறிது செலவாகும்.
-She keeps listening. Say her name, then just talk until you go quiet.	அவள் தொடர்ந்து கேட்கிறாள். அவளுடைய பெயரைச் சொல்லுங்கள், பிறகு நீங்கள் அமைதியாகும் வரை பேசுங்கள்.
+She keeps listening. Say her name, then just talk.	அவள் தொடர்ந்து கேட்கிறாள். அவளுடைய பெயரைச் சொல்லுங்கள், பிறகு பேசுங்கள்.
 She reacts to your game until you close it.	நீங்கள் மூடும் வரை உங்கள் விளையாட்டுக்கு அவள் எதிர்வினையாற்றுகிறாள்.
 She reads these controls before each game job.	ஒவ்வொரு விளையாட்டு வேலைக்கு முன்பும் அவள் இந்தக் கட்டுப்பாடுகளைப் படிக்கிறாள்.
 She talks about your game as you play. Costs a little on a paid brain.	நீங்கள் விளையாடும்போது உங்கள் விளையாட்டைப் பற்றி அவள் பேசுகிறாள். கட்டண மூளையில் சிறிது செலவாகும்.
@@ -666,6 +676,7 @@ Speed	வேகம்
 Start with Windows	Windows உடன் தொடங்கு
 Start with this!	இதனுடன் தொடங்கு!
 Starting...	தொடங்குகிறது...
+Stay	இரு
 Stay on my model	என் மாதிரியில் இரு
 Still checking your mics...	உங்கள் மைக்குகளை இன்னும் சரிபார்க்கிறது...
 Still checking your speakers...	உங்கள் ஸ்பீக்கர்களை இன்னும் சரிபார்க்கிறது...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	அவள் இய
 · HD	· HD
 · on this PC	· இந்த PC-யில்
 · server	· சேவையகம்
+Edit as text	உரையாகத் திருத்து
+What Capri remembers about you. It stays on this computer.	Capri உன்னைப் பற்றி நினைவில் வைத்திருப்பது. இது இந்தக் கணினியில் இருக்கும்.
+Tell her something to remember	நினைவில் வைக்க ஒன்றைச் சொல்
+Search her memory	அவளது நினைவில் தேடு
+That day isn't there any more.	அந்த நாள் இனி இல்லை.
+Undo	செயல்நீக்கு
+Remember our chats is off, so she isn't keeping new chat memories.	நமது உரையாடல்களை நினைவில் வைப்பது அணைந்துள்ளது, எனவே புதிய உரையாடல் நினைவுகளைச் சேமிக்காது.
+ABOUT YOU	உன்னைப் பற்றி
+FROM YOUR CHATS	உனது உரையாடல்களில் இருந்து
+GAMES	விளையாட்டுகள்
+CHAT LOGS	உரையாடல் பதிவுகள்
+CHAT LOG	உரையாடல் பதிவு
+Nothing matches.	எதுவும் பொருந்தவில்லை.
+Nothing yet.	இன்னும் ஒன்றுமில்லை.
+Reading her notes.	அவளது குறிப்புகளைப் படிக்கிறது.
+Click again to forget game notes	விளையாட்டுக் குறிப்புகளை மறக்க மீண்டும் கிளிக் செய்
+Forget game notes	விளையாட்டுக் குறிப்புகளை மற
+Click again to forget everything about me	உன்னைப் பற்றிய எல்லாவற்றையும் மறக்க மீண்டும் கிளிக் செய்
+Forget everything about me	உன்னைப் பற்றிய எல்லாவற்றையும் மற
+Click again to forget	மறக்க மீண்டும் கிளிக் செய்
+Forget this day	இந்த நாளை மற
+Only the start of this day is shown.	இந்த நாளின் தொடக்கம் மட்டுமே காட்டப்படுகிறது.
+Nothing in this day.	இந்த நாளில் ஒன்றுமில்லை.
+No chats kept yet.	இன்னும் உரையாடல்கள் சேமிக்கப்படவில்லை.
+You	நீ
+{0} line	{0} வரி
+SET UP EMAIL >	மின்னஞ்சலை அமை >
+SET UP EMAIL	மின்னஞ்சலை அமை
+Or type your address	அல்லது உனது முகவரியைத் தட்டச்சு செய்
+Email address	மின்னஞ்சல் முகவரி
+Open the page	பக்கத்தைத் திற
+App password	செயலி கடவுச்சொல்
+IMAP server	IMAP சேவையகம்
+Incoming mail server	உள்வரும் மின்னஞ்சல் சேவையகம்
+SMTP server	SMTP சேவையகம்
+Outgoing mail server	வெளிச்செல்லும் மின்னஞ்சல் சேவையகம்
+An app password is a separate password just for Capri. Your normal password stays yours.	செயலி கடவுச்சொல் Capri-க்கு மட்டும் தனிக் கடவுச்சொல். உனது சாதாரண கடவுச்சொல் உன்னுடையதே.
+She keeps it only until she closes.	அது மூடும் வரை மட்டுமே அவள் அதை வைத்திருக்கிறாள்.
+She checks, searches and reads your mail. She asks before she sends any.	அவள் உனது மின்னஞ்சலைச் சரிபார்த்து, தேடி, படிக்கிறாள். எதையும் அனுப்பும் முன் கேட்கிறாள்.
+Watch for new mail	புதிய மின்னஞ்சலைக் கவனி
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	மின்னஞ்சல் வரும்போது அவள் சொல்வாள், ஃபிஷிங் போலத் தோன்றினால் எச்சரிக்கை தருவாள். எதுவும் படித்ததாகக் குறிக்கப்படாது.
+Deal with phishing on her own	ஃபிஷிங்கை நீயே கையாளு
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	அவள் கவனிக்கும்போது மட்டும். ஃபிஷிங் என்று உறுதியான மின்னஞ்சல் ஸ்பேமுக்குச் செல்லும். மீதம் உனது சம்மதத்திற்காகக் காத்திருக்கும்.
+Forget account	கணக்கை மற
+Use another email	வேறு மின்னஞ்சலைப் பயன்படுத்து
+Which email?	எந்த மின்னஞ்சல்?
+Make an app password	செயலி கடவுச்சொல்லை உருவாக்கு
+Paste it	அதை ஒட்டு
+Connecting...	இணைக்கிறது...
+She can use your email now.	இப்போது அவள் உனது மின்னஞ்சலைப் பயன்படுத்தலாம்.
+She's not watching your inbox.	அவள் உனது இன்பாக்ஸைக் கவனிக்கவில்லை.
+She's watching your inbox and deals with phishing she's sure of.	அவள் உனது இன்பாக்ஸைக் கவனித்து உறுதியான ஃபிஷிங்கைக் கையாள்கிறாள்.
+She's watching your inbox and tells you when mail lands.	அவள் உனது இன்பாக்ஸைக் கவனித்து மின்னஞ்சல் வரும்போது சொல்கிறாள்.
+She forgot that account and its app password.	அவள் அந்தக் கணக்கையும் அதன் செயலி கடவுச்சொல்லையும் மறந்துவிட்டாள்.
+She forgot that account. Its app password is gone from this PC.	அவள் அந்தக் கணக்கை மறந்துவிட்டாள். அதன் செயலி கடவுச்சொல் இந்தக் கணினியிலிருந்து போய்விட்டது.

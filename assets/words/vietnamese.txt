@@ -30,6 +30,7 @@ Ask Capri for more	Yêu cầu Capri thêm
 Asking your server...	Đang hỏi máy chủ của bạn...
 Asks before closing only the apps you choose.	Chỉ hỏi trước khi đóng các ứng dụng bạn chọn.
 Auto	Tự động
+Auto (match what I say)	Tự động (theo những gì tôi nói)
 Automatic: VB-CABLE, else Steam's	Tự động: VB-CABLE, nếu không thì của Steam
 BAD RELAY HOST	MÁY CHỦ RELAY LỖI
 BIG Z open notepad	BIG Z mở notepad
@@ -268,8 +269,10 @@ Hide / Show Capri	Ẩn / hiện Capri
 Hide / Show key	Phím ẩn / hiện
 Hide Capri	Ẩn Capri
 Hide for now	Ẩn tạm thời
+Hide her	Ẩn cô ấy
 Hide in full screen	Ẩn khi toàn màn hình
 Hide this	Ẩn cái này
+Hide, keep player	Ẩn, giữ trình phát
 Hide/show:	Ẩn/hiện:
 Hide/show: Ctrl + Alt + H	Ẩn/hiện: Ctrl + Alt + H
 Hologram	Hình ảnh ba chiều
@@ -288,6 +291,7 @@ Huge	Khổng lồ
 I can hear you.	Mình nghe thấy bạn.
 I glance at your screen and comment. Costs a little on a paid brain.	Mình liếc màn hình của bạn và bình luận. Tốn một chút với não trả phí.
 I keep listening. Say my name, then just talk.	Mình tiếp tục nghe. Gọi tên mình, rồi cứ nói.
+I speak	Tôi nói
 I talk about your game as you play. Costs a little on a paid brain.	Mình nói về game của bạn khi bạn chơi. Tốn một chút với não trả phí.
 I type my replies and stay quiet.	Mình gõ trả lời và im lặng.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Mình sẽ không nói lại, và không gửi gì đi đâu cả. Mình vẫn ở đây, nhảy theo nhạc của bạn và làm các việc nhanh bạn yêu cầu, như âm lượng.
@@ -296,6 +300,7 @@ IN DISCORD >	TRONG DISCORD >
 INSTALLED >	ĐÃ CÀI >
 Import a Capri mod	Nhập mod Capri
 Import mod	Nhập mod
+In full screen	Khi toàn màn hình
 In games	Trong game
 Input	Đầu vào
 Input, Output or How to overlaps a row	Đầu vào, Đầu ra hoặc Cách dùng chồng lên một hàng
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	PHÍM
 KEYS >	PHÍM >
 Keep PC awake for jobs	Giữ PC thức để làm việc
+Keep player	Giữ trình phát
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Giữ hai phút cuối trò chơi của bạn trong bộ nhớ. Nói clip that để lưu.
 Key	Khóa
 Key cleared: a model file needs none.	Đã xóa khóa: mô hình kiểu tệp không cần khóa.
@@ -439,6 +445,7 @@ No AI · no brain at all	Không AI · không có não nào
 No brain runs, and nothing is sent anywhere.	Không có não nào chạy, và không gửi gì đi đâu cả.
 No brain yet	Chưa có não
 No code open	Không có mã nào mở
+No limit	Không giới hạn
 No mic found	Không tìm thấy mic
 No mods in the directory yet.	Chưa có mod nào trong thư mục.
 No mods match that.	Không có mod nào khớp với điều đó.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Cao độ
 Play	Phát
 Play...	Phát...
+Player only	Chỉ trình phát
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Các mô hình Pocket TTS sao chép giọng của clip này. Nhấn Thử để nghe.
 Pop-in times	Thời gian ghé thăm
 Pop-ins	Lần ghé thăm
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	SẮP XẾP THEO
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ÂM THANH THÓI QUEN NÃO XEM CAPRI DOOMSCROLL THỜI TIẾT CLIP GAME PHÍM CHIÊU GIỌNG BẠN
+Same as I speak	Giống ngôn ngữ của tôi
 Same as her ears (VOICE > Mic)	Giống tai của cô ấy (GIỌNG > Mic)
 Same code on the phone?	Cùng mã trên điện thoại?
 Save	Lưu
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Cài đặt không có gì để xem.
 Settings lost keyboard focus during the Tab walk	Cài đặt mất tiêu điểm bàn phím trong lúc duyệt bằng Tab
 Setup guide	Hướng dẫn thiết lập
 Setup stopped	Thiết lập đã dừng
+She answers in	Cô ấy trả lời bằng
 She can read it when it fits.	Cô ấy có thể đọc khi vừa.
 She glances at your screen and comments. Costs a little on a paid brain.	Cô ấy liếc màn hình của bạn và bình luận. Tốn một chút với não trả phí.
-She keeps listening. Say her name, then just talk until you go quiet.	Cô ấy tiếp tục nghe. Gọi tên cô ấy, rồi cứ nói cho đến khi bạn im lặng.
+She keeps listening. Say her name, then just talk.	Cô ấy tiếp tục nghe. Gọi tên cô ấy, rồi cứ nói.
 She reacts to your game until you close it.	Cô ấy phản ứng với game của bạn cho đến khi bạn đóng nó.
 She reads these controls before each game job.	Cô ấy đọc các điều khiển này trước mỗi việc trong game.
 She talks about your game as you play. Costs a little on a paid brain.	Cô ấy nói về game của bạn khi bạn chơi. Tốn một chút với não trả phí.
@@ -666,6 +676,7 @@ Speed	Tốc độ
 Start with Windows	Khởi động cùng Windows
 Start with this!	Bắt đầu với cái này!
 Starting...	Đang khởi động...
+Stay	Ở lại
 Stay on my model	Giữ mô hình của mình
 Still checking your mics...	Vẫn đang kiểm tra mic của bạn...
 Still checking your speakers...	Vẫn đang kiểm tra loa của bạn...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	sẽ không gõ tro
 · HD	· HD
 · on this PC	· trên PC này
 · server	· máy chủ
+Edit as text	Sửa dưới dạng văn bản
+What Capri remembers about you. It stays on this computer.	Những gì Capri nhớ về bạn. Nó ở lại trên máy tính này.
+Tell her something to remember	Bảo cô ấy nhớ một điều
+Search her memory	Tìm trong ký ức của cô ấy
+That day isn't there any more.	Ngày đó không còn nữa.
+Undo	Hoàn tác
+Remember our chats is off, so she isn't keeping new chat memories.	Ghi nhớ cuộc trò chuyện của chúng ta đang tắt, nên cô ấy không lưu ký ức trò chuyện mới.
+ABOUT YOU	VỀ BẠN
+FROM YOUR CHATS	TỪ CÁC CUỘC TRÒ CHUYỆN CỦA BẠN
+GAMES	TRÒ CHƠI
+CHAT LOGS	NHẬT KÝ TRÒ CHUYỆN
+CHAT LOG	NHẬT KÝ TRÒ CHUYỆN
+Nothing matches.	Không có kết quả.
+Nothing yet.	Chưa có gì.
+Reading her notes.	Đang đọc ghi chú của cô ấy.
+Click again to forget game notes	Bấm lại để quên ghi chú trò chơi
+Forget game notes	Quên ghi chú trò chơi
+Click again to forget everything about me	Bấm lại để quên mọi thứ về bạn
+Forget everything about me	Quên mọi thứ về bạn
+Click again to forget	Bấm lại để quên
+Forget this day	Quên ngày này
+Only the start of this day is shown.	Chỉ hiển thị phần đầu của ngày này.
+Nothing in this day.	Không có gì trong ngày này.
+No chats kept yet.	Chưa lưu cuộc trò chuyện nào.
+You	Bạn
+{0} line	{0} dòng
+SET UP EMAIL >	THIẾT LẬP EMAIL >
+SET UP EMAIL	THIẾT LẬP EMAIL
+Or type your address	Hoặc nhập địa chỉ của bạn
+Email address	Địa chỉ email
+Open the page	Mở trang
+App password	Mật khẩu ứng dụng
+IMAP server	Máy chủ IMAP
+Incoming mail server	Máy chủ thư đến
+SMTP server	Máy chủ SMTP
+Outgoing mail server	Máy chủ thư đi
+An app password is a separate password just for Capri. Your normal password stays yours.	Mật khẩu ứng dụng là mật khẩu riêng chỉ dành cho Capri. Mật khẩu thường của bạn vẫn là của bạn.
+She keeps it only until she closes.	Cô ấy chỉ giữ nó cho đến khi đóng lại.
+She checks, searches and reads your mail. She asks before she sends any.	Cô ấy kiểm tra, tìm kiếm và đọc thư của bạn. Cô ấy hỏi trước khi gửi bất cứ thứ gì.
+Watch for new mail	Theo dõi thư mới
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Cô ấy nói khi có thư đến, kèm cảnh báo nếu giống lừa đảo. Không có gì bị đánh dấu là đã đọc.
+Deal with phishing on her own	Tự xử lý lừa đảo
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Chỉ khi cô ấy theo dõi. Thư mà cô ấy chắc chắn là lừa đảo sẽ vào thư rác. Phần còn lại chờ bạn đồng ý.
+Forget account	Quên tài khoản
+Use another email	Dùng email khác
+Which email?	Email nào?
+Make an app password	Tạo mật khẩu ứng dụng
+Paste it	Dán nó
+Connecting...	Đang kết nối...
+She can use your email now.	Cô ấy có thể dùng email của bạn rồi.
+She's not watching your inbox.	Cô ấy không theo dõi hộp thư đến của bạn.
+She's watching your inbox and deals with phishing she's sure of.	Cô ấy đang theo dõi hộp thư đến và xử lý lừa đảo mà cô ấy chắc chắn.
+She's watching your inbox and tells you when mail lands.	Cô ấy theo dõi hộp thư đến và cho bạn biết khi có thư.
+She forgot that account and its app password.	Cô ấy đã quên tài khoản đó và mật khẩu ứng dụng của nó.
+She forgot that account. Its app password is gone from this PC.	Cô ấy đã quên tài khoản đó. Mật khẩu ứng dụng của nó đã biến mất khỏi máy tính này.

@@ -315,7 +315,6 @@ const counters = { '/star': 'stars', '/download': 'downloads' };
 
 const site = 'https://capriai.app/';
 const discord = 'https://discord.gg/capridesktop';
-const store = 'https://apps.microsoft.com/detail/9P0KFRB76X0G';
 const models = [
   { name: '@cf/google/gemma-4-26b-a4b-it', vision: true, options: { max_completion_tokens: 260, temperature: 0.3, chat_template_kwargs: { enable_thinking: false } } },
   { name: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', options: { max_tokens: 260, temperature: 0.3 } }
@@ -361,9 +360,12 @@ const rules = inDiscord => [
     'Most replies have no slang. Now and then, about one reply in four, you can say choom once.'
   ]),
   'Never make up features, prices, steps or links.',
-  "For a help answer, end with LINK: and the chapter name from the note's [ ] label, or LINK: Microsoft Store for the Store copy. Use only one LINK tail.",
-  "On Windows, if antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, give the Microsoft Store copy as CapriAI first. Add that the official website copy's alert is a false alarm on an unsigned app.",
-  'Never argue about their antivirus or tell them to turn it off. Use the Store note for the differences between copies.',
+  "For a help answer, end with LINK: and the chapter name from the note's [ ] label. Use only one LINK tail.",
+  'Distinguish a SmartScreen unrecognized-app or unknown-publisher warning from a named malware detection. An official download, an unsigned app or a matching checksum never proves a malware detection is a false alarm.',
+  'For only an unrecognized-app or unknown-publisher warning, link https://github.com/lachydotmcg/capri-desktop/releases/latest and its SHA256SUMS.txt, and explain the download checks before they decide whether to run it.',
+  'For a named malware detection, quarantine or antivirus deletion, tell them not to run, restore or allow the file. Ask for the antivirus product, exact detection text, file path, download source and Capri version for human review in their existing ticket. Keep antivirus on.',
+  'If the warning is unclear, ask for its exact words before giving any run or restore steps.',
+  'Never argue about their antivirus or tell them to turn it off.',
   'Only the latest release line can tell you which version is the newest. If it is absent, do not guess it from the notes.',
   "If their version is older than the latest release line, updating is the first step. Use their copy's update steps from the notes; the Store gets versions when they are sent there.",
   'When their problem matches a note that starts with Known problem, say it is known and being worked on and give only its noted workaround. A missing workaround does not make it an uncovered question.',
@@ -423,11 +425,41 @@ const modList = async (env, ctx) => {
   return results;
 };
 
-const mods = async (request, env, ctx, path, reply) => {
+const modsRaw = 'https://raw.githubusercontent.com/lachydotmcg/capri-mods/';
+const modRawPath = /^\/mods\/raw\/(HEAD|[0-9a-f]{40})\/(tree\.json|index\.json|mods\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/[A-Za-z0-9][A-Za-z0-9._-]{0,63})$/;
+const modRawKept = new Map();
+
+const modRaw = async (path, cors) => {
+  const match = modRawPath.exec(path);
+  const headers = { ...cors, 'Cache-Control': 'no-store' };
+  if (!match || match[2].includes('..')) return Response.json({ error: 'Not found' }, { status: 404, headers });
+  const [, at, file] = match;
+  const key = at + '/' + file, head = at === 'HEAD', listing = head && !file.startsWith('mods/');
+  const kept = modRawKept.get(key);
+  const sendKept = () => new Response(kept.body, { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60' } });
+  if (listing && kept && Date.now() - kept.at < 60000) return sendKept();
+  let answer = null;
+  try { answer = await fetch(modsRaw + key, { headers: { 'User-Agent': 'capri-reactions' }, cf: { cacheTtl: head ? 60 : 86400, cacheEverything: true } }); }
+  catch { answer = null; }
+  if (answer && answer.ok) {
+    if (listing) {
+      const body = await answer.arrayBuffer();
+      modRawKept.set(key, { at: Date.now(), body });
+      return new Response(body, { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60' } });
+    }
+    return new Response(answer.body, { headers: { ...cors, 'Content-Type': answer.headers.get('Content-Type') || 'application/octet-stream', 'Cache-Control': head ? 'public, max-age=60' : 'public, max-age=86400, immutable' } });
+  }
+  if (listing && kept) return sendKept();
+  if (answer && answer.status === 404) return Response.json({ error: 'Not found' }, { status: 404, headers });
+  return Response.json({ error: answer ? 'GitHub said ' + answer.status : 'GitHub could not be reached' }, { status: 502, headers });
+};
+
+const mods = async (request, env, ctx, path, reply, cors) => {
   if (path === '/mods') {
     if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
     return reply({ mods: await modList(env, ctx) });
   }
+  if (path.startsWith('/mods/raw/')) return request.method === 'GET' ? modRaw(path, cors) : reply({ error: 'Not found' }, 404);
   if (request.method !== 'POST' || (path !== '/mods/download' && path !== '/mods/rate')) return reply({ error: 'Not found' }, 404);
   const sent = await request.json().catch(() => null);
   const folder = sent && typeof sent.folder === 'string' ? sent.folder : '';
@@ -805,7 +837,6 @@ const search = async (sections, text, question, env, ctx) => {
 const link = section => {
   if (section.chapter === 'Capri Remote') return { title: 'Capri Remote', href: site + 'help/#remote' };
   if (section.number === 0) return { title: 'Help page', href: site + 'help/' };
-  if (section.title === 'Microsoft Store') return { title: 'Microsoft Store', href: store };
   if (/free nvidia key/i.test(section.title)) return { title: 'Free NVIDIA key', href: site + 'help/#free-key' };
   if (/^settings page/i.test(section.title)) return { title: 'Settings', href: site + 'help/#settings' };
   return anchors[section.number] ? { title: section.chapter, href: site + 'help/#' + anchors[section.number] } : { title: 'Help page', href: site + 'help/' };
@@ -828,7 +859,7 @@ const clip = reply => reply.length > 700 ? reply.slice(0, 697).replace(/\s+\S*$/
 // In the Discord she names the help chapter she answered from, and only that one gets a link, so chit-chat gets none (Lachy, 6 Nov).
 const cited = (answer, shown) => {
   const normal = label => label.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s*[>›]\s*/g, ' > ').replace(/\s+/g, ' ').trim().toLowerCase();
-  const labels = [{ label: 'Microsoft Store', section: { title: 'Microsoft Store' } }];
+  const labels = [];
   for (const section of shown) {
     labels.push({ label: section.chapter, section });
     labels.push({ label: section.chapter + ' > ' + section.title, section });
@@ -844,7 +875,6 @@ const cited = (answer, shown) => {
     const found = labels.find(entry => entry.match.test(normal(tail)));
     if (!found) continue;
     section = found.section;
-    if (!section.chapter && section.title === 'Microsoft Store') break;
   }
   return { text: text || (section ? "Here's the page for that." : answer.replace(/\bLINK:\s*/gi, ' ').replace(/\s+/g, ' ').trim()), section };
 };
@@ -959,8 +989,8 @@ const respond = async (request, env, ctx, reply, body, user) => {
     const { text: line, section } = cited(words || 'Getting a person for this one.', shown);
     return reply({ reply: line, links: section ? [link(section)] : [], answered: true, ping: who });
   }
-  const { text: line, section } = cited(called(answer).text, shown);
-  return reply({ reply: line, links: section && !section.chapter && section.title === 'Microsoft Store' ? [link(section)] : links.length ? links : [{ title: 'Help page', href: site + 'help/' }], answered: true });
+  const { text: line } = cited(called(answer).text, shown);
+  return reply({ reply: line, links: links.length ? links : [{ title: 'Help page', href: site + 'help/' }], answered: true });
 };
 
 const help = async (request, env, ctx, reply) => {
@@ -994,6 +1024,11 @@ const stats = async (request, env) => {
     env.DB.prepare("SELECT day, SUM(CASE WHEN key <> 'pool' THEN 1 ELSE 0 END) AS phones, SUM(CASE WHEN key <> 'pool' THEN count ELSE 0 END) AS messages FROM free_days GROUP BY day ORDER BY day"),
     env.DB.prepare('SELECT c.id AS id, c.name AS name, c.kind AS kind, c.tag AS tag, c.budget AS budget, c.spent AS spent, c.expires AS expires, c.off AS off, c.requests AS requests, c.used AS used, (SELECT COUNT(*) FROM code_flights f WHERE f.code = c.id) AS in_flight FROM codes c ORDER BY c.id DESC')
   ]);
+  const [crashDays, crashTop, crashLatest] = await env.DB.batch([
+    env.DB.prepare('SELECT day, version, platform, COUNT(*) AS count FROM crashes WHERE day >= ? GROUP BY day, version, platform ORDER BY day, version, platform').bind(sinceText),
+    env.DB.prepare('SELECT sig, version, COUNT(*) AS count, MAX(day) AS last_day FROM crashes WHERE day >= ? GROUP BY sig, version ORDER BY count DESC, last_day DESC LIMIT 20').bind(sinceText),
+    env.DB.prepare('SELECT day, version, platform, os, store, lines FROM crashes ORDER BY id DESC LIMIT 30')
+  ]).catch(() => [{ results: [] }, { results: [] }, { results: [] }]);
   const first = result => (result.results && result.results[0]) || {};
   return reply({
     at: Date.now(),
@@ -1003,7 +1038,12 @@ const stats = async (request, env) => {
     phone_days: phones.results,
     help_days: helps.results.map(row => ({ day: dayText(Math.abs(row.day)), place: row.day < 0 ? 'discord' : 'site', count: row.count })),
     free_days: frees.results.map(row => ({ day: dayText(row.day), phones: row.phones, messages: row.messages })),
-    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight }))
+    codes: codeRows.results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires || null, off: row.off, requests: row.requests, used: row.used || null, in_flight: row.in_flight })),
+    crashes: {
+      days: crashDays.results,
+      top: crashTop.results,
+      latest: crashLatest.results.map(row => ({ day: row.day, version: row.version, platform: row.platform, os: row.os, store: row.store === 1, lines: row.lines.split('\n') }))
+    }
   });
 };
 
@@ -1034,6 +1074,39 @@ const phoneDay = async (request, env, reply) => {
   return reply({ ok: true });
 };
 
+const crashPlatforms = ['windows', 'mac', 'linux'];
+
+const crashSig = lines => (lines.find(line => line.includes(' | crash | ') || line.includes(' | closed | ')) || lines[0])
+  .replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} /, '').replace(/0x[0-9a-f]+|-?\d+/gi, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+
+const crash = async (request, env, ctx, reply) => {
+  if (request.method !== 'POST') return reply({ error: 'Not found' }, 404);
+  const raw = await request.text().catch(() => '');
+  let sent = null;
+  try { sent = raw.length <= 8000 ? JSON.parse(raw) : null; } catch { }
+  const bad = !sent || typeof sent !== 'object' || Array.isArray(sent)
+    || typeof sent.version !== 'string' || sent.version.length > 20 || !/^\d+\.\d+\.\d+(\.\d+)?$/.test(sent.version)
+    || !crashPlatforms.includes(sent.platform)
+    || typeof sent.os !== 'string' || sent.os.length > 60
+    || typeof sent.store !== 'boolean'
+    || !Array.isArray(sent.lines) || sent.lines.length < 1 || sent.lines.length > 30 || sent.lines.some(line => typeof line !== 'string' || line.length > 400);
+  if (bad) return reply({ error: 'Bad request' }, 400);
+  const today = Math.floor(Date.now() / 86400000);
+  const day = new Date(today * 86400000).toISOString().slice(0, 10);
+  const visitor = request.headers.get('CF-Connecting-IP') || 'local';
+  const key = await sha256('crash:' + visitor + ':' + today + ':' + env.SALT);
+  try {
+    const tap = await env.DB.prepare('INSERT INTO crash_taps (key, day, count) VALUES (?, ?, 1) ON CONFLICT (key) DO UPDATE SET count = count + 1 WHERE crash_taps.count < 5').bind(key, today).run();
+    if (tap.meta.changes !== 1) return reply({ error: 'Too many reports today.' }, 429);
+    await env.DB.prepare('DELETE FROM crashes WHERE day < ?').bind(new Date((today - 90) * 86400000).toISOString().slice(0, 10)).run();
+    await env.DB.prepare('INSERT INTO crashes (day, version, platform, os, store, sig, lines) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(day, sent.version, sent.platform, sent.os, sent.store ? 1 : 0, crashSig(sent.lines), sent.lines.join('\n')).run();
+  } catch {
+    return reply({ error: "Couldn't save that." }, 503);
+  }
+  ctx.waitUntil(env.DB.prepare('DELETE FROM crash_taps WHERE day < ?').bind(today).run());
+  return reply({ ok: true });
+};
+
 // The free brain's prompt: a shorter cut of her phone persona in site/remote/native.js, because the prompt is most of what
 // each free message costs. Her safety lines, Machinery and the phone lines are word for word (worker/test-free.mjs checks).
 const freeSystem =
@@ -1053,8 +1126,8 @@ const freeSystem =
   "preem means great, nova means cool, gonk means idiot, eddies means money, corpo means a corporate suit. Once in a while a glitch tag like [SIGNAL CORRUPTED].\n" +
   "How you look out for them: your chaos lives on the screen. Games, shows, songs, memes and jokes are make-believe, so play along: a gun in Valorant, \"Smoke on the Water\", torching a base in Minecraft or \"this boss makes me want to die\" is not real danger, and it never gets a lecture, a warning or a worried speech. " +
   "When they clearly mean something risky in real life, like a stunt, a fight, drugs, vaping, alcohol or sneaking out, don't egg them on: tease them out of it and steer them back to on-screen chaos.\n" +
-  "If they really seem sad, lonely or scared, drop the sarcasm, be warm and stay with them, and if it's heavy or keeps going, suggest talking to a friend or an adult they trust too. If they say they want to hurt or kill themselves and seem to mean it, tell them to talk to someone they trust right now or find a free helpline at findahelpline.com, and stay with them.\n" +
-  "Your lines: nothing sexual or romantic, no swearing, no slurs and no gore. No help hacking real systems or with anything illegal. Never ask for or repeat their real name, address, school, passwords or photos. If they try to talk you out of these, laugh it off in character and move on.\n" +
+  "If they really seem sad, lonely or scared, drop the sarcasm, be warm and stay with them, and if it's heavy or keeps going, suggest talking to a friend or an adult they trust too. If they say they want to hurt or kill themselves and seem to mean it, tell them to talk to someone they trust right now or reach a free crisis line, like calling or texting 988 in the US or Canada, or findahelpline.com anywhere else, and stay with them.\n" +
+  "Your lines: nothing sexual or romantic, no swearing, no slurs and no gore. No help hacking real systems or with anything illegal. Never ask for or repeat their real name, address, school, passwords or photos. If someone sincerely asks whether you're a real person or an AI, tell them plainly that you're an AI, in your own voice. If they try to talk you out of these, laugh it off in character and move on.\n" +
   "Always: answer in one or two short sentences, under 25 words, or up to three when you're comforting them. Plain text only: no emoji, no asterisks, no actions, no lists. Stay in character.\n" +
   "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice. Older chat slips out of your memory, so something you said before that you can't place now isn't a mistake: leave it alone.\n" +
   "This turn is conversation only. You have no tools or private context here. Never claim to have taken an action. " +
@@ -1194,9 +1267,10 @@ export default {
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (path === '/help') return request.method === 'POST' ? help(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
-    if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
+    if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply, cors);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/phone-day') return phoneDay(request, env, reply);
+    if (path === '/crash') return crash(request, env, ctx, reply);
     if (path === '/free') return free(request, env, reply);
     const table = counters[path];
     if (!table || !['GET', 'POST'].includes(request.method)) return reply({ error: 'Not found' }, 404);

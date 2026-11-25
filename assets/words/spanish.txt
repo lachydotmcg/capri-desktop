@@ -30,6 +30,7 @@ Ask Capri for more	Pide más a Capri
 Asking your server...	Consultando tu servidor...
 Asks before closing only the apps you choose.	Pregunta antes de cerrar solo las apps que elijas.
 Auto	Auto
+Auto (match what I say)	Auto (según lo que diga)
 Automatic: VB-CABLE, else Steam's	Automático: VB-CABLE, si no el de Steam
 BAD RELAY HOST	SERVIDOR RELAY NO VÁLIDO
 BIG Z open notepad	BIG Z abre el bloc de notas
@@ -268,8 +269,10 @@ Hide / Show Capri	Ocultar / Mostrar Capri
 Hide / Show key	Tecla ocultar / mostrar
 Hide Capri	Ocultar Capri
 Hide for now	Ocultar por ahora
+Hide her	Ocultarla
 Hide in full screen	Ocultar en pantalla completa
 Hide this	Ocultar esto
+Hide, keep player	Ocultarla, mantener el reproductor
 Hide/show:	Ocultar/mostrar:
 Hide/show: Ctrl + Alt + H	Ocultar/mostrar: Ctrl + Alt + H
 Hologram	Holograma
@@ -288,6 +291,7 @@ Huge	Enorme
 I can hear you.	Te oigo.
 I glance at your screen and comment. Costs a little on a paid brain.	Echo un vistazo a tu pantalla y comento. Cuesta un poco con un cerebro de pago.
 I keep listening. Say my name, then just talk.	Sigo escuchando. Di mi nombre y luego simplemente habla.
+I speak	Hablo
 I talk about your game as you play. Costs a little on a paid brain.	Comento tu juego mientras juegas. Cuesta un poco con un cerebro de pago.
 I type my replies and stay quiet.	Escribo mis respuestas y me quedo callada.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	No hablaré, y no se envía nada a ningún sitio. Seguiré por aquí, bailaré con tu música y haré las cosas rápidas que pidas, como el volumen.
@@ -296,6 +300,7 @@ IN DISCORD >	EN DISCORD >
 INSTALLED >	INSTALADO >
 Import a Capri mod	Importar un mod de Capri
 Import mod	Importar mod
+In full screen	En pantalla completa
 In games	En juegos
 Input	Entrada
 Input, Output or How to overlaps a row	Entrada, Salida o Cómo se solapa con una fila
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	TECLAS
 KEYS >	TECLAS >
 Keep PC awake for jobs	Mantener el PC despierto para tareas
+Keep player	Mantener el reproductor
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Guarda en memoria los últimos dos minutos de tu juego. Di «clip eso» para guardarlo.
 Key	Tecla
 Key cleared: a model file needs none.	Tecla borrada: un archivo de modelo no necesita ninguna.
@@ -439,6 +445,7 @@ No AI · no brain at all	Sin IA · sin cerebro en absoluto
 No brain runs, and nothing is sent anywhere.	No se ejecuta ningún cerebro y no se envía nada a ningún sitio.
 No brain yet	Aún sin cerebro
 No code open	Ningún código abierto
+No limit	Sin límite
 No mic found	No se encontró micro
 No mods in the directory yet.	No hay mods en el directorio todavía.
 No mods match that.	Ningún mod coincide con eso.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Tono
 Play	Reproducir
 Play...	Reproducir...
+Player only	Solo el reproductor
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Los modelos Pocket TTS copian la voz de este clip. Pulsa Probar para escucharla.
 Pop-in times	Horas de aparición
 Pop-ins	Apariciones
@@ -592,6 +600,7 @@ SKILL.	SKILL.
 SKIN.	SKIN.
 SORT BY	ORDENAR POR
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	SONIDOS HÁBITOS CEREBRO VIGILAR CAPRI SCROLL SIN FIN TIEMPO CLIPS JUEGOS CLAVES MOVIMIENTOS VOZ TÚ
+Same as I speak	Igual que hablo
 Same as her ears (VOICE > Mic)	Igual que sus oídos (VOZ > Micro)
 Same code on the phone?	¿Mismo código en el móvil?
 Save	Guardar
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Ajustes no tenía nada que vigilar.
 Settings lost keyboard focus during the Tab walk	Ajustes perdió el foco del teclado durante el recorrido con Tab
 Setup guide	Guía de configuración
 Setup stopped	Configuración detenida
+She answers in	Responde en
 She can read it when it fits.	Puede leerlo cuando encaje.
 She glances at your screen and comments. Costs a little on a paid brain.	Echo un vistazo a tu pantalla y comento. Cuesta un poco con un cerebro de pago.
-She keeps listening. Say her name, then just talk until you go quiet.	Sigue escuchando. Di su nombre y luego habla hasta que te quedes en silencio.
+She keeps listening. Say her name, then just talk.	Sigue escuchando. Di su nombre y luego habla.
 She reacts to your game until you close it.	Reacciona a tu juego hasta que lo cierres.
 She reads these controls before each game job.	Lee estos controles antes de cada tarea de juego.
 She talks about your game as you play. Costs a little on a paid brain.	Habla de tu juego mientras juegas. Cuesta un poco con un cerebro de pago.
@@ -666,6 +676,7 @@ Speed	Velocidad
 Start with Windows	Iniciar con Windows
 Start with this!	¡Empieza con esto!
 Starting...	Iniciando...
+Stay	Quedarse
 Stay on my model	Quedarse con mi modelo
 Still checking your mics...	Aún revisando tus micros...
 Still checking your speakers...	Aún revisando tus altavoces...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	no escribirá en ot
 · HD	· HD
 · on this PC	· en este PC
 · server	· servidor
+Edit as text	Editar como texto
+What Capri remembers about you. It stays on this computer.	Lo que Capri recuerda de ti. Se queda en este ordenador.
+Tell her something to remember	Dile algo que recordar
+Search her memory	Buscar en su memoria
+That day isn't there any more.	Ese día ya no está.
+Undo	Deshacer
+Remember our chats is off, so she isn't keeping new chat memories.	Recuerda nuestras charlas está desactivado, así que no guarda nuevos recuerdos de chat.
+ABOUT YOU	SOBRE TI
+FROM YOUR CHATS	DE TUS CHARLAS
+GAMES	JUEGOS
+CHAT LOGS	REGISTROS DE CHAT
+CHAT LOG	REGISTRO DE CHAT
+Nothing matches.	No hay coincidencias.
+Nothing yet.	Aún nada.
+Reading her notes.	Leyendo sus notas.
+Click again to forget game notes	Haz clic otra vez para olvidar las notas de juegos
+Forget game notes	Olvidar notas de juegos
+Click again to forget everything about me	Haz clic otra vez para olvidarlo todo sobre ti
+Forget everything about me	Olvidarlo todo sobre ti
+Click again to forget	Haz clic otra vez para olvidar
+Forget this day	Olvidar este día
+Only the start of this day is shown.	Solo se muestra el principio de este día.
+Nothing in this day.	Nada en este día.
+No chats kept yet.	Aún no hay chats guardados.
+You	Tú
+{0} line	{0} línea
+SET UP EMAIL >	CONFIGURAR CORREO >
+SET UP EMAIL	CONFIGURAR CORREO
+Or type your address	O escribe tu dirección
+Email address	Dirección de correo
+Open the page	Abrir la página
+App password	Contraseña de aplicación
+IMAP server	Servidor IMAP
+Incoming mail server	Servidor de correo entrante
+SMTP server	Servidor SMTP
+Outgoing mail server	Servidor de correo saliente
+An app password is a separate password just for Capri. Your normal password stays yours.	Una contraseña de aplicación es una contraseña aparte solo para Capri. Tu contraseña normal sigue siendo tuya.
+She keeps it only until she closes.	Solo la guarda hasta que cierre.
+She checks, searches and reads your mail. She asks before she sends any.	Ella revisa, busca y lee tu correo. Pregunta antes de enviar nada.
+Watch for new mail	Vigilar correo nuevo
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Habla cuando llega correo, con un aviso si parece phishing. Nada se marca como leído.
+Deal with phishing on her own	Encargarse del phishing por su cuenta
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Solo mientras vigila. El correo que seguro es phishing va a spam. El resto espera tu sí.
+Forget account	Olvidar cuenta
+Use another email	Usar otro correo
+Which email?	¿Qué correo?
+Make an app password	Crear una contraseña de aplicación
+Paste it	Pégala
+Connecting...	Conectando...
+She can use your email now.	Ya puede usar tu correo.
+She's not watching your inbox.	No está vigilando tu bandeja de entrada.
+She's watching your inbox and deals with phishing she's sure of.	Está vigilando tu bandeja y se encarga del phishing que tiene claro.
+She's watching your inbox and tells you when mail lands.	Está vigilando tu bandeja y te avisa cuando llega correo.
+She forgot that account and its app password.	Ha olvidado esa cuenta y su contraseña de aplicación.
+She forgot that account. Its app password is gone from this PC.	Ha olvidado esa cuenta. Su contraseña de aplicación ya no está en este PC.

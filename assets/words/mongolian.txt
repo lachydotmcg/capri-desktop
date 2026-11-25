@@ -30,6 +30,7 @@ Ask Capri for more	Capri-гаас илүү асуух
 Asking your server...	Таны серверээс асууж байна...
 Asks before closing only the apps you choose.	Зөвхөн таны сонгосон апп-уудыг хаахаас өмнө асууна.
 Auto	Автомат
+Auto (match what I say)	Автомат (миний хэлснээр)
 Automatic: VB-CABLE, else Steam's	Автомат: VB-CABLE, эсвэл Steam-ийнх
 BAD RELAY HOST	БУРУУ RELAY ХОСТ
 BIG Z open notepad	BIG Z notepad нээ
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri-г нуух / харуулах
 Hide / Show key	Нуух / харуулах товчлуур
 Hide Capri	Capri-г нуух
 Hide for now	Одоохондоо нуух
+Hide her	Түүнийг нуух
 Hide in full screen	Бүтэн дэлгэцэд нуух
 Hide this	Үүнийг нуух
+Hide, keep player	Нуух, тоглуулагчийг үлдээх
 Hide/show:	Нуух/харуулах:
 Hide/show: Ctrl + Alt + H	Нуух/харуулах: Ctrl + Alt + H
 Hologram	Голограм
@@ -288,6 +291,7 @@ Huge	Асар том
 I can hear you.	Би чамайг сонсож байна.
 I glance at your screen and comment. Costs a little on a paid brain.	Би таны дэлгэцийг хараад сэтгэгдэл бичнэ. Төлбөртэй тархинд бага зардал гарна.
 I keep listening. Say my name, then just talk.	Би сонсож байна. Миний нэрийг хэлээд зүгээр л яриарай.
+I speak	Би ярьдаг
 I talk about your game as you play. Costs a little on a paid brain.	Таны тоглоомын тухай тоглож байхад нь ярина. Төлбөртэй тархинд бага зардал гарна.
 I type my replies and stay quiet.	Би хариултаа бичээд чимээгүй байна.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Би хариулахгүй, юу ч хаашаа ч илгээгдэхгүй. Би хэвээр хамт байж, таны хөгжимд бүжиглэж, хурдан асуусан зүйлсийг хийнэ, жишээ нь дууны түвшин.
@@ -296,6 +300,7 @@ IN DISCORD >	DISCORD ДЭЭР >
 INSTALLED >	СУУЛГАСАН >
 Import a Capri mod	Capri мод импорт хийх
 Import mod	Мод импорт хийх
+In full screen	Бүтэн дэлгэцэд
 In games	Тоглоомд
 Input	Оролт
 Input, Output or How to overlaps a row	Оролт, гаралт эсвэл Яаж мөр давхцаж байна
@@ -314,6 +319,7 @@ KB.	KB.
 KEYS	ТҮЛХҮҮРҮҮД
 KEYS >	ТҮЛХҮҮРҮҮД >
 Keep PC awake for jobs	Ажилд зориулж компьютерийг сэрүүн байлгах
+Keep player	Тоглуулагчийг үлдээх
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Таны тоглоомын сүүлийн хоёр минутыг санах ойд хадгална. Хадгалахын тулд "үүнийг клипээр бичих" гэж хэл.
 Key	Түлхүүр
 Key cleared: a model file needs none.	Түлхүүр цэвэрлэгдлээ: загварын файлд түлхүүр хэрэггүй.
@@ -439,6 +445,7 @@ No AI · no brain at all	AI байхгүй · огт тархи байхгүй
 No brain runs, and nothing is sent anywhere.	Тархи ажиллахгүй, юу ч хаашаа ч илгээгдэхгүй.
 No brain yet	Одоохондоо тархи байхгүй
 No code open	Нээлттэй код байхгүй
+No limit	Хязгааргүй
 No mic found	Микрофон олдсонгүй
 No mods in the directory yet.	Санд одоохондоо модууд байхгүй.
 No mods match that.	Үүнтэй таарах модууд байхгүй.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Өндөр
 Play	Тоглуулах
 Play...	Тоглуулах...
+Player only	Зөвхөн тоглуулагч
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS загварууд энэ клипийн дууг хуулдаг. Сонсохын тулд Туршилт дарна уу.
 Pop-in times	Орж ирэх хугацаа
 Pop-ins	Орж ирэлтүүд
@@ -592,6 +600,7 @@ SKILL.	ЧАДВАР.
 SKIN.	АРХИ.
 SORT BY	ЭРЭМБЭЛЭХ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ДУУНУУД ЗАН ТААЛАЛ ТАРХИ ХАРАХ CAPRI DOOMSCROLL ЦАГ АГААР КЛИПҮҮД ТОГЛООМ ТҮЛХҮҮРҮҮД ХӨДӨЛГӨӨН ДУУ ТА
+Same as I speak	Миний хэлтэй адил
 Same as her ears (VOICE > Mic)	Түүний чихтэй адил (ДУУ > Микрофон)
 Same code on the phone?	Утсан дээрх ижил код үү?
 Save	Хадгалах
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Тохиргоонд харах зүйл байс
 Settings lost keyboard focus during the Tab walk	Tab алхалтын үед Тохиргоо гар дээрх фокусаа алдсан
 Setup guide	Тохируулгын заавар
 Setup stopped	Тохируулга зогсло
+She answers in	Тэр хариулдаг
 She can read it when it fits.	Тохирох үед тэр уншиж чадна.
 She glances at your screen and comments. Costs a little on a paid brain.	Тэр таны дэлгэцийг харж сэтгэгдэл бичнэ. Төлбөртэй тархинд бага зардал гарна.
-She keeps listening. Say her name, then just talk until you go quiet.	Тэр сонсож байна. Түүний нэрийг хэл, дараа нь чимээгүй болтол яриарай.
+She keeps listening. Say her name, then just talk.	Тэр сонсож байна. Түүний нэрийг хэл, дараа нь яриарай.
 She reacts to your game until you close it.	Таны тоглоомыг хаах хүртэл тэр хариу үйлдэл үзүүлнэ.
 She reads these controls before each game job.	Тэр тоглоомын ажил бүрийн өмнө эдгээр удирдлагыг уншина.
 She talks about your game as you play. Costs a little on a paid brain.	Таны тоглож байх үед тэр таны тоглоомын тухай ярина. Төлбөртэй тархинд бага зардал гарна.
@@ -666,6 +676,7 @@ Speed	Хурд
 Start with Windows	Windows-ээр эхлүүлэх
 Start with this!	Үүгээр эхлэ!
 Starting...	Эхлүүлж байна...
+Stay	Үлдэх
 Stay on my model	Миний загварт үлдэх
 Still checking your mics...	Таны микрофонуудыг шалгасаар байна...
 Still checking your speakers...	Таны чанга яригчдыг шалгасаар байна...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	тэр ажилла
 · HD	· HD
 · on this PC	· энэ компьютер дээр
 · server	· сервер
+Edit as text	Текстээр засах
+What Capri remembers about you. It stays on this computer.	Capri чамайг хэрхэн санаж байна. Энэ компьютер дээр үлдэнэ.
+Tell her something to remember	Түүнд санах нэг зүйл хэл
+Search her memory	Түүний ой санамжаас хайх
+That day isn't there any more.	Тэр өдөр байхгүй болсон.
+Undo	Буцаах
+Remember our chats is off, so she isn't keeping new chat memories.	Бидний яриаг санах нь унтарсан тул шинэ ярианы дурсамж хадгалахгүй.
+ABOUT YOU	ЧАМАЙН ТУХАЙ
+FROM YOUR CHATS	ЧИНИЙ ЯРИАНААС
+GAMES	ТОГЛООМ
+CHAT LOGS	ЯРИАНЫ БҮРТГЭЛ
+CHAT LOG	ЯРИАНЫ БҮРТГЭЛ
+Nothing matches.	Юу ч тохирохгүй байна.
+Nothing yet.	Одоохондоо юу ч байхгүй.
+Reading her notes.	Түүний тэмдэглэлийг уншиж байна.
+Click again to forget game notes	Тоглоомын тэмдэглэлийг мартахын тулд дахин дар
+Forget game notes	Тоглоомын тэмдэглэлийг март
+Click again to forget everything about me	Чамайг бүгдийг мартахын тулд дахин дар
+Forget everything about me	Чамайг бүгдийг март
+Click again to forget	Мартахын тулд дахин дар
+Forget this day	Энэ өдрийг март
+Only the start of this day is shown.	Зөвхөн энэ өдрийн эхлэл харагдана.
+Nothing in this day.	Энэ өдөр юу ч байхгүй.
+No chats kept yet.	Одоохондоо яриа хадгалагдаагүй.
+You	Чи
+{0} line	{0} мөр
+SET UP EMAIL >	ИМЭЙЛ ТОХИРУУЛАХ >
+SET UP EMAIL	ИМЭЙЛ ТОХИРУУЛАХ
+Or type your address	Эсвэл хаягаа бич
+Email address	Имэйл хаяг
+Open the page	Хуудсыг нээх
+App password	Аппын нууц үг
+IMAP server	IMAP сервер
+Incoming mail server	Ирж буй имэйлийн сервер
+SMTP server	SMTP сервер
+Outgoing mail server	Явж буй имэйлийн сервер
+An app password is a separate password just for Capri. Your normal password stays yours.	Аппын нууц үг нь зөвхөн Capri-д зориулсан тусдаа нууц үг. Энгийн нууц үг чинь чинийх хэвээр.
+She keeps it only until she closes.	Тэр үүнийг хаагдах хүртэл л хадгална.
+She checks, searches and reads your mail. She asks before she sends any.	Тэр имэйлийг чинь шалгаж, хайж, уншдаг. Ямар нэг юм илгээхээс өмнө асуудаг.
+Watch for new mail	Шинэ имэйлийг ажигла
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Имэйл ирэхэд тэр хэлдэг, фишинг мэт санагдвал анхааруулдаг. Юу ч уншсан гэж тэмдэглэгдэхгүй.
+Deal with phishing on her own	Фишингээ өөрөө шийд
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Зөвхөн тэр ажиглаж байх үед. Фишинг гэдэгт итгэлтэй имэйл спам руу явна. Бусад нь чиний тийм гэсэн хариуг хүлээнэ.
+Forget account	Бүртгэлийг март
+Use another email	Өөр имэйл ашигла
+Which email?	Аль имэйл?
+Make an app password	Аппын нууц үг үүсгэ
+Paste it	Үүнийг буулга
+Connecting...	Холбогдож байна...
+She can use your email now.	Тэр одоо имэйлийг чинь ашиглаж чадна.
+She's not watching your inbox.	Тэр ирсэн имэйлийн хайрцгийг чинь ажиглахгүй байна.
+She's watching your inbox and deals with phishing she's sure of.	Тэр хайрцгийг чинь ажиглаж, итгэлтэй фишингээ шийддэг.
+She's watching your inbox and tells you when mail lands.	Тэр хайрцгийг чинь ажиглаж, имэйл ирэхэд хэлдэг.
+She forgot that account and its app password.	Тэр тэр бүртгэл болон аппын нууц үгийг мартсан.
+She forgot that account. Its app password is gone from this PC.	Тэр тэр бүртгэлийг мартсан. Аппын нууц үг нь энэ компьютероос алга болсон.

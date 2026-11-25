@@ -9,6 +9,16 @@ func fail(_ code: Int32, _ message: String) -> Never {
     exit(code)
 }
 
+if CommandLine.arguments.contains("--identity") {
+    guard let device = AVCaptureDevice.default(for: .audio),
+          !device.uniqueID.isEmpty else { fail(4, "no default microphone") }
+    let response = ["uid": device.uniqueID, "name": device.localizedName]
+    guard let data = try? JSONSerialization.data(withJSONObject: response),
+          let text = String(data: data, encoding: .utf8) else { fail(4, "no microphone identity") }
+    print(text)
+    exit(0)
+}
+
 let asked = DispatchSemaphore(value: 0)
 var allowed = false
 switch AVCaptureDevice.authorizationStatus(for: .audio) {

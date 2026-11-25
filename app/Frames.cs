@@ -179,7 +179,10 @@ namespace CapriDesktop
         private readonly Func<Rectangle> screens;
         private readonly Func<int, bool> takeFrame;
         private Rectangle wanted, area, desktop;
-        private IntPtr output, device, context, duplication, staging;
+        private IntPtr output, device, context, duplication, staging, chain, chainView, mappedTexture;
+        private readonly IntPtr[] levelStages = new IntPtr[16];
+        private int chainLevels;
+        private bool chainMade, chainFailed;
         private OutputDesc outputDesc;
         private TextureDesc textureDesc;
         private Box crop;
@@ -414,7 +417,8 @@ namespace CapriDesktop
                 Method<DescribeTexture>(texture, 10)(texture, out details);
                 if (staging == IntPtr.Zero || details.Width != textureDesc.Width || details.Height != textureDesc.Height || details.Format != textureDesc.Format)
                     Prepare(details);
-                copy(context, staging, 0, 0, 0, 0, texture, 0, ref crop);
+                copy(context, chain != IntPtr.Zero ? chain : staging, 0, 0, 0, 0, texture, 0, ref crop);
+                chainMade = false;
                 ready = true;
                 return true;
             }
@@ -439,8 +443,39 @@ namespace CapriDesktop
             else if (outputDesc.Rotation == 4) crop = new Box { Left = details.Width - top - area.Height, Top = left, Right = details.Width - top, Bottom = left + area.Width, Back = 1 };
             TextureDesc stage = new TextureDesc { Width = crop.Right - crop.Left, Height = crop.Bottom - crop.Top, Mips = 1, ArraySize = 1, Format = details.Format, Samples = 1, Usage = 3, CpuAccess = 0x20000 };
             Drop(ref staging);
+            DropChain();
             Check(Method<CreateTexture>(device, 5)(device, ref stage, IntPtr.Zero, out staging));
             textureDesc = details;
+            if (chainFailed || (outputDesc.Rotation != 0 && outputDesc.Rotation != 1)) return;
+            try
+            {
+                int levels = 1;
+                for (int wide = stage.Width, tall = stage.Height; (wide > 1 || tall > 1) && levels < levelStages.Length; wide = Math.Max(1, wide / 2), tall = Math.Max(1, tall / 2)) levels++;
+                TextureDesc made = new TextureDesc { Width = stage.Width, Height = stage.Height, Mips = levels, ArraySize = 1, Format = details.Format, Samples = 1, Usage = 0, Bind = 0x28, CpuAccess = 0, Misc = 1 };
+                Check(Method<CreateTexture>(device, 5)(device, ref made, IntPtr.Zero, out chain));
+                Check(Method<CreateView>(device, 7)(device, chain, IntPtr.Zero, out chainView));
+                chainLevels = levels;
+            }
+            catch (Exception) { DropChain(); chainFailed = true; }
+        }
+
+        private void DropChain()
+        {
+            Drop(ref chainView);
+            Drop(ref chain);
+            for (int level = 0; level < levelStages.Length; level++) Drop(ref levelStages[level]);
+            chainLevels = 0;
+            chainMade = false;
+        }
+
+        internal bool Chained { get { lock (gate) return chain != IntPtr.Zero; } }
+
+        private int LevelFor(int width, int height)
+        {
+            if (chain == IntPtr.Zero) return 0;
+            int stageWidth = crop.Right - crop.Left, stageHeight = crop.Bottom - crop.Top, level = 0;
+            while (level + 1 < chainLevels && Math.Max(1, stageWidth >> (level + 1)) >= width && Math.Max(1, stageHeight >> (level + 1)) >= height) level++;
+            return level;
         }
 
         private void Count()
@@ -454,10 +489,12 @@ namespace CapriDesktop
             countedAt = now;
         }
 
-        private IntPtr Read(out int across, out int down, out BitmapData locked)
+        private IntPtr Read(int level, out int across, out int down, out BitmapData locked, out int width, out int height)
         {
             locked = null;
             across = 4;
+            width = area.Width;
+            height = area.Height;
             if (duplication == IntPtr.Zero)
             {
                 locked = fallback.LockBits(new Rectangle(Point.Empty, fallback.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
@@ -465,7 +502,26 @@ namespace CapriDesktop
                 return locked.Scan0;
             }
             Mapped mapped;
+            if (chain != IntPtr.Zero)
+            {
+                width = Math.Max(1, (crop.Right - crop.Left) >> level);
+                height = Math.Max(1, (crop.Bottom - crop.Top) >> level);
+                if (level > 0 && !chainMade) { Method<MakeMips>(context, 54)(context, chainView); chainMade = true; }
+                if (level > 0 && levelStages[level] == IntPtr.Zero)
+                {
+                    TextureDesc small = new TextureDesc { Width = width, Height = height, Mips = 1, ArraySize = 1, Format = textureDesc.Format, Samples = 1, Usage = 3, CpuAccess = 0x20000 };
+                    Check(Method<CreateTexture>(device, 5)(device, ref small, IntPtr.Zero, out levelStages[level]));
+                }
+                IntPtr target = level > 0 ? levelStages[level] : staging;
+                Box whole = new Box { Left = 0, Top = 0, Front = 0, Right = width, Bottom = height, Back = 1 };
+                copy(context, target, 0, 0, 0, 0, chain, level, ref whole);
+                Check(map(context, target, 0, 1, 0, out mapped));
+                mappedTexture = target;
+                down = mapped.RowPitch;
+                return mapped.Data;
+            }
             Check(map(context, staging, 0, 1, 0, out mapped));
+            mappedTexture = staging;
             down = mapped.RowPitch;
             int stageWidth = crop.Right - crop.Left;
             int stageHeight = crop.Bottom - crop.Top;
@@ -478,7 +534,7 @@ namespace CapriDesktop
         private void Unread(BitmapData locked)
         {
             if (locked != null) fallback.UnlockBits(locked);
-            else unmap(context, staging, 0);
+            else unmap(context, mappedTexture, 0);
         }
 
         // A frame wider than maxWidth shrinks straight out of the capture in one pass. It used to be copied at full size, then
@@ -496,12 +552,12 @@ namespace CapriDesktop
                 try
                 {
                     BitmapData locked;
-                    int across, down;
-                    IntPtr source = Read(out across, out down, out locked);
+                    int across, down, sourceWidth, sourceHeight;
+                    IntPtr source = Read(LevelFor(wide, tall), out across, out down, out locked, out sourceWidth, out sourceHeight);
                     try
                     {
                         BitmapData target = picture.LockBits(new Rectangle(0, 0, wide, tall), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
-                        try { Shrink((byte*)source, across, down, area.Width, area.Height, target, wide, tall); }
+                        try { Shrink((byte*)source, across, down, sourceWidth, sourceHeight, target, wide, tall); }
                         finally { picture.UnlockBits(target); }
                     }
                     finally { Unread(locked); }
@@ -514,8 +570,77 @@ namespace CapriDesktop
             }
         }
 
-        // Each pixel out is the average of the frame's pixels under it, so text and a game's HUD lines don't shimmer. At the same
+        internal static unsafe int ShrinkError(int width, int height, int wide)
+        {
+            int tall = Math.Max(1, (int)((long)height * wide / width)), worst = 0;
+            byte[] frame = new byte[(long)width * height * 4];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    long at = ((long)y * width + x) * 4;
+                    frame[at] = (byte)(x * 255 / width);
+                    frame[at + 1] = (byte)(y * 255 / height);
+                    frame[at + 2] = (byte)((x + y) * 255 / (width + height));
+                }
+            using (Bitmap picture = new Bitmap(wide, tall, PixelFormat.Format32bppRgb))
+            {
+                BitmapData target = picture.LockBits(new Rectangle(0, 0, wide, tall), ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
+                try
+                {
+                    fixed (byte* source = frame) Shrink(source, 4, width * 4, width, height, target, wide, tall);
+                    for (int row = 0; row < tall; row++)
+                        for (int column = 0; column < wide; column++)
+                        {
+                            int top = (int)((long)row * height / tall), bottom = Math.Max(top + 1, (int)((long)(row + 1) * height / tall));
+                            int left = (int)((long)column * width / wide), right = Math.Max(left + 1, (int)((long)(column + 1) * width / wide));
+                            long[] sums = new long[3];
+                            for (int y = top; y < bottom; y++)
+                                for (int x = left; x < right; x++)
+                                    for (int channel = 0; channel < 3; channel++) sums[channel] += frame[((long)y * width + x) * 4 + channel];
+                            uint shown = *((uint*)((byte*)target.Scan0 + (long)row * target.Stride) + column);
+                            for (int channel = 0; channel < 3; channel++)
+                                worst = Math.Max(worst, Math.Abs((int)((shown >> (8 * channel)) & 255) - (int)(sums[channel] / ((bottom - top) * (right - left)))));
+                        }
+                }
+                finally { picture.UnlockBits(target); }
+            }
+            return worst;
+        }
+
+        internal static unsafe double ShrinkMs(int width, int height, int wide, int rounds)
+        {
+            int tall = Math.Max(1, (int)((long)height * wide / width));
+            byte[] frame = new byte[(long)width * height * 4];
+            new Random(7).NextBytes(frame);
+            using (Bitmap picture = new Bitmap(wide, tall, PixelFormat.Format32bppRgb))
+            {
+                BitmapData target = picture.LockBits(new Rectangle(0, 0, wide, tall), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+                try
+                {
+                    fixed (byte* source = frame)
+                    {
+                        Shrink(source, 4, width * 4, width, height, target, wide, tall);
+                        Stopwatch spent = Stopwatch.StartNew();
+                        for (int i = 0; i < rounds; i++) Shrink(source, 4, width * 4, width, height, target, wide, tall);
+                        return spent.Elapsed.TotalMilliseconds / rounds;
+                    }
+                }
+                finally { picture.UnlockBits(target); }
+            }
+        }
+
+        // Each pixel out is the average of the frame's pixels under it, or of every other one each way where four or more fall under
+        // it, so text and a game's HUD lines don't shimmer. At the same
         // size it's a plain copy.
+        private static readonly ulong[] Inverses = MakeInverses();
+
+        private static ulong[] MakeInverses()
+        {
+            ulong[] made = new ulong[257];
+            for (int count = 1; count <= 256; count++) made[count] = ((1UL << 32) + (ulong)count - 1) / (ulong)count;
+            return made;
+        }
+
         private static unsafe void Shrink(byte* source, int across, int down, int width, int height, BitmapData target, int wide, int tall)
         {
             if (wide == width && tall == height)
@@ -530,21 +655,45 @@ namespace CapriDesktop
             }
             int[] lefts = new int[wide + 1];
             for (int column = 0; column <= wide; column++) lefts[column] = (int)((long)column * width / wide);
+            int stepX = width >= wide * 4 ? 2 : 1, stepY = height >= tall * 4 ? 2 : 1;
+            long acrossStep = (long)across * stepX;
             for (int row = 0; row < tall; row++)
             {
                 int top = (int)((long)row * height / tall), bottom = Math.Max(top + 1, (int)((long)(row + 1) * height / tall));
+                int rows = (bottom - top + stepY - 1) / stepY;
                 uint* to = (uint*)((byte*)target.Scan0 + (long)row * target.Stride);
                 for (int column = 0; column < wide; column++)
                 {
                     int left = lefts[column], right = Math.Max(left + 1, lefts[column + 1]);
-                    uint blue = 0, green = 0, red = 0;
-                    for (int y = top; y < bottom; y++)
+                    uint count = (uint)(rows * ((right - left + stepX - 1) / stepX)), blue = 0, green = 0, red = 0;
+                    if (count <= 256)
                     {
-                        byte* from = source + (long)y * down + (long)left * across;
-                        for (int x = left; x < right; x++, from += across) { blue += from[0]; green += from[1]; red += from[2]; }
+                        uint redBlue = 0;
+                        for (int y = top; y < bottom; y += stepY)
+                        {
+                            byte* from = source + (long)y * down + (long)left * across;
+                            for (int x = left; x < right; x += stepX, from += acrossStep)
+                            {
+                                uint pixel = *(uint*)from;
+                                redBlue += pixel & 0x00FF00FFu;
+                                green += (pixel >> 8) & 0xFFu;
+                            }
+                        }
+                        red = redBlue >> 16;
+                        blue = redBlue & 0xFFFFu;
                     }
-                    uint count = (uint)((bottom - top) * (right - left));
-                    to[column] = 0xFF000000u | ((red / count) << 16) | ((green / count) << 8) | (blue / count);
+                    else
+                        for (int y = top; y < bottom; y += stepY)
+                        {
+                            byte* from = source + (long)y * down + (long)left * across;
+                            for (int x = left; x < right; x += stepX, from += acrossStep) { blue += from[0]; green += from[1]; red += from[2]; }
+                        }
+                    if (count <= 256)
+                    {
+                        ulong inverse = Inverses[count];
+                        to[column] = 0xFF000000u | (uint)((red * inverse) >> 32) << 16 | (uint)((green * inverse) >> 32) << 8 | (uint)((blue * inverse) >> 32);
+                    }
+                    else to[column] = 0xFF000000u | ((red / count) << 16) | ((green / count) << 8) | (blue / count);
                 }
             }
         }
@@ -559,9 +708,9 @@ namespace CapriDesktop
                 try
                 {
                     BitmapData locked;
-                    int across, down;
-                    IntPtr source = Read(out across, out down, out locked);
-                    try { return Downsample(source, area.Width, area.Height, across, down, width, height); }
+                    int across, down, sourceWidth, sourceHeight;
+                    IntPtr source = Read(LevelFor(width, height), out across, out down, out locked, out sourceWidth, out sourceHeight);
+                    try { return Downsample(source, sourceWidth, sourceHeight, across, down, width, height); }
                     finally { Unread(locked); }
                 }
                 catch (COMException error) { Settle(error.HResult); return null; }
@@ -692,6 +841,7 @@ namespace CapriDesktop
         private void CloseDuplication()
         {
             ready = false;
+            DropChain();
             Drop(ref staging);
             Drop(ref duplication);
             Drop(ref context);
@@ -727,6 +877,8 @@ namespace CapriDesktop
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CopyTexture(IntPtr instance, IntPtr target, int targetIndex, int x, int y, int z, IntPtr source, int sourceIndex, ref Box box);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int MapTexture(IntPtr instance, IntPtr texture, int index, int kind, int flags, out Mapped mapped);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void UnmapTexture(IntPtr instance, IntPtr texture, int index);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate int CreateView(IntPtr instance, IntPtr resource, IntPtr description, out IntPtr view);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void MakeMips(IntPtr instance, IntPtr view);
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct OutputDesc

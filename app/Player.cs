@@ -100,6 +100,7 @@ namespace CapriDesktop
         {
             // What Windows calls the app, the name she shows, and its program.
             { "spotify", "Spotify", "Spotify" },
+            { @"^music\.youtube\.com-", "YouTube Music", "msedge" },
             { "^chrome", "Chrome", "chrome" },
             { "msedge", "Edge", "msedge" },
             { "firefox|^308046B0AF4A39CB$", "Firefox", "firefox" },
@@ -562,6 +563,7 @@ namespace CapriDesktop
         internal event Action<string> Command;
         // They let go of it somewhere new: its plate's bottom-left on screen, to keep.
         internal event Action<Point> Moved;
+        internal event Action Hauling;
 
         internal MiniPlayer() : base("Capri mini player")
         {
@@ -627,6 +629,12 @@ namespace CapriDesktop
             Redraw();
             if (!ticks.Enabled) ticks.Start();
         }
+
+        // Her Mainframe colours changed, so she redraws in the new ones.
+        internal void Restyle() { if (Visible) Redraw(); }
+
+        // Black, White and Grey have no hue to tell a hovered button by, so its glow takes the look's lit grey and shows more.
+        private static Color HoverGlow { get { return Neon.Mono ? Color.FromArgb(70, BubbleLook.Cyan) : Color.FromArgb(30, 255, 255, 255); } }
 
         private void Redraw()
         {
@@ -791,11 +799,14 @@ namespace CapriDesktop
             grabbed = at;
             grabbedAt = Location;
             Capture = true;
+            if (Hauling != null) Hauling();
         }
 
         internal void Haul(Point at)
         {
-            if (grabbing) MoveTo(new Point(grabbedAt.X + at.X - grabbed.X, grabbedAt.Y + at.Y - grabbed.Y));
+            if (!grabbing) return;
+            MoveTo(new Point(grabbedAt.X + at.X - grabbed.X, grabbedAt.Y + at.Y - grabbed.Y));
+            if (Hauling != null) Hauling();
         }
 
         internal void LetGo()
@@ -805,6 +816,7 @@ namespace CapriDesktop
             if (Capture) Capture = false;
             if (!was || !Visible) return;
             if (Dpi() != scale) Redraw();
+            if (Hauling != null) Hauling();
             if (corner.HasValue && Moved != null) Moved(corner.Value);
         }
 
@@ -993,21 +1005,21 @@ namespace CapriDesktop
                 PointF from = new PointF(-1, 0), to = new PointF(w + 1, 0);
                 using (GraphicsPath path = Look.Rounded(plate, 16 * s))
                 {
-                    using (LinearGradientBrush haze = new LinearGradientBrush(from, to, Color.FromArgb(30, Look.Pink), Color.FromArgb(30, Look.Cyan)))
+                    using (LinearGradientBrush haze = new LinearGradientBrush(from, to, Color.FromArgb(30, BubbleLook.Pink), Color.FromArgb(30, BubbleLook.Cyan)))
                     using (Pen wide = new Pen(haze, 14 * s)) graphics.DrawPath(wide, path);
-                    using (LinearGradientBrush haze = new LinearGradientBrush(from, to, Color.FromArgb(70, Look.Pink), Color.FromArgb(70, Look.Cyan)))
+                    using (LinearGradientBrush haze = new LinearGradientBrush(from, to, Color.FromArgb(70, BubbleLook.Pink), Color.FromArgb(70, BubbleLook.Cyan)))
                     using (Pen near = new Pen(haze, 6 * s)) graphics.DrawPath(near, path);
-                    using (Brush fill = new SolidBrush(Color.FromArgb(250, 5, 6, 9))) graphics.FillPath(fill, path);
+                    using (Brush fill = new SolidBrush(Color.FromArgb(250, Neon.Tone(5, 6, 9)))) graphics.FillPath(fill, path);
                     graphics.SetClip(path);
                     using (Pen scan = new Pen(Color.FromArgb(9, 255, 255, 255), Math.Max(1, s)))
                         for (float row = 0; row < h; row += 3 * s) graphics.DrawLine(scan, 0, row, w, row);
                     graphics.ResetClip();
-                    using (LinearGradientBrush ink = new LinearGradientBrush(from, to, Look.Pink, Look.Cyan))
+                    using (LinearGradientBrush ink = new LinearGradientBrush(from, to, BubbleLook.Pink, BubbleLook.Cyan))
                     using (Pen edge = new Pen(ink, 1.6f * s)) graphics.DrawPath(edge, path);
                 }
                 // Her glitch: a sliver of the edge torn loose at the top right, and another at the bottom left.
-                using (Brush cyan = new SolidBrush(Color.FromArgb(210, Look.Cyan))) graphics.FillRectangle(cyan, w * 0.64f, -3 * s, 28 * s, 1.6f * s);
-                using (Brush pink = new SolidBrush(Color.FromArgb(210, Look.Pink))) graphics.FillRectangle(pink, w * 0.18f, h + 1.4f * s, 18 * s, 1.6f * s);
+                using (Brush cyan = new SolidBrush(Color.FromArgb(210, BubbleLook.Cyan))) graphics.FillRectangle(cyan, w * 0.64f, -3 * s, 28 * s, 1.6f * s);
+                using (Brush pink = new SolidBrush(Color.FromArgb(210, BubbleLook.Pink))) graphics.FillRectangle(pink, w * 0.18f, h + 1.4f * s, 18 * s, 1.6f * s);
                 string app = Tunes.AppName(tune.App);
                 string title = Plain(tune.Title).Length > 0 ? Plain(tune.Title) : app;
                 string artist = Plain(tune.Title).Length == 0 ? "" : Plain(tune.Artist).Length > 0 ? Plain(tune.Artist) : app;
@@ -1024,20 +1036,20 @@ namespace CapriDesktop
                     Region kept = null;
                     if (rolls) { kept = graphics.Clip; graphics.SetClip(new RectangleF(span[0] - 2 * s, (TitleY - 4) * s, span[1] - span[0] + 4 * s, 22 * s)); }
                     float titleX = span[0] - slide;
-                    using (Brush pink = new SolidBrush(Color.FromArgb(140, Look.Pink))) Look.Draw(graphics, shown, big, pink, titleX - 1.1f * s, TitleY * s);
-                    using (Brush cyan = new SolidBrush(Color.FromArgb(140, Look.Cyan))) Look.Draw(graphics, shown, big, cyan, titleX + 1.1f * s, TitleY * s);
-                    using (Brush ink = new SolidBrush(Look.Ink)) Look.Draw(graphics, shown, big, ink, titleX, TitleY * s);
+                    using (Brush pink = new SolidBrush(Color.FromArgb(140, BubbleLook.Pink))) Look.Draw(graphics, shown, big, pink, titleX - 1.1f * s, TitleY * s);
+                    using (Brush cyan = new SolidBrush(Color.FromArgb(140, BubbleLook.Cyan))) Look.Draw(graphics, shown, big, cyan, titleX + 1.1f * s, TitleY * s);
+                    using (Brush ink = new SolidBrush(BubbleLook.Ink)) Look.Draw(graphics, shown, big, ink, titleX, TitleY * s);
                     if (rolls) { graphics.Clip = kept; kept.Dispose(); titleRolls = true; }
                     float timeWidth = time.Length > 0 ? graphics.MeasureString(time, small, PointF.Empty, StringFormat.GenericTypographic).Width : 0;
                     float timeLeft = w - 18 * s - timeWidth;
                     bool timeShown = time.Length > 0 && !(legsTo > legsFrom && legsTo + 4 * s > timeLeft && legsFrom - 4 * s < w - 18 * s);
                     float artistRight = cutRight ? span[1] : w - 18 * s;
                     if (timeShown) artistRight = Math.Min(artistRight, timeLeft - 12 * s);
-                    using (Brush cyan = new SolidBrush(Color.FromArgb(225, Look.Cyan))) Look.Draw(graphics, Fit(graphics, artist, small, artistRight - span[0]), small, cyan, span[0], ArtistY * s);
-                    if (timeShown) using (Brush dim = new SolidBrush(Look.Dim)) graphics.DrawString(time, small, dim, timeLeft, ArtistY * s, StringFormat.GenericTypographic);
+                    using (Brush cyan = new SolidBrush(Color.FromArgb(225, BubbleLook.Cyan))) Look.Draw(graphics, Fit(graphics, artist, small, artistRight - span[0]), small, cyan, span[0], ArtistY * s);
+                    if (timeShown) using (Brush dim = new SolidBrush(BubbleLook.Dim)) graphics.DrawString(time, small, dim, timeLeft, ArtistY * s, StringFormat.GenericTypographic);
                 }
                 float barLeft = 18 * s, barRight = w - 18 * s, barY = SeekY * s;
-                using (Pen rail = new Pen(Color.FromArgb(58, 63, 74), 2.2f * s))
+                using (Pen rail = new Pen(Neon.Tone(58, 63, 74), 2.2f * s))
                 {
                     rail.StartCap = LineCap.Round;
                     rail.EndCap = LineCap.Round;
@@ -1047,7 +1059,7 @@ namespace CapriDesktop
                 {
                     float x = barLeft + (float)(Math.Max(0, Math.Min(1, at / tune.Length)) * (barRight - barLeft));
                     if (x > barLeft + 0.5f)
-                        using (LinearGradientBrush ink = new LinearGradientBrush(new PointF(barLeft - 1, 0), new PointF(barRight + 1, 0), Look.Pink, Look.Cyan))
+                        using (LinearGradientBrush ink = new LinearGradientBrush(new PointF(barLeft - 1, 0), new PointF(barRight + 1, 0), BubbleLook.Pink, BubbleLook.Cyan))
                         using (Pen done = new Pen(ink, 2.6f * s))
                         {
                             done.StartCap = LineCap.Round;
@@ -1056,22 +1068,22 @@ namespace CapriDesktop
                         }
                     bool lit = hover == PlayerPart.Seek || scrub >= 0;
                     float r = (lit ? 6.5f : 5.5f) * s;
-                    using (Brush halo = new SolidBrush(Color.FromArgb(lit ? 90 : 60, lit ? Look.Cyan : Look.Pink))) graphics.FillEllipse(halo, x - r * 1.9f, barY - r * 1.9f, r * 3.8f, r * 3.8f);
-                    using (Brush knob = new SolidBrush(Look.Ink)) graphics.FillEllipse(knob, x - r, barY - r, r * 2, r * 2);
+                    using (Brush halo = new SolidBrush(Color.FromArgb(lit ? 90 : 60, lit ? BubbleLook.Cyan : BubbleLook.Pink))) graphics.FillEllipse(halo, x - r * 1.9f, barY - r * 1.9f, r * 3.8f, r * 3.8f);
+                    using (Brush knob = new SolidBrush(BubbleLook.Ink)) graphics.FillEllipse(knob, x - r, barY - r, r * 2, r * 2);
                 }
                 foreach (int part in new[] { PlayerPart.Menu, PlayerPart.Previous, PlayerPart.Next, PlayerPart.Heart, PlayerPart.Shuffle, PlayerPart.Loop })
                 {
                     if (hover != part || (part == PlayerPart.Heart && !tune.Heartable)) continue;
                     PointF lit = Middle(part, s);
-                    using (Brush glowing = new SolidBrush(Color.FromArgb(30, 255, 255, 255))) graphics.FillEllipse(glowing, lit.X - 15 * s, lit.Y - 15 * s, 30 * s, 30 * s);
+                    using (Brush glowing = new SolidBrush(HoverGlow)) graphics.FillEllipse(glowing, lit.X - 15 * s, lit.Y - 15 * s, 30 * s, 30 * s);
                 }
-                DrawMenu(graphics, Middle(PlayerPart.Menu, s), s, hover == PlayerPart.Menu ? Look.Cyan : Look.Ink);
-                DrawSkip(graphics, Middle(PlayerPart.Previous, s), s, hover == PlayerPart.Previous ? Look.Cyan : Look.Ink, false);
-                DrawSkip(graphics, Middle(PlayerPart.Next, s), s, hover == PlayerPart.Next ? Look.Cyan : Look.Ink, true);
+                DrawMenu(graphics, Middle(PlayerPart.Menu, s), s, hover == PlayerPart.Menu ? BubbleLook.Cyan : BubbleLook.Ink);
+                DrawSkip(graphics, Middle(PlayerPart.Previous, s), s, hover == PlayerPart.Previous ? BubbleLook.Cyan : BubbleLook.Ink, false);
+                DrawSkip(graphics, Middle(PlayerPart.Next, s), s, hover == PlayerPart.Next ? BubbleLook.Cyan : BubbleLook.Ink, true);
                 bool mixing = tune.Shuffle ?? false;
                 string over = tune.Repeat ?? "off";
-                DrawShuffle(graphics, Middle(PlayerPart.Shuffle, s), s, mixing ? Look.Pink : hover == PlayerPart.Shuffle ? Look.Cyan : Look.Dim);
-                DrawLoop(graphics, Middle(PlayerPart.Loop, s), s, over != "off" ? Look.Pink : hover == PlayerPart.Loop ? Look.Cyan : Look.Dim, over == "one");
+                DrawShuffle(graphics, Middle(PlayerPart.Shuffle, s), s, mixing ? BubbleLook.Pink : hover == PlayerPart.Shuffle ? BubbleLook.Cyan : BubbleLook.Dim);
+                DrawLoop(graphics, Middle(PlayerPart.Loop, s), s, over != "off" ? BubbleLook.Pink : hover == PlayerPart.Loop ? BubbleLook.Cyan : BubbleLook.Dim, over == "one");
                 DrawPlay(graphics, Middle(PlayerPart.PlayPause, s), s, hover == PlayerPart.PlayPause, tune.Playing);
                 if (tune.Heartable) DrawHeart(graphics, Middle(PlayerPart.Heart, s), s, hover == PlayerPart.Heart, liked);
                 DrawClose(graphics, Middle(PlayerPart.Close, s), s, hover == PlayerPart.Close);
@@ -1102,7 +1114,7 @@ namespace CapriDesktop
                     graphics.CompositingMode = CompositingMode.SourceOver;
                     graphics.SetClip(plate);
                     graphics.IntersectClip(strip);
-                    using (Brush tint = new SolidBrush(Color.FromArgb(56, i % 2 == 0 ? Look.Pink : Look.Cyan))) graphics.FillRectangle(tint, strip);
+                    using (Brush tint = new SolidBrush(Color.FromArgb(56, i % 2 == 0 ? BubbleLook.Pink : BubbleLook.Cyan))) graphics.FillRectangle(tint, strip);
                     graphics.ResetClip();
                 }
         }
@@ -1198,7 +1210,7 @@ namespace CapriDesktop
         {
             RectangleF bar = Box(PlayerPart.Volume, s);
             float midY = bar.Y + bar.Height / 2;
-            Color ink = lit ? Look.Cyan : Look.Dim;
+            Color ink = lit ? BubbleLook.Cyan : BubbleLook.Dim;
             using (Pen line = new Pen(ink, 1.6f * s))
             {
                 line.StartCap = LineCap.Round;
@@ -1216,7 +1228,7 @@ namespace CapriDesktop
                     graphics.DrawLine(line, x + 11 * s, midY - 4 * s, x + 4 * s, midY + 4 * s);
                 }
             }
-            using (Pen rail = new Pen(Look.Dim, 2.2f * s))
+            using (Pen rail = new Pen(BubbleLook.Dim, 2.2f * s))
             {
                 rail.StartCap = LineCap.Round;
                 rail.EndCap = LineCap.Round;
@@ -1224,13 +1236,13 @@ namespace CapriDesktop
             }
             float upto = bar.X + (float)(bar.Width * level);
             if (upto > bar.X)
-                using (Pen done = new Pen(lit ? Look.Cyan : Look.Pink, 2.2f * s))
+                using (Pen done = new Pen(lit ? BubbleLook.Cyan : BubbleLook.Pink, 2.2f * s))
                 {
                     done.StartCap = LineCap.Round;
                     done.EndCap = LineCap.Round;
                     graphics.DrawLine(done, bar.X, midY, upto, midY);
                 }
-            using (Brush knob = new SolidBrush(lit ? Look.Cyan : Look.Pink))
+            using (Brush knob = new SolidBrush(lit ? BubbleLook.Cyan : BubbleLook.Pink))
                 graphics.FillEllipse(knob, upto - 3 * s, midY - 3 * s, 6 * s, 6 * s);
         }
 
@@ -1238,11 +1250,11 @@ namespace CapriDesktop
         private static void DrawPlay(Graphics graphics, PointF c, float s, bool lit, bool playing)
         {
             float r = 17 * s;
-            if (lit) using (Brush halo = new SolidBrush(Color.FromArgb(70, Look.Cyan))) graphics.FillEllipse(halo, c.X - r - 5 * s, c.Y - r - 5 * s, (r + 5 * s) * 2, (r + 5 * s) * 2);
-            using (Brush pink = new SolidBrush(Color.FromArgb(170, Look.Pink))) graphics.FillEllipse(pink, c.X - r - 1.6f * s, c.Y - r, r * 2, r * 2);
-            using (Brush cyan = new SolidBrush(Color.FromArgb(170, Look.Cyan))) graphics.FillEllipse(cyan, c.X - r + 1.6f * s, c.Y - r, r * 2, r * 2);
-            using (Brush disc = new SolidBrush(Look.Ink)) graphics.FillEllipse(disc, c.X - r, c.Y - r, r * 2, r * 2);
-            using (Brush dark = new SolidBrush(Color.FromArgb(10, 11, 15)))
+            if (lit) using (Brush halo = new SolidBrush(Color.FromArgb(70, BubbleLook.Cyan))) graphics.FillEllipse(halo, c.X - r - 5 * s, c.Y - r - 5 * s, (r + 5 * s) * 2, (r + 5 * s) * 2);
+            using (Brush pink = new SolidBrush(Color.FromArgb(170, BubbleLook.Pink))) graphics.FillEllipse(pink, c.X - r - 1.6f * s, c.Y - r, r * 2, r * 2);
+            using (Brush cyan = new SolidBrush(Color.FromArgb(170, BubbleLook.Cyan))) graphics.FillEllipse(cyan, c.X - r + 1.6f * s, c.Y - r, r * 2, r * 2);
+            using (Brush disc = new SolidBrush(BubbleLook.Ink)) graphics.FillEllipse(disc, c.X - r, c.Y - r, r * 2, r * 2);
+            using (Brush dark = new SolidBrush(Neon.Tone(10, 11, 15)))
             {
                 if (!playing) { graphics.FillPolygon(dark, new[] { new PointF(c.X - 4.5f * s, c.Y - 7.5f * s), new PointF(c.X - 4.5f * s, c.Y + 7.5f * s), new PointF(c.X + 8 * s, c.Y) }); return; }
                 foreach (float x in new[] { c.X - 5.6f * s, c.X + 2 * s })
@@ -1260,8 +1272,8 @@ namespace CapriDesktop
                 heart.AddBezier(x, y - r * 0.45f, x + r * 0.1f, y - r * 1.1f, x + r * 1.0f, y - r * 1.05f, x + r * 1.05f, y - r * 0.35f);
                 heart.AddBezier(x + r * 1.05f, y - r * 0.35f, x + r * 1.1f, y + r * 0.1f, x + r * 0.35f, y + r * 0.6f, x, y + r * 0.95f);
                 heart.CloseFigure();
-                if (liked) using (Brush fill = new SolidBrush(Look.Pink)) graphics.FillPath(fill, heart);
-                using (Pen edge = new Pen(liked ? Look.Pink : lit ? Look.Cyan : Look.Ink, 2 * s))
+                if (liked) using (Brush fill = new SolidBrush(BubbleLook.Pink)) graphics.FillPath(fill, heart);
+                using (Pen edge = new Pen(liked ? BubbleLook.Pink : lit ? BubbleLook.Cyan : BubbleLook.Ink, 2 * s))
                 {
                     edge.LineJoin = LineJoin.Round;
                     graphics.DrawPath(edge, heart);
@@ -1272,8 +1284,8 @@ namespace CapriDesktop
         private static void DrawClose(Graphics graphics, PointF c, float s, bool lit)
         {
             float r = 4.5f * s;
-            if (lit) using (Brush halo = new SolidBrush(Color.FromArgb(60, Look.Red))) graphics.FillEllipse(halo, c.X - 10 * s, c.Y - 10 * s, 20 * s, 20 * s);
-            using (Pen cross = new Pen(lit ? Look.Red : Look.Dim, 1.8f * s))
+            if (lit) using (Brush halo = new SolidBrush(Color.FromArgb(60, BubbleLook.Red))) graphics.FillEllipse(halo, c.X - 10 * s, c.Y - 10 * s, 20 * s, 20 * s);
+            using (Pen cross = new Pen(lit ? BubbleLook.Red : BubbleLook.Dim, 1.8f * s))
             {
                 cross.StartCap = LineCap.Round;
                 cross.EndCap = LineCap.Round;

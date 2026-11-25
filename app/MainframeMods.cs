@@ -12,7 +12,7 @@ namespace CapriDesktop
 {
     internal sealed partial class Mainframe
     {
-        private const int ModRows = 4, ModRowTop = 238, ModRowHeight = 62;
+        private const int ModRows = 3, ModRowTop = 370, ModRowHeight = 62, ModListHead = 312;
         private readonly List<KeyValuePair<Control, int>> modLeft = new List<KeyValuePair<Control, int>>();
         private readonly Label[] modNames = new Label[ModRows], modAbouts = new Label[ModRows];
         private readonly Key[] modSwitches = new Key[ModRows], modRemoves = new Key[ModRows], modPublishes = new Key[ModRows], modOptions = new Key[ModRows];
@@ -24,6 +24,7 @@ namespace CapriDesktop
         private Entry modSearch;
         private List<Mod> modShown = new List<Mod>();
         private bool modded;
+        internal bool ModsOpen { get { return modded; } }
         private int modFirst;
 
         private void BuildMods()
@@ -47,13 +48,14 @@ namespace CapriDesktop
             ((Note)modStatus).Hovers = true;
             // Mod names can hold an &, like Dice & Decider, so it isn't read as a shortcut key.
             modStatus.UseMnemonic = false;
-            modListHead = Section("INSTALLED >", 0, 180);
-            modSearch = Input(28, 204, 222, 26);
+            BuildPlugs();
+            modListHead = Section("INSTALLED >", 0, ModListHead);
+            modSearch = Input(28, ModListHead + 24, 222, 26);
             modSearch.Cue = "Search by name or author";
             modSearch.Box.AccessibleName = "Search your installed mods";
             Explain(modSearch, "Search installed mods", "MainframeMods.cs", null, "Search installed mods");
             modSearch.Box.TextChanged += delegate { modFirst = 0; FillMods(); };
-            modUpdate = Make("Update mods", 256, 204, 100, 26, delegate { UpdateMods(); });
+            modUpdate = Make("Update mods", 256, ModListHead + 24, 100, 26, delegate { UpdateMods(); });
             modUpdate.AccessibleName = "Update your installed mods from the mods directory";
             modUpdateUsual = modUpdate.Accent;
             Explain(modUpdate, "Update mods", "MainframeMods.cs", null, "Update mods");
@@ -90,6 +92,9 @@ namespace CapriDesktop
             }
             Key colourReset = Make("Reset colors", 28, colourRow + 32, 160, 24, delegate { ResetColours(); });
             Explain(colourReset, "Reset colors", "MainframeMods.cs");
+            Key animations = Make("Animations", 196, colourRow + 32, 160, 24, delegate { EditAnimations(); });
+            animations.AccessibleName = "Edit her animations";
+            Explain(animations, "Animations", "MainframeMods.cs");
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -147,6 +152,7 @@ namespace CapriDesktop
         internal void ShowMods(bool on)
         {
             DismissHint();
+            CloseSearchList();
             if (on && paged) ShowSettings(false);
             modded = on;
             more.Text = on ? "Back" : "Settings";
@@ -161,11 +167,12 @@ namespace CapriDesktop
 
         private void FillMods()
         {
-            List<Mod> mods = ShownMods(capri.ModList.All, modSearch.Box.Text);
+            FillPlugs();
+            List<Mod> mods = ShownMods(capri.ModList.All.FindAll(one => !one.Plugin), modSearch.Box.Text);
             modShown = mods;
             int total = mods.Count, pageSize = ModRows;
             modFirst = Math.Max(0, Math.Min(modFirst, (Math.Max(0, total - 1) / pageSize) * pageSize));
-            modEmpty.Visible = capri.ModList.All.Count == 0;
+            modEmpty.Visible = !capri.ModList.All.Exists(one => !one.Plugin);
             modNoMatch.Visible = total == 0 && !modEmpty.Visible;
             for (int i = 0; i < ModRows; i++)
             {
@@ -178,7 +185,7 @@ namespace CapriDesktop
                 modOptions[i].AccessibleName = "Open " + mod.File.Name + "'s options";
                 modNames[i].Text = mod.File.Name + (string.IsNullOrEmpty(mod.File.Version) ? "" : " v" + mod.File.Version);
                 modNames[i].ForeColor = mod.On ? White : Faint;
-                modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Skin ? (mod.On && capri.ModList.SkinStack.Count > 1 ? "SKIN, LAYER " + (capri.ModList.SkinStack.IndexOf(mod) + 1) + " OF " + capri.ModList.SkinStack.Count + ". " : "SKIN. ") : mod.Skill ? "SKILL. " : "") + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "") + (mod.Code || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames)) + (mod.Skill && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : "")).Trim();
+                modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Tool ? "TOOL, reads from " + string.Join(", ", mod.File.Recipe.Domains) + ". " : mod.Skin ? (mod.On && capri.ModList.SkinStack.Count > 1 ? "SKIN, LAYER " + (capri.ModList.SkinStack.IndexOf(mod) + 1) + " OF " + capri.ModList.SkinStack.Count + ". " : "SKIN. ") : mod.Skill ? (mod.Own ? "YOUR SKILL. " : "SKILL. ") : Mods.CompanionLabel(mod)) + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "") + (mod.Code || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames)) + (mod.Skill && mod.File.Games.Length > 0 ? " For " + mod.File.Games[0] + "." : mod.Skill && mod.File.Apps != null && mod.File.Apps.Length > 0 ? " For " + mod.File.Apps[0] + "." : "")).Trim();
                 modAbouts[i].ForeColor = mod.Changed ? Rose : Faint;
                 modSwitches[i].Text = mod.On ? "On" : "Off";
                 modSwitches[i].Accent = mod.On ? Cyan : Rose;
@@ -231,7 +238,8 @@ namespace CapriDesktop
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
                 dialog.Title = "Import a Capri mod";
-                dialog.Filter = "Capri mods (*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension + ")|*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension;
+                dialog.Filter = "Capri mods (*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension + ";*" + Mods.ToolExtension + ";*" + Mods.PluginExtension + ";*" + Mods.CompanionExtension + ")|*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension + ";*" + Mods.ToolExtension + ";*" + Mods.PluginExtension + ";*" + Mods.CompanionExtension
+                    + "|Claude plug-ins and MCP servers (plugin.json, .mcp.json)|plugin.json;capri-plugin.json;.mcp.json;mcp.json";
                 if (dialog.ShowDialog(this) == DialogResult.OK) ImportMod(dialog.FileName);
             }
         }
@@ -246,8 +254,9 @@ namespace CapriDesktop
                     ModSays("Not imported. Nothing ran.", false);
                     return false;
                 }
+                if (mod.Plugin) ShowPlug(mod);
                 FillMods();
-                ModSays(mod.Skin ? Stacked(mod) : mod.Code ? mod.File.Name + " is on and running." : mod.Skill ? mod.File.Name + " is on." + (mod.File.Games.Length == 0 ? " She can read it when it fits." : " She uses it when she plays " + mod.File.Games[0] + ".") : mod.File.WakeNames.Length == 0 ? mod.File.Name + " is on." : mod.File.Name + " is on. She now answers to " + Mods.Listed(mod.File.WakeNames) + " too.", false);
+                ModSays(mod.Plugin ? PluginOn(mod) : mod.Skin ? Stacked(mod) : mod.Pack != null ? Mods.CompanionSays(mod) : mod.Code ? mod.File.Name + " is on and running." : mod.Tool ? mod.File.Name + " is on. She can use it as " + mod.File.Recipe.ToolName.Replace('_', ' ') + "." : mod.Skill ? mod.File.Name + " is on." + (mod.File.Games.Length > 0 ? " She uses it when she plays " + mod.File.Games[0] + "." : mod.File.Apps != null && mod.File.Apps.Length > 0 ? " She uses it when she does something in " + mod.File.Apps[0] + "." : " She can read it when it fits.") : mod.File.WakeNames.Length == 0 ? mod.File.Name + " is on." : mod.File.Name + " is on. She now answers to " + Mods.Listed(mod.File.WakeNames) + " too.", false);
                 return true;
             }
             catch (ModException error)
@@ -340,12 +349,20 @@ namespace CapriDesktop
         private bool SwitchMod(int row)
         {
             Mod mod = ShownMod(row);
+            return mod != null && Switch(mod);
+        }
+
+        // On or off, the same way from her list, a plug-in's tile or its window: a plug-in turning on asks with its box first.
+        private bool Switch(Mod mod)
+        {
             if (mod == null) return false;
             try
             {
                 bool done = capri.ModList.Set(mod, !mod.On, ModAsk);
                 FillMods();
-                ModSays(!done ? mod.File.Name + " stays off. Nothing ran." : mod.Skin ? Stacked(mod) : mod.File.Name + (mod.On ? " is on." : " is off."), false);
+                ModSays(!done ? mod.File.Name + " stays off. Nothing ran." : mod.Skin ? Stacked(mod) : mod.Pack != null ? Mods.CompanionSays(mod) : mod.File.Name + (mod.On ? " is on." : " is off."), false);
+                if (mod.Plugin) RefreshPluginSheet(true);
+                if (done && mod.On) Started(mod);
                 return done;
             }
             catch (ModException error) { ModSays(error.Message, true); }
@@ -356,12 +373,14 @@ namespace CapriDesktop
 
         internal bool SwitchModForTest(int row) { return SwitchMod(row); }
 
-        // A code mod started, stopped or set its options, or one changed her skins: the list shows it, and a stopped mod's options close.
+        // A code mod started, stopped or set its options, one changed her skins, or a plug-in's tools moved on: the list shows it,
+        // a stopped mod's options close and a plug-in's window catches up.
         internal void ModsChanged()
         {
             if (optionsSheet != null && !optionsSheet.IsDisposed && !capri.HasModOptions(optionsSheet.ModId)) optionsSheet.Close();
             if (pageSheet != null && !pageSheet.IsDisposed && !capri.ModRunningNow(pageSheet.ModId)) pageSheet.Close();
             if (modded) FillMods();
+            RefreshPluginSheet(false);
         }
 
         private ModOptionsSheet optionsSheet;
@@ -432,7 +451,8 @@ namespace CapriDesktop
 
         private bool AskToRun(ModFile mod, string hash)
         {
-            if (!Question.Ask(this, Mods.Consent(mod, hash), "Run this code mod?")) return false;
+            if (mod.Plugin) return Question.Ask(this, Mods.Consent(mod, hash), "Turn on this plug-in?");
+            if (!Question.Ask(this, Mods.Consent(mod, hash), mod.Recipe != null ? "Use this tool mod?" : "Run this code mod?")) return false;
             return !mod.AskTwice || Question.Ask(this, Mods.Unclear(mod), "Run code you can't read?");
         }
 
@@ -553,7 +573,9 @@ namespace CapriDesktop
             RemoveMod(0);
             if (File.Exists(mods.LogPath)) throw new Exception("Removing the hearing log mod left its list behind.");
             checks.Add("PASS mods: the hearing log only runs while its mod is on, and goes with it");
+            CheckPlugSection(checks, output);
             CheckDirectory(checks, output);
+            CheckDirectoryPlugins(checks, output);
         }
     }
 }

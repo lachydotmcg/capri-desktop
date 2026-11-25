@@ -30,6 +30,7 @@ Ask Capri for more	Capri-ден көбірек сұраңыз
 Asking your server...	Серверіңізге сұрау жіберілуде...
 Asks before closing only the apps you choose.	Тек таңдаған қолданбаларыңызды жабар алдында сұрайды.
 Auto	Авто
+Auto (match what I say)	Авто (айтқаныма қарай)
 Automatic: VB-CABLE, else Steam's	Автоматты: VB-CABLE, болмаса Steam-нікі
 BAD RELAY HOST	ЖАРАМСЫЗ РЕЛЕ ХОСТЫ
 BIG Z open notepad	BIG Z блокнотты аш
@@ -268,8 +269,10 @@ Hide / Show Capri	Capri-ді жасыру / көрсету
 Hide / Show key	Жасыру / көрсету пернесі
 Hide Capri	Capri-ді жасыру
 Hide for now	Қазір жасыру
+Hide her	Оны жасыру
 Hide in full screen	Толық экранда жасыру
 Hide this	Мұны жасыру
+Hide, keep player	Жасыру, ойнатқышты қалдыру
 Hide/show:	Жасыру/көрсету:
 Hide/show: Ctrl + Alt + H	Жасыру/көрсету: Ctrl + Alt + H
 Hologram	Голограмма
@@ -288,6 +291,7 @@ Huge	Өте үлкен
 I can hear you.	Мен сені естип тұрмын.
 I glance at your screen and comment. Costs a little on a paid brain.	Экраныңызға қараймын және пікір беремін. Ақылы миға аздап шығындайды.
 I keep listening. Say my name, then just talk.	Тыңдауды жалғастырамын. Атымды айтыңыз, содан кейін жай сөйлеңіз.
+I speak	Мен сөйлеймін
 I talk about your game as you play. Costs a little on a paid brain.	Сіз ойнап жатқанда ойыныңыз туралы сөйлеймін. Ақылы миға аздап шығындайды.
 I type my replies and stay quiet.	Жауаптарымды жазамын және тыныш боламын.
 I won't talk back, and nothing is sent anywhere. I'll still hang out, dance to your music and do the quick things you ask, like the volume.	Мен кері сөйлемеймін, және ештеңе ешқайда жіберілмейді. Бәрібір араласамын, музыкаңызға билеймін және дыбыс деңгейі сияқты сұрағандарыңызды жасаймын.
@@ -296,6 +300,7 @@ IN DISCORD >	DISCORD-ТА >
 INSTALLED >	ОРНАТЫЛҒАН >
 Import a Capri mod	Capri модын импорттау
 Import mod	Модты импорттау
+In full screen	Толық экранда
 In games	Ойындарда
 Input	Кіріс
 Input, Output or How to overlaps a row	Кіріс, Шығыс немесе Жол қалай қабаттасады
@@ -314,6 +319,7 @@ KB.	КБ.
 KEYS	ПЕРНЕЛЕР
 KEYS >	ПЕРНЕЛЕР >
 Keep PC awake for jobs	Жұмыстар үшін PC-ді оятып ұстау
+Keep player	Ойнатқышты қалдыру
 Keeps the last two minutes of your game in memory. Say clip that to save it.	Ойыныңыздың соңғы екі минутын жадта сақтайды. Сақтау үшін clip that деңіз.
 Key	Кілт
 Key cleared: a model file needs none.	Кілт тазаланды: модель файлына ол керек емес.
@@ -439,6 +445,7 @@ No AI · no brain at all	AI жоқ · мүлде ми жоқ
 No brain runs, and nothing is sent anywhere.	Ешқандай ми іске қосылмайды, және ештеңе ешқайда жіберілмейді.
 No brain yet	Әзірге ми жоқ
 No code open	Ашық код жоқ
+No limit	Шектеусіз
 No mic found	Микрофон табылмады
 No mods in the directory yet.	Қапқада әлі мод жоқ.
 No mods match that.	Бұған сәйкес мод жоқ.
@@ -516,6 +523,7 @@ Pick {0} to {1} seconds of you talking, or of a voice you have the rights and co
 Pitch	Биіктік
 Play	Ойнату
 Play...	Ойнату...
+Player only	Тек ойнатқыш
 Pocket TTS models copy this clip's voice. Press Test to hear it.	Pocket TTS модельдері осы клиптің дауысын көшіреді. Тыңдау үшін Тест түймесін басыңыз.
 Pop-in times	Пайда болу уақыттары
 Pop-ins	Пайда болулар
@@ -592,6 +600,7 @@ SKILL.	ДАҒДЫ.
 SKIN.	БЕТ-БЕЙНЕ.
 SORT BY	СҰРЫПТАУ
 SOUNDS HABITS BRAIN WATCH CAPRI DOOMSCROLL WEATHER CLIPS GAMES KEYS MOVES VOICE YOU	ДАУЫСТАР ӘДЕТТЕР МИ ҚАРАУ CAPRI DOOMSCROLL АУА РАЙЫ КЛИПТЕР ОЙЫНДАР ПЕРНЕЛЕР ҚОЗҒАЛЫСТАР ДАУЫС СІЗ
+Same as I speak	Менің тілім сияқты
 Same as her ears (VOICE > Mic)	Оның құлақтарымен бірдей (ДАУЫС > Микрофон)
 Same code on the phone?	Телефондағы код бірдей ме?
 Save	Сақтау
@@ -627,9 +636,10 @@ Settings had nothing to watch.	Параметрлерде қарайтын еш�
 Settings lost keyboard focus during the Tab walk	Tab жүрісі кезінде Параметрлер пернетақта фокусын жоғалтты
 Setup guide	Орнату нұсқаулығы
 Setup stopped	Орнату тоқтатылды
+She answers in	Ол жауап береді
 She can read it when it fits.	Сыйғанда ол оқи алады.
 She glances at your screen and comments. Costs a little on a paid brain.	Экраныңызға қарап, пікір береді. Ақылы миға аздап шығындайды.
-She keeps listening. Say her name, then just talk until you go quiet.	Тыңдауды жалғастырады. Атын айтыңыз, содан кейін тыныштанғанша сөйлеңіз.
+She keeps listening. Say her name, then just talk.	Тыңдауды жалғастырады. Атын айтыңыз, содан кейін сөйлеңіз.
 She reacts to your game until you close it.	Сіз жапқанша сіздің ойыныңызға жауап береді.
 She reads these controls before each game job.	Әр ойын тапсырмасының алдында осы басқару элементтерін оқиды.
 She talks about your game as you play. Costs a little on a paid brain.	Сіз ойнап жатқанда ойыныңыз туралы сөйлейді. Ақылы миға аздап шығындайды.
@@ -666,6 +676,7 @@ Speed	Жылдамдық
 Start with Windows	Windows-пен бірге іске қосу
 Start with this!	Осымен бастаңыз!
 Starting...	Басталуда...
+Stay	Қалу
 Stay on my model	Модельімде қалу
 Still checking your mics...	Микрофондарыңызды әлі тексеріп жатырмыз...
 Still checking your speakers...	Динамиктеріңізді әлі тексеріп жатырмыз...
@@ -882,3 +893,58 @@ won't type in other apps while she runs. Confirm to keep it.	ол жұмыс і�
 · HD	· HD
 · on this PC	· осы PC-де
 · server	· сервер
+Edit as text	Мәтін ретінде өңдеу
+What Capri remembers about you. It stays on this computer.	Capri сен туралы нені есте сақтайды. Ол осы компьютерде қалады.
+Tell her something to remember	Оған есте қалатын бірдеңе айт
+Search her memory	Оның жадынан іздеу
+That day isn't there any more.	Ол күн енді жоқ.
+Undo	Болдырмау
+Remember our chats is off, so she isn't keeping new chat memories.	Әңгімелерімізді есте сақтау өшірулі, сондықтан ол жаңа әңгіме естеліктерін сақтамайды.
+ABOUT YOU	СЕН ТУРАЛЫ
+FROM YOUR CHATS	СЕНІҢ ӘҢГІМЕЛЕРІҢНЕН
+GAMES	ОЙЫНДАР
+CHAT LOGS	ӘҢГІМЕ ЖУРНАЛДАРЫ
+CHAT LOG	ӘҢГІМЕ ЖУРНАЛЫ
+Nothing matches.	Ештеңе сәйкес келмейді.
+Nothing yet.	Әзірге ештеңе жоқ.
+Reading her notes.	Оның жазбаларын оқып жатыр.
+Click again to forget game notes	Ойын жазбаларын ұмыту үшін қайта бас
+Forget game notes	Ойын жазбаларын ұмыт
+Click again to forget everything about me	Сен туралы бәрін ұмыту үшін қайта бас
+Forget everything about me	Сен туралы бәрін ұмыт
+Click again to forget	Ұмыту үшін қайта бас
+Forget this day	Осы күнді ұмыт
+Only the start of this day is shown.	Осы күннің тек басы көрсетіледі.
+Nothing in this day.	Бұл күні ештеңе жоқ.
+No chats kept yet.	Әзірге әңгіме сақталмаған.
+You	Сен
+{0} line	{0} жол
+SET UP EMAIL >	ЭЛЕКТРОНДЫҚ ПОШТАНЫ ОРНАТУ >
+SET UP EMAIL	ЭЛЕКТРОНДЫҚ ПОШТАНЫ ОРНАТУ
+Or type your address	Немесе мекенжайыңды жаз
+Email address	Электрондық пошта мекенжайы
+Open the page	Бетті ашу
+App password	Қолданба құпиясөзі
+IMAP server	IMAP сервері
+Incoming mail server	Кіріс пошта сервері
+SMTP server	SMTP сервері
+Outgoing mail server	Шығыс пошта сервері
+An app password is a separate password just for Capri. Your normal password stays yours.	Қолданба құпиясөзі тек Capri үшін бөлек құпиясөз. Қарапайым құпиясөзің өзінде қалады.
+She keeps it only until she closes.	Ол оны тек жабылғанша сақтайды.
+She checks, searches and reads your mail. She asks before she sends any.	Ол поштаңды тексереді, іздейді және оқиды. Бірдеңе жібермес бұрын сұрайды.
+Watch for new mail	Жаңа поштаны бақыла
+She speaks up when mail lands, with a heads-up if it looks like phishing. Nothing gets marked read.	Пошта келгенде ол айтады, фишингке ұқсаса ескертеді. Ештеңе оқылған деп белгіленбейді.
+Deal with phishing on her own	Фишингті өзі шеш
+Only while she watches. Mail she's sure is phishing goes to spam. The rest waits for your yes.	Тек ол бақылап тұрғанда. Фишинг екеніне сенімді пошта спамға кетеді. Қалғаны сенің иәңды күтеді.
+Forget account	Аккаунтты ұмыт
+Use another email	Басқа электрондық поштаны қолдан
+Which email?	Қай пошта?
+Make an app password	Қолданба құпиясөзін жаса
+Paste it	Оны қой
+Connecting...	Қосылуда...
+She can use your email now.	Ол енді поштаңды қолдана алады.
+She's not watching your inbox.	Ол кіріс жәшігіңді бақыламайды.
+She's watching your inbox and deals with phishing she's sure of.	Ол кіріс жәшігіңді бақылап, сенімді фишингті шешеді.
+She's watching your inbox and tells you when mail lands.	Ол кіріс жәшігіңді бақылайды және пошта келгенде айтады.
+She forgot that account and its app password.	Ол сол аккаунтты және оның қолданба құпиясөзін ұмытты.
+She forgot that account. Its app password is gone from this PC.	Ол сол аккаунтты ұмытты. Оның қолданба құпиясөзі осы компьютерден жоғалды.

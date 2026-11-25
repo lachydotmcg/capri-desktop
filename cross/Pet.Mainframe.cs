@@ -17,10 +17,15 @@ namespace CapriDesktop
         private void StartMods()
         {
             LegacyArt = Saved.LegacyStand;
+            Mods.WithStarters = Program.Smoke == null;
             ModList = new Mods(Program.Smoke ?? folder);
             Chores.Skills = ModList.SkillsFor;
             Hands.SkillNote = delegate { return ModList.SkillNote; };
             Hands.ReadSkill = ModList.SkillText;
+            ModList.OnWindow = action => Dispatcher.UIThread.Post(() => Program.Guard(action));
+            Hands.RecipeTools = ModList.RecipeTools;
+            Hands.RunRecipe = ModList.RunRecipe;
+            Hands.MakeTool = ModList.MakeTool;
             ModList.SkinChanged = Reskinned;
             Reskinned();
             StartCodeMods();
@@ -29,6 +34,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             foreach (Clip shown in Clips) shown.Reload();
+            RebuildMoves();
             blinkWith = null;
             herPointer?.ReloadArt();
             if (body == null) return;
@@ -43,6 +49,12 @@ namespace CapriDesktop
         internal static bool HasArt(string name)
         {
             return typeof(Pet).Assembly.GetManifestResourceInfo(name) != null;
+        }
+
+        private static bool SkinShips(string title)
+        {
+            string skin = SkinFolder;
+            return skin != null && title != null && File.Exists(Path.Combine(skin, title + ".png"));
         }
 
         internal static PixelSize ArtSize(string name)
@@ -228,7 +240,7 @@ namespace CapriDesktop
 
         private string BrainNote(bool phone)
         {
-            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model \u00b7 Ollama"));
+            string note = MainframeProblem ?? (Brain.Provider != null ? "ChatGPT plan \u00b7 retained account" : MainframeTier > 0 && MainframeConnecting ? "Checking the key..." : MainframeProblem ?? MainframeProgress ?? (Brain.Remote != null ? phone ? RemoteBrainKeys.Saved : "Key saved, ends " + Voice.Tail(MainframeBrainKey) : MainframeTier > 0 ? "Paste a brain key and press Connect." : Brain.Server != null ? Brain.Server : Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : Brain.Local != null ? "Local model \u00b7 on this computer" : "Local model \u00b7 Ollama"));
             return Brain.Brief(note) ?? note;
         }
         internal bool MainframeConnecting { get { return brainPending > 0; } }
@@ -239,6 +251,7 @@ namespace CapriDesktop
         internal bool MainframePulling { get { return pulling; } }
         internal string MainframeProgress { get { return pulling ? Pulling : null; } }
         internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !(Program.Smoke == null ? InputReady() : fingers); } }
+        internal bool MainframeRetainedVoiceReady { get { return ownedVoice.Ready; } }
         internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : Speakers.Known(Saved.VoiceProvider) == Speakers.Owned ? 1 : 3; } }
         internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : updateNote ?? UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
         internal string MainframeLocalAddress { get { return localVoice.Url ?? ""; } }
@@ -269,8 +282,7 @@ namespace CapriDesktop
             MainframeTheme.Repaint(mainframe);
         }
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
-        internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
-        internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
+        internal void SetReplyLength(int index) { SetReplies(index <= 0 ? Brain.Wordiness : index == 1 ? 0 : 3); }
         internal void SetThinking(int level) { if (Brain.SetThinking(level)) { Saved.ThinkingPicks = Brain.Picks; Save(); } }
         // What's wrong with it, or null once it's saved for the brain she's on.
         internal string SetThinkingExtra(string typed)
@@ -311,6 +323,15 @@ namespace CapriDesktop
             mainframe.OpenPage(page);
             return "Opened Capri Mainframe.";
         }
+        private string ImportModTool(string path)
+        {
+            if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.Invoke(() => ImportModTool(path));
+            if (!File.Exists(path)) return "Couldn't import " + Mods.FileName(path) + ": it isn't there any more.";
+            OpenMainframe();
+            mainframe.OpenPage("mods");
+            mainframe.ImportMod(path);
+            return mainframe.ModStatusText;
+        }
         private string MoveMainframe(string which)
         {
             OpenMainframe();
@@ -330,6 +351,13 @@ namespace CapriDesktop
             RefreshBrains();
         }
         internal void MainframeUpdateCheck() { CheckUpdate(true); }
+        internal UninstallPlan MainframeUninstallPlan(bool wipe) { return Uninstall.Live(wipe); }
+        internal void MainframeUninstall(bool wipe)
+        {
+            if (Program.Smoke != null) return;
+            if (Uninstall.Start(Uninstall.Live(wipe), Environment.ProcessId)) Quit();
+            else Talk.Answer("(uninstall)", "I couldn't start the helper that removes me, so nothing changed. You can delete my app by hand.");
+        }
         internal void MainframeSetupInput() { if (HyprlandDesktop.Current != null) { Talk.Answer("(input)", ComputerJobs.Available ? "Native compositor input is ready." : "The native compositor input helper is unavailable. Check the Linux package and compositor protocol support; no global input setup was applied."); return; } CopyFingersSetup(); }
         internal void MainframePickModel(string model)
         {
@@ -344,10 +372,11 @@ namespace CapriDesktop
             else if (Brain.Server != null) PickServerModel(model.Trim());
             else PickBrain(model.Trim());
         }
+        private string CloudProviderPick() { string picked = Speakers.Known(Saved.VoiceProvider); return picked == Speakers.Fish || picked == Speakers.OpenAi ? picked : Speakers.ElevenLabs; }
         internal void MainframeVoiceModePick(int mode)
         {
             if (mode == 0) SetSpeak(false);
-            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : Speakers.ElevenLabs); SetSpeak(true); }
+            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : CloudProviderPick()); SetSpeak(true); }
         }
         internal void MainframeForgetVoice() { ForgetVoice(); Save(); }
         internal void MainframeLoadVoices() { if (voices == null && Program.Smoke == null) ListVoices(); }
@@ -355,7 +384,7 @@ namespace CapriDesktop
         internal NativeMenu TrayMenu()
         {
             var menu = new NativeMenu();
-            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; FillMenu(menu, ContextMenu.Items); };
+            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? Lingo.Of("Show Capri") : Lingo.Of("Hide Capri"); FillMenu(menu, ContextMenu.Items); };
             fill(); menu.NeedsUpdate += (_, _) => fill(); return menu;
         }
         private void FillMenu(NativeMenu menu, System.Collections.IEnumerable source)
@@ -366,7 +395,7 @@ namespace CapriDesktop
                 if (OperatingSystem.IsLinux() && ReferenceEquals(source, securityMenu.Items) && value is Control && !((Control)value).IsVisible) continue;
                 var row = value as MenuItem;
                 if (row == null) { menu.Items.Add(new NativeMenuItemSeparator()); continue; }
-                var item = new NativeMenuItem(row.Header as string ?? "") { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
+                var item = new NativeMenuItem(Lingo.Of(row.Header as string ?? "")) { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,
                     ToggleType = row.ToggleType == MenuItemToggleType.CheckBox ? NativeMenuItemToggleType.CheckBox : row.ToggleType == MenuItemToggleType.Radio ? NativeMenuItemToggleType.Radio : NativeMenuItemToggleType.None };
                 if (row.Items.Count > 0) { item.Menu = new NativeMenu(); FillMenu(item.Menu, row.Items); }
                 item.Click += (_, _) => row.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
@@ -400,6 +429,8 @@ namespace CapriDesktop
         internal void SetBrainTier(int tier)
         {
             tier = Math.Clamp(tier, 0, 2);
+            string savedCustom = Saved.BrainProvider;
+            if (EndpointIdOf(savedCustom) == null || EndpointFor(Saved, EndpointIdOf(savedCustom)) == null) savedCustom = null;
             CancelAccountConnection();
             if (MainframeTier == tier && Brain.Provider == null) return;
             StopNativeListening();
@@ -417,9 +448,28 @@ namespace CapriDesktop
             string key = tier == 0 ? null : ReadSecret(TierKeyFile(tier));
             string kind = Cloud.KindOf(key);
             string model = kind == null ? (tier == 1 ? Saved.FreeModel : Saved.PaidModel) : TierModel(Saved, kind, tier);
+            ProviderEndpoint custom = null;
+            if (tier == 0)
+            {
+                if (savedCustom != null) custom = EndpointFor(Saved, EndpointIdOf(savedCustom));
+                if (custom != null && !string.Equals(Brain.ServerAddress(custom.Address), Brain.Server, StringComparison.Ordinal)) custom = null;
+                if (custom == null) custom = EndpointAt(Saved, Brain.Server);
+            }
+            string customProvider = custom == null ? null : EndpointProviderId(custom.Id);
             Brain.Remote = key == null || kind == null ? null : new Cloud(key, model);
-            Saved.BrainProvider = Brain.Remote == null ? null : Brain.Remote.Kind;
-            Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            if (customProvider != null)
+            {
+                string customAddress = Brain.ServerAddress(custom.Address);
+                string customKey = ReadEndpointKey(custom.Id);
+                Brain.SetServer(customAddress, EndpointKeySafe(customAddress, customKey) ? customKey : null);
+                Saved.BrainProvider = customProvider;
+                Brain.Model = ProviderModel(Saved, customProvider, 0);
+            }
+            else
+            {
+                Saved.BrainProvider = tier == 0 ? null : savedCustom ?? (Brain.Remote == null ? null : Brain.Remote.Kind);
+                Brain.Model = Brain.Remote?.Model ?? (tier == 0 ? Brain.Server == null ? Saved.Model : Saved.ServerModel : null);
+            }
             Saved.CloudModel = Brain.Remote?.Model;
             WriteSecret(BrainKeyFile, key, "brain key");
             Save();
