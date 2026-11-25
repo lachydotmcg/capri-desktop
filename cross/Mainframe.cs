@@ -537,6 +537,7 @@ namespace CapriDesktop
             var resourcesKey = Key("Resources", 28, 674, 112, 20, OpenResources); resourcesKey.Chevron = true;
             AutomationProperties.SetName(resourcesKey, "Resources: what's using your CPU, RAM and GPU, Capri's parts apart from other programs");
             resourcesLine = Caption("", 148, 674, 208, 18, MainframeTheme.Faint, 34.0 / 3); resourcesLine.Align = TextAlignment.Right; resourcesLine.Ellipsis = true;
+            AutomationProperties.SetName(resourcesLine, "CPU and RAM in use");
             readers.Add(() => resourcesLine.Text = CapriDesktop.Resources.Line());
             var spendKey = Key("Spend", 28, 704, 112, 20, OpenSpend); spendKey.Chevron = true;
             AutomationProperties.SetName(spendKey, "Spend: what her brain cost on your API keys today and this month, model by model");

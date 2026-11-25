@@ -29,8 +29,9 @@ namespace CapriDesktop
         internal string GpuName, Note;
         internal readonly List<ResourceRow> Capri = new List<ResourceRow>();
         internal readonly List<ResourceRow> Others = new List<ResourceRow>();
-        internal readonly ResourceRow CapriTotal = new ResourceRow { Name = "Capri", Gpu = 0, Vram = 0 };
-        internal readonly ResourceRow OthersTotal = new ResourceRow { Name = "Everything else", Gpu = 0, Vram = 0 };
+        // Her panel never learns each program's graphics card use on Linux or a Mac, so these stay - until a figure is measured.
+        internal readonly ResourceRow CapriTotal = new ResourceRow { Name = "Capri", Gpu = -1, Vram = -1 };
+        internal readonly ResourceRow OthersTotal = new ResourceRow { Name = "Everything else", Gpu = -1, Vram = -1 };
 
         internal double CapriCpu { get { return Math.Min(Math.Max(0, Cpu), CapriTotal.Cpu); } }
 
@@ -136,7 +137,8 @@ namespace CapriDesktop
                 grew = false;
                 foreach (KeyValuePair<int, Proc> entry in now)
                 {
-                    if (ours.Contains(entry.Key)) continue;
+                    // Like Windows: only her own tree counts. A process parented by anything else is another program's.
+                    if (ours.Contains(entry.Key) || !ours.Contains(entry.Value.Parent)) continue;
                     Proc parent;
                     if (!now.TryGetValue(entry.Value.Parent, out parent) || parent.Start > entry.Value.Start) continue;
                     ours.Add(entry.Key);
@@ -360,7 +362,15 @@ namespace CapriDesktop
         {
             gpu = -1; used = -1; total = 0; name = null;
             if (string.IsNullOrWhiteSpace(said)) return false;
-            string[] parts = said.Trim().Split(',');
+            // nvidia-smi prints one row per card; the panel shows one card, like Windows, so take the first row only.
+            string first = null;
+            foreach (string row in said.Split('\n'))
+            {
+                string trimmed = row.Trim();
+                if (trimmed.Length > 0) { first = trimmed; break; }
+            }
+            if (first == null) return false;
+            string[] parts = first.Split(',');
             if (parts.Length < 4) return false;
             double percent;
             long mibUsed, mibTotal;
@@ -394,9 +404,11 @@ namespace CapriDesktop
             if (OperatingSystem.IsMacOS())
             {
                 ResourceView mac = new ResourceSampler().Read(true);
-                if (mac.Cpu >= 0 || mac.RamUsed >= 0 || mac.Gpu >= 0 || mac.VramUsed >= 0 || mac.Capri.Count != 0 || mac.Others.Count != 0 || mac.RamTotal <= 0 || mac.Note != "macOS doesn't share CPU, memory or graphics card use with apps yet.")
+                if (mac.Cpu >= 0 || mac.RamUsed >= 0 || mac.Gpu >= 0 || mac.VramUsed >= 0 || mac.Capri.Count != 0 || mac.Others.Count != 0 || mac.RamTotal < 0 || mac.Note != ResourceSampler.MacNote)
                     throw new Exception("The Mac Resources read invented a value: CPU " + mac.Cpu + ", RAM " + mac.RamUsed + " of " + mac.RamTotal + ", GPU " + mac.Gpu + ", " + mac.Capri.Count + " of hers, " + mac.Others.Count + " others, note " + (mac.Note ?? "none"));
-                checks.Add("PASS resources on a Mac: it reads the Mac's total memory (" + ResourceView.Bytes(mac.RamTotal) + ") and shows CPU, memory use, graphics card use and each program as -, since macOS doesn't share them with apps");
+                checks.Add(mac.RamTotal > 0
+                    ? "PASS resources on a Mac: it reads the Mac's total memory (" + ResourceView.Bytes(mac.RamTotal) + ") and shows CPU, memory use, graphics card use and each program as -, since macOS doesn't share them with apps"
+                    : "PASS resources on a Mac: macOS doesn't share CPU, memory or graphics card use with apps yet, so CPU, memory use, graphics card use and each program show -");
                 string macHelp = SelfKnow.Matching("what's using my CPU?") ?? "";
                 if (!macHelp.StartsWith("Resources: ", StringComparison.Ordinal) || !macHelp.Contains("macOS doesn't share CPU, memory or graphics card use with apps yet"))
                     throw new Exception("Her Mac Resources help says " + macHelp);
@@ -448,7 +460,17 @@ namespace CapriDesktop
                 ResourceView second = sampler.Read(true);
                 if (second.Cpu != 50 || Math.Abs(second.Capri[0].Cpu - 100.0 / Environment.ProcessorCount) > 0.001 || second.Capri[0].Ram != 200L << 20)
                     throw new Exception("The second Resources sample reads CPU " + second.Cpu + ", Capri " + second.Capri[0].Cpu + " and " + second.Capri[0].Ram);
-                checks.Add("PASS resources sampler: /proc/stat's two samples give the processor's busy share and each program's CPU, /proc/statm its resident memory, her brain counts as Capri's, chrome groups ×2, a kernel thread isn't a program, and an AMD card's sysfs figure gives its use and memory");
+                Fake(1, "systemd", 0, 0, 0, 1, 1);
+                ResourceView withInit = sampler.Read(true);
+                if (withInit.Capri.Exists(row => row.Name == "chrome")
+                    || !withInit.Others.Exists(row => row.Name == "chrome" && row.Count == 2))
+                    throw new Exception("An unrelated init child appeared under CAPRI.");
+                if (withInit.CapriTotal.Gpu >= 0 || withInit.OthersTotal.Gpu >= 0)
+                    throw new Exception("Unknown per-program GPU use became a number.");
+                if (Nvidia("71, 768, 6144, RTX 3050\n11, 500, 12288, RTX 3060\n",
+                    out _, out _, out _, out string multiple) && multiple.Contains('\n'))
+                    throw new Exception("A second GPU's metrics leaked into the card name.");
+                checks.Add("PASS resources sampler: /proc/stat's two samples give the processor's busy share and each program's CPU, /proc/statm its resident memory, her brain counts as Capri's, chrome groups ×2 and stays under OTHER PROGRAMS when an unrelated init process is listed, a kernel thread isn't a program, an AMD card's sysfs figure gives its use and memory, and per-program graphics card use stays - when it's unknown");
                 sampler.NvidiaHere = delegate { return true; };
                 sampler.Drm = Path.Combine(root, "no-card");
                 string asked = null;
@@ -464,7 +486,7 @@ namespace CapriDesktop
                 ResourceView none = sampler.Read(true);
                 if (none.Gpu != -1 || none.VramUsed != -1 || none.Note != "This computer doesn't share graphics card use.")
                     throw new Exception("The Resources sample with no card reads " + none.Gpu + "%, " + none.VramUsed + ", " + (none.Note ?? "no note"));
-                checks.Add("PASS resources graphics: NVIDIA's own tool is asked only when its driver is here, an NVIDIA name reads RTX 4070 (12 GB), and Intel graphics or no card say this computer doesn't share graphics card use, without running anything");
+                checks.Add("PASS resources graphics: NVIDIA's own tool is asked only when its driver is here, one card's row reads RTX 4070 (12 GB) and a second card's row doesn't leak into its name, and Intel graphics or no card say this computer doesn't share graphics card use, without running anything");
                 string help = SelfKnow.Matching("what's using my CPU?") ?? "";
                 if (!help.StartsWith("Resources: ", StringComparison.Ordinal) || !help.Contains("OTHER PROGRAMS lists") || !help.Contains("RAM is each program's resident memory") || !help.Contains("Intel graphics don't share"))
                     throw new Exception("Her Resources help says " + help);
@@ -604,8 +626,12 @@ namespace CapriDesktop
             if (view == null) return;
             bool any = view.Cpu >= 0 || view.RamUsed >= 0 || view.Gpu >= 0;
             legend.IsVisible = any;
-            gpuNote.Text = view.Note ?? "";
+            // When she can't read any of the meters, that one honest note belongs once, in the limits line.
+            bool unread = view.Cpu < 0 && view.RamUsed < 0 && view.Gpu < 0;
+            gpuNote.Text = unread ? "" : view.Note ?? "";
             gpuNote.IsVisible = gpuNote.Text.Length > 0;
+            limits.Text = unread ? view.Note ?? "" : "";
+            limits.IsVisible = limits.Text.Length > 0;
             bars[0].Show(view.Cpu >= 0 ? view.CapriCpu : 0, view.Cpu >= 0 ? Math.Max(0, view.Cpu - view.CapriCpu) : 0);
             amounts[0].Text = ResourceView.Percent(view.Cpu);
             if (view.RamUsed >= 0 && view.RamTotal > 0)
@@ -627,7 +653,7 @@ namespace CapriDesktop
             Put(Capri, view.Capri);
             Put(Others, view.Others);
             summary.Text = Summary(view);
-            foreach (Control control in new Control[] { legend, gpuNote, capriTotal, othersTotal, summary }) control.InvalidateVisual();
+            foreach (Control control in new Control[] { legend, gpuNote, capriTotal, othersTotal, summary, limits }) control.InvalidateVisual();
         }
 
         private static string Totals(ResourceRow row)

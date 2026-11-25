@@ -5056,6 +5056,8 @@ namespace CapriDesktop
                 Resources.Source = () => new ResourceView { Cpu = 12.4, RamUsed = 4L << 30, RamTotal = 16L << 30 };
                 frame.Sync();
                 if (frame.ResourcesLine != "CPU 12% · RAM 4.0/16 GB") throw new Exception("The Mainframe's Resources line says " + frame.ResourcesLine);
+                NeonCaption resourcesLine = (NeonCaption)typeof(Mainframe).GetField("resourcesLine", fields).GetValue(frame);
+                if (Avalonia.Automation.AutomationProperties.GetName(resourcesLine) != "CPU and RAM in use") throw new Exception("The Mainframe's Resources line is named " + (Avalonia.Automation.AutomationProperties.GetName(resourcesLine) ?? "nothing"));
                 frame.Press("Resources");
                 var sheets = (List<Window>)typeof(Mainframe).GetField("sheets", fields).GetValue(frame);
                 ResourcesSheet opened = null;
@@ -5066,7 +5068,7 @@ namespace CapriDesktop
                 string help = SelfKnow.Matching("what's using my CPU?") ?? "";
                 if (!help.StartsWith("Resources: ", StringComparison.Ordinal) || !help.Contains(OperatingSystem.IsMacOS() ? "macOS doesn't share CPU, memory or graphics card use with apps yet" : "OTHER PROGRAMS lists"))
                     throw new Exception("Her Resources help says " + help);
-                checks.Add("PASS resources panel: CPU, RAM and GPU with Capri's share, her own parts and the busiest other programs from seeded values, a Mac's honest - rows, the CPU/RAM line under her update note, and the Resources and Spend keys 30 and 60 below it");
+                checks.Add("PASS resources panel: CPU, RAM and GPU with Capri's share, her own parts and the busiest other programs from seeded values, a Mac's honest - rows and limits note, the CPU/RAM line under her update note named CPU and RAM in use, and the Resources and Spend keys 30 and 60 below it");
             }
             finally
             {
