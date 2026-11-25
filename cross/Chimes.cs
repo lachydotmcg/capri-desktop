@@ -777,6 +777,9 @@ namespace CapriDesktop
                         if (!NameListeningText.NameAlone(line))
                             throw new Exception("Name-only classification differs from Python: " + locale + " / " + line);
                     }
+            if (!NameListeningText.NameAlone("OK, Capri!")
+                || NameListeningText.NameAlone("Hí, Capri!"))
+                throw new Exception("Name-only classification differs from Python for Kelvin or accented text.");
                 }
                 finally { CultureInfo.CurrentCulture = originalCulture; }
                 now += 10000; played.Clear(); Reset();
