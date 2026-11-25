@@ -1001,7 +1001,6 @@ namespace CapriDesktop
             if (Program.Smoke == null)
             {
                 if (OperatingSystem.IsMacOS() || ComputerJobs.Supported) ComputerJobs.Attach(Brain);
-                else Hands.Work = delegate(string job, string asked) { return Chores.Run(Brain, job, asked); };
                 Chores.Mouse = delegate { return OperatingSystem.IsMacOS() ? MacFingers.Mouse() : Dispatcher.UIThread.Invoke(MouseShare) ?? KWinMouse.Ask(); };
                 Chores.Says = delegate(string line) { Dispatcher.UIThread.Post(delegate { Reply(asking, "(chat)", line); }); };
                 // Her own pointer, like Windows': it glides while their mouse stays put, and hides for her screenshots.
