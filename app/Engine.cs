@@ -447,11 +447,12 @@ namespace CapriDesktop
 
         internal double Unused { get { lock (gate) return quiet.Elapsed.TotalSeconds; } }
 
-        internal bool Rest(double seconds)
+        internal bool Rest(double seconds, Func<bool> current = null)
         {
             lock (gate)
             {
                 if (server == null || Loading || Interlocked.CompareExchange(ref busy, 0, 0) > 0 || quiet.Elapsed.TotalSeconds < seconds) return false;
+                if (current != null && !current()) return false;
                 Stop();
                 return true;
             }
