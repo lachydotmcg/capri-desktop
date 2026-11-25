@@ -3888,7 +3888,9 @@ namespace CapriDesktop
                 throw new Exception("Her Settings have no visible Lite mode switch named Lite mode: found " + (lite == null ? "nothing" : lite.GetType().Name + " visible " + lite.IsVisible + " at " + Avalonia.Controls.Canvas.GetTop(lite) + " named " + Avalonia.Automation.AutomationProperties.GetName(lite)) + ", settings " + frame.SettingsShown + ", advanced " + pet.Saved.AdvancedSettings + ", frame visible " + frame.IsVisible);
             if (why == null || Avalonia.Automation.AutomationProperties.GetName(why) != "Why slow?")
                 throw new Exception("Her Settings have no Why slow? key beside Lite mode.");
-            bool watchWas = pet.Saved.Watch, liteWas = Brain.Lite;
+            bool watchWas = pet.Saved.Watch, liteWas = Brain.Lite, offWas = Brain.Off;
+            Cloud remoteWas = pet.Brain.Remote;
+            string serverWas = pet.Brain.Server;
             Engine localWas = pet.Brain.Local;
             Pick pickWas = pet.Brain.LocalPick;
             string modelWas = pet.Brain.Model;
@@ -3965,14 +3967,38 @@ namespace CapriDesktop
                     || Pet.SlowLine(new SlowSigns { Kind = "server" }) != "Nothing in Capri is slowing me down right now. Your own server does my thinking, so its speed is up to that server."
                     || Pet.SlowLine(new SlowSigns { Kind = "none" }) != "Nothing on your PC is slowing me down right now. I don't have a brain yet: press Set up her brain or Free key under BRAIN in Capri Mainframe.")
                     throw new Exception("Why slow lost its off, server or no-brain words.");
+                SlowSigns macFew = new SlowSigns { Kind = "ollama", Read = false, Threads = 3, Processor = null, RamFree = -1, Busy = -1 };
+                SlowSigns macUnread = new SlowSigns { Kind = "ollama", Read = false, Threads = 8, Processor = null, RamFree = -1, Busy = -1 };
+                if (Pet.SlowLine(macFew) != MacSlowLine(3) || Pet.SlowFound(macFew) != MacSlowFound(3) || Pet.SlowLine(macUnread) != MacSlowLine(8) || Pet.SlowFound(macUnread) != MacSlowFound(8))
+                    throw new Exception("Why slow's Mac-shaped words are wrong: " + Pet.SlowLine(macFew) + " / " + Pet.SlowFound(macFew) + " / " + Pet.SlowLine(macUnread) + " / " + Pet.SlowFound(macUnread));
                 string foundOff = "From a check of your PC just now: Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help. Lite mode is off.";
                 string foundOn = "From a check of your PC just now: Lite mode is on, so my brain on your PC is switched off. What helps: Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off. Lite mode is on.";
                 if (Pet.SlowFound(cloud) != foundOff || Pet.SlowFound(liteOn) != foundOn)
                     throw new Exception("Why slow's found line lost its Lite mode note: " + Pet.SlowFound(cloud) + " / " + Pet.SlowFound(liteOn));
-                SlowSigns here = pet.ReadSlowSigns();
-                if (here.Threads != Environment.ProcessorCount || here.RamTotal <= 0 || here.RamFree < -1 || here.RamFree > here.RamTotal || here.Busy > 100 || here.Lite != pet.Saved.Lite || here.Watch != pet.Saved.Watch)
-                    throw new Exception("Why slow couldn't read this PC: " + here.RamFree + " of " + here.RamTotal + ", " + here.Threads + " threads, CPU " + here.Busy);
-                checks.Add("PASS why slow words: from faked signs she names Lite mode first, her brain on the processor or resting, few threads, little free RAM, a busy processor and Watch my screen, each with a fix, says nothing when nothing's wrong, and can't read on a Mac yet; on this PC she read " + here.Threads + " threads, " + Pet.Bytes(here.RamFree) + " of " + Pet.Bytes(here.RamTotal) + " RAM free and CPU " + (here.Busy < 0 ? "unread" : Math.Round(here.Busy) + "%"));
+                if (OperatingSystem.IsMacOS())
+                {
+                    Brain.Off = false;
+                    pet.Brain.Remote = null;
+                    pet.Brain.Server = null;
+                    pet.Brain.Local = null;
+                    pet.Brain.LocalPick = null;
+                    pet.Brain.Model = "gemma4:e4b";
+                    pet.SetWatch(false, false);
+                    SlowSigns mac = pet.ReadSlowSigns();
+                    if (mac.Threads != Environment.ProcessorCount || mac.RamTotal <= 0 || mac.RamFree != -1 || mac.Busy != -1 || mac.Read || mac.Processor != null || mac.Kind != "ollama" || mac.Name != "gemma4:e4b" || mac.Lite || mac.Watch)
+                        throw new Exception("Why slow's Mac read isn't the honest unread shape: " + mac.Kind + " " + mac.Name + ", " + mac.RamFree + " of " + mac.RamTotal + ", CPU " + mac.Busy + ", " + mac.Threads + " threads, read " + mac.Read + ", processor " + (mac.Processor ?? "none") + ", lite " + mac.Lite + ", watch " + mac.Watch);
+                    string macLine = MacSlowLine(mac.Threads), macFound = MacSlowFound(mac.Threads);
+                    if (Pet.SlowLine(mac) != macLine || Pet.SlowFound(mac) != macFound)
+                        throw new Exception("Why slow's Mac words missed the unread line: " + Pet.SlowLine(mac) + " / " + Pet.SlowFound(mac));
+                    checks.Add("PASS why slow words on a Mac: her read has no free RAM, CPU or processor name, so she says " + macFound);
+                }
+                else
+                {
+                    SlowSigns here = pet.ReadSlowSigns();
+                    if (here.Threads != Environment.ProcessorCount || here.RamTotal <= 0 || here.RamFree < -1 || here.RamFree > here.RamTotal || here.Busy > 100 || here.Lite != pet.Saved.Lite || here.Watch != pet.Saved.Watch)
+                        throw new Exception("Why slow couldn't read this PC: " + here.RamFree + " of " + here.RamTotal + ", " + here.Threads + " threads, CPU " + here.Busy);
+                    checks.Add("PASS why slow words: from faked signs she names Lite mode first, her brain on the processor or resting, few threads, little free RAM, a busy processor and Watch my screen, each with a fix, says nothing when nothing's wrong, and can't read on a Mac yet; on this PC she read " + here.Threads + " threads, " + Pet.Bytes(here.RamFree) + " of " + Pet.Bytes(here.RamTotal) + " RAM free and CPU " + (here.Busy < 0 ? "unread" : Math.Round(here.Busy) + "%"));
+                }
 
                 Pet.FakedSigns = delegate { return cloud; };
                 pet.Talk.Dismiss();
@@ -4002,6 +4028,9 @@ namespace CapriDesktop
                 if (lite != null && lite.IsVisible && frame.Value("Lite mode") == "On") frame.Change("Lite mode", 0);
                 pet.SetWatch(watchWas, false);
                 Brain.Lite = liteWas;
+                Brain.Off = offWas;
+                pet.Brain.Remote = remoteWas;
+                pet.Brain.Server = serverWas;
                 pet.Brain.Local = localWas;
                 pet.Brain.LocalPick = pickWas;
                 pet.Brain.Model = modelWas;
@@ -4019,6 +4048,24 @@ namespace CapriDesktop
                 new System.Runtime.Serialization.Json.DataContractJsonSerializer(settings.GetType()).WriteObject(stream, settings);
                 return Encoding.UTF8.GetString(stream.ToArray());
             }
+        }
+
+        private static string MacSlowFew(int threads)
+        {
+            return "Your processor has only " + threads + (threads == 1 ? " thread" : " threads") + ", which is small for running a brain.";
+        }
+
+        private static string MacSlowLine(int threads)
+        {
+            if (threads > 0 && threads <= 4) return MacSlowFew(threads) + " Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too.";
+            return "I can't read your memory or processor use here yet, so I only checked my brain and Watch my screen. Nothing in those is slowing me down right now.";
+        }
+
+        private static string MacSlowFound(int threads)
+        {
+            if (threads > 0 && threads <= 4)
+                return "From a check of your PC just now: " + MacSlowFew(threads) + " What helps: Press Free key under BRAIN in Capri Mainframe for a free cloud brain. Lite mode helps too. Lite mode is off.";
+            return "From a check of your PC just now: " + MacSlowLine(threads) + " Lite mode is off.";
         }
 
         private void HeldKeyChecks(Mainframe frame)
