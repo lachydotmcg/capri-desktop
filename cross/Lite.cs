@@ -55,9 +55,11 @@ namespace CapriDesktop
             Interlocked.Increment(ref liteVersion);
             if (on)
             {
-                Saved.LiteWatch = Saved.Watch;
+                bool watch = Saved.Watch;
+                Saved.LiteWatchWas = watch;
                 Saved.Lite = Brain.Lite = true;
-                if (Saved.Watch) SetWatch(false, false);
+                if (watch) SetWatch(false, false);
+                Saved.LiteWatch = watch;
                 RestForLite();
             }
             else
@@ -70,8 +72,9 @@ namespace CapriDesktop
                     liteRestGaveUp = false;
                     liteRestAt = -1;
                 }
-                if (Saved.LiteWatch && !Saved.Watch) SetWatch(true, false);
+                if (Saved.LiteWatch && Saved.LiteWatchWas && !Saved.Watch) SetWatch(true, false);
                 Saved.LiteWatch = false;
+                Saved.LiteWatchWas = false;
                 RestoreOwnBrain();
             }
             Save();

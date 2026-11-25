@@ -41,6 +41,11 @@ sed -i '/Also(index, liteMode,/s/, "laggy"//' "$d/app/MainframeSearch.cs"
 reject_pin "the key 'laggy'"
 cp app/MainframeSearch.cs "$d/app/"
 
+# Dropping the same shared key on the cross side fails too, so the pin catches it in both directions.
+sed -i '/Also(index, "Lite mode",/s/, "laggy"//' "$d/cross/MainframeSearch.cs"
+reject_pin "the key 'laggy'"
+cp cross/MainframeSearch.cs "$d/cross/"
+
 # A key both sides gain still has to be recorded in the shipped snapshot, so it cannot vanish later.
 sed -i '/Also(index, volume,/s/, "quieter"/, "quieter", "noisy"/' "$d/app/MainframeSearch.cs"
 sed -i '/Also(index, "Volume",/s/, "quieter"/, "quieter", "noisy"/' "$d/cross/MainframeSearch.cs"

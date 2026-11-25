@@ -57,9 +57,11 @@ namespace CapriDesktop
         [DataMember] internal int? PopPace;
         [DataMember] internal int MusicApp;
         [DataMember] internal bool Watch;
-        // Lite mode stops her brain on this PC and pauses Watch my screen; LiteWatch remembers whether Watch was on, so Off puts it back.
+        // Lite mode stops her brain on this PC and pauses Watch my screen. LiteWatch is the ask to have Watch back when it goes
+        // off, and LiteWatchWas is what Watch was when Lite mode went on, so Off puts back exactly that.
         [DataMember] internal bool Lite;
         [DataMember] internal bool LiteWatch;
+        [DataMember] internal bool LiteWatchWas;
         [DataMember] internal int GlanceGap;
         [DataMember] internal bool NoCaughtUp;
         [DataMember] internal int? SleepAfter;
@@ -3528,6 +3530,12 @@ namespace CapriDesktop
         internal string SetSetting(string name, bool on)
         {
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return SetSetting(name, on); }).GetAwaiter().GetResult();
+            // Lite mode pauses Watch my screen: an ask for it on waits for Lite mode to go off, and an ask for it off cancels that.
+            if (name == "watch_my_screen" && Saved.Lite)
+            {
+                SetWatch(on, false);
+                return on ? "Watch my screen stays paused until Lite mode goes off." : null;
+            }
             if (SettingOn(name) == on) return null;
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) { SetCare((CareKind)careKind, on); return null; }
@@ -3546,7 +3554,7 @@ namespace CapriDesktop
                 case "mini_player": miniPlayer.SetEnabled(on); miniPlayer.Refresh(); break;
                 case "typing_sound": SetTypingMode(on ? 1 : 2); break;
                 case "glitch_in": SetIntro(on); break;
-                case "watch_my_screen": if (on && Saved.Lite) { SetWatch(true, false); return "Watch my screen stays paused until Lite mode goes off."; } SetWatch(on, false); break;
+                case "watch_my_screen": SetWatch(on, false); break;
                 case "startup": SetLogin(on, false); break;
                 case "discord_presence": SetDiscord(on); break;
                 case "voice_layers": SetLayers(VoiceFx.Layers.Turned(on)); break;
@@ -4983,13 +4991,17 @@ namespace CapriDesktop
 
         internal void SetWatch(bool on, bool say = true)
         {
-            // Lite mode pauses Watch my screen. Asking for it now only remembers to put it back when Lite mode goes off.
-            if (on && Saved.Lite)
+            // Lite mode pauses Watch my screen. Asking for it now only remembers the ask for when Lite mode goes off, and
+            // asking for it off cancels that ask.
+            if (Saved.Lite)
             {
-                Saved.LiteWatch = true;
-                Save();
-                Sync();
-                return;
+                Saved.LiteWatch = on;
+                if (on)
+                {
+                    Save();
+                    Sync();
+                    return;
+                }
             }
             Saved.Watch = on;
             watchTicket++;
@@ -7359,6 +7371,7 @@ namespace CapriDesktop
             [DataMember] internal int MusicApp;
             [DataMember] internal bool Lite;
             [DataMember] internal bool LiteWatch;
+            [DataMember] internal bool LiteWatchWas;
             [DataMember] internal bool RemoteOn;
             [DataMember] internal string RemoteHost;
         }
@@ -7445,6 +7458,7 @@ namespace CapriDesktop
             saved.MusicApp = newer.MusicApp;
             saved.Lite = newer.Lite;
             saved.LiteWatch = newer.LiteWatch;
+            saved.LiteWatchWas = newer.LiteWatchWas;
             return saved;
         }
 
@@ -7452,7 +7466,7 @@ namespace CapriDesktop
         {
             return new NewSettings { NoChimes = saved.NoChimes, NoChimeSent = saved.NoChimeSent, NoChimeHeard = saved.NoChimeHeard, NoChimeListening = saved.NoChimeListening, ChimeVolume = saved.ChimeVolume, ChimeSet = saved.ChimeSet, VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, Lite = saved.Lite, LiteWatch = saved.LiteWatch, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, Lite = saved.Lite, LiteWatch = saved.LiteWatch, LiteWatchWas = saved.LiteWatchWas, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
         internal static string ProviderKind(Settings saved, string inferred)
