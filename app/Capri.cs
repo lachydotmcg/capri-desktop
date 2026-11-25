@@ -6955,6 +6955,7 @@ namespace CapriDesktop
                 if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar on the page, not the browser's address bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
                 return null;
             }
+            if (tool == "open_website") Hands.AimBrowser(args, args.Asked);
             if (tool == "open_website" && !string.IsNullOrWhiteSpace(args.Search) && Regex.IsMatch((args.Site ?? "").Trim(), @"^(https?://)?(www\.|m\.)?youtube(\.com)?/?$", RegexOptions.IgnoreCase))
                 return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser + " using open_website with browser " + Voice.Quote(args.Browser)) + ": open YouTube, click its search bar on the page, not the browser's address bar, type it and press Enter, then scroll down through the results.";
             // Volume is the PC's volume. Spotify's own slider only when they said Spotify.

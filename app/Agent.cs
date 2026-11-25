@@ -316,7 +316,7 @@ namespace CapriDesktop
             else if (item.Type == "client_tool_call" && item.Call != null && item.Call.Id != null)
             {
                 AgentToolCall call = item.Call;
-                if ((call.Name == "app_window" || call.Name == "open_app" || call.Name == "open_website") && call.Arguments != null) call.Arguments.Asked = lastHeard ?? "";
+                if ((call.Name == "app_window" || call.Name == "open_app" || call.Name == "open_website" || call.Name == "use_computer") && call.Arguments != null) call.Arguments.Asked = lastHeard ?? "";
                 if (call.Name == "play_music") Hands.AimMusic(call.Arguments, lastHeard);
                 Func<string, ToolArguments, string> act = Act;
                 Interlocked.Increment(ref toolBusy);

@@ -1614,6 +1614,10 @@ namespace CapriDesktop
                     music.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
                     music.Run();
                     if (browserUsed != null) throw new Exception("Her YouTube Music job, which carries no words of theirs, kept a browser its brain guessed: " + browserUsed);
+                    string guessedSearch = CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "chrome", Asked = "search youtube for cats" }) ?? "";
+                    string namedSearch = CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "chrome", Asked = "search youtube for cats in chrome" }) ?? "";
+                    if (guessedSearch.Length == 0 || guessedSearch.IndexOf("chrome", StringComparison.OrdinalIgnoreCase) >= 0 || namedSearch.IndexOf("browser \"chrome\"", StringComparison.Ordinal) < 0)
+                        throw new Exception("Her YouTube search job took a browser they didn't name, or lost one they did: " + guessedSearch + " / " + namedSearch);
                     if (Computer.AddressBarStep("type", new ToolArguments { Target = "1", Text = "cats" }, chrome, "type cats into the address bar"))
                         throw new Exception("A job that asks for the address bar couldn't use it.");
                     Sight seen = new Sight { Window = new IntPtr(9), Title = "New Tab - Google Chrome", Program = "chrome" };
@@ -1628,7 +1632,7 @@ namespace CapriDesktop
                     for (int i = 0; i < specs.GetLength(0); i++) if (specs[i, 0] == "press") press = specs[i, 1];
                     if (press == null || press.Contains("ctrl+l") || press.Contains("ctrl+t") || prompts.Split(new[] { "never type an address or search into a browser's address bar" }, StringSplitOptions.None).Length != 3)
                         throw new Exception("Her hands' prompts still point her at a browser's address bar: " + press);
-                    checks.Add("PASS a job opens pages with open_website, not by typing into or jumping to an open browser's address bar (unless their job asks for it), and its open_website keeps only a browser they named, or one a music job's own task names");
+                    checks.Add("PASS a job opens pages with open_website, not by typing into or jumping to an open browser's address bar (unless their job asks for it), and its open_website keeps only a browser they named, or one a music job's own task names; her YouTube search job does the same");
                 }
                 if (part == "default")
                 {
