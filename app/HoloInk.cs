@@ -164,7 +164,7 @@ namespace CapriDesktop
 
         internal static Func<string, FontFamily> Family = delegate(string role) { return null; };
 
-        private static readonly HoloAction[] Keys = { HoloAction.Mic, HoloAction.Camera, HoloAction.FullSize, HoloAction.End };
+        private static readonly HoloAction[] Keys = { HoloAction.FullSize };
 
         internal static HoloPose PoseOf(HoloView view, double time)
         {
@@ -279,13 +279,7 @@ namespace CapriDesktop
                 string tag = Reveal(live && view.InCall ? "// HOLOCALL" : "// HOLO", reveal * 1.3f - 0.3f);
                 Write(graphics, tag, mono, Quiet, new PointF(26 * scale + named.Width + 6 * scale, rowY), rowH);
 
-                float right = (Width - 12) * scale;
-                RectangleF exit = ActionBox(HoloAction.Exit, scale, false, Size.Empty);
-                RectangleF under = exit;
-                under.Offset(Math.Max(1, scale), Math.Max(1, scale));
-                DrawGlyph(graphics, HoloAction.Exit, under, Color.FromArgb(170, 4, 5, 10), scale, view, false);
-                DrawGlyph(graphics, HoloAction.Exit, exit, scene.Hover == HoloAction.Exit ? Chalk : Quiet, scale, view, scene.Hover == HoloAction.Exit);
-                right = exit.Left - 6 * scale;
+                float right = (Portrait.Right + 1) * scale;
                 if (view.InCall)
                 {
                     string clock = Clock(view.Elapsed);
@@ -513,7 +507,6 @@ namespace CapriDesktop
         internal static HoloAction ActionAt(Point point, HoloView view, float scale, bool fullSize, Size bounds, float chip)
         {
             if (fullSize) return chip > 0.05f && ActionBox(HoloAction.Exit, scale, true, bounds).Contains(point) ? HoloAction.Exit : HoloAction.None;
-            if (RectangleF.Inflate(ActionBox(HoloAction.Exit, scale, false, bounds), 4 * scale, 4 * scale).Contains(point)) return HoloAction.Exit;
             foreach (HoloAction key in Keys)
                 if (ActionAvailable(key, view) && ActionBox(key, scale, false, bounds, view).Contains(point)) return key;
             return HoloAction.None;

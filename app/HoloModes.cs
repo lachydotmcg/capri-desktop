@@ -51,10 +51,13 @@ namespace CapriDesktop
             sizes.DropDownItems.Add(new ToolStripSeparator());
             sizes.DropDownItems.Add(compact);
             sizes.DropDownItems.Add(full);
+            ToolStripMenuItem camera = new ToolStripMenuItem("Capri Camera", null, delegate { ToggleHoloCamera(); });
+            if (CapriCamera.Bundled) sizes.DropDownItems.Add(camera);
             sizes.DropDownOpening += delegate
             {
                 full.Checked = holoWindow != null && holoWindow.FullSize;
                 compact.Checked = HoloCompactSelected;
+                camera.Checked = holoCameraTurn != 0;
             };
         }
 
@@ -347,12 +350,13 @@ namespace CapriDesktop
                     HoloScene scene = new HoloScene { Face = face, Time = 1, View = new HoloView { InCall = true, CanMute = true, CanEnd = true, CanCamera = true, CallName = "Squad VC", Speaking = true, Caption = "you guys hear me?", Elapsed = TimeSpan.FromSeconds(267) } };
                     using (Graphics canvas = Graphics.FromImage(layer)) { canvas.Clear(Color.Transparent); HoloInk.DrawCompact(canvas, scale, scene); }
                     layer.Save(Path.Combine(output, "holocall-compact.png"), System.Drawing.Imaging.ImageFormat.Png);
-                    RectangleF end = HoloInk.ActionBox(HoloAction.End, scale, false, size, scene.View);
+                    RectangleF end = HoloInk.ActionBox(HoloAction.FullSize, scale, false, size, scene.View);
                     bool bracket = false, key = false;
                     for (int d = -2; d <= 2 && !bracket; d++) bracket = Rosy(layer.GetPixel((int)(6 * scale) + d, (int)(40 * scale)));
-                    for (int x = (int)end.Left; x < (int)end.Right && !key; x++) key = Rosy(layer.GetPixel(x, (int)(end.Top + end.Height / 2)));
-                    if (!bracket || !key || layer.GetPixel(1, size.Height - 2).A != 0 || HoloInk.ActionAt(Point.Round(new PointF(end.X + end.Width / 2, end.Y + end.Height / 2)), scene.View, scale, false, size, 0) != HoloAction.End)
-                        throw new Exception("The Holocall frame didn't draw its corner brackets, end key and see-through edge.");
+                    for (int y = (int)end.Top; y < (int)end.Bottom && !key; y++)
+                        for (int x = (int)end.Left; x < (int)end.Right && !key; x++) { Color c = layer.GetPixel(x, y); key = c.A > 150 && c.R > 200 && c.G > 200 && c.B > 200; }
+                    if (!bracket || !key || layer.GetPixel(1, size.Height - 2).A != 0 || HoloInk.ActionAt(Point.Round(new PointF(end.X + end.Width / 2, end.Y + end.Height / 2)), scene.View, scale, false, size, 0) != HoloAction.FullSize || HoloInk.ActionBox(HoloAction.End, scale, false, size, scene.View) != RectangleF.Empty)
+                        throw new Exception("The Holocall frame didn't draw its corner brackets, its one expand key and see-through edge.");
                 }
                 byte[] camera = HoloInk.CameraFrame(art.Pose(HoloPose.Idle)), intro = art.IntroJpeg(0);
                 File.WriteAllBytes(Path.Combine(output, "holocall-camera.jpg"), camera);
@@ -360,7 +364,7 @@ namespace CapriDesktop
                 if (CapriCamera.Decode(camera, out w, out h) == null || w != 1280 || h != 720 || intro == null || CapriCamera.Decode(intro, out iw, out ih) == null || iw != 1280 || ih != 720)
                     throw new Exception("Capri Camera's Holocall frames aren't 1280x720 pictures.");
             }
-            checks.Add("PASS her Holocall art: the opening and three poses load, the lean frame draws its corner brackets, keys and see-through edge, and Capri Camera gets 1280x720 portrait and opening frames");
+            checks.Add("PASS her Holocall art: the opening and three poses load, the lean frame draws its corner brackets, one expand key and see-through edge, and Capri Camera gets 1280x720 portrait and opening frames");
 
             bool shownBefore = Visible;
             try
