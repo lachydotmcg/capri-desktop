@@ -156,6 +156,7 @@ namespace CapriDesktop
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 MacFiles.Checks(checks);
                 FileToolChecks();
+                FavouritesChecks();
                 X11Safety.Checks(checks);
                 SpeechAudio.Checks(checks);
                 MoveReports.Checks(checks);
@@ -7493,6 +7494,227 @@ namespace CapriDesktop
                 pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider; Hands.Run = opener;
                 pet.Brain.Attachments.Clear();
                 Security.Drop(); Security.Load(permissions); Security.Changed = changed;
+            }
+        }
+
+        private void FavouritesChecks()
+        {
+            string keptWas = Favourites.Kept;
+            Func<DateTime> nowWas = Favourites.Now;
+            Func<string> frontWas = Favourites.Front;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> openedWas = Hands.Opened;
+            bool macWas = Hands.OnMac;
+            DateTime morning = new DateTime(2026, 11, 24, 9, 0, 0);
+            DateTime when = morning;
+            string file = Path.Combine(folder, "apps-used-check.txt");
+            List<string> ran = new List<string>();
+            try
+            {
+                File.Delete(file);
+                Favourites.Kept = file;
+                Favourites.Now = delegate { return when; };
+                Hands.Run = delegate(string id) { ran.Add(id); };
+                Hands.Opened = delegate(string name) { return ""; };
+                Favourites.Reload();
+
+                string[][] kinds = {
+                    new[] { "open my browser", "browser" }, new[] { "please launch the music player", "music" },
+                    new[] { "start our image viewer now", "images" }, new[] { "run a code editor for me", "editor" },
+                    new[] { "open my chat app", "chat" }, new[] { "my calendar", "calendar" },
+                    new[] { "open the internet", "browser" }, new[] { "open my diary", "calendar" },
+                    new[] { "open tunes", "music" }, new[] { "open the gallery", "images" },
+                    new[] { "open my ide", "editor" }, new[] { "open the messenger", "chat" }
+                };
+                List<string> wrong = new List<string>();
+                foreach (string[] pair in kinds)
+                    if (Favourites.KindOf(pair[0]) != pair[1]) wrong.Add(pair[0] + " -> " + (Favourites.KindOf(pair[0]) ?? "null"));
+                foreach (string said in new[] { "open the fridge", "what is my browser", "" })
+                    if (Favourites.KindOf(said) != null) wrong.Add(said + " -> " + Favourites.KindOf(said));
+                if (Favourites.KindOf(null) != null) wrong.Add("null -> " + Favourites.KindOf(null));
+                if (wrong.Count > 0) throw new Exception("Favourites' kind words went wrong: " + string.Join(" / ", wrong));
+                // The plain app names the rest of the smoke opens keep their own path: none of them is a kind.
+                foreach (string plainName in new[] { "spotify", "hades", "minecraft", "modrinth", "Discord", "Notepad", "Fake app", "Awake app", "Bridge App" })
+                    if (Favourites.KindOf(plainName) != null) throw new Exception("Favourites took a plain app name as a kind: " + plainName);
+                if (Favourites.Best("browser") != null) throw new Exception("Favourites had a best browser before anything was seen.");
+
+                // Three sittings four minutes apart: a repeat inside four minutes is the same sitting.
+                Favourites.Seen("firefox", morning);
+                Favourites.Seen("firefox", morning.AddMinutes(1));
+                bool spell = Favourites.Best("browser") == null;
+                Favourites.Seen("firefox", morning.AddMinutes(4));
+                Favourites.Seen("firefox", morning.AddMinutes(8));
+                if (!spell || Favourites.Best("browser") != "firefox") throw new Exception("Favourites didn't learn three uses four minutes apart, or counted a repeat inside four minutes: " + (Favourites.Best("browser") ?? "null"));
+
+                // Her own open is marked, so the sampler doesn't count it back as their choice.
+                when = morning.AddMinutes(20);
+                Favourites.SheOpened("vlc");
+                Favourites.Seen("vlc", morning.AddMinutes(21));
+                bool markHeld = Favourites.Best("music") == null;
+                Favourites.Seen("vlc", morning.AddMinutes(25));
+                Favourites.Seen("vlc", morning.AddMinutes(29));
+                Favourites.Seen("vlc", morning.AddMinutes(33));
+                if (!markHeld || Favourites.Best("music") != "vlc") throw new Exception("Favourites counted her own open as their choice: " + (Favourites.Best("music") ?? "null"));
+
+                // The file is Windows' apps-used.txt: faded, then a count for each program.
+                Favourites.Save();
+                string[] rows = File.ReadAllLines(file);
+                if (rows.Length != 3 || rows[0] != "faded\t2026-11-24" || Array.IndexOf(rows, "firefox\t3") < 0 || Array.IndexOf(rows, "vlc\t3") < 0)
+                    throw new Exception("Favourites' apps-used.txt was wrong: " + string.Join(" | ", rows));
+
+                // A day later each count is 0.95 of itself, and the file reads back.
+                Favourites.Seen("firefox", morning.AddDays(1));
+                Favourites.Reload();
+                if (Favourites.Best("browser") != "firefox" || Favourites.Best("music") != null) throw new Exception("Favourites didn't fade a day's counts or read them back: " + (Favourites.Best("browser") ?? "null") + " / " + (Favourites.Best("music") ?? "null"));
+                rows = File.ReadAllLines(file);
+                if (Array.IndexOf(rows, "faded\t2026-11-25") < 0 || Array.IndexOf(rows, "firefox\t3.85") < 0 || Array.IndexOf(rows, "vlc\t2.85") < 0)
+                    throw new Exception("Favourites faded its counts wrong: " + string.Join(" | ", rows));
+
+                // Ninety days of fade takes a count under 0.2 and it's gone.
+                Favourites.Seen("zen", morning.AddDays(92));
+                rows = File.ReadAllLines(file);
+                if (Array.IndexOf(rows, "faded\t2027-02-24") < 0 || Array.IndexOf(rows, "zen\t1") < 0 || Array.FindIndex(rows, row => row.StartsWith("firefox\t", StringComparison.Ordinal)) >= 0 || Array.FindIndex(rows, row => row.StartsWith("vlc\t", StringComparison.Ordinal)) >= 0)
+                    throw new Exception("Favourites kept a count under 0.2: " + string.Join(" | ", rows));
+                if (Favourites.Best("browser") != null || Favourites.Best("music") != null) throw new Exception("Favourites had a best app after ninety days of fade.");
+
+                // A Windows-written file's pick: and notthat: rows stay out of the counts.
+                File.WriteAllText(file, "faded\t2026-11-24\npick:browser\tfirefox\nnotthat:browser\tchromium\n \t  \nfirefox\t3\n");
+                Favourites.Reload();
+                if (Favourites.Best("browser") != "firefox") throw new Exception("Favourites didn't keep a Windows apps-used.txt's counts, or counted a pick: " + (Favourites.Best("browser") ?? "null"));
+                string portable = File.ReadAllText(file).ReplaceLineEndings("\n");
+                Favourites.Save();
+                if (File.ReadAllText(file).ReplaceLineEndings("\n") != portable)
+                    throw new Exception("Saving learned counts discarded Windows preference records.");
+
+                Hands.Catalog = delegate
+                {
+                    return new List<InstalledApp>
+                    {
+                        new InstalledApp("Brave", "exec:brave"),
+                        new InstalledApp("Google Chrome", "argv:[\"/usr/bin/google-chrome-stable\"]"),
+                        new InstalledApp("Firefox", "exec:firefox"),
+                        new InstalledApp("Visual Studio Code", "argv:[\"/usr/bin/code\"]"),
+                        new InstalledApp("Spotify", "exec:spotify")
+                    };
+                };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                when = morning;
+                Favourites.Seen("firefox", morning);
+                Favourites.Seen("firefox", morning.AddMinutes(4));
+                Favourites.Seen("firefox", morning.AddMinutes(8));
+                ran.Clear();
+                when = morning.AddMinutes(8);
+                string learnedOpen = Hands.Do("open_app", new ToolArguments { Name = "my browser" });
+                if (learnedOpen != "Opened Firefox." || string.Join(",", ran) != "exec:firefox") throw new Exception("A learned browser didn't open: " + learnedOpen + " / " + string.Join(",", ran));
+
+                // Her own open through open_app is marked too, so a front sample right after doesn't count.
+                Favourites.Seen("firefox", morning.AddMinutes(9));
+                Favourites.Save();
+                rows = File.ReadAllLines(file);
+                if (Array.IndexOf(rows, "firefox\t3") < 0) throw new Exception("Her own open was counted as their choice: " + string.Join(" | ", rows));
+                Favourites.Seen("firefox", morning.AddMinutes(13));
+                if (Favourites.Best("browser") != "firefox" || Array.IndexOf(File.ReadAllLines(file), "firefox\t4") < 0) throw new Exception("A use five minutes after her own open wasn't counted.");
+
+                // A learned browser that isn't installed falls back to the first known browser.
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Google Chrome", "argv:[\"/usr/bin/google-chrome-stable\"]"), new InstalledApp("Firefox", "exec:firefox") }; };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                when = morning;
+                Favourites.Seen("brave", morning);
+                Favourites.Seen("brave", morning.AddMinutes(4));
+                Favourites.Seen("brave", morning.AddMinutes(8));
+                ran.Clear();
+                string fallback = Hands.Do("open_app", new ToolArguments { Name = "my browser" });
+                if (fallback != "Opened Google Chrome." || string.Join(",", ran) != "argv:[\"/usr/bin/google-chrome-stable\"]") throw new Exception("A learned browser that isn't installed didn't fall back to the first known browser: " + fallback + " / " + string.Join(",", ran));
+
+                // No known browser installed: the cross line keeps no promise.
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Spotify", "exec:spotify") }; };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                ran.Clear();
+                string none = Hands.Do("open_app", new ToolArguments { Name = "my browser" });
+                if (none != "I can't tell which browser is yours yet." || ran.Count != 0) throw new Exception("A browser with none installed said the wrong thing: " + none + " / " + string.Join(",", ran));
+
+                // A non-browser kind opens its learned app, and one with nothing learned keeps its usual line.
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Visual Studio Code", "argv:[\"/usr/bin/code\"]") }; };
+                Hands.Forget();
+                File.Delete(file);
+                Favourites.Reload();
+                when = morning;
+                Favourites.Seen("code", morning);
+                Favourites.Seen("code", morning.AddMinutes(4));
+                Favourites.Seen("code", morning.AddMinutes(8));
+                ran.Clear();
+                string editor = Hands.Do("open_app", new ToolArguments { Name = "my editor" });
+                if (editor != "Opened Visual Studio Code." || string.Join(",", ran) != "argv:[\"/usr/bin/code\"]") throw new Exception("A learned editor didn't open: " + editor + " / " + string.Join(",", ran));
+                string calendar = Hands.Do("open_app", new ToolArguments { Name = "my calendar" });
+                if (calendar != "No app called my calendar is installed on this PC." || ran.Count != 1) throw new Exception("A kind with no learned app and no browser fallback changed its line: " + calendar);
+
+                // The sampler takes the app in front; Mac has no front-app signal, so it learns nothing.
+                File.Delete(file);
+                Favourites.Reload();
+                Favourites.Front = delegate { return "firefox"; };
+                when = morning;
+                Favourites.Sample();
+                when = morning.AddMinutes(1);
+                Favourites.Sample();
+                when = morning.AddMinutes(4);
+                Favourites.Sample();
+                when = morning.AddMinutes(8);
+                Favourites.Sample();
+                if (Favourites.Learning != !OperatingSystem.IsMacOS()) throw new Exception("Favourites' learning flag doesn't follow the OS.");
+                if (Favourites.Learning)
+                {
+                    if (Favourites.Best("browser") != "firefox") throw new Exception("The app-in-front sample didn't learn: " + (Favourites.Best("browser") ?? "null"));
+                    using ManualResetEventSlim started = new ManualResetEventSlim();
+                    using ManualResetEventSlim release = new ManualResetEventSlim();
+                    Favourites.Front = delegate { started.Set(); release.Wait(TimeSpan.FromSeconds(5)); return "vlc"; };
+                    Task sample = Favourites.SampleInBackground();
+                    try
+                    {
+                        if (sample == null || !started.Wait(TimeSpan.FromSeconds(5)) || sample.IsCompleted)
+                            throw new Exception("The foreground sampler didn't run independently of its caller.");
+                        if (Favourites.SampleInBackground() != null)
+                            throw new Exception("Another foreground sample started while the first was still waiting.");
+                        Favourites.SheOpened("code");
+                    }
+                    finally { release.Set(); sample?.GetAwaiter().GetResult(); }
+                    Favourites.Save();
+                    if (Array.Exists(File.ReadAllLines(file), row => row.StartsWith("vlc\t", StringComparison.Ordinal)))
+                        throw new Exception("A stale foreground sample was recorded after her own open.");
+                }
+                else if (Favourites.Best("browser") != null || Favourites.FrontProgram() != null) throw new Exception("Mac learned an app with no front-app signal, or FrontProgram wasn't null.");
+
+                Hands.OnMac = false;
+                string linuxAppsHelp = SelfKnow.Matching("which browser do you open") ?? "";
+                Hands.OnMac = true;
+                string macAppsHelp = SelfKnow.Matching("which browser do you open") ?? "";
+                Hands.OnMac = macWas;
+                if (!linuxAppsHelp.Contains("She learns from the app in front") || !linuxAppsHelp.Contains("apps-used.txt")
+                    || !macAppsHelp.Contains("Learning which app you use most is off on a Mac") || macAppsHelp == linuxAppsHelp)
+                    throw new Exception("Cross app help lost its learning description or its Mac answer: " + linuxAppsHelp + " / " + macAppsHelp);
+
+                checks.Add(Favourites.Learning
+                    ? "PASS Favourites: her six app kinds and their words resolve (browser, calendar, music, images, editor and chat, with internet, diary, tunes, gallery, ide and messenger), junk and questions don't, three uses four minutes apart make an app hers while a repeat inside four minutes or her own open isn't counted, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back, keeps Windows' pick: and notthat: rows out of the counts and writes them back on save, the app help gives Linux's learning description and Mac's learning-off answer, open my browser opens the learned app or else the first installed known browser and says \"I can't tell which browser is yours yet.\" when there's none, my editor opens the learned editor, and the sampler learns the app in front"
+                    : "PASS Favourites: on Mac learning is off because the shared surface has no front app, so the sampler counts nothing and FrontProgram is null, while her six app kinds and their words still resolve, three uses four minutes apart make an app hers, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back and saving writes back the rows it doesn't own, the app help gives Mac's learning-off answer and Linux's learning description, and open my browser still tries the known browsers in order and says \"I can't tell which browser is yours yet.\" when there's none");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Run = runWas;
+                Hands.Opened = openedWas;
+                Hands.OnMac = macWas;
+                Hands.Forget();
+                Favourites.Front = frontWas;
+                Favourites.Now = nowWas;
+                Favourites.Kept = keptWas;
+                Favourites.Reload();
+                File.Delete(file);
             }
         }
 
