@@ -892,6 +892,7 @@ namespace CapriDesktop
         private double coveredSince = -1;
         private double seatLost = -1;
         private double nextCheck;
+        private double frontSampleAt;
         private int asking;
         private Smoke smoke;
         private CancellationTokenSource listening;
@@ -929,6 +930,7 @@ namespace CapriDesktop
             Brain.FreeKeyHow = "Capri Mainframe > BRAIN > Free key";
             Brain.Bin = OperatingSystem.IsMacOS() ? "Trash" : "trash";
             Brain.MemoryPath = Path.Combine(Program.Smoke ?? folder, "me.md");
+            Favourites.Kept = Path.Combine(Program.Smoke ?? folder, Favourites.FileName);
             StartVault();
             // Their personality.md, made only when they pick Edit (back in 0.8.0). Her safety lines stay in her code after it.
             Brain.PersonalityPath = Path.Combine(Program.Smoke ?? folder, Brain.PersonalityName);
@@ -1117,7 +1119,7 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { try { Favourites.Save(); } catch (Exception) { } StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
@@ -1382,6 +1384,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = Now;
+            if (Program.Smoke == null && now - frontSampleAt >= 4) { frontSampleAt = now; try { Favourites.Sample(); } catch (Exception) { } }
             TickClones();
             Desk.BindScreens(Screens.All);
             TickNameListening();

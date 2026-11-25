@@ -5122,7 +5122,6 @@ namespace CapriDesktop
         private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
-#if !CROSS
             string kind = null;
             try { kind = Favourites.KindOf(wanted); } catch (Exception) { }
             if (kind != null)
@@ -5134,7 +5133,6 @@ namespace CapriDesktop
                 if (installed) wanted = theirs;
                 else if (string.Equals(kind, "browser", StringComparison.OrdinalIgnoreCase)) return OpenBrowserKind(current);
             }
-#endif
             List<InstalledApp> found;
 #if CROSS
             found = FindApps(wanted);
@@ -5147,9 +5145,7 @@ namespace CapriDesktop
             InstalledApp chosen = found[0];
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
             if (current != null && !current()) return "That call errand has ended.";
-#if !CROSS
             try { Favourites.SheOpened(chosen.Id); } catch (Exception) { }
-#endif
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
             // Windows saying no gets said, instead of "Opened" over nothing.
             try { Run(chosen.Id); }
@@ -5158,7 +5154,6 @@ namespace CapriDesktop
             return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
         }
 
-#if !CROSS
         private static string OpenBrowserKind(Func<bool> current)
         {
             foreach (string known in new[] { "brave", "chrome", "firefox", "msedge", "edge", "opera", "vivaldi", "librewolf", "zen" })
@@ -5174,9 +5169,12 @@ namespace CapriDesktop
                 catch (System.ComponentModel.Win32Exception) { continue; }
                 return "Opened " + named + (current == null ? Opened(named) : "") + ".";
             }
+#if CROSS
+            return "I can't tell which browser is yours yet.";
+#else
             return "I can't tell which browser is yours yet. Name it once and I'll remember.";
-        }
 #endif
+        }
 
 #if !CROSS
         internal static string AppMeant(string named)
