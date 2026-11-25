@@ -2643,7 +2643,8 @@ namespace CapriDesktop
         private int shots;
         internal readonly string Task;
         internal readonly string Words;
-        // Their own words only, never the task her brain wrote, so a browser it guessed can't count as one they named.
+        // Their own words only, never the task her brain wrote, so the task can't let her use the address bar. With no words, like
+        // a music job Capri wrote herself, a browser counts as named only when the task names it.
         private readonly string theirWords;
         internal string Outcome;
         internal readonly List<string> Steps = new List<string>();
@@ -3795,7 +3796,7 @@ namespace CapriDesktop
                 Track(name, args, true);
                 return Computer.NoAddressBar;
             }
-            if (name == "open_website") Hands.AimBrowser(args, theirWords);
+            if (name == "open_website") Hands.AimBrowser(args, theirWords ?? Task);
             Computer.KeysOk = approved.Contains("keys");
             bool secret = name == "type" && Computer.SecretFocus();
             if (secret) Computer.Keep(args.Text);
@@ -3897,7 +3898,7 @@ namespace CapriDesktop
                 if (spoken == "Said.") Steps.Add("Said " + Voice.Quote(args.Text ?? ""));
                 return spoken;
             }
-            if (tool == "open_website") Hands.AimBrowser(args, theirWords);
+            if (tool == "open_website") Hands.AimBrowser(args, theirWords ?? Task);
             Computer.KeysOk = approved.Contains("keys");
             // The window in front changed after she looked, so she looks again instead of acting on old buttons. Keys that need no
             // spot on the screen still go, as they bring back the window she looked at first. Only Esc stops her.
