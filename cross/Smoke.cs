@@ -8364,6 +8364,7 @@ namespace CapriDesktop
             if (!OperatingSystem.IsLinux() || HyprlandDesktop.Current != null) return;
             Func<bool> present = Fingers.Present, writable = Fingers.Writable;
             Func<ToolArguments, string> native = Hands.NativeWork;
+            Func<ToolArguments, string> fallback = Hands.FallbackWork;
             Func<string, string, string> work = Hands.Work;
             Func<string, string> resume = Hands.Resume;
             Action<string, System.Text.Json.JsonElement> doing = Chores.Doing;
@@ -8380,12 +8381,19 @@ namespace CapriDesktop
                 Chores.Doing = null;
                 ComputerJobs.Attach(new Brain());
                 string workLine = Hands.Work("write something in Claude", "write something in Claude");
+                string cancelled = Hands.Do("use_computer", new ToolArguments
+                {
+                    Task = "edit a test document",
+                    Current = () => false
+                });
                 string nativeLine = ComputerJobs.Run("write something in Claude", "write something in Claude");
                 const string offline = "Couldn't do that: your brain is offline.";
                 const string nativeOnly = "Native screen jobs need Hyprland and Capri's native/capri-input helper.";
                 const string nativeFallback = nativeOnly + " Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
                 if (Hands.NativeWork != null || workLine != offline || nativeLine != nativeFallback)
                     throw new Exception("A writable /dev/uinput without Hyprland didn't reach her uinput hands: native " + (Hands.NativeWork != null) + ", work " + workLine + ", native line " + nativeLine);
+                if (cancelled != "That job has ended.")
+                    throw new Exception("A cancelled use_computer request reached her uinput hands: " + cancelled);
                 checks.Add("PASS Plasma Wayland with a writable /dev/uinput leaves the Hyprland-only runner unclaimed, so use_computer reaches her uinput hands, and a native refusal names Hyprland's helper as its own requirement instead of telling every desktop to reopen Capri in a Hyprland session");
                 Fingers.Writable = delegate { return false; };
                 if (ComputerJobs.Run("enter sample text in a test editor", "") != nativeOnly)
@@ -8395,7 +8403,7 @@ namespace CapriDesktop
             finally
             {
                 Fingers.Present = present; Fingers.Writable = writable;
-                Hands.OwnHands = own; Hands.NativeWork = native; Hands.Work = work; Hands.Resume = resume;
+                Hands.OwnHands = own; Hands.NativeWork = native; Hands.FallbackWork = fallback; Hands.Work = work; Hands.Resume = resume;
                 Chores.Doing = doing;
                 field.SetValue(null, brain);
             }
@@ -8429,6 +8437,25 @@ namespace CapriDesktop
                 string unsafeStream = Chores.Run(brain, "stream mode", null);
                 if (streamCaptures != 0 || Hands.Streaming || unsafeStream.IndexOf("can't check permissions", StringComparison.Ordinal) < 0)
                     throw new Exception("The fallback stream continued without enforceable action permissions.");
+                bool current = true;
+                Chores.Shoot = delegate { current = false; return null; };
+                string cancelled = Chores.Run(brain, "open a folder", null, () => current);
+                if (cancelled != "Stopped my job.")
+                    throw new Exception("The fallback continued processing after a capture cancelled its request: " + cancelled);
+                if (!OperatingSystem.IsMacOS())
+                {
+                    Func<string, bool> copy = Fingers.Copy;
+                    try
+                    {
+                        current = true;
+                        Fingers.Copy = delegate { current = false; return true; };
+                        bool stoppedBeforePaste = false;
+                        try { Fingers.Type("é", () => current); }
+                        catch (OperationCanceledException) { stoppedBeforePaste = true; }
+                        if (!stoppedBeforePaste) throw new Exception("The fallback pasted after its request was cancelled.");
+                    }
+                    finally { Fingers.Copy = copy; }
+                }
                 int runs = 0;
                 Chores.Doing = delegate { };
                 Chores.Skills = null;

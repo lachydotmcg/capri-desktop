@@ -1711,6 +1711,7 @@ namespace CapriDesktop
 #if CROSS
         internal static Func<ToolArguments, string> NativeLook;
         internal static Func<ToolArguments, string> NativeWork;
+        internal static Func<ToolArguments, string> FallbackWork;
 #endif
         // A look at the monitor they named; where she can't tell their monitors apart, the usual look.
         internal static Func<string, string, string> LookOn = delegate(string focus, string screen) { return Look(focus); };
@@ -1961,7 +1962,13 @@ namespace CapriDesktop
                 return was ? "Stopped streaming." : "I'm not streaming right now.";
             }
 #if CROSS
-            if (NativeWork == null) return Work("stream mode", args.Asked);
+            if (NativeWork == null)
+            {
+                if (FallbackWork == null) return Work("stream mode", args.Asked);
+                ToolArguments fallback = args.Copy();
+                fallback.Task = "stream mode";
+                return FallbackWork(fallback);
+            }
 #endif
             Streaming = true;
             string game = string.IsNullOrWhiteSpace(args.Name) ? null : args.Name.Trim();
@@ -2185,6 +2192,7 @@ namespace CapriDesktop
                     if (MusicJob(args.Task, out musicArgs)) { AimMusic(musicArgs, args.Asked); return Do("play_music", musicArgs); }
 #if CROSS
                     if (NativeWork != null) return NativeWork(args);
+                    if (FallbackWork != null) return FallbackWork(args);
 #endif
                     return Work(args.Task.Trim(), args.Asked);
                 }

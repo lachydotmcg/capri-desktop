@@ -297,7 +297,7 @@ namespace CapriDesktop
             try { return work(); }
             finally
             {
-                bool current = SelfJobs.Current();
+                bool current = SelfJobs.Current() && (job.Current == null || job.Current());
                 lock (gate) if (followed == job) followed = null;
                 Change(job, !current ? "stopped" : job.SliceEnd == "done" ? "done" : "failed");
             }
@@ -339,9 +339,13 @@ namespace CapriDesktop
             if (OperatingSystem.IsLinux() && !Supported)
             {
                 Hands.NativeWork = null;
-                Hands.Work = new Func<string, string, string>((task, asked) => Chores.Run(attached, task, asked));
+                Func<ToolArguments, string> fallback = Limbs.RemoteWork(new Func<ToolArguments, string>(
+                    args => Chores.Run(attached, args.Task?.Trim(), args.Asked, args.Current)));
+                Hands.FallbackWork = fallback;
+                Hands.Work = (task, asked) => fallback(new ToolArguments { Task = task, Asked = asked });
                 return;
             }
+            Hands.FallbackWork = null;
             Hands.Work = Limbs.RemoteWork(new Func<string, string, string>(Run));
             Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(args => Run(args.Task, args.Asked, args.Current)));
             _ = Available;

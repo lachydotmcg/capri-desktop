@@ -115,10 +115,12 @@ namespace CapriDesktop
         }
 
         // The cursor to x and y, each 0 to 1 across the whole desktop, which is how screenshots of it are laid out too.
-        internal static void MoveTo(double x, double y)
+        internal static void MoveTo(double x, double y, Func<bool> current = null)
         {
+            Check(current);
             if (OperatingSystem.IsMacOS()) { MacFingers.MoveTo(x, y); return; }
             Ready();
+            Check(current);
             x = Math.Max(0, Math.Min(1, x));
             y = Math.Max(0, Math.Min(1, y));
             Send(pointer, Abs, 0, (int)Math.Round(x * Span), Abs, 1, (int)Math.Round(y * Span), Syn, 0, 0);
@@ -127,13 +129,20 @@ namespace CapriDesktop
             Thread.Sleep(40);
         }
 
-        internal static void Click(string button, int times)
+        private static void Check(Func<bool> current)
         {
+            if (current != null && !current()) throw new OperationCanceledException();
+        }
+
+        internal static void Click(string button, int times, Func<bool> current = null)
+        {
+            Check(current);
             if (OperatingSystem.IsMacOS()) { MacFingers.Click(button, times); return; }
             Ready();
             ushort code = button == "right" ? Right : button == "middle" ? Middle : Left;
             for (int i = 0; i < Math.Max(1, times); i++)
             {
+                Check(current);
                 Send(pointer, Key, code, 1, Syn, 0, 0);
                 Thread.Sleep(30);
                 Send(pointer, Key, code, 0, Syn, 0, 0);
@@ -141,30 +150,37 @@ namespace CapriDesktop
             }
         }
 
-        internal static void Drag(double fromX, double fromY, double toX, double toY)
+        internal static void Drag(double fromX, double fromY, double toX, double toY, Func<bool> current = null)
         {
+            Check(current);
             if (OperatingSystem.IsMacOS())
             {
                 MacFingers.Point from = MacFingers.Fraction(fromX, fromY), to = MacFingers.Fraction(toX, toY);
                 MacFingers.Drag(from.X, from.Y, to.X, to.Y); return;
             }
-            MoveTo(fromX, fromY);
+            MoveTo(fromX, fromY, current);
+            Check(current);
             Send(pointer, Key, Left, 1, Syn, 0, 0);
-            for (int step = 1; step <= 12; step++)
+            try
             {
-                Thread.Sleep(20);
-                MoveTo(fromX + (toX - fromX) * step / 12, fromY + (toY - fromY) * step / 12);
+                for (int step = 1; step <= 12; step++)
+                {
+                    Thread.Sleep(20);
+                    MoveTo(fromX + (toX - fromX) * step / 12, fromY + (toY - fromY) * step / 12, current);
+                }
             }
-            Send(pointer, Key, Left, 0, Syn, 0, 0);
+            finally { Send(pointer, Key, Left, 0, Syn, 0, 0); }
         }
 
         // Notches of the wheel: positive scrolls down, like the wheel turned toward them.
-        internal static void Scroll(int notches)
+        internal static void Scroll(int notches, Func<bool> current = null)
         {
+            Check(current);
             if (OperatingSystem.IsMacOS()) { MacFingers.Scroll(notches); return; }
             Ready();
             for (int i = 0; i < Math.Abs(notches); i++)
             {
+                Check(current);
                 Send(pointer, Rel, Wheel, notches > 0 ? -1 : 1, Syn, 0, 0);
                 Thread.Sleep(30);
             }
@@ -200,8 +216,9 @@ namespace CapriDesktop
         }
 
         // A key or chord like enter, ctrl+l or ctrl+shift+t: all pressed in order, then let go backwards.
-        internal static bool Keys(string chord)
+        internal static bool Keys(string chord, Func<bool> current = null)
         {
+            Check(current);
             if (OperatingSystem.IsMacOS()) return MacFingers.Keys(MacFingers.JobKeys(chord));
             List<int> codes = new List<int>();
             foreach (string part in (chord ?? "").ToLowerInvariant().Replace(" ", "").Split('+'))
@@ -213,8 +230,21 @@ namespace CapriDesktop
             }
             if (codes.Count == 0) return false;
             Ready();
-            foreach (int code in codes) { Send(keyboard, Key, code, 1, Syn, 0, 0); Thread.Sleep(15); }
-            for (int i = codes.Count - 1; i >= 0; i--) { Send(keyboard, Key, codes[i], 0, Syn, 0, 0); Thread.Sleep(15); }
+            int pressed = 0;
+            try
+            {
+                foreach (int code in codes)
+                {
+                    Check(current);
+                    Send(keyboard, Key, code, 1, Syn, 0, 0);
+                    pressed++;
+                    Thread.Sleep(15);
+                }
+            }
+            finally
+            {
+                for (int i = pressed - 1; i >= 0; i--) { Send(keyboard, Key, codes[i], 0, Syn, 0, 0); Thread.Sleep(15); }
+            }
             Thread.Sleep(60);
             return true;
         }
@@ -223,8 +253,9 @@ namespace CapriDesktop
         // layout; anything else goes through the clipboard and ctrl+v, so accents and symbols come out right on any layout.
         internal static Func<string, bool> Copy = WlCopy;
 
-        internal static bool Type(string text)
+        internal static bool Type(string text, Func<bool> current = null)
         {
+            Check(current);
             if (OperatingSystem.IsMacOS()) return MacFingers.Type(text);
             text = text ?? "";
             if (text.Length == 0) return true;
@@ -233,6 +264,7 @@ namespace CapriDesktop
                 Ready();
                 foreach (char c in text)
                 {
+                    Check(current);
                     int code = c == ' ' ? 57 : Code(c.ToString());
                     bool upper = char.IsUpper(c);
                     if (upper) Send(keyboard, Key, 42, 1, Syn, 0, 0);
@@ -244,7 +276,7 @@ namespace CapriDesktop
             }
             if (!Copy(text)) return false;
             Thread.Sleep(120);
-            return Keys("ctrl+v");
+            return Keys("ctrl+v", current);
         }
 
         private static bool WlCopy(string text)
