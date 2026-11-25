@@ -4932,7 +4932,7 @@ namespace CapriDesktop
                 Spend.Add("openai", "gpt-6.1-terra", 1000000, 0, 0, 0);
                 Spend.Add("nvidia", "meta/llama", 10, 0, 0, 0);
                 Spend.Add("other:api.example.com", "mystery-1", 10, 0, 0, 0);
-                spend = new MainframeSheet(pet, "SPEND", "spend");
+                spend = new MainframeSheet(pet, "spend", "spend", "SPEND >");
                 spend.Sync();
                 Func<string, string> said = name =>
                 {
@@ -4959,7 +4959,24 @@ namespace CapriDesktop
                 if (!opener.Chevron) throw new Exception("The Spend key lost its chevron.");
                 if (Math.Abs(Canvas.GetTop(opener) - Canvas.GetTop(note) - 30) > 0.5) throw new Exception("The Spend key isn't 30 below her update note: " + Canvas.GetTop(opener) + " / " + Canvas.GetTop(note));
                 if (frame.SpendLine != "$12.50 today · $12.50 this month") throw new Exception("The Mainframe's Spend line says " + frame.SpendLine);
-                checks.Add("PASS spend sheet: today and this month's totals, each model's asks, tokens and cost, free models marked free and unpriced ones marked ?, the small jobs explanation and list prices note, and the Mainframe's Spend key by her update note showing \"$12.50 today · $12.50 this month\"");
+                frame.Press("Spend");
+                var opened = frame.OwnedWindows.OfType<MainframeSheet>().Single();
+                try
+                {
+                    if (opened.Title != "Capri spend" || opened.Page.Children.OfType<NeonCaption>().First().Text != "SPEND >") throw new Exception("Spend titles differ from Windows.");
+                    string spendPath = Spend.FileAt;
+                    string day = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+                    File.WriteAllText(spendPath, day + "\topenai\tprobe\t1\t100\t0\t0\t0\t0.75\t0\n" + day + "\topenai\tprobe\t2\t200\t0\t0\t0\t1.25\t0\nbroken\trow\n");
+                    byte[] Hash() => System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(spendPath));
+                    byte[] before = Hash();
+                    Spend.Forget();
+                    opened.Sync();
+                    if (((NeonCaption)opened.Rows["Today"]).Text != "$2.00" ||
+                        ((NeonCaption)opened.Rows["Asks 1"]).Text != "3" || !before.SequenceEqual(Hash()))
+                        throw new Exception("Spend did not aggregate read-only.");
+                }
+                finally { opened.Close(); }
+                checks.Add("PASS spend sheet: today and this month's totals, each model's asks, tokens and cost, free models marked free and unpriced ones marked ?, the small jobs explanation and list prices note, Windows' own \"Capri spend\" window title and \"SPEND >\" heading, a seeded file with a broken row aggregating read-only, and the Mainframe's Spend key by her update note showing \"$12.50 today · $12.50 this month\"");
             }
             finally
             {

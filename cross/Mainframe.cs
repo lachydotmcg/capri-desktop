@@ -1056,7 +1056,7 @@ namespace CapriDesktop
             else { Memory.WindowState = WindowState.Normal; Memory.Activate(); }
         }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
-        internal void OpenSpend() { ShowSheet(new MainframeSheet(pet, "SPEND", "spend")); }
+        internal void OpenSpend() { ShowSheet(new MainframeSheet(pet, "spend", "spend", "SPEND >")); }
         internal void OpenUninstall() { ShowSheet(new MainframeSheet(pet, "UNINSTALL CAPRI", "uninstall")); }
         internal void OpenRemote()
         {
