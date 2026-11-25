@@ -2673,6 +2673,9 @@ namespace CapriDesktop
         private readonly TalkPill pill = new TalkPill();
         private readonly SpeechBox box = new SpeechBox();
         private readonly TypeBox typer = new TypeBox();
+        private readonly TypeBox jobEditor = new TypeBox(true);
+        private Job editingJob;
+        private long editRequest;
         private readonly Tear tear = new Tear();
         private readonly Shatter shatter = new Shatter();
         private readonly Ribbons ribbons = new Ribbons();
@@ -3251,6 +3254,24 @@ namespace CapriDesktop
             hologramItem.ToolTipText = "Clicks go through her until you turn it off from her tray icon";
             hologramItem.AccessibleName = "Hologram. " + hologramItem.ToolTipText;
             menu.Items.Add(hologramItem);
+            ToolStripMenuItem editJobItem = new ToolStripMenuItem("Edit current job instructions", null, delegate { EditCurrentJob(); });
+            ToolStripMenuItem jobMicItem = new ToolStripMenuItem("Mute Capri's mic", null, delegate { ToggleMic(); });
+            menu.Items.Add(editJobItem);
+            menu.Items.Add(jobMicItem);
+            menu.Opening += delegate
+            {
+                bool activeJob = MidJob(job);
+                editJobItem.Visible = activeJob;
+                editJobItem.Enabled = activeJob && editingJob == null && !OwnCallQuestion();
+                jobMicItem.Visible = activeJob && chatting;
+                jobMicItem.Text = ears.Muted ? "Unmute Capri's mic" : "Mute Capri's mic";
+            };
+            taskPanel.ContextMenuStrip = menu;
+            taskPanel.EditRequested += EditCurrentJob;
+            taskPanel.MicRequested += ToggleMic;
+            taskPanel.JobMic = delegate { return !chatting ? "" : ears.Muted ? "UNMUTE" : "MUTE"; };
+            jobEditor.Submitted += FinishJobEdit;
+            jobEditor.VisibleChanged += delegate { if (!jobEditor.Visible) FinishJobEdit(null); };
             menu.Opening += delegate { if (ownRest) WakeRest(!SleepBusy); sitHereItem.Text = seat != null && seat.Free ? "Stand up" : "Sit here"; hangHereItem.Text = hanging ? "Let go" : "Hang here"; lieItem.Text = lying ? "Sit up" : "Lie down"; lieItem.Enabled = lying || (clip == perch && LieWay() != null); sleepItem.Text = napAsked || Asleep ? "Wake up" : "Go to sleep"; danceNowItem.Checked = danceAsked; screenItem.Visible = Screen.AllScreens.Length > 1; };
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
@@ -3705,6 +3726,7 @@ namespace CapriDesktop
         {
             base.OnFormClosing(e);
             bool shutdown = e.CloseReason == CloseReason.WindowsShutDown;
+            if (!e.Cancel && discordCompanion != null) discordCompanion.Stop();
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
@@ -11583,7 +11605,7 @@ namespace CapriDesktop
             {
                 Job joining = new Job(task, asked);
                 string result = Work(joining);
-                return FinishCallJoin(task, joining.Outcome, ticket, result);
+                return FinishCallJoin(joining.Task, joining.Outcome, ticket, result);
             }
             // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
             // a plain job over its stream tool.
@@ -11593,7 +11615,12 @@ namespace CapriDesktop
                 Job plain = new Job(task, asked);
                 string finished = Work(plain);
                 Hands.Held(plain.Outcome == "waiting" ? finished : null);
-                if (!Computer.Streaming || plain.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return finished; }
+                if (plain.TaskEdited) { task = plain.Task; asked = plain.Words; }
+                if (!Computer.Streaming || plain.Outcome == "stopped" || Computer.Interrupted)
+                {
+                    Computer.Streaming = Computer.StreamingAlways;
+                    return plain.TaskEdited ? FinishCallJoin(task, plain.Outcome, ticket, finished) : finished;
+                }
             }
             // On stream only their Esc ends it (Lachy, 30 Oct: "play for hours ... while im asleep"). Anything else that stops
             // her, like a brain error or a run of turns without a move, starts the stream again after a breather, a longer one
@@ -11609,6 +11636,7 @@ namespace CapriDesktop
                     string result;
                     try { result = Work(running); }
                     catch (Exception error) { result = Hands.Problem(error); }
+                    if (running.TaskEdited) { task = running.Task; asked = running.Words; }
                     if (running.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
                     rests = unchecked(Environment.TickCount - began) < 120000 ? Math.Min(rests + 1, 5) : 0;
                     int wait = 15000 << rests;
@@ -11686,7 +11714,6 @@ namespace CapriDesktop
             };
             running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
             running.Progress = delegate(string status) { RemoteJobStatus(running, status); Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
-            bool social = Computer.Social(running.Task + " " + running.Words);
             string[] called = { null };
             running.Seen = delegate(Sight sight)
             {
@@ -11697,7 +11724,7 @@ namespace CapriDesktop
                 // It shows while she's hidden too, beside her glow, so they can always see which app she's in (#106).
                 Post(delegate { if (job == running && preferences.Motion) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
                 string program = sight.Program;
-                if (social && !string.IsNullOrEmpty(program) && program != called[0] && Computer.GameWindow(sight)) { called[0] = program; Post(delegate { CallForGame(running, program, name); }); }
+                if (!string.IsNullOrEmpty(program) && program != called[0] && Computer.GameWindow(sight) && Computer.Social(running.Task + " " + running.Words)) { called[0] = program; Post(delegate { CallForGame(running, program, name); }); }
             };
             running.Busy = delegate(string what) { RemoteJobStatus(running, what); Post(delegate { taskPanel.Busy(running, what); }); };
             running.Stepped = delegate(JobStep step) { RemoteJobStep(running, step); Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
@@ -11715,7 +11742,7 @@ namespace CapriDesktop
                 RemoteJobOn(running);
                 if (RemoteJobStopped(running)) { running.Outcome = "stopped"; return Computer.Escaped; }
                 result = running.Run();
-                if (media && !running.Playing) KeepPlaying(running.Outcome, before, 800);
+                if (media && !running.TaskEdited && !running.Playing) KeepPlaying(running.Outcome, before, 800);
                 return result;
             }
             catch (BrainException error) { brainTrouble = error.Message; throw; }
@@ -11869,6 +11896,7 @@ namespace CapriDesktop
         // She stays on the panel until it fades.
         private void JobOff(Job running, string outcome, string result)
         {
+            if (editingJob == running) FinishJobEdit(null);
             working = null;
             asideShown = null;
             if (jobEars)
@@ -14631,6 +14659,44 @@ namespace CapriDesktop
             pillUntil = clock.Elapsed.TotalSeconds + 1.5;
         }
 
+        private void EditCurrentJob()
+        {
+            Job running = job;
+            if (editingJob != null || !MidJob(running) || OwnCallQuestion()) return;
+            editingJob = running;
+            long request = ++editRequest;
+            if (!running.RequestEdit(delegate { Post(delegate { OpenJobEditor(running, request); }); }))
+            {
+                editingJob = null;
+                return;
+            }
+            taskPanel.Busy(running, "Pausing to edit instructions");
+        }
+
+        private void OpenJobEditor(Job running, long request)
+        {
+            if (request != editRequest || editingJob != running) return;
+            if (job != running || quitting || Computer.Interrupted || OwnCallQuestion()) { FinishJobEdit(null); return; }
+            if (typer.Visible) typer.Hide();
+            Point head = Head();
+            Rectangle panel = taskPanel.Visible ? taskPanel.Bounds : Rectangle.Empty;
+            jobEditor.Draft = running.Words;
+            taskPanel.Busy(running, "Waiting for your edit");
+            jobEditor.Open(head, Feet(), Screen.FromPoint(head).WorkingArea, TalkScale(), panel);
+        }
+
+        private void FinishJobEdit(string text)
+        {
+            Job running = editingJob;
+            if (running == null) return;
+            editingJob = null;
+            if (jobEditor.Visible) jobEditor.Hide();
+            string replacement = job == running && !quitting && !Computer.Interrupted && !OwnCallQuestion() ? text : null;
+            if (!string.IsNullOrWhiteSpace(replacement)) taskPanel.JobWords(running, replacement);
+            running.FinishEdit(replacement);
+            taskPanel.Busy(running, null);
+        }
+
         private void ToggleChat()
         {
             if (chatting) { earsClosed = preferences.ListenCapri || CallModeOn; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
@@ -14907,11 +14973,18 @@ namespace CapriDesktop
         // behind open ears, and costs no reload.
         private void EarsModel(bool open)
         {
+            lock (earsModelGate) earsModelDesktop = open;
+            RefreshEarsModel();
+        }
+
+        private void RefreshEarsModel()
+        {
+            bool discord = discordCompanion != null && discordCompanion.InVoice && parakeet.Ready;
             lock (earsModelGate)
             {
-                earsModelWanted = open;
+                earsModelWanted = earsModelDesktop || discord;
                 // Watch Along can load it too, so closing always unloads.
-                if (!open) earsModelUnload = true;
+                if (!earsModelWanted) earsModelUnload = true;
                 if (earsModelBusy) return;
                 earsModelBusy = true;
             }
@@ -15029,7 +15102,7 @@ namespace CapriDesktop
         // They open once her hello's out of the way and come back after whatever closed them (hiding her, Quiet, a lost mic), unless they closed them on purpose.
         private bool earsClosed;
         private readonly object earsModelGate = new object();
-        private bool earsModelWanted, earsModelLoaded, earsModelBusy, earsModelUnload;
+        private bool earsModelDesktop, earsModelWanted, earsModelLoaded, earsModelBusy, earsModelUnload;
         private double listenAt;
 
         private void AgentVoice()
@@ -15907,6 +15980,8 @@ namespace CapriDesktop
         private string AgentAct(Agent opened, string tool, ToolArguments args)
         {
             if (CallModeOn) return CallSession.Conversation;
+            if (opened != null && DiscordCompanion.OwnerJoinAsked(opened.LastHeard) && LinkedDiscord)
+                return "The linked Discord bot is handling this request.";
             if (args == null) args = new ToolArguments();
             // What the agent picked runs as it picked it (Lachy, 8 Nov): its tools say a game to play is one use_computer job.
             args.FromAgent = opened != null;
@@ -15968,6 +16043,12 @@ namespace CapriDesktop
             WakeRest(!SleepBusy);
             agentComment = false;
             if (StopListening(text)) return;
+            if (JoinLinkedDiscord(text))
+            {
+                dropping = true;
+                Hush("Discord bot joining");
+                return;
+            }
             Chimes.Play(Chime.Heard);
             // A sorry in voice chat makes up with her too, and the agent hears so before it answers (Zr4, F44).
             if (Sulking && Apology(text)) Forgive();
@@ -16310,6 +16391,7 @@ namespace CapriDesktop
             followUp.Drop();
             if (StopWatchAlong(text, typed)) return;
             if (StopListening(input)) return;
+            if (callReply == null && prompt == "> you: " && switches == 0 && !Security.FromMod(input) && JoinLinkedDiscord(input)) return;
             if (callReply == null && prompt == "> you: " && WorkspaceAsked(input)) { OpenWorkspace(); return; }
             // Sorry, typed or said while she sulks over being thrown, makes up with her, and a plain sorry gets her forgiving line
             // back. Mid-job it still goes to the job (Zr4, F44).
@@ -17736,6 +17818,8 @@ namespace CapriDesktop
                 pill.Dispose();
                 box.Dispose();
                 gifCard.Dispose();
+                FinishJobEdit(null);
+                jobEditor.Dispose();
                 typer.Dispose();
                 CloseCallWindows();
                 mainframe.Dispose();
@@ -43565,25 +43649,16 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
+                    "Discord Bot:",
+                    "Capricord:",
                     "Plug-ins:",
-                    "Email:",
-                    "Phishing:",
-                    "Settings search:",
-                    "Languages:",
-                    "Startup animations:",
-                    "Lite mode:",
-                    "Games:",
-                    "What she did:",
-                    "Companion packs:",
-                    "Spend:",
-                    "Wander:",
-                    "New moves:",
-                    "Listen for Capri:",
-                    "Comments Off:",
-                    "OpenAI keys:",
-                    "Voice:",
-                    "Fixes:",
-                    "Squad:"
+                    "Tools:",
+                    "Connect:",
+                    "Cloud voice:",
+                    "Download warnings:",
+                    "Job controls:",
+                    "Colours:",
+                    "Music:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
@@ -54823,7 +54898,16 @@ namespace CapriDesktop
                                 && bypassTools.IndexOf("buys or pays", StringComparison.Ordinal) < 0 && bypassTools.Split(new[] { "never ask before buying" }, StringSplitOptions.None).Length == 4
                                 && !payJob.Needs("buy") && !payJob.Needs("delete") && !Computer.Barred("ctrl+shift+esc") && !Computer.Barred("win+r");
                             string bypassPrompt = Computer.Allowing(Computer.Prompt), bypassSeeing = Computer.Allowing(Computer.Seeing);
+                            Job downloadJob = new Job("Download and install the app I asked for");
+                            bool reportsDownloadWarning = true;
+                            foreach (string modePrompt in new[] { Computer.Prompt, Computer.Seeing, Computer.Sees })
+                            {
+                                string full = downloadJob.Prompted(modePrompt);
+                                if (!full.Contains("SmartScreen or antivirus blocks a file, leave it alone and report the exact warning") || full.Contains("then Run anyway"))
+                                    reportsDownloadWarning = false;
+                            }
                             Computer.Bypass = bypassWas;
+                            if (!reportsDownloadWarning) throw new Exception("A computer job lost its download warning instructions in Blackwall mode.");
                             if (!checksPay || !paysAhead || bypassPrompt.IndexOf("call ask before you buy", StringComparison.Ordinal) >= 0 || bypassPrompt.IndexOf("Bypass all permissions", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("stop and ask", StringComparison.Ordinal) >= 0
                                 || bypassSeeing.IndexOf("Bypass all permissions", StringComparison.Ordinal) < 0 || bypassPrompt.IndexOf("Never type passwords", StringComparison.Ordinal) >= 0 || bypassSeeing.IndexOf("Never type passwords", StringComparison.Ordinal) >= 0
                                 || bypassPrompt.IndexOf("Type passwords, card numbers", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("Type passwords, card numbers", StringComparison.Ordinal) < 0 || bypassSeeing.IndexOf("needs their OK", StringComparison.Ordinal) >= 0
@@ -56778,7 +56862,7 @@ namespace CapriDesktop
                                     if (driveSent != "Sent blah in #general." || driveSend.Outcome != "done" || driveShots != 4 || driven.Count != 4 || driveImages != 3 || !driveWellFormed
                                         || string.Join("|", driveOpened.ToArray()) != "open_app:Discord" || string.Join("|", driveMoves.ToArray()) != "left_click 200,400|type blah\\n|scroll 1280,720"
                                         || string.Join("|", driveRows.ToArray()) != "Opened Discord|Clicked general|Typed \"blah\" and pressed Enter|Scrolled down"
-                                        || driveSystem != Computer.Seeing || !driveTools.StartsWith("[{\"type\":\"computer_toolset_20260801\"},{\"name\":\"open_app\"", StringComparison.Ordinal)
+                                        || driveSystem != Computer.Seeing + Computer.DownloadWarning || !driveTools.StartsWith("[{\"type\":\"computer_toolset_20260801\"},{\"name\":\"open_app\"", StringComparison.Ordinal)
                                         || !driven[0].StartsWith("[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Job: ", StringComparison.Ordinal) || driven[0].IndexOf("Window in front:", StringComparison.Ordinal) < 0 || driven[0].IndexOf("The screen now, 1280x720:\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
                                         || driven[1].IndexOf("{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"Open Discord first.\",\"signature\":\"c2ln\"}", StringComparison.Ordinal) < 0
                                         || driven[1].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t1\",\"content\":[{\"type\":\"text\",\"text\":\"Opened Discord.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
@@ -56786,6 +56870,50 @@ namespace CapriDesktop
                                         || driven[2].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t3\",\"toolset_name\":\"computer\",\"content\":[{\"type\":\"text\",\"text\":\"Done.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
                                         || driven[3].IndexOf("[Image omitted]", StringComparison.Ordinal) < 0 || !driven[3].EndsWith(",\"cache_control\":{\"type\":\"ephemeral\"}}]}]", StringComparison.Ordinal) || Regex.Matches(driven[3], "cache_control").Count != 1)
                                         throw new Exception("Claude's screenshot hands went wrong: " + driveSent + " / shots " + driveShots + " / images " + driveImages + " / " + string.Join("|", driveMoves.ToArray()) + " / " + string.Join("|", driveRows.ToArray()));
+                                    driveMoves.Clear();
+                                    driveOpened.Clear();
+                                    Job driveEdit = new Job("open Discord");
+                                    int editTurns = 0;
+                                    driveEdit.Drive = delegate(string system, string tools, string messages)
+                                    {
+                                        if (++editTurns == 1)
+                                        {
+                                            if (!driveEdit.RequestEdit(delegate { driveEdit.FinishEdit("open Notepad"); })) throw new Exception("A thinking job wouldn't let its user edit it.");
+                                            return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"obsolete\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[100,200]}}],\"stop_reason\":\"tool_use\"}");
+                                        }
+                                        if (editTurns == 2)
+                                        {
+                                            if (driveEdit.Task != "open Notepad" || !messages.Contains("open Notepad") || messages.Contains("open Discord") || driveMoves.Count != 0)
+                                                throw new Exception("Editing a job kept its old instruction or applied a stale action.");
+                                            return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"current\",\"name\":\"open_app\",\"input\":{\"name\":\"Notepad\"}}],\"stop_reason\":\"tool_use\"}");
+                                        }
+                                        return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Opened Notepad.\"}],\"stop_reason\":\"end_turn\"}");
+                                    };
+                                    if (driveEdit.Run() != "Opened Notepad." || editTurns != 3 || driveOpened.Count != 1 || driveOpened[0] != "open_app:Notepad" || driveMoves.Count != 0)
+                                        throw new Exception("The edited job didn't continue with the new instruction.");
+                                    Job editBatch = new Job("click general and type hello");
+                                    int batchTurns = 0, batchEdits = 0;
+                                    driveMoves.Clear();
+                                    Func<Point, Target> fakeUnder = Computer.Under;
+                                    Computer.Under = delegate(Point at)
+                                    {
+                                        if (at.X == 400 && !editBatch.RequestEdit(delegate { batchEdits++; editBatch.FinishEdit("leave the chat alone"); }))
+                                            throw new Exception("Couldn't edit a job while it checked where to click.");
+                                        return fakeUnder(at);
+                                    };
+                                    try
+                                    {
+                                        editBatch.Drive = delegate(string system, string tools, string messages)
+                                        {
+                                            if (++batchTurns == 1) return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"click\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[100,200]}},{\"type\":\"tool_use\",\"id\":\"old-click\",\"name\":\"right_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[200,200]}}],\"stop_reason\":\"tool_use\"}");
+                                            if (!messages.Contains("leave the chat alone") || !messages.Contains("Recent steps")) throw new Exception("Editing between steps lost finished work or the new instruction.");
+                                            return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Left it alone.\"}],\"stop_reason\":\"end_turn\"}");
+                                        };
+                                        if (editBatch.Run() != "Left it alone." || batchEdits != 1 || batchTurns != 2 || driveMoves.Count != 1 || driveMoves[0] != "left_click 200,400")
+                                            throw new Exception("Editing between steps let a stale action run.");
+                                    }
+                                    finally { Computer.Under = fakeUnder; }
+                                    checks.Add("PASS job edits replace the current instructions, keep finished work, and discard obsolete model replies and clicks");
                                     driven.Clear();
                                     driveMoves.Clear();
                                     driveTurn = 0;
@@ -56798,6 +56926,7 @@ namespace CapriDesktop
                                     driveBuy.Drive = scripted;
                                     string driveAsk = driveBuy.Run();
                                     bool driveHeld = driveAsk == "Should I press \"Buy now\"?" && driveBuy.Asking && driveBuy.Outcome == "waiting" && driveMoves.Count == 0;
+                                    if (driveBuy.RequestEdit(delegate { driveBuy.FinishEdit("buy something else"); })) throw new Exception("A job edit accepted while its approval was pending.");
                                     string driveBought = driveBuy.Run();
                                     if (!driveHeld || driveBought != "Bought the hat." || driveBuy.Asking || string.Join("|", driveMoves.ToArray()) != "left_click 200,1400" || driven.Count != 2 || driven[1].IndexOf("\"tool_use_id\":\"b1\",\"toolset_name\":\"computer\",\"content\":[{\"type\":\"text\",\"text\":\"Done.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0)
                                         throw new Exception("Claude's hands pressed Buy without asking, or lost the click after yes: " + driveAsk + " / " + driveBought + " / " + string.Join("|", driveMoves.ToArray()));
@@ -56960,7 +57089,8 @@ namespace CapriDesktop
                                     string funRun = driveFun.Run();
                                     string funSystem = driveSystem;
                                     Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" }; };
-                                    if (drivePlayed != "Played a round." || !drivePlay.Playing || playSystem != Computer.Seeing + Computer.Playing || funRun != "Played a round." || funBefore || !driveFun.Playing || funSystem != Computer.Seeing + Computer.Playing || new Job("send hi in #general on discord").Playing)
+                                    string expectedGamePrompt = Computer.Seeing + Computer.Playing + Computer.DownloadWarning;
+                                    if (drivePlayed != "Played a round." || !drivePlay.Playing || playSystem != expectedGamePrompt || funRun != "Played a round." || funBefore || !driveFun.Playing || funSystem != expectedGamePrompt || new Job("send hi in #general on discord").Playing)
                                         throw new Exception("A game job didn't get her game lines: " + drivePlayed + " / " + drivePlay.Playing + " / " + funRun + " / " + driveFun.Playing);
                                     // Whether a game job is really over is a brain's call, in any language.
                                     driveTurn = 0;
