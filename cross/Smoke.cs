@@ -161,6 +161,7 @@ namespace CapriDesktop
                 MoveReports.Checks(checks);
                 NiriDesktop.Checks(checks);
                 Labwc.Checks(checks);
+                Resources.Checks(checks);
                 NameListeningChecks.Checks(pet, checks);
                 MacQuit.Checks(checks);
                 NewsChecks();
@@ -4957,7 +4958,7 @@ namespace CapriDesktop
                 if (opener == null || !opener.IsVisible) throw new Exception("The Mainframe's main page has no Spend key.");
                 if (Avalonia.Automation.AutomationProperties.GetName(opener) != "Spend: what her brain cost on your API keys today and this month, model by model") throw new Exception("The Spend key's accessible name says " + Avalonia.Automation.AutomationProperties.GetName(opener));
                 if (!opener.Chevron) throw new Exception("The Spend key lost its chevron.");
-                if (Math.Abs(Canvas.GetTop(opener) - Canvas.GetTop(note) - 30) > 0.5) throw new Exception("The Spend key isn't 30 below her update note: " + Canvas.GetTop(opener) + " / " + Canvas.GetTop(note));
+                if (Math.Abs(Canvas.GetTop(opener) - Canvas.GetTop(note) - 60) > 0.5) throw new Exception("The Spend key isn't 60 below her update note, under Resources: " + Canvas.GetTop(opener) + " / " + Canvas.GetTop(note));
                 if (frame.SpendLine != "$12.50 today · $12.50 this month") throw new Exception("The Mainframe's Spend line says " + frame.SpendLine);
                 checks.Add("PASS spend sheet: today and this month's totals, each model's asks, tokens and cost, free models marked free and unpriced ones marked ?, the small jobs explanation and list prices note, and the Mainframe's Spend key by her update note showing \"$12.50 today · $12.50 this month\"");
             }
@@ -4967,6 +4968,112 @@ namespace CapriDesktop
                 frame.ShowSettings(pagedWas);
                 Spend.Folder = spendWas;
                 Spend.Forget();
+            }
+            ResourcesChecks(frame);
+        }
+
+        private void ResourcesChecks(Mainframe frame)
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            bool pagedWas = frame.SettingsShown;
+            Func<ResourceView> readWas = Resources.Source;
+            ResourcesSheet sheet = null;
+            try
+            {
+                ResourceView made = new ResourceView { Cpu = 37, RamUsed = 12300L << 20, RamTotal = 32L << 30, Gpu = 64, VramUsed = 5300L << 20, VramTotal = 8L << 30, GpuName = "NVIDIA GeForce RTX 4060", Note = "The card's total use · RTX 4060 (8.0 GB). This computer doesn't name each program's share." };
+                made.Capri.Add(new ResourceRow { Name = "Capri", Cpu = 1.2, Ram = 410L << 20, Gpu = 3, Vram = 120L << 20 });
+                made.Capri.Add(new ResourceRow { Name = "Her brain", Cpu = 0.4, Ram = 220L << 20, Gpu = 0, Vram = 3400L << 20 });
+                made.Capri.Add(new ResourceRow { Name = "HD voice", Cpu = 0, Ram = 96L << 20, Gpu = 0, Vram = 1100L << 20 });
+                made.Others.Add(new ResourceRow { Name = "FortniteClient-Win64-Shipping", Cpu = 22.5, Ram = 5100L << 20, Gpu = 58, Vram = 2900L << 20 });
+                made.Others.Add(new ResourceRow { Name = "chrome", Count = 31, Cpu = 8, Ram = 2300L << 20, Gpu = 2, Vram = 300L << 20 });
+                made.Others.Add(new ResourceRow { Name = "Microsoft Edge WebView2", Count = 12, Cpu = 1, Ram = 900L << 20, Gpu = 0, Vram = 0 });
+                made.Others.Add(new ResourceRow { Name = "Discord", Count = 6, Cpu = 2, Ram = 700L << 20, Gpu = 1, Vram = 90L << 20 });
+                made.Others.Add(new ResourceRow { Name = "Spotify", Count = 5, Cpu = 0.5, Ram = 400L << 20, Gpu = 0, Vram = 40L << 20 });
+                made.Others.Add(new ResourceRow { Name = "explorer", Cpu = 0.2, Ram = 150L << 20, Gpu = 0, Vram = 20L << 20 });
+                made.Others.Add(new ResourceRow { Name = "never shown", Cpu = 0, Ram = 1L << 20 });
+                made.CapriTotal.Cpu = 1.6; made.CapriTotal.Ram = 726L << 20; made.CapriTotal.Gpu = 3; made.CapriTotal.Vram = 4620L << 20; made.CapriTotal.Count = 3;
+                made.OthersTotal.Cpu = 35.4; made.OthersTotal.Ram = 11574L << 20; made.OthersTotal.Gpu = 61; made.OthersTotal.Vram = 3350L << 20; made.OthersTotal.Count = 220;
+                sheet = new ResourcesSheet(pet);
+                sheet.Fill(made);
+                Func<string, string> said = name =>
+                {
+                    Control row;
+                    if (!sheet.Rows.TryGetValue(name, out row) || !(row is NeonCaption caption)) throw new Exception("The Resources panel has no " + name + " row.");
+                    return caption.Text;
+                };
+                if (said("CPU amount") != "37%") throw new Exception("The Resources panel's CPU says " + said("CPU amount"));
+                if (said("RAM amount") != "12.0 of 32 GB") throw new Exception("The Resources panel's RAM says " + said("RAM amount"));
+                if (said("GPU amount") != "64% · 5.2 of 8.0 GB") throw new Exception("The Resources panel's GPU says " + said("GPU amount"));
+                if (said("Legend") != "Cyan is Capri, red is everything else") throw new Exception("The Resources panel's legend says " + said("Legend"));
+                if (said("GPU note") != made.Note) throw new Exception("The Resources panel's graphics note says " + said("GPU note"));
+                if (said("Capri total") != "2% CPU · 726 MB · 3% GPU") throw new Exception("The Resources panel's Capri total says " + said("Capri total"));
+                if (said("Others total") != "35% CPU · 11 GB · 61% GPU") throw new Exception("The Resources panel's other programs total says " + said("Others total"));
+                if (said("Summary") != "Capri uses 2% of your CPU and 2% of your RAM. Using the most: FortniteClient-Win64-Shipping.") throw new Exception("The Resources panel's summary says " + said("Summary"));
+                if (sheet.Capri[0].Name.Text != "Capri" || sheet.Capri[0].Cpu.Text != "1%" || sheet.Capri[0].Ram.Text != "410 MB" || sheet.Capri[0].Gpu.Text != "3%" || sheet.Capri[0].Vram.Text != "120 MB") throw new Exception("The Resources panel's first Capri row reads " + sheet.Capri[0].Name.Text + " " + sheet.Capri[0].Cpu.Text + " " + sheet.Capri[0].Ram.Text + " " + sheet.Capri[0].Gpu.Text + " " + sheet.Capri[0].Vram.Text);
+                if (sheet.Capri[1].Name.Text != "Her brain" || sheet.Capri[1].Cpu.Text != "<1%" || sheet.Capri[1].Ram.Text != "220 MB" || sheet.Capri[1].Vram.Text != "3.3 GB") throw new Exception("The Resources panel's second Capri row reads " + sheet.Capri[1].Name.Text + " " + sheet.Capri[1].Cpu.Text + " " + sheet.Capri[1].Ram.Text + " " + sheet.Capri[1].Vram.Text);
+                if (sheet.Capri[2].Name.Text != "HD voice" || sheet.Capri[2].Vram.Text != "1.1 GB") throw new Exception("The Resources panel's third Capri row reads " + sheet.Capri[2].Name.Text + " " + sheet.Capri[2].Vram.Text);
+                if (sheet.Others[0].Name.Text != "FortniteClient-Win64-Shipping" || sheet.Others[0].Cpu.Text != "22%" || sheet.Others[0].Ram.Text != "5.0 GB" || sheet.Others[0].Gpu.Text != "58%" || sheet.Others[0].Vram.Text != "2.8 GB") throw new Exception("The Resources panel's busiest other program reads " + sheet.Others[0].Name.Text + " " + sheet.Others[0].Cpu.Text + " " + sheet.Others[0].Ram.Text + " " + sheet.Others[0].Gpu.Text + " " + sheet.Others[0].Vram.Text);
+                if (sheet.Others[1].Name.Text != "chrome ×31" || sheet.Others[1].Ram.Text != "2.2 GB") throw new Exception("The Resources panel's grouped chrome row reads " + sheet.Others[1].Name.Text + " " + sheet.Others[1].Ram.Text);
+                if (sheet.Others[2].Vram.Text != "0 MB" || sheet.Others[3].Vram.Text != "90 MB" || sheet.Others[4].Cpu.Text != "<1%" || sheet.Others[5].Name.Text != "explorer") throw new Exception("The Resources panel's other program rows read " + sheet.Others[2].Vram.Text + " " + sheet.Others[3].Vram.Text + " " + sheet.Others[4].Cpu.Text + " " + sheet.Others[5].Name.Text);
+                if (sheet.Others.Length != 6) throw new Exception("The Resources panel shows " + sheet.Others.Length + " other programs.");
+                string wrong = sheet.Shows(made);
+                if (wrong != null) throw new Exception("The Resources panel doesn't show its view: " + wrong);
+                string crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("The Resources panel is crowded: " + crowded);
+
+                ResourceView real = Resources.Sample();
+                if (OperatingSystem.IsMacOS())
+                {
+                    if (real.Cpu >= 0 || real.RamUsed >= 0 || real.Gpu >= 0 || real.Capri.Count != 0 || real.Others.Count != 0 || real.RamTotal <= 0)
+                        throw new Exception("The Mac Resources view invented a value: CPU " + real.Cpu + ", RAM " + real.RamUsed + " of " + real.RamTotal + ", GPU " + real.Gpu + ", " + real.Capri.Count + " of hers, " + real.Others.Count + " others");
+                    sheet.Fill(real);
+                    if (said("CPU amount") != "-" || said("RAM amount") != "-" || said("GPU amount") != "-") throw new Exception("The Mac Resources panel shows " + said("CPU amount") + " / " + said("RAM amount") + " / " + said("GPU amount"));
+                    if (said("Summary") != "" || sheet.Rows["Legend"].IsVisible) throw new Exception("The Mac Resources panel shows a summary or legend it can't read.");
+                    if (!said("Limits note").StartsWith("macOS doesn't share ", StringComparison.Ordinal)) throw new Exception("The Mac Resources panel's limits note says " + said("Limits note"));
+                }
+                else
+                {
+                    ResourceSampler sampler = new ResourceSampler();
+                    sampler.Read(true);
+                    Thread.Sleep(250);
+                    real = sampler.Read(true);
+                    if (real.RamTotal <= 0 || real.RamUsed <= 0 || real.RamUsed > real.RamTotal || real.Cpu < 0 || real.Cpu > 100 || real.Capri.Count == 0 || real.Capri[0].Name != "Capri" || real.CapriTotal.Count < 1 || real.Others.Count == 0)
+                        throw new Exception("The Resources view can't read this PC: CPU " + real.Cpu + ", RAM " + real.RamUsed + " of " + real.RamTotal + ", " + real.Capri.Count + " of hers (" + (real.Capri.Count == 0 ? "none" : real.Capri[0].Name) + " of " + real.CapriTotal.Count + "), " + real.Others.Count + " others");
+                    sheet.Fill(real);
+                    if (said("CPU amount") != ResourceView.Percent(real.Cpu) || said("CPU amount") == "-") throw new Exception("The Resources panel shows live CPU as " + said("CPU amount"));
+                    if (said("RAM amount") != ResourceView.Of(real.RamUsed, real.RamTotal) || said("Summary").Length == 0 || !sheet.Rows["Legend"].IsVisible) throw new Exception("The Resources panel's live RAM, summary or legend is missing: " + said("RAM amount") + " / " + said("Summary"));
+                }
+
+                frame.ShowSettings(false);
+                NeonCaption note = (NeonCaption)typeof(Mainframe).GetField("updateNote", fields).GetValue(frame);
+                NeonButton resources = frame.Button("Resources");
+                NeonButton spend = frame.Button("Spend");
+                if (resources == null || !resources.IsVisible) throw new Exception("The Mainframe's main page has no Resources key.");
+                if (Avalonia.Automation.AutomationProperties.GetName(resources) != "Resources: what's using your CPU, RAM and GPU, Capri's parts apart from other programs") throw new Exception("The Resources key's accessible name says " + Avalonia.Automation.AutomationProperties.GetName(resources));
+                if (!resources.Chevron) throw new Exception("The Resources key lost its chevron.");
+                if (Math.Abs(Canvas.GetTop(resources) - Canvas.GetTop(note) - 30) > 0.5) throw new Exception("The Resources key isn't 30 below her update note: " + Canvas.GetTop(resources) + " / " + Canvas.GetTop(note));
+                if (spend == null || Math.Abs(Canvas.GetTop(spend) - Canvas.GetTop(note) - 60) > 0.5) throw new Exception("The Spend key isn't 60 below her update note, under Resources: " + (spend == null ? "missing" : Canvas.GetTop(spend).ToString()));
+                Resources.Source = () => new ResourceView { Cpu = 12.4, RamUsed = 4L << 30, RamTotal = 16L << 30 };
+                frame.Sync();
+                if (frame.ResourcesLine != "CPU 12% · RAM 4.0/16 GB") throw new Exception("The Mainframe's Resources line says " + frame.ResourcesLine);
+                frame.Press("Resources");
+                var sheets = (List<Window>)typeof(Mainframe).GetField("sheets", fields).GetValue(frame);
+                ResourcesSheet opened = null;
+                foreach (Window window in sheets) if (window is ResourcesSheet) opened = (ResourcesSheet)window;
+                if (opened == null) throw new Exception("The Resources key didn't open its panel.");
+                if (opened.Title != "Capri resources") throw new Exception("The Resources panel's title says " + opened.Title);
+                opened.Close();
+                string help = SelfKnow.Matching("what's using my CPU?") ?? "";
+                if (!help.StartsWith("Resources: ", StringComparison.Ordinal) || !help.Contains(OperatingSystem.IsMacOS() ? "macOS doesn't share CPU, memory or graphics card use with apps yet" : "OTHER PROGRAMS lists"))
+                    throw new Exception("Her Resources help says " + help);
+                checks.Add("PASS resources panel: CPU, RAM and GPU with Capri's share, her own parts and the busiest other programs from seeded values, a Mac's honest - rows, the CPU/RAM line under her update note, and the Resources and Spend keys 30 and 60 below it");
+            }
+            finally
+            {
+                Resources.Source = readWas;
+                if (sheet != null) sheet.Close();
+                frame.ShowSettings(pagedWas);
+                frame.Sync();
             }
         }
 
