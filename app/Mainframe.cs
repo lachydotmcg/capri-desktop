@@ -2620,7 +2620,7 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, answerMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, speakerMenu, personalityMenu, languageMenu, answerMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu, jealousMenu, screenMenu, huskMenu, thinkingMenu, miniMenu }) if (menu != null) menu.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(answerMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 if (languageFont != null) { languageFont.Dispose(); languageFont = null; }

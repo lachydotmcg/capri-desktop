@@ -2351,6 +2351,11 @@ namespace CapriDesktop
         private readonly Random random = new Random();
         private readonly NotifyIcon tray;
         private readonly ContextMenuStrip menu;
+        // Her right-click, tray and player menus' fonts in points, drawn in pixels for the screen each opens on, and where
+        // that is with its DPI, which the smoke swaps for made-up monitors. 0 means Windows can't say, and they stay as built.
+        private readonly Font menuType = Neon.Type(10f), menuTitle = Neon.Display(12f);
+        internal static Func<Point> MenuSpot = delegate { return Cursor.Position; };
+        internal static Func<Point, int> MenuDpiAt = delegate(Point at) { return Arrange.DpiAt(at, 0); };
         private readonly ToolStripMenuItem visibilityItem;
         private readonly ToolStripMenuItem hologramItem;
         private readonly ToolStripMenuItem sleepItem;
@@ -3191,15 +3196,17 @@ namespace CapriDesktop
             Cursor = Look.Pointer;
             AutoScaleMode = AutoScaleMode.None;
             menu = new ContextMenuStrip();
+            // Before her look's own Opening, which measures the words with the fonts they'll open with.
+            menu.Opening += delegate { ScaleMenus(); };
             menu.Renderer = new Mainframe.MenuLook();
             menu.ForeColor = Mainframe.MenuLook.Ink;
             menu.BackColor = Mainframe.MenuLook.Panel;
-            menu.Font = Neon.Type(10f);
+            menu.Font = menuType;
             menu.ShowImageMargin = false;
             menu.ShowCheckMargin = true;
             ToolStripMenuItem title = new ToolStripMenuItem("CAPRI  /  " + ShownVersion(Packaged.Is, true));
             title.Enabled = false;
-            title.Font = Neon.Display(12f);
+            title.Font = menuTitle;
             title.Tag = Mainframe.MenuLook.Title;
             menu.Items.Add(title);
             menu.Items.Add(new ToolStripSeparator());
@@ -3285,6 +3292,7 @@ namespace CapriDesktop
             menu.Opened += delegate { Computer.MenuOpen = true; };
             menu.Closed += delegate { Computer.MenuOpen = false; };
             playerMenu = new ContextMenuStrip();
+            playerMenu.Opening += delegate { ScaleMenus(); };
             playerMenu.Renderer = menu.Renderer;
             playerMenu.ForeColor = menu.ForeColor;
             playerMenu.BackColor = menu.BackColor;
@@ -5307,6 +5315,30 @@ namespace CapriDesktop
         }
 
         private void DpiChanged() { bodyCells.Clear(); drawnClip = null; if (!Refloor()) anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
+
+        // Her right-click, tray and player menus at the scale of the screen they're opening on, submenus and all, each time,
+        // so they follow her between screens: on a 100% screen beside a 200% main one they came out twice too big.
+        private void ScaleMenus()
+        {
+            int dpi = MenuDpiAt(MenuSpot());
+            if (dpi <= 0) return;
+            Font type = Neon.AtDpi(menuType, dpi);
+            menu.Font = type;
+            playerMenu.Font = type;
+            ScaleMenu(menu.Items, type, Neon.AtDpi(menuTitle, dpi));
+        }
+
+        private static void ScaleMenu(ToolStripItemCollection items, Font type, Font title)
+        {
+            foreach (ToolStripItem item in items)
+            {
+                if (item.Tag == Mainframe.MenuLook.Title) item.Font = title;
+                ToolStripDropDownItem parent = item as ToolStripDropDownItem;
+                if (parent == null || !parent.HasDropDownItems) continue;
+                parent.DropDown.Font = type;
+                ScaleMenu(parent.DropDownItems, type, title);
+            }
+        }
 
         private bool Solid(Point point, bool uncovered = false)
         {
@@ -41156,6 +41188,103 @@ namespace CapriDesktop
             }
         }
 
+        // Her right-click, tray and player menus open at the scale of the screen they open on. First on made-up monitors: a main
+        // screen at this PC's own scale with one at another scale on its left, like a 200% laptop beside a 100% screen, where her
+        // menu came out twice too big (nathanZW, 25 Nov). Then on each real screen, and her Mainframe's menus follow it too.
+        private void SmokeMenuScreens(System.Collections.Generic.List<string> checks)
+        {
+            int own;
+            using (Graphics desktop = Graphics.FromHwnd(IntPtr.Zero)) own = (int)Math.Round(desktop.DpiX);
+            int other = own == 96 ? 192 : 96;
+            Rectangle main = new Rectangle(0, 0, 2880, 1800), second = new Rectangle(-1920, 283, 1920, 1080);
+            ToolStripMenuItem moves = null, play = null;
+            foreach (ToolStripItem item in menu.Items)
+            {
+                if (item.Text == "Move") moves = item as ToolStripMenuItem;
+                if (item.Text == "Play") play = item as ToolStripMenuItem;
+            }
+            if (moves == null || play == null || menu.Items[2].Text != "Open Capri Mainframe") throw new Exception("Her right-click menu isn't laid out as this check expects.");
+            int type, title;
+            using (Font built = Neon.Type(10f)) type = built.Height;
+            using (Font built = Neon.Display(12f)) title = built.Height;
+            Point spot = Point.Empty;
+            Func<Point> spotWas = MenuSpot;
+            Func<Point, int> dpiWas = MenuDpiAt;
+            Func<Point, int[]> open = delegate(Point at)
+            {
+                spot = at;
+                try
+                {
+                    menu.Show(at);
+                    moves.ShowDropDown();
+                    int[] seen = { menu.Font.Height, menu.Items[0].Font.Height, menu.Items[2].Height, moves.DropDown.Font.Height, 0 };
+                    moves.HideDropDown();
+                    menu.Close();
+                    playerMenu.Show(at);
+                    seen[4] = playerMenu.Font.Height;
+                    return seen;
+                }
+                finally { moves.HideDropDown(); menu.Close(); playerMenu.Close(); }
+            };
+            Func<int[], string> said = delegate(int[] seen) { return "words " + seen[0] + ", title " + seen[1] + ", row " + seen[2] + ", Move " + seen[3] + ", player " + seen[4] + " px"; };
+            System.Collections.Generic.List<int> scales = new System.Collections.Generic.List<int>();
+            MenuSpot = delegate { return spot; };
+            try
+            {
+                MenuDpiAt = delegate(Point at) { return second.Contains(at) ? other : main.Contains(at) ? own : 0; };
+                int[] here = open(new Point(main.Left + 300, main.Top + 300));
+                int[] there = open(new Point(second.Left + 300, second.Top + 300));
+                int[] back = open(new Point(main.Left + 600, main.Top + 600));
+                string shown = "at " + own * 100 / 96 + "% " + said(here) + "; at " + other * 100 / 96 + "% " + said(there) + "; back " + said(back);
+                if (here[0] != type || here[1] != title || here[3] != type || here[4] != type) throw new Exception("Her menus changed size on a screen at the main screen's scale: " + shown + "; built " + type + " and " + title + " px");
+                for (int i = 0; i < here.Length; i++) if (back[i] != here[i]) throw new Exception("Her menus didn't come back to size when she came back to the main screen: " + shown);
+                float ratio = other / (float)own;
+                // A font's height is rounded up, so a scaled one can miss by up to the scale itself.
+                foreach (int i in new[] { 0, 1, 3, 4 }) if (Math.Abs(there[i] - here[i] * ratio) > Math.Max(1f, ratio) + 0.5f) throw new Exception("Her menus aren't at the scale of a screen at " + other * 100 / 96 + "% beside a main one at " + own * 100 / 96 + "%: " + shown);
+                float rows = there[2] / (here[2] * ratio);
+                if (rows < 0.8f || rows > 1.25f) throw new Exception("Her menu's rows aren't at the other screen's scale: " + shown);
+
+                MenuDpiAt = dpiWas;
+                foreach (Screen screen in Screen.AllScreens)
+                {
+                    Point middle = new Point(screen.Bounds.Left + screen.Bounds.Width / 2, screen.Bounds.Top + screen.Bounds.Height / 2);
+                    int dpi = Arrange.DpiAt(middle, 0);
+                    if (dpi <= 0) continue;
+                    int[] seen = open(middle);
+                    float near = Math.Max(1f, dpi / (float)own) + 0.5f;
+                    if (Math.Abs(seen[0] - type * dpi / (float)own) > near || Math.Abs(seen[4] - type * dpi / (float)own) > near) throw new Exception("Her menus on " + screen.DeviceName + " at " + dpi * 100 / 96 + "% aren't that screen's size: " + said(seen));
+                    if (!scales.Contains(dpi)) scales.Add(dpi);
+                }
+            }
+            finally
+            {
+                MenuSpot = spotWas;
+                MenuDpiAt = dpiWas;
+                menu.Font = menuType;
+                playerMenu.Font = menuType;
+                ScaleMenu(menu.Items, menuType, menuTitle);
+            }
+            checks.Add("PASS her right-click, tray and player menus and their submenus open at the scale of the screen they open on, checked on made-up monitors at " + own * 100 / 96 + "% and " + other * 100 / 96 + "%: the same size as before on the main screen's scale, and back to it when she comes back");
+            checks.Add(scales.Count > 1 ? "PASS her menus on this PC's real screens at " + string.Join("% and ", scales.ConvertAll(delegate(int dpi) { return (dpi * 100 / 96).ToString(); }).ToArray()) + "% open at each one's scale" : "LIMIT her menus on real screens with different scales: this PC's screens all share one scale, so it was checked with made-up monitors");
+
+            System.Collections.Generic.List<string> stale = new System.Collections.Generic.List<string>();
+            int[] frameHeights = new int[2];
+            try
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    mainframe.LayoutScale(i == 0 ? other : own, 100);
+                    frameHeights[i] = mainframe.Font.Height;
+                    foreach (ContextMenuStrip drop in mainframe.Dropdowns)
+                        if (drop != play.DropDown && drop.Font.Height != mainframe.Font.Height) stale.Add((drop.Items.Count > 0 ? drop.Items[0].Text : "an empty menu") + " " + drop.Font.Height + " px at " + (i == 0 ? other : own) * 100 / 96 + "%");
+                }
+            }
+            finally { mainframe.LayoutScale(0, 0); }
+            if (frameHeights[0] == frameHeights[1]) throw new Exception("Her Mainframe kept one size at " + other * 100 / 96 + "% and " + own * 100 / 96 + "%, so its menus weren't checked.");
+            if (stale.Count > 0) throw new Exception("Her Mainframe's menus didn't follow it to a screen with another scale (" + frameHeights[0] + " and " + frameHeights[1] + " px): " + string.Join("; ", stale.ToArray()));
+            checks.Add("PASS her Mainframe's menus follow it to a screen with another scale, the speaker, personality, jealousy, screen, Husk and thinking ones too");
+        }
+
         private void SmokePlanChoice(System.Collections.Generic.List<string> checks, string output, Action<string, bool> claudeSays)
         {
             Preferences wasPreferences = preferences;
@@ -47264,6 +47393,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
+            Section(checks, "SmokeMenuScreens", delegate { SmokeMenuScreens(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
             Section(checks, "SmokeLingo", delegate { SmokeLingo(checks); });
             Section(checks, "SmokeBetterModels", delegate { SmokeBetterModels(checks); });
