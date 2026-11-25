@@ -7150,7 +7150,7 @@ namespace CapriDesktop
                 pet.Brain.Attachments.Clear();
                 string heard = null;
                 pet.Talk.Dismiss();
-                MacFiles.Drop(new[] { path }, words => { heard = words; pet.Hear(words); });
+                MacFiles.Drop(new[] { path }, words => { heard = words; pet.HearDropped(words); });
                 RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a drop without a brain");
                 if (heard != Files.Dropped || pet.Talk.Reply != listed || pet.Brain.Attachments.Waiting || !pet.Brain.Attachments.Message("").Contains("made up")) throw new Exception("A drop without a brain wasn't read and listed like Windows: " + pet.Talk.Reply);
                 string opened = null; Hands.Run = value => opened = value;

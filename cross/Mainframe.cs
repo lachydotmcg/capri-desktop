@@ -599,10 +599,10 @@ namespace CapriDesktop
             chimeSet = Picker("Sound set", 184, 491, 172, () => pet.ChimeSetStep, i => pet.SetChimeSet(Chimes.Picked[i]));
             chimeSet.Height = 22; chimeSet.Options(ChimeSetNames());
             ToolTip.SetTip(chimeSet, "Which set of chimes she plays");
-            AutomationProperties.SetName(chimeSet, "Sound set. Which set of chimes she plays");
+            AutomationProperties.SetName(chimeSet, "Which set of chimes she plays");
             chimeVolume = Slider("Chime volume", ChimeVolumeNames, 0, 518, () => pet.ChimeVolumeStep, i => pet.SetChimeVolume((i + 1) * 10), false, () => pet.PreviewChime());
             ToolTip.SetTip(chimeVolume, "How loud her chimes are");
-            AutomationProperties.SetName(chimeVolume, "Chime volume. How loud her chimes are");
+            AutomationProperties.SetName(chimeVolume, "How loud her chimes are");
             chimeSent = Toggle("Message sent", 0, 546, () => pet.ChimeOn(Chime.Sent), on => pet.SetChime(Chime.Sent, on));
             AutomationProperties.SetName(chimeSent, "Message sent. A soft rising tick when your typed message goes to her");
             chimeHeard = Toggle("Heard you", 0, 574, () => pet.ChimeOn(Chime.Heard), on => pet.SetChime(Chime.Heard, on));

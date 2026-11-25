@@ -530,9 +530,14 @@ namespace CapriDesktop
 
         internal void NameLineAccepted(string text)
         {
-            if (NameListeningText.Named(text)) Chimes.Play(Chime.Listening);
             string request = NameListeningText.Request(text);
-            if (request.Length == 0) return;
+            // Her name on its own is the cue to go ahead; a line that already carries a request gets Heard you, like
+            // Windows. The two can't both sound, since any two chimes stay 300 ms apart.
+            if (request.Length == 0)
+            {
+                if (NameListeningText.Named(text)) Chimes.Play(Chime.Listening);
+                return;
+            }
             Chimes.Play(Chime.Heard);
             Hear(request, true);
         }

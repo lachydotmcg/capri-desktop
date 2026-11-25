@@ -744,6 +744,9 @@ namespace CapriDesktop
                 pet.Hear("stop");
                 if (played.Count != 1 || !Same(played[0], Render(Glass, Chime.Sent, 40))) throw new Exception("A typed message didn't play Message sent once: " + played.Count);
                 now += 10000; played.Clear(); Reset();
+                pet.HearDropped("stop");
+                if (played.Count != 0) throw new Exception("A dropped file played Message sent: " + played.Count);
+                now += 10000; played.Clear(); Reset();
                 pet.Listen = (decoding, stop) => Task.FromResult("stop");
                 pet.Saved.ListenCapri = false;
                 pet.Saved.Silent = true;
@@ -757,8 +760,12 @@ namespace CapriDesktop
                 now += 10000; played.Clear(); Reset();
                 pet.NameLineAccepted("stop");
                 if (played.Count != 1 || !Same(played[0], Render(Glass, Chime.Heard, 40))) throw new Exception("A name-listening line didn't play Heard you once: " + played.Count);
+                now += 10000; played.Clear(); Reset();
+                pet.NameLineAccepted("hey capri stop");
+                if (played.Count != 1 || !Same(played[0], Render(Glass, Chime.Heard, 40)))
+                    throw new Exception("An accepted request line with her name didn't play Heard you once: " + played.Count);
                 if (!NameListeningText.Named("hey capri") || NameListeningText.Named("stop")) throw new Exception("Her name check missed the name or found one that wasn't there.");
-                checks.Add("PASS chimes play on their events: a typed message plays Message sent, a TALK line plays Heard you as it ends, Listen for Capri hearing its name plays Listening, and a name-listening line plays Heard you");
+                checks.Add("PASS chimes play on their events: a typed message plays Message sent, a dropped file plays none, a TALK line plays Heard you as it ends, Listen for Capri hearing her name on its own plays Listening, and an accepted request line plays Heard you");
 
                 now += 10000; played.Clear(); Reset(); ringing = 0;
                 if (!Play(Chime.Listening)) throw new Exception("The listening chime didn't play for the mask.");
@@ -772,9 +779,9 @@ namespace CapriDesktop
                 checks.Add("PASS chimes stay out of her ears: before a chime plays she revokes the name listener's in-flight transcript, her name listening reports Speaking for the chime and 700 ms after, then comes back, so the chime is never transcribed");
 
                 string help = SelfKnow.Matching("how do I turn off the chimes?") ?? "";
-                if (!help.Contains("Mainframe > Settings > VOICE") || !help.Contains("not when her microphone opens") || !help.Contains("settings tool doesn't change") || help.Contains("on a call") || help.Contains("Ask her"))
-                    throw new Exception("Her chimes help is missing, wrong about when Listening plays, or claims more than this build does: " + help);
-                checks.Add("PASS chimes help: it names the rows, says Listening plays when the name line is accepted rather than when the mic opens, and doesn't claim her settings tool changes them or that calls behave as on Windows");
+                if (!help.Contains("Mainframe > Settings > VOICE") || !help.Contains("when a TALK line ends") || !help.Contains("when Listen for Capri accepts a request line") || !help.Contains("a line that is just her name") || !help.Contains("not when her microphone opens") || !help.Contains("settings tool doesn't change") || help.Contains("on a call") || help.Contains("Ask her"))
+                    throw new Exception("Her chimes help is missing, wrong about which Listen for Capri lines play Heard you or Listening, or claims more than this build does: " + help);
+                checks.Add("PASS chimes help: it names the rows, says Heard you plays when a TALK line ends and on an accepted Listen for Capri request line, says Listening plays on a line that is just her name rather than when the mic opens, and doesn't claim her settings tool changes them or that calls behave as on Windows");
 
                 pet.SetAdvancedSettings(true);
                 frame.ShowSettings(true);
@@ -803,6 +810,9 @@ namespace CapriDesktop
                 if (accessible != "Message sent. A soft rising tick when your typed message goes to her") throw new Exception("Message sent lost its Windows accessible name: " + accessible);
                 if ((ToolTip.GetTip(frame.Row("Sound set")) as string) != "Which set of chimes she plays" || (ToolTip.GetTip(frame.Row("Chime volume")) as string) != "How loud her chimes are")
                     throw new Exception("Sound set or Chime volume lost its Windows hint.");
+                if (AutomationProperties.GetName(frame.Row("Sound set")) != "Which set of chimes she plays"
+                    || AutomationProperties.GetName(frame.Row("Chime volume")) != "How loud her chimes are")
+                    throw new Exception("Chime controls changed their Windows accessible names.");
                 pet.SetAdvancedSettings(false);
                 frame.ShowSettings(true);
                 frame.Sync();
@@ -810,7 +820,7 @@ namespace CapriDesktop
                     if (!frame.Row(label).IsVisible) throw new Exception("SOUNDS lost its row in Simple Settings: " + label);
                 if (frame.Overlap() != null || frame.Outside() != null || frame.TextFits() != null)
                     throw new Exception("The chime rows overlap or run past Simple Settings: " + (frame.Overlap() ?? frame.Outside() ?? frame.TextFits()));
-                checks.Add("PASS SOUNDS in Mainframe: Sound set, Chime volume, Message sent, Heard you and Listening sit in the VOICE section with Windows' names, hints and accessible names; all three off silences and greys them, each switch works alone, volume runs 10% to 100%, and every set previews its heard chime");
+                checks.Add("PASS SOUNDS in Mainframe: Sound set, Chime volume, Message sent, Heard you and Listening sit in the VOICE section with Windows' exact names, hints and accessible names; all three off silences and greys them, each switch works alone, volume runs 10% to 100%, and every set previews its heard chime");
             }
             finally
             {

@@ -1106,7 +1106,7 @@ namespace CapriDesktop
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
-            MacFiles.Drops(body, words => Hear(words), HandMods);
+            MacFiles.Drops(body, HearDropped, HandMods);
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
@@ -6200,7 +6200,14 @@ namespace CapriDesktop
             return System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         }
 
-        internal void Hear(string text, bool fromVoice = false) { Hear(text, fromVoice, null); }
+        // What they typed into her box is the only send Windows plays Message sent for. Every other way in, like a
+        // dropped file, a mod's line or her own follow-up, goes through the overload below and plays none.
+        internal void Hear(string text) { Hear(text, false, null, null, true); }
+
+        internal void Hear(string text, bool fromVoice) { Hear(text, fromVoice, null); }
+
+        // A file they dropped is handed to her, not typed.
+        internal void HearDropped(string text) { Hear(text, false, null, null, false); }
 
         internal void HandMods(string[] paths)
         {
@@ -6216,10 +6223,10 @@ namespace CapriDesktop
             });
         }
 
-        private void Hear(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
+        private void Hear(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null, bool fromTyped = false)
         {
             RemoteTurn previous = RemoteTurn.Working;
-            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone, handed); }
+            try { RemoteTurn.Working = null; HearLine(text, fromVoice, phone, handed, fromTyped); }
             catch { RemoteEnd(phone, true); throw; }
             finally
             {
@@ -6235,11 +6242,11 @@ namespace CapriDesktop
             finally { RemoteTurn.Working = previous; }
         }
 
-        private void HearLine(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null)
+        private void HearLine(string text, bool fromVoice, RemoteTurn phone, Func<string, string> handed = null, bool fromTyped = false)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
-            if (!fromVoice && phone == null && handed == null && modSendDepth == 0) Chimes.Play(Chime.Sent);
+            if (fromTyped && modSendDepth == 0) Chimes.Play(Chime.Sent);
             string typed = phone == null ? null : phone.Typed;
             string input = typed ?? text;
             if (phone == null && modSendDepth > 0 && RemoteJobReply(input, true)) return;
