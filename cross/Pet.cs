@@ -6684,7 +6684,7 @@ namespace CapriDesktop
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
             string kind = Cloud.KindOf(key);
-            if (kind == null) { frameProblem = NotAKey; if (phone != null) DropPhoneKey(NotAKey); NotifySettings(); if (phone == null) Talk.Answer(BrainKeyHeard, NotAKey); return; }
+            if (kind == null) { string refused = BetterModels.OpenCodeLegacyKey(key) ? Brain.OldGoKey : NotAKey; frameProblem = refused; if (phone != null) DropPhoneKey(refused); NotifySettings(); if (phone == null) Talk.Answer(BrainKeyHeard, refused); return; }
             frameProblem = null;
             int pickedTier = tier == 1 && Cloud.MediumKind(kind) ? 1 : 2;
             int request = ++brainRequests;
@@ -7470,7 +7470,7 @@ namespace CapriDesktop
 
         internal static bool KnownProvider(string provider)
         {
-            return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "claudecode" || provider == "codex" || CustomProvider(provider);
+            return provider == "nvidia" || provider == "google" || provider == "openrouter" || provider == "anthropic" || provider == "openai" || provider == "deepseek" || provider == "opencode" || provider == "claudecode" || provider == "codex" || CustomProvider(provider);
         }
 
         internal const string CustomProviderPrefix = "custom:";

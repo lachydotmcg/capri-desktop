@@ -141,7 +141,8 @@ namespace CapriDesktop
                         List<string> goModels = Brain.CloudModels(goKey);
                         Brain goBrain = new Brain { Model = "alpha", Remote = new Cloud(goKey, "alpha") };
                         string goSaid = goBrain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "hello test") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
-                        string goAgain = goBrain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "again") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
+                        Brain goAgainBrain = new Brain { Model = "alpha", Remote = new Cloud(goKey, "alpha") };
+                        string goAgain = goAgainBrain.Think("alpha", new List<ChatMessage> { new ChatMessage("user", "again") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
                         string goFirst = null, goSecond = null;
                         lock (go.Requests)
                             foreach (string request in go.Requests)
@@ -153,7 +154,7 @@ namespace CapriDesktop
                         if (goModels.Count != 1 || goModels[0] != "alpha" || goSaid != "OK" || goAgain != "OK"
                             || !go.Saw("/v1/models | Bearer " + goKey + " | ses_")
                             || !go.Saw("/openai/v1/chat/completions | Bearer " + goKey + " | ses_")
-                            || goFirst == null || goSecond == null || goFirst != goSecond)
+                            || goFirst == null || goSecond == null || goFirst != goSecond || goFirst != Brain.OpenCodeSession)
                             failures.Add("OpenCode Go models, chat or session header");
                     }
                 }

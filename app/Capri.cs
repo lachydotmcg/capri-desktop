@@ -12701,7 +12701,7 @@ namespace CapriDesktop
             key = (key ?? "").Trim();
             if (Cloud.IsCode(key)) key = key.ToUpperInvariant();
             string kind = Cloud.KindOf(key);
-            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : Brain.NotAKey, true); return; }
+            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : BetterModels.OpenCodeLegacyKey(key) ? Brain.OldGoKey : Brain.NotAKey, true); return; }
             if (targetTier == 1 && !Cloud.MediumKind(kind)) { mainframe.OfferPaidText(key); return; }
             if (targetTier == 0) targetTier = kind == "nvidia" ? 1 : 2;
             ListCloud(key, true, targetTier);
@@ -24699,6 +24699,10 @@ namespace CapriDesktop
             if (selfOpenCodeHelp == null || !selfOpenCodeHelp.StartsWith("Cloud brain keys:", StringComparison.Ordinal) || !selfOpenCodeHelp.Contains("OpenCode Go") || !selfOpenCodeHelp.Contains("opencode.ai/console/go"))
                 throw new Exception("Self knowledge missed OpenCode Go: " + (selfOpenCodeHelp ?? "nothing"));
             checks.Add("PASS self knowledge: asking how to use OpenCode Go explains its Go subscription and where to get it");
+            string selfHuskOpenCode = SelfKnow.Matching("what is OpenCode doing?");
+            if (selfHuskOpenCode == null || !selfHuskOpenCode.StartsWith("Code/Husk Mode:", StringComparison.Ordinal))
+                throw new Exception("OpenCode's coding assistant stopped finding Code/Husk Mode: " + (selfHuskOpenCode ?? "nothing"));
+            checks.Add("PASS self knowledge: OpenCode's coding assistant still finds Code/Husk Mode, apart from OpenCode Go's brain key");
 
             string selfMaxReplyHelp = SelfKnow.Matching("What does No limit do for replies?");
             string selfClippingHelp = SelfKnow.Matching("How do I clip my games?");
@@ -38896,7 +38900,7 @@ namespace CapriDesktop
 
         private static void SmokeCloudBrains(System.Collections.Generic.List<string> checks)
         {
-            if (Cloud.KindOf("AIza-test") != "google" || Cloud.KindOf("AQ.Ab8-test") != "google" || Cloud.KindOf("sk-or-test") != "openrouter" || Cloud.KindOf("sk-nous-test") != null || Cloud.KindOf(null) != null || Cloud.KindOf("sk-proj-test") != "openai" || Cloud.KindOf("oc_sk_fixture_0123456789") != "opencode" || Cloud.KindOf("sk-" + new string('a', 64)) != "opencode") throw new Exception("New brain keys reached the wrong provider.");
+            if (Cloud.KindOf("AIza-test") != "google" || Cloud.KindOf("AQ.Ab8-test") != "google" || Cloud.KindOf("sk-or-test") != "openrouter" || Cloud.KindOf("sk-nous-test") != null || Cloud.KindOf(null) != null || Cloud.KindOf("sk-proj-test") != "openai" || Cloud.KindOf("oc_sk_fixture_0123456789") != "opencode" || Cloud.KindOf("sk-" + new string('a', 64)) != null || !BetterModels.OpenCodeLegacyKey("sk-" + new string('a', 64))) throw new Exception("New brain keys reached the wrong provider.");
             if (Brain.Address("google", "/models") != "https://generativelanguage.googleapis.com/v1beta/openai/models" || Brain.Address("openrouter", "/chat/completions") != "https://openrouter.ai/api/v1/chat/completions" || Brain.Address("opencode", "/models") != "https://opencode.ai/inference/go/v1/models" || Brain.Address("opencode", "/chat/completions") != "https://opencode.ai/inference/go/openai/v1/chat/completions") throw new Exception("A new brain has the wrong address.");
             bool unknownAddress = false;
             try { Brain.Address(null, "/models"); } catch (BrainException) { unknownAddress = true; }
@@ -41384,10 +41388,10 @@ namespace CapriDesktop
                 throw new Exception("Her plan picker didn't keep the visible and safe CLI model names.");
             checks.Add("PASS MAX models: xAI keys, language and image-capable models, and visible Codex and Claude plan models");
             string goKey = "oc_sk_fixture_0123456789abcdef", goLongKey = "sk-" + new string('a', 64);
-            if (Cloud.KindOf(goKey) != "opencode" || Cloud.KindOf(goLongKey) != "opencode" || Cloud.KindOf("oc_sk_short") != null
+            if (Cloud.KindOf(goKey) != "opencode" || Cloud.KindOf(goLongKey) != null || !BetterModels.OpenCodeLegacyKey(goLongKey) || Cloud.KindOf("oc_sk_short") != null
                 || Cloud.MediumKind("opencode") || new Cloud(goKey, "deepseek-v4.1-flash").Name != "OpenCode Go"
                 || Brain.Redacted(goKey) != "[redacted]")
-                throw new Exception("An OpenCode Go key didn't route to MAX or stay out of the logs.");
+                throw new Exception("An OpenCode Go key didn't route to MAX, or an older sk- key was guessed instead of offered Provider.");
             if (Brain.Address("opencode", "/models") != "https://opencode.ai/inference/go/v1/models"
                 || Brain.Address("opencode", "/chat/completions") != "https://opencode.ai/inference/go/openai/v1/chat/completions")
                 throw new Exception("An OpenCode Go key went to the wrong address.");
@@ -41408,21 +41412,22 @@ namespace CapriDesktop
                     || !go.Sighted(new Cloud(goKey, "deepseek-v4.1-flash")) || go.Sighted(new Cloud(goKey, "glm-5.3")))
                     throw new Exception("Her OpenCode Go model picker took a non-chat model or gave a model the wrong eyes.");
                 string goSaid = go.Think(goModels[0], new System.Collections.Generic.List<ChatMessage> { new ChatMessage("user", "hi") }, false, new System.Collections.Generic.List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
-                string goAgain = go.Think(goModels[0], new System.Collections.Generic.List<ChatMessage> { new ChatMessage("user", "again") }, false, new System.Collections.Generic.List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
+                var goAgainBrain = new Brain { Remote = go.Remote, Model = go.Model };
+                string goAgain = goAgainBrain.Think(goModels[0], new System.Collections.Generic.List<ChatMessage> { new ChatMessage("user", "again") }, false, new System.Collections.Generic.List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false);
                 Match goFirst = Regex.Match(goAsked.Count > 1 ? goAsked[1] : "", @"(?im)^x-opencode-session:\s*(?<id>\S+)");
                 Match goSecond = Regex.Match(goAsked.Count > 2 ? goAsked[2] : "", @"(?im)^x-opencode-session:\s*(?<id>\S+)");
                 if (goSaid != "OpenCode says hi." || goAgain != "OpenCode says hi again." || goAsked.Count != 3
                     || !goAsked[0].StartsWith("GET /v1/models ", StringComparison.Ordinal) || !Regex.IsMatch(goAsked[0], @"(?im)^x-opencode-session:\s*ses_")
                     || !goAsked[1].StartsWith("POST /openai/v1/chat/completions ", StringComparison.Ordinal)
-                    || !goFirst.Success || !goSecond.Success || goFirst.Groups["id"].Value != goSecond.Groups["id"].Value)
-                    throw new Exception("OpenCode Go didn't get its model list, chat, or the same session on each turn.");
+                    || !goFirst.Success || !goSecond.Success || goFirst.Groups["id"].Value != goSecond.Groups["id"].Value || goFirst.Groups["id"].Value != Brain.OpenCodeSession)
+                    throw new Exception("OpenCode Go didn't get its model list, chat, or one stable session across her chat and a one-shot brain.");
             }
             finally
             {
                 Brain.OpenCode = goWas;
                 if (goFake != null) goFake.Stop();
             }
-            checks.Add("PASS OpenCode Go: its keys go under MAX, its chat models keep their image and tool abilities in the listed order, the Go model list is read at /inference/go/v1/models, chats use the OpenAI-compatible path, and every request carries a stable x-opencode-session for the conversation");
+            checks.Add("PASS OpenCode Go: oc_sk_ keys go under MAX while older sk- keys ask for Provider, its chat models keep their image and tool abilities in the listed order, the Go model list is read at /inference/go/v1/models, chats use the OpenAI-compatible path, and every request carries one stable x-opencode-session across her chat and a one-shot brain");
             Cloud plan = new Cloud(Plans.CodexKey, "default");
             try
             {

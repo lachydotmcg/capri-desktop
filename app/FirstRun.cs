@@ -1612,7 +1612,7 @@ namespace CapriDesktop
         internal string FirstRunConnect(string key)
         {
             string kind = Cloud.KindOf(key);
-            if (kind == null) return key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : Brain.NotAKey;
+            if (kind == null) return key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : BetterModels.OpenCodeLegacyKey(key) ? Brain.Brief(Brain.OldGoKey) : Brain.NotAKey;
             ConnectText(key, Cloud.MediumKind(kind) ? 1 : 2);
             return null;
         }

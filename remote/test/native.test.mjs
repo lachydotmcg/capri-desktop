@@ -489,6 +489,9 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     assert.equal(await page.run(`CapriNative.pickModel('google', ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash-lite-preview', 'gemini-2.5-flash-lite', 'gemini-3.1-pro-preview'].map(id => ({ id })))`), 'gemini-3.5-flash-lite');
     assert.equal(await page.run(`CapriNative.pickModel('openrouter', [{ id: 'big/sees:free', images: true, tools: true }, { id: 'openrouter/free', images: true, tools: true }])`), 'openrouter/free');
     assert.equal(await page.run(`CapriNative.pickModel('openrouter', [{ id: 'paid/x', images: true, tools: true }, { id: 'big/sees:free', images: true, tools: true }])`), 'big/sees:free');
+    assert.equal(await page.run(`CapriNative.kindOf('oc_sk_fixture_0123456789abcdef')`), 'opencode');
+    assert.equal(await page.run(`CapriNative.kindOf('sk-' + 'a'.repeat(64))`), 'opencode');
+    assert.match(await page.run(`CapriNative.notHere('opencode')`), /OpenCode Go works in Capri on your PC/);
     await click('#native-start');
     await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS');
     await click('#brain .native-own-key');

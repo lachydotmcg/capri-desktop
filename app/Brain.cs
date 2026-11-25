@@ -471,6 +471,7 @@ namespace CapriDesktop
             if (key.StartsWith("sk-ant-", StringComparison.Ordinal) || IsCode(key)) return "anthropic";
             if (key.StartsWith("nvapi-", StringComparison.Ordinal)) return "nvidia";
             if (Regex.IsMatch(key, "^sk-[0-9a-f]{32}$")) return "deepseek";
+            if (BetterModels.OpenCodeLegacyKey(key)) return null;
             return key.StartsWith("sk-", StringComparison.Ordinal) ? "openai" : null;
         }
 
@@ -779,6 +780,7 @@ namespace CapriDesktop
         }
 
         internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude, DeepSeek, xAI or OpenCode Go key.";
+        internal const string OldGoKey = "A 64-character sk- key isn't guessed. For OpenCode Go, use Provider with https://opencode.ai/inference/go.";
         internal const string NoGoPlan = "This key isn't on an OpenCode Go plan. Subscribe at opencode.ai/console/go, or pick another brain key.";
         internal const string MissingSession = "OpenCode Go needs a newer Capri for each chat. Update Capri, or pick another brain key.";
         internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
@@ -799,8 +801,9 @@ namespace CapriDesktop
         private readonly object gate = new object();
         private readonly List<HttpWebRequest> active = new List<HttpWebRequest>();
         private int cancelled;
-        private static readonly string openCodeListSession = "ses_" + Guid.NewGuid().ToString("N");
-        private readonly string openCodeSession = "ses_" + Guid.NewGuid().ToString("N");
+        private static string openCodeSession = NewOpenCodeSession();
+        internal static string OpenCodeSession { get { return openCodeSession; } }
+        private static string NewOpenCodeSession() { return "ses_" + Guid.NewGuid().ToString("N"); }
         internal static string LogPath;
         // The keys she has saved, so a line in errors.txt never keeps one whole, whatever its shape (Scrubbed).
         internal static Func<string[]> Secrets = delegate { return new string[0]; };
@@ -2575,7 +2578,7 @@ namespace CapriDesktop
             request.AllowAutoRedirect = false;
             string kind = Cloud.KindOf(key);
             if (kind == "openrouter") request.Headers["X-Title"] = "Capri";
-            if (kind == "opencode") request.Headers["x-opencode-session"] = session ?? openCodeListSession;
+            if (kind == "opencode") request.Headers["x-opencode-session"] = session ?? openCodeSession;
             bool headerKey;
             lock (headerKeys) headerKey = headerKeys.Contains(Door(key, request.RequestUri.AbsoluteUri));
             if (headerKey) { request.Headers["x-goog-api-key"] = key; return; }
@@ -2590,7 +2593,7 @@ namespace CapriDesktop
             request.Headers["Authorization"] = "Bearer " + key;
             string host = request.RequestUri.Host;
             if (host.Equals("opencode.ai", StringComparison.OrdinalIgnoreCase) || host.EndsWith(".opencode.ai", StringComparison.OrdinalIgnoreCase))
-                request.Headers["x-opencode-session"] = session ?? openCodeListSession;
+                request.Headers["x-opencode-session"] = session ?? openCodeSession;
         }
 
 #if !CROSS
@@ -5008,6 +5011,7 @@ namespace CapriDesktop
             if (error.StartsWith(DailyLimitStart, StringComparison.Ordinal)) return "OpenAI's daily limit is used. Try later or add credits.";
             if (error.EndsWith(". Press Forget " + BrainMenu + ", then paste it again.", StringComparison.Ordinal)) return "Key rejected. Press Forget, then paste it again.";
             if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
+            if (error == OldGoKey) return "Older Go key: use Provider, opencode.ai/inference/go.";
             if (error == NoGoPlan) return "No OpenCode Go plan. Subscribe at opencode.ai/console/go.";
             if (error == MissingSession) return "OpenCode Go needs a newer Capri. Update it.";
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";

@@ -23,7 +23,12 @@ namespace CapriDesktop
 
         internal static bool OpenCodeKey(string key)
         {
-            return key != null && (Regex.IsMatch(key, @"\Aoc_sk_[A-Za-z0-9_-]{16,}\z") || Regex.IsMatch(key, @"\Ask-[A-Za-z0-9]{64}\z"));
+            return key != null && Regex.IsMatch(key, @"\Aoc_sk_[A-Za-z0-9_-]{16,}\z");
+        }
+
+        internal static bool OpenCodeLegacyKey(string key)
+        {
+            return key != null && Regex.IsMatch(key, @"\Ask-[A-Za-z0-9]{64}\z");
         }
 
         internal static string RedactOpenCode(string text)

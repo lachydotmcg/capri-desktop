@@ -80,7 +80,7 @@ namespace CapriDesktop
                 { Brain.NoCredits, "Free key" }, { Brain.Meaning(402, ""), "Free key" },
                 { Brain.PlusRejected, "platform.openai.com" }, { Brain.Meaning(401, "{\"error\":\"bad key\"}", false, true), "platform.openai.com" },
                 { Brain.NotAKey, "Copy the whole key" }, { Brain.Unserved, "Free key" }, { Brain.NoFreeModels, "Refresh" },
-                { Brain.NoGoPlan, "opencode.ai/console/go" }, { Brain.MissingSession, "Update" },
+                { Brain.NoGoPlan, "opencode.ai/console/go" }, { Brain.MissingSession, "Update" }, { Brain.OldGoKey, "Provider" },
                 { Brain.Blocked, "Built-in" }, { Brain.Rejected("NVIDIA"), "Forget" }, { Brain.Rejected(null), "Forget" },
                 { Brain.OpenAiNoCredits, "platform.openai.com" }, { Brain.OpenAiCapped, "platform.openai.com" },
                 { Brain.TooLarge("gpt-5.4", true), "smaller model" }, { Brain.DailyLimit("gpt-5.6-luna", true), "add credits" }
@@ -874,7 +874,7 @@ namespace CapriDesktop
             }
             if (root == null) { checks.Add("LIMIT help quotes: the source tree isn't beside this executable or working directory"); return; }
             string help = File.ReadAllText(Path.Combine(root, "site", "help", "knowledge.md"));
-            string[] current = {MailWatch.GmailBinned, MailWatch.JunkMoved, Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.TooBig, Brain.Down, Brain.DailyStart, Brain.NoCredits, Brain.OpenAiNoCredits, Brain.OpenAiCapped, Brain.TooLargeStart, Brain.DailyLimitStart, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size.", MailAccount.OutlookNote, Brain.LiteLine, Brain.LiteNote, AfterNameNote, Hands.GamingNeedsComments, Mainframe.SearchHow, Mainframe.NoSettingsMatch};
+            string[] current = {MailWatch.GmailBinned, MailWatch.JunkMoved, Brain.NotAKey, Brain.OldGoKey, Brain.NoGoPlan, Brain.MissingSession, Brain.Busy, Brain.BusyWatching, Brain.TooBig, Brain.Down, Brain.DailyStart, Brain.NoCredits, Brain.OpenAiNoCredits, Brain.OpenAiCapped, Brain.TooLargeStart, Brain.DailyLimitStart, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size.", MailAccount.OutlookNote, Brain.LiteLine, Brain.LiteNote, AfterNameNote, Hands.GamingNeedsComments, Mainframe.SearchHow, Mainframe.NoSettingsMatch};
             string[] old = { "or watch slower", "Their servers failed", "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.", "Can't open your mic. Pick another under VOICE.", "Pick FREE VOICE or ELEVENLABS to turn it back on", "came down the wrong size", "failed its checksum", "Add credits on their site,", "Pick another row under VOICE", "Chatting. No need to say Capri.", "until 20 seconds pass", "she starts voice chat, the same as Ctrl + Alt + V", "between Off and your last pick", "back on at your last pick", "bring back your last pick" };
             List<string> missing = new List<string>(Array.FindAll(current, line => help.IndexOf(line, StringComparison.Ordinal) < 0));
             List<string> stale = new List<string>(Array.FindAll(old, line => help.IndexOf(line, StringComparison.Ordinal) >= 0));

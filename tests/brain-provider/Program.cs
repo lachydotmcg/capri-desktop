@@ -94,6 +94,30 @@ internal static class Program
             "notice=" + (notice ?? "null") + " provider=" + (older.BrainProvider ?? "null") + " picks=" + Providers(older.ProviderModels));
     }
 
+    private static void OpenCode()
+    {
+        string key = "oc_sk_fixture_0123456789abcdef", legacy = "sk-" + new string('a', 64);
+        Check("an oc_sk_ key names OpenCode Go", Cloud.KindOf(key) == "opencode", "kind=" + (Cloud.KindOf(key) ?? "null"));
+        Check("an older 64-character sk- key is never guessed", Cloud.KindOf(legacy) == null && BetterModels.OpenCodeLegacyKey(legacy), "kind=" + (Cloud.KindOf(legacy) ?? "null") + " legacy=" + BetterModels.OpenCodeLegacyKey(legacy));
+        Check("OpenCode Go is a known provider", Pet.KnownProvider("opencode") && !Pet.KnownProvider("opencode-go"), "known=" + Pet.KnownProvider("opencode"));
+
+        string catalog = "{\"object\":\"list\",\"data\":[" +
+            "{\"id\":\"deepseek-v4.1-flash\",\"type\":\"chat\",\"modalities\":{\"input\":[\"text\",\"image/jpeg\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}," +
+            "{\"id\":\"glm-5.3\",\"type\":\"chat\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]},\"capabilities\":{\"tools\":{\"supported\":true}}}," +
+            "{\"id\":\"jev-1.14\",\"type\":\"decision\",\"modalities\":{\"input\":[\"text\"],\"output\":[\"text\"]}}]}";
+        List<string> models = Brain.ReadCloudModels("opencode", catalog);
+        Check("OpenCode Go lists chat models in service order with their eyes and tools",
+            models.Count == 2 && models[0] == "deepseek-v4.1-flash" && models[1] == "glm-5.3"
+            && Brain.DefaultCloudModel("opencode", models) == "deepseek-v4.1-flash"
+            && new Brain().Sighted(new Cloud(key, "deepseek-v4.1-flash"))
+            && !new Brain().Sighted(new Cloud(key, "glm-5.3")),
+            "models=" + string.Join(",", models.ToArray()));
+
+        List<string> degraded = Brain.ReadCloudModels("opencode", "{\"object\":\"list\",\"data\":[{\"id\":\"alpha\"},{\"id\":\"text-embedding-3-small\"}]}");
+        Check("an OpenCode Go catalogue without models.dev details still lists chat models", degraded.Count == 1 && degraded[0] == "alpha", "models=" + string.Join(",", degraded.ToArray()));
+        Check("an OpenCode Go session id is a Capri session, not a key", System.Text.RegularExpressions.Regex.IsMatch(Brain.OpenCodeSession, @"\Ases_[0-9a-f]{32}\z"), "session=" + Brain.OpenCodeSession);
+    }
+
     private static void ProviderNames()
     {
         Settings fresh = new Settings { FreeModel = "nvidia/a" };
@@ -390,6 +414,7 @@ internal static class Program
         try
         {
             SettingsRoundTrip(folder);
+            OpenCode();
             ProviderNames();
             ProviderMemory();
             DualWrite();
