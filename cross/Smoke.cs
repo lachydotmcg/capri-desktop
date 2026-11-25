@@ -8382,10 +8382,15 @@ namespace CapriDesktop
                 string workLine = Hands.Work("write something in Claude", "write something in Claude");
                 string nativeLine = ComputerJobs.Run("write something in Claude", "write something in Claude");
                 const string offline = "Couldn't do that: your brain is offline.";
-                const string nativeOnly = "Native screen jobs need Hyprland and Capri's native/capri-input helper. Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
-                if (Hands.NativeWork != null || workLine != offline || nativeLine != nativeOnly)
+                const string nativeOnly = "Native screen jobs need Hyprland and Capri's native/capri-input helper.";
+                const string nativeFallback = nativeOnly + " Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
+                if (Hands.NativeWork != null || workLine != offline || nativeLine != nativeFallback)
                     throw new Exception("A writable /dev/uinput without Hyprland didn't reach her uinput hands: native " + (Hands.NativeWork != null) + ", work " + workLine + ", native line " + nativeLine);
                 checks.Add("PASS Plasma Wayland with a writable /dev/uinput leaves the Hyprland-only runner unclaimed, so use_computer reaches her uinput hands, and a native refusal names Hyprland's helper as its own requirement instead of telling every desktop to reopen Capri in a Hyprland session");
+                Fingers.Writable = delegate { return false; };
+                if (ComputerJobs.Run("enter sample text in a test editor", "") != nativeOnly)
+                    throw new Exception("Native refusal overclaims the uinput fallback.");
+                checks.Add("PASS Plasma Wayland without a writable /dev/uinput keeps a native refusal to Hyprland's own requirement instead of promising her uinput hands");
             }
             finally
             {

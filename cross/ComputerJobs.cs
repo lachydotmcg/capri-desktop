@@ -424,6 +424,13 @@ namespace CapriDesktop
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
         }
 
+        // Her /dev/uinput hands only stand in for the compositor helper when they can actually run, so a refusal
+        // promises them only then: the same Fingers.Problem Chores.Work checks before it starts a job.
+        private static string UinputFallback()
+        {
+            return Fingers.Problem == null ? " Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead." : "";
+        }
+
         internal static string Run(string task, string asked) { return Run(task, asked, null); }
         internal static string Run(string task, string asked, Func<bool> current)
         {
@@ -445,9 +452,9 @@ namespace CapriDesktop
                 if (problem != null) return problem;
                 if (Hands.Streaming || Hands.StreamAsked(job.Task) || Hands.StreamAsked(job.Asked)) return "Live stream chat and timing aren't connected to Mac screen jobs yet.";
             }
-            if (!test && !mac && !Supported) return "Native screen jobs need Hyprland and Capri's native/capri-input helper. Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
+            if (!test && !mac && !Supported) return "Native screen jobs need Hyprland and Capri's native/capri-input helper." + UinputFallback();
             HyprlandDesktop desktop = test ? null : HyprlandDesktop.Current;
-            if (!test && !mac && desktop == null) return "Native screen jobs need a Hyprland session. Every other Linux desktop runs them through her /dev/uinput mouse and keyboard instead.";
+            if (!test && !mac && desktop == null) return "Native screen jobs need a Hyprland session." + UinputFallback();
             if (!test && !mac && !ArchInput.Available) return "Native screen jobs need Capri's native/capri-input helper installed beside the app.";
             if (job.Current != null && !job.Current()) return "That screen request has ended; no job started.";
             job.Game ??= ComputerGameSession.FromRequest(job.Task, job.Asked);
