@@ -1404,6 +1404,7 @@ namespace CapriDesktop
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
             CheckRaised(now);
             CheckKeepAwake();
+            CheckLiteRest(now);
             if (Program.Smoke == null) CheckHabits(now);
             if (away && !IsVisible)
             {
@@ -2987,6 +2988,7 @@ namespace CapriDesktop
             for (int i = 0; i < popPicks.Count; i++) popPicks[i].IsChecked = i == PopPace;
             loginItem.IsChecked = StartsAtLogin;
             watchItem.IsChecked = Saved.Watch;
+            watchItem.IsEnabled = !Saved.Lite;
             for (int i = 0; i < gapPicks.Count; i++) gapPicks[i].IsChecked = GlanceGaps[i] == GlanceGap;
             caughtUpItem.IsChecked = !Saved.NoCaughtUp;
             quietItem.IsChecked = shushed;
@@ -3531,7 +3533,7 @@ namespace CapriDesktop
                 case "mini_player": miniPlayer.SetEnabled(on); miniPlayer.Refresh(); break;
                 case "typing_sound": SetTypingMode(on ? 1 : 2); break;
                 case "glitch_in": SetIntro(on); break;
-                case "watch_my_screen": SetWatch(on, false); break;
+                case "watch_my_screen": if (on && Saved.Lite) { SetWatch(true, false); return "Watch my screen stays paused until Lite mode goes off."; } SetWatch(on, false); break;
                 case "startup": SetLogin(on, false); break;
                 case "discord_presence": SetDiscord(on); break;
                 case "voice_layers": SetLayers(VoiceFx.Layers.Turned(on)); break;
@@ -4893,6 +4895,14 @@ namespace CapriDesktop
 
         internal void SetWatch(bool on, bool say = true)
         {
+            // Lite mode pauses Watch my screen. Asking for it now only remembers to put it back when Lite mode goes off.
+            if (on && Saved.Lite)
+            {
+                Saved.LiteWatch = true;
+                Save();
+                Sync();
+                return;
+            }
             Saved.Watch = on;
             watchTicket++;
             nextGlance = -1;
@@ -4920,7 +4930,10 @@ namespace CapriDesktop
             else
             {
                 Saved.GlanceGap = seconds;
-                SetWatch(true);
+                // Lite mode keeps Watch my screen paused: a new interval waits for it to come back on, and must not wake it.
+                // Windows' Watch Every turns it back on here; the help promises a pause, so this side keeps it paused.
+                if (Saved.Lite) { Save(); Sync(); }
+                else SetWatch(true);
             }
         }
 

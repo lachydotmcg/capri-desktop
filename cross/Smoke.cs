@@ -3906,6 +3906,45 @@ namespace CapriDesktop
                 frame.SearchBox.Box.Text = "";
                 frame.Strike(Avalonia.Input.Key.Escape);
 
+                // A brain busy with a reply or a load refuses to rest, so she asks again on later ticks, stops it once
+                // it's free, and after a small bound stops asking without claiming it stopped.
+                Func<bool> restWas = pet.LiteRestTry;
+                Action<Action> restQueueWas = pet.LiteRestQueue;
+                try
+                {
+                    pet.LiteRestQueue = action => action();
+                    int tried = 0;
+                    pet.LiteRestTry = () => { tried++; return false; };
+                    pet.SetLite(true);
+                    double restAt = pet.Now;
+                    for (int i = 0; i < 14; i++) pet.CheckLiteRest(restAt + 5 * i);
+                    if (tried != 12) throw new Exception("Lite mode asked a busy brain to rest " + tried + " times, not 12.");
+                    pet.LiteRestTry = () => ++tried >= 14;
+                    pet.SetLite(false);
+                    pet.SetLite(true);
+                    restAt = pet.Now;
+                    pet.CheckLiteRest(restAt);
+                    pet.CheckLiteRest(restAt + 5);
+                    pet.CheckLiteRest(restAt + 10);
+                    if (tried != 14) throw new Exception("Lite mode kept asking a rested brain to stop: " + tried + " tries.");
+                    checks.Add("PASS Lite mode's brain rest: a brain busy with a reply or a load is asked again on later ticks, up to 12 tries, stops once it's free, and a brain that never frees leaves Why slow? saying it's still winding down");
+                }
+                finally
+                {
+                    pet.SetLite(false);
+                    pet.LiteRestTry = restWas;
+                    pet.LiteRestQueue = restQueueWas;
+                }
+
+                // Watch my screen pauses during Lite mode and comes back exactly as it was; a new Every interval must
+                // not wake it while Lite mode is on.
+                pet.SetWatch(false, false);
+                pet.SetLite(true);
+                pet.SetWatchEvery(Pet.GlanceGaps[0]);
+                if (pet.Saved.Watch) throw new Exception("Watch resumed during Lite mode.");
+                pet.SetLite(false);
+                if (pet.Saved.Watch) throw new Exception("Watch did not restore its prior off state.");
+
                 pet.SetWatch(true, false);
                 Settings oldCopy = SettingsCopy();
                 frame.Change("Lite mode", 1);
@@ -3942,6 +3981,8 @@ namespace CapriDesktop
                 SlowSigns busy = new SlowSigns { Kind = "built-in", Read = true, Running = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 96.2 };
                 SlowSigns watching = new SlowSigns { Kind = "built-in", Read = true, Running = true, Watch = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns liteOn = new SlowSigns { Kind = "built-in", Read = true, Running = false, CpuOnly = true, Lite = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns liteWinding = new SlowSigns { Kind = "built-in", Read = true, Running = true, Lite = true, Winding = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
+                SlowSigns liteStuck = new SlowSigns { Kind = "built-in", Read = true, Running = true, Lite = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns cloud = new SlowSigns { Kind = "cloud", Read = true, Threads = 16, Processor = "AMD Ryzen 7 5800X", RamFree = 9L << 30, RamTotal = 32L << 30, Busy = 12 };
                 SlowSigns unreadable = new SlowSigns { Kind = "built-in", Read = false, Running = true, Threads = 16 };
                 string[] wanted = {
@@ -3954,10 +3995,12 @@ namespace CapriDesktop
                     "Your processor is 96% busy. Close what you're not using to give me room.",
                     "Watch my screen is on, and it keeps working in the background. Turn on Lite mode to pause it, or turn it off under WATCH.",
                     "Lite mode is on, so my brain on your PC is switched off. Press Free key under BRAIN in Capri Mainframe for a free cloud brain, or turn Lite mode off.",
+                    "Lite mode is on, and my brain on your PC is still winding down, so it's using your PC's power for a moment. It stops as soon as it finishes what it's doing.",
+                    "Lite mode is on, but my brain on your PC is still busy, so it's using your PC's power. Turn Lite mode off and on once it's free to stop it.",
                     "Nothing on your PC is slowing me down right now. My brain is in the cloud, so slow replies come from the service being busy. Picking another model under BRAIN can help.",
                     "I can't read your memory or processor use here yet, so I only checked my brain and Watch my screen. Nothing in those is slowing me down right now."
                 };
-                SlowSigns[] signs = { healthy, cpuOnly, resting, fewThreads, fewThreadsCloud, lowRam, busy, watching, liteOn, cloud, unreadable };
+                SlowSigns[] signs = { healthy, cpuOnly, resting, fewThreads, fewThreadsCloud, lowRam, busy, watching, liteOn, liteWinding, liteStuck, cloud, unreadable };
                 for (int i = 0; i < signs.Length; i++)
                 {
                     string said = Pet.SlowLine(signs[i]);
@@ -4021,7 +4064,7 @@ namespace CapriDesktop
                     || slowHelp.IndexOf("chat", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("settings tool", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("Windows only", StringComparison.Ordinal) >= 0 || slowHelp.IndexOf("graphics card", StringComparison.Ordinal) >= 0)
                     throw new Exception("Her help on Mac and Linux doesn't explain Lite mode and Why slow? truthfully: " + liteHelp + " / " + slowHelp);
                 checks.Add("PASS her help on Mac and Linux explains Lite mode and Why slow? without Windows-only claims");
-                checks.Add("PASS Lite mode and Why slow? on Mac and Linux: the switch saves both copies, pauses Watch my screen and restores it, answers lite mode, slow, lag and laggy in search, and the Why slow? key says what it found: " + reply);
+                checks.Add("PASS Lite mode and Why slow? on Mac and Linux: the switch saves both copies, pauses Watch my screen and restores it exactly as it was, an Every interval doesn't wake it while Lite mode is on, answers lite mode, slow, lag and laggy in search, and the Why slow? key says what it found: " + reply);
             }
             finally
             {
