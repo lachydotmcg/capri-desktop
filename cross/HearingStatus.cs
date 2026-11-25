@@ -57,9 +57,9 @@ namespace CapriDesktop
     internal sealed class HearingLine
     {
         private readonly object gate = new object();
-        private bool listening, testing, open, quiet, testSilent;
+        private bool listening, testing, open, quiet, testSilent, keptQuiet, keptTestSilent;
         private double peak, testEnds;
-        private string trouble, result;
+        private string trouble, result, keptTrouble, keptResult;
 
         internal bool Testing { get { lock (gate) return testing; } }
 
@@ -90,7 +90,9 @@ namespace CapriDesktop
         {
             lock (gate)
             {
-                if (peak < HearingStatus.MicAlive) return;
+                // Her recorder sends all zeros when nothing reaches the mic, but any sound at all, however faint,
+                // means the mic is alive and only too quiet to hear words over. Windows calls that a quiet mic.
+                if (peak <= 0) return;
                 trouble = null;
                 if (peak >= HearingStatus.QuietWake) { result = HearingStatus.NoWords; quiet = testSilent = false; }
                 else { quiet = true; result = null; testSilent = false; }
@@ -116,6 +118,8 @@ namespace CapriDesktop
                 testing = true;
                 open = false;
                 peak = 0;
+                // What the line said before the test, so Stop can put it back instead of reporting a test they cut short.
+                keptTrouble = trouble; keptResult = result; keptQuiet = quiet; keptTestSilent = testSilent;
                 trouble = result = null;
                 quiet = testSilent = false;
                 testEnds = now + HearingStatus.TestSeconds;
@@ -123,6 +127,19 @@ namespace CapriDesktop
         }
 
         internal bool TestDue(double now) { lock (gate) return testing && now >= testEnds; }
+
+        internal void TestCancelled()
+        {
+            lock (gate)
+            {
+                testing = false;
+                open = false;
+                peak = testEnds = 0;
+                trouble = keptTrouble; result = keptResult; quiet = keptQuiet; testSilent = keptTestSilent;
+                keptTrouble = keptResult = null;
+                keptQuiet = keptTestSilent = false;
+            }
+        }
 
         internal void TestDone()
         {
@@ -133,12 +150,20 @@ namespace CapriDesktop
                 testSilent = peak == 0;
                 quiet = peak > 0 && peak < HearingStatus.QuietWake;
                 result = null;
+                keptTrouble = keptResult = null;
+                keptQuiet = keptTestSilent = false;
             }
         }
 
         internal void Reset()
         {
-            lock (gate) { listening = testing = open = quiet = testSilent = false; peak = testEnds = 0; trouble = result = null; }
+            lock (gate)
+            {
+                listening = testing = open = quiet = testSilent = false;
+                peak = testEnds = 0;
+                trouble = result = keptTrouble = keptResult = null;
+                keptQuiet = keptTestSilent = false;
+            }
         }
 
         internal HearingStatus Read(bool installed)

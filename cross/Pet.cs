@@ -909,7 +909,7 @@ namespace CapriDesktop
         private Smoke smoke;
         private CancellationTokenSource listening;
         private readonly HearingLine hearing = new HearingLine();
-        private CancellationTokenSource hearingTapStop;
+        private CancellationTokenSource hearingTalkTap, hearingTestTap;
         internal Func<Action, CancellationToken, Task<string>> Listen;
         internal Func<bool> HearingInstalled;
         internal Func<Action<double>, CancellationToken, Task> HearingTapRun;
@@ -2575,7 +2575,7 @@ namespace CapriDesktop
             try
             {
                 hearing.Listening(true);
-                StartHearingTap(turn.Token);
+                StartHearingTap(turn.Token, ref hearingTalkTap);
                 NotifySettings();
                 try
                 {
@@ -2591,7 +2591,7 @@ namespace CapriDesktop
                 if (listening != turn) return;
                 listening = null;
                 Chimes.Play(Chime.Heard);
-                StopHearingTap();
+                StopHearingTap(ref hearingTalkTap);
                 hearing.Listening(false);
                 if (!string.IsNullOrWhiteSpace(text)) { hearing.Heard(); Hear(text, true); }
                 else
@@ -2602,7 +2602,7 @@ namespace CapriDesktop
             }
             finally
             {
-                StopHearingTap();
+                StopHearingTap(ref hearingTalkTap);
                 hearing.Listening(false);
                 NotifySettings();
             }
@@ -2631,29 +2631,34 @@ namespace CapriDesktop
         {
             if (hearing.Testing) return;
             if (Listening) StopListening();
+            StopHearingTap(ref hearingTalkTap);
             hearing.StartTest(Now);
-            StartHearingTap(CancellationToken.None);
+            StartHearingTap(CancellationToken.None, ref hearingTestTap);
             NotifySettings();
         }
 
         internal void StopHearingTest()
         {
             if (!hearing.Testing) return;
-            StopHearingTap();
-            hearing.TestDone();
+            StopHearingTap(ref hearingTestTap);
+            hearing.TestCancelled();
             NotifySettings();
         }
 
         private void TickHearing()
         {
-            if (hearing.Testing && hearing.TestDue(Now)) StopHearingTest();
+            if (!hearing.Testing || !hearing.TestDue(Now)) return;
+            StopHearingTap(ref hearingTestTap);
+            hearing.TestDone();
+            NotifySettings();
         }
 
-        private void StartHearingTap(CancellationToken outer)
+        // TALK and the mic test keep their own tap and stop only their own, so a cancelled TALK never kills the test's recorder.
+        private void StartHearingTap(CancellationToken outer, ref CancellationTokenSource tap)
         {
-            StopHearingTap();
+            StopHearingTap(ref tap);
             var stop = CancellationTokenSource.CreateLinkedTokenSource(outer);
-            hearingTapStop = stop;
+            tap = stop;
             Action<double> level = delegate(double value) { if (hearing.Level(value)) NotifySettings(); };
             try
             {
@@ -2662,10 +2667,10 @@ namespace CapriDesktop
             catch (Exception error) { Brain.Log("ears", -1, "Hearing level tap: " + error.Message); }
         }
 
-        private void StopHearingTap()
+        private void StopHearingTap(ref CancellationTokenSource tap)
         {
-            CancellationTokenSource stop = hearingTapStop;
-            hearingTapStop = null;
+            CancellationTokenSource stop = tap;
+            tap = null;
             if (stop != null) stop.Cancel();
         }
 

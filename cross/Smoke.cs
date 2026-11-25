@@ -6786,25 +6786,48 @@ namespace CapriDesktop
                 if (frame.HearingText != HearingStatus.NoWords || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit)
                     throw new Exception("A TALK with sound and no words didn't reach her hearing line: " + frame.HearingText + " / " + frame.HearingButtons);
                 if (pet.Talk.Reply == frame.HearingText || pet.Talk.ThinkingNow) throw new Exception("Her hearing line was said out loud instead of staying on VOICE.");
+                {
+                    var restoreTap = pet.HearingTapRun;
+                    CancellationToken tap = default;
+                    try
+                    {
+                        pet.HearingTapRun = (_, token) => { tap = token; return Task.CompletedTask; };
+                        frame.PressHearing(0);
+                        frame.Sync();
+                        if (frame.HearingButtons != "Stop") throw new Exception("Mic test did not start.");
+                        frame.PressHearing(0);
+                        frame.Sync();
+                        if (!tap.IsCancellationRequested || frame.HearingText != "No words came back")
+                            throw new Exception("Stop did not cancel the tap and restore the prior hearing line.");
+                    }
+                    finally { pet.HearingTapRun = restoreTap; }
+                }
                 pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.04); return Task.CompletedTask; };
                 frame.PressHearing(0);
                 frame.Sync(); frame.UpdateLayout();
                 if (!pet.HearingTesting || frame.HearingButtons != "Stop" || frame.HearingText != "Hearing: her own ears · default mic · working") throw new Exception("Test mic didn't listen with Stop beside it: " + frame.HearingText + " / " + frame.HearingButtons);
                 pet.StopHearingTest();
                 frame.Sync(); frame.UpdateLayout();
-                if (frame.HearingText != "Hearing: her own ears · default mic · ready" || frame.HearingWarning || frame.HearingButtons != "" || !frame.HearingActionsFit) throw new Exception("A mic test that heard sound didn't clear her hearing line: " + frame.HearingText + " / " + frame.HearingButtons);
+                if (frame.HearingText != HearingStatus.NoWords || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("Stopping a mic test didn't restore the hearing line it started from: " + frame.HearingText + " / " + frame.HearingButtons);
                 pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.03); return Task.CompletedTask; };
                 pet.Talk.Dismiss();
                 pet.VoiceTurn();
                 MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's second TALK");
                 frame.Sync(); frame.UpdateLayout();
                 if (frame.HearingText != HearingStatus.NoWords || frame.HearingButtons != "Test mic | Type instead") throw new Exception("A second TALK with sound and no words didn't offer Test mic again: " + frame.HearingText + " / " + frame.HearingButtons);
-                pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(0.002); return Task.CompletedTask; };
+                pet.HearingTapRun = delegate(Action<double> level, CancellationToken stop) { level(16.0 / 32768); return Task.CompletedTask; };
+                pet.Talk.Dismiss();
+                pet.VoiceTurn();
+                MainframeWait(delegate { return pet.Talk.Reply == "I didn't catch that, choom. Try TALK again."; }, "her hearing line's quiet TALK");
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("A TALK that only heard sound under her 0.0005 threshold didn't say the mic is too quiet: " + frame.HearingText + " / " + frame.HearingButtons);
+                if (pet.Talk.Reply == frame.HearingText) throw new Exception("The hearing line's quiet result was said out loud.");
                 frame.PressHearing(0);
+                frame.Sync(); frame.UpdateLayout();
+                if (frame.HearingButtons != "Stop") throw new Exception("Test mic didn't start from her quiet line: " + frame.HearingText + " / " + frame.HearingButtons);
                 pet.StopHearingTest();
                 frame.Sync(); frame.UpdateLayout();
-                if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("A quiet mic test didn't reach her hearing line: " + frame.HearingText + " / " + frame.HearingButtons);
-                if (pet.Talk.Reply == frame.HearingText) throw new Exception("The hearing line's quiet result was said out loud.");
+                if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning || frame.HearingButtons != "Test mic | Type instead" || !frame.HearingActionsFit) throw new Exception("Stopping a test started from her quiet line didn't bring it back: " + frame.HearingText + " / " + frame.HearingButtons);
                 frame.SavePicture(Path.Combine(folder, "hearing-quiet-100.png"));
                 foreach (int scale in new[] { 100, 150, 200 })
                 {
@@ -6832,7 +6855,7 @@ namespace CapriDesktop
                         MainframeWait(delegate { return frame.HearingText == HearingStatus.Working; }, "her real level tap");
                         pet.StopHearingTest();
                         frame.Sync(); frame.UpdateLayout();
-                        if (frame.HearingText != "Hearing: her own ears · default mic · ready" || frame.HearingWarning) throw new Exception("A stand-in parec's sound didn't clear her hearing line: " + frame.HearingText);
+                        if (frame.HearingText != HearingStatus.Quiet || !frame.HearingWarning) throw new Exception("A stand-in parec's sound didn't clear her level tap, or stopping it didn't restore her quiet line: " + frame.HearingText);
                     }
                     finally
                     {
@@ -6862,7 +6885,7 @@ namespace CapriDesktop
                     string facts = SelfKnow.Matching(ask);
                     if (facts == null || facts.IndexOf("Hearing", StringComparison.Ordinal) < 0 || facts.IndexOf("hearing line", StringComparison.Ordinal) < 0 || facts.IndexOf('\u2014') >= 0) throw new Exception("Hearing help didn't match " + ask + ": " + facts);
                 }
-                checks.Add("PASS hearing: the line under VOICE says ready, starting, working, her ears aren't installed, a mic failure with its reason, no words came back, a quiet mic and no sound reached the mic test, with Windows' exact words; the tap she runs reads a stand-in parec's frames end to end on Linux, choosing parec there and capri-mic on a Mac, with Windows' 0.0005 and 0.006 thresholds; Test mic runs for ten seconds with Stop, Type instead opens her type box and Open ears folder points at her ears, every state recovers, and none is ever said out loud; hearing-quiet-100.png and hearing-no-ears-100.png");
+                checks.Add("PASS hearing: the line under VOICE says ready, starting, working, her ears aren't installed, a mic failure with its reason, no words came back, a quiet mic down to sound under 0.0005, and no sound reached the mic test, with Windows' exact words; the tap she runs reads a stand-in parec's frames end to end on Linux, choosing parec there and capri-mic on a Mac, keeping Windows' 0.0005 and 0.006 thresholds; Test mic runs for ten seconds with Stop, which restores the line the test started from instead of reporting it, Type instead opens her type box and Open ears folder points at her ears, every state recovers, and none is ever said out loud; hearing-quiet-100.png and hearing-no-ears-100.png");
             }
             finally
             {
