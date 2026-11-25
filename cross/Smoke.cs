@@ -7354,6 +7354,22 @@ namespace CapriDesktop
                 if (Favourites.Learning)
                 {
                     if (Favourites.Best("browser") != "firefox") throw new Exception("The app-in-front sample didn't learn: " + (Favourites.Best("browser") ?? "null"));
+                    using ManualResetEventSlim started = new ManualResetEventSlim();
+                    using ManualResetEventSlim release = new ManualResetEventSlim();
+                    Favourites.Front = delegate { started.Set(); release.Wait(TimeSpan.FromSeconds(5)); return "vlc"; };
+                    Task sample = Favourites.SampleInBackground();
+                    try
+                    {
+                        if (sample == null || !started.Wait(TimeSpan.FromSeconds(5)) || sample.IsCompleted)
+                            throw new Exception("The foreground sampler didn't run independently of its caller.");
+                        if (Favourites.SampleInBackground() != null)
+                            throw new Exception("Another foreground sample started while the first was still waiting.");
+                        Favourites.SheOpened("code");
+                    }
+                    finally { release.Set(); sample?.GetAwaiter().GetResult(); }
+                    Favourites.Save();
+                    if (Array.Exists(File.ReadAllLines(file), row => row.StartsWith("vlc\t", StringComparison.Ordinal)))
+                        throw new Exception("A stale foreground sample was recorded after her own open.");
                 }
                 else if (Favourites.Best("browser") != null || Favourites.FrontProgram() != null) throw new Exception("Mac learned an app with no front-app signal, or FrontProgram wasn't null.");
 

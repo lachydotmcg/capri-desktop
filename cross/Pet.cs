@@ -1119,7 +1119,7 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { try { Favourites.Save(); } catch (Exception) { } StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { Favourites.StopAndSave(); StopRemote(); StopMailWatch(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
             desktop.ShutdownRequested += delegate(object sender, ShutdownRequestedEventArgs e)
             {
                 bool on = Saved.RemoteOn;
@@ -1384,7 +1384,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = Now;
-            if (Program.Smoke == null && now - frontSampleAt >= 4) { frontSampleAt = now; try { Favourites.Sample(); } catch (Exception) { } }
+            if (Program.Smoke == null && now - frontSampleAt >= 4) { frontSampleAt = now; Favourites.SampleInBackground(); }
             TickClones();
             Desk.BindScreens(Screens.All);
             TickNameListening();

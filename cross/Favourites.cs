@@ -5,6 +5,8 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CapriDesktop
 {
@@ -25,6 +27,7 @@ namespace CapriDesktop
         private static readonly Dictionary<string, double> counts = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         private static readonly List<string> others = new List<string>();
         private static bool read;
+        private static int sampling, stopping, observationVersion;
         private static string marked;
         private static DateTime markedAt = DateTime.MinValue, faded = DateTime.MinValue, saved = DateTime.MinValue;
 
@@ -110,7 +113,7 @@ namespace CapriDesktop
         {
             string plain = Plain(program);
             if (plain.Length == 0) return;
-            lock (gate) { marked = plain; markedAt = Now(); }
+            lock (gate) { marked = plain; markedAt = Now(); observationVersion++; }
         }
 
         // What the app in front is called: the same program name her window list uses, so Best can find its app.
@@ -130,17 +133,43 @@ namespace CapriDesktop
 
         internal static void Sample()
         {
-            if (!Learning) return;
-            Seen(Front(), Now());
+            if (!Learning || Volatile.Read(ref stopping) != 0) return;
+            int version;
+            lock (gate) version = observationVersion;
+            string program = Front();
+            lock (gate)
+            {
+                if (stopping == 0 && observationVersion == version) Seen(program, Now());
+            }
+        }
+
+        // A slow desktop command or file write can outlive several ticks. Keep only one sample in flight.
+        internal static Task SampleInBackground()
+        {
+            if (!Learning || Volatile.Read(ref stopping) != 0 || Interlocked.CompareExchange(ref sampling, 1, 0) != 0)
+                return null;
+            return Task.Run(() =>
+            {
+                try { Sample(); }
+                catch (Exception) { }
+                finally { Volatile.Write(ref sampling, 0); }
+            });
         }
 
         internal static void Save() { lock (gate) { if (read) Write(); } }
+
+        internal static void StopAndSave()
+        {
+            Volatile.Write(ref stopping, 1);
+            Save();
+        }
 
         // Start over from what's on disk, which is also how a check reads its own file back.
         internal static void Reload()
         {
             lock (gate)
             {
+                observationVersion++;
                 counts.Clear();
                 marked = null;
                 markedAt = DateTime.MinValue;
