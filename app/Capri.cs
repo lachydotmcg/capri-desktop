@@ -47558,6 +47558,7 @@ namespace CapriDesktop
             Section(checks, "SmokePrivacy", delegate { SmokePrivacy(checks, output); });
             Section(checks, "SmokeMemoryWindow", delegate { SmokeMemoryWindow(checks, output); });
             Section(checks, "SmokeGifs", delegate { SmokeGifs(checks, output); });
+            Section(checks, "SmokeHolo", delegate { SmokeHolo(checks, output); });
         }
 
         // What her redaction keeps and hides, on its own, so a change to it is quick to check.

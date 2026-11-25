@@ -1,4 +1,6 @@
 using System;
+using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -11,16 +13,23 @@ namespace CapriDesktop
         private HoloWindow holoWindow;
         private HoloCallSource holoCallSource;
         private string holoDiscordSession;
-        private bool holoReturnToCompact, holoTyperWasVisible, holoCaptureExcluded, holoCaptureHidden;
+        private bool holoReturnToCompact, holoTyperWasVisible;
         private static volatile IntPtr holoHandle;
         private Timer holoCameraTimer;
         private int holoCameraTurn;
         private HoloCallSource holoCameraCall;
         private string holoCameraDiscordSession;
         private byte[][] holoCameraFrames;
+        private HoloArt holoCameraArt;
+        private System.Diagnostics.Stopwatch holoCameraClock;
+        private int holoCameraSent = -1, holoCameraSentAt;
 
-        [DllImport("user32.dll")]
-        private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
+        private static FontFamily HoloFamily(string role)
+        {
+            if (role == "mono") return Look.Face("Capri.Font.Mono.ttf");
+            if (role == "title") return Look.Face("Capri.Font.Title.ttf");
+            return null;
+        }
 
         internal static bool IsHoloWindow(IntPtr window) { return window != IntPtr.Zero && window == holoHandle; }
 
@@ -37,11 +46,7 @@ namespace CapriDesktop
             ToolStripMenuItem compact = new ToolStripMenuItem("Holocall", null, delegate
             {
                 if (HoloCompactSelected) LeaveHolo();
-                else
-                {
-                    HoloCallSource source = ActiveHoloCall();
-                    if (source != HoloCallSource.None) ShowHolo(false, source, false);
-                }
+                else ShowHolo(false, holoWindow == null ? ActiveHoloCall() : holoCallSource, false);
             });
             menu.Items.Add(full);
             menu.Items.Add(compact);
@@ -51,7 +56,6 @@ namespace CapriDesktop
             {
                 full.Checked = holoWindow != null && holoWindow.FullSize;
                 compact.Checked = HoloCompactSelected;
-                compact.Enabled = compact.Checked || ActiveHoloCall() != HoloCallSource.None;
                 camera.Text = holoCameraTurn != 0 ? "Stop Capri Camera feed" : "Start Capri Camera feed";
                 camera.Checked = holoCameraTurn != 0;
             };
@@ -85,6 +89,7 @@ namespace CapriDesktop
             Screen screen = previous != null ? Screen.FromControl(previous)
                 : Visible ? Screen.FromControl(this) : Screen.FromPoint(Cursor.Position);
             HoloWindow next;
+            HoloInk.Family = HoloFamily;
             try { next = new HoloWindow(full, ReadHoloView); }
             catch (Exception error)
             {
@@ -97,7 +102,6 @@ namespace CapriDesktop
             holoWindow = next;
             if (previous == null || holoCallSource != source) BindHoloCall(source);
             holoReturnToCompact = returnToCompact;
-            holoCaptureHidden = holoCaptureExcluded = false;
             if (previous != null) previous.Dispose();
             Hide();
             box.Hide();
@@ -107,18 +111,14 @@ namespace CapriDesktop
             ribbons.Stop();
             HideCallWindows();
 
-            next.HandleCreated += delegate
-            {
-                holoHandle = next.Handle;
-                try { holoCaptureExcluded = SetWindowDisplayAffinity(holoHandle, 0x11); }
-                catch (EntryPointNotFoundException) { holoCaptureExcluded = false; }
-            };
+            next.HandleCreated += delegate { holoHandle = next.Handle; };
             next.HandleDestroyed += delegate { holoHandle = IntPtr.Zero; };
             next.ClosePressed += BackFromHolo;
             next.FullSizePressed += ToggleHoloFullSize;
             next.MicPressed += delegate { if (holoCallSource == HoloCallSource.Windows) CallMic(); };
             next.EndPressed += EndHoloCall;
             next.CameraPressed += ToggleHoloCamera;
+            next.MenuPressed += delegate { menu.Show(Cursor.Position); };
             next.FormClosed += delegate { if (holoWindow == next) LeaveHolo(); };
             try { next.OpenOn(screen, preferences.OnTop); CheckHoloCall(); }
             catch (Exception error)
@@ -196,7 +196,6 @@ namespace CapriDesktop
             holoWindow = null;
             BindHoloCall(HoloCallSource.None);
             holoReturnToCompact = false;
-            holoCaptureHidden = false;
             leaving.Dispose();
             if (quitting) return;
             if (!hidden && !docked)
@@ -228,11 +227,15 @@ namespace CapriDesktop
             BindHoloCameraCall(ActiveHoloCall());
             try
             {
-                using (HoloArt art = new HoloArt(typeof(HoloWindow).Assembly, false))
-                    holoCameraFrames = new[] { HoloInk.CameraFrame(art.Pose(new HoloView())),
-                        HoloInk.CameraFrame(art.Pose(new HoloView { Speaking = true })),
-                        HoloInk.CameraFrame(art.Pose(new HoloView { Thinking = true })) };
-                holoCameraTimer = new Timer { Interval = 200 };
+                HoloInk.Family = HoloFamily;
+                holoCameraArt = new HoloArt(typeof(HoloWindow).Assembly);
+                holoCameraFrames = new[] { HoloInk.CameraFrame(holoCameraArt.Pose(HoloPose.Idle)),
+                    HoloInk.CameraFrame(holoCameraArt.Pose(HoloPose.Speaking)),
+                    HoloInk.CameraFrame(holoCameraArt.Pose(HoloPose.Thinking)) };
+                holoCameraClock = System.Diagnostics.Stopwatch.StartNew();
+                holoCameraSent = -1;
+                if (!preferences.Motion) { holoCameraArt.Dispose(); holoCameraArt = null; }
+                holoCameraTimer = new Timer { Interval = 33 };
                 holoCameraTimer.Tick += delegate { FeedHoloCamera(); };
                 FeedHoloCamera();
                 if (holoCameraTimer != null) holoCameraTimer.Start();
@@ -267,10 +270,33 @@ namespace CapriDesktop
                 Notice.Tell(HoloOwner, "Capri Camera could not start its portrait feed. Close other video senders and try again.", "Capri Camera", true);
                 return;
             }
+            double now = holoCameraClock.Elapsed.TotalSeconds;
+            if (holoCameraArt != null && now < holoCameraArt.IntroSeconds)
+            {
+                int index = (int)(now * HoloArt.Fps);
+                if (index != holoCameraSent)
+                {
+                    byte[] intro = holoCameraArt.IntroJpeg(index);
+                    if (intro != null) CameraOutput.SendPortrait(holoCameraTurn, intro);
+                    holoCameraSent = index;
+                    holoCameraSentAt = Environment.TickCount;
+                }
+                return;
+            }
+            if (holoCameraArt != null)
+            {
+                holoCameraArt.Dispose();
+                holoCameraArt = null;
+                holoCameraSent = -1;
+                holoCameraTimer.Interval = 66;
+            }
             HoloView view = new HoloView { Speaking = TalkingNow, Thinking = talkState == TalkState.Thinking };
             if (holoCameraCall == HoloCallSource.Discord) discordCompanion.ReadHoloVoice(holoCameraDiscordSession, view);
-            int pose = view.Speaking ? 1 : view.Thinking ? 2 : 0;
+            int pose = (int)HoloInk.PoseOf(view, now);
+            if (pose == holoCameraSent && unchecked(Environment.TickCount - holoCameraSentAt) < 500) return;
             CameraOutput.SendPortrait(holoCameraTurn, holoCameraFrames[pose]);
+            holoCameraSent = pose;
+            holoCameraSentAt = Environment.TickCount;
         }
 
         private void StopHoloCamera()
@@ -279,6 +305,9 @@ namespace CapriDesktop
             if (holoCameraTurn != 0) CameraOutput.EndPortrait(holoCameraTurn);
             holoCameraTurn = 0;
             holoCameraFrames = null;
+            if (holoCameraArt != null) { holoCameraArt.Dispose(); holoCameraArt = null; }
+            holoCameraClock = null;
+            holoCameraSent = -1;
             BindHoloCameraCall(HoloCallSource.None);
         }
 
@@ -292,19 +321,73 @@ namespace CapriDesktop
         private bool HoloUnseen(bool unseen)
         {
             HoloWindow window = holoWindow;
-            if (window == null || holoCaptureExcluded) return false;
-            if (unseen && window.Visible)
+            return window != null && window.Unseen(unseen);
+        }
+
+        private static bool Rosy(Color c) { return c.A > 150 && c.R > 180 && c.G < 90; }
+
+        private static void SaveScreen(Rectangle area, string file)
+        {
+            using (Bitmap shot = new Bitmap(Math.Max(1, area.Width), Math.Max(1, area.Height), System.Drawing.Imaging.PixelFormat.Format32bppArgb))
             {
-                holoCaptureHidden = true;
-                window.Hide();
-                return true;
+                using (Graphics canvas = Graphics.FromImage(shot)) canvas.CopyFromScreen(area.Location, Point.Empty, area.Size);
+                shot.Save(file, System.Drawing.Imaging.ImageFormat.Png);
             }
-            if (!unseen && holoCaptureHidden)
+        }
+
+        private void SmokeHolo(System.Collections.Generic.List<string> checks, string output)
+        {
+            HoloInk.Family = HoloFamily;
+            using (HoloArt art = new HoloArt(typeof(HoloWindow).Assembly))
             {
-                holoCaptureHidden = false;
-                window.Show();
+                if (art.IntroFrames < 60 || art.Pose(HoloPose.Idle).Width != 1920 || art.Pose(HoloPose.Speaking).Height != 1080)
+                    throw new Exception("Her Holocall art didn't load: " + art.IntroFrames + " opening frames.");
+                const float scale = 1.5f;
+                Size size = HoloInk.CompactSize(scale);
+                using (Bitmap face = HoloInk.Scaled(art.Pose(HoloPose.Speaking), HoloInk.FaceSize(scale), true))
+                using (Bitmap layer = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                {
+                    HoloScene scene = new HoloScene { Face = face, Time = 1, View = new HoloView { InCall = true, CanMute = true, CanEnd = true, CanCamera = true, CallName = "Squad VC", Speaking = true, Caption = "you guys hear me?", Elapsed = TimeSpan.FromSeconds(267) } };
+                    using (Graphics canvas = Graphics.FromImage(layer)) { canvas.Clear(Color.Transparent); HoloInk.DrawCompact(canvas, scale, scene); }
+                    layer.Save(Path.Combine(output, "holocall-compact.png"), System.Drawing.Imaging.ImageFormat.Png);
+                    RectangleF end = HoloInk.ActionBox(HoloAction.End, scale, false, size, scene.View);
+                    bool bracket = false, key = false;
+                    for (int d = -2; d <= 2 && !bracket; d++) bracket = Rosy(layer.GetPixel((int)(6 * scale) + d, (int)(40 * scale)));
+                    for (int x = (int)end.Left; x < (int)end.Right && !key; x++) key = Rosy(layer.GetPixel(x, (int)(end.Top + end.Height / 2)));
+                    if (!bracket || !key || layer.GetPixel(1, size.Height - 2).A != 0 || HoloInk.ActionAt(Point.Round(new PointF(end.X + end.Width / 2, end.Y + end.Height / 2)), scene.View, scale, false, size, 0) != HoloAction.End)
+                        throw new Exception("The Holocall frame didn't draw its corner brackets, end key and see-through edge.");
+                }
+                byte[] camera = HoloInk.CameraFrame(art.Pose(HoloPose.Idle)), intro = art.IntroJpeg(0);
+                File.WriteAllBytes(Path.Combine(output, "holocall-camera.jpg"), camera);
+                int w, h, iw, ih;
+                if (CapriCamera.Decode(camera, out w, out h) == null || w != 1280 || h != 720 || intro == null || CapriCamera.Decode(intro, out iw, out ih) == null || iw != 1280 || ih != 720)
+                    throw new Exception("Capri Camera's Holocall frames aren't 1280x720 pictures.");
             }
-            return false;
+            checks.Add("PASS her Holocall art: the opening and three poses load, the lean frame draws its corner brackets, keys and see-through edge, and Capri Camera gets 1280x720 portrait and opening frames");
+
+            bool shownBefore = Visible;
+            try
+            {
+                ShowHolo(false, HoloCallSource.None, false);
+                if (holoWindow == null || !holoWindow.Visible || holoWindow.FullSize || Visible || ActiveHoloCall() != HoloCallSource.None && holoCallSource == HoloCallSource.None)
+                    throw new Exception("Holocall didn't take her place on screen.");
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(900);
+                Application.DoEvents();
+                SaveScreen(Rectangle.Inflate(holoWindow.Bounds, 24, 24), Path.Combine(output, "holocall-window.png"));
+                ToggleHoloFullSize();
+                if (holoWindow == null || !holoWindow.FullSize || holoWindow.Bounds != Screen.FromControl(holoWindow).Bounds)
+                    throw new Exception("Full size didn't cover her screen.");
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(400);
+                Application.DoEvents();
+                SaveScreen(holoWindow.Bounds, Path.Combine(output, "holocall-full-size.png"));
+                ToggleHoloFullSize();
+                if (holoWindow != null) throw new Exception("Leaving full size opened from her menu didn't bring her back.");
+            }
+            finally { LeaveHolo(); }
+            if (holoWindow != null || shownBefore && !hidden && !docked && !Visible) throw new Exception("Leaving Holocall didn't bring her normal self back.");
+            checks.Add("PASS Holocall and full size: Holocall takes her place in a lean framed window, full size covers her whole screen, and leaving either brings her back");
         }
     }
 }
