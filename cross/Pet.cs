@@ -1106,7 +1106,7 @@ namespace CapriDesktop
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
-            MacFiles.Drops(body, HearDropped, HandMods);
+            MacFiles.Drops(body, HearNotTyped, HandMods);
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
@@ -6206,8 +6206,8 @@ namespace CapriDesktop
 
         internal void Hear(string text, bool fromVoice) { Hear(text, fromVoice, null); }
 
-        // A file they dropped is handed to her, not typed.
-        internal void HearDropped(string text) { Hear(text, false, null, null, false); }
+        // A file they dropped, or the first job her card hands over, is handed to her, not typed.
+        internal void HearNotTyped(string text) { Hear(text, false, null, null, false); }
 
         internal void HandMods(string[] paths)
         {

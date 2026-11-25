@@ -30,6 +30,27 @@ namespace CapriDesktop
             text = Regex.Replace(text, @"^(?:hey\s+)?capri(?:[\s,:.!?]+|$)", "", RegexOptions.IgnoreCase);
             return Regex.Replace(text, @"[\s,:.!?]+capri[.!?]*$", "", RegexOptions.IgnoreCase).Trim();
         }
+
+        // The Python gate decides which lines listening accepts, so her name on its own is decided the same way
+        // bridge/speech/name_chat.py's name_alone decides it: her name, then nothing but the greetings she answers to.
+        // Python's word characters are letters, numbers and underscore; .NET's \w also counts combining marks, so the
+        // name boundary is spelled out instead of \w to find the same name the Python gate finds.
+        internal static bool NameAlone(string text)
+        {
+            if (text == null) return false;
+            // The Python gate reads the NFKC form before deciding, so her name on its own is decided on that form too.
+            string normalized;
+            try { normalized = text.Normalize(NormalizationForm.FormKC); }
+            catch (ArgumentException) { normalized = text; }
+            const string word = @"[\p{L}\p{N}_]";
+            string name = @"(?<!" + word + @")capri(?!" + word + @")";
+            if (!Regex.IsMatch(normalized, name, RegexOptions.IgnoreCase)) return false;
+            string left = Regex.Replace(normalized, name, " ", RegexOptions.IgnoreCase);
+            foreach (string part in Regex.Split(left, @"[^\p{L}\p{N}]+"))
+                if (part.Length > 0 && !Regex.IsMatch(part, @"\A(?:hey|hi|hiya|hello|yo|ok|okay|oi|um|uh)\z", RegexOptions.IgnoreCase))
+                    return false;
+            return true;
+        }
     }
 
     internal sealed partial class Pet
@@ -530,14 +551,11 @@ namespace CapriDesktop
 
         internal void NameLineAccepted(string text)
         {
+            // Her name on its own is the cue to go ahead, decided exactly as the Python gate decides it, so a line it
+            // accepts as name-only never counts as a request. A line that carries one plays Heard you, like Windows.
+            if (NameListeningText.NameAlone(text)) { Chimes.Play(Chime.Listening); return; }
             string request = NameListeningText.Request(text);
-            // Her name on its own is the cue to go ahead; a line that already carries a request gets Heard you, like
-            // Windows. The two can't both sound, since any two chimes stay 300 ms apart.
-            if (request.Length == 0)
-            {
-                if (NameListeningText.Named(text)) Chimes.Play(Chime.Listening);
-                return;
-            }
+            if (request.Length == 0) return;
             Chimes.Play(Chime.Heard);
             Hear(request, true);
         }

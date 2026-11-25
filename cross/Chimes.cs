@@ -744,7 +744,7 @@ namespace CapriDesktop
                 pet.Hear("stop");
                 if (played.Count != 1 || !Same(played[0], Render(Glass, Chime.Sent, 40))) throw new Exception("A typed message didn't play Message sent once: " + played.Count);
                 now += 10000; played.Clear(); Reset();
-                pet.HearDropped("stop");
+                pet.HearNotTyped("stop");
                 if (played.Count != 0) throw new Exception("A dropped file played Message sent: " + played.Count);
                 now += 10000; played.Clear(); Reset();
                 pet.Listen = (decoding, stop) => Task.FromResult("stop");
@@ -764,8 +764,17 @@ namespace CapriDesktop
                 pet.NameLineAccepted("hey capri stop");
                 if (played.Count != 1 || !Same(played[0], Render(Glass, Chime.Heard, 40)))
                     throw new Exception("An accepted request line with her name didn't play Heard you once: " + played.Count);
+                now += 10000; played.Clear(); Reset();
+                pet.NameLineAccepted("Hi, Capri!");
+                if (played.Count != 1 || !Same(played[0], Render(Glass, Chime.Listening, 40)))
+                    throw new Exception("A name-only greeting did not play Listening.");
+                now += 10000; played.Clear(); Reset();
+                typeof(Pet).GetMethod("SendFirstJob", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(pet, new object[] { "stop" });
+                if (played.Count != 0)
+                    throw new Exception("A canned onboarding choice played Message sent.");
                 if (!NameListeningText.Named("hey capri") || NameListeningText.Named("stop")) throw new Exception("Her name check missed the name or found one that wasn't there.");
-                checks.Add("PASS chimes play on their events: a typed message plays Message sent, a dropped file plays none, a TALK line plays Heard you as it ends, Listen for Capri hearing her name on its own plays Listening, and an accepted request line plays Heard you");
+                checks.Add("PASS chimes play on their events: a typed message plays Message sent, a dropped file and a canned onboarding choice play none, a TALK line plays Heard you as it ends, Listen for Capri hearing her name on its own plays Listening, and an accepted request line plays Heard you");
 
                 now += 10000; played.Clear(); Reset(); ringing = 0;
                 if (!Play(Chime.Listening)) throw new Exception("The listening chime didn't play for the mask.");
