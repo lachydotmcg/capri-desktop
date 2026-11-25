@@ -52074,7 +52074,8 @@ namespace CapriDesktop
                 });
                 System.Windows.Forms.Timer test = new System.Windows.Forms.Timer();
                 test.Interval = 500;
-                int step = SmokeRun.NextStep;
+                int startStep = options.Step >= 0 ? SmokeRun.StartStep(options.Step) : 0;
+                int step = SmokeRun.NextStep < startStep ? startStep : SmokeRun.NextStep;
                 int thoughts = 0;
                 byte[] tone = null;
                 string voiced = null;
@@ -52159,11 +52160,13 @@ namespace CapriDesktop
                             SmokeRun.ValidateSelection(checks);
                             sectionsRun = true;
                         }
-                        if (!options.RunSteps || step > 22)
+                        if (!options.RunSteps || step > SmokeRun.LastStep)
                         {
                             TestFailed = checks.Exists(delegate(string line) { return line.StartsWith("FAIL ", StringComparison.Ordinal); });
                             TestFinished = true;
                             test.Stop();
+                            if (resetGlance != null) resetGlance();
+                            if (backdrop != null && !backdrop.IsDisposed) backdrop.Close();
                             SmokeRun.Complete(checks);
                             Close();
                             return;
@@ -65057,7 +65060,7 @@ namespace CapriDesktop
                             ((ToolStripMenuItem)menu.Items[menu.Items.Count - 1]).PerformClick();
                         }
                         SmokeRun.StepDone(step, true, checks);
-                        if (step == 22) SmokeRun.Complete(checks);
+                        if (step == SmokeRun.LastStep) SmokeRun.Complete(checks);
                         step++;
                     }
                     catch (Exception error)
