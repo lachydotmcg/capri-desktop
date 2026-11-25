@@ -23,6 +23,7 @@ namespace CapriDesktop
 
         private static readonly object gate = new object();
         private static readonly Dictionary<string, double> counts = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        private static readonly List<string> others = new List<string>();
         private static bool read;
         private static string marked;
         private static DateTime markedAt = DateTime.MinValue, faded = DateTime.MinValue, saved = DateTime.MinValue;
@@ -190,22 +191,29 @@ namespace CapriDesktop
         {
             if (read) return;
             read = true;
+            others.Clear();
             try
             {
                 if (string.IsNullOrEmpty(Kept) || !File.Exists(Kept)) return;
                 foreach (string row in File.ReadAllLines(Kept))
                 {
-                    int tab = (row ?? "").LastIndexOf('\t');
+                    string line = row ?? "";
+                    if (line.StartsWith("faded\t", StringComparison.OrdinalIgnoreCase))
+                    {
+                        DateTime when;
+                        if (DateTime.TryParse(line.Substring(6), CultureInfo.InvariantCulture, DateTimeStyles.None, out when)) faded = when.Date;
+                        continue;
+                    }
+                    int tab = line.LastIndexOf('\t');
                     double count;
-                    if (row.StartsWith("pick:", StringComparison.OrdinalIgnoreCase) || row.StartsWith("notthat:", StringComparison.OrdinalIgnoreCase)) continue;
-                    if (tab <= 0 || !double.TryParse(row.Substring(tab + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out count)) continue;
-                    if (row.StartsWith("faded\t", StringComparison.OrdinalIgnoreCase)) continue;
-                    counts[row.Substring(0, tab)] = count;
+                    if (tab > 0 && double.TryParse(line.Substring(tab + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out count)
+                        && !line.StartsWith("pick:", StringComparison.OrdinalIgnoreCase) && !line.StartsWith("notthat:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        counts[line.Substring(0, tab)] = count;
+                        continue;
+                    }
+                    if (line.Trim().Length > 0) others.Add(line);
                 }
-                DateTime when;
-                foreach (string row in File.ReadAllLines(Kept))
-                    if (row.StartsWith("faded\t", StringComparison.OrdinalIgnoreCase)
-                        && DateTime.TryParse(row.Substring(6), CultureInfo.InvariantCulture, DateTimeStyles.None, out when)) faded = when.Date;
             }
             catch (Exception) { }
         }
@@ -217,6 +225,7 @@ namespace CapriDesktop
                 if (string.IsNullOrEmpty(Kept)) return;
                 StringBuilder made = new StringBuilder();
                 made.Append("faded\t").Append(faded.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).Append(Environment.NewLine);
+                foreach (string one in others) made.Append(one).Append(Environment.NewLine);
                 foreach (KeyValuePair<string, double> one in counts)
                     made.Append(one.Key).Append('\t').Append(one.Value.ToString("0.##", CultureInfo.InvariantCulture)).Append(Environment.NewLine);
                 File.WriteAllText(Kept, made.ToString(), new UTF8Encoding(false));

@@ -7188,6 +7188,7 @@ namespace CapriDesktop
             Func<List<InstalledApp>> catalogWas = Hands.Catalog;
             Action<string> runWas = Hands.Run;
             Func<string, string> openedWas = Hands.Opened;
+            bool macWas = Hands.OnMac;
             DateTime morning = new DateTime(2026, 11, 24, 9, 0, 0);
             DateTime when = morning;
             string file = Path.Combine(folder, "apps-used-check.txt");
@@ -7264,6 +7265,10 @@ namespace CapriDesktop
                 File.WriteAllText(file, "faded\t2026-11-24\npick:browser\tfirefox\nnotthat:browser\tchromium\nfirefox\t3\n");
                 Favourites.Reload();
                 if (Favourites.Best("browser") != "firefox") throw new Exception("Favourites didn't keep a Windows apps-used.txt's counts, or counted a pick: " + (Favourites.Best("browser") ?? "null"));
+                string portable = File.ReadAllText(file).ReplaceLineEndings("\n");
+                Favourites.Save();
+                if (File.ReadAllText(file).ReplaceLineEndings("\n") != portable)
+                    throw new Exception("Saving learned counts discarded Windows preference records.");
 
                 Hands.Catalog = delegate
                 {
@@ -7352,15 +7357,25 @@ namespace CapriDesktop
                 }
                 else if (Favourites.Best("browser") != null || Favourites.FrontProgram() != null) throw new Exception("Mac learned an app with no front-app signal, or FrontProgram wasn't null.");
 
+                Hands.OnMac = false;
+                string linuxAppsHelp = SelfKnow.Matching("which browser do you open") ?? "";
+                Hands.OnMac = true;
+                string macAppsHelp = SelfKnow.Matching("which browser do you open") ?? "";
+                Hands.OnMac = macWas;
+                if (!linuxAppsHelp.Contains("She learns from the app in front") || !linuxAppsHelp.Contains("apps-used.txt")
+                    || !macAppsHelp.Contains("Learning which app you use most is off on a Mac") || macAppsHelp == linuxAppsHelp)
+                    throw new Exception("Cross app help lost its learning description or its Mac answer: " + linuxAppsHelp + " / " + macAppsHelp);
+
                 checks.Add(Favourites.Learning
-                    ? "PASS Favourites: her six app kinds and their words resolve (browser, calendar, music, images, editor and chat, with internet, diary, tunes, gallery, ide and messenger), junk and questions don't, three uses four minutes apart make an app hers while a repeat inside four minutes or her own open isn't counted, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back and keeps Windows' pick: and notthat: rows out of the counts, open my browser opens the learned app or else the first installed known browser and says \"I can't tell which browser is yours yet.\" when there's none, my editor opens the learned editor, and the sampler learns the app in front"
-                    : "PASS Favourites: on Mac learning is off because the shared surface has no front app, so the sampler counts nothing and FrontProgram is null, while her six app kinds and their words still resolve, three uses four minutes apart make an app hers, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back, and open my browser still tries the known browsers in order and says \"I can't tell which browser is yours yet.\" when there's none");
+                    ? "PASS Favourites: her six app kinds and their words resolve (browser, calendar, music, images, editor and chat, with internet, diary, tunes, gallery, ide and messenger), junk and questions don't, three uses four minutes apart make an app hers while a repeat inside four minutes or her own open isn't counted, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back, keeps Windows' pick: and notthat: rows out of the counts and writes them back on save, the app help gives Linux's learning description and Mac's learning-off answer, open my browser opens the learned app or else the first installed known browser and says \"I can't tell which browser is yours yet.\" when there's none, my editor opens the learned editor, and the sampler learns the app in front"
+                    : "PASS Favourites: on Mac learning is off because the shared surface has no front app, so the sampler counts nothing and FrontProgram is null, while her six app kinds and their words still resolve, three uses four minutes apart make an app hers, each count fades 0.95 a day and is dropped under 0.2, apps-used.txt reads back and saving writes back the rows it doesn't own, the app help gives Mac's learning-off answer and Linux's learning description, and open my browser still tries the known browsers in order and says \"I can't tell which browser is yours yet.\" when there's none");
             }
             finally
             {
                 Hands.Catalog = catalogWas;
                 Hands.Run = runWas;
                 Hands.Opened = openedWas;
+                Hands.OnMac = macWas;
                 Hands.Forget();
                 Favourites.Front = frontWas;
                 Favourites.Now = nowWas;
