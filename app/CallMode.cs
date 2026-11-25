@@ -381,6 +381,7 @@ namespace CapriDesktop
                 ChooseCallApp(back, backName);
             }
             typer.CallMode = on;
+            CheckHoloCall();
             SavePreferences();
             mainframe.VoiceNote(on ? "Call mode (beta) on. " + CallSession.EchoLine : "Call mode off.", false);
             if (!chatting && !testing && EarsAfterCall(on, wasChatting, preferences.ListenCapri, earsClosed)) ToggleChat();
@@ -405,7 +406,8 @@ namespace CapriDesktop
 
         private void ShowCallPanel()
         {
-            if (testing && !callWindowsTest) return;
+            if (quitting || testing && !callWindowsTest) return;
+            if (HoloShowing) { HideCallWindows(); return; }
             if (!CallModeOn && (callDismissed || callEndedAt == DateTime.MinValue || (DateTime.UtcNow - callEndedAt).TotalSeconds >= 6)) { HideCallWindows(); return; }
             if (callPanel == null) MakeCallWindows(CallViewNow);
             callPanel.TopMost = preferences.OnTop;
@@ -445,6 +447,7 @@ namespace CapriDesktop
 
         private void ShowCallWindow()
         {
+            if (HoloShowing) return;
             if (callSmall)
             {
                 if (!callPillPlaced)

@@ -66,7 +66,7 @@ namespace CapriDesktop
             internal string[] Speakers = new string[0];
             internal string JoinId;
             internal Action<string, bool> JoinAnswer;
-            internal int Replying, VoiceControlVersion;
+            internal int Replying, VoiceReplying, VoiceControlVersion;
         }
 
         private readonly object gate = new object(), preparing = new object();
@@ -89,8 +89,25 @@ namespace CapriDesktop
             this.transcribe = transcribe;
         }
 
-        internal bool InVoice { get { lock (gate) return active != null && active.SessionId != null; } }
+        internal bool InVoice { get { return VoiceSession != null; } }
+        internal string VoiceSession { get { lock (gate) return active == null ? null : active.SessionId; } }
         internal bool Linked { get { lock (gate) return active != null || File.Exists(saved); } }
+
+        internal void ReadHoloVoice(string session, HoloView view)
+        {
+            lock (gate)
+            {
+                Run run = active;
+                if (run == null || session == null || run.SessionId != session) return;
+                view.InCall = true;
+                view.Captions = false;
+                view.CanEnd = !run.Leaving;
+                view.CallName = run.Channel ?? "Discord";
+                view.Elapsed = DateTime.UtcNow - run.JoinedAt;
+                view.Speaking = Array.IndexOf(run.Speakers, run.AppId) >= 0;
+                view.Thinking = Volatile.Read(ref run.VoiceReplying) != 0 && !view.Speaking;
+            }
+        }
 
         internal static bool SavedToken(string data) { return File.Exists(Path.Combine(data, DataFolder, TokenFile)); }
 
@@ -459,6 +476,7 @@ namespace CapriDesktop
                 SendReply(run, id, voice ? null : "Capri is finishing the previous turn.", null, false);
                 return;
             }
+            if (voice) Volatile.Write(ref run.VoiceReplying, 1);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string text = null, voiced = null;
@@ -511,6 +529,7 @@ namespace CapriDesktop
                 }
                 finally
                 {
+                    if (voice) Volatile.Write(ref run.VoiceReplying, 0);
                     Interlocked.Exchange(ref run.Replying, 0);
                     if (current()) SendReply(run, id, text, voiced, quiet);
                     else if (active == run && session.Current(version)) SendReply(run, id, null, null, false);
@@ -558,7 +577,7 @@ namespace CapriDesktop
                         delegate(string words, CallSession session, int version, Func<bool> current)
                         { return brain.AskCall(words, session, version, current); }, DiscordVoice,
                         delegate(short[] samples) { return Hearing.Text(samples, parakeet); });
-                    discordCompanion.VoiceStateChanged += delegate { Post(RefreshEarsModel); };
+                    discordCompanion.VoiceStateChanged += delegate { Post(delegate { CheckHoloCall(); RefreshEarsModel(); }); };
                 }
                 return discordCompanion;
             }

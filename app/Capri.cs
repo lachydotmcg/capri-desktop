@@ -3222,6 +3222,7 @@ namespace CapriDesktop
             AddSize(sizes, "Huge", 440);
             AddSize(sizes, "Giant", 560);
             menu.Items.Add(sizes);
+            AddHoloModes(menu);
             ToolStripMenuItem moves = new ToolStripMenuItem("Move");
             wanderItem = new ToolStripMenuItem("Wander around", null, delegate { ToggleWander(); });
             wanderItem.Checked = preferences.Wander;
@@ -3731,7 +3732,7 @@ namespace CapriDesktop
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
             // or clear her running marker: WM_ENDSESSION clears it once the shutdown is certain.
-            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); SquadOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
+            if (!e.Cancel) { quitting = true; LeaveHolo(); CloseCameraOutput(); if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); SquadOff(); CheckKeepAwake(); Computer.Close(); CloseHerComputer(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
         }
 
         private void Tick()
@@ -3745,6 +3746,7 @@ namespace CapriDesktop
             if (frames.Interval != interval) frames.Interval = interval;
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
             if ((docked || hidden) && gifCard.Showing) gifCard.Stop();
+            if (HoloShowing && !docked) { UpdateTalk(now); return; }
             if (docked) { DockTick(now); if (iconRampage != null) frames.Start(); return; }
             if (hidden) { if (iconRampage != null) ClearIcons(); frames.Stop(); return; }
             if (riding) FollowCursor(); else if (onPanel) HoldPanel(); else if (falling) Tumble(now); else if (seat != null) HoldSeat(now);
@@ -7130,7 +7132,12 @@ namespace CapriDesktop
         internal void Quit()
         {
             if (fileEditor != null && !fileEditor.Clear(Quit)) return;
-            quitting = true; ClearMarks(); if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); quitClose = Close; GlitchOut(quitClose);
+            quitting = true;
+            bool fromHolo = HoloShowing;
+            LeaveHolo();
+            ClearMarks(); if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake();
+            if (fromHolo) Close();
+            else { quitClose = Close; GlitchOut(quitClose); }
         }
 
         private void StartHeartbeat()
@@ -10415,6 +10422,7 @@ namespace CapriDesktop
             // Fullscreen does not take her controls away (Lachy, 2 Nov: keep her draggable and clickable).
             bool through = full && !docked;
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
+            if (HoloShowing) return;
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked && !PlayingGame;
             if (fullScreenHidden == shouldHide) return;
             // Hiding closes her bubble and her voice with it, so she finishes her line first.
@@ -11073,10 +11081,10 @@ namespace CapriDesktop
         {
             // Her mini player and her reactions feed too, so they never hide what she's working on, and her glow where Windows can't
             // keep it out of screenshots by itself.
-            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen);
+            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen) | HoloUnseen(unseen);
             try
             {
-                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen); }));
+                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen) | HoloUnseen(unseen); }));
                 return unseen && done.AsyncWaitHandle.WaitOne(1000) && (bool)EndInvoke(done);
             }
             catch (InvalidOperationException) { return false; }
@@ -14632,7 +14640,7 @@ namespace CapriDesktop
         private void UpdatePill(double now)
         {
             if (!IsHandleCreated) return;
-            bool allowed = !hidden && !riding && !onPanel && !dragging && !pressed && !falling;
+            bool allowed = !hidden && !HoloShowing && !riding && !onPanel && !dragging && !pressed && !falling;
             Point cursor = Cursor.Position;
             Point inside = PointToClient(cursor);
             bool near = frame != null && inside.X >= 0 && inside.Y >= 0 && inside.X < Width && inside.Y < Height && Solid(inside, true);
@@ -16985,7 +16993,7 @@ namespace CapriDesktop
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
             if (jealousOffer == null && !box.Choosing && replyDone >= 0 && hdSpeaking != asking && (!reminderUp || answerVoice != asking) && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(false); return; }
-            if (hidden && !docked && !ReminderShown(now)) { if (box.Visible) box.Hide(); return; }
+            if (HoloShowing || hidden && !docked && !ReminderShown(now)) { if (box.Visible) box.Hide(); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
@@ -17018,7 +17026,7 @@ namespace CapriDesktop
 
         private void RenderFrame()
         {
-            if (!IsHandleCreated || hidden || docked || IsDisposed) return;
+            if (!IsHandleCreated || hidden || docked || HoloShowing || IsDisposed) return;
             double now = clock.Elapsed.TotalSeconds;
             int cell = Advance(now);
             if (arrivalDue)
@@ -66995,8 +67003,9 @@ namespace CapriDesktop
         internal static bool FillsScreen()
         {
             if (FakedGaming.HasValue) return FakedGaming.Value;
-            if (Exclusive()) return true;
             IntPtr front = GetForegroundWindow();
+            if (Companion.IsHoloWindow(front)) return false;
+            if (Exclusive()) return true;
             if (front == IntPtr.Zero || IsZoomed(front) || Titled(front)) return false;
             if (Overlay(GetWindowLong(front, -20))) return false;
             if (Gaming()) return true;
