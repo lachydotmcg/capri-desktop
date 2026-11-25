@@ -19,6 +19,9 @@ internal sealed class AliasGroup
 internal sealed class Contract
 {
     internal string App, Setting, Cross;
+    // Keys the cross search adds beyond Windows', because its row is worded differently. Everything else must match
+    // both ways, so a key dropped on either side fails the pin.
+    internal string[] Extra;
 }
 
 internal static class SettingsSearch
@@ -41,6 +44,7 @@ internal static class SettingsSearch
         new[] { "Language", "language" },
         new[] { "Listen for Hey Capri", "listen", "wake word", "hey capri" },
         new[] { "Start at login", "startup", "start up", "start with windows", "login" },
+        new[] { "Lite mode", "lite mode", "slow", "lag", "laggy" },
         new[] { "Brain API key", "api key", "key" },
         new[] { "Free key", "api key", "key" },
         new[] { "ChatGPT plan", "api key", "key" },
@@ -59,9 +63,9 @@ internal static class SettingsSearch
         new Contract { App = "comments", Setting = "Comments", Cross = null },
         new Contract { App = "listenCapri", Setting = "Listen for Capri", Cross = "Listen for Hey Capri" },
         new Contract { App = "volume", Setting = "Volume", Cross = "Volume" },
-        new Contract { App = "startup", Setting = "Start with Windows", Cross = "Start at login" },
+        new Contract { App = "startup", Setting = "Start with Windows", Cross = "Start at login", Extra = new[] { "login" } },
         new Contract { App = "languages", Setting = "I speak", Cross = "Language" },
-        new Contract { App = "liteMode", Setting = "Lite mode", Cross = null },
+        new Contract { App = "liteMode", Setting = "Lite mode", Cross = "Lite mode" },
         new Contract { App = "PlugTile", Setting = "Plug-ins", Cross = "Plug-ins" }
     };
 
@@ -277,6 +281,16 @@ internal static class SettingsSearch
                     "app/MainframeSearch.cs gives '" + one.Setting + "' the key '" + word + "' at line " + group.Line
                     + ", but cross/MainframeSearch.cs has no such key on '" + one.Cross + "'; both searches must answer the same words");
                 sharedWords++;
+            }
+            foreach (string other in words)
+            {
+                bool found = false;
+                foreach (string word in group.Words) if (word == other) { found = true; break; }
+                bool extra = false;
+                if (one.Extra != null) foreach (string word in one.Extra) if (word == other) { extra = true; break; }
+                Require(found || extra,
+                    "cross/MainframeSearch.cs gives '" + one.Cross + "' the key '" + other + "', but app/MainframeSearch.cs has no such key for '"
+                    + one.Setting + "' and it is not one of its cross-only keys; both searches must answer the same words");
             }
             shared++;
         }

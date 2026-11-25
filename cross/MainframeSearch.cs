@@ -189,6 +189,7 @@ namespace CapriDesktop
             Also(index, "Brain API key", 0, "api key", "key");
             Also(index, "Free key", 1, "api key", "key");
             Also(index, "ChatGPT plan", 2, "api key", "key");
+            Also(index, "Lite mode", 0, "lite mode", "slow", "lag", "laggy");
             index.Sort((one, other) => one.Page != other.Page ? one.Page.CompareTo(other.Page) : one.Y != other.Y ? one.Y.CompareTo(other.Y) : one.X.CompareTo(other.X));
             searchIndex = index;
             return index;
